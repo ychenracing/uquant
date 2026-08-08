@@ -1,0 +1,35 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "unified-ai-quant"
+version = "1.0.0"
+description = "Causal A-share AI-chain daily quantitative decision system"
+readme = "README.md"
+requires-python = ">=3.11"
+license = { text = "MIT" }
+dependencies = ["numpy>=1.26,<3", "pandas>=2.0,<4"]
+
+[project.optional-dependencies]
+data = ["akshare>=1.17,<2"]
+dev = ["pytest>=8", "ruff>=0.8"]
+
+[project.scripts]
+unified-ai-quant = "unified_ai_quant.cli:main"
+
+[tool.setuptools.packages.find]
+include = ["unified_ai_quant*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"
+
+[tool.ruff]
+line-length = 110
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I"]
+ignore = ["E501"]
+

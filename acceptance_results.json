@@ -1,0 +1,1356 @@
+{
+  "schema_version": 2,
+  "generated_by": "unified_ai_quant.validation.runner",
+  "full_status": "NOT FULLY ACCEPTED",
+  "release_level": "CANDIDATE",
+  "quick_mode": false,
+  "phase0_status": "PARTIAL_FAIL",
+  "evidence_chain": {
+    "production_code_sha256": "0faeb14dc5a1ff33892df18226d308038fcf22b25df97c890297365420bff586",
+    "validation_code_sha256": "37dedcd9546c14c40d2ac8108cfec282fe6b26d824a97d87031467b8a028ec85",
+    "data_sha256": "661256b6c707d083f0295546e2aca9b22935bd9b909ecfb77db97e487436d3f0",
+    "implementation_spec_sha256": "f557207504d7724a88b70f8e5c7324d71b91d304aafd9dddaa708ff113abbd76",
+    "acceptance_spec_sha256": "17cfb25bcd5e56b94ea13ff466c1a7bb28b163db7f113835b7c0be7c886abbd7",
+    "benchmark_lock_sha256": "f919ee460c85b49ec55e2d23686098148b35b866496c4342475fa66145d1b6dc",
+    "phase0_baseline_sha256": "151b9bcb38a19556aa762459a9d2927b29d37af30ab63658041f032255b45d1d",
+    "stress_results_sha256": "6b980bea4eb8b3aa1f8ef259333eb21bd8c7a89bb4bd205169fa6cb7f9ee2539",
+    "robustness_results_sha256": "4f4762b83f96f967d32ca92ff5242fc2e86477b0910688907ec6b506076c592e"
+  },
+  "matrix": {
+    "a": {
+      "bull": {
+        "final_wealth": 12.007952169808993,
+        "total_return": 11.007952169808993,
+        "max_drawdown": 0.15511503186330544,
+        "account_orders": 9,
+        "sharpe": 3.6417520279703552,
+        "calmar": 40.79764720459496,
+        "worst_20d": -0.14030931182346995,
+        "worst_60d": -0.05303936258421704
+      },
+      "bear_2022": {
+        "final_wealth": 0.9413424289576001,
+        "total_return": -0.05865757104239988,
+        "max_drawdown": 0.07084898008576146,
+        "account_orders": 15,
+        "sharpe": -1.0929618785528608,
+        "calmar": -0.8279240007604332,
+        "worst_20d": -0.07077137220221996,
+        "worst_60d": -0.07077137220221996
+      },
+      "choppy_2024": {
+        "final_wealth": 1.1231214908386875,
+        "total_return": 0.12312149083868751,
+        "max_drawdown": 0.014714349094069767,
+        "account_orders": 4,
+        "sharpe": 1.6499570954493286,
+        "calmar": 8.36744391828439,
+        "worst_20d": 0.0,
+        "worst_60d": 0.0
+      },
+      "through_july": {
+        "final_wealth": 10.550782170404991,
+        "total_return": 9.550782170404991,
+        "max_drawdown": 0.16994194473586743,
+        "account_orders": 12,
+        "sharpe": 3.3553718589650274,
+        "calmar": 29.87206509523866,
+        "worst_20d": -0.16994194473586743,
+        "worst_60d": -0.05303936258421704
+      }
+    },
+    "b": {
+      "bull": {
+        "final_wealth": 12.645447616356932,
+        "total_return": 11.645447616356932,
+        "max_drawdown": 0.15501626543295977,
+        "account_orders": 11,
+        "sharpe": 3.710183933834517,
+        "calmar": 42.824401948520055,
+        "worst_20d": -0.14021381132266109,
+        "worst_60d": -0.05299837755801484
+      },
+      "bear_2022": {
+        "final_wealth": 1.0061459372095003,
+        "total_return": 0.006145937209500296,
+        "max_drawdown": 0.07084898008576146,
+        "account_orders": 17,
+        "sharpe": 0.11050814201680889,
+        "calmar": 0.086747010360075,
+        "worst_20d": -0.07077137220221996,
+        "worst_60d": -0.07077137220221996
+      },
+      "choppy_2024": {
+        "final_wealth": 1.1231214908386875,
+        "total_return": 0.12312149083868751,
+        "max_drawdown": 0.014714349094069767,
+        "account_orders": 4,
+        "sharpe": 1.6499570954493286,
+        "calmar": 8.36744391828439,
+        "worst_20d": 0.0,
+        "worst_60d": 0.0
+      },
+      "through_july": {
+        "final_wealth": 11.11133389578093,
+        "total_return": 10.11133389578093,
+        "max_drawdown": 0.16991742945882315,
+        "account_orders": 14,
+        "sharpe": 3.4213510545535595,
+        "calmar": 31.322559500118526,
+        "worst_20d": -0.16991742945882315,
+        "worst_60d": -0.05299837755801484
+      }
+    },
+    "c": {
+      "bull": {
+        "final_wealth": 12.645447616356932,
+        "total_return": 11.645447616356932,
+        "max_drawdown": 0.15501626543295977,
+        "account_orders": 11,
+        "sharpe": 3.710183933834517,
+        "calmar": 42.824401948520055,
+        "worst_20d": -0.14021381132266109,
+        "worst_60d": -0.05299837755801484
+      },
+      "bear_2022": {
+        "final_wealth": 1.0061459372095003,
+        "total_return": 0.006145937209500296,
+        "max_drawdown": 0.07084898008576146,
+        "account_orders": 17,
+        "sharpe": 0.11050814201680889,
+        "calmar": 0.086747010360075,
+        "worst_20d": -0.07077137220221996,
+        "worst_60d": -0.07077137220221996
+      },
+      "choppy_2024": {
+        "final_wealth": 0.9885916782189462,
+        "total_return": -0.011408321781053776,
+        "max_drawdown": 0.1026403281282573,
+        "account_orders": 16,
+        "sharpe": -0.1435092952023219,
+        "calmar": -0.11114853185970106,
+        "worst_20d": -0.09890609861038491,
+        "worst_60d": -0.06349935451754685
+      },
+      "through_july": {
+        "final_wealth": 11.11133389578093,
+        "total_return": 10.11133389578093,
+        "max_drawdown": 0.16991742945882315,
+        "account_orders": 14,
+        "sharpe": 3.4213510545535595,
+        "calmar": 31.322559500118526,
+        "worst_20d": -0.16991742945882315,
+        "worst_60d": -0.05299837755801484
+      }
+    },
+    "d": {
+      "bull": {
+        "final_wealth": 12.645447616356932,
+        "total_return": 11.645447616356932,
+        "max_drawdown": 0.15501626543295977,
+        "account_orders": 11,
+        "sharpe": 3.710183933834517,
+        "calmar": 42.824401948520055,
+        "worst_20d": -0.14021381132266109,
+        "worst_60d": -0.05299837755801484
+      },
+      "bear_2022": {
+        "final_wealth": 1.1139231430260002,
+        "total_return": 0.11392314302600015,
+        "max_drawdown": 0.044976491159443466,
+        "account_orders": 6,
+        "sharpe": 1.2435028612538483,
+        "calmar": 2.5329486602709412,
+        "worst_20d": -0.01977435741852973,
+        "worst_60d": 0.0
+      },
+      "choppy_2024": {
+        "final_wealth": 0.9885916782189462,
+        "total_return": -0.011408321781053776,
+        "max_drawdown": 0.1026403281282573,
+        "account_orders": 16,
+        "sharpe": -0.1435092952023219,
+        "calmar": -0.11114853185970106,
+        "worst_20d": -0.09890609861038491,
+        "worst_60d": -0.06349935451754685
+      },
+      "through_july": {
+        "final_wealth": 11.11133389578093,
+        "total_return": 10.11133389578093,
+        "max_drawdown": 0.16991742945882315,
+        "account_orders": 14,
+        "sharpe": 3.4213510545535595,
+        "calmar": 31.322559500118526,
+        "worst_20d": -0.16991742945882315,
+        "worst_60d": -0.05299837755801484
+      }
+    },
+    "e": {
+      "bull": {
+        "final_wealth": 12.645447616356932,
+        "total_return": 11.645447616356932,
+        "max_drawdown": 0.15501626543295977,
+        "account_orders": 11,
+        "sharpe": 3.710183933834517,
+        "calmar": 42.824401948520055,
+        "worst_20d": -0.14021381132266109,
+        "worst_60d": -0.05299837755801484
+      },
+      "bear_2022": {
+        "final_wealth": 1.1222834828084103,
+        "total_return": 0.12228348280841028,
+        "max_drawdown": 0.044647636710538396,
+        "account_orders": 5,
+        "sharpe": 1.2498051543573634,
+        "calmar": 2.7388567865574647,
+        "worst_20d": -0.019625986515796834,
+        "worst_60d": 0.0
+      },
+      "choppy_2024": {
+        "final_wealth": 0.9885916782189462,
+        "total_return": -0.011408321781053776,
+        "max_drawdown": 0.1026403281282573,
+        "account_orders": 16,
+        "sharpe": -0.1435092952023219,
+        "calmar": -0.11114853185970106,
+        "worst_20d": -0.09890609861038491,
+        "worst_60d": -0.06349935451754685
+      },
+      "through_july": {
+        "final_wealth": 11.11133389578093,
+        "total_return": 10.11133389578093,
+        "max_drawdown": 0.16991742945882315,
+        "account_orders": 14,
+        "sharpe": 3.4213510545535595,
+        "calmar": 31.322559500118526,
+        "worst_20d": -0.16991742945882315,
+        "worst_60d": -0.05299837755801484
+      }
+    }
+  },
+  "primary_common_cell": {
+    "new": {
+      "final_wealth": 12.645447616356932,
+      "total_return": 11.645447616356932,
+      "max_drawdown": 0.15501626543295977,
+      "account_orders": 11
+    },
+    "qwenquant": {
+      "total_return": 11.759461,
+      "final_wealth": 12.759461,
+      "max_drawdown": 0.20589,
+      "account_orders": 9
+    },
+    "aquant": {
+      "total_return": 6.955328394364977,
+      "final_wealth": 7.955328394364977,
+      "max_drawdown": 0.1745616481465524,
+      "account_orders": 30
+    },
+    "trade": {
+      "total_return": 3.786129366764877,
+      "final_wealth": 4.786129366764877,
+      "max_drawdown": 0.1551819224420469,
+      "account_orders": 229
+    }
+  },
+  "dominated_cells": 0,
+  "best_or_near_best_return_cells_qwen_reference_only": 3,
+  "final_gates": {
+    "Correctness": true,
+    "Production replay": true,
+    "No future leakage": true,
+    "Bull non-inferiority": false,
+    "Bear non-inferiority": false,
+    "Choppy non-inferiority": false,
+    "Acute risk": false,
+    "Trade count": false,
+    "Random stress": true,
+    "Add/drop": false,
+    "Leader quality": false,
+    "Risk lead-time": false,
+    "Parameter stability": true,
+    "Holdback": false,
+    "No dependency on old projects": true
+  },
+  "results": [
+    {
+      "id": "A1",
+      "status": "PASS",
+      "actual": {
+        "suite": "........................                                                 [100%]",
+        "required": [
+          "test_future_mutation_does_not_change_historical_features"
+        ],
+        "missing": []
+      },
+      "threshold": "all named contract tests collected and suite passes",
+      "evidence": "future mutation"
+    },
+    {
+      "id": "A2",
+      "status": "PASS",
+      "actual": {
+        "suite": "........................                                                 [100%]",
+        "required": [
+          "test_next_open_and_t1_enforced"
+        ],
+        "missing": []
+      },
+      "threshold": "all named contract tests collected and suite passes",
+      "evidence": "next-open fill date"
+    },
+    {
+      "id": "A3",
+      "status": "PASS",
+      "actual": {
+        "suite": "........................                                                 [100%]",
+        "required": [
+          "test_next_open_and_t1_enforced",
+          "test_sellable_shares_are_tranche_based"
+        ],
+        "missing": []
+      },
+      "threshold": "all named contract tests collected and suite passes",
+      "evidence": "tranche T+1"
+    },
+    {
+      "id": "A4",
+      "status": "PASS",
+      "actual": {
+        "suite": "........................                                                 [100%]",
+        "required": [
+          "test_continuous_up_limits_remain_pending_until_market_reopens",
+          "test_continuous_down_limits_retain_sell_until_market_reopens"
+        ],
+        "missing": []
+      },
+      "threshold": "all named contract tests collected and suite passes",
+      "evidence": "limit boards"
+    },
+    {
+      "id": "A5",
+      "status": "PASS",
+      "actual": {
+        "suite": "........................                                                 [100%]",
+        "required": [
+          "test_limit_and_suspension_keep_pending"
+        ],
+        "missing": []
+      },
+      "threshold": "all named contract tests collected and suite passes",
+      "evidence": "suspension"
+    },
+    {
+      "id": "A6",
+      "status": "PASS",
+      "actual": {
+        "suite": "........................                                                 [100%]",
+        "required": [
+          "test_large_opening_gap_reprices_target_and_preserves_weight_cap",
+          "test_sells_release_cash_before_buys"
+        ],
+        "missing": []
+      },
+      "threshold": "all named contract tests collected and suite passes",
+      "evidence": "cash invariants"
+    },
+    {
+      "id": "A7",
+      "status": "PASS",
+      "actual": {
+        "suite": "........................                                                 [100%]",
+        "required": [
+          "test_determinism_one_target_and_hard_constraints",
+          "test_large_opening_gap_reprices_target_and_preserves_weight_cap"
+        ],
+        "missing": []
+      },
+      "threshold": "all named contract tests collected and suite passes",
+      "evidence": "60% cap"
+    },
+    {
+      "id": "A8",
+      "status": "PASS",
+      "actual": {
+        "suite": "........................                                                 [100%]",
+        "required": [
+          "test_determinism_one_target_and_hard_constraints"
+        ],
+        "missing": []
+      },
+      "threshold": "all named contract tests collected and suite passes",
+      "evidence": "six-position cap"
+    },
+    {
+      "id": "A9",
+      "status": "PASS",
+      "actual": {
+        "suite": "........................                                                 [100%]",
+        "required": [
+          "test_fee_formula_is_recomputable"
+        ],
+        "missing": []
+      },
+      "threshold": "all named contract tests collected and suite passes",
+      "evidence": "recomputable fees"
+    },
+    {
+      "id": "A10",
+      "status": "PASS",
+      "actual": {
+        "suite": "........................                                                 [100%]",
+        "required": [
+          "test_determinism_one_target_and_hard_constraints"
+        ],
+        "missing": []
+      },
+      "threshold": "all named contract tests collected and suite passes",
+      "evidence": "decision determinism"
+    },
+    {
+      "id": "B1",
+      "status": "PASS",
+      "actual": {
+        "suite": "........................                                                 [100%]",
+        "required": [
+          "test_backtest_and_daily_share_decision_kernel"
+        ],
+        "missing": []
+      },
+      "threshold": "all named contract tests collected and suite passes",
+      "evidence": "daily/backtest kernel"
+    },
+    {
+      "id": "B2",
+      "status": "PASS",
+      "actual": {
+        "suite": "........................                                                 [100%]",
+        "required": [
+          "test_backtest_and_daily_share_decision_kernel"
+        ],
+        "missing": []
+      },
+      "threshold": "all named contract tests collected and suite passes",
+      "evidence": "day-by-day account replay"
+    },
+    {
+      "id": "B3",
+      "status": "PASS",
+      "actual": {
+        "suite": "........................                                                 [100%]",
+        "required": [
+          "test_state_round_trip_and_fail_closed_hashes"
+        ],
+        "missing": []
+      },
+      "threshold": "all named contract tests collected and suite passes",
+      "evidence": "state persistence"
+    },
+    {
+      "id": "B4",
+      "status": "PASS",
+      "actual": {
+        "suite": "........................                                                 [100%]",
+        "required": [
+          "test_data_contract_and_manifest",
+          "test_state_round_trip_and_fail_closed_hashes",
+          "test_future_dated_state_fails_closed",
+          "test_stale_code_hash_fails_closed"
+        ],
+        "missing": []
+      },
+      "threshold": "all named contract tests collected and suite passes",
+      "evidence": "fail closed"
+    },
+    {
+      "id": "B5",
+      "status": "PASS",
+      "actual": {
+        "suite": "........................                                                 [100%]",
+        "required": [
+          "test_determinism_one_target_and_hard_constraints"
+        ],
+        "missing": []
+      },
+      "threshold": "all named contract tests collected and suite passes",
+      "evidence": "one target"
+    },
+    {
+      "id": "C1",
+      "status": "FAIL",
+      "actual": {
+        "pool_b_common_adapter_pass": true,
+        "qwen_reference_by_pool": {
+          "a": true,
+          "b": true,
+          "c": true,
+          "d": false,
+          "e": false
+        },
+        "fully_comparable_pools": [
+          "b"
+        ]
+      },
+      "threshold": "every primary pool >=99% of best among all three old systems",
+      "evidence": "pool b passes; four pools lack three-way common-adapter baselines"
+    },
+    {
+      "id": "C2",
+      "status": "FAIL",
+      "actual": {
+        "qwen_reference_near_best_rate": 0.6,
+        "three_way_rate": null
+      },
+      "threshold": ">=60% of all three-way comparable primary bull cells",
+      "evidence": "qwen-only rate is 60%; the mandatory three-way matrix is incomplete"
+    },
+    {
+      "id": "C3",
+      "status": "FAIL",
+      "actual": {
+        "new_orders": 11,
+        "qwen_orders": 9,
+        "wealth_ratio": 0.9910644043942712
+      },
+      "threshold": "orders <= qwen +5%, unless wealth improves >=5%",
+      "evidence": "strict C3 economic-margin rule"
+    },
+    {
+      "id": "C4",
+      "status": "FAIL",
+      "actual": {
+        "evaluated": false,
+        "reason": "common old-system exit attribution is unavailable"
+      },
+      "threshold": "false-exit regret better than old median",
+      "evidence": "common old-system exit attribution is unavailable"
+    },
+    {
+      "id": "D1",
+      "status": "PASS",
+      "actual": 0.15501626543295977,
+      "threshold": 0.1601819224420469,
+      "evidence": "common-adapter pool-b replay"
+    },
+    {
+      "id": "D2",
+      "status": "PASS",
+      "actual": {
+        "scenario_count": 900,
+        "return_median": 1.6263625006946976,
+        "return_p10": 0.009519401339811218,
+        "return_worst": -0.06606568159289994,
+        "drawdown_p90": 0.17195419379229782,
+        "drawdown_worst": 0.21135278994086237,
+        "orders_p90": 14.0,
+        "orders_worst": 15
+      },
+      "threshold": {
+        "p90": 0.2,
+        "worst": 0.25,
+        "trade": {
+          "scenario_count": 983,
+          "random_drawdown_p90": 0.18848588756503767,
+          "random_drawdown_worst": 0.2120727662037726,
+          "random_orders_p90": 48.0,
+          "worst_add_one_wealth_change": -0.1680246566290624
+        }
+      },
+      "evidence": "900 current production replays"
+    },
+    {
+      "id": "D3",
+      "status": "FAIL",
+      "actual": {
+        "quantitative_pass": true,
+        "median_return": 0.006145937209500296,
+        "p90_dd": 0.07084898008576146,
+        "worst_dd": 0.07084898008576146,
+        "pools": {
+          "a": {
+            "final_wealth": 0.9413424289576001,
+            "total_return": -0.05865757104239988,
+            "max_drawdown": 0.07084898008576146,
+            "account_orders": 15,
+            "sharpe": -1.0929618785528608,
+            "calmar": -0.8279240007604332,
+            "worst_20d": -0.07077137220221996,
+            "worst_60d": -0.07077137220221996
+          },
+          "b": {
+            "final_wealth": 1.0061459372095003,
+            "total_return": 0.006145937209500296,
+            "max_drawdown": 0.07084898008576146,
+            "account_orders": 17,
+            "sharpe": 0.11050814201680889,
+            "calmar": 0.086747010360075,
+            "worst_20d": -0.07077137220221996,
+            "worst_60d": -0.07077137220221996
+          },
+          "c": {
+            "final_wealth": 1.0061459372095003,
+            "total_return": 0.006145937209500296,
+            "max_drawdown": 0.07084898008576146,
+            "account_orders": 17,
+            "sharpe": 0.11050814201680889,
+            "calmar": 0.086747010360075,
+            "worst_20d": -0.07077137220221996,
+            "worst_60d": -0.07077137220221996
+          },
+          "d": {
+            "final_wealth": 1.1139231430260002,
+            "total_return": 0.11392314302600015,
+            "max_drawdown": 0.044976491159443466,
+            "account_orders": 6,
+            "sharpe": 1.2435028612538483,
+            "calmar": 2.5329486602709412,
+            "worst_20d": -0.01977435741852973,
+            "worst_60d": 0.0
+          },
+          "e": {
+            "final_wealth": 1.1222834828084103,
+            "total_return": 0.12228348280841028,
+            "max_drawdown": 0.044647636710538396,
+            "account_orders": 5,
+            "sharpe": 1.2498051543573634,
+            "calmar": 2.7388567865574647,
+            "worst_20d": -0.019625986515796834,
+            "worst_60d": 0.0
+          }
+        }
+      },
+      "threshold": "quantitative gates plus every pool non-inferior to best of three old systems",
+      "evidence": "all new quantitative gates pass and qwen is dominated; AQuant/trade five-pool bear baselines are unavailable"
+    },
+    {
+      "id": "D4",
+      "status": "FAIL",
+      "actual": {
+        "mechanism_limits_pass": true,
+        "new": {
+          "a": {
+            "loss_from_june": -0.12135041669034063,
+            "drawdown": 0.16994194473586743,
+            "warning": "2026-07-02"
+          },
+          "b": {
+            "loss_from_june": -0.12131747069131982,
+            "drawdown": 0.16991742945882315,
+            "warning": "2026-07-02"
+          },
+          "c": {
+            "loss_from_june": -0.12131747069131982,
+            "drawdown": 0.16991742945882315,
+            "warning": "2026-07-02"
+          },
+          "d": {
+            "loss_from_june": -0.12131747069131982,
+            "drawdown": 0.16991742945882315,
+            "warning": "2026-07-02"
+          },
+          "e": {
+            "loss_from_june": -0.12131747069131982,
+            "drawdown": 0.16991742945882315,
+            "warning": "2026-07-02"
+          }
+        },
+        "qwen": {
+          "a": {
+            "total_return": -0.179128,
+            "max_drawdown": 0.179128,
+            "account_orders": 8
+          },
+          "b": {
+            "total_return": -0.156721,
+            "max_drawdown": 0.175498,
+            "account_orders": 7
+          },
+          "c": {
+            "total_return": -0.178668,
+            "max_drawdown": 0.178668,
+            "account_orders": 13
+          },
+          "d": {
+            "total_return": -0.197295,
+            "max_drawdown": 0.197295,
+            "account_orders": 13
+          },
+          "e": {
+            "total_return": -0.198444,
+            "max_drawdown": 0.198444,
+            "account_orders": 13
+          }
+        }
+      },
+      "threshold": "every pool loss/DD <17% and RiskUtility >= best of all three old systems",
+      "evidence": "new limits pass and beat qwen; AQuant/trade common RiskUtility is unavailable"
+    },
+    {
+      "id": "E1",
+      "status": "PASS",
+      "actual": {
+        "a": true,
+        "b": true,
+        "c": true,
+        "d": true,
+        "e": true
+      },
+      "threshold": "each pool <= qwen + max(2 orders,5%)",
+      "evidence": "five fixed-pool account-order counts"
+    },
+    {
+      "id": "E2",
+      "status": "PASS",
+      "actual": 14.0,
+      "threshold": 48.0,
+      "evidence": "900 random account-order distribution"
+    },
+    {
+      "id": "E3",
+      "status": "PASS",
+      "actual": {
+        "a": 9,
+        "b": 11,
+        "c": 11,
+        "d": 11,
+        "e": 11
+      },
+      "threshold": "account orders separated from fills and internal events",
+      "evidence": "performance schema and fill ledger"
+    },
+    {
+      "id": "F1",
+      "status": "FAIL",
+      "actual": {
+        "evaluated": false,
+        "reason": "new CRISIS is 2026-07-02, but three-way common warning timelines are unavailable"
+      },
+      "threshold": "2026-07 warning no later than earliest effective old warning",
+      "evidence": "new CRISIS is 2026-07-02, but three-way common warning timelines are unavailable"
+    },
+    {
+      "id": "F2",
+      "status": "FAIL",
+      "actual": {
+        "evaluated": false,
+        "reason": "three-way formal event catalog is unavailable"
+      },
+      "threshold": "median lead_to_10pct_dd >= best old or higher RiskUtility",
+      "evidence": "three-way formal event catalog is unavailable"
+    },
+    {
+      "id": "F3",
+      "status": "FAIL",
+      "actual": {
+        "a": 2.403973509933775,
+        "b": 2.403973509933775,
+        "c": 2.403973509933775,
+        "d": 2.403973509933775,
+        "e": 2.403973509933775
+      },
+      "threshold": "false RISK_OFF <=2/year after formal event labeling",
+      "evidence": "events exist, but false-positive labels/counterfactuals are incomplete"
+    },
+    {
+      "id": "F4",
+      "status": "FAIL",
+      "actual": {
+        "evaluated": false,
+        "reason": "risk-disabled causal counterfactual is not implemented"
+      },
+      "threshold": "bull risk-module opportunity cost <=2%",
+      "evidence": "risk-disabled causal counterfactual is not implemented"
+    },
+    {
+      "id": "G1",
+      "status": "PASS",
+      "actual": {
+        "suite": "........................                                                 [100%]",
+        "required": [
+          "test_fixed_reference_score_is_user_pool_invariant"
+        ],
+        "missing": []
+      },
+      "threshold": "all named contract tests collected and suite passes",
+      "evidence": "fixed-reference invariance"
+    },
+    {
+      "id": "G2",
+      "status": "PASS",
+      "actual": {
+        "suite": "........................                                                 [100%]",
+        "required": [
+          "test_future_mutation_does_not_change_historical_features"
+        ],
+        "missing": []
+      },
+      "threshold": "all named contract tests collected and suite passes",
+      "evidence": "future mutation"
+    },
+    {
+      "id": "G3",
+      "status": "PASS",
+      "actual": {
+        "suite": "........................                                                 [100%]",
+        "required": [
+          "test_unknown_history_never_gets_high_confidence"
+        ],
+        "missing": []
+      },
+      "threshold": "all named contract tests collected and suite passes",
+      "evidence": "mature/emerging/unknown confidence"
+    },
+    {
+      "id": "G4",
+      "status": "FAIL",
+      "actual": {
+        "evaluated": false,
+        "reason": "common replacement attribution is unavailable"
+      },
+      "threshold": "median replacement spread >0 at 20d and 40d",
+      "evidence": "common replacement attribution is unavailable"
+    },
+    {
+      "id": "H1",
+      "status": "FAIL",
+      "actual": {
+        "evaluated": false,
+        "reason": "mechanism is present but a common old-system V-event set is unavailable"
+      },
+      "threshold": "V-recovery opportunity cost within old best",
+      "evidence": "mechanism is present but a common old-system V-event set is unavailable"
+    },
+    {
+      "id": "H2",
+      "status": "PASS",
+      "actual": {
+        "severe_recovery_gross": 0.25,
+        "acute": {
+          "a": {
+            "loss_from_june": -0.12135041669034063,
+            "drawdown": 0.16994194473586743,
+            "warning": "2026-07-02"
+          },
+          "b": {
+            "loss_from_june": -0.12131747069131982,
+            "drawdown": 0.16991742945882315,
+            "warning": "2026-07-02"
+          },
+          "c": {
+            "loss_from_june": -0.12131747069131982,
+            "drawdown": 0.16991742945882315,
+            "warning": "2026-07-02"
+          },
+          "d": {
+            "loss_from_june": -0.12131747069131982,
+            "drawdown": 0.16991742945882315,
+            "warning": "2026-07-02"
+          },
+          "e": {
+            "loss_from_june": -0.12131747069131982,
+            "drawdown": 0.16991742945882315,
+            "warning": "2026-07-02"
+          }
+        }
+      },
+      "threshold": "fake recovery never immediately reaches full gross",
+      "evidence": "severe recovery cap and through-July no-fake-reentry replay"
+    },
+    {
+      "id": "H3",
+      "status": "PASS",
+      "actual": 14.0,
+      "threshold": 48.0,
+      "evidence": "recovery-inclusive random replays"
+    },
+    {
+      "id": "I1",
+      "status": "PASS",
+      "actual": {
+        "scenario_count": 29,
+        "worst_wealth_change": 0.0
+      },
+      "threshold": -0.1,
+      "evidence": "29 add-one production replays"
+    },
+    {
+      "id": "I2",
+      "status": "FAIL",
+      "actual": {
+        "scenario_count": 5,
+        "worst_wealth_change": -0.7636321142602014
+      },
+      "threshold": -0.1,
+      "evidence": "five primary leave-one-out replays"
+    },
+    {
+      "id": "I3",
+      "status": "PASS",
+      "actual": {
+        "suite": "........................                                                 [100%]",
+        "required": [
+          "test_determinism_one_target_and_hard_constraints"
+        ],
+        "missing": []
+      },
+      "threshold": "all named contract tests collected and suite passes",
+      "evidence": "sorted input and reversed-input digest"
+    },
+    {
+      "id": "I4",
+      "status": "PASS",
+      "actual": {
+        "9->10": 0.0,
+        "12->13": 0.0,
+        "15->16": 0.0
+      },
+      "threshold": "each boundary wealth change >=-10%",
+      "evidence": "9→10, 12→13, 15→16 replays"
+    },
+    {
+      "id": "J1",
+      "status": "PASS",
+      "actual": true,
+      "threshold": true,
+      "evidence": "32 disclosed single-parameter cells; ±5% requires >=90% wealth retention, DD +3pp, bounded orders"
+    },
+    {
+      "id": "J2",
+      "status": "PASS",
+      "actual": true,
+      "threshold": true,
+      "evidence": "±10% no-cliff requires >=85% wealth retention, DD +3pp, bounded orders"
+    },
+    {
+      "id": "J3",
+      "status": "PASS",
+      "actual": true,
+      "threshold": true,
+      "evidence": "nine disclosed pair-parameter cells at no-cliff limits"
+    },
+    {
+      "id": "J4",
+      "status": "PASS",
+      "actual": [
+        "pair-gross-+0-shock-+0",
+        "pair-gross-+0-shock-+10",
+        "pair-gross-+0-shock--10",
+        "pair-gross-+10-shock-+0",
+        "pair-gross-+10-shock-+10",
+        "pair-gross-+10-shock--10",
+        "pair-gross--10-shock-+0",
+        "pair-gross--10-shock-+10",
+        "pair-gross--10-shock--10",
+        "production",
+        "single-concentrated_break_dd-+10",
+        "single-concentrated_break_dd-+5",
+        "single-concentrated_break_dd--10",
+        "single-concentrated_break_dd--5",
+        "single-concentrated_break_ratio-+10",
+        "single-concentrated_break_ratio-+5",
+        "single-minimum_median_amount-+10",
+        "single-minimum_median_amount-+5",
+        "single-minimum_median_amount--10",
+        "single-minimum_median_amount--5",
+        "single-recovery_breadth_min-+10",
+        "single-recovery_breadth_min-+5",
+        "single-recovery_breadth_min--10",
+        "single-recovery_breadth_min--5",
+        "single-recovery_crash_drawdown-+10",
+        "single-recovery_crash_drawdown-+5",
+        "single-recovery_crash_drawdown--10",
+        "single-recovery_crash_drawdown--5",
+        "single-recovery_target_gross-+10",
+        "single-recovery_target_gross-+5",
+        "single-recovery_target_gross--10",
+        "single-recovery_target_gross--5",
+        "single-severe_shock_ret5-+10",
+        "single-severe_shock_ret5-+5",
+        "single-severe_shock_ret5--10",
+        "single-severe_shock_ret5--5",
+        "single-tactical_rebound_take_profit-+10",
+        "single-tactical_rebound_take_profit-+5",
+        "single-tactical_rebound_take_profit--10",
+        "single-tactical_rebound_take_profit--5"
+      ],
+      "threshold": "production on/near three-objective frontier",
+      "evidence": "return/DD/orders Pareto search"
+    },
+    {
+      "id": "K1",
+      "status": "PASS",
+      "actual": [
+        {
+          "fold": 1,
+          "selected_experiment": "pair-gross--10-shock--10",
+          "train_sharpe": -0.0014650232782788919,
+          "test_sharpe": 1.6499570954493286,
+          "test_final_wealth": 1.1231214908386875
+        },
+        {
+          "fold": 2,
+          "selected_experiment": "pair-gross--10-shock--10",
+          "train_sharpe": 1.1622167358731483,
+          "test_sharpe": 4.170003809377036,
+          "test_final_wealth": 1.6106545448732599
+        },
+        {
+          "fold": 3,
+          "selected_experiment": "pair-gross-+10-shock--10",
+          "train_sharpe": 2.698518579645737,
+          "test_sharpe": 1.1730452104374027,
+          "test_final_wealth": 1.032186131901154
+        }
+      ],
+      "threshold": "three strictly separated train/test folds",
+      "evidence": "54 nested walk-forward cells"
+    },
+    {
+      "id": "K2",
+      "status": "FAIL",
+      "actual": {
+        "untouched": false,
+        "reason": "all available 2022-2026 windows were inspected during development; an untouched promotion set cannot be claimed retroactively"
+      },
+      "threshold": true,
+      "evidence": "holdback status is explicitly non-retroactive"
+    },
+    {
+      "id": "K3",
+      "status": "PASS",
+      "actual": {
+        "pbo": 0.6666666666666666,
+        "experiments": 48
+      },
+      "threshold": "PBO reported with full experiment space",
+      "evidence": "48 experiments disclosed"
+    },
+    {
+      "id": "K4",
+      "status": "PASS",
+      "actual": 0.9999999950491629,
+      "threshold": "DSR in [0,1]",
+      "evidence": "production-candidate DSR"
+    },
+    {
+      "id": "L1",
+      "status": "PASS",
+      "actual": 0.9996004376320743,
+      "threshold": 0.9,
+      "evidence": "double-cost replay"
+    },
+    {
+      "id": "L2",
+      "status": "PASS",
+      "actual": 0.9903117719388783,
+      "threshold": 0.9,
+      "evidence": "0.1/0.2/0.3% slippage replays"
+    },
+    {
+      "id": "L3",
+      "status": "PASS",
+      "actual": 1.0,
+      "threshold": 0.9,
+      "evidence": "half/fifth participation replays"
+    },
+    {
+      "id": "M1",
+      "status": "PASS",
+      "actual": {
+        "suite": "........................                                                 [100%]",
+        "required": [
+          "test_continuous_down_limits_retain_sell_until_market_reopens"
+        ],
+        "missing": []
+      },
+      "threshold": "all named contract tests collected and suite passes",
+      "evidence": "named extreme-execution contract"
+    },
+    {
+      "id": "M2",
+      "status": "PASS",
+      "actual": {
+        "suite": "........................                                                 [100%]",
+        "required": [
+          "test_continuous_up_limits_remain_pending_until_market_reopens"
+        ],
+        "missing": []
+      },
+      "threshold": "all named contract tests collected and suite passes",
+      "evidence": "named extreme-execution contract"
+    },
+    {
+      "id": "M3",
+      "status": "PASS",
+      "actual": {
+        "suite": "........................                                                 [100%]",
+        "required": [
+          "test_limit_and_suspension_keep_pending"
+        ],
+        "missing": []
+      },
+      "threshold": "all named contract tests collected and suite passes",
+      "evidence": "named extreme-execution contract"
+    },
+    {
+      "id": "M4",
+      "status": "PASS",
+      "actual": {
+        "suite": "........................                                                 [100%]",
+        "required": [
+          "test_large_opening_gap_reprices_target_and_preserves_weight_cap"
+        ],
+        "missing": []
+      },
+      "threshold": "all named contract tests collected and suite passes",
+      "evidence": "named extreme-execution contract"
+    },
+    {
+      "id": "M5",
+      "status": "PASS",
+      "actual": {
+        "suite": "........................                                                 [100%]",
+        "required": [
+          "test_data_contract_and_manifest"
+        ],
+        "missing": []
+      },
+      "threshold": "all named contract tests collected and suite passes",
+      "evidence": "named extreme-execution contract"
+    },
+    {
+      "id": "M6",
+      "status": "PASS",
+      "actual": {
+        "suite": "........................                                                 [100%]",
+        "required": [
+          "test_data_contract_and_manifest"
+        ],
+        "missing": []
+      },
+      "threshold": "all named contract tests collected and suite passes",
+      "evidence": "named extreme-execution contract"
+    },
+    {
+      "id": "M7",
+      "status": "PASS",
+      "actual": {
+        "suite": "........................                                                 [100%]",
+        "required": [
+          "test_state_round_trip_and_fail_closed_hashes"
+        ],
+        "missing": []
+      },
+      "threshold": "all named contract tests collected and suite passes",
+      "evidence": "named extreme-execution contract"
+    },
+    {
+      "id": "M8",
+      "status": "PASS",
+      "actual": {
+        "suite": "........................                                                 [100%]",
+        "required": [
+          "test_future_dated_state_fails_closed"
+        ],
+        "missing": []
+      },
+      "threshold": "all named contract tests collected and suite passes",
+      "evidence": "named extreme-execution contract"
+    },
+    {
+      "id": "M9",
+      "status": "PASS",
+      "actual": {
+        "suite": "........................                                                 [100%]",
+        "required": [
+          "test_partial_fill_is_retained_and_star_initial_buy_is_at_least_200",
+          "test_compatible_blocked_order_survives_daily_replanning"
+        ],
+        "missing": []
+      },
+      "threshold": "all named contract tests collected and suite passes",
+      "evidence": "named extreme-execution contract"
+    },
+    {
+      "id": "M10",
+      "status": "PASS",
+      "actual": {
+        "suite": "........................                                                 [100%]",
+        "required": [
+          "test_sells_release_cash_before_buys"
+        ],
+        "missing": []
+      },
+      "threshold": "all named contract tests collected and suite passes",
+      "evidence": "named extreme-execution contract"
+    },
+    {
+      "id": "M11",
+      "status": "PASS",
+      "actual": {
+        "suite": "........................                                                 [100%]",
+        "required": [
+          "test_partial_fill_is_retained_and_star_initial_buy_is_at_least_200"
+        ],
+        "missing": []
+      },
+      "threshold": "all named contract tests collected and suite passes",
+      "evidence": "named extreme-execution contract"
+    },
+    {
+      "id": "N1",
+      "status": "PASS",
+      "actual": "python -m unified_ai_quant daily",
+      "threshold": "one command",
+      "evidence": "CLI parser"
+    },
+    {
+      "id": "N2",
+      "status": "PASS",
+      "actual": [
+        "Opportunity",
+        "Risk",
+        "Target Gross",
+        "Target K",
+        "Targets",
+        "Tomorrow"
+      ],
+      "threshold": "all one-page fields",
+      "evidence": "daily report renderer"
+    },
+    {
+      "id": "N3",
+      "status": "PASS",
+      "actual": [],
+      "threshold": "no old-project runtime dependency",
+      "evidence": "production source scan"
+    },
+    {
+      "id": "O-qwenquant",
+      "status": "FAIL",
+      "actual": {
+        "new": {
+          "final_wealth": 12.645447616356932,
+          "total_return": 11.645447616356932,
+          "max_drawdown": 0.15501626543295977,
+          "account_orders": 11,
+          "sharpe": 3.710183933834517,
+          "calmar": 42.824401948520055,
+          "worst_20d": -0.14021381132266109,
+          "worst_60d": -0.05299837755801484
+        },
+        "qwen": {
+          "total_return": 11.759461,
+          "final_wealth": 12.759461,
+          "max_drawdown": 0.20589,
+          "account_orders": 9
+        }
+      },
+      "threshold": "better tail/bear/risk and same-or-lower orders",
+      "evidence": "tail and bear improve, but pool-b orders are 11 versus 9 and lead-time comparison is incomplete"
+    },
+    {
+      "id": "O-aquant",
+      "status": "FAIL",
+      "actual": {
+        "leader_contracts": true,
+        "pool_b": {
+          "final_wealth": 12.645447616356932,
+          "total_return": 11.645447616356932,
+          "max_drawdown": 0.15501626543295977,
+          "account_orders": 11,
+          "sharpe": 3.710183933834517,
+          "calmar": 42.824401948520055,
+          "worst_20d": -0.14021381132266109,
+          "worst_60d": -0.05299837755801484
+        }
+      },
+      "threshold": "leader/replacement quality and strong-trend DD >= AQuant",
+      "evidence": "leader contracts and DD pass; replacement spread is unavailable"
+    },
+    {
+      "id": "O-trade",
+      "status": "FAIL",
+      "actual": {
+        "scenario_count": 954,
+        "random": {
+          "scenario_count": 900,
+          "return_median": 1.6263625006946976,
+          "return_p10": 0.009519401339811218,
+          "return_worst": -0.06606568159289994,
+          "drawdown_p90": 0.17195419379229782,
+          "drawdown_worst": 0.21135278994086237,
+          "orders_p90": 14.0,
+          "orders_worst": 15
+        },
+        "add_one": {
+          "scenario_count": 29,
+          "worst_wealth_change": 0.0
+        },
+        "leave_one_out": {
+          "scenario_count": 5,
+          "worst_wealth_change": -0.7636321142602014
+        },
+        "size_boundaries": {
+          "9->10": 0.0,
+          "12->13": 0.0,
+          "15->16": 0.0
+        },
+        "permutation": {
+          "samples": 150,
+          "verified_by": "sorted symbol normalization plus reversed-input digest contract test"
+        }
+      },
+      "threshold": "universe/random/add-drop stress >= trade",
+      "evidence": "random and add-one pass; remove-one controls the result"
+    },
+    {
+      "id": "DOMINATED",
+      "status": "PASS",
+      "actual": {
+        "dominated_cells": 0,
+        "dominated_by": []
+      },
+      "threshold": 0,
+      "evidence": "strict pool-b return/DD/orders dominance"
+    },
+    {
+      "id": "MATRIX_COMPLETENESS",
+      "status": "FAIL",
+      "actual": {
+        "common_three_way_primary_cells": 1,
+        "random_samples": 900,
+        "unavailable_windows": {
+          "2018_bear": "frozen stock data begins 2022-01-04",
+          "2020_crash": "frozen stock data begins 2022-01-04",
+          "2021_high_vol_rotation": "frozen stock data begins 2022-01-04"
+        }
+      },
+      "threshold": "all pools, structures, mandatory historical windows and >=900 random samples",
+      "evidence": "random matrix complete; three-way fixed matrix and 2018/2020/2021 data remain incomplete"
+    },
+    {
+      "id": "CHOPPY",
+      "status": "FAIL",
+      "actual": {
+        "new": {
+          "a": 0.12312149083868751,
+          "b": 0.12312149083868751,
+          "c": -0.011408321781053776,
+          "d": -0.011408321781053776,
+          "e": -0.011408321781053776
+        },
+        "qwen": {
+          "a": 0.1631,
+          "b": 0.4799,
+          "c": 0.3202,
+          "d": 1.0471,
+          "e": 1.0489
+        }
+      },
+      "threshold": "every pool no worse than qwen by >1pp and best-old comparison complete",
+      "evidence": "new underperforms qwen in multiple pools; AQuant/trade cells are also unavailable"
+    }
+  ]
+}

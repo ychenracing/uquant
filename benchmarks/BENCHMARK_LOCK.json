@@ -1,0 +1,29 @@
+{
+  "schema_version": 1,
+  "frozen_at": "2026-08-08T00:00:00Z",
+  "read_only": true,
+  "repositories": {
+    "qwenquant": {
+      "repository": "ychenracing/qwenquant",
+      "branch": "main",
+      "remote_commit": "0b3681e10b75425ad8600e75835677a6a125ed13",
+      "readme_blob": "5836127936c960b31ea7176928dc00d2c64ee6f5",
+      "snapshot_sha256": "c586ee572a59619308d9253d2183d6678d96959b17397c9b5769e3dd795dcd2a"
+    },
+    "aquant": {
+      "repository": "ychenracing/aquant",
+      "branch": "main",
+      "remote_commit": "3c38fbbf679a0fb1b4ee8f3d47b6931d3eb8fdbd",
+      "readme_blob": "76b923106ec4c84c1dbf2fb1943a38484c789e86",
+      "snapshot_sha256": "cad1d538a17552e0e1369c29969969a0bc9ad5aede7ec9271492486f648b4cde"
+    },
+    "trade": {
+      "repository": "ychenracing/trade",
+      "branch": "main",
+      "remote_commit": "cee1620f40af3af8f839e15db188a9e388a78dd0",
+      "readme_blob": "fed65d973be022f3dab1f27e735487235c19631b",
+      "snapshot_sha256": "168ea8febd3eabf74f130f586879664fdecb6139896f36ac2b991f983d782749"
+    }
+  }
+}
+

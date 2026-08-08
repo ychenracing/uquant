@@ -1,0 +1,2194 @@
+{
+  "schema_version": 1,
+  "signature": {
+    "production_code_sha256": "0faeb14dc5a1ff33892df18226d308038fcf22b25df97c890297365420bff586",
+    "data_sha256": "661256b6c707d083f0295546e2aca9b22935bd9b909ecfb77db97e487436d3f0",
+    "config_sha256": "440ef7d338c1f7e9ac0f2d6627829a916d2c94486a34f15147a80b97abbf75d4",
+    "experiments_sha256": "b2c25be9d97a89976e8021c855e63b5cd00e768a37b2fc2aeb5fe89c850abcb2"
+  },
+  "summary": {
+    "single_5pct_all_stable": true,
+    "single_10pct_all_stable": true,
+    "pair_all_stable": true,
+    "pareto_frontier": [
+      "pair-gross-+0-shock-+0",
+      "pair-gross-+0-shock-+10",
+      "pair-gross-+0-shock--10",
+      "pair-gross-+10-shock-+0",
+      "pair-gross-+10-shock-+10",
+      "pair-gross-+10-shock--10",
+      "pair-gross--10-shock-+0",
+      "pair-gross--10-shock-+10",
+      "pair-gross--10-shock--10",
+      "production",
+      "single-concentrated_break_dd-+10",
+      "single-concentrated_break_dd-+5",
+      "single-concentrated_break_dd--10",
+      "single-concentrated_break_dd--5",
+      "single-concentrated_break_ratio-+10",
+      "single-concentrated_break_ratio-+5",
+      "single-minimum_median_amount-+10",
+      "single-minimum_median_amount-+5",
+      "single-minimum_median_amount--10",
+      "single-minimum_median_amount--5",
+      "single-recovery_breadth_min-+10",
+      "single-recovery_breadth_min-+5",
+      "single-recovery_breadth_min--10",
+      "single-recovery_breadth_min--5",
+      "single-recovery_crash_drawdown-+10",
+      "single-recovery_crash_drawdown-+5",
+      "single-recovery_crash_drawdown--10",
+      "single-recovery_crash_drawdown--5",
+      "single-recovery_target_gross-+10",
+      "single-recovery_target_gross-+5",
+      "single-recovery_target_gross--10",
+      "single-recovery_target_gross--5",
+      "single-severe_shock_ret5-+10",
+      "single-severe_shock_ret5-+5",
+      "single-severe_shock_ret5--10",
+      "single-severe_shock_ret5--5",
+      "single-tactical_rebound_take_profit-+10",
+      "single-tactical_rebound_take_profit-+5",
+      "single-tactical_rebound_take_profit--10",
+      "single-tactical_rebound_take_profit--5"
+    ],
+    "production_on_pareto": true,
+    "double_cost_wealth_retention": 0.9996004376320743,
+    "slippage_min_wealth_retention": 0.9903117719388783,
+    "capacity_min_wealth_retention": 1.0,
+    "pbo": 0.6666666666666666,
+    "dsr": 0.9999999950491629,
+    "walk_forward": [
+      {
+        "fold": 1,
+        "selected_experiment": "pair-gross--10-shock--10",
+        "train_sharpe": -0.0014650232782788919,
+        "test_sharpe": 1.6499570954493286,
+        "test_final_wealth": 1.1231214908386875
+      },
+      {
+        "fold": 2,
+        "selected_experiment": "pair-gross--10-shock--10",
+        "train_sharpe": 1.1622167358731483,
+        "test_sharpe": 4.170003809377036,
+        "test_final_wealth": 1.6106545448732599
+      },
+      {
+        "fold": 3,
+        "selected_experiment": "pair-gross-+10-shock--10",
+        "train_sharpe": 2.698518579645737,
+        "test_sharpe": 1.1730452104374027,
+        "test_final_wealth": 1.032186131901154
+      }
+    ],
+    "promotion_holdback_untouched": false,
+    "promotion_holdback_reason": "all available 2022-2026 windows were inspected during development; an untouched promotion set cannot be claimed retroactively"
+  },
+  "experiments": [
+    {
+      "experiment_id": "capacity-fifth",
+      "experiment_type": "capacity",
+      "changes": {
+        "max_volume_participation": 0.001
+      },
+      "bull": {
+        "final_wealth": 12.645447616356932,
+        "total_return": 11.645447616356932,
+        "max_drawdown": 0.15501626543295977,
+        "account_orders": 11,
+        "sharpe": 3.710183933834517,
+        "calmar": 42.824401948520055,
+        "worst_20d": -0.14021381132266109,
+        "worst_60d": -0.05299837755801484,
+        "pending_orders": 0
+      },
+      "through_july": {
+        "final_wealth": 11.11133389578093,
+        "total_return": 10.11133389578093,
+        "max_drawdown": 0.16991742945882315,
+        "account_orders": 14,
+        "sharpe": 3.4213510545535595,
+        "calmar": 31.322559500118526,
+        "worst_20d": -0.16991742945882315,
+        "worst_60d": -0.05299837755801484,
+        "pending_orders": 0
+      }
+    },
+    {
+      "experiment_id": "capacity-half",
+      "experiment_type": "capacity",
+      "changes": {
+        "max_volume_participation": 0.0025
+      },
+      "bull": {
+        "final_wealth": 12.645447616356932,
+        "total_return": 11.645447616356932,
+        "max_drawdown": 0.15501626543295977,
+        "account_orders": 11,
+        "sharpe": 3.710183933834517,
+        "calmar": 42.824401948520055,
+        "worst_20d": -0.14021381132266109,
+        "worst_60d": -0.05299837755801484,
+        "pending_orders": 0
+      },
+      "through_july": {
+        "final_wealth": 11.11133389578093,
+        "total_return": 10.11133389578093,
+        "max_drawdown": 0.16991742945882315,
+        "account_orders": 14,
+        "sharpe": 3.4213510545535595,
+        "calmar": 31.322559500118526,
+        "worst_20d": -0.16991742945882315,
+        "worst_60d": -0.05299837755801484,
+        "pending_orders": 0
+      }
+    },
+    {
+      "experiment_id": "cost-double",
+      "experiment_type": "cost",
+      "changes": {
+        "commission_rate": 0.0005,
+        "stamp_duty": 0.001,
+        "transfer_fee": 2e-05
+      },
+      "bull": {
+        "final_wealth": 12.640394971363861,
+        "total_return": 11.640394971363861,
+        "max_drawdown": 0.15515477091080232,
+        "account_orders": 11,
+        "sharpe": 3.7079171178534267,
+        "calmar": 42.77040945635526,
+        "worst_20d": -0.1403412876044844,
+        "worst_60d": -0.05304033956455212,
+        "pending_orders": 0
+      },
+      "through_july": {
+        "final_wealth": 11.098185930211862,
+        "total_return": 10.098185930211862,
+        "max_drawdown": 0.17058658798932202,
+        "account_orders": 14,
+        "sharpe": 3.4181719883792923,
+        "calmar": 31.166100957997944,
+        "worst_20d": -0.17058658798932202,
+        "worst_60d": -0.05304033956455212,
+        "pending_orders": 0
+      }
+    },
+    {
+      "experiment_id": "pair-gross-+0-shock-+0",
+      "experiment_type": "pair_parameter",
+      "changes": {
+        "recovery_target_gross": 0.895,
+        "severe_shock_ret5": -0.12
+      },
+      "bull": {
+        "final_wealth": 12.645447616356932,
+        "total_return": 11.645447616356932,
+        "max_drawdown": 0.15501626543295977,
+        "account_orders": 11,
+        "sharpe": 3.710183933834517,
+        "calmar": 42.824401948520055,
+        "worst_20d": -0.14021381132266109,
+        "worst_60d": -0.05299837755801484,
+        "pending_orders": 0
+      },
+      "through_july": {
+        "final_wealth": 11.11133389578093,
+        "total_return": 10.11133389578093,
+        "max_drawdown": 0.16991742945882315,
+        "account_orders": 14,
+        "sharpe": 3.4213510545535595,
+        "calmar": 31.322559500118526,
+        "worst_20d": -0.16991742945882315,
+        "worst_60d": -0.05299837755801484,
+        "pending_orders": 0
+      }
+    },
+    {
+      "experiment_id": "pair-gross-+0-shock-+10",
+      "experiment_type": "pair_parameter",
+      "changes": {
+        "recovery_target_gross": 0.895,
+        "severe_shock_ret5": -0.132
+      },
+      "bull": {
+        "final_wealth": 12.645447616356932,
+        "total_return": 11.645447616356932,
+        "max_drawdown": 0.15501626543295977,
+        "account_orders": 11,
+        "sharpe": 3.710183933834517,
+        "calmar": 42.824401948520055,
+        "worst_20d": -0.14021381132266109,
+        "worst_60d": -0.05299837755801484,
+        "pending_orders": 0
+      },
+      "through_july": {
+        "final_wealth": 11.11133389578093,
+        "total_return": 10.11133389578093,
+        "max_drawdown": 0.16991742945882315,
+        "account_orders": 14,
+        "sharpe": 3.4213510545535595,
+        "calmar": 31.322559500118526,
+        "worst_20d": -0.16991742945882315,
+        "worst_60d": -0.05299837755801484,
+        "pending_orders": 0
+      }
+    },
+    {
+      "experiment_id": "pair-gross-+0-shock--10",
+      "experiment_type": "pair_parameter",
+      "changes": {
+        "recovery_target_gross": 0.895,
+        "severe_shock_ret5": -0.108
+      },
+      "bull": {
+        "final_wealth": 12.645447616356932,
+        "total_return": 11.645447616356932,
+        "max_drawdown": 0.15501626543295977,
+        "account_orders": 11,
+        "sharpe": 3.710183933834517,
+        "calmar": 42.824401948520055,
+        "worst_20d": -0.14021381132266109,
+        "worst_60d": -0.05299837755801484,
+        "pending_orders": 0
+      },
+      "through_july": {
+        "final_wealth": 11.11133389578093,
+        "total_return": 10.11133389578093,
+        "max_drawdown": 0.16991742945882315,
+        "account_orders": 14,
+        "sharpe": 3.4213510545535595,
+        "calmar": 31.322559500118526,
+        "worst_20d": -0.16991742945882315,
+        "worst_60d": -0.05299837755801484,
+        "pending_orders": 0
+      }
+    },
+    {
+      "experiment_id": "pair-gross-+10-shock-+0",
+      "experiment_type": "pair_parameter",
+      "changes": {
+        "recovery_target_gross": 0.9845000000000002,
+        "severe_shock_ret5": -0.12
+      },
+      "bull": {
+        "final_wealth": 14.316999561458765,
+        "total_return": 13.316999561458765,
+        "max_drawdown": 0.17570260952376748,
+        "account_orders": 11,
+        "sharpe": 3.7245383179593805,
+        "calmar": 42.32991074682807,
+        "worst_20d": -0.16077188214791693,
+        "worst_60d": -0.047044756952741906,
+        "pending_orders": 0
+      },
+      "through_july": {
+        "final_wealth": 12.481914078586765,
+        "total_return": 11.481914078586765,
+        "max_drawdown": 0.17570260952376748,
+        "account_orders": 14,
+        "sharpe": 3.4327342741403077,
+        "calmar": 33.64354195368591,
+        "worst_20d": -0.17352983437191205,
+        "worst_60d": -0.047044756952741906,
+        "pending_orders": 0
+      }
+    },
+    {
+      "experiment_id": "pair-gross-+10-shock-+10",
+      "experiment_type": "pair_parameter",
+      "changes": {
+        "recovery_target_gross": 0.9845000000000002,
+        "severe_shock_ret5": -0.132
+      },
+      "bull": {
+        "final_wealth": 14.316999561458765,
+        "total_return": 13.316999561458765,
+        "max_drawdown": 0.17570260952376748,
+        "account_orders": 11,
+        "sharpe": 3.7245383179593805,
+        "calmar": 42.32991074682807,
+        "worst_20d": -0.16077188214791693,
+        "worst_60d": -0.047044756952741906,
+        "pending_orders": 0
+      },
+      "through_july": {
+        "final_wealth": 12.481914078586765,
+        "total_return": 11.481914078586765,
+        "max_drawdown": 0.17570260952376748,
+        "account_orders": 14,
+        "sharpe": 3.4327342741403077,
+        "calmar": 33.64354195368591,
+        "worst_20d": -0.17352983437191205,
+        "worst_60d": -0.047044756952741906,
+        "pending_orders": 0
+      }
+    },
+    {
+      "experiment_id": "pair-gross-+10-shock--10",
+      "experiment_type": "pair_parameter",
+      "changes": {
+        "recovery_target_gross": 0.9845000000000002,
+        "severe_shock_ret5": -0.108
+      },
+      "bull": {
+        "final_wealth": 14.316999561458765,
+        "total_return": 13.316999561458765,
+        "max_drawdown": 0.17570260952376748,
+        "account_orders": 11,
+        "sharpe": 3.7245383179593805,
+        "calmar": 42.32991074682807,
+        "worst_20d": -0.16077188214791693,
+        "worst_60d": -0.047044756952741906,
+        "pending_orders": 0
+      },
+      "through_july": {
+        "final_wealth": 12.481914078586765,
+        "total_return": 11.481914078586765,
+        "max_drawdown": 0.17570260952376748,
+        "account_orders": 14,
+        "sharpe": 3.4327342741403077,
+        "calmar": 33.64354195368591,
+        "worst_20d": -0.17352983437191205,
+        "worst_60d": -0.047044756952741906,
+        "pending_orders": 0
+      }
+    },
+    {
+      "experiment_id": "pair-gross--10-shock-+0",
+      "experiment_type": "pair_parameter",
+      "changes": {
+        "recovery_target_gross": 0.8055,
+        "severe_shock_ret5": -0.12
+      },
+      "bull": {
+        "final_wealth": 11.064783776637535,
+        "total_return": 10.064783776637535,
+        "max_drawdown": 0.1496014864171007,
+        "account_orders": 11,
+        "sharpe": 3.685060617915246,
+        "calmar": 39.19322217973741,
+        "worst_20d": -0.1280159942897594,
+        "worst_60d": -0.05922047853707635,
+        "pending_orders": 0
+      },
+      "through_july": {
+        "final_wealth": 9.804393876605534,
+        "total_return": 8.804393876605534,
+        "max_drawdown": 0.1661479486263695,
+        "account_orders": 14,
+        "sharpe": 3.4007434284819897,
+        "calmar": 28.555903817607533,
+        "worst_20d": -0.1661479486263695,
+        "worst_60d": -0.05922047853707635,
+        "pending_orders": 0
+      }
+    },
+    {
+      "experiment_id": "pair-gross--10-shock-+10",
+      "experiment_type": "pair_parameter",
+      "changes": {
+        "recovery_target_gross": 0.8055,
+        "severe_shock_ret5": -0.132
+      },
+      "bull": {
+        "final_wealth": 11.064783776637535,
+        "total_return": 10.064783776637535,
+        "max_drawdown": 0.1496014864171007,
+        "account_orders": 11,
+        "sharpe": 3.685060617915246,
+        "calmar": 39.19322217973741,
+        "worst_20d": -0.1280159942897594,
+        "worst_60d": -0.05922047853707635,
+        "pending_orders": 0
+      },
+      "through_july": {
+        "final_wealth": 9.804393876605534,
+        "total_return": 8.804393876605534,
+        "max_drawdown": 0.1661479486263695,
+        "account_orders": 14,
+        "sharpe": 3.4007434284819897,
+        "calmar": 28.555903817607533,
+        "worst_20d": -0.1661479486263695,
+        "worst_60d": -0.05922047853707635,
+        "pending_orders": 0
+      }
+    },
+    {
+      "experiment_id": "pair-gross--10-shock--10",
+      "experiment_type": "pair_parameter",
+      "changes": {
+        "recovery_target_gross": 0.8055,
+        "severe_shock_ret5": -0.108
+      },
+      "bull": {
+        "final_wealth": 11.064783776637535,
+        "total_return": 10.064783776637535,
+        "max_drawdown": 0.1496014864171007,
+        "account_orders": 11,
+        "sharpe": 3.685060617915246,
+        "calmar": 39.19322217973741,
+        "worst_20d": -0.1280159942897594,
+        "worst_60d": -0.05922047853707635,
+        "pending_orders": 0
+      },
+      "through_july": {
+        "final_wealth": 9.804393876605534,
+        "total_return": 8.804393876605534,
+        "max_drawdown": 0.1661479486263695,
+        "account_orders": 14,
+        "sharpe": 3.4007434284819897,
+        "calmar": 28.555903817607533,
+        "worst_20d": -0.1661479486263695,
+        "worst_60d": -0.05922047853707635,
+        "pending_orders": 0
+      }
+    },
+    {
+      "experiment_id": "production",
+      "experiment_type": "production",
+      "changes": {},
+      "bull": {
+        "final_wealth": 12.645447616356932,
+        "total_return": 11.645447616356932,
+        "max_drawdown": 0.15501626543295977,
+        "account_orders": 11,
+        "sharpe": 3.710183933834517,
+        "calmar": 42.824401948520055,
+        "worst_20d": -0.14021381132266109,
+        "worst_60d": -0.05299837755801484,
+        "pending_orders": 0
+      },
+      "through_july": {
+        "final_wealth": 11.11133389578093,
+        "total_return": 10.11133389578093,
+        "max_drawdown": 0.16991742945882315,
+        "account_orders": 14,
+        "sharpe": 3.4213510545535595,
+        "calmar": 31.322559500118526,
+        "worst_20d": -0.16991742945882315,
+        "worst_60d": -0.05299837755801484,
+        "pending_orders": 0
+      }
+    },
+    {
+      "experiment_id": "single-concentrated_break_dd-+10",
+      "experiment_type": "single_parameter",
+      "changes": {
+        "concentrated_break_dd": 0.08800000000000001
+      },
+      "bull": {
+        "final_wealth": 12.645447616356932,
+        "total_return": 11.645447616356932,
+        "max_drawdown": 0.15501626543295977,
+        "account_orders": 11,
+        "sharpe": 3.710183933834517,
+        "calmar": 42.824401948520055,
+        "worst_20d": -0.14021381132266109,
+        "worst_60d": -0.05299837755801484,
+        "pending_orders": 0
+      },
+      "through_july": {
+        "final_wealth": 11.11133389578093,
+        "total_return": 10.11133389578093,
+        "max_drawdown": 0.16991742945882315,
+        "account_orders": 14,
+        "sharpe": 3.4213510545535595,
+        "calmar": 31.322559500118526,
+        "worst_20d": -0.16991742945882315,
+        "worst_60d": -0.05299837755801484,
+        "pending_orders": 0
+      }
+    },
+    {
+      "experiment_id": "single-concentrated_break_dd-+5",
+      "experiment_type": "single_parameter",
+      "changes": {
+        "concentrated_break_dd": 0.084
+      },
+      "bull": {
+        "final_wealth": 12.645447616356932,
+        "total_return": 11.645447616356932,
+        "max_drawdown": 0.15501626543295977,
+        "account_orders": 11,
+        "sharpe": 3.710183933834517,
+        "calmar": 42.824401948520055,
+        "worst_20d": -0.14021381132266109,
+        "worst_60d": -0.05299837755801484,
+        "pending_orders": 0
+      },
+      "through_july": {
+        "final_wealth": 11.11133389578093,
+        "total_return": 10.11133389578093,
+        "max_drawdown": 0.16991742945882315,
+        "account_orders": 14,
+        "sharpe": 3.4213510545535595,
+        "calmar": 31.322559500118526,
+        "worst_20d": -0.16991742945882315,
+        "worst_60d": -0.05299837755801484,
+        "pending_orders": 0
+      }
+    },
+    {
+      "experiment_id": "single-concentrated_break_dd--10",
+      "experiment_type": "single_parameter",
+      "changes": {
+        "concentrated_break_dd": 0.07200000000000001
+      },
+      "bull": {
+        "final_wealth": 12.645447616356932,
+        "total_return": 11.645447616356932,
+        "max_drawdown": 0.15501626543295977,
+        "account_orders": 11,
+        "sharpe": 3.710183933834517,
+        "calmar": 42.824401948520055,
+        "worst_20d": -0.14021381132266109,
+        "worst_60d": -0.05299837755801484,
+        "pending_orders": 0
+      },
+      "through_july": {
+        "final_wealth": 11.11133389578093,
+        "total_return": 10.11133389578093,
+        "max_drawdown": 0.16991742945882315,
+        "account_orders": 14,
+        "sharpe": 3.4213510545535595,
+        "calmar": 31.322559500118526,
+        "worst_20d": -0.16991742945882315,
+        "worst_60d": -0.05299837755801484,
+        "pending_orders": 0
+      }
+    },
+    {
+      "experiment_id": "single-concentrated_break_dd--5",
+      "experiment_type": "single_parameter",
+      "changes": {
+        "concentrated_break_dd": 0.076
+      },
+      "bull": {
+        "final_wealth": 12.645447616356932,
+        "total_return": 11.645447616356932,
+        "max_drawdown": 0.15501626543295977,
+        "account_orders": 11,
+        "sharpe": 3.710183933834517,
+        "calmar": 42.824401948520055,
+        "worst_20d": -0.14021381132266109,
+        "worst_60d": -0.05299837755801484,
+        "pending_orders": 0
+      },
+      "through_july": {
+        "final_wealth": 11.11133389578093,
+        "total_return": 10.11133389578093,
+        "max_drawdown": 0.16991742945882315,
+        "account_orders": 14,
+        "sharpe": 3.4213510545535595,
+        "calmar": 31.322559500118526,
+        "worst_20d": -0.16991742945882315,
+        "worst_60d": -0.05299837755801484,
+        "pending_orders": 0
+      }
+    },
+    {
+      "experiment_id": "single-concentrated_break_ratio-+10",
+      "experiment_type": "single_parameter",
+      "changes": {
+        "concentrated_break_ratio": 0.7370000000000001
+      },
+      "bull": {
+        "final_wealth": 12.645447616356932,
+        "total_return": 11.645447616356932,
+        "max_drawdown": 0.15501626543295977,
+        "account_orders": 11,
+        "sharpe": 3.710183933834517,
+        "calmar": 42.824401948520055,
+        "worst_20d": -0.14021381132266109,
+        "worst_60d": -0.05299837755801484,
+        "pending_orders": 0
+      },
+      "through_july": {
+        "final_wealth": 11.11133389578093,
+        "total_return": 10.11133389578093,
+        "max_drawdown": 0.16991742945882315,
+        "account_orders": 14,
+        "sharpe": 3.4213510545535595,
+        "calmar": 31.322559500118526,
+        "worst_20d": -0.16991742945882315,
+        "worst_60d": -0.05299837755801484,
+        "pending_orders": 0
+      }
+    },
+    {
+      "experiment_id": "single-concentrated_break_ratio-+5",
+      "experiment_type": "single_parameter",
+      "changes": {
+        "concentrated_break_ratio": 0.7035000000000001
+      },
+      "bull": {
+        "final_wealth": 12.645447616356932,
+        "total_return": 11.645447616356932,
+        "max_drawdown": 0.15501626543295977,
+        "account_orders": 11,
+        "sharpe": 3.710183933834517,
+        "calmar": 42.824401948520055,
+        "worst_20d": -0.14021381132266109,
+        "worst_60d": -0.05299837755801484,
+        "pending_orders": 0
+      },
+      "through_july": {
+        "final_wealth": 11.11133389578093,
+        "total_return": 10.11133389578093,
+        "max_drawdown": 0.16991742945882315,
+        "account_orders": 14,
+        "sharpe": 3.4213510545535595,
+        "calmar": 31.322559500118526,
+        "worst_20d": -0.16991742945882315,
+        "worst_60d": -0.05299837755801484,
+        "pending_orders": 0
+      }
+    },
+    {
+      "experiment_id": "single-concentrated_break_ratio--10",
+      "experiment_type": "single_parameter",
+      "changes": {
+        "concentrated_break_ratio": 0.6030000000000001
+      },
+      "bull": {
+        "final_wealth": 12.001251203516103,
+        "total_return": 11.001251203516103,
+        "max_drawdown": 0.1592471587985167,
+        "account_orders": 11,
+        "sharpe": 3.6266426069147384,
+        "calmar": 39.71845508247267,
+        "worst_20d": -0.15689322097592695,
+        "worst_60d": -0.05309804528682216,
+        "pending_orders": 0
+      },
+      "through_july": {
+        "final_wealth": 10.544081204112103,
+        "total_return": 9.544081204112103,
+        "max_drawdown": 0.170031582464221,
+        "account_orders": 14,
+        "sharpe": 3.3417790749500518,
+        "calmar": 29.838933505816378,
+        "worst_20d": -0.170031582464221,
+        "worst_60d": -0.05309804528682216,
+        "pending_orders": 0
+      }
+    },
+    {
+      "experiment_id": "single-concentrated_break_ratio--5",
+      "experiment_type": "single_parameter",
+      "changes": {
+        "concentrated_break_ratio": 0.6365
+      },
+      "bull": {
+        "final_wealth": 12.001251203516103,
+        "total_return": 11.001251203516103,
+        "max_drawdown": 0.1592471587985167,
+        "account_orders": 11,
+        "sharpe": 3.6266426069147384,
+        "calmar": 39.71845508247267,
+        "worst_20d": -0.15689322097592695,
+        "worst_60d": -0.05309804528682216,
+        "pending_orders": 0
+      },
+      "through_july": {
+        "final_wealth": 10.544081204112103,
+        "total_return": 9.544081204112103,
+        "max_drawdown": 0.170031582464221,
+        "account_orders": 14,
+        "sharpe": 3.3417790749500518,
+        "calmar": 29.838933505816378,
+        "worst_20d": -0.170031582464221,
+        "worst_60d": -0.05309804528682216,
+        "pending_orders": 0
+      }
+    },
+    {
+      "experiment_id": "single-minimum_median_amount-+10",
+      "experiment_type": "single_parameter",
+      "changes": {
+        "minimum_median_amount": 22000000.0
+      },
+      "bull": {
+        "final_wealth": 12.645447616356932,
+        "total_return": 11.645447616356932,
+        "max_drawdown": 0.15501626543295977,
+        "account_orders": 11,
+        "sharpe": 3.710183933834517,
+        "calmar": 42.824401948520055,
+        "worst_20d": -0.14021381132266109,
+        "worst_60d": -0.05299837755801484,
+        "pending_orders": 0
+      },
+      "through_july": {
+        "final_wealth": 11.11133389578093,
+        "total_return": 10.11133389578093,
+        "max_drawdown": 0.16991742945882315,
+        "account_orders": 14,
+        "sharpe": 3.4213510545535595,
+        "calmar": 31.322559500118526,
+        "worst_20d": -0.16991742945882315,
+        "worst_60d": -0.05299837755801484,
+        "pending_orders": 0
+      }
+    },
+    {
+      "experiment_id": "single-minimum_median_amount-+5",
+      "experiment_type": "single_parameter",
+      "changes": {
+        "minimum_median_amount": 21000000.0
+      },
+      "bull": {
+        "final_wealth": 12.645447616356932,
+        "total_return": 11.645447616356932,
+        "max_drawdown": 0.15501626543295977,
+        "account_orders": 11,
+        "sharpe": 3.710183933834517,
+        "calmar": 42.824401948520055,
+        "worst_20d": -0.14021381132266109,
+        "worst_60d": -0.05299837755801484,
+        "pending_orders": 0
+      },
+      "through_july": {
+        "final_wealth": 11.11133389578093,
+        "total_return": 10.11133389578093,
+        "max_drawdown": 0.16991742945882315,
+        "account_orders": 14,
+        "sharpe": 3.4213510545535595,
+        "calmar": 31.322559500118526,
+        "worst_20d": -0.16991742945882315,
+        "worst_60d": -0.05299837755801484,
+        "pending_orders": 0
+      }
+    },
+    {
+      "experiment_id": "single-minimum_median_amount--10",
+      "experiment_type": "single_parameter",
+      "changes": {
+        "minimum_median_amount": 18000000.0
+      },
+      "bull": {
+        "final_wealth": 12.645447616356932,
+        "total_return": 11.645447616356932,
+        "max_drawdown": 0.15501626543295977,
+        "account_orders": 11,
+        "sharpe": 3.710183933834517,
+        "calmar": 42.824401948520055,
+        "worst_20d": -0.14021381132266109,
+        "worst_60d": -0.05299837755801484,
+        "pending_orders": 0
+      },
+      "through_july": {
+        "final_wealth": 11.11133389578093,
+        "total_return": 10.11133389578093,
+        "max_drawdown": 0.16991742945882315,
+        "account_orders": 14,
+        "sharpe": 3.4213510545535595,
+        "calmar": 31.322559500118526,
+        "worst_20d": -0.16991742945882315,
+        "worst_60d": -0.05299837755801484,
+        "pending_orders": 0
+      }
+    },
+    {
+      "experiment_id": "single-minimum_median_amount--5",
+      "experiment_type": "single_parameter",
+      "changes": {
+        "minimum_median_amount": 19000000.0
+      },
+      "bull": {
+        "final_wealth": 12.645447616356932,
+        "total_return": 11.645447616356932,
+        "max_drawdown": 0.15501626543295977,
+        "account_orders": 11,
+        "sharpe": 3.710183933834517,
+        "calmar": 42.824401948520055,
+        "worst_20d": -0.14021381132266109,
+        "worst_60d": -0.05299837755801484,
+        "pending_orders": 0
+      },
+      "through_july": {
+        "final_wealth": 11.11133389578093,
+        "total_return": 10.11133389578093,
+        "max_drawdown": 0.16991742945882315,
+        "account_orders": 14,
+        "sharpe": 3.4213510545535595,
+        "calmar": 31.322559500118526,
+        "worst_20d": -0.16991742945882315,
+        "worst_60d": -0.05299837755801484,
+        "pending_orders": 0
+      }
+    },
+    {
+      "experiment_id": "single-recovery_breadth_min-+10",
+      "experiment_type": "single_parameter",
+      "changes": {
+        "recovery_breadth_min": 0.6050000000000001
+      },
+      "bull": {
+        "final_wealth": 12.645447616356932,
+        "total_return": 11.645447616356932,
+        "max_drawdown": 0.15501626543295977,
+        "account_orders": 11,
+        "sharpe": 3.710183933834517,
+        "calmar": 42.824401948520055,
+        "worst_20d": -0.14021381132266109,
+        "worst_60d": -0.05299837755801484,
+        "pending_orders": 0
+      },
+      "through_july": {
+        "final_wealth": 11.11133389578093,
+        "total_return": 10.11133389578093,
+        "max_drawdown": 0.16991742945882315,
+        "account_orders": 14,
+        "sharpe": 3.4213510545535595,
+        "calmar": 31.322559500118526,
+        "worst_20d": -0.16991742945882315,
+        "worst_60d": -0.05299837755801484,
+        "pending_orders": 0
+      }
+    },
+    {
+      "experiment_id": "single-recovery_breadth_min-+5",
+      "experiment_type": "single_parameter",
+      "changes": {
+        "recovery_breadth_min": 0.5775000000000001
+      },
+      "bull": {
+        "final_wealth": 12.645447616356932,
+        "total_return": 11.645447616356932,
+        "max_drawdown": 0.15501626543295977,
+        "account_orders": 11,
+        "sharpe": 3.710183933834517,
+        "calmar": 42.824401948520055,
+        "worst_20d": -0.14021381132266109,
+        "worst_60d": -0.05299837755801484,
+        "pending_orders": 0
+      },
+      "through_july": {
+        "final_wealth": 11.11133389578093,
+        "total_return": 10.11133389578093,
+        "max_drawdown": 0.16991742945882315,
+        "account_orders": 14,
+        "sharpe": 3.4213510545535595,
+        "calmar": 31.322559500118526,
+        "worst_20d": -0.16991742945882315,
+        "worst_60d": -0.05299837755801484,
+        "pending_orders": 0
+      }
+    },
+    {
+      "experiment_id": "single-recovery_breadth_min--10",
+      "experiment_type": "single_parameter",
+      "changes": {
+        "recovery_breadth_min": 0.49500000000000005
+      },
+      "bull": {
+        "final_wealth": 12.645447616356932,
+        "total_return": 11.645447616356932,
+        "max_drawdown": 0.15501626543295977,
+        "account_orders": 11,
+        "sharpe": 3.710183933834517,
+        "calmar": 42.824401948520055,
+        "worst_20d": -0.14021381132266109,
+        "worst_60d": -0.05299837755801484,
+        "pending_orders": 0
+      },
+      "through_july": {
+        "final_wealth": 11.11133389578093,
+        "total_return": 10.11133389578093,
+        "max_drawdown": 0.16991742945882315,
+        "account_orders": 14,
+        "sharpe": 3.4213510545535595,
+        "calmar": 31.322559500118526,
+        "worst_20d": -0.16991742945882315,
+        "worst_60d": -0.05299837755801484,
+        "pending_orders": 0
+      }
+    },
+    {
+      "experiment_id": "single-recovery_breadth_min--5",
+      "experiment_type": "single_parameter",
+      "changes": {
+        "recovery_breadth_min": 0.5225
+      },
+      "bull": {
+        "final_wealth": 12.645447616356932,
+        "total_return": 11.645447616356932,
+        "max_drawdown": 0.15501626543295977,
+        "account_orders": 11,
+        "sharpe": 3.710183933834517,
+        "calmar": 42.824401948520055,
+        "worst_20d": -0.14021381132266109,
+        "worst_60d": -0.05299837755801484,
+        "pending_orders": 0
+      },
+      "through_july": {
+        "final_wealth": 11.11133389578093,
+        "total_return": 10.11133389578093,
+        "max_drawdown": 0.16991742945882315,
+        "account_orders": 14,
+        "sharpe": 3.4213510545535595,
+        "calmar": 31.322559500118526,
+        "worst_20d": -0.16991742945882315,
+        "worst_60d": -0.05299837755801484,
+        "pending_orders": 0
+      }
+    },
+    {
+      "experiment_id": "single-recovery_crash_drawdown-+10",
+      "experiment_type": "single_parameter",
+      "changes": {
+        "recovery_crash_drawdown": 0.165
+      },
+      "bull": {
+        "final_wealth": 12.645447616356932,
+        "total_return": 11.645447616356932,
+        "max_drawdown": 0.15501626543295977,
+        "account_orders": 11,
+        "sharpe": 3.710183933834517,
+        "calmar": 42.824401948520055,
+        "worst_20d": -0.14021381132266109,
+        "worst_60d": -0.05299837755801484,
+        "pending_orders": 0
+      },
+      "through_july": {
+        "final_wealth": 11.11133389578093,
+        "total_return": 10.11133389578093,
+        "max_drawdown": 0.16991742945882315,
+        "account_orders": 14,
+        "sharpe": 3.4213510545535595,
+        "calmar": 31.322559500118526,
+        "worst_20d": -0.16991742945882315,
+        "worst_60d": -0.05299837755801484,
+        "pending_orders": 0
+      }
+    },
+    {
+      "experiment_id": "single-recovery_crash_drawdown-+5",
+      "experiment_type": "single_parameter",
+      "changes": {
+        "recovery_crash_drawdown": 0.1575
+      },
+      "bull": {
+        "final_wealth": 12.645447616356932,
+        "total_return": 11.645447616356932,
+        "max_drawdown": 0.15501626543295977,
+        "account_orders": 11,
+        "sharpe": 3.710183933834517,
+        "calmar": 42.824401948520055,
+        "worst_20d": -0.14021381132266109,
+        "worst_60d": -0.05299837755801484,
+        "pending_orders": 0
+      },
+      "through_july": {
+        "final_wealth": 11.11133389578093,
+        "total_return": 10.11133389578093,
+        "max_drawdown": 0.16991742945882315,
+        "account_orders": 14,
+        "sharpe": 3.4213510545535595,
+        "calmar": 31.322559500118526,
+        "worst_20d": -0.16991742945882315,
+        "worst_60d": -0.05299837755801484,
+        "pending_orders": 0
+      }
+    },
+    {
+      "experiment_id": "single-recovery_crash_drawdown--10",
+      "experiment_type": "single_parameter",
+      "changes": {
+        "recovery_crash_drawdown": 0.135
+      },
+      "bull": {
+        "final_wealth": 12.645447616356932,
+        "total_return": 11.645447616356932,
+        "max_drawdown": 0.15501626543295977,
+        "account_orders": 11,
+        "sharpe": 3.710183933834517,
+        "calmar": 42.824401948520055,
+        "worst_20d": -0.14021381132266109,
+        "worst_60d": -0.05299837755801484,
+        "pending_orders": 0
+      },
+      "through_july": {
+        "final_wealth": 11.11133389578093,
+        "total_return": 10.11133389578093,
+        "max_drawdown": 0.16991742945882315,
+        "account_orders": 14,
+        "sharpe": 3.4213510545535595,
+        "calmar": 31.322559500118526,
+        "worst_20d": -0.16991742945882315,
+        "worst_60d": -0.05299837755801484,
+        "pending_orders": 0
+      }
+    },
+    {
+      "experiment_id": "single-recovery_crash_drawdown--5",
+      "experiment_type": "single_parameter",
+      "changes": {
+        "recovery_crash_drawdown": 0.1425
+      },
+      "bull": {
+        "final_wealth": 12.645447616356932,
+        "total_return": 11.645447616356932,
+        "max_drawdown": 0.15501626543295977,
+        "account_orders": 11,
+        "sharpe": 3.710183933834517,
+        "calmar": 42.824401948520055,
+        "worst_20d": -0.14021381132266109,
+        "worst_60d": -0.05299837755801484,
+        "pending_orders": 0
+      },
+      "through_july": {
+        "final_wealth": 11.11133389578093,
+        "total_return": 10.11133389578093,
+        "max_drawdown": 0.16991742945882315,
+        "account_orders": 14,
+        "sharpe": 3.4213510545535595,
+        "calmar": 31.322559500118526,
+        "worst_20d": -0.16991742945882315,
+        "worst_60d": -0.05299837755801484,
+        "pending_orders": 0
+      }
+    },
+    {
+      "experiment_id": "single-recovery_target_gross-+10",
+      "experiment_type": "single_parameter",
+      "changes": {
+        "recovery_target_gross": 0.9845000000000002
+      },
+      "bull": {
+        "final_wealth": 14.316999561458765,
+        "total_return": 13.316999561458765,
+        "max_drawdown": 0.17570260952376748,
+        "account_orders": 11,
+        "sharpe": 3.7245383179593805,
+        "calmar": 42.32991074682807,
+        "worst_20d": -0.16077188214791693,
+        "worst_60d": -0.047044756952741906,
+        "pending_orders": 0
+      },
+      "through_july": {
+        "final_wealth": 12.481914078586765,
+        "total_return": 11.481914078586765,
+        "max_drawdown": 0.17570260952376748,
+        "account_orders": 14,
+        "sharpe": 3.4327342741403077,
+        "calmar": 33.64354195368591,
+        "worst_20d": -0.17352983437191205,
+        "worst_60d": -0.047044756952741906,
+        "pending_orders": 0
+      }
+    },
+    {
+      "experiment_id": "single-recovery_target_gross-+5",
+      "experiment_type": "single_parameter",
+      "changes": {
+        "recovery_target_gross": 0.9397500000000001
+      },
+      "bull": {
+        "final_wealth": 13.432584683532786,
+        "total_return": 12.432584683532786,
+        "max_drawdown": 0.16529808017084469,
+        "account_orders": 11,
+        "sharpe": 3.717479140879036,
+        "calmar": 42.45170470813222,
+        "worst_20d": -0.15045281773088337,
+        "worst_60d": -0.05015881909743369,
+        "pending_orders": 0
+      },
+      "through_july": {
+        "final_wealth": 11.756538377072784,
+        "total_return": 10.756538377072784,
+        "max_drawdown": 0.17162587577994026,
+        "account_orders": 14,
+        "sharpe": 3.4269052322390348,
+        "calmar": 32.638009461466915,
+        "worst_20d": -0.17162587577994026,
+        "worst_60d": -0.05015881909743369,
+        "pending_orders": 0
+      }
+    },
+    {
+      "experiment_id": "single-recovery_target_gross--10",
+      "experiment_type": "single_parameter",
+      "changes": {
+        "recovery_target_gross": 0.8055
+      },
+      "bull": {
+        "final_wealth": 11.064783776637535,
+        "total_return": 10.064783776637535,
+        "max_drawdown": 0.1496014864171007,
+        "account_orders": 11,
+        "sharpe": 3.685060617915246,
+        "calmar": 39.19322217973741,
+        "worst_20d": -0.1280159942897594,
+        "worst_60d": -0.05922047853707635,
+        "pending_orders": 0
+      },
+      "through_july": {
+        "final_wealth": 9.804393876605534,
+        "total_return": 8.804393876605534,
+        "max_drawdown": 0.1661479486263695,
+        "account_orders": 14,
+        "sharpe": 3.4007434284819897,
+        "calmar": 28.555903817607533,
+        "worst_20d": -0.1661479486263695,
+        "worst_60d": -0.05922047853707635,
+        "pending_orders": 0
+      }
+    },
+    {
+      "experiment_id": "single-recovery_target_gross--5",
+      "experiment_type": "single_parameter",
+      "changes": {
+        "recovery_target_gross": 0.85025
+      },
+      "bull": {
+        "final_wealth": 11.86340016080185,
+        "total_return": 10.86340016080185,
+        "max_drawdown": 0.1515703729602691,
+        "account_orders": 11,
+        "sharpe": 3.699060658339507,
+        "calmar": 41.28479440320342,
+        "worst_20d": -0.13002613431622356,
+        "worst_60d": -0.05636260713846675,
+        "pending_orders": 0
+      },
+      "through_july": {
+        "final_wealth": 10.46632416548985,
+        "total_return": 9.46632416548985,
+        "max_drawdown": 0.1682216108393959,
+        "account_orders": 14,
+        "sharpe": 3.4123013306315872,
+        "calmar": 29.955905640888822,
+        "worst_20d": -0.1682216108393959,
+        "worst_60d": -0.05636260713846675,
+        "pending_orders": 0
+      }
+    },
+    {
+      "experiment_id": "single-severe_shock_ret5-+10",
+      "experiment_type": "single_parameter",
+      "changes": {
+        "severe_shock_ret5": -0.132
+      },
+      "bull": {
+        "final_wealth": 12.645447616356932,
+        "total_return": 11.645447616356932,
+        "max_drawdown": 0.15501626543295977,
+        "account_orders": 11,
+        "sharpe": 3.710183933834517,
+        "calmar": 42.824401948520055,
+        "worst_20d": -0.14021381132266109,
+        "worst_60d": -0.05299837755801484,
+        "pending_orders": 0
+      },
+      "through_july": {
+        "final_wealth": 11.11133389578093,
+        "total_return": 10.11133389578093,
+        "max_drawdown": 0.16991742945882315,
+        "account_orders": 14,
+        "sharpe": 3.4213510545535595,
+        "calmar": 31.322559500118526,
+        "worst_20d": -0.16991742945882315,
+        "worst_60d": -0.05299837755801484,
+        "pending_orders": 0
+      }
+    },
+    {
+      "experiment_id": "single-severe_shock_ret5-+5",
+      "experiment_type": "single_parameter",
+      "changes": {
+        "severe_shock_ret5": -0.126
+      },
+      "bull": {
+        "final_wealth": 12.645447616356932,
+        "total_return": 11.645447616356932,
+        "max_drawdown": 0.15501626543295977,
+        "account_orders": 11,
+        "sharpe": 3.710183933834517,
+        "calmar": 42.824401948520055,
+        "worst_20d": -0.14021381132266109,
+        "worst_60d": -0.05299837755801484,
+        "pending_orders": 0
+      },
+      "through_july": {
+        "final_wealth": 11.11133389578093,
+        "total_return": 10.11133389578093,
+        "max_drawdown": 0.16991742945882315,
+        "account_orders": 14,
+        "sharpe": 3.4213510545535595,
+        "calmar": 31.322559500118526,
+        "worst_20d": -0.16991742945882315,
+        "worst_60d": -0.05299837755801484,
+        "pending_orders": 0
+      }
+    },
+    {
+      "experiment_id": "single-severe_shock_ret5--10",
+      "experiment_type": "single_parameter",
+      "changes": {
+        "severe_shock_ret5": -0.108
+      },
+      "bull": {
+        "final_wealth": 12.645447616356932,
+        "total_return": 11.645447616356932,
+        "max_drawdown": 0.15501626543295977,
+        "account_orders": 11,
+        "sharpe": 3.710183933834517,
+        "calmar": 42.824401948520055,
+        "worst_20d": -0.14021381132266109,
+        "worst_60d": -0.05299837755801484,
+        "pending_orders": 0
+      },
+      "through_july": {
+        "final_wealth": 11.11133389578093,
+        "total_return": 10.11133389578093,
+        "max_drawdown": 0.16991742945882315,
+        "account_orders": 14,
+        "sharpe": 3.4213510545535595,
+        "calmar": 31.322559500118526,
+        "worst_20d": -0.16991742945882315,
+        "worst_60d": -0.05299837755801484,
+        "pending_orders": 0
+      }
+    },
+    {
+      "experiment_id": "single-severe_shock_ret5--5",
+      "experiment_type": "single_parameter",
+      "changes": {
+        "severe_shock_ret5": -0.11399999999999999
+      },
+      "bull": {
+        "final_wealth": 12.645447616356932,
+        "total_return": 11.645447616356932,
+        "max_drawdown": 0.15501626543295977,
+        "account_orders": 11,
+        "sharpe": 3.710183933834517,
+        "calmar": 42.824401948520055,
+        "worst_20d": -0.14021381132266109,
+        "worst_60d": -0.05299837755801484,
+        "pending_orders": 0
+      },
+      "through_july": {
+        "final_wealth": 11.11133389578093,
+        "total_return": 10.11133389578093,
+        "max_drawdown": 0.16991742945882315,
+        "account_orders": 14,
+        "sharpe": 3.4213510545535595,
+        "calmar": 31.322559500118526,
+        "worst_20d": -0.16991742945882315,
+        "worst_60d": -0.05299837755801484,
+        "pending_orders": 0
+      }
+    },
+    {
+      "experiment_id": "single-tactical_rebound_take_profit-+10",
+      "experiment_type": "single_parameter",
+      "changes": {
+        "tactical_rebound_take_profit": 0.07150000000000001
+      },
+      "bull": {
+        "final_wealth": 12.5354641285268,
+        "total_return": 11.5354641285268,
+        "max_drawdown": 0.15474317714294827,
+        "account_orders": 11,
+        "sharpe": 3.6976076109944738,
+        "calmar": 42.555648891338755,
+        "worst_20d": -0.13993461482384484,
+        "worst_60d": -0.05328830677591678,
+        "pending_orders": 0
+      },
+      "through_july": {
+        "final_wealth": 11.015900832054797,
+        "total_return": 10.015900832054797,
+        "max_drawdown": 0.16988913554256857,
+        "account_orders": 14,
+        "sharpe": 3.409509433944725,
+        "calmar": 31.082754108355562,
+        "worst_20d": -0.16988913554256857,
+        "worst_60d": -0.05328830677591678,
+        "pending_orders": 0
+      }
+    },
+    {
+      "experiment_id": "single-tactical_rebound_take_profit-+5",
+      "experiment_type": "single_parameter",
+      "changes": {
+        "tactical_rebound_take_profit": 0.06825
+      },
+      "bull": {
+        "final_wealth": 12.645447616356932,
+        "total_return": 11.645447616356932,
+        "max_drawdown": 0.15501626543295977,
+        "account_orders": 11,
+        "sharpe": 3.710183933834517,
+        "calmar": 42.824401948520055,
+        "worst_20d": -0.14021381132266109,
+        "worst_60d": -0.05299837755801484,
+        "pending_orders": 0
+      },
+      "through_july": {
+        "final_wealth": 11.11133389578093,
+        "total_return": 10.11133389578093,
+        "max_drawdown": 0.16991742945882315,
+        "account_orders": 14,
+        "sharpe": 3.4213510545535595,
+        "calmar": 31.322559500118526,
+        "worst_20d": -0.16991742945882315,
+        "worst_60d": -0.05299837755801484,
+        "pending_orders": 0
+      }
+    },
+    {
+      "experiment_id": "single-tactical_rebound_take_profit--10",
+      "experiment_type": "single_parameter",
+      "changes": {
+        "tactical_rebound_take_profit": 0.0585
+      },
+      "bull": {
+        "final_wealth": 12.645447616356932,
+        "total_return": 11.645447616356932,
+        "max_drawdown": 0.15501626543295977,
+        "account_orders": 11,
+        "sharpe": 3.710183933834517,
+        "calmar": 42.824401948520055,
+        "worst_20d": -0.14021381132266109,
+        "worst_60d": -0.05299837755801484,
+        "pending_orders": 0
+      },
+      "through_july": {
+        "final_wealth": 11.11133389578093,
+        "total_return": 10.11133389578093,
+        "max_drawdown": 0.16991742945882315,
+        "account_orders": 14,
+        "sharpe": 3.4213510545535595,
+        "calmar": 31.322559500118526,
+        "worst_20d": -0.16991742945882315,
+        "worst_60d": -0.05299837755801484,
+        "pending_orders": 0
+      }
+    },
+    {
+      "experiment_id": "single-tactical_rebound_take_profit--5",
+      "experiment_type": "single_parameter",
+      "changes": {
+        "tactical_rebound_take_profit": 0.06175
+      },
+      "bull": {
+        "final_wealth": 12.645447616356932,
+        "total_return": 11.645447616356932,
+        "max_drawdown": 0.15501626543295977,
+        "account_orders": 11,
+        "sharpe": 3.710183933834517,
+        "calmar": 42.824401948520055,
+        "worst_20d": -0.14021381132266109,
+        "worst_60d": -0.05299837755801484,
+        "pending_orders": 0
+      },
+      "through_july": {
+        "final_wealth": 11.11133389578093,
+        "total_return": 10.11133389578093,
+        "max_drawdown": 0.16991742945882315,
+        "account_orders": 14,
+        "sharpe": 3.4213510545535595,
+        "calmar": 31.322559500118526,
+        "worst_20d": -0.16991742945882315,
+        "worst_60d": -0.05299837755801484,
+        "pending_orders": 0
+      }
+    },
+    {
+      "experiment_id": "slippage-0.1pct",
+      "experiment_type": "cost",
+      "changes": {
+        "slippage": 0.001
+      },
+      "bull": {
+        "final_wealth": 12.645447616356932,
+        "total_return": 11.645447616356932,
+        "max_drawdown": 0.15501626543295977,
+        "account_orders": 11,
+        "sharpe": 3.710183933834517,
+        "calmar": 42.824401948520055,
+        "worst_20d": -0.14021381132266109,
+        "worst_60d": -0.05299837755801484,
+        "pending_orders": 0
+      },
+      "through_july": {
+        "final_wealth": 11.11133389578093,
+        "total_return": 10.11133389578093,
+        "max_drawdown": 0.16991742945882315,
+        "account_orders": 14,
+        "sharpe": 3.4213510545535595,
+        "calmar": 31.322559500118526,
+        "worst_20d": -0.16991742945882315,
+        "worst_60d": -0.05299837755801484,
+        "pending_orders": 0
+      }
+    },
+    {
+      "experiment_id": "slippage-0.2pct",
+      "experiment_type": "cost",
+      "changes": {
+        "slippage": 0.002
+      },
+      "bull": {
+        "final_wealth": 12.536794456867419,
+        "total_return": 11.536794456867419,
+        "max_drawdown": 0.15470650146018972,
+        "account_orders": 11,
+        "sharpe": 3.702878811081341,
+        "calmar": 42.56990686429736,
+        "worst_20d": -0.13990086800536639,
+        "worst_60d": -0.053277113202901405,
+        "pending_orders": 0
+      },
+      "through_july": {
+        "final_wealth": 11.00667139192342,
+        "total_return": 10.00667139192342,
+        "max_drawdown": 0.17066776516511062,
+        "account_orders": 14,
+        "sharpe": 3.4128718591165197,
+        "calmar": 30.917332275275466,
+        "worst_20d": -0.17066776516511062,
+        "worst_60d": -0.053277113202901405,
+        "pending_orders": 0
+      }
+    },
+    {
+      "experiment_id": "slippage-0.3pct",
+      "experiment_type": "cost",
+      "changes": {
+        "slippage": 0.003
+      },
+      "bull": {
+        "final_wealth": 12.522935635914699,
+        "total_return": 11.522935635914699,
+        "max_drawdown": 0.15508942876518095,
+        "account_orders": 11,
+        "sharpe": 3.6977179510328804,
+        "calmar": 42.42146573449573,
+        "worst_20d": -0.1402532291309525,
+        "worst_60d": -0.05339395449297635,
+        "pending_orders": 0
+      },
+      "through_july": {
+        "final_wealth": 10.982252802498698,
+        "total_return": 9.982252802498698,
+        "max_drawdown": 0.17164265960906455,
+        "account_orders": 14,
+        "sharpe": 3.406551483867102,
+        "calmar": 30.679583541096175,
+        "worst_20d": -0.17164265960906455,
+        "worst_60d": -0.05339395449297635,
+        "pending_orders": 0
+      }
+    }
+  ],
+  "walk_forward_cells": [
+    {
+      "experiment_id": "pair-gross--10-shock--10",
+      "window_id": "fold1_train",
+      "final_wealth": 0.9870060082906202,
+      "total_return": -0.01299399170937976,
+      "max_drawdown": 0.1338487561827637,
+      "account_orders": 19,
+      "sharpe": -0.0014650232782788919,
+      "calmar": -0.048698544268798216,
+      "worst_20d": -0.091293464498713,
+      "worst_60d": -0.1010815274268132,
+      "pending_orders": 0
+    },
+    {
+      "experiment_id": "pair-gross--10-shock--10",
+      "window_id": "fold1_test",
+      "final_wealth": 1.1231214908386875,
+      "total_return": 0.12312149083868751,
+      "max_drawdown": 0.014714349094069767,
+      "account_orders": 4,
+      "sharpe": 1.6499570954493286,
+      "calmar": 8.36744391828439,
+      "worst_20d": 0.0,
+      "worst_60d": 0.0,
+      "pending_orders": 0
+    },
+    {
+      "experiment_id": "pair-gross--10-shock--10",
+      "window_id": "fold2_train",
+      "final_wealth": 1.1231214908386875,
+      "total_return": 0.12312149083868751,
+      "max_drawdown": 0.014714349094069767,
+      "account_orders": 4,
+      "sharpe": 1.1622167358731483,
+      "calmar": 4.062311129981828,
+      "worst_20d": -0.014714349094069767,
+      "worst_60d": -0.014714349094069767,
+      "pending_orders": 0
+    },
+    {
+      "experiment_id": "pair-gross--10-shock--10",
+      "window_id": "fold2_test",
+      "final_wealth": 1.6106545448732599,
+      "total_return": 0.6106545448732599,
+      "max_drawdown": 0.06314639176289516,
+      "account_orders": 5,
+      "sharpe": 4.170003809377036,
+      "calmar": 26.607193068106376,
+      "worst_20d": -0.009492983295450008,
+      "worst_60d": -0.009492983295450008,
+      "pending_orders": 0
+    },
+    {
+      "experiment_id": "pair-gross--10-shock--10",
+      "window_id": "fold3_train",
+      "final_wealth": 1.8102755913854114,
+      "total_return": 0.8102755913854114,
+      "max_drawdown": 0.06325070413753286,
+      "account_orders": 9,
+      "sharpe": 2.6705640259265984,
+      "calmar": 7.777239511360008,
+      "worst_20d": -0.00948129914166107,
+      "worst_60d": -0.00948129914166107,
+      "pending_orders": 0
+    },
+    {
+      "experiment_id": "pair-gross--10-shock--10",
+      "window_id": "fold3_test",
+      "final_wealth": 1.032186131901154,
+      "total_return": 0.03218613190115405,
+      "max_drawdown": 0.008605843175487182,
+      "account_orders": 2,
+      "sharpe": 1.1730452104374027,
+      "calmar": 7.289572573720179,
+      "worst_20d": -0.008605843175487182,
+      "worst_60d": 0.0,
+      "pending_orders": 0
+    },
+    {
+      "experiment_id": "pair-gross--10-shock-+0",
+      "window_id": "fold1_train",
+      "final_wealth": 0.9870060082906202,
+      "total_return": -0.01299399170937976,
+      "max_drawdown": 0.1338487561827637,
+      "account_orders": 19,
+      "sharpe": -0.0014650232782788919,
+      "calmar": -0.048698544268798216,
+      "worst_20d": -0.091293464498713,
+      "worst_60d": -0.1010815274268132,
+      "pending_orders": 0
+    },
+    {
+      "experiment_id": "pair-gross--10-shock-+0",
+      "window_id": "fold1_test",
+      "final_wealth": 1.1231214908386875,
+      "total_return": 0.12312149083868751,
+      "max_drawdown": 0.014714349094069767,
+      "account_orders": 4,
+      "sharpe": 1.6499570954493286,
+      "calmar": 8.36744391828439,
+      "worst_20d": 0.0,
+      "worst_60d": 0.0,
+      "pending_orders": 0
+    },
+    {
+      "experiment_id": "pair-gross--10-shock-+0",
+      "window_id": "fold2_train",
+      "final_wealth": 1.1231214908386875,
+      "total_return": 0.12312149083868751,
+      "max_drawdown": 0.014714349094069767,
+      "account_orders": 4,
+      "sharpe": 1.1622167358731483,
+      "calmar": 4.062311129981828,
+      "worst_20d": -0.014714349094069767,
+      "worst_60d": -0.014714349094069767,
+      "pending_orders": 0
+    },
+    {
+      "experiment_id": "pair-gross--10-shock-+0",
+      "window_id": "fold2_test",
+      "final_wealth": 1.6106545448732599,
+      "total_return": 0.6106545448732599,
+      "max_drawdown": 0.06314639176289516,
+      "account_orders": 5,
+      "sharpe": 4.170003809377036,
+      "calmar": 26.607193068106376,
+      "worst_20d": -0.009492983295450008,
+      "worst_60d": -0.009492983295450008,
+      "pending_orders": 0
+    },
+    {
+      "experiment_id": "pair-gross--10-shock-+0",
+      "window_id": "fold3_train",
+      "final_wealth": 1.8102755913854114,
+      "total_return": 0.8102755913854114,
+      "max_drawdown": 0.06325070413753286,
+      "account_orders": 9,
+      "sharpe": 2.6705640259265984,
+      "calmar": 7.777239511360008,
+      "worst_20d": -0.00948129914166107,
+      "worst_60d": -0.00948129914166107,
+      "pending_orders": 0
+    },
+    {
+      "experiment_id": "pair-gross--10-shock-+0",
+      "window_id": "fold3_test",
+      "final_wealth": 1.032186131901154,
+      "total_return": 0.03218613190115405,
+      "max_drawdown": 0.008605843175487182,
+      "account_orders": 2,
+      "sharpe": 1.1730452104374027,
+      "calmar": 7.289572573720179,
+      "worst_20d": -0.008605843175487182,
+      "worst_60d": 0.0,
+      "pending_orders": 0
+    },
+    {
+      "experiment_id": "pair-gross--10-shock-+10",
+      "window_id": "fold1_train",
+      "final_wealth": 0.9870060082906202,
+      "total_return": -0.01299399170937976,
+      "max_drawdown": 0.1338487561827637,
+      "account_orders": 19,
+      "sharpe": -0.0014650232782788919,
+      "calmar": -0.048698544268798216,
+      "worst_20d": -0.091293464498713,
+      "worst_60d": -0.1010815274268132,
+      "pending_orders": 0
+    },
+    {
+      "experiment_id": "pair-gross--10-shock-+10",
+      "window_id": "fold1_test",
+      "final_wealth": 1.1231214908386875,
+      "total_return": 0.12312149083868751,
+      "max_drawdown": 0.014714349094069767,
+      "account_orders": 4,
+      "sharpe": 1.6499570954493286,
+      "calmar": 8.36744391828439,
+      "worst_20d": 0.0,
+      "worst_60d": 0.0,
+      "pending_orders": 0
+    },
+    {
+      "experiment_id": "pair-gross--10-shock-+10",
+      "window_id": "fold2_train",
+      "final_wealth": 1.1231214908386875,
+      "total_return": 0.12312149083868751,
+      "max_drawdown": 0.014714349094069767,
+      "account_orders": 4,
+      "sharpe": 1.1622167358731483,
+      "calmar": 4.062311129981828,
+      "worst_20d": -0.014714349094069767,
+      "worst_60d": -0.014714349094069767,
+      "pending_orders": 0
+    },
+    {
+      "experiment_id": "pair-gross--10-shock-+10",
+      "window_id": "fold2_test",
+      "final_wealth": 1.6106545448732599,
+      "total_return": 0.6106545448732599,
+      "max_drawdown": 0.06314639176289516,
+      "account_orders": 5,
+      "sharpe": 4.170003809377036,
+      "calmar": 26.607193068106376,
+      "worst_20d": -0.009492983295450008,
+      "worst_60d": -0.009492983295450008,
+      "pending_orders": 0
+    },
+    {
+      "experiment_id": "pair-gross--10-shock-+10",
+      "window_id": "fold3_train",
+      "final_wealth": 1.8102755913854114,
+      "total_return": 0.8102755913854114,
+      "max_drawdown": 0.06325070413753286,
+      "account_orders": 9,
+      "sharpe": 2.6705640259265984,
+      "calmar": 7.777239511360008,
+      "worst_20d": -0.00948129914166107,
+      "worst_60d": -0.00948129914166107,
+      "pending_orders": 0
+    },
+    {
+      "experiment_id": "pair-gross--10-shock-+10",
+      "window_id": "fold3_test",
+      "final_wealth": 1.032186131901154,
+      "total_return": 0.03218613190115405,
+      "max_drawdown": 0.008605843175487182,
+      "account_orders": 2,
+      "sharpe": 1.1730452104374027,
+      "calmar": 7.289572573720179,
+      "worst_20d": -0.008605843175487182,
+      "worst_60d": 0.0,
+      "pending_orders": 0
+    },
+    {
+      "experiment_id": "pair-gross-+0-shock--10",
+      "window_id": "fold1_train",
+      "final_wealth": 0.9870060082906202,
+      "total_return": -0.01299399170937976,
+      "max_drawdown": 0.1338487561827637,
+      "account_orders": 19,
+      "sharpe": -0.0014650232782788919,
+      "calmar": -0.048698544268798216,
+      "worst_20d": -0.091293464498713,
+      "worst_60d": -0.1010815274268132,
+      "pending_orders": 0
+    },
+    {
+      "experiment_id": "pair-gross-+0-shock--10",
+      "window_id": "fold1_test",
+      "final_wealth": 1.1231214908386875,
+      "total_return": 0.12312149083868751,
+      "max_drawdown": 0.014714349094069767,
+      "account_orders": 4,
+      "sharpe": 1.6499570954493286,
+      "calmar": 8.36744391828439,
+      "worst_20d": 0.0,
+      "worst_60d": 0.0,
+      "pending_orders": 0
+    },
+    {
+      "experiment_id": "pair-gross-+0-shock--10",
+      "window_id": "fold2_train",
+      "final_wealth": 1.1231214908386875,
+      "total_return": 0.12312149083868751,
+      "max_drawdown": 0.014714349094069767,
+      "account_orders": 4,
+      "sharpe": 1.1622167358731483,
+      "calmar": 4.062311129981828,
+      "worst_20d": -0.014714349094069767,
+      "worst_60d": -0.014714349094069767,
+      "pending_orders": 0
+    },
+    {
+      "experiment_id": "pair-gross-+0-shock--10",
+      "window_id": "fold2_test",
+      "final_wealth": 1.675282681495134,
+      "total_return": 0.675282681495134,
+      "max_drawdown": 0.06752583421776237,
+      "account_orders": 5,
+      "sharpe": 4.226343065892806,
+      "calmar": 28.246339774820843,
+      "worst_20d": -0.009492983295450008,
+      "worst_60d": -0.009492983295450008,
+      "pending_orders": 0
+    },
+    {
+      "experiment_id": "pair-gross-+0-shock--10",
+      "window_id": "fold3_train",
+      "final_wealth": 1.8813538667777663,
+      "total_return": 0.8813538667777663,
+      "max_drawdown": 0.06754500930166107,
+      "account_orders": 9,
+      "sharpe": 2.688730730588409,
+      "calmar": 7.863716687228381,
+      "worst_20d": -0.00948129914166107,
+      "worst_60d": -0.00948129914166107,
+      "pending_orders": 0
+    },
+    {
+      "experiment_id": "pair-gross-+0-shock--10",
+      "window_id": "fold3_test",
+      "final_wealth": 1.032186131901154,
+      "total_return": 0.03218613190115405,
+      "max_drawdown": 0.008605843175487182,
+      "account_orders": 2,
+      "sharpe": 1.1730452104374027,
+      "calmar": 7.289572573720179,
+      "worst_20d": -0.008605843175487182,
+      "worst_60d": 0.0,
+      "pending_orders": 0
+    },
+    {
+      "experiment_id": "pair-gross-+0-shock-+0",
+      "window_id": "fold1_train",
+      "final_wealth": 0.9870060082906202,
+      "total_return": -0.01299399170937976,
+      "max_drawdown": 0.1338487561827637,
+      "account_orders": 19,
+      "sharpe": -0.0014650232782788919,
+      "calmar": -0.048698544268798216,
+      "worst_20d": -0.091293464498713,
+      "worst_60d": -0.1010815274268132,
+      "pending_orders": 0
+    },
+    {
+      "experiment_id": "pair-gross-+0-shock-+0",
+      "window_id": "fold1_test",
+      "final_wealth": 1.1231214908386875,
+      "total_return": 0.12312149083868751,
+      "max_drawdown": 0.014714349094069767,
+      "account_orders": 4,
+      "sharpe": 1.6499570954493286,
+      "calmar": 8.36744391828439,
+      "worst_20d": 0.0,
+      "worst_60d": 0.0,
+      "pending_orders": 0
+    },
+    {
+      "experiment_id": "pair-gross-+0-shock-+0",
+      "window_id": "fold2_train",
+      "final_wealth": 1.1231214908386875,
+      "total_return": 0.12312149083868751,
+      "max_drawdown": 0.014714349094069767,
+      "account_orders": 4,
+      "sharpe": 1.1622167358731483,
+      "calmar": 4.062311129981828,
+      "worst_20d": -0.014714349094069767,
+      "worst_60d": -0.014714349094069767,
+      "pending_orders": 0
+    },
+    {
+      "experiment_id": "pair-gross-+0-shock-+0",
+      "window_id": "fold2_test",
+      "final_wealth": 1.675282681495134,
+      "total_return": 0.675282681495134,
+      "max_drawdown": 0.06752583421776237,
+      "account_orders": 5,
+      "sharpe": 4.226343065892806,
+      "calmar": 28.246339774820843,
+      "worst_20d": -0.009492983295450008,
+      "worst_60d": -0.009492983295450008,
+      "pending_orders": 0
+    },
+    {
+      "experiment_id": "pair-gross-+0-shock-+0",
+      "window_id": "fold3_train",
+      "final_wealth": 1.8813538667777663,
+      "total_return": 0.8813538667777663,
+      "max_drawdown": 0.06754500930166107,
+      "account_orders": 9,
+      "sharpe": 2.688730730588409,
+      "calmar": 7.863716687228381,
+      "worst_20d": -0.00948129914166107,
+      "worst_60d": -0.00948129914166107,
+      "pending_orders": 0
+    },
+    {
+      "experiment_id": "pair-gross-+0-shock-+0",
+      "window_id": "fold3_test",
+      "final_wealth": 1.032186131901154,
+      "total_return": 0.03218613190115405,
+      "max_drawdown": 0.008605843175487182,
+      "account_orders": 2,
+      "sharpe": 1.1730452104374027,
+      "calmar": 7.289572573720179,
+      "worst_20d": -0.008605843175487182,
+      "worst_60d": 0.0,
+      "pending_orders": 0
+    },
+    {
+      "experiment_id": "pair-gross-+0-shock-+10",
+      "window_id": "fold1_train",
+      "final_wealth": 0.9870060082906202,
+      "total_return": -0.01299399170937976,
+      "max_drawdown": 0.1338487561827637,
+      "account_orders": 19,
+      "sharpe": -0.0014650232782788919,
+      "calmar": -0.048698544268798216,
+      "worst_20d": -0.091293464498713,
+      "worst_60d": -0.1010815274268132,
+      "pending_orders": 0
+    },
+    {
+      "experiment_id": "pair-gross-+0-shock-+10",
+      "window_id": "fold1_test",
+      "final_wealth": 1.1231214908386875,
+      "total_return": 0.12312149083868751,
+      "max_drawdown": 0.014714349094069767,
+      "account_orders": 4,
+      "sharpe": 1.6499570954493286,
+      "calmar": 8.36744391828439,
+      "worst_20d": 0.0,
+      "worst_60d": 0.0,
+      "pending_orders": 0
+    },
+    {
+      "experiment_id": "pair-gross-+0-shock-+10",
+      "window_id": "fold2_train",
+      "final_wealth": 1.1231214908386875,
+      "total_return": 0.12312149083868751,
+      "max_drawdown": 0.014714349094069767,
+      "account_orders": 4,
+      "sharpe": 1.1622167358731483,
+      "calmar": 4.062311129981828,
+      "worst_20d": -0.014714349094069767,
+      "worst_60d": -0.014714349094069767,
+      "pending_orders": 0
+    },
+    {
+      "experiment_id": "pair-gross-+0-shock-+10",
+      "window_id": "fold2_test",
+      "final_wealth": 1.675282681495134,
+      "total_return": 0.675282681495134,
+      "max_drawdown": 0.06752583421776237,
+      "account_orders": 5,
+      "sharpe": 4.226343065892806,
+      "calmar": 28.246339774820843,
+      "worst_20d": -0.009492983295450008,
+      "worst_60d": -0.009492983295450008,
+      "pending_orders": 0
+    },
+    {
+      "experiment_id": "pair-gross-+0-shock-+10",
+      "window_id": "fold3_train",
+      "final_wealth": 1.8813538667777663,
+      "total_return": 0.8813538667777663,
+      "max_drawdown": 0.06754500930166107,
+      "account_orders": 9,
+      "sharpe": 2.688730730588409,
+      "calmar": 7.863716687228381,
+      "worst_20d": -0.00948129914166107,
+      "worst_60d": -0.00948129914166107,
+      "pending_orders": 0
+    },
+    {
+      "experiment_id": "pair-gross-+0-shock-+10",
+      "window_id": "fold3_test",
+      "final_wealth": 1.032186131901154,
+      "total_return": 0.03218613190115405,
+      "max_drawdown": 0.008605843175487182,
+      "account_orders": 2,
+      "sharpe": 1.1730452104374027,
+      "calmar": 7.289572573720179,
+      "worst_20d": -0.008605843175487182,
+      "worst_60d": 0.0,
+      "pending_orders": 0
+    },
+    {
+      "experiment_id": "pair-gross-+10-shock--10",
+      "window_id": "fold1_train",
+      "final_wealth": 0.9870060082906202,
+      "total_return": -0.01299399170937976,
+      "max_drawdown": 0.1338487561827637,
+      "account_orders": 19,
+      "sharpe": -0.0014650232782788919,
+      "calmar": -0.048698544268798216,
+      "worst_20d": -0.091293464498713,
+      "worst_60d": -0.1010815274268132,
+      "pending_orders": 0
+    },
+    {
+      "experiment_id": "pair-gross-+10-shock--10",
+      "window_id": "fold1_test",
+      "final_wealth": 1.1231214908386875,
+      "total_return": 0.12312149083868751,
+      "max_drawdown": 0.014714349094069767,
+      "account_orders": 4,
+      "sharpe": 1.6499570954493286,
+      "calmar": 8.36744391828439,
+      "worst_20d": 0.0,
+      "worst_60d": 0.0,
+      "pending_orders": 0
+    },
+    {
+      "experiment_id": "pair-gross-+10-shock--10",
+      "window_id": "fold2_train",
+      "final_wealth": 1.1231214908386875,
+      "total_return": 0.12312149083868751,
+      "max_drawdown": 0.014714349094069767,
+      "account_orders": 4,
+      "sharpe": 1.1622167358731483,
+      "calmar": 4.062311129981828,
+      "worst_20d": -0.014714349094069767,
+      "worst_60d": -0.014714349094069767,
+      "pending_orders": 0
+    },
+    {
+      "experiment_id": "pair-gross-+10-shock--10",
+      "window_id": "fold2_test",
+      "final_wealth": 1.7371283659415073,
+      "total_return": 0.7371283659415073,
+      "max_drawdown": 0.0716574987658899,
+      "account_orders": 5,
+      "sharpe": 4.264367748024645,
+      "calmar": 29.776887825929943,
+      "worst_20d": -0.009492983295450008,
+      "worst_60d": -0.009492983295450008,
+      "pending_orders": 0
+    },
+    {
+      "experiment_id": "pair-gross-+10-shock--10",
+      "window_id": "fold3_train",
+      "final_wealth": 1.9524321421701214,
+      "total_return": 0.9524321421701214,
+      "max_drawdown": 0.07177122623788468,
+      "account_orders": 9,
+      "sharpe": 2.698518579645737,
+      "calmar": 7.940695400020805,
+      "worst_20d": -0.00948129914166107,
+      "worst_60d": -0.00948129914166107,
+      "pending_orders": 0
+    },
+    {
+      "experiment_id": "pair-gross-+10-shock--10",
+      "window_id": "fold3_test",
+      "final_wealth": 1.032186131901154,
+      "total_return": 0.03218613190115405,
+      "max_drawdown": 0.008605843175487182,
+      "account_orders": 2,
+      "sharpe": 1.1730452104374027,
+      "calmar": 7.289572573720179,
+      "worst_20d": -0.008605843175487182,
+      "worst_60d": 0.0,
+      "pending_orders": 0
+    },
+    {
+      "experiment_id": "pair-gross-+10-shock-+0",
+      "window_id": "fold1_train",
+      "final_wealth": 0.9870060082906202,
+      "total_return": -0.01299399170937976,
+      "max_drawdown": 0.1338487561827637,
+      "account_orders": 19,
+      "sharpe": -0.0014650232782788919,
+      "calmar": -0.048698544268798216,
+      "worst_20d": -0.091293464498713,
+      "worst_60d": -0.1010815274268132,
+      "pending_orders": 0
+    },
+    {
+      "experiment_id": "pair-gross-+10-shock-+0",
+      "window_id": "fold1_test",
+      "final_wealth": 1.1231214908386875,
+      "total_return": 0.12312149083868751,
+      "max_drawdown": 0.014714349094069767,
+      "account_orders": 4,
+      "sharpe": 1.6499570954493286,
+      "calmar": 8.36744391828439,
+      "worst_20d": 0.0,
+      "worst_60d": 0.0,
+      "pending_orders": 0
+    },
+    {
+      "experiment_id": "pair-gross-+10-shock-+0",
+      "window_id": "fold2_train",
+      "final_wealth": 1.1231214908386875,
+      "total_return": 0.12312149083868751,
+      "max_drawdown": 0.014714349094069767,
+      "account_orders": 4,
+      "sharpe": 1.1622167358731483,
+      "calmar": 4.062311129981828,
+      "worst_20d": -0.014714349094069767,
+      "worst_60d": -0.014714349094069767,
+      "pending_orders": 0
+    },
+    {
+      "experiment_id": "pair-gross-+10-shock-+0",
+      "window_id": "fold2_test",
+      "final_wealth": 1.7371283659415073,
+      "total_return": 0.7371283659415073,
+      "max_drawdown": 0.0716574987658899,
+      "account_orders": 5,
+      "sharpe": 4.264367748024645,
+      "calmar": 29.776887825929943,
+      "worst_20d": -0.009492983295450008,
+      "worst_60d": -0.009492983295450008,
+      "pending_orders": 0
+    },
+    {
+      "experiment_id": "pair-gross-+10-shock-+0",
+      "window_id": "fold3_train",
+      "final_wealth": 1.9524321421701214,
+      "total_return": 0.9524321421701214,
+      "max_drawdown": 0.07177122623788468,
+      "account_orders": 9,
+      "sharpe": 2.698518579645737,
+      "calmar": 7.940695400020805,
+      "worst_20d": -0.00948129914166107,
+      "worst_60d": -0.00948129914166107,
+      "pending_orders": 0
+    },
+    {
+      "experiment_id": "pair-gross-+10-shock-+0",
+      "window_id": "fold3_test",
+      "final_wealth": 1.032186131901154,
+      "total_return": 0.03218613190115405,
+      "max_drawdown": 0.008605843175487182,
+      "account_orders": 2,
+      "sharpe": 1.1730452104374027,
+      "calmar": 7.289572573720179,
+      "worst_20d": -0.008605843175487182,
+      "worst_60d": 0.0,
+      "pending_orders": 0
+    },
+    {
+      "experiment_id": "pair-gross-+10-shock-+10",
+      "window_id": "fold1_train",
+      "final_wealth": 0.9870060082906202,
+      "total_return": -0.01299399170937976,
+      "max_drawdown": 0.1338487561827637,
+      "account_orders": 19,
+      "sharpe": -0.0014650232782788919,
+      "calmar": -0.048698544268798216,
+      "worst_20d": -0.091293464498713,
+      "worst_60d": -0.1010815274268132,
+      "pending_orders": 0
+    },
+    {
+      "experiment_id": "pair-gross-+10-shock-+10",
+      "window_id": "fold1_test",
+      "final_wealth": 1.1231214908386875,
+      "total_return": 0.12312149083868751,
+      "max_drawdown": 0.014714349094069767,
+      "account_orders": 4,
+      "sharpe": 1.6499570954493286,
+      "calmar": 8.36744391828439,
+      "worst_20d": 0.0,
+      "worst_60d": 0.0,
+      "pending_orders": 0
+    },
+    {
+      "experiment_id": "pair-gross-+10-shock-+10",
+      "window_id": "fold2_train",
+      "final_wealth": 1.1231214908386875,
+      "total_return": 0.12312149083868751,
+      "max_drawdown": 0.014714349094069767,
+      "account_orders": 4,
+      "sharpe": 1.1622167358731483,
+      "calmar": 4.062311129981828,
+      "worst_20d": -0.014714349094069767,
+      "worst_60d": -0.014714349094069767,
+      "pending_orders": 0
+    },
+    {
+      "experiment_id": "pair-gross-+10-shock-+10",
+      "window_id": "fold2_test",
+      "final_wealth": 1.7371283659415073,
+      "total_return": 0.7371283659415073,
+      "max_drawdown": 0.0716574987658899,
+      "account_orders": 5,
+      "sharpe": 4.264367748024645,
+      "calmar": 29.776887825929943,
+      "worst_20d": -0.009492983295450008,
+      "worst_60d": -0.009492983295450008,
+      "pending_orders": 0
+    },
+    {
+      "experiment_id": "pair-gross-+10-shock-+10",
+      "window_id": "fold3_train",
+      "final_wealth": 1.9524321421701214,
+      "total_return": 0.9524321421701214,
+      "max_drawdown": 0.07177122623788468,
+      "account_orders": 9,
+      "sharpe": 2.698518579645737,
+      "calmar": 7.940695400020805,
+      "worst_20d": -0.00948129914166107,
+      "worst_60d": -0.00948129914166107,
+      "pending_orders": 0
+    },
+    {
+      "experiment_id": "pair-gross-+10-shock-+10",
+      "window_id": "fold3_test",
+      "final_wealth": 1.032186131901154,
+      "total_return": 0.03218613190115405,
+      "max_drawdown": 0.008605843175487182,
+      "account_orders": 2,
+      "sharpe": 1.1730452104374027,
+      "calmar": 7.289572573720179,
+      "worst_20d": -0.008605843175487182,
+      "worst_60d": 0.0,
+      "pending_orders": 0
+    }
+  ]
+}

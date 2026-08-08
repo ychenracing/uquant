@@ -1,0 +1,220 @@
+{
+  "snapshot_id": "20260806T000000Z-incremental-0805",
+  "generated_at_utc": "2026-08-06T08:00:00+00:00",
+  "adjustment": "qfq for stocks; unadjusted for indices",
+  "incremental_policy": "last cached session anchor; full refresh on qfq revision",
+  "providers": [
+    "Tencent Finance",
+    "Sina Finance"
+  ],
+  "results": [
+    {
+      "symbol": "sz300308",
+      "cache_path": "aquant/data/sz300308.csv",
+      "mode": "incremental_append_0805",
+      "primary_source": "tencent",
+      "secondary_source": "sina_diagnostic",
+      "first_date": "2022-01-04",
+      "last_date": "2026-08-05",
+      "rows": 1111,
+      "new_rows": 0,
+      "qfq_revision_detected": false,
+      "warnings": [
+        "only tencent primary; sina unadjusted diagnostic"
+      ],
+      "sha256": "548b67c3c88be2c2e8d1a0b00852ecb0f37d91ecfda2458aef87ae979430d753"
+    },
+    {
+      "symbol": "sz300502",
+      "cache_path": "aquant/data/sz300502.csv",
+      "mode": "incremental_append_0805",
+      "primary_source": "tencent",
+      "secondary_source": "sina_diagnostic",
+      "first_date": "2022-01-04",
+      "last_date": "2026-08-05",
+      "rows": 1111,
+      "new_rows": 0,
+      "qfq_revision_detected": false,
+      "warnings": [
+        "only tencent primary; sina unadjusted diagnostic"
+      ],
+      "sha256": "8a9bcaa34b223b26f90b02e075f214baf9790cfc7b6d6868cc00491a84bb4f16"
+    },
+    {
+      "symbol": "sz300394",
+      "cache_path": "aquant/data/sz300394.csv",
+      "mode": "incremental_append_0805",
+      "primary_source": "tencent",
+      "secondary_source": "sina_diagnostic",
+      "first_date": "2022-01-04",
+      "last_date": "2026-08-05",
+      "rows": 1111,
+      "new_rows": 0,
+      "qfq_revision_detected": false,
+      "warnings": [
+        "only tencent primary; sina unadjusted diagnostic"
+      ],
+      "sha256": "2f88f4970b7de5074df2800f866beb64f1c460c5d09990282b0e9d6294aa9593"
+    },
+    {
+      "symbol": "sh688256",
+      "cache_path": "aquant/data/sh688256.csv",
+      "mode": "incremental_append_0805",
+      "primary_source": "tencent",
+      "secondary_source": "sina_diagnostic",
+      "first_date": "2022-01-04",
+      "last_date": "2026-08-05",
+      "rows": 1111,
+      "new_rows": 0,
+      "qfq_revision_detected": false,
+      "warnings": [
+        "only tencent primary; sina unadjusted diagnostic"
+      ],
+      "sha256": "490aab4b82cf2640a0e0a4b2ce556a1b3e7cca3493c089d780a6e84d5e017d48"
+    },
+    {
+      "symbol": "sh688008",
+      "cache_path": "aquant/data/sh688008.csv",
+      "mode": "incremental_append_0805",
+      "primary_source": "tencent",
+      "secondary_source": "sina_diagnostic",
+      "first_date": "2022-01-04",
+      "last_date": "2026-08-05",
+      "rows": 1111,
+      "new_rows": 0,
+      "qfq_revision_detected": false,
+      "warnings": [
+        "only tencent primary; sina unadjusted diagnostic"
+      ],
+      "sha256": "ec280d5422f676ef150cee14002b4ccecf1757b3ddbb75597f1d22e4a5d99d2f"
+    },
+    {
+      "symbol": "sh603986",
+      "cache_path": "aquant/data/sh603986.csv",
+      "mode": "incremental_append_0805",
+      "primary_source": "tencent",
+      "secondary_source": "sina_diagnostic",
+      "first_date": "2022-01-04",
+      "last_date": "2026-08-05",
+      "rows": 1111,
+      "new_rows": 0,
+      "qfq_revision_detected": false,
+      "warnings": [
+        "only tencent primary; sina unadjusted diagnostic"
+      ],
+      "sha256": "1c3d33d20cc5b767b7feefa119a68f9230cdaf573e462a101f1d0bc389ba9eb6"
+    },
+    {
+      "symbol": "sh688072",
+      "cache_path": "aquant/data/sh688072.csv",
+      "mode": "incremental_append_0805",
+      "primary_source": "tencent",
+      "secondary_source": "sina_diagnostic",
+      "first_date": "2022-04-20",
+      "last_date": "2026-08-05",
+      "rows": 1032,
+      "new_rows": 0,
+      "qfq_revision_detected": false,
+      "warnings": [
+        "only tencent primary; sina unadjusted diagnostic"
+      ],
+      "sha256": "9d0847f8ea601886d70a3c1e2460e80de4d9763582a644cdf141be6a7b58a540"
+    },
+    {
+      "symbol": "sh688300",
+      "cache_path": "aquant/data/sh688300.csv",
+      "mode": "incremental_append_0805",
+      "primary_source": "tencent",
+      "secondary_source": "sina_diagnostic",
+      "first_date": "2022-01-04",
+      "last_date": "2026-08-05",
+      "rows": 1111,
+      "new_rows": 0,
+      "qfq_revision_detected": false,
+      "warnings": [
+        "only tencent primary; sina unadjusted diagnostic"
+      ],
+      "sha256": "397a4b3acc01d97fd1978de8c230fefdefffc8d0dec91365445080f92cf338a4"
+    },
+    {
+      "symbol": "sz300054",
+      "cache_path": "aquant/data/sz300054.csv",
+      "mode": "incremental_append_0805",
+      "primary_source": "tencent",
+      "secondary_source": "sina_diagnostic",
+      "first_date": "2022-01-04",
+      "last_date": "2026-08-05",
+      "rows": 1111,
+      "new_rows": 0,
+      "qfq_revision_detected": false,
+      "warnings": [
+        "only tencent primary; sina unadjusted diagnostic"
+      ],
+      "sha256": "e84dd4e2a1a28dedccbd7e1d32ed6803862b96f779b34e89a870c84940b2c0b9"
+    },
+    {
+      "symbol": "sh688361",
+      "cache_path": "aquant/data/sh688361.csv",
+      "mode": "incremental_append_0805",
+      "primary_source": "tencent",
+      "secondary_source": "sina_diagnostic",
+      "first_date": "2023-05-19",
+      "last_date": "2026-08-05",
+      "rows": 780,
+      "new_rows": 0,
+      "qfq_revision_detected": false,
+      "warnings": [
+        "only tencent primary; sina unadjusted diagnostic"
+      ],
+      "sha256": "d7b61bec4710dc753fde68104956ac2c804e479dd92e5528baff357762c77f18"
+    },
+    {
+      "symbol": "sz002409",
+      "cache_path": "aquant/data/sz002409.csv",
+      "mode": "incremental_append_0805",
+      "primary_source": "tencent",
+      "secondary_source": "sina_diagnostic",
+      "first_date": "2022-01-04",
+      "last_date": "2026-08-05",
+      "rows": 1111,
+      "new_rows": 0,
+      "qfq_revision_detected": false,
+      "warnings": [
+        "only tencent primary; sina unadjusted diagnostic"
+      ],
+      "sha256": "01017f4d9f349fa97aa1856e5c7e14a9cea5fd674a6b7595cd6c56843c4c686d"
+    },
+    {
+      "symbol": "sh688498",
+      "cache_path": "aquant/data/sh688498.csv",
+      "mode": "incremental_append_0805",
+      "primary_source": "tencent",
+      "secondary_source": "sina_diagnostic",
+      "first_date": "2022-12-21",
+      "last_date": "2026-08-05",
+      "rows": 877,
+      "new_rows": 0,
+      "qfq_revision_detected": false,
+      "warnings": [
+        "only tencent primary; sina unadjusted diagnostic"
+      ],
+      "sha256": "90bd57e5839b1b7bb9b4827b74d0dc3aff6f0aa5ce42b656075391e7b966705b"
+    },
+    {
+      "symbol": "sh688120",
+      "cache_path": "aquant/data/sh688120.csv",
+      "mode": "incremental_append_0805",
+      "primary_source": "tencent",
+      "secondary_source": "sina_diagnostic",
+      "first_date": "2022-06-08",
+      "last_date": "2026-08-05",
+      "rows": 1011,
+      "new_rows": 0,
+      "qfq_revision_detected": false,
+      "warnings": [
+        "only tencent primary; sina unadjusted diagnostic"
+      ],
+      "sha256": "ee6311c3fe8f888ce79392d06c4d350d307d80e71885f55159a099810974c9e2"
+    }
+  ]
+}

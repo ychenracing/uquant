@@ -1,29 +1,40 @@
 # Unified AI Quant
 
-一个独立、统一、因果的 A 股 AI 产业链日频量化决策系统。系统仅做现金多头，不加杠杆、不做空；收盘后生成唯一组合目标，并按下一可交易日开盘价模型执行。正式运行不依赖 `qwenquant`、`aquant` 或 `trade`。
+一个独立、统一、因果的 A 股 AI 产业链日频量化决策系统。系统只做现金多头，不加杠杆、不做空；收盘后生成唯一组合目标，按下一可交易日开盘模型执行。正式运行不依赖 `qwenquant`、`AQuant` 或 `trade`。
 
-> 当前严格验收结论：**NOT FULLY ACCEPTED / CANDIDATE（73/74）**。除 K2 单次 promotion holdback 外，正确性、完整三方矩阵、生产回放、牛/熊/震荡期、风险提前量、交易次数、随机压力、add/drop、Leader、参数稳定性及旧依赖清除均已通过。2026-07-21 至 2026-08-05 的已封存窗口被正确地消费一次并真实失败；修复后的同窗重放仅作诊断，不能改写历史 K2。修复候选已冻结，新 K2 已预注册为 2026-08-06 至 2026-08-21 的 12-session 未来窗口，但本地数据仍截至 2026-08-05，因此尚不能合法评估。详见 [ACCEPTANCE_REPORT.md](ACCEPTANCE_REPORT.md) 和 [Promotion Holdback Postmortem](docs/PROMOTION_POSTMORTEM.md)。
+项目只有一个目标：在收益、回撤、交易效率、Leader、Risk、股票池鲁棒性和生产工程等绝大多数方面达到或超过这三个项目。旧 `73/74` 验收报告已经废弃，不能再作为“完成”的依据。
 
-当前共同 pool-b（2025-04-01 至 2026-06-30）实测为 `13.1098x / 15.96% DD / 10 orders`，高于三个旧系统的最佳财富 `12.7595x`；五个固定池的 bull non-inferiority、DD 和订单门均通过。963 个压力场景包含 900 个确定性随机股票池；参数/成本/容量矩阵为 180 个实验，另有 54 个 nested walk-forward 单元。这些成绩不能覆盖 K2 的真实失败，因此项目没有标记为 Production。
+## 当前结果与差距
 
-## 统一生产路径
+冻结数据上的当前针对性同合同重放：
+
+| 窗口 | 当前结论 |
+|---|---|
+| 2025-04-01–2026-06-30 强趋势 | 六个主池财富 13.095x–13.202x，全部超过三旧最佳；DD 约 15.96%–15.98%，订单 10–12。 |
+| 2018-01-02–2026-07-20 连续周期 | 六池中五池收益超过三旧最佳，六池订单都更少；a 为 36.846x，略低于 qwenquant 38.063x。 |
+| 连续周期 DD | 28%–40%，尚未达到 trade 约 19%–21% 的最佳档，是最普遍的缺口。 |
+| 2021 大轮动 | d/f22/e 收益仍低于旧最佳；F22/E 的 DD 和三池订单数已有优势。 |
+| unknown/random | 研究设施存在，但当前代码没有重跑整套 900 random；不引用旧产物冒充当前结论。 |
+
+完整四系统回测表见 [docs/BACKTEST_COMPARISON.md](docs/BACKTEST_COMPARISON.md)，逐项复核见 [docs/IMPLEMENTATION_AUDIT.md](docs/IMPLEMENTATION_AUDIT.md)，Phase 进度见 [docs/PHASE_IMPLEMENTATION_STATUS.md](docs/PHASE_IMPLEMENTATION_STATUS.md)。
+
+## 唯一生产路径
 
 ```text
-冻结/更新数据 → 特征与 Leader → Opportunity + 独立 Risk
+冻结/更新数据 → 因果特征与 Leader → Opportunity + 独立 Risk
               → 唯一 PortfolioAllocator → 每票唯一 Target
               → 次日开盘 ExecutionPlanner → AccountState → Daily Report
 ```
 
-生产约束只有一套：
+生产约束：
 
-- 一个 `AccountState`；
-- 一个 `ProductionEngine`，日常运行和回测共用 `decide()`；
-- 一个 `PortfolioAllocator`，Alpha 和 Risk 都不能直接下单；
-- 每只股票每天一个最终 target；
-- 一份最终 Daily Report；
+- 一个 `AccountState`、一个 `ProductionEngine`、一个 `PortfolioAllocator`；
+- daily 与 backtest 共用 `decide()`；
+- 每只股票每天只有一个最终 target；
 - 单票不超过 60%，总仓不超过 100%，最多 6 只；
-- T+1、停牌、涨跌停、100 股手数、科创板首次 200 股、费用、滑点、容量和部分成交均在执行层处理；
-- 账户、数据哈希或时间状态异常时 fail closed。
+- T+1、停牌、涨跌停、100 股手数、科创板首次 200 股、费用、滑点、容量和部分成交统一在执行层；
+- 账户状态、代码 hash 或历史数据前缀异常时 fail closed；
+- 数据 hash 按 as-of 前缀绑定，正常追加未来行情不会破坏已保存账户，历史改写会被拒绝。
 
 ## 安装
 
@@ -33,72 +44,102 @@ python -m venv .venv
 pip install -e '.[dev,data]'
 ```
 
-Python 3.11 及以上版本。`akshare` 只用于可选的数据刷新；冻结回放只依赖仓库内 CSV。
+需要 Python 3.11+。AkShare 只用于可选的股票 QFQ 刷新；冻结回放只依赖仓库 CSV。在线 raw-index adapter 与第二数据源尚未实现。
 
-## 日常运行
+## 真实账户流程
 
-先初始化真实账户文件：
+初始化账户，并把 provenance 绑定到指定日期（省略 `--date` 时使用最新共同日期）：
 
 ```bash
 python -m unified_ai_quant account-init \
   --data-dir data/frozen \
   --symbols sz300308 sz300502 sz300394 sh688008 sh603986 \
+  --date 2026-07-20 \
   --output account_state.json
 ```
 
-收盘后生成次日计划：
+券商快照是现金、持仓、可卖数量和真实成交的权威来源。每笔成交必须引用系统生成的 `order_id`，并提供稳定、幂等的 `fill_id`：
+
+```json
+{
+  "as_of": "2026-07-21",
+  "cash": 1000000.0,
+  "positions": [
+    {
+      "symbol": "sz300308",
+      "shares": 5000,
+      "sellable_shares": 0,
+      "avg_cost": 100.026
+    }
+  ],
+  "fills": [
+    {
+      "fill_id": "BROKER-20260721-0001",
+      "order_id": "O000000001",
+      "fill_date": "2026-07-21",
+      "symbol": "sz300308",
+      "side": "BUY",
+      "shares": 5000,
+      "price": 100.0,
+      "commission": 125.0,
+      "transfer_fee": 5.0,
+      "final": true
+    }
+  ]
+}
+```
+
+可单独同步：
+
+```bash
+python -m unified_ai_quant account-sync \
+  --account account_state.json \
+  --snapshot broker_snapshot_2026-07-21.json
+```
+
+也可在收盘决策前同步并生成唯一日报：
 
 ```bash
 python -m unified_ai_quant daily \
   --data-dir data/frozen \
   --symbols sz300308 sz300502 sz300394 sh688008 sh603986 \
-  --date 2026-07-28 \
+  --date 2026-07-21 \
   --account account_state.json \
-  --output daily_report_2026-07-28.md
+  --broker-snapshot broker_snapshot_2026-07-21.json \
+  --output daily_report_2026-07-21.md
 ```
 
-回测与验收：
+## 回放与针对性检查
 
 ```bash
 python -m unified_ai_quant backtest \
   --data-dir data/frozen \
   --symbols sz300308 sz300502 sz300394 sh688008 sh603986 \
-  --start 2025-04-01 --end 2026-06-30
+  --start 2018-01-02 --end 2026-07-20
 
-python -m pytest -q
-python -m unified_ai_quant validate --data-dir data/frozen --output-dir .
+python -m pytest -q \
+  tests/test_data_and_leader.py \
+  tests/test_execution.py \
+  tests/test_engine_contracts.py \
+  tests/test_lifecycle_and_risk.py
 ```
 
-验收程序只在所有门通过时返回 0；当前会按设计返回 1，并生成机器可读的 `acceptance_results.json` 和审阅版 `ACCEPTANCE_REPORT.md`。
+`validation/` 中仍保留 stress、universe perturbation、成本/容量、nested walk-forward、PBO/DSR 和旧项目 adapter，作为研究工具使用；不要把旧验收 JSON 当作当前代码的能力结论。
 
 ## 项目结构
 
 | 路径 | 责任 |
 |---|---|
-| `unified_ai_quant/engine.py` | 唯一生产决策内核和逐日 Account Replay |
-| `unified_ai_quant/portfolio.py` | 唯一组合分配器、迟滞和生命周期 |
-| `unified_ai_quant/risk.py` | 独立风险雷达、行业/相关性/回撤状态 |
-| `unified_ai_quant/leader.py` | 固定 Reference、Mature/Emerging、置信度 |
-| `unified_ai_quant/execution.py` | 次日开盘、T+1、涨跌停、容量、费用 |
-| `unified_ai_quant/account.py` | 原子持久化与 fail-closed 校验 |
-| `unified_ai_quant/validation/` | 963 场景压力、参数/成本/容量、Nested Walk Forward、PBO/DSR 和严格验收器 |
-| `benchmarks/` | 三旧项目只读冻结指纹及 Phase 0 实跑基线 |
-| `data/frozen/` | 统一冻结行情及哈希清单 |
-| `docs/` | 原始实施规范、验收规范和阶段证据 |
-
-## 可复现证据
-
-- `benchmarks/BENCHMARK_LOCK.json`：三个旧仓库最新 `main` 的远端提交与冻结快照指纹；
-- `benchmarks/legacy_common_adapter.json`：3 个旧系统 × 5 个固定池 × 9 个窗口，共 135 个 common-contract 实跑单元；
-- `acceptance_results.json`：每项 `PASS/FAIL + actual + threshold + evidence`；
-- `ACCEPTANCE_REPORT.md`：替代门、失败根因和实测结果；
-- `stress_results.json`：963 个当前生产引擎场景（含 900 random、add/remove、边界和结构池）；
-- `robustness_results.json`：180 个参数/成本/容量实验和 54 个嵌套走步单元；
-- `benchmarks/promotion_holdback_result.json`：不可改写的单次 K2 失败证据；
-- `benchmarks/PROMOTION_HOLDBACK_NEXT.json`：修复候选与新未来 12-session K2 的冻结预登记；
-- `docs/PHASE_IMPLEMENTATION_STATUS.md`：Phase 0–9 的实现与验收状态。
-- `docs/IMPLEMENTATION_AUDIT.md`：实施报告逐项映射、证据和未落实项。
+| `unified_ai_quant/engine.py` | 唯一生产决策内核和逐日账户回放 |
+| `unified_ai_quant/portfolio.py` | 唯一组合分配器、生命周期、迟滞和 rotation |
+| `unified_ai_quant/risk.py` | 独立风险雷达、双 DD、Shock/Recovery/Capital Guard |
+| `unified_ai_quant/leader.py` | 固定 Reference、Mature/Emerging、置信度与替代证据 |
+| `unified_ai_quant/execution.py` | next-open、T+1、涨跌停、容量、费用和部分成交 |
+| `unified_ai_quant/broker.py` | 券商权威快照与真实 fill 幂等对账 |
+| `unified_ai_quant/account.py` | 原子持久化和 fail-closed 校验 |
+| `unified_ai_quant/validation/` | 同合同研究、压力与统计工具，不是第二生产路径 |
+| `benchmarks/` | 三旧项目只读冻结基线与历史研究产物 |
 
 ## 风险声明
 
-本仓库是量化研究和决策辅助软件，不构成投资建议。真实交易需要人工复核订单、数据完整性、公司行动、涨跌停、停牌和券商规则；历史回放不保证未来结果。
+本仓库是量化研究和决策辅助软件，不构成投资建议。真实交易仍需人工复核行情完整性、公司行动、涨跌停、停牌、券商可卖数量和订单状态；历史重放不保证未来结果。

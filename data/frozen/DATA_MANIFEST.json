@@ -1,7 +1,7 @@
 {
-  "snapshot_id": "20260808T183447Z-holdback-coverage-completion",
-  "generated_at_utc": "2026-08-08T18:34:47.933814+00:00",
-  "adjustment": "Tencent qfq for stocks; Tencent unadjusted for indices",
+  "snapshot_id": "20260809T094222Z-causal-tech-index-rebase",
+  "generated_at_utc": "2026-08-09T09:42:22.961684+00:00",
+  "adjustment": "Tencent qfq for stocks; Tencent raw index returns represented in causally chain-linked levels",
   "historical_policy": "2014-2021 bounded chunks; 2022+ frozen rows preserved verbatim",
   "providers": [
     "Tencent Finance"
@@ -10,7 +10,21 @@
   "pre_inception_index_proxy": {
     "target": "sh000682",
     "proxy": "sz399006",
-    "rule": "proxy OHLC scaled by the common first-session close; target history used from inception"
+    "rule": "raw proxy levels before target inception; target OHLC rebased forward using only the common first-session close"
+  },
+  "causal_migration": {
+    "previous_snapshot_id": "20260808T183447Z-holdback-coverage-completion",
+    "previous_generated_at_utc": "2026-08-08T18:34:47.933814+00:00",
+    "target_first_date": "2021-08-16",
+    "previous_manifest_sha256": "84476c03eca30ad7e514bb7a56c92b220325f70ca97cedeb5b66df201dc71edd",
+    "previous_tech_index_sha256": "cb8ef35832d19fa3e23d9dc5931d9bde279c2a63af438aeedb97582035ecda01",
+    "new_tech_index_sha256": "25bab1f056b508cdccec682e120c5ee4e318abaabcd9bb81fcd609c946f84d90",
+    "max_abs_ohlc_daily_return_delta": "7.235845256303719e-10",
+    "return_invariant_tolerance": "1e-8",
+    "return_invariant_passed": true,
+    "raw_proxy_rows_verified": 1856,
+    "raw_proxy_max_level_delta": "0.000001",
+    "verification_provider": "Tencent Finance"
   },
   "results": [
     {
@@ -31,8 +45,8 @@
       "historical_rows_added": 1949,
       "total_rows": 3060,
       "anchor_max_relative_difference": 0.0,
-      "sha256": "cb8ef35832d19fa3e23d9dc5931d9bde279c2a63af438aeedb97582035ecda01",
-      "pre_inception_proxy": "sz399006 close-scaled at 2021-08-16",
+      "sha256": "25bab1f056b508cdccec682e120c5ee4e318abaabcd9bb81fcd609c946f84d90",
+      "pre_inception_proxy": "sz399006 raw before 2021-08-16; sh000682 causally rebased from 2021-08-16 by 1.942051236801082384776022824",
       "holdback_rows_appended": 0
     },
     {

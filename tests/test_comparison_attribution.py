@@ -5,6 +5,7 @@ import pytest
 
 from unified_ai_quant.validation.comparison import (
     bounded_performance,
+    false_risk_state_diagnostics,
     lead_to_target,
     mature_false_exit_regrets,
     recovery_delay_opportunity_cost,
@@ -51,6 +52,39 @@ def test_common_risk_and_equity_attribution_is_causal():
         row, start=str(dates[0].date()), end=str(dates[-1].date())
     )
     assert lead_to_target(actions, dates[4], dates) == 3
+
+
+def test_false_risk_state_diagnostics_count_complete_segments():
+    dates = pd.bdate_range("2025-01-02", periods=8)
+    row = {
+        "daily_risk_states": [
+            {"date": str(date.date()), "state": state}
+            for date, state in zip(
+                dates,
+                (
+                    "NORMAL",
+                    "RISK_OFF",
+                    "RISK_OFF",
+                    "NORMAL",
+                    "CRISIS",
+                    "CRISIS",
+                    "CRISIS",
+                    "NORMAL",
+                ),
+                strict=True,
+            )
+        ]
+    }
+    tech = pd.Series([100, 101, 100, 99, 98, 97, 96, 95], index=dates)
+    result = false_risk_state_diagnostics(
+        row,
+        tech_close=tech,
+        horizon=2,
+        damage_threshold=0.20,
+    )
+    assert result["false_positives"] == 2
+    assert result["false_positive_days"] == 5
+    assert [item["days"] for item in result["segments"]] == [2, 3]
 
 
 def test_exit_regret_and_replacement_spread_use_only_future_sessions(tmp_path):

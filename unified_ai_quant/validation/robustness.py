@@ -27,6 +27,14 @@ PRIMARY = ("sz300308", "sz300502", "sz300394", "sh688008", "sh603986")
 BULL = ("2025-04-01", "2026-06-30")
 THROUGH_JULY = ("2025-04-01", "2026-07-20")
 CHOPPY = ("2024-01-02", "2024-12-31")
+FOLDS = (
+    ("fold1_train", "2022-01-04", "2023-12-29"),
+    ("fold1_test", "2024-01-02", "2024-12-31"),
+    ("fold2_train", "2023-01-03", "2024-12-31"),
+    ("fold2_test", "2025-01-02", "2025-06-30"),
+    ("fold3_train", "2024-01-02", "2025-06-30"),
+    ("fold3_test", "2025-07-01", "2025-12-31"),
+)
 _WORKER_DATA_DIR = "data/frozen"
 
 
@@ -64,6 +72,29 @@ def promotion_holdback_status(data_dir: Path) -> dict[str, Any]:
         "config_sha256": payload.get("candidate_config_sha256"),
     }
     candidate_hash_match = candidate_hashes == locked_candidate_hashes
+    consumed = payload.get("status") in {"CONSUMED_PASS", "CONSUMED_FAIL"}
+    consumed_result_path = root / "benchmarks" / "promotion_holdback_result.json"
+    consumed_result: dict[str, Any] = {}
+    consumed_result_hash_match = False
+    consumed_contract_match = False
+    if consumed and consumed_result_path.exists():
+        consumed_result = json.loads(
+            consumed_result_path.read_text(encoding="utf-8")
+        )
+        consumed_result_hash_match = (
+            hashlib.sha256(consumed_result_path.read_bytes()).hexdigest()
+            == payload.get("consumed_result_sha256")
+        )
+        consumed_contract_match = bool(
+            consumed_result.get("canonical_sha256")
+            == payload.get("canonical_sha256")
+            and consumed_result.get("production_code_sha256")
+            == payload.get("consumed_production_code_sha256")
+            and consumed_result.get("validation_code_sha256")
+            == payload.get("consumed_validation_code_sha256")
+            and payload.get("status")
+            == f"CONSUMED_{consumed_result.get('status')}"
+        )
     expected_sessions = int(payload.get("expected_sessions", -1))
     index_sessions = dates_by_file.get("sh000300.csv", ())
     incomplete_files = sorted(
@@ -97,10 +128,21 @@ def promotion_holdback_status(data_dir: Path) -> dict[str, Any]:
         "candidate_hash_match": candidate_hash_match,
         "candidate_hashes": candidate_hashes,
         "locked_candidate_hashes": locked_candidate_hashes,
+        "historical_evidence_intact": bool(
+            consumed and consumed_result_hash_match and consumed_contract_match
+        ),
+        "consumed_result_hash_match": consumed_result_hash_match,
+        "consumed_contract_match": consumed_contract_match,
         "reason": (
             "sealed promotion data and candidate hashes match the preregistered lock"
             if sealed
-            else "promotion lock is consumed, data-incomplete, byte-mismatched, or candidate-mismatched"
+            else (
+                "consumed promotion evidence remains immutable; current data or "
+                "candidate differs and therefore requires a new future holdback"
+                if consumed and consumed_result_hash_match and consumed_contract_match
+                else "promotion lock is consumed, data-incomplete, byte-mismatched, "
+                "candidate-mismatched, or its historical evidence is corrupt"
+            )
         ),
     }
 
@@ -201,6 +243,7 @@ def build_experiments() -> list[Experiment]:
         "strategic_cohort_exit_step",
         "strategic_cohort_disaster_stop",
         "strategic_cohort_tail_line",
+        "risk_off_gross",
         "narrow_anchor_guard_gross",
         "narrow_anchor_divergence",
         "recovery_reserve_min_score",
@@ -277,6 +320,11 @@ def build_experiments() -> list[Experiment]:
             Experiment("capacity-fifth", "capacity", {"max_volume_participation": 0.001}),
         ]
     )
+    identifiers = [item.experiment_id for item in experiments]
+    if len(identifiers) != len(set(identifiers)):
+        raise RuntimeError("robustness experiment identifiers are not unique")
+    for experiment in experiments:
+        DEFAULT_CONFIG.override(**experiment.changes)
     return experiments
 
 
@@ -310,7 +358,20 @@ def artifact_is_current(path: Path, data_dir: Path) -> bool:
         payload = json.loads(path.read_text(encoding="utf-8"))
     except (OSError, json.JSONDecodeError):
         return False
-    return payload.get("signature") == _signature(data_dir, build_experiments())
+    experiments = build_experiments()
+    try:
+        rows = _validate_experiment_results(payload.get("experiments"), experiments)
+        window_rows = _validate_walk_forward_results(
+            payload.get("walk_forward_cells"), experiments
+        )
+        summary = _robustness_summary(rows, window_rows, experiments, data_dir)
+    except (KeyError, TypeError, ValueError):
+        return False
+    return bool(
+        payload.get("schema_version") == 2
+        and payload.get("signature") == _signature(data_dir, experiments)
+        and payload.get("summary") == summary
+    )
 
 
 def _stable(
@@ -358,6 +419,225 @@ def _pareto(rows: list[dict[str, Any]]) -> list[str]:
     return sorted(frontier)
 
 
+def _finite_number(value: Any) -> bool:
+    return (
+        isinstance(value, (int, float))
+        and not isinstance(value, bool)
+        and math.isfinite(float(value))
+    )
+
+
+def _validate_metrics(metrics: Any, *, context: str) -> None:
+    if not isinstance(metrics, dict):
+        raise ValueError(f"{context} metrics must be an object")
+    numeric_fields = (
+        "final_wealth",
+        "total_return",
+        "max_drawdown",
+        "account_orders",
+        "sharpe",
+        "calmar",
+        "worst_20d",
+        "worst_60d",
+        "pending_orders",
+    )
+    for field in numeric_fields:
+        if not _finite_number(metrics.get(field)):
+            raise ValueError(f"{context} has non-finite {field}")
+    if float(metrics["final_wealth"]) <= 0:
+        raise ValueError(f"{context} has non-positive final wealth")
+    if abs(
+        float(metrics["total_return"]) - (float(metrics["final_wealth"]) - 1.0)
+    ) > 1e-12:
+        raise ValueError(f"{context} wealth/return reconciliation failed")
+    if not 0 <= float(metrics["max_drawdown"]) <= 1:
+        raise ValueError(f"{context} has invalid max drawdown")
+    for field in ("account_orders", "pending_orders"):
+        value = metrics[field]
+        if not isinstance(value, int) or isinstance(value, bool) or value < 0:
+            raise ValueError(f"{context} has invalid {field}")
+
+
+def _validate_experiment_results(
+    raw_rows: Any,
+    experiments: list[Experiment],
+) -> list[dict[str, Any]]:
+    if not isinstance(raw_rows, list):
+        raise ValueError("robustness experiments must be a list")
+    expected = {item.experiment_id: item for item in experiments}
+    if len(raw_rows) != len(expected):
+        raise ValueError(
+            f"robustness experiment count mismatch: expected {len(expected)}, "
+            f"got {len(raw_rows)}"
+        )
+    seen: set[str] = set()
+    rows: list[dict[str, Any]] = []
+    for raw in raw_rows:
+        if not isinstance(raw, dict):
+            raise ValueError("robustness experiment rows must be objects")
+        identifier = raw.get("experiment_id")
+        if not isinstance(identifier, str) or identifier not in expected:
+            raise ValueError(f"unknown robustness experiment id: {identifier!r}")
+        if identifier in seen:
+            raise ValueError(f"duplicate robustness experiment id: {identifier}")
+        seen.add(identifier)
+        experiment = expected[identifier]
+        if raw.get("experiment_type") != experiment.experiment_type:
+            raise ValueError(f"experiment type mismatch for {identifier}")
+        if raw.get("changes") != experiment.changes:
+            raise ValueError(f"experiment changes mismatch for {identifier}")
+        for window in ("bull", "through_july", "choppy"):
+            _validate_metrics(raw.get(window), context=f"{identifier}/{window}")
+        rows.append(raw)
+    if seen != set(expected):
+        raise ValueError("robustness experiment coverage is incomplete")
+    return sorted(rows, key=lambda row: str(row["experiment_id"]))
+
+
+def _walk_forward_tasks(experiments: list[Experiment]) -> list[WindowTask]:
+    variants = [
+        item for item in experiments if item.experiment_type == "pair_parameter"
+    ]
+    return [
+        WindowTask(variant.experiment_id, variant.changes, window_id, start, end)
+        for variant in variants
+        for window_id, start, end in FOLDS
+    ]
+
+
+def _validate_walk_forward_results(
+    raw_rows: Any,
+    experiments: list[Experiment],
+) -> list[dict[str, Any]]:
+    if not isinstance(raw_rows, list):
+        raise ValueError("walk-forward cells must be a list")
+    tasks = _walk_forward_tasks(experiments)
+    expected = {(task.experiment_id, task.window_id) for task in tasks}
+    if len(raw_rows) != len(expected):
+        raise ValueError(
+            f"walk-forward cell count mismatch: expected {len(expected)}, "
+            f"got {len(raw_rows)}"
+        )
+    seen: set[tuple[str, str]] = set()
+    rows: list[dict[str, Any]] = []
+    for raw in raw_rows:
+        if not isinstance(raw, dict):
+            raise ValueError("walk-forward cell rows must be objects")
+        key = (raw.get("experiment_id"), raw.get("window_id"))
+        if not all(isinstance(value, str) for value in key) or key not in expected:
+            raise ValueError(f"unknown walk-forward cell: {key!r}")
+        if key in seen:
+            raise ValueError(f"duplicate walk-forward cell: {key!r}")
+        seen.add(key)
+        _validate_metrics(raw, context=f"{key[0]}/{key[1]}")
+        rows.append(raw)
+    if seen != expected:
+        raise ValueError("walk-forward coverage is incomplete")
+    return sorted(
+        rows,
+        key=lambda row: (str(row["experiment_id"]), str(row["window_id"])),
+    )
+
+
+def _robustness_summary(
+    rows: list[dict[str, Any]],
+    window_rows: list[dict[str, Any]],
+    experiments: list[Experiment],
+    data_dir: Path,
+) -> dict[str, Any]:
+    base = next(row for row in rows if row["experiment_id"] == "production")
+    singles = [row for row in rows if row["experiment_type"] == "single_parameter"]
+    pairs = [row for row in rows if row["experiment_type"] == "pair_parameter"]
+    costs = [row for row in rows if row["experiment_type"] == "cost"]
+    capacity = [row for row in rows if row["experiment_type"] == "capacity"]
+    variants = [
+        item for item in experiments if item.experiment_type == "pair_parameter"
+    ]
+    lookup = {
+        (row["experiment_id"], row["window_id"]): row for row in window_rows
+    }
+    train_matrix: list[list[float]] = []
+    test_matrix: list[list[float]] = []
+    walk_forward: list[dict[str, Any]] = []
+    for fold in range(1, 4):
+        train_id = f"fold{fold}_train"
+        test_id = f"fold{fold}_test"
+        train_scores = [
+            lookup[(variant.experiment_id, train_id)]["sharpe"]
+            for variant in variants
+        ]
+        test_scores = [
+            lookup[(variant.experiment_id, test_id)]["sharpe"]
+            for variant in variants
+        ]
+        winner = int(np.argmax(train_scores))
+        train_matrix.append(train_scores)
+        test_matrix.append(test_scores)
+        walk_forward.append(
+            {
+                "fold": fold,
+                "selected_experiment": variants[winner].experiment_id,
+                "train_sharpe": train_scores[winner],
+                "test_sharpe": test_scores[winner],
+                "test_final_wealth": lookup[
+                    (variants[winner].experiment_id, test_id)
+                ]["final_wealth"],
+            }
+        )
+    pbo = probability_of_backtest_overfitting(
+        np.asarray(train_matrix, dtype=float), np.asarray(test_matrix, dtype=float)
+    )
+    dsr = deflated_sharpe_ratio(
+        float(base["bull"]["sharpe"]),
+        trials=len(experiments),
+        observations=302,
+    )
+    candidate_rows = [
+        row
+        for row in rows
+        if row["experiment_type"]
+        in {"production", "single_parameter", "pair_parameter"}
+    ]
+    frontier = _pareto(candidate_rows)
+    holdback = promotion_holdback_status(data_dir)
+    return {
+        "single_5pct_all_stable": all(
+            _stable(row, base, minimum_wealth_retention=0.90)
+            for row in singles
+            if row["experiment_id"].endswith(("-5", "+5"))
+        ),
+        "single_10pct_all_stable": all(
+            _stable(row, base, minimum_wealth_retention=0.85)
+            for row in singles
+            if row["experiment_id"].endswith(("-10", "+10"))
+        ),
+        "pair_all_stable": all(
+            _stable(row, base, minimum_wealth_retention=0.85) for row in pairs
+        ),
+        "pareto_frontier": frontier,
+        "production_on_pareto": "production" in frontier,
+        "double_cost_wealth_retention": next(
+            row for row in costs if row["experiment_id"] == "cost-double"
+        )["bull"]["final_wealth"]
+        / base["bull"]["final_wealth"],
+        "slippage_min_wealth_retention": min(
+            row["bull"]["final_wealth"] / base["bull"]["final_wealth"]
+            for row in costs
+            if row["experiment_id"].startswith("slippage")
+        ),
+        "capacity_min_wealth_retention": min(
+            row["bull"]["final_wealth"] / base["bull"]["final_wealth"]
+            for row in capacity
+        ),
+        "pbo": pbo,
+        "dsr": dsr,
+        "walk_forward": walk_forward,
+        "promotion_holdback_untouched": holdback["untouched"],
+        "promotion_holdback_reason": holdback["reason"],
+        "promotion_holdback_evidence": holdback,
+    }
+
+
 def run_robustness(
     data_dir: Path, output_path: Path, *, workers: int | None = None
 ) -> dict[str, Any]:
@@ -371,27 +651,8 @@ def run_robustness(
         initargs=(str(data_dir),),
     ) as pool:
         rows = list(pool.map(_run_experiment, experiments, chunksize=1))
-    rows.sort(key=lambda row: row["experiment_id"])
-    base = next(row for row in rows if row["experiment_id"] == "production")
-    singles = [row for row in rows if row["experiment_type"] == "single_parameter"]
-    pairs = [row for row in rows if row["experiment_type"] == "pair_parameter"]
-    costs = [row for row in rows if row["experiment_type"] == "cost"]
-    capacity = [row for row in rows if row["experiment_type"] == "capacity"]
-
-    variants = [item for item in experiments if item.experiment_type == "pair_parameter"]
-    folds = (
-        ("fold1_train", "2022-01-04", "2023-12-29"),
-        ("fold1_test", "2024-01-02", "2024-12-31"),
-        ("fold2_train", "2023-01-03", "2024-12-31"),
-        ("fold2_test", "2025-01-02", "2025-06-30"),
-        ("fold3_train", "2024-01-02", "2025-06-30"),
-        ("fold3_test", "2025-07-01", "2025-12-31"),
-    )
-    tasks = [
-        WindowTask(variant.experiment_id, variant.changes, window_id, start, end)
-        for variant in variants
-        for window_id, start, end in folds
-    ]
+    rows = _validate_experiment_results(rows, experiments)
+    tasks = _walk_forward_tasks(experiments)
     print(f"robustness: executing {len(tasks)} nested walk-forward cells", flush=True)
     with ProcessPoolExecutor(
         max_workers=worker_count,
@@ -399,46 +660,8 @@ def run_robustness(
         initargs=(str(data_dir),),
     ) as pool:
         window_rows = list(pool.map(_run_window, tasks, chunksize=1))
-    lookup = {
-        (row["experiment_id"], row["window_id"]): row for row in window_rows
-    }
-    train_matrix: list[list[float]] = []
-    test_matrix: list[list[float]] = []
-    walk_forward: list[dict[str, Any]] = []
-    for fold in range(1, 4):
-        train_id = f"fold{fold}_train"
-        test_id = f"fold{fold}_test"
-        train_scores = [
-            lookup[(variant.experiment_id, train_id)]["sharpe"] for variant in variants
-        ]
-        test_scores = [
-            lookup[(variant.experiment_id, test_id)]["sharpe"] for variant in variants
-        ]
-        winner = int(np.nanargmax(train_scores))
-        train_matrix.append(train_scores)
-        test_matrix.append(test_scores)
-        walk_forward.append(
-            {
-                "fold": fold,
-                "selected_experiment": variants[winner].experiment_id,
-                "train_sharpe": train_scores[winner],
-                "test_sharpe": test_scores[winner],
-                "test_final_wealth": lookup[(variants[winner].experiment_id, test_id)][
-                    "final_wealth"
-                ],
-            }
-        )
-    pbo = probability_of_backtest_overfitting(
-        np.asarray(train_matrix, dtype=float), np.asarray(test_matrix, dtype=float)
-    )
-    dsr = deflated_sharpe_ratio(
-        float(base["bull"]["sharpe"]),
-        trials=len(experiments),
-        observations=302,
-    )
-    candidate_rows = [row for row in rows if row["experiment_type"] in {"production", "single_parameter", "pair_parameter"}]
-    frontier = _pareto(candidate_rows)
-    holdback = promotion_holdback_status(data_dir)
+    window_rows = _validate_walk_forward_results(window_rows, experiments)
+    summary = _robustness_summary(rows, window_rows, experiments, data_dir)
     current_signature = _signature(data_dir, experiments)
     assert_replay_signature_unchanged(
         initial_signature,
@@ -446,44 +669,9 @@ def run_robustness(
         replay="robustness",
     )
     payload = {
-        "schema_version": 1,
+        "schema_version": 2,
         "signature": initial_signature,
-        "summary": {
-            "single_5pct_all_stable": all(
-                _stable(row, base, minimum_wealth_retention=0.90)
-                for row in singles
-                if row["experiment_id"].endswith(("-5", "+5"))
-            ),
-            "single_10pct_all_stable": all(
-                _stable(row, base, minimum_wealth_retention=0.85)
-                for row in singles
-                if row["experiment_id"].endswith(("-10", "+10"))
-            ),
-            "pair_all_stable": all(
-                _stable(row, base, minimum_wealth_retention=0.85) for row in pairs
-            ),
-            "pareto_frontier": frontier,
-            "production_on_pareto": "production" in frontier,
-            "double_cost_wealth_retention": next(
-                row for row in costs if row["experiment_id"] == "cost-double"
-            )["bull"]["final_wealth"]
-            / base["bull"]["final_wealth"],
-            "slippage_min_wealth_retention": min(
-                row["bull"]["final_wealth"] / base["bull"]["final_wealth"]
-                for row in costs
-                if row["experiment_id"].startswith("slippage")
-            ),
-            "capacity_min_wealth_retention": min(
-                row["bull"]["final_wealth"] / base["bull"]["final_wealth"]
-                for row in capacity
-            ),
-            "pbo": pbo,
-            "dsr": dsr,
-            "walk_forward": walk_forward,
-            "promotion_holdback_untouched": holdback["untouched"],
-            "promotion_holdback_reason": holdback["reason"],
-            "promotion_holdback_evidence": holdback,
-        },
+        "summary": summary,
         "experiments": rows,
         "walk_forward_cells": window_rows,
     }

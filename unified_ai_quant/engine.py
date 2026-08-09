@@ -14,13 +14,18 @@ import pandas as pd
 
 from .config import DEFAULT_CONFIG, SystemConfig
 from .data import DataStore, normalize_symbol
-from .execution import ExecutionPlanner, merge_pending_orders, plan_orders
+from .execution import (
+    ExecutionPlanner,
+    merge_pending_orders,
+    plan_orders,
+    reconcile_account_orders,
+)
 from .features import compute_features
 from .leader import REFERENCE_UNIVERSE, compute_leaders
 from .opportunity import classify_opportunity
 from .portfolio import PortfolioAllocator, current_weights
 from .risk import assess_risk
-from .types import AccountState, Decision, Fill, LeaderScore
+from .types import AccountOrder, AccountState, Decision, Fill, LeaderScore
 
 INDEX_SYMBOLS = ("sh000300", "sh000682")
 
@@ -42,7 +47,7 @@ class ProductionEngine:
         self.allocator = PortfolioAllocator(cfg)
         self._raw: dict[str, pd.DataFrame] = {}
         self._features: dict[str, pd.DataFrame] = {}
-        self._manifest_cache: dict[tuple[str, ...], str] = {}
+        self._manifest_cache: dict[tuple[tuple[str, ...], str], str] = {}
         self._reference_returns: pd.DataFrame | None = None
         self._code_hash: str | None = None
         self._leader_score_cache: dict[
@@ -85,14 +90,48 @@ class ProductionEngine:
         date = pd.Timestamp(as_of).normalize()
         if date not in self._features["sh000300"].index or date not in self._features["sh000682"].index:
             raise RuntimeError("decision date is not a common index session")
-        manifest_key = tuple(sorted(all_symbols))
-        if manifest_key not in self._manifest_cache:
-            self._manifest_cache[manifest_key] = self.data.manifest(all_symbols).digest
-        data_digest = self._manifest_cache[manifest_key]
         if account.last_successful_run and pd.Timestamp(account.last_successful_run) > date:
             raise RuntimeError("account risk state comes from a future date")
-        if account.data_hash and account.data_hash != data_digest and self.cfg.fail_closed:
-            raise RuntimeError("frozen data hash differs from account state")
+        current_symbols = tuple(
+            sorted(
+                symbol
+                for symbol in all_symbols
+                if not self._raw[symbol].loc[:date].empty
+            )
+        )
+        if account.data_hash:
+            verification_symbols = tuple(
+                sorted(account.data_hash_symbols or current_symbols)
+            )
+            verification_as_of = account.data_hash_as_of or account.last_successful_run
+            if verification_as_of:
+                verification_date = pd.Timestamp(verification_as_of).normalize()
+                if verification_date > date:
+                    raise RuntimeError("account data provenance comes from a future date")
+                verification_key = (
+                    verification_symbols,
+                    str(verification_date.date()),
+                )
+                if verification_key not in self._manifest_cache:
+                    self._manifest_cache[verification_key] = self.data.manifest(
+                        verification_symbols,
+                        as_of=verification_date,
+                    ).digest
+                verified_digest = self._manifest_cache[verification_key]
+            else:
+                # Legacy account states hashed whole files.  They can migrate
+                # only while that exact snapshot is still present; after this
+                # successful run the state is upgraded to bounded provenance.
+                verified_digest = self.data.manifest(verification_symbols).digest
+            if account.data_hash != verified_digest and self.cfg.fail_closed:
+                raise RuntimeError("historical data prefix differs from account state")
+        manifest_key = (current_symbols, str(date.date()))
+        if manifest_key not in self._manifest_cache:
+            self._manifest_cache[manifest_key] = self.data.manifest(
+                current_symbols,
+                as_of=date,
+            ).digest
+        data_digest = self._manifest_cache[manifest_key]
         if self._code_hash is None:
             self._code_hash = code_fingerprint()
         current_code_hash = self._code_hash
@@ -163,10 +202,17 @@ class ProductionEngine:
             prices=prices,
             cfg=self.cfg,
         )
+        previous_orders = list(account.pending_orders)
         orders = merge_pending_orders(
-            retained=account.pending_orders,
+            retained=previous_orders,
             planned=planned_orders,
             targets=targets,
+        )
+        orders = reconcile_account_orders(
+            account=account,
+            previous=previous_orders,
+            current=orders,
+            submitted_date=str(date.date()),
         )
         canonical = {
             "date": str(date.date()),
@@ -177,7 +223,12 @@ class ProductionEngine:
                 for item in targets
             ],
             "orders": [
-                {"symbol": item.symbol, "side": item.side, "target_weight": round(item.target_weight, 12)}
+                {
+                    "order_id": item.order_id,
+                    "symbol": item.symbol,
+                    "side": item.side,
+                    "target_weight": round(item.target_weight, 12),
+                }
                 for item in orders
             ],
         }
@@ -186,6 +237,8 @@ class ProductionEngine:
         ).hexdigest()
         account.last_successful_run = str(date.date())
         account.data_hash = data_digest
+        account.data_hash_as_of = str(date.date())
+        account.data_hash_symbols = list(current_symbols)
         account.code_hash = current_code_hash
         return Decision(
             date=str(date.date()),
@@ -247,8 +300,16 @@ class ProductionEngine:
         metrics = performance_metrics(
             equity_rows=equity_rows,
             fills=account.fills,
+            orders=account.order_ledger,
             initial_cash=account.initial_cash,
             risk_events=account.risk_events,
+            benchmark_total_return=(
+                float(
+                    self._raw["sh000682"].loc[final_date, "close"]
+                    / self._raw["sh000682"].loc[sessions[0], "close"]
+                    - 1.0
+                )
+            ),
         )
         metrics.update(
             start=str(sessions[0].date()),
@@ -259,6 +320,23 @@ class ProductionEngine:
             pending_orders=len(account.pending_orders),
             final_account=account.to_dict(),
             attribution=attribution(account.fills),
+            internal_events={
+                "risk": len(account.risk_events),
+                "lifecycle": len(account.lifecycle_events),
+                "replacement": len(account.replacement_events),
+                "target_decisions": sum(len(item.targets) for item in decisions),
+                "pending_order_intents": sum(
+                    len(item.pending_orders) for item in decisions
+                ),
+                "broker_submissions": len(account.order_ledger),
+                "unfilled_broker_submissions": sum(
+                    item.filled_shares == 0 for item in account.order_ledger
+                ),
+            },
+            daily_risk_states=[
+                {"date": item.date, "state": item.risk.value}
+                for item in decisions
+            ],
         )
         return metrics
 
@@ -290,9 +368,12 @@ def performance_metrics(
     *,
     equity_rows: list[tuple[pd.Timestamp, float]],
     fills: list[Fill],
+    orders: list[AccountOrder],
     initial_cash: float,
     risk_events: list[dict[str, Any]],
+    benchmark_total_return: float,
 ) -> dict[str, Any]:
+    broker_orders = [item for item in orders if item.filled_shares > 0]
     equity = pd.Series({date: value for date, value in equity_rows}, dtype=float).sort_index()
     returns = equity.pct_change(fill_method=None).dropna()
     years = max(len(equity) / 242.0, 1 / 242.0)
@@ -304,34 +385,144 @@ def performance_metrics(
     dd = _drawdown_stats(equity)
     max_dd = float(dd["max_drawdown"])
     gross_turnover = sum(item.gross_value for item in fills) / initial_cash
-    order_keys = {(item.fill_date, item.symbol, item.side) for item in fills}
     fees = sum(item.commission + item.stamp_duty + item.transfer_fee for item in fills)
     holding_days: list[int] = []
-    buys: dict[str, list[pd.Timestamp]] = {}
+    buy_lots: dict[str, list[list[Any]]] = {}
+    inventory: dict[str, int] = {}
+    round_trips = 0
     for fill in fills:
         if fill.side == "BUY":
-            buys.setdefault(fill.symbol, []).append(pd.Timestamp(fill.fill_date))
-        elif buys.get(fill.symbol):
-            holding_days.append((pd.Timestamp(fill.fill_date) - buys[fill.symbol].pop(0)).days)
+            buy_lots.setdefault(fill.symbol, []).append(
+                [fill.shares, pd.Timestamp(fill.fill_date)]
+            )
+            inventory[fill.symbol] = inventory.get(fill.symbol, 0) + fill.shares
+            continue
+        before = inventory.get(fill.symbol, 0)
+        remaining = fill.shares
+        for lot in buy_lots.get(fill.symbol, []):
+            available = int(lot[0])
+            if available <= 0 or remaining <= 0:
+                continue
+            sold = min(available, remaining)
+            holding_days.append(
+                (pd.Timestamp(fill.fill_date) - pd.Timestamp(lot[1])).days
+            )
+            lot[0] = available - sold
+            remaining -= sold
+        buy_lots[fill.symbol] = [
+            lot for lot in buy_lots.get(fill.symbol, []) if int(lot[0]) > 0
+        ]
+        inventory[fill.symbol] = max(0, before - fill.shares)
+        if before > 0 and inventory[fill.symbol] == 0:
+            round_trips += 1
     rolling20 = equity.pct_change(20, fill_method=None)
     rolling60 = equity.pct_change(60, fill_method=None)
+    first_caution = next(
+        (str(item.get("date")) for item in risk_events if item.get("to") == "CAUTION"),
+        None,
+    )
+    first_risk_off = next(
+        (
+            str(item.get("date"))
+            for item in risk_events
+            if item.get("to") in {"RISK_OFF", "CRISIS"}
+        ),
+        None,
+    )
+    risk_tokens = ("risk", "drawdown", "shock", "crisis", "capital protection")
+    first_reduce = next(
+        (
+            fill.fill_date
+            for fill in fills
+            if fill.side == "SELL"
+            and any(token in fill.reason.lower() for token in risk_tokens)
+        ),
+        None,
+    )
+    first_action = min(
+        (pd.Timestamp(value) for value in (first_caution, first_risk_off, first_reduce) if value),
+        default=None,
+    )
+    drawdown = 1.0 - equity / equity.cummax()
+
+    def lead_to_drawdown(threshold: float) -> int | None:
+        crossings = drawdown[drawdown >= threshold]
+        if crossings.empty or first_action is None:
+            return None
+        target = crossings.index[0]
+        return int(equity.index.get_indexer([target])[0] - equity.index.get_indexer([first_action], method="ffill")[0])
+
     return {
         "total_return": total_return,
         "cagr": cagr,
-        "excess_return": total_return,
+        "benchmark_total_return": benchmark_total_return,
+        "excess_return": total_return - benchmark_total_return,
         "sharpe": sharpe,
         "calmar": cagr / max_dd if max_dd > 1e-12 else 0.0,
         **dd,
         "worst_20d": float(rolling20.min()) if rolling20.notna().any() else 0.0,
         "worst_60d": float(rolling60.min()) if rolling60.notna().any() else 0.0,
-        "account_orders": len(order_keys),
-        "round_trips": sum(item.side == "SELL" for item in fills),
+        "account_orders": len(broker_orders),
+        "submitted_account_orders": len(orders),
+        "unfilled_account_submissions": sum(
+            item.filled_shares == 0 for item in orders
+        ),
+        "round_trips": round_trips,
         "gross_turnover": gross_turnover,
         "annual_turnover": gross_turnover / years,
         "median_holding_days": float(median(holding_days)) if holding_days else 0.0,
         "fees": fees,
         "slippage_cost": sum(item.slippage_cost for item in fills),
+        "first_caution": first_caution,
+        "first_risk_off": first_risk_off,
+        "first_reduce": first_reduce,
+        "lead_to_10pct_dd": lead_to_drawdown(0.10),
+        "lead_to_15pct_dd": lead_to_drawdown(0.15),
         "risk_events": risk_events,
+        "order_ledger": [
+            {
+                "order_id": item.order_id,
+                "signal_date": item.signal_date,
+                "submitted_date": item.submitted_date,
+                "symbol": item.symbol,
+                "side": item.side,
+                "target_weight": item.target_weight,
+                "reason": item.reason,
+                "lifecycle": item.lifecycle,
+                "status": item.status,
+                "requested_shares": item.requested_shares,
+                "filled_shares": item.filled_shares,
+                "remaining_shares": item.remaining_shares,
+                "attempts": item.attempts,
+                "last_update_date": item.last_update_date,
+                "last_event": item.last_event,
+                "replaced_by": item.replaced_by,
+                "cancel_reason": item.cancel_reason,
+            }
+            for item in broker_orders
+        ],
+        "submission_ledger": [
+            {
+                "order_id": item.order_id,
+                "signal_date": item.signal_date,
+                "submitted_date": item.submitted_date,
+                "symbol": item.symbol,
+                "side": item.side,
+                "target_weight": item.target_weight,
+                "reason": item.reason,
+                "lifecycle": item.lifecycle,
+                "status": item.status,
+                "requested_shares": item.requested_shares,
+                "filled_shares": item.filled_shares,
+                "remaining_shares": item.remaining_shares,
+                "attempts": item.attempts,
+                "last_update_date": item.last_update_date,
+                "last_event": item.last_event,
+                "replaced_by": item.replaced_by,
+                "cancel_reason": item.cancel_reason,
+            }
+            for item in orders
+        ],
         "equity_curve": [{"date": str(date.date()), "equity": value} for date, value in equity.items()],
     }
 
@@ -430,4 +621,6 @@ def attribution(fills: list[Fill]) -> dict[str, Any]:
         "by_lifecycle": lifecycle,
         "by_reason": reason_buckets,
         "open_shares_by_lifecycle": open_lots,
+        "false_exit_regret": [],
+        "replacement_spread": {"20": [], "40": []},
     }

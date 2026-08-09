@@ -1,0 +1,28 @@
+{
+  "schema_version": 1,
+  "migrated_at_utc": "2026-08-09T09:42:22.961684+00:00",
+  "purpose": "audit the authorized causal migration of the pre-inception technology-index proxy",
+  "files_changed": [
+    "data/frozen/sh000682.csv",
+    "data/frozen/DATA_MANIFEST.json",
+    "data/frozen/SHA256SUMS"
+  ],
+  "target": "sh000682",
+  "proxy": "sz399006",
+  "target_first_date": "2021-08-16",
+  "old_tech_index_sha256": "cb8ef35832d19fa3e23d9dc5931d9bde279c2a63af438aeedb97582035ecda01",
+  "new_tech_index_sha256": "25bab1f056b508cdccec682e120c5ee4e318abaabcd9bb81fcd609c946f84d90",
+  "max_abs_ohlc_daily_return_delta": 7.235845256303719e-10,
+  "return_invariant_tolerance": 1e-8,
+  "raw_proxy_rows_verified": 1856,
+  "raw_proxy_max_level_delta": 0.000001,
+  "consumed_holdback": {
+    "status": "CONSUMED_FAIL",
+    "historical_canonical_sha256": "581be13a752823177befd825e88bbc2b273498b2cdc6ab07d98c15e697d4d53d",
+    "current_window_sha256_after_migration": "3970ddad33f5c02bc4203ec37eb1f57eba362c99654acbca7f8a4a0b96dfe044",
+    "result_sha256": "1c162d3d3a6a65df91b7539175113fe21dda9250379e0245f6173e38e4cc4bbd",
+    "result_unchanged": true,
+    "reuse_for_promotion_forbidden": true
+  },
+  "conclusion": "The historical failed K2 evidence remains immutable. The migrated data and any modified candidate require a newly preregistered future K2."
+}

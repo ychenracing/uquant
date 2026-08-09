@@ -2,15 +2,99 @@ from __future__ import annotations
 
 import pandas as pd
 
+from unified_ai_quant.broker import sync_broker_snapshot
 from unified_ai_quant.config import DEFAULT_CONFIG
-from unified_ai_quant.execution import ExecutionPlanner, fee_components, merge_pending_orders
-from unified_ai_quant.types import AccountState, PendingOrder, Position, Target, Tranche
+from unified_ai_quant.execution import (
+    ExecutionPlanner,
+    fee_components,
+    merge_pending_orders,
+    reconcile_account_orders,
+)
+from unified_ai_quant.types import (
+    AccountOrder,
+    AccountState,
+    OrderStatus,
+    PendingOrder,
+    Position,
+    Target,
+    Tranche,
+)
 
 
 def _frame(rows):
     frame = pd.DataFrame(rows)
     frame["date"] = pd.to_datetime(frame["date"])
     return frame.set_index("date")
+
+
+def test_broker_snapshot_reconciles_real_fills_idempotently():
+    pending = PendingOrder(
+        signal_date="2026-01-05",
+        symbol="sz300308",
+        side="BUY",
+        target_weight=0.50,
+        reason="confirmed mature leader core",
+        lifecycle="CORE",
+        order_id="O000000001",
+    )
+    ledger = AccountOrder(
+        order_id="O000000001",
+        signal_date="2026-01-05",
+        submitted_date="2026-01-05",
+        symbol="sz300308",
+        side="BUY",
+        target_weight=0.50,
+        reason=pending.reason,
+        lifecycle="CORE",
+        status=OrderStatus.OPEN.value,
+    )
+    account = AccountState(
+        initial_cash=2_000_000.0,
+        cash=2_000_000.0,
+        pending_orders=[pending],
+        order_ledger=[ledger],
+        operating_peak=2_000_000.0,
+        capital_peak=2_000_000.0,
+    )
+    snapshot = {
+        "as_of": "2026-01-06",
+        "cash": 1_499_870.0,
+        "positions": [
+            {
+                "symbol": "300308",
+                "shares": 5_000,
+                "sellable_shares": 0,
+                "avg_cost": 100.026,
+            }
+        ],
+        "fills": [
+            {
+                "fill_id": "BROKER-0001",
+                "order_id": "O000000001",
+                "fill_date": "2026-01-06",
+                "symbol": "300308",
+                "side": "BUY",
+                "shares": 5_000,
+                "price": 100.0,
+                "commission": 125.0,
+                "transfer_fee": 5.0,
+                "final": True,
+            }
+        ],
+    }
+
+    first = sync_broker_snapshot(account, snapshot)
+    second = sync_broker_snapshot(account, snapshot)
+
+    assert first["fills_imported"] == 1
+    assert second["fills_imported"] == 0
+    assert len(account.fills) == 1
+    assert account.order_ledger[0].status == OrderStatus.FILLED.value
+    assert account.pending_orders == []
+    assert account.cash == 1_499_870.0
+    assert account.positions["sz300308"].shares == 5_000
+    assert account.positions["sz300308"].sellable_shares("2026-01-06") == 0
+    assert account.positions["sz300308"].sellable_shares("2026-01-07") == 5_000
 
 
 def test_next_open_and_t1_enforced():
@@ -385,3 +469,94 @@ def test_new_exit_target_cancels_stale_blocked_buy():
     target = Target("sz000001", 0.0, "CORE", 0.0, 0.0, "risk")
     merged = merge_pending_orders(retained=[retained], planned=(planned,), targets=(target,))
     assert merged == (planned,)
+
+
+def test_broker_order_ledger_counts_submission_and_replacement_not_fills():
+    account = AccountState.empty(2e6)
+    retained = PendingOrder("2026-01-05", "sz000001", "BUY", 0.5, "entry", "CORE")
+    same = PendingOrder("2026-01-06", "sz000001", "BUY", 0.5, "refresh", "CORE")
+    target = Target("sz000001", 0.5, "CORE", 0.8, 1.0, "entry")
+    current = merge_pending_orders(
+        retained=[retained],
+        planned=(same,),
+        targets=(target,),
+    )
+    reconcile_account_orders(
+        account=account,
+        previous=[retained],
+        current=current,
+        submitted_date="2026-01-06",
+    )
+    assert current == (retained,)
+    assert len(account.order_ledger) == 1
+
+    replacement = PendingOrder(
+        "2026-01-07", "sz000001", "SELL", 0.0, "risk", "CORE"
+    )
+    exit_target = Target("sz000001", 0.0, "CORE", 0.0, 0.0, "risk")
+    replaced = merge_pending_orders(
+        retained=list(current),
+        planned=(replacement,),
+        targets=(exit_target,),
+    )
+    reconcile_account_orders(
+        account=account,
+        previous=list(current),
+        current=replaced,
+        submitted_date="2026-01-07",
+    )
+    assert len(account.order_ledger) == 2
+    assert account.order_ledger[0].status == "REPLACED"
+    assert account.order_ledger[0].replaced_by == account.order_ledger[1].order_id
+
+
+def test_blocked_then_filled_instruction_remains_one_broker_order():
+    panel = {
+        "sz000001": _frame(
+            [
+                {
+                    "date": "2026-01-05",
+                    "open": 10,
+                    "high": 10,
+                    "low": 10,
+                    "close": 10,
+                    "volume": 1e8,
+                    "amount": 1e9,
+                },
+                {
+                    "date": "2026-01-06",
+                    "open": 11,
+                    "high": 11,
+                    "low": 11,
+                    "close": 11,
+                    "volume": 1e8,
+                    "amount": 1.1e9,
+                },
+                {
+                    "date": "2026-01-07",
+                    "open": 10.8,
+                    "high": 11,
+                    "low": 10.5,
+                    "close": 10.9,
+                    "volume": 1e8,
+                    "amount": 1.09e9,
+                },
+            ]
+        )
+    }
+    account = AccountState.empty(2e6)
+    account.pending_orders = [
+        PendingOrder("2026-01-05", "sz000001", "BUY", 0.5, "entry", "CORE")
+    ]
+    planner = ExecutionPlanner(DEFAULT_CONFIG)
+    assert planner.execute_open(
+        date=pd.Timestamp("2026-01-06"), account=account, panel=panel
+    ) == []
+    assert len(account.order_ledger) == 1
+    assert account.order_ledger[0].last_event == "LIMIT_BLOCKED"
+    assert planner.execute_open(
+        date=pd.Timestamp("2026-01-07"), account=account, panel=panel
+    )
+    assert len(account.order_ledger) == 1
+    assert account.order_ledger[0].status == "FILLED"
+    assert account.fills[0].order_id == account.order_ledger[0].order_id

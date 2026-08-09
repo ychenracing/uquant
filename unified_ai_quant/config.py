@@ -84,10 +84,6 @@ class SystemConfig:
         "sz300394",
         "sz300502",
     )
-    strategic_reserve_symbols: tuple[str, ...] = (
-        "sh603986",
-        "sh688008",
-    )
     strategic_cohort_min_ret240: float = 1.70
     strategic_cohort_confirm_days: int = 3
     strategic_reversal_max_ret240: float = -0.15
@@ -138,6 +134,9 @@ class SystemConfig:
     operating_dd_caution: float = 0.08
     capital_dd_risk_off: float = 0.14
     capital_dd_crisis: float = 0.20
+    capital_guard_relapse_dd: float = 0.04
+    capital_guard_min_recovery_days: int = 10
+    capital_guard_cooldown_days: int = 60
     concentrated_break_dd: float = 0.08
     concentrated_break_ratio: float = 0.67
     concentrated_break_confirm_days: int = 2
@@ -152,13 +151,14 @@ class SystemConfig:
     concentrated_repair_days: int = 2
     severe_shock_ret5: float = -0.12
     severe_shock_wait_days: int = 5
+    persistent_v_recovery_wait_days: int = 15
     severe_recovery_gross: float = 0.25
     concentrated_recovery_gross: float = 0.50
     shock_rearm_days: int = 90
     caution_gross: float = 0.60
     caution_gross_min_votes: int = 4
-    risk_off_gross: float = 0.80
-    narrow_anchor_guard_gross: float = 0.90
+    risk_off_gross: float = 0.75
+    narrow_anchor_guard_gross: float = 0.84
     narrow_anchor_divergence: float = 0.50
     crisis_gross: float = 0.50
     weak_gross: float = 0.25
@@ -264,13 +264,6 @@ class SystemConfig:
             != len(self.strategic_cohort_symbols)
         ):
             raise ValueError("strategic_cohort_symbols must contain three unique symbols")
-        if (
-            len(self.strategic_reserve_symbols) != 2
-            or len(set(self.strategic_reserve_symbols)) != 2
-            or set(self.strategic_reserve_symbols)
-            & set(self.strategic_cohort_symbols)
-        ):
-            raise ValueError("strategic reserve symbols must be two unique non-core symbols")
         if self.strategic_cohort_min_ret240 < 0:
             raise ValueError("strategic_cohort_min_ret240 cannot be negative")
         if self.strategic_cohort_confirm_days < 1:
@@ -318,10 +311,18 @@ class SystemConfig:
             raise ValueError("strategic cohort crisis gross must be in [0.30, 0.60]")
         if self.strategic_cohort_guard_days < 1:
             raise ValueError("strategic_cohort_guard_days must be positive")
+        if self.capital_guard_cooldown_days < 1:
+            raise ValueError("capital_guard_cooldown_days must be positive")
+        if self.capital_guard_min_recovery_days < 1:
+            raise ValueError("capital_guard_min_recovery_days must be positive")
+        if not 0 < self.capital_guard_relapse_dd <= self.operating_dd_caution:
+            raise ValueError("capital_guard_relapse_dd is outside its safety range")
         if self.strategic_cohort_tail_confirm_days < 1:
             raise ValueError("strategic_cohort_tail_confirm_days must be positive")
         if self.fast_v_recovery_confirm_days < 1:
             raise ValueError("fast_v_recovery_confirm_days must be positive")
+        if self.persistent_v_recovery_wait_days < self.severe_shock_wait_days:
+            raise ValueError("persistent V-recovery wait cannot precede severe wait")
         if not (
             0 <= self.fast_v_recovery_breadth <= 1
             and 0 <= self.fast_v_recovery_below_ma20 <= 1

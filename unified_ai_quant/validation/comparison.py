@@ -158,6 +158,60 @@ def false_risk_off_events(
     return labels
 
 
+def false_risk_state_diagnostics(
+    row: dict[str, Any],
+    *,
+    tech_close: pd.Series,
+    horizon: int = 20,
+    damage_threshold: float = 0.05,
+) -> dict[str, Any]:
+    """Label complete RISK_OFF/CRISIS segments and count false-positive days."""
+    daily = [
+        {
+            "date": pd.Timestamp(item["date"]).normalize(),
+            "state": str(item["state"]).upper(),
+        }
+        for item in row.get("daily_risk_states", [])
+    ]
+    risk_states = {"RISK_OFF", "CRISIS"}
+    segments: list[dict[str, Any]] = []
+    start_index: int | None = None
+    for index, item in enumerate(daily):
+        active = item["state"] in risk_states
+        if active and start_index is None:
+            start_index = index
+        if start_index is not None and (not active or index == len(daily) - 1):
+            end_index = index - 1 if not active else index
+            start = daily[start_index]["date"]
+            end = daily[end_index]["date"]
+            prior = tech_close.loc[:start].tail(horizon + 1)
+            future = tech_close.loc[start:].head(horizon + 1)
+            if not prior.empty and not future.empty:
+                damage = 1.0 - float(future.min()) / float(prior.max())
+                false_positive = damage < damage_threshold
+                segments.append(
+                    {
+                        "start": str(start.date()),
+                        "end": str(end.date()),
+                        "days": end_index - start_index + 1,
+                        "forward_or_existing_damage": damage,
+                        "false_positive": false_positive,
+                    }
+                )
+            start_index = None
+    return {
+        "false_positives": sum(
+            bool(item["false_positive"]) for item in segments
+        ),
+        "false_positive_days": sum(
+            int(item["days"])
+            for item in segments
+            if bool(item["false_positive"])
+        ),
+        "segments": segments,
+    }
+
+
 def _future_return(
     frame: pd.DataFrame,
     *,

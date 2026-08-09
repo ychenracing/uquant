@@ -24,6 +24,62 @@ def test_data_contract_and_manifest(data_dir):
         store.load("000001")
 
 
+def test_bounded_manifest_accepts_append_but_detects_prefix_rewrite(tmp_path):
+    path = tmp_path / "sh600000.csv"
+    original = (
+        "date,open,high,low,close,volume,amount\n"
+        "2025-01-02,10,11,9,10.5,1000,10500\n"
+        "2025-01-03,10.5,12,10,11.5,1200,13800\n"
+    )
+    path.write_text(original, encoding="utf-8")
+    before = DataStore(tmp_path).manifest(
+        ["sh600000"], as_of="2025-01-03"
+    ).digest
+
+    path.write_text(
+        original + "2025-01-06,11.5,13,11,12.5,1500,18750\n",
+        encoding="utf-8",
+    )
+    appended = DataStore(tmp_path).manifest(
+        ["sh600000"], as_of="2025-01-03"
+    ).digest
+    assert appended == before
+
+    path.write_text(
+        original.replace(
+            "2025-01-03,10.5,12,10,11.5,1200,13800",
+            "2025-01-03,10.5,12,10,11.4,1200,13680",
+        ),
+        encoding="utf-8",
+    )
+    rewritten = DataStore(tmp_path).manifest(
+        ["sh600000"], as_of="2025-01-03"
+    ).digest
+    assert rewritten != before
+
+
+def test_account_data_provenance_advances_by_verified_prefix(data_dir):
+    symbols = ["sz300308", "sz300502", "sz300394"]
+    account = AccountState.empty(2e6)
+    first = ProductionEngine(data_dir).decide(
+        symbols=symbols,
+        as_of="2026-06-29",
+        account=account,
+    )
+    account.pending_orders = list(first.pending_orders)
+    previous_hash = account.data_hash
+
+    ProductionEngine(data_dir).decide(
+        symbols=symbols,
+        as_of="2026-06-30",
+        account=account,
+    )
+
+    assert account.data_hash_as_of == "2026-06-30"
+    assert account.data_hash != previous_hash
+    assert account.data_hash_symbols
+
+
 def test_historical_manifest_and_checksums_are_reproducible(data_dir):
     manifest = json.loads((data_dir / "DATA_MANIFEST.json").read_text(encoding="utf-8"))
     results = {item["symbol"]: item for item in manifest["results"]}

@@ -9,7 +9,17 @@ from datetime import timedelta
 import pandas as pd
 
 from .config import SystemConfig
-from .types import AccountState, Fill, PendingOrder, Position, Side, Target, Tranche
+from .types import (
+    AccountOrder,
+    AccountState,
+    Fill,
+    OrderStatus,
+    PendingOrder,
+    Position,
+    Side,
+    Target,
+    Tranche,
+)
 
 
 def fee_components(side: str, gross: float, cfg: SystemConfig) -> tuple[float, float, float]:
@@ -101,10 +111,97 @@ def merge_pending_orders(
         if consistent:
             merged[order.symbol] = order
     for order in planned:
+        existing = merged.get(order.symbol)
+        if (
+            existing is not None
+            and existing.side == order.side
+            and abs(existing.target_weight - order.target_weight) <= 1e-12
+        ):
+            # An unchanged GTC instruction remains one broker order even when
+            # the daily planner independently derives the same target again.
+            continue
         merged[order.symbol] = order
     return tuple(
         sorted(merged.values(), key=lambda item: (item.side != Side.SELL.value, item.symbol))
     )
+
+
+def _register_account_order(
+    account: AccountState,
+    order: PendingOrder,
+    *,
+    submitted_date: str,
+) -> AccountOrder:
+    if order.order_id:
+        existing = next(
+            (item for item in account.order_ledger if item.order_id == order.order_id),
+            None,
+        )
+        if existing is not None:
+            return existing
+        raise RuntimeError(
+            f"pending order references unknown account order {order.order_id}"
+        )
+    order.order_id = f"O{account.next_order_sequence:09d}"
+    account.next_order_sequence += 1
+    entry = AccountOrder(
+        order_id=order.order_id,
+        signal_date=order.signal_date,
+        submitted_date=submitted_date,
+        symbol=order.symbol,
+        side=order.side,
+        target_weight=order.target_weight,
+        reason=order.reason,
+        lifecycle=order.lifecycle,
+        last_update_date=submitted_date,
+    )
+    account.order_ledger.append(entry)
+    return entry
+
+
+def reconcile_account_orders(
+    *,
+    account: AccountState,
+    previous: list[PendingOrder],
+    current: tuple[PendingOrder, ...],
+    submitted_date: str,
+) -> tuple[PendingOrder, ...]:
+    """Persist submissions and cancel/replace transitions without counting fills."""
+    for order in previous:
+        _register_account_order(
+            account,
+            order,
+            submitted_date=order.signal_date or submitted_date,
+        )
+    for order in current:
+        _register_account_order(account, order, submitted_date=submitted_date)
+
+    current_ids = {order.order_id for order in current}
+    current_by_symbol = {order.symbol: order for order in current}
+    ledger = {item.order_id: item for item in account.order_ledger}
+    for order in previous:
+        if order.order_id in current_ids:
+            continue
+        entry = ledger[order.order_id]
+        if entry.status in {
+            OrderStatus.FILLED.value,
+            OrderStatus.CANCELLED.value,
+            OrderStatus.REPLACED.value,
+        }:
+            continue
+        replacement = current_by_symbol.get(order.symbol)
+        entry.status = (
+            OrderStatus.REPLACED.value
+            if replacement is not None
+            else OrderStatus.CANCELLED.value
+        )
+        entry.replaced_by = replacement.order_id if replacement is not None else ""
+        entry.cancel_reason = (
+            "daily target changed" if replacement is not None else "daily target removed"
+        )
+        entry.last_update_date = submitted_date
+        entry.last_event = entry.status
+    return current
 
 
 class ExecutionPlanner:
@@ -123,22 +220,44 @@ class ExecutionPlanner:
         fills: list[Fill] = []
         orders = sorted(account.pending_orders, key=lambda item: (item.side != Side.SELL.value, item.symbol))
         for order in orders:
+            _register_account_order(
+                account,
+                order,
+                submitted_date=order.signal_date or date_str,
+            )
+        ledger = {item.order_id: item for item in account.order_ledger}
+        for order in orders:
+            account_order = ledger[order.order_id]
             if pd.Timestamp(order.signal_date) >= date:
+                account_order.status = OrderStatus.OPEN.value
+                account_order.last_update_date = date_str
+                account_order.last_event = "WAITING_NEXT_OPEN"
                 retained.append(order)
                 continue
             frame = panel.get(order.symbol)
             if frame is None or date not in frame.index:
                 order.attempts += 1
+                account_order.attempts = order.attempts
+                account_order.status = OrderStatus.OPEN.value
+                account_order.last_update_date = date_str
+                account_order.last_event = "MISSING_OR_SUSPENDED"
                 retained.append(order)
                 continue
             row = frame.loc[date]
             history = frame.loc[:date]
             if len(history) < 2:
+                account_order.status = OrderStatus.OPEN.value
+                account_order.last_update_date = date_str
+                account_order.last_event = "INSUFFICIENT_HISTORY"
                 retained.append(order)
                 continue
             previous_close = float(history.iloc[-2]["close"])
             if _blocked(order.symbol, order.side, row, previous_close):
                 order.attempts += 1
+                account_order.attempts = order.attempts
+                account_order.status = OrderStatus.OPEN.value
+                account_order.last_update_date = date_str
+                account_order.last_event = "LIMIT_BLOCKED"
                 retained.append(order)
                 continue
             open_price = float(row["open"])
@@ -179,6 +298,11 @@ class ExecutionPlanner:
                     current.shares == 0
                 )
                 if projected_positions > self.cfg.max_positions:
+                    order.attempts += 1
+                    account_order.attempts = order.attempts
+                    account_order.status = OrderStatus.OPEN.value
+                    account_order.last_update_date = date_str
+                    account_order.last_event = "POSITION_CAP_BLOCKED"
                     retained.append(order)
                     continue
                 max_by_weight = (
@@ -195,7 +319,21 @@ class ExecutionPlanner:
             if shares <= 0:
                 if requested > 0:
                     order.attempts += 1
+                    account_order.requested_shares = max(
+                        account_order.requested_shares,
+                        requested,
+                    )
+                    account_order.remaining_shares = requested
+                    account_order.attempts = order.attempts
+                    account_order.status = OrderStatus.OPEN.value
+                    account_order.last_update_date = date_str
+                    account_order.last_event = "CAPACITY_OR_CASH_BLOCKED"
                     retained.append(order)
+                else:
+                    account_order.status = OrderStatus.CANCELLED.value
+                    account_order.cancel_reason = "target already satisfied"
+                    account_order.last_update_date = date_str
+                    account_order.last_event = "ZERO_REQUEST"
                 continue
             gross = shares * execution_price
             commission, stamp, transfer = fee_components(order.side, gross, self.cfg)
@@ -264,13 +402,26 @@ class ExecutionPlanner:
                 slippage_cost=slippage_cost,
                 reason=order.reason,
                 lifecycle=order.lifecycle,
+                order_id=account_order.order_id,
             )
             account.fills.append(fill)
             fills.append(fill)
+            account_order.requested_shares = max(
+                account_order.requested_shares,
+                account_order.filled_shares + requested,
+            )
+            account_order.filled_shares += shares
+            account_order.remaining_shares = max(0, requested - shares)
+            account_order.last_update_date = date_str
+            account_order.last_event = "FILL"
             if shares < requested:
                 order.remaining_shares = requested - shares
                 order.attempts += 1
+                account_order.attempts = order.attempts
+                account_order.status = OrderStatus.PARTIALLY_FILLED.value
                 retained.append(order)
+            else:
+                account_order.status = OrderStatus.FILLED.value
         if account.cash < -1e-6:
             raise RuntimeError("execution produced negative cash")
         account.pending_orders = retained

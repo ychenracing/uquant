@@ -156,102 +156,229 @@ class PortfolioAllocator:
         positive = amounts[amounts > 0]
         return len(positive) >= 10 and float(positive.median()) >= self.cfg.minimum_median_amount
 
+    @staticmethod
+    def _release_recovery_anchor(account: AccountState) -> None:
+        """Release every lock owned by the current recovery cohort.
+
+        Recovery anchors are a temporary bridge out of a shock, not a second
+        portfolio.  Once that bridge is gone, retaining its target weights can
+        make a later, unrelated leader portfolio sell back into symbols it no
+        longer owns.  Keep the reset in one place so every graduation route has
+        identical semantics.
+        """
+        account.anchor_weights.clear()
+        account.recovery_anchor_date = ""
+        account.candidate_tenure["recovery_cohort_locked"] = 0
+        account.candidate_tenure["recovery_cohort_graduated"] = 1
+        account.candidate_tenure["diversification_capped"] = 0
+        account.candidate_tenure["confirmed_anchor_pair"] = 0
+        account.candidate_tenure["confirmed_pair_balanced"] = 0
+        account.candidate_tenure["recovery_substitution_pending"] = 0
+        account.candidate_tenure["recovery_substitution_completed"] = 0
+
+    def _release_stale_recovery_anchor(
+        self,
+        *,
+        risk: RiskAssessment,
+        account: AccountState,
+        weights_now: dict[str, float],
+    ) -> bool:
+        """Forget an exited recovery cohort before allocating a new cycle.
+
+        A live or pending anchor remains protected.  The reset is allowed only
+        after the account has no anchor exposure and the shock/restoration
+        state machine has finished, so it cannot cancel a causal recovery buy.
+        """
+        anchors = set(account.anchor_weights)
+        if not anchors:
+            return False
+        held = any(weights_now.get(symbol, 0.0) > 1e-12 for symbol in anchors)
+        pending_buy = any(
+            order.symbol in anchors and order.side == "BUY"
+            for order in account.pending_orders
+        )
+        protected = bool(anchors & set(account.protected_weights))
+        shock_finished = risk.shock_state in {"NONE", "UNBACKED_COOLDOWN"}
+        if (
+            held
+            or pending_buy
+            or protected
+            or risk.state.value not in {"NORMAL", "CAUTION"}
+            or not shock_finished
+        ):
+            return False
+        self._release_recovery_anchor(account)
+        return True
+
     def _initialize_strategic_cohort(
         self,
         *,
         date: pd.Timestamp,
         user_panel: dict[str, pd.DataFrame],
+        leaders: dict[str, LeaderScore],
         account: AccountState,
         risk: RiskAssessment,
     ) -> None:
-        """Activate a fixed long-cycle cohort after persistent causal evidence."""
+        """Discover and activate a persistent long-cycle cohort causally."""
         evaluated_key = "strategic_cohort_evaluated"
         if (
             account.candidate_tenure.get("strategic_cohort_active", 0) == 1
             or account.candidate_tenure.get("strategic_cohort_completed", 0) == 1
         ):
             return
-        symbols = self.cfg.strategic_cohort_symbols
-        # A secular cohort may start through a benign CAUTION transition (for
-        # example, one stale leader-failure vote during a confirmed turn), but
-        # it must not deploy fresh gross while several independent risk axes
-        # still disagree with the entry. Apply this only when the complete
-        # cohort exists in the requested universe so incomplete stress pools
-        # retain their original causal state transitions. Existing cohorts
-        # remain governed by the separate tail/risk-cap state machine below.
+        initial_check_key = "strategic_long_cycle_initial_check"
+        long_cycle_open_key = "strategic_long_cycle_open"
+        qualification_key = "strategic_cohort_qualification"
+        route_key = "strategic_cohort_qualification_route"
+        account.candidate_tenure[initial_check_key] = 1
+
+        # Pool membership must never bypass the independent account-risk gate.
         unsafe_new_cohort = (
             risk.state.value in {"RISK_OFF", "CRISIS"}
             or (risk.state.value == "CAUTION" and risk.votes >= 2)
         )
-        if all(symbol in user_panel for symbol in symbols) and unsafe_new_cohort:
-            account.candidate_tenure["strategic_cohort_qualification"] = 0
-            account.candidate_tenure["strategic_cohort_qualification_route"] = 0
-            return
-        initial_check_key = "strategic_long_cycle_initial_check"
-        long_cycle_open_key = "strategic_long_cycle_open"
-        first_observation = (
-            account.candidate_tenure.get(initial_check_key, 0) == 0
-        )
-        account.candidate_tenure[initial_check_key] = 1
-        qualification_key = "strategic_cohort_qualification"
-        if any(symbol not in user_panel for symbol in symbols):
+        if unsafe_new_cohort:
             account.candidate_tenure[qualification_key] = 0
-            if first_observation:
-                account.candidate_tenure[long_cycle_open_key] = 0
+            account.candidate_tenure[route_key] = 0
+            account.candidate_tenure[long_cycle_open_key] = 0
             return
-        returns240: dict[str, float] = {}
-        persistent_returns240: dict[str, float] = {}
-        returns20: dict[str, float] = {}
-        returns5: dict[str, float] = {}
-        for symbol in symbols:
-            frame = user_panel[symbol]
+
+        snapshots: dict[str, dict[str, float]] = {}
+        for symbol, frame in user_panel.items():
+            if date not in frame.index:
+                continue
             history = frame.loc[:date, "close"].dropna()
             if len(history) < 241 or not self._liquidity_confirmed(frame, date):
-                account.candidate_tenure[qualification_key] = 0
-                if first_observation:
-                    account.candidate_tenure[long_cycle_open_key] = 0
-                return
+                continue
             rolling240 = history / history.shift(240) - 1.0
-            returns240[symbol] = float(rolling240.iloc[-1])
-            persistent_returns240[symbol] = float(
-                rolling240.dropna()
-                .tail(self.cfg.strategic_cohort_confirm_days)
-                .median()
+            persistent = rolling240.dropna().tail(
+                self.cfg.strategic_cohort_confirm_days
             )
-            returns20[symbol] = float(history.iloc[-1] / history.iloc[-21] - 1.0)
-            returns5[symbol] = float(history.iloc[-1] / history.iloc[-6] - 1.0)
-        raw_long_cycle = (
-            min(persistent_returns240.values())
-            >= self.cfg.strategic_cohort_min_ret240
-        )
-        if first_observation:
-            account.candidate_tenure[long_cycle_open_key] = int(raw_long_cycle)
-        elif (
-            account.candidate_tenure.get(long_cycle_open_key, 0) == 1
-            and not raw_long_cycle
-        ):
+            if persistent.empty:
+                continue
+            snapshots[symbol] = {
+                "ret240": float(rolling240.iloc[-1]),
+                "persistent_ret240": float(persistent.median()),
+                "ret20": float(history.iloc[-1] / history.iloc[-21] - 1.0),
+                "ret5": float(history.iloc[-1] / history.iloc[-6] - 1.0),
+                "leader_score": leaders[symbol].score if symbol in leaders else 0.0,
+            }
+        if not snapshots:
+            account.candidate_tenure[qualification_key] = 0
             account.candidate_tenure[long_cycle_open_key] = 0
-        long_cycle = bool(
-            raw_long_cycle
-            and account.candidate_tenure.get(long_cycle_open_key, 0) == 1
+            account.candidate_tenure[route_key] = 0
+            return
+
+        configured_symbols = list(self.cfg.strategic_cohort_symbols)
+        configured_requested = all(
+            symbol in user_panel for symbol in configured_symbols
         )
-        synchronized_reversal = (
-            max(returns240.values()) <= self.cfg.strategic_reversal_max_ret240
-            and min(returns5.values()) >= self.cfg.strategic_reversal_min_ret5
-            and float(np.median(list(returns20.values())))
+        configured_complete = all(
+            symbol in snapshots for symbol in configured_symbols
+        )
+        account.candidate_tenure["strategic_configured_prior"] = int(
+            configured_requested
+        )
+        if configured_requested and not configured_complete:
+            account.candidate_tenure[qualification_key] = 0
+            account.candidate_tenure[long_cycle_open_key] = 0
+            account.candidate_tenure[route_key] = 0
+            return
+        long_cycle_candidates = sorted(
+            (
+                symbol
+                for symbol, values in snapshots.items()
+                if values["persistent_ret240"]
+                >= self.cfg.strategic_cohort_min_ret240
+            ),
+            key=lambda symbol: (
+                -snapshots[symbol]["persistent_ret240"],
+                -snapshots[symbol]["leader_score"],
+                -snapshots[symbol]["ret20"],
+                symbol,
+            ),
+        )
+        long_cycle_symbols = long_cycle_candidates[
+            : min(3, self.cfg.max_positions)
+        ]
+        if configured_complete:
+            long_cycle_symbols = configured_symbols
+            raw_long_cycle = all(
+                snapshots[symbol]["persistent_ret240"]
+                >= self.cfg.strategic_cohort_min_ret240
+                for symbol in configured_symbols
+            )
+        else:
+            # When the explicit thesis cohort is absent, discover the strongest
+            # persistent names in the requested universe.  A singleton remains
+            # capped at 60%; larger discovered cohorts use full gross.
+            raw_long_cycle = bool(long_cycle_symbols)
+        if not raw_long_cycle:
+            long_cycle_symbols = []
+        # This is a causal eligibility gate, not a verdict frozen at the first
+        # day of an arbitrary backtest window.  A secular move that develops
+        # later must be investable once the same persistent evidence exists.
+        account.candidate_tenure[long_cycle_open_key] = int(raw_long_cycle)
+
+        reversal_candidates = sorted(
+            (
+                symbol
+                for symbol, values in snapshots.items()
+                if values["ret240"] <= self.cfg.strategic_reversal_max_ret240
+                and values["ret5"] >= self.cfg.strategic_reversal_min_ret5
+            ),
+            key=lambda symbol: (
+                -snapshots[symbol]["ret20"],
+                -snapshots[symbol]["ret5"],
+                -snapshots[symbol]["leader_score"],
+                symbol,
+            ),
+        )
+        if configured_complete:
+            reversal_symbols = sorted(
+                configured_symbols,
+                key=lambda symbol: (-snapshots[symbol]["ret20"], symbol),
+            )[: min(2, self.cfg.max_positions)]
+            reversal_breadth = all(
+                snapshots[symbol]["ret240"]
+                <= self.cfg.strategic_reversal_max_ret240
+                and snapshots[symbol]["ret5"]
+                >= self.cfg.strategic_reversal_min_ret5
+                for symbol in configured_symbols
+            )
+        else:
+            reversal_symbols = reversal_candidates[: min(2, self.cfg.max_positions)]
+            reversal_required = min(3, len(snapshots), self.cfg.max_positions)
+            reversal_breadth = len(reversal_candidates) >= reversal_required
+        synchronized_reversal = bool(
+            len(reversal_symbols) >= 2
+            and reversal_breadth
+            and float(
+                np.median(
+                    [snapshots[symbol]["ret20"] for symbol in reversal_symbols]
+                )
+            )
             >= self.cfg.strategic_reversal_min_median_ret20
             and float(risk.evidence.get("tech_ret120", math.inf))
             <= self.cfg.strategic_reversal_max_tech_ret120
         )
-        qualified = long_cycle or synchronized_reversal
-        route_key = "strategic_cohort_qualification_route"
-        route = 2 if long_cycle else 1 if synchronized_reversal else 0
-        if route and account.candidate_tenure.get(route_key, 0) == route:
-            account.candidate_tenure[qualification_key] = (
-                account.candidate_tenure.get(qualification_key, 0) + 1
+        route = 2 if raw_long_cycle else 1 if synchronized_reversal else 0
+        route_symbols = (
+            long_cycle_symbols if route == 2 else reversal_symbols if route == 1 else []
+        )
+        signature = f"strategic_qualification:{route}:{','.join(route_symbols)}"
+        if route:
+            for key in tuple(account.replacement_tenure):
+                if key.startswith("strategic_qualification:") and key != signature:
+                    account.replacement_tenure[key] = 0
+            account.replacement_tenure[signature] = (
+                account.replacement_tenure.get(signature, 0) + 1
             )
+            account.candidate_tenure[qualification_key] = account.replacement_tenure[
+                signature
+            ]
         else:
-            account.candidate_tenure[qualification_key] = int(qualified)
+            account.candidate_tenure[qualification_key] = 0
         account.candidate_tenure[route_key] = route
         required_confirm_days = (
             self.cfg.strategic_reversal_confirm_days
@@ -259,35 +386,37 @@ class PortfolioAllocator:
             else self.cfg.strategic_cohort_confirm_days
         )
         if (
-            not qualified
+            not route
             or account.candidate_tenure[qualification_key]
             < required_confirm_days
             or account.pending_orders
             or account.protected_weights
         ):
             return
+        # A live recovery cohort already owns the same causal opportunity.  Do
+        # not replace that lower-turnover, winner-preserving lifecycle with a
+        # second label merely because the secular evidence later confirms.
+        # Once those anchors are truly exited, the stale-anchor release above
+        # makes this route available again.
+        if account.anchor_weights and set(route_symbols).issubset(
+            account.anchor_weights
+        ):
+            account.candidate_tenure["strategic_deferred_to_recovery"] = 1
+            return
         # A persistently qualified secular cluster is also a causal graduation
         # signal for an old recovery cohort.  Clear every recovery-only lock so
         # the hand-off cannot leave stale anchors controlling later decisions.
-        account.anchor_weights.clear()
-        account.recovery_anchor_date = ""
+        self._release_recovery_anchor(account)
         account.tactical_anchor_symbol = ""
-        account.candidate_tenure["recovery_cohort_locked"] = 0
-        account.candidate_tenure["recovery_cohort_graduated"] = 1
-        account.candidate_tenure["diversification_capped"] = 0
-        account.candidate_tenure["confirmed_anchor_pair"] = 0
-        account.candidate_tenure["confirmed_pair_balanced"] = 0
         account.candidate_tenure["tactical_active"] = 0
         account.candidate_tenure["tactical_promotable"] = 0
         account.candidate_tenure["strategic_reversal_entry"] = int(
             synchronized_reversal
         )
+        account.candidate_tenure["strategic_deferred_to_recovery"] = 0
         account.candidate_tenure[evaluated_key] = 1
         if synchronized_reversal:
-            selected = sorted(
-                symbols,
-                key=lambda symbol: (-returns20[symbol], symbol),
-            )[:2]
+            selected = route_symbols
             lead_weight = min(self.cfg.max_symbol_weight, self.cfg.max_gross)
             account.strategic_cohort_symbols = list(selected)
             account.strategic_cohort_targets = {
@@ -297,11 +426,11 @@ class PortfolioAllocator:
         else:
             weight = min(
                 self.cfg.max_symbol_weight,
-                self.cfg.max_gross / len(symbols),
+                self.cfg.max_gross / len(route_symbols),
             )
-            account.strategic_cohort_symbols = list(symbols)
+            account.strategic_cohort_symbols = list(route_symbols)
             account.strategic_cohort_targets = {
-                symbol: weight for symbol in symbols
+                symbol: weight for symbol in route_symbols
             }
         account.strategic_exit_bands.clear()
         account.strategic_active_bands.clear()
@@ -332,6 +461,7 @@ class PortfolioAllocator:
         self._initialize_strategic_cohort(
             date=date,
             user_panel=user_panel,
+            leaders=leaders,
             account=account,
             risk=risk,
         )
@@ -364,7 +494,12 @@ class PortfolioAllocator:
         account.candidate_tenure["strategic_cohort_days"] = (
             account.candidate_tenure.get("strategic_cohort_days", 0) + 1
         )
-        if any(weights_now.get(symbol, 0.0) > 0 for symbol in active_symbols):
+        # A partially held cohort is not started: the missing members still
+        # need targets.  Treating "any member held" as complete previously
+        # stranded broad-universe runs in a one-name pseudo-cohort forever.
+        if active_symbols and all(
+            weights_now.get(symbol, 0.0) > 0 for symbol in active_symbols
+        ):
             account.candidate_tenure["strategic_cohort_started"] = 1
 
         band_count = self.cfg.strategic_cohort_trail_bands
@@ -394,11 +529,16 @@ class PortfolioAllocator:
                 account.strategic_active_bands.pop(symbol, None)
                 continue
             atr = scalar(row, "atr", math.inf)
+            structural_damage = (
+                close < scalar(row, f"ma{self.cfg.trend_fast}")
+                and scalar(row, f"ret{self.cfg.trend_fast}", 0.0) < 0
+            )
             peak_mfe = (
                 position.highest_close / max(position.avg_cost, 1e-12) - 1.0
             )
             triggered = [
                 peak_mfe >= self.cfg.strategic_cohort_profit_arm
+                and structural_damage
                 and math.isfinite(atr)
                 and close <= position.highest_close - threshold * atr
                 for threshold in thresholds
@@ -417,7 +557,6 @@ class PortfolioAllocator:
             for index, signal in enumerate(triggered):
                 if signal:
                     armed[index] = True
-                if armed[index]:
                     bands[index] = max(
                         0.0,
                         bands[index]
@@ -1311,13 +1450,15 @@ class PortfolioAllocator:
             account.candidate_tenure["recovery_substitution_pending"] = 0
 
         if (
-            len(account.anchor_weights) != 2
-            or len(
-                set(account.anchor_weights)
-                & set(self.cfg.strategic_cohort_symbols)
+            len(account.anchor_weights) not in {2, 3}
+            or (
+                len(account.anchor_weights) == 3
+                and len(
+                    set(account.anchor_weights)
+                    & set(self.cfg.strategic_cohort_symbols)
+                )
+                >= 2
             )
-            != 2
-            or not set(self.cfg.strategic_reserve_symbols).issubset(user_panel)
             or account.candidate_tenure.get("recovery_substitution_completed", 0)
             == 1
             or anchor_elapsed <= self.cfg.recovery_add_window_days
@@ -1325,51 +1466,77 @@ class PortfolioAllocator:
             or risk.state.value not in {"NORMAL", "CAUTION"}
         ):
             return None
-        lead, incumbent = tuple(account.anchor_weights)
-        if weights_now.get(lead, 0.0) <= 0 or weights_now.get(incumbent, 0.0) <= 0:
+        held_anchors = [
+            symbol
+            for symbol in account.anchor_weights
+            if weights_now.get(symbol, 0.0) > 0
+        ]
+        if len(held_anchors) != len(account.anchor_weights):
             return None
-        incumbent_score = leaders.get(incumbent)
-        incumbent_frame = user_panel.get(incumbent)
-        if (
-            incumbent_score is None
-            or incumbent_frame is None
-            or date not in incumbent_frame.index
-        ):
+        lead = max(
+            held_anchors,
+            key=lambda symbol: (
+                account.anchor_weights.get(symbol, 0.0),
+                leaders[symbol].score if symbol in leaders else -math.inf,
+                symbol,
+            ),
+        )
+        broken_secondaries: list[tuple[LeaderScore, pd.DataFrame]] = []
+        for symbol in held_anchors:
+            if symbol == lead:
+                continue
+            score = leaders.get(symbol)
+            frame = user_panel.get(symbol)
+            if score is None or frame is None or date not in frame.index:
+                continue
+            row = frame.loc[date]
+            structure_broken = (
+                scalar(row, "close")
+                < scalar(row, f"ma{self.cfg.trend_fast}")
+                and scalar(row, f"ret{self.cfg.trend_fast}", 0.0) < 0
+            )
+            sessions_since_shock = math.inf
+            if account.last_shock_date:
+                sessions_since_shock = (
+                    len(frame.loc[pd.Timestamp(account.last_shock_date) : date]) - 1
+                )
+            medium_term_broken = scalar(
+                row, f"ret{self.cfg.trend_medium}", 0.0
+            ) < 0
+            broken = (
+                (structure_broken and (not score.mature or medium_term_broken))
+                or (
+                    not score.mature
+                    and sessions_since_shock
+                    <= self.cfg.recovery_substitution_shock_window
+                )
+            )
+            if broken:
+                broken_secondaries.append((score, frame))
+        if not broken_secondaries:
             return None
+        incumbent_score, incumbent_frame = min(
+            broken_secondaries,
+            key=lambda item: (item[0].score, item[0].symbol),
+        )
+        incumbent = incumbent_score.symbol
         incumbent_row = incumbent_frame.loc[date]
-        structure_broken = (
-            scalar(incumbent_row, "close")
-            < scalar(incumbent_row, f"ma{self.cfg.trend_fast}")
-            and scalar(incumbent_row, f"ret{self.cfg.trend_fast}", 0.0) < 0
-        )
-        sessions_since_shock = math.inf
-        if account.last_shock_date:
-            sessions_since_shock = (
-                len(incumbent_frame.loc[pd.Timestamp(account.last_shock_date) : date])
-                - 1
-            )
-        broken = (
-            not incumbent_score.mature
-            and (
-                structure_broken
-                or sessions_since_shock
-                <= self.cfg.recovery_substitution_shock_window
-            )
-        )
+        occupied_industries = {
+            leaders[symbol].industry
+            for symbol in account.anchor_weights
+            if symbol != incumbent and symbol in leaders
+        }
         challengers = [
             item
             for item in leaders.values()
             if item.symbol not in account.anchor_weights
-            and item.symbol in self.cfg.strategic_reserve_symbols
+            and item.mature
+            and item.symbol in user_panel
             and credible_recovery_reserve(
                 score=item,
                 frame=user_panel[item.symbol],
                 date=date,
-                occupied_industries={
-                    leaders[symbol].industry
-                    for symbol in account.anchor_weights
-                    if symbol in leaders
-                },
+                occupied_industries=occupied_industries,
                 cfg=self.cfg,
             )
         ]
@@ -1388,7 +1555,7 @@ class PortfolioAllocator:
             if challenger is not None
             else f"recovery_substitution:{incumbent}->none"
         )
-        confirmed = broken and edge >= self.cfg.recovery_substitution_edge
+        confirmed = edge >= self.cfg.recovery_substitution_edge
         account.replacement_tenure[key] = (
             account.replacement_tenure.get(key, 0) + 1 if confirmed else 0
         )
@@ -1404,10 +1571,13 @@ class PortfolioAllocator:
                 weights_now.get(incumbent, 0.0),
             ),
         )
-        account.anchor_weights = {
-            lead: account.anchor_weights[lead],
-            challenger.symbol: transfer,
+        retained = {
+            symbol: weight
+            for symbol, weight in account.anchor_weights.items()
+            if symbol != incumbent
         }
+        retained[challenger.symbol] = transfer
+        account.anchor_weights = retained
         account.candidate_tenure["recovery_substitution_pending"] = 1
         account.candidate_tenure["recovery_substitution_completed"] = 1
         account.rotation_dates.append(str(date.date()))
@@ -1422,11 +1592,14 @@ class PortfolioAllocator:
                 "route": "recovery_anchor_substitution",
             }
         )
+        proposed = {
+            symbol: weights_now[symbol]
+            for symbol in retained
+            if symbol != challenger.symbol and weights_now.get(symbol, 0.0) > 0
+        }
+        proposed[challenger.symbol] = transfer
         return self._targets(
-            proposed={
-                lead: weights_now[lead],
-                challenger.symbol: transfer,
-            },
+            proposed=proposed,
             leaders=leaders,
             account=account,
             lifecycle=Lifecycle.CORE,
@@ -1513,6 +1686,11 @@ class PortfolioAllocator:
         prices: dict[str, float],
     ) -> tuple[Target, ...]:
         weights_now, _ = current_weights(account, prices)
+        self._release_stale_recovery_anchor(
+            risk=risk,
+            account=account,
+            weights_now=weights_now,
+        )
         strategic = self._strategic_cohort_targets(
             date=date,
             risk=risk,
@@ -1567,6 +1745,7 @@ class PortfolioAllocator:
             account.candidate_tenure["recovery_reserve_qualified"] = 0
             account.candidate_tenure["recovery_substitution_pending"] = 0
             account.candidate_tenure["recovery_substitution_completed"] = 0
+            account.candidate_tenure["recovery_cohort_graduated"] = 0
             account.candidate_tenure["tactical_active"] = 0
             account.candidate_tenure["tactical_promoted"] = 1
             position.lifecycle = Lifecycle.CORE.value
@@ -1627,6 +1806,15 @@ class PortfolioAllocator:
             )
 
         if risk.state.value == "CRISIS":
+            if any(
+                marker in risk.reasons
+                for marker in (
+                    "capital drawdown relapse in restored holdings",
+                    "capital guard cooldown after failed restoration",
+                )
+            ):
+                self._release_recovery_anchor(account)
+                account.protected_weights.clear()
             if account.anchor_weights:
                 account.candidate_tenure["risk_trimmed"] = 1
             gross_now = sum(weights_now.values())
@@ -1720,12 +1908,7 @@ class PortfolioAllocator:
                 anchored_held,
                 key=lambda symbol: (-leaders[symbol].score, symbol),
             )
-            account.anchor_weights.clear()
-            account.recovery_anchor_date = ""
-            account.candidate_tenure["recovery_cohort_locked"] = 0
-            account.candidate_tenure["recovery_cohort_graduated"] = 1
-            account.candidate_tenure["diversification_capped"] = 0
-            account.candidate_tenure["confirmed_anchor_pair"] = 0
+            self._release_recovery_anchor(account)
             anchored_held = {}
         substitution = self._recovery_anchor_substitution(
             date=date,
@@ -1855,7 +2038,8 @@ class PortfolioAllocator:
                 deep_recovery = [
                     item
                     for item in deep_recovery
-                    if item[0].symbol in self.cfg.strategic_cohort_symbols
+                    if item[0].confidence >= self.cfg.leader_min_confidence
+                    and item[0].score >= self.cfg.recovery_reserve_min_score
                 ]
             if deep_recovery or rebound or fast_rebound:
                 if fast_rebound:
@@ -2055,6 +2239,7 @@ class PortfolioAllocator:
                     )
                     account.candidate_tenure["confirmed_anchor_pair"] = 1
                 account.anchor_weights = dict(proposed)
+                account.candidate_tenure["recovery_cohort_graduated"] = 0
                 if len(selected) == 2 and all(
                     crash_depth.get(symbol, 0.0) <= -0.15 for symbol in selected
                 ):

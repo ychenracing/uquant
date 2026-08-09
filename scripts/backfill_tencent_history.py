@@ -38,6 +38,8 @@ HISTORICAL_CUTOFF = "2021-12-31"
 INDEX_SYMBOLS = {"sh000300", "sh000682", "sz399006"}
 TECH_INDEX = "sh000682"
 TECH_PROXY = "sz399006"
+TECH_TARGET_FIRST_DATE = "2021-08-16"
+CAUSAL_RETURN_TOLERANCE = Decimal("1e-8")
 HEADER = "date,open,high,low,close,volume,amount\n"
 
 
@@ -51,6 +53,22 @@ class BackfillResult:
     anchor_max_relative_difference: float
     sha256: str
     pre_inception_proxy: str | None = None
+
+
+def _manifest_result(payload: dict[str, Any]) -> BackfillResult:
+    """Read the stable backfill fields while preserving newer manifest extras."""
+    return BackfillResult(
+        symbol=str(payload["symbol"]),
+        first_date=str(payload["first_date"]),
+        last_date=str(payload["last_date"]),
+        historical_rows_added=int(payload["historical_rows_added"]),
+        total_rows=int(payload["total_rows"]),
+        anchor_max_relative_difference=float(
+            payload["anchor_max_relative_difference"]
+        ),
+        sha256=str(payload["sha256"]),
+        pre_inception_proxy=payload.get("pre_inception_proxy"),
+    )
 
 
 def _request_text(url: str, *, attempts: int = 4) -> str:
@@ -219,9 +237,16 @@ def _backfill_one(path: Path) -> tuple[BackfillResult, bytes]:
 def _prepend_tech_proxy(
     result: BackfillResult, payload: bytes
 ) -> tuple[BackfillResult, bytes]:
+    """Prepend raw proxy levels and causally rebase later target levels.
+
+    Index levels have an arbitrary base.  Rebase the target only from its first
+    observable close onward so a replay before target inception reads the raw
+    proxy bytes and never depends on a future target value.  The transformation
+    preserves every raw within-series return and produces a continuous level.
+    """
     text = payload.decode("utf-8")
-    reader = csv.DictReader(text.splitlines())
-    first = next(reader, None)
+    target_rows = list(csv.DictReader(text.splitlines()))
+    first = target_rows[0] if target_rows else None
     if first is None:
         raise RuntimeError(f"empty {TECH_INDEX} payload")
     first_date = first["date"]
@@ -229,7 +254,8 @@ def _prepend_tech_proxy(
     proxy_anchor = _fetch(TECH_PROXY, first_date, first_date, count=30)
     if not proxy_anchor:
         raise RuntimeError(f"{TECH_PROXY} has no proxy anchor on {first_date}")
-    scale = target_close / Decimal(proxy_anchor[-1][4])
+    proxy_close = Decimal(proxy_anchor[-1][4])
+    target_scale = proxy_close / target_close
     proxy: dict[str, tuple[str, str, str, str, str, str]] = {}
     for start, end in CHUNKS:
         for row in _fetch(TECH_PROXY, start, end):
@@ -239,13 +265,23 @@ def _prepend_tech_proxy(
         raise RuntimeError(f"{TECH_PROXY} did not provide the required pre-inception history")
     prefix = "".join(
         (
-            f"{date},{Decimal(open_) * scale:.6f},{Decimal(high) * scale:.6f},"
-            f"{Decimal(low) * scale:.6f},{Decimal(close) * scale:.6f},"
+            f"{date},{Decimal(open_):.6f},{Decimal(high):.6f},"
+            f"{Decimal(low):.6f},{Decimal(close):.6f},"
             f"{_format_volume(TECH_PROXY, volume)},\n"
         )
         for date, open_, high, low, close, volume in sorted(proxy.values())
     )
-    extended = (HEADER + prefix + text[len(HEADER) :]).encode("utf-8")
+    rebased_target = "".join(
+        (
+            f"{row['date']},{Decimal(row['open']) * target_scale:.6f},"
+            f"{Decimal(row['high']) * target_scale:.6f},"
+            f"{Decimal(row['low']) * target_scale:.6f},"
+            f"{Decimal(row['close']) * target_scale:.6f},"
+            f"{row['volume']},{row.get('amount', '')}\n"
+        )
+        for row in target_rows
+    )
+    extended = (HEADER + prefix + rebased_target).encode("utf-8")
     updated = BackfillResult(
         symbol=result.symbol,
         first_date=min(proxy),
@@ -254,9 +290,90 @@ def _prepend_tech_proxy(
         total_rows=extended.count(b"\n") - 1,
         anchor_max_relative_difference=result.anchor_max_relative_difference,
         sha256=hashlib.sha256(extended).hexdigest(),
-        pre_inception_proxy=f"{TECH_PROXY} close-scaled at {first_date}",
+        pre_inception_proxy=(
+            f"{TECH_PROXY} raw before {first_date}; {TECH_INDEX} causally "
+            f"rebased from {first_date} by {target_scale}"
+        ),
     )
     return updated, extended
+
+
+def _causal_rebase_existing_tech(
+    result: BackfillResult,
+    payload: bytes,
+) -> tuple[BackfillResult, bytes]:
+    """Migrate the old future-scaled proxy splice without changing returns."""
+    rows = list(csv.DictReader(payload.decode("utf-8").splitlines()))
+    target = next(
+        (row for row in rows if row["date"] == TECH_TARGET_FIRST_DATE),
+        None,
+    )
+    if target is None:
+        raise RuntimeError(
+            f"{TECH_INDEX} lacks target inception {TECH_TARGET_FIRST_DATE}"
+        )
+    proxy_anchor = _fetch(
+        TECH_PROXY,
+        TECH_TARGET_FIRST_DATE,
+        TECH_TARGET_FIRST_DATE,
+        count=30,
+    )
+    if not proxy_anchor:
+        raise RuntimeError(
+            f"{TECH_PROXY} has no proxy anchor on {TECH_TARGET_FIRST_DATE}"
+        )
+    old_proxy_scale = Decimal(target["close"]) / Decimal(proxy_anchor[-1][4])
+    if not old_proxy_scale.is_finite() or old_proxy_scale <= 0:
+        raise RuntimeError("invalid legacy proxy scale")
+    causal_factor = Decimal(1) / old_proxy_scale
+    migrated = HEADER + "".join(
+        (
+            f"{row['date']},{Decimal(row['open']) * causal_factor:.6f},"
+            f"{Decimal(row['high']) * causal_factor:.6f},"
+            f"{Decimal(row['low']) * causal_factor:.6f},"
+            f"{Decimal(row['close']) * causal_factor:.6f},"
+            f"{row['volume']},{row.get('amount', '')}\n"
+        )
+        for row in rows
+    )
+    encoded = migrated.encode("utf-8")
+    updated = BackfillResult(
+        symbol=result.symbol,
+        first_date=result.first_date,
+        last_date=result.last_date,
+        historical_rows_added=result.historical_rows_added,
+        total_rows=result.total_rows,
+        anchor_max_relative_difference=result.anchor_max_relative_difference,
+        sha256=hashlib.sha256(encoded).hexdigest(),
+        pre_inception_proxy=(
+            f"{TECH_PROXY} raw before {TECH_TARGET_FIRST_DATE}; {TECH_INDEX} "
+            f"causally rebased from {TECH_TARGET_FIRST_DATE} by {causal_factor}"
+        ),
+    )
+    return updated, encoded
+
+
+def _max_abs_ohlc_return_delta(before: bytes, after: bytes) -> Decimal:
+    """Measure the largest daily-return change introduced by a level rebase."""
+    old_rows = list(csv.DictReader(before.decode("utf-8").splitlines()))
+    new_rows = list(csv.DictReader(after.decode("utf-8").splitlines()))
+    old_dates = [row["date"] for row in old_rows]
+    new_dates = [row["date"] for row in new_rows]
+    if old_dates != new_dates or len(old_dates) < 2:
+        raise RuntimeError("causal migration changed the tech-index date axis")
+    maximum = Decimal(0)
+    for field in ("open", "high", "low", "close"):
+        for prior_old, old, prior_new, new in zip(
+            old_rows[:-1],
+            old_rows[1:],
+            new_rows[:-1],
+            new_rows[1:],
+            strict=True,
+        ):
+            old_return = Decimal(old[field]) / Decimal(prior_old[field]) - 1
+            new_return = Decimal(new[field]) / Decimal(prior_new[field]) - 1
+            maximum = max(maximum, abs(old_return - new_return))
+    return maximum
 
 
 def _write_metadata(data_dir: Path, results: list[BackfillResult]) -> None:
@@ -264,14 +381,20 @@ def _write_metadata(data_dir: Path, results: list[BackfillResult]) -> None:
     manifest = {
         "snapshot_id": datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ-historical-backfill"),
         "generated_at_utc": generated_at,
-        "adjustment": "Tencent qfq for stocks; Tencent unadjusted for indices",
+        "adjustment": (
+            "Tencent qfq for stocks; Tencent raw index returns represented in "
+            "causally chain-linked levels"
+        ),
         "historical_policy": "2014-2021 bounded chunks; 2022+ frozen rows preserved verbatim",
         "providers": ["Tencent Finance"],
         "endpoint": ENDPOINT,
         "pre_inception_index_proxy": {
             "target": TECH_INDEX,
             "proxy": TECH_PROXY,
-            "rule": "proxy OHLC scaled by the common first-session close; target history used from inception",
+            "rule": (
+                "raw proxy levels before target inception; target OHLC rebased "
+                "forward using only the common first-session close"
+            ),
         },
         "results": [asdict(item) for item in results],
     }
@@ -288,16 +411,101 @@ def main(argv: Sequence[str] | None = None) -> int:
     parser.add_argument("--data-dir", type=Path, default=root / "data/frozen")
     parser.add_argument("--workers", type=int, default=8)
     parser.add_argument("--tech-proxy-only", action="store_true")
+    parser.add_argument("--causal-rebase-existing-tech", action="store_true")
     args = parser.parse_args(argv)
     paths = sorted(args.data_dir.glob("*.csv"))
     if not paths:
         parser.error(f"no CSV files found in {args.data_dir}")
     if args.workers <= 0:
         parser.error("--workers must be positive")
+    if args.tech_proxy_only and args.causal_rebase_existing_tech:
+        parser.error("tech migration modes are mutually exclusive")
+    if args.causal_rebase_existing_tech:
+        manifest_path = args.data_dir / "DATA_MANIFEST.json"
+        manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+        current_payload = next(
+            item for item in manifest["results"] if item["symbol"] == TECH_INDEX
+        )
+        current = _manifest_result(current_payload)
+        if current.pre_inception_proxy is None or "close-scaled" not in current.pre_inception_proxy:
+            parser.error("tech proxy is not in the legacy future-scaled format")
+        path = args.data_dir / f"{TECH_INDEX}.csv"
+        previous_payload = path.read_bytes()
+        if hashlib.sha256(previous_payload).hexdigest() != current.sha256:
+            parser.error("tech-index bytes do not match the manifest before migration")
+        previous_snapshot_id = str(manifest.get("snapshot_id", ""))
+        previous_generated_at = str(manifest.get("generated_at_utc", ""))
+        updated, payload = _causal_rebase_existing_tech(current, previous_payload)
+        return_delta = _max_abs_ohlc_return_delta(previous_payload, payload)
+        if return_delta > CAUSAL_RETURN_TOLERANCE:
+            parser.error(
+                "causal migration changed an OHLC daily return by "
+                f"{return_delta}, above {CAUSAL_RETURN_TOLERANCE}"
+            )
+        with tempfile.NamedTemporaryFile(
+            prefix=f".{TECH_INDEX}-",
+            suffix=".csv",
+            dir=args.data_dir,
+            delete=False,
+        ) as temporary:
+            temporary.write(payload)
+            temporary_path = Path(temporary.name)
+        os.replace(temporary_path, path)
+        manifest["snapshot_id"] = datetime.now(timezone.utc).strftime(
+            "%Y%m%dT%H%M%SZ-causal-tech-index-rebase"
+        )
+        manifest["generated_at_utc"] = datetime.now(timezone.utc).isoformat()
+        manifest["adjustment"] = (
+            "Tencent qfq for stocks; Tencent raw index returns represented in "
+            "causally chain-linked levels"
+        )
+        manifest["pre_inception_index_proxy"] = {
+            "target": TECH_INDEX,
+            "proxy": TECH_PROXY,
+            "rule": (
+                "raw proxy levels before target inception; target OHLC rebased "
+                "forward using only the common first-session close"
+            ),
+        }
+        manifest["causal_migration"] = {
+            "previous_snapshot_id": previous_snapshot_id,
+            "previous_generated_at_utc": previous_generated_at,
+            "target_first_date": TECH_TARGET_FIRST_DATE,
+            "previous_tech_index_sha256": current.sha256,
+            "new_tech_index_sha256": updated.sha256,
+            "max_abs_ohlc_daily_return_delta": str(return_delta),
+            "return_invariant_tolerance": str(CAUSAL_RETURN_TOLERANCE),
+            "return_invariant_passed": True,
+        }
+        manifest["results"] = sorted(
+            [
+                {**item, **asdict(updated)}
+                if item["symbol"] == TECH_INDEX
+                else item
+                for item in manifest["results"]
+            ],
+            key=lambda item: item["symbol"],
+        )
+        manifest_path.write_text(
+            json.dumps(manifest, ensure_ascii=False, indent=2) + "\n",
+            encoding="utf-8",
+        )
+        (args.data_dir / "SHA256SUMS").write_text(
+            "".join(
+                f"{item['sha256']}  {item['symbol']}.csv\n"
+                for item in manifest["results"]
+            ),
+            encoding="utf-8",
+        )
+        print(
+            "history backfill: causally rebased the tech-index splice",
+            flush=True,
+        )
+        return 0
     if args.tech_proxy_only:
         manifest_path = args.data_dir / "DATA_MANIFEST.json"
         manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
-        results = [BackfillResult(**item) for item in manifest["results"]]
+        results = [_manifest_result(item) for item in manifest["results"]]
         current = next(item for item in results if item.symbol == TECH_INDEX)
         if current.pre_inception_proxy is not None:
             parser.error("tech proxy has already been applied")

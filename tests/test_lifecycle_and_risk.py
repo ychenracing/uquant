@@ -178,21 +178,75 @@ def test_recovery_reserve_requires_causal_strength_and_independent_industry():
     )
 
 
-def test_config_rejects_overlapping_or_invalid_recovery_reserves():
-    with pytest.raises(ValueError, match="two unique non-core"):
-        DEFAULT_CONFIG.override(
-            strategic_reserve_symbols=(
-                DEFAULT_CONFIG.strategic_cohort_symbols[0],
-                "sh688008",
-            )
+def test_recovery_substitution_uses_evidence_not_hard_coded_symbols():
+    dates = pd.bdate_range("2025-01-02", periods=150)
+    healthy = _trend_frame(dates)
+    broken = healthy.copy()
+    broken.loc[dates[-3]:, "close"] = 0.70
+    broken.loc[dates[-3]:, "ma20"] = 1.00
+    broken.loc[dates[-3]:, "ret20"] = -0.20
+    broken.loc[dates[-3]:, "ret60"] = -0.10
+    reserve = healthy.copy()
+    reserve["ret60"] = 0.20
+    reserve["ret120"] = 0.30
+    account = AccountState(
+        initial_cash=100.0,
+        cash=10.0,
+        positions={
+            "arbitrary_lead": Position("arbitrary_lead", shares=60, avg_cost=0.8),
+            "arbitrary_weak": Position("arbitrary_weak", shares=30, avg_cost=0.8),
+        },
+        anchor_weights={"arbitrary_lead": 0.60, "arbitrary_weak": 0.30},
+        recovery_anchor_date=str(dates[0].date()),
+        operating_peak=100.0,
+        capital_peak=100.0,
+    )
+    leaders = {
+        "arbitrary_lead": _leader("arbitrary_lead", 0.82, industry="optical"),
+        "arbitrary_weak": _leader(
+            "arbitrary_weak", 0.45, mature=False, industry="pcb"
+        ),
+        "arbitrary_challenger": _leader(
+            "arbitrary_challenger", 0.90, industry="compute"
+        ),
+    }
+    panel = {
+        "arbitrary_lead": healthy,
+        "arbitrary_weak": broken,
+        "arbitrary_challenger": reserve,
+    }
+    allocator = PortfolioAllocator(DEFAULT_CONFIG)
+    targets = None
+
+    for date in dates[-3:]:
+        targets = allocator._recovery_anchor_substitution(
+            date=date,
+            risk=_normal_risk(),
+            user_panel=panel,
+            leaders=leaders,
+            account=account,
+            weights_now={"arbitrary_lead": 0.60, "arbitrary_weak": 0.30},
+            anchor_elapsed=20,
         )
+
+    assert targets is not None
+    assert account.anchor_weights == pytest.approx(
+        {"arbitrary_lead": 0.60, "arbitrary_challenger": 0.30}
+    )
+    weights = {target.symbol: target.weight for target in targets}
+    assert weights["arbitrary_weak"] == 0
+    assert weights["arbitrary_challenger"] == pytest.approx(0.30)
+    assert account.replacement_events[-1]["route"] == "recovery_anchor_substitution"
+
+
+def test_config_rejects_an_invalid_unbacked_tail_threshold():
     with pytest.raises(ValueError, match="unbacked universe tail"):
         DEFAULT_CONFIG.override(
             unbacked_universe_tail_dd=DEFAULT_CONFIG.operating_dd_caution
         )
 
 
-def test_strategic_cohort_is_fixed_causal_and_one_target_per_symbol():
+def test_strategic_cohort_uses_configured_prior_and_dynamic_fallback():
     dates = pd.bdate_range("2023-01-02", periods=243)
     symbols = DEFAULT_CONFIG.strategic_cohort_symbols
     frame = _strategic_frame(dates)
@@ -239,9 +293,35 @@ def test_strategic_cohort_is_fixed_causal_and_one_target_per_symbol():
                 extra: float(frame.loc[decision_date, "close"]),
             },
         )
-    assert [(item.symbol, item.weight) for item in second] == [
-        (item.symbol, item.weight) for item in targets
-    ]
+    selected = {item.symbol for item in second if item.weight > 0}
+    assert selected == set(symbols)
+    assert sum(item.weight for item in second) == pytest.approx(1.0)
+    assert len({item.symbol for item in second}) == len(second)
+
+    fallback_symbols = ("fallback_a", "fallback_b", "fallback_c", extra)
+    fallback_account = AccountState.empty(100.0)
+    fallback = ()
+    for decision_date in dates[-DEFAULT_CONFIG.strategic_cohort_confirm_days :]:
+        fallback = PortfolioAllocator(DEFAULT_CONFIG).allocate(
+            date=decision_date,
+            opportunity=Opportunity.CHOPPY,
+            risk=_normal_risk(),
+            user_panel={symbol: frame.copy() for symbol in fallback_symbols},
+            leaders={
+                symbol: _leader(symbol, 0.99 if symbol == extra else 0.90)
+                for symbol in fallback_symbols
+            },
+            account=fallback_account,
+            prices={
+                symbol: float(frame.loc[decision_date, "close"])
+                for symbol in fallback_symbols
+            },
+        )
+    fallback_selected = {
+        item.symbol for item in fallback if item.weight > 0
+    }
+    assert extra in fallback_selected
+    assert len(fallback_selected) == 3
 
 
 def test_strategic_cohort_waits_for_independent_risk_disagreement_to_clear():
@@ -284,6 +364,7 @@ def test_strategic_cohort_waits_for_independent_risk_disagreement_to_clear():
     allocator._initialize_strategic_cohort(
         date=dates[-3],
         user_panel={symbols[0]: frame.copy()},
+        leaders={symbols[0]: leaders[symbols[0]]},
         account=incomplete,
         risk=unsafe_caution,
     )
@@ -316,7 +397,7 @@ def test_strategic_cohort_waits_for_independent_risk_disagreement_to_clear():
     assert {item.symbol for item in targets if item.weight > 0} == set(symbols)
 
 
-def test_failed_initial_long_cycle_check_cannot_retroactively_activate():
+def test_long_cycle_can_activate_when_causal_evidence_arrives_later():
     dates = pd.bdate_range("2023-01-02", periods=245)
     symbols = DEFAULT_CONFIG.strategic_cohort_symbols
     weak = _strategic_frame(dates)
@@ -348,9 +429,10 @@ def test_failed_initial_long_cycle_check_cannot_retroactively_activate():
             account=account,
             prices={symbol: float(strong.loc[date, "close"]) for symbol in symbols},
         )
-    assert account.candidate_tenure.get("strategic_cohort_evaluated", 0) == 0
-    assert account.candidate_tenure.get("strategic_cohort_active", 0) == 0
-    assert not any(item.weight > 0 for item in second)
+    assert account.candidate_tenure["strategic_long_cycle_open"] == 1
+    assert account.candidate_tenure["strategic_cohort_evaluated"] == 1
+    assert account.candidate_tenure["strategic_cohort_active"] == 1
+    assert {item.symbol for item in second if item.weight > 0} == set(symbols)
 
 
 def test_long_cycle_uses_persistent_return_evidence_not_one_day_threshold():
@@ -378,6 +460,123 @@ def test_long_cycle_uses_persistent_return_evidence_not_one_day_threshold():
 
     assert account.candidate_tenure["strategic_cohort_active"] == 1
     assert {item.symbol for item in targets if item.weight > 0} == set(symbols)
+
+
+def test_matching_live_recovery_cohort_keeps_the_lower_turnover_lifecycle():
+    dates = pd.bdate_range("2023-01-02", periods=246)
+    symbols = DEFAULT_CONFIG.strategic_cohort_symbols
+    frame = _strategic_frame(dates)
+    account = AccountState.empty(100.0)
+    account.cash = 10.0
+    account.positions = {
+        symbol: Position(
+            symbol,
+            shares=30,
+            avg_cost=1.0,
+            entry_date=str(dates[-20].date()),
+            highest_close=float(frame.loc[dates[-1], "close"]),
+        )
+        for symbol in symbols
+    }
+    account.anchor_weights = {symbol: 1.0 / 3.0 for symbol in symbols}
+    account.recovery_anchor_date = str(dates[-20].date())
+    allocator = PortfolioAllocator(DEFAULT_CONFIG)
+
+    for date in dates[-DEFAULT_CONFIG.strategic_cohort_confirm_days :]:
+        allocator.allocate(
+            date=date,
+            opportunity=Opportunity.STRONG_TREND,
+            risk=_normal_risk(),
+            user_panel={symbol: frame for symbol in symbols},
+            leaders={symbol: _leader(symbol, 0.90) for symbol in symbols},
+            account=account,
+            prices={symbol: float(frame.loc[date, "close"]) for symbol in symbols},
+        )
+
+    assert account.candidate_tenure["strategic_deferred_to_recovery"] == 1
+    assert account.candidate_tenure.get("strategic_cohort_active", 0) == 0
+    assert set(account.anchor_weights) == set(symbols)
+
+
+def test_partially_held_strategic_cohort_targets_every_missing_member():
+    dates = pd.bdate_range("2025-01-02", periods=150)
+    frame = _trend_frame(dates)
+    symbols = ("held_member", "missing_member_a", "missing_member_b")
+    account = AccountState(
+        initial_cash=100.0,
+        cash=70.0,
+        positions={
+            symbols[0]: Position(
+                symbols[0],
+                shares=30,
+                avg_cost=0.80,
+                entry_date=str(dates[-20].date()),
+                highest_close=1.0,
+            )
+        },
+        strategic_cohort_symbols=list(symbols),
+        strategic_cohort_targets={symbol: 1.0 / 3.0 for symbol in symbols},
+        candidate_tenure={"strategic_cohort_active": 1},
+        operating_peak=100.0,
+        capital_peak=100.0,
+    )
+
+    targets = PortfolioAllocator(DEFAULT_CONFIG).allocate(
+        date=dates[-1],
+        opportunity=Opportunity.TREND,
+        risk=_normal_risk(),
+        user_panel={symbol: frame for symbol in symbols},
+        leaders={symbol: _leader(symbol, 0.90) for symbol in symbols},
+        account=account,
+        prices={symbol: 1.0 for symbol in symbols},
+    )
+
+    assert account.candidate_tenure.get("strategic_cohort_started", 0) == 0
+    assert {target.symbol for target in targets if target.weight > 0} == set(symbols)
+
+
+def test_strategic_trail_exempts_a_winner_with_intact_structure():
+    dates = pd.bdate_range("2025-01-02", periods=150)
+    frame = _trend_frame(dates)
+    date = dates[-1]
+    frame.loc[date, "close"] = 1.50
+    frame.loc[date, "ma20"] = 1.00
+    frame.loc[date, "ret20"] = 0.30
+    frame.loc[date, "atr"] = 0.05
+    account = AccountState(
+        initial_cash=100.0,
+        cash=40.0,
+        positions={
+            "winner": Position(
+                "winner",
+                shares=40,
+                avg_cost=0.50,
+                entry_date=str(dates[-60].date()),
+                highest_close=2.00,
+            )
+        },
+        strategic_cohort_symbols=["winner"],
+        strategic_cohort_targets={"winner": 0.60},
+        candidate_tenure={
+            "strategic_cohort_active": 1,
+            "strategic_cohort_started": 1,
+        },
+        operating_peak=100.0,
+        capital_peak=100.0,
+    )
+
+    targets = PortfolioAllocator(DEFAULT_CONFIG).allocate(
+        date=date,
+        opportunity=Opportunity.STRONG_TREND,
+        risk=_normal_risk(),
+        user_panel={"winner": frame},
+        leaders={"winner": _leader("winner", 0.95)},
+        account=account,
+        prices={"winner": 1.50},
+    )
+
+    assert account.strategic_exit_bands == {}
+    assert next(target for target in targets if target.symbol == "winner").weight > 0
 
 
 def test_synchronized_reversal_uses_two_day_confirmation_and_top_pair():
@@ -866,6 +1065,61 @@ def test_stale_single_recovery_anchor_graduates_on_confirmed_leader_cycle():
     assert weights["new_core"] > 0
 
 
+def test_fully_exited_recovery_anchors_cannot_hijack_a_later_leader_book():
+    dates = pd.bdate_range("2025-01-02", periods=150)
+    frame = _trend_frame(dates)
+    held = ("new_compute_leader", "new_equipment_leader")
+    account = AccountState(
+        initial_cash=100.0,
+        cash=20.0,
+        positions={
+            symbol: Position(
+                symbol,
+                shares=40,
+                avg_cost=0.80,
+                entry_date=str(dates[-20].date()),
+                highest_close=1.0,
+                lifecycle=Lifecycle.CORE.value,
+            )
+            for symbol in held
+        },
+        # These symbols belonged to an older crash-recovery cohort and have
+        # already been fully sold.  They must not remain a hidden target book.
+        anchor_weights={"old_optical_anchor": 0.60, "old_pcb_anchor": 0.32},
+        recovery_anchor_date=str(dates[0].date()),
+        candidate_tenure={
+            "leader_cycle_armed": 1,
+            "recovery_cohort_locked": 1,
+        },
+        active_leaders=list(held),
+        dynamic_k=2,
+        last_k_change_date=str(dates[-1].date()),
+        operating_peak=100.0,
+        capital_peak=100.0,
+    )
+    leaders = {
+        held[0]: _leader(held[0], 0.92, industry="compute"),
+        held[1]: _leader(held[1], 0.90, industry="equipment"),
+    }
+
+    targets = PortfolioAllocator(DEFAULT_CONFIG).allocate(
+        date=dates[-1],
+        opportunity=Opportunity.STRONG_TREND,
+        risk=_normal_risk(),
+        user_panel={symbol: frame for symbol in held},
+        leaders=leaders,
+        account=account,
+        prices={symbol: 1.0 for symbol in held},
+    )
+
+    weights = {target.symbol: target.weight for target in targets}
+    assert account.anchor_weights == {}
+    assert account.recovery_anchor_date == ""
+    assert account.candidate_tenure["recovery_cohort_graduated"] == 1
+    assert all(weights[symbol] > 0 for symbol in held)
+    assert not any(symbol.startswith("old_") for symbol in weights)
+
+
 def test_weak_secular_market_allows_early_recovery_cohort_graduation():
     dates = pd.bdate_range(
         "2023-01-03",
@@ -941,6 +1195,133 @@ def _risk_frame(
         },
         index=dates,
     )
+
+
+def test_persistent_single_name_v_repair_is_a_fallback_not_a_fast_path_shortcut():
+    dates = pd.bdate_range("2025-01-02", periods=80)
+    date = dates[-1]
+    market = _risk_frame(dates, close=120.0, ma20=100.0, ret5=0.05)
+    protected = market.copy()
+    protected.loc[dates[-2], "close"] = protected.loc[date, "close"]
+
+    def crisis_account() -> AccountState:
+        return AccountState(
+            initial_cash=100.0,
+            cash=100.0,
+            protected_weights={"protected": 0.60},
+            risk=Risk.CRISIS.value,
+            shock_state="PERSISTENT_STRESS",
+            shock_severity="SEVERE",
+            shock_start_date=str(dates[-20].date()),
+            risk_streaks={
+                "persistent_v_market_repair": (
+                    DEFAULT_CONFIG.fast_v_recovery_confirm_days - 1
+                )
+            },
+            operating_peak=100.0,
+            capital_peak=100.0,
+        )
+
+    def assess(frame: pd.DataFrame, account: AccountState):
+        return assess_risk(
+            date=date,
+            broad=market,
+            tech=market,
+            reference_panel={symbol: market for symbol in REFERENCE_ANCHORS},
+            reference_returns=None,
+            user_panel={"protected": frame},
+            leaders={
+                symbol: _leader(symbol, 0.80) for symbol in REFERENCE_ANCHORS
+            },
+            account=account,
+            equity=100.0,
+            cfg=DEFAULT_CONFIG,
+        )
+
+    fallback = assess(protected, crisis_account())
+    assert fallback.state is Risk.CAUTION
+    assert fallback.reasons == (
+        "confirmed persistent V-recovery after extended single-name protection",
+    )
+
+    # A positive one-day move is already advancing the ordinary fast-V streak;
+    # the fallback must not use its own tenure to complete that route early.
+    advancing = protected.copy()
+    advancing.loc[date, "close"] = advancing.loc[dates[-2], "close"] * 1.01
+    still_confirming = assess(advancing, crisis_account())
+    assert still_confirming.state is Risk.CRISIS
+    assert still_confirming.reasons == ("awaiting synchronized repair confirmation",)
+
+
+def test_failed_restoration_triggers_capital_cooldown_and_retires_anchors():
+    dates = pd.bdate_range("2025-01-02", periods=160)
+    date = dates[-1]
+    damaged = _risk_frame(dates, close=75.0, ma20=100.0, ret5=-0.10)
+    healthy = _risk_frame(dates, close=120.0, ma20=100.0, ret5=0.05)
+    healthy["ret120"] = 0.10
+    symbols = ("failed_a", "failed_b", "failed_c")
+    account = AccountState(
+        initial_cash=100.0,
+        cash=0.0,
+        positions={
+            symbol: Position(
+                symbol,
+                shares=1,
+                avg_cost=100.0,
+                entry_date=str(dates[-30].date()),
+                highest_close=100.0,
+            )
+            for symbol in symbols
+        },
+        anchor_weights={symbol: 1.0 / 3.0 for symbol in symbols},
+        protected_weights={symbol: 1.0 / 3.0 for symbol in symbols},
+        risk=Risk.CAUTION.value,
+        operating_peak=80.0,
+        capital_peak=100.0,
+        risk_events=[
+            {
+                "date": str(dates[-20].date()),
+                "from": Risk.CRISIS.value,
+                "to": Risk.CAUTION.value,
+            }
+        ],
+    )
+    assessment = assess_risk(
+        date=date,
+        broad=healthy,
+        tech=healthy,
+        reference_panel={
+            symbol: healthy for symbol in REFERENCE_ANCHORS
+        },
+        reference_returns=None,
+        user_panel={symbol: damaged for symbol in symbols},
+        leaders={symbol: _leader(symbol, 0.80) for symbol in symbols},
+        account=account,
+        equity=75.0,
+        cfg=DEFAULT_CONFIG,
+    )
+
+    assert assessment.state is Risk.CRISIS
+    assert assessment.target_gross_cap == 0
+    assert assessment.reasons == (
+        "capital drawdown relapse in restored holdings",
+    )
+    assert account.candidate_tenure["capital_guard_cooldown"] == (
+        DEFAULT_CONFIG.capital_guard_cooldown_days
+    )
+
+    targets = PortfolioAllocator(DEFAULT_CONFIG).allocate(
+        date=date,
+        opportunity=Opportunity.WEAK,
+        risk=assessment,
+        user_panel={symbol: damaged for symbol in symbols},
+        leaders={symbol: _leader(symbol, 0.80) for symbol in symbols},
+        account=account,
+        prices={symbol: 75.0 for symbol in symbols},
+    )
+    assert account.anchor_weights == {}
+    assert account.protected_weights == {}
+    assert not any(target.weight > 0 for target in targets)
 
 
 def test_risk_uses_reference_anchors_and_any_held_tail_break():

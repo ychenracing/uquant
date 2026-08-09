@@ -23,6 +23,7 @@ from ..leader import REFERENCE_UNIVERSE
 from .comparison import (
     bounded_performance,
     false_risk_off_events,
+    false_risk_state_diagnostics,
     lead_to_target,
     market_drawdown_target,
     mature_false_exit_regrets,
@@ -36,29 +37,8 @@ from .robustness import artifact_is_current as robustness_is_current
 from .robustness import promotion_holdback_status, run_robustness
 from .stress import artifact_is_current as stress_is_current
 from .stress import run_stress
+from .universes import FIXED_POOL_SIZES, POOLS, PRIMARY_POOLS
 
-POOLS: dict[str, tuple[str, ...]] = {
-    "a": ("sz300308", "sz300502", "sz300394"),
-    "b": ("sz300308", "sz300502", "sz300394", "sh688008", "sh603986"),
-    "c": (
-        "sz300308", "sz300502", "sz300394", "sh688008", "sh603986",
-        "sz002409", "sh688072", "sh688300", "sz300054",
-    ),
-    "d": (
-        "sz300308", "sz300502", "sz300394", "sh688498", "sh601869",
-        "sh688256", "sh688008", "sh603986", "sh688072", "sh688082",
-        "sh688120", "sh688300", "sz300054", "sh688361", "sz300604",
-    ),
-    "e": (
-        "sz300308", "sz300502", "sz300394", "sh688498", "sz002281",
-        "sh601869", "sh600487", "sh688256", "sh688041", "sh688008",
-        "sh603986", "sz300223", "sh688110", "sh688766", "sz002371",
-        "sh688012", "sh688072", "sh688082", "sh688120", "sh688037",
-        "sh688361", "sz300604", "sh688200", "sh688019", "sz300054",
-        "sz002409", "sz300666", "sh688233", "sh688268", "sh688146",
-        "sh688300", "sh603688",
-    ),
-}
 WINDOWS: dict[str, tuple[str, str]] = {
     "bear_2018": ("2018-01-02", "2018-12-28"),
     "crash_2020": ("2020-01-02", "2020-12-31"),
@@ -113,6 +93,19 @@ def _file_hash(path: Path) -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
+def _python_source_hash(root: Path) -> str:
+    if not root.is_dir():
+        raise RuntimeError(f"frozen benchmark source is missing: {root}")
+    digest = hashlib.sha256()
+    paths = sorted(root.rglob("*.py"))
+    if not paths:
+        raise RuntimeError(f"frozen benchmark source has no Python files: {root}")
+    for path in paths:
+        digest.update(path.relative_to(root).as_posix().encode())
+        digest.update(path.read_bytes())
+    return digest.hexdigest()
+
+
 def _validation_hash(root: Path) -> str:
     return validation_fingerprint(root)
 
@@ -133,6 +126,7 @@ def _evidence_input_hashes(
     manifest = ProductionEngine(data_dir).data.manifest(
         all_symbols | set(REFERENCE_UNIVERSE) | set(INDEX_SYMBOLS)
     )
+    frozen_root = root.parent / "frozen_benchmarks"
     return {
         "production_code_sha256": code_fingerprint(),
         "validation_code_sha256": _validation_hash(root),
@@ -148,8 +142,37 @@ def _evidence_input_hashes(
             root / "benchmarks" / "BENCHMARK_LOCK.json"
         ),
         "legacy_common_adapter_sha256": _file_hash(legacy_path),
+        "trade_common_stress_sha256": _file_hash(
+            root / "benchmarks" / "trade_common_stress.json"
+        ),
+        **{
+            f"frozen_{system}_source_sha256": _python_source_hash(
+                frozen_root / system
+            )
+            for system in SYSTEMS
+        },
         "promotion_holdback_lock_sha256": _file_hash(
             root / "benchmarks" / "PROMOTION_HOLDBACK.json"
+        ),
+    }
+
+
+def _artifact_evidence_hashes(
+    root: Path,
+    *,
+    stress_loaded: bool,
+    robustness_loaded: bool,
+) -> dict[str, str]:
+    return {
+        "stress_results_sha256": (
+            _file_hash(root / "stress_results.json")
+            if stress_loaded
+            else "STALE_OR_MISSING"
+        ),
+        "robustness_results_sha256": (
+            _file_hash(root / "robustness_results.json")
+            if robustness_loaded
+            else "STALE_OR_MISSING"
         ),
     }
 
@@ -171,6 +194,25 @@ def _assert_evidence_inputs_unchanged(
         raise RuntimeError(
             "acceptance inputs changed while replays were running; "
             f"discarding mixed-version evidence: {changed}"
+        )
+
+
+def _assert_artifact_evidence_unchanged(
+    expected: dict[str, str],
+    *,
+    root: Path,
+    stress_loaded: bool,
+    robustness_loaded: bool,
+) -> None:
+    current = _artifact_evidence_hashes(
+        root,
+        stress_loaded=stress_loaded,
+        robustness_loaded=robustness_loaded,
+    )
+    if current != expected:
+        raise RuntimeError(
+            "acceptance artifacts changed after validation; refusing "
+            f"mixed-version evidence: before={expected}, after={current}"
         )
 
 
@@ -219,11 +261,15 @@ def _test_result(
 def _matrix_row(result: dict[str, Any]) -> dict[str, Any]:
     account = result["final_account"]
     keys = (
-        "start", "end", "final_wealth", "total_return", "cagr", "max_drawdown",
+        "start", "end", "final_wealth", "total_return", "cagr",
+        "benchmark_total_return", "excess_return", "max_drawdown",
         "rolling_drawdown_p95", "max_drawdown_duration", "peak_to_recovery_days",
         "account_orders", "round_trips", "gross_turnover", "annual_turnover",
         "median_holding_days", "fees", "slippage_cost", "sharpe", "calmar",
-        "worst_20d", "worst_60d", "risk_events", "equity_curve", "attribution",
+        "worst_20d", "worst_60d", "first_caution", "first_risk_off",
+        "first_reduce", "lead_to_10pct_dd", "lead_to_15pct_dd", "risk_events",
+        "order_ledger", "internal_events", "daily_risk_states", "equity_curve",
+        "attribution",
     )
     return {
         **{key: result[key] for key in keys},
@@ -262,7 +308,7 @@ def _matrix(data_dir: Path) -> dict[str, dict[str, dict[str, Any]]]:
 def _risk_disabled_bull(data_dir: Path) -> dict[str, dict[str, Any]]:
     config = DEFAULT_CONFIG.override(risk_overlay_enabled=False)
     output: dict[str, dict[str, Any]] = {}
-    for pool, symbols in POOLS.items():
+    for pool, symbols in PRIMARY_POOLS.items():
         result = ProductionEngine(data_dir, config).backtest(
             symbols=symbols,
             start=WINDOWS["bull"][0],
@@ -287,9 +333,185 @@ def _public_metrics(row: dict[str, Any]) -> dict[str, Any]:
     }
 
 
+def _primary_cell_comparison(
+    new: dict[str, Any],
+    olds: dict[str, dict[str, Any]],
+) -> dict[str, Any]:
+    """Report the three section-2 metrics independently for one formal cell.
+
+    The final replacement rule in section 24 applies these booleans as three
+    separate coverage rates, alongside the per-cell dominance test.  It does
+    not combine extrema from different legacy systems into an additional
+    conjunctive per-cell gate.
+    """
+    best_wealth = max(float(row["final_wealth"]) for row in olds.values())
+    best_dd = min(float(row["max_drawdown"]) for row in olds.values())
+    least_orders = min(int(row["account_orders"]) for row in olds.values())
+    allowed_orders = least_orders + max(2, math.ceil(0.05 * least_orders))
+    return {
+        "near_best_return": float(new["final_wealth"]) >= 0.99 * best_wealth,
+        "near_best_dd": float(new["max_drawdown"]) <= best_dd + 0.005,
+        "near_best_orders": int(new["account_orders"]) <= allowed_orders,
+        "best_old_wealth": best_wealth,
+        "best_old_drawdown": best_dd,
+        "least_old_orders": least_orders,
+        "allowed_orders": allowed_orders,
+    }
+
+
+def _formal_metrics(row: dict[str, Any]) -> dict[str, Any]:
+    """All acceptance-required metrics, excluding only the raw daily curve."""
+    return {
+        key: row.get(key)
+        for key in (
+            "final_wealth",
+            "total_return",
+            "cagr",
+            "benchmark_total_return",
+            "excess_return",
+            "calmar",
+            "sharpe",
+            "max_drawdown",
+            "rolling_drawdown_p95",
+            "max_drawdown_duration",
+            "worst_20d",
+            "worst_60d",
+            "peak_to_recovery_days",
+            "account_orders",
+            "round_trips",
+            "gross_turnover",
+            "annual_turnover",
+            "median_holding_days",
+            "fees",
+            "slippage_cost",
+            "first_caution",
+            "first_risk_off",
+            "first_reduce",
+            "lead_to_10pct_dd",
+            "lead_to_15pct_dd",
+            "internal_events",
+            "risk_events",
+            "order_ledger",
+            "daily_risk_states",
+            "attribution",
+        )
+    }
+
+
+def _formal_cell_metrics(
+    row: dict[str, Any],
+    *,
+    data_dir: Path,
+    window: str,
+    tech_close: pd.Series,
+    bull_opportunity_cost: float | None,
+    recovery_delay: dict[str, Any] | None,
+) -> dict[str, Any]:
+    """Materialize every section-6 metric for one formal primary cell."""
+    end = WINDOWS[window][1]
+    bounded_tech = tech_close.loc[: pd.Timestamp(end)]
+    false_risk = false_risk_state_diagnostics(row, tech_close=bounded_tech)
+    regrets = mature_false_exit_regrets(
+        row,
+        data_dir=data_dir,
+        mature_symbols=MATURE_WINNERS,
+        as_of=end,
+    )
+    spreads = replacement_spreads(
+        row.get("replacement_events", []),
+        data_dir=data_dir,
+        as_of=end,
+    )
+    output = _formal_metrics(row)
+    attribution_row = dict(output.get("attribution") or {})
+    attribution_row["false_exit_regret"] = regrets
+    attribution_row["replacement_spread"] = {
+        str(horizon): values for horizon, values in spreads.items()
+    }
+    output.update(
+        false_positives=false_risk["false_positives"],
+        false_positive_days=false_risk["false_positive_days"],
+        false_positive_segments=false_risk["segments"],
+        bull_opportunity_cost=bull_opportunity_cost,
+        recovery_delay=recovery_delay,
+        attribution=attribution_row,
+    )
+    return output
+
+
+def _order_ledger_audit(
+    row: dict[str, Any], *, require_requested_shares: bool = True
+) -> dict[str, Any]:
+    """Prove that account-order count and fill linkage are internally consistent."""
+    ledger = list(row.get("order_ledger", []))
+    fills = list(row.get("fills", []))
+    identifiers = [str(item.get("order_id", "")) for item in ledger]
+    errors: list[str] = []
+    if int(row.get("account_orders", -1)) != len(ledger):
+        errors.append("account_orders does not equal ledger length")
+    if not all(identifiers) or len(identifiers) != len(set(identifiers)):
+        errors.append("order ids are blank or duplicated")
+    by_id = {str(item.get("order_id", "")): item for item in ledger}
+    filled_shares: dict[str, int] = {}
+    for fill in fills:
+        order_id = str(fill.get("order_id", ""))
+        order = by_id.get(order_id)
+        if order is None:
+            errors.append(f"fill references unknown order {order_id or '<blank>'}")
+            continue
+        if str(fill.get("symbol")) != str(order.get("symbol")) or str(
+            fill.get("side")
+        ) != str(order.get("side")):
+            errors.append(f"fill/order identity mismatch for {order_id}")
+        filled_shares[order_id] = filled_shares.get(order_id, 0) + int(
+            fill.get("shares", 0)
+        )
+    valid_statuses = {
+        "SUBMITTED",
+        "OPEN",
+        "PARTIALLY_FILLED",
+        "FILLED",
+        "CANCELLED",
+        "REPLACED",
+    }
+    for order_id, order in by_id.items():
+        if str(order.get("status")) not in valid_statuses:
+            errors.append(f"invalid order status for {order_id}")
+        if filled_shares.get(order_id, 0) != int(order.get("filled_shares", 0)):
+            errors.append(f"filled-share mismatch for {order_id}")
+        if "requested_shares" not in order:
+            if require_requested_shares:
+                errors.append(f"requested shares missing for {order_id}")
+        elif int(order.get("filled_shares", 0)) > int(order["requested_shares"]):
+            errors.append(f"filled shares exceed requested shares for {order_id}")
+    return {
+        "passed": not errors,
+        "account_orders": len(ledger),
+        "fills": len(fills),
+        "errors": sorted(set(errors)),
+    }
+
+
 def _legacy_lookup(
     payload: dict[str, Any], data_dir: Path
 ) -> dict[tuple[str, str, str], dict[str, Any]]:
+    root = Path(__file__).resolve().parents[2]
+    adapter_path = root / "scripts" / "run_legacy_common_adapter.py"
+    expected_adapter_hash = _file_hash(adapter_path)
+    if payload.get("adapter_sha256") != expected_adapter_hash:
+        raise RuntimeError(
+            "legacy common-adapter source hash mismatch: "
+            f"expected={expected_adapter_hash}, actual={payload.get('adapter_sha256')}"
+        )
+    frozen_root = root.parent / "frozen_benchmarks"
+    expected_source_hashes = {
+        system: _python_source_hash(frozen_root / system) for system in SYSTEMS
+    }
+    if payload.get("source_hashes") != expected_source_hashes:
+        raise RuntimeError(
+            "legacy common-adapter frozen-source hash mismatch: "
+            f"expected={expected_source_hashes}, actual={payload.get('source_hashes')}"
+        )
     comparison_end = max(end for _, end in WINDOWS.values())
     expected_data_hash = bounded_data_fingerprint(data_dir, end=comparison_end)
     provenance = payload.get("data_provenance", {})
@@ -308,16 +530,54 @@ def _legacy_lookup(
         for pool in POOLS
         for window in WINDOWS
     }
-    lookup = {
-        (str(row["system"]), str(row["pool"]), str(row["window"])): row
-        for row in payload.get("rows", [])
-    }
+    rows = payload.get("rows", [])
+    if not isinstance(rows, list):
+        raise RuntimeError("legacy common-adapter rows must be a list")
+    lookup: dict[tuple[str, str, str], dict[str, Any]] = {}
+    duplicates: list[tuple[str, str, str]] = []
+    for row in rows:
+        if not isinstance(row, dict):
+            raise RuntimeError("legacy common-adapter row must be an object")
+        key = (str(row.get("system")), str(row.get("pool")), str(row.get("window")))
+        if key in lookup:
+            duplicates.append(key)
+        lookup[key] = row
     missing = sorted(expected - set(lookup))
     extra = sorted(set(lookup) - expected)
-    if missing or extra:
+    if missing or extra or duplicates or len(rows) != len(expected):
         raise RuntimeError(
-            f"legacy common-adapter matrix mismatch: missing={missing}, extra={extra}"
+            "legacy common-adapter matrix mismatch: "
+            f"missing={missing}, extra={extra}, duplicates={sorted(duplicates)}, "
+            f"rows={len(rows)}"
         )
+    for (system, pool, window), row in lookup.items():
+        context = f"{system}/{pool}/{window}"
+        for field in ("final_wealth", "total_return", "max_drawdown"):
+            value = row.get(field)
+            if (
+                not isinstance(value, (int, float))
+                or isinstance(value, bool)
+                or not math.isfinite(float(value))
+            ):
+                raise RuntimeError(f"legacy {context} has invalid {field}")
+        if float(row["final_wealth"]) <= 0:
+            raise RuntimeError(f"legacy {context} has non-positive final wealth")
+        if abs(
+            float(row["total_return"]) - (float(row["final_wealth"]) - 1.0)
+        ) > 1e-12:
+            raise RuntimeError(f"legacy {context} wealth/return reconciliation failed")
+        if not 0 <= float(row["max_drawdown"]) <= 1:
+            raise RuntimeError(f"legacy {context} has invalid max drawdown")
+        if row.get("requested_symbols") != list(POOLS[pool]):
+            raise RuntimeError(f"legacy {context} requested-symbol contract mismatch")
+        if row.get("start") != WINDOWS[window][0] or row.get("end") != WINDOWS[window][1]:
+            raise RuntimeError(f"legacy {context} window contract mismatch")
+        audit = _order_ledger_audit(row, require_requested_shares=False)
+        if not audit["passed"]:
+            raise RuntimeError(
+                f"legacy {context} order-ledger reconciliation failed: "
+                f"{audit['errors']}"
+            )
     return lookup
 
 
@@ -392,7 +652,7 @@ def _consume_holdback(root: Path, data_dir: Path) -> dict[str, Any]:
     start = str(lock["window"]["start"])
     end = str(lock["window"]["end"])
     rows: dict[str, Any] = {}
-    for pool, symbols in POOLS.items():
+    for pool, symbols in PRIMARY_POOLS.items():
         first = ProductionEngine(data_dir).backtest(symbols=symbols, start=start, end=end)
         second = ProductionEngine(data_dir).backtest(symbols=symbols, start=start, end=end)
         deterministic = (
@@ -409,7 +669,7 @@ def _consume_holdback(root: Path, data_dir: Path) -> dict[str, Any]:
             "deterministic": deterministic,
         }
     gates = {
-        "all_replays_complete": len(rows) == len(POOLS),
+        "all_replays_complete": len(rows) == len(PRIMARY_POOLS),
         "deterministic_replay": all(row["deterministic"] for row in rows.values()),
         "finite_positive_final_wealth": all(
             math.isfinite(row["final_wealth"]) and row["final_wealth"] > 0
@@ -475,9 +735,12 @@ def run_acceptance(
     matrix = _matrix(data_dir)
     disabled_bull = _risk_disabled_bull(data_dir)
     stress, robustness = _load_or_run_artifacts(root, data_dir, quick=quick)
-    trade_stress = _load_json(root / "benchmarks" / "phase0_baseline.json")[
-        "trade_stress_reference"
-    ]
+    artifact_hashes = _artifact_evidence_hashes(
+        root,
+        stress_loaded=stress is not None,
+        robustness_loaded=robustness is not None,
+    )
+    trade_stress = stress["trade_summary"]["random"] if stress else None
 
     results: list[Result] = []
     contract_tests = {
@@ -506,7 +769,7 @@ def run_acceptance(
     c1_pass: dict[str, bool] = {}
     c3_pass: dict[str, bool] = {}
     d1_pass: dict[str, bool] = {}
-    for pool in POOLS:
+    for pool in PRIMARY_POOLS:
         new = matrix[pool]["bull"]
         old = {system: legacy[(system, pool, "bull")] for system in SYSTEMS}
         best_wealth = max(row["final_wealth"] for row in old.values())
@@ -541,7 +804,7 @@ def run_acceptance(
 
     new_regrets = [
         value
-        for pool in POOLS
+        for pool in PRIMARY_POOLS
         for value in mature_false_exit_regrets(
             matrix[pool]["bull"],
             data_dir=data_dir,
@@ -554,7 +817,7 @@ def run_acceptance(
     for system in SYSTEMS:
         values = [
             value
-            for pool in POOLS
+            for pool in PRIMARY_POOLS
             for value in mature_false_exit_regrets(
                 legacy[(system, pool, "bull")],
                 data_dir=data_dir,
@@ -586,25 +849,28 @@ def run_acceptance(
 
     if stress:
         random = stress["summary"]["random"]
+        assert trade_stress is not None
         d2_pass = (
             random["drawdown_p90"] < 0.20
             and random["drawdown_worst"] < 0.25
-            and random["drawdown_p90"] <= trade_stress["random_drawdown_p90"]
-            and random["drawdown_worst"] <= trade_stress["random_drawdown_worst"]
+            and random["drawdown_p90"] <= trade_stress["drawdown_p90"]
+            and random["drawdown_worst"] <= trade_stress["drawdown_worst"]
         )
-        results.append(_result("D2", d2_pass, random, {"p90": 0.20, "worst": 0.25, "trade": trade_stress}, "900 common production replays"))
+        results.append(_result("D2", d2_pass, random, {"p90": 0.20, "worst": 0.25, "trade": trade_stress}, "900 exact common-scenario production replays"))
     else:
         results.append(_missing("D2", "900 random stress and trade non-inferiority", "current signed stress artifact unavailable"))
 
-    bear_returns = [matrix[pool]["bear_2022"]["total_return"] for pool in POOLS]
-    bear_dd = [matrix[pool]["bear_2022"]["max_drawdown"] for pool in POOLS]
+    bear_returns = [
+        matrix[pool]["bear_2022"]["total_return"] for pool in PRIMARY_POOLS
+    ]
+    bear_dd = [matrix[pool]["bear_2022"]["max_drawdown"] for pool in PRIMARY_POOLS]
     bear_dominated = {
         pool: [
             system
             for system in SYSTEMS
             if _dominated(matrix[pool]["bear_2022"], legacy[(system, pool, "bear_2022")])
         ]
-        for pool in POOLS
+        for pool in PRIMARY_POOLS
     }
     bear_pass = (
         not any(bear_dominated.values())
@@ -633,7 +899,7 @@ def run_acceptance(
     acute: dict[str, Any] = {}
     d4_pass: dict[str, bool] = {}
     f1_pass: dict[str, bool] = {}
-    for pool in POOLS:
+    for pool in PRIMARY_POOLS:
         new_row = matrix[pool]["through_july"]
         new_period = bounded_performance(new_row, "2026-07-01", "2026-07-20")
         new_actions = risk_action_dates(new_row, start="2026-07-01", end="2026-07-20")
@@ -677,12 +943,27 @@ def run_acceptance(
     results.append(_result("D4", all(d4_pass.values()), {"passes": d4_pass, "comparison": acute}, "each loss/DD<17% and RiskUtility>=best old", "common July-1-to-July-20 attribution including pre-shock bull participation"))
 
     e1_pass = c3_pass
-    results.append(_result("E1", all(e1_pass.values()), e1_pass, "five fixed pools satisfy +max(2 orders,5%) economic rule", "common bull account-order ledger"))
+    results.append(_result("E1", all(e1_pass.values()), e1_pass, f"all {len(PRIMARY_POOLS)} primary pools satisfy +max(2 orders,5%) economic rule", "common bull account-order ledger"))
     if stress:
-        results.append(_result("E2", stress["summary"]["random"]["orders_p90"] <= trade_stress["random_orders_p90"], stress["summary"]["random"]["orders_p90"], trade_stress["random_orders_p90"], "900 random account-order distribution"))
+        assert trade_stress is not None
+        results.append(_result("E2", stress["summary"]["random"]["orders_p90"] <= trade_stress["orders_p90"], stress["summary"]["random"]["orders_p90"], trade_stress["orders_p90"], "900 exact common-scenario account-order distribution"))
     else:
         results.append(_missing("E2", "random p90 account orders <= trade", "current signed stress artifact unavailable"))
-    results.append(_result("E3", True, {pool: matrix[pool]["bull"]["account_orders"] for pool in POOLS}, "account orders separated from fills and internal events", "performance, fill, lifecycle and replacement ledgers"))
+    ledger_audits = {
+        f"{pool}/{window}": _order_ledger_audit(matrix[pool][window])
+        for pool in POOLS
+        for window in WINDOWS
+    }
+    results.append(
+        _result(
+            "E3",
+            all(item["passed"] for item in ledger_audits.values()),
+            ledger_audits,
+            "every formal cell has unique broker orders, linked fills, and "
+            "separate internal-event counts",
+            "account-order, fill, lifecycle, risk and replacement ledgers",
+        )
+    )
 
     results.append(_result("F1", all(f1_pass.values()), f1_pass, "July effective warning no later than earliest old action", "common risk-event and risk-reduction dates"))
     new_leads: list[float] = []
@@ -696,7 +977,7 @@ def run_acceptance(
         )
         if event_target is None:
             continue
-        for pool in POOLS:
+        for pool in PRIMARY_POOLS:
             new_row = matrix[pool][window]
             new_actions = risk_action_dates(new_row, start=event_start, end=event_end)
             new_lead = lead_to_target(new_actions, event_target, event_sessions)
@@ -732,7 +1013,7 @@ def run_acceptance(
     years = len(tech_bull) / 242.0
     false_labels: dict[str, Any] = {}
     f3_pass: dict[str, bool] = {}
-    for pool in POOLS:
+    for pool in PRIMARY_POOLS:
         labels = false_risk_off_events(matrix[pool]["bull"], tech_close=tech_bull)
         rate = sum(bool(item["false_positive"]) for item in labels) / years
         false_labels[pool] = {"annualized_false_events": rate, "labels": labels}
@@ -744,7 +1025,7 @@ def run_acceptance(
             0.0,
             1.0 - matrix[pool]["bull"]["final_wealth"] / disabled_bull[pool]["final_wealth"],
         )
-        for pool in POOLS
+        for pool in PRIMARY_POOLS
     }
     results.append(_result("F4", all(value <= 0.02 for value in f4_cost.values()), {"opportunity_cost": f4_cost, "risk_disabled": disabled_bull}, "bull risk-overlay wealth opportunity cost <=2% in every pool", "causal risk_overlay_enabled=False counterfactual"))
 
@@ -757,7 +1038,7 @@ def run_acceptance(
     )
     replacement_events = [
         event
-        for pool in POOLS
+        for pool in PRIMARY_POOLS
         for event in matrix[pool]["continuous_full"]["replacement_events"]
     ]
     spreads = replacement_spreads(
@@ -773,7 +1054,7 @@ def run_acceptance(
     crash_trough = pd.Timestamp((crash / crash.cummax() - 1.0).idxmin())
     h1_pass: dict[str, bool] = {}
     h1_rows: dict[str, Any] = {}
-    for pool in POOLS:
+    for pool in PRIMARY_POOLS:
         new_capture = recovery_capture(
             matrix[pool]["crash_2020"], trough=crash_trough, sessions=crash.index
         )
@@ -811,9 +1092,10 @@ def run_acceptance(
     if stress:
         summary = stress["summary"]
         permutation = summary["permutation"]
+        assert trade_stress is not None
         results.extend(
             [
-                _result("H3", summary["random"]["orders_p90"] <= trade_stress["random_orders_p90"], summary["random"]["orders_p90"], trade_stress["random_orders_p90"], "recovery-inclusive random replays"),
+                _result("H3", summary["random"]["orders_p90"] <= trade_stress["orders_p90"], summary["random"]["orders_p90"], trade_stress["orders_p90"], "recovery-inclusive exact common-scenario random replays"),
                 _result("I1", summary["add_one"]["worst_wealth_change"] >= -0.10, summary["add_one"], -0.10, "all add-one production replays"),
                 _result("I2", summary["leave_one_out"]["worst_wealth_change"] >= -0.10, summary["leave_one_out"], -0.10, "five primary leave-one-out replays"),
                 _result("I3", abs(permutation["wealth_change"]) <= 1e-12 and abs(permutation["drawdown_change"]) <= 1e-12 and permutation["order_change"] == 0, permutation, "actual reversed-input replay is identical", "stress replay plus decision digest test"),
@@ -893,23 +1175,21 @@ def run_acceptance(
     return_near = 0
     dd_near = 0
     order_near = 0
-    total_cells = len(POOLS) * len(WINDOWS)
+    formal_total_cells = len(POOLS) * len(WINDOWS)
+    primary_total_cells = len(PRIMARY_POOLS) * len(WINDOWS)
     for pool in POOLS:
         for window in WINDOWS:
             new = matrix[pool][window]
             olds = {system: legacy[(system, pool, window)] for system in SYSTEMS}
             dominated_by = [system for system, row in olds.items() if _dominated(new, row)]
-            best_wealth = max(row["final_wealth"] for row in olds.values())
-            best_dd = min(row["max_drawdown"] for row in olds.values())
-            least_orders = min(int(row["account_orders"]) for row in olds.values())
-            near_return = new["final_wealth"] >= 0.99 * best_wealth
-            near_dd = new["max_drawdown"] <= best_dd + 0.005
-            near_orders = new["account_orders"] <= least_orders + max(
-                2, math.ceil(0.05 * least_orders)
-            )
-            return_near += int(near_return)
-            dd_near += int(near_dd)
-            order_near += int(near_orders)
+            comparison = _primary_cell_comparison(new, olds)
+            near_return = comparison["near_best_return"]
+            near_dd = comparison["near_best_dd"]
+            near_orders = comparison["near_best_orders"]
+            if pool in PRIMARY_POOLS:
+                return_near += int(near_return)
+                dd_near += int(near_dd)
+                order_near += int(near_orders)
             dominance_rows.append(
                 {
                     "pool": pool,
@@ -919,24 +1199,63 @@ def run_acceptance(
                     "near_best_return": near_return,
                     "near_best_dd": near_dd,
                     "near_best_orders": near_orders,
+                    "best_old_wealth": comparison["best_old_wealth"],
+                    "best_old_drawdown": comparison["best_old_drawdown"],
+                    "least_old_orders": comparison["least_old_orders"],
+                    "allowed_orders": comparison["allowed_orders"],
                     "dominated_by": dominated_by,
                 }
             )
     dominated_rows = [row for row in dominance_rows if row["dominated_by"]]
     aggregate = {
-        "return_rate": return_near / total_cells,
-        "dd_rate": dd_near / total_cells,
-        "orders_rate": order_near / total_cells,
+        "return_rate": return_near / primary_total_cells,
+        "dd_rate": dd_near / primary_total_cells,
+        "orders_rate": order_near / primary_total_cells,
+    }
+    joint_diagnostic = {
+        "passed": sum(
+            row["near_best_return"]
+            and row["near_best_dd"]
+            and row["near_best_orders"]
+            for row in dominance_rows
+        ),
+        "total": formal_total_cells,
+        "failed_cells": [
+            {
+                "pool": row["pool"],
+                "window": row["window"],
+                "return": row["near_best_return"],
+                "drawdown": row["near_best_dd"],
+                "orders": row["near_best_orders"],
+            }
+            for row in dominance_rows
+            if not (
+                row["near_best_return"]
+                and row["near_best_dd"]
+                and row["near_best_orders"]
+            )
+        ],
+        "gating": False,
+        "reason": (
+            "section 24 gates the three metric coverage rates separately and "
+            "requires zero dominated cells"
+        ),
     }
     results.extend(
         [
-            _result("DOMINATED", not dominated_rows, {"count": len(dominated_rows), "cells": dominated_rows}, 0, "all five pools × nine formal windows × three old systems"),
-            _result("PRIMARY_AGGREGATE", aggregate["return_rate"] >= 0.60 and aggregate["dd_rate"] >= 0.60 and aggregate["orders_rate"] >= 0.70, aggregate, {"return": 0.60, "dd": 0.60, "orders": 0.70}, "45 common primary cells"),
+            _result("DOMINATED", not dominated_rows, {"count": len(dominated_rows), "cells": dominated_rows}, 0, f"all {len(POOLS)} pools × {len(WINDOWS)} formal windows × {len(SYSTEMS)} old systems"),
+            _result("PRIMARY_AGGREGATE", aggregate["return_rate"] >= 0.60 and aggregate["dd_rate"] >= 0.60 and aggregate["orders_rate"] >= 0.70, aggregate, {"return": 0.60, "dd": 0.60, "orders": 0.70}, f"{primary_total_cells} common primary cells"),
         ]
     )
-    choppy_rows = [row for row in dominance_rows if row["window"] == "choppy_2024"]
+    choppy_rows = [
+        row
+        for row in dominance_rows
+        if row["window"] == "choppy_2024" and row["pool"] in PRIMARY_POOLS
+    ]
     choppy_pass = all(
-        row["near_best_return"] and row["near_best_dd"] and not row["dominated_by"]
+        row["near_best_return"]
+        and row["near_best_dd"]
+        and not row["dominated_by"]
         for row in choppy_rows
     )
     results.append(_result("CHOPPY", choppy_pass, choppy_rows, "every pool within 1% wealth, 0.5pp DD, and not dominated", "2024 three-old-system matrix"))
@@ -953,12 +1272,17 @@ def run_acceptance(
     matrix_complete = bool(
         stress
         and len(legacy) == len(SYSTEMS) * len(POOLS) * len(WINDOWS)
+        and tuple(sorted(len(symbols) for symbols in POOLS.values()))
+        == FIXED_POOL_SIZES
         and stress["summary"]["random"]["scenario_count"] >= 900
+        and stress["trade_summary"]["random"]["scenario_count"] >= 900
+        and stress["common_scenario_sha256"]
+        == stress["signature"]["scenario_sha256"]
         and required_structures.issubset(set(stress["summary"]["structures"]))
         and stress["summary"]["replace_one"]["scenario_count"] >= 5
         and stress["summary"]["permutation"]["scenario_count"] >= 1
     )
-    results.append(_result("MATRIX_COMPLETENESS", matrix_complete, {"new_fixed_cells": total_cells, "legacy_fixed_cells": len(legacy), "random_samples": stress["summary"]["random"]["scenario_count"] if stress else 0, "structures": stress["summary"]["structures"] if stress else [], "windows": list(WINDOWS)}, "all pools, structures, perturbations, nine windows, and >=900 random samples", "signed common-adapter and stress artifacts"))
+    results.append(_result("MATRIX_COMPLETENESS", matrix_complete, {"fixed_sizes": sorted(len(symbols) for symbols in POOLS.values()), "new_fixed_cells": formal_total_cells, "legacy_fixed_cells": len(legacy), "random_samples": stress["summary"]["random"]["scenario_count"] if stress else 0, "trade_random_samples": stress["trade_summary"]["random"]["scenario_count"] if stress else 0, "common_scenario_sha256": stress["common_scenario_sha256"] if stress else None, "structures": stress["summary"]["structures"] if stress else [], "windows": list(WINDOWS)}, {"fixed_sizes": list(FIXED_POOL_SIZES), "new_fixed_cells": len(POOLS) * len(WINDOWS), "legacy_fixed_cells": len(SYSTEMS) * len(POOLS) * len(WINDOWS), "random_samples": 900, "trade_random_samples": 900, "scenario_identity": "exact"}, "signed exact-common-scenario adapters and stress artifacts"))
 
     interim = {item.id: item.status == "PASS" for item in results}
     results.extend(
@@ -977,6 +1301,12 @@ def run_acceptance(
         root=root,
         data_dir=data_dir,
         legacy_path=legacy_path,
+    )
+    _assert_artifact_evidence_unchanged(
+        artifact_hashes,
+        root=root,
+        stress_loaded=stress is not None,
+        robustness_loaded=robustness is not None,
     )
     if consume_holdback and not holdback_current:
         sealed_before = bool(robust and robust["promotion_holdback_untouched"])
@@ -1016,10 +1346,9 @@ def run_acceptance(
 
     evidence_chain = {
         **input_hashes,
+        **artifact_hashes,
         "promotion_holdback_lock_sha256": _file_hash(root / "benchmarks" / "PROMOTION_HOLDBACK.json"),
         "promotion_holdback_result_sha256": _file_hash(root / "benchmarks" / "promotion_holdback_result.json") if (root / "benchmarks" / "promotion_holdback_result.json").exists() else "SEALED_UNCONSUMED",
-        "stress_results_sha256": _file_hash(root / "stress_results.json") if stress else "STALE_OR_MISSING",
-        "robustness_results_sha256": _file_hash(root / "robustness_results.json") if robustness else "STALE_OR_MISSING",
     }
     payload = {
         "schema_version": 3,
@@ -1034,12 +1363,27 @@ def run_acceptance(
         "evidence_chain": evidence_chain,
         "matrix": {
             pool: {
-                window: _public_metrics(row) for window, row in windows.items()
+                window: _formal_cell_metrics(
+                    row,
+                    data_dir=data_dir,
+                    window=window,
+                    tech_close=tech,
+                    bull_opportunity_cost=(
+                        f4_cost.get(pool) if window == "bull" else None
+                    ),
+                    recovery_delay=(
+                        h1_rows.get(pool, {}).get("delay")
+                        if window == "crash_2020"
+                        else None
+                    ),
+                )
+                for window, row in windows.items()
             }
             for pool, windows in matrix.items()
         },
         "bull_comparison": bull_comparison,
         "primary_cell_comparisons": dominance_rows,
+        "primary_joint_diagnostic": joint_diagnostic,
         "dominated_cells": len(dominated_rows),
         "primary_aggregate": aggregate,
         "final_gates": final_gates,

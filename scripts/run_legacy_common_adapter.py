@@ -18,7 +18,7 @@ import math
 import os
 import sys
 import tempfile
-from concurrent.futures import ProcessPoolExecutor
+from concurrent.futures import ProcessPoolExecutor, as_completed
 from dataclasses import asdict, dataclass, is_dataclass, replace
 from enum import Enum
 from pathlib import Path
@@ -28,74 +28,9 @@ import numpy as np
 import pandas as pd
 
 from unified_ai_quant.validation.provenance import bounded_data_fingerprint
+from unified_ai_quant.validation.universes import POOLS
 
 INITIAL_CASH = 2_000_000.0
-POOLS: dict[str, tuple[str, ...]] = {
-    "a": ("sz300308", "sz300502", "sz300394"),
-    "b": ("sz300308", "sz300502", "sz300394", "sh688008", "sh603986"),
-    "c": (
-        "sz300308",
-        "sz300502",
-        "sz300394",
-        "sh688008",
-        "sh603986",
-        "sz002409",
-        "sh688072",
-        "sh688300",
-        "sz300054",
-    ),
-    "d": (
-        "sz300308",
-        "sz300502",
-        "sz300394",
-        "sh688498",
-        "sh601869",
-        "sh688256",
-        "sh688008",
-        "sh603986",
-        "sh688072",
-        "sh688082",
-        "sh688120",
-        "sh688300",
-        "sz300054",
-        "sh688361",
-        "sz300604",
-    ),
-    "e": (
-        "sz300308",
-        "sz300502",
-        "sz300394",
-        "sh688498",
-        "sz002281",
-        "sh601869",
-        "sh600487",
-        "sh688256",
-        "sh688041",
-        "sh688008",
-        "sh603986",
-        "sz300223",
-        "sh688110",
-        "sh688766",
-        "sz002371",
-        "sh688012",
-        "sh688072",
-        "sh688082",
-        "sh688120",
-        "sh688037",
-        "sh688361",
-        "sz300604",
-        "sh688200",
-        "sh688019",
-        "sz300054",
-        "sz002409",
-        "sz300666",
-        "sh688233",
-        "sh688268",
-        "sh688146",
-        "sh688300",
-        "sh603688",
-    ),
-}
 WINDOWS: dict[str, tuple[str, str]] = {
     "bear_2018": ("2018-01-02", "2018-12-28"),
     "crash_2020": ("2020-01-02", "2020-12-31"),
@@ -188,6 +123,200 @@ def _is_risk_reduction(side: str, reason: str) -> bool:
     return side.upper() == "SELL" and any(token in normalized for token in RISK_TOKENS)
 
 
+def _submission_key(signal_date: str, symbol: str, side: str) -> tuple[str, str, str]:
+    """Return the common broker-account netting key.
+
+    The three frozen engines expose different internal fill ledgers.  A real
+    account, however, submits at most one same-side instruction for a symbol
+    from one close.  This key merges virtual sleeves/tranches while preserving
+    a genuinely new instruction produced at a later close.
+    """
+    return (str(signal_date), str(symbol), str(side).upper())
+
+
+def _order_ledger(
+    submissions: Sequence[dict[str, Any]],
+    fills: Sequence[dict[str, Any]],
+) -> list[dict[str, Any]]:
+    """Build a deterministic internal-intent ledger from audited submissions."""
+    merged: dict[tuple[str, str, str], dict[str, Any]] = {}
+    for submission in submissions:
+        key = _submission_key(
+            str(submission["signal_date"]),
+            str(submission["symbol"]),
+            str(submission["side"]),
+        )
+        row = merged.setdefault(
+            key,
+            {
+                "signal_date": key[0],
+                "symbol": key[1],
+                "side": key[2],
+                "first_attempt_date": submission.get("attempt_date"),
+                "attempt_dates": [],
+                "internal_intents": 0,
+                "status": "UNFILLED_OR_EXPIRED",
+            },
+        )
+        attempt = submission.get("attempt_date")
+        if attempt is not None and attempt not in row["attempt_dates"]:
+            row["attempt_dates"].append(str(attempt))
+        row["internal_intents"] += int(submission.get("internal_intents", 1))
+
+    filled_keys = {
+        _submission_key(
+            str(fill.get("signal_date", "")),
+            str(fill.get("symbol", "")),
+            str(fill.get("side", "")),
+        )
+        for fill in fills
+        if fill.get("signal_date") not in (None, "", "None")
+    }
+    filled_attempts = {
+        (
+            str(fill.get("fill_date", "")),
+            str(fill.get("symbol", "")),
+            str(fill.get("side", "")).upper(),
+        )
+        for fill in fills
+        if fill.get("fill_date") not in (None, "", "None")
+    }
+    for key, row in merged.items():
+        row["attempt_dates"].sort()
+        if row["first_attempt_date"] is None and row["attempt_dates"]:
+            row["first_attempt_date"] = row["attempt_dates"][0]
+        if key in filled_keys or any(
+            (attempt, key[1], key[2]) in filled_attempts
+            for attempt in row["attempt_dates"]
+        ):
+            row["status"] = "FILLED"
+    return [merged[key] for key in sorted(merged)]
+
+
+def _broker_order_ledger(
+    system: str,
+    fills: Sequence[dict[str, Any]],
+) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
+    """Net executed sleeve fills into comparable broker/account orders.
+
+    The frozen Trade implementation defines an account order as one executed
+    date/symbol/direction tuple. QwenQuant and AQuant expose one fill per such
+    tuple, while Trade can expose several virtual-sleeve fills. Applying the
+    same key to all three systems preserves real broker turnover and keeps
+    unfilled strategy intents out of the user-cost metric.
+    """
+    grouped: dict[tuple[str, str, str], list[dict[str, Any]]] = {}
+    for fill in fills:
+        key = (
+            str(fill["fill_date"]),
+            str(fill["symbol"]),
+            str(fill["side"]).upper(),
+        )
+        grouped.setdefault(key, []).append(dict(fill))
+
+    order_ids = {
+        key: f"{system.upper()}-{index:06d}"
+        for index, key in enumerate(sorted(grouped), start=1)
+    }
+    ledger: list[dict[str, Any]] = []
+    for key in sorted(grouped):
+        rows = grouped[key]
+        signal_dates = sorted(
+            {
+                str(row["signal_date"])
+                for row in rows
+                if row.get("signal_date") not in (None, "", "None")
+            }
+        )
+        ledger.append(
+            {
+                "order_id": order_ids[key],
+                "signal_date": signal_dates[0] if signal_dates else None,
+                "fill_date": key[0],
+                "symbol": key[1],
+                "side": key[2],
+                "status": "FILLED",
+                "filled_shares": sum(int(row["shares"]) for row in rows),
+                "internal_fills": len(rows),
+                "reasons": sorted({str(row.get("reason", "")) for row in rows}),
+            }
+        )
+
+    linked_fills = []
+    for fill in fills:
+        row = dict(fill)
+        key = (
+            str(row["fill_date"]),
+            str(row["symbol"]),
+            str(row["side"]).upper(),
+        )
+        row["order_id"] = order_ids[key]
+        linked_fills.append(row)
+    return ledger, linked_fills
+
+
+def _intent_diagnostics(
+    submissions: Sequence[dict[str, Any]],
+    fills: Sequence[dict[str, Any]],
+) -> dict[str, Any]:
+    """Summarize internal signals separately from broker account orders."""
+    ledger = _order_ledger(submissions, fills)
+    canonical = json.dumps(
+        ledger,
+        ensure_ascii=False,
+        sort_keys=True,
+        separators=(",", ":"),
+    ).encode()
+    return {
+        "internal_submission_events": len(submissions),
+        "unique_signal_intents": len(ledger),
+        "filled_signal_intents": sum(row["status"] == "FILLED" for row in ledger),
+        "unfilled_signal_intents": sum(
+            row["status"] != "FILLED" for row in ledger
+        ),
+        "intent_ledger_sha256": hashlib.sha256(canonical).hexdigest(),
+    }
+
+
+def _link_missing_signal_dates(
+    fills: Sequence[dict[str, Any]],
+    submissions: Sequence[dict[str, Any]],
+) -> list[dict[str, Any]]:
+    """Recover a fill's close date from its unique next-open attempt."""
+    candidates: dict[tuple[str, str, str], set[str]] = {}
+    for submission in submissions:
+        attempt = submission.get("attempt_date")
+        if attempt in (None, "", "None"):
+            continue
+        key = (
+            str(attempt),
+            str(submission["symbol"]),
+            str(submission["side"]).upper(),
+        )
+        candidates.setdefault(key, set()).add(str(submission["signal_date"]))
+
+    linked: list[dict[str, Any]] = []
+    for fill in fills:
+        row = dict(fill)
+        if row.get("signal_date") in (None, "", "None"):
+            key = (
+                str(row["fill_date"]),
+                str(row["symbol"]),
+                str(row["side"]).upper(),
+            )
+            signal_dates = candidates.get(key, set())
+            if len(signal_dates) != 1:
+                raise RuntimeError(
+                    "fill does not map to exactly one close submission: "
+                    f"key={key}, signal_dates={sorted(signal_dates)}"
+                )
+            row["signal_date"] = next(iter(signal_dates))
+        if pd.Timestamp(str(row["signal_date"])) >= pd.Timestamp(str(row["fill_date"])):
+            raise RuntimeError(f"fill violates next-open causality: {row}")
+        linked.append(row)
+    return linked
+
+
 def _visible_symbols(
     data_dir: Path, symbols: Sequence[str], as_of: str
 ) -> tuple[str, ...]:
@@ -212,6 +341,17 @@ def _visible_symbols(
     return tuple(visible)
 
 
+def _observable_sessions(
+    panel: dict[str, pd.DataFrame],
+    dates: pd.DatetimeIndex,
+) -> pd.DatetimeIndex:
+    """Limit a fixed basket calendar to sessions with at least one observation."""
+    observable = pd.DatetimeIndex([])
+    for frame in panel.values():
+        observable = observable.union(pd.DatetimeIndex(frame.index))
+    return pd.DatetimeIndex(dates).intersection(observable)
+
+
 def _standard(
     *,
     task: Task,
@@ -223,6 +363,7 @@ def _standard(
     fills: list[dict[str, Any]],
     risk_events: list[dict[str, Any]],
     replacements: list[dict[str, Any]],
+    order_ledger: list[dict[str, Any]] | None = None,
     extra: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     reductions = [
@@ -242,6 +383,7 @@ def _standard(
         "total_return": final_wealth - 1.0,
         "max_drawdown": abs(max_drawdown),
         "account_orders": account_orders,
+        "order_ledger": order_ledger or [],
         "equity_curve": equity_curve,
         "fills": fills,
         "risk_reductions": reductions,
@@ -259,6 +401,43 @@ def _run_qwen(task: Task) -> dict[str, Any]:
     )
 
     class NextOpenOnly(BacktestEngine):
+        def __init__(self, *args: Any, **kwargs: Any) -> None:
+            super().__init__(*args, **kwargs)
+            self.account_submissions: list[dict[str, Any]] = []
+
+        def _execute_pending(
+            self,
+            panel: Any,
+            features: Any,
+            orders: Any,
+            i: int,
+            positions: Any,
+            cash: float,
+            fills: Any,
+            regime: Any,
+        ) -> Any:
+            signal_date = panel.dates[max(0, i - 1)]
+            attempt_date = panel.dates[i]
+            for order in orders:
+                self.account_submissions.append(
+                    {
+                        "signal_date": signal_date,
+                        "attempt_date": attempt_date,
+                        "symbol": order.symbol,
+                        "side": order.side.value,
+                    }
+                )
+            return super()._execute_pending(
+                panel,
+                features,
+                orders,
+                i,
+                positions,
+                cash,
+                fills,
+                regime,
+            )
+
         def _intraday_risk(
             self,
             panel: Any,
@@ -274,10 +453,17 @@ def _run_qwen(task: Task) -> dict[str, Any]:
 
     start, end = WINDOWS[task.window]
     symbols = _visible_symbols(Path(task.data_dir), POOLS[task.pool], start)
-    result = NextOpenOnly(
+    engine = NextOpenOnly(
         preset_for_universe(len(symbols)),
         data_dir=task.data_dir,
-    ).run(list(symbols), start, end, init_cash=INITIAL_CASH)
+    )
+    result, terminal = engine.run(
+        list(symbols),
+        start,
+        end,
+        init_cash=INITIAL_CASH,
+        return_terminal=True,
+    )
     fills = [
         {
             "fill_date": fill.date,
@@ -290,6 +476,7 @@ def _run_qwen(task: Task) -> dict[str, Any]:
         }
         for fill in result.fills
     ]
+    fills = _link_missing_signal_dates(fills, engine.account_submissions)
     curve = [
         {
             "date": item.date,
@@ -299,17 +486,34 @@ def _run_qwen(task: Task) -> dict[str, Any]:
         for item in result.equity_curve
     ]
     replacements = [fill for fill in fills if fill["reason"] == "rotation"]
+    for order in terminal.pending_orders:
+        engine.account_submissions.append(
+            {
+                "signal_date": terminal.date,
+                "attempt_date": None,
+                "symbol": order.symbol,
+                "side": order.side.value,
+            }
+        )
+    intent_diagnostics = _intent_diagnostics(engine.account_submissions, fills)
+    order_ledger, fills = _broker_order_ledger(task.system, fills)
     return _standard(
         task=task,
         effective_symbols=symbols,
         final_wealth=float(result.final_equity / INITIAL_CASH),
         max_drawdown=float(result.max_drawdown),
-        account_orders=int(result.n_trades),
+        account_orders=len(order_ledger),
         equity_curve=curve,
         fills=fills,
         risk_events=[],
         replacements=replacements,
-        extra={"execution_model": "close_signal_next_open; intraday exits disabled"},
+        order_ledger=order_ledger,
+        extra={
+            "execution_model": "close_signal_next_open; intraday exits disabled",
+            "account_order_count_method": "unique executed fill_date/symbol/side",
+            "fill_count": int(result.n_trades),
+            **intent_diagnostics,
+        },
     )
 
 
@@ -336,8 +540,14 @@ def _run_aquant(task: Task) -> dict[str, Any]:
         if symbol in panel
     )
     captured: dict[str, list[dict[str, float | str]]] = {}
+    submissions: list[dict[str, Any]] = []
     original_metrics = replay._performance_metrics
     original_route = replay.daily._automatic_route
+    original_orders = replay._orders_from_report
+    original_sector_observations = replay.daily.core.build_sector_observations
+    sector_observation_cache: dict[
+        tuple[tuple[str, ...], int, int], dict[pd.Timestamp, Any]
+    ] = {}
 
     def capture_metrics(
         equity: pd.Series,
@@ -361,8 +571,56 @@ def _run_aquant(task: Task) -> dict[str, Any]:
             params["sector_guard"] = False
         return params, automatic, explanation
 
+    def capture_orders(report: dict[str, object], params: dict[str, Any]) -> Any:
+        orders = original_orders(report, params)
+        for order in orders:
+            submissions.append(
+                {
+                    "signal_date": str(order.signal_date.date()),
+                    "attempt_date": None,
+                    "symbol": order.symbol,
+                    "side": (
+                        "SELL"
+                        if order.action in ("SELL_ALL", "REDUCE")
+                        else "BUY"
+                    ),
+                }
+            )
+        return orders
+
+    def point_in_time_sector_observations(
+        reference_panel: dict[str, pd.DataFrame],
+        dates: pd.DatetimeIndex,
+        *,
+        shock_ma: int,
+        recovery_ma: int,
+    ) -> Any:
+        # The broad index can trade on a date where every fixed-basket member
+        # is suspended. Skipping that unobservable basket session is equivalent
+        # to receiving no sector observation and never reads a future row.
+        if dates.empty:
+            return {}
+        key = (tuple(sorted(reference_panel)), shock_ma, recovery_ma)
+        if key not in sector_observation_cache:
+            full_dates = panel["sh000300"].index
+            full_dates = full_dates[full_dates <= pd.Timestamp(end)]
+            sector_observation_cache[key] = original_sector_observations(
+                reference_panel,
+                _observable_sessions(reference_panel, full_dates),
+                shock_ma=shock_ma,
+                recovery_ma=recovery_ma,
+            )
+        cutoff = pd.Timestamp(dates.max())
+        return {
+            date: observation
+            for date, observation in sector_observation_cache[key].items()
+            if date <= cutoff
+        }
+
     replay._performance_metrics = capture_metrics
     replay.daily._automatic_route = point_in_time_route
+    replay._orders_from_report = capture_orders
+    replay.daily.core.build_sector_observations = point_in_time_sector_observations
     try:
         result = replay.run_auto_daily_replay(
             symbols,
@@ -375,6 +633,8 @@ def _run_aquant(task: Task) -> dict[str, Any]:
     finally:
         replay._performance_metrics = original_metrics
         replay.daily._automatic_route = original_route
+        replay._orders_from_report = original_orders
+        replay.daily.core.build_sector_observations = original_sector_observations
     metrics = result["metrics"]
     fills = [
         {
@@ -388,22 +648,24 @@ def _run_aquant(task: Task) -> dict[str, Any]:
         }
         for fill in result["fills"]
     ]
-    order_keys = {
-        (fill["fill_date"], fill["symbol"], fill["side"])
-        for fill in fills
-    }
+    intent_diagnostics = _intent_diagnostics(submissions, fills)
+    order_ledger, fills = _broker_order_ledger(task.system, fills)
     return _standard(
         task=task,
         effective_symbols=symbols,
         final_wealth=float(metrics["final_assets"]) / INITIAL_CASH,
         max_drawdown=float(metrics["max_drawdown"]),
-        account_orders=len(order_keys),
+        account_orders=len(order_ledger),
         equity_curve=captured["equity_curve"],
         fills=fills,
         risk_events=[],
         replacements=_jsonable(result["leader_replacements"]),
+        order_ledger=order_ledger,
         extra={
             "execution_model": "manual_close_next_open",
+            "account_order_count_method": "unique executed fill_date/symbol/side",
+            "fill_count": len(fills),
+            **intent_diagnostics,
             "decision_digest": result["decision_digest"],
             "false_exit_regret_20d": metrics["average_false_exit_regret_20d"],
             "replacement_regret_20d": metrics[
@@ -434,16 +696,53 @@ def _run_trade(task: Task) -> dict[str, Any]:
     symbol_names = {
         symbol: TRADE_NAME_HINTS.get(symbol, symbol) for symbol in symbols
     }
-    with contextlib.redirect_stdout(io.StringIO()):
-        result = route.ProductionReplayEngine(INITIAL_CASH, policy=policy).run(
-            symbol_names,
-            start,
-            end,
-            data_dir=task.trade_data_dir,
-            regime_data_dir=task.trade_data_dir,
-            leader_data_dir=task.trade_data_dir,
-            indicator_state="warm",
+    submissions: list[dict[str, Any]] = []
+    sleeve_class = route.qf._CausalBacktestEngine
+    original_execute = sleeve_class._execute_pending_signals
+
+    def capture_pending(
+        self: Any,
+        pending: Any,
+        data_map: Any,
+        date: pd.Timestamp,
+        date_to_pos: Any,
+        directions: frozenset[str] | None = None,
+    ) -> Any:
+        allowed = directions or frozenset({"buy", "sell"})
+        for signal, _ in pending:
+            if signal.direction not in allowed:
+                continue
+            submissions.append(
+                {
+                    "signal_date": signal.signal_date,
+                    "attempt_date": str(pd.Timestamp(date).date()),
+                    "symbol": signal.symbol,
+                    "side": signal.direction,
+                }
+            )
+        return original_execute(
+            self,
+            pending,
+            data_map,
+            date,
+            date_to_pos,
+            directions,
         )
+
+    sleeve_class._execute_pending_signals = capture_pending
+    try:
+        with contextlib.redirect_stdout(io.StringIO()):
+            result = route.ProductionReplayEngine(INITIAL_CASH, policy=policy).run(
+                symbol_names,
+                start,
+                end,
+                data_dir=task.trade_data_dir,
+                regime_data_dir=task.trade_data_dir,
+                leader_data_dir=task.trade_data_dir,
+                indicator_state="warm",
+            )
+    finally:
+        sleeve_class._execute_pending_signals = original_execute
     fills = [
         {
             "fill_date": str(fill.date),
@@ -463,19 +762,34 @@ def _run_trade(task: Task) -> dict[str, Any]:
         or "replacement" in fill["reason"].lower()
         or "sticky" in fill["reason"].lower()
     ]
+    for signal in result.get("pending_signals", []):
+        submissions.append(
+            {
+                "signal_date": signal.signal_date,
+                "attempt_date": None,
+                "symbol": signal.symbol,
+                "side": signal.direction,
+            }
+        )
+    intent_diagnostics = _intent_diagnostics(submissions, fills)
+    order_ledger, fills = _broker_order_ledger(task.system, fills)
     curve = _equity_rows(result["equity_curve"]["assets"])
     return _standard(
         task=task,
         effective_symbols=prefixed,
         final_wealth=float(result["final_assets"]) / INITIAL_CASH,
         max_drawdown=float(result["max_drawdown"]),
-        account_orders=int(result["total_trades"]),
+        account_orders=len(order_ledger),
         equity_curve=curve,
         fills=fills,
         risk_events=_jsonable(result["risk_events"]),
         replacements=replacements,
+        order_ledger=order_ledger,
         extra={
             "execution_model": "ProductionReplayEngine next-open",
+            "account_order_count_method": "unique executed fill_date/symbol/side",
+            "fill_merged_order_count": int(result["total_trades"]),
+            **intent_diagnostics,
             "name_hint_metadata": {
                 symbol: name
                 for symbol, name in symbol_names.items()
@@ -564,7 +878,7 @@ def _execute_matrix(
             str(trade_data_dir),
         )
         for system in args.systems
-        for pool in POOLS
+        for pool in args.pools
         for window in args.windows
     ]
     print(
@@ -573,12 +887,28 @@ def _execute_matrix(
     )
     with ProcessPoolExecutor(max_workers=args.workers) as executor:
         rows = []
-        for index, row in enumerate(executor.map(_run, tasks, chunksize=1), start=1):
-            rows.append(row)
-            print(f"legacy adapter: {index}/{len(tasks)}", flush=True)
-    rows.sort(key=lambda row: (row["system"], row["pool"], row["window"]))
+        pending = {executor.submit(_run, task): task for task in tasks}
+        for index, future in enumerate(as_completed(pending), start=1):
+            task = pending[future]
+            rows.append(future.result())
+            print(
+                f"legacy adapter: {index}/{len(tasks)} "
+                f"latest={task.system}/{task.pool}/{task.window}",
+                flush=True,
+            )
+    system_order = {value: index for index, value in enumerate(args.systems)}
+    pool_order = {value: index for index, value in enumerate(args.pools)}
+    window_order = {value: index for index, value in enumerate(args.windows)}
+    rows.sort(
+        key=lambda row: (
+            system_order[str(row["system"])],
+            pool_order[str(row["pool"])],
+            window_order[str(row["window"])],
+        )
+    )
     payload = {
         "schema_version": 1,
+        "adapter_sha256": hashlib.sha256(Path(__file__).read_bytes()).hexdigest(),
         "contract": {
             "initial_cash": INITIAL_CASH,
             "signal": "close_t",
@@ -597,6 +927,7 @@ def _execute_matrix(
             ),
         },
         "systems": list(args.systems),
+        "pools": list(args.pools),
         "windows": list(args.windows),
         "rows": rows,
     }
@@ -624,6 +955,12 @@ def main(argv: Sequence[str] | None = None) -> int:
         nargs="+",
         choices=tuple(WINDOWS),
         default=tuple(WINDOWS),
+    )
+    parser.add_argument(
+        "--pools",
+        nargs="+",
+        choices=tuple(POOLS),
+        default=tuple(POOLS),
     )
     parser.add_argument("--workers", type=int, default=4)
     parser.add_argument(

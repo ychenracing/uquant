@@ -35,6 +35,15 @@ class Side(str, Enum):
     SELL = "SELL"
 
 
+class OrderStatus(str, Enum):
+    SUBMITTED = "SUBMITTED"
+    OPEN = "OPEN"
+    PARTIALLY_FILLED = "PARTIALLY_FILLED"
+    FILLED = "FILLED"
+    CANCELLED = "CANCELLED"
+    REPLACED = "REPLACED"
+
+
 @dataclass(slots=True)
 class Tranche:
     tranche_id: str
@@ -70,6 +79,30 @@ class PendingOrder:
     lifecycle: str
     remaining_shares: int = 0
     attempts: int = 0
+    order_id: str = ""
+
+
+@dataclass(slots=True)
+class AccountOrder:
+    """One broker-visible order throughout its complete lifecycle."""
+
+    order_id: str
+    signal_date: str
+    submitted_date: str
+    symbol: str
+    side: str
+    target_weight: float
+    reason: str
+    lifecycle: str
+    status: str = OrderStatus.SUBMITTED.value
+    requested_shares: int = 0
+    filled_shares: int = 0
+    remaining_shares: int = 0
+    attempts: int = 0
+    last_update_date: str = ""
+    last_event: str = "SUBMITTED"
+    replaced_by: str = ""
+    cancel_reason: str = ""
 
 
 @dataclass(slots=True)
@@ -87,6 +120,8 @@ class Fill:
     slippage_cost: float
     reason: str
     lifecycle: str
+    order_id: str = ""
+    fill_id: str = ""
 
 
 @dataclass(slots=True)
@@ -95,6 +130,8 @@ class AccountState:
     cash: float
     positions: dict[str, Position] = field(default_factory=dict)
     pending_orders: list[PendingOrder] = field(default_factory=list)
+    order_ledger: list[AccountOrder] = field(default_factory=list)
+    next_order_sequence: int = 1
     fills: list[Fill] = field(default_factory=list)
     opportunity: str = Opportunity.CHOPPY.value
     risk: str = Risk.NORMAL.value
@@ -128,6 +165,8 @@ class AccountState:
     last_shock_date: str = ""
     last_successful_run: str = ""
     data_hash: str = ""
+    data_hash_as_of: str = ""
+    data_hash_symbols: list[str] = field(default_factory=list)
     code_hash: str = ""
 
     @classmethod

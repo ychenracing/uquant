@@ -344,24 +344,16 @@ def assess_risk(
     strategic_preserve = (
         strategic_active and not strategic_guard_break and not strategic_tail_break
     )
-    strategic_universe_complete = all(
-        symbol in user_panel for symbol in cfg.strategic_cohort_symbols
-    )
+    strategic_universe_complete = len(user_panel) >= min(3, cfg.max_positions)
     anchor_industries = {
         leaders[symbol].industry
         for symbol in account.anchor_weights
         if symbol in leaders
     }
     reserve_observed = bool(
-        len(account.anchor_weights) == 2
-        and len(
-            set(account.anchor_weights) & set(cfg.strategic_cohort_symbols)
-        )
-        == 2
-        and set(cfg.strategic_reserve_symbols).issubset(user_panel)
+        len(account.anchor_weights) >= 2
         and any(
             symbol not in account.anchor_weights
-            and symbol in cfg.strategic_reserve_symbols
             and symbol in leaders
             and credible_recovery_reserve(
                 score=leaders[symbol],
@@ -433,14 +425,77 @@ def assess_risk(
         and not account_break_confirmed
         and not reference_anchor_confirmed
     )
+    # A restored cohort must not inherit immunity from the prior shock.  If
+    # capital remains below its crisis line and the *new operating book* again
+    # breaks structurally, cut it even when protected_weights from the previous
+    # event have not yet normalized.  This closes the multi-year drawdown loop
+    # without turning historical capital loss alone into a permanent cash lock.
+    recovery_transition_dates = [
+        pd.Timestamp(event["date"])
+        for event in account.risk_events
+        if event.get("from") == Risk.CRISIS.value
+        and event.get("to") != Risk.CRISIS.value
+        and event.get("date")
+        and pd.Timestamp(event["date"]) <= date
+    ]
+    sessions_since_recovery = (
+        len(next(iter(user_panel.values())).loc[max(recovery_transition_dates) : date])
+        - 1
+        if recovery_transition_dates and user_panel
+        else math.inf
+    )
+    capital_drawdown_relapse = (
+        bool(account.positions)
+        and bool(account.protected_weights)
+        and capital_dd >= cfg.capital_dd_crisis
+        and operating_dd >= cfg.capital_guard_relapse_dd
+        and sessions_since_recovery >= cfg.capital_guard_min_recovery_days
+        and (
+            held_damage_ratio >= cfg.concentrated_break_ratio
+            or (votes >= 2 and sector_stress >= 0.50)
+        )
+    )
     concentrated_confirmed = (
         account_break_confirmed
         or reference_anchor_confirmed
         or incomplete_universe_tail_break
         or (shock_rearmed and strategic_tail_break)
+        or capital_drawdown_relapse
     )
 
     previous = Risk(account.risk)
+    capital_cooldown = account.candidate_tenure.get(
+        "capital_guard_cooldown", 0
+    )
+    if capital_cooldown > 0:
+        account.candidate_tenure["capital_guard_cooldown"] = (
+            capital_cooldown - 1
+        )
+        account.risk = Risk.CRISIS.value
+        account.shock_state = "CAPITAL_GUARD_COOLDOWN"
+        return RiskAssessment(
+            state=Risk.CRISIS,
+            target_gross_cap=0.0,
+            votes=votes,
+            evidence={
+                **market_context,
+                "ai_fast_return": average_fast,
+                "declining_ratio": declining,
+                "below_ma20_ratio": below,
+                "sector_stress_ratio": sector_stress,
+                "median_correlation": correlation,
+                "volatility_ratio": vol_ratio,
+                "leader_failure_ratio": leader_failure,
+                "held_damage_ratio": held_damage_ratio,
+                "held_repair_ratio": held_repair_ratio,
+                "tech_speed": tech_speed,
+                "broad_speed": broad_speed,
+                "operating_drawdown": operating_dd,
+                "capital_drawdown": capital_dd,
+            },
+            reasons=("capital guard cooldown after failed restoration",),
+            shock_state="CAPITAL_GUARD_COOLDOWN",
+        )
     protected_structure_ratio = 0.0
     if account.protected_weights:
         protected_structures: list[bool] = []
@@ -516,20 +571,32 @@ def assess_risk(
             ):
                 repair_leaders += 1
         protected_fast_repairs: list[bool] = []
+        protected_swing_repairs: list[bool] = []
         for symbol in account.protected_weights:
             frame = user_panel.get(symbol)
             if frame is None or date not in frame.index:
                 protected_fast_repairs.append(False)
+                protected_swing_repairs.append(False)
                 continue
+            row = frame.loc[date]
             returns1 = frame.loc[:date, "close"].pct_change(fill_method=None)
             protected_fast_repairs.append(
                 bool(len(returns1))
                 and math.isfinite(float(returns1.iloc[-1]))
                 and float(returns1.iloc[-1]) > 0
             )
+            protected_swing_repairs.append(
+                scalar(row, "ret5", -1.0) > 0
+                and scalar(row, "close") > scalar(row, f"ma{cfg.trend_fast}")
+            )
         protected_fast_ratio = (
             float(np.mean(protected_fast_repairs))
             if protected_fast_repairs
+            else 0.0
+        )
+        protected_swing_ratio = (
+            float(np.mean(protected_swing_repairs))
+            if protected_swing_repairs
             else 0.0
         )
         shock_elapsed = 0
@@ -538,9 +605,8 @@ def assess_risk(
             shock_elapsed = (
                 len(clock.loc[pd.Timestamp(account.shock_start_date) : date]) - 1
             )
-        fast_v_repair = (
-            shock_elapsed >= cfg.severe_shock_wait_days
-            and average_fast >= cfg.fast_v_recovery_return
+        v_market_repair = (
+            average_fast >= cfg.fast_v_recovery_return
             and declining <= cfg.fast_v_recovery_breadth
             and below <= cfg.fast_v_recovery_below_ma20
             and (
@@ -549,7 +615,17 @@ def assess_risk(
                 or scalar(broad.loc[date], "ret5", 0.0)
                 >= cfg.fast_v_recovery_index_return
             )
+        )
+        fast_v_repair = (
+            shock_elapsed >= cfg.severe_shock_wait_days
+            and v_market_repair
             and protected_fast_ratio >= 0.50
+        )
+        persistent_v_repair = (
+            shock_elapsed >= cfg.persistent_v_recovery_wait_days
+            and len(account.protected_weights) == 1
+            and v_market_repair
+            and protected_swing_ratio >= 1.0
         )
         structural_independent_repair = (
             not account.anchor_weights
@@ -575,17 +651,39 @@ def assess_risk(
             if fast_v_repair
             else cfg.recovery_risk_confirm_days
         )
-        if account.risk_streaks[market_repair_key] >= repair_confirm_days:
+        standard_repair_ready = (
+            account.risk_streaks[market_repair_key] >= repair_confirm_days
+        )
+        persistent_repair_key = "persistent_v_market_repair"
+        account.risk_streaks[persistent_repair_key] = (
+            account.risk_streaks.get(persistent_repair_key, 0) + 1
+            if persistent_v_repair
+            else 0
+        )
+        persistent_repair_ready = (
+            account.risk_streaks[persistent_repair_key]
+            >= cfg.fast_v_recovery_confirm_days
+            and not fast_v_repair
+        )
+        if standard_repair_ready or persistent_repair_ready:
+            persistent_repair_confirmed = (
+                persistent_repair_ready and not standard_repair_ready
+            )
+            expedited_repair = fast_v_repair or persistent_repair_confirmed
             account.protected_weights.clear()
             account.shock_start_date = ""
             account.shock_severity = "NORMAL"
             account.risk = Risk.CAUTION.value
-            account.candidate_tenure["fast_v_recovery"] = int(fast_v_repair)
+            account.candidate_tenure["fast_v_recovery"] = int(expedited_repair)
             account.shock_state = (
-                "FAST_V_RECOVERY" if fast_v_repair else "ROTATION_RECOVERY"
+                "FAST_V_RECOVERY"
+                if expedited_repair
+                else "ROTATION_RECOVERY"
             )
             repair_reason = (
-                "confirmed fast V-recovery breadth and index impulse"
+                "confirmed persistent V-recovery after extended single-name protection"
+                if persistent_repair_confirmed
+                else "confirmed fast V-recovery breadth and index impulse"
                 if fast_v_repair
                 else "independent market and replacement-leader repair"
             )
@@ -603,7 +701,7 @@ def assess_risk(
                 target_gross_cap=min(
                     cfg.max_gross,
                     cfg.fast_v_recovery_gross
-                    if fast_v_repair
+                    if expedited_repair
                     else cfg.recovery_target_gross,
                 ),
                 votes=votes,
@@ -619,6 +717,7 @@ def assess_risk(
                     "held_damage_ratio": held_damage_ratio,
                     "held_repair_ratio": held_repair_ratio,
                     "protected_fast_repair_ratio": protected_fast_ratio,
+                    "protected_swing_repair_ratio": protected_swing_ratio,
                     "replacement_leaders": repair_leaders,
                     "tech_speed": tech_speed,
                     "broad_speed": broad_speed,
@@ -627,7 +726,9 @@ def assess_risk(
                 },
                 reasons=(repair_reason,),
                 shock_state=(
-                    "FAST_V_RECOVERY" if fast_v_repair else "ROTATION_RECOVERY"
+                    "FAST_V_RECOVERY"
+                    if expedited_repair
+                    else "ROTATION_RECOVERY"
                 ),
             )
         protected_repairs: list[bool] = []
@@ -753,6 +854,10 @@ def assess_risk(
             }
         account.shock_start_date = str(date.date())
         account.last_shock_date = str(date.date())
+        if capital_drawdown_relapse:
+            account.candidate_tenure[
+                "capital_guard_cooldown"
+            ] = cfg.capital_guard_cooldown_days
         account.candidate_tenure["last_shock_incomplete_universe"] = int(
             incomplete_universe_tail_break and credible_reserve
         )
@@ -787,6 +892,8 @@ def assess_risk(
         concentrated_reason = (
             "confirmed strategic cohort capital guard"
             if strategic_active
+            else "capital drawdown relapse in restored holdings"
+            if capital_drawdown_relapse
             else "reserve-backed incomplete-universe tail guard"
             if incomplete_universe_tail_break and credible_reserve
             else "unbacked incomplete-universe capital exit"

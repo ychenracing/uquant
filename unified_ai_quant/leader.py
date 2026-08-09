@@ -88,6 +88,32 @@ INDUSTRY = {
 }
 
 
+def credible_recovery_reserve(
+    *,
+    score: LeaderScore,
+    frame: pd.DataFrame,
+    date: pd.Timestamp,
+    occupied_industries: set[str],
+    cfg: SystemConfig,
+) -> bool:
+    """Identify a liquid, independent reserve before a recovery cohort rotates."""
+    if date not in frame.index or score.industry in occupied_industries:
+        return False
+    history = frame.loc[:date]
+    if len(history) < cfg.min_history:
+        return False
+    row = history.iloc[-1]
+    return bool(
+        score.confidence >= cfg.leader_min_confidence
+        and score.score >= cfg.recovery_reserve_min_score
+        and scalar(row, f"ret{cfg.trend_medium}", -1.0)
+        >= cfg.recovery_reserve_min_ret60
+        and scalar(row, f"ret{cfg.trend_slow}", -1.0)
+        >= cfg.recovery_reserve_min_ret120
+        and scalar(row, "close") >= scalar(row, f"ma{cfg.trend_medium}")
+    )
+
+
 def industry_of(symbol: str) -> str:
     return INDUSTRY.get(symbol, "unknown")
 
@@ -142,8 +168,17 @@ def compute_leaders(
             "history": float(history),
         }
     references = [symbol for symbol in REFERENCE_UNIVERSE if symbol in raw]
-    if len(references) < 20:
-        raise RuntimeError(f"fixed reference coverage too low: {len(references)}/34")
+    expected = [
+        symbol
+        for symbol in REFERENCE_UNIVERSE
+        if symbol in panel and panel[symbol].index.min() <= as_of
+    ]
+    minimum_coverage = max(3, math.ceil(0.80 * len(expected)))
+    if len(references) < minimum_coverage:
+        raise RuntimeError(
+            "fixed reference coverage too low: "
+            f"{len(references)}/{len(expected)} point-in-time-listed"
+        )
     industry_returns: dict[str, list[float]] = {}
     for symbol in references:
         industry_returns.setdefault(industry_of(symbol), []).append(raw[symbol]["ret60"])

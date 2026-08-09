@@ -1,0 +1,5341 @@
+{
+  "schema_version": 3,
+  "generated_by": "unified_ai_quant.validation.runner",
+  "full_status": "NOT FULLY ACCEPTED",
+  "release_level": "CANDIDATE",
+  "quick_mode": true,
+  "consume_holdback_requested": false,
+  "preholdback_ready": true,
+  "all_results_pass": false,
+  "phase0_status": "COMPLETE_COMMON_ADAPTER",
+  "evidence_chain": {
+    "production_code_sha256": "f8fdd2ab989ffce40bf97b72487aa6bd34d1f89c1cc2cddfac4675b41eea2b5c",
+    "validation_code_sha256": "e35831e2977034688e64b6ce8117595673672a8ee0a0a00cff34c75cff58d8e3",
+    "data_sha256": "e3562f0fa843ef7bad6f26780988ab2cd4aa730ce9f6d3efb88a823fe64e6a4b",
+    "data_manifest_sha256": "84476c03eca30ad7e514bb7a56c92b220325f70ca97cedeb5b66df201dc71edd",
+    "implementation_spec_sha256": "f557207504d7724a88b70f8e5c7324d71b91d304aafd9dddaa708ff113abbd76",
+    "acceptance_spec_sha256": "17cfb25bcd5e56b94ea13ff466c1a7bb28b163db7f113835b7c0be7c886abbd7",
+    "benchmark_lock_sha256": "f919ee460c85b49ec55e2d23686098148b35b866496c4342475fa66145d1b6dc",
+    "legacy_common_adapter_sha256": "61965e9b7cb3d98f2b690d4385d0bd5c0e7bd4f6ff107a050f74fc2177a5df98",
+    "promotion_holdback_lock_sha256": "28bb5ba56e0338197de29095be24ba5a56d86e2c087a1292632fd31d115aa07f",
+    "promotion_holdback_result_sha256": "1c162d3d3a6a65df91b7539175113fe21dda9250379e0245f6173e38e4cc4bbd",
+    "stress_results_sha256": "6c7c2e260889459c18840434523cc08f701ed12c46fce4dc0cc7b46079f1d691",
+    "robustness_results_sha256": "f96cc17d63b83c16b67f7e28b792d07aa4fb99cd16f4708fa3678176fba10faa"
+  },
+  "matrix": {
+    "a": {
+      "bear_2018": {
+        "final_wealth": 1.0,
+        "total_return": 0.0,
+        "max_drawdown": -0.0,
+        "account_orders": 0,
+        "sharpe": 0.0,
+        "calmar": 0.0,
+        "worst_20d": 0.0,
+        "worst_60d": 0.0
+      },
+      "crash_2020": {
+        "final_wealth": 1.0550517003337512,
+        "total_return": 0.055051700333751175,
+        "max_drawdown": 0.031785391529702944,
+        "account_orders": 4,
+        "sharpe": 1.1270140696017774,
+        "calmar": 1.7246618191624266,
+        "worst_20d": -0.031785391529702944,
+        "worst_60d": 0.0
+      },
+      "rotation_2021": {
+        "final_wealth": 1.0323217295151101,
+        "total_return": 0.03232172951511014,
+        "max_drawdown": 0.1996108502576417,
+        "account_orders": 7,
+        "sharpe": 0.2621704460774326,
+        "calmar": 0.1612467473661349,
+        "worst_20d": -0.12611427820399324,
+        "worst_60d": -0.1874142243826521
+      },
+      "bear_2022": {
+        "final_wealth": 1.0,
+        "total_return": 0.0,
+        "max_drawdown": -0.0,
+        "account_orders": 0,
+        "sharpe": 0.0,
+        "calmar": 0.0,
+        "worst_20d": 0.0,
+        "worst_60d": 0.0
+      },
+      "mixed_2023": {
+        "final_wealth": 3.5980527919669525,
+        "total_return": 2.5980527919669525,
+        "max_drawdown": 0.22746281587497907,
+        "account_orders": 38,
+        "sharpe": 2.558907132425896,
+        "calmar": 11.421879140874289,
+        "worst_20d": -0.14796879596486923,
+        "worst_60d": -0.15788822344975362
+      },
+      "choppy_2024": {
+        "final_wealth": 1.8985400438984203,
+        "total_return": 0.8985400438984203,
+        "max_drawdown": 0.17332825750590009,
+        "account_orders": 27,
+        "sharpe": 1.5727763243372412,
+        "calmar": 5.18403667600382,
+        "worst_20d": -0.123498437652099,
+        "worst_60d": -0.12835856682617675
+      },
+      "bull": {
+        "final_wealth": 13.109764764327329,
+        "total_return": 12.109764764327329,
+        "max_drawdown": 0.1595767426301642,
+        "account_orders": 10,
+        "sharpe": 3.6726884430230875,
+        "calmar": 43.00387863946087,
+        "worst_20d": -0.1435660934234375,
+        "worst_60d": -0.01759089198759467
+      },
+      "through_july": {
+        "final_wealth": 11.606002422991327,
+        "total_return": 10.606002422991327,
+        "max_drawdown": 0.1722788438679067,
+        "account_orders": 13,
+        "sharpe": 3.403368901935273,
+        "calmar": 32.13798696406574,
+        "worst_20d": -0.1722788438679067,
+        "worst_60d": -0.01759089198759467
+      },
+      "continuous_full": {
+        "final_wealth": 38.13777764796843,
+        "total_return": 37.13777764796843,
+        "max_drawdown": 0.28669684576052445,
+        "account_orders": 95,
+        "sharpe": 1.4326400529701195,
+        "calmar": 1.8486862281892948,
+        "worst_20d": -0.20123062863864916,
+        "worst_60d": -0.22654319462021344
+      }
+    },
+    "b": {
+      "bear_2018": {
+        "final_wealth": 0.9550517411077932,
+        "total_return": -0.04494825889220677,
+        "max_drawdown": 0.07663952737064572,
+        "account_orders": 2,
+        "sharpe": -0.7012571035997992,
+        "calmar": -0.5841305639231682,
+        "worst_20d": -0.07663952737064572,
+        "worst_60d": -0.07663952737064572
+      },
+      "crash_2020": {
+        "final_wealth": 1.0352747646818379,
+        "total_return": 0.03527476468183788,
+        "max_drawdown": 0.025884031925263673,
+        "account_orders": 2,
+        "sharpe": 0.5436378373522572,
+        "calmar": 1.3570946348466166,
+        "worst_20d": -0.014734321429433983,
+        "worst_60d": -0.010173068189465395
+      },
+      "rotation_2021": {
+        "final_wealth": 1.1195121035740412,
+        "total_return": 0.11951210357404118,
+        "max_drawdown": 0.3093569189803469,
+        "account_orders": 17,
+        "sharpe": 0.5035933916200818,
+        "calmar": 0.3846434781466233,
+        "worst_20d": -0.22341691329867497,
+        "worst_60d": -0.23072653200393756
+      },
+      "bear_2022": {
+        "final_wealth": 1.0851920911949804,
+        "total_return": 0.08519209119498039,
+        "max_drawdown": 0.04496827432514272,
+        "account_orders": 4,
+        "sharpe": 0.7431397010237967,
+        "calmar": 1.89449322824798,
+        "worst_20d": -0.033306247287299806,
+        "worst_60d": -0.019915643638472202
+      },
+      "mixed_2023": {
+        "final_wealth": 3.5980527919669525,
+        "total_return": 2.5980527919669525,
+        "max_drawdown": 0.22746281587497907,
+        "account_orders": 38,
+        "sharpe": 2.558907132425896,
+        "calmar": 11.421879140874289,
+        "worst_20d": -0.14796879596486923,
+        "worst_60d": -0.15788822344975362
+      },
+      "choppy_2024": {
+        "final_wealth": 1.8985400438984203,
+        "total_return": 0.8985400438984203,
+        "max_drawdown": 0.17332825750590009,
+        "account_orders": 27,
+        "sharpe": 1.5727763243372412,
+        "calmar": 5.18403667600382,
+        "worst_20d": -0.123498437652099,
+        "worst_60d": -0.12835856682617675
+      },
+      "bull": {
+        "final_wealth": 13.109764764327329,
+        "total_return": 12.109764764327329,
+        "max_drawdown": 0.1595767426301642,
+        "account_orders": 10,
+        "sharpe": 3.6726884430230875,
+        "calmar": 43.00387863946087,
+        "worst_20d": -0.1435660934234375,
+        "worst_60d": -0.01759089198759467
+      },
+      "through_july": {
+        "final_wealth": 11.606002422991327,
+        "total_return": 10.606002422991327,
+        "max_drawdown": 0.1722788438679067,
+        "account_orders": 13,
+        "sharpe": 3.403368901935273,
+        "calmar": 32.13798696406574,
+        "worst_20d": -0.1722788438679067,
+        "worst_60d": -0.01759089198759467
+      },
+      "continuous_full": {
+        "final_wealth": 24.329763567883727,
+        "total_return": 23.329763567883727,
+        "max_drawdown": 0.41760235012975955,
+        "account_orders": 71,
+        "sharpe": 1.2903010152135235,
+        "calmar": 1.0817919318677662,
+        "worst_20d": -0.23891795528859217,
+        "worst_60d": -0.3335040897717413
+      }
+    },
+    "c": {
+      "bear_2018": {
+        "final_wealth": 0.9550517411077932,
+        "total_return": -0.04494825889220677,
+        "max_drawdown": 0.07663952737064572,
+        "account_orders": 2,
+        "sharpe": -0.7012571035997992,
+        "calmar": -0.5841305639231682,
+        "worst_20d": -0.07663952737064572,
+        "worst_60d": -0.07663952737064572
+      },
+      "crash_2020": {
+        "final_wealth": 0.9285788314682651,
+        "total_return": -0.07142116853173486,
+        "max_drawdown": 0.0814815494835649,
+        "account_orders": 2,
+        "sharpe": -1.3718753625950495,
+        "calmar": -0.8730561284351424,
+        "worst_20d": -0.0814815494835649,
+        "worst_60d": -0.07142116853173486
+      },
+      "rotation_2021": {
+        "final_wealth": 1.0446510801608424,
+        "total_return": 0.044651080160842405,
+        "max_drawdown": 0.3093471832790947,
+        "account_orders": 19,
+        "sharpe": 0.29820157315138945,
+        "calmar": 0.14373269765709273,
+        "worst_20d": -0.22400346137707372,
+        "worst_60d": -0.2676796603350057
+      },
+      "bear_2022": {
+        "final_wealth": 1.1657117382274205,
+        "total_return": 0.16571173822742047,
+        "max_drawdown": 0.044658804527218376,
+        "account_orders": 7,
+        "sharpe": 1.0773722813862443,
+        "calmar": 3.710617424307081,
+        "worst_20d": -0.033306247287299806,
+        "worst_60d": -0.019915643638472202
+      },
+      "mixed_2023": {
+        "final_wealth": 3.5980527919669525,
+        "total_return": 2.5980527919669525,
+        "max_drawdown": 0.22746281587497907,
+        "account_orders": 38,
+        "sharpe": 2.558907132425896,
+        "calmar": 11.421879140874289,
+        "worst_20d": -0.14796879596486923,
+        "worst_60d": -0.15788822344975362
+      },
+      "choppy_2024": {
+        "final_wealth": 1.8985400438984203,
+        "total_return": 0.8985400438984203,
+        "max_drawdown": 0.17332825750590009,
+        "account_orders": 27,
+        "sharpe": 1.5727763243372412,
+        "calmar": 5.18403667600382,
+        "worst_20d": -0.123498437652099,
+        "worst_60d": -0.12835856682617675
+      },
+      "bull": {
+        "final_wealth": 13.109764764327329,
+        "total_return": 12.109764764327329,
+        "max_drawdown": 0.1595767426301642,
+        "account_orders": 10,
+        "sharpe": 3.6726884430230875,
+        "calmar": 43.00387863946087,
+        "worst_20d": -0.1435660934234375,
+        "worst_60d": -0.01759089198759467
+      },
+      "through_july": {
+        "final_wealth": 11.606002422991327,
+        "total_return": 10.606002422991327,
+        "max_drawdown": 0.1722788438679067,
+        "account_orders": 13,
+        "sharpe": 3.403368901935273,
+        "calmar": 32.13798696406574,
+        "worst_20d": -0.1722788438679067,
+        "worst_60d": -0.01759089198759467
+      },
+      "continuous_full": {
+        "final_wealth": 13.397813977136305,
+        "total_return": 12.397813977136305,
+        "max_drawdown": 0.41740419892586567,
+        "account_orders": 82,
+        "sharpe": 1.0837797072955337,
+        "calmar": 0.8482009691379166,
+        "worst_20d": -0.2393774437497952,
+        "worst_60d": -0.33339707692622256
+      }
+    },
+    "d": {
+      "bear_2018": {
+        "final_wealth": 0.9550517411077932,
+        "total_return": -0.04494825889220677,
+        "max_drawdown": 0.07663952737064572,
+        "account_orders": 2,
+        "sharpe": -0.7012571035997992,
+        "calmar": -0.5841305639231682,
+        "worst_20d": -0.07663952737064572,
+        "worst_60d": -0.07663952737064572
+      },
+      "crash_2020": {
+        "final_wealth": 1.0367420577833981,
+        "total_return": 0.03674205778339812,
+        "max_drawdown": 0.03742117848338489,
+        "account_orders": 6,
+        "sharpe": 0.4936207236989841,
+        "calmar": 0.9777383953618983,
+        "worst_20d": -0.025982034456974112,
+        "worst_60d": -0.025982034456974112
+      },
+      "rotation_2021": {
+        "final_wealth": 1.0494181196891204,
+        "total_return": 0.049418119689120354,
+        "max_drawdown": 0.309310046709964,
+        "account_orders": 20,
+        "sharpe": 0.31151934521882113,
+        "calmar": 0.1590954769369504,
+        "worst_20d": -0.22383422208873027,
+        "worst_60d": -0.26475343365032067
+      },
+      "bear_2022": {
+        "final_wealth": 1.0024495410474703,
+        "total_return": 0.002449541047470305,
+        "max_drawdown": 0.11962697309248993,
+        "account_orders": 8,
+        "sharpe": 0.0817834541054244,
+        "calmar": 0.020476494423849006,
+        "worst_20d": -0.08876603334752997,
+        "worst_60d": -0.11805032447504982
+      },
+      "mixed_2023": {
+        "final_wealth": 3.5980527919669525,
+        "total_return": 2.5980527919669525,
+        "max_drawdown": 0.22746281587497907,
+        "account_orders": 38,
+        "sharpe": 2.558907132425896,
+        "calmar": 11.421879140874289,
+        "worst_20d": -0.14796879596486923,
+        "worst_60d": -0.15788822344975362
+      },
+      "choppy_2024": {
+        "final_wealth": 3.6642345565248466,
+        "total_return": 2.6642345565248466,
+        "max_drawdown": 0.17332825750590009,
+        "account_orders": 35,
+        "sharpe": 2.549762292597423,
+        "calmar": 15.37103409946965,
+        "worst_20d": -0.123498437652099,
+        "worst_60d": -0.050061577880359254
+      },
+      "bull": {
+        "final_wealth": 13.218780929372876,
+        "total_return": 12.218780929372876,
+        "max_drawdown": 0.1598268629340448,
+        "account_orders": 12,
+        "sharpe": 3.684920471542492,
+        "calmar": 43.26411144984441,
+        "worst_20d": -0.14383019327522184,
+        "worst_60d": -0.01760865643727072
+      },
+      "through_july": {
+        "final_wealth": 11.700468163932875,
+        "total_return": 10.700468163932875,
+        "max_drawdown": 0.17229791315953624,
+        "account_orders": 15,
+        "sharpe": 3.4147716769834173,
+        "calmar": 32.37068747826068,
+        "worst_20d": -0.17229791315953624,
+        "worst_60d": -0.01760865643727072
+      },
+      "continuous_full": {
+        "final_wealth": 15.284746742256,
+        "total_return": 14.284746742256,
+        "max_drawdown": 0.4174983920016825,
+        "account_orders": 105,
+        "sharpe": 1.134645214196437,
+        "calmar": 0.8983069891761741,
+        "worst_20d": -0.238873443578988,
+        "worst_60d": -0.3335285631080833
+      }
+    },
+    "e": {
+      "bear_2018": {
+        "final_wealth": 0.892004650034365,
+        "total_return": -0.10799534996563498,
+        "max_drawdown": 0.11938835240403745,
+        "account_orders": 2,
+        "sharpe": -1.4929681791198186,
+        "calmar": -0.9010572267249327,
+        "worst_20d": -0.11938835240403745,
+        "worst_60d": -0.11938835240403745
+      },
+      "crash_2020": {
+        "final_wealth": 0.7699159477817386,
+        "total_return": -0.23008405221826145,
+        "max_drawdown": 0.32476943568515126,
+        "account_orders": 25,
+        "sharpe": -0.9017867139038098,
+        "calmar": -0.7059012727439566,
+        "worst_20d": -0.15439419627948214,
+        "worst_60d": -0.22661299071386565
+      },
+      "rotation_2021": {
+        "final_wealth": 1.0163344947704251,
+        "total_return": 0.016334494770425145,
+        "max_drawdown": 0.19297744521633597,
+        "account_orders": 14,
+        "sharpe": 0.18250590881054593,
+        "calmar": 0.08429343040474127,
+        "worst_20d": -0.09316641367954748,
+        "worst_60d": -0.12308916524531965
+      },
+      "bear_2022": {
+        "final_wealth": 0.9939481015993205,
+        "total_return": -0.006051898400679545,
+        "max_drawdown": 0.11962697309248993,
+        "account_orders": 9,
+        "sharpe": 0.010862840969453485,
+        "calmar": -0.050589747815490596,
+        "worst_20d": -0.08876603334752997,
+        "worst_60d": -0.11805032447504982
+      },
+      "mixed_2023": {
+        "final_wealth": 3.2795638330973014,
+        "total_return": 2.2795638330973014,
+        "max_drawdown": 0.2325496274614437,
+        "account_orders": 72,
+        "sharpe": 2.4447761671694104,
+        "calmar": 9.80248327198567,
+        "worst_20d": -0.14796879596486923,
+        "worst_60d": -0.1649649625230144
+      },
+      "choppy_2024": {
+        "final_wealth": 3.886310279183183,
+        "total_return": 2.886310279183183,
+        "max_drawdown": 0.17332825750590009,
+        "account_orders": 39,
+        "sharpe": 2.582740612419955,
+        "calmar": 16.65227771118009,
+        "worst_20d": -0.123498437652099,
+        "worst_60d": -0.050061577880359254
+      },
+      "bull": {
+        "final_wealth": 13.218780929372876,
+        "total_return": 12.218780929372876,
+        "max_drawdown": 0.1598268629340448,
+        "account_orders": 12,
+        "sharpe": 3.684920471542492,
+        "calmar": 43.26411144984441,
+        "worst_20d": -0.14383019327522184,
+        "worst_60d": -0.01760865643727072
+      },
+      "through_july": {
+        "final_wealth": 11.700468163932875,
+        "total_return": 10.700468163932875,
+        "max_drawdown": 0.17229791315953624,
+        "account_orders": 15,
+        "sharpe": 3.4147716769834173,
+        "calmar": 32.37068747826068,
+        "worst_20d": -0.17229791315953624,
+        "worst_60d": -0.01760865643727072
+      },
+      "continuous_full": {
+        "final_wealth": 4.170811412011567,
+        "total_return": 3.1708114120115667,
+        "max_drawdown": 0.5313671044804422,
+        "account_orders": 142,
+        "sharpe": 0.693920280365826,
+        "calmar": 0.34159818920988494,
+        "worst_20d": -0.2455082237730598,
+        "worst_60d": -0.3452316155360049
+      }
+    }
+  },
+  "bull_comparison": {
+    "a": {
+      "new": {
+        "final_wealth": 13.109764764327329,
+        "total_return": 12.109764764327329,
+        "max_drawdown": 0.1595767426301642,
+        "account_orders": 10,
+        "sharpe": 3.6726884430230875,
+        "calmar": 43.00387863946087,
+        "worst_20d": -0.1435660934234375,
+        "worst_60d": -0.01759089198759467
+      },
+      "qwenquant": {
+        "final_wealth": 9.261919373104888,
+        "total_return": 8.261919373104888,
+        "max_drawdown": 0.19397225569735166,
+        "account_orders": 12,
+        "sharpe": null,
+        "calmar": null,
+        "worst_20d": null,
+        "worst_60d": null
+      },
+      "aquant": {
+        "final_wealth": 8.323240171373161,
+        "total_return": 7.323240171373161,
+        "max_drawdown": 0.18631871067152284,
+        "account_orders": 23,
+        "sharpe": null,
+        "calmar": null,
+        "worst_20d": null,
+        "worst_60d": null
+      },
+      "trade": {
+        "final_wealth": 3.4347051666792145,
+        "total_return": 2.4347051666792145,
+        "max_drawdown": 0.17540785704621414,
+        "account_orders": 204,
+        "sharpe": null,
+        "calmar": null,
+        "worst_20d": null,
+        "worst_60d": null
+      },
+      "best_wealth": 9.261919373104888,
+      "best_dd": 0.17540785704621414,
+      "qwen_allowed_orders": 14
+    },
+    "b": {
+      "new": {
+        "final_wealth": 13.109764764327329,
+        "total_return": 12.109764764327329,
+        "max_drawdown": 0.1595767426301642,
+        "account_orders": 10,
+        "sharpe": 3.6726884430230875,
+        "calmar": 43.00387863946087,
+        "worst_20d": -0.1435660934234375,
+        "worst_60d": -0.01759089198759467
+      },
+      "qwenquant": {
+        "final_wealth": 12.759460928832956,
+        "total_return": 11.759460928832956,
+        "max_drawdown": 0.20589314642575185,
+        "account_orders": 9,
+        "sharpe": null,
+        "calmar": null,
+        "worst_20d": null,
+        "worst_60d": null
+      },
+      "aquant": {
+        "final_wealth": 8.014474812347459,
+        "total_return": 7.0144748123474585,
+        "max_drawdown": 0.1745616481465524,
+        "account_orders": 29,
+        "sharpe": null,
+        "calmar": null,
+        "worst_20d": null,
+        "worst_60d": null
+      },
+      "trade": {
+        "final_wealth": 4.786129366764877,
+        "total_return": 3.786129366764877,
+        "max_drawdown": 0.1551819224420469,
+        "account_orders": 229,
+        "sharpe": null,
+        "calmar": null,
+        "worst_20d": null,
+        "worst_60d": null
+      },
+      "best_wealth": 12.759460928832956,
+      "best_dd": 0.1551819224420469,
+      "qwen_allowed_orders": 11
+    },
+    "c": {
+      "new": {
+        "final_wealth": 13.109764764327329,
+        "total_return": 12.109764764327329,
+        "max_drawdown": 0.1595767426301642,
+        "account_orders": 10,
+        "sharpe": 3.6726884430230875,
+        "calmar": 43.00387863946087,
+        "worst_20d": -0.1435660934234375,
+        "worst_60d": -0.01759089198759467
+      },
+      "qwenquant": {
+        "final_wealth": 10.148527908380672,
+        "total_return": 9.148527908380672,
+        "max_drawdown": 0.25863223960146253,
+        "account_orders": 13,
+        "sharpe": null,
+        "calmar": null,
+        "worst_20d": null,
+        "worst_60d": null
+      },
+      "aquant": {
+        "final_wealth": 3.5749003172064038,
+        "total_return": 2.5749003172064038,
+        "max_drawdown": 0.27753529329194926,
+        "account_orders": 36,
+        "sharpe": null,
+        "calmar": null,
+        "worst_20d": null,
+        "worst_60d": null
+      },
+      "trade": {
+        "final_wealth": 5.176759096371627,
+        "total_return": 4.176759096371627,
+        "max_drawdown": 0.15793467182055926,
+        "account_orders": 267,
+        "sharpe": null,
+        "calmar": null,
+        "worst_20d": null,
+        "worst_60d": null
+      },
+      "best_wealth": 10.148527908380672,
+      "best_dd": 0.15793467182055926,
+      "qwen_allowed_orders": 15
+    },
+    "d": {
+      "new": {
+        "final_wealth": 13.218780929372876,
+        "total_return": 12.218780929372876,
+        "max_drawdown": 0.1598268629340448,
+        "account_orders": 12,
+        "sharpe": 3.684920471542492,
+        "calmar": 43.26411144984441,
+        "worst_20d": -0.14383019327522184,
+        "worst_60d": -0.01760865643727072
+      },
+      "qwenquant": {
+        "final_wealth": 11.27320762192662,
+        "total_return": 10.27320762192662,
+        "max_drawdown": 0.21213576437205095,
+        "account_orders": 27,
+        "sharpe": null,
+        "calmar": null,
+        "worst_20d": null,
+        "worst_60d": null
+      },
+      "aquant": {
+        "final_wealth": 4.8750192129003596,
+        "total_return": 3.8750192129003596,
+        "max_drawdown": 0.18855145816193153,
+        "account_orders": 37,
+        "sharpe": null,
+        "calmar": null,
+        "worst_20d": null,
+        "worst_60d": null
+      },
+      "trade": {
+        "final_wealth": 2.6063916344896385,
+        "total_return": 1.6063916344896385,
+        "max_drawdown": 0.1861840805562635,
+        "account_orders": 65,
+        "sharpe": null,
+        "calmar": null,
+        "worst_20d": null,
+        "worst_60d": null
+      },
+      "best_wealth": 11.27320762192662,
+      "best_dd": 0.1861840805562635,
+      "qwen_allowed_orders": 29
+    },
+    "e": {
+      "new": {
+        "final_wealth": 13.218780929372876,
+        "total_return": 12.218780929372876,
+        "max_drawdown": 0.1598268629340448,
+        "account_orders": 12,
+        "sharpe": 3.684920471542492,
+        "calmar": 43.26411144984441,
+        "worst_20d": -0.14383019327522184,
+        "worst_60d": -0.01760865643727072
+      },
+      "qwenquant": {
+        "final_wealth": 11.694665267620202,
+        "total_return": 10.694665267620202,
+        "max_drawdown": 0.17272736961355817,
+        "account_orders": 26,
+        "sharpe": null,
+        "calmar": null,
+        "worst_20d": null,
+        "worst_60d": null
+      },
+      "aquant": {
+        "final_wealth": 5.893093145194082,
+        "total_return": 4.893093145194082,
+        "max_drawdown": 0.2375636802411265,
+        "account_orders": 68,
+        "sharpe": null,
+        "calmar": null,
+        "worst_20d": null,
+        "worst_60d": null
+      },
+      "trade": {
+        "final_wealth": 2.343820858902901,
+        "total_return": 1.3438208589029008,
+        "max_drawdown": 0.18689971530681354,
+        "account_orders": 157,
+        "sharpe": null,
+        "calmar": null,
+        "worst_20d": null,
+        "worst_60d": null
+      },
+      "best_wealth": 11.694665267620202,
+      "best_dd": 0.17272736961355817,
+      "qwen_allowed_orders": 28
+    }
+  },
+  "primary_cell_comparisons": [
+    {
+      "pool": "a",
+      "window": "bear_2018",
+      "new": {
+        "final_wealth": 1.0,
+        "total_return": 0.0,
+        "max_drawdown": -0.0,
+        "account_orders": 0,
+        "sharpe": 0.0,
+        "calmar": 0.0,
+        "worst_20d": 0.0,
+        "worst_60d": 0.0
+      },
+      "old": {
+        "qwenquant": {
+          "final_wealth": 0.784917398123856,
+          "total_return": -0.21508260187614403,
+          "max_drawdown": 0.36414018765468903,
+          "account_orders": 59,
+          "sharpe": null,
+          "calmar": null,
+          "worst_20d": null,
+          "worst_60d": null
+        },
+        "aquant": {
+          "final_wealth": 0.8205084307916302,
+          "total_return": -0.17949156920836984,
+          "max_drawdown": 0.3703994491415248,
+          "account_orders": 9,
+          "sharpe": null,
+          "calmar": null,
+          "worst_20d": null,
+          "worst_60d": null
+        },
+        "trade": {
+          "final_wealth": 0.8572792829335502,
+          "total_return": -0.14272071706644984,
+          "max_drawdown": 0.19496444698902984,
+          "account_orders": 106,
+          "sharpe": null,
+          "calmar": null,
+          "worst_20d": null,
+          "worst_60d": null
+        }
+      },
+      "near_best_return": true,
+      "near_best_dd": true,
+      "near_best_orders": true,
+      "dominated_by": []
+    },
+    {
+      "pool": "a",
+      "window": "crash_2020",
+      "new": {
+        "final_wealth": 1.0550517003337512,
+        "total_return": 0.055051700333751175,
+        "max_drawdown": 0.031785391529702944,
+        "account_orders": 4,
+        "sharpe": 1.1270140696017774,
+        "calmar": 1.7246618191624266,
+        "worst_20d": -0.031785391529702944,
+        "worst_60d": 0.0
+      },
+      "old": {
+        "qwenquant": {
+          "final_wealth": 1.4738134517626904,
+          "total_return": 0.4738134517626904,
+          "max_drawdown": 0.3499618746293959,
+          "account_orders": 22,
+          "sharpe": null,
+          "calmar": null,
+          "worst_20d": null,
+          "worst_60d": null
+        },
+        "aquant": {
+          "final_wealth": 1.1049708073260385,
+          "total_return": 0.10497080732603847,
+          "max_drawdown": 0.2483648615335291,
+          "account_orders": 26,
+          "sharpe": null,
+          "calmar": null,
+          "worst_20d": null,
+          "worst_60d": null
+        },
+        "trade": {
+          "final_wealth": 0.9803665108909755,
+          "total_return": -0.019633489109024516,
+          "max_drawdown": 0.18053155040939795,
+          "account_orders": 53,
+          "sharpe": null,
+          "calmar": null,
+          "worst_20d": null,
+          "worst_60d": null
+        }
+      },
+      "near_best_return": false,
+      "near_best_dd": true,
+      "near_best_orders": true,
+      "dominated_by": []
+    },
+    {
+      "pool": "a",
+      "window": "rotation_2021",
+      "new": {
+        "final_wealth": 1.0323217295151101,
+        "total_return": 0.03232172951511014,
+        "max_drawdown": 0.1996108502576417,
+        "account_orders": 7,
+        "sharpe": 0.2621704460774326,
+        "calmar": 0.1612467473661349,
+        "worst_20d": -0.12611427820399324,
+        "worst_60d": -0.1874142243826521
+      },
+      "old": {
+        "qwenquant": {
+          "final_wealth": 1.1792243090554755,
+          "total_return": 0.17922430905547548,
+          "max_drawdown": 0.2961680515524332,
+          "account_orders": 22,
+          "sharpe": null,
+          "calmar": null,
+          "worst_20d": null,
+          "worst_60d": null
+        },
+        "aquant": {
+          "final_wealth": 0.9344708687980499,
+          "total_return": -0.06552913120195014,
+          "max_drawdown": 0.17263148300147368,
+          "account_orders": 19,
+          "sharpe": null,
+          "calmar": null,
+          "worst_20d": null,
+          "worst_60d": null
+        },
+        "trade": {
+          "final_wealth": 0.9673783110931381,
+          "total_return": -0.0326216889068619,
+          "max_drawdown": 0.042452682830849894,
+          "account_orders": 19,
+          "sharpe": null,
+          "calmar": null,
+          "worst_20d": null,
+          "worst_60d": null
+        }
+      },
+      "near_best_return": false,
+      "near_best_dd": false,
+      "near_best_orders": true,
+      "dominated_by": []
+    },
+    {
+      "pool": "a",
+      "window": "bear_2022",
+      "new": {
+        "final_wealth": 1.0,
+        "total_return": 0.0,
+        "max_drawdown": -0.0,
+        "account_orders": 0,
+        "sharpe": 0.0,
+        "calmar": 0.0,
+        "worst_20d": 0.0,
+        "worst_60d": 0.0
+      },
+      "old": {
+        "qwenquant": {
+          "final_wealth": 0.6806490065614905,
+          "total_return": -0.3193509934385095,
+          "max_drawdown": 0.3193809793860095,
+          "account_orders": 32,
+          "sharpe": null,
+          "calmar": null,
+          "worst_20d": null,
+          "worst_60d": null
+        },
+        "aquant": {
+          "final_wealth": 0.6583873015665103,
+          "total_return": -0.34161269843348974,
+          "max_drawdown": 0.35837902130528987,
+          "account_orders": 10,
+          "sharpe": null,
+          "calmar": null,
+          "worst_20d": null,
+          "worst_60d": null
+        },
+        "trade": {
+          "final_wealth": 0.8778315427351252,
+          "total_return": -0.1221684572648748,
+          "max_drawdown": 0.12934035485265463,
+          "account_orders": 14,
+          "sharpe": null,
+          "calmar": null,
+          "worst_20d": null,
+          "worst_60d": null
+        }
+      },
+      "near_best_return": true,
+      "near_best_dd": true,
+      "near_best_orders": true,
+      "dominated_by": []
+    },
+    {
+      "pool": "a",
+      "window": "mixed_2023",
+      "new": {
+        "final_wealth": 3.5980527919669525,
+        "total_return": 2.5980527919669525,
+        "max_drawdown": 0.22746281587497907,
+        "account_orders": 38,
+        "sharpe": 2.558907132425896,
+        "calmar": 11.421879140874289,
+        "worst_20d": -0.14796879596486923,
+        "worst_60d": -0.15788822344975362
+      },
+      "old": {
+        "qwenquant": {
+          "final_wealth": 4.160824501854872,
+          "total_return": 3.160824501854872,
+          "max_drawdown": 0.35579703081695524,
+          "account_orders": 20,
+          "sharpe": null,
+          "calmar": null,
+          "worst_20d": null,
+          "worst_60d": null
+        },
+        "aquant": {
+          "final_wealth": 2.007555405269221,
+          "total_return": 1.0075554052692208,
+          "max_drawdown": 0.4424220199773785,
+          "account_orders": 19,
+          "sharpe": null,
+          "calmar": null,
+          "worst_20d": null,
+          "worst_60d": null
+        },
+        "trade": {
+          "final_wealth": 1.9647071964031257,
+          "total_return": 0.9647071964031257,
+          "max_drawdown": 0.18359414719543413,
+          "account_orders": 41,
+          "sharpe": null,
+          "calmar": null,
+          "worst_20d": null,
+          "worst_60d": null
+        }
+      },
+      "near_best_return": false,
+      "near_best_dd": false,
+      "near_best_orders": false,
+      "dominated_by": []
+    },
+    {
+      "pool": "a",
+      "window": "choppy_2024",
+      "new": {
+        "final_wealth": 1.8985400438984203,
+        "total_return": 0.8985400438984203,
+        "max_drawdown": 0.17332825750590009,
+        "account_orders": 27,
+        "sharpe": 1.5727763243372412,
+        "calmar": 5.18403667600382,
+        "worst_20d": -0.123498437652099,
+        "worst_60d": -0.12835856682617675
+      },
+      "old": {
+        "qwenquant": {
+          "final_wealth": 1.358736759164824,
+          "total_return": 0.35873675916482406,
+          "max_drawdown": 0.265590480565594,
+          "account_orders": 35,
+          "sharpe": null,
+          "calmar": null,
+          "worst_20d": null,
+          "worst_60d": null
+        },
+        "aquant": {
+          "final_wealth": 1.6219338434175008,
+          "total_return": 0.6219338434175008,
+          "max_drawdown": 0.2652788449095206,
+          "account_orders": 19,
+          "sharpe": null,
+          "calmar": null,
+          "worst_20d": null,
+          "worst_60d": null
+        },
+        "trade": {
+          "final_wealth": 1.6458349028532377,
+          "total_return": 0.6458349028532377,
+          "max_drawdown": 0.17218265744670835,
+          "account_orders": 176,
+          "sharpe": null,
+          "calmar": null,
+          "worst_20d": null,
+          "worst_60d": null
+        }
+      },
+      "near_best_return": true,
+      "near_best_dd": true,
+      "near_best_orders": false,
+      "dominated_by": []
+    },
+    {
+      "pool": "a",
+      "window": "bull",
+      "new": {
+        "final_wealth": 13.109764764327329,
+        "total_return": 12.109764764327329,
+        "max_drawdown": 0.1595767426301642,
+        "account_orders": 10,
+        "sharpe": 3.6726884430230875,
+        "calmar": 43.00387863946087,
+        "worst_20d": -0.1435660934234375,
+        "worst_60d": -0.01759089198759467
+      },
+      "old": {
+        "qwenquant": {
+          "final_wealth": 9.261919373104888,
+          "total_return": 8.261919373104888,
+          "max_drawdown": 0.19397225569735166,
+          "account_orders": 12,
+          "sharpe": null,
+          "calmar": null,
+          "worst_20d": null,
+          "worst_60d": null
+        },
+        "aquant": {
+          "final_wealth": 8.323240171373161,
+          "total_return": 7.323240171373161,
+          "max_drawdown": 0.18631871067152284,
+          "account_orders": 23,
+          "sharpe": null,
+          "calmar": null,
+          "worst_20d": null,
+          "worst_60d": null
+        },
+        "trade": {
+          "final_wealth": 3.4347051666792145,
+          "total_return": 2.4347051666792145,
+          "max_drawdown": 0.17540785704621414,
+          "account_orders": 204,
+          "sharpe": null,
+          "calmar": null,
+          "worst_20d": null,
+          "worst_60d": null
+        }
+      },
+      "near_best_return": true,
+      "near_best_dd": true,
+      "near_best_orders": true,
+      "dominated_by": []
+    },
+    {
+      "pool": "a",
+      "window": "through_july",
+      "new": {
+        "final_wealth": 11.606002422991327,
+        "total_return": 10.606002422991327,
+        "max_drawdown": 0.1722788438679067,
+        "account_orders": 13,
+        "sharpe": 3.403368901935273,
+        "calmar": 32.13798696406574,
+        "worst_20d": -0.1722788438679067,
+        "worst_60d": -0.01759089198759467
+      },
+      "old": {
+        "qwenquant": {
+          "final_wealth": 7.750611279921688,
+          "total_return": 6.750611279921688,
+          "max_drawdown": 0.21712204347793018,
+          "account_orders": 17,
+          "sharpe": null,
+          "calmar": null,
+          "worst_20d": null,
+          "worst_60d": null
+        },
+        "aquant": {
+          "final_wealth": 7.687456505443662,
+          "total_return": 6.687456505443662,
+          "max_drawdown": 0.18631871067152284,
+          "account_orders": 26,
+          "sharpe": null,
+          "calmar": null,
+          "worst_20d": null,
+          "worst_60d": null
+        },
+        "trade": {
+          "final_wealth": 3.434250594610465,
+          "total_return": 2.434250594610465,
+          "max_drawdown": 0.17540785704621414,
+          "account_orders": 206,
+          "sharpe": null,
+          "calmar": null,
+          "worst_20d": null,
+          "worst_60d": null
+        }
+      },
+      "near_best_return": true,
+      "near_best_dd": true,
+      "near_best_orders": true,
+      "dominated_by": []
+    },
+    {
+      "pool": "a",
+      "window": "continuous_full",
+      "new": {
+        "final_wealth": 38.13777764796843,
+        "total_return": 37.13777764796843,
+        "max_drawdown": 0.28669684576052445,
+        "account_orders": 95,
+        "sharpe": 1.4326400529701195,
+        "calmar": 1.8486862281892948,
+        "worst_20d": -0.20123062863864916,
+        "worst_60d": -0.22654319462021344
+      },
+      "old": {
+        "qwenquant": {
+          "final_wealth": 38.06301144764501,
+          "total_return": 37.06301144764501,
+          "max_drawdown": 0.5827834533882188,
+          "account_orders": 228,
+          "sharpe": null,
+          "calmar": null,
+          "worst_20d": null,
+          "worst_60d": null
+        },
+        "aquant": {
+          "final_wealth": 20.09500104420617,
+          "total_return": 19.09500104420617,
+          "max_drawdown": 0.5044874946188742,
+          "account_orders": 147,
+          "sharpe": null,
+          "calmar": null,
+          "worst_20d": null,
+          "worst_60d": null
+        },
+        "trade": {
+          "final_wealth": 0.8780743604394253,
+          "total_return": -0.12192563956057467,
+          "max_drawdown": 0.2111395565387973,
+          "account_orders": 154,
+          "sharpe": null,
+          "calmar": null,
+          "worst_20d": null,
+          "worst_60d": null
+        }
+      },
+      "near_best_return": true,
+      "near_best_dd": false,
+      "near_best_orders": true,
+      "dominated_by": []
+    },
+    {
+      "pool": "b",
+      "window": "bear_2018",
+      "new": {
+        "final_wealth": 0.9550517411077932,
+        "total_return": -0.04494825889220677,
+        "max_drawdown": 0.07663952737064572,
+        "account_orders": 2,
+        "sharpe": -0.7012571035997992,
+        "calmar": -0.5841305639231682,
+        "worst_20d": -0.07663952737064572,
+        "worst_60d": -0.07663952737064572
+      },
+      "old": {
+        "qwenquant": {
+          "final_wealth": 0.670981873827182,
+          "total_return": -0.329018126172818,
+          "max_drawdown": 0.4819255537693473,
+          "account_orders": 67,
+          "sharpe": null,
+          "calmar": null,
+          "worst_20d": null,
+          "worst_60d": null
+        },
+        "aquant": {
+          "final_wealth": 0.6259860063381733,
+          "total_return": -0.37401399366182675,
+          "max_drawdown": 0.5016358251067883,
+          "account_orders": 10,
+          "sharpe": null,
+          "calmar": null,
+          "worst_20d": null,
+          "worst_60d": null
+        },
+        "trade": {
+          "final_wealth": 0.8966463685353873,
+          "total_return": -0.10335363146461274,
+          "max_drawdown": 0.1873880774618893,
+          "account_orders": 87,
+          "sharpe": null,
+          "calmar": null,
+          "worst_20d": null,
+          "worst_60d": null
+        }
+      },
+      "near_best_return": true,
+      "near_best_dd": true,
+      "near_best_orders": true,
+      "dominated_by": []
+    },
+    {
+      "pool": "b",
+      "window": "crash_2020",
+      "new": {
+        "final_wealth": 1.0352747646818379,
+        "total_return": 0.03527476468183788,
+        "max_drawdown": 0.025884031925263673,
+        "account_orders": 2,
+        "sharpe": 0.5436378373522572,
+        "calmar": 1.3570946348466166,
+        "worst_20d": -0.014734321429433983,
+        "worst_60d": -0.010173068189465395
+      },
+      "old": {
+        "qwenquant": {
+          "final_wealth": 0.932149394408521,
+          "total_return": -0.06785060559147904,
+          "max_drawdown": 0.458312943539783,
+          "account_orders": 38,
+          "sharpe": null,
+          "calmar": null,
+          "worst_20d": null,
+          "worst_60d": null
+        },
+        "aquant": {
+          "final_wealth": 1.7926885251962195,
+          "total_return": 0.7926885251962195,
+          "max_drawdown": 0.2719468628939,
+          "account_orders": 36,
+          "sharpe": null,
+          "calmar": null,
+          "worst_20d": null,
+          "worst_60d": null
+        },
+        "trade": {
+          "final_wealth": 1.0767344008926507,
+          "total_return": 0.07673440089265071,
+          "max_drawdown": 0.21180135936191546,
+          "account_orders": 26,
+          "sharpe": null,
+          "calmar": null,
+          "worst_20d": null,
+          "worst_60d": null
+        }
+      },
+      "near_best_return": false,
+      "near_best_dd": true,
+      "near_best_orders": true,
+      "dominated_by": []
+    },
+    {
+      "pool": "b",
+      "window": "rotation_2021",
+      "new": {
+        "final_wealth": 1.1195121035740412,
+        "total_return": 0.11951210357404118,
+        "max_drawdown": 0.3093569189803469,
+        "account_orders": 17,
+        "sharpe": 0.5035933916200818,
+        "calmar": 0.3846434781466233,
+        "worst_20d": -0.22341691329867497,
+        "worst_60d": -0.23072653200393756
+      },
+      "old": {
+        "qwenquant": {
+          "final_wealth": 1.0143832142442175,
+          "total_return": 0.014383214244217513,
+          "max_drawdown": 0.3800011872890733,
+          "account_orders": 32,
+          "sharpe": null,
+          "calmar": null,
+          "worst_20d": null,
+          "worst_60d": null
+        },
+        "aquant": {
+          "final_wealth": 0.8081359432924506,
+          "total_return": -0.19186405670754936,
+          "max_drawdown": 0.2602205503634307,
+          "account_orders": 26,
+          "sharpe": null,
+          "calmar": null,
+          "worst_20d": null,
+          "worst_60d": null
+        },
+        "trade": {
+          "final_wealth": 0.8882251356350256,
+          "total_return": -0.11177486436497441,
+          "max_drawdown": 0.13708512382310312,
+          "account_orders": 26,
+          "sharpe": null,
+          "calmar": null,
+          "worst_20d": null,
+          "worst_60d": null
+        }
+      },
+      "near_best_return": true,
+      "near_best_dd": false,
+      "near_best_orders": true,
+      "dominated_by": []
+    },
+    {
+      "pool": "b",
+      "window": "bear_2022",
+      "new": {
+        "final_wealth": 1.0851920911949804,
+        "total_return": 0.08519209119498039,
+        "max_drawdown": 0.04496827432514272,
+        "account_orders": 4,
+        "sharpe": 0.7431397010237967,
+        "calmar": 1.89449322824798,
+        "worst_20d": -0.033306247287299806,
+        "worst_60d": -0.019915643638472202
+      },
+      "old": {
+        "qwenquant": {
+          "final_wealth": 0.6911343554791604,
+          "total_return": -0.30886564452083964,
+          "max_drawdown": 0.31090716446767164,
+          "account_orders": 33,
+          "sharpe": null,
+          "calmar": null,
+          "worst_20d": null,
+          "worst_60d": null
+        },
+        "aquant": {
+          "final_wealth": 0.6469019307927104,
+          "total_return": -0.3530980692072896,
+          "max_drawdown": 0.35618478072670967,
+          "account_orders": 20,
+          "sharpe": null,
+          "calmar": null,
+          "worst_20d": null,
+          "worst_60d": null
+        },
+        "trade": {
+          "final_wealth": 0.8670434004681252,
+          "total_return": -0.13295659953187478,
+          "max_drawdown": 0.13841666881737474,
+          "account_orders": 13,
+          "sharpe": null,
+          "calmar": null,
+          "worst_20d": null,
+          "worst_60d": null
+        }
+      },
+      "near_best_return": true,
+      "near_best_dd": true,
+      "near_best_orders": true,
+      "dominated_by": []
+    },
+    {
+      "pool": "b",
+      "window": "mixed_2023",
+      "new": {
+        "final_wealth": 3.5980527919669525,
+        "total_return": 2.5980527919669525,
+        "max_drawdown": 0.22746281587497907,
+        "account_orders": 38,
+        "sharpe": 2.558907132425896,
+        "calmar": 11.421879140874289,
+        "worst_20d": -0.14796879596486923,
+        "worst_60d": -0.15788822344975362
+      },
+      "old": {
+        "qwenquant": {
+          "final_wealth": 3.1084128964506705,
+          "total_return": 2.1084128964506705,
+          "max_drawdown": 0.3815425224280019,
+          "account_orders": 30,
+          "sharpe": null,
+          "calmar": null,
+          "worst_20d": null,
+          "worst_60d": null
+        },
+        "aquant": {
+          "final_wealth": 2.57150356281736,
+          "total_return": 1.5715035628173601,
+          "max_drawdown": 0.4558983232253574,
+          "account_orders": 19,
+          "sharpe": null,
+          "calmar": null,
+          "worst_20d": null,
+          "worst_60d": null
+        },
+        "trade": {
+          "final_wealth": 1.9541422083390008,
+          "total_return": 0.9541422083390008,
+          "max_drawdown": 0.18907539851877958,
+          "account_orders": 50,
+          "sharpe": null,
+          "calmar": null,
+          "worst_20d": null,
+          "worst_60d": null
+        }
+      },
+      "near_best_return": true,
+      "near_best_dd": false,
+      "near_best_orders": false,
+      "dominated_by": []
+    },
+    {
+      "pool": "b",
+      "window": "choppy_2024",
+      "new": {
+        "final_wealth": 1.8985400438984203,
+        "total_return": 0.8985400438984203,
+        "max_drawdown": 0.17332825750590009,
+        "account_orders": 27,
+        "sharpe": 1.5727763243372412,
+        "calmar": 5.18403667600382,
+        "worst_20d": -0.123498437652099,
+        "worst_60d": -0.12835856682617675
+      },
+      "old": {
+        "qwenquant": {
+          "final_wealth": 1.5614586939257946,
+          "total_return": 0.5614586939257946,
+          "max_drawdown": 0.2947605834388086,
+          "account_orders": 36,
+          "sharpe": null,
+          "calmar": null,
+          "worst_20d": null,
+          "worst_60d": null
+        },
+        "aquant": {
+          "final_wealth": 1.5694279677656446,
+          "total_return": 0.5694279677656446,
+          "max_drawdown": 0.2824900041731666,
+          "account_orders": 23,
+          "sharpe": null,
+          "calmar": null,
+          "worst_20d": null,
+          "worst_60d": null
+        },
+        "trade": {
+          "final_wealth": 1.6012148945325753,
+          "total_return": 0.6012148945325753,
+          "max_drawdown": 0.17218265744670835,
+          "account_orders": 173,
+          "sharpe": null,
+          "calmar": null,
+          "worst_20d": null,
+          "worst_60d": null
+        }
+      },
+      "near_best_return": true,
+      "near_best_dd": true,
+      "near_best_orders": false,
+      "dominated_by": []
+    },
+    {
+      "pool": "b",
+      "window": "bull",
+      "new": {
+        "final_wealth": 13.109764764327329,
+        "total_return": 12.109764764327329,
+        "max_drawdown": 0.1595767426301642,
+        "account_orders": 10,
+        "sharpe": 3.6726884430230875,
+        "calmar": 43.00387863946087,
+        "worst_20d": -0.1435660934234375,
+        "worst_60d": -0.01759089198759467
+      },
+      "old": {
+        "qwenquant": {
+          "final_wealth": 12.759460928832956,
+          "total_return": 11.759460928832956,
+          "max_drawdown": 0.20589314642575185,
+          "account_orders": 9,
+          "sharpe": null,
+          "calmar": null,
+          "worst_20d": null,
+          "worst_60d": null
+        },
+        "aquant": {
+          "final_wealth": 8.014474812347459,
+          "total_return": 7.0144748123474585,
+          "max_drawdown": 0.1745616481465524,
+          "account_orders": 29,
+          "sharpe": null,
+          "calmar": null,
+          "worst_20d": null,
+          "worst_60d": null
+        },
+        "trade": {
+          "final_wealth": 4.786129366764877,
+          "total_return": 3.786129366764877,
+          "max_drawdown": 0.1551819224420469,
+          "account_orders": 229,
+          "sharpe": null,
+          "calmar": null,
+          "worst_20d": null,
+          "worst_60d": null
+        }
+      },
+      "near_best_return": true,
+      "near_best_dd": true,
+      "near_best_orders": true,
+      "dominated_by": []
+    },
+    {
+      "pool": "b",
+      "window": "through_july",
+      "new": {
+        "final_wealth": 11.606002422991327,
+        "total_return": 10.606002422991327,
+        "max_drawdown": 0.1722788438679067,
+        "account_orders": 13,
+        "sharpe": 3.403368901935273,
+        "calmar": 32.13798696406574,
+        "worst_20d": -0.1722788438679067,
+        "worst_60d": -0.01759089198759467
+      },
+      "old": {
+        "qwenquant": {
+          "final_wealth": 10.941276274367516,
+          "total_return": 9.941276274367516,
+          "max_drawdown": 0.20589314642575185,
+          "account_orders": 13,
+          "sharpe": null,
+          "calmar": null,
+          "worst_20d": null,
+          "worst_60d": null
+        },
+        "aquant": {
+          "final_wealth": 6.311689992110669,
+          "total_return": 5.311689992110669,
+          "max_drawdown": 0.2279347945289215,
+          "account_orders": 34,
+          "sharpe": null,
+          "calmar": null,
+          "worst_20d": null,
+          "worst_60d": null
+        },
+        "trade": {
+          "final_wealth": 4.777885792764877,
+          "total_return": 3.7778857927648772,
+          "max_drawdown": 0.1551819224420469,
+          "account_orders": 231,
+          "sharpe": null,
+          "calmar": null,
+          "worst_20d": null,
+          "worst_60d": null
+        }
+      },
+      "near_best_return": true,
+      "near_best_dd": false,
+      "near_best_orders": true,
+      "dominated_by": []
+    },
+    {
+      "pool": "b",
+      "window": "continuous_full",
+      "new": {
+        "final_wealth": 24.329763567883727,
+        "total_return": 23.329763567883727,
+        "max_drawdown": 0.41760235012975955,
+        "account_orders": 71,
+        "sharpe": 1.2903010152135235,
+        "calmar": 1.0817919318677662,
+        "worst_20d": -0.23891795528859217,
+        "worst_60d": -0.3335040897717413
+      },
+      "old": {
+        "qwenquant": {
+          "final_wealth": 22.370679810917736,
+          "total_return": 21.370679810917736,
+          "max_drawdown": 0.5971999236786818,
+          "account_orders": 246,
+          "sharpe": null,
+          "calmar": null,
+          "worst_20d": null,
+          "worst_60d": null
+        },
+        "aquant": {
+          "final_wealth": 27.655988582057795,
+          "total_return": 26.655988582057795,
+          "max_drawdown": 0.5527791774738069,
+          "account_orders": 168,
+          "sharpe": null,
+          "calmar": null,
+          "worst_20d": null,
+          "worst_60d": null
+        },
+        "trade": {
+          "final_wealth": 1.2118022838588245,
+          "total_return": 0.2118022838588245,
+          "max_drawdown": 0.18974345791085379,
+          "account_orders": 210,
+          "sharpe": null,
+          "calmar": null,
+          "worst_20d": null,
+          "worst_60d": null
+        }
+      },
+      "near_best_return": false,
+      "near_best_dd": false,
+      "near_best_orders": true,
+      "dominated_by": []
+    },
+    {
+      "pool": "c",
+      "window": "bear_2018",
+      "new": {
+        "final_wealth": 0.9550517411077932,
+        "total_return": -0.04494825889220677,
+        "max_drawdown": 0.07663952737064572,
+        "account_orders": 2,
+        "sharpe": -0.7012571035997992,
+        "calmar": -0.5841305639231682,
+        "worst_20d": -0.07663952737064572,
+        "worst_60d": -0.07663952737064572
+      },
+      "old": {
+        "qwenquant": {
+          "final_wealth": 0.6059262573543427,
+          "total_return": -0.3940737426456573,
+          "max_drawdown": 0.46633030770369266,
+          "account_orders": 70,
+          "sharpe": null,
+          "calmar": null,
+          "worst_20d": null,
+          "worst_60d": null
+        },
+        "aquant": {
+          "final_wealth": 0.5302791541299123,
+          "total_return": -0.46972084587008767,
+          "max_drawdown": 0.5066479805101581,
+          "account_orders": 18,
+          "sharpe": null,
+          "calmar": null,
+          "worst_20d": null,
+          "worst_60d": null
+        },
+        "trade": {
+          "final_wealth": 0.8840514488419373,
+          "total_return": -0.11594855115806268,
+          "max_drawdown": 0.20195019562528554,
+          "account_orders": 100,
+          "sharpe": null,
+          "calmar": null,
+          "worst_20d": null,
+          "worst_60d": null
+        }
+      },
+      "near_best_return": true,
+      "near_best_dd": true,
+      "near_best_orders": true,
+      "dominated_by": []
+    },
+    {
+      "pool": "c",
+      "window": "crash_2020",
+      "new": {
+        "final_wealth": 0.9285788314682651,
+        "total_return": -0.07142116853173486,
+        "max_drawdown": 0.0814815494835649,
+        "account_orders": 2,
+        "sharpe": -1.3718753625950495,
+        "calmar": -0.8730561284351424,
+        "worst_20d": -0.0814815494835649,
+        "worst_60d": -0.07142116853173486
+      },
+      "old": {
+        "qwenquant": {
+          "final_wealth": 1.112521548615444,
+          "total_return": 0.11252154861544406,
+          "max_drawdown": 0.3628982856249302,
+          "account_orders": 38,
+          "sharpe": null,
+          "calmar": null,
+          "worst_20d": null,
+          "worst_60d": null
+        },
+        "aquant": {
+          "final_wealth": 1.7460916043209707,
+          "total_return": 0.7460916043209707,
+          "max_drawdown": 0.2510478062195932,
+          "account_orders": 46,
+          "sharpe": null,
+          "calmar": null,
+          "worst_20d": null,
+          "worst_60d": null
+        },
+        "trade": {
+          "final_wealth": 1.163001706407213,
+          "total_return": 0.1630017064072129,
+          "max_drawdown": 0.1894197007822254,
+          "account_orders": 25,
+          "sharpe": null,
+          "calmar": null,
+          "worst_20d": null,
+          "worst_60d": null
+        }
+      },
+      "near_best_return": false,
+      "near_best_dd": true,
+      "near_best_orders": true,
+      "dominated_by": []
+    },
+    {
+      "pool": "c",
+      "window": "rotation_2021",
+      "new": {
+        "final_wealth": 1.0446510801608424,
+        "total_return": 0.044651080160842405,
+        "max_drawdown": 0.3093471832790947,
+        "account_orders": 19,
+        "sharpe": 0.29820157315138945,
+        "calmar": 0.14373269765709273,
+        "worst_20d": -0.22400346137707372,
+        "worst_60d": -0.2676796603350057
+      },
+      "old": {
+        "qwenquant": {
+          "final_wealth": 1.4538417940462234,
+          "total_return": 0.4538417940462234,
+          "max_drawdown": 0.32521875351877694,
+          "account_orders": 38,
+          "sharpe": null,
+          "calmar": null,
+          "worst_20d": null,
+          "worst_60d": null
+        },
+        "aquant": {
+          "final_wealth": 1.3786530988657877,
+          "total_return": 0.3786530988657877,
+          "max_drawdown": 0.24503715586417563,
+          "account_orders": 42,
+          "sharpe": null,
+          "calmar": null,
+          "worst_20d": null,
+          "worst_60d": null
+        },
+        "trade": {
+          "final_wealth": 0.8755318302164877,
+          "total_return": -0.12446816978351227,
+          "max_drawdown": 0.1509230121908509,
+          "account_orders": 21,
+          "sharpe": null,
+          "calmar": null,
+          "worst_20d": null,
+          "worst_60d": null
+        }
+      },
+      "near_best_return": false,
+      "near_best_dd": false,
+      "near_best_orders": true,
+      "dominated_by": []
+    },
+    {
+      "pool": "c",
+      "window": "bear_2022",
+      "new": {
+        "final_wealth": 1.1657117382274205,
+        "total_return": 0.16571173822742047,
+        "max_drawdown": 0.044658804527218376,
+        "account_orders": 7,
+        "sharpe": 1.0773722813862443,
+        "calmar": 3.710617424307081,
+        "worst_20d": -0.033306247287299806,
+        "worst_60d": -0.019915643638472202
+      },
+      "old": {
+        "qwenquant": {
+          "final_wealth": 0.7538627091089107,
+          "total_return": -0.24613729089108927,
+          "max_drawdown": 0.28698965819973954,
+          "account_orders": 42,
+          "sharpe": null,
+          "calmar": null,
+          "worst_20d": null,
+          "worst_60d": null
+        },
+        "aquant": {
+          "final_wealth": 0.5771978071645603,
+          "total_return": -0.42280219283543974,
+          "max_drawdown": 0.45668485184750984,
+          "account_orders": 26,
+          "sharpe": null,
+          "calmar": null,
+          "worst_20d": null,
+          "worst_60d": null
+        },
+        "trade": {
+          "final_wealth": 0.8591509885587504,
+          "total_return": -0.14084901144124962,
+          "max_drawdown": 0.14451537917062454,
+          "account_orders": 28,
+          "sharpe": null,
+          "calmar": null,
+          "worst_20d": null,
+          "worst_60d": null
+        }
+      },
+      "near_best_return": true,
+      "near_best_dd": true,
+      "near_best_orders": true,
+      "dominated_by": []
+    },
+    {
+      "pool": "c",
+      "window": "mixed_2023",
+      "new": {
+        "final_wealth": 3.5980527919669525,
+        "total_return": 2.5980527919669525,
+        "max_drawdown": 0.22746281587497907,
+        "account_orders": 38,
+        "sharpe": 2.558907132425896,
+        "calmar": 11.421879140874289,
+        "worst_20d": -0.14796879596486923,
+        "worst_60d": -0.15788822344975362
+      },
+      "old": {
+        "qwenquant": {
+          "final_wealth": 1.271958437603186,
+          "total_return": 0.27195843760318605,
+          "max_drawdown": 0.36901891806128295,
+          "account_orders": 33,
+          "sharpe": null,
+          "calmar": null,
+          "worst_20d": null,
+          "worst_60d": null
+        },
+        "aquant": {
+          "final_wealth": 1.51288624064028,
+          "total_return": 0.5128862406402801,
+          "max_drawdown": 0.4349751282143438,
+          "account_orders": 27,
+          "sharpe": null,
+          "calmar": null,
+          "worst_20d": null,
+          "worst_60d": null
+        },
+        "trade": {
+          "final_wealth": 2.1978180564277503,
+          "total_return": 1.1978180564277503,
+          "max_drawdown": 0.17654872699502516,
+          "account_orders": 43,
+          "sharpe": null,
+          "calmar": null,
+          "worst_20d": null,
+          "worst_60d": null
+        }
+      },
+      "near_best_return": true,
+      "near_best_dd": false,
+      "near_best_orders": false,
+      "dominated_by": []
+    },
+    {
+      "pool": "c",
+      "window": "choppy_2024",
+      "new": {
+        "final_wealth": 1.8985400438984203,
+        "total_return": 0.8985400438984203,
+        "max_drawdown": 0.17332825750590009,
+        "account_orders": 27,
+        "sharpe": 1.5727763243372412,
+        "calmar": 5.18403667600382,
+        "worst_20d": -0.123498437652099,
+        "worst_60d": -0.12835856682617675
+      },
+      "old": {
+        "qwenquant": {
+          "final_wealth": 1.3265686817472306,
+          "total_return": 0.32656868174723064,
+          "max_drawdown": 0.2620609598863437,
+          "account_orders": 37,
+          "sharpe": null,
+          "calmar": null,
+          "worst_20d": null,
+          "worst_60d": null
+        },
+        "aquant": {
+          "final_wealth": 1.770257022484318,
+          "total_return": 0.7702570224843179,
+          "max_drawdown": 0.2653025880090675,
+          "account_orders": 35,
+          "sharpe": null,
+          "calmar": null,
+          "worst_20d": null,
+          "worst_60d": null
+        },
+        "trade": {
+          "final_wealth": 1.6012148945325753,
+          "total_return": 0.6012148945325753,
+          "max_drawdown": 0.17218265744670835,
+          "account_orders": 173,
+          "sharpe": null,
+          "calmar": null,
+          "worst_20d": null,
+          "worst_60d": null
+        }
+      },
+      "near_best_return": true,
+      "near_best_dd": true,
+      "near_best_orders": true,
+      "dominated_by": []
+    },
+    {
+      "pool": "c",
+      "window": "bull",
+      "new": {
+        "final_wealth": 13.109764764327329,
+        "total_return": 12.109764764327329,
+        "max_drawdown": 0.1595767426301642,
+        "account_orders": 10,
+        "sharpe": 3.6726884430230875,
+        "calmar": 43.00387863946087,
+        "worst_20d": -0.1435660934234375,
+        "worst_60d": -0.01759089198759467
+      },
+      "old": {
+        "qwenquant": {
+          "final_wealth": 10.148527908380672,
+          "total_return": 9.148527908380672,
+          "max_drawdown": 0.25863223960146253,
+          "account_orders": 13,
+          "sharpe": null,
+          "calmar": null,
+          "worst_20d": null,
+          "worst_60d": null
+        },
+        "aquant": {
+          "final_wealth": 3.5749003172064038,
+          "total_return": 2.5749003172064038,
+          "max_drawdown": 0.27753529329194926,
+          "account_orders": 36,
+          "sharpe": null,
+          "calmar": null,
+          "worst_20d": null,
+          "worst_60d": null
+        },
+        "trade": {
+          "final_wealth": 5.176759096371627,
+          "total_return": 4.176759096371627,
+          "max_drawdown": 0.15793467182055926,
+          "account_orders": 267,
+          "sharpe": null,
+          "calmar": null,
+          "worst_20d": null,
+          "worst_60d": null
+        }
+      },
+      "near_best_return": true,
+      "near_best_dd": true,
+      "near_best_orders": true,
+      "dominated_by": []
+    },
+    {
+      "pool": "c",
+      "window": "through_july",
+      "new": {
+        "final_wealth": 11.606002422991327,
+        "total_return": 10.606002422991327,
+        "max_drawdown": 0.1722788438679067,
+        "account_orders": 13,
+        "sharpe": 3.403368901935273,
+        "calmar": 32.13798696406574,
+        "worst_20d": -0.1722788438679067,
+        "worst_60d": -0.01759089198759467
+      },
+      "old": {
+        "qwenquant": {
+          "final_wealth": 8.368533500628493,
+          "total_return": 7.368533500628493,
+          "max_drawdown": 0.25863223960146253,
+          "account_orders": 21,
+          "sharpe": null,
+          "calmar": null,
+          "worst_20d": null,
+          "worst_60d": null
+        },
+        "aquant": {
+          "final_wealth": 3.070109842956844,
+          "total_return": 2.070109842956844,
+          "max_drawdown": 0.3018647510984577,
+          "account_orders": 40,
+          "sharpe": null,
+          "calmar": null,
+          "worst_20d": null,
+          "worst_60d": null
+        },
+        "trade": {
+          "final_wealth": 5.169869293909127,
+          "total_return": 4.169869293909127,
+          "max_drawdown": 0.15793467182055926,
+          "account_orders": 269,
+          "sharpe": null,
+          "calmar": null,
+          "worst_20d": null,
+          "worst_60d": null
+        }
+      },
+      "near_best_return": true,
+      "near_best_dd": false,
+      "near_best_orders": true,
+      "dominated_by": []
+    },
+    {
+      "pool": "c",
+      "window": "continuous_full",
+      "new": {
+        "final_wealth": 13.397813977136305,
+        "total_return": 12.397813977136305,
+        "max_drawdown": 0.41740419892586567,
+        "account_orders": 82,
+        "sharpe": 1.0837797072955337,
+        "calmar": 0.8482009691379166,
+        "worst_20d": -0.2393774437497952,
+        "worst_60d": -0.33339707692622256
+      },
+      "old": {
+        "qwenquant": {
+          "final_wealth": 30.529532031471607,
+          "total_return": 29.529532031471607,
+          "max_drawdown": 0.5131209484127228,
+          "account_orders": 281,
+          "sharpe": null,
+          "calmar": null,
+          "worst_20d": null,
+          "worst_60d": null
+        },
+        "aquant": {
+          "final_wealth": 10.434068509087076,
+          "total_return": 9.434068509087076,
+          "max_drawdown": 0.5235380537234824,
+          "account_orders": 241,
+          "sharpe": null,
+          "calmar": null,
+          "worst_20d": null,
+          "worst_60d": null
+        },
+        "trade": {
+          "final_wealth": 1.3137491613633625,
+          "total_return": 0.3137491613633625,
+          "max_drawdown": 0.20213471359275065,
+          "account_orders": 200,
+          "sharpe": null,
+          "calmar": null,
+          "worst_20d": null,
+          "worst_60d": null
+        }
+      },
+      "near_best_return": false,
+      "near_best_dd": false,
+      "near_best_orders": true,
+      "dominated_by": []
+    },
+    {
+      "pool": "d",
+      "window": "bear_2018",
+      "new": {
+        "final_wealth": 0.9550517411077932,
+        "total_return": -0.04494825889220677,
+        "max_drawdown": 0.07663952737064572,
+        "account_orders": 2,
+        "sharpe": -0.7012571035997992,
+        "calmar": -0.5841305639231682,
+        "worst_20d": -0.07663952737064572,
+        "worst_60d": -0.07663952737064572
+      },
+      "old": {
+        "qwenquant": {
+          "final_wealth": 0.5319517780313384,
+          "total_return": -0.4680482219686616,
+          "max_drawdown": 0.48845656367789736,
+          "account_orders": 72,
+          "sharpe": null,
+          "calmar": null,
+          "worst_20d": null,
+          "worst_60d": null
+        },
+        "aquant": {
+          "final_wealth": 0.8359974307098805,
+          "total_return": -0.16400256929011947,
+          "max_drawdown": 0.3193548027131382,
+          "account_orders": 18,
+          "sharpe": null,
+          "calmar": null,
+          "worst_20d": null,
+          "worst_60d": null
+        },
+        "trade": {
+          "final_wealth": 0.878331728087175,
+          "total_return": -0.12166827191282503,
+          "max_drawdown": 0.20405614523210697,
+          "account_orders": 106,
+          "sharpe": null,
+          "calmar": null,
+          "worst_20d": null,
+          "worst_60d": null
+        }
+      },
+      "near_best_return": true,
+      "near_best_dd": true,
+      "near_best_orders": true,
+      "dominated_by": []
+    },
+    {
+      "pool": "d",
+      "window": "crash_2020",
+      "new": {
+        "final_wealth": 1.0367420577833981,
+        "total_return": 0.03674205778339812,
+        "max_drawdown": 0.03742117848338489,
+        "account_orders": 6,
+        "sharpe": 0.4936207236989841,
+        "calmar": 0.9777383953618983,
+        "worst_20d": -0.025982034456974112,
+        "worst_60d": -0.025982034456974112
+      },
+      "old": {
+        "qwenquant": {
+          "final_wealth": 0.9404264015588596,
+          "total_return": -0.05957359844114041,
+          "max_drawdown": 0.4312442138873418,
+          "account_orders": 33,
+          "sharpe": null,
+          "calmar": null,
+          "worst_20d": null,
+          "worst_60d": null
+        },
+        "aquant": {
+          "final_wealth": 1.498478955084491,
+          "total_return": 0.498478955084491,
+          "max_drawdown": 0.24413679587181536,
+          "account_orders": 54,
+          "sharpe": null,
+          "calmar": null,
+          "worst_20d": null,
+          "worst_60d": null
+        },
+        "trade": {
+          "final_wealth": 1.110956094674363,
+          "total_return": 0.11095609467436307,
+          "max_drawdown": 0.18219014512520487,
+          "account_orders": 26,
+          "sharpe": null,
+          "calmar": null,
+          "worst_20d": null,
+          "worst_60d": null
+        }
+      },
+      "near_best_return": false,
+      "near_best_dd": true,
+      "near_best_orders": true,
+      "dominated_by": []
+    },
+    {
+      "pool": "d",
+      "window": "rotation_2021",
+      "new": {
+        "final_wealth": 1.0494181196891204,
+        "total_return": 0.049418119689120354,
+        "max_drawdown": 0.309310046709964,
+        "account_orders": 20,
+        "sharpe": 0.31151934521882113,
+        "calmar": 0.1590954769369504,
+        "worst_20d": -0.22383422208873027,
+        "worst_60d": -0.26475343365032067
+      },
+      "old": {
+        "qwenquant": {
+          "final_wealth": 1.810683192452555,
+          "total_return": 0.810683192452555,
+          "max_drawdown": 0.28631841413698467,
+          "account_orders": 34,
+          "sharpe": null,
+          "calmar": null,
+          "worst_20d": null,
+          "worst_60d": null
+        },
+        "aquant": {
+          "final_wealth": 0.9348959259860957,
+          "total_return": -0.06510407401390428,
+          "max_drawdown": 0.4137088114536901,
+          "account_orders": 62,
+          "sharpe": null,
+          "calmar": null,
+          "worst_20d": null,
+          "worst_60d": null
+        },
+        "trade": {
+          "final_wealth": 1.0887895726915757,
+          "total_return": 0.08878957269157572,
+          "max_drawdown": 0.13649785917345036,
+          "account_orders": 35,
+          "sharpe": null,
+          "calmar": null,
+          "worst_20d": null,
+          "worst_60d": null
+        }
+      },
+      "near_best_return": false,
+      "near_best_dd": false,
+      "near_best_orders": true,
+      "dominated_by": []
+    },
+    {
+      "pool": "d",
+      "window": "bear_2022",
+      "new": {
+        "final_wealth": 1.0024495410474703,
+        "total_return": 0.002449541047470305,
+        "max_drawdown": 0.11962697309248993,
+        "account_orders": 8,
+        "sharpe": 0.0817834541054244,
+        "calmar": 0.020476494423849006,
+        "worst_20d": -0.08876603334752997,
+        "worst_60d": -0.11805032447504982
+      },
+      "old": {
+        "qwenquant": {
+          "final_wealth": 0.7894527579922613,
+          "total_return": -0.21054724200773867,
+          "max_drawdown": 0.30756945357672405,
+          "account_orders": 54,
+          "sharpe": null,
+          "calmar": null,
+          "worst_20d": null,
+          "worst_60d": null
+        },
+        "aquant": {
+          "final_wealth": 0.6308591783343402,
+          "total_return": -0.36914082166565976,
+          "max_drawdown": 0.4905222956756098,
+          "account_orders": 18,
+          "sharpe": null,
+          "calmar": null,
+          "worst_20d": null,
+          "worst_60d": null
+        },
+        "trade": {
+          "final_wealth": 0.8581740438766248,
+          "total_return": -0.14182595612337523,
+          "max_drawdown": 0.1536682108431249,
+          "account_orders": 36,
+          "sharpe": null,
+          "calmar": null,
+          "worst_20d": null,
+          "worst_60d": null
+        }
+      },
+      "near_best_return": true,
+      "near_best_dd": true,
+      "near_best_orders": true,
+      "dominated_by": []
+    },
+    {
+      "pool": "d",
+      "window": "mixed_2023",
+      "new": {
+        "final_wealth": 3.5980527919669525,
+        "total_return": 2.5980527919669525,
+        "max_drawdown": 0.22746281587497907,
+        "account_orders": 38,
+        "sharpe": 2.558907132425896,
+        "calmar": 11.421879140874289,
+        "worst_20d": -0.14796879596486923,
+        "worst_60d": -0.15788822344975362
+      },
+      "old": {
+        "qwenquant": {
+          "final_wealth": 2.6815513564035105,
+          "total_return": 1.6815513564035105,
+          "max_drawdown": 0.40404810855466256,
+          "account_orders": 44,
+          "sharpe": null,
+          "calmar": null,
+          "worst_20d": null,
+          "worst_60d": null
+        },
+        "aquant": {
+          "final_wealth": 1.4972897872184305,
+          "total_return": 0.49728978721843053,
+          "max_drawdown": 0.40190964165935317,
+          "account_orders": 25,
+          "sharpe": null,
+          "calmar": null,
+          "worst_20d": null,
+          "worst_60d": null
+        },
+        "trade": {
+          "final_wealth": 2.154635095614375,
+          "total_return": 1.154635095614375,
+          "max_drawdown": 0.1814084407844754,
+          "account_orders": 49,
+          "sharpe": null,
+          "calmar": null,
+          "worst_20d": null,
+          "worst_60d": null
+        }
+      },
+      "near_best_return": true,
+      "near_best_dd": false,
+      "near_best_orders": false,
+      "dominated_by": []
+    },
+    {
+      "pool": "d",
+      "window": "choppy_2024",
+      "new": {
+        "final_wealth": 3.6642345565248466,
+        "total_return": 2.6642345565248466,
+        "max_drawdown": 0.17332825750590009,
+        "account_orders": 35,
+        "sharpe": 2.549762292597423,
+        "calmar": 15.37103409946965,
+        "worst_20d": -0.123498437652099,
+        "worst_60d": -0.050061577880359254
+      },
+      "old": {
+        "qwenquant": {
+          "final_wealth": 2.3198854027531315,
+          "total_return": 1.3198854027531315,
+          "max_drawdown": 0.29491208852613937,
+          "account_orders": 34,
+          "sharpe": null,
+          "calmar": null,
+          "worst_20d": null,
+          "worst_60d": null
+        },
+        "aquant": {
+          "final_wealth": 1.8456853818653327,
+          "total_return": 0.8456853818653327,
+          "max_drawdown": 0.24592973503374982,
+          "account_orders": 43,
+          "sharpe": null,
+          "calmar": null,
+          "worst_20d": null,
+          "worst_60d": null
+        },
+        "trade": {
+          "final_wealth": 1.5934857810316878,
+          "total_return": 0.5934857810316878,
+          "max_drawdown": 0.17218265744670835,
+          "account_orders": 176,
+          "sharpe": null,
+          "calmar": null,
+          "worst_20d": null,
+          "worst_60d": null
+        }
+      },
+      "near_best_return": true,
+      "near_best_dd": true,
+      "near_best_orders": true,
+      "dominated_by": []
+    },
+    {
+      "pool": "d",
+      "window": "bull",
+      "new": {
+        "final_wealth": 13.218780929372876,
+        "total_return": 12.218780929372876,
+        "max_drawdown": 0.1598268629340448,
+        "account_orders": 12,
+        "sharpe": 3.684920471542492,
+        "calmar": 43.26411144984441,
+        "worst_20d": -0.14383019327522184,
+        "worst_60d": -0.01760865643727072
+      },
+      "old": {
+        "qwenquant": {
+          "final_wealth": 11.27320762192662,
+          "total_return": 10.27320762192662,
+          "max_drawdown": 0.21213576437205095,
+          "account_orders": 27,
+          "sharpe": null,
+          "calmar": null,
+          "worst_20d": null,
+          "worst_60d": null
+        },
+        "aquant": {
+          "final_wealth": 4.8750192129003596,
+          "total_return": 3.8750192129003596,
+          "max_drawdown": 0.18855145816193153,
+          "account_orders": 37,
+          "sharpe": null,
+          "calmar": null,
+          "worst_20d": null,
+          "worst_60d": null
+        },
+        "trade": {
+          "final_wealth": 2.6063916344896385,
+          "total_return": 1.6063916344896385,
+          "max_drawdown": 0.1861840805562635,
+          "account_orders": 65,
+          "sharpe": null,
+          "calmar": null,
+          "worst_20d": null,
+          "worst_60d": null
+        }
+      },
+      "near_best_return": true,
+      "near_best_dd": true,
+      "near_best_orders": true,
+      "dominated_by": []
+    },
+    {
+      "pool": "d",
+      "window": "through_july",
+      "new": {
+        "final_wealth": 11.700468163932875,
+        "total_return": 10.700468163932875,
+        "max_drawdown": 0.17229791315953624,
+        "account_orders": 15,
+        "sharpe": 3.4147716769834173,
+        "calmar": 32.37068747826068,
+        "worst_20d": -0.17229791315953624,
+        "worst_60d": -0.01760865643727072
+      },
+      "old": {
+        "qwenquant": {
+          "final_wealth": 9.228179609750681,
+          "total_return": 8.228179609750681,
+          "max_drawdown": 0.21213576437205095,
+          "account_orders": 36,
+          "sharpe": null,
+          "calmar": null,
+          "worst_20d": null,
+          "worst_60d": null
+        },
+        "aquant": {
+          "final_wealth": 3.845484582703499,
+          "total_return": 2.845484582703499,
+          "max_drawdown": 0.2531345367010799,
+          "account_orders": 46,
+          "sharpe": null,
+          "calmar": null,
+          "worst_20d": null,
+          "worst_60d": null
+        },
+        "trade": {
+          "final_wealth": 2.6063916344896385,
+          "total_return": 1.6063916344896385,
+          "max_drawdown": 0.1861840805562635,
+          "account_orders": 65,
+          "sharpe": null,
+          "calmar": null,
+          "worst_20d": null,
+          "worst_60d": null
+        }
+      },
+      "near_best_return": true,
+      "near_best_dd": true,
+      "near_best_orders": true,
+      "dominated_by": []
+    },
+    {
+      "pool": "d",
+      "window": "continuous_full",
+      "new": {
+        "final_wealth": 15.284746742256,
+        "total_return": 14.284746742256,
+        "max_drawdown": 0.4174983920016825,
+        "account_orders": 105,
+        "sharpe": 1.134645214196437,
+        "calmar": 0.8983069891761741,
+        "worst_20d": -0.238873443578988,
+        "worst_60d": -0.3335285631080833
+      },
+      "old": {
+        "qwenquant": {
+          "final_wealth": 43.59158921323291,
+          "total_return": 42.59158921323291,
+          "max_drawdown": 0.5488396929720302,
+          "account_orders": 321,
+          "sharpe": null,
+          "calmar": null,
+          "worst_20d": null,
+          "worst_60d": null
+        },
+        "aquant": {
+          "final_wealth": 26.59212892110167,
+          "total_return": 25.59212892110167,
+          "max_drawdown": 0.4628645683037733,
+          "account_orders": 249,
+          "sharpe": null,
+          "calmar": null,
+          "worst_20d": null,
+          "worst_60d": null
+        },
+        "trade": {
+          "final_wealth": 1.2791405226971244,
+          "total_return": 0.2791405226971244,
+          "max_drawdown": 0.20405614523210697,
+          "account_orders": 213,
+          "sharpe": null,
+          "calmar": null,
+          "worst_20d": null,
+          "worst_60d": null
+        }
+      },
+      "near_best_return": false,
+      "near_best_dd": false,
+      "near_best_orders": true,
+      "dominated_by": []
+    },
+    {
+      "pool": "e",
+      "window": "bear_2018",
+      "new": {
+        "final_wealth": 0.892004650034365,
+        "total_return": -0.10799534996563498,
+        "max_drawdown": 0.11938835240403745,
+        "account_orders": 2,
+        "sharpe": -1.4929681791198186,
+        "calmar": -0.9010572267249327,
+        "worst_20d": -0.11938835240403745,
+        "worst_60d": -0.11938835240403745
+      },
+      "old": {
+        "qwenquant": {
+          "final_wealth": 0.5402461701821819,
+          "total_return": -0.4597538298178181,
+          "max_drawdown": 0.466981012166938,
+          "account_orders": 90,
+          "sharpe": null,
+          "calmar": null,
+          "worst_20d": null,
+          "worst_60d": null
+        },
+        "aquant": {
+          "final_wealth": 0.8393842773818196,
+          "total_return": -0.16061572261818036,
+          "max_drawdown": 0.3508533408082507,
+          "account_orders": 34,
+          "sharpe": null,
+          "calmar": null,
+          "worst_20d": null,
+          "worst_60d": null
+        },
+        "trade": {
+          "final_wealth": 0.8821716662016376,
+          "total_return": -0.11782833379836244,
+          "max_drawdown": 0.19844360499053415,
+          "account_orders": 102,
+          "sharpe": null,
+          "calmar": null,
+          "worst_20d": null,
+          "worst_60d": null
+        }
+      },
+      "near_best_return": true,
+      "near_best_dd": true,
+      "near_best_orders": true,
+      "dominated_by": []
+    },
+    {
+      "pool": "e",
+      "window": "crash_2020",
+      "new": {
+        "final_wealth": 0.7699159477817386,
+        "total_return": -0.23008405221826145,
+        "max_drawdown": 0.32476943568515126,
+        "account_orders": 25,
+        "sharpe": -0.9017867139038098,
+        "calmar": -0.7059012727439566,
+        "worst_20d": -0.15439419627948214,
+        "worst_60d": -0.22661299071386565
+      },
+      "old": {
+        "qwenquant": {
+          "final_wealth": 1.203338128684962,
+          "total_return": 0.20333812868496204,
+          "max_drawdown": 0.4553239740106919,
+          "account_orders": 30,
+          "sharpe": null,
+          "calmar": null,
+          "worst_20d": null,
+          "worst_60d": null
+        },
+        "aquant": {
+          "final_wealth": 1.218698247961871,
+          "total_return": 0.2186982479618711,
+          "max_drawdown": 0.4100930445213298,
+          "account_orders": 90,
+          "sharpe": null,
+          "calmar": null,
+          "worst_20d": null,
+          "worst_60d": null
+        },
+        "trade": {
+          "final_wealth": 1.1102801315271127,
+          "total_return": 0.11028013152711269,
+          "max_drawdown": 0.20730662156689805,
+          "account_orders": 26,
+          "sharpe": null,
+          "calmar": null,
+          "worst_20d": null,
+          "worst_60d": null
+        }
+      },
+      "near_best_return": false,
+      "near_best_dd": false,
+      "near_best_orders": true,
+      "dominated_by": []
+    },
+    {
+      "pool": "e",
+      "window": "rotation_2021",
+      "new": {
+        "final_wealth": 1.0163344947704251,
+        "total_return": 0.016334494770425145,
+        "max_drawdown": 0.19297744521633597,
+        "account_orders": 14,
+        "sharpe": 0.18250590881054593,
+        "calmar": 0.08429343040474127,
+        "worst_20d": -0.09316641367954748,
+        "worst_60d": -0.12308916524531965
+      },
+      "old": {
+        "qwenquant": {
+          "final_wealth": 1.5338118178650317,
+          "total_return": 0.5338118178650317,
+          "max_drawdown": 0.33722253795815493,
+          "account_orders": 22,
+          "sharpe": null,
+          "calmar": null,
+          "worst_20d": null,
+          "worst_60d": null
+        },
+        "aquant": {
+          "final_wealth": 1.6156708689191595,
+          "total_return": 0.6156708689191595,
+          "max_drawdown": 0.2986589239404974,
+          "account_orders": 81,
+          "sharpe": null,
+          "calmar": null,
+          "worst_20d": null,
+          "worst_60d": null
+        },
+        "trade": {
+          "final_wealth": 0.879830620622363,
+          "total_return": -0.12016937937763705,
+          "max_drawdown": 0.18290020608297106,
+          "account_orders": 30,
+          "sharpe": null,
+          "calmar": null,
+          "worst_20d": null,
+          "worst_60d": null
+        }
+      },
+      "near_best_return": false,
+      "near_best_dd": false,
+      "near_best_orders": true,
+      "dominated_by": []
+    },
+    {
+      "pool": "e",
+      "window": "bear_2022",
+      "new": {
+        "final_wealth": 0.9939481015993205,
+        "total_return": -0.006051898400679545,
+        "max_drawdown": 0.11962697309248993,
+        "account_orders": 9,
+        "sharpe": 0.010862840969453485,
+        "calmar": -0.050589747815490596,
+        "worst_20d": -0.08876603334752997,
+        "worst_60d": -0.11805032447504982
+      },
+      "old": {
+        "qwenquant": {
+          "final_wealth": 0.8156047159140007,
+          "total_return": -0.18439528408599926,
+          "max_drawdown": 0.41598524736967646,
+          "account_orders": 40,
+          "sharpe": null,
+          "calmar": null,
+          "worst_20d": null,
+          "worst_60d": null
+        },
+        "aquant": {
+          "final_wealth": 1.1003589771409656,
+          "total_return": 0.10035897714096564,
+          "max_drawdown": 0.3530738288474503,
+          "account_orders": 34,
+          "sharpe": null,
+          "calmar": null,
+          "worst_20d": null,
+          "worst_60d": null
+        },
+        "trade": {
+          "final_wealth": 0.8465327044435,
+          "total_return": -0.15346729555649996,
+          "max_drawdown": 0.1781775248425,
+          "account_orders": 18,
+          "sharpe": null,
+          "calmar": null,
+          "worst_20d": null,
+          "worst_60d": null
+        }
+      },
+      "near_best_return": false,
+      "near_best_dd": true,
+      "near_best_orders": true,
+      "dominated_by": []
+    },
+    {
+      "pool": "e",
+      "window": "mixed_2023",
+      "new": {
+        "final_wealth": 3.2795638330973014,
+        "total_return": 2.2795638330973014,
+        "max_drawdown": 0.2325496274614437,
+        "account_orders": 72,
+        "sharpe": 2.4447761671694104,
+        "calmar": 9.80248327198567,
+        "worst_20d": -0.14796879596486923,
+        "worst_60d": -0.1649649625230144
+      },
+      "old": {
+        "qwenquant": {
+          "final_wealth": 1.3627263803868506,
+          "total_return": 0.36272638038685057,
+          "max_drawdown": 0.4193071319950602,
+          "account_orders": 40,
+          "sharpe": null,
+          "calmar": null,
+          "worst_20d": null,
+          "worst_60d": null
+        },
+        "aquant": {
+          "final_wealth": 1.578909425511966,
+          "total_return": 0.578909425511966,
+          "max_drawdown": 0.41634874562702895,
+          "account_orders": 43,
+          "sharpe": null,
+          "calmar": null,
+          "worst_20d": null,
+          "worst_60d": null
+        },
+        "trade": {
+          "final_wealth": 1.3754592565915005,
+          "total_return": 0.3754592565915005,
+          "max_drawdown": 0.18897801429828523,
+          "account_orders": 39,
+          "sharpe": null,
+          "calmar": null,
+          "worst_20d": null,
+          "worst_60d": null
+        }
+      },
+      "near_best_return": true,
+      "near_best_dd": false,
+      "near_best_orders": false,
+      "dominated_by": []
+    },
+    {
+      "pool": "e",
+      "window": "choppy_2024",
+      "new": {
+        "final_wealth": 3.886310279183183,
+        "total_return": 2.886310279183183,
+        "max_drawdown": 0.17332825750590009,
+        "account_orders": 39,
+        "sharpe": 2.582740612419955,
+        "calmar": 16.65227771118009,
+        "worst_20d": -0.123498437652099,
+        "worst_60d": -0.050061577880359254
+      },
+      "old": {
+        "qwenquant": {
+          "final_wealth": 2.729804995747953,
+          "total_return": 1.729804995747953,
+          "max_drawdown": 0.2953516365575999,
+          "account_orders": 27,
+          "sharpe": null,
+          "calmar": null,
+          "worst_20d": null,
+          "worst_60d": null
+        },
+        "aquant": {
+          "final_wealth": 1.4851876039388185,
+          "total_return": 0.48518760393881855,
+          "max_drawdown": 0.31523776166377826,
+          "account_orders": 57,
+          "sharpe": null,
+          "calmar": null,
+          "worst_20d": null,
+          "worst_60d": null
+        },
+        "trade": {
+          "final_wealth": 1.5806329836076756,
+          "total_return": 0.5806329836076756,
+          "max_drawdown": 0.17218265744670835,
+          "account_orders": 177,
+          "sharpe": null,
+          "calmar": null,
+          "worst_20d": null,
+          "worst_60d": null
+        }
+      },
+      "near_best_return": true,
+      "near_best_dd": true,
+      "near_best_orders": false,
+      "dominated_by": []
+    },
+    {
+      "pool": "e",
+      "window": "bull",
+      "new": {
+        "final_wealth": 13.218780929372876,
+        "total_return": 12.218780929372876,
+        "max_drawdown": 0.1598268629340448,
+        "account_orders": 12,
+        "sharpe": 3.684920471542492,
+        "calmar": 43.26411144984441,
+        "worst_20d": -0.14383019327522184,
+        "worst_60d": -0.01760865643727072
+      },
+      "old": {
+        "qwenquant": {
+          "final_wealth": 11.694665267620202,
+          "total_return": 10.694665267620202,
+          "max_drawdown": 0.17272736961355817,
+          "account_orders": 26,
+          "sharpe": null,
+          "calmar": null,
+          "worst_20d": null,
+          "worst_60d": null
+        },
+        "aquant": {
+          "final_wealth": 5.893093145194082,
+          "total_return": 4.893093145194082,
+          "max_drawdown": 0.2375636802411265,
+          "account_orders": 68,
+          "sharpe": null,
+          "calmar": null,
+          "worst_20d": null,
+          "worst_60d": null
+        },
+        "trade": {
+          "final_wealth": 2.343820858902901,
+          "total_return": 1.3438208589029008,
+          "max_drawdown": 0.18689971530681354,
+          "account_orders": 157,
+          "sharpe": null,
+          "calmar": null,
+          "worst_20d": null,
+          "worst_60d": null
+        }
+      },
+      "near_best_return": true,
+      "near_best_dd": true,
+      "near_best_orders": true,
+      "dominated_by": []
+    },
+    {
+      "pool": "e",
+      "window": "through_july",
+      "new": {
+        "final_wealth": 11.700468163932875,
+        "total_return": 10.700468163932875,
+        "max_drawdown": 0.17229791315953624,
+        "account_orders": 15,
+        "sharpe": 3.4147716769834173,
+        "calmar": 32.37068747826068,
+        "worst_20d": -0.17229791315953624,
+        "worst_60d": -0.01760865643727072
+      },
+      "old": {
+        "qwenquant": {
+          "final_wealth": 9.714235620106383,
+          "total_return": 8.714235620106383,
+          "max_drawdown": 0.17818486465614336,
+          "account_orders": 35,
+          "sharpe": null,
+          "calmar": null,
+          "worst_20d": null,
+          "worst_60d": null
+        },
+        "aquant": {
+          "final_wealth": 3.956630461195172,
+          "total_return": 2.956630461195172,
+          "max_drawdown": 0.3285986893959293,
+          "account_orders": 81,
+          "sharpe": null,
+          "calmar": null,
+          "worst_20d": null,
+          "worst_60d": null
+        },
+        "trade": {
+          "final_wealth": 2.343820858902901,
+          "total_return": 1.3438208589029008,
+          "max_drawdown": 0.18689971530681354,
+          "account_orders": 157,
+          "sharpe": null,
+          "calmar": null,
+          "worst_20d": null,
+          "worst_60d": null
+        }
+      },
+      "near_best_return": true,
+      "near_best_dd": true,
+      "near_best_orders": true,
+      "dominated_by": []
+    },
+    {
+      "pool": "e",
+      "window": "continuous_full",
+      "new": {
+        "final_wealth": 4.170811412011567,
+        "total_return": 3.1708114120115667,
+        "max_drawdown": 0.5313671044804422,
+        "account_orders": 142,
+        "sharpe": 0.693920280365826,
+        "calmar": 0.34159818920988494,
+        "worst_20d": -0.2455082237730598,
+        "worst_60d": -0.3452316155360049
+      },
+      "old": {
+        "qwenquant": {
+          "final_wealth": 14.384050828925862,
+          "total_return": 13.384050828925862,
+          "max_drawdown": 0.5901435891596425,
+          "account_orders": 318,
+          "sharpe": null,
+          "calmar": null,
+          "worst_20d": null,
+          "worst_60d": null
+        },
+        "aquant": {
+          "final_wealth": 6.036075972450094,
+          "total_return": 5.036075972450094,
+          "max_drawdown": 0.4702638501170523,
+          "account_orders": 320,
+          "sharpe": null,
+          "calmar": null,
+          "worst_20d": null,
+          "worst_60d": null
+        },
+        "trade": {
+          "final_wealth": 1.1084097781893627,
+          "total_return": 0.1084097781893627,
+          "max_drawdown": 0.19844360499053415,
+          "account_orders": 166,
+          "sharpe": null,
+          "calmar": null,
+          "worst_20d": null,
+          "worst_60d": null
+        }
+      },
+      "near_best_return": false,
+      "near_best_dd": false,
+      "near_best_orders": true,
+      "dominated_by": []
+    }
+  ],
+  "dominated_cells": 0,
+  "primary_aggregate": {
+    "return_rate": 0.6666666666666666,
+    "dd_rate": 0.6,
+    "orders_rate": 0.8222222222222222
+  },
+  "final_gates": {
+    "Correctness": true,
+    "Production replay": true,
+    "No future leakage": true,
+    "Bull non-inferiority": true,
+    "Bear non-inferiority": true,
+    "Choppy non-inferiority": true,
+    "Acute risk": true,
+    "Trade count": true,
+    "Random stress": true,
+    "Add/drop": true,
+    "Leader quality": true,
+    "Risk lead-time": true,
+    "Parameter stability": true,
+    "Holdback": false,
+    "Matrix complete": true,
+    "No dominated cells": true,
+    "Primary aggregate": true,
+    "No dependency on old projects": true
+  },
+  "results": [
+    {
+      "id": "A1",
+      "status": "PASS",
+      "actual": {
+        "suite": "...........................................................              [100%]",
+        "required": [
+          "test_future_mutation_does_not_change_historical_features"
+        ],
+        "missing": []
+      },
+      "threshold": "all named contract tests collected and suite passes",
+      "evidence": "future mutation"
+    },
+    {
+      "id": "A2",
+      "status": "PASS",
+      "actual": {
+        "suite": "...........................................................              [100%]",
+        "required": [
+          "test_next_open_and_t1_enforced"
+        ],
+        "missing": []
+      },
+      "threshold": "all named contract tests collected and suite passes",
+      "evidence": "next-open fill date"
+    },
+    {
+      "id": "A3",
+      "status": "PASS",
+      "actual": {
+        "suite": "...........................................................              [100%]",
+        "required": [
+          "test_next_open_and_t1_enforced",
+          "test_sellable_shares_are_tranche_based"
+        ],
+        "missing": []
+      },
+      "threshold": "all named contract tests collected and suite passes",
+      "evidence": "tranche T+1"
+    },
+    {
+      "id": "A4",
+      "status": "PASS",
+      "actual": {
+        "suite": "...........................................................              [100%]",
+        "required": [
+          "test_continuous_up_limits_remain_pending_until_market_reopens",
+          "test_continuous_down_limits_retain_sell_until_market_reopens"
+        ],
+        "missing": []
+      },
+      "threshold": "all named contract tests collected and suite passes",
+      "evidence": "limit boards"
+    },
+    {
+      "id": "A5",
+      "status": "PASS",
+      "actual": {
+        "suite": "...........................................................              [100%]",
+        "required": [
+          "test_limit_and_suspension_keep_pending"
+        ],
+        "missing": []
+      },
+      "threshold": "all named contract tests collected and suite passes",
+      "evidence": "suspension"
+    },
+    {
+      "id": "A6",
+      "status": "PASS",
+      "actual": {
+        "suite": "...........................................................              [100%]",
+        "required": [
+          "test_large_opening_gap_reprices_target_and_preserves_weight_cap",
+          "test_sells_release_cash_before_buys"
+        ],
+        "missing": []
+      },
+      "threshold": "all named contract tests collected and suite passes",
+      "evidence": "cash invariants"
+    },
+    {
+      "id": "A7",
+      "status": "PASS",
+      "actual": {
+        "suite": "...........................................................              [100%]",
+        "required": [
+          "test_determinism_one_target_and_hard_constraints",
+          "test_large_opening_gap_reprices_target_and_preserves_weight_cap"
+        ],
+        "missing": []
+      },
+      "threshold": "all named contract tests collected and suite passes",
+      "evidence": "60% cap"
+    },
+    {
+      "id": "A8",
+      "status": "PASS",
+      "actual": {
+        "suite": "...........................................................              [100%]",
+        "required": [
+          "test_determinism_one_target_and_hard_constraints"
+        ],
+        "missing": []
+      },
+      "threshold": "all named contract tests collected and suite passes",
+      "evidence": "six-position cap"
+    },
+    {
+      "id": "A9",
+      "status": "PASS",
+      "actual": {
+        "suite": "...........................................................              [100%]",
+        "required": [
+          "test_fee_formula_is_recomputable"
+        ],
+        "missing": []
+      },
+      "threshold": "all named contract tests collected and suite passes",
+      "evidence": "recomputable fees"
+    },
+    {
+      "id": "A10",
+      "status": "PASS",
+      "actual": {
+        "suite": "...........................................................              [100%]",
+        "required": [
+          "test_determinism_one_target_and_hard_constraints"
+        ],
+        "missing": []
+      },
+      "threshold": "all named contract tests collected and suite passes",
+      "evidence": "decision determinism"
+    },
+    {
+      "id": "B1",
+      "status": "PASS",
+      "actual": {
+        "suite": "...........................................................              [100%]",
+        "required": [
+          "test_backtest_and_daily_share_decision_kernel"
+        ],
+        "missing": []
+      },
+      "threshold": "all named contract tests collected and suite passes",
+      "evidence": "daily/backtest kernel"
+    },
+    {
+      "id": "B2",
+      "status": "PASS",
+      "actual": {
+        "suite": "...........................................................              [100%]",
+        "required": [
+          "test_backtest_and_daily_share_decision_kernel"
+        ],
+        "missing": []
+      },
+      "threshold": "all named contract tests collected and suite passes",
+      "evidence": "day-by-day account replay"
+    },
+    {
+      "id": "B3",
+      "status": "PASS",
+      "actual": {
+        "suite": "...........................................................              [100%]",
+        "required": [
+          "test_state_round_trip_and_fail_closed_hashes"
+        ],
+        "missing": []
+      },
+      "threshold": "all named contract tests collected and suite passes",
+      "evidence": "state persistence"
+    },
+    {
+      "id": "B4",
+      "status": "PASS",
+      "actual": {
+        "suite": "...........................................................              [100%]",
+        "required": [
+          "test_data_contract_and_manifest",
+          "test_state_round_trip_and_fail_closed_hashes",
+          "test_future_dated_state_fails_closed",
+          "test_stale_code_hash_fails_closed"
+        ],
+        "missing": []
+      },
+      "threshold": "all named contract tests collected and suite passes",
+      "evidence": "fail closed"
+    },
+    {
+      "id": "B5",
+      "status": "PASS",
+      "actual": {
+        "suite": "...........................................................              [100%]",
+        "required": [
+          "test_determinism_one_target_and_hard_constraints"
+        ],
+        "missing": []
+      },
+      "threshold": "all named contract tests collected and suite passes",
+      "evidence": "one target"
+    },
+    {
+      "id": "C1",
+      "status": "PASS",
+      "actual": {
+        "a": true,
+        "b": true,
+        "c": true,
+        "d": true,
+        "e": true
+      },
+      "threshold": "every pool wealth >=99% of best old",
+      "evidence": "five-pool common bull adapter"
+    },
+    {
+      "id": "C2",
+      "status": "PASS",
+      "actual": {
+        "near_best_rate": 1.0
+      },
+      "threshold": 0.6,
+      "evidence": "five-pool common bull adapter"
+    },
+    {
+      "id": "C3",
+      "status": "PASS",
+      "actual": {
+        "a": true,
+        "b": true,
+        "c": true,
+        "d": true,
+        "e": true
+      },
+      "threshold": "orders <= qwen + max(2,5%) unless wealth improves >=5%",
+      "evidence": "five-pool economic-margin rule"
+    },
+    {
+      "id": "C4",
+      "status": "PASS",
+      "actual": {
+        "new_median_20d": 0.0,
+        "new_exit_count": 0,
+        "old_system_medians": {
+          "qwenquant": -0.0006734470650353597,
+          "aquant": 0.059785388881108514,
+          "trade": 0.21749353520186854
+        },
+        "old_exit_counts": {
+          "qwenquant": 3,
+          "aquant": 12,
+          "trade": 432
+        }
+      },
+      "threshold": "new mature-leader false-exit regret <= median of old-system medians",
+      "evidence": "common 20-session post-exit attribution"
+    },
+    {
+      "id": "D1",
+      "status": "PASS",
+      "actual": {
+        "a": true,
+        "b": true,
+        "c": true,
+        "d": true,
+        "e": true
+      },
+      "threshold": "each bull pool DD<=18% and <=best old+0.5pp",
+      "evidence": "five-pool common bull adapter"
+    },
+    {
+      "id": "D2",
+      "status": "PASS",
+      "actual": {
+        "scenario_count": 900,
+        "return_median": 1.6448132581709403,
+        "return_p10": 0.0152093736718113,
+        "return_worst": -0.14728904897543071,
+        "drawdown_p90": 0.17229791315953624,
+        "drawdown_worst": 0.20870234845782054,
+        "orders_p90": 16.0,
+        "orders_worst": 26
+      },
+      "threshold": {
+        "p90": 0.2,
+        "worst": 0.25,
+        "trade": {
+          "scenario_count": 983,
+          "random_drawdown_p90": 0.18848588756503767,
+          "random_drawdown_worst": 0.2120727662037726,
+          "random_orders_p90": 48.0,
+          "worst_add_one_wealth_change": -0.1680246566290624
+        }
+      },
+      "evidence": "900 common production replays"
+    },
+    {
+      "id": "D3",
+      "status": "PASS",
+      "actual": {
+        "median_return": 0.002449541047470305,
+        "p90_dd": 0.11962697309248993,
+        "worst_dd": 0.11962697309248993,
+        "dominated_by": {
+          "a": [],
+          "b": [],
+          "c": [],
+          "d": [],
+          "e": []
+        }
+      },
+      "threshold": "no dominated 2022 pool; p90 DD<=22%; worst DD<=28%; median return>=0",
+      "evidence": "five-pool three-old-system bear matrix"
+    },
+    {
+      "id": "D4",
+      "status": "PASS",
+      "actual": {
+        "passes": {
+          "a": true,
+          "b": true,
+          "c": true,
+          "d": true,
+          "e": true
+        },
+        "comparison": {
+          "a": {
+            "new": {
+              "return": -0.07969672026206986,
+              "max_drawdown": 0.07969672026206986,
+              "lead": 9,
+              "risk_utility": 2.422963913866027,
+              "first_action": "2026-07-02"
+            },
+            "old": {
+              "qwenquant": {
+                "return": -0.12417249829750687,
+                "max_drawdown": 0.13619408771625707,
+                "lead": 6,
+                "risk_utility": 1.9715447168789522
+              },
+              "aquant": {
+                "return": -0.0621425330969414,
+                "max_drawdown": 0.06422661168360277,
+                "lead": -2,
+                "risk_utility": 1.9926824779137269
+              },
+              "trade": {
+                "return": 0.0,
+                "max_drawdown": -0.0,
+                "lead": -60,
+                "risk_utility": 1.2339310898738487
+              }
+            },
+            "earliest_old_action": "2026-07-07"
+          },
+          "b": {
+            "new": {
+              "return": -0.07969672026206986,
+              "max_drawdown": 0.07969672026206986,
+              "lead": 9,
+              "risk_utility": 2.422963913866027,
+              "first_action": "2026-07-02"
+            },
+            "old": {
+              "qwenquant": {
+                "return": -0.10523942741308523,
+                "max_drawdown": 0.11232642933466286,
+                "lead": 6,
+                "risk_utility": 2.334707173319803
+              },
+              "aquant": {
+                "return": -0.19098657584163803,
+                "max_drawdown": 0.19098657584163803,
+                "lead": -60,
+                "risk_utility": 1.6992761066352697
+              },
+              "trade": {
+                "return": 0.0,
+                "max_drawdown": -0.0,
+                "lead": -60,
+                "risk_utility": 1.5657220193684425
+              }
+            },
+            "earliest_old_action": "2026-07-07"
+          },
+          "c": {
+            "new": {
+              "return": -0.07969672026206986,
+              "max_drawdown": 0.07969672026206986,
+              "lead": 9,
+              "risk_utility": 2.422963913866027,
+              "first_action": "2026-07-02"
+            },
+            "old": {
+              "qwenquant": {
+                "return": -0.13379085747115527,
+                "max_drawdown": 0.14872981504526372,
+                "lead": 4,
+                "risk_utility": 2.0388079887959027
+              },
+              "aquant": {
+                "return": -0.09899979129418113,
+                "max_drawdown": 0.10508465668141886,
+                "lead": -60,
+                "risk_utility": 1.0698528444827167
+              },
+              "trade": {
+                "return": 0.0,
+                "max_drawdown": -0.0,
+                "lead": -60,
+                "risk_utility": 1.6441792033952163
+              }
+            },
+            "earliest_old_action": "2026-07-09"
+          },
+          "d": {
+            "new": {
+              "return": -0.07981052335151129,
+              "max_drawdown": 0.07981052335151129,
+              "lead": 9,
+              "risk_utility": 2.4310175693515057,
+              "first_action": "2026-07-02"
+            },
+            "old": {
+              "qwenquant": {
+                "return": -0.12795079241255713,
+                "max_drawdown": 0.12795079241255713,
+                "lead": 4,
+                "risk_utility": 2.1705273186962253
+              },
+              "aquant": {
+                "return": -0.1619352510839066,
+                "max_drawdown": 0.1619352510839066,
+                "lead": -60,
+                "risk_utility": 1.2602535433819972
+              },
+              "trade": {
+                "return": 0.0,
+                "max_drawdown": -0.0,
+                "lead": -60,
+                "risk_utility": 0.9579667492570699
+              }
+            },
+            "earliest_old_action": "2026-07-09"
+          },
+          "e": {
+            "new": {
+              "return": -0.07981052335151129,
+              "max_drawdown": 0.07981052335151129,
+              "lead": 9,
+              "risk_utility": 2.4310175693515057,
+              "first_action": "2026-07-02"
+            },
+            "old": {
+              "qwenquant": {
+                "return": -0.11499337597970105,
+                "max_drawdown": 0.11499337597970105,
+                "lead": 4,
+                "risk_utility": 2.233146025830463
+              },
+              "aquant": {
+                "return": -0.30114205862386223,
+                "max_drawdown": 0.30355765858508577,
+                "lead": -60,
+                "risk_utility": 1.1690812945959137
+              },
+              "trade": {
+                "return": 0.0,
+                "max_drawdown": -0.0,
+                "lead": -60,
+                "risk_utility": 0.8517824434114764
+              }
+            },
+            "earliest_old_action": "2026-07-09"
+          }
+        }
+      },
+      "threshold": "each loss/DD<17% and RiskUtility>=best old",
+      "evidence": "common July-1-to-July-20 attribution including pre-shock bull participation"
+    },
+    {
+      "id": "E1",
+      "status": "PASS",
+      "actual": {
+        "a": true,
+        "b": true,
+        "c": true,
+        "d": true,
+        "e": true
+      },
+      "threshold": "five fixed pools satisfy +max(2 orders,5%) economic rule",
+      "evidence": "common bull account-order ledger"
+    },
+    {
+      "id": "E2",
+      "status": "PASS",
+      "actual": 16.0,
+      "threshold": 48.0,
+      "evidence": "900 random account-order distribution"
+    },
+    {
+      "id": "E3",
+      "status": "PASS",
+      "actual": {
+        "a": 10,
+        "b": 10,
+        "c": 10,
+        "d": 12,
+        "e": 12
+      },
+      "threshold": "account orders separated from fills and internal events",
+      "evidence": "performance, fill, lifecycle and replacement ledgers"
+    },
+    {
+      "id": "F1",
+      "status": "PASS",
+      "actual": {
+        "a": true,
+        "b": true,
+        "c": true,
+        "d": true,
+        "e": true
+      },
+      "threshold": "July effective warning no later than earliest old action",
+      "evidence": "common risk-event and risk-reduction dates"
+    },
+    {
+      "id": "F2",
+      "status": "PASS",
+      "actual": {
+        "new_median_lead": -36.0,
+        "old_median_lead": {
+          "qwenquant": -3.0,
+          "aquant": -53.0,
+          "trade": 4.0
+        },
+        "new_risk_utility": -0.06,
+        "old_risk_utility": {
+          "qwenquant": -0.5241401223578623,
+          "aquant": -0.28205482413297167,
+          "trade": -0.216269153933836
+        },
+        "events": [
+          {
+            "window": "bear_2018",
+            "pool": "a",
+            "target": "2018-02-06",
+            "new": -60,
+            "old": {
+              "qwenquant": -60,
+              "aquant": -46,
+              "trade": 6
+            }
+          },
+          {
+            "window": "bear_2018",
+            "pool": "b",
+            "target": "2018-02-06",
+            "new": -60,
+            "old": {
+              "qwenquant": -60,
+              "aquant": -46,
+              "trade": 6
+            }
+          },
+          {
+            "window": "bear_2018",
+            "pool": "c",
+            "target": "2018-02-06",
+            "new": -60,
+            "old": {
+              "qwenquant": -3,
+              "aquant": -46,
+              "trade": 6
+            }
+          },
+          {
+            "window": "bear_2018",
+            "pool": "d",
+            "target": "2018-02-06",
+            "new": -60,
+            "old": {
+              "qwenquant": -1,
+              "aquant": -46,
+              "trade": 6
+            }
+          },
+          {
+            "window": "bear_2018",
+            "pool": "e",
+            "target": "2018-02-06",
+            "new": 4,
+            "old": {
+              "qwenquant": -1,
+              "aquant": -46,
+              "trade": 6
+            }
+          },
+          {
+            "window": "crash_2020",
+            "pool": "a",
+            "target": "2020-03-12",
+            "new": -60,
+            "old": {
+              "qwenquant": 7,
+              "aquant": 28,
+              "trade": 40
+            }
+          },
+          {
+            "window": "crash_2020",
+            "pool": "b",
+            "target": "2020-03-12",
+            "new": -60,
+            "old": {
+              "qwenquant": -3,
+              "aquant": 28,
+              "trade": 40
+            }
+          },
+          {
+            "window": "crash_2020",
+            "pool": "c",
+            "target": "2020-03-12",
+            "new": -12,
+            "old": {
+              "qwenquant": -8,
+              "aquant": 6,
+              "trade": 40
+            }
+          },
+          {
+            "window": "crash_2020",
+            "pool": "d",
+            "target": "2020-03-12",
+            "new": -60,
+            "old": {
+              "qwenquant": -8,
+              "aquant": 28,
+              "trade": 40
+            }
+          },
+          {
+            "window": "crash_2020",
+            "pool": "e",
+            "target": "2020-03-12",
+            "new": 8,
+            "old": {
+              "qwenquant": -8,
+              "aquant": -60,
+              "trade": 40
+            }
+          },
+          {
+            "window": "bear_2022",
+            "pool": "a",
+            "target": "2022-01-27",
+            "new": -60,
+            "old": {
+              "qwenquant": -1,
+              "aquant": -60,
+              "trade": -27
+            }
+          },
+          {
+            "window": "bear_2022",
+            "pool": "b",
+            "target": "2022-01-27",
+            "new": -60,
+            "old": {
+              "qwenquant": -1,
+              "aquant": -60,
+              "trade": -1
+            }
+          },
+          {
+            "window": "bear_2022",
+            "pool": "c",
+            "target": "2022-01-27",
+            "new": -60,
+            "old": {
+              "qwenquant": -1,
+              "aquant": -60,
+              "trade": -6
+            }
+          },
+          {
+            "window": "bear_2022",
+            "pool": "d",
+            "target": "2022-01-27",
+            "new": 2,
+            "old": {
+              "qwenquant": -1,
+              "aquant": -60,
+              "trade": -6
+            }
+          },
+          {
+            "window": "bear_2022",
+            "pool": "e",
+            "target": "2022-01-27",
+            "new": 2,
+            "old": {
+              "qwenquant": -1,
+              "aquant": -60,
+              "trade": -6
+            }
+          },
+          {
+            "window": "through_july",
+            "pool": "a",
+            "target": "2026-07-02",
+            "new": 0,
+            "old": {
+              "qwenquant": -3,
+              "aquant": -11,
+              "trade": 2
+            }
+          },
+          {
+            "window": "through_july",
+            "pool": "b",
+            "target": "2026-07-02",
+            "new": 0,
+            "old": {
+              "qwenquant": -3,
+              "aquant": -60,
+              "trade": 2
+            }
+          },
+          {
+            "window": "through_july",
+            "pool": "c",
+            "target": "2026-07-02",
+            "new": 0,
+            "old": {
+              "qwenquant": -5,
+              "aquant": -60,
+              "trade": 2
+            }
+          },
+          {
+            "window": "through_july",
+            "pool": "d",
+            "target": "2026-07-02",
+            "new": 0,
+            "old": {
+              "qwenquant": -5,
+              "aquant": -60,
+              "trade": -60
+            }
+          },
+          {
+            "window": "through_july",
+            "pool": "e",
+            "target": "2026-07-02",
+            "new": 0,
+            "old": {
+              "qwenquant": -5,
+              "aquant": -60,
+              "trade": -60
+            }
+          }
+        ]
+      },
+      "threshold": "median lead>=best old OR RiskUtility>=best old",
+      "evidence": "common market 10% drawdown targets"
+    },
+    {
+      "id": "F3",
+      "status": "PASS",
+      "actual": {
+        "a": {
+          "annualized_false_events": 0.8013245033112583,
+          "labels": [
+            {
+              "date": "2025-09-09",
+              "state": "RISK_OFF",
+              "forward_or_existing_damage": 0.12050063063937133,
+              "false_positive": false
+            },
+            {
+              "date": "2025-10-13",
+              "state": "CRISIS",
+              "forward_or_existing_damage": 0.1240357169977353,
+              "false_positive": false
+            },
+            {
+              "date": "2025-11-04",
+              "state": "RISK_OFF",
+              "forward_or_existing_damage": 0.1786430578324124,
+              "false_positive": false
+            },
+            {
+              "date": "2025-11-24",
+              "state": "RISK_OFF",
+              "forward_or_existing_damage": 0.14242302302024512,
+              "false_positive": false
+            },
+            {
+              "date": "2026-06-29",
+              "state": "RISK_OFF",
+              "forward_or_existing_damage": 0.0,
+              "false_positive": true
+            }
+          ]
+        },
+        "b": {
+          "annualized_false_events": 0.8013245033112583,
+          "labels": [
+            {
+              "date": "2025-09-09",
+              "state": "RISK_OFF",
+              "forward_or_existing_damage": 0.12050063063937133,
+              "false_positive": false
+            },
+            {
+              "date": "2025-10-13",
+              "state": "CRISIS",
+              "forward_or_existing_damage": 0.1240357169977353,
+              "false_positive": false
+            },
+            {
+              "date": "2025-11-04",
+              "state": "RISK_OFF",
+              "forward_or_existing_damage": 0.1786430578324124,
+              "false_positive": false
+            },
+            {
+              "date": "2025-11-24",
+              "state": "RISK_OFF",
+              "forward_or_existing_damage": 0.14242302302024512,
+              "false_positive": false
+            },
+            {
+              "date": "2026-06-29",
+              "state": "RISK_OFF",
+              "forward_or_existing_damage": 0.0,
+              "false_positive": true
+            }
+          ]
+        },
+        "c": {
+          "annualized_false_events": 0.8013245033112583,
+          "labels": [
+            {
+              "date": "2025-09-09",
+              "state": "RISK_OFF",
+              "forward_or_existing_damage": 0.12050063063937133,
+              "false_positive": false
+            },
+            {
+              "date": "2025-10-13",
+              "state": "CRISIS",
+              "forward_or_existing_damage": 0.1240357169977353,
+              "false_positive": false
+            },
+            {
+              "date": "2025-11-04",
+              "state": "RISK_OFF",
+              "forward_or_existing_damage": 0.1786430578324124,
+              "false_positive": false
+            },
+            {
+              "date": "2025-11-24",
+              "state": "RISK_OFF",
+              "forward_or_existing_damage": 0.14242302302024512,
+              "false_positive": false
+            },
+            {
+              "date": "2026-06-29",
+              "state": "RISK_OFF",
+              "forward_or_existing_damage": 0.0,
+              "false_positive": true
+            }
+          ]
+        },
+        "d": {
+          "annualized_false_events": 0.8013245033112583,
+          "labels": [
+            {
+              "date": "2025-09-09",
+              "state": "RISK_OFF",
+              "forward_or_existing_damage": 0.12050063063937133,
+              "false_positive": false
+            },
+            {
+              "date": "2025-10-13",
+              "state": "CRISIS",
+              "forward_or_existing_damage": 0.1240357169977353,
+              "false_positive": false
+            },
+            {
+              "date": "2025-11-04",
+              "state": "RISK_OFF",
+              "forward_or_existing_damage": 0.1786430578324124,
+              "false_positive": false
+            },
+            {
+              "date": "2025-11-24",
+              "state": "RISK_OFF",
+              "forward_or_existing_damage": 0.14242302302024512,
+              "false_positive": false
+            },
+            {
+              "date": "2026-06-29",
+              "state": "RISK_OFF",
+              "forward_or_existing_damage": 0.0,
+              "false_positive": true
+            }
+          ]
+        },
+        "e": {
+          "annualized_false_events": 0.8013245033112583,
+          "labels": [
+            {
+              "date": "2025-09-09",
+              "state": "RISK_OFF",
+              "forward_or_existing_damage": 0.12050063063937133,
+              "false_positive": false
+            },
+            {
+              "date": "2025-10-13",
+              "state": "CRISIS",
+              "forward_or_existing_damage": 0.1240357169977353,
+              "false_positive": false
+            },
+            {
+              "date": "2025-11-04",
+              "state": "RISK_OFF",
+              "forward_or_existing_damage": 0.1786430578324124,
+              "false_positive": false
+            },
+            {
+              "date": "2025-11-24",
+              "state": "RISK_OFF",
+              "forward_or_existing_damage": 0.14242302302024512,
+              "false_positive": false
+            },
+            {
+              "date": "2026-06-29",
+              "state": "RISK_OFF",
+              "forward_or_existing_damage": 0.0,
+              "false_positive": true
+            }
+          ]
+        }
+      },
+      "threshold": "false RISK_OFF/CRISIS events <=2/year in every pool",
+      "evidence": "20-session formal market-damage labels"
+    },
+    {
+      "id": "F4",
+      "status": "PASS",
+      "actual": {
+        "opportunity_cost": {
+          "a": 0.0071845693473194805,
+          "b": 0.0071845693473194805,
+          "c": 0.0071845693473194805,
+          "d": 0.004352332093603306,
+          "e": 0.004352332093603306
+        },
+        "risk_disabled": {
+          "a": {
+            "final_wealth": 13.204634375705584,
+            "max_drawdown": 0.2076517082400856,
+            "account_orders": 3,
+            "risk_events": []
+          },
+          "b": {
+            "final_wealth": 13.204634375705584,
+            "max_drawdown": 0.2076517082400856,
+            "account_orders": 3,
+            "risk_events": []
+          },
+          "c": {
+            "final_wealth": 13.204634375705584,
+            "max_drawdown": 0.2076517082400856,
+            "account_orders": 3,
+            "risk_events": []
+          },
+          "d": {
+            "final_wealth": 13.276564949093626,
+            "max_drawdown": 0.20718979924859704,
+            "account_orders": 5,
+            "risk_events": []
+          },
+          "e": {
+            "final_wealth": 13.276564949093626,
+            "max_drawdown": 0.20718979924859704,
+            "account_orders": 5,
+            "risk_events": []
+          }
+        }
+      },
+      "threshold": "bull risk-overlay wealth opportunity cost <=2% in every pool",
+      "evidence": "causal risk_overlay_enabled=False counterfactual"
+    },
+    {
+      "id": "G1",
+      "status": "PASS",
+      "actual": {
+        "suite": "...........................................................              [100%]",
+        "required": [
+          "test_fixed_reference_score_is_user_pool_invariant"
+        ],
+        "missing": []
+      },
+      "threshold": "all named contract tests collected and suite passes",
+      "evidence": "fixed-reference invariance"
+    },
+    {
+      "id": "G2",
+      "status": "PASS",
+      "actual": {
+        "suite": "...........................................................              [100%]",
+        "required": [
+          "test_future_mutation_does_not_change_historical_features"
+        ],
+        "missing": []
+      },
+      "threshold": "all named contract tests collected and suite passes",
+      "evidence": "future mutation"
+    },
+    {
+      "id": "G3",
+      "status": "PASS",
+      "actual": {
+        "suite": "...........................................................              [100%]",
+        "required": [
+          "test_unknown_history_never_gets_high_confidence"
+        ],
+        "missing": []
+      },
+      "threshold": "all named contract tests collected and suite passes",
+      "evidence": "mature/emerging/unknown confidence"
+    },
+    {
+      "id": "G4",
+      "status": "PASS",
+      "actual": {
+        "medians": {
+          "20": 0.02448270545433684,
+          "40": 0.15273961659842372
+        },
+        "counts": {
+          "20": 1,
+          "40": 1
+        }
+      },
+      "threshold": "median 20d and 40d replacement spread >0",
+      "evidence": "deduplicated production rotation ledger"
+    },
+    {
+      "id": "H1",
+      "status": "PASS",
+      "actual": {
+        "trough": "2020-03-23",
+        "pools": {
+          "a": {
+            "delay": {
+              "opportunity_cost": 0.0,
+              "benchmark_date": "2020-03-27",
+              "new_date": "2020-03-27",
+              "measurement_date": "2020-03-27",
+              "horizon_sessions": 60
+            },
+            "supplemental_60_session_portfolio_capture": {
+              "new": 0.055051700333751175,
+              "old": {
+                "qwenquant": 0.1525842592605895,
+                "aquant": 0.24762258686192729,
+                "trade": -0.06224847923435517
+              }
+            }
+          },
+          "b": {
+            "delay": {
+              "opportunity_cost": 0.0,
+              "benchmark_date": "2020-04-01",
+              "new_date": "2020-03-26",
+              "measurement_date": "2020-03-26",
+              "horizon_sessions": 60
+            },
+            "supplemental_60_session_portfolio_capture": {
+              "new": 0.03527476468183788,
+              "old": {
+                "qwenquant": 0.030494325580140202,
+                "aquant": 0.2445129356619522,
+                "trade": 0.0
+              }
+            }
+          },
+          "c": {
+            "delay": {
+              "opportunity_cost": 0.0,
+              "benchmark_date": "2020-03-27",
+              "new_date": "2020-03-26",
+              "measurement_date": "2020-03-26",
+              "horizon_sessions": 60
+            },
+            "supplemental_60_session_portfolio_capture": {
+              "new": -0.07142116853173486,
+              "old": {
+                "qwenquant": 0.023217811662157306,
+                "aquant": 0.2504230799816578,
+                "trade": 0.0
+              }
+            }
+          },
+          "d": {
+            "delay": {
+              "opportunity_cost": 0.0,
+              "benchmark_date": "2020-03-27",
+              "new_date": "2020-03-26",
+              "measurement_date": "2020-03-26",
+              "horizon_sessions": 60
+            },
+            "supplemental_60_session_portfolio_capture": {
+              "new": 0.03527476468183788,
+              "old": {
+                "qwenquant": 0.04884918399544236,
+                "aquant": 0.29443924335174665,
+                "trade": 0.0
+              }
+            }
+          },
+          "e": {
+            "delay": {
+              "opportunity_cost": 0.0,
+              "benchmark_date": "2020-04-03",
+              "new_date": "2020-03-26",
+              "measurement_date": "2020-03-26",
+              "horizon_sessions": 60
+            },
+            "supplemental_60_session_portfolio_capture": {
+              "new": -0.14790130099911003,
+              "old": {
+                "qwenquant": 0.19724818399600808,
+                "aquant": 0.1555976564768886,
+                "trade": 0.0
+              }
+            }
+          }
+        }
+      },
+      "threshold": "post-trough re-entry delay opportunity cost <=10% in every pool",
+      "evidence": "common 2020 tech-index trough and executable BUY dates"
+    },
+    {
+      "id": "H2",
+      "status": "PASS",
+      "actual": {
+        "severe_recovery_gross": 0.25,
+        "acute": {
+          "a": true,
+          "b": true,
+          "c": true,
+          "d": true,
+          "e": true
+        }
+      },
+      "threshold": "fake recovery never immediately reaches full gross",
+      "evidence": "graded recovery cap and July replay"
+    },
+    {
+      "id": "H3",
+      "status": "PASS",
+      "actual": 16.0,
+      "threshold": 48.0,
+      "evidence": "recovery-inclusive random replays"
+    },
+    {
+      "id": "I1",
+      "status": "PASS",
+      "actual": {
+        "scenario_count": 29,
+        "worst_wealth_change": 0.0
+      },
+      "threshold": -0.1,
+      "evidence": "all add-one production replays"
+    },
+    {
+      "id": "I2",
+      "status": "PASS",
+      "actual": {
+        "scenario_count": 5,
+        "worst_wealth_change": 0.0
+      },
+      "threshold": -0.1,
+      "evidence": "five primary leave-one-out replays"
+    },
+    {
+      "id": "I3",
+      "status": "PASS",
+      "actual": {
+        "scenario_count": 1,
+        "wealth_change": 0.0,
+        "drawdown_change": 0.0,
+        "order_change": 0,
+        "verified_by": "actual reversed-input production replay plus decision-digest contract test"
+      },
+      "threshold": "actual reversed-input replay is identical",
+      "evidence": "stress replay plus decision digest test"
+    },
+    {
+      "id": "I4",
+      "status": "PASS",
+      "actual": {
+        "9->10": 0.0,
+        "12->13": 0.0,
+        "15->16": 0.0
+      },
+      "threshold": "each boundary wealth change >=-10%",
+      "evidence": "9→10, 12→13, 15→16 replays"
+    },
+    {
+      "id": "J1",
+      "status": "PASS",
+      "actual": true,
+      "threshold": true,
+      "evidence": "disclosed ±5% single-parameter cells"
+    },
+    {
+      "id": "J2",
+      "status": "PASS",
+      "actual": true,
+      "threshold": true,
+      "evidence": "disclosed ±10% no-cliff cells"
+    },
+    {
+      "id": "J3",
+      "status": "PASS",
+      "actual": true,
+      "threshold": true,
+      "evidence": "disclosed pair-parameter cells"
+    },
+    {
+      "id": "J4",
+      "status": "PASS",
+      "actual": [
+        "pair-gross-+0-shock-+0",
+        "pair-gross-+0-shock-+10",
+        "pair-gross-+0-shock--10",
+        "pair-gross-+10-shock-+0",
+        "pair-gross-+10-shock-+10",
+        "pair-gross-+10-shock--10",
+        "pair-gross--10-shock-+0",
+        "pair-gross--10-shock-+10",
+        "pair-gross--10-shock--10",
+        "production",
+        "single-add_index_chase_ret5-+10",
+        "single-add_index_chase_ret5-+5",
+        "single-add_index_chase_ret5--10",
+        "single-add_index_chase_ret5--5",
+        "single-add_tranche_cooldown_sessions-+10",
+        "single-add_tranche_cooldown_sessions-+5",
+        "single-add_tranche_cooldown_sessions--10",
+        "single-add_tranche_cooldown_sessions--5",
+        "single-concentrated_break_dd-+10",
+        "single-concentrated_break_dd-+5",
+        "single-concentrated_break_dd--10",
+        "single-concentrated_break_dd--5",
+        "single-concentrated_break_ratio-+10",
+        "single-concentrated_break_ratio-+5",
+        "single-incomplete_universe_crisis_gross-+10",
+        "single-incomplete_universe_crisis_gross-+5",
+        "single-incomplete_universe_crisis_gross--10",
+        "single-incomplete_universe_crisis_gross--5",
+        "single-incomplete_universe_rearm_days-+10",
+        "single-incomplete_universe_rearm_days-+5",
+        "single-incomplete_universe_rearm_days--10",
+        "single-incomplete_universe_rearm_days--5",
+        "single-incomplete_universe_tail_dd-+10",
+        "single-incomplete_universe_tail_dd-+5",
+        "single-incomplete_universe_tail_dd--10",
+        "single-incomplete_universe_tail_dd--5",
+        "single-leader_cycle_min_market_ret120-+10",
+        "single-leader_cycle_min_market_ret120-+5",
+        "single-leader_cycle_min_market_ret120--10",
+        "single-leader_cycle_min_market_ret120--5",
+        "single-min_trade_weight-+10",
+        "single-min_trade_weight-+5",
+        "single-minimum_median_amount-+10",
+        "single-minimum_median_amount-+5",
+        "single-minimum_median_amount--10",
+        "single-minimum_median_amount--5",
+        "single-narrow_anchor_divergence-+10",
+        "single-narrow_anchor_divergence-+5",
+        "single-narrow_anchor_divergence--5",
+        "single-narrow_anchor_guard_gross-+10",
+        "single-narrow_anchor_guard_gross-+5",
+        "single-narrow_anchor_guard_gross--10",
+        "single-narrow_anchor_guard_gross--5",
+        "single-portfolio_break_dd-+10",
+        "single-portfolio_break_dd-+5",
+        "single-portfolio_break_dd--10",
+        "single-portfolio_break_dd--5",
+        "single-recovery_breadth_min-+10",
+        "single-recovery_breadth_min-+5",
+        "single-recovery_breadth_min--10",
+        "single-recovery_breadth_min--5",
+        "single-recovery_cohort_graduation_days-+10",
+        "single-recovery_cohort_graduation_days-+5",
+        "single-recovery_cohort_graduation_days--10",
+        "single-recovery_cohort_graduation_days--5",
+        "single-recovery_crash_drawdown-+10",
+        "single-recovery_crash_drawdown-+5",
+        "single-recovery_crash_drawdown--10",
+        "single-recovery_crash_drawdown--5",
+        "single-recovery_reserve_min_ret120-+10",
+        "single-recovery_reserve_min_ret120-+5",
+        "single-recovery_reserve_min_ret120--10",
+        "single-recovery_reserve_min_ret120--5",
+        "single-recovery_reserve_min_ret60-+10",
+        "single-recovery_reserve_min_ret60-+5",
+        "single-recovery_reserve_min_ret60--10",
+        "single-recovery_reserve_min_ret60--5",
+        "single-recovery_reserve_min_score-+10",
+        "single-recovery_reserve_min_score-+5",
+        "single-recovery_reserve_min_score--10",
+        "single-recovery_reserve_min_score--5",
+        "single-recovery_substitution_edge-+10",
+        "single-recovery_substitution_edge-+5",
+        "single-recovery_substitution_edge--10",
+        "single-recovery_substitution_edge--5",
+        "single-recovery_substitution_shock_window-+10",
+        "single-recovery_substitution_shock_window-+5",
+        "single-recovery_substitution_shock_window--10",
+        "single-recovery_substitution_shock_window--5",
+        "single-recovery_target_gross-+10",
+        "single-recovery_target_gross-+5",
+        "single-recovery_target_gross--10",
+        "single-recovery_target_gross--5",
+        "single-recovery_weak_market_min_index_ret60-+10",
+        "single-recovery_weak_market_min_index_ret60-+5",
+        "single-recovery_weak_market_min_index_ret60--10",
+        "single-recovery_weak_market_min_index_ret60--5",
+        "single-severe_shock_ret5-+10",
+        "single-severe_shock_ret5-+5",
+        "single-severe_shock_ret5--10",
+        "single-severe_shock_ret5--5",
+        "single-strategic_cohort_confirm_days-+10",
+        "single-strategic_cohort_confirm_days-+5",
+        "single-strategic_cohort_confirm_days--10",
+        "single-strategic_cohort_confirm_days--5",
+        "single-strategic_cohort_disaster_stop-+10",
+        "single-strategic_cohort_disaster_stop-+5",
+        "single-strategic_cohort_disaster_stop--10",
+        "single-strategic_cohort_disaster_stop--5",
+        "single-strategic_cohort_min_ret240-+10",
+        "single-strategic_cohort_min_ret240-+5",
+        "single-strategic_cohort_min_ret240--10",
+        "single-strategic_cohort_min_ret240--5",
+        "single-strategic_cohort_profit_arm-+10",
+        "single-strategic_cohort_profit_arm-+5",
+        "single-strategic_cohort_profit_arm--10",
+        "single-strategic_cohort_profit_arm--5",
+        "single-strategic_cohort_tail_line-+10",
+        "single-strategic_cohort_tail_line-+5",
+        "single-strategic_cohort_tail_line--10",
+        "single-strategic_cohort_tail_line--5",
+        "single-strategic_cohort_trail_spacing-+10",
+        "single-strategic_cohort_trail_spacing-+5",
+        "single-strategic_cohort_trail_spacing--10",
+        "single-strategic_cohort_trail_spacing--5",
+        "single-strategic_reversal_confirm_days-+10",
+        "single-strategic_reversal_confirm_days-+5",
+        "single-strategic_reversal_confirm_days--10",
+        "single-strategic_reversal_confirm_days--5",
+        "single-strategic_reversal_max_ret240-+10",
+        "single-strategic_reversal_max_ret240-+5",
+        "single-strategic_reversal_max_ret240--10",
+        "single-strategic_reversal_max_ret240--5",
+        "single-strategic_reversal_max_tech_ret120-+10",
+        "single-strategic_reversal_max_tech_ret120-+5",
+        "single-strategic_reversal_max_tech_ret120--10",
+        "single-strategic_reversal_max_tech_ret120--5",
+        "single-strategic_reversal_min_median_ret20-+10",
+        "single-strategic_reversal_min_median_ret20-+5",
+        "single-strategic_reversal_min_median_ret20--10",
+        "single-strategic_reversal_min_median_ret20--5",
+        "single-strategic_reversal_min_ret5-+10",
+        "single-strategic_reversal_min_ret5-+5",
+        "single-strategic_reversal_min_ret5--10",
+        "single-strategic_reversal_min_ret5--5",
+        "single-tactical_rebound_take_profit-+10",
+        "single-tactical_rebound_take_profit-+5",
+        "single-tactical_rebound_take_profit--10",
+        "single-tactical_rebound_take_profit--5",
+        "single-tactical_rebound_weight-+10",
+        "single-tactical_rebound_weight-+5",
+        "single-unbacked_recovery_anchor_min_days-+10",
+        "single-unbacked_recovery_anchor_min_days-+5",
+        "single-unbacked_recovery_anchor_min_days--10",
+        "single-unbacked_recovery_anchor_min_days--5",
+        "single-unbacked_universe_tail_dd-+10",
+        "single-unbacked_universe_tail_dd-+5",
+        "single-unbacked_universe_tail_dd--10",
+        "single-unbacked_universe_tail_dd--5"
+      ],
+      "threshold": "production on multi-window return/DD/orders frontier",
+      "evidence": "bull, choppy and acute-window Pareto search"
+    },
+    {
+      "id": "K1",
+      "status": "PASS",
+      "actual": [
+        {
+          "fold": 1,
+          "selected_experiment": "pair-gross--10-shock-+0",
+          "train_sharpe": 1.8676551311026839,
+          "test_sharpe": 1.5727763243372412,
+          "test_final_wealth": 1.8985400438984203
+        },
+        {
+          "fold": 2,
+          "selected_experiment": "pair-gross--10-shock-+0",
+          "train_sharpe": 1.8477049155131633,
+          "test_sharpe": 3.8416226933179662,
+          "test_final_wealth": 1.6568311133469782
+        },
+        {
+          "fold": 3,
+          "selected_experiment": "pair-gross-+10-shock--10",
+          "train_sharpe": 2.0831728515408563,
+          "test_sharpe": 2.2126697780758913,
+          "test_final_wealth": 1.6751697543573405
+        }
+      ],
+      "threshold": "three strictly separated train/test folds",
+      "evidence": "nested walk-forward cells"
+    },
+    {
+      "id": "K3",
+      "status": "PASS",
+      "actual": {
+        "pbo": 0.6666666666666666,
+        "experiments": 180
+      },
+      "threshold": "PBO reported with full experiment space",
+      "evidence": "all experiments disclosed"
+    },
+    {
+      "id": "K4",
+      "status": "PASS",
+      "actual": 0.9974863057987637,
+      "threshold": "DSR in [0,1]",
+      "evidence": "production-candidate DSR"
+    },
+    {
+      "id": "L1",
+      "status": "PASS",
+      "actual": 0.9995886518164423,
+      "threshold": 0.9,
+      "evidence": "double-cost replay"
+    },
+    {
+      "id": "L2",
+      "status": "PASS",
+      "actual": 0.9908982063702615,
+      "threshold": 0.9,
+      "evidence": "0.1/0.2/0.3% slippage replays"
+    },
+    {
+      "id": "L3",
+      "status": "PASS",
+      "actual": 1.0,
+      "threshold": 0.9,
+      "evidence": "half/fifth participation replays"
+    },
+    {
+      "id": "K2",
+      "status": "FAIL",
+      "actual": {
+        "schema_version": 1,
+        "status": "FAIL",
+        "evaluated_at_utc": "2026-08-09T04:44:21.069518+00:00",
+        "single_use": true,
+        "window": {
+          "start": "2026-07-21",
+          "end": "2026-08-05"
+        },
+        "pre_evaluation_lock": {
+          "untouched": true,
+          "lock_status": "SEALED_UNEVALUATED",
+          "canonical_hash_match": true,
+          "canonical_sha256": "581be13a752823177befd825e88bbc2b273498b2cdc6ab07d98c15e697d4d53d",
+          "rows": 432,
+          "files": 36,
+          "expected_sessions": 12,
+          "complete_coverage": true,
+          "incomplete_files": [],
+          "candidate_hash_match": true,
+          "candidate_hashes": {
+            "production_code_sha256": "336355b49fc3216d80ecbc135a658f6dc89783a76fcad2ec2639b7ae5c46319f",
+            "validation_code_sha256": "55d78ad6c83dc474e65c957f8a5d5b0ae4699fead016934b754cb4fdce26cdbd",
+            "config_sha256": "b8de3792b9b24c9274bbcf728758f1b29cf1c2aa968db8cacaa03bb16335517e"
+          },
+          "locked_candidate_hashes": {
+            "production_code_sha256": "336355b49fc3216d80ecbc135a658f6dc89783a76fcad2ec2639b7ae5c46319f",
+            "validation_code_sha256": "55d78ad6c83dc474e65c957f8a5d5b0ae4699fead016934b754cb4fdce26cdbd",
+            "config_sha256": "b8de3792b9b24c9274bbcf728758f1b29cf1c2aa968db8cacaa03bb16335517e"
+          },
+          "reason": "sealed promotion data and candidate hashes match the preregistered lock"
+        },
+        "canonical_sha256": "581be13a752823177befd825e88bbc2b273498b2cdc6ab07d98c15e697d4d53d",
+        "production_code_sha256": "336355b49fc3216d80ecbc135a658f6dc89783a76fcad2ec2639b7ae5c46319f",
+        "validation_code_sha256": "55d78ad6c83dc474e65c957f8a5d5b0ae4699fead016934b754cb4fdce26cdbd",
+        "preregistered_gates": {
+          "all_replays_complete": true,
+          "deterministic_replay": true,
+          "finite_positive_final_wealth": true,
+          "per_pool_period_loss_strictly_below_17pct": false,
+          "per_pool_max_drawdown_strictly_below_17pct": false
+        },
+        "preregistered_gates_passed": false,
+        "pools": {
+          "a": {
+            "final_wealth": 0.92706891425578,
+            "period_loss": -0.07293108574422003,
+            "max_drawdown": 0.12480220702422007,
+            "account_orders": 2,
+            "deterministic": true
+          },
+          "b": {
+            "final_wealth": 0.8357200526277402,
+            "period_loss": -0.16427994737225982,
+            "max_drawdown": 0.24743833851977992,
+            "account_orders": 8,
+            "deterministic": true
+          },
+          "c": {
+            "final_wealth": 0.8415675002284602,
+            "period_loss": -0.15843249977153984,
+            "max_drawdown": 0.24159089091905994,
+            "account_orders": 8,
+            "deterministic": true
+          },
+          "d": {
+            "final_wealth": 0.8299749428856202,
+            "period_loss": -0.17002505711437976,
+            "max_drawdown": 0.2461592561206598,
+            "account_orders": 8,
+            "deterministic": true
+          },
+          "e": {
+            "final_wealth": 0.9175789502470303,
+            "period_loss": -0.08242104975296971,
+            "max_drawdown": 0.2159940717144867,
+            "account_orders": 8,
+            "deterministic": true
+          }
+        }
+      },
+      "threshold": "sealed single-use promotion set evaluated once after all non-holdback gates freeze",
+      "evidence": "preregistered canonical lock and signed promotion result"
+    },
+    {
+      "id": "M1",
+      "status": "PASS",
+      "actual": {
+        "suite": "...........................................................              [100%]",
+        "required": [
+          "test_continuous_down_limits_retain_sell_until_market_reopens"
+        ],
+        "missing": []
+      },
+      "threshold": "all named contract tests collected and suite passes",
+      "evidence": "named extreme-execution contract"
+    },
+    {
+      "id": "M2",
+      "status": "PASS",
+      "actual": {
+        "suite": "...........................................................              [100%]",
+        "required": [
+          "test_continuous_up_limits_remain_pending_until_market_reopens"
+        ],
+        "missing": []
+      },
+      "threshold": "all named contract tests collected and suite passes",
+      "evidence": "named extreme-execution contract"
+    },
+    {
+      "id": "M3",
+      "status": "PASS",
+      "actual": {
+        "suite": "...........................................................              [100%]",
+        "required": [
+          "test_limit_and_suspension_keep_pending"
+        ],
+        "missing": []
+      },
+      "threshold": "all named contract tests collected and suite passes",
+      "evidence": "named extreme-execution contract"
+    },
+    {
+      "id": "M4",
+      "status": "PASS",
+      "actual": {
+        "suite": "...........................................................              [100%]",
+        "required": [
+          "test_large_opening_gap_reprices_target_and_preserves_weight_cap"
+        ],
+        "missing": []
+      },
+      "threshold": "all named contract tests collected and suite passes",
+      "evidence": "named extreme-execution contract"
+    },
+    {
+      "id": "M5",
+      "status": "PASS",
+      "actual": {
+        "suite": "...........................................................              [100%]",
+        "required": [
+          "test_data_contract_and_manifest"
+        ],
+        "missing": []
+      },
+      "threshold": "all named contract tests collected and suite passes",
+      "evidence": "named extreme-execution contract"
+    },
+    {
+      "id": "M6",
+      "status": "PASS",
+      "actual": {
+        "suite": "...........................................................              [100%]",
+        "required": [
+          "test_historical_reference_coverage_is_point_in_time_dynamic"
+        ],
+        "missing": []
+      },
+      "threshold": "all named contract tests collected and suite passes",
+      "evidence": "named extreme-execution contract"
+    },
+    {
+      "id": "M7",
+      "status": "PASS",
+      "actual": {
+        "suite": "...........................................................              [100%]",
+        "required": [
+          "test_state_round_trip_and_fail_closed_hashes"
+        ],
+        "missing": []
+      },
+      "threshold": "all named contract tests collected and suite passes",
+      "evidence": "named extreme-execution contract"
+    },
+    {
+      "id": "M8",
+      "status": "PASS",
+      "actual": {
+        "suite": "...........................................................              [100%]",
+        "required": [
+          "test_future_dated_state_fails_closed"
+        ],
+        "missing": []
+      },
+      "threshold": "all named contract tests collected and suite passes",
+      "evidence": "named extreme-execution contract"
+    },
+    {
+      "id": "M9",
+      "status": "PASS",
+      "actual": {
+        "suite": "...........................................................              [100%]",
+        "required": [
+          "test_partial_fill_is_retained_and_star_initial_buy_is_at_least_200",
+          "test_compatible_blocked_order_survives_daily_replanning"
+        ],
+        "missing": []
+      },
+      "threshold": "all named contract tests collected and suite passes",
+      "evidence": "named extreme-execution contract"
+    },
+    {
+      "id": "M10",
+      "status": "PASS",
+      "actual": {
+        "suite": "...........................................................              [100%]",
+        "required": [
+          "test_sells_release_cash_before_buys"
+        ],
+        "missing": []
+      },
+      "threshold": "all named contract tests collected and suite passes",
+      "evidence": "named extreme-execution contract"
+    },
+    {
+      "id": "M11",
+      "status": "PASS",
+      "actual": {
+        "suite": "...........................................................              [100%]",
+        "required": [
+          "test_partial_fill_is_retained_and_star_initial_buy_is_at_least_200"
+        ],
+        "missing": []
+      },
+      "threshold": "all named contract tests collected and suite passes",
+      "evidence": "named extreme-execution contract"
+    },
+    {
+      "id": "N1",
+      "status": "PASS",
+      "actual": "python -m unified_ai_quant daily",
+      "threshold": "one command",
+      "evidence": "CLI parser"
+    },
+    {
+      "id": "N2",
+      "status": "PASS",
+      "actual": [
+        "Opportunity",
+        "Risk",
+        "Target Gross",
+        "Target K",
+        "Targets",
+        "Tomorrow"
+      ],
+      "threshold": "all one-page fields",
+      "evidence": "daily report renderer"
+    },
+    {
+      "id": "N3",
+      "status": "PASS",
+      "actual": [],
+      "threshold": "no old-project runtime dependency",
+      "evidence": "production source scan"
+    },
+    {
+      "id": "DOMINATED",
+      "status": "PASS",
+      "actual": {
+        "count": 0,
+        "cells": []
+      },
+      "threshold": 0,
+      "evidence": "all five pools × nine formal windows × three old systems"
+    },
+    {
+      "id": "PRIMARY_AGGREGATE",
+      "status": "PASS",
+      "actual": {
+        "return_rate": 0.6666666666666666,
+        "dd_rate": 0.6,
+        "orders_rate": 0.8222222222222222
+      },
+      "threshold": {
+        "return": 0.6,
+        "dd": 0.6,
+        "orders": 0.7
+      },
+      "evidence": "45 common primary cells"
+    },
+    {
+      "id": "CHOPPY",
+      "status": "PASS",
+      "actual": [
+        {
+          "pool": "a",
+          "window": "choppy_2024",
+          "new": {
+            "final_wealth": 1.8985400438984203,
+            "total_return": 0.8985400438984203,
+            "max_drawdown": 0.17332825750590009,
+            "account_orders": 27,
+            "sharpe": 1.5727763243372412,
+            "calmar": 5.18403667600382,
+            "worst_20d": -0.123498437652099,
+            "worst_60d": -0.12835856682617675
+          },
+          "old": {
+            "qwenquant": {
+              "final_wealth": 1.358736759164824,
+              "total_return": 0.35873675916482406,
+              "max_drawdown": 0.265590480565594,
+              "account_orders": 35,
+              "sharpe": null,
+              "calmar": null,
+              "worst_20d": null,
+              "worst_60d": null
+            },
+            "aquant": {
+              "final_wealth": 1.6219338434175008,
+              "total_return": 0.6219338434175008,
+              "max_drawdown": 0.2652788449095206,
+              "account_orders": 19,
+              "sharpe": null,
+              "calmar": null,
+              "worst_20d": null,
+              "worst_60d": null
+            },
+            "trade": {
+              "final_wealth": 1.6458349028532377,
+              "total_return": 0.6458349028532377,
+              "max_drawdown": 0.17218265744670835,
+              "account_orders": 176,
+              "sharpe": null,
+              "calmar": null,
+              "worst_20d": null,
+              "worst_60d": null
+            }
+          },
+          "near_best_return": true,
+          "near_best_dd": true,
+          "near_best_orders": false,
+          "dominated_by": []
+        },
+        {
+          "pool": "b",
+          "window": "choppy_2024",
+          "new": {
+            "final_wealth": 1.8985400438984203,
+            "total_return": 0.8985400438984203,
+            "max_drawdown": 0.17332825750590009,
+            "account_orders": 27,
+            "sharpe": 1.5727763243372412,
+            "calmar": 5.18403667600382,
+            "worst_20d": -0.123498437652099,
+            "worst_60d": -0.12835856682617675
+          },
+          "old": {
+            "qwenquant": {
+              "final_wealth": 1.5614586939257946,
+              "total_return": 0.5614586939257946,
+              "max_drawdown": 0.2947605834388086,
+              "account_orders": 36,
+              "sharpe": null,
+              "calmar": null,
+              "worst_20d": null,
+              "worst_60d": null
+            },
+            "aquant": {
+              "final_wealth": 1.5694279677656446,
+              "total_return": 0.5694279677656446,
+              "max_drawdown": 0.2824900041731666,
+              "account_orders": 23,
+              "sharpe": null,
+              "calmar": null,
+              "worst_20d": null,
+              "worst_60d": null
+            },
+            "trade": {
+              "final_wealth": 1.6012148945325753,
+              "total_return": 0.6012148945325753,
+              "max_drawdown": 0.17218265744670835,
+              "account_orders": 173,
+              "sharpe": null,
+              "calmar": null,
+              "worst_20d": null,
+              "worst_60d": null
+            }
+          },
+          "near_best_return": true,
+          "near_best_dd": true,
+          "near_best_orders": false,
+          "dominated_by": []
+        },
+        {
+          "pool": "c",
+          "window": "choppy_2024",
+          "new": {
+            "final_wealth": 1.8985400438984203,
+            "total_return": 0.8985400438984203,
+            "max_drawdown": 0.17332825750590009,
+            "account_orders": 27,
+            "sharpe": 1.5727763243372412,
+            "calmar": 5.18403667600382,
+            "worst_20d": -0.123498437652099,
+            "worst_60d": -0.12835856682617675
+          },
+          "old": {
+            "qwenquant": {
+              "final_wealth": 1.3265686817472306,
+              "total_return": 0.32656868174723064,
+              "max_drawdown": 0.2620609598863437,
+              "account_orders": 37,
+              "sharpe": null,
+              "calmar": null,
+              "worst_20d": null,
+              "worst_60d": null
+            },
+            "aquant": {
+              "final_wealth": 1.770257022484318,
+              "total_return": 0.7702570224843179,
+              "max_drawdown": 0.2653025880090675,
+              "account_orders": 35,
+              "sharpe": null,
+              "calmar": null,
+              "worst_20d": null,
+              "worst_60d": null
+            },
+            "trade": {
+              "final_wealth": 1.6012148945325753,
+              "total_return": 0.6012148945325753,
+              "max_drawdown": 0.17218265744670835,
+              "account_orders": 173,
+              "sharpe": null,
+              "calmar": null,
+              "worst_20d": null,
+              "worst_60d": null
+            }
+          },
+          "near_best_return": true,
+          "near_best_dd": true,
+          "near_best_orders": true,
+          "dominated_by": []
+        },
+        {
+          "pool": "d",
+          "window": "choppy_2024",
+          "new": {
+            "final_wealth": 3.6642345565248466,
+            "total_return": 2.6642345565248466,
+            "max_drawdown": 0.17332825750590009,
+            "account_orders": 35,
+            "sharpe": 2.549762292597423,
+            "calmar": 15.37103409946965,
+            "worst_20d": -0.123498437652099,
+            "worst_60d": -0.050061577880359254
+          },
+          "old": {
+            "qwenquant": {
+              "final_wealth": 2.3198854027531315,
+              "total_return": 1.3198854027531315,
+              "max_drawdown": 0.29491208852613937,
+              "account_orders": 34,
+              "sharpe": null,
+              "calmar": null,
+              "worst_20d": null,
+              "worst_60d": null
+            },
+            "aquant": {
+              "final_wealth": 1.8456853818653327,
+              "total_return": 0.8456853818653327,
+              "max_drawdown": 0.24592973503374982,
+              "account_orders": 43,
+              "sharpe": null,
+              "calmar": null,
+              "worst_20d": null,
+              "worst_60d": null
+            },
+            "trade": {
+              "final_wealth": 1.5934857810316878,
+              "total_return": 0.5934857810316878,
+              "max_drawdown": 0.17218265744670835,
+              "account_orders": 176,
+              "sharpe": null,
+              "calmar": null,
+              "worst_20d": null,
+              "worst_60d": null
+            }
+          },
+          "near_best_return": true,
+          "near_best_dd": true,
+          "near_best_orders": true,
+          "dominated_by": []
+        },
+        {
+          "pool": "e",
+          "window": "choppy_2024",
+          "new": {
+            "final_wealth": 3.886310279183183,
+            "total_return": 2.886310279183183,
+            "max_drawdown": 0.17332825750590009,
+            "account_orders": 39,
+            "sharpe": 2.582740612419955,
+            "calmar": 16.65227771118009,
+            "worst_20d": -0.123498437652099,
+            "worst_60d": -0.050061577880359254
+          },
+          "old": {
+            "qwenquant": {
+              "final_wealth": 2.729804995747953,
+              "total_return": 1.729804995747953,
+              "max_drawdown": 0.2953516365575999,
+              "account_orders": 27,
+              "sharpe": null,
+              "calmar": null,
+              "worst_20d": null,
+              "worst_60d": null
+            },
+            "aquant": {
+              "final_wealth": 1.4851876039388185,
+              "total_return": 0.48518760393881855,
+              "max_drawdown": 0.31523776166377826,
+              "account_orders": 57,
+              "sharpe": null,
+              "calmar": null,
+              "worst_20d": null,
+              "worst_60d": null
+            },
+            "trade": {
+              "final_wealth": 1.5806329836076756,
+              "total_return": 0.5806329836076756,
+              "max_drawdown": 0.17218265744670835,
+              "account_orders": 177,
+              "sharpe": null,
+              "calmar": null,
+              "worst_20d": null,
+              "worst_60d": null
+            }
+          },
+          "near_best_return": true,
+          "near_best_dd": true,
+          "near_best_orders": false,
+          "dominated_by": []
+        }
+      ],
+      "threshold": "every pool within 1% wealth, 0.5pp DD, and not dominated",
+      "evidence": "2024 three-old-system matrix"
+    },
+    {
+      "id": "CONTINUOUS",
+      "status": "PASS",
+      "actual": [
+        {
+          "pool": "a",
+          "window": "continuous_full",
+          "new": {
+            "final_wealth": 38.13777764796843,
+            "total_return": 37.13777764796843,
+            "max_drawdown": 0.28669684576052445,
+            "account_orders": 95,
+            "sharpe": 1.4326400529701195,
+            "calmar": 1.8486862281892948,
+            "worst_20d": -0.20123062863864916,
+            "worst_60d": -0.22654319462021344
+          },
+          "old": {
+            "qwenquant": {
+              "final_wealth": 38.06301144764501,
+              "total_return": 37.06301144764501,
+              "max_drawdown": 0.5827834533882188,
+              "account_orders": 228,
+              "sharpe": null,
+              "calmar": null,
+              "worst_20d": null,
+              "worst_60d": null
+            },
+            "aquant": {
+              "final_wealth": 20.09500104420617,
+              "total_return": 19.09500104420617,
+              "max_drawdown": 0.5044874946188742,
+              "account_orders": 147,
+              "sharpe": null,
+              "calmar": null,
+              "worst_20d": null,
+              "worst_60d": null
+            },
+            "trade": {
+              "final_wealth": 0.8780743604394253,
+              "total_return": -0.12192563956057467,
+              "max_drawdown": 0.2111395565387973,
+              "account_orders": 154,
+              "sharpe": null,
+              "calmar": null,
+              "worst_20d": null,
+              "worst_60d": null
+            }
+          },
+          "near_best_return": true,
+          "near_best_dd": false,
+          "near_best_orders": true,
+          "dominated_by": []
+        },
+        {
+          "pool": "b",
+          "window": "continuous_full",
+          "new": {
+            "final_wealth": 24.329763567883727,
+            "total_return": 23.329763567883727,
+            "max_drawdown": 0.41760235012975955,
+            "account_orders": 71,
+            "sharpe": 1.2903010152135235,
+            "calmar": 1.0817919318677662,
+            "worst_20d": -0.23891795528859217,
+            "worst_60d": -0.3335040897717413
+          },
+          "old": {
+            "qwenquant": {
+              "final_wealth": 22.370679810917736,
+              "total_return": 21.370679810917736,
+              "max_drawdown": 0.5971999236786818,
+              "account_orders": 246,
+              "sharpe": null,
+              "calmar": null,
+              "worst_20d": null,
+              "worst_60d": null
+            },
+            "aquant": {
+              "final_wealth": 27.655988582057795,
+              "total_return": 26.655988582057795,
+              "max_drawdown": 0.5527791774738069,
+              "account_orders": 168,
+              "sharpe": null,
+              "calmar": null,
+              "worst_20d": null,
+              "worst_60d": null
+            },
+            "trade": {
+              "final_wealth": 1.2118022838588245,
+              "total_return": 0.2118022838588245,
+              "max_drawdown": 0.18974345791085379,
+              "account_orders": 210,
+              "sharpe": null,
+              "calmar": null,
+              "worst_20d": null,
+              "worst_60d": null
+            }
+          },
+          "near_best_return": false,
+          "near_best_dd": false,
+          "near_best_orders": true,
+          "dominated_by": []
+        },
+        {
+          "pool": "c",
+          "window": "continuous_full",
+          "new": {
+            "final_wealth": 13.397813977136305,
+            "total_return": 12.397813977136305,
+            "max_drawdown": 0.41740419892586567,
+            "account_orders": 82,
+            "sharpe": 1.0837797072955337,
+            "calmar": 0.8482009691379166,
+            "worst_20d": -0.2393774437497952,
+            "worst_60d": -0.33339707692622256
+          },
+          "old": {
+            "qwenquant": {
+              "final_wealth": 30.529532031471607,
+              "total_return": 29.529532031471607,
+              "max_drawdown": 0.5131209484127228,
+              "account_orders": 281,
+              "sharpe": null,
+              "calmar": null,
+              "worst_20d": null,
+              "worst_60d": null
+            },
+            "aquant": {
+              "final_wealth": 10.434068509087076,
+              "total_return": 9.434068509087076,
+              "max_drawdown": 0.5235380537234824,
+              "account_orders": 241,
+              "sharpe": null,
+              "calmar": null,
+              "worst_20d": null,
+              "worst_60d": null
+            },
+            "trade": {
+              "final_wealth": 1.3137491613633625,
+              "total_return": 0.3137491613633625,
+              "max_drawdown": 0.20213471359275065,
+              "account_orders": 200,
+              "sharpe": null,
+              "calmar": null,
+              "worst_20d": null,
+              "worst_60d": null
+            }
+          },
+          "near_best_return": false,
+          "near_best_dd": false,
+          "near_best_orders": true,
+          "dominated_by": []
+        },
+        {
+          "pool": "d",
+          "window": "continuous_full",
+          "new": {
+            "final_wealth": 15.284746742256,
+            "total_return": 14.284746742256,
+            "max_drawdown": 0.4174983920016825,
+            "account_orders": 105,
+            "sharpe": 1.134645214196437,
+            "calmar": 0.8983069891761741,
+            "worst_20d": -0.238873443578988,
+            "worst_60d": -0.3335285631080833
+          },
+          "old": {
+            "qwenquant": {
+              "final_wealth": 43.59158921323291,
+              "total_return": 42.59158921323291,
+              "max_drawdown": 0.5488396929720302,
+              "account_orders": 321,
+              "sharpe": null,
+              "calmar": null,
+              "worst_20d": null,
+              "worst_60d": null
+            },
+            "aquant": {
+              "final_wealth": 26.59212892110167,
+              "total_return": 25.59212892110167,
+              "max_drawdown": 0.4628645683037733,
+              "account_orders": 249,
+              "sharpe": null,
+              "calmar": null,
+              "worst_20d": null,
+              "worst_60d": null
+            },
+            "trade": {
+              "final_wealth": 1.2791405226971244,
+              "total_return": 0.2791405226971244,
+              "max_drawdown": 0.20405614523210697,
+              "account_orders": 213,
+              "sharpe": null,
+              "calmar": null,
+              "worst_20d": null,
+              "worst_60d": null
+            }
+          },
+          "near_best_return": false,
+          "near_best_dd": false,
+          "near_best_orders": true,
+          "dominated_by": []
+        },
+        {
+          "pool": "e",
+          "window": "continuous_full",
+          "new": {
+            "final_wealth": 4.170811412011567,
+            "total_return": 3.1708114120115667,
+            "max_drawdown": 0.5313671044804422,
+            "account_orders": 142,
+            "sharpe": 0.693920280365826,
+            "calmar": 0.34159818920988494,
+            "worst_20d": -0.2455082237730598,
+            "worst_60d": -0.3452316155360049
+          },
+          "old": {
+            "qwenquant": {
+              "final_wealth": 14.384050828925862,
+              "total_return": 13.384050828925862,
+              "max_drawdown": 0.5901435891596425,
+              "account_orders": 318,
+              "sharpe": null,
+              "calmar": null,
+              "worst_20d": null,
+              "worst_60d": null
+            },
+            "aquant": {
+              "final_wealth": 6.036075972450094,
+              "total_return": 5.036075972450094,
+              "max_drawdown": 0.4702638501170523,
+              "account_orders": 320,
+              "sharpe": null,
+              "calmar": null,
+              "worst_20d": null,
+              "worst_60d": null
+            },
+            "trade": {
+              "final_wealth": 1.1084097781893627,
+              "total_return": 0.1084097781893627,
+              "max_drawdown": 0.19844360499053415,
+              "account_orders": 166,
+              "sharpe": null,
+              "calmar": null,
+              "worst_20d": null,
+              "worst_60d": null
+            }
+          },
+          "near_best_return": false,
+          "near_best_dd": false,
+          "near_best_orders": true,
+          "dominated_by": []
+        }
+      ],
+      "threshold": "no dominated 2018–2026 continuous cell",
+      "evidence": "full-cycle common matrix"
+    },
+    {
+      "id": "MATRIX_COMPLETENESS",
+      "status": "PASS",
+      "actual": {
+        "new_fixed_cells": 45,
+        "legacy_fixed_cells": 135,
+        "random_samples": 900,
+        "structures": [
+          "structure-compute",
+          "structure-diversified",
+          "structure-emerging-heavy",
+          "structure-equipment",
+          "structure-high-correlation",
+          "structure-loser-heavy",
+          "structure-low-correlation",
+          "structure-materials",
+          "structure-mature-heavy",
+          "structure-memory-compute",
+          "structure-optical",
+          "structure-pcb"
+        ],
+        "windows": [
+          "bear_2018",
+          "crash_2020",
+          "rotation_2021",
+          "bear_2022",
+          "mixed_2023",
+          "choppy_2024",
+          "bull",
+          "through_july",
+          "continuous_full"
+        ]
+      },
+      "threshold": "all pools, structures, perturbations, nine windows, and >=900 random samples",
+      "evidence": "signed common-adapter and stress artifacts"
+    },
+    {
+      "id": "O-qwenquant",
+      "status": "PASS",
+      "actual": {
+        "D2": true,
+        "D3": true,
+        "F1": true,
+        "E1": true
+      },
+      "threshold": "tail/bear/risk lead-time and orders all pass",
+      "evidence": "qwenquant advantage checklist"
+    },
+    {
+      "id": "O-aquant",
+      "status": "PASS",
+      "actual": {
+        "G1": true,
+        "G2": true,
+        "G3": true,
+        "G4": true,
+        "C4": true,
+        "D1": true
+      },
+      "threshold": "leader/replacement/mature hold/strong-trend DD all pass",
+      "evidence": "AQuant advantage checklist"
+    },
+    {
+      "id": "O-trade",
+      "status": "PASS",
+      "actual": {
+        "D2": true,
+        "I1": true,
+        "I2": true,
+        "I3": true,
+        "B4": true
+      },
+      "threshold": "universe/random/add-drop/fail-closed/replay all pass",
+      "evidence": "trade advantage checklist"
+    }
+  ]
+}

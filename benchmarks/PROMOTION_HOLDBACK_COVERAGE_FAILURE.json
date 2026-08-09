@@ -1,0 +1,29 @@
+{
+  "schema_version": 1,
+  "status": "INVALID_SNAPSHOT_COVERAGE",
+  "attempted_at_utc": "2026-08-08T18:35:35Z",
+  "result_metrics_written": false,
+  "production_code_or_config_changed_after_attempt": false,
+  "window": {
+    "start": "2026-07-21",
+    "end": "2026-08-05"
+  },
+  "original_lock": {
+    "locked_at_utc": "2026-08-08T00:00:00Z",
+    "data_snapshot_id": "20260806T000000Z-incremental-0805",
+    "symbol_files": 36,
+    "data_rows": 306,
+    "canonical_sha256": "2836b8adc70eb887c4cff54b44fed3de95c82eb86773b36e2d8c35352e39deff"
+  },
+  "failure": {
+    "exception": "RuntimeError: fixed reference coverage too low: 13/34 point-in-time-listed",
+    "failed_session": "2026-07-29",
+    "files_complete_through_window_end": 15,
+    "files_ending_2026_07_28": 21,
+    "reason": "The sealed snapshot had the correct aggregate hash and row count but lacked complete per-file sessions. The replay stopped fail-closed before returning any holdback performance, drawdown, fill, order, or acceptance metric."
+  },
+  "remediation": {
+    "policy": "Complete missing rows from the same provider, preserve all existing CSV bytes, keep production code/configuration and preregistered gates unchanged, add per-file session completeness to the seal, then create a new seal before any metric evaluation.",
+    "strategy_metrics_observed_before_reseal": false
+  }
+}

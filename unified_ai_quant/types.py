@@ -105,12 +105,24 @@ class AccountState:
     leader_tenure: dict[str, int] = field(default_factory=dict)
     candidate_tenure: dict[str, int] = field(default_factory=dict)
     replacement_tenure: dict[str, int] = field(default_factory=dict)
+    active_leaders: list[str] = field(default_factory=list)
+    dynamic_k: int = 0
+    last_k_change_date: str = ""
+    satellite_entry_dates: dict[str, str] = field(default_factory=dict)
     risk_streaks: dict[str, int] = field(default_factory=dict)
     rotation_dates: list[str] = field(default_factory=list)
+    replacement_events: list[dict[str, Any]] = field(default_factory=list)
+    lifecycle_events: list[dict[str, Any]] = field(default_factory=list)
     risk_events: list[dict[str, Any]] = field(default_factory=list)
     anchor_weights: dict[str, float] = field(default_factory=dict)
     recovery_anchor_date: str = ""
+    tactical_anchor_symbol: str = ""
     protected_weights: dict[str, float] = field(default_factory=dict)
+    strategic_cohort_symbols: list[str] = field(default_factory=list)
+    strategic_cohort_targets: dict[str, float] = field(default_factory=dict)
+    strategic_exit_bands: dict[str, list[float]] = field(default_factory=dict)
+    strategic_active_bands: dict[str, list[bool]] = field(default_factory=dict)
+    strategic_restore_weights: dict[str, float] = field(default_factory=dict)
     shock_start_date: str = ""
     shock_severity: str = "NORMAL"
     last_shock_date: str = ""

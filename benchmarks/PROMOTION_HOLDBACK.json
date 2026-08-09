@@ -1,0 +1,49 @@
+{
+  "schema_version": 1,
+  "locked_at_utc": "2026-08-08T18:35:35Z",
+  "status": "CONSUMED_FAIL",
+  "purpose": "single-use final promotion acceptance",
+  "window": {
+    "start": "2026-07-21",
+    "end": "2026-08-05"
+  },
+  "data_snapshot_id": "20260808T183447Z-holdback-coverage-completion",
+  "symbol_files": 36,
+  "expected_sessions": 12,
+  "rows_per_symbol": 12,
+  "data_rows": 432,
+  "canonical_sha256": "581be13a752823177befd825e88bbc2b273498b2cdc6ab07d98c15e697d4d53d",
+  "candidate_production_code_sha256": "336355b49fc3216d80ecbc135a658f6dc89783a76fcad2ec2639b7ae5c46319f",
+  "candidate_validation_code_sha256": "55d78ad6c83dc474e65c957f8a5d5b0ae4699fead016934b754cb4fdce26cdbd",
+  "candidate_config_sha256": "b8de3792b9b24c9274bbcf728758f1b29cf1c2aa968db8cacaa03bb16335517e",
+  "validation_resealed_at_utc": "2026-08-09T03:04:06Z",
+  "supersedes": "PROMOTION_HOLDBACK_COVERAGE_FAILURE.json",
+  "canonicalization": "for each data/frozen/*.csv in bytewise filename order: filename newline, then CSV rows whose date is within the inclusive window",
+  "preregistered_acceptance": {
+    "primary_pools": [
+      "a",
+      "b",
+      "c",
+      "d",
+      "e"
+    ],
+    "all_replays_complete": true,
+    "deterministic_replay": true,
+    "finite_positive_final_wealth": true,
+    "per_pool_period_loss_strictly_below": 0.17,
+    "per_pool_max_drawdown_strictly_below": 0.17,
+    "hard_account_constraints": "gross<=100%, single<=60%, positions<=6, no leverage, no short"
+  },
+  "rules": [
+    "Do not inspect prices, signals, fills, returns, or acceptance metrics in this window while developing or tuning.",
+    "Evaluate this window once, only after the candidate code, configuration, and all non-holdback gates are frozen.",
+    "Any implementation or parameter change after evaluation invalidates the promotion result and requires a newly acquired future holdback.",
+    "This reseal repairs missing provider rows after a coverage-only failure produced zero strategy metrics; existing CSV bytes, candidate production code/configuration, window, and gates are unchanged.",
+    "Before any holdback performance evaluation, validation provenance was strengthened to bind artifact-generator code, contract tests, and the common benchmark adapter; production code, configuration, data, window, and gates remain unchanged.",
+    "A non-holdback adapter replay exposed and repaired a missing default path by staging read-only filename links from the already locked canonical data; no data bytes, strategy logic, parameters, window, gates, or candidate holdback metrics changed.",
+    "A rejected temporary legacy artifact exposed that AQuant post-end diagnostic attribution could read beyond 2026-07-20. Formal legacy inputs, C4/G4 attribution, and stress/robustness provenance are now hard-bounded at 2026-07-20. No candidate holdback replay or metric was run, no production/configuration/gate change followed, and the leaking artifact was never accepted."
+  ],
+  "consumed_result_sha256": "1c162d3d3a6a65df91b7539175113fe21dda9250379e0245f6173e38e4cc4bbd",
+  "consumed_production_code_sha256": "336355b49fc3216d80ecbc135a658f6dc89783a76fcad2ec2639b7ae5c46319f",
+  "consumed_validation_code_sha256": "55d78ad6c83dc474e65c957f8a5d5b0ae4699fead016934b754cb4fdce26cdbd"
+}

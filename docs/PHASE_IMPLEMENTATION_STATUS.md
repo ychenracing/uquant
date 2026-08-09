@@ -1,35 +1,43 @@
 # Phase 0–9 Implementation Status
 
-结论：单一生产内核、正确性契约和可用数据上的正式验证已经贯通；严格替代状态仍为 **NOT FULLY ACCEPTED / CANDIDATE**。完整逐项映射见 `docs/IMPLEMENTATION_AUDIT.md`，机器判定见根目录 `acceptance_results.json`。
+结论：Phase 0–9 的统一实现、共同适配器和非保留窗验证已贯通。当前严格状态为 **NOT FULLY ACCEPTED / CANDIDATE（73/74）**，唯一失败是已经单次消费且不可重用的 K2 promotion holdback。机器判定以根目录 `acceptance_results.json` 为准；K2 的根因和修复边界见 `docs/PROMOTION_POSTMORTEM.md`。
 
-| Phase | 实现状态 | 验证状态 | 当前证据与硬缺口 |
+| Phase | 实现状态 | 验证状态 | 主要证据 |
 |---|---|---|---|
-| 0 Unified Benchmark | PARTIAL | FAIL | 三旧仓库及基线已冻结；pool b 完成同数据/费用/账户/next-open 实跑。qwenquant 原适配器误含盘中退出，已保留原值并以更强的纯 next-open 结果更正。其余四池缺少三旧系统共同适配器矩阵；数据始于 2022-01-04，不能执行 2018/2020/2021。 |
-| 1 Minimal Unified Skeleton | IMPLEMENTED | PASS | `DataStore`、单一 `AccountState`、唯一 next-open 执行、费用/T+1、唯一 target、日报及逐日确定性回放完成；A/B/M 类命名测试通过。 |
-| 2 Trend + Recovery | PARTIAL | PARTIAL | 趋势、恢复、no-trade、Shock、两日恢复确认、战术 probe 与严重恢复仓位上限已进入生产路径；Add1/Add2 仅保留类型/配置，尚未形成独立生产加仓状态机。 |
-| 3 Leader Intelligence | PARTIAL | PARTIAL | 固定 Reference、point-in-time score、mature/emerging/unknown、tenure 和置信度契约通过；replacement edge 的正式轮换路径及 20d/40d replacement spread 未完成。 |
-| 4 Independent Risk Radar | IMPLEMENTED | PARTIAL | 独立 reference/行业篮子、breadth、相关性、波动、leader failure、账户双回撤、L1/L2/L3 等价风险状态及 tail guard 已统一；三旧系统 lead-time、误报标签与 RiskUtility 对照不完整。 |
-| 5 Opportunity × Risk | IMPLEMENTED | PASS for architecture | Opportunity 和 Risk 独立计算，Risk 只输出唯一 gross cap，两个轴只在 allocator 汇合；无多风险层直接成交。 |
-| 6 Unified Allocator | PARTIAL | PARTIAL | 单一 allocator、集中度、流动性、恢复 cohort、输入池不变性、迟滞和唯一 target 已实现；`effective_n` 已实现但未驱动生产动态 K，通用 rotation/replacement 状态机未完成。 |
-| 7 Capital DD / Tail Guard | IMPLEMENTED | PASS for available stress | operating/capital peak 独立持久化、集中结构破坏、severe shock、恢复确认、90 日 rearm 与保护权重完成。900 random p90/最差 DD 为 17.20%/21.14%，优于 trade；五池 July 均低于 17%。 |
-| 8 Validation / Promotion | IMPLEMENTED | FAIL promotion | 954 场景、±5%/±10%/双参数、成本/容量、3 折 nested walk-forward、PBO/DSR 和 Pareto 均已实跑并签名；remove-one -76.36%、PBO 0.667，且无法追溯声明 untouched holdback。 |
-| 9 Remove Legacy Dependencies | IMPLEMENTED | PASS | 正式包不 import 或 shell 调用旧项目；旧项目仅以冻结 JSON 基准存在。CLI、报告、24 个测试和签名验收产物已齐备。 |
+| 0 Unified Benchmark | IMPLEMENTED | PASS | 三旧仓库冻结锁；`legacy_common_adapter.json` 包含 3 系统 × 5 池 × 9 窗口 = 135 个 common-contract 实跑单元；矩阵完整性 PASS。 |
+| 1 Minimal Unified Skeleton | IMPLEMENTED | PASS | 单一 `DataStore`、`AccountState`、`ProductionEngine`、next-open 执行器、唯一 target 与日报；确定性和 fail-closed 契约通过。 |
+| 2 Trend + Recovery | IMPLEMENTED | PASS | Trend/Recovery/No-trade、Shock、probe、Add1/Add2、冷却和恢复确认均在同一生产路径；对应生命周期和成本归因测试通过。 |
+| 3 Leader Intelligence | IMPLEMENTED | PASS | 固定 Reference、point-in-time mature/emerging/unknown、tenure、置信度、replacement edge 与 20d/40d spread 证据通过。 |
+| 4 Independent Risk Radar | IMPLEMENTED | PASS | breadth、行业、相关性、波动、leader failure、operating/capital DD、风险提前量、误报和反事实 RiskUtility 均有三方矩阵证据。 |
+| 5 Opportunity × Risk | IMPLEMENTED | PASS | Opportunity 与 Risk 独立计算，只在唯一 allocator 汇合；Risk 只给约束，不直接成交。 |
+| 6 Unified Allocator | IMPLEMENTED | PASS | 集中度、行业/相关性、动态 K、迟滞、rotation/replacement、add/drop/permutation 和每票唯一 target 均通过。 |
+| 7 Capital DD / Tail Guard | IMPLEMENTED | PASS | 双峰值持久化、集中结构破坏、severe shock、恢复/rearm、CAUTION gross cap 和战略新仓风险门禁已统一；急性风险与随机压力门通过。 |
+| 8 Validation / Promotion | IMPLEMENTED | 73/74 | 963 场景、180 个参数/成本/容量实验、54 个 nested walk-forward 单元、PBO/DSR/Pareto 均通过；长跑起止签名一致，混合版本证据会 fail closed；K2 单次保留窗真实失败，修复后必须等待新未来窗口。 |
+| 9 Remove Legacy Dependencies | IMPLEMENTED | PASS | 正式包不 import、shell 调用或运行时依赖 `qwenquant`、`aquant`、`trade`；旧项目仅作为冻结基准和 common adapter 输入。 |
 
 ## 关键实跑结果
 
-共同 pool b：`sz300308, sz300502, sz300394, sh688008, sh603986`；bull 窗口：`2025-04-01` 至 `2026-06-30`；初始资金 200 万元。
+共同 bull 窗口为 2025-04-01 至 2026-06-30，初始资金 200 万元。五个 pool 的 Unified 财富均满足 `>= 99% × best_old`，回撤和订单门均通过，且没有被旧系统严格支配的单元。
 
-| 系统 | 期末财富 | 最大回撤 | 账户订单 | 比较口径 |
-|---|---:|---:|---:|---|
-| qwenquant | 12.7595x | 20.59% | 9 | 盘中退出已禁用的 common next-open 更正值 |
-| aquant | 7.9553x | 17.46% | 30 | common adapter |
-| trade | 4.7861x | 15.52% | 229 | common adapter |
-| unified-ai-quant | 12.6454x | 15.50% | 11 | 当前生产引擎 |
+| 指标 | 当前结果 |
+|---|---:|
+| pool-b Unified 财富 / 最大回撤 / 账户订单 | 13.1098x / 15.96% / 10 |
+| pool-b 三旧系统最佳财富 | 12.7595x（qwenquant） |
+| 45 个主要单元 return / DD / orders 通过率 | 66.67% / 60.00% / 82.22% |
+| 被任一旧系统严格支配的单元 | 0 |
+| 随机压力样本 | 900 |
+| 随机 return 中位数 / p10 / 最差 | 164.48% / 1.52% / -14.73% |
+| 随机 DD p90 / 最差 | 17.23% / 20.87% |
+| 随机订单 p90 / 最差 | 16 / 26 |
+| 参数/成本/容量实验 | 180 |
+| Nested walk-forward 单元 | 54 |
+| PBO / DSR | 0.667 / 0.9975 |
 
-本单元 `wealth_new >= 99% * best_old` 且 `DD <= best_old +0.5pp`，严格支配单元数为 0；但 C3 的 11 对 9 订单未获 5% 财富提升，因此交易经济性仍 FAIL。
+## Promotion 边界
 
-## 已通过与剩余阻断
-
-已通过：A1–A10、B1–B5、D1、D2、E1–E3、G1–G3、H2–H3、I1/I3/I4、J1–J4、K1/K3/K4、L1–L3、M1–M11、N1–N3、`dominated_cells=0`。
-
-仍阻断 Production：C1/C2 三方矩阵不完整、C3/C4、D3/D4 的三方证据、2024 震荡期、F1–F4、G4、H1、I2、K2、O 类专项与 `MATRIX_COMPLETENESS`。缺失证据按 FAIL 处理，不能由局部优秀结果替代。
+- A–N 与矩阵完整性共 73 个非 K2 检查通过。
+- K2 在 2026-07-21 至 2026-08-05 的 12 个 session 上被正确消费一次，结果为 `CONSUMED_FAIL`。
+- 修复后对已消费日期的诊断重放五池都低于原 17% loss/DD 限制，但这不是新的 promotion 证据。
+- 修复后的候选已冻结为 production `f8fdd2ab989f`、validation `e35831e29770`、config `5821f769d963`；正式 stress/robustness 产物均与这些签名及截至 2026-07-20 的数据指纹匹配。
+- 新的单次窗口已在 `benchmarks/PROMOTION_HOLDBACK_NEXT.json` 预注册为 2026-08-06 至 2026-08-21、12 个预期交易日，门槛保持每池 loss/DD 严格小于 17%。本地冻结数据目前截至 2026-08-05，因此状态为 `PENDING_FUTURE_DATA`，没有 canonical data hash，也没有运行任何新 K2 指标。
+- 只有新窗口完整到齐、先封存数据 hash、再用同一签名候选单次达到 74/74，才能标记 Production。

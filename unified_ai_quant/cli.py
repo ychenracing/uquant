@@ -37,6 +37,7 @@ def _parser() -> argparse.ArgumentParser:
     validate = sub.add_parser("validate")
     validate.add_argument("--data-dir", required=True)
     validate.add_argument("--quick", action="store_true")
+    validate.add_argument("--consume-holdback", action="store_true")
     validate.add_argument("--output-dir", default=".")
     return parser
 
@@ -76,5 +77,10 @@ def main(argv: list[str] | None = None) -> int:
     if args.command == "validate":
         from .validation.runner import run_acceptance
 
-        return run_acceptance(Path(args.data_dir), Path(args.output_dir), quick=args.quick)
+        return run_acceptance(
+            Path(args.data_dir),
+            Path(args.output_dir),
+            quick=args.quick,
+            consume_holdback=args.consume_holdback,
+        )
     return 2

@@ -3,10 +3,10 @@ from __future__ import annotations
 import pandas as pd
 import pytest
 
-from unified_ai_quant.config import DEFAULT_CONFIG
-from unified_ai_quant.engine import ProductionEngine
-from unified_ai_quant.portfolio import PortfolioAllocator
-from unified_ai_quant.types import (
+from uquant.config import DEFAULT_CONFIG
+from uquant.engine import ProductionEngine
+from uquant.portfolio import PortfolioAllocator
+from uquant.types import (
     AccountState,
     LeaderScore,
     Opportunity,

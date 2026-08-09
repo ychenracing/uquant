@@ -7,10 +7,10 @@ import json
 import pandas as pd
 import pytest
 
-from unified_ai_quant.data import DataContractError, DataStore, normalize_symbol
-from unified_ai_quant.engine import ProductionEngine
-from unified_ai_quant.leader import REFERENCE_UNIVERSE, compute_leaders
-from unified_ai_quant.types import AccountState
+from uquant.data import DataContractError, DataStore, normalize_symbol
+from uquant.engine import ProductionEngine
+from uquant.leader import REFERENCE_UNIVERSE, compute_leaders
+from uquant.types import AccountState
 
 
 def test_data_contract_and_manifest(data_dir):
@@ -124,7 +124,7 @@ def test_future_mutation_does_not_change_historical_features(data_dir):
     before = engine._features["sz300308"].loc[date].copy()
     mutated = engine._raw["sz300308"].copy()
     mutated.loc[mutated.index > date, "close"] *= 100.0
-    from unified_ai_quant.features import compute_features
+    from uquant.features import compute_features
 
     after = compute_features(mutated, engine.cfg).loc[date]
     pd.testing.assert_series_equal(before, after)

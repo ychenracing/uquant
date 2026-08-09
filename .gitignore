@@ -8,5 +8,3 @@ build/
 *.egg-info/
 account_state.json
 daily_report_*.md
-validation/tmp/
-

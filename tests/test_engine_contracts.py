@@ -6,13 +6,18 @@ import json
 import pandas as pd
 import pytest
 
-from unified_ai_quant.account import load_account, save_account
-from unified_ai_quant.engine import ProductionEngine
-from unified_ai_quant.report import render_daily_report
-from unified_ai_quant.types import AccountOrder, AccountState, Fill
-from unified_ai_quant.validation.runner import POOLS
+from uquant.account import load_account, save_account
+from uquant.engine import ProductionEngine
+from uquant.leader import REFERENCE_UNIVERSE
+from uquant.report import render_daily_report
+from uquant.types import AccountOrder, AccountState, Fill
 
 SYMBOLS = ["sz300308", "sz300502", "sz300394", "sh688008", "sh603986"]
+RISK_REGRESSION_POOLS = (
+    tuple(SYMBOLS[:3]),
+    tuple(SYMBOLS),
+    tuple(REFERENCE_UNIVERSE),
+)
 
 
 def test_determinism_one_target_and_hard_constraints(data_dir):
@@ -150,7 +155,7 @@ def test_broker_order_metric_excludes_unfilled_submissions():
             order_id="O000000001",
         )
     ]
-    from unified_ai_quant.engine import performance_metrics
+    from uquant.engine import performance_metrics
 
     metrics = performance_metrics(
         equity_rows=[
@@ -215,11 +220,9 @@ def test_historical_reference_coverage_is_point_in_time_dynamic(data_dir):
     assert result["final_wealth"] > 0
 
 
-def test_consumed_failed_promotion_window_is_now_a_research_risk_regression(
-    data_dir,
-):
+def test_recent_shock_window_preserves_capital_across_pool_sizes(data_dir):
     engine = ProductionEngine(data_dir)
-    for symbols in POOLS.values():
+    for symbols in RISK_REGRESSION_POOLS:
         result = engine.backtest(
             symbols=symbols,
             start="2026-07-21",

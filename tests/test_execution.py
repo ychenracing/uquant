@@ -2,15 +2,15 @@ from __future__ import annotations
 
 import pandas as pd
 
-from unified_ai_quant.broker import sync_broker_snapshot
-from unified_ai_quant.config import DEFAULT_CONFIG
-from unified_ai_quant.execution import (
+from uquant.broker import sync_broker_snapshot
+from uquant.config import DEFAULT_CONFIG
+from uquant.execution import (
     ExecutionPlanner,
     fee_components,
     merge_pending_orders,
     reconcile_account_orders,
 )
-from unified_ai_quant.types import (
+from uquant.types import (
     AccountOrder,
     AccountState,
     OrderStatus,

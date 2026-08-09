@@ -4,18 +4,18 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from unified_ai_quant.config import DEFAULT_CONFIG
-from unified_ai_quant.engine import attribution
-from unified_ai_quant.execution import plan_orders
-from unified_ai_quant.leader import credible_recovery_reserve
-from unified_ai_quant.portfolio import PortfolioAllocator
-from unified_ai_quant.risk import (
+from uquant.config import DEFAULT_CONFIG
+from uquant.engine import attribution
+from uquant.execution import plan_orders
+from uquant.leader import credible_recovery_reserve
+from uquant.portfolio import PortfolioAllocator
+from uquant.risk import (
     REFERENCE_ANCHORS,
     _persistent_crisis_cap,
     _portfolio_drawdowns,
     assess_risk,
 )
-from unified_ai_quant.types import (
+from uquant.types import (
     AccountState,
     Fill,
     LeaderScore,

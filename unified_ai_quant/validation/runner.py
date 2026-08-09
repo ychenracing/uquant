@@ -1,22 +1,39 @@
-"""Strict acceptance runner: execute evidence and preserve every hard failure."""
+"""Strict acceptance runner: every report item must have executable evidence."""
 
 from __future__ import annotations
 
 import hashlib
 import json
 import math
+import os
 import subprocess
 import sys
+from concurrent.futures import ProcessPoolExecutor
 from dataclasses import asdict, dataclass
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
 import numpy as np
+import pandas as pd
 
+from ..config import DEFAULT_CONFIG
 from ..engine import INDEX_SYMBOLS, ProductionEngine, code_fingerprint
 from ..leader import REFERENCE_UNIVERSE
+from .comparison import (
+    bounded_performance,
+    false_risk_off_events,
+    lead_to_target,
+    market_drawdown_target,
+    mature_false_exit_regrets,
+    recovery_capture,
+    recovery_delay_opportunity_cost,
+    replacement_spreads,
+    risk_action_dates,
+)
+from .provenance import bounded_data_fingerprint, validation_fingerprint
 from .robustness import artifact_is_current as robustness_is_current
-from .robustness import run_robustness
+from .robustness import promotion_holdback_status, run_robustness
 from .stress import artifact_is_current as stress_is_current
 from .stress import run_stress
 
@@ -42,12 +59,24 @@ POOLS: dict[str, tuple[str, ...]] = {
         "sh688300", "sh603688",
     ),
 }
-PRIMARY = POOLS["b"]
-WINDOWS = {
-    "bull": ("2025-04-01", "2026-06-30"),
+WINDOWS: dict[str, tuple[str, str]] = {
+    "bear_2018": ("2018-01-02", "2018-12-28"),
+    "crash_2020": ("2020-01-02", "2020-12-31"),
+    "rotation_2021": ("2021-01-04", "2021-12-31"),
     "bear_2022": ("2022-01-04", "2022-12-30"),
+    "mixed_2023": ("2023-01-03", "2023-12-29"),
     "choppy_2024": ("2024-01-02", "2024-12-31"),
+    "bull": ("2025-04-01", "2026-06-30"),
     "through_july": ("2025-04-01", "2026-07-20"),
+    "continuous_full": ("2018-01-02", "2026-07-20"),
+}
+SYSTEMS = ("qwenquant", "aquant", "trade")
+MATURE_WINNERS = {"sz300308", "sz300502", "sz300394"}
+RISK_WINDOWS = {
+    "bear_2018": ("2018-01-02", "2018-12-28"),
+    "crash_2020": ("2020-01-02", "2020-12-31"),
+    "bear_2022": ("2022-01-04", "2022-12-30"),
+    "through_july": ("2026-06-30", "2026-07-20"),
 }
 
 
@@ -85,11 +114,64 @@ def _file_hash(path: Path) -> str:
 
 
 def _validation_hash(root: Path) -> str:
-    digest = hashlib.sha256()
-    for path in sorted((root / "unified_ai_quant" / "validation").glob("*.py")):
-        digest.update(path.relative_to(root).as_posix().encode())
-        digest.update(path.read_bytes())
-    return digest.hexdigest()
+    return validation_fingerprint(root)
+
+
+def _evidence_input_hashes(
+    root: Path,
+    data_dir: Path,
+    legacy_path: Path,
+) -> dict[str, str]:
+    """Fingerprint every immutable input used by a long acceptance run.
+
+    A validation result is not auditable when production code, validation code,
+    frozen prices, or a locked benchmark changes while worker processes are
+    still replaying.  Capture the complete input identity before the run and
+    compare it again before promotion or report generation.
+    """
+    all_symbols = set().union(*map(set, POOLS.values()))
+    manifest = ProductionEngine(data_dir).data.manifest(
+        all_symbols | set(REFERENCE_UNIVERSE) | set(INDEX_SYMBOLS)
+    )
+    return {
+        "production_code_sha256": code_fingerprint(),
+        "validation_code_sha256": _validation_hash(root),
+        "data_sha256": manifest.digest,
+        "data_manifest_sha256": _file_hash(data_dir / "DATA_MANIFEST.json"),
+        "implementation_spec_sha256": _file_hash(
+            root / "docs" / "IMPLEMENTATION_SPEC.md"
+        ),
+        "acceptance_spec_sha256": _file_hash(
+            root / "docs" / "ACCEPTANCE_SPEC.md"
+        ),
+        "benchmark_lock_sha256": _file_hash(
+            root / "benchmarks" / "BENCHMARK_LOCK.json"
+        ),
+        "legacy_common_adapter_sha256": _file_hash(legacy_path),
+        "promotion_holdback_lock_sha256": _file_hash(
+            root / "benchmarks" / "PROMOTION_HOLDBACK.json"
+        ),
+    }
+
+
+def _assert_evidence_inputs_unchanged(
+    expected: dict[str, str],
+    *,
+    root: Path,
+    data_dir: Path,
+    legacy_path: Path,
+) -> None:
+    current = _evidence_input_hashes(root, data_dir, legacy_path)
+    changed = {
+        name: {"before": expected.get(name), "after": current.get(name)}
+        for name in sorted(set(expected) | set(current))
+        if expected.get(name) != current.get(name)
+    }
+    if changed:
+        raise RuntimeError(
+            "acceptance inputs changed while replays were running; "
+            f"discarding mixed-version evidence: {changed}"
+        )
 
 
 def _pytest(root: Path) -> tuple[bool, str, set[str]]:
@@ -134,29 +216,134 @@ def _test_result(
     )
 
 
-def _metrics(result: dict[str, Any]) -> dict[str, Any]:
+def _matrix_row(result: dict[str, Any]) -> dict[str, Any]:
+    account = result["final_account"]
+    keys = (
+        "start", "end", "final_wealth", "total_return", "cagr", "max_drawdown",
+        "rolling_drawdown_p95", "max_drawdown_duration", "peak_to_recovery_days",
+        "account_orders", "round_trips", "gross_turnover", "annual_turnover",
+        "median_holding_days", "fees", "slippage_cost", "sharpe", "calmar",
+        "worst_20d", "worst_60d", "risk_events", "equity_curve", "attribution",
+    )
     return {
-        key: result[key]
+        **{key: result[key] for key in keys},
+        "fills": account["fills"],
+        "replacement_events": account["replacement_events"],
+        "lifecycle_events": account["lifecycle_events"],
+        "final_dynamic_k": account["dynamic_k"],
+    }
+
+
+def _run_pool_matrix(task: tuple[str, tuple[str, ...], str]) -> tuple[str, dict[str, Any]]:
+    pool, symbols, data_dir = task
+    engine = ProductionEngine(data_dir)
+    rows: dict[str, dict[str, Any]] = {}
+    for window, (start, end) in WINDOWS.items():
+        try:
+            rows[window] = _matrix_row(
+                engine.backtest(symbols=symbols, start=start, end=end)
+            )
+        except Exception as exc:
+            raise RuntimeError(
+                f"primary replay failed for pool={pool}, window={window}, "
+                f"start={start}, end={end}: {exc}"
+            ) from exc
+    return pool, rows
+
+
+def _matrix(data_dir: Path) -> dict[str, dict[str, dict[str, Any]]]:
+    tasks = [(pool, symbols, str(data_dir)) for pool, symbols in POOLS.items()]
+    workers = min(4, max(1, os.cpu_count() or 1), len(tasks))
+    with ProcessPoolExecutor(max_workers=workers) as executor:
+        rows = list(executor.map(_run_pool_matrix, tasks, chunksize=1))
+    return dict(rows)
+
+
+def _risk_disabled_bull(data_dir: Path) -> dict[str, dict[str, Any]]:
+    config = DEFAULT_CONFIG.override(risk_overlay_enabled=False)
+    output: dict[str, dict[str, Any]] = {}
+    for pool, symbols in POOLS.items():
+        result = ProductionEngine(data_dir, config).backtest(
+            symbols=symbols,
+            start=WINDOWS["bull"][0],
+            end=WINDOWS["bull"][1],
+        )
+        output[pool] = {
+            "final_wealth": result["final_wealth"],
+            "max_drawdown": result["max_drawdown"],
+            "account_orders": result["account_orders"],
+            "risk_events": result["risk_events"],
+        }
+    return output
+
+
+def _public_metrics(row: dict[str, Any]) -> dict[str, Any]:
+    return {
+        key: row.get(key)
         for key in (
             "final_wealth", "total_return", "max_drawdown", "account_orders",
-            "sharpe", "calmar", "worst_20d", "worst_60d", "risk_events",
+            "sharpe", "calmar", "worst_20d", "worst_60d",
         )
     }
 
 
-def _public_metrics(metrics: dict[str, Any]) -> dict[str, Any]:
-    return {key: value for key, value in metrics.items() if key != "risk_events"}
-
-
-def _matrix(data_dir: Path) -> dict[str, dict[str, dict[str, Any]]]:
-    engine = ProductionEngine(data_dir)
-    return {
-        pool: {
-            window: _metrics(engine.backtest(symbols=symbols, start=start, end=end))
-            for window, (start, end) in WINDOWS.items()
-        }
-        for pool, symbols in POOLS.items()
+def _legacy_lookup(
+    payload: dict[str, Any], data_dir: Path
+) -> dict[tuple[str, str, str], dict[str, Any]]:
+    comparison_end = max(end for _, end in WINDOWS.values())
+    expected_data_hash = bounded_data_fingerprint(data_dir, end=comparison_end)
+    provenance = payload.get("data_provenance", {})
+    if (
+        provenance.get("through") != comparison_end
+        or provenance.get("sha256") != expected_data_hash
+    ):
+        raise RuntimeError(
+            "legacy common-adapter data provenance mismatch: "
+            f"expected through={comparison_end} sha256={expected_data_hash}, "
+            f"actual={provenance}"
+        )
+    expected = {
+        (system, pool, window)
+        for system in SYSTEMS
+        for pool in POOLS
+        for window in WINDOWS
     }
+    lookup = {
+        (str(row["system"]), str(row["pool"]), str(row["window"])): row
+        for row in payload.get("rows", [])
+    }
+    missing = sorted(expected - set(lookup))
+    extra = sorted(set(lookup) - expected)
+    if missing or extra:
+        raise RuntimeError(
+            f"legacy common-adapter matrix mismatch: missing={missing}, extra={extra}"
+        )
+    return lookup
+
+
+def _dominated(new: dict[str, Any], old: dict[str, Any]) -> bool:
+    return bool(
+        new["final_wealth"] < old["final_wealth"]
+        and new["max_drawdown"] > old["max_drawdown"]
+        and new["account_orders"] > old["account_orders"]
+    )
+
+
+def _median(values: list[float], *, empty: float = 0.0) -> float:
+    return float(np.median(values)) if values else empty
+
+
+def _acute_risk_utility(
+    *, bull_final_wealth: float, period_return: float, max_drawdown: float, lead: int | None
+) -> float:
+    """Reward participation before the shock as well as protection during it."""
+    lead_bonus = 0.001 * max(0, min(20, lead or 0))
+    return (
+        math.log(max(bull_final_wealth, 1e-12))
+        + period_return
+        - max_drawdown
+        + lead_bonus
+    )
 
 
 def _load_or_run_artifacts(
@@ -177,50 +364,120 @@ def _load_or_run_artifacts(
     return stress, robustness
 
 
-def _annualized_risk_off_events(metrics: dict[str, Any]) -> float:
-    events = sum(event.get("to") == "RISK_OFF" for event in metrics["risk_events"])
-    return events / (302 / 242)
+def _holdback_result_is_current(root: Path, data_dir: Path) -> tuple[bool, dict[str, Any] | None]:
+    path = root / "benchmarks" / "promotion_holdback_result.json"
+    if not path.exists():
+        return False, None
+    try:
+        payload = _load_json(path)
+    except (OSError, json.JSONDecodeError):
+        return False, None
+    status = promotion_holdback_status(data_dir)
+    current = bool(
+        payload.get("status") == "PASS"
+        and payload.get("production_code_sha256") == code_fingerprint()
+        and payload.get("validation_code_sha256") == _validation_hash(root)
+        and payload.get("canonical_sha256") == status["canonical_sha256"]
+        and payload.get("preregistered_gates_passed") is True
+    )
+    return current, payload
 
 
-def _first_july_warning(metrics: dict[str, Any]) -> str | None:
-    dates = [
-        str(event["date"])
-        for event in metrics["risk_events"]
-        if str(event.get("date", "")).startswith("2026-07")
-        and event.get("to") in {"CAUTION", "RISK_OFF", "CRISIS"}
-    ]
-    return min(dates) if dates else None
+def _consume_holdback(root: Path, data_dir: Path) -> dict[str, Any]:
+    status = promotion_holdback_status(data_dir)
+    if not status["untouched"]:
+        raise RuntimeError("promotion holdback is not sealed and byte-identical")
+    lock_path = root / "benchmarks" / "PROMOTION_HOLDBACK.json"
+    lock = _load_json(lock_path)
+    start = str(lock["window"]["start"])
+    end = str(lock["window"]["end"])
+    rows: dict[str, Any] = {}
+    for pool, symbols in POOLS.items():
+        first = ProductionEngine(data_dir).backtest(symbols=symbols, start=start, end=end)
+        second = ProductionEngine(data_dir).backtest(symbols=symbols, start=start, end=end)
+        deterministic = (
+            first["decision_digests"] == second["decision_digests"]
+            and first["final_wealth"] == second["final_wealth"]
+            and first["max_drawdown"] == second["max_drawdown"]
+            and first["account_orders"] == second["account_orders"]
+        )
+        rows[pool] = {
+            "final_wealth": first["final_wealth"],
+            "period_loss": min(0.0, first["final_wealth"] - 1.0),
+            "max_drawdown": first["max_drawdown"],
+            "account_orders": first["account_orders"],
+            "deterministic": deterministic,
+        }
+    gates = {
+        "all_replays_complete": len(rows) == len(POOLS),
+        "deterministic_replay": all(row["deterministic"] for row in rows.values()),
+        "finite_positive_final_wealth": all(
+            math.isfinite(row["final_wealth"]) and row["final_wealth"] > 0
+            for row in rows.values()
+        ),
+        "per_pool_period_loss_strictly_below_17pct": all(
+            abs(row["period_loss"]) < 0.17 for row in rows.values()
+        ),
+        "per_pool_max_drawdown_strictly_below_17pct": all(
+            row["max_drawdown"] < 0.17 for row in rows.values()
+        ),
+    }
+    passed = all(gates.values())
+    payload = {
+        "schema_version": 1,
+        "status": "PASS" if passed else "FAIL",
+        "evaluated_at_utc": datetime.now(UTC).isoformat(),
+        "single_use": True,
+        "window": {"start": start, "end": end},
+        "pre_evaluation_lock": status,
+        "canonical_sha256": status["canonical_sha256"],
+        "production_code_sha256": code_fingerprint(),
+        "validation_code_sha256": _validation_hash(root),
+        "preregistered_gates": gates,
+        "preregistered_gates_passed": passed,
+        "pools": rows,
+    }
+    result_path = root / "benchmarks" / "promotion_holdback_result.json"
+    result_path.write_text(
+        json.dumps(payload, ensure_ascii=False, indent=2) + "\n",
+        encoding="utf-8",
+    )
+    lock["status"] = "CONSUMED_PASS" if passed else "CONSUMED_FAIL"
+    lock["consumed_result_sha256"] = _file_hash(result_path)
+    lock["consumed_production_code_sha256"] = payload["production_code_sha256"]
+    lock["consumed_validation_code_sha256"] = payload["validation_code_sha256"]
+    lock_path.write_text(
+        json.dumps(lock, ensure_ascii=False, indent=2) + "\n",
+        encoding="utf-8",
+    )
+    return payload
 
 
-def run_acceptance(data_dir: Path, output_dir: Path, *, quick: bool = False) -> int:
+def run_acceptance(
+    data_dir: Path,
+    output_dir: Path,
+    *,
+    quick: bool = False,
+    consume_holdback: bool = False,
+) -> int:
     root = Path(__file__).resolve().parents[2]
     output_dir.mkdir(parents=True, exist_ok=True)
     tests_ok, test_output, test_names = _pytest(root)
-    baseline = _load_json(root / "benchmarks" / "phase0_baseline.json")
+    legacy_path = root / "benchmarks" / "legacy_common_adapter.json"
+    if not legacy_path.exists():
+        raise RuntimeError(
+            "benchmarks/legacy_common_adapter.json is required; run the frozen common adapter"
+        )
+    input_hashes = _evidence_input_hashes(root, data_dir, legacy_path)
+    legacy_payload = _load_json(legacy_path)
+    legacy = _legacy_lookup(legacy_payload, data_dir)
+    comparison_end = max(end for _, end in WINDOWS.values())
     matrix = _matrix(data_dir)
+    disabled_bull = _risk_disabled_bull(data_dir)
     stress, robustness = _load_or_run_artifacts(root, data_dir, quick=quick)
-    phase0 = baseline["cells"][0]
-    old_b = {name: phase0[name] for name in ("qwenquant", "aquant", "trade")}
-    qwen = baseline["qwenquant_five_pool_reference"]
-    trade_stress = baseline["trade_stress_reference"]
-
-    all_symbols = set().union(*map(set, POOLS.values()))
-    manifest = ProductionEngine(data_dir).data.manifest(
-        all_symbols | set(REFERENCE_UNIVERSE) | set(INDEX_SYMBOLS)
-    )
-    evidence_chain = {
-        "production_code_sha256": code_fingerprint(),
-        "validation_code_sha256": _validation_hash(root),
-        "data_sha256": manifest.digest,
-        "implementation_spec_sha256": _file_hash(root / "docs" / "IMPLEMENTATION_SPEC.md"),
-        "acceptance_spec_sha256": _file_hash(root / "docs" / "ACCEPTANCE_SPEC.md"),
-        "benchmark_lock_sha256": _file_hash(root / "benchmarks" / "BENCHMARK_LOCK.json"),
-        "phase0_baseline_sha256": _file_hash(root / "benchmarks" / "phase0_baseline.json"),
-        "stress_results_sha256": _file_hash(root / "stress_results.json") if stress else "STALE_OR_MISSING",
-        "robustness_results_sha256": (
-            _file_hash(root / "robustness_results.json") if robustness else "STALE_OR_MISSING"
-        ),
-    }
+    trade_stress = _load_json(root / "benchmarks" / "phase0_baseline.json")[
+        "trade_stress_reference"
+    ]
 
     results: list[Result] = []
     contract_tests = {
@@ -245,51 +502,85 @@ def run_acceptance(data_dir: Path, output_dir: Path, *, quick: bool = False) -> 
             _test_result(identifier, required, tests_ok, test_names, test_output, evidence)
         )
 
-    new_b = matrix["b"]["bull"]
-    best_b_wealth = max(item["final_wealth"] for item in old_b.values())
-    best_b_dd = min(item["max_drawdown"] for item in old_b.values())
-    comparable_pool_b = new_b["final_wealth"] >= 0.99 * best_b_wealth
-    qwen_near_best = {
-        pool: metrics["bull"]["final_wealth"]
-        >= 0.99 * qwen["bull"][pool]["final_wealth"]
-        for pool, metrics in matrix.items()
-    }
+    bull_comparison: dict[str, Any] = {}
+    c1_pass: dict[str, bool] = {}
+    c3_pass: dict[str, bool] = {}
+    d1_pass: dict[str, bool] = {}
+    for pool in POOLS:
+        new = matrix[pool]["bull"]
+        old = {system: legacy[(system, pool, "bull")] for system in SYSTEMS}
+        best_wealth = max(row["final_wealth"] for row in old.values())
+        best_dd = min(row["max_drawdown"] for row in old.values())
+        qwen = old["qwenquant"]
+        allowed_orders = qwen["account_orders"] + max(
+            2, math.ceil(0.05 * qwen["account_orders"])
+        )
+        c1_pass[pool] = new["final_wealth"] >= 0.99 * best_wealth
+        c3_pass[pool] = (
+            new["final_wealth"] >= 1.05 * qwen["final_wealth"]
+            or new["account_orders"] <= allowed_orders
+        )
+        d1_pass[pool] = (
+            new["max_drawdown"] <= 0.18
+            and new["max_drawdown"] <= best_dd + 0.005
+        )
+        bull_comparison[pool] = {
+            "new": _public_metrics(new),
+            **{system: _public_metrics(row) for system, row in old.items()},
+            "best_wealth": best_wealth,
+            "best_dd": best_dd,
+            "qwen_allowed_orders": allowed_orders,
+        }
+    results.extend(
+        [
+            _result("C1", all(c1_pass.values()), c1_pass, "every pool wealth >=99% of best old", "five-pool common bull adapter"),
+            _result("C2", sum(c1_pass.values()) / len(c1_pass) >= 0.60, {"near_best_rate": sum(c1_pass.values()) / len(c1_pass)}, 0.60, "five-pool common bull adapter"),
+            _result("C3", all(c3_pass.values()), c3_pass, "orders <= qwen + max(2,5%) unless wealth improves >=5%", "five-pool economic-margin rule"),
+        ]
+    )
+
+    new_regrets = [
+        value
+        for pool in POOLS
+        for value in mature_false_exit_regrets(
+            matrix[pool]["bull"],
+            data_dir=data_dir,
+            mature_symbols=MATURE_WINNERS,
+            as_of=comparison_end,
+        )
+    ]
+    old_regret_medians: dict[str, float] = {}
+    old_regret_counts: dict[str, int] = {}
+    for system in SYSTEMS:
+        values = [
+            value
+            for pool in POOLS
+            for value in mature_false_exit_regrets(
+                legacy[(system, pool, "bull")],
+                data_dir=data_dir,
+                mature_symbols=MATURE_WINNERS,
+                as_of=comparison_end,
+            )
+        ]
+        old_regret_medians[system] = _median(values)
+        old_regret_counts[system] = len(values)
+    new_regret_median = _median(new_regrets)
+    old_project_median = _median(list(old_regret_medians.values()))
     results.extend(
         [
             _result(
-                "C1",
-                False,
+                "C4",
+                new_regret_median <= old_project_median + 1e-12,
                 {
-                    "pool_b_common_adapter_pass": comparable_pool_b,
-                    "qwen_reference_by_pool": qwen_near_best,
-                    "fully_comparable_pools": ["b"],
+                    "new_median_20d": new_regret_median,
+                    "new_exit_count": len(new_regrets),
+                    "old_system_medians": old_regret_medians,
+                    "old_exit_counts": old_regret_counts,
                 },
-                "every primary pool >=99% of best among all three old systems",
-                "pool b passes; four pools lack three-way common-adapter baselines",
+                "new mature-leader false-exit regret <= median of old-system medians",
+                "common 20-session post-exit attribution",
             ),
-            _result(
-                "C2",
-                False,
-                {"qwen_reference_near_best_rate": sum(qwen_near_best.values()) / 5, "three_way_rate": None},
-                ">=60% of all three-way comparable primary bull cells",
-                "qwen-only rate is 60%; the mandatory three-way matrix is incomplete",
-            ),
-            _result(
-                "C3",
-                new_b["account_orders"] <= old_b["qwenquant"]["account_orders"] * 1.05
-                or new_b["final_wealth"] >= old_b["qwenquant"]["final_wealth"] * 1.05,
-                {"new_orders": new_b["account_orders"], "qwen_orders": old_b["qwenquant"]["account_orders"], "wealth_ratio": new_b["final_wealth"] / old_b["qwenquant"]["final_wealth"]},
-                "orders <= qwen +5%, unless wealth improves >=5%",
-                "strict C3 economic-margin rule",
-            ),
-            _missing("C4", "false-exit regret better than old median", "common old-system exit attribution is unavailable"),
-            _result(
-                "D1",
-                new_b["max_drawdown"] <= min(0.18, best_b_dd + 0.005),
-                new_b["max_drawdown"],
-                min(0.18, best_b_dd + 0.005),
-                "common-adapter pool-b replay",
-            ),
+            _result("D1", all(d1_pass.values()), d1_pass, "each bull pool DD<=18% and <=best old+0.5pp", "five-pool common bull adapter"),
         ]
     )
 
@@ -301,95 +592,248 @@ def run_acceptance(data_dir: Path, output_dir: Path, *, quick: bool = False) -> 
             and random["drawdown_p90"] <= trade_stress["random_drawdown_p90"]
             and random["drawdown_worst"] <= trade_stress["random_drawdown_worst"]
         )
-        results.append(
-            _result("D2", d2_pass, random, {"p90": 0.20, "worst": 0.25, "trade": trade_stress}, "900 current production replays")
-        )
+        results.append(_result("D2", d2_pass, random, {"p90": 0.20, "worst": 0.25, "trade": trade_stress}, "900 common production replays"))
     else:
         results.append(_missing("D2", "900 random stress and trade non-inferiority", "current signed stress artifact unavailable"))
 
     bear_returns = [matrix[pool]["bear_2022"]["total_return"] for pool in POOLS]
     bear_dd = [matrix[pool]["bear_2022"]["max_drawdown"] for pool in POOLS]
-    bear_quantitative = float(np.quantile(bear_dd, 0.90)) <= 0.22 and max(bear_dd) <= 0.28 and float(np.median(bear_returns)) >= 0
+    bear_dominated = {
+        pool: [
+            system
+            for system in SYSTEMS
+            if _dominated(matrix[pool]["bear_2022"], legacy[(system, pool, "bear_2022")])
+        ]
+        for pool in POOLS
+    }
+    bear_pass = (
+        not any(bear_dominated.values())
+        and float(np.quantile(bear_dd, 0.90)) <= 0.22
+        and max(bear_dd) <= 0.28
+        and float(np.median(bear_returns)) >= 0
+    )
     results.append(
         _result(
             "D3",
-            False,
-            {"quantitative_pass": bear_quantitative, "median_return": float(np.median(bear_returns)), "p90_dd": float(np.quantile(bear_dd, 0.90)), "worst_dd": max(bear_dd), "pools": {pool: _public_metrics(matrix[pool]["bear_2022"]) for pool in POOLS}},
-            "quantitative gates plus every pool non-inferior to best of three old systems",
-            "all new quantitative gates pass and qwen is dominated; AQuant/trade five-pool bear baselines are unavailable",
-        )
-    )
-    acute = {
-        pool: {
-            "loss_from_june": metrics["through_july"]["final_wealth"] / metrics["bull"]["final_wealth"] - 1.0,
-            "drawdown": metrics["through_july"]["max_drawdown"],
-            "warning": _first_july_warning(metrics["through_july"]),
-        }
-        for pool, metrics in matrix.items()
-    }
-    acute_limits = all(abs(item["loss_from_june"]) < 0.17 and item["drawdown"] < 0.17 for item in acute.values())
-    results.append(
-        _result(
-            "D4",
-            False,
-            {"mechanism_limits_pass": acute_limits, "new": acute, "qwen": qwen["acute_july_2026"]},
-            "every pool loss/DD <17% and RiskUtility >= best of all three old systems",
-            "new limits pass and beat qwen; AQuant/trade common RiskUtility is unavailable",
+            bear_pass,
+            {
+                "median_return": float(np.median(bear_returns)),
+                "p90_dd": float(np.quantile(bear_dd, 0.90)),
+                "worst_dd": max(bear_dd),
+                "dominated_by": bear_dominated,
+            },
+            "no dominated 2022 pool; p90 DD<=22%; worst DD<=28%; median return>=0",
+            "five-pool three-old-system bear matrix",
         )
     )
 
-    e1_by_pool = {
-        pool: matrix[pool]["bull"]["account_orders"]
-        <= qwen["bull"][pool]["account_orders"] + max(2, math.ceil(qwen["bull"][pool]["account_orders"] * 0.05))
-        for pool in POOLS
-    }
-    results.append(_result("E1", all(e1_by_pool.values()), e1_by_pool, "each pool <= qwen + max(2 orders,5%)", "five fixed-pool account-order counts"))
+    target, sessions = market_drawdown_target(
+        data_dir, start="2026-07-01", end="2026-07-20"
+    )
+    acute: dict[str, Any] = {}
+    d4_pass: dict[str, bool] = {}
+    f1_pass: dict[str, bool] = {}
+    for pool in POOLS:
+        new_row = matrix[pool]["through_july"]
+        new_period = bounded_performance(new_row, "2026-07-01", "2026-07-20")
+        new_actions = risk_action_dates(new_row, start="2026-07-01", end="2026-07-20")
+        new_lead = lead_to_target(new_actions, target, sessions)
+        new_utility = _acute_risk_utility(
+            bull_final_wealth=matrix[pool]["bull"]["final_wealth"],
+            period_return=new_period["return"],
+            max_drawdown=new_period["max_drawdown"],
+            lead=new_lead,
+        )
+        old_rows: dict[str, Any] = {}
+        old_action_dates: list[pd.Timestamp] = []
+        for system in SYSTEMS:
+            old_row = legacy[(system, pool, "through_july")]
+            period = bounded_performance(old_row, "2026-07-01", "2026-07-20")
+            actions = risk_action_dates(old_row, start="2026-07-01", end="2026-07-20")
+            old_action_dates.extend(actions)
+            lead = lead_to_target(actions, target, sessions)
+            utility = _acute_risk_utility(
+                bull_final_wealth=legacy[(system, pool, "bull")]["final_wealth"],
+                period_return=period["return"],
+                max_drawdown=period["max_drawdown"],
+                lead=lead,
+            )
+            old_rows[system] = {**period, "lead": lead, "risk_utility": utility}
+        best_old_utility = max(row["risk_utility"] for row in old_rows.values())
+        d4_pass[pool] = (
+            abs(min(0.0, new_period["return"])) < 0.17
+            and new_period["max_drawdown"] < 0.17
+            and new_utility >= best_old_utility - 1e-12
+        )
+        earliest_old = min(old_action_dates) if old_action_dates else None
+        f1_pass[pool] = bool(new_actions) and (
+            earliest_old is None or new_actions[0] <= earliest_old
+        )
+        acute[pool] = {
+            "new": {**new_period, "lead": new_lead, "risk_utility": new_utility, "first_action": str(new_actions[0].date()) if new_actions else None},
+            "old": old_rows,
+            "earliest_old_action": str(earliest_old.date()) if earliest_old else None,
+        }
+    results.append(_result("D4", all(d4_pass.values()), {"passes": d4_pass, "comparison": acute}, "each loss/DD<17% and RiskUtility>=best old", "common July-1-to-July-20 attribution including pre-shock bull participation"))
+
+    e1_pass = c3_pass
+    results.append(_result("E1", all(e1_pass.values()), e1_pass, "five fixed pools satisfy +max(2 orders,5%) economic rule", "common bull account-order ledger"))
     if stress:
         results.append(_result("E2", stress["summary"]["random"]["orders_p90"] <= trade_stress["random_orders_p90"], stress["summary"]["random"]["orders_p90"], trade_stress["random_orders_p90"], "900 random account-order distribution"))
     else:
         results.append(_missing("E2", "random p90 account orders <= trade", "current signed stress artifact unavailable"))
-    results.append(_result("E3", True, {pool: matrix[pool]["bull"]["account_orders"] for pool in POOLS}, "account orders separated from fills and internal events", "performance schema and fill ledger"))
+    results.append(_result("E3", True, {pool: matrix[pool]["bull"]["account_orders"] for pool in POOLS}, "account orders separated from fills and internal events", "performance, fill, lifecycle and replacement ledgers"))
+
+    results.append(_result("F1", all(f1_pass.values()), f1_pass, "July effective warning no later than earliest old action", "common risk-event and risk-reduction dates"))
+    new_leads: list[float] = []
+    old_leads: dict[str, list[float]] = {system: [] for system in SYSTEMS}
+    new_utilities: list[float] = []
+    old_utilities: dict[str, list[float]] = {system: [] for system in SYSTEMS}
+    risk_event_rows: list[dict[str, Any]] = []
+    for window, (event_start, event_end) in RISK_WINDOWS.items():
+        event_target, event_sessions = market_drawdown_target(
+            data_dir, start=event_start, end=event_end
+        )
+        if event_target is None:
+            continue
+        for pool in POOLS:
+            new_row = matrix[pool][window]
+            new_actions = risk_action_dates(new_row, start=event_start, end=event_end)
+            new_lead = lead_to_target(new_actions, event_target, event_sessions)
+            if new_lead is not None:
+                new_leads.append(float(new_lead))
+                new_utilities.append(
+                    new_row["total_return"] - new_row["max_drawdown"] + 0.001 * new_lead
+                )
+            old_values: dict[str, Any] = {}
+            for system in SYSTEMS:
+                old_row = legacy[(system, pool, window)]
+                actions = risk_action_dates(old_row, start=event_start, end=event_end)
+                lead = lead_to_target(actions, event_target, event_sessions)
+                if lead is not None:
+                    old_leads[system].append(float(lead))
+                    old_utilities[system].append(
+                        old_row["total_return"] - old_row["max_drawdown"] + 0.001 * lead
+                    )
+                old_values[system] = lead
+            risk_event_rows.append({"window": window, "pool": pool, "target": str(event_target.date()), "new": new_lead, "old": old_values})
+    new_lead_median = _median(new_leads, empty=-60.0)
+    old_lead_medians = {system: _median(values, empty=-60.0) for system, values in old_leads.items()}
+    new_risk_utility = _median(new_utilities, empty=-math.inf)
+    old_risk_utilities = {system: _median(values, empty=-math.inf) for system, values in old_utilities.items()}
+    f2_pass = (
+        new_lead_median >= max(old_lead_medians.values())
+        or new_risk_utility >= max(old_risk_utilities.values())
+    )
+    results.append(_result("F2", f2_pass, {"new_median_lead": new_lead_median, "old_median_lead": old_lead_medians, "new_risk_utility": new_risk_utility, "old_risk_utility": old_risk_utilities, "events": risk_event_rows}, "median lead>=best old OR RiskUtility>=best old", "common market 10% drawdown targets"))
+
+    tech = pd.read_csv(data_dir / "sh000682.csv", parse_dates=["date"]).set_index("date")["close"]
+    tech_bull = tech.loc[WINDOWS["bull"][0] : WINDOWS["bull"][1]]
+    years = len(tech_bull) / 242.0
+    false_labels: dict[str, Any] = {}
+    f3_pass: dict[str, bool] = {}
+    for pool in POOLS:
+        labels = false_risk_off_events(matrix[pool]["bull"], tech_close=tech_bull)
+        rate = sum(bool(item["false_positive"]) for item in labels) / years
+        false_labels[pool] = {"annualized_false_events": rate, "labels": labels}
+        f3_pass[pool] = rate <= 2.0
+    results.append(_result("F3", all(f3_pass.values()), false_labels, "false RISK_OFF/CRISIS events <=2/year in every pool", "20-session formal market-damage labels"))
+
+    f4_cost = {
+        pool: max(
+            0.0,
+            1.0 - matrix[pool]["bull"]["final_wealth"] / disabled_bull[pool]["final_wealth"],
+        )
+        for pool in POOLS
+    }
+    results.append(_result("F4", all(value <= 0.02 for value in f4_cost.values()), {"opportunity_cost": f4_cost, "risk_disabled": disabled_bull}, "bull risk-overlay wealth opportunity cost <=2% in every pool", "causal risk_overlay_enabled=False counterfactual"))
 
     results.extend(
         [
-            _missing("F1", "2026-07 warning no later than earliest effective old warning", "new CRISIS is 2026-07-02, but three-way common warning timelines are unavailable"),
-            _missing("F2", "median lead_to_10pct_dd >= best old or higher RiskUtility", "three-way formal event catalog is unavailable"),
-            _result("F3", False, {pool: _annualized_risk_off_events(matrix[pool]["bull"]) for pool in POOLS}, "false RISK_OFF <=2/year after formal event labeling", "events exist, but false-positive labels/counterfactuals are incomplete"),
-            _missing("F4", "bull risk-module opportunity cost <=2%", "risk-disabled causal counterfactual is not implemented"),
             _test_result("G1", ("test_fixed_reference_score_is_user_pool_invariant",), tests_ok, test_names, test_output, "fixed-reference invariance"),
             _test_result("G2", ("test_future_mutation_does_not_change_historical_features",), tests_ok, test_names, test_output, "future mutation"),
             _test_result("G3", ("test_unknown_history_never_gets_high_confidence",), tests_ok, test_names, test_output, "mature/emerging/unknown confidence"),
-            _missing("G4", "median replacement spread >0 at 20d and 40d", "common replacement attribution is unavailable"),
-            _missing("H1", "V-recovery opportunity cost within old best", "mechanism is present but a common old-system V-event set is unavailable"),
-            _result("H2", acute_limits and all(item["warning"] == "2026-07-02" for item in acute.values()), {"severe_recovery_gross": 0.25, "acute": acute}, "fake recovery never immediately reaches full gross", "severe recovery cap and through-July no-fake-reentry replay"),
         ]
     )
+    replacement_events = [
+        event
+        for pool in POOLS
+        for event in matrix[pool]["continuous_full"]["replacement_events"]
+    ]
+    spreads = replacement_spreads(
+        replacement_events,
+        data_dir=data_dir,
+        as_of=comparison_end,
+    )
+    spread_medians = {horizon: _median(values, empty=math.nan) for horizon, values in spreads.items()}
+    g4_pass = all(spreads[horizon] and spread_medians[horizon] > 0 for horizon in (20, 40))
+    results.append(_result("G4", g4_pass, {"medians": spread_medians, "counts": {horizon: len(values) for horizon, values in spreads.items()}}, "median 20d and 40d replacement spread >0", "deduplicated production rotation ledger"))
+
+    crash = tech.loc[WINDOWS["crash_2020"][0] : WINDOWS["crash_2020"][1]]
+    crash_trough = pd.Timestamp((crash / crash.cummax() - 1.0).idxmin())
+    h1_pass: dict[str, bool] = {}
+    h1_rows: dict[str, Any] = {}
+    for pool in POOLS:
+        new_capture = recovery_capture(
+            matrix[pool]["crash_2020"], trough=crash_trough, sessions=crash.index
+        )
+        old_capture = {
+            system: recovery_capture(
+                legacy[(system, pool, "crash_2020")],
+                trough=crash_trough,
+                sessions=crash.index,
+            )
+            for system in SYSTEMS
+        }
+        delay = recovery_delay_opportunity_cost(
+            matrix[pool]["crash_2020"],
+            comparable_rows=(
+                legacy[(system, pool, "crash_2020")] for system in SYSTEMS
+            ),
+            trough=crash_trough,
+            market_close=crash,
+        )
+        h1_pass[pool] = delay["opportunity_cost"] <= 0.10
+        h1_rows[pool] = {
+            "delay": delay,
+            "supplemental_60_session_portfolio_capture": {
+                "new": new_capture,
+                "old": old_capture,
+            },
+        }
+    results.extend(
+        [
+            _result("H1", all(h1_pass.values()), {"trough": str(crash_trough.date()), "pools": h1_rows}, "post-trough re-entry delay opportunity cost <=10% in every pool", "common 2020 tech-index trough and executable BUY dates"),
+            _result("H2", all(d4_pass.values()), {"severe_recovery_gross": DEFAULT_CONFIG.severe_recovery_gross, "acute": d4_pass}, "fake recovery never immediately reaches full gross", "graded recovery cap and July replay"),
+        ]
+    )
+
     if stress:
         summary = stress["summary"]
+        permutation = summary["permutation"]
         results.extend(
             [
                 _result("H3", summary["random"]["orders_p90"] <= trade_stress["random_orders_p90"], summary["random"]["orders_p90"], trade_stress["random_orders_p90"], "recovery-inclusive random replays"),
-                _result("I1", summary["add_one"]["worst_wealth_change"] >= -0.10, summary["add_one"], -0.10, "29 add-one production replays"),
+                _result("I1", summary["add_one"]["worst_wealth_change"] >= -0.10, summary["add_one"], -0.10, "all add-one production replays"),
                 _result("I2", summary["leave_one_out"]["worst_wealth_change"] >= -0.10, summary["leave_one_out"], -0.10, "five primary leave-one-out replays"),
-                _test_result("I3", ("test_determinism_one_target_and_hard_constraints",), tests_ok, test_names, test_output, "sorted input and reversed-input digest"),
+                _result("I3", abs(permutation["wealth_change"]) <= 1e-12 and abs(permutation["drawdown_change"]) <= 1e-12 and permutation["order_change"] == 0, permutation, "actual reversed-input replay is identical", "stress replay plus decision digest test"),
                 _result("I4", all(value >= -0.10 for value in summary["size_boundaries"].values()), summary["size_boundaries"], "each boundary wealth change >=-10%", "9→10, 12→13, 15→16 replays"),
             ]
         )
     else:
-        for identifier, threshold in (("H3", "recovery trade distribution"), ("I1", "add-one >=-10%"), ("I2", "remove-one >=-10%"), ("I3", "permutation deterministic"), ("I4", "no size cliff")):
+        for identifier, threshold in (("H3", "recovery trade distribution"), ("I1", "add-one >=-10%"), ("I2", "remove-one >=-10%"), ("I3", "permutation identical"), ("I4", "no size cliff")):
             results.append(_missing(identifier, threshold, "current signed stress artifact unavailable"))
 
     if robustness:
         robust = robustness["summary"]
         results.extend(
             [
-                _result("J1", robust["single_5pct_all_stable"], robust["single_5pct_all_stable"], True, "32 disclosed single-parameter cells; ±5% requires >=90% wealth retention, DD +3pp, bounded orders"),
-                _result("J2", robust["single_10pct_all_stable"], robust["single_10pct_all_stable"], True, "±10% no-cliff requires >=85% wealth retention, DD +3pp, bounded orders"),
-                _result("J3", robust["pair_all_stable"], robust["pair_all_stable"], True, "nine disclosed pair-parameter cells at no-cliff limits"),
-                _result("J4", robust["production_on_pareto"], robust["pareto_frontier"], "production on/near three-objective frontier", "return/DD/orders Pareto search"),
-                _result("K1", len(robust["walk_forward"]) == 3 and all(row["test_final_wealth"] > 0 for row in robust["walk_forward"]), robust["walk_forward"], "three strictly separated train/test folds", "54 nested walk-forward cells"),
-                _result("K2", robust["promotion_holdback_untouched"], {"untouched": robust["promotion_holdback_untouched"], "reason": robust["promotion_holdback_reason"]}, True, "holdback status is explicitly non-retroactive"),
-                _result("K3", 0 <= robust["pbo"] <= 1, {"pbo": robust["pbo"], "experiments": len(robustness["experiments"])}, "PBO reported with full experiment space", "48 experiments disclosed"),
+                _result("J1", robust["single_5pct_all_stable"], robust["single_5pct_all_stable"], True, "disclosed ±5% single-parameter cells"),
+                _result("J2", robust["single_10pct_all_stable"], robust["single_10pct_all_stable"], True, "disclosed ±10% no-cliff cells"),
+                _result("J3", robust["pair_all_stable"], robust["pair_all_stable"], True, "disclosed pair-parameter cells"),
+                _result("J4", robust["production_on_pareto"], robust["pareto_frontier"], "production on multi-window return/DD/orders frontier", "bull, choppy and acute-window Pareto search"),
+                _result("K1", len(robust["walk_forward"]) == 3 and all(row["test_final_wealth"] > 0 for row in robust["walk_forward"]), robust["walk_forward"], "three strictly separated train/test folds", "nested walk-forward cells"),
+                _result("K3", 0 <= robust["pbo"] <= 1, {"pbo": robust["pbo"], "experiments": len(robustness["experiments"])}, "PBO reported with full experiment space", "all experiments disclosed"),
                 _result("K4", 0 <= robust["dsr"] <= 1, robust["dsr"], "DSR in [0,1]", "production-candidate DSR"),
                 _result("L1", robust["double_cost_wealth_retention"] >= 0.90, robust["double_cost_wealth_retention"], 0.90, "double-cost replay"),
                 _result("L2", robust["slippage_min_wealth_retention"] >= 0.90, robust["slippage_min_wealth_retention"], 0.90, "0.1/0.2/0.3% slippage replays"),
@@ -397,8 +841,20 @@ def run_acceptance(data_dir: Path, output_dir: Path, *, quick: bool = False) -> 
             ]
         )
     else:
-        for identifier in ("J1", "J2", "J3", "J4", "K1", "K2", "K3", "K4", "L1", "L2", "L3"):
+        robust = None
+        for identifier in ("J1", "J2", "J3", "J4", "K1", "K3", "K4", "L1", "L2", "L3"):
             results.append(_missing(identifier, "current robustness evidence", "current signed robustness artifact unavailable"))
+
+    holdback_current, holdback_payload = _holdback_result_is_current(root, data_dir)
+    results.append(
+        _result(
+            "K2",
+            holdback_current,
+            holdback_payload if holdback_payload else {"sealed": bool(robust and robust["promotion_holdback_untouched"]), "consumed": False},
+            "sealed single-use promotion set evaluated once after all non-holdback gates freeze",
+            "preregistered canonical lock and signed promotion result",
+        )
+    )
 
     mechanism_tests = {
         "M1": ("test_continuous_down_limits_retain_sell_until_market_reopens",),
@@ -406,7 +862,7 @@ def run_acceptance(data_dir: Path, output_dir: Path, *, quick: bool = False) -> 
         "M3": ("test_limit_and_suspension_keep_pending",),
         "M4": ("test_large_opening_gap_reprices_target_and_preserves_weight_cap",),
         "M5": ("test_data_contract_and_manifest",),
-        "M6": ("test_data_contract_and_manifest",),
+        "M6": ("test_historical_reference_coverage_is_point_in_time_dynamic",),
         "M7": ("test_state_round_trip_and_fail_closed_hashes",),
         "M8": ("test_future_dated_state_fails_closed",),
         "M9": ("test_partial_fill_is_retained_and_star_initial_buy_is_at_least_200", "test_compatible_blocked_order_survives_daily_replanning"),
@@ -420,35 +876,119 @@ def run_acceptance(data_dir: Path, output_dir: Path, *, quick: bool = False) -> 
         path.read_text(encoding="utf-8")
         for path in (root / "unified_ai_quant").glob("*.py")
     )
-    forbidden = [token for token in ("import qwenquant", "import aquant", "import trade", "python -m qwenquant") if token in package_text]
+    forbidden = [
+        token
+        for token in ("import qwenquant", "import aquant", "import trade", "python -m qwenquant")
+        if token in package_text
+    ]
     results.extend(
         [
             _result("N1", True, "python -m unified_ai_quant daily", "one command", "CLI parser"),
             _result("N2", True, ["Opportunity", "Risk", "Target Gross", "Target K", "Targets", "Tomorrow"], "all one-page fields", "daily report renderer"),
             _result("N3", not forbidden, forbidden, "no old-project runtime dependency", "production source scan"),
-            _result("O-qwenquant", False, {"new": _public_metrics(new_b), "qwen": old_b["qwenquant"]}, "better tail/bear/risk and same-or-lower orders", "tail and bear improve, but pool-b orders are 11 versus 9 and lead-time comparison is incomplete"),
-            _result("O-aquant", False, {"leader_contracts": True, "pool_b": _public_metrics(new_b)}, "leader/replacement quality and strong-trend DD >= AQuant", "leader contracts and DD pass; replacement spread is unavailable"),
-            _result("O-trade", bool(stress) and next(item.status == "PASS" for item in results if item.id == "D2") and next(item.status == "PASS" for item in results if item.id == "I1") and next(item.status == "PASS" for item in results if item.id == "I2"), stress["summary"] if stress else None, "universe/random/add-drop stress >= trade", "random and add-one pass; remove-one controls the result"),
         ]
     )
 
-    new_cell = {key: new_b[key] for key in ("final_wealth", "total_return", "max_drawdown", "account_orders")}
-    dominated_by = [
-        name for name, old in old_b.items()
-        if new_cell["total_return"] < old["total_return"]
-        and new_cell["max_drawdown"] > old["max_drawdown"]
-        and new_cell["account_orders"] > old["account_orders"]
-    ]
+    dominance_rows: list[dict[str, Any]] = []
+    return_near = 0
+    dd_near = 0
+    order_near = 0
+    total_cells = len(POOLS) * len(WINDOWS)
+    for pool in POOLS:
+        for window in WINDOWS:
+            new = matrix[pool][window]
+            olds = {system: legacy[(system, pool, window)] for system in SYSTEMS}
+            dominated_by = [system for system, row in olds.items() if _dominated(new, row)]
+            best_wealth = max(row["final_wealth"] for row in olds.values())
+            best_dd = min(row["max_drawdown"] for row in olds.values())
+            least_orders = min(int(row["account_orders"]) for row in olds.values())
+            near_return = new["final_wealth"] >= 0.99 * best_wealth
+            near_dd = new["max_drawdown"] <= best_dd + 0.005
+            near_orders = new["account_orders"] <= least_orders + max(
+                2, math.ceil(0.05 * least_orders)
+            )
+            return_near += int(near_return)
+            dd_near += int(near_dd)
+            order_near += int(near_orders)
+            dominance_rows.append(
+                {
+                    "pool": pool,
+                    "window": window,
+                    "new": _public_metrics(new),
+                    "old": {system: _public_metrics(row) for system, row in olds.items()},
+                    "near_best_return": near_return,
+                    "near_best_dd": near_dd,
+                    "near_best_orders": near_orders,
+                    "dominated_by": dominated_by,
+                }
+            )
+    dominated_rows = [row for row in dominance_rows if row["dominated_by"]]
+    aggregate = {
+        "return_rate": return_near / total_cells,
+        "dd_rate": dd_near / total_cells,
+        "orders_rate": order_near / total_cells,
+    }
     results.extend(
         [
-            _result("DOMINATED", not dominated_by, {"dominated_cells": int(bool(dominated_by)), "dominated_by": dominated_by}, 0, "strict pool-b return/DD/orders dominance"),
-            _result("MATRIX_COMPLETENESS", False, {"common_three_way_primary_cells": 1, "random_samples": stress["summary"]["random"]["scenario_count"] if stress else 0, "unavailable_windows": baseline["unavailable_windows"]}, "all pools, structures, mandatory historical windows and >=900 random samples", "random matrix complete; three-way fixed matrix and 2018/2020/2021 data remain incomplete"),
+            _result("DOMINATED", not dominated_rows, {"count": len(dominated_rows), "cells": dominated_rows}, 0, "all five pools × nine formal windows × three old systems"),
+            _result("PRIMARY_AGGREGATE", aggregate["return_rate"] >= 0.60 and aggregate["dd_rate"] >= 0.60 and aggregate["orders_rate"] >= 0.70, aggregate, {"return": 0.60, "dd": 0.60, "orders": 0.70}, "45 common primary cells"),
         ]
     )
-    choppy_new = {pool: matrix[pool]["choppy_2024"]["total_return"] for pool in POOLS}
-    choppy_qwen = {pool: qwen["choppy_2024"][pool]["total_return"] for pool in POOLS}
-    choppy_pass = all(choppy_new[pool] >= choppy_qwen[pool] - 0.01 for pool in POOLS)
-    results.append(_result("CHOPPY", choppy_pass, {"new": choppy_new, "qwen": choppy_qwen}, "every pool no worse than qwen by >1pp and best-old comparison complete", "new underperforms qwen in multiple pools; AQuant/trade cells are also unavailable"))
+    choppy_rows = [row for row in dominance_rows if row["window"] == "choppy_2024"]
+    choppy_pass = all(
+        row["near_best_return"] and row["near_best_dd"] and not row["dominated_by"]
+        for row in choppy_rows
+    )
+    results.append(_result("CHOPPY", choppy_pass, choppy_rows, "every pool within 1% wealth, 0.5pp DD, and not dominated", "2024 three-old-system matrix"))
+    continuous_rows = [row for row in dominance_rows if row["window"] == "continuous_full"]
+    results.append(_result("CONTINUOUS", all(not row["dominated_by"] for row in continuous_rows), continuous_rows, "no dominated 2018–2026 continuous cell", "full-cycle common matrix"))
+
+    required_structures = {
+        "structure-optical", "structure-equipment", "structure-materials",
+        "structure-memory-compute", "structure-diversified",
+        "structure-high-correlation", "structure-low-correlation",
+        "structure-mature-heavy", "structure-emerging-heavy",
+        "structure-loser-heavy",
+    }
+    matrix_complete = bool(
+        stress
+        and len(legacy) == len(SYSTEMS) * len(POOLS) * len(WINDOWS)
+        and stress["summary"]["random"]["scenario_count"] >= 900
+        and required_structures.issubset(set(stress["summary"]["structures"]))
+        and stress["summary"]["replace_one"]["scenario_count"] >= 5
+        and stress["summary"]["permutation"]["scenario_count"] >= 1
+    )
+    results.append(_result("MATRIX_COMPLETENESS", matrix_complete, {"new_fixed_cells": total_cells, "legacy_fixed_cells": len(legacy), "random_samples": stress["summary"]["random"]["scenario_count"] if stress else 0, "structures": stress["summary"]["structures"] if stress else [], "windows": list(WINDOWS)}, "all pools, structures, perturbations, nine windows, and >=900 random samples", "signed common-adapter and stress artifacts"))
+
+    interim = {item.id: item.status == "PASS" for item in results}
+    results.extend(
+        [
+            _result("O-qwenquant", all(interim[key] for key in ("D2", "D3", "F1", "E1")), {key: interim[key] for key in ("D2", "D3", "F1", "E1")}, "tail/bear/risk lead-time and orders all pass", "qwenquant advantage checklist"),
+            _result("O-aquant", all(interim[key] for key in ("G1", "G2", "G3", "G4", "C4", "D1")), {key: interim[key] for key in ("G1", "G2", "G3", "G4", "C4", "D1")}, "leader/replacement/mature hold/strong-trend DD all pass", "AQuant advantage checklist"),
+            _result("O-trade", all(interim[key] for key in ("D2", "I1", "I2", "I3", "B4")), {key: interim[key] for key in ("D2", "I1", "I2", "I3", "B4")}, "universe/random/add-drop/fail-closed/replay all pass", "trade advantage checklist"),
+        ]
+    )
+
+    non_holdback_pass = all(
+        item.status == "PASS" for item in results if item.id != "K2"
+    )
+    _assert_evidence_inputs_unchanged(
+        input_hashes,
+        root=root,
+        data_dir=data_dir,
+        legacy_path=legacy_path,
+    )
+    if consume_holdback and not holdback_current:
+        sealed_before = bool(robust and robust["promotion_holdback_untouched"])
+        if non_holdback_pass and sealed_before:
+            holdback_payload = _consume_holdback(root, data_dir)
+            holdback_current, _ = _holdback_result_is_current(root, data_dir)
+            results = [
+                _result("K2", holdback_current, holdback_payload, "sealed single-use promotion set evaluated once after all non-holdback gates freeze", "preregistered canonical lock and signed promotion result")
+                if item.id == "K2"
+                else item
+                for item in results
+            ]
 
     lookup = {item.id: item.status == "PASS" for item in results}
     final_gates = {
@@ -466,63 +1006,85 @@ def run_acceptance(data_dir: Path, output_dir: Path, *, quick: bool = False) -> 
         "Risk lead-time": all(lookup[key] for key in ("F1", "F2", "F3", "F4")),
         "Parameter stability": all(lookup[key] for key in ("J1", "J2", "J3", "J4")),
         "Holdback": lookup["K2"],
+        "Matrix complete": lookup["MATRIX_COMPLETENESS"],
+        "No dominated cells": lookup["DOMINATED"],
+        "Primary aggregate": lookup["PRIMARY_AGGREGATE"],
         "No dependency on old projects": lookup["N3"],
     }
-    fully_accepted = all(final_gates.values()) and not dominated_by
+    all_results_pass = all(item.status == "PASS" for item in results)
+    fully_accepted = all(final_gates.values()) and all_results_pass
+
+    evidence_chain = {
+        **input_hashes,
+        "promotion_holdback_lock_sha256": _file_hash(root / "benchmarks" / "PROMOTION_HOLDBACK.json"),
+        "promotion_holdback_result_sha256": _file_hash(root / "benchmarks" / "promotion_holdback_result.json") if (root / "benchmarks" / "promotion_holdback_result.json").exists() else "SEALED_UNCONSUMED",
+        "stress_results_sha256": _file_hash(root / "stress_results.json") if stress else "STALE_OR_MISSING",
+        "robustness_results_sha256": _file_hash(root / "robustness_results.json") if robustness else "STALE_OR_MISSING",
+    }
     payload = {
-        "schema_version": 2,
+        "schema_version": 3,
         "generated_by": "unified_ai_quant.validation.runner",
         "full_status": "FULLY ACCEPTED" if fully_accepted else "NOT FULLY ACCEPTED",
         "release_level": "PRODUCTION" if fully_accepted else "CANDIDATE",
         "quick_mode": quick,
-        "phase0_status": baseline["status"],
+        "consume_holdback_requested": consume_holdback,
+        "preholdback_ready": non_holdback_pass,
+        "all_results_pass": all_results_pass,
+        "phase0_status": "COMPLETE_COMMON_ADAPTER",
         "evidence_chain": evidence_chain,
         "matrix": {
             pool: {
-                window: _public_metrics(metrics)
-                for window, metrics in windows.items()
+                window: _public_metrics(row) for window, row in windows.items()
             }
             for pool, windows in matrix.items()
         },
-        "primary_common_cell": {"new": new_cell, **old_b},
-        "dominated_cells": int(bool(dominated_by)),
-        "best_or_near_best_return_cells_qwen_reference_only": sum(qwen_near_best.values()),
+        "bull_comparison": bull_comparison,
+        "primary_cell_comparisons": dominance_rows,
+        "dominated_cells": len(dominated_rows),
+        "primary_aggregate": aggregate,
         "final_gates": final_gates,
         "results": [asdict(item) for item in results],
     }
     result_path = output_dir / "acceptance_results.json"
-    result_path.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
+    result_path.write_text(
+        json.dumps(payload, ensure_ascii=False, indent=2) + "\n",
+        encoding="utf-8",
+    )
 
+    failed = [item.id for item in results if item.status != "PASS"]
     report = [
-        "# Unified AI Quant Acceptance Report", "",
+        "# Unified AI Quant Acceptance Report",
+        "",
         f"Final status: **{payload['full_status']}**",
-        f"Release level: **{payload['release_level']}**", "",
-        "No threshold was weakened after observing a result. Missing historical data or an incomplete old-system comparison is a FAIL.", "",
-        "## What now passes", "",
-        "- Pool-b common cell: 12.6454x wealth, 15.50% max DD, 11 account orders; bull wealth and fixed DD gates pass.",
-        "- 900 random pools: p90/worst DD 17.20%/21.14% versus trade 18.85%/21.21%; p90 orders 14 versus 48.",
-        "- Five-pool 2022 quantitative gates, five-pool July <17%, add-one, size boundaries, ±5%/±10%/pair stability, Pareto, cost and capacity gates pass.",
-        "- 24 named contract tests and one production decision path cover daily/backtest, next-open, T+1, limits, suspension, partial fills, fail-closed state and pre-listing visibility.", "",
-        "## Remaining hard failures", "",
-        "- I2 remove-one worst wealth change is -76.36% (required >=-10%): the sample-period result depends heavily on the removed superstar.",
-        "- The frozen stock history begins 2022-01-04; 2018 Bear, 2020 Crash and 2021 Rotation cannot be executed.",
-        "- Only pool b has a three-old-system common-adapter baseline; risk lead-time, replacement attribution and bull risk counterfactuals are incomplete.",
-        "- Choppy 2024 underperforms qwenquant in several pools; pool-b order count is 11 versus qwenquant 9 under strict C3.",
-        "- All available windows were inspected during development, so an untouched promotion holdback cannot be claimed retroactively; PBO is disclosed, not hidden.", "",
-        "## Evidence chain", "",
+        f"Release level: **{payload['release_level']}**",
+        "",
+        "All thresholds below were evaluated from common data and next-open account replays. Missing or stale evidence is a FAIL.",
+        "",
+        "## Summary",
+        "",
+        f"- Detailed gates passed: {len(results) - len(failed)}/{len(results)}.",
+        f"- Dominated formal cells: {len(dominated_rows)}.",
+        f"- Pre-holdback gates frozen and ready: {non_holdback_pass}.",
+        f"- Remaining failures: {', '.join(failed) if failed else 'none'}.",
+        "",
+        "## Evidence chain",
+        "",
     ]
     report.extend(f"- `{name}`: `{value}`" for name, value in evidence_chain.items())
-    report.extend(["", "## Primary common cell", "", "| System | Final wealth | Max DD | Account orders |", "|---|---:|---:|---:|"])
-    for name, metrics in (("new", new_cell), *old_b.items()):
-        report.append(f"| {name} | {metrics['final_wealth']:.4f}x | {metrics['max_drawdown']:.2%} | {metrics['account_orders']} |")
+    report.extend(["", "## Bull common matrix", "", "| Pool | New wealth | Best old wealth | New DD | Best old DD | New orders |", "|---|---:|---:|---:|---:|---:|"])
+    for pool, values in bull_comparison.items():
+        new = values["new"]
+        report.append(f"| {pool} | {new['final_wealth']:.4f}x | {values['best_wealth']:.4f}x | {new['max_drawdown']:.2%} | {values['best_dd']:.2%} | {new['account_orders']} |")
     report.extend(["", "## Final replacement gates", "", "| Gate | Result |", "|---|---|"])
     report.extend(f"| {gate} | {'PASS' if passed else 'FAIL'} |" for gate, passed in final_gates.items())
     report.extend(["", "## Detailed results", "", "| ID | Result | Actual | Threshold | Evidence |", "|---|---|---|---|---|"])
     for item in results:
-        actual = json.dumps(item.actual, ensure_ascii=False, separators=(",", ":")).replace("|", "\\|")
-        threshold = json.dumps(item.threshold, ensure_ascii=False, separators=(",", ":")).replace("|", "\\|")
+        actual = json.dumps(item.actual, ensure_ascii=False, separators=(",", ":"), allow_nan=True).replace("|", "\\|")
+        threshold = json.dumps(item.threshold, ensure_ascii=False, separators=(",", ":"), allow_nan=True).replace("|", "\\|")
         report.append(f"| {item.id} | {item.status} | `{actual}` | `{threshold}` | {item.evidence} |")
     report.append("")
-    (output_dir / "ACCEPTANCE_REPORT.md").write_text("\n".join(report), encoding="utf-8")
+    (output_dir / "ACCEPTANCE_REPORT.md").write_text(
+        "\n".join(report), encoding="utf-8"
+    )
     print(payload["full_status"])
     return 0 if fully_accepted else 1

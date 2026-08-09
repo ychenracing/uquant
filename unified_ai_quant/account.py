@@ -45,13 +45,41 @@ def load_account(path: str | Path, *, require_hashes: bool = True) -> AccountSta
             leader_tenure={str(k): int(v) for k, v in payload.get("leader_tenure", {}).items()},
             candidate_tenure={str(k): int(v) for k, v in payload.get("candidate_tenure", {}).items()},
             replacement_tenure={str(k): int(v) for k, v in payload.get("replacement_tenure", {}).items()},
+            active_leaders=[str(item) for item in payload.get("active_leaders", [])],
+            dynamic_k=int(payload.get("dynamic_k", 0)),
+            last_k_change_date=str(payload.get("last_k_change_date", "")),
+            satellite_entry_dates={
+                str(k): str(v) for k, v in payload.get("satellite_entry_dates", {}).items()
+            },
             risk_streaks={str(k): int(v) for k, v in payload.get("risk_streaks", {}).items()},
             rotation_dates=[str(item) for item in payload.get("rotation_dates", [])],
+            replacement_events=list(payload.get("replacement_events", [])),
+            lifecycle_events=list(payload.get("lifecycle_events", [])),
             risk_events=list(payload.get("risk_events", [])),
             anchor_weights={str(k): float(v) for k, v in payload.get("anchor_weights", {}).items()},
             recovery_anchor_date=str(payload.get("recovery_anchor_date", "")),
+            tactical_anchor_symbol=str(payload.get("tactical_anchor_symbol", "")),
             protected_weights={
                 str(k): float(v) for k, v in payload.get("protected_weights", {}).items()
+            },
+            strategic_cohort_symbols=[
+                str(item) for item in payload.get("strategic_cohort_symbols", [])
+            ],
+            strategic_cohort_targets={
+                str(k): float(v)
+                for k, v in payload.get("strategic_cohort_targets", {}).items()
+            },
+            strategic_exit_bands={
+                str(k): [float(item) for item in values]
+                for k, values in payload.get("strategic_exit_bands", {}).items()
+            },
+            strategic_active_bands={
+                str(k): [bool(item) for item in values]
+                for k, values in payload.get("strategic_active_bands", {}).items()
+            },
+            strategic_restore_weights={
+                str(k): float(v)
+                for k, v in payload.get("strategic_restore_weights", {}).items()
             },
             shock_start_date=str(payload.get("shock_start_date", "")),
             shock_severity=str(payload.get("shock_severity", "NORMAL")),

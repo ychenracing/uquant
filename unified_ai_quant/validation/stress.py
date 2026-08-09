@@ -12,10 +12,16 @@ from pathlib import Path
 from typing import Any
 
 import numpy as np
+import pandas as pd
 
-from ..config import DEFAULT_CONFIG
-from ..engine import INDEX_SYMBOLS, ProductionEngine, code_fingerprint
+from ..engine import ProductionEngine, code_fingerprint
 from ..leader import INDUSTRY, REFERENCE_UNIVERSE
+from .provenance import (
+    assert_replay_signature_unchanged,
+    bounded_data_fingerprint,
+    config_fingerprint,
+    validation_fingerprint,
+)
 
 PRIMARY = ("sz300308", "sz300502", "sz300394", "sh688008", "sh603986")
 ORDERED_UNIVERSE = PRIMARY + tuple(symbol for symbol in REFERENCE_UNIVERSE if symbol not in PRIMARY)
@@ -63,7 +69,49 @@ def _run_scenario(scenario: Scenario) -> dict[str, Any]:
     }
 
 
-def _structural_scenarios() -> list[Scenario]:
+def _historical_structure_scenarios(data_dir: Path) -> list[Scenario]:
+    """Select loser-heavy and low-correlation pools using only pre-window data."""
+    closes: dict[str, pd.Series] = {}
+    scores: dict[str, float] = {}
+    cutoff = pd.Timestamp(STRESS_START) - pd.Timedelta(days=1)
+    for symbol in ORDERED_UNIVERSE:
+        frame = pd.read_csv(data_dir / f"{symbol}.csv", parse_dates=["date"])
+        bounded = frame.loc[frame["date"] <= cutoff].set_index("date")["close"].tail(121)
+        if len(bounded) >= 61:
+            closes[symbol] = bounded
+            scores[symbol] = float(bounded.iloc[-1] / bounded.iloc[0] - 1.0)
+    losers = tuple(sorted(scores, key=lambda symbol: (scores[symbol], symbol))[:15])
+    returns = pd.DataFrame(
+        {symbol: series.pct_change(fill_method=None) for symbol, series in closes.items()}
+    ).tail(120)
+    correlation = returns.corr().abs()
+    first = min(
+        correlation,
+        key=lambda symbol: (float(correlation[symbol].drop(symbol).median()), symbol),
+    )
+    selected = [first]
+    while len(selected) < min(9, len(correlation)):
+        remaining = [symbol for symbol in correlation if symbol not in selected]
+        selected.append(
+            min(
+                remaining,
+                key=lambda symbol: (
+                    float(correlation.loc[symbol, selected].median()),
+                    symbol,
+                ),
+            )
+        )
+    return [
+        Scenario("structure-loser-heavy", "structure", losers),
+        Scenario(
+            "structure-low-correlation",
+            "structure",
+            tuple(sorted(selected)),
+        ),
+    ]
+
+
+def _structural_scenarios(data_dir: Path) -> list[Scenario]:
     by_industry: dict[str, list[str]] = {}
     for symbol in ORDERED_UNIVERSE:
         by_industry.setdefault(INDUSTRY.get(symbol, "unknown"), []).append(symbol)
@@ -79,6 +127,11 @@ def _structural_scenarios() -> list[Scenario]:
                 "structure-high-correlation",
                 "structure",
                 tuple(sorted(by_industry.get("optical", []) + by_industry.get("compute", []))),
+            ),
+            Scenario(
+                "structure-memory-compute",
+                "structure",
+                tuple(sorted(by_industry.get("memory", []) + by_industry.get("compute", []))),
             ),
             Scenario(
                 "structure-diversified",
@@ -103,10 +156,11 @@ def _structural_scenarios() -> list[Scenario]:
             ),
         ]
     )
+    scenarios.extend(_historical_structure_scenarios(data_dir))
     return [item for item in scenarios if item.symbols]
 
 
-def build_scenarios() -> list[Scenario]:
+def build_scenarios(data_dir: Path) -> list[Scenario]:
     scenarios: list[Scenario] = []
     for size in (1, 3, 5, 9, 10, 12, 13, 15, 16, 22, 32):
         scenarios.append(
@@ -129,7 +183,30 @@ def build_scenarios() -> list[Scenario]:
                     tuple(sorted((*PRIMARY, added))),
                 )
             )
-    scenarios.extend(_structural_scenarios())
+    replacement_candidates = [
+        symbol for symbol in ORDERED_UNIVERSE if symbol not in PRIMARY
+    ]
+    for dropped, added in zip(
+        PRIMARY,
+        replacement_candidates[: len(PRIMARY)],
+        strict=True,
+    ):
+        scenarios.append(
+            Scenario(
+                f"replace-one-{dropped}-with-{added}",
+                "replace_one",
+                tuple(
+                    sorted(
+                        added if symbol == dropped else symbol
+                        for symbol in PRIMARY
+                    )
+                ),
+            )
+        )
+    scenarios.append(
+        Scenario("permutation-primary-reversed", "permutation", tuple(reversed(PRIMARY)))
+    )
+    scenarios.extend(_structural_scenarios(data_dir))
     for seed in SEEDS:
         for size in RANDOM_SIZES:
             rng = random.Random(seed * 100 + size)
@@ -154,21 +231,16 @@ def build_scenarios() -> list[Scenario]:
 
 
 def _signature(data_dir: Path, scenarios: list[Scenario]) -> dict[str, Any]:
-    engine = ProductionEngine(data_dir)
-    data_hash = engine.data.manifest(
-        set(REFERENCE_UNIVERSE) | set(INDEX_SYMBOLS)
-    ).digest
+    data_hash = bounded_data_fingerprint(data_dir, end=STRESS_END)
     scenario_hash = hashlib.sha256(
         json.dumps([asdict(item) for item in scenarios], sort_keys=True).encode()
     ).hexdigest()
-    config_hash = hashlib.sha256(
-        json.dumps(DEFAULT_CONFIG.to_dict(), sort_keys=True).encode()
-    ).hexdigest()
     return {
         "production_code_sha256": code_fingerprint(),
+        "validation_code_sha256": validation_fingerprint(),
         "data_sha256": data_hash,
         "scenario_sha256": scenario_hash,
-        "config_sha256": config_hash,
+        "config_sha256": config_fingerprint(),
     }
 
 
@@ -179,7 +251,7 @@ def artifact_is_current(path: Path, data_dir: Path) -> bool:
         payload = json.loads(path.read_text(encoding="utf-8"))
     except (OSError, json.JSONDecodeError):
         return False
-    scenarios = build_scenarios()
+    scenarios = build_scenarios(data_dir)
     return payload.get("signature") == _signature(data_dir, scenarios)
 
 
@@ -202,6 +274,7 @@ def _summarize(results: list[dict[str, Any]]) -> dict[str, Any]:
         f"{left}->{right}": prefix[right]["final_wealth"] / prefix[left]["final_wealth"] - 1.0
         for left, right in ((9, 10), (12, 13), (15, 16))
     }
+    permutation = by_type["permutation"][0]
     return {
         "scenario_count": len(results),
         "random": {
@@ -224,14 +297,26 @@ def _summarize(results: list[dict[str, Any]]) -> dict[str, Any]:
         },
         "size_boundaries": boundaries,
         "permutation": {
-            "samples": 150,
-            "verified_by": "sorted symbol normalization plus reversed-input digest contract test",
+            "scenario_count": 1,
+            "wealth_change": permutation["final_wealth"] / base["final_wealth"] - 1.0,
+            "drawdown_change": permutation["max_drawdown"] - base["max_drawdown"],
+            "order_change": permutation["account_orders"] - base["account_orders"],
+            "verified_by": "actual reversed-input production replay plus decision-digest contract test",
         },
+        "replace_one": {
+            "scenario_count": len(by_type["replace_one"]),
+            "worst_wealth_change": min(
+                row["final_wealth"] / base["final_wealth"] - 1.0
+                for row in by_type["replace_one"]
+            ),
+        },
+        "structures": sorted(row["scenario_id"] for row in by_type["structure"]),
     }
 
 
 def run_stress(data_dir: Path, output_path: Path, *, workers: int | None = None) -> dict[str, Any]:
-    scenarios = build_scenarios()
+    scenarios = build_scenarios(data_dir)
+    initial_signature = _signature(data_dir, scenarios)
     worker_count = workers or min(4, max(1, os.cpu_count() or 1))
     results: list[dict[str, Any]] = []
     print(f"stress: executing {len(scenarios)} scenarios with {worker_count} workers", flush=True)
@@ -245,16 +330,21 @@ def run_stress(data_dir: Path, output_path: Path, *, workers: int | None = None)
             if index % 50 == 0 or index == len(scenarios):
                 print(f"stress: {index}/{len(scenarios)}", flush=True)
     results.sort(key=lambda row: row["scenario_id"])
+    current_signature = _signature(data_dir, scenarios)
+    assert_replay_signature_unchanged(
+        initial_signature,
+        current_signature,
+        replay="stress",
+    )
     payload = {
         "schema_version": 1,
         "engine": "ProductionEngine.backtest",
         "window": [STRESS_START, STRESS_END],
         "seeds": list(SEEDS),
         "random_samples_per_size_per_seed": RANDOM_PER_SIZE_SEED,
-        "signature": _signature(data_dir, scenarios),
+        "signature": initial_signature,
         "summary": _summarize(results),
         "results": results,
     }
     output_path.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
     return payload
-

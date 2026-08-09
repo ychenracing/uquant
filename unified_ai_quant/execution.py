@@ -201,6 +201,7 @@ class ExecutionPlanner:
             commission, stamp, transfer = fee_components(order.side, gross, self.cfg)
             slippage_cost = shares * abs(execution_price - open_price)
             if order.side == Side.BUY.value:
+                previous_lifecycle = current.lifecycle if current.shares > 0 else "NONE"
                 account.cash -= gross + commission + transfer
                 old_value = current.shares * current.avg_cost
                 current.shares += shares
@@ -208,6 +209,17 @@ class ExecutionPlanner:
                 current.entry_date = current.entry_date or date_str
                 current.highest_close = max(current.highest_close, float(row["close"]))
                 current.lifecycle = order.lifecycle
+                if previous_lifecycle != order.lifecycle:
+                    account.lifecycle_events.append(
+                        {
+                            "date": date_str,
+                            "symbol": order.symbol,
+                            "from": previous_lifecycle,
+                            "to": order.lifecycle,
+                            "shares": shares,
+                            "reason": order.reason,
+                        }
+                    )
                 sellable_date = str((date_type.fromisoformat(date_str) + timedelta(days=1)).isoformat())
                 current.tranches.append(
                     Tranche(

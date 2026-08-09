@@ -2,9 +2,9 @@
 
 一个独立、统一、因果的 A 股 AI 产业链日频量化决策系统。系统仅做现金多头，不加杠杆、不做空；收盘后生成唯一组合目标，并按下一可交易日开盘价模型执行。正式运行不依赖 `qwenquant`、`aquant` 或 `trade`。
 
-> 当前严格验收结论：**NOT FULLY ACCEPTED / CANDIDATE**。正确性、生产回放、随机压力和参数稳定门已通过；固定池三方矩阵、震荡期、remove-one、risk lead-time 和未触碰 holdback 仍未通过。详见 [ACCEPTANCE_REPORT.md](ACCEPTANCE_REPORT.md)。
+> 当前严格验收结论：**NOT FULLY ACCEPTED / CANDIDATE（73/74）**。除 K2 单次 promotion holdback 外，正确性、完整三方矩阵、生产回放、牛/熊/震荡期、风险提前量、交易次数、随机压力、add/drop、Leader、参数稳定性及旧依赖清除均已通过。2026-07-21 至 2026-08-05 的已封存窗口被正确地消费一次并真实失败；修复后的同窗重放仅作诊断，不能改写历史 K2。修复候选已冻结，新 K2 已预注册为 2026-08-06 至 2026-08-21 的 12-session 未来窗口，但本地数据仍截至 2026-08-05，因此尚不能合法评估。详见 [ACCEPTANCE_REPORT.md](ACCEPTANCE_REPORT.md) 和 [Promotion Holdback Postmortem](docs/PROMOTION_POSTMORTEM.md)。
 
-当前共同 pool-b（2025-04-01 至 2026-06-30）实测为 `12.6454x / 15.50% DD / 11 orders`。900 个随机股票池的 p90/最差回撤为 `17.20% / 21.14%`，优于 trade 正式基线的 `18.85% / 21.21%`；随机 p90 订单为 `14`，trade 为 `48`。这些成绩不能覆盖剩余硬失败，因此项目没有标记为 Production。
+当前共同 pool-b（2025-04-01 至 2026-06-30）实测为 `13.1098x / 15.96% DD / 10 orders`，高于三个旧系统的最佳财富 `12.7595x`；五个固定池的 bull non-inferiority、DD 和订单门均通过。963 个压力场景包含 900 个确定性随机股票池；参数/成本/容量矩阵为 180 个实验，另有 54 个 nested walk-forward 单元。这些成绩不能覆盖 K2 的真实失败，因此项目没有标记为 Production。
 
 ## 统一生产路径
 
@@ -81,7 +81,7 @@ python -m unified_ai_quant validate --data-dir data/frozen --output-dir .
 | `unified_ai_quant/leader.py` | 固定 Reference、Mature/Emerging、置信度 |
 | `unified_ai_quant/execution.py` | 次日开盘、T+1、涨跌停、容量、费用 |
 | `unified_ai_quant/account.py` | 原子持久化与 fail-closed 校验 |
-| `unified_ai_quant/validation/` | 954 场景压力、参数/成本/容量、Nested Walk Forward、PBO/DSR 和严格验收器 |
+| `unified_ai_quant/validation/` | 963 场景压力、参数/成本/容量、Nested Walk Forward、PBO/DSR 和严格验收器 |
 | `benchmarks/` | 三旧项目只读冻结指纹及 Phase 0 实跑基线 |
 | `data/frozen/` | 统一冻结行情及哈希清单 |
 | `docs/` | 原始实施规范、验收规范和阶段证据 |
@@ -89,11 +89,13 @@ python -m unified_ai_quant validate --data-dir data/frozen --output-dir .
 ## 可复现证据
 
 - `benchmarks/BENCHMARK_LOCK.json`：三个旧仓库最新 `main` 的远端提交与冻结快照指纹；
-- `benchmarks/phase0_baseline.json`：相同数据和账户口径下实际跑出的可比单元；
+- `benchmarks/legacy_common_adapter.json`：3 个旧系统 × 5 个固定池 × 9 个窗口，共 135 个 common-contract 实跑单元；
 - `acceptance_results.json`：每项 `PASS/FAIL + actual + threshold + evidence`；
 - `ACCEPTANCE_REPORT.md`：替代门、失败根因和实测结果；
-- `stress_results.json`：954 个当前生产引擎场景（含 900 random、add/remove、边界和结构池）；
-- `robustness_results.json`：48 个参数/成本/容量实验和 54 个嵌套走步单元；
+- `stress_results.json`：963 个当前生产引擎场景（含 900 random、add/remove、边界和结构池）；
+- `robustness_results.json`：180 个参数/成本/容量实验和 54 个嵌套走步单元；
+- `benchmarks/promotion_holdback_result.json`：不可改写的单次 K2 失败证据；
+- `benchmarks/PROMOTION_HOLDBACK_NEXT.json`：修复候选与新未来 12-session K2 的冻结预登记；
 - `docs/PHASE_IMPLEMENTATION_STATUS.md`：Phase 0–9 的实现与验收状态。
 - `docs/IMPLEMENTATION_AUDIT.md`：实施报告逐项映射、证据和未落实项。
 

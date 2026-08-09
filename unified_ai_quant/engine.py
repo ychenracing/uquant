@@ -337,10 +337,97 @@ def performance_metrics(
 
 
 def attribution(fills: list[Fill]) -> dict[str, Any]:
-    lifecycle: dict[str, dict[str, float | int]] = {}
+    lifecycle_names = ("core", "add1", "add2", "satellite", "recovery")
+    lifecycle: dict[str, dict[str, float | int]] = {
+        name: {"fills": 0, "gross_value": 0.0, "fees": 0.0, "realized_pnl": 0.0}
+        for name in lifecycle_names
+    }
+    lots: dict[str, list[dict[str, float | str]]] = {}
+    reason_buckets = {
+        "rotation": {"fills": 0, "gross_value": 0.0, "fees": 0.0},
+        "risk_cuts": {"fills": 0, "gross_value": 0.0, "fees": 0.0},
+    }
     for fill in fills:
-        bucket = lifecycle.setdefault(fill.lifecycle.lower(), {"fills": 0, "gross_value": 0.0, "fees": 0.0})
+        name = fill.lifecycle.lower()
+        bucket = lifecycle.setdefault(
+            name,
+            {"fills": 0, "gross_value": 0.0, "fees": 0.0, "realized_pnl": 0.0},
+        )
+        fees = fill.commission + fill.stamp_duty + fill.transfer_fee
         bucket["fills"] = int(bucket["fills"]) + 1
         bucket["gross_value"] = float(bucket["gross_value"]) + fill.gross_value
-        bucket["fees"] = float(bucket["fees"]) + fill.commission + fill.stamp_duty + fill.transfer_fee
-    return {"by_lifecycle": lifecycle}
+        bucket["fees"] = float(bucket["fees"]) + fees
+        normalized_reason = fill.reason.lower().replace("-", "_")
+        reason_name = (
+            "rotation"
+            if "rotation" in normalized_reason or "replacement" in normalized_reason
+            else "risk_cuts"
+            if any(
+                token in normalized_reason
+                for token in (
+                    "risk",
+                    "drawdown",
+                    "shock",
+                    "crisis",
+                    "capital protection",
+                )
+            )
+            else ""
+        )
+        if reason_name:
+            reason_bucket = reason_buckets[reason_name]
+            reason_bucket["fills"] = int(reason_bucket["fills"]) + 1
+            reason_bucket["gross_value"] = (
+                float(reason_bucket["gross_value"]) + fill.gross_value
+            )
+            reason_bucket["fees"] = float(reason_bucket["fees"]) + fees
+        if fill.side == "BUY":
+            lots.setdefault(fill.symbol, []).append(
+                {
+                    "shares": float(fill.shares),
+                    "unit_cost": (fill.gross_value + fees) / fill.shares,
+                    "lifecycle": name,
+                }
+            )
+            continue
+        remaining = fill.shares
+        unit_proceeds = (fill.gross_value - fees) / fill.shares
+        for lot in lots.get(fill.symbol, []):
+            available = int(float(lot["shares"]))
+            if available <= 0 or remaining <= 0:
+                continue
+            sold = min(available, remaining)
+            origin = str(lot["lifecycle"])
+            origin_bucket = lifecycle.setdefault(
+                origin,
+                {
+                    "fills": 0,
+                    "gross_value": 0.0,
+                    "fees": 0.0,
+                    "realized_pnl": 0.0,
+                },
+            )
+            origin_bucket["realized_pnl"] = float(
+                origin_bucket["realized_pnl"]
+            ) + sold * (unit_proceeds - float(lot["unit_cost"]))
+            lot["shares"] = float(available - sold)
+            remaining -= sold
+        lots[fill.symbol] = [
+            lot for lot in lots.get(fill.symbol, []) if float(lot["shares"]) > 0
+        ]
+    open_lots = {
+        name: int(
+            sum(
+                float(lot["shares"])
+                for symbol_lots in lots.values()
+                for lot in symbol_lots
+                if str(lot["lifecycle"]) == name
+            )
+        )
+        for name in lifecycle
+    }
+    return {
+        "by_lifecycle": lifecycle,
+        "by_reason": reason_buckets,
+        "open_shares_by_lifecycle": open_lots,
+    }

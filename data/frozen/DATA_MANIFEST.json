@@ -1,220 +1,421 @@
 {
-  "snapshot_id": "20260806T000000Z-incremental-0805",
-  "generated_at_utc": "2026-08-06T08:00:00+00:00",
-  "adjustment": "qfq for stocks; unadjusted for indices",
-  "incremental_policy": "last cached session anchor; full refresh on qfq revision",
+  "snapshot_id": "20260808T183447Z-holdback-coverage-completion",
+  "generated_at_utc": "2026-08-08T18:34:47.933814+00:00",
+  "adjustment": "Tencent qfq for stocks; Tencent unadjusted for indices",
+  "historical_policy": "2014-2021 bounded chunks; 2022+ frozen rows preserved verbatim",
   "providers": [
-    "Tencent Finance",
-    "Sina Finance"
+    "Tencent Finance"
   ],
+  "endpoint": "https://web.ifzq.gtimg.cn/appstock/app/fqkline/get",
+  "pre_inception_index_proxy": {
+    "target": "sh000682",
+    "proxy": "sz399006",
+    "rule": "proxy OHLC scaled by the common first-session close; target history used from inception"
+  },
   "results": [
     {
-      "symbol": "sz300308",
-      "cache_path": "aquant/data/sz300308.csv",
-      "mode": "incremental_append_0805",
-      "primary_source": "tencent",
-      "secondary_source": "sina_diagnostic",
-      "first_date": "2022-01-04",
+      "symbol": "sh000300",
+      "first_date": "2014-01-02",
       "last_date": "2026-08-05",
-      "rows": 1111,
-      "new_rows": 0,
-      "qfq_revision_detected": false,
-      "warnings": [
-        "only tencent primary; sina unadjusted diagnostic"
-      ],
-      "sha256": "548b67c3c88be2c2e8d1a0b00852ecb0f37d91ecfda2458aef87ae979430d753"
+      "historical_rows_added": 1949,
+      "total_rows": 3060,
+      "anchor_max_relative_difference": 0.0,
+      "sha256": "68f8e6e9f080896fc916b5f32d0efc91a65edc4e5ce4b46fb91a566d5c28916e",
+      "pre_inception_proxy": null,
+      "holdback_rows_appended": 0
     },
     {
-      "symbol": "sz300502",
-      "cache_path": "aquant/data/sz300502.csv",
-      "mode": "incremental_append_0805",
-      "primary_source": "tencent",
-      "secondary_source": "sina_diagnostic",
-      "first_date": "2022-01-04",
+      "symbol": "sh000682",
+      "first_date": "2014-01-02",
       "last_date": "2026-08-05",
-      "rows": 1111,
-      "new_rows": 0,
-      "qfq_revision_detected": false,
-      "warnings": [
-        "only tencent primary; sina unadjusted diagnostic"
-      ],
-      "sha256": "8a9bcaa34b223b26f90b02e075f214baf9790cfc7b6d6868cc00491a84bb4f16"
+      "historical_rows_added": 1949,
+      "total_rows": 3060,
+      "anchor_max_relative_difference": 0.0,
+      "sha256": "cb8ef35832d19fa3e23d9dc5931d9bde279c2a63af438aeedb97582035ecda01",
+      "pre_inception_proxy": "sz399006 close-scaled at 2021-08-16",
+      "holdback_rows_appended": 0
     },
     {
-      "symbol": "sz300394",
-      "cache_path": "aquant/data/sz300394.csv",
-      "mode": "incremental_append_0805",
-      "primary_source": "tencent",
-      "secondary_source": "sina_diagnostic",
-      "first_date": "2022-01-04",
+      "symbol": "sh600487",
+      "first_date": "2014-01-02",
       "last_date": "2026-08-05",
-      "rows": 1111,
-      "new_rows": 0,
-      "qfq_revision_detected": false,
-      "warnings": [
-        "only tencent primary; sina unadjusted diagnostic"
-      ],
-      "sha256": "2f88f4970b7de5074df2800f866beb64f1c460c5d09990282b0e9d6294aa9593"
+      "historical_rows_added": 1841,
+      "total_rows": 2952,
+      "anchor_max_relative_difference": 7.037297677700366e-05,
+      "sha256": "477a9ad74571a066a588003f0198fc402108681e609a5c53fdcb156c19c31fb0",
+      "pre_inception_proxy": null,
+      "holdback_rows_appended": 6
     },
     {
-      "symbol": "sh688256",
-      "cache_path": "aquant/data/sh688256.csv",
-      "mode": "incremental_append_0805",
-      "primary_source": "tencent",
-      "secondary_source": "sina_diagnostic",
-      "first_date": "2022-01-04",
+      "symbol": "sh601869",
+      "first_date": "2018-07-20",
       "last_date": "2026-08-05",
-      "rows": 1111,
-      "new_rows": 0,
-      "qfq_revision_detected": false,
-      "warnings": [
-        "only tencent primary; sina unadjusted diagnostic"
-      ],
-      "sha256": "490aab4b82cf2640a0e0a4b2ce556a1b3e7cca3493c089d780a6e84d5e017d48"
+      "historical_rows_added": 840,
+      "total_rows": 1951,
+      "anchor_max_relative_difference": 0.0001645819618169521,
+      "sha256": "419a16a495fa0efb6db056f2d4c3a9ccb3c91b52d7cfa119b6b1c3676fa8483a",
+      "pre_inception_proxy": null,
+      "holdback_rows_appended": 6
     },
     {
-      "symbol": "sh688008",
-      "cache_path": "aquant/data/sh688008.csv",
-      "mode": "incremental_append_0805",
-      "primary_source": "tencent",
-      "secondary_source": "sina_diagnostic",
-      "first_date": "2022-01-04",
+      "symbol": "sh603688",
+      "first_date": "2018-10-22",
       "last_date": "2026-08-05",
-      "rows": 1111,
-      "new_rows": 0,
-      "qfq_revision_detected": false,
-      "warnings": [
-        "only tencent primary; sina unadjusted diagnostic"
-      ],
-      "sha256": "ec280d5422f676ef150cee14002b4ccecf1757b3ddbb75597f1d22e4a5d99d2f"
+      "historical_rows_added": 780,
+      "total_rows": 1891,
+      "anchor_max_relative_difference": 0.00011716461628581672,
+      "sha256": "3e6ebfbd3bed79ad51196750ff1e44dfd0672b6eeeb45732b7ad875909208c58",
+      "pre_inception_proxy": null,
+      "holdback_rows_appended": 6
     },
     {
       "symbol": "sh603986",
-      "cache_path": "aquant/data/sh603986.csv",
-      "mode": "incremental_append_0805",
-      "primary_source": "tencent",
-      "secondary_source": "sina_diagnostic",
-      "first_date": "2022-01-04",
+      "first_date": "2016-08-18",
       "last_date": "2026-08-05",
-      "rows": 1111,
-      "new_rows": 0,
-      "qfq_revision_detected": false,
-      "warnings": [
-        "only tencent primary; sina unadjusted diagnostic"
-      ],
-      "sha256": "1c3d33d20cc5b767b7feefa119a68f9230cdaf573e462a101f1d0bc389ba9eb6"
+      "historical_rows_added": 1101,
+      "total_rows": 2212,
+      "anchor_max_relative_difference": 0.0,
+      "sha256": "0b085924ed41e27fa332c58e15981413fda930e72a33eda407ad4602d5e0c50c",
+      "pre_inception_proxy": null,
+      "holdback_rows_appended": 0
+    },
+    {
+      "symbol": "sh688008",
+      "first_date": "2019-07-22",
+      "last_date": "2026-08-05",
+      "historical_rows_added": 597,
+      "total_rows": 1708,
+      "anchor_max_relative_difference": 4.930966469416516e-05,
+      "sha256": "1396ba9db3e1bb492d87667f81618c05c1a3b238f8a2db01d82ee4c5401a48e2",
+      "pre_inception_proxy": null,
+      "holdback_rows_appended": 0
+    },
+    {
+      "symbol": "sh688012",
+      "first_date": "2019-07-22",
+      "last_date": "2026-08-05",
+      "historical_rows_added": 597,
+      "total_rows": 1699,
+      "anchor_max_relative_difference": 5.8782036209680844e-05,
+      "sha256": "5f73704d6eff07a9b47b1c0de5ade660b3c08443c1277ec5ef198b817a748ae0",
+      "pre_inception_proxy": null,
+      "holdback_rows_appended": 6
+    },
+    {
+      "symbol": "sh688019",
+      "first_date": "2019-07-22",
+      "last_date": "2026-08-05",
+      "historical_rows_added": 597,
+      "total_rows": 1708,
+      "anchor_max_relative_difference": 6.127450980399646e-05,
+      "sha256": "76fa0946843a18d48f0f503b570776da11a9178843cd1dbffbdeb3aced9a0963",
+      "pre_inception_proxy": null,
+      "holdback_rows_appended": 6
+    },
+    {
+      "symbol": "sh688037",
+      "first_date": "2019-12-16",
+      "last_date": "2026-08-05",
+      "historical_rows_added": 498,
+      "total_rows": 1606,
+      "anchor_max_relative_difference": 6.340349987313533e-05,
+      "sha256": "57f8d628ed8fd95d610a08d9cf70dcfdb9b9869810c9222136d9c4e69566fa06",
+      "pre_inception_proxy": null,
+      "holdback_rows_appended": 6
+    },
+    {
+      "symbol": "sh688041",
+      "first_date": "2022-08-12",
+      "last_date": "2026-08-05",
+      "historical_rows_added": 0,
+      "total_rows": 954,
+      "anchor_max_relative_difference": 1.679543164255407e-05,
+      "sha256": "31762c710aed9a2c193e1f236b21f9bae9851edf7ff1415b7f77c1f0bae6cb43",
+      "pre_inception_proxy": null,
+      "holdback_rows_appended": 6
     },
     {
       "symbol": "sh688072",
-      "cache_path": "aquant/data/sh688072.csv",
-      "mode": "incremental_append_0805",
-      "primary_source": "tencent",
-      "secondary_source": "sina_diagnostic",
       "first_date": "2022-04-20",
       "last_date": "2026-08-05",
-      "rows": 1032,
-      "new_rows": 0,
-      "qfq_revision_detected": false,
-      "warnings": [
-        "only tencent primary; sina unadjusted diagnostic"
-      ],
-      "sha256": "9d0847f8ea601886d70a3c1e2460e80de4d9763582a644cdf141be6a7b58a540"
+      "historical_rows_added": 0,
+      "total_rows": 1032,
+      "anchor_max_relative_difference": 0.00011775788977867541,
+      "sha256": "9d0847f8ea601886d70a3c1e2460e80de4d9763582a644cdf141be6a7b58a540",
+      "pre_inception_proxy": null,
+      "holdback_rows_appended": 0
     },
     {
-      "symbol": "sh688300",
-      "cache_path": "aquant/data/sh688300.csv",
-      "mode": "incremental_append_0805",
-      "primary_source": "tencent",
-      "secondary_source": "sina_diagnostic",
-      "first_date": "2022-01-04",
+      "symbol": "sh688082",
+      "first_date": "2021-11-18",
       "last_date": "2026-08-05",
-      "rows": 1111,
-      "new_rows": 0,
-      "qfq_revision_detected": false,
-      "warnings": [
-        "only tencent primary; sina unadjusted diagnostic"
-      ],
-      "sha256": "397a4b3acc01d97fd1978de8c230fefdefffc8d0dec91365445080f92cf338a4"
+      "historical_rows_added": 32,
+      "total_rows": 1143,
+      "anchor_max_relative_difference": 8.580744808690362e-06,
+      "sha256": "e58e6f7db619e6fa103c26bd1151f96fea33ad6a9033926d2d2c2615e046a888",
+      "pre_inception_proxy": null,
+      "holdback_rows_appended": 6
     },
     {
-      "symbol": "sz300054",
-      "cache_path": "aquant/data/sz300054.csv",
-      "mode": "incremental_append_0805",
-      "primary_source": "tencent",
-      "secondary_source": "sina_diagnostic",
-      "first_date": "2022-01-04",
+      "symbol": "sh688110",
+      "first_date": "2021-12-10",
       "last_date": "2026-08-05",
-      "rows": 1111,
-      "new_rows": 0,
-      "qfq_revision_detected": false,
-      "warnings": [
-        "only tencent primary; sina unadjusted diagnostic"
-      ],
-      "sha256": "e84dd4e2a1a28dedccbd7e1d32ed6803862b96f779b34e89a870c84940b2c0b9"
-    },
-    {
-      "symbol": "sh688361",
-      "cache_path": "aquant/data/sh688361.csv",
-      "mode": "incremental_append_0805",
-      "primary_source": "tencent",
-      "secondary_source": "sina_diagnostic",
-      "first_date": "2023-05-19",
-      "last_date": "2026-08-05",
-      "rows": 780,
-      "new_rows": 0,
-      "qfq_revision_detected": false,
-      "warnings": [
-        "only tencent primary; sina unadjusted diagnostic"
-      ],
-      "sha256": "d7b61bec4710dc753fde68104956ac2c804e479dd92e5528baff357762c77f18"
-    },
-    {
-      "symbol": "sz002409",
-      "cache_path": "aquant/data/sz002409.csv",
-      "mode": "incremental_append_0805",
-      "primary_source": "tencent",
-      "secondary_source": "sina_diagnostic",
-      "first_date": "2022-01-04",
-      "last_date": "2026-08-05",
-      "rows": 1111,
-      "new_rows": 0,
-      "qfq_revision_detected": false,
-      "warnings": [
-        "only tencent primary; sina unadjusted diagnostic"
-      ],
-      "sha256": "01017f4d9f349fa97aa1856e5c7e14a9cea5fd674a6b7595cd6c56843c4c686d"
-    },
-    {
-      "symbol": "sh688498",
-      "cache_path": "aquant/data/sh688498.csv",
-      "mode": "incremental_append_0805",
-      "primary_source": "tencent",
-      "secondary_source": "sina_diagnostic",
-      "first_date": "2022-12-21",
-      "last_date": "2026-08-05",
-      "rows": 877,
-      "new_rows": 0,
-      "qfq_revision_detected": false,
-      "warnings": [
-        "only tencent primary; sina unadjusted diagnostic"
-      ],
-      "sha256": "90bd57e5839b1b7bb9b4827b74d0dc3aff6f0aa5ce42b656075391e7b966705b"
+      "historical_rows_added": 16,
+      "total_rows": 1124,
+      "anchor_max_relative_difference": 9.076469253455374e-05,
+      "sha256": "8ba338af3acb17c473d75c91a74c35dc39565cc777ba413db55ec20a69d2d12d",
+      "pre_inception_proxy": null,
+      "holdback_rows_appended": 6
     },
     {
       "symbol": "sh688120",
-      "cache_path": "aquant/data/sh688120.csv",
-      "mode": "incremental_append_0805",
-      "primary_source": "tencent",
-      "secondary_source": "sina_diagnostic",
       "first_date": "2022-06-08",
       "last_date": "2026-08-05",
-      "rows": 1011,
-      "new_rows": 0,
-      "qfq_revision_detected": false,
-      "warnings": [
-        "only tencent primary; sina unadjusted diagnostic"
-      ],
-      "sha256": "ee6311c3fe8f888ce79392d06c4d350d307d80e71885f55159a099810974c9e2"
+      "historical_rows_added": 0,
+      "total_rows": 1011,
+      "anchor_max_relative_difference": 0.00010493179433358768,
+      "sha256": "ee6311c3fe8f888ce79392d06c4d350d307d80e71885f55159a099810974c9e2",
+      "pre_inception_proxy": null,
+      "holdback_rows_appended": 0
+    },
+    {
+      "symbol": "sh688146",
+      "first_date": "2023-04-21",
+      "last_date": "2026-08-05",
+      "historical_rows_added": 0,
+      "total_rows": 794,
+      "anchor_max_relative_difference": 6.553079947575608e-05,
+      "sha256": "a3d21bea640ffae958ccd977f147cdc573baf83187474e0d93236393173dee4d",
+      "pre_inception_proxy": null,
+      "holdback_rows_appended": 6
+    },
+    {
+      "symbol": "sh688200",
+      "first_date": "2020-02-18",
+      "last_date": "2026-08-05",
+      "historical_rows_added": 459,
+      "total_rows": 1570,
+      "anchor_max_relative_difference": 2.0293580464143437e-05,
+      "sha256": "3d4a2340591f5418136ab7f58464ccc78290eb2f76cad8299ffb801219181b1d",
+      "pre_inception_proxy": null,
+      "holdback_rows_appended": 6
+    },
+    {
+      "symbol": "sh688233",
+      "first_date": "2020-02-21",
+      "last_date": "2026-08-05",
+      "historical_rows_added": 456,
+      "total_rows": 1567,
+      "anchor_max_relative_difference": 1.1702750146173949e-05,
+      "sha256": "e5f466b8be301b378aff1307ec250861fe924388a956bad19c5b720037654673",
+      "pre_inception_proxy": null,
+      "holdback_rows_appended": 6
+    },
+    {
+      "symbol": "sh688256",
+      "first_date": "2020-07-20",
+      "last_date": "2026-08-05",
+      "historical_rows_added": 356,
+      "total_rows": 1467,
+      "anchor_max_relative_difference": 6.166178510875425e-05,
+      "sha256": "2cada4808a47261c5e0bd6d0a56a1b5d04254cb393ad7112c0d73f75663fce2f",
+      "pre_inception_proxy": null,
+      "holdback_rows_appended": 0
+    },
+    {
+      "symbol": "sh688268",
+      "first_date": "2019-12-26",
+      "last_date": "2026-08-05",
+      "historical_rows_added": 490,
+      "total_rows": 1601,
+      "anchor_max_relative_difference": 5.955926146510366e-05,
+      "sha256": "57d60fc56627097e251a20b64991d99a7ec5faa09a775a29a3f8081a7b1e539a",
+      "pre_inception_proxy": null,
+      "holdback_rows_appended": 6
+    },
+    {
+      "symbol": "sh688300",
+      "first_date": "2019-11-15",
+      "last_date": "2026-08-05",
+      "historical_rows_added": 519,
+      "total_rows": 1630,
+      "anchor_max_relative_difference": 0.00010596026490060352,
+      "sha256": "6347f60d09640ca19e8f79ef1be3738ea6dd94b544bff497fef26d4f090fde1e",
+      "pre_inception_proxy": null,
+      "holdback_rows_appended": 0
+    },
+    {
+      "symbol": "sh688347",
+      "first_date": "2024-01-02",
+      "last_date": "2026-08-05",
+      "historical_rows_added": 0,
+      "total_rows": 617,
+      "anchor_max_relative_difference": 0.0,
+      "sha256": "c8aabf0fcfc73bff5cb59cac24c5d95c8719bb4e7d8764ff4ad6acc1d413ea83",
+      "pre_inception_proxy": null,
+      "holdback_rows_appended": 6
+    },
+    {
+      "symbol": "sh688361",
+      "first_date": "2023-05-19",
+      "last_date": "2026-08-05",
+      "historical_rows_added": 0,
+      "total_rows": 780,
+      "anchor_max_relative_difference": 0.0,
+      "sha256": "d7b61bec4710dc753fde68104956ac2c804e479dd92e5528baff357762c77f18",
+      "pre_inception_proxy": null,
+      "holdback_rows_appended": 0
+    },
+    {
+      "symbol": "sh688498",
+      "first_date": "2022-12-21",
+      "last_date": "2026-08-05",
+      "historical_rows_added": 0,
+      "total_rows": 877,
+      "anchor_max_relative_difference": 8.411843876170008e-05,
+      "sha256": "90bd57e5839b1b7bb9b4827b74d0dc3aff6f0aa5ce42b656075391e7b966705b",
+      "pre_inception_proxy": null,
+      "holdback_rows_appended": 0
+    },
+    {
+      "symbol": "sh688766",
+      "first_date": "2021-08-23",
+      "last_date": "2026-08-05",
+      "historical_rows_added": 88,
+      "total_rows": 1189,
+      "anchor_max_relative_difference": 0.0007927796072693249,
+      "sha256": "c596407522492cab8e754cb0e03a58e3af979154e232ace240f4b407a870414f",
+      "pre_inception_proxy": null,
+      "holdback_rows_appended": 6
+    },
+    {
+      "symbol": "sz000636",
+      "first_date": "2014-01-02",
+      "last_date": "2026-08-05",
+      "historical_rows_added": 1786,
+      "total_rows": 2413,
+      "anchor_max_relative_difference": 0.0,
+      "sha256": "9fc9df5839651ac533c1069bee8aafdced074150cabbe51f42b6da5fed488e23",
+      "pre_inception_proxy": null,
+      "holdback_rows_appended": 6
+    },
+    {
+      "symbol": "sz002281",
+      "first_date": "2014-01-02",
+      "last_date": "2026-08-05",
+      "historical_rows_added": 1942,
+      "total_rows": 3053,
+      "anchor_max_relative_difference": 0.0,
+      "sha256": "39cdc6afebefb7ebdbc37383154a73c3dbbaea161338ada643272e77987da4d1",
+      "pre_inception_proxy": null,
+      "holdback_rows_appended": 6
+    },
+    {
+      "symbol": "sz002371",
+      "first_date": "2014-01-02",
+      "last_date": "2026-08-05",
+      "historical_rows_added": 1879,
+      "total_rows": 2990,
+      "anchor_max_relative_difference": 1.577162684327213e-05,
+      "sha256": "ac522d7c833be4edf40a36d2a10d9b947b8a4198614f592a643bf3618e6da67e",
+      "pre_inception_proxy": null,
+      "holdback_rows_appended": 6
+    },
+    {
+      "symbol": "sz002409",
+      "first_date": "2014-01-02",
+      "last_date": "2026-08-05",
+      "historical_rows_added": 1652,
+      "total_rows": 2763,
+      "anchor_max_relative_difference": 0.0,
+      "sha256": "03d1c0833afa0de33e97b310e3e78df5b1168d58a3d80fe4e1d211c9ce70e70c",
+      "pre_inception_proxy": null,
+      "holdback_rows_appended": 0
+    },
+    {
+      "symbol": "sz300054",
+      "first_date": "2014-01-02",
+      "last_date": "2026-08-05",
+      "historical_rows_added": 1846,
+      "total_rows": 2957,
+      "anchor_max_relative_difference": 0.0,
+      "sha256": "ed3dc4dab3ec5ae5f7c8534fc8aa65794f36a67b400eabaf68090aa1960d7ff4",
+      "pre_inception_proxy": null,
+      "holdback_rows_appended": 0
+    },
+    {
+      "symbol": "sz300223",
+      "first_date": "2014-01-02",
+      "last_date": "2026-08-05",
+      "historical_rows_added": 1728,
+      "total_rows": 2839,
+      "anchor_max_relative_difference": 0.0,
+      "sha256": "69fb8818a07fe130a215a6e185b069509022864ab0e91eaa86457834741d2437",
+      "pre_inception_proxy": null,
+      "holdback_rows_appended": 6
+    },
+    {
+      "symbol": "sz300308",
+      "first_date": "2014-01-02",
+      "last_date": "2026-08-05",
+      "historical_rows_added": 1781,
+      "total_rows": 2892,
+      "anchor_max_relative_difference": 0.00021723388848661214,
+      "sha256": "0ca5c5ebf06976482bb0397fcfa550ad355076074ed577dd8c526c9a7942463a",
+      "pre_inception_proxy": null,
+      "holdback_rows_appended": 0
+    },
+    {
+      "symbol": "sz300394",
+      "first_date": "2015-02-25",
+      "last_date": "2026-08-05",
+      "historical_rows_added": 1661,
+      "total_rows": 2772,
+      "anchor_max_relative_difference": 0.0003466204506067016,
+      "sha256": "992337e6a9dd6059c840234cdc0387057c9faf7f10ec6b6154eed83d897d76db",
+      "pre_inception_proxy": null,
+      "holdback_rows_appended": 0
+    },
+    {
+      "symbol": "sz300502",
+      "first_date": "2016-03-03",
+      "last_date": "2026-08-05",
+      "historical_rows_added": 1421,
+      "total_rows": 2532,
+      "anchor_max_relative_difference": 0.0001576044129234745,
+      "sha256": "0a69bb3edb31ab24af60ecd97f6c9e2a35d723d16adfadb388d879d156787add",
+      "pre_inception_proxy": null,
+      "holdback_rows_appended": 0
+    },
+    {
+      "symbol": "sz300604",
+      "first_date": "2017-04-17",
+      "last_date": "2026-08-05",
+      "historical_rows_added": 1149,
+      "total_rows": 2250,
+      "anchor_max_relative_difference": 0.0,
+      "sha256": "afacc09eeea87192877fa23238441ac6c3e87c383d8661226eb80f5f13ae3373",
+      "pre_inception_proxy": null,
+      "holdback_rows_appended": 6
+    },
+    {
+      "symbol": "sz300666",
+      "first_date": "2017-06-15",
+      "last_date": "2026-08-05",
+      "historical_rows_added": 1094,
+      "total_rows": 2200,
+      "anchor_max_relative_difference": 2.024291497970991e-05,
+      "sha256": "f7044cae4cfadd6093b465c0df76e8b28993d2dc06a3c77c1e16dec9f04fcabd",
+      "pre_inception_proxy": null,
+      "holdback_rows_appended": 6
     }
-  ]
+  ],
+  "incremental_completion": {
+    "window": {
+      "start": "2026-07-21",
+      "end": "2026-08-05"
+    },
+    "policy": "append missing provider rows only; preserve every existing CSV byte",
+    "strategy_metrics_observed": false
+  }
 }

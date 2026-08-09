@@ -9,6 +9,7 @@ from unified_ai_quant.account import load_account, save_account
 from unified_ai_quant.engine import ProductionEngine
 from unified_ai_quant.report import render_daily_report
 from unified_ai_quant.types import AccountState
+from unified_ai_quant.validation.runner import POOLS
 
 SYMBOLS = ["sz300308", "sz300502", "sz300394", "sh688008", "sh603986"]
 
@@ -34,6 +35,11 @@ def test_state_round_trip_and_fail_closed_hashes(data_dir, tmp_path):
     state = AccountState.empty(2e6)
     decision = engine.decide(symbols=SYMBOLS, as_of="2026-06-30", account=state)
     state.pending_orders = list(decision.pending_orders)
+    state.strategic_cohort_symbols = ["sz300308", "sz300394", "sz300502"]
+    state.strategic_cohort_targets = {"sz300308": 0.30}
+    state.strategic_exit_bands = {"sz300308": [0.10, 0.08, 0.06]}
+    state.strategic_active_bands = {"sz300308": [True, False, False]}
+    state.strategic_restore_weights = {"sz300308": 0.30}
     path = tmp_path / "account.json"
     save_account(state, path)
     assert load_account(path).to_dict() == state.to_dict()
@@ -82,3 +88,29 @@ def test_pre_listing_symbols_are_point_in_time_invisible(data_dir):
     )
     assert result["start"] == "2022-01-04"
     assert result["final_wealth"] > 0
+
+
+def test_historical_reference_coverage_is_point_in_time_dynamic(data_dir):
+    result = ProductionEngine(data_dir).backtest(
+        symbols=(*SYMBOLS, "sh688072", "sh688300", "sh688361"),
+        start="2018-12-27",
+        end="2018-12-28",
+    )
+    assert result["start"] == "2018-12-27"
+    assert result["end"] == "2018-12-28"
+    assert result["final_wealth"] > 0
+
+
+def test_consumed_failed_promotion_window_is_now_a_research_risk_regression(
+    data_dir,
+):
+    engine = ProductionEngine(data_dir)
+    for symbols in POOLS.values():
+        result = engine.backtest(
+            symbols=symbols,
+            start="2026-07-21",
+            end="2026-08-05",
+        )
+        assert result["final_wealth"] > 0.85
+        assert result["max_drawdown"] < 0.15
+        assert result["account_orders"] <= 3

@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import copy
+import hashlib
+import json
 
 import pandas as pd
 import pytest
@@ -20,6 +22,18 @@ def test_data_contract_and_manifest(data_dir):
     assert normalize_symbol("688008") == "sh688008"
     with pytest.raises(DataContractError):
         store.load("000001")
+
+
+def test_historical_manifest_and_checksums_are_reproducible(data_dir):
+    manifest = json.loads((data_dir / "DATA_MANIFEST.json").read_text(encoding="utf-8"))
+    results = {item["symbol"]: item for item in manifest["results"]}
+    assert results["sh000300"]["first_date"] == "2014-01-02"
+    assert results["sh000682"]["first_date"] == "2014-01-02"
+    assert results["sh000682"]["pre_inception_proxy"].startswith("sz399006")
+    for line in (data_dir / "SHA256SUMS").read_text(encoding="utf-8").splitlines():
+        expected, filename = line.split(maxsplit=1)
+        path = data_dir / filename.lstrip(" *")
+        assert hashlib.sha256(path.read_bytes()).hexdigest() == expected
 
 
 def test_fixed_reference_score_is_user_pool_invariant(data_dir):

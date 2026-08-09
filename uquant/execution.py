@@ -9,6 +9,7 @@ from datetime import timedelta
 import pandas as pd
 
 from .config import SystemConfig
+from .features import scalar
 from .types import (
     AccountOrder,
     AccountState,
@@ -35,7 +36,16 @@ def _limit_rate(symbol: str) -> float:
     return 0.20 if digits.startswith(("300", "688")) else 0.10
 
 
-def _blocked(symbol: str, side: str, row: pd.Series, previous_close: float) -> bool:
+def _blocked(
+    symbol: str,
+    side: str,
+    row: pd.Series | pd.DataFrame,
+    previous_close: float,
+) -> bool:
+    if isinstance(row, pd.DataFrame):
+        if row.empty:
+            return True
+        row = row.iloc[-1]
     volume = float(row.get("volume", 0.0) or 0.0)
     if volume <= 0 or previous_close <= 0:
         return True
@@ -273,9 +283,9 @@ class ExecutionPlanner:
                 1.0 + self.cfg.slippage if order.side == Side.BUY.value else 1.0 - self.cfg.slippage
             )
             open_equity = account.cash + sum(
-                position.shares
+                float(position.shares)
                 * (
-                    float(panel[symbol].loc[date, "open"])
+                    scalar(panel[symbol].loc[date], "open", position.avg_cost)
                     if symbol in panel and date in panel[symbol].index
                     else position.avg_cost
                 )

@@ -4,10 +4,10 @@ from __future__ import annotations
 
 import hashlib
 import json
+from collections.abc import Iterable
 from dataclasses import dataclass
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
-from typing import Iterable
 
 import pandas as pd
 
@@ -124,7 +124,9 @@ class DataStore:
     def common_sessions(self, symbols: Iterable[str], start: str, end: str) -> pd.DatetimeIndex:
         sessions: pd.DatetimeIndex | None = None
         for symbol in symbols:
-            index = self.load(symbol).loc[pd.Timestamp(start) : pd.Timestamp(end)].index
+            index = pd.DatetimeIndex(
+                self.load(symbol).loc[pd.Timestamp(start) : pd.Timestamp(end)].index
+            )
             sessions = index if sessions is None else sessions.intersection(index)
         if sessions is None or len(sessions) < 2:
             raise DataContractError("at least two common sessions are required")
@@ -146,15 +148,15 @@ class DataStore:
                     f"cannot construct canonical prefix hash for {normalized}"
                 )
             chain = hashlib.sha256(canonical[0].encode("utf-8")).digest()
-            digests: list[str] = []
+            prefix_digests: list[str] = []
             for row in canonical[1:]:
                 chain = hashlib.sha256(chain + row.encode("utf-8")).digest()
-                digests.append(chain.hex())
+                prefix_digests.append(chain.hex())
             self._prefix_hash_cache[normalized] = (
-                frame.index.copy(),
-                tuple(digests),
+                pd.DatetimeIndex(frame.index.copy()),
+                tuple(prefix_digests),
             )
-        index, digests = self._prefix_hash_cache[normalized]
+        index, cached_digests = self._prefix_hash_cache[normalized]
         position = (
             len(index) - 1
             if as_of is None
@@ -164,7 +166,7 @@ class DataStore:
             raise DataContractError(
                 f"{normalized} has no data on or before {as_of.date() if as_of else as_of}"
             )
-        return digests[position]
+        return cached_digests[position]
 
     def manifest(
         self,
@@ -183,15 +185,16 @@ class DataStore:
             frame = self.load(symbol)
             bounded = frame if bound is None else frame.loc[:bound]
             if bounded.empty:
+                boundary = bound.date() if bound is not None else "unbounded"
                 raise DataContractError(
-                    f"{symbol} has no data on or before {bound.date()}"
+                    f"{symbol} has no data on or before {boundary}"
                 )
             files[path.name] = self._prefix_hash(symbol, as_of=bound)
             starts.append(str(bounded.index.min().date()))
             ends.append(str(bounded.index.max().date()))
         payload = json.dumps(files, sort_keys=True, separators=(",", ":")).encode()
         return DataManifest(
-            generated_at=datetime.now(timezone.utc).isoformat(),
+            generated_at=datetime.now(UTC).isoformat(),
             source=source,
             adjustment="QFQ stocks; raw indices",
             files=files,

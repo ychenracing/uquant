@@ -55,6 +55,8 @@ uquant account-init \
 
 初始化时会自动加入固定参考篮子、沪深 300 和科技指数。输出文件包含现金、持仓、风险状态、生命周期、订单账本、数据前缀哈希和代码指纹。
 
+账户文件带显式 `schema_version`。生产命令不会静默接受旧 schema，也不会在加载时偷偷补写新状态。
+
 ## 券商快照格式
 
 ```json
@@ -133,25 +135,43 @@ python scripts/backfill_tencent_history.py \
 
 该工具分段下载早期腾讯行情，只向现有冻结行之前补数据，并在接缝处校验价格一致性。运行前应备份 `data/frozen`；运行后核对 `DATA_MANIFEST.json` 和 `SHA256SUMS`。
 
+正式回放前执行三方清单和逐文件 SHA-256 校验：
+
+```bash
+uv run python -m uquant.validation data-manifest --data-dir data/frozen
+```
+
+校验器要求目录中的 CSV、清单结果和校验和文件完全同集，并拒绝符号链接、不安全证券名、重复项和字节不一致。
+
 ## 升级生产代码
 
-账户绑定生产代码指纹，任何 Python 生产模块变化都会使旧指纹失效。升级时：
+账户绑定 schema 与生产代码指纹，任何 Python 生产模块变化都会使旧指纹失效。升级时：
 
 1. 备份账户文件和最近券商快照；
-2. 完成测试和连续回放；
-3. 用升级日期和真实现金新建账户文件；
-4. 立即同步完整券商快照；
-5. 对照原账户检查持仓、可卖数量、挂单和风险状态；
-6. 仅在人工确认后替换日常账户文件。
+2. 完成质量门、连续回放和策略晋级矩阵；
+3. 先输出到单独文件执行显式迁移：
 
-不要手工只改 `code_hash`。这样会绕过状态兼容性检查。
+```bash
+uquant account-migrate \
+  --account account_state.json \
+  --output account_state.migrated.json \
+  --acknowledge-code-change
+```
+
+4. 对比原文件与迁移文件中的现金、持仓、可卖数量、挂单、成交、数据前缀和策略状态；
+5. 对迁移文件运行 `account-sync`，立即同步完整券商快照；
+6. 核对迁移审计中的新旧 schema 与代码指纹；
+7. 仅在人工确认后，用迁移文件替换日常账户文件。
+
+确认状态完全兼容时也可省略 `--output` 做原子原地迁移，但仍应先备份。迁移不会重新解释历史成交或创建订单；它只在明确确认后补齐新状态、绑定当前代码并留下 UTC 审计记录。不要手工只改 `schema_version` 或 `code_hash`，这样会绕过状态兼容性检查。
 
 ## 常见失败
 
 | 错误 | 含义 | 处理 |
 |---|---|---|
 | `historical data prefix differs` | 已使用历史数据被改写 | 核对数据源、复权、日期和文件内容 |
-| `production code hash differs` | 账户来自不同代码状态 | 按升级流程重建并核对账户 |
+| `production code hash differs` | 账户来自不同代码状态 | 按升级流程显式迁移并核对账户 |
+| `requires explicit migration` | 账户 schema 早于当前生产版本 | 备份后运行 `account-migrate` 并核对审计记录 |
 | `reference coverage is insufficient` | 固定参考篮子覆盖不足 | 补齐已上市证券的当日数据 |
 | `decision date is not a common index session` | 两个指数日期不一致 | 修正指数数据或决策日期 |
 | `unknown account order` | 券商成交无法追溯到系统订单 | 核对 `order_id`，不要伪造映射 |

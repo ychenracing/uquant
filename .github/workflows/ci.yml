@@ -1,0 +1,75 @@
+name: Engineering gates
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: engineering-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  quality:
+    name: Python ${{ matrix.python-version }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.11", "3.12"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Install uv
+        run: python -m pip install --disable-pip-version-check uv
+      - name: Sync locked development environment
+        run: uv sync --frozen --extra dev
+      - name: Lint
+        run: uv run ruff check .
+      - name: Strict typing
+        if: matrix.python-version == '3.12'
+        run: uv run mypy uquant scripts
+      - name: Frozen-data integrity
+        run: uv run python -m uquant.validation data-manifest --data-dir data/frozen
+      - name: Tests and branch coverage
+        run: uv run pytest --cov=uquant --cov-report=term-missing --cov-report=xml
+      - name: Bytecode compilation
+        run: uv run python -m compileall -q uquant scripts tests
+      - name: Build wheel and source distribution
+        if: matrix.python-version == '3.12'
+        run: uv run python -m build
+      - name: Upload coverage
+        if: matrix.python-version == '3.12'
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage
+          path: coverage.xml
+
+  security:
+    name: Security and dependency audit
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install uv
+        run: python -m pip install --disable-pip-version-check uv
+      - name: Sync locked development environment
+        run: uv sync --frozen --extra dev
+      - name: Static security scan
+        run: uv run bandit -q -r uquant
+      - name: Export production dependency lock
+        run: uv export --frozen --no-dev --no-emit-project --no-hashes --output-file /tmp/uquant-requirements.txt
+      - name: Audit production dependencies
+        run: >-
+          uv run pip-audit
+          --cache-dir /tmp/uquant-pip-audit-cache
+          --requirement /tmp/uquant-requirements.txt

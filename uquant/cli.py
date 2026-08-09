@@ -6,7 +6,7 @@ import argparse
 import json
 from pathlib import Path
 
-from .account import load_account, save_account
+from .account import load_account, migrate_account, save_account
 from .broker import sync_broker_snapshot
 from .config import DEFAULT_CONFIG
 from .engine import ProductionEngine, code_fingerprint
@@ -45,6 +45,18 @@ def _parser() -> argparse.ArgumentParser:
     sync = sub.add_parser("account-sync")
     sync.add_argument("--account", required=True)
     sync.add_argument("--snapshot", required=True)
+    migrate = sub.add_parser("account-migrate")
+    migrate.add_argument("--account", required=True)
+    migrate.add_argument(
+        "--output",
+        default=None,
+        help="destination account file (defaults to an atomic in-place upgrade)",
+    )
+    migrate.add_argument(
+        "--acknowledge-code-change",
+        action="store_true",
+        help="confirm that the reviewed production code fingerprint will replace the old one",
+    )
     backtest = sub.add_parser("backtest")
     backtest.add_argument("--symbols", nargs="+", required=True)
     backtest.add_argument("--start", required=True)
@@ -96,6 +108,26 @@ def main(argv: list[str] | None = None) -> int:
         summary = sync_broker_snapshot(account, snapshot)
         save_account(account, args.account)
         print(json.dumps(summary, ensure_ascii=False, sort_keys=True))
+        return 0
+    if args.command == "account-migrate":
+        destination = args.output or args.account
+        state = migrate_account(
+            args.account,
+            destination,
+            new_code_hash=code_fingerprint(),
+            acknowledge_code_change=args.acknowledge_code_change,
+        )
+        print(
+            json.dumps(
+                {
+                    "account": destination,
+                    "schema_version": state.schema_version,
+                    "code_hash": state.code_hash,
+                },
+                ensure_ascii=False,
+                sort_keys=True,
+            )
+        )
         return 0
     if args.command == "backtest":
         engine = ProductionEngine(args.data_dir)

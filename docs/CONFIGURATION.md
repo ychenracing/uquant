@@ -45,6 +45,20 @@
 | `leader_tenure_days` | 5 | 成熟领涨连续确认天数 |
 | `emerging_tenure_days` | 3 | 新兴领涨连续确认天数 |
 
+## 行业证据与轮动确认
+
+| 参数 | 默认值 | 说明 |
+|---|---:|---|
+| `industry_rotation_enabled` | `True` | 启用行业证据和跨行业确认 |
+| `industry_signal_min_members` | 2 | 行业信号达到满置信度的最少参考成员 |
+| `industry_rotation_min_score` | 0.62 | 行业领先确认的最低综合分 |
+| `industry_rotation_min_confidence` | 0.50 | 行业覆盖置信度下限 |
+| `industry_rotation_edge` | 0.18 | 新旧行业强度差下限 |
+| `industry_rotation_deterioration` | 0.48 | 原行业弱化阈值 |
+| `industry_rotation_breadth` | 0.50 | 原行业短期广度弱化阈值 |
+
+行业参数是生产默认路径，不要求每日人工选择行业。覆盖不足会降低置信度；行业证据只在既有恢复替换候选中提供排序确认，不降低替换边际、不替换主锚、不增加替换次数，也不直接创建第二套组合。
+
 ## 组合与轮动
 
 | 参数 | 默认值 | 说明 |
@@ -94,11 +108,33 @@
 | `crisis_gross` | 0.50 | 常规危机仓位上限 |
 | `concentrated_crisis_gross` | 0.30 | 集中破坏仓位上限 |
 
+## 已部署持仓冲击保护
+
+| 参数 | 默认值 | 说明 |
+|---|---:|---|
+| `sector_guard_enabled` | `True` | 启用持仓同步冲击状态机 |
+| `sector_guard_min_symbols` | 2 | 形成持仓广度所需的最少证券数 |
+| `sector_shock_return` | -0.045 | 等权单日收益冲击阈值 |
+| `sector_shock_breadth` | 0.20 | 冲击日正收益持仓比例上限 |
+| `sector_shock_window` | 4 | 统计重复冲击的共同交易日窗口 |
+| `sector_shock_confirmations` | 2 | 激活保护所需的冲击次数 |
+| `sector_guard_divergence` | 0.50 | 科技相对宽基长期偏离确认阈值 |
+| `sector_guard_gross` | 0.40 | 保护激活后的总仓位上限 |
+| `sector_guard_min_sessions` | 8 | 允许退出保护前的最少交易日 |
+| `sector_recovery_ma` | 10 | 持仓结构修复均线窗口 |
+| `sector_recovery_return` | 0.00 | 恢复日等权收益下限 |
+| `sector_recovery_breadth` | 0.67 | 恢复日站上均线的持仓比例下限 |
+| `sector_recovery_confirmations` | 3 | 退出保护所需的连续修复日 |
+
+该保护只观察真实持仓或受保护权重，不能被未持有证券的上涨稀释。信息不足时保持当前状态，不会猜测恢复。
+
 ## 安全开关
 
 | 参数 | 默认值 | 说明 |
 |---|---:|---|
 | `risk_overlay_enabled` | `True` | 开启独立风险覆盖层 |
+| `industry_rotation_enabled` | `True` | 开启行业广度与跨行业确认 |
+| `sector_guard_enabled` | `True` | 开启持仓同步冲击保护 |
 | `fail_closed` | `True` | 数据、代码和账户身份异常时拒绝运行 |
 | `production_stage` | `PRODUCTION` | 运行阶段标记 |
 | `deterministic_seed` | 20260808 | 需要确定性抽样时使用的固定种子 |
@@ -109,4 +145,4 @@
 2. 风险参数的顺序关系由 `SystemConfig.__post_init__()` 校验。
 3. 修改参数后必须运行完整测试和至少一个包含上涨、下跌、恢复阶段的连续回放。
 4. 不要只依据单一股票池或单一窗口调整默认值。
-5. 生产账户会绑定代码指纹；发布新代码后应按运行手册重新建立并核对账户状态。
+5. 生产账户会绑定代码指纹；发布新代码后应按运行手册显式迁移并核对账户状态。

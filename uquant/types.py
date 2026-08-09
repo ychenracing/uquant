@@ -6,6 +6,8 @@ from dataclasses import asdict, dataclass, field
 from enum import Enum
 from typing import Any
 
+ACCOUNT_SCHEMA_VERSION = 2
+
 
 class Opportunity(str, Enum):
     """Market opportunity regimes used by the portfolio allocator."""
@@ -138,6 +140,7 @@ class AccountState:
     """Complete durable state required to continue the next daily decision."""
     initial_cash: float
     cash: float
+    schema_version: int = ACCOUNT_SCHEMA_VERSION
     positions: dict[str, Position] = field(default_factory=dict)
     pending_orders: list[PendingOrder] = field(default_factory=list)
     order_ledger: list[AccountOrder] = field(default_factory=list)
@@ -146,6 +149,10 @@ class AccountState:
     opportunity: str = Opportunity.CHOPPY.value
     risk: str = Risk.NORMAL.value
     shock_state: str = "NONE"
+    sector_shock_dates: list[str] = field(default_factory=list)
+    sector_guard_active: bool = False
+    sector_guard_started: str = ""
+    sector_recovery_streak: int = 0
     cooldown_until: str = ""
     operating_peak: float = 0.0
     capital_peak: float = 0.0
@@ -161,6 +168,7 @@ class AccountState:
     replacement_events: list[dict[str, Any]] = field(default_factory=list)
     lifecycle_events: list[dict[str, Any]] = field(default_factory=list)
     risk_events: list[dict[str, Any]] = field(default_factory=list)
+    account_migrations: list[dict[str, Any]] = field(default_factory=list)
     anchor_weights: dict[str, float] = field(default_factory=dict)
     recovery_anchor_date: str = ""
     tactical_anchor_symbol: str = ""
@@ -180,7 +188,7 @@ class AccountState:
     code_hash: str = ""
 
     @classmethod
-    def empty(cls, cash: float) -> "AccountState":
+    def empty(cls, cash: float) -> AccountState:
         return cls(
             initial_cash=cash,
             cash=cash,
@@ -210,7 +218,7 @@ class RiskAssessment:
     state: Risk
     target_gross_cap: float
     votes: int
-    evidence: dict[str, float]
+    evidence: dict[str, Any]
     reasons: tuple[str, ...]
     shock_state: str
 

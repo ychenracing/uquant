@@ -5,10 +5,12 @@ from __future__ import annotations
 import json
 import os
 import tempfile
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
 from .types import (
+    ACCOUNT_SCHEMA_VERSION,
     AccountOrder,
     AccountState,
     Fill,
@@ -77,10 +79,10 @@ def _validate_order_state(
         OrderStatus.REPLACED.value,
     }
     for order_id in pending_ids:
-        item = ledger.get(order_id)
-        if item is None:
+        pending_account_order = ledger.get(order_id)
+        if pending_account_order is None:
             raise RuntimeError("pending order references an unknown account order")
-        if item.status in terminal:
+        if pending_account_order.status in terminal:
             raise RuntimeError("pending order references a terminal account order")
     for fill in state.fills:
         if fill.order_id and fill.order_id not in ledger:
@@ -90,7 +92,12 @@ def _validate_order_state(
         raise RuntimeError("account state has duplicate broker fill ids")
 
 
-def load_account(path: str | Path, *, require_hashes: bool = True) -> AccountState:
+def load_account(
+    path: str | Path,
+    *,
+    require_hashes: bool = True,
+    allow_legacy_schema: bool = False,
+) -> AccountState:
     """Load and validate the durable account state from a JSON file.
 
     Validation rejects malformed order lifecycles, duplicate identifiers,
@@ -102,11 +109,33 @@ def load_account(path: str | Path, *, require_hashes: bool = True) -> AccountSta
         payload = json.loads(source.read_text(encoding="utf-8"))
     except (OSError, json.JSONDecodeError) as exc:
         raise RuntimeError(f"account state is missing or corrupt: {source}") from exc
+    if not isinstance(payload, dict):
+        raise RuntimeError("account state must be a JSON object")
+    try:
+        schema_version = int(payload.get("schema_version", 1))
+    except (TypeError, ValueError) as exc:
+        raise RuntimeError("account state has an invalid schema version") from exc
+    if schema_version > ACCOUNT_SCHEMA_VERSION or schema_version < 1:
+        raise RuntimeError(
+            f"unsupported account schema {schema_version}; expected {ACCOUNT_SCHEMA_VERSION}"
+        )
+    if schema_version != ACCOUNT_SCHEMA_VERSION and not allow_legacy_schema:
+        raise RuntimeError(
+            f"account schema {schema_version} requires explicit migration; "
+            "run `uquant account-migrate --help`"
+        )
     sequence_was_explicit = "next_order_sequence" in payload
+    operating_peak = payload.get("operating_peak")
+    capital_peak = payload.get("capital_peak")
+    if operating_peak is None:
+        operating_peak = payload["initial_cash"]
+    if capital_peak is None:
+        capital_peak = payload["initial_cash"]
     try:
         state = AccountState(
             initial_cash=float(payload["initial_cash"]),
             cash=float(payload["cash"]),
+            schema_version=schema_version,
             positions={symbol: _position(item) for symbol, item in payload.get("positions", {}).items()},
             pending_orders=[PendingOrder(**item) for item in payload.get("pending_orders", [])],
             order_ledger=[AccountOrder(**item) for item in payload.get("order_ledger", [])],
@@ -115,9 +144,15 @@ def load_account(path: str | Path, *, require_hashes: bool = True) -> AccountSta
             opportunity=str(payload.get("opportunity", "CHOPPY")),
             risk=str(payload.get("risk", "NORMAL")),
             shock_state=str(payload.get("shock_state", "NONE")),
+            sector_shock_dates=[
+                str(item) for item in payload.get("sector_shock_dates", [])
+            ],
+            sector_guard_active=bool(payload.get("sector_guard_active", False)),
+            sector_guard_started=str(payload.get("sector_guard_started", "")),
+            sector_recovery_streak=int(payload.get("sector_recovery_streak", 0)),
             cooldown_until=str(payload.get("cooldown_until", "")),
-            operating_peak=float(payload.get("operating_peak", payload["initial_cash"])),
-            capital_peak=float(payload.get("capital_peak", payload["initial_cash"])),
+            operating_peak=float(operating_peak),
+            capital_peak=float(capital_peak),
             leader_tenure={str(k): int(v) for k, v in payload.get("leader_tenure", {}).items()},
             candidate_tenure={str(k): int(v) for k, v in payload.get("candidate_tenure", {}).items()},
             replacement_tenure={str(k): int(v) for k, v in payload.get("replacement_tenure", {}).items()},
@@ -132,6 +167,7 @@ def load_account(path: str | Path, *, require_hashes: bool = True) -> AccountSta
             replacement_events=list(payload.get("replacement_events", [])),
             lifecycle_events=list(payload.get("lifecycle_events", [])),
             risk_events=list(payload.get("risk_events", [])),
+            account_migrations=list(payload.get("account_migrations", [])),
             anchor_weights={str(k): float(v) for k, v in payload.get("anchor_weights", {}).items()},
             recovery_anchor_date=str(payload.get("recovery_anchor_date", "")),
             tactical_anchor_symbol=str(payload.get("tactical_anchor_symbol", "")),
@@ -168,13 +204,47 @@ def load_account(path: str | Path, *, require_hashes: bool = True) -> AccountSta
             ],
             code_hash=str(payload.get("code_hash", "")),
         )
-    except (KeyError, TypeError, ValueError) as exc:
+    except (AttributeError, KeyError, TypeError, ValueError) as exc:
         raise RuntimeError("account state violates schema") from exc
     if state.initial_cash <= 0 or state.cash < -1e-6:
         raise RuntimeError("account state violates cash invariants")
     _validate_order_state(state, sequence_was_explicit=sequence_was_explicit)
     if require_hashes and (not state.data_hash or not state.code_hash):
         raise RuntimeError("account state missing validation hashes")
+    return state
+
+
+def migrate_account(
+    source: str | Path,
+    destination: str | Path,
+    *,
+    new_code_hash: str,
+    acknowledge_code_change: bool,
+) -> AccountState:
+    """Explicitly upgrade one durable account and bind it to reviewed code.
+
+    The caller must acknowledge that the code fingerprint changes. Market-data
+    provenance, broker state, orders, fills, and strategy state are preserved.
+    """
+    if not acknowledge_code_change:
+        raise RuntimeError("account migration requires --acknowledge-code-change")
+    if not new_code_hash:
+        raise RuntimeError("account migration requires a non-empty code hash")
+    state = load_account(source, allow_legacy_schema=True)
+    previous_schema = state.schema_version
+    previous_code_hash = state.code_hash
+    state.schema_version = ACCOUNT_SCHEMA_VERSION
+    state.code_hash = new_code_hash
+    state.account_migrations.append(
+        {
+            "migrated_at_utc": datetime.now(UTC).isoformat(),
+            "from_schema": previous_schema,
+            "to_schema": ACCOUNT_SCHEMA_VERSION,
+            "from_code_hash": previous_code_hash,
+            "to_code_hash": new_code_hash,
+        }
+    )
+    save_account(state, destination)
     return state
 
 

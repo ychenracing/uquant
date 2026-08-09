@@ -52,8 +52,22 @@ def compute_features(frame: pd.DataFrame, cfg: SystemConfig) -> pd.DataFrame:
     return out.replace([np.inf, -np.inf], np.nan)
 
 
-def scalar(row: pd.Series, name: str, default: float = float("nan")) -> float:
-    """Read one finite numeric feature or return the supplied fallback."""
+def scalar(
+    row: pd.Series | pd.DataFrame,
+    name: str,
+    default: float = float("nan"),
+) -> float:
+    """Read one finite numeric feature or return the supplied fallback.
+
+    Pandas types ``.loc[date]`` as a Series-or-DataFrame because a generic
+    index may contain duplicates. Market-data validation guarantees unique
+    sessions, but accepting the union here keeps that contract explicit and
+    fails safely if an external caller still supplies duplicate rows.
+    """
+    if isinstance(row, pd.DataFrame):
+        if row.empty:
+            return default
+        row = row.iloc[-1]
     value = row.get(name, default)
     try:
         numeric = float(value)

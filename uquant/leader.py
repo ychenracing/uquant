@@ -10,6 +10,7 @@ import pandas as pd
 
 from .config import SystemConfig
 from .features import scalar
+from .industry import compute_industry_signals
 from .types import AccountState, LeaderScore
 
 REFERENCE_UNIVERSE = (
@@ -172,6 +173,8 @@ def compute_leaders(
             "resilience": 1.0 + max(-1.0, scalar(row, "drawdown120", -1.0)),
             "volume": min(2.0, max(0.0, scalar(row, "volume_expansion", 0.0))) / 2.0,
             "accel": scalar(row, "mom_accel_5_20", -1.0),
+            "above20": float(math.isfinite(ma20) and close > ma20),
+            "above60": float(math.isfinite(ma60) and close > ma60),
             "history": float(history),
         }
     references = [symbol for symbol in REFERENCE_UNIVERSE if symbol in raw]
@@ -186,20 +189,35 @@ def compute_leaders(
             "fixed reference coverage too low: "
             f"{len(references)}/{len(expected)} point-in-time-listed"
         )
+    industry_signals = compute_industry_signals(
+        raw=raw,
+        reference_symbols=references,
+        industries=INDUSTRY,
+        minimum_members=cfg.industry_signal_min_members,
+    )
     industry_returns: dict[str, list[float]] = {}
     for symbol in references:
-        industry_returns.setdefault(industry_of(symbol), []).append(raw[symbol]["ret60"])
-    base_results: dict[str, LeaderScore] = {}
+        industry_returns.setdefault(industry_of(symbol), []).append(
+            raw[symbol]["ret60"]
+        )
     industry_reference_means = [
         float(np.mean(finite))
         for values in industry_returns.values()
         if (finite := [value for value in values if math.isfinite(value)])
     ]
+    base_results: dict[str, LeaderScore] = {}
     for symbol, item in raw.items():
+        industry_signal = industry_signals.get(industry_of(symbol))
         industry_values = [
-            value for value in industry_returns.get(industry_of(symbol), []) if math.isfinite(value)
+            value
+            for value in industry_returns.get(industry_of(symbol), [])
+            if math.isfinite(value)
         ]
-        industry_mean = float(np.mean(industry_values)) if industry_values else float("nan")
+        industry_mean = (
+            float(np.mean(industry_values))
+            if industry_values
+            else float("nan")
+        )
         factors = {
             "momentum60": _percentile(item["ret60"], (raw[s]["ret60"] for s in references)),
             "momentum120": _percentile(item["ret120"], (raw[s]["ret120"] for s in references)),
@@ -212,8 +230,26 @@ def compute_leaders(
                 industry_mean,
                 industry_reference_means,
             ),
+            "industry_rotation_strength": (
+                industry_signal.score if industry_signal is not None else 0.5
+            ),
+            "industry_confidence": (
+                industry_signal.confidence if industry_signal is not None else 0.0
+            ),
+            "industry_breadth20": (
+                industry_signal.breadth20 if industry_signal is not None else 0.0
+            ),
+            "industry_breadth60": (
+                industry_signal.breadth60 if industry_signal is not None else 0.0
+            ),
+            "industry_return20": (
+                industry_signal.return20 if industry_signal is not None else 0.0
+            ),
+            "industry_return60": (
+                industry_signal.return60 if industry_signal is not None else 0.0
+            ),
         }
-        observed = sum(math.isfinite(value) for value in item.values() if not isinstance(value, str))
+        observed = sum(math.isfinite(value) for value in item.values())
         confidence = min(1.0, item["history"] / cfg.min_history) * min(1.0, observed / 9.0)
         raw_score = (
             0.23 * factors["momentum60"]

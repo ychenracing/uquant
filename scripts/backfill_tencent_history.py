@@ -17,12 +17,13 @@ import math
 import os
 import tempfile
 import time
+from collections.abc import Sequence
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import asdict, dataclass
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from decimal import Decimal
 from pathlib import Path
-from typing import Any, Sequence
+from typing import Any
 from urllib.error import HTTPError, URLError
 from urllib.parse import urlencode
 from urllib.request import Request, urlopen
@@ -82,7 +83,7 @@ def _request_text(url: str, *, attempts: int = 4) -> str:
     for attempt in range(attempts):
         try:
             with urlopen(request, timeout=30) as response:
-                payload = response.read(8_000_001)
+                payload = bytes(response.read(8_000_001))
             if len(payload) > 8_000_000:
                 raise RuntimeError("Tencent response exceeded 8 MB")
             return payload.decode("utf-8", errors="strict")
@@ -298,9 +299,9 @@ def _prepend_tech_proxy(
 
 
 def _write_metadata(data_dir: Path, results: list[BackfillResult]) -> None:
-    generated_at = datetime.now(timezone.utc).isoformat()
+    generated_at = datetime.now(UTC).isoformat()
     manifest = {
-        "snapshot_id": datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ-historical-backfill"),
+        "snapshot_id": datetime.now(UTC).strftime("%Y%m%dT%H%M%SZ-historical-backfill"),
         "generated_at_utc": generated_at,
         "adjustment": (
             "Tencent qfq for stocks; Tencent raw index returns represented in "

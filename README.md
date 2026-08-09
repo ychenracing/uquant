@@ -11,6 +11,7 @@ uquant 是面向 A 股科技产业链的日频量化决策系统。它只支持�
 - 信号使用当日及以前的数据，订单最早在下一可交易日开盘执行；
 - 统一处理 A 股 T+1、涨跌停、停牌、100 股手数、科创板首次 200 股、费用、滑点、容量和部分成交；
 - 小幅目标变化落在迟滞区间内时不交易，降低无效换手；
+- 默认启用行业广度确认和持仓同步冲击保护，无需人工开关；
 - 账户文件、代码指纹或历史数据前缀异常时拒绝继续运行；
 - 券商快照是现金、持仓、可卖数量和真实成交的权威来源。
 
@@ -46,6 +47,16 @@ uquant account-init \
 ```bash
 python -m uquant account-init --help
 ```
+
+已有旧版账户不会被静默补字段。升级代码后先备份账户，再显式迁移并核对券商快照：
+
+```bash
+uquant account-migrate \
+  --account account_state.json \
+  --acknowledge-code-change
+```
+
+迁移保留现金、持仓、订单、成交、数据前缀和策略状态，并写入不可省略的迁移审计记录。详细流程见[运行手册](docs/OPERATIONS.md)。
 
 ### 2. 同步券商快照
 
@@ -102,14 +113,19 @@ date,open,high,low,close,volume
 | `uquant/config.py` | 策略、风险、组合和执行参数的唯一来源 |
 | `uquant/data.py` | 点时数据加载、校验、前缀哈希和可选刷新 |
 | `uquant/features.py` | 因果趋势、动量、波动和突破特征 |
-| `uquant/leader.py` | 领涨评分、成熟度、置信度和行业映射 |
+| `uquant/industry.py` | 点时行业强度、广度、加速度和覆盖置信度 |
+| `uquant/leader.py` | 领涨评分、成熟度、置信度和行业证据装配 |
 | `uquant/opportunity.py` | 机会状态识别与状态迟滞 |
 | `uquant/risk.py` | 风险雷达、冲击/修复状态和仓位上限 |
-| `uquant/portfolio.py` | 唯一目标组合、持仓生命周期和轮动控制 |
+| `uquant/risk_sector.py` | 已部署持仓的同步冲击与确认修复状态机 |
+| `uquant/portfolio.py` | 唯一目标组合编排与硬约束出口 |
+| `uquant/portfolio_*.py` | 核心、战略、领涨和恢复策略分层实现 |
 | `uquant/execution.py` | 次日开盘执行、市场约束、费用和订单生命周期 |
 | `uquant/account.py` | 账户校验和原子持久化 |
 | `uquant/broker.py` | 券商快照与真实成交幂等对账 |
 | `uquant/report.py` | 只读日报渲染 |
+| `uquant/validation/` | 冻结数据完整性和多市场阶段晋级门 |
+| `benchmarks/` | 版本化绩效基线与比较证据 |
 | `scripts/backfill_tencent_history.py` | 冻结行情的有界历史补全工具 |
 | `tests/` | 数据、策略状态、风险、执行和账户契约测试 |
 
@@ -120,13 +136,20 @@ date,open,high,low,close,volume
 - [参数参考](docs/CONFIGURATION.md)
 - [运行手册](docs/OPERATIONS.md)
 - [开发指南](docs/DEVELOPMENT.md)
+- [性能与晋级证据](docs/PERFORMANCE.md)
+- [工程质量门禁](docs/QUALITY.md)
 
 ## 本地验证
 
 ```bash
-python -m pytest -q
-ruff check .
-python -m compileall -q uquant scripts tests
+uv run ruff check .
+uv run mypy uquant scripts
+uv run pytest --cov=uquant --cov-report=term-missing
+uv run python -m uquant.validation data-manifest --data-dir data/frozen
+uv run python -m uquant.validation promotion \
+  --data-dir data/frozen \
+  --profile quick
+uv run bandit -q -r uquant
 ```
 
 ## 风险声明

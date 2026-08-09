@@ -1,0 +1,183 @@
+"""Causal synchronized-holdings shock evidence for the portfolio risk owner."""
+
+from __future__ import annotations
+
+from dataclasses import dataclass
+
+import numpy as np
+import pandas as pd
+
+from .config import SystemConfig
+from .types import AccountState
+
+
+@dataclass(frozen=True, slots=True)
+class SectorObservation:
+    """One point-in-time equal-weight observation of the deployed holdings."""
+
+    symbol_count: int
+    equal_return: float
+    positive_breadth: float
+    recovery_breadth: float
+
+
+@dataclass(frozen=True, slots=True)
+class SectorGuardTransition:
+    """Persistent guard state and the event produced by the current session."""
+
+    active: bool
+    triggered: bool
+    recovered: bool
+    shock: bool
+    shock_count: int
+    active_sessions: int
+    observation: SectorObservation | None
+
+
+def _session_distance(
+    calendar: pd.DatetimeIndex,
+    start: str,
+    end: pd.Timestamp,
+) -> int:
+    """Return completed common-market sessions between two inclusive labels."""
+    bounded = calendar[(calendar >= pd.Timestamp(start)) & (calendar <= end)]
+    return max(0, len(bounded) - 1)
+
+
+def observe_deployed_sector(
+    *,
+    date: pd.Timestamp,
+    panel: dict[str, pd.DataFrame],
+    symbols: set[str],
+    cfg: SystemConfig,
+) -> SectorObservation | None:
+    """Build a causal breadth snapshot from currently deployed securities.
+
+    The provider deliberately observes holdings rather than the full reference
+    universe. A synchronized break in a narrow winning cohort can otherwise be
+    diluted by unrelated industries that happen to rise on the same session.
+    """
+    daily_returns: list[float] = []
+    recovery_structure: list[bool] = []
+    for symbol in sorted(symbols):
+        frame = panel.get(symbol)
+        if frame is None or date not in frame.index:
+            continue
+        history = frame.loc[:date, "close"].dropna().astype(float)
+        if len(history) < cfg.sector_recovery_ma:
+            continue
+        current = float(history.iloc[-1])
+        previous = float(history.iloc[-2])
+        if current <= 0 or previous <= 0:
+            continue
+        daily_returns.append(current / previous - 1.0)
+        recovery_structure.append(
+            current > float(history.tail(cfg.sector_recovery_ma).mean())
+        )
+    if len(daily_returns) < cfg.sector_guard_min_symbols:
+        return None
+    returns = np.asarray(daily_returns, dtype=float)
+    return SectorObservation(
+        symbol_count=len(daily_returns),
+        equal_return=float(returns.mean()),
+        positive_breadth=float(np.mean(returns > 0.0)),
+        recovery_breadth=float(np.mean(recovery_structure)),
+    )
+
+
+def update_sector_guard(
+    *,
+    date: pd.Timestamp,
+    calendar: pd.DatetimeIndex,
+    panel: dict[str, pd.DataFrame],
+    account: AccountState,
+    leadership_divergence: float,
+    cfg: SystemConfig,
+) -> SectorGuardTransition:
+    """Advance the default-on shock/guard/recovery state machine.
+
+    Activation needs repeated synchronized losses plus an unusually narrow
+    technology leadership premium. This retains the early warning supplied by
+    a sector breadth guard without treating ordinary trend pullbacks as crises.
+    Recovery is deliberately slower than activation and pauses when coverage is
+    insufficient.
+    """
+    if not cfg.sector_guard_enabled:
+        account.sector_shock_dates.clear()
+        account.sector_guard_active = False
+        account.sector_guard_started = ""
+        account.sector_recovery_streak = 0
+        return SectorGuardTransition(False, False, False, False, 0, 0, None)
+
+    deployed = {
+        symbol
+        for symbol, position in account.positions.items()
+        if position.shares > 0
+    }
+    if account.sector_guard_active:
+        deployed.update(account.protected_weights)
+    observation = observe_deployed_sector(
+        date=date,
+        panel=panel,
+        symbols=deployed,
+        cfg=cfg,
+    )
+
+    account.sector_shock_dates = [
+        value
+        for value in account.sector_shock_dates
+        if pd.Timestamp(value) <= date
+        and _session_distance(calendar, value, date) < cfg.sector_shock_window
+    ]
+    shock = bool(
+        observation is not None
+        and observation.equal_return <= cfg.sector_shock_return
+        and observation.positive_breadth <= cfg.sector_shock_breadth
+    )
+    date_label = str(date.date())
+    if shock and date_label not in account.sector_shock_dates:
+        account.sector_shock_dates.append(date_label)
+
+    triggered = bool(
+        not account.sector_guard_active
+        and len(account.sector_shock_dates) >= cfg.sector_shock_confirmations
+        and leadership_divergence >= cfg.sector_guard_divergence
+    )
+    if triggered:
+        account.sector_guard_active = True
+        account.sector_guard_started = date_label
+        account.sector_recovery_streak = 0
+
+    active_sessions = (
+        _session_distance(calendar, account.sector_guard_started, date)
+        if account.sector_guard_active and account.sector_guard_started
+        else 0
+    )
+    recovered = False
+    if account.sector_guard_active:
+        repair = bool(
+            observation is not None
+            and not shock
+            and observation.equal_return > cfg.sector_recovery_return
+            and observation.recovery_breadth >= cfg.sector_recovery_breadth
+            and active_sessions >= cfg.sector_guard_min_sessions
+        )
+        account.sector_recovery_streak = (
+            account.sector_recovery_streak + 1 if repair else 0
+        )
+        if account.sector_recovery_streak >= cfg.sector_recovery_confirmations:
+            recovered = True
+            account.sector_guard_active = False
+            account.sector_guard_started = ""
+            account.sector_recovery_streak = 0
+            account.sector_shock_dates.clear()
+
+    return SectorGuardTransition(
+        active=account.sector_guard_active,
+        triggered=triggered,
+        recovered=recovered,
+        shock=shock,
+        shock_count=len(account.sector_shock_dates),
+        active_sessions=active_sessions,
+        observation=observation,
+    )

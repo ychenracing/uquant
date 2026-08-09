@@ -66,6 +66,13 @@ class SystemConfig:
     strong_cluster_min_score: float = 0.85
     strong_cluster_max_gap: float = 0.06
     correlation_admission_penalty: float = 0.10
+    industry_rotation_enabled: bool = True
+    industry_signal_min_members: int = 2
+    industry_rotation_min_score: float = 0.62
+    industry_rotation_min_confidence: float = 0.50
+    industry_rotation_edge: float = 0.18
+    industry_rotation_deterioration: float = 0.48
+    industry_rotation_breadth: float = 0.50
     dynamic_k_confirm_days: int = 3
     dynamic_k_expand_interval: int = 5
     dynamic_k_change_interval: int = 20
@@ -137,6 +144,19 @@ class SystemConfig:
     risk_below_ma20: float = 0.65
     risk_correlation: float = 0.75
     risk_volatility_ratio: float = 1.80
+    sector_guard_enabled: bool = True
+    sector_guard_min_symbols: int = 2
+    sector_shock_return: float = -0.045
+    sector_shock_breadth: float = 0.20
+    sector_shock_window: int = 4
+    sector_shock_confirmations: int = 2
+    sector_guard_divergence: float = 0.50
+    sector_guard_gross: float = 0.40
+    sector_guard_min_sessions: int = 8
+    sector_recovery_ma: int = 10
+    sector_recovery_return: float = 0.0
+    sector_recovery_breadth: float = 0.67
+    sector_recovery_confirmations: int = 3
     operating_dd_caution: float = 0.08
     capital_dd_risk_off: float = 0.14
     capital_dd_crisis: float = 0.20
@@ -192,6 +212,10 @@ class SystemConfig:
             "industry_weight_cap",
             "concentrated_break_ratio",
             "recovery_breadth_min",
+            "industry_rotation_min_score",
+            "industry_rotation_min_confidence",
+            "industry_rotation_deterioration",
+            "industry_rotation_breadth",
         ):
             if not 0 <= getattr(self, name) <= 1:
                 raise ValueError(f"{name} must be in [0, 1]")
@@ -215,6 +239,24 @@ class SystemConfig:
             raise ValueError("invalid caution gross target")
         if not 1 <= self.caution_gross_min_votes <= 5:
             raise ValueError("caution gross minimum votes must be in [1, 5]")
+        if self.sector_guard_min_symbols < 2:
+            raise ValueError("sector_guard_min_symbols must be at least two")
+        if not -1 < self.sector_shock_return < 0:
+            raise ValueError("sector_shock_return must be in (-1, 0)")
+        if not 0 <= self.sector_shock_breadth <= 1:
+            raise ValueError("sector_shock_breadth must be in [0, 1]")
+        if not 1 <= self.sector_shock_confirmations <= self.sector_shock_window:
+            raise ValueError("invalid sector shock confirmation window")
+        if not 0 <= self.sector_guard_divergence <= 1:
+            raise ValueError("sector_guard_divergence must be in [0, 1]")
+        if not 0 <= self.sector_guard_gross <= self.max_gross:
+            raise ValueError("sector_guard_gross must be in [0, max_gross]")
+        if self.sector_guard_min_sessions < 1 or self.sector_recovery_ma < 2:
+            raise ValueError("sector guard recovery windows must be positive")
+        if not 0 <= self.sector_recovery_breadth <= 1:
+            raise ValueError("sector_recovery_breadth must be in [0, 1]")
+        if self.sector_recovery_confirmations < 1:
+            raise ValueError("sector_recovery_confirmations must be positive")
         if not 0 < self.trend_entry_gross <= self.trend_target_gross <= 1:
             raise ValueError("invalid trend gross targets")
         if not 0 <= self.satellite_weight <= self.max_symbol_weight:
@@ -229,6 +271,10 @@ class SystemConfig:
             raise ValueError("add_index_chase_ret5 must be in (0, 1)")
         if not 0 <= self.replacement_edge <= 1:
             raise ValueError("replacement_edge must be in [0, 1]")
+        if self.industry_signal_min_members < 1:
+            raise ValueError("industry_signal_min_members must be positive")
+        if not 0 <= self.industry_rotation_edge <= 1:
+            raise ValueError("industry_rotation_edge must be in [0, 1]")
         if self.replacement_confirm_days < 1 or self.min_hold_days < 1:
             raise ValueError("replacement confirmation and minimum hold must be positive")
         if not 0 < self.replacement_transfer_cap <= self.max_symbol_weight:
@@ -373,7 +419,7 @@ class SystemConfig:
         if self.unbacked_recovery_anchor_min_days < 1:
             raise ValueError("unbacked recovery anchor minimum age must be positive")
 
-    def override(self, **changes: Any) -> "SystemConfig":
+    def override(self, **changes: Any) -> SystemConfig:
         return replace(self, **changes)
 
     def to_dict(self) -> dict[str, Any]:

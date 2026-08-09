@@ -5,9 +5,10 @@ from __future__ import annotations
 import copy
 import hashlib
 import json
+from collections.abc import Iterable
 from pathlib import Path
 from statistics import median
-from typing import Any, Iterable
+from typing import Any
 
 import numpy as np
 import pandas as pd
@@ -25,7 +26,14 @@ from .leader import REFERENCE_UNIVERSE, compute_leaders
 from .opportunity import classify_opportunity
 from .portfolio import PortfolioAllocator, current_weights
 from .risk import assess_risk
-from .types import AccountOrder, AccountState, Decision, Fill, LeaderScore
+from .types import (
+    ACCOUNT_SCHEMA_VERSION,
+    AccountOrder,
+    AccountState,
+    Decision,
+    Fill,
+    LeaderScore,
+)
 
 INDEX_SYMBOLS = ("sh000300", "sh000682")
 
@@ -84,6 +92,10 @@ class ProductionEngine:
         )
 
     def decide(self, *, symbols: Iterable[str], as_of: str, account: AccountState) -> Decision:
+        if account.schema_version != ACCOUNT_SCHEMA_VERSION:
+            raise RuntimeError(
+                f"account schema {account.schema_version} requires explicit migration"
+            )
         user_symbols = tuple(sorted({normalize_symbol(item) for item in symbols}))
         if not user_symbols:
             raise ValueError("at least one technology-sector symbol is required")
@@ -351,7 +363,7 @@ def _drawdown_stats(equity: pd.Series) -> dict[str, float | int]:
     for flag in underwater:
         current = current + 1 if flag else 0
         duration = max(duration, current)
-    trough = int(drawdown.values.argmin())
+    trough = int(drawdown.to_numpy(dtype=float).argmin())
     recovery = 0
     peak_value = float(peak.iloc[trough])
     for value in equity.iloc[trough + 1 :]:
@@ -453,7 +465,12 @@ def performance_metrics(
         if crossings.empty or first_action is None:
             return None
         target = crossings.index[0]
-        return int(equity.index.get_indexer([target])[0] - equity.index.get_indexer([first_action], method="ffill")[0])
+        target_location = equity.index.get_indexer(pd.Index([target]))[0]
+        action_location = equity.index.get_indexer(
+            pd.Index([first_action]),
+            method="ffill",
+        )[0]
+        return int(target_location - action_location)
 
     return {
         "total_return": total_return,
@@ -526,7 +543,10 @@ def performance_metrics(
             }
             for item in orders
         ],
-        "equity_curve": [{"date": str(date.date()), "equity": value} for date, value in equity.items()],
+        "equity_curve": [
+            {"date": str(date)[:10], "equity": value}
+            for date, value in equity.items()
+        ],
     }
 
 

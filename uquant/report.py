@@ -8,6 +8,10 @@ from .types import AccountState, Decision
 def render_daily_report(decision: Decision, account: AccountState) -> str:
     """Render the already-computed decision without changing portfolio intent."""
     current = {symbol: position for symbol, position in account.positions.items() if position.shares > 0}
+    sector_return = decision.risk_summary.get("sector_guard_equal_return")
+    sector_return_text = (
+        "N/A" if sector_return is None else f"{float(sector_return):.1%}"
+    )
     lines = [
         f"# Daily Report — {decision.date}",
         "",
@@ -38,6 +42,17 @@ def render_daily_report(decision: Decision, account: AccountState) -> str:
             "## Risk",
             "",
             f"- Shock: {decision.risk_summary.get('shock_state', 'NONE')}",
+            "- Deployed-sector guard: "
+            + (
+                "ACTIVE"
+                if decision.risk_summary.get(
+                    "sector_guard_active",
+                    account.sector_guard_active,
+                )
+                else "INACTIVE"
+            ),
+            f"- Deployed-sector daily return: {sector_return_text}",
+            f"- Sector-shock confirmations: {decision.risk_summary.get('sector_guard_shock_count', len(account.sector_shock_dates))}",
             f"- Sector breadth declining: {decision.risk_summary.get('declining_ratio', 0.0):.1%}",
             f"- Below MA20: {decision.risk_summary.get('below_ma20_ratio', 0.0):.1%}",
             f"- Correlation: {decision.risk_summary.get('median_correlation', 0.0):.2f}",

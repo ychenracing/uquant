@@ -10,6 +10,7 @@ import pandas as pd
 from .config import SystemConfig
 from .features import cross_section_returns, scalar
 from .leader import INDUSTRY, REFERENCE_UNIVERSE, credible_recovery_reserve
+from .risk_sector import update_sector_guard
 from .types import AccountState, LeaderScore, Risk, RiskAssessment
 
 REFERENCE_ANCHORS = ("sz300308", "sz300394", "sz300502")
@@ -182,6 +183,40 @@ def assess_risk(
             votes += 1
             reasons.append(reason)
 
+    sector_guard = update_sector_guard(
+        date=date,
+        calendar=pd.DatetimeIndex(tech.index),
+        panel=user_panel,
+        account=account,
+        leadership_divergence=(
+            market_context["tech_ret120"] - market_context["broad_ret120"]
+        ),
+        cfg=cfg,
+    )
+    if sector_guard.triggered:
+        account.risk_events.append(
+            {
+                "date": str(date.date()),
+                "event": "sector_guard_on",
+                "shock_count": sector_guard.shock_count,
+                "leadership_divergence": (
+                    market_context["tech_ret120"] - market_context["broad_ret120"]
+                ),
+                "equal_weight_return": (
+                    sector_guard.observation.equal_return
+                    if sector_guard.observation is not None
+                    else None
+                ),
+            }
+        )
+    if sector_guard.recovered:
+        account.risk_events.append(
+            {
+                "date": str(date.date()),
+                "event": "sector_guard_off",
+                "active_sessions": sector_guard.active_sessions,
+            }
+        )
     held_damage: list[bool] = []
     held_repair: list[bool] = []
     held_ret5: list[float] = []
@@ -375,7 +410,7 @@ def assess_risk(
         account.candidate_tenure["recovery_reserve_qualified"] = 1
     credible_reserve = bool(
         account.candidate_tenure.get("recovery_reserve_qualified", 0) == 1
-        or account.candidate_tenure.get("recovery_substitution_completed", 0) == 1
+        or account.candidate_tenure.get("recovery_substitution_completed", 0) >= 1
     )
     recovery_anchor_elapsed = 0
     if account.recovery_anchor_date and user_panel:
@@ -611,6 +646,7 @@ def assess_risk(
             shock_elapsed = (
                 len(clock.loc[pd.Timestamp(account.shock_start_date) : date]) - 1
             )
+        shock_wait_days = cfg.severe_shock_wait_days
         v_market_repair = (
             average_fast >= cfg.fast_v_recovery_return
             and declining <= cfg.fast_v_recovery_breadth
@@ -623,7 +659,7 @@ def assess_risk(
             )
         )
         fast_v_repair = (
-            shock_elapsed >= cfg.severe_shock_wait_days
+            shock_elapsed >= shock_wait_days
             and v_market_repair
             and protected_fast_ratio >= 0.50
         )
@@ -749,11 +785,16 @@ def assess_risk(
         severe_wait_complete = True
         if account.shock_severity in {"SEVERE", "CONCENTRATED"} and account.shock_start_date:
             clock_symbol = next(iter(account.protected_weights))
-            clock = user_panel.get(clock_symbol)
+            protected_clock = user_panel.get(clock_symbol)
             severe_wait_complete = bool(
-                clock is not None
-                and len(clock.loc[pd.Timestamp(account.shock_start_date) : date]) - 1
-                >= cfg.severe_shock_wait_days
+                protected_clock is not None
+                and len(
+                    protected_clock.loc[
+                        pd.Timestamp(account.shock_start_date) : date
+                    ]
+                )
+                - 1
+                >= shock_wait_days
             )
             severe_structures: list[bool] = []
             for symbol in account.protected_weights:
@@ -1066,6 +1107,27 @@ def assess_risk(
         cap = cfg.max_gross
     elif state is Risk.CRISIS and strategic_active:
         cap = cfg.strategic_cohort_crisis_gross
+    if sector_guard.active and state is not Risk.CRISIS:
+        guard_reason = "confirmed synchronized holdings shock"
+        if state is not Risk.RISK_OFF:
+            account.risk_events.append(
+                {
+                    "date": str(date.date()),
+                    "from": state.value,
+                    "to": Risk.RISK_OFF.value,
+                    "votes": votes,
+                    "reasons": [guard_reason],
+                    "route": "sector_guard",
+                }
+            )
+        state = Risk.RISK_OFF
+        cap = min(cap, cfg.sector_guard_gross)
+        shock = "SECTOR_GUARD"
+        account.risk = state.value
+        account.shock_state = shock
+        if guard_reason not in reasons:
+            reasons.append(guard_reason)
+    observation = sector_guard.observation
     return RiskAssessment(
         state=state,
         target_gross_cap=cap,
@@ -1087,6 +1149,15 @@ def assess_risk(
             "capital_drawdown": capital_dd,
             "strategic_cohort_active": strategic_active,
             "strategic_current_gross": strategic_current_gross,
+            "sector_guard_active": sector_guard.active,
+            "sector_guard_shock_count": sector_guard.shock_count,
+            "sector_guard_active_sessions": sector_guard.active_sessions,
+            "sector_guard_equal_return": (
+                observation.equal_return if observation is not None else None
+            ),
+            "sector_guard_positive_breadth": (
+                observation.positive_breadth if observation is not None else None
+            ),
         },
         reasons=tuple(reasons),
         shock_state=shock,

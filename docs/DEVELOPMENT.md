@@ -14,14 +14,19 @@ python -m pip install -e '.[dev,data]'
 |---|---|
 | 数据源、字段或点时边界 | `uquant/data.py` |
 | 指标和因果特征 | `uquant/features.py` |
+| 行业汇总证据 | `uquant/industry.py` |
 | 领涨评分或行业映射 | `uquant/leader.py` |
 | 机会状态 | `uquant/opportunity.py` |
-| 风险证据和仓位上限 | `uquant/risk.py` |
-| 目标权重、生命周期、轮动 | `uquant/portfolio.py` |
+| 持仓同步冲击证据 | `uquant/risk_sector.py` |
+| 风险状态和唯一仓位上限 | `uquant/risk.py` |
+| 目标权重总编排 | `uquant/portfolio.py` |
+| 组合硬约束和状态工具 | `uquant/portfolio_core.py` |
+| 战略、领涨、恢复策略 | `uquant/portfolio_strategic.py`、`portfolio_leaders.py`、`portfolio_recovery.py` |
 | 市场微观规则和成交 | `uquant/execution.py` |
 | 券商导入和对账 | `uquant/broker.py` |
 | 命令行编排 | `uquant/cli.py` |
 | 展示文字 | `uquant/report.py` |
+| 数据与策略发布门 | `uquant/validation/`、`benchmarks/` |
 
 不要在日报、CLI 或券商同步中添加独立策略判断。
 
@@ -42,15 +47,19 @@ python -m pip install -e '.[dev,data]'
 ### 快速检查
 
 ```bash
-ruff check .
-python -m compileall -q uquant scripts tests
+uv run ruff check .
+uv run mypy uquant scripts
+uv run python -m compileall -q uquant scripts tests
+uv run python -m uquant.validation data-manifest --data-dir data/frozen
 ```
 
 ### 完整测试
 
 ```bash
-python -m pytest -q
+uv run pytest --cov=uquant --cov-report=term-missing
 ```
+
+覆盖率按分支统计，仓库门槛为 85%。生产包使用 strict mypy；Ruff 同时检查错误、导入、bugbear、升级、简化、性能和 Ruff 专属规则。
 
 核心测试覆盖：
 
@@ -59,7 +68,23 @@ python -m pytest -q
 - T+1、涨跌停、停牌、容量、费用、部分成交和订单状态；
 - 券商成交幂等、可卖数量和账户权威字段；
 - 机会迟滞、动态持仓数、加仓、替换和轮动预算；
-- 冲击、恢复、资本回撤、集中破坏和锚点生命周期。
+- 冲击、恢复、资本回撤、集中破坏和锚点生命周期；
+- 行业信号的顺序不变性、稀疏覆盖收缩和换挡确认；
+- 持仓同步冲击的确认、持久化与确认修复；
+- 账户 schema 显式迁移、冻结清单和晋级基线失败路径；
+- Hypothesis 生成的有效持仓数、费用单调性和证券代码规范化性质。
+
+### 安全与构建
+
+```bash
+uv run bandit -q -r uquant
+uv export --frozen --no-dev --no-emit-project --no-hashes \
+  --output-file /tmp/uquant-requirements.txt
+uv run pip-audit --requirement /tmp/uquant-requirements.txt
+uv run python -m build
+```
+
+CI 在 Python 3.11 和 3.12 上运行质量门，并由 Dependabot维护 Python 与 GitHub Actions 依赖。生产依赖审计只读取锁定导出，不把开发工具误计为运行依赖。
 
 ## 新增策略规则的检查清单
 
@@ -73,6 +98,7 @@ python -m pytest -q
 8. 是否增加无效换手或重复订单？
 9. 是否补充正常、边界、反例和状态连续性测试？
 10. 文档、参数说明和日报文字是否与实际行为一致？
+11. 是否在版本化晋级矩阵中同时约束财富、回撤、真实订单和换手？
 
 ## 回放检查
 
@@ -87,12 +113,28 @@ python -m pytest -q
 
 回放结果用于发现退化和路径错误，不能替代真实未来数据。参数修改应基于多个窗口和多个股票池，不应为单个日期写特例。
 
+策略候选必须运行：
+
+```bash
+uv run python -m uquant.validation promotion \
+  --data-dir data/frozen \
+  --baseline benchmarks/promotion_baseline.json \
+  --profile quick
+```
+
+`full` 配置用于发布前或定时验证。更新基线不是修复失败的手段；只有冻结数据、执行口径或已经通过评审的生产结果变化时，才可同时更新数值和来源说明。
+
 ## 发布前检查
 
 ```bash
-python -m pytest -q
-ruff check .
-python -m compileall -q uquant scripts tests
+uv run ruff check .
+uv run mypy uquant scripts
+uv run pytest --cov=uquant --cov-report=term-missing
+uv run python -m compileall -q uquant scripts tests
+uv run python -m uquant.validation data-manifest --data-dir data/frozen
+uv run python -m uquant.validation promotion --data-dir data/frozen --profile quick
+uv run bandit -q -r uquant
+uv run python -m build
 uquant --help
 uquant backtest --help
 ```

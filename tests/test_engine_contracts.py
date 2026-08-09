@@ -6,17 +6,34 @@ import json
 import pandas as pd
 import pytest
 
-from uquant.account import load_account, save_account
-from uquant.engine import ProductionEngine
+from uquant.account import load_account, migrate_account, save_account
+from uquant.engine import ProductionEngine, code_fingerprint
 from uquant.leader import REFERENCE_UNIVERSE
 from uquant.report import render_daily_report
-from uquant.types import AccountOrder, AccountState, Fill
+from uquant.types import ACCOUNT_SCHEMA_VERSION, AccountOrder, AccountState, Fill
 
 SYMBOLS = ["sz300308", "sz300502", "sz300394", "sh688008", "sh603986"]
 RISK_REGRESSION_POOLS = (
     tuple(SYMBOLS[:3]),
     tuple(SYMBOLS),
     tuple(REFERENCE_UNIVERSE),
+)
+POOL_D = (
+    "sz300308",
+    "sz300502",
+    "sz300394",
+    "sh688498",
+    "sh601869",
+    "sh688256",
+    "sh688008",
+    "sh603986",
+    "sh688072",
+    "sh688082",
+    "sh688120",
+    "sh688300",
+    "sz300054",
+    "sh688361",
+    "sz300604",
 )
 
 
@@ -107,6 +124,60 @@ def test_order_state_migrates_sequence_and_rejects_broken_references(tmp_path):
     unknown.write_text(json.dumps(payload), encoding="utf-8")
     with pytest.raises(RuntimeError, match="unknown account order"):
         load_account(unknown)
+
+
+def test_legacy_account_requires_acknowledged_schema_migration(tmp_path):
+    state = AccountState.empty(2e6)
+    state.data_hash = "data"
+    state.code_hash = "old-code"
+    legacy_payload = state.to_dict()
+    legacy_payload.pop("schema_version")
+    legacy_payload.pop("account_migrations")
+    legacy = tmp_path / "legacy.json"
+    legacy.write_text(json.dumps(legacy_payload), encoding="utf-8")
+
+    with pytest.raises(RuntimeError, match="explicit migration"):
+        load_account(legacy)
+    with pytest.raises(RuntimeError, match="acknowledge"):
+        migrate_account(
+            legacy,
+            legacy,
+            new_code_hash=code_fingerprint(),
+            acknowledge_code_change=False,
+        )
+
+    migrated = migrate_account(
+        legacy,
+        legacy,
+        new_code_hash=code_fingerprint(),
+        acknowledge_code_change=True,
+    )
+    loaded = load_account(legacy)
+    assert loaded.schema_version == ACCOUNT_SCHEMA_VERSION
+    assert loaded.code_hash == code_fingerprint()
+    assert loaded.initial_cash == migrated.initial_cash
+    assert loaded.account_migrations[-1]["from_schema"] == 1
+
+
+def test_account_root_must_be_a_json_object(tmp_path):
+    malformed = tmp_path / "array.json"
+    malformed.write_text("[]", encoding="utf-8")
+
+    with pytest.raises(RuntimeError, match="JSON object"):
+        load_account(malformed)
+
+
+def test_account_nested_collections_must_match_the_schema(tmp_path):
+    state = AccountState.empty(2e6)
+    state.data_hash = "data"
+    state.code_hash = "code"
+    payload = state.to_dict()
+    payload["positions"] = []
+    malformed = tmp_path / "invalid-positions.json"
+    malformed.write_text(json.dumps(payload), encoding="utf-8")
+
+    with pytest.raises(RuntimeError, match="violates schema"):
+        load_account(malformed)
 
 
 def test_broker_order_metric_excludes_unfilled_submissions():
@@ -231,3 +302,14 @@ def test_recent_shock_window_preserves_capital_across_pool_sizes(data_dir):
         assert result["final_wealth"] > 0.85
         assert result["max_drawdown"] < 0.15
         assert result["account_orders"] <= 3
+
+
+def test_industry_confirmation_preserves_long_horizon_performance(data_dir):
+    result = ProductionEngine(data_dir).backtest(
+        symbols=POOL_D,
+        start="2018-01-02",
+        end="2026-07-20",
+    )
+    assert result["final_wealth"] >= 60.59
+    assert result["max_drawdown"] <= 0.31
+    assert result["account_orders"] <= 100

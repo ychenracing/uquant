@@ -1,0 +1,227 @@
+From 7d7063d3f3973e438106309e5f0ac46412821610 Mon Sep 17 00:00:00 2001
+From: Codex <codex@openai.com>
+Date: Mon, 10 Aug 2026 06:06:54 -0700
+Subject: [PATCH] Improve strategic cohort hysteresis
+
+---
+ docs/ARCHITECTURE.md             |  2 +-
+ docs/CONFIGURATION.md            |  2 +-
+ docs/STRATEGY.md                 |  4 +--
+ tests/test_lifecycle_and_risk.py | 39 ++++++++-------------------
+ uquant/portfolio_strategic.py    | 46 +++++++++++++++++++++++---------
+ 5 files changed, 48 insertions(+), 45 deletions(-)
+
+diff --git a/docs/ARCHITECTURE.md b/docs/ARCHITECTURE.md
+index 696e17d..b1fb56a 100644
+--- a/docs/ARCHITECTURE.md
++++ b/docs/ARCHITECTURE.md
+@@ -59,7 +59,7 @@ uquant 把收盘后的市场判断、组合构建和下一交易日执行建模
+ - 在普通领涨路径完成 scout 后，对 `CHOPPY`/`WEAK` 分别施加 60%/25% 的新增机会预算，并稀疏取消弱证据增量；已有 Core 的强制减仓仍由确认风险或自身生命周期负责；
+ - 根据领涨数量动态调整持仓数；
+ - 管理 CORE、ADD1、ADD2、SATELLITE、RECOVERY 生命周期；
+-- 发现动态战略 cohort，在完整退出和 30 个可见交易日冷却后，以新候选签名开启下一 epoch；
++- 发现动态战略 cohort；成熟路线优先采用独立合格的同产业同步组，否则回退到全市场相对排名；完整退出和 30 个可见交易日冷却后，原成员或满足变化门的新成员都必须凭新的连续证据开启下一 epoch；
+ - 区分最终的战略 ATR/灾难退出与可恢复的风险压缩；后者只有健康确认后才按保存比例恢复，逐票达到目标且不存在待成交 BUY 后才清除 restore 状态，并继续受风险上限约束；
+ - 仅在双指数长期弱势，或一弱一稳且分化充分的空仓修复路线中，把单票战术探针限制为 60%；过渡路线只接纳可晋升的深跌候选，并只对已获得 20% 峰值 MFE 的恢复赢家启用 10% 峰值回撤 trail；
+ - 执行最短持有、替换确认、轮动频率和目标迟滞；
+diff --git a/docs/CONFIGURATION.md b/docs/CONFIGURATION.md
+index a1ef13e..e785070 100644
+--- a/docs/CONFIGURATION.md
++++ b/docs/CONFIGURATION.md
+@@ -111,7 +111,7 @@
+ | `strategic_cohort_exit_step` | 0.01 | 每次已触发保护带的目标减量 |
+ | `strategic_cohort_disaster_stop` | -0.20 | 未处于独立风险保护时的战略灾难退出线 |
+ 
+-成员只从本次用户全集产生。每只候选至少需要 121 个可见收盘记录；成熟路线再使用 240 日截面证据。`secular_score` 组合长周期相对排名、韧性、效率、行业强度与流动性，不叠加 240 日绝对涨幅门槛。成熟路线按全体证据直接排名，不用行业配额替换更强同业成员；低延迟路线只接受同一已知行业至少三票同步、正常风险与趋势环境，并复用同一确认、仓位和退出生命周期。候选签名按经济成员排序规范化，连续确认 2 日后才激活。完整退出后，还需经过 30 个可见交易日且新 cohort 至少有 1 个新增成员，epoch 计数、上一 cohort、候选签名、退出日和 rearm 日均随 schema v3 账户持久化。
++成员只从本次用户全集产生。每只候选至少需要 121 个可见收盘记录；成熟路线再使用 240 日截面证据。`secular_score` 组合长周期相对排名、韧性、效率、行业强度与流动性，不叠加 240 日绝对涨幅门槛。成熟路线若存在三只独立合格的同产业候选会优先采用同步组，否则回退到全市场相对排名；低延迟路线只接受同一已知行业至少三票同步、正常风险与趋势环境，并复用同一确认、仓位和退出生命周期。候选签名按经济成员排序规范化，连续确认 2 日后才激活。完整退出后，还需经过 30 个可见交易日并重新完成连续确认；原成员可以重新入选，不同 cohort 至少需要 1 个新增成员。epoch 计数、上一 cohort、候选签名、退出日和 rearm 日均随 schema v3 账户持久化。
+ 
+ 风险模块临时压缩战略持仓时会逐票保存压缩前目标，但不会因风险上限随后放宽就立即买回。只有风险恢复到 `NORMAL`，或处于票数不超过 2 且 `transition_damage` 已回到修复线以下的 `CAUTION`，才按保存比例恢复；唯一恢复上限是风险模块当日给出的 `target_gross_cap`，组合层不再叠加隐性残余仓位 cap。restore 只有在风险 cap 足以覆盖未缩放的完整保存目标、每个成员都达到至少 95% 原目标且相关 BUY 均已结束后才清除；组合总仓或其他成员超配不能掩盖容量受限的缺票。由战略 ATR 保护带或灾难线产生的最终策略退出会逐票退休目标、保护带以及战略和风险两类恢复权，不进入买回路线。
+ 
+diff --git a/docs/STRATEGY.md b/docs/STRATEGY.md
+index ef07b1c..75c3e19 100644
+--- a/docs/STRATEGY.md
++++ b/docs/STRATEGY.md
+@@ -63,9 +63,9 @@ uquant 是科技产业链的日频趋势与领涨组合策略。它不预测分
+ 
+ 默认配置不包含任何证券代码先验；兼容字段 `strategic_cohort_symbols` 必须为空。长周期路线只从用户本次全集中发现战略证券。每只候选至少需要 241 个可见收盘记录和流动性确认；`secular_score` 把长周期截面百分位、韧性、效率、行业强度与流动性合成为相对证据，默认分数下限为 0.58、证据置信度下限为 0.65。系统不再叠加单票 240 日绝对收益门槛。
+ 
+-候选还必须具有已知或高置信推断行业，允许 20 日收益最低到 -5% 的轻微整理，并通过科技指数 120 日收益不高于 20% 的独立追涨门。系统先按行业选择证据最强者，再按证据补齐，必须凑齐 3 个成员并让同一候选签名连续成立 2 日。首个和后续 epoch 使用相同契约；短周期事件形反弹不能替代长期相对证据。
++候选还必须具有已知或高置信推断行业，允许 20 日收益最低到 -5% 的轻微整理，并通过科技指数 120 日收益不高于 20% 的独立追涨门。成熟路线若存在 3 只独立合格且同产业同步的候选，会优先采用该证据一致的组；没有足够同步成员时仍按全市场相对证据排名，避免小型或分散股票池被行业门机械清空。系统必须凑齐 3 个成员并让同一候选签名连续成立 2 日。首个和后续 epoch 使用相同契约；短周期事件形反弹不能替代长期相对证据。
+ 
+-战略 cohort 完整退出后会记录成员和退出日，至少经过 30 个可见交易日冷却、并且新候选签名包含足够成员变化后，才允许启动下一 epoch。epoch、候选签名、历史成员、退出和 rearm 日期都随账户持久化，旧 cohort 不会因一次短期反弹永久重新夺取控制权。报告中的“历史先验证券”只用于 remove-one/remove-all 泛化诊断，不参与生产选股。
++战略 cohort 完整退出后会记录成员和退出日，至少经过 30 个可见交易日冷却并重新完成连续证据确认，才允许启动下一 epoch。原成员可以凭新的完整证据重新入选；不同 cohort 仍必须包含足够成员变化。epoch、候选签名、历史成员、退出和 rearm 日期都随账户持久化，旧 cohort 不会因一次短期反弹立即重新夺取控制权。报告中的“历史先验证券”只用于 remove-one/remove-all 泛化诊断，不参与生产选股。
+ 
+ 战略赢家达到 10% 峰值 MFE 后，只有价格结构同时转坏并越过五条相邻 ATR 保护带，才会分段降低唯一目标；这些策略退出不会自动买回。独立风险上限临时压缩战略持仓时则逐票保存压缩前权重，只有风险恢复为 `NORMAL`，或 `CAUTION` 已满足票数不超过 2 且 `transition_damage` 回到修复线以下，才按保存比例恢复；唯一总仓上限是风险模块当日给出的 `target_gross_cap`。restore 只有在 cap 足以覆盖完整未缩放目标、所有成员达到至少 95% 原目标且相关 BUY 均已结束后才清除；组合总仓或其他成员超配不能掩盖容量阻塞的缺票。零持仓且没有待成交 BUY/保护权利的成员，以及触发 ATR/灾难退出的成员，会逐票退休目标、保护带和所有恢复权。
+ 
+diff --git a/tests/test_lifecycle_and_risk.py b/tests/test_lifecycle_and_risk.py
+index 2e43449..03288ab 100644
+--- a/tests/test_lifecycle_and_risk.py
++++ b/tests/test_lifecycle_and_risk.py
+@@ -406,17 +406,17 @@ def test_strategic_cohort_discovers_arbitrary_symbols_without_a_static_prior():
+     assert all(weight == pytest.approx(1.0 / 3.0) for weight in account.strategic_cohort_targets.values())
+ 
+ 
+-def test_strategic_rank_does_not_replace_a_stronger_cluster_member_with_a_weak_group_quota():
++def test_strategic_rank_prefers_a_confirmed_industry_cluster_over_one_high_scoring_outsider():
+     dates = pd.bdate_range("2023-01-02", periods=246)
+     frame = _strategic_frame(dates)
+     strong = ("optical_a", "optical_b", "optical_c")
+-    symbols = (*strong, "weak_equipment")
++    symbols = (*strong, "isolated_compute")
+     panel = {symbol: frame.copy() for symbol in symbols}
+     leaders = {
+         symbol: _leader(
+             symbol,
+-            0.99 - 0.01 * index if symbol in strong else 0.60,
+-            industry="optical" if symbol in strong else "equipment",
++            0.97 - 0.01 * index if symbol in strong else 0.99,
++            industry="optical" if symbol in strong else "compute",
+         )
+         for index, symbol in enumerate(symbols)
+     }
+@@ -433,7 +433,7 @@ def test_strategic_rank_does_not_replace_a_stronger_cluster_member_with_a_weak_g
+         )
+ 
+     assert tuple(account.strategic_cohort_symbols) == strong
+-    assert "weak_equipment" not in account.strategic_cohort_targets
++    assert "isolated_compute" not in account.strategic_cohort_targets
+ 
+ 
+ def test_strategic_established_route_rejects_broken_medium_term_structure():
+@@ -817,14 +817,14 @@ def test_strategic_epoch_respects_risk_gate_and_session_cooldown():
+     assert account.candidate_tenure["strategic_cohort_active"] == 1
+ 
+ 
+-def test_strategic_epoch_requires_a_new_signature_and_member_change():
++def test_strategic_epoch_can_requalify_the_same_members_after_a_fresh_cooldown_streak():
+     dates = pd.bdate_range("2023-01-02", periods=290)
+     panel, leaders = _dynamic_cohort_inputs(dates)
+     allocator = PortfolioAllocator(DEFAULT_CONFIG)
+     old_symbols = ["arbitrary_optical", "arbitrary_compute", "arbitrary_equipment"]
+     old_signature = (
+-        "strategic_qualification:established:arbitrary_optical:optical,"
+-        "arbitrary_compute:compute,arbitrary_equipment:equipment"
++        "strategic_qualification:established:arbitrary_compute:compute,"
++        "arbitrary_equipment:equipment,arbitrary_optical:optical"
+     )
+     account = AccountState.empty(100.0)
+     account.strategic_epoch = 1
+@@ -840,27 +840,10 @@ def test_strategic_epoch_requires_a_new_signature_and_member_change():
+             account=account,
+             risk=_normal_risk(),
+         )
+-    assert account.strategic_epoch == 1
+-    assert account.candidate_tenure.get("strategic_cohort_active", 0) == 0
+-
+-    panel["arbitrary_next_optical"] = panel["arbitrary_optical"].copy()
+-    leaders["arbitrary_next_optical"] = _leader(
+-        "arbitrary_next_optical",
+-        0.99,
+-        industry="optical",
+-    )
+-    for date in dates[-DEFAULT_CONFIG.strategic_cohort_confirm_days :]:
+-        allocator._initialize_strategic_cohort(
+-            date=date,
+-            user_panel=panel,
+-            leaders=leaders,
+-            account=account,
+-            risk=_normal_risk(),
+-        )
+-
+     assert account.strategic_epoch == 2
+-    assert "arbitrary_next_optical" in account.strategic_cohort_symbols
+-    assert account.strategic_candidate_signature != old_signature
++    assert account.candidate_tenure.get("strategic_cohort_active", 0) == 1
++    assert set(account.strategic_cohort_symbols) == set(old_symbols)
++    assert account.strategic_candidate_signature == old_signature
+ 
+ 
+ def test_partially_held_strategic_cohort_targets_every_missing_member():
+diff --git a/uquant/portfolio_strategic.py b/uquant/portfolio_strategic.py
+index 63dde18..77103a4 100644
+--- a/uquant/portfolio_strategic.py
++++ b/uquant/portfolio_strategic.py
+@@ -219,12 +219,17 @@ class StrategicPortfolioPolicy(PortfolioCore):
+             ),
+         )
+ 
+-        # Membership is an evidence rank, not an industry quota. Industry
+-        # strength and breadth already enter SecularScore; forcing one member
+-        # per group can replace a clearly stronger cluster member with a
+-        # structurally negative weak leg at the exact start of a leadership
+-        # cycle. Concentration is still bounded by per-symbol/account risk.
+-        def synchronized_groups(candidates: list[str]) -> list[list[str]]:
++        # Industry agreement is evidence, not a quota.  When three independently
++        # qualified names agree inside one industry, prefer that coherent group
++        # over a mixed basket assembled from marginally higher individual ranks.
++        # If no industry has enough qualified names, the established route still
++        # falls back to global relative evidence so small/diverse universes remain
++        # investable.
++        def synchronized_groups(
++            candidates: list[str],
++            *,
++            primary_component: str,
++        ) -> list[list[str]]:
+             by_industry: dict[str, list[str]] = {}
+             for symbol in candidates:
+                 by_industry.setdefault(leaders[symbol].industry, []).append(symbol)
+@@ -235,15 +240,25 @@ class StrategicPortfolioPolicy(PortfolioCore):
+             ]
+             groups.sort(
+                 key=lambda symbols: (
+-                    -float(pd.Series([snapshots[s]["transition_score"] for s in symbols]).median()),
++                    -float(pd.Series([snapshots[s][primary_component] for s in symbols]).median()),
+                     -float(pd.Series([snapshots[s]["leader_score"] for s in symbols]).median()),
+                     leaders[symbols[0]].industry,
+                 )
+             )
+             return groups
+ 
+-        high_quality_groups = synchronized_groups(transition_candidates)
+-        impulse_groups = synchronized_groups(impulse_candidates)
++        high_quality_groups = synchronized_groups(
++            transition_candidates,
++            primary_component="transition_score",
++        )
++        established_groups = synchronized_groups(
++            established_candidates,
++            primary_component="secular_score",
++        )
++        impulse_groups = synchronized_groups(
++            impulse_candidates,
++            primary_component="transition_score",
++        )
+         impulse_groups.sort(
+             key=lambda symbols: (
+                 -float(pd.Series([snapshots[s]["ret20"] for s in symbols]).median()),
+@@ -257,6 +272,9 @@ class StrategicPortfolioPolicy(PortfolioCore):
+         if high_quality_groups:
+             long_cycle_symbols = high_quality_groups[0]
+             route = "transition"
++        elif established_groups:
++            long_cycle_symbols = established_groups[0]
++            route = "established"
+         elif len(established_candidates) >= self.cfg.strategic_cohort_min_size:
+             long_cycle_symbols = established_candidates[: self.cfg.strategic_cohort_size]
+             route = "established"
+@@ -293,11 +311,13 @@ class StrategicPortfolioPolicy(PortfolioCore):
+         )
+         signature = f"strategic_qualification:{route}:{signature_body}"
+         previous = set(account.strategic_previous_symbols)
++        same_members = bool(previous) and set(route_symbols) == previous
+         new_members = len(set(route_symbols) - previous)
+-        if previous and (
+-            signature == account.strategic_candidate_signature
+-            or new_members < self.cfg.strategic_epoch_min_symbol_change
+-        ):
++        # A completed cohort is not permanently banned.  After the ordinary
++        # cooldown has reset every qualification streak, the same economic
++        # members may earn a new epoch from fresh causal evidence.  A different
++        # cohort must still clear the configured membership-change threshold.
++        if previous and not same_members and new_members < self.cfg.strategic_epoch_min_symbol_change:
+             route_symbols = []
+             account.candidate_tenure[qualification_key] = 0
+         if route_symbols:
+-- 
+2.51.1
+

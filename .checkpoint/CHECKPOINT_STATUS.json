@@ -1,0 +1,55 @@
+{
+  "schema_version": 1,
+  "recorded_at_utc": "2026-08-10T13:00:00Z",
+  "repository": "ychenracing/uquant",
+  "checkpoint": {
+    "exact_commit": "7d7063d3f3973e438106309e5f0ac46412821610",
+    "parent": "b3453ded1d7dbc20ae2bd8b4b745781c33a13be1",
+    "tree": "486c7dd89534f65ba85b4a33acef42f1ecdd95b8",
+    "subject": "Improve strategic cohort hysteresis",
+    "worktree_clean": true,
+    "tracked_files": 115
+  },
+  "bundle": {
+    "encoding": "15 independently base64-encoded binary parts",
+    "binary_size_bytes": 1849571,
+    "sha256": "3f786dd4780a191a226d294c4d90b75244521d979009f9b0ebeb0031dc920ecc",
+    "complete_history": true,
+    "bundled_ref": "refs/heads/main"
+  },
+  "frozen_data": {
+    "included_in_bundle": true,
+    "manifest_sha256": "343009138d22f8d4a20768f706207fe4d4bcd03581b0c5945c5485ecbd28788d",
+    "checksums_sha256": "ba460d65f791f238d8a4a16ac62e2225c1832caa6f4da5003166a894edf80e29"
+  },
+  "validation": {
+    "targeted_strategy_risk_recovery_config_leader_regression": "passed",
+    "ruff": "passed",
+    "mypy_strict_29_source_files": "passed",
+    "bytecode_compile": "passed",
+    "diff_check": "passed",
+    "d_continuous": {
+      "final_wealth": 35.0573,
+      "maximum_drawdown": 0.2778,
+      "account_orders": 85,
+      "wealth_required": 60.59,
+      "wealth_gate_passed": false,
+      "drawdown_gate_passed": true,
+      "order_gate_passed": true
+    },
+    "final_full_suite_not_rerun": true,
+    "previous_full_suite": {
+      "passed": 475,
+      "failed": 1,
+      "coverage_percent": 84.88
+    },
+    "unresolved_engineering_gates": {
+      "coverage_floor_percent": 85,
+      "bandit_low_severity_findings": 6
+    }
+  },
+  "exclusions": [
+    "No credentials, tokens, virtual environments, caches, or local account/broker state are archived.",
+    "Failed capital-cohort reset experiment is excluded."
+  ]
+}

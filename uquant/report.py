@@ -9,9 +9,7 @@ def render_daily_report(decision: Decision, account: AccountState) -> str:
     """Render the already-computed decision without changing portfolio intent."""
     current = {symbol: position for symbol, position in account.positions.items() if position.shares > 0}
     sector_return = decision.risk_summary.get("sector_guard_equal_return")
-    sector_return_text = (
-        "N/A" if sector_return is None else f"{float(sector_return):.1%}"
-    )
+    sector_return_text = "N/A" if sector_return is None else f"{float(sector_return):.1%}"
     lines = [
         f"# Daily Report — {decision.date}",
         "",
@@ -19,6 +17,8 @@ def render_daily_report(decision: Decision, account: AccountState) -> str:
         f"Risk: **{decision.risk.value}**  ",
         f"Target Gross: **{decision.target_gross:.1%}**  ",
         f"Target K: **{decision.target_k}**",
+        f"Factor Profile: **{decision.risk_summary.get('factor_profile', 'CHOPPY')}**  ",
+        f"Strategic Epoch: **{decision.risk_summary.get('strategic_epoch', 0)}**",
         "",
         "## Targets",
         "",
@@ -58,6 +58,14 @@ def render_daily_report(decision: Decision, account: AccountState) -> str:
             f"- Correlation: {decision.risk_summary.get('median_correlation', 0.0):.2f}",
             f"- Operating DD: {decision.risk_summary.get('operating_drawdown', 0.0):.1%}",
             f"- Capital DD: {decision.risk_summary.get('capital_drawdown', 0.0):.1%}",
+            f"- Trend health: {decision.risk_summary.get('trend_health', 0.0):.1%}",
+            f"- Transition damage: {decision.risk_summary.get('transition_damage', 0.0):.1%}",
+            "- Freeze new risk: " + ("YES" if decision.risk_summary.get("freeze_new_risk") else "NO"),
+            f"- Reduction level: {decision.risk_summary.get('reduction_level', 0)}",
+            f"- Severity: {decision.risk_summary.get('severity', 'NORMAL')}",
+            f"- Capital budget rung: {decision.risk_summary.get('capital_budget_level', 0)}",
+            f"- Chronic deterioration: {decision.risk_summary.get('chronic_level', 0)}",
+            "- Dynamic anchors: " + ", ".join(decision.risk_summary.get("risk_anchor_symbols", [])),
             "",
             "## Tomorrow",
             "",
@@ -67,7 +75,9 @@ def render_daily_report(decision: Decision, account: AccountState) -> str:
         lines.append("1. No executable account order; remain inside no-trade bands.")
     for index, order in enumerate(decision.pending_orders, start=1):
         lines.append(
-            f"{index}. {order.side} {order.symbol} toward {order.target_weight:.1%} at the next tradable open; {order.reason}."
+            f"{index}. {order.side} {order.symbol} toward {order.target_weight:.1%} "
+            f"at the next tradable open; {order.reason} "
+            f"[{order.reason_code}/{order.exit_kind}/{order.reduction_policy}]."
         )
     lines.extend(["", f"Decision digest: `{decision.decision_digest}`", ""])
     return "\n".join(lines)

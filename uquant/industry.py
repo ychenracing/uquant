@@ -42,9 +42,7 @@ def _percentile(value: float, reference: Iterable[float]) -> float:
     )
     if not math.isfinite(value) or len(values) < 2:
         return 0.5
-    return float((values < value).sum() + 0.5 * (values == value).sum()) / len(
-        values
-    )
+    return float((values < value).sum() + 0.5 * (values == value).sum()) / len(values)
 
 
 def compute_industry_signals(
@@ -75,12 +73,8 @@ def compute_industry_signals(
             "return20": _finite_median(item["ret20"] for item in members),
             "return60": _finite_median(item["ret60"] for item in members),
             "return120": _finite_median(item["ret120"] for item in members),
-            "breadth20": float(
-                np.mean([item.get("above20", 0.0) > 0.5 for item in members])
-            ),
-            "breadth60": float(
-                np.mean([item.get("above60", 0.0) > 0.5 for item in members])
-            ),
+            "breadth20": float(np.mean([item.get("above20", 0.0) > 0.5 for item in members])),
+            "breadth60": float(np.mean([item.get("above60", 0.0) > 0.5 for item in members])),
             "acceleration": _finite_median(item["accel"] for item in members),
             "member_count": float(len(members)),
         }

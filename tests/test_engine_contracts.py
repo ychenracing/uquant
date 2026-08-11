@@ -7,10 +7,19 @@ import pandas as pd
 import pytest
 
 from uquant.account import load_account, migrate_account, save_account
-from uquant.engine import ProductionEngine, code_fingerprint
+from uquant.engine import ProductionEngine, attribution, code_fingerprint
 from uquant.leader import REFERENCE_UNIVERSE
 from uquant.report import render_daily_report
-from uquant.types import ACCOUNT_SCHEMA_VERSION, AccountOrder, AccountState, Fill
+from uquant.types import (
+    ACCOUNT_SCHEMA_VERSION,
+    AccountOrder,
+    AccountState,
+    Fill,
+    PendingOrder,
+    Position,
+    ReductionPolicy,
+    Tranche,
+)
 
 SYMBOLS = ["sz300308", "sz300502", "sz300394", "sh688008", "sh603986"]
 RISK_REGRESSION_POOLS = (
@@ -159,6 +168,150 @@ def test_legacy_account_requires_acknowledged_schema_migration(tmp_path):
     assert loaded.account_migrations[-1]["from_schema"] == 1
 
 
+def test_legacy_position_migration_synthesizes_an_already_sellable_tranche(tmp_path):
+    state = AccountState.empty(2e6)
+    state.data_hash = "data"
+    state.code_hash = "old-code"
+    state.positions = {
+        "sz300308": Position(
+            "sz300308",
+            shares=300,
+            avg_cost=10.0,
+            entry_date="2025-01-02",
+            highest_close=14.0,
+            lifecycle="ADD1",
+        )
+    }
+    payload = state.to_dict()
+    payload["schema_version"] = 2
+    payload["positions"]["sz300308"].pop("tranches")
+    legacy = tmp_path / "legacy-position.json"
+    legacy.write_text(json.dumps(payload), encoding="utf-8")
+
+    migrated = migrate_account(
+        legacy,
+        legacy,
+        new_code_hash="new-code",
+        acknowledge_code_change=True,
+    )
+    loaded = load_account(legacy)
+
+    assert migrated.schema_version == ACCOUNT_SCHEMA_VERSION
+    assert loaded.positions["sz300308"].shares == 300
+    assert len(loaded.positions["sz300308"].tranches) == 1
+    tranche = loaded.positions["sz300308"].tranches[0]
+    assert tranche.tranche_id == "legacy:sz300308:1"
+    assert tranche.lifecycle == "ADD1"
+    assert tranche.shares == 300
+    assert tranche.avg_cost == pytest.approx(10.0)
+    assert loaded.positions["sz300308"].sellable_shares("2025-01-02") == 300
+
+
+def test_schema_v3_rejects_nonfinite_or_unreconciled_position_lots(tmp_path):
+    state = AccountState.empty(2e6)
+    state.data_hash = "data"
+    state.code_hash = "code"
+    state.positions = {
+        "sz300308": Position(
+            "sz300308",
+            shares=100,
+            avg_cost=10.0,
+            entry_date="2026-01-02",
+            highest_close=12.0,
+            tranches=[
+                Tranche(
+                    "lot-1",
+                    "CORE",
+                    100,
+                    10.0,
+                    "2026-01-02",
+                    "2026-01-03",
+                    12.0,
+                    lowest_close=9.0,
+                )
+            ],
+        )
+    }
+    valid = state.to_dict()
+    cases = {
+        "missing-lots": lambda item: item["positions"]["sz300308"].update(tranches=[]),
+        "share-mismatch": lambda item: item["positions"]["sz300308"].update(shares=200),
+        "nonfinite-cost": lambda item: item["positions"]["sz300308"].update(avg_cost=float("nan")),
+        "negative-lot": lambda item: item["positions"]["sz300308"]["tranches"][0].update(shares=-1),
+    }
+
+    for name, mutate in cases.items():
+        payload = copy.deepcopy(valid)
+        mutate(payload)
+        malformed = tmp_path / f"{name}.json"
+        malformed.write_text(json.dumps(payload), encoding="utf-8")
+        # Non-finite JavaScript extensions are rejected by the JSON parser;
+        # structurally valid JSON reaches the position/tranche invariants.
+        with pytest.raises(RuntimeError, match=r"position|tranche|missing or corrupt"):
+            load_account(malformed)
+
+
+def test_pending_and_ledger_immutable_order_metadata_must_match(tmp_path):
+    pending = PendingOrder(
+        signal_date="2026-01-05",
+        symbol="sz300308",
+        side="BUY",
+        target_weight=0.50,
+        reason="entry",
+        lifecycle="CORE",
+        order_id="O000000001",
+        entry_score=0.80,
+        entry_confidence=0.90,
+        entry_regime="TREND",
+        entry_industry_strength=0.70,
+    )
+    ledger = AccountOrder(
+        order_id="O000000001",
+        signal_date=pending.signal_date,
+        submitted_date=pending.signal_date,
+        symbol=pending.symbol,
+        side=pending.side,
+        target_weight=pending.target_weight,
+        reason=pending.reason,
+        lifecycle=pending.lifecycle,
+        status="OPEN",
+        entry_score=pending.entry_score,
+        entry_confidence=pending.entry_confidence,
+        entry_regime=pending.entry_regime,
+        entry_industry_strength=pending.entry_industry_strength,
+    )
+    state = AccountState.empty(2e6)
+    state.data_hash = "data"
+    state.code_hash = "code"
+    state.pending_orders = [pending]
+    state.order_ledger = [ledger]
+    state.next_order_sequence = 2
+    valid = state.to_dict()
+    changes = {
+        "signal_date": "2026-01-06",
+        "symbol": "sz300502",
+        "side": "SELL",
+        "target_weight": 0.40,
+        "reason": "different reason",
+        "lifecycle": "ADD1",
+        "reduction_policy": ReductionPolicy.RISK_PRIORITY.value,
+        "reason_code": "different_code",
+        "exit_kind": "portfolio_risk",
+        "entry_score": 0.70,
+        "entry_confidence": 0.80,
+        "entry_regime": "WEAK",
+        "entry_industry_strength": 0.60,
+    }
+
+    for field, changed in changes.items():
+        payload = copy.deepcopy(valid)
+        payload["pending_orders"][0][field] = changed
+        malformed = tmp_path / f"order-{field}.json"
+        malformed.write_text(json.dumps(payload), encoding="utf-8")
+        with pytest.raises(RuntimeError, match=rf"immutable metadata.*{field}"):
+            load_account(malformed)
+
+
 def test_account_root_must_be_a_json_object(tmp_path):
     malformed = tmp_path / "array.json"
     malformed.write_text("[]", encoding="utf-8")
@@ -254,12 +407,239 @@ def test_backtest_and_daily_share_decision_kernel(data_dir):
     assert "Opportunity" in report and "Tomorrow" in report
 
 
+def test_structured_sector_guard_counts_as_first_risk_reduction():
+    from uquant.engine import performance_metrics
+
+    reduced = Fill(
+        signal_date="2026-01-05",
+        fill_date="2026-01-06",
+        symbol="sz300308",
+        side="SELL",
+        shares=100,
+        price=10.0,
+        gross_value=1_000.0,
+        commission=5.0,
+        stamp_duty=0.5,
+        transfer_fee=0.1,
+        slippage_cost=0.0,
+        reason="portfolio rebalance",
+        lifecycle="CORE",
+        exit_kind="sector_guard",
+    )
+
+    observed = performance_metrics(
+        equity_rows=[
+            (pd.Timestamp("2026-01-05"), 2e6),
+            (pd.Timestamp("2026-01-06"), 1.99e6),
+        ],
+        fills=[reduced],
+        orders=[],
+        initial_cash=2e6,
+        risk_events=[],
+        benchmark_total_return=0.0,
+    )
+
+    assert observed["first_reduce"] == "2026-01-06"
+
+
+def test_decision_keeps_omitted_durable_symbols_in_strategy_panel(
+    data_dir,
+    monkeypatch: pytest.MonkeyPatch,
+):
+    from uquant.types import Risk, RiskAssessment
+
+    omitted = SYMBOLS[3]
+    account = AccountState(
+        initial_cash=2e6,
+        cash=1_900_000.0,
+        positions={
+            omitted: Position(
+                omitted,
+                shares=1_000,
+                avg_cost=100.0,
+                entry_date="2026-01-05",
+            )
+        },
+        protected_weights={omitted: 0.05},
+        operating_peak=2e6,
+        capital_peak=2e6,
+    )
+    observed: dict[str, set[str]] = {}
+
+    def normal_risk(**kwargs):
+        observed["user_panel"] = set(kwargs["user_panel"])
+        return RiskAssessment(Risk.NORMAL, 1.0, 0, {}, (), "NONE")
+
+    monkeypatch.setattr("uquant.engine.assess_risk", normal_risk)
+    ProductionEngine(data_dir).decide(
+        symbols=SYMBOLS[:3],
+        as_of="2026-06-30",
+        account=account,
+    )
+
+    assert omitted in observed["user_panel"]
+
+
+def test_decision_keeps_sector_guard_cohort_in_risk_panel(
+    data_dir,
+    monkeypatch: pytest.MonkeyPatch,
+):
+    from uquant.types import Risk, RiskAssessment
+
+    omitted = SYMBOLS[3]
+    account = AccountState.empty(2e6)
+    account.sector_guard_active = True
+    account.sector_guard_started = "2026-06-20"
+    account.sector_guard_symbols = [omitted]
+    observed: dict[str, set[str]] = {}
+
+    def normal_risk(**kwargs):
+        observed["user_panel"] = set(kwargs["user_panel"])
+        return RiskAssessment(Risk.NORMAL, 1.0, 0, {}, (), "NONE")
+
+    monkeypatch.setattr("uquant.engine.assess_risk", normal_risk)
+    ProductionEngine(data_dir).decide(
+        symbols=SYMBOLS[:3],
+        as_of="2026-06-30",
+        account=account,
+    )
+
+    assert omitted in observed["user_panel"]
+
+
 def test_future_dated_state_fails_closed(data_dir):
     engine = ProductionEngine(data_dir)
     state = AccountState.empty(2e6)
     state.last_successful_run = "2027-01-01"
     with pytest.raises(RuntimeError):
         engine.decide(symbols=SYMBOLS, as_of="2026-06-30", account=state)
+
+
+def test_decision_state_advances_at_most_once_per_session(data_dir):
+    engine = ProductionEngine(data_dir)
+    state = AccountState.empty(2e6)
+    engine.decide(symbols=SYMBOLS, as_of="2026-06-30", account=state)
+    persisted = copy.deepcopy(state.to_dict())
+
+    with pytest.raises(RuntimeError, match="strictly after"):
+        engine.decide(symbols=SYMBOLS, as_of="2026-06-30", account=state)
+    with pytest.raises(RuntimeError, match="strictly after"):
+        engine.decide(symbols=SYMBOLS, as_of="2026-06-29", account=state)
+
+    assert state.to_dict() == persisted
+
+
+def test_decision_cannot_predate_authoritative_broker_snapshot(data_dir):
+    engine = ProductionEngine(data_dir)
+    state = AccountState.empty(2e6)
+    state.broker_as_of = "2026-06-30"
+
+    with pytest.raises(RuntimeError, match="authoritative broker snapshot"):
+        engine.decide(symbols=SYMBOLS, as_of="2026-06-29", account=state)
+
+    decision = engine.decide(symbols=SYMBOLS, as_of="2026-06-30", account=state)
+    assert decision.date == state.broker_as_of
+
+
+def test_daily_decision_marks_position_and_tranche_excursions(data_dir):
+    engine = ProductionEngine(data_dir)
+    date = pd.Timestamp("2026-06-30")
+    symbol = SYMBOLS[0]
+    close = float(engine.data.load(symbol).loc[date, "close"])
+    cheap = Tranche(
+        tranche_id="cheap-core",
+        lifecycle="CORE",
+        shares=100,
+        avg_cost=close / 2.0,
+        entry_date="2026-01-02",
+        sellable_date="2026-01-05",
+        highest_close=close / 2.0,
+        lowest_close=close * 3.0,
+    )
+    expensive = Tranche(
+        tranche_id="expensive-core",
+        lifecycle="CORE",
+        shares=100,
+        avg_cost=close * 2.0,
+        entry_date="2026-01-02",
+        sellable_date="2026-01-05",
+        highest_close=close / 2.0,
+        lowest_close=close * 3.0,
+    )
+    state = AccountState.empty(2e6)
+    state.positions[symbol] = Position(
+        symbol=symbol,
+        shares=200,
+        avg_cost=(cheap.avg_cost + expensive.avg_cost) / 2.0,
+        entry_date="2026-01-02",
+        highest_close=close / 2.0,
+        tranches=[cheap, expensive],
+    )
+
+    engine.decide(symbols=SYMBOLS, as_of=str(date.date()), account=state)
+
+    position = state.positions[symbol]
+    assert position.highest_close == pytest.approx(close)
+    by_id = {item.tranche_id: item for item in position.tranches}
+    assert by_id["cheap-core"].highest_close == pytest.approx(close)
+    assert by_id["cheap-core"].lowest_close == pytest.approx(close)
+    assert by_id["cheap-core"].mfe == pytest.approx(1.0)
+    assert by_id["cheap-core"].mae == pytest.approx(0.0)
+    assert by_id["expensive-core"].highest_close == pytest.approx(close)
+    assert by_id["expensive-core"].lowest_close == pytest.approx(close)
+    assert by_id["expensive-core"].mfe == pytest.approx(0.0)
+    assert by_id["expensive-core"].mae == pytest.approx(-0.5)
+
+
+def test_attribution_tracks_promoted_lot_by_tranche_identity():
+    symbol = "sz300308"
+    buy = Fill(
+        signal_date="2026-01-01",
+        fill_date="2026-01-02",
+        symbol=symbol,
+        side="BUY",
+        shares=100,
+        price=10.0,
+        gross_value=1_000.0,
+        commission=0.0,
+        stamp_duty=0.0,
+        transfer_fee=0.0,
+        slippage_cost=0.0,
+        reason="challenger scout",
+        lifecycle="SATELLITE",
+    )
+    sell = Fill(
+        signal_date="2026-01-09",
+        fill_date="2026-01-12",
+        symbol=symbol,
+        side="SELL",
+        shares=40,
+        price=12.0,
+        gross_value=480.0,
+        commission=0.0,
+        stamp_duty=0.0,
+        transfer_fee=0.0,
+        slippage_cost=0.0,
+        reason="core risk reduction",
+        lifecycle="CORE",
+        sold_tranches=[
+            {
+                "tranche_id": f"2026-01-02:{symbol}:1",
+                "shares": 40,
+                "unit_cost": 10.0,
+                "lifecycle": "CORE",
+                "entry_date": "2026-01-02",
+                "mfe": 0.30,
+                "mae": -0.05,
+            }
+        ],
+    )
+
+    result = attribution([buy, sell])
+
+    assert result["by_lifecycle"]["core"]["realized_pnl"] == pytest.approx(80.0)
+    assert result["open_shares_by_lifecycle"]["core"] == 60
+    assert result["open_shares_by_lifecycle"]["satellite"] == 0
 
 
 def test_stale_code_hash_fails_closed(data_dir):

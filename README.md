@@ -11,7 +11,15 @@ uquant 是面向 A 股科技产业链的日频量化决策系统。它只支持�
 - 信号使用当日及以前的数据，订单最早在下一可交易日开盘执行；
 - 统一处理 A 股 T+1、涨跌停、停牌、100 股手数、科创板首次 200 股、费用、滑点、容量和部分成交；
 - 小幅目标变化落在迟滞区间内时不交易，降低无效换手；
-- 默认启用行业广度确认和持仓同步冲击保护，无需人工开关；
+- 战略 cohort 由相对长期证据动态发现：每个 epoch 都要求 3 个成员、`secular_score >= 0.58`、长期证据置信度和行业置信度合格、20 日收益不低于 -5%、科技指数 120 日收益不高于 20%，且签名连续确认 2 日；没有股票代码先验、240 日绝对收益门槛或短周期反弹 bootstrap；
+- 风险锚由跨行业长期证据动态确认，连续转坏、慢性退化和资本回撤预算阶梯默认自动工作；
+- 已部署持仓出现重复同步冲击且独立偏离确认时，sector guard 进入 Level-2、把总仓限制为 82%，并与普通 risk-off / crisis 减仓分开归因；
+- 风险去仓先冻结新增风险，再稀疏压缩目标；成交层优先退出卫星和后加仓 tranche，保护健康核心；
+- 普通领涨路径在 `CHOPPY`/`WEAK` 中把新增机会预算限制为 60%/25%，并在 scout 之后稀疏取消弱证据增量；已有健康 Core 由生命周期或确认风险退出，不因单日机会标签机械卖出；
+- 空仓超跌路线只在双指数长期弱势，或一弱一稳且分化充分的过渡修复中工作；过渡路线只接受可晋升的深跌候选。单票战术探针默认最多 60% 且仍受风险上限约束；恢复赢家的 20% MFE / 10% 峰值回撤 trail 不是通用核心止损，风险压缩后的战略权重也只在健康确认后逐票恢复；
+- 默认启用行业广度确认、持仓同步冲击保护、置信度仓位和闲置现金 challenger scout，无需人工开关；
+- conviction 不等权只在强趋势高置信入场同时通过韧性、相对强度、流动性和票间相关性联合门时启用，否则新核心保持等权；
+- 生产评分、广度、风险锚和数据要求只使用评审后的稳定参考篮子；研究扩展参考与生产常量隔离，不能因一次实验自动进入实盘；
 - 账户文件、代码指纹或历史数据前缀异常时拒绝继续运行；
 - 券商快照是现金、持仓、可卖数量和真实成交的权威来源。
 
@@ -48,7 +56,7 @@ uquant account-init \
 python -m uquant account-init --help
 ```
 
-已有旧版账户不会被静默补字段。升级代码后先备份账户，再显式迁移并核对券商快照：
+当前账户格式为 schema v3。v3 为 tranche 保存入场证据，为订单与成交保存风险减仓策略，并持久化战略 epoch、动态风险锚、连续风险信号、资本预算和 challenger scout 状态。已有旧版账户不会被静默补字段；升级代码后先备份账户，再显式迁移并核对券商快照：
 
 ```bash
 uquant account-migrate \
@@ -124,7 +132,8 @@ date,open,high,low,close,volume
 | `uquant/account.py` | 账户校验和原子持久化 |
 | `uquant/broker.py` | 券商快照与真实成交幂等对账 |
 | `uquant/report.py` | 只读日报渲染 |
-| `uquant/validation/` | 冻结数据完整性和多市场阶段晋级门 |
+| `uquant/validation/` | 冻结数据、绩效、泛化/PDI 和全周期竞品的 fail-closed 晋级门 |
+| `research/` | 与生产导入隔离的候选搜索、消融、参数/股票池压力和退出归因 Python API |
 | `benchmarks/` | 版本化绩效基线与比较证据 |
 | `scripts/backfill_tencent_history.py` | 冻结行情的有界历史补全工具 |
 | `tests/` | 数据、策略状态、风险、执行和账户契约测试 |
@@ -143,14 +152,48 @@ date,open,high,low,close,volume
 
 ```bash
 uv run ruff check .
-uv run mypy uquant scripts
+uv run mypy uquant scripts research
 uv run pytest --cov=uquant --cov-report=term-missing
+uv run python -m compileall -q uquant scripts research tests
 uv run python -m uquant.validation data-manifest --data-dir data/frozen
 uv run python -m uquant.validation promotion \
   --data-dir data/frozen \
   --profile quick
 uv run bandit -q -r uquant
 ```
+
+泛化验证需要显式给出当前全集、覆盖该全集的股票到行业 JSON、要做移除诊断的历史先验证券，以及经过评审的只读 baseline。下面从版本化 promotion 规范读取真实冻结 Pool E 的 32 只证券，能够承载默认 random 6/12/24 和 leave-top-1/2/3/5；不要换回少于 24 只的示例：
+
+```bash
+mapfile -t GENERALIZATION_POOL_E < <(
+  uv run python -c \
+    'import json; print(*json.load(open("benchmarks/promotion_baseline.json", encoding="utf-8"))["pools"]["e"], sep="\n")'
+)
+uv run python -m uquant.validation generalization \
+  --data-dir data/frozen \
+  --universe "${GENERALIZATION_POOL_E[@]}" \
+  --industries /path/to/industries.json \
+  --prior-symbols sz300308 sz300502 sz300394 \
+  --start 2018-01-02 \
+  --end 2026-07-20 \
+  --baseline /path/to/reviewed-generalization.json
+
+uv run python -m uquant.validation competitor \
+  --data-dir data/frozen \
+  --reference /path/to/reviewed-competitor-matrix.json
+```
+
+两个命令都不会生成或更新 reference。缺少 reference、单元不全、来源或执行口径不匹配时会在启动生产回放前 fail closed；不能用空文件或推测值代替真实评审结果。
+
+## 离线研究 API
+
+`research/` 是仓库内 Python API，不是第二个生产引擎，也没有独立命令行入口。它接收调用方提供的回放观测或回调，提供共享参数候选搜索、Pareto/dominance 门、单能力消融、参数和股票池压力、以及成交后的退出归因；`uquant/` 不导入它。最小导入检查可直接在仓库根目录运行：
+
+```bash
+uv run python -c 'from research import enumerate_candidates; print(enumerate_candidates({"choppy_target_gross": (0.50, 0.60)}, base={"weak_gross": 0.25}))'
+```
+
+完整研究仍必须把同一候选配置用于所有股票池和窗口，再交给 production promotion、generalization 或 competitor 门验证；研究 API 自身不会写生产配置或 reference。
 
 ## 风险声明
 

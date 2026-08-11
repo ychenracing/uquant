@@ -5,7 +5,7 @@ import pytest
 from uquant.config import DEFAULT_CONFIG
 from uquant.industry import compute_industry_signals
 from uquant.portfolio import PortfolioAllocator
-from uquant.types import LeaderScore
+from uquant.types import AccountState, LeaderScore, Lifecycle
 
 
 def _raw(ret20: float, ret60: float, ret120: float, above: float) -> dict[str, float]:
@@ -120,3 +120,32 @@ def test_industry_handoff_needs_cross_group_edge_and_weak_incumbent() -> None:
         ),
         incumbent=incumbent,
     )
+
+
+def test_low_confidence_unknowns_share_one_aggregate_cap() -> None:
+    allocator = PortfolioAllocator(DEFAULT_CONFIG)
+    leaders = {
+        symbol: LeaderScore(
+            symbol=symbol,
+            score=0.8,
+            confidence=0.8,
+            mature=True,
+            emerging=False,
+            industry="unknown",
+            components={"unknown_industry": 1.0},
+        )
+        for symbol in ("unknown-a", "unknown-b")
+    }
+
+    targets = allocator._targets(
+        proposed={"unknown-a": 0.30, "unknown-b": 0.30},
+        leaders=leaders,
+        account=AccountState.empty(2_000_000.0),
+        lifecycle=Lifecycle.CORE,
+        reason="unknown confidence cap contract",
+    )
+
+    assert sum(target.weight for target in targets) == pytest.approx(
+        DEFAULT_CONFIG.unknown_industry_weight_cap
+    )
+    assert all(target.weight <= DEFAULT_CONFIG.unknown_industry_weight_cap for target in targets)

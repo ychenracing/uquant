@@ -71,10 +71,14 @@ def main(argv: list[str] | None = None) -> int:
     args = _parser().parse_args(argv)
     if args.command == "account-init":
         engine = ProductionEngine(args.data_dir)
-        symbols = set(args.symbols) | set(REFERENCE_UNIVERSE) | {
-            "sh000300",
-            "sh000682",
-        }
+        symbols = (
+            set(args.symbols)
+            | set(REFERENCE_UNIVERSE)
+            | {
+                "sh000300",
+                "sh000682",
+            }
+        )
         latest = engine.data.manifest(symbols)
         snapshot_date = args.date or latest.end
         manifest = engine.data.manifest(symbols, as_of=snapshot_date)
@@ -90,9 +94,7 @@ def main(argv: list[str] | None = None) -> int:
         engine = ProductionEngine(args.data_dir)
         account = load_account(args.account)
         if args.broker_snapshot:
-            snapshot = json.loads(
-                Path(args.broker_snapshot).read_text(encoding="utf-8")
-            )
+            snapshot = json.loads(Path(args.broker_snapshot).read_text(encoding="utf-8"))
             sync_broker_snapshot(account, snapshot)
         decision = engine.decide(symbols=args.symbols, as_of=args.date, account=account)
         account.pending_orders = list(decision.pending_orders)

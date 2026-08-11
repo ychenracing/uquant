@@ -45,14 +45,12 @@ def classify_opportunity(
             breadth60.append(close > ma60)
     breadth20_ratio = float(np.mean(breadth20)) if breadth20 else 0.0
     breadth60_ratio = float(np.mean(breadth60)) if breadth60 else 0.0
-    tech_bull = (
-        scalar(tech_row, "close") > scalar(tech_row, f"ma{cfg.trend_medium}")
-        and scalar(tech_row, f"ma{cfg.trend_fast}") > scalar(tech_row, f"ma{cfg.trend_medium}")
-    )
-    broad_bull = (
-        scalar(broad_row, "close") > scalar(broad_row, f"ma{cfg.trend_medium}")
-        and scalar(broad_row, f"ma{cfg.trend_fast}") > scalar(broad_row, f"ma{cfg.trend_medium}")
-    )
+    tech_bull = scalar(tech_row, "close") > scalar(tech_row, f"ma{cfg.trend_medium}") and scalar(
+        tech_row, f"ma{cfg.trend_fast}"
+    ) > scalar(tech_row, f"ma{cfg.trend_medium}")
+    broad_bull = scalar(broad_row, "close") > scalar(broad_row, f"ma{cfg.trend_medium}") and scalar(
+        broad_row, f"ma{cfg.trend_fast}"
+    ) > scalar(broad_row, f"ma{cfg.trend_medium}")
     bear_trend = (
         scalar(broad_row, "close") < scalar(broad_row, f"ma{cfg.trend_medium}")
         and scalar(broad_row, f"ma{cfg.trend_fast}") < scalar(broad_row, f"ma{cfg.trend_medium}")
@@ -61,15 +59,13 @@ def classify_opportunity(
     )
     broad_ret1 = float(broad.loc[:date, "close"].pct_change(fill_method=None).iloc[-1])
     tech_ret1 = float(tech.loc[:date, "close"].pct_change(fill_method=None).iloc[-1])
-    fast_flip = (broad_ret1 >= 0.03 and scalar(broad_row, "close") > scalar(broad_row, f"ma{cfg.trend_fast}")) or (
-        tech_ret1 >= 0.03 and scalar(tech_row, "close") > scalar(tech_row, f"ma{cfg.trend_fast}")
-    )
+    fast_flip = (
+        broad_ret1 >= 0.03 and scalar(broad_row, "close") > scalar(broad_row, f"ma{cfg.trend_fast}")
+    ) or (tech_ret1 >= 0.03 and scalar(tech_row, "close") > scalar(tech_row, f"ma{cfg.trend_fast}"))
     evidence = 0
     if fast_flip or breadth60_ratio >= 0.65 or (breadth60_ratio >= 0.40 and (tech_bull or broad_bull)):
         evidence = 1
-    elif breadth60_ratio < 0.35 and (
-        bear_trend or scalar(tech_row, "drawdown120", 0.0) <= -0.25
-    ):
+    elif breadth60_ratio < 0.35 and (bear_trend or scalar(tech_row, "drawdown120", 0.0) <= -0.25):
         evidence = -1
     previous_evidence = account.risk_streaks.get("opportunity_evidence", 99)
     if evidence == previous_evidence:
@@ -100,7 +96,10 @@ def classify_opportunity(
     if len(tech_history) >= 60:
         for point in tech_history.tail(cfg.recovery_crash_lookback + 1).index:
             history = tech.loc[:point, "close"].tail(60)
-            if len(history) >= 20 and float(history.iloc[-1] / history.max() - 1.0) <= -cfg.recovery_crash_drawdown:
+            if (
+                len(history) >= 20
+                and float(history.iloc[-1] / history.max() - 1.0) <= -cfg.recovery_crash_drawdown
+            ):
                 recent_crash = True
                 break
     stable = (

@@ -6,11 +6,12 @@ from dataclasses import asdict, dataclass, field
 from enum import Enum
 from typing import Any
 
-ACCOUNT_SCHEMA_VERSION = 2
+ACCOUNT_SCHEMA_VERSION = 3
 
 
 class Opportunity(str, Enum):
     """Market opportunity regimes used by the portfolio allocator."""
+
     STRONG_TREND = "STRONG_TREND"
     TREND = "TREND"
     RECOVERY = "RECOVERY"
@@ -20,6 +21,7 @@ class Opportunity(str, Enum):
 
 class Risk(str, Enum):
     """Persistent portfolio risk states ordered by severity."""
+
     NORMAL = "NORMAL"
     CAUTION = "CAUTION"
     RISK_OFF = "RISK_OFF"
@@ -28,6 +30,7 @@ class Risk(str, Enum):
 
 class Lifecycle(str, Enum):
     """Position roles used for sizing, additions, and attribution."""
+
     CORE = "CORE"
     ADD1 = "ADD1"
     ADD2 = "ADD2"
@@ -37,12 +40,14 @@ class Lifecycle(str, Enum):
 
 class Side(str, Enum):
     """Supported cash-equity order directions."""
+
     BUY = "BUY"
     SELL = "SELL"
 
 
 class OrderStatus(str, Enum):
     """Durable broker-order lifecycle states."""
+
     SUBMITTED = "SUBMITTED"
     OPEN = "OPEN"
     PARTIALLY_FILLED = "PARTIALLY_FILLED"
@@ -51,9 +56,22 @@ class OrderStatus(str, Enum):
     REPLACED = "REPLACED"
 
 
+class ReductionPolicy(str, Enum):
+    """Economic lot selection used by a sell order.
+
+    Ordinary strategy exits retain FIFO semantics.  Portfolio and structural
+    risk reductions instead retire the most fragile incremental tranches
+    before touching a healthy core.
+    """
+
+    FIFO = "FIFO"
+    RISK_PRIORITY = "RISK_PRIORITY"
+
+
 @dataclass(slots=True)
 class Tranche:
     """A T+1-aware lot belonging to one position lifecycle."""
+
     tranche_id: str
     lifecycle: str
     shares: int
@@ -61,11 +79,19 @@ class Tranche:
     entry_date: str
     sellable_date: str
     highest_close: float
+    lowest_close: float = 0.0
+    mfe: float = 0.0
+    mae: float = 0.0
+    entry_score: float = 0.0
+    entry_confidence: float = 0.0
+    entry_regime: str = Opportunity.CHOPPY.value
+    entry_industry_strength: float = 0.0
 
 
 @dataclass(slots=True)
 class Position:
     """Aggregated holding plus its independently sellable tranches."""
+
     symbol: str
     shares: int = 0
     avg_cost: float = 0.0
@@ -81,6 +107,7 @@ class Position:
 @dataclass(slots=True)
 class PendingOrder:
     """Next-open execution intent derived from a final target weight."""
+
     signal_date: str
     symbol: str
     side: str
@@ -90,6 +117,13 @@ class PendingOrder:
     remaining_shares: int = 0
     attempts: int = 0
     order_id: str = ""
+    reduction_policy: str = ReductionPolicy.FIFO.value
+    reason_code: str = "strategy_target"
+    exit_kind: str = "strategy"
+    entry_score: float = 0.0
+    entry_confidence: float = 0.0
+    entry_regime: str = Opportunity.CHOPPY.value
+    entry_industry_strength: float = 0.0
 
 
 @dataclass(slots=True)
@@ -113,11 +147,41 @@ class AccountOrder:
     last_event: str = "SUBMITTED"
     replaced_by: str = ""
     cancel_reason: str = ""
+    reduction_policy: str = ReductionPolicy.FIFO.value
+    reason_code: str = "strategy_target"
+    exit_kind: str = "strategy"
+    entry_score: float = 0.0
+    entry_confidence: float = 0.0
+    entry_regime: str = Opportunity.CHOPPY.value
+    entry_industry_strength: float = 0.0
+
+
+ORDER_INTENT_IMMUTABLE_FIELDS: tuple[str, ...] = (
+    "signal_date",
+    "symbol",
+    "side",
+    "target_weight",
+    "reason",
+    "lifecycle",
+    "reduction_policy",
+    "reason_code",
+    "exit_kind",
+    "entry_score",
+    "entry_confidence",
+    "entry_regime",
+    "entry_industry_strength",
+)
+
+
+def order_intent_metadata(order: PendingOrder | AccountOrder) -> tuple[Any, ...]:
+    """Return the immutable economic identity shared by pending and ledger orders."""
+    return tuple(getattr(order, name) for name in ORDER_INTENT_IMMUTABLE_FIELDS)
 
 
 @dataclass(slots=True)
 class Fill:
     """One simulated or broker-reported execution with explicit costs."""
+
     signal_date: str
     fill_date: str
     symbol: str
@@ -133,11 +197,16 @@ class Fill:
     lifecycle: str
     order_id: str = ""
     fill_id: str = ""
+    reduction_policy: str = ReductionPolicy.FIFO.value
+    reason_code: str = "strategy_target"
+    exit_kind: str = "strategy"
+    sold_tranches: list[dict[str, Any]] = field(default_factory=list)
 
 
 @dataclass(slots=True)
 class AccountState:
     """Complete durable state required to continue the next daily decision."""
+
     initial_cash: float
     cash: float
     schema_version: int = ACCOUNT_SCHEMA_VERSION
@@ -146,12 +215,14 @@ class AccountState:
     order_ledger: list[AccountOrder] = field(default_factory=list)
     next_order_sequence: int = 1
     fills: list[Fill] = field(default_factory=list)
+    broker_as_of: str = ""
     opportunity: str = Opportunity.CHOPPY.value
     risk: str = Risk.NORMAL.value
     shock_state: str = "NONE"
     sector_shock_dates: list[str] = field(default_factory=list)
     sector_guard_active: bool = False
     sector_guard_started: str = ""
+    sector_guard_symbols: list[str] = field(default_factory=list)
     sector_recovery_streak: int = 0
     cooldown_until: str = ""
     operating_peak: float = 0.0
@@ -178,6 +249,25 @@ class AccountState:
     strategic_exit_bands: dict[str, list[float]] = field(default_factory=dict)
     strategic_active_bands: dict[str, list[bool]] = field(default_factory=dict)
     strategic_restore_weights: dict[str, float] = field(default_factory=dict)
+    strategic_epoch: int = 0
+    strategic_epochs_completed: int = 0
+    strategic_last_exit_date: str = ""
+    strategic_rearm_date: str = ""
+    strategic_candidate_signature: str = ""
+    strategic_previous_symbols: list[str] = field(default_factory=list)
+    risk_anchor_symbols: list[str] = field(default_factory=list)
+    risk_anchor_signature: str = ""
+    risk_anchor_candidate_signature: str = ""
+    risk_anchor_candidate_streak: int = 0
+    risk_signal_state: dict[str, float] = field(default_factory=dict)
+    capital_budget_level: int = 0
+    capital_budget_repair_streak: int = 0
+    chronic_level: int = 0
+    chronic_streak: int = 0
+    chronic_repair_streak: int = 0
+    scout_signature: str = ""
+    scout_entry_date: str = ""
+    reconciliation_events: list[dict[str, Any]] = field(default_factory=list)
     shock_start_date: str = ""
     shock_severity: str = "NORMAL"
     last_shock_date: str = ""
@@ -203,6 +293,7 @@ class AccountState:
 @dataclass(frozen=True, slots=True)
 class LeaderScore:
     """Point-in-time leadership strength, confidence, and classification."""
+
     symbol: str
     score: float
     confidence: float
@@ -215,28 +306,38 @@ class LeaderScore:
 @dataclass(frozen=True, slots=True)
 class RiskAssessment:
     """Risk state, exposure cap, and auditable evidence for one session."""
+
     state: Risk
     target_gross_cap: float
     votes: int
     evidence: dict[str, Any]
     reasons: tuple[str, ...]
     shock_state: str
+    freeze_new_risk: bool = False
+    reduction_level: int = 0
+    severity: str = "NORMAL"
 
 
 @dataclass(frozen=True, slots=True)
 class Target:
     """Final desired weight and lifecycle for one symbol."""
+
     symbol: str
     weight: float
     lifecycle: str
     alpha_score: float
     confidence: float
     reason: str
+    reduction_policy: str = ReductionPolicy.FIFO.value
+    reason_code: str = "strategy_target"
+    exit_kind: str = "strategy"
+    entry_industry_strength: float = 0.0
 
 
 @dataclass(frozen=True, slots=True)
 class Decision:
     """Immutable daily output containing targets, intents, and risk evidence."""
+
     date: str
     opportunity: Opportunity
     risk: Risk

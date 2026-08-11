@@ -242,6 +242,7 @@ class AccountState:
     account_migrations: list[dict[str, Any]] = field(default_factory=list)
     anchor_weights: dict[str, float] = field(default_factory=dict)
     recovery_anchor_date: str = ""
+    recovery_conviction_symbol: str = ""
     tactical_anchor_symbol: str = ""
     protected_weights: dict[str, float] = field(default_factory=dict)
     strategic_cohort_symbols: list[str] = field(default_factory=list)

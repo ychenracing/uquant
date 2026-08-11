@@ -15,6 +15,7 @@ python -m pip install -e '.[dev,data]'
 | 数据源、字段或点时边界 | `uquant/data.py` |
 | 指标和因果特征 | `uquant/features.py` |
 | 行业汇总证据 | `uquant/industry.py` |
+| point-in-time 参考注册表与共享参考证据 | `uquant/reference_registry.py`、`uquant/reference.py` |
 | 领涨评分、未知行业因果推断 | `uquant/leader.py` |
 | 机会状态 | `uquant/opportunity.py` |
 | 持仓同步冲击证据 | `uquant/risk_sector.py` |
@@ -65,11 +66,12 @@ uv run pytest --cov=uquant --cov-report=term-missing
 核心测试覆盖：
 
 - 数据格式、证券规范化、点时特征和领涨评分；
+- point-in-time 参考注册表边界、未来成员拒绝和共享 `ReferenceContext` 的行业均衡证据；
 - 账户哈希、历史追加、历史改写拒绝和决策确定性；
 - T+1、涨跌停、停牌、容量、费用、部分成交和订单状态；
 - 券商成交幂等、可卖数量和账户权威字段；
 - 机会迟滞、动态持仓数、加仓、替换和轮动预算；
-- 动态战略 cohort 的证据发现、签名确认、完整退出、冷却和下一 epoch；
+- `SECULAR` / `EMERGING_SECULAR` 3/2/1 战略 cohort 的证据发现、签名确认、完整退出、冷却和下一 epoch；
 - 战略风险压缩逐票 restore、容量阻塞成员不丢失恢复意图和最终策略退出不复活；
 - 冲击、恢复、资本回撤、集中破坏和锚点生命周期；
 - 动态风险锚、连续 transition/chronic 信号、资本预算阶梯和三级减仓；
@@ -131,6 +133,8 @@ CI 在 Python 3.11 和 3.12 上运行质量门，并由 Dependabot维护 Python 
 
 `research/` 是仓库本地 Python API，没有独立 CLI，也不会由生产包导入：
 
+- `candidate_runner.py`：以唯一生产引擎生成逐日不可变决策轨迹、首个分歧和完整候选矩阵；
+- `statistics.py`：确定性 walk-forward folds、PBO 与 deflated-Sharpe 诊断；
 - `candidate_search.py`：确定性共享参数网格、回放观测聚合、dominance 与 Pareto 门；每个 pool/scenario 必须接收同一份扁平配置；
 - `ablation.py`：一次关闭一个能力并比较财富、回撤和订单差异；
 - `parameter_stress.py`：单参数或受限 factorial 扰动；

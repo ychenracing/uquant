@@ -579,6 +579,8 @@ def _validate_strategy_risk_state(state: AccountState) -> None:
         raise RuntimeError("account validation hashes must be text")
 
     _validate_weight_map(state.anchor_weights, field="anchor_weights")
+    if not isinstance(state.recovery_conviction_symbol, str):
+        raise RuntimeError("account state has invalid recovery_conviction_symbol")
     _validate_weight_map(state.protected_weights, field="protected_weights")
     cohort_keys = _validate_symbol_list(
         state.strategic_cohort_symbols,
@@ -1221,6 +1223,11 @@ def load_account(
             account_migrations=list(payload.get("account_migrations", [])),
             anchor_weights={str(k): v for k, v in payload.get("anchor_weights", {}).items()},
             recovery_anchor_date=payload.get("recovery_anchor_date", ""),
+            recovery_conviction_symbol=(
+                payload.get("recovery_conviction_symbol", "")
+                if native_v3
+                else str(payload.get("recovery_conviction_symbol", ""))
+            ),
             tactical_anchor_symbol=(
                 payload.get("tactical_anchor_symbol", "")
                 if native_v3

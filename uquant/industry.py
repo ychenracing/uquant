@@ -20,6 +20,7 @@ class IndustrySignal:
 
     industry: str
     score: float
+    raw_score: float
     confidence: float
     member_count: int
     return20: float
@@ -51,6 +52,7 @@ def compute_industry_signals(
     reference_symbols: Iterable[str],
     industries: Mapping[str, str],
     minimum_members: int,
+    hierarchical: bool = True,
 ) -> dict[str, IndustrySignal]:
     """Aggregate robust multi-horizon signals from visible reference members.
 
@@ -79,9 +81,9 @@ def compute_industry_signals(
             "member_count": float(len(members)),
         }
 
-    signals: dict[str, IndustrySignal] = {}
+    raw_scores: dict[str, float] = {}
     for industry, item in aggregates.items():
-        raw_score = (
+        raw_scores[industry] = (
             0.20
             * _percentile(
                 item["return20"],
@@ -105,12 +107,24 @@ def compute_industry_signals(
                 (other["acceleration"] for other in aggregates.values()),
             )
         )
+    parent_score = (
+        float(np.mean(list(raw_scores.values()))) if raw_scores else 0.5
+    )
+    signals: dict[str, IndustrySignal] = {}
+    for industry, item in aggregates.items():
+        raw_score = raw_scores[industry]
         member_count = int(item["member_count"])
-        confidence = min(1.0, member_count / max(1, minimum_members))
-        score = 0.5 + confidence * (raw_score - 0.5)
+        confidence = (
+            member_count / (member_count + max(1, minimum_members))
+            if hierarchical
+            else min(1.0, member_count / max(1, minimum_members))
+        )
+        prior = parent_score if hierarchical else 0.5
+        score = prior + confidence * (raw_score - prior)
         signals[industry] = IndustrySignal(
             industry=industry,
             score=float(min(1.0, max(0.0, score))),
+            raw_score=float(min(1.0, max(0.0, raw_score))),
             confidence=confidence,
             member_count=member_count,
             return20=item["return20"],

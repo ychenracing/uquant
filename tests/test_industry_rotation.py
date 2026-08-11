@@ -1,10 +1,12 @@
 from __future__ import annotations
 
+import pandas as pd
 import pytest
 
 from uquant.config import DEFAULT_CONFIG
 from uquant.industry import compute_industry_signals
 from uquant.portfolio import PortfolioAllocator
+from uquant.reference import build_reference_context
 from uquant.types import AccountState, LeaderScore, Lifecycle
 
 
@@ -82,9 +84,73 @@ def test_sparse_industry_strength_is_shrunk_toward_neutral() -> None:
         minimum_members=2,
     )
 
-    assert signals["sparse"].confidence == pytest.approx(0.5)
+    assert signals["sparse"].confidence == pytest.approx(1 / 3)
     assert signals["sparse"].score < 1.0
-    assert signals["sparse"].score > 0.5
+    assert signals["sparse"].score < signals["sparse"].raw_score
+
+
+def test_reference_context_balances_unequal_industry_sizes() -> None:
+    dates = pd.bdate_range("2026-01-02", periods=3)
+
+    def frame(healthy: bool) -> pd.DataFrame:
+        close = 120.0 if healthy else 80.0
+        return pd.DataFrame(
+            {
+                "close": close,
+                "ma20": 100.0,
+                "ma60": 100.0,
+                "ret5": 0.02 if healthy else -0.02,
+                "ret20": 0.05 if healthy else -0.05,
+                "ret60": 0.10 if healthy else -0.10,
+                "ret120": 0.20 if healthy else -0.20,
+                "mom_accel_5_20": 0.0,
+            },
+            index=dates,
+        )
+
+    panel = {**{f"large-{index}": frame(True) for index in range(4)}, "small": frame(False)}
+    context = build_reference_context(
+        date=dates[-1],
+        panel=panel,
+        industries={**{f"large-{index}": "large" for index in range(4)}, "small": "small"},
+        cfg=DEFAULT_CONFIG,
+    )
+
+    assert context.name_breadth20 == pytest.approx(0.8)
+    assert context.group_breadth20 == pytest.approx(0.5)
+    assert context.breadth20 == pytest.approx(
+        DEFAULT_CONFIG.risk_breadth_name_weight * 0.8
+        + (1.0 - DEFAULT_CONFIG.risk_breadth_name_weight) * 0.5
+    )
+
+
+def test_reference_context_uses_only_point_in_time_visible_members() -> None:
+    dates = pd.bdate_range("2026-01-02", periods=4)
+    early = pd.DataFrame(
+        {
+            "close": 110.0,
+            "ma20": 100.0,
+            "ma60": 100.0,
+            "ret5": 0.01,
+            "ret20": 0.02,
+            "ret60": 0.03,
+            "ret120": 0.04,
+            "mom_accel_5_20": 0.0,
+        },
+        index=dates,
+    )
+    future = early.loc[dates[-1] :].copy()
+
+    context = build_reference_context(
+        date=dates[-2],
+        panel={"early": early, "future": future},
+        industries={"early": "one", "future": "two"},
+        cfg=DEFAULT_CONFIG,
+    )
+
+    assert context.visible_symbols == ("early",)
+    assert context.expected_symbols == ("early",)
+    assert context.coverage == pytest.approx(1.0)
 
 
 def test_industry_handoff_needs_cross_group_edge_and_weak_incumbent() -> None:

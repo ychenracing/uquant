@@ -72,6 +72,18 @@ def test_sector_guard_cohort_round_trips_in_native_schema(tmp_path) -> None:
     assert loaded.to_dict() == state.to_dict()
 
 
+def test_recovery_conviction_owner_round_trips_in_native_schema(tmp_path) -> None:
+    state = AccountState.empty(2_000_000.0)
+    state.data_hash = "data"
+    state.code_hash = "code"
+    state.recovery_conviction_symbol = SYMBOL
+
+    loaded = load_account(_write_payload(tmp_path, state.to_dict()))
+
+    assert loaded.recovery_conviction_symbol == SYMBOL
+    assert loaded.to_dict() == state.to_dict()
+
+
 @pytest.mark.parametrize(
     ("field", "value", "match"),
     [

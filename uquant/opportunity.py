@@ -9,6 +9,7 @@ import pandas as pd
 
 from .config import SystemConfig
 from .features import scalar
+from .reference import ReferenceContext
 from .types import AccountState, LeaderScore, Opportunity, Risk
 
 
@@ -22,6 +23,7 @@ def classify_opportunity(
     risk: Risk,
     account: AccountState,
     cfg: SystemConfig,
+    reference_context: ReferenceContext | None = None,
 ) -> Opportunity:
     """Classify the opportunity regime with breadth, trend, and leader evidence.
 
@@ -43,8 +45,22 @@ def classify_opportunity(
         ma60 = scalar(row, f"ma{cfg.trend_medium}")
         if math.isfinite(close) and math.isfinite(ma60):
             breadth60.append(close > ma60)
-    breadth20_ratio = float(np.mean(breadth20)) if breadth20 else 0.0
-    breadth60_ratio = float(np.mean(breadth60)) if breadth60 else 0.0
+    breadth20_ratio = (
+        reference_context.breadth20
+        if reference_context is not None
+        else float(np.mean(breadth20))
+        if breadth20
+        else 0.0
+    )
+    breadth60_ratio = (
+        reference_context.breadth60
+        if reference_context is not None
+        else float(np.mean(breadth60))
+        if breadth60
+        else 0.0
+    )
+    account.risk_signal_state["opportunity_breadth20"] = breadth20_ratio
+    account.risk_signal_state["opportunity_breadth60"] = breadth60_ratio
     tech_bull = scalar(tech_row, "close") > scalar(tech_row, f"ma{cfg.trend_medium}") and scalar(
         tech_row, f"ma{cfg.trend_fast}"
     ) > scalar(tech_row, f"ma{cfg.trend_medium}")

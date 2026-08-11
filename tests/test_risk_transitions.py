@@ -9,7 +9,13 @@ import pytest
 import uquant.risk as risk_module
 from uquant.config import DEFAULT_CONFIG, SystemConfig
 from uquant.leader import INDUSTRY, REFERENCE_UNIVERSE
-from uquant.risk import _update_capital_budget_ladder, _update_dynamic_anchors, assess_risk
+from uquant.risk import (
+    _evidence_family_votes,
+    _strategic_grace_supported,
+    _update_capital_budget_ladder,
+    _update_dynamic_anchors,
+    assess_risk,
+)
 from uquant.types import AccountState, LeaderScore, Position, Risk, RiskAssessment
 
 
@@ -137,6 +143,52 @@ def _isolated_transition_config(**overrides: object) -> SystemConfig:
     )
 
 
+def test_correlated_structure_indicators_cast_one_family_vote() -> None:
+    families = _evidence_family_votes(
+        {
+            "sector_breadth_shock": True,
+            "below_ma20_structure": True,
+            "multi_industry_sync": True,
+        }
+    )
+
+    assert families["breadth_structure"]
+    assert sum(families.values()) == 1
+
+
+def test_true_crash_escalates_across_independent_evidence_families() -> None:
+    families = _evidence_family_votes(
+        {
+            "index_velocity": True,
+            "below_ma20_structure": True,
+            "correlation_shock": True,
+            "leader_failure": True,
+            "live_book_damage": True,
+            "capital_damage": True,
+        }
+    )
+
+    assert sum(families.values()) == 6
+
+
+def test_broad_strategic_grace_is_reserved_for_expansive_universes() -> None:
+    assert _strategic_grace_supported(
+        configured_universe_size=5,
+        broad_compatibility=False,
+        cfg=DEFAULT_CONFIG,
+    )
+    assert not _strategic_grace_supported(
+        configured_universe_size=15,
+        broad_compatibility=True,
+        cfg=DEFAULT_CONFIG,
+    )
+    assert _strategic_grace_supported(
+        configured_universe_size=20,
+        broad_compatibility=True,
+        cfg=DEFAULT_CONFIG,
+    )
+
+
 def test_recorded_economic_restore_clears_protection_after_price_drift() -> None:
     dates = pd.bdate_range("2026-01-02", periods=80)
     date = dates[-1]
@@ -185,6 +237,7 @@ def test_transition_freeze_survives_noise_and_requires_consecutive_repair() -> N
     cfg = _isolated_transition_config(
         transition_confirm_days=2,
         transition_repair_days=2,
+        transition_damage_repair=0.30,
     )
     account = AccountState.empty(100.0)
 

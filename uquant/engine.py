@@ -22,9 +22,18 @@ from .execution import (
     reconcile_account_orders,
 )
 from .features import compute_features
-from .leader import REFERENCE_UNIVERSE, compute_leaders
+from .leader import (
+    INDUSTRY,
+    REFERENCE_UNIVERSE,
+    apply_leader_tenure,
+    apply_opportunity_alpha,
+    compute_leaders,
+    compute_structural_leaders,
+)
 from .opportunity import classify_opportunity
 from .portfolio import PortfolioAllocator, current_weights
+from .reference import build_reference_context
+from .reference_registry import DEFAULT_REGISTRY_PATH, resolve_reference_symbols
 from .risk import assess_risk
 from .types import (
     ACCOUNT_SCHEMA_VERSION,
@@ -33,9 +42,34 @@ from .types import (
     Decision,
     Fill,
     LeaderScore,
+    Opportunity,
 )
 
 INDEX_SYMBOLS = ("sh000300", "sh000682")
+
+
+def _decision_config_for_universe(
+    configured_universe_size: int,
+    cfg: SystemConfig = DEFAULT_CONFIG,
+) -> SystemConfig:
+    """Select reviewed automatic compatibility from causal universe shape."""
+    broad = bool(
+        cfg.adaptive_broad_universe_compatibility_enabled
+        and configured_universe_size >= cfg.adaptive_broad_universe_min_size
+    )
+    if broad:
+        return cfg.override(
+            same_day_leader_pipeline_enabled=False,
+            group_balanced_reference_enabled=False,
+            hierarchical_industry_shrinkage_enabled=False,
+            evidence_family_voting_enabled=False,
+        )
+    transitional = bool(
+        cfg.adaptive_broad_universe_compatibility_enabled
+        and cfg.evidence_family_voting_enabled
+        and configured_universe_size > cfg.strategic_partial_universe_max_size
+    )
+    return cfg.override(evidence_family_voting_enabled=False) if transitional else cfg
 
 
 def code_fingerprint() -> str:
@@ -45,6 +79,8 @@ def code_fingerprint() -> str:
     for path in sorted(root.glob("*.py")):
         digest.update(path.name.encode())
         digest.update(path.read_bytes())
+    digest.update(DEFAULT_REGISTRY_PATH.name.encode())
+    digest.update(DEFAULT_REGISTRY_PATH.read_bytes())
     return digest.hexdigest()
 
 
@@ -182,7 +218,10 @@ class ProductionEngine:
         if account.code_hash and account.code_hash != current_code_hash and self.cfg.fail_closed:
             raise RuntimeError("production code hash differs from account state")
         self._mark_account_positions(account, date)
-        reference_panel = {symbol: self._features[symbol] for symbol in REFERENCE_UNIVERSE}
+        active_reference_symbols = resolve_reference_symbols(date)
+        reference_panel = {
+            symbol: self._features[symbol] for symbol in active_reference_symbols
+        }
         strategy_symbols = tuple(sorted(set(user_symbols) | durable_symbols))
         user_panel = {
             symbol: self._features[symbol]
@@ -193,21 +232,35 @@ class ProductionEngine:
         combined.update(user_panel)
         broad = self._features["sh000300"]
         tech = self._features["sh000682"]
-        leader_factor_profile = (
-            "TREND"
-            if account.opportunity in {"STRONG_TREND", "TREND"}
-            else "RECOVERY"
-            if account.opportunity == "RECOVERY"
-            else "CHOPPY"
+        broad_universe_compatibility = bool(
+            self.cfg.adaptive_broad_universe_compatibility_enabled
+            and len(user_symbols) >= self.cfg.adaptive_broad_universe_min_size
         )
-        all_leaders = compute_leaders(
-            combined,
-            as_of=date,
-            tech=tech,
-            account=account,
-            cfg=self.cfg,
-            score_cache=self._leader_score_cache,
+        decision_cfg = _decision_config_for_universe(len(user_symbols), self.cfg)
+        reference_context = build_reference_context(
+            date=date,
+            panel=reference_panel,
+            industries=INDUSTRY,
+            cfg=decision_cfg,
+            reference_returns=self._reference_returns,
         )
+        if decision_cfg.same_day_leader_pipeline_enabled:
+            structural_leaders = compute_structural_leaders(
+                combined,
+                as_of=date,
+                tech=tech,
+                cfg=decision_cfg,
+                score_cache=self._leader_score_cache,
+            )
+        else:
+            structural_leaders = compute_leaders(
+                combined,
+                as_of=date,
+                tech=tech,
+                account=account,
+                cfg=decision_cfg,
+                score_cache=self._leader_score_cache,
+            )
         # A historical universe can legitimately contain securities that had not
         # listed yet. They are invisible until their first row; an existing
         # position, however, must always remain markable and therefore still
@@ -222,21 +275,57 @@ class ProductionEngine:
             reference_panel=reference_panel,
             reference_returns=self._reference_returns,
             user_panel=user_panel,
-            leaders=all_leaders,
+            leaders=structural_leaders,
             account=account,
             equity=equity,
-            cfg=self.cfg,
+            cfg=decision_cfg,
+            reference_context=(
+                reference_context if decision_cfg.group_balanced_reference_enabled else None
+            ),
+            configured_universe_size=len(user_symbols),
         )
-        user_leaders = {symbol: all_leaders[symbol] for symbol in user_symbols if symbol in all_leaders}
+        risk.evidence["configured_user_universe_size"] = len(user_symbols)
+        risk.evidence["broad_universe_compatibility"] = broad_universe_compatibility
+        structural_users = {
+            symbol: structural_leaders[symbol]
+            for symbol in user_symbols
+            if symbol in structural_leaders
+        }
         opportunity = classify_opportunity(
             date=date,
             broad=broad,
             tech=tech,
             reference_panel=reference_panel,
-            leaders=user_leaders,
+            leaders=structural_users,
             risk=risk.state,
             account=account,
-            cfg=self.cfg,
+            cfg=decision_cfg,
+            reference_context=(
+                reference_context if decision_cfg.group_balanced_reference_enabled else None
+            ),
+        )
+        if decision_cfg.same_day_leader_pipeline_enabled:
+            alpha_leaders = apply_opportunity_alpha(
+                structural_leaders,
+                opportunity=opportunity,
+                cfg=decision_cfg,
+            )
+            all_leaders = apply_leader_tenure(
+                alpha_leaders,
+                account=account,
+                cfg=decision_cfg,
+            )
+        else:
+            all_leaders = structural_leaders
+        user_leaders = {
+            symbol: all_leaders[symbol] for symbol in user_symbols if symbol in all_leaders
+        }
+        leader_factor_profile = (
+            "TREND"
+            if opportunity in {Opportunity.STRONG_TREND, Opportunity.TREND}
+            else "RECOVERY"
+            if opportunity is Opportunity.RECOVERY
+            else "CHOPPY"
         )
         targets = self.allocator.allocate(
             date=date,
@@ -321,6 +410,19 @@ class ProductionEngine:
                 "strategic_epoch": account.strategic_epoch,
                 "strategic_candidate_signature": (account.strategic_candidate_signature),
                 "factor_profile": leader_factor_profile,
+                "leader_ranking": [
+                    {
+                        "symbol": item.symbol,
+                        "score": item.score,
+                        "industry": item.industry,
+                        "mature": item.mature,
+                        "emerging": item.emerging,
+                    }
+                    for item in sorted(
+                        user_leaders.values(),
+                        key=lambda candidate: (-candidate.score, candidate.symbol),
+                    )
+                ],
             },
             decision_digest=digest,
         )

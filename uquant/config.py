@@ -68,6 +68,7 @@ class SystemConfig:
     correlation_admission_penalty: float = 0.10
     industry_rotation_enabled: bool = True
     industry_signal_min_members: int = 2
+    hierarchical_industry_shrinkage_enabled: bool = True
     industry_rotation_min_score: float = 0.62
     industry_rotation_min_confidence: float = 0.50
     industry_rotation_edge: float = 0.18
@@ -104,12 +105,24 @@ class SystemConfig:
     strategic_dynamic_enabled: bool = True
     strategic_cohort_size: int = 3
     strategic_cohort_min_size: int = 3
+    strategic_two_name_gross: float = 0.85
+    strategic_one_name_gross: float = 0.50
+    strategic_two_name_min_score: float = 0.70
+    strategic_one_name_min_score: float = 0.90
+    strategic_one_name_min_secular_score: float = 0.80
+    strategic_two_name_confirm_days: int = 3
+    strategic_one_name_confirm_days: int = 4
+    strategic_partial_universe_max_size: int = 8
+    adaptive_broad_universe_min_size: int = 10
+    adaptive_broad_universe_compatibility_enabled: bool = True
     strategic_secular_min_score: float = 0.58
     strategic_secular_min_confidence: float = 0.65
     # Reviewed causal thresholds retained from the original strategy.  Unlike
     # the retired symbol tuple, both routes below discover synchronized
     # industry groups from the requested universe at runtime.
     strategic_cohort_min_ret240: float = 1.70
+    strategic_established_min_median_ret240: float = 1.00
+    strategic_expansive_universe_min_size: int = 20
     strategic_persistent_confirm_days: int = 3
     strategic_reversal_max_ret240: float = -0.15
     strategic_reversal_min_ret5: float = 0.05
@@ -150,6 +163,9 @@ class SystemConfig:
     strategic_cohort_tail_confirm_days: int = 3
     strategic_cohort_guard_days: int = 120
     recovery_target_gross: float = 0.92
+    recovery_expansive_universe_gross: float = 0.70
+    recovery_conviction_weighting_enabled: bool = True
+    recovery_conviction_retention_bonus: float = 0.30
     recovery_crash_drawdown: float = 0.15
     recovery_crash_lookback: int = 20
     recovery_stabilize_days: int = 8
@@ -192,6 +208,7 @@ class SystemConfig:
     risk_anchor_confirm_days: int = 5
     risk_anchor_min_secular_score: float = 0.55
     risk_breadth_name_weight: float = 0.50
+    group_balanced_reference_enabled: bool = True
     stable_reference_global_weight: float = 0.70
     unknown_industry_confidence: float = 0.55
     unknown_industry_weight_cap: float = 0.18
@@ -227,6 +244,8 @@ class SystemConfig:
     capital_dd_risk_off: float = 0.14
     capital_dd_crisis: float = 0.20
     capital_budget_ladder_enabled: bool = True
+    capital_budget_new_cohort_grace_days: int = 160
+    capital_budget_emerging_cohort_grace_days: int = 40
     capital_budget_level2_dd: float = 0.12
     capital_budget_level2_cap: float = 0.82
     capital_budget_level3_dd: float = 0.16
@@ -261,6 +280,7 @@ class SystemConfig:
     weak_gross: float = 0.25
     strong_trend_gross: float = 1.0
     regime_factor_blend_enabled: bool = True
+    same_day_leader_pipeline_enabled: bool = True
     confidence_sizing_enabled: bool = True
     high_confidence_entry_gross: float = 0.90
     exceptional_entry_gross: float = 0.95
@@ -274,6 +294,7 @@ class SystemConfig:
     challenger_scout_score_edge: float = 0.08
     challenger_scout_incumbent_hysteresis: float = 0.08
     risk_overlay_enabled: bool = True
+    evidence_family_voting_enabled: bool = True
     fail_closed: bool = True
 
     def __post_init__(self) -> None:
@@ -294,6 +315,7 @@ class SystemConfig:
             "industry_weight_cap",
             "concentrated_break_ratio",
             "recovery_breadth_min",
+            "recovery_conviction_retention_bonus",
             "industry_rotation_min_score",
             "industry_rotation_min_confidence",
             "industry_rotation_deterioration",
@@ -321,6 +343,8 @@ class SystemConfig:
             raise ValueError("min_trade_value cannot be negative")
         if not 0 <= self.concentrated_crisis_gross <= self.recovery_target_gross <= 1:
             raise ValueError("invalid crisis/recovery gross targets")
+        if not 0.50 <= self.recovery_expansive_universe_gross <= self.recovery_target_gross:
+            raise ValueError("expansive recovery gross must be in [0.50, recovery_target_gross]")
         if (
             not 0
             <= self.severe_recovery_gross
@@ -426,12 +450,36 @@ class SystemConfig:
             raise ValueError("strategic_cohort_size must be in [1, min(3, max_positions)]")
         if not 1 <= self.strategic_cohort_min_size <= self.strategic_cohort_size:
             raise ValueError("strategic_cohort_min_size must be in [1, strategic_cohort_size]")
+        if not 0.80 <= self.strategic_two_name_gross <= 0.90:
+            raise ValueError("strategic_two_name_gross must be in [0.80, 0.90]")
+        if not 0.45 <= self.strategic_one_name_gross <= 0.55:
+            raise ValueError("strategic_one_name_gross must be in [0.45, 0.55]")
+        if not 0 <= self.strategic_two_name_min_score <= 1:
+            raise ValueError("strategic_two_name_min_score must be in [0, 1]")
+        if not 0 <= self.strategic_one_name_min_score <= 1:
+            raise ValueError("strategic_one_name_min_score must be in [0, 1]")
+        if not 0 <= self.strategic_one_name_min_secular_score <= 1:
+            raise ValueError("strategic_one_name_min_secular_score must be in [0, 1]")
+        if not (
+            self.strategic_cohort_confirm_days
+            < self.strategic_two_name_confirm_days
+            < self.strategic_one_name_confirm_days
+        ):
+            raise ValueError("smaller strategic cohorts require progressively longer confirmation")
+        if self.strategic_partial_universe_max_size < self.strategic_cohort_size:
+            raise ValueError("partial strategic universe must accommodate a full cohort")
+        if self.adaptive_broad_universe_min_size <= self.strategic_partial_universe_max_size:
+            raise ValueError("broad-universe compatibility must start above the partial universe")
         if not 0 <= self.strategic_secular_min_score <= 1:
             raise ValueError("strategic_secular_min_score must be in [0, 1]")
         if not 0 <= self.strategic_secular_min_confidence <= 1:
             raise ValueError("strategic_secular_min_confidence must be in [0, 1]")
         if self.strategic_cohort_min_ret240 < 0:
             raise ValueError("strategic_cohort_min_ret240 cannot be negative")
+        if self.strategic_established_min_median_ret240 < 0:
+            raise ValueError("strategic_established_min_median_ret240 cannot be negative")
+        if self.strategic_expansive_universe_min_size < self.adaptive_broad_universe_min_size:
+            raise ValueError("expansive universe threshold cannot precede broad compatibility")
         if self.strategic_persistent_confirm_days < 1:
             raise ValueError("strategic_persistent_confirm_days must be positive")
         if not -1 < self.strategic_reversal_max_ret240 < 0:

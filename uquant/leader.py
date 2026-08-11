@@ -181,8 +181,32 @@ def _profile_for(opportunity: str) -> str:
     return Opportunity.CHOPPY.value
 
 
-def _inferred_industries(panel: dict[str, pd.DataFrame], as_of: pd.Timestamp) -> dict[str, tuple[str, float]]:
-    """Infer unknown groups from causal correlation to stable group baskets."""
+def _residual_returns(series: pd.Series, market: pd.Series) -> pd.Series:
+    """Remove the contemporaneous broad technology beta from one return series."""
+    aligned = pd.concat(
+        [series.rename("asset"), market.rename("market")], axis=1, sort=False
+    ).dropna()
+    if len(aligned) < 20:
+        return pd.Series(dtype=float)
+    market_var = float(aligned["market"].var(ddof=0))
+    beta = (
+        float(aligned[["asset", "market"]].cov(ddof=0).to_numpy(dtype=float)[0, 1])
+        / market_var
+        if market_var > 1e-12
+        else 0.0
+    )
+    return aligned["asset"] - beta * aligned["market"]
+
+
+def _inferred_industries(
+    panel: dict[str, pd.DataFrame],
+    as_of: pd.Timestamp,
+    tech: pd.DataFrame,
+) -> dict[str, tuple[str, float]]:
+    """Infer unknown groups from stable 60/120-day residual correlations."""
+    tech_returns = (
+        tech.loc[:as_of, "close"].astype(float).tail(121).pct_change(fill_method=None).dropna()
+    )
     group_returns: dict[str, list[pd.Series]] = {}
     for symbol in STABLE_REFERENCE_UNIVERSE:
         industry = INDUSTRY.get(symbol)
@@ -193,7 +217,10 @@ def _inferred_industries(panel: dict[str, pd.DataFrame], as_of: pd.Timestamp) ->
         if len(series) >= 60:
             group_returns.setdefault(industry, []).append(series)
     baskets = {
-        industry: pd.concat(series, axis=1, sort=False).mean(axis=1, skipna=True)
+        industry: _residual_returns(
+            pd.concat(series, axis=1, sort=False).mean(axis=1, skipna=True),
+            tech_returns,
+        )
         for industry, series in group_returns.items()
     }
     inferred: dict[str, tuple[str, float]] = {}
@@ -202,21 +229,36 @@ def _inferred_industries(panel: dict[str, pd.DataFrame], as_of: pd.Timestamp) ->
             inferred[symbol] = (INDUSTRY[symbol], 1.0)
             continue
         series = frame.loc[:as_of, "close"].astype(float).tail(121).pct_change(fill_method=None).dropna()
-        correlations: list[tuple[float, str]] = []
-        for industry, basket in baskets.items():
-            aligned = pd.concat([series, basket], axis=1, sort=False).dropna()
-            if len(aligned) < 60:
-                continue
-            correlation = float(aligned.iloc[:, 0].corr(aligned.iloc[:, 1]))
-            if math.isfinite(correlation):
-                correlations.append((correlation, industry))
-        correlations.sort(reverse=True)
-        if not correlations:
+        residual = _residual_returns(series, tech_returns)
+        window_rankings: list[list[tuple[float, str]]] = []
+        for window in (60, 120):
+            correlations: list[tuple[float, str]] = []
+            for industry, basket in baskets.items():
+                aligned = pd.concat(
+                    [residual.tail(window), basket.tail(window)], axis=1, sort=False
+                ).dropna()
+                if len(aligned) < window:
+                    continue
+                correlation = float(aligned.iloc[:, 0].corr(aligned.iloc[:, 1]))
+                if math.isfinite(correlation):
+                    correlations.append((correlation, industry))
+            correlations.sort(reverse=True)
+            if correlations:
+                window_rankings.append(correlations)
+        if len(window_rankings) != 2:
             inferred[symbol] = ("unknown", 0.0)
             continue
-        best, industry = correlations[0]
-        runner_up = correlations[1][0] if len(correlations) > 1 else 0.0
-        confidence = min(1.0, max(0.0, 0.70 * best + 0.30 * (best - runner_up)))
+        winners = [ranking[0][1] for ranking in window_rankings]
+        if winners[0] != winners[1]:
+            inferred[symbol] = ("unknown", 0.0)
+            continue
+        industry = winners[0]
+        best = min(ranking[0][0] for ranking in window_rankings)
+        margins = [
+            ranking[0][0] - (ranking[1][0] if len(ranking) > 1 else 0.0)
+            for ranking in window_rankings
+        ]
+        confidence = min(1.0, max(0.0, 0.70 * best + 0.30 * min(margins)))
         inferred[symbol] = (industry if confidence > 0 else "unknown", confidence)
     return inferred
 
@@ -228,31 +270,32 @@ def _percentile(value: float, reference: Iterable[float]) -> float:
     return float((values < value).sum() + 0.5 * (values == value).sum()) / len(values)
 
 
-def compute_leaders(
+def compute_structural_leaders(
     panel: dict[str, pd.DataFrame],
     *,
     as_of: pd.Timestamp,
     tech: pd.DataFrame,
-    account: AccountState,
     cfg: SystemConfig,
     score_cache: dict[tuple[object, ...], dict[str, LeaderScore]] | None = None,
 ) -> dict[str, LeaderScore]:
-    """Score mature and emerging leaders using only data visible at ``as_of``.
+    """Score regime-neutral leaders using only data visible at ``as_of``.
 
     Cross-sectional percentiles are anchored to the fixed reference universe;
-    persistence counters are then applied from the account state to suppress
-    one-session ranking noise.
+    account persistence and opportunity tilts are deliberately applied later.
     """
     if as_of not in tech.index:
         raise RuntimeError("fixed tech index missing at decision date")
-    profile = _profile_for(account.opportunity)
     extra_symbols = tuple(sorted(set(panel) - set(REFERENCE_UNIVERSE)))
-    cache_key = (as_of, extra_symbols, profile)
+    # Structural components include configuration-dependent industry evidence.
+    # A ProductionEngine is intentionally reused across promotion cells, so a
+    # key that omits cfg can leak small-pool hierarchical scores into the broad
+    # compatibility path (or the reverse) and make replay order affect returns.
+    cache_key = (as_of, extra_symbols, cfg, "STRUCTURAL")
     cached = score_cache.get(cache_key) if score_cache is not None else None
     if cached is not None:
-        return _apply_tenure(cached, account, cfg)
+        return cached
     tech_row = tech.loc[as_of]
-    inferred_industries = _inferred_industries(panel, as_of)
+    inferred_industries = _inferred_industries(panel, as_of, tech)
     effective_industries = {
         symbol: (
             industry if symbol in INDUSTRY or confidence >= cfg.unknown_industry_confidence else "unknown",
@@ -316,6 +359,7 @@ def compute_leaders(
         reference_symbols=references,
         industries={symbol: effective_industries.get(symbol, ("unknown", 0.0))[0] for symbol in panel},
         minimum_members=cfg.industry_signal_min_members,
+        hierarchical=cfg.hierarchical_industry_shrinkage_enabled,
     )
     industry_returns: dict[str, list[float]] = {}
     for symbol in references:
@@ -370,6 +414,9 @@ def compute_leaders(
                 industry_reference_means,
             ),
             "industry_rotation_strength": (industry_signal.score if industry_signal is not None else 0.5),
+            "industry_rotation_raw_strength": (
+                industry_signal.raw_score if industry_signal is not None else 0.5
+            ),
             "industry_confidence": (industry_signal.confidence if industry_signal is not None else 0.0),
             "industry_breadth20": (industry_signal.breadth20 if industry_signal is not None else 0.0),
             "industry_breadth60": (industry_signal.breadth60 if industry_signal is not None else 0.0),
@@ -383,13 +430,7 @@ def compute_leaders(
             "industry_inference_confidence": industry_inference_confidence,
             "unknown_industry": float(industry_inference_confidence < cfg.unknown_industry_confidence),
             "liquidity": item["liquidity"],
-            "factor_profile": float(
-                {
-                    Opportunity.TREND.value: 2,
-                    Opportunity.RECOVERY.value: 1,
-                    Opportunity.CHOPPY.value: 0,
-                }[profile]
-            ),
+            "factor_profile": -1.0,
         }
         secular_factors = {
             "secular_ret240": _percentile(item["ret240"], (raw[s]["ret240"] for s in references)),
@@ -455,7 +496,6 @@ def compute_leaders(
             )
         )
         confidence = min(1.0, item["history"] / cfg.min_history) * min(1.0, core_observed / 9.0)
-        profile_score = sum(weight * factors[name] for name, weight in FACTOR_PROFILES[profile].items())
         stable_score = (
             0.23 * global_momentum60
             + 0.12 * global_momentum120
@@ -466,12 +506,16 @@ def compute_leaders(
             + 0.08 * factors["industry_strength"]
             + 0.06 * factors["volume_expansion"]
         )
-        # The regime layer is a bounded tilt on the one established factor
-        # system, never a replacement ranking or a second engine.  A small
-        # causal tilt retains the fixed-reference production contract while
-        # still changing marginal admissions in the intended direction.
-        profile_tilt = 0.03 if cfg.regime_factor_blend_enabled else 0.0
-        raw_score = (1.0 - profile_tilt) * stable_score + profile_tilt * profile_score
+        factors.update(
+            {
+                "stable_score": stable_score,
+                "raw_ret60": item["ret60"],
+                "raw_ret120": item["ret120"],
+                "raw_accel": item["accel"],
+                "raw_history": item["history"],
+            }
+        )
+        raw_score = stable_score
         score = raw_score * (0.55 + 0.45 * confidence)
         mature = bool(
             score >= cfg.leader_mature_score
@@ -499,7 +543,89 @@ def compute_leaders(
         )
     if score_cache is not None:
         score_cache[cache_key] = base_results
-    return _apply_tenure(base_results, account, cfg)
+    return base_results
+
+
+def apply_opportunity_alpha(
+    structural: dict[str, LeaderScore],
+    *,
+    opportunity: Opportunity | str,
+    cfg: SystemConfig,
+) -> dict[str, LeaderScore]:
+    """Blend the current session's opportunity tilt without mutating tenure."""
+    opportunity_value = opportunity.value if isinstance(opportunity, Opportunity) else str(opportunity)
+    profile = _profile_for(opportunity_value)
+    profile_code = {
+        Opportunity.TREND.value: 2.0,
+        Opportunity.RECOVERY.value: 1.0,
+        Opportunity.CHOPPY.value: 0.0,
+    }[profile]
+    results: dict[str, LeaderScore] = {}
+    for symbol, base in structural.items():
+        factors = dict(base.components)
+        profile_score = sum(weight * factors[name] for name, weight in FACTOR_PROFILES[profile].items())
+        stable_score = factors["stable_score"]
+        profile_tilt = 0.03 if cfg.regime_factor_blend_enabled else 0.0
+        raw_score = (1.0 - profile_tilt) * stable_score + profile_tilt * profile_score
+        score = raw_score * (0.55 + 0.45 * base.confidence)
+        mature = bool(
+            score >= cfg.leader_mature_score
+            and factors["raw_ret60"] > 0
+            and factors["raw_ret120"] > 0
+            and factors["trend_persistence"] >= 2 / 3
+            and base.confidence >= cfg.leader_min_confidence
+        )
+        emerging = bool(
+            not mature
+            and factors["raw_history"] >= cfg.emerging_min_history
+            and factors["raw_accel"] > 0
+            and factors["breakout_quality"] >= 0.70
+            and factors["relative_strength"] >= 0.70
+            and score >= cfg.leader_emerging_score
+        )
+        factors["factor_profile"] = profile_code
+        factors["profile_score"] = profile_score
+        results[symbol] = LeaderScore(
+            symbol=symbol,
+            score=score,
+            confidence=base.confidence,
+            mature=mature,
+            emerging=emerging,
+            industry=base.industry,
+            components=factors,
+        )
+    return results
+
+
+def apply_leader_tenure(
+    leaders: dict[str, LeaderScore],
+    *,
+    account: AccountState,
+    cfg: SystemConfig,
+) -> dict[str, LeaderScore]:
+    """Apply the only per-decision mutation of leader persistence state."""
+    return _apply_tenure(leaders, account, cfg)
+
+
+def compute_leaders(
+    panel: dict[str, pd.DataFrame],
+    *,
+    as_of: pd.Timestamp,
+    tech: pd.DataFrame,
+    account: AccountState,
+    cfg: SystemConfig,
+    score_cache: dict[tuple[object, ...], dict[str, LeaderScore]] | None = None,
+) -> dict[str, LeaderScore]:
+    """Compatibility wrapper for structural, current-alpha, then tenure scoring."""
+    structural = compute_structural_leaders(
+        panel,
+        as_of=as_of,
+        tech=tech,
+        cfg=cfg,
+        score_cache=score_cache,
+    )
+    alpha = apply_opportunity_alpha(structural, opportunity=account.opportunity, cfg=cfg)
+    return apply_leader_tenure(alpha, account=account, cfg=cfg)
 
 
 def _apply_tenure(

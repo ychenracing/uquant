@@ -20,10 +20,7 @@ class StrategicPortfolioPolicy(PortfolioCore):
     ) -> bool:
         """Permit only a saved cohort repair inside the explicit level-2 cap."""
         return bool(
-            not account.strategic_candidate_signature.startswith(
-                "strategic_qualification:transition_impulse:"
-            )
-            and account.candidate_tenure.get("strategic_cohort_started", 0) == 1
+            account.candidate_tenure.get("strategic_cohort_started", 0) == 1
             and bool(account.strategic_restore_weights)
             and risk.state.value == "NORMAL"
             and not risk.reasons
@@ -56,6 +53,17 @@ class StrategicPortfolioPolicy(PortfolioCore):
             not self.cfg.strategic_dynamic_enabled
             or account.candidate_tenure.get("strategic_cohort_active", 0) == 1
         ):
+            return
+        live_general_leaders = {
+            symbol
+            for symbol in account.active_leaders
+            if (position := account.positions.get(symbol)) is not None
+            and position.shares > 0
+        }
+        if live_general_leaders:
+            # An operating leader book already has one lifecycle owner and a
+            # confirmed replacement process. Strategic discovery must not
+            # relabel it and silently bypass rotation hysteresis.
             return
         initial_check_key = "strategic_long_cycle_initial_check"
         long_cycle_open_key = "strategic_long_cycle_open"
@@ -143,6 +151,12 @@ class StrategicPortfolioPolicy(PortfolioCore):
             account.candidate_tenure[qualification_key] = 0
             account.candidate_tenure[long_cycle_open_key] = 0
             return
+        configured_universe_size = int(
+            risk.evidence.get("configured_user_universe_size", len(user_panel))
+        )
+        sparse_opportunity_set = bool(
+            configured_universe_size <= self.cfg.strategic_partial_universe_max_size
+        )
 
         def has_known_industry(symbol: str) -> bool:
             return bool(
@@ -240,7 +254,18 @@ class StrategicPortfolioPolicy(PortfolioCore):
             (
                 symbol
                 for symbol, values in snapshots.items()
-                if values["persistent_ret240"] >= self.cfg.strategic_cohort_min_ret240
+                if (
+                    values["persistent_ret240"] >= self.cfg.strategic_cohort_min_ret240
+                    or (
+                        sparse_opportunity_set
+                        and
+                        values["secular_score"] >= self.cfg.strategic_secular_min_score
+                        and values["secular_confidence"]
+                        >= self.cfg.strategic_secular_min_confidence
+                        and values["ret120"] > 0.0
+                        and values["trend_persistence"] >= 2 / 3
+                    )
+                )
                 and has_known_industry(symbol)
             ),
             key=lambda symbol: (
@@ -339,7 +364,14 @@ class StrategicPortfolioPolicy(PortfolioCore):
         anchors_not_yet_armed = bool(
             anchor_state_observed and not risk.evidence.get("risk_anchor_symbols", [])
         )
-        if anchors_not_yet_armed and persistent_groups:
+        # Durable 240-session industry evidence dominates shorter factor
+        # admission even after dynamic risk anchors have armed.  Letting an
+        # established/transition rank jump ahead made wider universes spend an
+        # epoch on a merely recent winner while a proven cluster was available.
+        if persistent_groups and (
+            anchors_not_yet_armed
+            or configured_universe_size >= self.cfg.adaptive_broad_universe_min_size
+        ):
             long_cycle_symbols = persistent_groups[0]
             route = "persistent_industry"
         elif high_quality_groups:
@@ -351,18 +383,66 @@ class StrategicPortfolioPolicy(PortfolioCore):
         elif len(established_candidates) >= self.cfg.strategic_cohort_min_size:
             long_cycle_symbols = established_candidates[: self.cfg.strategic_cohort_size]
             route = "established"
+        elif sparse_opportunity_set and len(established_candidates) >= 2:
+            long_cycle_symbols = established_candidates[:2]
+            route = "established"
+        elif sparse_opportunity_set and established_candidates:
+            long_cycle_symbols = established_candidates[:1]
+            route = "established"
+        elif sparse_opportunity_set and len(transition_candidates) >= 2:
+            long_cycle_symbols = transition_candidates[:2]
+            route = "transition"
         elif impulse_groups:
             long_cycle_symbols = impulse_groups[0]
             route = "transition_impulse"
-        elif anchor_state_observed and persistent_groups:
-            long_cycle_symbols = persistent_groups[0]
-            route = "persistent_industry"
         elif anchor_state_observed and synchronized_reversal:
             long_cycle_symbols = reversal_groups[0][:2]
             route = "reversal_industry"
+        elif len(established_candidates) >= 2:
+            long_cycle_symbols = established_candidates[:2]
+            route = "established"
+        elif established_candidates:
+            long_cycle_symbols = established_candidates[:1]
+            route = "established"
+        elif len(transition_candidates) >= 2:
+            long_cycle_symbols = transition_candidates[:2]
+            route = "transition"
         else:
             long_cycle_symbols = []
             route = "none"
+        if (
+            route == "established"
+            and configured_universe_size >= self.cfg.adaptive_broad_universe_min_size
+            and float(
+                pd.Series(
+                    [snapshots[symbol]["persistent_ret240"] for symbol in long_cycle_symbols]
+                ).median()
+            )
+            < self.cfg.strategic_established_min_median_ret240
+        ):
+            # Wide pools create many more chances for three recent winners to
+            # pass cross-sectional thresholds by luck.  Require durable median
+            # persistence for the established route; transition/impulse routes
+            # keep their own independent causal contracts.
+            long_cycle_symbols = []
+            route = "none"
+        evidence_route = route
+        admission_state = (
+            "SECULAR"
+            if route in {"established", "persistent_industry"}
+            else "EMERGING_SECULAR"
+            if route in {"transition", "transition_impulse", "reversal_industry"}
+            else "NONE"
+        )
+        persistent_route_hard_evidence = bool(
+            route == "persistent_industry"
+            and long_cycle_symbols
+            and all(
+                snapshots[symbol]["persistent_ret240"]
+                >= self.cfg.strategic_cohort_min_ret240
+                for symbol in long_cycle_symbols
+            )
+        )
         long_cycle_industries = {
             leaders[symbol].industry
             for symbol in long_cycle_symbols
@@ -379,11 +459,11 @@ class StrategicPortfolioPolicy(PortfolioCore):
         )
         synchronized_before_anchor_arm = bool(
             anchors_not_yet_armed
-            and route in {"persistent_industry", "reversal_industry"}
+            and (persistent_route_hard_evidence or route == "reversal_industry")
             and len(long_cycle_industries) == 1
             and (
                 len(long_cycle_symbols) >= self.cfg.strategic_cohort_min_size
-                or (route == "reversal_industry" and bool(reversal_groups))
+                or (admission_state == "EMERGING_SECULAR" and bool(reversal_groups))
             )
         )
         independent_market_confirmation = bool(
@@ -418,9 +498,38 @@ class StrategicPortfolioPolicy(PortfolioCore):
             )
             <= self.cfg.strategic_long_cycle_max_tech_ret120
         )
+        cohort_count = len(long_cycle_symbols)
+        partial_cohort_supported = bool(
+            synchronized_reversal
+            or sparse_opportunity_set
+        )
+        cohort_quality = bool(
+            cohort_count >= 3
+            or (
+                cohort_count == 2
+                and partial_cohort_supported
+                and (
+                    synchronized_reversal
+                    or all(
+                        snapshots[symbol]["leader_score"]
+                        >= self.cfg.strategic_two_name_min_score
+                        for symbol in long_cycle_symbols
+                    )
+                )
+            )
+            or (
+                cohort_count == 1
+                and partial_cohort_supported
+                and snapshots[long_cycle_symbols[0]]["leader_score"]
+                >= self.cfg.strategic_one_name_min_score
+                and snapshots[long_cycle_symbols[0]]["secular_score"]
+                >= self.cfg.strategic_one_name_min_secular_score
+                and snapshots[long_cycle_symbols[0]]["leader_confidence"]
+                >= self.cfg.leader_min_confidence
+            )
+        )
         raw_long_cycle = bool(
-            len(long_cycle_symbols)
-            >= (2 if route == "reversal_industry" else self.cfg.strategic_cohort_min_size)
+            cohort_quality
             # A fully armed, cross-industry sentinel basket is the ordinary
             # independent gate. During its initial hysteresis only, three
             # independently qualified names agreeing inside one known
@@ -450,7 +559,10 @@ class StrategicPortfolioPolicy(PortfolioCore):
             f"{symbol}:{leaders[symbol].industry if symbol in leaders else 'unknown'}"
             for symbol in sorted(route_symbols)
         )
-        signature = f"strategic_qualification:{route}:{signature_body}"
+        signature = (
+            f"strategic_qualification:{admission_state}:{signature_body}"
+            f":evidence={evidence_route}"
+        )
         previous = set(account.strategic_previous_symbols)
         same_members = bool(previous) and set(route_symbols) == previous
         new_members = len(set(route_symbols) - previous)
@@ -471,14 +583,21 @@ class StrategicPortfolioPolicy(PortfolioCore):
             reset_qualification_streaks()
             account.candidate_tenure[qualification_key] = 0
         required_confirm_days = (
-            self.cfg.strategic_persistent_confirm_days
-            if route == "persistent_industry"
-            else self.cfg.strategic_reversal_confirm_days
-            if route == "reversal_industry"
+            self.cfg.strategic_cohort_confirm_days
+            if synchronized_reversal or len(route_symbols) >= self.cfg.strategic_cohort_size
+            else self.cfg.strategic_two_name_confirm_days
+            if len(route_symbols) == 2
+            else self.cfg.strategic_one_name_confirm_days
+            if len(route_symbols) == 1
             else self.cfg.strategic_cohort_confirm_days
         )
         route_admission_open = bool(
-            admission_open or route in {"persistent_industry", "reversal_industry"}
+            admission_open
+            or (
+                (persistent_route_hard_evidence or synchronized_reversal)
+                and anchors_not_yet_armed
+                and synchronized_before_anchor_arm
+            )
         )
         if (
             not route_symbols
@@ -510,19 +629,31 @@ class StrategicPortfolioPolicy(PortfolioCore):
         account.candidate_tenure["tactical_promotable"] = 0
         account.candidate_tenure["strategic_deferred_to_recovery"] = 0
         account.candidate_tenure[evaluated_key] = 1
-        account.strategic_cohort_symbols = list(route_symbols)
-        if route == "reversal_industry":
-            lead_weight = min(self.cfg.max_symbol_weight, self.cfg.max_gross)
+        weighted_symbols = sorted(
+            route_symbols,
+            key=lambda symbol: (-leaders[symbol].score, symbol),
+        )
+        account.strategic_cohort_symbols = list(weighted_symbols)
+        if len(route_symbols) == 1:
             account.strategic_cohort_targets = {
-                route_symbols[0]: lead_weight,
-                route_symbols[1]: max(0.0, self.cfg.max_gross - lead_weight),
+                weighted_symbols[0]: min(
+                    self.cfg.max_symbol_weight,
+                    self.cfg.strategic_one_name_gross,
+                )
+            }
+        elif len(route_symbols) == 2:
+            cohort_gross = min(self.cfg.max_gross, self.cfg.strategic_two_name_gross)
+            lead_weight = min(self.cfg.max_symbol_weight, 0.60 * cohort_gross)
+            account.strategic_cohort_targets = {
+                weighted_symbols[0]: lead_weight,
+                weighted_symbols[1]: max(0.0, cohort_gross - lead_weight),
             }
         else:
             weight = min(
                 self.cfg.max_symbol_weight,
                 self.cfg.max_gross / len(route_symbols),
             )
-            account.strategic_cohort_targets = {symbol: weight for symbol in route_symbols}
+            account.strategic_cohort_targets = {symbol: weight for symbol in weighted_symbols}
         account.strategic_exit_bands.clear()
         account.strategic_active_bands.clear()
         account.strategic_restore_weights.clear()
@@ -608,8 +739,16 @@ class StrategicPortfolioPolicy(PortfolioCore):
         account.candidate_tenure["strategic_cohort_days"] = (
             account.candidate_tenure.get("strategic_cohort_days", 0) + 1
         )
-        transition_impulse_epoch = account.strategic_candidate_signature.startswith(
-            "strategic_qualification:transition_impulse:"
+        # SECULAR/EMERGING_SECULAR own the same lifecycle.  The lower-latency
+        # transition-impulse evidence still has less durable restore rights
+        # and exits atomically when every neighboring ATR band breaks.  That
+        # is evidence-calibrated severity inside one lifecycle, not a second
+        # portfolio route. Keep legacy signatures readable across migration.
+        transition_impulse_epoch = bool(
+            account.strategic_candidate_signature.startswith(
+                "strategic_qualification:transition_impulse:"
+            )
+            or ":evidence=transition_impulse" in account.strategic_candidate_signature
         )
         # A partially held cohort is not started: the missing members still
         # need targets.  Treating "any member held" as complete previously
@@ -722,9 +861,25 @@ class StrategicPortfolioPolicy(PortfolioCore):
                 for index, signal in enumerate(triggered):
                     if signal:
                         armed[index] = True
+                        exit_step = self.cfg.strategic_cohort_exit_step * (
+                            2.0
+                            if int(
+                                risk.evidence.get(
+                                    "configured_user_universe_size",
+                                    len(user_panel),
+                                )
+                            )
+                            <= self.cfg.strategic_partial_universe_max_size
+                            and (
+                                account.capital_budget_level >= 3
+                                or float(risk.evidence.get("transition_damage", 0.0))
+                                >= self.cfg.transition_damage_freeze
+                            )
+                            else 1.0
+                        )
                         bands[index] = max(
                             0.0,
-                            bands[index] - self.cfg.strategic_cohort_exit_step / band_count,
+                            bands[index] - exit_step / band_count,
                         )
             if sum(bands) <= 1e-12:
                 account.strategic_cohort_targets.pop(symbol, None)

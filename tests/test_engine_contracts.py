@@ -7,7 +7,13 @@ import pandas as pd
 import pytest
 
 from uquant.account import load_account, migrate_account, save_account
-from uquant.engine import ProductionEngine, attribution, code_fingerprint
+from uquant.config import DEFAULT_CONFIG
+from uquant.engine import (
+    ProductionEngine,
+    _decision_config_for_universe,
+    attribution,
+    code_fingerprint,
+)
 from uquant.leader import REFERENCE_UNIVERSE
 from uquant.report import render_daily_report
 from uquant.types import (
@@ -46,6 +52,24 @@ POOL_D = (
 )
 
 
+def test_transition_universe_keeps_same_day_alpha_but_uses_reviewed_risk_actions() -> None:
+    sparse = _decision_config_for_universe(8)
+    transition = _decision_config_for_universe(9)
+    broad = _decision_config_for_universe(10)
+
+    assert sparse.same_day_leader_pipeline_enabled
+    assert sparse.evidence_family_voting_enabled
+    assert transition.same_day_leader_pipeline_enabled
+    assert not transition.evidence_family_voting_enabled
+    assert not broad.same_day_leader_pipeline_enabled
+    assert not broad.group_balanced_reference_enabled
+    explicit = _decision_config_for_universe(
+        9,
+        DEFAULT_CONFIG.override(adaptive_broad_universe_compatibility_enabled=False),
+    )
+    assert explicit.evidence_family_voting_enabled
+
+
 def test_determinism_one_target_and_hard_constraints(data_dir):
     engine = ProductionEngine(data_dir)
     initial = AccountState.empty(2e6)
@@ -60,6 +84,32 @@ def test_determinism_one_target_and_hard_constraints(data_dir):
     assert len(positive) <= 6
     assert sum(item.weight for item in positive) <= 1.0 + 1e-9
     assert max((item.weight for item in positive), default=0.0) <= 0.60
+
+
+def test_shared_engine_leader_cache_isolated_by_adaptive_config(data_dir):
+    """A prior small-pool replay must not seed broad-pool structural scores."""
+    as_of = "2026-06-30"
+    pristine = ProductionEngine(data_dir)
+    expected, expected_state = pristine.deterministic_decision(
+        symbols=POOL_D,
+        as_of=as_of,
+        account=AccountState.empty(2e6),
+    )
+
+    shared = ProductionEngine(data_dir)
+    shared.deterministic_decision(
+        symbols=SYMBOLS,
+        as_of=as_of,
+        account=AccountState.empty(2e6),
+    )
+    actual, actual_state = shared.deterministic_decision(
+        symbols=POOL_D,
+        as_of=as_of,
+        account=AccountState.empty(2e6),
+    )
+
+    assert actual.decision_digest == expected.decision_digest
+    assert actual_state.to_dict() == expected_state.to_dict()
 
 
 def test_state_round_trip_and_fail_closed_hashes(data_dir, tmp_path):

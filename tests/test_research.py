@@ -3,6 +3,7 @@ from __future__ import annotations
 import inspect
 import random
 import sys
+from dataclasses import replace
 from pathlib import Path
 
 import pandas as pd
@@ -327,3 +328,120 @@ def test_research_harness_is_not_imported_by_production_modules() -> None:
         module = __import__(f"research.{name}", fromlist=[name])
         source = inspect.getsource(module)
         assert "ProductionEngine" not in source
+
+
+def test_candidate_runner_emits_canonical_daily_trace_and_finds_first_divergence(
+    data_dir: Path,
+) -> None:
+    from research.candidate_runner import CandidateRunner, first_divergence
+
+    runner = CandidateRunner(data_dir)
+    trace = runner.trace_cell(
+        symbols=("sz300308", "sz300502", "sz300394"),
+        start="2026-06-25",
+        end="2026-07-03",
+    )
+
+    assert trace.observations
+    first = trace.observations[0]
+    assert first.date == "2026-06-25"
+    assert first.opportunity
+    assert first.risk
+    assert isinstance(first.transition_damage, float)
+    assert isinstance(first.family_votes, tuple)
+    assert isinstance(first.sector_guard_active, bool)
+    assert isinstance(first.capital_budget_level, int)
+    assert isinstance(first.leaders, tuple)
+    assert isinstance(first.strategic_tag, str)
+    assert isinstance(first.targets, tuple)
+    assert isinstance(first.orders, tuple)
+    assert isinstance(first.fills, tuple)
+    assert first.equity > 0
+    assert first_divergence(trace, trace) is None
+
+    changed = replace(first, opportunity="CHOPPY" if first.opportunity != "CHOPPY" else "TREND")
+    other = replace(trace, observations=(changed, *trace.observations[1:]))
+    divergence = first_divergence(trace, other)
+    assert divergence is not None
+    assert divergence.date == first.date
+    assert divergence.changed_fields == ("opportunity",)
+
+
+def test_candidate_runner_rejects_misaligned_traces() -> None:
+    from research.candidate_runner import CellTrace, DecisionTrace, first_divergence
+
+    base = DecisionTrace(
+        date="2026-01-02",
+        opportunity="CHOPPY",
+        risk="NORMAL",
+        transition_damage=0.0,
+        family_votes=(),
+        sector_guard_active=False,
+        capital_budget_level=0,
+        leaders=(),
+        strategic_tag="",
+        targets=(),
+        orders=(),
+        fills=(),
+        equity=2_000_000.0,
+    )
+    with pytest.raises(ValueError, match="aligned dates"):
+        first_divergence(
+            CellTrace("a", "window", (base,)),
+            CellTrace("a", "window", (replace(base, date="2026-01-05"),)),
+        )
+
+
+def test_walk_forward_folds_are_deterministic_and_purged() -> None:
+    from research.statistics import walk_forward_folds
+
+    first = walk_forward_folds(30, train_size=12, test_size=4, step=4, purge=2)
+    second = walk_forward_folds(30, train_size=12, test_size=4, step=4, purge=2)
+
+    assert first == second
+    assert first[0].train == tuple(range(12))
+    assert first[0].test == tuple(range(14, 18))
+    assert all(max(fold.train) + 2 < min(fold.test) for fold in first)
+
+
+def test_probability_of_backtest_overfitting_detects_unstable_winners() -> None:
+    import numpy as np
+
+    from research.statistics import probability_of_backtest_overfitting
+
+    stable = np.column_stack(
+        [
+            np.linspace(0.01, 0.02, 24),
+            np.linspace(0.00, 0.01, 24),
+            np.linspace(-0.01, 0.00, 24),
+        ]
+    )
+    unstable = stable.copy()
+    unstable[:12, 0], unstable[12:, 0] = 0.10, -0.10
+    unstable[:12, 1], unstable[12:, 1] = -0.10, 0.10
+
+    assert probability_of_backtest_overfitting(stable, slices=6).probability <= 0.5
+    assert probability_of_backtest_overfitting(unstable, slices=6).probability >= 0.5
+
+
+def test_deflated_sharpe_is_bounded_and_rejects_insufficient_samples() -> None:
+    from research.statistics import deflated_sharpe_ratio
+
+    result = deflated_sharpe_ratio(
+        observed_sharpe=1.5,
+        trials=20,
+        sample_count=252,
+        skew=0.0,
+        kurtosis=3.0,
+    )
+
+    assert 0.0 <= result.probability <= 1.0
+    assert result.expected_max_sharpe > 0.0
+    with pytest.raises(ValueError, match="sample_count"):
+        deflated_sharpe_ratio(
+            observed_sharpe=1.0,
+            trials=2,
+            sample_count=2,
+            skew=0.0,
+            kurtosis=3.0,
+        )

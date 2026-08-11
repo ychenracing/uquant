@@ -117,6 +117,47 @@ def test_transitional_recovery_rejects_ordinary_rebound_candidate():
     assert account.tactical_anchor_symbol == ""
 
 
+def test_final_tactical_exit_retires_stale_restore_owner() -> None:
+    symbol = "deep_candidate"
+    frame = _tactical_frame(ret20=-0.10, ret120=-0.40)
+    date = frame.index[-1]
+    account = AccountState(
+        initial_cash=100.0,
+        cash=40.0,
+        positions={
+            symbol: Position(
+                symbol,
+                shares=60,
+                avg_cost=0.70,
+                lifecycle=Lifecycle.RECOVERY.value,
+                entry_date=str(frame.index[0].date()),
+            )
+        },
+        tactical_anchor_symbol=symbol,
+        protected_weights={symbol: 0.60},
+        strategic_restore_weights={symbol: 0.60},
+        candidate_tenure={"tactical_active": 1, "tactical_promotable": 0},
+        operating_peak=100.0,
+        capital_peak=100.0,
+    )
+    risk = RiskAssessment(Risk.NORMAL, 1.0, 0, {}, (), "NONE")
+
+    targets = PortfolioAllocator(DEFAULT_CONFIG).allocate(
+        date=date,
+        opportunity=Opportunity.CHOPPY,
+        risk=risk,
+        user_panel={symbol: frame},
+        leaders={symbol: LeaderScore(symbol, 0.90, 0.95, True, False, "independent", {})},
+        account=account,
+        prices={symbol: 0.94},
+    )
+
+    assert {target.symbol: target.weight for target in targets} == {symbol: 0.0}
+    assert symbol not in account.protected_weights
+    assert symbol not in account.strategic_restore_weights
+    assert account.tactical_anchor_symbol == ""
+
+
 def test_strong_two_index_market_does_not_mask_independent_deep_probe():
     targets, account = _tactical_targets(
         ret20=-0.10,

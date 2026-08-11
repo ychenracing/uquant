@@ -53,8 +53,8 @@ class PortfolioAllocator(RecoveryPortfolioPolicy):
             else min(self.cfg.recovery_target_gross, explicit_cap)
         )
 
-    @staticmethod
     def _risk_retention_score(
+        self,
         target: Target,
         account: AccountState,
     ) -> float:
@@ -83,7 +83,22 @@ class PortfolioAllocator(RecoveryPortfolioPolicy):
                 )
                 for item in position.tranches
             )
-        return target.alpha_score + tranche_value + min(0.20, 0.50 * max(0.0, peak_mfe))
+        conviction_bonus = (
+            self.cfg.recovery_conviction_retention_bonus
+            if self.cfg.recovery_conviction_weighting_enabled
+            and account.recovery_conviction_symbol == target.symbol
+            and any(
+                tranche.lifecycle == Lifecycle.RECOVERY.value
+                for tranche in position.tranches
+            )
+            else 0.0
+        )
+        return (
+            target.alpha_score
+            + tranche_value
+            + min(0.20, 0.50 * max(0.0, peak_mfe))
+            + conviction_bonus
+        )
 
     @staticmethod
     def _risk_retention_vector(
@@ -105,13 +120,18 @@ class PortfolioAllocator(RecoveryPortfolioPolicy):
             account.candidate_tenure.get("recovery_cohort_locked", 0) == 1
             and target.symbol in account.anchor_weights
         )
+        conviction_owner = bool(
+            account.recovery_conviction_symbol == target.symbol
+            and target.symbol in account.positions
+        )
         position = account.positions.get(target.symbol)
         if position is None or not position.tranches:
             lifecycle = target.lifecycle
             buckets = [0.0] * 6
             index = (
                 0
-                if lifecycle == Lifecycle.RECOVERY.value and locked_recovery_anchor
+                if lifecycle == Lifecycle.RECOVERY.value
+                and (locked_recovery_anchor or conviction_owner)
                 else {
                     Lifecycle.CORE.value: 0,
                     Lifecycle.RECOVERY.value: 2,
@@ -138,7 +158,8 @@ class PortfolioAllocator(RecoveryPortfolioPolicy):
             if tranche.shares <= 0:
                 continue
             if tranche.lifecycle == Lifecycle.CORE.value or (
-                tranche.lifecycle == Lifecycle.RECOVERY.value and locked_recovery_anchor
+                tranche.lifecycle == Lifecycle.RECOVERY.value
+                and (locked_recovery_anchor or conviction_owner)
             ):
                 # MAE is causal tranche evidence.  A deeply impaired Core is
                 # still retained after every incremental lifecycle, but before
@@ -649,12 +670,13 @@ class PortfolioAllocator(RecoveryPortfolioPolicy):
         unsupported_locked_restore = bool(
             synchronized_protected_restore
             and account.candidate_tenure.get("recovery_cohort_locked", 0) == 1
-            # A deliberately single-industry opportunity set has no external
-            # industry that could corroborate its own recovery.  Applying the
-            # cross-industry gate there would make every valid restore
-            # impossible; unknown or genuinely multi-industry pools still
-            # require independent user-side breadth.
-            and len(user_repair_industries) != 1
+            # A homogeneous recovery cohort is already three-name internal
+            # confirmation even when the wider opportunity set contains
+            # unrelated industries. Requiring leaders outside that cohort
+            # would make restoration depend on symbols that never owned the
+            # crash decision. Genuinely mixed-industry cohorts still require
+            # independent user-side breadth before missing members are rebought.
+            and len(incumbent_repair_industries) != 1
             and len(independent_user_repair_industries)
             < self.cfg.strategic_cohort_min_size
         )
@@ -986,8 +1008,16 @@ class PortfolioAllocator(RecoveryPortfolioPolicy):
                 else pnl >= self.cfg.tactical_rebound_take_profit or held_sessions >= 12
             )
             if exit_due:
+                # This is a final strategy exit, not a temporary risk trim.
+                # Any saved restore intent for the same tactical position must
+                # retire atomically; otherwise an already sold probe can leave
+                # ``protected_weights`` alive forever and block every later
+                # strategic cohort in a long replay.
+                account.protected_weights.pop(position.symbol, None)
+                account.strategic_restore_weights.pop(position.symbol, None)
                 account.candidate_tenure["tactical_active"] = 0
                 account.candidate_tenure["tactical_cooldown"] = self.cfg.tactical_rebound_cooldown_days
+                account.tactical_anchor_symbol = ""
                 return self._targets(
                     proposed={},
                     leaders=leaders,
@@ -1665,16 +1695,51 @@ class PortfolioAllocator(RecoveryPortfolioPolicy):
                             {symbol: secondary_weight for symbol in secondaries}
                         )
                     else:
-                        # No member owns an earlier entry. A locked cohort has
-                        # breadth evidence, so share the permitted aggregate
-                        # instead of assigning the probe's 60% concentration
-                        # arbitrarily. The same helper governs partial fills.
+                        # No member owns an earlier entry. Preserve the causal
+                        # crash-depth winner as the conviction anchor while
+                        # independent breadth diversifies the residual budget.
+                        # Equal weighting erased this evidence and materially
+                        # reduced continuous wealth without improving the hard
+                        # drawdown line.
                         cohort_gross = self._confirmed_recovery_gross(
                             risk=risk,
                             account=account,
                         )
-                        member_weight = cohort_gross / len(selected)
-                        proposed = {symbol: member_weight for symbol in selected}
+                        expansive_empty_cohort = bool(
+                            not previous_members
+                            and int(risk.evidence.get("configured_user_universe_size", 0))
+                            >= self.cfg.strategic_expansive_universe_min_size
+                        )
+                        if expansive_empty_cohort:
+                            # Wide pools create more chances for three transient
+                            # crash breakouts to coincide. Bound only their first
+                            # deployment while preserving the conviction ratio.
+                            cohort_gross = min(
+                                cohort_gross,
+                                self.cfg.recovery_expansive_universe_gross,
+                            )
+                        if self.cfg.recovery_conviction_weighting_enabled:
+                            lead_weight = min(
+                                self.cfg.max_symbol_weight,
+                                self.cfg.tactical_rebound_weight,
+                                cohort_gross
+                                * self.cfg.tactical_rebound_weight
+                                / self.cfg.recovery_target_gross,
+                            )
+                            secondary_weight = max(
+                                0.0,
+                                cohort_gross - lead_weight,
+                            ) / len(secondaries)
+                            proposed = {
+                                lead: lead_weight,
+                                **{
+                                    symbol: secondary_weight
+                                    for symbol in secondaries
+                                },
+                            }
+                        else:
+                            member_weight = cohort_gross / len(selected)
+                            proposed = {symbol: member_weight for symbol in selected}
                 elif (
                     len(secondaries) == 1
                     and account.recovery_anchor_date
@@ -1686,6 +1751,12 @@ class PortfolioAllocator(RecoveryPortfolioPolicy):
                     )
                     account.candidate_tenure["confirmed_anchor_pair"] = 1
                 account.anchor_weights = dict(proposed)
+                if self.cfg.recovery_conviction_weighting_enabled:
+                    # Preserve which name causally led the recovery after the
+                    # temporary cohort weights graduate. Crisis reducers can
+                    # then retain the evidence owner without treating every
+                    # old recovery lot as equally informative.
+                    account.recovery_conviction_symbol = lead
                 account.candidate_tenure["recovery_cohort_graduated"] = 0
                 if len(selected) == 2 and all(crash_depth.get(symbol, 0.0) <= -0.15 for symbol in selected):
                     account.candidate_tenure["confirmed_anchor_pair"] = 1

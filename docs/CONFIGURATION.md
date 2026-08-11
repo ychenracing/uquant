@@ -86,8 +86,17 @@
 | `strategic_dynamic_enabled` | `True` | 从用户全集按证据发现战略成员 |
 | `strategic_cohort_size` | 3 | 每个 epoch 最多战略成员数 |
 | `strategic_cohort_min_size` | 3 | 激活常规长周期 cohort 的最少合格成员数 |
+| `strategic_two_name_gross` | 0.85 | 证据充分的双成员 cohort 总仓上限 |
+| `strategic_one_name_gross` | 0.50 | exceptional 单成员 cohort 总仓上限 |
+| `strategic_two_name_confirm_days` | 3 | 双成员候选连续确认日数 |
+| `strategic_one_name_confirm_days` | 4 | 单成员候选连续确认日数 |
+| `strategic_partial_universe_max_size` | 8 | 允许 2/1 成员后备队列的最大固定用户全集；同步反转除外 |
+| `adaptive_broad_universe_min_size` | 10 | 自动启用广池兼容分析口径的固定用户全集下限 |
+| `adaptive_broad_universe_compatibility_enabled` | `True` | 9 只过渡全集只切换风险计票；广池关闭经消融证实负向的同日倾斜、分组收缩和家族计票决策；诊断证据仍保留 |
 | `strategic_secular_min_score` | 0.58 | 长周期综合分下限 |
 | `strategic_secular_min_confidence` | 0.65 | 长周期证据置信度下限 |
+| `strategic_established_min_median_ret240` | 1.00 | 10 只以上成熟路线的组内 240 日持久收益中位数下限 |
+| `strategic_expansive_universe_min_size` | 20 | 启用宽全集成熟证据与首次恢复仓位保护的全集下限 |
 | `strategic_long_cycle_min_ret20` | -0.05 | 常规长期路线允许轻微整理，但拒绝 20 日收益低于 -5% 的旧赢家 |
 | `strategic_long_cycle_min_ret60` | 0.00 | Established 路线至少保持非负 60 日结构 |
 | `strategic_long_cycle_min_ret120` | 0.00 | 新长期 cohort 至少保持非负 120 日结构，避免用行业配额填入衰退弱腿 |
@@ -111,7 +120,7 @@
 | `strategic_cohort_exit_step` | 0.01 | 每次已触发保护带的目标减量 |
 | `strategic_cohort_disaster_stop` | -0.20 | 未处于独立风险保护时的战略灾难退出线 |
 
-成员只从本次用户全集产生。每只候选至少需要 121 个可见收盘记录；成熟路线再使用 240 日截面证据。`secular_score` 组合长周期相对排名、韧性、效率、行业强度与流动性，不叠加 240 日绝对涨幅门槛。成熟路线若存在三只独立合格的同产业候选会优先采用同步组，否则回退到全市场相对排名；低延迟路线只接受同一已知行业至少三票同步、正常风险与趋势环境，并复用同一确认、仓位和退出生命周期。候选签名按经济成员排序规范化，连续确认 2 日后才激活。完整退出后，还需经过 30 个可见交易日并重新完成连续确认；原成员可以重新入选，不同 cohort 至少需要 1 个新增成员。epoch 计数、上一 cohort、候选签名、退出日和 rearm 日均随 schema v3 账户持久化。
+成员只从本次用户全集产生。每只候选至少需要 121 个可见收盘记录；成熟路线保留经消融验证的 240 日持久收益证据，小型集中机会集还可使用正 120 日结构、`secular_score` 与 2/3 趋势持久性共同确认的因果替代证据。完整三成员组优先；固定全集不超过 8 时，允许 2 个高质量成员以 85% 总仓、exceptional 单成员以 50% 总仓后备进入，并分别确认 3/4 日。9 只过渡全集拒绝不完整队列并自动采用风险动作兼容计票；10 只及以上广池采用完整兼容分析口径，避免早期未上市子集把广池误判为小池。候选签名用 `SECULAR`/`EMERGING_SECULAR` 表达状态，并在 `evidence=` 中保留来源。完整退出后，还需经过 30 个可见交易日并重新确认；epoch 状态均随 schema v3 账户持久化。
 
 风险模块临时压缩战略持仓时会逐票保存压缩前目标，但不会因风险上限随后放宽就立即买回。只有风险恢复到 `NORMAL`，或处于票数不超过 2 且 `transition_damage` 已回到修复线以下的 `CAUTION`，才按保存比例恢复；唯一恢复上限是风险模块当日给出的 `target_gross_cap`，组合层不再叠加隐性残余仓位 cap。restore 只有在风险 cap 足以覆盖未缩放的完整保存目标、每个成员都达到至少 95% 原目标且相关 BUY 均已结束后才清除；组合总仓或其他成员超配不能掩盖容量受限的缺票。由战略 ATR 保护带或灾难线产生的最终策略退出会逐票退休目标、保护带以及战略和风险两类恢复权，不进入买回路线。
 
@@ -123,6 +132,9 @@
 | `add2_min_mfe` | 0.10 | 第二次加仓最低浮盈 |
 | `add_tranche_cooldown_sessions` | 5 | 组合级加仓冷却天数 |
 | `recovery_target_gross` | 0.92 | 完成修复后的仓位上限 |
+| `recovery_expansive_universe_gross` | 0.70 | 20 只以上宽全集首次三成员恢复部署的总仓上限；后续仍可按确认自动恢复 |
+| `recovery_conviction_weighting_enabled` | `True` | 完整三成员恢复队列默认保留因果领涨股权重 |
+| `recovery_conviction_retention_bonus` | 0.30 | 同生命周期危机裁剪中因果领涨所有权的保留效用加分 |
 | `recovery_member_confirm_days` | 3 | 欠分散的临时恢复成员连续保持同一候选签名后才投入，抑制次日换锚 |
 | `recovery_winner_mfe_arm` | 0.20 | 恢复锚赢家 trail 的峰值 MFE 启用线 |
 | `recovery_winner_trail` | 0.10 | 已启用恢复赢家相对峰值的退出回撤 |
@@ -189,6 +201,10 @@
 | `risk_anchor_min_groups` | 2 | 锚篮子最少行业组数 |
 | `risk_anchor_confirm_days` | 5 | 新锚签名连续确认日数 |
 | `risk_anchor_min_secular_score` | 0.55 | 锚候选长期分下限 |
+| `same_day_leader_pipeline_enabled` | `True` | 结构评分后按本日机会施加 alpha，并且 tenure 只更新一次；广池兼容时自动停用 |
+| `group_balanced_reference_enabled` | `True` | 参考广度按证券和行业组共同汇总；广池兼容时自动停用 |
+| `hierarchical_industry_shrinkage_enabled` | `True` | 子行业分数按样本量向全局父级收缩；广池兼容时自动停用 |
+| `evidence_family_voting_enabled` | `True` | 六个独立证据家族各最多一票；9 只过渡全集和广池自动使用兼容动作票数，但继续输出家族诊断 |
 | `risk_breadth_name_weight` | 0.50 | 证券等权广度在混合广度中的权重 |
 | `stable_reference_global_weight` | 0.70 | 稳定参考证据中全局篮子权重 |
 | `unknown_industry_confidence` | 0.55 | 未知证券行业推断的最低可信度 |
@@ -225,7 +241,7 @@
 | `sector_shock_window` | 4 | 统计重复冲击的共同交易日窗口 |
 | `sector_shock_confirmations` | 2 | 激活保护所需的冲击次数 |
 | `sector_guard_divergence` | 0.50 | 科技相对宽基长期偏离确认阈值 |
-| `sector_guard_gross` | 0.82 | 重复同步持仓冲击的 Level-2 上限；14% 是资本回撤线，不是剩余仓位 |
+| `sector_guard_gross` | 0.40 | 重复同步持仓冲击的 Level-2 总仓上限；14% 是资本回撤线，不是剩余仓位 |
 | `sector_guard_min_sessions` | 8 | 允许退出保护前的最少交易日 |
 | `sector_recovery_ma` | 10 | 持仓结构修复均线窗口 |
 | `sector_recovery_return` | 0.00 | 恢复日等权收益下限 |

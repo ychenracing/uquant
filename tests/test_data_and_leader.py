@@ -13,10 +13,18 @@ from uquant.leader import (
     REFERENCE_UNIVERSE,
     RESEARCH_REFERENCE_UNIVERSE,
     STABLE_REFERENCE_UNIVERSE,
+    apply_leader_tenure,
+    apply_opportunity_alpha,
     compute_leaders,
+    compute_structural_leaders,
     stable_reference_requires_history,
 )
-from uquant.types import AccountState
+from uquant.reference_registry import (
+    ReferenceMembership,
+    load_reference_registry,
+    resolve_reference_symbols,
+)
+from uquant.types import AccountState, LeaderScore, Opportunity
 
 
 def test_data_contract_and_manifest(data_dir):
@@ -133,6 +141,61 @@ def test_history_backfill_requires_every_pre_snapshot_stable_reference() -> None
     assert not stable_reference_requires_history("unreviewed_symbol", "2022-01-04")
 
 
+def test_reference_registry_matches_reviewed_production_universe() -> None:
+    registry = load_reference_registry()
+
+    assert resolve_reference_symbols("2026-08-11", registry=registry) == tuple(
+        sorted(REFERENCE_UNIVERSE)
+    )
+
+
+def test_reference_registry_respects_effective_date_boundaries() -> None:
+    registry = (
+        ReferenceMembership(
+            symbol="member",
+            effective_from=pd.Timestamp("2020-01-02"),
+            effective_to=pd.Timestamp("2021-01-02"),
+            source="reviewed",
+            review_status="approved",
+        ),
+    )
+
+    assert resolve_reference_symbols("2020-01-01", registry=registry) == ()
+    assert resolve_reference_symbols("2020-01-02", registry=registry) == ("member",)
+    assert resolve_reference_symbols("2021-01-02", registry=registry) == ()
+
+
+def test_reference_registry_rejects_overlapping_membership(tmp_path) -> None:
+    path = tmp_path / "registry.json"
+    path.write_text(
+        json.dumps(
+            {
+                "schema_version": 1,
+                "memberships": [
+                    {
+                        "symbol": "member",
+                        "effective_from": "2020-01-01",
+                        "effective_to": None,
+                        "source": "reviewed",
+                        "review_status": "approved",
+                    },
+                    {
+                        "symbol": "member",
+                        "effective_from": "2021-01-01",
+                        "effective_to": None,
+                        "source": "reviewed",
+                        "review_status": "approved",
+                    },
+                ],
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    with pytest.raises(ValueError, match="overlapping"):
+        load_reference_registry(path)
+
+
 def test_future_mutation_does_not_change_historical_features(data_dir):
     engine = ProductionEngine(data_dir)
     engine._load(["sz300308"])
@@ -164,3 +227,75 @@ def test_unknown_history_never_gets_high_confidence(data_dir):
     assert not scores["sz999999"].mature
     assert scores["sz999999"].industry == "unknown"
     assert scores["sz999999"].components["unknown_industry"] == pytest.approx(1.0)
+
+
+def test_same_day_opportunity_selects_current_alpha_profile(data_dir) -> None:
+    engine = ProductionEngine(data_dir)
+    engine._load(set(REFERENCE_UNIVERSE) | {"sh000682"})
+    date = pd.Timestamp("2026-06-30")
+    panel = {symbol: engine._features[symbol] for symbol in REFERENCE_UNIVERSE}
+    structural = compute_structural_leaders(
+        panel,
+        as_of=date,
+        tech=engine._features["sh000682"],
+        cfg=engine.cfg,
+    )
+
+    trend = apply_opportunity_alpha(structural, opportunity=Opportunity.TREND, cfg=engine.cfg)
+    choppy = apply_opportunity_alpha(structural, opportunity=Opportunity.CHOPPY, cfg=engine.cfg)
+
+    assert all(item.components["factor_profile"] == 2.0 for item in trend.values())
+    assert all(item.components["factor_profile"] == 0.0 for item in choppy.values())
+    assert any(trend[symbol].score != choppy[symbol].score for symbol in trend)
+
+
+def test_structural_leader_cache_isolated_by_scoring_config(data_dir) -> None:
+    engine = ProductionEngine(data_dir)
+    engine._load(set(REFERENCE_UNIVERSE) | {"sh000682"})
+    date = pd.Timestamp("2025-04-01")
+    panel = {symbol: engine._features[symbol] for symbol in REFERENCE_UNIVERSE}
+    tech = engine._features["sh000682"]
+    cache: dict[tuple[object, ...], dict[str, LeaderScore]] = {}
+
+    compute_structural_leaders(
+        panel,
+        as_of=date,
+        tech=tech,
+        cfg=engine.cfg.override(hierarchical_industry_shrinkage_enabled=False),
+        score_cache=cache,
+    )
+    actual = compute_structural_leaders(
+        panel,
+        as_of=date,
+        tech=tech,
+        cfg=engine.cfg,
+        score_cache=cache,
+    )
+    expected = compute_structural_leaders(
+        panel,
+        as_of=date,
+        tech=tech,
+        cfg=engine.cfg,
+    )
+
+    assert actual == expected
+
+
+def test_leader_tenure_mutates_once_after_same_day_alpha(data_dir) -> None:
+    engine = ProductionEngine(data_dir)
+    engine._load(set(REFERENCE_UNIVERSE) | {"sh000682"})
+    date = pd.Timestamp("2026-06-30")
+    panel = {symbol: engine._features[symbol] for symbol in REFERENCE_UNIVERSE}
+    account = AccountState.empty(2e6)
+    structural = compute_structural_leaders(
+        panel,
+        as_of=date,
+        tech=engine._features["sh000682"],
+        cfg=engine.cfg,
+    )
+    alpha = apply_opportunity_alpha(structural, opportunity=Opportunity.RECOVERY, cfg=engine.cfg)
+
+    assert account.leader_tenure == {}
+    apply_leader_tenure(alpha, account=account, cfg=engine.cfg)
+
+    assert max(account.leader_tenure.values(), default=0) <= 1

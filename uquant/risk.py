@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import math
+from collections.abc import Mapping
 
 import numpy as np
 import pandas as pd
@@ -10,12 +11,47 @@ import pandas as pd
 from .config import SystemConfig
 from .features import cross_section_returns, scalar
 from .leader import INDUSTRY, REFERENCE_UNIVERSE, credible_recovery_reserve
+from .reference import ReferenceContext
 from .risk_sector import update_sector_guard
 from .types import AccountState, LeaderScore, Risk, RiskAssessment
 
 # Retired compatibility export.  Production anchors live in AccountState and
 # are selected from reference evidence; no symbol receives a static risk role.
 REFERENCE_ANCHORS: tuple[str, ...] = ()
+
+EVIDENCE_FAMILY_MEMBERS: dict[str, tuple[str, ...]] = {
+    "market_velocity": ("index_velocity",),
+    "breadth_structure": (
+        "sector_breadth_shock",
+        "below_ma20_structure",
+        "multi_industry_sync",
+    ),
+    "covariance_stress": ("correlation_shock", "volatility_shock"),
+    "leadership_damage": ("leader_failure", "anchor_break"),
+    "live_book_damage": ("live_book_damage",),
+    "capital_damage": ("capital_damage",),
+}
+
+
+def _evidence_family_votes(indicators: Mapping[str, bool]) -> dict[str, bool]:
+    """Cap correlated indicators at one vote per independent evidence family."""
+    return {
+        family: any(bool(indicators.get(member, False)) for member in members)
+        for family, members in EVIDENCE_FAMILY_MEMBERS.items()
+    }
+
+
+def _strategic_grace_supported(
+    *,
+    configured_universe_size: int,
+    broad_compatibility: bool,
+    cfg: SystemConfig,
+) -> bool:
+    """Protect new broad cohorts only when the configured pool is expansive."""
+    return bool(
+        not broad_compatibility
+        or configured_universe_size >= cfg.strategic_expansive_universe_min_size
+    )
 
 
 def _persistent_crisis_cap(
@@ -173,6 +209,8 @@ def assess_risk(
     account: AccountState,
     equity: float,
     cfg: SystemConfig,
+    reference_context: ReferenceContext | None = None,
+    configured_universe_size: int | None = None,
 ) -> RiskAssessment:
     """Assess market, breadth, correlation, holding, and drawdown risk.
 
@@ -182,6 +220,7 @@ def assess_risk(
     """
     if date not in broad.index or date not in tech.index:
         raise RuntimeError("risk indices missing at decision date")
+    configured_size = configured_universe_size or len(user_panel)
     present = [
         symbol
         for symbol in REFERENCE_UNIVERSE
@@ -217,6 +256,9 @@ def assess_risk(
             votes=0,
             evidence={
                 "counterfactual_risk_overlay_disabled": True,
+                "evidence_families": EVIDENCE_FAMILY_MEMBERS,
+                "family_votes": {family: False for family in EVIDENCE_FAMILY_MEMBERS},
+                "family_vote_count": 0,
                 **market_context,
             },
             reasons=("risk overlay disabled for causal counterfactual",),
@@ -245,7 +287,21 @@ def assess_risk(
         if math.isfinite(close) and math.isfinite(ma60):
             above_ma60.append(close > ma60)
             sector_above60.setdefault(industry, []).append(close > ma60)
-        if symbol in leaders and leaders[symbol].mature:
+        broad_universe_compatibility = bool(
+            cfg.adaptive_broad_universe_compatibility_enabled
+            and (
+                not cfg.same_day_leader_pipeline_enabled
+                or len(user_panel) >= cfg.adaptive_broad_universe_min_size
+            )
+        )
+        if (
+            symbol in leaders
+            and leaders[symbol].mature
+            and (
+                broad_universe_compatibility
+                or account.leader_tenure.get(symbol, 0) >= cfg.leader_tenure_days
+            )
+        ):
             leader_failures.append(ret5 < -0.06 or (math.isfinite(close) and close < ma20))
     declining_name = float(np.mean(np.array(fast_returns) < 0)) if fast_returns else 0.0
     below_name = float(np.mean(below_ma20)) if below_ma20 else 0.0
@@ -288,6 +344,18 @@ def assess_risk(
         if len(returns.columns) >= 4
         else float("nan")
     )
+    if reference_context is not None:
+        declining_name = reference_context.name_declining
+        declining_group = reference_context.group_declining
+        declining = reference_context.declining
+        below_name = 1.0 - reference_context.name_breadth20
+        below_group = 1.0 - reference_context.group_breadth20
+        below = 1.0 - reference_context.breadth20
+        breadth60_name = reference_context.name_breadth60
+        breadth60_group = reference_context.group_breadth60
+        breadth60 = reference_context.breadth60
+        sector_stress = reference_context.sector_stress
+        correlation = reference_context.median_correlation
     recent_vol = float(tech.loc[:date, "close"].pct_change(fill_method=None).tail(10).std(ddof=0))
     normal_vol = float(tech.loc[:date, "close"].pct_change(fill_method=None).tail(60).std(ddof=0))
     vol_ratio = recent_vol / normal_vol if normal_vol > 1e-12 else 1.0
@@ -389,21 +457,36 @@ def assess_risk(
     else:
         account.chronic_repair_streak = 0
 
-    votes = 0
     reasons: list[str] = []
-    conditions = (
-        (average_fast <= cfg.risk_fast_return and declining >= cfg.risk_breadth, "sector breadth shock"),
-        (below >= cfg.risk_below_ma20, "MA20 structural damage"),
-        (sector_stress >= 0.50, "multi-industry synchronization"),
-        (math.isfinite(correlation) and correlation >= cfg.risk_correlation, "correlation shock"),
-        (vol_ratio >= cfg.risk_volatility_ratio, "volatility shock"),
-        (leader_failure >= 0.50, "leader failure"),
-        (tech_speed <= -0.055 or broad_speed <= -0.045, "index velocity shock"),
-    )
-    for active, reason in conditions:
+    indicator_state = {
+        "sector_breadth_shock": average_fast <= cfg.risk_fast_return and declining >= cfg.risk_breadth,
+        "below_ma20_structure": below >= cfg.risk_below_ma20,
+        "multi_industry_sync": sector_stress >= 0.50,
+        "correlation_shock": math.isfinite(correlation) and correlation >= cfg.risk_correlation,
+        "volatility_shock": vol_ratio >= cfg.risk_volatility_ratio,
+        "leader_failure": leader_failure >= 0.50,
+        "index_velocity": tech_speed <= -0.055 or broad_speed <= -0.045,
+    }
+    reason_by_indicator = {
+        "sector_breadth_shock": "sector breadth shock",
+        "below_ma20_structure": "MA20 structural damage",
+        "multi_industry_sync": "multi-industry synchronization",
+        "correlation_shock": "correlation shock",
+        "volatility_shock": "volatility shock",
+        "leader_failure": "leader failure",
+        "index_velocity": "index velocity shock",
+        "live_book_damage": "live book structural damage",
+        "capital_damage": "portfolio capital damage",
+    }
+    for indicator, active in indicator_state.items():
         if active:
-            votes += 1
-            reasons.append(reason)
+            reasons.append(reason_by_indicator[indicator])
+    family_votes = _evidence_family_votes(indicator_state)
+    votes = (
+        sum(family_votes.values())
+        if cfg.evidence_family_voting_enabled
+        else sum(indicator_state.values())
+    )
 
     sector_guard = update_sector_guard(
         date=date,
@@ -438,6 +521,7 @@ def assess_risk(
         )
     held_damage: list[bool] = []
     held_repair: list[bool] = []
+    held_loss: list[bool] = []
     held_ret5: list[float] = []
     for symbol, position in account.positions.items():
         frame = user_panel.get(symbol)
@@ -449,10 +533,49 @@ def assess_risk(
         ret5 = scalar(row, "ret5", 0.0)
         held_ret5.append(ret5)
         ret1 = float(frame.loc[:date, "close"].pct_change(fill_method=None).iloc[-1])
-        held_damage.append(math.isfinite(close) and math.isfinite(ma20) and close < ma20 and ret5 <= -0.05)
+        held_damage.append(
+            math.isfinite(close)
+            and math.isfinite(ma20)
+            and close < ma20
+            and ret5 <= -0.05
+        )
+        held_loss.append(math.isfinite(close) and close < position.avg_cost)
         held_repair.append(math.isfinite(ret1) and ret1 > 0)
     held_damage_ratio = float(np.mean(held_damage)) if held_damage else 0.0
+    held_loss_ratio = float(np.mean(held_loss)) if held_loss else 0.0
     held_repair_ratio = float(np.mean(held_repair)) if held_repair else 0.0
+    indicator_state.update(
+        live_book_damage=(
+            sector_guard.active
+            or held_damage_ratio >= cfg.concentrated_break_ratio
+        ),
+        capital_damage=(
+            capital_dd >= cfg.capital_budget_level2_dd
+            or (operating_dd >= cfg.operating_dd_caution and held_damage_ratio > 0.0)
+        ),
+    )
+    reasons.extend(
+        reason_by_indicator[indicator]
+        for indicator in ("live_book_damage", "capital_damage")
+        if indicator_state[indicator]
+    )
+    family_votes = _evidence_family_votes(indicator_state)
+    votes = (
+        sum(family_votes.values())
+        if cfg.evidence_family_voting_enabled
+        else sum(
+            indicator_state[name]
+            for name in (
+                "sector_breadth_shock",
+                "below_ma20_structure",
+                "multi_industry_sync",
+                "correlation_shock",
+                "volatility_shock",
+                "leader_failure",
+                "index_velocity",
+            )
+        )
+    )
     anchor_symbols = _update_dynamic_anchors(
         leaders=leaders,
         account=account,
@@ -552,7 +675,10 @@ def assess_risk(
     persistent_market_break = (
         concentrated_structure_break
         and account.risk_streaks[break_key] >= cfg.concentrated_break_confirm_days
-        and (votes >= 3 or (bool(held_ret5) and float(np.mean(held_ret5)) <= -0.08))
+        and (
+            votes >= 3
+            or (bool(held_ret5) and float(np.mean(held_ret5)) <= -0.08)
+        )
     )
     strategic_active = account.candidate_tenure.get("strategic_cohort_active", 0) == 1
     recovery_anchor_elapsed = 0
@@ -757,7 +883,11 @@ def assess_risk(
     )
     worsening_damage = bool(
         independent_damage
-        and (votes >= 3 or transition_damage >= 0.68 or held_damage_ratio >= cfg.concentrated_break_ratio)
+        and (
+            votes >= 3
+            or transition_damage >= 0.68
+            or held_damage_ratio >= cfg.concentrated_break_ratio
+        )
     )
     observed_budget_level = 0
     if cfg.capital_budget_ladder_enabled:
@@ -782,6 +912,46 @@ def assess_risk(
             transition_freeze or votes >= 2 or (votes >= 1 and held_damage_ratio > 0)
         ):
             observed_budget_level = 1
+        cohort_grace_days = (
+            cfg.capital_budget_emerging_cohort_grace_days
+            if account.strategic_candidate_signature.startswith(
+                "strategic_qualification:EMERGING_SECULAR:"
+            )
+            else cfg.capital_budget_new_cohort_grace_days
+        )
+        young_strategic_cohort = bool(
+            strategic_active
+            and _strategic_grace_supported(
+                configured_universe_size=configured_size,
+                broad_compatibility=broad_universe_compatibility,
+                cfg=cfg,
+            )
+            and account.strategic_candidate_signature.startswith(
+                (
+                    "strategic_qualification:SECULAR:",
+                    "strategic_qualification:EMERGING_SECULAR:",
+                )
+            )
+            and account.candidate_tenure.get("strategic_cohort_days", 0)
+            < cohort_grace_days
+        )
+        young_cohort_systemic_break = bool(
+            votes >= 5
+            and sector_stress >= 0.50
+            and transition_damage >= 0.80
+        )
+        if (
+            young_strategic_cohort
+            and not young_cohort_systemic_break
+        ):
+            # Early cohort volatility is already owned by the independent
+            # market and live-book families. Do not let an immature high-water
+            # mark manufacture a second, self-reinforcing caution authority.
+            # This grace is available only to a fully qualified, provenance-
+            # tagged cohort. An arbitrary strategic label cannot bypass the
+            # capital ladder, while systemic multi-family damage still breaks
+            # a genuine young cohort immediately.
+            observed_budget_level = 0
     _update_capital_budget_ladder(
         account,
         observed_level=observed_budget_level,
@@ -829,6 +999,10 @@ def assess_risk(
         "risk_anchor_symbols": list(anchor_symbols),
         "risk_anchor_signature": account.risk_anchor_signature,
         "risk_anchor_group_count": len(anchor_groups),
+        "evidence_families": EVIDENCE_FAMILY_MEMBERS,
+        "family_votes": family_votes,
+        "family_vote_count": votes,
+        **(reference_context.evidence() if reference_context is not None else {}),
     }
 
     previous = Risk(account.risk)
@@ -852,6 +1026,7 @@ def assess_risk(
                 "volatility_ratio": vol_ratio,
                 "leader_failure_ratio": leader_failure,
                 "held_damage_ratio": held_damage_ratio,
+        "held_loss_ratio": held_loss_ratio,
                 "held_repair_ratio": held_repair_ratio,
                 "tech_speed": tech_speed,
                 "broad_speed": broad_speed,
@@ -1357,7 +1532,12 @@ def assess_risk(
         )
 
     observed = Risk.NORMAL
-    if shock_rearmed and not account.protected_weights and capital_dd >= cfg.capital_dd_crisis and votes >= 4:
+    if (
+        shock_rearmed
+        and not account.protected_weights
+        and capital_dd >= cfg.capital_dd_crisis
+        and votes >= 4
+    ):
         observed = Risk.CRISIS
     elif narrow_anchor_guard:
         observed = Risk.RISK_OFF
@@ -1425,7 +1605,11 @@ def assess_risk(
         account.candidate_tenure["last_shock_incomplete_universe"] = 0
         severe_held_move = bool(held_ret5) and (float(np.mean(held_ret5)) <= cfg.severe_shock_ret5)
         account.shock_severity = (
-            "SEVERE" if severe_held_move and votes >= 4 else "CONCENTRATED" if severe_held_move else "MARKET"
+            "SEVERE"
+            if severe_held_move and votes >= 4
+            else "CONCENTRATED"
+            if severe_held_move
+            else "MARKET"
         )
     if state != previous:
         account.risk_events.append(

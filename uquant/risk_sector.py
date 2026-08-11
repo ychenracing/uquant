@@ -8,16 +8,19 @@ import numpy as np
 import pandas as pd
 
 from .config import SystemConfig
+from .features import scalar
 from .types import AccountState
 
 
 @dataclass(frozen=True, slots=True)
 class SectorObservation:
-    """One point-in-time equal-weight observation of the deployed holdings."""
+    """One point-in-time breadth and economic-exposure holdings observation."""
 
     symbol_count: int
     equal_return: float
+    weighted_return: float
     positive_breadth: float
+    negative_exposure: float
     recovery_breadth: float
 
 
@@ -50,6 +53,7 @@ def observe_deployed_sector(
     panel: dict[str, pd.DataFrame],
     symbols: set[str],
     cfg: SystemConfig,
+    weights: dict[str, float] | None = None,
 ) -> SectorObservation | None:
     """Build a causal breadth snapshot from currently deployed securities.
 
@@ -58,6 +62,7 @@ def observe_deployed_sector(
     diluted by unrelated industries that happen to rise on the same session.
     """
     daily_returns: list[float] = []
+    economic_weights: list[float] = []
     recovery_structure: list[bool] = []
     for symbol in sorted(symbols):
         frame = panel.get(symbol)
@@ -71,16 +76,21 @@ def observe_deployed_sector(
         if current <= 0 or previous <= 0:
             continue
         daily_returns.append(current / previous - 1.0)
-        recovery_structure.append(
-            current > float(history.tail(cfg.sector_recovery_ma).mean())
-        )
+        economic_weights.append(max(0.0, (weights or {}).get(symbol, 1.0)))
+        recovery_structure.append(current > float(history.tail(cfg.sector_recovery_ma).mean()))
     if len(daily_returns) < cfg.sector_guard_min_symbols:
         return None
     returns = np.asarray(daily_returns, dtype=float)
+    raw_weights = np.asarray(economic_weights, dtype=float)
+    if float(raw_weights.sum()) <= 1e-12:
+        raw_weights = np.ones_like(returns)
+    normalized_weights = raw_weights / raw_weights.sum()
     return SectorObservation(
         symbol_count=len(daily_returns),
         equal_return=float(returns.mean()),
+        weighted_return=float(np.dot(returns, normalized_weights)),
         positive_breadth=float(np.mean(returns > 0.0)),
+        negative_exposure=float(normalized_weights[returns < 0.0].sum()),
         recovery_breadth=float(np.mean(recovery_structure)),
     )
 
@@ -106,33 +116,51 @@ def update_sector_guard(
         account.sector_shock_dates.clear()
         account.sector_guard_active = False
         account.sector_guard_started = ""
+        account.sector_guard_symbols.clear()
         account.sector_recovery_streak = 0
         return SectorGuardTransition(False, False, False, False, 0, 0, None)
 
-    deployed = {
-        symbol
-        for symbol, position in account.positions.items()
-        if position.shares > 0
-    }
+    deployed = {symbol for symbol, position in account.positions.items() if position.shares > 0}
     if account.sector_guard_active:
+        # Recovery must observe the economic cohort that triggered the guard,
+        # not merely the residual holdings after the guard's own sparse cut.
+        # Otherwise a 3-name shock reduced to one survivor can never satisfy
+        # ``sector_guard_min_symbols`` and the state machine locks forever.
+        deployed.update(account.sector_guard_symbols)
         deployed.update(account.protected_weights)
+    economic_weights: dict[str, float] = {}
+    for symbol in deployed:
+        position = account.positions.get(symbol)
+        frame = panel.get(symbol)
+        if position is not None and frame is not None and date in frame.index:
+            economic_weights[symbol] = position.shares * scalar(frame.loc[date], "close", 0.0)
+        elif symbol in account.protected_weights:
+            economic_weights[symbol] = max(0.0, account.protected_weights[symbol])
     observation = observe_deployed_sector(
         date=date,
         panel=panel,
         symbols=deployed,
         cfg=cfg,
+        weights=economic_weights,
     )
 
     account.sector_shock_dates = [
         value
         for value in account.sector_shock_dates
-        if pd.Timestamp(value) <= date
-        and _session_distance(calendar, value, date) < cfg.sector_shock_window
+        if pd.Timestamp(value) <= date and _session_distance(calendar, value, date) < cfg.sector_shock_window
     ]
     shock = bool(
         observation is not None
-        and observation.equal_return <= cfg.sector_shock_return
-        and observation.positive_breadth <= cfg.sector_shock_breadth
+        and (
+            (
+                observation.equal_return <= cfg.sector_shock_return
+                and observation.positive_breadth <= cfg.sector_shock_breadth
+            )
+            or (
+                observation.weighted_return <= cfg.sector_weighted_shock_return
+                and observation.negative_exposure >= cfg.sector_weighted_negative_exposure
+            )
+        )
     )
     date_label = str(date.date())
     if shock and date_label not in account.sector_shock_dates:
@@ -146,6 +174,7 @@ def update_sector_guard(
     if triggered:
         account.sector_guard_active = True
         account.sector_guard_started = date_label
+        account.sector_guard_symbols = sorted(deployed)
         account.sector_recovery_streak = 0
 
     active_sessions = (
@@ -162,13 +191,12 @@ def update_sector_guard(
             and observation.recovery_breadth >= cfg.sector_recovery_breadth
             and active_sessions >= cfg.sector_guard_min_sessions
         )
-        account.sector_recovery_streak = (
-            account.sector_recovery_streak + 1 if repair else 0
-        )
+        account.sector_recovery_streak = account.sector_recovery_streak + 1 if repair else 0
         if account.sector_recovery_streak >= cfg.sector_recovery_confirmations:
             recovered = True
             account.sector_guard_active = False
             account.sector_guard_started = ""
+            account.sector_guard_symbols.clear()
             account.sector_recovery_streak = 0
             account.sector_shock_dates.clear()
 

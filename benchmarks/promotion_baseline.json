@@ -1,20 +1,48 @@
 {
-  "metadata": {
-    "schema_version": 1,
-    "generated_at_utc": "2026-08-09",
-    "data_snapshot_id": "20260809T094222Z-causal-tech-index-rebase",
-    "strategy_version": "1.1.0",
-    "execution_semantics": "ProductionEngine daily-close decision and next-session open execution",
-    "notes": "References are frozen observed results, not targets. Updating them requires reviewed strategy or execution evidence."
+  "schema_version": 3,
+  "validation_fingerprint": "2b0668a64191acf1c2bbc0338977a40627af65c4b2f4d794095d3788320b7383",
+  "provenance": {
+    "data": {
+      "snapshot_id": "20260809T094222Z-causal-tech-index-rebase",
+      "files_verified": 36,
+      "manifest_sha256": "343009138d22f8d4a20768f706207fe4d4bcd03581b0c5945c5485ecbd28788d",
+      "checksums_sha256": "ba460d65f791f238d8a4a16ac62e2225c1832caa6f4da5003166a894edf80e29"
+    },
+    "dataset": {
+      "matrix_sha256": "c767044a276d6ced680bac60ac900bacef7588f1387ac2724f1dca161487b81c",
+      "pool_count": 5,
+      "scenario_count": 7,
+      "profile_count": 2,
+      "reference_cell_count": 35
+    },
+    "execution": {
+      "engine": "uquant.engine.ProductionEngine",
+      "decision": "daily_close_t",
+      "execution": "next_tradable_open",
+      "intraday_exit": false,
+      "prelisting": "invisible_until_first_observable_row",
+      "initial_cash": 2000000.0
+    },
+    "reference": {
+      "repository": "ychenracing/uquant",
+      "reference_path": "benchmarks/promotion_baseline.json",
+      "reference_commit": "ea4fb1cef59256f76ef9f810440c87ef53108aa2",
+      "source_sha256": "ddd875ac9b957e1e29f91c9a94a2c9c5242262a2f85728beab6adb80148b9633",
+      "observations_sha256": "8f44e2eef13b32f67112858742ee4e9497665a4a274498b5e21582fb47b5aae6"
+    }
   },
   "policy": {
+    "schema_version": 2,
     "wealth_floor_ratio": 0.99,
     "drawdown_tolerance": 0.005,
     "absolute_max_drawdown": 0.41,
-    "order_tolerance": 2,
+    "order_tolerance": 1,
     "order_ceiling_ratio": 1.05,
     "turnover_ceiling_ratio": 1.05,
-    "turnover_tolerance": 0.25
+    "turnover_tolerance": 0.25,
+    "continuous_median_max_drawdown": 0.28,
+    "continuous_worst_max_drawdown": 0.35,
+    "choppy_2024_max_drawdown": 0.18
   },
   "pools": {
     "a": [
@@ -181,35 +209,35 @@
     "a/mixed_2023": {"final_wealth": 3.362674066812279, "max_drawdown": 0.2674837558788983, "account_orders": 19, "annual_turnover": 4.224079446999999},
     "a/choppy_2024": {"final_wealth": 1.7488911064265293, "max_drawdown": 0.20567902985130826, "account_orders": 23, "annual_turnover": 2.7464705233499997},
     "a/bull": {"final_wealth": 12.956572970386489, "max_drawdown": 0.1595767426301642, "account_orders": 10, "annual_turnover": 13.309678823169206},
-    "a/through_july": {"final_wealth": 12.169849732110489, "max_drawdown": 0.1595767426301642, "account_orders": 13, "annual_turnover": 16.12826176834525, "urgent_return_floor": -0.065},
+    "a/through_july": {"final_wealth": 12.169849732110489, "max_drawdown": 0.1595767426301642, "account_orders": 13, "annual_turnover": 16.12826176834525, "urgent_return_floor": -0.03},
     "a/continuous": {"final_wealth": 38.539876200379695, "max_drawdown": 0.28887759925254497, "account_orders": 53, "annual_turnover": 11.324878814497728},
     "b/rotation_2021": {"final_wealth": 1.087748259148453, "max_drawdown": 0.3043183739399231, "account_orders": 15, "annual_turnover": 3.218550719588065},
     "b/bear_2022": {"final_wealth": 1.0851920911949804, "max_drawdown": 0.04496827432514272, "account_orders": 4, "annual_turnover": 2.1136500394999995},
     "b/mixed_2023": {"final_wealth": 3.362674066812279, "max_drawdown": 0.2674837558788983, "account_orders": 19, "annual_turnover": 4.224079446999999},
     "b/choppy_2024": {"final_wealth": 1.7488911064265293, "max_drawdown": 0.20567902985130826, "account_orders": 23, "annual_turnover": 2.7464705233499997},
     "b/bull": {"final_wealth": 12.956572970386489, "max_drawdown": 0.1595767426301642, "account_orders": 10, "annual_turnover": 13.309678823169206},
-    "b/through_july": {"final_wealth": 12.169849732110489, "max_drawdown": 0.1595767426301642, "account_orders": 13, "annual_turnover": 16.12826176834525, "urgent_return_floor": -0.065},
+    "b/through_july": {"final_wealth": 12.169849732110489, "max_drawdown": 0.1595767426301642, "account_orders": 13, "annual_turnover": 16.12826176834525, "urgent_return_floor": -0.03},
     "b/continuous": {"final_wealth": 25.0303805371164, "max_drawdown": 0.39931765993540036, "account_orders": 84, "annual_turnover": 8.00713752677886},
     "c/rotation_2021": {"final_wealth": 1.1758454164539343, "max_drawdown": 0.2676796603350057, "account_orders": 13, "annual_turnover": 4.313833712457613},
     "c/bear_2022": {"final_wealth": 1.1657117382274205, "max_drawdown": 0.044658804527218376, "account_orders": 6, "annual_turnover": 3.4797331329999994},
     "c/mixed_2023": {"final_wealth": 3.362674066812279, "max_drawdown": 0.2674837558788983, "account_orders": 19, "annual_turnover": 4.224079446999999},
     "c/choppy_2024": {"final_wealth": 1.7488911064265293, "max_drawdown": 0.20567902985130826, "account_orders": 23, "annual_turnover": 2.7464705233499997},
     "c/bull": {"final_wealth": 12.956572970386489, "max_drawdown": 0.1595767426301642, "account_orders": 10, "annual_turnover": 13.309678823169206},
-    "c/through_july": {"final_wealth": 12.169849732110489, "max_drawdown": 0.1595767426301642, "account_orders": 13, "annual_turnover": 16.12826176834525, "urgent_return_floor": -0.065},
+    "c/through_july": {"final_wealth": 12.169849732110489, "max_drawdown": 0.1595767426301642, "account_orders": 13, "annual_turnover": 16.12826176834525, "urgent_return_floor": -0.03},
     "c/continuous": {"final_wealth": 38.37489056406583, "max_drawdown": 0.3086531175415945, "account_orders": 68, "annual_turnover": 11.928033421826349},
     "d/rotation_2021": {"final_wealth": 1.1815196887631612, "max_drawdown": 0.26475343365032067, "account_orders": 13, "annual_turnover": 4.331439511023868},
     "d/bear_2022": {"final_wealth": 1.0024495410474703, "max_drawdown": 0.11962697309248993, "account_orders": 8, "annual_turnover": 3.4805760029999995},
     "d/mixed_2023": {"final_wealth": 3.362674066812279, "max_drawdown": 0.2674837558788983, "account_orders": 19, "annual_turnover": 4.224079446999999},
     "d/choppy_2024": {"final_wealth": 1.7488911064265293, "max_drawdown": 0.20567902985130826, "account_orders": 23, "annual_turnover": 2.7464705233499997},
     "d/bull": {"final_wealth": 13.063930150514036, "max_drawdown": 0.1598268629340448, "account_orders": 12, "annual_turnover": 13.76272586725861},
-    "d/through_july": {"final_wealth": 12.269755885194037, "max_drawdown": 0.1598268629340448, "account_orders": 15, "annual_turnover": 16.590385778202847, "urgent_return_floor": -0.065},
+    "d/through_july": {"final_wealth": 12.269755885194037, "max_drawdown": 0.1598268629340448, "account_orders": 15, "annual_turnover": 16.590385778202847, "urgent_return_floor": -0.03},
     "d/continuous": {"final_wealth": 66.71976436711488, "max_drawdown": 0.28401953855700923, "account_orders": 86, "annual_turnover": 19.039130759399225},
     "e/rotation_2021": {"final_wealth": 1.1528521019908555, "max_drawdown": 0.12227362901380845, "account_orders": 13, "annual_turnover": 4.414507369759258},
     "e/bear_2022": {"final_wealth": 0.9939481015993205, "max_drawdown": 0.11962697309248993, "account_orders": 8, "annual_turnover": 3.4718409804999997},
     "e/mixed_2023": {"final_wealth": 3.362674066812279, "max_drawdown": 0.2674837558788983, "account_orders": 19, "annual_turnover": 4.224079446999999},
     "e/choppy_2024": {"final_wealth": 1.7488911064265293, "max_drawdown": 0.20567902985130826, "account_orders": 23, "annual_turnover": 2.7464705233499997},
     "e/bull": {"final_wealth": 13.063930150514036, "max_drawdown": 0.1598268629340448, "account_orders": 12, "annual_turnover": 13.76272586725861},
-    "e/through_july": {"final_wealth": 12.269755885194037, "max_drawdown": 0.1598268629340448, "account_orders": 15, "annual_turnover": 16.590385778202847, "urgent_return_floor": -0.065},
+    "e/through_july": {"final_wealth": 12.269755885194037, "max_drawdown": 0.1598268629340448, "account_orders": 15, "annual_turnover": 16.590385778202847, "urgent_return_floor": -0.03},
     "e/continuous": {"final_wealth": 54.65660386104938, "max_drawdown": 0.3335969556159947, "account_orders": 132, "annual_turnover": 17.493529775309796}
   }
 }

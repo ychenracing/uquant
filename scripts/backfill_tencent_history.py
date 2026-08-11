@@ -28,6 +28,8 @@ from urllib.error import HTTPError, URLError
 from urllib.parse import urlencode
 from urllib.request import Request, urlopen
 
+from uquant.leader import stable_reference_requires_history
+
 ENDPOINT = "https://web.ifzq.gtimg.cn/appstock/app/fqkline/get"
 CHUNKS = (
     ("2014-01-01", "2015-12-31"),
@@ -41,6 +43,14 @@ TECH_INDEX = "sh000682"
 TECH_PROXY = "sz399006"
 TECH_TARGET_FIRST_DATE = "2021-08-16"
 HEADER = "date,open,high,low,close,volume,amount\n"
+
+
+def _requires_long_history(symbol: str, anchor_date: str) -> bool:
+    """Return whether an empty pre-snapshot backfill is a contract failure."""
+    return symbol in INDEX_SYMBOLS or stable_reference_requires_history(
+        symbol,
+        anchor_date,
+    )
 
 
 @dataclass(frozen=True, slots=True)
@@ -63,9 +73,7 @@ def _manifest_result(payload: dict[str, Any]) -> BackfillResult:
         last_date=str(payload["last_date"]),
         historical_rows_added=int(payload["historical_rows_added"]),
         total_rows=int(payload["total_rows"]),
-        anchor_max_relative_difference=float(
-            payload["anchor_max_relative_difference"]
-        ),
+        anchor_max_relative_difference=float(payload["anchor_max_relative_difference"]),
         sha256=str(payload["sha256"]),
         pre_inception_proxy=payload.get("pre_inception_proxy"),
     )
@@ -113,9 +121,7 @@ def _fetch(
     query = urlencode(
         {
             "_var": "kline_dayqfq" if adjusted else "kline_day",
-            "param": ",".join(
-                (symbol, "day", start, end, str(count), "qfq" if adjusted else "")
-            ),
+            "param": ",".join((symbol, "day", start, end, str(count), "qfq" if adjusted else "")),
         }
     )
     root = _payload(_request_text(f"{ENDPOINT}?{query}")).get("data", {}).get(symbol)
@@ -144,9 +150,7 @@ def _existing_anchor(path: Path) -> tuple[str, dict[str, float], str]:
     return first["date"], prices, text
 
 
-def _anchor_difference(
-    symbol: str, anchor_date: str, existing: dict[str, float]
-) -> float:
+def _anchor_difference(symbol: str, anchor_date: str, existing: dict[str, float]) -> float:
     rows = _fetch(symbol, anchor_date, anchor_date, count=30)
     if not rows:
         raise RuntimeError(f"Tencent returned no anchor row for {symbol} on {anchor_date}")
@@ -158,10 +162,7 @@ def _anchor_difference(
             strict=True,
         )
     )
-    differences = [
-        abs(existing[name] - fetched[name]) / max(abs(existing[name]), 1e-12)
-        for name in existing
-    ]
+    differences = [abs(existing[name] - fetched[name]) / max(abs(existing[name]), 1e-12) for name in existing]
     return max(differences)
 
 
@@ -199,22 +200,16 @@ def _backfill_one(path: Path) -> tuple[BackfillResult, bytes]:
     # security.  A percentage-return engine cannot consume that prefix.  Start
     # after the last non-positive adjusted bar; isolated positive-price OHLC
     # inconsistencies are omitted without discarding otherwise valid history.
-    non_positive = [
-        date
-        for date, row in rows.items()
-        if any(float(value) <= 0 for value in row[1:5])
-    ]
+    non_positive = [date for date, row in rows.items() if any(float(value) <= 0 for value in row[1:5])]
     if non_positive:
         cutoff = max(non_positive)
         rows = {date: row for date, row in rows.items() if date > cutoff}
     rows = {date: row for date, row in rows.items() if _valid_prices(row)}
-    if symbol in {"sz300308", "sz300394", "sz300502", *INDEX_SYMBOLS} and not rows:
+    if _requires_long_history(symbol, anchor_date) and not rows:
         raise RuntimeError(f"required long-history symbol has no Tencent backfill: {symbol}")
     anchor_difference = _anchor_difference(symbol, anchor_date, anchor_prices)
     if anchor_difference > 0.001:
-        raise RuntimeError(
-            f"{symbol} qfq anchor changed by {anchor_difference:.4%}; refusing splice"
-        )
+        raise RuntimeError(f"{symbol} qfq anchor changed by {anchor_difference:.4%}; refusing splice")
     prefix = "".join(
         f"{date},{open_},{high},{low},{close},{_format_volume(symbol, volume)},\n"
         for date, open_, high, low, close, volume in sorted(rows.values())
@@ -234,9 +229,7 @@ def _backfill_one(path: Path) -> tuple[BackfillResult, bytes]:
     return result, payload
 
 
-def _prepend_tech_proxy(
-    result: BackfillResult, payload: bytes
-) -> tuple[BackfillResult, bytes]:
+def _prepend_tech_proxy(result: BackfillResult, payload: bytes) -> tuple[BackfillResult, bytes]:
     """Prepend raw proxy levels and causally rebase later target levels.
 
     Index levels have an arbitrary base.  Rebase the target only from its first
@@ -304,8 +297,7 @@ def _write_metadata(data_dir: Path, results: list[BackfillResult]) -> None:
         "snapshot_id": datetime.now(UTC).strftime("%Y%m%dT%H%M%SZ-historical-backfill"),
         "generated_at_utc": generated_at,
         "adjustment": (
-            "Tencent qfq for stocks; Tencent raw index returns represented in "
-            "causally chain-linked levels"
+            "Tencent qfq for stocks; Tencent raw index returns represented in causally chain-linked levels"
         ),
         "historical_policy": "2014-2021 bounded chunks; 2022+ frozen rows preserved verbatim",
         "providers": ["Tencent Finance"],
@@ -357,9 +349,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     with ThreadPoolExecutor(max_workers=min(args.workers, len(paths))) as executor:
         staged = list(executor.map(_backfill_one, paths))
     staged = [
-        _prepend_tech_proxy(result, payload)
-        if result.symbol == TECH_INDEX
-        else (result, payload)
+        _prepend_tech_proxy(result, payload) if result.symbol == TECH_INDEX else (result, payload)
         for result, payload in staged
     ]
     results = sorted((item[0] for item in staged), key=lambda item: item.symbol)

@@ -9,7 +9,13 @@ import pytest
 
 from uquant.data import DataContractError, DataStore, normalize_symbol
 from uquant.engine import ProductionEngine
-from uquant.leader import REFERENCE_UNIVERSE, compute_leaders
+from uquant.leader import (
+    REFERENCE_UNIVERSE,
+    RESEARCH_REFERENCE_UNIVERSE,
+    STABLE_REFERENCE_UNIVERSE,
+    compute_leaders,
+    stable_reference_requires_history,
+)
 from uquant.types import AccountState
 
 
@@ -32,17 +38,13 @@ def test_bounded_manifest_accepts_append_but_detects_prefix_rewrite(tmp_path):
         "2025-01-03,10.5,12,10,11.5,1200,13800\n"
     )
     path.write_text(original, encoding="utf-8")
-    before = DataStore(tmp_path).manifest(
-        ["sh600000"], as_of="2025-01-03"
-    ).digest
+    before = DataStore(tmp_path).manifest(["sh600000"], as_of="2025-01-03").digest
 
     path.write_text(
         original + "2025-01-06,11.5,13,11,12.5,1500,18750\n",
         encoding="utf-8",
     )
-    appended = DataStore(tmp_path).manifest(
-        ["sh600000"], as_of="2025-01-03"
-    ).digest
+    appended = DataStore(tmp_path).manifest(["sh600000"], as_of="2025-01-03").digest
     assert appended == before
 
     path.write_text(
@@ -52,9 +54,7 @@ def test_bounded_manifest_accepts_append_but_detects_prefix_rewrite(tmp_path):
         ),
         encoding="utf-8",
     )
-    rewritten = DataStore(tmp_path).manifest(
-        ["sh600000"], as_of="2025-01-03"
-    ).digest
+    rewritten = DataStore(tmp_path).manifest(["sh600000"], as_of="2025-01-03").digest
     assert rewritten != before
 
 
@@ -115,6 +115,22 @@ def test_fixed_reference_score_is_user_pool_invariant(data_dir):
         cfg=engine.cfg,
     )
     assert first["sz300308"].score == second["sz300308"].score
+    components = first["sz300308"].components
+    assert 0.0 <= components["secular_stability"] <= 1.0
+    assert 0.0 <= components["secular_resilience"] <= 1.0
+    assert 0.0 <= components["secular_slope60"] <= 1.0
+    assert 0.0 <= components["secular_slope120"] <= 1.0
+
+
+def test_research_reference_staging_cannot_change_production_reference() -> None:
+    assert REFERENCE_UNIVERSE is STABLE_REFERENCE_UNIVERSE
+    assert RESEARCH_REFERENCE_UNIVERSE[: len(REFERENCE_UNIVERSE)] == REFERENCE_UNIVERSE
+
+
+def test_history_backfill_requires_every_pre_snapshot_stable_reference() -> None:
+    assert stable_reference_requires_history("sh600487", "2022-01-04")
+    assert not stable_reference_requires_history("sh688361", "2023-05-19")
+    assert not stable_reference_requires_history("unreviewed_symbol", "2022-01-04")
 
 
 def test_future_mutation_does_not_change_historical_features(data_dir):
@@ -146,3 +162,5 @@ def test_unknown_history_never_gets_high_confidence(data_dir):
     )
     assert scores["sz999999"].confidence < engine.cfg.leader_min_confidence
     assert not scores["sz999999"].mature
+    assert scores["sz999999"].industry == "unknown"
+    assert scores["sz999999"].components["unknown_industry"] == pytest.approx(1.0)

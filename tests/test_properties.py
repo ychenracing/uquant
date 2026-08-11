@@ -21,9 +21,7 @@ from uquant.types import Side
     scale=st.floats(min_value=1e-6, max_value=1e6, allow_nan=False, allow_infinity=False),
 )
 @settings(max_examples=120, deadline=None)
-def test_effective_diversification_is_scale_invariant_and_bounded(
-    weights: list[float], scale: float
-) -> None:
+def test_effective_diversification_is_scale_invariant_and_bounded(weights: list[float], scale: float) -> None:
     original = {str(index): value for index, value in enumerate(weights)}
     scaled = {symbol: value * scale for symbol, value in original.items()}
 

@@ -8,6 +8,8 @@ on:
       - "uquant/**"
       - "benchmarks/**"
       - "data/frozen/**"
+      - "pyproject.toml"
+      - "uv.lock"
       - ".github/workflows/strategy-performance.yml"
   schedule:
     - cron: "17 3 * * 1"
@@ -33,6 +35,8 @@ jobs:
     timeout-minutes: 60
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
@@ -45,7 +49,7 @@ jobs:
       - name: Select matrix profile
         id: profile
         env:
-          REQUESTED_PROFILE: ${{ (github.event_name == 'schedule' || github.event_name == 'push') && 'full' || inputs.profile }}
+          REQUESTED_PROFILE: ${{ github.event_name != 'workflow_dispatch' && 'full' || inputs.profile }}
         run: echo "value=${REQUESTED_PROFILE:-quick}" >> "$GITHUB_OUTPUT"
       - name: Run causal promotion matrix
         run: >-

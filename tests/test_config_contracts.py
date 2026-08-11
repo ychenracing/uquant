@@ -17,11 +17,10 @@ INVALID_OVERRIDES: tuple[tuple[dict[str, Any], str], ...] = (
     ({"emerging_min_history": 19}, "emerging_min_history"),
     ({"leader_mature_score": 1.1}, "leader_mature_score"),
     ({"commission_rate": -0.1}, "commission_rate"),
-    ({"production_stage": "UNKNOWN"}, "production_stage"),
+    ({"max_volume_participation": 1.01}, "max_volume_participation"),
+    ({"restoration_min_trade_weight": 0.06}, "restoration_min_trade_weight"),
     ({"concentrated_crisis_gross": 0.95}, "crisis/recovery"),
     ({"severe_recovery_gross": 0.60}, "differentiated recovery"),
-    ({"caution_gross": 1.1}, "caution gross"),
-    ({"caution_gross_min_votes": 0}, "caution gross minimum"),
     ({"sector_guard_min_symbols": 1}, "sector_guard_min_symbols"),
     ({"sector_shock_return": 0.0}, "sector_shock_return"),
     ({"sector_shock_breadth": 1.1}, "sector_shock_breadth"),
@@ -32,7 +31,6 @@ INVALID_OVERRIDES: tuple[tuple[dict[str, Any], str], ...] = (
     ({"sector_recovery_breadth": 1.1}, "sector_recovery_breadth"),
     ({"sector_recovery_confirmations": 0}, "sector_recovery_confirmations"),
     ({"trend_entry_gross": 1.1}, "trend gross"),
-    ({"satellite_weight": 0.61}, "satellite weight"),
     ({"add1_weight": 0.50, "add2_weight": 0.40}, "add tranche"),
     ({"add1_min_mfe": 0.20, "add2_min_mfe": 0.10}, "MFE"),
     ({"add_tranche_cooldown_sessions": 0}, "cooldown"),
@@ -48,27 +46,56 @@ INVALID_OVERRIDES: tuple[tuple[dict[str, Any], str], ...] = (
     ({"recovery_cohort_weak_graduation_days": 19}, "graduation days"),
     ({"recovery_cohort_weak_market_ret120": 0.0}, "weak_market_ret120"),
     ({"recovery_weak_market_min_index_ret60": 1.0}, "min_index_ret60"),
+    ({"recovery_cohort_tail_guard_days": 59}, "recovery cohort tail guard"),
+    ({"recovery_cohort_tail_line": 0.05}, "recovery cohort tail line"),
+    ({"recovery_transition_weak_leg_ret120": 0.0}, "weak-leg return"),
+    ({"recovery_transition_strong_leg_max_ret120": 0.0}, "strong-leg return"),
+    ({"recovery_transition_min_divergence": 0.0}, "transition divergence"),
+    ({"recovery_member_confirm_days": 1}, "at least 2"),
     ({"leader_cycle_confirm_days": 0}, "leader_cycle_confirm_days"),
     ({"leader_cycle_min_mature": 7}, "leader_cycle_min_mature"),
     ({"leader_cycle_min_score": 1.1}, "leader_cycle_min_score"),
     ({"leader_cycle_impulse_breadth": 1.1}, "impulse_breadth"),
     ({"leader_cycle_min_market_ret120": 1.0}, "min_market_ret120"),
-    ({"strategic_cohort_symbols": ("a", "a", "b")}, "three unique"),
-    ({"strategic_cohort_min_ret240": -0.1}, "min_ret240"),
+    ({"strategic_cohort_symbols": ("arbitrary_a",)}, "retired"),
+    ({"strategic_epoch_cooldown_sessions": 19}, "epoch cooldown"),
+    ({"strategic_epoch_min_symbol_change": 0}, "epoch symbol change"),
+    ({"strategic_long_cycle_max_tech_ret120": 0.0}, "long_cycle_max_tech_ret120"),
+    ({"strategic_long_cycle_min_ret60": -1.0}, "long_cycle_min_ret60"),
+    ({"strategic_long_cycle_min_ret120": -1.0}, "long_cycle_min_ret120"),
+    ({"strategic_current_factor_floor": 1.1}, "current_factor_floor"),
+    ({"strategic_transition_min_score": 1.1}, "transition_min_score"),
+    ({"strategic_transition_min_component": 1.1}, "transition_min_component"),
+    ({"strategic_transition_impulse_min_history": 240}, "transition_impulse_min_history"),
+    ({"strategic_transition_impulse_min_score": 1.1}, "transition_impulse_min_score"),
+    ({"strategic_transition_impulse_min_leader_score": 1.1}, "transition_impulse_min_leader_score"),
+    ({"strategic_transition_impulse_min_secular_score": 1.1}, "transition_impulse_min_secular_score"),
+    (
+        {"strategic_transition_impulse_min_secular_confidence": 1.1},
+        "transition_impulse_min_secular_confidence",
+    ),
+    ({"strategic_transition_impulse_min_ret20": -1.0}, "transition_impulse_min_ret20"),
+    ({"strategic_transition_impulse_min_ret60": -1.0}, "transition_impulse_min_ret60"),
+    ({"strategic_transition_impulse_min_ret120": -1.0}, "transition_impulse_min_ret120"),
+    ({"strategic_transition_impulse_max_ret120": 1.0}, "transition_impulse_max_ret120"),
+    (
+        {
+            "strategic_transition_impulse_min_ret120": 0.10,
+            "strategic_transition_impulse_max_ret120": 0.10,
+        },
+        "ret120 bounds",
+    ),
+    (
+        {"strategic_transition_impulse_min_market_ret20": -1.0},
+        "transition_impulse_min_market_ret20",
+    ),
     ({"strategic_cohort_confirm_days": 0}, "cohort_confirm_days"),
-    ({"strategic_reversal_max_ret240": 0.0}, "reversal_max_ret240"),
-    ({"strategic_reversal_min_ret5": 0.0}, "reversal_min_ret5"),
-    ({"strategic_reversal_min_median_ret20": 0.1}, "median_ret20"),
-    ({"strategic_reversal_max_tech_ret120": 0.1}, "max_tech_ret120"),
-    ({"strategic_reversal_confirm_days": 0}, "reversal_confirm_days"),
     ({"strategic_cohort_profit_arm": 1.1}, "cohort_profit_arm"),
     ({"strategic_cohort_trail_atr": 0.0}, "trailing distances"),
     ({"strategic_cohort_trail_bands": 4}, "trail_bands"),
     ({"strategic_cohort_exit_step": 0.0}, "cohort exit step"),
     ({"strategic_cohort_disaster_stop": 0.0}, "disaster stop"),
     ({"strategic_cohort_tail_line": 0.05}, "cohort tail line"),
-    ({"strategic_cohort_residual_gross": 0.50}, "residual gross guard"),
-    ({"strategic_cohort_crisis_gross": 0.20}, "cohort crisis gross"),
     ({"strategic_cohort_guard_days": 0}, "cohort_guard_days"),
     ({"capital_guard_cooldown_days": 0}, "capital_guard_cooldown_days"),
     ({"capital_guard_min_recovery_days": 0}, "capital_guard_min_recovery_days"),
@@ -89,9 +116,16 @@ INVALID_OVERRIDES: tuple[tuple[dict[str, Any], str], ...] = (
         "recovery reserve return",
     ),
     ({"recovery_substitution_edge": 1.1}, "recovery substitution edge"),
+    ({"recovery_substitution_max_ret20": 1.0}, "recovery substitution max ret20"),
     ({"recovery_substitution_shock_window": 0}, "substitution shock window"),
     ({"unbacked_universe_tail_dd": 0.09}, "unbacked universe tail"),
     ({"unbacked_recovery_anchor_min_days": 0}, "unbacked recovery anchor"),
+    ({"risk_anchor_count": 0}, "risk_anchor_count"),
+    ({"risk_anchor_min_groups": 4}, "risk_anchor_min_groups"),
+    ({"risk_anchor_confirm_days": 0}, "risk_anchor_confirm_days"),
+    ({"sector_weighted_shock_return": 0.0}, "sector_weighted_shock_return"),
+    ({"sector_weighted_negative_exposure": 1.1}, "sector_weighted_negative_exposure"),
+    ({"challenger_scout_incumbent_hysteresis": 0.21}, "scout incumbent hysteresis"),
 )
 
 
@@ -107,14 +141,26 @@ def test_every_configuration_safety_contract_fails_closed(
 def test_configuration_serialization_is_complete_and_detached() -> None:
     payload = DEFAULT_CONFIG.to_dict()
     assert payload["sector_guard_enabled"] is True
+    assert payload["sector_guard_gross"] == pytest.approx(0.40)
     assert payload["industry_rotation_enabled"] is True
+    assert payload["strategic_cohort_symbols"] == ()
+    assert payload["strategic_dynamic_enabled"] is True
+    assert payload["dynamic_risk_anchors_enabled"] is True
+    assert payload["strategic_epoch_cooldown_sessions"] == 30
+    assert payload["risk_anchor_confirm_days"] == 5
+    assert payload["sector_weighted_shock_return"] == pytest.approx(-0.024)
+    assert payload["sector_weighted_negative_exposure"] == pytest.approx(0.70)
+    assert payload["recovery_cohort_tail_guard_days"] == 90
+    assert payload["recovery_cohort_tail_line"] == pytest.approx(0.12)
+    assert payload["recovery_transition_weak_leg_ret120"] == pytest.approx(-0.08)
+    assert payload["recovery_transition_strong_leg_max_ret120"] == pytest.approx(0.08)
+    assert payload["recovery_transition_min_divergence"] == pytest.approx(0.10)
+    assert payload["recovery_substitution_max_ret20"] == pytest.approx(0.30)
     payload["max_gross"] = 0.0
     assert DEFAULT_CONFIG.max_gross == 1.0
 
 
 def test_package_and_project_versions_stay_in_sync() -> None:
-    project = tomllib.loads(
-        (Path(__file__).parents[1] / "pyproject.toml").read_text(encoding="utf-8")
-    )
+    project = tomllib.loads((Path(__file__).parents[1] / "pyproject.toml").read_text(encoding="utf-8"))
 
     assert uquant.__version__ == project["project"]["version"]

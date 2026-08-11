@@ -80,9 +80,7 @@ def verify_data_manifest(root: str | Path) -> dict[str, Any]:
         "directory": actual_files,
     }
     if len({frozenset(items) for items in inventories.values()}) != 1:
-        detail = ", ".join(
-            f"{name}={len(items)}" for name, items in inventories.items()
-        )
+        detail = ", ".join(f"{name}={len(items)}" for name, items in inventories.items())
         raise DataContractError(f"frozen data inventories differ ({detail})")
 
     for filename, expected_digest in sorted(expected.items()):

@@ -34,13 +34,13 @@ jobs:
         run: uv run ruff check .
       - name: Strict typing
         if: matrix.python-version == '3.12'
-        run: uv run mypy uquant scripts
+        run: uv run mypy uquant scripts research
       - name: Frozen-data integrity
         run: uv run python -m uquant.validation data-manifest --data-dir data/frozen
       - name: Tests and branch coverage
         run: uv run pytest --cov=uquant --cov-report=term-missing --cov-report=xml
       - name: Bytecode compilation
-        run: uv run python -m compileall -q uquant scripts tests
+        run: uv run python -m compileall -q uquant scripts research tests
       - name: Build wheel and source distribution
         if: matrix.python-version == '3.12'
         run: uv run python -m build

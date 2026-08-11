@@ -50,6 +50,22 @@ class PortfolioCore:
         self.cfg = cfg
 
     @staticmethod
+    def _reason_code(reason: str) -> str:
+        """Convert human explanations to a stable, finite attribution code."""
+        normalized = reason.lower()
+        if "rotation" in normalized or "replaces" in normalized:
+            return "rotation"
+        if "satellite" in normalized or "scout" in normalized:
+            return "satellite_expiry" if "expiry" in normalized else "challenger_scout"
+        if "strategic" in normalized:
+            return "strategic_tail" if "exit" in normalized else "strategic_cohort"
+        if "recovery" in normalized or "rebound" in normalized:
+            return "recovery_exit" if "exit" in normalized else "recovery_cohort"
+        if "deterioration" in normalized or "no independently" in normalized:
+            return "lifecycle_exit"
+        return "strategy_target"
+
+    @staticmethod
     def _add_cooldown_complete(
         *,
         account: AccountState,
@@ -82,9 +98,20 @@ class PortfolioCore:
         reasons: dict[str, str] | None = None,
     ) -> tuple[Target, ...]:
         targets: list[Target] = []
+        low_confidence_unknowns = {
+            symbol
+            for symbol, score in leaders.items()
+            if score.components.get("unknown_industry", 0.0) >= 0.5
+        }
+        unknown_gross = sum(max(0.0, proposed.get(symbol, 0.0)) for symbol in low_confidence_unknowns)
+        unknown_scale = (
+            min(1.0, self.cfg.unknown_industry_weight_cap / unknown_gross) if unknown_gross > 0 else 1.0
+        )
         for symbol in sorted(set(account.positions) | set(proposed)):
             score = leaders.get(symbol)
             weight = min(self.cfg.max_symbol_weight, max(0.0, proposed.get(symbol, 0.0)))
+            if score is not None and score.components.get("unknown_industry", 0.0) >= 0.5:
+                weight = min(weight * unknown_scale, self.cfg.unknown_industry_weight_cap)
             selected_lifecycle = (lifecycles or {}).get(symbol, lifecycle)
             selected_reason = (reasons or {}).get(symbol)
             if selected_reason is None:
@@ -97,6 +124,10 @@ class PortfolioCore:
                     alpha_score=score.score if score else 0.0,
                     confidence=score.confidence if score else 0.0,
                     reason=selected_reason,
+                    reason_code=self._reason_code(selected_reason),
+                    entry_industry_strength=(
+                        score.components.get("industry_rotation_strength", 0.0) if score else 0.0
+                    ),
                 )
             )
         positive = [item for item in targets if item.weight > 1e-12]
@@ -170,6 +201,10 @@ class PortfolioCore:
         account.candidate_tenure["confirmed_pair_balanced"] = 0
         account.candidate_tenure["recovery_substitution_pending"] = 0
         account.candidate_tenure["recovery_substitution_completed"] = 0
+        account.candidate_tenure["cross_industry_hard_risk_trail"] = 0
+        for key in tuple(account.replacement_tenure):
+            if key.startswith("hard_risk_winner_trail:"):
+                account.replacement_tenure.pop(key, None)
 
     def _release_stale_recovery_anchor(
         self,
@@ -188,10 +223,7 @@ class PortfolioCore:
         if not anchors:
             return False
         held = any(weights_now.get(symbol, 0.0) > 1e-12 for symbol in anchors)
-        pending_buy = any(
-            order.symbol in anchors and order.side == "BUY"
-            for order in account.pending_orders
-        )
+        pending_buy = any(order.symbol in anchors and order.side == "BUY" for order in account.pending_orders)
         protected = bool(anchors & set(account.protected_weights))
         shock_finished = risk.shock_state in {"NONE", "UNBACKED_COOLDOWN"}
         if (

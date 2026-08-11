@@ -50,6 +50,7 @@ def code_fingerprint() -> str:
 
 class ProductionEngine:
     """Own the single decision path used by both daily operation and replay."""
+
     def __init__(self, data_dir: str | Path, cfg: SystemConfig = DEFAULT_CONFIG) -> None:
         self.cfg = cfg
         self.data = DataStore(data_dir)
@@ -60,9 +61,7 @@ class ProductionEngine:
         self._manifest_cache: dict[tuple[tuple[str, ...], str], str] = {}
         self._reference_returns: pd.DataFrame | None = None
         self._code_hash: str | None = None
-        self._leader_score_cache: dict[
-            tuple[pd.Timestamp, tuple[str, ...]], dict[str, LeaderScore]
-        ] = {}
+        self._leader_score_cache: dict[tuple[object, ...], dict[str, LeaderScore]] = {}
 
     def _load(self, symbols: Iterable[str]) -> None:
         for symbol in sorted({normalize_symbol(item) for item in symbols}):
@@ -91,32 +90,63 @@ class ProductionEngine:
             if symbol in self._raw
         )
 
+    def _mark_account_positions(self, account: AccountState, date: pd.Timestamp) -> None:
+        """Advance every owned economic lot once using the causal closing mark.
+
+        Daily operation and replay both enter through :meth:`decide`, so keeping
+        mark-to-market state here prevents live trailing exits, winner retention,
+        and lot-priority decisions from diverging from a backtest.  Suspended
+        holdings retain their prior mark until the next observed session.
+        """
+        for symbol, position in account.positions.items():
+            frame = self._raw.get(symbol)
+            if frame is None or date not in frame.index:
+                continue
+            close = self._price(symbol, date)
+            position.highest_close = max(position.highest_close, close)
+            for tranche in position.tranches:
+                tranche.highest_close = max(tranche.highest_close, close)
+                tranche.lowest_close = (
+                    close if tranche.lowest_close <= 0 else min(tranche.lowest_close, close)
+                )
+                excursion = close / max(tranche.avg_cost, 1e-12) - 1.0
+                tranche.mfe = max(tranche.mfe, excursion)
+                tranche.mae = min(tranche.mae, excursion)
+
     def decide(self, *, symbols: Iterable[str], as_of: str, account: AccountState) -> Decision:
         if account.schema_version != ACCOUNT_SCHEMA_VERSION:
-            raise RuntimeError(
-                f"account schema {account.schema_version} requires explicit migration"
-            )
+            raise RuntimeError(f"account schema {account.schema_version} requires explicit migration")
+        date = pd.Timestamp(as_of).normalize()
+        if account.last_successful_run and pd.Timestamp(account.last_successful_run) >= date:
+            raise RuntimeError("decision date must be strictly after the last successful run")
+        broker_as_of = getattr(account, "broker_as_of", "")
+        if broker_as_of and date < pd.Timestamp(str(broker_as_of)):
+            raise RuntimeError("decision date predates the authoritative broker snapshot")
         user_symbols = tuple(sorted({normalize_symbol(item) for item in symbols}))
         if not user_symbols:
             raise ValueError("at least one technology-sector symbol is required")
-        all_symbols = set(user_symbols) | set(REFERENCE_UNIVERSE) | set(INDEX_SYMBOLS)
+        durable_symbols = (
+            set(account.positions)
+            | set(account.protected_weights)
+            | set(account.sector_guard_symbols)
+            | set(account.anchor_weights)
+            | set(account.strategic_cohort_symbols)
+            | set(account.strategic_cohort_targets)
+            | set(account.strategic_restore_weights)
+            | set(account.active_leaders)
+            | {order.symbol for order in account.pending_orders}
+        )
+        if account.tactical_anchor_symbol:
+            durable_symbols.add(account.tactical_anchor_symbol)
+        all_symbols = set(user_symbols) | durable_symbols | set(REFERENCE_UNIVERSE) | set(INDEX_SYMBOLS)
         self._load(all_symbols)
-        date = pd.Timestamp(as_of).normalize()
         if date not in self._features["sh000300"].index or date not in self._features["sh000682"].index:
             raise RuntimeError("decision date is not a common index session")
-        if account.last_successful_run and pd.Timestamp(account.last_successful_run) > date:
-            raise RuntimeError("account risk state comes from a future date")
         current_symbols = tuple(
-            sorted(
-                symbol
-                for symbol in all_symbols
-                if not self._raw[symbol].loc[:date].empty
-            )
+            sorted(symbol for symbol in all_symbols if not self._raw[symbol].loc[:date].empty)
         )
         if account.data_hash:
-            verification_symbols = tuple(
-                sorted(account.data_hash_symbols or current_symbols)
-            )
+            verification_symbols = tuple(sorted(account.data_hash_symbols or current_symbols))
             verification_as_of = account.data_hash_as_of or account.last_successful_run
             if verification_as_of:
                 verification_date = pd.Timestamp(verification_as_of).normalize()
@@ -151,12 +181,25 @@ class ProductionEngine:
         current_code_hash = self._code_hash
         if account.code_hash and account.code_hash != current_code_hash and self.cfg.fail_closed:
             raise RuntimeError("production code hash differs from account state")
+        self._mark_account_positions(account, date)
         reference_panel = {symbol: self._features[symbol] for symbol in REFERENCE_UNIVERSE}
-        user_panel = {symbol: self._features[symbol] for symbol in user_symbols}
+        strategy_symbols = tuple(sorted(set(user_symbols) | durable_symbols))
+        user_panel = {
+            symbol: self._features[symbol]
+            for symbol in strategy_symbols
+            if not self._raw[symbol].loc[:date].empty
+        }
         combined = dict(reference_panel)
         combined.update(user_panel)
         broad = self._features["sh000300"]
         tech = self._features["sh000682"]
+        leader_factor_profile = (
+            "TREND"
+            if account.opportunity in {"STRONG_TREND", "TREND"}
+            else "RECOVERY"
+            if account.opportunity == "RECOVERY"
+            else "CHOPPY"
+        )
         all_leaders = compute_leaders(
             combined,
             as_of=date,
@@ -169,13 +212,8 @@ class ProductionEngine:
         # listed yet. They are invisible until their first row; an existing
         # position, however, must always remain markable and therefore still
         # fails closed through ``_price`` if its data disappears.
-        visible_users = {
-            symbol for symbol in user_symbols if not self._raw[symbol].loc[:date].empty
-        }
-        prices = {
-            symbol: self._price(symbol, date)
-            for symbol in visible_users | set(account.positions)
-        }
+        visible_users = set(user_panel)
+        prices = {symbol: self._price(symbol, date) for symbol in visible_users | set(account.positions)}
         _, equity = current_weights(account, prices)
         risk = assess_risk(
             date=date,
@@ -221,6 +259,7 @@ class ProductionEngine:
             retained=previous_orders,
             planned=planned_orders,
             targets=targets,
+            cfg=self.cfg,
         )
         orders = reconcile_account_orders(
             account=account,
@@ -233,7 +272,14 @@ class ProductionEngine:
             "opportunity": opportunity.value,
             "risk": risk.state.value,
             "targets": [
-                {"symbol": item.symbol, "weight": round(item.weight, 12), "lifecycle": item.lifecycle}
+                {
+                    "symbol": item.symbol,
+                    "weight": round(item.weight, 12),
+                    "lifecycle": item.lifecycle,
+                    "reduction_policy": item.reduction_policy,
+                    "reason_code": item.reason_code,
+                    "exit_kind": item.exit_kind,
+                }
                 for item in targets
             ],
             "orders": [
@@ -242,6 +288,9 @@ class ProductionEngine:
                     "symbol": item.symbol,
                     "side": item.side,
                     "target_weight": round(item.target_weight, 12),
+                    "reduction_policy": item.reduction_policy,
+                    "reason_code": item.reason_code,
+                    "exit_kind": item.exit_kind,
                 }
                 for item in orders
             ],
@@ -267,6 +316,11 @@ class ProductionEngine:
                 "votes": risk.votes,
                 "reasons": list(risk.reasons),
                 "shock_state": risk.shock_state,
+                "reduction_level": risk.reduction_level,
+                "severity": risk.severity,
+                "strategic_epoch": account.strategic_epoch,
+                "strategic_candidate_signature": (account.strategic_candidate_signature),
+                "factor_profile": leader_factor_profile,
             },
             decision_digest=digest,
         )
@@ -298,12 +352,6 @@ class ProductionEngine:
         raw_user_panel = {symbol: self._raw[symbol] for symbol in user_symbols}
         for date in sessions:
             self.execution.execute_open(date=date, account=account, panel=raw_user_panel)
-            for symbol, position in account.positions.items():
-                if date in self._raw[symbol].index:
-                    close = float(self._raw[symbol].loc[date, "close"])
-                    position.highest_close = max(position.highest_close, close)
-                    for tranche in position.tranches:
-                        tranche.highest_close = max(tranche.highest_close, close)
             equity = self.equity(account, date)
             equity_rows.append((date, equity))
             decision = self.decide(symbols=user_symbols, as_of=str(date.date()), account=account)
@@ -333,24 +381,21 @@ class ProductionEngine:
             decision_digests=[item.decision_digest for item in decisions],
             pending_orders=len(account.pending_orders),
             final_account=account.to_dict(),
-            attribution=attribution(account.fills),
+            attribution=attribution(
+                account.fills,
+                panel=raw_user_panel,
+                benchmark=self._raw["sh000682"],
+            ),
             internal_events={
                 "risk": len(account.risk_events),
                 "lifecycle": len(account.lifecycle_events),
                 "replacement": len(account.replacement_events),
                 "target_decisions": sum(len(item.targets) for item in decisions),
-                "pending_order_intents": sum(
-                    len(item.pending_orders) for item in decisions
-                ),
+                "pending_order_intents": sum(len(item.pending_orders) for item in decisions),
                 "broker_submissions": len(account.order_ledger),
-                "unfilled_broker_submissions": sum(
-                    item.filled_shares == 0 for item in account.order_ledger
-                ),
+                "unfilled_broker_submissions": sum(item.filled_shares == 0 for item in account.order_ledger),
             },
-            daily_risk_states=[
-                {"date": item.date, "state": item.risk.value}
-                for item in decisions
-            ],
+            daily_risk_states=[{"date": item.date, "state": item.risk.value} for item in decisions],
         )
         return metrics
 
@@ -407,26 +452,29 @@ def performance_metrics(
     round_trips = 0
     for fill in fills:
         if fill.side == "BUY":
-            buy_lots.setdefault(fill.symbol, []).append(
-                [fill.shares, pd.Timestamp(fill.fill_date)]
-            )
+            buy_lots.setdefault(fill.symbol, []).append([fill.shares, pd.Timestamp(fill.fill_date)])
             inventory[fill.symbol] = inventory.get(fill.symbol, 0) + fill.shares
             continue
         before = inventory.get(fill.symbol, 0)
         remaining = fill.shares
-        for lot in buy_lots.get(fill.symbol, []):
-            available = int(lot[0])
-            if available <= 0 or remaining <= 0:
-                continue
-            sold = min(available, remaining)
-            holding_days.append(
-                (pd.Timestamp(fill.fill_date) - pd.Timestamp(lot[1])).days
-            )
-            lot[0] = available - sold
-            remaining -= sold
-        buy_lots[fill.symbol] = [
-            lot for lot in buy_lots.get(fill.symbol, []) if int(lot[0]) > 0
-        ]
+        if fill.sold_tranches:
+            for allocation in fill.sold_tranches:
+                entry_date = str(allocation.get("entry_date", ""))
+                if entry_date:
+                    holding_days.append((pd.Timestamp(fill.fill_date) - pd.Timestamp(entry_date)).days)
+            # Execution has already supplied authoritative lot identity.  The
+            # synthetic FIFO queue is used only for legacy fills.
+            remaining = 0
+        else:
+            for lot in buy_lots.get(fill.symbol, []):
+                available = int(lot[0])
+                if available <= 0 or remaining <= 0:
+                    continue
+                sold = min(available, remaining)
+                holding_days.append((pd.Timestamp(fill.fill_date) - pd.Timestamp(lot[1])).days)
+                lot[0] = available - sold
+                remaining -= sold
+        buy_lots[fill.symbol] = [lot for lot in buy_lots.get(fill.symbol, []) if int(lot[0]) > 0]
         inventory[fill.symbol] = max(0, before - fill.shares)
         if before > 0 and inventory[fill.symbol] == 0:
             round_trips += 1
@@ -437,20 +485,27 @@ def performance_metrics(
         None,
     )
     first_risk_off = next(
-        (
-            str(item.get("date"))
-            for item in risk_events
-            if item.get("to") in {"RISK_OFF", "CRISIS"}
-        ),
+        (str(item.get("date")) for item in risk_events if item.get("to") in {"RISK_OFF", "CRISIS"}),
         None,
     )
     risk_tokens = ("risk", "drawdown", "shock", "crisis", "capital protection")
+    structured_risk_exits = {
+        "risk",
+        "portfolio_risk",
+        "sector_guard",
+        "risk_off",
+        "crisis",
+        "capital_budget",
+    }
     first_reduce = next(
         (
             fill.fill_date
             for fill in fills
             if fill.side == "SELL"
-            and any(token in fill.reason.lower() for token in risk_tokens)
+            and (
+                fill.exit_kind in structured_risk_exits
+                or any(token in fill.reason.lower() for token in risk_tokens)
+            )
         ),
         None,
     )
@@ -484,9 +539,7 @@ def performance_metrics(
         "worst_60d": float(rolling60.min()) if rolling60.notna().any() else 0.0,
         "account_orders": len(broker_orders),
         "submitted_account_orders": len(orders),
-        "unfilled_account_submissions": sum(
-            item.filled_shares == 0 for item in orders
-        ),
+        "unfilled_account_submissions": sum(item.filled_shares == 0 for item in orders),
         "round_trips": round_trips,
         "gross_turnover": gross_turnover,
         "annual_turnover": gross_turnover / years,
@@ -509,6 +562,9 @@ def performance_metrics(
                 "target_weight": item.target_weight,
                 "reason": item.reason,
                 "lifecycle": item.lifecycle,
+                "reduction_policy": item.reduction_policy,
+                "reason_code": item.reason_code,
+                "exit_kind": item.exit_kind,
                 "status": item.status,
                 "requested_shares": item.requested_shares,
                 "filled_shares": item.filled_shares,
@@ -531,6 +587,9 @@ def performance_metrics(
                 "target_weight": item.target_weight,
                 "reason": item.reason,
                 "lifecycle": item.lifecycle,
+                "reduction_policy": item.reduction_policy,
+                "reason_code": item.reason_code,
+                "exit_kind": item.exit_kind,
                 "status": item.status,
                 "requested_shares": item.requested_shares,
                 "filled_shares": item.filled_shares,
@@ -543,97 +602,200 @@ def performance_metrics(
             }
             for item in orders
         ],
-        "equity_curve": [
-            {"date": str(date)[:10], "equity": value}
-            for date, value in equity.items()
-        ],
+        "equity_curve": [{"date": str(date)[:10], "equity": value} for date, value in equity.items()],
     }
 
 
-def attribution(fills: list[Fill]) -> dict[str, Any]:
-    """Aggregate realized results by lifecycle and decision-reason family."""
+def attribution(
+    fills: list[Fill],
+    *,
+    panel: dict[str, pd.DataFrame] | None = None,
+    benchmark: pd.DataFrame | None = None,
+) -> dict[str, Any]:
+    """Attribute actual sold lots and calculate causal, offline exit outcomes."""
     lifecycle_names = ("core", "add1", "add2", "satellite", "recovery")
-    lifecycle: dict[str, dict[str, float | int]] = {
-        name: {"fills": 0, "gross_value": 0.0, "fees": 0.0, "realized_pnl": 0.0}
-        for name in lifecycle_names
+    empty_bucket = {
+        "fills": 0,
+        "gross_value": 0.0,
+        "fees": 0.0,
+        "realized_pnl": 0.0,
+        "mfe": [],
+        "mae": [],
     }
-    lots: dict[str, list[dict[str, float | str]]] = {}
-    reason_buckets = {
-        "rotation": {"fills": 0, "gross_value": 0.0, "fees": 0.0},
-        "risk_cuts": {"fills": 0, "gross_value": 0.0, "fees": 0.0},
-    }
+    lifecycle: dict[str, dict[str, Any]] = {name: copy.deepcopy(empty_bucket) for name in lifecycle_names}
+    lots: dict[str, list[dict[str, Any]]] = {}
+    reason_buckets: dict[str, dict[str, Any]] = {}
+    post_exit: list[dict[str, Any]] = []
+
+    def reason_family(fill: Fill) -> str:
+        normalized = fill.reason.lower().replace("-", "_")
+        code = fill.reason_code.lower()
+        exit_kind = fill.exit_kind.lower()
+        if exit_kind == "sector_guard" or "sector" in code or "sector" in normalized:
+            return "sector_guard"
+        # Structured execution intent has precedence over a strategy's
+        # retained human-readable target reason.  A sparse portfolio-risk cut
+        # may deliberately preserve that text for auditability, but it is
+        # still economically a risk exit.
+        if exit_kind in {"risk", "risk_off", "crisis", "capital_budget"}:
+            return "risk_off"
+        if "strategic" in code or "strategic" in normalized:
+            return "strategic_tail"
+        if "rotation" in code or "rotation" in normalized or "replacement" in normalized:
+            return "rotation"
+        if "satellite" in code or "satellite" in normalized or "scout" in normalized:
+            return "satellite_expiry"
+        if "recovery" in code or "recovery" in normalized:
+            return "recovery_exit"
+        if "lifecycle" in code or "lifecycle" in normalized:
+            return "lifecycle_exit"
+        if "risk" in normalized or "crisis" in normalized:
+            return "risk_off"
+        return "strategy"
+
     for fill in fills:
-        name = fill.lifecycle.lower()
-        bucket = lifecycle.setdefault(
-            name,
-            {"fills": 0, "gross_value": 0.0, "fees": 0.0, "realized_pnl": 0.0},
-        )
         fees = fill.commission + fill.stamp_duty + fill.transfer_fee
-        bucket["fills"] = int(bucket["fills"]) + 1
-        bucket["gross_value"] = float(bucket["gross_value"]) + fill.gross_value
-        bucket["fees"] = float(bucket["fees"]) + fees
-        normalized_reason = fill.reason.lower().replace("-", "_")
-        reason_name = (
-            "rotation"
-            if "rotation" in normalized_reason or "replacement" in normalized_reason
-            else "risk_cuts"
-            if any(
-                token in normalized_reason
-                for token in (
-                    "risk",
-                    "drawdown",
-                    "shock",
-                    "crisis",
-                    "capital protection",
-                )
-            )
-            else ""
-        )
-        if reason_name:
-            reason_bucket = reason_buckets[reason_name]
-            reason_bucket["fills"] = int(reason_bucket["fills"]) + 1
-            reason_bucket["gross_value"] = (
-                float(reason_bucket["gross_value"]) + fill.gross_value
-            )
-            reason_bucket["fees"] = float(reason_bucket["fees"]) + fees
         if fill.side == "BUY":
-            lots.setdefault(fill.symbol, []).append(
+            name = fill.lifecycle.lower()
+            bucket = lifecycle.setdefault(name, copy.deepcopy(empty_bucket))
+            bucket["fills"] += 1
+            bucket["gross_value"] += fill.gross_value
+            bucket["fees"] += fees
+            active_lots = lots.setdefault(fill.symbol, [])
+            tranche_id = (
+                f"broker-fill:{fill.fill_id}"
+                if fill.fill_id
+                else f"{fill.fill_date}:{fill.symbol}:{len(active_lots) + 1}"
+            )
+            active_lots.append(
                 {
-                    "shares": float(fill.shares),
+                    "tranche_id": tranche_id,
+                    "shares": fill.shares,
                     "unit_cost": (fill.gross_value + fees) / fill.shares,
                     "lifecycle": name,
+                    "entry_date": fill.fill_date,
                 }
             )
             continue
-        remaining = fill.shares
-        unit_proceeds = (fill.gross_value - fees) / fill.shares
-        for lot in lots.get(fill.symbol, []):
-            available = int(float(lot["shares"]))
-            if available <= 0 or remaining <= 0:
+
+        family = reason_family(fill)
+        reason_bucket = reason_buckets.setdefault(
+            family,
+            {"fills": 0, "gross_value": 0.0, "fees": 0.0, "realized_pnl": 0.0},
+        )
+        reason_bucket["fills"] += 1
+        reason_bucket["gross_value"] += fill.gross_value
+        reason_bucket["fees"] += fees
+
+        allocations = list(fill.sold_tranches)
+        if not allocations:
+            remaining = fill.shares
+            for lot in lots.get(fill.symbol, []):
+                available = int(lot["shares"])
+                if available <= 0 or remaining <= 0:
+                    continue
+                sold = min(available, remaining)
+                allocations.append(
+                    {
+                        "shares": sold,
+                        "unit_cost": float(lot["unit_cost"]),
+                        "lifecycle": str(lot["lifecycle"]).upper(),
+                        "entry_date": str(lot["entry_date"]),
+                        "mfe": 0.0,
+                        "mae": 0.0,
+                    }
+                )
+                remaining -= sold
+        unit_proceeds = (fill.gross_value - fees) / max(fill.shares, 1)
+        fill_pnl = 0.0
+        for allocation in allocations:
+            sold = int(allocation.get("shares", 0))
+            if sold <= 0:
                 continue
-            sold = min(available, remaining)
-            origin = str(lot["lifecycle"])
-            origin_bucket = lifecycle.setdefault(
-                origin,
-                {
-                    "fills": 0,
-                    "gross_value": 0.0,
-                    "fees": 0.0,
-                    "realized_pnl": 0.0,
-                },
-            )
-            origin_bucket["realized_pnl"] = float(
-                origin_bucket["realized_pnl"]
-            ) + sold * (unit_proceeds - float(lot["unit_cost"]))
-            lot["shares"] = float(available - sold)
-            remaining -= sold
-        lots[fill.symbol] = [
-            lot for lot in lots.get(fill.symbol, []) if float(lot["shares"]) > 0
-        ]
+            origin = str(allocation.get("lifecycle", fill.lifecycle)).lower()
+            unit_cost = float(allocation.get("unit_cost", allocation.get("avg_cost", 0.0)))
+            pnl = sold * (unit_proceeds - unit_cost)
+            fill_pnl += pnl
+            bucket = lifecycle.setdefault(origin, copy.deepcopy(empty_bucket))
+            bucket["fills"] += 1
+            bucket["gross_value"] += sold * fill.price
+            bucket["fees"] += fees * sold / max(fill.shares, 1)
+            bucket["realized_pnl"] += pnl
+            bucket["mfe"].append(float(allocation.get("mfe", 0.0)))
+            bucket["mae"].append(float(allocation.get("mae", 0.0)))
+            remaining = sold
+            symbol_lots = lots.get(fill.symbol, [])
+            tranche_id = str(allocation.get("tranche_id", ""))
+            exact = [lot for lot in symbol_lots if tranche_id and lot.get("tranche_id") == tranche_id]
+            candidates = exact or symbol_lots
+            for lot in candidates:
+                if remaining <= 0:
+                    break
+                if not exact and (
+                    str(lot["lifecycle"]) != origin
+                    or str(lot["entry_date"]) != str(allocation.get("entry_date", lot["entry_date"]))
+                ):
+                    continue
+                consumed = min(int(lot["shares"]), remaining)
+                lot["shares"] -= consumed
+                remaining -= consumed
+                if exact and int(lot["shares"]) > 0:
+                    # Lifecycle promotion changes the economic lot in place;
+                    # retain that identity for the unsold remainder.
+                    lot["lifecycle"] = origin
+        reason_bucket["realized_pnl"] += fill_pnl
+        lots[fill.symbol] = [lot for lot in lots.get(fill.symbol, []) if int(lot["shares"]) > 0]
+
+        frame = panel.get(fill.symbol) if panel is not None else None
+        fill_date = pd.Timestamp(fill.fill_date)
+        if frame is None or fill_date not in frame.index:
+            continue
+        location = int(frame.index.get_indexer(pd.DatetimeIndex([fill_date]))[0])
+        benchmark_location = (
+            int(benchmark.index.get_indexer(pd.DatetimeIndex([fill_date]))[0])
+            if benchmark is not None and fill_date in benchmark.index
+            else -1
+        )
+        horizons: dict[str, Any] = {}
+        for horizon in (5, 10, 20, 40):
+            future_location = location + horizon
+            if future_location >= len(frame):
+                horizons[str(horizon)] = None
+                continue
+            absolute = float(frame.iloc[future_location]["close"] / fill.price - 1.0)
+            benchmark_return = 0.0
+            if (
+                benchmark is not None
+                and benchmark_location >= 0
+                and benchmark_location + horizon < len(benchmark)
+            ):
+                benchmark_return = float(
+                    benchmark.iloc[benchmark_location + horizon]["close"]
+                    / benchmark.iloc[benchmark_location]["close"]
+                    - 1.0
+                )
+            relative = absolute - benchmark_return
+            horizons[str(horizon)] = {
+                "absolute_return": absolute,
+                "relative_return": relative,
+                "avoided_loss": max(0.0, -absolute),
+                "false_exit_regret": max(0.0, relative),
+            }
+        post_exit.append(
+            {
+                "symbol": fill.symbol,
+                "exit_date": fill.fill_date,
+                "reason_code": fill.reason_code,
+                "reason_family": family,
+                "exit_kind": fill.exit_kind,
+                "horizons": horizons,
+            }
+        )
+
     open_lots = {
         name: int(
             sum(
-                float(lot["shares"])
+                int(lot["shares"])
                 for symbol_lots in lots.values()
                 for lot in symbol_lots
                 if str(lot["lifecycle"]) == name
@@ -641,10 +803,70 @@ def attribution(fills: list[Fill]) -> dict[str, Any]:
         )
         for name in lifecycle
     }
+    for bucket in lifecycle.values():
+        for key in ("mfe", "mae"):
+            values = list(bucket[key])
+            bucket[f"median_{key}"] = float(np.median(values)) if values else 0.0
+            del bucket[key]
+
+    replacement_spread: dict[str, list[dict[str, Any]]] = {"20": [], "40": []}
+    replacement_exits = [
+        fill for fill in fills if fill.side == "SELL" and reason_family(fill) in {"rotation", "recovery_exit"}
+    ]
+    for entry in fills:
+        marker = "replaces "
+        normalized_reason = entry.reason.lower().replace("-", "_")
+        if entry.side != "BUY" or marker not in normalized_reason:
+            continue
+        old_symbol = normalized_reason.split(marker, 1)[1].split(maxsplit=1)[0].strip(" ,.:;()[]")
+        linked_exits = [
+            fill
+            for fill in replacement_exits
+            if fill.symbol.lower() == old_symbol
+            and pd.Timestamp(fill.fill_date) <= pd.Timestamp(entry.fill_date)
+            and entry.symbol.lower() in fill.reason.lower()
+        ]
+        if not linked_exits or panel is None:
+            continue
+        linked_exit = max(
+            linked_exits,
+            key=lambda fill: (pd.Timestamp(fill.fill_date), fill.fill_id, fill.order_id),
+        )
+        old_frame = panel.get(linked_exit.symbol)
+        new_frame = panel.get(entry.symbol)
+        entry_date = pd.Timestamp(entry.fill_date)
+        if (
+            old_frame is None
+            or new_frame is None
+            or entry_date not in old_frame.index
+            or entry_date not in new_frame.index
+        ):
+            continue
+        old_location = int(old_frame.index.get_indexer(pd.DatetimeIndex([entry_date]))[0])
+        new_location = int(new_frame.index.get_indexer(pd.DatetimeIndex([entry_date]))[0])
+        old_start = float(old_frame.iloc[old_location]["close"])
+        if old_start <= 0 or entry.price <= 0:
+            continue
+        for horizon in (20, 40):
+            if old_location + horizon >= len(old_frame) or new_location + horizon >= len(new_frame):
+                continue
+            old_return = float(old_frame.iloc[old_location + horizon]["close"] / old_start - 1.0)
+            new_return = float(new_frame.iloc[new_location + horizon]["close"] / entry.price - 1.0)
+            replacement_spread[str(horizon)].append(
+                {
+                    "old_symbol": linked_exit.symbol,
+                    "new_symbol": entry.symbol,
+                    "entry_date": entry.fill_date,
+                    "gross_value": entry.gross_value,
+                    "old_return": old_return,
+                    "new_return": new_return,
+                    "spread": new_return - old_return,
+                }
+            )
     return {
         "by_lifecycle": lifecycle,
         "by_reason": reason_buckets,
         "open_shares_by_lifecycle": open_lots,
-        "false_exit_regret": [],
-        "replacement_spread": {"20": [], "40": []},
+        "post_exit": post_exit,
+        "replacement_spread": replacement_spread,
     }

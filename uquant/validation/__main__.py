@@ -1,4 +1,4 @@
-"""Module entry point for release validation gates."""
+"""Module entry point for all fail-closed release-validation gates."""
 
 from .cli import main
 

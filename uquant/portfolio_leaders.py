@@ -3,9 +3,12 @@
 from __future__ import annotations
 
 import math
+from itertools import combinations
+from typing import cast
 
 import numpy as np
 import pandas as pd
+from numpy.typing import NDArray
 
 from .features import scalar
 from .portfolio_core import effective_n
@@ -15,6 +18,154 @@ from .types import AccountState, LeaderScore, Lifecycle, Opportunity, RiskAssess
 
 class LeaderPortfolioPolicy(StrategicPortfolioPolicy):
     """Own dynamic K, admissions, additions, satellites, and leader rotation."""
+
+    def _cap_opportunity_gross(
+        self,
+        *,
+        proposed: dict[str, float],
+        gross_cap: float,
+        weights_now: dict[str, float],
+        leaders: dict[str, LeaderScore],
+        reasons: dict[str, str],
+        opportunity: Opportunity,
+    ) -> dict[str, float]:
+        """Limit new opportunity risk without manufacturing incumbent sells.
+
+        CHOPPY/WEAK are alpha-budget observations. Confirmed structural risk
+        overlays own forced reductions. This distinction gives the continuous
+        opportunity axis an economic hysteresis band: existing exposure may
+        drift above the entry budget, while only proposed increments are
+        sparsely removed.
+        """
+        capped = dict(proposed)
+        increments = {
+            symbol: max(0.0, weight - max(0.0, weights_now.get(symbol, 0.0)))
+            for symbol, weight in capped.items()
+        }
+        baseline_total = sum(capped.values()) - sum(increments.values())
+        allowed_total = max(gross_cap, baseline_total)
+        excess = max(0.0, sum(max(0.0, value) for value in capped.values()) - allowed_total)
+        if excess <= 1e-12:
+            return capped
+        symbols = tuple(sorted(symbol for symbol, weight in increments.items() if weight > 1e-12))
+        feasible = [
+            subset
+            for size in range(1, len(symbols) + 1)
+            for subset in combinations(symbols, size)
+            if sum(increments[symbol] for symbol in subset) >= excess - 1e-12
+        ]
+        selected = min(
+            feasible,
+            key=lambda subset: (
+                len(subset),
+                sum(leaders[symbol].score if symbol in leaders else 0.0 for symbol in subset),
+                -sum(increments[symbol] for symbol in subset),
+                subset,
+            ),
+        )
+        remaining = excess
+        for symbol in sorted(
+            selected,
+            key=lambda item: (
+                leaders[item].score if item in leaders else 0.0,
+                -increments[item],
+                item,
+            ),
+        ):
+            reduction = min(increments[symbol], remaining)
+            if reduction <= 1e-12:
+                continue
+            capped[symbol] = max(0.0, capped[symbol] - reduction)
+            reasons[symbol] = f"{opportunity.value.lower()} opportunity gross contraction"
+            remaining -= reduction
+        if remaining > 1e-8:
+            raise RuntimeError("leader opportunity cap could not be reconciled")
+        return capped
+
+    def _conviction_shares(
+        self,
+        symbols: list[str],
+        leaders: dict[str, LeaderScore],
+        *,
+        evidence_qualified: bool,
+    ) -> NDArray[np.float64]:
+        """Map score dispersion only after the joint evidence gate passes."""
+        scores: NDArray[np.float64] = np.asarray(
+            [leaders[symbol].score for symbol in symbols],
+            dtype=np.float64,
+        )
+        if len(scores) <= 1:
+            return np.ones(len(scores), dtype=np.float64)
+        if not evidence_qualified or not self.cfg.conviction_weighting_enabled or np.ptp(scores) < 0.03:
+            return np.full(len(scores), 1.0 / len(scores), dtype=np.float64)
+        weights: NDArray[np.float64] = np.asarray(
+            np.exp(6.0 * (scores - float(scores.max()))),
+            dtype=np.float64,
+        )
+        weights /= weights.sum()
+        cap = self.cfg.max_symbol_weight
+        # Capped-simplex projection redistributes excess instead of leaving
+        # avoidable cash after a high-conviction first entry.
+        for _ in range(len(weights) + 1):
+            excess = float(np.maximum(weights - cap, 0.0).sum())
+            weights = np.minimum(weights, cap)
+            room = np.maximum(cap - weights, 0.0)
+            if excess <= 1e-12 or float(room.sum()) <= 1e-12:
+                break
+            weights += excess * room / room.sum()
+        return np.asarray(weights / weights.sum(), dtype=np.float64)
+
+    def _conviction_evidence_qualified(
+        self,
+        *,
+        symbols: list[str],
+        leaders: dict[str, LeaderScore],
+        user_panel: dict[str, pd.DataFrame],
+        date: pd.Timestamp,
+        high_confidence: bool,
+    ) -> bool:
+        """Require independent quality and diversification evidence to concentrate."""
+        if not high_confidence or len(symbols) < 2:
+            return False
+        factor_floor = self.cfg.high_confidence_entry_breadth
+        if any(
+            leaders[symbol].components.get("resilience", 0.0) < factor_floor
+            or leaders[symbol].components.get("relative_strength", 0.0) < factor_floor
+            or leaders[symbol].components.get("liquidity", 0.0) < self.cfg.leader_min_confidence
+            for symbol in symbols
+        ):
+            return False
+        correlations = self._correlations(user_panel, symbols, date)
+        pairwise: list[float] = []
+        for index, left in enumerate(symbols):
+            for right in symbols[index + 1 :]:
+                if left not in correlations.index or right not in correlations.columns:
+                    continue
+                value = float(cast(float, correlations.at[left, right]))
+                if math.isfinite(value):
+                    pairwise.append(abs(value))
+        return bool(pairwise and max(pairwise) <= self.cfg.risk_correlation)
+
+    @staticmethod
+    def _session_clock(
+        user_panel: dict[str, pd.DataFrame],
+        date: pd.Timestamp,
+    ) -> pd.DatetimeIndex:
+        """Return the deterministic union of all visible user sessions."""
+        clock = pd.DatetimeIndex([])
+        for frame in user_panel.values():
+            sessions = pd.DatetimeIndex(frame.index)
+            clock = clock.union(sessions[sessions <= date])
+        return clock.sort_values()
+
+    @staticmethod
+    def _session_distance(
+        clock: pd.DatetimeIndex,
+        start: str | pd.Timestamp,
+        end: pd.Timestamp,
+    ) -> int:
+        bounded = clock[(clock >= pd.Timestamp(start)) & (clock <= end)]
+        return max(0, len(bounded) - 1)
 
     def _correlations(
         self,
@@ -96,7 +247,7 @@ class LeaderPortfolioPolicy(StrategicPortfolioPolicy):
             Opportunity.RECOVERY: 3,
         }[opportunity]
         target = min(self.cfg.max_positions, regime_cap, len(candidates))
-        if risk.state.value in {"RISK_OFF", "CRISIS"}:
+        if risk.freeze_new_risk or risk.state.value in {"RISK_OFF", "CRISIS"}:
             target = min(target, 2)
         if len(candidates) >= 3 and candidates[0].score - candidates[2].score >= 0.18:
             target = min(target, 2)
@@ -134,19 +285,23 @@ class LeaderPortfolioPolicy(StrategicPortfolioPolicy):
                 opportunity in {Opportunity.TREND, Opportunity.STRONG_TREND}
                 and len(trial) >= 3
                 and min(item.score for item in trial) >= 0.84
-                and max(item.score for item in trial) - min(item.score for item in trial)
-                <= 0.12
+                and max(item.score for item in trial) - min(item.score for item in trial) <= 0.12
             )
-            account.candidate_tenure["evidence_concentration"] = int(
-                concentrated_conviction
-            )
+            account.candidate_tenure["evidence_concentration"] = int(concentrated_conviction)
             if effective_n(equal, correlations) < 1.60 and not concentrated_conviction:
                 target = 2
         target = max(0, target)
+        if account.candidate_tenure.get("leader_cycle_staged_handoff", 0) == 1:
+            # An empty book can retain stale K from an owner that has already
+            # completed. The staged handoff owns a fresh K epoch and must not
+            # inherit that breadth before any new position exists.
+            account.dynamic_k = min(1, target)
+            account.last_k_change_date = str(date.date())
+            return account.dynamic_k
         if account.dynamic_k <= 0:
             account.dynamic_k = target
             account.last_k_change_date = str(date.date())
-            return target
+            return account.dynamic_k
         target_key = "dynamic_k_target"
         streak_key = "dynamic_k_target_streak"
         if account.candidate_tenure.get(target_key, -1) == target:
@@ -154,9 +309,9 @@ class LeaderPortfolioPolicy(StrategicPortfolioPolicy):
         else:
             account.candidate_tenure[target_key] = target
             account.candidate_tenure[streak_key] = 1
-        clock = next(iter(user_panel.values()))
+        clock = self._session_clock(user_panel, date)
         elapsed = (
-            len(clock.loc[pd.Timestamp(account.last_k_change_date) : date]) - 1
+            self._session_distance(clock, account.last_k_change_date, date)
             if account.last_k_change_date
             else self.cfg.dynamic_k_change_interval
         )
@@ -177,11 +332,17 @@ class LeaderPortfolioPolicy(StrategicPortfolioPolicy):
             account.last_k_change_date = str(date.date())
         return max(0, min(account.dynamic_k, len(candidates), self.cfg.max_positions))
 
-    def _rotation_allowed(self, account: AccountState, date: pd.Timestamp, clock: pd.DataFrame) -> bool:
+    def _rotation_allowed(
+        self,
+        account: AccountState,
+        date: pd.Timestamp,
+        user_panel: dict[str, pd.DataFrame],
+    ) -> bool:
+        clock = self._session_clock(user_panel, date)
         recent = [
             value
             for value in account.rotation_dates
-            if len(clock.loc[pd.Timestamp(value) : date]) - 1 <= 20
+            if pd.Timestamp(value) <= date and self._session_distance(clock, value, date) <= 20
         ]
         account.rotation_dates = recent
         return len(recent) < self.cfg.max_rotations_20d
@@ -193,6 +354,8 @@ class LeaderPortfolioPolicy(StrategicPortfolioPolicy):
         risk: RiskAssessment,
         leaders: dict[str, LeaderScore],
         account: AccountState,
+        strategic_handoff_blocked: bool = False,
+        strategic_handoff_ready: bool = False,
     ) -> bool:
         """Require broad, persistent leader evidence before generic trend capital.
 
@@ -203,7 +366,26 @@ class LeaderPortfolioPolicy(StrategicPortfolioPolicy):
         """
         arm_key = "leader_cycle_armed"
         streak_key = "leader_cycle_evidence"
-        if risk.state.value in {"RISK_OFF", "CRISIS"}:
+        if risk.freeze_new_risk or risk.state.value in {"RISK_OFF", "CRISIS"}:
+            # Level-1 protection freezes additions, scouts, and rotations; it
+            # is not an exit signal for an otherwise healthy live book.  Keep
+            # the route reachable so _leader_targets can retain existing
+            # active leaders while its own freeze checks block every new-risk
+            # admission.  Higher risk states still disarm the cycle.
+            if risk.state.value == "CAUTION" and any(
+                account.positions.get(symbol) is not None and account.positions[symbol].shares > 0
+                for symbol in account.active_leaders
+            ):
+                account.candidate_tenure[arm_key] = 1
+                account.candidate_tenure[streak_key] = 0
+                return True
+            account.candidate_tenure[arm_key] = 0
+            account.candidate_tenure[streak_key] = 0
+            return False
+        if strategic_handoff_blocked:
+            # A completed strategic owner records the first admissible rearm
+            # session. Generic momentum must not bypass that cross-owner
+            # cooldown with a streak accumulated under the old epoch.
             account.candidate_tenure[arm_key] = 0
             account.candidate_tenure[streak_key] = 0
             return False
@@ -221,8 +403,7 @@ class LeaderPortfolioPolicy(StrategicPortfolioPolicy):
         )
         evidence_map = risk.evidence
         market_aligned = bool(
-            account.candidate_tenure.get("strategic_cohort_completed", 0) == 1
-            or min(
+            min(
                 float(evidence_map.get("broad_ret120", -math.inf)),
                 float(evidence_map.get("tech_ret120", -math.inf)),
             )
@@ -230,16 +411,12 @@ class LeaderPortfolioPolicy(StrategicPortfolioPolicy):
         )
         impulse = (
             market_aligned
-            and
-            opportunity in {Opportunity.TREND, Opportunity.STRONG_TREND}
+            and opportunity in {Opportunity.TREND, Opportunity.STRONG_TREND}
             and impulse_leader
             and risk.votes <= 1
-            and float(evidence_map.get("ai_fast_return", -math.inf))
-            >= self.cfg.leader_cycle_impulse_return
-            and float(evidence_map.get("declining_ratio", 1.0))
-            <= self.cfg.leader_cycle_impulse_breadth
-            and float(evidence_map.get("below_ma20_ratio", 1.0))
-            <= self.cfg.leader_cycle_impulse_breadth
+            and float(evidence_map.get("ai_fast_return", -math.inf)) >= self.cfg.leader_cycle_impulse_return
+            and float(evidence_map.get("declining_ratio", 1.0)) <= self.cfg.leader_cycle_impulse_breadth
+            and float(evidence_map.get("below_ma20_ratio", 1.0)) <= self.cfg.leader_cycle_impulse_breadth
             and max(
                 float(evidence_map.get("tech_speed", -math.inf)),
                 float(evidence_map.get("broad_speed", -math.inf)),
@@ -248,19 +425,21 @@ class LeaderPortfolioPolicy(StrategicPortfolioPolicy):
         )
         evidence = (
             market_aligned
-            and
-            opportunity is Opportunity.STRONG_TREND
+            and opportunity is Opportunity.STRONG_TREND
             and risk.votes <= 1
             and credible >= self.cfg.leader_cycle_min_mature
         )
         account.candidate_tenure[streak_key] = (
             account.candidate_tenure.get(streak_key, 0) + 1 if evidence else 0
         )
-        if (
-            account.candidate_tenure[streak_key]
-            >= self.cfg.leader_cycle_confirm_days
-            or impulse
-        ):
+        if strategic_handoff_ready and evidence:
+            # The completed cooldown is persistent cross-cycle confirmation.
+            # Transfer only one admission tranche on its first healthy open
+            # session; dynamic-K owns every later expansion.
+            account.candidate_tenure[arm_key] = 1
+            account.candidate_tenure["leader_cycle_staged_handoff"] = 1
+            return True
+        if account.candidate_tenure[streak_key] >= self.cfg.leader_cycle_confirm_days or impulse:
             account.candidate_tenure[arm_key] = 1
         return account.candidate_tenure.get(arm_key, 0) == 1
 
@@ -289,24 +468,17 @@ class LeaderPortfolioPolicy(StrategicPortfolioPolicy):
             not self.cfg.industry_rotation_enabled
             or challenger.industry == incumbent.industry
             or challenger.industry == "unknown"
+            or challenger.components.get("unknown_industry", 0.0) >= 0.5
         ):
             return False
-        challenger_strength = challenger.components.get(
-            "industry_rotation_strength", 0.5
-        )
-        incumbent_strength = incumbent.components.get(
-            "industry_rotation_strength", 0.5
-        )
-        challenger_confidence = challenger.components.get(
-            "industry_confidence", 0.0
-        )
+        challenger_strength = challenger.components.get("industry_rotation_strength", 0.5)
+        incumbent_strength = incumbent.components.get("industry_rotation_strength", 0.5)
+        challenger_confidence = challenger.components.get("industry_confidence", 0.0)
         incumbent_breadth = incumbent.components.get("industry_breadth20", 0.0)
         return bool(
             challenger_strength >= self.cfg.industry_rotation_min_score
-            and challenger_confidence
-            >= self.cfg.industry_rotation_min_confidence
-            and challenger_strength - incumbent_strength
-            >= self.cfg.industry_rotation_edge
+            and challenger_confidence >= self.cfg.industry_rotation_min_confidence
+            and challenger_strength - incumbent_strength >= self.cfg.industry_rotation_edge
             and (
                 incumbent_strength <= self.cfg.industry_rotation_deterioration
                 or incumbent_breadth <= self.cfg.industry_rotation_breadth
@@ -341,8 +513,7 @@ class LeaderPortfolioPolicy(StrategicPortfolioPolicy):
             (
                 item
                 for item in leaders.values()
-                if item.emerging
-                and self._structure_ok(user_panel[item.symbol], date)
+                if item.emerging and self._structure_ok(user_panel[item.symbol], date)
             ),
             key=lambda item: (-item.score, item.symbol),
         )
@@ -357,11 +528,7 @@ class LeaderPortfolioPolicy(StrategicPortfolioPolicy):
         )
         reasons: dict[str, str] = {}
         lifecycles: dict[str, Lifecycle] = {}
-        active = [
-            symbol
-            for symbol in account.active_leaders
-            if symbol in held_symbols and symbol in leaders
-        ]
+        active = [symbol for symbol in account.active_leaders if symbol in held_symbols and symbol in leaders]
         for symbol in sorted(held_symbols - set(active)):
             position = account.positions[symbol]
             frame = user_panel.get(symbol)
@@ -369,11 +536,9 @@ class LeaderPortfolioPolicy(StrategicPortfolioPolicy):
                 continue
             row = frame.loc[date]
             proven_winner = (
-                position.highest_close / max(position.avg_cost, 1e-12) - 1.0
-                >= 0.10
+                position.highest_close / max(position.avg_cost, 1e-12) - 1.0 >= 0.10
                 and prices[symbol] >= position.avg_cost
-                and scalar(row, "close")
-                >= scalar(row, f"ma{self.cfg.trend_medium}")
+                and scalar(row, "close") >= scalar(row, f"ma{self.cfg.trend_medium}")
             )
             if proven_winner:
                 active.append(symbol)
@@ -402,14 +567,8 @@ class LeaderPortfolioPolicy(StrategicPortfolioPolicy):
                 if active_position is None:
                     continue
                 proven_winner = (
-                    active_position.highest_close
-                    / max(active_position.avg_cost, 1e-12)
-                    - 1.0
-                    >= 0.10
-                    and prices[symbol]
-                    / max(active_position.avg_cost, 1e-12)
-                    - 1.0
-                    >= 0
+                    active_position.highest_close / max(active_position.avg_cost, 1e-12) - 1.0 >= 0.10
+                    and prices[symbol] / max(active_position.avg_cost, 1e-12) - 1.0 >= 0
                     and scalar(user_panel[symbol].loc[date], "close")
                     >= scalar(
                         user_panel[symbol].loc[date],
@@ -433,11 +592,7 @@ class LeaderPortfolioPolicy(StrategicPortfolioPolicy):
                     symbol,
                 ),
             )
-            retained.extend(
-                symbol
-                for symbol in ranked_retention
-                if symbol not in proven
-            )
+            retained.extend(symbol for symbol in ranked_retention if symbol not in proven)
             retained = retained[:keep_count]
             for symbol in set(active) - set(retained):
                 reasons[symbol] = "dynamic K contraction after hysteresis"
@@ -446,6 +601,7 @@ class LeaderPortfolioPolicy(StrategicPortfolioPolicy):
         while (
             len(active) < target_k
             and available_ranked
+            and not risk.freeze_new_risk
             and risk.state.value != "RISK_OFF"
             and opportunity is not Opportunity.RECOVERY
         ):
@@ -467,9 +623,15 @@ class LeaderPortfolioPolicy(StrategicPortfolioPolicy):
             active.append(item.symbol)
             available_ranked.remove(item)
 
-        clock = next(iter(user_panel.values()))
         rotation_transfers: dict[str, float] = {}
-        if active and len(active) >= target_k and ranked and self._rotation_allowed(account, date, clock):
+        observed_rotation_key = ""
+        if (
+            active
+            and len(active) >= target_k
+            and ranked
+            and not risk.freeze_new_risk
+            and self._rotation_allowed(account, date, user_panel)
+        ):
             challenger = next((item for item in ranked if item.symbol not in active), None)
             weakest = min(
                 active,
@@ -491,14 +653,9 @@ class LeaderPortfolioPolicy(StrategicPortfolioPolicy):
                 else 0
             )
             if challenger is not None and old_position is not None:
-                peak_mfe = (
-                    old_position.highest_close / max(old_position.avg_cost, 1e-12)
-                    - 1.0
-                )
+                peak_mfe = old_position.highest_close / max(old_position.avg_cost, 1e-12) - 1.0
                 winner_penalty = min(0.20, 0.50 * max(0.0, peak_mfe))
-                same_cluster_penalty = (
-                    0.15 if challenger.industry == leaders[weakest].industry else 0.0
-                )
+                same_cluster_penalty = 0.15 if challenger.industry == leaders[weakest].industry else 0.0
                 uncertainty_penalty = 0.05 * max(0.0, 1.0 - challenger.confidence)
                 edge = (
                     challenger.score
@@ -518,7 +675,8 @@ class LeaderPortfolioPolicy(StrategicPortfolioPolicy):
                 # edge.  A cheaper fast lane increased turnover and damaged
                 # later-cycle wealth in continuous replays.
                 required_edge = self.cfg.replacement_edge
-                key = f"{weakest}->{challenger.symbol}"
+                key = f"leader_rotation:{weakest}->{challenger.symbol}"
+                observed_rotation_key = key
                 account.replacement_tenure[key] = (
                     account.replacement_tenure.get(key, 0) + 1
                     if edge >= required_edge and old_structure_broken
@@ -552,6 +710,11 @@ class LeaderPortfolioPolicy(StrategicPortfolioPolicy):
                     lifecycles[challenger.symbol] = Lifecycle.CORE
                     account.replacement_tenure[key] = 0
 
+        for key in tuple(account.replacement_tenure):
+            legacy_rotation_key = "->" in key and ":" not in key
+            if (key.startswith("leader_rotation:") or legacy_rotation_key) and key != observed_rotation_key:
+                account.replacement_tenure[key] = 0
+
         # A leader can graduate to cash when no credible replacement exists.
         # This is a lifecycle exit, not a second risk controller: it requires
         # persistent loss of both maturity and price structure.
@@ -560,9 +723,7 @@ class LeaderPortfolioPolicy(StrategicPortfolioPolicy):
             row = frame.loc[date]
             exit_position = account.positions.get(symbol)
             peak_mfe = (
-                exit_position.highest_close
-                / max(exit_position.avg_cost, 1e-12)
-                - 1.0
+                exit_position.highest_close / max(exit_position.avg_cost, 1e-12) - 1.0
                 if exit_position is not None
                 else 0.0
             )
@@ -574,13 +735,10 @@ class LeaderPortfolioPolicy(StrategicPortfolioPolicy):
                     row,
                     f"ma{self.cfg.trend_medium if protected_winner else self.cfg.trend_fast}",
                 )
-                and scalar(row, f"ret{self.cfg.trend_fast}", 0.0)
-                <= (-0.15 if protected_winner else -0.08)
+                and scalar(row, f"ret{self.cfg.trend_fast}", 0.0) <= (-0.15 if protected_winner else -0.08)
             )
             key = f"lifecycle_exit:{symbol}"
-            account.replacement_tenure[key] = (
-                account.replacement_tenure.get(key, 0) + 1 if broken else 0
-            )
+            account.replacement_tenure[key] = account.replacement_tenure.get(key, 0) + 1 if broken else 0
             held_sessions = (
                 len(frame.loc[pd.Timestamp(exit_position.entry_date) : date])
                 if exit_position is not None and exit_position.entry_date
@@ -600,12 +758,17 @@ class LeaderPortfolioPolicy(StrategicPortfolioPolicy):
             if weights_now.get(symbol, 0.0) > 0
         }
         new_core = [symbol for symbol in account.active_leaders if symbol not in proposed]
+        if risk.freeze_new_risk:
+            account.active_leaders = [symbol for symbol in account.active_leaders if symbol in held_symbols]
+            new_core = []
         gross_cap = min(
             risk.target_gross_cap,
             self.cfg.strong_trend_gross
             if opportunity is Opportunity.STRONG_TREND
             else self.cfg.trend_target_gross
             if opportunity is Opportunity.TREND
+            else self.cfg.weak_gross
+            if opportunity is Opportunity.WEAK
             else self.cfg.choppy_target_gross,
         )
         projected_industry_cap = (
@@ -620,28 +783,82 @@ class LeaderPortfolioPolicy(StrategicPortfolioPolicy):
             and position.lifecycle == Lifecycle.SATELLITE.value
             and symbol not in proposed
         )
+        index_chase = (
+            max(
+                float(risk.evidence.get("broad_ret5", 0.0)),
+                float(risk.evidence.get("tech_ret5", 0.0)),
+            )
+            >= self.cfg.add_index_chase_ret5
+        )
         if not proposed and new_core:
+            staged_handoff = account.candidate_tenure.get("leader_cycle_staged_handoff", 0) == 1
+            high_confidence = bool(
+                self.cfg.confidence_sizing_enabled
+                and opportunity is Opportunity.STRONG_TREND
+                and risk.state.value == "NORMAL"
+                and not risk.freeze_new_risk
+                and not index_chase
+                and len(new_core) >= 2
+                and float(risk.evidence.get("trend_health", 0.0)) >= 0.70
+                and all(
+                    leaders[symbol].score >= self.cfg.high_confidence_entry_score
+                    and leaders[symbol].confidence >= self.cfg.leader_min_confidence
+                    and leaders[symbol].components.get("industry_breadth", 0.0)
+                    >= self.cfg.high_confidence_entry_breadth
+                    and scalar(user_panel[symbol].loc[date], "vol20", math.inf)
+                    <= self.cfg.high_confidence_entry_vol20
+                    for symbol in new_core
+                )
+            )
+            exceptional = bool(
+                high_confidence
+                and min(leaders[symbol].score for symbol in new_core) >= 0.90
+                and float(risk.evidence.get("trend_health", 0.0)) >= 0.82
+            )
+            account.candidate_tenure["confidence_sized_entry"] = int(high_confidence)
+            configured_entry_gross = (
+                self.cfg.exceptional_entry_gross
+                if exceptional
+                else self.cfg.high_confidence_entry_gross
+                if high_confidence
+                else self.cfg.trend_entry_gross
+            )
             entry_gross = min(
                 max(0.0, gross_cap - satellite_reserve),
-                self.cfg.trend_entry_gross,
+                self.cfg.core_admission_weight if staged_handoff else configured_entry_gross,
             )
-            raw = np.array([max(0.01, leaders[symbol].score) for symbol in new_core], dtype=float)
-            raw /= raw.sum()
+            conviction_qualified = self._conviction_evidence_qualified(
+                symbols=new_core,
+                leaders=leaders,
+                user_panel=user_panel,
+                date=date,
+                high_confidence=high_confidence,
+            )
+            account.candidate_tenure["conviction_evidence_qualified"] = int(conviction_qualified)
+            raw = self._conviction_shares(
+                new_core,
+                leaders,
+                evidence_qualified=conviction_qualified,
+            )
             for symbol, share in zip(new_core, raw, strict=True):
                 entry_cap = (
-                    self.cfg.single_core_entry_cap
-                    if len(new_core) == 1
-                    else self.cfg.max_symbol_weight
+                    self.cfg.single_core_entry_cap if len(new_core) == 1 else self.cfg.max_symbol_weight
                 )
                 proposed[symbol] = min(entry_cap, entry_gross * float(share))
                 lifecycles[symbol] = Lifecycle.CORE
-                reasons.setdefault(symbol, "confirmed mature leader core")
+                reasons.setdefault(
+                    symbol,
+                    "confirmed rearmed leader owner handoff"
+                    if staged_handoff
+                    else "confirmed mature leader core",
+                )
+            if proposed and staged_handoff:
+                account.candidate_tenure["leader_cycle_staged_handoff"] = 0
+                account.candidate_tenure["leader_cycle_handoff_epoch"] = (
+                    account.strategic_epochs_completed
+                )
             for industry in {leaders[symbol].industry for symbol in proposed}:
-                members = [
-                    symbol
-                    for symbol in proposed
-                    if leaders[symbol].industry == industry
-                ]
+                members = [symbol for symbol in proposed if leaders[symbol].industry == industry]
                 industry_weight = sum(proposed[symbol] for symbol in members)
                 if industry != "unknown" and industry_weight > projected_industry_cap:
                     scale = projected_industry_cap / industry_weight
@@ -659,9 +876,7 @@ class LeaderPortfolioPolicy(StrategicPortfolioPolicy):
             for symbol in new_core:
                 industry = leaders[symbol].industry
                 industry_weight = sum(
-                    weight
-                    for held, weight in proposed.items()
-                    if leaders[held].industry == industry
+                    weight for held, weight in proposed.items() if leaders[held].industry == industry
                 )
                 admitted = min(
                     rotation_transfers.get(symbol, allocation),
@@ -677,14 +892,15 @@ class LeaderPortfolioPolicy(StrategicPortfolioPolicy):
                 if symbol in proposed:
                     continue
                 industry = leaders[symbol].industry
-                members = [
-                    item
-                    for item in account.active_leaders
-                    if leaders[item].industry == industry
-                ]
+                members = [item for item in account.active_leaders if leaders[item].industry == industry]
                 incumbents = [item for item in members if item in proposed]
                 industry_weight = sum(proposed[item] for item in incumbents)
-                if industry == "unknown" or not incumbents or industry_weight <= 0:
+                if (
+                    industry == "unknown"
+                    or leaders[symbol].components.get("unknown_industry", 0.0) >= 0.5
+                    or not incumbents
+                    or industry_weight <= 0
+                ):
                     continue
                 scores = np.array(
                     [max(0.01, leaders[item].score) for item in members],
@@ -704,13 +920,6 @@ class LeaderPortfolioPolicy(StrategicPortfolioPolicy):
             0.0,
             gross_cap - satellite_reserve - sum(proposed.values()),
         )
-        index_chase = (
-            max(
-                float(risk.evidence.get("broad_ret5", 0.0)),
-                float(risk.evidence.get("tech_ret5", 0.0)),
-            )
-            >= self.cfg.add_index_chase_ret5
-        )
         for symbol in list(account.active_leaders):
             add_position = account.positions.get(symbol)
             if add_position is None or available < self.cfg.min_trade_weight:
@@ -721,18 +930,35 @@ class LeaderPortfolioPolicy(StrategicPortfolioPolicy):
                 date=date,
                 cooldown_sessions=self.cfg.add_tranche_cooldown_sessions,
             )
-            mfe = prices[symbol] / max(add_position.avg_cost, 1e-12) - 1.0
+            tranche_lifecycles = {item.lifecycle for item in add_position.tranches if item.shares > 0}
+            has_add1 = Lifecycle.ADD1.value in tranche_lifecycles
+            has_add2 = Lifecycle.ADD2.value in tranche_lifecycles
+            if not add_position.tranches:
+                has_add1 = add_position.lifecycle == Lifecycle.ADD1.value
+                has_add2 = add_position.lifecycle == Lifecycle.ADD2.value
+            mfe = max(
+                (
+                    max(
+                        item.mfe,
+                        prices[symbol] / max(item.avg_cost, 1e-12) - 1.0,
+                    )
+                    for item in add_position.tranches
+                    if item.shares > 0
+                ),
+                default=prices[symbol] / max(add_position.avg_cost, 1e-12) - 1.0,
+            )
             industry = leaders[symbol].industry
             industry_weight = sum(
-                weight
-                for held, weight in proposed.items()
-                if leaders[held].industry == industry
+                weight for held, weight in proposed.items() if leaders[held].industry == industry
             )
             industry_room = max(0.0, projected_industry_cap - industry_weight)
             if (
-                add_position.lifecycle == Lifecycle.CORE.value
+                not has_add1
+                and not has_add2
                 and add_cooldown_complete
                 and not index_chase
+                and not risk.freeze_new_risk
+                and account.candidate_tenure.get("confidence_sized_entry", 0) == 0
                 and mfe >= self.cfg.add1_min_mfe
                 and risk.state.value in {"NORMAL", "CAUTION"}
                 and opportunity is not Opportunity.RECOVERY
@@ -754,9 +980,11 @@ class LeaderPortfolioPolicy(StrategicPortfolioPolicy):
                 lifecycles[symbol] = Lifecycle.ADD1
                 reasons[symbol] = "ADD1: positive MFE with normal risk"
             elif (
-                add_position.lifecycle == Lifecycle.ADD1.value
+                has_add1
+                and not has_add2
                 and add_cooldown_complete
                 and not index_chase
+                and not risk.freeze_new_risk
                 and mfe >= self.cfg.add2_min_mfe
                 and opportunity is Opportunity.STRONG_TREND
                 and risk.state.value == "NORMAL"
@@ -781,7 +1009,14 @@ class LeaderPortfolioPolicy(StrategicPortfolioPolicy):
         satellites_now = [
             symbol
             for symbol, position in account.positions.items()
-            if position.lifecycle == Lifecycle.SATELLITE.value and position.shares > 0
+            if position.shares > 0
+            and (
+                position.lifecycle == Lifecycle.SATELLITE.value
+                or any(
+                    item.shares > 0 and item.lifecycle == Lifecycle.SATELLITE.value
+                    for item in position.tranches
+                )
+            )
         ]
         for symbol in satellites_now:
             position = account.positions[symbol]
@@ -790,6 +1025,22 @@ class LeaderPortfolioPolicy(StrategicPortfolioPolicy):
                 proposed[symbol] = weights_now.get(symbol, 0.0)
                 lifecycles[symbol] = Lifecycle.CORE
                 reasons[symbol] = "satellite promoted to mature core"
+                position.lifecycle = Lifecycle.CORE.value
+                promoted_shares = 0
+                for tranche in position.tranches:
+                    if tranche.lifecycle == Lifecycle.SATELLITE.value:
+                        tranche.lifecycle = Lifecycle.CORE.value
+                        promoted_shares += tranche.shares
+                account.lifecycle_events.append(
+                    {
+                        "date": str(date.date()),
+                        "symbol": symbol,
+                        "from": Lifecycle.SATELLITE.value,
+                        "to": Lifecycle.CORE.value,
+                        "shares": promoted_shares,
+                        "reason": "challenger scout confirmed",
+                    }
+                )
                 if symbol not in account.active_leaders:
                     account.active_leaders.append(symbol)
             elif held <= self.cfg.emerging_expiry_days and self._structure_ok(user_panel[symbol], date):
@@ -799,8 +1050,11 @@ class LeaderPortfolioPolicy(StrategicPortfolioPolicy):
             else:
                 reasons[symbol] = "satellite expiry or failed confirmation"
                 account.satellite_entry_dates.pop(symbol, None)
+        observed_scout_keys: set[str] = set()
         if (
-            risk.state.value == "NORMAL"
+            self.cfg.challenger_scout_enabled
+            and not risk.freeze_new_risk
+            and risk.state.value == "NORMAL"
             and opportunity in {Opportunity.STRONG_TREND, Opportunity.TREND}
             and len(proposed) < self.cfg.max_positions
         ):
@@ -808,23 +1062,93 @@ class LeaderPortfolioPolicy(StrategicPortfolioPolicy):
                 self.cfg.max_satellites - len(satellites_now),
                 self.cfg.max_positions - len(proposed),
             )
+            active_industries = {
+                leaders[symbol].industry
+                for symbol in account.active_leaders
+                if symbol in leaders and symbol in proposed
+            }
+            incumbent_scores = [
+                leaders[symbol]
+                for symbol in account.active_leaders
+                if symbol in leaders and symbol in proposed
+            ]
+            idle_cash_weight = max(0.0, 1.0 - sum(weights_now.values()))
+            incumbents_preserved = all(
+                proposed.get(symbol, 0.0) + self.cfg.challenger_scout_incumbent_hysteresis
+                >= weights_now.get(symbol, 0.0)
+                for symbol, position in account.positions.items()
+                if position.shares > 0 and symbol not in satellites_now
+            )
             for item in emerging:
-                if slots <= 0 or item.symbol in proposed:
+                if slots <= 0:
                     break
-                if sum(proposed.values()) + self.cfg.satellite_weight > gross_cap:
-                    break
-                industry_weight = sum(
-                    weight
-                    for held, weight in proposed.items()
-                    if leaders[held].industry == item.industry
-                )
-                if industry_weight + self.cfg.satellite_weight > projected_industry_cap:
+                if item.symbol in proposed:
                     continue
-                proposed[item.symbol] = self.cfg.satellite_weight
+                weakest_score = min(
+                    (incumbent.score for incumbent in incumbent_scores),
+                    default=math.inf,
+                )
+                incumbent_fading = bool(
+                    incumbent_scores
+                    and any(
+                        incumbent.components.get("acceleration", 0.5) < 0.50 for incumbent in incumbent_scores
+                    )
+                )
+                scout_evidence = bool(
+                    incumbent_scores
+                    and item.industry not in active_industries
+                    and item.industry != "unknown"
+                    and item.components.get("unknown_industry", 0.0) < 0.5
+                    and item.components.get("industry_rotation_strength", 0.0)
+                    >= self.cfg.industry_rotation_min_score
+                    and item.components.get("industry_breadth", 0.0) >= self.cfg.industry_rotation_breadth
+                    and item.score - weakest_score >= self.cfg.challenger_scout_score_edge
+                    and incumbent_fading
+                )
+                scout_key = f"challenger_scout:{item.industry}:{item.symbol}"
+                observed_scout_keys.add(scout_key)
+                account.replacement_tenure[scout_key] = (
+                    account.replacement_tenure.get(scout_key, 0) + 1 if scout_evidence else 0
+                )
+                if (
+                    account.replacement_tenure[scout_key] < self.cfg.challenger_scout_confirm_days
+                    or not incumbents_preserved
+                    or idle_cash_weight + 1e-12 < self.cfg.challenger_scout_weight
+                ):
+                    continue
+                scout_weight = min(
+                    self.cfg.challenger_scout_weight,
+                    idle_cash_weight,
+                    max(0.0, gross_cap - sum(proposed.values())),
+                )
+                if scout_weight < self.cfg.min_trade_weight:
+                    continue
+                industry_weight = sum(
+                    weight for held, weight in proposed.items() if leaders[held].industry == item.industry
+                )
+                if industry_weight + scout_weight > projected_industry_cap:
+                    continue
+                proposed[item.symbol] = scout_weight
                 lifecycles[item.symbol] = Lifecycle.SATELLITE
-                reasons[item.symbol] = "emerging leader satellite probe"
+                reasons[item.symbol] = "idle-cash challenger scout"
                 account.satellite_entry_dates[item.symbol] = str(date.date())
+                account.scout_signature = scout_key
+                account.scout_entry_date = str(date.date())
+                idle_cash_weight -= scout_weight
                 slots -= 1
+
+        for key in tuple(account.replacement_tenure):
+            if key.startswith("challenger_scout:") and key not in observed_scout_keys:
+                account.replacement_tenure[key] = 0
+
+        proposed = self._cap_opportunity_gross(
+            proposed=proposed,
+            gross_cap=gross_cap,
+            weights_now=weights_now,
+            leaders=leaders,
+            reasons=reasons,
+            opportunity=opportunity,
+        )
 
         if not proposed and not held_symbols:
             return None

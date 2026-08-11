@@ -13,27 +13,116 @@ from .leader import INDUSTRY, REFERENCE_UNIVERSE, credible_recovery_reserve
 from .risk_sector import update_sector_guard
 from .types import AccountState, LeaderScore, Risk, RiskAssessment
 
-REFERENCE_ANCHORS = ("sz300308", "sz300394", "sz300502")
+# Retired compatibility export.  Production anchors live in AccountState and
+# are selected from reference evidence; no symbol receives a static risk role.
+REFERENCE_ANCHORS: tuple[str, ...] = ()
 
 
 def _persistent_crisis_cap(
     severity: str,
     cfg: SystemConfig,
-    *,
-    strategic_active: bool,
 ) -> float:
-    """Keep a crisis route's intended gross cap stable while repair is pending."""
-    if strategic_active:
-        return cfg.strategic_cohort_crisis_gross
+    """Keep severity—not a position label—as the persistent cap owner."""
     if severity == "INCOMPLETE_UNIVERSE":
         return cfg.incomplete_universe_crisis_gross
     if severity == "INCOMPLETE_UNIVERSE_UNBACKED":
         return 0.0
+    if severity == "COHORT_BREAK":
+        # A synchronized break in the live book is concentrated evidence, not
+        # proof of a market-wide liquidation event.  Keep it on the report's
+        # 20--40% ladder; only an independently confirmed severe event may use
+        # the 0--20% band.
+        return cfg.concentrated_crisis_gross
     if severity in {"SEVERE", "ANCHOR_BREAK"}:
-        return 0.0
+        return cfg.severe_crisis_gross
     if severity == "CONCENTRATED":
         return cfg.concentrated_crisis_gross
-    return cfg.crisis_gross
+    return cfg.market_crisis_gross
+
+
+def _dynamic_anchor_candidate(leaders: dict[str, LeaderScore], cfg: SystemConfig) -> list[str]:
+    """Select a deterministic, group-balanced anchor basket from references."""
+    ranked = sorted(
+        (
+            item
+            for symbol, item in leaders.items()
+            if symbol in REFERENCE_UNIVERSE
+            and item.industry != "unknown"
+            and item.confidence >= cfg.leader_min_confidence
+            and item.components.get("secular_score", 0.0) >= cfg.risk_anchor_min_secular_score
+        ),
+        key=lambda item: (
+            -item.components.get("secular_score", 0.0),
+            -item.score,
+            item.symbol,
+        ),
+    )
+    selected: list[str] = []
+    groups: set[str] = set()
+    for item in ranked:
+        if item.industry not in groups:
+            selected.append(item.symbol)
+            groups.add(item.industry)
+        if len(selected) >= cfg.risk_anchor_count:
+            break
+    for item in ranked:
+        if item.symbol not in selected:
+            selected.append(item.symbol)
+        if len(selected) >= cfg.risk_anchor_count:
+            break
+    return selected
+
+
+def _update_dynamic_anchors(
+    *,
+    leaders: dict[str, LeaderScore],
+    account: AccountState,
+    cfg: SystemConfig,
+    allow_reanchor: bool,
+) -> tuple[str, ...]:
+    """Apply confirmation hysteresis and reset break state on a true re-anchor."""
+    if not cfg.dynamic_risk_anchors_enabled:
+        return ()
+    candidate = _dynamic_anchor_candidate(leaders, cfg)
+    candidate_groups = {
+        leaders[symbol].industry
+        for symbol in candidate
+        if symbol in leaders and leaders[symbol].industry != "unknown"
+    }
+    signature = ",".join(candidate)
+    current_signature = account.risk_anchor_signature
+    if len(candidate) != cfg.risk_anchor_count or len(candidate_groups) < cfg.risk_anchor_min_groups:
+        # Confirmation must be consecutive.  Missing coverage/evidence cannot
+        # bridge two otherwise unrelated candidate periods.  More importantly,
+        # a partial candidate must never replace a previously complete basket
+        # and silently disarm its structural-break evidence.
+        account.risk_anchor_candidate_signature = ""
+        account.risk_anchor_candidate_streak = 0
+        return tuple(account.risk_anchor_symbols)
+    if not allow_reanchor:
+        # Do not replace damaged sentinels with the day's survivors while a
+        # transition is under way; that would erase the very break they are
+        # meant to observe.
+        account.risk_anchor_candidate_signature = ""
+        account.risk_anchor_candidate_streak = 0
+        return tuple(account.risk_anchor_symbols)
+    if signature and signature != current_signature:
+        if signature == account.risk_anchor_candidate_signature:
+            account.risk_anchor_candidate_streak += 1
+        else:
+            account.risk_anchor_candidate_signature = signature
+            account.risk_anchor_candidate_streak = 1
+        if account.risk_anchor_candidate_streak >= cfg.risk_anchor_confirm_days:
+            account.risk_anchor_symbols = candidate
+            account.risk_anchor_signature = signature
+            account.risk_anchor_candidate_signature = ""
+            account.risk_anchor_candidate_streak = 0
+            account.risk_streaks["reference_anchor_armed"] = 0
+            account.risk_streaks["reference_anchor_break"] = 0
+    elif signature == current_signature:
+        account.risk_anchor_candidate_signature = ""
+        account.risk_anchor_candidate_streak = 0
+    return tuple(account.risk_anchor_symbols)
 
 
 def _portfolio_drawdowns(account: AccountState, equity: float) -> tuple[float, float]:
@@ -48,6 +137,28 @@ def _portfolio_drawdowns(account: AccountState, equity: float) -> tuple[float, f
     operating = max(0.0, 1.0 - equity / max(account.operating_peak, 1e-12))
     capital = max(0.0, 1.0 - equity / max(account.capital_peak, 1e-12))
     return operating, capital
+
+
+def _update_capital_budget_ladder(
+    account: AccountState,
+    *,
+    observed_level: int,
+    repair_confirmed: bool,
+    repair_days: int,
+) -> None:
+    """Escalate immediately and repair at most one capital tier per window."""
+    current = account.capital_budget_level
+    if observed_level > current:
+        account.capital_budget_level = observed_level
+        account.capital_budget_repair_streak = 0
+        return
+    if observed_level < current and repair_confirmed:
+        account.capital_budget_repair_streak += 1
+        if account.capital_budget_repair_streak >= repair_days:
+            account.capital_budget_level = max(observed_level, current - 1)
+            account.capital_budget_repair_streak = 0
+        return
+    account.capital_budget_repair_streak = 0
 
 
 def assess_risk(
@@ -82,31 +193,20 @@ def assess_risk(
         if symbol in reference_panel and reference_panel[symbol].index.min() <= date
     ]
     industries = {INDUSTRY.get(symbol, "unknown") for symbol in present}
-    expected_industries = {
-        INDUSTRY.get(symbol, "unknown") for symbol in expected
-    } - {"unknown"}
+    expected_industries = {INDUSTRY.get(symbol, "unknown") for symbol in expected} - {"unknown"}
     minimum_symbols = max(3, math.ceil(0.80 * len(expected)))
     minimum_industries = min(5, len(expected_industries))
-    if (
-        len(present) < minimum_symbols
-        or len(industries - {"unknown"}) < minimum_industries
-    ):
+    if len(present) < minimum_symbols or len(industries - {"unknown"}) < minimum_industries:
         raise RuntimeError("independent risk basket coverage is insufficient")
     market_context = {
         "broad_ret5": scalar(broad.loc[date], "ret5", 0.0),
         "tech_ret5": scalar(tech.loc[date], "ret5", 0.0),
-        "broad_ret60": scalar(
-            broad.loc[date], f"ret{cfg.trend_medium}", 0.0
-        ),
-        "tech_ret60": scalar(
-            tech.loc[date], f"ret{cfg.trend_medium}", 0.0
-        ),
-        "broad_ret120": scalar(
-            broad.loc[date], f"ret{cfg.trend_slow}", 0.0
-        ),
-        "tech_ret120": scalar(
-            tech.loc[date], f"ret{cfg.trend_slow}", 0.0
-        ),
+        "broad_ret20": scalar(broad.loc[date], f"ret{cfg.trend_fast}", 0.0),
+        "tech_ret20": scalar(tech.loc[date], f"ret{cfg.trend_fast}", 0.0),
+        "broad_ret60": scalar(broad.loc[date], f"ret{cfg.trend_medium}", 0.0),
+        "tech_ret60": scalar(tech.loc[date], f"ret{cfg.trend_medium}", 0.0),
+        "broad_ret120": scalar(broad.loc[date], f"ret{cfg.trend_slow}", 0.0),
+        "tech_ret120": scalar(tech.loc[date], f"ret{cfg.trend_slow}", 0.0),
     }
     if not cfg.risk_overlay_enabled:
         account.risk = Risk.NORMAL.value
@@ -124,22 +224,51 @@ def assess_risk(
         )
     fast_returns: list[float] = []
     below_ma20: list[bool] = []
+    above_ma60: list[bool] = []
     leader_failures: list[bool] = []
     sector_returns: dict[str, list[float]] = {}
+    sector_below20: dict[str, list[bool]] = {}
+    sector_above60: dict[str, list[bool]] = {}
     for symbol in present:
         row = reference_panel[symbol].loc[date]
         ret5 = scalar(row, "ret5")
         close = scalar(row, "close")
         ma20 = scalar(row, f"ma{cfg.trend_fast}")
+        ma60 = scalar(row, f"ma{cfg.trend_medium}")
+        industry = leaders[symbol].industry if symbol in leaders else INDUSTRY.get(symbol, "unknown")
         if math.isfinite(ret5):
             fast_returns.append(ret5)
-            sector_returns.setdefault(INDUSTRY.get(symbol, "unknown"), []).append(ret5)
+            sector_returns.setdefault(industry, []).append(ret5)
         if math.isfinite(close) and math.isfinite(ma20):
             below_ma20.append(close < ma20)
+            sector_below20.setdefault(industry, []).append(close < ma20)
+        if math.isfinite(close) and math.isfinite(ma60):
+            above_ma60.append(close > ma60)
+            sector_above60.setdefault(industry, []).append(close > ma60)
         if symbol in leaders and leaders[symbol].mature:
             leader_failures.append(ret5 < -0.06 or (math.isfinite(close) and close < ma20))
-    declining = float(np.mean(np.array(fast_returns) < 0)) if fast_returns else 0.0
-    below = float(np.mean(below_ma20)) if below_ma20 else 0.0
+    declining_name = float(np.mean(np.array(fast_returns) < 0)) if fast_returns else 0.0
+    below_name = float(np.mean(below_ma20)) if below_ma20 else 0.0
+    declining_group = (
+        float(np.mean([float(np.mean(values)) < 0.0 for values in sector_returns.values()]))
+        if sector_returns
+        else declining_name
+    )
+    below_group = (
+        float(np.mean([float(np.mean(values)) for values in sector_below20.values()]))
+        if sector_below20
+        else below_name
+    )
+    name_weight = cfg.risk_breadth_name_weight
+    declining = name_weight * declining_name + (1.0 - name_weight) * declining_group
+    below = name_weight * below_name + (1.0 - name_weight) * below_group
+    breadth60_name = float(np.mean(above_ma60)) if above_ma60 else 0.0
+    breadth60_group = (
+        float(np.mean([float(np.mean(values)) for values in sector_above60.values()]))
+        if sector_above60
+        else breadth60_name
+    )
+    breadth60 = name_weight * breadth60_name + (1.0 - name_weight) * breadth60_group
     average_fast = float(np.mean(fast_returns)) if fast_returns else 0.0
     stressed_sectors = [float(np.mean(values)) < -0.04 for values in sector_returns.values() if values]
     sector_stress = float(np.mean(stressed_sectors)) if stressed_sectors else 0.0
@@ -167,6 +296,99 @@ def assess_risk(
     tech_speed = min(scalar(tech.loc[date], "ret5", 0.0), scalar(tech.loc[date], "ret10", 0.0))
     broad_speed = min(scalar(broad.loc[date], "ret5", 0.0), scalar(broad.loc[date], "ret10", 0.0))
 
+    breadth20 = 1.0 - below
+    previous_breadth20 = account.risk_signal_state.get("breadth20", breadth20)
+    previous_breadth60 = account.risk_signal_state.get("breadth60", breadth60)
+    breadth_drop = min(
+        1.0,
+        max(0.0, previous_breadth20 - breadth20) / 0.15
+        + 0.5 * max(0.0, previous_breadth60 - breadth60) / 0.15,
+    )
+    correlation_damage = (
+        min(1.0, max(0.0, (correlation - 0.45) / 0.35)) if math.isfinite(correlation) else 0.0
+    )
+    volatility_damage = min(1.0, max(0.0, (vol_ratio - 1.0) / 1.25))
+    transition_damage = min(
+        1.0,
+        0.22 * (1.0 - breadth20)
+        + 0.18 * (1.0 - breadth60)
+        + 0.16 * breadth_drop
+        + 0.14 * leader_failure
+        + 0.10 * correlation_damage
+        + 0.10 * volatility_damage
+        + 0.10 * sector_stress,
+    )
+    trend_health = min(
+        1.0,
+        max(
+            0.0,
+            0.32 * breadth20
+            + 0.28 * breadth60
+            + 0.16 * (1.0 - leader_failure)
+            + 0.12 * (1.0 - correlation_damage)
+            + 0.12 * (1.0 - volatility_damage),
+        ),
+    )
+    account.risk_signal_state.update(
+        {
+            "breadth20": breadth20,
+            "breadth60": breadth60,
+            "leader_failure": leader_failure,
+            "correlation": correlation if math.isfinite(correlation) else 0.0,
+            "volatility_ratio": vol_ratio,
+            "transition_damage": transition_damage,
+            "trend_health": trend_health,
+        }
+    )
+    transition_key = "transition_damage_confirmed"
+    transition_active_key = "transition_damage_active"
+    transition_repair_key = "transition_damage_repair"
+    transition_observed = bool(
+        cfg.transition_overlay_enabled and transition_damage >= cfg.transition_damage_freeze
+    )
+    account.risk_streaks[transition_key] = (
+        account.risk_streaks.get(transition_key, 0) + 1 if transition_observed else 0
+    )
+    if account.risk_streaks[transition_key] >= cfg.transition_confirm_days:
+        account.risk_streaks[transition_active_key] = 1
+        account.risk_streaks[transition_repair_key] = 0
+    elif account.risk_streaks.get(transition_active_key, 0) == 1:
+        account.risk_streaks[transition_repair_key] = (
+            account.risk_streaks.get(transition_repair_key, 0) + 1
+            if transition_damage <= cfg.transition_damage_repair
+            else 0
+        )
+        if account.risk_streaks[transition_repair_key] >= cfg.transition_repair_days:
+            account.risk_streaks[transition_active_key] = 0
+            account.risk_streaks[transition_repair_key] = 0
+    else:
+        account.risk_streaks[transition_repair_key] = 0
+    transition_freeze = account.risk_streaks.get(transition_active_key, 0) == 1
+    choppy_context = account.opportunity in {
+        "CHOPPY",
+        "WEAK",
+    }
+    chronic_observed = bool(
+        cfg.chronic_overlay_enabled and choppy_context and transition_damage >= cfg.transition_damage_freeze
+    )
+    account.chronic_streak = account.chronic_streak + 1 if chronic_observed else 0
+    if account.chronic_streak >= cfg.chronic_confirm_days:
+        account.chronic_level = (
+            3
+            if transition_damage >= 0.80
+            else 2
+            if transition_damage >= 0.68
+            else max(1, account.chronic_level)
+        )
+        account.chronic_repair_streak = 0
+    elif transition_damage <= cfg.transition_damage_repair:
+        account.chronic_repair_streak += 1
+        if account.chronic_repair_streak >= cfg.chronic_repair_days:
+            account.chronic_level = 0
+            account.chronic_repair_streak = 0
+    else:
+        account.chronic_repair_streak = 0
+
     votes = 0
     reasons: list[str] = []
     conditions = (
@@ -188,9 +410,7 @@ def assess_risk(
         calendar=pd.DatetimeIndex(tech.index),
         panel=user_panel,
         account=account,
-        leadership_divergence=(
-            market_context["tech_ret120"] - market_context["broad_ret120"]
-        ),
+        leadership_divergence=(market_context["tech_ret120"] - market_context["broad_ret120"]),
         cfg=cfg,
     )
     if sector_guard.triggered:
@@ -199,13 +419,12 @@ def assess_risk(
                 "date": str(date.date()),
                 "event": "sector_guard_on",
                 "shock_count": sector_guard.shock_count,
-                "leadership_divergence": (
-                    market_context["tech_ret120"] - market_context["broad_ret120"]
-                ),
+                "leadership_divergence": (market_context["tech_ret120"] - market_context["broad_ret120"]),
                 "equal_weight_return": (
-                    sector_guard.observation.equal_return
-                    if sector_guard.observation is not None
-                    else None
+                    sector_guard.observation.equal_return if sector_guard.observation is not None else None
+                ),
+                "exposure_weighted_return": (
+                    sector_guard.observation.weighted_return if sector_guard.observation is not None else None
                 ),
             }
         )
@@ -230,15 +449,24 @@ def assess_risk(
         ret5 = scalar(row, "ret5", 0.0)
         held_ret5.append(ret5)
         ret1 = float(frame.loc[:date, "close"].pct_change(fill_method=None).iloc[-1])
-        held_damage.append(
-            math.isfinite(close) and math.isfinite(ma20) and close < ma20 and ret5 <= -0.05
-        )
+        held_damage.append(math.isfinite(close) and math.isfinite(ma20) and close < ma20 and ret5 <= -0.05)
         held_repair.append(math.isfinite(ret1) and ret1 > 0)
     held_damage_ratio = float(np.mean(held_damage)) if held_damage else 0.0
     held_repair_ratio = float(np.mean(held_repair)) if held_repair else 0.0
+    anchor_symbols = _update_dynamic_anchors(
+        leaders=leaders,
+        account=account,
+        cfg=cfg,
+        allow_reanchor=(
+            account.risk == Risk.NORMAL.value
+            and not transition_freeze
+            and transition_damage <= cfg.transition_damage_repair
+            and votes <= 1
+        ),
+    )
     anchor_damage: list[bool] = []
     anchor_ret5: list[float] = []
-    for symbol in REFERENCE_ANCHORS:
+    for symbol in anchor_symbols:
         frame = reference_panel.get(symbol)
         if frame is None or date not in frame.index:
             continue
@@ -247,13 +475,11 @@ def assess_risk(
         ma20 = scalar(row, f"ma{cfg.trend_fast}")
         ret5 = scalar(row, "ret5", 0.0)
         anchor_ret5.append(ret5)
-        anchor_damage.append(
-            math.isfinite(close)
-            and math.isfinite(ma20)
-            and close < ma20
-            and ret5 <= -0.06
-        )
-    complete_anchor_basket = len(anchor_damage) == len(REFERENCE_ANCHORS)
+        anchor_damage.append(math.isfinite(close) and math.isfinite(ma20) and close < ma20 and ret5 <= -0.06)
+    anchor_groups = {leaders[symbol].industry for symbol in anchor_symbols if symbol in leaders}
+    complete_anchor_basket = (
+        len(anchor_damage) == cfg.risk_anchor_count and len(anchor_groups) >= cfg.risk_anchor_min_groups
+    )
     reference_anchor_healthy = complete_anchor_basket and all(
         scalar(reference_panel[symbol].loc[date], "close")
         > scalar(reference_panel[symbol].loc[date], f"ma{cfg.trend_medium}")
@@ -263,19 +489,15 @@ def assess_risk(
             -1.0,
         )
         > 0
-        for symbol in REFERENCE_ANCHORS
+        for symbol in anchor_symbols
     )
     if reference_anchor_healthy:
         account.risk_streaks["reference_anchor_armed"] = 1
-    reference_anchor_armed = (
-        account.risk_streaks.get("reference_anchor_armed", 0) == 1
-    )
+    reference_anchor_armed = account.risk_streaks.get("reference_anchor_armed", 0) == 1
     reference_anchor_break = complete_anchor_basket and all(anchor_damage)
     anchor_break_key = "reference_anchor_break"
     account.risk_streaks[anchor_break_key] = (
-        account.risk_streaks.get(anchor_break_key, 0) + 1
-        if reference_anchor_break
-        else 0
+        account.risk_streaks.get(anchor_break_key, 0) + 1 if reference_anchor_break else 0
     )
     immediate_reference_break = bool(
         reference_anchor_armed
@@ -283,31 +505,22 @@ def assess_risk(
         and all(
             scalar(reference_panel[symbol].loc[date], "close")
             < scalar(reference_panel[symbol].loc[date], f"ma{cfg.trend_fast}")
-            for symbol in REFERENCE_ANCHORS
+            for symbol in anchor_symbols
         )
         and float(np.mean(anchor_ret5)) <= cfg.severe_shock_ret5
     )
     shock_rearmed = True
     if account.last_shock_date and user_panel:
-        clock = next(iter(user_panel.values()))
         rearm_days = (
             cfg.incomplete_universe_rearm_days
-            if account.candidate_tenure.get(
-                "last_shock_incomplete_universe", 0
-            )
-            == 1
+            if account.candidate_tenure.get("last_shock_incomplete_universe", 0) == 1
             else cfg.shock_rearm_days
         )
-        shock_rearmed = (
-            len(clock.loc[pd.Timestamp(account.last_shock_date) : date]) - 1
-            >= rearm_days
-        )
+        shock_rearmed = len(tech.loc[pd.Timestamp(account.last_shock_date) : date]) - 1 >= rearm_days
         # A fully new book is a new risk cohort.  It must not inherit the
         # previous cohort's long rearm lock after the old positions were sold.
         if account.positions and all(
-            position.entry_date
-            and pd.Timestamp(position.entry_date)
-            > pd.Timestamp(account.last_shock_date)
+            position.entry_date and pd.Timestamp(position.entry_date) > pd.Timestamp(account.last_shock_date)
             for position in account.positions.values()
             if position.shares > 0
         ):
@@ -318,17 +531,11 @@ def assess_risk(
         and held_damage_ratio >= cfg.concentrated_break_ratio
     )
     emergency_tail_break = (
-        any(held_damage)
-        and operating_dd >= cfg.portfolio_break_dd
-        and votes >= cfg.portfolio_break_votes
+        any(held_damage) and operating_dd >= cfg.portfolio_break_dd and votes >= cfg.portfolio_break_votes
     )
-    concentrated_break = (
-        shock_rearmed and not account.protected_weights and concentrated_structure_break
-    )
+    concentrated_break = shock_rearmed and not account.protected_weights and concentrated_structure_break
     break_key = "concentrated_break"
-    account.risk_streaks[break_key] = (
-        account.risk_streaks.get(break_key, 0) + 1 if concentrated_break else 0
-    )
+    account.risk_streaks[break_key] = account.risk_streaks.get(break_key, 0) + 1 if concentrated_break else 0
     narrow_anchor_structure_break = (
         shock_rearmed
         and not account.protected_weights
@@ -339,58 +546,95 @@ def assess_risk(
     )
     narrow_anchor_guard = (
         narrow_anchor_structure_break
-        and market_context["tech_ret120"] - market_context["broad_ret120"]
-        >= cfg.narrow_anchor_divergence
+        and market_context["tech_ret120"] - market_context["broad_ret120"] >= cfg.narrow_anchor_divergence
     )
     immediate_severe_break = bool(held_ret5) and float(np.mean(held_ret5)) <= cfg.severe_shock_ret5
     persistent_market_break = (
         concentrated_structure_break
         and account.risk_streaks[break_key] >= cfg.concentrated_break_confirm_days
-        and (
-            votes >= 3
-            or (bool(held_ret5) and float(np.mean(held_ret5)) <= -0.08)
-        )
+        and (votes >= 3 or (bool(held_ret5) and float(np.mean(held_ret5)) <= -0.08))
     )
-    strategic_active = (
-        account.candidate_tenure.get("strategic_cohort_active", 0) == 1
+    strategic_active = account.candidate_tenure.get("strategic_cohort_active", 0) == 1
+    recovery_anchor_elapsed = 0
+    if account.recovery_anchor_date:
+        recovery_anchor_elapsed = len(tech.loc[pd.Timestamp(account.recovery_anchor_date) : date]) - 1
+    mature_live_cohort = bool(
+        (
+            strategic_active
+            and account.candidate_tenure.get("strategic_cohort_days", 0) >= cfg.strategic_cohort_guard_days
+        )
+        or (account.anchor_weights and recovery_anchor_elapsed >= cfg.recovery_cohort_tail_guard_days)
+    )
+    # A strategic or recovery label is not immunity.  Confirm an all-holdings
+    # structural break only after the live cohort has matured and crossed its
+    # explicit tail line.  This preserves ordinary early recovery volatility
+    # while protecting a seasoned book from a true synchronized failure.
+    synchronized_held_cohort_break = bool(
+        shock_rearmed
+        and not account.protected_weights
+        and mature_live_cohort
+        and len(held_damage) >= 2
+        and held_damage_ratio >= 1.0 - 1e-12
+        and operating_dd
+        >= (cfg.strategic_cohort_tail_line if strategic_active else cfg.recovery_cohort_tail_line)
+        and account.risk_streaks[break_key] >= cfg.concentrated_break_confirm_days
+    )
+    market_backed_break_key = "market_backed_recovery_break"
+    market_backed_partial_cohort_damage = bool(
+        shock_rearmed
+        and not account.protected_weights
+        and not strategic_active
+        and bool(account.anchor_weights)
+        and mature_live_cohort
+        # Two independently damaged holdings establish portfolio damage; the
+        # broad reference basket must separately confirm that it is systemic.
+        # This prevents a recovery label from waiting for the final surviving
+        # member to fail after the ordinary concentrated-break confirmation
+        # window has already completed.
+        and len(held_damage) >= 2
+        and sum(held_damage) >= 2
+        and operating_dd >= cfg.concentrated_break_dd
+        and votes >= 3
+        and sector_stress >= 0.50
+    )
+    account.risk_streaks[market_backed_break_key] = (
+        account.risk_streaks.get(market_backed_break_key, 0) + 1
+        if market_backed_partial_cohort_damage
+        else 0
+    )
+    market_backed_partial_cohort_break = bool(
+        account.risk_streaks[market_backed_break_key]
+        >= cfg.concentrated_break_confirm_days
+    )
+    held_cohort_break_confirmed = bool(
+        synchronized_held_cohort_break or market_backed_partial_cohort_break
     )
     strategic_current_gross = sum(
         position.shares * scalar(user_panel[symbol].loc[date], "close") / equity
         for symbol, position in account.positions.items()
-        if symbol in user_panel
+        if symbol in account.strategic_cohort_symbols
+        and symbol in user_panel
         and date in user_panel[symbol].index
         and position.shares > 0
     )
-    strategic_guard_break = (
-        strategic_active
-        and account.candidate_tenure.get("strategic_profit_armed", 0) == 1
-        and account.candidate_tenure.get("strategic_cohort_days", 0)
-        >= cfg.strategic_cohort_guard_days
-        and strategic_current_gross > cfg.strategic_cohort_residual_gross
-    )
     strategic_tail_key = "strategic_tail_break"
-    strategic_tail_observed = (
-        strategic_active and operating_dd >= cfg.strategic_cohort_tail_line
+    strategic_tail_observed = bool(
+        strategic_active
+        and account.candidate_tenure.get("strategic_cohort_days", 0) >= cfg.strategic_cohort_guard_days
+        and operating_dd >= cfg.strategic_cohort_tail_line
     )
     account.risk_streaks[strategic_tail_key] = (
-        account.risk_streaks.get(strategic_tail_key, 0) + 1
-        if strategic_tail_observed
-        else 0
+        account.risk_streaks.get(strategic_tail_key, 0) + 1 if strategic_tail_observed else 0
     )
     strategic_tail_break = (
         strategic_tail_observed
-        and account.risk_streaks[strategic_tail_key]
-        >= cfg.strategic_cohort_tail_confirm_days
-    )
-    strategic_preserve = (
-        strategic_active and not strategic_guard_break and not strategic_tail_break
+        and account.risk_streaks[strategic_tail_key] >= cfg.strategic_cohort_tail_confirm_days
+        and votes >= 4
+        and sector_stress >= 0.50
+        and transition_damage >= cfg.transition_damage_freeze
     )
     strategic_universe_complete = len(user_panel) >= min(3, cfg.max_positions)
-    anchor_industries = {
-        leaders[symbol].industry
-        for symbol in account.anchor_weights
-        if symbol in leaders
-    }
+    anchor_industries = {leaders[symbol].industry for symbol in account.anchor_weights if symbol in leaders}
     reserve_observed = bool(
         len(account.anchor_weights) >= 2
         and any(
@@ -412,12 +656,6 @@ def assess_risk(
         account.candidate_tenure.get("recovery_reserve_qualified", 0) == 1
         or account.candidate_tenure.get("recovery_substitution_completed", 0) >= 1
     )
-    recovery_anchor_elapsed = 0
-    if account.recovery_anchor_date and user_panel:
-        clock = next(iter(user_panel.values()))
-        recovery_anchor_elapsed = (
-            len(clock.loc[pd.Timestamp(account.recovery_anchor_date) : date]) - 1
-        )
     incomplete_universe_tail_break = (
         shock_rearmed
         and not account.protected_weights
@@ -433,8 +671,7 @@ def assess_risk(
                 not account.anchor_weights
                 or (
                     len(account.anchor_weights) >= 1
-                    and recovery_anchor_elapsed
-                    >= cfg.unbacked_recovery_anchor_min_days
+                    and recovery_anchor_elapsed >= cfg.unbacked_recovery_anchor_min_days
                 )
             )
             else cfg.incomplete_universe_tail_dd
@@ -444,7 +681,7 @@ def assess_risk(
         shock_rearmed
         and not account.protected_weights
         and not account.anchor_weights
-        and not strategic_preserve
+        and not strategic_active
         and (
             emergency_tail_break
             or (concentrated_structure_break and immediate_severe_break)
@@ -454,17 +691,15 @@ def assess_risk(
     reference_anchor_confirmed = (
         shock_rearmed
         and not account.protected_weights
-        and bool(account.anchor_weights)
         and reference_anchor_armed
-        and (
-            immediate_reference_break
-            or account.risk_streaks[anchor_break_key] >= 2
-        )
+        and held_damage_ratio >= cfg.concentrated_break_ratio
+        and operating_dd >= cfg.incomplete_universe_tail_dd
+        and votes >= 4
+        and sector_stress >= 0.50
+        and (immediate_reference_break or account.risk_streaks[anchor_break_key] >= 2)
     )
     incomplete_universe_tail_break = (
-        incomplete_universe_tail_break
-        and not account_break_confirmed
-        and not reference_anchor_confirmed
+        incomplete_universe_tail_break and not account_break_confirmed and not reference_anchor_confirmed
     )
     # A restored cohort must not inherit immunity from the prior shock.  If
     # capital remains below its crisis line and the *new operating book* again
@@ -480,38 +715,126 @@ def assess_risk(
         and pd.Timestamp(event["date"]) <= date
     ]
     sessions_since_recovery = (
-        len(next(iter(user_panel.values())).loc[max(recovery_transition_dates) : date])
-        - 1
+        len(tech.loc[max(recovery_transition_dates) : date]) - 1
         if recovery_transition_dates and user_panel
         else math.inf
     )
     capital_drawdown_relapse = (
         bool(account.positions)
         and bool(account.protected_weights)
+        # This route is a fail-safe for an economically impaired account, not
+        # a profit-giveback stop. A book still above contributed capital keeps
+        # all ordinary market/cohort guards but cannot start the 60-session
+        # failed-restoration cash lock solely from its high-water mark.
+        and equity < account.initial_cash - 1e-12
         and capital_dd >= cfg.capital_dd_crisis
         and operating_dd >= cfg.capital_guard_relapse_dd
         and sessions_since_recovery >= cfg.capital_guard_min_recovery_days
-        and (
-            held_damage_ratio >= cfg.concentrated_break_ratio
-            or (votes >= 2 and sector_stress >= 0.50)
-        )
+        and (held_damage_ratio >= cfg.concentrated_break_ratio or (votes >= 2 and sector_stress >= 0.50))
     )
     concentrated_confirmed = (
         account_break_confirmed
         or reference_anchor_confirmed
+        or held_cohort_break_confirmed
         or incomplete_universe_tail_break
-        or (shock_rearmed and strategic_tail_break)
+        or (shock_rearmed and strategic_tail_break and reference_anchor_confirmed)
         or capital_drawdown_relapse
     )
 
-    previous = Risk(account.risk)
-    capital_cooldown = account.candidate_tenure.get(
-        "capital_guard_cooldown", 0
-    )
-    if capital_cooldown > 0:
-        account.candidate_tenure["capital_guard_cooldown"] = (
-            capital_cooldown - 1
+    independent_damage = bool(
+        sector_guard.active
+        or (
+            held_damage_ratio >= cfg.concentrated_break_ratio
+            and transition_damage >= cfg.transition_damage_freeze
+            and votes >= 2
         )
+        or (
+            reference_anchor_break
+            and held_damage_ratio >= cfg.concentrated_break_ratio
+            and transition_damage >= cfg.transition_damage_freeze
+            and votes >= 4
+        )
+    )
+    worsening_damage = bool(
+        independent_damage
+        and (votes >= 3 or transition_damage >= 0.68 or held_damage_ratio >= cfg.concentrated_break_ratio)
+    )
+    observed_budget_level = 0
+    if cfg.capital_budget_ladder_enabled:
+        if (
+            capital_dd >= cfg.capital_dd_crisis
+            and worsening_damage
+            and votes >= 4
+            and sector_stress >= 0.50
+            and transition_damage >= 0.68
+        ):
+            observed_budget_level = 4
+        elif (
+            capital_dd >= cfg.capital_budget_level3_dd
+            and worsening_damage
+            and votes >= 4
+            and transition_damage >= cfg.transition_damage_freeze
+        ):
+            observed_budget_level = 3
+        elif capital_dd >= cfg.capital_budget_level2_dd and independent_damage:
+            observed_budget_level = 2
+        elif max(capital_dd, operating_dd) >= cfg.operating_dd_caution and (
+            transition_freeze or votes >= 2 or (votes >= 1 and held_damage_ratio > 0)
+        ):
+            observed_budget_level = 1
+    _update_capital_budget_ladder(
+        account,
+        observed_level=observed_budget_level,
+        repair_confirmed=(
+            transition_damage <= cfg.transition_damage_repair and votes <= 1 and held_damage_ratio < 0.50
+        ),
+        repair_days=cfg.capital_budget_repair_days,
+    )
+    freeze_new_risk = bool(
+        transition_freeze or account.capital_budget_level >= 1 or account.chronic_level >= 1
+    )
+    overlay_cap = cfg.max_gross
+    if account.capital_budget_level >= 4:
+        overlay_cap = min(overlay_cap, cfg.market_crisis_gross)
+    elif account.capital_budget_level >= 3:
+        overlay_cap = min(overlay_cap, cfg.capital_budget_level3_cap)
+    elif account.capital_budget_level >= 2:
+        overlay_cap = min(overlay_cap, cfg.capital_budget_level2_cap)
+    if account.chronic_level >= 3:
+        overlay_cap = min(overlay_cap, cfg.chronic_severe_cap)
+    elif account.chronic_level >= 2:
+        overlay_cap = min(overlay_cap, cfg.chronic_moderate_cap)
+    overlay_reduction_level = (
+        3
+        if account.capital_budget_level >= 4
+        else 2
+        if overlay_cap < cfg.max_gross - 1e-12
+        else 1
+        if freeze_new_risk
+        else 0
+    )
+    continuous_evidence = {
+        "breadth20": breadth20,
+        "breadth60": breadth60,
+        "name_weighted_declining_ratio": declining_name,
+        "group_balanced_declining_ratio": declining_group,
+        "name_weighted_below_ma20_ratio": below_name,
+        "group_balanced_below_ma20_ratio": below_group,
+        "transition_damage": transition_damage,
+        "trend_health": trend_health,
+        "freeze_new_risk": freeze_new_risk,
+        "chronic_level": account.chronic_level,
+        "capital_budget_level": account.capital_budget_level,
+        "independent_damage": independent_damage,
+        "risk_anchor_symbols": list(anchor_symbols),
+        "risk_anchor_signature": account.risk_anchor_signature,
+        "risk_anchor_group_count": len(anchor_groups),
+    }
+
+    previous = Risk(account.risk)
+    capital_cooldown = account.candidate_tenure.get("capital_guard_cooldown", 0)
+    if capital_cooldown > 0:
+        account.candidate_tenure["capital_guard_cooldown"] = capital_cooldown - 1
         account.risk = Risk.CRISIS.value
         account.shock_state = "CAPITAL_GUARD_COOLDOWN"
         return RiskAssessment(
@@ -519,6 +842,7 @@ def assess_risk(
             target_gross_cap=0.0,
             votes=votes,
             evidence={
+                **continuous_evidence,
                 **market_context,
                 "ai_fast_return": average_fast,
                 "declining_ratio": declining,
@@ -536,6 +860,9 @@ def assess_risk(
             },
             reasons=("capital guard cooldown after failed restoration",),
             shock_state="CAPITAL_GUARD_COOLDOWN",
+            freeze_new_risk=True,
+            reduction_level=3,
+            severity="SEVERE",
         )
     protected_structure_ratio = 0.0
     if account.protected_weights:
@@ -550,25 +877,61 @@ def assess_risk(
                 scalar(row, "close") > scalar(row, f"ma{cfg.trend_fast}")
                 and scalar(row, f"ret{cfg.trend_fast}", 0.0) > 0
             )
-        protected_structure_ratio = (
-            float(np.mean(protected_structures)) if protected_structures else 0.0
-        )
+        protected_structure_ratio = float(np.mean(protected_structures)) if protected_structures else 0.0
     normalize_key = "protected_structure_normalization"
     account.risk_streaks[normalize_key] = (
-        account.risk_streaks.get(normalize_key, 0) + 1
-        if protected_structure_ratio >= 0.67
-        else 0
+        account.risk_streaks.get(normalize_key, 0) + 1 if protected_structure_ratio >= 0.67 else 0
+    )
+    protected_targets = {
+        symbol: min(cfg.max_symbol_weight, max(0.0, weight))
+        for symbol, weight in account.protected_weights.items()
+        if symbol in user_panel
+    }
+    protected_target_gross = sum(protected_targets.values())
+    # ``recovery_target_gross`` bounds the first repaired step, not the final
+    # NORMAL-state restoration.  Completion is measured against the original
+    # per-symbol book, scaled only by the system's explicit max-gross limit.
+    protected_full_cap = min(protected_target_gross, cfg.max_gross)
+    protected_scale = (
+        min(1.0, protected_full_cap / protected_target_gross) if protected_target_gross > 1e-12 else 0.0
+    )
+    protected_desired = {symbol: weight * protected_scale for symbol, weight in protected_targets.items()}
+    protected_current = {
+        symbol: position.shares * scalar(user_panel[symbol].loc[date], "close") / equity
+        for symbol, position in account.positions.items()
+        if symbol in protected_desired and date in user_panel[symbol].index and position.shares > 0
+    }
+    pending_protected_buys = {
+        order.symbol
+        for order in account.pending_orders
+        if order.side == "BUY" and order.symbol in protected_desired
+    }
+    protected_weight_tolerance = cfg.restoration_min_trade_weight
+    protected_restored = bool(
+        account.candidate_tenure.get("post_shock_restore_complete", 0) == 1
+        or protected_target_gross <= 1e-12
+        or (
+            not pending_protected_buys
+            and all(
+                protected_current.get(symbol, 0.0) >= 0.95 * desired
+                or desired - protected_current.get(symbol, 0.0) < protected_weight_tolerance
+                for symbol, desired in protected_desired.items()
+                if desired > 1e-12
+            )
+        )
     )
     if (
         account.protected_weights
         and previous is not Risk.CRISIS
         and account.positions
-        and (
-            capital_dd <= 1e-12
-            or account.risk_streaks[normalize_key] >= cfg.recovery_risk_confirm_days
-        )
+        and account.capital_budget_level == 0
+        and account.chronic_level == 0
+        and overlay_cap >= protected_full_cap - 1e-12
+        and protected_restored
+        and (capital_dd <= 1e-12 or account.risk_streaks[normalize_key] >= cfg.recovery_risk_confirm_days)
     ):
         account.protected_weights.clear()
+        account.candidate_tenure["post_shock_restore_complete"] = 0
         account.shock_start_date = ""
         account.shock_severity = "NORMAL"
         account.shock_state = "NONE"
@@ -581,6 +944,7 @@ def assess_risk(
                 target_gross_cap=0.0,
                 votes=votes,
                 evidence={
+                    **continuous_evidence,
                     **market_context,
                     "ai_fast_return": average_fast,
                     "declining_ratio": declining,
@@ -598,6 +962,9 @@ def assess_risk(
                 },
                 reasons=("unbacked universe remains in capital cooldown",),
                 shock_state="UNBACKED_COOLDOWN",
+                freeze_new_risk=True,
+                reduction_level=3,
+                severity="SEVERE",
             )
         repair_leaders = 0
         for symbol in user_panel:
@@ -627,101 +994,69 @@ def assess_risk(
                 and float(returns1.iloc[-1]) > 0
             )
             protected_swing_repairs.append(
-                scalar(row, "ret5", -1.0) > 0
-                and scalar(row, "close") > scalar(row, f"ma{cfg.trend_fast}")
+                scalar(row, "ret5", -1.0) > 0 and scalar(row, "close") > scalar(row, f"ma{cfg.trend_fast}")
             )
-        protected_fast_ratio = (
-            float(np.mean(protected_fast_repairs))
-            if protected_fast_repairs
-            else 0.0
-        )
-        protected_swing_ratio = (
-            float(np.mean(protected_swing_repairs))
-            if protected_swing_repairs
-            else 0.0
-        )
+        protected_fast_ratio = float(np.mean(protected_fast_repairs)) if protected_fast_repairs else 0.0
+        protected_swing_ratio = float(np.mean(protected_swing_repairs)) if protected_swing_repairs else 0.0
         shock_elapsed = 0
         if account.shock_start_date:
-            clock = next(iter(user_panel.values()))
-            shock_elapsed = (
-                len(clock.loc[pd.Timestamp(account.shock_start_date) : date]) - 1
-            )
+            shock_elapsed = len(tech.loc[pd.Timestamp(account.shock_start_date) : date]) - 1
         shock_wait_days = cfg.severe_shock_wait_days
         v_market_repair = (
             average_fast >= cfg.fast_v_recovery_return
             and declining <= cfg.fast_v_recovery_breadth
             and below <= cfg.fast_v_recovery_below_ma20
             and (
-                scalar(tech.loc[date], "ret5", 0.0)
-                >= cfg.fast_v_recovery_index_return
-                or scalar(broad.loc[date], "ret5", 0.0)
-                >= cfg.fast_v_recovery_index_return
+                scalar(tech.loc[date], "ret5", 0.0) >= cfg.fast_v_recovery_index_return
+                or scalar(broad.loc[date], "ret5", 0.0) >= cfg.fast_v_recovery_index_return
             )
         )
-        fast_v_repair = (
-            shock_elapsed >= shock_wait_days
-            and v_market_repair
-            and protected_fast_ratio >= 0.50
-        )
+        fast_v_repair = shock_elapsed >= shock_wait_days and v_market_repair and protected_fast_ratio >= 0.50
         persistent_v_repair = (
             shock_elapsed >= cfg.persistent_v_recovery_wait_days
             and len(account.protected_weights) == 1
             and v_market_repair
             and protected_swing_ratio >= 1.0
+            and not sector_guard.active
         )
         structural_independent_repair = (
             not account.anchor_weights
             and (
-                scalar(broad.loc[date], "close")
-                > scalar(broad.loc[date], f"ma{cfg.trend_fast}")
-                or scalar(tech.loc[date], "close")
-                > scalar(tech.loc[date], f"ma{cfg.trend_fast}")
+                scalar(broad.loc[date], "close") > scalar(broad.loc[date], f"ma{cfg.trend_fast}")
+                or scalar(tech.loc[date], "close") > scalar(tech.loc[date], f"ma{cfg.trend_fast}")
             )
             and declining <= 0.55
             and below <= 0.60
             and repair_leaders >= 2
         )
-        independent_repair = structural_independent_repair or fast_v_repair
+        independent_repair = not sector_guard.active and (structural_independent_repair or fast_v_repair)
         market_repair_key = "independent_market_repair"
         account.risk_streaks[market_repair_key] = (
-            account.risk_streaks.get(market_repair_key, 0) + 1
-            if independent_repair
-            else 0
+            account.risk_streaks.get(market_repair_key, 0) + 1 if independent_repair else 0
         )
         repair_confirm_days = (
-            cfg.fast_v_recovery_confirm_days
-            if fast_v_repair
-            else cfg.recovery_risk_confirm_days
+            cfg.fast_v_recovery_confirm_days if fast_v_repair else cfg.recovery_risk_confirm_days
         )
-        standard_repair_ready = (
-            account.risk_streaks[market_repair_key] >= repair_confirm_days
-        )
+        standard_repair_ready = account.risk_streaks[market_repair_key] >= repair_confirm_days
         persistent_repair_key = "persistent_v_market_repair"
         account.risk_streaks[persistent_repair_key] = (
-            account.risk_streaks.get(persistent_repair_key, 0) + 1
-            if persistent_v_repair
-            else 0
+            account.risk_streaks.get(persistent_repair_key, 0) + 1 if persistent_v_repair else 0
         )
         persistent_repair_ready = (
-            account.risk_streaks[persistent_repair_key]
-            >= cfg.fast_v_recovery_confirm_days
+            account.risk_streaks[persistent_repair_key] >= cfg.fast_v_recovery_confirm_days
             and not fast_v_repair
         )
         if standard_repair_ready or persistent_repair_ready:
-            persistent_repair_confirmed = (
-                persistent_repair_ready and not standard_repair_ready
-            )
+            persistent_repair_confirmed = persistent_repair_ready and not standard_repair_ready
             expedited_repair = fast_v_repair or persistent_repair_confirmed
-            account.protected_weights.clear()
-            account.shock_start_date = ""
-            account.shock_severity = "NORMAL"
             account.risk = Risk.CAUTION.value
+            # A repaired book starts a new operating-risk epoch.  Capital DD
+            # remains anchored to the all-time peak, but a later relapse must
+            # measure new damage after restoration rather than reuse the old
+            # cohort's pre-crisis high-water mark.
+            account.operating_peak = equity
             account.candidate_tenure["fast_v_recovery"] = int(expedited_repair)
-            account.shock_state = (
-                "FAST_V_RECOVERY"
-                if expedited_repair
-                else "ROTATION_RECOVERY"
-            )
+            account.shock_state = "FAST_V_RECOVERY" if expedited_repair else "ROTATION_RECOVERY"
             repair_reason = (
                 "confirmed persistent V-recovery after extended single-name protection"
                 if persistent_repair_confirmed
@@ -742,12 +1077,12 @@ def assess_risk(
                 state=Risk.CAUTION,
                 target_gross_cap=min(
                     cfg.max_gross,
-                    cfg.fast_v_recovery_gross
-                    if expedited_repair
-                    else cfg.recovery_target_gross,
+                    cfg.fast_v_recovery_gross if expedited_repair else cfg.recovery_target_gross,
+                    overlay_cap,
                 ),
                 votes=votes,
                 evidence={
+                    **continuous_evidence,
                     **market_context,
                     "ai_fast_return": average_fast,
                     "declining_ratio": declining,
@@ -767,11 +1102,10 @@ def assess_risk(
                     "capital_drawdown": capital_dd,
                 },
                 reasons=(repair_reason,),
-                shock_state=(
-                    "FAST_V_RECOVERY"
-                    if expedited_repair
-                    else "ROTATION_RECOVERY"
-                ),
+                shock_state=("FAST_V_RECOVERY" if expedited_repair else "ROTATION_RECOVERY"),
+                freeze_new_risk=freeze_new_risk,
+                reduction_level=max(1, overlay_reduction_level),
+                severity=account.shock_severity,
             )
         protected_repairs: list[bool] = []
         for symbol in account.protected_weights:
@@ -784,17 +1118,8 @@ def assess_risk(
         repair_ratio = float(np.mean(protected_repairs)) if protected_repairs else 0.0
         severe_wait_complete = True
         if account.shock_severity in {"SEVERE", "CONCENTRATED"} and account.shock_start_date:
-            clock_symbol = next(iter(account.protected_weights))
-            protected_clock = user_panel.get(clock_symbol)
             severe_wait_complete = bool(
-                protected_clock is not None
-                and len(
-                    protected_clock.loc[
-                        pd.Timestamp(account.shock_start_date) : date
-                    ]
-                )
-                - 1
-                >= shock_wait_days
+                len(tech.loc[pd.Timestamp(account.shock_start_date) : date]) - 1 >= shock_wait_days
             )
             severe_structures: list[bool] = []
             for symbol in account.protected_weights:
@@ -809,18 +1134,21 @@ def assess_risk(
                 severe_structures.append(
                     math.isfinite(close) and math.isfinite(ma20) and close > ma20 and ret5 > 0
                 )
-            severe_wait_complete = severe_wait_complete and bool(severe_structures) and (
-                float(np.mean(severe_structures)) >= 0.67
+            severe_wait_complete = (
+                severe_wait_complete
+                and bool(severe_structures)
+                and (float(np.mean(severe_structures)) >= 0.67)
             )
         repair_key = "concentrated_repair"
         account.risk_streaks[repair_key] = (
             account.risk_streaks.get(repair_key, 0) + 1
-            if repair_ratio >= 0.67 and severe_wait_complete
+            if repair_ratio >= 0.67 and severe_wait_complete and not sector_guard.active
             else 0
         )
         if account.risk_streaks[repair_key] >= cfg.concentrated_repair_days:
             state = Risk.CAUTION
             shock = "RECOVERY"
+            account.operating_peak = equity
             recovery_gross = {
                 "SEVERE": cfg.severe_recovery_gross,
                 "CONCENTRATED": cfg.concentrated_recovery_gross,
@@ -839,9 +1167,10 @@ def assess_risk(
             )
             return RiskAssessment(
                 state=state,
-                target_gross_cap=cap,
+                target_gross_cap=min(cap, overlay_cap),
                 votes=votes,
                 evidence={
+                    **continuous_evidence,
                     **market_context,
                     "ai_fast_return": average_fast,
                     "declining_ratio": declining,
@@ -859,18 +1188,21 @@ def assess_risk(
                 },
                 reasons=("two-day synchronized leader repair",),
                 shock_state=shock,
+                freeze_new_risk=freeze_new_risk,
+                reduction_level=max(1, overlay_reduction_level),
+                severity=account.shock_severity,
             )
         account.risk = Risk.CRISIS.value
         account.shock_state = "PERSISTENT_STRESS"
         return RiskAssessment(
             state=Risk.CRISIS,
-            target_gross_cap=_persistent_crisis_cap(
-                account.shock_severity,
-                cfg,
-                strategic_active=strategic_active,
+            target_gross_cap=min(
+                _persistent_crisis_cap(account.shock_severity, cfg),
+                overlay_cap,
             ),
             votes=votes,
             evidence={
+                **continuous_evidence,
                 **market_context,
                 "ai_fast_return": average_fast,
                 "declining_ratio": declining,
@@ -888,9 +1220,17 @@ def assess_risk(
             },
             reasons=("awaiting synchronized repair confirmation",),
             shock_state="PERSISTENT_STRESS",
+            freeze_new_risk=True,
+            reduction_level=3,
+            severity=account.shock_severity,
         )
 
     if concentrated_confirmed:
+        if account.candidate_tenure.get("post_shock_restore_complete", 0) == 1:
+            # A new independent event owns a new pre-cut economic snapshot;
+            # never resurrect targets from an already completed repair.
+            account.protected_weights.clear()
+        account.candidate_tenure["post_shock_restore_complete"] = 0
         if not account.protected_weights:
             account.protected_weights = dict(account.anchor_weights)
         if not account.protected_weights:
@@ -902,23 +1242,36 @@ def assess_risk(
         account.shock_start_date = str(date.date())
         account.last_shock_date = str(date.date())
         if capital_drawdown_relapse:
-            account.candidate_tenure[
-                "capital_guard_cooldown"
-            ] = cfg.capital_guard_cooldown_days
+            account.candidate_tenure["capital_guard_cooldown"] = cfg.capital_guard_cooldown_days
         account.candidate_tenure["last_shock_incomplete_universe"] = int(
             incomplete_universe_tail_break and credible_reserve
         )
         severe_held_move = bool(held_ret5) and float(np.mean(held_ret5)) <= cfg.severe_shock_ret5
         if incomplete_universe_tail_break:
             account.shock_severity = (
-                "INCOMPLETE_UNIVERSE"
-                if credible_reserve
-                else "INCOMPLETE_UNIVERSE_UNBACKED"
+                "INCOMPLETE_UNIVERSE" if credible_reserve else "INCOMPLETE_UNIVERSE_UNBACKED"
             )
+        elif held_cohort_break_confirmed:
+            account.shock_severity = "COHORT_BREAK"
+        elif reference_anchor_confirmed and strategic_active:
+            # Independent anchors prove a market event, but a single-industry
+            # strategic book does not prove multi-industry holding damage.
+            # Apply the ordinary market cap rather than a severe 0--20% cut.
+            account.shock_severity = "MARKET"
         elif reference_anchor_confirmed:
+            held_industries = {
+                leaders[symbol].industry
+                for symbol, position in account.positions.items()
+                if position.shares > 0 and symbol in leaders
+            }
             account.shock_severity = (
-                "SEVERE" if immediate_reference_break else "ANCHOR_BREAK"
+                "SEVERE" if immediate_reference_break and len(held_industries) >= 2 else "CONCENTRATED"
             )
+        elif strategic_active:
+            # A single-industry secular cohort cannot by itself establish the
+            # cross-industry evidence required for SEVERE.  It receives the
+            # ordinary market-crisis cap (30--50%), with no label immunity.
+            account.shock_severity = "MARKET"
         else:
             account.shock_severity = (
                 "SEVERE"
@@ -929,22 +1282,21 @@ def assess_risk(
             )
         state = Risk.CRISIS
         shock = "SHOCK"
-        crisis_gross = (
-            cfg.strategic_cohort_crisis_gross
-            if strategic_active
-            else cfg.incomplete_universe_crisis_gross
-            if incomplete_universe_tail_break and credible_reserve
-            else 0.0
+        crisis_gross = min(
+            _persistent_crisis_cap(account.shock_severity, cfg),
+            overlay_cap,
         )
         concentrated_reason = (
-            "confirmed strategic cohort capital guard"
-            if strategic_active
+            "confirmed dynamic cohort structural break"
+            if held_cohort_break_confirmed
             else "capital drawdown relapse in restored holdings"
             if capital_drawdown_relapse
             else "reserve-backed incomplete-universe tail guard"
             if incomplete_universe_tail_break and credible_reserve
             else "unbacked incomplete-universe capital exit"
             if incomplete_universe_tail_break
+            else "confirmed strategic cohort capital guard"
+            if strategic_active
             else "confirmed concentrated leader break"
         )
         account.risk = state.value
@@ -965,6 +1317,8 @@ def assess_risk(
                     if incomplete_universe_tail_break and credible_reserve
                     else "incomplete_universe_unbacked"
                     if incomplete_universe_tail_break
+                    else "dynamic_cohort"
+                    if held_cohort_break_confirmed
                     else "reference_anchor"
                     if reference_anchor_confirmed
                     else "account_holdings"
@@ -977,6 +1331,7 @@ def assess_risk(
             target_gross_cap=crisis_gross,
             votes=votes,
             evidence={
+                **continuous_evidence,
                 **market_context,
                 "ai_fast_return": average_fast,
                 "declining_ratio": declining,
@@ -996,15 +1351,13 @@ def assess_risk(
             },
             reasons=(concentrated_reason,),
             shock_state=shock,
+            freeze_new_risk=True,
+            reduction_level=3,
+            severity=account.shock_severity,
         )
 
     observed = Risk.NORMAL
-    if (
-        shock_rearmed
-        and not account.protected_weights
-        and capital_dd >= cfg.capital_dd_crisis
-        and votes >= 4
-    ):
+    if shock_rearmed and not account.protected_weights and capital_dd >= cfg.capital_dd_crisis and votes >= 4:
         observed = Risk.CRISIS
     elif narrow_anchor_guard:
         observed = Risk.RISK_OFF
@@ -1013,6 +1366,11 @@ def assess_risk(
         (capital_dd >= cfg.capital_dd_risk_off or operating_dd >= 0.10)
         and votes >= 3
         and sector_stress >= 0.50
+        # Broad/index warnings without damage in the owned book are a level-1
+        # freeze, not permission to manufacture a sale.  A level-2 RISK_OFF
+        # reduction needs independently confirmed structural damage or an
+        # already-active capital-budget reduction rung.
+        and (independent_damage or account.capital_budget_level >= 2)
     ):
         observed = Risk.RISK_OFF
     elif operating_dd >= cfg.operating_dd_caution or votes >= 2:
@@ -1040,29 +1398,34 @@ def assess_risk(
         shock = "FAILED_REPAIR"
     else:
         shock = "NONE" if state is Risk.NORMAL else account.shock_state
+    guard_reason = "confirmed synchronized holdings shock"
+    sector_guard_forced = bool(sector_guard.active and state is not Risk.CRISIS)
+    if sector_guard_forced:
+        state = Risk.RISK_OFF
+        shock = "SECTOR_GUARD"
+        if guard_reason not in reasons:
+            reasons.append(guard_reason)
+    if previous is Risk.CRISIS and state is not Risk.CRISIS:
+        # This general transition covers crisis repairs without a protected
+        # snapshot.  The dedicated protected-repair returns above perform the
+        # same reset before returning.
+        account.operating_peak = equity
     if state is Risk.CRISIS and previous is not Risk.CRISIS:
+        if account.candidate_tenure.get("post_shock_restore_complete", 0) == 1:
+            account.protected_weights.clear()
+        account.candidate_tenure["post_shock_restore_complete"] = 0
         if not account.protected_weights:
             account.protected_weights = {
-                symbol: position.shares
-                * scalar(user_panel[symbol].loc[date], "close")
-                / equity
+                symbol: position.shares * scalar(user_panel[symbol].loc[date], "close") / equity
                 for symbol, position in account.positions.items()
-                if symbol in user_panel
-                and date in user_panel[symbol].index
-                and position.shares > 0
+                if symbol in user_panel and date in user_panel[symbol].index and position.shares > 0
             }
         account.shock_start_date = str(date.date())
         account.last_shock_date = str(date.date())
         account.candidate_tenure["last_shock_incomplete_universe"] = 0
-        severe_held_move = bool(held_ret5) and (
-            float(np.mean(held_ret5)) <= cfg.severe_shock_ret5
-        )
+        severe_held_move = bool(held_ret5) and (float(np.mean(held_ret5)) <= cfg.severe_shock_ret5)
         account.shock_severity = (
-            "SEVERE"
-            if severe_held_move and votes >= 4
-            else "CONCENTRATED"
-            if severe_held_move
-            else "MARKET"
+            "SEVERE" if severe_held_move and votes >= 4 else "CONCENTRATED" if severe_held_move else "MARKET"
         )
     if state != previous:
         account.risk_events.append(
@@ -1073,66 +1436,33 @@ def assess_risk(
                 "votes": votes,
                 "reasons": reasons,
                 "severity": account.shock_severity,
+                "route": "sector_guard" if sector_guard_forced else "risk_state",
             }
         )
     account.risk = state.value
     account.shock_state = shock
-    crisis_cap = (
-        0.0
-        if account.shock_severity in {"SEVERE", "ANCHOR_BREAK"}
-        else cfg.concentrated_crisis_gross
-        if account.shock_severity == "CONCENTRATED"
-        else cfg.crisis_gross
-    )
+    crisis_cap = _persistent_crisis_cap(account.shock_severity, cfg)
     cap = {
         Risk.NORMAL: cfg.max_gross,
-        Risk.CAUTION: (
-            min(
-                cfg.max_gross,
-                max(cfg.caution_gross, strategic_current_gross),
-            )
-            if votes >= cfg.caution_gross_min_votes
-            else cfg.max_gross
-        ),
-        Risk.RISK_OFF: (
-            cfg.risk_off_gross
-            if held_damage_ratio >= cfg.concentrated_break_ratio
-            else cfg.max_gross
-        ),
+        # CAUTION is the level-1 early warning: freeze additions, scouts, and
+        # rotation without manufacturing a sale.  Structural damage is
+        # reduced by the capital/sector overlays above.
+        Risk.CAUTION: cfg.max_gross,
+        Risk.RISK_OFF: cfg.risk_off_gross,
         Risk.CRISIS: crisis_cap,
     }[state]
     if narrow_anchor_guard and state is Risk.RISK_OFF:
         cap = cfg.narrow_anchor_guard_gross
-    if state is Risk.RISK_OFF and strategic_preserve:
-        cap = cfg.max_gross
-    elif state is Risk.CRISIS and strategic_active:
-        cap = cfg.strategic_cohort_crisis_gross
-    if sector_guard.active and state is not Risk.CRISIS:
-        guard_reason = "confirmed synchronized holdings shock"
-        if state is not Risk.RISK_OFF:
-            account.risk_events.append(
-                {
-                    "date": str(date.date()),
-                    "from": state.value,
-                    "to": Risk.RISK_OFF.value,
-                    "votes": votes,
-                    "reasons": [guard_reason],
-                    "route": "sector_guard",
-                }
-            )
-        state = Risk.RISK_OFF
+    cap = min(cap, overlay_cap)
+    if sector_guard_forced:
         cap = min(cap, cfg.sector_guard_gross)
-        shock = "SECTOR_GUARD"
-        account.risk = state.value
-        account.shock_state = shock
-        if guard_reason not in reasons:
-            reasons.append(guard_reason)
     observation = sector_guard.observation
     return RiskAssessment(
         state=state,
         target_gross_cap=cap,
         votes=votes,
         evidence={
+            **continuous_evidence,
             **market_context,
             "ai_fast_return": average_fast,
             "declining_ratio": declining,
@@ -1152,8 +1482,12 @@ def assess_risk(
             "sector_guard_active": sector_guard.active,
             "sector_guard_shock_count": sector_guard.shock_count,
             "sector_guard_active_sessions": sector_guard.active_sessions,
-            "sector_guard_equal_return": (
-                observation.equal_return if observation is not None else None
+            "sector_guard_equal_return": (observation.equal_return if observation is not None else None),
+            "sector_guard_weighted_return": (
+                observation.weighted_return if observation is not None else None
+            ),
+            "sector_guard_negative_exposure": (
+                observation.negative_exposure if observation is not None else None
             ),
             "sector_guard_positive_breadth": (
                 observation.positive_breadth if observation is not None else None
@@ -1161,4 +1495,10 @@ def assess_risk(
         },
         reasons=tuple(reasons),
         shock_state=shock,
+        freeze_new_risk=freeze_new_risk or state is not Risk.NORMAL,
+        reduction_level=max(
+            overlay_reduction_level,
+            3 if state is Risk.CRISIS else 2 if state is Risk.RISK_OFF else 1 if state is Risk.CAUTION else 0,
+        ),
+        severity=account.shock_severity,
     )

@@ -38,6 +38,7 @@ def normalize_symbol(symbol: str) -> str:
 @dataclass(frozen=True, slots=True)
 class DataManifest:
     """Bounded, reproducible identity of the files used for one decision."""
+
     generated_at: str
     source: str
     adjustment: str
@@ -62,14 +63,13 @@ class DataManifest:
 
 class DataStore:
     """Load, validate, bound, hash, and optionally refresh daily OHLCV data."""
+
     def __init__(self, root: str | Path) -> None:
         self.root = Path(root)
         if not self.root.is_dir():
             raise DataContractError(f"data directory does not exist: {self.root}")
         self._cache: dict[str, pd.DataFrame] = {}
-        self._prefix_hash_cache: dict[
-            str, tuple[pd.DatetimeIndex, tuple[str, ...]]
-        ] = {}
+        self._prefix_hash_cache: dict[str, tuple[pd.DatetimeIndex, tuple[str, ...]]] = {}
 
     def path_for(self, symbol: str) -> Path:
         normalized = normalize_symbol(symbol)
@@ -124,9 +124,7 @@ class DataStore:
     def common_sessions(self, symbols: Iterable[str], start: str, end: str) -> pd.DatetimeIndex:
         sessions: pd.DatetimeIndex | None = None
         for symbol in symbols:
-            index = pd.DatetimeIndex(
-                self.load(symbol).loc[pd.Timestamp(start) : pd.Timestamp(end)].index
-            )
+            index = pd.DatetimeIndex(self.load(symbol).loc[pd.Timestamp(start) : pd.Timestamp(end)].index)
             sessions = index if sessions is None else sessions.intersection(index)
         if sessions is None or len(sessions) < 2:
             raise DataContractError("at least two common sessions are required")
@@ -144,9 +142,7 @@ class DataStore:
                 lineterminator="\n",
             ).splitlines(keepends=True)
             if len(canonical) != len(frame) + 1:
-                raise DataContractError(
-                    f"cannot construct canonical prefix hash for {normalized}"
-                )
+                raise DataContractError(f"cannot construct canonical prefix hash for {normalized}")
             chain = hashlib.sha256(canonical[0].encode("utf-8")).digest()
             prefix_digests: list[str] = []
             for row in canonical[1:]:
@@ -157,11 +153,7 @@ class DataStore:
                 tuple(prefix_digests),
             )
         index, cached_digests = self._prefix_hash_cache[normalized]
-        position = (
-            len(index) - 1
-            if as_of is None
-            else int(index.searchsorted(as_of, side="right")) - 1
-        )
+        position = len(index) - 1 if as_of is None else int(index.searchsorted(as_of, side="right")) - 1
         if position < 0:
             raise DataContractError(
                 f"{normalized} has no data on or before {as_of.date() if as_of else as_of}"
@@ -186,9 +178,7 @@ class DataStore:
             bounded = frame if bound is None else frame.loc[:bound]
             if bounded.empty:
                 boundary = bound.date() if bound is not None else "unbounded"
-                raise DataContractError(
-                    f"{symbol} has no data on or before {boundary}"
-                )
+                raise DataContractError(f"{symbol} has no data on or before {boundary}")
             files[path.name] = self._prefix_hash(symbol, as_of=bound)
             starts.append(str(bounded.index.min().date()))
             ends.append(str(bounded.index.max().date()))

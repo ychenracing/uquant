@@ -1,0 +1,398 @@
+From 2c3f7f0db7360724f6aed941cae745d97670411e Mon Sep 17 00:00:00 2001
+From: Codex <codex@openai.com>
+Date: Mon, 10 Aug 2026 17:56:05 -0700
+Subject: [PATCH] Harden generalization validation gates
+
+---
+ tests/test_generalization.py        | 269 ++++++++++++++++++++++++++++
+ uquant/validation/generalization.py |  64 ++++---
+ 2 files changed, 308 insertions(+), 25 deletions(-)
+
+diff --git a/tests/test_generalization.py b/tests/test_generalization.py
+index e3ad5e4..909ce33 100644
+--- a/tests/test_generalization.py
++++ b/tests/test_generalization.py
+@@ -8,9 +8,11 @@ from typing import Any
+ import pandas as pd
+ import pytest
+ 
++from uquant.validation import generalization as generalization_module
+ from uquant.validation.generalization import (
+     GeneralizationObservation,
+     GeneralizationScenario,
++    PreWindowEvidence,
+     aggregate_metrics,
+     build_generalization_provenance,
+     build_generalization_scenarios,
+@@ -27,6 +29,273 @@ from uquant.validation.generalization import (
+ )
+ 
+ 
++def test_generalization_git_runner_resolves_executable_and_uses_fixed_argv(
++    monkeypatch: pytest.MonkeyPatch,
++    tmp_path: Path,
++) -> None:
++    calls: list[list[str]] = []
++    monkeypatch.setattr(generalization_module.shutil, "which", lambda name: f"/usr/bin/{name}")
++
++    def fake_run(
++        arguments: list[str],
++        *,
++        check: bool,
++        capture_output: bool,
++        text: bool,
++    ) -> Any:
++        assert check
++        assert capture_output
++        assert text
++        calls.append(arguments)
++        return type("Completed", (), {"stdout": "f" * 40 + "\n"})()
++
++    monkeypatch.setattr(generalization_module.subprocess, "run", fake_run)
++
++    assert generalization_module._git_stdout(
++        tmp_path,
++        ["rev-parse", "HEAD"],
++        label="cannot resolve test commit",
++    ) == "f" * 40 + "\n"
++    assert calls == [["/usr/bin/git", "-C", str(tmp_path), "rev-parse", "HEAD"]]
++
++
++def test_generalization_git_runner_fails_closed(
++    monkeypatch: pytest.MonkeyPatch,
++    tmp_path: Path,
++) -> None:
++    monkeypatch.setattr(generalization_module.shutil, "which", lambda _: None)
++    with pytest.raises(RuntimeError, match="cannot resolve git executable"):
++        generalization_module._git_executable()
++
++    monkeypatch.setattr(generalization_module.shutil, "which", lambda _: "/usr/bin/git")
++    monkeypatch.setattr(
++        generalization_module.subprocess,
++        "run",
++        lambda *_args, **_kwargs: (_ for _ in ()).throw(OSError("unavailable")),
++    )
++    with pytest.raises(RuntimeError, match="cannot inspect test source"):
++        generalization_module._git_stdout(
++            tmp_path,
++            ["status"],
++            label="cannot inspect test source",
++        )
++
++
++def test_generalization_production_commit_requires_clean_valid_head(
++    monkeypatch: pytest.MonkeyPatch,
++    tmp_path: Path,
++) -> None:
++    replies = iter(["", "a" * 40 + "\n"])
++    calls: list[tuple[list[str], str]] = []
++
++    def fake_git_stdout(_root: Path, arguments: list[str], *, label: str) -> str:
++        calls.append((arguments, label))
++        return next(replies)
++
++    monkeypatch.setattr(generalization_module, "_git_stdout", fake_git_stdout)
++    assert generalization_module._production_commit(tmp_path) == "a" * 40
++    assert calls == [
++        (
++            [
++                "status",
++                "--porcelain",
++                "--untracked-files=all",
++                "--",
++                "uquant",
++                "pyproject.toml",
++            ],
++            "cannot inspect generalization production source",
++        ),
++        (
++            ["log", "-1", "--format=%H", "--", "uquant", "pyproject.toml"],
++            "cannot resolve immutable production commit",
++        ),
++    ]
++
++    monkeypatch.setattr(generalization_module, "_git_stdout", lambda *_args, **_kwargs: "dirty")
++    with pytest.raises(RuntimeError, match="requires committed source"):
++        generalization_module._production_commit(tmp_path)
++
++    replies = iter(["", "not-a-commit"])
++    monkeypatch.setattr(
++        generalization_module,
++        "_git_stdout",
++        lambda *_args, **_kwargs: next(replies),
++    )
++    with pytest.raises(RuntimeError, match="cannot resolve immutable production commit"):
++        generalization_module._production_commit(tmp_path)
++
++
++def test_generalization_source_fingerprint_covers_exact_production_tree(tmp_path: Path) -> None:
++    package = tmp_path / "uquant"
++    nested = package / "validation"
++    nested.mkdir(parents=True)
++    (tmp_path / "pyproject.toml").write_text("[project]\nname = 'fixture'\n", encoding="utf-8")
++    (package / "__init__.py").write_text("VALUE = 1\n", encoding="utf-8")
++    (nested / "module.py").write_text("VALUE = 2\n", encoding="utf-8")
++
++    first = generalization_module._production_source_fingerprint(tmp_path)
++    assert len(first) == 64
++    assert first == generalization_module._production_source_fingerprint(tmp_path)
++
++    (nested / "module.py").write_text("VALUE = 3\n", encoding="utf-8")
++    assert generalization_module._production_source_fingerprint(tmp_path) != first
++
++    (tmp_path / "pyproject.toml").unlink()
++    with pytest.raises(RuntimeError, match="cannot fingerprint generalization production source"):
++        generalization_module._production_source_fingerprint(tmp_path)
++
++
++@pytest.mark.parametrize(
++    ("overrides", "message"),
++    [
++        ({"as_of": "not-a-date"}, "valid as_of date"),
++        ({"scores": (("a", 1.0), ("a", 0.5))}, "duplicate symbols"),
++        ({"scores": (("", 1.0),)}, "invalid score"),
++        ({"ineligible_symbols": ("",)}, "invalid ineligible symbol"),
++        ({"ineligible_symbols": ("b", "a")}, "not canonical"),
++        ({"ineligible_symbols": ("a", "a")}, "duplicate ineligible"),
++        ({"ineligible_symbols": ("a",)}, "both eligible and ineligible"),
++    ],
++)
++def test_pre_window_evidence_rejects_ambiguous_membership(
++    overrides: dict[str, Any],
++    message: str,
++) -> None:
++    values: dict[str, Any] = {"as_of": "2026-01-02", "scores": (("a", 1.0),)}
++    values.update(overrides)
++    with pytest.raises(ValueError, match=message):
++        PreWindowEvidence(**values)
++
++
++@pytest.mark.parametrize(
++    ("overrides", "message"),
++    [
++        ({"name": ""}, "require name"),
++        ({"symbols": ("a", "a")}, "repeats a symbol"),
++        ({"symbols": ("b", "a")}, "not canonical"),
++        ({"removed_symbols": ("b", "b")}, "repeats a removed"),
++        ({"removed_symbols": ("a",)}, "retains a removed"),
++        ({"evidence_eligible_symbols": ("b", "a")}, "not canonical"),
++        ({"evidence_eligible_symbols": ("",)}, "invalid evidence eligible"),
++        (
++            {"evidence_eligible_symbols": ("a",), "evidence_ineligible_symbols": ("a",)},
++            "membership overlaps",
++        ),
++    ],
++)
++def test_generalization_scenario_rejects_noncanonical_contracts(
++    overrides: dict[str, Any],
++    message: str,
++) -> None:
++    values: dict[str, Any] = {"name": "case", "family": "baseline", "symbols": ("a",)}
++    values.update(overrides)
++    with pytest.raises(ValueError, match=message):
++        GeneralizationScenario(**values)
++
++
++@pytest.mark.parametrize(
++    ("overrides", "message"),
++    [
++        ({"name": ""}, "require name"),
++        ({"final_wealth": 0.0}, "invalid final wealth"),
++        ({"max_drawdown": 2.0}, "invalid maximum drawdown"),
++        ({"account_orders": True}, "invalid account-order count"),
++        ({"symbol_pnl": (("a", 1.0), ("a", 2.0))}, "duplicate symbol PnL"),
++        ({"symbol_pnl": (("", 1.0),)}, "invalid symbol PnL"),
++        (
++            {"deployed_exposure": (("b", "CORE"), ("a", "CORE"))},
++            "deployed exposure is not canonical",
++        ),
++        ({"deployed_exposure": (("a", "UNKNOWN"),)}, "invalid deployed exposure"),
++    ],
++)
++def test_generalization_observation_rejects_invalid_economics(
++    overrides: dict[str, Any],
++    message: str,
++) -> None:
++    values: dict[str, Any] = {
++        "name": "case",
++        "family": "baseline",
++        "final_wealth": 2.0,
++        "max_drawdown": 0.1,
++        "account_orders": 5,
++        "symbol_pnl": (("a", 1.0),),
++    }
++    values.update(overrides)
++    with pytest.raises(ValueError, match=message):
++        GeneralizationObservation(**values)
++
++
++@pytest.mark.parametrize(
++    ("field", "value", "message"),
++    [
++        ("wealth_floor_ratio", False, "must be numeric"),
++        ("wealth_floor_ratio", float("inf"), "must be finite"),
++        ("order_tolerance", -1, "nonnegative integer"),
++        ("wealth_floor_ratio", 0.0, "must be in"),
++        ("drawdown_tolerance", 2.0, "must be in"),
++        ("order_ceiling_ratio", 0.9, "cannot be below one"),
++        ("dominance_wealth_regression", -0.1, "cannot be negative"),
++        ("dominance_drawdown_regression", 1.1, "cannot exceed one"),
++        ("remove_one_max_dependency", 0.3, "dependency ceiling"),
++        ("remove_all_min_wealth", 1.0, "must require positive return"),
++        ("remove_all_max_drawdown", 2.0, "drawdown ceiling"),
++        ("remove_all_competitor_ratio", 2.0, "competitor ratio"),
++        ("no_optical_max_drawdown", 2.0, "no-optical drawdown"),
++        ("random_min_positive_fraction", 0.5, "positive fraction"),
++        ("random_p10_min_wealth", 0.9, "p10 wealth floor"),
++        ("optical_dependency_share_threshold", 0.8, "optical dependency"),
++    ],
++)
++def test_generalization_policy_rejects_unsafe_thresholds(
++    field: str,
++    value: Any,
++    message: str,
++) -> None:
++    policy = _policy()
++    policy[field] = value
++    with pytest.raises(RuntimeError, match=message):
++        generalization_module._parse_policy(policy)
++
++
++def test_generalization_policy_rejects_schema_drift() -> None:
++    with pytest.raises(RuntimeError, match="must be an object"):
++        generalization_module._parse_policy(None)
++
++    missing = _policy()
++    missing.pop("wealth_floor_ratio")
++    with pytest.raises(RuntimeError, match="missing fields"):
++        generalization_module._parse_policy(missing)
++
++    unexpected = _policy()
++    unexpected["unreviewed"] = 1.0
++    with pytest.raises(RuntimeError, match="unexpected fields"):
++        generalization_module._parse_policy(unexpected)
++
++
++def test_generalization_identity_helpers_fail_closed() -> None:
++    observation = GeneralizationObservation(
++        name="case",
++        family="baseline",
++        final_wealth=2.0,
++        max_drawdown=0.1,
++        account_orders=1,
++        symbol_pnl=(("a", 1.0),),
++    )
++    assert observation.pnl_map() == {"a": 1.0}
++
++    for symbols, message in [
++        (("",), "invalid symbol"),
++        (("a", "a"), "duplicate symbols"),
++        ((), "cannot be empty"),
++    ]:
++        with pytest.raises(ValueError, match=message):
++            generalization_module._canonical_symbols(symbols, label="test universe")
++    with pytest.raises(ValueError, match="stable scenario label"):
++        generalization_module._slug("---")
++
++
+ def _universe() -> tuple[str, ...]:
+     return tuple(f"s{index:02d}" for index in range(30))
+ 
+diff --git a/uquant/validation/generalization.py b/uquant/validation/generalization.py
+index de7f448..21705c6 100644
+--- a/uquant/validation/generalization.py
++++ b/uquant/validation/generalization.py
+@@ -14,7 +14,8 @@ import json
+ import math
+ import random
+ import re
+-import subprocess
++import shutil
++import subprocess  # nosec B404
+ from collections.abc import Callable, Iterable, Mapping, Sequence
+ from dataclasses import dataclass
+ from pathlib import Path
+@@ -554,7 +555,8 @@ def build_generalization_scenarios(
+         for seed in seeds:
+             chosen = tuple(
+                 sorted(
+-                    random.Random(_derived_seed(base_seed, size, seed)).sample(
++                    # Scenario reproducibility deliberately requires a non-cryptographic PRNG.
++                    random.Random(_derived_seed(base_seed, size, seed)).sample(  # nosec B311
+                         list(base),
+                         size,
+                     )
+@@ -808,35 +810,47 @@ def _production_source_fingerprint(root: Path) -> str:
+     return digest.hexdigest()
+ 
+ 
+-def _production_commit(root: Path) -> str:
++def _git_executable() -> str:
++    executable = shutil.which("git")
++    if executable is None:
++        raise RuntimeError("cannot resolve git executable for generalization provenance")
++    return executable
++
++
++def _git_stdout(root: Path, arguments: list[str], *, label: str) -> str:
+     try:
+-        status = subprocess.run(
+-            [
+-                "git",
+-                "-C",
+-                str(root),
+-                "status",
+-                "--porcelain",
+-                "--untracked-files=all",
+-                "--",
+-                "uquant",
+-                "pyproject.toml",
+-            ],
+-            check=True,
+-            capture_output=True,
+-            text=True,
+-        )
+-        if status.stdout.strip():
+-            raise RuntimeError("generalization production provenance requires committed source")
++        # Git is resolved explicitly; every caller supplies a fixed argument list.
+         completed = subprocess.run(
+-            ["git", "-C", str(root), "log", "-1", "--format=%H", "--", "uquant", "pyproject.toml"],
++            [_git_executable(), "-C", str(root), *arguments],
+             check=True,
+             capture_output=True,
+             text=True,
+-        )
++        )  # nosec B603
+     except (OSError, subprocess.CalledProcessError) as exc:
+-        raise RuntimeError("cannot resolve immutable production commit") from exc
+-    commit = completed.stdout.strip()
++        raise RuntimeError(label) from exc
++    return completed.stdout
++
++
++def _production_commit(root: Path) -> str:
++    status = _git_stdout(
++        root,
++        [
++            "status",
++            "--porcelain",
++            "--untracked-files=all",
++            "--",
++            "uquant",
++            "pyproject.toml",
++        ],
++        label="cannot inspect generalization production source",
++    )
++    if status.strip():
++        raise RuntimeError("generalization production provenance requires committed source")
++    commit = _git_stdout(
++        root,
++        ["log", "-1", "--format=%H", "--", "uquant", "pyproject.toml"],
++        label="cannot resolve immutable production commit",
++    ).strip()
+     if not _COMMIT.fullmatch(commit):
+         raise RuntimeError("cannot resolve immutable production commit")
+     return commit
+-- 
+2.51.1
+

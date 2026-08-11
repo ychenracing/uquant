@@ -1,0 +1,71 @@
+{
+  "schema_version": 1,
+  "recorded_at_utc": "2026-08-11T01:12:20Z",
+  "repository": "ychenracing/uquant",
+  "checkpoint": {
+    "exact_commit": "2c3f7f0db7360724f6aed941cae745d97670411e",
+    "parent": "7d7063d3f3973e438106309e5f0ac46412821610",
+    "tree": "86c562436879d812b59008ea3efb375fa1125586",
+    "subject": "Harden generalization validation gates",
+    "worktree_clean": true,
+    "tracked_files": 115
+  },
+  "bundle": {
+    "encoding": "15 independently base64-encoded binary parts",
+    "binary_size_bytes": 1852503,
+    "sha256": "00798cd2849006d4dea1e121d4ce87fa193433ab33a533b58826dc0d14dfd395",
+    "complete_history": true,
+    "bundled_ref": "refs/heads/codex/resume-cohort-hysteresis-20260811"
+  },
+  "frozen_data": {
+    "included_in_bundle": true,
+    "manifest_sha256": "343009138d22f8d4a20768f706207fe4d4bcd03581b0c5945c5485ecbd28788d",
+    "checksums_sha256": "ba460d65f791f238d8a4a16ac62e2225c1832caa6f4da5003166a894edf80e29",
+    "verified_csv_files": 36
+  },
+  "stage_a": {
+    "bandit_low_findings": 0,
+    "coverage_percent": 85.05,
+    "coverage_floor_percent": 85,
+    "relevant_tests_passed": 72,
+    "engineering_tests_passed": 478,
+    "ruff": "passed",
+    "mypy_strict_36_source_files": "passed",
+    "bytecode_compile": "passed",
+    "frozen_data_check": "passed",
+    "build": "passed",
+    "diff_check": "passed"
+  },
+  "economic_gate": {
+    "accepted_best": {
+      "final_wealth": 35.0573,
+      "maximum_drawdown": 0.2778,
+      "account_orders": 85,
+      "wealth_required": 60.59,
+      "wealth_gate_passed": false,
+      "drawdown_gate_passed": true,
+      "order_gate_passed": true
+    },
+    "rejected_candidate": {
+      "final_wealth": 11.818406407596648,
+      "maximum_drawdown": 0.2979818273931133,
+      "account_orders": 110,
+      "annual_turnover": 6.913496605129777,
+      "fully_reverted": true,
+      "included_in_bundle": false
+    },
+    "d_multiyear_replays_consumed": 2,
+    "strategy_repairs_attempted": 1,
+    "optimization_stopped": true
+  },
+  "release": {
+    "stage_c_run": false,
+    "main_modified": false,
+    "main_pushed": false
+  },
+  "exclusions": [
+    "No credentials, tokens, virtual environments, caches, or local account/broker state are archived.",
+    "Rejected leader pre-confirmation and capital-budget reset experiments are excluded.",
+    "The original backup branch is not modified or deleted."
+  ]
+}

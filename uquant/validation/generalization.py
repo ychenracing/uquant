@@ -16,7 +16,8 @@ import random
 import re
 import shutil
 import subprocess  # nosec B404
-from collections.abc import Callable, Iterable, Mapping, Sequence
+from collections.abc import Callable, Iterable, Iterator, Mapping, Sequence
+from contextlib import AbstractContextManager, contextmanager, nullcontext
 from dataclasses import dataclass
 from pathlib import Path
 from statistics import median
@@ -854,6 +855,32 @@ def _production_commit(root: Path) -> str:
     if not _COMMIT.fullmatch(commit):
         raise RuntimeError("cannot resolve immutable production commit")
     return commit
+
+
+@contextmanager
+def _immutable_validation_inputs(
+    *,
+    baseline_path: Path,
+    baseline_sha256: str,
+    data_dir: str | Path,
+    repository_root: Path,
+    data_before: Mapping[str, Any],
+    source_before: str,
+) -> Iterator[None]:
+    """Reject baseline, candidate-source, or frozen-data mutation during replay."""
+    try:
+        yield
+    finally:
+        try:
+            current_baseline = hashlib.sha256(baseline_path.read_bytes()).hexdigest()
+            data_after = verify_data_manifest(data_dir)
+            source_after = _production_source_fingerprint(repository_root)
+        except Exception as exc:
+            raise RuntimeError("generalization source or data changed during validation") from exc
+        if current_baseline != baseline_sha256:
+            raise RuntimeError("generalization baseline changed during validation")
+        if data_after != data_before or source_after != source_before:
+            raise RuntimeError("generalization source or data changed during validation")
 
 
 def build_generalization_provenance(
@@ -1753,15 +1780,17 @@ def run_generalization(
         raise ValueError("explicit generalization provenance is only valid with a custom runner")
     if provenance is None:
         repository_root = Path(__file__).resolve().parents[2]
+        data_before = verify_data_manifest(data_dir)
+        source_before = _production_source_fingerprint(repository_root)
         expected_provenance = build_generalization_provenance(
-            data=verify_data_manifest(data_dir),
+            data=data_before,
             universe=symbols,
             industries=industries,
             prior_symbols=priors,
             start=start,
             end=end,
             production_commit=_production_commit(repository_root),
-            production_source_sha256=_production_source_fingerprint(repository_root),
+            production_source_sha256=source_before,
             initial_cash=SystemConfig().initial_cash,
         )
     else:
@@ -1777,67 +1806,83 @@ def run_generalization(
             raise RuntimeError("generalization supplied provenance does not match run inputs")
 
     baseline_source = Path(baseline_path)
-    _, envelope = _read_generalization_baseline(baseline_source)
+    baseline_bytes, envelope = _read_generalization_baseline(baseline_source)
     _validate_baseline_envelope(envelope, expected_provenance=expected_provenance)
-    engine: ProductionEngine | None = None
-    histories = pre_window_prices
-    if histories is None:
-        if runner is not None:
-            raise ValueError("a custom runner must provide pre_window_prices")
-        engine = ProductionEngine(data_dir)
-        engine._load(symbols)  # Same causal source used by production replay.
-        histories = {symbol: engine._raw[symbol]["close"] for symbol in symbols}
-    evidence = compute_pre_window_evidence(
-        histories,
-        symbols,
-        window_start=start,
-        lookback_sessions=lookback_sessions,
-    )
-    cases = build_generalization_scenarios(
-        symbols,
-        industries,
-        priors,
-        window_start=start,
-        pre_window_evidence=evidence,
-        random_sizes=random_sizes,
-        random_seeds=random_seeds,
-        base_seed=base_seed,
-        leave_top_k=leave_top_k,
-        balanced_per_industry=balanced_per_industry,
-        industry_min_members=industry_min_members,
-    )
-    baseline = load_generalization_baseline(
-        baseline_source,
-        cases,
-        expected_provenance=expected_provenance,
-    )
+    guard: AbstractContextManager[None] = nullcontext()
+    if provenance is None:
+        guard = _immutable_validation_inputs(
+            baseline_path=baseline_source,
+            baseline_sha256=hashlib.sha256(baseline_bytes).hexdigest(),
+            data_dir=data_dir,
+            repository_root=repository_root,
+            data_before=data_before,
+            source_before=source_before,
+        )
 
-    selected_runner = runner
-    if selected_runner is None:
-        if engine is None:  # pragma: no cover - guarded above
-            raise RuntimeError("production generalization runner was not initialized")
+    with guard:
+        engine: ProductionEngine | None = None
+        histories = pre_window_prices
+        if histories is None:
+            if runner is not None:
+                raise ValueError("a custom runner must provide pre_window_prices")
+            engine = ProductionEngine(data_dir)
+            engine._load(symbols)  # Same causal source used by production replay.
+            histories = {symbol: engine._raw[symbol]["close"] for symbol in symbols}
+        evidence = compute_pre_window_evidence(
+            histories,
+            symbols,
+            window_start=start,
+            lookback_sessions=lookback_sessions,
+        )
+        cases = build_generalization_scenarios(
+            symbols,
+            industries,
+            priors,
+            window_start=start,
+            pre_window_evidence=evidence,
+            random_sizes=random_sizes,
+            random_seeds=random_seeds,
+            base_seed=base_seed,
+            leave_top_k=leave_top_k,
+            balanced_per_industry=balanced_per_industry,
+            industry_min_members=industry_min_members,
+        )
+        baseline = load_generalization_baseline(
+            baseline_source,
+            cases,
+            expected_provenance=expected_provenance,
+        )
 
-        def production_runner(case: GeneralizationScenario) -> Mapping[str, Any]:
-            result = engine.backtest(symbols=case.symbols, start=start, end=end)
-            final_date = pd.Timestamp(str(result["end"]))
-            final_account = result.get("final_account", {})
-            raw_positions = final_account.get("positions", {}) if isinstance(final_account, Mapping) else {}
-            if not isinstance(raw_positions, Mapping):
-                raise ValueError("backtest final positions are invalid")
-            final_prices = {str(symbol): engine._price(str(symbol), final_date) for symbol in raw_positions}
-            enriched = dict(result)
-            enriched["symbol_pnl"] = symbol_pnl_from_result(result, final_prices)
-            return enriched
+        selected_runner = runner
+        if selected_runner is None:
+            if engine is None:  # pragma: no cover - guarded above
+                raise RuntimeError("production generalization runner was not initialized")
 
-        selected_runner = production_runner
+            def production_runner(case: GeneralizationScenario) -> Mapping[str, Any]:
+                result = engine.backtest(symbols=case.symbols, start=start, end=end)
+                final_date = pd.Timestamp(str(result["end"]))
+                final_account = result.get("final_account", {})
+                raw_positions = (
+                    final_account.get("positions", {}) if isinstance(final_account, Mapping) else {}
+                )
+                if not isinstance(raw_positions, Mapping):
+                    raise ValueError("backtest final positions are invalid")
+                final_prices = {
+                    str(symbol): engine._price(str(symbol), final_date) for symbol in raw_positions
+                }
+                enriched = dict(result)
+                enriched["symbol_pnl"] = symbol_pnl_from_result(result, final_prices)
+                return enriched
 
-    report = evaluate_generalization(
-        cases,
-        selected_runner,
-        industries=industries,
-        baseline=baseline,
-    )
-    current_hash = hashlib.sha256(baseline_source.read_bytes()).hexdigest()
-    if current_hash != baseline.sha256:
-        raise RuntimeError("generalization baseline changed during validation")
-    return report
+            selected_runner = production_runner
+
+        report = evaluate_generalization(
+            cases,
+            selected_runner,
+            industries=industries,
+            baseline=baseline,
+        )
+        current_hash = hashlib.sha256(baseline_source.read_bytes()).hexdigest()
+        if current_hash != baseline.sha256:
+            raise RuntimeError("generalization baseline changed during validation")
+        return report

@@ -146,6 +146,40 @@ def test_generalization_source_fingerprint_covers_exact_production_tree(tmp_path
         generalization_module._production_source_fingerprint(tmp_path)
 
 
+def test_generalization_rejects_source_or_data_mutation_during_replay(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    baseline = tmp_path / "generalization.json"
+    baseline.write_text("{}", encoding="utf-8")
+    data_before = {
+        "snapshot_id": "fixture",
+        "files_verified": 1,
+        "manifest_sha256": "a" * 64,
+        "checksums_sha256": "b" * 64,
+    }
+    data_after = {**data_before, "manifest_sha256": "c" * 64}
+    monkeypatch.setattr(generalization_module, "verify_data_manifest", lambda _: data_after)
+    monkeypatch.setattr(
+        generalization_module,
+        "_production_source_fingerprint",
+        lambda _: "d" * 64,
+    )
+
+    with (
+        pytest.raises(RuntimeError, match="source or data changed during validation"),
+        generalization_module._immutable_validation_inputs(
+            baseline_path=baseline,
+            baseline_sha256=generalization_module.hashlib.sha256(baseline.read_bytes()).hexdigest(),
+            data_dir="fixture",
+            repository_root=tmp_path,
+            data_before=data_before,
+            source_before="d" * 64,
+        ),
+    ):
+        pass
+
+
 @pytest.mark.parametrize(
     ("overrides", "message"),
     [

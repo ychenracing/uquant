@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import re
 from collections.abc import Iterable
 from dataclasses import dataclass
 from datetime import UTC, datetime
@@ -22,17 +23,20 @@ def normalize_symbol(symbol: str) -> str:
     """Normalize a six-digit or exchange-prefixed A-share symbol."""
     value = symbol.strip().lower().replace(".", "")
     if value.startswith(("sh", "sz", "bj")):
-        return value
-    digits = "".join(ch for ch in value if ch.isdigit())
-    if len(digits) != 6:
+        normalized = value
+    else:
+        digits = "".join(ch for ch in value if ch.isascii() and ch.isdigit())
+        if len(digits) != 6:
+            raise ValueError(f"invalid A-share symbol: {symbol}")
+        if digits in {"000300", "000682"} or digits.startswith(("6", "9")):
+            normalized = "sh" + digits
+        elif digits.startswith(("4", "8")):
+            normalized = "bj" + digits
+        else:
+            normalized = "sz" + digits
+    if re.fullmatch(r"(?:sh|sz|bj)[0-9]{6}", normalized) is None:
         raise ValueError(f"invalid A-share symbol: {symbol}")
-    if digits in {"000300", "000682"}:
-        return "sh" + digits
-    if digits.startswith(("6", "9")):
-        return "sh" + digits
-    if digits.startswith(("4", "8")):
-        return "bj" + digits
-    return "sz" + digits
+    return normalized
 
 
 @dataclass(frozen=True, slots=True)
@@ -196,7 +200,7 @@ class DataStore:
 
     def refresh_akshare(self, symbols: Iterable[str], *, end: str) -> None:
         try:
-            import akshare as ak  # type: ignore[import-untyped]
+            import akshare as ak  # type: ignore[import-not-found]
         except ImportError as exc:
             raise RuntimeError("install uquant[data] for online refresh") from exc
         for symbol in sorted({normalize_symbol(item) for item in symbols}):

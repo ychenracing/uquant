@@ -25,8 +25,8 @@ from decimal import Decimal
 from pathlib import Path
 from typing import Any
 from urllib.error import HTTPError, URLError
-from urllib.parse import urlencode
-from urllib.request import Request, urlopen
+from urllib.parse import urlencode, urlsplit
+from urllib.request import HTTPRedirectHandler, Request, build_opener
 
 from uquant.leader import stable_reference_requires_history
 
@@ -43,6 +43,28 @@ TECH_INDEX = "sh000682"
 TECH_PROXY = "sz399006"
 TECH_TARGET_FIRST_DATE = "2021-08-16"
 HEADER = "date,open,high,low,close,volume,amount\n"
+
+
+def _approved_tencent_url(url: str) -> bool:
+    expected = urlsplit(ENDPOINT)
+    observed = urlsplit(url)
+    return bool(
+        observed.scheme == "https"
+        and observed.hostname == expected.hostname
+        and observed.port == expected.port
+    )
+
+
+class _TencentRedirectHandler(HTTPRedirectHandler):
+    """Follow only HTTPS redirects that remain on the approved Tencent origin."""
+
+    def redirect_request(self, req, fp, code, msg, headers, newurl):  # type: ignore[no-untyped-def]
+        if not _approved_tencent_url(newurl):
+            raise HTTPError(newurl, code, "refusing cross-origin Tencent redirect", headers, fp)
+        return super().redirect_request(req, fp, code, msg, headers, newurl)
+
+
+_TENCENT_OPENER = build_opener(_TencentRedirectHandler())
 
 
 def _requires_long_history(symbol: str, anchor_date: str) -> bool:
@@ -90,7 +112,9 @@ def _request_text(url: str, *, attempts: int = 4) -> str:
     error: Exception | None = None
     for attempt in range(attempts):
         try:
-            with urlopen(request, timeout=30) as response:
+            with _TENCENT_OPENER.open(request, timeout=30) as response:
+                if not _approved_tencent_url(response.geturl()):
+                    raise RuntimeError("Tencent response escaped the approved origin")
                 payload = bytes(response.read(8_000_001))
             if len(payload) > 8_000_000:
                 raise RuntimeError("Tencent response exceeded 8 MB")

@@ -38,6 +38,20 @@ def test_data_contract_and_manifest(data_dir):
         store.load("000001")
 
 
+@pytest.mark.parametrize(
+    "symbol",
+    (
+        "sh/tmp/attacker_feed",
+        "sz/../../outside",
+        "bj000001/extra",
+        "sh\uff11\uff12\uff13\uff14\uff15\uff16",
+    ),
+)
+def test_prefixed_symbols_require_an_exact_ascii_six_digit_suffix(symbol: str) -> None:
+    with pytest.raises(ValueError, match="invalid A-share symbol"):
+        normalize_symbol(symbol)
+
+
 def test_bounded_manifest_accepts_append_but_detects_prefix_rewrite(tmp_path):
     path = tmp_path / "sh600000.csv"
     original = (

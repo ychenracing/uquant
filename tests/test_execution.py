@@ -1508,3 +1508,134 @@ def test_fifo_exit_keeps_historical_lot_order_and_rebuilds_position():
     assert remaining.lifecycle == "ADD2"
     assert remaining.highest_close == 18.0
     assert account.pending_orders[0].remaining_shares == 100
+
+
+def test_sell_funded_recovery_handoff_waits_when_incumbent_sale_is_limit_blocked() -> None:
+    signal_date = "2026-01-05"
+    fill_date = "2026-01-06"
+    release_date = "2026-01-07"
+    incumbent = Position(
+        symbol="old_core",
+        shares=4_000,
+        avg_cost=100.0,
+        entry_date="2025-12-01",
+        highest_close=100.0,
+        tranches=[
+            Tranche(
+                "old-core",
+                "CORE",
+                4_000,
+                100.0,
+                "2025-12-01",
+                "2025-12-02",
+                100.0,
+            )
+        ],
+    )
+    account = AccountState(
+        initial_cash=1_000_000.0,
+        cash=600_000.0,
+        positions={incumbent.symbol: incumbent},
+        candidate_tenure={"recovery_owner_handoff": 1},
+        operating_peak=1_000_000.0,
+        capital_peak=1_000_000.0,
+    )
+    targets = (
+        Target("old_core", 0.0, "RECOVERY", 0.0, 0.0, "recovery cohort construction"),
+        Target("new_owner", 0.40, "RECOVERY", 0.9, 1.0, "recovery cohort construction"),
+    )
+    account.pending_orders = list(
+        plan_orders(
+            signal_date=signal_date,
+            targets=targets,
+            account=account,
+            prices={"old_core": 100.0, "new_owner": 100.0},
+            cfg=DEFAULT_CONFIG,
+        )
+    )
+    panel = {
+        "old_core": _frame(
+            [
+                {
+                    "date": signal_date,
+                    "open": 100.0,
+                    "high": 100.0,
+                    "low": 100.0,
+                    "close": 100.0,
+                    "volume": 1_000_000,
+                    "amount": 100_000_000,
+                },
+                {
+                    "date": fill_date,
+                    "open": 90.0,
+                    "high": 90.0,
+                    "low": 90.0,
+                    "close": 90.0,
+                    "volume": 1_000_000,
+                    "amount": 90_000_000,
+                },
+                {
+                    "date": release_date,
+                    "open": 90.0,
+                    "high": 91.0,
+                    "low": 89.0,
+                    "close": 90.0,
+                    "volume": 1_000_000,
+                    "amount": 90_000_000,
+                },
+            ]
+        ),
+        "new_owner": _frame(
+            [
+                {
+                    "date": signal_date,
+                    "open": 100.0,
+                    "high": 100.0,
+                    "low": 100.0,
+                    "close": 100.0,
+                    "volume": 1_000_000,
+                    "amount": 100_000_000,
+                },
+                {
+                    "date": fill_date,
+                    "open": 100.0,
+                    "high": 101.0,
+                    "low": 99.0,
+                    "close": 100.0,
+                    "volume": 1_000_000,
+                    "amount": 100_000_000,
+                },
+                {
+                    "date": release_date,
+                    "open": 100.0,
+                    "high": 101.0,
+                    "low": 99.0,
+                    "close": 100.0,
+                    "volume": 1_000_000,
+                    "amount": 100_000_000,
+                },
+            ]
+        ),
+    }
+
+    fills = ExecutionPlanner(DEFAULT_CONFIG).execute_open(
+        date=pd.Timestamp(fill_date),
+        account=account,
+        panel=panel,
+    )
+
+    assert not [fill for fill in fills if fill.side == "BUY"]
+    assert {order.side for order in account.pending_orders} == {"SELL", "BUY"}
+    assert account.positions["old_core"].shares == 4_000
+    assert "new_owner" not in account.positions
+
+    released = ExecutionPlanner(DEFAULT_CONFIG).execute_open(
+        date=pd.Timestamp(release_date),
+        account=account,
+        panel=panel,
+    )
+    assert {fill.side for fill in released} == {"SELL", "BUY"}
+    assert "old_core" not in account.positions
+    equity = account.cash + account.positions["new_owner"].shares * 100.0
+    gross = account.positions["new_owner"].shares * 100.0 / equity
+    assert gross <= 0.40 + 1e-12

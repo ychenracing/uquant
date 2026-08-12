@@ -629,6 +629,61 @@ class PortfolioAllocator(RecoveryPortfolioPolicy):
             and risk.votes <= 1
             and float(risk.evidence.get("transition_damage", math.inf)) <= self.cfg.transition_damage_repair
         )
+        general_core_symbols = {
+            symbol
+            for symbol, position in account.positions.items()
+            if position.shares > 0
+            and position.lifecycle
+            in {
+                Lifecycle.CORE.value,
+                Lifecycle.ADD1.value,
+                Lifecycle.ADD2.value,
+                Lifecycle.SATELLITE.value,
+            }
+        }
+        risk_neutral_recovery_handoff = bool(
+            opportunity is Opportunity.RECOVERY
+            and freeze_active
+            and risk.state in {Risk.NORMAL, Risk.CAUTION}
+            and risk.shock_state
+            in {"RECOVERY", "ROTATION_RECOVERY", "FAST_V_RECOVERY"}
+            and risk.votes <= 1
+            and float(risk.evidence.get("transition_damage", math.inf))
+            <= self.cfg.transition_damage_repair
+            and bool(account.last_shock_date)
+            and account.capital_budget_level >= 1
+            and bool(general_core_symbols)
+            and not account.pending_orders
+            and not account.anchor_weights
+            and set(account.protected_weights) <= general_core_symbols
+            and not account.strategic_restore_weights
+            and not account.strategic_cohort_targets
+            and sum(max(0.0, weight) for weight in weights_now.values())
+            <= min(self.cfg.max_gross, risk.target_gross_cap) + 1e-12
+        )
+        risk_neutral_recovery_expansion = bool(
+            opportunity is Opportunity.RECOVERY
+            and freeze_active
+            and risk.state in {Risk.NORMAL, Risk.CAUTION}
+            and risk.shock_state
+            in {"RECOVERY", "ROTATION_RECOVERY", "FAST_V_RECOVERY"}
+            and risk.votes <= 1
+            and float(risk.evidence.get("transition_damage", math.inf))
+            <= self.cfg.transition_damage_repair
+            and bool(account.last_shock_date)
+            and account.capital_budget_level >= 1
+            and account.candidate_tenure.get("recovery_owner_handoff", 0) == 1
+            and bool(account.anchor_weights)
+            and not account.pending_orders
+            and not account.protected_weights
+            and not account.strategic_restore_weights
+            and not account.strategic_cohort_targets
+            and sum(max(0.0, weight) for weight in weights_now.values())
+            <= min(self.cfg.max_gross, risk.target_gross_cap) + 1e-12
+        )
+        risk_neutral_recovery_transfer = bool(
+            risk_neutral_recovery_handoff or risk_neutral_recovery_expansion
+        )
         level1_recovery_repair = bool(
             freeze_active
             and repair_observation
@@ -785,6 +840,7 @@ class PortfolioAllocator(RecoveryPortfolioPolicy):
             or protected_level1_restore
             or synchronized_protected_restore
             or bounded_caution_recovery_probe
+            or risk_neutral_recovery_transfer
             # This exception can only submit strategy-owned SELLs from the
             # already deployed recovery book; it never opens new exposure.
             or confirmed_recovery_trail
@@ -1069,7 +1125,11 @@ class PortfolioAllocator(RecoveryPortfolioPolicy):
                 ),
             )
 
-        if account.protected_weights and risk.state.value in {"NORMAL", "CAUTION"}:
+        if (
+            account.protected_weights
+            and risk.state.value in {"NORMAL", "CAUTION"}
+            and not risk_neutral_recovery_handoff
+        ):
             # Restoration intent survives transient FAILED_REPAIR observations.
             # The CAUTION freeze above still blocks a buy while continuous
             # damage is active; once independent repair clears it, retaining
@@ -1093,6 +1153,43 @@ class PortfolioAllocator(RecoveryPortfolioPolicy):
                 and account.capital_budget_level == 0
                 and account.chronic_level == 0
             )
+            ordinary_level1_stage = bool(
+                account.candidate_tenure.get("recovery_owner_rearm_complete", 0)
+                == 0
+                and account.capital_budget_level == 1
+                and not fully_repaired
+                and total > self.cfg.tactical_probe_weight + 1e-12
+                and (
+                    protected_level1_restore
+                    or synchronized_protected_restore
+                    or account.candidate_tenure.get(
+                        "post_shock_restore_staged", 0
+                    )
+                    == 1
+                )
+            )
+            if ordinary_level1_stage:
+                staged_cap = min(
+                    explicit_cap,
+                    max(current_gross, self.cfg.tactical_probe_weight),
+                )
+                staged_base = {
+                    symbol: max(0.0, weights_now.get(symbol, 0.0))
+                    for symbol in proposed
+                }
+                buy_gaps = {
+                    symbol: max(0.0, desired - staged_base[symbol])
+                    for symbol, desired in proposed.items()
+                }
+                requested = sum(buy_gaps.values())
+                remaining = max(0.0, staged_cap - sum(staged_base.values()))
+                scale = min(1.0, remaining / requested) if requested > 0 else 0.0
+                proposed = {
+                    symbol: staged_base[symbol] + buy_gaps[symbol] * scale
+                    for symbol in proposed
+                    if staged_base[symbol] + buy_gaps[symbol] * scale > 1e-12
+                }
+                account.candidate_tenure["post_shock_restore_staged"] = 1
             # RiskAssessment is the only owner of the day's gross cap.  A book
             # already below the allowance may BUY saved intent up to that cap.
             # An overweight book keeps full targets here so the single outer
@@ -1124,6 +1221,7 @@ class PortfolioAllocator(RecoveryPortfolioPolicy):
             restoration_trade_threshold = self.cfg.restoration_min_trade_weight * equity
             economic_restore_complete = bool(
                 proposed
+                and not ordinary_level1_stage
                 and not pending_restore_buys
                 and (
                     restore_previously_submitted
@@ -1137,7 +1235,7 @@ class PortfolioAllocator(RecoveryPortfolioPolicy):
                     )
                 )
             )
-            if synchronized_protected_restore and proposed:
+            if synchronized_protected_restore and proposed and not ordinary_level1_stage:
                 # This exact risk transition owns one restoration submission.
                 # Once its durable children finish, later price drift must not
                 # manufacture a fresh rebalance order for the same event.
@@ -1145,6 +1243,7 @@ class PortfolioAllocator(RecoveryPortfolioPolicy):
             if economic_restore_complete:
                 account.candidate_tenure[restore_complete_key] = 1
                 account.candidate_tenure[restore_submitted_key] = 0
+                account.candidate_tenure["post_shock_restore_staged"] = 0
             if account.candidate_tenure.get(restore_complete_key, 0) == 1:
                 return self._targets(
                     proposed={
@@ -1272,6 +1371,89 @@ class PortfolioAllocator(RecoveryPortfolioPolicy):
                 reason="mature anchored leader",
                 reasons=reasons,
             )
+        owner_rearm_open = bool(
+            account.candidate_tenure.get("recovery_owner_handoff", 0) == 1
+            and bool(account.anchor_weights)
+            and risk.state is Risk.NORMAL
+            and risk.shock_state == "NONE"
+            and not risk.freeze_new_risk
+            and not bool(risk.evidence.get("freeze_new_risk", False))
+            and account.capital_budget_level == 0
+            and account.chronic_level == 0
+            and not account.protected_weights
+            and not account.strategic_restore_weights
+            and not account.strategic_cohort_targets
+        )
+        if owner_rearm_open:
+            owner_targets = {
+                symbol: min(self.cfg.max_symbol_weight, max(0.0, weight))
+                for symbol, weight in account.anchor_weights.items()
+                if symbol in user_panel
+            }
+            explicit_cap = min(
+                self.cfg.max_gross,
+                max(0.0, risk.target_gross_cap),
+            )
+            target_gross = sum(owner_targets.values())
+            if target_gross > explicit_cap and target_gross > 0:
+                owner_targets = {
+                    symbol: weight * explicit_cap / target_gross
+                    for symbol, weight in owner_targets.items()
+                }
+            pending_owner_buys = {
+                order.symbol
+                for order in account.pending_orders
+                if order.side == "BUY" and order.symbol in owner_targets
+            }
+            rearm_submitted_key = "recovery_owner_rearm_submitted"
+            previously_submitted = bool(
+                account.candidate_tenure.get(rearm_submitted_key, 0) == 1
+            )
+            rearm_complete = bool(
+                previously_submitted
+                and not pending_owner_buys
+                and all(
+                    desired - weights_now.get(symbol, 0.0)
+                    < self.cfg.restoration_min_trade_weight
+                    or weights_now.get(symbol, 0.0) >= 0.95 * desired
+                    for symbol, desired in owner_targets.items()
+                )
+            )
+            if rearm_complete:
+                account.candidate_tenure["recovery_owner_handoff"] = 0
+                account.candidate_tenure[rearm_submitted_key] = 0
+                account.candidate_tenure["recovery_owner_rearm_complete"] = 1
+                return self._targets(
+                    proposed=anchored_held,
+                    leaders=leaders,
+                    account=account,
+                    lifecycle=Lifecycle.CORE,
+                    reason="completed recovery owner rearm; retain price drift",
+                )
+            current_owner = {
+                symbol: max(0.0, weights_now.get(symbol, 0.0))
+                for symbol in owner_targets
+            }
+            buy_gaps = {
+                symbol: max(0.0, desired - current_owner[symbol])
+                for symbol, desired in owner_targets.items()
+            }
+            requested = sum(buy_gaps.values())
+            remaining = max(0.0, explicit_cap - sum(current_owner.values()))
+            scale = min(1.0, remaining / requested) if requested > 0 else 0.0
+            proposed = {
+                symbol: current_owner[symbol] + buy_gaps[symbol] * scale
+                for symbol in owner_targets
+                if current_owner[symbol] + buy_gaps[symbol] * scale > 1e-12
+            }
+            account.candidate_tenure[rearm_submitted_key] = 1
+            return self._targets(
+                proposed=proposed,
+                leaders=leaders,
+                account=account,
+                lifecycle=Lifecycle.RECOVERY,
+                reason="confirmed recovery owner capital rearm",
+            )
         anchor_elapsed = 0
         if account.recovery_anchor_date and user_panel:
             anchor_elapsed = self._session_distance(
@@ -1352,18 +1534,12 @@ class PortfolioAllocator(RecoveryPortfolioPolicy):
         # possible V-repair it freezes new risk and lets the existing lifecycle
         # continue; recovery-cohort construction is reserved for an empty book
         # or an already established strategic anchor.
-        has_general_core = not account.anchor_weights and any(
-            position.shares > 0
-            and position.lifecycle
-            in {
-                Lifecycle.CORE.value,
-                Lifecycle.ADD1.value,
-                Lifecycle.ADD2.value,
-                Lifecycle.SATELLITE.value,
-            }
-            for position in account.positions.values()
-        )
-        if opportunity is Opportunity.RECOVERY and has_general_core:
+        has_general_core = not account.anchor_weights and bool(general_core_symbols)
+        if (
+            opportunity is Opportunity.RECOVERY
+            and has_general_core
+            and not risk_neutral_recovery_handoff
+        ):
             recovery_hold = self._leader_targets(
                 date=date,
                 opportunity=opportunity,
@@ -1602,7 +1778,11 @@ class PortfolioAllocator(RecoveryPortfolioPolicy):
                 candidates = []
             candidates.sort(key=lambda item: (crash_depth.get(item.symbol, 0.0), -item.score, item.symbol))
             continuous_freeze = bool(risk.evidence.get("freeze_new_risk", False))
-            if continuous_freeze and not level1_recovery_repair:
+            if (
+                continuous_freeze
+                and not level1_recovery_repair
+                and not risk_neutral_recovery_transfer
+            ):
                 candidates = []
             if account.anchor_weights and account.recovery_anchor_date:
                 recovery_elapsed = self._session_distance(
@@ -1750,7 +1930,31 @@ class PortfolioAllocator(RecoveryPortfolioPolicy):
                         self.cfg.recovery_target_gross - proposed[lead],
                     )
                     account.candidate_tenure["confirmed_anchor_pair"] = 1
-                account.anchor_weights = dict(proposed)
+                owner_targets = dict(proposed)
+                if risk_neutral_recovery_transfer:
+                    # A confirmed recovery may replace an obsolete Alpha owner
+                    # while the capital-budget owner remains closed. Transfer
+                    # only the already-deployed gross: this is a sell-funded
+                    # ownership handoff, never an exposure exception.
+                    handoff_gross = min(
+                        sum(max(0.0, weight) for weight in weights_now.values()),
+                        self.cfg.max_gross,
+                        max(0.0, risk.target_gross_cap),
+                    )
+                    requested_gross = sum(max(0.0, weight) for weight in proposed.values())
+                    if requested_gross > 0:
+                        scale = min(1.0, handoff_gross / requested_gross)
+                        proposed = {
+                            symbol: max(0.0, weight) * scale
+                            for symbol, weight in proposed.items()
+                            if max(0.0, weight) * scale > 1e-12
+                        }
+                        if risk_neutral_recovery_handoff:
+                            account.protected_weights.clear()
+                            account.candidate_tenure["post_shock_restore_complete"] = 0
+                            account.candidate_tenure["post_shock_restore_submitted"] = 0
+                        account.candidate_tenure["recovery_owner_handoff"] = 1
+                account.anchor_weights = owner_targets
                 if self.cfg.recovery_conviction_weighting_enabled:
                     # Preserve which name causally led the recovery after the
                     # temporary cohort weights graduate. Crisis reducers can

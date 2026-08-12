@@ -497,6 +497,20 @@ class ExecutionPlanner:
         ledger = {item.order_id: item for item in account.order_ledger}
         for order in orders:
             account_order = ledger[order.order_id]
+            if (
+                order.side == Side.BUY.value
+                and account.candidate_tenure.get("recovery_owner_handoff", 0) == 1
+                and any(item.side == Side.SELL.value for item in retained)
+            ):
+                # A recovery-owner handoff is explicitly sell-funded.  The
+                # sorted sell intents execute first, but a limit/T+1/capacity
+                # block must also hold every replacement BUY; cash on hand is
+                # not permission to exceed the frozen gross budget.
+                account_order.status = _active_order_status(account_order)
+                account_order.last_update_date = date_str
+                account_order.last_event = "AWAITING_HANDOFF_SELL"
+                retained.append(order)
+                continue
             if pd.Timestamp(order.signal_date) >= date:
                 account_order.status = _active_order_status(account_order)
                 account_order.last_update_date = date_str

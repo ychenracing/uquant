@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 from dataclasses import dataclass, fields
 from pathlib import Path
 
@@ -31,6 +32,8 @@ class DecisionTrace:
     orders: tuple[tuple[str, str, float, str, str], ...]
     fills: tuple[tuple[str, str, str, int, float, str], ...]
     equity: float
+    reference_evidence: tuple[tuple[str, str], ...] = ()
+    risk_evidence: tuple[tuple[str, str], ...] = ()
 
 
 @dataclass(frozen=True, slots=True)
@@ -123,6 +126,11 @@ class CandidateRunner:
                 for item in raw_leaders
                 if isinstance(item, dict)
             )
+            frozen_evidence = tuple(
+                (str(name), json.dumps(value, sort_keys=True, separators=(",", ":"), default=str))
+                for name, value in sorted(decision.risk_summary.items())
+                if name != "leader_ranking"
+            )
             observations.append(
                 DecisionTrace(
                     date=decision.date,
@@ -160,6 +168,10 @@ class CandidateRunner:
                         for fill in account.fills[fill_start:]
                     ),
                     equity=float(equity),
+                    reference_evidence=tuple(
+                        item for item in frozen_evidence if item[0].startswith("reference_")
+                    ),
+                    risk_evidence=frozen_evidence,
                 )
             )
         return CellTrace(

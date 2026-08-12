@@ -4,17 +4,38 @@ import os
 import subprocess
 import sys
 from collections.abc import Mapping
+from dataclasses import fields
 from pathlib import Path
 from typing import Any
 
 import pytest
 
+from research.candidate_runner import CandidateRunner, DecisionTrace
 from research.first_divergence import first_economic_divergence, trace_backtest
 from uquant.engine import ProductionEngine
 
 SYMBOLS = ("sz300308", "sz300502", "sz300394")
 START = "2026-06-25"
 END = "2026-07-03"
+
+
+def test_candidate_trace_exposes_reference_and_risk_evidence() -> None:
+    names = {field.name for field in fields(DecisionTrace)}
+
+    assert {"reference_evidence", "risk_evidence"} <= names
+
+
+def test_candidate_trace_captures_immutable_reference_and_risk_values(data_dir) -> None:
+    trace = CandidateRunner(data_dir).trace_cell(
+        symbols=SYMBOLS,
+        start=START,
+        end=END,
+    )
+
+    assert trace.observations
+    assert all(item.reference_evidence for item in trace.observations)
+    assert all(dict(item.reference_evidence)["reference_coverage"] for item in trace.observations)
+    assert all("family_votes" in dict(item.risk_evidence) for item in trace.observations)
 
 
 def test_trace_backtest_preserves_production_backtest_result_and_captures_causal_rows(
@@ -60,6 +81,9 @@ def test_trace_backtest_preserves_production_backtest_result_and_captures_causal
         "sector_guard_active",
         "capital_damage",
         "capital_budget_level",
+        "equity",
+        "reference_evidence",
+        "risk_evidence",
         "ranked_leaders",
         "strategic_targets",
         "target_gross",

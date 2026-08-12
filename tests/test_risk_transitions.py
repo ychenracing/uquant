@@ -677,6 +677,167 @@ def test_chronic_overlay_cap_is_a_hard_minimum_on_fast_recovery_path() -> None:
     assert account.operating_peak == pytest.approx(100.0)
 
 
+def test_confirmed_acute_sector_evacuation_preempts_concentrated_crisis_cap() -> None:
+    dates = pd.bdate_range("2025-01-02", periods=130)
+    first_shock, second_shock = dates[-2:]
+    held = _market_frame(dates)
+    held.loc[first_shock, ["close", "ma20", "ret5"]] = (91.0, 100.0, -0.10)
+    held.loc[second_shock, ["close", "ma20", "ret5"]] = (85.54, 100.0, -0.13)
+    broad = _market_frame(dates)
+    tech = _market_frame(dates)
+    broad["ret120"] = 0.0
+    tech["ret120"] = 0.60
+    reference_panel, reference_leaders, reference_returns = _reference_context(dates)
+    symbols = ("held_a", "held_b", "held_c")
+    account = AccountState(
+        initial_cash=30_000.0,
+        cash=0.0,
+        positions={
+            symbol: Position(symbol, shares=100, avg_cost=100.0)
+            for symbol in symbols
+        },
+        operating_peak=30_000.0,
+        capital_peak=30_000.0,
+    )
+    cfg = DEFAULT_CONFIG.override(
+        dynamic_risk_anchors_enabled=False,
+        chronic_overlay_enabled=False,
+        caution_confirm_days=99,
+        risk_off_confirm_days=99,
+        crisis_confirm_days=99,
+        sector_recovery_ma=3,
+    )
+
+    assessment: RiskAssessment | None = None
+    for date in (first_shock, second_shock):
+        assessment = assess_risk(
+            date=date,
+            broad=broad,
+            tech=tech,
+            reference_panel=reference_panel,
+            reference_returns=reference_returns,
+            user_panel={symbol: held for symbol in symbols},
+            leaders={
+                **reference_leaders,
+                **{symbol: _leader(symbol) for symbol in symbols},
+            },
+            account=account,
+            equity=sum(
+                account.positions[symbol].shares * float(held.loc[date, "close"])
+                for symbol in symbols
+            ),
+            cfg=cfg,
+        )
+
+    assert assessment is not None
+    assert account.sector_guard_active
+    assert assessment.target_gross_cap == 0.0
+    assert assessment.evidence["acute_sector_evacuation"] is True
+
+
+def test_acute_overlay_preserves_existing_zero_gross_crisis_owner() -> None:
+    dates = pd.bdate_range("2026-01-02", periods=131)
+    first_shock, acute_shock, next_session = dates[-3:]
+    broad = pd.DataFrame(
+        {
+            "close": np.linspace(100.0, 110.0, len(dates)),
+            "ma20": 100.0,
+            "ma60": 95.0,
+            "ret5": 0.02,
+            "ret10": 0.03,
+            "ret20": 0.05,
+            "ret60": 0.10,
+            "ret120": 0.0,
+        },
+        index=dates,
+    )
+    tech = broad.copy()
+    tech["ret120"] = 0.60
+    reference = pd.DataFrame(
+        {
+            "close": 120.0,
+            "ma20": 100.0,
+            "ma60": 90.0,
+            "ret5": 0.05,
+            "ret20": 0.10,
+            "ret60": 0.20,
+            "ret120": 0.30,
+        },
+        index=dates,
+    )
+    reference_panel = {
+        symbol: reference.copy() for symbol in REFERENCE_UNIVERSE
+    }
+    leaders = {
+        symbol: _leader(symbol, score=0.90)
+        for symbol in REFERENCE_UNIVERSE
+    }
+    close = np.full(len(dates), 100.0)
+    close[-3:] = [91.0, 85.54, 85.54]
+    held = pd.DataFrame(
+        {
+            "close": close,
+            "ma20": 100.0,
+            "ma60": 95.0,
+            "ret5": 0.0,
+            "ret20": 0.0,
+            "ret60": 0.0,
+            "ret120": 0.0,
+            "amount": 1_000_000_000.0,
+        },
+        index=dates,
+    )
+    held.loc[first_shock, "ret5"] = -0.10
+    held.loc[acute_shock:next_session, "ret5"] = -0.13
+    symbols = ("held_a", "held_b")
+    user_panel = {symbol: held.copy() for symbol in symbols}
+    leaders.update({symbol: _leader(symbol) for symbol in symbols})
+    account = AccountState(
+        initial_cash=20_000.0,
+        cash=0.0,
+        positions={
+            symbol: Position(symbol, shares=100, avg_cost=100.0)
+            for symbol in symbols
+        },
+        operating_peak=20_000.0,
+        capital_peak=20_000.0,
+    )
+    cfg = DEFAULT_CONFIG.override(
+        dynamic_risk_anchors_enabled=False,
+        chronic_overlay_enabled=False,
+        caution_confirm_days=99,
+        risk_off_confirm_days=99,
+        crisis_confirm_days=99,
+        sector_recovery_ma=3,
+    )
+
+    assessments = [
+        assess_risk(
+            date=date,
+            broad=broad,
+            tech=tech,
+            reference_panel=reference_panel,
+            reference_returns=None,
+            user_panel=user_panel,
+            leaders=leaders,
+            account=account,
+            equity=200 * float(held.loc[date, "close"]),
+            cfg=cfg,
+        )
+        for date in (first_shock, acute_shock, next_session)
+    ]
+
+    assert [item.target_gross_cap for item in assessments] == [0.0, 0.0, 0.0]
+    assert assessments[0].severity == "INCOMPLETE_UNIVERSE_UNBACKED"
+    assert assessments[0].reasons == (
+        "unbacked incomplete-universe capital exit",
+    )
+    assert assessments[1].evidence["acute_sector_evacuation"] is True
+    assert assessments[1].severity == "INCOMPLETE_UNIVERSE_UNBACKED"
+    assert assessments[2].severity == "INCOMPLETE_UNIVERSE_UNBACKED"
+    assert assessments[2].shock_state == "UNBACKED_COOLDOWN"
+
+
 def test_protected_restore_cannot_use_overweight_members_to_hide_a_missing_member() -> None:
     dates = pd.bdate_range("2026-01-02", periods=80)
     date = dates[-1]

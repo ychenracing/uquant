@@ -12,7 +12,7 @@ from .config import SystemConfig
 from .features import cross_section_returns, scalar
 from .leader import INDUSTRY, REFERENCE_UNIVERSE, credible_recovery_reserve
 from .reference import ReferenceContext
-from .risk_sector import update_sector_guard
+from .risk_sector import SectorGuardTransition, update_sector_guard
 from .types import AccountState, LeaderScore, Risk, RiskAssessment
 
 # Retired compatibility export.  Production anchors live in AccountState and
@@ -31,6 +31,52 @@ EVIDENCE_FAMILY_MEMBERS: dict[str, tuple[str, ...]] = {
     "live_book_damage": ("live_book_damage",),
     "capital_damage": ("capital_damage",),
 }
+
+
+def _acute_sector_evacuation_required(
+    transition: SectorGuardTransition,
+    cfg: SystemConfig,
+) -> bool:
+    """Identify a newly confirmed, full-book fast collapse.
+
+    An ordinary synchronized sector break keeps the reviewed 40% gross cap.
+    Evacuation is reserved for the trigger session where both equal-weight and
+    economic-weight losses cross the existing fast-risk line and almost all
+    deployed capital is losing. No later outcome or universe identity enters.
+    """
+    observation = transition.observation
+    return bool(
+        transition.triggered
+        and observation is not None
+        and observation.equal_return <= cfg.risk_fast_return
+        and observation.weighted_return <= cfg.risk_fast_return
+        and observation.negative_exposure
+        >= cfg.sector_weighted_negative_exposure
+    )
+
+
+def _level1_multi_family_cap_required(
+    *,
+    account: AccountState,
+    capital_damage: bool,
+    votes: int,
+) -> bool:
+    """Escalate a level-1 freeze only after broad independent damage."""
+    return bool(
+        account.capital_budget_level == 1
+        and capital_damage
+        and votes >= 3
+    )
+
+
+def _reset_recovery_owner_rearm(account: AccountState) -> None:
+    """Close the prior recovery-owner epoch when a new shock takes control."""
+    for key in (
+        "recovery_owner_handoff",
+        "recovery_owner_rearm_submitted",
+        "recovery_owner_rearm_complete",
+    ):
+        account.candidate_tenure[key] = 0
 
 
 def _evidence_family_votes(indicators: Mapping[str, bool]) -> dict[str, bool]:
@@ -497,6 +543,7 @@ def assess_risk(
         cfg=cfg,
     )
     if sector_guard.triggered:
+        _reset_recovery_owner_rearm(account)
         account.risk_events.append(
             {
                 "date": str(date.date()),
@@ -1006,6 +1053,129 @@ def assess_risk(
     }
 
     previous = Risk(account.risk)
+    if _level1_multi_family_cap_required(
+        account=account,
+        capital_damage=bool(indicator_state["capital_damage"]),
+        votes=votes,
+    ):
+        account.candidate_tenure["capital_level1_multi_family_cap"] = 1
+    elif account.capital_budget_level == 0:
+        account.candidate_tenure["capital_level1_multi_family_cap"] = 0
+    level1_multi_family_cap = bool(
+        account.candidate_tenure.get("capital_level1_multi_family_cap", 0) == 1
+        and account.capital_budget_level == 1
+    )
+    acute_sector_evacuation = _acute_sector_evacuation_required(
+        sector_guard,
+        cfg,
+    )
+    if acute_sector_evacuation:
+        # This hard execution boundary precedes every recovery/concentrated
+        # early return.  A newly confirmed full-book collapse must therefore
+        # evacuate even when another risk route is simultaneously true.
+        _reset_recovery_owner_rearm(account)
+        if account.candidate_tenure.get("post_shock_restore_complete", 0) == 1:
+            account.protected_weights.clear()
+        account.candidate_tenure["post_shock_restore_complete"] = 0
+        if not account.protected_weights:
+            account.protected_weights = dict(account.anchor_weights)
+        if not account.protected_weights:
+            account.protected_weights = {
+                symbol: position.shares
+                * scalar(user_panel[symbol].loc[date], "close")
+                / equity
+                for symbol, position in account.positions.items()
+                if symbol in user_panel
+                and date in user_panel[symbol].index
+                and position.shares > 0
+            }
+        account.shock_start_date = str(date.date())
+        account.last_shock_date = str(date.date())
+        account.candidate_tenure["acute_sector_evacuation"] = 1
+        evacuation_state = (
+            Risk.CRISIS
+            if previous is Risk.CRISIS or concentrated_confirmed
+            else Risk.RISK_OFF
+        )
+        if evacuation_state is Risk.CRISIS and previous is not Risk.CRISIS:
+            # Acute evacuation is a hard cap overlay, not a new owner of an
+            # already-established crisis route. Preserve calibrated states
+            # such as unbacked incomplete-universe and cohort-break cooldowns.
+            severe_held_move = bool(held_ret5) and (
+                float(np.mean(held_ret5)) <= cfg.severe_shock_ret5
+            )
+            account.shock_severity = (
+                "SEVERE"
+                if severe_held_move and votes >= 4
+                else "CONCENTRATED"
+            )
+        account.risk = evacuation_state.value
+        evacuation_shock = (
+            account.shock_state
+            if previous is Risk.CRISIS
+            else "SHOCK"
+            if evacuation_state is Risk.CRISIS
+            else "SECTOR_GUARD"
+        )
+        account.shock_state = evacuation_shock
+        account.risk_streaks["concentrated_repair"] = 0
+        account.risk_events.append(
+            {
+                "date": str(date.date()),
+                "from": previous.value,
+                "to": evacuation_state.value,
+                "votes": votes,
+                "reasons": ["confirmed acute holdings collapse"],
+                "severity": account.shock_severity,
+                "route": "sector_guard_acute",
+                "target_gross_cap": 0.0,
+            }
+        )
+        observation = sector_guard.observation
+        return RiskAssessment(
+            state=evacuation_state,
+            target_gross_cap=0.0,
+            votes=votes,
+            evidence={
+                **continuous_evidence,
+                **market_context,
+                "ai_fast_return": average_fast,
+                "declining_ratio": declining,
+                "below_ma20_ratio": below,
+                "sector_stress_ratio": sector_stress,
+                "median_correlation": correlation,
+                "volatility_ratio": vol_ratio,
+                "leader_failure_ratio": leader_failure,
+                "held_damage_ratio": held_damage_ratio,
+                "held_loss_ratio": held_loss_ratio,
+                "held_repair_ratio": held_repair_ratio,
+                "tech_speed": tech_speed,
+                "broad_speed": broad_speed,
+                "operating_drawdown": operating_dd,
+                "capital_drawdown": capital_dd,
+                "strategic_cohort_active": strategic_active,
+                "strategic_current_gross": strategic_current_gross,
+                "sector_guard_active": sector_guard.active,
+                "acute_sector_evacuation": True,
+                "level1_multi_family_cap": False,
+                "sector_guard_shock_count": sector_guard.shock_count,
+                "sector_guard_active_sessions": sector_guard.active_sessions,
+                "sector_guard_equal_return": (
+                    observation.equal_return if observation is not None else None
+                ),
+                "sector_guard_weighted_return": (
+                    observation.weighted_return if observation is not None else None
+                ),
+                "sector_guard_negative_exposure": (
+                    observation.negative_exposure if observation is not None else None
+                ),
+            },
+            reasons=("confirmed acute holdings collapse",),
+            shock_state=account.shock_state,
+            freeze_new_risk=True,
+            reduction_level=3,
+            severity=account.shock_severity,
+        )
     capital_cooldown = account.candidate_tenure.get("capital_guard_cooldown", 0)
     if capital_cooldown > 0:
         account.candidate_tenure["capital_guard_cooldown"] = capital_cooldown - 1
@@ -1139,7 +1309,7 @@ def assess_risk(
                 shock_state="UNBACKED_COOLDOWN",
                 freeze_new_risk=True,
                 reduction_level=3,
-                severity="SEVERE",
+                severity=account.shock_severity,
             )
         repair_leaders = 0
         for symbol in user_panel:
@@ -1401,6 +1571,7 @@ def assess_risk(
         )
 
     if concentrated_confirmed:
+        _reset_recovery_owner_rearm(account)
         if account.candidate_tenure.get("post_shock_restore_complete", 0) == 1:
             # A new independent event owns a new pre-cut economic snapshot;
             # never resurrect targets from an already completed repair.
@@ -1591,6 +1762,7 @@ def assess_risk(
         # same reset before returning.
         account.operating_peak = equity
     if state is Risk.CRISIS and previous is not Risk.CRISIS:
+        _reset_recovery_owner_rearm(account)
         if account.candidate_tenure.get("post_shock_restore_complete", 0) == 1:
             account.protected_weights.clear()
         account.candidate_tenure["post_shock_restore_complete"] = 0
@@ -1640,6 +1812,13 @@ def assess_risk(
     cap = min(cap, overlay_cap)
     if sector_guard_forced:
         cap = min(cap, cfg.sector_guard_gross)
+    # The narrow-market guard is an established, separately calibrated route.
+    # Do not stack the generic level-1 overlay on top of its explicit cap.
+    level1_multi_family_cap_applied = bool(
+        level1_multi_family_cap and not narrow_anchor_guard
+    )
+    if level1_multi_family_cap_applied:
+        cap = min(cap, cfg.capital_budget_level2_cap)
     observation = sector_guard.observation
     return RiskAssessment(
         state=state,
@@ -1664,6 +1843,8 @@ def assess_risk(
             "strategic_cohort_active": strategic_active,
             "strategic_current_gross": strategic_current_gross,
             "sector_guard_active": sector_guard.active,
+            "acute_sector_evacuation": acute_sector_evacuation,
+            "level1_multi_family_cap": level1_multi_family_cap_applied,
             "sector_guard_shock_count": sector_guard.shock_count,
             "sector_guard_active_sessions": sector_guard.active_sessions,
             "sector_guard_equal_return": (observation.equal_return if observation is not None else None),

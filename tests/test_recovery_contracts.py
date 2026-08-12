@@ -3,6 +3,7 @@ from __future__ import annotations
 import pandas as pd
 import pytest
 
+import uquant.risk as risk_module
 from uquant.config import DEFAULT_CONFIG
 from uquant.engine import ProductionEngine
 from uquant.execution import plan_orders
@@ -156,6 +157,267 @@ def test_final_tactical_exit_retires_stale_restore_owner() -> None:
     assert symbol not in account.protected_weights
     assert symbol not in account.strategic_restore_weights
     assert account.tactical_anchor_symbol == ""
+
+
+def test_confirmed_fast_recovery_hands_reduced_core_to_new_owner_without_raising_gross() -> None:
+    dates = pd.bdate_range("2025-01-02", periods=130)
+    recovery_close = [2.0] * 119 + [0.70 + 0.04 * index for index in range(11)]
+    recovery_frame = pd.DataFrame(
+        {
+            "close": recovery_close,
+            "ma20": 0.80,
+            "ma60": 0.90,
+            "ma120": 1.20,
+            "ret5": 0.10,
+            "ret20": -0.05,
+            "ret60": -0.10,
+            "ret120": -0.40,
+            "amount": 1_000_000_000.0,
+        },
+        index=dates,
+    )
+    incumbent_frame = recovery_frame.assign(ret120=0.10)
+    account = AccountState(
+        initial_cash=100.0,
+        cash=60.0,
+        positions={
+            "old_core": Position(
+                "old_core",
+                shares=40,
+                avg_cost=1.20,
+                entry_date=str(dates[0].date()),
+                lifecycle=Lifecycle.CORE.value,
+            )
+        },
+        active_leaders=["old_core"],
+        dynamic_k=1,
+        last_k_change_date=str(dates[0].date()),
+        capital_budget_level=2,
+        last_shock_date=str(dates[-10].date()),
+        protected_weights={"old_core": 0.40},
+        candidate_tenure={"fast_v_recovery": 1},
+        operating_peak=100.0,
+        capital_peak=100.0,
+    )
+    risk = RiskAssessment(
+        Risk.CAUTION,
+        0.40,
+        0,
+        {
+            "freeze_new_risk": True,
+            "transition_damage": 0.10,
+            "broad_ret120": -0.10,
+            "tech_ret120": 0.04,
+            "risk_anchor_group_count": 2,
+        },
+        ("confirmed fast V recovery",),
+        "FAST_V_RECOVERY",
+        freeze_new_risk=True,
+        reduction_level=2,
+    )
+
+    targets = PortfolioAllocator(DEFAULT_CONFIG).allocate(
+        date=dates[-1],
+        opportunity=Opportunity.RECOVERY,
+        risk=risk,
+        user_panel={"old_core": incumbent_frame, "new_owner": recovery_frame},
+        leaders={
+            "old_core": LeaderScore("old_core", 0.55, 1.0, False, False, "old", {}),
+            "new_owner": LeaderScore("new_owner", 0.85, 1.0, False, False, "new", {}),
+        },
+        account=account,
+        prices={"old_core": 1.0, "new_owner": recovery_close[-1]},
+    )
+
+    assert {target.symbol: target.weight for target in targets} == pytest.approx(
+        {"old_core": 0.0, "new_owner": 0.40}
+    )
+    assert sum(target.weight for target in targets) == pytest.approx(0.40)
+    # Alpha ownership retains the full confirmed intent; only today's
+    # executable exposure is clamped to the still-active capital budget.
+    assert account.anchor_weights == pytest.approx({"new_owner": 0.60})
+    assert account.protected_weights == {}
+    assert account.candidate_tenure["recovery_owner_handoff"] == 1
+
+    # After the sell-funded handoff fills, independently confirmed members can
+    # acquire Alpha ownership under the same gross budget. Their desired
+    # weights survive for later capital rearm instead of being overwritten by
+    # today's temporary cap.
+    account.positions = {
+        "new_owner": Position(
+            "new_owner",
+            shares=40,
+            avg_cost=1.0,
+            entry_date=str(dates[-1].date()),
+            lifecycle=Lifecycle.RECOVERY.value,
+        )
+    }
+    account.cash = 60.0
+    expanded = PortfolioAllocator(DEFAULT_CONFIG).allocate(
+        date=dates[-1],
+        opportunity=Opportunity.RECOVERY,
+        risk=risk,
+        user_panel={
+            "new_owner": recovery_frame,
+            "new_member_1": recovery_frame.assign(ret120=-0.35),
+            "new_member_2": recovery_frame.assign(ret120=-0.30),
+        },
+        leaders={
+            "new_owner": LeaderScore("new_owner", 0.85, 1.0, False, False, "new", {}),
+            "new_member_1": LeaderScore(
+                "new_member_1", 0.80, 1.0, False, False, "new_1", {}
+            ),
+            "new_member_2": LeaderScore(
+                "new_member_2", 0.75, 1.0, False, False, "new_2", {}
+            ),
+        },
+        account=account,
+        prices={"new_owner": 1.0, "new_member_1": 1.0, "new_member_2": 1.0},
+    )
+
+    assert sum(target.weight for target in expanded) == pytest.approx(0.40)
+    assert {target.symbol for target in expanded if target.weight > 0} == {
+        "new_owner",
+        "new_member_1",
+        "new_member_2",
+    }
+    assert account.anchor_weights == pytest.approx(
+        {"new_owner": 0.60, "new_member_1": 0.16, "new_member_2": 0.16}
+    )
+    assert account.candidate_tenure["recovery_cohort_locked"] == 1
+
+    account.positions = {
+        "new_owner": Position(
+            "new_owner", shares=26, avg_cost=1.0, lifecycle=Lifecycle.RECOVERY.value
+        ),
+        "new_member_1": Position(
+            "new_member_1", shares=7, avg_cost=1.0, lifecycle=Lifecycle.RECOVERY.value
+        ),
+        "new_member_2": Position(
+            "new_member_2", shares=7, avg_cost=1.0, lifecycle=Lifecycle.RECOVERY.value
+        ),
+    }
+    account.cash = 60.0
+    account.capital_budget_level = 0
+    reopened = RiskAssessment(
+        Risk.NORMAL,
+        1.0,
+        0,
+        {"freeze_new_risk": False, "transition_damage": 0.10},
+        (),
+        "NONE",
+        freeze_new_risk=False,
+        reduction_level=0,
+    )
+    rearmed = PortfolioAllocator(DEFAULT_CONFIG).allocate(
+        date=dates[-1],
+        opportunity=Opportunity.TREND,
+        risk=reopened,
+        user_panel={
+            "new_owner": recovery_frame,
+            "new_member_1": recovery_frame.assign(ret120=-0.35),
+            "new_member_2": recovery_frame.assign(ret120=-0.30),
+        },
+        leaders={
+            "new_owner": LeaderScore("new_owner", 0.85, 1.0, False, False, "new", {}),
+            "new_member_1": LeaderScore(
+                "new_member_1", 0.80, 1.0, False, False, "new_1", {}
+            ),
+            "new_member_2": LeaderScore(
+                "new_member_2", 0.75, 1.0, False, False, "new_2", {}
+            ),
+        },
+        account=account,
+        prices={"new_owner": 1.0, "new_member_1": 1.0, "new_member_2": 1.0},
+    )
+
+    assert {target.symbol: target.weight for target in rearmed} == pytest.approx(
+        {"new_owner": 0.60, "new_member_1": 0.16, "new_member_2": 0.16}
+    )
+    assert account.candidate_tenure["recovery_owner_rearm_submitted"] == 1
+
+
+def test_ordinary_level1_restore_keeps_full_owner_but_stages_exposure() -> None:
+    dates = pd.bdate_range("2025-01-02", periods=130)
+    frame = pd.DataFrame(
+        {
+            "close": 1.0,
+            "ma20": 0.9,
+            "ma60": 0.8,
+            "ma120": 0.7,
+            "ret5": 0.05,
+            "ret20": 0.10,
+            "ret60": 0.20,
+            "ret120": 0.30,
+            "amount": 1_000_000_000.0,
+        },
+        index=dates,
+    )
+    owner = {"lead": 0.60, "member_1": 0.16, "member_2": 0.16}
+    account = AccountState(
+        initial_cash=100.0,
+        cash=76.0,
+        positions={
+            "member_2": Position(
+                "member_2", shares=24, avg_cost=1.0, lifecycle=Lifecycle.RECOVERY.value
+            )
+        },
+        anchor_weights=dict(owner),
+        protected_weights=dict(owner),
+        capital_budget_level=1,
+        capital_budget_repair_streak=1,
+        last_shock_date=str(dates[-5].date()),
+        operating_peak=100.0,
+        capital_peak=100.0,
+    )
+    leaders = {
+        symbol: LeaderScore(symbol, 0.80, 1.0, False, False, symbol, {})
+        for symbol in owner
+    }
+    risk = RiskAssessment(
+        Risk.CAUTION,
+        0.92,
+        0,
+        {"freeze_new_risk": True, "transition_damage": 0.30},
+        ("two-day synchronized leader repair",),
+        "RECOVERY",
+        freeze_new_risk=True,
+        reduction_level=1,
+    )
+
+    targets = PortfolioAllocator(DEFAULT_CONFIG).allocate(
+        date=dates[-1],
+        opportunity=Opportunity.TREND,
+        risk=risk,
+        user_panel={symbol: frame for symbol in owner},
+        leaders=leaders,
+        account=account,
+        prices={symbol: 1.0 for symbol in owner},
+    )
+
+    assert sum(target.weight for target in targets) == pytest.approx(
+        DEFAULT_CONFIG.tactical_probe_weight
+    )
+    assert {target.symbol: target.weight for target in targets}["member_2"] == pytest.approx(
+        0.24
+    )
+    assert account.protected_weights == pytest.approx(owner)
+    assert account.candidate_tenure["post_shock_restore_staged"] == 1
+
+
+def test_level1_multi_family_cap_needs_capital_damage() -> None:
+    account = AccountState.empty(100.0)
+    account.capital_budget_level = 1
+
+    assert risk_module._level1_multi_family_cap_required(
+        account=account, capital_damage=True, votes=3
+    )
+    assert not risk_module._level1_multi_family_cap_required(
+        account=account, capital_damage=False, votes=4
+    )
+    assert not risk_module._level1_multi_family_cap_required(
+        account=account, capital_damage=True, votes=2
+    )
 
 
 def test_strong_two_index_market_does_not_mask_independent_deep_probe():

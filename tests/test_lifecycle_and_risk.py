@@ -4967,6 +4967,7 @@ def test_failed_restoration_triggers_capital_cooldown_and_retires_anchors():
         anchor_weights={symbol: 1.0 / 3.0 for symbol in symbols},
         protected_weights={symbol: 1.0 / 3.0 for symbol in symbols},
         risk=Risk.CAUTION.value,
+        candidate_tenure={"recovery_owner_rearm_complete": 1},
         operating_peak=80.0,
         capital_peak=100.0,
         risk_events=[
@@ -4996,6 +4997,7 @@ def test_failed_restoration_triggers_capital_cooldown_and_retires_anchors():
     assert assessment.state is Risk.CRISIS
     assert assessment.target_gross_cap == pytest.approx(DEFAULT_CONFIG.market_crisis_gross)
     assert assessment.reasons == ("capital drawdown relapse in restored holdings",)
+    assert account.candidate_tenure["recovery_owner_rearm_complete"] == 0
     assert account.candidate_tenure["capital_guard_cooldown"] == (DEFAULT_CONFIG.capital_guard_cooldown_days)
 
     targets = PortfolioAllocator(DEFAULT_CONFIG).allocate(

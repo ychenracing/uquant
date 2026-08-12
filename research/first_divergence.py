@@ -44,6 +44,11 @@ def _trace_row(
     ) if isinstance(raw_leaders, Sequence) else ()
     equity = engine.equity(account, pd.Timestamp(decision.date))
     actual_gross = (equity - account.cash) / equity if equity > 1e-12 else 0.0
+    risk_evidence = {
+        str(name): value
+        for name, value in sorted(risk_summary.items())
+        if name != "leader_ranking"
+    }
 
     return {
         "date": decision.date,
@@ -54,11 +59,16 @@ def _trace_row(
         "capital_damage": bool(family_votes.get("capital_damage", False)),
         "capital_drawdown": float(risk_summary.get("capital_drawdown", 0.0)),
         "capital_budget_level": int(risk_summary.get("capital_budget_level", 0)),
+        "reference_evidence": {
+            name: value for name, value in risk_evidence.items() if name.startswith("reference_")
+        },
+        "risk_evidence": risk_evidence,
         "ranked_leaders": ranked_leaders,
         "strategic_targets": dict(sorted(account.strategic_cohort_targets.items())),
         "targets": tuple(asdict(target) for target in decision.targets),
         "target_gross": decision.target_gross,
         "actual_gross": actual_gross,
+        "equity": equity,
         "new_fills": tuple(asdict(fill) for fill in new_fills),
         "pending_orders": tuple(asdict(order) for order in decision.pending_orders),
     }

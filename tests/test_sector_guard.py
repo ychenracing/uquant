@@ -4,6 +4,7 @@ import numpy as np
 import pandas as pd
 import pytest
 
+import uquant.risk as risk_module
 from uquant.config import DEFAULT_CONFIG
 from uquant.engine import attribution
 from uquant.portfolio import PortfolioAllocator
@@ -198,6 +199,49 @@ def test_sector_guard_uses_weighted_exposure_when_equal_weight_breadth_is_benign
     assert second.observation.positive_breadth > cfg.sector_shock_breadth
     assert second.observation.weighted_return <= cfg.sector_weighted_shock_return
     assert second.observation.negative_exposure >= cfg.sector_weighted_negative_exposure
+
+
+def test_confirmed_acute_sector_collapse_requires_full_weighted_and_breadth_damage() -> None:
+    dates = pd.bdate_range("2026-06-01", periods=4)
+    cfg = DEFAULT_CONFIG.override(sector_recovery_ma=3)
+
+    def transition_for(daily_multiplier: float):
+        close = np.asarray(
+            [
+                100.0,
+                100.0 * daily_multiplier,
+                100.0 * daily_multiplier**2,
+                100.0 * daily_multiplier**3,
+            ]
+        )
+        panel = {
+            symbol: pd.DataFrame({"close": close}, index=dates)
+            for symbol in ("arbitrary_a", "arbitrary_b")
+        }
+        account = _account()
+        update_sector_guard(
+            date=dates[2],
+            calendar=dates,
+            panel=panel,
+            account=account,
+            leadership_divergence=1.0,
+            cfg=cfg,
+        )
+        return update_sector_guard(
+            date=dates[3],
+            calendar=dates,
+            panel=panel,
+            account=account,
+            leadership_divergence=1.0,
+            cfg=cfg,
+        )
+
+    acute = transition_for(0.94)
+    ordinary = transition_for(0.97)
+
+    assert acute.triggered and ordinary.triggered
+    assert risk_module._acute_sector_evacuation_required(acute, cfg)
+    assert not risk_module._acute_sector_evacuation_required(ordinary, cfg)
 
 
 def test_disabling_sector_guard_clears_persisted_state() -> None:

@@ -1,0 +1,644 @@
+{
+  "schema_version": 1,
+  "generated_at_utc": "2026-08-12T14:13:56.927296+00:00",
+  "target_interval": {
+    "start": "2025-01-02",
+    "end": "2026-07-31"
+  },
+  "acute_interval": {
+    "start": "2026-06-30",
+    "end": "2026-07-31"
+  },
+  "comparison_contract": {
+    "initial_cash": 2000000.0,
+    "signal": "close_t",
+    "execution": "next_tradable_open",
+    "intraday_exit": false,
+    "dominance_metrics": [
+      "final_wealth",
+      "max_drawdown",
+      "account_orders",
+      "acute_return"
+    ]
+  },
+  "provenance": {
+    "uquant_commit": "100c4a1ac690f24fb5c5509404fd640607235b79",
+    "uquant_python_sha256": "953b4a4a05c23087db4c4cb48dfe81d09524209a6aa7a8fe50cb576ccdf26c4c",
+    "competitor_artifact_sha256": "321c28612025e2f5197ef60b012406dc0236851a3ed7f1cb9a362bd58c7f8e3c",
+    "competitor_repositories": {
+      "aquant": {
+        "repository": "ychenracing/aquant",
+        "commit": "3c38fbbf679a0fb1b4ee8f3d47b6931d3eb8fdbd",
+        "python_sha256": "0fdc39c40239e51b5c91024507bef1bed222cd83575e4d9f870b8ada2f73a50a"
+      },
+      "qwenquant": {
+        "repository": "ychenracing/qwenquant",
+        "commit": "0b3681e10b75425ad8600e75835677a6a125ed13",
+        "python_sha256": "66fc531989e294990d40dae5f0c0ff867fe4e144ab2bae81863b42e7113c46c0"
+      },
+      "trade": {
+        "repository": "ychenracing/trade",
+        "commit": "cee1620f40af3af8f839e15db188a9e388a78dd0",
+        "python_sha256": "03e33e1396ca31d61e724bcd9cf58971ae656134740eb8929313167aa8ed8597"
+      }
+    },
+    "data": {
+      "through": "2026-07-31",
+      "sha256": "1a55836cca92f0d17f56ef8d47f308d73629065aa80d21a4a034ab772fae9e31"
+    }
+  },
+  "rows": [
+    {
+      "system": "uquant",
+      "pool": "a",
+      "start": "2025-01-02",
+      "end": "2026-07-31",
+      "final_wealth": 11.628159499717498,
+      "max_drawdown": 0.1685179070316266,
+      "account_orders": 10,
+      "gross_turnover": 15.976703153849998,
+      "acute_return": -0.09907508792348163,
+      "evidence_sha256": "5bf50b31964c5295f9c10f69e6bd044cf57ee1d77df8f708fe3fc7d5e440b565"
+    },
+    {
+      "system": "uquant",
+      "pool": "b",
+      "start": "2025-01-02",
+      "end": "2026-07-31",
+      "final_wealth": 11.628159499717498,
+      "max_drawdown": 0.1685179070316266,
+      "account_orders": 10,
+      "gross_turnover": 15.976703153849998,
+      "acute_return": -0.09907508792348163,
+      "evidence_sha256": "6e430e58d52070b7a6a5da3c90e260d76ed7ec3726f941f08543bea4d5f180b7"
+    },
+    {
+      "system": "uquant",
+      "pool": "c",
+      "start": "2025-01-02",
+      "end": "2026-07-31",
+      "final_wealth": 11.628159499717498,
+      "max_drawdown": 0.1685179070316266,
+      "account_orders": 10,
+      "gross_turnover": 15.976703153849998,
+      "acute_return": -0.09907508792348163,
+      "evidence_sha256": "8de16daaad429cdd1eec41f3260d7f894e6659718fac203da7c7a8ea70188852"
+    },
+    {
+      "system": "uquant",
+      "pool": "d",
+      "start": "2025-01-02",
+      "end": "2026-07-31",
+      "final_wealth": 2.743459837197153,
+      "max_drawdown": 0.1934580311721532,
+      "account_orders": 28,
+      "gross_turnover": 12.9741748122,
+      "acute_return": -0.13948954073813236,
+      "evidence_sha256": "acc81468eb5be5021f05d1d4c56c074c3d90c5cb512ce9f21af36502a41f9b09"
+    },
+    {
+      "system": "uquant",
+      "pool": "e",
+      "start": "2025-01-02",
+      "end": "2026-07-31",
+      "final_wealth": 14.97779180693434,
+      "max_drawdown": 0.16426367960554833,
+      "account_orders": 17,
+      "gross_turnover": 25.3888170585,
+      "acute_return": -0.016881414626100377,
+      "evidence_sha256": "7e829d9e68ae476bd602e91d3de3e8f53797914556d83401b77a52e46017f81e"
+    },
+    {
+      "system": "aquant",
+      "pool": "a",
+      "start": "2025-01-02",
+      "end": "2026-07-31",
+      "final_wealth": 6.4579057576084615,
+      "max_drawdown": 0.2736840769994233,
+      "account_orders": 32,
+      "gross_turnover": 42.237177860349995,
+      "acute_return": -0.17557626592592546,
+      "evidence_sha256": "2cad544262770dc825a1c9688931fbae00d3b7774e96c3f2ddea3e76302d6e43"
+    },
+    {
+      "system": "aquant",
+      "pool": "b",
+      "start": "2025-01-02",
+      "end": "2026-07-31",
+      "final_wealth": 6.072852155570885,
+      "max_drawdown": 0.30336839064064447,
+      "account_orders": 39,
+      "gross_turnover": 37.2437867265,
+      "acute_return": -0.275282797113959,
+      "evidence_sha256": "268bdd5f823b0e6333e990040e3e4aed74d7a651d13d7cf5b040662adecdff26"
+    },
+    {
+      "system": "aquant",
+      "pool": "c",
+      "start": "2025-01-02",
+      "end": "2026-07-31",
+      "final_wealth": 1.0142405361018598,
+      "max_drawdown": 0.3211467098609666,
+      "account_orders": 38,
+      "gross_turnover": 11.731608687849999,
+      "acute_return": -0.14113450923605242,
+      "evidence_sha256": "0a9dee1c20de0baa45ed64283a6d35c31014ea009367c7f6408ce8aca1bdd4d5"
+    },
+    {
+      "system": "aquant",
+      "pool": "d",
+      "start": "2025-01-02",
+      "end": "2026-07-31",
+      "final_wealth": 5.095877196950946,
+      "max_drawdown": 0.3547245352231996,
+      "account_orders": 59,
+      "gross_turnover": 40.9527682806,
+      "acute_return": -0.3252985134535953,
+      "evidence_sha256": "4d41a579035b9c3657cf6d771b44e53b9820cfe206743737756de80d60fc08f5"
+    },
+    {
+      "system": "aquant",
+      "pool": "e",
+      "start": "2025-01-02",
+      "end": "2026-07-31",
+      "final_wealth": 1.4472039900455043,
+      "max_drawdown": 0.41547184197733067,
+      "account_orders": 123,
+      "gross_turnover": 41.6622440822,
+      "acute_return": -0.4026639282905742,
+      "evidence_sha256": "044c46deabac05e9a8bb998cc556ba20c047b9cadc58b294e6201431f8568c95"
+    },
+    {
+      "system": "qwenquant",
+      "pool": "a",
+      "start": "2025-01-02",
+      "end": "2026-07-31",
+      "final_wealth": 6.485924905011298,
+      "max_drawdown": 0.25243135188338317,
+      "account_orders": 33,
+      "gross_turnover": 13.9525053277,
+      "acute_return": -0.1879582409337347,
+      "evidence_sha256": "0e9ab3583a4e66cade436a1bc352fa9b8b715cc55a0abdfb6c5bb75c3ef7ee1b"
+    },
+    {
+      "system": "qwenquant",
+      "pool": "b",
+      "start": "2025-01-02",
+      "end": "2026-07-31",
+      "final_wealth": 9.86122322366951,
+      "max_drawdown": 0.2351246134853786,
+      "account_orders": 31,
+      "gross_turnover": 14.92866005785,
+      "acute_return": -0.1589737511844288,
+      "evidence_sha256": "3e9829ab6574d18e4645d9278bbc12b0cd471c9deac9f103f29003c2c8225e8b"
+    },
+    {
+      "system": "qwenquant",
+      "pool": "c",
+      "start": "2025-01-02",
+      "end": "2026-07-31",
+      "final_wealth": 7.481931965842465,
+      "max_drawdown": 0.2582856870243154,
+      "account_orders": 41,
+      "gross_turnover": 12.0997357685,
+      "acute_return": -0.20390690080470408,
+      "evidence_sha256": "4c101ddd8940764698b4072bad64aa81366193c4eb0c84947faa7ad94191e521"
+    },
+    {
+      "system": "qwenquant",
+      "pool": "d",
+      "start": "2025-01-02",
+      "end": "2026-07-31",
+      "final_wealth": 7.639154525779534,
+      "max_drawdown": 0.2776310223363704,
+      "account_orders": 45,
+      "gross_turnover": 13.0101661316,
+      "acute_return": -0.21698277999999516,
+      "evidence_sha256": "08ade17232b6a9997cea306d53cf1e68d878ae26ba1bfb4e115cc808fb3cb557"
+    },
+    {
+      "system": "qwenquant",
+      "pool": "e",
+      "start": "2025-01-02",
+      "end": "2026-07-31",
+      "final_wealth": 6.979220088530632,
+      "max_drawdown": 0.31804142435972793,
+      "account_orders": 47,
+      "gross_turnover": 14.2393952744,
+      "acute_return": -0.21765574539704968,
+      "evidence_sha256": "44260952e49b8b08f7ddcea13c4eb5d8c39a6ea1277b2657e0b97ccd9a56b806"
+    },
+    {
+      "system": "trade",
+      "pool": "a",
+      "start": "2025-01-02",
+      "end": "2026-07-31",
+      "final_wealth": 3.2347578653303284,
+      "max_drawdown": 0.16152551227526663,
+      "account_orders": 228,
+      "gross_turnover": 33.95637251805,
+      "acute_return": -0.00027214083425020075,
+      "evidence_sha256": "63f6d3a31832d83aed5e941af1e652711dabac0095a31a461b6eb938d3659ac0"
+    },
+    {
+      "system": "trade",
+      "pool": "b",
+      "start": "2025-01-02",
+      "end": "2026-07-31",
+      "final_wealth": 5.051328593708478,
+      "max_drawdown": 0.1554347965736393,
+      "account_orders": 243,
+      "gross_turnover": 42.4627318785,
+      "acute_return": -8.620926470581658e-05,
+      "evidence_sha256": "10b6f4e1d39b28d556bf6eed65b22292765c629176ab2608813dd9f9aa5e9cff"
+    },
+    {
+      "system": "trade",
+      "pool": "c",
+      "start": "2025-01-02",
+      "end": "2026-07-31",
+      "final_wealth": 5.376923908563115,
+      "max_drawdown": 0.1658740437245601,
+      "account_orders": 252,
+      "gross_turnover": 40.3683061266,
+      "acute_return": -0.0002492374271605424,
+      "evidence_sha256": "481ebabd13e7d6efd5e3c325bba0752af7d0045c72b3c216c3996ce0849f921b"
+    },
+    {
+      "system": "trade",
+      "pool": "d",
+      "start": "2025-01-02",
+      "end": "2026-07-31",
+      "final_wealth": 2.259516284916839,
+      "max_drawdown": 0.18727934747781197,
+      "account_orders": 132,
+      "gross_turnover": 15.17149372975,
+      "acute_return": 0.0,
+      "evidence_sha256": "08f4c8ce9af2898bbd1d3e81813f5574b90b5987352f0911e2c65a6452c2552b"
+    },
+    {
+      "system": "trade",
+      "pool": "e",
+      "start": "2025-01-02",
+      "end": "2026-07-31",
+      "final_wealth": 1.3661899300817126,
+      "max_drawdown": 0.19523828628020262,
+      "account_orders": 91,
+      "gross_turnover": 8.51659780005,
+      "acute_return": 0.0,
+      "evidence_sha256": "6ace2a3585b2939fbbc969c477aefcc420d8bfbb0995c1debed3746f486c1c2a"
+    }
+  ],
+  "evaluation": {
+    "passed": false,
+    "failures": [
+      "a/trade:max_drawdown",
+      "a/trade:acute_return",
+      "b/trade:max_drawdown",
+      "b/trade:acute_return",
+      "c/trade:max_drawdown",
+      "c/trade:acute_return",
+      "d/aquant:final_wealth",
+      "d/qwenquant:final_wealth",
+      "d/trade:max_drawdown",
+      "d/trade:acute_return",
+      "e/trade:acute_return"
+    ],
+    "summary": {
+      "cells": 20,
+      "pairwise_comparisons": 15
+    },
+    "comparisons": {
+      "a/aquant": {
+        "passed": true,
+        "predicates": {
+          "final_wealth": true,
+          "max_drawdown": true,
+          "account_orders": true,
+          "acute_return": true,
+          "strictly_better": true
+        },
+        "uquant": {
+          "final_wealth": 11.628159499717498,
+          "max_drawdown": 0.1685179070316266,
+          "account_orders": 10,
+          "acute_return": -0.09907508792348163
+        },
+        "competitor": {
+          "final_wealth": 6.4579057576084615,
+          "max_drawdown": 0.2736840769994233,
+          "account_orders": 32,
+          "acute_return": -0.17557626592592546
+        }
+      },
+      "a/qwenquant": {
+        "passed": true,
+        "predicates": {
+          "final_wealth": true,
+          "max_drawdown": true,
+          "account_orders": true,
+          "acute_return": true,
+          "strictly_better": true
+        },
+        "uquant": {
+          "final_wealth": 11.628159499717498,
+          "max_drawdown": 0.1685179070316266,
+          "account_orders": 10,
+          "acute_return": -0.09907508792348163
+        },
+        "competitor": {
+          "final_wealth": 6.485924905011298,
+          "max_drawdown": 0.25243135188338317,
+          "account_orders": 33,
+          "acute_return": -0.1879582409337347
+        }
+      },
+      "a/trade": {
+        "passed": false,
+        "predicates": {
+          "final_wealth": true,
+          "max_drawdown": false,
+          "account_orders": true,
+          "acute_return": false,
+          "strictly_better": true
+        },
+        "uquant": {
+          "final_wealth": 11.628159499717498,
+          "max_drawdown": 0.1685179070316266,
+          "account_orders": 10,
+          "acute_return": -0.09907508792348163
+        },
+        "competitor": {
+          "final_wealth": 3.2347578653303284,
+          "max_drawdown": 0.16152551227526663,
+          "account_orders": 228,
+          "acute_return": -0.00027214083425020075
+        }
+      },
+      "b/aquant": {
+        "passed": true,
+        "predicates": {
+          "final_wealth": true,
+          "max_drawdown": true,
+          "account_orders": true,
+          "acute_return": true,
+          "strictly_better": true
+        },
+        "uquant": {
+          "final_wealth": 11.628159499717498,
+          "max_drawdown": 0.1685179070316266,
+          "account_orders": 10,
+          "acute_return": -0.09907508792348163
+        },
+        "competitor": {
+          "final_wealth": 6.072852155570885,
+          "max_drawdown": 0.30336839064064447,
+          "account_orders": 39,
+          "acute_return": -0.275282797113959
+        }
+      },
+      "b/qwenquant": {
+        "passed": true,
+        "predicates": {
+          "final_wealth": true,
+          "max_drawdown": true,
+          "account_orders": true,
+          "acute_return": true,
+          "strictly_better": true
+        },
+        "uquant": {
+          "final_wealth": 11.628159499717498,
+          "max_drawdown": 0.1685179070316266,
+          "account_orders": 10,
+          "acute_return": -0.09907508792348163
+        },
+        "competitor": {
+          "final_wealth": 9.86122322366951,
+          "max_drawdown": 0.2351246134853786,
+          "account_orders": 31,
+          "acute_return": -0.1589737511844288
+        }
+      },
+      "b/trade": {
+        "passed": false,
+        "predicates": {
+          "final_wealth": true,
+          "max_drawdown": false,
+          "account_orders": true,
+          "acute_return": false,
+          "strictly_better": true
+        },
+        "uquant": {
+          "final_wealth": 11.628159499717498,
+          "max_drawdown": 0.1685179070316266,
+          "account_orders": 10,
+          "acute_return": -0.09907508792348163
+        },
+        "competitor": {
+          "final_wealth": 5.051328593708478,
+          "max_drawdown": 0.1554347965736393,
+          "account_orders": 243,
+          "acute_return": -8.620926470581658e-05
+        }
+      },
+      "c/aquant": {
+        "passed": true,
+        "predicates": {
+          "final_wealth": true,
+          "max_drawdown": true,
+          "account_orders": true,
+          "acute_return": true,
+          "strictly_better": true
+        },
+        "uquant": {
+          "final_wealth": 11.628159499717498,
+          "max_drawdown": 0.1685179070316266,
+          "account_orders": 10,
+          "acute_return": -0.09907508792348163
+        },
+        "competitor": {
+          "final_wealth": 1.0142405361018598,
+          "max_drawdown": 0.3211467098609666,
+          "account_orders": 38,
+          "acute_return": -0.14113450923605242
+        }
+      },
+      "c/qwenquant": {
+        "passed": true,
+        "predicates": {
+          "final_wealth": true,
+          "max_drawdown": true,
+          "account_orders": true,
+          "acute_return": true,
+          "strictly_better": true
+        },
+        "uquant": {
+          "final_wealth": 11.628159499717498,
+          "max_drawdown": 0.1685179070316266,
+          "account_orders": 10,
+          "acute_return": -0.09907508792348163
+        },
+        "competitor": {
+          "final_wealth": 7.481931965842465,
+          "max_drawdown": 0.2582856870243154,
+          "account_orders": 41,
+          "acute_return": -0.20390690080470408
+        }
+      },
+      "c/trade": {
+        "passed": false,
+        "predicates": {
+          "final_wealth": true,
+          "max_drawdown": false,
+          "account_orders": true,
+          "acute_return": false,
+          "strictly_better": true
+        },
+        "uquant": {
+          "final_wealth": 11.628159499717498,
+          "max_drawdown": 0.1685179070316266,
+          "account_orders": 10,
+          "acute_return": -0.09907508792348163
+        },
+        "competitor": {
+          "final_wealth": 5.376923908563115,
+          "max_drawdown": 0.1658740437245601,
+          "account_orders": 252,
+          "acute_return": -0.0002492374271605424
+        }
+      },
+      "d/aquant": {
+        "passed": false,
+        "predicates": {
+          "final_wealth": false,
+          "max_drawdown": true,
+          "account_orders": true,
+          "acute_return": true,
+          "strictly_better": true
+        },
+        "uquant": {
+          "final_wealth": 2.743459837197153,
+          "max_drawdown": 0.1934580311721532,
+          "account_orders": 28,
+          "acute_return": -0.13948954073813236
+        },
+        "competitor": {
+          "final_wealth": 5.095877196950946,
+          "max_drawdown": 0.3547245352231996,
+          "account_orders": 59,
+          "acute_return": -0.3252985134535953
+        }
+      },
+      "d/qwenquant": {
+        "passed": false,
+        "predicates": {
+          "final_wealth": false,
+          "max_drawdown": true,
+          "account_orders": true,
+          "acute_return": true,
+          "strictly_better": true
+        },
+        "uquant": {
+          "final_wealth": 2.743459837197153,
+          "max_drawdown": 0.1934580311721532,
+          "account_orders": 28,
+          "acute_return": -0.13948954073813236
+        },
+        "competitor": {
+          "final_wealth": 7.639154525779534,
+          "max_drawdown": 0.2776310223363704,
+          "account_orders": 45,
+          "acute_return": -0.21698277999999516
+        }
+      },
+      "d/trade": {
+        "passed": false,
+        "predicates": {
+          "final_wealth": true,
+          "max_drawdown": false,
+          "account_orders": true,
+          "acute_return": false,
+          "strictly_better": true
+        },
+        "uquant": {
+          "final_wealth": 2.743459837197153,
+          "max_drawdown": 0.1934580311721532,
+          "account_orders": 28,
+          "acute_return": -0.13948954073813236
+        },
+        "competitor": {
+          "final_wealth": 2.259516284916839,
+          "max_drawdown": 0.18727934747781197,
+          "account_orders": 132,
+          "acute_return": 0.0
+        }
+      },
+      "e/aquant": {
+        "passed": true,
+        "predicates": {
+          "final_wealth": true,
+          "max_drawdown": true,
+          "account_orders": true,
+          "acute_return": true,
+          "strictly_better": true
+        },
+        "uquant": {
+          "final_wealth": 14.97779180693434,
+          "max_drawdown": 0.16426367960554833,
+          "account_orders": 17,
+          "acute_return": -0.016881414626100377
+        },
+        "competitor": {
+          "final_wealth": 1.4472039900455043,
+          "max_drawdown": 0.41547184197733067,
+          "account_orders": 123,
+          "acute_return": -0.4026639282905742
+        }
+      },
+      "e/qwenquant": {
+        "passed": true,
+        "predicates": {
+          "final_wealth": true,
+          "max_drawdown": true,
+          "account_orders": true,
+          "acute_return": true,
+          "strictly_better": true
+        },
+        "uquant": {
+          "final_wealth": 14.97779180693434,
+          "max_drawdown": 0.16426367960554833,
+          "account_orders": 17,
+          "acute_return": -0.016881414626100377
+        },
+        "competitor": {
+          "final_wealth": 6.979220088530632,
+          "max_drawdown": 0.31804142435972793,
+          "account_orders": 47,
+          "acute_return": -0.21765574539704968
+        }
+      },
+      "e/trade": {
+        "passed": false,
+        "predicates": {
+          "final_wealth": true,
+          "max_drawdown": true,
+          "account_orders": true,
+          "acute_return": false,
+          "strictly_better": true
+        },
+        "uquant": {
+          "final_wealth": 14.97779180693434,
+          "max_drawdown": 0.16426367960554833,
+          "account_orders": 17,
+          "acute_return": -0.016881414626100377
+        },
+        "competitor": {
+          "final_wealth": 1.3661899300817126,
+          "max_drawdown": 0.19523828628020262,
+          "account_orders": 91,
+          "acute_return": 0.0
+        }
+      }
+    }
+  }
+}

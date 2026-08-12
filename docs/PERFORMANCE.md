@@ -81,6 +81,46 @@ Generalization baseline schema v3 同时锁定数据 snapshot、manifest/SHA256S
 
 reference 必须与场景指纹逐项一致，重复、缺失、多余或运行中被改写都会失败。仓库当前没有经过真实完整重放评审且具备上述 provenance 和 competitor-best 指标的 `generalization_baseline.json`，因此 CLI 默认 fail closed，不会自动写一份“当前结果即基线”。
 
+`benchmarks/generalization_smoke_reference.json` 是固定 24 个场景的诊断快照，不是上述
+generalization gate、promotion baseline 或 competitor reference。它只包含 base、三个
+remove-one、remove-all、no-optical、11 个真实行业子集、行业平衡子集，以及 random
+6/12/24 在 seed 0/1 下的结果；没有阈值、竞品值或自动晋级语义。快照锁定已提交的生产
+commit/源码摘要、冻结数据 manifest/checksums、场景指纹和严格早于回放窗口的证据成员，
+并记录所有场景的财富、回撤、账户订单及实际部署。它用于快速检查结果是否跨有限的代表性
+子集保持一致，不能替代包含完整随机矩阵、leave-top-k、policy 和评审 baseline 的泛化门槛。
+快照的 decision-input provenance 还单独锁定 `uquant.engine.code_fingerprint()`，以及
+`benchmarks/reference_registry.json` 的规范仓库路径、文件 SHA-256、最后提交 commit 和
+`committed` 状态。registry 在运行前为 dirty/untracked，或 registry/engine code 在 24 个
+回放中发生变化，都会失败；这是必须的，因为生产 `decide` 每日从该 registry 解析当时可见
+的 reference 成员。
+
+从仓库根目录精确复现 Pool E、Pool A 先验和 2018-01-02 至 2026-07-20 快照：
+
+```bash
+UV_CACHE_DIR=/tmp/uquant-uv-cache uv run --extra dev python - <<'PY'
+import json
+from pathlib import Path
+
+from research.generalization_smoke import run_generalization_smoke
+from uquant.leader import INDUSTRY
+
+baseline = json.loads(Path("benchmarks/promotion_baseline.json").read_text(encoding="utf-8"))
+universe = tuple(baseline["pools"]["e"])
+payload = run_generalization_smoke(
+    data_dir="data/frozen",
+    universe=universe,
+    industries={symbol: INDUSTRY[symbol] for symbol in universe},
+    prior_symbols=tuple(baseline["pools"]["a"]),
+    start="2018-01-02",
+    end="2026-07-20",
+)
+Path("benchmarks/generalization_smoke_reference.json").write_text(
+    json.dumps(payload, indent=2, sort_keys=True) + "\n",
+    encoding="utf-8",
+)
+PY
+```
+
 ## 全周期竞品 gate
 
 `uquant.validation.competitor` 要求 A～E 五池 × `rotation_2021`、`bear_2022`、`mixed_2023`、`choppy_2024`、`bull_2025_2026`、`acute_2026_07`、`continuous` 七窗口 × aquant/qwenquant/trade 三项目，共 105 个 reference 单元。每个项目必须锁定 40 位 commit、adapter 路径与 SHA-256、入口/profile/config/runtime/raw evidence；reference 还必须绑定数据 manifest/checksums/dataset 和完整执行契约。

@@ -29,7 +29,7 @@ dev = [
 uquant = "uquant.cli:main"
 
 [tool.setuptools.packages.find]
-include = ["uquant*"]
+include = ["uquant*", "research*"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
@@ -63,4 +63,3 @@ exclude_also = [
     "if TYPE_CHECKING:",
     "if __name__ == .__main__.:",
 ]
-

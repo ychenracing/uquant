@@ -19,6 +19,8 @@ from .candidate_search import (
     search_candidates,
     validate_shared_config,
 )
+from .first_divergence import first_economic_divergence, trace_backtest
+from .generalization_smoke import build_smoke_scenarios, run_generalization_smoke
 from .statistics import (
     DeflatedSharpeResult,
     PBOResult,
@@ -41,14 +43,18 @@ __all__ = [
     "SearchResult",
     "TraceDivergence",
     "WalkForwardFold",
+    "build_smoke_scenarios",
     "deflated_sharpe_ratio",
     "dominance_gate",
     "enumerate_candidates",
     "evaluate_candidate",
     "first_divergence",
+    "first_economic_divergence",
     "pareto_gate",
     "probability_of_backtest_overfitting",
+    "run_generalization_smoke",
     "search_candidates",
+    "trace_backtest",
     "validate_shared_config",
     "walk_forward_folds",
 ]

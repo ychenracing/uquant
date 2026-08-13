@@ -1,0 +1,55 @@
+diff --git a/uquant/portfolio_strategic.py b/uquant/portfolio_strategic.py
+index 37e1dfc..1a35de4 100644
+--- a/uquant/portfolio_strategic.py
++++ b/uquant/portfolio_strategic.py
+@@ -14,45 +14,19 @@ from .types import AccountState, LeaderScore, Lifecycle, RiskAssessment, Target
+ class StrategicPortfolioPolicy(PortfolioCore):
+     """Discover, protect, trail, and retire a causal strategic cohort."""
+ 
++    @staticmethod
+     def _bounded_strategic_restore_risk_open(
+-        self,
+-        *,
+-        risk: RiskAssessment,
+-        account: AccountState,
++        *, risk: RiskAssessment, account: AccountState
+     ) -> bool:
+-        """Permit only a saved cohort repair inside the explicit risk cap."""
+-
+-        restoration_owned = bool(
++        """Permit only a saved cohort repair inside the explicit level-2 cap."""
++        return bool(
+             account.candidate_tenure.get("strategic_cohort_started", 0) == 1
+             and bool(account.strategic_restore_weights)
+-        )
+-        if not restoration_owned:
+-            return False
+-        reason_clean_level2 = bool(
+-            risk.state.value == "NORMAL"
++            and risk.state.value == "NORMAL"
+             and not risk.reasons
+             and account.capital_budget_level == 2
+             and account.chronic_level == 0
+         )
+-        transition_damage = float(risk.evidence.get("transition_damage", 1.0))
+-        live_book_recovered = bool(
+-            max(
+-                float(risk.evidence.get("operating_drawdown", 1.0)),
+-                float(risk.evidence.get("capital_drawdown", 1.0)),
+-            )
+-            < self.cfg.strategic_damage_guard_dd
+-            and transition_damage < self.cfg.strategic_damage_guard_transition
+-        )
+-        repaired_caution = bool(
+-            risk.state.value == "CAUTION"
+-            and not bool(risk.evidence.get("freeze_new_risk", False))
+-            and risk.votes <= 1
+-            and (
+-                transition_damage <= self.cfg.transition_damage_repair
+-                or live_book_recovered
+-            )
+-        )
+-        return reason_clean_level2 or repaired_caution
+ 
+     @staticmethod
+     def _retire_strategic_member(account: AccountState, symbol: str) -> None:

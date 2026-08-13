@@ -12,7 +12,12 @@ from .config import SystemConfig
 from .features import cross_section_returns, scalar
 from .leader import INDUSTRY, REFERENCE_UNIVERSE, credible_recovery_reserve
 from .reference import ReferenceContext
-from .risk_sector import SectorGuardTransition, update_sector_guard
+from .risk_sector import (
+    SectorGuardTransition,
+    SectorObservation,
+    observe_deployed_sector,
+    update_sector_guard,
+)
 from .types import AccountState, LeaderScore, Risk, RiskAssessment
 
 # Compatibility export only. Production anchors live in AccountState and are
@@ -36,18 +41,38 @@ EVIDENCE_FAMILY_MEMBERS: dict[str, tuple[str, ...]] = {
 def _acute_sector_evacuation_required(
     transition: SectorGuardTransition,
     cfg: SystemConfig,
+    *,
+    leadership_divergence: float,
+    single_holding_observation: SectorObservation | None = None,
+    single_holding_is_leader: bool = False,
 ) -> bool:
     """Identify a newly confirmed, full-book fast collapse.
 
     An ordinary synchronized sector break keeps the reviewed 40% gross cap.
-    Evacuation is reserved for the trigger session where both equal-weight and
-    economic-weight losses cross the existing fast-risk line and almost all
-    deployed capital is losing. No later outcome or universe identity enters.
+    Evacuation is reserved for the first observed session where both
+    equal-weight and economic-weight losses cross the existing fast-risk line
+    and almost all deployed capital is losing while the technology leadership
+    premium independently exceeds the existing sector-guard boundary.  Waiting for the ordinary
+    two-shock sector confirmation repeats the same evidence and exposes the
+    entire book to a second gap before the next-open order can execute.
+    No later outcome or universe identity enters.
     """
-    observation = transition.observation
+    observation = transition.observation or single_holding_observation
+    single_holding_systemic_shock = bool(
+        observation is not None
+        and observation.symbol_count == 1
+        # A single name cannot establish breadth. It may use the existing
+        # first-shock owner only while it remains the structural leader of the
+        # already-confirmed technology premium; this rejects an idiosyncratic
+        # laggard gap while protecting a concentrated winning book.
+        and single_holding_is_leader
+        and observation.equal_return <= cfg.risk_fast_return
+        and observation.positive_breadth == 0.0
+    )
     return bool(
-        transition.triggered
-        and observation is not None
+        observation is not None
+        and (transition.shock or single_holding_systemic_shock)
+        and leadership_divergence >= cfg.sector_guard_divergence
         and observation.equal_return <= cfg.risk_fast_return
         and observation.weighted_return <= cfg.risk_fast_return
         and observation.negative_exposure
@@ -55,22 +80,9 @@ def _acute_sector_evacuation_required(
     )
 
 
-def _level1_multi_family_cap_required(
-    *,
-    account: AccountState,
-    capital_damage: bool,
-    votes: int,
-) -> bool:
-    """Escalate a level-1 freeze only after broad independent damage."""
-    return bool(
-        account.capital_budget_level == 1
-        and capital_damage
-        and votes >= 3
-    )
-
-
 def _reset_recovery_owner_rearm(account: AccountState) -> None:
     """Close the prior recovery-owner epoch when a new shock takes control."""
+
     for key in (
         "recovery_owner_handoff",
         "recovery_owner_rearm_submitted",
@@ -206,6 +218,8 @@ def _strategic_damage_guard_active(account: AccountState) -> bool:
 def _persistent_crisis_cap(
     severity: str,
     cfg: SystemConfig,
+    *,
+    reserve_backed: bool = False,
 ) -> float:
     """Keep severity—not a position label—as the persistent cap owner."""
     if severity == "INCOMPLETE_UNIVERSE":
@@ -213,16 +227,37 @@ def _persistent_crisis_cap(
     if severity == "INCOMPLETE_UNIVERSE_UNBACKED":
         return 0.0
     if severity == "COHORT_BREAK":
-        # A synchronized break in the live book is concentrated evidence, not
-        # proof of a market-wide liquidation event.  Keep it on the report's
-        # 20--40% ladder; only an independently confirmed severe event may use
-        # the 0--20% band.
-        return cfg.concentrated_crisis_gross
+        # An independently qualified reserve lets a mature recovery owner stay
+        # inside the existing risk-off budget while it repairs or substitutes;
+        # without that breadth, the same synchronized break remains a
+        # concentrated crisis.  This distinction is evidence-based and never
+        # depends on configured pool size.
+        return (
+            cfg.risk_off_gross
+            if reserve_backed
+            else cfg.concentrated_crisis_gross
+        )
     if severity in {"SEVERE", "ANCHOR_BREAK"}:
         return cfg.severe_crisis_gross
     if severity == "CONCENTRATED":
         return cfg.concentrated_crisis_gross
     return cfg.market_crisis_gross
+
+
+def _strategic_crisis_severity(
+    *,
+    strategic_active: bool,
+    reference_anchor_confirmed: bool,
+    live_core_positions: int,
+) -> str:
+    """Classify strategic crises by live-book concentration, not its label."""
+
+    if not strategic_active:
+        return "NORMAL"
+    if live_core_positions <= 1:
+        return "CONCENTRATED"
+    del reference_anchor_confirmed
+    return "MARKET"
 
 
 def _dynamic_anchor_candidate(leaders: dict[str, LeaderScore], cfg: SystemConfig) -> list[str]:
@@ -344,6 +379,27 @@ def _update_capital_budget_ladder(
             account.capital_budget_repair_streak = 0
         return
     account.capital_budget_repair_streak = 0
+
+
+def _capital_budget_repair_drawdown_confirmed(
+    *,
+    level: int,
+    capital_drawdown: float,
+    operating_drawdown: float,
+    cfg: SystemConfig,
+) -> bool:
+    """Require drawdown repair before releasing a persistent capital tier."""
+
+    threshold = (
+        cfg.capital_dd_crisis
+        if level >= 4
+        else cfg.capital_budget_level3_dd
+        if level >= 3
+        else cfg.capital_budget_level2_dd
+        if level >= 2
+        else cfg.operating_dd_caution
+    )
+    return max(capital_drawdown, operating_drawdown) < threshold
 
 
 def assess_risk(
@@ -1136,7 +1192,15 @@ def assess_risk(
         account,
         observed_level=observed_budget_level,
         repair_confirmed=(
-            transition_damage <= cfg.transition_damage_repair and votes <= 1 and held_damage_ratio < 0.50
+            transition_damage <= cfg.transition_damage_repair
+            and votes <= 1
+            and held_damage_ratio < 0.50
+            and _capital_budget_repair_drawdown_confirmed(
+                level=account.capital_budget_level,
+                capital_drawdown=capital_dd,
+                operating_drawdown=operating_dd,
+                cfg=cfg,
+            )
         ),
         repair_days=cfg.capital_budget_repair_days,
     )
@@ -1202,26 +1266,59 @@ def assess_risk(
     }
 
     previous = Risk(account.risk)
-    if _level1_multi_family_cap_required(
-        account=account,
-        capital_damage=bool(indicator_state["capital_damage"]),
-        votes=votes,
-    ):
-        account.candidate_tenure["capital_level1_multi_family_cap"] = 1
-    elif account.capital_budget_level == 0:
-        account.candidate_tenure["capital_level1_multi_family_cap"] = 0
-    level1_multi_family_cap = bool(
-        account.candidate_tenure.get("capital_level1_multi_family_cap", 0) == 1
-        and account.capital_budget_level == 1
+    live_symbols = {
+        symbol
+        for symbol, position in account.positions.items()
+        if position.shares > 0
+    }
+    single_holding_observation = (
+        observe_deployed_sector(
+            date=date,
+            panel=user_panel,
+            symbols=live_symbols,
+            cfg=cfg,
+            minimum_symbols=1,
+        )
+        if len(live_symbols) == 1
+        else None
     )
-    acute_sector_evacuation = _acute_sector_evacuation_required(
-        sector_guard,
-        cfg,
+    single_holding_is_leader = bool(
+        len(live_symbols) == 1
+        and all(
+            symbol in user_panel
+            and date in user_panel[symbol].index
+            and scalar(user_panel[symbol].loc[date], "ret120", -1.0)
+            >= market_context["tech_ret120"]
+            for symbol in live_symbols
+        )
+    )
+    acute_sector_evacuation = bool(
+        _acute_sector_evacuation_required(
+            sector_guard,
+            cfg,
+            leadership_divergence=(
+                market_context["tech_ret120"] - market_context["broad_ret120"]
+            ),
+            single_holding_observation=single_holding_observation,
+            single_holding_is_leader=single_holding_is_leader,
+        )
+        and (sector_guard.triggered or not concentrated_confirmed)
     )
     if acute_sector_evacuation:
         # This hard execution boundary precedes every recovery/concentrated
-        # early return.  A newly confirmed full-book collapse must therefore
-        # evacuate even when another risk route is simultaneously true.
+        # early return.  A full-book fast collapse must therefore evacuate
+        # even when another risk route is simultaneously true.  A first-shock
+        # evacuation also advances the existing sector-guard owner so a
+        # one-session zero target cannot immediately reopen the same cohort.
+        if not account.sector_guard_active:
+            account.sector_guard_active = True
+            account.sector_guard_started = str(date.date())
+            account.sector_guard_symbols = sorted(
+                symbol
+                for symbol, position in account.positions.items()
+                if position.shares > 0
+            )
+            account.sector_recovery_streak = 0
         _reset_recovery_owner_rearm(account)
         if account.candidate_tenure.get("post_shock_restore_complete", 0) == 1:
             account.protected_weights.clear()
@@ -1280,7 +1377,7 @@ def assess_risk(
                 "target_gross_cap": 0.0,
             }
         )
-        observation = sector_guard.observation
+        observation = sector_guard.observation or single_holding_observation
         return RiskAssessment(
             state=evacuation_state,
             target_gross_cap=0.0,
@@ -1304,9 +1401,8 @@ def assess_risk(
                 "capital_drawdown": capital_dd,
                 "strategic_cohort_active": strategic_active,
                 "strategic_current_gross": strategic_current_gross,
-                "sector_guard_active": sector_guard.active,
+                "sector_guard_active": account.sector_guard_active,
                 "acute_sector_evacuation": True,
-                "level1_multi_family_cap": False,
                 "sector_guard_shock_count": sector_guard.shock_count,
                 "sector_guard_active_sessions": sector_guard.active_sessions,
                 "sector_guard_equal_return": (
@@ -1704,7 +1800,15 @@ def assess_risk(
         return RiskAssessment(
             state=Risk.CRISIS,
             target_gross_cap=min(
-                _persistent_crisis_cap(account.shock_severity, cfg),
+                _persistent_crisis_cap(
+                    account.shock_severity,
+                    cfg,
+                    reserve_backed=bool(
+                        credible_reserve
+                        and account.anchor_weights
+                        and not strategic_active
+                    ),
+                ),
                 overlay_cap,
             ),
             votes=votes,
@@ -1762,10 +1866,15 @@ def assess_risk(
         elif held_cohort_break_confirmed:
             account.shock_severity = "COHORT_BREAK"
         elif reference_anchor_confirmed and strategic_active:
-            # Independent anchors prove a market event, but a single-industry
-            # strategic book does not prove multi-industry holding damage.
-            # Apply the ordinary market cap rather than a severe 0--20% cut.
-            account.shock_severity = "MARKET"
+            account.shock_severity = _strategic_crisis_severity(
+                strategic_active=True,
+                reference_anchor_confirmed=True,
+                live_core_positions=sum(
+                    position.shares > 0
+                    for position in account.positions.values()
+                    if position.lifecycle == "CORE"
+                ),
+            )
         elif reference_anchor_confirmed:
             held_industries = {
                 leaders[symbol].industry
@@ -1776,10 +1885,15 @@ def assess_risk(
                 "SEVERE" if immediate_reference_break and len(held_industries) >= 2 else "CONCENTRATED"
             )
         elif strategic_active:
-            # A single-industry secular cohort cannot by itself establish the
-            # cross-industry evidence required for SEVERE.  It receives the
-            # ordinary market-crisis cap (30--50%), with no label immunity.
-            account.shock_severity = "MARKET"
+            account.shock_severity = _strategic_crisis_severity(
+                strategic_active=True,
+                reference_anchor_confirmed=False,
+                live_core_positions=sum(
+                    position.shares > 0
+                    for position in account.positions.values()
+                    if position.lifecycle == "CORE"
+                ),
+            )
         else:
             account.shock_severity = (
                 "SEVERE"
@@ -1791,7 +1905,15 @@ def assess_risk(
         state = Risk.CRISIS
         shock = "SHOCK"
         crisis_gross = min(
-            _persistent_crisis_cap(account.shock_severity, cfg),
+            _persistent_crisis_cap(
+                account.shock_severity,
+                cfg,
+                reserve_backed=bool(
+                    credible_reserve
+                    and account.anchor_weights
+                    and not strategic_active
+                ),
+            ),
             overlay_cap,
         )
         concentrated_reason = (
@@ -1959,7 +2081,15 @@ def assess_risk(
         )
     account.risk = state.value
     account.shock_state = shock
-    crisis_cap = _persistent_crisis_cap(account.shock_severity, cfg)
+    crisis_cap = _persistent_crisis_cap(
+        account.shock_severity,
+        cfg,
+        reserve_backed=bool(
+            credible_reserve
+            and account.anchor_weights
+            and not strategic_active
+        ),
+    )
     cap = {
         Risk.NORMAL: cfg.max_gross,
         # CAUTION is the level-1 early warning: freeze additions, scouts, and
@@ -1974,13 +2104,6 @@ def assess_risk(
     cap = min(cap, overlay_cap)
     if sector_guard_forced:
         cap = min(cap, cfg.sector_guard_gross)
-    # The narrow-market guard is an established, separately calibrated route.
-    # Do not stack the generic level-1 overlay on top of its explicit cap.
-    level1_multi_family_cap_applied = bool(
-        level1_multi_family_cap and not narrow_anchor_guard
-    )
-    if level1_multi_family_cap_applied:
-        cap = min(cap, cfg.capital_budget_level2_cap)
     observation = sector_guard.observation
     return RiskAssessment(
         state=state,
@@ -2006,7 +2129,6 @@ def assess_risk(
             "strategic_current_gross": strategic_current_gross,
             "sector_guard_active": sector_guard.active,
             "acute_sector_evacuation": acute_sector_evacuation,
-            "level1_multi_family_cap": level1_multi_family_cap_applied,
             "sector_guard_shock_count": sector_guard.shock_count,
             "sector_guard_active_sessions": sector_guard.active_sessions,
             "sector_guard_equal_return": (observation.equal_return if observation is not None else None),

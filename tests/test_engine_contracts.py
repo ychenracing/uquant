@@ -7,7 +7,7 @@ import pandas as pd
 import pytest
 
 from uquant.account import load_account, migrate_account, save_account
-from uquant.config import DEFAULT_CONFIG
+from uquant.config import DEFAULT_CONFIG, config_fingerprint
 from uquant.engine import (
     ProductionEngine,
     _decision_config_for_universe,
@@ -53,20 +53,17 @@ POOL_D = (
 
 
 def test_decision_config_is_invariant_to_unrelated_universe_size() -> None:
-    expected = DEFAULT_CONFIG.override(
-        same_day_leader_pipeline_enabled=False,
-        group_balanced_reference_enabled=False,
-        hierarchical_industry_shrinkage_enabled=False,
-        evidence_family_voting_enabled=False,
-    )
-
-    assert _decision_config_for_universe(3) == expected
-    assert _decision_config_for_universe(9) == expected
-    assert _decision_config_for_universe(10) == expected
-    assert _decision_config_for_universe(32) == expected
+    assert not DEFAULT_CONFIG.same_day_leader_pipeline_enabled
+    assert not DEFAULT_CONFIG.group_balanced_reference_enabled
+    assert not DEFAULT_CONFIG.hierarchical_industry_shrinkage_enabled
+    assert not DEFAULT_CONFIG.evidence_family_voting_enabled
+    assert _decision_config_for_universe(3) is DEFAULT_CONFIG
+    assert _decision_config_for_universe(9) is DEFAULT_CONFIG
+    assert _decision_config_for_universe(10) is DEFAULT_CONFIG
+    assert _decision_config_for_universe(32) is DEFAULT_CONFIG
     explicit = DEFAULT_CONFIG.override(adaptive_broad_universe_compatibility_enabled=False)
-    assert _decision_config_for_universe(3, explicit) == explicit
-    assert _decision_config_for_universe(32, explicit) == explicit
+    assert _decision_config_for_universe(3, explicit) is explicit
+    assert _decision_config_for_universe(32, explicit) is explicit
 
 
 def test_determinism_one_target_and_hard_constraints(data_dir):
@@ -77,12 +74,31 @@ def test_determinism_one_target_and_hard_constraints(data_dir):
         symbols=list(reversed(SYMBOLS)), as_of="2026-06-30", account=initial
     )
     assert first.decision_digest == second.decision_digest
+    first_payload = first.canonical_payload(
+        effective_config_sha256=config_fingerprint(engine.cfg)
+    )
+    second_payload = second.canonical_payload(
+        effective_config_sha256=config_fingerprint(engine.cfg)
+    )
+    assert first_payload == second_payload
+    assert first_payload["effective_config_sha256"] == config_fingerprint(engine.cfg)
     assert state1.to_dict() == state2.to_dict()
     assert len({item.symbol for item in first.targets}) == len(first.targets)
     positive = [item for item in first.targets if item.weight > 0]
     assert len(positive) <= 6
     assert sum(item.weight for item in positive) <= 1.0 + 1e-9
     assert max((item.weight for item in positive), default=0.0) <= 0.60
+
+
+def test_backtest_reports_the_exact_effective_config_hash(data_dir) -> None:
+    engine = ProductionEngine(data_dir)
+    result = engine.backtest(
+        symbols=SYMBOLS,
+        start="2026-06-25",
+        end="2026-06-30",
+    )
+
+    assert result["effective_config_sha256"] == config_fingerprint(engine.cfg)
 
 
 def test_shared_engine_leader_cache_isolated_by_adaptive_config(data_dir):
@@ -453,6 +469,7 @@ def test_backtest_and_daily_share_decision_kernel(data_dir):
     decision = engine.decide(symbols=SYMBOLS, as_of="2026-06-30", account=account)
     report = render_daily_report(decision, account)
     assert decision.decision_digest in report
+    assert config_fingerprint(engine.cfg) in report
     assert "Opportunity" in report and "Tomorrow" in report
 
 
@@ -701,23 +718,13 @@ def test_stale_code_hash_fails_closed(data_dir):
 
 def test_pre_listing_symbols_are_point_in_time_invisible(data_dir):
     result = ProductionEngine(data_dir).backtest(
-        symbols=(*SYMBOLS, "sh688072"),
-        start="2022-01-04",
-        end="2022-02-28",
+        symbols=(*SYMBOLS, "sh688146"),
+        start="2023-01-03",
+        end="2023-02-28",
     )
-    assert result["start"] == "2022-01-04"
-    assert result["final_wealth"] > 0
-
-
-def test_historical_reference_coverage_is_point_in_time_dynamic(data_dir):
-    result = ProductionEngine(data_dir).backtest(
-        symbols=(*SYMBOLS, "sh688072", "sh688300", "sh688361"),
-        start="2018-12-27",
-        end="2018-12-28",
-    )
-    assert result["start"] == "2018-12-27"
-    assert result["end"] == "2018-12-28"
-    assert result["final_wealth"] > 0
+    assert result["start"] == "2023-01-03"
+    assert all(fill["symbol"] != "sh688146" for fill in result["final_account"]["fills"])
+    assert all(order["symbol"] != "sh688146" for order in result["order_ledger"])
 
 
 def test_recent_shock_window_preserves_capital_across_pool_sizes(data_dir):
@@ -731,14 +738,3 @@ def test_recent_shock_window_preserves_capital_across_pool_sizes(data_dir):
         assert result["final_wealth"] > 0.85
         assert result["max_drawdown"] < 0.15
         assert result["account_orders"] <= 3
-
-
-def test_industry_confirmation_preserves_long_horizon_performance(data_dir):
-    result = ProductionEngine(data_dir).backtest(
-        symbols=POOL_D,
-        start="2018-01-02",
-        end="2026-07-20",
-    )
-    assert result["final_wealth"] >= 60.59
-    assert result["max_drawdown"] <= 0.31
-    assert result["account_orders"] <= 100

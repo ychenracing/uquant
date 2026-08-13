@@ -10,12 +10,15 @@ import uquant.risk as risk_module
 from uquant.config import DEFAULT_CONFIG, SystemConfig
 from uquant.leader import INDUSTRY, REFERENCE_UNIVERSE
 from uquant.risk import (
+    _capital_budget_repair_drawdown_confirmed,
     _evidence_family_votes,
+    _strategic_crisis_severity,
     _strategic_damage_guard_required,
     _update_capital_budget_ladder,
     _update_dynamic_anchors,
     assess_risk,
 )
+from uquant.risk_sector import SectorGuardTransition, SectorObservation
 from uquant.types import AccountState, LeaderScore, Position, Risk, RiskAssessment
 
 
@@ -878,7 +881,7 @@ def test_confirmed_acute_sector_evacuation_preempts_concentrated_crisis_cap() ->
     dates = pd.bdate_range("2025-01-02", periods=130)
     first_shock, second_shock = dates[-2:]
     held = _market_frame(dates)
-    held.loc[first_shock, ["close", "ma20", "ret5"]] = (91.0, 100.0, -0.10)
+    held.loc[first_shock, ["close", "ma20", "ret5"]] = (95.0, 100.0, -0.10)
     held.loc[second_shock, ["close", "ma20", "ret5"]] = (85.54, 100.0, -0.13)
     broad = _market_frame(dates)
     tech = _market_frame(dates)
@@ -905,31 +908,92 @@ def test_confirmed_acute_sector_evacuation_preempts_concentrated_crisis_cap() ->
         sector_recovery_ma=3,
     )
 
-    assessment: RiskAssessment | None = None
-    for date in (first_shock, second_shock):
-        assessment = assess_risk(
-            date=date,
-            broad=broad,
-            tech=tech,
-            reference_panel=reference_panel,
-            reference_returns=reference_returns,
-            user_panel={symbol: held for symbol in symbols},
-            leaders={
-                **reference_leaders,
-                **{symbol: _leader(symbol) for symbol in symbols},
-            },
-            account=account,
-            equity=sum(
-                account.positions[symbol].shares * float(held.loc[date, "close"])
-                for symbol in symbols
-            ),
-            cfg=cfg,
-        )
+    assessments = [
+            assess_risk(
+                date=date,
+                broad=broad,
+                tech=tech,
+                reference_panel=reference_panel,
+                reference_returns=reference_returns,
+                user_panel={symbol: held for symbol in symbols},
+                leaders={
+                    **reference_leaders,
+                    **{symbol: _leader(symbol) for symbol in symbols},
+                },
+                account=account,
+                equity=sum(
+                    account.positions[symbol].shares * float(held.loc[date, "close"])
+                    for symbol in symbols
+                ),
+                cfg=cfg,
+            )
+        for date in (first_shock, second_shock)
+    ]
 
-    assert assessment is not None
     assert account.sector_guard_active
-    assert assessment.target_gross_cap == 0.0
-    assert assessment.evidence["acute_sector_evacuation"] is True
+    assert assessments[0].target_gross_cap == 0.0
+    assert assessments[0].evidence["acute_sector_evacuation"] is True
+    assert assessments[0].evidence["sector_guard_active"] is True
+
+
+def test_first_full_book_fast_shock_triggers_acute_evacuation() -> None:
+    transition = SectorGuardTransition(
+        active=False,
+        triggered=False,
+        recovered=False,
+        shock=True,
+        shock_count=1,
+        active_sessions=0,
+        observation=SectorObservation(
+            symbol_count=3,
+            equal_return=-0.05,
+            weighted_return=-0.05,
+            positive_breadth=0.0,
+            negative_exposure=1.0,
+            recovery_breadth=1.0,
+        ),
+    )
+
+    assert risk_module._acute_sector_evacuation_required(
+        transition,
+        DEFAULT_CONFIG,
+        leadership_divergence=DEFAULT_CONFIG.sector_guard_divergence,
+    )
+
+
+def test_single_live_holding_fast_shock_uses_same_acute_evacuation_owner() -> None:
+    transition = SectorGuardTransition(
+        active=False,
+        triggered=False,
+        recovered=False,
+        shock=False,
+        shock_count=0,
+        active_sessions=0,
+        observation=None,
+    )
+    observation = SectorObservation(
+        symbol_count=1,
+        equal_return=-0.055,
+        weighted_return=-0.055,
+        positive_breadth=0.0,
+        negative_exposure=1.0,
+        recovery_breadth=0.0,
+    )
+
+    assert risk_module._acute_sector_evacuation_required(
+        transition,
+        DEFAULT_CONFIG,
+        leadership_divergence=DEFAULT_CONFIG.sector_guard_divergence,
+        single_holding_observation=observation,
+        single_holding_is_leader=True,
+    )
+    assert not risk_module._acute_sector_evacuation_required(
+        transition,
+        DEFAULT_CONFIG,
+        leadership_divergence=DEFAULT_CONFIG.sector_guard_divergence,
+        single_holding_observation=observation,
+        single_holding_is_leader=False,
+    )
 
 
 def test_acute_overlay_preserves_existing_zero_gross_crisis_owner() -> None:
@@ -1095,6 +1159,48 @@ def test_capital_budget_repairs_exactly_one_level_per_confirmation_window() -> N
         )
         assert account.capital_budget_level == expected_level
         assert account.capital_budget_repair_streak == 0
+
+
+def test_capital_budget_repair_requires_drawdown_recovery() -> None:
+    cfg = DEFAULT_CONFIG
+
+    assert not _capital_budget_repair_drawdown_confirmed(
+        level=3,
+        capital_drawdown=0.24,
+        operating_drawdown=0.24,
+        cfg=cfg,
+    )
+    assert _capital_budget_repair_drawdown_confirmed(
+        level=3,
+        capital_drawdown=cfg.capital_budget_level3_dd - 0.001,
+        operating_drawdown=cfg.capital_budget_level3_dd - 0.001,
+        cfg=cfg,
+    )
+    assert not _capital_budget_repair_drawdown_confirmed(
+        level=1,
+        capital_drawdown=cfg.operating_dd_caution + 0.001,
+        operating_drawdown=0.0,
+        cfg=cfg,
+    )
+
+
+def test_single_core_strategic_crisis_uses_concentrated_severity() -> None:
+    assert (
+        _strategic_crisis_severity(
+            strategic_active=True,
+            reference_anchor_confirmed=True,
+            live_core_positions=1,
+        )
+        == "CONCENTRATED"
+    )
+    assert (
+        _strategic_crisis_severity(
+            strategic_active=True,
+            reference_anchor_confirmed=True,
+            live_core_positions=3,
+        )
+        == "MARKET"
+    )
 
 
 def test_capital_budget_relapse_escalates_immediately_and_resets_repair() -> None:

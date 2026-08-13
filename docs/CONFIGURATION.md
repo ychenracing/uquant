@@ -2,7 +2,7 @@
 
 ## 配置原则
 
-`uquant.config.StrategyConfig` 是参数的唯一来源，`DEFAULT_CONFIG` 是生产默认值。运行时可以用 `DEFAULT_CONFIG.override(...)` 创建不可变副本；不要修改模块级对象，也不要在日报、脚本或研究模块中复制第二份默认值。
+`uquant.config.SystemConfig` 是参数的唯一来源，`DEFAULT_CONFIG` 是生产默认值。运行时可以用 `DEFAULT_CONFIG.override(...)` 创建不可变副本；不要修改模块级对象，也不要在日报、脚本或研究模块中复制第二份默认值。
 
 查看全部参数：
 
@@ -15,6 +15,19 @@ PY
 ```
 
 本页列出最影响收益、回撤和交易次数的参数。未列出的诊断参数仍以 `to_dict()` 输出为准。
+
+## 生产与验收边界
+
+配置只面向 2023 年以来的 A 股 AI 产业链现金多头组合，运行频率为日频，收盘后决策、下一交易日执行，并保留人工核对环节。经济性验收不得早于 `2023-01-01`；更早数据只允许作为特征 warm-up，不得用于收益、回撤、订单或换手门槛。唯一支持的运行时是 Python 3.12。
+
+以下四个曾由引擎隐藏覆盖的生产路径开关现在直接固定在 `DEFAULT_CONFIG`；`_decision_config_for_universe()` 对所有股票池大小都返回同一个传入配置：
+
+| 参数 | 生产默认值 |
+|---|---:|
+| `same_day_leader_pipeline_enabled` | false |
+| `group_balanced_reference_enabled` | false |
+| `hierarchical_industry_shrinkage_enabled` | false |
+| `evidence_family_voting_enabled` | false |
 
 ## 资金与执行
 
@@ -98,6 +111,8 @@ PY
 | `strategic_secular_min_score` | 0.58 | 长周期最低分数 |
 | `strategic_secular_min_confidence` | 0.65 | 最低置信度 |
 | `strategic_cohort_min_ret240` | 1.70 | 240 日持续收益门槛 |
+| `strategic_dominant_max_weight` | 0.95 | 独立证据确认的战略主导者特例上限 |
+| `strategic_damage_guard_gross` | 0.89 | 战略组合受损时的仓位上限 |
 | `strategic_partial_universe_max_size` | 8 | 允许不完整组合的最大全集 |
 | `strategic_two_name_gross` | 0.85 | 双成员总仓 |
 | `strategic_two_name_confirm_days` | 3 | 双成员确认期 |
@@ -122,7 +137,7 @@ PY
 | `caution_confirm_days` | 2 |
 | `risk_off_confirm_days` | 2 |
 | `crisis_confirm_days` | 1 |
-| `risk_off_gross` | 0.75 |
+| `risk_off_gross` | 0.66 |
 | `operating_dd_caution` | 0.08 |
 | `capital_dd_risk_off` | 0.14 |
 | `capital_dd_crisis` | 0.20 |
@@ -132,7 +147,7 @@ PY
 | `chronic_moderate_cap` | 0.45 |
 | `chronic_severe_cap` | 0.30 |
 
-证据家族投票、连续退化和资本预算默认开启。关闭任一覆盖层都可能显著改变回撤和恢复速度。
+资本预算阶梯默认开启；`evidence_family_voting_enabled` 明确默认为 `false`。风险状态仍消费同一份因果证据，但生产不会在引擎内部按股票池大小偷偷打开证据家族投票或另一个策略配置。改变这些开关会显著影响回撤和恢复速度，必须重新运行完整 AI-era 门禁。
 
 ## 持仓同步冲击
 
@@ -171,7 +186,7 @@ PY
 
 ## 关键联动约束
 
-`StrategyConfig.__post_init__()` 会拒绝不一致组合，重要关系包括：
+`SystemConfig.__post_init__()` 会拒绝不一致组合，重要关系包括：
 
 - `0 < protected_restore_min_trade_weight <= restoration_min_trade_weight <= min_trade_weight`；
 - 仓位和权重必须在 `[0, 1]`，持仓数、确认期和窗口必须为正；
@@ -184,8 +199,8 @@ PY
 ## 调参建议
 
 1. 一次只改变一个参数族，并记录精确配置摘要；
-2. 先运行相关单元测试，再运行冻结绩效矩阵；
+2. 先运行相关单元测试，再运行统一的 `promotion --profile full` AI-era 绩效门；
 3. 同时观察收益、最大回撤、订单数、换手和急跌期表现；
-4. 使用多个时间区间和股票池，不以单一高收益区间选择参数；
+4. 使用六个官方 2023+ 时间区间和经过评审的股票池，不以单一高收益区间选择参数；
 5. 不通过降低费用、放宽数据校验或修改统计口径制造改善；
 6. 任何默认值变化都应单独提交，并附可复现证据。

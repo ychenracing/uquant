@@ -1,0 +1,55 @@
+diff --git a/uquant/risk.py b/uquant/risk.py
+index 06aa48e..c0d42a1 100644
+--- a/uquant/risk.py
++++ b/uquant/risk.py
+@@ -80,6 +80,19 @@ def _acute_sector_evacuation_required(
+     )
+ 
+ 
++def _level1_multi_family_cap_required(
++    *,
++    account: AccountState,
++    capital_damage: bool,
++    votes: int,
++) -> bool:
++    return bool(
++        account.capital_budget_level == 1
++        and capital_damage
++        and votes >= 3
++    )
++
++
+ def _reset_recovery_owner_rearm(account: AccountState) -> None:
+     """Close the prior recovery-owner epoch when a new shock takes control."""
+ 
+@@ -1266,6 +1279,18 @@ def assess_risk(
+     }
+ 
+     previous = Risk(account.risk)
++    if _level1_multi_family_cap_required(
++        account=account,
++        capital_damage=bool(indicator_state["capital_damage"]),
++        votes=votes,
++    ):
++        account.candidate_tenure["capital_level1_multi_family_cap"] = 1
++    elif account.capital_budget_level == 0:
++        account.candidate_tenure["capital_level1_multi_family_cap"] = 0
++    level1_multi_family_cap = bool(
++        account.candidate_tenure.get("capital_level1_multi_family_cap", 0) == 1
++        and account.capital_budget_level == 1
++    )
+     live_symbols = {
+         symbol
+         for symbol, position in account.positions.items()
+@@ -2104,6 +2129,11 @@ def assess_risk(
+     cap = min(cap, overlay_cap)
+     if sector_guard_forced:
+         cap = min(cap, cfg.sector_guard_gross)
++    level1_multi_family_cap_applied = bool(
++        level1_multi_family_cap and not narrow_anchor_guard
++    )
++    if level1_multi_family_cap_applied:
++        cap = min(cap, cfg.capital_budget_level2_cap)
+     observation = sector_guard.observation
+     return RiskAssessment(
+         state=state,

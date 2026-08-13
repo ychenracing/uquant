@@ -1,5 +1,7 @@
 # 性能与证据
 
+生产绩效结论只针对 2023 年以来的 A 股 AI 产业链现金多头日频系统。系统盘后决策、下一交易日执行并由人工辅助使用；证据不能外推到自动实盘、做空、杠杆、盘中或非 AI 产业链策略。
+
 ## 回放契约
 
 所有绩效结论建立在以下因果执行条件上：
@@ -12,6 +14,7 @@
 - 日报与回放共用 `ProductionEngine.decide()`；
 - 订单数按实际发生成交的稳定账户订单统计；
 - 数据、参数、源码和证据摘要在运行前后保持一致。
+- 经济统计不得早于 `2023-01-01`；更早行情只用于特征 warm-up。
 
 不同数据快照、复权方式、证券全集、起止日或执行口径的结果不能直接比较。
 
@@ -47,10 +50,12 @@
 uv run uquant backtest \
   --data-dir data/frozen \
   --symbols sz300308 sz300502 sz300394 sh688008 sh603986 \
-  --start 2018-01-02 \
+  --start 2023-01-03 \
   --end 2026-07-20 \
   --output backtest_result.json
 ```
+
+数据文件可以包含 pre-2023 行以形成均线和 ATR，但回放必须在 2023+ 重新定基；这些 warm-up 行不得进入权益、收益、回撤、订单、成交、换手、Sharpe 或 Calmar。
 
 ## 验证层次
 
@@ -70,21 +75,30 @@ uv run pytest --cov=uquant --cov-report=term-missing
 
 测试覆盖特征、状态转换、组合硬约束、T+1、费用、部分成交、账户恢复、数据失败路径和确定性。
 
-### 冻结绩效矩阵
+### 唯一 AI-era 阻断绩效门
 
 ```bash
 uv run python -m uquant.validation promotion \
   --data-dir data/frozen \
-  --baseline benchmarks/promotion_baseline.json \
-  --profile quick \
-  --output promotion-report.json
+  --profile full \
+  --output benchmarks/ai_era_performance.json
 ```
 
-矩阵同时约束财富、最大回撤、账户订单、换手和压力区间收益。`quick` 用于本地诊断，`full` 用于完整评审。验证失败不能通过删除场景、改写统计口径或放宽基线解决。
+最终文件在 checkout 后生成并由 CI 上传，不进入 Git。这样其中的
+`production_commit` 才能严格等于被验证的 HEAD；仓库内可追踪的
+`promotion_baseline.json` 只保存已经评审的上一任 champion，而不是伪装成当前
+HEAD 的自引用运行结果。
 
-### 泛化检查
+full profile 是 CI 和发布唯一阻断的经济性真相，覆盖六个官方窗口：
 
-泛化门对固定全集执行移除证券、行业子集、行业均衡、随机子集和窗口前移等压力场景，并关注尾部分位数及集中度依赖。它要求调用方提供完整行业映射和经过评审的只读基线；缺失时失败关闭。
+- `h1_2023`：2023 上半年；
+- `h2_2023`：2023 下半年；
+- `h1_2024`：2024 上半年；
+- `h2_2024`：2024 下半年；
+- `bull_crash_2025_2026`：2025 至 2026 牛市与急跌；
+- `continuous_ai_era`：从 2023 年首个交易日起连续覆盖整个 AI-era。
+
+门禁同时约束财富、最大回撤、账户订单、换手和压力区间收益；缺失或失败的必需窗口必须失败关闭。证券子集、替代实现和其他研究性压力检查可以辅助诊断，但不能替代、分摊或放行这个统一门禁。失败不能通过删除场景、改写统计口径或放宽已评审阈值解决。
 
 ## 证据边界
 
@@ -92,6 +106,7 @@ uv run python -m uquant.validation promotion \
 
 - Git 提交和生产源码 SHA-256；
 - 数据快照、清单和校验摘要；
+- Python 3.12 完整版本、NumPy/pandas/uv 版本和 `uv.lock` SHA-256；
 - 证券池、时间区间、初始资金和执行契约；
 - 完整参数摘要；
 - 每个场景的原始指标；
@@ -107,9 +122,14 @@ uv run python -m uquant.validation promotion \
 2. 默认配置摘要相同；
 3. 冻结数据摘要相同；
 4. 完整测试和静态门禁通过；
-5. 每个冻结场景的财富、回撤、订单、换手和压力区间收益逐项相同。
+5. full profile 中每个 AI-era 场景的财富、回撤、订单、换手和压力区间收益逐项相同。
 
 对策略改动则不能要求指标完全相同，但必须预先定义允许的收益、回撤和交易成本边界，并使用未参与选择的场景复核。
+
+第一阶段逐日 first-divergence 与反向消融引用的中间提交保存在
+`artifacts/phase1/diagnostics/phase1-history.bundle`。每条 replay 命令先校验并
+导入该 bundle，再按记录的 commit/source/config/trace SHA 复放；因此即使发布
+平台以新提交封装同一最终 tree，诊断所引用的证据提交仍可从干净 clone 取得。
 
 ## 局限与偏差
 

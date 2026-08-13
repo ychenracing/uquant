@@ -13,7 +13,7 @@ from typing import Any
 import numpy as np
 import pandas as pd
 
-from .config import DEFAULT_CONFIG, SystemConfig
+from .config import DEFAULT_CONFIG, SystemConfig, config_fingerprint
 from .data import DataStore, normalize_symbol
 from .execution import (
     ExecutionPlanner,
@@ -44,6 +44,7 @@ from .types import (
     LeaderScore,
     Opportunity,
 )
+from .validation.ai_era import require_ai_era_interval
 
 INDEX_SYMBOLS = ("sh000300", "sh000682")
 
@@ -60,14 +61,7 @@ def _decision_config_for_universe(
     crossing a pool-size threshold.
     """
     del configured_universe_size
-    if not cfg.adaptive_broad_universe_compatibility_enabled:
-        return cfg
-    return cfg.override(
-        same_day_leader_pipeline_enabled=False,
-        group_balanced_reference_enabled=False,
-        hierarchical_industry_shrinkage_enabled=False,
-        evidence_family_voting_enabled=False,
-    )
+    return cfg
 
 
 def code_fingerprint() -> str:
@@ -417,6 +411,7 @@ class ProductionEngine:
                 "strategic_epoch": account.strategic_epoch,
                 "strategic_candidate_signature": (account.strategic_candidate_signature),
                 "factor_profile": leader_factor_profile,
+                "effective_config_sha256": config_fingerprint(decision_cfg),
                 "leader_ranking": [
                     {
                         "symbol": item.symbol,
@@ -452,6 +447,7 @@ class ProductionEngine:
     ) -> dict[str, Any]:
         """Replay the production decision and next-open execution path."""
 
+        start, end = require_ai_era_interval(start, end)
         user_symbols = tuple(sorted({normalize_symbol(item) for item in symbols}))
         self._load(set(user_symbols) | set(REFERENCE_UNIVERSE) | set(INDEX_SYMBOLS))
         sessions = self._raw["sh000300"].index.intersection(self._raw["sh000682"].index)
@@ -489,6 +485,7 @@ class ProductionEngine:
         metrics.update(
             start=str(sessions[0].date()),
             end=str(sessions[-1].date()),
+            effective_config_sha256=config_fingerprint(self.cfg),
             final_wealth=final_equity / account.initial_cash,
             final_equity=final_equity,
             decision_digests=[item.decision_digest for item in decisions],

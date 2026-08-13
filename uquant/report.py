@@ -79,5 +79,13 @@ def render_daily_report(decision: Decision, account: AccountState) -> str:
             f"at the next tradable open; {order.reason} "
             f"[{order.reason_code}/{order.exit_kind}/{order.reduction_policy}]."
         )
-    lines.extend(["", f"Decision digest: `{decision.decision_digest}`", ""])
+    lines.extend(
+        [
+            "",
+            f"Decision digest: `{decision.decision_digest}`",
+            "Effective config: "
+            f"`{decision.risk_summary.get('effective_config_sha256', 'UNAVAILABLE')}`",
+            "",
+        ]
+    )
     return "\n".join(lines)

@@ -354,3 +354,42 @@ class Decision:
     pending_orders: tuple[PendingOrder, ...]
     risk_summary: dict[str, Any]
     decision_digest: str
+
+    def canonical_payload(self, *, effective_config_sha256: str) -> dict[str, Any]:
+        """Return the complete deterministic decision contract for evidence."""
+
+        return {
+            "date": self.date,
+            "opportunity": self.opportunity.value,
+            "risk": {
+                "state": self.risk.value,
+                "shock_state": str(self.risk_summary.get("shock_state", "")),
+                "reduction_level": int(self.risk_summary.get("reduction_level", 0)),
+                "severity": str(self.risk_summary.get("severity", "NORMAL")),
+            },
+            "target_gross": round(self.target_gross, 12),
+            "targets": [
+                {
+                    "symbol": item.symbol,
+                    "weight": round(item.weight, 12),
+                    "lifecycle": item.lifecycle,
+                    "reduction_policy": item.reduction_policy,
+                    "reason_code": item.reason_code,
+                    "exit_kind": item.exit_kind,
+                }
+                for item in self.targets
+            ],
+            "orders": [
+                {
+                    "order_id": item.order_id,
+                    "symbol": item.symbol,
+                    "side": item.side,
+                    "target_weight": round(item.target_weight, 12),
+                    "reduction_policy": item.reduction_policy,
+                    "reason_code": item.reason_code,
+                    "exit_kind": item.exit_kind,
+                }
+                for item in self.pending_orders
+            ],
+            "effective_config_sha256": effective_config_sha256,
+        }

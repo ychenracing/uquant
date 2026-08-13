@@ -4,6 +4,7 @@ import inspect
 import random
 import sys
 from dataclasses import replace
+from datetime import date
 from pathlib import Path
 
 import pandas as pd
@@ -14,6 +15,7 @@ import pytest
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from research.ablation import build_ablations, compare_ablations
+from research.candidate_runner import CandidateRunner
 from research.candidate_search import (
     CandidateEvaluation,
     GateMateriality,
@@ -43,12 +45,13 @@ from research.universe_stress import (
     random_universe_cases,
     remove_core_cases,
 )
+from uquant.validation.ai_era import AI_ERA_WINDOWS
 
 
 def _observation(
     *,
     universe: str = "a",
-    scenario: str = "bull",
+    window: str = "h1_2023",
     wealth: float = 2.0,
     drawdown: float = 0.20,
     turnover: float = 1.0,
@@ -56,9 +59,12 @@ def _observation(
     urgent_return: float = -0.05,
     pdi: float = 0.10,
 ) -> ReplayObservation:
+    start, end = AI_ERA_WINDOWS[window]
     return ReplayObservation(
         universe=universe,
-        scenario=scenario,
+        window=window,
+        start=start,
+        end=end,
         final_wealth=wealth,
         max_drawdown=drawdown,
         annual_turnover=turnover,
@@ -66,6 +72,62 @@ def _observation(
         urgent_return=urgent_return,
         prior_dependence=pdi,
     )
+
+
+def test_replay_observation_binds_exact_official_ai_era_window() -> None:
+    observation = _observation(window="h1_2023")
+
+    assert (observation.window, observation.start, observation.end) == (
+        "h1_2023",
+        "2023-01-03",
+        "2023-06-30",
+    )
+
+
+def test_replay_observation_derives_calmar_period_from_official_dates() -> None:
+    observation = _observation(window="h1_2023", wealth=1.10, drawdown=0.10)
+    years = (date(2023, 6, 30) - date(2023, 1, 3)).days / 365.25
+
+    assert observation.years == pytest.approx(years)
+    assert observation.calmar == pytest.approx(((1.10 ** (1.0 / years)) - 1.0) / 0.10)
+
+
+@pytest.mark.parametrize(
+    ("window", "start", "end", "message"),
+    [
+        ("bear_2022", "2022-01-04", "2022-12-30", "official AI-era window"),
+        ("h1_2023", "2023-01-04", "2023-06-30", "does not match official interval"),
+        ("h1_2023", "2023-01-03", "2023-06-29", "does not match official interval"),
+    ],
+)
+def test_replay_observation_rejects_unofficial_or_mismatched_window(
+    window: str,
+    start: str,
+    end: str,
+    message: str,
+) -> None:
+    with pytest.raises(ValueError, match=message):
+        ReplayObservation(
+            universe="a",
+            window=window,
+            start=start,
+            end=end,
+            final_wealth=2.0,
+            max_drawdown=0.2,
+            annual_turnover=1.0,
+            account_orders=10,
+        )
+
+
+def test_candidate_trace_rejects_pre_ai_era_economic_replay_before_data_access(
+    tmp_path: Path,
+) -> None:
+    with pytest.raises(RuntimeError, match="2023-01-01"):
+        CandidateRunner(tmp_path).trace_cell(
+            symbols=("sz300308",),
+            start="2022-01-04",
+            end="2023-01-03",
+        )
 
 
 def _evaluation(
@@ -106,11 +168,11 @@ def test_candidate_enumeration_is_deterministic_and_forbids_pool_profiles() -> N
 def test_search_uses_one_config_across_every_matrix_cell_and_full_objective() -> None:
     calls: list[tuple[tuple[tuple[str, object], ...], str, str]] = []
 
-    def runner(config: dict[str, object], pool: str, scenario: str) -> ReplayObservation:
-        calls.append((tuple(sorted(config.items())), pool, scenario))
+    def runner(config: dict[str, object], pool: str, window: str) -> ReplayObservation:
+        calls.append((tuple(sorted(config.items())), pool, window))
         return _observation(
             universe=pool,
-            scenario=scenario,
+            window=window,
             wealth=1.5 + float(config["edge"]),
             drawdown=0.10,
             turnover=1.0,
@@ -122,7 +184,7 @@ def test_search_uses_one_config_across_every_matrix_cell_and_full_objective() ->
     results = search_candidates(
         parameter_grid={"edge": [0.1, 0.2]},
         pools=("b", "a"),
-        scenarios=("bear", "bull"),
+        windows=("h2_2023", "h1_2023"),
         runner=runner,  # type: ignore[arg-type]
         weights=ObjectiveWeights(
             calmar=0.0,
@@ -140,11 +202,11 @@ def test_search_uses_one_config_across_every_matrix_cell_and_full_objective() ->
     assert all(result.pareto_passed is None for result in results)
     assert not any(result.accepted for result in results)
     for config in {call[0] for call in calls}:
-        assert {(pool, scenario) for seen, pool, scenario in calls if seen == config} == {
-            ("a", "bear"),
-            ("a", "bull"),
-            ("b", "bear"),
-            ("b", "bull"),
+        assert {(pool, window) for seen, pool, window in calls if seen == config} == {
+            ("a", "h1_2023"),
+            ("a", "h2_2023"),
+            ("b", "h1_2023"),
+            ("b", "h2_2023"),
         }
     best = results[0].evaluation
     assert best.config()["edge"] == 0.2
@@ -156,16 +218,29 @@ def test_search_uses_one_config_across_every_matrix_cell_and_full_objective() ->
         - best.universe_variance
     )
 
-    scenario_shift_only = evaluate_candidate(
+    window_shift_only = evaluate_candidate(
         {"edge": 0.1},
         [
-            _observation(universe="a", scenario="bull", wealth=2.0),
-            _observation(universe="b", scenario="bull", wealth=2.0),
-            _observation(universe="a", scenario="bear", wealth=1.0),
-            _observation(universe="b", scenario="bear", wealth=1.0),
+            _observation(universe="a", window="h1_2023", wealth=2.0),
+            _observation(universe="b", window="h1_2023", wealth=2.0),
+            _observation(universe="a", window="h2_2023", wealth=1.0),
+            _observation(universe="b", window="h2_2023", wealth=1.0),
         ],
     )
-    assert scenario_shift_only.universe_variance == 0.0
+    assert window_shift_only.universe_variance == 0.0
+
+
+def test_search_rejects_unofficial_window_before_running_candidates() -> None:
+    def runner(_config: dict[str, object], _pool: str, _window: str) -> ReplayObservation:
+        raise AssertionError("unofficial window reached candidate runner")
+
+    with pytest.raises(ValueError, match="official AI-era windows"):
+        search_candidates(
+            parameter_grid={"edge": [0.1]},
+            pools=("a",),
+            windows=("bear_2022",),
+            runner=runner,  # type: ignore[arg-type]
+        )
 
 
 def test_dominance_and_pareto_gates_reject_bad_tradeoffs() -> None:

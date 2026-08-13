@@ -7,6 +7,7 @@ from typing import Any
 
 import pytest
 
+from uquant.validation.ai_era import AI_ERA_WINDOWS
 from uquant.validation.competitor import (
     CANONICAL_EXECUTION_CONTRACT,
     CANONICAL_WINDOWS,
@@ -15,12 +16,31 @@ from uquant.validation.competitor import (
     REQUIRED_POOLS,
     REQUIRED_WINDOWS,
     CompetitorMetrics,
+    MatrixWindow,
     best_of_three,
     data_provenance_from_directory,
     evaluate_competitor_gate,
     load_competitor_matrix,
     run_competitor_gate,
 )
+
+
+def test_competitor_gate_reuses_the_six_official_ai_era_windows() -> None:
+    assert tuple(AI_ERA_WINDOWS) == REQUIRED_WINDOWS
+    assert {window.name: (window.start, window.end) for window in CANONICAL_WINDOWS} == AI_ERA_WINDOWS
+
+
+def test_pre_2023_dates_are_rejected_as_score_or_replay() -> None:
+    with pytest.raises(RuntimeError, match="cannot start before 2023-01-01"):
+        MatrixWindow("legacy_score", "2022-01-04", "2022-12-30")
+
+    with pytest.raises(TypeError, match="unexpected keyword argument 'replay_start'"):
+        MatrixWindow(
+            "h1_2023",
+            "2023-01-03",
+            "2023-06-30",
+            replay_start="2022-12-01",
+        )
 
 
 def _data_dir(root: Path) -> Path:
@@ -114,14 +134,14 @@ def test_full_matrix_runs_every_window_and_reports_best_of_three(tmp_path: Path)
 
     assert report["passed"]
     assert report["summary"] == {
-        "cells": 35,
-        "windows": 7,
+        "cells": 30,
+        "windows": 6,
         "pools": 5,
         "competitors": 3,
     }
     assert calls == [(pool, "sh600000", name) for pool in REQUIRED_POOLS for name in REQUIRED_WINDOWS]
-    assert len(load_competitor_matrix(reference_path).results) == 105
-    bull = report["results"]["a/bull_2025_2026"]
+    assert len(load_competitor_matrix(reference_path).results) == 90
+    bull = report["results"]["a/bull_crash_2025_2026"]
     assert bull["best_of_three"] == {
         "final_wealth": {"competitor": "qwenquant", "value": 2.0},
         "max_drawdown": {"competitor": "aquant", "value": 0.10},
@@ -163,7 +183,7 @@ def test_wealth_drawdown_and_order_thresholds_fail_independently(tmp_path: Path)
 def test_reference_missing_cell_fails_before_any_replay(tmp_path: Path) -> None:
     data_dir = _data_dir(tmp_path / "data")
     payload = _reference_payload(data_dir)
-    payload["results"].pop("a/continuous/trade")
+    payload["results"].pop("a/continuous_ai_era/trade")
     reference_path = _write_reference(tmp_path / "competitor.json", payload)
     calls: list[str] = []
 
@@ -171,7 +191,7 @@ def test_reference_missing_cell_fails_before_any_replay(tmp_path: Path) -> None:
         calls.append(window.name)
         return {"final_wealth": 2.0, "max_drawdown": 0.1, "account_orders": 1}
 
-    with pytest.raises(RuntimeError, match=r"missing result cells.*continuous/trade"):
+    with pytest.raises(RuntimeError, match=r"missing result cells.*continuous_ai_era/trade"):
         run_competitor_gate(
             data_dir=data_dir,
             reference_path=reference_path,
@@ -274,19 +294,28 @@ def test_local_data_mismatch_is_rejected_before_replay(tmp_path: Path) -> None:
 def test_required_window_and_metric_shape_are_strict(tmp_path: Path) -> None:
     data_dir = _data_dir(tmp_path / "data")
     payload = _reference_payload(data_dir)
-    payload["windows"].pop("bear_2022")
+    payload["windows"].pop("h2_2023")
     reference_path = _write_reference(tmp_path / "competitor.json", payload)
-    with pytest.raises(RuntimeError, match=r"missing required windows.*bear_2022"):
+    with pytest.raises(RuntimeError, match=r"missing required windows.*h2_2023"):
         load_competitor_matrix(reference_path)
 
     payload = _reference_payload(data_dir)
-    payload["results"]["a/bear_2022/trade"]["account_orders"] = 1.5
+    payload["windows"]["bear_2022"] = {
+        "start": "2022-01-04",
+        "end": "2022-12-30",
+    }
+    _write_reference(reference_path, payload)
+    with pytest.raises(RuntimeError, match=r"unexpected windows.*bear_2022"):
+        load_competitor_matrix(reference_path)
+
+    payload = _reference_payload(data_dir)
+    payload["results"]["a/h2_2023/trade"]["account_orders"] = 1.5
     _write_reference(reference_path, payload)
     with pytest.raises(RuntimeError, match="order count is malformed"):
         load_competitor_matrix(reference_path)
 
 
-def test_acute_july_uses_warm_replay_and_scores_only_the_crash_interval(
+def test_production_replays_score_only_the_official_ai_era_intervals(
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,
 ) -> None:
@@ -314,20 +343,6 @@ def test_acute_july_uses_warm_replay_and_scores_only_the_crash_interval(
                 "final_wealth": 1.0,
                 "max_drawdown": 0.10,
                 "account_orders": 1,
-                "equity_curve": [
-                    {"date": "2025-04-01", "equity": 20.0},
-                    {"date": "2026-06-30", "equity": 100.0},
-                    {"date": "2026-07-01", "equity": 90.0},
-                    {"date": "2026-07-20", "equity": 95.0},
-                ],
-                "final_account": {
-                    "fills": [
-                        {"order_id": "before", "fill_date": "2026-06-30"},
-                        {"order_id": "during", "fill_date": "2026-07-01"},
-                        # A partial fill of the same broker order remains one account order.
-                        {"order_id": "during", "fill_date": "2026-07-02"},
-                    ]
-                },
             }
 
     monkeypatch.setattr("uquant.validation.competitor.ProductionEngine", FakeEngine)
@@ -337,9 +352,9 @@ def test_acute_july_uses_warm_replay_and_scores_only_the_crash_interval(
     )
 
     assert report["passed"]
-    assert ("2025-04-01", "2026-07-20") in calls
-    assert report["results"]["a/acute_2026_07"]["candidate"] == pytest.approx(
-        {"final_wealth": 0.95, "max_drawdown": 0.10, "account_orders": 1}
+    assert calls == [interval for _ in REQUIRED_POOLS for interval in AI_ERA_WINDOWS.values()]
+    assert report["results"]["a/bull_crash_2025_2026"]["candidate"] == pytest.approx(
+        {"final_wealth": 1.0, "max_drawdown": 0.10, "account_orders": 1}
     )
 
 

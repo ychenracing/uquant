@@ -13,11 +13,13 @@ import json
 import math
 from collections.abc import Callable, Iterable, Mapping, Sequence
 from dataclasses import dataclass
+from datetime import date
 from statistics import median, pvariance
-from typing import TypeAlias
 
-Scalar: TypeAlias = str | int | float | bool | None
-SharedConfig: TypeAlias = Mapping[str, Scalar]
+from uquant.validation.ai_era import AI_ERA_WINDOWS
+
+type Scalar = str | int | float | bool | None
+type SharedConfig = Mapping[str, Scalar]
 
 _PER_POOL_KEYS = {
     "per_pool",
@@ -111,17 +113,18 @@ def enumerate_candidates(
 
 @dataclass(frozen=True, slots=True)
 class ReplayObservation:
-    """One candidate result on one universe and one market scenario."""
+    """One candidate result on one universe and one official AI-era window."""
 
     universe: str
-    scenario: str
+    window: str
+    start: str
+    end: str
     final_wealth: float
     max_drawdown: float
     annual_turnover: float
     account_orders: int
     urgent_return: float = 0.0
     prior_dependence: float = 0.0
-    years: float = 1.0
 
     def __post_init__(self) -> None:
         """Validate identity, ranges, and finiteness of replay metrics."""
@@ -132,14 +135,17 @@ class ReplayObservation:
             self.annual_turnover,
             self.urgent_return,
             self.prior_dependence,
-            self.years,
         )
-        if not self.universe or not self.scenario:
-            raise ValueError("replay observation needs universe and scenario names")
+        if not self.universe:
+            raise ValueError("replay observation needs a universe name")
+        if not isinstance(self.window, str) or self.window not in AI_ERA_WINDOWS:
+            raise ValueError("replay observation must use an official AI-era window")
+        if (self.start, self.end) != AI_ERA_WINDOWS[self.window]:
+            raise ValueError("replay observation interval does not match official interval")
         if not all(math.isfinite(value) for value in numeric):
             raise ValueError("replay observation metrics must be finite")
-        if self.final_wealth <= 0 or self.years <= 0:
-            raise ValueError("wealth and years must be positive")
+        if self.final_wealth <= 0:
+            raise ValueError("wealth must be positive")
         if not 0 <= self.max_drawdown <= 1:
             raise ValueError("max_drawdown must be in [0, 1]")
         if self.annual_turnover < 0 or self.account_orders < 0:
@@ -148,6 +154,12 @@ class ReplayObservation:
             raise ValueError("prior_dependence must be in [0, 1]")
         if self.urgent_return <= -1:
             raise ValueError("urgent_return must be greater than -1")
+
+    @property
+    def years(self) -> float:
+        """Derive the annualization period from the frozen official dates."""
+
+        return (date.fromisoformat(self.end) - date.fromisoformat(self.start)).days / 365.25
 
     @property
     def calmar(self) -> float:
@@ -224,7 +236,7 @@ def evaluate_candidate(
     config = validate_shared_config(parameters, pool_names=pool_names)
     if not observations:
         raise ValueError("candidate evaluation requires replay observations")
-    ordered = tuple(sorted(observations, key=lambda item: (item.universe, item.scenario)))
+    ordered = tuple(sorted(observations, key=lambda item: (item.universe, item.window)))
     log_wealth = [math.log(item.final_wealth) for item in ordered]
     median_log_wealth = median(log_wealth)
     median_calmar = median(item.calmar for item in ordered)
@@ -233,16 +245,16 @@ def evaluate_candidate(
     median_turnover = median(item.annual_turnover for item in ordered)
     median_orders = median(item.account_orders for item in ordered)
     prior_dependence = max(item.prior_dependence for item in ordered)
-    # Do not penalize the intentional difference between bull and bear
-    # scenarios. Universe variance measures cross-pool dispersion *within the
+    # Do not penalize the intentional difference between market windows.
+    # Universe variance measures cross-pool dispersion *within the
     # same market window*, then aggregates those comparable dispersions.
-    wealth_by_scenario: dict[str, list[float]] = {}
+    wealth_by_window: dict[str, list[float]] = {}
     for item in ordered:
-        wealth_by_scenario.setdefault(item.scenario, []).append(math.log(item.final_wealth))
-    scenario_variances = [
-        pvariance(values) if len(values) > 1 else 0.0 for _, values in sorted(wealth_by_scenario.items())
+        wealth_by_window.setdefault(item.window, []).append(math.log(item.final_wealth))
+    window_variances = [
+        pvariance(values) if len(values) > 1 else 0.0 for _, values in sorted(wealth_by_window.items())
     ]
-    universe_variance = median(scenario_variances)
+    universe_variance = median(window_variances)
     score = (
         median_log_wealth
         + weights.calmar * median_calmar
@@ -355,30 +367,33 @@ class SearchResult:
         return self.dominance_passed is True and self.pareto_passed is True
 
 
-ReplayRunner: TypeAlias = Callable[[dict[str, Scalar], str, str], ReplayObservation]
+type ReplayRunner = Callable[[dict[str, Scalar], str, str], ReplayObservation]
 
 
 def search_candidates(
     *,
     parameter_grid: Mapping[str, Iterable[Scalar]],
     pools: Iterable[str],
-    scenarios: Iterable[str],
+    windows: Iterable[str],
     runner: ReplayRunner,
     base: SharedConfig | None = None,
     baseline: CandidateEvaluation | None = None,
     weights: ObjectiveWeights = DEFAULT_OBJECTIVE_WEIGHTS,
     materiality: GateMateriality = DEFAULT_GATE_MATERIALITY,
 ) -> tuple[SearchResult, ...]:
-    """Run every candidate on the Cartesian pool/scenario matrix.
+    """Run every candidate on the Cartesian pool/official-window matrix.
 
     The same detached config values are passed to every cell. A runner cannot
     return a differently named cell silently, which keeps the matrix complete
     and makes accidental per-pool optimization visible.
     """
     pool_names = tuple(sorted(set(pools)))
-    scenario_names = tuple(sorted(set(scenarios)))
-    if not pool_names or not scenario_names:
-        raise ValueError("candidate search needs pools and scenarios")
+    window_names = tuple(sorted(set(windows)))
+    if not pool_names or not window_names:
+        raise ValueError("candidate search needs pools and windows")
+    unexpected_windows = sorted(set(window_names) - set(AI_ERA_WINDOWS))
+    if unexpected_windows:
+        raise ValueError(f"candidate search requires official AI-era windows: {unexpected_windows}")
     candidates = enumerate_candidates(
         parameter_grid,
         base=base,
@@ -388,9 +403,9 @@ def search_candidates(
     for candidate in candidates:
         observations: list[ReplayObservation] = []
         for pool in pool_names:
-            for scenario in scenario_names:
-                observation = runner(dict(candidate), pool, scenario)
-                if observation.universe != pool or observation.scenario != scenario:
+            for window in window_names:
+                observation = runner(dict(candidate), pool, window)
+                if observation.universe != pool or observation.window != window:
                     raise ValueError("runner returned an observation for the wrong matrix cell")
                 observations.append(observation)
         evaluation = evaluate_candidate(

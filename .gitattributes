@@ -1,0 +1,2 @@
+# Unified-diff context lines prefix blank source lines with one required space.
+artifacts/phase1/diagnostics/patches/*.patch whitespace=-blank-at-eol

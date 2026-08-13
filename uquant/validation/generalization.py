@@ -27,6 +27,7 @@ import pandas as pd
 
 from ..config import SystemConfig
 from ..engine import ProductionEngine
+from .ai_era import require_ai_era_interval
 from .manifest import verify_data_manifest
 
 _REFERENCE_FIELDS = {"final_wealth", "max_drawdown", "account_orders"}
@@ -713,6 +714,7 @@ def _validated_provenance(value: Any) -> dict[str, Any]:
         raise RuntimeError("generalization provenance dataset window is invalid") from exc
     if start_date > end_date or str(start_date.date()) != start or str(end_date.date()) != end:
         raise RuntimeError("generalization provenance dataset window must be canonical and ordered")
+    require_ai_era_interval(start, end)
 
     execution = _exact_fields(
         root["execution"],
@@ -1783,6 +1785,7 @@ def run_generalization(
     provenance: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
     """Run the full read-only generalization gate through ProductionEngine."""
+    start, end = require_ai_era_interval(start, end)
     symbols = _canonical_symbols(universe, label="generalization universe")
     priors = _canonical_symbols(prior_symbols, label="prior symbols")
     _validate_industry_coverage(symbols, industries)

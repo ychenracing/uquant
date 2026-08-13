@@ -2,7 +2,7 @@
 
 ## 每日运行原则
 
-uquant 适合盘后人工触发。建议固定在数据更新完成、券商成交确认后执行。`daily` 生成订单意图并保存账户，不会向券商发送订单。
+uquant 只用于 2023 年以来 A 股 AI 产业链的现金多头日频决策，适合盘后人工触发。建议固定在数据更新完成、券商成交确认后执行。`daily` 生成下一交易日订单意图并保存账户，不会向券商发送订单；使用者必须人工核对并决定是否下单。
 
 每次运行前确认：
 
@@ -121,12 +121,12 @@ uv run uquant daily \
 uv run uquant backtest \
   --data-dir data/frozen \
   --symbols sz300308 sz300502 sz300394 sh688008 sh603986 \
-  --start 2018-01-02 \
+  --start 2023-01-03 \
   --end 2026-07-20 \
   --output backtest_result.json
 ```
 
-开始日期前的数据只用于形成指标；上市前证券不可见。回放执行模型和每日决策共用同一引擎。
+数据目录可以保留 2023 年以前的行情，但这些行只用于形成指标 warm-up；上市前证券不可见。初始权益、订单、成交、换手和绩效统计都从 2023+ 回放起点开始。回放执行模型和每日决策共用同一引擎。
 
 ## 常见故障
 
@@ -166,6 +166,14 @@ uv run pytest --cov=uquant --cov-report=term-missing
 uv run python -m compileall -q uquant scripts research tests
 uv run python -m build
 uv run bandit -q -r uquant
+uv run python -m uquant.validation promotion \
+  --data-dir data/frozen \
+  --profile full \
+  --output benchmarks/ai_era_performance.json
 ```
 
-策略或参数发生变化时还必须运行冻结绩效门。注释和文档工作也要证明可执行 AST 与回测指标保持不变。
+生成的 `benchmarks/ai_era_performance.json` 是 Git 忽略的 post-checkout 证据；
+确认其 provenance 中 `production_commit` 与待发布 HEAD 完全一致，并保留 CI
+上传件。不要把旧 artifact 提交进仓库后当作当前版本证明。
+
+策略或参数发生变化时还必须运行上述唯一的 full AI-era 阻断绩效门。注释和文档工作也要证明可执行 AST 与 AI-era 回测指标保持不变。

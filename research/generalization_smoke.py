@@ -14,6 +14,7 @@ from uquant.config import SystemConfig
 from uquant.engine import ProductionEngine, code_fingerprint
 from uquant.reference_registry import DEFAULT_REGISTRY_PATH
 from uquant.validation import generalization as generalization_module
+from uquant.validation.ai_era import require_ai_era_interval
 from uquant.validation.generalization import (
     GeneralizationObservation,
     GeneralizationScenario,
@@ -97,8 +98,7 @@ def _observation_payload(observation: GeneralizationObservation) -> dict[str, An
         "max_drawdown": observation.max_drawdown,
         "account_orders": observation.account_orders,
         "deployed_exposure": [
-            {"symbol": symbol, "lifecycle": lifecycle}
-            for symbol, lifecycle in observation.deployed_exposure
+            {"symbol": symbol, "lifecycle": lifecycle} for symbol, lifecycle in observation.deployed_exposure
         ],
     }
 
@@ -120,11 +120,7 @@ def _reference_registry_identity(repository_root: Path) -> dict[str, str]:
     if not _COMMIT.fullmatch(commit):
         raise RuntimeError("cannot resolve immutable smoke reference registry commit")
     path = repository_root / _REFERENCE_REGISTRY_PATH
-    if (
-        path.is_symlink()
-        or not path.is_file()
-        or path.resolve() != DEFAULT_REGISTRY_PATH.resolve()
-    ):
+    if path.is_symlink() or not path.is_file() or path.resolve() != DEFAULT_REGISTRY_PATH.resolve():
         raise RuntimeError("smoke reference registry path is not canonical")
     return {
         "path": relative,
@@ -166,6 +162,7 @@ def run_generalization_smoke(
     lookback_sessions: int = 120,
 ) -> dict[str, Any]:
     """Replay the fixed smoke through one production engine without a gate."""
+    start, end = require_ai_era_interval(start, end)
     symbols = tuple(sorted(universe))
     priors = tuple(sorted(prior_symbols))
     repository_root = Path(__file__).resolve().parents[1]

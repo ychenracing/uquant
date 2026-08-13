@@ -2,6 +2,8 @@
 
 ## 环境
 
+项目只支持 Python 3.12；本地开发、CI、绩效复现和证据生成必须使用同一 3.12 锁定环境。
+
 ```bash
 python -m pip install uv
 uv sync --frozen --extra dev
@@ -24,7 +26,7 @@ UV_CACHE_DIR=/tmp/uquant-uv-cache uv sync --frozen --extra dev
 - `report.py` 只渲染，不改变账户或组合；
 - `research/` 接收调用方提供的观测和回调，不写生产配置；
 - `validation/` 失败关闭，不创建占位基线；
-- 配置默认值只定义在 `StrategyConfig`。
+- 配置默认值只定义在 `SystemConfig`。
 
 新增模块前先确认职责不能放入现有边界。不要复制第二套决策、执行或账户逻辑。
 
@@ -41,7 +43,14 @@ uv run bandit -q -r uquant
 uv export --frozen --no-dev --no-emit-project --no-hashes \
   --output-file /tmp/uquant-requirements.txt
 uv run pip-audit --requirement /tmp/uquant-requirements.txt
+uv run python -m uquant.validation promotion \
+  --data-dir data/frozen \
+  --profile full \
+  --output benchmarks/ai_era_performance.json
 ```
+
+`benchmarks/ai_era_performance.json` 是从待验收 HEAD 生成的 CI artifact，已被
+Git 忽略；发布证据必须由 checkout 后的命令重建，不能提交一份自引用旧结果。
 
 分支覆盖率门槛为 85%。任何命令失败都应单独处理，不能由另一项成功抵消。
 
@@ -77,8 +86,8 @@ uv run pip-audit --requirement /tmp/uquant-requirements.txt
 3. 做最小改动；
 4. 运行相关单元测试；
 5. 运行静态检查和完整测试；
-6. 运行冻结绩效矩阵；
-7. 在不同时间区间和证券池检查稳定性；
+6. 运行唯一阻断发布的 full AI-era 绩效门；
+7. 在六个官方 2023+ 时间区间和证券池检查稳定性；
 8. 审查配置、代码、日报和文档是否一致。
 
 参数搜索只能生成候选，不能自动写入生产默认值。最终选择必须有独立验证证据。
@@ -124,6 +133,7 @@ git status --short
 - 没有未解释的可执行语义变化；
 - 没有修改冻结数据或基线；
 - 没有放宽测试、覆盖率或验证条件；
+- 没有把 2023 年以前的 warm-up 行计入经济指标或发布门槛；
 - 文档和代码使用一致术语；
 - 新公共接口有清晰契约；
 - 完整质量门有本次运行证据。

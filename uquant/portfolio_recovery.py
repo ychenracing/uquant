@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import math
+from dataclasses import replace
 
 import pandas as pd
 
@@ -215,6 +216,7 @@ class RecoveryPortfolioPolicy(LeaderPortfolioPolicy):
             return None
         intended_transfer = min(
             self.cfg.max_symbol_weight,
+            self.cfg.replacement_transfer_cap,
             max(
                 account.anchor_weights.get(incumbent, 0.0),
                 weights_now.get(incumbent, 0.0),
@@ -266,7 +268,7 @@ class RecoveryPortfolioPolicy(LeaderPortfolioPolicy):
         )
         proposed = dict(retained_current)
         proposed[challenger.symbol] = transfer
-        return self._targets(
+        targets = self._targets(
             proposed=proposed,
             leaders=leaders,
             account=account,
@@ -277,3 +279,24 @@ class RecoveryPortfolioPolicy(LeaderPortfolioPolicy):
                 challenger.symbol: f"recovery anchor entry: replaces {incumbent}",
             },
         )
+        if risk_neutral_only:
+            # A warning-state substitution is financed only by the broken
+            # secondary.  Existing price drift in a healthy retained anchor is
+            # not a new admission and must not become an unrelated sell order.
+            targets = tuple(
+                replace(
+                    target,
+                    weight=max(
+                        target.weight,
+                        (
+                            weights_now.get(target.symbol, 0.0)
+                            if target.symbol in retained
+                            else 0.0
+                        ),
+                    ),
+                )
+                for target in targets
+            )
+            if sum(target.weight for target in targets) > self.cfg.max_gross + 1e-12:
+                raise RuntimeError("risk-neutral substitution increased live gross")
+        return targets

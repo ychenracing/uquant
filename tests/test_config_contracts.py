@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import hashlib
+import json
 import tomllib
 from pathlib import Path
 from typing import Any
@@ -7,7 +9,7 @@ from typing import Any
 import pytest
 
 import uquant
-from uquant.config import DEFAULT_CONFIG
+from uquant.config import DEFAULT_CONFIG, config_fingerprint
 
 INVALID_OVERRIDES: tuple[tuple[dict[str, Any], str], ...] = (
     ({"initial_cash": 0}, "initial_cash"),
@@ -133,7 +135,7 @@ INVALID_OVERRIDES: tuple[tuple[dict[str, Any], str], ...] = (
     ({"persistent_v_recovery_wait_days": 4}, "persistent V-recovery"),
     ({"fast_v_recovery_breadth": 1.1}, "breadth thresholds"),
     ({"fast_v_recovery_gross": 1.0}, "fast V-recovery gross"),
-    ({"narrow_anchor_guard_gross": 0.70}, "narrow anchor guard gross"),
+    ({"narrow_anchor_guard_gross": 0.65}, "narrow anchor guard gross"),
     ({"narrow_anchor_divergence": 1.1}, "narrow_anchor_divergence"),
     ({"capital_dd_risk_off": 0.05}, "drawdown thresholds"),
     ({"incomplete_universe_crisis_gross": 0.80}, "incomplete-universe crisis gross"),
@@ -175,9 +177,10 @@ def test_configuration_serialization_is_complete_and_detached() -> None:
     assert payload["strategic_dynamic_enabled"] is True
     assert payload["dynamic_risk_anchors_enabled"] is True
     assert payload["strategic_epoch_cooldown_sessions"] == 30
-    assert payload["strategic_dominant_max_weight"] == pytest.approx(1.0)
+    assert payload["strategic_dominant_max_weight"] == pytest.approx(0.95)
     assert payload["strategic_dominant_profit_lock_mfe"] == pytest.approx(2.20)
     assert payload["strategic_dominant_retained_gross"] == pytest.approx(0.70)
+    assert payload["strategic_damage_guard_gross"] == pytest.approx(0.89)
     assert payload["risk_anchor_confirm_days"] == 5
     assert payload["sector_weighted_shock_return"] == pytest.approx(-0.024)
     assert payload["sector_weighted_negative_exposure"] == pytest.approx(0.70)
@@ -205,7 +208,29 @@ def test_configuration_serialization_is_complete_and_detached() -> None:
     assert DEFAULT_CONFIG.max_gross == 1.0
 
 
+def test_effective_config_hash_is_canonical_and_semantically_sensitive() -> None:
+    encoded = json.dumps(
+        DEFAULT_CONFIG.to_dict(),
+        allow_nan=False,
+        separators=(",", ":"),
+        sort_keys=True,
+    ).encode()
+
+    assert config_fingerprint(DEFAULT_CONFIG) == hashlib.sha256(encoded).hexdigest()
+    assert config_fingerprint(DEFAULT_CONFIG.override(max_positions=5)) != config_fingerprint(
+        DEFAULT_CONFIG
+    )
+
+
 def test_package_and_project_versions_stay_in_sync() -> None:
     project = tomllib.loads((Path(__file__).parents[1] / "pyproject.toml").read_text(encoding="utf-8"))
 
     assert uquant.__version__ == project["project"]["version"]
+
+
+def test_production_runtime_is_exactly_python_312_with_locked_numeric_stack() -> None:
+    project = tomllib.loads((Path(__file__).parents[1] / "pyproject.toml").read_text(encoding="utf-8"))
+
+    assert project["project"]["requires-python"] == ">=3.12,<3.13"
+    assert project["project"]["dependencies"] == ["numpy==2.5.1", "pandas==3.0.5"]
+    assert project["tool"]["ruff"]["target-version"] == "py312"

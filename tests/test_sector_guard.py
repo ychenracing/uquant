@@ -70,6 +70,31 @@ def test_sector_observation_accepts_an_exact_recovery_ma_window() -> None:
     assert observation.symbol_count == 2
 
 
+def test_single_live_holding_is_observable_only_for_existing_acute_owner() -> None:
+    dates = pd.bdate_range("2026-06-01", periods=11)
+    panel = _panel(dates)
+    cfg = DEFAULT_CONFIG.override(sector_recovery_ma=3)
+
+    ordinary = observe_deployed_sector(
+        date=dates[4],
+        panel=panel,
+        symbols={"arbitrary_a"},
+        cfg=cfg,
+    )
+    acute = observe_deployed_sector(
+        date=dates[4],
+        panel=panel,
+        symbols={"arbitrary_a"},
+        cfg=cfg,
+        minimum_symbols=1,
+    )
+
+    assert ordinary is None
+    assert acute is not None
+    assert acute.symbol_count == 1
+    assert acute.equal_return < cfg.risk_fast_return
+
+
 def test_sector_guard_requires_repeated_shock_and_independent_divergence() -> None:
     dates = pd.bdate_range("2026-06-01", periods=11)
     panel = _panel(dates)
@@ -240,8 +265,16 @@ def test_confirmed_acute_sector_collapse_requires_full_weighted_and_breadth_dama
     ordinary = transition_for(0.97)
 
     assert acute.triggered and ordinary.triggered
-    assert risk_module._acute_sector_evacuation_required(acute, cfg)
-    assert not risk_module._acute_sector_evacuation_required(ordinary, cfg)
+    assert risk_module._acute_sector_evacuation_required(
+        acute,
+        cfg,
+        leadership_divergence=cfg.sector_guard_divergence,
+    )
+    assert not risk_module._acute_sector_evacuation_required(
+        ordinary,
+        cfg,
+        leadership_divergence=cfg.sector_guard_divergence,
+    )
 
 
 def test_disabling_sector_guard_clears_persisted_state() -> None:

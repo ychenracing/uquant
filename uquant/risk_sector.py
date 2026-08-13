@@ -54,6 +54,7 @@ def observe_deployed_sector(
     symbols: set[str],
     cfg: SystemConfig,
     weights: dict[str, float] | None = None,
+    minimum_symbols: int | None = None,
 ) -> SectorObservation | None:
     """Build a causal breadth snapshot from currently deployed securities.
 
@@ -78,7 +79,14 @@ def observe_deployed_sector(
         daily_returns.append(current / previous - 1.0)
         economic_weights.append(max(0.0, (weights or {}).get(symbol, 1.0)))
         recovery_structure.append(current > float(history.tail(cfg.sector_recovery_ma).mean()))
-    if len(daily_returns) < cfg.sector_guard_min_symbols:
+    required_symbols = (
+        cfg.sector_guard_min_symbols
+        if minimum_symbols is None
+        else minimum_symbols
+    )
+    if required_symbols < 1:
+        raise ValueError("sector observation minimum_symbols must be positive")
+    if len(daily_returns) < required_symbols:
         return None
     returns = np.asarray(daily_returns, dtype=float)
     raw_weights = np.asarray(economic_weights, dtype=float)
@@ -142,6 +150,15 @@ def update_sector_guard(
         symbols=deployed,
         cfg=cfg,
         weights=economic_weights,
+        # The ordinary guard still needs breadth.  A one-name trigger cohort
+        # can exist only after the acute owner explicitly activated it; allow
+        # that same observed name to prove recovery instead of locking cash.
+        minimum_symbols=(
+            1
+            if account.sector_guard_active
+            and len(account.sector_guard_symbols) == 1
+            else None
+        ),
     )
 
     account.sector_shock_dates = [

@@ -63,7 +63,7 @@ def _parser() -> argparse.ArgumentParser:
         "--baseline",
         default=str(Path("benchmarks") / "promotion_baseline.json"),
     )
-    promotion.add_argument("--profile", choices=("quick", "full"), default="quick")
+    promotion.add_argument("--profile", choices=("full",), default="full")
     promotion.add_argument("--output", default=None)
     generalization = sub.add_parser("generalization")
     generalization.add_argument("--data-dir", required=True)
@@ -123,6 +123,8 @@ def main(argv: list[str] | None = None) -> int:
         )
     payload = json.dumps(report, ensure_ascii=False, indent=2, sort_keys=True)
     if getattr(args, "output", None):
-        Path(args.output).write_text(payload + "\n", encoding="utf-8")
+        output = Path(args.output)
+        output.parent.mkdir(parents=True, exist_ok=True)
+        output.write_text(payload + "\n", encoding="utf-8")
     print(payload)
     return 0 if report.get("passed", True) else 1

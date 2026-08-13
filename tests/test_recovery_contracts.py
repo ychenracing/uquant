@@ -3,7 +3,6 @@ from __future__ import annotations
 import pandas as pd
 import pytest
 
-import uquant.risk as risk_module
 from uquant.config import DEFAULT_CONFIG
 from uquant.engine import ProductionEngine
 from uquant.execution import plan_orders
@@ -233,16 +232,10 @@ def test_confirmed_fast_recovery_hands_reduced_core_to_new_owner_without_raising
         {"old_core": 0.0, "new_owner": 0.40}
     )
     assert sum(target.weight for target in targets) == pytest.approx(0.40)
-    # Alpha ownership retains the full confirmed intent; only today's
-    # executable exposure is clamped to the still-active capital budget.
     assert account.anchor_weights == pytest.approx({"new_owner": 0.60})
     assert account.protected_weights == {}
     assert account.candidate_tenure["recovery_owner_handoff"] == 1
 
-    # After the sell-funded handoff fills, independently confirmed members can
-    # acquire Alpha ownership under the same gross budget. Their desired
-    # weights survive for later capital rearm instead of being overwritten by
-    # today's temporary cap.
     account.positions = {
         "new_owner": Position(
             "new_owner",
@@ -337,7 +330,7 @@ def test_confirmed_fast_recovery_hands_reduced_core_to_new_owner_without_raising
     assert account.candidate_tenure["recovery_owner_rearm_submitted"] == 1
 
 
-def test_ordinary_level1_restore_keeps_full_owner_but_stages_exposure() -> None:
+def test_ordinary_level1_restore_uses_the_risk_assessment_cap_directly() -> None:
     dates = pd.bdate_range("2025-01-02", periods=130)
     frame = pd.DataFrame(
         {
@@ -395,29 +388,9 @@ def test_ordinary_level1_restore_keeps_full_owner_but_stages_exposure() -> None:
         prices={symbol: 1.0 for symbol in owner},
     )
 
-    assert sum(target.weight for target in targets) == pytest.approx(
-        DEFAULT_CONFIG.tactical_probe_weight
-    )
-    assert {target.symbol: target.weight for target in targets}["member_2"] == pytest.approx(
-        0.24
-    )
+    assert {target.symbol: target.weight for target in targets} == pytest.approx(owner)
+    assert sum(target.weight for target in targets) == pytest.approx(risk.target_gross_cap)
     assert account.protected_weights == pytest.approx(owner)
-    assert account.candidate_tenure["post_shock_restore_staged"] == 1
-
-
-def test_level1_multi_family_cap_needs_capital_damage() -> None:
-    account = AccountState.empty(100.0)
-    account.capital_budget_level = 1
-
-    assert risk_module._level1_multi_family_cap_required(
-        account=account, capital_damage=True, votes=3
-    )
-    assert not risk_module._level1_multi_family_cap_required(
-        account=account, capital_damage=False, votes=4
-    )
-    assert not risk_module._level1_multi_family_cap_required(
-        account=account, capital_damage=True, votes=2
-    )
 
 
 def test_strong_two_index_market_does_not_mask_independent_deep_probe():
@@ -553,6 +526,46 @@ def test_protected_restore_uses_risk_assessment_as_only_gross_cap():
     assert all(target.exit_kind == "risk" for target in reduced)
     assert all(target.reason_code == "risk_gross_cap" for target in reduced)
     assert all(target.exit_kind == "strategy" for target in unchanged)
+
+
+def test_confirming_recovery_alternative_prevents_secondary_restore_churn() -> None:
+    account = AccountState(
+        initial_cash=100.0,
+        cash=52.0,
+        positions={
+            "lead": Position("lead", shares=34, avg_cost=1.0, entry_date="2026-01-01"),
+            "secondary": Position(
+                "secondary", shares=14, avg_cost=1.0, entry_date="2026-01-01"
+            ),
+        },
+        operating_peak=100.0,
+        capital_peak=100.0,
+        protected_weights={"lead": 0.60, "secondary": 0.16},
+        shock_severity="CONCENTRATED",
+        replacement_tenure={"recovery_admission:alternative,lead": 2},
+    )
+    leaders = {
+        symbol: LeaderScore(symbol, 0.8, 1.0, True, False, "test", {})
+        for symbol in account.positions
+    }
+    risk = RiskAssessment(Risk.CAUTION, 1.0, 0, {}, (), "RECOVERY")
+
+    targets = PortfolioAllocator(DEFAULT_CONFIG).allocate(
+        date=pd.Timestamp("2026-01-05"),
+        opportunity=Opportunity.RECOVERY,
+        risk=risk,
+        user_panel={symbol: pd.DataFrame() for symbol in account.positions},
+        leaders=leaders,
+        account=account,
+        prices={"lead": 1.0, "secondary": 1.0},
+    )
+
+    assert {target.symbol: target.weight for target in targets} == pytest.approx(
+        {"lead": 0.60, "secondary": 0.14}
+    )
+    assert next(target for target in targets if target.symbol == "secondary").reason == (
+        "post-shock restoration; retain pending replacement capital"
+    )
 
 
 def test_caution_restore_can_buy_up_to_the_risk_owned_cap() -> None:
@@ -958,6 +971,45 @@ def test_satellite_restore_keeps_the_standard_no_trade_band():
         )
         == ()
     )
+
+
+def test_full_recovery_seat_cannot_remain_below_eighty_percent_restored() -> None:
+    cfg = DEFAULT_CONFIG.override(min_trade_value=0.0)
+    target = Target(
+        "secondary",
+        0.16,
+        Lifecycle.RECOVERY.value,
+        0.8,
+        1.0,
+        "confirmed post-shock restoration",
+    )
+    account = AccountState(
+        initial_cash=100.0,
+        cash=87.9,
+        positions={
+            "secondary": Position(
+                "secondary",
+                shares=121,
+                avg_cost=0.1,
+                entry_date="2026-01-01",
+            )
+        },
+        protected_weights={"secondary": 0.16},
+        operating_peak=100.0,
+        capital_peak=100.0,
+    )
+
+    planned = plan_orders(
+        signal_date="2026-01-05",
+        targets=(target,),
+        account=account,
+        prices={"secondary": 0.1},
+        cfg=cfg,
+    )
+
+    assert [(order.side, order.symbol, order.target_weight) for order in planned] == [
+        ("BUY", "secondary", pytest.approx(0.16))
+    ]
 
 
 def test_restoration_never_bypasses_the_absolute_minimum_ticket() -> None:

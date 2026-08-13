@@ -106,15 +106,25 @@ def plan_orders(
         # it must still respect the broker's absolute minimum ticket.  Keeping
         # these two thresholds separate previously generated orders that the
         # allocator itself considered economically unexecutable.
+        full_recovery_seat = bool(
+            target.symbol in account.protected_weights
+            and target.weight
+            >= cfg.recovery_target_gross / cfg.max_positions
+        )
+        restoration_weight_threshold = (
+            min(
+                cfg.protected_restore_min_trade_weight,
+                # A confirmed full-size recovery seat cannot be declared
+                # restored while less than 80% funded merely because its
+                # absolute portfolio gap sits just inside the no-trade band.
+                0.20 * target.weight,
+            )
+            if full_recovery_seat
+            else cfg.restoration_min_trade_weight
+        )
         restoration_threshold = max(
             cfg.min_trade_value,
-            (
-                cfg.protected_restore_min_trade_weight
-                if target.symbol in account.protected_weights
-                and target.weight >= cfg.core_admission_weight
-                else cfg.restoration_min_trade_weight
-            )
-            * equity,
+            restoration_weight_threshold * equity,
         )
         restoration_buy_below_completion = bool(
             difference > 0
@@ -548,10 +558,8 @@ class ExecutionPlanner:
                 and account.candidate_tenure.get("recovery_owner_handoff", 0) == 1
                 and any(item.side == Side.SELL.value for item in retained)
             ):
-                # A recovery-owner handoff is explicitly sell-funded.  The
-                # sorted sell intents execute first, but a limit/T+1/capacity
-                # block must also hold every replacement BUY; cash on hand is
-                # not permission to exceed the frozen gross budget.
+                # A recovery-owner handoff is explicitly sell-funded.  A
+                # blocked incumbent sale must hold every replacement BUY.
                 account_order.status = _active_order_status(account_order)
                 account_order.last_update_date = date_str
                 account_order.last_event = "AWAITING_HANDOFF_SELL"

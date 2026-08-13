@@ -1,0 +1,187 @@
+{
+  "historical_only": true,
+  "current_production_evidence": false,
+  "schema_version": 1,
+  "production_commit": "685c600d0af5d85af87fb6553df81d4e4b10c358",
+  "windows": {
+    "h1_2023": {
+      "start": "2023-01-03",
+      "end": "2023-06-30"
+    },
+    "h2_2023": {
+      "start": "2023-07-03",
+      "end": "2023-12-29"
+    },
+    "h1_2024": {
+      "start": "2024-01-02",
+      "end": "2024-07-01"
+    },
+    "h2_2024": {
+      "start": "2024-07-01",
+      "end": "2024-12-31"
+    },
+    "bull_crash_2025_2026": {
+      "start": "2025-01-02",
+      "end": "2026-07-31"
+    },
+    "continuous_ai_era": {
+      "start": "2023-01-03",
+      "end": "2026-07-31"
+    }
+  },
+  "cohorts": [
+    {
+      "pools": [
+        "a",
+        "b",
+        "c",
+        "d",
+        "e"
+      ],
+      "window": "h1_2023",
+      "final_wealth": 4.93211710891764,
+      "max_drawdown": 0.14438101075495358,
+      "account_orders": 2,
+      "gross_turnover": 1.9418404984999997,
+      "acute_return": 0.11757632149227604
+    },
+    {
+      "pools": [
+        "a",
+        "b",
+        "c"
+      ],
+      "window": "h2_2023",
+      "final_wealth": 1.0738687510121503,
+      "max_drawdown": 0.13237287179922985,
+      "account_orders": 4,
+      "gross_turnover": 1.3495619475,
+      "acute_return": 0
+    },
+    {
+      "pools": [
+        "d"
+      ],
+      "window": "h2_2023",
+      "final_wealth": 1.0399956936244603,
+      "max_drawdown": 0.1324352232245738,
+      "account_orders": 6,
+      "gross_turnover": 2.0958927665,
+      "acute_return": -0.0650937403038
+    },
+    {
+      "pools": [
+        "e"
+      ],
+      "window": "h2_2023",
+      "final_wealth": 1.0887638083010502,
+      "max_drawdown": 0.13548146267843786,
+      "account_orders": 6,
+      "gross_turnover": 2.2348295574999995,
+      "acute_return": 0.018087637363260578
+    },
+    {
+      "pools": [
+        "a",
+        "b",
+        "c",
+        "d",
+        "e"
+      ],
+      "window": "h1_2024",
+      "final_wealth": 1.7777381734848088,
+      "max_drawdown": 0.12753155217520673,
+      "account_orders": 8,
+      "gross_turnover": 2.5096497528999997,
+      "acute_return": 0.09101849204473922
+    },
+    {
+      "pools": [
+        "a",
+        "b",
+        "c"
+      ],
+      "window": "h2_2024",
+      "final_wealth": 1.0461081079360002,
+      "max_drawdown": 0.008887256945794286,
+      "account_orders": 2,
+      "gross_turnover": 1.245136,
+      "acute_return": 0.046108107936000176
+    },
+    {
+      "pools": [
+        "d"
+      ],
+      "window": "h2_2024",
+      "final_wealth": 1.7210796718424954,
+      "max_drawdown": 0.08362154102572927,
+      "account_orders": 10,
+      "gross_turnover": 2.9691794867500003,
+      "acute_return": 0.046108107936000176
+    },
+    {
+      "pools": [
+        "e"
+      ],
+      "window": "h2_2024",
+      "final_wealth": 1.9002164923944647,
+      "max_drawdown": 0.08592480598703311,
+      "account_orders": 5,
+      "gross_turnover": 2.1937973136,
+      "acute_return": 0.046108107936000176
+    },
+    {
+      "pools": [
+        "a",
+        "b",
+        "c"
+      ],
+      "window": "bull_crash_2025_2026",
+      "final_wealth": 10.237158618539896,
+      "max_drawdown": 0.1532429677861442,
+      "account_orders": 14,
+      "gross_turnover": 16.4286456129,
+      "acute_return": 0
+    },
+    {
+      "pools": [
+        "d"
+      ],
+      "window": "bull_crash_2025_2026",
+      "final_wealth": 8.469310493611351,
+      "max_drawdown": 0.1721747823896982,
+      "account_orders": 30,
+      "gross_turnover": 17.7314917374,
+      "acute_return": 0
+    },
+    {
+      "pools": [
+        "e"
+      ],
+      "window": "bull_crash_2025_2026",
+      "final_wealth": 12.077339662794097,
+      "max_drawdown": 0.17245166717605975,
+      "account_orders": 20,
+      "gross_turnover": 21.78633662905,
+      "acute_return": 0
+    },
+    {
+      "pools": [
+        "a",
+        "b",
+        "c",
+        "d",
+        "e"
+      ],
+      "window": "continuous_ai_era",
+      "final_wealth": 22.883775160400283,
+      "cagr": 1.3983590444793261,
+      "max_drawdown": 0.3406598680739802,
+      "sharpe": 2.0603741211759443,
+      "calmar": 4.10485406568539,
+      "account_orders": 8,
+      "gross_turnover": 17.7029974516,
+      "annual_turnover": 4.947027001486375
+    }
+  ]
+}

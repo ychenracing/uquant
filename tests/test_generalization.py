@@ -51,11 +51,14 @@ def test_generalization_git_runner_resolves_executable_and_uses_fixed_argv(
 
     monkeypatch.setattr(generalization_module.subprocess, "run", fake_run)
 
-    assert generalization_module._git_stdout(
-        tmp_path,
-        ["rev-parse", "HEAD"],
-        label="cannot resolve test commit",
-    ) == "f" * 40 + "\n"
+    assert (
+        generalization_module._git_stdout(
+            tmp_path,
+            ["rev-parse", "HEAD"],
+            label="cannot resolve test commit",
+        )
+        == "f" * 40 + "\n"
+    )
     assert calls == [["/usr/bin/git", "-C", str(tmp_path), "rev-parse", "HEAD"]]
 
 
@@ -397,6 +400,41 @@ def _provenance() -> dict[str, Any]:
         production_commit="c" * 40,
         production_source_sha256="d" * 64,
     )
+
+
+def test_generalization_provenance_rejects_pre_2023_economic_interval() -> None:
+    with pytest.raises(RuntimeError, match="cannot start before 2023-01-01"):
+        build_generalization_provenance(
+            data={
+                "snapshot_id": "fixture",
+                "files_verified": 30,
+                "manifest_sha256": "a" * 64,
+                "checksums_sha256": "b" * 64,
+            },
+            universe=_universe(),
+            industries=_industries(),
+            prior_symbols=_universe()[:3],
+            start="2022-01-04",
+            end="2022-12-30",
+            production_commit="c" * 40,
+            production_source_sha256="d" * 64,
+        )
+
+
+def test_generalization_run_rejects_pre_2023_before_matching_provenance() -> None:
+    with pytest.raises(RuntimeError, match="cannot start before 2023-01-01"):
+        run_generalization(
+            data_dir="unused",
+            universe=_universe(),
+            industries=_industries(),
+            prior_symbols=_universe()[:3],
+            start="2022-01-04",
+            end="2022-12-30",
+            baseline_path="unused.json",
+            provenance=_provenance(),
+            runner=lambda _case: {},
+            pre_window_prices=_prices(),
+        )
 
 
 def _competitor_best(*, value: float = 2.0) -> dict[str, Any]:

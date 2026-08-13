@@ -175,6 +175,11 @@ def test_persistent_crisis_cap_preserves_each_route_semantics():
     assert _persistent_crisis_cap("COHORT_BREAK", DEFAULT_CONFIG) == pytest.approx(
         DEFAULT_CONFIG.concentrated_crisis_gross
     )
+    assert _persistent_crisis_cap(
+        "COHORT_BREAK",
+        DEFAULT_CONFIG,
+        reserve_backed=True,
+    ) == pytest.approx(DEFAULT_CONFIG.risk_off_gross)
     assert _persistent_crisis_cap("INCOMPLETE_UNIVERSE_UNBACKED", DEFAULT_CONFIG) == pytest.approx(0.0)
     assert _persistent_crisis_cap("SEVERE", DEFAULT_CONFIG) == pytest.approx(
         DEFAULT_CONFIG.severe_crisis_gross
@@ -349,6 +354,72 @@ def test_recovery_substitution_rejects_an_overextended_challenger():
     assert admitted is not None
     assert admitted_account.replacement_events[-1]["new_symbol"] == "challenger"
     assert admitted_account.anchor_weights == pytest.approx({"lead": 0.60, "challenger": 0.30})
+
+
+def test_recovery_substitution_respects_transfer_cap_and_retains_lead_drift():
+    dates = pd.bdate_range("2025-01-02", periods=150)
+    healthy = _trend_frame(dates)
+    broken = healthy.copy()
+    broken.loc[dates[-3] :, "close"] = 0.70
+    broken.loc[dates[-3] :, "ma20"] = 1.00
+    broken.loc[dates[-3] :, "ret20"] = -0.20
+    broken.loc[dates[-3] :, "ret60"] = -0.10
+    reserve = _trend_frame(dates, ret20=0.10, ret60=0.40)
+    reserve["ret120"] = 0.30
+    account = AccountState(
+        initial_cash=100.0,
+        cash=10.0,
+        positions={
+            "lead": Position("lead", shares=65, avg_cost=0.8),
+            "weak": Position("weak", shares=25, avg_cost=0.8),
+        },
+        anchor_weights={"lead": 0.60, "weak": 0.25},
+        recovery_anchor_date=str(dates[0].date()),
+        operating_peak=100.0,
+        capital_peak=100.0,
+    )
+    leaders = {
+        "lead": _leader("lead", 0.85, industry="optical"),
+        "weak": _leader("weak", 0.40, mature=False, industry="equipment"),
+        "challenger": _leader("challenger", 0.90, industry="material"),
+    }
+    leaders["weak"].components.update(
+        {
+            "industry_rotation_strength": 0.30,
+            "industry_breadth20": 0.20,
+            "industry_confidence": 1.0,
+        }
+    )
+    leaders["challenger"].components.update(
+        {
+            "industry_rotation_strength": 0.85,
+            "industry_breadth20": 1.0,
+            "industry_confidence": 1.0,
+        }
+    )
+    allocator = PortfolioAllocator(
+        DEFAULT_CONFIG.override(replacement_transfer_cap=0.10)
+    )
+    targets = None
+    for date in dates[-DEFAULT_CONFIG.replacement_confirm_days :]:
+        targets = allocator._recovery_anchor_substitution(
+            date=date,
+            risk=_normal_risk(),
+            user_panel={"lead": healthy, "weak": broken, "challenger": reserve},
+            leaders=leaders,
+            account=account,
+            weights_now={"lead": 0.65, "weak": 0.25},
+            anchor_elapsed=DEFAULT_CONFIG.recovery_add_window_days + 1,
+            risk_neutral_only=True,
+        )
+
+    assert targets is not None
+    assert {target.symbol: target.weight for target in targets} == pytest.approx(
+        {"lead": 0.65, "weak": 0.0, "challenger": 0.10}
+    )
+    assert account.anchor_weights == pytest.approx(
+        {"lead": 0.60, "challenger": 0.10}
+    )
 
 
 def test_config_rejects_an_invalid_unbacked_tail_threshold():
@@ -4357,25 +4428,41 @@ def test_strategic_restore_scales_only_to_the_explicit_risk_cap_until_normal():
         "leaders": {symbol: _leader(symbol, 0.90) for symbol in symbols},
         "account": account,
         "prices": {symbol: 1.0 for symbol in symbols},
-        "weights_now": {symbols[0]: 0.30, symbols[1]: 0.30},
     }
     caution = RiskAssessment(
         Risk.CAUTION,
         0.60,
         1,
-        {"transition_damage": DEFAULT_CONFIG.transition_damage_repair},
+        {
+            "freeze_new_risk": False,
+            "transition_damage": (
+                DEFAULT_CONFIG.transition_damage_repair
+                + DEFAULT_CONFIG.strategic_damage_guard_transition
+            )
+            / 2.0,
+            "operating_drawdown": 0.0,
+            "capital_drawdown": 0.0,
+        },
         (),
         "RECOVERY",
-        freeze_new_risk=False,
+        freeze_new_risk=True,
     )
 
-    partial = allocator._strategic_cohort_targets(risk=caution, **common)
+    partial = allocator.allocate(
+        opportunity=Opportunity.TREND,
+        risk=caution,
+        **common,
+    )
     assert {target.symbol: target.weight for target in partial or ()} == pytest.approx(
         {symbol: 0.20 for symbol in symbols}
     )
     assert account.strategic_restore_weights == {symbol: 0.30 for symbol in symbols}
 
-    full = allocator._strategic_cohort_targets(risk=_normal_risk(), **common)
+    full = allocator.allocate(
+        opportunity=Opportunity.TREND,
+        risk=_normal_risk(),
+        **common,
+    )
     assert {target.symbol: target.weight for target in full or ()} == pytest.approx(
         {symbol: 0.30 for symbol in symbols}
     )
@@ -5149,7 +5236,7 @@ def test_dominant_strategic_owner_locks_profit_once_without_staged_churn() -> No
     assert account.strategic_exit_bands == {}
 
 
-def test_dominant_owner_ignores_only_level1_cap_not_hard_crisis(
+def test_dominant_owner_respects_symbol_cap_and_hard_crisis(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     symbol = "causal_dominant"
@@ -5196,7 +5283,9 @@ def test_dominant_owner_ignores_only_level1_cap_not_hard_crisis(
         account=account,
         prices={symbol: 1.0},
     )
-    assert retained[0].weight == pytest.approx(1.0)
+    assert retained[0].weight == pytest.approx(
+        DEFAULT_CONFIG.strategic_dominant_max_weight
+    )
 
     crisis = RiskAssessment(
         Risk.CRISIS,
@@ -5943,7 +6032,7 @@ def test_drifted_anchor_actual_gross_cannot_bypass_nominal_risk_cap():
 
 
 def test_locked_recovery_cohort_scales_missing_members_to_remaining_budget():
-    dates = pd.bdate_range("2022-01-03", periods=150)
+    dates = pd.bdate_range("2023-01-03", periods=150)
     frame = _trend_frame(dates)
     symbols = ("held", "missing_lead", "missing_secondary")
     account = AccountState(
@@ -6302,7 +6391,6 @@ def test_failed_restoration_triggers_capital_cooldown_and_retires_anchors():
         anchor_weights={symbol: 1.0 / 3.0 for symbol in symbols},
         protected_weights={symbol: 1.0 / 3.0 for symbol in symbols},
         risk=Risk.CAUTION.value,
-        candidate_tenure={"recovery_owner_rearm_complete": 1},
         operating_peak=80.0,
         capital_peak=100.0,
         risk_events=[
@@ -6332,7 +6420,6 @@ def test_failed_restoration_triggers_capital_cooldown_and_retires_anchors():
     assert assessment.state is Risk.CRISIS
     assert assessment.target_gross_cap == pytest.approx(DEFAULT_CONFIG.market_crisis_gross)
     assert assessment.reasons == ("capital drawdown relapse in restored holdings",)
-    assert account.candidate_tenure["recovery_owner_rearm_complete"] == 0
     assert account.candidate_tenure["capital_guard_cooldown"] == (DEFAULT_CONFIG.capital_guard_cooldown_days)
 
     targets = PortfolioAllocator(DEFAULT_CONFIG).allocate(

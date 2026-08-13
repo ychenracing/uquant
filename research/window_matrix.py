@@ -7,6 +7,8 @@ from dataclasses import dataclass
 import numpy as np
 import pandas as pd
 
+from uquant.validation.ai_era import AI_ERA_ACUTE_WINDOWS, AI_ERA_WINDOWS
+
 INITIAL_CASH = 2_000_000.0
 COMPARISON_CONTRACT = {
     "initial_cash": INITIAL_CASH,
@@ -48,55 +50,57 @@ class WindowSpec:
     acute_reference_return: float
 
 
+def _window_spec(
+    name: str,
+    requested_start: str,
+    requested_end: str,
+    acute_reference_return: float,
+) -> WindowSpec:
+    """Combine research-only requested bounds with the production calendar."""
+
+    start, end = AI_ERA_WINDOWS[name]
+    acute_start, acute_end = AI_ERA_ACUTE_WINDOWS[name]
+    return WindowSpec(
+        name,
+        requested_start,
+        requested_end,
+        start,
+        end,
+        acute_start,
+        acute_end,
+        acute_reference_return,
+    )
+
+
 WINDOW_SPECS: tuple[WindowSpec, ...] = (
-    WindowSpec(
+    _window_spec(
         "h1_2023",
         "2023-01-01",
         "2023-07-01",
-        "2023-01-03",
-        "2023-06-30",
-        "2023-04-20",
-        "2023-05-25",
         -0.14608642470490663,
     ),
-    WindowSpec(
+    _window_spec(
         "h2_2023",
         "2023-07-01",
         "2023-12-31",
-        "2023-07-03",
-        "2023-12-29",
-        "2023-07-26",
-        "2023-08-25",
         -0.0938807893408431,
     ),
-    WindowSpec(
+    _window_spec(
         "h1_2024",
         "2024-01-01",
         "2024-07-01",
-        "2024-01-02",
-        "2024-07-01",
-        "2024-01-03",
-        "2024-02-02",
         -0.20140594031058867,
     ),
-    WindowSpec(
+    _window_spec(
         "h2_2024",
         "2024-07-01",
         "2024-12-31",
-        "2024-07-01",
-        "2024-12-31",
-        "2024-08-01",
-        "2024-09-02",
         -0.09769488741717602,
     ),
-    WindowSpec(
+    _window_spec(
         "bull_crash_2025_2026",
         "2025-01-01",
         "2026-08-01",
-        "2025-01-02",
-        "2026-07-31",
-        "2026-06-30",
-        "2026-07-30",
         -0.3121450300327826,
     ),
 )

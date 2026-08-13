@@ -15,9 +15,10 @@ from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass
 from datetime import date, datetime, timedelta
 from pathlib import Path
-from typing import Any, Final, TypeAlias
+from typing import Any, Final
 
 from ..engine import ProductionEngine
+from .ai_era import AI_ERA_WINDOWS, require_ai_era_interval
 
 _SHA256 = re.compile(r"[0-9a-f]{64}")
 _COMMIT = re.compile(r"[0-9a-f]{40}")
@@ -33,53 +34,30 @@ _POLICY_FIELDS = {
 
 @dataclass(frozen=True, slots=True)
 class MatrixWindow:
-    """A scored market interval, optionally preceded by a warm replay."""
+    """A scored market interval whose start is the economic-account boundary."""
 
     name: str
     start: str
     end: str
-    replay_start: str = ""
 
     def __post_init__(self) -> None:
         try:
+            require_ai_era_interval(self.start, self.end)
             start = date.fromisoformat(self.start)
             end = date.fromisoformat(self.end)
-            replay_start = date.fromisoformat(self.replay_start) if self.replay_start else start
         except ValueError as exc:
             raise ValueError(f"invalid competitor window: {self.name}") from exc
-        if not self.name or replay_start > start or start >= end:
+        if not self.name or start >= end:
             raise ValueError(f"invalid competitor window: {self.name}")
-
-    @property
-    def engine_start(self) -> str:
-        """Return the replay start needed to warm the scored interval."""
-
-        return self.replay_start or self.start
 
     def to_payload(self) -> dict[str, str]:
         """Return the canonical serialized window definition."""
 
-        payload = {"start": self.start, "end": self.end}
-        if self.replay_start:
-            payload["replay_start"] = self.replay_start
-        return payload
+        return {"start": self.start, "end": self.end}
 
 
-CANONICAL_WINDOWS: Final[tuple[MatrixWindow, ...]] = (
-    MatrixWindow("rotation_2021", "2021-01-04", "2021-12-31"),
-    MatrixWindow("bear_2022", "2022-01-04", "2022-12-30"),
-    MatrixWindow("mixed_2023", "2023-01-03", "2023-12-29"),
-    MatrixWindow("choppy_2024", "2024-01-02", "2024-12-31"),
-    MatrixWindow("bull_2025_2026", "2025-04-01", "2026-06-30"),
-    # Replaying from the bull-window start prevents a cash-only cold start from
-    # making the acute-loss diagnostic look artificially safe.
-    MatrixWindow(
-        "acute_2026_07",
-        "2026-06-30",
-        "2026-07-20",
-        replay_start="2025-04-01",
-    ),
-    MatrixWindow("continuous", "2018-01-02", "2026-07-20"),
+CANONICAL_WINDOWS: Final[tuple[MatrixWindow, ...]] = tuple(
+    MatrixWindow(name, start, end) for name, (start, end) in AI_ERA_WINDOWS.items()
 )
 REQUIRED_WINDOWS: Final[tuple[str, ...]] = tuple(item.name for item in CANONICAL_WINDOWS)
 REQUIRED_COMPETITORS: Final[tuple[str, ...]] = ("aquant", "qwenquant", "trade")
@@ -300,7 +278,7 @@ class CompetitorMatrixReference:
         return dict(self.results)
 
 
-Runner: TypeAlias = Callable[[str, tuple[str, ...], MatrixWindow], Mapping[str, Any]]
+type Runner = Callable[[str, tuple[str, ...], MatrixWindow], Mapping[str, Any]]
 
 
 def _reject_duplicate_keys(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
@@ -744,59 +722,7 @@ def evaluate_competitor_gate(
     }
 
 
-def _interval_metrics(raw: Mapping[str, Any], window: MatrixWindow) -> CompetitorMetrics:
-    """Recompute local metrics from a warmed replay for a scored subinterval."""
-
-    curve = raw.get("equity_curve")
-    account = raw.get("final_account")
-    fills = account.get("fills") if isinstance(account, Mapping) else None
-    if not isinstance(curve, list) or not isinstance(fills, list):
-        raise RuntimeError("acute competitor replay lacks equity_curve or final fills")
-    points: dict[str, float] = {}
-    for item in curve:
-        if not isinstance(item, Mapping):
-            raise RuntimeError("acute competitor equity curve is malformed")
-        day = str(item.get("date", ""))
-        try:
-            date.fromisoformat(day)
-            equity = float(item["equity"])
-        except (KeyError, TypeError, ValueError) as exc:
-            raise RuntimeError("acute competitor equity curve is malformed") from exc
-        if day in points or not math.isfinite(equity) or equity <= 0:
-            raise RuntimeError("acute competitor equity curve is malformed")
-        points[day] = equity
-    if window.start not in points or window.end not in points:
-        raise RuntimeError("acute competitor interval boundaries are absent")
-    bounded = [(day, points[day]) for day in sorted(points) if window.start <= day <= window.end]
-    peak = bounded[0][1]
-    worst_drawdown = 0.0
-    for _, equity in bounded:
-        peak = max(peak, equity)
-        worst_drawdown = max(worst_drawdown, 1.0 - equity / peak)
-    filled_orders: set[str] = set()
-    for item in fills:
-        if not isinstance(item, Mapping):
-            raise RuntimeError("acute competitor fills are malformed")
-        order_id = str(item.get("order_id", ""))
-        fill_date = str(item.get("fill_date", ""))
-        try:
-            date.fromisoformat(fill_date)
-        except ValueError as exc:
-            raise RuntimeError("acute competitor fills are malformed") from exc
-        if not order_id:
-            raise RuntimeError("acute competitor fill has no order identity")
-        if window.start < fill_date <= window.end:
-            filled_orders.add(order_id)
-    return CompetitorMetrics(
-        final_wealth=points[window.end] / points[window.start],
-        max_drawdown=worst_drawdown,
-        account_orders=len(filled_orders),
-    )
-
-
 def _engine_metrics(raw: Mapping[str, Any], window: MatrixWindow) -> CompetitorMetrics:
-    if window.replay_start:
-        return _interval_metrics(raw, window)
     try:
         compact = {name: raw[name] for name in _METRIC_FIELDS}
     except KeyError as exc:
@@ -827,7 +753,7 @@ def run_competitor_gate(
 
             raw = engine.backtest(
                 symbols=symbols,
-                start=window.engine_start,
+                start=window.start,
                 end=window.end,
             )
             return _engine_metrics(raw, window).to_payload()

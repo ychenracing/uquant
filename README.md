@@ -1,8 +1,10 @@
 # uquant
 
-uquant 是面向 A 股科技产业链的日频量化决策系统。它使用现金多头组合，在收盘后生成目标仓位和下一交易日开盘意图，适合每日人工运行、核对并辅助交易决策。
+uquant 是专门面向 2023 年以来 A 股 AI 产业链的日频量化决策系统。它使用现金多头组合，在收盘后生成目标仓位和下一交易日开盘意图，适合每日人工运行、核对并辅助交易决策。
 
 系统不会连接券商自动下单，不使用杠杆，不做空，也不依赖盘中行情。
+
+生产经济性验收从 `2023-01-01` 开始。更早行情可以保留在数据集中形成均线、ATR 等因果特征，但只能作为 warm-up，不能进入初始权益、收益、回撤、订单、成交或换手统计，也不能成为发布门槛。
 
 ## 核心优势
 
@@ -21,7 +23,8 @@ uquant 是面向 A 股科技产业链的日频量化决策系统。它使用现�
 |---|---:|
 | 初始资金 | 2,000,000 元 |
 | 最大总仓位 | 100% |
-| 单票最大权重 | 60% |
+| 常规单票最大权重 | 60% |
+| 证据确认的战略主导者特例上限 | 95% |
 | 最大持仓数 | 6 |
 | 行业最大权重 | 75% |
 | 最小权重变化 | 5% |
@@ -30,7 +33,7 @@ uquant 是面向 A 股科技产业链的日频量化决策系统。它使用现�
 
 ## 安装
 
-需要 Python 3.11 或更高版本。推荐使用锁定依赖：
+唯一受支持的解释器是 Python 3.12。使用锁定依赖：
 
 ```bash
 python -m pip install uv
@@ -88,10 +91,12 @@ uv run uquant daily \
 uv run uquant backtest \
   --data-dir data/frozen \
   --symbols sz300308 sz300502 sz300394 sh688008 sh603986 \
-  --start 2018-01-02 \
+  --start 2023-01-03 \
   --end 2026-07-20 \
   --output backtest_result.json
 ```
+
+数据目录可以包含 2023 年以前的行供特征 warm-up；回放的经济账本和指标从给定的 2023+ 起点开始。
 
 ## 数据格式
 
@@ -115,7 +120,7 @@ date,open,high,low,close,volume
 | `uquant/portfolio*.py` | 唯一目标组合及各生命周期职责 |
 | `uquant/execution.py` | 次日开盘执行模型与订单生命周期 |
 | `uquant/account.py`、`broker.py` | 账户持久化和券商对账 |
-| `uquant/validation/` | 数据、绩效和泛化门禁 |
+| `uquant/validation/` | 数据完整性与统一 AI-era 绩效门禁 |
 | `research/` | 与生产导入隔离的离线研究工具 |
 | `tests/` | 行为、不变量和失败路径测试 |
 
@@ -138,7 +143,14 @@ uv run pytest --cov=uquant --cov-report=term-missing
 uv run python -m compileall -q uquant scripts research tests
 uv run python -m uquant.validation data-manifest --data-dir data/frozen
 uv run bandit -q -r uquant
+uv run python -m uquant.validation promotion \
+  --data-dir data/frozen \
+  --profile full \
+  --output benchmarks/ai_era_performance.json
 ```
+
+该文件是 checkout 后生成并由 CI 上传的运行证据，不纳入 Git；否则文件内的
+`production_commit` 会反过来改变提交 SHA，无法与生成它的 HEAD 精确相等。
 
 ## 使用限制
 

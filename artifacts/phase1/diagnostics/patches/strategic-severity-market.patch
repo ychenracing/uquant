@@ -1,0 +1,19 @@
+diff --git a/uquant/risk.py b/uquant/risk.py
+index 06aa48e..7302ffc 100644
+--- a/uquant/risk.py
++++ b/uquant/risk.py
+@@ -252,12 +252,8 @@ def _strategic_crisis_severity(
+ ) -> str:
+     """Classify strategic crises by live-book concentration, not its label."""
+ 
+-    if not strategic_active:
+-        return "NORMAL"
+-    if live_core_positions <= 1:
+-        return "CONCENTRATED"
+-    del reference_anchor_confirmed
+-    return "MARKET"
++    del reference_anchor_confirmed, live_core_positions
++    return "MARKET" if strategic_active else "NORMAL"
+ 
+ 
+ def _dynamic_anchor_candidate(leaders: dict[str, LeaderScore], cfg: SystemConfig) -> list[str]:

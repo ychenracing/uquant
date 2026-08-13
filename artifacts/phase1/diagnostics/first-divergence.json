@@ -1,0 +1,524 @@
+{
+  "causal_stage_order": [
+    "reference_context",
+    "leaders",
+    "risk",
+    "opportunity",
+    "targets",
+    "orders",
+    "fills"
+  ],
+  "comparisons": {
+    "bull_2025_2026": {
+      "first_divergence": {
+        "changed_fields": [
+          "reference_context",
+          "risk"
+        ],
+        "date": "2025-04-01",
+        "first_stage": "reference_context",
+        "left": {
+          "opportunity": "CHOPPY",
+          "orders": [],
+          "risk": "NORMAL",
+          "target_gross": 0,
+          "targets": []
+        },
+        "right": {
+          "opportunity": "CHOPPY",
+          "orders": [],
+          "risk": "NORMAL",
+          "target_gross": 0,
+          "targets": []
+        }
+      },
+      "first_executable_divergence": {
+        "changed_fields": [
+          "reference_context",
+          "risk",
+          "targets",
+          "orders"
+        ],
+        "date": "2025-09-04",
+        "first_stage": "orders",
+        "left": {
+          "opportunity": "STRONG_TREND",
+          "orders": [
+            {
+              "exit_kind": "risk",
+              "reason_code": "risk_gross_cap",
+              "side": "SELL",
+              "symbol": "sz300308",
+              "target_weight": 0.6
+            },
+            {
+              "exit_kind": "risk",
+              "reason_code": "risk_gross_cap",
+              "side": "SELL",
+              "symbol": "sz300502",
+              "target_weight": 0.080014404604282
+            }
+          ],
+          "risk": "NORMAL",
+          "target_gross": 0.8200000000000001,
+          "targets": [
+            {
+              "exit_kind": "risk",
+              "lifecycle": "CORE",
+              "reason_code": "risk_gross_cap",
+              "symbol": "sz300308",
+              "weight": 0.6
+            },
+            {
+              "exit_kind": "risk",
+              "lifecycle": "RECOVERY",
+              "reason_code": "risk_freeze_hold",
+              "symbol": "sz300394",
+              "weight": 0.13998559539571803
+            },
+            {
+              "exit_kind": "risk",
+              "lifecycle": "RECOVERY",
+              "reason_code": "risk_gross_cap",
+              "symbol": "sz300502",
+              "weight": 0.080014404604282
+            }
+          ]
+        },
+        "right": {
+          "opportunity": "STRONG_TREND",
+          "orders": [],
+          "risk": "NORMAL",
+          "target_gross": 0.9884438050575386,
+          "targets": [
+            {
+              "exit_kind": "risk",
+              "lifecycle": "CORE",
+              "reason_code": "risk_freeze_hold",
+              "symbol": "sz300308",
+              "weight": 0.6730242189325741
+            },
+            {
+              "exit_kind": "risk",
+              "lifecycle": "RECOVERY",
+              "reason_code": "risk_freeze_hold",
+              "symbol": "sz300394",
+              "weight": 0.13998559539571803
+            },
+            {
+              "exit_kind": "risk",
+              "lifecycle": "RECOVERY",
+              "reason_code": "risk_freeze_hold",
+              "symbol": "sz300502",
+              "weight": 0.17543399072924637
+            }
+          ]
+        }
+      },
+      "interval": {
+        "end": "2026-06-30",
+        "start": "2025-04-01"
+      },
+      "left": {
+        "commit": "685c600d0af5d85af87fb6553df81d4e4b10c358",
+        "effective_config_sha256": "e1e2f50b692a22527868c70592ed8fe93d016387e0cb0bd9b5285f7192e9ed0f",
+        "metrics": {
+          "account_orders": 14,
+          "annual_turnover": 13.164676285833773,
+          "final_wealth": 10.237158618539896,
+          "gross_turnover": 16.4286456129,
+          "max_drawdown": 0.1532429677861442
+        },
+        "patch_sha256": null,
+        "source_sha256": "26aa4154939bee0d6076639edee0d2caa5ea9f4592036e2176ecff1c035646ec",
+        "trace_adapter_sha256": "5aebda2afe6dcc50cc1606f64ece5941def7860de8445dcef826b19d51cb9388",
+        "trace_sha256": "309176f1260939732b91cbaa3ba3178f6e52edc9bf9d31c191fcfb378420e4e7",
+        "uv_lock_sha256": "5bfc579a4fc5c562bb7cb905e0a0be727b12e9566e52a923ce74eb635445fefd"
+      },
+      "pool": "b",
+      "replay": {
+        "commands": [
+          "git fetch artifacts/phase1/diagnostics/phase1-history.bundle HEAD:refs/remotes/phase1-evidence/head",
+          "git worktree add --detach /tmp/uquant-diagnostic-runner bef641dba3ebc7de011b7e8d621d2be95b66643c",
+          "uv sync --project /tmp/uquant-diagnostic-runner --frozen --extra dev",
+          "git worktree add --detach /tmp/uquant-fd-left 685c600d0af5d85af87fb6553df81d4e4b10c358",
+          "git worktree add --detach /tmp/uquant-fd-right 4391d189ddc74f6dd9ee92dd108582a9a071ff9f",
+          "PYTHONPATH=/tmp/uquant-fd-left /tmp/uquant-diagnostic-runner/.venv/bin/python /tmp/uquant-diagnostic-runner/scripts/run_phase1_diagnostic.py trace --source-root /tmp/uquant-fd-left --data-dir data/frozen --symbols sz300308,sz300502,sz300394,sh688008,sh603986 --start 2025-04-01 --end 2026-06-30 --expected-commit 685c600d0af5d85af87fb6553df81d4e4b10c358 --expected-source-sha256 26aa4154939bee0d6076639edee0d2caa5ea9f4592036e2176ecff1c035646ec --expected-trace-adapter-sha256 5aebda2afe6dcc50cc1606f64ece5941def7860de8445dcef826b19d51cb9388 --output /tmp/left.json",
+          "PYTHONPATH=/tmp/uquant-fd-right /tmp/uquant-diagnostic-runner/.venv/bin/python /tmp/uquant-diagnostic-runner/scripts/run_phase1_diagnostic.py trace --source-root /tmp/uquant-fd-right --data-dir data/frozen --symbols sz300308,sz300502,sz300394,sh688008,sh603986 --start 2025-04-01 --end 2026-06-30 --expected-commit 4391d189ddc74f6dd9ee92dd108582a9a071ff9f --expected-source-sha256 1ba818600877ee07558d14589df8054100368706b88455e05bd33f9adaf05199 --expected-trace-adapter-sha256 3c799476fd20a6dca25eddf205d70226398293b373cc2d1b8f21016649136e3b --output /tmp/right.json",
+          "PYTHONPATH=/tmp/uquant-diagnostic-runner /tmp/uquant-diagnostic-runner/.venv/bin/python /tmp/uquant-diagnostic-runner/scripts/run_phase1_diagnostic.py compare --left /tmp/left.json --right /tmp/right.json --output /tmp/compare.json"
+        ],
+        "compare_exit_code": 0,
+        "left_exit_code": 0,
+        "right_exit_code": 0
+      },
+      "right": {
+        "commit": "4391d189ddc74f6dd9ee92dd108582a9a071ff9f",
+        "effective_config_sha256": "023d709731196a325d9cd03e95ece92e4baf63d2c5c66bb9f7d0e7a190e7bf20",
+        "metrics": {
+          "account_orders": 9,
+          "annual_turnover": 13.04487893107715,
+          "final_wealth": 12.92663740360599,
+          "gross_turnover": 16.27914643465,
+          "max_drawdown": 0.17878846613668542
+        },
+        "patch_sha256": null,
+        "source_sha256": "1ba818600877ee07558d14589df8054100368706b88455e05bd33f9adaf05199",
+        "trace_adapter_sha256": "3c799476fd20a6dca25eddf205d70226398293b373cc2d1b8f21016649136e3b",
+        "trace_sha256": "7da93744c8c69f5ba2a2b87c6823eae14d926b597e779cb1ee860076ecf9387f",
+        "uv_lock_sha256": "4accf16535b5ac95b831c9289e0ad2ff21282dc5dfae3f05dd0fb095089d6a61"
+      },
+      "right_minus_left": {
+        "account_orders": -5,
+        "annual_turnover": -0.11979735475662245,
+        "final_wealth": 2.689478785066095,
+        "gross_turnover": -0.14949917825000014,
+        "max_drawdown": 0.025545498350541207
+      }
+    },
+    "choppy_2024": {
+      "first_divergence": {
+        "changed_fields": [
+          "reference_context",
+          "risk"
+        ],
+        "date": "2024-01-02",
+        "first_stage": "reference_context",
+        "left": {
+          "opportunity": "CHOPPY",
+          "orders": [],
+          "risk": "NORMAL",
+          "target_gross": 0,
+          "targets": []
+        },
+        "right": {
+          "opportunity": "CHOPPY",
+          "orders": [],
+          "risk": "NORMAL",
+          "target_gross": 0,
+          "targets": []
+        }
+      },
+      "first_executable_divergence": {
+        "changed_fields": [
+          "reference_context",
+          "risk",
+          "targets",
+          "orders"
+        ],
+        "date": "2024-02-05",
+        "first_stage": "orders",
+        "left": {
+          "opportunity": "WEAK",
+          "orders": [
+            {
+              "exit_kind": "risk",
+              "reason_code": "strategic_damage_guard",
+              "side": "SELL",
+              "symbol": "sz300502",
+              "target_weight": 0.0
+            }
+          ],
+          "risk": "CAUTION",
+          "target_gross": 0.67,
+          "targets": [
+            {
+              "exit_kind": "risk",
+              "lifecycle": "CORE",
+              "reason_code": "strategic_damage_guard",
+              "symbol": "sz300308",
+              "weight": 0.317190221332444
+            },
+            {
+              "exit_kind": "risk",
+              "lifecycle": "CORE",
+              "reason_code": "risk_freeze_hold",
+              "symbol": "sz300394",
+              "weight": 0.35280977866755603
+            },
+            {
+              "exit_kind": "risk",
+              "lifecycle": "CORE",
+              "reason_code": "strategic_damage_guard",
+              "symbol": "sz300502",
+              "weight": 0.0
+            }
+          ]
+        },
+        "right": {
+          "opportunity": "WEAK",
+          "orders": [],
+          "risk": "CAUTION",
+          "target_gross": 0.680025124852575,
+          "targets": [
+            {
+              "exit_kind": "risk",
+              "lifecycle": "CORE",
+              "reason_code": "risk_freeze_hold",
+              "symbol": "sz300308",
+              "weight": 0.3191096904651407
+            },
+            {
+              "exit_kind": "risk",
+              "lifecycle": "CORE",
+              "reason_code": "risk_freeze_hold",
+              "symbol": "sz300394",
+              "weight": 0.35280977866755603
+            },
+            {
+              "exit_kind": "risk",
+              "lifecycle": "CORE",
+              "reason_code": "risk_freeze_hold",
+              "symbol": "sz300502",
+              "weight": 0.00810565571987826
+            }
+          ]
+        }
+      },
+      "interval": {
+        "end": "2024-12-31",
+        "start": "2024-01-02"
+      },
+      "left": {
+        "commit": "77b5b84ccabf4d03817c85885ec3e709fd8a2b89",
+        "effective_config_sha256": "a870650035e41d79afcf32fa6a6056b0de433ca090f3ee6f2a57fea614557098",
+        "metrics": {
+          "account_orders": 8,
+          "annual_turnover": 1.9558161461999999,
+          "final_wealth": 1.319359315397363,
+          "gross_turnover": 1.9558161461999999,
+          "max_drawdown": 0.20963834277869708
+        },
+        "patch_sha256": null,
+        "source_sha256": "1fad5a515d5178b0371a73ea19167ba0cd4528e8fd93907b55bbcd59e3e063e7",
+        "trace_adapter_sha256": "fdb1b166b721cc0fb855c4a6c7ce5525fe6077b124ce389075a446b86e909939",
+        "trace_sha256": "905ba089d23d83dbf457f1737a952a61327933bfb5832fcfbabd39a57c9e0be3",
+        "uv_lock_sha256": "5bfc579a4fc5c562bb7cb905e0a0be727b12e9566e52a923ce74eb635445fefd"
+      },
+      "pool": "a",
+      "replay": {
+        "commands": [
+          "git fetch artifacts/phase1/diagnostics/phase1-history.bundle HEAD:refs/remotes/phase1-evidence/head",
+          "git worktree add --detach /tmp/uquant-diagnostic-runner bef641dba3ebc7de011b7e8d621d2be95b66643c",
+          "uv sync --project /tmp/uquant-diagnostic-runner --frozen --extra dev",
+          "git worktree add --detach /tmp/uquant-fd-left 77b5b84ccabf4d03817c85885ec3e709fd8a2b89",
+          "git worktree add --detach /tmp/uquant-fd-right 9e0947df410e700b21093c37ac391c23fd3f06e6",
+          "PYTHONPATH=/tmp/uquant-fd-left /tmp/uquant-diagnostic-runner/.venv/bin/python /tmp/uquant-diagnostic-runner/scripts/run_phase1_diagnostic.py trace --source-root /tmp/uquant-fd-left --data-dir data/frozen --symbols sz300308,sz300502,sz300394 --start 2024-01-02 --end 2024-12-31 --expected-commit 77b5b84ccabf4d03817c85885ec3e709fd8a2b89 --expected-source-sha256 1fad5a515d5178b0371a73ea19167ba0cd4528e8fd93907b55bbcd59e3e063e7 --expected-trace-adapter-sha256 fdb1b166b721cc0fb855c4a6c7ce5525fe6077b124ce389075a446b86e909939 --output /tmp/left.json",
+          "PYTHONPATH=/tmp/uquant-fd-right /tmp/uquant-diagnostic-runner/.venv/bin/python /tmp/uquant-diagnostic-runner/scripts/run_phase1_diagnostic.py trace --source-root /tmp/uquant-fd-right --data-dir data/frozen --symbols sz300308,sz300502,sz300394 --start 2024-01-02 --end 2024-12-31 --expected-commit 9e0947df410e700b21093c37ac391c23fd3f06e6 --expected-source-sha256 6a6aa0fedb831f2fa838adec63fcbe53a044d4671c9247424218bce648544e3b --expected-trace-adapter-sha256 fdb1b166b721cc0fb855c4a6c7ce5525fe6077b124ce389075a446b86e909939 --output /tmp/right.json",
+          "PYTHONPATH=/tmp/uquant-diagnostic-runner /tmp/uquant-diagnostic-runner/.venv/bin/python /tmp/uquant-diagnostic-runner/scripts/run_phase1_diagnostic.py compare --left /tmp/left.json --right /tmp/right.json --output /tmp/compare.json"
+        ],
+        "compare_exit_code": 0,
+        "left_exit_code": 0,
+        "right_exit_code": 0
+      },
+      "right": {
+        "commit": "9e0947df410e700b21093c37ac391c23fd3f06e6",
+        "effective_config_sha256": "e1e2f50b692a22527868c70592ed8fe93d016387e0cb0bd9b5285f7192e9ed0f",
+        "metrics": {
+          "account_orders": 11,
+          "annual_turnover": 3.35505714925,
+          "final_wealth": 1.6451700602135826,
+          "gross_turnover": 3.35505714925,
+          "max_drawdown": 0.12753155217520673
+        },
+        "patch_sha256": null,
+        "source_sha256": "6a6aa0fedb831f2fa838adec63fcbe53a044d4671c9247424218bce648544e3b",
+        "trace_adapter_sha256": "fdb1b166b721cc0fb855c4a6c7ce5525fe6077b124ce389075a446b86e909939",
+        "trace_sha256": "54fbec7f1d91232a51185d8a065f59b4d866d32344bfc4899df1537dca511423",
+        "uv_lock_sha256": "5bfc579a4fc5c562bb7cb905e0a0be727b12e9566e52a923ce74eb635445fefd"
+      },
+      "right_minus_left": {
+        "account_orders": 3,
+        "annual_turnover": 1.39924100305,
+        "final_wealth": 0.3258107448162195,
+        "gross_turnover": 1.39924100305,
+        "max_drawdown": -0.08210679060349035
+      }
+    },
+    "mixed_2023": {
+      "first_divergence": {
+        "changed_fields": [
+          "risk"
+        ],
+        "date": "2023-01-03",
+        "first_stage": "risk",
+        "left": {
+          "opportunity": "CHOPPY",
+          "orders": [],
+          "risk": "NORMAL",
+          "target_gross": 0,
+          "targets": []
+        },
+        "right": {
+          "opportunity": "CHOPPY",
+          "orders": [],
+          "risk": "NORMAL",
+          "target_gross": 0,
+          "targets": []
+        }
+      },
+      "first_executable_divergence": {
+        "changed_fields": [
+          "risk",
+          "targets",
+          "orders"
+        ],
+        "date": "2023-01-04",
+        "first_stage": "orders",
+        "left": {
+          "opportunity": "CHOPPY",
+          "orders": [
+            {
+              "exit_kind": "strategy",
+              "reason_code": "strategic_cohort",
+              "side": "BUY",
+              "symbol": "sz300308",
+              "target_weight": 0.51
+            },
+            {
+              "exit_kind": "strategy",
+              "reason_code": "strategic_cohort",
+              "side": "BUY",
+              "symbol": "sz300394",
+              "target_weight": 0.33999999999999997
+            }
+          ],
+          "risk": "NORMAL",
+          "target_gross": 0.85,
+          "targets": [
+            {
+              "exit_kind": "strategy",
+              "lifecycle": "CORE",
+              "reason_code": "strategic_cohort",
+              "symbol": "sz300308",
+              "weight": 0.51
+            },
+            {
+              "exit_kind": "strategy",
+              "lifecycle": "CORE",
+              "reason_code": "strategic_cohort",
+              "symbol": "sz300394",
+              "weight": 0.33999999999999997
+            }
+          ]
+        },
+        "right": {
+          "opportunity": "CHOPPY",
+          "orders": [
+            {
+              "exit_kind": "strategy",
+              "reason_code": "strategic_cohort",
+              "side": "BUY",
+              "symbol": "sz300308",
+              "target_weight": 1.0
+            }
+          ],
+          "risk": "NORMAL",
+          "target_gross": 1.0,
+          "targets": [
+            {
+              "exit_kind": "strategy",
+              "lifecycle": "CORE",
+              "reason_code": "strategic_cohort",
+              "symbol": "sz300308",
+              "weight": 1.0
+            }
+          ]
+        }
+      },
+      "interval": {
+        "end": "2023-12-29",
+        "start": "2023-01-03"
+      },
+      "left": {
+        "commit": "83264914b391894c67ac8053e0a14504440a0a1d",
+        "effective_config_sha256": "1d81d78ac2808983648c18ea2aeacbae4285ab66ddbe12cc340873e9a144128d",
+        "metrics": {
+          "account_orders": 18,
+          "annual_turnover": 4.318704058,
+          "final_wealth": 3.5027918417339197,
+          "gross_turnover": 4.318704058,
+          "max_drawdown": 0.215443892367993
+        },
+        "patch_sha256": null,
+        "source_sha256": "29b7a65658ecc09854227c9f40ea053614bf0b200c526bce660b8cbc03121f8d",
+        "trace_adapter_sha256": "fdb1b166b721cc0fb855c4a6c7ce5525fe6077b124ce389075a446b86e909939",
+        "trace_sha256": "8d11cc8cf7bfc31b1c362893c552847d7f7bbebcc1672aea68212ae3b80958d1",
+        "uv_lock_sha256": "5bfc579a4fc5c562bb7cb905e0a0be727b12e9566e52a923ce74eb635445fefd"
+      },
+      "pool": "a",
+      "replay": {
+        "commands": [
+          "git fetch artifacts/phase1/diagnostics/phase1-history.bundle HEAD:refs/remotes/phase1-evidence/head",
+          "git worktree add --detach /tmp/uquant-diagnostic-runner bef641dba3ebc7de011b7e8d621d2be95b66643c",
+          "uv sync --project /tmp/uquant-diagnostic-runner --frozen --extra dev",
+          "git worktree add --detach /tmp/uquant-fd-left 83264914b391894c67ac8053e0a14504440a0a1d",
+          "git worktree add --detach /tmp/uquant-fd-right 77b5b84ccabf4d03817c85885ec3e709fd8a2b89",
+          "PYTHONPATH=/tmp/uquant-fd-left /tmp/uquant-diagnostic-runner/.venv/bin/python /tmp/uquant-diagnostic-runner/scripts/run_phase1_diagnostic.py trace --source-root /tmp/uquant-fd-left --data-dir data/frozen --symbols sz300308,sz300502,sz300394 --start 2023-01-03 --end 2023-12-29 --expected-commit 83264914b391894c67ac8053e0a14504440a0a1d --expected-source-sha256 29b7a65658ecc09854227c9f40ea053614bf0b200c526bce660b8cbc03121f8d --expected-trace-adapter-sha256 fdb1b166b721cc0fb855c4a6c7ce5525fe6077b124ce389075a446b86e909939 --output /tmp/left.json",
+          "PYTHONPATH=/tmp/uquant-fd-right /tmp/uquant-diagnostic-runner/.venv/bin/python /tmp/uquant-diagnostic-runner/scripts/run_phase1_diagnostic.py trace --source-root /tmp/uquant-fd-right --data-dir data/frozen --symbols sz300308,sz300502,sz300394 --start 2023-01-03 --end 2023-12-29 --expected-commit 77b5b84ccabf4d03817c85885ec3e709fd8a2b89 --expected-source-sha256 1fad5a515d5178b0371a73ea19167ba0cd4528e8fd93907b55bbcd59e3e063e7 --expected-trace-adapter-sha256 fdb1b166b721cc0fb855c4a6c7ce5525fe6077b124ce389075a446b86e909939 --output /tmp/right.json",
+          "PYTHONPATH=/tmp/uquant-diagnostic-runner /tmp/uquant-diagnostic-runner/.venv/bin/python /tmp/uquant-diagnostic-runner/scripts/run_phase1_diagnostic.py compare --left /tmp/left.json --right /tmp/right.json --output /tmp/compare.json"
+        ],
+        "compare_exit_code": 0,
+        "left_exit_code": 0,
+        "right_exit_code": 0
+      },
+      "right": {
+        "commit": "77b5b84ccabf4d03817c85885ec3e709fd8a2b89",
+        "effective_config_sha256": "a870650035e41d79afcf32fa6a6056b0de433ca090f3ee6f2a57fea614557098",
+        "metrics": {
+          "account_orders": 3,
+          "annual_turnover": 3.221778779,
+          "final_wealth": 4.1484526363244605,
+          "gross_turnover": 3.221778779,
+          "max_drawdown": 0.3406598680739802
+        },
+        "patch_sha256": null,
+        "source_sha256": "1fad5a515d5178b0371a73ea19167ba0cd4528e8fd93907b55bbcd59e3e063e7",
+        "trace_adapter_sha256": "fdb1b166b721cc0fb855c4a6c7ce5525fe6077b124ce389075a446b86e909939",
+        "trace_sha256": "6c59ab471593339623d2daa26ed08f4f156e4258e19d84668a30b123552e8852",
+        "uv_lock_sha256": "5bfc579a4fc5c562bb7cb905e0a0be727b12e9566e52a923ce74eb635445fefd"
+      },
+      "right_minus_left": {
+        "account_orders": -15,
+        "annual_turnover": -1.0969252789999997,
+        "final_wealth": 0.6456607945905408,
+        "gross_turnover": -1.0969252789999997,
+        "max_drawdown": 0.1252159757059872
+      }
+    }
+  },
+  "current_production_evidence": false,
+  "diagnostic_only": true,
+  "economic_start_policy": "2023-01-01",
+  "generated_at": "2026-08-13T22:15:00Z",
+  "provenance": {
+    "data": {
+      "checksums_sha256": "ba460d65f791f238d8a4a16ac62e2225c1832caa6f4da5003166a894edf80e29",
+      "manifest_sha256": "343009138d22f8d4a20768f706207fe4d4bcd03581b0c5945c5485ecbd28788d",
+      "snapshot_id": "20260809T094222Z-causal-tech-index-rebase"
+    },
+    "diagnostic_runtime": {
+      "numpy_version": "2.5.1",
+      "pandas_version": "3.0.5",
+      "python_full_version": "3.12.13",
+      "uv_lock_sha256": "4accf16535b5ac95b831c9289e0ad2ff21282dc5dfae3f05dd0fb095089d6a61",
+      "uv_version": "0.11.33"
+    },
+    "method": {
+      "comparison": "first_economic_divergence + first_executable_divergence",
+      "history_bundle": "artifacts/phase1/diagnostics/phase1-history.bundle",
+      "history_bundle_sha256": "24c1d66676cc9c35361ff51e5293f252136e545073d7b4cd63bbf97034b063c1",
+      "replay_exit_code": 0,
+      "runner": "scripts/run_phase1_diagnostic.py",
+      "runner_commit": "bef641dba3ebc7de011b7e8d621d2be95b66643c",
+      "runner_source_sha256": "d7a27a8d476b8b125b7e144bf222b3c6d5639482e549a9257ce1e9e7b53a106b",
+      "trace_hash": "sha256(canonical-json(trace))"
+    }
+  },
+  "reference_anchor": {
+    "commit": "ea4fb1cef59256f76ef9f810440c87ef53108aa2",
+    "daily_trace_status": "unavailable_at_source_commit",
+    "reason": "The anchor predates research/first_divergence.py. Commit-boundary traces use the earliest source-compatible adapters, while ea4fb1 remains the immutable economic reference.",
+    "role": "frozen economic threshold and promotion reference"
+  },
+  "schema_version": 2
+}

@@ -1,4 +1,4 @@
-name: Strategy promotion
+name: AI-Era performance
 
 on:
   push:
@@ -9,18 +9,12 @@ on:
       - "benchmarks/**"
       - "data/frozen/**"
       - "pyproject.toml"
+      - "requirements.txt"
       - "uv.lock"
       - ".github/workflows/strategy-performance.yml"
   schedule:
     - cron: "17 3 * * 1"
-  workflow_dispatch:
-    inputs:
-      profile:
-        description: Promotion matrix size
-        required: true
-        default: full
-        type: choice
-        options: [quick, full]
+  workflow_dispatch: {}
 
 permissions:
   contents: read
@@ -33,7 +27,8 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  promotion:
+  ai-era-performance:
+    name: Full AI-Era blocking gate
     runs-on: ubuntu-latest
     timeout-minutes: 60
     steps:
@@ -47,23 +42,33 @@ jobs:
         run: python -m pip install --disable-pip-version-check "uv==${UV_VERSION}"
       - name: Sync locked development environment
         run: uv sync --frozen --extra dev
-      - name: Verify frozen data
-        run: uv run python -m uquant.validation data-manifest --data-dir data/frozen
-      - name: Select matrix profile
-        id: profile
-        env:
-          REQUESTED_PROFILE: ${{ github.event_name != 'workflow_dispatch' && 'full' || inputs.profile }}
-        run: echo "value=${REQUESTED_PROFILE:-quick}" >> "$GITHUB_OUTPUT"
-      - name: Run causal promotion matrix
+      - name: Run full AI-Era blocking gate
         run: >-
           uv run python -m uquant.validation promotion
           --data-dir data/frozen
-          --baseline benchmarks/promotion_baseline.json
-          --profile "${{ steps.profile.outputs.value }}"
-          --output promotion-report.json
-      - name: Upload promotion report
+          --profile full
+          --output benchmarks/ai_era_performance.json
+      - name: Verify artifact binds the checked-out HEAD
+        run: |
+          uv run python - <<'PY'
+          import json
+          import subprocess
+          from pathlib import Path
+
+          artifact = Path("benchmarks/ai_era_performance.json")
+          payload = json.loads(artifact.read_text(encoding="utf-8"))
+          artifact_commit = payload["provenance"]["binding"]["production_commit"]
+          checkout_commit = subprocess.check_output(  # noqa: S603, S607
+              ["git", "rev-parse", "HEAD"], text=True
+          ).strip()
+          if artifact_commit != checkout_commit:
+              raise SystemExit(
+                  f"artifact commit {artifact_commit} != checkout HEAD {checkout_commit}"
+              )
+          PY
+      - name: Upload AI-Era performance report
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: strategy-promotion-${{ steps.profile.outputs.value }}
-          path: promotion-report.json
+          name: ai-era-performance
+          path: benchmarks/ai_era_performance.json

@@ -1,0 +1,30 @@
+{
+  "historical_only": true,
+  "current_production_evidence": false,
+  "schema_version": 1,
+  "production_commit": "685c600d0af5d85af87fb6553df81d4e4b10c358",
+  "production_source_sha256": "97208c7da99f87e12841afeaadf108ecdde7ccf39dcb7e255f7174c236a001ca",
+  "python_full_version": "3.12.13",
+  "numpy_version": "2.5.1",
+  "pandas_version": "3.0.5",
+  "uv_version": "0.11.33",
+  "uv_lock_sha256": "5bfc579a4fc5c562bb7cb905e0a0be727b12e9566e52a923ce74eb635445fefd",
+  "data_snapshot_id": "20260809T094222Z-causal-tech-index-rebase",
+  "data_manifest_sha256": "343009138d22f8d4a20768f706207fe4d4bcd03581b0c5945c5485ecbd28788d",
+  "data_checksums_sha256": "ba460d65f791f238d8a4a16ac62e2225c1832caa6f4da5003166a894edf80e29",
+  "engineering_gate": {
+    "ruff": "passed",
+    "mypy_strict": "passed",
+    "frozen_data_integrity": "passed",
+    "pytest": {
+      "status": "passed",
+      "tests": 716,
+      "coverage_percent": 87.05,
+      "duration_seconds": 483.98
+    },
+    "compileall": "passed",
+    "build": "passed",
+    "bandit": "passed",
+    "pip_audit": "passed"
+  }
+}

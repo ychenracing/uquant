@@ -18,6 +18,25 @@ def test_smoke_runner_does_not_accept_external_pre_window_evidence() -> None:
     assert "pre_window_prices" not in inspect.signature(run_generalization_smoke).parameters
 
 
+def test_smoke_runner_rejects_pre_2023_before_reading_economic_inputs(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    def unexpected_manifest_read(_data_dir: str) -> dict[str, Any]:
+        raise AssertionError("old economic interval reached data verification")
+
+    monkeypatch.setattr(smoke_module, "verify_data_manifest", unexpected_manifest_read)
+
+    with pytest.raises(RuntimeError, match="cannot start before 2023-01-01"):
+        run_generalization_smoke(
+            data_dir="unused",
+            universe=("s00",),
+            industries={"s00": "optical"},
+            prior_symbols=("s00",),
+            start="2018-01-02",
+            end="2022-12-30",
+        )
+
+
 def _universe() -> tuple[str, ...]:
     return tuple(f"s{index:02d}" for index in range(24))
 
@@ -36,10 +55,7 @@ def _industries() -> dict[str, str]:
         "packaging",
         "foundry",
     )
-    return {
-        symbol: labels[index % len(labels)]
-        for index, symbol in enumerate(_universe())
-    }
+    return {symbol: labels[index % len(labels)] for index, symbol in enumerate(_universe())}
 
 
 def _prices() -> dict[str, pd.Series]:

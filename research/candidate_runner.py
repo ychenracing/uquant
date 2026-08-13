@@ -13,6 +13,7 @@ from uquant.data import normalize_symbol
 from uquant.engine import INDEX_SYMBOLS, ProductionEngine
 from uquant.leader import REFERENCE_UNIVERSE
 from uquant.types import AccountState
+from uquant.validation.ai_era import require_ai_era_interval
 
 
 @dataclass(frozen=True, slots=True)
@@ -89,6 +90,7 @@ class CandidateRunner:
     ) -> CellTrace:
         """Replay one cell and retain its causal close-decision observations."""
 
+        start, end = require_ai_era_interval(start, end)
         normalized = tuple(sorted({normalize_symbol(symbol) for symbol in symbols}))
         if not normalized:
             raise ValueError("candidate trace requires a non-empty universe")
@@ -131,7 +133,7 @@ class CandidateRunner:
             frozen_evidence = tuple(
                 (str(name), json.dumps(value, sort_keys=True, separators=(",", ":"), default=str))
                 for name, value in sorted(decision.risk_summary.items())
-                if name != "leader_ranking"
+                if name not in {"leader_ranking", "effective_config_sha256"}
             )
             observations.append(
                 DecisionTrace(

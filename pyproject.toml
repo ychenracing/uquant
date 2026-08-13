@@ -7,9 +7,9 @@ name = "uquant"
 version = "1.1.0"
 description = "Causal A-share technology-sector daily quantitative decision system"
 readme = "README.md"
-requires-python = ">=3.11"
+requires-python = ">=3.12,<3.13"
 license = "MIT"
-dependencies = ["numpy>=1.26,<3", "pandas>=2.0,<4"]
+dependencies = ["numpy==2.5.1", "pandas==3.0.5"]
 
 [project.optional-dependencies]
 data = ["akshare>=1.17,<2"]
@@ -37,7 +37,7 @@ addopts = "-q --strict-config --strict-markers"
 
 [tool.ruff]
 line-length = 110
-target-version = "py311"
+target-version = "py312"
 
 [tool.ruff.lint]
 select = ["E", "F", "W", "I", "B", "UP", "SIM", "PERF", "RUF"]

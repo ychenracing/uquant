@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import hashlib
+import json
 from dataclasses import asdict, dataclass, replace
 from typing import Any
 
@@ -69,7 +71,7 @@ class SystemConfig:
     correlation_admission_penalty: float = 0.10
     industry_rotation_enabled: bool = True
     industry_signal_min_members: int = 2
-    hierarchical_industry_shrinkage_enabled: bool = True
+    hierarchical_industry_shrinkage_enabled: bool = False
     industry_rotation_min_score: float = 0.62
     industry_rotation_min_confidence: float = 0.50
     industry_rotation_edge: float = 0.18
@@ -161,7 +163,7 @@ class SystemConfig:
     # decisively stronger on two independent, causal evidence families.  That
     # exceptional owner may use the otherwise idle gross budget, then converts
     # to a cash-buffered position after one large-MFE profit lock.
-    strategic_dominant_max_weight: float = 1.0
+    strategic_dominant_max_weight: float = 0.95
     strategic_dominant_min_leader_gap: float = 0.05
     strategic_dominant_profit_lock_mfe: float = 2.20
     strategic_dominant_retained_gross: float = 0.70
@@ -177,7 +179,7 @@ class SystemConfig:
     strategic_cohort_guard_days: int = 120
     strategic_damage_guard_dd: float = 0.04
     strategic_damage_guard_transition: float = 0.55
-    strategic_damage_guard_gross: float = 0.67
+    strategic_damage_guard_gross: float = 0.89
     strategic_guard_level2_cap: float = 0.81
     recovery_target_gross: float = 0.92
     recovery_expansive_universe_gross: float = 0.70
@@ -234,7 +236,7 @@ class SystemConfig:
     risk_anchor_confirm_days: int = 5
     risk_anchor_min_secular_score: float = 0.55
     risk_breadth_name_weight: float = 0.50
-    group_balanced_reference_enabled: bool = True
+    group_balanced_reference_enabled: bool = False
     stable_reference_global_weight: float = 0.70
     unknown_industry_confidence: float = 0.55
     unknown_industry_weight_cap: float = 0.18
@@ -300,13 +302,13 @@ class SystemConfig:
     severe_recovery_gross: float = 0.25
     concentrated_recovery_gross: float = 0.50
     shock_rearm_days: int = 90
-    risk_off_gross: float = 0.75
+    risk_off_gross: float = 0.66
     narrow_anchor_guard_gross: float = 0.84
     narrow_anchor_divergence: float = 0.50
     weak_gross: float = 0.25
     strong_trend_gross: float = 1.0
     regime_factor_blend_enabled: bool = True
-    same_day_leader_pipeline_enabled: bool = True
+    same_day_leader_pipeline_enabled: bool = False
     confidence_sizing_enabled: bool = True
     high_confidence_entry_gross: float = 0.90
     exceptional_entry_gross: float = 0.95
@@ -320,7 +322,7 @@ class SystemConfig:
     challenger_scout_score_edge: float = 0.08
     challenger_scout_incumbent_hysteresis: float = 0.08
     risk_overlay_enabled: bool = True
-    evidence_family_voting_enabled: bool = True
+    evidence_family_voting_enabled: bool = False
     fail_closed: bool = True
 
     def __post_init__(self) -> None:
@@ -782,3 +784,15 @@ class SystemConfig:
 
 
 DEFAULT_CONFIG = SystemConfig()
+
+
+def config_fingerprint(cfg: SystemConfig = DEFAULT_CONFIG) -> str:
+    """Return a canonical digest of every effective production setting."""
+
+    encoded = json.dumps(
+        cfg.to_dict(),
+        allow_nan=False,
+        separators=(",", ":"),
+        sort_keys=True,
+    ).encode()
+    return hashlib.sha256(encoded).hexdigest()

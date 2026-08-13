@@ -1,0 +1,25 @@
+{
+  "historical_only": true,
+  "current_production_evidence": false,
+  "schema_version": 1,
+  "default_config_sha256": "e1e2f50b692a22527868c70592ed8fe93d016387e0cb0bd9b5285f7192e9ed0f",
+  "effective_config_sha256": "febac73c3faf8a31ba3db04e928247795fd15f4b76b446a44a3d7dc5edf81455",
+  "hidden_override_fields": {
+    "evidence_family_voting_enabled": {
+      "default": true,
+      "effective": false
+    },
+    "group_balanced_reference_enabled": {
+      "default": true,
+      "effective": false
+    },
+    "hierarchical_industry_shrinkage_enabled": {
+      "default": true,
+      "effective": false
+    },
+    "same_day_leader_pipeline_enabled": {
+      "default": true,
+      "effective": false
+    }
+  }
+}

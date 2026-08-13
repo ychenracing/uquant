@@ -151,13 +151,6 @@ class StrategicPortfolioPolicy(PortfolioCore):
             account.candidate_tenure[qualification_key] = 0
             account.candidate_tenure[long_cycle_open_key] = 0
             return
-        configured_universe_size = int(
-            risk.evidence.get("configured_user_universe_size", len(user_panel))
-        )
-        sparse_opportunity_set = bool(
-            configured_universe_size <= self.cfg.strategic_partial_universe_max_size
-        )
-
         def has_known_industry(symbol: str) -> bool:
             return bool(
                 symbol in leaders
@@ -254,18 +247,7 @@ class StrategicPortfolioPolicy(PortfolioCore):
             (
                 symbol
                 for symbol, values in snapshots.items()
-                if (
-                    values["persistent_ret240"] >= self.cfg.strategic_cohort_min_ret240
-                    or (
-                        sparse_opportunity_set
-                        and
-                        values["secular_score"] >= self.cfg.strategic_secular_min_score
-                        and values["secular_confidence"]
-                        >= self.cfg.strategic_secular_min_confidence
-                        and values["ret120"] > 0.0
-                        and values["trend_persistence"] >= 2 / 3
-                    )
-                )
+                if values["persistent_ret240"] >= self.cfg.strategic_cohort_min_ret240
                 and values["ret120"] <= self.cfg.strategic_persistent_max_ret120
                 and has_known_industry(symbol)
             ),
@@ -393,19 +375,15 @@ class StrategicPortfolioPolicy(PortfolioCore):
                 ):
                     decisive_reversal_symbol = lead
         # Durable 240-session industry evidence dominates shorter factor
-        # admission even after dynamic risk anchors have armed.  Letting an
-        # established/transition rank jump ahead made wider universes spend an
-        # epoch on a merely recent winner while a proven cluster was available.
+        # admission even after dynamic risk anchors have armed. A proven
+        # cluster remains stronger evidence than a merely recent winner.
         if decisive_reversal_symbol is not None:
             # Authorization for a dominant owner depends only on the pair's
             # synchronized economic evidence.  Unrelated pool members and the
             # configured universe-size route cannot suppress or create it.
             long_cycle_symbols = decisive_reversal_pair
             route = "reversal_industry"
-        elif persistent_groups and (
-            anchors_not_yet_armed
-            or configured_universe_size >= self.cfg.adaptive_broad_universe_min_size
-        ):
+        elif persistent_groups:
             long_cycle_symbols = persistent_groups[0]
             route = "persistent_industry"
         elif high_quality_groups:
@@ -417,15 +395,6 @@ class StrategicPortfolioPolicy(PortfolioCore):
         elif len(established_candidates) >= self.cfg.strategic_cohort_min_size:
             long_cycle_symbols = established_candidates[: self.cfg.strategic_cohort_size]
             route = "established"
-        elif sparse_opportunity_set and len(established_candidates) >= 2:
-            long_cycle_symbols = established_candidates[:2]
-            route = "established"
-        elif sparse_opportunity_set and established_candidates:
-            long_cycle_symbols = established_candidates[:1]
-            route = "established"
-        elif sparse_opportunity_set and len(transition_candidates) >= 2:
-            long_cycle_symbols = transition_candidates[:2]
-            route = "transition"
         elif impulse_groups:
             long_cycle_symbols = impulse_groups[0]
             route = "transition_impulse"
@@ -446,7 +415,11 @@ class StrategicPortfolioPolicy(PortfolioCore):
             route = "none"
         if (
             route == "established"
-            and configured_universe_size >= self.cfg.adaptive_broad_universe_min_size
+            and all(
+                leaders[symbol].mature
+                for symbol in long_cycle_symbols
+                if symbol in leaders
+            )
             and float(
                 pd.Series(
                     [snapshots[symbol]["persistent_ret240"] for symbol in long_cycle_symbols]
@@ -454,10 +427,8 @@ class StrategicPortfolioPolicy(PortfolioCore):
             )
             < self.cfg.strategic_established_min_median_ret240
         ):
-            # Wide pools create many more chances for three recent winners to
-            # pass cross-sectional thresholds by luck.  Require durable median
-            # persistence for the established route; transition/impulse routes
-            # keep their own independent causal contracts.
+            # Already-mature leaders need durable median persistence; emerging
+            # candidates keep their separate current-factor confirmation.
             long_cycle_symbols = []
             route = "none"
         evidence_route = route
@@ -533,10 +504,16 @@ class StrategicPortfolioPolicy(PortfolioCore):
             <= self.cfg.strategic_long_cycle_max_tech_ret120
         )
         cohort_count = len(long_cycle_symbols)
-        partial_cohort_supported = bool(
-            synchronized_reversal
-            or sparse_opportunity_set
+        negative_long_cycle_backed = bool(
+            all(
+                snapshots[symbol]["ret120"] > 0.0
+                for symbol in long_cycle_symbols
+            )
+            or anchor_state_observed
+            or synchronized_reversal
+            or route == "transition_impulse"
         )
+        partial_cohort_supported = bool(synchronized_reversal)
         cohort_quality = bool(
             cohort_count >= 3
             or (
@@ -564,6 +541,7 @@ class StrategicPortfolioPolicy(PortfolioCore):
         )
         raw_long_cycle = bool(
             cohort_quality
+            and negative_long_cycle_backed
             # A fully armed, cross-industry sentinel basket is the ordinary
             # independent gate. During its initial hysteresis only, three
             # independently qualified names agreeing inside one known
@@ -717,6 +695,17 @@ class StrategicPortfolioPolicy(PortfolioCore):
         account.candidate_tenure["strategic_profit_armed"] = 0
         account.candidate_tenure["strategic_tail_armed"] = 1
         account.strategic_epoch += 1
+        account.candidate_tenure["strategic_early_cycle_epoch"] = (
+            account.strategic_epoch
+            if route_symbols
+            and all(
+                snapshots[symbol]["persistent_ret240"]
+                >= self.cfg.strategic_cohort_min_ret240
+                and snapshots[symbol]["ret120"] < 0.0
+                for symbol in route_symbols
+            )
+            else 0
+        )
         account.candidate_tenure["strategic_dominant_epoch"] = (
             account.strategic_epoch if dominant_symbol is not None else 0
         )
@@ -820,8 +809,21 @@ class StrategicPortfolioPolicy(PortfolioCore):
             )
             != account.strategic_epoch
         )
+        strategic_damage_trim_active = bool(
+            account.strategic_epoch > 0
+            and account.candidate_tenure.get(
+                "strategic_damage_trim_epoch", -1
+            )
+            == account.strategic_epoch
+            and account.candidate_tenure.get(
+                "strategic_damage_guard_complete_epoch", -1
+            )
+            != account.strategic_epoch
+            and bool(account.strategic_restore_weights)
+        )
         strategic_damage_guard_owns_transition = bool(
             strategic_damage_guard_active
+            or strategic_damage_trim_active
             or risk.evidence.get("strategic_damage_guard", False)
         )
         dominant_symbol = strategic_dominant_symbol(account)
@@ -965,24 +967,22 @@ class StrategicPortfolioPolicy(PortfolioCore):
                 for index, signal in enumerate(triggered):
                     if signal:
                         armed[index] = True
-                        transition_accelerated_step = self.cfg.strategic_cohort_exit_step * (
-                            2.0
-                            if int(
-                                risk.evidence.get(
-                                    "configured_user_universe_size",
-                                    len(user_panel),
-                                )
-                            )
-                            <= self.cfg.strategic_partial_universe_max_size
-                            and (
-                                account.capital_budget_level >= 3
-                                or float(risk.evidence.get("transition_damage", 0.0))
-                                >= self.cfg.transition_damage_freeze
-                            )
-                            else 1.0
+                        transition_accelerated_step = self.cfg.strategic_cohort_exit_step
+                        gradual_structural_damage = bool(
+                            scalar(row, "ret5", -math.inf)
+                            > self.cfg.tactical_rebound_oversold_max_ret5
+                            and scalar(row, "ret20", math.inf)
+                            <= self.cfg.tactical_rebound_breadth_max_ret20
+                            and scalar(row, "ret60", math.inf) <= 0.0
+                            and scalar(row, "ret120", -math.inf)
+                            >= self.cfg.strategic_secular_min_score
                         )
                         repaired_guard_step = (
-                            self.cfg.strategic_post_guard_exit_step
+                            (
+                                self.cfg.strategic_gradual_post_guard_exit_step
+                                if gradual_structural_damage
+                                else self.cfg.strategic_post_guard_exit_step
+                            )
                             if account.strategic_epoch > 0
                             and account.candidate_tenure.get(
                                 "strategic_damage_guard_complete_epoch", -1
@@ -1050,7 +1050,10 @@ class StrategicPortfolioPolicy(PortfolioCore):
             account=account,
         )
         strategic_guard_repaired = bool(
-            not strategic_damage_guard_active
+            not (
+                strategic_damage_guard_active
+                or strategic_damage_trim_active
+            )
             or (
                 risk.votes <= 1
                 and float(risk.evidence.get("transition_damage", 0.0))
@@ -1095,8 +1098,12 @@ class StrategicPortfolioPolicy(PortfolioCore):
                 position.shares * prices.get(symbol, 0.0)
                 for symbol, position in account.positions.items()
             )
-            restore_weight_tolerance = max(
+            restore_trade_threshold = max(
                 self.cfg.restoration_min_trade_weight,
+                self.cfg.min_trade_value / equity if equity > 1e-12 else math.inf,
+            )
+            restore_completion_tolerance = max(
+                self.cfg.min_trade_weight,
                 self.cfg.min_trade_value / equity if equity > 1e-12 else math.inf,
             )
             material_pending_restore_buys = {
@@ -1107,7 +1114,7 @@ class StrategicPortfolioPolicy(PortfolioCore):
                 and weights_now.get(order.symbol, 0.0)
                 < 0.95 * proposed[order.symbol]
                 and proposed[order.symbol] - weights_now.get(order.symbol, 0.0)
-                >= restore_weight_tolerance
+                >= restore_trade_threshold
             }
             # Completion is a per-member invariant.  Aggregate gross can reach
             # 95% while a capacity-constrained member is still entirely
@@ -1121,23 +1128,29 @@ class StrategicPortfolioPolicy(PortfolioCore):
                 risk.target_gross_cap >= sum(saved_restore.values()) - 1e-12
                 and not material_pending_restore_buys
                 and all(
-                    weights_now.get(symbol, 0.0) >= 0.95 * desired
-                    or desired - weights_now.get(symbol, 0.0) < restore_weight_tolerance
+                    desired - weights_now.get(symbol, 0.0) + 1e-12
+                    < restore_trade_threshold
+                    or (
+                        weights_now.get(symbol, 0.0) >= 0.95 * desired
+                        and desired - weights_now.get(symbol, 0.0)
+                        < restore_completion_tolerance
+                    )
                     for symbol, desired in proposed.items()
                     if desired > 1e-12
                 )
             )
             if restore_complete:
                 account.strategic_restore_weights.clear()
-                if strategic_damage_guard_active:
+                if strategic_damage_guard_active or strategic_damage_trim_active:
                     account.candidate_tenure[
                         "strategic_damage_guard_active_epoch"
                     ] = 0
+                    account.candidate_tenure["strategic_damage_trim_epoch"] = 0
                     account.candidate_tenure[
                         "strategic_damage_guard_complete_epoch"
                     ] = account.strategic_epoch
         elif (
-            strategic_damage_guard_active
+            (strategic_damage_guard_active or strategic_damage_trim_active)
             and risk.state.value == "NORMAL"
             and not risk.reasons
             and not account.strategic_restore_weights
@@ -1146,6 +1159,7 @@ class StrategicPortfolioPolicy(PortfolioCore):
             # cap, leaving no economic gap to restore.  Settle that one-shot
             # lifecycle only after clean risk evidence returns.
             account.candidate_tenure["strategic_damage_guard_active_epoch"] = 0
+            account.candidate_tenure["strategic_damage_trim_epoch"] = 0
             account.candidate_tenure[
                 "strategic_damage_guard_complete_epoch"
             ] = account.strategic_epoch

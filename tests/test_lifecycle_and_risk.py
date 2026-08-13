@@ -1250,23 +1250,20 @@ def test_weak_regime_can_admit_the_dynamic_persistent_industry_route() -> None:
 
 
 @pytest.mark.parametrize(
-    ("member_count", "expected_gross", "confirm_days"),
+    ("member_count", "confirm_days"),
     (
         (
             2,
-            DEFAULT_CONFIG.strategic_two_name_gross,
             DEFAULT_CONFIG.strategic_two_name_confirm_days,
         ),
         (
             1,
-            DEFAULT_CONFIG.strategic_one_name_gross,
             DEFAULT_CONFIG.strategic_one_name_confirm_days,
         ),
     ),
 )
-def test_strategic_cohort_size_adapts_to_qualified_evidence(
+def test_ordinary_partial_strategic_cohort_requires_synchronized_evidence(
     member_count: int,
-    expected_gross: float,
     confirm_days: int,
 ) -> None:
     dates = pd.bdate_range("2023-01-02", periods=246)
@@ -1295,9 +1292,9 @@ def test_strategic_cohort_size_adapts_to_qualified_evidence(
         risk=_normal_risk(),
     )
 
-    assert len(account.strategic_cohort_symbols) == member_count
-    assert sum(account.strategic_cohort_targets.values()) == pytest.approx(expected_gross)
-    assert account.strategic_candidate_signature.startswith("strategic_qualification:SECULAR:")
+    assert account.strategic_epoch == 0
+    assert account.strategic_cohort_symbols == []
+    assert account.strategic_cohort_targets == {}
 
 
 def test_single_name_strategic_cohort_rejects_a_nonexceptional_weak_leg() -> None:
@@ -1319,7 +1316,7 @@ def test_single_name_strategic_cohort_rejects_a_nonexceptional_weak_leg() -> Non
     assert account.strategic_epoch == 0
 
 
-def test_partial_strategic_cohort_cannot_preempt_a_broad_opportunity_set() -> None:
+def test_unqualified_universe_padding_cannot_authorize_a_partial_cohort() -> None:
     dates = pd.bdate_range("2023-01-02", periods=246)
     panel, leaders = _dynamic_cohort_inputs(dates)
     qualified = tuple(sorted(panel))[:2]
@@ -1345,6 +1342,7 @@ def test_partial_strategic_cohort_cannot_preempt_a_broad_opportunity_set() -> No
         )
 
     assert account.strategic_epoch == 0
+    assert account.strategic_cohort_symbols == []
 
 
 def test_choppy_observation_can_confirm_but_not_admit_a_strategic_cohort() -> None:
@@ -2601,6 +2599,66 @@ def test_overextended_pullback_with_confirmed_current_reversal_can_probe() -> No
     assert account.candidate_tenure["tactical_overheat_cooldown"] == 0
 
 
+@pytest.mark.parametrize(
+    ("ret5", "ret20", "ret120"),
+    (
+        (0.08, -0.17, 0.80),
+        (0.08, -0.17, 1.20),
+        (0.08, -0.24, 0.80),
+        (0.01, -0.24, 0.80),
+    ),
+)
+def test_low_quality_fast_reversal_does_not_open_an_empty_book(
+    ret5: float,
+    ret20: float,
+    ret120: float,
+) -> None:
+    dates = pd.bdate_range("2025-01-02", periods=150)
+    symbol = "low_quality_reversal"
+    close = np.linspace(0.80, 1.00, len(dates))
+    frame = pd.DataFrame(
+        {
+            "close": close,
+            "ma20": 1.05,
+            "ma60": 1.00,
+            "ma120": 0.90,
+            "ret5": ret5,
+            "ret20": ret20,
+            "ret60": 0.40,
+            "ret120": ret120,
+            "amount": 1_000_000_000.0,
+        },
+        index=dates,
+    )
+    caution = RiskAssessment(
+        Risk.CAUTION,
+        1.0,
+        4,
+        {
+            "freeze_new_risk": True,
+            "transition_damage": 0.80,
+            "broad_ret120": -0.03,
+            "tech_ret120": 0.06,
+        },
+        ("broad caution without a capital freeze",),
+        "NONE",
+        freeze_new_risk=True,
+        reduction_level=1,
+    )
+
+    targets = PortfolioAllocator(DEFAULT_CONFIG).allocate(
+        date=dates[-1],
+        opportunity=Opportunity.CHOPPY,
+        risk=caution,
+        user_panel={symbol: frame},
+        leaders={symbol: _leader(symbol, 0.70)},
+        account=AccountState.empty(100.0),
+        prices={symbol: 1.00},
+    )
+
+    assert targets == ()
+
+
 def test_independent_deep_crash_probe_does_not_require_broad_market_weakness() -> None:
     dates = pd.bdate_range("2025-01-02", periods=150)
     close = np.ones(len(dates), dtype=float)
@@ -2772,7 +2830,7 @@ def test_three_member_expansion_preserves_the_confirmed_tactical_anchor() -> Non
     assert account.candidate_tenure["recovery_cohort_locked"] == 1
 
 
-def test_three_confirmed_recovery_members_share_the_locked_budget() -> None:
+def test_three_confirmed_recovery_members_share_the_full_locked_budget() -> None:
     dates = pd.bdate_range("2025-01-02", periods=150)
     symbols = ("deepest", "second", "third")
     panel: dict[str, pd.DataFrame] = {}
@@ -2809,14 +2867,27 @@ def test_three_confirmed_recovery_members_share_the_locked_budget() -> None:
         prices={symbol: 1.0 for symbol in symbols},
     )
 
-    # Independent breadth diversifies the residual budget without erasing the
-    # deepest causal crash winner's 60% conviction ownership.
+    # Exactly three confirmed members fill all available seats without
+    # selection ambiguity while preserving the crash winner's conviction ratio.
     gross = min(DEFAULT_CONFIG.max_gross, risk.target_gross_cap)
+    lead = min(
+        DEFAULT_CONFIG.max_symbol_weight,
+        DEFAULT_CONFIG.tactical_rebound_weight,
+        gross,
+    )
     assert {target.symbol: target.weight for target in targets} == pytest.approx(
-        {symbols[0]: 0.60, symbols[1]: (gross - 0.60) / 2, symbols[2]: (gross - 0.60) / 2}
+        {
+            symbols[0]: lead,
+            symbols[1]: (gross - lead) / 2,
+            symbols[2]: (gross - lead) / 2,
+        }
     )
     assert account.anchor_weights == pytest.approx(
-        {symbols[0]: 0.60, symbols[1]: (gross - 0.60) / 2, symbols[2]: (gross - 0.60) / 2}
+        {
+            symbols[0]: lead,
+            symbols[1]: (gross - lead) / 2,
+            symbols[2]: (gross - lead) / 2,
+        }
     )
     assert account.candidate_tenure["recovery_cohort_locked"] == 1
 
@@ -2853,8 +2924,8 @@ def test_three_confirmed_recovery_members_share_the_locked_budget() -> None:
     assert {target.symbol: target.weight for target in resumed_targets} == pytest.approx(
         {
             symbols[0]: 1.0 / 3.0,
-            symbols[1]: (gross - 0.60) / 2,
-            symbols[2]: (gross - 0.60) / 2,
+            symbols[1]: (gross - lead) / 2,
+            symbols[2]: (gross - lead) / 2,
         }
     )
 
@@ -2941,7 +3012,10 @@ def test_unconfirmed_simultaneous_recovery_members_keep_one_tactical_owner() -> 
     assert account.candidate_tenure["recovery_cohort_locked"] == 1
 
 
-def test_expansive_recovery_cohort_scales_the_first_deployment() -> None:
+@pytest.mark.parametrize("reported_universe_size", (3, 30))
+def test_recovery_cohort_size_ignores_unrelated_universe_members(
+    reported_universe_size: int,
+) -> None:
     dates = pd.bdate_range("2025-01-02", periods=150)
     symbols = ("deepest", "second", "third")
     panel: dict[str, pd.DataFrame] = {}
@@ -2959,7 +3033,7 @@ def test_expansive_recovery_cohort_scales_the_first_deployment() -> None:
             "broad_ret120": -0.20,
             "tech_ret120": -0.20,
             "risk_anchor_group_count": DEFAULT_CONFIG.strategic_cohort_min_size,
-            "configured_user_universe_size": DEFAULT_CONFIG.strategic_expansive_universe_min_size,
+            "configured_user_universe_size": reported_universe_size,
         },
         (),
         "NONE",
@@ -2980,8 +3054,50 @@ def test_expansive_recovery_cohort_scales_the_first_deployment() -> None:
     )
 
     weights = {target.symbol: target.weight for target in targets}
-    assert sum(weights.values()) == pytest.approx(DEFAULT_CONFIG.recovery_expansive_universe_gross)
+    assert sum(weights.values()) == pytest.approx(DEFAULT_CONFIG.max_gross)
     assert weights[symbols[0]] > weights[symbols[1]] == pytest.approx(weights[symbols[2]])
+
+
+def test_ambiguous_recovery_candidates_bound_the_first_deployment() -> None:
+    dates = pd.bdate_range("2025-01-02", periods=150)
+    symbols = ("deepest", "second", "third", "fourth")
+    panel: dict[str, pd.DataFrame] = {}
+    for index, symbol in enumerate(symbols):
+        frame = _trend_frame(dates, close=np.linspace(0.80, 1.00, len(dates)))
+        frame["ret120"] = -0.40 + 0.02 * index
+        panel[symbol] = frame
+    risk = RiskAssessment(
+        Risk.NORMAL,
+        1.0,
+        0,
+        {
+            "broad_ret60": 0.05,
+            "tech_ret60": 0.05,
+            "broad_ret120": -0.20,
+            "tech_ret120": -0.20,
+            "risk_anchor_group_count": DEFAULT_CONFIG.strategic_cohort_min_size,
+        },
+        (),
+        "NONE",
+    )
+
+    targets = PortfolioAllocator(DEFAULT_CONFIG).allocate(
+        date=dates[-1],
+        opportunity=Opportunity.RECOVERY,
+        risk=risk,
+        user_panel=panel,
+        leaders={
+            symbol: _leader(symbol, 0.90 - 0.01 * index)
+            for index, symbol in enumerate(symbols)
+        },
+        account=AccountState.empty(100.0),
+        prices={symbol: 1.0 for symbol in symbols},
+    )
+
+    assert len(targets) == 3
+    assert sum(target.weight for target in targets) == pytest.approx(
+        DEFAULT_CONFIG.recovery_expansive_universe_gross
+    )
 
 
 def test_locked_recovery_cohort_keeps_an_unfinished_owner_buy_target() -> None:
@@ -4767,7 +4883,13 @@ def test_transition_impulse_exits_once_when_every_atr_band_breaks() -> None:
     assert account.strategic_cohort_targets == {}
 
 
-def test_strategic_damage_guard_preserves_trail_owner_until_restore_completes() -> None:
+@pytest.mark.parametrize(
+    "guard_owner_key",
+    ("strategic_damage_guard_active_epoch", "strategic_damage_trim_epoch"),
+)
+def test_strategic_damage_guard_preserves_trail_owner_until_restore_completes(
+    guard_owner_key: str,
+) -> None:
     dates = pd.bdate_range("2025-01-02", periods=150)
     date = dates[-1]
     symbol = "guarded_secular_member"
@@ -4788,7 +4910,7 @@ def test_strategic_damage_guard_preserves_trail_owner_until_restore_completes() 
         candidate_tenure={
             "strategic_cohort_active": 1,
             "strategic_cohort_started": 1,
-            "strategic_damage_guard_active_epoch": 1,
+            guard_owner_key: 1,
         },
         operating_peak=100.0,
         capital_peak=100.0,
@@ -4816,7 +4938,7 @@ def test_strategic_damage_guard_preserves_trail_owner_until_restore_completes() 
 
     assert account.strategic_exit_bands == {}
     assert account.strategic_restore_weights == {symbol: 0.30}
-    assert account.candidate_tenure["strategic_damage_guard_active_epoch"] == 1
+    assert account.candidate_tenure[guard_owner_key] == 1
 
     still_damaged = RiskAssessment(
         Risk.NORMAL,
@@ -4837,7 +4959,7 @@ def test_strategic_damage_guard_preserves_trail_owner_until_restore_completes() 
     )
 
     assert account.strategic_restore_weights == {symbol: 0.30}
-    assert account.candidate_tenure["strategic_damage_guard_active_epoch"] == 1
+    assert account.candidate_tenure[guard_owner_key] == 1
 
     allocator._strategic_cohort_targets(
         date=date,
@@ -4851,7 +4973,7 @@ def test_strategic_damage_guard_preserves_trail_owner_until_restore_completes() 
 
     assert account.strategic_exit_bands == {}
     assert account.strategic_restore_weights == {}
-    assert account.candidate_tenure["strategic_damage_guard_active_epoch"] == 0
+    assert account.candidate_tenure[guard_owner_key] == 0
     assert account.candidate_tenure["strategic_damage_guard_complete_epoch"] == 1
 
 
@@ -4904,6 +5026,61 @@ def test_repaired_strategic_damage_guard_uses_a_decisive_next_profit_trail(
 
     assert {target.symbol: target.weight for target in targets or ()} == pytest.approx(
         {symbol: expected_weight}
+    )
+
+
+def test_post_guard_trail_exits_acute_damage_faster_than_gradual_damage() -> None:
+    dates = pd.bdate_range("2025-01-02", periods=150)
+    date = dates[-1]
+    symbols = ("gradual", "acute")
+    frames = {symbol: _trend_frame(dates) for symbol in symbols}
+    for frame in frames.values():
+        frame.loc[date, "close"] = 1.0
+        frame.loc[date, "ma20"] = 1.1
+        frame.loc[date, "ret20"] = -0.16
+        frame.loc[date, "ret60"] = -0.02
+        frame.loc[date, "ret120"] = 0.70
+        frame.loc[date, "atr"] = 0.10
+    frames["gradual"].loc[date, "ret5"] = -0.05
+    frames["acute"].loc[date, "ret5"] = -0.10
+    account = AccountState(
+        initial_cash=100.0,
+        cash=40.0,
+        positions={
+            symbol: Position(symbol, shares=30, avg_cost=0.50, highest_close=2.0)
+            for symbol in symbols
+        },
+        strategic_cohort_symbols=list(symbols),
+        strategic_cohort_targets={symbol: 0.30 for symbol in symbols},
+        strategic_candidate_signature="strategic_qualification:SECULAR:ranked",
+        strategic_epoch=1,
+        candidate_tenure={
+            "strategic_cohort_active": 1,
+            "strategic_cohort_started": 1,
+            "strategic_damage_guard_active_epoch": 0,
+            "strategic_damage_guard_complete_epoch": 1,
+        },
+        operating_peak=100.0,
+        capital_peak=100.0,
+    )
+
+    targets = PortfolioAllocator(
+        DEFAULT_CONFIG.override(min_trade_value=0.0)
+    )._strategic_cohort_targets(
+        date=date,
+        risk=_normal_risk(),
+        user_panel=frames,
+        leaders={
+            "gradual": _leader("gradual", 0.80),
+            "acute": _leader("acute", 0.90),
+        },
+        account=account,
+        prices={symbol: 1.0 for symbol in symbols},
+        weights_now={symbol: 0.30 for symbol in symbols},
+    )
+
+    assert {target.symbol: target.weight for target in targets or ()} == pytest.approx(
+        {"gradual": 0.13, "acute": 0.10}
     )
 
 
@@ -5228,6 +5405,59 @@ def test_normal_level1_freeze_preserves_armed_core_when_label_is_transiently_abs
 
     assert armed
     assert account.candidate_tenure["leader_cycle_armed"] == 1
+
+
+def test_confirmed_live_core_waits_in_place_while_leader_owner_rearms() -> None:
+    dates = pd.bdate_range("2025-01-02", periods=150)
+    date = dates[-1]
+    symbols = ("confirmed_core_a", "confirmed_core_b")
+    frame = _trend_frame(dates)
+    account = AccountState(
+        initial_cash=100.0,
+        cash=40.0,
+        positions={
+            symbol: Position(
+                symbol,
+                shares=30,
+                avg_cost=0.80,
+                entry_date=str(dates[-20].date()),
+                highest_close=1.0,
+                lifecycle=Lifecycle.CORE.value,
+            )
+            for symbol in symbols
+        },
+        active_leaders=list(symbols),
+        dynamic_k=2,
+        last_k_change_date=str(date.date()),
+        operating_peak=100.0,
+        capital_peak=100.0,
+    )
+    risk = RiskAssessment(
+        Risk.NORMAL,
+        1.0,
+        0,
+        {"broad_ret120": -0.02, "tech_ret120": -0.02},
+        (),
+        "NONE",
+    )
+
+    targets = PortfolioAllocator(DEFAULT_CONFIG).allocate(
+        date=date,
+        opportunity=Opportunity.STRONG_TREND,
+        risk=risk,
+        user_panel={symbol: frame for symbol in symbols},
+        leaders={
+            symbols[0]: _leader(symbols[0], 0.90, industry="optical"),
+            symbols[1]: _leader(symbols[1], 0.88, industry="equipment"),
+        },
+        account=account,
+        prices={symbol: 1.0 for symbol in symbols},
+    )
+
+    assert {target.symbol: target.weight for target in targets} == pytest.approx(
+        {symbol: 0.30 for symbol in symbols}
+    )
+    assert account.candidate_tenure.get("leader_cycle_armed", 0) == 0
 
 
 def test_synchronized_impulse_tolerates_only_a_near_zero_slow_index_leg() -> None:

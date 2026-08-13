@@ -52,22 +52,21 @@ POOL_D = (
 )
 
 
-def test_transition_universe_keeps_same_day_alpha_but_uses_reviewed_risk_actions() -> None:
-    sparse = _decision_config_for_universe(8)
-    transition = _decision_config_for_universe(9)
-    broad = _decision_config_for_universe(10)
-
-    assert sparse.same_day_leader_pipeline_enabled
-    assert sparse.evidence_family_voting_enabled
-    assert transition.same_day_leader_pipeline_enabled
-    assert not transition.evidence_family_voting_enabled
-    assert not broad.same_day_leader_pipeline_enabled
-    assert not broad.group_balanced_reference_enabled
-    explicit = _decision_config_for_universe(
-        9,
-        DEFAULT_CONFIG.override(adaptive_broad_universe_compatibility_enabled=False),
+def test_decision_config_is_invariant_to_unrelated_universe_size() -> None:
+    expected = DEFAULT_CONFIG.override(
+        same_day_leader_pipeline_enabled=False,
+        group_balanced_reference_enabled=False,
+        hierarchical_industry_shrinkage_enabled=False,
+        evidence_family_voting_enabled=False,
     )
-    assert explicit.evidence_family_voting_enabled
+
+    assert _decision_config_for_universe(3) == expected
+    assert _decision_config_for_universe(9) == expected
+    assert _decision_config_for_universe(10) == expected
+    assert _decision_config_for_universe(32) == expected
+    explicit = DEFAULT_CONFIG.override(adaptive_broad_universe_compatibility_enabled=False)
+    assert _decision_config_for_universe(3, explicit) == explicit
+    assert _decision_config_for_universe(32, explicit) == explicit
 
 
 def test_determinism_one_target_and_hard_constraints(data_dir):

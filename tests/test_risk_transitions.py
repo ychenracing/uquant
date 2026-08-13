@@ -12,7 +12,6 @@ from uquant.leader import INDUSTRY, REFERENCE_UNIVERSE
 from uquant.risk import (
     _evidence_family_votes,
     _strategic_damage_guard_required,
-    _strategic_grace_supported,
     _update_capital_budget_ladder,
     _update_dynamic_anchors,
     assess_risk,
@@ -172,24 +171,6 @@ def test_true_crash_escalates_across_independent_evidence_families() -> None:
     assert sum(families.values()) == 6
 
 
-def test_broad_strategic_grace_is_reserved_for_expansive_universes() -> None:
-    assert _strategic_grace_supported(
-        configured_universe_size=5,
-        broad_compatibility=False,
-        cfg=DEFAULT_CONFIG,
-    )
-    assert not _strategic_grace_supported(
-        configured_universe_size=15,
-        broad_compatibility=True,
-        cfg=DEFAULT_CONFIG,
-    )
-    assert _strategic_grace_supported(
-        configured_universe_size=20,
-        broad_compatibility=True,
-        cfg=DEFAULT_CONFIG,
-    )
-
-
 def test_young_strategic_damage_guard_caps_exposure_without_retiring_owner() -> None:
     account = AccountState.empty(100.0)
     account.strategic_cohort_symbols = ["owner"]
@@ -235,6 +216,41 @@ def test_young_strategic_damage_guard_caps_exposure_without_retiring_owner() -> 
     account.candidate_tenure["strategic_cohort_days"] = (
         DEFAULT_CONFIG.capital_budget_new_cohort_grace_days
     )
+    assert not _strategic_damage_guard_required(
+        account=account,
+        operating_drawdown=DEFAULT_CONFIG.strategic_damage_guard_dd + 0.01,
+        transition_damage=DEFAULT_CONFIG.strategic_damage_guard_transition + 0.01,
+        votes=2,
+        cfg=DEFAULT_CONFIG,
+    )
+
+
+def test_young_diversified_cohort_uses_only_one_transient_damage_trim() -> None:
+    account = AccountState.empty(100.0)
+    account.strategic_cohort_symbols = ["a", "b", "c"]
+    account.strategic_cohort_targets = {
+        "a": 1.0 / 3.0,
+        "b": 1.0 / 3.0,
+        "c": 1.0 / 3.0,
+    }
+    account.strategic_candidate_signature = "strategic_qualification:SECULAR:a,b,c"
+    account.candidate_tenure.update(
+        {
+            "strategic_cohort_active": 1,
+            "strategic_cohort_started": 1,
+            "strategic_cohort_days": 20,
+        }
+    )
+
+    assert _strategic_damage_guard_required(
+        account=account,
+        operating_drawdown=DEFAULT_CONFIG.strategic_damage_guard_dd + 0.01,
+        transition_damage=DEFAULT_CONFIG.strategic_damage_guard_transition + 0.01,
+        votes=2,
+        cfg=DEFAULT_CONFIG,
+    )
+    account.strategic_epoch = 3
+    account.candidate_tenure["strategic_damage_trim_epoch"] = 3
     assert not _strategic_damage_guard_required(
         account=account,
         operating_drawdown=DEFAULT_CONFIG.strategic_damage_guard_dd + 0.01,
@@ -638,10 +654,28 @@ def test_shock_rearm_uses_canonical_tech_calendar_not_panel_order() -> None:
         user_panel={"dense": dense, "sparse": sparse},
         equity=75.0,
     )
+    irrelevant_member = _assess(
+        date=date,
+        dates=dates,
+        states=states,
+        account=_rearm_account(dates),
+        cfg=cfg,
+        user_panel={
+            "sparse": sparse,
+            "dense": dense,
+            "unheld_irrelevant": dense,
+        },
+        equity=75.0,
+    )
 
     assert sparse_first.state is Risk.CRISIS
     assert dense_first.state is Risk.CRISIS
+    assert irrelevant_member.state is Risk.CRISIS
     assert sparse_first.target_gross_cap == pytest.approx(dense_first.target_gross_cap)
+    assert sparse_first.target_gross_cap == pytest.approx(
+        irrelevant_member.target_gross_cap
+    )
+    assert sparse_first.severity == irrelevant_member.severity
 
 
 def test_chronic_overlay_cap_is_a_hard_minimum_on_normal_path() -> None:
@@ -959,7 +993,12 @@ def test_acute_overlay_preserves_existing_zero_gross_crisis_owner() -> None:
         initial_cash=20_000.0,
         cash=0.0,
         positions={
-            symbol: Position(symbol, shares=100, avg_cost=100.0)
+            symbol: Position(
+                symbol,
+                shares=100,
+                avg_cost=100.0,
+                lifecycle="RECOVERY",
+            )
             for symbol in symbols
         },
         operating_peak=20_000.0,

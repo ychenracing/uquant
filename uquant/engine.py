@@ -52,24 +52,22 @@ def _decision_config_for_universe(
     configured_universe_size: int,
     cfg: SystemConfig = DEFAULT_CONFIG,
 ) -> SystemConfig:
-    """Select reviewed automatic compatibility from causal universe shape."""
-    broad = bool(
-        cfg.adaptive_broad_universe_compatibility_enabled
-        and configured_universe_size >= cfg.adaptive_broad_universe_min_size
+    """Return one production policy regardless of unrelated universe members.
+
+    The positional argument remains for state/API compatibility and diagnostic
+    provenance.  It must never select a different strategy configuration: an
+    otherwise irrelevant symbol cannot change the decision path merely by
+    crossing a pool-size threshold.
+    """
+    del configured_universe_size
+    if not cfg.adaptive_broad_universe_compatibility_enabled:
+        return cfg
+    return cfg.override(
+        same_day_leader_pipeline_enabled=False,
+        group_balanced_reference_enabled=False,
+        hierarchical_industry_shrinkage_enabled=False,
+        evidence_family_voting_enabled=False,
     )
-    if broad:
-        return cfg.override(
-            same_day_leader_pipeline_enabled=False,
-            group_balanced_reference_enabled=False,
-            hierarchical_industry_shrinkage_enabled=False,
-            evidence_family_voting_enabled=False,
-        )
-    transitional = bool(
-        cfg.adaptive_broad_universe_compatibility_enabled
-        and cfg.evidence_family_voting_enabled
-        and configured_universe_size > cfg.strategic_partial_universe_max_size
-    )
-    return cfg.override(evidence_family_voting_enabled=False) if transitional else cfg
 
 
 def code_fingerprint() -> str:
@@ -232,10 +230,6 @@ class ProductionEngine:
         combined.update(user_panel)
         broad = self._features["sh000300"]
         tech = self._features["sh000682"]
-        broad_universe_compatibility = bool(
-            self.cfg.adaptive_broad_universe_compatibility_enabled
-            and len(user_symbols) >= self.cfg.adaptive_broad_universe_min_size
-        )
         decision_cfg = _decision_config_for_universe(len(user_symbols), self.cfg)
         reference_context = build_reference_context(
             date=date,
@@ -285,7 +279,7 @@ class ProductionEngine:
             configured_universe_size=len(user_symbols),
         )
         risk.evidence["configured_user_universe_size"] = len(user_symbols)
-        risk.evidence["broad_universe_compatibility"] = broad_universe_compatibility
+        risk.evidence["universe_size_is_diagnostic_only"] = True
         structural_users = {
             symbol: structural_leaders[symbol]
             for symbol in user_symbols
@@ -336,6 +330,12 @@ class ProductionEngine:
             account=account,
             prices=prices,
         )
+        if not decision_cfg.group_balanced_reference_enabled:
+            # The unified conservative policy deliberately computes decisions
+            # from the legacy name-weighted view.  Preserve the independently
+            # computed point-in-time reference snapshot as diagnostics so
+            # traces remain complete without letting it alter this decision.
+            risk.evidence.update(reference_context.evidence())
         planned_orders = plan_orders(
             signal_date=str(date.date()),
             targets=targets,

@@ -27,7 +27,8 @@ class SystemConfig:
     max_volume_participation: float = 0.005
     minimum_median_amount: float = 20_000_000.0
     min_trade_weight: float = 0.05
-    restoration_min_trade_weight: float = 0.01
+    restoration_min_trade_weight: float = 0.05
+    protected_restore_min_trade_weight: float = 0.04
     min_trade_value: float = 20_000.0
     min_history: int = 120
     emerging_min_history: int = 60
@@ -113,6 +114,8 @@ class SystemConfig:
     strategic_one_name_min_secular_score: float = 0.80
     strategic_two_name_confirm_days: int = 3
     strategic_one_name_confirm_days: int = 4
+    # Retired schema-v3 compatibility fields. Universe size is diagnostic only
+    # and none of these thresholds may select a production decision path.
     strategic_partial_universe_max_size: int = 8
     adaptive_broad_universe_min_size: int = 10
     adaptive_broad_universe_compatibility_enabled: bool = True
@@ -168,6 +171,7 @@ class SystemConfig:
     strategic_cohort_trail_spacing: float = 0.05
     strategic_cohort_trail_bands: int = 5
     strategic_cohort_exit_step: float = 0.01
+    strategic_gradual_post_guard_exit_step: float = 0.17
     strategic_post_guard_exit_step: float = 0.20
     strategic_cohort_disaster_stop: float = -0.20
     strategic_cohort_tail_line: float = 0.18
@@ -359,9 +363,16 @@ class SystemConfig:
                 raise ValueError(f"{name} cannot be negative")
         if not 0 <= self.max_volume_participation <= 1:
             raise ValueError("max_volume_participation must be in [0, 1]")
-        if not 0 < self.restoration_min_trade_weight <= self.min_trade_weight <= 1:
+        if not (
+            0
+            < self.protected_restore_min_trade_weight
+            <= self.restoration_min_trade_weight
+            <= self.min_trade_weight
+            <= 1
+        ):
             raise ValueError(
-                "restoration_min_trade_weight must be positive and no greater than min_trade_weight"
+                "protected_restore_min_trade_weight/restoration_min_trade_weight must be "
+                "positive, ordered, and no greater than min_trade_weight"
             )
         if self.min_trade_value < 0:
             raise ValueError("min_trade_value cannot be negative")
@@ -531,10 +542,6 @@ class SystemConfig:
             < self.strategic_one_name_confirm_days
         ):
             raise ValueError("smaller strategic cohorts require progressively longer confirmation")
-        if self.strategic_partial_universe_max_size < self.strategic_cohort_size:
-            raise ValueError("partial strategic universe must accommodate a full cohort")
-        if self.adaptive_broad_universe_min_size <= self.strategic_partial_universe_max_size:
-            raise ValueError("broad-universe compatibility must start above the partial universe")
         if not 0 <= self.strategic_secular_min_score <= 1:
             raise ValueError("strategic_secular_min_score must be in [0, 1]")
         if not 0 <= self.strategic_secular_min_confidence <= 1:
@@ -543,8 +550,6 @@ class SystemConfig:
             raise ValueError("strategic_cohort_min_ret240 cannot be negative")
         if self.strategic_established_min_median_ret240 < 0:
             raise ValueError("strategic_established_min_median_ret240 cannot be negative")
-        if self.strategic_expansive_universe_min_size < self.adaptive_broad_universe_min_size:
-            raise ValueError("expansive universe threshold cannot precede broad compatibility")
         if self.strategic_persistent_confirm_days < 1:
             raise ValueError("strategic_persistent_confirm_days must be positive")
         if not -1 < self.strategic_reversal_max_ret240 < 0:
@@ -623,6 +628,7 @@ class SystemConfig:
             raise ValueError("invalid strategic cohort exit step")
         if not (
             self.strategic_cohort_exit_step
+            <= self.strategic_gradual_post_guard_exit_step
             <= self.strategic_post_guard_exit_step
             <= self.max_symbol_weight
         ):

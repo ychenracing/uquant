@@ -11,7 +11,8 @@
 | `max_symbol_weight` | 0.60 | 单票最大权重 |
 | `max_positions` | 6 | 最大持仓数 |
 | `min_trade_weight` | 0.05 | 最小权重变化门槛 |
-| `restoration_min_trade_weight` | 0.01 | 恢复意图的专用最小权重差；避免 5% 普通死区，也抑制亚 1% 补单 |
+| `protected_restore_min_trade_weight` | 0.04 | 冲击后核心所有者（目标权重至少为 `core_admission_weight`）的最小恢复差；恰好 4% 的未完成缺口仍可成交，卫星继续使用 5% 死区 |
+| `restoration_min_trade_weight` | 0.05 | 战略恢复和所有者再武装的最小权重差；抑制不足 5% 的反复补单 |
 | `min_trade_value` | 20,000 | 最小交易金额 |
 
 ## 成本、容量与市场规则
@@ -90,13 +91,13 @@
 | `strategic_one_name_gross` | 0.50 | exceptional 单成员 cohort 总仓上限 |
 | `strategic_two_name_confirm_days` | 3 | 双成员候选连续确认日数 |
 | `strategic_one_name_confirm_days` | 4 | 单成员候选连续确认日数 |
-| `strategic_partial_universe_max_size` | 8 | 允许 2/1 成员后备队列的最大固定用户全集；同步反转除外 |
-| `adaptive_broad_universe_min_size` | 10 | 自动启用广池兼容分析口径的固定用户全集下限 |
-| `adaptive_broad_universe_compatibility_enabled` | `True` | 9 只过渡全集只切换风险计票；广池关闭经消融证实负向的同日倾斜、分组收缩和家族计票决策；诊断证据仍保留 |
+| `strategic_partial_universe_max_size` | 8 | 仅为 schema v3 旧配置兼容保留；不参与生产决策 |
+| `adaptive_broad_universe_min_size` | 10 | 仅为 schema v3 旧配置兼容保留；不参与生产决策 |
+| `adaptive_broad_universe_compatibility_enabled` | `True` | 为所有候选全集统一启用保守结构领导者、非分组参考与独立风险动作；不按全集规模切换 |
 | `strategic_secular_min_score` | 0.58 | 长周期综合分下限 |
 | `strategic_secular_min_confidence` | 0.65 | 长周期证据置信度下限 |
-| `strategic_established_min_median_ret240` | 1.00 | 10 只以上成熟路线的组内 240 日持久收益中位数下限 |
-| `strategic_expansive_universe_min_size` | 20 | 启用宽全集成熟证据与首次恢复仓位保护的全集下限 |
+| `strategic_established_min_median_ret240` | 1.00 | 所有全集成熟路线统一使用的组内 240 日持久收益中位数下限 |
+| `strategic_expansive_universe_min_size` | 20 | 仅为 schema v3 旧配置兼容保留；不参与生产决策 |
 | `strategic_long_cycle_min_ret20` | -0.05 | 常规长期路线允许轻微整理，但拒绝 20 日收益低于 -5% 的旧赢家 |
 | `strategic_long_cycle_min_ret60` | 0.00 | Established 路线至少保持非负 60 日结构 |
 | `strategic_long_cycle_min_ret120` | 0.00 | 新长期 cohort 至少保持非负 120 日结构，避免用行业配额填入衰退弱腿 |
@@ -118,9 +119,11 @@
 | `strategic_cohort_trail_spacing` | 0.05 | 相邻 ATR 保护带间距 |
 | `strategic_cohort_trail_bands` | 5 | 分段保护带数量；仍只产生每只证券一个最终目标 |
 | `strategic_cohort_exit_step` | 0.01 | 每次已触发保护带的目标减量 |
+| `strategic_gradual_post_guard_exit_step` | 0.17 | 风险修复后，长期强势但 20/60 日已整理、5 日尚未超卖的有序回撤目标减量 |
+| `strategic_post_guard_exit_step` | 0.20 | 风险修复后，5 日跌幅已进入超卖线的急性结构破坏目标减量 |
 | `strategic_cohort_disaster_stop` | -0.20 | 未处于独立风险保护时的战略灾难退出线 |
 
-成员只从本次用户全集产生。每只候选至少需要 121 个可见收盘记录；成熟路线保留经消融验证的 240 日持久收益证据，小型集中机会集还可使用正 120 日结构、`secular_score` 与 2/3 趋势持久性共同确认的因果替代证据。完整三成员组优先；固定全集不超过 8 时，允许 2 个高质量成员以 85% 总仓、exceptional 单成员以 50% 总仓后备进入，并分别确认 3/4 日。9 只过渡全集拒绝不完整队列并自动采用风险动作兼容计票；10 只及以上广池采用完整兼容分析口径，避免早期未上市子集把广池误判为小池。候选签名用 `SECULAR`/`EMERGING_SECULAR` 表达状态，并在 `evidence=` 中保留来源。完整退出后，还需经过 30 个可见交易日并重新确认；epoch 状态均随 schema v3 账户持久化。
+成员只从本次用户全集产生。每只候选至少需要 121 个可见收盘记录；成熟路线统一要求 240 日持久收益证据，完整三成员组优先。只有具备同步行业反转证据的不完整队列才可按 2 个高质量成员或 1 个 exceptional 成员进入，并分别以 85%/50% 总仓连续确认 3/4 日；加入无关候选不会改变资格、路径或仓位。所有全集使用同一结构领导者与风险分析口径；全集规模只写入诊断证据。候选签名用 `SECULAR`/`EMERGING_SECULAR` 表达状态，并在 `evidence=` 中保留来源。完整退出后，还需经过 30 个可见交易日并重新确认；epoch 状态均随 schema v3 账户持久化。
 
 风险模块临时压缩战略持仓时会逐票保存压缩前目标，但不会因风险上限随后放宽就立即买回。只有风险恢复到 `NORMAL`，或处于票数不超过 2 且 `transition_damage` 已回到修复线以下的 `CAUTION`，才按保存比例恢复；唯一恢复上限是风险模块当日给出的 `target_gross_cap`，组合层不再叠加隐性残余仓位 cap。restore 只有在风险 cap 足以覆盖未缩放的完整保存目标、每个成员都达到至少 95% 原目标且相关 BUY 均已结束后才清除；组合总仓或其他成员超配不能掩盖容量受限的缺票。由战略 ATR 保护带或灾难线产生的最终策略退出会逐票退休目标、保护带以及战略和风险两类恢复权，不进入买回路线。
 
@@ -132,7 +135,7 @@
 | `add2_min_mfe` | 0.10 | 第二次加仓最低浮盈 |
 | `add_tranche_cooldown_sessions` | 5 | 组合级加仓冷却天数 |
 | `recovery_target_gross` | 0.92 | 完成修复后的仓位上限 |
-| `recovery_expansive_universe_gross` | 0.70 | 20 只以上宽全集首次三成员恢复部署的总仓上限；后续仍可按确认自动恢复 |
+| `recovery_expansive_universe_gross` | 0.70 | 合格恢复候选超过可用三席时，首次部署的选择歧义总仓上限；该旧字段名保留兼容 |
 | `recovery_conviction_weighting_enabled` | `True` | 完整三成员恢复队列默认保留因果领涨股权重 |
 | `recovery_conviction_retention_bonus` | 0.30 | 同生命周期危机裁剪中因果领涨所有权的保留效用加分 |
 | `recovery_member_confirm_days` | 3 | 欠分散的临时恢复成员连续保持同一候选签名后才投入，抑制次日换锚 |

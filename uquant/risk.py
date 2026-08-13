@@ -89,14 +89,13 @@ def _evidence_family_votes(indicators: Mapping[str, bool]) -> dict[str, bool]:
 
 def _strategic_grace_supported(
     *,
-    configured_universe_size: int,
-    broad_compatibility: bool,
-    cfg: SystemConfig,
+    account: AccountState,
 ) -> bool:
-    """Protect new broad cohorts only when the configured pool is expansive."""
+    """Protect only an evidenced early-cycle strategic reset."""
     return bool(
-        not broad_compatibility
-        or configured_universe_size >= cfg.strategic_expansive_universe_min_size
+        account.strategic_epoch > 0
+        and account.candidate_tenure.get("strategic_early_cycle_epoch", -1)
+        == account.strategic_epoch
     )
 
 
@@ -108,7 +107,7 @@ def _strategic_damage_guard_required(
     votes: int,
     cfg: SystemConfig,
 ) -> bool:
-    """Trim an immature strategic book while preserving its lifecycle owner."""
+    """Trim an immature concentrated handoff while preserving its lifecycle owner."""
     guard_already_claimed = bool(
         account.strategic_epoch > 0
         and account.strategic_epoch
@@ -119,6 +118,7 @@ def _strategic_damage_guard_required(
             account.candidate_tenure.get(
                 "strategic_damage_guard_complete_epoch", -1
             ),
+            account.candidate_tenure.get("strategic_damage_trim_epoch", -1),
         }
     )
     external_risk_already_claimed = bool(
@@ -153,6 +153,22 @@ def _strategic_damage_guard_required(
         # family, but do not make a small configured universe wait for a
         # second correlated family while its actually funded book is falling.
         and votes >= 1
+    )
+
+
+def _strategic_damage_guard_persists(
+    account: AccountState,
+    cfg: SystemConfig,
+) -> bool:
+    """Keep the cap active only while a concentrated handoff is unfinished."""
+    positive_targets = [
+        float(weight)
+        for weight in account.strategic_cohort_targets.values()
+        if float(weight) > 1e-12
+    ]
+    return bool(
+        len(positive_targets) <= 1
+        or max(positive_targets, default=0.0) > cfg.max_symbol_weight + 1e-12
     )
 
 
@@ -353,7 +369,7 @@ def assess_risk(
     """
     if date not in broad.index or date not in tech.index:
         raise RuntimeError("risk indices missing at decision date")
-    configured_size = configured_universe_size or len(user_panel)
+    del configured_universe_size
     present = [
         symbol
         for symbol in REFERENCE_UNIVERSE
@@ -420,18 +436,11 @@ def assess_risk(
         if math.isfinite(close) and math.isfinite(ma60):
             above_ma60.append(close > ma60)
             sector_above60.setdefault(industry, []).append(close > ma60)
-        broad_universe_compatibility = bool(
-            cfg.adaptive_broad_universe_compatibility_enabled
-            and (
-                not cfg.same_day_leader_pipeline_enabled
-                or len(user_panel) >= cfg.adaptive_broad_universe_min_size
-            )
-        )
         if (
             symbol in leaders
             and leaders[symbol].mature
             and (
-                broad_universe_compatibility
+                not cfg.same_day_leader_pipeline_enabled
                 or account.leader_tenure.get(symbol, 0) >= cfg.leader_tenure_days
             )
         ):
@@ -893,7 +902,21 @@ def assess_risk(
         and sector_stress >= 0.50
         and transition_damage >= cfg.transition_damage_freeze
     )
-    strategic_universe_complete = len(user_panel) >= min(3, cfg.max_positions)
+    live_recovery_members = {
+        symbol
+        for symbol, position in account.positions.items()
+        if position.shares > 0 and position.lifecycle == "RECOVERY"
+    }
+    recovery_owner_observed = bool(
+        account.anchor_weights
+        or live_recovery_members
+        or account.candidate_tenure.get("tactical_active", 0) == 1
+    )
+    recovery_book_complete = bool(
+        not recovery_owner_observed
+        or len(set(account.anchor_weights) | live_recovery_members)
+        >= min(3, cfg.max_positions)
+    )
     anchor_industries = {leaders[symbol].industry for symbol in account.anchor_weights if symbol in leaders}
     reserve_observed = bool(
         len(account.anchor_weights) >= 2
@@ -921,7 +944,7 @@ def assess_risk(
         and not account.protected_weights
         and bool(account.positions)
         and not strategic_active
-        and not strategic_universe_complete
+        and not recovery_book_complete
         and operating_dd
         >= (
             cfg.unbacked_universe_tail_dd
@@ -1056,9 +1079,7 @@ def assess_risk(
         young_strategic_cohort = bool(
             strategic_active
             and _strategic_grace_supported(
-                configured_universe_size=configured_size,
-                broad_compatibility=broad_universe_compatibility,
-                cfg=cfg,
+                account=account,
             )
             and account.strategic_candidate_signature.startswith(
                 (
@@ -1078,13 +1099,10 @@ def assess_risk(
             young_strategic_cohort
             and not young_cohort_systemic_break
         ):
-            # Early cohort volatility is already owned by the independent
-            # market and live-book families. Do not let an immature high-water
-            # mark manufacture a second, self-reinforcing caution authority.
-            # This grace is available only to a fully qualified, provenance-
-            # tagged cohort. An arbitrary strategic label cannot bypass the
-            # capital ladder, while systemic multi-family damage still breaks
-            # a genuine young cohort immediately.
+            # Early cohort volatility is already owned by the strategic damage
+            # guard and independent market/live-book families. Do not let the
+            # same immature high-water mark manufacture a second cap authority,
+            # regardless of unrelated universe size.
             observed_budget_level = 0
     strategic_damage_guard_triggered = _strategic_damage_guard_required(
         account=account,
@@ -1093,11 +1111,27 @@ def assess_risk(
         votes=votes,
         cfg=cfg,
     )
+    persistent_strategic_damage_guard = bool(
+        strategic_damage_guard_triggered
+        and _strategic_damage_guard_persists(account, cfg)
+    )
     if strategic_damage_guard_triggered and account.strategic_epoch > 0:
-        account.candidate_tenure[
-            "strategic_damage_guard_active_epoch"
-        ] = account.strategic_epoch
-    strategic_damage_guard = _strategic_damage_guard_active(account)
+        if persistent_strategic_damage_guard:
+            account.candidate_tenure[
+                "strategic_damage_guard_active_epoch"
+            ] = account.strategic_epoch
+        else:
+            # A diversified cohort needs one sparse de-risking observation,
+            # not a persistent aggregate cap that repeatedly forces healthy
+            # members out.  Record the one-shot owner for this epoch while a
+            # concentrated handoff keeps the durable guard lifecycle above.
+            account.candidate_tenure[
+                "strategic_damage_trim_epoch"
+            ] = account.strategic_epoch
+    strategic_damage_guard = bool(
+        strategic_damage_guard_triggered
+        or _strategic_damage_guard_active(account)
+    )
     _update_capital_budget_ladder(
         account,
         observed_level=observed_budget_level,
@@ -1366,15 +1400,28 @@ def assess_risk(
         for order in account.pending_orders
         if order.side == "BUY" and order.symbol in protected_desired
     }
-    protected_weight_tolerance = cfg.restoration_min_trade_weight
+    protected_trade_threshold = {
+        symbol: (
+            cfg.protected_restore_min_trade_weight
+            if desired >= cfg.core_admission_weight
+            else cfg.restoration_min_trade_weight
+        )
+        for symbol, desired in protected_desired.items()
+    }
+    protected_completion_tolerance = cfg.min_trade_weight
     protected_restored = bool(
         account.candidate_tenure.get("post_shock_restore_complete", 0) == 1
         or protected_target_gross <= 1e-12
         or (
             not pending_protected_buys
             and all(
-                protected_current.get(symbol, 0.0) >= 0.95 * desired
-                or desired - protected_current.get(symbol, 0.0) < protected_weight_tolerance
+                desired - protected_current.get(symbol, 0.0) + 1e-12
+                < protected_trade_threshold[symbol]
+                or (
+                    protected_current.get(symbol, 0.0) >= 0.95 * desired
+                    and desired - protected_current.get(symbol, 0.0)
+                    < protected_completion_tolerance
+                )
                 for symbol, desired in protected_desired.items()
                 if desired > 1e-12
             )

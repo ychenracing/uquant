@@ -1329,7 +1329,16 @@ class PortfolioAllocator(RecoveryPortfolioPolicy):
                 )
                 for symbol, desired in proposed.items()
             }
-            restoration_trade_threshold = self.cfg.restoration_min_trade_weight * equity
+            restoration_trade_threshold = {
+                symbol: (
+                    self.cfg.protected_restore_min_trade_weight
+                    if desired >= self.cfg.core_admission_weight
+                    else self.cfg.restoration_min_trade_weight
+                )
+                * equity
+                for symbol, desired in proposed.items()
+            }
+            restoration_completion_threshold = self.cfg.min_trade_weight * equity
             economic_restore_complete = bool(
                 proposed
                 and not ordinary_level1_stage
@@ -1339,8 +1348,13 @@ class PortfolioAllocator(RecoveryPortfolioPolicy):
                     or (
                         fully_repaired
                         and all(
-                            gap < restoration_trade_threshold
-                            or weights_now.get(symbol, 0.0) >= 0.95 * proposed[symbol]
+                            gap + 1e-12 * equity
+                            < restoration_trade_threshold[symbol]
+                            or (
+                                gap < restoration_completion_threshold
+                                and weights_now.get(symbol, 0.0)
+                                >= 0.95 * proposed[symbol]
+                            )
                             for symbol, gap in executable_buy_gap.items()
                         )
                     )
@@ -1525,9 +1539,13 @@ class PortfolioAllocator(RecoveryPortfolioPolicy):
                 previously_submitted
                 and not pending_owner_buys
                 and all(
-                    desired - weights_now.get(symbol, 0.0)
+                    desired - weights_now.get(symbol, 0.0) + 1e-12
                     < self.cfg.restoration_min_trade_weight
-                    or weights_now.get(symbol, 0.0) >= 0.95 * desired
+                    or (
+                        desired - weights_now.get(symbol, 0.0)
+                        < self.cfg.min_trade_weight
+                        and weights_now.get(symbol, 0.0) >= 0.95 * desired
+                    )
                     for symbol, desired in owner_targets.items()
                 )
             )
@@ -1732,10 +1750,14 @@ class PortfolioAllocator(RecoveryPortfolioPolicy):
                     ret5 >= self.cfg.fast_v_recovery_return
                     and ret60 >= self.cfg.tactical_rebound_min_ret60
                 )
+                qualified_current_reversal = bool(
+                    current_reversal
+                    and score.score >= self.cfg.high_confidence_entry_score
+                )
                 if (
                     pullback_structure
                     and ret120 > self.cfg.tactical_rebound_max_ret120
-                    and not current_reversal
+                    and not qualified_current_reversal
                 ):
                     overextended_pullback = True
                 shallow_rebound = bool(
@@ -1752,7 +1774,7 @@ class PortfolioAllocator(RecoveryPortfolioPolicy):
                     rebound_evidence.append(
                         (score, ret20, ret5, ret60, ret120, secular)
                     )
-                elif pullback_structure and current_reversal:
+                elif pullback_structure and qualified_current_reversal:
                     secular = bool(
                         score.confidence >= self.cfg.leader_min_confidence
                         and ret120 >= 0.0
@@ -1804,6 +1826,10 @@ class PortfolioAllocator(RecoveryPortfolioPolicy):
                 if (
                     ret20 <= self.cfg.tactical_rebound_max_ret20
                     and ret60 >= self.cfg.tactical_rebound_min_ret60
+                    and (
+                        ret5 <= 0.0
+                        or score.score >= self.cfg.high_confidence_entry_score
+                    )
                 )
                 or (
                     ret5 <= self.cfg.tactical_rebound_oversold_max_ret5
@@ -1823,6 +1849,7 @@ class PortfolioAllocator(RecoveryPortfolioPolicy):
                 or (
                     ret5 >= self.cfg.fast_v_recovery_return
                     and ret60 >= self.cfg.tactical_rebound_min_ret60
+                    and score.score >= self.cfg.high_confidence_entry_score
                 )
                 or breadth_confirmed
             ]
@@ -1834,6 +1861,10 @@ class PortfolioAllocator(RecoveryPortfolioPolicy):
                     (
                         ret20 <= self.cfg.tactical_rebound_max_ret20
                         and ret60 >= self.cfg.tactical_rebound_min_ret60
+                        and (
+                            ret5 <= 0.0
+                            or score.score >= self.cfg.high_confidence_entry_score
+                        )
                     )
                     or (
                         ret5 <= self.cfg.tactical_rebound_oversold_max_ret5
@@ -1854,6 +1885,7 @@ class PortfolioAllocator(RecoveryPortfolioPolicy):
                     or (
                         ret5 >= self.cfg.fast_v_recovery_return
                         and ret60 >= self.cfg.tactical_rebound_min_ret60
+                        and score.score >= self.cfg.high_confidence_entry_score
                     )
                     or breadth_confirmed
                 )
@@ -2126,15 +2158,14 @@ class PortfolioAllocator(RecoveryPortfolioPolicy):
                             risk=risk,
                             account=account,
                         )
-                        expansive_empty_cohort = bool(
+                        ambiguous_empty_cohort = bool(
                             not previous_members
-                            and int(risk.evidence.get("configured_user_universe_size", 0))
-                            >= self.cfg.strategic_expansive_universe_min_size
+                            and len(candidates) > len(selected)
                         )
-                        if expansive_empty_cohort:
-                            # Wide pools create more chances for three transient
-                            # crash breakouts to coincide. Bound only their first
-                            # deployment while preserving the conviction ratio.
+                        if ambiguous_empty_cohort:
+                            # More independently qualified crash breakouts than
+                            # available seats creates real selection ambiguity.
+                            # Unqualified padding cannot change this budget.
                             cohort_gross = min(
                                 cohort_gross,
                                 self.cfg.recovery_expansive_universe_gross,
@@ -2290,6 +2321,51 @@ class PortfolioAllocator(RecoveryPortfolioPolicy):
             )
             if leader_targets is not None:
                 return leader_targets
+
+        live_symbols = {
+            symbol
+            for symbol, position in account.positions.items()
+            if position.shares > 0
+        }
+        confirmed_live_core = {
+            symbol
+            for symbol in live_symbols
+            if account.positions[symbol].lifecycle
+            in {
+                Lifecycle.CORE.value,
+                Lifecycle.ADD1.value,
+                Lifecycle.ADD2.value,
+            }
+            and symbol in leaders
+            and leaders[symbol].mature
+            and leaders[symbol].confidence >= self.cfg.leader_min_confidence
+            and leaders[symbol].score >= self.cfg.leader_cycle_min_score
+            and symbol in user_panel
+            and date in user_panel[symbol].index
+            and self._structure_ok(user_panel[symbol], date)
+        }
+        if (
+            live_symbols
+            and confirmed_live_core == live_symbols
+            and risk.state is Risk.NORMAL
+            and not freeze_active
+        ):
+            # Re-arming controls *new* generic leader risk.  A one-session
+            # evidence gap in that owner must not turn two currently mature,
+            # structurally intact Core holdings into an all-cash liquidation.
+            # Hold only the marked broker book; the normal confirmation streak
+            # still has to finish before any admission, add, or rotation.
+            return self._targets(
+                proposed={symbol: weights_now[symbol] for symbol in live_symbols},
+                leaders=leaders,
+                account=account,
+                lifecycle=Lifecycle.CORE,
+                reason="confirmed live leader continuity while owner rearms",
+                lifecycles={
+                    symbol: Lifecycle(account.positions[symbol].lifecycle)
+                    for symbol in live_symbols
+                },
+            )
 
         # With no independently confirmed recovery leader the robust action is
         # cash. This prevents a broad input pool from turning into a generic,

@@ -922,6 +922,44 @@ def test_restore_buy_closes_the_gap_between_no_trade_band_and_completion_line():
     )
 
 
+def test_satellite_restore_keeps_the_standard_no_trade_band():
+    cfg = DEFAULT_CONFIG.override(min_trade_value=0.0)
+    target = Target(
+        "satellite",
+        0.12,
+        Lifecycle.RECOVERY.value,
+        0.8,
+        1.0,
+        "confirmed post-shock restoration",
+    )
+    account = AccountState(
+        initial_cash=100.0,
+        cash=92.0,
+        positions={
+            "satellite": Position(
+                "satellite",
+                shares=8,
+                avg_cost=1.0,
+                entry_date="2026-01-01",
+            )
+        },
+        protected_weights={"satellite": 0.12},
+        operating_peak=100.0,
+        capital_peak=100.0,
+    )
+
+    assert (
+        plan_orders(
+            signal_date="2026-01-05",
+            targets=(target,),
+            account=account,
+            prices={"satellite": 1.0},
+            cfg=cfg,
+        )
+        == ()
+    )
+
+
 def test_restoration_never_bypasses_the_absolute_minimum_ticket() -> None:
     target = Target(
         "restore",

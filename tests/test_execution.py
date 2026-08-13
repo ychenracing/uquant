@@ -957,8 +957,18 @@ def test_submitted_buy_survives_economically_equivalent_target_drift() -> None:
 
     assert merged == (retained,)
 
-    material_target = replace(target, weight=0.350)
-    material_plan = replace(planned, target_weight=0.350)
+    equivalent_target = replace(target, weight=0.350)
+    equivalent_plan = replace(planned, target_weight=0.350)
+    equivalent = merge_pending_orders(
+        retained=[retained],
+        planned=(equivalent_plan,),
+        targets=(equivalent_target,),
+        cfg=DEFAULT_CONFIG,
+    )
+    assert equivalent == (retained,)
+
+    material_target = replace(target, weight=0.370)
+    material_plan = replace(planned, target_weight=0.370)
     replaced = merge_pending_orders(
         retained=[retained],
         planned=(material_plan,),

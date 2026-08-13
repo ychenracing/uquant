@@ -18,6 +18,7 @@ INVALID_OVERRIDES: tuple[tuple[dict[str, Any], str], ...] = (
     ({"leader_mature_score": 1.1}, "leader_mature_score"),
     ({"commission_rate": -0.1}, "commission_rate"),
     ({"max_volume_participation": 1.01}, "max_volume_participation"),
+    ({"protected_restore_min_trade_weight": 0.051}, "protected_restore_min_trade_weight"),
     ({"restoration_min_trade_weight": 0.06}, "restoration_min_trade_weight"),
     ({"concentrated_crisis_gross": 0.95}, "crisis/recovery"),
     ({"severe_recovery_gross": 0.60}, "differentiated recovery"),
@@ -114,6 +115,7 @@ INVALID_OVERRIDES: tuple[tuple[dict[str, Any], str], ...] = (
     ({"strategic_cohort_trail_atr": 0.0}, "trailing distances"),
     ({"strategic_cohort_trail_bands": 4}, "trail_bands"),
     ({"strategic_cohort_exit_step": 0.0}, "cohort exit step"),
+    ({"strategic_gradual_post_guard_exit_step": 0.0}, "post-guard exit step"),
     ({"strategic_post_guard_exit_step": 0.0}, "post-guard exit step"),
     ({"strategic_cohort_disaster_stop": 0.0}, "disaster stop"),
     ({"strategic_cohort_tail_line": 0.05}, "cohort tail line"),
@@ -184,6 +186,8 @@ def test_configuration_serialization_is_complete_and_detached() -> None:
     assert payload["recovery_transition_weak_leg_ret120"] == pytest.approx(-0.08)
     assert payload["recovery_transition_strong_leg_max_ret120"] == pytest.approx(0.08)
     assert payload["recovery_transition_min_divergence"] == pytest.approx(0.10)
+    assert payload["restoration_min_trade_weight"] == pytest.approx(0.05)
+    assert payload["protected_restore_min_trade_weight"] == pytest.approx(0.04)
     assert payload["tactical_rebound_max_ret20"] == pytest.approx(-0.20)
     assert payload["tactical_rebound_breadth_max_ret20"] == pytest.approx(-0.15)
     assert payload["tactical_rebound_min_industries"] == 3
@@ -194,6 +198,7 @@ def test_configuration_serialization_is_complete_and_detached() -> None:
     assert payload["tactical_overheat_cooldown_days"] == 10
     assert payload["leader_cycle_impulse_min_market_ret120"] == pytest.approx(-0.01)
     assert payload["recovery_substitution_max_ret20"] == pytest.approx(0.30)
+    assert payload["strategic_gradual_post_guard_exit_step"] == pytest.approx(0.17)
     assert payload["strategic_post_guard_exit_step"] == pytest.approx(0.20)
     assert payload["strategic_guard_level2_cap"] == pytest.approx(0.81)
     payload["max_gross"] = 0.0

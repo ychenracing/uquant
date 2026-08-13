@@ -106,7 +106,13 @@ def plan_orders(
         # allocator itself considered economically unexecutable.
         restoration_threshold = max(
             cfg.min_trade_value,
-            cfg.restoration_min_trade_weight * equity,
+            (
+                cfg.protected_restore_min_trade_weight
+                if target.symbol in account.protected_weights
+                and target.weight >= cfg.core_admission_weight
+                else cfg.restoration_min_trade_weight
+            )
+            * equity,
         )
         restoration_buy_below_completion = bool(
             difference > 0
@@ -173,7 +179,7 @@ def merge_pending_orders(
             and order.reason_code == target.reason_code
             and order.exit_kind == target.exit_kind
             and abs(order.target_weight - target.weight)
-            < cfg.restoration_min_trade_weight
+            < cfg.min_trade_weight
         )
 
     merged: dict[str, PendingOrder] = {}

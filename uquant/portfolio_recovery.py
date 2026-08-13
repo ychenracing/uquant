@@ -35,6 +35,8 @@ class RecoveryPortfolioPolicy(LeaderPortfolioPolicy):
         """
 
         def reset_substitution_streaks(*, keep: str = "", keep_handoff: str = "") -> None:
+            """Clear substitution evidence except the currently evaluated pair."""
+
             for tenure_key in tuple(account.replacement_tenure):
                 if tenure_key.startswith("recovery_substitution:") and tenure_key != keep:
                     account.replacement_tenure[tenure_key] = 0

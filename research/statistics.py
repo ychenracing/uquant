@@ -12,12 +12,16 @@ import numpy as np
 
 @dataclass(frozen=True, slots=True)
 class WalkForwardFold:
+    """Integer row indexes for one chronological train/test split."""
+
     train: tuple[int, ...]
     test: tuple[int, ...]
 
 
 @dataclass(frozen=True, slots=True)
 class PBOResult:
+    """Probability-of-overfitting estimate and its CSCV evidence."""
+
     probability: float
     logits: tuple[float, ...]
     combinations: int
@@ -25,6 +29,8 @@ class PBOResult:
 
 @dataclass(frozen=True, slots=True)
 class DeflatedSharpeResult:
+    """Multiple-trial Sharpe significance and its calibration terms."""
+
     probability: float
     expected_max_sharpe: float
     standard_error: float

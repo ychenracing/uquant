@@ -120,6 +120,8 @@ class PortfolioCore:
         lifecycles: dict[str, Lifecycle] | None = None,
         reasons: dict[str, str] | None = None,
     ) -> tuple[Target, ...]:
+        """Convert proposed weights into capped, attributed, deterministic targets."""
+
         targets: list[Target] = []
         low_confidence_unknowns = {
             symbol

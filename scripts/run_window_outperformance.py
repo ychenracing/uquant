@@ -7,7 +7,8 @@ import argparse
 import hashlib
 import json
 import math
-import subprocess
+import shutil
+import subprocess  # nosec B404
 from collections.abc import Mapping, Sequence
 from concurrent.futures import ProcessPoolExecutor, as_completed
 from datetime import UTC, datetime
@@ -67,6 +68,8 @@ def _finite(row: Mapping[str, Any], field: str) -> float:
 
 
 def _validate_rows(rows: Sequence[Mapping[str, Any]]) -> dict[tuple[str, str], Mapping[str, Any]]:
+    """Validate the complete target-window matrix and return uniquely keyed rows."""
+
     expected = {(system, pool) for system in SYSTEMS for pool in POOLS}
     indexed: dict[tuple[str, str], Mapping[str, Any]] = {}
     for row in rows:
@@ -154,6 +157,8 @@ def _promotion_pools(repository_root: Path) -> dict[str, tuple[str, ...]]:
 
 
 def _compact_competitor_rows(payload: Mapping[str, Any]) -> list[dict[str, Any]]:
+    """Normalize the validated frozen artifact into comparable matrix rows."""
+
     if payload.get("schema_version") != 2:
         raise RuntimeError("unsupported window competitor artifact schema")
     if tuple(payload.get("systems", ())) != COMPETITORS:
@@ -225,12 +230,23 @@ def _python_source_hash(root: Path) -> str:
     return digest.hexdigest()
 
 
+def _git_executable() -> str:
+    """Resolve Git explicitly so provenance commands never invoke a shell."""
+
+    executable = shutil.which("git")
+    if executable is None:
+        raise RuntimeError("cannot resolve git executable for window provenance")
+    return executable
+
+
 def build(
     *,
     repository_root: Path,
     competitor_path: Path,
     workers: int,
 ) -> dict[str, Any]:
+    """Build and evaluate the content-addressed target-window matrix."""
+
     competitor_bytes = competitor_path.read_bytes()
     competitor_payload = json.loads(competitor_bytes.decode("utf-8"))
     competitor_rows = _compact_competitor_rows(competitor_payload)
@@ -243,13 +259,14 @@ def build(
     uquant_rows.sort(key=lambda row: pool_order[str(row["pool"])])
     rows = uquant_rows + competitor_rows
     report = evaluate(rows)
-    commit = subprocess.run(
-        ["git", "rev-parse", "HEAD"],
+    completed = subprocess.run(
+        [_git_executable(), "rev-parse", "HEAD"],
         cwd=repository_root,
         check=True,
         capture_output=True,
         text=True,
-    ).stdout.strip()
+    )  # nosec B603
+    commit = completed.stdout.strip()
     return {
         "schema_version": 1,
         "generated_at_utc": datetime.now(UTC).isoformat(),
@@ -275,6 +292,8 @@ def build(
 
 
 def main(argv: Sequence[str] | None = None) -> int:
+    """Write one target-window report and return its gate status."""
+
     repository_root = Path(__file__).resolve().parents[1]
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--competitor-results", type=Path, required=True)

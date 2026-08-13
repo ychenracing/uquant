@@ -10,10 +10,14 @@ from .candidate_search import Scalar, enumerate_candidates, validate_shared_conf
 
 @dataclass(frozen=True, slots=True)
 class ParameterCase:
+    """One named shared configuration in a parameter stress set."""
+
     name: str
     parameters: tuple[tuple[str, Scalar], ...]
 
     def config(self) -> dict[str, Scalar]:
+        """Return an independent parameter mapping."""
+
         return dict(self.parameters)
 
 

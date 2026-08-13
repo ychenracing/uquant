@@ -152,6 +152,7 @@ def _validation_fingerprint(spec: Mapping[str, Any]) -> str:
 
 
 def _load_spec(path: str | Path) -> tuple[bytes, dict[str, Any]]:
+    """Load and fully validate one immutable promotion specification."""
     source = Path(path)
     if source.is_symlink() or not source.is_file():
         raise RuntimeError(f"promotion baseline is missing or not a regular file: {path}")
@@ -464,6 +465,7 @@ def _validate_spec(spec: dict[str, Any]) -> None:
 
 
 def _urgent_return(result: dict[str, Any], scenario: Scenario) -> float | None:
+    """Calculate the return over a scenario's optional urgent interval."""
     if not scenario.urgent_start or not scenario.urgent_end:
         return None
     raw_curve = result.get("equity_curve")
@@ -515,6 +517,7 @@ def _violations(
     reference: dict[str, Any],
     policy: dict[str, Any],
 ) -> list[str]:
+    """Return every policy breach for one replay cell."""
     failures: list[str] = []
     wealth_floor = float(reference["final_wealth"]) * float(policy["wealth_floor_ratio"])
     if float(result["final_wealth"] or 0.0) < wealth_floor:

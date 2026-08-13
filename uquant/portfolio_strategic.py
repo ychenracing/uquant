@@ -70,6 +70,8 @@ class StrategicPortfolioPolicy(PortfolioCore):
         qualification_key = "strategic_cohort_qualification"
 
         def reset_qualification_streaks() -> None:
+            """Clear all candidate streaks when the strategic gate is not admissible."""
+
             for key in tuple(account.replacement_tenure):
                 if key.startswith("strategic_qualification:"):
                     account.replacement_tenure[key] = 0
@@ -152,6 +154,8 @@ class StrategicPortfolioPolicy(PortfolioCore):
             account.candidate_tenure[long_cycle_open_key] = 0
             return
         def has_known_industry(symbol: str) -> bool:
+            """Return whether a candidate has sufficiently confident industry evidence."""
+
             return bool(
                 symbol in leaders
                 and leaders[symbol].components.get("unknown_industry", 1.0) < 0.5
@@ -285,6 +289,8 @@ class StrategicPortfolioPolicy(PortfolioCore):
             *,
             primary_component: str,
         ) -> list[list[str]]:
+            """Rank coherent industry groups without imposing an industry quota."""
+
             by_industry: dict[str, list[str]] = {}
             for symbol in candidates:
                 by_industry.setdefault(leaders[symbol].industry, []).append(symbol)
@@ -762,7 +768,7 @@ class StrategicPortfolioPolicy(PortfolioCore):
             # protected_weights before the strategy's own exit bands finished.
             # Once every member has economically exited and the epoch is being
             # completed, those weights no longer own a restoration right.
-            # Keeping them would resurrect the retired cohort on the next
+            # Keeping them would restore this completed cohort on the next
             # recovery observation and manufacture a sell/rebuy round trip.
             for symbol in account.strategic_cohort_symbols:
                 account.protected_weights.pop(symbol, None)
@@ -787,11 +793,10 @@ class StrategicPortfolioPolicy(PortfolioCore):
         account.candidate_tenure["strategic_cohort_days"] = (
             account.candidate_tenure.get("strategic_cohort_days", 0) + 1
         )
-        # SECULAR/EMERGING_SECULAR own the same lifecycle.  The lower-latency
-        # transition-impulse evidence still has less durable restore rights
-        # and exits atomically when every neighboring ATR band breaks.  That
-        # is evidence-calibrated severity inside one lifecycle, not a second
-        # portfolio route. Keep legacy signatures readable across migration.
+        # SECULAR and EMERGING_SECULAR share one lifecycle. Lower-latency
+        # transition evidence has narrower restore rights and exits atomically
+        # when every neighboring ATR band breaks. Stored signatures remain
+        # readable because they are part of the durable account contract.
         transition_impulse_epoch = bool(
             account.strategic_candidate_signature.startswith(
                 "strategic_qualification:transition_impulse:"

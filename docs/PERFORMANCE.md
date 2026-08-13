@@ -1,160 +1,122 @@
-# 性能与晋级证据
+# 性能与证据
 
-本文只记录可重放的历史证据，不把历史收益写成未来承诺。所有 uquant 数值来自 `ProductionEngine` 的收盘决策、下一共同交易日开盘执行路径，使用 200 万元初始资金、实际费用、滑点、手数、涨跌停、停牌和 T+1 约束。
+## 回放契约
 
-## 冻结矩阵
+所有绩效结论建立在以下因果执行条件上：
 
-`benchmarks/promotion_baseline.json` 固定 5 个股票池、7 个市场阶段和 35 个单元，同时约束最终财富、最大回撤、真实账户订单与年化换手；包含急跌区间的单元还约束区间收益。默认晋级容差为财富不低于基线 99%、回撤最多增加 0.5 个百分点、订单最多增加 `max(1, 5%)`、换手最多增加 `max(0.25, 5%)`。五个 `through_july` 单元的急跌收益门槛均为 -3%。版本 2 policy 另外硬性要求所选 profile 的 continuous 回撤中位数不超过 28%、最差值不超过 35%，并要求 `choppy_2024` 最差回撤不超过 18%；profile 没有对应单元也会失败，不能绕开聚合门槛。
+- 信号只读取收盘日及以前的数据；
+- 目标最早在下一可交易日开盘成交；
+- 上市前证券不可见；
+- 股票前复权，指数不复权；
+- 模拟 T+1、停牌、涨跌停、手数、费用、滑点、容量和部分成交；
+- 日报与回放共用 `ProductionEngine.decide()`；
+- 订单数按实际发生成交的稳定账户订单统计；
+- 数据、参数、源码和证据摘要在运行前后保持一致。
 
-Promotion baseline 外层使用 schema v3：`data` 锁定 snapshot、实际文件数及 manifest/SHA256SUMS 摘要，`dataset` 锁定 pools/scenarios/profiles 矩阵，`execution` 锁定 close-t/next-open、上市前不可见与初始资金，`reference` 则把既有 observed 指标追溯到仓库路径、历史 commit、当时生产源码 SHA-256 和 observed-only SHA-256。验证器还把 reference 身份固定到已评审的 `ea4fb1c` 祖先：当前 pools/scenarios/profiles 必须与该提交一致，冻结数据与执行本金必须匹配代码内的已评审契约，旧 policy 只能收紧，新增聚合回撤上限和历史 urgent floor 也只能收紧；因此不能靠重算同一 JSON 的 fingerprint 来放宽门槛。外层 validation fingerprint 将 provenance、policy、矩阵和全部 references 一次性绑定；重复 JSON 键、NaN、多余/缺失字段、历史提交不可验证或任一指纹漂移都在回放前失败。候选源码必须已提交，报告单独记录候选 commit/源码摘要；回放结束时再次核对 baseline、生产源码和完整冻结数据，运行中改写任何一项都会失败。这个迁移没有刷新 observed 数值，急跌目标等 policy 仍与 observed 来源分开。
+不同数据快照、复权方式、证券全集、起止日或执行口径的结果不能直接比较。
 
-| 市场阶段 | 区间 | 五池财富中位数 | 五池回撤中位数 | 五池订单中位数 | 补充证据 |
-|---|---|---:|---:|---:|---|
-| 熊市 | 2022-01-04～2022-12-30 | 1.0024x | 4.50% | 6 | 4/5 池不亏；最差回撤 11.96% |
-| 震荡市 | 2024-01-02～2024-12-31 | 1.7489x | 20.57% | 23 | 五池结果一致，没有用扩池改变排名口径 |
-| 牛市 | 2025-04-01～2026-06-30 | 12.9566x | 15.96% | 10 | 五池财富全部超过冻结旧项目最佳值 |
-| 牛市至急跌 | 2025-04-01～2026-07-20 | 12.1698x | 15.96% | 13 | 2026-06-30～07-20 最差区间收益 -6.08% |
-| 连续周期 | 2018-01-02～2026-07-20 | 38.5399x | 30.87% | 84 | 五池财富范围 25.03x～66.72x |
+## 核心指标
 
-## 牛市统一执行口径比较
+| 指标 | 定义 | 解读 |
+|---|---|---|
+| 最终财富 | `期末权益 / 初始权益` | 1.0 表示资金不变 |
+| 累计收益 | `最终财富 - 1` | 衡量区间总收益 |
+| 最大回撤 | 权益从历史高点到后续低点的最大跌幅 | 越低越好 |
+| 账户订单数 | 区间内至少有一笔成交的唯一订单数 | 比 fill 数更接近真实操作次数 |
+| 总换手 | 成交名义金额相对权益的累计比例 | 衡量交易强度和成本敏感性 |
+| 急跌期收益 | 指定压力区间的局部权益变化 | 观察冲击防守 |
+| Sharpe | 日收益均值相对波动的年化比率 | 对非正态收益只能辅助解读 |
+| Calmar | 年化收益相对最大回撤 | 同时观察收益和回撤 |
 
-旧项目数值冻结在 `benchmarks/competitor_bull_reference.json`。比较对象为 qwenquant、AQuant 和 trade 的锁定提交，均经相同 close-t / next-open 适配器运行。当前数据快照只重建了科技指数的因果链式点位；清单记录的日收益最大差异为 `7.24e-10`，不会改变这里的收益比较。
+订单数低不等于策略更好；应与财富、回撤、换手和可执行性共同判断。
 
-| 池 | uquant 财富 | 旧项目最佳财富 | 财富优势 | uquant 回撤 | 旧项目最佳回撤 | uquant 订单 | qwenquant 订单 |
-|---|---:|---:|---:|---:|---:|---:|---:|
-| A / 3 只 | 12.9566x | 9.2619x | +39.89% | 15.96% | 17.54% | 10 | 12 |
-| B / 5 只 | 12.9566x | 12.7595x | +1.54% | 15.96% | 15.52% | 10 | 9 |
-| C / 9 只 | 12.9566x | 10.1485x | +27.67% | 15.96% | 15.79% | 10 | 13 |
-| D / 15 只 | 13.0639x | 11.2732x | +15.88% | 15.98% | 18.62% | 12 | 27 |
-| E / 32 只 | 13.0639x | 11.6947x | +11.71% | 15.98% | 17.27% | 12 | 26 |
+## 回放输出
 
-五池回撤均不高于 18%，并且不超过旧项目最佳回撤 0.5 个百分点。池 B 的财富优势不足 5% 时，真实订单只比 qwenquant 多 1 单；其余四池订单不高于 qwenquant。因此没有用明显增加交易次数换取小幅收益。
+`backtest` 输出包括：
 
-## 本轮改造的回归结果
+- 最终财富、累计收益和最大回撤；
+- 日收益与权益曲线；
+- 账户订单、成交、费用和换手；
+- 持有期、目标权重和风险事件；
+- 机会状态、风险状态及关键证据；
+- 数据、配置和代码摘要。
 
-| 池 | 改造前连续财富 | 改造后连续财富 | 变化 | 改造前订单 | 改造后订单 |
-|---|---:|---:|---:|---:|---:|
-| A | 36.8463x | 38.5399x | +4.60% | 53 | 53 |
-| B | 23.9296x | 25.0304x | +4.60% | 84 | 84 |
-| C | 36.6821x | 38.3749x | +4.61% | 68 | 68 |
-| D | 63.7846x | 66.7198x | +4.60% | 86 | 86 |
-| E | 52.2520x | 54.6566x | +4.60% | 132 | 132 |
-
-牛市财富相对本轮改造前下降约 1.0%，最大回撤不变，订单不增加；同期 2026 年 7 月急跌损失由约 11.1% 收窄到约 6.1%，连续周期财富提高约 4.6%。这属于明确披露的收益/尾部风险权衡，而不是隐藏在总体均值中的退化。
-
-上表和“冻结矩阵”表中的财富、回撤、订单及 -6.08% 是既有 observed 证据，本次没有改写。-3% 是更严格的候选晋级目标；旧 observed 结果本身不因此被重新标成已达标。候选只有用同一执行路径重放且急跌收益实际不低于 -3% 才能通过。
-
-## 2026-08-11 alpha-recovery 候选复核
-
-本轮在同一冻结数据和执行口径上重放完整 35 单元。A/2024、C/2023、D/连续三个报告目标达到；B/连续为 31.4605x、21.86%、54 单，虽然相对冻结 25.0304x 提高 25.7%、回撤和订单也改善，但低于报告提出的 35.54x 理想目标，不能写成“四项目标全部达到”。扩展全集 E 的新 cohort 宽限只在配置全集达到 20 只时自动启用，使连续周期达到 69.3387x、回撤降到 25.86%，同时避免把同一宽限用于 15 只 D 后造成 25% 的收益退化。
-
-| 单元 | 最终财富 | 最大回撤 | 真实订单 | 年化换手 | 冻结 policy 结论 |
-|---|---:|---:|---:|---:|---|
-| A / 牛市 | 12.9069x | 16.39% | 9 | 11.5814 | 通过 |
-| A / 2024 震荡 | 1.7385x | 19.40% | 22 | 2.7343 | 单元通过；18% 震荡聚合回撤线仍有 1.40 个百分点缺口 |
-| B / 连续周期 | 31.4605x | 21.86% | 54 | 6.8055 | 超过冻结结果，但低于报告 35.54x 理想目标 |
-| C / 2022 熊市 | 1.1652x | 4.47% | 6 | 3.4688 | 正收益、低回撤、低交易，通过冻结单元门槛 |
-| C / 2023 混合 | 3.3544x | 28.45% | 15 | 4.0261 | 财富超过 3.3290x 目标；回撤高于上一候选，未隐藏该取舍 |
-| D / 连续周期 | 84.2596x | 27.78% | 89 | 21.4438 | 超过报告与冻结财富目标，订单不增加；换手金额仍偏高 |
-| E / 2021 轮动 | 1.2495x | 12.23% | 10 | 3.6418 | 通过 |
-| E / 2022 熊市 | 1.1193x | 11.50% | 10 | 4.5166 | 正收益；订单和换手增加，完整 policy 结论以 full 报告为准 |
-| E / 牛市 | 13.8435x | 16.39% | 12 | 13.1265 | 通过 |
-| E / 牛市至急跌 | 13.6071x | 16.39% | 15 | 16.7411 | 通过；急跌区间 -1.71% |
-| E / 连续周期 | 69.3387x | 25.86% | 98 | 16.8496 | 收益高于冻结值，回撤低于 28%；扩展全集宽限自动生效 |
-
-完整矩阵的连续周期财富为 A 29.6588x、B 31.4605x、C 40.9987x、D 84.2596x、E 69.3387x；回撤分别为 26.36%、21.86%、22.80%、27.78%、25.86%。A 的长期财富仍低于旧冻结证据，B 低于报告理想目标；D/2024 的普通广池兼容结果为 1.3722x，E/2024 的扩展全集宽限结果为 1.7660x。A/B/C 的 7 月区间为 -7.50%，只有 D/E 达到 -1.71%，因此不得声称 full promotion 全部通过。代码保留这些失败而没有放宽 frozen policy；收益、回撤、订单的具体取舍必须以生成的 full 报告为准。
-
-## 泛化与先验依赖诊断
-
-`uquant.validation.generalization` 使用同一生产引擎构造以下确定性场景：逐个/逐对/全部移除历史先验证券、移除 optical、按行业单独运行、行业平衡池、random 6/12/24，以及 leave-top-1/2/3/5。leave-top-k 排名只使用窗口开始前的 120 个可见交易日，不能按回放结果反选赢家。历史不足的新上市证券会明确记录为 `ineligible_symbols`，不进入窗口前排名和 top-k 移除集合，但仍保留在全集及其他重放场景中；可比较证券不足两个时验证失败，不能用不可比样本制造排名。
-
-报告同时输出：
-
-- `PDI_1 = max(0, 1 - 最差 remove-one 财富 / 全集财富)`；
-- `PDI_3 = max(0, 1 - remove-all 财富 / 全集财富)`；
-- 基线场景的带符号行业 PnL 占比；
-- 财富 p10/median、回撤 p90/worst、订单 median/p90，并按场景族分别聚合。
-
-成员不足的行业不会伪装成稳定行业池：单成员明确标记 `singleton`，多个稀疏行业的合并结果标记 `combined_sparse`。行业映射必须与传入 universe 精确一一覆盖，缺失和多余证券都会在构造任何场景前失败；证据日期、eligible/ineligible 成员也进入场景指纹和报告。`no_optical` 和每个 `industry_only` 结果还必须有实际成交形成的非光模块/对应行业 `CORE` 或 `STRATEGIC` 暴露，报告逐项记录部署证券与 lifecycle，正财富但长期持有现金不再算通过。
-
-Generalization baseline schema v3 同时锁定数据 snapshot、manifest/SHA256SUMS 摘要、完整 universe/行业/先验证券/窗口、close-t/next-open 执行契约、初始资金，以及已提交生产源码的 commit 与源码 SHA-256；整个 provenance 另有不可分割的 validation fingerprint。缺字段、摘要变化、运行参数变化、未提交生产源码或运行中改写 reference 都会在重放前尽可能早地失败。`remove_all_priors` 除正收益与回撤门槛外，还必须达到 baseline 内经过评审且带 reference repository/path/commit/SHA-256 来源的 competitor-best 财富至少 95%；代码不会补造该值。
-
-reference 必须与场景指纹逐项一致，重复、缺失、多余或运行中被改写都会失败。仓库当前没有经过真实完整重放评审且具备上述 provenance 和 competitor-best 指标的 `generalization_baseline.json`，因此 CLI 默认 fail closed，不会自动写一份“当前结果即基线”。
-
-`benchmarks/generalization_smoke_reference.json` 是固定 24 个场景的诊断快照，不是上述
-generalization gate、promotion baseline 或 competitor reference。它只包含 base、三个
-remove-one、remove-all、no-optical、11 个真实行业子集、行业平衡子集，以及 random
-6/12/24 在 seed 0/1 下的结果；没有阈值、竞品值或自动晋级语义。快照锁定已提交的生产
-commit/源码摘要、冻结数据 manifest/checksums、场景指纹和严格早于回放窗口的证据成员，
-并记录所有场景的财富、回撤、账户订单及实际部署。它用于快速检查结果是否跨有限的代表性
-子集保持一致，不能替代包含完整随机矩阵、leave-top-k、policy 和评审 baseline 的泛化门槛。
-快照的 decision-input provenance 还单独锁定 `uquant.engine.code_fingerprint()`，以及
-`benchmarks/reference_registry.json` 的规范仓库路径、文件 SHA-256、最后提交 commit 和
-`committed` 状态。registry 在运行前为 dirty/untracked，或 registry/engine code 在 24 个
-回放中发生变化，都会失败；这是必须的，因为生产 `decide` 每日从该 registry 解析当时可见
-的 reference 成员。
-
-从仓库根目录精确复现 Pool E、Pool A 先验和 2018-01-02 至 2026-07-20 快照：
+示例：
 
 ```bash
-UV_CACHE_DIR=/tmp/uquant-uv-cache uv run --extra dev python - <<'PY'
-import json
-from pathlib import Path
-
-from research.generalization_smoke import run_generalization_smoke
-from uquant.leader import INDUSTRY
-
-baseline = json.loads(Path("benchmarks/promotion_baseline.json").read_text(encoding="utf-8"))
-universe = tuple(baseline["pools"]["e"])
-payload = run_generalization_smoke(
-    data_dir="data/frozen",
-    universe=universe,
-    industries={symbol: INDUSTRY[symbol] for symbol in universe},
-    prior_symbols=tuple(baseline["pools"]["a"]),
-    start="2018-01-02",
-    end="2026-07-20",
-)
-Path("benchmarks/generalization_smoke_reference.json").write_text(
-    json.dumps(payload, indent=2, sort_keys=True) + "\n",
-    encoding="utf-8",
-)
-PY
+uv run uquant backtest \
+  --data-dir data/frozen \
+  --symbols sz300308 sz300502 sz300394 sh688008 sh603986 \
+  --start 2018-01-02 \
+  --end 2026-07-20 \
+  --output backtest_result.json
 ```
 
-## 全周期竞品 gate
+## 验证层次
 
-`uquant.validation.competitor` 要求 A～E 五池 × `rotation_2021`、`bear_2022`、`mixed_2023`、`choppy_2024`、`bull_2025_2026`、`acute_2026_07`、`continuous` 七窗口 × aquant/qwenquant/trade 三项目，共 105 个 reference 单元。每个项目必须锁定 40 位 commit、adapter 路径与 SHA-256、入口/profile/config/runtime/raw evidence；reference 还必须绑定数据 manifest/checksums/dataset 和完整执行契约。
-
-best-of-three 对财富、回撤、订单分别保留来源，不能把三家最优字段拼成不存在的“第四个策略”。急跌窗口从 2025-04-01 warm replay，在 2026-06-30 收盘权益作为起点重新计算局部财富与回撤；订单按 `(2026-06-30, 2026-07-20]` 内存在成交的唯一账户订单计数，避免空仓冷启动和 partial fill 重复计数。
-
-现有 `benchmarks/competitor_bull_reference.json` 只有牛市 15 个单元，不能冒充完整 105 单元 gate。仓库没有可核验的完整三项目全周期真实值，因此没有创建 `competitor_matrix_reference.json`；缺 reference、任何 cell、来源字段或执行契约时命令都会 fail closed。
-
-## 复现
+### 数据完整性
 
 ```bash
 uv run python -m uquant.validation data-manifest --data-dir data/frozen
+```
+
+该命令核对目录、清单和 SHA-256，并拒绝符号链接、不安全文件名、重复或缺失证券。
+
+### 单元与性质测试
+
+```bash
+uv run pytest --cov=uquant --cov-report=term-missing
+```
+
+测试覆盖特征、状态转换、组合硬约束、T+1、费用、部分成交、账户恢复、数据失败路径和确定性。
+
+### 冻结绩效矩阵
+
+```bash
 uv run python -m uquant.validation promotion \
   --data-dir data/frozen \
   --baseline benchmarks/promotion_baseline.json \
-  --profile quick
-
-# 下列两项只有在真实回放结果完成评审并冻结后才可运行；缺失时应失败。
-# Bash 从 promotion 规范读取真实冻结 Pool E（32 只），满足默认
-# random 6/12/24 和 leave-top-1/2/3/5 的全集规模要求。
-mapfile -t GENERALIZATION_POOL_E < <(
-  uv run python -c \
-    'import json; print(*json.load(open("benchmarks/promotion_baseline.json", encoding="utf-8"))["pools"]["e"], sep="\n")'
-)
-uv run python -m uquant.validation generalization \
-  --data-dir data/frozen \
-  --universe "${GENERALIZATION_POOL_E[@]}" \
-  --industries /path/to/industries.json \
-  --prior-symbols sz300308 sz300502 sz300394 \
-  --start 2018-01-02 --end 2026-07-20 \
-  --baseline /path/to/reviewed-generalization.json
-uv run python -m uquant.validation competitor \
-  --data-dir data/frozen \
-  --reference /path/to/reviewed-competitor-matrix.json
+  --profile quick \
+  --output promotion-report.json
 ```
 
-生产源码、基线、冻结数据、依赖锁或工作流发生变化的 Pull Request，以及 `main` 推送和每周定时任务，都运行 `full`。`quick` 只用于人工本地诊断，不能作为合并或发布证据。修改基线不是修复失败的方法；只有冻结数据、执行口径或已经通过评审的生产结果发生变化时，才能同时更新数值和来源说明。
+矩阵同时约束财富、最大回撤、账户订单、换手和压力区间收益。`quick` 用于本地诊断，`full` 用于完整评审。验证失败不能通过删除场景、改写统计口径或放宽基线解决。
+
+### 泛化检查
+
+泛化门对固定全集执行移除证券、行业子集、行业均衡、随机子集和窗口前移等压力场景，并关注尾部分位数及集中度依赖。它要求调用方提供完整行业映射和经过评审的只读基线；缺失时失败关闭。
+
+## 证据边界
+
+可靠报告至少应记录：
+
+- Git 提交和生产源码 SHA-256；
+- 数据快照、清单和校验摘要；
+- 证券池、时间区间、初始资金和执行契约；
+- 完整参数摘要；
+- 每个场景的原始指标；
+- 生成时间和验证结果。
+
+只报告最优股票池、最优区间或平均值会掩盖薄弱场景。参数选择与最终验证应使用不同区间或不同证券子集。
+
+## 如何判断改动是否安全
+
+对注释、文档或工程质量改动，应同时满足：
+
+1. 去除 docstring 后的 Python AST 与基线相同；
+2. 默认配置摘要相同；
+3. 冻结数据摘要相同；
+4. 完整测试和静态门禁通过；
+5. 每个冻结场景的财富、回撤、订单、换手和压力区间收益逐项相同。
+
+对策略改动则不能要求指标完全相同，但必须预先定义允许的收益、回撤和交易成本边界，并使用未参与选择的场景复核。
+
+## 局限与偏差
+
+- 历史结果不保证未来收益；
+- 幸存者偏差、行业映射偏差和证券池选择会影响结论；
+- 前复权数据无法完全表达真实现金分红过程；
+- 次日开盘模型不包含完整排队和冲击成本；
+- 参数和风险阈值可能适应已观察市场结构；
+- 极端停牌、连续涨跌停和流动性枯竭可能使实际仓位偏离目标；
+- 小样本急跌区间的统计不稳定，应与更多压力场景共同使用。

@@ -7,7 +7,8 @@ import argparse
 import hashlib
 import json
 import math
-import subprocess
+import shutil
+import subprocess  # nosec B404
 from collections.abc import Mapping, Sequence
 from concurrent.futures import ProcessPoolExecutor, as_completed
 from datetime import UTC, datetime
@@ -194,6 +195,8 @@ def _validate_evidence(
 def _validate_rows(
     rows: Sequence[Mapping[str, Any]],
 ) -> dict[tuple[str, str, str], Mapping[str, Any]]:
+    """Validate the complete matrix and return its uniquely keyed rows."""
+
     expected = {
         (system, pool, window)
         for system in SYSTEMS
@@ -305,6 +308,8 @@ def _compact_competitor_rows(
     *,
     repository_root: Path,
 ) -> tuple[list[dict[str, Any]], dict[str, Any]]:
+    """Verify frozen evidence and normalize it into comparable matrix rows."""
+
     if payload.get("schema_version") != 2:
         raise RuntimeError("unsupported window competitor artifact schema")
     if tuple(payload.get("systems", ())) != COMPETITORS:
@@ -426,26 +431,39 @@ def _python_source_hash(root: Path) -> str:
     return digest.hexdigest()
 
 
+def _git_executable() -> str:
+    """Resolve Git explicitly so provenance commands never invoke a shell."""
+
+    executable = shutil.which("git")
+    if executable is None:
+        raise RuntimeError("cannot resolve git executable for five-window provenance")
+    return executable
+
+
 def _git_identity(repository_root: Path) -> str:
+    executable = _git_executable()
     status = subprocess.run(
-        ["git", "status", "--porcelain", "--untracked-files=all"],
+        [executable, "status", "--porcelain", "--untracked-files=all"],
         cwd=repository_root,
         check=True,
         capture_output=True,
         text=True,
-    ).stdout
+    ).stdout  # nosec B603
     if status.strip():
         raise RuntimeError("five-window evidence requires a clean committed worktree")
-    return subprocess.run(
-        ["git", "rev-parse", "HEAD"],
+    completed = subprocess.run(
+        [executable, "rev-parse", "HEAD"],
         cwd=repository_root,
         check=True,
         capture_output=True,
         text=True,
-    ).stdout.strip()
+    )  # nosec B603
+    return completed.stdout.strip()
 
 
 def build(*, repository_root: Path, competitor_path: Path, workers: int) -> dict[str, Any]:
+    """Build the full content-addressed matrix and its dominance evaluation."""
+
     commit = _git_identity(repository_root)
     competitor_bytes = competitor_path.read_bytes()
     competitor_payload = json.loads(competitor_bytes.decode("utf-8"))
@@ -531,6 +549,8 @@ def build(*, repository_root: Path, competitor_path: Path, workers: int) -> dict
 
 
 def main(argv: Sequence[str] | None = None) -> int:
+    """Write one validated matrix report and return its gate status."""
+
     repository_root = Path(__file__).resolve().parents[1]
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--competitor-results", type=Path, required=True)

@@ -59,6 +59,8 @@ class _TencentRedirectHandler(HTTPRedirectHandler):
     """Follow only HTTPS redirects that remain on the approved Tencent origin."""
 
     def redirect_request(self, req, fp, code, msg, headers, newurl):  # type: ignore[no-untyped-def]
+        """Approve same-origin redirects and reject every other destination."""
+
         if not _approved_tencent_url(newurl):
             raise HTTPError(newurl, code, "refusing cross-origin Tencent redirect", headers, fp)
         return super().redirect_request(req, fp, code, msg, headers, newurl)
@@ -77,6 +79,8 @@ def _requires_long_history(symbol: str, anchor_date: str) -> bool:
 
 @dataclass(frozen=True, slots=True)
 class BackfillResult:
+    """Content identity and splice diagnostics for one completed symbol."""
+
     symbol: str
     first_date: str
     last_date: str
@@ -141,6 +145,8 @@ def _payload(text: str) -> dict[str, Any]:
 def _fetch(
     symbol: str, start: str, end: str, *, count: int = 640
 ) -> list[tuple[str, str, str, str, str, str]]:
+    """Fetch and normalize bounded daily OHLCV rows for one symbol."""
+
     adjusted = symbol not in INDEX_SYMBOLS
     query = urlencode(
         {
@@ -211,6 +217,8 @@ def _valid_prices(row: tuple[str, str, str, str, str, str]) -> bool:
 
 
 def _backfill_one(path: Path) -> tuple[BackfillResult, bytes]:
+    """Build one validated historical prefix without writing the source file."""
+
     symbol = path.stem
     anchor_date, anchor_prices, existing_text = _existing_anchor(path)
     if anchor_date <= HISTORICAL_CUTOFF:
@@ -344,6 +352,8 @@ def _write_metadata(data_dir: Path, results: list[BackfillResult]) -> None:
 
 
 def main(argv: Sequence[str] | None = None) -> int:
+    """Validate arguments, stage all symbol payloads, and replace them atomically."""
+
     root = Path(__file__).resolve().parents[1]
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--data-dir", type=Path, default=root / "data/frozen")

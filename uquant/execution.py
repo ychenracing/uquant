@@ -48,6 +48,8 @@ def _blocked(
     row: pd.Series | pd.DataFrame,
     previous_close: float,
 ) -> bool:
+    """Return whether volume or a one-price limit prevents this side from filling."""
+
     if isinstance(row, pd.DataFrame):
         if row.empty:
             return True
@@ -167,6 +169,8 @@ def merge_pending_orders(
         order: PendingOrder,
         target: Target | None,
     ) -> bool:
+        """Keep a partially filled buy when its economic target is unchanged."""
+
         return bool(
             cfg is not None
             and target is not None
@@ -272,6 +276,8 @@ def _register_account_order(
     *,
     submitted_date: str,
 ) -> AccountOrder:
+    """Reuse a matching ledger order or allocate a stable new order identifier."""
+
     if order.order_id:
         existing = next(
             (item for item in account.order_ledger if item.order_id == order.order_id),
@@ -517,6 +523,13 @@ class ExecutionPlanner:
         account: AccountState,
         panel: dict[str, pd.DataFrame],
     ) -> list[Fill]:
+        """Execute pending intents at one open and retain every blocked remainder.
+
+        Sells are processed before buys. Each fill updates the durable ledger,
+        cash, tranche inventory, and pending quantity under market, capacity,
+        lot-size, and T+1 constraints.
+        """
+
         date_str = str(date.date())
         retained: list[PendingOrder] = []
         fills: list[Fill] = []

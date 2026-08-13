@@ -352,6 +352,8 @@ class PortfolioAllocator(RecoveryPortfolioPolicy):
             raise RuntimeError("allocator could not construct an exact sparse risk plan")
 
         def plan_rank(plan: dict[str, float]) -> tuple[object, ...]:
+            """Rank feasible risk plans by lifecycle retention, stability, and utility."""
+
             vectors = [
                 self._risk_retention_vector(
                     target_by_symbol[symbol],
@@ -639,6 +641,8 @@ class PortfolioAllocator(RecoveryPortfolioPolicy):
         account: AccountState,
         prices: dict[str, float],
     ) -> tuple[Target, ...]:
+        """Select one strategy route and return targets before final hard caps."""
+
         weights_now, equity = current_weights(account, prices)
         self._release_stale_recovery_anchor(
             risk=risk,
@@ -785,19 +789,19 @@ class PortfolioAllocator(RecoveryPortfolioPolicy):
         if unsupported_locked_restore:
             # Reference sentinels can confirm that market stress repaired, but
             # they cannot manufacture breadth inside the user's opportunity
-            # set. A concentrated old cohort whose missing members lack three
-            # independent user industries is retired in place: keep the live
-            # survivor, discard only stale rebuy rights, and require any later
+            # set. A concentrated cohort whose missing members lack three
+            # independent user industries remains bounded in place: keep the
+            # live survivor, discard only stale rebuy rights, and require later
             # expansion to clear ordinary admission again.
             live_anchors = {
                 symbol: weights_now.get(symbol, 0.0)
                 for symbol in account.anchor_weights
                 if weights_now.get(symbol, 0.0) > 1e-12
             }
-            retired = set(account.anchor_weights) - set(live_anchors)
+            removed_anchors = set(account.anchor_weights) - set(live_anchors)
             account.anchor_weights = live_anchors
             account.protected_weights.clear()
-            for symbol in retired:
+            for symbol in removed_anchors:
                 account.strategic_restore_weights.pop(symbol, None)
             account.candidate_tenure["recovery_cohort_locked"] = 0
             account.candidate_tenure["post_shock_restore_complete"] = 1

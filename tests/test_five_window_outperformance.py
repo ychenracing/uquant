@@ -61,6 +61,13 @@ def test_five_window_contract_and_acute_boundaries_are_exact() -> None:
     }
 
 
+def test_git_identity_fails_closed_when_git_cannot_be_resolved(monkeypatch, tmp_path) -> None:
+    monkeypatch.setattr(outperformance.shutil, "which", lambda executable: None)
+
+    with pytest.raises(RuntimeError, match="resolve git executable"):
+        outperformance._git_identity(tmp_path)
+
+
 def test_evaluate_requires_one_hundred_cells_and_seventy_five_comparisons() -> None:
     rows = _complete_rows()
 

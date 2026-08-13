@@ -8,6 +8,9 @@ on:
 permissions:
   contents: read
 
+env:
+  UV_VERSION: "0.11.33"
+
 concurrency:
   group: engineering-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
@@ -29,7 +32,7 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
       - name: Install uv
-        run: python -m pip install --disable-pip-version-check uv
+        run: python -m pip install --disable-pip-version-check "uv==${UV_VERSION}"
       - name: Sync locked development environment
         run: uv sync --frozen --extra dev
       - name: Lint
@@ -63,11 +66,11 @@ jobs:
         with:
           python-version: "3.12"
       - name: Install uv
-        run: python -m pip install --disable-pip-version-check uv
+        run: python -m pip install --disable-pip-version-check "uv==${UV_VERSION}"
       - name: Sync locked development environment
         run: uv sync --frozen --extra dev
       - name: Static security scan
-        run: uv run bandit -q -r uquant
+        run: uv run bandit -q -r uquant research scripts
       - name: Export production dependency lock
         run: uv export --frozen --no-dev --no-emit-project --no-hashes --output-file /tmp/uquant-requirements.txt
       - name: Audit production dependencies

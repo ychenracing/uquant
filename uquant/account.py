@@ -6,6 +6,7 @@ import json
 import math
 import os
 import tempfile
+from contextlib import suppress
 from datetime import UTC, datetime
 from datetime import date as date_type
 from pathlib import Path
@@ -123,6 +124,8 @@ def _validate_fill(
     ledger: dict[str, AccountOrder],
     allow_schema_v2_missing_sell_attribution: bool = False,
 ) -> None:
+    """Validate one fill and reconcile its immutable order attribution."""
+
     signal_date = _required_iso_date(fill.signal_date, field="fill signal_date")
     fill_date = _required_iso_date(fill.fill_date, field="fill fill_date")
     if fill_date <= signal_date:
@@ -346,7 +349,7 @@ def _validate_fill(
     ):
         raise RuntimeError("linked sell fill sold-lot attribution does not reconcile")
     if fill.side == Side.SELL.value and not fill.order_id and attributed_shares not in {0, shares}:
-        raise RuntimeError("legacy sell fill sold-lot attribution does not reconcile")
+        raise RuntimeError("unlinked sell fill sold-lot attribution does not reconcile")
     if fill.side == Side.BUY.value and attributed_shares:
         raise RuntimeError("buy fill cannot contain sold-lot attribution")
 
@@ -368,7 +371,7 @@ _SHOCK_SEVERITIES = {
     "MARKET",
     "CONCENTRATED",
     "SEVERE",
-    "ANCHOR_BREAK",  # Retained for valid schema-v1/v2 account migrations.
+    "ANCHOR_BREAK",  # Accepted when normalizing compatible durable accounts.
     "COHORT_BREAK",
     "INCOMPLETE_UNIVERSE",
     "INCOMPLETE_UNIVERSE_UNBACKED",
@@ -441,6 +444,8 @@ def _optional_finite_event_number(
 
 
 def _validate_audit_events(state: AccountState) -> None:
+    """Validate structured strategy and lifecycle audit events in an account."""
+
     lifecycles = {item.value for item in Lifecycle}
     risks = {item.value for item in Risk}
 
@@ -712,7 +717,7 @@ def _validate_strategy_risk_state(state: AccountState) -> None:
 
 
 def _tranche(payload: dict[str, Any], *, schema_version: int) -> Tranche:
-    """Load a tranche while deriving safe schema-v3 economic metadata."""
+    """Load a tranche while deriving safe current-schema economic metadata."""
     native_v3 = schema_version == ACCOUNT_SCHEMA_VERSION
     if native_v3:
         avg_cost = payload.get("avg_cost", 0.0)
@@ -762,6 +767,8 @@ def _tranche(payload: dict[str, Any], *, schema_version: int) -> Tranche:
 
 
 def _position(payload: dict[str, Any], *, schema_version: int) -> Position:
+    """Decode a position and reconcile aggregate shares with its tranche lots."""
+
     native_v3 = schema_version == ACCOUNT_SCHEMA_VERSION
     convert_text = (lambda value: value) if native_v3 else str
     convert_int = (lambda value: value) if native_v3 else int
@@ -778,7 +785,7 @@ def _position(payload: dict[str, Any], *, schema_version: int) -> Position:
     if schema_version < ACCOUNT_SCHEMA_VERSION and position.shares > 0:
         known_shares = sum(item.shares for item in position.tranches)
         if known_shares > position.shares:
-            raise ValueError("legacy position tranches exceed aggregate shares")
+            raise ValueError("compatible position tranches exceed aggregate shares")
         residual = position.shares - known_shares
         if residual:
             entry_date = position.entry_date or "0001-01-01"
@@ -797,7 +804,7 @@ def _position(payload: dict[str, Any], *, schema_version: int) -> Position:
                     avg_cost=position.avg_cost,
                     entry_date=entry_date,
                     # Equality preserves "already sellable" semantics while
-                    # keeping the schema-v3 causal date invariant.
+                    # keeping the current causal date invariant.
                     sellable_date=entry_date,
                     highest_close=highest_close,
                     lowest_close=position.avg_cost,
@@ -916,6 +923,8 @@ def _validate_order_state(
     sequence_was_explicit: bool,
     allow_schema_v2_missing_sell_attribution: bool = False,
 ) -> None:
+    """Validate order identifiers, lifecycle transitions, fills, and references."""
+
     _nonnegative_integer(
         state.next_order_sequence,
         field="account state next order sequence",
@@ -1049,9 +1058,11 @@ def _validate_order_state(
         raise RuntimeError("account state has duplicate broker fill ids")
 
     linked_fills: dict[str, list[Fill]] = {order_id: [] for order_id in ledger}
-    legacy_fills = [fill for fill in state.fills if not fill.order_id]
+    unlinked_fills = [fill for fill in state.fills if not fill.order_id]
 
-    def legacy_identity_matches(fill: Fill, order: AccountOrder) -> bool:
+    def unlinked_identity_matches(fill: Fill, order: AccountOrder) -> bool:
+        """Match an unlinked fill to the immutable identity of one order."""
+
         return bool(
             fill.signal_date == order.signal_date
             and fill.symbol == order.symbol
@@ -1066,20 +1077,26 @@ def _validate_order_state(
     for ledger_item in state.order_ledger:
         order_fills = linked_fills[ledger_item.order_id]
         accounted_fill_shares = sum(fill.shares for fill in order_fills)
-        # Schema-v1/v2 fills could predate broker-visible order IDs.  A unique
-        # immutable-identity match is the only explicit legacy exemption.
-        legacy_matches = [fill for fill in legacy_fills if legacy_identity_matches(fill, ledger_item)]
-        legacy_match_shares = sum(fill.shares for fill in legacy_matches)
-        legacy_exempt = (
+        # Some accepted account payloads contain fills without broker-visible
+        # order IDs. Only a unique immutable-identity match may link them.
+        unlinked_matches = [
+            fill for fill in unlinked_fills if unlinked_identity_matches(fill, ledger_item)
+        ]
+        unlinked_match_shares = sum(fill.shares for fill in unlinked_matches)
+        unlinked_exempt = (
             not order_fills
-            and bool(legacy_matches)
-            and legacy_match_shares == ledger_item.filled_shares
+            and bool(unlinked_matches)
+            and unlinked_match_shares == ledger_item.filled_shares
             and all(
-                sum(legacy_identity_matches(fill, candidate) for candidate in state.order_ledger) == 1
-                for fill in legacy_matches
+                sum(
+                    unlinked_identity_matches(fill, candidate)
+                    for candidate in state.order_ledger
+                )
+                == 1
+                for fill in unlinked_matches
             )
         )
-        if accounted_fill_shares != ledger_item.filled_shares and not legacy_exempt:
+        if accounted_fill_shares != ledger_item.filled_shares and not unlinked_exempt:
             raise RuntimeError("account order filled shares do not reconcile to fills")
         if (
             ledger_item.status
@@ -1092,7 +1109,7 @@ def _validate_order_state(
             raise RuntimeError("unfilled order status cannot retain filled shares")
         if ledger_item.status == OrderStatus.FILLED.value and ledger_item.filled_shares == 0:
             raise RuntimeError("filled order requires at least one executed share")
-        relevant_fills = order_fills or legacy_matches
+        relevant_fills = order_fills or unlinked_matches
         if relevant_fills:
             if not ledger_item.last_update_date:
                 raise RuntimeError("filled account order requires last_update_date")
@@ -1335,10 +1352,10 @@ def migrate_account(
     new_code_hash: str,
     acknowledge_code_change: bool,
 ) -> AccountState:
-    """Explicitly upgrade one durable account and bind it to reviewed code.
+    """Normalize one durable account and bind it to reviewed production code.
 
-    The caller must acknowledge that the code fingerprint changes. Market-data
-    provenance, broker state, orders, fills, and strategy state are preserved.
+    The caller explicitly acknowledges the target code fingerprint. Market-data
+    provenance, broker state, orders, fills, and strategy state remain intact.
     """
     if not acknowledge_code_change:
         raise RuntimeError("account migration requires --acknowledge-code-change")
@@ -1390,6 +1407,18 @@ def migrate_account(
     return state
 
 
+def _fsync_directory(path: Path) -> None:
+    """Flush directory metadata where the platform exposes directory descriptors."""
+
+    if os.name == "nt":
+        return
+    descriptor = os.open(path, os.O_RDONLY | getattr(os, "O_DIRECTORY", 0))
+    try:
+        os.fsync(descriptor)
+    finally:
+        os.close(descriptor)
+
+
 def save_account(state: AccountState, path: str | Path) -> None:
     """Atomically persist an account state after flushing it to stable storage."""
     if state.schema_version == ACCOUNT_SCHEMA_VERSION:
@@ -1412,6 +1441,7 @@ def save_account(state: AccountState, path: str | Path) -> None:
             stream.flush()
             os.fsync(stream.fileno())
         os.replace(temporary, destination)
+        _fsync_directory(destination.parent)
     finally:
-        if os.path.exists(temporary):
+        with suppress(FileNotFoundError):
             os.unlink(temporary)

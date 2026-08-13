@@ -7,6 +7,7 @@ from typing import Any
 
 import pytest
 
+import uquant.account as account_module
 from uquant.account import load_account, migrate_account, save_account
 from uquant.broker import sync_broker_snapshot
 from uquant.types import AccountOrder, AccountState, Fill, OrderStatus, PendingOrder
@@ -354,6 +355,46 @@ def test_save_rejects_nan_state_without_replacing_existing_file(tmp_path):
     assert destination.read_text(encoding="utf-8") == "durable-before"
 
 
+def test_save_syncs_parent_directory_after_atomic_replace(tmp_path, monkeypatch):
+    destination = tmp_path / "durable.json"
+    events: list[tuple[str, object]] = []
+    original_replace = account_module.os.replace
+
+    def observed_replace(source, target):
+        original_replace(source, target)
+        events.append(("replace", target))
+
+    monkeypatch.setattr(account_module.os, "replace", observed_replace)
+    monkeypatch.setattr(
+        account_module,
+        "_fsync_directory",
+        lambda directory: events.append(("sync-directory", directory)),
+        raising=False,
+    )
+
+    save_account(AccountState.empty(2_000_000.0), destination)
+
+    assert events == [
+        ("replace", destination),
+        ("sync-directory", destination.parent),
+    ]
+
+
+def test_save_preserves_write_error_when_temporary_cleanup_races(tmp_path, monkeypatch):
+    state = AccountState.empty(2_000_000.0)
+    state.risk_events = [{"date": "2026-01-01", "unvalidated_metric": float("nan")}]
+    original_unlink = account_module.os.unlink
+
+    def disappearing_unlink(path):
+        original_unlink(path)
+        raise FileNotFoundError(path)
+
+    monkeypatch.setattr(account_module.os, "unlink", disappearing_unlink)
+
+    with pytest.raises(ValueError, match="Out of range float"):
+        save_account(state, tmp_path / "durable.json")
+
+
 @pytest.mark.parametrize(
     "mutate",
     [
@@ -453,7 +494,7 @@ def test_schema_v2_order_and_fill_metadata_remain_migratable(tmp_path):
 
 @pytest.fixture
 def schema_v2_linked_sell_payload() -> dict[str, Any]:
-    """Match schema-v2 execution output: linked SELL, without v3 lot attribution."""
+    """Match compatible execution output: linked SELL without lot attribution."""
     state = _state_with_fill()
     state.schema_version = 2
     state.order_ledger[0].side = "SELL"

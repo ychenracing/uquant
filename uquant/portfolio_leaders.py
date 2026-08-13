@@ -239,6 +239,8 @@ class LeaderPortfolioPolicy(StrategicPortfolioPolicy):
         user_panel: dict[str, pd.DataFrame],
         account: AccountState,
     ) -> int:
+        """Update the confirmed target holding count under regime and risk limits."""
+
         regime_cap = {
             Opportunity.STRONG_TREND: 4,
             Opportunity.TREND: 3,
@@ -576,6 +578,8 @@ class LeaderPortfolioPolicy(StrategicPortfolioPolicy):
         weights_now: dict[str, float],
         prices: dict[str, float],
     ) -> tuple[Target, ...] | None:
+        """Build ordinary leader targets or decline when no admissible book exists."""
+
         if risk.state.value == "CRISIS":
             return None
         ranked = sorted(
@@ -790,8 +794,10 @@ class LeaderPortfolioPolicy(StrategicPortfolioPolicy):
                     account.replacement_tenure[key] = 0
 
         for key in tuple(account.replacement_tenure):
-            legacy_rotation_key = "->" in key and ":" not in key
-            if (key.startswith("leader_rotation:") or legacy_rotation_key) and key != observed_rotation_key:
+            unscoped_rotation_key = "->" in key and ":" not in key
+            if (
+                key.startswith("leader_rotation:") or unscoped_rotation_key
+            ) and key != observed_rotation_key:
                 account.replacement_tenure[key] = 0
 
         # A leader can graduate to cash when no credible replacement exists.

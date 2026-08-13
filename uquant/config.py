@@ -100,9 +100,8 @@ class SystemConfig:
     leader_cycle_impulse_breadth: float = 0.10
     leader_cycle_min_market_ret120: float = 0.01
     leader_cycle_impulse_min_market_ret120: float = -0.01
-    # Strategic membership is evidence-derived.  The empty legacy field is
-    # retained only so old configuration files can be migrated without a
-    # symbol-specific production prior; it is never consumed by the strategy.
+    # Strategic membership is evidence-derived. This empty compatibility field
+    # accepts serialized input but never supplies a symbol-specific prior.
     strategic_cohort_symbols: tuple[str, ...] = ()
     strategic_dynamic_enabled: bool = True
     strategic_cohort_size: int = 3
@@ -114,15 +113,14 @@ class SystemConfig:
     strategic_one_name_min_secular_score: float = 0.80
     strategic_two_name_confirm_days: int = 3
     strategic_one_name_confirm_days: int = 4
-    # Retired schema-v3 compatibility fields. Universe size is diagnostic only
-    # and none of these thresholds may select a production decision path.
+    # Serialized compatibility fields. Universe size is diagnostic only, and
+    # none of these thresholds may select a production decision path.
     strategic_partial_universe_max_size: int = 8
     adaptive_broad_universe_min_size: int = 10
     adaptive_broad_universe_compatibility_enabled: bool = True
     strategic_secular_min_score: float = 0.58
     strategic_secular_min_confidence: float = 0.65
-    # Reviewed causal thresholds retained from the original strategy.  Unlike
-    # the retired symbol tuple, both routes below discover synchronized
+    # Both routes below use reviewed causal thresholds and discover synchronized
     # industry groups from the requested universe at runtime.
     strategic_cohort_min_ret240: float = 1.70
     strategic_persistent_max_ret120: float = 1.50
@@ -326,6 +324,8 @@ class SystemConfig:
     fail_closed: bool = True
 
     def __post_init__(self) -> None:
+        """Reject unsafe values and inconsistent relationships between parameters."""
+
         if self.initial_cash <= 0:
             raise ValueError("initial_cash must be positive")
         if not 0 < self.max_gross <= 1:
@@ -521,7 +521,9 @@ class SystemConfig:
                 "leader_cycle_impulse_min_market_ret120 must not exceed the ordinary market floor"
             )
         if self.strategic_cohort_symbols:
-            raise ValueError("strategic_cohort_symbols is retired; membership is discovered dynamically")
+            raise ValueError(
+                "strategic_cohort_symbols must remain empty; membership is discovered dynamically"
+            )
         if not 1 <= self.strategic_cohort_size <= min(3, self.max_positions):
             raise ValueError("strategic_cohort_size must be in [1, min(3, max_positions)]")
         if not 1 <= self.strategic_cohort_min_size <= self.strategic_cohort_size:
@@ -769,9 +771,13 @@ class SystemConfig:
             raise ValueError("challenger scout incumbent hysteresis must be in [0, 0.20]")
 
     def override(self, **changes: Any) -> SystemConfig:
+        """Return a validated immutable configuration with selected fields replaced."""
+
         return replace(self, **changes)
 
     def to_dict(self) -> dict[str, Any]:
+        """Return all configuration fields as a serialization-safe mapping."""
+
         return asdict(self)
 
 

@@ -10,15 +10,20 @@ from .candidate_search import CandidateEvaluation, Scalar, validate_shared_confi
 
 @dataclass(frozen=True, slots=True)
 class AblationCase:
+    """One named shared configuration in a capability ablation set."""
+
     name: str
     parameters: tuple[tuple[str, Scalar], ...]
 
     def config(self) -> dict[str, Scalar]:
+        """Return an independent parameter mapping."""
         return dict(self.parameters)
 
 
 @dataclass(frozen=True, slots=True)
 class AblationDelta:
+    """Candidate-minus-baseline deltas for one disabled capability."""
+
     name: str
     score: float
     wealth: float

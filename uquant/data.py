@@ -53,6 +53,8 @@ class DataManifest:
     digest: str
 
     def to_dict(self) -> dict[str, object]:
+        """Return the manifest in JSON-compatible form."""
+
         return {
             "generated_at": self.generated_at,
             "source": self.source,
@@ -76,6 +78,8 @@ class DataStore:
         self._prefix_hash_cache: dict[str, tuple[pd.DatetimeIndex, tuple[str, ...]]] = {}
 
     def path_for(self, symbol: str) -> Path:
+        """Resolve a normalized symbol to an existing CSV path."""
+
         normalized = normalize_symbol(symbol)
         candidates = [self.root / f"{normalized}.csv", self.root / f"{normalized[2:]}.csv"]
         for candidate in candidates:
@@ -84,6 +88,8 @@ class DataStore:
         raise DataContractError(f"missing required data for {normalized}")
 
     def load(self, symbol: str, *, as_of: str | None = None) -> pd.DataFrame:
+        """Load validated data, optionally bounded through an inclusive date."""
+
         normalized = normalize_symbol(symbol)
         if normalized not in self._cache:
             path = self.path_for(normalized)
@@ -126,6 +132,8 @@ class DataStore:
         return out.set_index("date", drop=True)
 
     def common_sessions(self, symbols: Iterable[str], start: str, end: str) -> pd.DatetimeIndex:
+        """Return at least two sessions shared by every requested symbol."""
+
         sessions: pd.DatetimeIndex | None = None
         for symbol in symbols:
             index = pd.DatetimeIndex(self.load(symbol).loc[pd.Timestamp(start) : pd.Timestamp(end)].index)
@@ -171,6 +179,8 @@ class DataStore:
         source: str = "frozen",
         as_of: str | pd.Timestamp | None = None,
     ) -> DataManifest:
+        """Build a deterministic identity for the visible prefix of each symbol."""
+
         normalized = tuple(sorted({normalize_symbol(item) for item in symbols}))
         bound = pd.Timestamp(as_of).normalize() if as_of is not None else None
         files: dict[str, str] = {}
@@ -199,6 +209,8 @@ class DataStore:
         )
 
     def refresh_akshare(self, symbols: Iterable[str], *, end: str) -> None:
+        """Refresh stock QFQ files through `end`, rejecting unsupported indices."""
+
         try:
             import akshare as ak  # type: ignore[import-not-found]
         except ImportError as exc:

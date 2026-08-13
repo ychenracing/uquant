@@ -92,6 +92,8 @@ def trace_backtest(
         as_of: str,
         account: AccountState,
     ) -> Decision:
+        """Delegate to production and append the resulting economic trace row."""
+
         nonlocal fill_cursor
         new_fills = tuple(account.fills[fill_cursor:])
         fill_cursor = len(account.fills)

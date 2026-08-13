@@ -15,6 +15,8 @@ import pandas as pd
 
 @dataclass(frozen=True, slots=True)
 class ExitRecord:
+    """Validated facts captured when a position exit has completed."""
+
     symbol: str
     exit_date: str
     exit_price: float
@@ -37,6 +39,8 @@ class ExitRecord:
 
 @dataclass(frozen=True, slots=True)
 class ExitAttribution:
+    """Post-exit outcome paths for one immutable exit record."""
+
     record: ExitRecord
     post_exit_returns: tuple[tuple[int, float | None], ...]
     relative_returns: tuple[tuple[int, float | None], ...]

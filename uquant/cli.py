@@ -16,6 +16,8 @@ from .types import AccountState
 
 
 def _parser() -> argparse.ArgumentParser:
+    """Build the complete production CLI without reading process arguments."""
+
     parser = argparse.ArgumentParser(
         prog="uquant",
         description="Causal A-share daily portfolio decisions and replay",
@@ -50,12 +52,12 @@ def _parser() -> argparse.ArgumentParser:
     migrate.add_argument(
         "--output",
         default=None,
-        help="destination account file (defaults to an atomic in-place upgrade)",
+        help="destination account file (defaults to atomic in-place normalization)",
     )
     migrate.add_argument(
         "--acknowledge-code-change",
         action="store_true",
-        help="confirm that the reviewed production code fingerprint will replace the old one",
+        help="confirm that the reviewed production code fingerprint becomes authoritative",
     )
     backtest = sub.add_parser("backtest")
     backtest.add_argument("--symbols", nargs="+", required=True)

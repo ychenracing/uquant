@@ -118,6 +118,8 @@ class ProductionEngine:
         return float(frame.iloc[-1][field])
 
     def equity(self, account: AccountState, date: pd.Timestamp, field: str = "close") -> float:
+        """Mark current positions at the latest visible field and add cash."""
+
         return account.cash + sum(
             position.shares * self._price(symbol, date, field)
             for symbol, position in account.positions.items()
@@ -148,6 +150,13 @@ class ProductionEngine:
                 tranche.mae = min(tranche.mae, excursion)
 
     def decide(self, *, symbols: Iterable[str], as_of: str, account: AccountState) -> Decision:
+        """Produce and persist one causal close-date portfolio decision.
+
+        The account is advanced in place after all data, code, state, and
+        chronology checks succeed. Returned orders are next-open intentions;
+        this method never fills them on the signal date.
+        """
+
         if account.schema_version != ACCOUNT_SCHEMA_VERSION:
             raise RuntimeError(f"account schema {account.schema_version} requires explicit migration")
         date = pd.Timestamp(as_of).normalize()
@@ -197,9 +206,8 @@ class ProductionEngine:
                     ).digest
                 verified_digest = self._manifest_cache[verification_key]
             else:
-                # Account files without an as-of boundary can be opened only
-                # while their exact data snapshot is still present. A successful
-                # run upgrades the state to bounded, append-safe provenance.
+                # Accounts without an as-of boundary require their exact data
+                # snapshot. A successful run then records bounded provenance.
                 verified_digest = self.data.manifest(verification_symbols).digest
             if account.data_hash != verified_digest and self.cfg.fail_closed:
                 raise RuntimeError("historical data prefix differs from account state")
@@ -331,10 +339,9 @@ class ProductionEngine:
             prices=prices,
         )
         if not decision_cfg.group_balanced_reference_enabled:
-            # The unified conservative policy deliberately computes decisions
-            # from the legacy name-weighted view.  Preserve the independently
-            # computed point-in-time reference snapshot as diagnostics so
-            # traces remain complete without letting it alter this decision.
+            # The selected policy uses the security-weighted view for decisions.
+            # Preserve the independently computed point-in-time snapshot only
+            # as diagnostics so traces stay complete without changing weights.
             risk.evidence.update(reference_context.evidence())
         planned_orders = plan_orders(
             signal_date=str(date.date()),
@@ -430,6 +437,8 @@ class ProductionEngine:
     def deterministic_decision(
         self, *, symbols: Iterable[str], as_of: str, account: AccountState
     ) -> tuple[Decision, AccountState]:
+        """Evaluate a decision on a deep copy and return both result and copy."""
+
         cloned = copy.deepcopy(account)
         return self.decide(symbols=symbols, as_of=as_of, account=cloned), cloned
 
@@ -441,6 +450,8 @@ class ProductionEngine:
         end: str,
         initial_cash: float | None = None,
     ) -> dict[str, Any]:
+        """Replay the production decision and next-open execution path."""
+
         user_symbols = tuple(sorted({normalize_symbol(item) for item in symbols}))
         self._load(set(user_symbols) | set(REFERENCE_UNIVERSE) | set(INDEX_SYMBOLS))
         sessions = self._raw["sh000300"].index.intersection(self._raw["sh000682"].index)
@@ -564,8 +575,8 @@ def performance_metrics(
                 entry_date = str(allocation.get("entry_date", ""))
                 if entry_date:
                     holding_days.append((pd.Timestamp(fill.fill_date) - pd.Timestamp(entry_date)).days)
-            # Execution has already supplied authoritative lot identity.  The
-            # synthetic FIFO queue is used only for legacy fills.
+            # Execution supplied authoritative lot identity. The synthetic FIFO
+            # queue is needed only when a fill lacks tranche attribution.
             remaining = 0
         else:
             for lot in buy_lots.get(fill.symbol, []):
@@ -618,6 +629,8 @@ def performance_metrics(
     drawdown = 1.0 - equity / equity.cummax()
 
     def lead_to_drawdown(threshold: float) -> int | None:
+        """Count sessions from the first risk action to a drawdown crossing."""
+
         crossings = drawdown[drawdown >= threshold]
         if crossings.empty or first_action is None:
             return None
@@ -730,6 +743,8 @@ def attribution(
     post_exit: list[dict[str, Any]] = []
 
     def reason_family(fill: Fill) -> str:
+        """Map one sell fill to a stable economic attribution family."""
+
         normalized = fill.reason.lower().replace("-", "_")
         code = fill.reason_code.lower()
         exit_kind = fill.exit_kind.lower()

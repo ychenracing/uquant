@@ -14,6 +14,8 @@ DEFAULT_REGISTRY_PATH = Path(__file__).resolve().parents[1] / "benchmarks" / "re
 
 @dataclass(frozen=True, slots=True)
 class ReferenceMembership:
+    """One reviewed symbol-membership interval with an exclusive end date."""
+
     symbol: str
     effective_from: pd.Timestamp
     effective_to: pd.Timestamp | None
@@ -21,6 +23,8 @@ class ReferenceMembership:
     review_status: str
 
     def active(self, as_of: pd.Timestamp) -> bool:
+        """Return whether this interval is visible at `as_of`."""
+
         return self.effective_from <= as_of and (
             self.effective_to is None or as_of < self.effective_to
         )

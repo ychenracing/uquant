@@ -101,6 +101,8 @@ class Position:
     tranches: list[Tranche] = field(default_factory=list)
 
     def sellable_shares(self, date: str) -> int:
+        """Return tranche shares whose T+1 sellable date has arrived."""
+
         return sum(item.shares for item in self.tranches if item.sellable_date <= date)
 
 
@@ -280,6 +282,8 @@ class AccountState:
 
     @classmethod
     def empty(cls, cash: float) -> AccountState:
+        """Create an uninvested account with initialized equity high-water marks."""
+
         return cls(
             initial_cash=cash,
             cash=cash,
@@ -288,6 +292,8 @@ class AccountState:
         )
 
     def to_dict(self) -> dict[str, Any]:
+        """Return the complete durable account payload."""
+
         return asdict(self)
 
 

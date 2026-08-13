@@ -83,6 +83,7 @@ class PreWindowEvidence:
     ineligible_symbols: tuple[str, ...] = ()
 
     def __post_init__(self) -> None:
+        """Reject ambiguous dates, duplicate symbols, and overlapping cohorts."""
         try:
             pd.Timestamp(self.as_of)
         except (TypeError, ValueError) as exc:
@@ -121,6 +122,7 @@ class PreWindowEvidence:
         )
 
     def score_map(self) -> dict[str, float]:
+        """Return an independent symbol-to-score mapping."""
         return dict(self.scores)
 
 
@@ -140,6 +142,7 @@ class GeneralizationScenario:
     evidence_ineligible_symbols: tuple[str, ...] = ()
 
     def __post_init__(self) -> None:
+        """Validate canonical scenario membership and evidence provenance."""
         if not self.name or not self.family or not self.symbols:
             raise ValueError("generalization scenarios require name, family, and symbols")
         if len(self.symbols) != len(set(self.symbols)):
@@ -177,6 +180,7 @@ class GeneralizationObservation:
     deployed_exposure: tuple[tuple[str, str], ...] = ()
 
     def __post_init__(self) -> None:
+        """Validate performance ranges and canonical symbol-level results."""
         if not self.name or not self.family:
             raise ValueError("generalization observations require name and family")
         if self.final_wealth <= 0 or not math.isfinite(self.final_wealth):
@@ -210,6 +214,7 @@ class GeneralizationObservation:
             raise ValueError(f"invalid deployed exposure for {self.name}")
 
     def pnl_map(self) -> dict[str, float]:
+        """Return an independent symbol-to-PnL mapping."""
         return dict(self.symbol_pnl)
 
 
@@ -432,6 +437,7 @@ def build_generalization_scenarios(
         source_industries: tuple[str, ...] = (),
         seed: int | None = None,
     ) -> GeneralizationScenario:
+        """Attach the shared pre-window evidence to one scenario."""
         return GeneralizationScenario(
             name=name,
             family=family,
@@ -896,7 +902,7 @@ def build_generalization_provenance(
     repository: str = "ychenracing/uquant",
     initial_cash: float = 2_000_000.0,
 ) -> dict[str, Any]:
-    """Build the exact reviewed provenance envelope used by schema v3 baselines."""
+    """Build the exact reviewed provenance envelope for baseline evidence."""
     symbols = _canonical_symbols(universe, label="generalization universe")
     priors = _canonical_symbols(prior_symbols, label="prior symbols")
     return _validated_provenance(
@@ -946,6 +952,7 @@ def _policy_number(payload: Mapping[str, Any], name: str) -> float:
 
 
 def _parse_policy(value: Any) -> GeneralizationPolicy:
+    """Parse a complete policy object and enforce every numeric bound."""
     if not isinstance(value, Mapping):
         raise RuntimeError("generalization baseline policy must be an object")
     observed = set(value)
@@ -1038,6 +1045,7 @@ def _validate_baseline_envelope(
     *,
     expected_provenance: Mapping[str, Any] | None,
 ) -> tuple[dict[str, Any], dict[str, Any], GeneralizationPolicy]:
+    """Validate baseline sections, fingerprints, policy, and replay provenance."""
     expected_sections = {
         "schema_version",
         "case_fingerprint",
@@ -1429,6 +1437,7 @@ def _aggregate_gate_results(
     reference: Mapping[str, float],
     policy: GeneralizationPolicy,
 ) -> dict[str, dict[str, Any]]:
+    """Evaluate aggregate dominance and Pareto conditions against references."""
     wealth_change = _relative_change(current["median_wealth"], reference["median_wealth"])
     drawdown_change = current["worst_drawdown"] - reference["worst_drawdown"]
     order_change = _relative_change(current["median_orders"], reference["median_orders"])
@@ -1519,6 +1528,7 @@ def evaluate_generalization(
     dominated_scenarios: list[str] = []
 
     def add_scenario_violation(name: str, violation: str) -> None:
+        """Record one scenario-local violation in both report indexes."""
         scenario_violations[name].append(violation)
         failures.append(f"{name}: {violation}")
 
@@ -1859,6 +1869,7 @@ def run_generalization(
                 raise RuntimeError("production generalization runner was not initialized")
 
             def production_runner(case: GeneralizationScenario) -> Mapping[str, Any]:
+                """Enrich one production replay with exact symbol-level PnL."""
                 result = engine.backtest(symbols=case.symbols, start=start, end=end)
                 final_date = pd.Timestamp(str(result["end"]))
                 final_account = result.get("final_account", {})

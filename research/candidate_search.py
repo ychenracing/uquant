@@ -124,6 +124,8 @@ class ReplayObservation:
     years: float = 1.0
 
     def __post_init__(self) -> None:
+        """Validate identity, ranges, and finiteness of replay metrics."""
+
         numeric = (
             self.final_wealth,
             self.max_drawdown,
@@ -149,6 +151,8 @@ class ReplayObservation:
 
     @property
     def calmar(self) -> float:
+        """Return annualized excess wealth divided by maximum drawdown."""
+
         annualized = float(self.final_wealth ** (1.0 / self.years) - 1.0)
         return float(annualized / max(self.max_drawdown, 1e-6))
 
@@ -204,6 +208,8 @@ class CandidateEvaluation:
     universe_variance: float
 
     def config(self) -> dict[str, Scalar]:
+        """Return an independent parameter mapping."""
+
         return dict(self.parameters)
 
 
@@ -337,6 +343,8 @@ def pareto_gate(
 
 @dataclass(frozen=True, slots=True)
 class SearchResult:
+    """One evaluated candidate and its optional comparison-gate outcomes."""
+
     evaluation: CandidateEvaluation
     dominance_passed: bool | None
     pareto_passed: bool | None

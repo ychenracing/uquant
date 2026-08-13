@@ -23,6 +23,7 @@ def _digest(path: Path) -> str:
 
 
 def _checksum_entries(path: Path) -> dict[str, str]:
+    """Parse a canonical SHA-256 manifest while rejecting unsafe paths."""
     entries: dict[str, str] = {}
     try:
         lines = path.read_text(encoding="utf-8").splitlines()

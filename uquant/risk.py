@@ -15,8 +15,8 @@ from .reference import ReferenceContext
 from .risk_sector import SectorGuardTransition, update_sector_guard
 from .types import AccountState, LeaderScore, Risk, RiskAssessment
 
-# Retired compatibility export.  Production anchors live in AccountState and
-# are selected from reference evidence; no symbol receives a static risk role.
+# Compatibility export only. Production anchors live in AccountState and are
+# selected from reference evidence; no symbol receives a static risk role.
 REFERENCE_ANCHORS: tuple[str, ...] = ()
 
 EVIDENCE_FAMILY_MEMBERS: dict[str, tuple[str, ...]] = {

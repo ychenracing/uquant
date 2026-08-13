@@ -39,6 +39,13 @@ def _complete_rows() -> list[dict[str, object]]:
     ]
 
 
+def test_git_executable_fails_closed_when_git_cannot_be_resolved(monkeypatch) -> None:
+    monkeypatch.setattr(outperformance.shutil, "which", lambda executable: None)
+
+    with pytest.raises(RuntimeError, match="resolve git executable"):
+        outperformance._git_executable()
+
+
 def test_acute_return_requires_both_common_boundaries() -> None:
     curve = [
         {"date": outperformance.ACUTE_START, "equity": 100.0},

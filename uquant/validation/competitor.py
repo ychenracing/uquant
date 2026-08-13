@@ -1,10 +1,8 @@
-"""Fail-closed, full-cycle comparison against three frozen competitors.
+"""Fail-closed validation for a frozen full-cycle benchmark matrix.
 
-The reference is deliberately data-only.  This module never checks out a
-competitor repository and never writes reference values; it validates reviewed
-adapter output, replays the production engine under the same execution
-contract, and compares every pool/window cell with the best of the three
-locked competitors.
+The reference is data-only. This module never fetches source code or writes
+reference values; it validates reviewed evidence, replays the production engine
+under the same execution contract, and evaluates every pool/window cell.
 """
 
 from __future__ import annotations
@@ -54,9 +52,13 @@ class MatrixWindow:
 
     @property
     def engine_start(self) -> str:
+        """Return the replay start needed to warm the scored interval."""
+
         return self.replay_start or self.start
 
     def to_payload(self) -> dict[str, str]:
+        """Return the canonical serialized window definition."""
+
         payload = {"start": self.start, "end": self.end}
         if self.replay_start:
             payload["replay_start"] = self.replay_start
@@ -86,6 +88,8 @@ REQUIRED_POOLS: Final[tuple[str, ...]] = ("a", "b", "c", "d", "e")
 
 @dataclass(frozen=True, slots=True)
 class ExecutionContract:
+    """Frozen assumptions shared by every matrix replay."""
+
     initial_cash: float
     calendar: str
     signal: str
@@ -108,6 +112,8 @@ class ExecutionContract:
     account_order_measure: str
 
     def to_payload(self) -> dict[str, float | int | str | bool]:
+        """Return the complete execution contract as primitive values."""
+
         return {
             "initial_cash": self.initial_cash,
             "calendar": self.calendar,
@@ -158,11 +164,15 @@ CANONICAL_EXECUTION_CONTRACT: Final[ExecutionContract] = ExecutionContract(
 
 @dataclass(frozen=True, slots=True)
 class RepositoryProvenance:
+    """Immutable source identity for one reviewed benchmark implementation."""
+
     repository: str
     commit: str
     adapter_source_sha256: str
 
     def to_payload(self) -> dict[str, str]:
+        """Return repository provenance in canonical field order."""
+
         return {
             "repository": self.repository,
             "commit": self.commit,
@@ -200,6 +210,8 @@ LOCKED_COMPETITOR_PROVENANCE: Final[tuple[tuple[str, RepositoryProvenance], ...]
 
 @dataclass(frozen=True, slots=True)
 class DataProvenance:
+    """Hashes that bind the matrix to one exact market-data snapshot."""
+
     snapshot_id: str
     adjustment: str
     manifest_sha256: str
@@ -207,6 +219,8 @@ class DataProvenance:
     dataset_sha256: str
 
     def to_payload(self) -> dict[str, str]:
+        """Return the complete data provenance payload."""
+
         return {
             "snapshot_id": self.snapshot_id,
             "adjustment": self.adjustment,
@@ -218,6 +232,8 @@ class DataProvenance:
 
 @dataclass(frozen=True, slots=True)
 class GatePolicy:
+    """Allowed wealth, drawdown, and order-count tolerances."""
+
     wealth_floor_ratio: float
     drawdown_tolerance: float
     absolute_max_drawdown: float
@@ -227,6 +243,8 @@ class GatePolicy:
 
 @dataclass(frozen=True, slots=True)
 class CompetitorMetrics:
+    """Validated wealth, drawdown, and account-order metrics for one cell."""
+
     final_wealth: float
     max_drawdown: float
     account_orders: int
@@ -244,6 +262,8 @@ class CompetitorMetrics:
             raise ValueError("competitor account_orders must be a nonnegative integer")
 
     def to_payload(self) -> dict[str, float | int]:
+        """Return metrics as JSON-compatible values."""
+
         return {
             "final_wealth": self.final_wealth,
             "max_drawdown": self.max_drawdown,
@@ -253,6 +273,8 @@ class CompetitorMetrics:
 
 @dataclass(frozen=True, slots=True)
 class CompetitorMatrixReference:
+    """Fully parsed benchmark matrix and its immutable provenance."""
+
     source_sha256: str
     frozen_at_utc: str
     policy: GatePolicy
@@ -263,12 +285,18 @@ class CompetitorMatrixReference:
     results: tuple[tuple[str, CompetitorMetrics], ...]
 
     def pool_map(self) -> dict[str, tuple[str, ...]]:
+        """Return pool names mapped to their ordered symbol tuples."""
+
         return dict(self.pools)
 
     def repository_map(self) -> dict[str, RepositoryProvenance]:
+        """Return benchmark names mapped to reviewed source identities."""
+
         return dict(self.repositories)
 
     def result_map(self) -> dict[str, CompetitorMetrics]:
+        """Return matrix cell keys mapped to validated metrics."""
+
         return dict(self.results)
 
 
@@ -410,6 +438,8 @@ def data_provenance_from_directory(data_dir: str | Path) -> DataProvenance:
 
 
 def _parse_policy(value: Any) -> GatePolicy:
+    """Parse gate tolerances and reject missing, extra, or unsafe values."""
+
     payload = _object(value, label="policy")
     if set(payload) != _POLICY_FIELDS:
         raise RuntimeError("competitor gate policy fields are malformed")
@@ -451,6 +481,8 @@ def _parse_metrics(value: Any, *, label: str) -> CompetitorMetrics:
 
 
 def _parse_pools(value: Any) -> tuple[tuple[str, tuple[str, ...]], ...]:
+    """Parse the complete required pool set with stable symbol ordering."""
+
     payload = _object(value, label="pools")
     missing = sorted(set(REQUIRED_POOLS) - set(payload))
     unexpected = sorted(set(payload) - set(REQUIRED_POOLS))
@@ -713,6 +745,8 @@ def evaluate_competitor_gate(
 
 
 def _interval_metrics(raw: Mapping[str, Any], window: MatrixWindow) -> CompetitorMetrics:
+    """Recompute local metrics from a warmed replay for a scored subinterval."""
+
     curve = raw.get("equity_curve")
     account = raw.get("final_account")
     fills = account.get("fills") if isinstance(account, Mapping) else None
@@ -789,6 +823,8 @@ def run_competitor_gate(
             symbols: tuple[str, ...],
             window: MatrixWindow,
         ) -> Mapping[str, Any]:
+            """Replay one production matrix cell and return normalized metrics."""
+
             raw = engine.backtest(
                 symbols=symbols,
                 start=window.engine_start,

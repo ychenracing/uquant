@@ -87,6 +87,8 @@ class CandidateRunner:
         universe: str = "candidate",
         scenario: str | None = None,
     ) -> CellTrace:
+        """Replay one cell and retain its causal close-decision observations."""
+
         normalized = tuple(sorted({normalize_symbol(symbol) for symbol in symbols}))
         if not normalized:
             raise ValueError("candidate trace requires a non-empty universe")

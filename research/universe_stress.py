@@ -10,6 +10,8 @@ from dataclasses import dataclass
 
 @dataclass(frozen=True, slots=True)
 class UniverseCase:
+    """One named deterministic symbol universe used by an offline stress."""
+
     name: str
     symbols: tuple[str, ...]
     family: str
@@ -62,6 +64,8 @@ def exclude_industry_case(
     industries: Mapping[str, str],
     excluded: str,
 ) -> UniverseCase:
+    """Build a universe that excludes every symbol in one industry."""
+
     remaining = tuple(symbol for symbol in _symbols(universe) if industries.get(symbol) != excluded)
     return UniverseCase(
         name=f"no_{excluded}",
@@ -74,6 +78,8 @@ def industry_only_cases(
     universe: Iterable[str],
     industries: Mapping[str, str],
 ) -> tuple[UniverseCase, ...]:
+    """Build one non-empty universe for each known industry."""
+
     base = _symbols(universe)
     grouped: dict[str, list[str]] = {}
     for symbol in base:
@@ -95,6 +101,8 @@ def balanced_industry_case(
     *,
     per_industry: int = 2,
 ) -> UniverseCase:
+    """Select a stable, equally bounded prefix from every known industry."""
+
     if per_industry < 1:
         raise ValueError("per_industry must be positive")
     grouped: dict[str, list[str]] = {}
@@ -129,7 +137,14 @@ def random_universe_cases(
         if size < 1 or size > len(base):
             raise ValueError(f"random universe size is outside [1, {len(base)}]: {size}")
         for seed in ordered_seeds:
-            chosen = tuple(sorted(random.Random(_derived_seed(base_seed, size, seed)).sample(base, size)))
+            chosen = tuple(
+                sorted(
+                    random.Random(_derived_seed(base_seed, size, seed)).sample(  # nosec B311
+                        base,
+                        size,
+                    )
+                )
+            )
             cases.append(
                 UniverseCase(
                     name=f"random_{size}_{seed:04d}",

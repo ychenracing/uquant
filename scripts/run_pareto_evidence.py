@@ -1,4 +1,4 @@
-"""Reproducible orchestration for the approved Pareto sprint evidence."""
+"""Reproducible orchestration for the maintained Pareto evidence."""
 
 from __future__ import annotations
 
@@ -130,6 +130,8 @@ def _parser() -> argparse.ArgumentParser:
 
 
 def main(argv: list[str] | None = None) -> int:
+    """Run the selected evidence audit or deterministic smoke replay."""
+
     args = _parser().parse_args(argv)
     root = Path(args.repo_root).resolve()
     if args.command == "reference-audit":
@@ -142,4 +144,3 @@ def main(argv: list[str] | None = None) -> int:
 
 if __name__ == "__main__":
     raise SystemExit(main())
-

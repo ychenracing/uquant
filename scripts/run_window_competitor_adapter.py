@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
-"""Run the three frozen legacy systems through one comparable evidence schema.
+"""Replay three frozen reference implementations into one evidence schema.
 
-The script is intentionally outside the production package.  It requires
-read-only checkouts of qwenquant, AQuant and trade, and writes only a benchmark
-artifact.  Production code never imports or shells out to those projects.
+This script is intentionally outside the production package. It consumes
+read-only source checkouts and writes only a benchmark artifact; production
+code never imports or invokes the reference implementations.
 """
 
 from __future__ import annotations
@@ -80,9 +80,9 @@ RISK_TOKENS = (
     "transition",
 )
 
-# The frozen Trade engine deliberately fails closed when a symbol is missing
-# from its internal metadata table.  These labels feed its existing documented
-# name-hint router; they do not change any strategy threshold or signal.
+# One frozen engine fails closed when a symbol is absent from its metadata.
+# These labels feed its documented name-hint router; they do not change any
+# strategy threshold or signal.
 TRADE_NAME_HINTS = {
     "600487": "Hengtong optical communication",
     "603688": "Quartz silicon wafer",
@@ -96,6 +96,8 @@ TRADE_NAME_HINTS = {
 
 @dataclass(frozen=True, slots=True)
 class Task:
+    """One immutable system, pool, and window replay request."""
+
     system: str
     pool: str
     window: str
@@ -107,6 +109,8 @@ class Task:
 
 
 def _jsonable(value: Any) -> Any:
+    """Recursively normalize supported evidence values for strict JSON output."""
+
     if value is None or isinstance(value, (str, int, float, bool)):
         if isinstance(value, float) and not math.isfinite(value):
             return None
@@ -176,10 +180,9 @@ def _is_risk_reduction(side: str, reason: str) -> bool:
 def _submission_key(signal_date: str, symbol: str, side: str) -> tuple[str, str, str]:
     """Return the common broker-account netting key.
 
-    The three frozen engines expose different internal fill ledgers.  A real
-    account, however, submits at most one same-side instruction for a symbol
-    from one close.  This key merges virtual sleeves/tranches while preserving
-    a genuinely new instruction produced at a later close.
+    Reference adapters expose different internal fill ledgers. A broker account
+    submits at most one same-side instruction for a symbol from one close. This
+    key nets virtual sleeves while preserving a later close's new instruction.
     """
     return (str(signal_date), str(symbol), str(side).upper())
 
@@ -249,11 +252,9 @@ def _broker_order_ledger(
 ) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
     """Net executed sleeve fills into comparable broker/account orders.
 
-    The frozen Trade implementation defines an account order as one executed
-    date/symbol/direction tuple. QwenQuant and AQuant expose one fill per such
-    tuple, while Trade can expose several virtual-sleeve fills. Applying the
-    same key to all three systems preserves real broker turnover and keeps
-    unfilled strategy intents out of the user-cost metric.
+    The shared key is executed date, symbol, and direction. It preserves broker
+    turnover when an implementation emits several internal-sleeve fills and
+    keeps unfilled strategy intents out of the user-cost metric.
     """
     grouped: dict[tuple[str, str, str], list[dict[str, Any]]] = {}
     for fill in fills:
@@ -387,7 +388,7 @@ def _visible_symbols(
         if not dates.empty and pd.Timestamp(dates.iloc[0]) <= boundary:
             visible.append(symbol)
     if not visible:
-        raise RuntimeError("no symbols were visible in the requested legacy window")
+        raise RuntimeError("no symbols were visible in the requested comparison window")
     return tuple(visible)
 
 
@@ -416,6 +417,8 @@ def _standard(
     order_ledger: list[dict[str, Any]] | None = None,
     extra: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
+    """Build the common evidence row shared by every reference replay."""
+
     reductions = [
         fill
         for fill in fills
@@ -449,6 +452,8 @@ def _standard(
 
 
 def _run_qwen(task: Task) -> dict[str, Any]:
+    """Replay one frozen reference cell under the shared execution contract."""
+
     sys.path.insert(0, task.qwen_root)
     from qwenquant import BacktestEngine  # type: ignore[import-not-found]
     from qwenquant.optimize.presets import (  # type: ignore[import-not-found]
@@ -456,6 +461,8 @@ def _run_qwen(task: Task) -> dict[str, Any]:
     )
 
     class NextOpenOnly(BacktestEngine):  # type: ignore[misc]
+        """Capture next-open submissions while suppressing intraday exits."""
+
         def __init__(self, *args: Any, **kwargs: Any) -> None:
             super().__init__(*args, **kwargs)
             self.account_submissions: list[dict[str, Any]] = []
@@ -573,6 +580,8 @@ def _run_qwen(task: Task) -> dict[str, Any]:
 
 
 def _run_aquant(task: Task) -> dict[str, Any]:
+    """Replay one frozen reference cell under the shared execution contract."""
+
     os.environ["AQUANT_DATA_DIR"] = task.data_dir
     sys.path.insert(0, task.aquant_root)
     replay = importlib.import_module("aquant.auto_daily_replay")
@@ -580,11 +589,10 @@ def _run_aquant(task: Task) -> dict[str, Any]:
     start, end = WINDOWS[task.window]
     requested = POOLS[task.pool]
     loaded_panel = replay._preload_panel(tuple(sorted(requested)))
-    # AQuant preloads a fixed reference basket and then treats a security with no
-    # row yet as corrupt input.  Under the common point-in-time contract, a
-    # later listing is instead invisible.  Keep the start-date-visible slice for
-    # the whole comparison window so the adapter neither leaks future members
-    # nor delays the account start.
+    # This reader preloads a fixed basket and treats an as-yet-unlisted symbol as
+    # invalid. Under the common point-in-time contract, retain only symbols
+    # visible at the start so the adapter neither leaks future membership nor
+    # delays the account start.
     panel = {
         symbol: frame
         for symbol, frame in loaded_panel.items()
@@ -612,6 +620,8 @@ def _run_aquant(task: Task) -> dict[str, Any]:
         loaded: Any,
         init_cash: float,
     ) -> dict[str, object]:
+        """Capture the equity path while delegating metric calculation unchanged."""
+
         captured["equity_curve"] = _equity_rows(equity)
         return cast(
             dict[str, object],
@@ -619,6 +629,8 @@ def _run_aquant(task: Task) -> dict[str, Any]:
         )
 
     def point_in_time_route(args: Any, *, panel: Any = None) -> Any:
+        """Limit route metadata to symbols visible in the supplied panel."""
+
         params, automatic, explanation = original_route(args, panel=panel)
         params = dict(params)
         params["sector_guard_symbols"] = tuple(
@@ -631,6 +643,8 @@ def _run_aquant(task: Task) -> dict[str, Any]:
         return params, automatic, explanation
 
     def capture_orders(report: dict[str, object], params: dict[str, Any]) -> Any:
+        """Capture broker submissions while preserving the original order builder."""
+
         orders = original_orders(report, params)
         submissions.extend(
 
@@ -656,6 +670,8 @@ def _run_aquant(task: Task) -> dict[str, Any]:
         shock_ma: int,
         recovery_ma: int,
     ) -> Any:
+        """Return sector observations bounded by the requested visible date."""
+
         # The broad index can trade on a date where every fixed-basket member
         # is suspended. Skipping that unobservable basket session is equivalent
         # to receiving no sector observation and never reads a future row.
@@ -737,6 +753,8 @@ def _run_aquant(task: Task) -> dict[str, Any]:
 
 
 def _run_trade(task: Task) -> dict[str, Any]:
+    """Replay one frozen reference cell under the shared execution contract."""
+
     sys.path.insert(0, task.trade_root)
     route = importlib.import_module("regime_adaptive")
     start, end = WINDOWS[task.window]
@@ -769,6 +787,8 @@ def _run_trade(task: Task) -> dict[str, Any]:
         date_to_pos: Any,
         directions: frozenset[str] | None = None,
     ) -> Any:
+        """Capture attempted directions before delegating next-open execution."""
+
         allowed = directions or frozenset({"buy", "sell"})
         for signal, _ in pending:
             if signal.direction not in allowed:
@@ -910,7 +930,8 @@ def _stage_bounded_data(source: Path, destination: Path, *, end: str) -> int:
 
 
 def _stage_trade_data(source: Path, destination: Path) -> int:
-    """Expose bounded prefixed CSVs under the legacy six-digit filenames."""
+    """Expose bounded prefixed CSVs under unprefixed six-digit filenames."""
+
     destination.mkdir(parents=True, exist_ok=True)
     staged = 0
     for path in sorted(source.glob("*.csv")):
@@ -918,7 +939,7 @@ def _stage_trade_data(source: Path, destination: Path) -> int:
             continue
         target = destination / f"{path.stem[2:]}.csv"
         if target.exists():
-            raise RuntimeError(f"duplicate legacy symbol filename: {target.name}")
+            raise RuntimeError(f"duplicate unprefixed symbol filename: {target.name}")
         target.symlink_to(path.resolve())
         staged += 1
     if staged == 0:
@@ -932,6 +953,8 @@ def _execute_matrix(
     canonical_data_dir: Path,
     trade_data_dir: Path,
 ) -> int:
+    """Execute the requested replay matrix and write validated evidence."""
+
     tasks = [
         Task(
             system,
@@ -948,7 +971,7 @@ def _execute_matrix(
         for window in args.windows
     ]
     print(
-        f"legacy adapter: executing {len(tasks)} cells with {args.workers} workers",
+        f"reference adapter: executing {len(tasks)} cells with {args.workers} workers",
         flush=True,
     )
     with ProcessPoolExecutor(max_workers=args.workers) as executor:
@@ -958,7 +981,7 @@ def _execute_matrix(
             task = pending[future]
             rows.append(future.result())
             print(
-                f"legacy adapter: {index}/{len(tasks)} "
+                f"reference adapter: {index}/{len(tasks)} "
                 f"latest={task.system}/{task.pool}/{task.window}",
                 flush=True,
             )
@@ -998,7 +1021,7 @@ def _execute_matrix(
         json.dumps(payload, ensure_ascii=False, indent=2, allow_nan=False) + "\n",
         encoding="utf-8",
     )
-    print(f"legacy adapter: wrote {args.output}", flush=True)
+    print(f"reference adapter: wrote {args.output}", flush=True)
     return 0
 
 
@@ -1042,6 +1065,8 @@ def _validate_complete_rows(
 
 
 def main(argv: Sequence[str] | None = None) -> int:
+    """Validate sources and data, then run the selected evidence matrix."""
+
     root = Path(__file__).resolve().parents[1]
     default_roots = _default_source_roots()
     parser = argparse.ArgumentParser(description=__doc__)
@@ -1106,7 +1131,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     if args.trade_data_dir is not None and not args.trade_data_dir.is_dir():
         parser.error(f"trade data directory does not exist: {args.trade_data_dir}")
     comparison_end = max(end for _, end in WINDOWS.values())
-    with tempfile.TemporaryDirectory(prefix="legacy-bounded-data-") as temporary:
+    with tempfile.TemporaryDirectory(prefix="reference-bounded-data-") as temporary:
         canonical_data_dir = Path(temporary)
         staged = _stage_bounded_data(
             args.data_dir,
@@ -1114,7 +1139,7 @@ def main(argv: Sequence[str] | None = None) -> int:
             end=comparison_end,
         )
         print(
-            f"legacy adapter: staged {staged} canonical CSVs through {comparison_end}",
+            f"reference adapter: staged {staged} canonical CSVs through {comparison_end}",
             flush=True,
         )
         if args.trade_data_dir is not None:
@@ -1124,11 +1149,11 @@ def main(argv: Sequence[str] | None = None) -> int:
                 canonical_data_dir,
                 args.trade_data_dir,
             )
-        with tempfile.TemporaryDirectory(prefix="legacy-trade-data-") as trade_temp:
+        with tempfile.TemporaryDirectory(prefix="reference-symbol-data-") as trade_temp:
             trade_data_dir = Path(trade_temp)
             linked = _stage_trade_data(canonical_data_dir, trade_data_dir)
             print(
-                f"legacy adapter: staged {linked} legacy filename links",
+                f"reference adapter: staged {linked} unprefixed filename links",
                 flush=True,
             )
             return _execute_matrix(

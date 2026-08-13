@@ -1,48 +1,54 @@
 # uquant
 
-uquant 是面向 A 股科技产业链的日频量化决策系统。它只支持现金多头，不使用杠杆、不做空；在收盘后生成目标组合和下一交易日开盘意图，适合每日人工触发并结合券商账户复核。
+uquant 是面向 A 股科技产业链的日频量化决策系统。它使用现金多头组合，在收盘后生成目标仓位和下一交易日开盘意图，适合每日人工运行、核对并辅助交易决策。
 
-仓库只维护一套生产实现：实时决策与历史回放共用 `ProductionEngine.decide()`，不存在并行策略入口或隐藏的第二套下单逻辑。
+系统不会连接券商自动下单，不使用杠杆，不做空，也不依赖盘中行情。
 
-## 核心约束
+## 核心优势
 
-- 最大总仓位 100%，单票上限 60%，最多持有 6 只股票；
-- 风险判断与机会判断相互独立，最终都汇入唯一组合分配器；
-- 信号使用当日及以前的数据，订单最早在下一可交易日开盘执行；
-- 统一处理 A 股 T+1、涨跌停、停牌、100 股手数、科创板首次 200 股、费用、滑点、容量和部分成交；
-- 小幅目标变化落在迟滞区间内时不交易，降低无效换手；
-- 战略 cohort 由点时长期证据动态发现，状态统一为 `SECULAR` / `EMERGING_SECULAR`：三成员组使用满额预算；固定全集不超过 8 只时，证据充分的双成员/exceptional 单成员分别以 85%/50% 总仓及 3/4 日确认后备进入；9 只过渡全集保留同日 alpha、但自动使用经回放验证的风险计票兼容路径；成熟路线保留 240 日持久收益证据，小池还可使用正 120 日结构与趋势持久性的因果替代证据；
-- 风险锚由跨行业长期证据动态确认，连续转坏、慢性退化和资本回撤预算阶梯默认自动工作；
-- 已部署持仓出现重复同步冲击且独立偏离确认时，sector guard 进入 Level-2、把总仓限制为 40%，并与普通 risk-off / crisis 减仓分开归因；
-- 风险去仓先冻结新增风险，再稀疏压缩目标；成交层优先退出卫星和后加仓 tranche，保护健康核心；
-- 普通领涨路径在 `CHOPPY`/`WEAK` 中把新增机会预算限制为 60%/25%，并在 scout 之后稀疏取消弱证据增量；已有健康 Core 由生命周期或确认风险退出，不因单日机会标签机械卖出；
-- 空仓超跌路线只在双指数长期弱势，或一弱一稳且分化充分的过渡修复中工作；过渡路线只接受可晋升的深跌候选。单票战术探针默认最多 60% 且仍受风险上限约束；恢复赢家的 20% MFE / 10% 峰值回撤 trail 不是通用核心止损，风险压缩后的战略权重也只在健康确认后逐票恢复；
-- 默认启用行业广度确认、持仓同步冲击保护、置信度仓位和闲置现金 challenger scout，无需人工开关；
-- conviction 不等权只在强趋势高置信入场同时通过韧性、相对强度、流动性和票间相关性联合门时启用，否则新核心保持等权；
-- 生产评分、广度、风险锚和数据要求只使用 point-in-time 参考注册表解析出的评审篮子；每日共享的 `ReferenceContext` 同时输出证券/行业均衡广度、压力、离散度和相关性，研究扩展参考不能因一次实验自动进入实盘；
-- 账户文件、代码指纹或历史数据前缀异常时拒绝继续运行；
-- 券商快照是现金、持仓、可卖数量和真实成交的权威来源。
+- **同一决策内核**：日报与历史回放都调用 `ProductionEngine.decide()`，避免研究路径与日常路径出现行为差异。
+- **严格因果时点**：信号只读取决策日及以前的数据，成交最早发生在下一可交易日开盘。
+- **双轴判断**：机会状态决定是否值得承担风险，风险状态独立给出最高仓位；强机会不能覆盖风险上限。
+- **组合级风控**：同时约束总仓、单票、持仓数、行业集中度、相关性、流动性和资本回撤。
+- **低换手执行**：连续确认、最短持有、替换优势、轮动预算、目标迟滞和订单复用共同过滤无效交易。
+- **A 股交易约束**：模拟 T+1、涨跌停、停牌、手数、科创板首次买入、费用、滑点、容量和部分成交。
+- **可恢复账户**：账户保存订单、成交、持仓生命周期、风险状态和数据指纹，并使用原子写入。
+- **失败关闭验证**：数据、账户、代码指纹或冻结证据不一致时拒绝继续，而不是猜测或静默修正。
 
-## 环境与安装
+## 默认边界
 
-需要 Python 3.11 或更高版本。
+| 约束 | 默认值 |
+|---|---:|
+| 初始资金 | 2,000,000 元 |
+| 最大总仓位 | 100% |
+| 单票最大权重 | 60% |
+| 最大持仓数 | 6 |
+| 行业最大权重 | 75% |
+| 最小权重变化 | 5% |
+| 最小交易金额 | 20,000 元 |
+| 最大成交量参与率 | 0.5% |
+
+## 安装
+
+需要 Python 3.11 或更高版本。推荐使用锁定依赖：
 
 ```bash
-python -m venv .venv
-. .venv/bin/activate
-python -m pip install -e '.[dev,data]'
+python -m pip install uv
+uv sync --frozen --extra dev
 ```
 
-`data` 依赖只在使用 AkShare 刷新股票前复权行情时需要。仓库中的冻结 CSV 可直接用于离线回放。
+只有通过 AkShare 刷新股票行情时才需要 `data` 可选依赖：
+
+```bash
+uv sync --frozen --extra dev --extra data
+```
 
 ## 快速开始
 
 ### 1. 初始化账户
 
-账户会绑定指定日期之前的数据前缀和当前生产代码指纹。未提供 `--date` 时，使用全部必需证券的最新共同日期。
-
 ```bash
-uquant account-init \
+uv run uquant account-init \
   --data-dir data/frozen \
   --symbols sz300308 sz300502 sz300394 sh688008 sh603986 \
   --date 2026-07-20 \
@@ -50,36 +56,22 @@ uquant account-init \
   --output account_state.json
 ```
 
-也可以使用模块入口：
-
-```bash
-python -m uquant account-init --help
-```
-
-当前账户格式为 schema v3。v3 为 tranche 保存入场证据，为订单与成交保存风险减仓策略，并持久化战略 epoch、动态风险锚、连续风险信号、资本预算和 challenger scout 状态。已有旧版账户不会被静默补字段；升级代码后先备份账户，再显式迁移并核对券商快照：
-
-```bash
-uquant account-migrate \
-  --account account_state.json \
-  --acknowledge-code-change
-```
-
-迁移保留现金、持仓、订单、成交、数据前缀和策略状态，并写入不可省略的迁移审计记录。详细流程见[运行手册](docs/OPERATIONS.md)。
+账户会绑定当前数据前缀和生产代码指纹。
 
 ### 2. 同步券商快照
 
 ```bash
-uquant account-sync \
+uv run uquant account-sync \
   --account account_state.json \
   --snapshot broker_snapshot.json
 ```
 
-快照至少包含 `as_of`、`cash`、`positions` 和 `fills`。真实成交必须引用 uquant 已生成的 `order_id`，并提供稳定、可幂等去重的 `fill_id`。完整字段见 [运行手册](docs/OPERATIONS.md)。
+券商快照是现金、持仓、当日可卖数量和真实成交的权威来源。完整字段见[运行手册](docs/OPERATIONS.md)。
 
-### 3. 生成每日决策
+### 3. 生成盘后决策
 
 ```bash
-uquant daily \
+uv run uquant daily \
   --data-dir data/frozen \
   --symbols sz300308 sz300502 sz300394 sh688008 sh603986 \
   --date 2026-07-21 \
@@ -88,12 +80,12 @@ uquant daily \
   --output daily_report_2026-07-21.md
 ```
 
-日报包含机会状态、风险状态、目标总仓位、目标持仓数、每只股票的目标权重、次日订单意图和决策摘要。`daily` 只生成并持久化意图，不会连接券商自动下单。
+日报包含机会状态、风险状态、目标总仓、目标持仓数、逐票目标权重、订单意图和决策证据。生成意图后仍需人工核对券商状态。
 
 ### 4. 历史回放
 
 ```bash
-uquant backtest \
+uv run uquant backtest \
   --data-dir data/frozen \
   --symbols sz300308 sz300502 sz300394 sh688008 sh603986 \
   --start 2018-01-02 \
@@ -101,54 +93,43 @@ uquant backtest \
   --output backtest_result.json
 ```
 
-回放使用与每日决策相同的特征、状态机、组合分配和执行模型，输出收益、回撤、风险调整收益、订单、成交、费用、换手、持有期、风险事件和权益曲线。
+## 数据格式
 
-## 数据约定
-
-每个证券使用一个 UTF-8 CSV，文件名为规范化代码，例如 `sz300308.csv` 或 `sh688008.csv`。必需列：
+每只证券对应一个 UTF-8 CSV，例如 `sz300308.csv`。必需列：
 
 ```text
 date,open,high,low,close,volume
 ```
 
-可选 `amount`；缺失时按 `close × volume` 估算。日期必须严格递增且唯一，价格必须为正，成交量不能为负。股票使用前复权价格，指数使用不复权价格。详细校验和追加规则见 [运行手册](docs/OPERATIONS.md)。
+`amount` 可选；缺失时按 `close × volume` 估算。日期必须唯一且递增，OHLC 必须为正，成交量不得为负。股票使用前复权价格，指数使用不复权价格。
 
-## 代码结构
+## 项目结构
 
 | 路径 | 职责 |
 |---|---|
-| `uquant/engine.py` | 唯一生产决策内核、账户回放和绩效统计 |
-| `uquant/config.py` | 策略、风险、组合和执行参数的唯一来源 |
-| `uquant/data.py` | 点时数据加载、校验、前缀哈希和可选刷新 |
-| `uquant/features.py` | 因果趋势、动量、波动和突破特征 |
-| `uquant/industry.py` | 点时行业强度、广度、加速度和覆盖置信度 |
-| `uquant/leader.py` | 领涨评分、成熟度、置信度和行业证据装配 |
-| `uquant/opportunity.py` | 机会状态识别与状态迟滞 |
-| `uquant/risk.py` | 风险雷达、冲击/修复状态和仓位上限 |
-| `uquant/risk_sector.py` | 已部署持仓的同步冲击与确认修复状态机 |
-| `uquant/portfolio.py` | 唯一目标组合编排与硬约束出口 |
-| `uquant/portfolio_*.py` | 核心、战略、领涨和恢复策略分层实现 |
-| `uquant/execution.py` | 次日开盘执行、市场约束、费用和订单生命周期 |
-| `uquant/account.py` | 账户校验和原子持久化 |
-| `uquant/broker.py` | 券商快照与真实成交幂等对账 |
-| `uquant/report.py` | 只读日报渲染 |
-| `uquant/validation/` | 冻结数据、绩效、泛化/PDI 和全周期竞品的 fail-closed 晋级门 |
-| `research/` | 与生产导入隔离的候选搜索、消融、参数/股票池压力和退出归因 Python API |
-| `benchmarks/` | 版本化绩效基线与比较证据 |
-| `scripts/backfill_tencent_history.py` | 冻结行情的有界历史补全工具 |
-| `tests/` | 数据、策略状态、风险、执行和账户契约测试 |
+| `uquant/engine.py` | 唯一生产编排、日报决策和回放 |
+| `uquant/config.py` | 参数与约束的唯一来源 |
+| `uquant/data.py`、`features.py` | 点时数据与因果特征 |
+| `uquant/leader.py`、`industry.py` | 领涨与行业证据 |
+| `uquant/opportunity.py`、`risk*.py` | 机会和风险状态 |
+| `uquant/portfolio*.py` | 唯一目标组合及各生命周期职责 |
+| `uquant/execution.py` | 次日开盘执行模型与订单生命周期 |
+| `uquant/account.py`、`broker.py` | 账户持久化和券商对账 |
+| `uquant/validation/` | 数据、绩效和泛化门禁 |
+| `research/` | 与生产导入隔离的离线研究工具 |
+| `tests/` | 行为、不变量和失败路径测试 |
 
-## 文档
+## 文档导航
 
 - [架构说明](docs/ARCHITECTURE.md)
 - [策略与风控](docs/STRATEGY.md)
 - [参数参考](docs/CONFIGURATION.md)
 - [运行手册](docs/OPERATIONS.md)
+- [性能与证据](docs/PERFORMANCE.md)
 - [开发指南](docs/DEVELOPMENT.md)
-- [性能与晋级证据](docs/PERFORMANCE.md)
-- [工程质量门禁](docs/QUALITY.md)
+- [质量契约](docs/QUALITY.md)
 
-## 本地验证
+## 本地质量检查
 
 ```bash
 uv run ruff check .
@@ -156,45 +137,9 @@ uv run mypy uquant scripts research
 uv run pytest --cov=uquant --cov-report=term-missing
 uv run python -m compileall -q uquant scripts research tests
 uv run python -m uquant.validation data-manifest --data-dir data/frozen
-uv run python -m uquant.validation promotion \
-  --data-dir data/frozen \
-  --profile quick
 uv run bandit -q -r uquant
 ```
 
-泛化验证需要显式给出当前全集、覆盖该全集的股票到行业 JSON、要做移除诊断的历史先验证券，以及经过评审的只读 baseline。下面从版本化 promotion 规范读取真实冻结 Pool E 的 32 只证券，能够承载默认 random 6/12/24 和 leave-top-1/2/3/5；不要换回少于 24 只的示例：
+## 使用限制
 
-```bash
-mapfile -t GENERALIZATION_POOL_E < <(
-  uv run python -c \
-    'import json; print(*json.load(open("benchmarks/promotion_baseline.json", encoding="utf-8"))["pools"]["e"], sep="\n")'
-)
-uv run python -m uquant.validation generalization \
-  --data-dir data/frozen \
-  --universe "${GENERALIZATION_POOL_E[@]}" \
-  --industries /path/to/industries.json \
-  --prior-symbols sz300308 sz300502 sz300394 \
-  --start 2018-01-02 \
-  --end 2026-07-20 \
-  --baseline /path/to/reviewed-generalization.json
-
-uv run python -m uquant.validation competitor \
-  --data-dir data/frozen \
-  --reference /path/to/reviewed-competitor-matrix.json
-```
-
-两个命令都不会生成或更新 reference。缺少 reference、单元不全、来源或执行口径不匹配时会在启动生产回放前 fail closed；不能用空文件或推测值代替真实评审结果。
-
-## 离线研究 API
-
-`research/` 是仓库内 Python API，不是第二个生产引擎，也没有独立命令行入口。它接收调用方提供的回放观测或回调，提供共享参数候选搜索、Pareto/dominance 门、单能力消融、参数和股票池压力、以及成交后的退出归因；`uquant/` 不导入它。最小导入检查可直接在仓库根目录运行：
-
-```bash
-uv run python -c 'from research import enumerate_candidates; print(enumerate_candidates({"choppy_target_gross": (0.50, 0.60)}, base={"weak_gross": 0.25}))'
-```
-
-完整研究仍必须把同一候选配置用于所有股票池和窗口，再交给 production promotion、generalization 或 competitor 门验证；研究 API 自身不会写生产配置或 reference。
-
-## 风险声明
-
-uquant 是研究与交易决策辅助软件，不构成投资建议，也不保证未来收益。每日执行前仍应人工核对行情完整性、公司行动、停复牌、涨跌停、券商可卖数量和实际订单状态。
+uquant 是研究和交易决策辅助软件，不构成投资建议，也不保证未来收益。日频模型无法处理盘中突发事件；历史开盘成交模型也不能完全复现真实排队、冲击成本和人工执行。每日使用前应核对公司行动、停复牌、涨跌停、数据完整性、可卖数量和实际订单状态。

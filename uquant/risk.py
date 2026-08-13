@@ -100,6 +100,93 @@ def _strategic_grace_supported(
     )
 
 
+def _strategic_damage_guard_required(
+    *,
+    account: AccountState,
+    operating_drawdown: float,
+    transition_damage: float,
+    votes: int,
+    cfg: SystemConfig,
+) -> bool:
+    """Trim an immature strategic book while preserving its lifecycle owner."""
+    guard_already_claimed = bool(
+        account.strategic_epoch > 0
+        and account.strategic_epoch
+        in {
+            account.candidate_tenure.get(
+                "strategic_damage_guard_active_epoch", -1
+            ),
+            account.candidate_tenure.get(
+                "strategic_damage_guard_complete_epoch", -1
+            ),
+        }
+    )
+    external_risk_already_claimed = bool(
+        account.strategic_epoch > 0
+        and account.candidate_tenure.get(
+            "strategic_external_risk_epoch", -1
+        )
+        == account.strategic_epoch
+    )
+    emerging = account.strategic_candidate_signature.startswith(
+        "strategic_qualification:EMERGING_SECULAR:"
+    )
+    grace_days = (
+        cfg.capital_budget_emerging_cohort_grace_days
+        if emerging
+        else cfg.capital_budget_new_cohort_grace_days
+    )
+    return bool(
+        account.candidate_tenure.get("strategic_cohort_active", 0) == 1
+        and account.candidate_tenure.get("strategic_cohort_started", 0) == 1
+        and not guard_already_claimed
+        and not external_risk_already_claimed
+        and account.candidate_tenure.get("strategic_cohort_days", 0) < grace_days
+        and operating_drawdown >= cfg.strategic_damage_guard_dd
+        # This is an early-warning owner.  Once ordinary operating caution is
+        # reached, the independent capital ladder already owns the reduction;
+        # a second, tighter strategic cap would double-count the same damage.
+        and operating_drawdown < cfg.operating_dd_caution
+        and transition_damage >= cfg.strategic_damage_guard_transition
+        # The live-book drawdown and transition-damage thresholds are already
+        # two separate causal gates.  Require one corroborating evidence
+        # family, but do not make a small configured universe wait for a
+        # second correlated family while its actually funded book is falling.
+        and votes >= 1
+    )
+
+
+def _strategic_guard_level2_overlay_required(account: AccountState) -> bool:
+    """Let an active strategic guard own a bounded level-2 refinement."""
+    return bool(
+        account.strategic_epoch > 0
+        and account.capital_budget_level >= 2
+        and account.candidate_tenure.get(
+            "strategic_damage_guard_active_epoch", -1
+        )
+        == account.strategic_epoch
+        and account.candidate_tenure.get(
+            "strategic_damage_guard_complete_epoch", -1
+        )
+        != account.strategic_epoch
+    )
+
+
+def _strategic_damage_guard_active(account: AccountState) -> bool:
+    """Keep a claimed guard authoritative until the strategy records repair."""
+    return bool(
+        account.strategic_epoch > 0
+        and account.candidate_tenure.get(
+            "strategic_damage_guard_active_epoch", -1
+        )
+        == account.strategic_epoch
+        and account.candidate_tenure.get(
+            "strategic_damage_guard_complete_epoch", -1
+        )
+        != account.strategic_epoch
+    )
+
+
 def _persistent_crisis_cap(
     severity: str,
     cfg: SystemConfig,
@@ -999,6 +1086,18 @@ def assess_risk(
             # capital ladder, while systemic multi-family damage still breaks
             # a genuine young cohort immediately.
             observed_budget_level = 0
+    strategic_damage_guard_triggered = _strategic_damage_guard_required(
+        account=account,
+        operating_drawdown=operating_dd,
+        transition_damage=transition_damage,
+        votes=votes,
+        cfg=cfg,
+    )
+    if strategic_damage_guard_triggered and account.strategic_epoch > 0:
+        account.candidate_tenure[
+            "strategic_damage_guard_active_epoch"
+        ] = account.strategic_epoch
+    strategic_damage_guard = _strategic_damage_guard_active(account)
     _update_capital_budget_ladder(
         account,
         observed_level=observed_budget_level,
@@ -1007,8 +1106,18 @@ def assess_risk(
         ),
         repair_days=cfg.capital_budget_repair_days,
     )
+    strategic_guard_level2_overlay = _strategic_guard_level2_overlay_required(
+        account
+    )
+    if strategic_guard_level2_overlay:
+        account.candidate_tenure[
+            "strategic_guard_level2_epoch"
+        ] = account.strategic_epoch
     freeze_new_risk = bool(
-        transition_freeze or account.capital_budget_level >= 1 or account.chronic_level >= 1
+        transition_freeze
+        or strategic_damage_guard
+        or account.capital_budget_level >= 1
+        or account.chronic_level >= 1
     )
     overlay_cap = cfg.max_gross
     if account.capital_budget_level >= 4:
@@ -1017,6 +1126,10 @@ def assess_risk(
         overlay_cap = min(overlay_cap, cfg.capital_budget_level3_cap)
     elif account.capital_budget_level >= 2:
         overlay_cap = min(overlay_cap, cfg.capital_budget_level2_cap)
+        if strategic_guard_level2_overlay:
+            overlay_cap = min(overlay_cap, cfg.strategic_guard_level2_cap)
+    if strategic_damage_guard:
+        overlay_cap = min(overlay_cap, cfg.strategic_damage_guard_gross)
     if account.chronic_level >= 3:
         overlay_cap = min(overlay_cap, cfg.chronic_severe_cap)
     elif account.chronic_level >= 2:
@@ -1043,6 +1156,8 @@ def assess_risk(
         "chronic_level": account.chronic_level,
         "capital_budget_level": account.capital_budget_level,
         "independent_damage": independent_damage,
+        "strategic_damage_guard": strategic_damage_guard,
+        "strategic_guard_level2_overlay": strategic_guard_level2_overlay,
         "risk_anchor_symbols": list(anchor_symbols),
         "risk_anchor_signature": account.risk_anchor_signature,
         "risk_anchor_group_count": len(anchor_groups),

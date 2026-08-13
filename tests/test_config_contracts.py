@@ -52,15 +52,31 @@ INVALID_OVERRIDES: tuple[tuple[dict[str, Any], str], ...] = (
     ({"recovery_transition_strong_leg_max_ret120": 0.0}, "strong-leg return"),
     ({"recovery_transition_min_divergence": 0.0}, "transition divergence"),
     ({"recovery_member_confirm_days": 1}, "at least 2"),
+    ({"tactical_rebound_max_ret20": 0.0}, "tactical rebound return thresholds"),
+    (
+        {"tactical_rebound_breadth_max_ret20": -0.25},
+        "tactical rebound return thresholds",
+    ),
+    ({"tactical_rebound_min_industries": 1}, "at least 2"),
+    ({"tactical_rebound_oversold_max_ret5": 0.0}, "oversold_max_ret5"),
+    ({"tactical_rebound_min_ret60": 0.0}, "ret60 thresholds"),
+    ({"tactical_rebound_oversold_min_ret60": 0.05}, "ret60 thresholds"),
+    ({"tactical_rebound_max_ret120": 0.0}, "tactical_rebound_max_ret120"),
+    ({"tactical_overheat_cooldown_days": 0}, "overheat_cooldown_days"),
     ({"leader_cycle_confirm_days": 0}, "leader_cycle_confirm_days"),
     ({"leader_cycle_min_mature": 7}, "leader_cycle_min_mature"),
     ({"leader_cycle_min_score": 1.1}, "leader_cycle_min_score"),
     ({"leader_cycle_impulse_breadth": 1.1}, "impulse_breadth"),
     ({"leader_cycle_min_market_ret120": 1.0}, "min_market_ret120"),
+    (
+        {"leader_cycle_impulse_min_market_ret120": 0.02},
+        "impulse_min_market_ret120",
+    ),
     ({"strategic_cohort_symbols": ("arbitrary_a",)}, "retired"),
     ({"strategic_epoch_cooldown_sessions": 19}, "epoch cooldown"),
     ({"strategic_epoch_min_symbol_change": 0}, "epoch symbol change"),
     ({"strategic_long_cycle_max_tech_ret120": 0.0}, "long_cycle_max_tech_ret120"),
+    ({"strategic_persistent_max_ret120": 0.0}, "persistent_max_ret120"),
     ({"strategic_long_cycle_min_ret60": -1.0}, "long_cycle_min_ret60"),
     ({"strategic_long_cycle_min_ret120": -1.0}, "long_cycle_min_ret120"),
     ({"strategic_current_factor_floor": 1.1}, "current_factor_floor"),
@@ -91,12 +107,22 @@ INVALID_OVERRIDES: tuple[tuple[dict[str, Any], str], ...] = (
     ),
     ({"strategic_cohort_confirm_days": 0}, "cohort_confirm_days"),
     ({"strategic_cohort_profit_arm": 1.1}, "cohort_profit_arm"),
+    ({"strategic_dominant_max_weight": 1.01}, "dominant max weight"),
+    ({"strategic_dominant_min_leader_gap": 0.0}, "dominant leader gap"),
+    ({"strategic_dominant_profit_lock_mfe": 0.0}, "dominant profit lock"),
+    ({"strategic_dominant_retained_gross": 0.50}, "dominant retained gross"),
     ({"strategic_cohort_trail_atr": 0.0}, "trailing distances"),
     ({"strategic_cohort_trail_bands": 4}, "trail_bands"),
     ({"strategic_cohort_exit_step": 0.0}, "cohort exit step"),
+    ({"strategic_post_guard_exit_step": 0.0}, "post-guard exit step"),
     ({"strategic_cohort_disaster_stop": 0.0}, "disaster stop"),
     ({"strategic_cohort_tail_line": 0.05}, "cohort tail line"),
     ({"strategic_cohort_guard_days": 0}, "cohort_guard_days"),
+    ({"strategic_damage_guard_dd": 0.0}, "strategic damage guard drawdown"),
+    ({"strategic_damage_guard_transition": 0.0}, "strategic damage guard transition"),
+    ({"strategic_damage_guard_gross": 1.01}, "strategic damage guard gross"),
+    ({"strategic_guard_level2_cap": 0.49}, "strategic guard level-2 cap"),
+    ({"tactical_frozen_take_profit": 0.05}, "tactical take-profit thresholds"),
     ({"capital_guard_cooldown_days": 0}, "capital_guard_cooldown_days"),
     ({"capital_guard_min_recovery_days": 0}, "capital_guard_min_recovery_days"),
     ({"capital_guard_relapse_dd": 0.09}, "relapse_dd"),
@@ -147,6 +173,9 @@ def test_configuration_serialization_is_complete_and_detached() -> None:
     assert payload["strategic_dynamic_enabled"] is True
     assert payload["dynamic_risk_anchors_enabled"] is True
     assert payload["strategic_epoch_cooldown_sessions"] == 30
+    assert payload["strategic_dominant_max_weight"] == pytest.approx(1.0)
+    assert payload["strategic_dominant_profit_lock_mfe"] == pytest.approx(2.20)
+    assert payload["strategic_dominant_retained_gross"] == pytest.approx(0.70)
     assert payload["risk_anchor_confirm_days"] == 5
     assert payload["sector_weighted_shock_return"] == pytest.approx(-0.024)
     assert payload["sector_weighted_negative_exposure"] == pytest.approx(0.70)
@@ -155,7 +184,18 @@ def test_configuration_serialization_is_complete_and_detached() -> None:
     assert payload["recovery_transition_weak_leg_ret120"] == pytest.approx(-0.08)
     assert payload["recovery_transition_strong_leg_max_ret120"] == pytest.approx(0.08)
     assert payload["recovery_transition_min_divergence"] == pytest.approx(0.10)
+    assert payload["tactical_rebound_max_ret20"] == pytest.approx(-0.20)
+    assert payload["tactical_rebound_breadth_max_ret20"] == pytest.approx(-0.15)
+    assert payload["tactical_rebound_min_industries"] == 3
+    assert payload["tactical_rebound_oversold_max_ret5"] == pytest.approx(-0.06)
+    assert payload["tactical_rebound_min_ret60"] == pytest.approx(0.10)
+    assert payload["tactical_rebound_oversold_min_ret60"] == pytest.approx(0.20)
+    assert payload["tactical_rebound_max_ret120"] == pytest.approx(0.90)
+    assert payload["tactical_overheat_cooldown_days"] == 10
+    assert payload["leader_cycle_impulse_min_market_ret120"] == pytest.approx(-0.01)
     assert payload["recovery_substitution_max_ret20"] == pytest.approx(0.30)
+    assert payload["strategic_post_guard_exit_step"] == pytest.approx(0.20)
+    assert payload["strategic_guard_level2_cap"] == pytest.approx(0.81)
     payload["max_gross"] = 0.0
     assert DEFAULT_CONFIG.max_gross == 1.0
 

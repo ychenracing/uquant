@@ -9,7 +9,12 @@ from itertools import combinations
 import pandas as pd
 
 from .features import scalar
-from .portfolio_core import current_weights, effective_n
+from .portfolio_core import (
+    current_weights,
+    effective_n,
+    strategic_dominant_symbol,
+    symbol_weight_cap,
+)
 from .portfolio_recovery import RecoveryPortfolioPolicy
 from .types import (
     AccountState,
@@ -253,7 +258,7 @@ class PortfolioAllocator(RecoveryPortfolioPolicy):
         """
         safe_weights = {
             target.symbol: min(
-                self.cfg.max_symbol_weight,
+                symbol_weight_cap(self.cfg, account, target.symbol),
                 max(0.0, target.weight),
                 max(0.0, weights_now.get(target.symbol, 0.0)),
             )
@@ -377,7 +382,8 @@ class PortfolioAllocator(RecoveryPortfolioPolicy):
                     for symbol, weight in plan.items()
                     if weight > 1e-12 and symbol in account.positions
                 )
-                if risk_reason_code == "sector_guard"
+                if risk_reason_code
+                in {"sector_guard", "strategic_damage_guard"}
                 else 0.0
             )
             return (
@@ -433,6 +439,12 @@ class PortfolioAllocator(RecoveryPortfolioPolicy):
         """Return the causal owner of a hard portfolio gross reduction."""
         if bool(risk.evidence.get("sector_guard_active", False)):
             return ("sector guard gross cap", "sector_guard", "sector_guard")
+        if bool(risk.evidence.get("strategic_damage_guard", False)):
+            return (
+                "strategic transition damage gross cap",
+                "strategic_damage_guard",
+                "risk",
+            )
         if risk.state is Risk.RISK_OFF:
             return ("portfolio risk-off gross cap", "risk_off", "risk_off")
         if risk.state is Risk.CRISIS:
@@ -491,6 +503,41 @@ class PortfolioAllocator(RecoveryPortfolioPolicy):
         target_gross = sum(item.weight for item in targets if item.weight > 0)
         weights_now, _ = current_weights(account, prices)
         current_gross = sum(weight for weight in weights_now.values() if weight > 0)
+        dominant_symbol = strategic_dominant_symbol(account)
+        live_symbols = {
+            symbol for symbol, weight in weights_now.items() if weight > 1e-12
+        }
+        dominant_level1_retention = bool(
+            dominant_symbol is not None
+            and live_symbols == {dominant_symbol}
+            and risk.state in {Risk.NORMAL, Risk.CAUTION}
+            and risk.reduction_level <= 1
+            and not bool(risk.evidence.get("sector_guard_active", False))
+            and not bool(risk.evidence.get("strategic_damage_guard", False))
+            and not bool(risk.evidence.get("acute_sector_evacuation", False))
+            # Strategy-owned reductions, including the one-shot profit lock,
+            # remain authoritative.  This exception only converts an ordinary
+            # level-1 cap into a freeze of an unchanged incumbent.
+            and target_gross >= current_gross - 1e-12
+        )
+        if dominant_level1_retention:
+            gross_cap = max(
+                gross_cap,
+                min(self.cfg.strategic_dominant_max_weight, current_gross),
+            )
+        if (
+            current_gross > gross_cap + 1e-12
+            and risk_reason_code != "strategic_damage_guard"
+            and account.strategic_epoch > 0
+            and account.candidate_tenure.get("strategic_cohort_active", 0) == 1
+        ):
+            # Only one risk owner may claim a young strategic transition.  If
+            # the ordinary capital ladder has already forced a reduction in
+            # this epoch, a later fall back into the early-warning band cannot
+            # layer a second, tighter strategic guard onto the same damage.
+            account.candidate_tenure[
+                "strategic_external_risk_epoch"
+            ] = account.strategic_epoch
         if target_gross <= gross_cap + 1e-12:
             if current_gross <= gross_cap + 1e-12:
                 return targets
@@ -835,6 +882,43 @@ class PortfolioAllocator(RecoveryPortfolioPolicy):
             and not account.protected_weights
             and not account.strategic_restore_weights
         )
+        tactical_expiry_due = False
+        if (
+            freeze_active
+            and risk.state in {Risk.NORMAL, Risk.CAUTION}
+            and not account.anchor_weights
+            and account.candidate_tenure.get("tactical_active", 0) == 1
+            and not (account.protected_weights and risk.shock_state == "RECOVERY")
+        ):
+            for position in account.positions.values():
+                if (
+                    position.shares <= 0
+                    or position.lifecycle != Lifecycle.RECOVERY.value
+                    or (
+                        account.tactical_anchor_symbol
+                        and position.symbol != account.tactical_anchor_symbol
+                    )
+                    or position.symbol not in user_panel
+                ):
+                    continue
+                pnl = prices.get(position.symbol, 0.0) / max(position.avg_cost, 1e-12) - 1.0
+                held_sessions = len(
+                    user_panel[position.symbol].loc[
+                        pd.Timestamp(position.entry_date) : date
+                    ]
+                )
+                promotable = bool(
+                    account.candidate_tenure.get("tactical_promotable", 0) == 1
+                    and account.tactical_anchor_symbol == position.symbol
+                )
+                # A caution freeze may not suppress an already-earned profit
+                # exit.  A merely time-expired losing probe still waits for
+                # the freeze to clear; otherwise the exception turns a risk
+                # hold into a forced loss and can erase the recovery owner.
+                tactical_expiry_due = bool(
+                    not promotable and pnl >= self.cfg.tactical_frozen_take_profit
+                )
+                break
         bounded_recovery_repair = bool(
             level1_recovery_repair
             or protected_level1_restore
@@ -845,6 +929,7 @@ class PortfolioAllocator(RecoveryPortfolioPolicy):
             # already deployed recovery book; it never opens new exposure.
             or confirmed_recovery_trail
             or confirmed_hard_risk_trail
+            or tactical_expiry_due
             or (
                 freeze_active
                 and repair_observation
@@ -992,7 +1077,31 @@ class PortfolioAllocator(RecoveryPortfolioPolicy):
         )
         cooldown = account.candidate_tenure.get("tactical_cooldown", 0)
         if cooldown > 0:
-            account.candidate_tenure["tactical_cooldown"] = cooldown - 1
+            remaining_cooldown = cooldown - 1
+            if (
+                account.candidate_tenure.get("tactical_overheat_cooldown", 0) == 1
+                and not account.positions
+                and any(
+                    date in frame.index
+                    and scalar(frame.loc[date], "ret5", -1.0)
+                    >= self.cfg.fast_v_recovery_return
+                    and scalar(frame.loc[date], "ret20", 0.0)
+                    <= self.cfg.tactical_rebound_breadth_max_ret20
+                    and scalar(frame.loc[date], "ret60", -1.0)
+                    >= self.cfg.tactical_rebound_min_ret60
+                    and scalar(frame.loc[date], "close", 0.0)
+                    >= scalar(frame.loc[date], f"ma{self.cfg.trend_slow}", math.inf)
+                    for frame in user_panel.values()
+                )
+            ):
+                # An overheat pause belongs to the falling candidate, not to
+                # unrelated opportunities.  A fresh positive five-session
+                # reversal with medium-term convexity closes that pause; the
+                # ordinary admission gates below still decide whether to buy.
+                remaining_cooldown = 0
+            account.candidate_tenure["tactical_cooldown"] = remaining_cooldown
+            if remaining_cooldown == 0:
+                account.candidate_tenure["tactical_overheat_cooldown"] = 0
 
         tactical = (
             [
@@ -1073,6 +1182,8 @@ class PortfolioAllocator(RecoveryPortfolioPolicy):
                 account.strategic_restore_weights.pop(position.symbol, None)
                 account.candidate_tenure["tactical_active"] = 0
                 account.candidate_tenure["tactical_cooldown"] = self.cfg.tactical_rebound_cooldown_days
+                account.candidate_tenure["tactical_overheat_cooldown"] = 0
+                account.candidate_tenure["recovery_cycle_rearm_pending"] = 1
                 account.tactical_anchor_symbol = ""
                 return self._targets(
                     proposed={},
@@ -1363,6 +1474,7 @@ class PortfolioAllocator(RecoveryPortfolioPolicy):
                     account.candidate_tenure.get("tactical_cooldown", 0),
                     self.cfg.tactical_rebound_cooldown_days,
                 )
+                account.candidate_tenure["tactical_overheat_cooldown"] = 0
             return self._targets(
                 proposed=proposed,
                 leaders=leaders,
@@ -1492,12 +1604,26 @@ class PortfolioAllocator(RecoveryPortfolioPolicy):
             )
         )
         if graduation_ready:
+            # Graduation changes lifecycle ownership; it is not an exit for a
+            # different live Core position.  Preserve the whole broker book on
+            # the hand-off day so omitted targets cannot manufacture a sale.
+            promoted = {
+                symbol: weight
+                for symbol, weight in weights_now.items()
+                if weight > 1e-12
+            }
             account.active_leaders = sorted(
-                anchored_held,
+                (symbol for symbol in promoted if symbol in leaders),
                 key=lambda symbol: (-leaders[symbol].score, symbol),
             )
             self._release_recovery_anchor(account)
-            anchored_held = {}
+            return self._targets(
+                proposed=promoted,
+                leaders=leaders,
+                account=account,
+                lifecycle=Lifecycle.CORE,
+                reason="graduated recovery cohort; retain price drift",
+            )
         substitution = self._recovery_anchor_substitution(
             date=date,
             risk=risk,
@@ -1567,9 +1693,11 @@ class PortfolioAllocator(RecoveryPortfolioPolicy):
             and risk.state.value in {"NORMAL", "CAUTION"}
         ):
             deep_recovery: list[tuple[LeaderScore, float, float]] = []
-            rebound: list[LeaderScore] = []
-            secular_rebound: list[LeaderScore] = []
+            rebound_evidence: list[
+                tuple[LeaderScore, float, float, float, float, bool]
+            ] = []
             fast_rebound: list[tuple[LeaderScore, float, float]] = []
+            overextended_pullback = False
             required_notional = account.initial_cash * self.cfg.tactical_probe_weight * 0.90
             for symbol, score in leaders.items():
                 if symbol not in user_panel or date not in user_panel[symbol].index:
@@ -1579,6 +1707,7 @@ class PortfolioAllocator(RecoveryPortfolioPolicy):
                 ma120 = scalar(row, f"ma{self.cfg.trend_slow}")
                 ret5 = scalar(row, "ret5", -1.0)
                 ret20 = scalar(row, f"ret{self.cfg.trend_fast}", -1.0)
+                ret60 = scalar(row, f"ret{self.cfg.trend_medium}", -1.0)
                 ret120 = scalar(row, f"ret{self.cfg.trend_slow}", math.nan)
                 ret1 = float(user_panel[symbol].loc[:date, "close"].pct_change(fill_method=None).iloc[-1])
                 if (
@@ -1590,22 +1719,48 @@ class PortfolioAllocator(RecoveryPortfolioPolicy):
                     and self._capacity_confirmed(user_panel[symbol], date, required_notional)
                 ):
                     deep_recovery.append((score, ret20, ret120))
-                if (
-                    ret20 <= -0.15
+                pullback_structure = bool(
+                    ret20 <= self.cfg.tactical_rebound_breadth_max_ret20
                     and math.isfinite(close)
                     and math.isfinite(ma120)
+                    and math.isfinite(ret120)
                     and close >= ma120
                     and self._liquidity_confirmed(user_panel[symbol], date)
                     and self._capacity_confirmed(user_panel[symbol], date, required_notional)
+                )
+                current_reversal = bool(
+                    ret5 >= self.cfg.fast_v_recovery_return
+                    and ret60 >= self.cfg.tactical_rebound_min_ret60
+                )
+                if (
+                    pullback_structure
+                    and ret120 > self.cfg.tactical_rebound_max_ret120
+                    and not current_reversal
                 ):
-                    rebound.append(score)
-                    if (
+                    overextended_pullback = True
+                shallow_rebound = bool(
+                    pullback_structure
+                    and ret120 <= self.cfg.tactical_rebound_max_ret120
+                )
+                if shallow_rebound:
+                    secular = bool(
                         score.confidence >= self.cfg.leader_min_confidence
                         and math.isfinite(ret120)
                         and ret120 >= 0.0
                         and score.score >= self.cfg.recovery_reserve_min_score
-                    ):
-                        secular_rebound.append(score)
+                    )
+                    rebound_evidence.append(
+                        (score, ret20, ret5, ret60, ret120, secular)
+                    )
+                elif pullback_structure and current_reversal:
+                    secular = bool(
+                        score.confidence >= self.cfg.leader_min_confidence
+                        and ret120 >= 0.0
+                        and score.score >= self.cfg.recovery_reserve_min_score
+                    )
+                    rebound_evidence.append(
+                        (score, ret20, ret5, ret60, ret120, secular)
+                    )
                 if (
                     account.candidate_tenure.get("fast_v_recovery", 0) == 1
                     and ret5 >= 0.10
@@ -1617,6 +1772,92 @@ class PortfolioAllocator(RecoveryPortfolioPolicy):
                     and self._capacity_confirmed(user_panel[symbol], date, required_notional)
                 ):
                     fast_rebound.append((score, ret5, ret20))
+            if (
+                overextended_pullback
+                and not rebound_evidence
+                and not deep_recovery
+                and not fast_rebound
+            ):
+                account.candidate_tenure["tactical_cooldown"] = max(
+                    account.candidate_tenure.get("tactical_cooldown", 0),
+                    self.cfg.tactical_overheat_cooldown_days,
+                )
+                account.candidate_tenure["tactical_overheat_cooldown"] = 1
+                return self._targets(
+                    proposed={},
+                    leaders=leaders,
+                    account=account,
+                    lifecycle=Lifecycle.RECOVERY,
+                    reason="overextended pullback cooldown",
+                )
+            rebound_breadth = {
+                score.industry
+                for score, _, _, _, _, _ in rebound_evidence
+                if score.industry != "unknown"
+            }
+            breadth_confirmed = bool(
+                len(rebound_breadth) >= self.cfg.tactical_rebound_min_industries
+            )
+            rebound = [
+                score
+                for score, ret20, ret5, ret60, ret120, _ in rebound_evidence
+                if (
+                    ret20 <= self.cfg.tactical_rebound_max_ret20
+                    and ret60 >= self.cfg.tactical_rebound_min_ret60
+                )
+                or (
+                    ret5 <= self.cfg.tactical_rebound_oversold_max_ret5
+                    and ret60 >= self.cfg.tactical_rebound_oversold_min_ret60
+                )
+                or (
+                    ret5 <= self.cfg.tactical_rebound_oversold_max_ret5
+                    and ret60 >= self.cfg.recovery_transition_weak_leg_ret120
+                    and ret120 <= self.cfg.strategic_long_cycle_max_tech_ret120
+                    and score.score >= self.cfg.recovery_reserve_min_score
+                )
+                or (
+                    ret20 <= self.cfg.tactical_rebound_max_ret20
+                    and score.score >= self.cfg.high_confidence_entry_score
+                    and ret60 <= -self.cfg.recovery_crash_drawdown
+                )
+                or (
+                    ret5 >= self.cfg.fast_v_recovery_return
+                    and ret60 >= self.cfg.tactical_rebound_min_ret60
+                )
+                or breadth_confirmed
+            ]
+            secular_rebound = [
+                score
+                for score, ret20, ret5, ret60, ret120, secular in rebound_evidence
+                if secular
+                and (
+                    (
+                        ret20 <= self.cfg.tactical_rebound_max_ret20
+                        and ret60 >= self.cfg.tactical_rebound_min_ret60
+                    )
+                    or (
+                        ret5 <= self.cfg.tactical_rebound_oversold_max_ret5
+                        and ret60 >= self.cfg.tactical_rebound_oversold_min_ret60
+                    )
+                    or (
+                        ret5 <= self.cfg.tactical_rebound_oversold_max_ret5
+                        and ret60 >= self.cfg.recovery_transition_weak_leg_ret120
+                        and ret120
+                        <= self.cfg.strategic_long_cycle_max_tech_ret120
+                        and score.score >= self.cfg.recovery_reserve_min_score
+                    )
+                    or (
+                        ret20 <= self.cfg.tactical_rebound_max_ret20
+                        and score.score >= self.cfg.high_confidence_entry_score
+                        and ret60 <= -self.cfg.recovery_crash_drawdown
+                    )
+                    or (
+                        ret5 >= self.cfg.fast_v_recovery_return
+                        and ret60 >= self.cfg.tactical_rebound_min_ret60
+                    )
+                    or breadth_confirmed
+                )
+            ]
             if len(deep_recovery) < 2:
                 deep_recovery = [
                     item

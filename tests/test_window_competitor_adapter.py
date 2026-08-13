@@ -21,6 +21,16 @@ def test_target_contract_is_exact_and_contains_only_pools_a_to_e() -> None:
     assert tuple(adapter.SYSTEMS) == ("aquant", "qwenquant", "trade")
 
 
+def test_five_window_contract_preserves_the_inclusive_july_boundary() -> None:
+    assert adapter.WINDOWS == {
+        "h1_2023": ("2023-01-03", "2023-06-30"),
+        "h2_2023": ("2023-07-03", "2023-12-29"),
+        "h1_2024": ("2024-01-02", "2024-07-01"),
+        "h2_2024": ("2024-07-01", "2024-12-31"),
+        "bull_crash_2025_2026": ("2025-01-02", "2026-07-31"),
+    }
+
+
 def test_source_locks_match_the_reviewed_frozen_repositories() -> None:
     assert adapter.LOCKED_SOURCES == {
         "aquant": {
@@ -50,11 +60,18 @@ def test_default_source_roots_point_to_the_reconstructed_competitor_directory() 
     assert roots["trade"].as_posix().endswith("/competitors/trade")
 
 
-def test_complete_rows_requires_exactly_fifteen_unique_cells() -> None:
+def test_complete_rows_requires_exactly_seventy_five_unique_cells() -> None:
     rows = [
-        {"system": system, "pool": pool, "start": adapter.TARGET_START, "end": adapter.TARGET_END}
+        {
+            "system": system,
+            "pool": pool,
+            "window": window,
+            "start": adapter.WINDOWS[window][0],
+            "end": adapter.WINDOWS[window][1],
+        }
         for system in adapter.SYSTEMS
         for pool in adapter.POOLS
+        for window in adapter.WINDOWS
     ]
 
     adapter._validate_complete_rows(rows)
@@ -63,8 +80,25 @@ def test_complete_rows_requires_exactly_fifteen_unique_cells() -> None:
         adapter._validate_complete_rows(rows[:-1])
     with pytest.raises(RuntimeError, match="duplicate competitor cell"):
         adapter._validate_complete_rows([*rows, dict(rows[0])])
-    with pytest.raises(RuntimeError, match="target interval mismatch"):
-        adapter._validate_complete_rows([dict(rows[0], end="2026-07-30"), *rows[1:]])
+    with pytest.raises(RuntimeError, match="window interval mismatch"):
+        adapter._validate_complete_rows([dict(rows[0], end="2023-06-29"), *rows[1:]])
+
+
+def test_complete_rows_honors_an_explicit_cli_subset() -> None:
+    row = {
+        "system": "trade",
+        "pool": "b",
+        "window": "h1_2024",
+        "start": adapter.WINDOWS["h1_2024"][0],
+        "end": adapter.WINDOWS["h1_2024"][1],
+    }
+
+    adapter._validate_complete_rows(
+        [row],
+        systems=("trade",),
+        pools=("b",),
+        windows=("h1_2024",),
+    )
 
 
 def test_broker_order_ledger_nets_virtual_fills_by_execution_key() -> None:

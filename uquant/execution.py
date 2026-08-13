@@ -11,6 +11,7 @@ import pandas as pd
 
 from .config import SystemConfig
 from .features import scalar
+from .portfolio_core import symbol_weight_cap
 from .types import (
     ORDER_INTENT_IMMUTABLE_FIELDS,
     AccountOrder,
@@ -155,6 +156,26 @@ def merge_pending_orders(
 ) -> tuple[PendingOrder, ...]:
     """Keep blocked/partial orders while letting today's target supersede stale intent."""
     target_by_symbol = {target.symbol: target for target in targets}
+
+    def durable_subthreshold_buy(
+        order: PendingOrder,
+        target: Target | None,
+    ) -> bool:
+        return bool(
+            cfg is not None
+            and target is not None
+            and order.side == Side.BUY.value
+            and bool(order.order_id)
+            and order.remaining_shares > 0
+            and target.weight > 1e-12
+            and order.lifecycle == target.lifecycle
+            and order.reduction_policy == target.reduction_policy
+            and order.reason_code == target.reason_code
+            and order.exit_kind == target.exit_kind
+            and abs(order.target_weight - target.weight)
+            < cfg.restoration_min_trade_weight
+        )
+
     merged: dict[str, PendingOrder] = {}
     for order in retained:
         target = target_by_symbol.get(order.symbol)
@@ -187,12 +208,18 @@ def merge_pending_orders(
             and target.weight < order.target_weight
             and order.target_weight - target.weight < cfg.min_trade_weight
         )
-        if (consistent and (same_execution_policy or durable_full_exit)) or durable_partial_risk_exit:
+        if (
+            (consistent and (same_execution_policy or durable_full_exit))
+            or durable_partial_risk_exit
+            or durable_subthreshold_buy(order, target)
+        ):
             merged[order.symbol] = order
     for order in planned:
         existing = merged.get(order.symbol)
         if existing is not None:
             target = target_by_symbol.get(order.symbol)
+            if durable_subthreshold_buy(existing, target):
+                continue
             durable_partial_risk_exit = bool(
                 cfg is not None
                 and target is not None
@@ -594,7 +621,15 @@ class ExecutionPlanner:
                     retained.append(order)
                     continue
                 max_by_weight = (
-                    int(math.floor(self.cfg.max_symbol_weight * open_equity / execution_price / 100.0) * 100)
+                    int(
+                        math.floor(
+                            symbol_weight_cap(self.cfg, account, order.symbol)
+                            * open_equity
+                            / execution_price
+                            / 100.0
+                        )
+                        * 100
+                    )
                     - current.shares
                 )
                 shares = min(shares, max(0, max_by_weight))

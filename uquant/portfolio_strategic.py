@@ -7,7 +7,7 @@ import math
 import pandas as pd
 
 from .features import scalar
-from .portfolio_core import PortfolioCore
+from .portfolio_core import PortfolioCore, strategic_dominant_symbol
 from .types import AccountState, LeaderScore, Lifecycle, RiskAssessment, Target
 
 
@@ -266,6 +266,7 @@ class StrategicPortfolioPolicy(PortfolioCore):
                         and values["trend_persistence"] >= 2 / 3
                     )
                 )
+                and values["ret120"] <= self.cfg.strategic_persistent_max_ret120
                 and has_known_industry(symbol)
             ),
             key=lambda symbol: (
@@ -364,11 +365,44 @@ class StrategicPortfolioPolicy(PortfolioCore):
         anchors_not_yet_armed = bool(
             anchor_state_observed and not risk.evidence.get("risk_anchor_symbols", [])
         )
+        decisive_reversal_symbol: str | None = None
+        decisive_reversal_pair: list[str] = []
+        if anchor_state_observed and synchronized_reversal:
+            decisive_reversal_pair = sorted(
+                reversal_groups[0][:2],
+                key=lambda symbol: (-leaders[symbol].score, symbol),
+            )
+            if len(decisive_reversal_pair) == 2:
+                lead, runner = decisive_reversal_pair
+                lead_evidence = snapshots[lead]
+                runner_evidence = snapshots[runner]
+                if (
+                    lead_evidence["leader_score"]
+                    - runner_evidence["leader_score"]
+                    >= self.cfg.strategic_dominant_min_leader_gap
+                    and lead_evidence["ret60"] - runner_evidence["ret60"]
+                    >= self.cfg.strategic_dominant_min_leader_gap
+                    and lead_evidence["leader_score"]
+                    >= self.cfg.strategic_secular_min_score
+                    and lead_evidence["trend_persistence"] >= 2 / 3
+                    and runner_evidence["trend_persistence"] < 2 / 3
+                    and lead_evidence["short_relative_strength"]
+                    >= self.cfg.strategic_transition_min_component
+                    and lead_evidence["breakout_quality"]
+                    >= self.cfg.strategic_transition_min_component
+                ):
+                    decisive_reversal_symbol = lead
         # Durable 240-session industry evidence dominates shorter factor
         # admission even after dynamic risk anchors have armed.  Letting an
         # established/transition rank jump ahead made wider universes spend an
         # epoch on a merely recent winner while a proven cluster was available.
-        if persistent_groups and (
+        if decisive_reversal_symbol is not None:
+            # Authorization for a dominant owner depends only on the pair's
+            # synchronized economic evidence.  Unrelated pool members and the
+            # configured universe-size route cannot suppress or create it.
+            long_cycle_symbols = decisive_reversal_pair
+            route = "reversal_industry"
+        elif persistent_groups and (
             anchors_not_yet_armed
             or configured_universe_size >= self.cfg.adaptive_broad_universe_min_size
         ):
@@ -607,17 +641,23 @@ class StrategicPortfolioPolicy(PortfolioCore):
             or account.protected_weights
         ):
             return
-        # A live recovery cohort already owns the same causal opportunity.  Do
-        # not replace that lower-turnover, winner-preserving lifecycle with a
-        # second label merely because the secular evidence later confirms.
-        # Once those anchors are truly exited, the stale-anchor release above
-        # makes this route available again.
+        # A locked recovery cohort owns the whole deployed risk budget, not
+        # only symbols that happen to overlap a later secular route.  Do not
+        # replace that lower-turnover, winner-preserving lifecycle with a
+        # second label merely because independent secular evidence confirms.
+        # An unlocked old anchor may still hand off when the opportunity is
+        # disjoint; once a locked cohort graduates or exits this route becomes
+        # available again.
         live_anchor_symbols = {
             symbol
             for symbol in account.anchor_weights
             if account.positions.get(symbol) is not None and account.positions[symbol].shares > 0
         }
-        if live_anchor_symbols & set(route_symbols):
+        locked_recovery_owner = bool(
+            live_anchor_symbols
+            and account.candidate_tenure.get("recovery_cohort_locked", 0) == 1
+        )
+        if locked_recovery_owner or live_anchor_symbols & set(route_symbols):
             account.candidate_tenure["strategic_deferred_to_recovery"] = 1
             return
         # A persistently qualified secular cluster is also a causal graduation
@@ -633,8 +673,19 @@ class StrategicPortfolioPolicy(PortfolioCore):
             route_symbols,
             key=lambda symbol: (-leaders[symbol].score, symbol),
         )
-        account.strategic_cohort_symbols = list(weighted_symbols)
-        if len(route_symbols) == 1:
+        dominant_symbol = (
+            decisive_reversal_symbol
+            if route == "reversal_industry" and len(weighted_symbols) == 2
+            else None
+        )
+        account.strategic_cohort_symbols = (
+            [dominant_symbol] if dominant_symbol is not None else list(weighted_symbols)
+        )
+        if dominant_symbol is not None:
+            account.strategic_cohort_targets = {
+                dominant_symbol: self.cfg.strategic_dominant_max_weight
+            }
+        elif len(route_symbols) == 1:
             account.strategic_cohort_targets = {
                 weighted_symbols[0]: min(
                     self.cfg.max_symbol_weight,
@@ -657,6 +708,8 @@ class StrategicPortfolioPolicy(PortfolioCore):
         account.strategic_exit_bands.clear()
         account.strategic_active_bands.clear()
         account.strategic_restore_weights.clear()
+        account.candidate_tenure["strategic_damage_guard_active_epoch"] = 0
+        account.candidate_tenure["strategic_external_risk_epoch"] = 0
         account.candidate_tenure["strategic_cohort_active"] = 1
         account.candidate_tenure["strategic_cohort_completed"] = 0
         account.candidate_tenure["strategic_cohort_started"] = 0
@@ -664,6 +717,10 @@ class StrategicPortfolioPolicy(PortfolioCore):
         account.candidate_tenure["strategic_profit_armed"] = 0
         account.candidate_tenure["strategic_tail_armed"] = 1
         account.strategic_epoch += 1
+        account.candidate_tenure["strategic_dominant_epoch"] = (
+            account.strategic_epoch if dominant_symbol is not None else 0
+        )
+        account.candidate_tenure["strategic_dominant_profit_lock_epoch"] = 0
         account.strategic_candidate_signature = signature
 
     def _strategic_cohort_targets(
@@ -725,6 +782,8 @@ class StrategicPortfolioPolicy(PortfolioCore):
             account.candidate_tenure["strategic_cohort_started"] = 0
             account.candidate_tenure["strategic_profit_armed"] = 0
             account.candidate_tenure["strategic_tail_armed"] = 0
+            account.candidate_tenure["strategic_dominant_epoch"] = 0
+            account.candidate_tenure["strategic_dominant_profit_lock_epoch"] = 0
             account.strategic_exit_bands.clear()
             account.strategic_active_bands.clear()
             account.strategic_restore_weights.clear()
@@ -750,6 +809,30 @@ class StrategicPortfolioPolicy(PortfolioCore):
             )
             or ":evidence=transition_impulse" in account.strategic_candidate_signature
         )
+        strategic_damage_guard_active = bool(
+            account.strategic_epoch > 0
+            and account.candidate_tenure.get(
+                "strategic_damage_guard_active_epoch", -1
+            )
+            == account.strategic_epoch
+            and account.candidate_tenure.get(
+                "strategic_damage_guard_complete_epoch", -1
+            )
+            != account.strategic_epoch
+        )
+        strategic_damage_guard_owns_transition = bool(
+            strategic_damage_guard_active
+            or risk.evidence.get("strategic_damage_guard", False)
+        )
+        dominant_symbol = strategic_dominant_symbol(account)
+        dominant_profit_locked = bool(
+            dominant_symbol is not None
+            and account.candidate_tenure.get(
+                "strategic_dominant_profit_lock_epoch", -1
+            )
+            == account.strategic_epoch
+        )
+        dominant_profit_lock_armed_now = False
         # A partially held cohort is not started: the missing members still
         # need targets.  Treating "any member held" as complete previously
         # stranded broad-universe runs in a one-name pseudo-cohort forever.
@@ -827,6 +910,22 @@ class StrategicPortfolioPolicy(PortfolioCore):
                 and scalar(row, f"ret{self.cfg.trend_fast}", 0.0) < 0
             )
             peak_mfe = position.highest_close / max(strategic_cost, 1e-12) - 1.0
+            if (
+                symbol == dominant_symbol
+                and not dominant_profit_locked
+                and peak_mfe >= self.cfg.strategic_dominant_profit_lock_mfe
+            ):
+                account.candidate_tenure[
+                    "strategic_dominant_profit_lock_epoch"
+                ] = account.strategic_epoch
+                account.strategic_cohort_targets[symbol] = min(
+                    account.strategic_cohort_targets[symbol],
+                    self.cfg.strategic_dominant_retained_gross,
+                )
+                account.strategic_restore_weights.pop(symbol, None)
+                account.protected_weights.pop(symbol, None)
+                dominant_profit_locked = True
+                dominant_profit_lock_armed_now = True
             triggered = [
                 peak_mfe >= self.cfg.strategic_cohort_profit_arm
                 and structural_damage
@@ -834,7 +933,12 @@ class StrategicPortfolioPolicy(PortfolioCore):
                 and close <= position.highest_close - threshold * atr
                 for threshold in thresholds
             ]
-            if any(triggered) and symbol not in account.strategic_exit_bands:
+            if (
+                any(triggered)
+                and symbol not in account.strategic_exit_bands
+                and not strategic_damage_guard_owns_transition
+                and not (symbol == dominant_symbol and dominant_profit_locked)
+            ):
                 current = weights_now.get(symbol, 0.0)
                 account.strategic_exit_bands[symbol] = [current / band_count] * band_count
                 account.strategic_active_bands[symbol] = [False] * band_count
@@ -861,7 +965,7 @@ class StrategicPortfolioPolicy(PortfolioCore):
                 for index, signal in enumerate(triggered):
                     if signal:
                         armed[index] = True
-                        exit_step = self.cfg.strategic_cohort_exit_step * (
+                        transition_accelerated_step = self.cfg.strategic_cohort_exit_step * (
                             2.0
                             if int(
                                 risk.evidence.get(
@@ -876,6 +980,23 @@ class StrategicPortfolioPolicy(PortfolioCore):
                                 >= self.cfg.transition_damage_freeze
                             )
                             else 1.0
+                        )
+                        repaired_guard_step = (
+                            self.cfg.strategic_post_guard_exit_step
+                            if account.strategic_epoch > 0
+                            and account.candidate_tenure.get(
+                                "strategic_damage_guard_complete_epoch", -1
+                            )
+                            == account.strategic_epoch
+                            and account.candidate_tenure.get(
+                                "strategic_guard_level2_epoch", -1
+                            )
+                            != account.strategic_epoch
+                            else self.cfg.strategic_cohort_exit_step
+                        )
+                        exit_step = max(
+                            transition_accelerated_step,
+                            repaired_guard_step,
                         )
                         bands[index] = max(
                             0.0,
@@ -928,8 +1049,17 @@ class StrategicPortfolioPolicy(PortfolioCore):
             risk=risk,
             account=account,
         )
+        strategic_guard_repaired = bool(
+            not strategic_damage_guard_active
+            or (
+                risk.votes <= 1
+                and float(risk.evidence.get("transition_damage", 0.0))
+                <= self.cfg.transition_damage_repair
+            )
+        )
         restore_confirmed = bool(
             (buy_risk_open or bounded_restore_risk_open)
+            and strategic_guard_repaired
             and (
                 risk.state.value == "NORMAL"
                 or (
@@ -961,11 +1091,6 @@ class StrategicPortfolioPolicy(PortfolioCore):
                 else 1.0
             )
             proposed = {symbol: weight * scale for symbol, weight in restore.items()}
-            pending_restore_buys = {
-                order.symbol
-                for order in account.pending_orders
-                if order.side == "BUY" and order.symbol in saved_restore
-            }
             equity = account.cash + sum(
                 position.shares * prices.get(symbol, 0.0)
                 for symbol, position in account.positions.items()
@@ -974,24 +1099,63 @@ class StrategicPortfolioPolicy(PortfolioCore):
                 self.cfg.restoration_min_trade_weight,
                 self.cfg.min_trade_value / equity if equity > 1e-12 else math.inf,
             )
+            material_pending_restore_buys = {
+                order.symbol
+                for order in account.pending_orders
+                if order.side == "BUY"
+                and order.symbol in proposed
+                and weights_now.get(order.symbol, 0.0)
+                < 0.95 * proposed[order.symbol]
+                and proposed[order.symbol] - weights_now.get(order.symbol, 0.0)
+                >= restore_weight_tolerance
+            }
             # Completion is a per-member invariant.  Aggregate gross can reach
             # 95% while a capacity-constrained member is still entirely
             # missing; clearing the map in that state loses its only durable
-            # restoration intent and strands the epoch.
+            # restoration intent and strands the epoch.  Conversely, compare
+            # against the scaled, cap-attainable target: winner drift can make
+            # the unscaled snapshot impossible without selling healthy lots,
+            # and an economically satisfied stale BUY must not keep the guard
+            # active forever.
             restore_complete = bool(
                 risk.target_gross_cap >= sum(saved_restore.values()) - 1e-12
-                and not pending_restore_buys
+                and not material_pending_restore_buys
                 and all(
                     weights_now.get(symbol, 0.0) >= 0.95 * desired
                     or desired - weights_now.get(symbol, 0.0) < restore_weight_tolerance
-                    for symbol, desired in saved_restore.items()
+                    for symbol, desired in proposed.items()
                     if desired > 1e-12
                 )
             )
             if restore_complete:
                 account.strategic_restore_weights.clear()
+                if strategic_damage_guard_active:
+                    account.candidate_tenure[
+                        "strategic_damage_guard_active_epoch"
+                    ] = 0
+                    account.candidate_tenure[
+                        "strategic_damage_guard_complete_epoch"
+                    ] = account.strategic_epoch
+        elif (
+            strategic_damage_guard_active
+            and risk.state.value == "NORMAL"
+            and not risk.reasons
+            and not account.strategic_restore_weights
+        ):
+            # A guard can be armed while the broker book is already below its
+            # cap, leaving no economic gap to restore.  Settle that one-shot
+            # lifecycle only after clean risk evidence returns.
+            account.candidate_tenure["strategic_damage_guard_active_epoch"] = 0
+            account.candidate_tenure[
+                "strategic_damage_guard_complete_epoch"
+            ] = account.strategic_epoch
         if account.candidate_tenure.get("strategic_cohort_started", 0) == 0 and buy_risk_open:
             proposed = dict(account.strategic_cohort_targets)
+        if dominant_profit_lock_armed_now and dominant_symbol is not None:
+            proposed[dominant_symbol] = min(
+                proposed.get(dominant_symbol, 0.0),
+                self.cfg.strategic_dominant_retained_gross,
+            )
         for symbol in active_symbols & set(account.strategic_exit_bands):
             proposed[symbol] = min(
                 proposed.get(symbol, 0.0),
@@ -1003,4 +1167,11 @@ class StrategicPortfolioPolicy(PortfolioCore):
             account=account,
             lifecycle=Lifecycle.CORE,
             reason="prequalified strategic leader cohort with staged profit protection",
+            reasons=(
+                {
+                    dominant_symbol: "strategic dominant one-shot profit lock",
+                }
+                if dominant_profit_lock_armed_now and dominant_symbol is not None
+                else None
+            ),
         )

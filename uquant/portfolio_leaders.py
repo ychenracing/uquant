@@ -372,11 +372,57 @@ class LeaderPortfolioPolicy(StrategicPortfolioPolicy):
             # the route reachable so _leader_targets can retain existing
             # active leaders while its own freeze checks block every new-risk
             # admission.  Higher risk states still disarm the cycle.
-            if risk.state.value == "CAUTION" and any(
-                account.positions.get(symbol) is not None and account.positions[symbol].shares > 0
+            live_active = [
+                symbol
                 for symbol in account.active_leaders
+                if account.positions.get(symbol) is not None
+                and account.positions[symbol].shares > 0
+            ]
+            independently_confirmed_live = bool(
+                live_active
+                and all(
+                    symbol in leaders
+                    and leaders[symbol].mature
+                    and leaders[symbol].confidence >= self.cfg.leader_min_confidence
+                    and leaders[symbol].score >= self.cfg.leader_cycle_min_score
+                    for symbol in live_active
+                )
+            )
+            if (
+                risk.state.value in {"NORMAL", "CAUTION"}
+                and independently_confirmed_live
             ):
                 account.candidate_tenure[arm_key] = 1
+                account.candidate_tenure[streak_key] = 0
+                return True
+            # A NORMAL level-1 capital freeze can be active while a valid
+            # leader book temporarily has no active-leader label (for example
+            # after an adaptive compatibility transition).  Preserve the
+            # already armed lifecycle owner from any live Core/ADD tranche;
+            # this is a hold-only rule because the outer freeze still blocks
+            # admissions. CAUTION remains label-strict to fail closed.
+            if (
+                risk.state.value == "NORMAL"
+                and account.candidate_tenure.get(arm_key, 0) == 1
+                and (live_core_symbols := {
+                    position.symbol
+                    for position in account.positions.values()
+                    if position.shares > 0
+                    and position.lifecycle
+                    in {
+                        Lifecycle.CORE.value,
+                        Lifecycle.ADD1.value,
+                        Lifecycle.ADD2.value,
+                    }
+                })
+                and all(
+                    symbol in leaders
+                    and leaders[symbol].mature
+                    and leaders[symbol].confidence >= self.cfg.leader_min_confidence
+                    and leaders[symbol].score >= self.cfg.leader_cycle_min_score
+                    for symbol in live_core_symbols
+                )
+            ):
                 account.candidate_tenure[streak_key] = 0
                 return True
             account.candidate_tenure[arm_key] = 0
@@ -398,19 +444,24 @@ class LeaderPortfolioPolicy(StrategicPortfolioPolicy):
         impulse_leader = any(
             item.mature
             and item.confidence >= self.cfg.leader_min_confidence
-            and item.score >= self.cfg.leader_mature_score
+            and item.score >= self.cfg.leader_cycle_min_score
             for item in leaders.values()
         )
         evidence_map = risk.evidence
+        slow_market_legs = (
+            float(evidence_map.get("broad_ret120", -math.inf)),
+            float(evidence_map.get("tech_ret120", -math.inf)),
+        )
         market_aligned = bool(
-            min(
-                float(evidence_map.get("broad_ret120", -math.inf)),
-                float(evidence_map.get("tech_ret120", -math.inf)),
-            )
-            >= self.cfg.leader_cycle_min_market_ret120
+            min(slow_market_legs) >= self.cfg.leader_cycle_min_market_ret120
+        )
+        impulse_market_aligned = bool(
+            min(slow_market_legs)
+            >= self.cfg.leader_cycle_impulse_min_market_ret120
+            and max(slow_market_legs) >= self.cfg.leader_cycle_min_market_ret120
         )
         impulse = (
-            market_aligned
+            impulse_market_aligned
             and opportunity in {Opportunity.TREND, Opportunity.STRONG_TREND}
             and impulse_leader
             and risk.votes <= 1
@@ -429,6 +480,34 @@ class LeaderPortfolioPolicy(StrategicPortfolioPolicy):
             and risk.votes <= 1
             and credible >= self.cfg.leader_cycle_min_mature
         )
+        exceptional_recovery_rearm = bool(
+            account.candidate_tenure.get("recovery_cycle_rearm_pending", 0) == 1
+            and account.candidate_tenure.get("tactical_cooldown", 0) <= 0
+            and not account.positions
+            and not account.pending_orders
+            and risk.state.value == "NORMAL"
+            and opportunity is Opportunity.STRONG_TREND
+            and risk.votes <= 1
+            and market_aligned
+            and credible >= self.cfg.leader_cycle_min_mature
+            and max(
+                (
+                    item.score
+                    for item in leaders.values()
+                    if item.mature and item.confidence >= self.cfg.leader_min_confidence
+                ),
+                default=0.0,
+            )
+            >= 0.90
+            and float(evidence_map.get("trend_health", 0.0)) >= 0.82
+        )
+        if exceptional_recovery_rearm:
+            # The completed cooldown and exceptional current evidence close a
+            # recovery cycle without weakening the ordinary leader contract.
+            account.candidate_tenure[arm_key] = 1
+            account.candidate_tenure[streak_key] = 0
+            account.candidate_tenure["recovery_cycle_rearm_pending"] = 0
+            return True
         account.candidate_tenure[streak_key] = (
             account.candidate_tenure.get(streak_key, 0) + 1 if evidence else 0
         )

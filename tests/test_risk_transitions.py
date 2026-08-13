@@ -11,6 +11,7 @@ from uquant.config import DEFAULT_CONFIG, SystemConfig
 from uquant.leader import INDUSTRY, REFERENCE_UNIVERSE
 from uquant.risk import (
     _evidence_family_votes,
+    _strategic_damage_guard_required,
     _strategic_grace_supported,
     _update_capital_budget_ladder,
     _update_dynamic_anchors,
@@ -187,6 +188,168 @@ def test_broad_strategic_grace_is_reserved_for_expansive_universes() -> None:
         broad_compatibility=True,
         cfg=DEFAULT_CONFIG,
     )
+
+
+def test_young_strategic_damage_guard_caps_exposure_without_retiring_owner() -> None:
+    account = AccountState.empty(100.0)
+    account.strategic_cohort_symbols = ["owner"]
+    account.strategic_cohort_targets = {"owner": 1.0}
+    account.strategic_candidate_signature = "strategic_qualification:SECULAR:owner"
+    account.candidate_tenure.update(
+        {
+            "strategic_cohort_active": 1,
+            "strategic_cohort_started": 1,
+            "strategic_cohort_days": 20,
+        }
+    )
+
+    assert _strategic_damage_guard_required(
+        account=account,
+        operating_drawdown=DEFAULT_CONFIG.strategic_damage_guard_dd + 0.01,
+        transition_damage=DEFAULT_CONFIG.strategic_damage_guard_transition + 0.01,
+        votes=2,
+        cfg=DEFAULT_CONFIG,
+    )
+    assert _strategic_damage_guard_required(
+        account=account,
+        operating_drawdown=DEFAULT_CONFIG.strategic_damage_guard_dd + 0.01,
+        transition_damage=DEFAULT_CONFIG.strategic_damage_guard_transition + 0.01,
+        votes=1,
+        cfg=DEFAULT_CONFIG,
+    )
+    assert account.strategic_cohort_targets == {"owner": 1.0}
+    assert not _strategic_damage_guard_required(
+        account=account,
+        operating_drawdown=DEFAULT_CONFIG.strategic_damage_guard_dd - 0.01,
+        transition_damage=DEFAULT_CONFIG.strategic_damage_guard_transition + 0.01,
+        votes=2,
+        cfg=DEFAULT_CONFIG,
+    )
+    assert not _strategic_damage_guard_required(
+        account=account,
+        operating_drawdown=DEFAULT_CONFIG.operating_dd_caution,
+        transition_damage=DEFAULT_CONFIG.strategic_damage_guard_transition + 0.01,
+        votes=2,
+        cfg=DEFAULT_CONFIG,
+    )
+    account.candidate_tenure["strategic_cohort_days"] = (
+        DEFAULT_CONFIG.capital_budget_new_cohort_grace_days
+    )
+    assert not _strategic_damage_guard_required(
+        account=account,
+        operating_drawdown=DEFAULT_CONFIG.strategic_damage_guard_dd + 0.01,
+        transition_damage=DEFAULT_CONFIG.strategic_damage_guard_transition + 0.01,
+        votes=2,
+        cfg=DEFAULT_CONFIG,
+    )
+
+
+def test_completed_strategic_damage_guard_cannot_repeat_in_the_same_epoch() -> None:
+    account = AccountState.empty(100.0)
+    account.strategic_epoch = 3
+    account.strategic_candidate_signature = "strategic_qualification:SECULAR:owner"
+    account.candidate_tenure.update(
+        {
+            "strategic_cohort_active": 1,
+            "strategic_cohort_started": 1,
+            "strategic_cohort_days": 20,
+            "strategic_damage_guard_complete_epoch": 3,
+        }
+    )
+
+    assert not _strategic_damage_guard_required(
+        account=account,
+        operating_drawdown=DEFAULT_CONFIG.strategic_damage_guard_dd + 0.01,
+        transition_damage=DEFAULT_CONFIG.strategic_damage_guard_transition + 0.01,
+        votes=2,
+        cfg=DEFAULT_CONFIG,
+    )
+
+    account.strategic_epoch = 4
+    assert _strategic_damage_guard_required(
+        account=account,
+        operating_drawdown=DEFAULT_CONFIG.strategic_damage_guard_dd + 0.01,
+        transition_damage=DEFAULT_CONFIG.strategic_damage_guard_transition + 0.01,
+        votes=2,
+        cfg=DEFAULT_CONFIG,
+    )
+
+    account.candidate_tenure["strategic_damage_guard_active_epoch"] = 4
+    assert not _strategic_damage_guard_required(
+        account=account,
+        operating_drawdown=DEFAULT_CONFIG.strategic_damage_guard_dd + 0.01,
+        transition_damage=DEFAULT_CONFIG.strategic_damage_guard_transition + 0.01,
+        votes=2,
+        cfg=DEFAULT_CONFIG,
+    )
+
+    account.candidate_tenure["strategic_damage_guard_active_epoch"] = 0
+    account.candidate_tenure["strategic_external_risk_epoch"] = 4
+    assert not _strategic_damage_guard_required(
+        account=account,
+        operating_drawdown=DEFAULT_CONFIG.strategic_damage_guard_dd + 0.01,
+        transition_damage=DEFAULT_CONFIG.strategic_damage_guard_transition + 0.01,
+        votes=2,
+        cfg=DEFAULT_CONFIG,
+    )
+
+
+def test_active_strategic_guard_owns_a_level2_cap_without_affecting_other_books() -> None:
+    account = AccountState.empty(100.0)
+    account.strategic_epoch = 3
+    account.capital_budget_level = 2
+    account.candidate_tenure["strategic_damage_guard_active_epoch"] = 3
+
+    assert risk_module._strategic_guard_level2_overlay_required(account)
+
+    account.candidate_tenure["strategic_damage_guard_active_epoch"] = 0
+    account.candidate_tenure["strategic_damage_guard_complete_epoch"] = 3
+    assert not risk_module._strategic_guard_level2_overlay_required(account)
+
+    account.strategic_epoch = 0
+    assert not risk_module._strategic_guard_level2_overlay_required(account)
+
+
+def test_active_strategic_damage_guard_keeps_its_cap_until_strategy_completes() -> None:
+    dates = pd.bdate_range("2026-01-02", periods=80)
+    account = AccountState.empty(100.0)
+    account.strategic_epoch = 3
+    account.strategic_candidate_signature = "strategic_qualification:SECULAR:owner"
+    account.candidate_tenure.update(
+        {
+            "strategic_cohort_active": 1,
+            "strategic_cohort_started": 1,
+            "strategic_cohort_days": 20,
+            "strategic_damage_guard_active_epoch": 3,
+        }
+    )
+
+    assessment = _assess(
+        date=dates[-1],
+        dates=dates,
+        states={},
+        account=account,
+        cfg=_isolated_transition_config(),
+    )
+
+    assert assessment.evidence["strategic_damage_guard"] is True
+    assert assessment.freeze_new_risk is True
+    assert assessment.target_gross_cap == pytest.approx(
+        DEFAULT_CONFIG.strategic_damage_guard_gross
+    )
+
+    account.candidate_tenure["strategic_damage_guard_active_epoch"] = 0
+    account.candidate_tenure["strategic_damage_guard_complete_epoch"] = 3
+    completed = _assess(
+        date=dates[-1],
+        dates=dates,
+        states={},
+        account=account,
+        cfg=_isolated_transition_config(),
+    )
+
+    assert completed.evidence["strategic_damage_guard"] is False
+    assert completed.target_gross_cap == pytest.approx(DEFAULT_CONFIG.max_gross)
 
 
 def test_recorded_economic_restore_clears_protection_after_price_drift() -> None:

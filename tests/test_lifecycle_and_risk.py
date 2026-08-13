@@ -848,6 +848,43 @@ def test_absolute_ret240_can_admit_without_a_symbol_specific_prior() -> None:
     assert "evidence=persistent_industry" in account.strategic_candidate_signature
 
 
+def test_persistent_startup_exception_defers_an_overextended_cohort() -> None:
+    dates = pd.bdate_range("2023-01-02", periods=246)
+    frame = _strategic_frame(dates)
+    close = np.concatenate((np.ones(125), np.linspace(1.0, 4.0, 121)))
+    frame["close"] = close
+    frame["ma20"] = close * 0.95
+    frame["ma60"] = close * 0.85
+    symbols = ("extended_a", "extended_b", "extended_c")
+    leaders = {
+        symbol: _leader(symbol, 0.95 - 0.01 * index, industry="optical")
+        for index, symbol in enumerate(symbols)
+    }
+    account = AccountState.empty(100.0)
+    risk = RiskAssessment(
+        Risk.NORMAL,
+        1.0,
+        0,
+        {"risk_anchor_symbols": [], "risk_anchor_group_count": 0},
+        (),
+        "NONE",
+    )
+    allocator = PortfolioAllocator(DEFAULT_CONFIG)
+
+    for date in dates[-DEFAULT_CONFIG.strategic_cohort_confirm_days :]:
+        allocator._initialize_strategic_cohort(
+            date=date,
+            user_panel={symbol: frame for symbol in symbols},
+            leaders=leaders,
+            account=account,
+            risk=risk,
+        )
+
+    assert close[-1] / close[-121] - 1.0 > DEFAULT_CONFIG.strategic_persistent_max_ret120
+    assert account.strategic_epoch == 0
+    assert account.candidate_tenure["strategic_long_cycle_open"] == 0
+
+
 def test_persistent_industry_outranks_a_shorter_established_group() -> None:
     dates = pd.bdate_range("2023-01-02", periods=246)
     persistent = _strategic_frame(dates)
@@ -1027,6 +1064,96 @@ def test_synchronized_reversal_is_tagged_as_emerging_secular() -> None:
         "strategic_qualification:EMERGING_SECULAR:"
     )
     assert "evidence=reversal_industry" in account.strategic_candidate_signature
+
+
+@pytest.mark.parametrize(
+    ("configured_universe_size", "irrelevant_count"),
+    ((3, 0), (30, 10)),
+)
+def test_decisive_synchronized_reversal_concentrates_one_dominant_owner(
+    configured_universe_size: int,
+    irrelevant_count: int,
+) -> None:
+    dates = pd.bdate_range("2023-01-02", periods=250)
+
+    def reversal_frame(ret60_base: float) -> pd.DataFrame:
+        close = np.concatenate(
+        [
+            np.linspace(1.0, 0.68, len(dates) - 5),
+            np.linspace(0.69, 0.74, 5),
+        ]
+        )
+        close[-61:-5] = np.linspace(ret60_base, 0.68, 56)
+        frame = _trend_frame(
+            dates,
+            close=close,
+            ma20=0.70,
+            ma60=0.72,
+            ret20=0.08,
+            ret60=0.07,
+        )
+        frame["atr"] = 0.02
+        return frame
+
+    dominant = _leader("dominant", 0.70, industry="independent_optical")
+    runner = _leader("runner", 0.60, industry="independent_optical")
+    runner.components["trend_persistence"] = 1.0 / 3.0
+    reserve = _leader("reserve", 0.20, industry="independent_optical")
+    panel = {
+        "dominant": reversal_frame(0.69),
+        "runner": reversal_frame(0.725),
+        "reserve": reversal_frame(0.73),
+    }
+    irrelevant = {
+        f"irrelevant_{index}": _trend_frame(
+            dates,
+            close=np.linspace(1.0, 1.1, len(dates)),
+        )
+        for index in range(irrelevant_count)
+    }
+    panel.update(irrelevant)
+    account = AccountState.empty(100.0)
+    risk = RiskAssessment(
+        Risk.NORMAL,
+        1.0,
+        1,
+        {
+            "tech_ret120": -0.10,
+            "risk_anchor_symbols": [],
+            "risk_anchor_group_count": 0,
+            "configured_user_universe_size": configured_universe_size,
+        },
+        ("isolated index weakness",),
+        "NONE",
+    )
+    allocator = PortfolioAllocator(DEFAULT_CONFIG)
+
+    for date in dates[-2:]:
+        allocator._initialize_strategic_cohort(
+            date=date,
+            user_panel=panel,
+            leaders={
+                "dominant": dominant,
+                "runner": runner,
+                "reserve": reserve,
+                **{
+                    symbol: _leader(
+                        symbol,
+                        0.01,
+                        industry=f"irrelevant_industry_{index}",
+                    )
+                    for index, symbol in enumerate(irrelevant)
+                },
+            },
+            account=account,
+            risk=risk,
+        )
+
+    assert account.strategic_cohort_symbols == ["dominant"]
+    assert account.strategic_cohort_targets == {
+        "dominant": pytest.approx(DEFAULT_CONFIG.strategic_dominant_max_weight)
+    }
+    assert account.candidate_tenure["strategic_dominant_epoch"] == account.strategic_epoch
 
 
 def test_ordinary_factor_cohort_still_waits_for_dynamic_anchors_to_arm() -> None:
@@ -1320,6 +1447,33 @@ def test_disjoint_recovery_anchor_hands_off_to_confirmed_secular_cohort() -> Non
     assert account.anchor_weights == {}
     assert account.recovery_anchor_date == ""
     assert account.candidate_tenure["strategic_deferred_to_recovery"] == 0
+
+
+def test_locked_disjoint_recovery_anchor_defers_confirmed_secular_cohort() -> None:
+    dates = pd.bdate_range("2023-01-02", periods=246)
+    panel, leaders = _dynamic_cohort_inputs(dates)
+    account = AccountState(
+        initial_cash=100.0,
+        cash=50.0,
+        positions={"old_anchor": Position("old_anchor", shares=50, avg_cost=1.0)},
+        anchor_weights={"old_anchor": 0.50},
+        recovery_anchor_date=str(dates[-40].date()),
+        candidate_tenure={"recovery_cohort_locked": 1},
+    )
+    allocator = PortfolioAllocator(DEFAULT_CONFIG)
+
+    for date in dates[-DEFAULT_CONFIG.strategic_cohort_confirm_days :]:
+        allocator._initialize_strategic_cohort(
+            date=date,
+            user_panel=panel,
+            leaders=leaders,
+            account=account,
+            risk=_normal_risk(),
+        )
+
+    assert account.strategic_epoch == 0
+    assert account.anchor_weights == {"old_anchor": 0.50}
+    assert account.candidate_tenure["strategic_deferred_to_recovery"] == 1
 
 
 def test_locked_recovery_cohort_cannot_be_preempted_by_strategic_discovery() -> None:
@@ -2022,6 +2176,430 @@ def test_capital_clean_caution_can_reach_the_empty_book_rebound_filter() -> None
         {symbol: DEFAULT_CONFIG.tactical_probe_weight}
     )
     assert account.candidate_tenure["tactical_active"] == 1
+
+
+def test_shallow_empty_book_rebound_does_not_justify_a_full_tactical_probe() -> None:
+    dates = pd.bdate_range("2025-01-02", periods=150)
+    symbol = "shallow_rebound"
+    close = np.linspace(0.80, 1.00, len(dates))
+    frame = pd.DataFrame(
+        {
+            "close": close,
+            "ma20": 1.05,
+            "ma60": 1.00,
+            "ma120": 0.90,
+            "ret5": -0.03,
+            "ret20": -0.18,
+            "ret60": -0.30,
+            "ret120": 0.15,
+            "amount": 1_000_000_000.0,
+        },
+        index=dates,
+    )
+    caution = RiskAssessment(
+        Risk.CAUTION,
+        1.0,
+        4,
+        {
+            "freeze_new_risk": True,
+            "transition_damage": 0.80,
+            "broad_ret120": 0.10,
+            "tech_ret120": 0.10,
+        },
+        ("broad caution without a capital freeze",),
+        "NONE",
+        freeze_new_risk=True,
+        reduction_level=1,
+    )
+
+    targets = PortfolioAllocator(DEFAULT_CONFIG).allocate(
+        date=dates[-1],
+        opportunity=Opportunity.WEAK,
+        risk=caution,
+        user_panel={symbol: frame},
+        leaders={symbol: _leader(symbol, 0.90)},
+        account=AccountState.empty(100.0),
+        prices={symbol: 1.00},
+    )
+
+    assert targets == ()
+
+
+def test_independent_shallow_rebound_breadth_confirms_one_tactical_probe() -> None:
+    dates = pd.bdate_range("2025-01-02", periods=150)
+    symbols = ("shallow_design", "shallow_compute", "shallow_equipment")
+    close = np.linspace(0.80, 1.00, len(dates))
+    frame = pd.DataFrame(
+        {
+            "close": close,
+            "ma20": 1.05,
+            "ma60": 1.00,
+            "ma120": 0.90,
+            "ret5": -0.03,
+            "ret20": -0.18,
+            "ret60": -0.30,
+            "ret120": 0.15,
+            "amount": 1_000_000_000.0,
+        },
+        index=dates,
+    )
+    caution = RiskAssessment(
+        Risk.CAUTION,
+        1.0,
+        4,
+        {
+            "freeze_new_risk": True,
+            "transition_damage": 0.80,
+            "broad_ret120": 0.10,
+            "tech_ret120": 0.10,
+        },
+        ("broad caution without a capital freeze",),
+        "NONE",
+        freeze_new_risk=True,
+        reduction_level=1,
+    )
+    industries = ("design", "compute", "equipment")
+    leaders = {
+        symbol: _leader(symbol, 0.90 - index * 0.01, industry=industry)
+        for index, (symbol, industry) in enumerate(
+            zip(symbols, industries, strict=True)
+        )
+    }
+
+    targets = PortfolioAllocator(DEFAULT_CONFIG).allocate(
+        date=dates[-1],
+        opportunity=Opportunity.WEAK,
+        risk=caution,
+        user_panel={symbol: frame for symbol in symbols},
+        leaders=leaders,
+        account=AccountState.empty(100.0),
+        prices={symbol: 1.00 for symbol in symbols},
+    )
+
+    assert {target.symbol: target.weight for target in targets} == pytest.approx(
+        {symbols[0]: DEFAULT_CONFIG.tactical_probe_weight}
+    )
+
+
+def test_still_oversold_shallow_rebound_confirms_one_tactical_probe() -> None:
+    dates = pd.bdate_range("2025-01-02", periods=150)
+    symbol = "still_oversold"
+    close = np.linspace(0.80, 1.00, len(dates))
+    frame = pd.DataFrame(
+        {
+            "close": close,
+            "ma20": 1.05,
+            "ma60": 1.00,
+            "ma120": 0.90,
+            "ret5": -0.10,
+            "ret20": -0.18,
+            "ret60": 0.25,
+            "ret120": 0.50,
+            "amount": 1_000_000_000.0,
+        },
+        index=dates,
+    )
+    caution = RiskAssessment(
+        Risk.CAUTION,
+        1.0,
+        4,
+        {
+            "freeze_new_risk": True,
+            "transition_damage": 0.80,
+            "broad_ret120": 0.10,
+            "tech_ret120": 0.40,
+        },
+        ("broad caution without a capital freeze",),
+        "NONE",
+        freeze_new_risk=True,
+        reduction_level=1,
+    )
+
+    targets = PortfolioAllocator(DEFAULT_CONFIG).allocate(
+        date=dates[-1],
+        opportunity=Opportunity.CHOPPY,
+        risk=caution,
+        user_panel={symbol: frame},
+        leaders={symbol: _leader(symbol, 0.61)},
+        account=AccountState.empty(100.0),
+        prices={symbol: 1.00},
+    )
+
+    assert {target.symbol: target.weight for target in targets} == pytest.approx(
+        {symbol: DEFAULT_CONFIG.tactical_probe_weight}
+    )
+
+
+def test_oversold_shallow_rebound_needs_medium_term_convexity() -> None:
+    dates = pd.bdate_range("2025-01-02", periods=150)
+    symbol = "flat_oversold"
+    close = np.linspace(0.80, 1.00, len(dates))
+    frame = pd.DataFrame(
+        {
+            "close": close,
+            "ma20": 1.05,
+            "ma60": 1.00,
+            "ma120": 0.90,
+            "ret5": -0.10,
+            "ret20": -0.18,
+            "ret60": 0.19,
+            "ret120": 0.60,
+            "amount": 1_000_000_000.0,
+        },
+        index=dates,
+    )
+    caution = RiskAssessment(
+        Risk.CAUTION,
+        1.0,
+        4,
+        {
+            "freeze_new_risk": True,
+            "transition_damage": 0.80,
+            "broad_ret120": 0.10,
+            "tech_ret120": 0.40,
+        },
+        ("broad caution without a capital freeze",),
+        "NONE",
+        freeze_new_risk=True,
+        reduction_level=1,
+    )
+
+    targets = PortfolioAllocator(DEFAULT_CONFIG).allocate(
+        date=dates[-1],
+        opportunity=Opportunity.CHOPPY,
+        risk=caution,
+        user_panel={symbol: frame},
+        leaders={symbol: _leader(symbol, 0.61)},
+        account=AccountState.empty(100.0),
+        prices={symbol: 1.00},
+    )
+
+    assert targets == ()
+
+
+def test_oversold_base_with_modest_long_horizon_extension_can_probe() -> None:
+    dates = pd.bdate_range("2025-01-02", periods=150)
+    symbol = "oversold_base"
+    close = np.linspace(0.80, 1.00, len(dates))
+    frame = pd.DataFrame(
+        {
+            "close": close,
+            "ma20": 1.05,
+            "ma60": 1.00,
+            "ma120": 0.90,
+            "ret5": -0.08,
+            "ret20": -0.16,
+            "ret60": -0.02,
+            "ret120": 0.16,
+            "amount": 1_000_000_000.0,
+        },
+        index=dates,
+    )
+    caution = RiskAssessment(
+        Risk.CAUTION,
+        1.0,
+        4,
+        {
+            "freeze_new_risk": True,
+            "transition_damage": 0.80,
+            "broad_ret120": -0.03,
+            "tech_ret120": 0.06,
+        },
+        ("broad caution without a capital freeze",),
+        "NONE",
+        freeze_new_risk=True,
+        reduction_level=1,
+    )
+
+    targets = PortfolioAllocator(DEFAULT_CONFIG).allocate(
+        date=dates[-1],
+        opportunity=Opportunity.CHOPPY,
+        risk=caution,
+        user_panel={symbol: frame},
+        leaders={symbol: _leader(symbol, 0.63)},
+        account=AccountState.empty(100.0),
+        prices={symbol: 1.00},
+    )
+
+    assert {target.symbol: target.weight for target in targets} == pytest.approx(
+        {symbol: DEFAULT_CONFIG.tactical_probe_weight}
+    )
+
+
+def test_deep_tactical_rebound_needs_minimum_medium_term_convexity() -> None:
+    dates = pd.bdate_range("2025-01-02", periods=150)
+    symbol = "weak_deep_pullback"
+    close = np.linspace(0.80, 1.00, len(dates))
+    frame = pd.DataFrame(
+        {
+            "close": close,
+            "ma20": 1.05,
+            "ma60": 1.00,
+            "ma120": 0.90,
+            "ret5": -0.04,
+            "ret20": -0.21,
+            "ret60": 0.05,
+            "ret120": 0.30,
+            "amount": 1_000_000_000.0,
+        },
+        index=dates,
+    )
+    caution = RiskAssessment(
+        Risk.CAUTION,
+        1.0,
+        4,
+        {
+            "freeze_new_risk": True,
+            "transition_damage": 0.80,
+            "broad_ret120": 0.10,
+            "tech_ret120": 0.40,
+        },
+        ("broad caution without a capital freeze",),
+        "NONE",
+        freeze_new_risk=True,
+        reduction_level=1,
+    )
+
+    targets = PortfolioAllocator(DEFAULT_CONFIG).allocate(
+        date=dates[-1],
+        opportunity=Opportunity.CHOPPY,
+        risk=caution,
+        user_panel={symbol: frame},
+        leaders={symbol: _leader(symbol, 0.61)},
+        account=AccountState.empty(100.0),
+        prices={symbol: 1.00},
+    )
+
+    assert targets == ()
+
+
+def test_long_horizon_blowoff_pullback_is_not_a_tactical_rebound() -> None:
+    dates = pd.bdate_range("2025-01-02", periods=150)
+    symbol = "overextended_pullback"
+    close = np.linspace(0.80, 1.00, len(dates))
+    frame = pd.DataFrame(
+        {
+            "close": close,
+            "ma20": 1.05,
+            "ma60": 1.00,
+            "ma120": 0.90,
+            "ret5": -0.16,
+            "ret20": -0.24,
+            "ret60": 0.63,
+            "ret120": 0.91,
+            "amount": 1_000_000_000.0,
+        },
+        index=dates,
+    )
+    caution = RiskAssessment(
+        Risk.CAUTION,
+        1.0,
+        4,
+        {
+            "freeze_new_risk": True,
+            "transition_damage": 0.80,
+            "broad_ret120": 0.10,
+            "tech_ret120": 0.40,
+        },
+        ("broad caution without a capital freeze",),
+        "NONE",
+        freeze_new_risk=True,
+        reduction_level=1,
+    )
+
+    account = AccountState.empty(100.0)
+    allocator = PortfolioAllocator(DEFAULT_CONFIG)
+    targets = allocator.allocate(
+        date=dates[-1],
+        opportunity=Opportunity.CHOPPY,
+        risk=caution,
+        user_panel={symbol: frame},
+        leaders={symbol: _leader(symbol, 0.90)},
+        account=account,
+        prices={symbol: 1.00},
+    )
+
+    assert targets == ()
+    assert account.candidate_tenure["tactical_cooldown"] == (
+        DEFAULT_CONFIG.tactical_overheat_cooldown_days
+    )
+
+    next_date = dates[-1] + pd.offsets.BDay()
+    cooled = frame.copy()
+    cooled.loc[next_date] = cooled.iloc[-1]
+    cooled.loc[next_date, "ret120"] = 0.80
+    cooled.loc[next_date, "ret20"] = -0.24
+    cooled.loc[next_date, "ret5"] = -0.10
+    targets = allocator.allocate(
+        date=next_date,
+        opportunity=Opportunity.CHOPPY,
+        risk=caution,
+        user_panel={symbol: cooled},
+        leaders={symbol: _leader(symbol, 0.90)},
+        account=account,
+        prices={symbol: 1.00},
+    )
+
+    assert targets == ()
+    assert account.candidate_tenure["tactical_cooldown"] == (
+        DEFAULT_CONFIG.tactical_overheat_cooldown_days - 1
+    )
+
+
+def test_overextended_pullback_with_confirmed_current_reversal_can_probe() -> None:
+    dates = pd.bdate_range("2025-01-02", periods=150)
+    symbol = "current_reversal"
+    close = np.linspace(0.80, 1.00, len(dates))
+    frame = pd.DataFrame(
+        {
+            "close": close,
+            "ma20": 1.05,
+            "ma60": 1.00,
+            "ma120": 0.90,
+            "ret5": 0.08,
+            "ret20": -0.17,
+            "ret60": 0.40,
+            "ret120": 1.20,
+            "amount": 1_000_000_000.0,
+        },
+        index=dates,
+    )
+    caution = RiskAssessment(
+        Risk.CAUTION,
+        1.0,
+        4,
+        {
+            "freeze_new_risk": True,
+            "transition_damage": 0.80,
+            "broad_ret120": -0.03,
+            "tech_ret120": 0.06,
+        },
+        ("broad caution without a capital freeze",),
+        "NONE",
+        freeze_new_risk=True,
+        reduction_level=1,
+    )
+
+    account = AccountState.empty(100.0)
+    account.candidate_tenure.update(
+        {"tactical_cooldown": 5, "tactical_overheat_cooldown": 1}
+    )
+    targets = PortfolioAllocator(DEFAULT_CONFIG).allocate(
+        date=dates[-1],
+        opportunity=Opportunity.CHOPPY,
+        risk=caution,
+        user_panel={symbol: frame},
+        leaders={symbol: _leader(symbol, 0.90)},
+        account=account,
+        prices={symbol: 1.00},
+    )
+
+    assert {target.symbol: target.weight for target in targets} == pytest.approx(
+        {symbol: DEFAULT_CONFIG.tactical_probe_weight}
+    )
+    assert account.candidate_tenure["tactical_cooldown"] == 0
+    assert account.candidate_tenure["tactical_overheat_cooldown"] == 0
+
 
 def test_independent_deep_crash_probe_does_not_require_broad_market_weakness() -> None:
     dates = pd.bdate_range("2025-01-02", periods=150)
@@ -3457,7 +4035,7 @@ def test_risk_liquidated_strategic_exit_band_is_settled_without_reentry():
     assert account.strategic_epochs_completed == 1
 
 
-def test_strategic_restore_waits_for_every_member_and_pending_buy():
+def test_strategic_restore_waits_for_every_member_but_settles_a_satisfied_pending_buy():
     dates = pd.bdate_range("2025-01-02", periods=150)
     frame = _trend_frame(dates)
     symbols = ("restored_a", "restored_b", "missing_c")
@@ -3533,7 +4111,7 @@ def test_strategic_restore_waits_for_every_member_and_pending_buy():
         prices={symbol: 1.0 for symbol in symbols},
         weights_now=all_restored,
     )
-    assert account.strategic_restore_weights == {symbol: 0.30 for symbol in symbols}
+    assert account.strategic_restore_weights == {}
 
     account.pending_orders.clear()
     allocator._strategic_cohort_targets(
@@ -3546,6 +4124,58 @@ def test_strategic_restore_waits_for_every_member_and_pending_buy():
         weights_now=all_restored,
     )
     assert account.strategic_restore_weights == {}
+
+
+def test_strategic_restore_completes_against_scaled_attainable_weights() -> None:
+    dates = pd.bdate_range("2025-01-02", periods=150)
+    frame = _trend_frame(dates)
+    symbols = ("drift_winner_a", "drift_winner_b", "restored_member")
+    saved = dict(zip(symbols, (0.335, 0.325, 0.337), strict=True))
+    weights_now = dict(zip(symbols, (0.345, 0.335, 0.318), strict=True))
+    account = AccountState(
+        initial_cash=100.0,
+        cash=0.0,
+        positions={
+            symbol: Position(symbol, shares=30, avg_cost=1.0, highest_close=1.0)
+            for symbol in symbols
+        },
+        pending_orders=[
+            PendingOrder(
+                signal_date=str(dates[-2].date()),
+                symbol=symbols[2],
+                side="BUY",
+                target_weight=0.328,
+                reason="scaled strategic restore",
+                lifecycle=Lifecycle.CORE.value,
+                remaining_shares=1,
+            )
+        ],
+        strategic_cohort_symbols=list(symbols),
+        strategic_cohort_targets={symbol: 1.0 / 3.0 for symbol in symbols},
+        strategic_restore_weights=saved,
+        strategic_epoch=1,
+        candidate_tenure={
+            "strategic_cohort_active": 1,
+            "strategic_cohort_started": 1,
+            "strategic_damage_guard_active_epoch": 1,
+        },
+        operating_peak=100.0,
+        capital_peak=100.0,
+    )
+
+    PortfolioAllocator(DEFAULT_CONFIG.override(min_trade_value=0.0))._strategic_cohort_targets(
+        date=dates[-1],
+        risk=_normal_risk(),
+        user_panel={symbol: frame for symbol in symbols},
+        leaders={symbol: _leader(symbol, 0.90) for symbol in symbols},
+        account=account,
+        prices={symbol: 1.0 for symbol in symbols},
+        weights_now=weights_now,
+    )
+
+    assert account.strategic_restore_weights == {}
+    assert account.candidate_tenure["strategic_damage_guard_active_epoch"] == 0
+    assert account.candidate_tenure["strategic_damage_guard_complete_epoch"] == 1
 
 
 def test_strategic_restore_settles_an_unexecutable_subthreshold_gap() -> None:
@@ -4137,6 +4767,282 @@ def test_transition_impulse_exits_once_when_every_atr_band_breaks() -> None:
     assert account.strategic_cohort_targets == {}
 
 
+def test_strategic_damage_guard_preserves_trail_owner_until_restore_completes() -> None:
+    dates = pd.bdate_range("2025-01-02", periods=150)
+    date = dates[-1]
+    symbol = "guarded_secular_member"
+    frame = _trend_frame(dates)
+    frame.loc[date, "close"] = 1.0
+    frame.loc[date, "ma20"] = 1.1
+    frame.loc[date, "ret20"] = -0.10
+    frame.loc[date, "atr"] = 0.05
+    account = AccountState(
+        initial_cash=100.0,
+        cash=70.0,
+        positions={symbol: Position(symbol, shares=30, avg_cost=0.50, highest_close=2.0)},
+        strategic_cohort_symbols=[symbol],
+        strategic_cohort_targets={symbol: 0.30},
+        strategic_restore_weights={symbol: 0.30},
+        strategic_candidate_signature="strategic_qualification:SECULAR:guarded",
+        strategic_epoch=1,
+        candidate_tenure={
+            "strategic_cohort_active": 1,
+            "strategic_cohort_started": 1,
+            "strategic_damage_guard_active_epoch": 1,
+        },
+        operating_peak=100.0,
+        capital_peak=100.0,
+    )
+    allocator = PortfolioAllocator(DEFAULT_CONFIG.override(min_trade_value=0.0))
+    guarded = RiskAssessment(
+        Risk.CAUTION,
+        DEFAULT_CONFIG.strategic_damage_guard_gross,
+        2,
+        {"freeze_new_risk": True, "transition_damage": 0.60},
+        ("strategic transition damage",),
+        "NONE",
+        freeze_new_risk=True,
+    )
+
+    allocator._strategic_cohort_targets(
+        date=date,
+        risk=guarded,
+        user_panel={symbol: frame},
+        leaders={symbol: _leader(symbol, 0.90)},
+        account=account,
+        prices={symbol: 1.0},
+        weights_now={symbol: 0.30},
+    )
+
+    assert account.strategic_exit_bands == {}
+    assert account.strategic_restore_weights == {symbol: 0.30}
+    assert account.candidate_tenure["strategic_damage_guard_active_epoch"] == 1
+
+    still_damaged = RiskAssessment(
+        Risk.NORMAL,
+        1.0,
+        4,
+        {"transition_damage": DEFAULT_CONFIG.strategic_damage_guard_transition},
+        (),
+        "NONE",
+    )
+    allocator._strategic_cohort_targets(
+        date=date,
+        risk=still_damaged,
+        user_panel={symbol: frame},
+        leaders={symbol: _leader(symbol, 0.90)},
+        account=account,
+        prices={symbol: 1.0},
+        weights_now={symbol: 0.30},
+    )
+
+    assert account.strategic_restore_weights == {symbol: 0.30}
+    assert account.candidate_tenure["strategic_damage_guard_active_epoch"] == 1
+
+    allocator._strategic_cohort_targets(
+        date=date,
+        risk=_normal_risk(),
+        user_panel={symbol: frame},
+        leaders={symbol: _leader(symbol, 0.90)},
+        account=account,
+        prices={symbol: 1.0},
+        weights_now={symbol: 0.30},
+    )
+
+    assert account.strategic_exit_bands == {}
+    assert account.strategic_restore_weights == {}
+    assert account.candidate_tenure["strategic_damage_guard_active_epoch"] == 0
+    assert account.candidate_tenure["strategic_damage_guard_complete_epoch"] == 1
+
+
+@pytest.mark.parametrize(
+    ("capital_budget_owned", "expected_weight"),
+    ((False, 0.10), (True, 0.29)),
+)
+def test_repaired_strategic_damage_guard_uses_a_decisive_next_profit_trail(
+    capital_budget_owned: bool,
+    expected_weight: float,
+) -> None:
+    dates = pd.bdate_range("2025-01-02", periods=150)
+    date = dates[-1]
+    symbol = "repaired_guard_member"
+    frame = _trend_frame(dates)
+    frame.loc[date, "close"] = 1.0
+    frame.loc[date, "ma20"] = 1.1
+    frame.loc[date, "ret20"] = -0.10
+    frame.loc[date, "atr"] = 0.10
+    account = AccountState(
+        initial_cash=100.0,
+        cash=70.0,
+        positions={symbol: Position(symbol, shares=30, avg_cost=0.50, highest_close=2.0)},
+        strategic_cohort_symbols=[symbol],
+        strategic_cohort_targets={symbol: 0.30},
+        strategic_candidate_signature="strategic_qualification:SECULAR:repaired",
+        strategic_epoch=1,
+        candidate_tenure={
+            "strategic_cohort_active": 1,
+            "strategic_cohort_started": 1,
+            "strategic_damage_guard_active_epoch": 0,
+            "strategic_damage_guard_complete_epoch": 1,
+            **({"strategic_guard_level2_epoch": 1} if capital_budget_owned else {}),
+        },
+        operating_peak=100.0,
+        capital_peak=100.0,
+    )
+
+    targets = PortfolioAllocator(
+        DEFAULT_CONFIG.override(min_trade_value=0.0)
+    )._strategic_cohort_targets(
+        date=date,
+        risk=_normal_risk(),
+        user_panel={symbol: frame},
+        leaders={symbol: _leader(symbol, 0.90)},
+        account=account,
+        prices={symbol: 1.0},
+        weights_now={symbol: 0.30},
+    )
+
+    assert {target.symbol: target.weight for target in targets or ()} == pytest.approx(
+        {symbol: expected_weight}
+    )
+
+
+def test_dominant_strategic_owner_locks_profit_once_without_staged_churn() -> None:
+    dates = pd.bdate_range("2025-01-02", periods=150)
+    date = dates[-1]
+    symbol = "causal_dominant"
+    frame = _trend_frame(dates)
+    frame.loc[date, "close"] = 33.0
+    frame.loc[date, "ma20"] = 30.0
+    frame.loc[date, "ret20"] = 0.30
+    frame.loc[date, "atr"] = 1.0
+    account = AccountState(
+        initial_cash=3_300.0,
+        cash=0.0,
+        positions={symbol: Position(symbol, shares=100, avg_cost=10.0, highest_close=33.0)},
+        strategic_cohort_symbols=[symbol],
+        strategic_cohort_targets={symbol: 1.0},
+        strategic_candidate_signature=(
+            "strategic_qualification:EMERGING_SECULAR:causal_dominant,runner"
+            ":evidence=reversal_industry"
+        ),
+        strategic_epoch=1,
+        candidate_tenure={
+            "strategic_cohort_active": 1,
+            "strategic_cohort_started": 1,
+            "strategic_dominant_epoch": 1,
+        },
+        operating_peak=3_300.0,
+        capital_peak=3_300.0,
+    )
+    allocator = PortfolioAllocator(DEFAULT_CONFIG.override(min_trade_value=0.0))
+
+    locked = allocator._strategic_cohort_targets(
+        date=date,
+        risk=_normal_risk(),
+        user_panel={symbol: frame},
+        leaders={symbol: _leader(symbol, 0.90)},
+        account=account,
+        prices={symbol: 33.0},
+        weights_now={symbol: 1.0},
+    )
+
+    assert {target.symbol: target.weight for target in locked or ()} == pytest.approx(
+        {symbol: DEFAULT_CONFIG.strategic_dominant_retained_gross}
+    )
+    assert account.candidate_tenure["strategic_dominant_profit_lock_epoch"] == 1
+    assert account.strategic_exit_bands == {}
+
+    frame.loc[date, "close"] = 20.0
+    frame.loc[date, "ma20"] = 25.0
+    frame.loc[date, "ret20"] = -0.20
+    held = allocator._strategic_cohort_targets(
+        date=date,
+        risk=_normal_risk(),
+        user_panel={symbol: frame},
+        leaders={symbol: _leader(symbol, 0.90)},
+        account=account,
+        prices={symbol: 20.0},
+        weights_now={symbol: DEFAULT_CONFIG.strategic_dominant_retained_gross},
+    )
+
+    assert {target.symbol: target.weight for target in held or ()} == pytest.approx(
+        {symbol: DEFAULT_CONFIG.strategic_dominant_retained_gross}
+    )
+    assert account.strategic_exit_bands == {}
+
+
+def test_dominant_owner_ignores_only_level1_cap_not_hard_crisis(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    symbol = "causal_dominant"
+    account = AccountState(
+        initial_cash=100.0,
+        cash=0.0,
+        positions={symbol: Position(symbol, shares=100, avg_cost=1.0, highest_close=1.0)},
+        strategic_cohort_symbols=[symbol],
+        strategic_cohort_targets={symbol: 1.0},
+        strategic_epoch=1,
+        candidate_tenure={
+            "strategic_cohort_active": 1,
+            "strategic_cohort_started": 1,
+            "strategic_dominant_epoch": 1,
+        },
+        operating_peak=100.0,
+        capital_peak=100.0,
+    )
+    allocator = PortfolioAllocator(DEFAULT_CONFIG)
+    monkeypatch.setattr(
+        allocator,
+        "_allocate_strategy",
+        lambda **_: (
+            Target(symbol, 1.0, "CORE", 0.90, 1.0, "dominant strategic owner"),
+        ),
+    )
+    caution = RiskAssessment(
+        Risk.CAUTION,
+        0.82,
+        2,
+        {"transition_damage": 0.40},
+        ("level-1 evidence freeze",),
+        "NONE",
+        freeze_new_risk=True,
+        reduction_level=1,
+    )
+
+    retained = allocator.allocate(
+        date=pd.Timestamp("2025-01-02"),
+        opportunity=Opportunity.TREND,
+        risk=caution,
+        user_panel={},
+        leaders={},
+        account=account,
+        prices={symbol: 1.0},
+    )
+    assert retained[0].weight == pytest.approx(1.0)
+
+    crisis = RiskAssessment(
+        Risk.CRISIS,
+        0.25,
+        5,
+        {},
+        ("hard crisis",),
+        "SEVERE",
+        freeze_new_risk=True,
+        reduction_level=3,
+    )
+    reduced = allocator.allocate(
+        date=pd.Timestamp("2025-01-03"),
+        opportunity=Opportunity.WEAK,
+        risk=crisis,
+        user_panel={},
+        leaders={},
+        account=account,
+        prices={symbol: 1.0},
+    )
+    assert reduced[0].weight == pytest.approx(0.25)
+
+
 def test_completed_strategic_epoch_clears_zero_exit_band_state():
     date = pd.Timestamp("2025-12-31")
     account = AccountState(
@@ -4249,6 +5155,155 @@ def test_completed_strategic_label_does_not_bypass_current_market_evidence():
             account=account,
         )
     assert account.candidate_tenure.get("leader_cycle_armed", 0) == 0
+
+
+def test_normal_level1_freeze_preserves_a_live_leader_owner() -> None:
+    symbol = "live_leader"
+    account = AccountState(
+        initial_cash=100.0,
+        cash=40.0,
+        positions={symbol: Position(symbol, shares=60, avg_cost=1.0)},
+        active_leaders=[symbol],
+        candidate_tenure={"leader_cycle_armed": 1},
+        operating_peak=100.0,
+        capital_peak=100.0,
+    )
+    freeze = RiskAssessment(
+        Risk.NORMAL,
+        1.0,
+        1,
+        {"freeze_new_risk": True},
+        ("temporary level-1 capital freeze",),
+        "NONE",
+        freeze_new_risk=True,
+        reduction_level=1,
+    )
+
+    armed = PortfolioAllocator(DEFAULT_CONFIG)._update_leader_cycle_arm(
+        opportunity=Opportunity.TREND,
+        risk=freeze,
+        leaders={symbol: _leader(symbol, 0.90)},
+        account=account,
+    )
+
+    assert armed
+    assert account.candidate_tenure["leader_cycle_armed"] == 1
+
+
+def test_normal_level1_freeze_preserves_armed_core_when_label_is_transiently_absent() -> None:
+    symbol = "unlabeled_live_core"
+    account = AccountState(
+        initial_cash=100.0,
+        cash=40.0,
+        positions={
+            symbol: Position(
+                symbol,
+                shares=60,
+                avg_cost=1.0,
+                lifecycle=Lifecycle.ADD2.value,
+            )
+        },
+        active_leaders=[],
+        candidate_tenure={"leader_cycle_armed": 1},
+        operating_peak=100.0,
+        capital_peak=100.0,
+    )
+    freeze = RiskAssessment(
+        Risk.NORMAL,
+        1.0,
+        1,
+        {"freeze_new_risk": True},
+        ("temporary level-1 capital freeze",),
+        "NONE",
+        freeze_new_risk=True,
+        reduction_level=1,
+    )
+
+    armed = PortfolioAllocator(DEFAULT_CONFIG)._update_leader_cycle_arm(
+        opportunity=Opportunity.TREND,
+        risk=freeze,
+        leaders={symbol: _leader(symbol, 0.90)},
+        account=account,
+    )
+
+    assert armed
+    assert account.candidate_tenure["leader_cycle_armed"] == 1
+
+
+def test_synchronized_impulse_tolerates_only_a_near_zero_slow_index_leg() -> None:
+    leaders = {"impulse": _leader("impulse", 0.83)}
+
+    def risk(weak_leg: float) -> RiskAssessment:
+        return RiskAssessment(
+            Risk.NORMAL,
+            1.0,
+            0,
+            {
+                "broad_ret120": 0.034,
+                "tech_ret120": weak_leg,
+                "ai_fast_return": 0.161,
+                "declining_ratio": 0.0,
+                "below_ma20_ratio": 0.0,
+                "tech_speed": 0.114,
+                "broad_speed": 0.157,
+            },
+            (),
+            "NONE",
+        )
+
+    allocator = PortfolioAllocator(DEFAULT_CONFIG)
+    near_zero = AccountState.empty(100.0)
+    still_weak = AccountState.empty(100.0)
+
+    assert allocator._update_leader_cycle_arm(
+        opportunity=Opportunity.TREND,
+        risk=risk(-0.001),
+        leaders=leaders,
+        account=near_zero,
+    )
+    assert not allocator._update_leader_cycle_arm(
+        opportunity=Opportunity.TREND,
+        risk=risk(-0.02),
+        leaders=leaders,
+        account=still_weak,
+    )
+
+
+def test_completed_recovery_cycle_rearms_on_exceptional_current_leaders() -> None:
+    leaders = {
+        "one": _leader("one", 0.93, industry="optical"),
+        "two": _leader("two", 0.91, industry="equipment"),
+    }
+    risk = RiskAssessment(
+        Risk.NORMAL,
+        1.0,
+        0,
+        {
+            "broad_ret120": 0.10,
+            "tech_ret120": 0.12,
+            "trend_health": 0.84,
+        },
+        (),
+        "NONE",
+    )
+    account = AccountState.empty(100.0)
+    account.candidate_tenure.update(
+        {
+            "recovery_cycle_rearm_pending": 1,
+            "tactical_cooldown": 0,
+        }
+    )
+
+    armed = PortfolioAllocator(DEFAULT_CONFIG)._update_leader_cycle_arm(
+        opportunity=Opportunity.STRONG_TREND,
+        risk=risk,
+        leaders=leaders,
+        account=account,
+    )
+
+    assert armed
+    assert account.candidate_tenure["leader_cycle_armed"] == 1
+    assert account.candidate_tenure["recovery_cycle_rearm_pending"] == 0
 
 
 def test_add1_add2_are_live_but_a_generic_satellite_is_not_auto_admitted():
@@ -4870,6 +5925,56 @@ def test_weak_secular_market_allows_early_recovery_cohort_graduation():
     assert account.candidate_tenure["recovery_cohort_graduated"] == 1
 
 
+def test_graduation_day_retains_a_newly_promoted_recovery_book() -> None:
+    dates = pd.bdate_range(
+        "2023-01-03",
+        periods=DEFAULT_CONFIG.recovery_cohort_weak_graduation_days + 10,
+    )
+    symbols = ("graduating_a", "graduating_b", "graduating_c")
+    frame = _trend_frame(dates)
+    account = AccountState(
+        initial_cash=100.0,
+        cash=10.0,
+        positions={
+            symbol: Position(
+                symbol,
+                shares=30,
+                avg_cost=0.80,
+                entry_date=str(dates[0].date()),
+                highest_close=1.0,
+                lifecycle=Lifecycle.RECOVERY.value,
+            )
+            for symbol in symbols
+        },
+        anchor_weights={symbol: 0.30 for symbol in symbols},
+        recovery_anchor_date=str(dates[0].date()),
+        candidate_tenure={"recovery_cohort_locked": 1},
+        operating_peak=100.0,
+        capital_peak=100.0,
+    )
+    weak_risk = RiskAssessment(
+        Risk.NORMAL,
+        1.0,
+        0,
+        {"broad_ret120": -0.20, "tech_ret120": -0.25},
+        (),
+        "NONE",
+    )
+
+    targets = PortfolioAllocator(DEFAULT_CONFIG).allocate(
+        date=dates[-1],
+        opportunity=Opportunity.TREND,
+        risk=weak_risk,
+        user_panel={symbol: frame for symbol in symbols},
+        leaders={symbol: _leader(symbol, 0.40) for symbol in symbols},
+        account=account,
+        prices={symbol: 1.0 for symbol in symbols},
+    )
+
+    assert account.candidate_tenure["recovery_cohort_graduated"] == 1
+    assert all(target.weight > 0 for target in targets)
+
+
 def _risk_frame(
     dates: pd.DatetimeIndex,
     *,
@@ -5306,6 +6411,104 @@ def test_confirmed_caution_freezes_new_risk_without_creating_a_sell_order():
         )
         == ()
     )
+
+
+def test_tactical_expiry_remains_executable_through_a_caution_freeze() -> None:
+    dates = pd.bdate_range("2025-10-01", periods=40)
+    date = dates[-1]
+    frame = _trend_frame(dates)
+    symbol = "rebound"
+    account = AccountState(
+        initial_cash=100.0,
+        cash=40.0,
+        positions={
+            symbol: Position(
+                symbol,
+                shares=60,
+                avg_cost=1.0,
+                entry_date=str(dates[-20].date()),
+                highest_close=1.35,
+                lifecycle=Lifecycle.RECOVERY.value,
+            )
+        },
+        tactical_anchor_symbol=symbol,
+        candidate_tenure={"tactical_active": 1},
+        operating_peak=100.0,
+        capital_peak=100.0,
+    )
+    caution = RiskAssessment(
+        Risk.CAUTION,
+        1.0,
+        2,
+        {"freeze_new_risk": True, "transition_damage": 0.60},
+        ("confirmed caution",),
+        "NONE",
+        freeze_new_risk=True,
+        reduction_level=1,
+    )
+
+    targets = PortfolioAllocator(DEFAULT_CONFIG).allocate(
+        date=date,
+        opportunity=Opportunity.CHOPPY,
+        risk=caution,
+        user_panel={symbol: frame},
+        leaders={symbol: _leader(symbol, 0.80)},
+        account=account,
+        prices={symbol: 1.35},
+    )
+
+    assert next(target for target in targets if target.symbol == symbol).weight == 0.0
+    assert account.candidate_tenure["tactical_active"] == 0
+    assert account.candidate_tenure["recovery_cycle_rearm_pending"] == 1
+
+
+def test_unprofitable_tactical_time_expiry_waits_for_a_caution_freeze_to_clear() -> None:
+    dates = pd.bdate_range("2025-10-01", periods=40)
+    date = dates[-1]
+    frame = _trend_frame(dates)
+    symbol = "unprofitable_rebound"
+    account = AccountState(
+        initial_cash=100.0,
+        cash=40.0,
+        positions={
+            symbol: Position(
+                symbol,
+                shares=60,
+                avg_cost=1.0,
+                entry_date=str(dates[-20].date()),
+                highest_close=1.0,
+                lifecycle=Lifecycle.RECOVERY.value,
+            )
+        },
+        tactical_anchor_symbol=symbol,
+        candidate_tenure={"tactical_active": 1},
+        operating_peak=100.0,
+        capital_peak=100.0,
+    )
+    caution = RiskAssessment(
+        Risk.CAUTION,
+        1.0,
+        2,
+        {"freeze_new_risk": True, "transition_damage": 0.60},
+        ("confirmed caution",),
+        "NONE",
+        freeze_new_risk=True,
+        reduction_level=1,
+    )
+
+    targets = PortfolioAllocator(DEFAULT_CONFIG).allocate(
+        date=date,
+        opportunity=Opportunity.CHOPPY,
+        risk=caution,
+        user_panel={symbol: frame},
+        leaders={symbol: _leader(symbol, 0.80)},
+        account=account,
+        prices={symbol: 1.0},
+    )
+
+    assert not any(target.symbol == symbol and target.weight == 0.0 for target in targets)
+    assert account.candidate_tenure["tactical_active"] == 1
+    assert account.candidate_tenure.get("recovery_cycle_rearm_pending", 0) == 0
 
 
 def test_strategic_cohort_has_no_immunity_from_a_confirmed_severe_cap():

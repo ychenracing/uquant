@@ -650,6 +650,60 @@ def test_large_opening_gap_reprices_target_and_preserves_weight_cap():
     assert account.cash >= 0
 
 
+def test_decisive_strategic_owner_can_fill_above_ordinary_symbol_cap() -> None:
+    symbol = "causal_dominant"
+    panel = {
+        symbol: _frame(
+            [
+                {
+                    "date": "2026-01-05",
+                    "open": 100.0,
+                    "high": 101.0,
+                    "low": 99.0,
+                    "close": 100.0,
+                    "volume": 100_000_000,
+                    "amount": 10_000_000_000.0,
+                },
+                {
+                    "date": "2026-01-06",
+                    "open": 100.0,
+                    "high": 101.0,
+                    "low": 99.0,
+                    "close": 100.0,
+                    "volume": 100_000_000,
+                    "amount": 10_000_000_000.0,
+                },
+            ]
+        )
+    }
+    account = AccountState.empty(2_000_000.0)
+    account.strategic_epoch = 1
+    account.strategic_cohort_symbols = [symbol]
+    account.strategic_cohort_targets = {symbol: 1.0}
+    account.candidate_tenure.update(
+        {
+            "strategic_cohort_active": 1,
+            "strategic_dominant_epoch": 1,
+        }
+    )
+    account.pending_orders = [
+        PendingOrder("2026-01-05", symbol, "BUY", 1.0, "dominant strategic owner", "CORE")
+    ]
+
+    fills = ExecutionPlanner(DEFAULT_CONFIG).execute_open(
+        date=pd.Timestamp("2026-01-06"),
+        account=account,
+        panel=panel,
+    )
+
+    assert len(fills) == 1
+    position_value = account.positions[symbol].shares * fills[0].price
+    post_fill_equity = account.cash + position_value
+    assert position_value / post_fill_equity > DEFAULT_CONFIG.max_symbol_weight
+    assert position_value / post_fill_equity <= DEFAULT_CONFIG.strategic_dominant_max_weight
+    assert account.cash >= 0
+
+
 def test_fee_formula_is_recomputable():
     commission, stamp, transfer = fee_components("SELL", 100_000, DEFAULT_CONFIG)
     assert commission == 25
@@ -869,6 +923,49 @@ def test_partial_risk_sell_survives_a_subthreshold_risk_escalation() -> None:
     )
 
     assert merged == (retained,)
+
+
+def test_submitted_buy_survives_economically_equivalent_target_drift() -> None:
+    retained = PendingOrder(
+        "2026-01-05",
+        "sz300502",
+        "BUY",
+        0.315,
+        "strategic restore",
+        "CORE",
+        remaining_shares=3_600,
+        order_id="O000000001",
+        reason_code="strategic_cohort",
+    )
+    planned = replace(retained, signal_date="2026-01-06", target_weight=0.317, order_id="")
+    target = Target(
+        "sz300502",
+        0.317,
+        "CORE",
+        0.90,
+        1.0,
+        "strategic restore",
+        reason_code="strategic_cohort",
+    )
+
+    merged = merge_pending_orders(
+        retained=[retained],
+        planned=(planned,),
+        targets=(target,),
+        cfg=DEFAULT_CONFIG,
+    )
+
+    assert merged == (retained,)
+
+    material_target = replace(target, weight=0.350)
+    material_plan = replace(planned, target_weight=0.350)
+    replaced = merge_pending_orders(
+        retained=[retained],
+        planned=(material_plan,),
+        targets=(material_target,),
+        cfg=DEFAULT_CONFIG,
+    )
+    assert replaced == (material_plan,)
 
 
 def test_broker_order_ledger_counts_submission_and_replacement_not_fills():

@@ -43,6 +43,29 @@ def effective_n(weights: dict[str, float], correlations: pd.DataFrame | None = N
     return naive / (1.0 + max(0.0, median) * (naive - 1.0))
 
 
+def strategic_dominant_symbol(account: AccountState) -> str | None:
+    """Return the sole owner of a currently evidenced dominant epoch."""
+    if (
+        account.strategic_epoch <= 0
+        or account.candidate_tenure.get("strategic_cohort_active", 0) != 1
+        or account.candidate_tenure.get("strategic_dominant_epoch", -1)
+        != account.strategic_epoch
+        or len(account.strategic_cohort_targets) != 1
+    ):
+        return None
+    symbol = next(iter(account.strategic_cohort_targets))
+    return symbol if symbol in account.strategic_cohort_symbols else None
+
+
+def symbol_weight_cap(cfg: SystemConfig, account: AccountState, symbol: str) -> float:
+    """Keep the ordinary 60% cap except for one validated dominant owner."""
+    return (
+        cfg.strategic_dominant_max_weight
+        if strategic_dominant_symbol(account) == symbol
+        else cfg.max_symbol_weight
+    )
+
+
 class PortfolioCore:
     """Hard constraints and state helpers shared by every portfolio policy."""
 
@@ -109,7 +132,10 @@ class PortfolioCore:
         )
         for symbol in sorted(set(account.positions) | set(proposed)):
             score = leaders.get(symbol)
-            weight = min(self.cfg.max_symbol_weight, max(0.0, proposed.get(symbol, 0.0)))
+            weight = min(
+                symbol_weight_cap(self.cfg, account, symbol),
+                max(0.0, proposed.get(symbol, 0.0)),
+            )
             if score is not None and score.components.get("unknown_industry", 0.0) >= 0.5:
                 weight = min(weight * unknown_scale, self.cfg.unknown_industry_weight_cap)
             selected_lifecycle = (lifecycles or {}).get(symbol, lifecycle)

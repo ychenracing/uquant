@@ -554,6 +554,44 @@ def test_sparse_cap_uses_global_lot_priority_before_symbol_alpha() -> None:
     )
 
 
+def test_strategic_damage_guard_retains_the_healthier_core_before_stale_alpha() -> None:
+    account = AccountState.empty(100.0)
+    account.positions = {
+        "healthy_core": Position(
+            "healthy_core",
+            shares=50,
+            avg_cost=1.0,
+            highest_close=1.0,
+            lifecycle=Lifecycle.CORE.value,
+        ),
+        "damaged_core": Position(
+            "damaged_core",
+            shares=50,
+            avg_cost=1.0,
+            highest_close=1.0,
+            lifecycle=Lifecycle.CORE.value,
+        ),
+    }
+    targets = (
+        Target("healthy_core", 0.50, Lifecycle.CORE.value, 0.50, 1.0, "healthy"),
+        Target("damaged_core", 0.50, Lifecycle.CORE.value, 0.99, 1.0, "stale alpha"),
+    )
+
+    capped = PortfolioAllocator(DEFAULT_CONFIG)._sparse_risk_reduce(
+        targets=targets,
+        weights_now={target.symbol: target.weight for target in targets},
+        account=account,
+        gross_cap=0.50,
+        risk_reason="strategic transition damage gross cap",
+        risk_reason_code="strategic_damage_guard",
+        prices={"healthy_core": 0.98, "damaged_core": 0.80},
+    )
+
+    assert {target.symbol: target.weight for target in capped} == pytest.approx(
+        {"healthy_core": 0.50, "damaged_core": 0.0}
+    )
+
+
 def test_sparse_cap_sells_mixed_satellite_before_another_symbols_add2() -> None:
     account = AccountState.empty(100.0)
     account.positions = {

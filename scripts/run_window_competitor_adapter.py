@@ -23,33 +23,22 @@ from concurrent.futures import ProcessPoolExecutor, as_completed
 from dataclasses import asdict, dataclass, is_dataclass, replace
 from enum import Enum
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 
 import numpy as np
 import pandas as pd
 
-INITIAL_CASH = 2_000_000.0
+from research.window_matrix import (
+    COMPARISON_CONTRACT,
+    INITIAL_CASH,
+    LOCKED_COMPETITOR_SOURCES,
+    WINDOWS,
+)
+
 TARGET_START = "2025-01-02"
 TARGET_END = "2026-07-31"
-WINDOWS: dict[str, tuple[str, str]] = {"target": (TARGET_START, TARGET_END)}
 SYSTEMS = ("aquant", "qwenquant", "trade")
-LOCKED_SOURCES = {
-    "aquant": {
-        "repository": "ychenracing/aquant",
-        "commit": "3c38fbbf679a0fb1b4ee8f3d47b6931d3eb8fdbd",
-        "python_sha256": "0fdc39c40239e51b5c91024507bef1bed222cd83575e4d9f870b8ada2f73a50a",
-    },
-    "qwenquant": {
-        "repository": "ychenracing/qwenquant",
-        "commit": "0b3681e10b75425ad8600e75835677a6a125ed13",
-        "python_sha256": "66fc531989e294990d40dae5f0c0ff867fe4e144ab2bae81863b42e7113c46c0",
-    },
-    "trade": {
-        "repository": "ychenracing/trade",
-        "commit": "cee1620f40af3af8f839e15db188a9e388a78dd0",
-        "python_sha256": "03e33e1396ca31d61e724bcd9cf58971ae656134740eb8929313167aa8ed8597",
-    },
-}
+LOCKED_SOURCES = LOCKED_COMPETITOR_SOURCES
 
 
 def _load_pools() -> dict[str, tuple[str, ...]]:
@@ -128,7 +117,7 @@ def _jsonable(value: Any) -> Any:
         return str(pd.Timestamp(value).date())
     if isinstance(value, Enum):
         return value.value
-    if is_dataclass(value):
+    if is_dataclass(value) and not isinstance(value, type):
         return _jsonable(asdict(value))
     if isinstance(value, dict):
         return {str(key): _jsonable(item) for key, item in value.items()}
@@ -174,7 +163,7 @@ def _bounded_data_fingerprint(root: Path) -> str:
 
 def _equity_rows(series: pd.Series) -> list[dict[str, float | str]]:
     return [
-        {"date": str(pd.Timestamp(date).date()), "equity": float(value)}
+        {"date": str(pd.Timestamp(str(date)).date()), "equity": float(value)}
         for date, value in series.sort_index().items()
     ]
 
@@ -466,7 +455,7 @@ def _run_qwen(task: Task) -> dict[str, Any]:
         preset_for_universe,
     )
 
-    class NextOpenOnly(BacktestEngine):
+    class NextOpenOnly(BacktestEngine):  # type: ignore[misc]
         def __init__(self, *args: Any, **kwargs: Any) -> None:
             super().__init__(*args, **kwargs)
             self.account_submissions: list[dict[str, Any]] = []
@@ -587,6 +576,7 @@ def _run_aquant(task: Task) -> dict[str, Any]:
     os.environ["AQUANT_DATA_DIR"] = task.data_dir
     sys.path.insert(0, task.aquant_root)
     replay = importlib.import_module("aquant.auto_daily_replay")
+    replay_dynamic = cast(Any, replay)
     start, end = WINDOWS[task.window]
     requested = POOLS[task.pool]
     loaded_panel = replay._preload_panel(tuple(sorted(requested)))
@@ -623,7 +613,10 @@ def _run_aquant(task: Task) -> dict[str, Any]:
         init_cash: float,
     ) -> dict[str, object]:
         captured["equity_curve"] = _equity_rows(equity)
-        return original_metrics(equity, fills, leader_events, loaded, init_cash)
+        return cast(
+            dict[str, object],
+            original_metrics(equity, fills, leader_events, loaded, init_cash),
+        )
 
     def point_in_time_route(args: Any, *, panel: Any = None) -> Any:
         params, automatic, explanation = original_route(args, panel=panel)
@@ -685,9 +678,9 @@ def _run_aquant(task: Task) -> dict[str, Any]:
             if date <= cutoff
         }
 
-    replay._performance_metrics = capture_metrics
+    replay_dynamic._performance_metrics = capture_metrics
     replay.daily._automatic_route = point_in_time_route
-    replay._orders_from_report = capture_orders
+    replay_dynamic._orders_from_report = capture_orders
     replay.daily.core.build_sector_observations = point_in_time_sector_observations
     try:
         result = replay.run_auto_daily_replay(
@@ -699,9 +692,9 @@ def _run_aquant(task: Task) -> dict[str, Any]:
             panel=panel,
         )
     finally:
-        replay._performance_metrics = original_metrics
+        replay_dynamic._performance_metrics = original_metrics
         replay.daily._automatic_route = original_route
-        replay._orders_from_report = original_orders
+        replay_dynamic._orders_from_report = original_orders
         replay.daily.core.build_sector_observations = original_sector_observations
     metrics = result["metrics"]
     fills = [
@@ -826,9 +819,9 @@ def _run_trade(task: Task) -> dict[str, Any]:
     replacements = [
         fill
         for fill in fills
-        if "rotation" in fill["reason"].lower()
-        or "replacement" in fill["reason"].lower()
-        or "sticky" in fill["reason"].lower()
+        if "rotation" in str(fill["reason"]).lower()
+        or "replacement" in str(fill["reason"]).lower()
+        or "sticky" in str(fill["reason"]).lower()
     ]
     submissions.extend(
 
@@ -886,7 +879,10 @@ def _run(task: Task) -> dict[str, Any]:
             f"{task.system}/{task.pool}/{task.window}: "
             f"{type(exc).__name__}: {exc}"
         ) from None
-    return _jsonable(row)
+    normalized = _jsonable(row)
+    if not isinstance(normalized, dict):
+        raise RuntimeError("competitor row normalization returned a non-object")
+    return cast(dict[str, Any], normalized)
 
 
 def _stage_bounded_data(source: Path, destination: Path, *, end: str) -> int:
@@ -976,17 +972,16 @@ def _execute_matrix(
             window_order[str(row["window"])],
         )
     )
-    _validate_complete_rows(rows)
+    _validate_complete_rows(
+        rows,
+        systems=args.systems,
+        pools=args.pools,
+        windows=args.windows,
+    )
     payload = {
         "schema_version": 2,
         "adapter_sha256": hashlib.sha256(Path(__file__).read_bytes()).hexdigest(),
-        "contract": {
-            "initial_cash": INITIAL_CASH,
-            "signal": "close_t",
-            "execution": "next_tradable_open",
-            "intraday_exit": False,
-            "prelisting": "invisible until first observable row",
-        },
+        "contract": dict(COMPARISON_CONTRACT),
         "repositories": {system: LOCKED_SOURCES[system] for system in args.systems},
         "source_hashes": {system: _source_hash(roots[system]) for system in args.systems},
         "data_provenance": {
@@ -1007,16 +1002,37 @@ def _execute_matrix(
     return 0
 
 
-def _validate_complete_rows(rows: Sequence[dict[str, Any]]) -> None:
-    expected = {(system, pool) for system in SYSTEMS for pool in POOLS}
-    observed: set[tuple[str, str]] = set()
+def _validate_complete_rows(
+    rows: Sequence[dict[str, Any]],
+    *,
+    systems: Sequence[str] = SYSTEMS,
+    pools: Sequence[str] = tuple(POOLS),
+    windows: Sequence[str] = tuple(WINDOWS),
+) -> None:
+    expected = {
+        (system, pool, window)
+        for system in systems
+        for pool in pools
+        for window in windows
+    }
+    observed: set[tuple[str, str, str]] = set()
     for row in rows:
-        key = (str(row.get("system")), str(row.get("pool")))
+        key = (
+            str(row.get("system")),
+            str(row.get("pool")),
+            str(row.get("window")),
+        )
         if key in observed:
-            raise RuntimeError(f"duplicate competitor cell: {key[0]}/{key[1]}")
+            raise RuntimeError(
+                f"duplicate competitor cell: {key[0]}/{key[1]}/{key[2]}"
+            )
         observed.add(key)
-        if row.get("start") != TARGET_START or row.get("end") != TARGET_END:
-            raise RuntimeError(f"target interval mismatch: {key[0]}/{key[1]}")
+        if key[2] not in windows:
+            raise RuntimeError(f"unknown competitor window: {key[2]}")
+        if (row.get("start"), row.get("end")) != WINDOWS[key[2]]:
+            raise RuntimeError(
+                f"window interval mismatch: {key[0]}/{key[1]}/{key[2]}"
+            )
     missing = sorted(expected - observed)
     unexpected = sorted(observed - expected)
     if missing:

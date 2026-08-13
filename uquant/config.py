@@ -98,6 +98,7 @@ class SystemConfig:
     leader_cycle_impulse_index_return: float = 0.15
     leader_cycle_impulse_breadth: float = 0.10
     leader_cycle_min_market_ret120: float = 0.01
+    leader_cycle_impulse_min_market_ret120: float = -0.01
     # Strategic membership is evidence-derived.  The empty legacy field is
     # retained only so old configuration files can be migrated without a
     # symbol-specific production prior; it is never consumed by the strategy.
@@ -121,6 +122,7 @@ class SystemConfig:
     # the retired symbol tuple, both routes below discover synchronized
     # industry groups from the requested universe at runtime.
     strategic_cohort_min_ret240: float = 1.70
+    strategic_persistent_max_ret120: float = 1.50
     strategic_established_min_median_ret240: float = 1.00
     strategic_expansive_universe_min_size: int = 20
     strategic_persistent_confirm_days: int = 3
@@ -154,14 +156,27 @@ class SystemConfig:
     strategic_long_cycle_max_tech_ret120: float = 0.20
     strategic_cohort_confirm_days: int = 2
     strategic_cohort_profit_arm: float = 0.10
+    # A synchronized reversal remains diversified unless one member is
+    # decisively stronger on two independent, causal evidence families.  That
+    # exceptional owner may use the otherwise idle gross budget, then converts
+    # to a cash-buffered position after one large-MFE profit lock.
+    strategic_dominant_max_weight: float = 1.0
+    strategic_dominant_min_leader_gap: float = 0.05
+    strategic_dominant_profit_lock_mfe: float = 2.20
+    strategic_dominant_retained_gross: float = 0.70
     strategic_cohort_trail_atr: float = 3.55
     strategic_cohort_trail_spacing: float = 0.05
     strategic_cohort_trail_bands: int = 5
     strategic_cohort_exit_step: float = 0.01
+    strategic_post_guard_exit_step: float = 0.20
     strategic_cohort_disaster_stop: float = -0.20
     strategic_cohort_tail_line: float = 0.18
     strategic_cohort_tail_confirm_days: int = 3
     strategic_cohort_guard_days: int = 120
+    strategic_damage_guard_dd: float = 0.04
+    strategic_damage_guard_transition: float = 0.55
+    strategic_damage_guard_gross: float = 0.67
+    strategic_guard_level2_cap: float = 0.81
     recovery_target_gross: float = 0.92
     recovery_expansive_universe_gross: float = 0.70
     recovery_conviction_weighting_enabled: bool = True
@@ -184,7 +199,16 @@ class SystemConfig:
     two_anchor_gross_cap: float = 0.55
     tactical_rebound_weight: float = 0.60
     tactical_probe_weight: float = 0.60
+    tactical_rebound_max_ret20: float = -0.20
+    tactical_rebound_breadth_max_ret20: float = -0.15
+    tactical_rebound_min_industries: int = 3
+    tactical_rebound_oversold_max_ret5: float = -0.06
+    tactical_rebound_min_ret60: float = 0.10
+    tactical_rebound_oversold_min_ret60: float = 0.20
+    tactical_rebound_max_ret120: float = 0.90
+    tactical_overheat_cooldown_days: int = 10
     tactical_rebound_take_profit: float = 0.065
+    tactical_frozen_take_profit: float = 0.30
     tactical_rebound_cooldown_days: int = 30
     recovery_confirm_days: int = 2
     caution_confirm_days: int = 2
@@ -434,6 +458,39 @@ class SystemConfig:
             raise ValueError(
                 "tactical probe/rebound weights must be positive, ordered, and within max_symbol_weight"
             )
+        if not (
+            -1
+            < self.tactical_rebound_max_ret20
+            <= self.tactical_rebound_breadth_max_ret20
+            < 0
+        ):
+            raise ValueError(
+                "tactical rebound return thresholds must be ordered in (-1, 0)"
+            )
+        if self.tactical_rebound_min_industries < 2:
+            raise ValueError("tactical_rebound_min_industries must be at least 2")
+        if not -1 < self.tactical_rebound_oversold_max_ret5 < 0:
+            raise ValueError("tactical_rebound_oversold_max_ret5 must be in (-1, 0)")
+        if not (
+            0
+            < self.tactical_rebound_min_ret60
+            <= self.tactical_rebound_oversold_min_ret60
+            < 1
+        ):
+            raise ValueError(
+                "tactical rebound ret60 thresholds must be ordered in (0, 1)"
+            )
+        if self.tactical_rebound_max_ret120 <= 0:
+            raise ValueError("tactical_rebound_max_ret120 must be positive")
+        if self.tactical_overheat_cooldown_days < 1:
+            raise ValueError("tactical_overheat_cooldown_days must be positive")
+        if not (
+            0
+            < self.tactical_rebound_take_profit
+            < self.tactical_frozen_take_profit
+            < 1
+        ):
+            raise ValueError("tactical take-profit thresholds must be ordered in (0, 1)")
         if self.leader_cycle_confirm_days < 1:
             raise ValueError("leader_cycle_confirm_days must be positive")
         if not 1 <= self.leader_cycle_min_mature <= self.max_positions:
@@ -444,6 +501,14 @@ class SystemConfig:
             raise ValueError("leader_cycle_impulse_breadth must be in [0, 1]")
         if not -1 < self.leader_cycle_min_market_ret120 < 1:
             raise ValueError("leader_cycle_min_market_ret120 must be in (-1, 1)")
+        if not (
+            -1
+            < self.leader_cycle_impulse_min_market_ret120
+            <= self.leader_cycle_min_market_ret120
+        ):
+            raise ValueError(
+                "leader_cycle_impulse_min_market_ret120 must not exceed the ordinary market floor"
+            )
         if self.strategic_cohort_symbols:
             raise ValueError("strategic_cohort_symbols is retired; membership is discovered dynamically")
         if not 1 <= self.strategic_cohort_size <= min(3, self.max_positions):
@@ -532,22 +597,58 @@ class SystemConfig:
             raise ValueError("strategic_transition_impulse_min_market_ret20 must be in (-1, 1)")
         if not 0 < self.strategic_long_cycle_max_tech_ret120 < 1:
             raise ValueError("strategic_long_cycle_max_tech_ret120 must be in (0, 1)")
+        if self.strategic_persistent_max_ret120 <= 0:
+            raise ValueError("strategic_persistent_max_ret120 must be positive")
         if self.strategic_cohort_confirm_days < 1:
             raise ValueError("strategic_cohort_confirm_days must be positive")
         if not 0 <= self.strategic_cohort_profit_arm <= 1:
             raise ValueError("strategic_cohort_profit_arm must be in [0, 1]")
+        if not self.max_symbol_weight < self.strategic_dominant_max_weight <= self.max_gross:
+            raise ValueError("invalid strategic dominant max weight")
+        if not 0 < self.strategic_dominant_min_leader_gap <= 1:
+            raise ValueError("invalid strategic dominant leader gap")
+        if self.strategic_dominant_profit_lock_mfe <= self.strategic_cohort_profit_arm:
+            raise ValueError("invalid strategic dominant profit lock")
+        if not (
+            self.max_symbol_weight
+            < self.strategic_dominant_retained_gross
+            < self.strategic_dominant_max_weight
+        ):
+            raise ValueError("invalid strategic dominant retained gross")
         if self.strategic_cohort_trail_atr <= 0 or self.strategic_cohort_trail_spacing < 0:
             raise ValueError("invalid strategic cohort trailing distances")
         if self.strategic_cohort_trail_bands < 3 or self.strategic_cohort_trail_bands % 2 == 0:
             raise ValueError("strategic_cohort_trail_bands must be an odd integer >=3")
         if not 0 < self.strategic_cohort_exit_step <= self.max_symbol_weight:
             raise ValueError("invalid strategic cohort exit step")
+        if not (
+            self.strategic_cohort_exit_step
+            <= self.strategic_post_guard_exit_step
+            <= self.max_symbol_weight
+        ):
+            raise ValueError("invalid strategic post-guard exit step")
         if not -1 < self.strategic_cohort_disaster_stop < 0:
             raise ValueError("strategic cohort disaster stop must be in (-1, 0)")
         if not (self.operating_dd_caution < self.strategic_cohort_tail_line <= self.capital_dd_crisis):
             raise ValueError("invalid strategic cohort tail line")
         if self.strategic_cohort_guard_days < 1:
             raise ValueError("strategic_cohort_guard_days must be positive")
+        if not 0 < self.strategic_damage_guard_dd < self.operating_dd_caution:
+            raise ValueError("invalid strategic damage guard drawdown")
+        if not (
+            self.transition_damage_repair
+            < self.strategic_damage_guard_transition
+            <= self.transition_damage_freeze
+        ):
+            raise ValueError("invalid strategic damage guard transition")
+        if not self.capital_budget_level3_cap <= self.strategic_damage_guard_gross < self.max_gross:
+            raise ValueError("invalid strategic damage guard gross")
+        if not (
+            self.capital_budget_level3_cap
+            <= self.strategic_guard_level2_cap
+            <= self.capital_budget_level2_cap
+        ):
+            raise ValueError("invalid strategic guard level-2 cap")
         if self.capital_guard_cooldown_days < 1:
             raise ValueError("capital_guard_cooldown_days must be positive")
         if self.capital_guard_min_recovery_days < 1:

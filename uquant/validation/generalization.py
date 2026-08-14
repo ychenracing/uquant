@@ -1259,6 +1259,34 @@ def symbol_pnl_from_result(
     return dict(sorted(pnl.items()))
 
 
+def symbol_pnl_concentration(symbol_pnl: Mapping[str, float]) -> dict[str, float]:
+    """Measure Top-1, Top-3, and HHI from exact absolute symbol PnL.
+
+    Absolute contributions avoid signed cancellation.  A portfolio with no
+    non-zero symbol PnL has no contribution concentration, represented by
+    exact zeros rather than a fabricated or non-finite ratio.
+    """
+    if any(
+        not isinstance(symbol, str) or not symbol or not math.isfinite(float(value))
+        for symbol, value in symbol_pnl.items()
+    ):
+        raise ValueError("invalid symbol PnL for concentration")
+    absolute = sorted((abs(float(value)) for value in symbol_pnl.values() if value != 0.0), reverse=True)
+    denominator = sum(absolute)
+    if denominator == 0.0:
+        return {
+            "top1_concentration": 0.0,
+            "top3_concentration": 0.0,
+            "pnl_hhi": 0.0,
+        }
+    weights = [value / denominator for value in absolute]
+    return {
+        "top1_concentration": weights[0],
+        "top3_concentration": sum(weights[:3]),
+        "pnl_hhi": sum(weight * weight for weight in weights),
+    }
+
+
 def _deployment_from_result(result: Mapping[str, Any]) -> tuple[tuple[str, str], ...]:
     """Extract every actually filled lifecycle, including strategic attribution."""
     explicit = result.get("deployed_exposure")

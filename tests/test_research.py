@@ -37,15 +37,10 @@ from research.trade_attribution import (
     aggregate_by_reason,
     attribute_exits,
 )
-from research.universe_stress import (
-    balanced_industry_case,
-    exclude_industry_case,
-    industry_only_cases,
-    leave_top_k_out_cases,
-    random_universe_cases,
-    remove_core_cases,
-)
+from research.universe_stress import canonical_universe_cases
 from uquant.validation.ai_era import AI_ERA_WINDOWS
+from uquant.validation.generalization import PreWindowEvidence
+from uquant.validation.universe import load_ai_universe
 
 
 def _observation(
@@ -265,38 +260,28 @@ def test_dominance_and_pareto_gates_reject_bad_tradeoffs() -> None:
 
 
 def test_universe_stress_is_deterministic_complete_and_does_not_touch_global_rng() -> None:
-    symbols = tuple(f"s{index:02d}" for index in range(30))
-    industries = {
-        symbol: ("optical" if index < 5 else "memory" if index < 15 else "equipment")
-        for index, symbol in enumerate(symbols)
-    }
-    random.seed(99)
-    expected = random.random()
-    random.seed(99)
-    first = random_universe_cases(symbols, sizes=(6, 12, 24), seeds=range(5))
-    observed = random.random()
-    second = random_universe_cases(reversed(symbols), sizes=(24, 12, 6), seeds=reversed(range(5)))
-    assert observed == expected
-    assert first == second
-    assert len(first) == 15
-    assert {len(case.symbols) for case in first} == {6, 12, 24}
-
-    dependency = remove_core_cases(symbols, symbols[:3])
-    assert len(dependency) == 7
-    assert all(not set(case.symbols) >= set(symbols[:3]) for case in dependency)
-    assert not any(
-        industries[symbol] == "optical"
-        for symbol in exclude_industry_case(symbols, industries, "optical").symbols
+    universe = load_ai_universe()
+    evidence = PreWindowEvidence(
+        as_of="2022-12-30",
+        scores=tuple((symbol, float(index)) for index, symbol in enumerate(universe.symbols)),
     )
-    assert {case.name for case in industry_only_cases(symbols, industries)} == {
-        "industry_equipment",
-        "industry_memory",
-        "industry_optical",
+    random.seed(99)
+    expected_random = random.random()
+    random.seed(99)
+    first = canonical_universe_cases(evidence=evidence, window_name="h1_2023")
+    observed_random = random.random()
+    second = canonical_universe_cases(evidence=evidence, window_name="h1_2023")
+
+    assert observed_random == expected_random
+    assert first == second
+    assert len(first) == 32
+    assert sum(case.family == "random" for case in first) == 20
+    assert {len(case.symbols) for case in first if case.family == "random"} == {
+        5,
+        9,
+        15,
+        20,
     }
-    balanced = balanced_industry_case(symbols, industries, per_industry=2)
-    assert len(balanced.symbols) == 6
-    leave = leave_top_k_out_cases(symbols, symbols[:10], values=(1, 2, 3, 5))
-    assert [len(case.symbols) for case in leave] == [29, 28, 27, 25]
 
 
 def test_parameter_stress_and_ablation_are_stable_and_shared() -> None:

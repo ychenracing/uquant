@@ -40,6 +40,8 @@ def test_ai_era_contract_has_one_start_and_six_official_windows() -> None:
     }
     assert tuple(AI_ERA_ACUTE_WINDOWS) == OFFICIAL_WINDOWS
     assert all(start >= AI_ERA_START for start, _ in AI_ERA_WINDOWS.values())
+    with pytest.raises(TypeError):
+        AI_ERA_WINDOWS["invented"] = ("2023-01-01", "2023-01-02")  # type: ignore[index]
 
 
 def test_continuous_ai_era_ends_on_latest_frozen_common_index_session() -> None:

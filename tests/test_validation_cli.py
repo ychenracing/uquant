@@ -206,6 +206,80 @@ def test_generalization_cli_missing_reference_is_fail_closed(tmp_path: Path) -> 
     assert not missing.exists()
 
 
+def test_generalization_matrix_cli_runs_full_fixed_contract_and_writes_canonical_json(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Catches a CLI that requires duplicate universe inputs or emits unstable JSON."""
+    observed: dict[str, Any] = {}
+
+    def fake_matrix(**kwargs: Any) -> dict[str, Any]:
+        observed.update(kwargs)
+        return {"z": 1, "passed": True, "a": [2, 3]}
+
+    monkeypatch.setattr(cli, "run_generalization_matrix", fake_matrix)
+    output = tmp_path / "nested" / "matrix.json"
+    status = cli.main(
+        [
+            "generalization-matrix",
+            "--data-dir",
+            str(tmp_path),
+            "--output",
+            str(output),
+        ]
+    )
+
+    assert status == 0
+    assert observed == {
+        "data_dir": str(tmp_path),
+        "window_names": None,
+        "lookback_sessions": 120,
+    }
+    assert output.read_text(encoding="utf-8") == '{"a":[2,3],"passed":true,"z":1}\n'
+
+
+def test_generalization_matrix_cli_passes_exact_named_window_shard(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Catches interval overrides or a hidden configurable seed count in blocking mode."""
+    observed: dict[str, Any] = {}
+
+    def fake_matrix(**kwargs: Any) -> dict[str, Any]:
+        observed.update(kwargs)
+        return {"passed": False, "failures": ["fixture"]}
+
+    monkeypatch.setattr(cli, "run_generalization_matrix", fake_matrix)
+    status = cli.main(
+        [
+            "generalization-matrix",
+            "--data-dir",
+            str(tmp_path),
+            "--window",
+            "h2_2024",
+            "--window",
+            "h1_2023",
+        ]
+    )
+
+    assert status == 1
+    assert observed == {
+        "data_dir": str(tmp_path),
+        "window_names": ("h2_2024", "h1_2023"),
+        "lookback_sessions": 120,
+    }
+    with pytest.raises(SystemExit):
+        cli.main(
+            [
+                "generalization-matrix",
+                "--data-dir",
+                str(tmp_path),
+                "--random-seed-count",
+                "6",
+            ]
+        )
+
+
 def test_competitor_cli_uses_reviewed_reference(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,

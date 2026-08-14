@@ -1,11 +1,14 @@
 from __future__ import annotations
 
+import hashlib
+import json
 from typing import Any
 
 import pandas as pd
 import pytest
 
-from uquant.engine import ProductionEngine
+from uquant.config import config_fingerprint
+from uquant.engine import ProductionEngine, code_fingerprint
 from uquant.types import AccountState, Fill, Position, Tranche
 
 
@@ -352,6 +355,93 @@ def test_sell_lot_cost_components_must_allocate_the_fill_exactly() -> None:
         )
 
 
+def test_economic_attribution_builder_rejects_fractional_sold_lot_shares() -> None:
+    """Catches silently truncating a fractional sold-lot allocation to an integer."""
+    from uquant.attribution import build_economic_attribution
+
+    account = _account_with_realized_and_open_lots()
+    account.fills[-1].sold_tranches[0]["shares"] = 4.5
+    with pytest.raises(ValueError, match="sold-lot shares must be a positive integer"):
+        build_economic_attribution(
+            account=account,
+            final_prices={"leader": 12.0, "recovery": 18.0},
+            sessions=("2025-01-02", "2025-01-03", "2025-01-04", "2025-01-05"),
+            economic_start="2025-01-02",
+            economic_end="2025-01-05",
+            final_equity=1_018.84,
+        )
+
+
+def test_raw_attribution_validator_rejects_fractional_sold_lot_shares() -> None:
+    """Catches raw account evidence laundering 4.5 shares through ``int(4.5)``."""
+    from uquant.attribution import (
+        build_economic_attribution,
+        validate_attribution_against_engine_result,
+    )
+
+    account = _account_with_realized_and_open_lots()
+    sessions = ("2025-01-02", "2025-01-03", "2025-01-04", "2025-01-05")
+    states = (
+        (898.9, {"leader": 100.0}),
+        (797.8, {"leader": 100.0, "recovery": 100.0}),
+        (856.84, {"leader": 90.0, "recovery": 100.0}),
+        (856.84, {"leader": 72.0, "recovery": 90.0}),
+    )
+    prior_equity = 1_000.0
+    ledger: list[dict[str, Any]] = []
+    for session, (cash, position_values) in zip(sessions, states, strict=True):
+        equity = cash + sum(position_values.values())
+        ledger.append(
+            {
+                "date": session,
+                "cash": cash,
+                "equity": equity,
+                "gross_exposure": sum(position_values.values()) / equity,
+                "net_exposure": sum(position_values.values()) / equity,
+                "cash_weight": cash / equity,
+                "position_weights": {
+                    symbol: value / equity for symbol, value in position_values.items()
+                },
+                "daily_pnl": equity - prior_equity,
+                "target_weights": {},
+                "target_gross": 0.0,
+                "caps": {"risk_gross": 1.0, "system_gross": 1.0},
+                "binding_owner": "STRATEGY",
+                "risk_state": "NORMAL",
+                "opportunity": "CHOPPY",
+            }
+        )
+        prior_equity = equity
+    attribution = build_economic_attribution(
+        account=account,
+        final_prices={"leader": 12.0, "recovery": 18.0},
+        sessions=sessions,
+        economic_start=sessions[0],
+        economic_end=sessions[-1],
+        final_equity=1_018.84,
+        daily_ledger=ledger,
+        benchmark_close={session: 100.0 for session in sessions},
+    )
+    raw = {
+        "attribution": attribution,
+        "final_account": account.to_dict(),
+        "final_equity": 1_018.84,
+        "final_wealth": 1.01884,
+        "start": sessions[0],
+        "end": sessions[-1],
+        "gross_turnover": 0.26,
+        "symbol_pnl": {"leader": 29.94, "recovery": -11.1},
+    }
+    raw["final_account"]["fills"][-1]["sold_tranches"][0]["shares"] = 4.5
+
+    with pytest.raises(ValueError, match="engine sold tranche shares must be a positive integer"):
+        validate_attribution_against_engine_result(
+            raw,
+            economic_start=sessions[0],
+            economic_end=sessions[-1],
+        )
+
+
 def test_sell_without_per_lot_allocations_and_pre_interval_lot_fail_closed() -> None:
     """Catches FIFO reconstruction or warm-up inventory entering economic attribution."""
     from uquant.attribution import build_economic_attribution
@@ -517,6 +607,67 @@ def test_production_backtest_attaches_reconciled_attribution_and_complete_daily_
         result["final_equity"] - result["final_account"]["initial_cash"]
     )
     assert [row["date"] for row in ledger] == [row["date"] for row in result["equity_curve"]]
+    replay_evidence = result["daily_replay_evidence"]
+    assert [row["date"] for row in replay_evidence] == [
+        row["date"] for row in result["equity_curve"]
+    ]
+    assert all(
+        set(row) == {"date", "cash", "position_shares", "close_marks"}
+        for row in replay_evidence
+    )
+    decision_trace = result["decision_trace"]
+    assert [row["date"] for row in decision_trace] == [
+        row["date"] for row in result["equity_curve"]
+    ]
+    assert result["decision_digests"] == [
+        hashlib.sha256(
+            json.dumps(row, sort_keys=True, separators=(",", ":")).encode()
+        ).hexdigest()
+        for row in decision_trace
+    ]
+    legacy_payloads = [
+        {
+            "date": row["date"],
+            "opportunity": row["opportunity"],
+            "risk": row["risk"]["state"],
+            "targets": [
+                {
+                    name: target[name]
+                    for name in (
+                        "symbol",
+                        "weight",
+                        "lifecycle",
+                        "reduction_policy",
+                        "reason_code",
+                        "exit_kind",
+                    )
+                }
+                for target in row["targets"]
+            ],
+            "orders": [
+                {
+                    name: order[name]
+                    for name in (
+                        "order_id",
+                        "symbol",
+                        "side",
+                        "target_weight",
+                        "reduction_policy",
+                        "reason_code",
+                        "exit_kind",
+                    )
+                }
+                for order in row["orders"]
+            ],
+        }
+        for row in decision_trace
+    ]
+    assert result["legacy_decision_digests"] == [
+        hashlib.sha256(
+            json.dumps(row, sort_keys=True, separators=(",", ":")).encode()
+        ).hexdigest()
+        for row in legacy_payloads
+    ]
     assert sum(float(row["daily_pnl"]) for row in ledger) == pytest.approx(
         attribution["accounting"]["total_pnl"]
     )
@@ -548,3 +699,116 @@ def test_production_backtest_attaches_reconciled_attribution_and_complete_daily_
         "value": None,
         "is_accounting_pnl": False,
     }
+
+
+def test_control_plane_rejects_digest_schema_code_and_event_identity_tamper() -> None:
+    """Catches v2 control evidence disappearing inside the frozen-v1 projection."""
+    from uquant.validation.control_plane import validate_engine_control_plane
+    from uquant.validation.manifest import verify_data_manifest
+    from uquant.validation.replay_evidence import VerifiedMarketData
+
+    result = ProductionEngine("data/frozen").backtest(
+        symbols=("sz300308", "sz300502", "sz300394"),
+        start="2023-01-03",
+        end="2023-03-31",
+    )
+    market = VerifiedMarketData(
+        "data/frozen",
+        expected_manifest=verify_data_manifest("data/frozen"),
+    )
+
+    def validate(candidate: dict[str, Any]) -> None:
+        validate_engine_control_plane(
+            candidate,
+            economic_start="2023-01-03",
+            economic_end="2023-03-31",
+            expected_sessions=market.sessions("2023-01-03", "2023-03-31"),
+            expected_config_sha256=config_fingerprint(),
+            expected_code_sha256=code_fingerprint(),
+        )
+
+    validate(result)
+    mutations: list[tuple[str, Any]] = [
+        (
+            "decision digest",
+            lambda candidate: candidate["decision_digests"].__setitem__(0, "0" * 64),
+        ),
+        (
+            "account schema",
+            lambda candidate: candidate["final_account"].__setitem__("schema_version", 999),
+        ),
+        (
+            "account code hash",
+            lambda candidate: candidate["final_account"].__setitem__("code_hash", "0" * 64),
+        ),
+        (
+            "event identity",
+            lambda candidate: candidate["final_account"]["fills"][0].__setitem__(
+                "event_id", "evt_" + "0" * 64
+            ),
+        ),
+    ]
+    assert result["final_account"]["fills"]
+    for message, mutate in mutations:
+        changed = json.loads(json.dumps(result))
+        mutate(changed)
+        with pytest.raises(ValueError, match=message):
+            validate(changed)
+
+
+def test_control_plane_accepts_only_the_exact_twelve_decimal_sum_rounding_bound() -> None:
+    """Catches valid multi-target rounding drift or a material target-gross forgery."""
+    from uquant.validation.control_plane import _rounded_sum_matches
+
+    weights = (0.277841961388, 0.36715709618, 0.348767640071)
+    rounded_total = 0.99376669764
+
+    assert _rounded_sum_matches(rounded_total, weights)
+    assert not _rounded_sum_matches(rounded_total + 1e-10, weights)
+
+
+def test_control_plane_rejects_self_signed_noncanonical_target_event() -> None:
+    """Catches a trace-only target fabricating an event while re-signing its digest."""
+    from uquant.validation.control_plane import validate_engine_control_plane
+    from uquant.validation.manifest import verify_data_manifest
+    from uquant.validation.replay_evidence import VerifiedMarketData
+
+    result = ProductionEngine("data/frozen").backtest(
+        symbols=("sz300308", "sz300502", "sz300394"),
+        start="2023-01-03",
+        end="2023-03-31",
+    )
+    market = VerifiedMarketData(
+        "data/frozen",
+        expected_manifest=verify_data_manifest("data/frozen"),
+    )
+    trace = next(
+            row
+            for row in result["decision_trace"]
+            if any(
+                target["origin_subsystem"] == "STRATEGIC"
+                and target["mechanism"] != "STRATEGIC_RESTORATION"
+                for target in row["targets"]
+            )
+    )
+    target = next(
+        target
+        for target in trace["targets"]
+        if target["origin_subsystem"] == "STRATEGIC"
+        and target["mechanism"] != "STRATEGIC_RESTORATION"
+    )
+    target["event_id"] = "evt_" + "0" * 64
+    index = result["decision_trace"].index(trace)
+    result["decision_digests"][index] = hashlib.sha256(
+        json.dumps(trace, sort_keys=True, separators=(",", ":")).encode()
+    ).hexdigest()
+
+    with pytest.raises(ValueError, match="target event identity"):
+        validate_engine_control_plane(
+            result,
+            economic_start="2023-01-03",
+            economic_end="2023-03-31",
+            expected_sessions=market.sessions("2023-01-03", "2023-03-31"),
+            expected_config_sha256=config_fingerprint(),
+            expected_code_sha256=code_fingerprint(),
+        )

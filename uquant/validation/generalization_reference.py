@@ -13,10 +13,10 @@ from pathlib import Path
 from types import MappingProxyType
 from typing import Any, Final
 
-from ..attribution import (
-    validate_attribution_against_engine_result,
-    validate_economic_attribution,
-)
+from ..attribution import validate_attribution_against_engine_result
+from ..config import config_fingerprint
+from ..engine import code_fingerprint
+from .control_plane import validate_engine_control_plane
 from .generalization import symbol_pnl_concentration
 from .generalization_contract import (
     RANDOM_BASE_SEED,
@@ -24,6 +24,8 @@ from .generalization_contract import (
     RANDOM_SEED_INDEXES,
     official_windows,
 )
+from .generalization_matrix import _head_and_source
+from .replay_evidence import VerifiedMarketData
 from .universe import (
     REQUIRED_FROZEN_CHAMPION_SHA256,
     load_ai_universe,
@@ -41,6 +43,13 @@ REQUIRED_GENERALIZATION_BASELINE_SHA256: Final = (
 REQUIRED_GENERALIZATION_POLICY_SHA256: Final = (
     "5f7df0aab80d86af973731eac7899dbce9e71b5d3b6166fe064b9e291300a086"
 )
+_REQUIRED_DEPRECATED_V1_ATTRIBUTION_COLLECTION_SHA256: Final = (
+    "f43e1efe07b3f18c7931bc27a527886f1da5a8bc95026b02ab0a0116bec94545"
+)
+_DEPRECATED_V1_ATTRIBUTION_TOKEN: Final = {
+    "status": "DEPRECATED_NON_CAUSAL_V1_ATTRIBUTION",
+    "frozen_collection_sha256": _REQUIRED_DEPRECATED_V1_ATTRIBUTION_COLLECTION_SHA256,
+}
 
 _SHA256 = re.compile(r"^[0-9a-f]{64}$")
 _COMMIT = re.compile(r"^[0-9a-f]{40,64}$")
@@ -829,8 +838,80 @@ def _candidate_contract_sha256(cell: Mapping[str, Any]) -> str:
     )
 
 
+def _project_raw_evidence_for_frozen_v1(
+    raw: Mapping[str, Any],
+    *,
+    source_schema: int,
+    frozen_v1_attribution_verified: bool = False,
+) -> dict[str, Any]:
+    """Apply the same closed raw-evidence migration used by exact equality."""
+
+    try:
+        projected = json.loads(
+            json.dumps(raw, allow_nan=False, separators=(",", ":"), sort_keys=True)
+        )
+    except (TypeError, ValueError, json.JSONDecodeError) as exc:
+        raise ValueError("generalization raw evidence is not finite canonical JSON") from exc
+    if not isinstance(projected, dict) or source_schema not in {1, 2}:
+        raise ValueError("generalization raw evidence schema is malformed")
+    if source_schema == 1:
+        if not frozen_v1_attribution_verified or not isinstance(
+            projected.get("attribution"), dict
+        ):
+            raise ValueError(
+                "deprecated v1 attribution lacks its compiled collection validation"
+            )
+    elif "attribution" in projected or "legacy_attribution" in projected:
+        raise ValueError("candidate v2 raw evidence injects deprecated v1 attribution")
+    projected["attribution"] = dict(_DEPRECATED_V1_ATTRIBUTION_TOKEN)
+    legacy_decision_digests = projected.pop("legacy_decision_digests", None)
+    if legacy_decision_digests is not None:
+        projected["decision_digests"] = legacy_decision_digests
+    projected.pop("decision_trace", None)
+    projected.pop("daily_replay_evidence", None)
+    account = projected.get("final_account")
+    if not isinstance(account, dict):
+        return projected
+    # The evaluator verifies both values against the current compiled
+    # schema/source before this cross-version projection.  Fixed tokens let
+    # immutable v1 and current v2 bindings compare without pretending their
+    # schema versions and source hashes are equal.
+    account["schema_version"] = "VALIDATED_ACCOUNT_SCHEMA_BINDING"
+    account["code_hash"] = "VALIDATED_PRODUCTION_SOURCE_BINDING"
+    for collection_name in ("pending_orders", "order_ledger", "fills"):
+        collection = account.get(collection_name)
+        if not isinstance(collection, list):
+            continue
+        for record in collection:
+            if not isinstance(record, dict):
+                continue
+            for name in _ADDITIVE_ATTRIBUTION_IDENTITY_FIELDS:
+                record.pop(name, None)
+            sold_tranches = record.get("sold_tranches")
+            if isinstance(sold_tranches, list):
+                for sold_lot in sold_tranches:
+                    if not isinstance(sold_lot, dict):
+                        continue
+                    for name in _ADDITIVE_ATTRIBUTION_IDENTITY_FIELDS:
+                        sold_lot.pop(name, None)
+    positions = account.get("positions")
+    if isinstance(positions, dict):
+        for position in positions.values():
+            if not isinstance(position, dict):
+                continue
+            tranches = position.get("tranches")
+            if not isinstance(tranches, list):
+                continue
+            for tranche in tranches:
+                if not isinstance(tranche, dict):
+                    continue
+                for name in _ADDITIVE_ATTRIBUTION_IDENTITY_FIELDS:
+                    tranche.pop(name, None)
+    return projected
+
+
 def _v2_economic_projection(artifact: Mapping[str, Any]) -> dict[str, Any]:
-    """Project only the explicitly additive v2 attribution schema back to frozen v1."""
+    """Project validated v2 additions while retaining the frozen v1 control plane."""
 
     try:
         projected = json.loads(
@@ -840,54 +921,44 @@ def _v2_economic_projection(artifact: Mapping[str, Any]) -> dict[str, Any]:
         raise ValueError("generalization candidate is not finite canonical JSON") from exc
     if not isinstance(projected, dict):
         raise ValueError("generalization candidate artifact is malformed")
+    source_schema = projected.get("schema_version")
+    if source_schema not in {1, 2}:
+        raise ValueError("generalization candidate schema version is malformed")
     projected["schema_version"] = 1
     projected.pop("attribution_definition", None)
     cells = projected.get("cells")
     if not isinstance(cells, list):
         raise ValueError("generalization candidate cell collection is malformed")
+    frozen_v1_attribution: dict[str, Any] = {}
     for cell in cells:
         if not isinstance(cell, dict):
             raise ValueError("generalization candidate cell is malformed")
+        raw = cell.get("raw")
+        if isinstance(raw, dict) and source_schema == 1:
+            identifier = f"{cell.get('window')}/{cell.get('scenario')}"
+            legacy_attribution = raw.get("attribution")
+            if not isinstance(legacy_attribution, dict) or identifier in frozen_v1_attribution:
+                raise ValueError(
+                    "deprecated v1 attribution payload collection is malformed"
+                )
+            frozen_v1_attribution[identifier] = legacy_attribution
+    if source_schema == 1 and _hash_json(frozen_v1_attribution) != (
+        _REQUIRED_DEPRECATED_V1_ATTRIBUTION_COLLECTION_SHA256
+    ):
+        raise ValueError(
+            "deprecated v1 attribution differs from the compiled frozen collection"
+        )
+    for cell in cells:
         cell.pop("attribution_status", None)
         cell.pop("attribution", None)
         cell.pop("concentration", None)
         raw = cell.get("raw")
         if isinstance(raw, dict):
-            raw.pop("attribution", None)
-            raw.pop("decision_digests", None)
-            account = raw.get("final_account")
-            if isinstance(account, dict):
-                account.pop("schema_version", None)
-                account.pop("code_hash", None)
-                for collection_name in ("pending_orders", "order_ledger", "fills"):
-                    collection = account.get(collection_name)
-                    if not isinstance(collection, list):
-                        continue
-                    for record in collection:
-                        if not isinstance(record, dict):
-                            continue
-                        for name in _ADDITIVE_ATTRIBUTION_IDENTITY_FIELDS:
-                            record.pop(name, None)
-                        sold_tranches = record.get("sold_tranches")
-                        if isinstance(sold_tranches, list):
-                            for sold_lot in sold_tranches:
-                                if not isinstance(sold_lot, dict):
-                                    continue
-                                for name in _ADDITIVE_ATTRIBUTION_IDENTITY_FIELDS:
-                                    sold_lot.pop(name, None)
-                positions = account.get("positions")
-                if isinstance(positions, dict):
-                    for position in positions.values():
-                        if not isinstance(position, dict):
-                            continue
-                        tranches = position.get("tranches")
-                        if not isinstance(tranches, list):
-                            continue
-                        for tranche in tranches:
-                            if not isinstance(tranche, dict):
-                                continue
-                            for name in _ADDITIVE_ATTRIBUTION_IDENTITY_FIELDS:
-                                tranche.pop(name, None)
+            cell["raw"] = _project_raw_evidence_for_frozen_v1(
+                raw,
+                source_schema=source_schema,
+                frozen_v1_attribution_verified=source_schema == 1,
+            )
     return projected
 
 
@@ -902,6 +973,7 @@ def evaluate_generalization_policy_artifact(
     baseline: GeneralizationBaseline,
     policy: GeneralizationPolicy,
     require_exact_equality: bool = False,
+    data_dir: str | Path | None = None,
 ) -> dict[str, Any]:
     """Recompute frozen relative, intrinsic, and random-tail results from raw cells."""
     if policy.baseline_sha256 != baseline.sha256:
@@ -909,6 +981,7 @@ def evaluate_generalization_policy_artifact(
     failures: list[str] = []
     equality_differences: list[str] = []
     schema_version = artifact.get("schema_version")
+    v2_projection_valid = schema_version == 2
     expected_artifact_fields = (
         _ARTIFACT_FIELDS_V2 if schema_version == 2 else _ARTIFACT_FIELDS_V1
     )
@@ -918,6 +991,8 @@ def evaluate_generalization_policy_artifact(
     )
     failures.extend(artifact_schema_failures)
     equality_differences.extend(artifact_schema_failures)
+    if artifact_schema_failures:
+        v2_projection_valid = False
     if schema_version not in {1, 2}:
         failures.append("generalization candidate schema version is malformed")
         equality_differences.append("schema version")
@@ -942,23 +1017,6 @@ def evaluate_generalization_policy_artifact(
     if not isinstance(artifact.get("aggregates"), Mapping):
         failures.append("generalization candidate aggregates are malformed")
         equality_differences.append("aggregate schema")
-    try:
-        artifact_equality_sha256 = (
-            _attribution_neutral_equality_sha256(artifact)
-            if schema_version == 2
-            else _artifact_equality_sha256(artifact)
-        )
-    except ValueError as exc:
-        failures.append(f"generalization candidate evidence is malformed: {exc}")
-        equality_differences.append("malformed artifact evidence")
-    else:
-        expected_equality_sha256 = (
-            baseline.attribution_neutral_equality_sha256
-            if schema_version == 2
-            else baseline.artifact_equality_sha256
-        )
-        if artifact_equality_sha256 != expected_equality_sha256:
-            equality_differences.append("artifact evidence payload")
     raw_cells_value = artifact.get("cells")
     provenance_value = artifact.get("provenance")
     if not isinstance(raw_cells_value, list):
@@ -970,6 +1028,8 @@ def evaluate_generalization_policy_artifact(
     provenance_schema_failures = _provenance_schema_failures(provenance_value)
     failures.extend(provenance_schema_failures)
     equality_differences.extend(provenance_schema_failures)
+    if provenance_schema_failures:
+        v2_projection_valid = False
     if not isinstance(provenance_value, Mapping):
         provenance: Mapping[str, Any] = {}
     else:
@@ -995,6 +1055,55 @@ def evaluate_generalization_policy_artifact(
         for name in provenance_mismatches
     )
     equality_differences.extend(f"provenance {name}" for name in provenance_mismatches)
+    if provenance_mismatches:
+        v2_projection_valid = False
+    market: VerifiedMarketData | None = None
+    if schema_version == 2:
+        current_config_sha256 = config_fingerprint()
+        if provenance.get("effective_config_sha256") != current_config_sha256:
+            message = "candidate effective config differs from compiled production config"
+            failures.append(message)
+            equality_differences.append(message)
+            v2_projection_valid = False
+        try:
+            current_head, current_source = _head_and_source(_ROOT)
+        except RuntimeError as exc:
+            message = f"candidate source binding cannot be verified: {exc}"
+            failures.append(message)
+            equality_differences.append(message)
+            v2_projection_valid = False
+        else:
+            if (
+                provenance.get("head") != current_head
+                or provenance.get("source_sha256") != current_source
+            ):
+                message = "candidate source binding differs from exact current HEAD"
+                failures.append(message)
+                equality_differences.append(message)
+                v2_projection_valid = False
+        if data_dir is None:
+            message = "candidate v2 replay validation requires an explicit frozen data directory"
+            failures.append(message)
+            equality_differences.append(message)
+            v2_projection_valid = False
+        else:
+            data_binding = provenance.get("data")
+            if not isinstance(data_binding, Mapping):
+                message = "candidate frozen data binding is malformed"
+                failures.append(message)
+                equality_differences.append(message)
+                v2_projection_valid = False
+            else:
+                try:
+                    market = VerifiedMarketData(
+                        data_dir,
+                        expected_manifest=data_binding,
+                    )
+                except (RuntimeError, ValueError) as exc:
+                    message = f"candidate frozen data binding cannot be verified: {exc}"
+                    failures.append(message)
+                    equality_differences.append(message)
+                    v2_projection_valid = False
     if artifact.get("aggregates") != baseline.aggregates:
         equality_differences.append("aggregate evidence")
     observed: dict[str, Mapping[str, Any]] = {}
@@ -1025,6 +1134,8 @@ def evaluate_generalization_policy_artifact(
             equality_differences.extend(cell_schema_failures)
             equality_differences.extend(evidence_schema_failures)
             invalid_cells.add(identifier)
+            if schema_version == 2:
+                v2_projection_valid = False
         if identifier in observed:
             failures.append(f"candidate contains duplicate cell: {identifier}")
             equality_differences.append(f"duplicate cell {identifier}")
@@ -1119,35 +1230,48 @@ def evaluate_generalization_policy_artifact(
                 if attribution_status != "VALID" or not isinstance(attribution, Mapping):
                     failures.append(f"candidate economic attribution is missing: {identifier}")
                     equality_differences.append(f"economic attribution {identifier}")
+                    v2_projection_valid = False
                     continue
                 try:
-                    canonical_attribution = validate_economic_attribution(
-                        attribution,
-                        economic_start=str(candidate.get("start")),
-                        economic_end=str(candidate.get("end")),
+                    start = str(candidate.get("start"))
+                    end = str(candidate.get("end"))
+                    trusted_sessions = (
+                        None if market is None else market.sessions(start, end)
                     )
-                    raw_attribution = validate_attribution_against_engine_result(
+                    if market is not None:
+                        validate_engine_control_plane(
+                            candidate_raw,
+                            economic_start=start,
+                            economic_end=end,
+                            expected_sessions=trusted_sessions or (),
+                            expected_config_sha256=str(
+                                provenance.get("effective_config_sha256", "")
+                            ),
+                            expected_code_sha256=code_fingerprint(),
+                            attribution=attribution,
+                        )
+                    canonical_attribution = validate_attribution_against_engine_result(
                         candidate_raw,
-                        economic_start=str(candidate.get("start")),
-                        economic_end=str(candidate.get("end")),
+                        economic_start=start,
+                        economic_end=end,
+                        attribution=attribution,
+                        trusted_sessions=trusted_sessions,
+                        trusted_close=None if market is None else market.close,
+                        require_daily_replay_evidence=True,
                     )
                 except (TypeError, ValueError) as exc:
                     failures.append(
                         f"candidate economic attribution is malformed: {identifier}: {exc}"
                     )
                     equality_differences.append(f"malformed attribution {identifier}")
-                    continue
-                if raw_attribution != canonical_attribution:
-                    failures.append(
-                        f"candidate attribution differs from raw economic evidence: {identifier}"
-                    )
-                    equality_differences.append(f"detached attribution {identifier}")
+                    v2_projection_valid = False
                     continue
                 if concentration != canonical_attribution["symbol_concentration"]:
                     failures.append(
                         f"candidate concentration differs from economic attribution: {identifier}"
                     )
                     equality_differences.append(f"detached concentration {identifier}")
+                    v2_projection_valid = False
                     continue
             try:
                 reconciled_metrics = _metrics_reconciled_from_raw(
@@ -1262,6 +1386,26 @@ def evaluate_generalization_policy_artifact(
             f"expected {expected_economic}, valid {economic_valid}, errors {replay_errors}"
         )
         equality_differences.append("economic coverage")
+    if schema_version == 2 and not v2_projection_valid:
+        equality_differences.append("validated v2 control-plane evidence")
+    else:
+        try:
+            artifact_equality_sha256 = (
+                _attribution_neutral_equality_sha256(artifact)
+                if schema_version == 2
+                else _artifact_equality_sha256(artifact)
+            )
+        except ValueError as exc:
+            failures.append(f"generalization candidate evidence is malformed: {exc}")
+            equality_differences.append("malformed artifact evidence")
+        else:
+            expected_equality_sha256 = (
+                baseline.attribution_neutral_equality_sha256
+                if schema_version == 2
+                else baseline.artifact_equality_sha256
+            )
+            if artifact_equality_sha256 != expected_equality_sha256:
+                equality_differences.append("artifact evidence payload")
     exact_equality_passed = not equality_differences
     if require_exact_equality:
         failures.extend(

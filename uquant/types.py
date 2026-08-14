@@ -614,17 +614,15 @@ class Decision:
     def canonical_payload(self, *, effective_config_sha256: str) -> dict[str, Any]:
         """Return the complete deterministic decision contract for evidence."""
 
-        return {
-            "date": self.date,
-            "opportunity": self.opportunity.value,
-            "risk": {
-                "state": self.risk.value,
-                "shock_state": str(self.risk_summary.get("shock_state", "")),
-                "reduction_level": int(self.risk_summary.get("reduction_level", 0)),
-                "severity": str(self.risk_summary.get("severity", "NORMAL")),
-            },
-            "target_gross": round(self.target_gross, 12),
-            "targets": [
+        pending_by_event = {
+            item.event_id: item for item in self.pending_orders if item.event_id
+        }
+        targets: list[dict[str, Any]] = []
+        for item in self.targets:
+            retained = pending_by_event.get(item.event_id)
+            event_signal_date = self.date if retained is None else retained.signal_date
+            event_target_weight = item.weight if retained is None else retained.target_weight
+            targets.append(
                 {
                     "symbol": item.symbol,
                     "weight": round(item.weight, 12),
@@ -633,6 +631,8 @@ class Decision:
                     "reason_code": item.reason_code,
                     "exit_kind": item.exit_kind,
                     "event_id": item.event_id,
+                    "event_signal_date": event_signal_date,
+                    "event_target_weight_hex": float(event_target_weight).hex(),
                     "origin_subsystem": item.origin_subsystem,
                     "mechanism": item.mechanism,
                     "origin_lifecycle": item.origin_lifecycle,
@@ -640,8 +640,27 @@ class Decision:
                     "industry_at_entry": item.industry_at_entry,
                     "industry_manifest_sha256": item.industry_manifest_sha256,
                 }
-                for item in self.targets
-            ],
+            )
+        return {
+            "schema": "uquant.decision-control-plane.v2",
+            "date": self.date,
+            "opportunity": self.opportunity.value,
+            "risk": {
+                "state": self.risk.value,
+                "shock_state": str(self.risk_summary.get("shock_state", "")),
+                "reduction_level": int(self.risk_summary.get("reduction_level", 0)),
+                "severity": str(self.risk_summary.get("severity", "NORMAL")),
+                "target_gross_cap": round(
+                    float(self.risk_summary.get("target_gross_cap", 0.0)),
+                    12,
+                ),
+                "system_gross_cap": round(
+                    float(self.risk_summary.get("system_gross_cap", 0.0)),
+                    12,
+                ),
+            },
+            "target_gross": round(self.target_gross, 12),
+            "targets": targets,
             "orders": [
                 {
                     "order_id": item.order_id,
@@ -662,4 +681,36 @@ class Decision:
                 for item in self.pending_orders
             ],
             "effective_config_sha256": effective_config_sha256,
+        }
+
+    def legacy_canonical_payload(self) -> dict[str, Any]:
+        """Reconstruct the exact frozen schema-v3 decision digest payload."""
+
+        return {
+            "date": self.date,
+            "opportunity": self.opportunity.value,
+            "risk": self.risk.value,
+            "targets": [
+                {
+                    "symbol": item.symbol,
+                    "weight": round(item.weight, 12),
+                    "lifecycle": item.lifecycle,
+                    "reduction_policy": item.reduction_policy,
+                    "reason_code": item.reason_code,
+                    "exit_kind": item.exit_kind,
+                }
+                for item in self.targets
+            ],
+            "orders": [
+                {
+                    "order_id": item.order_id,
+                    "symbol": item.symbol,
+                    "side": item.side,
+                    "target_weight": round(item.target_weight, 12),
+                    "reduction_policy": item.reduction_policy,
+                    "reason_code": item.reason_code,
+                    "exit_kind": item.exit_kind,
+                }
+                for item in self.pending_orders
+            ],
         }

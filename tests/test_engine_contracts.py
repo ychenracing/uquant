@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import copy
+import hashlib
 import json
 
 import pandas as pd
@@ -143,6 +144,22 @@ def test_determinism_one_target_and_hard_constraints(data_dir):
     )
     assert first_payload == second_payload
     assert first_payload["effective_config_sha256"] == config_fingerprint(engine.cfg)
+    encoded = json.dumps(first_payload, sort_keys=True, separators=(",", ":")).encode()
+    assert first.decision_digest == hashlib.sha256(encoded).hexdigest()
+    legacy = first.legacy_canonical_payload()
+    assert set(legacy) == {"date", "opportunity", "risk", "targets", "orders"}
+    assert all(
+        set(target)
+        == {
+            "symbol",
+            "weight",
+            "lifecycle",
+            "reduction_policy",
+            "reason_code",
+            "exit_kind",
+        }
+        for target in legacy["targets"]
+    )
     assert state1.to_dict() == state2.to_dict()
     assert len({item.symbol for item in first.targets}) == len(first.targets)
     positive = [item for item in first.targets if item.weight > 0]
@@ -198,9 +215,15 @@ def test_state_round_trip_and_fail_closed_hashes(data_dir, tmp_path):
     state.strategic_exit_bands = {"sz300308": [0.10, 0.08, 0.06]}
     state.strategic_active_bands = {"sz300308": [True, False, False]}
     state.strategic_restore_weights = {"sz300308": 0.30}
+    state.risk_streaks["opportunity_evidence"] = -1
+    state.risk_streaks["opportunity_evidence_run"] = 2
     path = tmp_path / "account.json"
     save_account(state, path)
     assert load_account(path).to_dict() == state.to_dict()
+    invalid_evidence = copy.deepcopy(state)
+    invalid_evidence.risk_streaks["opportunity_evidence"] = -2
+    with pytest.raises(RuntimeError, match="opportunity_evidence"):
+        save_account(invalid_evidence, tmp_path / "invalid-evidence.json")
     corrupt = tmp_path / "corrupt.json"
     corrupt.write_text("{", encoding="utf-8")
     with pytest.raises(RuntimeError):

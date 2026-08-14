@@ -18,8 +18,9 @@ from ..attribution import (
     validate_economic_attribution,
 )
 from ..config import config_fingerprint
-from ..engine import ProductionEngine
+from ..engine import ProductionEngine, code_fingerprint
 from .ai_era import runtime_environment_provenance
+from .control_plane import validate_engine_control_plane
 from .generalization import (
     GeneralizationObservation,
     aggregate_metrics,
@@ -36,6 +37,7 @@ from .generalization_contract import (
     scenario_contract_fingerprint,
 )
 from .manifest import verify_data_manifest
+from .replay_evidence import VerifiedMarketData
 from .universe import AIUniverse, load_ai_universe
 
 _SCHEMA_VERSION = 2
@@ -352,9 +354,11 @@ def validate_matrix_artifact(
     *,
     scenarios: Sequence[ContractScenario],
     expected_provenance: Mapping[str, Any],
+    data_dir: str | Path,
     champion_cells: Mapping[str, Mapping[str, Any]] | None = None,
     cell_evaluator: CellEvaluator | None = None,
     _verify_gate_state: bool = True,
+    _verified_market: VerifiedMarketData | None = None,
 ) -> tuple[str, ...]:
     """Validate coverage, finite evidence, provenance, and optional champion equality."""
     failures: list[str] = []
@@ -380,6 +384,14 @@ def validate_matrix_artifact(
         expected = _validate_provenance(expected_provenance)
     except ValueError as exc:
         return (f"stale provenance expectation: {exc}",)
+    try:
+        market = (
+            VerifiedMarketData(data_dir, expected_manifest=cast(Mapping[str, Any], expected["data"]))
+            if _verified_market is None
+            else _verified_market
+        )
+    except (RuntimeError, ValueError) as exc:
+        return tuple([*failures, f"verified daily replay market is invalid: {exc}"])
     provenance = artifact.get("provenance")
     if not isinstance(provenance, Mapping) or dict(provenance) != expected:
         failures.append("stale provenance differs from exact matrix inputs")
@@ -493,10 +505,27 @@ def validate_matrix_artifact(
                 economic_start=scenario.window.start,
                 economic_end=scenario.window.end,
             )
+            trusted_sessions = market.sessions(
+                scenario.window.start,
+                scenario.window.end,
+            )
+            validate_engine_control_plane(
+                canonical_raw,
+                economic_start=scenario.window.start,
+                economic_end=scenario.window.end,
+                expected_sessions=trusted_sessions,
+                expected_config_sha256=str(expected["effective_config_sha256"]),
+                expected_code_sha256=code_fingerprint(),
+                attribution=canonical_attribution,
+            )
             raw_attribution = validate_attribution_against_engine_result(
                 canonical_raw,
                 economic_start=scenario.window.start,
                 economic_end=scenario.window.end,
+                attribution=canonical_attribution,
+                trusted_sessions=trusted_sessions,
+                trusted_close=market.close,
+                require_daily_replay_evidence=True,
             )
         except (TypeError, ValueError) as exc:
             failures.append(f"cell nonfinite or invalid attribution: {identifier}: {exc}")
@@ -588,6 +617,7 @@ def execute_generalization_matrix(
     scenarios: Sequence[ContractScenario],
     runner: Callable[[ContractScenario], Mapping[str, Any]],
     provenance: Mapping[str, Any],
+    data_dir: str | Path,
     champion_cells: Mapping[str, Mapping[str, Any]] | None = None,
     cell_evaluator: CellEvaluator | None = None,
 ) -> dict[str, Any]:
@@ -596,6 +626,10 @@ def execute_generalization_matrix(
     if not scenario_tuple:
         raise ValueError("generalization matrix requires scenarios")
     normalized_provenance = _validate_provenance(provenance)
+    market = VerifiedMarketData(
+        data_dir,
+        expected_manifest=cast(Mapping[str, Any], normalized_provenance["data"]),
+    )
     if normalized_provenance["window_fingerprint"] != window_contract_fingerprint(scenario_tuple):
         raise ValueError("matrix provenance window fingerprint is stale")
     if normalized_provenance["scenario_fingerprint"] != scenario_contract_fingerprint(
@@ -635,10 +669,32 @@ def execute_generalization_matrix(
         try:
             raw = _canonical_json_copy(runner(scenario))
             compact, observation = _metrics_from_raw(scenario, raw)
+            trusted_sessions = market.sessions(
+                scenario.window.start,
+                scenario.window.end,
+            )
+            attribution = raw.get("attribution")
+            if not isinstance(attribution, Mapping):
+                raise ValueError("engine result economic attribution is missing")
+            validate_engine_control_plane(
+                raw,
+                economic_start=scenario.window.start,
+                economic_end=scenario.window.end,
+                expected_sessions=trusted_sessions,
+                expected_config_sha256=str(
+                    normalized_provenance["effective_config_sha256"]
+                ),
+                expected_code_sha256=code_fingerprint(),
+                attribution=attribution,
+            )
             canonical_attribution = validate_attribution_against_engine_result(
                 raw,
                 economic_start=scenario.window.start,
                 economic_end=scenario.window.end,
+                attribution=attribution,
+                trusted_sessions=trusted_sessions,
+                trusted_close=market.close,
+                require_daily_replay_evidence=True,
             )
         except Exception as exc:
             cell.update(
@@ -655,8 +711,10 @@ def execute_generalization_matrix(
                 by_window_replay_errors.get(scenario.window.name, 0) + 1
             )
             continue
+        stored_raw = dict(raw)
+        stored_raw.pop("attribution", None)
         cell.update(
-            raw=raw,
+            raw=stored_raw,
             metrics=compact,
             replay_error=None,
             attribution_status="VALID",
@@ -699,9 +757,11 @@ def execute_generalization_matrix(
         artifact,
         scenarios=scenario_tuple,
         expected_provenance=normalized_provenance,
+        data_dir=data_dir,
         champion_cells=champion_cells,
         cell_evaluator=cell_evaluator,
         _verify_gate_state=False,
+        _verified_market=market,
     )
     artifact["failures"] = list(failures)
     artifact["passed"] = not failures
@@ -891,6 +951,7 @@ def run_generalization_matrix(
         scenarios=scenarios,
         runner=selected_runner,
         provenance=provenance_before,
+        data_dir=data_dir,
         champion_cells=champion_cells,
         cell_evaluator=cell_evaluator,
     )

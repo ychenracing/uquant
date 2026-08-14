@@ -14,7 +14,11 @@ from typing import Any
 import numpy as np
 import pandas as pd
 
-from .attribution import build_daily_ledger_row, build_economic_attribution
+from .attribution import (
+    build_daily_ledger_row,
+    build_daily_replay_evidence_row,
+    build_economic_attribution,
+)
 from .config import DEFAULT_CONFIG, SystemConfig, config_fingerprint
 from .data import DataStore, normalize_symbol
 from .execution import (
@@ -501,57 +505,12 @@ class ProductionEngine:
             current=orders,
             submitted_date=str(date.date()),
         )
-        canonical = {
-            "date": str(date.date()),
-            "opportunity": opportunity.value,
-            "risk": risk.state.value,
-            "targets": [
-                {
-                    "symbol": item.symbol,
-                    "weight": round(item.weight, 12),
-                    "lifecycle": item.lifecycle,
-                    "reduction_policy": item.reduction_policy,
-                    "reason_code": item.reason_code,
-                    "exit_kind": item.exit_kind,
-                    "event_id": item.event_id,
-                    "origin_subsystem": item.origin_subsystem,
-                    "mechanism": item.mechanism,
-                    "origin_lifecycle": item.origin_lifecycle,
-                    "replaces_symbol": item.replaces_symbol,
-                    "industry_at_entry": item.industry_at_entry,
-                    "industry_manifest_sha256": item.industry_manifest_sha256,
-                }
-                for item in targets
-            ],
-            "orders": [
-                {
-                    "order_id": item.order_id,
-                    "symbol": item.symbol,
-                    "side": item.side,
-                    "target_weight": round(item.target_weight, 12),
-                    "reduction_policy": item.reduction_policy,
-                    "reason_code": item.reason_code,
-                    "exit_kind": item.exit_kind,
-                    "event_id": item.event_id,
-                    "origin_subsystem": item.origin_subsystem,
-                    "mechanism": item.mechanism,
-                    "origin_lifecycle": item.origin_lifecycle,
-                    "replaces_symbol": item.replaces_symbol,
-                    "industry_at_entry": item.industry_at_entry,
-                    "industry_manifest_sha256": item.industry_manifest_sha256,
-                }
-                for item in orders
-            ],
-        }
-        digest = hashlib.sha256(
-            json.dumps(canonical, sort_keys=True, separators=(",", ":")).encode()
-        ).hexdigest()
         account.last_successful_run = str(date.date())
         account.data_hash = data_digest
         account.data_hash_as_of = str(date.date())
         account.data_hash_symbols = list(current_symbols)
         account.code_hash = current_code_hash
-        return Decision(
+        decision = Decision(
             date=str(date.date()),
             opportunity=opportunity,
             risk=risk.state,
@@ -587,8 +546,15 @@ class ProductionEngine:
                     )
                 ],
             },
-            decision_digest=digest,
+            decision_digest="",
         )
+        canonical = decision.canonical_payload(
+            effective_config_sha256=config_fingerprint(decision_cfg)
+        )
+        digest = hashlib.sha256(
+            json.dumps(canonical, sort_keys=True, separators=(",", ":")).encode()
+        ).hexdigest()
+        return replace(decision, decision_digest=digest)
 
     def deterministic_decision(
         self, *, symbols: Iterable[str], as_of: str, account: AccountState
@@ -620,6 +586,7 @@ class ProductionEngine:
         equity_rows: list[tuple[pd.Timestamp, float]] = []
         decisions: list[Decision] = []
         daily_ledger: list[dict[str, Any]] = []
+        daily_replay_evidence: list[dict[str, Any]] = []
         previous_equity = account.initial_cash
         raw_user_panel = {symbol: self._raw[symbol] for symbol in user_symbols}
         for date in sessions:
@@ -628,15 +595,16 @@ class ProductionEngine:
             equity_rows.append((date, equity))
             decision = self.decide(symbols=user_symbols, as_of=str(date.date()), account=account)
             decisions.append(decision)
+            close_prices = {
+                symbol: self._price(symbol, date)
+                for symbol, position in account.positions.items()
+                if position.shares > 0
+            }
             daily_ledger.append(
                 build_daily_ledger_row(
                     date=str(date.date()),
                     account=account,
-                    close_prices={
-                        symbol: self._price(symbol, date)
-                        for symbol, position in account.positions.items()
-                        if position.shares > 0
-                    },
+                    close_prices=close_prices,
                     previous_equity=previous_equity,
                     target_weights={item.symbol: item.weight for item in decision.targets},
                     target_gross=decision.target_gross,
@@ -644,6 +612,13 @@ class ProductionEngine:
                     system_gross_cap=float(decision.risk_summary["system_gross_cap"]),
                     risk_state=decision.risk.value,
                     opportunity=decision.opportunity.value,
+                )
+            )
+            daily_replay_evidence.append(
+                build_daily_replay_evidence_row(
+                    date=str(date.date()),
+                    account=account,
+                    close_prices=close_prices,
                 )
             )
             previous_equity = equity
@@ -671,6 +646,23 @@ class ProductionEngine:
             final_wealth=final_equity / account.initial_cash,
             final_equity=final_equity,
             decision_digests=[item.decision_digest for item in decisions],
+            decision_trace=[
+                item.canonical_payload(
+                    effective_config_sha256=config_fingerprint(self.cfg)
+                )
+                for item in decisions
+            ],
+            legacy_decision_digests=[
+                hashlib.sha256(
+                    json.dumps(
+                        item.legacy_canonical_payload(),
+                        sort_keys=True,
+                        separators=(",", ":"),
+                    ).encode()
+                ).hexdigest()
+                for item in decisions
+            ],
+            daily_replay_evidence=daily_replay_evidence,
             pending_orders=len(account.pending_orders),
             final_account=account.to_dict(),
             attribution=build_economic_attribution(

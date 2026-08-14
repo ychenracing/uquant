@@ -489,10 +489,12 @@ def test_recovery_breadth_perturbation_does_not_change_primary_path(data_dir):
                 result["max_drawdown"],
                 result["account_orders"],
                 result["decision_digests"],
+                result["legacy_decision_digests"],
             )
         )
     assert results[0][0:3] == pytest.approx(results[1][0:3])
-    assert results[0][3] == results[1][3]
+    assert results[0][3] != results[1][3]
+    assert results[0][4] == results[1][4]
 
 
 def test_protected_restore_uses_risk_assessment_as_only_gross_cap():

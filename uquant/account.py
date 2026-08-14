@@ -8,6 +8,7 @@ import math
 import os
 import re
 import tempfile
+from collections.abc import Mapping
 from contextlib import suppress
 from datetime import UTC, datetime
 from datetime import date as date_type
@@ -670,6 +671,26 @@ def _validate_nonnegative_integer_map(values: Any, *, field: str) -> None:
         _nonnegative_integer(value, field=f"{field}[{key}]")
 
 
+def _validate_risk_streaks(values: Any) -> None:
+    """Validate streak counters plus the signed opportunity evidence sentinel."""
+
+    if not isinstance(values, dict):
+        raise RuntimeError("risk_streaks must be an object")
+    for key, value in values.items():
+        _required_text(key, field="risk_streaks key")
+        if key == "opportunity_evidence":
+            if (
+                isinstance(value, bool)
+                or not isinstance(value, int)
+                or value not in {-1, 0, 1}
+            ):
+                raise RuntimeError(
+                    "risk_streaks[opportunity_evidence] must be -1, 0, or 1"
+                )
+            continue
+        _nonnegative_integer(value, field=f"risk_streaks[{key}]")
+
+
 def _validate_weight_map(values: Any, *, field: str) -> set[str]:
     if not isinstance(values, dict):
         raise RuntimeError(f"{field} must be an object")
@@ -912,7 +933,7 @@ def _validate_strategy_risk_state(state: AccountState) -> None:
     _validate_nonnegative_integer_map(state.leader_tenure, field="leader_tenure")
     _validate_nonnegative_integer_map(state.candidate_tenure, field="candidate_tenure")
     _validate_nonnegative_integer_map(state.replacement_tenure, field="replacement_tenure")
-    _validate_nonnegative_integer_map(state.risk_streaks, field="risk_streaks")
+    _validate_risk_streaks(state.risk_streaks)
     for field, value in (
         ("sector_recovery_streak", state.sector_recovery_streak),
         ("dynamic_k", state.dynamic_k),
@@ -1581,8 +1602,24 @@ def load_account(
         )
     except (OSError, json.JSONDecodeError, ValueError) as exc:
         raise RuntimeError(f"account state is missing or corrupt: {source}") from exc
-    if not isinstance(payload, dict):
+    if not isinstance(payload, Mapping):
         raise RuntimeError("account state must be a JSON object")
+    return account_from_dict(
+        payload,
+        require_hashes=require_hashes,
+        allow_legacy_schema=allow_legacy_schema,
+    )
+
+
+def account_from_dict(
+    value: Mapping[str, Any],
+    *,
+    require_hashes: bool = True,
+    allow_legacy_schema: bool = False,
+) -> AccountState:
+    """Decode and fully validate an in-memory durable account payload."""
+
+    payload = dict(value)
     raw_schema_version = payload.get("schema_version", 1)
     if isinstance(raw_schema_version, bool):
         raise RuntimeError("account state has an invalid schema version")

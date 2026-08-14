@@ -10,13 +10,14 @@ from uquant import types as domain
 from uquant.account import load_account, migrate_account, save_account
 from uquant.broker import sync_broker_snapshot
 from uquant.config import DEFAULT_CONFIG
-from uquant.engine import ProductionEngine
+from uquant.engine import ProductionEngine, _attach_target_attribution
 from uquant.execution import (
     ExecutionPlanner,
     merge_pending_orders,
     plan_orders,
     reconcile_account_orders,
 )
+from uquant.portfolio import PortfolioAllocator
 from uquant.validation.universe import REQUIRED_AI_UNIVERSE_SHA256
 
 
@@ -105,6 +106,106 @@ def _partial_sell_frame() -> pd.DataFrame:
     return frame.set_index("date")
 
 
+def _multilot_frame() -> pd.DataFrame:
+    frame = pd.DataFrame(
+        [
+            {
+                "date": date,
+                "open": 10.0,
+                "high": 10.2,
+                "low": 9.8,
+                "close": 10.0,
+                "volume": 3_000_000.0 if date == "2026-01-08" else 100_000_000.0,
+                "amount": 30_000_000.0 if date == "2026-01-08" else 1_000_000_000.0,
+            }
+            for date in (
+                "2026-01-05",
+                "2026-01-06",
+                "2026-01-07",
+                "2026-01-08",
+            )
+        ]
+    )
+    frame["date"] = pd.to_datetime(frame["date"])
+    return frame.set_index("date")
+
+
+def _native_multilot_partial_sell_account() -> domain.AccountState:
+    account = domain.AccountState.empty(2_000_000.0)
+    panel = {"sz300502": _multilot_frame()}
+    for signal_date, fill_date, weight in (
+        ("2026-01-05", "2026-01-06", 0.060),
+        ("2026-01-06", "2026-01-07", 0.120),
+    ):
+        identity = _identity(signal_date=signal_date, target_weight=weight)
+        target = domain.Target(
+            symbol="sz300502",
+            weight=weight,
+            lifecycle=domain.Lifecycle.CORE.value,
+            alpha_score=0.8,
+            confidence=0.9,
+            reason="structured BUY",
+            **identity,
+        )
+        planned = plan_orders(
+            signal_date=signal_date,
+            targets=(target,),
+            account=account,
+            prices={"sz300502": 10.0},
+            cfg=DEFAULT_CONFIG,
+        )
+        planned = reconcile_account_orders(
+            account=account,
+            previous=list(account.pending_orders),
+            current=planned,
+            submitted_date=signal_date,
+        )
+        account.pending_orders = list(planned)
+        ExecutionPlanner(DEFAULT_CONFIG).execute_open(
+            date=pd.Timestamp(fill_date),
+            account=account,
+            panel=panel,
+        )
+
+    exit_identity = _identity(
+        signal_date="2026-01-07",
+        target_weight=0.0,
+        origin_subsystem=domain.OriginSubsystem.RISK.value,
+        mechanism=domain.AttributionMechanism.RISK_OFF.value,
+    )
+    exit_target = domain.Target(
+        symbol="sz300502",
+        weight=0.0,
+        lifecycle=domain.Lifecycle.CORE.value,
+        alpha_score=0.0,
+        confidence=0.0,
+        reason="structured SELL",
+        **exit_identity,
+    )
+    planned_exit = plan_orders(
+        signal_date="2026-01-07",
+        targets=(exit_target,),
+        account=account,
+        prices={"sz300502": 10.0},
+        cfg=DEFAULT_CONFIG,
+    )
+    planned_exit = reconcile_account_orders(
+        account=account,
+        previous=list(account.pending_orders),
+        current=planned_exit,
+        submitted_date="2026-01-07",
+    )
+    account.pending_orders = list(planned_exit)
+    ExecutionPlanner(DEFAULT_CONFIG).execute_open(
+        date=pd.Timestamp("2026-01-08"),
+        account=account,
+        panel=panel,
+    )
+    account.data_hash = "data"
+    account.code_hash = "code"
+    return account
+
+
 def test_event_id_has_a_frozen_canonical_derivation_and_collision_dimensions() -> None:
     fields = {
         "signal_date": "2026-01-05",
@@ -124,8 +225,18 @@ def test_event_id_has_a_frozen_canonical_derivation_and_collision_dimensions() -
 
     event_id = domain.derive_attribution_event_id(**fields)
 
-    assert event_id == "evt_bc0ddc2776fd4317f3231e7c55c86e22707c7621b0859dfc0349d73cd9951589"
+    assert event_id == "evt_0317b9c66fa7011405a95cc5d174e8f5d3c724f1ea3d3563867c8aeedf76716b"
     assert domain.derive_attribution_event_id(**fields) == event_id
+    assert (
+        domain.derive_attribution_event_id(
+            **{
+                **fields,
+                "reason_code": "arbitrary_display_code",
+                "exit_kind": "arbitrary_display_exit",
+            }
+        )
+        == event_id
+    )
     assert (
         domain.derive_attribution_event_id(**{**fields, "symbol": "sz300394"})
         != event_id
@@ -143,6 +254,112 @@ def test_event_id_has_a_frozen_canonical_derivation_and_collision_dimensions() -
         )
         != event_id
     )
+
+
+def test_prose_mutation_cannot_change_target_order_or_fill_identity() -> None:
+    leader = domain.LeaderScore(
+        symbol="sz300502",
+        score=0.8,
+        confidence=0.9,
+        mature=True,
+        emerging=False,
+        industry="optical",
+        components={},
+    )
+
+    def execute(reason: str) -> tuple[domain.Target, domain.PendingOrder, domain.Fill]:
+        account = domain.AccountState.empty(2_000_000.0)
+        target = PortfolioAllocator(DEFAULT_CONFIG)._targets(
+            proposed={"sz300502": 0.05},
+            leaders={"sz300502": leader},
+            account=account,
+            lifecycle=domain.Lifecycle.CORE,
+            reason=reason,
+            origin_subsystem=domain.OriginSubsystem.LEADER,
+            mechanism=domain.AttributionMechanism.LEADER_SELECTION,
+        )[0]
+        target = _attach_target_attribution(
+            signal_date="2026-01-05",
+            targets=(target,),
+        )[0]
+        pending = plan_orders(
+            signal_date="2026-01-05",
+            targets=(target,),
+            account=account,
+            prices={"sz300502": 10.0},
+            cfg=DEFAULT_CONFIG,
+        )
+        pending = reconcile_account_orders(
+            account=account,
+            previous=[],
+            current=pending,
+            submitted_date="2026-01-05",
+        )
+        account.pending_orders = list(pending)
+        fill = ExecutionPlanner(DEFAULT_CONFIG).execute_open(
+            date=pd.Timestamp("2026-01-06"),
+            account=account,
+            panel={"sz300502": _frame()},
+        )[0]
+        return target, pending[0], fill
+
+    plain = execute("confirmed leader selection")
+    mutated = execute("confirmed leader selection; prose says replaces nothing")
+
+    assert plain[0].reason_code != mutated[0].reason_code
+    for left, right in zip(plain, mutated, strict=True):
+        assert tuple(
+            getattr(left, field) for field in domain.ATTRIBUTION_IDENTITY_FIELDS
+        ) == tuple(
+            getattr(right, field) for field in domain.ATTRIBUTION_IDENTITY_FIELDS
+        )
+
+
+def test_native_unlinked_fill_reconciles_by_machine_identity_after_prose_change(
+    tmp_path,
+) -> None:
+    identity = _identity()
+    target = domain.Target(
+        symbol="sz300502",
+        weight=0.05,
+        lifecycle=domain.Lifecycle.CORE.value,
+        alpha_score=0.8,
+        confidence=0.9,
+        reason="original display prose",
+        **identity,
+    )
+    account = domain.AccountState.empty(2_000_000.0)
+    pending = plan_orders(
+        signal_date="2026-01-05",
+        targets=(target,),
+        account=account,
+        prices={"sz300502": 10.0},
+        cfg=DEFAULT_CONFIG,
+    )
+    pending = reconcile_account_orders(
+        account=account,
+        previous=[],
+        current=pending,
+        submitted_date="2026-01-05",
+    )
+    account.pending_orders = list(pending)
+    ExecutionPlanner(DEFAULT_CONFIG).execute_open(
+        date=pd.Timestamp("2026-01-06"),
+        account=account,
+        panel={"sz300502": _frame()},
+    )
+    account.fills[0].order_id = ""
+    account.fills[0].reason = "different display prose"
+    account.fills[0].reason_code = "different_display_code"
+    account.data_hash = "data"
+    account.code_hash = "code"
+    destination = tmp_path / "native-unlinked-prose-change.json"
+
+    save_account(account, destination)
+
+    restored = load_account(destination)
+    assert restored.fills[0].event_id == restored.order_ledger[0].event_id
+    assert restored.fills[0].order_id == ""
 
 
 def test_buy_identity_round_trips_target_order_fill_and_tranche() -> None:
@@ -308,6 +525,45 @@ def test_partial_multitranche_sell_keeps_each_lot_origin_after_promotion() -> No
     )
 
 
+def test_native_partial_multilot_chain_round_trips(tmp_path) -> None:
+    account = _native_multilot_partial_sell_account()
+    sell_fill = next(fill for fill in account.fills if fill.side == domain.Side.SELL.value)
+
+    assert len(sell_fill.sold_tranches) == 2
+    assert account.positions["sz300502"].tranches
+    destination = tmp_path / "valid-native-multilot.json"
+    save_account(account, destination)
+
+    assert load_account(destination).to_dict() == account.to_dict()
+
+
+def test_native_live_tranche_event_must_chain_to_originating_buy(tmp_path) -> None:
+    account = _native_multilot_partial_sell_account()
+    account.positions["sz300502"].tranches[0].event_id = "evt_" + "f" * 64
+    destination = tmp_path / "tampered-native-live-lot.json"
+
+    with pytest.raises(RuntimeError, match="tranche does not chain to an originating BUY"):
+        save_account(account, destination)
+
+    destination.write_text(json.dumps(account.to_dict()), encoding="utf-8")
+    with pytest.raises(RuntimeError, match="tranche does not chain to an originating BUY"):
+        load_account(destination)
+
+
+def test_native_sold_lot_event_must_chain_to_originating_buy(tmp_path) -> None:
+    account = _native_multilot_partial_sell_account()
+    sell_fill = next(fill for fill in account.fills if fill.side == domain.Side.SELL.value)
+    sell_fill.sold_tranches[0]["event_id"] = "evt_" + "f" * 64
+    destination = tmp_path / "tampered-native-sold-lot.json"
+
+    with pytest.raises(RuntimeError, match="sold lot does not chain to an originating BUY"):
+        save_account(account, destination)
+
+    destination.write_text(json.dumps(account.to_dict()), encoding="utf-8")
+    with pytest.raises(RuntimeError, match="sold lot does not chain to an originating BUY"):
+        load_account(destination)
+
+
 def test_broker_fill_import_preserves_planned_order_identity() -> None:
     identity = _identity()
     pending = domain.PendingOrder(
@@ -430,6 +686,274 @@ def test_changed_causal_identity_supersedes_same_weight_retained_order() -> None
     assert merged[0].event_id == replacement_identity["event_id"]
 
 
+@pytest.mark.parametrize(
+    "identity_change",
+    [
+        {"mechanism": domain.AttributionMechanism.CRISIS.value},
+        {
+            "origin_subsystem": domain.OriginSubsystem.RECOVERY.value,
+            "mechanism": domain.AttributionMechanism.RECOVERY_CAP.value,
+        },
+        {"replaces_symbol": "sz300308"},
+        {"industry_at_entry": "semiconductor"},
+        {"event_id": "evt_" + "f" * 64},
+    ],
+)
+def test_full_exit_retention_requires_identical_causal_identity(
+    identity_change: dict[str, str],
+) -> None:
+    retained_identity = _identity(
+        target_weight=0.0,
+        origin_subsystem=domain.OriginSubsystem.RISK.value,
+        mechanism=domain.AttributionMechanism.RISK_OFF.value,
+    )
+    retained = domain.PendingOrder(
+        signal_date="2026-01-05",
+        symbol="sz300502",
+        side=domain.Side.SELL.value,
+        target_weight=0.0,
+        reason="full exit",
+        lifecycle=domain.Lifecycle.CORE.value,
+        order_id="O000000001",
+        remaining_shares=100,
+        **retained_identity,
+    )
+    changed_identity = {**retained_identity, **identity_change}
+    if "event_id" not in identity_change:
+        changed_identity["event_id"] = domain.derive_attribution_event_id(
+            signal_date="2026-01-06",
+            symbol=retained.symbol,
+            target_weight=0.0,
+            lifecycle=retained.lifecycle,
+            origin_lifecycle=str(changed_identity["origin_lifecycle"]),
+            origin_subsystem=str(changed_identity["origin_subsystem"]),
+            mechanism=str(changed_identity["mechanism"]),
+            replaces_symbol=changed_identity.get("replaces_symbol"),
+            industry_at_entry=str(changed_identity["industry_at_entry"]),
+            industry_manifest_sha256=str(
+                changed_identity["industry_manifest_sha256"]
+            ),
+            reduction_policy=domain.ReductionPolicy.FIFO.value,
+            reason_code="strategy_target",
+            exit_kind="strategy",
+        )
+    planned = domain.PendingOrder(
+        signal_date="2026-01-06",
+        symbol=retained.symbol,
+        side=retained.side,
+        target_weight=0.0,
+        reason=retained.reason,
+        lifecycle=retained.lifecycle,
+        **changed_identity,
+    )
+    target = domain.Target(
+        symbol=retained.symbol,
+        weight=0.0,
+        lifecycle=retained.lifecycle,
+        alpha_score=0.0,
+        confidence=0.0,
+        reason=retained.reason,
+        **changed_identity,
+    )
+
+    merged = merge_pending_orders(
+        retained=[retained],
+        planned=(planned,),
+        targets=(target,),
+        cfg=DEFAULT_CONFIG,
+    )
+
+    assert merged == (planned,)
+
+
+def test_unchanged_full_exit_retains_the_same_broker_order() -> None:
+    identity = _identity(
+        target_weight=0.0,
+        origin_subsystem=domain.OriginSubsystem.RISK.value,
+        mechanism=domain.AttributionMechanism.RISK_OFF.value,
+    )
+    retained = domain.PendingOrder(
+        signal_date="2026-01-05",
+        symbol="sz300502",
+        side=domain.Side.SELL.value,
+        target_weight=0.0,
+        reason="full exit",
+        lifecycle=domain.Lifecycle.CORE.value,
+        order_id="O000000001",
+        remaining_shares=100,
+        **identity,
+    )
+    planned = domain.PendingOrder(
+        signal_date="2026-01-06",
+        symbol=retained.symbol,
+        side=retained.side,
+        target_weight=retained.target_weight,
+        reason="different display prose",
+        lifecycle=retained.lifecycle,
+        **identity,
+    )
+    target = domain.Target(
+        symbol=retained.symbol,
+        weight=retained.target_weight,
+        lifecycle=retained.lifecycle,
+        alpha_score=0.0,
+        confidence=0.0,
+        reason=planned.reason,
+        **identity,
+    )
+
+    assert merge_pending_orders(
+        retained=[retained],
+        planned=(planned,),
+        targets=(target,),
+        cfg=DEFAULT_CONFIG,
+    ) == (retained,)
+
+
+def test_blocked_recovery_replacement_retains_event_and_link_next_session() -> None:
+    identity = _identity(
+        signal_date="2026-01-05",
+        symbol="sz300502",
+        target_weight=0.30,
+        origin_subsystem=domain.OriginSubsystem.RECOVERY.value,
+        mechanism=domain.AttributionMechanism.RECOVERY_SUBSTITUTION.value,
+        replaces_symbol="sh688008",
+    )
+    retained = domain.PendingOrder(
+        signal_date="2026-01-05",
+        symbol="sz300502",
+        side=domain.Side.BUY.value,
+        target_weight=0.30,
+        reason="recovery anchor entry: replaces sh688008",
+        lifecycle=domain.Lifecycle.CORE.value,
+        order_id="O000000001",
+        remaining_shares=100,
+        attempts=1,
+        **identity,
+    )
+    account = domain.AccountState.empty(2_000_000.0)
+    account.pending_orders = [retained]
+    account.anchor_weights = {"sz300308": 0.30, "sz300502": 0.30}
+    account.candidate_tenure["recovery_substitution_pending"] = 1
+    account.replacement_events.append(
+        {
+            "signal_date": "2026-01-05",
+            "old_symbol": "sh688008",
+            "new_symbol": "sz300502",
+            "route": "recovery_anchor_substitution",
+        }
+    )
+    leaders = {
+        symbol: domain.LeaderScore(
+            symbol=symbol,
+            score=0.8,
+            confidence=0.9,
+            mature=True,
+            emerging=False,
+            industry=industry,
+            components={},
+        )
+        for symbol, industry in {
+            "sz300308": "film",
+            "sz300502": "optical",
+        }.items()
+    }
+    targets = PortfolioAllocator(DEFAULT_CONFIG)._recovery_anchor_substitution(
+        date=pd.Timestamp("2026-01-06"),
+        risk=domain.RiskAssessment(
+            state=domain.Risk.NORMAL,
+            target_gross_cap=1.0,
+            votes=0,
+            evidence={},
+            reasons=(),
+            shock_state="NONE",
+        ),
+        user_panel={},
+        leaders=leaders,
+        account=account,
+        weights_now={"sz300308": 0.30, "sz300502": 0.0},
+        anchor_elapsed=DEFAULT_CONFIG.recovery_add_window_days + 1,
+    )
+    assert targets is not None
+    targets = _attach_target_attribution(
+        signal_date="2026-01-06",
+        targets=targets,
+        retained_orders=account.pending_orders,
+    )
+    replacement = next(target for target in targets if target.symbol == retained.symbol)
+    planned = plan_orders(
+        signal_date="2026-01-06",
+        targets=targets,
+        account=account,
+        prices={"sz300308": 10.0, "sz300502": 10.0},
+        cfg=DEFAULT_CONFIG,
+    )
+    merged = merge_pending_orders(
+        retained=account.pending_orders,
+        planned=planned,
+        targets=targets,
+        cfg=DEFAULT_CONFIG,
+    )
+    merged_replacement = next(order for order in merged if order.symbol == retained.symbol)
+
+    assert replacement.replaces_symbol == "sh688008"
+    assert replacement.event_id == retained.event_id
+    assert merged_replacement is retained
+    assert merged_replacement.replaces_symbol == "sh688008"
+
+
+def test_no_trade_band_equivalent_target_drift_inherits_the_active_event() -> None:
+    retained_identity = _identity(target_weight=0.95)
+    retained = domain.PendingOrder(
+        signal_date="2026-01-05",
+        symbol="sz300502",
+        side=domain.Side.BUY.value,
+        target_weight=0.95,
+        reason="strategic cohort",
+        lifecycle=domain.Lifecycle.CORE.value,
+        order_id="O000000001",
+        remaining_shares=1_900,
+        attempts=3,
+        **retained_identity,
+    )
+    account = domain.AccountState.empty(2_000_000.0)
+    account.pending_orders = [retained]
+    target = domain.Target(
+        symbol=retained.symbol,
+        weight=0.931,
+        lifecycle=retained.lifecycle,
+        alpha_score=0.8,
+        confidence=0.9,
+        reason="retain strategic price drift",
+        origin_subsystem=domain.OriginSubsystem.LEADER.value,
+        mechanism=domain.AttributionMechanism.LEADER_SELECTION.value,
+        origin_lifecycle=domain.Lifecycle.CORE.value,
+    )
+    target = _attach_target_attribution(
+        signal_date="2026-01-06",
+        targets=(target,),
+        retained_orders=account.pending_orders,
+    )[0]
+
+    planned = plan_orders(
+        signal_date="2026-01-06",
+        targets=(target,),
+        account=account,
+        prices={retained.symbol: 10.0},
+        cfg=DEFAULT_CONFIG,
+    )
+    merged = merge_pending_orders(
+        retained=account.pending_orders,
+        planned=planned,
+        targets=(target,),
+        cfg=DEFAULT_CONFIG,
+    )
+
+    assert target.event_id == retained.event_id
+    assert planned == ()
+    assert merged == (retained,)
+
+
 def test_new_buy_without_pit_universe_membership_fails_closed() -> None:
     symbol = "sz000001"
     identity = _identity(symbol=symbol)
@@ -451,6 +975,145 @@ def test_new_buy_without_pit_universe_membership_fails_closed() -> None:
             prices={symbol: 10.0},
             cfg=DEFAULT_CONFIG,
         )
+
+
+def test_new_buy_without_any_attribution_cannot_bypass_planning_validation() -> None:
+    target = domain.Target(
+        symbol="sz300502",
+        weight=0.05,
+        lifecycle=domain.Lifecycle.CORE.value,
+        alpha_score=0.8,
+        confidence=0.9,
+        reason="empty machine attribution must not create a BUY",
+    )
+
+    with pytest.raises(RuntimeError, match="event_id"):
+        plan_orders(
+            signal_date="2026-01-05",
+            targets=(target,),
+            account=domain.AccountState.empty(2_000_000.0),
+            prices={"sz300502": 10.0},
+            cfg=DEFAULT_CONFIG,
+        )
+
+
+def test_native_schema_legacy_identity_cannot_fabricate_a_new_buy(tmp_path) -> None:
+    signal_date = "2026-01-05"
+    identity = {
+        "event_id": domain.derive_attribution_event_id(
+            signal_date=signal_date,
+            symbol="sz300502",
+            target_weight=0.05,
+            lifecycle=domain.Lifecycle.CORE.value,
+            origin_lifecycle=domain.Lifecycle.CORE.value,
+            origin_subsystem=domain.OriginSubsystem.LEGACY_MIGRATION.value,
+            mechanism=domain.AttributionMechanism.LEGACY_MIGRATION.value,
+            replaces_symbol=None,
+            industry_at_entry="legacy_unmapped",
+            industry_manifest_sha256="0" * 64,
+            reduction_policy=domain.ReductionPolicy.FIFO.value,
+            reason_code="strategy_target",
+            exit_kind="strategy",
+        ),
+        "origin_subsystem": domain.OriginSubsystem.LEGACY_MIGRATION.value,
+        "mechanism": domain.AttributionMechanism.LEGACY_MIGRATION.value,
+        "origin_lifecycle": domain.Lifecycle.CORE.value,
+        "industry_at_entry": "legacy_unmapped",
+        "industry_manifest_sha256": "0" * 64,
+    }
+    pending = domain.PendingOrder(
+        signal_date=signal_date,
+        symbol="sz300502",
+        side=domain.Side.BUY.value,
+        target_weight=0.05,
+        reason="fabricated native legacy BUY",
+        lifecycle=domain.Lifecycle.CORE.value,
+        order_id="O000000001",
+        remaining_shares=100,
+        **identity,
+    )
+    ledger = domain.AccountOrder(
+        order_id=pending.order_id,
+        signal_date=signal_date,
+        submitted_date=signal_date,
+        symbol=pending.symbol,
+        side=pending.side,
+        target_weight=pending.target_weight,
+        reason=pending.reason,
+        lifecycle=pending.lifecycle,
+        status=domain.OrderStatus.SUBMITTED.value,
+        requested_shares=100,
+        remaining_shares=100,
+        **identity,
+    )
+    account = domain.AccountState(
+        initial_cash=2_000_000.0,
+        cash=2_000_000.0,
+        pending_orders=[pending],
+        order_ledger=[ledger],
+        next_order_sequence=2,
+        operating_peak=2_000_000.0,
+        capital_peak=2_000_000.0,
+        data_hash="data",
+        code_hash="code",
+    )
+    destination = tmp_path / "fabricated-native-legacy-buy.json"
+
+    with pytest.raises(RuntimeError, match="legacy migration identity cannot create a BUY"):
+        save_account(account, destination)
+
+    destination.write_text(json.dumps(account.to_dict()), encoding="utf-8")
+    with pytest.raises(RuntimeError, match="legacy migration identity cannot create a BUY"):
+        load_account(destination)
+
+
+def test_broker_rejects_a_planned_buy_without_canonical_attribution() -> None:
+    pending = domain.PendingOrder(
+        signal_date="2026-01-05",
+        symbol="sz300502",
+        side=domain.Side.BUY.value,
+        target_weight=0.05,
+        reason="missing attribution",
+        lifecycle=domain.Lifecycle.CORE.value,
+        order_id="O000000001",
+        remaining_shares=100,
+    )
+    ledger = domain.AccountOrder(
+        order_id=pending.order_id,
+        signal_date=pending.signal_date,
+        submitted_date=pending.signal_date,
+        symbol=pending.symbol,
+        side=pending.side,
+        target_weight=pending.target_weight,
+        reason=pending.reason,
+        lifecycle=pending.lifecycle,
+        status=domain.OrderStatus.SUBMITTED.value,
+        requested_shares=100,
+        remaining_shares=100,
+    )
+    account = domain.AccountState(
+        initial_cash=2_000_000.0,
+        cash=2_000_000.0,
+        pending_orders=[pending],
+        order_ledger=[ledger],
+        next_order_sequence=2,
+        operating_peak=2_000_000.0,
+        capital_peak=2_000_000.0,
+    )
+    before = account.to_dict()
+
+    with pytest.raises(RuntimeError, match="invalid event_id"):
+        sync_broker_snapshot(
+            account,
+            {
+                "as_of": "2026-01-06",
+                "cash": 2_000_000.0,
+                "positions": [],
+                "fills": [],
+            },
+        )
+
+    assert account.to_dict() == before
 
 
 def test_legacy_schema_cannot_bypass_migration_through_save(tmp_path) -> None:
@@ -550,39 +1213,31 @@ def test_sell_of_migrated_unmapped_lot_preserves_explicit_legacy_industry(
     )
 
 
-def test_unmatched_broker_inventory_gets_explicit_reconciliation_identity(
-    tmp_path,
-) -> None:
+def test_unmatched_broker_inventory_fails_closed_without_a_planned_buy() -> None:
     account = domain.AccountState.empty(2_000_000.0)
     account.data_hash = "data"
     account.code_hash = "code"
-    sync_broker_snapshot(
-        account,
-        {
-            "as_of": "2026-01-07",
-            "cash": 1_999_000.0,
-            "positions": [
-                {
-                    "symbol": "sz300502",
-                    "shares": 100,
-                    "sellable_shares": 100,
-                    "avg_cost": 10.0,
-                }
-            ],
-            "fills": [],
-        },
-    )
+    before = account.to_dict()
 
-    tranche = account.positions["sz300502"].tranches[0]
-    assert tranche.event_id.startswith("evt_")
-    assert tranche.origin_subsystem == domain.OriginSubsystem.BROKER_RECONCILIATION.value
-    assert tranche.mechanism == domain.AttributionMechanism.BROKER_RECONCILIATION.value
-    assert tranche.origin_lifecycle == domain.Lifecycle.CORE.value
-    assert tranche.industry_at_entry == "optical"
-    assert tranche.industry_manifest_sha256 == REQUIRED_AI_UNIVERSE_SHA256
-    destination = tmp_path / "broker-reconciled.json"
-    save_account(account, destination)
-    assert load_account(destination).to_dict() == account.to_dict()
+    with pytest.raises(ValueError, match="exceeds known BUY lot inventory"):
+        sync_broker_snapshot(
+            account,
+            {
+                "as_of": "2026-01-07",
+                "cash": 1_999_000.0,
+                "positions": [
+                    {
+                        "symbol": "sz300502",
+                        "shares": 100,
+                        "sellable_shares": 100,
+                        "avg_cost": 10.0,
+                    }
+                ],
+                "fills": [],
+            },
+        )
+
+    assert account.to_dict() == before
 
 
 def _schema_v3_payload(*, reason: str) -> dict[str, object]:
@@ -718,6 +1373,49 @@ def test_schema_v3_identity_migration_is_explicit_deterministic_and_prose_free(t
     assert migrated_tranche.industry_at_entry == "optical"
     assert migrated_tranche.industry_manifest_sha256 == REQUIRED_AI_UNIVERSE_SHA256
     assert load_account(first_destination).to_dict() == first.to_dict()
+
+
+def test_schema_v3_unlinked_fill_migration_uses_structured_identity_not_prose(
+    tmp_path,
+) -> None:
+    payload = _schema_v3_payload(reason="ledger prose")
+    payload["fills"][0]["order_id"] = ""
+    payload["fills"][0]["reason"] = "unrelated fill prose"
+    source = tmp_path / "unlinked-v3.json"
+    destination = tmp_path / "unlinked-v4.json"
+    source.write_text(json.dumps(payload), encoding="utf-8")
+
+    migrated = migrate_account(
+        source,
+        destination,
+        new_code_hash="new-code",
+        acknowledge_code_change=True,
+    )
+
+    assert migrated.fills[0].order_id == ""
+    assert migrated.fills[0].event_id == migrated.order_ledger[0].event_id
+
+
+def test_schema_v3_unlinked_fill_migration_fails_closed_on_structured_ambiguity(
+    tmp_path,
+) -> None:
+    payload = _schema_v3_payload(reason="same prose")
+    payload["fills"][0]["order_id"] = ""
+    duplicate = dict(payload["order_ledger"][0])
+    duplicate["order_id"] = "O000000002"
+    payload["order_ledger"].append(duplicate)
+    payload["next_order_sequence"] = 3
+    source = tmp_path / "ambiguous-unlinked-v3.json"
+    destination = tmp_path / "ambiguous-unlinked-v4.json"
+    source.write_text(json.dumps(payload), encoding="utf-8")
+
+    with pytest.raises(RuntimeError, match="ambiguous"):
+        migrate_account(
+            source,
+            destination,
+            new_code_hash="new-code",
+            acknowledge_code_change=True,
+        )
 
 
 @pytest.mark.parametrize(

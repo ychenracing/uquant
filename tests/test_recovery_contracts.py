@@ -4,7 +4,7 @@ import pandas as pd
 import pytest
 
 from uquant.config import DEFAULT_CONFIG
-from uquant.engine import ProductionEngine
+from uquant.engine import ProductionEngine, _attach_target_attribution
 from uquant.execution import plan_orders
 from uquant.portfolio import PortfolioAllocator
 from uquant.types import (
@@ -570,16 +570,18 @@ def test_confirming_recovery_alternative_prevents_secondary_restore_churn() -> N
 
 def test_caution_restore_can_buy_up_to_the_risk_owned_cap() -> None:
     cfg = DEFAULT_CONFIG.override(min_trade_value=0.0)
+    first_symbol = "sz300308"
+    second_symbol = "sz300502"
     account = AccountState(
         initial_cash=100.0,
         cash=91.0,
         positions={
-            "a": Position("a", shares=6, avg_cost=1.0, entry_date="2026-01-01"),
-            "b": Position("b", shares=3, avg_cost=1.0, entry_date="2026-01-01"),
+            first_symbol: Position(first_symbol, shares=6, avg_cost=1.0, entry_date="2026-01-01"),
+            second_symbol: Position(second_symbol, shares=3, avg_cost=1.0, entry_date="2026-01-01"),
         },
         operating_peak=100.0,
         capital_peak=100.0,
-        protected_weights={"a": 0.60, "b": 0.30},
+        protected_weights={first_symbol: 0.60, second_symbol: 0.30},
         shock_severity="SEVERE",
     )
     leaders = {symbol: LeaderScore(symbol, 0.8, 1.0, True, False, "test", {}) for symbol in account.positions}
@@ -591,18 +593,19 @@ def test_caution_restore_can_buy_up_to_the_risk_owned_cap() -> None:
         user_panel={symbol: pd.DataFrame() for symbol in account.positions},
         leaders=leaders,
         account=account,
-        prices={"a": 1.0, "b": 1.0},
+        prices={first_symbol: 1.0, second_symbol: 1.0},
     )
+    targets = _attach_target_attribution(signal_date="2026-01-05", targets=targets)
     planned = plan_orders(
         signal_date="2026-01-05",
         targets=targets,
         account=account,
-        prices={"a": 1.0, "b": 1.0},
+        prices={first_symbol: 1.0, second_symbol: 1.0},
         cfg=cfg,
     )
 
     assert {target.symbol: target.weight for target in targets} == pytest.approx(
-        {"a": 1.0 / 6.0, "b": 1.0 / 12.0}
+        {first_symbol: 1.0 / 6.0, second_symbol: 1.0 / 12.0}
     )
     assert sum(target.weight for target in targets) == pytest.approx(0.25)
     assert {order.side for order in planned} == {"BUY"}
@@ -847,35 +850,43 @@ def test_capacity_limited_restore_keeps_one_durable_target_until_filled():
 
 def test_restore_buy_closes_the_gap_between_no_trade_band_and_completion_line():
     cfg = DEFAULT_CONFIG.override(min_trade_value=0.0)
+    symbol = "sz300502"
     target = Target(
-        "restore",
+        symbol,
         0.30,
         Lifecycle.RECOVERY.value,
         0.8,
         1.0,
         "confirmed post-shock restoration",
+        origin_subsystem="RECOVERY",
+        mechanism="POST_SHOCK_RESTORATION",
+        origin_lifecycle=Lifecycle.RECOVERY.value,
     )
     account = AccountState(
         initial_cash=100.0,
         cash=74.0,
         positions={
-            "restore": Position(
-                "restore",
+            symbol: Position(
+                symbol,
                 shares=26,
                 avg_cost=1.0,
                 entry_date="2026-01-01",
             )
         },
-        protected_weights={"restore": 0.30},
+        protected_weights={symbol: 0.30},
         operating_peak=100.0,
         capital_peak=100.0,
     )
 
-    planned = plan_orders(
+    attributed_target = _attach_target_attribution(
         signal_date="2026-01-05",
         targets=(target,),
+    )[0]
+    planned = plan_orders(
+        signal_date="2026-01-05",
+        targets=(attributed_target,),
         account=account,
-        prices={"restore": 1.0},
+        prices={symbol: 1.0},
         cfg=cfg,
     )
 
@@ -883,14 +894,14 @@ def test_restore_buy_closes_the_gap_between_no_trade_band_and_completion_line():
     assert planned[0].side == "BUY"
     assert planned[0].target_weight == pytest.approx(0.30)
 
-    account.positions["restore"].shares = 29
+    account.positions[symbol].shares = 29
     account.cash = 71.0
     assert (
         plan_orders(
             signal_date="2026-01-06",
-            targets=(target,),
+            targets=(attributed_target,),
             account=account,
-            prices={"restore": 1.0},
+            prices={symbol: 1.0},
             cfg=cfg,
         )
         == ()
@@ -907,6 +918,9 @@ def test_restore_buy_closes_the_gap_between_no_trade_band_and_completion_line():
         0.8,
         1.0,
         "confirmed post-shock restoration",
+        origin_subsystem="RECOVERY",
+        mechanism="POST_SHOCK_RESTORATION",
+        origin_lifecycle=Lifecycle.RECOVERY.value,
     )
     micro_account = AccountState(
         initial_cash=100.0,
@@ -975,40 +989,48 @@ def test_satellite_restore_keeps_the_standard_no_trade_band():
 
 def test_full_recovery_seat_cannot_remain_below_eighty_percent_restored() -> None:
     cfg = DEFAULT_CONFIG.override(min_trade_value=0.0)
+    symbol = "sz300502"
     target = Target(
-        "secondary",
+        symbol,
         0.16,
         Lifecycle.RECOVERY.value,
         0.8,
         1.0,
         "confirmed post-shock restoration",
+        origin_subsystem="RECOVERY",
+        mechanism="POST_SHOCK_RESTORATION",
+        origin_lifecycle=Lifecycle.RECOVERY.value,
     )
     account = AccountState(
         initial_cash=100.0,
         cash=87.9,
         positions={
-            "secondary": Position(
-                "secondary",
+            symbol: Position(
+                symbol,
                 shares=121,
                 avg_cost=0.1,
                 entry_date="2026-01-01",
             )
         },
-        protected_weights={"secondary": 0.16},
+        protected_weights={symbol: 0.16},
         operating_peak=100.0,
         capital_peak=100.0,
     )
 
+    target = _attach_target_attribution(
+        signal_date="2026-01-05",
+        targets=(target,),
+    )[0]
     planned = plan_orders(
         signal_date="2026-01-05",
         targets=(target,),
         account=account,
-        prices={"secondary": 0.1},
+        prices={symbol: 0.1},
         cfg=cfg,
     )
 
     assert [(order.side, order.symbol, order.target_weight) for order in planned] == [
-        ("BUY", "secondary", pytest.approx(0.16))
+        ("BUY", symbol, pytest.approx(0.16))
     ]
 
 
@@ -1050,18 +1072,20 @@ def test_restoration_never_bypasses_the_absolute_minimum_ticket() -> None:
 
 
 def test_post_shock_restore_is_buy_only_when_members_drift_apart():
+    winner = "sz300308"
+    laggard = "sz300502"
     account = AccountState(
         initial_cash=1_000_000.0,
         cash=100_000.0,
         positions={
-            "winner": Position(
-                "winner",
+            winner: Position(
+                winner,
                 shares=6_600,
                 avg_cost=100.0,
                 entry_date="2026-01-01",
             ),
-            "laggard": Position(
-                "laggard",
+            laggard: Position(
+                laggard,
                 shares=2_400,
                 avg_cost=100.0,
                 entry_date="2026-01-01",
@@ -1069,7 +1093,7 @@ def test_post_shock_restore_is_buy_only_when_members_drift_apart():
         },
         operating_peak=1_000_000.0,
         capital_peak=1_000_000.0,
-        protected_weights={"winner": 0.60, "laggard": 0.30},
+        protected_weights={winner: 0.60, laggard: 0.30},
         shock_severity="SEVERE",
     )
     leaders = {symbol: LeaderScore(symbol, 0.8, 1.0, True, False, "test", {}) for symbol in account.positions}
@@ -1089,33 +1113,46 @@ def test_post_shock_restore_is_buy_only_when_members_drift_apart():
         user_panel={symbol: pd.DataFrame() for symbol in account.positions},
         leaders=leaders,
         account=account,
-        prices={"winner": 100.0, "laggard": 100.0},
+        prices={winner: 100.0, laggard: 100.0},
     )
+    targets = _attach_target_attribution(signal_date="2026-01-05", targets=targets)
     planned = plan_orders(
         signal_date="2026-01-05",
         targets=targets,
         account=account,
-        prices={"winner": 100.0, "laggard": 100.0},
+        prices={winner: 100.0, laggard: 100.0},
         cfg=DEFAULT_CONFIG,
     )
 
     assert {target.symbol: target.weight for target in targets} == pytest.approx(
-        {"winner": 0.60, "laggard": 0.30}
+        {winner: 0.60, laggard: 0.30}
     )
-    assert [(order.side, order.symbol) for order in planned] == [("BUY", "laggard")]
+    assert [(order.side, order.symbol) for order in planned] == [("BUY", laggard)]
 
 
 def test_small_restore_gap_remains_executable_instead_of_hanging_forever():
+    first_symbol = "sz300308"
+    second_symbol = "sz300502"
     account = AccountState(
         initial_cash=1_000_000.0,
         cash=140_000.0,
         positions={
-            "a": Position("a", shares=5_600, avg_cost=100.0, entry_date="2026-01-01"),
-            "b": Position("b", shares=3_000, avg_cost=100.0, entry_date="2026-01-01"),
+            first_symbol: Position(
+                first_symbol,
+                shares=5_600,
+                avg_cost=100.0,
+                entry_date="2026-01-01",
+            ),
+            second_symbol: Position(
+                second_symbol,
+                shares=3_000,
+                avg_cost=100.0,
+                entry_date="2026-01-01",
+            ),
         },
         operating_peak=1_000_000.0,
         capital_peak=1_000_000.0,
-        protected_weights={"a": 0.60, "b": 0.30},
+        protected_weights={first_symbol: 0.60, second_symbol: 0.30},
         shock_severity="SEVERE",
     )
     leaders = {symbol: LeaderScore(symbol, 0.8, 1.0, True, False, "test", {}) for symbol in account.positions}
@@ -1135,13 +1172,14 @@ def test_small_restore_gap_remains_executable_instead_of_hanging_forever():
         user_panel={symbol: pd.DataFrame() for symbol in account.positions},
         leaders=leaders,
         account=account,
-        prices={"a": 100.0, "b": 100.0},
+        prices={first_symbol: 100.0, second_symbol: 100.0},
     )
+    targets = _attach_target_attribution(signal_date="2026-01-05", targets=targets)
     planned = plan_orders(
         signal_date="2026-01-05",
         targets=targets,
         account=account,
-        prices={"a": 100.0, "b": 100.0},
+        prices={first_symbol: 100.0, second_symbol: 100.0},
         cfg=DEFAULT_CONFIG,
     )
 
@@ -1150,4 +1188,4 @@ def test_small_restore_gap_remains_executable_instead_of_hanging_forever():
         "confirmed post-shock restoration",
         "post-shock restoration; retain winner drift",
     }
-    assert [(order.side, order.symbol) for order in planned] == [("BUY", "a")]
+    assert [(order.side, order.symbol) for order in planned] == [("BUY", first_symbol)]

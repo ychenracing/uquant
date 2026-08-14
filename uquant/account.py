@@ -16,6 +16,7 @@ from typing import Any
 
 from .types import (
     ACCOUNT_SCHEMA_VERSION,
+    ATTRIBUTION_IDENTITY_FIELDS,
     ORDER_INTENT_IMMUTABLE_FIELDS,
     AccountOrder,
     AccountState,
@@ -43,6 +44,47 @@ from .validation.universe import (
 _EVENT_ID = re.compile(r"^evt_[0-9a-f]{64}$")
 _LEGACY_INDUSTRY = "legacy_unmapped"
 _LEGACY_MANIFEST_SHA256 = "0" * 64
+
+_UNLINKED_NATIVE_IDENTITY_FIELDS = (
+    "signal_date",
+    "symbol",
+    "side",
+    "lifecycle",
+    "reduction_policy",
+    "exit_kind",
+    "event_id",
+    "origin_subsystem",
+    "mechanism",
+    "origin_lifecycle",
+    "replaces_symbol",
+    "industry_at_entry",
+    "industry_manifest_sha256",
+)
+_UNLINKED_LEGACY_IDENTITY_FIELDS = (
+    "signal_date",
+    "symbol",
+    "side",
+    "lifecycle",
+    "reduction_policy",
+    "reason_code",
+    "exit_kind",
+)
+
+
+def _unlinked_fill_matches_order(
+    fill: Fill,
+    order: AccountOrder,
+    *,
+    native: bool,
+) -> bool:
+    """Match only stable structured fields; prose is never a join key."""
+
+    fields = (
+        _UNLINKED_NATIVE_IDENTITY_FIELDS
+        if native
+        else _UNLINKED_LEGACY_IDENTITY_FIELDS
+    )
+    return all(getattr(fill, field) == getattr(order, field) for field in fields)
 
 
 def _reject_nonstandard_json_constant(value: str) -> None:
@@ -210,10 +252,11 @@ def _validate_order_intent(
             label=label,
             verify_event_derivation=True,
         )
-        if (
-            order.side == Side.BUY.value
-            and order.origin_subsystem != OriginSubsystem.LEGACY_MIGRATION.value
-        ):
+        if order.side == Side.BUY.value:
+            if order.origin_subsystem == OriginSubsystem.LEGACY_MIGRATION.value:
+                raise RuntimeError(f"{label} legacy migration identity cannot create a BUY")
+            if order.origin_subsystem == OriginSubsystem.BROKER_RECONCILIATION.value:
+                raise RuntimeError(f"{label} broker reconciliation identity cannot create a BUY")
             expected_industry = default_ai_universe().industry_of(order.symbol, signal_date)
             if expected_industry == "unknown":
                 raise RuntimeError(f"{label} BUY has no point-in-time AI-universe membership")
@@ -272,10 +315,8 @@ def _validate_fill(
             "signal_date",
             "symbol",
             "side",
-            "reason",
             "lifecycle",
             "reduction_policy",
-            "reason_code",
             "exit_kind",
             "event_id",
             "origin_subsystem",
@@ -1209,15 +1250,18 @@ def _validate_order_state(
     unlinked_fills = [fill for fill in state.fills if not fill.order_id]
 
     def unlinked_identity_matches(fill: Fill, order: AccountOrder) -> bool:
-        """Match an unlinked fill to the immutable identity of one order."""
-
-        return bool(
-            fill.signal_date == order.signal_date
-            and fill.symbol == order.symbol
-            and fill.side == order.side
-            and fill.reason == order.reason
-            and fill.lifecycle == order.lifecycle
+        return _unlinked_fill_matches_order(
+            fill,
+            order,
+            native=validate_attribution,
         )
+
+    for fill in unlinked_fills:
+        if sum(
+            unlinked_identity_matches(fill, candidate)
+            for candidate in state.order_ledger
+        ) > 1:
+            raise RuntimeError("unlinked fill has ambiguous structured order identity")
 
     for fill in state.fills:
         if fill.order_id:
@@ -1269,6 +1313,123 @@ def _validate_order_state(
                 _required_iso_date(fill.fill_date, field="fill fill_date") for fill in relevant_fills
             ):
                 raise RuntimeError("account order update predates its latest fill")
+
+
+def _validate_lot_origin_chains(state: AccountState) -> None:
+    """Bind every native live/sold lot to a validated originating BUY."""
+
+    legacy_migration_boundary = any(
+        isinstance(event.get("from_schema"), int)
+        and not isinstance(event.get("from_schema"), bool)
+        and int(event["from_schema"]) < ACCOUNT_SCHEMA_VERSION
+        and event.get("to_schema") == ACCOUNT_SCHEMA_VERSION
+        and isinstance(event.get("migrated_at_utc"), str)
+        and bool(str(event["migrated_at_utc"]).strip())
+        and isinstance(event.get("from_code_hash"), str)
+        and bool(str(event["from_code_hash"]).strip())
+        and isinstance(event.get("to_code_hash"), str)
+        and bool(str(event["to_code_hash"]).strip())
+        for event in state.account_migrations
+    )
+    ledger = {order.order_id: order for order in state.order_ledger}
+
+    def originating_buy_order(fill: Fill) -> AccountOrder | None:
+        if fill.side != Side.BUY.value:
+            return None
+        if fill.order_id:
+            candidate = ledger.get(fill.order_id)
+            return candidate if candidate is not None and candidate.side == Side.BUY.value else None
+        candidates = [
+            order
+            for order in state.order_ledger
+            if order.side == Side.BUY.value
+            and _unlinked_fill_matches_order(fill, order, native=True)
+        ]
+        return candidates[0] if len(candidates) == 1 else None
+
+    buy_fills: dict[tuple[str, str], list[Fill]] = {}
+    acquired_shares: dict[tuple[str, str], int] = {}
+    for fill in state.fills:
+        if originating_buy_order(fill) is None:
+            continue
+        key = (fill.symbol, fill.event_id)
+        buy_fills.setdefault(key, []).append(fill)
+        acquired_shares[key] = acquired_shares.get(key, 0) + fill.shares
+
+    attributed_lot_shares: dict[tuple[str, str], int] = {}
+
+    def validate_lot(
+        lot: Any,
+        *,
+        symbol: str,
+        shares: int,
+        entry_date: str,
+        label: str,
+        sold_allocation: dict[str, Any] | None = None,
+    ) -> None:
+        legacy = bool(
+            lot.origin_subsystem == OriginSubsystem.LEGACY_MIGRATION.value
+            and lot.mechanism == AttributionMechanism.LEGACY_MIGRATION.value
+        )
+        if legacy:
+            if not legacy_migration_boundary:
+                raise RuntimeError(f"{label} legacy identity lacks an explicit migration boundary")
+            return
+        broker_degraded = bool(
+            lot.origin_subsystem == OriginSubsystem.BROKER_RECONCILIATION.value
+            and lot.mechanism == AttributionMechanism.BROKER_RECONCILIATION.value
+        )
+        if broker_degraded:
+            if (
+                sold_allocation is None
+                or sold_allocation.get("degraded") is not True
+                or not isinstance(sold_allocation.get("degradation_reason"), str)
+                or not str(sold_allocation["degradation_reason"]).strip()
+            ):
+                raise RuntimeError(f"{label} broker reconciliation identity is not a degraded SELL")
+            return
+
+        key = (symbol, lot.event_id)
+        candidates = buy_fills.get(key, [])
+        matches = [
+            fill
+            for fill in candidates
+            if fill.fill_date == entry_date
+            and all(
+                getattr(fill, field) == getattr(lot, field)
+                for field in ATTRIBUTION_IDENTITY_FIELDS
+            )
+        ]
+        if not matches:
+            raise RuntimeError(f"{label} does not chain to an originating BUY")
+        attributed_lot_shares[key] = attributed_lot_shares.get(key, 0) + shares
+
+    for symbol, position in state.positions.items():
+        for tranche in position.tranches:
+            validate_lot(
+                tranche,
+                symbol=symbol,
+                shares=tranche.shares,
+                entry_date=tranche.entry_date,
+                label="account tranche",
+            )
+    for fill in state.fills:
+        for allocation in fill.sold_tranches:
+            validate_lot(
+                SimpleNamespace(**allocation),
+                symbol=fill.symbol,
+                shares=int(allocation["shares"]),
+                entry_date=str(allocation.get("entry_date", "")),
+                label="fill sold lot",
+                sold_allocation=allocation,
+            )
+
+    for key, attributed in attributed_lot_shares.items():
+        if attributed > acquired_shares.get(key, 0):
+            raise RuntimeError(
+                "native lot shares exceed originating BUY fill shares for "
+                f"{key[0]} {key[1]}"
+            )
 
 
 def load_account(
@@ -1493,6 +1654,8 @@ def load_account(
         validate_attribution=validate_attribution,
     )
     _validate_strategy_risk_state(state)
+    if validate_attribution:
+        _validate_lot_origin_chains(state)
     if require_hashes and (not state.data_hash or not state.code_hash):
         raise RuntimeError("account state missing validation hashes")
     return state
@@ -1679,6 +1842,17 @@ def _populate_legacy_attribution(state: AccountState) -> None:
     )
     for fill_index, fill in enumerate(state.fills, start=1):
         linked = ledger.get(fill.order_id) if fill.order_id else None
+        if not fill.order_id:
+            candidates = [
+                order
+                for order in state.order_ledger
+                if _unlinked_fill_matches_order(fill, order, native=False)
+            ]
+            if len(candidates) > 1:
+                raise RuntimeError(
+                    "legacy unlinked fill has ambiguous structured order identity"
+                )
+            linked = candidates[0] if candidates else None
         if linked is not None:
             for field in identity_fields:
                 setattr(fill, field, getattr(linked, field))
@@ -1830,6 +2004,7 @@ def save_account(state: AccountState, path: str | Path) -> None:
         validate_attribution=True,
     )
     _validate_strategy_risk_state(state)
+    _validate_lot_origin_chains(state)
     destination = Path(path)
     destination.parent.mkdir(parents=True, exist_ok=True)
     handle, temporary = tempfile.mkstemp(prefix=destination.name, dir=destination.parent)

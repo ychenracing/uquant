@@ -179,10 +179,9 @@ def derive_attribution_event_id(
         or any(character not in "0123456789abcdef" for character in industry_manifest_sha256)
     ):
         raise ValueError("attribution industry manifest must be SHA-256")
-    if not isinstance(reason_code, str) or not reason_code:
-        raise ValueError("attribution reason_code must be non-empty text")
-    if not isinstance(exit_kind, str) or not exit_kind:
-        raise ValueError("attribution exit_kind must be non-empty text")
+    # Kept as compatibility-only arguments while schema-v4 callers migrate.
+    # Neither display/backward field participates in attribution identity.
+    del reason_code, exit_kind
     payload = {
         "schema": "uquant.attribution-event.v1",
         "signal_date": signal_date,
@@ -196,8 +195,6 @@ def derive_attribution_event_id(
         "industry_at_entry": industry_at_entry,
         "industry_manifest_sha256": industry_manifest_sha256,
         "reduction_policy": reduction_policy,
-        "reason_code": reason_code,
-        "exit_kind": exit_kind,
     }
     encoded = json.dumps(
         payload,

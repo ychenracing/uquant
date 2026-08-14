@@ -44,6 +44,7 @@ from .types import (
     Fill,
     LeaderScore,
     Opportunity,
+    PendingOrder,
     Target,
     derive_attribution_event_id,
 )
@@ -74,14 +75,40 @@ def _attach_target_attribution(
     *,
     signal_date: str,
     targets: tuple[Target, ...],
+    retained_orders: Iterable[PendingOrder] = (),
+    cfg: SystemConfig = DEFAULT_CONFIG,
 ) -> tuple[Target, ...]:
     """Finalize deterministic IDs and PIT industry for newly causal targets."""
 
     universe = default_ai_universe()
+    retained_by_symbol = {
+        order.symbol: order
+        for order in retained_orders
+        if order.event_id and order.remaining_shares > 0
+    }
     attributed: list[Target] = []
     for target in targets:
         if target.event_id:
             attributed.append(target)
+            continue
+        retained = retained_by_symbol.get(target.symbol)
+        if retained is not None and (
+            abs(retained.target_weight - target.weight) < cfg.min_trade_weight
+            and retained.lifecycle == target.lifecycle
+            and retained.reduction_policy == target.reduction_policy
+            and retained.origin_subsystem == target.origin_subsystem
+            and retained.mechanism == target.mechanism
+            and retained.origin_lifecycle == target.origin_lifecycle
+            and retained.replaces_symbol == target.replaces_symbol
+        ):
+            attributed.append(
+                replace(
+                    target,
+                    event_id=retained.event_id,
+                    industry_at_entry=retained.industry_at_entry,
+                    industry_manifest_sha256=retained.industry_manifest_sha256,
+                )
+            )
             continue
         industry = universe.industry_of(target.symbol, signal_date)
         manifest = REQUIRED_AI_UNIVERSE_SHA256
@@ -385,6 +412,8 @@ class ProductionEngine:
         targets = _attach_target_attribution(
             signal_date=str(date.date()),
             targets=targets,
+            retained_orders=account.pending_orders,
+            cfg=self.cfg,
         )
         if not decision_cfg.group_balanced_reference_enabled:
             # The selected policy uses the security-weighted view for decisions.

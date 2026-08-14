@@ -70,6 +70,19 @@ class RecoveryPortfolioPolicy(LeaderPortfolioPolicy):
                     if weights_now.get(symbol, 0.0) > 0
                 }
                 proposed.update(missing)
+                structured_replacements: dict[str, str] = {}
+                for event in reversed(account.replacement_events):
+                    if event.get("route") != "recovery_anchor_substitution":
+                        continue
+                    new_symbol = event.get("new_symbol")
+                    old_symbol = event.get("old_symbol")
+                    if (
+                        isinstance(new_symbol, str)
+                        and isinstance(old_symbol, str)
+                        and new_symbol in missing
+                        and new_symbol not in structured_replacements
+                    ):
+                        structured_replacements[new_symbol] = old_symbol
                 return self._targets(
                     proposed=proposed,
                     leaders=leaders,
@@ -78,6 +91,7 @@ class RecoveryPortfolioPolicy(LeaderPortfolioPolicy):
                     reason="confirmed recovery anchor substitution",
                     origin_subsystem=OriginSubsystem.RECOVERY,
                     mechanism=AttributionMechanism.RECOVERY_SUBSTITUTION,
+                    replaces_symbols=structured_replacements,
                 )
             account.candidate_tenure["recovery_substitution_pending"] = 0
 

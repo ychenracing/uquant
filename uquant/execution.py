@@ -140,8 +140,49 @@ def plan_orders(
             and current_value / equity < 0.95 * target.weight
             and difference >= restoration_threshold
         )
-        if difference > 0 and target.event_id:
-            industry = default_ai_universe().industry_of(target.symbol, signal_date)
+        buy_will_be_planned = bool(
+            difference > 0
+            and not (
+                target.weight != 0
+                and abs(difference) < threshold
+                and not restoration_buy_below_completion
+            )
+        )
+        if buy_will_be_planned:
+            if not target.event_id:
+                raise RuntimeError(f"new BUY for {target.symbol} requires a canonical event_id")
+            if target.origin_subsystem in {
+                "BROKER_RECONCILIATION",
+                "LEGACY_MIGRATION",
+            }:
+                raise RuntimeError(
+                    f"new BUY for {target.symbol} cannot use {target.origin_subsystem} identity"
+                )
+            retained_identity = next(
+                (
+                    order
+                    for order in account.pending_orders
+                    if order.side == Side.BUY.value
+                    and order.symbol == target.symbol
+                    and abs(order.target_weight - target.weight) < cfg.min_trade_weight
+                    and order.lifecycle == target.lifecycle
+                    and order.reduction_policy == target.reduction_policy
+                    and all(
+                        getattr(order, field) == getattr(target, field)
+                        for field in ATTRIBUTION_IDENTITY_FIELDS
+                    )
+                ),
+                None,
+            )
+            identity_signal_date = (
+                retained_identity.signal_date
+                if retained_identity is not None
+                else signal_date
+            )
+            industry = default_ai_universe().industry_of(
+                target.symbol,
+                identity_signal_date,
+            )
             if industry == "unknown":
                 raise RuntimeError(
                     f"new BUY for {target.symbol} has no point-in-time AI-universe membership"
@@ -153,23 +194,36 @@ def plan_orders(
                 raise RuntimeError(
                     f"new BUY for {target.symbol} has invalid point-in-time industry attribution"
                 )
-            expected_event_id = derive_attribution_event_id(
-                signal_date=signal_date,
-                symbol=target.symbol,
-                target_weight=target.weight,
-                lifecycle=target.lifecycle,
-                origin_lifecycle=target.origin_lifecycle,
-                origin_subsystem=target.origin_subsystem,
-                mechanism=target.mechanism,
-                replaces_symbol=target.replaces_symbol,
-                industry_at_entry=target.industry_at_entry,
-                industry_manifest_sha256=target.industry_manifest_sha256,
-                reduction_policy=target.reduction_policy,
-                reason_code=target.reason_code,
-                exit_kind=target.exit_kind,
-            )
+            try:
+                expected_event_id = derive_attribution_event_id(
+                    signal_date=identity_signal_date,
+                    symbol=target.symbol,
+                    target_weight=(
+                        retained_identity.target_weight
+                        if retained_identity is not None
+                        else target.weight
+                    ),
+                    lifecycle=target.lifecycle,
+                    origin_lifecycle=target.origin_lifecycle,
+                    origin_subsystem=target.origin_subsystem,
+                    mechanism=target.mechanism,
+                    replaces_symbol=target.replaces_symbol,
+                    industry_at_entry=target.industry_at_entry,
+                    industry_manifest_sha256=target.industry_manifest_sha256,
+                    reduction_policy=target.reduction_policy,
+                    reason_code=target.reason_code,
+                    exit_kind=target.exit_kind,
+                )
+            except (TypeError, ValueError) as exc:
+                raise RuntimeError(
+                    f"new BUY for {target.symbol} has malformed attribution identity"
+                ) from exc
             if target.event_id != expected_event_id:
                 raise RuntimeError("new BUY event_id differs from canonical derivation")
+            if retained_identity is not None:
+                # The active GTC order already represents this no-trade-band-
+                # equivalent event. Merge retains that canonical old intent.
+                continue
         if target.weight == 0 and current_value > 0:
             difference = -current_value
         elif abs(difference) < threshold and not restoration_buy_below_completion:
@@ -216,14 +270,11 @@ def merge_pending_orders(
     target_by_symbol = {target.symbol: target for target in targets}
 
     def same_attribution(order: PendingOrder, target: Target) -> bool:
-        # A still-open GTC order keeps the event created on its original
-        # signal date.  Compare its immutable causal dimensions here; a fresh
-        # event_id on today's otherwise-identical Target must not split one
-        # partially executed economic intent into multiple events.
+        """Require the complete causal identity, including the stable event."""
+
         return all(
             getattr(order, field) == getattr(target, field)
             for field in ATTRIBUTION_IDENTITY_FIELDS
-            if field != "event_id"
         )
 
     def durable_subthreshold_buy(
@@ -241,7 +292,6 @@ def merge_pending_orders(
             and target.weight > 1e-12
             and order.lifecycle == target.lifecycle
             and order.reduction_policy == target.reduction_policy
-            and order.reason_code == target.reason_code
             and order.exit_kind == target.exit_kind
             and same_attribution(order, target)
             and abs(order.target_weight - target.weight)
@@ -259,16 +309,8 @@ def merge_pending_orders(
         same_execution_policy = (
             order.lifecycle == target.lifecycle
             and order.reduction_policy == target.reduction_policy
-            and order.reason_code == target.reason_code
             and order.exit_kind == target.exit_kind
             and same_attribution(order, target)
-        )
-        durable_full_exit = bool(
-            order.side == Side.SELL.value
-            and order.order_id
-            and order.remaining_shares > 0
-            and abs(order.target_weight) <= 1e-12
-            and abs(target.weight) <= 1e-12
         )
         durable_partial_risk_exit = bool(
             cfg is not None
@@ -283,7 +325,7 @@ def merge_pending_orders(
             and same_attribution(order, target)
         )
         if (
-            (consistent and (same_execution_policy or durable_full_exit))
+            (consistent and same_execution_policy)
             or durable_partial_risk_exit
             or durable_subthreshold_buy(order, target)
         ):
@@ -313,28 +355,16 @@ def merge_pending_orders(
             existing is not None
             and existing.side == order.side
             and abs(existing.target_weight - order.target_weight) <= 1e-12
-            and (
-                (
-                    existing.lifecycle == order.lifecycle
-                    and existing.reduction_policy == order.reduction_policy
-                    and existing.reason_code == order.reason_code
-                    and existing.exit_kind == order.exit_kind
-                    and all(
-                        getattr(existing, field) == getattr(order, field)
-                        for field in ATTRIBUTION_IDENTITY_FIELDS
-                        if field != "event_id"
-                    )
-                )
-                or (
-                    existing.side == Side.SELL.value
-                    and abs(existing.target_weight) <= 1e-12
-                    and abs(order.target_weight) <= 1e-12
-                )
+            and existing.lifecycle == order.lifecycle
+            and existing.reduction_policy == order.reduction_policy
+            and existing.exit_kind == order.exit_kind
+            and all(
+                getattr(existing, field) == getattr(order, field)
+                for field in ATTRIBUTION_IDENTITY_FIELDS
             )
         ):
-            # An unchanged GTC instruction remains one broker order.  A full
-            # exit is also already maximally conservative, so a later change
-            # in attribution cannot justify replacing its immutable intent.
+            # An unchanged GTC instruction remains one broker order. Display
+            # prose/reason codes cannot split a causal event.
             continue
         merged[order.symbol] = order
     return tuple(sorted(merged.values(), key=lambda item: (item.side != Side.SELL.value, item.symbol)))

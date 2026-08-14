@@ -71,11 +71,12 @@ def _position_state() -> AccountState:
     state = AccountState.empty(2_000_000.0)
     state.data_hash = "data"
     state.code_hash = "code"
+    identity = _identity(target_weight=0.05)
     state.positions[SYMBOL] = Position(
         symbol=SYMBOL,
         shares=100,
         avg_cost=10.0,
-        entry_date="2026-01-05",
+        entry_date="2026-01-06",
         highest_close=11.0,
         lifecycle="CORE",
         tranches=[
@@ -84,8 +85,8 @@ def _position_state() -> AccountState:
                 lifecycle="CORE",
                 shares=100,
                 avg_cost=10.0,
-                entry_date="2026-01-05",
-                sellable_date="2026-01-06",
+                entry_date="2026-01-06",
+                sellable_date="2026-01-07",
                 highest_close=11.0,
                 lowest_close=9.0,
                 mfe=0.10,
@@ -94,10 +95,48 @@ def _position_state() -> AccountState:
                 entry_confidence=0.9,
                 entry_regime="TREND",
                 entry_industry_strength=0.7,
-                **_identity(),
+                **identity,
             )
         ],
     )
+    state.order_ledger = [
+        AccountOrder(
+            order_id="O000000001",
+            signal_date="2026-01-05",
+            submitted_date="2026-01-05",
+            symbol=SYMBOL,
+            side="BUY",
+            target_weight=0.05,
+            reason="native chain fixture",
+            lifecycle="CORE",
+            status=OrderStatus.FILLED.value,
+            requested_shares=100,
+            filled_shares=100,
+            last_update_date="2026-01-06",
+            last_event="FILLED",
+            **identity,
+        )
+    ]
+    state.next_order_sequence = 2
+    state.fills = [
+        Fill(
+            signal_date="2026-01-05",
+            fill_date="2026-01-06",
+            symbol=SYMBOL,
+            side="BUY",
+            shares=100,
+            price=10.0,
+            gross_value=1_000.0,
+            commission=5.0,
+            stamp_duty=0.0,
+            transfer_fee=0.1,
+            slippage_cost=0.2,
+            reason="native chain fixture",
+            lifecycle="CORE",
+            order_id="O000000001",
+            **identity,
+        )
+    ]
     return state
 
 

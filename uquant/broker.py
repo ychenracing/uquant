@@ -10,6 +10,7 @@ from datetime import timedelta
 from typing import Any
 
 from .account import (
+    _validate_lot_origin_chains,
     _validate_order_state,
     _validate_position_state,
     _validate_strategy_risk_state,
@@ -353,7 +354,11 @@ def sync_broker_snapshot(
     # A broker import may repair aggregate positions, but it must never build
     # on malformed order/fill history.  Validate that durable causal chain
     # before interpreting any new fill against it.
-    _validate_order_state(account, sequence_was_explicit=False)
+    _validate_order_state(
+        account,
+        sequence_was_explicit=False,
+        validate_attribution=True,
+    )
     _validate_strategy_risk_state(account)
 
     ledger = {order.order_id: order for order in account.order_ledger}
@@ -640,38 +645,8 @@ def sync_broker_snapshot(
                 }
             )
         elif economic_shares < shares:
-            residual = shares - economic_shares
-            tranche_id = f"broker-unmatched:{as_of}:{symbol}:{economic_shares}-{shares}"
-            tranches.append(
-                Tranche(
-                    tranche_id=tranche_id,
-                    lifecycle=Lifecycle.CORE.value,
-                    shares=residual,
-                    avg_cost=avg_cost,
-                    entry_date=as_of,
-                    sellable_date=as_of,
-                    highest_close=avg_cost,
-                    lowest_close=avg_cost,
-                    **_broker_reconciliation_identity(
-                        symbol=symbol,
-                        signal_date=as_of,
-                        lifecycle=Lifecycle.CORE.value,
-                        token=tranche_id,
-                    ),
-                )
-            )
-            account.reconciliation_events.append(
-                {
-                    "date": as_of,
-                    "symbol": symbol,
-                    "event": "economic_lot_degraded",
-                    "unmatched_shares": residual,
-                    "reason": "broker snapshot exceeded known lot inventory",
-                    "quality": "degraded_external_inventory",
-                    "default_lifecycle": Lifecycle.CORE.value,
-                    "default_entry_date": as_of,
-                    "default_highest_close": avg_cost,
-                }
+            raise ValueError(
+                f"broker position {symbol} exceeds known BUY lot inventory"
             )
         tranches = _align_sellability(
             tranches,
@@ -763,9 +738,14 @@ def sync_broker_snapshot(
         if entry is not None:
             pending.remaining_shares = entry.remaining_shares
     account.broker_as_of = as_of
-    _validate_position_state(account)
-    _validate_order_state(account, sequence_was_explicit=False)
+    _validate_position_state(account, validate_attribution=True)
+    _validate_order_state(
+        account,
+        sequence_was_explicit=False,
+        validate_attribution=True,
+    )
     _validate_strategy_risk_state(account)
+    _validate_lot_origin_chains(account)
     for state_field in fields(AccountState):
         setattr(
             original_account,

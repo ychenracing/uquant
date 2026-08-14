@@ -140,6 +140,20 @@ def test_candidate_search_rejects_non_economic_grid_before_runner() -> None:
     assert calls == 0
 
 
+def test_candidate_grid_rejects_noncanonical_name_before_values() -> None:
+    def values() -> Any:
+        raise AssertionError("noncanonical grid values were consumed")
+        yield 0.73
+
+    with pytest.raises(ValueError, match="canonical exact"):
+        search_candidates(
+            parameter_grid={" leader_mature_score": values()},
+            pools=("a",),
+            windows=("h1_2023",),
+            runner=lambda *_args: None,  # type: ignore[arg-type]
+        )
+
+
 def test_parameter_stress_public_paths_reject_non_economic_overrides() -> None:
     with pytest.raises(ValueError, match="ECONOMIC"):
         one_at_a_time_perturbations({"max_gross": 1.0})

@@ -42,7 +42,9 @@ def validate_economic_parameter_names(names: Iterable[str]) -> tuple[str, ...]:
     for raw_name in names:
         if not isinstance(raw_name, str) or not raw_name.strip():
             raise ValueError("candidate parameter names must be non-empty strings")
-        name = raw_name.strip()
+        if raw_name != raw_name.strip():
+            raise ValueError("candidate parameter names must be canonical exact strings")
+        name = raw_name
         try:
             entry = governance.entry(name)
         except ValueError as exc:
@@ -85,7 +87,9 @@ def validate_shared_config(
     for raw_name, value in parameters.items():
         if not isinstance(raw_name, str) or not raw_name.strip():
             raise ValueError("candidate parameter names must be non-empty strings")
-        name = raw_name.strip()
+        if raw_name != raw_name.strip():
+            raise ValueError("candidate parameter names must be canonical exact strings")
+        name = raw_name
         lowered = name.lower()
         if (
             lowered in _PER_POOL_KEYS

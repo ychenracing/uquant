@@ -120,7 +120,6 @@ class SystemConfig:
     strategic_one_name_confirm_days: int = 4
     # Serialized compatibility fields. Universe size is diagnostic only, and
     # none of these thresholds may select a production decision path.
-    adaptive_broad_universe_min_size: int = 10
     adaptive_broad_universe_compatibility_enabled: bool = True
     strategic_secular_min_score: float = 0.58
     strategic_secular_min_confidence: float = 0.65

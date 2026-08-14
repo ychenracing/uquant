@@ -5,11 +5,11 @@
   "counts": {
     "before": {"total_fields": 285, "economic_fields": 164},
     "after": {"total_fields": 278, "economic_fields": 164},
-    "current": {"total_fields": 283, "economic_fields": 164}
+    "current": {"total_fields": 282, "economic_fields": 164}
   },
   "config_migration": {
     "champion_config_sha256": "023d709731196a325d9cd03e95ece92e4baf63d2c5c66bb9f7d0e7a190e7bf20",
-    "candidate_config_sha256": "d15c71bbce7448ca8df059e3d34e02254d316d4bfd8add00d0bc59e9a821071c"
+    "candidate_config_sha256": "d592b8a41fef9f689ba1c50a81b6e90049bbaa24fd0a23507f91eade1e69b03b"
   },
   "categories": {
     "MARKET_RULE": [
@@ -378,7 +378,6 @@
         "owner": "STRATEGIC",
         "rationale": "Dormant strategic compatibility slots have no configuration reads in production and are scheduled for evidence-backed one-at-a-time removal.",
         "fields": [
-          "adaptive_broad_universe_min_size",
           "adaptive_broad_universe_compatibility_enabled",
           "strategic_expansive_universe_min_size",
           "strategic_persistent_confirm_days",
@@ -431,6 +430,6 @@
       "rationale": "The reversal-route confirmation slot is validated but never read by the production route or durable state."
     }
   ],
-  "removed_fields": ["strategic_cohort_symbols", "strategic_partial_universe_max_size"],
-  "artifact_sha256": "bde8a387c973bff550369552ad254008bbf6aba78866d5f03a1fdbaf20dd51f4"
+  "removed_fields": ["strategic_cohort_symbols", "strategic_partial_universe_max_size", "adaptive_broad_universe_min_size"],
+  "artifact_sha256": "a4fbd5db7c6f00a92a697d5874e9bb8ca35705c786e8232473eb20ff8a78d844"
 }

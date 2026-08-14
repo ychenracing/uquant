@@ -1045,7 +1045,7 @@ def test_persistent_industry_outranks_a_shorter_established_group() -> None:
         1.0,
         0,
         {
-            "configured_user_universe_size": DEFAULT_CONFIG.adaptive_broad_universe_min_size,
+            "configured_user_universe_size": 10,
             "risk_anchor_symbols": ["sentinel"],
             "risk_anchor_group_count": 3,
             "breadth20": 1.0,
@@ -1105,7 +1105,7 @@ def test_broad_established_group_rejects_weak_median_persistence() -> None:
         1.0,
         0,
         {
-            "configured_user_universe_size": DEFAULT_CONFIG.adaptive_broad_universe_min_size,
+            "configured_user_universe_size": 10,
             "risk_anchor_symbols": ["sentinel"],
             "risk_anchor_group_count": 3,
             "breadth20": 1.0,

@@ -1,6 +1,11 @@
 from __future__ import annotations
 
+import copy
 import dataclasses
+import hashlib
+import json
+from pathlib import Path
+from typing import Any
 
 import pytest
 
@@ -14,6 +19,12 @@ from uquant.validation.generalization_contract import (
     build_official_scenarios,
     official_windows,
     scenario_contract_fingerprint,
+)
+from uquant.validation.generalization_reference import (
+    GENERALIZATION_BASELINE_PATH,
+    GENERALIZATION_POLICY_PATH,
+    load_generalization_baseline,
+    load_generalization_policy,
 )
 from uquant.validation.universe import load_ai_universe
 
@@ -192,3 +203,115 @@ def test_evidence_and_lookback_change_the_scenario_contract_fingerprint() -> Non
     )
     with pytest.raises(ValueError, match="evidence identity differs"):
         dataclasses.replace(base[0], evidence_sha256="0" * 64)
+
+
+def _read_contract(path: Path) -> dict[str, Any]:
+    payload = json.loads(path.read_text(encoding="utf-8"))
+    assert isinstance(payload, dict)
+    return payload
+
+
+def _reseal_contract(payload: dict[str, Any]) -> None:
+    canonical = {key: payload[key] for key in sorted(payload) if key != "canonical_sha256"}
+    payload["canonical_sha256"] = hashlib.sha256(
+        json.dumps(
+            canonical,
+            allow_nan=False,
+            ensure_ascii=False,
+            separators=(",", ":"),
+            sort_keys=True,
+        ).encode()
+    ).hexdigest()
+
+
+def test_frozen_generalization_baseline_and_policy_load_with_complete_coverage() -> None:
+    """Catches empty reviewed inputs or a baseline that omits fixed contract cells."""
+    baseline = load_generalization_baseline()
+    policy = load_generalization_policy()
+
+    assert len(baseline.cells) == 234
+    assert sum(cell.economic for cell in baseline.cells.values()) == 192
+    assert sum(cell.replay_error is not None for cell in baseline.cells.values()) == 1
+    assert baseline.runner_head == "80ad88ea03952bcb2839e6aab6390bb9541f739e"
+    assert policy.baseline_sha256 == baseline.sha256
+    assert policy.random_base_seed == 20260810
+    assert policy.random_seed_indexes == (0, 1, 2, 3, 4)
+    assert policy.random_pool_sizes == (5, 9, 15, 20)
+
+
+def test_empty_generalization_baseline_fails_closed(tmp_path: Path) -> None:
+    """Catches placeholder creation when the reviewed baseline is absent."""
+    empty = tmp_path / "empty-baseline.json"
+    empty.write_text("{}\n", encoding="utf-8")
+
+    with pytest.raises(ValueError, match="baseline"):
+        load_generalization_baseline(empty)
+
+
+@pytest.mark.parametrize(
+    "mutation",
+    ("cell", "missing_scenario", "seed", "window", "provenance"),
+)
+def test_edited_and_resealed_generalization_baseline_fails_compiled_anchor(
+    mutation: str,
+    tmp_path: Path,
+) -> None:
+    """Catches local resealing of cells, coverage, seeds, windows, or provenance."""
+    payload = copy.deepcopy(_read_contract(GENERALIZATION_BASELINE_PATH))
+    if mutation == "cell":
+        cell = next(item for item in payload["cells"] if item["metrics"] is not None)
+        cell["metrics"]["final_wealth"] += 0.01
+    elif mutation == "missing_scenario":
+        payload["cells"].pop()
+    elif mutation == "seed":
+        cell = next(item for item in payload["cells"] if item["seed_index"] is not None)
+        cell["seed_index"] = 99
+    elif mutation == "window":
+        payload["cells"][0]["window"] = "replacement-window"
+    else:
+        payload["matrix_runner"]["head"] = "9" * 40
+    _reseal_contract(payload)
+    changed = tmp_path / f"changed-baseline-{mutation}.json"
+    changed.write_text(json.dumps(payload, sort_keys=True), encoding="utf-8")
+
+    with pytest.raises(ValueError, match=r"compiled|reviewed"):
+        load_generalization_baseline(changed)
+
+
+@pytest.mark.parametrize(
+    ("field", "weakened"),
+    (
+        ("wealth_ratio_min", 0.94),
+        ("drawdown_absolute_buffer", 0.021),
+        ("orders_ratio_max", 1.11),
+        ("turnover_ratio_max", 1.11),
+    ),
+)
+def test_edited_and_resealed_policy_threshold_weakening_fails_compiled_anchor(
+    field: str,
+    weakened: float,
+    tmp_path: Path,
+) -> None:
+    """Catches self-signing a weaker non-regression policy after matrix review."""
+    payload = copy.deepcopy(_read_contract(GENERALIZATION_POLICY_PATH))
+    payload["relative_per_cell"][field] = weakened
+    _reseal_contract(payload)
+    changed = tmp_path / f"weakened-policy-{field}.json"
+    changed.write_text(json.dumps(payload, sort_keys=True), encoding="utf-8")
+
+    with pytest.raises(ValueError, match=r"compiled|reviewed"):
+        load_generalization_policy(changed)
+
+
+def test_edited_and_resealed_policy_seed_contract_fails_compiled_anchor(
+    tmp_path: Path,
+) -> None:
+    """Catches replacing a failing fixed seed after observing champion output."""
+    payload = copy.deepcopy(_read_contract(GENERALIZATION_POLICY_PATH))
+    payload["scenario_contract"]["random_seed_indexes"][-1] = 5
+    _reseal_contract(payload)
+    changed = tmp_path / "changed-policy-seeds.json"
+    changed.write_text(json.dumps(payload, sort_keys=True), encoding="utf-8")
+
+    with pytest.raises(ValueError, match=r"compiled|reviewed"):
+        load_generalization_policy(changed)

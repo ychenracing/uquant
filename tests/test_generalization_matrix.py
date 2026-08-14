@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import copy
+import json
 from collections.abc import Mapping
 from pathlib import Path
 from typing import Any
@@ -20,6 +21,12 @@ from uquant.validation.generalization_matrix import (
     execute_generalization_matrix,
     validate_matrix_artifact,
     window_contract_fingerprint,
+)
+from uquant.validation.generalization_reference import (
+    evaluate_cell_non_regression,
+    evaluate_generalization_policy_artifact,
+    load_generalization_baseline,
+    load_generalization_policy,
 )
 from uquant.validation.universe import load_ai_universe
 
@@ -417,3 +424,83 @@ def test_matrix_source_provenance_rejects_committed_registry_divergence(
     monkeypatch.setattr(matrix_module, "_git", fake_git)
     with pytest.raises(RuntimeError, match="exact checked-out HEAD"):
         _head_and_source(tmp_path)
+
+
+def test_untouched_champion_has_exact_equality_but_records_frozen_gate_failures() -> None:
+    """Catches Pareto-only equality or dishonest suppression of champion failures."""
+    baseline = load_generalization_baseline()
+    policy = load_generalization_policy()
+    artifact = json.loads(
+        (Path("artifacts") / "phase2" / "champion-generalization-matrix.json").read_text(
+            encoding="utf-8"
+        )
+    )
+
+    result = evaluate_generalization_policy_artifact(
+        artifact,
+        baseline=baseline,
+        policy=policy,
+        require_exact_equality=True,
+    )
+
+    assert result["exact_equality_passed"] is True
+    assert result["passed"] is False
+    assert result["economic_cells_expected"] == 192
+    assert result["economic_cells_valid"] == 191
+    assert result["replay_error_cells"] == 1
+    assert any("continuous_ai_era/random__20__0000" in item for item in result["failures"])
+    assert any("random tail" in item for item in result["failures"])
+    assert not any("exact equality differs" in item for item in result["failures"])
+    assert not any("intrinsic directional" in item for item in result["failures"])
+
+
+def test_relative_cell_policy_accepts_equality_and_enforces_literal_boundaries() -> None:
+    """Catches equality rejection or weakened wealth/risk/activity non-regression."""
+    policy = load_generalization_policy()
+    reference = {
+        "final_wealth": 2.0,
+        "max_drawdown": 0.10,
+        "account_orders": 10,
+        "gross_turnover": 4.0,
+        "annual_turnover": 2.0,
+        "top1_concentration": 0.5,
+        "top3_concentration": 0.8,
+        "pnl_hhi": 0.4,
+    }
+
+    assert evaluate_cell_non_regression(reference, reference, policy=policy) == ()
+    assert evaluate_cell_non_regression(
+        {**reference, "final_wealth": 1.899999}, reference, policy=policy
+    ) == ("final_wealth 1.899999 is below 95% reference 1.9",)
+    assert evaluate_cell_non_regression(
+        {**reference, "max_drawdown": 0.120001}, reference, policy=policy
+    ) == ("max_drawdown 0.120001 exceeds reference-plus-buffer 0.12",)
+    assert evaluate_cell_non_regression(
+        {**reference, "account_orders": 12}, reference, policy=policy
+    ) == ("account_orders 12 exceeds reference activity limit 11",)
+    assert evaluate_cell_non_regression(
+        {**reference, "gross_turnover": 4.400001}, reference, policy=policy
+    ) == ("gross_turnover 4.400001 exceeds 110% reference 4.4",)
+    assert evaluate_cell_non_regression(
+        {**reference, "annual_turnover": 2.200001}, reference, policy=policy
+    ) == ("annual_turnover 2.200001 exceeds 110% reference 2.2",)
+
+
+def test_zero_reference_turnover_requires_candidate_zero() -> None:
+    """Catches a ratio fallback that permits activity where the champion had none."""
+    policy = load_generalization_policy()
+    reference = {
+        "final_wealth": 1.0,
+        "max_drawdown": 0.0,
+        "account_orders": 0,
+        "gross_turnover": 0.0,
+        "annual_turnover": 0.0,
+        "top1_concentration": 0.0,
+        "top3_concentration": 0.0,
+        "pnl_hhi": 0.0,
+    }
+    candidate = {**reference, "gross_turnover": 0.000001}
+
+    assert evaluate_cell_non_regression(candidate, reference, policy=policy) == (
+        "gross_turnover 1e-06 must remain zero because reference is zero",
+    )

@@ -18,6 +18,7 @@ from uquant.config_governance import (
 
 ROOT = Path(__file__).parents[1]
 GOVERNANCE_PATH = ROOT / "benchmarks" / "config_parameter_governance.json"
+REMOVED_COMPATIBILITY_OVERRIDES: tuple[dict[str, object], ...] = ({"strategic_cohort_symbols": ()},)
 
 
 def _canonical_sha256(payload: dict[str, Any]) -> str:
@@ -121,3 +122,9 @@ def test_economic_override_is_validated_as_a_real_system_config_change() -> None
     assert validate_shared_config({"leader_mature_score": 0.73}) == {"leader_mature_score": 0.73}
     with pytest.raises(ValueError, match="invalid ECONOMIC"):
         validate_shared_config({"leader_mature_score": 1.1})
+
+
+@pytest.mark.parametrize("changes", REMOVED_COMPATIBILITY_OVERRIDES)
+def test_removed_compatibility_overrides_fail_closed(changes: dict[str, object]) -> None:
+    with pytest.raises(TypeError, match="unexpected keyword"):
+        SystemConfig().override(**changes)

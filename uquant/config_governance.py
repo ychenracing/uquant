@@ -15,7 +15,7 @@ from .config import SystemConfig
 GOVERNANCE_PATH: Final = Path("benchmarks") / "config_parameter_governance.json"
 GOVERNANCE_BASE_COMMIT: Final = "e71c3f6cf42244f71e59458ec15375b92ed4da1f"
 REQUIRED_CONFIG_PARAMETER_GOVERNANCE_SHA256: Final = (
-    "1b26c41b5527d2329ff6334a7686e76b3d522e2744746b9a6f0cbd2dbc24f80d"
+    "895256b6a173934478c1af6edd9439bdea92eb0d5d7f133c0b20d8afece6118e"
 )
 REMOVAL_ORDER: Final = (
     "strategic_cohort_symbols",

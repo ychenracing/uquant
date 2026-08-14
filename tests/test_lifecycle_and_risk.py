@@ -503,7 +503,7 @@ def test_strategic_cohort_discovers_arbitrary_symbols_without_a_static_prior():
     allocator = PortfolioAllocator(DEFAULT_CONFIG)
     expected = {"arbitrary_optical", "arbitrary_compute", "arbitrary_equipment"}
 
-    assert DEFAULT_CONFIG.strategic_cohort_symbols == ()
+    assert account.strategic_cohort_symbols == []
     for date in dates[-DEFAULT_CONFIG.strategic_cohort_confirm_days :]:
         allocator._initialize_strategic_cohort(
             date=date,

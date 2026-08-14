@@ -75,7 +75,6 @@ INVALID_OVERRIDES: tuple[tuple[dict[str, Any], str], ...] = (
         {"leader_cycle_impulse_min_market_ret120": 0.02},
         "impulse_min_market_ret120",
     ),
-    ({"strategic_cohort_symbols": ("arbitrary_a",)}, "must remain empty"),
     ({"strategic_epoch_cooldown_sessions": 19}, "epoch cooldown"),
     ({"strategic_epoch_min_symbol_change": 0}, "epoch symbol change"),
     ({"strategic_long_cycle_max_tech_ret120": 0.0}, "long_cycle_max_tech_ret120"),
@@ -173,7 +172,6 @@ def test_configuration_serialization_is_complete_and_detached() -> None:
     assert payload["sector_guard_enabled"] is True
     assert payload["sector_guard_gross"] == pytest.approx(0.40)
     assert payload["industry_rotation_enabled"] is True
-    assert payload["strategic_cohort_symbols"] == ()
     assert payload["strategic_dynamic_enabled"] is True
     assert payload["dynamic_risk_anchors_enabled"] is True
     assert payload["strategic_epoch_cooldown_sessions"] == 30

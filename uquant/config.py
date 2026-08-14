@@ -108,9 +108,6 @@ class SystemConfig:
     leader_cycle_impulse_breadth: float = 0.10
     leader_cycle_min_market_ret120: float = 0.01
     leader_cycle_impulse_min_market_ret120: float = -0.01
-    # Strategic membership is evidence-derived. This empty compatibility field
-    # accepts serialized input but never supplies a symbol-specific prior.
-    strategic_cohort_symbols: tuple[str, ...] = ()
     strategic_dynamic_enabled: bool = True
     strategic_cohort_size: int = 3
     strategic_cohort_min_size: int = 3
@@ -527,10 +524,6 @@ class SystemConfig:
         ):
             raise ValueError(
                 "leader_cycle_impulse_min_market_ret120 must not exceed the ordinary market floor"
-            )
-        if self.strategic_cohort_symbols:
-            raise ValueError(
-                "strategic_cohort_symbols must remain empty; membership is discovered dynamically"
             )
         if not 1 <= self.strategic_cohort_size <= min(3, self.max_positions):
             raise ValueError("strategic_cohort_size must be in [1, min(3, max_positions)]")

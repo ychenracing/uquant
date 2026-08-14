@@ -3,12 +3,15 @@
 from __future__ import annotations
 
 import math
+from copy import deepcopy
+from dataclasses import fields
 from datetime import date as date_type
 from datetime import timedelta
 from typing import Any
 
 import pandas as pd
 
+from .account import validate_pending_order_for_account_write
 from .config import SystemConfig
 from .features import scalar
 from .portfolio_core import symbol_weight_cap
@@ -20,6 +23,7 @@ from .types import (
     Fill,
     Lifecycle,
     OrderStatus,
+    OriginSubsystem,
     PendingOrder,
     Position,
     ReductionPolicy,
@@ -150,6 +154,10 @@ def plan_orders(
             )
         )
         if buy_will_be_planned:
+            if target.origin_subsystem == OriginSubsystem.UNATTRIBUTED_LEGACY.value:
+                raise RuntimeError(
+                    "unattributed legacy identity cannot originate a production Target BUY"
+                )
             if not target.event_id:
                 raise RuntimeError(f"new BUY for {target.symbol} requires a canonical event_id")
             try:
@@ -390,14 +398,7 @@ def _register_account_order(
 ) -> AccountOrder:
     """Reuse a matching ledger order or allocate a stable new order identifier."""
 
-    try:
-        validate_attribution_compatibility(
-            origin_subsystem=order.origin_subsystem,
-            mechanism=order.mechanism,
-            side=order.side,
-        )
-    except (TypeError, ValueError) as exc:
-        raise RuntimeError(f"pending order has incompatible attribution: {exc}") from exc
+    validate_pending_order_for_account_write(account, order)
 
     if order.order_id:
         existing = next(
@@ -460,7 +461,7 @@ def _active_order_status(order: AccountOrder) -> str:
     return str(OrderStatus.PARTIALLY_FILLED.value if order.filled_shares > 0 else OrderStatus.OPEN.value)
 
 
-def reconcile_account_orders(
+def _reconcile_account_orders_mutating(
     *,
     account: AccountState,
     previous: list[PendingOrder],
@@ -496,6 +497,43 @@ def reconcile_account_orders(
         entry.cancel_reason = "daily target changed" if replacement is not None else "daily target removed"
         entry.last_update_date = submitted_date
         entry.last_event = entry.status
+    return current
+
+
+def reconcile_account_orders(
+    *,
+    account: AccountState,
+    previous: list[PendingOrder],
+    current: tuple[PendingOrder, ...],
+    submitted_date: str,
+) -> tuple[PendingOrder, ...]:
+    """Reconcile one all-or-nothing batch against a shadow ledger."""
+
+    shadow_account = deepcopy(account)
+    shadow_previous, shadow_current = deepcopy((previous, current))
+    _reconcile_account_orders_mutating(
+        account=shadow_account,
+        previous=shadow_previous,
+        current=shadow_current,
+        submitted_date=submitted_date,
+    )
+
+    original_ledger = {order.order_id: order for order in account.order_ledger}
+    committed_ledger: list[AccountOrder] = []
+    for shadow_order in shadow_account.order_ledger:
+        original_order = original_ledger.get(shadow_order.order_id)
+        if original_order is None:
+            committed_ledger.append(shadow_order)
+            continue
+        for field in fields(AccountOrder):
+            setattr(original_order, field.name, getattr(shadow_order, field.name))
+        committed_ledger.append(original_order)
+    account.order_ledger = committed_ledger
+    account.next_order_sequence = shadow_account.next_order_sequence
+    for original, shadow in zip(previous, shadow_previous, strict=True):
+        original.order_id = shadow.order_id
+    for original, shadow in zip(current, shadow_current, strict=True):
+        original.order_id = shadow.order_id
     return current
 
 

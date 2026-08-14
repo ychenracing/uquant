@@ -46,7 +46,7 @@ from .validation.universe import (
 _EVENT_ID = re.compile(r"^evt_[0-9a-f]{64}$")
 _LEGACY_INDUSTRY = "legacy_unmapped"
 _LEGACY_MANIFEST_SHA256 = "0" * 64
-_PROSE_BOUND_ATTRIBUTION_SCHEMA_VERSION = 4
+_HISTORICAL_ATTRIBUTION_SCHEMA_VERSION = 4
 
 _UNLINKED_NATIVE_IDENTITY_FIELDS = (
     "signal_date",
@@ -154,7 +154,7 @@ def _derive_v4_attribution_event_id(
     reason_code: str,
     exit_kind: str,
 ) -> str:
-    """Read only the prose-bound event format written by account schema v4."""
+    """Read only the exact machine-only event format written by schema v4."""
 
     # Current derivation performs the shared closed-vocabulary and scalar
     # validation. Its result is intentionally discarded at this migration-only
@@ -174,6 +174,9 @@ def _derive_v4_attribution_event_id(
         reason_code=reason_code,
         exit_kind=exit_kind,
     )
+    # Schema-v4's v1 payload already excluded both display fields. They remain
+    # function arguments only because persisted order objects carry them.
+    del reason_code, exit_kind
     payload = {
         "schema": "uquant.attribution-event.v1",
         "signal_date": signal_date,
@@ -187,8 +190,6 @@ def _derive_v4_attribution_event_id(
         "industry_at_entry": industry_at_entry,
         "industry_manifest_sha256": industry_manifest_sha256,
         "reduction_policy": reduction_policy,
-        "reason_code": reason_code,
-        "exit_kind": exit_kind,
     }
     encoded = json.dumps(
         payload,
@@ -233,14 +234,15 @@ def _validate_attribution_identity(
             raise RuntimeError(
                 f"{label} legacy migration identity cannot create a BUY"
             ) from exc
-        if (
+        elif (
             getattr(item, "side", None) == Side.BUY.value
             and origin is OriginSubsystem.BROKER_RECONCILIATION
         ):
             raise RuntimeError(
                 f"{label} broker reconciliation identity cannot create a BUY"
             ) from exc
-        raise RuntimeError(f"{label} has incompatible attribution: {exc}") from exc
+        else:
+            raise RuntimeError(f"{label} has incompatible attribution: {exc}") from exc
     try:
         Lifecycle(item.origin_lifecycle)
     except (TypeError, ValueError) as exc:
@@ -274,11 +276,11 @@ def _validate_attribution_identity(
         try:
             derivation = (
                 _derive_v4_attribution_event_id
-                if event_schema_version == _PROSE_BOUND_ATTRIBUTION_SCHEMA_VERSION
+                if event_schema_version == _HISTORICAL_ATTRIBUTION_SCHEMA_VERSION
                 else derive_attribution_event_id
             )
             if event_schema_version not in {
-                _PROSE_BOUND_ATTRIBUTION_SCHEMA_VERSION,
+                _HISTORICAL_ATTRIBUTION_SCHEMA_VERSION,
                 ACCOUNT_SCHEMA_VERSION,
             }:
                 raise ValueError("unsupported attribution event schema")
@@ -300,7 +302,7 @@ def _validate_attribution_identity(
         except (TypeError, ValueError) as exc:
             raise RuntimeError(f"{label} has malformed attribution identity") from exc
         if item.event_id != expected:
-            if event_schema_version == _PROSE_BOUND_ATTRIBUTION_SCHEMA_VERSION:
+            if event_schema_version == _HISTORICAL_ATTRIBUTION_SCHEMA_VERSION:
                 raise RuntimeError(
                     f"{label} v4 event_id differs from canonical derivation"
                 )
@@ -363,6 +365,21 @@ def _validate_order_intent(
             if order.industry_at_entry != expected_industry:
                 raise RuntimeError(f"{label} BUY industry_at_entry differs from point-in-time membership")
     return signal_date
+
+
+def validate_pending_order_for_account_write(
+    state: AccountState,
+    order: PendingOrder,
+) -> None:
+    """Validate one current-schema order before execution mutates the ledger."""
+
+    if state.schema_version != ACCOUNT_SCHEMA_VERSION:
+        raise RuntimeError("pending order registration requires the current account schema")
+    _validate_order_intent(
+        order,
+        label="pending order",
+        validate_attribution=True,
+    )
 
 
 def _validate_fill(
@@ -979,7 +996,7 @@ def _validate_strategy_risk_state(state: AccountState) -> None:
 
 def _tranche(payload: dict[str, Any], *, schema_version: int) -> Tranche:
     """Load a tranche while deriving safe current-schema economic metadata."""
-    native_schema = schema_version >= _PROSE_BOUND_ATTRIBUTION_SCHEMA_VERSION
+    native_schema = schema_version >= _HISTORICAL_ATTRIBUTION_SCHEMA_VERSION
     if native_schema:
         avg_cost = payload.get("avg_cost", 0.0)
         highest = payload.get("highest_close", avg_cost)
@@ -1039,7 +1056,7 @@ def _tranche(payload: dict[str, Any], *, schema_version: int) -> Tranche:
 def _position(payload: dict[str, Any], *, schema_version: int) -> Position:
     """Decode a position and reconcile aggregate shares with its tranche lots."""
 
-    native_schema = schema_version >= _PROSE_BOUND_ATTRIBUTION_SCHEMA_VERSION
+    native_schema = schema_version >= _HISTORICAL_ATTRIBUTION_SCHEMA_VERSION
     convert_text = (lambda value: value) if native_schema else str
     convert_int = (lambda value: value) if native_schema else int
     convert_float = (lambda value: value) if native_schema else float
@@ -1052,7 +1069,7 @@ def _position(payload: dict[str, Any], *, schema_version: int) -> Position:
         lifecycle=convert_text(payload.get("lifecycle", "CORE")),
         tranches=[_tranche(item, schema_version=schema_version) for item in payload.get("tranches", [])],
     )
-    if schema_version < _PROSE_BOUND_ATTRIBUTION_SCHEMA_VERSION and position.shares > 0:
+    if schema_version < _HISTORICAL_ATTRIBUTION_SCHEMA_VERSION and position.shares > 0:
         known_shares = sum(item.shares for item in position.tranches)
         if known_shares > position.shares:
             raise ValueError("compatible position tranches exceed aggregate shares")
@@ -1578,7 +1595,7 @@ def load_account(
             raise RuntimeError("account state has an invalid schema version") from exc
         if (
             not allow_legacy_schema
-            or schema_version >= _PROSE_BOUND_ATTRIBUTION_SCHEMA_VERSION
+            or schema_version >= _HISTORICAL_ATTRIBUTION_SCHEMA_VERSION
         ):
             raise RuntimeError("native account schema_version must be an integer")
     if schema_version > ACCOUNT_SCHEMA_VERSION or schema_version < 1:
@@ -1588,7 +1605,7 @@ def load_account(
             f"account schema {schema_version} requires explicit migration; "
             "run `uquant account-migrate --help`"
         )
-    native_schema = schema_version >= _PROSE_BOUND_ATTRIBUTION_SCHEMA_VERSION
+    native_schema = schema_version >= _HISTORICAL_ATTRIBUTION_SCHEMA_VERSION
     sequence_was_explicit = "next_order_sequence" in payload
     operating_peak = payload.get("operating_peak")
     capital_peak = payload.get("capital_peak")
@@ -1771,7 +1788,7 @@ def load_account(
     cash = _finite_number(state.cash, field="account state cash", minimum=-1e-6)
     if initial_cash == 0.0 or cash < -1e-6:
         raise RuntimeError("account state violates cash invariants")
-    validate_attribution = schema_version >= _PROSE_BOUND_ATTRIBUTION_SCHEMA_VERSION
+    validate_attribution = schema_version >= _HISTORICAL_ATTRIBUTION_SCHEMA_VERSION
     _validate_position_state(
         state,
         validate_attribution=validate_attribution,
@@ -1791,7 +1808,12 @@ def load_account(
     return state
 
 
-def _legacy_attribution_owner(reason_code: str, exit_kind: str) -> tuple[str, str]:
+def _legacy_attribution_owner(
+    reason_code: str,
+    exit_kind: str,
+    *,
+    side: str,
+) -> tuple[str, str, bool]:
     """Classify legacy stable codes without inspecting human-readable reason."""
 
     exact: dict[str, tuple[OriginSubsystem, AttributionMechanism]] = {
@@ -1857,12 +1879,20 @@ def _legacy_attribution_owner(reason_code: str, exit_kind: str) -> tuple[str, st
     selected = exact.get(reason_code)
     if selected is None and exit_kind in exact:
         selected = exact[exit_kind]
-    if selected is None:
+    unclassified_buy = selected is None and side == Side.BUY.value
+    if unclassified_buy:
+        # Preserve uncertainty honestly. This closed degraded category is
+        # machine-valid but is never emitted by production Target call sites.
+        selected = (
+            OriginSubsystem.UNATTRIBUTED_LEGACY,
+            AttributionMechanism.LEGACY_UNCLASSIFIED,
+        )
+    elif selected is None:
         selected = (
             OriginSubsystem.LEGACY_MIGRATION,
             AttributionMechanism.LEGACY_MIGRATION,
         )
-    return selected[0].value, selected[1].value
+    return selected[0].value, selected[1].value, unclassified_buy
 
 
 def _legacy_industry(symbol: str, entry_date: str) -> tuple[str, str]:
@@ -1877,8 +1907,10 @@ def _legacy_industry(symbol: str, entry_date: str) -> tuple[str, str]:
     return industry, REQUIRED_AI_UNIVERSE_SHA256
 
 
-def _populate_legacy_attribution(state: AccountState) -> None:
+def _populate_legacy_attribution(state: AccountState) -> list[dict[str, str]]:
     """Populate v1-v3 identity from stable structured fields only."""
+
+    unknown_buy_reclassifications: dict[str, dict[str, str]] = {}
 
     replacements = {
         (str(event.get("signal_date", "")), str(event.get("new_symbol", ""))): str(
@@ -1889,9 +1921,10 @@ def _populate_legacy_attribution(state: AccountState) -> None:
     }
 
     def populate_order(order: PendingOrder | AccountOrder) -> None:
-        origin, mechanism = _legacy_attribution_owner(
+        origin, mechanism, unclassified_buy = _legacy_attribution_owner(
             order.reason_code,
             order.exit_kind,
+            side=order.side,
         )
         industry, manifest = _legacy_industry(order.symbol, order.signal_date)
         replaces_symbol = replacements.get((order.signal_date, order.symbol))
@@ -1916,6 +1949,15 @@ def _populate_legacy_attribution(state: AccountState) -> None:
             reason_code=order.reason_code,
             exit_kind=order.exit_kind,
         )
+        if unclassified_buy:
+            unknown_buy_reclassifications.setdefault(
+                order.event_id,
+                {
+                    "event_id": order.event_id,
+                    "signal_date": order.signal_date,
+                    "symbol": order.symbol,
+                },
+            )
 
     for ledger_order in state.order_ledger:
         populate_order(ledger_order)
@@ -1987,9 +2029,10 @@ def _populate_legacy_attribution(state: AccountState) -> None:
             for field in identity_fields:
                 setattr(fill, field, getattr(linked, field))
         else:
-            origin, mechanism = _legacy_attribution_owner(
+            origin, mechanism, unclassified_buy = _legacy_attribution_owner(
                 fill.reason_code,
                 fill.exit_kind,
+                side=fill.side,
             )
             industry, manifest = _legacy_industry(fill.symbol, fill.signal_date)
             fill.origin_subsystem = origin
@@ -2013,6 +2056,15 @@ def _populate_legacy_attribution(state: AccountState) -> None:
                 reason_code=f"{fill.reason_code}:legacy_fill:{fill.fill_id or fill_index}",
                 exit_kind=fill.exit_kind,
             )
+            if unclassified_buy:
+                unknown_buy_reclassifications.setdefault(
+                    fill.event_id,
+                    {
+                        "event_id": fill.event_id,
+                        "signal_date": fill.signal_date,
+                        "symbol": fill.symbol,
+                    },
+                )
         for allocation_index, allocation in enumerate(fill.sold_tranches, start=1):
             entry_date = str(allocation.get("entry_date") or fill.fill_date)
             lifecycle = str(allocation.get("lifecycle") or fill.lifecycle)
@@ -2043,18 +2095,29 @@ def _populate_legacy_attribution(state: AccountState) -> None:
                 ),
                 exit_kind="legacy_migration",
             )
+    return [
+        unknown_buy_reclassifications[event_id]
+        for event_id in sorted(unknown_buy_reclassifications)
+    ]
 
 
 def _migrate_v4_attribution_event_ids(state: AccountState) -> dict[str, Any]:
     """Map validated schema-v4 events to the machine-only schema-v5 format."""
 
     event_id_map: dict[str, str] = {}
+    reverse_event_id_map: dict[str, str] = {}
+    object_assignments: list[tuple[Any, str]] = []
+    allocation_assignments: list[tuple[dict[str, Any], str]] = []
 
     def record_mapping(old_event_id: str, new_event_id: str) -> None:
         existing = event_id_map.get(old_event_id)
         if existing is not None and existing != new_event_id:
             raise RuntimeError("v4 event_id maps to conflicting machine identities")
+        reverse_existing = reverse_event_id_map.get(new_event_id)
+        if reverse_existing is not None and reverse_existing != old_event_id:
+            raise RuntimeError("v4 event_id migration has a reverse-map collision")
         event_id_map[old_event_id] = new_event_id
+        reverse_event_id_map[new_event_id] = old_event_id
 
     def current_event_id(
         item: Any,
@@ -2100,14 +2163,14 @@ def _migrate_v4_attribution_event_ids(state: AccountState) -> dict[str, Any]:
             exit_kind=order.exit_kind,
         )
         record_mapping(old_event_id, new_event_id)
-        order.event_id = new_event_id
+        object_assignments.append((order, new_event_id))
 
     for fill in state.fills:
         old_event_id = fill.event_id
         mapped_fill_event_id = event_id_map.get(old_event_id)
         if mapped_fill_event_id is None:
             raise RuntimeError("v4 fill event_id lacks a validated originating order")
-        fill.event_id = mapped_fill_event_id
+        object_assignments.append((fill, mapped_fill_event_id))
 
     def migrate_detached_lot(
         lot: Any,
@@ -2118,7 +2181,7 @@ def _migrate_v4_attribution_event_ids(state: AccountState) -> dict[str, Any]:
         reason_code: str,
         exit_kind: str,
         label: str,
-    ) -> None:
+    ) -> str:
         old_event_id = lot.event_id
         expected_old = _derive_v4_attribution_event_id(
             signal_date=signal_date,
@@ -2148,20 +2211,20 @@ def _migrate_v4_attribution_event_ids(state: AccountState) -> dict[str, Any]:
             exit_kind=exit_kind,
         )
         record_mapping(old_event_id, new_event_id)
-        lot.event_id = new_event_id
+        return new_event_id
 
     for symbol, position in state.positions.items():
         for tranche in position.tranches:
             mapped_event_id = event_id_map.get(tranche.event_id)
             if mapped_event_id is not None:
-                tranche.event_id = mapped_event_id
+                object_assignments.append((tranche, mapped_event_id))
                 continue
             if (
                 tranche.origin_subsystem != OriginSubsystem.LEGACY_MIGRATION.value
                 or tranche.mechanism != AttributionMechanism.LEGACY_MIGRATION.value
             ):
                 raise RuntimeError("v4 tranche event_id lacks a validated originating BUY")
-            migrate_detached_lot(
+            migrated_event_id = migrate_detached_lot(
                 tranche,
                 signal_date=tranche.entry_date,
                 symbol=symbol,
@@ -2170,13 +2233,14 @@ def _migrate_v4_attribution_event_ids(state: AccountState) -> dict[str, Any]:
                 exit_kind="legacy_migration",
                 label="account tranche",
             )
+            object_assignments.append((tranche, migrated_event_id))
 
     for fill in state.fills:
         for allocation_index, allocation in enumerate(fill.sold_tranches, start=1):
             old_event_id = str(allocation["event_id"])
             mapped_event_id = event_id_map.get(old_event_id)
             if mapped_event_id is not None:
-                allocation["event_id"] = mapped_event_id
+                allocation_assignments.append((allocation, mapped_event_id))
                 continue
             lot = SimpleNamespace(**allocation)
             if (
@@ -2196,7 +2260,7 @@ def _migrate_v4_attribution_event_ids(state: AccountState) -> dict[str, Any]:
                 exit_kind = "broker_reconciliation"
             else:
                 raise RuntimeError("v4 sold lot event_id lacks a validated originating BUY")
-            migrate_detached_lot(
+            migrated_event_id = migrate_detached_lot(
                 lot,
                 signal_date=str(allocation["entry_date"]),
                 symbol=fill.symbol,
@@ -2205,7 +2269,15 @@ def _migrate_v4_attribution_event_ids(state: AccountState) -> dict[str, Any]:
                 exit_kind=exit_kind,
                 label="fill sold lot",
             )
-            allocation["event_id"] = lot.event_id
+            allocation_assignments.append((allocation, migrated_event_id))
+
+    # Apply only after every old identity, chain, and bidirectional mapping has
+    # been validated. A collision therefore cannot leave even the in-memory
+    # migration candidate partially resealed.
+    for item, event_id in object_assignments:
+        item.event_id = event_id
+    for allocation, event_id in allocation_assignments:
+        allocation["event_id"] = event_id
 
     return {
         "policy": "validated_v4_to_v5_machine_identity",
@@ -2263,9 +2335,10 @@ def migrate_account(
                 }
             )
     attribution_event_id_migration: dict[str, Any] | None = None
-    if previous_schema < _PROSE_BOUND_ATTRIBUTION_SCHEMA_VERSION:
-        _populate_legacy_attribution(state)
-    elif previous_schema == _PROSE_BOUND_ATTRIBUTION_SCHEMA_VERSION:
+    legacy_unknown_buy_classifications: list[dict[str, str]] = []
+    if previous_schema < _HISTORICAL_ATTRIBUTION_SCHEMA_VERSION:
+        legacy_unknown_buy_classifications = _populate_legacy_attribution(state)
+    elif previous_schema == _HISTORICAL_ATTRIBUTION_SCHEMA_VERSION:
         attribution_event_id_migration = _migrate_v4_attribution_event_ids(state)
     state.schema_version = ACCOUNT_SCHEMA_VERSION
     state.code_hash = new_code_hash
@@ -2285,6 +2358,11 @@ def migrate_account(
         migration_event["attribution_event_id_migration"] = (
             attribution_event_id_migration
         )
+    if legacy_unknown_buy_classifications:
+        migration_event["legacy_unknown_buy_classification"] = {
+            "policy": "pre_v4_unknown_buy_to_unattributed_legacy",
+            "events": legacy_unknown_buy_classifications,
+        }
     state.account_migrations.append(migration_event)
     save_account(state, destination)
     return state

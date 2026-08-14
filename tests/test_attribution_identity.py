@@ -6,6 +6,7 @@ from dataclasses import asdict
 import pandas as pd
 import pytest
 
+from uquant import account as account_module
 from uquant import types as domain
 from uquant.account import load_account, migrate_account, save_account
 from uquant.broker import sync_broker_snapshot
@@ -1522,12 +1523,156 @@ def test_schema_v3_identity_migration_is_explicit_deterministic_and_prose_free(t
     assert load_account(first_destination).to_dict() == first.to_dict()
 
 
+def test_schema_v3_unknown_buy_code_remains_explicitly_unattributed_and_not_a_leader(
+    tmp_path,
+) -> None:
+    payload = _schema_v3_payload(reason="historical custom BUY prose")
+    for item in (payload["order_ledger"][0], payload["fills"][0]):
+        item["reason_code"] = "historical_custom_buy_route"
+        item["exit_kind"] = "historical_custom_exit"
+    source = tmp_path / "unknown-buy-v3.json"
+    destination = tmp_path / "unknown-buy-v5.json"
+    source.write_text(json.dumps(payload), encoding="utf-8")
+
+    migrated = migrate_account(
+        source,
+        destination,
+        new_code_hash="new-code",
+        acknowledge_code_change=True,
+    )
+
+    order = migrated.order_ledger[0]
+    assert order.side == domain.Side.BUY.value
+    assert order.origin_subsystem == "UNATTRIBUTED_LEGACY"
+    assert order.mechanism == "LEGACY_UNCLASSIFIED"
+    assert order.origin_subsystem != domain.OriginSubsystem.LEADER.value
+    assert order.mechanism != domain.AttributionMechanism.LEADER_SELECTION.value
+    assert migrated.fills[0].event_id == order.event_id
+    audit = migrated.account_migrations[-1]["legacy_unknown_buy_classification"]
+    assert audit == {
+        "policy": "pre_v4_unknown_buy_to_unattributed_legacy",
+        "events": [
+            {
+                "event_id": order.event_id,
+                "signal_date": "2026-01-05",
+                "symbol": "sz300502",
+            }
+        ],
+    }
+    assert load_account(destination).to_dict() == migrated.to_dict()
+
+    migrated.order_ledger[0].reason_code = "changed_display_code"
+    migrated.fills[0].reason_code = "another_changed_display_code"
+    display_mutated = tmp_path / "unknown-buy-display-mutated-v5.json"
+    save_account(migrated, display_mutated)
+    assert load_account(display_mutated).to_dict() == migrated.to_dict()
+
+    # The audit is provenance, never authorization: removing or editing it
+    # cannot upgrade this event into leader attribution.
+    migrated.account_migrations[-1].pop("legacy_unknown_buy_classification")
+    no_audit = tmp_path / "unknown-buy-no-audit-v5.json"
+    save_account(migrated, no_audit)
+    reloaded_no_audit = load_account(no_audit)
+    assert reloaded_no_audit.to_dict() == migrated.to_dict()
+    assert reloaded_no_audit.order_ledger[0].origin_subsystem == "UNATTRIBUTED_LEGACY"
+
+    migrated.account_migrations.append(
+        {"editable_claim": "LEADER", "event_id": order.event_id}
+    )
+    self_signed = tmp_path / "unknown-buy-self-signed-v5.json"
+    save_account(migrated, self_signed)
+    assert load_account(self_signed).order_ledger[0].origin_subsystem == (
+        "UNATTRIBUTED_LEGACY"
+    )
+
+    degraded_target = domain.Target(
+        symbol=order.symbol,
+        weight=order.target_weight,
+        lifecycle=order.lifecycle,
+        alpha_score=0.0,
+        confidence=0.0,
+        reason="must not be emitted by production",
+        reason_code=order.reason_code,
+        exit_kind=order.exit_kind,
+        event_id=order.event_id,
+        origin_subsystem=order.origin_subsystem,
+        mechanism=order.mechanism,
+        origin_lifecycle=order.origin_lifecycle,
+        replaces_symbol=order.replaces_symbol,
+        industry_at_entry=order.industry_at_entry,
+        industry_manifest_sha256=order.industry_manifest_sha256,
+    )
+    with pytest.raises(RuntimeError, match="unattributed legacy"):
+        plan_orders(
+            signal_date=order.signal_date,
+            targets=(degraded_target,),
+            account=domain.AccountState.empty(2_000_000.0),
+            prices={order.symbol: 10.0},
+            cfg=DEFAULT_CONFIG,
+        )
+
+
+def test_reconcile_account_orders_batch_is_atomic_when_a_later_buy_is_invalid() -> None:
+    account = domain.AccountState.empty(2_000_000.0)
+    valid = domain.PendingOrder(
+        signal_date="2026-01-05",
+        symbol="sz300502",
+        side=domain.Side.BUY.value,
+        target_weight=0.05,
+        reason="valid structured BUY",
+        lifecycle=domain.Lifecycle.CORE.value,
+        **_identity(),
+    )
+    invalid = domain.PendingOrder(
+        signal_date="2026-01-05",
+        symbol="sz300502",
+        side=domain.Side.BUY.value,
+        target_weight=0.05,
+        reason="semantically fabricated RISK BUY",
+        lifecycle=domain.Lifecycle.CORE.value,
+        reason_code="risk_off",
+        exit_kind="risk_off",
+        **_identity(
+            origin_subsystem=domain.OriginSubsystem.RISK.value,
+            mechanism=domain.AttributionMechanism.RISK_OFF.value,
+            reason_code="risk_off",
+            exit_kind="risk_off",
+        ),
+    )
+    before = account.to_dict()
+    canonical_before = json.dumps(
+        before,
+        allow_nan=False,
+        separators=(",", ":"),
+        sort_keys=True,
+    ).encode("utf-8")
+
+    with pytest.raises(RuntimeError, match="not permitted for BUY"):
+        reconcile_account_orders(
+            account=account,
+            previous=[],
+            current=(valid, invalid),
+            submitted_date="2026-01-05",
+        )
+
+    assert account.to_dict() == before
+    assert json.dumps(
+        account.to_dict(),
+        allow_nan=False,
+        separators=(",", ":"),
+        sort_keys=True,
+    ).encode("utf-8") == canonical_before
+    assert valid.order_id == invalid.order_id == ""
+
+
 def test_pre_fix_v4_identity_requires_validated_deterministic_v5_migration(
     tmp_path,
 ) -> None:
-    old_buy_event = "evt_6a6d9b66c5e34c5c93ab4ffdf77438910d5377dba4d023b49b3b966b05d0b749"
-    old_sell_event = "evt_6a70a4ce7f3db0bec0a991054f0ccba8d9ef94abdd83cc219e3b80c3d89e5a4d"
-    old_pending_event = "evt_b83598138e09a5e3e9a3746fca1482e892d51e110fda27c58bb71e5230a74b07"
+    # Locked outputs from the exact machine-only attribution-event.v1 payload
+    # written by commit 5394676a. Display reason_code/exit_kind are absent.
+    old_buy_event = "evt_b34477642569eac0e8346e872bc0310b341e1965e49f0c025264cc86b8ed5d49"
+    old_sell_event = "evt_6c68d0daa29258ed943f14ba20b83e9c592188fa6d3b13cf3ff77c2755fbb572"
+    old_pending_event = "evt_e0bb64ddecefb66f463bf6143c37b00d5901415cc54eea011d97ff3aa24b8f00"
     common_identity = {
         "origin_lifecycle": domain.Lifecycle.CORE.value,
         "replaces_symbol": None,
@@ -1752,6 +1897,124 @@ def test_pre_fix_v4_identity_requires_validated_deterministic_v5_migration(
     }
     assert "reason" not in first_provenance
     assert load_account(tmp_path / "first-v5.json").to_dict() == first.to_dict()
+
+
+def test_real_v4_and_v5_event_mapping_cannot_split_on_display_fields() -> None:
+    machine = {
+        "signal_date": "2026-01-05",
+        "symbol": "sz300502",
+        "target_weight": 0.05,
+        "lifecycle": domain.Lifecycle.CORE.value,
+        "origin_lifecycle": domain.Lifecycle.CORE.value,
+        "origin_subsystem": domain.OriginSubsystem.LEADER.value,
+        "mechanism": domain.AttributionMechanism.LEADER_SELECTION.value,
+        "replaces_symbol": None,
+        "industry_at_entry": "optical",
+        "industry_manifest_sha256": REQUIRED_AI_UNIVERSE_SHA256,
+        "reduction_policy": domain.ReductionPolicy.FIFO.value,
+    }
+    old_first = account_module._derive_v4_attribution_event_id(
+        **machine,
+        reason_code="first_display_code",
+        exit_kind="first_display_exit",
+    )
+    old_second = account_module._derive_v4_attribution_event_id(
+        **machine,
+        reason_code="mutated_display_code",
+        exit_kind="mutated_display_exit",
+    )
+    new_first = domain.derive_attribution_event_id(
+        **machine,
+        reason_code="first_display_code",
+        exit_kind="first_display_exit",
+    )
+    new_second = domain.derive_attribution_event_id(
+        **machine,
+        reason_code="mutated_display_code",
+        exit_kind="mutated_display_exit",
+    )
+
+    assert old_first == old_second == (
+        "evt_b34477642569eac0e8346e872bc0310b341e1965e49f0c025264cc86b8ed5d49"
+    )
+    assert new_first == new_second
+    assert old_first != new_first
+
+
+def test_v4_to_v5_rejects_reverse_event_id_collision_before_writing(
+    tmp_path,
+    monkeypatch,
+) -> None:
+    common = {
+        "symbol": "sz300502",
+        "side": domain.Side.BUY.value,
+        "reason": "historical display prose",
+        "lifecycle": domain.Lifecycle.CORE.value,
+        "status": domain.OrderStatus.OPEN.value,
+        "requested_shares": 100,
+        "remaining_shares": 100,
+        "reason_code": "strategy_target",
+        "exit_kind": "strategy",
+        "origin_subsystem": domain.OriginSubsystem.LEADER.value,
+        "mechanism": domain.AttributionMechanism.LEADER_SELECTION.value,
+        "origin_lifecycle": domain.Lifecycle.CORE.value,
+        "replaces_symbol": None,
+        "industry_at_entry": "optical",
+        "industry_manifest_sha256": REQUIRED_AI_UNIVERSE_SHA256,
+    }
+    orders = [
+        domain.AccountOrder(
+            order_id="O000000001",
+            signal_date="2026-01-05",
+            submitted_date="2026-01-05",
+            target_weight=0.05,
+            event_id="evt_b34477642569eac0e8346e872bc0310b341e1965e49f0c025264cc86b8ed5d49",
+            **common,
+        ),
+        domain.AccountOrder(
+            order_id="O000000002",
+            signal_date="2026-01-07",
+            submitted_date="2026-01-07",
+            target_weight=0.10,
+            event_id="evt_e0bb64ddecefb66f463bf6143c37b00d5901415cc54eea011d97ff3aa24b8f00",
+            **common,
+        ),
+    ]
+    state = domain.AccountState(
+        initial_cash=2_000_000.0,
+        cash=2_000_000.0,
+        schema_version=4,
+        order_ledger=orders,
+        next_order_sequence=3,
+        operating_peak=2_000_000.0,
+        capital_peak=2_000_000.0,
+        data_hash="data",
+        code_hash="v4-code",
+    )
+    source = tmp_path / "two-valid-v4-events.json"
+    destination = tmp_path / "must-not-exist-v5.json"
+    source.write_text(json.dumps(state.to_dict()), encoding="utf-8")
+    source_bytes = source.read_bytes()
+
+    # Fault-inject a collision in the current derivation. Historical v4 hashes
+    # are locked literals above, so this exercises only the migration reverse
+    # mapping invariant and cannot turn an invalid v4 object into a fixture.
+    monkeypatch.setattr(
+        account_module,
+        "derive_attribution_event_id",
+        lambda **_kwargs: "evt_" + "a" * 64,
+    )
+
+    with pytest.raises(RuntimeError, match="collision"):
+        migrate_account(
+            source,
+            destination,
+            new_code_hash="v5-code",
+            acknowledge_code_change=True,
+        )
+
+    assert source.read_bytes() == source_bytes
+    assert not destination.exists()
 
 
 def test_schema_v3_unlinked_fill_migration_uses_structured_identity_not_prose(

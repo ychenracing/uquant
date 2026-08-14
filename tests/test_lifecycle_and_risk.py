@@ -38,7 +38,7 @@ from uquant.types import (
     Tranche,
     derive_attribution_event_id,
 )
-from uquant.validation.universe import REQUIRED_AI_UNIVERSE_SHA256
+from uquant.validation.universe import REQUIRED_AI_UNIVERSE_SHA256, default_ai_universe
 
 
 def _identity(
@@ -53,6 +53,9 @@ def _identity(
     reason_code: str = "strategy_target",
     exit_kind: str = "strategy",
 ) -> dict[str, str | None]:
+    industry = default_ai_universe().industry_of(symbol, signal_date)
+    if industry == "unknown":
+        industry = "optical"
     return {
         "event_id": derive_attribution_event_id(
             signal_date=signal_date,
@@ -63,7 +66,7 @@ def _identity(
             origin_subsystem=origin_subsystem,
             mechanism=mechanism,
             replaces_symbol=None,
-            industry_at_entry="optical",
+            industry_at_entry=industry,
             industry_manifest_sha256=REQUIRED_AI_UNIVERSE_SHA256,
             reduction_policy=reduction_policy,
             reason_code=reason_code,
@@ -73,7 +76,7 @@ def _identity(
         "mechanism": mechanism,
         "origin_lifecycle": lifecycle,
         "replaces_symbol": None,
-        "industry_at_entry": "optical",
+        "industry_at_entry": industry,
         "industry_manifest_sha256": REQUIRED_AI_UNIVERSE_SHA256,
     }
 

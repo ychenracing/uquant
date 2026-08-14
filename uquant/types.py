@@ -51,6 +51,7 @@ class OriginSubsystem(str, Enum):
     RISK = "RISK"
     BROKER_RECONCILIATION = "BROKER_RECONCILIATION"
     LEGACY_MIGRATION = "LEGACY_MIGRATION"
+    UNATTRIBUTED_LEGACY = "UNATTRIBUTED_LEGACY"
 
 
 class AttributionMechanism(str, Enum):
@@ -82,6 +83,7 @@ class AttributionMechanism(str, Enum):
     RISK_FREEZE = "RISK_FREEZE"
     BROKER_RECONCILIATION = "BROKER_RECONCILIATION"
     LEGACY_MIGRATION = "LEGACY_MIGRATION"
+    LEGACY_UNCLASSIFIED = "LEGACY_UNCLASSIFIED"
 
 
 class Side(str, Enum):
@@ -124,6 +126,10 @@ _ATTRIBUTION_COMPATIBILITY: dict[
         AttributionMechanism.BROKER_RECONCILIATION,
     ): frozenset({Side.SELL}),
     (OriginSubsystem.LEGACY_MIGRATION, AttributionMechanism.LEGACY_MIGRATION): frozenset({Side.SELL}),
+    (
+        OriginSubsystem.UNATTRIBUTED_LEGACY,
+        AttributionMechanism.LEGACY_UNCLASSIFIED,
+    ): frozenset({Side.BUY}),
 }
 
 

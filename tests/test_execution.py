@@ -17,6 +17,8 @@ from uquant.execution import (
     reconcile_account_orders,
 )
 from uquant.types import (
+    ACCOUNT_SCHEMA_VERSION,
+    ATTRIBUTION_IDENTITY_FIELDS,
     AccountOrder,
     AccountState,
     AttributionMechanism,
@@ -68,6 +70,50 @@ def _attribution_identity(
         exit_kind=exit_kind,
     )
     return fields
+
+
+def _canonical_pending(
+    signal_date: str,
+    symbol: str,
+    side: str,
+    target_weight: float,
+    reason: str,
+    lifecycle: str = "CORE",
+    **metadata: object,
+) -> PendingOrder:
+    assert lifecycle == "CORE"
+    origin = (
+        OriginSubsystem.LEADER.value
+        if side == "BUY"
+        else OriginSubsystem.RISK.value
+    )
+    mechanism = (
+        AttributionMechanism.LEADER_SELECTION.value
+        if side == "BUY"
+        else AttributionMechanism.RISK_OFF.value
+    )
+    identity = _attribution_identity(
+        signal_date=signal_date,
+        symbol=symbol,
+        target_weight=target_weight,
+        origin_subsystem=origin,
+        mechanism=mechanism,
+        reduction_policy=str(
+            metadata.get("reduction_policy", ReductionPolicy.FIFO.value)
+        ),
+        reason_code=str(metadata.get("reason_code", "strategy_target")),
+        exit_kind=str(metadata.get("exit_kind", "strategy")),
+    )
+    return PendingOrder(
+        signal_date,
+        symbol,
+        side,
+        target_weight,
+        reason,
+        lifecycle,
+        **metadata,
+        **identity,
+    )
 
 
 def _frame(rows):
@@ -360,7 +406,7 @@ def test_partial_broker_sell_attribution_creates_a_complete_degraded_allocation(
             {
                 "migrated_at_utc": "2026-01-01T00:00:00+00:00",
                 "from_schema": 3,
-                "to_schema": 4,
+                "to_schema": ACCOUNT_SCHEMA_VERSION,
                 "from_code_hash": "old-code",
                 "to_code_hash": "code",
             }
@@ -419,6 +465,13 @@ def test_partial_broker_sell_attribution_creates_a_complete_degraded_allocation(
 
 
 def test_existing_order_id_rejects_immutable_metadata_drift():
+    identity = _attribution_identity(
+        signal_date="2026-01-05",
+        symbol="sz300308",
+        target_weight=0.50,
+        origin_subsystem=OriginSubsystem.LEADER.value,
+        mechanism=AttributionMechanism.LEADER_SELECTION.value,
+    )
     ledger = AccountOrder(
         "O000000001",
         "2026-01-05",
@@ -429,8 +482,9 @@ def test_existing_order_id_rejects_immutable_metadata_drift():
         "entry",
         "CORE",
         status=OrderStatus.OPEN.value,
+        **identity,
     )
-    drifted = PendingOrder(
+    drifted = _canonical_pending(
         "2026-01-05",
         "sz300308",
         "BUY",
@@ -518,12 +572,16 @@ def test_next_open_and_t1_enforced():
         )
     }
     account = AccountState.empty(2e6)
-    account.pending_orders = [PendingOrder("2026-01-05", "sz300308", "BUY", 0.5, "entry", "CORE")]
+    account.pending_orders = [
+        _canonical_pending("2026-01-05", "sz300308", "BUY", 0.5, "entry")
+    ]
     planner = ExecutionPlanner(DEFAULT_CONFIG)
     assert planner.execute_open(date=pd.Timestamp("2026-01-05"), account=account, panel=panel) == []
     fills = planner.execute_open(date=pd.Timestamp("2026-01-06"), account=account, panel=panel)
     assert fills and fills[0].fill_date > fills[0].signal_date
-    account.pending_orders = [PendingOrder("2026-01-06", "sz300308", "SELL", 0.0, "exit", "CORE")]
+    account.pending_orders = [
+        _canonical_pending("2026-01-06", "sz300308", "SELL", 0.0, "exit")
+    ]
     assert planner.execute_open(date=pd.Timestamp("2026-01-06"), account=account, panel=panel) == []
 
 
@@ -562,7 +620,9 @@ def test_limit_and_suspension_keep_pending():
         )
     }
     account = AccountState.empty(2e6)
-    account.pending_orders = [PendingOrder("2026-01-05", "sz000001", "BUY", 0.5, "entry", "CORE")]
+    account.pending_orders = [
+        _canonical_pending("2026-01-05", "sz000001", "BUY", 0.5, "entry")
+    ]
     planner = ExecutionPlanner(DEFAULT_CONFIG)
     assert planner.execute_open(date=pd.Timestamp("2026-01-06"), account=account, panel=panel) == []
     assert account.pending_orders
@@ -614,7 +674,9 @@ def test_continuous_up_limits_remain_pending_until_market_reopens():
         )
     }
     account = AccountState.empty(2e6)
-    account.pending_orders = [PendingOrder("2026-01-05", "sz000001", "BUY", 0.5, "entry", "CORE")]
+    account.pending_orders = [
+        _canonical_pending("2026-01-05", "sz000001", "BUY", 0.5, "entry")
+    ]
     planner = ExecutionPlanner(DEFAULT_CONFIG)
     assert planner.execute_open(date=pd.Timestamp("2026-01-06"), account=account, panel=panel) == []
     assert planner.execute_open(date=pd.Timestamp("2026-01-07"), account=account, panel=panel) == []
@@ -681,7 +743,9 @@ def test_continuous_down_limits_retain_sell_until_market_reopens():
         operating_peak=100000,
         capital_peak=100000,
     )
-    account.pending_orders = [PendingOrder("2026-01-05", "sz000001", "SELL", 0.0, "exit", "CORE")]
+    account.pending_orders = [
+        _canonical_pending("2026-01-05", "sz000001", "SELL", 0.0, "exit")
+    ]
     planner = ExecutionPlanner(DEFAULT_CONFIG)
     assert planner.execute_open(date=pd.Timestamp("2026-01-06"), account=account, panel=panel) == []
     assert planner.execute_open(date=pd.Timestamp("2026-01-07"), account=account, panel=panel) == []
@@ -718,7 +782,9 @@ def test_large_opening_gap_reprices_target_and_preserves_weight_cap():
         )
     }
     account = AccountState.empty(2e6)
-    account.pending_orders = [PendingOrder("2026-01-05", "sz000001", "BUY", 0.60, "entry", "CORE")]
+    account.pending_orders = [
+        _canonical_pending("2026-01-05", "sz000001", "BUY", 0.60, "entry")
+    ]
     fills = ExecutionPlanner(DEFAULT_CONFIG).execute_open(
         date=pd.Timestamp("2026-01-06"), account=account, panel=panel
     )
@@ -766,7 +832,9 @@ def test_decisive_strategic_owner_can_fill_above_ordinary_symbol_cap() -> None:
         }
     )
     account.pending_orders = [
-        PendingOrder("2026-01-05", symbol, "BUY", 1.0, "dominant strategic owner", "CORE")
+        _canonical_pending(
+            "2026-01-05", symbol, "BUY", 1.0, "dominant strategic owner"
+        )
     ]
 
     fills = ExecutionPlanner(DEFAULT_CONFIG).execute_open(
@@ -828,7 +896,9 @@ def test_partial_fill_is_retained_and_star_initial_buy_is_at_least_200():
         )
     }
     account = AccountState.empty(2e6)
-    account.pending_orders = [PendingOrder("2026-01-05", "sh688008", "BUY", 0.60, "entry", "CORE")]
+    account.pending_orders = [
+        _canonical_pending("2026-01-05", "sh688008", "BUY", 0.60, "entry")
+    ]
     cfg = DEFAULT_CONFIG.override(max_volume_participation=0.002)
     fills = ExecutionPlanner(cfg).execute_open(date=pd.Timestamp("2026-01-06"), account=account, panel=panel)
     assert fills and fills[0].shares >= 200
@@ -893,8 +963,8 @@ def test_sells_release_cash_before_buys():
         initial_cash=100000, cash=0, positions={"sz000001": old}, operating_peak=100000, capital_peak=100000
     )
     account.pending_orders = [
-        PendingOrder("2026-01-05", "sz000002", "BUY", 0.5, "entry", "CORE"),
-        PendingOrder("2026-01-05", "sz000001", "SELL", 0.0, "exit", "CORE"),
+        _canonical_pending("2026-01-05", "sz000002", "BUY", 0.5, "entry"),
+        _canonical_pending("2026-01-05", "sz000001", "SELL", 0.0, "exit"),
     ]
     fills = ExecutionPlanner(DEFAULT_CONFIG).execute_open(
         date=pd.Timestamp("2026-01-06"), account=account, panel=panel
@@ -1059,9 +1129,20 @@ def test_submitted_buy_survives_economically_equivalent_target_drift() -> None:
 
 def test_broker_order_ledger_counts_submission_and_replacement_not_fills():
     account = AccountState.empty(2e6)
-    retained = PendingOrder("2026-01-05", "sz000001", "BUY", 0.5, "entry", "CORE")
-    same = PendingOrder("2026-01-06", "sz000001", "BUY", 0.5, "refresh", "CORE")
-    target = Target("sz000001", 0.5, "CORE", 0.8, 1.0, "entry")
+    retained = _canonical_pending("2026-01-05", "sz000001", "BUY", 0.5, "entry")
+    same = replace(retained, signal_date="2026-01-06", reason="refresh", order_id="")
+    retained_identity = {
+        field: getattr(retained, field) for field in ATTRIBUTION_IDENTITY_FIELDS
+    }
+    target = Target(
+        "sz000001",
+        0.5,
+        "CORE",
+        0.8,
+        1.0,
+        "entry",
+        **retained_identity,
+    )
     current = merge_pending_orders(
         retained=[retained],
         planned=(same,),
@@ -1076,8 +1157,22 @@ def test_broker_order_ledger_counts_submission_and_replacement_not_fills():
     assert current == (retained,)
     assert len(account.order_ledger) == 1
 
-    replacement = PendingOrder("2026-01-07", "sz000001", "SELL", 0.0, "risk", "CORE")
-    exit_target = Target("sz000001", 0.0, "CORE", 0.0, 0.0, "risk")
+    replacement = _canonical_pending(
+        "2026-01-07", "sz000001", "SELL", 0.0, "risk"
+    )
+    replacement_identity = {
+        field: getattr(replacement, field)
+        for field in ATTRIBUTION_IDENTITY_FIELDS
+    }
+    exit_target = Target(
+        "sz000001",
+        0.0,
+        "CORE",
+        0.0,
+        0.0,
+        "risk",
+        **replacement_identity,
+    )
     replaced = merge_pending_orders(
         retained=list(current),
         planned=(replacement,),
@@ -1129,7 +1224,9 @@ def test_blocked_then_filled_instruction_remains_one_broker_order():
         )
     }
     account = AccountState.empty(2e6)
-    account.pending_orders = [PendingOrder("2026-01-05", "sz000001", "BUY", 0.5, "entry", "CORE")]
+    account.pending_orders = [
+        _canonical_pending("2026-01-05", "sz000001", "BUY", 0.5, "entry")
+    ]
     planner = ExecutionPlanner(DEFAULT_CONFIG)
     assert planner.execute_open(date=pd.Timestamp("2026-01-06"), account=account, panel=panel) == []
     assert len(account.order_ledger) == 1
@@ -1141,6 +1238,16 @@ def test_blocked_then_filled_instruction_remains_one_broker_order():
 
 
 def test_execution_policy_metadata_flows_from_target_to_order_ledger_and_fill():
+    identity = _attribution_identity(
+        signal_date="2026-01-05",
+        symbol="sz000001",
+        target_weight=0.0,
+        origin_subsystem=OriginSubsystem.RISK.value,
+        mechanism=AttributionMechanism.RISK_GROSS_CAP.value,
+        reduction_policy=ReductionPolicy.RISK_PRIORITY.value,
+        reason_code="portfolio_damage",
+        exit_kind="portfolio_risk",
+    )
     target = Target(
         "sz000001",
         0.0,
@@ -1151,6 +1258,7 @@ def test_execution_policy_metadata_flows_from_target_to_order_ledger_and_fill():
         reduction_policy=ReductionPolicy.RISK_PRIORITY.value,
         reason_code="portfolio_damage",
         exit_kind="portfolio_risk",
+        **identity,
     )
     position = Position(
         symbol="sz000001",
@@ -1245,7 +1353,9 @@ def test_execution_policy_metadata_flows_from_target_to_order_ledger_and_fill():
 def test_buy_tranche_uses_the_fill_all_in_unit_cost():
     symbol = "sz000001"
     account = AccountState.empty(2_000_000.0)
-    account.pending_orders = [PendingOrder("2026-01-05", symbol, "BUY", 0.50, "entry", "CORE")]
+    account.pending_orders = [
+        _canonical_pending("2026-01-05", symbol, "BUY", 0.50, "entry")
+    ]
     panel = {
         symbol: _frame(
             [
@@ -1274,7 +1384,7 @@ def test_buy_tranche_uses_the_fill_all_in_unit_cost():
     assert position.avg_cost == pytest.approx(all_in_unit_cost)
 
 
-def test_merge_replaces_same_weight_order_when_execution_policy_changes():
+def test_merge_replaces_only_when_same_weight_machine_execution_policy_changes():
     retained = PendingOrder(
         "2026-01-05",
         "sz000001",
@@ -1306,7 +1416,9 @@ def test_merge_replaces_same_weight_order_when_execution_policy_changes():
             targets=(changed_target,),
         )
         assert merged == (
-            retained if set(change) == {"reason_code"} else replacement,
+            replacement
+            if set(change) == {"reduction_policy"}
+            else retained,
         )
 
 
@@ -1483,13 +1595,12 @@ def test_risk_priority_is_t1_aware_and_survives_partial_fills_across_days():
         lifecycle="SATELLITE",
         tranches=tranches,
     )
-    order = PendingOrder(
+    order = _canonical_pending(
         "2026-01-05",
         symbol,
         "SELL",
         0.0,
         "crisis reduction",
-        "CORE",
         reduction_policy=ReductionPolicy.RISK_PRIORITY.value,
         reason_code="crisis",
         exit_kind="portfolio_risk",
@@ -1662,7 +1773,9 @@ def test_fifo_exit_keeps_historical_lot_order_and_rebuilds_position():
         initial_cash=2_000.0,
         cash=0.0,
         positions={symbol: position},
-        pending_orders=[PendingOrder("2026-01-05", symbol, "SELL", 0.0, "exit", "CORE")],
+        pending_orders=[
+            _canonical_pending("2026-01-05", symbol, "SELL", 0.0, "exit")
+        ],
         operating_peak=2_000.0,
         capital_peak=2_000.0,
     )

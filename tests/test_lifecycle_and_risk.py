@@ -36,7 +36,46 @@ from uquant.types import (
     RiskAssessment,
     Target,
     Tranche,
+    derive_attribution_event_id,
 )
+from uquant.validation.universe import REQUIRED_AI_UNIVERSE_SHA256
+
+
+def _identity(
+    *,
+    signal_date: str,
+    symbol: str,
+    target_weight: float,
+    lifecycle: str,
+    origin_subsystem: str,
+    mechanism: str,
+    reduction_policy: str = ReductionPolicy.FIFO.value,
+    reason_code: str = "strategy_target",
+    exit_kind: str = "strategy",
+) -> dict[str, str | None]:
+    return {
+        "event_id": derive_attribution_event_id(
+            signal_date=signal_date,
+            symbol=symbol,
+            target_weight=target_weight,
+            lifecycle=lifecycle,
+            origin_lifecycle=lifecycle,
+            origin_subsystem=origin_subsystem,
+            mechanism=mechanism,
+            replaces_symbol=None,
+            industry_at_entry="optical",
+            industry_manifest_sha256=REQUIRED_AI_UNIVERSE_SHA256,
+            reduction_policy=reduction_policy,
+            reason_code=reason_code,
+            exit_kind=exit_kind,
+        ),
+        "origin_subsystem": origin_subsystem,
+        "mechanism": mechanism,
+        "origin_lifecycle": lifecycle,
+        "replaces_symbol": None,
+        "industry_at_entry": "optical",
+        "industry_manifest_sha256": REQUIRED_AI_UNIVERSE_SHA256,
+    }
 
 
 def _trend_frame(
@@ -1901,6 +1940,17 @@ def test_level_one_freeze_retains_partial_sell_and_cancels_partial_buy():
     symbol = "durable_direction"
     allocator = PortfolioAllocator(DEFAULT_CONFIG)
     leader = _leader(symbol, 0.90)
+    sell_identity = _identity(
+        signal_date="2026-01-05",
+        symbol=symbol,
+        target_weight=0.30,
+        lifecycle=Lifecycle.CORE.value,
+        origin_subsystem=OriginSubsystem.RISK.value,
+        mechanism=AttributionMechanism.RISK_GROSS_CAP.value,
+        reduction_policy=ReductionPolicy.RISK_PRIORITY.value,
+        reason_code="risk_gross_cap",
+        exit_kind="risk",
+    )
 
     sell = PendingOrder(
         "2026-01-05",
@@ -1915,6 +1965,7 @@ def test_level_one_freeze_retains_partial_sell_and_cancels_partial_buy():
         reduction_policy=ReductionPolicy.RISK_PRIORITY.value,
         reason_code="risk_gross_cap",
         exit_kind="risk",
+        **sell_identity,
     )
     selling = AccountState(
         initial_cash=1_000_000.0,
@@ -1944,6 +1995,7 @@ def test_level_one_freeze_retains_partial_sell_and_cancels_partial_buy():
             reduction_policy=ReductionPolicy.RISK_PRIORITY.value,
             reason_code="risk_gross_cap",
             exit_kind="risk",
+            **sell_identity,
         ),
     )
     replanned_sells = plan_orders(
@@ -2028,6 +2080,16 @@ def test_freeze_overlay_keeps_structural_sell_and_drops_replacement_buy() -> Non
         "recovery anchor exit: confirmed structural break",
         reason_code="recovery_exit",
         exit_kind="lifecycle",
+        **_identity(
+            signal_date="2026-01-06",
+            symbol=exiting,
+            target_weight=0.0,
+            lifecycle=Lifecycle.RECOVERY.value,
+            origin_subsystem=OriginSubsystem.RECOVERY.value,
+            mechanism=AttributionMechanism.TACTICAL_REBOUND.value,
+            reason_code="recovery_exit",
+            exit_kind="lifecycle",
+        ),
     )
     proposed_buy = Target(
         replacement,
@@ -3932,6 +3994,17 @@ def test_partial_fill_direction_survives_real_daily_execute_replan_cycle():
         reduction_policy=ReductionPolicy.RISK_PRIORITY.value,
         reason_code="risk_gross_cap",
         exit_kind="risk",
+        **_identity(
+            signal_date="2026-01-05",
+            symbol=symbol,
+            target_weight=0.30,
+            lifecycle=Lifecycle.CORE.value,
+            origin_subsystem=OriginSubsystem.RISK.value,
+            mechanism=AttributionMechanism.RISK_GROSS_CAP.value,
+            reduction_policy=ReductionPolicy.RISK_PRIORITY.value,
+            reason_code="risk_gross_cap",
+            exit_kind="risk",
+        ),
     )
     selling = AccountState(
         initial_cash=10_000.0,
@@ -4042,6 +4115,14 @@ def test_partial_fill_direction_survives_real_daily_execute_replan_cycle():
             0.60,
             "leader add",
             Lifecycle.CORE.value,
+            **_identity(
+                signal_date="2026-01-05",
+                symbol=star,
+                target_weight=0.60,
+                lifecycle=Lifecycle.CORE.value,
+                origin_subsystem=OriginSubsystem.LEADER.value,
+                mechanism=AttributionMechanism.LEADER_SELECTION.value,
+            ),
         )
     ]
     buy_planner = ExecutionPlanner(DEFAULT_CONFIG.override(max_volume_participation=0.002))

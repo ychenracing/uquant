@@ -225,7 +225,7 @@ def test_event_id_has_a_frozen_canonical_derivation_and_collision_dimensions() -
 
     event_id = domain.derive_attribution_event_id(**fields)
 
-    assert event_id == "evt_0317b9c66fa7011405a95cc5d174e8f5d3c724f1ea3d3563867c8aeedf76716b"
+    assert event_id == "evt_621c49e7a4f991dd517ccb1fd1dfd17f285c04b413eacb3f1a66192d04b46278"
     assert domain.derive_attribution_event_id(**fields) == event_id
     assert (
         domain.derive_attribution_event_id(
@@ -360,6 +360,47 @@ def test_native_unlinked_fill_reconciles_by_machine_identity_after_prose_change(
     restored = load_account(destination)
     assert restored.fills[0].event_id == restored.order_ledger[0].event_id
     assert restored.fills[0].order_id == ""
+
+
+def test_native_unlinked_fill_requires_exactly_one_structured_ledger_match(
+    tmp_path,
+) -> None:
+    identity = _identity(
+        target_weight=0.0,
+        origin_subsystem=domain.OriginSubsystem.RISK.value,
+        mechanism=domain.AttributionMechanism.RISK_OFF.value,
+    )
+    fill = domain.Fill(
+        signal_date="2026-01-05",
+        fill_date="2026-01-06",
+        symbol="sz300502",
+        side=domain.Side.SELL.value,
+        shares=100,
+        price=10.0,
+        gross_value=1_000.0,
+        commission=5.0,
+        stamp_duty=1.0,
+        transfer_fee=0.1,
+        slippage_cost=0.2,
+        reason="orphan native fill",
+        lifecycle=domain.Lifecycle.CORE.value,
+        order_id="",
+        reason_code="risk_off",
+        exit_kind="risk_off",
+        **identity,
+    )
+    account = domain.AccountState.empty(2_000_000.0)
+    account.fills = [fill]
+    account.data_hash = "data"
+    account.code_hash = "code"
+    destination = tmp_path / "native-unlinked-without-ledger.json"
+
+    with pytest.raises(RuntimeError, match="exactly one structured account order"):
+        save_account(account, destination)
+
+    destination.write_text(json.dumps(account.to_dict()), encoding="utf-8")
+    with pytest.raises(RuntimeError, match="exactly one structured account order"):
+        load_account(destination)
 
 
 def test_buy_identity_round_trips_target_order_fill_and_tranche() -> None:
@@ -781,6 +822,8 @@ def test_unchanged_full_exit_retains_the_same_broker_order() -> None:
         lifecycle=domain.Lifecycle.CORE.value,
         order_id="O000000001",
         remaining_shares=100,
+        reason_code="risk_off",
+        exit_kind="risk_off",
         **identity,
     )
     planned = domain.PendingOrder(
@@ -790,6 +833,8 @@ def test_unchanged_full_exit_retains_the_same_broker_order() -> None:
         target_weight=retained.target_weight,
         reason="different display prose",
         lifecycle=retained.lifecycle,
+        reason_code=retained.reason_code,
+        exit_kind="renamed_display_exit",
         **identity,
     )
     target = domain.Target(
@@ -799,6 +844,8 @@ def test_unchanged_full_exit_retains_the_same_broker_order() -> None:
         alpha_score=0.0,
         confidence=0.0,
         reason=planned.reason,
+        reason_code=planned.reason_code,
+        exit_kind=planned.exit_kind,
         **identity,
     )
 
@@ -995,6 +1042,106 @@ def test_new_buy_without_any_attribution_cannot_bypass_planning_validation() -> 
             prices={"sz300502": 10.0},
             cfg=DEFAULT_CONFIG,
         )
+
+
+def test_risk_off_identity_cannot_fabricate_a_native_buy_at_any_boundary() -> None:
+    identity = _identity(
+        origin_subsystem=domain.OriginSubsystem.RISK.value,
+        mechanism=domain.AttributionMechanism.RISK_OFF.value,
+    )
+    target = domain.Target(
+        symbol="sz300502",
+        weight=0.05,
+        lifecycle=domain.Lifecycle.CORE.value,
+        alpha_score=0.8,
+        confidence=0.9,
+        reason="fabricated semantic BUY",
+        reason_code="strategy_target",
+        exit_kind="strategy",
+        **identity,
+    )
+    with pytest.raises(RuntimeError, match="not permitted for BUY"):
+        plan_orders(
+            signal_date="2026-01-05",
+            targets=(target,),
+            account=domain.AccountState.empty(2_000_000.0),
+            prices={"sz300502": 10.0},
+            cfg=DEFAULT_CONFIG,
+        )
+
+    pending = domain.PendingOrder(
+        signal_date="2026-01-05",
+        symbol="sz300502",
+        side=domain.Side.BUY.value,
+        target_weight=0.05,
+        reason="fabricated semantic BUY",
+        lifecycle=domain.Lifecycle.CORE.value,
+        remaining_shares=100,
+        **identity,
+    )
+    reconcile_account = domain.AccountState.empty(2_000_000.0)
+    before_reconcile = reconcile_account.to_dict()
+    with pytest.raises(RuntimeError, match="not permitted for BUY"):
+        reconcile_account_orders(
+            account=reconcile_account,
+            previous=[],
+            current=(pending,),
+            submitted_date="2026-01-05",
+        )
+    assert reconcile_account.to_dict() == before_reconcile
+
+    pending.order_id = "O000000001"
+    ledger = domain.AccountOrder(
+        order_id=pending.order_id,
+        signal_date=pending.signal_date,
+        submitted_date=pending.signal_date,
+        symbol=pending.symbol,
+        side=pending.side,
+        target_weight=pending.target_weight,
+        reason=pending.reason,
+        lifecycle=pending.lifecycle,
+        status=domain.OrderStatus.OPEN.value,
+        requested_shares=100,
+        remaining_shares=100,
+        **identity,
+    )
+    broker_account = domain.AccountState(
+        initial_cash=2_000_000.0,
+        cash=2_000_000.0,
+        pending_orders=[pending],
+        order_ledger=[ledger],
+        next_order_sequence=2,
+        operating_peak=2_000_000.0,
+        capital_peak=2_000_000.0,
+    )
+    before_broker = broker_account.to_dict()
+    with pytest.raises(RuntimeError, match="not permitted for BUY"):
+        sync_broker_snapshot(
+            broker_account,
+            {
+                "as_of": "2026-01-06",
+                "cash": 1_998_994.9,
+                "positions": [
+                    {"symbol": "sz300502", "shares": 100, "avg_cost": 10.051}
+                ],
+                "fills": [
+                    {
+                        "fill_id": "fabricated-risk-buy",
+                        "order_id": "O000000001",
+                        "symbol": "sz300502",
+                        "side": "BUY",
+                        "shares": 100,
+                        "price": 10.0,
+                        "gross_value": 1_000.0,
+                        "commission": 5.0,
+                        "transfer_fee": 0.1,
+                        "final": True,
+                        "remaining_shares": 0,
+                    }
+                ],
+            },
+        )
+    assert broker_account.to_dict() == before_broker
 
 
 def test_native_schema_legacy_identity_cannot_fabricate_a_new_buy(tmp_path) -> None:
@@ -1333,8 +1480,8 @@ def test_schema_v3_identity_migration_is_explicit_deterministic_and_prose_free(t
     second_payload = _schema_v3_payload(reason="completely different prose")
     first_source = tmp_path / "first-v3.json"
     second_source = tmp_path / "second-v3.json"
-    first_destination = tmp_path / "first-v4.json"
-    second_destination = tmp_path / "second-v4.json"
+    first_destination = tmp_path / "first-v5.json"
+    second_destination = tmp_path / "second-v5.json"
     first_source.write_text(json.dumps(first_payload), encoding="utf-8")
     second_source.write_text(json.dumps(second_payload), encoding="utf-8")
 
@@ -1353,7 +1500,7 @@ def test_schema_v3_identity_migration_is_explicit_deterministic_and_prose_free(t
         acknowledge_code_change=True,
     )
 
-    assert first.schema_version == second.schema_version == domain.ACCOUNT_SCHEMA_VERSION == 4
+    assert first.schema_version == second.schema_version == domain.ACCOUNT_SCHEMA_VERSION == 5
     assert first.initial_cash == second.initial_cash == 2_000_000.0
     assert first.cash == second.cash == 1_998_994.9
     assert first.positions["sz300502"].shares == second.positions["sz300502"].shares == 100
@@ -1375,6 +1522,238 @@ def test_schema_v3_identity_migration_is_explicit_deterministic_and_prose_free(t
     assert load_account(first_destination).to_dict() == first.to_dict()
 
 
+def test_pre_fix_v4_identity_requires_validated_deterministic_v5_migration(
+    tmp_path,
+) -> None:
+    old_buy_event = "evt_6a6d9b66c5e34c5c93ab4ffdf77438910d5377dba4d023b49b3b966b05d0b749"
+    old_sell_event = "evt_6a70a4ce7f3db0bec0a991054f0ccba8d9ef94abdd83cc219e3b80c3d89e5a4d"
+    old_pending_event = "evt_b83598138e09a5e3e9a3746fca1482e892d51e110fda27c58bb71e5230a74b07"
+    common_identity = {
+        "origin_lifecycle": domain.Lifecycle.CORE.value,
+        "replaces_symbol": None,
+        "industry_at_entry": "optical",
+        "industry_manifest_sha256": REQUIRED_AI_UNIVERSE_SHA256,
+    }
+    buy_identity = {
+        **common_identity,
+        "event_id": old_buy_event,
+        "origin_subsystem": domain.OriginSubsystem.LEADER.value,
+        "mechanism": domain.AttributionMechanism.LEADER_SELECTION.value,
+    }
+    sell_identity = {
+        **common_identity,
+        "event_id": old_sell_event,
+        "origin_subsystem": domain.OriginSubsystem.RISK.value,
+        "mechanism": domain.AttributionMechanism.RISK_OFF.value,
+    }
+    pending_identity = {
+        **common_identity,
+        "event_id": old_pending_event,
+        "origin_subsystem": domain.OriginSubsystem.LEADER.value,
+        "mechanism": domain.AttributionMechanism.LEADER_SELECTION.value,
+    }
+    buy_order = domain.AccountOrder(
+        order_id="O000000001",
+        signal_date="2026-01-05",
+        submitted_date="2026-01-05",
+        symbol="sz300502",
+        side=domain.Side.BUY.value,
+        target_weight=0.05,
+        reason="historical v4 BUY prose",
+        lifecycle=domain.Lifecycle.CORE.value,
+        status=domain.OrderStatus.FILLED.value,
+        requested_shares=200,
+        filled_shares=200,
+        remaining_shares=0,
+        last_update_date="2026-01-06",
+        reason_code="strategy_target",
+        exit_kind="strategy",
+        **buy_identity,
+    )
+    sell_order = domain.AccountOrder(
+        order_id="O000000002",
+        signal_date="2026-01-06",
+        submitted_date="2026-01-06",
+        symbol="sz300502",
+        side=domain.Side.SELL.value,
+        target_weight=0.0,
+        reason="historical v4 SELL prose",
+        lifecycle=domain.Lifecycle.CORE.value,
+        status=domain.OrderStatus.FILLED.value,
+        requested_shares=100,
+        filled_shares=100,
+        remaining_shares=0,
+        last_update_date="2026-01-07",
+        reason_code="risk_off",
+        exit_kind="risk_off",
+        **sell_identity,
+    )
+    pending = domain.PendingOrder(
+        signal_date="2026-01-07",
+        symbol="sz300502",
+        side=domain.Side.BUY.value,
+        target_weight=0.10,
+        reason="historical v4 pending prose",
+        lifecycle=domain.Lifecycle.CORE.value,
+        remaining_shares=100,
+        order_id="O000000003",
+        **pending_identity,
+    )
+    pending_order = domain.AccountOrder(
+        order_id=pending.order_id,
+        signal_date=pending.signal_date,
+        submitted_date=pending.signal_date,
+        symbol=pending.symbol,
+        side=pending.side,
+        target_weight=pending.target_weight,
+        reason=pending.reason,
+        lifecycle=pending.lifecycle,
+        status=domain.OrderStatus.OPEN.value,
+        requested_shares=100,
+        remaining_shares=100,
+        **pending_identity,
+    )
+    buy_fill = domain.Fill(
+        signal_date=buy_order.signal_date,
+        fill_date="2026-01-06",
+        symbol=buy_order.symbol,
+        side=buy_order.side,
+        shares=200,
+        price=10.0,
+        gross_value=2_000.0,
+        commission=5.0,
+        stamp_duty=0.0,
+        transfer_fee=0.2,
+        slippage_cost=0.4,
+        reason="different historical BUY fill prose",
+        lifecycle=buy_order.lifecycle,
+        order_id=buy_order.order_id,
+        reason_code=buy_order.reason_code,
+        exit_kind=buy_order.exit_kind,
+        **buy_identity,
+    )
+    sell_fill = domain.Fill(
+        signal_date=sell_order.signal_date,
+        fill_date="2026-01-07",
+        symbol=sell_order.symbol,
+        side=sell_order.side,
+        shares=100,
+        price=11.0,
+        gross_value=1_100.0,
+        commission=5.0,
+        stamp_duty=1.1,
+        transfer_fee=0.11,
+        slippage_cost=0.2,
+        reason="different historical SELL fill prose",
+        lifecycle=sell_order.lifecycle,
+        order_id=sell_order.order_id,
+        reason_code=sell_order.reason_code,
+        exit_kind=sell_order.exit_kind,
+        sold_tranches=[
+            {
+                "tranche_id": "T000000001-sold",
+                "lifecycle": domain.Lifecycle.CORE.value,
+                "shares": 100,
+                "entry_date": "2026-01-06",
+                **buy_identity,
+            }
+        ],
+        **sell_identity,
+    )
+    live_tranche = domain.Tranche(
+        tranche_id="T000000001-live",
+        lifecycle=domain.Lifecycle.CORE.value,
+        shares=100,
+        avg_cost=10.026,
+        entry_date="2026-01-06",
+        sellable_date="2026-01-07",
+        highest_close=11.0,
+        lowest_close=10.0,
+        **buy_identity,
+    )
+    old_state = domain.AccountState(
+        initial_cash=2_000_000.0,
+        cash=1_999_089.39,
+        schema_version=4,
+        positions={
+            "sz300502": domain.Position(
+                symbol="sz300502",
+                shares=100,
+                avg_cost=10.026,
+                entry_date="2026-01-06",
+                highest_close=11.0,
+                lifecycle=domain.Lifecycle.CORE.value,
+                tranches=[live_tranche],
+            )
+        },
+        pending_orders=[pending],
+        order_ledger=[buy_order, sell_order, pending_order],
+        next_order_sequence=4,
+        fills=[buy_fill, sell_fill],
+        operating_peak=2_000_000.0,
+        capital_peak=2_000_000.0,
+        data_hash="data",
+        code_hash="v4-code",
+    )
+    payload = old_state.to_dict()
+    source = tmp_path / "valid-v4.json"
+    source.write_text(json.dumps(payload), encoding="utf-8")
+
+    tampered_payload = json.loads(json.dumps(payload))
+    tampered_payload["order_ledger"][0]["event_id"] = "evt_" + "f" * 64
+    tampered_source = tmp_path / "tampered-v4.json"
+    tampered_source.write_text(json.dumps(tampered_payload), encoding="utf-8")
+    with pytest.raises(RuntimeError, match="v4 event_id differs from canonical derivation"):
+        migrate_account(
+            tampered_source,
+            tmp_path / "tampered-v5.json",
+            new_code_hash="v5-code",
+            acknowledge_code_change=True,
+        )
+
+    with pytest.raises(RuntimeError, match="explicit migration"):
+        load_account(source)
+    first = migrate_account(
+        source,
+        tmp_path / "first-v5.json",
+        new_code_hash="v5-code",
+        acknowledge_code_change=True,
+    )
+    second = migrate_account(
+        source,
+        tmp_path / "second-v5.json",
+        new_code_hash="v5-code",
+        acknowledge_code_change=True,
+    )
+
+    assert domain.ACCOUNT_SCHEMA_VERSION == first.schema_version == second.schema_version == 5
+    assert first.cash == second.cash == 1_999_089.39
+    assert first.positions["sz300502"].shares == second.positions["sz300502"].shares == 100
+    assert first.order_ledger[0].filled_shares == second.order_ledger[0].filled_shares == 200
+    assert first.fills[0].gross_value == second.fills[0].gross_value == 2_000.0
+    assert first.order_ledger[0].event_id == first.fills[0].event_id
+    assert first.order_ledger[0].event_id == first.positions["sz300502"].tranches[0].event_id
+    assert first.order_ledger[0].event_id == first.fills[1].sold_tranches[0]["event_id"]
+    assert first.pending_orders[0].event_id == first.order_ledger[2].event_id
+    assert first.order_ledger[0].event_id != old_buy_event
+    assert first.order_ledger[0].event_id == second.order_ledger[0].event_id
+    first_provenance = first.account_migrations[-1]["attribution_event_id_migration"]
+    second_provenance = second.account_migrations[-1]["attribution_event_id_migration"]
+    assert first_provenance == second_provenance
+    assert first_provenance["policy"] == "validated_v4_to_v5_machine_identity"
+    migrated_ids = {
+        item["from_event_id"]: item["to_event_id"]
+        for item in first_provenance["event_id_map"]
+    }
+    assert migrated_ids == {
+        old_buy_event: first.order_ledger[0].event_id,
+        old_sell_event: first.order_ledger[1].event_id,
+        old_pending_event: first.order_ledger[2].event_id,
+    }
+    assert "reason" not in first_provenance
+    assert load_account(tmp_path / "first-v5.json").to_dict() == first.to_dict()
+
+
 def test_schema_v3_unlinked_fill_migration_uses_structured_identity_not_prose(
     tmp_path,
 ) -> None:
@@ -1382,7 +1761,7 @@ def test_schema_v3_unlinked_fill_migration_uses_structured_identity_not_prose(
     payload["fills"][0]["order_id"] = ""
     payload["fills"][0]["reason"] = "unrelated fill prose"
     source = tmp_path / "unlinked-v3.json"
-    destination = tmp_path / "unlinked-v4.json"
+    destination = tmp_path / "unlinked-v5.json"
     source.write_text(json.dumps(payload), encoding="utf-8")
 
     migrated = migrate_account(
@@ -1406,7 +1785,7 @@ def test_schema_v3_unlinked_fill_migration_fails_closed_on_structured_ambiguity(
     payload["order_ledger"].append(duplicate)
     payload["next_order_sequence"] = 3
     source = tmp_path / "ambiguous-unlinked-v3.json"
-    destination = tmp_path / "ambiguous-unlinked-v4.json"
+    destination = tmp_path / "ambiguous-unlinked-v5.json"
     source.write_text(json.dumps(payload), encoding="utf-8")
 
     with pytest.raises(RuntimeError, match="ambiguous"):

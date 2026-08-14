@@ -28,6 +28,7 @@ from .types import (
     Tranche,
     derive_attribution_event_id,
     order_intent_metadata,
+    validate_attribution_compatibility,
 )
 from .validation.universe import REQUIRED_AI_UNIVERSE_SHA256, default_ai_universe
 
@@ -151,13 +152,16 @@ def plan_orders(
         if buy_will_be_planned:
             if not target.event_id:
                 raise RuntimeError(f"new BUY for {target.symbol} requires a canonical event_id")
-            if target.origin_subsystem in {
-                "BROKER_RECONCILIATION",
-                "LEGACY_MIGRATION",
-            }:
-                raise RuntimeError(
-                    f"new BUY for {target.symbol} cannot use {target.origin_subsystem} identity"
+            try:
+                validate_attribution_compatibility(
+                    origin_subsystem=target.origin_subsystem,
+                    mechanism=target.mechanism,
+                    side=Side.BUY.value,
                 )
+            except (TypeError, ValueError) as exc:
+                raise RuntimeError(
+                    f"new BUY for {target.symbol} has incompatible attribution: {exc}"
+                ) from exc
             retained_identity = next(
                 (
                     order
@@ -228,11 +232,22 @@ def plan_orders(
             difference = -current_value
         elif abs(difference) < threshold and not restoration_buy_below_completion:
             continue
+        side = Side.BUY.value if difference > 0 else Side.SELL.value
+        try:
+            validate_attribution_compatibility(
+                origin_subsystem=target.origin_subsystem,
+                mechanism=target.mechanism,
+                side=side,
+            )
+        except (TypeError, ValueError) as exc:
+            raise RuntimeError(
+                f"new {side} for {target.symbol} has incompatible attribution: {exc}"
+            ) from exc
         planned.append(
             PendingOrder(
                 signal_date=signal_date,
                 symbol=target.symbol,
-                side=Side.BUY.value if difference > 0 else Side.SELL.value,
+                side=side,
                 target_weight=target.weight,
                 reason=target.reason,
                 lifecycle=target.lifecycle,
@@ -292,7 +307,6 @@ def merge_pending_orders(
             and target.weight > 1e-12
             and order.lifecycle == target.lifecycle
             and order.reduction_policy == target.reduction_policy
-            and order.exit_kind == target.exit_kind
             and same_attribution(order, target)
             and abs(order.target_weight - target.weight)
             < cfg.min_trade_weight
@@ -309,7 +323,6 @@ def merge_pending_orders(
         same_execution_policy = (
             order.lifecycle == target.lifecycle
             and order.reduction_policy == target.reduction_policy
-            and order.exit_kind == target.exit_kind
             and same_attribution(order, target)
         )
         durable_partial_risk_exit = bool(
@@ -357,7 +370,6 @@ def merge_pending_orders(
             and abs(existing.target_weight - order.target_weight) <= 1e-12
             and existing.lifecycle == order.lifecycle
             and existing.reduction_policy == order.reduction_policy
-            and existing.exit_kind == order.exit_kind
             and all(
                 getattr(existing, field) == getattr(order, field)
                 for field in ATTRIBUTION_IDENTITY_FIELDS
@@ -377,6 +389,15 @@ def _register_account_order(
     submitted_date: str,
 ) -> AccountOrder:
     """Reuse a matching ledger order or allocate a stable new order identifier."""
+
+    try:
+        validate_attribution_compatibility(
+            origin_subsystem=order.origin_subsystem,
+            mechanism=order.mechanism,
+            side=order.side,
+        )
+    except (TypeError, ValueError) as exc:
+        raise RuntimeError(f"pending order has incompatible attribution: {exc}") from exc
 
     if order.order_id:
         existing = next(

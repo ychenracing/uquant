@@ -10,7 +10,7 @@ from datetime import date as date_type
 from enum import Enum
 from typing import Any, TypedDict
 
-ACCOUNT_SCHEMA_VERSION = 4
+ACCOUNT_SCHEMA_VERSION = 5
 
 
 class Opportunity(str, Enum):
@@ -91,6 +91,67 @@ class Side(str, Enum):
     SELL = "SELL"
 
 
+_ATTRIBUTION_COMPATIBILITY: dict[
+    tuple[OriginSubsystem, AttributionMechanism],
+    frozenset[Side],
+] = {
+    (OriginSubsystem.LEADER, AttributionMechanism.LEADER_SELECTION): frozenset(Side),
+    (OriginSubsystem.LEADER, AttributionMechanism.LEADER_ROTATION): frozenset(Side),
+    (OriginSubsystem.LEADER, AttributionMechanism.LEADER_LIFECYCLE_EXIT): frozenset({Side.SELL}),
+    (OriginSubsystem.LEADER, AttributionMechanism.LEADER_LIFECYCLE_PROMOTION): frozenset(),
+    (OriginSubsystem.LEADER, AttributionMechanism.LEADER_PYRAMID): frozenset({Side.BUY}),
+    (OriginSubsystem.LEADER, AttributionMechanism.CHALLENGER_SCOUT): frozenset({Side.BUY}),
+    (OriginSubsystem.LEADER, AttributionMechanism.SATELLITE_EXPIRY): frozenset({Side.SELL}),
+    (OriginSubsystem.RECOVERY, AttributionMechanism.RECOVERY_COHORT): frozenset(Side),
+    (OriginSubsystem.RECOVERY, AttributionMechanism.RECOVERY_SUBSTITUTION): frozenset(Side),
+    (OriginSubsystem.RECOVERY, AttributionMechanism.RECOVERY_CAP): frozenset(Side),
+    (OriginSubsystem.RECOVERY, AttributionMechanism.RECOVERY_REARM): frozenset({Side.BUY}),
+    (OriginSubsystem.RECOVERY, AttributionMechanism.TACTICAL_REBOUND): frozenset(Side),
+    (OriginSubsystem.RECOVERY, AttributionMechanism.POST_SHOCK_RESTORATION): frozenset({Side.BUY}),
+    (OriginSubsystem.STRATEGIC, AttributionMechanism.STRATEGIC_COHORT): frozenset(Side),
+    (OriginSubsystem.STRATEGIC, AttributionMechanism.STRATEGIC_TRAILING_EXIT): frozenset({Side.SELL}),
+    (OriginSubsystem.STRATEGIC, AttributionMechanism.STRATEGIC_PROFIT_LOCK): frozenset({Side.SELL}),
+    (OriginSubsystem.STRATEGIC, AttributionMechanism.STRATEGIC_RESTORATION): frozenset({Side.BUY}),
+    (OriginSubsystem.RISK, AttributionMechanism.RISK_GROSS_CAP): frozenset({Side.SELL}),
+    (OriginSubsystem.RISK, AttributionMechanism.SECTOR_GUARD): frozenset({Side.SELL}),
+    (OriginSubsystem.RISK, AttributionMechanism.STRATEGIC_DAMAGE_GUARD): frozenset({Side.SELL}),
+    (OriginSubsystem.RISK, AttributionMechanism.RISK_OFF): frozenset({Side.SELL}),
+    (OriginSubsystem.RISK, AttributionMechanism.CRISIS): frozenset({Side.SELL}),
+    (OriginSubsystem.RISK, AttributionMechanism.CAPITAL_BUDGET): frozenset({Side.SELL}),
+    (OriginSubsystem.RISK, AttributionMechanism.RISK_FREEZE): frozenset(),
+    (
+        OriginSubsystem.BROKER_RECONCILIATION,
+        AttributionMechanism.BROKER_RECONCILIATION,
+    ): frozenset({Side.SELL}),
+    (OriginSubsystem.LEGACY_MIGRATION, AttributionMechanism.LEGACY_MIGRATION): frozenset({Side.SELL}),
+}
+
+
+def validate_attribution_compatibility(
+    *,
+    origin_subsystem: str,
+    mechanism: str,
+    side: str | None = None,
+) -> None:
+    """Validate the one authoritative origin/mechanism/side registry."""
+
+    origin = OriginSubsystem(origin_subsystem)
+    causal_mechanism = AttributionMechanism(mechanism)
+    allowed_sides = _ATTRIBUTION_COMPATIBILITY.get((origin, causal_mechanism))
+    if allowed_sides is None:
+        raise ValueError(
+            f"attribution pair {origin.value}/{causal_mechanism.value} is not registered"
+        )
+    if side is None:
+        return
+    direction = Side(side)
+    if direction not in allowed_sides:
+        raise ValueError(
+            f"attribution pair {origin.value}/{causal_mechanism.value} "
+            f"is not permitted for {direction.value}"
+        )
+
+
 class OrderStatus(str, Enum):
     """Durable broker-order lifecycle states."""
 
@@ -144,7 +205,7 @@ def derive_attribution_event_id(
 ) -> str:
     """Derive one replay-stable attribution identity from canonical intent.
 
-    The v1 payload deliberately excludes prose, wall-clock state, process
+    The v2 payload deliberately excludes prose, wall-clock state, process
     hashes, UUIDs, broker fill timing, and mutable account order sequencing.
     IEEE-754 hexadecimal weight encoding avoids locale or decimal-rendering
     ambiguity while symbol, weight, mechanism, and replacement dimensions
@@ -166,6 +227,10 @@ def derive_attribution_event_id(
     Lifecycle(origin_lifecycle)
     OriginSubsystem(origin_subsystem)
     AttributionMechanism(mechanism)
+    validate_attribution_compatibility(
+        origin_subsystem=origin_subsystem,
+        mechanism=mechanism,
+    )
     ReductionPolicy(reduction_policy)
     if replaces_symbol is not None and (
         not isinstance(replaces_symbol, str) or not replaces_symbol
@@ -179,11 +244,11 @@ def derive_attribution_event_id(
         or any(character not in "0123456789abcdef" for character in industry_manifest_sha256)
     ):
         raise ValueError("attribution industry manifest must be SHA-256")
-    # Kept as compatibility-only arguments while schema-v4 callers migrate.
+    # Kept as compatibility/display arguments for persisted domain objects.
     # Neither display/backward field participates in attribution identity.
     del reason_code, exit_kind
     payload = {
-        "schema": "uquant.attribution-event.v1",
+        "schema": "uquant.attribution-event.v2",
         "signal_date": signal_date,
         "symbol": symbol,
         "target_weight": weight.hex(),

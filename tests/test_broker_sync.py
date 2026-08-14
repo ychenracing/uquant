@@ -7,6 +7,7 @@ import pytest
 from uquant.broker import sync_broker_snapshot
 from uquant.config import DEFAULT_CONFIG
 from uquant.types import (
+    ACCOUNT_SCHEMA_VERSION,
     AccountOrder,
     AccountState,
     AttributionMechanism,
@@ -60,7 +61,7 @@ def _migration_event() -> dict[str, object]:
     return {
         "migrated_at_utc": "2026-01-01T00:00:00+00:00",
         "from_schema": 3,
-        "to_schema": 4,
+        "to_schema": ACCOUNT_SCHEMA_VERSION,
         "from_code_hash": "old-code",
         "to_code_hash": "code",
     }

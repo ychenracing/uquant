@@ -19,7 +19,10 @@ from uquant.config_governance import (
 
 ROOT = Path(__file__).parents[1]
 GOVERNANCE_PATH = ROOT / "benchmarks" / "config_parameter_governance.json"
-REMOVED_COMPATIBILITY_OVERRIDES: tuple[dict[str, object], ...] = ({"strategic_cohort_symbols": ()},)
+REMOVED_COMPATIBILITY_OVERRIDES: tuple[dict[str, object], ...] = (
+    {"strategic_cohort_symbols": ()},
+    {"strategic_partial_universe_max_size": 8},
+)
 
 
 def _canonical_sha256(payload: dict[str, Any]) -> str:
@@ -73,9 +76,12 @@ def test_governed_config_migration_binds_both_exact_config_identities() -> None:
         "023d709731196a325d9cd03e95ece92e4baf63d2c5c66bb9f7d0e7a190e7bf20"
     )
     assert migration.candidate_config_sha256 == (
-        "3726467944102ec9d51b7deb7bc2c5cb5acce8fac4c3fa54052f0f0b9bd72452"
+        "d15c71bbce7448ca8df059e3d34e02254d316d4bfd8add00d0bc59e9a821071c"
     )
-    assert migration.removed_fields == ("strategic_cohort_symbols",)
+    assert migration.removed_fields == (
+        "strategic_cohort_symbols",
+        "strategic_partial_universe_max_size",
+    )
     assert len(migration.carrier_sha256) == 64
 
 

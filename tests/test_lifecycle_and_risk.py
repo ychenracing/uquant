@@ -1442,7 +1442,7 @@ def test_unqualified_universe_padding_cannot_authorize_a_partial_cohort() -> Non
     weak_frame = _strategic_frame(dates)
     weak_frame["ret240"] = -0.20
     weak_frame["ret120"] = -0.10
-    for index in range(DEFAULT_CONFIG.strategic_partial_universe_max_size):
+    for index in range(8):
         symbol = f"weak_{index}"
         broad_panel[symbol] = weak_frame.copy()
         broad_leaders[symbol] = _leader(symbol, 0.20, industry=f"weak_group_{index}")

@@ -500,6 +500,39 @@ def _reconcile_account_orders_mutating(
     return current
 
 
+def _preflight_reconciliation_batch(
+    *,
+    previous: list[PendingOrder],
+    current: tuple[PendingOrder, ...],
+) -> None:
+    """Reject active-order cardinality ambiguity before shadow reconciliation."""
+
+    def unique_orders(
+        orders: list[PendingOrder] | tuple[PendingOrder, ...],
+        *,
+        batch: str,
+    ) -> dict[str, PendingOrder]:
+        seen_symbols: set[str] = set()
+        seen_ids: dict[str, PendingOrder] = {}
+        for order in orders:
+            if order.symbol in seen_symbols:
+                raise RuntimeError(f"duplicate {batch} symbol {order.symbol}")
+            seen_symbols.add(order.symbol)
+            if order.order_id:
+                if order.order_id in seen_ids:
+                    raise RuntimeError(f"duplicate {batch} order_id {order.order_id}")
+                seen_ids[order.order_id] = order
+        return seen_ids
+
+    previous_by_id = unique_orders(previous, batch="previous")
+    current_by_id = unique_orders(current, batch="current")
+    for order_id in sorted(previous_by_id.keys() & current_by_id.keys()):
+        if order_intent_metadata(previous_by_id[order_id]) != order_intent_metadata(
+            current_by_id[order_id]
+        ):
+            raise RuntimeError(f"conflicting previous/current order_id {order_id}")
+
+
 def reconcile_account_orders(
     *,
     account: AccountState,
@@ -509,6 +542,7 @@ def reconcile_account_orders(
 ) -> tuple[PendingOrder, ...]:
     """Reconcile one all-or-nothing batch against a shadow ledger."""
 
+    _preflight_reconciliation_batch(previous=previous, current=current)
     shadow_account = deepcopy(account)
     shadow_previous, shadow_current = deepcopy((previous, current))
     _reconcile_account_orders_mutating(

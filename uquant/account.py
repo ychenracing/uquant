@@ -45,6 +45,7 @@ from .validation.universe import (
 )
 
 _EVENT_ID = re.compile(r"^evt_[0-9a-f]{64}$")
+_ORDER_ID = re.compile(r"^O[0-9]{9}$")
 _LEGACY_INDUSTRY = "legacy_unmapped"
 _LEGACY_MANIFEST_SHA256 = "0" * 64
 _HISTORICAL_ATTRIBUTION_SCHEMA_VERSION = 4
@@ -420,6 +421,8 @@ def _validate_fill(
     _required_text(fill.exit_kind, field="fill exit_kind")
     if not isinstance(fill.order_id, str) or not isinstance(fill.fill_id, str):
         raise RuntimeError("fill identifiers must be text")
+    if fill.order_id:
+        _order_sequence(fill.order_id)
     if fill.fill_id and not fill.fill_id.strip():
         raise RuntimeError("fill_id cannot contain only whitespace")
     if validate_attribution:
@@ -1224,12 +1227,7 @@ def _validate_position_state(
 
 
 def _order_sequence(order_id: str) -> int:
-    if (
-        not isinstance(order_id, str)
-        or len(order_id) != 10
-        or not order_id.startswith("O")
-        or not order_id[1:].isdigit()
-    ):
+    if not isinstance(order_id, str) or _ORDER_ID.fullmatch(order_id) is None:
         raise RuntimeError(f"account state has invalid order id: {order_id!r}")
     sequence = int(order_id[1:])
     if sequence <= 0:
@@ -1333,6 +1331,8 @@ def _validate_order_state(
     pending_ids = [item.order_id for item in state.pending_orders if item.order_id]
     if len(pending_ids) != len(set(pending_ids)):
         raise RuntimeError("account state has duplicate pending order ids")
+    for order_id in pending_ids:
+        _order_sequence(order_id)
     terminal = {
         OrderStatus.FILLED.value,
         OrderStatus.CANCELLED.value,
@@ -1606,6 +1606,17 @@ def load_account(
     negative balances, and missing provenance hashes when fail-closed operation
     is expected.
     """
+    payload = _read_account_payload(path)
+    return account_from_dict(
+        payload,
+        require_hashes=require_hashes,
+        allow_legacy_schema=allow_legacy_schema,
+    )
+
+
+def _read_account_payload(path: str | Path) -> dict[str, Any]:
+    """Read one account JSON object with the strict parser used by migration."""
+
     source = Path(path)
     try:
         payload = json.loads(
@@ -1616,11 +1627,7 @@ def load_account(
         raise RuntimeError(f"account state is missing or corrupt: {source}") from exc
     if not isinstance(payload, Mapping):
         raise RuntimeError("account state must be a JSON object")
-    return account_from_dict(
-        payload,
-        require_hashes=require_hashes,
-        allow_legacy_schema=allow_legacy_schema,
-    )
+    return dict(payload)
 
 
 def account_from_dict(
@@ -1656,6 +1663,8 @@ def account_from_dict(
         )
     native_schema = schema_version >= _HISTORICAL_ATTRIBUTION_SCHEMA_VERSION
     sequence_was_explicit = "next_order_sequence" in payload
+    if schema_version == ACCOUNT_SCHEMA_VERSION and not sequence_was_explicit:
+        raise RuntimeError("current account schema requires next_order_sequence")
     operating_peak = payload.get("operating_peak")
     capital_peak = payload.get("capital_peak")
     if operating_peak is None:
@@ -2356,9 +2365,15 @@ def migrate_account(
         raise RuntimeError("account migration requires --acknowledge-code-change")
     if not new_code_hash:
         raise RuntimeError("account migration requires a non-empty code hash")
-    state = load_account(source, allow_legacy_schema=True)
+    source_payload = _read_account_payload(source)
+    source_sequence_was_explicit = "next_order_sequence" in source_payload
+    state = account_from_dict(
+        source_payload,
+        allow_legacy_schema=True,
+    )
     previous_schema = state.schema_version
     previous_code_hash = state.code_hash
+    previous_next_order_sequence = state.next_order_sequence
     degraded_sell_attributions: list[dict[str, Any]] = []
     if previous_schema == 2:
         for index, fill in enumerate(state.fills, start=1):
@@ -2389,6 +2404,23 @@ def migrate_account(
         legacy_unknown_buy_classifications = _populate_legacy_attribution(state)
     elif previous_schema == _HISTORICAL_ATTRIBUTION_SCHEMA_VERSION:
         attribution_event_id_migration = _migrate_v4_attribution_event_ids(state)
+    order_sequence_migration: dict[str, Any] | None = None
+    if previous_schema < ACCOUNT_SCHEMA_VERSION:
+        exact_next_order_sequence = (
+            max(
+                (_order_sequence(order.order_id) for order in state.order_ledger),
+                default=0,
+            )
+            + 1
+        )
+        state.next_order_sequence = exact_next_order_sequence
+        order_sequence_migration = {
+            "policy": "legacy_nonreuse_to_v5_exact_ledger_max_plus_one",
+            "source_was_explicit": source_sequence_was_explicit,
+            "old_next_order_sequence": previous_next_order_sequence,
+            "new_next_order_sequence": exact_next_order_sequence,
+            "reason": "v5_requires_exact_max_durable_order_id_plus_one",
+        }
     state.schema_version = ACCOUNT_SCHEMA_VERSION
     state.code_hash = new_code_hash
     migration_event: dict[str, Any] = {
@@ -2412,6 +2444,8 @@ def migrate_account(
             "policy": "pre_v4_unknown_buy_to_unattributed_legacy",
             "events": legacy_unknown_buy_classifications,
         }
+    if order_sequence_migration is not None:
+        migration_event["order_sequence_migration"] = order_sequence_migration
     state.account_migrations.append(migration_event)
     save_account(state, destination)
     return state

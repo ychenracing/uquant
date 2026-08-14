@@ -15,6 +15,7 @@ from uquant.types import (
     Lifecycle,
     OrderStatus,
     OriginSubsystem,
+    PendingOrder,
     Position,
     ReductionPolicy,
     Tranche,
@@ -166,6 +167,69 @@ def test_native_account_rejects_zero_order_identifier(tmp_path) -> None:
 
     with pytest.raises(RuntimeError, match="invalid order id"):
         load_account(_write_payload(tmp_path, payload))
+
+
+@pytest.mark.parametrize(
+    "unicode_order_id",
+    (
+        "O" + chr(0x0660) * 8 + chr(0x0661),
+        "O" + chr(0xFF10) * 8 + chr(0xFF11),
+    ),
+)
+def test_native_account_rejects_unicode_digit_order_identifier(
+    tmp_path,
+    unicode_order_id: str,
+) -> None:
+    """Only the ASCII O plus nine ASCII digits allocation scheme is durable."""
+
+    state = _position_state()
+    payload = state.to_dict()
+    payload["order_ledger"][0]["order_id"] = unicode_order_id
+    payload["fills"][0]["order_id"] = unicode_order_id
+
+    with pytest.raises(RuntimeError, match="invalid order id"):
+        load_account(_write_payload(tmp_path, payload))
+
+
+def test_native_account_requires_explicit_next_order_sequence(tmp_path) -> None:
+    """Current schema evidence cannot silently derive a missing durable sequence."""
+
+    payload = _position_state().to_dict()
+    payload.pop("next_order_sequence")
+
+    with pytest.raises(RuntimeError, match="requires next_order_sequence"):
+        load_account(_write_payload(tmp_path, payload))
+
+
+@pytest.mark.parametrize("reference", ("fill", "pending", "replaced_by"))
+def test_native_account_rejects_unicode_digits_in_order_references(
+    tmp_path,
+    reference: str,
+) -> None:
+    """Every durable order reference uses the same closed ASCII ID grammar."""
+
+    unicode_order_id = "O" + chr(0x0660) * 8 + chr(0x0661)
+    state = _position_state()
+    if reference == "fill":
+        state.fills[0].order_id = unicode_order_id
+    elif reference == "pending":
+        state.pending_orders = [
+            PendingOrder(
+                signal_date="2026-01-05",
+                symbol=SYMBOL,
+                side="BUY",
+                target_weight=0.05,
+                reason="native chain fixture",
+                lifecycle="CORE",
+                order_id=unicode_order_id,
+                **_identity(target_weight=0.05),
+            )
+        ]
+    else:
+        state.order_ledger[0].replaced_by = unicode_order_id
+
+    with pytest.raises(RuntimeError, match="invalid order id"):
+        load_account(_write_payload(tmp_path, state.to_dict()))
 
 
 def test_empty_native_account_requires_initial_order_sequence(tmp_path) -> None:

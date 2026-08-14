@@ -8,6 +8,12 @@ from dataclasses import asdict, dataclass, replace
 from typing import Any
 
 
+def canonical_control_float(value: float) -> float:
+    """Serialize one control-plane float with the exact schema-v2 precision."""
+
+    return round(float(value), 12)
+
+
 @dataclass(frozen=True, slots=True)
 class SystemConfig:
     """Immutable strategy, risk, execution, and portfolio configuration.

@@ -10,6 +10,8 @@ from datetime import date as date_type
 from enum import Enum
 from typing import Any, TypedDict
 
+from .config import canonical_control_float
+
 ACCOUNT_SCHEMA_VERSION = 5
 
 
@@ -651,13 +653,11 @@ class Decision:
                 # them.  The fields below are cross-bound to the frozen digest,
                 # daily ledger, compiled config, or exact targets.
                 "state": self.risk.value,
-                "target_gross_cap": round(
-                    float(self.risk_summary.get("target_gross_cap", 0.0)),
-                    12,
+                "target_gross_cap": canonical_control_float(
+                    float(self.risk_summary.get("target_gross_cap", 0.0))
                 ),
-                "system_gross_cap": round(
-                    float(self.risk_summary.get("system_gross_cap", 0.0)),
-                    12,
+                "system_gross_cap": canonical_control_float(
+                    float(self.risk_summary.get("system_gross_cap", 0.0))
                 ),
             },
             "target_gross": round(self.target_gross, 12),

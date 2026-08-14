@@ -19,7 +19,12 @@ from .attribution import (
     build_daily_replay_evidence_row,
     build_economic_attribution,
 )
-from .config import DEFAULT_CONFIG, SystemConfig, config_fingerprint
+from .config import (
+    DEFAULT_CONFIG,
+    SystemConfig,
+    canonical_control_float,
+    config_fingerprint,
+)
 from .data import DataStore, normalize_symbol
 from .execution import (
     ExecutionPlanner,
@@ -525,8 +530,8 @@ class ProductionEngine:
                 "shock_state": risk.shock_state,
                 "reduction_level": risk.reduction_level,
                 "severity": risk.severity,
-                "target_gross_cap": risk.target_gross_cap,
-                "system_gross_cap": decision_cfg.max_gross,
+                "target_gross_cap": canonical_control_float(risk.target_gross_cap),
+                "system_gross_cap": canonical_control_float(decision_cfg.max_gross),
                 "freeze_new_risk": risk.freeze_new_risk,
                 "strategic_epoch": account.strategic_epoch,
                 "strategic_candidate_signature": (account.strategic_candidate_signature),

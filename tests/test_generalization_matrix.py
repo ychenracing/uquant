@@ -11,7 +11,12 @@ from typing import Any
 import pytest
 
 from uquant.attribution import build_economic_attribution
-from uquant.config import DEFAULT_CONFIG, SystemConfig, config_fingerprint
+from uquant.config import (
+    DEFAULT_CONFIG,
+    SystemConfig,
+    canonical_control_float,
+    config_fingerprint,
+)
 from uquant.engine import code_fingerprint
 from uquant.types import (
     AccountOrder,
@@ -982,6 +987,65 @@ def test_matrix_accepts_explicit_hash_verified_config_override(
         data_dir=matrix_data_dir,
     )
     assert any("trusted effective config" in failure for failure in default_failures)
+
+
+def test_matrix_uses_exact_canonical_config_cap_precision(
+    matrix_data_dir: Path,
+) -> None:
+    """A sub-12-decimal config is serialized once; a different serialized cap fails."""
+
+    scenarios = _scenarios()
+    expected_config = DEFAULT_CONFIG.override(max_gross=0.999_999_999_999_9)
+    expected_sha256 = config_fingerprint(expected_config)
+    canonical_cap = canonical_control_float(expected_config.max_gross)
+    provenance = _provenance(
+        scenarios,
+        matrix_data_dir,
+        expected_config=expected_config,
+    )
+
+    def runner(scenario: Any) -> dict[str, Any]:
+        raw = _runner_payload(scenario)
+        raw["effective_config_sha256"] = expected_sha256
+        for index, trace in enumerate(raw["decision_trace"]):
+            trace["effective_config_sha256"] = expected_sha256
+            trace["risk"]["system_gross_cap"] = canonical_cap
+            raw["decision_digests"][index] = hashlib.sha256(
+                json.dumps(trace, sort_keys=True, separators=(",", ":")).encode()
+            ).hexdigest()
+        for row in raw["attribution"]["daily_ledger"]:
+            row["caps"]["system_gross"] = canonical_cap
+        return raw
+
+    artifact = execute_generalization_matrix(
+        scenarios=scenarios,
+        runner=runner,
+        provenance=provenance,
+        data_dir=matrix_data_dir,
+        expected_config=expected_config,
+    )
+    assert artifact["passed"] is True
+
+    forged = copy.deepcopy(artifact)
+    for cell in forged["cells"]:
+        if not cell["economic"]:
+            continue
+        raw = cell["raw"]
+        for index, trace in enumerate(raw["decision_trace"]):
+            trace["risk"]["system_gross_cap"] = 0.999_999_999_999
+            raw["decision_digests"][index] = hashlib.sha256(
+                json.dumps(trace, sort_keys=True, separators=(",", ":")).encode()
+            ).hexdigest()
+        for row in cell["attribution"]["daily_ledger"]:
+            row["caps"]["system_gross"] = 0.999_999_999_999
+    failures = validate_matrix_artifact(
+        forged,
+        scenarios=scenarios,
+        expected_provenance=provenance,
+        data_dir=matrix_data_dir,
+        expected_config=expected_config,
+    )
+    assert any("system gross cap" in failure for failure in failures), failures
 
 
 def test_matrix_accepts_one_origin_and_contiguous_partial_order_snapshots(

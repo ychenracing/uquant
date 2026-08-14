@@ -10,7 +10,7 @@ from collections.abc import Mapping, Sequence
 from typing import Any
 
 from ..account import account_from_dict
-from ..config import SystemConfig, config_fingerprint
+from ..config import SystemConfig, canonical_control_float, config_fingerprint
 from ..types import (
     ACCOUNT_SCHEMA_VERSION,
     AttributionMechanism,
@@ -295,7 +295,7 @@ def validate_engine_control_plane(
         # config.  The dynamic risk cap has no separate causal replay carrier;
         # it and binding_owner are retained only as internally reconciled
         # diagnostics against the exact targets and daily ledger.
-        if system_cap != expected_config.max_gross:
+        if system_cap != canonical_control_float(expected_config.max_gross):
             raise ValueError("decision trace system gross cap differs from trusted config")
         targets_value = trace["targets"]
         orders_value = trace["orders"]

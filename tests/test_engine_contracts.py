@@ -255,16 +255,24 @@ def test_order_state_migrates_sequence_and_rejects_broken_references(tmp_path):
     ]
     payload = state.to_dict()
     payload.pop("next_order_sequence")
-    migrated = tmp_path / "migrated-account.json"
-    migrated.write_text(json.dumps(payload), encoding="utf-8")
-    assert load_account(migrated).next_order_sequence == 8
+    missing_native = tmp_path / "missing-native-sequence.json"
+    missing_native.write_text(json.dumps(payload), encoding="utf-8")
+    with pytest.raises(RuntimeError, match="requires next_order_sequence"):
+        load_account(missing_native)
 
-    payload["next_order_sequence"] = 7
+    legacy_payload = copy.deepcopy(payload)
+    legacy_payload["schema_version"] = 3
+    migrated = tmp_path / "derived-legacy-sequence.json"
+    migrated.write_text(json.dumps(legacy_payload), encoding="utf-8")
+    assert load_account(migrated, allow_legacy_schema=True).next_order_sequence == 8
+
+    legacy_payload["next_order_sequence"] = 7
     collision = tmp_path / "collision-account.json"
-    collision.write_text(json.dumps(payload), encoding="utf-8")
+    collision.write_text(json.dumps(legacy_payload), encoding="utf-8")
     with pytest.raises(RuntimeError, match="reuse an order id"):
-        load_account(collision)
+        load_account(collision, allow_legacy_schema=True)
 
+    payload = state.to_dict()
     payload["next_order_sequence"] = 8
     payload["pending_orders"] = [
         {
@@ -284,6 +292,136 @@ def test_order_state_migrates_sequence_and_rejects_broken_references(tmp_path):
     unknown.write_text(json.dumps(payload), encoding="utf-8")
     with pytest.raises(RuntimeError, match="unknown account order"):
         load_account(unknown)
+
+
+@pytest.mark.parametrize(
+    ("order_ids", "old_sequence", "expected_sequence"),
+    (
+        ((), 2, 1),
+        (("O000000001", "O000000007"), 99, 8),
+    ),
+)
+def test_legacy_migration_normalizes_explicit_nonreuse_sequence(
+    tmp_path,
+    order_ids: tuple[str, ...],
+    old_sequence: int,
+    expected_sequence: int,
+) -> None:
+    """A valid loose legacy sequence becomes the exact v5 durable sequence."""
+
+    state = AccountState.empty(2e6)
+    state.schema_version = 3
+    state.data_hash = "data"
+    state.code_hash = "legacy-code"
+    state.order_ledger = [
+        AccountOrder(
+            order_id=order_id,
+            signal_date="2026-01-05",
+            submitted_date="2026-01-05",
+            symbol="sz300308",
+            side="BUY",
+            target_weight=0.5,
+            reason="legacy entry",
+            lifecycle="CORE",
+            **_identity(),
+        )
+        for order_id in order_ids
+    ]
+    state.next_order_sequence = old_sequence
+    source = tmp_path / f"legacy-{old_sequence}.json"
+    destination = tmp_path / f"native-{old_sequence}.json"
+    source.write_text(json.dumps(state.to_dict()), encoding="utf-8")
+
+    migrated = migrate_account(
+        source,
+        destination,
+        new_code_hash="native-code",
+        acknowledge_code_change=True,
+    )
+
+    assert migrated.next_order_sequence == expected_sequence
+    assert load_account(destination).next_order_sequence == expected_sequence
+    assert migrated.account_migrations[-1]["order_sequence_migration"] == {
+        "policy": "legacy_nonreuse_to_v5_exact_ledger_max_plus_one",
+        "source_was_explicit": True,
+        "old_next_order_sequence": old_sequence,
+        "new_next_order_sequence": expected_sequence,
+        "reason": "v5_requires_exact_max_durable_order_id_plus_one",
+    }
+
+
+def test_legacy_migration_rejects_reusable_explicit_sequence(tmp_path) -> None:
+    """Normalization cannot excuse a legacy sequence that already permits collision."""
+
+    state = AccountState.empty(2e6)
+    state.schema_version = 3
+    state.data_hash = "data"
+    state.code_hash = "legacy-code"
+    state.order_ledger = [
+        AccountOrder(
+            order_id="O000000007",
+            signal_date="2026-01-05",
+            submitted_date="2026-01-05",
+            symbol="sz300308",
+            side="BUY",
+            target_weight=0.5,
+            reason="legacy entry",
+            lifecycle="CORE",
+            **_identity(),
+        )
+    ]
+    state.next_order_sequence = 7
+    source = tmp_path / "legacy-reuse.json"
+    source.write_text(json.dumps(state.to_dict()), encoding="utf-8")
+
+    with pytest.raises(RuntimeError, match="reuse an order id"):
+        migrate_account(
+            source,
+            tmp_path / "must-not-exist.json",
+            new_code_hash="native-code",
+            acknowledge_code_change=True,
+        )
+
+
+def test_legacy_migration_derives_missing_sequence_and_writes_v5_field(tmp_path) -> None:
+    """Only the legacy route may derive a missing sequence, with an explicit audit."""
+
+    state = AccountState.empty(2e6)
+    state.schema_version = 3
+    state.data_hash = "data"
+    state.code_hash = "legacy-code"
+    state.order_ledger = [
+        AccountOrder(
+            order_id="O000000007",
+            signal_date="2026-01-05",
+            submitted_date="2026-01-05",
+            symbol="sz300308",
+            side="BUY",
+            target_weight=0.5,
+            reason="legacy entry",
+            lifecycle="CORE",
+            **_identity(),
+        )
+    ]
+    payload = state.to_dict()
+    payload.pop("next_order_sequence")
+    source = tmp_path / "legacy-missing-sequence.json"
+    destination = tmp_path / "native-derived-sequence.json"
+    source.write_text(json.dumps(payload), encoding="utf-8")
+
+    migrated = migrate_account(
+        source,
+        destination,
+        new_code_hash="native-code",
+        acknowledge_code_change=True,
+    )
+
+    assert migrated.next_order_sequence == 8
+    assert json.loads(destination.read_text(encoding="utf-8"))["next_order_sequence"] == 8
+    audit = migrated.account_migrations[-1]["order_sequence_migration"]
+    assert audit["source_was_explicit"] is False
+    assert audit["old_next_order_sequence"] == 8
+    assert audit["new_next_order_sequence"] == 8
 
 
 def test_legacy_account_requires_acknowledged_schema_migration(tmp_path):

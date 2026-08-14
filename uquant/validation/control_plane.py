@@ -37,9 +37,6 @@ _TRACE_FIELDS = {
 }
 _RISK_FIELDS = {
     "state",
-    "shock_state",
-    "reduction_level",
-    "severity",
     "target_gross_cap",
     "system_gross_cap",
 }
@@ -62,6 +59,7 @@ _TARGET_FIELDS = {
 }
 _ORDER_FIELDS = {
     "order_id",
+    "signal_date",
     "symbol",
     "side",
     "target_weight",
@@ -257,6 +255,7 @@ def validate_engine_control_plane(
     ledger_orders_by_event: dict[str, list[Any]] = {}
     for ledger_order in account.order_ledger:
         ledger_orders_by_event.setdefault(ledger_order.event_id, []).append(ledger_order)
+    traced_order_ids: set[str] = set()
     reconstructed_legacy: list[str] = []
     for index, (session, raw_trace, raw_ledger) in enumerate(
         zip(sessions, trace_value, ledger_value, strict=True)
@@ -279,11 +278,6 @@ def validate_engine_control_plane(
             Risk(risk["state"])
         except (TypeError, ValueError) as exc:
             raise ValueError("decision trace risk state is malformed") from exc
-        if not isinstance(risk["shock_state"], str) or not isinstance(risk["severity"], str):
-            raise ValueError("decision trace risk evidence is malformed")
-        reduction_level = risk["reduction_level"]
-        if isinstance(reduction_level, bool) or not isinstance(reduction_level, int):
-            raise ValueError("decision trace risk reduction level is malformed")
         risk_cap = _finite(risk["target_gross_cap"], label="decision trace risk cap", minimum=0.0)
         system_cap = _finite(
             risk["system_gross_cap"],
@@ -373,13 +367,13 @@ def validate_engine_control_plane(
                         "decision target event identity differs from canonical derivation"
                     )
             target_weights[symbol] = weight
-        observed_order_ids: set[str] = set()
+        session_order_ids: set[str] = set()
         for raw_order in orders_value:
             order = _exact_mapping(raw_order, _ORDER_FIELDS, label="decision order")
             order_id = order["order_id"]
-            if not isinstance(order_id, str) or not order_id or order_id in observed_order_ids:
+            if not isinstance(order_id, str) or not order_id or order_id in session_order_ids:
                 raise ValueError("decision order IDs are malformed or duplicated")
-            observed_order_ids.add(order_id)
+            session_order_ids.add(order_id)
             try:
                 Side(order["side"])
                 ReductionPolicy(order["reduction_policy"])
@@ -392,6 +386,7 @@ def validate_engine_control_plane(
                 raise ValueError("decision order is absent from the durable account ledger")
             comparable = {
                 "order_id": durable.order_id,
+                "signal_date": durable.signal_date,
                 "symbol": durable.symbol,
                 "side": durable.side,
                 "target_weight": round(durable.target_weight, 12),
@@ -402,6 +397,12 @@ def validate_engine_control_plane(
             }
             if dict(order) != comparable:
                 raise ValueError("decision order differs from durable account event identity")
+            if order_id not in traced_order_ids:
+                if durable.signal_date != session:
+                    raise ValueError(
+                        "durable account order lacks its exact decision-date origin"
+                    )
+                traced_order_ids.add(order_id)
 
         target_gross = _finite(
             trace["target_gross"],
@@ -468,5 +469,12 @@ def validate_engine_control_plane(
         if not isinstance(advertised, str) or advertised != legacy_digest:
             raise ValueError(f"legacy decision digest does not recompute at {session}")
         reconstructed_legacy.append(legacy_digest)
+
+    missing_origins = sorted(set(ledger_orders) - traced_order_ids)
+    if missing_origins:
+        raise ValueError(
+            "durable account order ledger contains IDs without decision origins: "
+            + ", ".join(missing_origins)
+        )
 
     return tuple(reconstructed_legacy)

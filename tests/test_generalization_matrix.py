@@ -158,7 +158,7 @@ def _runner_payload(scenario: Any) -> dict[str, Any]:
         }
 
     order_identities = tuple(
-        identity(symbol, scenario.evidence_as_of) for symbol in (first, second)
+        identity(symbol, scenario.window.start) for symbol in (first, second)
     )
     initial_target_identities = tuple(
         identity(symbol, scenario.window.start) for symbol in (first, second)
@@ -171,8 +171,8 @@ def _runner_payload(scenario: Any) -> dict[str, Any]:
     account.order_ledger = [
         AccountOrder(
             order_id=f"O{index:09d}",
-            signal_date=scenario.evidence_as_of,
-            submitted_date=scenario.evidence_as_of,
+            signal_date=scenario.window.start,
+            submitted_date=scenario.window.start,
             symbol=symbol,
             side="BUY",
             target_weight=0.1,
@@ -198,8 +198,8 @@ def _runner_payload(scenario: Any) -> dict[str, Any]:
     account.next_order_sequence = 3
     account.fills = [
         Fill(
-            signal_date=scenario.evidence_as_of,
-            fill_date=scenario.window.start,
+            signal_date=scenario.window.start,
+            fill_date=scenario.window.end,
             symbol=symbol,
             side="BUY",
             shares=1,
@@ -229,7 +229,7 @@ def _runner_payload(scenario: Any) -> dict[str, Any]:
             symbol=symbol,
             shares=1,
             avg_cost=10.0,
-            entry_date=scenario.window.start,
+            entry_date=scenario.window.end,
             highest_close=final_prices[symbol],
             lifecycle="CORE",
             tranches=[
@@ -238,8 +238,8 @@ def _runner_payload(scenario: Any) -> dict[str, Any]:
                     lifecycle="CORE",
                     shares=1,
                     avg_cost=10.0,
-                    entry_date=scenario.window.start,
-                    sellable_date=scenario.window.start,
+                    entry_date=scenario.window.end,
+                    sellable_date=scenario.window.end,
                     highest_close=final_prices[symbol],
                     lowest_close=final_prices[symbol],
                     **identity_values,
@@ -258,12 +258,12 @@ def _runner_payload(scenario: Any) -> dict[str, Any]:
     ledger = [
         {
             "date": scenario.window.start,
-            "cash": 80.0,
+            "cash": 100.0,
             "equity": 100.0,
-            "gross_exposure": 0.2,
-            "net_exposure": 0.2,
-            "cash_weight": 0.8,
-            "position_weights": {first: 0.1, second: 0.1},
+            "gross_exposure": 0.0,
+            "net_exposure": 0.0,
+            "cash_weight": 1.0,
+            "position_weights": {},
             "daily_pnl": 0.0,
             "target_weights": {first: 0.1, second: 0.1},
             "target_gross": 0.2,
@@ -324,9 +324,6 @@ def _runner_payload(scenario: Any) -> dict[str, Any]:
             "opportunity": "CHOPPY",
             "risk": {
                 "state": "NORMAL",
-                "shock_state": "NONE",
-                "reduction_level": 0,
-                "severity": "NORMAL",
                 "target_gross_cap": 0.9,
                 "system_gross_cap": 0.9,
             },
@@ -337,7 +334,27 @@ def _runner_payload(scenario: Any) -> dict[str, Any]:
                     (first, second), identities, strict=True
                 )
             ],
-            "orders": [],
+            "orders": (
+                [
+                    {
+                        "order_id": f"O{index:09d}",
+                        "signal_date": scenario.window.start,
+                        "symbol": symbol,
+                        "side": "BUY",
+                        "target_weight": 0.1,
+                        "reduction_policy": "FIFO",
+                        "reason_code": "strategy_target",
+                        "exit_kind": "strategy",
+                        **identity_values,
+                    }
+                    for index, (symbol, identity_values) in enumerate(
+                        zip((first, second), identities, strict=True),
+                        start=1,
+                    )
+                ]
+                if date == scenario.window.start
+                else []
+            ),
             "effective_config_sha256": config_fingerprint(),
         }
         for date, identities in (
@@ -410,9 +427,9 @@ def _runner_payload(scenario: Any) -> dict[str, Any]:
         "daily_replay_evidence": [
             {
                 "date": scenario.window.start,
-                "cash": 80.0,
-                "position_shares": {first: 1, second: 1},
-                "close_marks": {first: 10.0, second: 10.0},
+                "cash": 100.0,
+                "position_shares": {},
+                "close_marks": {},
             },
             {
                 "date": scenario.window.end,
@@ -590,17 +607,11 @@ def test_matrix_rejects_coherent_daily_ledger_and_raw_evidence_tamper(
     changed = copy.deepcopy(artifact)
     cell = next(item for item in changed["cells"] if item["economic"])
     first, second = cell["attribution"]["daily_ledger"]
-    first["cash"] = 81.0
+    first["cash"] = 101.0
     first["equity"] = 101.0
-    first["cash_weight"] = 81.0 / 101.0
-    first["position_weights"] = {
-        symbol: 10.0 / 101.0 for symbol in first["position_weights"]
-    }
-    first["gross_exposure"] = 20.0 / 101.0
-    first["net_exposure"] = 20.0 / 101.0
     first["daily_pnl"] = 1.0
     second["daily_pnl"] = 1.0
-    cell["raw"]["daily_replay_evidence"][0]["cash"] = 81.0
+    cell["raw"]["daily_replay_evidence"][0]["cash"] = 101.0
     cell["raw"]["equity_curve"][0]["equity"] = 101.0
 
     failures = validate_matrix_artifact(
@@ -610,7 +621,7 @@ def test_matrix_rejects_coherent_daily_ledger_and_raw_evidence_tamper(
         data_dir=matrix_data_dir,
     )
 
-    assert any("daily replay evidence" in failure for failure in failures)
+    assert any("daily replay evidence" in failure for failure in failures), failures
 
 
 def test_matrix_rejects_daily_replay_evidence_beyond_economic_end(
@@ -654,18 +665,12 @@ def test_matrix_rejects_coherent_mark_ledger_and_equity_tamper(
     changed = copy.deepcopy(artifact)
     cell = next(item for item in changed["cells"] if item["economic"])
     symbol = cell["symbols"][0]
-    cell["raw"]["daily_replay_evidence"][0]["close_marks"][symbol] = 11.0
-    cell["raw"]["equity_curve"][0]["equity"] = 101.0
-    first, second = cell["attribution"]["daily_ledger"]
-    first["equity"] = 101.0
-    first["cash_weight"] = 80.0 / 101.0
-    first["position_weights"][symbol] = 11.0 / 101.0
-    other = next(item for item in first["position_weights"] if item != symbol)
-    first["position_weights"][other] = 10.0 / 101.0
-    first["gross_exposure"] = 21.0 / 101.0
-    first["net_exposure"] = 21.0 / 101.0
-    first["daily_pnl"] = 1.0
-    second["daily_pnl"] = 1.0
+    cell["raw"]["daily_replay_evidence"][-1]["close_marks"][symbol] = 12.0
+    _first, second = cell["attribution"]["daily_ledger"]
+    second["position_weights"][symbol] = 12.0 / 102.0
+    other = next(item for item in second["position_weights"] if item != symbol)
+    cell["raw"]["daily_replay_evidence"][-1]["close_marks"][other] = 10.0
+    second["position_weights"][other] = 10.0 / 102.0
 
     failures = validate_matrix_artifact(
         changed,
@@ -674,7 +679,98 @@ def test_matrix_rejects_coherent_mark_ledger_and_equity_tamper(
         data_dir=matrix_data_dir,
     )
 
-    assert any("close versus frozen data" in failure for failure in failures)
+    assert any("close versus frozen data" in failure for failure in failures), failures
+
+
+@pytest.mark.parametrize(
+    ("shock_state", "severity", "reduction_level"),
+    (
+        ("SELF_SIGNED_FAKE", "SELF_SIGNED_FAKE", 0),
+        ("SHOCK", "SEVERE", 3),
+    ),
+)
+def test_matrix_rejects_self_signed_unreplayable_risk_diagnostics(
+    shock_state: str,
+    severity: str,
+    reduction_level: int,
+    matrix_data_dir: Path,
+) -> None:
+    """Catches both invented and valid-enum diagnostics hidden from frozen equality."""
+
+    scenarios = _scenarios()
+    provenance = _provenance(scenarios, matrix_data_dir)
+    artifact = execute_generalization_matrix(
+        scenarios=scenarios,
+        runner=_runner_payload,
+        provenance=provenance,
+        data_dir=matrix_data_dir,
+    )
+    changed = copy.deepcopy(artifact)
+    raw = next(item["raw"] for item in changed["cells"] if item["economic"])
+    risk = raw["decision_trace"][0]["risk"]
+    risk.update(
+        shock_state=shock_state,
+        severity=severity,
+        reduction_level=reduction_level,
+    )
+    raw["decision_digests"][0] = hashlib.sha256(
+        json.dumps(
+            raw["decision_trace"][0],
+            sort_keys=True,
+            separators=(",", ":"),
+        ).encode()
+    ).hexdigest()
+
+    failures = validate_matrix_artifact(
+        changed,
+        scenarios=scenarios,
+        expected_provenance=provenance,
+        data_dir=matrix_data_dir,
+    )
+
+    assert failures
+    assert any("decision trace" in failure for failure in failures)
+
+
+def test_matrix_rejects_account_ledger_order_without_decision_origin(
+    matrix_data_dir: Path,
+) -> None:
+    """Catches a valid durable order appended without a causal decision trace."""
+
+    scenarios = _scenarios()
+    provenance = _provenance(scenarios, matrix_data_dir)
+    artifact = execute_generalization_matrix(
+        scenarios=scenarios,
+        runner=_runner_payload,
+        provenance=provenance,
+        data_dir=matrix_data_dir,
+    )
+    changed = copy.deepcopy(artifact)
+    raw = next(item["raw"] for item in changed["cells"] if item["economic"])
+    account = raw["final_account"]
+    injected = copy.deepcopy(account["order_ledger"][0])
+    injected.update(
+        order_id="O999999999",
+        status="CANCELLED",
+        requested_shares=0,
+        filled_shares=0,
+        remaining_shares=0,
+        attempts=0,
+        last_event="CANCELLED",
+        cancel_reason="fabricated no-decision order",
+    )
+    account["order_ledger"].append(injected)
+    account["next_order_sequence"] = 1_000_000_000
+
+    failures = validate_matrix_artifact(
+        changed,
+        scenarios=scenarios,
+        expected_provenance=provenance,
+        data_dir=matrix_data_dir,
+    )
+
+    assert failures
+    assert any("decision" in failure and "order" in failure for failure in failures)
 
 
 def test_verified_market_cache_is_lookup_order_independent(
@@ -1181,9 +1277,6 @@ def test_zero_symbol_pnl_has_defined_non_fabricated_zero_concentration(
                 "opportunity": "CHOPPY",
                 "risk": {
                     "state": "NORMAL",
-                    "shock_state": "NONE",
-                    "reduction_level": 0,
-                    "severity": "NORMAL",
                     "target_gross_cap": 0.9,
                     "system_gross_cap": 0.9,
                 },

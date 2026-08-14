@@ -646,10 +646,11 @@ class Decision:
             "date": self.date,
             "opportunity": self.opportunity.value,
             "risk": {
+                # Descriptive shock/severity diagnostics stay in risk_summary, but
+                # are not control evidence: no independent daily carrier can replay
+                # them.  The fields below are cross-bound to the frozen digest,
+                # daily ledger, compiled config, or exact targets.
                 "state": self.risk.value,
-                "shock_state": str(self.risk_summary.get("shock_state", "")),
-                "reduction_level": int(self.risk_summary.get("reduction_level", 0)),
-                "severity": str(self.risk_summary.get("severity", "NORMAL")),
                 "target_gross_cap": round(
                     float(self.risk_summary.get("target_gross_cap", 0.0)),
                     12,
@@ -664,6 +665,7 @@ class Decision:
             "orders": [
                 {
                     "order_id": item.order_id,
+                    "signal_date": item.signal_date,
                     "symbol": item.symbol,
                     "side": item.side,
                     "target_weight": round(item.target_weight, 12),

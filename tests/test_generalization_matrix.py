@@ -582,3 +582,78 @@ def test_exact_equality_fails_closed_for_every_incomplete_or_mismatched_binding(
     assert result["passed"] is False
     assert result["exact_equality_passed"] is False
     assert any("exact equality differs" in failure for failure in result["failures"])
+
+
+@pytest.mark.parametrize(
+    "mutation",
+    (
+        "insufficient_nullable_fields_deleted",
+        "successful_replay_error_deleted",
+        "replay_error_metrics_deleted",
+        "replay_error_raw_deleted",
+        "extra_top_level_field",
+        "extra_provenance_field",
+        "extra_runtime_field",
+        "extra_data_field",
+        "missing_universe_binding",
+        "missing_scenario_binding",
+        "missing_window_binding",
+        "extra_cell_field",
+        "extra_evidence_field",
+        "successful_raw_tamper",
+    ),
+)
+def test_exact_equality_rejects_schema_presence_and_raw_evidence_drift(
+    mutation: str,
+) -> None:
+    """Catches absent nullable fields and unbound artifact structure or raw evidence."""
+    artifact = json.loads(
+        (Path("artifacts") / "phase2" / "champion-generalization-matrix.json").read_text(
+            encoding="utf-8"
+        )
+    )
+    successful = next(cell for cell in artifact["cells"] if cell["metrics"] is not None)
+    replay_error = next(
+        cell for cell in artifact["cells"] if cell["replay_error"] is not None
+    )
+    if mutation == "insufficient_nullable_fields_deleted":
+        insufficient = next(cell for cell in artifact["cells"] if not cell["economic"])
+        for field in ("raw", "metrics", "replay_error"):
+            del insufficient[field]
+    elif mutation == "successful_replay_error_deleted":
+        del successful["replay_error"]
+    elif mutation == "replay_error_metrics_deleted":
+        del replay_error["metrics"]
+    elif mutation == "replay_error_raw_deleted":
+        del replay_error["raw"]
+    elif mutation == "extra_top_level_field":
+        artifact["extra"] = None
+    elif mutation == "extra_provenance_field":
+        artifact["provenance"]["extra"] = None
+    elif mutation == "extra_runtime_field":
+        artifact["provenance"]["runtime"]["extra"] = None
+    elif mutation == "extra_data_field":
+        artifact["provenance"]["data"]["extra"] = None
+    elif mutation == "missing_universe_binding":
+        del artifact["provenance"]["universe_sha256"]
+    elif mutation == "missing_scenario_binding":
+        del artifact["provenance"]["scenario_fingerprint"]
+    elif mutation == "missing_window_binding":
+        del artifact["provenance"]["window_fingerprint"]
+    elif mutation == "extra_cell_field":
+        successful["extra"] = None
+    elif mutation == "extra_evidence_field":
+        successful["evidence"]["extra"] = None
+    else:
+        successful["raw"]["final_wealth"] += 0.000001
+
+    result = evaluate_generalization_policy_artifact(
+        artifact,
+        baseline=load_generalization_baseline(),
+        policy=load_generalization_policy(),
+        require_exact_equality=True,
+    )
+
+    assert result["passed"] is False
+    assert result["exact_equality_passed"] is False
+    assert any("exact equality differs" in failure for failure in result["failures"])

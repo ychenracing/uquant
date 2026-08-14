@@ -13,6 +13,7 @@ from pathlib import Path
 from types import MappingProxyType
 from typing import Any, Final
 
+from .generalization import symbol_pnl_concentration
 from .generalization_contract import (
     RANDOM_BASE_SEED,
     RANDOM_POOL_SIZES,
@@ -39,6 +40,65 @@ REQUIRED_GENERALIZATION_POLICY_SHA256: Final = (
 
 _SHA256 = re.compile(r"^[0-9a-f]{64}$")
 _COMMIT = re.compile(r"^[0-9a-f]{40,64}$")
+_ARTIFACT_FIELDS = {
+    "schema_version",
+    "gate",
+    "passed",
+    "failures",
+    "provenance",
+    "concentration_definition",
+    "aggregates",
+    "cells",
+}
+_PROVENANCE_FIELDS = {
+    "head",
+    "source_sha256",
+    "effective_config_sha256",
+    "data",
+    "runtime",
+    "universe_sha256",
+    "industry_sha256",
+    "window_fingerprint",
+    "scenario_fingerprint",
+    "evidence_fingerprint",
+    "lookback_sessions",
+}
+_DATA_FIELDS = {"snapshot_id", "files_verified", "manifest_sha256", "checksums_sha256"}
+_RUNTIME_FIELDS = {
+    "python_full_version",
+    "numpy_version",
+    "pandas_version",
+    "uv_version",
+    "uv_lock_sha256",
+}
+_CELL_FIELDS = {
+    "window",
+    "start",
+    "end",
+    "scenario",
+    "family",
+    "status",
+    "economic",
+    "symbols",
+    "reference_symbols",
+    "removed_symbols",
+    "industry",
+    "pool_size",
+    "seed_index",
+    "derived_seed",
+    "evidence",
+    "raw",
+    "metrics",
+    "replay_error",
+}
+_EVIDENCE_FIELDS = {
+    "as_of",
+    "scores",
+    "eligible_symbols",
+    "ineligible_symbols",
+    "lookback_sessions",
+    "sha256",
+}
 _METRIC_FIELDS = {
     "final_wealth",
     "max_drawdown",
@@ -104,6 +164,7 @@ class GeneralizationBaseline:
     runner_source_sha256: str
     artifact_sha256: str
     artifact_size_bytes: int
+    artifact_equality_sha256: str
     provenance: Mapping[str, Any]
     aggregates: Mapping[str, Any]
     cells: Mapping[str, BaselineCell]
@@ -176,6 +237,128 @@ def _hash_json(value: Any) -> str:
     except (TypeError, ValueError) as exc:
         raise ValueError("generalization contract is not finite canonical JSON") from exc
     return hashlib.sha256(encoded).hexdigest()
+
+
+def _artifact_equality_sha256(artifact: Mapping[str, Any]) -> str:
+    """Hash exact artifact evidence while allowing candidate runner identity to differ."""
+    provenance = artifact.get("provenance")
+    if not isinstance(provenance, Mapping):
+        raise ValueError("generalization artifact provenance is malformed")
+    normalized = dict(artifact)
+    normalized["provenance"] = {
+        key: value for key, value in provenance.items() if key not in {"head", "source_sha256"}
+    }
+    return _hash_json(normalized)
+
+
+def _schema_failures(
+    value: Any,
+    expected_fields: set[str],
+    *,
+    label: str,
+) -> tuple[str, ...]:
+    if not isinstance(value, Mapping):
+        return (f"{label} is malformed",)
+    missing = sorted(expected_fields - set(value))
+    unexpected = sorted(set(value) - expected_fields)
+    failures: list[str] = []
+    if missing:
+        failures.append(f"{label} is missing fields: {missing}")
+    if unexpected:
+        failures.append(f"{label} has unexpected fields: {unexpected}")
+    return tuple(failures)
+
+
+def _provenance_schema_failures(value: Any) -> tuple[str, ...]:
+    failures = list(_schema_failures(value, _PROVENANCE_FIELDS, label="candidate provenance"))
+    if not isinstance(value, Mapping):
+        return tuple(failures)
+    failures.extend(
+        _schema_failures(value.get("data"), _DATA_FIELDS, label="candidate provenance data")
+    )
+    failures.extend(
+        _schema_failures(
+            value.get("runtime"), _RUNTIME_FIELDS, label="candidate provenance runtime"
+        )
+    )
+    head = value.get("head")
+    if not isinstance(head, str) or not _COMMIT.fullmatch(head):
+        failures.append("candidate provenance HEAD is malformed")
+    for name in (
+        "source_sha256",
+        "effective_config_sha256",
+        "universe_sha256",
+        "industry_sha256",
+        "window_fingerprint",
+        "scenario_fingerprint",
+        "evidence_fingerprint",
+    ):
+        digest = value.get(name)
+        if not isinstance(digest, str) or not _SHA256.fullmatch(digest):
+            failures.append(f"candidate provenance {name} is malformed")
+    lookback = value.get("lookback_sessions")
+    if isinstance(lookback, bool) or not isinstance(lookback, int) or lookback < 1:
+        failures.append("candidate provenance lookback_sessions is malformed")
+    data = value.get("data")
+    if isinstance(data, Mapping):
+        if not isinstance(data.get("snapshot_id"), str) or not data["snapshot_id"]:
+            failures.append("candidate provenance data snapshot_id is malformed")
+        files_verified = data.get("files_verified")
+        if (
+            isinstance(files_verified, bool)
+            or not isinstance(files_verified, int)
+            or files_verified < 1
+        ):
+            failures.append("candidate provenance data files_verified is malformed")
+        for name in ("manifest_sha256", "checksums_sha256"):
+            digest = data.get(name)
+            if not isinstance(digest, str) or not _SHA256.fullmatch(digest):
+                failures.append(f"candidate provenance data {name} is malformed")
+    runtime = value.get("runtime")
+    if isinstance(runtime, Mapping):
+        for name in _RUNTIME_FIELDS - {"uv_lock_sha256"}:
+            version = runtime.get(name)
+            if not isinstance(version, str) or not version:
+                failures.append(f"candidate provenance runtime {name} is malformed")
+        lock_digest = runtime.get("uv_lock_sha256")
+        if not isinstance(lock_digest, str) or not _SHA256.fullmatch(lock_digest):
+            failures.append("candidate provenance runtime uv_lock_sha256 is malformed")
+    return tuple(failures)
+
+
+def _metrics_reconciled_from_raw(
+    raw: Mapping[str, Any],
+    *,
+    identifier: str,
+) -> Mapping[str, float | int]:
+    pnl = raw.get("symbol_pnl")
+    if not isinstance(pnl, Mapping):
+        raise ValueError(f"candidate raw symbol PnL is malformed: {identifier}")
+    normalized_pnl: dict[str, float] = {}
+    for symbol, value in pnl.items():
+        if (
+            not isinstance(symbol, str)
+            or not symbol
+            or isinstance(value, bool)
+            or not isinstance(value, (int, float))
+            or not math.isfinite(float(value))
+        ):
+            raise ValueError(f"candidate raw symbol PnL is malformed: {identifier}")
+        normalized_pnl[symbol] = float(value)
+    reconciled = _metric_payload(
+        {
+            "final_wealth": raw.get("final_wealth"),
+            "max_drawdown": raw.get("max_drawdown"),
+            "account_orders": raw.get("account_orders"),
+            "gross_turnover": raw.get("gross_turnover"),
+            "annual_turnover": raw.get("annual_turnover"),
+            **symbol_pnl_concentration(normalized_pnl),
+        },
+        identifier=identifier,
+    )
+    if reconciled is None:
+        raise ValueError(f"candidate raw metrics are missing: {identifier}")
+    return reconciled
 
 
 def _canonical_sha256(payload: Mapping[str, Any]) -> str:
@@ -401,6 +584,17 @@ def load_generalization_baseline(
     artifact_bytes = artifact_source.read_bytes()
     if len(artifact_bytes) != artifact_size or hashlib.sha256(artifact_bytes).hexdigest() != artifact_sha256:
         raise ValueError("generalization champion artifact differs from the reviewed baseline")
+    try:
+        reviewed_artifact = json.loads(
+            artifact_bytes,
+            object_pairs_hook=_reject_duplicate_keys,
+            parse_constant=_reject_nonstandard_constant,
+        )
+    except (UnicodeError, ValueError) as exc:
+        raise ValueError("generalization champion artifact is corrupt") from exc
+    if not isinstance(reviewed_artifact, dict):
+        raise ValueError("generalization champion artifact must be an object")
+    artifact_equality_sha256 = _artifact_equality_sha256(reviewed_artifact)
     if not isinstance(payload["aggregates"], Mapping):
         raise ValueError("generalization baseline aggregates are malformed")
     provenance = {
@@ -412,6 +606,7 @@ def load_generalization_baseline(
         runner_source_sha256=runner_source,
         artifact_sha256=artifact_sha256,
         artifact_size_bytes=artifact_size,
+        artifact_equality_sha256=artifact_equality_sha256,
         provenance=MappingProxyType(provenance),
         aggregates=MappingProxyType(dict(payload["aggregates"])),
         cells=cells,
@@ -605,6 +800,40 @@ def evaluate_generalization_policy_artifact(
         raise ValueError("generalization policy and baseline identities differ")
     failures: list[str] = []
     equality_differences: list[str] = []
+    artifact_schema_failures = _schema_failures(
+        artifact, _ARTIFACT_FIELDS, label="generalization candidate artifact"
+    )
+    failures.extend(artifact_schema_failures)
+    equality_differences.extend(artifact_schema_failures)
+    if artifact.get("schema_version") != 1:
+        failures.append("generalization candidate schema version is malformed")
+        equality_differences.append("schema version")
+    if artifact.get("gate") != "ai-era-generalization":
+        failures.append("generalization candidate gate identity is malformed")
+        equality_differences.append("gate identity")
+    if not isinstance(artifact.get("passed"), bool):
+        failures.append("generalization candidate passed state is malformed")
+        equality_differences.append("passed state")
+    advertised_failures = artifact.get("failures")
+    if not isinstance(advertised_failures, list) or any(
+        not isinstance(item, str) for item in advertised_failures
+    ):
+        failures.append("generalization candidate failure state is malformed")
+        equality_differences.append("failure state")
+    if not isinstance(artifact.get("concentration_definition"), Mapping):
+        failures.append("generalization candidate concentration definition is malformed")
+        equality_differences.append("concentration definition")
+    if not isinstance(artifact.get("aggregates"), Mapping):
+        failures.append("generalization candidate aggregates are malformed")
+        equality_differences.append("aggregate schema")
+    try:
+        artifact_equality_sha256 = _artifact_equality_sha256(artifact)
+    except ValueError as exc:
+        failures.append(f"generalization candidate evidence is malformed: {exc}")
+        equality_differences.append("malformed artifact evidence")
+    else:
+        if artifact_equality_sha256 != baseline.artifact_equality_sha256:
+            equality_differences.append("artifact evidence payload")
     raw_cells_value = artifact.get("cells")
     provenance_value = artifact.get("provenance")
     if not isinstance(raw_cells_value, list):
@@ -613,9 +842,10 @@ def evaluate_generalization_policy_artifact(
         raw_cells: list[Any] = []
     else:
         raw_cells = raw_cells_value
+    provenance_schema_failures = _provenance_schema_failures(provenance_value)
+    failures.extend(provenance_schema_failures)
+    equality_differences.extend(provenance_schema_failures)
     if not isinstance(provenance_value, Mapping):
-        failures.append("generalization candidate provenance is malformed")
-        equality_differences.append("provenance is malformed")
         provenance: Mapping[str, Any] = {}
     else:
         provenance = provenance_value
@@ -643,6 +873,7 @@ def evaluate_generalization_policy_artifact(
     if artifact.get("aggregates") != baseline.aggregates:
         equality_differences.append("aggregate evidence")
     observed: dict[str, Mapping[str, Any]] = {}
+    invalid_cells: set[str] = set()
     for raw in raw_cells:
         if not isinstance(raw, Mapping):
             failures.append("candidate cell is malformed")
@@ -655,6 +886,20 @@ def evaluate_generalization_policy_artifact(
             equality_differences.append("malformed cell identity")
             continue
         identifier = f"{window}/{scenario}"
+        cell_schema_failures = _schema_failures(
+            raw, _CELL_FIELDS, label=f"candidate cell {identifier}"
+        )
+        evidence_schema_failures = _schema_failures(
+            raw.get("evidence"),
+            _EVIDENCE_FIELDS,
+            label=f"candidate cell evidence {identifier}",
+        )
+        if cell_schema_failures or evidence_schema_failures:
+            failures.extend(cell_schema_failures)
+            failures.extend(evidence_schema_failures)
+            equality_differences.extend(cell_schema_failures)
+            equality_differences.extend(evidence_schema_failures)
+            invalid_cells.add(identifier)
         if identifier in observed:
             failures.append(f"candidate contains duplicate cell: {identifier}")
             equality_differences.append(f"duplicate cell {identifier}")
@@ -679,6 +924,8 @@ def evaluate_generalization_policy_artifact(
     for identifier in sorted(set(baseline.cells) & set(observed)):
         reference = baseline.cells[identifier]
         candidate = observed[identifier]
+        if identifier in invalid_cells:
+            continue
         try:
             candidate_contract_sha256 = _candidate_contract_sha256(candidate)
         except ValueError as exc:
@@ -721,9 +968,22 @@ def evaluate_generalization_policy_artifact(
                 failures.append(f"candidate economic metrics are malformed: {identifier}: {exc}")
                 equality_differences.append(f"malformed metrics {identifier}")
                 continue
-            if candidate_metrics is None or not isinstance(candidate.get("raw"), Mapping):
+            candidate_raw = candidate.get("raw")
+            if candidate_metrics is None or not isinstance(candidate_raw, Mapping):
                 failures.append(f"candidate economic metrics are missing: {identifier}")
                 equality_differences.append(f"economic evidence {identifier}")
+                continue
+            try:
+                reconciled_metrics = _metrics_reconciled_from_raw(
+                    candidate_raw, identifier=identifier
+                )
+            except ValueError as exc:
+                failures.append(f"candidate raw economic evidence is malformed: {identifier}: {exc}")
+                equality_differences.append(f"malformed raw evidence {identifier}")
+                continue
+            if dict(candidate_metrics) != dict(reconciled_metrics):
+                failures.append(f"candidate metrics do not reconcile to raw evidence: {identifier}")
+                equality_differences.append(f"raw evidence reconciliation {identifier}")
                 continue
             economic_valid += 1
             if reference.metrics is not None:

@@ -86,7 +86,10 @@ def _attach_target_attribution(
     retained_by_symbol = {
         order.symbol: order
         for order in retained_orders
-        if order.event_id and order.remaining_shares > 0
+        # Presence in the active pending collection is authoritative. A
+        # blocked order can still have ``remaining_shares == 0`` before the
+        # next open supplies the first executable quantity.
+        if order.event_id
     }
     attributed: list[Target] = []
     for target in targets:
@@ -107,6 +110,36 @@ def _attach_target_attribution(
             # Preserve the originating machine identity at the production
             # boundary; direct merge callers still fail closed on fabricated
             # or genuinely changed attributed intents.
+            attributed.append(
+                replace(
+                    target,
+                    event_id=retained.event_id,
+                    origin_subsystem=retained.origin_subsystem,
+                    mechanism=retained.mechanism,
+                    origin_lifecycle=retained.origin_lifecycle,
+                    replaces_symbol=retained.replaces_symbol,
+                    industry_at_entry=retained.industry_at_entry,
+                    industry_manifest_sha256=retained.industry_manifest_sha256,
+                )
+            )
+            continue
+        if (
+            retained is not None
+            and retained.side == Side.BUY.value
+            and target.weight > 1e-12
+            and abs(retained.target_weight - target.weight) < cfg.min_trade_weight
+            and retained.lifecycle == target.lifecycle
+            and retained.reduction_policy == target.reduction_policy
+            and retained.reason_code == target.reason_code
+            and retained.exit_kind == target.exit_kind
+            and retained.origin_subsystem == target.origin_subsystem
+            and retained.origin_lifecycle == target.origin_lifecycle
+            and retained.replaces_symbol == target.replaces_symbol
+        ):
+            # A partially filled GTC buy remains the causal event submitted on
+            # its original signal date. Daily portfolio classification may
+            # move from restoration to cohort/hold while the target stays
+            # inside the reviewed no-trade band; that is not a new order cause.
             attributed.append(
                 replace(
                     target,

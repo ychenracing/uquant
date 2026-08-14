@@ -858,7 +858,10 @@ def test_unchanged_full_exit_retains_the_same_broker_order() -> None:
     ) == (retained,)
 
 
-def test_production_full_exit_retains_originating_event_for_residual_shares() -> None:
+@pytest.mark.parametrize("remaining_shares", (0, 100))
+def test_production_full_exit_retains_originating_event_for_residual_shares(
+    remaining_shares: int,
+) -> None:
     """A later classifier cannot relabel an already-submitted full liquidation."""
     identity = _identity(
         target_weight=0.0,
@@ -873,7 +876,9 @@ def test_production_full_exit_retains_originating_event_for_residual_shares() ->
         reason="leader rotation exit",
         lifecycle=domain.Lifecycle.CORE.value,
         order_id="O000000001",
-        remaining_shares=100,
+        # A blocked order has not been sized yet, so zero is still an active
+        # quantity state rather than proof that the liquidation is complete.
+        remaining_shares=remaining_shares,
         **identity,
     )
     raw_target = domain.Target(
@@ -915,6 +920,71 @@ def test_production_full_exit_retains_originating_event_for_residual_shares() ->
     assert target.mechanism == retained.mechanism
     assert merge_pending_orders(
         retained=[retained],
+        planned=planned,
+        targets=(target,),
+        cfg=DEFAULT_CONFIG,
+    ) == (retained,)
+
+
+def test_partial_buy_keeps_originating_event_across_daily_mechanism_reclassification() -> None:
+    """A still-active GTC buy owns its cause until its economic intent changes."""
+
+    identity = _identity(
+        target_weight=0.35,
+        origin_subsystem=domain.OriginSubsystem.STRATEGIC.value,
+        mechanism=domain.AttributionMechanism.STRATEGIC_RESTORATION.value,
+        reason_code="strategic_cohort",
+    )
+    retained = domain.PendingOrder(
+        signal_date="2026-01-05",
+        symbol="sz300502",
+        side=domain.Side.BUY.value,
+        target_weight=0.35,
+        reason="strategic restoration",
+        lifecycle=domain.Lifecycle.CORE.value,
+        order_id="O000000001",
+        remaining_shares=400,
+        attempts=1,
+        reason_code="strategic_cohort",
+        **identity,
+    )
+    account = domain.AccountState.empty(2_000_000.0)
+    account.pending_orders = [retained]
+    raw_target = domain.Target(
+        symbol=retained.symbol,
+        weight=0.351,
+        lifecycle=retained.lifecycle,
+        alpha_score=0.8,
+        confidence=0.9,
+        reason="strategic cohort hold",
+        reason_code=retained.reason_code,
+        origin_subsystem=domain.OriginSubsystem.STRATEGIC.value,
+        mechanism=domain.AttributionMechanism.STRATEGIC_COHORT.value,
+        origin_lifecycle=retained.lifecycle,
+    )
+
+    target = _attach_target_attribution(
+        signal_date="2026-01-06",
+        targets=(raw_target,),
+        retained_orders=account.pending_orders,
+    )[0]
+    planned = plan_orders(
+        signal_date="2026-01-06",
+        targets=(target,),
+        account=account,
+        prices={retained.symbol: 10.0},
+        cfg=DEFAULT_CONFIG,
+    )
+
+    assert tuple(
+        getattr(target, field) for field in domain.ATTRIBUTION_IDENTITY_FIELDS
+    ) == tuple(
+        getattr(retained, field) for field in domain.ATTRIBUTION_IDENTITY_FIELDS
+    )
+    assert len(planned) == 1
+    assert planned[0].event_id == retained.event_id
+    assert merge_pending_orders(
+        retained=account.pending_orders,
         planned=planned,
         targets=(target,),
         cfg=DEFAULT_CONFIG,
@@ -1061,7 +1131,8 @@ def test_no_trade_band_equivalent_target_drift_inherits_the_active_event() -> No
     )
 
     assert target.event_id == retained.event_id
-    assert planned == ()
+    assert len(planned) == 1
+    assert planned[0].event_id == retained.event_id
     assert merged == (retained,)
 
 

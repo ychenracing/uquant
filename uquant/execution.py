@@ -233,8 +233,10 @@ def plan_orders(
             if target.event_id != expected_event_id:
                 raise RuntimeError("new BUY event_id differs from canonical derivation")
             if retained_identity is not None:
-                # The active GTC order already represents this no-trade-band-
-                # equivalent event. Merge retains that canonical old intent.
+                # Count today's still-live intent while carrying the exact
+                # canonical order object. Merge retains it without fabricating
+                # a new signal date, target weight, event, or broker order.
+                planned.append(retained_identity)
                 continue
         if target.weight == 0 and current_value > 0:
             difference = -current_value

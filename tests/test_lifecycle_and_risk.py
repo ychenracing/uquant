@@ -5,7 +5,6 @@ import pandas as pd
 import pytest
 
 from uquant.config import DEFAULT_CONFIG
-from uquant.engine import attribution
 from uquant.execution import (
     ExecutionPlanner,
     merge_pending_orders,
@@ -24,7 +23,6 @@ from uquant.risk import (
 from uquant.types import (
     AccountState,
     AttributionMechanism,
-    Fill,
     LeaderScore,
     Lifecycle,
     Opportunity,
@@ -7016,42 +7014,3 @@ def test_narrow_market_two_of_three_anchor_damage_applies_graded_guard():
     assert assessment.state is Risk.RISK_OFF
     assert assessment.target_gross_cap == pytest.approx(DEFAULT_CONFIG.narrow_anchor_guard_gross)
     assert "narrow-market concentrated anchor damage" in assessment.reasons
-
-
-def test_lifecycle_and_reason_attribution_reconciles_realized_fills():
-    fills = [
-        Fill(
-            signal_date="2025-01-02",
-            fill_date="2025-01-03",
-            symbol="sz300308",
-            side="BUY",
-            shares=100,
-            price=10.0,
-            gross_value=1_000.0,
-            commission=5.0,
-            stamp_duty=0.0,
-            transfer_fee=0.0,
-            slippage_cost=0.0,
-            reason="confirmed mature leader core",
-            lifecycle="CORE",
-        ),
-        Fill(
-            signal_date="2025-02-02",
-            fill_date="2025-02-03",
-            symbol="sz300308",
-            side="SELL",
-            shares=100,
-            price=12.0,
-            gross_value=1_200.0,
-            commission=5.0,
-            stamp_duty=1.0,
-            transfer_fee=0.0,
-            slippage_cost=0.0,
-            reason="rotation exit: replacement confirmed",
-            lifecycle="CORE",
-        ),
-    ]
-    result = attribution(fills)
-    assert result["by_lifecycle"]["core"]["realized_pnl"] == pytest.approx(189.0)
-    assert result["by_reason"]["rotation"]["fills"] == 1
-    assert result["open_shares_by_lifecycle"]["core"] == 0

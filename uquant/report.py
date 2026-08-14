@@ -2,7 +2,146 @@
 
 from __future__ import annotations
 
+from collections.abc import Mapping
+from typing import Any
+
+from .attribution import validate_economic_attribution
 from .types import AccountState, Decision
+
+
+def render_economic_attribution_report(attribution: Mapping[str, Any]) -> str:
+    """Render reconciled accounting separately from explicitly diagnostic effects."""
+
+    interval_value = attribution.get("interval")
+    if not isinstance(interval_value, Mapping):
+        raise ValueError("economic attribution report requires validated canonical evidence")
+    canonical = validate_economic_attribution(
+        attribution,
+        economic_start=str(interval_value.get("economic_start")),
+        economic_end=str(interval_value.get("economic_end")),
+    )
+    interval = canonical["interval"]
+    accounting = canonical["accounting"]
+    costs = canonical["costs"]
+    concentration = canonical["symbol_concentration"]
+    diagnostics = canonical["diagnostics"]
+    positive = concentration["positive"]
+    top1 = positive.get("top1")
+    top3 = positive.get("top3")
+    hhi = positive.get("hhi")
+
+    def percentage(value: Any) -> str:
+        return "N/A" if value is None else f"{float(value):.2%}"
+
+    cash_drag = diagnostics["cash_drag"]
+    avoidance = diagnostics["risk_avoidance"]
+    avoidance_line = (
+        f"Risk avoidance (paired counterfactual, not accounting PnL): {float(avoidance['value']):.6f}"
+        if avoidance.get("status") == "PAIRED_COUNTERFACTUAL"
+        else "Risk avoidance: N/A — requires an exact paired counterfactual"
+    )
+    industry_rows = [
+        f"{name} | {float(bucket['total_pnl']):.6f}"
+        for name, bucket in canonical["by_industry"].items()
+    ] or ["N/A | 0.000000"]
+    mechanism_rows = [
+        f"{name} | {float(bucket['total_pnl']):.6f}"
+        for name, bucket in canonical["by_mechanism"].items()
+        if any(float(bucket[field]) != 0.0 for field in ("total_pnl", "all_in_costs"))
+    ] or ["N/A | 0.000000"]
+    exit_mechanism_rows = [
+        f"{name} | {float(bucket['total_pnl']):.6f}"
+        for name, bucket in canonical["by_exit_mechanism"].items()
+        if any(float(bucket[field]) != 0.0 for field in ("total_pnl", "all_in_costs"))
+    ] or ["N/A | 0.000000"]
+    origin_lifecycle_rows = [
+        f"{name} | {float(bucket['total_pnl']):.6f}"
+        for name, bucket in canonical["by_origin_lifecycle"].items()
+        if any(float(bucket[field]) != 0.0 for field in ("total_pnl", "all_in_costs"))
+    ] or ["N/A | 0.000000"]
+    current_lifecycle_rows = [
+        f"{name} | {float(bucket['total_pnl']):.6f}"
+        for name, bucket in canonical["by_current_lifecycle"].items()
+        if any(float(bucket[field]) != 0.0 for field in ("total_pnl", "all_in_costs"))
+    ] or ["N/A | 0.000000"]
+    industry_hhi = canonical["industry_concentration"]["positive"].get("hhi")
+    holding = canonical["holding_period_sessions"]
+    turnover = canonical["turnover"]
+    replacements = canonical["replacements"]
+    lines = [
+        "# Economic Attribution — "
+        f"{interval['economic_start']} to {interval['economic_end']}",
+        "",
+        "## Reconciled Accounting PnL",
+        "",
+        "Reconciled: **"
+        + ("YES" if accounting["reconciled"] else "NO")
+        + f"** (error {float(accounting['reconciliation_error']):.6f}; "
+        f"tolerance {float(accounting['tolerance']):.6f})",
+        f"Realized PnL: {float(accounting['realized_pnl']):.6f}",
+        f"Open PnL: {float(accounting['open_pnl']):.6f}",
+        f"Total PnL: {float(accounting['total_pnl']):.6f}",
+        "",
+        "## Contribution Concentration",
+        "",
+        f"Top-1 positive contribution: {percentage(top1)}",
+        f"Top-3 positive contribution: {percentage(top3)}",
+        f"Positive-contribution HHI: {'N/A' if hhi is None else f'{float(hhi):.6f}'}",
+        "",
+        "## Industry-at-entry Contribution",
+        "",
+        "Industry | Total PnL",
+        "--- | ---:",
+        *industry_rows,
+        "Positive industry HHI: "
+        + ("N/A" if industry_hhi is None else f"{float(industry_hhi):.6f}"),
+        "",
+        "## Origin Mechanism Contribution",
+        "",
+        "Mechanism | Total PnL",
+        "--- | ---:",
+        *mechanism_rows,
+        "",
+        "Exit mechanism | Realized PnL",
+        "--- | ---:",
+        *exit_mechanism_rows,
+        "",
+        "## Lifecycle Contribution",
+        "",
+        "Origin lifecycle | Total PnL",
+        "--- | ---:",
+        *origin_lifecycle_rows,
+        "",
+        "Current lifecycle | Total PnL",
+        "--- | ---:",
+        *current_lifecycle_rows,
+        "",
+        "## Turnover, Holding, and Replacements",
+        "",
+        f"Gross turnover: {float(turnover['gross_turnover']):.6%}",
+        "Share-weighted holding sessions: "
+        + (
+            "N/A"
+            if holding["all"]["weighted_average"] is None
+            else f"{float(holding['all']['weighted_average']):.6f}"
+        ),
+        f"Replacement-linked lot count: {int(replacements['linked_lot_count'])}",
+        f"Replacement-linked total PnL: {float(replacements['total_pnl']):.6f}",
+        "",
+        "## Costs",
+        "",
+        f"Cash fees: {float(costs['cash_fees']):.6f}",
+        f"Slippage: {float(costs['slippage']):.6f}",
+        f"All-in cost: {float(costs['all_in']):.6f}",
+        f"All-in cost drag / initial cash: {float(costs['all_in_cost_drag_initial_cash']):.6%}",
+        "",
+        "## Diagnostics — Not Accounting PnL",
+        "",
+        f"Cash drag (diagnostic, not accounting PnL): {float(cash_drag['value']):.6f}",
+        avoidance_line,
+        "",
+    ]
+    return "\n".join(lines)
 
 
 def render_daily_report(decision: Decision, account: AccountState) -> str:

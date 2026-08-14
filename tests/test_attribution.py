@@ -4,108 +4,46 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from uquant.engine import attribution
-from uquant.types import Fill, Lifecycle
+from uquant.attribution import ExitRecord, post_exit_diagnostics
 
 
-def _fill(
-    *,
-    fill_date: str,
-    symbol: str,
-    side: str,
-    shares: int,
-    price: float,
-    reason: str,
-    reason_code: str,
-) -> Fill:
-    return Fill(
-        signal_date=fill_date,
-        fill_date=fill_date,
-        symbol=symbol,
-        side=side,
-        shares=shares,
-        price=price,
-        gross_value=shares * price,
-        commission=0.0,
-        stamp_duty=0.0,
-        transfer_fee=0.0,
-        slippage_cost=0.0,
-        reason=reason,
-        lifecycle=Lifecycle.CORE.value,
-        reason_code=reason_code,
-    )
-
-
-def test_actual_rotation_fills_produce_forward_replacement_spread() -> None:
+def test_structured_exit_mechanism_produces_bounded_diagnostic() -> None:
+    """Catches post-exit diagnostics detached from machine causal identity."""
     dates = pd.bdate_range("2025-01-02", periods=70)
-    rotation_date = dates[10]
-    old_close = np.linspace(100.0, 80.0, len(dates))
-    new_close = np.linspace(10.0, 16.0, len(dates))
-    panel = {
-        "old": pd.DataFrame({"close": old_close}, index=dates),
-        "new": pd.DataFrame({"close": new_close}, index=dates),
-    }
-    fills = [
-        _fill(
-            fill_date=str(dates[0].date()),
-            symbol="old",
-            side="BUY",
-            shares=10,
-            price=float(old_close[0]),
-            reason="confirmed mature leader core",
-            reason_code="strategy_target",
+    exit_date = str(dates[10].date())
+    prices = pd.Series(np.linspace(100.0, 80.0, len(dates)), index=dates)
+
+    result = post_exit_diagnostics(
+        exits=(
+            ExitRecord(
+                symbol="old",
+                exit_date=exit_date,
+                exit_price=float(prices.iloc[10]),
+                origin_subsystem="LEADER",
+                mechanism="LEADER_ROTATION",
+            ),
         ),
-        _fill(
-            fill_date=str(rotation_date.date()),
-            symbol="old",
-            side="SELL",
-            shares=10,
-            price=float(old_close[10]),
-            reason="rotation exit: new confirmed edge",
-            reason_code="rotation",
-        ),
-        _fill(
-            fill_date=str(rotation_date.date()),
-            symbol="new",
-            side="BUY",
-            shares=20,
-            price=float(new_close[10]),
-            reason="rotation entry: replaces old",
-            reason_code="rotation",
-        ),
-    ]
-
-    result = attribution(fills, panel=panel)
-
-    for horizon in (20, 40):
-        item = result["replacement_spread"][str(horizon)][0]
-        expected_old = old_close[10 + horizon] / old_close[10] - 1.0
-        expected_new = new_close[10 + horizon] / new_close[10] - 1.0
-        assert item["old_symbol"] == "old"
-        assert item["new_symbol"] == "new"
-        assert item["old_return"] == pytest.approx(expected_old)
-        assert item["new_return"] == pytest.approx(expected_new)
-        assert item["spread"] == pytest.approx(expected_new - expected_old)
-    assert set(result["by_reason"]) == {"rotation"}
-    assert result["by_reason"]["rotation"]["fills"] == 1
-
-
-def test_unlinked_buy_reason_cannot_fabricate_replacement_spread() -> None:
-    dates = pd.bdate_range("2025-01-02", periods=50)
-    panel = {
-        symbol: pd.DataFrame({"close": np.linspace(1.0, 2.0, len(dates))}, index=dates)
-        for symbol in ("old", "new")
-    }
-    entry = _fill(
-        fill_date=str(dates[5].date()),
-        symbol="new",
-        side="BUY",
-        shares=10,
-        price=float(panel["new"].iloc[5]["close"]),
-        reason="rotation entry: replaces old",
-        reason_code="rotation",
+        prices={"old": prices},
+        economic_end=str(dates[50].date()),
+        horizons=(20, 41),
     )
 
-    result = attribution([entry], panel=panel)
+    assert result[0]["origin_subsystem"] == "LEADER"
+    assert result[0]["mechanism"] == "LEADER_ROTATION"
+    assert result[0]["horizons"]["20"]["absolute_return"] == pytest.approx(
+        prices.iloc[30] / prices.iloc[10] - 1.0
+    )
+    assert result[0]["horizons"]["41"] is None
 
-    assert result["replacement_spread"] == {"20": [], "40": []}
+
+def test_human_reason_cannot_enter_the_canonical_exit_identity() -> None:
+    """Catches reintroduction of human prose as an economic classifier."""
+    with pytest.raises(TypeError, match="reason"):
+        ExitRecord(
+            symbol="new",
+            exit_date="2025-01-09",
+            exit_price=10.0,
+            origin_subsystem="LEADER",
+            mechanism="LEADER_ROTATION",
+            reason="rotation entry: replaces old",  # type: ignore[call-arg]
+        )

@@ -13,6 +13,10 @@ from pathlib import Path
 from types import MappingProxyType
 from typing import Any, Final
 
+from ..attribution import (
+    validate_attribution_against_engine_result,
+    validate_economic_attribution,
+)
 from .generalization import symbol_pnl_concentration
 from .generalization_contract import (
     RANDOM_BASE_SEED,
@@ -40,7 +44,7 @@ REQUIRED_GENERALIZATION_POLICY_SHA256: Final = (
 
 _SHA256 = re.compile(r"^[0-9a-f]{64}$")
 _COMMIT = re.compile(r"^[0-9a-f]{40,64}$")
-_ARTIFACT_FIELDS = {
+_ARTIFACT_FIELDS_V1 = {
     "schema_version",
     "gate",
     "passed",
@@ -50,6 +54,7 @@ _ARTIFACT_FIELDS = {
     "aggregates",
     "cells",
 }
+_ARTIFACT_FIELDS_V2 = {*_ARTIFACT_FIELDS_V1, "attribution_definition"}
 _PROVENANCE_FIELDS = {
     "head",
     "source_sha256",
@@ -71,7 +76,7 @@ _RUNTIME_FIELDS = {
     "uv_version",
     "uv_lock_sha256",
 }
-_CELL_FIELDS = {
+_CELL_FIELDS_V1 = {
     "window",
     "start",
     "end",
@@ -90,6 +95,20 @@ _CELL_FIELDS = {
     "raw",
     "metrics",
     "replay_error",
+}
+_CELL_FIELDS_V2 = {
+    *_CELL_FIELDS_V1,
+    "attribution_status",
+    "attribution",
+    "concentration",
+}
+_ATTRIBUTION_DEFINITION = {
+    "schema": "uquant.economic-attribution.v1",
+    "interval": "cell start/end inclusive; no pre-window warmup or post-end data",
+    "accounting_identity": "realized_pnl + open_pnl = final_equity - initial_cash",
+    "lot_identity": "originating BUY event plus per-SELL sold_tranches",
+    "concentration": "positive, signed-net, and absolute PnL denominators",
+    "diagnostics": "cash drag and paired risk avoidance are not accounting PnL",
 }
 _EVIDENCE_FIELDS = {
     "as_of",
@@ -122,6 +141,15 @@ _BASELINE_CELL_FIELDS = {
     "contract_sha256",
     "metrics",
     "replay_error",
+}
+_ADDITIVE_ATTRIBUTION_IDENTITY_FIELDS = {
+    "event_id",
+    "origin_subsystem",
+    "mechanism",
+    "origin_lifecycle",
+    "replaces_symbol",
+    "industry_at_entry",
+    "industry_manifest_sha256",
 }
 
 
@@ -165,6 +193,7 @@ class GeneralizationBaseline:
     artifact_sha256: str
     artifact_size_bytes: int
     artifact_equality_sha256: str
+    attribution_neutral_equality_sha256: str
     provenance: Mapping[str, Any]
     aggregates: Mapping[str, Any]
     cells: Mapping[str, BaselineCell]
@@ -595,6 +624,9 @@ def load_generalization_baseline(
     if not isinstance(reviewed_artifact, dict):
         raise ValueError("generalization champion artifact must be an object")
     artifact_equality_sha256 = _artifact_equality_sha256(reviewed_artifact)
+    attribution_neutral_equality_sha256 = _attribution_neutral_equality_sha256(
+        {**reviewed_artifact, "attribution_definition": _ATTRIBUTION_DEFINITION}
+    )
     if not isinstance(payload["aggregates"], Mapping):
         raise ValueError("generalization baseline aggregates are malformed")
     provenance = {
@@ -607,6 +639,7 @@ def load_generalization_baseline(
         artifact_sha256=artifact_sha256,
         artifact_size_bytes=artifact_size,
         artifact_equality_sha256=artifact_equality_sha256,
+        attribution_neutral_equality_sha256=attribution_neutral_equality_sha256,
         provenance=MappingProxyType(provenance),
         aggregates=MappingProxyType(dict(payload["aggregates"])),
         cells=cells,
@@ -783,9 +816,84 @@ def _candidate_contract_sha256(cell: Mapping[str, Any]) -> str:
         {
             key: value
             for key, value in cell.items()
-            if key not in {"raw", "metrics", "replay_error"}
+            if key
+            not in {
+                "raw",
+                "metrics",
+                "replay_error",
+                "attribution_status",
+                "attribution",
+                "concentration",
+            }
         }
     )
+
+
+def _v2_economic_projection(artifact: Mapping[str, Any]) -> dict[str, Any]:
+    """Project only the explicitly additive v2 attribution schema back to frozen v1."""
+
+    try:
+        projected = json.loads(
+            json.dumps(artifact, allow_nan=False, separators=(",", ":"), sort_keys=True)
+        )
+    except (TypeError, ValueError, json.JSONDecodeError) as exc:
+        raise ValueError("generalization candidate is not finite canonical JSON") from exc
+    if not isinstance(projected, dict):
+        raise ValueError("generalization candidate artifact is malformed")
+    projected["schema_version"] = 1
+    projected.pop("attribution_definition", None)
+    cells = projected.get("cells")
+    if not isinstance(cells, list):
+        raise ValueError("generalization candidate cell collection is malformed")
+    for cell in cells:
+        if not isinstance(cell, dict):
+            raise ValueError("generalization candidate cell is malformed")
+        cell.pop("attribution_status", None)
+        cell.pop("attribution", None)
+        cell.pop("concentration", None)
+        raw = cell.get("raw")
+        if isinstance(raw, dict):
+            raw.pop("attribution", None)
+            raw.pop("decision_digests", None)
+            account = raw.get("final_account")
+            if isinstance(account, dict):
+                account.pop("schema_version", None)
+                account.pop("code_hash", None)
+                for collection_name in ("pending_orders", "order_ledger", "fills"):
+                    collection = account.get(collection_name)
+                    if not isinstance(collection, list):
+                        continue
+                    for record in collection:
+                        if not isinstance(record, dict):
+                            continue
+                        for name in _ADDITIVE_ATTRIBUTION_IDENTITY_FIELDS:
+                            record.pop(name, None)
+                        sold_tranches = record.get("sold_tranches")
+                        if isinstance(sold_tranches, list):
+                            for sold_lot in sold_tranches:
+                                if not isinstance(sold_lot, dict):
+                                    continue
+                                for name in _ADDITIVE_ATTRIBUTION_IDENTITY_FIELDS:
+                                    sold_lot.pop(name, None)
+                positions = account.get("positions")
+                if isinstance(positions, dict):
+                    for position in positions.values():
+                        if not isinstance(position, dict):
+                            continue
+                        tranches = position.get("tranches")
+                        if not isinstance(tranches, list):
+                            continue
+                        for tranche in tranches:
+                            if not isinstance(tranche, dict):
+                                continue
+                            for name in _ADDITIVE_ATTRIBUTION_IDENTITY_FIELDS:
+                                tranche.pop(name, None)
+    return projected
+
+
+def _attribution_neutral_equality_sha256(artifact: Mapping[str, Any]) -> str:
+    projected = _v2_economic_projection(artifact)
+    return _artifact_equality_sha256(projected)
 
 
 def evaluate_generalization_policy_artifact(
@@ -800,14 +908,22 @@ def evaluate_generalization_policy_artifact(
         raise ValueError("generalization policy and baseline identities differ")
     failures: list[str] = []
     equality_differences: list[str] = []
+    schema_version = artifact.get("schema_version")
+    expected_artifact_fields = (
+        _ARTIFACT_FIELDS_V2 if schema_version == 2 else _ARTIFACT_FIELDS_V1
+    )
+    expected_cell_fields = _CELL_FIELDS_V2 if schema_version == 2 else _CELL_FIELDS_V1
     artifact_schema_failures = _schema_failures(
-        artifact, _ARTIFACT_FIELDS, label="generalization candidate artifact"
+        artifact, expected_artifact_fields, label="generalization candidate artifact"
     )
     failures.extend(artifact_schema_failures)
     equality_differences.extend(artifact_schema_failures)
-    if artifact.get("schema_version") != 1:
+    if schema_version not in {1, 2}:
         failures.append("generalization candidate schema version is malformed")
         equality_differences.append("schema version")
+    if schema_version == 2 and artifact.get("attribution_definition") != _ATTRIBUTION_DEFINITION:
+        failures.append("generalization candidate attribution definition is malformed")
+        equality_differences.append("attribution definition")
     if artifact.get("gate") != "ai-era-generalization":
         failures.append("generalization candidate gate identity is malformed")
         equality_differences.append("gate identity")
@@ -827,12 +943,21 @@ def evaluate_generalization_policy_artifact(
         failures.append("generalization candidate aggregates are malformed")
         equality_differences.append("aggregate schema")
     try:
-        artifact_equality_sha256 = _artifact_equality_sha256(artifact)
+        artifact_equality_sha256 = (
+            _attribution_neutral_equality_sha256(artifact)
+            if schema_version == 2
+            else _artifact_equality_sha256(artifact)
+        )
     except ValueError as exc:
         failures.append(f"generalization candidate evidence is malformed: {exc}")
         equality_differences.append("malformed artifact evidence")
     else:
-        if artifact_equality_sha256 != baseline.artifact_equality_sha256:
+        expected_equality_sha256 = (
+            baseline.attribution_neutral_equality_sha256
+            if schema_version == 2
+            else baseline.artifact_equality_sha256
+        )
+        if artifact_equality_sha256 != expected_equality_sha256:
             equality_differences.append("artifact evidence payload")
     raw_cells_value = artifact.get("cells")
     provenance_value = artifact.get("provenance")
@@ -887,7 +1012,7 @@ def evaluate_generalization_policy_artifact(
             continue
         identifier = f"{window}/{scenario}"
         cell_schema_failures = _schema_failures(
-            raw, _CELL_FIELDS, label=f"candidate cell {identifier}"
+            raw, expected_cell_fields, label=f"candidate cell {identifier}"
         )
         evidence_schema_failures = _schema_failures(
             raw.get("evidence"),
@@ -938,6 +1063,9 @@ def evaluate_generalization_policy_artifact(
             continue
         metrics = candidate.get("metrics")
         error_raw = candidate.get("replay_error")
+        attribution_status = candidate.get("attribution_status")
+        attribution = candidate.get("attribution")
+        concentration = candidate.get("concentration")
         try:
             error = _replay_error(error_raw, identifier=identifier)
         except ValueError as exc:
@@ -948,6 +1076,13 @@ def evaluate_generalization_policy_artifact(
             if metrics is not None or error is not None or candidate.get("raw") is not None:
                 failures.append(f"candidate insufficient sample has economic evidence: {identifier}")
                 equality_differences.append(f"insufficient-sample evidence {identifier}")
+            if schema_version == 2 and (
+                attribution_status != "INSUFFICIENT_SAMPLE"
+                or attribution is not None
+                or concentration is not None
+            ):
+                failures.append(f"candidate insufficient sample attribution state differs: {identifier}")
+                equality_differences.append(f"insufficient-sample attribution {identifier}")
             continue
         if error is not None:
             replay_errors += 1
@@ -957,6 +1092,13 @@ def evaluate_generalization_policy_artifact(
             if metrics is not None or candidate.get("raw") is not None:
                 failures.append(f"candidate replay error contains fabricated metrics: {identifier}")
                 equality_differences.append(f"fabricated replay-error evidence {identifier}")
+            if schema_version == 2 and (
+                attribution_status != "ERROR"
+                or attribution is not None
+                or concentration is not None
+            ):
+                failures.append(f"candidate replay error attribution state differs: {identifier}")
+                equality_differences.append(f"replay-error attribution {identifier}")
             if reference.replay_error != error:
                 equality_differences.append(f"replay error {identifier}")
             if reference.metrics is not None:
@@ -973,6 +1115,40 @@ def evaluate_generalization_policy_artifact(
                 failures.append(f"candidate economic metrics are missing: {identifier}")
                 equality_differences.append(f"economic evidence {identifier}")
                 continue
+            if schema_version == 2:
+                if attribution_status != "VALID" or not isinstance(attribution, Mapping):
+                    failures.append(f"candidate economic attribution is missing: {identifier}")
+                    equality_differences.append(f"economic attribution {identifier}")
+                    continue
+                try:
+                    canonical_attribution = validate_economic_attribution(
+                        attribution,
+                        economic_start=str(candidate.get("start")),
+                        economic_end=str(candidate.get("end")),
+                    )
+                    raw_attribution = validate_attribution_against_engine_result(
+                        candidate_raw,
+                        economic_start=str(candidate.get("start")),
+                        economic_end=str(candidate.get("end")),
+                    )
+                except (TypeError, ValueError) as exc:
+                    failures.append(
+                        f"candidate economic attribution is malformed: {identifier}: {exc}"
+                    )
+                    equality_differences.append(f"malformed attribution {identifier}")
+                    continue
+                if raw_attribution != canonical_attribution:
+                    failures.append(
+                        f"candidate attribution differs from raw economic evidence: {identifier}"
+                    )
+                    equality_differences.append(f"detached attribution {identifier}")
+                    continue
+                if concentration != canonical_attribution["symbol_concentration"]:
+                    failures.append(
+                        f"candidate concentration differs from economic attribution: {identifier}"
+                    )
+                    equality_differences.append(f"detached concentration {identifier}")
+                    continue
             try:
                 reconciled_metrics = _metrics_reconciled_from_raw(
                     candidate_raw, identifier=identifier

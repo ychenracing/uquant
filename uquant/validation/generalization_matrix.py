@@ -13,6 +13,10 @@ from typing import Any, cast
 
 import pandas as pd
 
+from ..attribution import (
+    validate_attribution_against_engine_result,
+    validate_economic_attribution,
+)
 from ..config import config_fingerprint
 from ..engine import ProductionEngine
 from .ai_era import runtime_environment_provenance
@@ -34,7 +38,7 @@ from .generalization_contract import (
 from .manifest import verify_data_manifest
 from .universe import AIUniverse, load_ai_universe
 
-_SCHEMA_VERSION = 1
+_SCHEMA_VERSION = 2
 _SHA256 = re.compile(r"^[0-9a-f]{64}$")
 _COMMIT = re.compile(r"^[0-9a-f]{40,64}$")
 _PROVENANCE_FIELDS = {
@@ -76,6 +80,14 @@ _CONCENTRATION_DEFINITION = {
     "hhi": "sum((abs(symbol_pnl) / denominator) ** 2)",
     "zero_mass": "all concentration metrics are exactly 0.0",
 }
+_ATTRIBUTION_DEFINITION = {
+    "schema": "uquant.economic-attribution.v1",
+    "interval": "cell start/end inclusive; no pre-window warmup or post-end data",
+    "accounting_identity": "realized_pnl + open_pnl = final_equity - initial_cash",
+    "lot_identity": "originating BUY event plus per-SELL sold_tranches",
+    "concentration": "positive, signed-net, and absolute PnL denominators",
+    "diagnostics": "cash drag and paired risk avoidance are not accounting PnL",
+}
 _FIXED_SOURCE_PATHS = (
     "benchmarks/reference_registry.json",
     "pyproject.toml",
@@ -89,8 +101,17 @@ _ARTIFACT_FIELDS = {
     "failures",
     "provenance",
     "concentration_definition",
+    "attribution_definition",
     "aggregates",
     "cells",
+}
+_CELL_EVIDENCE_FIELDS = {
+    "raw",
+    "metrics",
+    "replay_error",
+    "attribution_status",
+    "attribution",
+    "concentration",
 }
 
 CellEvaluator = Callable[[Mapping[str, Any], Mapping[str, Any]], Sequence[str]]
@@ -345,6 +366,8 @@ def validate_matrix_artifact(
         failures.append("gate identity differs from the AI-era generalization contract")
     if artifact.get("concentration_definition") != _CONCENTRATION_DEFINITION:
         failures.append("concentration definition differs from the exact accounting contract")
+    if artifact.get("attribution_definition") != _ATTRIBUTION_DEFINITION:
+        failures.append("attribution definition differs from the exact economic contract")
     advertised_passed = artifact.get("passed")
     advertised_failures = artifact.get("failures")
     if not isinstance(advertised_passed, bool):
@@ -400,21 +423,40 @@ def validate_matrix_artifact(
         scenario = expected_by_id[identifier]
         cell = observed[identifier]
         expected_contract = _scenario_cell(scenario)
+        if set(cell) != set(expected_contract) | _CELL_EVIDENCE_FIELDS:
+            failures.append(f"cell attribution/evidence fields differ from the exact schema: {identifier}")
+            continue
         if any(cell.get(name) != value for name, value in expected_contract.items()):
             failures.append(f"cell contract differs: {identifier}")
             continue
         raw = cell.get("raw")
         metrics = cell.get("metrics")
+        attribution_status = cell.get("attribution_status")
+        attribution = cell.get("attribution")
+        concentration = cell.get("concentration")
         if "replay_error" not in cell:
             failures.append(f"cell replay error state is missing: {identifier}")
             continue
         replay_error = cell.get("replay_error")
         if not scenario.economic:
-            if raw is not None or metrics is not None or replay_error is not None:
+            if (
+                raw is not None
+                or metrics is not None
+                or replay_error is not None
+                or attribution_status != "INSUFFICIENT_SAMPLE"
+                or attribution is not None
+                or concentration is not None
+            ):
                 failures.append(f"cell insufficient sample contains economic evidence: {identifier}")
             continue
         if replay_error is not None:
-            if raw is not None or metrics is not None:
+            if (
+                raw is not None
+                or metrics is not None
+                or attribution_status != "ERROR"
+                or attribution is not None
+                or concentration is not None
+            ):
                 failures.append(f"cell replay error contains fabricated metrics: {identifier}")
                 continue
             if (
@@ -440,11 +482,30 @@ def validate_matrix_artifact(
         if not isinstance(raw, Mapping) or not isinstance(metrics, Mapping):
             failures.append(f"cell economic evidence is missing: {identifier}")
             continue
+        if attribution_status != "VALID" or not isinstance(attribution, Mapping):
+            failures.append(f"cell attribution is missing: {identifier}")
+            continue
         try:
             canonical_raw = _canonical_json_copy(raw)
             extracted, observation = _metrics_from_raw(scenario, canonical_raw)
+            canonical_attribution = validate_economic_attribution(
+                attribution,
+                economic_start=scenario.window.start,
+                economic_end=scenario.window.end,
+            )
+            raw_attribution = validate_attribution_against_engine_result(
+                canonical_raw,
+                economic_start=scenario.window.start,
+                economic_end=scenario.window.end,
+            )
         except (TypeError, ValueError) as exc:
-            failures.append(f"cell nonfinite or invalid: {identifier}: {exc}")
+            failures.append(f"cell nonfinite or invalid attribution: {identifier}: {exc}")
+            continue
+        if canonical_attribution != raw_attribution:
+            failures.append(f"cell attribution differs from raw economic evidence: {identifier}")
+            continue
+        if concentration != canonical_attribution["symbol_concentration"]:
+            failures.append(f"cell concentration differs from validated attribution: {identifier}")
             continue
         if set(metrics) != _METRIC_FIELDS or dict(metrics) != extracted:
             failures.append(f"cell metrics do not match raw evidence: {identifier}")
@@ -560,22 +621,48 @@ def execute_generalization_matrix(
     for scenario in scenario_tuple:
         cell = _scenario_cell(scenario)
         if not scenario.economic:
-            cell.update(raw=None, metrics=None, replay_error=None)
+            cell.update(
+                raw=None,
+                metrics=None,
+                replay_error=None,
+                attribution_status="INSUFFICIENT_SAMPLE",
+                attribution=None,
+                concentration=None,
+            )
             cells.append(cell)
             continue
         expected_by_window[scenario.window.name] = expected_by_window.get(scenario.window.name, 0) + 1
         try:
             raw = _canonical_json_copy(runner(scenario))
+            compact, observation = _metrics_from_raw(scenario, raw)
+            canonical_attribution = validate_attribution_against_engine_result(
+                raw,
+                economic_start=scenario.window.start,
+                economic_end=scenario.window.end,
+            )
         except Exception as exc:
-            cell.update(raw=None, metrics=None, replay_error=_canonical_replay_error(exc))
+            cell.update(
+                raw=None,
+                metrics=None,
+                replay_error=_canonical_replay_error(exc),
+                attribution_status="ERROR",
+                attribution=None,
+                concentration=None,
+            )
             cells.append(cell)
             replay_error_cells += 1
             by_window_replay_errors[scenario.window.name] = (
                 by_window_replay_errors.get(scenario.window.name, 0) + 1
             )
             continue
-        compact, observation = _metrics_from_raw(scenario, raw)
-        cell.update(raw=raw, metrics=compact, replay_error=None)
+        cell.update(
+            raw=raw,
+            metrics=compact,
+            replay_error=None,
+            attribution_status="VALID",
+            attribution=canonical_attribution,
+            concentration=canonical_attribution["symbol_concentration"],
+        )
         cells.append(cell)
         metrics.append(compact)
         observations.append(observation)
@@ -588,6 +675,7 @@ def execute_generalization_matrix(
         "failures": [],
         "provenance": normalized_provenance,
         "concentration_definition": dict(_CONCENTRATION_DEFINITION),
+        "attribution_definition": dict(_ATTRIBUTION_DEFINITION),
         "aggregates": {
             "all": _aggregate(
                 metrics,

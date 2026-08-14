@@ -8,7 +8,10 @@ from typing import Any
 
 import pytest
 
+from uquant.attribution import build_economic_attribution
+from uquant.types import AccountState, Fill, Position, Tranche
 from uquant.validation import generalization_matrix as matrix_module
+from uquant.validation import generalization_reference as reference_module
 from uquant.validation.generalization import PreWindowEvidence
 from uquant.validation.generalization_contract import (
     build_official_scenarios,
@@ -74,13 +77,127 @@ def _provenance(scenarios: tuple[Any, ...]) -> dict[str, Any]:
 def _runner_payload(scenario: Any) -> dict[str, Any]:
     first, second = scenario.symbols[:2]
     sequence = sum(ord(character) for character in scenario.name) % 20
+    identities = (
+        {
+            "event_id": "evt_" + "1" * 64,
+            "origin_subsystem": "LEADER",
+            "mechanism": "LEADER_SELECTION",
+            "origin_lifecycle": "CORE",
+            "replaces_symbol": None,
+            "industry_at_entry": "optical",
+            "industry_manifest_sha256": "a" * 64,
+        },
+        {
+            "event_id": "evt_" + "2" * 64,
+            "origin_subsystem": "RECOVERY",
+            "mechanism": "RECOVERY_COHORT",
+            "origin_lifecycle": "RECOVERY",
+            "replaces_symbol": None,
+            "industry_at_entry": "storage",
+            "industry_manifest_sha256": "a" * 64,
+        },
+    )
+    account = AccountState.empty(100.0)
+    account.cash = 80.0
+    account.fills = [
+        Fill(
+            signal_date=scenario.window.start,
+            fill_date=scenario.window.start,
+            symbol=symbol,
+            side="BUY",
+            shares=1,
+            price=10.0,
+            gross_value=10.0,
+            commission=0.0,
+            stamp_duty=0.0,
+            transfer_fee=0.0,
+            slippage_cost=0.0,
+            reason="fixture prose",
+            lifecycle=identity["origin_lifecycle"],
+            **identity,
+        )
+        for symbol, identity in zip((first, second), identities, strict=True)
+    ]
+    final_prices = {first: 13.0, second: 9.0}
+    account.positions = {
+        symbol: Position(
+            symbol=symbol,
+            shares=1,
+            avg_cost=10.0,
+            entry_date=scenario.window.start,
+            highest_close=final_prices[symbol],
+            lifecycle=identity["origin_lifecycle"],
+            tranches=[
+                Tranche(
+                    tranche_id=f"{scenario.window.start}:{symbol}:1",
+                    lifecycle=identity["origin_lifecycle"],
+                    shares=1,
+                    avg_cost=10.0,
+                    entry_date=scenario.window.start,
+                    sellable_date=scenario.window.start,
+                    highest_close=final_prices[symbol],
+                    **identity,
+                )
+            ],
+        )
+        for symbol, identity in zip((first, second), identities, strict=True)
+    }
+    ledger = [
+        {
+            "date": scenario.window.start,
+            "cash": 80.0,
+            "equity": 100.0,
+            "gross_exposure": 0.2,
+            "net_exposure": 0.2,
+            "cash_weight": 0.8,
+            "position_weights": {first: 0.1, second: 0.1},
+            "daily_pnl": 0.0,
+            "target_weights": {first: 0.1, second: 0.1},
+            "target_gross": 0.2,
+            "caps": {"risk_gross": 0.9, "system_gross": 0.9},
+            "binding_owner": "STRATEGY",
+            "risk_state": "NORMAL",
+            "opportunity": "CHOPPY",
+        },
+        {
+            "date": scenario.window.end,
+            "cash": 80.0,
+            "equity": 102.0,
+            "gross_exposure": 22.0 / 102.0,
+            "net_exposure": 22.0 / 102.0,
+            "cash_weight": 80.0 / 102.0,
+            "position_weights": {first: 13.0 / 102.0, second: 9.0 / 102.0},
+            "daily_pnl": 2.0,
+            "target_weights": {first: 0.1, second: 0.1},
+            "target_gross": 0.2,
+            "caps": {"risk_gross": 0.9, "system_gross": 0.9},
+            "binding_owner": "STRATEGY",
+            "risk_state": "NORMAL",
+            "opportunity": "CHOPPY",
+        },
+    ]
+    attribution = build_economic_attribution(
+        account=account,
+        final_prices=final_prices,
+        sessions=(scenario.window.start, scenario.window.end),
+        economic_start=scenario.window.start,
+        economic_end=scenario.window.end,
+        final_equity=102.0,
+        daily_ledger=ledger,
+        benchmark_close={scenario.window.start: 100.0, scenario.window.end: 100.0},
+    )
     return {
-        "final_wealth": 1.0 + sequence / 100.0,
+        "final_wealth": 1.02,
+        "final_equity": 102.0,
+        "start": scenario.window.start,
+        "end": scenario.window.end,
         "max_drawdown": 0.05 + sequence / 1000.0,
         "account_orders": sequence,
-        "gross_turnover": 0.2 + sequence / 100.0,
+        "gross_turnover": 0.2,
         "annual_turnover": 0.4 + sequence / 100.0,
         "symbol_pnl": {first: 3.0, second: -1.0},
+        "attribution": attribution,
+        "final_account": account.to_dict(),
         "opaque_raw_cell": {"scenario": scenario.name, "values": [1, 2, 3]},
     }
 
@@ -111,8 +228,26 @@ def test_matrix_preserves_every_raw_cell_and_reports_required_aggregates() -> No
         cell["status"] == "INSUFFICIENT_SAMPLE"
         and cell["raw"] is None
         and cell["metrics"] is None
+        and cell["attribution_status"] == "INSUFFICIENT_SAMPLE"
+        and cell["attribution"] is None
+        and cell["concentration"] is None
         for cell in insufficient
     )
+    assert all(cell["attribution_status"] == "VALID" for cell in economic)
+    assert all(cell["attribution"] == cell["raw"]["attribution"] for cell in economic)
+    assert all(
+        cell["concentration"] == cell["attribution"]["symbol_concentration"]
+        for cell in economic
+    )
+    assert artifact["schema_version"] == 2
+    assert artifact["attribution_definition"] == {
+        "schema": "uquant.economic-attribution.v1",
+        "interval": "cell start/end inclusive; no pre-window warmup or post-end data",
+        "accounting_identity": "realized_pnl + open_pnl = final_equity - initial_cash",
+        "lot_identity": "originating BUY event plus per-SELL sold_tranches",
+        "concentration": "positive, signed-net, and absolute PnL denominators",
+        "diagnostics": "cash drag and paired risk avoidance are not accounting PnL",
+    }
     assert set(artifact["aggregates"]["all"]) >= {
         "median_wealth",
         "worst_wealth",
@@ -149,6 +284,54 @@ def test_matrix_preserves_every_raw_cell_and_reports_required_aggregates() -> No
     assert artifact["concentration_definition"]["denominator"] == "sum(abs(symbol_pnl))"
 
 
+@pytest.mark.parametrize(
+    "mutation",
+    (
+        "missing_attribution",
+        "extra_attribution_field",
+        "interval_end",
+        "reconciliation",
+        "nonfinite_cost",
+        "detached_concentration",
+        "causal_ledger_weight",
+    ),
+)
+def test_matrix_rejects_invalid_or_detached_economic_attribution(mutation: str) -> None:
+    scenarios = _scenarios()
+    provenance = _provenance(scenarios)
+    artifact = execute_generalization_matrix(
+        scenarios=scenarios,
+        runner=_runner_payload,
+        provenance=provenance,
+    )
+    changed = copy.deepcopy(artifact)
+    cell = next(item for item in changed["cells"] if item["economic"])
+    if mutation == "missing_attribution":
+        del cell["attribution"]
+    elif mutation == "extra_attribution_field":
+        cell["attribution"]["extra"] = None
+    elif mutation == "interval_end":
+        cell["attribution"]["interval"]["economic_end"] = "2099-01-01"
+    elif mutation == "reconciliation":
+        cell["attribution"]["accounting"]["total_pnl"] += 0.01
+    elif mutation == "nonfinite_cost":
+        cell["attribution"]["costs"]["all_in"] = float("nan")
+    elif mutation == "causal_ledger_weight":
+        cell["attribution"]["daily_ledger"][0]["cash_weight"] = 0.123
+        cell["raw"]["attribution"]["daily_ledger"][0]["cash_weight"] = 0.123
+    else:
+        cell["concentration"] = {}
+
+    failures = validate_matrix_artifact(
+        changed,
+        scenarios=scenarios,
+        expected_provenance=provenance,
+    )
+
+    assert failures
+    assert any("attribution" in failure or "concentration" in failure for failure in failures)
+
+
 def test_champion_exact_equality_passes_but_mutation_fails() -> None:
     """Catches a default comparison that rejects equality or tolerates a regression."""
     scenarios = _scenarios()
@@ -180,6 +363,52 @@ def test_champion_exact_equality_passes_but_mutation_fails() -> None:
         champion_cells=champion,
     )
     assert any("champion equality" in failure for failure in failures)
+
+
+def test_v2_projection_ignores_only_closed_attribution_schema_additions() -> None:
+    frozen = json.loads(
+        (Path("artifacts") / "phase2" / "champion-generalization-matrix.json").read_text(
+            encoding="utf-8"
+        )
+    )
+    candidate = copy.deepcopy(frozen)
+    candidate["schema_version"] = 2
+    candidate["attribution_definition"] = copy.deepcopy(
+        matrix_module._ATTRIBUTION_DEFINITION
+    )
+    for cell in candidate["cells"]:
+        cell["attribution_status"] = (
+            "VALID"
+            if cell["metrics"] is not None
+            else "ERROR"
+            if cell["replay_error"]
+            else "INSUFFICIENT_SAMPLE"
+        )
+        cell["attribution"] = {"replacement": "closed-schema placeholder"} if cell["metrics"] else None
+        cell["concentration"] = {"replacement": "closed-schema placeholder"} if cell["metrics"] else None
+        if cell["raw"] is not None:
+            cell["raw"]["attribution"] = {"replacement": "closed-schema placeholder"}
+            cell["raw"]["decision_digests"] = ["new attribution-bearing digest"]
+            account = cell["raw"]["final_account"]
+            account["schema_version"] = 5
+            account["code_hash"] = "new committed source fingerprint"
+            if account["fills"]:
+                account["fills"][0]["event_id"] = "evt_" + "1" * 64
+
+    expected = load_generalization_baseline().attribution_neutral_equality_sha256
+    assert matrix_module._SCHEMA_VERSION == 2
+    assert reference_module._attribution_neutral_equality_sha256(candidate) == expected
+
+    for mutation in ("metric", "cash", "arbitrary_raw_field"):
+        changed = copy.deepcopy(candidate)
+        valid = next(cell for cell in changed["cells"] if cell["metrics"] is not None)
+        if mutation == "metric":
+            valid["metrics"]["final_wealth"] += 0.000001
+        elif mutation == "cash":
+            valid["raw"]["final_account"]["cash"] += 0.01
+        else:
+            valid["raw"]["arbitrary"] = None
+        assert reference_module._attribution_neutral_equality_sha256(changed) != expected
 
 
 def test_matrix_preserves_replay_error_continues_and_excludes_it_from_quantiles() -> None:
@@ -308,6 +537,40 @@ def test_zero_symbol_pnl_has_defined_non_fabricated_zero_concentration() -> None
 
     def zero_runner(scenario: Any) -> dict[str, Any]:
         raw = _runner_payload(scenario)
+        account = AccountState.empty(100.0)
+        ledger = [
+            {
+                "date": date,
+                "cash": 100.0,
+                "equity": 100.0,
+                "gross_exposure": 0.0,
+                "net_exposure": 0.0,
+                "cash_weight": 1.0,
+                "position_weights": {},
+                "daily_pnl": 0.0,
+                "target_weights": {},
+                "target_gross": 0.0,
+                "caps": {"risk_gross": 0.9, "system_gross": 0.9},
+                "binding_owner": "STRATEGY",
+                "risk_state": "NORMAL",
+                "opportunity": "CHOPPY",
+            }
+            for date in (scenario.window.start, scenario.window.end)
+        ]
+        raw["attribution"] = build_economic_attribution(
+            account=account,
+            final_prices={},
+            sessions=(scenario.window.start, scenario.window.end),
+            economic_start=scenario.window.start,
+            economic_end=scenario.window.end,
+            final_equity=100.0,
+            daily_ledger=ledger,
+            benchmark_close={scenario.window.start: 100.0, scenario.window.end: 100.0},
+        )
+        raw["final_account"] = account.to_dict()
+        raw["final_equity"] = 100.0
+        raw["final_wealth"] = 1.0
+        raw["gross_turnover"] = 0.0
         raw["symbol_pnl"] = {}
         return raw
 

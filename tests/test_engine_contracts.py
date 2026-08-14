@@ -11,7 +11,6 @@ from uquant.config import DEFAULT_CONFIG, config_fingerprint
 from uquant.engine import (
     ProductionEngine,
     _decision_config_for_universe,
-    attribution,
     code_fingerprint,
 )
 from uquant.leader import REFERENCE_UNIVERSE
@@ -727,57 +726,6 @@ def test_daily_decision_marks_position_and_tranche_excursions(data_dir):
     assert by_id["expensive-core"].lowest_close == pytest.approx(close)
     assert by_id["expensive-core"].mfe == pytest.approx(0.0)
     assert by_id["expensive-core"].mae == pytest.approx(-0.5)
-
-
-def test_attribution_tracks_promoted_lot_by_tranche_identity():
-    symbol = "sz300308"
-    buy = Fill(
-        signal_date="2026-01-01",
-        fill_date="2026-01-02",
-        symbol=symbol,
-        side="BUY",
-        shares=100,
-        price=10.0,
-        gross_value=1_000.0,
-        commission=0.0,
-        stamp_duty=0.0,
-        transfer_fee=0.0,
-        slippage_cost=0.0,
-        reason="challenger scout",
-        lifecycle="SATELLITE",
-    )
-    sell = Fill(
-        signal_date="2026-01-09",
-        fill_date="2026-01-12",
-        symbol=symbol,
-        side="SELL",
-        shares=40,
-        price=12.0,
-        gross_value=480.0,
-        commission=0.0,
-        stamp_duty=0.0,
-        transfer_fee=0.0,
-        slippage_cost=0.0,
-        reason="core risk reduction",
-        lifecycle="CORE",
-        sold_tranches=[
-            {
-                "tranche_id": f"2026-01-02:{symbol}:1",
-                "shares": 40,
-                "unit_cost": 10.0,
-                "lifecycle": "CORE",
-                "entry_date": "2026-01-02",
-                "mfe": 0.30,
-                "mae": -0.05,
-            }
-        ],
-    )
-
-    result = attribution([buy, sell])
-
-    assert result["by_lifecycle"]["core"]["realized_pnl"] == pytest.approx(80.0)
-    assert result["open_shares_by_lifecycle"]["core"] == 60
-    assert result["open_shares_by_lifecycle"]["satellite"] == 0
 
 
 def test_stale_code_hash_fails_closed(data_dir):

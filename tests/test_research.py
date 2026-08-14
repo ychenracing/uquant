@@ -34,7 +34,7 @@ from research.parameter_stress import (
 )
 from research.trade_attribution import (
     ExitRecord,
-    aggregate_by_reason,
+    aggregate_by_mechanism,
     attribute_exits,
 )
 from research.universe_stress import canonical_universe_cases
@@ -333,37 +333,36 @@ def test_trade_attribution_measures_regret_avoided_loss_and_missing_horizons() -
     }
     records = [
         ExitRecord(
-            "winner",
-            str(dates[0].date()),
-            100.0,
-            "risk_off",
-            "CORE",
-            80.0,
-            0.30,
-            -0.05,
-            "benchmark",
+            symbol="winner",
+            exit_date=str(dates[0].date()),
+            exit_price=100.0,
+            origin_subsystem="RISK",
+            mechanism="RISK_OFF",
+            benchmark_symbol="benchmark",
         ),
         ExitRecord(
-            "loser",
-            str(dates[0].date()),
-            100.0,
-            "risk_off",
-            "ADD2",
-            105.0,
-            0.02,
-            -0.15,
-            "benchmark",
+            symbol="loser",
+            exit_date=str(dates[0].date()),
+            exit_price=100.0,
+            origin_subsystem="RISK",
+            mechanism="RISK_OFF",
+            benchmark_symbol="benchmark",
         ),
     ]
-    attributed = attribute_exits(records, prices, horizons=(5, 10, 20))
-    winner = next(item for item in attributed if item.record.symbol == "winner")
-    loser = next(item for item in attributed if item.record.symbol == "loser")
-    assert dict(winner.regret)[5] == pytest.approx(0.05)
-    assert dict(winner.avoided_loss)[5] == 0.0
-    assert dict(loser.avoided_loss)[5] == pytest.approx(0.05)
-    assert dict(loser.regret)[5] == 0.0
-    assert dict(winner.post_exit_returns)[20] is None
-    summary = aggregate_by_reason(attributed)["risk_off"]
+    attributed = attribute_exits(
+        records,
+        prices,
+        economic_end=str(dates[-1].date()),
+        horizons=(5, 10, 20),
+    )
+    winner = next(item for item in attributed if item["symbol"] == "winner")
+    loser = next(item for item in attributed if item["symbol"] == "loser")
+    assert winner["horizons"]["5"]["regret"] == pytest.approx(0.05)
+    assert winner["horizons"]["5"]["avoided_loss"] == 0.0
+    assert loser["horizons"]["5"]["avoided_loss"] == pytest.approx(0.05)
+    assert loser["horizons"]["5"]["regret"] == 0.0
+    assert winner["horizons"]["20"] is None
+    summary = aggregate_by_mechanism(attributed)["RISK_OFF"]
     assert summary["count"] == 2
     assert summary["mean_regret"] > 0
     assert summary["mean_avoided_loss"] > 0

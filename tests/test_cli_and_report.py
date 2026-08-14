@@ -8,16 +8,22 @@ from typing import Any
 import pytest
 
 from uquant.account import load_account, save_account
+from uquant.attribution import build_economic_attribution
 from uquant.cli import main
-from uquant.report import render_daily_report
+from uquant.report import render_daily_report, render_economic_attribution_report
 from uquant.types import (
     AccountState,
+    AttributionMechanism,
     Decision,
+    Fill,
+    Lifecycle,
     Opportunity,
+    OriginSubsystem,
     PendingOrder,
     Position,
     Risk,
     Target,
+    Tranche,
 )
 
 
@@ -232,3 +238,110 @@ def test_daily_report_renders_every_action_and_pending_order() -> None:
     assert "1. BUY new_buy" in report
     assert "Deployed-sector guard: INACTIVE" in report
     assert "Deployed-sector daily return: N/A" in report
+
+
+def test_economic_attribution_report_labels_accounting_and_diagnostics() -> None:
+    """Catches omitted reconciliation or a diagnostic presented as realized PnL."""
+    identity = {
+        "event_id": "evt_" + "1" * 64,
+        "origin_subsystem": OriginSubsystem.LEADER.value,
+        "mechanism": AttributionMechanism.LEADER_SELECTION.value,
+        "origin_lifecycle": Lifecycle.CORE.value,
+        "replaces_symbol": None,
+        "industry_at_entry": "optical",
+        "industry_manifest_sha256": "a" * 64,
+    }
+    account = AccountState.empty(100.0)
+    account.cash = 90.0
+    account.fills = [
+        Fill(
+            signal_date="2025-01-02",
+            fill_date="2025-01-02",
+            symbol="a",
+            side="BUY",
+            shares=1,
+            price=10.0,
+            gross_value=10.0,
+            commission=0.0,
+            stamp_duty=0.0,
+            transfer_fee=0.0,
+            slippage_cost=0.0,
+            reason="display only",
+            lifecycle=Lifecycle.CORE.value,
+            **identity,
+        )
+    ]
+    account.positions = {
+        "a": Position(
+            symbol="a",
+            shares=1,
+            avg_cost=10.0,
+            entry_date="2025-01-02",
+            highest_close=25.0,
+            lifecycle=Lifecycle.CORE.value,
+            tranches=[
+                Tranche(
+                    tranche_id="2025-01-02:a:1",
+                    lifecycle=Lifecycle.CORE.value,
+                    shares=1,
+                    avg_cost=10.0,
+                    entry_date="2025-01-02",
+                    sellable_date="2025-01-03",
+                    highest_close=25.0,
+                    **identity,
+                )
+            ],
+        )
+    }
+    ledger = [
+        {
+            "date": date,
+            "cash": 90.0,
+            "equity": equity,
+            "gross_exposure": (equity - 90.0) / equity,
+            "net_exposure": (equity - 90.0) / equity,
+            "cash_weight": 90.0 / equity,
+            "position_weights": {"a": (equity - 90.0) / equity},
+            "daily_pnl": pnl,
+            "target_weights": {"a": 0.2},
+            "target_gross": 0.2,
+            "caps": {"risk_gross": 0.9, "system_gross": 0.9},
+            "binding_owner": "STRATEGY",
+            "risk_state": "NORMAL",
+            "opportunity": "TREND",
+        }
+        for date, equity, pnl in (
+            ("2025-01-02", 100.0, 0.0),
+            ("2025-01-06", 115.0, 15.0),
+        )
+    ]
+    attribution = build_economic_attribution(
+        account=account,
+        final_prices={"a": 25.0},
+        sessions=("2025-01-02", "2025-01-06"),
+        economic_start="2025-01-02",
+        economic_end="2025-01-06",
+        final_equity=115.0,
+        daily_ledger=ledger,
+        benchmark_close={"2025-01-02": 100.0, "2025-01-06": 105.0},
+    )
+
+    report = render_economic_attribution_report(attribution)
+
+    assert "Economic Attribution — 2025-01-02 to 2025-01-06" in report
+    assert "Reconciled: **YES** (error 0.000000; tolerance 0.000001)" in report
+    assert "Realized PnL: 0.000000" in report
+    assert "Open PnL: 15.000000" in report
+    assert "Top-1 positive contribution: 100.00%" in report
+    assert "Industry-at-entry Contribution" in report
+    assert "optical | 15.000000" in report
+    assert "Origin Mechanism Contribution" in report
+    assert "LEADER_SELECTION | 15.000000" in report
+    assert "Gross turnover: 10.000000%" in report
+    assert "Replacement-linked lot count: 0" in report
+    assert "Cash drag (diagnostic, not accounting PnL): -4.500000" in report
+    assert "Risk avoidance: N/A — requires an exact paired counterfactual" in report
+
+    attribution["accounting"]["total_pnl"] = 999.0
+    with pytest.raises(ValueError, match="reconcile"):
+        render_economic_attribution_report(attribution)

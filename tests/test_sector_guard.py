@@ -6,12 +6,10 @@ import pytest
 
 import uquant.risk as risk_module
 from uquant.config import DEFAULT_CONFIG
-from uquant.engine import attribution
 from uquant.portfolio import PortfolioAllocator
 from uquant.risk_sector import observe_deployed_sector, update_sector_guard
 from uquant.types import (
     AccountState,
-    Fill,
     Lifecycle,
     Opportunity,
     Position,
@@ -483,38 +481,6 @@ def test_allocator_preserves_structured_risk_reduction_owner(
     assert all(target.reason.startswith(expected_reason) for target in changed)
     assert all(target.reason_code == expected_code for target in changed)
     assert all(target.exit_kind == expected_exit_kind for target in changed)
-
-
-def test_attribution_separates_sector_guard_from_other_risk_reductions() -> None:
-    def risk_fill(symbol: str, *, reason_code: str, exit_kind: str) -> Fill:
-        return Fill(
-            signal_date="2026-08-07",
-            fill_date="2026-08-10",
-            symbol=symbol,
-            side="SELL",
-            shares=10,
-            price=1.0,
-            gross_value=10.0,
-            commission=0.0,
-            stamp_duty=0.0,
-            transfer_fee=0.0,
-            slippage_cost=0.0,
-            reason="hard gross reduction",
-            lifecycle=Lifecycle.CORE.value,
-            reduction_policy=ReductionPolicy.RISK_PRIORITY.value,
-            reason_code=reason_code,
-            exit_kind=exit_kind,
-        )
-
-    result = attribution(
-        [
-            risk_fill("sector_name", reason_code="sector_guard", exit_kind="sector_guard"),
-            risk_fill("market_name", reason_code="risk_off", exit_kind="risk_off"),
-        ]
-    )
-
-    assert result["by_reason"]["sector_guard"]["fills"] == 1
-    assert result["by_reason"]["risk_off"]["fills"] == 1
 
 
 def test_sparse_cap_uses_global_lot_priority_before_symbol_alpha() -> None:

@@ -1,158 +1,76 @@
-"""Offline exit-regret and avoided-loss attribution.
+"""Offline adapters over the canonical bounded production attribution API.
 
-Future prices are consumed only after an exit has already been recorded. This
-module must never be imported by the production decision path.
+This module owns no accounting or price-horizon implementation. Research
+callers use the same structured event identity and ``economic_end`` guard as
+production reports.
 """
 
 from __future__ import annotations
 
-import math
 from collections.abc import Iterable, Mapping
-from dataclasses import dataclass
+from typing import Any
 
 import pandas as pd
 
+from uquant.attribution import ExitRecord, post_exit_diagnostics
 
-@dataclass(frozen=True, slots=True)
-class ExitRecord:
-    """Validated facts captured when a position exit has completed."""
-
-    symbol: str
-    exit_date: str
-    exit_price: float
-    reason_code: str
-    lifecycle: str
-    entry_cost: float
-    mfe: float
-    mae: float
-    benchmark_symbol: str = ""
-
-    def __post_init__(self) -> None:
-        values = (self.exit_price, self.entry_cost, self.mfe, self.mae)
-        if not self.symbol or not self.exit_date or not self.reason_code:
-            raise ValueError("exit records need symbol, date, and reason_code")
-        if not all(math.isfinite(value) for value in values):
-            raise ValueError("exit record metrics must be finite")
-        if self.exit_price <= 0 or self.entry_cost <= 0:
-            raise ValueError("exit and entry prices must be positive")
-
-
-@dataclass(frozen=True, slots=True)
-class ExitAttribution:
-    """Post-exit outcome paths for one immutable exit record."""
-
-    record: ExitRecord
-    post_exit_returns: tuple[tuple[int, float | None], ...]
-    relative_returns: tuple[tuple[int, float | None], ...]
-    avoided_loss: tuple[tuple[int, float | None], ...]
-    regret: tuple[tuple[int, float | None], ...]
-
-
-def _validated_series(series: pd.Series, *, symbol: str) -> pd.Series:
-    clean = series.astype(float).dropna().copy()
-    clean.index = pd.to_datetime(clean.index)
-    clean = clean.sort_index()
-    if clean.empty or not clean.index.is_unique or (clean <= 0).any():
-        raise ValueError(f"invalid attribution price series: {symbol}")
-    return clean
-
-
-def _session_position(series: pd.Series, date: pd.Timestamp) -> int | None:
-    position = int(series.index.searchsorted(date, side="left"))
-    return position if position < len(series) else None
+__all__ = ["ExitRecord", "aggregate_by_mechanism", "attribute_exits"]
 
 
 def attribute_exits(
     exits: Iterable[ExitRecord],
     prices: Mapping[str, pd.Series],
     *,
+    economic_end: str,
     horizons: Iterable[int] = (5, 10, 20, 40),
-) -> tuple[ExitAttribution, ...]:
-    """Measure what happened after each already-completed exit."""
-    requested = tuple(sorted(set(horizons)))
-    if not requested or requested[0] < 1:
-        raise ValueError("attribution horizons must be positive")
-    validated = {symbol: _validated_series(series, symbol=symbol) for symbol, series in prices.items()}
-    output: list[ExitAttribution] = []
-    for record in sorted(exits, key=lambda item: (item.exit_date, item.symbol)):
-        series = validated.get(record.symbol)
-        if series is None:
-            raise ValueError(f"missing attribution prices for {record.symbol}")
-        date = pd.Timestamp(record.exit_date)
-        start = _session_position(series, date)
-        benchmark = validated.get(record.benchmark_symbol) if record.benchmark_symbol else None
-        benchmark_start = _session_position(benchmark, date) if benchmark is not None else None
-        post: list[tuple[int, float | None]] = []
-        relative: list[tuple[int, float | None]] = []
-        avoided: list[tuple[int, float | None]] = []
-        regret: list[tuple[int, float | None]] = []
-        for horizon in requested:
-            value: float | None = None
-            relative_value: float | None = None
-            if start is not None and start + horizon < len(series):
-                value = float(series.iloc[start + horizon] / record.exit_price - 1.0)
-                if (
-                    benchmark is not None
-                    and benchmark_start is not None
-                    and benchmark_start + horizon < len(benchmark)
-                ):
-                    benchmark_return = float(
-                        benchmark.iloc[benchmark_start + horizon] / benchmark.iloc[benchmark_start] - 1.0
-                    )
-                    relative_value = value - benchmark_return
-            post.append((horizon, value))
-            relative.append((horizon, relative_value))
-            avoided.append((horizon, None if value is None else max(0.0, -value)))
-            regret.append((horizon, None if value is None else max(0.0, value)))
-        output.append(
-            ExitAttribution(
-                record=record,
-                post_exit_returns=tuple(post),
-                relative_returns=tuple(relative),
-                avoided_loss=tuple(avoided),
-                regret=tuple(regret),
-            )
-        )
-    return tuple(output)
+) -> list[dict[str, Any]]:
+    """Delegate bounded post-exit measurement to the production API."""
+
+    return post_exit_diagnostics(
+        exits=tuple(exits),
+        prices=prices,
+        economic_end=economic_end,
+        horizons=tuple(horizons),
+    )
 
 
-def aggregate_by_reason(
-    attributions: Iterable[ExitAttribution],
+def aggregate_by_mechanism(
+    attributions: Iterable[Mapping[str, Any]],
 ) -> dict[str, dict[str, float | int]]:
-    """Aggregate comparable horizons without treating missing data as zero."""
-    counts: dict[str, int] = {}
-    avoided_values: dict[str, dict[int, list[float]]] = {}
-    regret_values: dict[str, dict[int, list[float]]] = {}
-    relative_values: dict[str, dict[int, list[float]]] = {}
+    """Aggregate finite diagnostic horizons by structured mechanism identity."""
+
+    grouped: dict[str, list[Mapping[str, Any]]] = {}
     for item in attributions:
-        reason = item.record.reason_code
-        counts[reason] = counts.get(reason, 0) + 1
-        avoided_values.setdefault(reason, {})
-        regret_values.setdefault(reason, {})
-        relative_values.setdefault(reason, {})
-        for horizon, value in item.avoided_loss:
-            if value is not None:
-                avoided_values[reason].setdefault(horizon, []).append(value)
-        for horizon, value in item.regret:
-            if value is not None:
-                regret_values[reason].setdefault(horizon, []).append(value)
-        for horizon, value in item.relative_returns:
-            if value is not None:
-                relative_values[reason].setdefault(horizon, []).append(value)
-    result: dict[str, dict[str, float | int]] = {}
-    for reason in sorted(counts):
-        result[reason] = {"count": counts[reason]}
-        metric_values_by_horizon = {
-            "avoided_loss": avoided_values[reason],
-            "regret": regret_values[reason],
-            "relative_return": relative_values[reason],
+        mechanism = item.get("mechanism")
+        horizons = item.get("horizons")
+        if not isinstance(mechanism, str) or not mechanism or not isinstance(horizons, Mapping):
+            raise ValueError("post-exit attribution has malformed mechanism or horizons")
+        grouped.setdefault(mechanism, []).append(item)
+    output: dict[str, dict[str, float | int]] = {}
+    for mechanism, items in sorted(grouped.items()):
+        avoided_by_horizon: dict[str, list[float]] = {}
+        regret_by_horizon: dict[str, list[float]] = {}
+        for item in items:
+            horizons = item["horizons"]
+            if not isinstance(horizons, Mapping):  # pragma: no cover - validated above
+                raise ValueError("post-exit attribution horizons are malformed")
+            for horizon, value in horizons.items():
+                if value is None:
+                    continue
+                if not isinstance(value, Mapping):
+                    raise ValueError("post-exit attribution horizon is malformed")
+                avoided_by_horizon.setdefault(str(horizon), []).append(float(value["avoided_loss"]))
+                regret_by_horizon.setdefault(str(horizon), []).append(float(value["regret"]))
+        avoided = [value for values in avoided_by_horizon.values() for value in values]
+        regret = [value for values in regret_by_horizon.values() for value in values]
+        bucket: dict[str, float | int] = {
+            "count": len(items),
+            "mean_avoided_loss": sum(avoided) / len(avoided) if avoided else 0.0,
+            "mean_regret": sum(regret) / len(regret) if regret else 0.0,
         }
-        for name, horizon_values in metric_values_by_horizon.items():
-            values = [value for items in horizon_values.values() for value in items]
-            result[reason][f"mean_{name}"] = float(sum(values) / len(values)) if values else 0.0
-            for horizon, items in sorted(horizon_values.items()):
-                result[reason][f"mean_{name}_{horizon}d"] = float(sum(items) / len(items))
-        result[reason]["net_exit_value"] = float(result[reason]["mean_avoided_loss"]) - float(
-            result[reason]["mean_regret"]
-        )
-    return result
+        for horizon, values in sorted(avoided_by_horizon.items(), key=lambda item: int(item[0])):
+            bucket[f"mean_avoided_loss_{horizon}d"] = sum(values) / len(values)
+        for horizon, values in sorted(regret_by_horizon.items(), key=lambda item: int(item[0])):
+            bucket[f"mean_regret_{horizon}d"] = sum(values) / len(values)
+        output[mechanism] = bucket
+    return output

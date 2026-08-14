@@ -191,7 +191,7 @@ def compare_phase1_commits(
     frozen_commit = _git_commit(frozen_path)
     if frozen_commit != FROZEN_CHAMPION_COMMIT:
         raise RuntimeError("frozen equivalence tree does not match the Phase 1 champion commit")
-    replay_cases = phase1_cases(candidate_path / "benchmarks" / "promotion_baseline.json") if cases is None else cases
+    replay_cases = phase1_cases(frozen_path / "benchmarks" / "promotion_baseline.json") if cases is None else cases
     frozen_cases = {
         case.name: trace_phase1_case(root=frozen_path, data_dir=data_dir, case=case) for case in replay_cases
     }

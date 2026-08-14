@@ -1,7 +1,11 @@
 from __future__ import annotations
 
+import json
+from pathlib import Path
+
 import pytest
 
+from uquant.validation import equivalence
 from uquant.validation.equivalence import (
     FROZEN_CHAMPION_COMMIT,
     Phase1DecisionTrace,
@@ -49,3 +53,42 @@ def test_phase1_equivalence_covers_every_official_and_protected_pool_case() -> N
         "year_2024",
         "bull",
     }
+
+
+def test_cross_commit_matrix_ignores_a_candidate_baseline_mutation(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    """Breaks if candidate-controlled baseline edits can omit a frozen replay case."""
+    frozen = tmp_path / "frozen"
+    candidate = tmp_path / "candidate"
+    frozen_benchmark = frozen / "benchmarks"
+    candidate_benchmark = candidate / "benchmarks"
+    frozen_benchmark.mkdir(parents=True)
+    candidate_benchmark.mkdir(parents=True)
+    source = Path("benchmarks") / "promotion_baseline.json"
+    payload = json.loads(source.read_text(encoding="utf-8"))
+    (frozen_benchmark / "promotion_baseline.json").write_text(json.dumps(payload), encoding="utf-8")
+    payload["pools"].pop("e")
+    (candidate_benchmark / "promotion_baseline.json").write_text(json.dumps(payload), encoding="utf-8")
+    captured: list[str] = []
+
+    monkeypatch.setattr(equivalence, "_git_commit", lambda root: FROZEN_CHAMPION_COMMIT)
+    def trace(**kwargs: object) -> dict[str, str]:
+        case = kwargs["case"]
+        assert isinstance(case, equivalence.Phase1Case)
+        captured.append(case.name)
+        return {"decision_payload_sha256": case.name, "economic_account_sha256": "state"}
+
+    monkeypatch.setattr(equivalence, "trace_phase1_case", trace)
+
+    report = equivalence.compare_phase1_commits(
+        frozen_root=frozen,
+        candidate_root=candidate,
+        data_dir=tmp_path / "data",
+        cases=None,
+    )
+
+    assert report["cases"] == 45
+    assert len(captured) == 90
+    assert captured.count("e/h1_2023") == 2

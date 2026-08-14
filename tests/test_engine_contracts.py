@@ -123,11 +123,6 @@ def test_decision_config_is_invariant_to_unrelated_universe_size() -> None:
     assert _decision_config_for_universe(9) is DEFAULT_CONFIG
     assert _decision_config_for_universe(10) is DEFAULT_CONFIG
     assert _decision_config_for_universe(32) is DEFAULT_CONFIG
-    explicit = DEFAULT_CONFIG.override(adaptive_broad_universe_compatibility_enabled=False)
-    assert _decision_config_for_universe(3, explicit) is explicit
-    assert _decision_config_for_universe(32, explicit) is explicit
-
-
 def test_determinism_one_target_and_hard_constraints(data_dir):
     engine = ProductionEngine(data_dir)
     initial = AccountState.empty(2e6)

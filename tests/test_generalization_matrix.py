@@ -175,6 +175,95 @@ def test_champion_exact_equality_passes_but_mutation_fails() -> None:
     assert any("champion equality" in failure for failure in failures)
 
 
+def test_matrix_preserves_replay_error_continues_and_excludes_it_from_quantiles() -> None:
+    """Catches one engine exception aborting the matrix or becoming a fake metric."""
+    scenarios = _scenarios()
+    failing = next(item for item in scenarios if item.name == "random__20__0000")
+    executed: list[str] = []
+
+    def runner(scenario: Any) -> dict[str, Any]:
+        executed.append(scenario.name)
+        if scenario is failing:
+            raise RuntimeError("allocator failed\n  without a finite result")
+        return _runner_payload(scenario)
+
+    artifact = execute_generalization_matrix(
+        scenarios=scenarios,
+        runner=runner,
+        provenance=_provenance(scenarios),
+    )
+
+    assert len(executed) == 32
+    assert executed[-1] == "random__20__0004"
+    error_cell = next(cell for cell in artifact["cells"] if cell["scenario"] == failing.name)
+    assert error_cell["raw"] is None
+    assert error_cell["metrics"] is None
+    assert error_cell["replay_error"] == {
+        "exception_type": "RuntimeError",
+        "message": "allocator failed without a finite result",
+    }
+    assert artifact["aggregates"]["all"]["economic_cells_expected"] == 32
+    assert artifact["aggregates"]["all"]["economic_cells_valid"] == 31
+    assert artifact["aggregates"]["all"]["replay_error_cells"] == 1
+    assert artifact["aggregates"]["by_window"]["h1_2023"]["economic_cells_expected"] == 32
+    assert artifact["aggregates"]["by_window"]["h1_2023"]["economic_cells_valid"] == 31
+    assert artifact["aggregates"]["by_window"]["h1_2023"]["replay_error_cells"] == 1
+    valid_wealth = [
+        float(cell["metrics"]["final_wealth"])
+        for cell in artifact["cells"]
+        if cell["metrics"] is not None
+    ]
+    assert artifact["aggregates"]["all"]["worst_wealth"] == min(valid_wealth)
+    assert artifact["passed"] is False
+    assert artifact["failures"] == [
+        "cell replay failed: h1_2023/random__20__0000: RuntimeError: "
+        "allocator failed without a finite result"
+    ]
+
+
+def test_matrix_validator_rejects_replay_error_with_fabricated_metrics_or_missing_cell() -> None:
+    """Catches error evidence being converted to metrics or silently dropped."""
+    scenarios = _scenarios()
+    provenance = _provenance(scenarios)
+    failing = next(item for item in scenarios if item.name == "random__20__0000")
+
+    def runner(scenario: Any) -> dict[str, Any]:
+        if scenario is failing:
+            raise RuntimeError("fixed replay failure")
+        return _runner_payload(scenario)
+
+    artifact = execute_generalization_matrix(
+        scenarios=scenarios,
+        runner=runner,
+        provenance=provenance,
+    )
+    fabricated = copy.deepcopy(artifact)
+    error_cell = next(
+        cell for cell in fabricated["cells"] if cell["scenario"] == failing.name
+    )
+    error_cell["raw"] = _runner_payload(failing)
+    error_cell["metrics"] = next(
+        cell["metrics"] for cell in artifact["cells"] if cell["metrics"] is not None
+    )
+    fabricated_failures = validate_matrix_artifact(
+        fabricated,
+        scenarios=scenarios,
+        expected_provenance=provenance,
+    )
+    assert any("replay error" in failure for failure in fabricated_failures)
+
+    missing = copy.deepcopy(artifact)
+    missing["cells"] = [
+        cell for cell in missing["cells"] if cell["scenario"] != failing.name
+    ]
+    missing_failures = validate_matrix_artifact(
+        missing,
+        scenarios=scenarios,
+        expected_provenance=provenance,
+    )
+    assert any("missing cell records" in failure for failure in missing_failures)
+
+
 @pytest.mark.parametrize("mutation", ["missing", "duplicate", "nonfinite", "stale"])
 def test_matrix_validation_fails_closed_on_incomplete_or_stale_artifacts(mutation: str) -> None:
     """Catches matrix aggregation that accepts missing/duplicate/invalid evidence."""

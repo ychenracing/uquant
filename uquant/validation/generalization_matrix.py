@@ -204,9 +204,15 @@ def _quantile(values: Sequence[float], probability: float) -> float:
 def _aggregate(
     metrics: Sequence[Mapping[str, float | int]],
     observations: Sequence[GeneralizationObservation],
-) -> dict[str, float]:
+    *,
+    expected_cells: int | None = None,
+    replay_error_cells: int = 0,
+) -> dict[str, float | int]:
     if not metrics or not observations or len(metrics) != len(observations):
         raise ValueError("matrix aggregate requires matching economic evidence")
+    expected = len(metrics) if expected_cells is None else expected_cells
+    if expected < 1 or replay_error_cells < 0 or len(metrics) + replay_error_cells != expected:
+        raise ValueError("matrix aggregate economic coverage is inconsistent")
     base = aggregate_metrics(observations)
     wealth = [float(item["final_wealth"]) for item in metrics]
     gross = [float(item["gross_turnover"]) for item in metrics]
@@ -215,6 +221,9 @@ def _aggregate(
     top3 = [float(item["top3_concentration"]) for item in metrics]
     hhi = [float(item["pnl_hhi"]) for item in metrics]
     return {
+        "economic_cells_expected": expected,
+        "economic_cells_valid": len(metrics),
+        "replay_error_cells": replay_error_cells,
         **base,
         "worst_wealth": min(wealth),
         "median_gross_turnover": float(median(gross)),
@@ -249,6 +258,14 @@ def _scenario_cell(scenario: ContractScenario) -> dict[str, Any]:
         "seed_index": scenario.seed_index,
         "derived_seed": scenario.derived_seed,
         "evidence": evidence_contract_payload(scenario),
+    }
+
+
+def _canonical_replay_error(error: Exception) -> dict[str, str]:
+    message = " ".join(str(error).split())
+    return {
+        "exception_type": type(error).__name__,
+        "message": message or "exception had no message",
     }
 
 
@@ -354,6 +371,8 @@ def validate_matrix_artifact(
     validated_observations: list[GeneralizationObservation] = []
     by_window_metrics: dict[str, list[dict[str, float | int]]] = {}
     by_window_observations: dict[str, list[GeneralizationObservation]] = {}
+    replay_error_cells = 0
+    by_window_replay_errors: dict[str, int] = {}
     duplicate_ids: set[str] = set()
     for raw_cell in cells:
         if not isinstance(raw_cell, Mapping):
@@ -386,9 +405,37 @@ def validate_matrix_artifact(
             continue
         raw = cell.get("raw")
         metrics = cell.get("metrics")
+        if "replay_error" not in cell:
+            failures.append(f"cell replay error state is missing: {identifier}")
+            continue
+        replay_error = cell.get("replay_error")
         if not scenario.economic:
-            if raw is not None or metrics is not None:
+            if raw is not None or metrics is not None or replay_error is not None:
                 failures.append(f"cell insufficient sample contains economic evidence: {identifier}")
+            continue
+        if replay_error is not None:
+            if raw is not None or metrics is not None:
+                failures.append(f"cell replay error contains fabricated metrics: {identifier}")
+                continue
+            if (
+                not isinstance(replay_error, Mapping)
+                or set(replay_error) != {"exception_type", "message"}
+                or not isinstance(replay_error.get("exception_type"), str)
+                or not replay_error["exception_type"]
+                or not isinstance(replay_error.get("message"), str)
+                or not replay_error["message"]
+                or " ".join(replay_error["message"].split()) != replay_error["message"]
+            ):
+                failures.append(f"cell replay error is malformed: {identifier}")
+                continue
+            replay_error_cells += 1
+            by_window_replay_errors[scenario.window.name] = (
+                by_window_replay_errors.get(scenario.window.name, 0) + 1
+            )
+            failures.append(
+                f"cell replay failed: {identifier}: {replay_error['exception_type']}: "
+                f"{replay_error['message']}"
+            )
             continue
         if not isinstance(raw, Mapping) or not isinstance(metrics, Mapping):
             failures.append(f"cell economic evidence is missing: {identifier}")
@@ -408,11 +455,33 @@ def validate_matrix_artifact(
         by_window_observations.setdefault(scenario.window.name, []).append(observation)
 
     expected_economic = sum(scenario.economic for scenario in scenarios)
-    if len(validated_metrics) == expected_economic and not duplicate_ids and not missing and not unexpected:
+    expected_by_window = {
+        name: sum(
+            scenario.economic for scenario in scenarios if scenario.window.name == name
+        )
+        for name in {scenario.window.name for scenario in scenarios}
+    }
+    if (
+        len(validated_metrics) + replay_error_cells == expected_economic
+        and validated_metrics
+        and not duplicate_ids
+        and not missing
+        and not unexpected
+    ):
         expected_aggregates = {
-            "all": _aggregate(validated_metrics, validated_observations),
+            "all": _aggregate(
+                validated_metrics,
+                validated_observations,
+                expected_cells=expected_economic,
+                replay_error_cells=replay_error_cells,
+            ),
             "by_window": {
-                name: _aggregate(by_window_metrics[name], by_window_observations[name])
+                name: _aggregate(
+                    by_window_metrics[name],
+                    by_window_observations[name],
+                    expected_cells=expected_by_window[name],
+                    replay_error_cells=by_window_replay_errors.get(name, 0),
+                )
                 for name in by_window_metrics
             },
         }
@@ -485,15 +554,28 @@ def execute_generalization_matrix(
     observations: list[GeneralizationObservation] = []
     by_window_metrics: dict[str, list[dict[str, float | int]]] = {}
     by_window_observations: dict[str, list[GeneralizationObservation]] = {}
+    replay_error_cells = 0
+    by_window_replay_errors: dict[str, int] = {}
+    expected_by_window: dict[str, int] = {}
     for scenario in scenario_tuple:
         cell = _scenario_cell(scenario)
         if not scenario.economic:
-            cell.update(raw=None, metrics=None)
+            cell.update(raw=None, metrics=None, replay_error=None)
             cells.append(cell)
             continue
-        raw = _canonical_json_copy(runner(scenario))
+        expected_by_window[scenario.window.name] = expected_by_window.get(scenario.window.name, 0) + 1
+        try:
+            raw = _canonical_json_copy(runner(scenario))
+        except Exception as exc:
+            cell.update(raw=None, metrics=None, replay_error=_canonical_replay_error(exc))
+            cells.append(cell)
+            replay_error_cells += 1
+            by_window_replay_errors[scenario.window.name] = (
+                by_window_replay_errors.get(scenario.window.name, 0) + 1
+            )
+            continue
         compact, observation = _metrics_from_raw(scenario, raw)
-        cell.update(raw=raw, metrics=compact)
+        cell.update(raw=raw, metrics=compact, replay_error=None)
         cells.append(cell)
         metrics.append(compact)
         observations.append(observation)
@@ -507,9 +589,19 @@ def execute_generalization_matrix(
         "provenance": normalized_provenance,
         "concentration_definition": dict(_CONCENTRATION_DEFINITION),
         "aggregates": {
-            "all": _aggregate(metrics, observations),
+            "all": _aggregate(
+                metrics,
+                observations,
+                expected_cells=len(metrics) + replay_error_cells,
+                replay_error_cells=replay_error_cells,
+            ),
             "by_window": {
-                name: _aggregate(by_window_metrics[name], by_window_observations[name])
+                name: _aggregate(
+                    by_window_metrics[name],
+                    by_window_observations[name],
+                    expected_cells=expected_by_window[name],
+                    replay_error_cells=by_window_replay_errors.get(name, 0),
+                )
                 for name in by_window_metrics
             },
         },

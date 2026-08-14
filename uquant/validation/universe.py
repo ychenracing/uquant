@@ -8,14 +8,13 @@ import re
 from collections.abc import Mapping
 from dataclasses import dataclass
 from datetime import date
+from importlib import resources
 from pathlib import Path
 from typing import Any, Final
 
-ROOT: Final = Path(__file__).resolve().parents[2]
-FROZEN_CHAMPION_PATH: Final = ROOT / "benchmarks" / "phase1_frozen_champion.json"
-AI_UNIVERSE_MANIFEST_PATH: Final = ROOT / "benchmarks" / "ai_universe_manifest.json"
 FROZEN_CHAMPION_COMMIT: Final = "cf8fecff76564fd4ed87faa0da336a06d433fd93"
 GITHUB_PHASE1_ARTIFACT_SHA256: Final = "86d894f46a22740cb4bc59a279cb2150927f312947859ad2559e3a17b45f5deb"
+REQUIRED_FROZEN_CHAMPION_SHA256: Final = "8475a5da6f67db8c9ebf1b0aa5949a3484d75897e75ef8b4c4ef73c1c4d22a8f"
 REQUIRED_AI_UNIVERSE_SHA256: Final = "03f42c5066fb8e1c7b2f8e1b7dd38d508d8053f548ebb5596317ce587d7cffd0"
 CANONICAL_INDUSTRIES: Final = frozenset(
     {
@@ -151,21 +150,42 @@ def canonical_sha256(payload: Mapping[str, Any]) -> str:
     return hashlib.sha256(encoded).hexdigest()
 
 
+def _read_json_bytes(raw: bytes, *, label: str) -> dict[str, Any]:
+    try:
+        payload = json.loads(
+            raw.decode("utf-8"),
+            object_pairs_hook=_reject_duplicate_keys,
+            parse_constant=_reject_nonstandard_constant,
+        )
+    except (UnicodeDecodeError, json.JSONDecodeError) as exc:
+        raise ValueError(f"{label} is corrupt") from exc
+    if not isinstance(payload, dict):
+        raise ValueError(f"{label} must be a JSON object")
+    return payload
+
+
 def _read_json(path: str | Path, *, label: str) -> dict[str, Any]:
     source = Path(path)
     if source.is_symlink() or not source.is_file():
         raise ValueError(f"{label} is missing or not a regular file: {source}")
     try:
-        payload = json.loads(
-            source.read_text(encoding="utf-8"),
-            object_pairs_hook=_reject_duplicate_keys,
-            parse_constant=_reject_nonstandard_constant,
-        )
-    except (OSError, UnicodeDecodeError, json.JSONDecodeError) as exc:
+        return _read_json_bytes(source.read_bytes(), label=label)
+    except OSError as exc:
         raise ValueError(f"{label} is missing or corrupt: {source}") from exc
-    if not isinstance(payload, dict):
-        raise ValueError(f"{label} must be a JSON object")
-    return payload
+
+
+def _resource_bytes(name: str) -> bytes:
+    return resources.files("uquant.validation").joinpath("resources", name).read_bytes()
+
+
+def frozen_champion_bytes() -> bytes:
+    """Return the immutable champion artifact packaged with production code."""
+    return _resource_bytes("phase1_frozen_champion.json")
+
+
+def ai_universe_manifest_bytes() -> bytes:
+    """Return the immutable AI-universe artifact packaged with production code."""
+    return _resource_bytes("ai_universe_manifest.json")
 
 
 def _sha256(value: Any, *, label: str) -> str:
@@ -174,9 +194,13 @@ def _sha256(value: Any, *, label: str) -> str:
     return value
 
 
-def load_phase1_frozen_champion(path: str | Path = FROZEN_CHAMPION_PATH) -> FrozenChampion:
+def load_phase1_frozen_champion(path: str | Path | None = None) -> FrozenChampion:
     """Load the reviewed Phase 1 identity without accepting partial provenance."""
-    payload = _read_json(path, label="frozen champion")
+    payload = (
+        _read_json_bytes(frozen_champion_bytes(), label="frozen champion")
+        if path is None
+        else _read_json(path, label="frozen champion")
+    )
     if set(payload) != {
         "schema_version",
         "contract_id",
@@ -194,6 +218,8 @@ def load_phase1_frozen_champion(path: str | Path = FROZEN_CHAMPION_PATH) -> Froz
         raise ValueError("frozen champion production provenance is malformed")
     if production["repository"] != "ychenracing/uquant" or production["commit"] != FROZEN_CHAMPION_COMMIT:
         raise ValueError("frozen champion production identity differs from Phase 1")
+    if canonical_sha256(payload) != REQUIRED_FROZEN_CHAMPION_SHA256:
+        raise ValueError("frozen champion differs from the reviewed Phase 1 contract")
     if not isinstance(data, dict) or set(data) != {
         "snapshot_id", "files_verified", "manifest_sha256", "checksums_sha256"
     }:
@@ -229,9 +255,13 @@ def load_phase1_frozen_champion(path: str | Path = FROZEN_CHAMPION_PATH) -> Froz
     )
 
 
-def load_ai_universe(path: str | Path = AI_UNIVERSE_MANIFEST_PATH) -> AIUniverse:
+def load_ai_universe(path: str | Path | None = None) -> AIUniverse:
     """Load the one reviewed AI universe, rejecting stale or resealed membership."""
-    payload = _read_json(path, label="AI universe manifest")
+    payload = (
+        _read_json_bytes(ai_universe_manifest_bytes(), label="AI universe manifest")
+        if path is None
+        else _read_json(path, label="AI universe manifest")
+    )
     if set(payload) != {"schema_version", "manifest_id", "canonical_sha256", "members"}:
         raise ValueError("AI universe manifest schema is malformed")
     if payload["schema_version"] != 1 or payload["manifest_id"] != "phase1-ai-universe-v1":

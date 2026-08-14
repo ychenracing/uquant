@@ -1,6 +1,10 @@
 from __future__ import annotations
 
 import json
+import os
+import shutil
+import subprocess
+import sys
 from pathlib import Path
 
 import pytest
@@ -10,7 +14,10 @@ from uquant.validation.universe import (
     CANONICAL_INDUSTRIES,
     FROZEN_CHAMPION_COMMIT,
     GITHUB_PHASE1_ARTIFACT_SHA256,
+    REQUIRED_FROZEN_CHAMPION_SHA256,
+    ai_universe_manifest_bytes,
     canonical_sha256,
+    frozen_champion_bytes,
     load_ai_universe,
     load_phase1_frozen_champion,
 )
@@ -32,6 +39,32 @@ def test_frozen_champion_preserves_every_reviewed_phase1_identity() -> None:
     assert champion.effective_config_sha256 == "023d709731196a325d9cd03e95ece92e4baf63d2c5c66bb9f7d0e7a190e7bf20"
     assert champion.data_snapshot_id == "20260809T094222Z-causal-tech-index-rebase"
     assert champion.uv_lock_sha256 == "4accf16535b5ac95b831c9289e0ad2ff21282dc5dfae3f05dd0fb095089d6a61"
+
+
+@pytest.mark.parametrize(
+    ("group", "mutate"),
+    [
+        ("production", lambda payload: payload["production"].update(source_sha256="0" * 64)),
+        ("effective_config", lambda payload: payload.update(effective_config_sha256="0" * 64)),
+        ("data", lambda payload: payload["data"].update(files_verified=0)),
+        ("environment", lambda payload: payload["environment"].update(uv_version="0.0.0")),
+    ],
+)
+def test_frozen_champion_rejects_mutated_and_resealed_nested_provenance(
+    tmp_path: Path,
+    group: str,
+    mutate: object,
+) -> None:
+    """Breaks if any nested champion identity can be self-signed after mutation."""
+    payload = json.loads(frozen_champion_bytes())
+    assert canonical_sha256(payload) == REQUIRED_FROZEN_CHAMPION_SHA256
+    assert callable(mutate)
+    mutate(payload)
+    path = tmp_path / f"{group}.json"
+    path.write_text(json.dumps(payload), encoding="utf-8")
+
+    with pytest.raises(ValueError, match="differs from the reviewed Phase 1 contract"):
+        load_phase1_frozen_champion(path)
 
 
 def test_canonical_manifest_owns_exact_current_reference_coverage() -> None:
@@ -63,8 +96,7 @@ def test_manifest_exposes_pit_taxonomy_with_legacy_decision_compatibility() -> N
 
 def test_manifest_hash_is_canonical_and_rejects_stale_nonreference_symbol(tmp_path: Path) -> None:
     """Breaks if a resealed or stale universe can enter the production reference."""
-    manifest = ROOT / "benchmarks" / "ai_universe_manifest.json"
-    payload = json.loads(manifest.read_text(encoding="utf-8"))
+    payload = json.loads(ai_universe_manifest_bytes())
     assert canonical_sha256(payload) == load_ai_universe().sha256
 
     payload["members"][0]["symbol"] = "sh688205"
@@ -72,3 +104,53 @@ def test_manifest_hash_is_canonical_and_rejects_stale_nonreference_symbol(tmp_pa
     stale.write_text(json.dumps(payload), encoding="utf-8")
     with pytest.raises(ValueError, match=r"canonical SHA-256|production reference"):
         load_ai_universe(stale)
+
+
+def test_package_resources_are_the_single_runtime_manifest_source() -> None:
+    """Breaks if source-tree benchmark copies drift from packaged runtime bytes."""
+    assert not (ROOT / "benchmarks" / "ai_universe_manifest.json").exists()
+    assert not (ROOT / "benchmarks" / "phase1_frozen_champion.json").exists()
+    assert json.loads(ai_universe_manifest_bytes())["canonical_sha256"] == load_ai_universe().sha256
+    assert json.loads(frozen_champion_bytes())["production"]["commit"] == FROZEN_CHAMPION_COMMIT
+
+
+def test_built_wheel_imports_the_packaged_universe_contract(tmp_path: Path) -> None:
+    """Breaks if the installed wheel omits immutable manifest package data."""
+    dist = tmp_path / "dist"
+    target = tmp_path / "site"
+    uv = shutil.which("uv")
+    assert uv is not None
+    subprocess.run(
+        [
+            uv,
+            "build",
+            "--wheel",
+            "--out-dir",
+            str(dist),
+        ],
+        cwd=ROOT,
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+    wheel = next(dist.glob("uquant-*.whl"))
+    subprocess.run(
+        [sys.executable, "-m", "pip", "install", "--no-deps", "--target", str(target), str(wheel)],
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+    env = {**os.environ, "PYTHONPATH": str(target)}
+    result = subprocess.run(
+        [
+            sys.executable,
+            "-c",
+            "from uquant.validation.universe import load_ai_universe; print(load_ai_universe().sha256)",
+        ],
+        cwd=tmp_path,
+        env=env,
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+    assert result.stdout.strip() == load_ai_universe().sha256

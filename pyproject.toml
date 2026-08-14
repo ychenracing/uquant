@@ -31,6 +31,9 @@ uquant = "uquant.cli:main"
 [tool.setuptools.packages.find]
 include = ["uquant*", "research*"]
 
+[tool.setuptools.package-data]
+"uquant.validation" = ["resources/*.json"]
+
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 addopts = "-q --strict-config --strict-markers"

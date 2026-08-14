@@ -3,12 +3,14 @@
 from __future__ import annotations
 
 import hashlib
+import importlib
 import json
 import re
 from collections.abc import Iterable
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from pathlib import Path
+from typing import Any, cast
 
 import pandas as pd
 
@@ -212,7 +214,7 @@ class DataStore:
         """Refresh stock QFQ files through `end`, rejecting unsupported indices."""
 
         try:
-            import akshare as ak  # type: ignore[import-untyped]
+            ak = cast(Any, importlib.import_module("akshare"))
         except ImportError as exc:
             raise RuntimeError("install uquant[data] for online refresh") from exc
         for symbol in sorted({normalize_symbol(item) for item in symbols}):

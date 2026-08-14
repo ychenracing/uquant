@@ -1410,6 +1410,11 @@ class PortfolioAllocator(RecoveryPortfolioPolicy):
             if economic_restore_complete:
                 account.candidate_tenure[restore_complete_key] = 1
                 account.candidate_tenure[restore_submitted_key] = 0
+            restoration_sell_mechanisms = {
+                symbol: AttributionMechanism.RECOVERY_COHORT
+                for symbol in account.positions
+                if weights_now.get(symbol, 0.0) > proposed.get(symbol, 0.0) + 1e-12
+            }
             if account.candidate_tenure.get(restore_complete_key, 0) == 1:
                 return self._targets(
                     proposed={
@@ -1423,6 +1428,7 @@ class PortfolioAllocator(RecoveryPortfolioPolicy):
                     reason="completed post-shock restoration; retain price drift",
                     origin_subsystem=OriginSubsystem.RECOVERY,
                     mechanism=AttributionMechanism.POST_SHOCK_RESTORATION,
+                    mechanisms=restoration_sell_mechanisms,
                 )
             # Once risk has fully reopened, restoration is buy-only.  A
             # winner that drifted above its saved target receives a sticky
@@ -1455,6 +1461,7 @@ class PortfolioAllocator(RecoveryPortfolioPolicy):
                 origin_subsystem=OriginSubsystem.RECOVERY,
                 mechanism=AttributionMechanism.POST_SHOCK_RESTORATION,
                 reasons=restore_reasons,
+                mechanisms=restoration_sell_mechanisms,
             )
 
         # A strategic anchor is deliberately sticky: price drift is allowed to

@@ -504,3 +504,81 @@ def test_zero_reference_turnover_requires_candidate_zero() -> None:
     assert evaluate_cell_non_regression(candidate, reference, policy=policy) == (
         "gross_turnover 1e-06 must remain zero because reference is zero",
     )
+
+
+@pytest.mark.parametrize(
+    "mutation",
+    (
+        "missing_cell",
+        "metrics_removed",
+        "fabricated_insufficient_evidence",
+        "contract_mismatch",
+        "duplicate_cell",
+        "extra_cell",
+        "malformed_cell",
+        "nonfinite_metric",
+        "provenance_mismatch",
+        "aggregate_mismatch",
+        "replay_error_mismatch",
+        "finite_metrics_mismatch",
+    ),
+)
+def test_exact_equality_fails_closed_for_every_incomplete_or_mismatched_binding(
+    mutation: str,
+) -> None:
+    """Catches structural failures being reported while exact equality stays true."""
+    artifact = json.loads(
+        (Path("artifacts") / "phase2" / "champion-generalization-matrix.json").read_text(
+            encoding="utf-8"
+        )
+    )
+    if mutation == "missing_cell":
+        artifact["cells"].pop()
+    elif mutation == "metrics_removed":
+        next(cell for cell in artifact["cells"] if cell["metrics"] is not None)[
+            "metrics"
+        ] = None
+    elif mutation == "fabricated_insufficient_evidence":
+        next(cell for cell in artifact["cells"] if not cell["economic"])["raw"] = {
+            "fabricated": True
+        }
+    elif mutation == "contract_mismatch":
+        next(cell for cell in artifact["cells"] if cell["metrics"] is not None)[
+            "evidence"
+        ]["sha256"] = "0" * 64
+    elif mutation == "duplicate_cell":
+        artifact["cells"].append(copy.deepcopy(artifact["cells"][0]))
+    elif mutation == "extra_cell":
+        extra = copy.deepcopy(artifact["cells"][0])
+        extra["window"] = "extra-window"
+        extra["scenario"] = "extra-scenario"
+        artifact["cells"].append(extra)
+    elif mutation == "malformed_cell":
+        artifact["cells"].append({"window": "h1_2023"})
+    elif mutation == "nonfinite_metric":
+        next(cell for cell in artifact["cells"] if cell["metrics"] is not None)[
+            "metrics"
+        ]["final_wealth"] = float("nan")
+    elif mutation == "provenance_mismatch":
+        artifact["provenance"]["data"]["snapshot_id"] = "drifted-snapshot"
+    elif mutation == "aggregate_mismatch":
+        artifact["aggregates"]["all"]["median_wealth"] += 0.000001
+    elif mutation == "replay_error_mismatch":
+        next(cell for cell in artifact["cells"] if cell["replay_error"] is not None)[
+            "replay_error"
+        ]["message"] = "different canonical replay failure"
+    else:
+        next(cell for cell in artifact["cells"] if cell["metrics"] is not None)[
+            "metrics"
+        ]["final_wealth"] += 0.000001
+
+    result = evaluate_generalization_policy_artifact(
+        artifact,
+        baseline=load_generalization_baseline(),
+        policy=load_generalization_policy(),
+        require_exact_equality=True,
+    )
+
+    assert result["passed"] is False
+    assert result["exact_equality_passed"] is False
+    assert any("exact equality differs" in failure for failure in result["failures"])

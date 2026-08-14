@@ -603,11 +603,22 @@ def evaluate_generalization_policy_artifact(
     """Recompute frozen relative, intrinsic, and random-tail results from raw cells."""
     if policy.baseline_sha256 != baseline.sha256:
         raise ValueError("generalization policy and baseline identities differ")
-    raw_cells = artifact.get("cells")
-    provenance = artifact.get("provenance")
-    if not isinstance(raw_cells, list) or not isinstance(provenance, Mapping):
-        raise ValueError("generalization candidate artifact is malformed")
     failures: list[str] = []
+    equality_differences: list[str] = []
+    raw_cells_value = artifact.get("cells")
+    provenance_value = artifact.get("provenance")
+    if not isinstance(raw_cells_value, list):
+        failures.append("generalization candidate cell collection is malformed")
+        equality_differences.append("cell collection is malformed")
+        raw_cells: list[Any] = []
+    else:
+        raw_cells = raw_cells_value
+    if not isinstance(provenance_value, Mapping):
+        failures.append("generalization candidate provenance is malformed")
+        equality_differences.append("provenance is malformed")
+        provenance: Mapping[str, Any] = {}
+    else:
+        provenance = provenance_value
     provenance_fields = (
         "effective_config_sha256",
         "data",
@@ -619,33 +630,46 @@ def evaluate_generalization_policy_artifact(
         "evidence_fingerprint",
         "lookback_sessions",
     )
-    failures.extend(
-        f"candidate provenance differs from champion inputs: {name}"
+    provenance_mismatches = tuple(
+        name
         for name in provenance_fields
         if provenance.get(name) != baseline.provenance.get(name)
     )
+    failures.extend(
+        f"candidate provenance differs from champion inputs: {name}"
+        for name in provenance_mismatches
+    )
+    equality_differences.extend(f"provenance {name}" for name in provenance_mismatches)
+    if artifact.get("aggregates") != baseline.aggregates:
+        equality_differences.append("aggregate evidence")
     observed: dict[str, Mapping[str, Any]] = {}
     for raw in raw_cells:
         if not isinstance(raw, Mapping):
             failures.append("candidate cell is malformed")
+            equality_differences.append("malformed cell record")
             continue
         window = raw.get("window")
         scenario = raw.get("scenario")
         if not isinstance(window, str) or not isinstance(scenario, str):
             failures.append("candidate cell identity is malformed")
+            equality_differences.append("malformed cell identity")
             continue
         identifier = f"{window}/{scenario}"
         if identifier in observed:
             failures.append(f"candidate contains duplicate cell: {identifier}")
+            equality_differences.append(f"duplicate cell {identifier}")
         observed[identifier] = raw
     missing = sorted(set(baseline.cells) - set(observed))
     unexpected = sorted(set(observed) - set(baseline.cells))
     if missing:
         failures.append(f"candidate missing baseline cells: {missing}")
+        equality_differences.extend(f"missing cell {identifier}" for identifier in missing)
     if unexpected:
         failures.append(f"candidate has unexpected cells: {unexpected}")
+        equality_differences.extend(
+            f"unexpected cell {identifier}" for identifier in unexpected
+        )
 
-    exact_equality_passed = True
     economic_valid = 0
     replay_errors = 0
     intrinsic_results: list[dict[str, Any]] = []
@@ -655,15 +679,28 @@ def evaluate_generalization_policy_artifact(
     for identifier in sorted(set(baseline.cells) & set(observed)):
         reference = baseline.cells[identifier]
         candidate = observed[identifier]
-        if _candidate_contract_sha256(candidate) != reference.contract_sha256:
+        try:
+            candidate_contract_sha256 = _candidate_contract_sha256(candidate)
+        except ValueError as exc:
+            failures.append(f"candidate cell contract is malformed: {identifier}: {exc}")
+            equality_differences.append(f"malformed cell contract {identifier}")
+            continue
+        if candidate_contract_sha256 != reference.contract_sha256:
             failures.append(f"candidate cell contract differs from baseline: {identifier}")
+            equality_differences.append(f"cell contract {identifier}")
             continue
         metrics = candidate.get("metrics")
         error_raw = candidate.get("replay_error")
-        error = _replay_error(error_raw, identifier=identifier)
+        try:
+            error = _replay_error(error_raw, identifier=identifier)
+        except ValueError as exc:
+            failures.append(f"candidate replay error is malformed: {identifier}: {exc}")
+            equality_differences.append(f"malformed replay error {identifier}")
+            continue
         if not reference.economic:
             if metrics is not None or error is not None or candidate.get("raw") is not None:
                 failures.append(f"candidate insufficient sample has economic evidence: {identifier}")
+                equality_differences.append(f"insufficient-sample evidence {identifier}")
             continue
         if error is not None:
             replay_errors += 1
@@ -672,16 +709,21 @@ def evaluate_generalization_policy_artifact(
             )
             if metrics is not None or candidate.get("raw") is not None:
                 failures.append(f"candidate replay error contains fabricated metrics: {identifier}")
+                equality_differences.append(f"fabricated replay-error evidence {identifier}")
             if reference.replay_error != error:
-                exact_equality_passed = False
-                if require_exact_equality:
-                    failures.append(f"exact equality differs: {identifier}: replay error")
+                equality_differences.append(f"replay error {identifier}")
             if reference.metrics is not None:
                 failures.append(f"candidate lacks finite metrics required by reference: {identifier}")
         else:
-            candidate_metrics = _metric_payload(metrics, identifier=identifier)
-            if candidate_metrics is None or candidate.get("raw") is None:
+            try:
+                candidate_metrics = _metric_payload(metrics, identifier=identifier)
+            except ValueError as exc:
+                failures.append(f"candidate economic metrics are malformed: {identifier}: {exc}")
+                equality_differences.append(f"malformed metrics {identifier}")
+                continue
+            if candidate_metrics is None or not isinstance(candidate.get("raw"), Mapping):
                 failures.append(f"candidate economic metrics are missing: {identifier}")
+                equality_differences.append(f"economic evidence {identifier}")
                 continue
             economic_valid += 1
             if reference.metrics is not None:
@@ -692,13 +734,9 @@ def evaluate_generalization_policy_artifact(
                     )
                 )
                 if dict(candidate_metrics) != dict(reference.metrics):
-                    exact_equality_passed = False
-                    if require_exact_equality:
-                        failures.append(f"exact equality differs: {identifier}: metrics")
+                    equality_differences.append(f"metrics {identifier}")
             else:
-                exact_equality_passed = False
-                if require_exact_equality:
-                    failures.append(f"exact equality differs: {identifier}: replay recovered")
+                equality_differences.append(f"replay recovered {identifier}")
             wealth = float(candidate_metrics["final_wealth"])
             drawdown = float(candidate_metrics["max_drawdown"])
             intrinsic_reasons: list[str] = []
@@ -786,6 +824,12 @@ def evaluate_generalization_policy_artifact(
         failures.append(
             "candidate economic coverage is incomplete: "
             f"expected {expected_economic}, valid {economic_valid}, errors {replay_errors}"
+        )
+        equality_differences.append("economic coverage")
+    exact_equality_passed = not equality_differences
+    if require_exact_equality:
+        failures.extend(
+            f"exact equality differs: {reason}" for reason in equality_differences
         )
     return {
         "passed": not failures,

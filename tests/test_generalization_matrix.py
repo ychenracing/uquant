@@ -11,7 +11,7 @@ from typing import Any
 import pytest
 
 from uquant.attribution import build_economic_attribution
-from uquant.config import config_fingerprint
+from uquant.config import DEFAULT_CONFIG, SystemConfig, config_fingerprint
 from uquant.engine import code_fingerprint
 from uquant.types import (
     AccountOrder,
@@ -106,13 +106,18 @@ def _scenarios() -> tuple[Any, ...]:
     )
 
 
-def _provenance(scenarios: tuple[Any, ...], data_dir: Path) -> dict[str, Any]:
+def _provenance(
+    scenarios: tuple[Any, ...],
+    data_dir: Path,
+    *,
+    expected_config: SystemConfig = DEFAULT_CONFIG,
+) -> dict[str, Any]:
     from uquant.validation.manifest import verify_data_manifest
 
     return {
         "head": "a" * 40,
         "source_sha256": "b" * 64,
-        "effective_config_sha256": config_fingerprint(),
+        "effective_config_sha256": config_fingerprint(expected_config),
         "data": verify_data_manifest(data_dir),
         "runtime": {
             "python_full_version": "3.12.11",
@@ -286,7 +291,7 @@ def _runner_payload(scenario: Any) -> dict[str, Any]:
             "daily_pnl": 0.0,
             "target_weights": {first: 0.1, second: 0.1},
             "target_gross": 0.2,
-            "caps": {"risk_gross": 0.9, "system_gross": 0.9},
+            "caps": {"risk_gross": 0.9, "system_gross": 1.0},
             "binding_owner": "STRATEGY",
             "risk_state": "NORMAL",
             "opportunity": "CHOPPY",
@@ -302,7 +307,7 @@ def _runner_payload(scenario: Any) -> dict[str, Any]:
             "daily_pnl": 2.0,
             "target_weights": {first: 0.1, second: 0.1},
             "target_gross": 0.2,
-            "caps": {"risk_gross": 0.9, "system_gross": 0.9},
+            "caps": {"risk_gross": 0.9, "system_gross": 1.0},
             "binding_owner": "STRATEGY",
             "risk_state": "NORMAL",
             "opportunity": "CHOPPY",
@@ -402,7 +407,7 @@ def _runner_payload(scenario: Any) -> dict[str, Any]:
             "risk": {
                 "state": "NORMAL",
                 "target_gross_cap": 0.9,
-                "system_gross_cap": 0.9,
+                "system_gross_cap": 1.0,
             },
             "target_gross": 0.2,
             "targets": [
@@ -802,7 +807,7 @@ def test_matrix_rejects_account_ledger_order_without_decision_origin(
     account = raw["final_account"]
     injected = copy.deepcopy(account["order_ledger"][0])
     injected.update(
-        order_id="O999999999",
+        order_id="O000000003",
         status="CANCELLED",
         requested_shares=0,
         filled_shares=0,
@@ -812,7 +817,7 @@ def test_matrix_rejects_account_ledger_order_without_decision_origin(
         cancel_reason="fabricated no-decision order",
     )
     account["order_ledger"].append(injected)
-    account["next_order_sequence"] = 1_000_000_000
+    account["next_order_sequence"] = 4
 
     failures = validate_matrix_artifact(
         changed,
@@ -870,6 +875,113 @@ def test_matrix_rejects_order_replayed_on_its_terminal_session(
         "terminal" in failure or "snapshot lifecycle" in failure
         for failure in failures
     ), failures
+
+
+def test_matrix_and_policy_reject_self_signed_system_cap(
+    matrix_data_dir: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Catches a trace/ledger cap rewrite hidden by the frozen-v1 projection."""
+
+    scenarios = _scenarios()
+    provenance = _provenance(scenarios, matrix_data_dir)
+    artifact = execute_generalization_matrix(
+        scenarios=scenarios,
+        runner=_runner_payload,
+        provenance=provenance,
+        data_dir=matrix_data_dir,
+    )
+    changed = copy.deepcopy(artifact)
+    for cell in changed["cells"]:
+        if not cell["economic"]:
+            continue
+        raw = cell["raw"]
+        for index, trace in enumerate(raw["decision_trace"]):
+            trace["risk"]["system_gross_cap"] = 0.8
+            raw["decision_digests"][index] = hashlib.sha256(
+                json.dumps(trace, sort_keys=True, separators=(",", ":")).encode()
+            ).hexdigest()
+        for row in cell["attribution"]["daily_ledger"]:
+            row["caps"]["system_gross"] = 0.8
+
+    failures = validate_matrix_artifact(
+        changed,
+        scenarios=scenarios,
+        expected_provenance=provenance,
+        data_dir=matrix_data_dir,
+    )
+    assert any("system gross cap" in failure for failure in failures), failures
+
+    baseline, policy = _fixture_reference_contract(artifact)
+    monkeypatch.setattr(
+        reference_module,
+        "_head_and_source",
+        lambda _root: (
+            artifact["provenance"]["head"],
+            artifact["provenance"]["source_sha256"],
+        ),
+    )
+    report = evaluate_generalization_policy_artifact(
+        changed,
+        baseline=baseline,
+        policy=policy,
+        require_exact_equality=True,
+        data_dir=matrix_data_dir,
+    )
+    assert report["passed"] is False
+    assert any("system gross cap" in failure for failure in report["failures"])
+
+
+def test_matrix_accepts_explicit_hash_verified_config_override(
+    matrix_data_dir: Path,
+) -> None:
+    """Ablations may supply one trusted config object; artifact hashes cannot choose it."""
+
+    scenarios = _scenarios()
+    expected_config = DEFAULT_CONFIG.override(max_gross=0.99)
+    expected_sha256 = config_fingerprint(expected_config)
+    provenance = _provenance(
+        scenarios,
+        matrix_data_dir,
+        expected_config=expected_config,
+    )
+
+    def runner(scenario: Any) -> dict[str, Any]:
+        raw = _runner_payload(scenario)
+        raw["effective_config_sha256"] = expected_sha256
+        for index, trace in enumerate(raw["decision_trace"]):
+            trace["effective_config_sha256"] = expected_sha256
+            trace["risk"]["system_gross_cap"] = expected_config.max_gross
+            raw["decision_digests"][index] = hashlib.sha256(
+                json.dumps(trace, sort_keys=True, separators=(",", ":")).encode()
+            ).hexdigest()
+        for row in raw["attribution"]["daily_ledger"]:
+            row["caps"]["system_gross"] = expected_config.max_gross
+        return raw
+
+    artifact = execute_generalization_matrix(
+        scenarios=scenarios,
+        runner=runner,
+        provenance=provenance,
+        data_dir=matrix_data_dir,
+        expected_config=expected_config,
+    )
+
+    assert artifact["passed"] is True
+    assert validate_matrix_artifact(
+        artifact,
+        scenarios=scenarios,
+        expected_provenance=provenance,
+        data_dir=matrix_data_dir,
+        expected_config=expected_config,
+    ) == ()
+    default_failures = validate_matrix_artifact(
+        artifact,
+        scenarios=scenarios,
+        expected_provenance=provenance,
+        data_dir=matrix_data_dir,
+    )
+    assert any("trusted effective config" in failure for failure in default_failures)
 
 
 def test_matrix_accepts_one_origin_and_contiguous_partial_order_snapshots(
@@ -1472,7 +1584,7 @@ def test_zero_symbol_pnl_has_defined_non_fabricated_zero_concentration(
                 "daily_pnl": 0.0,
                 "target_weights": {},
                 "target_gross": 0.0,
-                "caps": {"risk_gross": 0.9, "system_gross": 0.9},
+                "caps": {"risk_gross": 0.9, "system_gross": 1.0},
                 "binding_owner": "STRATEGY",
                 "risk_state": "NORMAL",
                 "opportunity": "CHOPPY",
@@ -1521,7 +1633,7 @@ def test_zero_symbol_pnl_has_defined_non_fabricated_zero_concentration(
                 "risk": {
                     "state": "NORMAL",
                     "target_gross_cap": 0.9,
-                    "system_gross_cap": 0.9,
+                    "system_gross_cap": 1.0,
                 },
                 "target_gross": 0.0,
                 "targets": [],

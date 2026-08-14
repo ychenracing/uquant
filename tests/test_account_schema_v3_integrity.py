@@ -140,6 +140,49 @@ def _position_state() -> AccountState:
     return state
 
 
+@pytest.mark.parametrize("next_sequence", (1, 3, 999_999_999))
+def test_native_account_rejects_nonexact_next_order_sequence(
+    tmp_path,
+    next_sequence: int,
+) -> None:
+    """The durable sequence is exactly one greater than the largest ledger ID."""
+
+    state = _position_state()
+    payload = state.to_dict()
+    payload["next_order_sequence"] = next_sequence
+
+    with pytest.raises(RuntimeError, match="next order sequence"):
+        load_account(_write_payload(tmp_path, payload))
+
+
+def test_native_account_rejects_zero_order_identifier(tmp_path) -> None:
+    """O000000000 is formatted like an ID but is outside the allocation scheme."""
+
+    state = _position_state()
+    payload = state.to_dict()
+    payload["order_ledger"][0]["order_id"] = "O000000000"
+    payload["fills"][0]["order_id"] = "O000000000"
+    payload["next_order_sequence"] = 1
+
+    with pytest.raises(RuntimeError, match="invalid order id"):
+        load_account(_write_payload(tmp_path, payload))
+
+
+def test_empty_native_account_requires_initial_order_sequence(tmp_path) -> None:
+    """An empty current account has one canonical next sequence: one."""
+
+    state = AccountState.empty(2_000_000.0)
+    state.data_hash = "data"
+    state.code_hash = "code"
+    payload = state.to_dict()
+    canonical = load_account(_write_payload(tmp_path, payload, "canonical-empty.json"))
+    assert canonical.next_order_sequence == 1
+    payload["next_order_sequence"] = 2
+
+    with pytest.raises(RuntimeError, match="next order sequence"):
+        load_account(_write_payload(tmp_path, payload, "inflated-empty.json"))
+
+
 def test_sector_guard_cohort_round_trips_in_native_schema(tmp_path) -> None:
     state = AccountState.empty(2_000_000.0)
     state.data_hash = "data"

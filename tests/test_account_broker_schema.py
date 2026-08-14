@@ -148,6 +148,7 @@ def test_account_loader_strictly_validates_pending_order_fields(tmp_path, field,
     state = _state_with_open_order()
     state.pending_orders[0].order_id = ""
     state.order_ledger = []
+    state.next_order_sequence = 1
     payload = state.to_dict()
     payload["pending_orders"][0][field] = value
 

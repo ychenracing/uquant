@@ -14,7 +14,7 @@ from types import MappingProxyType
 from typing import Any, Final
 
 from ..attribution import validate_attribution_against_engine_result
-from ..config import config_fingerprint
+from ..config import DEFAULT_CONFIG, SystemConfig, config_fingerprint
 from ..engine import code_fingerprint
 from .control_plane import validate_engine_control_plane
 from .generalization import symbol_pnl_concentration
@@ -974,6 +974,7 @@ def evaluate_generalization_policy_artifact(
     policy: GeneralizationPolicy,
     require_exact_equality: bool = False,
     data_dir: str | Path | None = None,
+    expected_config: SystemConfig | None = DEFAULT_CONFIG,
 ) -> dict[str, Any]:
     """Recompute frozen relative, intrinsic, and random-tail results from raw cells."""
     if policy.baseline_sha256 != baseline.sha256:
@@ -1062,8 +1063,12 @@ def evaluate_generalization_policy_artifact(
     if provenance_mismatches:
         v2_projection_valid = False
     market: VerifiedMarketData | None = None
+    trusted_config: SystemConfig | None = None
     if schema_version == 2:
-        current_config_sha256 = config_fingerprint()
+        if not isinstance(expected_config, SystemConfig):
+            raise ValueError("schema-v2 evaluation requires a trusted effective config")
+        trusted_config = expected_config
+        current_config_sha256 = config_fingerprint(expected_config)
         if provenance.get("effective_config_sha256") != current_config_sha256:
             message = "candidate effective config differs from compiled production config"
             failures.append(message)
@@ -1243,14 +1248,16 @@ def evaluate_generalization_policy_artifact(
                         None if market is None else market.sessions(start, end)
                     )
                     if market is not None:
+                        if trusted_config is None:
+                            raise ValueError(
+                                "schema-v2 evaluation requires a trusted effective config"
+                            )
                         validate_engine_control_plane(
                             candidate_raw,
                             economic_start=start,
                             economic_end=end,
                             expected_sessions=trusted_sessions or (),
-                            expected_config_sha256=str(
-                                provenance.get("effective_config_sha256", "")
-                            ),
+                            expected_config=trusted_config,
                             expected_code_sha256=code_fingerprint(),
                             attribution=attribution,
                         )

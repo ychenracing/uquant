@@ -7,7 +7,7 @@ from typing import Any
 import pandas as pd
 import pytest
 
-from uquant.config import config_fingerprint
+from uquant.config import DEFAULT_CONFIG
 from uquant.engine import ProductionEngine, code_fingerprint
 from uquant.types import AccountState, Fill, Position, Tranche
 
@@ -723,7 +723,7 @@ def test_control_plane_rejects_digest_schema_code_and_event_identity_tamper() ->
             economic_start="2023-01-03",
             economic_end="2023-03-31",
             expected_sessions=market.sessions("2023-01-03", "2023-03-31"),
-            expected_config_sha256=config_fingerprint(),
+            expected_config=DEFAULT_CONFIG,
             expected_code_sha256=code_fingerprint(),
         )
 
@@ -809,6 +809,6 @@ def test_control_plane_rejects_self_signed_noncanonical_target_event() -> None:
             economic_start="2023-01-03",
             economic_end="2023-03-31",
             expected_sessions=market.sessions("2023-01-03", "2023-03-31"),
-            expected_config_sha256=config_fingerprint(),
+            expected_config=DEFAULT_CONFIG,
             expected_code_sha256=code_fingerprint(),
         )

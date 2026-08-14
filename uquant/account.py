@@ -1231,7 +1231,10 @@ def _order_sequence(order_id: str) -> int:
         or not order_id[1:].isdigit()
     ):
         raise RuntimeError(f"account state has invalid order id: {order_id!r}")
-    return int(order_id[1:])
+    sequence = int(order_id[1:])
+    if sequence <= 0:
+        raise RuntimeError(f"account state has invalid order id: {order_id!r}")
+    return sequence
 
 
 def _validate_order_state(
@@ -1254,7 +1257,16 @@ def _validate_order_state(
         raise RuntimeError("account state has duplicate order ids")
     sequences = [_order_sequence(order_id) for order_id in identifiers]
     required_next = max(sequences, default=0) + 1
-    if sequence_was_explicit and state.next_order_sequence < required_next:
+    if state.next_order_sequence > 999_999_999:
+        raise RuntimeError("account state next order sequence exceeds the canonical ID space")
+    if sequence_was_explicit and event_schema_version == ACCOUNT_SCHEMA_VERSION:
+        if state.next_order_sequence < required_next:
+            raise RuntimeError("account state next order sequence would reuse an order id")
+        if state.next_order_sequence > required_next:
+            raise RuntimeError(
+                "account state next order sequence does not exactly follow the durable ledger"
+            )
+    elif sequence_was_explicit and state.next_order_sequence < required_next:
         raise RuntimeError("account state next order sequence would reuse an order id")
     state.next_order_sequence = max(state.next_order_sequence, required_next)
     if state.next_order_sequence <= 0:

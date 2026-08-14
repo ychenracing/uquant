@@ -17,7 +17,7 @@ from ..attribution import (
     validate_attribution_against_engine_result,
     validate_economic_attribution,
 )
-from ..config import config_fingerprint
+from ..config import DEFAULT_CONFIG, SystemConfig, config_fingerprint
 from ..engine import ProductionEngine, code_fingerprint
 from .ai_era import runtime_environment_provenance
 from .control_plane import validate_engine_control_plane
@@ -355,6 +355,7 @@ def validate_matrix_artifact(
     scenarios: Sequence[ContractScenario],
     expected_provenance: Mapping[str, Any],
     data_dir: str | Path,
+    expected_config: SystemConfig | None = DEFAULT_CONFIG,
     champion_cells: Mapping[str, Mapping[str, Any]] | None = None,
     cell_evaluator: CellEvaluator | None = None,
     _verify_gate_state: bool = True,
@@ -384,6 +385,11 @@ def validate_matrix_artifact(
         expected = _validate_provenance(expected_provenance)
     except ValueError as exc:
         return (f"stale provenance expectation: {exc}",)
+    if not isinstance(expected_config, SystemConfig):
+        return tuple([*failures, "trusted effective config is missing or malformed"])
+    trusted_config_sha256 = config_fingerprint(expected_config)
+    if expected["effective_config_sha256"] != trusted_config_sha256:
+        return tuple([*failures, "trusted effective config differs from matrix provenance"])
     try:
         market = (
             VerifiedMarketData(data_dir, expected_manifest=cast(Mapping[str, Any], expected["data"]))
@@ -514,7 +520,7 @@ def validate_matrix_artifact(
                 economic_start=scenario.window.start,
                 economic_end=scenario.window.end,
                 expected_sessions=trusted_sessions,
-                expected_config_sha256=str(expected["effective_config_sha256"]),
+                expected_config=expected_config,
                 expected_code_sha256=code_fingerprint(),
                 attribution=canonical_attribution,
             )
@@ -618,6 +624,7 @@ def execute_generalization_matrix(
     runner: Callable[[ContractScenario], Mapping[str, Any]],
     provenance: Mapping[str, Any],
     data_dir: str | Path,
+    expected_config: SystemConfig | None = DEFAULT_CONFIG,
     champion_cells: Mapping[str, Mapping[str, Any]] | None = None,
     cell_evaluator: CellEvaluator | None = None,
 ) -> dict[str, Any]:
@@ -626,6 +633,12 @@ def execute_generalization_matrix(
     if not scenario_tuple:
         raise ValueError("generalization matrix requires scenarios")
     normalized_provenance = _validate_provenance(provenance)
+    if not isinstance(expected_config, SystemConfig):
+        raise ValueError("matrix execution requires a trusted effective config")
+    if normalized_provenance["effective_config_sha256"] != config_fingerprint(
+        expected_config
+    ):
+        raise ValueError("matrix provenance differs from trusted effective config")
     market = VerifiedMarketData(
         data_dir,
         expected_manifest=cast(Mapping[str, Any], normalized_provenance["data"]),
@@ -681,9 +694,7 @@ def execute_generalization_matrix(
                 economic_start=scenario.window.start,
                 economic_end=scenario.window.end,
                 expected_sessions=trusted_sessions,
-                expected_config_sha256=str(
-                    normalized_provenance["effective_config_sha256"]
-                ),
+                expected_config=expected_config,
                 expected_code_sha256=code_fingerprint(),
                 attribution=attribution,
             )
@@ -758,6 +769,7 @@ def execute_generalization_matrix(
         scenarios=scenario_tuple,
         expected_provenance=normalized_provenance,
         data_dir=data_dir,
+        expected_config=expected_config,
         champion_cells=champion_cells,
         cell_evaluator=cell_evaluator,
         _verify_gate_state=False,
@@ -849,6 +861,7 @@ def build_matrix_provenance(
     data_dir: str | Path,
     scenarios: Sequence[ContractScenario],
     universe: AIUniverse | None = None,
+    expected_config: SystemConfig = DEFAULT_CONFIG,
 ) -> dict[str, Any]:
     """Build non-self-signable provenance from exact repository and runtime inputs."""
     canonical = load_ai_universe() if universe is None else universe
@@ -861,7 +874,7 @@ def build_matrix_provenance(
         {
             "head": head,
             "source_sha256": source,
-            "effective_config_sha256": config_fingerprint(),
+            "effective_config_sha256": config_fingerprint(expected_config),
             "data": verify_data_manifest(data_dir),
             "runtime": runtime_environment_provenance(root),
             "universe_sha256": canonical.sha256,
@@ -879,6 +892,7 @@ def run_generalization_matrix(
     data_dir: str | Path,
     window_names: tuple[str, ...] | None = None,
     lookback_sessions: int = 120,
+    expected_config: SystemConfig = DEFAULT_CONFIG,
     runner: Callable[[ContractScenario], Mapping[str, Any]] | None = None,
     champion_cells: Mapping[str, Mapping[str, Any]] | None = None,
     cell_evaluator: CellEvaluator | None = None,
@@ -886,7 +900,7 @@ def run_generalization_matrix(
     """Run a full or exact-window shard through the production reference context."""
     windows = official_windows(window_names)
     universe = load_ai_universe()
-    engine = ProductionEngine(data_dir)
+    engine = ProductionEngine(data_dir, cfg=expected_config)
     engine._load(universe.symbols)
     histories = {symbol: engine._raw[symbol]["close"] for symbol in universe.symbols}
     scenario_rows: list[ContractScenario] = []
@@ -920,6 +934,7 @@ def run_generalization_matrix(
         data_dir=data_dir,
         scenarios=scenarios,
         universe=universe,
+        expected_config=expected_config,
     )
 
     def production_runner(scenario: ContractScenario) -> Mapping[str, Any]:
@@ -952,6 +967,7 @@ def run_generalization_matrix(
         runner=selected_runner,
         provenance=provenance_before,
         data_dir=data_dir,
+        expected_config=expected_config,
         champion_cells=champion_cells,
         cell_evaluator=cell_evaluator,
     )
@@ -959,6 +975,7 @@ def run_generalization_matrix(
         data_dir=data_dir,
         scenarios=scenarios,
         universe=universe,
+        expected_config=expected_config,
     )
     if provenance_after != provenance_before:
         raise RuntimeError("matrix engine, source, config, data, or runtime changed during replay")

@@ -10,6 +10,7 @@ from collections.abc import Mapping, Sequence
 from typing import Any
 
 from ..account import account_from_dict
+from ..config import SystemConfig, config_fingerprint
 from ..types import (
     ACCOUNT_SCHEMA_VERSION,
     AttributionMechanism,
@@ -204,11 +205,15 @@ def validate_engine_control_plane(
     economic_start: str,
     economic_end: str,
     expected_sessions: Sequence[str],
-    expected_config_sha256: str,
+    expected_config: SystemConfig,
     expected_code_sha256: str,
     attribution: Mapping[str, Any] | None = None,
 ) -> tuple[str, ...]:
     """Validate current control evidence and return exact reconstructed legacy digests."""
+
+    if not isinstance(expected_config, SystemConfig):
+        raise ValueError("engine control plane requires a trusted effective config")
+    expected_config_sha256 = config_fingerprint(expected_config)
 
     account_value = result.get("final_account")
     if not isinstance(account_value, Mapping):
@@ -286,6 +291,12 @@ def validate_engine_control_plane(
             label="decision trace system cap",
             minimum=0.0,
         )
+        # The system cap is independently derived from the trusted effective
+        # config.  The dynamic risk cap has no separate causal replay carrier;
+        # it and binding_owner are retained only as internally reconciled
+        # diagnostics against the exact targets and daily ledger.
+        if system_cap != expected_config.max_gross:
+            raise ValueError("decision trace system gross cap differs from trusted config")
         targets_value = trace["targets"]
         orders_value = trace["orders"]
         if not isinstance(targets_value, list) or not isinstance(orders_value, list):

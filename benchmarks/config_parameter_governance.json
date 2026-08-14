@@ -7,6 +7,10 @@
     "after": {"total_fields": 278, "economic_fields": 164},
     "current": {"total_fields": 284, "economic_fields": 164}
   },
+  "config_migration": {
+    "champion_config_sha256": "023d709731196a325d9cd03e95ece92e4baf63d2c5c66bb9f7d0e7a190e7bf20",
+    "candidate_config_sha256": "3726467944102ec9d51b7deb7bc2c5cb5acce8fac4c3fa54052f0f0b9bd72452"
+  },
   "categories": {
     "MARKET_RULE": [
       {
@@ -429,5 +433,5 @@
     }
   ],
   "removed_fields": ["strategic_cohort_symbols"],
-  "artifact_sha256": "895256b6a173934478c1af6edd9439bdea92eb0d5d7f133c0b20d8afece6118e"
+  "artifact_sha256": "19f03007c3034473ec79de21e9527359f49364f09452c1a97cd80df26aa5f6ca"
 }

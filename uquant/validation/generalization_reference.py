@@ -15,6 +15,10 @@ from typing import Any, Final
 
 from ..attribution import validate_attribution_against_engine_result
 from ..config import DEFAULT_CONFIG, SystemConfig, config_fingerprint
+from ..config_governance import (
+    GovernedConfigMigration,
+    validate_governed_config_migration,
+)
 from ..engine import code_fingerprint
 from .control_plane import validate_engine_control_plane
 from .generalization import symbol_pnl_concentration
@@ -843,6 +847,7 @@ def _project_raw_evidence_for_frozen_v1(
     *,
     source_schema: int,
     frozen_v1_attribution_verified: bool = False,
+    config_migration: GovernedConfigMigration | None = None,
 ) -> dict[str, Any]:
     """Apply the same closed raw-evidence migration used by exact equality."""
 
@@ -863,6 +868,13 @@ def _project_raw_evidence_for_frozen_v1(
             )
     elif "attribution" in projected or "legacy_attribution" in projected:
         raise ValueError("candidate v2 raw evidence injects deprecated v1 attribution")
+    if config_migration is not None:
+        if source_schema != 2 or (
+            projected.get("effective_config_sha256")
+            != config_migration.candidate_config_sha256
+        ):
+            raise ValueError("raw evidence differs from governed config migration carrier")
+        projected["effective_config_sha256"] = config_migration.champion_config_sha256
     projected["attribution"] = dict(_DEPRECATED_V1_ATTRIBUTION_TOKEN)
     legacy_decision_digests = projected.pop("legacy_decision_digests", None)
     if legacy_decision_digests is not None:
@@ -910,7 +922,11 @@ def _project_raw_evidence_for_frozen_v1(
     return projected
 
 
-def _v2_economic_projection(artifact: Mapping[str, Any]) -> dict[str, Any]:
+def _v2_economic_projection(
+    artifact: Mapping[str, Any],
+    *,
+    config_migration: GovernedConfigMigration | None = None,
+) -> dict[str, Any]:
     """Project validated v2 additions while retaining the frozen v1 control plane."""
 
     try:
@@ -926,6 +942,14 @@ def _v2_economic_projection(artifact: Mapping[str, Any]) -> dict[str, Any]:
         raise ValueError("generalization candidate schema version is malformed")
     projected["schema_version"] = 1
     projected.pop("attribution_definition", None)
+    if config_migration is not None:
+        provenance = projected.get("provenance")
+        if not isinstance(provenance, dict) or (
+            provenance.get("effective_config_sha256")
+            != config_migration.candidate_config_sha256
+        ):
+            raise ValueError("artifact differs from governed config migration carrier")
+        provenance["effective_config_sha256"] = config_migration.champion_config_sha256
     cells = projected.get("cells")
     if not isinstance(cells, list):
         raise ValueError("generalization candidate cell collection is malformed")
@@ -958,12 +982,17 @@ def _v2_economic_projection(artifact: Mapping[str, Any]) -> dict[str, Any]:
                 raw,
                 source_schema=source_schema,
                 frozen_v1_attribution_verified=source_schema == 1,
+                config_migration=config_migration,
             )
     return projected
 
 
-def _attribution_neutral_equality_sha256(artifact: Mapping[str, Any]) -> str:
-    projected = _v2_economic_projection(artifact)
+def _attribution_neutral_equality_sha256(
+    artifact: Mapping[str, Any],
+    *,
+    config_migration: GovernedConfigMigration | None = None,
+) -> str:
+    projected = _v2_economic_projection(artifact, config_migration=config_migration)
     return _artifact_equality_sha256(projected)
 
 
@@ -1039,6 +1068,23 @@ def evaluate_generalization_policy_artifact(
         provenance: Mapping[str, Any] = {}
     else:
         provenance = provenance_value
+    config_migration: GovernedConfigMigration | None = None
+    if schema_version == 2 and isinstance(expected_config, SystemConfig):
+        current_config_sha256 = config_fingerprint(expected_config)
+        if (
+            provenance.get("effective_config_sha256") == current_config_sha256
+            and current_config_sha256 != baseline.provenance.get("effective_config_sha256")
+        ):
+            try:
+                candidate_migration = validate_governed_config_migration(expected_config)
+            except (RuntimeError, ValueError):
+                pass
+            else:
+                if (
+                    candidate_migration.champion_config_sha256
+                    == baseline.provenance.get("effective_config_sha256")
+                ):
+                    config_migration = candidate_migration
     provenance_fields = (
         "effective_config_sha256",
         "data",
@@ -1054,6 +1100,7 @@ def evaluate_generalization_policy_artifact(
         name
         for name in provenance_fields
         if provenance.get(name) != baseline.provenance.get(name)
+        and not (name == "effective_config_sha256" and config_migration is not None)
     )
     failures.extend(
         f"candidate provenance differs from champion inputs: {name}"
@@ -1402,7 +1449,10 @@ def evaluate_generalization_policy_artifact(
     else:
         try:
             artifact_equality_sha256 = (
-                _attribution_neutral_equality_sha256(artifact)
+                _attribution_neutral_equality_sha256(
+                    artifact,
+                    config_migration=config_migration,
+                )
                 if schema_version == 2
                 else _artifact_equality_sha256(artifact)
             )
@@ -1426,6 +1476,17 @@ def evaluate_generalization_policy_artifact(
         "passed": not failures,
         "exact_equality_required": require_exact_equality,
         "exact_equality_passed": exact_equality_passed,
+        "config_migration": (
+            None
+            if config_migration is None
+            else {
+                "champion_config_sha256": config_migration.champion_config_sha256,
+                "candidate_config_sha256": config_migration.candidate_config_sha256,
+                "removed_fields": list(config_migration.removed_fields),
+                "governance_sha256": config_migration.governance_sha256,
+                "carrier_sha256": config_migration.carrier_sha256,
+            }
+        ),
         "economic_cells_expected": expected_economic,
         "economic_cells_valid": economic_valid,
         "replay_error_cells": replay_errors,

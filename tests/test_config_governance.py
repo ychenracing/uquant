@@ -14,6 +14,7 @@ from uquant.config import SystemConfig
 from uquant.config_governance import (
     ParameterCategory,
     load_config_governance,
+    validate_governed_config_migration,
 )
 
 ROOT = Path(__file__).parents[1]
@@ -63,6 +64,26 @@ def test_governance_is_compile_anchored_against_resealing(tmp_path: Path) -> Non
 
     with pytest.raises(RuntimeError, match="compiled reviewed governance"):
         load_config_governance(edited)
+
+
+def test_governed_config_migration_binds_both_exact_config_identities() -> None:
+    migration = validate_governed_config_migration(SystemConfig())
+
+    assert migration.champion_config_sha256 == (
+        "023d709731196a325d9cd03e95ece92e4baf63d2c5c66bb9f7d0e7a190e7bf20"
+    )
+    assert migration.candidate_config_sha256 == (
+        "3726467944102ec9d51b7deb7bc2c5cb5acce8fac4c3fa54052f0f0b9bd72452"
+    )
+    assert migration.removed_fields == ("strategic_cohort_symbols",)
+    assert len(migration.carrier_sha256) == 64
+
+
+def test_governed_config_migration_rejects_any_remaining_field_change() -> None:
+    changed = SystemConfig().override(leader_mature_score=0.73)
+
+    with pytest.raises(ValueError, match="reviewed post-removal config"):
+        validate_governed_config_migration(changed)
 
 
 @pytest.mark.parametrize(

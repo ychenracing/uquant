@@ -1298,6 +1298,27 @@ def test_v2_projection_uses_reconstructed_legacy_control_and_only_normalizes_val
         assert reference_module._attribution_neutral_equality_sha256(changed) != expected
 
 
+def test_v2_projection_normalizes_only_compile_anchored_config_deletion() -> None:
+    from uquant.config_governance import validate_governed_config_migration
+
+    migration = validate_governed_config_migration(DEFAULT_CONFIG)
+    raw = {"effective_config_sha256": migration.candidate_config_sha256}
+
+    assert reference_module._project_raw_evidence_for_frozen_v1(
+        raw,
+        source_schema=2,
+        config_migration=migration,
+    )["effective_config_sha256"] == migration.champion_config_sha256
+
+    raw["effective_config_sha256"] = "0" * 64
+    with pytest.raises(ValueError, match="migration carrier"):
+        reference_module._project_raw_evidence_for_frozen_v1(
+            raw,
+            source_schema=2,
+            config_migration=migration,
+        )
+
+
 def _fixture_reference_contract(
     artifact: Mapping[str, Any],
 ) -> tuple[Any, Any]:

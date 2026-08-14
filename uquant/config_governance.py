@@ -10,12 +10,15 @@ from enum import StrEnum
 from pathlib import Path
 from typing import Any, Final, cast
 
-from .config import SystemConfig
+from .config import SystemConfig, config_fingerprint
 
 GOVERNANCE_PATH: Final = Path("benchmarks") / "config_parameter_governance.json"
 GOVERNANCE_BASE_COMMIT: Final = "e71c3f6cf42244f71e59458ec15375b92ed4da1f"
 REQUIRED_CONFIG_PARAMETER_GOVERNANCE_SHA256: Final = (
-    "895256b6a173934478c1af6edd9439bdea92eb0d5d7f133c0b20d8afece6118e"
+    "19f03007c3034473ec79de21e9527359f49364f09452c1a97cd80df26aa5f6ca"
+)
+FROZEN_CHAMPION_CONFIG_SHA256: Final = (
+    "023d709731196a325d9cd03e95ece92e4baf63d2c5c66bb9f7d0e7a190e7bf20"
 )
 REMOVAL_ORDER: Final = (
     "strategic_cohort_symbols",
@@ -77,6 +80,8 @@ class ConfigGovernance:
     current_total_fields: int
     current_economic_fields: int
     removed_fields: tuple[str, ...]
+    champion_config_sha256: str
+    candidate_config_sha256: str
     artifact_sha256: str
 
     def entry(self, field: str) -> ParameterGovernance:
@@ -86,6 +91,17 @@ class ConfigGovernance:
         if len(matches) != 1:
             raise ValueError(f"configuration field is not governed exactly once: {field}")
         return matches[0]
+
+
+@dataclass(frozen=True, slots=True)
+class GovernedConfigMigration:
+    """Exact, compile-anchored identity carrier for an authorized deletion prefix."""
+
+    champion_config_sha256: str
+    candidate_config_sha256: str
+    removed_fields: tuple[str, ...]
+    governance_sha256: str
+    carrier_sha256: str
 
 
 def _reject_duplicate_keys(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
@@ -152,6 +168,7 @@ def load_config_governance(path: str | Path | None = None) -> ConfigGovernance:
             "contract_id",
             "baseline_commit",
             "counts",
+            "config_migration",
             "categories",
             "removal_plan",
             "removed_fields",
@@ -191,6 +208,20 @@ def load_config_governance(path: str | Path | None = None) -> ConfigGovernance:
         raise RuntimeError("configuration governance total-field change is not the reviewed 285-to-278")
     if parsed_counts["before"][1] != parsed_counts["after"][1]:
         raise RuntimeError("configuration cleanup must not change ECONOMIC freedom")
+
+    config_migration = _required_mapping(
+        payload["config_migration"],
+        label="config_migration",
+        keys={"champion_config_sha256", "candidate_config_sha256"},
+    )
+    champion_config_sha256 = config_migration["champion_config_sha256"]
+    candidate_config_sha256 = config_migration["candidate_config_sha256"]
+    if champion_config_sha256 != FROZEN_CHAMPION_CONFIG_SHA256:
+        raise RuntimeError("configuration governance champion identity changed")
+    if not isinstance(candidate_config_sha256, str) or not _SHA256.fullmatch(
+        candidate_config_sha256
+    ):
+        raise RuntimeError("configuration governance candidate identity is malformed")
 
     categories = _required_mapping(
         payload["categories"],
@@ -287,7 +318,35 @@ def load_config_governance(path: str | Path | None = None) -> ConfigGovernance:
         current_total_fields=parsed_counts["current"][0],
         current_economic_fields=parsed_counts["current"][1],
         removed_fields=removed_fields,
+        champion_config_sha256=champion_config_sha256,
+        candidate_config_sha256=candidate_config_sha256,
         artifact_sha256=artifact_sha256,
+    )
+
+
+def validate_governed_config_migration(config: SystemConfig) -> GovernedConfigMigration:
+    """Prove the trusted candidate is the exact reviewed post-deletion configuration."""
+
+    if not isinstance(config, SystemConfig):
+        raise ValueError("governed config migration requires a trusted SystemConfig")
+    governance = load_config_governance()
+    candidate_config_sha256 = config_fingerprint(config)
+    if candidate_config_sha256 != governance.candidate_config_sha256:
+        raise ValueError("trusted config differs from reviewed post-removal config")
+    if not governance.removed_fields:
+        raise ValueError("governed config migration requires an authorized field deletion")
+    carrier = {
+        "champion_config_sha256": governance.champion_config_sha256,
+        "candidate_config_sha256": candidate_config_sha256,
+        "removed_fields": governance.removed_fields,
+        "governance_sha256": governance.artifact_sha256,
+    }
+    return GovernedConfigMigration(
+        champion_config_sha256=governance.champion_config_sha256,
+        candidate_config_sha256=candidate_config_sha256,
+        removed_fields=governance.removed_fields,
+        governance_sha256=governance.artifact_sha256,
+        carrier_sha256=_canonical_sha256(cast(dict[str, Any], carrier)),
     )
 
 

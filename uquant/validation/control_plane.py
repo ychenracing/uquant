@@ -15,6 +15,7 @@ from ..types import (
     AttributionMechanism,
     Lifecycle,
     Opportunity,
+    OrderStatus,
     OriginSubsystem,
     ReductionPolicy,
     Risk,
@@ -60,6 +61,7 @@ _TARGET_FIELDS = {
 _ORDER_FIELDS = {
     "order_id",
     "signal_date",
+    "snapshot_kind",
     "symbol",
     "side",
     "target_weight",
@@ -255,7 +257,7 @@ def validate_engine_control_plane(
     ledger_orders_by_event: dict[str, list[Any]] = {}
     for ledger_order in account.order_ledger:
         ledger_orders_by_event.setdefault(ledger_order.event_id, []).append(ledger_order)
-    traced_order_ids: set[str] = set()
+    traced_order_sessions: dict[str, list[str]] = {}
     reconstructed_legacy: list[str] = []
     for index, (session, raw_trace, raw_ledger) in enumerate(
         zip(sessions, trace_value, ledger_value, strict=True)
@@ -387,6 +389,9 @@ def validate_engine_control_plane(
             comparable = {
                 "order_id": durable.order_id,
                 "signal_date": durable.signal_date,
+                "snapshot_kind": (
+                    "ORIGIN" if durable.signal_date == session else "CARRIED_FORWARD"
+                ),
                 "symbol": durable.symbol,
                 "side": durable.side,
                 "target_weight": round(durable.target_weight, 12),
@@ -397,12 +402,7 @@ def validate_engine_control_plane(
             }
             if dict(order) != comparable:
                 raise ValueError("decision order differs from durable account event identity")
-            if order_id not in traced_order_ids:
-                if durable.signal_date != session:
-                    raise ValueError(
-                        "durable account order lacks its exact decision-date origin"
-                    )
-                traced_order_ids.add(order_id)
+            traced_order_sessions.setdefault(order_id, []).append(session)
 
         target_gross = _finite(
             trace["target_gross"],
@@ -470,11 +470,45 @@ def validate_engine_control_plane(
             raise ValueError(f"legacy decision digest does not recompute at {session}")
         reconstructed_legacy.append(legacy_digest)
 
-    missing_origins = sorted(set(ledger_orders) - traced_order_ids)
-    if missing_origins:
+    session_index = {session: index for index, session in enumerate(sessions)}
+    terminal_statuses = {
+        OrderStatus.FILLED.value,
+        OrderStatus.CANCELLED.value,
+        OrderStatus.REPLACED.value,
+    }
+    # Generalization starts from an empty simulated account and has no manual,
+    # broker-import, or other no-decision order class.  Every durable order must
+    # therefore have one origin and a contiguous series of active snapshots.
+    active_ids = {
+        order_id
+        for order_id, durable in ledger_orders.items()
+        if durable.status not in terminal_statuses
+    }
+    pending_ids = {order.order_id for order in account.pending_orders}
+    if active_ids != pending_ids:
         raise ValueError(
-            "durable account order ledger contains IDs without decision origins: "
-            + ", ".join(missing_origins)
+            "durable active order lifecycle differs from final pending-order state"
         )
+    for order_id, durable in ledger_orders.items():
+        origin_index = session_index.get(durable.signal_date)
+        if origin_index is None:
+            raise ValueError(
+                f"durable account order {order_id} lacks an in-window decision origin"
+            )
+        end_index = len(sessions)
+        if durable.status in terminal_statuses:
+            terminal_index = session_index.get(durable.last_update_date)
+            if terminal_index is None or terminal_index <= origin_index:
+                raise ValueError(
+                    f"durable account order {order_id} has an invalid terminal lifecycle"
+                )
+            end_index = terminal_index
+        expected_occurrences = tuple(sessions[origin_index:end_index])
+        observed_occurrences = tuple(traced_order_sessions.get(order_id, ()))
+        if observed_occurrences != expected_occurrences:
+            raise ValueError(
+                f"durable account order {order_id} decision snapshot lifecycle differs: "
+                f"expected {expected_occurrences}, observed {observed_occurrences}"
+            )
 
     return tuple(reconstructed_legacy)

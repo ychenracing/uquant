@@ -666,6 +666,9 @@ class Decision:
                 {
                     "order_id": item.order_id,
                     "signal_date": item.signal_date,
+                    "snapshot_kind": (
+                        "ORIGIN" if item.signal_date == self.date else "CARRIED_FORWARD"
+                    ),
                     "symbol": item.symbol,
                     "side": item.side,
                     "target_weight": round(item.target_weight, 12),

@@ -981,6 +981,10 @@ def evaluate_generalization_policy_artifact(
     failures: list[str] = []
     equality_differences: list[str] = []
     schema_version = artifact.get("schema_version")
+    if schema_version == 2 and data_dir is None:
+        raise ValueError(
+            "schema-v2 evaluation requires an explicit frozen data directory"
+        )
     v2_projection_valid = schema_version == 2
     expected_artifact_fields = (
         _ARTIFACT_FIELDS_V2 if schema_version == 2 else _ARTIFACT_FIELDS_V1

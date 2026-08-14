@@ -17,12 +17,14 @@ from uquant.types import (
     AccountOrder,
     AccountState,
     Fill,
+    PendingOrder,
     Position,
     Tranche,
     derive_attribution_event_id,
 )
 from uquant.validation import generalization_matrix as matrix_module
 from uquant.validation import generalization_reference as reference_module
+from uquant.validation.control_plane import legacy_decision_payload
 from uquant.validation.generalization import PreWindowEvidence
 from uquant.validation.generalization_contract import (
     build_official_scenarios,
@@ -178,10 +180,10 @@ def _runner_payload(scenario: Any) -> dict[str, Any]:
             target_weight=0.1,
             reason="fixture prose",
             lifecycle="CORE",
-            status="FILLED",
-            requested_shares=1,
+            status="PARTIALLY_FILLED" if index == 1 else "FILLED",
+            requested_shares=2 if index == 1 else 1,
             filled_shares=1,
-            remaining_shares=0,
+            remaining_shares=1 if index == 1 else 0,
             attempts=1,
             last_update_date=scenario.window.end,
             last_event="FILLED",
@@ -196,6 +198,23 @@ def _runner_payload(scenario: Any) -> dict[str, Any]:
         )
     ]
     account.next_order_sequence = 3
+    account.pending_orders = [
+        PendingOrder(
+            signal_date=scenario.window.start,
+            symbol=first,
+            side="BUY",
+            target_weight=0.1,
+            reason="fixture prose",
+            lifecycle="CORE",
+            remaining_shares=1,
+            attempts=1,
+            order_id="O000000001",
+            reduction_policy="FIFO",
+            reason_code="strategy_target",
+            exit_kind="strategy",
+            **order_identities[0],
+        )
+    ]
     account.fills = [
         Fill(
             signal_date=scenario.window.start,
@@ -317,6 +336,64 @@ def _runner_payload(scenario: Any) -> dict[str, Any]:
             **identity_values,
         }
 
+    def order_snapshot(
+        *,
+        index: int,
+        symbol: str,
+        identity_values: Mapping[str, Any],
+        snapshot_kind: str,
+    ) -> dict[str, Any]:
+        return {
+            "order_id": f"O{index:09d}",
+            "signal_date": scenario.window.start,
+            "snapshot_kind": snapshot_kind,
+            "symbol": symbol,
+            "side": "BUY",
+            "target_weight": 0.1,
+            "reduction_policy": "FIFO",
+            "reason_code": "strategy_target",
+            "exit_kind": "strategy",
+            **identity_values,
+        }
+
+    trace_specs = (
+        (
+            scenario.window.start,
+            (
+                (first, initial_target_identities[0], scenario.window.start),
+                (second, initial_target_identities[1], scenario.window.start),
+            ),
+            (
+                order_snapshot(
+                    index=1,
+                    symbol=first,
+                    identity_values=order_identities[0],
+                    snapshot_kind="ORIGIN",
+                ),
+                order_snapshot(
+                    index=2,
+                    symbol=second,
+                    identity_values=order_identities[1],
+                    snapshot_kind="ORIGIN",
+                ),
+            ),
+        ),
+        (
+            scenario.window.end,
+            (
+                (first, order_identities[0], scenario.window.start),
+                (second, final_target_identities[1], scenario.window.end),
+            ),
+            (
+                order_snapshot(
+                    index=1,
+                    symbol=first,
+                    identity_values=order_identities[0],
+                    snapshot_kind="CARRIED_FORWARD",
+                ),
+            ),
+        ),
+    )
     traces = [
         {
             "schema": "uquant.decision-control-plane.v2",
@@ -329,38 +406,13 @@ def _runner_payload(scenario: Any) -> dict[str, Any]:
             },
             "target_gross": 0.2,
             "targets": [
-                target(symbol, identity_values, date)
-                for symbol, identity_values in zip(
-                    (first, second), identities, strict=True
-                )
+                target(symbol, identity_values, signal_date)
+                for symbol, identity_values, signal_date in target_specs
             ],
-            "orders": (
-                [
-                    {
-                        "order_id": f"O{index:09d}",
-                        "signal_date": scenario.window.start,
-                        "symbol": symbol,
-                        "side": "BUY",
-                        "target_weight": 0.1,
-                        "reduction_policy": "FIFO",
-                        "reason_code": "strategy_target",
-                        "exit_kind": "strategy",
-                        **identity_values,
-                    }
-                    for index, (symbol, identity_values) in enumerate(
-                        zip((first, second), identities, strict=True),
-                        start=1,
-                    )
-                ]
-                if date == scenario.window.start
-                else []
-            ),
+            "orders": list(order_snapshots),
             "effective_config_sha256": config_fingerprint(),
         }
-        for date, identities in (
-            (scenario.window.start, initial_target_identities),
-            (scenario.window.end, final_target_identities),
-        )
+        for date, target_specs, order_snapshots in trace_specs
     ]
 
     def digest(payload: Mapping[str, Any]) -> str:
@@ -773,6 +825,155 @@ def test_matrix_rejects_account_ledger_order_without_decision_origin(
     assert any("decision" in failure and "order" in failure for failure in failures)
 
 
+def test_matrix_rejects_order_replayed_on_its_terminal_session(
+    matrix_data_dir: Path,
+) -> None:
+    """Catches a filled order ID being reintroduced in a later decision snapshot."""
+
+    scenarios = _scenarios()
+    provenance = _provenance(scenarios, matrix_data_dir)
+    artifact = execute_generalization_matrix(
+        scenarios=scenarios,
+        runner=_runner_payload,
+        provenance=provenance,
+        data_dir=matrix_data_dir,
+    )
+    changed = copy.deepcopy(artifact)
+    raw = next(item["raw"] for item in changed["cells"] if item["economic"])
+    origin = copy.deepcopy(raw["decision_trace"][0]["orders"][1])
+    origin["snapshot_kind"] = "CARRIED_FORWARD"
+    raw["decision_trace"][-1]["orders"].append(origin)
+    raw["decision_digests"][-1] = hashlib.sha256(
+        json.dumps(
+            raw["decision_trace"][-1],
+            sort_keys=True,
+            separators=(",", ":"),
+        ).encode()
+    ).hexdigest()
+    raw["legacy_decision_digests"][-1] = hashlib.sha256(
+        json.dumps(
+            legacy_decision_payload(raw["decision_trace"][-1]),
+            sort_keys=True,
+            separators=(",", ":"),
+        ).encode()
+    ).hexdigest()
+
+    failures = validate_matrix_artifact(
+        changed,
+        scenarios=scenarios,
+        expected_provenance=provenance,
+        data_dir=matrix_data_dir,
+    )
+
+    assert failures
+    assert any(
+        "terminal" in failure or "snapshot lifecycle" in failure
+        for failure in failures
+    ), failures
+
+
+def test_matrix_accepts_one_origin_and_contiguous_partial_order_snapshots(
+    matrix_data_dir: Path,
+) -> None:
+    """Locks the legitimate retained/partial cross-session order lifecycle."""
+
+    scenarios = _scenarios()
+    provenance = _provenance(scenarios, matrix_data_dir)
+    artifact = execute_generalization_matrix(
+        scenarios=scenarios,
+        runner=_runner_payload,
+        provenance=provenance,
+        data_dir=matrix_data_dir,
+    )
+    raw = next(item["raw"] for item in artifact["cells"] if item["economic"])
+    snapshots = [
+        order
+        for trace in raw["decision_trace"]
+        for order in trace["orders"]
+        if order["order_id"] == "O000000001"
+    ]
+    durable = raw["final_account"]["order_ledger"][0]
+
+    assert [item["snapshot_kind"] for item in snapshots] == [
+        "ORIGIN",
+        "CARRIED_FORWARD",
+    ]
+    assert durable["status"] == "PARTIALLY_FILLED"
+    assert durable["remaining_shares"] == 1
+    assert raw["final_account"]["pending_orders"][0]["order_id"] == "O000000001"
+    assert validate_matrix_artifact(
+        artifact,
+        scenarios=scenarios,
+        expected_provenance=provenance,
+        data_dir=matrix_data_dir,
+    ) == ()
+
+
+@pytest.mark.parametrize(
+    "mutation",
+    (
+        "changed_signal_date",
+        "duplicate_origin",
+        "duplicate_snapshot_row",
+        "missing_carried_snapshot",
+    ),
+)
+def test_matrix_rejects_invalid_carried_order_snapshot_lifecycle(
+    mutation: str,
+    matrix_data_dir: Path,
+) -> None:
+    """Catches detached origin data, duplicate intent, and noncontiguous retention."""
+
+    scenarios = _scenarios()
+    provenance = _provenance(scenarios, matrix_data_dir)
+    artifact = execute_generalization_matrix(
+        scenarios=scenarios,
+        runner=_runner_payload,
+        provenance=provenance,
+        data_dir=matrix_data_dir,
+    )
+    changed = copy.deepcopy(artifact)
+    raw = next(item["raw"] for item in changed["cells"] if item["economic"])
+    carried = raw["decision_trace"][-1]["orders"][0]
+    if mutation == "changed_signal_date":
+        carried["signal_date"] = raw["decision_trace"][-1]["date"]
+    elif mutation == "duplicate_origin":
+        carried["snapshot_kind"] = "ORIGIN"
+    elif mutation == "duplicate_snapshot_row":
+        raw["decision_trace"][-1]["orders"].append(copy.deepcopy(carried))
+    else:
+        raw["decision_trace"][-1]["orders"] = []
+    raw["decision_digests"][-1] = hashlib.sha256(
+        json.dumps(
+            raw["decision_trace"][-1],
+            sort_keys=True,
+            separators=(",", ":"),
+        ).encode()
+    ).hexdigest()
+    raw["legacy_decision_digests"][-1] = hashlib.sha256(
+        json.dumps(
+            legacy_decision_payload(raw["decision_trace"][-1]),
+            sort_keys=True,
+            separators=(",", ":"),
+        ).encode()
+    ).hexdigest()
+
+    failures = validate_matrix_artifact(
+        changed,
+        scenarios=scenarios,
+        expected_provenance=provenance,
+        data_dir=matrix_data_dir,
+    )
+
+    assert failures
+    assert any(
+        "decision order" in failure
+        or "order IDs" in failure
+        or "snapshot lifecycle" in failure
+        for failure in failures
+    ), failures
+
+
 def test_verified_market_cache_is_lookup_order_independent(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
@@ -1013,6 +1214,48 @@ def test_v2_policy_evaluator_accepts_verified_fixture_exact_equality(
     assert result["replay_error_cells"] == 0
     assert loaded_symbols
     assert len(loaded_symbols) == len(set(loaded_symbols))
+
+
+def test_v2_policy_evaluator_fails_before_projection_without_verified_data(
+    matrix_data_dir: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Catches a no-data call hiding a self-signed current trace mutation."""
+
+    scenarios = _scenarios()
+    artifact = execute_generalization_matrix(
+        scenarios=scenarios,
+        runner=_runner_payload,
+        provenance=_provenance(scenarios, matrix_data_dir),
+        data_dir=matrix_data_dir,
+    )
+    baseline, policy = _fixture_reference_contract(artifact)
+    monkeypatch.setattr(
+        reference_module,
+        "_head_and_source",
+        lambda _root: (
+            artifact["provenance"]["head"],
+            artifact["provenance"]["source_sha256"],
+        ),
+    )
+    changed = copy.deepcopy(artifact)
+    raw = next(item["raw"] for item in changed["cells"] if item["economic"])
+    raw["decision_trace"][0]["schema"] = "uquant.self-signed-control-plane.v2"
+    raw["decision_digests"][0] = hashlib.sha256(
+        json.dumps(
+            raw["decision_trace"][0],
+            sort_keys=True,
+            separators=(",", ":"),
+        ).encode()
+    ).hexdigest()
+
+    with pytest.raises(ValueError, match="explicit frozen data"):
+        evaluate_generalization_policy_artifact(
+            changed,
+            baseline=baseline,
+            policy=policy,
+            require_exact_equality=True,
+        )
 
 
 @pytest.mark.parametrize(

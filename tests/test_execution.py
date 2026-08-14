@@ -19,13 +19,55 @@ from uquant.execution import (
 from uquant.types import (
     AccountOrder,
     AccountState,
+    AttributionMechanism,
     OrderStatus,
+    OriginSubsystem,
     PendingOrder,
     Position,
     ReductionPolicy,
     Target,
     Tranche,
+    derive_attribution_event_id,
 )
+from uquant.validation.universe import REQUIRED_AI_UNIVERSE_SHA256
+
+
+def _attribution_identity(
+    *,
+    signal_date: str,
+    symbol: str,
+    target_weight: float,
+    origin_subsystem: str,
+    mechanism: str,
+    reduction_policy: str = ReductionPolicy.FIFO.value,
+    reason_code: str = "strategy_target",
+    exit_kind: str = "strategy",
+) -> dict[str, str | None]:
+    lifecycle = "CORE"
+    fields: dict[str, str | None] = {
+        "origin_subsystem": origin_subsystem,
+        "mechanism": mechanism,
+        "origin_lifecycle": lifecycle,
+        "replaces_symbol": None,
+        "industry_at_entry": "optical",
+        "industry_manifest_sha256": REQUIRED_AI_UNIVERSE_SHA256,
+    }
+    fields["event_id"] = derive_attribution_event_id(
+        signal_date=signal_date,
+        symbol=symbol,
+        target_weight=target_weight,
+        lifecycle=lifecycle,
+        origin_lifecycle=lifecycle,
+        origin_subsystem=origin_subsystem,
+        mechanism=mechanism,
+        replaces_symbol=None,
+        industry_at_entry="optical",
+        industry_manifest_sha256=REQUIRED_AI_UNIVERSE_SHA256,
+        reduction_policy=reduction_policy,
+        reason_code=reason_code,
+        exit_kind=exit_kind,
+    )
+    return fields
 
 
 def _frame(rows):
@@ -223,6 +265,23 @@ def test_broker_sync_rolls_back_every_state_on_late_validation_failure():
 
 def test_partial_broker_sell_attribution_creates_a_complete_degraded_allocation(tmp_path):
     symbol = "sz300308"
+    order_identity = _attribution_identity(
+        signal_date="2026-01-05",
+        symbol=symbol,
+        target_weight=0.0,
+        origin_subsystem=OriginSubsystem.RISK.value,
+        mechanism=AttributionMechanism.RISK_GROSS_CAP.value,
+        reduction_policy=ReductionPolicy.RISK_PRIORITY.value,
+        reason_code="risk_gross_cap",
+        exit_kind="risk",
+    )
+    tranche_identity = _attribution_identity(
+        signal_date="2026-01-02",
+        symbol=symbol,
+        target_weight=0.0,
+        origin_subsystem=OriginSubsystem.LEADER.value,
+        mechanism=AttributionMechanism.LEADER_SELECTION.value,
+    )
     pending = PendingOrder(
         "2026-01-05",
         symbol,
@@ -234,6 +293,7 @@ def test_partial_broker_sell_attribution_creates_a_complete_degraded_allocation(
         reduction_policy=ReductionPolicy.RISK_PRIORITY.value,
         reason_code="risk_gross_cap",
         exit_kind="risk",
+        **order_identity,
     )
     ledger = AccountOrder(
         "O000000001",
@@ -248,6 +308,7 @@ def test_partial_broker_sell_attribution_creates_a_complete_degraded_allocation(
         reduction_policy=ReductionPolicy.RISK_PRIORITY.value,
         reason_code="risk_gross_cap",
         exit_kind="risk",
+        **order_identity,
     )
     account = AccountState(
         initial_cash=2_000.0,
@@ -269,6 +330,7 @@ def test_partial_broker_sell_attribution_creates_a_complete_degraded_allocation(
                         "2026-01-03",
                         12.0,
                         lowest_close=9.0,
+                        **tranche_identity,
                     )
                 ],
             )

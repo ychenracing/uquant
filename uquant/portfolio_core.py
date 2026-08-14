@@ -9,7 +9,15 @@ import pandas as pd
 
 from .config import SystemConfig
 from .features import scalar
-from .types import AccountState, LeaderScore, Lifecycle, RiskAssessment, Target
+from .types import (
+    AccountState,
+    AttributionMechanism,
+    LeaderScore,
+    Lifecycle,
+    OriginSubsystem,
+    RiskAssessment,
+    Target,
+)
 
 
 def current_weights(account: AccountState, prices: dict[str, float]) -> tuple[dict[str, float], float]:
@@ -117,8 +125,12 @@ class PortfolioCore:
         account: AccountState,
         lifecycle: Lifecycle,
         reason: str,
+        origin_subsystem: OriginSubsystem,
+        mechanism: AttributionMechanism,
         lifecycles: dict[str, Lifecycle] | None = None,
         reasons: dict[str, str] | None = None,
+        mechanisms: dict[str, AttributionMechanism] | None = None,
+        replaces_symbols: dict[str, str] | None = None,
     ) -> tuple[Target, ...]:
         """Convert proposed weights into capped, attributed, deterministic targets."""
 
@@ -141,6 +153,7 @@ class PortfolioCore:
             if score is not None and score.components.get("unknown_industry", 0.0) >= 0.5:
                 weight = min(weight * unknown_scale, self.cfg.unknown_industry_weight_cap)
             selected_lifecycle = (lifecycles or {}).get(symbol, lifecycle)
+            selected_mechanism = (mechanisms or {}).get(symbol, mechanism)
             selected_reason = (reasons or {}).get(symbol)
             if selected_reason is None:
                 selected_reason = reason
@@ -156,6 +169,10 @@ class PortfolioCore:
                     entry_industry_strength=(
                         score.components.get("industry_rotation_strength", 0.0) if score else 0.0
                     ),
+                    origin_subsystem=origin_subsystem.value,
+                    mechanism=selected_mechanism.value,
+                    origin_lifecycle=selected_lifecycle.value,
+                    replaces_symbol=(replaces_symbols or {}).get(symbol),
                 )
             )
         positive = [item for item in targets if item.weight > 1e-12]

@@ -6,6 +6,7 @@ import copy
 import hashlib
 import json
 from collections.abc import Iterable
+from dataclasses import replace
 from pathlib import Path
 from statistics import median
 from typing import Any
@@ -43,10 +44,15 @@ from .types import (
     Fill,
     LeaderScore,
     Opportunity,
+    Target,
+    derive_attribution_event_id,
 )
 from .validation.ai_era import require_ai_era_interval
+from .validation.universe import REQUIRED_AI_UNIVERSE_SHA256, default_ai_universe
 
 INDEX_SYMBOLS = ("sh000300", "sh000682")
+_LEGACY_INDUSTRY = "legacy_unmapped"
+_LEGACY_MANIFEST_SHA256 = "0" * 64
 
 
 def _decision_config_for_universe(
@@ -62,6 +68,50 @@ def _decision_config_for_universe(
     """
     del configured_universe_size
     return cfg
+
+
+def _attach_target_attribution(
+    *,
+    signal_date: str,
+    targets: tuple[Target, ...],
+) -> tuple[Target, ...]:
+    """Finalize deterministic IDs and PIT industry for newly causal targets."""
+
+    universe = default_ai_universe()
+    attributed: list[Target] = []
+    for target in targets:
+        if target.event_id:
+            attributed.append(target)
+            continue
+        industry = universe.industry_of(target.symbol, signal_date)
+        manifest = REQUIRED_AI_UNIVERSE_SHA256
+        if industry == "unknown":
+            industry = _LEGACY_INDUSTRY
+            manifest = _LEGACY_MANIFEST_SHA256
+        event_id = derive_attribution_event_id(
+            signal_date=signal_date,
+            symbol=target.symbol,
+            target_weight=target.weight,
+            lifecycle=target.lifecycle,
+            origin_lifecycle=target.origin_lifecycle,
+            origin_subsystem=target.origin_subsystem,
+            mechanism=target.mechanism,
+            replaces_symbol=target.replaces_symbol,
+            industry_at_entry=industry,
+            industry_manifest_sha256=manifest,
+            reduction_policy=target.reduction_policy,
+            reason_code=target.reason_code,
+            exit_kind=target.exit_kind,
+        )
+        attributed.append(
+            replace(
+                target,
+                event_id=event_id,
+                industry_at_entry=industry,
+                industry_manifest_sha256=manifest,
+            )
+        )
+    return tuple(attributed)
 
 
 def code_fingerprint() -> str:
@@ -332,6 +382,10 @@ class ProductionEngine:
             account=account,
             prices=prices,
         )
+        targets = _attach_target_attribution(
+            signal_date=str(date.date()),
+            targets=targets,
+        )
         if not decision_cfg.group_balanced_reference_enabled:
             # The selected policy uses the security-weighted view for decisions.
             # Preserve the independently computed point-in-time snapshot only
@@ -369,6 +423,13 @@ class ProductionEngine:
                     "reduction_policy": item.reduction_policy,
                     "reason_code": item.reason_code,
                     "exit_kind": item.exit_kind,
+                    "event_id": item.event_id,
+                    "origin_subsystem": item.origin_subsystem,
+                    "mechanism": item.mechanism,
+                    "origin_lifecycle": item.origin_lifecycle,
+                    "replaces_symbol": item.replaces_symbol,
+                    "industry_at_entry": item.industry_at_entry,
+                    "industry_manifest_sha256": item.industry_manifest_sha256,
                 }
                 for item in targets
             ],
@@ -381,6 +442,13 @@ class ProductionEngine:
                     "reduction_policy": item.reduction_policy,
                     "reason_code": item.reason_code,
                     "exit_kind": item.exit_kind,
+                    "event_id": item.event_id,
+                    "origin_subsystem": item.origin_subsystem,
+                    "mechanism": item.mechanism,
+                    "origin_lifecycle": item.origin_lifecycle,
+                    "replaces_symbol": item.replaces_symbol,
+                    "industry_at_entry": item.industry_at_entry,
+                    "industry_manifest_sha256": item.industry_manifest_sha256,
                 }
                 for item in orders
             ],

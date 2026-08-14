@@ -20,15 +20,63 @@ from .execution import _allocate_sell_costs, risk_priority_tranche_key
 from .types import (
     ORDER_INTENT_IMMUTABLE_FIELDS,
     AccountState,
+    AttributionIdentity,
+    AttributionMechanism,
     Fill,
     Lifecycle,
     OrderStatus,
+    OriginSubsystem,
     Position,
     ReductionPolicy,
     Side,
     Tranche,
+    derive_attribution_event_id,
     order_intent_metadata,
 )
+from .validation.universe import REQUIRED_AI_UNIVERSE_SHA256, default_ai_universe
+
+
+def _broker_reconciliation_identity(
+    *,
+    symbol: str,
+    signal_date: str,
+    lifecycle: str,
+    token: str,
+) -> AttributionIdentity:
+    """Create explicit identity for inventory not backed by a planned order."""
+
+    industry = default_ai_universe().industry_of(symbol, signal_date)
+    if industry == "unknown":
+        industry = "legacy_unmapped"
+        manifest = "0" * 64
+    else:
+        manifest = REQUIRED_AI_UNIVERSE_SHA256
+    origin = OriginSubsystem.BROKER_RECONCILIATION.value
+    mechanism = AttributionMechanism.BROKER_RECONCILIATION.value
+    reason_code = f"broker_reconciliation:{token}"
+    return {
+        "event_id": derive_attribution_event_id(
+            signal_date=signal_date,
+            symbol=symbol,
+            target_weight=0.0,
+            lifecycle=lifecycle,
+            origin_lifecycle=lifecycle,
+            origin_subsystem=origin,
+            mechanism=mechanism,
+            replaces_symbol=None,
+            industry_at_entry=industry,
+            industry_manifest_sha256=manifest,
+            reduction_policy=ReductionPolicy.FIFO.value,
+            reason_code=reason_code,
+            exit_kind="broker_reconciliation",
+        ),
+        "origin_subsystem": origin,
+        "mechanism": mechanism,
+        "origin_lifecycle": lifecycle,
+        "replaces_symbol": None,
+        "industry_at_entry": industry,
+        "industry_manifest_sha256": manifest,
+    }
 
 
 def _allocate_broker_sale(
@@ -66,6 +114,13 @@ def _allocate_broker_sale(
                 "entry_date": tranche.entry_date,
                 "mfe": tranche.mfe,
                 "mae": tranche.mae,
+                "event_id": tranche.event_id,
+                "origin_subsystem": tranche.origin_subsystem,
+                "mechanism": tranche.mechanism,
+                "origin_lifecycle": tranche.origin_lifecycle,
+                "replaces_symbol": tranche.replaces_symbol,
+                "industry_at_entry": tranche.industry_at_entry,
+                "industry_manifest_sha256": tranche.industry_manifest_sha256,
             }
         )
         tranche.shares -= sold
@@ -429,10 +484,11 @@ def sync_broker_snapshot(
                 fallback_entry_date = (
                     existing.entry_date if existing is not None and existing.entry_date else fill_date
                 )
+                fallback_lifecycle = existing.lifecycle if existing is not None else order.lifecycle
                 sold_tranches.append(
                     {
                         "tranche_id": f"broker-degraded-sale:{fill_id}",
-                        "lifecycle": (existing.lifecycle if existing is not None else order.lifecycle),
+                        "lifecycle": fallback_lifecycle,
                         "shares": missing_shares,
                         "cost": fallback_cost,
                         "unit_cost": fallback_cost,
@@ -443,6 +499,12 @@ def sync_broker_snapshot(
                         "mae": 0.0,
                         "degraded": True,
                         "degradation_reason": "broker sale exceeded known eligible lot inventory",
+                        **_broker_reconciliation_identity(
+                            symbol=symbol,
+                            signal_date=fallback_entry_date,
+                            lifecycle=fallback_lifecycle,
+                            token=f"degraded-sale:{fill_id}",
+                        ),
                     }
                 )
                 account.reconciliation_events.append(
@@ -478,6 +540,13 @@ def sync_broker_snapshot(
                     entry_confidence=order.entry_confidence,
                     entry_regime=order.entry_regime,
                     entry_industry_strength=order.entry_industry_strength,
+                    event_id=order.event_id,
+                    origin_subsystem=order.origin_subsystem,
+                    mechanism=order.mechanism,
+                    origin_lifecycle=order.origin_lifecycle,
+                    replaces_symbol=order.replaces_symbol,
+                    industry_at_entry=order.industry_at_entry,
+                    industry_manifest_sha256=order.industry_manifest_sha256,
                 )
             )
             imported_buy_lifecycle[symbol] = order.lifecycle
@@ -502,6 +571,13 @@ def sync_broker_snapshot(
                 reason_code=order.reason_code,
                 exit_kind=order.exit_kind,
                 sold_tranches=sold_tranches,
+                event_id=order.event_id,
+                origin_subsystem=order.origin_subsystem,
+                mechanism=order.mechanism,
+                origin_lifecycle=order.origin_lifecycle,
+                replaces_symbol=order.replaces_symbol,
+                industry_at_entry=order.industry_at_entry,
+                industry_manifest_sha256=order.industry_manifest_sha256,
             )
         )
         known_fills[fill_id] = account.fills[-1]
@@ -565,9 +641,10 @@ def sync_broker_snapshot(
             )
         elif economic_shares < shares:
             residual = shares - economic_shares
+            tranche_id = f"broker-unmatched:{as_of}:{symbol}:{economic_shares}-{shares}"
             tranches.append(
                 Tranche(
-                    tranche_id=(f"broker-unmatched:{as_of}:{symbol}:{economic_shares}-{shares}"),
+                    tranche_id=tranche_id,
                     lifecycle=Lifecycle.CORE.value,
                     shares=residual,
                     avg_cost=avg_cost,
@@ -575,6 +652,12 @@ def sync_broker_snapshot(
                     sellable_date=as_of,
                     highest_close=avg_cost,
                     lowest_close=avg_cost,
+                    **_broker_reconciliation_identity(
+                        symbol=symbol,
+                        signal_date=as_of,
+                        lifecycle=Lifecycle.CORE.value,
+                        token=tranche_id,
+                    ),
                 )
             )
             account.reconciliation_events.append(

@@ -13,7 +13,16 @@ from numpy.typing import NDArray
 from .features import scalar
 from .portfolio_core import effective_n
 from .portfolio_strategic import StrategicPortfolioPolicy
-from .types import AccountState, LeaderScore, Lifecycle, Opportunity, RiskAssessment, Target
+from .types import (
+    AccountState,
+    AttributionMechanism,
+    LeaderScore,
+    Lifecycle,
+    Opportunity,
+    OriginSubsystem,
+    RiskAssessment,
+    Target,
+)
 
 
 class LeaderPortfolioPolicy(StrategicPortfolioPolicy):
@@ -611,6 +620,8 @@ class LeaderPortfolioPolicy(StrategicPortfolioPolicy):
         )
         reasons: dict[str, str] = {}
         lifecycles: dict[str, Lifecycle] = {}
+        mechanisms: dict[str, AttributionMechanism] = {}
+        replaces_symbols: dict[str, str] = {}
         active = [symbol for symbol in account.active_leaders if symbol in held_symbols and symbol in leaders]
         for symbol in sorted(held_symbols - set(active)):
             position = account.positions[symbol]
@@ -642,6 +653,7 @@ class LeaderPortfolioPolicy(StrategicPortfolioPolicy):
                 for tranche in position.tranches:
                     tranche.lifecycle = Lifecycle.CORE.value
                 reasons[symbol] = "repaired recovery position graduated to core"
+                mechanisms[symbol] = AttributionMechanism.LEADER_LIFECYCLE_PROMOTION
         stable_k = max(0, min(account.dynamic_k, self.cfg.max_positions))
         if stable_k and len(active) > stable_k:
             proven: set[str] = set()
@@ -679,6 +691,7 @@ class LeaderPortfolioPolicy(StrategicPortfolioPolicy):
             retained = retained[:keep_count]
             for symbol in set(active) - set(retained):
                 reasons[symbol] = "dynamic K contraction after hysteresis"
+                mechanisms[symbol] = AttributionMechanism.LEADER_LIFECYCLE_EXIT
             active = retained
         available_ranked = [item for item in ranked if item.symbol not in active]
         while (
@@ -791,6 +804,9 @@ class LeaderPortfolioPolicy(StrategicPortfolioPolicy):
                     reasons[weakest] = f"rotation exit: {challenger.symbol} confirmed edge"
                     reasons[challenger.symbol] = f"rotation entry: replaces {weakest}"
                     lifecycles[challenger.symbol] = Lifecycle.CORE
+                    mechanisms[weakest] = AttributionMechanism.LEADER_ROTATION
+                    mechanisms[challenger.symbol] = AttributionMechanism.LEADER_ROTATION
+                    replaces_symbols[challenger.symbol] = weakest
                     account.replacement_tenure[key] = 0
 
         for key in tuple(account.replacement_tenure):
@@ -835,6 +851,7 @@ class LeaderPortfolioPolicy(StrategicPortfolioPolicy):
             ):
                 active.remove(symbol)
                 reasons[symbol] = "leader lifecycle exit: confirmed structural deterioration"
+                mechanisms[symbol] = AttributionMechanism.LEADER_LIFECYCLE_EXIT
 
         account.active_leaders = sorted(set(active), key=lambda symbol: (-leaders[symbol].score, symbol))
         proposed = {
@@ -1064,6 +1081,7 @@ class LeaderPortfolioPolicy(StrategicPortfolioPolicy):
                 )
                 lifecycles[symbol] = Lifecycle.ADD1
                 reasons[symbol] = "ADD1: positive MFE with normal risk"
+                mechanisms[symbol] = AttributionMechanism.LEADER_PYRAMID
             elif (
                 has_add1
                 and not has_add2
@@ -1090,6 +1108,7 @@ class LeaderPortfolioPolicy(StrategicPortfolioPolicy):
                 )
                 lifecycles[symbol] = Lifecycle.ADD2
                 reasons[symbol] = "ADD2: high-confidence trend continuation"
+                mechanisms[symbol] = AttributionMechanism.LEADER_PYRAMID
 
         satellites_now = [
             symbol
@@ -1110,6 +1129,7 @@ class LeaderPortfolioPolicy(StrategicPortfolioPolicy):
                 proposed[symbol] = weights_now.get(symbol, 0.0)
                 lifecycles[symbol] = Lifecycle.CORE
                 reasons[symbol] = "satellite promoted to mature core"
+                mechanisms[symbol] = AttributionMechanism.LEADER_LIFECYCLE_PROMOTION
                 position.lifecycle = Lifecycle.CORE.value
                 promoted_shares = 0
                 for tranche in position.tranches:
@@ -1132,8 +1152,10 @@ class LeaderPortfolioPolicy(StrategicPortfolioPolicy):
                 proposed[symbol] = weights_now.get(symbol, 0.0)
                 lifecycles[symbol] = Lifecycle.SATELLITE
                 reasons[symbol] = "emerging leader satellite observation"
+                mechanisms[symbol] = AttributionMechanism.CHALLENGER_SCOUT
             else:
                 reasons[symbol] = "satellite expiry or failed confirmation"
+                mechanisms[symbol] = AttributionMechanism.SATELLITE_EXPIRY
                 account.satellite_entry_dates.pop(symbol, None)
         observed_scout_keys: set[str] = set()
         if (
@@ -1216,6 +1238,7 @@ class LeaderPortfolioPolicy(StrategicPortfolioPolicy):
                 proposed[item.symbol] = scout_weight
                 lifecycles[item.symbol] = Lifecycle.SATELLITE
                 reasons[item.symbol] = "idle-cash challenger scout"
+                mechanisms[item.symbol] = AttributionMechanism.CHALLENGER_SCOUT
                 account.satellite_entry_dates[item.symbol] = str(date.date())
                 account.scout_signature = scout_key
                 account.scout_entry_date = str(date.date())
@@ -1239,12 +1262,20 @@ class LeaderPortfolioPolicy(StrategicPortfolioPolicy):
             return None
         for symbol in held_symbols - set(proposed):
             reasons.setdefault(symbol, "confirmed leader deterioration")
+            mechanisms.setdefault(
+                symbol,
+                AttributionMechanism.LEADER_LIFECYCLE_EXIT,
+            )
         return self._targets(
             proposed=proposed,
             leaders=leaders,
             account=account,
             lifecycle=Lifecycle.CORE,
             reason="mature leader lifecycle",
+            origin_subsystem=OriginSubsystem.LEADER,
+            mechanism=AttributionMechanism.LEADER_SELECTION,
             lifecycles=lifecycles,
             reasons=reasons,
+            mechanisms=mechanisms,
+            replaces_symbols=replaces_symbols,
         )

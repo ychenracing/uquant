@@ -2,11 +2,15 @@
 
 from __future__ import annotations
 
+import hashlib
+import json
+import math
 from dataclasses import asdict, dataclass, field
+from datetime import date as date_type
 from enum import Enum
-from typing import Any
+from typing import Any, TypedDict
 
-ACCOUNT_SCHEMA_VERSION = 3
+ACCOUNT_SCHEMA_VERSION = 4
 
 
 class Opportunity(str, Enum):
@@ -36,6 +40,48 @@ class Lifecycle(str, Enum):
     ADD2 = "ADD2"
     SATELLITE = "SATELLITE"
     RECOVERY = "RECOVERY"
+
+
+class OriginSubsystem(str, Enum):
+    """Closed causal owners for attribution-bearing economic events."""
+
+    LEADER = "LEADER"
+    RECOVERY = "RECOVERY"
+    STRATEGIC = "STRATEGIC"
+    RISK = "RISK"
+    BROKER_RECONCILIATION = "BROKER_RECONCILIATION"
+    LEGACY_MIGRATION = "LEGACY_MIGRATION"
+
+
+class AttributionMechanism(str, Enum):
+    """Closed registry of causal mechanisms that may create economic events."""
+
+    LEADER_SELECTION = "LEADER_SELECTION"
+    LEADER_ROTATION = "LEADER_ROTATION"
+    LEADER_LIFECYCLE_EXIT = "LEADER_LIFECYCLE_EXIT"
+    LEADER_LIFECYCLE_PROMOTION = "LEADER_LIFECYCLE_PROMOTION"
+    LEADER_PYRAMID = "LEADER_PYRAMID"
+    CHALLENGER_SCOUT = "CHALLENGER_SCOUT"
+    SATELLITE_EXPIRY = "SATELLITE_EXPIRY"
+    RECOVERY_COHORT = "RECOVERY_COHORT"
+    RECOVERY_SUBSTITUTION = "RECOVERY_SUBSTITUTION"
+    RECOVERY_CAP = "RECOVERY_CAP"
+    RECOVERY_REARM = "RECOVERY_REARM"
+    TACTICAL_REBOUND = "TACTICAL_REBOUND"
+    POST_SHOCK_RESTORATION = "POST_SHOCK_RESTORATION"
+    STRATEGIC_COHORT = "STRATEGIC_COHORT"
+    STRATEGIC_TRAILING_EXIT = "STRATEGIC_TRAILING_EXIT"
+    STRATEGIC_PROFIT_LOCK = "STRATEGIC_PROFIT_LOCK"
+    STRATEGIC_RESTORATION = "STRATEGIC_RESTORATION"
+    RISK_GROSS_CAP = "RISK_GROSS_CAP"
+    SECTOR_GUARD = "SECTOR_GUARD"
+    STRATEGIC_DAMAGE_GUARD = "STRATEGIC_DAMAGE_GUARD"
+    RISK_OFF = "RISK_OFF"
+    CRISIS = "CRISIS"
+    CAPITAL_BUDGET = "CAPITAL_BUDGET"
+    RISK_FREEZE = "RISK_FREEZE"
+    BROKER_RECONCILIATION = "BROKER_RECONCILIATION"
+    LEGACY_MIGRATION = "LEGACY_MIGRATION"
 
 
 class Side(str, Enum):
@@ -68,6 +114,101 @@ class ReductionPolicy(str, Enum):
     RISK_PRIORITY = "RISK_PRIORITY"
 
 
+class AttributionIdentity(TypedDict):
+    """Canonical metadata copied without reinterpretation between domain objects."""
+
+    event_id: str
+    origin_subsystem: str
+    mechanism: str
+    origin_lifecycle: str
+    replaces_symbol: str | None
+    industry_at_entry: str
+    industry_manifest_sha256: str
+
+
+def derive_attribution_event_id(
+    *,
+    signal_date: str,
+    symbol: str,
+    target_weight: float,
+    lifecycle: str,
+    origin_lifecycle: str,
+    origin_subsystem: str,
+    mechanism: str,
+    replaces_symbol: str | None,
+    industry_at_entry: str,
+    industry_manifest_sha256: str,
+    reduction_policy: str,
+    reason_code: str,
+    exit_kind: str,
+) -> str:
+    """Derive one replay-stable attribution identity from canonical intent.
+
+    The v1 payload deliberately excludes prose, wall-clock state, process
+    hashes, UUIDs, broker fill timing, and mutable account order sequencing.
+    IEEE-754 hexadecimal weight encoding avoids locale or decimal-rendering
+    ambiguity while symbol, weight, mechanism, and replacement dimensions
+    prevent same-session economic intents from sharing an identity.
+    """
+
+    try:
+        date_type.fromisoformat(signal_date)
+    except (TypeError, ValueError) as exc:
+        raise ValueError("attribution signal_date must be an ISO date") from exc
+    if not isinstance(symbol, str) or not symbol:
+        raise ValueError("attribution symbol must be non-empty text")
+    if not isinstance(target_weight, (int, float)) or isinstance(target_weight, bool):
+        raise ValueError("attribution target_weight must be finite")
+    weight = float(target_weight)
+    if not math.isfinite(weight) or not 0.0 <= weight <= 1.0:
+        raise ValueError("attribution target_weight must be between zero and one")
+    Lifecycle(lifecycle)
+    Lifecycle(origin_lifecycle)
+    OriginSubsystem(origin_subsystem)
+    AttributionMechanism(mechanism)
+    ReductionPolicy(reduction_policy)
+    if replaces_symbol is not None and (
+        not isinstance(replaces_symbol, str) or not replaces_symbol
+    ):
+        raise ValueError("attribution replacement symbol must be non-empty text")
+    if not isinstance(industry_at_entry, str) or not industry_at_entry:
+        raise ValueError("attribution industry_at_entry must be non-empty text")
+    if (
+        not isinstance(industry_manifest_sha256, str)
+        or len(industry_manifest_sha256) != 64
+        or any(character not in "0123456789abcdef" for character in industry_manifest_sha256)
+    ):
+        raise ValueError("attribution industry manifest must be SHA-256")
+    if not isinstance(reason_code, str) or not reason_code:
+        raise ValueError("attribution reason_code must be non-empty text")
+    if not isinstance(exit_kind, str) or not exit_kind:
+        raise ValueError("attribution exit_kind must be non-empty text")
+    payload = {
+        "schema": "uquant.attribution-event.v1",
+        "signal_date": signal_date,
+        "symbol": symbol,
+        "target_weight": weight.hex(),
+        "lifecycle": lifecycle,
+        "origin_lifecycle": origin_lifecycle,
+        "origin_subsystem": origin_subsystem,
+        "mechanism": mechanism,
+        "replaces_symbol": replaces_symbol,
+        "industry_at_entry": industry_at_entry,
+        "industry_manifest_sha256": industry_manifest_sha256,
+        "reduction_policy": reduction_policy,
+        "reason_code": reason_code,
+        "exit_kind": exit_kind,
+    }
+    encoded = json.dumps(
+        payload,
+        allow_nan=False,
+        ensure_ascii=False,
+        separators=(",", ":"),
+        sort_keys=True,
+    ).encode("utf-8")
+    return "evt_" + hashlib.sha256(encoded).hexdigest()
+
+
 @dataclass(slots=True)
 class Tranche:
     """A T+1-aware lot belonging to one position lifecycle."""
@@ -86,6 +227,13 @@ class Tranche:
     entry_confidence: float = 0.0
     entry_regime: str = Opportunity.CHOPPY.value
     entry_industry_strength: float = 0.0
+    event_id: str = ""
+    origin_subsystem: str = ""
+    mechanism: str = ""
+    origin_lifecycle: str = ""
+    replaces_symbol: str | None = None
+    industry_at_entry: str = ""
+    industry_manifest_sha256: str = ""
 
 
 @dataclass(slots=True)
@@ -126,6 +274,13 @@ class PendingOrder:
     entry_confidence: float = 0.0
     entry_regime: str = Opportunity.CHOPPY.value
     entry_industry_strength: float = 0.0
+    event_id: str = ""
+    origin_subsystem: str = ""
+    mechanism: str = ""
+    origin_lifecycle: str = ""
+    replaces_symbol: str | None = None
+    industry_at_entry: str = ""
+    industry_manifest_sha256: str = ""
 
 
 @dataclass(slots=True)
@@ -156,6 +311,24 @@ class AccountOrder:
     entry_confidence: float = 0.0
     entry_regime: str = Opportunity.CHOPPY.value
     entry_industry_strength: float = 0.0
+    event_id: str = ""
+    origin_subsystem: str = ""
+    mechanism: str = ""
+    origin_lifecycle: str = ""
+    replaces_symbol: str | None = None
+    industry_at_entry: str = ""
+    industry_manifest_sha256: str = ""
+
+
+ATTRIBUTION_IDENTITY_FIELDS: tuple[str, ...] = (
+    "event_id",
+    "origin_subsystem",
+    "mechanism",
+    "origin_lifecycle",
+    "replaces_symbol",
+    "industry_at_entry",
+    "industry_manifest_sha256",
+)
 
 
 ORDER_INTENT_IMMUTABLE_FIELDS: tuple[str, ...] = (
@@ -172,6 +345,7 @@ ORDER_INTENT_IMMUTABLE_FIELDS: tuple[str, ...] = (
     "entry_confidence",
     "entry_regime",
     "entry_industry_strength",
+    *ATTRIBUTION_IDENTITY_FIELDS,
 )
 
 
@@ -203,6 +377,13 @@ class Fill:
     reason_code: str = "strategy_target"
     exit_kind: str = "strategy"
     sold_tranches: list[dict[str, Any]] = field(default_factory=list)
+    event_id: str = ""
+    origin_subsystem: str = ""
+    mechanism: str = ""
+    origin_lifecycle: str = ""
+    replaces_symbol: str | None = None
+    industry_at_entry: str = ""
+    industry_manifest_sha256: str = ""
 
 
 @dataclass(slots=True)
@@ -339,6 +520,13 @@ class Target:
     reason_code: str = "strategy_target"
     exit_kind: str = "strategy"
     entry_industry_strength: float = 0.0
+    event_id: str = ""
+    origin_subsystem: str = ""
+    mechanism: str = ""
+    origin_lifecycle: str = ""
+    replaces_symbol: str | None = None
+    industry_at_entry: str = ""
+    industry_manifest_sha256: str = ""
 
 
 @dataclass(frozen=True, slots=True)
@@ -376,6 +564,13 @@ class Decision:
                     "reduction_policy": item.reduction_policy,
                     "reason_code": item.reason_code,
                     "exit_kind": item.exit_kind,
+                    "event_id": item.event_id,
+                    "origin_subsystem": item.origin_subsystem,
+                    "mechanism": item.mechanism,
+                    "origin_lifecycle": item.origin_lifecycle,
+                    "replaces_symbol": item.replaces_symbol,
+                    "industry_at_entry": item.industry_at_entry,
+                    "industry_manifest_sha256": item.industry_manifest_sha256,
                 }
                 for item in self.targets
             ],
@@ -388,6 +583,13 @@ class Decision:
                     "reduction_policy": item.reduction_policy,
                     "reason_code": item.reason_code,
                     "exit_kind": item.exit_kind,
+                    "event_id": item.event_id,
+                    "origin_subsystem": item.origin_subsystem,
+                    "mechanism": item.mechanism,
+                    "origin_lifecycle": item.origin_lifecycle,
+                    "replaces_symbol": item.replaces_symbol,
+                    "industry_at_entry": item.industry_at_entry,
+                    "industry_manifest_sha256": item.industry_manifest_sha256,
                 }
                 for item in self.pending_orders
             ],

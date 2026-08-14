@@ -13,6 +13,7 @@ from .config import SystemConfig
 from .features import scalar
 from .portfolio_core import symbol_weight_cap
 from .types import (
+    ATTRIBUTION_IDENTITY_FIELDS,
     ORDER_INTENT_IMMUTABLE_FIELDS,
     AccountOrder,
     AccountState,
@@ -25,8 +26,10 @@ from .types import (
     Side,
     Target,
     Tranche,
+    derive_attribution_event_id,
     order_intent_metadata,
 )
+from .validation.universe import REQUIRED_AI_UNIVERSE_SHA256, default_ai_universe
 
 
 def fee_components(side: str, gross: float, cfg: SystemConfig) -> tuple[float, float, float]:
@@ -137,6 +140,36 @@ def plan_orders(
             and current_value / equity < 0.95 * target.weight
             and difference >= restoration_threshold
         )
+        if difference > 0 and target.event_id:
+            industry = default_ai_universe().industry_of(target.symbol, signal_date)
+            if industry == "unknown":
+                raise RuntimeError(
+                    f"new BUY for {target.symbol} has no point-in-time AI-universe membership"
+                )
+            if (
+                target.industry_at_entry != industry
+                or target.industry_manifest_sha256 != REQUIRED_AI_UNIVERSE_SHA256
+            ):
+                raise RuntimeError(
+                    f"new BUY for {target.symbol} has invalid point-in-time industry attribution"
+                )
+            expected_event_id = derive_attribution_event_id(
+                signal_date=signal_date,
+                symbol=target.symbol,
+                target_weight=target.weight,
+                lifecycle=target.lifecycle,
+                origin_lifecycle=target.origin_lifecycle,
+                origin_subsystem=target.origin_subsystem,
+                mechanism=target.mechanism,
+                replaces_symbol=target.replaces_symbol,
+                industry_at_entry=target.industry_at_entry,
+                industry_manifest_sha256=target.industry_manifest_sha256,
+                reduction_policy=target.reduction_policy,
+                reason_code=target.reason_code,
+                exit_kind=target.exit_kind,
+            )
+            if target.event_id != expected_event_id:
+                raise RuntimeError("new BUY event_id differs from canonical derivation")
         if target.weight == 0 and current_value > 0:
             difference = -current_value
         elif abs(difference) < threshold and not restoration_buy_below_completion:
@@ -156,6 +189,13 @@ def plan_orders(
                 entry_confidence=target.confidence,
                 entry_regime=account.opportunity,
                 entry_industry_strength=target.entry_industry_strength,
+                event_id=target.event_id,
+                origin_subsystem=target.origin_subsystem,
+                mechanism=target.mechanism,
+                origin_lifecycle=target.origin_lifecycle,
+                replaces_symbol=target.replaces_symbol,
+                industry_at_entry=target.industry_at_entry,
+                industry_manifest_sha256=target.industry_manifest_sha256,
             )
         )
     # Exactly one direction per symbol. Sells execute first at the next open.
@@ -175,6 +215,17 @@ def merge_pending_orders(
     """Keep blocked/partial orders while letting today's target supersede stale intent."""
     target_by_symbol = {target.symbol: target for target in targets}
 
+    def same_attribution(order: PendingOrder, target: Target) -> bool:
+        # A still-open GTC order keeps the event created on its original
+        # signal date.  Compare its immutable causal dimensions here; a fresh
+        # event_id on today's otherwise-identical Target must not split one
+        # partially executed economic intent into multiple events.
+        return all(
+            getattr(order, field) == getattr(target, field)
+            for field in ATTRIBUTION_IDENTITY_FIELDS
+            if field != "event_id"
+        )
+
     def durable_subthreshold_buy(
         order: PendingOrder,
         target: Target | None,
@@ -192,6 +243,7 @@ def merge_pending_orders(
             and order.reduction_policy == target.reduction_policy
             and order.reason_code == target.reason_code
             and order.exit_kind == target.exit_kind
+            and same_attribution(order, target)
             and abs(order.target_weight - target.weight)
             < cfg.min_trade_weight
         )
@@ -209,6 +261,7 @@ def merge_pending_orders(
             and order.reduction_policy == target.reduction_policy
             and order.reason_code == target.reason_code
             and order.exit_kind == target.exit_kind
+            and same_attribution(order, target)
         )
         durable_full_exit = bool(
             order.side == Side.SELL.value
@@ -227,6 +280,7 @@ def merge_pending_orders(
             and target.weight > 1e-12
             and target.weight < order.target_weight
             and order.target_weight - target.weight < cfg.min_trade_weight
+            and same_attribution(order, target)
         )
         if (
             (consistent and (same_execution_policy or durable_full_exit))
@@ -251,6 +305,7 @@ def merge_pending_orders(
                 and target.weight > 1e-12
                 and target.weight < existing.target_weight
                 and existing.target_weight - target.weight < cfg.min_trade_weight
+                and same_attribution(existing, target)
             )
             if durable_partial_risk_exit:
                 continue
@@ -264,6 +319,11 @@ def merge_pending_orders(
                     and existing.reduction_policy == order.reduction_policy
                     and existing.reason_code == order.reason_code
                     and existing.exit_kind == order.exit_kind
+                    and all(
+                        getattr(existing, field) == getattr(order, field)
+                        for field in ATTRIBUTION_IDENTITY_FIELDS
+                        if field != "event_id"
+                    )
                 )
                 or (
                     existing.side == Side.SELL.value
@@ -332,6 +392,13 @@ def _register_account_order(
         entry_confidence=order.entry_confidence,
         entry_regime=order.entry_regime,
         entry_industry_strength=order.entry_industry_strength,
+        event_id=order.event_id,
+        origin_subsystem=order.origin_subsystem,
+        mechanism=order.mechanism,
+        origin_lifecycle=order.origin_lifecycle,
+        replaces_symbol=order.replaces_symbol,
+        industry_at_entry=order.industry_at_entry,
+        industry_manifest_sha256=order.industry_manifest_sha256,
     )
     account.order_ledger.append(entry)
     return entry
@@ -463,6 +530,13 @@ def _consume_sell_tranches(
                 "entry_confidence": tranche.entry_confidence,
                 "entry_regime": tranche.entry_regime,
                 "entry_industry_strength": tranche.entry_industry_strength,
+                "event_id": tranche.event_id,
+                "origin_subsystem": tranche.origin_subsystem,
+                "mechanism": tranche.mechanism,
+                "origin_lifecycle": tranche.origin_lifecycle,
+                "replaces_symbol": tranche.replaces_symbol,
+                "industry_at_entry": tranche.industry_at_entry,
+                "industry_manifest_sha256": tranche.industry_manifest_sha256,
             }
         )
         tranche.shares -= sold
@@ -722,6 +796,13 @@ class ExecutionPlanner:
                         entry_confidence=order.entry_confidence,
                         entry_regime=order.entry_regime,
                         entry_industry_strength=order.entry_industry_strength,
+                        event_id=order.event_id,
+                        origin_subsystem=order.origin_subsystem,
+                        mechanism=order.mechanism,
+                        origin_lifecycle=order.origin_lifecycle,
+                        replaces_symbol=order.replaces_symbol,
+                        industry_at_entry=order.industry_at_entry,
+                        industry_manifest_sha256=order.industry_manifest_sha256,
                     )
                 )
                 account.positions[order.symbol] = current
@@ -764,6 +845,13 @@ class ExecutionPlanner:
                 reason_code=order.reason_code,
                 exit_kind=order.exit_kind,
                 sold_tranches=sold_tranches,
+                event_id=order.event_id,
+                origin_subsystem=order.origin_subsystem,
+                mechanism=order.mechanism,
+                origin_lifecycle=order.origin_lifecycle,
+                replaces_symbol=order.replaces_symbol,
+                industry_at_entry=order.industry_at_entry,
+                industry_manifest_sha256=order.industry_manifest_sha256,
             )
             account.fills.append(fill)
             fills.append(fill)

@@ -23,10 +23,12 @@ from uquant.risk import (
 )
 from uquant.types import (
     AccountState,
+    AttributionMechanism,
     Fill,
     LeaderScore,
     Lifecycle,
     Opportunity,
+    OriginSubsystem,
     PendingOrder,
     Position,
     ReductionPolicy,
@@ -354,6 +356,10 @@ def test_recovery_substitution_rejects_an_overextended_challenger():
     assert admitted is not None
     assert admitted_account.replacement_events[-1]["new_symbol"] == "challenger"
     assert admitted_account.anchor_weights == pytest.approx({"lead": 0.60, "challenger": 0.30})
+    replacement = next(target for target in admitted if target.symbol == "challenger")
+    assert replacement.origin_subsystem == OriginSubsystem.RECOVERY.value
+    assert replacement.mechanism == AttributionMechanism.RECOVERY_SUBSTITUTION.value
+    assert replacement.replaces_symbol == "weak"
 
 
 def test_recovery_substitution_respects_transfer_cap_and_retains_lead_drift():
@@ -5823,8 +5829,14 @@ def test_effective_n_drives_dynamic_k_and_rotation_records_attribution():
     assert rotation_account.replacement_events
     event = rotation_account.replacement_events[-1]
     assert (event["old_symbol"], event["new_symbol"]) == ("weak", "new")
-    assert next(item for item in rotation_targets if item.symbol == "new").weight > 0
-    assert next(item for item in rotation_targets if item.symbol == "weak").weight == 0
+    replacement = next(item for item in rotation_targets if item.symbol == "new")
+    replaced = next(item for item in rotation_targets if item.symbol == "weak")
+    assert replacement.weight > 0
+    assert replaced.weight == 0
+    assert replacement.origin_subsystem == replaced.origin_subsystem == OriginSubsystem.LEADER.value
+    assert replacement.mechanism == replaced.mechanism == AttributionMechanism.LEADER_ROTATION.value
+    assert replacement.replaces_symbol == "weak"
+    assert replaced.replaces_symbol is None
 
 
 def test_allocator_enforces_risk_cap_on_anchored_early_return():

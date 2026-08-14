@@ -18,9 +18,11 @@ from .portfolio_core import (
 from .portfolio_recovery import RecoveryPortfolioPolicy
 from .types import (
     AccountState,
+    AttributionMechanism,
     LeaderScore,
     Lifecycle,
     Opportunity,
+    OriginSubsystem,
     ReductionPolicy,
     Risk,
     RiskAssessment,
@@ -57,6 +59,25 @@ class PortfolioAllocator(RecoveryPortfolioPolicy):
             if fully_repaired
             else min(self.cfg.recovery_target_gross, explicit_cap)
         )
+
+    @staticmethod
+    def _risk_attribution_mechanism(reason_code: str) -> AttributionMechanism:
+        """Map the risk engine's closed structured code to one mechanism."""
+
+        registry = {
+            "sector_guard": AttributionMechanism.SECTOR_GUARD,
+            "strategic_damage_guard": AttributionMechanism.STRATEGIC_DAMAGE_GUARD,
+            "risk_off": AttributionMechanism.RISK_OFF,
+            "crisis": AttributionMechanism.CRISIS,
+            "capital_budget": AttributionMechanism.CAPITAL_BUDGET,
+            "risk_gross_cap": AttributionMechanism.RISK_GROSS_CAP,
+        }
+        try:
+            return registry[reason_code]
+        except KeyError as exc:
+            raise RuntimeError(
+                f"risk attribution reason code is not registered: {reason_code}"
+            ) from exc
 
     def _risk_retention_score(
         self,
@@ -417,11 +438,13 @@ class PortfolioAllocator(RecoveryPortfolioPolicy):
                 and target.weight > 1e-12
                 and weight + 1e-12 < current_weight
             )
+            risk_override_applied = False
             if weight + 1e-12 < current_weight and (reducer_lowered_target or risk_must_force_positive_trim):
                 reason = f"{risk_reason}; {reason}"
                 reduction_policy = ReductionPolicy.RISK_PRIORITY.value
                 reason_code = risk_reason_code
                 exit_kind = risk_exit_kind
+                risk_override_applied = True
             capped.append(
                 replace(
                     target,
@@ -430,6 +453,18 @@ class PortfolioAllocator(RecoveryPortfolioPolicy):
                     reduction_policy=reduction_policy,
                     reason_code=reason_code,
                     exit_kind=exit_kind,
+                    origin_subsystem=(
+                        OriginSubsystem.RISK.value
+                        if risk_override_applied
+                        else target.origin_subsystem
+                    ),
+                    mechanism=(
+                        self._risk_attribution_mechanism(risk_reason_code).value
+                        if risk_override_applied
+                        else target.mechanism
+                    ),
+                    origin_lifecycle=(target.origin_lifecycle or target.lifecycle),
+                    event_id=("" if risk_override_applied else target.event_id),
                 )
             )
         if sum(item.weight for item in capped if item.weight > 0) > gross_cap + 1e-8:
@@ -608,6 +643,15 @@ class PortfolioAllocator(RecoveryPortfolioPolicy):
                         reason_code=pending_sell.reason_code,
                         exit_kind=pending_sell.exit_kind,
                         entry_industry_strength=pending_sell.entry_industry_strength,
+                        event_id=pending_sell.event_id,
+                        origin_subsystem=pending_sell.origin_subsystem,
+                        mechanism=pending_sell.mechanism,
+                        origin_lifecycle=pending_sell.origin_lifecycle,
+                        replaces_symbol=pending_sell.replaces_symbol,
+                        industry_at_entry=pending_sell.industry_at_entry,
+                        industry_manifest_sha256=(
+                            pending_sell.industry_manifest_sha256
+                        ),
                     )
                 )
                 continue
@@ -626,6 +670,9 @@ class PortfolioAllocator(RecoveryPortfolioPolicy):
                     reason="level-1 risk freeze; retain existing exposure",
                     reason_code="risk_freeze_hold",
                     exit_kind="risk",
+                    origin_subsystem=OriginSubsystem.RISK.value,
+                    mechanism=AttributionMechanism.RISK_FREEZE.value,
+                    origin_lifecycle=position.lifecycle,
                 )
             )
         return tuple(frozen)
@@ -1035,6 +1082,8 @@ class PortfolioAllocator(RecoveryPortfolioPolicy):
                         account=account,
                         lifecycle=Lifecycle.RECOVERY,
                         reason="under-diversified recovery cap",
+                        origin_subsystem=OriginSubsystem.RECOVERY,
+                        mechanism=AttributionMechanism.RECOVERY_CAP,
                     )
                     return self._frozen_existing_targets(
                         strategy_targets=cap_targets,
@@ -1195,6 +1244,8 @@ class PortfolioAllocator(RecoveryPortfolioPolicy):
                     account=account,
                     lifecycle=Lifecycle.RECOVERY,
                     reason="controlled rebound exit",
+                    origin_subsystem=OriginSubsystem.RECOVERY,
+                    mechanism=AttributionMechanism.TACTICAL_REBOUND,
                 )
             pending_buy = next(
                 (
@@ -1218,6 +1269,8 @@ class PortfolioAllocator(RecoveryPortfolioPolicy):
                 account=account,
                 lifecycle=Lifecycle.RECOVERY,
                 reason="controlled rebound probe",
+                origin_subsystem=OriginSubsystem.RECOVERY,
+                mechanism=AttributionMechanism.TACTICAL_REBOUND,
             )
 
         if risk.state.value == "CRISIS" and not confirmed_hard_risk_trail:
@@ -1238,6 +1291,8 @@ class PortfolioAllocator(RecoveryPortfolioPolicy):
                     if risk.target_gross_cap <= 0
                     else "graded crisis risk reduction"
                 ),
+                origin_subsystem=OriginSubsystem.RISK,
+                mechanism=AttributionMechanism.CRISIS,
             )
 
         if (
@@ -1366,6 +1421,8 @@ class PortfolioAllocator(RecoveryPortfolioPolicy):
                     account=account,
                     lifecycle=Lifecycle.RECOVERY,
                     reason="completed post-shock restoration; retain price drift",
+                    origin_subsystem=OriginSubsystem.RECOVERY,
+                    mechanism=AttributionMechanism.POST_SHOCK_RESTORATION,
                 )
             # Once risk has fully reopened, restoration is buy-only.  A
             # winner that drifted above its saved target receives a sticky
@@ -1395,6 +1452,8 @@ class PortfolioAllocator(RecoveryPortfolioPolicy):
                 account=account,
                 lifecycle=Lifecycle.RECOVERY,
                 reason="confirmed post-shock restoration",
+                origin_subsystem=OriginSubsystem.RECOVERY,
+                mechanism=AttributionMechanism.POST_SHOCK_RESTORATION,
                 reasons=restore_reasons,
             )
 
@@ -1489,6 +1548,8 @@ class PortfolioAllocator(RecoveryPortfolioPolicy):
                 account=account,
                 lifecycle=Lifecycle.RECOVERY,
                 reason="mature anchored leader",
+                origin_subsystem=OriginSubsystem.RECOVERY,
+                mechanism=AttributionMechanism.RECOVERY_COHORT,
                 reasons=reasons,
             )
         owner_rearm_open = bool(
@@ -1553,6 +1614,8 @@ class PortfolioAllocator(RecoveryPortfolioPolicy):
                     account=account,
                     lifecycle=Lifecycle.CORE,
                     reason="completed recovery owner rearm; retain price drift",
+                    origin_subsystem=OriginSubsystem.RECOVERY,
+                    mechanism=AttributionMechanism.RECOVERY_REARM,
                 )
             current_owner = {
                 symbol: max(0.0, weights_now.get(symbol, 0.0))
@@ -1577,6 +1640,8 @@ class PortfolioAllocator(RecoveryPortfolioPolicy):
                 account=account,
                 lifecycle=Lifecycle.RECOVERY,
                 reason="confirmed recovery owner capital rearm",
+                origin_subsystem=OriginSubsystem.RECOVERY,
+                mechanism=AttributionMechanism.RECOVERY_REARM,
             )
         anchor_elapsed = 0
         if account.recovery_anchor_date and user_panel:
@@ -1635,6 +1700,8 @@ class PortfolioAllocator(RecoveryPortfolioPolicy):
                 account=account,
                 lifecycle=Lifecycle.CORE,
                 reason="graduated recovery cohort; retain price drift",
+                origin_subsystem=OriginSubsystem.RECOVERY,
+                mechanism=AttributionMechanism.RECOVERY_REARM,
             )
         substitution = self._recovery_anchor_substitution(
             date=date,
@@ -1666,6 +1733,8 @@ class PortfolioAllocator(RecoveryPortfolioPolicy):
                 account=account,
                 lifecycle=Lifecycle.CORE,
                 reason="mature anchored leader",
+                origin_subsystem=OriginSubsystem.RECOVERY,
+                mechanism=AttributionMechanism.RECOVERY_COHORT,
             )
 
         # A recovery label must not evict a healthy trend core. During a
@@ -1805,6 +1874,8 @@ class PortfolioAllocator(RecoveryPortfolioPolicy):
                     account=account,
                     lifecycle=Lifecycle.RECOVERY,
                     reason="overextended pullback cooldown",
+                    origin_subsystem=OriginSubsystem.RECOVERY,
+                    mechanism=AttributionMechanism.TACTICAL_REBOUND,
                 )
             rebound_breadth = {
                 score.industry
@@ -1953,6 +2024,8 @@ class PortfolioAllocator(RecoveryPortfolioPolicy):
                     account=account,
                     lifecycle=Lifecycle.RECOVERY,
                     reason="controlled oversold rebound probe",
+                    origin_subsystem=OriginSubsystem.RECOVERY,
+                    mechanism=AttributionMechanism.TACTICAL_REBOUND,
                 )
 
         if opportunity is Opportunity.RECOVERY:
@@ -1999,6 +2072,8 @@ class PortfolioAllocator(RecoveryPortfolioPolicy):
                     account=account,
                     lifecycle=Lifecycle.RECOVERY,
                     reason="causal crash-recovery leader",
+                    origin_subsystem=OriginSubsystem.RECOVERY,
+                    mechanism=AttributionMechanism.RECOVERY_COHORT,
                 )
             candidates: list[LeaderScore] = []
             crash_depth: dict[str, float] = {}
@@ -2101,6 +2176,8 @@ class PortfolioAllocator(RecoveryPortfolioPolicy):
                             account=account,
                             lifecycle=Lifecycle.RECOVERY,
                             reason="awaiting recovery cohort member confirmation",
+                            origin_subsystem=OriginSubsystem.RECOVERY,
+                            mechanism=AttributionMechanism.RECOVERY_COHORT,
                         )
                 incumbent_order = [symbol for symbol in account.anchor_weights if symbol in selected]
                 lead = incumbent_order[0] if incumbent_order else selected[0]
@@ -2269,6 +2346,12 @@ class PortfolioAllocator(RecoveryPortfolioPolicy):
                         if cohort_changed
                         else "causal crash-recovery leader"
                     ),
+                    origin_subsystem=OriginSubsystem.RECOVERY,
+                    mechanism=(
+                        AttributionMechanism.RECOVERY_CAP
+                        if capped
+                        else AttributionMechanism.RECOVERY_COHORT
+                    ),
                 )
         anchored_held = {
             symbol: weights_now.get(symbol, 0.0)
@@ -2283,6 +2366,12 @@ class PortfolioAllocator(RecoveryPortfolioPolicy):
                 account=account,
                 lifecycle=Lifecycle.CORE,
                 reason="under-diversified recovery cap" if capped else "mature anchored leader",
+                origin_subsystem=OriginSubsystem.RECOVERY,
+                mechanism=(
+                    AttributionMechanism.RECOVERY_CAP
+                    if capped
+                    else AttributionMechanism.RECOVERY_COHORT
+                ),
             )
 
         if freeze_active and bounded_recovery_repair:
@@ -2304,6 +2393,8 @@ class PortfolioAllocator(RecoveryPortfolioPolicy):
                 account=account,
                 lifecycle=Lifecycle.RECOVERY,
                 reason="confirmed repair has no bounded recovery candidate",
+                origin_subsystem=OriginSubsystem.RECOVERY,
+                mechanism=AttributionMechanism.RECOVERY_COHORT,
             )
 
         if leader_cycle_armed:
@@ -2359,6 +2450,8 @@ class PortfolioAllocator(RecoveryPortfolioPolicy):
                 account=account,
                 lifecycle=Lifecycle.CORE,
                 reason="confirmed live leader continuity while owner rearms",
+                origin_subsystem=OriginSubsystem.LEADER,
+                mechanism=AttributionMechanism.LEADER_SELECTION,
                 lifecycles={
                     symbol: Lifecycle(account.positions[symbol].lifecycle)
                     for symbol in live_symbols
@@ -2374,4 +2467,6 @@ class PortfolioAllocator(RecoveryPortfolioPolicy):
             account=account,
             lifecycle=Lifecycle.CORE,
             reason="no independently confirmed leader",
+            origin_subsystem=OriginSubsystem.LEADER,
+            mechanism=AttributionMechanism.LEADER_LIFECYCLE_EXIT,
         )

@@ -10,13 +10,55 @@ from uquant.account import load_account, migrate_account
 from uquant.types import (
     AccountOrder,
     AccountState,
+    AttributionMechanism,
     Fill,
+    Lifecycle,
     OrderStatus,
+    OriginSubsystem,
     Position,
+    ReductionPolicy,
     Tranche,
+    derive_attribution_event_id,
 )
+from uquant.validation.universe import REQUIRED_AI_UNIVERSE_SHA256
 
 SYMBOL = "sz300308"
+
+
+def _identity(
+    *,
+    signal_date: str = "2026-01-05",
+    symbol: str = SYMBOL,
+    target_weight: float = 0.0,
+    lifecycle: str = Lifecycle.CORE.value,
+    reason_code: str = "strategy_target",
+    exit_kind: str = "strategy",
+    reduction_policy: str = ReductionPolicy.FIFO.value,
+) -> dict[str, str | None]:
+    fields: dict[str, str | None] = {
+        "origin_subsystem": OriginSubsystem.LEADER.value,
+        "mechanism": AttributionMechanism.LEADER_SELECTION.value,
+        "origin_lifecycle": lifecycle,
+        "replaces_symbol": None,
+        "industry_at_entry": "optical",
+        "industry_manifest_sha256": REQUIRED_AI_UNIVERSE_SHA256,
+    }
+    fields["event_id"] = derive_attribution_event_id(
+        signal_date=signal_date,
+        symbol=symbol,
+        target_weight=target_weight,
+        lifecycle=lifecycle,
+        origin_lifecycle=lifecycle,
+        origin_subsystem=OriginSubsystem.LEADER.value,
+        mechanism=AttributionMechanism.LEADER_SELECTION.value,
+        replaces_symbol=None,
+        industry_at_entry="optical",
+        industry_manifest_sha256=REQUIRED_AI_UNIVERSE_SHA256,
+        reduction_policy=reduction_policy,
+        reason_code=reason_code,
+        exit_kind=exit_kind,
+    )
+    return fields
 
 
 def _write_payload(tmp_path, payload: dict[str, Any], name: str = "account.json"):
@@ -52,6 +94,7 @@ def _position_state() -> AccountState:
                 entry_confidence=0.9,
                 entry_regime="TREND",
                 entry_industry_strength=0.7,
+                **_identity(),
             )
         ],
     )
@@ -109,6 +152,11 @@ def test_native_v3_rejects_invalid_tranche_economic_metadata(
 
 
 def _sell_fill_state() -> AccountState:
+    identity = _identity(
+        reason_code="risk_gross_cap",
+        exit_kind="risk",
+        reduction_policy=ReductionPolicy.RISK_PRIORITY.value,
+    )
     order = AccountOrder(
         order_id="O000000001",
         signal_date="2026-01-05",
@@ -127,6 +175,7 @@ def _sell_fill_state() -> AccountState:
         reduction_policy="RISK_PRIORITY",
         reason_code="risk_gross_cap",
         exit_kind="risk",
+        **identity,
     )
     allocation = {
         "tranche_id": "lot-1",
@@ -145,6 +194,7 @@ def _sell_fill_state() -> AccountState:
         "slippage_cost": 0.2,
         "fees": 6.1,
         "transaction_costs": 6.3,
+        **identity,
     }
     fill = Fill(
         signal_date=order.signal_date,
@@ -166,6 +216,7 @@ def _sell_fill_state() -> AccountState:
         reason_code=order.reason_code,
         exit_kind=order.exit_kind,
         sold_tranches=[allocation],
+        **identity,
     )
     state = AccountState.empty(2_000_000.0)
     state.order_ledger = [order]

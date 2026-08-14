@@ -20,12 +20,16 @@ from uquant.types import (
     ACCOUNT_SCHEMA_VERSION,
     AccountOrder,
     AccountState,
+    AttributionMechanism,
     Fill,
+    OriginSubsystem,
     PendingOrder,
     Position,
     ReductionPolicy,
     Tranche,
+    derive_attribution_event_id,
 )
+from uquant.validation.universe import REQUIRED_AI_UNIVERSE_SHA256
 
 SYMBOLS = ["sz300308", "sz300502", "sz300394", "sh688008", "sh603986"]
 RISK_REGRESSION_POOLS = (
@@ -50,6 +54,64 @@ POOL_D = (
     "sh688361",
     "sz300604",
 )
+
+
+def _identity(
+    *,
+    signal_date: str = "2026-01-05",
+    symbol: str = "sz300308",
+    target_weight: float = 0.5,
+    lifecycle: str = "CORE",
+    reduction_policy: str = ReductionPolicy.FIFO.value,
+    reason_code: str = "strategy_target",
+    exit_kind: str = "strategy",
+) -> dict[str, str | None]:
+    fields: dict[str, str | None] = {
+        "origin_subsystem": OriginSubsystem.LEADER.value,
+        "mechanism": AttributionMechanism.LEADER_SELECTION.value,
+        "origin_lifecycle": lifecycle,
+        "replaces_symbol": None,
+        "industry_at_entry": "optical",
+        "industry_manifest_sha256": REQUIRED_AI_UNIVERSE_SHA256,
+    }
+    fields["event_id"] = derive_attribution_event_id(
+        signal_date=signal_date,
+        symbol=symbol,
+        target_weight=target_weight,
+        lifecycle=lifecycle,
+        origin_lifecycle=lifecycle,
+        origin_subsystem=OriginSubsystem.LEADER.value,
+        mechanism=AttributionMechanism.LEADER_SELECTION.value,
+        replaces_symbol=None,
+        industry_at_entry="optical",
+        industry_manifest_sha256=REQUIRED_AI_UNIVERSE_SHA256,
+        reduction_policy=reduction_policy,
+        reason_code=reason_code,
+        exit_kind=exit_kind,
+    )
+    return fields
+
+
+def _refresh_payload_event_id(order: dict[str, object]) -> None:
+    order["event_id"] = derive_attribution_event_id(
+        signal_date=str(order["signal_date"]),
+        symbol=str(order["symbol"]),
+        target_weight=float(order["target_weight"]),
+        lifecycle=str(order["lifecycle"]),
+        origin_lifecycle=str(order["origin_lifecycle"]),
+        origin_subsystem=str(order["origin_subsystem"]),
+        mechanism=str(order["mechanism"]),
+        replaces_symbol=(
+            str(order["replaces_symbol"])
+            if order["replaces_symbol"] is not None
+            else None
+        ),
+        industry_at_entry=str(order["industry_at_entry"]),
+        industry_manifest_sha256=str(order["industry_manifest_sha256"]),
+        reduction_policy=str(order["reduction_policy"]),
+        reason_code=str(order["reason_code"]),
+        exit_kind=str(order["exit_kind"]),
+    )
 
 
 def test_decision_config_is_invariant_to_unrelated_universe_size() -> None:
@@ -166,6 +228,7 @@ def test_order_state_migrates_sequence_and_rejects_broken_references(tmp_path):
             target_weight=0.5,
             reason="entry",
             lifecycle="CORE",
+            **_identity(),
         )
     ]
     payload = state.to_dict()
@@ -192,6 +255,7 @@ def test_order_state_migrates_sequence_and_rejects_broken_references(tmp_path):
             "remaining_shares": 0,
             "attempts": 0,
             "order_id": "O000000999",
+            **_identity(),
         }
     ]
     unknown = tmp_path / "unknown-order-account.json"
@@ -293,6 +357,10 @@ def test_schema_v3_rejects_nonfinite_or_unreconciled_position_lots(tmp_path):
                     "2026-01-03",
                     12.0,
                     lowest_close=9.0,
+                    **_identity(
+                        signal_date="2026-01-02",
+                        target_weight=0.0,
+                    ),
                 )
             ],
         )
@@ -317,6 +385,7 @@ def test_schema_v3_rejects_nonfinite_or_unreconciled_position_lots(tmp_path):
 
 
 def test_pending_and_ledger_immutable_order_metadata_must_match(tmp_path):
+    identity = _identity()
     pending = PendingOrder(
         signal_date="2026-01-05",
         symbol="sz300308",
@@ -329,6 +398,7 @@ def test_pending_and_ledger_immutable_order_metadata_must_match(tmp_path):
         entry_confidence=0.90,
         entry_regime="TREND",
         entry_industry_strength=0.70,
+        **identity,
     )
     ledger = AccountOrder(
         order_id="O000000001",
@@ -344,6 +414,7 @@ def test_pending_and_ledger_immutable_order_metadata_must_match(tmp_path):
         entry_confidence=pending.entry_confidence,
         entry_regime=pending.entry_regime,
         entry_industry_strength=pending.entry_industry_strength,
+        **identity,
     )
     state = AccountState.empty(2e6)
     state.data_hash = "data"
@@ -371,6 +442,7 @@ def test_pending_and_ledger_immutable_order_metadata_must_match(tmp_path):
     for field, changed in changes.items():
         payload = copy.deepcopy(valid)
         payload["pending_orders"][0][field] = changed
+        _refresh_payload_event_id(payload["pending_orders"][0])
         malformed = tmp_path / f"order-{field}.json"
         malformed.write_text(json.dumps(payload), encoding="utf-8")
         with pytest.raises(RuntimeError, match=rf"immutable metadata.*{field}"):

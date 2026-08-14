@@ -10,7 +10,15 @@ import pandas as pd
 from .features import scalar
 from .leader import credible_recovery_reserve
 from .portfolio_leaders import LeaderPortfolioPolicy
-from .types import AccountState, LeaderScore, Lifecycle, RiskAssessment, Target
+from .types import (
+    AccountState,
+    AttributionMechanism,
+    LeaderScore,
+    Lifecycle,
+    OriginSubsystem,
+    RiskAssessment,
+    Target,
+)
 
 
 class RecoveryPortfolioPolicy(LeaderPortfolioPolicy):
@@ -68,6 +76,8 @@ class RecoveryPortfolioPolicy(LeaderPortfolioPolicy):
                     account=account,
                     lifecycle=Lifecycle.CORE,
                     reason="confirmed recovery anchor substitution",
+                    origin_subsystem=OriginSubsystem.RECOVERY,
+                    mechanism=AttributionMechanism.RECOVERY_SUBSTITUTION,
                 )
             account.candidate_tenure["recovery_substitution_pending"] = 0
 
@@ -274,10 +284,13 @@ class RecoveryPortfolioPolicy(LeaderPortfolioPolicy):
             account=account,
             lifecycle=Lifecycle.CORE,
             reason="confirmed recovery anchor substitution",
+            origin_subsystem=OriginSubsystem.RECOVERY,
+            mechanism=AttributionMechanism.RECOVERY_SUBSTITUTION,
             reasons={
                 incumbent: f"recovery anchor exit: {challenger.symbol} confirmed edge",
                 challenger.symbol: f"recovery anchor entry: replaces {incumbent}",
             },
+            replaces_symbols={challenger.symbol: incumbent},
         )
         if risk_neutral_only:
             # A warning-state substitution is financed only by the broken

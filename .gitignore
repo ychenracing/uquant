@@ -14,3 +14,4 @@ account_state.json
 daily_report_*.md
 # Generated only after checkout so its production_commit can equal the exact HEAD.
 /benchmarks/ai_era_performance.json
+.worktrees/

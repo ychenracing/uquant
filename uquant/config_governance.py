@@ -15,7 +15,7 @@ from .config import SystemConfig, config_fingerprint
 GOVERNANCE_PATH: Final = Path("benchmarks") / "config_parameter_governance.json"
 GOVERNANCE_BASE_COMMIT: Final = "e71c3f6cf42244f71e59458ec15375b92ed4da1f"
 REQUIRED_CONFIG_PARAMETER_GOVERNANCE_SHA256: Final = (
-    "2efef1f096766dee6bcc92bd66fb2d772779fbd19736b11d22d7ead8f6fd24a0"
+    "1601674fd1dabb9a399894acd734f56dcb3a90d886e7cb7a9d3c13ca2f215256"
 )
 FROZEN_CHAMPION_CONFIG_SHA256: Final = (
     "023d709731196a325d9cd03e95ece92e4baf63d2c5c66bb9f7d0e7a190e7bf20"

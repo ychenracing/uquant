@@ -127,7 +127,6 @@ class SystemConfig:
     strategic_cohort_min_ret240: float = 1.70
     strategic_persistent_max_ret120: float = 1.50
     strategic_established_min_median_ret240: float = 1.00
-    strategic_expansive_universe_min_size: int = 20
     strategic_persistent_confirm_days: int = 3
     strategic_reversal_max_ret240: float = -0.15
     strategic_reversal_min_ret5: float = 0.05

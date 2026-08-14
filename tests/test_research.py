@@ -132,20 +132,20 @@ def _evaluation(
     orders: int,
 ) -> CandidateEvaluation:
     return evaluate_candidate(
-        {"threshold": 0.5},
+        {"leader_mature_score": 0.72},
         [_observation(wealth=wealth, drawdown=drawdown, orders=orders)],
     )
 
 
 def test_candidate_enumeration_is_deterministic_and_forbids_pool_profiles() -> None:
     first = enumerate_candidates(
-        {"zeta": [2, 1, 2], "alpha": [0.2, 0.1]},
-        base={"enabled": True},
+        {"leader_tenure_days": [6, 5, 6], "leader_mature_score": [0.73, 0.72]},
+        base={"conviction_weighting_enabled": True},
         pool_names=("a", "b"),
     )
     second = enumerate_candidates(
-        {"alpha": [0.1, 0.2], "zeta": [1, 2]},
-        base={"enabled": True},
+        {"leader_mature_score": [0.72, 0.73], "leader_tenure_days": [5, 6]},
+        base={"conviction_weighting_enabled": True},
         pool_names=("b", "a"),
     )
     assert first == second
@@ -157,7 +157,7 @@ def test_candidate_enumeration_is_deterministic_and_forbids_pool_profiles() -> N
     with pytest.raises(ValueError, match="per-pool"):
         validate_shared_config({"a": 0.9}, pool_names=("a", "b"))
     with pytest.raises(ValueError, match="scalar"):
-        validate_shared_config({"thresholds": {"a": 0.9}})  # type: ignore[dict-item]
+        validate_shared_config({"leader_mature_score": {"a": 0.9}})  # type: ignore[dict-item]
 
 
 def test_search_uses_one_config_across_every_matrix_cell_and_full_objective() -> None:
@@ -168,7 +168,7 @@ def test_search_uses_one_config_across_every_matrix_cell_and_full_objective() ->
         return _observation(
             universe=pool,
             window=window,
-            wealth=1.5 + float(config["edge"]),
+            wealth=1.5 + float(config["leader_mature_score"]),
             drawdown=0.10,
             turnover=1.0,
             orders=5,
@@ -177,7 +177,7 @@ def test_search_uses_one_config_across_every_matrix_cell_and_full_objective() ->
         )
 
     results = search_candidates(
-        parameter_grid={"edge": [0.1, 0.2]},
+        parameter_grid={"leader_mature_score": [0.73, 0.74]},
         pools=("b", "a"),
         windows=("h2_2023", "h1_2023"),
         runner=runner,  # type: ignore[arg-type]
@@ -204,7 +204,7 @@ def test_search_uses_one_config_across_every_matrix_cell_and_full_objective() ->
             ("b", "h2_2023"),
         }
     best = results[0].evaluation
-    assert best.config()["edge"] == 0.2
+    assert best.config()["leader_mature_score"] == 0.74
     assert best.score == pytest.approx(
         best.median_log_wealth
         - best.worst_drawdown
@@ -214,7 +214,7 @@ def test_search_uses_one_config_across_every_matrix_cell_and_full_objective() ->
     )
 
     window_shift_only = evaluate_candidate(
-        {"edge": 0.1},
+        {"leader_mature_score": 0.73},
         [
             _observation(universe="a", window="h1_2023", wealth=2.0),
             _observation(universe="b", window="h1_2023", wealth=2.0),
@@ -286,36 +286,44 @@ def test_universe_stress_is_deterministic_complete_and_does_not_touch_global_rng
 
 
 def test_parameter_stress_and_ablation_are_stable_and_shared() -> None:
-    base = {"enabled": True, "threshold": 0.5, "days": 10}
+    base = {
+        "conviction_weighting_enabled": True,
+        "leader_mature_score": 0.72,
+        "leader_tenure_days": 5,
+    }
     stress = one_at_a_time_perturbations(
         base,
-        parameters=("threshold", "days"),
+        parameters=("leader_mature_score", "leader_tenure_days"),
         relative_deltas=(-0.1, 0.1),
-        bounds={"threshold": (0.0, 1.0), "days": (1.0, None)},
+        bounds={"leader_mature_score": (0.0, 1.0), "leader_tenure_days": (1.0, None)},
     )
     assert [case.name for case in stress] == [
         "baseline",
-        "days_minus_0.1",
-        "days_plus_0.1",
-        "threshold_minus_0.1",
-        "threshold_plus_0.1",
+        "leader_mature_score_minus_0.1",
+        "leader_mature_score_plus_0.1",
+        "leader_tenure_days_minus_0.1",
+        "leader_tenure_days_plus_0.1",
     ]
     assert all("profiles" not in case.config() for case in stress)
 
-    factorial = factorial_perturbations(base, {"threshold": (0.4, 0.6)})
-    assert [case.config()["threshold"] for case in factorial] == [0.4, 0.6]
+    factorial = factorial_perturbations(base, {"leader_mature_score": (0.70, 0.74)})
+    assert [case.config()["leader_mature_score"] for case in factorial] == [0.70, 0.74]
     with pytest.raises(ValueError, match="limit"):
-        factorial_perturbations(base, {"threshold": (0.4, 0.5, 0.6)}, max_cases=2)
+        factorial_perturbations(
+            base,
+            {"leader_mature_score": (0.70, 0.72, 0.74)},
+            max_cases=2,
+        )
 
     ablations = build_ablations(
         base,
-        ("enabled", "threshold"),
-        disabled_values={"threshold": 0.0},
+        ("conviction_weighting_enabled", "leader_mature_score"),
+        disabled_values={"leader_mature_score": 0.0},
     )
     assert [case.name for case in ablations] == [
         "baseline",
-        "without_enabled",
-        "without_threshold",
+        "without_conviction_weighting_enabled",
+        "without_leader_mature_score",
     ]
     baseline = _evaluation(wealth=2.0, drawdown=0.2, orders=10)
     variant = _evaluation(wealth=1.9, drawdown=0.19, orders=9)

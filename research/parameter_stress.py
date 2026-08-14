@@ -5,7 +5,12 @@ from __future__ import annotations
 from collections.abc import Iterable, Mapping
 from dataclasses import dataclass
 
-from .candidate_search import Scalar, enumerate_candidates, validate_shared_config
+from .candidate_search import (
+    Scalar,
+    enumerate_candidates,
+    validate_economic_parameter_names,
+    validate_shared_config,
+)
 
 
 @dataclass(frozen=True, slots=True)
@@ -41,6 +46,7 @@ def one_at_a_time_perturbations(
     """Vary one numeric knob at a time while every pool shares the result."""
     clean = validate_shared_config(base)
     selected = tuple(sorted(set(parameters or clean)))
+    validate_economic_parameter_names(selected)
     limits = dict(bounds or {})
     cases: list[ParameterCase] = []
     if include_base:

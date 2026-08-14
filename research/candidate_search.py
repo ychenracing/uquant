@@ -16,6 +16,8 @@ from dataclasses import dataclass
 from datetime import date
 from statistics import median, pvariance
 
+from uquant.config import DEFAULT_CONFIG
+from uquant.config_governance import ParameterCategory, load_config_governance
 from uquant.validation.ai_era import AI_ERA_WINDOWS
 
 type Scalar = str | int | float | bool | None
@@ -30,6 +32,30 @@ _PER_POOL_KEYS = {
     "profiles",
     "universe_profiles",
 }
+
+
+def validate_economic_parameter_names(names: Iterable[str]) -> tuple[str, ...]:
+    """Validate names before candidate values are expanded or replayed."""
+
+    governance = load_config_governance()
+    validated: list[str] = []
+    for raw_name in names:
+        if not isinstance(raw_name, str) or not raw_name.strip():
+            raise ValueError("candidate parameter names must be non-empty strings")
+        name = raw_name.strip()
+        try:
+            entry = governance.entry(name)
+        except ValueError as exc:
+            raise ValueError(
+                f"candidate overrides must name declared ECONOMIC SystemConfig fields: {name}"
+            ) from exc
+        if entry.category is not ParameterCategory.ECONOMIC:
+            raise ValueError(
+                "candidate overrides must name declared ECONOMIC SystemConfig fields: "
+                f"{name} is {entry.category.value}"
+            )
+        validated.append(name)
+    return tuple(sorted(validated))
 
 
 def _canonical(parameters: SharedConfig) -> str:
@@ -47,11 +73,12 @@ def validate_shared_config(
     *,
     pool_names: Iterable[str] = (),
 ) -> dict[str, Scalar]:
-    """Return a detached flat config or reject pool-specific profiles.
+    """Return validated ECONOMIC overrides or reject all other freedom.
 
-    SystemConfig is flat today. Restricting research candidates to scalar
-    values makes it impossible to smuggle an A/B/C/D/E parameter table into a
-    candidate while retaining all ordinary numeric, string, and boolean knobs.
+    SystemConfig is flat today. Restricting research candidates to scalar,
+    governed ECONOMIC values makes it impossible to smuggle an A/B/C/D/E
+    parameter table or a market-rule, safety, derived, compatibility, or
+    unknown override into a replay candidate.
     """
     pools = {str(name).strip().lower() for name in pool_names}
     clean: dict[str, Scalar] = {}
@@ -67,12 +94,18 @@ def validate_shared_config(
             or lowered.startswith("profile.")
         ):
             raise ValueError(f"per-pool candidate parameters are forbidden: {name}")
+        validate_economic_parameter_names((name,))
         if not isinstance(value, (str, int, float, bool, type(None))):
             raise ValueError(f"candidate parameters must be scalar: {name}")
         if isinstance(value, float) and not math.isfinite(value):
             raise ValueError(f"candidate parameter must be finite: {name}")
         clean[name] = value
-    return dict(sorted(clean.items()))
+    ordered = dict(sorted(clean.items()))
+    try:
+        DEFAULT_CONFIG.override(**ordered)
+    except (TypeError, ValueError) as exc:
+        raise ValueError(f"invalid ECONOMIC SystemConfig override: {exc}") from exc
+    return ordered
 
 
 def _deduplicated_values(values: Iterable[Scalar], *, name: str) -> tuple[Scalar, ...]:
@@ -97,7 +130,7 @@ def enumerate_candidates(
 ) -> tuple[dict[str, Scalar], ...]:
     """Enumerate a factorial grid in a stable, input-order-independent order."""
     base_config = validate_shared_config(base or {}, pool_names=pool_names)
-    names = tuple(sorted(parameter_grid))
+    names = validate_economic_parameter_names(parameter_grid)
     if len(names) != len(set(names)):
         raise ValueError("candidate grid parameter names must be unique")
     values = tuple(_deduplicated_values(parameter_grid[name], name=name) for name in names)

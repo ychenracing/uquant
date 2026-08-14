@@ -1347,7 +1347,7 @@ def test_weak_regime_can_admit_the_dynamic_persistent_industry_route() -> None:
     allocator = PortfolioAllocator(DEFAULT_CONFIG)
     targets: tuple[Target, ...] = ()
 
-    for date in dates[-DEFAULT_CONFIG.strategic_persistent_confirm_days :]:
+    for date in dates[-3:]:
         targets = allocator.allocate(
             date=date,
             opportunity=Opportunity.WEAK,

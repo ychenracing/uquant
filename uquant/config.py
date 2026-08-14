@@ -127,7 +127,6 @@ class SystemConfig:
     strategic_cohort_min_ret240: float = 1.70
     strategic_persistent_max_ret120: float = 1.50
     strategic_established_min_median_ret240: float = 1.00
-    strategic_persistent_confirm_days: int = 3
     strategic_reversal_max_ret240: float = -0.15
     strategic_reversal_min_ret5: float = 0.05
     strategic_reversal_min_median_ret20: float = -0.05
@@ -549,8 +548,6 @@ class SystemConfig:
             raise ValueError("strategic_cohort_min_ret240 cannot be negative")
         if self.strategic_established_min_median_ret240 < 0:
             raise ValueError("strategic_established_min_median_ret240 cannot be negative")
-        if self.strategic_persistent_confirm_days < 1:
-            raise ValueError("strategic_persistent_confirm_days must be positive")
         if not -1 < self.strategic_reversal_max_ret240 < 0:
             raise ValueError("strategic_reversal_max_ret240 must be in (-1, 0)")
         if not 0 < self.strategic_reversal_min_ret5 < 1:

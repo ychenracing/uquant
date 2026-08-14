@@ -25,6 +25,7 @@ REMOVED_COMPATIBILITY_OVERRIDES: tuple[dict[str, object], ...] = (
     {"adaptive_broad_universe_min_size": 10},
     {"adaptive_broad_universe_compatibility_enabled": False},
     {"strategic_expansive_universe_min_size": 20},
+    {"strategic_persistent_confirm_days": 3},
 )
 
 
@@ -79,7 +80,7 @@ def test_governed_config_migration_binds_both_exact_config_identities() -> None:
         "023d709731196a325d9cd03e95ece92e4baf63d2c5c66bb9f7d0e7a190e7bf20"
     )
     assert migration.candidate_config_sha256 == (
-        "75992e38f11693e4ca3392d7bb4d6adf57e6ef9c74ec36c66724c4ec876c9f79"
+        "758e1b8ac140c08c78e39003018549fe69b73adcd8b88ea1df6dbe2ec2e8ebe8"
     )
     assert migration.removed_fields == (
         "strategic_cohort_symbols",
@@ -87,6 +88,7 @@ def test_governed_config_migration_binds_both_exact_config_identities() -> None:
         "adaptive_broad_universe_min_size",
         "adaptive_broad_universe_compatibility_enabled",
         "strategic_expansive_universe_min_size",
+        "strategic_persistent_confirm_days",
     )
     assert len(migration.carrier_sha256) == 64
 

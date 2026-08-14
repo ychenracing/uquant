@@ -212,7 +212,7 @@ class DataStore:
         """Refresh stock QFQ files through `end`, rejecting unsupported indices."""
 
         try:
-            import akshare as ak  # type: ignore[import-not-found]
+            import akshare as ak  # type: ignore[import-untyped]
         except ImportError as exc:
             raise RuntimeError("install uquant[data] for online refresh") from exc
         for symbol in sorted({normalize_symbol(item) for item in symbols}):

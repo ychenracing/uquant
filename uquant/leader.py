@@ -10,45 +10,11 @@ import pandas as pd
 
 from .config import SystemConfig
 from .features import scalar
-from .industry import compute_industry_signals
+from .industry import compute_industry_signals, production_industries
+from .reference import production_reference_symbols
 from .types import AccountState, LeaderScore, Opportunity
 
-STABLE_REFERENCE_UNIVERSE = (
-    "sh600487",
-    "sh601869",
-    "sh603688",
-    "sh603986",
-    "sh688008",
-    "sh688012",
-    "sh688019",
-    "sh688037",
-    "sh688041",
-    "sh688072",
-    "sh688082",
-    "sh688110",
-    "sh688120",
-    "sh688146",
-    "sh688200",
-    "sh688233",
-    "sh688256",
-    "sh688268",
-    "sh688300",
-    "sh688347",
-    "sh688361",
-    "sh688498",
-    "sh688766",
-    "sz000636",
-    "sz002281",
-    "sz002371",
-    "sz002409",
-    "sz300054",
-    "sz300223",
-    "sz300308",
-    "sz300394",
-    "sz300502",
-    "sz300604",
-    "sz300666",
-)
+STABLE_REFERENCE_UNIVERSE = production_reference_symbols()
 
 # Research additions are deliberately staged outside the production reference
 # set.  Experiments may populate this tuple without changing live percentiles,
@@ -101,43 +67,7 @@ FACTOR_PROFILES: dict[str, dict[str, float]] = {
     },
 }
 
-INDUSTRY = {
-    "sz300308": "optical",
-    "sz300502": "optical",
-    "sz300394": "optical",
-    "sh688205": "optical",
-    "sh603986": "memory",
-    "sh688008": "compute",
-    "sh688041": "compute",
-    "sh688256": "compute",
-    "sh688120": "equipment",
-    "sh688012": "equipment",
-    "sh688072": "equipment",
-    "sh688082": "equipment",
-    "sh688200": "equipment",
-    "sh688361": "equipment",
-    "sh688347": "equipment",
-    "sh688300": "materials",
-    "sh688019": "materials",
-    "sh688233": "materials",
-    "sz300666": "materials",
-    "sz300604": "materials",
-    "sz002409": "pcb",
-    "sz002371": "pcb",
-    "sz002281": "datacenter",
-    "sh601869": "optical",
-    "sh600487": "optical",
-    "sh603688": "semiconductor",
-    "sz000636": "passives",
-    "sz300054": "equipment",
-    "sz300223": "equipment",
-    "sh688498": "packaging",
-    "sh688268": "equipment",
-    "sh688146": "materials",
-    "sh688766": "compute",
-    "sh688110": "foundry",
-    "sh688037": "design",
-}
+INDUSTRY = production_industries()
 
 
 def credible_recovery_reserve(

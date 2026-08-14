@@ -858,6 +858,69 @@ def test_unchanged_full_exit_retains_the_same_broker_order() -> None:
     ) == (retained,)
 
 
+def test_production_full_exit_retains_originating_event_for_residual_shares() -> None:
+    """A later classifier cannot relabel an already-submitted full liquidation."""
+    identity = _identity(
+        target_weight=0.0,
+        origin_subsystem=domain.OriginSubsystem.LEADER.value,
+        mechanism=domain.AttributionMechanism.LEADER_ROTATION.value,
+    )
+    retained = domain.PendingOrder(
+        signal_date="2026-01-05",
+        symbol="sz300502",
+        side=domain.Side.SELL.value,
+        target_weight=0.0,
+        reason="leader rotation exit",
+        lifecycle=domain.Lifecycle.CORE.value,
+        order_id="O000000001",
+        remaining_shares=100,
+        **identity,
+    )
+    raw_target = domain.Target(
+        symbol=retained.symbol,
+        weight=0.0,
+        lifecycle=retained.lifecycle,
+        alpha_score=0.0,
+        confidence=0.0,
+        reason="leader lifecycle exit",
+        origin_subsystem=domain.OriginSubsystem.LEADER.value,
+        mechanism=domain.AttributionMechanism.LEADER_LIFECYCLE_EXIT.value,
+        origin_lifecycle=retained.lifecycle,
+    )
+
+    target = _attach_target_attribution(
+        signal_date="2026-01-06",
+        targets=(raw_target,),
+        retained_orders=(retained,),
+    )[0]
+    planned = plan_orders(
+        signal_date="2026-01-06",
+        targets=(target,),
+        account=domain.AccountState(
+            initial_cash=1_000.0,
+            cash=0.0,
+            positions={
+                retained.symbol: domain.Position(
+                    retained.symbol,
+                    shares=100,
+                    avg_cost=10.0,
+                )
+            },
+        ),
+        prices={retained.symbol: 10.0},
+        cfg=DEFAULT_CONFIG,
+    )
+
+    assert target.event_id == retained.event_id
+    assert target.mechanism == retained.mechanism
+    assert merge_pending_orders(
+        retained=[retained],
+        planned=planned,
+        targets=(target,),
+        cfg=DEFAULT_CONFIG,
+    ) == (retained,)
+
+
 def test_blocked_recovery_replacement_retains_event_and_link_next_session() -> None:
     identity = _identity(
         signal_date="2026-01-05",

@@ -46,6 +46,7 @@ from .types import (
     LeaderScore,
     Opportunity,
     PendingOrder,
+    Side,
     Target,
     derive_attribution_event_id,
 )
@@ -93,6 +94,32 @@ def _attach_target_attribution(
             attributed.append(target)
             continue
         retained = retained_by_symbol.get(target.symbol)
+        if (
+            retained is not None
+            and retained.side == Side.SELL.value
+            and abs(retained.target_weight) <= 1e-12
+            and abs(target.weight) <= 1e-12
+            and retained.lifecycle == target.lifecycle
+            and retained.reduction_policy == target.reduction_policy
+        ):
+            # A full liquidation is one causal event even when a later daily
+            # classifier gives the still-unfilled residual a different label.
+            # Preserve the originating machine identity at the production
+            # boundary; direct merge callers still fail closed on fabricated
+            # or genuinely changed attributed intents.
+            attributed.append(
+                replace(
+                    target,
+                    event_id=retained.event_id,
+                    origin_subsystem=retained.origin_subsystem,
+                    mechanism=retained.mechanism,
+                    origin_lifecycle=retained.origin_lifecycle,
+                    replaces_symbol=retained.replaces_symbol,
+                    industry_at_entry=retained.industry_at_entry,
+                    industry_manifest_sha256=retained.industry_manifest_sha256,
+                )
+            )
+            continue
         if retained is not None and (
             abs(retained.target_weight - target.weight) < cfg.min_trade_weight
             and retained.lifecycle == target.lifecycle

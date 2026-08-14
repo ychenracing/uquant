@@ -131,7 +131,6 @@ class SystemConfig:
     strategic_reversal_min_ret5: float = 0.05
     strategic_reversal_min_median_ret20: float = -0.05
     strategic_reversal_max_tech_ret120: float = -0.01
-    strategic_reversal_confirm_days: int = 2
     strategic_epoch_cooldown_sessions: int = 30
     strategic_epoch_min_symbol_change: int = 1
     # A secular winner may consolidate normally, but a new cohort must not be
@@ -556,8 +555,6 @@ class SystemConfig:
             raise ValueError("strategic_reversal_min_median_ret20 must be in (-1, 0]")
         if not -1 < self.strategic_reversal_max_tech_ret120 <= 0:
             raise ValueError("strategic_reversal_max_tech_ret120 must be in (-1, 0]")
-        if self.strategic_reversal_confirm_days < 1:
-            raise ValueError("strategic_reversal_confirm_days must be positive")
         if not 20 <= self.strategic_epoch_cooldown_sessions <= 40:
             raise ValueError("strategic epoch cooldown must be in [20, 40]")
         if not 1 <= self.strategic_epoch_min_symbol_change <= 3:

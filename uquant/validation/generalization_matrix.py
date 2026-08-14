@@ -27,6 +27,7 @@ from .generalization import (
 from .generalization_contract import (
     ContractScenario,
     build_official_scenarios,
+    evidence_contract_payload,
     official_windows,
     scenario_contract_fingerprint,
 )
@@ -46,6 +47,8 @@ _PROVENANCE_FIELDS = {
     "industry_sha256",
     "window_fingerprint",
     "scenario_fingerprint",
+    "evidence_fingerprint",
+    "lookback_sessions",
 }
 _DATA_FIELDS = {"snapshot_id", "files_verified", "manifest_sha256", "checksums_sha256"}
 _RUNTIME_FIELDS = {
@@ -72,6 +75,22 @@ _CONCENTRATION_DEFINITION = {
     "top3": "sum of three largest abs(symbol_pnl) divided by denominator",
     "hhi": "sum((abs(symbol_pnl) / denominator) ** 2)",
     "zero_mass": "all concentration metrics are exactly 0.0",
+}
+_FIXED_SOURCE_PATHS = (
+    "benchmarks/reference_registry.json",
+    "pyproject.toml",
+    "requirements.txt",
+    "uv.lock",
+)
+_ARTIFACT_FIELDS = {
+    "schema_version",
+    "gate",
+    "passed",
+    "failures",
+    "provenance",
+    "concentration_definition",
+    "aggregates",
+    "cells",
 }
 
 CellEvaluator = Callable[[Mapping[str, Any], Mapping[str, Any]], Sequence[str]]
@@ -100,6 +119,24 @@ def window_contract_fingerprint(scenarios: Sequence[ContractScenario]) -> str:
     if not windows:
         raise ValueError("matrix window fingerprint requires scenarios")
     return _hash_json(windows)
+
+
+def evidence_contract_fingerprint(scenarios: Sequence[ContractScenario]) -> str:
+    """Hash each window's causal evidence and configured lookback."""
+    evidence_by_window: dict[str, dict[str, object]] = {}
+    for scenario in scenarios:
+        payload = evidence_contract_payload(scenario)
+        existing = evidence_by_window.setdefault(scenario.window.name, payload)
+        if existing != payload:
+            raise ValueError(f"matrix window has inconsistent causal evidence: {scenario.window.name}")
+    if not evidence_by_window:
+        raise ValueError("matrix evidence fingerprint requires scenarios")
+    return _hash_json(
+        [
+            {"window": name, "evidence": evidence_by_window[name]}
+            for name in evidence_by_window
+        ]
+    )
 
 
 def _canonical_json_copy(value: Mapping[str, Any]) -> dict[str, Any]:
@@ -211,6 +248,7 @@ def _scenario_cell(scenario: ContractScenario) -> dict[str, Any]:
         "pool_size": scenario.pool_size,
         "seed_index": scenario.seed_index,
         "derived_seed": scenario.derived_seed,
+        "evidence": evidence_contract_payload(scenario),
     }
 
 
@@ -224,11 +262,15 @@ def _validate_provenance(value: Mapping[str, Any]) -> dict[str, Any]:
         "industry_sha256",
         "window_fingerprint",
         "scenario_fingerprint",
+        "evidence_fingerprint",
     ):
         if not isinstance(value[name], str) or not _SHA256.fullmatch(value[name]):
             raise ValueError(f"matrix provenance {name} must be SHA-256")
     if not isinstance(value["head"], str) or not _COMMIT.fullmatch(value["head"]):
         raise ValueError("matrix provenance head must be an immutable commit")
+    lookback = value["lookback_sessions"]
+    if isinstance(lookback, bool) or not isinstance(lookback, int) or lookback < 1:
+        raise ValueError("matrix provenance lookback_sessions must be positive")
     data = value["data"]
     runtime = value["runtime"]
     if not isinstance(data, Mapping) or set(data) != _DATA_FIELDS:
@@ -274,9 +316,26 @@ def validate_matrix_artifact(
     expected_provenance: Mapping[str, Any],
     champion_cells: Mapping[str, Mapping[str, Any]] | None = None,
     cell_evaluator: CellEvaluator | None = None,
+    _verify_gate_state: bool = True,
 ) -> tuple[str, ...]:
     """Validate coverage, finite evidence, provenance, and optional champion equality."""
     failures: list[str] = []
+    if set(artifact) != _ARTIFACT_FIELDS:
+        failures.append("schema fields differ from the exact matrix artifact contract")
+    if artifact.get("schema_version") != _SCHEMA_VERSION:
+        failures.append("schema version differs from the exact matrix artifact contract")
+    if artifact.get("gate") != "ai-era-generalization":
+        failures.append("gate identity differs from the AI-era generalization contract")
+    if artifact.get("concentration_definition") != _CONCENTRATION_DEFINITION:
+        failures.append("concentration definition differs from the exact accounting contract")
+    advertised_passed = artifact.get("passed")
+    advertised_failures = artifact.get("failures")
+    if not isinstance(advertised_passed, bool):
+        failures.append("gate state passed flag is malformed")
+    if not isinstance(advertised_failures, list) or any(
+        not isinstance(item, str) for item in advertised_failures
+    ):
+        failures.append("gate state failures are malformed")
     try:
         expected = _validate_provenance(expected_provenance)
     except ValueError as exc:
@@ -291,6 +350,10 @@ def validate_matrix_artifact(
         _cell_id(scenario.window.name, scenario.name): scenario for scenario in scenarios
     }
     observed: dict[str, Mapping[str, Any]] = {}
+    validated_metrics: list[dict[str, float | int]] = []
+    validated_observations: list[GeneralizationObservation] = []
+    by_window_metrics: dict[str, list[dict[str, float | int]]] = {}
+    by_window_observations: dict[str, list[GeneralizationObservation]] = {}
     duplicate_ids: set[str] = set()
     for raw_cell in cells:
         if not isinstance(raw_cell, Mapping):
@@ -332,12 +395,40 @@ def validate_matrix_artifact(
             continue
         try:
             canonical_raw = _canonical_json_copy(raw)
-            extracted, _ = _metrics_from_raw(scenario, canonical_raw)
+            extracted, observation = _metrics_from_raw(scenario, canonical_raw)
         except (TypeError, ValueError) as exc:
             failures.append(f"cell nonfinite or invalid: {identifier}: {exc}")
             continue
         if set(metrics) != _METRIC_FIELDS or dict(metrics) != extracted:
             failures.append(f"cell metrics do not match raw evidence: {identifier}")
+            continue
+        validated_metrics.append(extracted)
+        validated_observations.append(observation)
+        by_window_metrics.setdefault(scenario.window.name, []).append(extracted)
+        by_window_observations.setdefault(scenario.window.name, []).append(observation)
+
+    expected_economic = sum(scenario.economic for scenario in scenarios)
+    if len(validated_metrics) == expected_economic and not duplicate_ids and not missing and not unexpected:
+        expected_aggregates = {
+            "all": _aggregate(validated_metrics, validated_observations),
+            "by_window": {
+                name: _aggregate(by_window_metrics[name], by_window_observations[name])
+                for name in by_window_metrics
+            },
+        }
+        raw_aggregates = artifact.get("aggregates")
+        if not isinstance(raw_aggregates, Mapping):
+            failures.append("aggregate evidence is missing")
+        else:
+            try:
+                canonical_aggregates = _canonical_json_copy({"aggregates": raw_aggregates})[
+                    "aggregates"
+                ]
+            except ValueError as exc:
+                failures.append(f"aggregate evidence is nonfinite or malformed: {exc}")
+            else:
+                if canonical_aggregates != expected_aggregates:
+                    failures.append("aggregate evidence does not recompute from raw economic cells")
 
     if champion_cells is not None:
         economic_ids = {
@@ -353,6 +444,12 @@ def validate_matrix_artifact(
             reasons = tuple(evaluator(metrics, champion_cells[identifier]))
             if reasons:
                 failures.append(f"champion equality failed: {identifier}: {list(reasons)}")
+    computed_failures = tuple(failures)
+    if _verify_gate_state and (
+        advertised_passed != (not computed_failures)
+        or advertised_failures != list(computed_failures)
+    ):
+        failures.append("gate state passed/failures do not match recomputed validation")
     return tuple(failures)
 
 
@@ -375,6 +472,13 @@ def execute_generalization_matrix(
         scenario_tuple
     ):
         raise ValueError("matrix provenance scenario fingerprint is stale")
+    if normalized_provenance["evidence_fingerprint"] != evidence_contract_fingerprint(
+        scenario_tuple
+    ):
+        raise ValueError("matrix provenance evidence fingerprint is stale")
+    lookbacks = {scenario.lookback_sessions for scenario in scenario_tuple}
+    if lookbacks != {normalized_provenance["lookback_sessions"]}:
+        raise ValueError("matrix provenance lookback configuration is stale")
 
     cells: list[dict[str, Any]] = []
     metrics: list[dict[str, float | int]] = []
@@ -417,6 +521,7 @@ def execute_generalization_matrix(
         expected_provenance=normalized_provenance,
         champion_cells=champion_cells,
         cell_evaluator=cell_evaluator,
+        _verify_gate_state=False,
     )
     artifact["failures"] = list(failures)
     artifact["passed"] = not failures
@@ -436,12 +541,19 @@ def _industry_sha256(universe: AIUniverse) -> str:
     return _hash_json(payload)
 
 
+def _source_paths(root: Path) -> tuple[Path, ...]:
+    fixed = [root / relative for relative in _FIXED_SOURCE_PATHS]
+    python_sources = sorted((root / "uquant").rglob("*.py"))
+    package_resources = sorted((root / "uquant" / "validation" / "resources").glob("*.json"))
+    paths = tuple(sorted({*fixed, *python_sources, *package_resources}))
+    if any(not path.is_file() for path in paths) or not package_resources:
+        raise RuntimeError("cannot resolve exact matrix source and package resources")
+    return paths
+
+
 def _source_fingerprint(root: Path) -> str:
     digest = hashlib.sha256()
-    paths = [root / "pyproject.toml", *sorted((root / "uquant").rglob("*.py"))]
-    if any(not path.is_file() for path in paths):
-        raise RuntimeError("cannot fingerprint exact matrix source")
-    for path in paths:
+    for path in _source_paths(root):
         relative = path.relative_to(root).as_posix().encode()
         content = path.read_bytes()
         digest.update(len(relative).to_bytes(4, "big"))
@@ -467,7 +579,9 @@ def _head_and_source(root: Path) -> tuple[str, str]:
             "--",
             "uquant",
             "pyproject.toml",
+            "requirements.txt",
             "uv.lock",
+            "benchmarks/reference_registry.json",
         ),
     )
     if status.strip():
@@ -476,7 +590,7 @@ def _head_and_source(root: Path) -> tuple[str, str]:
     if not _COMMIT.fullmatch(head):
         raise RuntimeError("cannot resolve exact matrix HEAD")
     source = _source_fingerprint(root)
-    tracked_paths = ["pyproject.toml", *[path.relative_to(root).as_posix() for path in sorted((root / "uquant").rglob("*.py"))]]
+    tracked_paths = [path.relative_to(root).as_posix() for path in _source_paths(root)]
     digest = hashlib.sha256()
     for relative_text in tracked_paths:
         relative = relative_text.encode()
@@ -498,6 +612,9 @@ def build_matrix_provenance(
 ) -> dict[str, Any]:
     """Build non-self-signable provenance from exact repository and runtime inputs."""
     canonical = load_ai_universe() if universe is None else universe
+    lookbacks = {scenario.lookback_sessions for scenario in scenarios}
+    if len(lookbacks) != 1:
+        raise ValueError("matrix provenance requires one exact lookback configuration")
     root = Path(__file__).resolve().parents[2]
     head, source = _head_and_source(root)
     return _validate_provenance(
@@ -511,6 +628,8 @@ def build_matrix_provenance(
             "industry_sha256": _industry_sha256(canonical),
             "window_fingerprint": window_contract_fingerprint(scenarios),
             "scenario_fingerprint": scenario_contract_fingerprint(tuple(scenarios)),
+            "evidence_fingerprint": evidence_contract_fingerprint(scenarios),
+            "lookback_sessions": next(iter(lookbacks)),
         }
     )
 
@@ -530,20 +649,33 @@ def run_generalization_matrix(
     engine = ProductionEngine(data_dir)
     engine._load(universe.symbols)
     histories = {symbol: engine._raw[symbol]["close"] for symbol in universe.symbols}
-    scenarios = tuple(
-        scenario
-        for window in windows
-        for scenario in build_official_scenarios(
-            window=window,
-            evidence=compute_pre_window_evidence(
+    scenario_rows: list[ContractScenario] = []
+    for window in windows:
+        causal_cutoff = (pd.Timestamp(window.start) - pd.Timedelta(days=1)).date().isoformat()
+        candidate_symbols = universe.symbols_as_of(causal_cutoff)
+        evidence = compute_pre_window_evidence(
+            histories,
+            candidate_symbols,
+            window_start=window.start,
+            lookback_sessions=lookback_sessions,
+        )
+        pit_symbols = universe.symbols_as_of(evidence.as_of)
+        if pit_symbols != candidate_symbols:
+            evidence = compute_pre_window_evidence(
                 histories,
-                universe.symbols,
+                pit_symbols,
                 window_start=window.start,
                 lookback_sessions=lookback_sessions,
-            ),
-            universe=universe,
+            )
+        scenario_rows.extend(
+            build_official_scenarios(
+                window=window,
+                evidence=evidence,
+                universe=universe,
+                lookback_sessions=lookback_sessions,
+            )
         )
-    )
+    scenarios = tuple(scenario_rows)
     provenance_before = build_matrix_provenance(
         data_dir=data_dir,
         scenarios=scenarios,

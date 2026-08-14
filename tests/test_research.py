@@ -261,9 +261,10 @@ def test_dominance_and_pareto_gates_reject_bad_tradeoffs() -> None:
 
 def test_universe_stress_is_deterministic_complete_and_does_not_touch_global_rng() -> None:
     universe = load_ai_universe()
+    pit_symbols = universe.symbols_as_of("2022-12-30")
     evidence = PreWindowEvidence(
         as_of="2022-12-30",
-        scores=tuple((symbol, float(index)) for index, symbol in enumerate(universe.symbols)),
+        scores=tuple((symbol, float(index)) for index, symbol in enumerate(pit_symbols)),
     )
     random.seed(99)
     expected_random = random.random()

@@ -42,9 +42,10 @@ def test_smoke_adapter_selects_the_canonical_economic_window_contract() -> None:
         CORE_SYMBOLS,
         window_start="2023-01-03",
     )
+    pit_symbols = load_ai_universe().symbols_as_of("2023-01-02")
     evidence = compute_pre_window_evidence(
         _prices(),
-        load_ai_universe().symbols,
+        pit_symbols,
         window_start="2023-01-03",
         lookback_sessions=120,
     )

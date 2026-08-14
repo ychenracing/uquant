@@ -59,9 +59,11 @@ def build_smoke_scenarios(
     if not matches:
         raise ValueError("generalization smoke requires an official window start")
     canonical = load_ai_universe()
+    causal_cutoff = (pd.Timestamp(window_start) - pd.Timedelta(days=1)).date().isoformat()
+    pit_symbols = canonical.symbols_as_of(causal_cutoff)
     evidence = compute_pre_window_evidence(
         prices,
-        canonical.symbols,
+        pit_symbols,
         window_start=window_start,
         lookback_sessions=lookback_sessions,
     )

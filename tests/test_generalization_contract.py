@@ -20,9 +20,10 @@ from uquant.validation.universe import load_ai_universe
 
 def _evidence() -> PreWindowEvidence:
     universe = load_ai_universe()
+    symbols = universe.symbols_as_of("2022-12-30")
     return PreWindowEvidence(
         as_of="2022-12-30",
-        scores=tuple((symbol, float(index)) for index, symbol in enumerate(universe.symbols)),
+        scores=tuple((symbol, float(index)) for index, symbol in enumerate(symbols)),
     )
 
 
@@ -109,3 +110,85 @@ def test_contract_is_immutable_and_no_optical_only_changes_tradable_symbols() ->
     assert all(industry[symbol] != "optical" for symbol in no_optical.symbols)
     with pytest.raises(dataclasses.FrozenInstanceError):
         no_optical.name = "mutated"  # type: ignore[misc]
+
+
+def test_h1_2023_contract_uses_literal_point_in_time_membership() -> None:
+    """Catches future listings entering any H1 2023 tradable scenario."""
+    scenarios = build_official_scenarios(
+        window=official_windows(("h1_2023",))[0],
+        evidence=_evidence(),
+    )
+    expected = (
+        "sh600487",
+        "sh601869",
+        "sh603688",
+        "sh603986",
+        "sh688008",
+        "sh688012",
+        "sh688019",
+        "sh688037",
+        "sh688041",
+        "sh688072",
+        "sh688082",
+        "sh688110",
+        "sh688120",
+        "sh688200",
+        "sh688233",
+        "sh688256",
+        "sh688268",
+        "sh688300",
+        "sh688498",
+        "sh688766",
+        "sz000636",
+        "sz002281",
+        "sz002371",
+        "sz002409",
+        "sz300054",
+        "sz300223",
+        "sz300308",
+        "sz300394",
+        "sz300502",
+        "sz300604",
+        "sz300666",
+    )
+
+    assert next(item for item in scenarios if item.name == "full").symbols == expected
+    assert all(set(item.symbols) <= set(expected) for item in scenarios if item.economic)
+    assert {"sh688146", "sh688347", "sh688361"}.isdisjoint(
+        symbol for item in scenarios if item.economic for symbol in item.symbols
+    )
+
+
+def test_evidence_and_lookback_change_the_scenario_contract_fingerprint() -> None:
+    """Catches causal evidence scores, date, or lookback being absent from identity."""
+    window = official_windows(("h1_2023",))[0]
+    evidence = _evidence()
+    changed_scores = PreWindowEvidence(
+        as_of=evidence.as_of,
+        scores=tuple(
+            (symbol, score + 0.25 if index == 0 else score)
+            for index, (symbol, score) in enumerate(evidence.scores)
+        ),
+    )
+    changed_date = PreWindowEvidence(as_of="2023-01-02", scores=evidence.scores)
+    base = build_official_scenarios(window=window, evidence=evidence, lookback_sessions=120)
+
+    assert scenario_contract_fingerprint(base) != scenario_contract_fingerprint(
+        build_official_scenarios(
+            window=window,
+            evidence=changed_scores,
+            lookback_sessions=120,
+        )
+    )
+    assert scenario_contract_fingerprint(base) != scenario_contract_fingerprint(
+        build_official_scenarios(
+            window=window,
+            evidence=changed_date,
+            lookback_sessions=120,
+        )
+    )
+    assert scenario_contract_fingerprint(base) != scenario_contract_fingerprint(
+        build_official_scenarios(window=window, evidence=evidence, lookback_sessions=121)
+    )
+    with pytest.raises(ValueError, match="evidence identity differs"):
+        dataclasses.replace(base[0], evidence_sha256="0" * 64)

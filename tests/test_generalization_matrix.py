@@ -2,10 +2,12 @@ from __future__ import annotations
 
 import copy
 from collections.abc import Mapping
+from pathlib import Path
 from typing import Any
 
 import pytest
 
+from uquant.validation import generalization_matrix as matrix_module
 from uquant.validation.generalization import PreWindowEvidence
 from uquant.validation.generalization_contract import (
     build_official_scenarios,
@@ -13,6 +15,8 @@ from uquant.validation.generalization_contract import (
     scenario_contract_fingerprint,
 )
 from uquant.validation.generalization_matrix import (
+    _head_and_source,
+    evidence_contract_fingerprint,
     execute_generalization_matrix,
     validate_matrix_artifact,
     window_contract_fingerprint,
@@ -22,9 +26,10 @@ from uquant.validation.universe import load_ai_universe
 
 def _scenarios() -> tuple[Any, ...]:
     universe = load_ai_universe()
+    symbols = universe.symbols_as_of("2022-12-30")
     evidence = PreWindowEvidence(
         as_of="2022-12-30",
-        scores=tuple((symbol, float(index)) for index, symbol in enumerate(universe.symbols)),
+        scores=tuple((symbol, float(index)) for index, symbol in enumerate(symbols)),
     )
     return build_official_scenarios(
         window=official_windows(("h1_2023",))[0],
@@ -54,6 +59,8 @@ def _provenance(scenarios: tuple[Any, ...]) -> dict[str, Any]:
         "industry_sha256": "1" * 64,
         "window_fingerprint": window_contract_fingerprint(scenarios),
         "scenario_fingerprint": scenario_contract_fingerprint(scenarios),
+        "evidence_fingerprint": evidence_contract_fingerprint(scenarios),
+        "lookback_sessions": 120,
     }
 
 
@@ -120,6 +127,18 @@ def test_matrix_preserves_every_raw_cell_and_reports_required_aggregates() -> No
     assert economic[0]["metrics"]["top1_concentration"] == pytest.approx(0.75)
     assert economic[0]["metrics"]["top3_concentration"] == pytest.approx(1.0)
     assert economic[0]["metrics"]["pnl_hhi"] == pytest.approx(0.625)
+    assert economic[0]["evidence"] == {
+        "as_of": "2022-12-30",
+        "eligible_symbols": list(load_ai_universe().symbols_as_of("2022-12-30")),
+        "ineligible_symbols": [],
+        "lookback_sessions": 120,
+        "scores": [
+            [symbol, float(index)]
+            for index, symbol in enumerate(load_ai_universe().symbols_as_of("2022-12-30"))
+        ],
+        "sha256": economic[0]["evidence"]["sha256"],
+    }
+    assert len(economic[0]["evidence"]["sha256"]) == 64
     assert artifact["concentration_definition"]["denominator"] == "sum(abs(symbol_pnl))"
 
 
@@ -205,3 +224,107 @@ def test_zero_symbol_pnl_has_defined_non_fabricated_zero_concentration() -> None
     assert metrics["top1_concentration"] == 0.0
     assert metrics["top3_concentration"] == 0.0
     assert metrics["pnl_hhi"] == 0.0
+
+
+@pytest.mark.parametrize(
+    "mutation",
+    ["schema", "gate", "concentration", "aggregate", "aggregate_nonfinite", "state"],
+)
+def test_matrix_validator_recomputes_top_level_contract(mutation: str) -> None:
+    """Catches forged top-level gate state, definitions, or aggregate evidence."""
+    scenarios = _scenarios()
+    provenance = _provenance(scenarios)
+    artifact = execute_generalization_matrix(
+        scenarios=scenarios,
+        runner=_runner_payload,
+        provenance=provenance,
+    )
+    changed = copy.deepcopy(artifact)
+    if mutation == "schema":
+        changed["schema_version"] = 99
+    elif mutation == "gate":
+        changed["gate"] = "not-the-generalization-gate"
+    elif mutation == "concentration":
+        changed["concentration_definition"]["denominator"] = "signed PnL"
+    elif mutation == "aggregate":
+        changed["aggregates"]["all"]["median_wealth"] = 999.0
+    elif mutation == "aggregate_nonfinite":
+        changed["aggregates"]["all"]["median_wealth"] = float("nan")
+    else:
+        changed["passed"] = False
+        changed["failures"] = ["fabricated"]
+
+    failures = validate_matrix_artifact(
+        changed,
+        scenarios=scenarios,
+        expected_provenance=provenance,
+    )
+    assert failures
+    assert any(mutation.split("_")[0] in failure or "gate state" in failure for failure in failures)
+
+
+def _write_source_fixture(root: Path) -> None:
+    paths = {
+        "pyproject.toml": "[project]\nname='fixture'\n",
+        "requirements.txt": "pandas==3.0.5\n",
+        "uv.lock": "version = 1\n",
+        "benchmarks/reference_registry.json": '{"reference_symbols":["a"]}\n',
+        "uquant/module.py": "VALUE = 1\n",
+        "uquant/validation/resources/ai_universe_manifest.json": '{"members":[]}\n',
+    }
+    for relative, content in paths.items():
+        path = root / relative
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(content, encoding="utf-8")
+
+
+def test_matrix_source_provenance_rejects_dirty_reference_registry(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Catches a dirty reference context being outside the HEAD guard."""
+    _write_source_fixture(tmp_path)
+    observed_status: tuple[str, ...] = ()
+
+    def fake_git(root: Path, arguments: Any) -> str:
+        nonlocal observed_status
+        args = tuple(arguments)
+        if args[0] == "status":
+            observed_status = args
+            return " M benchmarks/reference_registry.json\n" if "benchmarks/reference_registry.json" in args else ""
+        if args[:2] == ("rev-parse", "HEAD"):
+            return "a" * 40 + "\n"
+        if args[0] == "show":
+            relative = args[1].split(":", 1)[1]
+            return (root / relative).read_text(encoding="utf-8")
+        raise AssertionError(args)
+
+    monkeypatch.setattr(matrix_module, "_git", fake_git)
+    with pytest.raises(RuntimeError, match="committed source"):
+        _head_and_source(tmp_path)
+    assert "benchmarks/reference_registry.json" in observed_status
+
+
+def test_matrix_source_provenance_rejects_committed_registry_divergence(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Catches current and HEAD hashes agreeing while decision registry differs."""
+    _write_source_fixture(tmp_path)
+
+    def fake_git(root: Path, arguments: Any) -> str:
+        args = tuple(arguments)
+        if args[0] == "status":
+            return ""
+        if args[:2] == ("rev-parse", "HEAD"):
+            return "a" * 40 + "\n"
+        if args[0] == "show":
+            relative = args[1].split(":", 1)[1]
+            if relative == "benchmarks/reference_registry.json":
+                return '{"reference_symbols":["different"]}\n'
+            return (root / relative).read_text(encoding="utf-8")
+        raise AssertionError(args)
+
+    monkeypatch.setattr(matrix_module, "_git", fake_git)
+    with pytest.raises(RuntimeError, match="exact checked-out HEAD"):
+        _head_and_source(tmp_path)

@@ -16,7 +16,15 @@ from typing import Any, Final, cast
 DEFAULT_ABLATION_REGISTRY_PATH: Final = (
     Path(__file__).resolve().parents[1] / "artifacts" / "phase2" / "ablations" / "registry.json"
 )
+MINIMAL_ABLATION_REGISTRY_PATH: Final = (
+    Path(__file__).resolve().parents[1]
+    / "artifacts"
+    / "phase2"
+    / "ablations"
+    / "minimal_registry.json"
+)
 BASE_SOURCE_COMMIT: Final = "7f80436373b6da03536e15ff1908c010bfb92eb3"
+MINIMAL_BASE_SOURCE_COMMIT: Final = "e5e0fa903c9a9b26701063ae01f352af3e246a7d"
 REQUIRED_SUBSYSTEMS: Final = (
     "sector_guard",
     "chronic_overlay",
@@ -91,6 +99,14 @@ _TOP_LEVEL_FIELDS: Final = {
     "invariants",
     "experiments",
     "exclusions",
+}
+_DERIVED_TOP_LEVEL_FIELDS: Final = {
+    "schema_version",
+    "registry_id",
+    "parent_registry_path",
+    "parent_registry_sha256",
+    "source_contract",
+    "deleted_subsystems",
 }
 _PRODUCTION_FIXED_PATHS: Final = (
     "pyproject.toml",
@@ -222,6 +238,7 @@ class AblationRegistry:
     invariants: Invariants
     experiments: tuple[Experiment, ...]
     exclusions: tuple[Exclusion, ...]
+    deleted_subsystems: tuple[str, ...]
     payload_sha256: str
 
     def contract(self, name: str) -> FixedContract:
@@ -465,6 +482,7 @@ def _parse_registry(payload: Mapping[str, Any]) -> AblationRegistry:
         ),
         experiments=tuple(experiments),
         exclusions=tuple(exclusions),
+        deleted_subsystems=(),
         payload_sha256=canonical_sha256(payload),
     )
 
@@ -478,7 +496,47 @@ def load_ablation_registry(
         payload = json.loads(source.read_text(encoding="utf-8"))
     except (OSError, json.JSONDecodeError) as exc:
         raise ValueError(f"cannot load ablation registry: {source}") from exc
-    return _parse_registry(_require_mapping(payload, label="ablation registry"))
+    raw = _require_mapping(payload, label="ablation registry")
+    if set(raw) == _TOP_LEVEL_FIELDS:
+        return _parse_registry(raw)
+    if set(raw) != _DERIVED_TOP_LEVEL_FIELDS or raw.get("schema_version") != 1:
+        raise ValueError("ablation registry schema is incomplete or unexpected")
+    if raw.get("registry_id") != "phase2-post-transition-deletion-ablation-v1":
+        raise ValueError("derived ablation registry identity differs")
+    if raw.get("parent_registry_path") != "registry.json":
+        raise ValueError("derived ablation parent path differs")
+    parent = load_ablation_registry(source.parent / "registry.json")
+    if raw.get("parent_registry_sha256") != parent.payload_sha256:
+        raise ValueError("derived ablation parent registry hash differs")
+    source_contract = _require_mapping(raw.get("source_contract"), label="source contract")
+    if set(source_contract) != {"base_commit", "production_source_sha256"}:
+        raise ValueError("ablation source contract fields are invalid")
+    base_commit = _require_text(source_contract.get("base_commit"), label="source commit")
+    source_sha256 = _require_text(
+        source_contract.get("production_source_sha256"), label="source hash"
+    )
+    if base_commit != MINIMAL_BASE_SOURCE_COMMIT or not _SHA256.fullmatch(source_sha256):
+        raise ValueError("derived ablation source contract differs")
+    deleted = raw.get("deleted_subsystems")
+    if deleted != ["transition_overlay"]:
+        raise ValueError("derived ablation deletion ledger differs")
+    experiments = tuple(
+        item for item in parent.experiments if item.subsystem not in set(deleted)
+    )
+    if len(experiments) != len(parent.experiments) - 1:
+        raise ValueError("derived ablation deletion did not remove exactly one carrier")
+    return AblationRegistry(
+        schema_version=1,
+        registry_id="phase2-post-transition-deletion-ablation-v1",
+        base_commit=base_commit,
+        source_sha256=source_sha256,
+        fixed_contracts=parent.fixed_contracts,
+        invariants=parent.invariants,
+        experiments=experiments,
+        exclusions=parent.exclusions,
+        deleted_subsystems=("transition_overlay",),
+        payload_sha256=canonical_sha256(raw),
+    )
 
 
 def _patch_paths(patch: str) -> tuple[str, ...]:
@@ -502,10 +560,22 @@ def validate_ablation_registry(
     root = Path(source_root).resolve()
     subsystems = tuple(item.subsystem for item in registry.experiments)
     excluded = tuple(item.subsystem for item in registry.exclusions)
-    if len(subsystems) != len(set(subsystems)) or len(excluded) != len(set(excluded)):
+    deleted = registry.deleted_subsystems
+    if (
+        len(subsystems) != len(set(subsystems))
+        or len(excluded) != len(set(excluded))
+        or len(deleted) != len(set(deleted))
+    ):
         raise ValueError("ablation registry contains duplicate subsystems")
-    if set(subsystems) | set(excluded) != set(REQUIRED_SUBSYSTEMS) or set(subsystems) & set(excluded):
+    if (
+        set(subsystems) | set(excluded) | set(deleted) != set(REQUIRED_SUBSYSTEMS)
+        or set(subsystems) & set(excluded)
+        or set(subsystems) & set(deleted)
+        or set(excluded) & set(deleted)
+    ):
         raise ValueError("ablation registry coverage differs from mandated subsystems")
+    if bool(deleted) != (registry.registry_id == "phase2-post-transition-deletion-ablation-v1"):
+        raise ValueError("ablation deletion ledger differs from registry identity")
     if {item.experiment_id for item in registry.experiments} != {
         f"without_{item.subsystem}" for item in registry.experiments
     }:

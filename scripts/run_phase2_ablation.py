@@ -953,10 +953,15 @@ def _validate_experiment_checkpoints(
     binding_sha256: str,
     schedule: Sequence[Any],
 ) -> list[dict[str, Any]]:
-    """Require a distinct authenticated checkpoint for all 13 experiments."""
+    """Require one distinct authenticated checkpoint for every current experiment."""
     expected_ids = tuple(item.experiment_id for item in registry.experiments)
-    if len(expected_ids) != 13 or set(checkpoints) != set(expected_ids):
-        raise ValueError("ablation aggregation requires exact 13/13 experiment coverage")
+    expected_count = 13 - len(registry.deleted_subsystems)
+    if expected_count not in {12, 13} or len(expected_ids) != expected_count:
+        raise ValueError("ablation aggregation registry size differs")
+    if set(checkpoints) != set(expected_ids):
+        raise ValueError(
+            f"ablation aggregation requires exact {expected_count}/{expected_count} experiment coverage"
+        )
     ordered: list[dict[str, Any]] = []
     worker_hashes: set[str] = set()
     for experiment in registry.experiments:
@@ -1008,6 +1013,11 @@ def _evidence_coverage(
         "valid_experiment_ids": [item for item in expected if item in valid],
         "invalid_experiment_ids": [item for item in expected if item in invalid],
         "missing_experiment_ids": missing,
+        **(
+            {"deleted_subsystems": list(registry.deleted_subsystems)}
+            if registry.deleted_subsystems
+            else {}
+        ),
         "invalid_experiments": {
             item: {
                 "reason": invalid[item]["reason"],
@@ -1248,12 +1258,9 @@ def _runner_sha256(registry_path: Path, *, source_root: Path | None = None) -> s
     return _combined_sha256(paths, root=root)
 
 
-def _baseline_config_sha256() -> str:
-    if str(_RUNNER_ROOT) not in sys.path:
-        sys.path.insert(0, str(_RUNNER_ROOT))
-    from uquant.config import DEFAULT_CONFIG, config_fingerprint
-
-    return str(config_fingerprint(DEFAULT_CONFIG))
+def _baseline_config_sha256(source_root: Path) -> str:
+    """Read the effective baseline config from the source bound into evidence."""
+    return str(_probe_checkout(source_root, {})["effective_config_sha256"])
 
 
 def _execution_binding(
@@ -1292,7 +1299,7 @@ def _execution_binding(
         ],
         "schedule_sha256": hashlib.sha256(_canonical_bytes(_schedule_rows(schedule))).hexdigest(),
         "contracts": _contract_summary(schedule),
-        "baseline_config_sha256": _baseline_config_sha256(),
+        "baseline_config_sha256": _baseline_config_sha256(source_root),
         "runner_sha256": _runner_sha256(registry_path, source_root=source_root),
         "uv_lock_sha256": _sha256(source_root / "uv.lock"),
         "runtime": runtime,
@@ -2619,6 +2626,11 @@ def _complete_evidence(
             "provenance": baseline_checkpoint["worker"]["provenance"],
         },
         "experiments": experiments,
+        **(
+            {"deleted_subsystems": list(registry.deleted_subsystems)}
+            if registry.deleted_subsystems
+            else {}
+        ),
         "exclusions": [
             {
                 "subsystem": item.subsystem,
@@ -2706,6 +2718,11 @@ def _validate(args: argparse.Namespace) -> dict[str, Any]:
         },
         "contracts": _contract_summary(schedule),
         "experiments": experiments,
+        **(
+            {"deleted_subsystems": list(registry.deleted_subsystems)}
+            if registry.deleted_subsystems
+            else {}
+        ),
         "exclusions": [
             {
                 "subsystem": item.subsystem,

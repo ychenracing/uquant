@@ -21,6 +21,7 @@ from research.ablation import (
 )
 from research.ablation_registry import (
     DEFAULT_ABLATION_REGISTRY_PATH,
+    MINIMAL_ABLATION_REGISTRY_PATH,
     REQUIRED_SUBSYSTEMS,
     ContractCell,
     build_contract_schedule,
@@ -46,6 +47,24 @@ def _runner_module():
     return module
 
 
+def test_baseline_config_binding_is_read_from_the_evidence_source(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Catches authenticating historical evidence with the caller's live config."""
+    runner = _runner_module()
+    observed: list[tuple[Path, dict[str, bool]]] = []
+
+    def probe(root: Path, changes: dict[str, bool]) -> dict[str, str]:
+        observed.append((root, changes))
+        return {"effective_config_sha256": "a" * 64}
+
+    monkeypatch.setattr(runner, "_probe_checkout", probe)
+
+    assert runner._baseline_config_sha256(tmp_path) == "a" * 64
+    assert observed == [(tmp_path, {})]
+
+
 def test_registry_covers_every_mandated_active_subsystem_once() -> None:
     """Catches omitted, duplicated, bundled, or silently inactive mechanisms."""
     registry = load_ablation_registry(DEFAULT_ABLATION_REGISTRY_PATH)
@@ -61,6 +80,69 @@ def test_registry_covers_every_mandated_active_subsystem_once() -> None:
         "group_balanced_reference",
     }
     assert all(item.reason == "inactive_in_frozen_config" for item in registry.exclusions)
+
+
+def test_post_deletion_registry_is_derived_without_relabeling_historical_evidence() -> None:
+    """Catches mutating Task-7 identity or retaining the deleted carrier in fresh evidence."""
+    historical = load_ablation_registry(DEFAULT_ABLATION_REGISTRY_PATH)
+    minimal = load_ablation_registry(MINIMAL_ABLATION_REGISTRY_PATH)
+
+    assert historical.registry_id == "phase2-independent-subsystem-ablation-v1"
+    assert historical.base_commit == "7f80436373b6da03536e15ff1908c010bfb92eb3"
+    assert len(historical.experiments) == 13
+    assert historical.deleted_subsystems == ()
+    assert minimal.registry_id == "phase2-post-transition-deletion-ablation-v1"
+    assert minimal.base_commit == "e5e0fa903c9a9b26701063ae01f352af3e246a7d"
+    assert len(minimal.experiments) == 12
+    assert minimal.deleted_subsystems == ("transition_overlay",)
+    assert "transition_overlay" not in {item.subsystem for item in minimal.experiments}
+    assert tuple(item.experiment_id for item in minimal.experiments) == tuple(
+        item.experiment_id
+        for item in historical.experiments
+        if item.subsystem != "transition_overlay"
+    )
+    assert minimal.fixed_contracts == historical.fixed_contracts
+    assert minimal.invariants == historical.invariants
+    assert minimal.exclusions == historical.exclusions
+    validate_ablation_registry(minimal, source_root=ROOT)
+    with pytest.raises(ValueError, match="production source differs"):
+        validate_ablation_registry(historical, source_root=ROOT)
+
+
+def test_post_deletion_coverage_does_not_count_deleted_or_historical_carriers() -> None:
+    """Catches cross-accepting the deleted transition carrier or claiming 13 fresh runs."""
+    runner = _runner_module()
+    historical = load_ablation_registry(DEFAULT_ABLATION_REGISTRY_PATH)
+    minimal = load_ablation_registry(MINIMAL_ABLATION_REGISTRY_PATH)
+    valid = {
+        item.experiment_id: {
+            "experiment_id": item.experiment_id,
+            "kind": "experiment",
+        }
+        for item in minimal.experiments
+    }
+
+    coverage = runner._evidence_coverage(minimal, valid=valid, invalid={})
+
+    assert coverage["complete"] is True
+    assert coverage["coverage_complete"] is True
+    assert coverage["required_experiment_count"] == 12
+    assert coverage["missing_experiment_ids"] == []
+    assert coverage["deleted_subsystems"] == ["transition_overlay"]
+    historical_coverage = runner._evidence_coverage(historical, valid={}, invalid={})
+    assert "deleted_subsystems" not in historical_coverage
+    with pytest.raises(ValueError, match="unregistered experiment"):
+        runner._evidence_coverage(
+            minimal,
+            valid={
+                **valid,
+                "without_transition_overlay": {
+                    "experiment_id": "without_transition_overlay",
+                    "kind": "experiment",
+                },
+            },
+            invalid={},
+        )
 
 
 def test_registry_carriers_are_unique_one_at_a_time_and_content_addressed() -> None:
@@ -88,7 +170,7 @@ def test_registry_carriers_are_unique_one_at_a_time_and_content_addressed() -> N
 
 def test_registry_preserves_market_safety_and_frozen_contracts() -> None:
     """Catches ablations of execution/accounting/PIT controls or changed seeds/windows."""
-    registry = load_ablation_registry(DEFAULT_ABLATION_REGISTRY_PATH)
+    registry = load_ablation_registry(MINIMAL_ABLATION_REGISTRY_PATH)
     validate_ablation_registry(registry, source_root=ROOT)
 
     invariant = registry.invariants
@@ -432,7 +514,7 @@ def test_registry_and_source_hashes_are_deterministic_and_mutation_sensitive(
 
 def test_fixed_schedule_is_complete_deterministic_and_preserves_known_status() -> None:
     """Catches a runner that shards, replaces, or omits a fixed contract record."""
-    registry = load_ablation_registry(DEFAULT_ABLATION_REGISTRY_PATH)
+    registry = load_ablation_registry(MINIMAL_ABLATION_REGISTRY_PATH)
 
     first = build_contract_schedule(registry, source_root=ROOT)
     second = build_contract_schedule(registry, source_root=ROOT)
@@ -460,7 +542,7 @@ def test_carrier_materializes_in_an_isolated_clean_content_addressed_checkout(
     tmp_path: Path,
 ) -> None:
     """Catches in-place execution, dirty patch trees, or unverified carrier state."""
-    registry = load_ablation_registry(DEFAULT_ABLATION_REGISTRY_PATH)
+    registry = load_ablation_registry(MINIMAL_ABLATION_REGISTRY_PATH)
     experiment = next(item for item in registry.experiments if item.subsystem == subsystem)
     destination = tmp_path / subsystem
 
@@ -502,7 +584,7 @@ def test_baseline_materializes_as_exact_isolated_clean_source(
     tmp_path: Path,
 ) -> None:
     """Catches baseline execution from a dirty task worktree or a moving HEAD."""
-    registry = load_ablation_registry(DEFAULT_ABLATION_REGISTRY_PATH)
+    registry = load_ablation_registry(MINIMAL_ABLATION_REGISTRY_PATH)
     destination = tmp_path / "baseline"
 
     with isolated_baseline_checkout(
@@ -840,7 +922,7 @@ def test_validation_runner_proves_every_carrier_and_is_deterministic(tmp_path: P
         "--source-root",
         str(ROOT),
         "--registry",
-        str(DEFAULT_ABLATION_REGISTRY_PATH),
+        str(MINIMAL_ABLATION_REGISTRY_PATH),
     ]
     first_run = subprocess.run(
         [*command, "--output", str(first)],
@@ -865,8 +947,9 @@ def test_validation_runner_proves_every_carrier_and_is_deterministic(tmp_path: P
     assert payload["passed"] is True
     assert "classification" not in payload
     assert "decision" not in payload
-    assert payload["registry_sha256"] == load_ablation_registry(DEFAULT_ABLATION_REGISTRY_PATH).payload_sha256
-    assert payload["source"]["base_commit"] == "7f80436373b6da03536e15ff1908c010bfb92eb3"
+    assert payload["registry_sha256"] == load_ablation_registry(MINIMAL_ABLATION_REGISTRY_PATH).payload_sha256
+    assert payload["source"]["base_commit"] == "e5e0fa903c9a9b26701063ae01f352af3e246a7d"
+    assert payload["deleted_subsystems"] == ["transition_overlay"]
     assert payload["contracts"] == {
         "phase1_performance": {
             "economic_count": 45,
@@ -883,7 +966,7 @@ def test_validation_runner_proves_every_carrier_and_is_deterministic(tmp_path: P
             },
         },
     }
-    assert len(payload["experiments"]) == 13
+    assert len(payload["experiments"]) == 12
     assert all(item["checkout"]["clean"] for item in payload["experiments"])
     assert all(len(item["effective_config_sha256"]) == 64 for item in payload["experiments"])
     assert all(

@@ -107,11 +107,20 @@ def test_generalization_production_commit_requires_clean_valid_head(
                 "--",
                 "uquant",
                 "pyproject.toml",
+                "benchmarks/config_parameter_governance.json",
             ],
             "cannot inspect generalization production source",
         ),
         (
-            ["log", "-1", "--format=%H", "--", "uquant", "pyproject.toml"],
+            [
+                "log",
+                "-1",
+                "--format=%H",
+                "--",
+                "uquant",
+                "pyproject.toml",
+                "benchmarks/config_parameter_governance.json",
+            ],
             "cannot resolve immutable production commit",
         ),
     ]
@@ -134,7 +143,11 @@ def test_generalization_source_fingerprint_covers_exact_production_tree(tmp_path
     package = tmp_path / "uquant"
     nested = package / "validation"
     nested.mkdir(parents=True)
+    benchmarks = tmp_path / "benchmarks"
+    benchmarks.mkdir()
     (tmp_path / "pyproject.toml").write_text("[project]\nname = 'fixture'\n", encoding="utf-8")
+    governance = benchmarks / "config_parameter_governance.json"
+    governance.write_text('{"artifact_sha256":"1"}\n', encoding="utf-8")
     (package / "__init__.py").write_text("VALUE = 1\n", encoding="utf-8")
     (nested / "module.py").write_text("VALUE = 2\n", encoding="utf-8")
 
@@ -144,6 +157,13 @@ def test_generalization_source_fingerprint_covers_exact_production_tree(tmp_path
 
     (nested / "module.py").write_text("VALUE = 3\n", encoding="utf-8")
     assert generalization_module._production_source_fingerprint(tmp_path) != first
+
+    after_python_mutation = generalization_module._production_source_fingerprint(tmp_path)
+    governance.write_text('{"artifact_sha256":"2"}\n', encoding="utf-8")
+    assert (
+        generalization_module._production_source_fingerprint(tmp_path)
+        != after_python_mutation
+    )
 
     (tmp_path / "pyproject.toml").unlink()
     with pytest.raises(RuntimeError, match="cannot fingerprint generalization production source"):

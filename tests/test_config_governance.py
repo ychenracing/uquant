@@ -8,7 +8,7 @@ from typing import Any
 
 import pytest
 
-from research.candidate_search import search_candidates, validate_shared_config
+from research.candidate_search import ReplayObservation, search_candidates, validate_shared_config
 from research.parameter_stress import factorial_perturbations, one_at_a_time_perturbations
 from uquant.config import SystemConfig
 from uquant.config_governance import (
@@ -16,6 +16,7 @@ from uquant.config_governance import (
     load_config_governance,
     validate_governed_config_migration,
 )
+from uquant.validation.ai_era import AI_ERA_WINDOWS
 
 ROOT = Path(__file__).parents[1]
 GOVERNANCE_PATH = ROOT / "benchmarks" / "config_parameter_governance.json"
@@ -173,6 +174,114 @@ def test_economic_override_is_validated_as_a_real_system_config_change() -> None
     assert validate_shared_config({"leader_mature_score": 0.73}) == {"leader_mature_score": 0.73}
     with pytest.raises(ValueError, match="invalid ECONOMIC"):
         validate_shared_config({"leader_mature_score": 1.1})
+
+
+def _search_observation(pool: str, window: str) -> ReplayObservation:
+    start, end = AI_ERA_WINDOWS[window]
+    return ReplayObservation(
+        universe=pool,
+        window=window,
+        start=start,
+        end=end,
+        final_wealth=1.0,
+        max_drawdown=0.0,
+        annual_turnover=0.0,
+        account_orders=0,
+    )
+
+
+@pytest.mark.parametrize(
+    ("grid", "message"),
+    [
+        ({"leader_mature_score": [True]}, "leader_mature_score requires float"),
+        ({"leader_cycle_confirm_days": [3.5]}, "leader_cycle_confirm_days requires int"),
+        ({"conviction_weighting_enabled": [1]}, "conviction_weighting_enabled requires bool"),
+        ({"conviction_weighting_enabled": [0.0]}, "conviction_weighting_enabled requires bool"),
+    ],
+)
+def test_candidate_search_rejects_type_confused_values_before_runner(
+    grid: dict[str, list[Any]],
+    message: str,
+) -> None:
+    calls = 0
+
+    def runner(_config: dict[str, object], pool: str, window: str) -> ReplayObservation:
+        nonlocal calls
+        calls += 1
+        return _search_observation(pool, window)
+
+    with pytest.raises(ValueError, match=message):
+        search_candidates(
+            parameter_grid=grid,
+            pools=("a",),
+            windows=("h1_2023",),
+            runner=runner,  # type: ignore[arg-type]
+        )
+    assert calls == 0
+
+
+def test_candidate_search_normalizes_valid_float_boundaries() -> None:
+    observed: list[dict[str, object]] = []
+
+    def runner(config: dict[str, object], pool: str, window: str) -> ReplayObservation:
+        observed.append(config)
+        return _search_observation(pool, window)
+
+    results = search_candidates(
+        parameter_grid={"leader_mature_score": [0, 1]},
+        pools=("a",),
+        windows=("h1_2023",),
+        runner=runner,  # type: ignore[arg-type]
+    )
+
+    assert len(results) == 2
+    assert {config["leader_mature_score"] for config in observed} == {0.0, 1.0}
+    assert all(type(config["leader_mature_score"]) is float for config in observed)
+
+
+@pytest.mark.parametrize(
+    ("base", "message"),
+    [
+        ({"leader_mature_score": True}, "leader_mature_score requires float"),
+        ({"leader_cycle_confirm_days": 3.5}, "leader_cycle_confirm_days requires int"),
+    ],
+)
+def test_one_at_a_time_stress_rejects_type_confused_values(
+    base: dict[str, Any],
+    message: str,
+) -> None:
+    with pytest.raises(ValueError, match=message):
+        one_at_a_time_perturbations(base)
+
+
+def test_factorial_stress_requires_real_boolean_values() -> None:
+    with pytest.raises(ValueError, match="conviction_weighting_enabled requires bool"):
+        factorial_perturbations(
+            {"leader_mature_score": 0.72},
+            {"conviction_weighting_enabled": [1]},
+        )
+
+
+def test_parameter_stress_normalizes_integral_ints_and_preserves_bools() -> None:
+    integer_cases = one_at_a_time_perturbations(
+        {"leader_cycle_confirm_days": 3.0},
+        relative_deltas=(0.0,),
+    )
+    assert integer_cases[0].config()["leader_cycle_confirm_days"] == 3
+    assert type(integer_cases[0].config()["leader_cycle_confirm_days"]) is int
+
+    boolean_cases = factorial_perturbations(
+        {"leader_mature_score": 0.72},
+        {"conviction_weighting_enabled": [False, True]},
+    )
+    assert {case.config()["conviction_weighting_enabled"] for case in boolean_cases} == {
+        False,
+        True,
+    }
+    assert all(
+        type(case.config()["conviction_weighting_enabled"]) is bool
+        for case in boolean_cases
+    )
 
 
 @pytest.mark.parametrize("changes", REMOVED_COMPATIBILITY_OVERRIDES)

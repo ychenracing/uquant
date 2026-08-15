@@ -18,6 +18,7 @@ from ..attribution import (
     validate_economic_attribution,
 )
 from ..config import DEFAULT_CONFIG, SystemConfig, config_fingerprint
+from ..config_governance import GOVERNANCE_PATH
 from ..engine import ProductionEngine, code_fingerprint
 from .ai_era import runtime_environment_provenance
 from .control_plane import validate_engine_control_plane
@@ -92,6 +93,7 @@ _ATTRIBUTION_DEFINITION = {
 }
 _FIXED_SOURCE_PATHS = (
     "benchmarks/reference_registry.json",
+    GOVERNANCE_PATH.as_posix(),
     "pyproject.toml",
     "requirements.txt",
     "uv.lock",
@@ -830,10 +832,7 @@ def _head_and_source(root: Path) -> tuple[str, str]:
             "--untracked-files=all",
             "--",
             "uquant",
-            "pyproject.toml",
-            "requirements.txt",
-            "uv.lock",
-            "benchmarks/reference_registry.json",
+            *_FIXED_SOURCE_PATHS,
         ),
     )
     if status.strip():

@@ -25,6 +25,7 @@ from research.first_divergence import (
     trace_backtest,
 )
 from uquant.config import DEFAULT_CONFIG
+from uquant.config_governance import DEFAULT_GOVERNANCE_PATH, GOVERNANCE_PATH
 from uquant.engine import ProductionEngine
 from uquant.reference_registry import DEFAULT_REGISTRY_PATH
 from uquant.validation.manifest import verify_data_manifest
@@ -34,6 +35,7 @@ _PRODUCTION_FILES = (
     "requirements.txt",
     "uv.lock",
     "benchmarks/reference_registry.json",
+    GOVERNANCE_PATH.as_posix(),
 )
 _METRIC_FIELDS = (
     "final_wealth",
@@ -127,6 +129,9 @@ def _assert_imported_source(root: Path) -> None:
     expected_registry = (root / "benchmarks" / "reference_registry.json").resolve()
     if Path(DEFAULT_REGISTRY_PATH).resolve() != expected_registry:
         raise RuntimeError("diagnostic reference registry does not belong to --source-root")
+    expected_governance = (root / GOVERNANCE_PATH).resolve()
+    if Path(DEFAULT_GOVERNANCE_PATH).resolve() != expected_governance:
+        raise RuntimeError("diagnostic config governance does not belong to --source-root")
 
 
 def _trace_adapter_sha256(root: Path) -> str:

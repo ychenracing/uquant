@@ -15,13 +15,20 @@ from collections.abc import Callable, Iterable, Mapping, Sequence
 from dataclasses import dataclass
 from datetime import date
 from statistics import median, pvariance
+from typing import Final, cast, get_type_hints
 
-from uquant.config import DEFAULT_CONFIG
+from uquant.config import DEFAULT_CONFIG, SystemConfig
 from uquant.config_governance import ParameterCategory, load_config_governance
 from uquant.validation.ai_era import AI_ERA_WINDOWS
 
 type Scalar = str | int | float | bool | None
 type SharedConfig = Mapping[str, Scalar]
+type SystemConfigFieldType = type[bool] | type[int] | type[float]
+
+_SYSTEM_CONFIG_FIELD_TYPES: Final[Mapping[str, SystemConfigFieldType]] = cast(
+    dict[str, SystemConfigFieldType],
+    get_type_hints(SystemConfig),
+)
 
 _PER_POOL_KEYS = {
     "per_pool",
@@ -70,6 +77,32 @@ def _canonical(parameters: SharedConfig) -> str:
     )
 
 
+def _validated_system_config_value(name: str, value: Scalar) -> Scalar:
+    """Normalize safe numeric ergonomics to the exact annotated field type."""
+
+    expected = _SYSTEM_CONFIG_FIELD_TYPES.get(name)
+    if expected is bool:
+        if type(value) is not bool:
+            raise ValueError(f"candidate parameter {name} requires bool")
+        return value
+    if expected is int:
+        if isinstance(value, bool) or not isinstance(value, (int, float)):
+            raise ValueError(f"candidate parameter {name} requires int")
+        if isinstance(value, float):
+            if not math.isfinite(value) or not value.is_integer():
+                raise ValueError(f"candidate parameter {name} requires int")
+            return int(value)
+        return int(value)
+    if expected is float:
+        if isinstance(value, bool) or not isinstance(value, (int, float)):
+            raise ValueError(f"candidate parameter {name} requires float")
+        normalized = float(value)
+        if not math.isfinite(normalized):
+            raise ValueError(f"candidate parameter must be finite: {name}")
+        return normalized
+    raise ValueError(f"candidate parameter has unsupported SystemConfig type: {name}")
+
+
 def validate_shared_config(
     parameters: SharedConfig,
     *,
@@ -101,9 +134,7 @@ def validate_shared_config(
         validate_economic_parameter_names((name,))
         if not isinstance(value, (str, int, float, bool, type(None))):
             raise ValueError(f"candidate parameters must be scalar: {name}")
-        if isinstance(value, float) and not math.isfinite(value):
-            raise ValueError(f"candidate parameter must be finite: {name}")
-        clean[name] = value
+        clean[name] = _validated_system_config_value(name, value)
     ordered = dict(sorted(clean.items()))
     try:
         DEFAULT_CONFIG.override(**ordered)

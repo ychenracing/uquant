@@ -22,6 +22,21 @@ def _load_diagnostic() -> ModuleType:
 diagnostic = _load_diagnostic()
 
 
+def test_source_fingerprint_includes_config_parameter_governance(tmp_path: Path) -> None:
+    for relative in diagnostic._PRODUCTION_FILES:
+        path = tmp_path / relative
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(relative, encoding="utf-8")
+    (tmp_path / "uquant").mkdir()
+    (tmp_path / "uquant" / "engine.py").write_text("engine", encoding="utf-8")
+    governance = tmp_path / "benchmarks" / "config_parameter_governance.json"
+    first = diagnostic._source_sha256(tmp_path)
+
+    governance.write_text("changed-governance", encoding="utf-8")
+
+    assert diagnostic._source_sha256(tmp_path) != first
+
+
 def test_runner_provenance_binds_script_comparator_and_lock(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:

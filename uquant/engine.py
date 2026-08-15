@@ -25,6 +25,7 @@ from .config import (
     canonical_control_float,
     config_fingerprint,
 )
+from .config_governance import DEFAULT_GOVERNANCE_PATH
 from .data import DataStore, normalize_symbol
 from .execution import (
     ExecutionPlanner,
@@ -218,8 +219,9 @@ def code_fingerprint() -> str:
     for path in sorted(root.glob("*.py")):
         digest.update(path.name.encode())
         digest.update(path.read_bytes())
-    digest.update(DEFAULT_REGISTRY_PATH.name.encode())
-    digest.update(DEFAULT_REGISTRY_PATH.read_bytes())
+    for path in (DEFAULT_REGISTRY_PATH, DEFAULT_GOVERNANCE_PATH):
+        digest.update(path.name.encode())
+        digest.update(path.read_bytes())
     return digest.hexdigest()
 
 

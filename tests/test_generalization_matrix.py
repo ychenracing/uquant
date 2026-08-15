@@ -1811,6 +1811,7 @@ def _write_source_fixture(root: Path) -> None:
         "requirements.txt": "pandas==3.0.5\n",
         "uv.lock": "version = 1\n",
         "benchmarks/reference_registry.json": '{"reference_symbols":["a"]}\n',
+        "benchmarks/config_parameter_governance.json": '{"artifact_sha256":"1"}\n',
         "uquant/module.py": "VALUE = 1\n",
         "uquant/validation/resources/ai_universe_manifest.json": '{"members":[]}\n',
     }
@@ -1847,6 +1848,37 @@ def test_matrix_source_provenance_rejects_dirty_reference_registry(
     assert "benchmarks/reference_registry.json" in observed_status
 
 
+def test_matrix_source_provenance_rejects_dirty_config_governance(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Catches dirty parameter governance being outside the exact HEAD guard."""
+    _write_source_fixture(tmp_path)
+    observed_status: tuple[str, ...] = ()
+
+    def fake_git(root: Path, arguments: Any) -> str:
+        nonlocal observed_status
+        args = tuple(arguments)
+        if args[0] == "status":
+            observed_status = args
+            return (
+                " M benchmarks/config_parameter_governance.json\n"
+                if "benchmarks/config_parameter_governance.json" in args
+                else ""
+            )
+        if args[:2] == ("rev-parse", "HEAD"):
+            return "a" * 40 + "\n"
+        if args[0] == "show":
+            relative = args[1].split(":", 1)[1]
+            return (root / relative).read_text(encoding="utf-8")
+        raise AssertionError(args)
+
+    monkeypatch.setattr(matrix_module, "_git", fake_git)
+    with pytest.raises(RuntimeError, match="committed source"):
+        _head_and_source(tmp_path)
+    assert "benchmarks/config_parameter_governance.json" in observed_status
+
+
 def test_matrix_source_provenance_rejects_committed_registry_divergence(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
@@ -1864,6 +1896,31 @@ def test_matrix_source_provenance_rejects_committed_registry_divergence(
             relative = args[1].split(":", 1)[1]
             if relative == "benchmarks/reference_registry.json":
                 return '{"reference_symbols":["different"]}\n'
+            return (root / relative).read_text(encoding="utf-8")
+        raise AssertionError(args)
+
+    monkeypatch.setattr(matrix_module, "_git", fake_git)
+    with pytest.raises(RuntimeError, match="exact checked-out HEAD"):
+        _head_and_source(tmp_path)
+
+
+def test_matrix_source_provenance_rejects_committed_governance_divergence(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Catches a governance artifact that differs byte-for-byte from exact HEAD."""
+    _write_source_fixture(tmp_path)
+
+    def fake_git(root: Path, arguments: Any) -> str:
+        args = tuple(arguments)
+        if args[0] == "status":
+            return ""
+        if args[:2] == ("rev-parse", "HEAD"):
+            return "a" * 40 + "\n"
+        if args[0] == "show":
+            relative = args[1].split(":", 1)[1]
+            if relative == "benchmarks/config_parameter_governance.json":
+                return '{"artifact_sha256":"different"}\n'
             return (root / relative).read_text(encoding="utf-8")
         raise AssertionError(args)
 

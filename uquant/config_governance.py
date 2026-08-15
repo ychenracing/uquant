@@ -13,6 +13,7 @@ from typing import Any, Final, cast
 from .config import SystemConfig, config_fingerprint
 
 GOVERNANCE_PATH: Final = Path("benchmarks") / "config_parameter_governance.json"
+DEFAULT_GOVERNANCE_PATH: Final = Path(__file__).resolve().parents[1] / GOVERNANCE_PATH
 GOVERNANCE_BASE_COMMIT: Final = "e71c3f6cf42244f71e59458ec15375b92ed4da1f"
 REQUIRED_CONFIG_PARAMETER_GOVERNANCE_SHA256: Final = (
     "dbea3fc1e8638b36107055b7f7e48f990f18e688003268014a78318b5d8e5b94"
@@ -129,7 +130,7 @@ def _canonical_sha256(payload: dict[str, Any]) -> str:
 
 
 def _default_path() -> Path:
-    return Path(__file__).resolve().parents[1] / GOVERNANCE_PATH
+    return DEFAULT_GOVERNANCE_PATH
 
 
 def _required_mapping(value: Any, *, label: str, keys: set[str]) -> dict[str, Any]:

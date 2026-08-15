@@ -3,10 +3,12 @@ from __future__ import annotations
 import copy
 import hashlib
 import json
+from pathlib import Path
 
 import pandas as pd
 import pytest
 
+from uquant import engine as engine_module
 from uquant.account import load_account, migrate_account, save_account
 from uquant.config import DEFAULT_CONFIG, config_fingerprint
 from uquant.engine import (
@@ -37,6 +39,27 @@ RISK_REGRESSION_POOLS = (
     tuple(SYMBOLS),
     tuple(REFERENCE_UNIVERSE),
 )
+
+
+def test_code_fingerprint_includes_config_parameter_governance(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    governance = tmp_path / "config_parameter_governance.json"
+    governance.write_text('{"artifact_sha256":"1"}\n', encoding="utf-8")
+    monkeypatch.setattr(
+        engine_module,
+        "DEFAULT_GOVERNANCE_PATH",
+        governance,
+        raising=False,
+    )
+    first = engine_module.code_fingerprint()
+
+    governance.write_text('{"artifact_sha256":"2"}\n', encoding="utf-8")
+
+    assert engine_module.code_fingerprint() != first
+
+
 POOL_D = (
     "sz300308",
     "sz300502",

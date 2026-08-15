@@ -407,3 +407,269 @@ command.
   and hashes, but external cleanup of `/tmp` would require an exact replay.
 - The whole-repository mypy observation above is inherited from the exact baseline;
   Task 7 scoped strict mypy is green.
+
+## Review fix round 1 — authenticated raw evidence and historical replay
+
+This section is the authoritative supplement for checkpoint storage, readback, replay,
+and no-divergence evidence. It supersedes the earlier v1 storage/path descriptions but
+does not alter any economic result. Implementation commit
+`275a3c61f14ca31ad2a3013fd1aa1fb52bd1e667` changes only
+`scripts/run_phase2_ablation.py` and `tests/test_phase2_ablation.py`; it does not edit
+production strategy, any frozen baseline or policy, the registry, seed, window, data,
+market rules, or safety rules.
+
+### Review findings and TDD closure
+
+The review found four fail-closed evidence defects. All four have dedicated fail-first
+regressions and are closed in schema v2:
+
+1. A v1 checkpoint retained only a worker hash and derived claims. Re-sealing the whole
+   package could therefore forge a delta or provenance claim that readback did not
+   independently recompute. Schema v2 atomically writes canonical baseline and variant
+   workers to `raw/<canonical-sha256>.worker.json`, references both exact paths and
+   file/payload hashes, and on every read reloads and strictly validates both workers.
+   It then recomputes exact coverage, statuses/errors, nine cell delta dimensions,
+   aggregates, execution status, and first divergence, and byte-compares the stored
+   comparison. Checkout/config/data/runtime/lock/schedule/carrier/binding and the exact
+   replay command are independently checked. A re-sealed delta of `999.0` and a
+   re-sealed worker with Python `3.99.0` are both rejected.
+2. A v1 `replay_command` depended on the current checkout while its binding claimed the
+   earlier orchestrator HEAD. Public `replay` and `readback` now require
+   `--evidence-commit`; `replay` materializes that exact commit in a clean detached
+   checkout and calls its hidden worker. The fixed evidence commit is
+   `9592fcca3860d1901a7009d799d29d20959d1699`, whose runner hash remains
+   `7c7542fef52ae1e6b5064f579151b82da0ba24eb480b4ce7e0824bb1d63a919e`.
+   Thus later implementation/report commits can reproduce or read the historical
+   evidence, but cannot represent their own HEAD as the evidence source. Substituting
+   report commit `945e852` against an existing `9592fcca` checkpoint fails with exit 1
+   and exact stderr `phase2 ablation failed closed: ablation checkpoint is stale`.
+3. No-divergence raw previously depended on an external watcher. The runner now writes
+   a native atomic `invalid/<experiment>.json` only after full worker validation. Its
+   authenticated payload has `kind=invalid_experiment`,
+   `reason=no_behavior_divergence`, `first_divergence=null`, and
+   `coverage_complete=true`; no standard checkpoint may coexist. Aggregate
+   `coverage_complete` includes these artifacts, while valid-experiment `complete`
+   remains false.
+4. The frozen known `REPLAY_ERROR` was previously checked only by status. Its exact
+   type/message/date anchor is now compiled from independently hashed
+   `artifacts/phase2/champion-generalization-matrix.json`
+   (`926ea8419ab8aad7a05577eee56aeefa90c33cc7faa4e1ee1d2bbbaac77439cc`)
+   and cross-checked against that artifact's independent failure list. The retained
+   anchor is `RuntimeError`, date `2024-04-26`, and exact message:
+
+```text
+portfolio allocation failed on 2024-04-26 for opportunity=STRONG_TREND,
+risk=NORMAL: allocator violated portfolio hard constraints: positions=3/6,
+gross=1.006521330959/1.0, weights={'sz002371': 0.35120521307608354,
+'sz300394': 0.3411015052525644, 'sz300502': 0.3142146126302212}
+```
+
+A re-sealed mutation of that message is rejected as
+`frozen replay error anchor differs`.
+
+Initial focused RED:
+
+```text
+UV_CACHE_DIR=/tmp/uv-cache uv run pytest -q tests/test_phase2_ablation.py \
+  -k 'raw_backed_checkpoint or no_divergence_writes or frozen_replay_error_anchor or replay_command_materializes'
+FFFF                                                                     [100%]
+4 failed
+```
+
+The failures were the absent raw-backed read/write APIs, absent native invalid-artifact
+path, absent exact frozen-error compiler, and the old replay-command signature. The
+aggregate regression separately failed because coverage had no authenticated invalid
+artifact input and could not distinguish `coverage_complete` from valid-experiment
+`complete`:
+
+```text
+UV_CACHE_DIR=/tmp/uv-cache uv run pytest -q tests/test_phase2_ablation.py \
+  -k aggregate_authenticates_invalid_results_without_claiming_complete
+F                                                                        [100%]
+AttributeError: module 'phase2_ablation_runner' has no attribute '_evidence_coverage'
+1 failed
+```
+
+Final GREEN:
+
+```text
+UV_CACHE_DIR=/tmp/uv-cache uv run pytest -q tests/test_phase2_ablation.py
+..........................                                               [100%]
+26 passed
+
+UV_CACHE_DIR=/tmp/uv-cache uv run ruff format --check \
+  scripts/run_phase2_ablation.py tests/test_phase2_ablation.py
+2 files already formatted
+
+UV_CACHE_DIR=/tmp/uv-cache uv run ruff check \
+  scripts/run_phase2_ablation.py tests/test_phase2_ablation.py
+All checks passed!
+
+UV_CACHE_DIR=/tmp/uv-cache uv run mypy --strict research/ablation.py \
+  research/ablation_registry.py scripts/run_phase2_ablation.py
+Success: no issues found in 3 source files
+
+git diff --check
+# exit 0
+```
+
+The new tests are
+`test_raw_backed_checkpoint_recomputes_real_comparison_after_reseal`,
+`test_no_divergence_writes_authenticated_invalid_artifact`,
+`test_aggregate_authenticates_invalid_results_without_claiming_complete`,
+`test_frozen_replay_error_anchor_rejects_resealed_message_mutation`, and
+`test_replay_command_materializes_exact_historical_evidence_commit`. Per the explicit
+minimal-sufficient-verification ruling, this review round did not repeat full pytest or
+the full 13-shard economic matrix.
+
+### Historical replay and readback commands
+
+The outer command is executable from the later implementation/report HEAD. It checks
+out `9592fcca` detached and clean, validates the original exact binding, and invokes
+that checkout's hidden worker. The experiment form used for missing raw shards was:
+
+```text
+env UV_CACHE_DIR=/tmp/uv-cache .venv/bin/python \
+  scripts/run_phase2_ablation.py replay \
+  --repository-root /workspace/scratch/ed4d3eac8046/uquant \
+  --evidence-commit 9592fcca3860d1901a7009d799d29d20959d1699 \
+  --registry-relative artifacts/phase2/ablations/registry.json \
+  --data-dir /workspace/scratch/ed4d3eac8046/uquant/.worktrees/phase2/data/frozen \
+  --checkpoint-dir /tmp/uquant-phase2-task7-275a3c6-checkpoints \
+  --output /tmp/uquant-phase2-task7-275a3c6-progress.json \
+  --experiment EXPERIMENT_ID
+```
+
+Existing raw was imported with the same command plus
+`--import-worker /tmp/uquant-phase2-task7-275a3c6-checkpoints/raw/EXPERIMENT_ID.worker.json`.
+Import is not a migration assertion: the runner validates the complete raw worker
+against the exact historical schedule, binding, carrier, checkout/config/data/runtime
+provenance, fresh-account fingerprint, frozen error anchor, and causal trace contract
+before creating a v2 artifact.
+
+Final strict readback command:
+
+```text
+env UV_CACHE_DIR=/tmp/uv-cache .venv/bin/python \
+  scripts/run_phase2_ablation.py readback \
+  --repository-root /workspace/scratch/ed4d3eac8046/uquant \
+  --evidence-commit 9592fcca3860d1901a7009d799d29d20959d1699 \
+  --registry-relative artifacts/phase2/ablations/registry.json \
+  --data-dir /workspace/scratch/ed4d3eac8046/uquant/.worktrees/phase2/data/frozen \
+  --checkpoint-dir /tmp/uquant-phase2-task7-275a3c6-checkpoints \
+  --replay-output /tmp/uquant-phase2-task7-275a3c6-progress.json \
+  --output /tmp/uquant-phase2-task7-275a3c6-readback.json
+```
+
+It exited 0 in 48 seconds without replaying economics. The final progress and readback
+files are byte-identical with SHA-256
+`efc4121041dbc9804670a360f8309ec81f22f709e9318aa77824073064c93b04`.
+The result is schema v2, binding
+`a009bf0e97499bc4bb40fc42e9e7e6999ea9f727492ab2ab4f86f2fc2ce34daf`,
+`coverage_complete=true`, `missing_experiment_ids=[]`, 11 valid experiment artifacts,
+two authenticated invalid artifacts, and `complete=false`. The last value is required:
+the two no-divergence carriers are full-coverage invalid experiments, not valid
+ablation evidence.
+
+### Raw evidence acquisition and exact hashes
+
+The original evidence directory
+`/tmp/uquant-phase2-task7-9592fcca-checkpoints` remains unchanged. A copy seeded the
+new directory `/tmp/uquant-phase2-task7-275a3c6-checkpoints`. The v1 baseline checkpoint
+(file SHA-256
+`b8e18a8bb70b996b8336f4893f7b51d2293ae682b5b04bf36400048fe1896eab`)
+contained its raw worker, so schema v2 strictly extracted it without replay. Its new
+canonical raw SHA-256 is
+`739531282ad66c92f8cd520b2bd527d4a513b2815b6d4a71dc857f63967fd0e4`;
+the v2 baseline file/payload hashes are
+`633bb3f7b9947ab4edc6df6f6f56426b4ccb7b55f15d0a847e6704925a902321` /
+`ac29df6fd80acb184ecaed5fde632da6a289840bc0241d904ec129d6e08a22bc`.
+
+Raw workers already retained for experiments 5–13 were strictly validated and reused;
+none was replayed. `Legacy file` is the exact watcher-era JSON file hash, while
+`canonical raw` is the normalized content-addressed worker hash used by v2:
+
+| Experiment | Import elapsed | Legacy file SHA-256 | Canonical raw SHA-256 |
+|---|---:|---|---|
+| `without_challenger_scout` | 16s | `7e907b5fa87cfae9fef593e24a7483fd102732877f43eaf1873644a6a29c49c0` | `ad948ff35b14cca543c0b14948bf9a85d8142fdc2f9fa4bf8848d5244f642624` |
+| `without_conviction_weighting` | 15s | `aa9ab2455e89764af19d731d41c8edb5881d8d63caa2e5ed8820e6ad579204fb` | `64428c523c2381cf491e38ce8901ba2682ca0136b627720a719f605574587528` |
+| `without_recovery_conviction_weighting` | 17s | `15b57698222ece351575adb3ed7531e77a06435751e1026da9644d248db8bcca` | `acbd24120fe3d4fbe45e689c78c06e74720aea778884fd3dd7cdbfac79b4b7c7` |
+| `without_tactical_rebound_probe` | 22s | `21ada5a9a3446ba2967f3679b6e562e0a1c708bbfe31be8b20c25471771b2f09` | `9358e1965a474d000c019eb7827c50f2c28005b6beee0ae2057d78a853a7511a` |
+| `without_strategic_trailing` | 24s | `a66cf9f9a088f0cd27cece967a2d7d3ebbb1e4962a27ad5dbacb06b609645ef3` | `62a21d53a7286c02979abbf30279704ff5c887c6c0d0fd8496d06484250352e2` |
+| `without_restoration_special_handling` | 29s | `99166528814761e7e075b0b4880c91fa404b696b1e87ac41ee85355595866563` | `afb1023c0314f529f0efdad0cc2a237346299a0492ae8621bcc3da1370e05f99` |
+| `without_add_tranche` | 32s | `c95eedd3dca8a408726306d2deeb2c7856426851f24f34006aca144cdebe01c6` | `20c6edaa5dc7f5f61b368d95cbdd48a490356cf0de71c40eff77d68015017a27` |
+| `without_replacement_rotation` | 36s | `e7c3604452340985c26cfaad19bc5a49b6056798eee0ec8a3646b13f84aaf50c` | `d88a98a767111b5b6bcec6893b5e761e3802a8cadc00188d8e2d4118b2bf0c45` |
+| `without_dynamic_risk_anchors` | 40s | `cbbc472834fcab89da8d8e4b992f853f1571587a986a09121e93aa5777dffd0d` | `1ba0d4fb5c94dd2b97158f5e8e8f7028bce68d30393d4da5d29f243d9e08a193` |
+
+Only missing raw experiments 1–4 were replayed, strictly sequentially with one worker
+process, fresh accounts, and the same historical binding. Each emitted all 237 progress
+lines and ended at record 279/279, economic 237/237. Each new canonical raw hash exactly
+matches the worker hash recorded by the original v1 checkpoint:
+
+| Experiment | Exit / elapsed | Canonical raw SHA-256 | stderr SHA-256 |
+|---|---:|---|---|
+| `without_sector_guard` | 0 / 1440s | `e419fcf59e86f19bfe5492082a6680d9bc15beea3fb8cfaa7c527fbad0e8ce28` | `bf2fc6c030875ff143e84ec3acc8f7c754bd015f61f81503843b5d06b401dc2d` |
+| `without_chronic_overlay` | 0 / 1420s | `7fd284e2df22d0cacb01b6b0262f34933536f7c5c5bc44481ab2270ec463f835` | `75d14f16ca088ff93ea17cf120cbf1329d6f8f2ce2694ac0447fd3420358a8ec` |
+| `without_transition_overlay` | 0 / 1470s | `91f24daf28549b9e5462cd747fe71f0d46a7c368bd1bb4310c4ae64be468b25c` | `b343516907db7e77ccff593e4e2e47c9c666f79f5e692aab7af9f9858aa7184f` |
+| `without_capital_budget_ladder` | 0 / 1611s | `d768b90d614e77bcde2f432d35223d6556fc3941a9c8a783560801510b70b8d2` | `461aad06e520680e3bddd7daf7e412be67408ef23960c2f9da75f86f9e468878` |
+
+The capital-budget worker passed its new error at
+`continuous_ai_era/random__05__0001` and continued through subsequent cells to
+`random__20__0004`. Its raw artifact retains the exact new `RuntimeError` at
+2025-08-25 and the frozen cell independently transitions `REPLAY_ERROR->VALID`.
+Readback recomputed both transitions, common-valid aggregation, null failed-cell
+metrics/delta, and the earlier real `risk` divergence.
+
+### Schema-v2 artifact manifest
+
+Every raw reference below is exactly
+`raw/<raw-sha256>.worker.json`, with identical file and canonical payload hashes. The
+checkpoint/invalid artifact columns are exact file SHA-256 / sealed payload SHA-256:
+
+| Experiment | Kind | Artifact file / payload SHA-256 | Raw SHA-256 |
+|---|---|---|---|
+| `without_sector_guard` | experiment | `6fbe6aa93bf727be9ca9ed6470318c774f64659912409a7ac1f9890542160497` / `f5bcc8deb90349cbdef7c1a54dd23b9dd908159baffaabde4b816b42fccdea16` | `e419fcf59e86f19bfe5492082a6680d9bc15beea3fb8cfaa7c527fbad0e8ce28` |
+| `without_chronic_overlay` | experiment | `a2cc2e8fc41e5bed646aaa1b93ae8a419dc84b17586f7b22c6f5b4649b96d3cb` / `18ce43efe1dd852b9cbfda99617f87d45f6c2b841636ca0348543c86542f1d45` | `7fd284e2df22d0cacb01b6b0262f34933536f7c5c5bc44481ab2270ec463f835` |
+| `without_transition_overlay` | experiment | `bd56c3b10d75b0c0bf125536c492171cc708c21c49c3449d9009235b70c69563` / `6af153845af95239d6a2b4959d1c670a9a4f5fd7e4612e6c756dc7aae74f6112` | `91f24daf28549b9e5462cd747fe71f0d46a7c368bd1bb4310c4ae64be468b25c` |
+| `without_capital_budget_ladder` | experiment, execution fail/result | `cbb27cee86062c1cf66cc5a0b4913365fca3c41ab1d4a9795e02ea74a24a66f3` / `83ef4d8b91c18f4f297fdd6a2ca329755b89a183eb638cca89785b8d3ac326fe` | `d768b90d614e77bcde2f432d35223d6556fc3941a9c8a783560801510b70b8d2` |
+| `without_challenger_scout` | invalid, no divergence | `c4cdae293f0c6558db188e9cfa7b83da332dcff13c1b6eaee198b42ddbad1076` / `1fda389e4d18514015c3e1276c38a09d3c4be6b973db4d4f15a946b09651504e` | `ad948ff35b14cca543c0b14948bf9a85d8142fdc2f9fa4bf8848d5244f642624` |
+| `without_conviction_weighting` | invalid, no divergence | `85063fe2dc1ad3fd9c2db02bf1954239a16af2613b87e2836f49d3c803c07fb2` / `4cabd867ed8bfebee950424a6b5a4631c020d7fc89206c270bead4a9a5d57ed6` | `64428c523c2381cf491e38ce8901ba2682ca0136b627720a719f605574587528` |
+| `without_recovery_conviction_weighting` | experiment | `9c732a87de9df52755f1b039af56ddf911f4e25d5921d233af40ea596766d140` / `25d15e86e1f9407983628aef05a9be923d212556f2d092db67859cd27197ea35` | `acbd24120fe3d4fbe45e689c78c06e74720aea778884fd3dd7cdbfac79b4b7c7` |
+| `without_tactical_rebound_probe` | experiment | `2563b5babb9549aab0037328591515051c9aaa3835d0d916c9481a6f1524a033` / `d924bc9a8b85f9444366391432376b83f53c717d295ceb400b496038d332a94b` | `9358e1965a474d000c019eb7827c50f2c28005b6beee0ae2057d78a853a7511a` |
+| `without_strategic_trailing` | experiment | `49244100cd81c7b66869c2541a5f2748213b23df64bfc1e204a43809d3316634` / `16a54eca236b265ec188a5c3266b110e3c177d7185075525360bcdbffcf6e3f8` | `62a21d53a7286c02979abbf30279704ff5c887c6c0d0fd8496d06484250352e2` |
+| `without_restoration_special_handling` | experiment | `76f9b4db1d0da3f21fc1d2820d08c66916db2882856f4435e26944a7985a3493` / `7ec4c3fb9cc55cac2ba3291d6441aa570b674e3682b7ae0d7d3988cee3b64d80` | `afb1023c0314f529f0efdad0cc2a237346299a0492ae8621bcc3da1370e05f99` |
+| `without_add_tranche` | experiment | `384dd3d71945b89456b744258b3429e7b597cb7c80cb22f1511c72456a0cbe4a` / `76cdef877ce9215a40c44d94d90213535e31993e803b2adc013b4bd66a34ec5f` | `20c6edaa5dc7f5f61b368d95cbdd48a490356cf0de71c40eff77d68015017a27` |
+| `without_replacement_rotation` | experiment | `18077503c988f13747cb1c9e5dd0787b413b8b2c03df4d412c3bd9cf93b83f04` / `4fc3364ae5e594b3e213ee1cca1ea50725763491f79bc00bf1984cf2aa2ae403` | `d88a98a767111b5b6bcec6893b5e761e3802a8cadc00188d8e2d4118b2bf0c45` |
+| `without_dynamic_risk_anchors` | experiment | `ef6cbe3f3f8daba983288f2c9b706c45df2ea2fc3f7bb4f25d6701ca48915503` / `cab44a73ef2edc17cce05885d5fb7ac34b87e83f49e30e47f7848f9e3371ccae` | `1ba0d4fb5c94dd2b97158f5e8e8f7028bce68d30393d4da5d29f243d9e08a193` |
+
+Binding, schedule, and readback provenance are unchanged from the original economic
+run. Their v2 directory file hashes are:
+
+- binding: `7ef8d496a51044a48feb2c5970cbf4279e043f952c3fac28e62a0a6c85963ef7`
+  (sealed payload
+  `b81302b789b4035840f0655f5c5c89884c748e7b36513317555858b628db153f`);
+- schedule: `0e6f6a90fa704ec87ea49a790ab569ca6e9f60b58cc8999dc0421bbd02bdd88b`
+  (sealed payload
+  `e55d0f3ac0ca78b8b6372ca790fe5fe4fb06a13126e633dafe6789ec4291e399`);
+- final readback/progress:
+  `efc4121041dbc9804670a360f8309ec81f22f709e9318aa77824073064c93b04`.
+
+Every one of the 13 variant raw workers has 279 records, 237 economic attempts, and
+237 trace groups. Phase 1 remains 45 `VALID`. All retain Generalization's 42
+`INSUFFICIENT_SAMPLE` records. Eleven have 191 `VALID` plus one `REPLAY_ERROR`;
+`without_restoration_special_handling` and `without_dynamic_risk_anchors` have 192
+`VALID` and zero replay errors because the known frozen error transitions to valid.
+The capital-budget variant has 191 valid/one error in isolation but only 190 common
+valid pairs against baseline because its new error and the frozen error occur in
+different cells. No status or error is hidden from aggregation.
+
+### Review-round concerns
+
+- The authenticated evidence remains external under `/tmp`; cleanup still requires
+  exact historical replay. Schema v2 removes the self-signing and watcher dependency,
+  but it does not make `/tmp` durable storage.
+- `complete=false` is intentional even though `coverage_complete=true`: Task 8 must
+  treat the two no-divergence invalid artifacts and the capital-budget execution
+  failure as results, not relabel them or manufacture missing divergence.
+- The previously documented whole-repository mypy finding remains deferred and
+  unchanged; scoped strict mypy for Task 7 is green.

@@ -536,7 +536,8 @@ def test_worker_cell_replays_real_production_with_raw_dimensions_and_trace(
         acute_end="2026-07-03",
     )
 
-    assert set(result) == {"metrics", "trace", "raw_result_sha256"}
+    assert set(result) == {"metrics", "trace", "replay_error", "raw_result_sha256"}
+    assert result["replay_error"] is None
     assert set(result["metrics"]) == {
         "final_wealth",
         "max_drawdown",
@@ -563,6 +564,47 @@ def test_worker_cell_replays_real_production_with_raw_dimensions_and_trace(
     }
     assert all(len(value) == 64 for value in result["trace"][0]["stages"].values())
     assert len(result["raw_result_sha256"]) == 64
+
+
+def test_worker_cell_retains_exact_failure_date_and_partial_trace() -> None:
+    """Catches lost production exceptions or guessed cell-level failure dates."""
+    runner = _runner_module()
+
+    class ExecutionProbe:
+        def execute_open(self, *, date, account, panel) -> None:
+            return None
+
+    class FailingEngine:
+        def __init__(self) -> None:
+            self.execution = ExecutionProbe()
+
+        def decide(self, *, symbols, as_of, account):
+            raise RuntimeError("exact production failure")
+
+        def backtest(self, *, symbols, start, end):
+            from uquant.types import AccountState
+
+            account = AccountState.empty(2_000_000.0)
+            self.execution.execute_open(date="2025-08-25", account=account, panel={})
+            self.decide(symbols=symbols, as_of="2025-08-25", account=account)
+
+    result = runner._replay_cell(
+        FailingEngine(),
+        symbols=("sh688041",),
+        start="2025-08-24",
+        end="2025-08-26",
+    )
+
+    assert result == {
+        "metrics": None,
+        "trace": [],
+        "replay_error": {
+            "type": "RuntimeError",
+            "message": "exact production failure",
+            "date": "2025-08-25",
+        },
+        "raw_result_sha256": None,
+    }
 
 
 def test_worker_comparison_emits_per_cell_aggregate_and_first_divergence() -> None:
@@ -626,6 +668,96 @@ def test_worker_comparison_emits_per_cell_aggregate_and_first_divergence() -> No
     )
     assert "classification" not in json.dumps(compared)
     assert "decision" not in json.dumps(compared)
+
+
+def test_worker_comparison_retains_variant_failure_without_hiding_it_from_coverage() -> None:
+    """Catches abort-on-error, error-tail omission, or failed-cell metric fabrication."""
+    runner = _runner_module()
+    metrics = _metrics(
+        wealth=2.0,
+        drawdown=0.2,
+        orders=10,
+        acute=-0.1,
+        turnover=1.0,
+        top1=0.7,
+        top3=0.9,
+        hhi=0.5,
+    ).to_dict()
+    stages = {name: "a" * 64 for name in runner._CAUSAL_STAGES}
+    changed_stages = dict(stages)
+    changed_stages["risk"] = "b" * 64
+    error = {
+        "type": "RuntimeError",
+        "message": "incompatible attribution",
+        "date": "2025-08-25",
+        "contract": "phase1_performance",
+        "cell_id": "a/h1_2023",
+        "binding_sha256": "c" * 64,
+        "carrier_sha256": "d" * 64,
+        "provenance_sha256": "e" * 64,
+    }
+    baseline = {
+        "cells": [
+            {
+                "contract": "phase1_performance",
+                "cell_id": "a/h1_2023",
+                "frozen_status": "VALID",
+                "status": "VALID",
+                "metrics": metrics,
+                "replay_error": None,
+                "raw_result_sha256": "f" * 64,
+            },
+            {
+                "contract": "phase1_performance",
+                "cell_id": "a/h2_2023",
+                "frozen_status": "VALID",
+                "status": "VALID",
+                "metrics": metrics,
+                "replay_error": None,
+                "raw_result_sha256": "1" * 64,
+            },
+        ],
+        "traces": {
+            "phase1_performance/a/h1_2023": [
+                {"date": "2025-08-24", "stages": stages},
+                {"date": "2025-08-25", "stages": stages},
+            ],
+            "phase1_performance/a/h2_2023": [{"date": "2025-08-24", "stages": stages}],
+        },
+        "provenance": {"effective_config_sha256": "2" * 64},
+    }
+    variant = copy.deepcopy(baseline)
+    variant["cells"][0].update(
+        status="REPLAY_ERROR",
+        metrics=None,
+        replay_error=error,
+        raw_result_sha256=None,
+    )
+    variant["traces"]["phase1_performance/a/h1_2023"] = [{"date": "2025-08-24", "stages": changed_stages}]
+
+    compared = runner._compare_worker_payloads(baseline, variant)
+
+    failed = compared["cells"][0]
+    assert failed["baseline_status"] == "VALID"
+    assert failed["variant_status"] == "REPLAY_ERROR"
+    assert failed["status_transition"] == "VALID->REPLAY_ERROR"
+    assert failed["baseline_metrics"] == metrics
+    assert failed["variant_metrics"] is None
+    assert failed["delta"] is None
+    assert failed["variant_replay_error"] == error
+    assert compared["execution_pass"] is False
+    assert compared["first_divergence"]["date"] == "2025-08-24"
+    aggregate = compared["aggregates"]["phase1_performance"]
+    assert aggregate["baseline"]["economic_cells"] == 1
+    assert aggregate["variant"]["economic_cells"] == 1
+    assert aggregate["coverage"] == {
+        "record_count": 2,
+        "economic_count": 2,
+        "common_valid_count": 1,
+        "baseline_status_counts": {"VALID": 2},
+        "variant_status_counts": {"REPLAY_ERROR": 1, "VALID": 1},
+        "status_transition_counts": {"VALID->REPLAY_ERROR": 1},
+    }
 
 
 def test_validation_runner_proves_every_carrier_and_is_deterministic(tmp_path: Path) -> None:
@@ -741,6 +873,18 @@ def test_worker_payload_requires_exact_schedule_status_and_trace_coverage() -> N
         hhi=0.2,
     ).to_dict()
     stages = {name: "a" * 64 for name in runner._CAUSAL_STAGES}
+    provenance = {"effective_config_sha256": "d" * 64}
+    provenance_sha256 = runner._sha256_mapping(provenance)
+    error = {
+        "type": "RuntimeError",
+        "message": "known",
+        "date": "2023-01-03",
+        "contract": "ai_era_generalization",
+        "cell_id": "h1_2023/random__05__0000",
+        "binding_sha256": "b" * 64,
+        "carrier_sha256": runner._BASELINE_CARRIER_SHA256,
+        "provenance_sha256": provenance_sha256,
+    }
     payload = {
         "schema_version": 1,
         "mode": "contract-replay",
@@ -750,6 +894,7 @@ def test_worker_payload_requires_exact_schedule_status_and_trace_coverage() -> N
             {
                 "contract": "phase1_performance",
                 "cell_id": "a/h1_2023",
+                "frozen_status": "VALID",
                 "status": "VALID",
                 "economic": True,
                 "metrics": metrics,
@@ -759,15 +904,17 @@ def test_worker_payload_requires_exact_schedule_status_and_trace_coverage() -> N
             {
                 "contract": "ai_era_generalization",
                 "cell_id": "h1_2023/random__05__0000",
+                "frozen_status": "REPLAY_ERROR",
                 "status": "REPLAY_ERROR",
                 "economic": True,
                 "metrics": None,
-                "replay_error": {"type": "RuntimeError", "message": "known"},
+                "replay_error": error,
                 "raw_result_sha256": None,
             },
             {
                 "contract": "ai_era_generalization",
                 "cell_id": "h1_2023/remove_all_leaders",
+                "frozen_status": "INSUFFICIENT_SAMPLE",
                 "status": "INSUFFICIENT_SAMPLE",
                 "economic": False,
                 "metrics": None,
@@ -775,8 +922,11 @@ def test_worker_payload_requires_exact_schedule_status_and_trace_coverage() -> N
                 "raw_result_sha256": None,
             },
         ],
-        "traces": {"phase1_performance/a/h1_2023": [{"date": "2023-01-03", "stages": stages}]},
-        "provenance": {"effective_config_sha256": "d" * 64},
+        "traces": {
+            "phase1_performance/a/h1_2023": [{"date": "2023-01-03", "stages": stages}],
+            "ai_era_generalization/h1_2023/random__05__0000": [],
+        },
+        "provenance": provenance,
     }
 
     runner._validate_worker_payload(
@@ -820,6 +970,58 @@ def test_worker_payload_requires_exact_schedule_status_and_trace_coverage() -> N
             schedule=schedule,
             binding_sha256="b" * 64,
             experiment_id="baseline",
+        )
+    variant = copy.deepcopy(payload)
+    variant["experiment_id"] = "without_capital_budget_ladder"
+    variant["cells"][0].update(
+        status="REPLAY_ERROR",
+        metrics=None,
+        replay_error={
+            **error,
+            "contract": "phase1_performance",
+            "cell_id": "a/h1_2023",
+            "carrier_sha256": "f" * 64,
+        },
+        raw_result_sha256=None,
+    )
+    variant["cells"][1]["replay_error"]["carrier_sha256"] = "f" * 64
+    variant["traces"]["phase1_performance/a/h1_2023"] = []
+    runner._validate_worker_payload(
+        variant,
+        schedule=schedule,
+        binding_sha256="b" * 64,
+        experiment_id="without_capital_budget_ladder",
+        carrier_sha256="f" * 64,
+    )
+    missing_error_field = copy.deepcopy(variant)
+    del missing_error_field["cells"][0]["replay_error"]["date"]
+    with pytest.raises(ValueError, match="replay error evidence"):
+        runner._validate_worker_payload(
+            missing_error_field,
+            schedule=schedule,
+            binding_sha256="b" * 64,
+            experiment_id="without_capital_budget_ladder",
+            carrier_sha256="f" * 64,
+        )
+    rewritten_frozen_status = copy.deepcopy(variant)
+    rewritten_frozen_status["cells"][0]["frozen_status"] = "REPLAY_ERROR"
+    with pytest.raises(ValueError, match="frozen contract"):
+        runner._validate_worker_payload(
+            rewritten_frozen_status,
+            schedule=schedule,
+            binding_sha256="b" * 64,
+            experiment_id="without_capital_budget_ladder",
+            carrier_sha256="f" * 64,
+        )
+    self_signed_error = copy.deepcopy(variant)
+    self_signed_error["cells"][0]["replay_error"]["carrier_sha256"] = "9" * 64
+    with pytest.raises(ValueError, match="replay error provenance"):
+        runner._validate_worker_payload(
+            self_signed_error,
+            schedule=schedule,
+            binding_sha256="b" * 64,
+            experiment_id="without_capital_budget_ladder",
+            carrier_sha256="f" * 64,
         )
     missing_trace = copy.deepcopy(payload)
     missing_trace["traces"] = {}
@@ -910,6 +1112,16 @@ def test_final_evidence_requires_all_13_exact_one_carrier_checkpoints() -> None:
             end="2023-01-04",
         ),
     )
+    metrics = _metrics(
+        wealth=1.0,
+        drawdown=0.1,
+        orders=2,
+        acute=None,
+        turnover=0.5,
+        top1=0.4,
+        top3=0.6,
+        hhi=0.2,
+    ).to_dict()
     checkpoints = {
         experiment.experiment_id: {
             "schema_version": 1,
@@ -919,6 +1131,7 @@ def test_final_evidence_requires_all_13_exact_one_carrier_checkpoints() -> None:
             "subsystem": experiment.subsystem,
             "carrier_sha256": experiment.carrier.sha256,
             "worker_payload_sha256": f"{index + 1:064x}",
+            "execution_pass": True,
             "comparison": {
                 "first_divergence": {
                     "cell_id": "phase1_performance/a/h1_2023",
@@ -929,8 +1142,12 @@ def test_final_evidence_requires_all_13_exact_one_carrier_checkpoints() -> None:
                     {
                         "contract": "phase1_performance",
                         "cell_id": "a/h1_2023",
+                        "frozen_status": "VALID",
                         "baseline_status": "VALID",
                         "variant_status": "VALID",
+                        "status_transition": None,
+                        "baseline_metrics": metrics,
+                        "variant_metrics": metrics,
                         "delta": {
                             "final_wealth": 0.1,
                             "max_drawdown": 0.0,
@@ -942,6 +1159,10 @@ def test_final_evidence_requires_all_13_exact_one_carrier_checkpoints() -> None:
                             "top3_concentration": 0.0,
                             "pnl_hhi": 0.0,
                         },
+                        "baseline_replay_error": None,
+                        "variant_replay_error": None,
+                        "baseline_raw_result_sha256": "b" * 64,
+                        "variant_raw_result_sha256": "c" * 64,
                     }
                 ],
                 "aggregates": {
@@ -949,8 +1170,19 @@ def test_final_evidence_requires_all_13_exact_one_carrier_checkpoints() -> None:
                         "baseline": {"economic_cells": 1},
                         "variant": {"economic_cells": 1},
                         "delta": {"economic_cells": 0},
+                        "coverage": {
+                            "record_count": 1,
+                            "economic_count": 1,
+                            "common_valid_count": 1,
+                            "baseline_status_counts": {"VALID": 1},
+                            "variant_status_counts": {"VALID": 1},
+                            "status_transition_counts": {},
+                        },
                     }
                 },
+                "execution_pass": True,
+                "baseline_provenance": {"source": "baseline"},
+                "variant_provenance": {"source": experiment.experiment_id},
             },
             "replay_command": ["python", "run_phase2_ablation.py"],
         }

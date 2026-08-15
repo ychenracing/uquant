@@ -14,6 +14,7 @@ import sys
 import tempfile
 from collections import Counter
 from collections.abc import Mapping, Sequence
+from datetime import date
 from pathlib import Path
 from typing import Any, TypeGuard
 
@@ -40,6 +41,17 @@ _METRIC_FIELDS = {
 }
 _CONCENTRATION_TOLERANCE = 1e-12
 _SHA256_LENGTH = 64
+_BASELINE_CARRIER_SHA256 = "f1049fe9b5db63b2e8df68a9ff87930108ca38eea40ed456aa179eadd79e7bdd"
+_REPLAY_ERROR_FIELDS = {
+    "type",
+    "message",
+    "date",
+    "contract",
+    "cell_id",
+    "binding_sha256",
+    "carrier_sha256",
+    "provenance_sha256",
+}
 
 
 def _project_imports() -> tuple[Any, ...]:
@@ -80,6 +92,11 @@ def _is_sha256(value: object) -> TypeGuard[str]:
         and len(value) == _SHA256_LENGTH
         and all(character in "0123456789abcdef" for character in value)
     )
+
+
+def _sha256_mapping(value: Mapping[str, Any]) -> str:
+    """Return the canonical digest used to bind nested provenance evidence."""
+    return hashlib.sha256(_canonical_bytes(dict(value))).hexdigest()
 
 
 def _validate_metrics(value: object) -> None:
@@ -128,8 +145,9 @@ def _validate_worker_payload(
     schedule: Sequence[Any],
     binding_sha256: str,
     experiment_id: str,
+    carrier_sha256: str | None = None,
 ) -> None:
-    """Reject partial, stale, status-rewritten, or trace-free worker evidence."""
+    """Reject partial, stale, rewritten, self-signed, or trace-free evidence."""
     if (
         payload.get("schema_version") != 1
         or payload.get("mode") != "contract-replay"
@@ -146,16 +164,31 @@ def _validate_worker_payload(
         or not isinstance(provenance, Mapping)
     ):
         raise ValueError("ablation worker payload is incomplete")
+    expected_carrier = carrier_sha256 or (_BASELINE_CARRIER_SHA256 if experiment_id == "baseline" else "")
+    if not _is_sha256(expected_carrier):
+        raise ValueError("ablation worker expected carrier is malformed")
+    provenance_sha256 = _sha256_mapping(provenance)
     expected = tuple((item.contract, item.cell_id, item.status, item.economic) for item in schedule)
     observed: list[tuple[str, str, str, bool]] = []
     expected_trace_keys: set[str] = set()
     for raw, item in zip(raw_cells, schedule, strict=False):
         if not isinstance(raw, Mapping):
             raise ValueError("ablation worker cell is malformed")
+        if set(raw) != {
+            "contract",
+            "cell_id",
+            "frozen_status",
+            "status",
+            "economic",
+            "metrics",
+            "replay_error",
+            "raw_result_sha256",
+        }:
+            raise ValueError("ablation worker cell fields differ")
         identity = (
             raw.get("contract"),
             raw.get("cell_id"),
-            raw.get("status"),
+            raw.get("frozen_status"),
             raw.get("economic"),
         )
         if not (
@@ -169,25 +202,52 @@ def _validate_worker_payload(
         if identity[:2] != (item.contract, item.cell_id):
             raise ValueError("ablation worker cell coverage differs")
         if identity[2] != item.status or identity[3] != item.economic:
-            raise ValueError("ablation worker cell status differs from frozen contract")
+            raise ValueError("ablation worker frozen contract status differs")
+        actual_status = raw.get("status")
+        if actual_status not in {"VALID", "REPLAY_ERROR", "INSUFFICIENT_SAMPLE"}:
+            raise ValueError("ablation worker actual status is malformed")
+        if experiment_id == "baseline" and actual_status != item.status:
+            raise ValueError("ablation worker status differs from frozen contract")
+        if item.economic and actual_status == "INSUFFICIENT_SAMPLE":
+            raise ValueError("ablation worker economic status is malformed")
+        if not item.economic and actual_status != "INSUFFICIENT_SAMPLE":
+            raise ValueError("ablation worker insufficient status was rewritten")
         metrics = raw.get("metrics")
         replay_error = raw.get("replay_error")
         result_hash = raw.get("raw_result_sha256")
         key = f"{item.contract}/{item.cell_id}"
-        if item.status == "VALID":
+        if actual_status == "VALID":
             _validate_metrics(metrics)
             if replay_error is not None or not _is_sha256(result_hash):
                 raise ValueError("ablation worker valid cell evidence is malformed")
             expected_trace_keys.add(key)
-        elif item.status == "REPLAY_ERROR":
+        elif actual_status == "REPLAY_ERROR":
             if (
                 metrics is not None
                 or result_hash is not None
                 or not isinstance(replay_error, Mapping)
+                or set(replay_error) != _REPLAY_ERROR_FIELDS
                 or not isinstance(replay_error.get("type"), str)
+                or not replay_error.get("type")
                 or not isinstance(replay_error.get("message"), str)
+                or not replay_error.get("message")
             ):
                 raise ValueError("ablation worker replay error evidence is malformed")
+            error_date = replay_error.get("date")
+            try:
+                parsed_error_date = date.fromisoformat(str(error_date))
+            except ValueError as exc:
+                raise ValueError("ablation worker replay error evidence is malformed") from exc
+            if not (
+                str(replay_error.get("contract")) == item.contract
+                and str(replay_error.get("cell_id")) == item.cell_id
+                and replay_error.get("binding_sha256") == binding_sha256
+                and replay_error.get("carrier_sha256") == expected_carrier
+                and replay_error.get("provenance_sha256") == provenance_sha256
+                and date.fromisoformat(item.start) <= parsed_error_date <= date.fromisoformat(item.end)
+            ):
+                raise ValueError("ablation worker replay error provenance differs")
+            expected_trace_keys.add(key)
         elif metrics is not None or replay_error is not None or result_hash is not None:
             raise ValueError("ablation insufficient cell contains economic evidence")
     if tuple(observed) != expected:
@@ -196,24 +256,36 @@ def _validate_worker_payload(
         raise ValueError("ablation worker trace coverage differs")
     for key in expected_trace_keys:
         rows = traces[key]
-        if not isinstance(rows, list) or not rows:
+        cell = next(
+            raw
+            for raw in raw_cells
+            if isinstance(raw, Mapping) and key == f"{raw.get('contract')}/{raw.get('cell_id')}"
+        )
+        if not isinstance(rows, list) or (cell.get("status") == "VALID" and not rows):
             raise ValueError("ablation worker decision trace is missing")
         previous = ""
         for raw_row in rows:
             if not isinstance(raw_row, Mapping):
                 raise ValueError("ablation worker decision trace is malformed")
-            date = raw_row.get("date")
+            row_date = raw_row.get("date")
             stages = raw_row.get("stages")
             if (
-                not isinstance(date, str)
-                or not date
-                or date <= previous
+                not isinstance(row_date, str)
+                or not row_date
+                or row_date <= previous
                 or not isinstance(stages, Mapping)
                 or set(stages) != set(_CAUSAL_STAGES)
                 or any(not _is_sha256(stages[name]) for name in _CAUSAL_STAGES)
             ):
                 raise ValueError("ablation worker decision trace is malformed")
-            previous = date
+            previous = row_date
+        replay_error = cell.get("replay_error")
+        if (
+            isinstance(replay_error, Mapping)
+            and rows
+            and str(rows[-1].get("date")) > str(replay_error.get("date"))
+        ):
+            raise ValueError("ablation worker replay error trace exceeds failure date")
 
 
 def _write_checkpoint(path: Path, payload: Mapping[str, Any]) -> str:
@@ -279,16 +351,42 @@ def _validate_comparison_coverage(
     comparison: Mapping[str, Any],
     *,
     schedule: Sequence[Any],
+    binding_sha256: str,
+    carrier_sha256: str,
 ) -> None:
     rows = comparison.get("cells")
     aggregates = comparison.get("aggregates")
-    if not isinstance(rows, list) or not isinstance(aggregates, Mapping):
+    baseline_provenance = comparison.get("baseline_provenance")
+    variant_provenance = comparison.get("variant_provenance")
+    if (
+        not isinstance(rows, list)
+        or not isinstance(aggregates, Mapping)
+        or not isinstance(baseline_provenance, Mapping)
+        or not isinstance(variant_provenance, Mapping)
+        or not isinstance(comparison.get("execution_pass"), bool)
+    ):
         raise ValueError("ablation comparison cell coverage is malformed")
     expected = tuple((item.contract, item.cell_id, item.status) for item in schedule)
     observed: list[tuple[str, str, str]] = []
     for row, item in zip(rows, schedule, strict=False):
         if not isinstance(row, Mapping):
             raise ValueError("ablation comparison cell coverage is malformed")
+        if set(row) != {
+            "contract",
+            "cell_id",
+            "frozen_status",
+            "baseline_status",
+            "variant_status",
+            "status_transition",
+            "baseline_metrics",
+            "variant_metrics",
+            "delta",
+            "baseline_replay_error",
+            "variant_replay_error",
+            "baseline_raw_result_sha256",
+            "variant_raw_result_sha256",
+        }:
+            raise ValueError("ablation comparison cell fields differ")
         identity = (
             row.get("contract"),
             row.get("cell_id"),
@@ -297,11 +395,40 @@ def _validate_comparison_coverage(
         if not all(isinstance(value, str) for value in identity):
             raise ValueError("ablation comparison cell coverage is malformed")
         observed.append((str(identity[0]), str(identity[1]), str(identity[2])))
-        if row.get("variant_status") != item.status:
-            raise ValueError("ablation comparison status differs from frozen contract")
+        baseline_status = row.get("baseline_status")
+        variant_status = row.get("variant_status")
+        if row.get("frozen_status") != item.status or baseline_status != item.status:
+            raise ValueError("ablation comparison baseline status differs from frozen contract")
+        if item.economic:
+            if variant_status not in {"VALID", "REPLAY_ERROR"}:
+                raise ValueError("ablation comparison variant status is malformed")
+        elif variant_status != "INSUFFICIENT_SAMPLE":
+            raise ValueError("ablation comparison insufficient status was rewritten")
+        expected_transition = (
+            None if baseline_status == variant_status else f"{baseline_status}->{variant_status}"
+        )
+        if row.get("status_transition") != expected_transition:
+            raise ValueError("ablation comparison status transition differs")
         delta = row.get("delta")
-        if (item.status == "VALID") != isinstance(delta, Mapping):
+        common_valid = baseline_status == variant_status == "VALID"
+        if common_valid != isinstance(delta, Mapping):
             raise ValueError("ablation comparison delta coverage differs")
+        baseline_metrics = row.get("baseline_metrics")
+        variant_metrics = row.get("variant_metrics")
+        baseline_result_hash = row.get("baseline_raw_result_sha256")
+        variant_result_hash = row.get("variant_raw_result_sha256")
+        if baseline_status == "VALID":
+            _validate_metrics(baseline_metrics)
+            if not _is_sha256(baseline_result_hash):
+                raise ValueError("ablation comparison baseline result hash is malformed")
+        elif baseline_metrics is not None or baseline_result_hash is not None:
+            raise ValueError("ablation comparison baseline metrics are malformed")
+        if variant_status == "VALID":
+            _validate_metrics(variant_metrics)
+            if not _is_sha256(variant_result_hash):
+                raise ValueError("ablation comparison variant result hash is malformed")
+        elif variant_metrics is not None or variant_result_hash is not None:
+            raise ValueError("ablation comparison variant metrics are malformed")
         if isinstance(delta, Mapping):
             if set(delta) != _METRIC_FIELDS:
                 raise ValueError("ablation comparison delta dimensions differ")
@@ -317,6 +444,46 @@ def _validate_comparison_coverage(
                     or not math.isfinite(float(value))
                 ):
                     raise ValueError("ablation comparison delta dimensions are malformed")
+        for side, status, replay_error, provenance, expected_carrier in (
+            (
+                "baseline",
+                baseline_status,
+                row.get("baseline_replay_error"),
+                baseline_provenance,
+                _BASELINE_CARRIER_SHA256,
+            ),
+            (
+                "variant",
+                variant_status,
+                row.get("variant_replay_error"),
+                variant_provenance,
+                carrier_sha256,
+            ),
+        ):
+            if status != "REPLAY_ERROR":
+                if replay_error is not None:
+                    raise ValueError(f"ablation comparison {side} replay error is malformed")
+                continue
+            if (
+                not isinstance(replay_error, Mapping)
+                or set(replay_error) != _REPLAY_ERROR_FIELDS
+                or replay_error.get("contract") != item.contract
+                or replay_error.get("cell_id") != item.cell_id
+                or replay_error.get("binding_sha256") != binding_sha256
+                or replay_error.get("carrier_sha256") != expected_carrier
+                or replay_error.get("provenance_sha256") != _sha256_mapping(provenance)
+                or not isinstance(replay_error.get("type"), str)
+                or not replay_error.get("type")
+                or not isinstance(replay_error.get("message"), str)
+                or not replay_error.get("message")
+            ):
+                raise ValueError(f"ablation comparison {side} replay error provenance differs")
+            try:
+                replay_date = date.fromisoformat(str(replay_error.get("date")))
+            except ValueError as exc:
+                raise ValueError(f"ablation comparison {side} replay error date is malformed") from exc
+            if not date.fromisoformat(item.start) <= replay_date <= date.fromisoformat(item.end):
+                raise ValueError(f"ablation comparison {side} replay error date is malformed")
     if tuple(observed) != expected:
         raise ValueError("ablation comparison cell coverage differs")
     expected_contracts = {item.contract for item in schedule if item.status == "VALID"}
@@ -328,23 +495,54 @@ def _validate_comparison_coverage(
             "baseline",
             "variant",
             "delta",
+            "coverage",
         }:
             raise ValueError("ablation comparison aggregate coverage differs")
         baseline = aggregate["baseline"]
         variant = aggregate["variant"]
         delta = aggregate["delta"]
-        valid_count = sum(item.contract == contract and item.status == "VALID" for item in schedule)
+        coverage = aggregate["coverage"]
+        contract_rows = tuple(
+            row for row in rows if isinstance(row, Mapping) and row.get("contract") == contract
+        )
+        common_valid_count = sum(
+            row.get("baseline_status") == row.get("variant_status") == "VALID" for row in contract_rows
+        )
+        baseline_counts = Counter(str(row.get("baseline_status")) for row in contract_rows)
+        variant_counts = Counter(str(row.get("variant_status")) for row in contract_rows)
+        transition_counts = Counter(
+            str(row.get("status_transition"))
+            for row in contract_rows
+            if row.get("status_transition") is not None
+        )
+        expected_coverage = {
+            "record_count": len(contract_rows),
+            "economic_count": sum(item.contract == contract and item.economic for item in schedule),
+            "common_valid_count": common_valid_count,
+            "baseline_status_counts": dict(sorted(baseline_counts.items())),
+            "variant_status_counts": dict(sorted(variant_counts.items())),
+            "status_transition_counts": dict(sorted(transition_counts.items())),
+        }
         if (
             not isinstance(baseline, Mapping)
             or not isinstance(variant, Mapping)
             or not isinstance(delta, Mapping)
+            or coverage != expected_coverage
             or set(baseline) != set(variant)
             or set(delta) != set(baseline)
-            or baseline.get("economic_cells") != valid_count
-            or variant.get("economic_cells") != valid_count
+            or baseline.get("economic_cells") != common_valid_count
+            or variant.get("economic_cells") != common_valid_count
             or delta.get("economic_cells") != 0
         ):
             raise ValueError("ablation comparison aggregate coverage differs")
+    expected_execution_pass = not any(
+        isinstance(row, Mapping)
+        and row.get("baseline_status") != "REPLAY_ERROR"
+        and row.get("variant_status") == "REPLAY_ERROR"
+        for row in rows
+    )
+    if comparison.get("execution_pass") is not expected_execution_pass:
+        raise ValueError("ablation comparison execution status differs")
 
 
 def _validate_experiment_checkpoints(
@@ -406,9 +604,15 @@ def _validate_experiment_checkpoint(
         or not divergence.get("date")
         or not divergence.get("first_stage")
         or not isinstance(raw.get("replay_command"), list)
+        or raw.get("execution_pass") is not comparison.get("execution_pass")
     ):
         raise ValueError("ablation experiment checkpoint is incomplete")
-    _validate_comparison_coverage(comparison, schedule=schedule)
+    _validate_comparison_coverage(
+        comparison,
+        schedule=schedule,
+        binding_sha256=binding_sha256,
+        carrier_sha256=experiment.carrier.sha256,
+    )
     return worker_hash
 
 
@@ -680,9 +884,14 @@ def _first_hashed_divergence(
         right_rows = variant[cell_id]
         left_dates = tuple(str(row.get("date", "")) for row in left_rows)
         right_dates = tuple(str(row.get("date", "")) for row in right_rows)
-        if left_dates != right_dates:
-            raise ValueError("ablation decision traces require aligned dates")
-        for left, right in zip(left_rows, right_rows, strict=True):
+        common_length = min(len(left_dates), len(right_dates))
+        if left_dates[:common_length] != right_dates[:common_length]:
+            raise ValueError("ablation decision traces require aligned date prefixes")
+        for left, right in zip(
+            left_rows[:common_length],
+            right_rows[:common_length],
+            strict=True,
+        ):
             left_stages = left.get("stages")
             right_stages = right.get("stages")
             if not isinstance(left_stages, Mapping) or not isinstance(right_stages, Mapping):
@@ -721,7 +930,11 @@ def _replay_cell(
     import pandas as pd
 
     from research.first_divergence import _CAUSAL_STAGES as TRACE_STAGES
-    from research.first_divergence import _canonical_stages, trace_backtest
+    from research.first_divergence import (
+        _canonical_stages,
+        _trace_row,
+        _validate_trace_interval,
+    )
     from uquant.validation.generalization import (
         symbol_pnl_concentration,
         symbol_pnl_from_result,
@@ -730,12 +943,68 @@ def _replay_cell(
 
     if tuple(TRACE_STAGES) != _CAUSAL_STAGES:
         raise RuntimeError("ablation trace stage contract drifted")
-    raw, trace = trace_backtest(
-        engine,
-        symbols=tuple(symbols),
-        start=start,
-        end=end,
-    )
+    _validate_trace_interval(start, end)
+    trace: list[dict[str, Any]] = []
+    fill_cursor = 0
+    failure_date = start
+    original_decide = engine.decide
+    original_execute_open = engine.execution.execute_open
+
+    def observed_execute_open(*, date: Any, account: Any, panel: Any) -> Any:
+        nonlocal failure_date
+        failure_date = str(pd.Timestamp(date).date())
+        return original_execute_open(date=date, account=account, panel=panel)
+
+    def observed_decide(*, symbols: Any, as_of: str, account: Any) -> Any:
+        nonlocal failure_date, fill_cursor
+        failure_date = str(pd.Timestamp(as_of).date())
+        new_fills = tuple(account.fills[fill_cursor:])
+        fill_cursor = len(account.fills)
+        decision = original_decide(symbols=symbols, as_of=as_of, account=account)
+        trace.append(
+            _trace_row(
+                engine=engine,
+                decision=decision,
+                account=account,
+                new_fills=new_fills,
+            )
+        )
+        return decision
+
+    replay_error: dict[str, str] | None = None
+    raw: Mapping[str, Any] | None = None
+    try:
+        object.__setattr__(engine.execution, "execute_open", observed_execute_open)
+        object.__setattr__(engine, "decide", observed_decide)
+        raw = engine.backtest(symbols=tuple(symbols), start=start, end=end)
+    except Exception as exc:
+        replay_error = {
+            "type": type(exc).__name__,
+            "message": str(exc),
+            "date": failure_date,
+        }
+    finally:
+        object.__setattr__(engine, "decide", original_decide)
+        object.__setattr__(engine.execution, "execute_open", original_execute_open)
+    trace_hashes = [
+        {
+            "date": row["date"],
+            "stages": {
+                stage: hashlib.sha256(_canonical_bytes(stages[stage])).hexdigest() for stage in _CAUSAL_STAGES
+            },
+        }
+        for row in trace
+        if (stages := _canonical_stages(row))
+    ]
+    if replay_error is not None:
+        return {
+            "metrics": None,
+            "trace": trace_hashes,
+            "replay_error": replay_error,
+            "raw_result_sha256": None,
+        }
+    if raw is None:
+        raise RuntimeError("ablation replay returned neither result nor error")
     compact = _compact(
         raw,
         acute=(acute_start, acute_end) if acute_start is not None and acute_end is not None else None,
@@ -753,16 +1022,6 @@ def _replay_cell(
         if isinstance(position, Mapping) and int(position.get("shares", 0)) > 0
     }
     concentration = symbol_pnl_concentration(symbol_pnl_from_result(raw, final_prices))
-    trace_hashes = [
-        {
-            "date": row["date"],
-            "stages": {
-                stage: hashlib.sha256(_canonical_bytes(stages[stage])).hexdigest() for stage in _CAUSAL_STAGES
-            },
-        }
-        for row in trace
-        if (stages := _canonical_stages(row))
-    ]
     return {
         "metrics": {
             "final_wealth": compact["final_wealth"],
@@ -774,6 +1033,7 @@ def _replay_cell(
             **concentration,
         },
         "trace": trace_hashes,
+        "replay_error": None,
         "raw_result_sha256": hashlib.sha256(_canonical_bytes(raw)).hexdigest(),
     }
 
@@ -849,6 +1109,7 @@ def _compare_worker_payloads(
     compared_cells: list[dict[str, Any]] = []
     baseline_typed: list[Any] = []
     variant_typed: list[Any] = []
+    common_valid_pairs: dict[tuple[str, str], tuple[Any, Any]] = {}
     for identity in baseline_by_id:
         left_raw = baseline_by_id[identity]
         right_raw = variant_by_id[identity]
@@ -857,15 +1118,27 @@ def _compare_worker_payloads(
         baseline_typed.append(left)
         variant_typed.append(right)
         delta = compare_cells(left, right).to_dict() if left.status == right.status == "VALID" else None
+        if delta is not None:
+            common_valid_pairs[identity] = (left, right)
+            trace_key = f"{identity[0]}/{identity[1]}"
+            left_dates = tuple(row.get("date") for row in baseline_traces.get(trace_key, ()))
+            right_dates = tuple(row.get("date") for row in variant_traces.get(trace_key, ()))
+            if left_dates != right_dates:
+                raise ValueError("ablation common-valid decision traces require aligned dates")
+        transition = None if left.status == right.status else f"{left.status}->{right.status}"
         compared_cells.append(
             {
                 "contract": identity[0],
                 "cell_id": identity[1],
+                "frozen_status": left_raw.get("frozen_status"),
                 "baseline_status": left.status,
                 "variant_status": right.status,
+                "status_transition": transition,
                 "baseline_metrics": None if left.metrics is None else left.metrics.to_dict(),
                 "variant_metrics": None if right.metrics is None else right.metrics.to_dict(),
                 "delta": delta,
+                "baseline_replay_error": left_raw.get("replay_error"),
+                "variant_replay_error": right_raw.get("replay_error"),
                 "baseline_raw_result_sha256": left_raw.get("raw_result_sha256"),
                 "variant_raw_result_sha256": right_raw.get("raw_result_sha256"),
             }
@@ -874,20 +1147,46 @@ def _compare_worker_payloads(
     contracts = tuple(dict.fromkeys(item.contract for item in baseline_typed))
     aggregates: dict[str, Any] = {}
     for contract in contracts:
-        left_valid = tuple(
-            item for item in baseline_typed if item.contract == contract and item.status == "VALID"
+        contract_identities = tuple(identity for identity in baseline_by_id if identity[0] == contract)
+        common_identities = tuple(
+            identity for identity in contract_identities if identity in common_valid_pairs
         )
-        right_valid = tuple(
-            item for item in variant_typed if item.contract == contract and item.status == "VALID"
-        )
-        left_aggregate = aggregate_dimensions(left_valid)
-        right_aggregate = aggregate_dimensions(right_valid)
+        left_valid = tuple(common_valid_pairs[identity][0] for identity in common_identities)
+        right_valid = tuple(common_valid_pairs[identity][1] for identity in common_identities)
+        left_aggregate = aggregate_dimensions(left_valid) if left_valid else {"economic_cells": 0}
+        right_aggregate = aggregate_dimensions(right_valid) if right_valid else {"economic_cells": 0}
         common = set(left_aggregate) & set(right_aggregate)
+        baseline_status_counts = Counter(
+            str(baseline_by_id[identity].get("status")) for identity in contract_identities
+        )
+        variant_status_counts = Counter(
+            str(variant_by_id[identity].get("status")) for identity in contract_identities
+        )
+        transitions = Counter(
+            f"{baseline_by_id[identity].get('status')}->{variant_by_id[identity].get('status')}"
+            for identity in contract_identities
+            if baseline_by_id[identity].get("status") != variant_by_id[identity].get("status")
+        )
         aggregates[contract] = {
             "baseline": left_aggregate,
             "variant": right_aggregate,
             "delta": {name: right_aggregate[name] - left_aggregate[name] for name in sorted(common)},
+            "coverage": {
+                "record_count": len(contract_identities),
+                "economic_count": sum(
+                    baseline_by_id[identity].get("frozen_status") != "INSUFFICIENT_SAMPLE"
+                    for identity in contract_identities
+                ),
+                "common_valid_count": len(common_identities),
+                "baseline_status_counts": dict(sorted(baseline_status_counts.items())),
+                "variant_status_counts": dict(sorted(variant_status_counts.items())),
+                "status_transition_counts": dict(sorted(transitions.items())),
+            },
         }
+    execution_pass = not any(
+        row["baseline_status"] != "REPLAY_ERROR" and row["variant_status"] == "REPLAY_ERROR"
+        for row in compared_cells
+    )
     return {
         "first_divergence": _first_hashed_divergence(
             baseline_traces,
@@ -896,6 +1195,7 @@ def _compare_worker_payloads(
         ),
         "cells": compared_cells,
         "aggregates": aggregates,
+        "execution_pass": execution_pass,
         "baseline_provenance": baseline.get("provenance"),
         "variant_provenance": variant.get("provenance"),
     }
@@ -966,6 +1266,35 @@ def _worker(args: argparse.Namespace) -> dict[str, Any]:
         raise RuntimeError("ablation worker account factory is not fresh")
     fresh_account_sha256 = hashlib.sha256(_canonical_bytes(first_account.to_dict())).hexdigest()
     engine = ProductionEngine(data_dir, config)
+    provenance = {
+        "checkout": dict(checkout_payload),
+        "production_engine_source": engine_source.relative_to(source_root).as_posix(),
+        "effective_config_sha256": config_fingerprint(config),
+        "fresh_account_sha256": fresh_account_sha256,
+        "account_factory": "uquant.types.AccountState.empty/per-backtest",
+        "schedule_sha256": schedule_sha256,
+        "data": dict(verify_data_manifest(data_dir)),
+        "runtime": _runtime(),
+        "uv_lock_sha256": _sha256(source_root / "uv.lock"),
+        "process_contract": {
+            "isolated_python": True,
+            "pythonhashseed": os.environ.get("PYTHONHASHSEED", ""),
+            "single_process": True,
+            "thread_limits": {
+                name: os.environ.get(name, "")
+                for name in (
+                    "OMP_NUM_THREADS",
+                    "OPENBLAS_NUM_THREADS",
+                    "MKL_NUM_THREADS",
+                    "NUMEXPR_NUM_THREADS",
+                )
+            },
+        },
+    }
+    provenance_sha256 = _sha256_mapping(provenance)
+    carrier_sha256 = checkout_payload.get("carrier_sha256")
+    if not _is_sha256(carrier_sha256):
+        raise ValueError("ablation worker carrier provenance is malformed")
     cells: list[dict[str, Any]] = []
     traces: dict[str, Any] = {}
     economic_complete = 0
@@ -1006,6 +1335,7 @@ def _worker(args: argparse.Namespace) -> dict[str, Any]:
         cell_payload: dict[str, Any] = {
             "contract": contract,
             "cell_id": cell_id,
+            "frozen_status": status,
             "status": status,
             "economic": economic,
             "metrics": None,
@@ -1020,33 +1350,37 @@ def _worker(args: argparse.Namespace) -> dict[str, Any]:
                 file=sys.stderr,
                 flush=True,
             )
-            try:
-                result = _replay_cell(
-                    engine,
-                    symbols=tuple(symbols),
-                    start=str(raw["start"]),
-                    end=str(raw["end"]),
-                    acute_start=(str(raw["acute_start"]) if raw["acute_start"] is not None else None),
-                    acute_end=(str(raw["acute_end"]) if raw["acute_end"] is not None else None),
+            result = _replay_cell(
+                engine,
+                symbols=tuple(symbols),
+                start=str(raw["start"]),
+                end=str(raw["end"]),
+                acute_start=(str(raw["acute_start"]) if raw["acute_start"] is not None else None),
+                acute_end=(str(raw["acute_end"]) if raw["acute_end"] is not None else None),
+            )
+            raw_error = result["replay_error"]
+            actual_status = "REPLAY_ERROR" if raw_error is not None else "VALID"
+            if args.experiment_id == "baseline" and actual_status != status:
+                raise RuntimeError(
+                    f"frozen baseline status differs for {contract}/{cell_id}: "
+                    f"expected {status}, observed {actual_status}"
                 )
-            except Exception as exc:
-                if status != "REPLAY_ERROR":
-                    raise RuntimeError(
-                        f"unexpected ablation replay error for {contract}/{cell_id}: "
-                        f"{type(exc).__name__}: {exc}"
-                    ) from exc
+            cell_payload["status"] = actual_status
+            traces[f"{contract}/{cell_id}"] = result["trace"]
+            if isinstance(raw_error, Mapping):
                 cell_payload["replay_error"] = {
-                    "type": type(exc).__name__,
-                    "message": str(exc),
+                    "type": raw_error["type"],
+                    "message": raw_error["message"],
+                    "date": raw_error["date"],
+                    "contract": contract,
+                    "cell_id": cell_id,
+                    "binding_sha256": args.binding_sha256,
+                    "carrier_sha256": carrier_sha256,
+                    "provenance_sha256": provenance_sha256,
                 }
             else:
-                if status != "VALID":
-                    raise RuntimeError(
-                        f"frozen replay-error status unexpectedly succeeded: {contract}/{cell_id}"
-                    )
                 cell_payload["metrics"] = result["metrics"]
                 cell_payload["raw_result_sha256"] = result["raw_result_sha256"]
-                traces[f"{contract}/{cell_id}"] = result["trace"]
         cells.append(cell_payload)
     return {
         "schema_version": 1,
@@ -1055,31 +1389,7 @@ def _worker(args: argparse.Namespace) -> dict[str, Any]:
         "experiment_id": args.experiment_id,
         "cells": cells,
         "traces": traces,
-        "provenance": {
-            "checkout": dict(checkout_payload),
-            "production_engine_source": engine_source.relative_to(source_root).as_posix(),
-            "effective_config_sha256": config_fingerprint(config),
-            "fresh_account_sha256": fresh_account_sha256,
-            "account_factory": "uquant.types.AccountState.empty/per-backtest",
-            "schedule_sha256": schedule_sha256,
-            "data": dict(verify_data_manifest(data_dir)),
-            "runtime": _runtime(),
-            "uv_lock_sha256": _sha256(source_root / "uv.lock"),
-            "process_contract": {
-                "isolated_python": True,
-                "pythonhashseed": os.environ.get("PYTHONHASHSEED", ""),
-                "single_process": True,
-                "thread_limits": {
-                    name: os.environ.get(name, "")
-                    for name in (
-                        "OMP_NUM_THREADS",
-                        "OPENBLAS_NUM_THREADS",
-                        "MKL_NUM_THREADS",
-                        "NUMEXPR_NUM_THREADS",
-                    )
-                },
-            },
-        },
+        "provenance": provenance,
     }
 
 
@@ -1249,6 +1559,7 @@ def _load_baseline_checkpoint(
         schedule=schedule,
         binding_sha256=binding_sha256,
         experiment_id="baseline",
+        carrier_sha256=_BASELINE_CARRIER_SHA256,
     )
     return checkpoint
 
@@ -1534,6 +1845,7 @@ def _run(args: argparse.Namespace) -> dict[str, Any]:
                     schedule=schedule,
                     binding_sha256=binding_sha256,
                     experiment_id="baseline",
+                    carrier_sha256=_BASELINE_CARRIER_SHA256,
                 )
                 _validate_worker_provenance(
                     worker,
@@ -1608,6 +1920,7 @@ def _run(args: argparse.Namespace) -> dict[str, Any]:
                         schedule=schedule,
                         binding_sha256=binding_sha256,
                         experiment_id=experiment.experiment_id,
+                        carrier_sha256=experiment.carrier.sha256,
                     )
                     _validate_worker_provenance(
                         variant_worker,
@@ -1616,6 +1929,10 @@ def _run(args: argparse.Namespace) -> dict[str, Any]:
                         effective_config_sha256=str(probe["effective_config_sha256"]),
                         fresh_account_sha256=str(probe["fresh_account_sha256"]),
                     )
+            comparison = _compare_worker_payloads(
+                baseline_checkpoint["worker"],
+                variant_worker,
+            )
             experiment_checkpoint = {
                 "schema_version": 1,
                 "kind": "experiment",
@@ -1624,10 +1941,8 @@ def _run(args: argparse.Namespace) -> dict[str, Any]:
                 "subsystem": experiment.subsystem,
                 "carrier_sha256": experiment.carrier.sha256,
                 "worker_payload_sha256": hashlib.sha256(_canonical_bytes(variant_worker)).hexdigest(),
-                "comparison": _compare_worker_payloads(
-                    baseline_checkpoint["worker"],
-                    variant_worker,
-                ),
+                "execution_pass": comparison["execution_pass"],
+                "comparison": comparison,
                 "replay_command": _replay_command(
                     source_root=source_root,
                     registry_path=registry_path,

@@ -148,12 +148,13 @@ cache is not writable in this execution sandbox.
 | Final self-review hardening | Four tests failed for a re-sealed patch, cross-cell date ordering, invalid concentration, and missing exact checkpoint schedule coverage. | All four: `4 passed`. |
 | Raw-dimension aggregation hardening | Missing one checkpoint delta dimension was incorrectly accepted. | Exact nine-dimension validator test: `1 passed`. |
 | Frozen concentration rounding | The clean-HEAD baseline replay reached `237/237`, then correctly produced no checkpoint because four frozen raw Top-3 values of `1.0000000000000002` exceeded a newly over-strict exact upper bound. | A fail-first raw-value regression now permits only `1e-12` machine rounding while retaining the raw value; `1.000001` and material Top-1/Top-3 inversions remain rejected. |
+| Variant replay-error retention | A fail-first comparison test raised `ValueError: ablation decision traces require aligned dates` when a real variant error left a shorter trace, and the original worker aborted instead of preserving the failed cell and continuing. | Focused Task 7 set: `21 passed`; the worker now retains the exact error and partial trace, continues the fixed schedule, nulls failed-cell metrics/delta, aggregates only common `VALID` pairs, and independently authenticates status transitions and error provenance. |
 
 Representative final focused command and output:
 
 ```text
 UV_CACHE_DIR=/tmp/uquant-uv-cache uv run pytest -q tests/test_phase2_ablation.py
-...................                                                      [100%]
+.....................                                                    [100%]
 ```
 
 ## Carrier-validation evidence
@@ -169,10 +170,10 @@ UV_CACHE_DIR=/tmp/uquant-uv-cache uv run python scripts/run_phase2_ablation.py v
 cmp /tmp/task7-validation-a.json /tmp/task7-validation-b.json
 ```
 
-- Validation artifact file SHA-256:
-  `be84fb90a0bb0ceec57a08658c8b10c83b00e8897ca0b8cb74457261cf626687`
+- Validation artifact file SHA-256 after replay-error retention:
+  `2efe00de02fe1db3a44e37b6d7d0ea1c6de0b20fe25830456b4e3d86d9481798`
 - Bound runner SHA-256:
-  `6830429b7ac25c089051fc9f372dc7116fae9c0b182da4e50958a2cf0b118182`
+  `7c7542fef52ae1e6b5064f579151b82da0ba24eb480b4ce7e0824bb1d63a919e`
 - `uv.lock` SHA-256:
   `4accf16535b5ac95b831c9289e0ad2ff21282dc5dfae3f05dd0fb095089d6a61`
 - Data snapshot: `20260809T094222Z-causal-tech-index-rebase`
@@ -217,13 +218,65 @@ concentration values and recomputes them from exact symbol PnL. Task 7 now appli
 a `1e-12` machine-boundary tolerance while preserving the raw number; it does not clamp
 or rewrite it. Baseline is restarted from the beginning after the fix commit.
 
+The next clean-HEAD run at implementation commit
+`a9b1831a9957217d986c3cf659d4dea2b8d794fa` produced a complete baseline and the
+first three variant checkpoints before `without_capital_budget_ladder` encountered a
+new production replay error after 1,214 seconds at economic cell 219/237. The runner
+failed closed and wrote no variant checkpoint. The exact error was:
+
+```text
+ai_era_generalization/continuous_ai_era/random__05__0001
+2025-08-25
+RuntimeError: new SELL for sh688041 has incompatible attribution: attribution pair
+LEADER/LEADER_LIFECYCLE_PROMOTION is not permitted for SELL
+```
+
+Systematic reproduction showed this was a real variant economic path, not rounding or
+latent metadata drift. Immediately before the rejected order, the variant held 11,300
+shares of `sh688041` at 209.86, equity was 3,532,661.27, current weight was
+`0.6712837`, and the `0.6` target required a 251,821 reduction, beyond the 176,633
+five-percent rebalance band. The target retained exact `LEADER` /
+`LEADER_LIFECYCLE_PROMOTION` attribution and reason `repaired recovery position
+graduated to core`. The frozen baseline had no `sh688041` position, target, or order
+at the same cell/date. Therefore Task 7 did not weaken attribution safety or change
+portfolio behavior to suppress the result.
+
+Instead, the runner now treats a new variant `REPLAY_ERROR` as an authenticated Task 8
+input. Every error binds exact type, message, date, contract, cell, execution binding,
+carrier, and provenance hashes. `frozen_status` remains immutable while variant
+`status` may record an observed economic `VALID -> REPLAY_ERROR` transition; baseline
+status must still match the frozen contract exactly. Failed metrics and delta are
+`null`, `execution_pass=false`, and aggregates cover common `VALID` pairs only while
+also reporting complete record/economic/common-valid, status, error, and transition
+counts. Missing fields, rewritten frozen status, self-signed carrier provenance,
+malformed dates, and trace rows after the failure date are rejected. First divergence
+continues to require a real pre-error hashed decision-stage divergence; the error itself
+cannot manufacture one.
+
+A real two-cell isolated worker smoke proved continuation in one process using the
+affected cell and the next fixed cell. It exited zero after stderr progress `1/2` then
+`2/2`: `random__05__0001` retained the exact 2025-08-25 error with 640 pre-error trace
+rows, and `random__05__0002` completed `VALID -> VALID` with 869 rows. Worker artifact
+file SHA-256 was
+`bc64c018105037bb853c0c73cc6369ceee80ed706e315f185f804ee5225e7385` and bound
+provenance SHA-256 was
+`c0d96e17bff02ad299654f75ba8c2993c69a9139bc82a3d1d89fec2a9e849e1e`.
+Its comparison reported `execution_pass=false`, one common-valid cell, one status
+transition, a null failed-cell delta, and a real 2024-03-26 `risk` divergence from the
+other cell. This smoke is continuation evidence only, not full-contract evidence.
+
+All `/tmp/uquant-phase2-task7-a9b1831-checkpoints` artifacts are superseded after the
+runner/source binding change and will not be reused. The next long gate starts baseline
+from scratch in a new content-addressed directory, then executes all 13 variants
+sequentially.
+
 ## Verification
 
-Current pre-replay verification:
+Current post-fix, pre-replay verification:
 
-- Focused Task 7 tests: `19 passed`.
-- Full repository pytest after final self-review hardening: exit `0`; 983 tests
-  collected.
+- Focused Task 7 tests: `21 passed`.
+- Full repository pytest after variant-error continuation hardening: exit `0`;
+  `985 passed in 231.13s`.
 - Task 7 Ruff format/check: passed.
 - Task 7 strict mypy:
   `uv run mypy research/ablation.py research/ablation_registry.py scripts/run_phase2_ablation.py`

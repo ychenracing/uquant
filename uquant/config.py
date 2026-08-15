@@ -237,11 +237,8 @@ class SystemConfig:
     stable_reference_global_weight: float = 0.70
     unknown_industry_confidence: float = 0.55
     unknown_industry_weight_cap: float = 0.18
-    transition_overlay_enabled: bool = True
     transition_damage_freeze: float = 0.58
     transition_damage_repair: float = 0.38
-    transition_confirm_days: int = 3
-    transition_repair_days: int = 4
     chronic_overlay_enabled: bool = True
     chronic_confirm_days: int = 4
     chronic_repair_days: int = 5
@@ -718,8 +715,6 @@ class SystemConfig:
                 raise ValueError(f"{name} must be in [0, 1]")
         if self.transition_damage_repair >= self.transition_damage_freeze:
             raise ValueError("transition repair must be below freeze threshold")
-        if self.transition_confirm_days < 1 or self.transition_repair_days < 1:
-            raise ValueError("transition confirmation windows must be positive")
         if self.chronic_confirm_days < 3 or self.chronic_repair_days < 3:
             raise ValueError("chronic confirmation windows must be at least three")
         if not 0 <= self.chronic_severe_cap <= self.chronic_moderate_cap <= 0.60:

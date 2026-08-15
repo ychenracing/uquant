@@ -5,11 +5,11 @@
   "counts": {
     "before": {"total_fields": 285, "economic_fields": 164},
     "after": {"total_fields": 278, "economic_fields": 164},
-    "current": {"total_fields": 278, "economic_fields": 164}
+    "current": {"total_fields": 275, "economic_fields": 164}
   },
   "config_migration": {
     "champion_config_sha256": "023d709731196a325d9cd03e95ece92e4baf63d2c5c66bb9f7d0e7a190e7bf20",
-    "candidate_config_sha256": "7f8bb875abb16f54f050561a711fa52cc4c465c021537cb15c85a611f6e7d56c"
+    "candidate_config_sha256": "ed52da44a359c1506e1d299f7bc341ad01b199d7f96997f7c01f2b8eca7cfc13"
   },
   "categories": {
     "MARKET_RULE": [
@@ -87,11 +87,8 @@
           "risk_anchor_confirm_days",
           "risk_anchor_min_secular_score",
           "risk_breadth_name_weight",
-          "transition_overlay_enabled",
           "transition_damage_freeze",
           "transition_damage_repair",
-          "transition_confirm_days",
-          "transition_repair_days",
           "chronic_overlay_enabled",
           "chronic_confirm_days",
           "chronic_repair_days",
@@ -421,5 +418,5 @@
     }
   ],
   "removed_fields": ["strategic_cohort_symbols", "strategic_partial_universe_max_size", "adaptive_broad_universe_min_size", "adaptive_broad_universe_compatibility_enabled", "strategic_expansive_universe_min_size", "strategic_persistent_confirm_days", "strategic_reversal_confirm_days"],
-  "artifact_sha256": "dbea3fc1e8638b36107055b7f7e48f990f18e688003268014a78318b5d8e5b94"
+  "artifact_sha256": "58d7fd95900e1ce3d41b84523445964641374d25938eaf4c8fe9a4871ce9bd76"
 }

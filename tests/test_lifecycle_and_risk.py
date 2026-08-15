@@ -3853,7 +3853,6 @@ def test_every_freeze_source_persistently_blocks_empty_book_buys(
     )
     account = AccountState.empty(100.0)
     account.capital_budget_level = 1
-    account.risk_streaks["transition_damage_active"] = 1
     allocator = PortfolioAllocator(DEFAULT_CONFIG)
 
     for _ in range(5):

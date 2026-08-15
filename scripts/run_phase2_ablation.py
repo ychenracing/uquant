@@ -44,6 +44,8 @@ _METRIC_FIELDS = {
 _CONCENTRATION_TOLERANCE = 1e-12
 _SHA256_LENGTH = 64
 _BASELINE_CARRIER_SHA256 = "f1049fe9b5db63b2e8df68a9ff87930108ca38eea40ed456aa179eadd79e7bdd"
+_EVIDENCE_MANIFEST_PATH = _RUNNER_ROOT / "artifacts" / "phase2" / "ablations" / "evidence_manifest.json"
+_EVIDENCE_MANIFEST_CANONICAL_SHA256 = "507e7d9a57654953c2d92e85514ae0274b0985180537ef779e46f995536437a5"
 _REPLAY_ERROR_FIELDS = {
     "type",
     "message",
@@ -447,6 +449,175 @@ def _read_worker_artifact(
     ):
         raise ValueError("ablation raw worker artifact hash differs")
     return dict(payload)
+
+
+def _load_trusted_evidence_manifest(path: Path | None = None) -> dict[str, Any]:
+    """Load the tracked evidence manifest only when its compiled digest matches."""
+    manifest_path = path or _EVIDENCE_MANIFEST_PATH
+    manifest = _load_json_mapping(manifest_path, label="ablation evidence manifest")
+    if _sha256_mapping(manifest) != _EVIDENCE_MANIFEST_CANONICAL_SHA256:
+        raise ValueError("ablation evidence manifest trusted digest differs")
+    if set(manifest) != {"schema_version", "payload_sha256", "payload"}:
+        raise ValueError("ablation evidence manifest envelope is malformed")
+    payload = manifest.get("payload")
+    if (
+        manifest.get("schema_version") != 1
+        or not isinstance(payload, Mapping)
+        or manifest.get("payload_sha256") != _sha256_mapping(payload)
+    ):
+        raise ValueError("ablation evidence manifest content hash differs")
+    return dict(payload)
+
+
+def _compile_evidence_manifest(
+    manifest: Mapping[str, Any],
+    *,
+    registry: Any,
+    evidence_commit: str,
+    binding_sha256: str,
+    schedule_sha256: str,
+) -> dict[str, Any]:
+    """Compile the trusted manifest against the exact registry and run binding."""
+    required = {
+        "schema_version",
+        "kind",
+        "registry_sha256",
+        "evidence_commit",
+        "binding_sha256",
+        "schedule_sha256",
+        "binding_artifact",
+        "schedule_artifact",
+        "entries",
+    }
+    if (
+        set(manifest) != required
+        or manifest.get("schema_version") != 1
+        or manifest.get("kind") != "phase2_ablation_evidence_manifest"
+        or manifest.get("registry_sha256") != registry.payload_sha256
+        or manifest.get("evidence_commit") != evidence_commit
+        or manifest.get("binding_sha256") != binding_sha256
+        or manifest.get("schedule_sha256") != schedule_sha256
+    ):
+        raise ValueError("ablation evidence manifest binding differs")
+    for name in ("binding", "schedule"):
+        reference = manifest.get(f"{name}_artifact")
+        if (
+            not isinstance(reference, Mapping)
+            or set(reference) != {"path", "file_sha256"}
+            or reference.get("path") != f"{name}.json"
+            or not _is_sha256(reference.get("file_sha256"))
+        ):
+            raise ValueError("ablation evidence manifest shared artifact differs")
+    entries = manifest.get("entries")
+    expected = [
+        ("baseline", _BASELINE_CARRIER_SHA256),
+        *((item.experiment_id, item.carrier.sha256) for item in registry.experiments),
+    ]
+    if not isinstance(entries, list) or len(entries) != len(expected):
+        raise ValueError("ablation evidence manifest entry coverage differs")
+    raw_hashes: set[str] = set()
+    for row, (experiment_id, carrier_sha256) in zip(entries, expected, strict=True):
+        if not isinstance(row, Mapping) or set(row) != {
+            "experiment_id",
+            "evidence_commit",
+            "binding_sha256",
+            "schedule_sha256",
+            "carrier_sha256",
+            "artifact",
+            "raw",
+        }:
+            raise ValueError("ablation evidence manifest entry is malformed")
+        if (
+            row.get("experiment_id") != experiment_id
+            or row.get("evidence_commit") != evidence_commit
+            or row.get("binding_sha256") != binding_sha256
+            or row.get("schedule_sha256") != schedule_sha256
+            or row.get("carrier_sha256") != carrier_sha256
+        ):
+            raise ValueError("ablation evidence manifest entry binding differs")
+        artifact = row.get("artifact")
+        raw = row.get("raw")
+        if (
+            not isinstance(artifact, Mapping)
+            or set(artifact) != {"path", "kind", "file_sha256", "payload_sha256"}
+            or not isinstance(raw, Mapping)
+            or set(raw) != {"path", "file_sha256", "canonical_worker_sha256"}
+            or not _is_sha256(artifact.get("file_sha256"))
+            or not _is_sha256(artifact.get("payload_sha256"))
+            or not _is_sha256(raw.get("file_sha256"))
+            or not _is_sha256(raw.get("canonical_worker_sha256"))
+            or raw.get("file_sha256") != raw.get("canonical_worker_sha256")
+        ):
+            raise ValueError("ablation evidence manifest entry artifact is malformed")
+        kind = artifact.get("kind")
+        expected_artifact_path = (
+            "baseline.json"
+            if experiment_id == "baseline"
+            else (
+                f"invalid/{experiment_id}.json" if kind == "invalid_experiment" else f"{experiment_id}.json"
+            )
+        )
+        if (
+            (experiment_id == "baseline" and kind != "baseline")
+            or (experiment_id != "baseline" and kind not in {"experiment", "invalid_experiment"})
+            or artifact.get("path") != expected_artifact_path
+            or raw.get("path") != f"raw/{raw.get('canonical_worker_sha256')}.worker.json"
+        ):
+            raise ValueError("ablation evidence manifest entry path or type differs")
+        raw_hash = str(raw["canonical_worker_sha256"])
+        if raw_hash in raw_hashes:
+            raise ValueError("ablation evidence manifest raw worker was reused")
+        raw_hashes.add(raw_hash)
+    return dict(manifest)
+
+
+def _validate_evidence_manifest_entry(
+    checkpoint_dir: Path,
+    entry: Mapping[str, Any],
+) -> None:
+    """Match one result and its canonical worker against a trusted manifest row."""
+    artifact = entry.get("artifact")
+    raw = entry.get("raw")
+    if not isinstance(artifact, Mapping) or not isinstance(raw, Mapping):
+        raise ValueError("ablation evidence manifest entry is malformed")
+    artifact_path = checkpoint_dir / str(artifact.get("path"))
+    try:
+        artifact_bytes = artifact_path.read_bytes()
+        envelope = json.loads(artifact_bytes)
+    except (OSError, json.JSONDecodeError) as exc:
+        raise ValueError("ablation evidence manifest experiment artifact is unreadable") from exc
+    if hashlib.sha256(artifact_bytes).hexdigest() != artifact.get("file_sha256"):
+        raise ValueError("ablation evidence manifest experiment artifact hash differs")
+    if not isinstance(envelope, Mapping) or not isinstance(envelope.get("payload"), Mapping):
+        raise ValueError("ablation evidence manifest experiment artifact is malformed")
+    payload = envelope["payload"]
+    if envelope.get("payload_sha256") != artifact.get("payload_sha256") or payload.get(
+        "kind"
+    ) != artifact.get("kind"):
+        raise ValueError("ablation evidence manifest experiment artifact seal differs")
+    raw_path = checkpoint_dir / str(raw.get("path"))
+    try:
+        raw_bytes = raw_path.read_bytes()
+        worker = json.loads(raw_bytes)
+    except (OSError, json.JSONDecodeError) as exc:
+        raise ValueError("ablation evidence manifest raw worker is unreadable") from exc
+    if hashlib.sha256(raw_bytes).hexdigest() != raw.get("file_sha256"):
+        raise ValueError("ablation evidence manifest raw worker file hash differs")
+    if (
+        not isinstance(worker, Mapping)
+        or _canonical_bytes(worker) != raw_bytes
+        or _sha256_mapping(worker) != raw.get("canonical_worker_sha256")
+    ):
+        raise ValueError("ablation evidence manifest raw worker canonical hash differs")
+    reference_name = (
+        "worker_artifact" if entry.get("experiment_id") == "baseline" else "variant_worker_artifact"
+    )
+    if payload.get(reference_name) != {
+        "path": raw.get("path"),
+        "payload_sha256": raw.get("canonical_worker_sha256"),
+        "file_sha256": raw.get("file_sha256"),
+    }:
+        raise ValueError("ablation evidence manifest raw worker reference differs")
 
 
 def _validate_replay_command(command: object, *, expected: Sequence[str]) -> None:
@@ -1606,12 +1777,12 @@ def _write_experiment_result(
         payload["reason"] = "no_behavior_divergence"
         path = checkpoint_dir / "invalid" / f"{experiment.experiment_id}.json"
         standard_path = checkpoint_dir / f"{experiment.experiment_id}.json"
-        if standard_path.exists() and _checkpoint_payload_schema(standard_path) == 2:
-            raise ValueError("ablation invalid experiment cannot retain a standard checkpoint")
+        if standard_path.exists():
+            raise ValueError("ablation experiment has both standard and invalid artifacts")
     else:
         path = checkpoint_dir / f"{experiment.experiment_id}.json"
         if (checkpoint_dir / "invalid" / f"{experiment.experiment_id}.json").exists():
-            raise ValueError("ablation divergent experiment conflicts with invalid artifact")
+            raise ValueError("ablation experiment has both standard and invalid artifacts")
     if path.exists() and _checkpoint_payload_schema(path) == 2:
         previous = _read_checkpoint(path, binding_sha256=binding_sha256, kind=kind)
         if previous != payload:
@@ -2219,12 +2390,7 @@ def _load_available_results(
     valid: dict[str, dict[str, Any]] = {}
     invalid: dict[str, dict[str, Any]] = {}
     for experiment in registry.experiments:
-        standard_path = checkpoint_dir / f"{experiment.experiment_id}.json"
-        invalid_path = checkpoint_dir / "invalid" / f"{experiment.experiment_id}.json"
-        standard_v2 = standard_path.exists() and _checkpoint_payload_schema(standard_path) == 2
-        if standard_v2 and invalid_path.exists():
-            raise ValueError("ablation experiment has both standard and invalid artifacts")
-        path = standard_path if standard_v2 else invalid_path if invalid_path.exists() else None
+        path = _select_experiment_result_path(checkpoint_dir, experiment.experiment_id)
         if path is None:
             continue
         expected_variant = _expected_variant_provenance(
@@ -2258,6 +2424,70 @@ def _load_available_results(
         target = invalid if payload["kind"] == "invalid_experiment" else valid
         target[experiment.experiment_id] = payload
     return valid, invalid
+
+
+def _select_experiment_result_path(
+    checkpoint_dir: Path,
+    experiment_id: str,
+) -> Path | None:
+    """Select one result while rejecting every standard/invalid path collision."""
+    standard_path = checkpoint_dir / f"{experiment_id}.json"
+    invalid_path = checkpoint_dir / "invalid" / f"{experiment_id}.json"
+    if standard_path.exists() and invalid_path.exists():
+        raise ValueError("ablation experiment has both standard and invalid artifacts")
+    if standard_path.exists() and _checkpoint_payload_schema(standard_path) == 2:
+        return standard_path
+    return invalid_path if invalid_path.exists() else None
+
+
+def _validate_evidence_archive(
+    checkpoint_dir: Path,
+    manifest: Mapping[str, Any],
+) -> None:
+    """Match the complete external archive to the compiled tracked trust anchor."""
+    for name in ("binding", "schedule"):
+        reference = manifest[f"{name}_artifact"]
+        if not isinstance(reference, Mapping):
+            raise ValueError("ablation evidence manifest shared artifact is malformed")
+        path = checkpoint_dir / str(reference["path"])
+        try:
+            observed = _sha256(path)
+        except OSError as exc:
+            raise ValueError("ablation evidence manifest shared artifact is unreadable") from exc
+        if observed != reference["file_sha256"]:
+            raise ValueError("ablation evidence manifest shared artifact hash differs")
+    entries = manifest["entries"]
+    if not isinstance(entries, list) or not entries or not isinstance(entries[0], Mapping):
+        raise ValueError("ablation evidence manifest entry coverage differs")
+    baseline_raw = entries[0]["raw"]
+    for entry in entries:
+        if not isinstance(entry, Mapping):
+            raise ValueError("ablation evidence manifest entry is malformed")
+        experiment_id = str(entry["experiment_id"])
+        artifact = entry["artifact"]
+        if not isinstance(artifact, Mapping):
+            raise ValueError("ablation evidence manifest entry artifact is malformed")
+        expected_path = checkpoint_dir / str(artifact["path"])
+        if experiment_id != "baseline":
+            selected = _select_experiment_result_path(checkpoint_dir, experiment_id)
+            if selected != expected_path:
+                raise ValueError("ablation evidence manifest experiment artifact path differs")
+        _validate_evidence_manifest_entry(checkpoint_dir, entry)
+        envelope = _load_json_mapping(
+            expected_path,
+            label="ablation evidence manifest experiment artifact",
+        )
+        payload = envelope.get("payload")
+        if experiment_id != "baseline" and (
+            not isinstance(payload, Mapping)
+            or payload.get("baseline_worker_artifact")
+            != {
+                "path": baseline_raw["path"],
+                "payload_sha256": baseline_raw["canonical_worker_sha256"],
+                "file_sha256": baseline_raw["file_sha256"],
+            }
+        ):
+            raise ValueError("ablation evidence manifest baseline raw reference differs")
 
 
 def _checkpoint_payload_schema(path: Path) -> int | None:
@@ -2858,6 +3088,14 @@ def _readback_at_checkout(args: argparse.Namespace, *, source_root: Path) -> dic
         schedule=schedule,
     )
     binding_sha256 = hashlib.sha256(_canonical_bytes(binding)).hexdigest()
+    evidence_manifest = _compile_evidence_manifest(
+        _load_trusted_evidence_manifest(),
+        registry=registry,
+        evidence_commit=evidence_commit,
+        binding_sha256=binding_sha256,
+        schedule_sha256=str(binding["schedule_sha256"]),
+    )
+    _validate_evidence_archive(checkpoint_dir, evidence_manifest)
     binding_payload = _read_checkpoint(
         checkpoint_dir / "binding.json",
         binding_sha256=binding_sha256,

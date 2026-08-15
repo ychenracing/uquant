@@ -673,3 +673,158 @@ different cells. No status or error is hidden from aggregation.
   failure as results, not relabel them or manufacture missing divergence.
 - The previously documented whole-repository mypy finding remains deferred and
   unchanged; scoped strict mypy for Task 7 is green.
+
+## Review fix round 2 — compiled evidence trust anchor
+
+Review round 2 leaves the earlier historical replay, native invalid-artifact, and exact
+frozen-error fixes unchanged. It closes the remaining whole-archive self-signing gap
+and makes every standard/invalid path collision fail closed. No economic replay was
+run in this round.
+
+### Root cause and RED evidence
+
+Schema v2 previously authenticated consistency inside the external archive, but every
+hash used for that check was stored inside the same mutable archive. A real attack on
+the retained `without_sector_guard` worker changed the first valid cell
+`phase1_performance/a/h1_2023` `final_wealth` from `4.76347009227032` to
+`127.76347009227032`, kept its production `raw_result_sha256` and all provenance
+unchanged, and recomputed the complete worker content address, comparison, and sealed
+checkpoint. The pre-fix reader accepted it. The forged raw SHA-256 was
+`ff50b415dd2f7ceaf494b82f2c6eaf38bd80b864d0702346217c475c641129bc`;
+the forged checkpoint payload SHA-256 was
+`dc4838ecc69ef9170aab84aeb93916146370ebe35d994a2429854d1cc6131e63`.
+This proves that recomputation establishes internal consistency, not authenticity,
+without an independently trusted anchor.
+
+The invalid-artifact path selection had a separate exact predicate defect. Writer code
+rejected a root standard file only when its decoded payload schema was 2; reader code
+also treated only schema-2 root files as present. Consequently, an existing schema-1
+or malformed root file could coexist with and be hidden behind an invalid artifact.
+
+Fail-first command and output:
+
+```text
+UV_CACHE_DIR=/tmp/uv-cache uv run pytest -q tests/test_phase2_ablation.py \
+  -k 'manifest_anchor_rejects or tracked_manifest_rejects or invalid_writer_rejects or invalid_reader_rejects'
+FFFFFFF                                                                  [100%]
+7 failed
+```
+
+The two fully re-sealed economic/trace attack cases failed because the manifest-entry
+validator did not exist. The manifest self-re-sign case failed because no compiled
+manifest loader existed. Both schema-1 and malformed writer cases reported
+`DID NOT RAISE`, and both corresponding reader cases failed because no unconditional
+path-conflict selector existed.
+
+### Tracked manifest and trust model
+
+The frozen trust anchor is now tracked at
+`artifacts/phase2/ablations/evidence_manifest.json`:
+
+- raw file SHA-256: `45924b4c712f32fc792eaec02e147b5f1f69e664bbc22ebd4113c6f9beae96cd`;
+- canonical whole-envelope SHA-256:
+  `507e7d9a57654953c2d92e85514ae0274b0985180537ef779e46f995536437a5`;
+- sealed payload SHA-256:
+  `c449120d287a03eae541104aafe84d8e2e6bf368f10d26fa107cec3674fcc7e2`;
+- entries: exactly 14 in fixed order, baseline then all 13 registry experiments;
+- evidence commit:
+  `9592fcca3860d1901a7009d799d29d20959d1699`;
+- binding:
+  `a009bf0e97499bc4bb40fc42e9e7e6999ea9f727492ab2ab4f86f2fc2ce34daf`;
+- schedule:
+  `0b68ec13f311563a473785989474d719dc892b0eeef887154fadea04cb25e70a`;
+- registry:
+  `71787c3fb1bf874bf111f83a4123f225d4aad1cc895b67ee1bf5b5ba62810370`.
+
+The whole-envelope canonical SHA is compiled as a source constant. The reader checks
+that constant before it trusts the manifest's own payload seal, so editing a manifest
+row and recomputing its self-declared payload hash is rejected as
+`ablation evidence manifest trusted digest differs`. This trust anchor is intentionally
+owned by the later reader source, while every row continues to identify historical
+economic implementation `9592fcca`; a later report/reader HEAD does not masquerade as
+the economic replay HEAD.
+
+Every manifest row repeats exact evidence commit, binding, schedule, and carrier, then
+pins the raw relative path, raw file-bytes SHA, canonical worker SHA, artifact relative
+path, artifact type, artifact file SHA, and sealed payload SHA. Current canonical raw
+files have identical bytes/canonical hashes. Shared binding and schedule files are
+also pinned at
+`7ef8d496a51044a48feb2c5970cbf4279e043f952c3fac28e62a0a6c85963ef7`
+and
+`0e6f6a90fa704ec87ea49a790ab569ca6e9f60b58cc8999dc0421bbd02bdd88b`.
+
+| Entry | Carrier SHA-256 | Type | Artifact file SHA-256 | Raw bytes/canonical SHA-256 |
+|---|---|---|---|---|
+| `baseline` | `f1049fe9b5db63b2e8df68a9ff87930108ca38eea40ed456aa179eadd79e7bdd` | baseline | `633bb3f7b9947ab4edc6df6f6f56426b4ccb7b55f15d0a847e6704925a902321` | `739531282ad66c92f8cd520b2bd527d4a513b2815b6d4a71dc857f63967fd0e4` |
+| `without_sector_guard` | `618f5b6a2163307d454e3b4d22eb9e0e16157524b488b023417b0c6f3da57886` | experiment | `6fbe6aa93bf727be9ca9ed6470318c774f64659912409a7ac1f9890542160497` | `e419fcf59e86f19bfe5492082a6680d9bc15beea3fb8cfaa7c527fbad0e8ce28` |
+| `without_chronic_overlay` | `eb148771589c2caaac98c153d5145302e0ae343eef9251a38bec99382ac7a42d` | experiment | `a2cc2e8fc41e5bed646aaa1b93ae8a419dc84b17586f7b22c6f5b4649b96d3cb` | `7fd284e2df22d0cacb01b6b0262f34933536f7c5c5bc44481ab2270ec463f835` |
+| `without_transition_overlay` | `c10391f7105895f540858734ed5813c13de0ea2242b8207c9b2c66e466ac2a7a` | experiment | `bd56c3b10d75b0c0bf125536c492171cc708c21c49c3449d9009235b70c69563` | `91f24daf28549b9e5462cd747fe71f0d46a7c368bd1bb4310c4ae64be468b25c` |
+| `without_capital_budget_ladder` | `ec612c0e18ddfaf94fbe2a4153b6319d9901e2d420a5b84e67735b28ff4b95e5` | experiment | `cbb27cee86062c1cf66cc5a0b4913365fca3c41ab1d4a9795e02ea74a24a66f3` | `d768b90d614e77bcde2f432d35223d6556fc3941a9c8a783560801510b70b8d2` |
+| `without_challenger_scout` | `76ab5fbc8d734e489f484cfebba28a66f39f5b3c6836408976eda348a67c6f24` | invalid experiment | `c4cdae293f0c6558db188e9cfa7b83da332dcff13c1b6eaee198b42ddbad1076` | `ad948ff35b14cca543c0b14948bf9a85d8142fdc2f9fa4bf8848d5244f642624` |
+| `without_conviction_weighting` | `50d0eeed080060b4b370bf2e7cda87060f7ffcaf9175cb6e436af54a5eded253` | invalid experiment | `85063fe2dc1ad3fd9c2db02bf1954239a16af2613b87e2836f49d3c803c07fb2` | `64428c523c2381cf491e38ce8901ba2682ca0136b627720a719f605574587528` |
+| `without_recovery_conviction_weighting` | `d7090c7ead3cb8f0c1472c45e9184a712df1a72b3bcd1d6b6fde8608249d0ea2` | experiment | `9c732a87de9df52755f1b039af56ddf911f4e25d5921d233af40ea596766d140` | `acbd24120fe3d4fbe45e689c78c06e74720aea778884fd3dd7cdbfac79b4b7c7` |
+| `without_tactical_rebound_probe` | `a30417ed0d9afd9d6dc99b24729971c258d4f744b8e276c0dfa7291c5e324a1b` | experiment | `2563b5babb9549aab0037328591515051c9aaa3835d0d916c9481a6f1524a033` | `9358e1965a474d000c019eb7827c50f2c28005b6beee0ae2057d78a853a7511a` |
+| `without_strategic_trailing` | `87ef953f34f36f62cec49500e25ef0dd64eb6469adda6e2074b672ddf7619cb8` | experiment | `49244100cd81c7b66869c2541a5f2748213b23df64bfc1e204a43809d3316634` | `62a21d53a7286c02979abbf30279704ff5c887c6c0d0fd8496d06484250352e2` |
+| `without_restoration_special_handling` | `9eb03bdd4d39493f00eea578d90fdf4816b8716e16be85c185c56306e9508b74` | experiment | `76f9b4db1d0da3f21fc1d2820d08c66916db2882856f4435e26944a7985a3493` | `afb1023c0314f529f0efdad0cc2a237346299a0492ae8621bcc3da1370e05f99` |
+| `without_add_tranche` | `601ddb6ddfd7fdd358012e71e2d181de4a5b2abe15104a36c9d94c9fec7e3986` | experiment | `384dd3d71945b89456b744258b3429e7b597cb7c80cb22f1511c72456a0cbe4a` | `20c6edaa5dc7f5f61b368d95cbdd48a490356cf0de71c40eff77d68015017a27` |
+| `without_replacement_rotation` | `a2c0262f63bd8de2f5a11515bfeb8afbf3a34e03a503eeb72371d24f33c6160d` | experiment | `18077503c988f13747cb1c9e5dd0787b413b8b2c03df4d412c3bd9cf93b83f04` | `d88a98a767111b5b6bcec6893b5e761e3802a8cadc00188d8e2d4118b2bf0c45` |
+| `without_dynamic_risk_anchors` | `17a7273e35ca7a3e36300536f592e85ce3575147291e45f04ad253efd96ec7b2` | experiment | `ef6cbe3f3f8daba983288f2c9b706c45df2ea2fc3f7bb4f25d6701ca48915503` | `1ba0d4fb5c94dd2b97158f5e8e8f7028bce68d30393d4da5d29f243d9e08a193` |
+
+Readback first loads the tracked manifest and compares its parsed canonical envelope to
+the compiled digest. It then compiles exact registry order and shared/per-row binding,
+validates binding/schedule files, and validates each actual result plus raw file against
+the trusted row before the existing strict worker, provenance, command, coverage,
+error, nine-dimension delta, aggregate, and first-divergence recomputation. Neither a
+modified raw file nor a completely re-sealed archive can move the tracked trust root.
+
+For invalid results, both writer and reader now test root-path existence directly. If
+`invalid/EXPERIMENT.json` exists, any simultaneous root `EXPERIMENT.json`—schema 1,
+schema 2, malformed JSON, or otherwise—is rejected as
+`ablation experiment has both standard and invalid artifacts`. No decoding predicate
+can hide the conflict.
+
+### GREEN and attack verification
+
+```text
+UV_CACHE_DIR=/tmp/uv-cache uv run pytest -q tests/test_phase2_ablation.py \
+  -k 'manifest_anchor_rejects or tracked_manifest_rejects or invalid_writer_rejects or invalid_reader_rejects'
+.......                                                                  [100%]
+
+UV_CACHE_DIR=/tmp/uv-cache uv run pytest -q tests/test_phase2_ablation.py
+.................................                                        [100%]
+33 passed
+
+UV_CACHE_DIR=/tmp/uv-cache uv run ruff format --check \
+  scripts/run_phase2_ablation.py tests/test_phase2_ablation.py
+2 files already formatted
+
+UV_CACHE_DIR=/tmp/uv-cache uv run ruff check \
+  scripts/run_phase2_ablation.py tests/test_phase2_ablation.py
+All checks passed!
+
+UV_CACHE_DIR=/tmp/uv-cache uv run mypy --strict research/ablation.py \
+  research/ablation_registry.py scripts/run_phase2_ablation.py
+Success: no issues found in 3 source files
+```
+
+The unchanged 13/13 archive strict-readback command from round 1 ran with no economic
+worker, exited 0 in 57 seconds, and reproduced byte-identical output SHA-256
+`efc4121041dbc9804670a360f8309ec81f22f709e9318aa77824073064c93b04`:
+schema v2, exact historical binding, `coverage_complete=true`, 11 valid plus two
+authenticated invalid experiments, no missing IDs, and intentional `complete=false`.
+
+A hard-linked full-archive negative then repeated the real sector attack above. It
+retained the raw result/provenance, re-signed raw worker
+`ff50b415dd2f7ceaf494b82f2c6eaf38bd80b864d0702346217c475c641129bc`,
+recomputed comparison, and re-sealed checkpoint payload
+`dc4838ecc69ef9170aab84aeb93916146370ebe35d994a2429854d1cc6131e63`.
+Public `readback` exited 1 before trusting any archive claim with exact stderr:
+
+```text
+phase2 ablation failed closed: ablation evidence manifest experiment artifact hash differs
+```
+
+Review-round concerns remain limited to the previously documented external `/tmp`
+durability, intentional `complete=false`, and deferred pre-existing whole-repository
+mypy observation. The new tracked manifest makes cleanup detectable and replayable; it
+does not make the external raw archive itself durable.

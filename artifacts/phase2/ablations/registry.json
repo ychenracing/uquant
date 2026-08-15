@@ -1,0 +1,129 @@
+{
+  "schema_version": 1,
+  "registry_id": "phase2-independent-subsystem-ablation-v1",
+  "source_contract": {
+    "base_commit": "7f80436373b6da03536e15ff1908c010bfb92eb3",
+    "production_source_sha256": "f4bbcec1342d9ff3f5e606c5ba54a05ee839b5b94a3e1110830e49afb2244bc9"
+  },
+  "fixed_contracts": [
+    {
+      "name": "phase1_performance",
+      "path": "benchmarks/promotion_baseline.json",
+      "sha256": "b3067ae1bde683d832f9593d80eeea2616d1c934f41291e85ab36d9a6a695bc2",
+      "record_count": 45,
+      "economic_count": 45,
+      "valid_count": 45,
+      "replay_error_count": 0,
+      "insufficient_count": 0,
+      "minimum_date": "2023-01-03",
+      "lookback_sessions": null,
+      "random_base_seed": null,
+      "random_seed_indexes": [],
+      "random_pool_sizes": [],
+      "windows": [
+        {"name": "h1_2023", "start": "2023-01-03", "end": "2023-06-30"},
+        {"name": "h2_2023", "start": "2023-07-03", "end": "2023-12-29"},
+        {"name": "h1_2024", "start": "2024-01-02", "end": "2024-07-01"},
+        {"name": "h2_2024", "start": "2024-07-01", "end": "2024-12-31"},
+        {"name": "bull_crash_2025_2026", "start": "2025-01-02", "end": "2026-07-31"},
+        {"name": "continuous_ai_era", "start": "2023-01-03", "end": "2026-08-05"},
+        {"name": "protected_year_2023", "start": "2023-01-03", "end": "2023-12-29"},
+        {"name": "protected_year_2024", "start": "2024-01-02", "end": "2024-12-31"},
+        {"name": "protected_bull", "start": "2025-04-01", "end": "2026-06-30"}
+      ]
+    },
+    {
+      "name": "ai_era_generalization",
+      "path": "benchmarks/ai_era_generalization_baseline.json",
+      "sha256": "2a463f9f7ea63fc01564089af96399f1bdf3ff2023414c9c9a9935e09e2e9c10",
+      "record_count": 234,
+      "economic_count": 192,
+      "valid_count": 191,
+      "replay_error_count": 1,
+      "insufficient_count": 42,
+      "minimum_date": "2023-01-03",
+      "lookback_sessions": 120,
+      "random_base_seed": 20260810,
+      "random_seed_indexes": [0, 1, 2, 3, 4],
+      "random_pool_sizes": [5, 9, 15, 20],
+      "windows": [
+        {"name": "h1_2023", "start": "2023-01-03", "end": "2023-06-30"},
+        {"name": "h2_2023", "start": "2023-07-03", "end": "2023-12-29"},
+        {"name": "h1_2024", "start": "2024-01-02", "end": "2024-07-01"},
+        {"name": "h2_2024", "start": "2024-07-01", "end": "2024-12-31"},
+        {"name": "bull_crash_2025_2026", "start": "2025-01-02", "end": "2026-07-31"},
+        {"name": "continuous_ai_era", "start": "2023-01-03", "end": "2026-08-05"}
+      ]
+    },
+    {
+      "name": "ai_era_generalization_policy",
+      "path": "benchmarks/ai_era_generalization_policy.json",
+      "sha256": "15d0ed3746fd7c223aa89edbff26a97b7de7c0a7f9763f168e8fa93a97f5dda3",
+      "record_count": 234,
+      "economic_count": 192,
+      "valid_count": 191,
+      "replay_error_count": 1,
+      "insufficient_count": 42,
+      "minimum_date": "2023-01-03",
+      "lookback_sessions": 120,
+      "random_base_seed": 20260810,
+      "random_seed_indexes": [0, 1, 2, 3, 4],
+      "random_pool_sizes": [5, 9, 15, 20],
+      "windows": [
+        {"name": "h1_2023", "start": "2023-01-03", "end": "2023-06-30"},
+        {"name": "h2_2023", "start": "2023-07-03", "end": "2023-12-29"},
+        {"name": "h1_2024", "start": "2024-01-02", "end": "2024-07-01"},
+        {"name": "h2_2024", "start": "2024-07-01", "end": "2024-12-31"},
+        {"name": "bull_crash_2025_2026", "start": "2025-01-02", "end": "2026-07-31"},
+        {"name": "continuous_ai_era", "start": "2023-01-03", "end": "2026-08-05"}
+      ]
+    },
+    {
+      "name": "frozen_generalization_status",
+      "path": "artifacts/phase2/champion-generalization-matrix.json",
+      "sha256": "926ea8419ab8aad7a05577eee56aeefa90c33cc7faa4e1ee1d2bbbaac77439cc",
+      "record_count": 234,
+      "economic_count": 192,
+      "valid_count": 191,
+      "replay_error_count": 1,
+      "insufficient_count": 42,
+      "minimum_date": "2023-01-03",
+      "lookback_sessions": 120,
+      "random_base_seed": 20260810,
+      "random_seed_indexes": [0, 1, 2, 3, 4],
+      "random_pool_sizes": [5, 9, 15, 20],
+      "windows": [
+        {"name": "h1_2023", "start": "2023-01-03", "end": "2023-06-30"},
+        {"name": "h2_2023", "start": "2023-07-03", "end": "2023-12-29"},
+        {"name": "h1_2024", "start": "2024-01-02", "end": "2024-07-01"},
+        {"name": "h2_2024", "start": "2024-07-01", "end": "2024-12-31"},
+        {"name": "bull_crash_2025_2026", "start": "2025-01-02", "end": "2026-07-31"},
+        {"name": "continuous_ai_era", "start": "2023-01-03", "end": "2026-08-05"}
+      ]
+    }
+  ],
+  "invariants": {
+    "rules": ["PIT", "T+1", "cash_constraints", "data_causality", "fail_closed_validation", "fees_slippage", "lot_sizing", "price_limits", "suspension"],
+    "protected_config_fields": ["commission_rate", "fail_closed", "initial_cash", "max_gross", "max_positions", "max_symbol_weight", "max_volume_participation", "min_commission", "min_trade_value", "min_trade_weight", "minimum_median_amount", "protected_restore_min_trade_weight", "restoration_min_trade_weight", "slippage", "stamp_duty", "transfer_fee"],
+    "protected_paths": ["uquant/account.py", "uquant/broker.py", "uquant/config.py", "uquant/config_governance.py", "uquant/data.py", "uquant/execution.py", "uquant/risk.py", "uquant/risk_sector.py", "uquant/validation"]
+  },
+  "experiments": [
+    {"experiment_id": "without_sector_guard", "subsystem": "sector_guard", "carrier": {"type": "config", "subsystem": "sector_guard", "changes": {"sector_guard_enabled": false}, "patch": "", "touched_paths": [], "sha256": "618f5b6a2163307d454e3b4d22eb9e0e16157524b488b023417b0c6f3da57886"}},
+    {"experiment_id": "without_chronic_overlay", "subsystem": "chronic_overlay", "carrier": {"type": "config", "subsystem": "chronic_overlay", "changes": {"chronic_overlay_enabled": false}, "patch": "", "touched_paths": [], "sha256": "eb148771589c2caaac98c153d5145302e0ae343eef9251a38bec99382ac7a42d"}},
+    {"experiment_id": "without_transition_overlay", "subsystem": "transition_overlay", "carrier": {"type": "config", "subsystem": "transition_overlay", "changes": {"transition_overlay_enabled": false}, "patch": "", "touched_paths": [], "sha256": "c10391f7105895f540858734ed5813c13de0ea2242b8207c9b2c66e466ac2a7a"}},
+    {"experiment_id": "without_capital_budget_ladder", "subsystem": "capital_budget_ladder", "carrier": {"type": "config", "subsystem": "capital_budget_ladder", "changes": {"capital_budget_ladder_enabled": false}, "patch": "", "touched_paths": [], "sha256": "ec612c0e18ddfaf94fbe2a4153b6319d9901e2d420a5b84e67735b28ff4b95e5"}},
+    {"experiment_id": "without_challenger_scout", "subsystem": "challenger_scout", "carrier": {"type": "config", "subsystem": "challenger_scout", "changes": {"challenger_scout_enabled": false}, "patch": "", "touched_paths": [], "sha256": "76ab5fbc8d734e489f484cfebba28a66f39f5b3c6836408976eda348a67c6f24"}},
+    {"experiment_id": "without_conviction_weighting", "subsystem": "conviction_weighting", "carrier": {"type": "config", "subsystem": "conviction_weighting", "changes": {"conviction_weighting_enabled": false}, "patch": "", "touched_paths": [], "sha256": "50d0eeed080060b4b370bf2e7cda87060f7ffcaf9175cb6e436af54a5eded253"}},
+    {"experiment_id": "without_recovery_conviction_weighting", "subsystem": "recovery_conviction_weighting", "carrier": {"type": "config", "subsystem": "recovery_conviction_weighting", "changes": {"recovery_conviction_weighting_enabled": false}, "patch": "", "touched_paths": [], "sha256": "d7090c7ead3cb8f0c1472c45e9184a712df1a72b3bcd1d6b6fde8608249d0ea2"}},
+    {"experiment_id": "without_tactical_rebound_probe", "subsystem": "tactical_rebound_probe", "carrier": {"type": "patch", "subsystem": "tactical_rebound_probe", "changes": {}, "patch": "diff --git a/uquant/portfolio.py b/uquant/portfolio.py\n--- a/uquant/portfolio.py\n+++ b/uquant/portfolio.py\n@@ -1768,7 +1768,7 @@\n                 return recovery_hold\n \n         if (\n-            not account.positions\n+            False and not account.positions\n             and not account.anchor_weights\n             and account.candidate_tenure.get(\"tactical_active\", 0) == 0\n             and account.candidate_tenure.get(\"tactical_cooldown\", 0) == 0\n", "touched_paths": ["uquant/portfolio.py"], "sha256": "a30417ed0d9afd9d6dc99b24729971c258d4f744b8e276c0dfa7291c5e324a1b"}},
+    {"experiment_id": "without_strategic_trailing", "subsystem": "strategic_trailing", "carrier": {"type": "patch", "subsystem": "strategic_trailing", "changes": {}, "patch": "diff --git a/uquant/portfolio_strategic.py b/uquant/portfolio_strategic.py\n--- a/uquant/portfolio_strategic.py\n+++ b/uquant/portfolio_strategic.py\n@@ -977,7 +977,7 @@\n                 for threshold in thresholds\n             ]\n             if (\n-                any(triggered)\n+                False and any(triggered)\n                 and symbol not in account.strategic_exit_bands\n                 and not strategic_damage_guard_owns_transition\n                 and not (symbol == dominant_symbol and dominant_profit_locked)\n", "touched_paths": ["uquant/portfolio_strategic.py"], "sha256": "87ef953f34f36f62cec49500e25ef0dd64eb6469adda6e2074b672ddf7619cb8"}},
+    {"experiment_id": "without_restoration_special_handling", "subsystem": "restoration_special_handling", "carrier": {"type": "patch", "subsystem": "restoration_special_handling", "changes": {}, "patch": "diff --git a/uquant/portfolio_strategic.py b/uquant/portfolio_strategic.py\n--- a/uquant/portfolio_strategic.py\n+++ b/uquant/portfolio_strategic.py\n@@ -1118,7 +1118,7 @@\n                 )\n             )\n         )\n-        if account.strategic_restore_weights and risk.target_gross_cap > 1e-12 and restore_confirmed:\n+        if False and account.strategic_restore_weights and risk.target_gross_cap > 1e-12 and restore_confirmed:\n             saved_restore = {\n                 symbol: weight\n                 for symbol, weight in account.strategic_restore_weights.items()\n", "touched_paths": ["uquant/portfolio_strategic.py"], "sha256": "9eb03bdd4d39493f00eea578d90fdf4816b8716e16be85c185c56306e9508b74"}},
+    {"experiment_id": "without_add_tranche", "subsystem": "add_tranche", "carrier": {"type": "patch", "subsystem": "add_tranche", "changes": {}, "patch": "diff --git a/uquant/portfolio_leaders.py b/uquant/portfolio_leaders.py\n--- a/uquant/portfolio_leaders.py\n+++ b/uquant/portfolio_leaders.py\n@@ -1055,7 +1055,7 @@\n             )\n             industry_room = max(0.0, projected_industry_cap - industry_weight)\n             if (\n-                not has_add1\n+                False and not has_add1\n                 and not has_add2\n                 and add_cooldown_complete\n                 and not index_chase\n@@ -1083,7 +1083,7 @@\n                 reasons[symbol] = \"ADD1: positive MFE with normal risk\"\n                 mechanisms[symbol] = AttributionMechanism.LEADER_PYRAMID\n             elif (\n-                has_add1\n+                False and has_add1\n                 and not has_add2\n                 and add_cooldown_complete\n                 and not index_chase\n", "touched_paths": ["uquant/portfolio_leaders.py"], "sha256": "601ddb6ddfd7fdd358012e71e2d181de4a5b2abe15104a36c9d94c9fec7e3986"}},
+    {"experiment_id": "without_replacement_rotation", "subsystem": "replacement_rotation", "carrier": {"type": "patch", "subsystem": "replacement_rotation", "changes": {}, "patch": "diff --git a/uquant/portfolio_leaders.py b/uquant/portfolio_leaders.py\n--- a/uquant/portfolio_leaders.py\n+++ b/uquant/portfolio_leaders.py\n@@ -722,7 +722,7 @@\n         rotation_transfers: dict[str, float] = {}\n         observed_rotation_key = \"\"\n         if (\n-            active\n+            False and active\n             and len(active) >= target_k\n             and ranked\n             and not risk.freeze_new_risk\n", "touched_paths": ["uquant/portfolio_leaders.py"], "sha256": "a2c0262f63bd8de2f5a11515bfeb8afbf3a34e03a503eeb72371d24f33c6160d"}},
+    {"experiment_id": "without_dynamic_risk_anchors", "subsystem": "dynamic_risk_anchors", "carrier": {"type": "config", "subsystem": "dynamic_risk_anchors", "changes": {"dynamic_risk_anchors_enabled": false}, "patch": "", "touched_paths": [], "sha256": "17a7273e35ca7a3e36300536f592e85ce3575147291e45f04ad253efd96ec7b2"}}
+  ],
+  "exclusions": [
+    {"subsystem": "hierarchical_industry_shrinkage", "reason": "inactive_in_frozen_config", "evidence_field": "hierarchical_industry_shrinkage_enabled", "frozen_value": false},
+    {"subsystem": "group_balanced_reference", "reason": "inactive_in_frozen_config", "evidence_field": "group_balanced_reference_enabled", "frozen_value": false}
+  ]
+}

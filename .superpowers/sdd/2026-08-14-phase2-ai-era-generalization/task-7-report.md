@@ -7,10 +7,14 @@ runner, raw evidence schema, and runnability proof. It does not make a
 KEEP/DELETE/INCONCLUSIVE decision and does not delete production code; those actions
 belong to Task 8.
 
-Implementation checkpoint status: the infrastructure and carrier-validation evidence
-are complete. The clean-HEAD baseline plus 13 full-contract replays are pending at this
-checkpoint and will be appended below after their single-process execution. A partial
-checkpoint can never be emitted as complete evidence.
+Task 7 runnability status: complete. A clean-HEAD baseline and all 13 registered
+carriers each ran the full 279-record/237-economic fixed schedule, sequentially and
+without variant reuse. Eleven carriers produced authenticated experiment checkpoints.
+Two carriers ran the entire schedule but were correctly rejected as invalid experiments
+because they produced no behavior divergence; their complete raw worker evidence is
+retained separately. The standard aggregator therefore remains fail-closed at
+`complete=false`, 11/13, rather than misrepresenting the two invalid experiments as
+successful evidence.
 
 The reviewed production source remains anchored to
 `7f80436373b6da03536e15ff1908c010bfb92eb3`. No frozen champion, promotion baseline,
@@ -131,8 +135,9 @@ no materiality threshold or Task 8 classification in the schema.
 
 ## TDD evidence
 
-All commands used `UV_CACHE_DIR=/tmp/uquant-uv-cache` because the default root uv
-cache is not writable in this execution sandbox.
+TDD/static commands used `UV_CACHE_DIR=/tmp/uquant-uv-cache`; the final long gate used
+`UV_CACHE_DIR=/tmp/uquant-phase2-uv-cache`. The default root uv cache is not writable
+in this execution sandbox.
 
 | Cycle | RED evidence | GREEN evidence |
 |---|---|---|
@@ -188,18 +193,113 @@ cmp /tmp/task7-validation-a.json /tmp/task7-validation-b.json
 
 ## Full-contract replay evidence
 
-Pending clean-HEAD execution. The approved resumable plan is:
+The final gate ran from clean implementation HEAD
+`9592fcca3860d1901a7009d799d29d20959d1699`; later report-only commits do not alter
+that evidence binding. The reviewed production commit remained
+`7f80436373b6da03536e15ff1908c010bfb92eb3`. Exact binding and checkpoint paths:
 
-1. Commit the runner and this registry/report checkpoint; require a clean exact HEAD.
-2. Run `--baseline-only` once into a checkpoint directory outside the worktree.
-3. Run each of the 13 exact `--experiment` commands sequentially in one process, one
-   carrier per command; never run variants in parallel.
-4. Record per-command wall time, 45+234/237 coverage, worker/checkpoint hash, and exact
-   replay command here after each completion.
-5. Accept the final artifact only when the runner emits `complete=true` with 13/13
-   authenticated checkpoints and a required first divergence for every carrier.
+- Checkpoint directory:
+  `/tmp/uquant-phase2-task7-9592fcca-checkpoints`
+- Binding SHA-256:
+  `a009bf0e97499bc4bb40fc42e9e7e6999ea9f727492ab2ab4f86f2fc2ce34daf`
+- Schedule semantic SHA-256:
+  `0b68ec13f311563a473785989474d719dc892b0eeef887154fadea04cb25e70a`
+- Schedule checkpoint file/payload SHA-256:
+  `0e6f6a90fa704ec87ea49a790ab569ca6e9f60b58cc8999dc0421bbd02bdd88b` /
+  `e55d0f3ac0ca78b8b6372ca790fe5fe4fb06a13126e633dafe6789ec4291e399`
+- Final strict-readback progress file SHA-256:
+  `fac83bcdc0136ebd84a92a1f557a07a5c102ecc98e2a9f059d09a3818389fcb4`
 
-No partial result in this section is a completion claim.
+The exact shell form was the following, with `MODE` replaced once by
+`--baseline-only` and once per registry row by `--experiment EXPERIMENT_ID`:
+
+```text
+env UV_CACHE_DIR=/tmp/uquant-phase2-uv-cache uv run python \
+  scripts/run_phase2_ablation.py run \
+  --source-root . \
+  --registry artifacts/phase2/ablations/registry.json \
+  --data-dir data/frozen \
+  --checkpoint-dir /tmp/uquant-phase2-task7-9592fcca-checkpoints \
+  --output /tmp/uquant-phase2-task7-9592fcca-progress.json MODE
+```
+
+Each standard checkpoint also stores the resolved absolute executable/argument list in
+`replay_command`; invalid-experiment raw sidecars store the identical execution binding,
+checkout, carrier, source, data, runtime, lock, schedule, fresh-account, and
+single-process provenance. A watcher copied the atomically written raw worker file for
+the later variants; it did not execute or modify a replay.
+
+The baseline completed in `22m53.933s`. It covers 279/279 records, 237/237 economic
+attempts and 237 traces: Phase 1 has 45 `VALID`; Generalization retains exactly 191
+`VALID`, one known `REPLAY_ERROR`, and 42 `INSUFFICIENT_SAMPLE`. Baseline checkpoint
+file/payload/worker SHA-256 values are, respectively,
+`b8e18a8bb70b996b8336f4893f7b51d2293ae682b5b04bf36400048fe1896eab`,
+`f2264864bd6b713b91726de701cec232c10ad15c2a33c85f7364b9e8b5e76703`, and
+`739531282ad66c92f8cd520b2bd527d4a513b2815b6d4a71dc857f63967fd0e4`.
+
+### Authenticated standard checkpoints
+
+Every row covers 279/279 records and 237/237 economic attempts. `Common valid` is
+Phase 1 + Generalization; aggregation uses only those common-`VALID` pairs while status
+transitions remain visible. `First divergence` names the earliest real decision-stage
+hash divergence, not an error.
+
+| Experiment | Wall time | Execution | Common valid | Status transitions | First divergence | Checkpoint file / payload / worker SHA-256 |
+|---|---:|---|---:|---|---|---|
+| `without_sector_guard` | `22m42.336s` | pass | 45 + 191 | none | `continuous_ai_era/industry-balanced`, 2023-03-24, `risk` | `7d454cec1a1a9a3b064b60d64a45ac9eb8ee7eaaf7ede55ce5324a845da5c7a5` / `0d7f127a9b7f0e287fe4afc34132fb7500c57ca0c201d87892ebaa9c1271025c` / `e419fcf59e86f19bfe5492082a6680d9bc15beea3fb8cfaa7c527fbad0e8ce28` |
+| `without_chronic_overlay` | `23m10.697s` | pass | 45 + 191 | none | `bull_crash_2025_2026/full`, 2026-07-31, `risk` | `c0dcfa6d00573763df3c8e5738902e40cf549e0e0ea78e2c635c8ac52477d90a` / `3f66fe2b5ce7835d414f153ffd48303f584c68f8dbddb7c054c6d28484a4df1c` / `7fd284e2df22d0cacb01b6b0262f34933536f7c5c5bc44481ab2270ec463f835` |
+| `without_transition_overlay` | `23m39.007s` | pass | 45 + 191 | none | `continuous_ai_era/random__05__0000`, 2025-01-16, `risk` | `4d6b8b3c1de6f41286f0084107a491cd98b8c6e587f27c3c4d6b6459f4f7cce6` / `83756197442c02abb32e5af373ce08cf9f28f83aa93b88b220e3ea5a0e526d2f` / `91f24daf28549b9e5462cd747fe71f0d46a7c368bd1bb4310c4ae64be468b25c` |
+| `without_capital_budget_ladder` | `26m54.716s` | fail/result | 45 + 190 | `VALID->REPLAY_ERROR`: 1; `REPLAY_ERROR->VALID`: 1 | `continuous_ai_era/full`, 2023-03-16, `risk` | `847acc3318343a7d083364418ea97757922fac62bc3621087084a6d80664b9ed` / `902e010aef8e9087036e7062a114f0d21cd0ed165429e97e1529e161c866f1dd` / `d768b90d614e77bcde2f432d35223d6556fc3941a9c8a783560801510b70b8d2` |
+| `without_recovery_conviction_weighting` | `22m57.977s` | pass | 45 + 191 | none | `bull_crash_2025_2026/remove-one__sz300502`, 2025-05-08, `targets->orders` | `c14d4c1f98d0c085d0ae3f34e47f25814fdc81f21c06e3a3c9a56bc6c4f61c8a` / `aa90aa2ca40f08f152314f2dd4661dffae8dec043c6ec10edcf257ddc3bf6b2a` / `acbd24120fe3d4fbe45e689c78c06e74720aea778884fd3dd7cdbfac79b4b7c7` |
+| `without_tactical_rebound_probe` | `22m09.038s` | pass | 45 + 191 | none | `h2_2023/full`, 2023-07-05, `targets->orders` | `8ce4c4f00066047c7c833b698276391899fac0ff92fee717d477ee143af89a99` / `6a695dd89712c6be4272d29f23e2d1799b13fda17d9835c4ce91e8a5dffcd600` / `9358e1965a474d000c019eb7827c50f2c28005b6beee0ae2057d78a853a7511a` |
+| `without_strategic_trailing` | `22m46.199s` | pass | 45 + 191 | none | `h2_2023/subindustry__materials`, 2023-12-26, `targets` | `4fbeac2a1e2992ba3c655cf7937a0348882702cb4bc33c0a4f75bbb9b00bcd99` / `97cdf5df87dc479175c0422dc1debd7283f9b2538c299ba357403d56ffe16cc6` / `62a21d53a7286c02979abbf30279704ff5c887c6c0d0fd8496d06484250352e2` |
+| `without_restoration_special_handling` | `23m12.670s` | pass | 45 + 191 | `REPLAY_ERROR->VALID`: 1 | `h1_2024/full`, 2024-02-06, `targets->orders` | `1cc2dd88529c9c05759124b3e0a086bb3ddec22f76145e1b4f6f82e58ca5dde6` / `e88906012f9b0bfb23d9f4d9a4269946c427dedb1cc9c683d58b5a9ddbb0175b` / `afb1023c0314f529f0efdad0cc2a237346299a0492ae8621bcc3da1370e05f99` |
+| `without_add_tranche` | `23m37.100s` | pass | 45 + 191 | none | `continuous_ai_era/industry-balanced`, 2023-03-27, `targets` | `edbb9609c2b9c6548bf24e1b8fc2f7eb46c07daca5f1eb58019fd071cfa85884` / `187a1224097836afebc3ba4d8c2986fe7e8ba6afd3716eb2b79e17765b949dfe` / `20c6edaa5dc7f5f61b368d95cbdd48a490356cf0de71c40eff77d68015017a27` |
+| `without_replacement_rotation` | `23m41.349s` | pass | 45 + 191 | none | `continuous_ai_era/remove-one__sz300394`, 2023-06-12, `targets->orders` | `89fe8718502d65f68f6db8eb548039d9b1e37453c9045605b5c711889cf5c607` / `b7fe00f453a682f3dc868c0735444458795dd853a72aa870d8e9d72c733fac14` / `d88a98a767111b5b6bcec6893b5e761e3802a8cadc00188d8e2d4118b2bf0c45` |
+| `without_dynamic_risk_anchors` | `24m26.520s` | pass | 45 + 191 | `REPLAY_ERROR->VALID`: 1 | `continuous_ai_era/full`, 2023-05-30, `risk` | `04acf032bca34ae962c846bed60859b9ca6d789abc2b4832b5519299eee3c808` / `bf952b6d98b98db1d1fa525c2a421b889441047b350134a837613959ebda9da7` / `1ba0d4fb5c94dd2b97158f5e8e8f7028bce68d30393d4da5d29f243d9e08a193` |
+
+`without_capital_budget_ladder` retains the new 2025-08-25 error described below,
+sets the failed cell's metrics/delta to null, and nevertheless continues the remaining
+18 economic cells through 237/237 in the same worker process. Its Generalization
+variant statuses are 190 `VALID`, one `REPLAY_ERROR`, and 42 insufficient; the frozen
+known-error cell separately transitions to `VALID`. `without_restoration_special_handling`
+and `without_dynamic_risk_anchors` also make the frozen known-error cell `VALID`; this
+is reported as a variant transition and never changes the frozen baseline status.
+
+### Complete but invalid no-divergence experiments
+
+Both carriers below ran all 279 records/237 economic attempts and produced 237 traces.
+Their traces are canonical-byte identical to baseline; cell statuses, metrics, and the
+known error's type/message/date are also exact after excluding only the deliberately
+carrier-specific binding/provenance fields. Thus every economic delta is zero and no
+first divergence exists. Per the brief, the runner exits 1, writes no standard
+checkpoint, and leaves the aggregator incomplete.
+
+| Experiment | Wall time | Exact result | Raw sidecar | File / canonical worker SHA-256 |
+|---|---:|---|---|---|
+| `without_challenger_scout` | first `22m44.500s`; final evidence rerun `24m25.640s` | exit 1: `phase2 ablation failed closed: ablation experiment has no behavior divergence` | `/tmp/uquant-phase2-task7-9592fcca-checkpoints/raw/without_challenger_scout.worker.json` | `7e907b5fa87cfae9fef593e24a7483fd102732877f43eaf1873644a6a29c49c0` / `ad948ff35b14cca543c0b14948bf9a85d8142fdc2f9fa4bf8848d5244f642624` |
+| `without_conviction_weighting` | `22m30.623s` | exit 1: `phase2 ablation failed closed: ablation experiment has no behavior divergence` | `/tmp/uquant-phase2-task7-9592fcca-checkpoints/raw/without_conviction_weighting.worker.json` | `aa9ab2455e89764af19d731d41c8edb5881d8d63caa2e5ed8820e6ad579204fb` / `64428c523c2381cf491e38ce8901ba2682ca0136b627720a719f605574587528` |
+
+The first `without_challenger_scout` run completed its matrix and failed closed, but its
+temporary raw file had already been removed before the evidence-retention ruling; it is
+not used as final evidence. The one authorized rerun used the same unchanged HEAD,
+binding, schedule, carrier, data, and runtime, and its watcher retained the raw sidecar
+listed above. No successful shard was rerun.
+
+Baseline plus the initial 13 carrier runs consumed `19,646.665s` (`5.457407h`) and
+3,318 economic attempts. Including the single authorized challenger-scout evidence
+rerun, wall time was `21,112.305s` (`5.864529h`) and 3,555 economic attempts. Replays
+were sequential; heartbeat checks showed exactly one replay worker at a time.
+
+Final strict readback invoked `run --baseline-only` against the populated binding. It
+revalidated the baseline, schedule and every available standard checkpoint, emitted
+`complete=false`, `completed_count=11`, `required_count=13`, and exactly these missing
+IDs: `without_challenger_scout`, `without_conviction_weighting`. Independent raw
+readback checked 279 cells, 237 economic flags and 237 traces for both invalid carriers,
+then proved exact zero-divergence against baseline. This is the intended fail-closed
+result, not a claim of complete aggregate evidence.
+
+### Superseded fail-closed attempts and debugging
 
 The first clean-HEAD baseline attempt at implementation commit
 `a276fab2e4aa2673aa65524724189fcaa648e373` ran all 279 records/237 economic
@@ -266,13 +366,13 @@ transition, a null failed-cell delta, and a real 2024-03-26 `risk` divergence fr
 other cell. This smoke is continuation evidence only, not full-contract evidence.
 
 All `/tmp/uquant-phase2-task7-a9b1831-checkpoints` artifacts are superseded after the
-runner/source binding change and will not be reused. The next long gate starts baseline
-from scratch in a new content-addressed directory, then executes all 13 variants
-sequentially.
+runner/source binding change and were not reused. The final gate documented above did
+restart baseline from scratch under the new `9592fcca` binding and then executed all 13
+variants sequentially.
 
 ## Verification
 
-Current post-fix, pre-replay verification:
+Verification at the source-bound implementation HEAD:
 
 - Focused Task 7 tests: `21 passed`.
 - Full repository pytest after variant-error continuation hardening: exit `0`;
@@ -282,6 +382,9 @@ Current post-fix, pre-replay verification:
   `uv run mypy research/ablation.py research/ablation_registry.py scripts/run_phase2_ablation.py`
   passed with `Success: no issues found in 3 source files`.
 - `git diff --check`: passed.
+- Final artifact strict readback: exit `0`; 11 authenticated standard checkpoints,
+  exactly two missing invalid/no-divergence IDs, and both retained raw workers pass
+  exact 279/237/237 coverage plus baseline zero-divergence comparison.
 
 Expanded whole-repository strict mypy reports one pre-existing error at
 `scripts/run_pareto_evidence.py:143` (a `Mapping[str, Any]` assigned after a branch
@@ -293,9 +396,14 @@ command.
 
 ## Concerns
 
-- Full baseline plus 13 variant replay evidence is intentionally not claimed at this
-  implementation checkpoint. Its estimated scale is one 237-economic baseline plus
-  3,081 variant economic attempts. The content-addressed sequential checkpoint plan
-  prevents a partial run from being mistaken for complete evidence.
+- All 13 carriers proved full-contract runnability, but the standard aggregate is
+  intentionally `complete=false`: challenger scout and conviction weighting are
+  invalid experiments under the brief because neither creates a behavior divergence.
+  Task 8 must consume these raw invalid-experiment results and apply its classification
+  policy without relabeling this Task 7 aggregate as complete or inventing a first
+  divergence.
+- The bound replay/checkpoint evidence lives outside the repository at
+  `/tmp/uquant-phase2-task7-9592fcca-checkpoints`; the report records its exact paths
+  and hashes, but external cleanup of `/tmp` would require an exact replay.
 - The whole-repository mypy observation above is inherited from the exact baseline;
   Task 7 scoped strict mypy is green.

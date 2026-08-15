@@ -167,6 +167,73 @@ def _metrics(
     )
 
 
+def _single_cell_worker(
+    runner,
+    *,
+    binding_sha256: str,
+    experiment_id: str,
+    carrier_sha256: str,
+    stage_hash: str,
+    wealth: float = 1.0,
+) -> tuple[tuple[ContractCell, ...], dict[str, object]]:
+    schedule = (
+        ContractCell(
+            contract="phase1_performance",
+            cell_id="a/h1_2023",
+            status="VALID",
+            economic=True,
+            symbols=("sz300308",),
+            start="2023-01-03",
+            end="2023-01-04",
+        ),
+    )
+    provenance = {
+        "checkout": {"carrier_sha256": carrier_sha256},
+        "effective_config_sha256": "d" * 64,
+        "data": {"snapshot_id": "fixed"},
+        "runtime": {"python_full_version": "3.12.13"},
+        "uv_lock_sha256": "e" * 64,
+        "replay_command_sha256": "f" * 64,
+    }
+    metrics = _metrics(
+        wealth=wealth,
+        drawdown=0.1,
+        orders=2,
+        acute=None,
+        turnover=0.5,
+        top1=0.4,
+        top3=0.6,
+        hhi=0.2,
+    ).to_dict()
+    return schedule, {
+        "schema_version": 1,
+        "mode": "contract-replay",
+        "binding_sha256": binding_sha256,
+        "experiment_id": experiment_id,
+        "cells": [
+            {
+                "contract": "phase1_performance",
+                "cell_id": "a/h1_2023",
+                "frozen_status": "VALID",
+                "status": "VALID",
+                "economic": True,
+                "metrics": metrics,
+                "replay_error": None,
+                "raw_result_sha256": "c" * 64,
+            }
+        ],
+        "traces": {
+            "phase1_performance/a/h1_2023": [
+                {
+                    "date": "2023-01-03",
+                    "stages": {name: stage_hash for name in runner._CAUSAL_STAGES},
+                }
+            ]
+        },
+        "provenance": provenance,
+    }
+
+
 def test_comparison_emits_every_raw_materiality_dimension_without_classification() -> None:
     """Catches dropped Task-8 inputs or premature KEEP/DELETE classification."""
     baseline = AblationCell(
@@ -1236,3 +1303,294 @@ def test_final_evidence_requires_all_13_exact_one_carrier_checkpoints() -> None:
             binding_sha256=binding,
             schedule=schedule,
         )
+
+
+def test_raw_backed_checkpoint_recomputes_real_comparison_after_reseal(tmp_path: Path) -> None:
+    """Catches a self-signed checkpoint whose claimed deltas differ from its raw workers."""
+    runner = _runner_module()
+    experiment = load_ablation_registry(DEFAULT_ABLATION_REGISTRY_PATH).experiments[0]
+    binding_sha256 = "a" * 64
+    replay_command = ["python", "runner.py", "replay", "--evidence-commit", "9" * 40]
+    schedule, baseline = _single_cell_worker(
+        runner,
+        binding_sha256=binding_sha256,
+        experiment_id="baseline",
+        carrier_sha256=runner._BASELINE_CARRIER_SHA256,
+        stage_hash="1" * 64,
+    )
+    _, variant = _single_cell_worker(
+        runner,
+        binding_sha256=binding_sha256,
+        experiment_id=experiment.experiment_id,
+        carrier_sha256=experiment.carrier.sha256,
+        stage_hash="2" * 64,
+        wealth=1.1,
+    )
+    baseline_path = runner._write_baseline_result(
+        checkpoint_dir=tmp_path,
+        binding_sha256=binding_sha256,
+        schedule=schedule,
+        worker=baseline,
+        replay_command=replay_command,
+        expected_provenance=baseline["provenance"],
+        frozen_replay_errors={},
+    )
+    baseline_checkpoint, baseline_worker = runner._read_baseline_result(
+        baseline_path,
+        checkpoint_dir=tmp_path,
+        binding_sha256=binding_sha256,
+        schedule=schedule,
+        expected_replay_command=replay_command,
+        expected_provenance=baseline["provenance"],
+        frozen_replay_errors={},
+    )
+    experiment_path = runner._write_experiment_result(
+        checkpoint_dir=tmp_path,
+        experiment=experiment,
+        binding_sha256=binding_sha256,
+        schedule=schedule,
+        baseline_checkpoint=baseline_checkpoint,
+        baseline_worker=baseline_worker,
+        variant_worker=variant,
+        replay_command=replay_command,
+        expected_variant_provenance=variant["provenance"],
+        frozen_replay_errors={},
+    )
+
+    envelope = json.loads(experiment_path.read_text(encoding="utf-8"))
+    authentic_envelope = copy.deepcopy(envelope)
+    envelope["payload"]["comparison"]["cells"][0]["delta"]["final_wealth"] = 999.0
+    envelope["payload_sha256"] = runner._sha256_mapping(envelope["payload"])
+    experiment_path.write_bytes(runner._canonical_bytes(envelope))
+
+    with pytest.raises(ValueError, match="recomputed comparison"):
+        runner._read_experiment_result(
+            experiment_path,
+            checkpoint_dir=tmp_path,
+            experiment=experiment,
+            binding_sha256=binding_sha256,
+            schedule=schedule,
+            baseline_checkpoint=baseline_checkpoint,
+            baseline_worker=baseline_worker,
+            expected_replay_command=replay_command,
+            expected_baseline_provenance=baseline["provenance"],
+            expected_variant_provenance=variant["provenance"],
+            frozen_replay_errors={},
+        )
+
+    forged_variant = copy.deepcopy(variant)
+    forged_variant["provenance"]["runtime"]["python_full_version"] = "3.99.0"
+    forged_reference = runner._write_worker_artifact(tmp_path, forged_variant)
+    forged_envelope = copy.deepcopy(authentic_envelope)
+    forged_envelope["payload"]["variant_worker_artifact"] = forged_reference
+    forged_envelope["payload"]["comparison"]["variant_provenance"] = forged_variant["provenance"]
+    forged_envelope["payload_sha256"] = runner._sha256_mapping(forged_envelope["payload"])
+    experiment_path.write_bytes(runner._canonical_bytes(forged_envelope))
+    with pytest.raises(ValueError, match="checkout/config/data/runtime"):
+        runner._read_experiment_result(
+            experiment_path,
+            checkpoint_dir=tmp_path,
+            experiment=experiment,
+            binding_sha256=binding_sha256,
+            schedule=schedule,
+            baseline_checkpoint=baseline_checkpoint,
+            baseline_worker=baseline_worker,
+            expected_replay_command=replay_command,
+            expected_baseline_provenance=baseline["provenance"],
+            expected_variant_provenance=variant["provenance"],
+            frozen_replay_errors={},
+        )
+
+
+def test_no_divergence_writes_authenticated_invalid_artifact(tmp_path: Path) -> None:
+    """Catches dependence on an external watcher for complete no-divergence workers."""
+    runner = _runner_module()
+    experiment = load_ablation_registry(DEFAULT_ABLATION_REGISTRY_PATH).experiments[4]
+    binding_sha256 = "a" * 64
+    replay_command = ["python", "runner.py", "replay", "--evidence-commit", "9" * 40]
+    schedule, baseline = _single_cell_worker(
+        runner,
+        binding_sha256=binding_sha256,
+        experiment_id="baseline",
+        carrier_sha256=runner._BASELINE_CARRIER_SHA256,
+        stage_hash="1" * 64,
+    )
+    variant = copy.deepcopy(baseline)
+    variant["experiment_id"] = experiment.experiment_id
+    variant["provenance"] = {
+        **baseline["provenance"],
+        "checkout": {"carrier_sha256": experiment.carrier.sha256},
+    }
+    baseline_path = runner._write_baseline_result(
+        checkpoint_dir=tmp_path,
+        binding_sha256=binding_sha256,
+        schedule=schedule,
+        worker=baseline,
+        replay_command=replay_command,
+        expected_provenance=baseline["provenance"],
+        frozen_replay_errors={},
+    )
+    baseline_checkpoint, baseline_worker = runner._read_baseline_result(
+        baseline_path,
+        checkpoint_dir=tmp_path,
+        binding_sha256=binding_sha256,
+        schedule=schedule,
+        expected_replay_command=replay_command,
+        expected_provenance=baseline["provenance"],
+        frozen_replay_errors={},
+    )
+
+    result_path = runner._write_experiment_result(
+        checkpoint_dir=tmp_path,
+        experiment=experiment,
+        binding_sha256=binding_sha256,
+        schedule=schedule,
+        baseline_checkpoint=baseline_checkpoint,
+        baseline_worker=baseline_worker,
+        variant_worker=variant,
+        replay_command=replay_command,
+        expected_variant_provenance=variant["provenance"],
+        frozen_replay_errors={},
+    )
+
+    assert result_path == tmp_path / "invalid" / f"{experiment.experiment_id}.json"
+    assert not (tmp_path / f"{experiment.experiment_id}.json").exists()
+    invalid = runner._read_experiment_result(
+        result_path,
+        checkpoint_dir=tmp_path,
+        experiment=experiment,
+        binding_sha256=binding_sha256,
+        schedule=schedule,
+        baseline_checkpoint=baseline_checkpoint,
+        baseline_worker=baseline_worker,
+        expected_replay_command=replay_command,
+        expected_baseline_provenance=baseline["provenance"],
+        expected_variant_provenance=variant["provenance"],
+        frozen_replay_errors={},
+    )
+    assert invalid["kind"] == "invalid_experiment"
+    assert invalid["reason"] == "no_behavior_divergence"
+    assert invalid["comparison"]["first_divergence"] is None
+    assert invalid["coverage_complete"] is True
+
+
+def test_aggregate_authenticates_invalid_results_without_claiming_complete() -> None:
+    """Catches hiding invalid experiments from coverage or counting them as valid results."""
+    runner = _runner_module()
+    registry = load_ablation_registry(DEFAULT_ABLATION_REGISTRY_PATH)
+    valid = {
+        item.experiment_id: {
+            "experiment_id": item.experiment_id,
+            "kind": "experiment",
+            "variant_worker_artifact": {"payload_sha256": f"{index + 1:064x}"},
+        }
+        for index, item in enumerate(registry.experiments[:11])
+    }
+    invalid = {
+        item.experiment_id: {
+            "experiment_id": item.experiment_id,
+            "kind": "invalid_experiment",
+            "reason": "no_behavior_divergence",
+            "coverage_complete": True,
+            "variant_worker_artifact": {"payload_sha256": f"{index + 12:064x}"},
+        }
+        for index, item in enumerate(registry.experiments[11:])
+    }
+
+    summary = runner._evidence_coverage(registry, valid=valid, invalid=invalid)
+
+    assert summary["coverage_complete"] is True
+    assert summary["complete"] is False
+    assert summary["valid_experiment_count"] == 11
+    assert summary["invalid_experiment_count"] == 2
+    assert summary["missing_experiment_ids"] == []
+    assert set(summary["invalid_experiments"]) == set(invalid)
+
+
+def test_frozen_replay_error_anchor_rejects_resealed_message_mutation() -> None:
+    """Catches preserving only the frozen REPLAY_ERROR status while rewriting its exception."""
+    runner = _runner_module()
+    registry = load_ablation_registry(DEFAULT_ABLATION_REGISTRY_PATH)
+    anchors = runner._frozen_replay_error_anchors(registry, source_root=ROOT)
+    identity = ("ai_era_generalization", "continuous_ai_era/random__20__0000")
+    anchor = anchors[identity]
+    schedule = (
+        ContractCell(
+            contract=identity[0],
+            cell_id=identity[1],
+            status="REPLAY_ERROR",
+            economic=True,
+            symbols=("sz300308",),
+            start="2023-01-03",
+            end="2026-08-05",
+        ),
+    )
+    provenance = {"effective_config_sha256": "d" * 64}
+    payload = {
+        "schema_version": 1,
+        "mode": "contract-replay",
+        "binding_sha256": "b" * 64,
+        "experiment_id": "baseline",
+        "cells": [
+            {
+                "contract": identity[0],
+                "cell_id": identity[1],
+                "frozen_status": "REPLAY_ERROR",
+                "status": "REPLAY_ERROR",
+                "economic": True,
+                "metrics": None,
+                "replay_error": {
+                    **anchor,
+                    "contract": identity[0],
+                    "cell_id": identity[1],
+                    "binding_sha256": "b" * 64,
+                    "carrier_sha256": runner._BASELINE_CARRIER_SHA256,
+                    "provenance_sha256": runner._sha256_mapping(provenance),
+                },
+                "raw_result_sha256": None,
+            }
+        ],
+        "traces": {f"{identity[0]}/{identity[1]}": []},
+        "provenance": provenance,
+    }
+    runner._validate_worker_payload(
+        payload,
+        schedule=schedule,
+        binding_sha256="b" * 64,
+        experiment_id="baseline",
+        frozen_replay_errors=anchors,
+    )
+    rewritten = copy.deepcopy(payload)
+    rewritten["cells"][0]["replay_error"]["message"] += " rewritten"
+    with pytest.raises(ValueError, match="frozen replay error anchor"):
+        runner._validate_worker_payload(
+            rewritten,
+            schedule=schedule,
+            binding_sha256="b" * 64,
+            experiment_id="baseline",
+            frozen_replay_errors=anchors,
+        )
+
+
+def test_replay_command_materializes_exact_historical_evidence_commit(tmp_path: Path) -> None:
+    """Catches later report-only HEADs replaying from the wrong source checkout."""
+    runner = _runner_module()
+    evidence_commit = "9592fcca3860d1901a7009d799d29d20959d1699"
+    command = runner._replay_command(
+        repository_root=ROOT,
+        evidence_commit=evidence_commit,
+        registry_relative=Path("artifacts/phase2/ablations/registry.json"),
+        data_dir=ROOT / "data" / "frozen",
+        experiment_id="without_sector_guard",
+        checkpoint_dir=tmp_path,
+        output=tmp_path / "progress.json",
+    )
+    assert command[2] == "replay"
+    assert command[command.index("--evidence-commit") + 1] == evidence_commit
+    with runner._isolated_evidence_checkout(ROOT, evidence_commit) as checkout:
+        assert runner._git_output(checkout, "rev-parse", "HEAD") == evidence_commit
+        assert runner._git_output(checkout, "status", "--porcelain", "--untracked-files=all") == ""
+    wrong_commit = list(command)
+    wrong_commit[wrong_commit.index("--evidence-commit") + 1] = "0" * 40
+    with pytest.raises(ValueError, match="evidence commit"):
+        runner._validate_replay_command(wrong_commit, expected=command)

@@ -8,12 +8,14 @@ import json
 import math
 import os
 import platform
+import re
 import shutil
 import subprocess  # nosec B404
 import sys
 import tempfile
 from collections import Counter
-from collections.abc import Mapping, Sequence
+from collections.abc import Iterator, Mapping, Sequence
+from contextlib import contextmanager
 from datetime import date
 from pathlib import Path
 from typing import Any, TypeGuard
@@ -146,6 +148,7 @@ def _validate_worker_payload(
     binding_sha256: str,
     experiment_id: str,
     carrier_sha256: str | None = None,
+    frozen_replay_errors: Mapping[tuple[str, str], Mapping[str, str]] | None = None,
 ) -> None:
     """Reject partial, stale, rewritten, self-signed, or trace-free evidence."""
     if (
@@ -169,6 +172,11 @@ def _validate_worker_payload(
         raise ValueError("ablation worker expected carrier is malformed")
     provenance_sha256 = _sha256_mapping(provenance)
     expected = tuple((item.contract, item.cell_id, item.status, item.economic) for item in schedule)
+    expected_frozen_errors = {
+        (item.contract, item.cell_id) for item in schedule if item.status == "REPLAY_ERROR"
+    }
+    if frozen_replay_errors is not None and set(frozen_replay_errors) != expected_frozen_errors:
+        raise ValueError("ablation frozen replay error anchor coverage differs")
     observed: list[tuple[str, str, str, bool]] = []
     expected_trace_keys: set[str] = set()
     for raw, item in zip(raw_cells, schedule, strict=False):
@@ -247,6 +255,17 @@ def _validate_worker_payload(
                 and date.fromisoformat(item.start) <= parsed_error_date <= date.fromisoformat(item.end)
             ):
                 raise ValueError("ablation worker replay error provenance differs")
+            anchor = (
+                frozen_replay_errors.get((item.contract, item.cell_id))
+                if frozen_replay_errors is not None and item.status == "REPLAY_ERROR"
+                else None
+            )
+            if anchor is not None and {
+                "type": replay_error.get("type"),
+                "message": replay_error.get("message"),
+                "date": replay_error.get("date"),
+            } != dict(anchor):
+                raise ValueError("ablation frozen replay error anchor differs")
             expected_trace_keys.add(key)
         elif metrics is not None or replay_error is not None or result_hash is not None:
             raise ValueError("ablation insufficient cell contains economic evidence")
@@ -288,6 +307,55 @@ def _validate_worker_payload(
             raise ValueError("ablation worker replay error trace exceeds failure date")
 
 
+def _frozen_replay_error_anchors(
+    registry: Any,
+    *,
+    source_root: Path,
+) -> dict[tuple[str, str], dict[str, str]]:
+    """Compile exact known replay failures from the independently hashed frozen artifact."""
+    contract = registry.contract("frozen_generalization_status")
+    path = source_root / contract.path
+    if _sha256(path) != contract.sha256:
+        raise ValueError("frozen replay error artifact hash differs")
+    payload = _load_json_mapping(path, label="frozen replay error artifact")
+    raw_cells = payload.get("cells")
+    failures = payload.get("failures")
+    if not isinstance(raw_cells, list) or not isinstance(failures, list):
+        raise ValueError("frozen replay error artifact is malformed")
+    anchors: dict[tuple[str, str], dict[str, str]] = {}
+    for raw in raw_cells:
+        if not isinstance(raw, Mapping) or raw.get("replay_error") is None:
+            continue
+        replay_error = raw.get("replay_error")
+        window = raw.get("window")
+        scenario = raw.get("scenario")
+        if (
+            not isinstance(replay_error, Mapping)
+            or not isinstance(window, str)
+            or not isinstance(scenario, str)
+            or not isinstance(replay_error.get("exception_type"), str)
+            or not isinstance(replay_error.get("message"), str)
+        ):
+            raise ValueError("frozen replay error artifact is malformed")
+        message = str(replay_error["message"])
+        dates = tuple(dict.fromkeys(re.findall(r"\b20\d{2}-\d{2}-\d{2}\b", message)))
+        if len(dates) != 1:
+            raise ValueError("frozen replay error date anchor is ambiguous")
+        cell_id = f"{window}/{scenario}"
+        exception_type = str(replay_error["exception_type"])
+        exact_failure = f"cell replay failed: {cell_id}: {exception_type}: {message}"
+        if failures.count(exact_failure) != 1:
+            raise ValueError("frozen replay error failure anchor differs")
+        anchors[("ai_era_generalization", cell_id)] = {
+            "type": exception_type,
+            "message": message,
+            "date": dates[0],
+        }
+    if len(anchors) != contract.replay_error_count:
+        raise ValueError("frozen replay error anchor count differs")
+    return anchors
+
+
 def _write_checkpoint(path: Path, payload: Mapping[str, Any]) -> str:
     """Atomically write a canonical, content-addressed checkpoint envelope."""
     canonical_payload = dict(payload)
@@ -314,6 +382,168 @@ def _write_checkpoint(path: Path, payload: Mapping[str, Any]) -> str:
         if temporary.exists():
             temporary.unlink()
     return digest
+
+
+def _write_worker_artifact(checkpoint_dir: Path, worker: Mapping[str, Any]) -> dict[str, str]:
+    """Atomically persist one canonical worker under its exact content hash."""
+    encoded = _canonical_bytes(dict(worker))
+    digest = hashlib.sha256(encoded).hexdigest()
+    relative = Path("raw") / f"{digest}.worker.json"
+    path = checkpoint_dir / relative
+    path.parent.mkdir(parents=True, exist_ok=True)
+    if path.exists():
+        if path.read_bytes() != encoded:
+            raise ValueError("ablation raw worker content-address collision")
+    else:
+        descriptor, temporary_name = tempfile.mkstemp(
+            dir=path.parent,
+            prefix=f".{path.name}.",
+            suffix=".tmp",
+        )
+        temporary = Path(temporary_name)
+        try:
+            with os.fdopen(descriptor, "wb") as stream:
+                stream.write(encoded)
+                stream.flush()
+                os.fsync(stream.fileno())
+            os.replace(temporary, path)
+        finally:
+            if temporary.exists():
+                temporary.unlink()
+    return {
+        "path": relative.as_posix(),
+        "payload_sha256": digest,
+        "file_sha256": digest,
+    }
+
+
+def _read_worker_artifact(
+    checkpoint_dir: Path,
+    reference: object,
+) -> dict[str, Any]:
+    """Load a canonical raw worker only from its content-addressed path."""
+    if not isinstance(reference, Mapping) or set(reference) != {
+        "path",
+        "payload_sha256",
+        "file_sha256",
+    }:
+        raise ValueError("ablation raw worker reference is malformed")
+    digest = reference.get("payload_sha256")
+    if not _is_sha256(digest) or reference.get("file_sha256") != digest:
+        raise ValueError("ablation raw worker reference hash is malformed")
+    expected_relative = Path("raw") / f"{digest}.worker.json"
+    if reference.get("path") != expected_relative.as_posix():
+        raise ValueError("ablation raw worker reference path differs")
+    path = checkpoint_dir / expected_relative
+    try:
+        encoded = path.read_bytes()
+        payload = json.loads(encoded)
+    except (OSError, json.JSONDecodeError) as exc:
+        raise ValueError("ablation raw worker artifact is unreadable") from exc
+    if (
+        hashlib.sha256(encoded).hexdigest() != digest
+        or not isinstance(payload, Mapping)
+        or _canonical_bytes(payload) != encoded
+    ):
+        raise ValueError("ablation raw worker artifact hash differs")
+    return dict(payload)
+
+
+def _validate_replay_command(command: object, *, expected: Sequence[str]) -> None:
+    if not isinstance(command, list) or command != list(expected):
+        raise ValueError("ablation replay command or evidence commit differs")
+
+
+def _validate_exact_worker(
+    worker: Mapping[str, Any],
+    *,
+    schedule: Sequence[Any],
+    binding_sha256: str,
+    experiment_id: str,
+    carrier_sha256: str,
+    expected_provenance: Mapping[str, Any],
+    frozen_replay_errors: Mapping[tuple[str, str], Mapping[str, str]],
+) -> None:
+    _validate_worker_payload(
+        worker,
+        schedule=schedule,
+        binding_sha256=binding_sha256,
+        experiment_id=experiment_id,
+        carrier_sha256=carrier_sha256,
+        frozen_replay_errors=frozen_replay_errors,
+    )
+    if worker.get("provenance") != expected_provenance:
+        raise ValueError("ablation worker provenance differs from expected checkout/config/data/runtime")
+
+
+def _write_baseline_result(
+    *,
+    checkpoint_dir: Path,
+    binding_sha256: str,
+    schedule: Sequence[Any],
+    worker: Mapping[str, Any],
+    replay_command: Sequence[str],
+    expected_provenance: Mapping[str, Any],
+    frozen_replay_errors: Mapping[tuple[str, str], Mapping[str, str]],
+) -> Path:
+    """Persist a baseline checkpoint that references, rather than embeds, raw evidence."""
+    _validate_exact_worker(
+        worker,
+        schedule=schedule,
+        binding_sha256=binding_sha256,
+        experiment_id="baseline",
+        carrier_sha256=_BASELINE_CARRIER_SHA256,
+        expected_provenance=expected_provenance,
+        frozen_replay_errors=frozen_replay_errors,
+    )
+    worker_reference = _write_worker_artifact(checkpoint_dir, worker)
+    payload = {
+        "schema_version": 2,
+        "kind": "baseline",
+        "binding_sha256": binding_sha256,
+        "worker_artifact": worker_reference,
+        "replay_command": list(replay_command),
+    }
+    path = checkpoint_dir / "baseline.json"
+    _write_checkpoint(path, payload)
+    return path
+
+
+def _read_baseline_result(
+    path: Path,
+    *,
+    checkpoint_dir: Path,
+    binding_sha256: str,
+    schedule: Sequence[Any],
+    expected_replay_command: Sequence[str],
+    expected_provenance: Mapping[str, Any],
+    frozen_replay_errors: Mapping[tuple[str, str], Mapping[str, str]],
+) -> tuple[dict[str, Any], dict[str, Any]]:
+    checkpoint = _read_checkpoint(path, binding_sha256=binding_sha256, kind="baseline")
+    if (
+        set(checkpoint)
+        != {
+            "schema_version",
+            "kind",
+            "binding_sha256",
+            "worker_artifact",
+            "replay_command",
+        }
+        or checkpoint.get("schema_version") != 2
+    ):
+        raise ValueError("ablation baseline checkpoint is malformed")
+    _validate_replay_command(checkpoint.get("replay_command"), expected=expected_replay_command)
+    worker = _read_worker_artifact(checkpoint_dir, checkpoint.get("worker_artifact"))
+    _validate_exact_worker(
+        worker,
+        schedule=schedule,
+        binding_sha256=binding_sha256,
+        experiment_id="baseline",
+        carrier_sha256=_BASELINE_CARRIER_SHA256,
+        expected_provenance=expected_provenance,
+        frozen_replay_errors=frozen_replay_errors,
+    )
+    return checkpoint, worker
 
 
 def _read_checkpoint(
@@ -573,6 +803,52 @@ def _validate_experiment_checkpoints(
     return ordered
 
 
+def _evidence_coverage(
+    registry: Any,
+    *,
+    valid: Mapping[str, Mapping[str, Any]],
+    invalid: Mapping[str, Mapping[str, Any]],
+) -> dict[str, Any]:
+    """Summarize authenticated valid and invalid artifacts without relabeling either."""
+    expected = tuple(item.experiment_id for item in registry.experiments)
+    if set(valid) & set(invalid):
+        raise ValueError("ablation experiment has both valid and invalid artifacts")
+    observed = set(valid) | set(invalid)
+    if not observed <= set(expected):
+        raise ValueError("ablation evidence contains an unregistered experiment")
+    for experiment_id, payload in valid.items():
+        if payload.get("kind") != "experiment" or payload.get("experiment_id") != experiment_id:
+            raise ValueError("ablation valid experiment summary differs")
+    for experiment_id, payload in invalid.items():
+        if (
+            payload.get("kind") != "invalid_experiment"
+            or payload.get("experiment_id") != experiment_id
+            or payload.get("reason") != "no_behavior_divergence"
+            or payload.get("coverage_complete") is not True
+        ):
+            raise ValueError("ablation invalid experiment summary differs")
+    missing = [item for item in expected if item not in observed]
+    return {
+        "complete": len(valid) == len(expected),
+        "coverage_complete": not missing,
+        "required_experiment_count": len(expected),
+        "valid_experiment_count": len(valid),
+        "invalid_experiment_count": len(invalid),
+        "valid_experiment_ids": [item for item in expected if item in valid],
+        "invalid_experiment_ids": [item for item in expected if item in invalid],
+        "missing_experiment_ids": missing,
+        "invalid_experiments": {
+            item: {
+                "reason": invalid[item]["reason"],
+                "coverage_complete": invalid[item]["coverage_complete"],
+                "variant_worker_artifact": invalid[item]["variant_worker_artifact"],
+            }
+            for item in expected
+            if item in invalid
+        },
+    }
+
+
 def _validate_experiment_checkpoint(
     experiment: Any,
     raw: Mapping[str, Any],
@@ -776,14 +1052,29 @@ def _git_output(root: Path, *arguments: str) -> str:
         raise RuntimeError("cannot inspect ablation git provenance") from exc
 
 
-def _runner_sha256(registry_path: Path) -> str:
+def _repository_root(source_root: Path) -> Path:
+    common = Path(
+        _git_output(
+            source_root,
+            "rev-parse",
+            "--path-format=absolute",
+            "--git-common-dir",
+        )
+    ).resolve()
+    if common.name != ".git":
+        raise ValueError("ablation git common directory is malformed")
+    return common.parent
+
+
+def _runner_sha256(registry_path: Path, *, source_root: Path | None = None) -> str:
+    root = _RUNNER_ROOT if source_root is None else source_root
     paths = (
-        Path(__file__).resolve(),
-        _RUNNER_ROOT / "research" / "ablation.py",
-        _RUNNER_ROOT / "research" / "ablation_registry.py",
+        root / "scripts" / "run_phase2_ablation.py",
+        root / "research" / "ablation.py",
+        root / "research" / "ablation_registry.py",
         registry_path,
     )
-    return _combined_sha256(paths, root=_RUNNER_ROOT)
+    return _combined_sha256(paths, root=root)
 
 
 def _baseline_config_sha256() -> str:
@@ -831,17 +1122,75 @@ def _execution_binding(
         "schedule_sha256": hashlib.sha256(_canonical_bytes(_schedule_rows(schedule))).hexdigest(),
         "contracts": _contract_summary(schedule),
         "baseline_config_sha256": _baseline_config_sha256(),
-        "runner_sha256": _runner_sha256(registry_path),
+        "runner_sha256": _runner_sha256(registry_path, source_root=source_root),
         "uv_lock_sha256": _sha256(source_root / "uv.lock"),
         "runtime": runtime,
         "data": _data_provenance(data_dir),
     }
 
 
+@contextmanager
+def _isolated_evidence_checkout(
+    repository_root: Path,
+    evidence_commit: str,
+) -> Iterator[Path]:
+    """Materialize the exact historical evidence commit in a clean detached worktree."""
+    if not re.fullmatch(r"[0-9a-f]{40}", evidence_commit):
+        raise ValueError("ablation evidence commit is malformed")
+    resolved = _git_output(repository_root, "rev-parse", "--verify", f"{evidence_commit}^{{commit}}")
+    if resolved != evidence_commit:
+        raise ValueError("ablation evidence commit differs")
+    git = shutil.which("git")
+    if git is None:
+        raise RuntimeError("cannot resolve git for ablation evidence checkout")
+    with tempfile.TemporaryDirectory(prefix="uquant-phase2-evidence-parent-") as temporary:
+        checkout = Path(temporary) / "checkout"
+        try:
+            subprocess.run(  # nosec B603
+                [
+                    git,
+                    "-C",
+                    str(repository_root),
+                    "worktree",
+                    "add",
+                    "--detach",
+                    str(checkout),
+                    evidence_commit,
+                ],
+                check=True,
+                capture_output=True,
+                text=True,
+            )
+            if _git_output(checkout, "rev-parse", "HEAD") != evidence_commit or _git_output(
+                checkout, "status", "--porcelain", "--untracked-files=all"
+            ):
+                raise ValueError("ablation evidence checkout is not exact and clean")
+            yield checkout
+        except (OSError, subprocess.CalledProcessError) as exc:
+            raise RuntimeError("cannot materialize ablation evidence commit") from exc
+        finally:
+            if checkout.exists():
+                subprocess.run(  # nosec B603
+                    [
+                        git,
+                        "-C",
+                        str(repository_root),
+                        "worktree",
+                        "remove",
+                        "--force",
+                        str(checkout),
+                    ],
+                    check=False,
+                    capture_output=True,
+                    text=True,
+                )
+
+
 def _replay_command(
     *,
-    source_root: Path,
-    registry_path: Path,
+    repository_root: Path,
+    evidence_commit: str,
+    registry_relative: Path,
     data_dir: Path,
     experiment_id: str,
     checkpoint_dir: Path | None = None,
@@ -850,11 +1199,13 @@ def _replay_command(
     command = [
         sys.executable,
         str(Path(__file__).resolve()),
-        "run",
-        "--source-root",
-        str(source_root),
-        "--registry",
-        str(registry_path),
+        "replay",
+        "--repository-root",
+        str(repository_root),
+        "--evidence-commit",
+        evidence_commit,
+        "--registry-relative",
+        registry_relative.as_posix(),
         "--data-dir",
         str(data_dir),
         "--checkpoint-dir",
@@ -1041,6 +1392,8 @@ def _replay_cell(
 def _compare_worker_payloads(
     baseline: Mapping[str, Any],
     variant: Mapping[str, Any],
+    *,
+    require_divergence: bool = True,
 ) -> dict[str, Any]:
     """Compare two complete raw runs without making a Task 8 conclusion."""
     from research.ablation import (
@@ -1191,7 +1544,7 @@ def _compare_worker_payloads(
         "first_divergence": _first_hashed_divergence(
             baseline_traces,
             variant_traces,
-            require=True,
+            require=require_divergence,
         ),
         "cells": compared_cells,
         "aggregates": aggregates,
@@ -1199,6 +1552,167 @@ def _compare_worker_payloads(
         "baseline_provenance": baseline.get("provenance"),
         "variant_provenance": variant.get("provenance"),
     }
+
+
+def _write_experiment_result(
+    *,
+    checkpoint_dir: Path,
+    experiment: Any,
+    binding_sha256: str,
+    schedule: Sequence[Any],
+    baseline_checkpoint: Mapping[str, Any],
+    baseline_worker: Mapping[str, Any],
+    variant_worker: Mapping[str, Any],
+    replay_command: Sequence[str],
+    expected_variant_provenance: Mapping[str, Any],
+    frozen_replay_errors: Mapping[tuple[str, str], Mapping[str, str]],
+) -> Path:
+    """Persist either a standard divergent result or a native invalid result."""
+    _validate_exact_worker(
+        variant_worker,
+        schedule=schedule,
+        binding_sha256=binding_sha256,
+        experiment_id=experiment.experiment_id,
+        carrier_sha256=experiment.carrier.sha256,
+        expected_provenance=expected_variant_provenance,
+        frozen_replay_errors=frozen_replay_errors,
+    )
+    baseline_reference = baseline_checkpoint.get("worker_artifact")
+    if _read_worker_artifact(checkpoint_dir, baseline_reference) != baseline_worker:
+        raise ValueError("ablation baseline raw worker reference differs")
+    variant_reference = _write_worker_artifact(checkpoint_dir, variant_worker)
+    comparison = _compare_worker_payloads(
+        baseline_worker,
+        variant_worker,
+        require_divergence=False,
+    )
+    invalid = comparison["first_divergence"] is None
+    kind = "invalid_experiment" if invalid else "experiment"
+    payload = {
+        "schema_version": 2,
+        "kind": kind,
+        "binding_sha256": binding_sha256,
+        "experiment_id": experiment.experiment_id,
+        "subsystem": experiment.subsystem,
+        "carrier_sha256": experiment.carrier.sha256,
+        "baseline_worker_artifact": baseline_reference,
+        "variant_worker_artifact": variant_reference,
+        "coverage_complete": True,
+        "execution_pass": comparison["execution_pass"],
+        "comparison": comparison,
+        "replay_command": list(replay_command),
+    }
+    if invalid:
+        payload["reason"] = "no_behavior_divergence"
+        path = checkpoint_dir / "invalid" / f"{experiment.experiment_id}.json"
+        standard_path = checkpoint_dir / f"{experiment.experiment_id}.json"
+        if standard_path.exists() and _checkpoint_payload_schema(standard_path) == 2:
+            raise ValueError("ablation invalid experiment cannot retain a standard checkpoint")
+    else:
+        path = checkpoint_dir / f"{experiment.experiment_id}.json"
+        if (checkpoint_dir / "invalid" / f"{experiment.experiment_id}.json").exists():
+            raise ValueError("ablation divergent experiment conflicts with invalid artifact")
+    if path.exists() and _checkpoint_payload_schema(path) == 2:
+        previous = _read_checkpoint(path, binding_sha256=binding_sha256, kind=kind)
+        if previous != payload:
+            raise ValueError("ablation deterministic rerun differs from checkpoint")
+    _write_checkpoint(path, payload)
+    return path
+
+
+def _read_experiment_result(
+    path: Path,
+    *,
+    checkpoint_dir: Path,
+    experiment: Any,
+    binding_sha256: str,
+    schedule: Sequence[Any],
+    baseline_checkpoint: Mapping[str, Any],
+    baseline_worker: Mapping[str, Any],
+    expected_replay_command: Sequence[str],
+    expected_baseline_provenance: Mapping[str, Any],
+    expected_variant_provenance: Mapping[str, Any],
+    frozen_replay_errors: Mapping[tuple[str, str], Mapping[str, str]],
+) -> dict[str, Any]:
+    """Authenticate raw workers and recompute every derived experiment claim."""
+    expected_kind = "invalid_experiment" if path.parent.name == "invalid" else "experiment"
+    checkpoint = _read_checkpoint(
+        path,
+        binding_sha256=binding_sha256,
+        kind=expected_kind,
+    )
+    required = {
+        "schema_version",
+        "kind",
+        "binding_sha256",
+        "experiment_id",
+        "subsystem",
+        "carrier_sha256",
+        "baseline_worker_artifact",
+        "variant_worker_artifact",
+        "coverage_complete",
+        "execution_pass",
+        "comparison",
+        "replay_command",
+    }
+    if expected_kind == "invalid_experiment":
+        required.add("reason")
+    if (
+        set(checkpoint) != required
+        or checkpoint.get("schema_version") != 2
+        or checkpoint.get("experiment_id") != experiment.experiment_id
+        or checkpoint.get("subsystem") != experiment.subsystem
+        or checkpoint.get("carrier_sha256") != experiment.carrier.sha256
+        or checkpoint.get("coverage_complete") is not True
+        or checkpoint.get("baseline_worker_artifact") != baseline_checkpoint.get("worker_artifact")
+    ):
+        raise ValueError("ablation experiment checkpoint is stale or incomplete")
+    _validate_replay_command(checkpoint.get("replay_command"), expected=expected_replay_command)
+    observed_baseline = _read_worker_artifact(
+        checkpoint_dir,
+        checkpoint.get("baseline_worker_artifact"),
+    )
+    if observed_baseline != baseline_worker:
+        raise ValueError("ablation experiment baseline raw worker differs")
+    _validate_exact_worker(
+        observed_baseline,
+        schedule=schedule,
+        binding_sha256=binding_sha256,
+        experiment_id="baseline",
+        carrier_sha256=_BASELINE_CARRIER_SHA256,
+        expected_provenance=expected_baseline_provenance,
+        frozen_replay_errors=frozen_replay_errors,
+    )
+    variant_worker = _read_worker_artifact(
+        checkpoint_dir,
+        checkpoint.get("variant_worker_artifact"),
+    )
+    _validate_exact_worker(
+        variant_worker,
+        schedule=schedule,
+        binding_sha256=binding_sha256,
+        experiment_id=experiment.experiment_id,
+        carrier_sha256=experiment.carrier.sha256,
+        expected_provenance=expected_variant_provenance,
+        frozen_replay_errors=frozen_replay_errors,
+    )
+    recomputed = _compare_worker_payloads(
+        observed_baseline,
+        variant_worker,
+        require_divergence=False,
+    )
+    if checkpoint.get("comparison") != recomputed:
+        raise ValueError("ablation checkpoint differs from recomputed comparison")
+    if checkpoint.get("execution_pass") is not recomputed.get("execution_pass"):
+        raise ValueError("ablation checkpoint execution status differs")
+    divergence = recomputed.get("first_divergence")
+    if expected_kind == "experiment" and not isinstance(divergence, Mapping):
+        raise ValueError("ablation standard checkpoint requires first divergence")
+    if expected_kind == "invalid_experiment" and (
+        divergence is not None or checkpoint.get("reason") != "no_behavior_divergence"
+    ):
+        raise ValueError("ablation invalid experiment reason differs")
+    return checkpoint
 
 
 def _load_json_mapping(path: Path, *, label: str) -> dict[str, Any]:
@@ -1403,11 +1917,12 @@ def _invoke_worker(
     config_changes: Mapping[str, bool],
     checkout: Mapping[str, Any],
     output: Path,
+    worker_script: Path | None = None,
 ) -> dict[str, Any]:
     command = [
         sys.executable,
         "-I",
-        str(Path(__file__).resolve()),
+        str(Path(__file__).resolve() if worker_script is None else worker_script),
         "worker",
         "--source-root",
         str(source_root),
@@ -1473,6 +1988,24 @@ def _validate_worker_provenance(
     provenance = payload.get("provenance")
     if not isinstance(provenance, Mapping):
         raise ValueError("ablation worker provenance is missing")
+    expected = _expected_worker_provenance(
+        binding=binding,
+        checkout=checkout,
+        effective_config_sha256=effective_config_sha256,
+        fresh_account_sha256=fresh_account_sha256,
+    )
+    if provenance != expected:
+        raise ValueError("ablation worker provenance differs from the exact binding")
+
+
+def _expected_worker_provenance(
+    *,
+    binding: Mapping[str, Any],
+    checkout: Mapping[str, Any],
+    effective_config_sha256: str,
+    fresh_account_sha256: str,
+) -> dict[str, Any]:
+    """Construct independently expected checkout/config/data/runtime worker provenance."""
     runtime = binding.get("runtime")
     expected_runtime = (
         {
@@ -1482,35 +2015,37 @@ def _validate_worker_provenance(
         if isinstance(runtime, Mapping)
         else None
     )
-    process_contract = provenance.get("process_contract")
-    if (
-        provenance.get("checkout") != checkout
-        or provenance.get("production_engine_source") != "uquant/engine.py"
-        or provenance.get("effective_config_sha256") != effective_config_sha256
-        or provenance.get("fresh_account_sha256") != fresh_account_sha256
-        or provenance.get("schedule_sha256") != binding.get("schedule_sha256")
-        or provenance.get("data") != binding.get("data")
-        or provenance.get("runtime") != expected_runtime
-        or provenance.get("uv_lock_sha256") != binding.get("uv_lock_sha256")
-        or not isinstance(process_contract, Mapping)
-        or process_contract.get("isolated_python") is not True
-        or process_contract.get("pythonhashseed") != "0"
-        or process_contract.get("single_process") is not True
-        or process_contract.get("thread_limits")
-        != {
-            "OMP_NUM_THREADS": "1",
-            "OPENBLAS_NUM_THREADS": "1",
-            "MKL_NUM_THREADS": "1",
-            "NUMEXPR_NUM_THREADS": "1",
-        }
-    ):
-        raise ValueError("ablation worker provenance differs from the exact binding")
+    if expected_runtime is None:
+        raise ValueError("ablation binding runtime is malformed")
+    return {
+        "checkout": dict(checkout),
+        "production_engine_source": "uquant/engine.py",
+        "effective_config_sha256": effective_config_sha256,
+        "fresh_account_sha256": fresh_account_sha256,
+        "account_factory": "uquant.types.AccountState.empty/per-backtest",
+        "schedule_sha256": binding.get("schedule_sha256"),
+        "data": binding.get("data"),
+        "runtime": expected_runtime,
+        "uv_lock_sha256": binding.get("uv_lock_sha256"),
+        "process_contract": {
+            "isolated_python": True,
+            "pythonhashseed": "0",
+            "single_process": True,
+            "thread_limits": {
+                "OMP_NUM_THREADS": "1",
+                "OPENBLAS_NUM_THREADS": "1",
+                "MKL_NUM_THREADS": "1",
+                "NUMEXPR_NUM_THREADS": "1",
+            },
+        },
+    }
 
 
 def _baseline_replay_command(
     *,
-    source_root: Path,
-    registry_path: Path,
+    repository_root: Path,
+    evidence_commit: str,
+    registry_relative: Path,
     data_dir: Path,
     checkpoint_dir: Path,
     output: Path,
@@ -1518,11 +2053,13 @@ def _baseline_replay_command(
     return [
         sys.executable,
         str(Path(__file__).resolve()),
-        "run",
-        "--source-root",
-        str(source_root),
-        "--registry",
-        str(registry_path),
+        "replay",
+        "--repository-root",
+        str(repository_root),
+        "--evidence-commit",
+        evidence_commit,
+        "--registry-relative",
+        registry_relative.as_posix(),
         "--data-dir",
         str(data_dir),
         "--checkpoint-dir",
@@ -1590,6 +2127,150 @@ def _load_available_experiments(
     return available
 
 
+def _expected_baseline_provenance(
+    registry: Any,
+    *,
+    source_root: Path,
+    binding: Mapping[str, Any],
+) -> dict[str, Any]:
+    (
+        _build_contract_schedule,
+        isolated_baseline_checkout,
+        _isolated_carrier_checkout,
+        _load_ablation_registry,
+        _validate_ablation_registry,
+        _verify_carrier_checkout,
+    ) = _project_imports()
+    with (
+        tempfile.TemporaryDirectory(prefix="uquant-phase2-baseline-readback-") as temporary,
+        isolated_baseline_checkout(
+            registry,
+            source_root=source_root,
+            destination=Path(temporary) / "checkout",
+        ) as checkout,
+    ):
+        checkout_payload = _checkout_payload(checkout)
+        probe = _probe_checkout(checkout.root, {})
+    return _expected_worker_provenance(
+        binding=binding,
+        checkout=checkout_payload,
+        effective_config_sha256=str(probe["effective_config_sha256"]),
+        fresh_account_sha256=str(probe["fresh_account_sha256"]),
+    )
+
+
+def _expected_variant_provenance(
+    registry: Any,
+    experiment: Any,
+    *,
+    source_root: Path,
+    binding: Mapping[str, Any],
+) -> dict[str, Any]:
+    (
+        _build_contract_schedule,
+        _isolated_baseline_checkout,
+        isolated_carrier_checkout,
+        _load_ablation_registry,
+        _validate_ablation_registry,
+        verify_carrier_checkout,
+    ) = _project_imports()
+    with (
+        tempfile.TemporaryDirectory(
+            prefix=f"uquant-phase2-{experiment.experiment_id}-readback-"
+        ) as temporary,
+        isolated_carrier_checkout(
+            registry,
+            experiment,
+            source_root=source_root,
+            destination=Path(temporary) / "checkout",
+        ) as checkout,
+    ):
+        verify_carrier_checkout(registry, experiment, checkout)
+        checkout_payload = _checkout_payload(checkout)
+        probe = _probe_checkout(checkout.root, dict(checkout.config_changes))
+    return _expected_worker_provenance(
+        binding=binding,
+        checkout=checkout_payload,
+        effective_config_sha256=str(probe["effective_config_sha256"]),
+        fresh_account_sha256=str(probe["fresh_account_sha256"]),
+    )
+
+
+def _load_available_results(
+    registry: Any,
+    *,
+    source_root: Path,
+    checkpoint_dir: Path,
+    binding: Mapping[str, Any],
+    binding_sha256: str,
+    schedule: Sequence[Any],
+    baseline_checkpoint: Mapping[str, Any],
+    baseline_worker: Mapping[str, Any],
+    baseline_replay_command: Sequence[str],
+    baseline_provenance: Mapping[str, Any],
+    repository_root: Path,
+    evidence_commit: str,
+    registry_relative: Path,
+    data_dir: Path,
+    output: Path,
+    frozen_replay_errors: Mapping[tuple[str, str], Mapping[str, str]],
+) -> tuple[dict[str, dict[str, Any]], dict[str, dict[str, Any]]]:
+    del baseline_replay_command
+    valid: dict[str, dict[str, Any]] = {}
+    invalid: dict[str, dict[str, Any]] = {}
+    for experiment in registry.experiments:
+        standard_path = checkpoint_dir / f"{experiment.experiment_id}.json"
+        invalid_path = checkpoint_dir / "invalid" / f"{experiment.experiment_id}.json"
+        standard_v2 = standard_path.exists() and _checkpoint_payload_schema(standard_path) == 2
+        if standard_v2 and invalid_path.exists():
+            raise ValueError("ablation experiment has both standard and invalid artifacts")
+        path = standard_path if standard_v2 else invalid_path if invalid_path.exists() else None
+        if path is None:
+            continue
+        expected_variant = _expected_variant_provenance(
+            registry,
+            experiment,
+            source_root=source_root,
+            binding=binding,
+        )
+        expected_command = _replay_command(
+            repository_root=repository_root,
+            evidence_commit=evidence_commit,
+            registry_relative=registry_relative,
+            data_dir=data_dir,
+            experiment_id=experiment.experiment_id,
+            checkpoint_dir=checkpoint_dir,
+            output=output,
+        )
+        payload = _read_experiment_result(
+            path,
+            checkpoint_dir=checkpoint_dir,
+            experiment=experiment,
+            binding_sha256=binding_sha256,
+            schedule=schedule,
+            baseline_checkpoint=baseline_checkpoint,
+            baseline_worker=baseline_worker,
+            expected_replay_command=expected_command,
+            expected_baseline_provenance=baseline_provenance,
+            expected_variant_provenance=expected_variant,
+            frozen_replay_errors=frozen_replay_errors,
+        )
+        target = invalid if payload["kind"] == "invalid_experiment" else valid
+        target[experiment.experiment_id] = payload
+    return valid, invalid
+
+
+def _checkpoint_payload_schema(path: Path) -> int | None:
+    try:
+        envelope = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return None
+    if not isinstance(envelope, Mapping) or not isinstance(envelope.get("payload"), Mapping):
+        return None
+    schema = envelope["payload"].get("schema_version")
+    return schema if isinstance(schema, int) else None
+
+
 def _progress_payload(
     *,
     registry: Any,
@@ -1616,6 +2297,53 @@ def _progress_payload(
         "completed_experiment_ids": list(completed_ids),
         "missing_experiment_ids": [item for item in expected if item not in completed],
         "checkpoint_dir": str(checkpoint_dir),
+    }
+
+
+def _result_summary(
+    *,
+    registry: Any,
+    binding: Mapping[str, Any],
+    binding_sha256: str,
+    checkpoint_dir: Path,
+    baseline_path: Path,
+    baseline_checkpoint: Mapping[str, Any],
+    valid: Mapping[str, Mapping[str, Any]],
+    invalid: Mapping[str, Mapping[str, Any]],
+) -> dict[str, Any]:
+    coverage = _evidence_coverage(registry, valid=valid, invalid=invalid)
+
+    def references(
+        payloads: Mapping[str, Mapping[str, Any]],
+        *,
+        directory: Path,
+    ) -> dict[str, Any]:
+        return {
+            experiment_id: {
+                "artifact_path": str(directory / f"{experiment_id}.json"),
+                "artifact_file_sha256": _sha256(directory / f"{experiment_id}.json"),
+                "variant_worker_artifact": payload["variant_worker_artifact"],
+            }
+            for experiment_id, payload in payloads.items()
+        }
+
+    return {
+        "schema_version": 2,
+        "mode": "ablation-evidence-readback",
+        **coverage,
+        "binding_sha256": binding_sha256,
+        "binding": dict(binding),
+        "baseline": {
+            "artifact_path": str(baseline_path),
+            "artifact_file_sha256": _sha256(baseline_path),
+            "worker_artifact": baseline_checkpoint["worker_artifact"],
+            "replay_command": baseline_checkpoint["replay_command"],
+        },
+        "valid_experiments": references(valid, directory=checkpoint_dir),
+        "invalid_experiment_artifacts": references(
+            invalid,
+            directory=checkpoint_dir / "invalid",
+        ),
     }
 
 
@@ -1688,6 +2416,9 @@ def _validate(args: argparse.Namespace) -> dict[str, Any]:
     registry = load_ablation_registry(registry_path)
     validate_ablation_registry(registry, source_root=source_root)
     schedule = build_contract_schedule(registry, source_root=source_root)
+    repository_root = _repository_root(source_root)
+    evidence_commit = _git_output(source_root, "rev-parse", "HEAD")
+    registry_relative = registry_path.relative_to(source_root)
     experiments: list[dict[str, Any]] = []
     with tempfile.TemporaryDirectory(prefix="uquant-phase2-ablation-") as temporary:
         temporary_root = Path(temporary)
@@ -1726,8 +2457,9 @@ def _validate(args: argparse.Namespace) -> dict[str, Any]:
                         "effective_config_sha256": probe["effective_config_sha256"],
                         "fresh_account_sha256": probe["fresh_account_sha256"],
                         "replay_command": _replay_command(
-                            source_root=source_root,
-                            registry_path=registry_path,
+                            repository_root=repository_root,
+                            evidence_commit=evidence_commit,
+                            registry_relative=registry_relative,
                             data_dir=data_dir,
                             experiment_id=experiment.experiment_id,
                         ),
@@ -1779,9 +2511,20 @@ def _run(args: argparse.Namespace) -> dict[str, Any]:
     checkpoint_dir = Path(args.checkpoint_dir).resolve()
     if _git_output(source_root, "status", "--porcelain", "--untracked-files=all"):
         raise RuntimeError("ablation orchestration requires an exact clean source HEAD")
+    evidence_commit = _git_output(source_root, "rev-parse", "HEAD")
+    requested_evidence_commit = getattr(args, "evidence_commit", None)
+    if requested_evidence_commit is not None and requested_evidence_commit != evidence_commit:
+        raise ValueError("ablation evidence commit differs from the exact source checkout")
+    repository_root = (
+        Path(args.repository_root).resolve()
+        if getattr(args, "repository_root", None)
+        else _repository_root(source_root)
+    )
+    registry_relative = registry_path.relative_to(source_root)
     registry = load_ablation_registry(registry_path)
     validate_ablation_registry(registry, source_root=source_root)
     schedule = build_contract_schedule(registry, source_root=source_root)
+    frozen_replay_errors = _frozen_replay_error_anchors(registry, source_root=source_root)
     binding = _execution_binding(
         registry=registry,
         registry_path=registry_path,
@@ -1791,6 +2534,23 @@ def _run(args: argparse.Namespace) -> dict[str, Any]:
     )
     binding_sha256 = hashlib.sha256(_canonical_bytes(binding)).hexdigest()
     checkpoint_dir.mkdir(parents=True, exist_ok=True)
+    binding_path = checkpoint_dir / "binding.json"
+    binding_payload = {
+        "schema_version": 2,
+        "kind": "binding",
+        "binding_sha256": binding_sha256,
+        "binding": binding,
+    }
+    if binding_path.exists():
+        observed_binding = _read_checkpoint(
+            binding_path,
+            binding_sha256=binding_sha256,
+            kind="binding",
+        )
+        if observed_binding != binding_payload:
+            raise ValueError("ablation binding artifact differs")
+    else:
+        _write_checkpoint(binding_path, binding_payload)
     schedule_path = checkpoint_dir / "schedule.json"
     schedule_payload = {
         "schema_version": 1,
@@ -1811,11 +2571,65 @@ def _run(args: argparse.Namespace) -> dict[str, Any]:
         _write_checkpoint(schedule_path, schedule_payload)
 
     baseline_path = checkpoint_dir / "baseline.json"
-    if baseline_path.exists():
-        baseline_checkpoint = _load_baseline_checkpoint(
+    baseline_command = _baseline_replay_command(
+        repository_root=repository_root,
+        evidence_commit=evidence_commit,
+        registry_relative=registry_relative,
+        data_dir=data_dir,
+        checkpoint_dir=checkpoint_dir,
+        output=output,
+    )
+    baseline_provenance = _expected_baseline_provenance(
+        registry,
+        source_root=source_root,
+        binding=binding,
+    )
+    if baseline_path.exists() and _checkpoint_payload_schema(baseline_path) == 2:
+        baseline_checkpoint, baseline_worker = _read_baseline_result(
+            baseline_path,
+            checkpoint_dir=checkpoint_dir,
+            binding_sha256=binding_sha256,
+            schedule=schedule,
+            expected_replay_command=baseline_command,
+            expected_provenance=baseline_provenance,
+            frozen_replay_errors=frozen_replay_errors,
+        )
+    elif baseline_path.exists():
+        legacy_baseline = _load_baseline_checkpoint(
             baseline_path,
             binding_sha256=binding_sha256,
             schedule=schedule,
+        )
+        legacy_worker = legacy_baseline.get("worker")
+        if not isinstance(legacy_worker, Mapping):
+            raise ValueError("ablation legacy baseline worker is missing")
+        baseline_worker = dict(legacy_worker)
+        _validate_exact_worker(
+            baseline_worker,
+            schedule=schedule,
+            binding_sha256=binding_sha256,
+            experiment_id="baseline",
+            carrier_sha256=_BASELINE_CARRIER_SHA256,
+            expected_provenance=baseline_provenance,
+            frozen_replay_errors=frozen_replay_errors,
+        )
+        _write_baseline_result(
+            checkpoint_dir=checkpoint_dir,
+            binding_sha256=binding_sha256,
+            schedule=schedule,
+            worker=baseline_worker,
+            replay_command=baseline_command,
+            expected_provenance=baseline_provenance,
+            frozen_replay_errors=frozen_replay_errors,
+        )
+        baseline_checkpoint, baseline_worker = _read_baseline_result(
+            baseline_path,
+            checkpoint_dir=checkpoint_dir,
+            binding_sha256=binding_sha256,
+            schedule=schedule,
+            expected_replay_command=baseline_command,
+            expected_provenance=baseline_provenance,
+            frozen_replay_errors=frozen_replay_errors,
         )
     else:
         with tempfile.TemporaryDirectory(prefix="uquant-phase2-baseline-") as temporary:
@@ -1837,6 +2651,7 @@ def _run(args: argparse.Namespace) -> dict[str, Any]:
                     config_changes={},
                     checkout=checkout_provenance,
                     output=worker_output,
+                    worker_script=source_root / "scripts" / "run_phase2_ablation.py",
                 )
                 if _git_output(checkout.root, "status", "--porcelain", "--untracked-files=all"):
                     raise ValueError("isolated baseline changed during replay")
@@ -1846,6 +2661,7 @@ def _run(args: argparse.Namespace) -> dict[str, Any]:
                     binding_sha256=binding_sha256,
                     experiment_id="baseline",
                     carrier_sha256=_BASELINE_CARRIER_SHA256,
+                    frozen_replay_errors=frozen_replay_errors,
                 )
                 _validate_worker_provenance(
                     worker,
@@ -1854,21 +2670,25 @@ def _run(args: argparse.Namespace) -> dict[str, Any]:
                     effective_config_sha256=str(probe["effective_config_sha256"]),
                     fresh_account_sha256=str(probe["fresh_account_sha256"]),
                 )
-        baseline_checkpoint = {
-            "schema_version": 1,
-            "kind": "baseline",
-            "binding_sha256": binding_sha256,
-            "worker_payload_sha256": hashlib.sha256(_canonical_bytes(worker)).hexdigest(),
-            "replay_command": _baseline_replay_command(
-                source_root=source_root,
-                registry_path=registry_path,
-                data_dir=data_dir,
-                checkpoint_dir=checkpoint_dir,
-                output=output,
-            ),
-            "worker": worker,
-        }
-        _write_checkpoint(baseline_path, baseline_checkpoint)
+        baseline_worker = worker
+        _write_baseline_result(
+            checkpoint_dir=checkpoint_dir,
+            binding_sha256=binding_sha256,
+            schedule=schedule,
+            worker=baseline_worker,
+            replay_command=baseline_command,
+            expected_provenance=baseline_provenance,
+            frozen_replay_errors=frozen_replay_errors,
+        )
+        baseline_checkpoint, baseline_worker = _read_baseline_result(
+            baseline_path,
+            checkpoint_dir=checkpoint_dir,
+            binding_sha256=binding_sha256,
+            schedule=schedule,
+            expected_replay_command=baseline_command,
+            expected_provenance=baseline_provenance,
+            frozen_replay_errors=frozen_replay_errors,
+        )
 
     selected = args.experiment or []
     if args.baseline_only and selected:
@@ -1882,105 +2702,269 @@ def _run(args: argparse.Namespace) -> dict[str, Any]:
             raise ValueError("ablation experiment is not registered")
         experiment = matches[0]
         experiment_path = checkpoint_dir / f"{experiment.experiment_id}.json"
-        previous: dict[str, Any] | None = None
-        if experiment_path.exists():
-            previous = _read_checkpoint(
-                experiment_path,
-                binding_sha256=binding_sha256,
-                kind="experiment",
-            )
-        if previous is None or args.rerun:
-            with tempfile.TemporaryDirectory(
-                prefix=f"uquant-phase2-{experiment.experiment_id}-"
-            ) as temporary:
-                checkout_destination = Path(temporary) / "checkout"
-                worker_output = Path(temporary) / "worker.json"
-                with isolated_carrier_checkout(
+        invalid_path = checkpoint_dir / "invalid" / f"{experiment.experiment_id}.json"
+        reusable = (
+            experiment_path.exists() and _checkpoint_payload_schema(experiment_path) == 2
+        ) or invalid_path.exists()
+        import_worker = getattr(args, "import_worker", None)
+        if not reusable or args.rerun or import_worker is not None:
+            expected_variant_provenance: dict[str, Any]
+            if import_worker is not None:
+                variant_worker = _load_json_mapping(
+                    Path(import_worker).resolve(),
+                    label="imported ablation raw worker",
+                )
+                expected_variant_provenance = _expected_variant_provenance(
                     registry,
                     experiment,
                     source_root=source_root,
-                    destination=checkout_destination,
-                ) as checkout:
-                    checkout_provenance = _checkout_payload(checkout)
-                    changes = dict(checkout.config_changes)
-                    probe = _probe_checkout(checkout.root, changes)
-                    variant_worker = _invoke_worker(
-                        source_root=checkout.root,
-                        data_dir=data_dir,
-                        schedule_checkpoint=schedule_path,
-                        binding_sha256=binding_sha256,
-                        experiment_id=experiment.experiment_id,
-                        config_changes=changes,
-                        checkout=checkout_provenance,
-                        output=worker_output,
-                    )
-                    verify_carrier_checkout(registry, experiment, checkout)
-                    _validate_worker_payload(
-                        variant_worker,
-                        schedule=schedule,
-                        binding_sha256=binding_sha256,
-                        experiment_id=experiment.experiment_id,
-                        carrier_sha256=experiment.carrier.sha256,
-                    )
-                    _validate_worker_provenance(
-                        variant_worker,
-                        binding=binding,
-                        checkout=checkout_provenance,
-                        effective_config_sha256=str(probe["effective_config_sha256"]),
-                        fresh_account_sha256=str(probe["fresh_account_sha256"]),
-                    )
-            comparison = _compare_worker_payloads(
-                baseline_checkpoint["worker"],
+                    binding=binding,
+                )
+            else:
+                with tempfile.TemporaryDirectory(
+                    prefix=f"uquant-phase2-{experiment.experiment_id}-"
+                ) as temporary:
+                    checkout_destination = Path(temporary) / "checkout"
+                    worker_output = Path(temporary) / "worker.json"
+                    with isolated_carrier_checkout(
+                        registry,
+                        experiment,
+                        source_root=source_root,
+                        destination=checkout_destination,
+                    ) as checkout:
+                        checkout_provenance = _checkout_payload(checkout)
+                        changes = dict(checkout.config_changes)
+                        probe = _probe_checkout(checkout.root, changes)
+                        variant_worker = _invoke_worker(
+                            source_root=checkout.root,
+                            data_dir=data_dir,
+                            schedule_checkpoint=schedule_path,
+                            binding_sha256=binding_sha256,
+                            experiment_id=experiment.experiment_id,
+                            config_changes=changes,
+                            checkout=checkout_provenance,
+                            output=worker_output,
+                            worker_script=source_root / "scripts" / "run_phase2_ablation.py",
+                        )
+                        verify_carrier_checkout(registry, experiment, checkout)
+                        expected_variant_provenance = _expected_worker_provenance(
+                            binding=binding,
+                            checkout=checkout_provenance,
+                            effective_config_sha256=str(probe["effective_config_sha256"]),
+                            fresh_account_sha256=str(probe["fresh_account_sha256"]),
+                        )
+            _validate_exact_worker(
                 variant_worker,
+                schedule=schedule,
+                binding_sha256=binding_sha256,
+                experiment_id=experiment.experiment_id,
+                carrier_sha256=experiment.carrier.sha256,
+                expected_provenance=expected_variant_provenance,
+                frozen_replay_errors=frozen_replay_errors,
             )
-            experiment_checkpoint = {
-                "schema_version": 1,
-                "kind": "experiment",
-                "binding_sha256": binding_sha256,
-                "experiment_id": experiment.experiment_id,
-                "subsystem": experiment.subsystem,
-                "carrier_sha256": experiment.carrier.sha256,
-                "worker_payload_sha256": hashlib.sha256(_canonical_bytes(variant_worker)).hexdigest(),
-                "execution_pass": comparison["execution_pass"],
-                "comparison": comparison,
-                "replay_command": _replay_command(
-                    source_root=source_root,
-                    registry_path=registry_path,
-                    data_dir=data_dir,
-                    checkpoint_dir=checkpoint_dir,
-                    output=output,
-                    experiment_id=experiment.experiment_id,
-                ),
-            }
-            if previous is not None and previous != experiment_checkpoint:
-                raise ValueError("ablation deterministic rerun differs from checkpoint")
-            _write_checkpoint(experiment_path, experiment_checkpoint)
+            if experiment_path.exists() and _checkpoint_payload_schema(experiment_path) == 1:
+                legacy_path = checkpoint_dir / "legacy" / f"{experiment.experiment_id}.v1.json"
+                legacy_path.parent.mkdir(parents=True, exist_ok=True)
+                if legacy_path.exists() and legacy_path.read_bytes() != experiment_path.read_bytes():
+                    raise ValueError("ablation legacy experiment archive differs")
+                if not legacy_path.exists():
+                    os.replace(experiment_path, legacy_path)
+                else:
+                    experiment_path.unlink()
+            experiment_command = _replay_command(
+                repository_root=repository_root,
+                evidence_commit=evidence_commit,
+                registry_relative=registry_relative,
+                data_dir=data_dir,
+                checkpoint_dir=checkpoint_dir,
+                output=output,
+                experiment_id=experiment.experiment_id,
+            )
+            _write_experiment_result(
+                checkpoint_dir=checkpoint_dir,
+                experiment=experiment,
+                binding_sha256=binding_sha256,
+                schedule=schedule,
+                baseline_checkpoint=baseline_checkpoint,
+                baseline_worker=baseline_worker,
+                variant_worker=variant_worker,
+                replay_command=experiment_command,
+                expected_variant_provenance=expected_variant_provenance,
+                frozen_replay_errors=frozen_replay_errors,
+            )
 
-    available = _load_available_experiments(
-        registry,
+    valid, invalid = _load_available_results(
+        registry=registry,
+        source_root=source_root,
         checkpoint_dir=checkpoint_dir,
+        binding=binding,
         binding_sha256=binding_sha256,
         schedule=schedule,
+        baseline_checkpoint=baseline_checkpoint,
+        baseline_worker=baseline_worker,
+        baseline_replay_command=baseline_command,
+        baseline_provenance=baseline_provenance,
+        repository_root=repository_root,
+        evidence_commit=evidence_commit,
+        registry_relative=registry_relative,
+        data_dir=data_dir,
+        output=output,
+        frozen_replay_errors=frozen_replay_errors,
     )
-    if len(available) != len(registry.experiments):
-        return _progress_payload(
-            registry=registry,
-            binding=binding,
-            binding_sha256=binding_sha256,
-            checkpoint_dir=checkpoint_dir,
-            baseline_path=baseline_path,
-            completed=available,
-        )
-    return _complete_evidence(
+    return _result_summary(
         registry=registry,
         binding=binding,
         binding_sha256=binding_sha256,
-        baseline_checkpoint=baseline_checkpoint,
-        baseline_path=baseline_path,
         checkpoint_dir=checkpoint_dir,
-        checkpoints=available,
+        baseline_path=baseline_path,
+        baseline_checkpoint=baseline_checkpoint,
+        valid=valid,
+        invalid=invalid,
+    )
+
+
+def _readback_at_checkout(args: argparse.Namespace, *, source_root: Path) -> dict[str, Any]:
+    """Strictly authenticate historical evidence without executing or rewriting workers."""
+    (
+        build_contract_schedule,
+        _isolated_baseline_checkout,
+        _isolated_carrier_checkout,
+        load_ablation_registry,
+        validate_ablation_registry,
+        _verify_carrier_checkout,
+    ) = _project_imports()
+    repository_root = Path(args.repository_root).resolve()
+    evidence_commit = str(args.evidence_commit)
+    if _git_output(source_root, "rev-parse", "HEAD") != evidence_commit or _git_output(
+        source_root, "status", "--porcelain", "--untracked-files=all"
+    ):
+        raise ValueError("ablation evidence checkout differs")
+    registry_relative = Path(args.registry_relative)
+    if registry_relative.is_absolute() or ".." in registry_relative.parts:
+        raise ValueError("ablation registry relative path is malformed")
+    registry_path = source_root / registry_relative
+    data_dir = Path(args.data_dir).resolve()
+    checkpoint_dir = Path(args.checkpoint_dir).resolve()
+    replay_output = Path(args.replay_output).resolve()
+    registry = load_ablation_registry(registry_path)
+    validate_ablation_registry(registry, source_root=source_root)
+    schedule = build_contract_schedule(registry, source_root=source_root)
+    frozen_replay_errors = _frozen_replay_error_anchors(registry, source_root=source_root)
+    binding = _execution_binding(
+        registry=registry,
+        registry_path=registry_path,
+        source_root=source_root,
+        data_dir=data_dir,
         schedule=schedule,
     )
+    binding_sha256 = hashlib.sha256(_canonical_bytes(binding)).hexdigest()
+    binding_payload = _read_checkpoint(
+        checkpoint_dir / "binding.json",
+        binding_sha256=binding_sha256,
+        kind="binding",
+    )
+    if binding_payload != {
+        "schema_version": 2,
+        "kind": "binding",
+        "binding_sha256": binding_sha256,
+        "binding": binding,
+    }:
+        raise ValueError("ablation binding artifact differs")
+    expected_schedule = {
+        "schema_version": 1,
+        "kind": "schedule",
+        "binding_sha256": binding_sha256,
+        "schedule_sha256": binding["schedule_sha256"],
+        "cells": _schedule_rows(schedule),
+    }
+    if (
+        _read_checkpoint(
+            checkpoint_dir / "schedule.json",
+            binding_sha256=binding_sha256,
+            kind="schedule",
+        )
+        != expected_schedule
+    ):
+        raise ValueError("ablation schedule checkpoint is stale")
+    baseline_command = _baseline_replay_command(
+        repository_root=repository_root,
+        evidence_commit=evidence_commit,
+        registry_relative=registry_relative,
+        data_dir=data_dir,
+        checkpoint_dir=checkpoint_dir,
+        output=replay_output,
+    )
+    baseline_provenance = _expected_baseline_provenance(
+        registry,
+        source_root=source_root,
+        binding=binding,
+    )
+    baseline_path = checkpoint_dir / "baseline.json"
+    baseline_checkpoint, baseline_worker = _read_baseline_result(
+        baseline_path,
+        checkpoint_dir=checkpoint_dir,
+        binding_sha256=binding_sha256,
+        schedule=schedule,
+        expected_replay_command=baseline_command,
+        expected_provenance=baseline_provenance,
+        frozen_replay_errors=frozen_replay_errors,
+    )
+    valid, invalid = _load_available_results(
+        registry,
+        source_root=source_root,
+        checkpoint_dir=checkpoint_dir,
+        binding=binding,
+        binding_sha256=binding_sha256,
+        schedule=schedule,
+        baseline_checkpoint=baseline_checkpoint,
+        baseline_worker=baseline_worker,
+        baseline_replay_command=baseline_command,
+        baseline_provenance=baseline_provenance,
+        repository_root=repository_root,
+        evidence_commit=evidence_commit,
+        registry_relative=registry_relative,
+        data_dir=data_dir,
+        output=replay_output,
+        frozen_replay_errors=frozen_replay_errors,
+    )
+    return _result_summary(
+        registry=registry,
+        binding=binding,
+        binding_sha256=binding_sha256,
+        checkpoint_dir=checkpoint_dir,
+        baseline_path=baseline_path,
+        baseline_checkpoint=baseline_checkpoint,
+        valid=valid,
+        invalid=invalid,
+    )
+
+
+def _replay(args: argparse.Namespace) -> dict[str, Any]:
+    repository_root = Path(args.repository_root).resolve()
+    with _isolated_evidence_checkout(repository_root, str(args.evidence_commit)) as source_root:
+        registry_relative = Path(args.registry_relative)
+        if registry_relative.is_absolute() or ".." in registry_relative.parts:
+            raise ValueError("ablation registry relative path is malformed")
+        run_args = argparse.Namespace(
+            source_root=str(source_root),
+            registry=str(source_root / registry_relative),
+            data_dir=args.data_dir,
+            output=args.output,
+            checkpoint_dir=args.checkpoint_dir,
+            experiment=args.experiment,
+            baseline_only=args.baseline_only,
+            rerun=args.rerun,
+            import_worker=args.import_worker,
+            repository_root=str(repository_root),
+            evidence_commit=args.evidence_commit,
+        )
+        return _run(run_args)
+
+
+def _readback(args: argparse.Namespace) -> dict[str, Any]:
+    repository_root = Path(args.repository_root).resolve()
+    with _isolated_evidence_checkout(repository_root, str(args.evidence_commit)) as source_root:
+        return _readback_at_checkout(args, source_root=source_root)
 
 
 def _parser() -> argparse.ArgumentParser:
@@ -1997,6 +2981,24 @@ def _parser() -> argparse.ArgumentParser:
             command.add_argument("--baseline-only", action="store_true")
             command.add_argument("--checkpoint-dir", required=True)
             command.add_argument("--rerun", action="store_true")
+            command.add_argument("--import-worker")
+            command.add_argument("--repository-root")
+            command.add_argument("--evidence-commit")
+    for name in ("replay", "readback"):
+        command = subparsers.add_parser(name)
+        command.add_argument("--repository-root", required=True)
+        command.add_argument("--evidence-commit", required=True)
+        command.add_argument("--registry-relative", required=True)
+        command.add_argument("--data-dir", required=True)
+        command.add_argument("--checkpoint-dir", required=True)
+        command.add_argument("--output", required=True)
+        if name == "replay":
+            command.add_argument("--experiment", action="append", default=None)
+            command.add_argument("--baseline-only", action="store_true")
+            command.add_argument("--rerun", action="store_true")
+            command.add_argument("--import-worker")
+        else:
+            command.add_argument("--replay-output", required=True)
     worker = subparsers.add_parser("worker", help=argparse.SUPPRESS)
     worker.add_argument("--source-root", required=True)
     worker.add_argument("--data-dir", required=True)
@@ -2017,6 +3019,10 @@ def main(argv: list[str] | None = None) -> int:
             payload = _validate(args)
         elif args.command == "worker":
             payload = _worker(args)
+        elif args.command == "replay":
+            payload = _replay(args)
+        elif args.command == "readback":
+            payload = _readback(args)
         else:
             payload = _run(args)
         encoded = _canonical_bytes(payload).decode()

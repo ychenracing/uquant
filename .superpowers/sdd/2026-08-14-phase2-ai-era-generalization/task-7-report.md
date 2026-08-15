@@ -147,6 +147,7 @@ cache is not writable in this execution sandbox.
 | Serialized worker regression | A real detached-checkout smoke replay completed, but validation rejected canonical JSON because object keys were reordered. | Canonical round-trip regression and real subprocess smoke both passed (`1 cell`, `1 trace`). |
 | Final self-review hardening | Four tests failed for a re-sealed patch, cross-cell date ordering, invalid concentration, and missing exact checkpoint schedule coverage. | All four: `4 passed`. |
 | Raw-dimension aggregation hardening | Missing one checkpoint delta dimension was incorrectly accepted. | Exact nine-dimension validator test: `1 passed`. |
+| Frozen concentration rounding | The clean-HEAD baseline replay reached `237/237`, then correctly produced no checkpoint because four frozen raw Top-3 values of `1.0000000000000002` exceeded a newly over-strict exact upper bound. | A fail-first raw-value regression now permits only `1e-12` machine rounding while retaining the raw value; `1.000001` and material Top-1/Top-3 inversions remain rejected. |
 
 Representative final focused command and output:
 
@@ -169,9 +170,9 @@ cmp /tmp/task7-validation-a.json /tmp/task7-validation-b.json
 ```
 
 - Validation artifact file SHA-256:
-  `cbe5779650f8371591e63426d8ab2f1c54688476588f58c84fe3605011dfeadf`
+  `be84fb90a0bb0ceec57a08658c8b10c83b00e8897ca0b8cb74457261cf626687`
 - Bound runner SHA-256:
-  `6a2d08646a15acfb2dddde4250393defdc7810711679c5846aaae7e9e2cf9b6c`
+  `6830429b7ac25c089051fc9f372dc7116fae9c0b182da4e50958a2cf0b118182`
 - `uv.lock` SHA-256:
   `4accf16535b5ac95b831c9289e0ad2ff21282dc5dfae3f05dd0fb095089d6a61`
 - Data snapshot: `20260809T094222Z-causal-tech-index-rebase`
@@ -198,6 +199,23 @@ Pending clean-HEAD execution. The approved resumable plan is:
    authenticated checkpoints and a required first divergence for every carrier.
 
 No partial result in this section is a completion claim.
+
+The first clean-HEAD baseline attempt at implementation commit
+`a276fab2e4aa2673aa65524724189fcaa648e373` ran all 279 records/237 economic
+attempts in 1,385 seconds, then failed closed during schema validation. It deliberately
+created no baseline artifact; only the authenticated schedule checkpoint remained.
+Root cause was not strategy or data drift: frozen evidence already contains exact raw
+`top3_concentration=1.0000000000000002` for these four valid cells:
+
+- `h2_2024/remove-one__sz300502`
+- `h2_2024/remove-all-core`
+- `h2_2024/tradable-no-optical`
+- `h2_2024/random__20__0004`
+
+The existing attribution/reference validator retains finite nonnegative raw
+concentration values and recomputes them from exact symbol PnL. Task 7 now applies only
+a `1e-12` machine-boundary tolerance while preserving the raw number; it does not clamp
+or rewrite it. Baseline is restarted from the beginning after the fix commit.
 
 ## Verification
 

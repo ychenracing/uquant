@@ -791,6 +791,14 @@ def test_worker_payload_requires_exact_schedule_status_and_trace_coverage() -> N
         binding_sha256="b" * 64,
         experiment_id="baseline",
     )
+    rounded_concentration = copy.deepcopy(payload)
+    rounded_concentration["cells"][0]["metrics"]["top3_concentration"] = 1.0000000000000002
+    runner._validate_worker_payload(
+        rounded_concentration,
+        schedule=schedule,
+        binding_sha256="b" * 64,
+        experiment_id="baseline",
+    )
 
     partial = copy.deepcopy(payload)
     partial["cells"].pop()
@@ -828,6 +836,15 @@ def test_worker_payload_requires_exact_schedule_status_and_trace_coverage() -> N
     with pytest.raises(ValueError, match="concentration"):
         runner._validate_worker_payload(
             invalid_metrics,
+            schedule=schedule,
+            binding_sha256="b" * 64,
+            experiment_id="baseline",
+        )
+    invalid_upper_bound = copy.deepcopy(payload)
+    invalid_upper_bound["cells"][0]["metrics"]["top3_concentration"] = 1.000001
+    with pytest.raises(ValueError, match="concentration"):
+        runner._validate_worker_payload(
+            invalid_upper_bound,
             schedule=schedule,
             binding_sha256="b" * 64,
             experiment_id="baseline",

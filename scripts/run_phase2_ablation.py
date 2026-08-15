@@ -38,6 +38,7 @@ _METRIC_FIELDS = {
     "top3_concentration",
     "pnl_hhi",
 }
+_CONCENTRATION_TOLERANCE = 1e-12
 _SHA256_LENGTH = 64
 
 
@@ -109,7 +110,13 @@ def _validate_metrics(value: object) -> None:
     top1 = float(value["top1_concentration"])
     top3 = float(value["top3_concentration"])
     hhi = float(value["pnl_hhi"])
-    if any(not 0 <= item <= 1 for item in (top1, top3, hhi)) or top1 > top3:
+    if (
+        any(
+            not -_CONCENTRATION_TOLERANCE <= item <= 1 + _CONCENTRATION_TOLERANCE
+            for item in (top1, top3, hhi)
+        )
+        or top1 > top3 + _CONCENTRATION_TOLERANCE
+    ):
         raise ValueError("ablation worker concentration is malformed")
     if acute is not None and float(acute) <= -1:
         raise ValueError("ablation worker acute return is malformed")

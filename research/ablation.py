@@ -11,6 +11,7 @@ from typing import Any
 from .candidate_search import CandidateEvaluation, Scalar, validate_shared_config
 
 _CELL_STATUSES = frozenset({"VALID", "REPLAY_ERROR", "INSUFFICIENT_SAMPLE"})
+_CONCENTRATION_TOLERANCE = 1e-12
 
 
 @dataclass(frozen=True, slots=True)
@@ -60,9 +61,11 @@ class AblationMetrics:
             self.top3_concentration,
             self.pnl_hhi,
         )
-        if any(not 0 <= value <= 1 for value in concentrations):
-            raise ValueError("ablation concentration must be in [0, 1]")
-        if self.top1_concentration > self.top3_concentration:
+        if any(
+            not -_CONCENTRATION_TOLERANCE <= value <= 1 + _CONCENTRATION_TOLERANCE for value in concentrations
+        ):
+            raise ValueError("ablation concentration exceeds machine tolerance")
+        if self.top1_concentration > self.top3_concentration + _CONCENTRATION_TOLERANCE:
             raise ValueError("ablation top-1 concentration cannot exceed top-3")
 
     def to_dict(self) -> dict[str, float | int | None]:

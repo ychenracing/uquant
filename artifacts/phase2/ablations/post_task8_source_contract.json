@@ -1,15 +1,15 @@
 {
   "schema_version": 1,
   "contract_id": "phase2-post-task8-source-v1",
-  "canonical_sha256": "e5da89f0ec9457261f8c2b09d79d11b1c8244fa702416c8be643266409d8f59f",
+  "canonical_sha256": "28c5ee31c25100cdf1beeb068fd267a76b56ebd6129d35620f3ee79ac553df96",
   "base": {
     "commit": "e5e0fa903c9a9b26701063ae01f352af3e246a7d",
     "production_source_sha256": "9bedfd5fb2bed6d3a1624efcca6f1d442c765abdee9e4749170fbb2e89536d6b",
     "path_count": 48
   },
   "reviewed": {
-    "commit": "97788451181419f5e4bb804c68684e264b7a68b4",
-    "production_source_sha256": "7717b0f0537f4bd75d8765d67acefdf1430297ffd338c0ee245651732e1cbe0b",
+    "commit": "f36596480958ee7c54d45b8d90697c2f9e83e5b3",
+    "production_source_sha256": "44254bd9ba264d52c539734513e7c0c12d6fb26bb513163c3dc417d4e210b01c",
     "path_count": 52
   },
   "deltas": [
@@ -65,7 +65,7 @@
       "path": "uquant/validation/holdout.py",
       "status": "added",
       "before_sha256": null,
-      "after_sha256": "c8a99fea1e71c53f6da599cd182178f7ae8be5cfd8ab0b23a553bce1ccf854ab"
+      "after_sha256": "4a86d60919d7de98a192d0302c368f68e4f2fd05836f9b7ef732b8dbdb08fb6e"
     }
   ]
 }

@@ -245,11 +245,11 @@ and `ad3a273a0e24be474021d6c034688a9e4cec6807bd8b1dc1bf8ab375e36c7b00`.
 
 Later source changes are fail-closed and content-addressed, not allowed by path
 name. The post-Task8 contract binds base `e5e0fa903c9a9b26701063ae01f352af3e246a7d`,
-reviewed endpoint `97788451181419f5e4bb804c68684e264b7a68b4`, exact per-path
+reviewed endpoint `f36596480958ee7c54d45b8d90697c2f9e83e5b3`, exact per-path
 before/after hashes, reviewed production source
-`7717b0f0537f4bd75d8765d67acefdf1430297ffd338c0ee245651732e1cbe0b`,
+`44254bd9ba264d52c539734513e7c0c12d6fb26bb513163c3dc417d4e210b01c`,
 and canonical seal
-`e5da89f0ec9457261f8c2b09d79d11b1c8244fa702416c8be643266409d8f59f`.
+`28c5ee31c25100cdf1beeb068fd267a76b56ebd6129d35620f3ee79ac553df96`.
 The mutation-rejection tests pass.
 
 Configuration governance records total fields `285 → 278 → 275`; economic

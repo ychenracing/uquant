@@ -12,12 +12,14 @@ from collections.abc import Iterable, Mapping, Sequence
 from dataclasses import asdict, dataclass
 from datetime import date
 from pathlib import Path
+from types import MappingProxyType
 from typing import Any, Final, cast
 
 from ..atomic_io import atomic_write_text
 from ..config import DEFAULT_CONFIG, config_fingerprint
 from ..data import DataStore
 from ..engine import code_fingerprint
+from . import ai_era as ai_era_module
 from .ai_era import AI_ERA_WINDOWS, runtime_environment_provenance
 from .universe import AIUniverse, load_ai_universe
 
@@ -25,9 +27,19 @@ LAST_IN_SAMPLE_DATE: Final = "2026-08-05"
 HOLDOUT_START: Final = "2026-08-06"
 HOLDOUT_DATA_DIRECTORY: Final = "data/holdout/phase2-future-v1"
 REVIEW_MILESTONES: Final = (40, 60)
+REVIEWED_PHASE1_WINDOWS: Final = MappingProxyType(
+    {
+        "h1_2023": ("2023-01-03", "2023-06-30"),
+        "h2_2023": ("2023-07-03", "2023-12-29"),
+        "h1_2024": ("2024-01-02", "2024-07-01"),
+        "h2_2024": ("2024-07-01", "2024-12-31"),
+        "bull_crash_2025_2026": ("2025-01-02", "2026-07-31"),
+        "continuous_ai_era": ("2023-01-03", "2026-08-05"),
+    }
+)
 STRATEGY_ANCHOR_COMMIT: Final = "fbbacefe0cb082778e57a84909f344475f556a57"
 STRATEGY_SOURCE_SHA256: Final = (
-    "1cbc76ede178659e32d64ed864c162e7f0e4b3e172153c8ba2997374e62435a8"
+    "e8cb6ea872a3d83ba963d7a4e485b9b934d96fdd051f8cb815573f52a3a899f2"
 )
 STRATEGY_CONFIG_SHA256: Final = (
     "ed52da44a359c1506e1d299f7bc341ad01b199d7f96997f7c01f2b8eca7cfc13"
@@ -42,7 +54,7 @@ SCORE_FIELDS: Final = (
     "pnl_hhi",
 )
 REQUIRED_FUTURE_HOLDOUT_SHA256: Final = (
-    "5594511f08761906d78b3b2542b841dbef31dd3ecc86d4fb586a9748de86626a"
+    "072e73075e0e5394dd20918e2db698d98365f22a2ea34b662638811b03b007bf"
 )
 
 _SHA256 = re.compile(r"^[0-9a-f]{64}$")
@@ -52,6 +64,7 @@ _CONTRACT_FIELDS = {
     "contract_id",
     "canonical_sha256",
     "dates",
+    "phase1_windows",
     "data_directory",
     "review_milestones",
     "score_fields",
@@ -84,6 +97,17 @@ _ACCOUNT_EXECUTION_FIELDS = {
     "order_ledger",
     "fills",
 }
+_STRATEGY_FIXED_RELATIVES: Final = {
+    "benchmarks/config_parameter_governance.json",
+    "benchmarks/reference_registry.json",
+}
+_STRATEGY_OPERATIONAL_RELATIVES: Final = {
+    "uquant/atomic_io.py",
+    "uquant/cli.py",
+    "uquant/execution_journal.py",
+    "uquant/report.py",
+    "uquant/validation/holdout.py",
+}
 
 
 @dataclass(frozen=True, slots=True)
@@ -97,6 +121,7 @@ class FutureHoldoutContract:
     review_milestones: tuple[int, int]
     score_fields: tuple[str, ...]
     parameter_changes_from_observation: bool
+    phase1_windows: Mapping[str, tuple[str, str]]
     strategy_anchor_commit: str
     strategy_source_sha256: str
     strategy_config_sha256: str
@@ -211,10 +236,14 @@ def load_future_holdout_contract(path: str | Path | None = None) -> FutureHoldou
     ):
         raise ValueError("future holdout contract differs from the reviewed contract")
     dates = raw["dates"]
+    phase1_windows = raw["phase1_windows"]
     policy = raw["observation_policy"]
     strategy_anchor = raw["strategy_anchor"]
     if not isinstance(dates, dict) or set(dates) != {"last_in_sample", "first_holdout"}:
         raise ValueError("future holdout date contract is malformed")
+    sealed_windows = {name: list(bounds) for name, bounds in REVIEWED_PHASE1_WINDOWS.items()}
+    if not isinstance(phase1_windows, dict) or phase1_windows != sealed_windows:
+        raise ValueError("future holdout Phase 1 windows are malformed")
     if not isinstance(policy, dict) or set(policy) != {
         "parameter_changes_from_observation",
         "empty_observation_scores",
@@ -250,6 +279,7 @@ def load_future_holdout_contract(path: str | Path | None = None) -> FutureHoldou
         review_milestones=REVIEW_MILESTONES,
         score_fields=SCORE_FIELDS,
         parameter_changes_from_observation=False,
+        phase1_windows=REVIEWED_PHASE1_WINDOWS,
         strategy_anchor_commit=STRATEGY_ANCHOR_COMMIT,
         strategy_source_sha256=STRATEGY_SOURCE_SHA256,
         strategy_config_sha256=STRATEGY_CONFIG_SHA256,
@@ -317,7 +347,7 @@ def validate_holdout_layout(
     repository_root: str | Path,
     *,
     contract: FutureHoldoutContract | None = None,
-    phase1_windows: Mapping[str, tuple[str, str]] = AI_ERA_WINDOWS,
+    phase1_windows: Mapping[str, tuple[str, str]] | None = None,
 ) -> None:
     """Prove frozen data and official windows cannot consume future sessions."""
 
@@ -325,7 +355,16 @@ def validate_holdout_layout(
     if supplied_root.is_symlink():
         raise RuntimeError("holdout repository root must not be a symlink")
     root = supplied_root.resolve()
-    expected = load_future_holdout_contract() if contract is None else contract
+    reviewed = load_future_holdout_contract()
+    if contract is not None and contract != reviewed:
+        raise ValueError("holdout layout requires the reviewed sealed contract")
+    expected = reviewed
+    sealed_windows = dict(expected.phase1_windows)
+    if (
+        dict(AI_ERA_WINDOWS) != sealed_windows
+        or dict(ai_era_module.AI_ERA_WINDOWS) != sealed_windows
+    ):
+        raise RuntimeError("live AI-era schedule differs from the sealed Phase 1 windows")
     frozen = root / "data/frozen"
     holdout = root / expected.data_directory
     holdout_root = root / "data/holdout"
@@ -338,12 +377,11 @@ def validate_holdout_layout(
         raise RuntimeError("holdout data entered data/frozen")
     if observed_maximum != expected.last_in_sample_date:
         raise RuntimeError("maximum observed economic market date differs from the frozen boundary")
-    supplied_windows = dict(phase1_windows)
-    official_windows = dict(AI_ERA_WINDOWS)
-    if supplied_windows != official_windows:
+    supplied_windows = sealed_windows if phase1_windows is None else dict(phase1_windows)
+    if supplied_windows != sealed_windows:
         expanded = any(
-            name in official_windows
-            and (bounds[0] < official_windows[name][0] or bounds[1] > official_windows[name][1])
+            name in sealed_windows
+            and (bounds[0] < sealed_windows[name][0] or bounds[1] > sealed_windows[name][1])
             for name, bounds in supplied_windows.items()
         )
         if expanded:
@@ -616,25 +654,88 @@ def _source_paths(root: Path) -> tuple[Path, ...]:
     return paths
 
 
+def _is_strategy_relative(relative: str) -> bool:
+    if relative in _STRATEGY_OPERATIONAL_RELATIVES:
+        return False
+    if relative in _STRATEGY_FIXED_RELATIVES:
+        return True
+    path = Path(relative)
+    return (
+        relative.startswith("uquant/")
+        and "__pycache__" not in path.parts
+        and path.suffix != ".pyc"
+    )
+
+
+def _strategy_source_paths(root: Path) -> tuple[Path, ...]:
+    package_paths = tuple(
+        path
+        for path in (root / "uquant").rglob("*")
+        if path.is_file() and _is_strategy_relative(path.relative_to(root).as_posix())
+    )
+    fixed_paths = tuple(root / relative for relative in _STRATEGY_FIXED_RELATIVES)
+    paths = tuple(sorted({*package_paths, *fixed_paths}))
+    resources = tuple(
+        path for path in paths if path.is_relative_to(root / "uquant/validation/resources")
+    )
+    if (
+        not paths
+        or not resources
+        or any(path.is_symlink() or not path.is_file() for path in paths)
+    ):
+        raise RuntimeError("cannot resolve complete anchored strategy source")
+    return paths
+
+
 def _strategy_source_sha256(root: Path) -> str:
-    operational_names = {
-        "__init__.py",
-        "__main__.py",
-        "atomic_io.py",
-        "cli.py",
-        "execution_journal.py",
-        "report.py",
-    }
-    paths = tuple(
+    """Hash the complete current decision/state source and resource inventory."""
+
+    base = Path(root).resolve()
+    return _source_sha256(_strategy_source_paths(base), root=base)
+
+
+def _git_strategy_relatives(root: Path, *, commit: str) -> tuple[str, ...]:
+    completed = subprocess.run(
+        [
+            "git",
+            "-C",
+            str(root),
+            "ls-tree",
+            "-r",
+            "--name-only",
+            commit,
+            "--",
+            "uquant",
+            *_STRATEGY_FIXED_RELATIVES,
+        ],
+        check=True,
+        capture_output=True,
+        text=True,
+    )  # nosec B603
+    return tuple(
         sorted(
-            path
-            for path in (root / "uquant").glob("*.py")
-            if path.name not in operational_names
+            relative
+            for relative in completed.stdout.splitlines()
+            if _is_strategy_relative(relative)
         )
     )
-    if not paths:
-        raise RuntimeError("cannot resolve anchored strategy source")
-    return _source_sha256(paths, root=root)
+
+
+def _validated_strategy_source_sha256(root: Path) -> str:
+    paths = _strategy_source_paths(root)
+    current_relatives = tuple(path.relative_to(root).as_posix() for path in paths)
+    anchored_relatives = _git_strategy_relatives(root, commit=STRATEGY_ANCHOR_COMMIT)
+    if current_relatives != anchored_relatives:
+        raise RuntimeError("strategy source inventory drifted from the Task 8 anchor")
+    anchored_sha256 = _source_sha256(
+        paths,
+        root=root,
+        from_git=STRATEGY_ANCHOR_COMMIT,
+    )
+    current_sha256 = _source_sha256(paths, root=root)
+    if anchored_sha256 != STRATEGY_SOURCE_SHA256 or current_sha256 != anchored_sha256:
+        raise RuntimeError("strategy source bytes drifted from the Task 8 anchor")
+    return current_sha256
 
 
 def _source_sha256(paths: Sequence[Path], *, root: Path, from_git: str | None = None) -> str:
@@ -705,7 +806,7 @@ def current_holdout_binding(repository_root: str | Path | None = None) -> Holdou
     return HoldoutBinding(
         production_commit=head,
         production_source_sha256=source,
-        strategy_source_sha256=_strategy_source_sha256(root),
+        strategy_source_sha256=_validated_strategy_source_sha256(root),
         effective_config_sha256=config_fingerprint(DEFAULT_CONFIG),
         universe_sha256=universe.sha256,
         industry_sha256=_industry_sha256(universe),

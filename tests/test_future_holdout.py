@@ -9,12 +9,15 @@ import pytest
 
 from uquant.data import DataStore
 from uquant.engine import code_fingerprint
+from uquant.validation import ai_era as ai_era_module
+from uquant.validation import holdout as holdout_module
 from uquant.validation.ai_era import AI_ERA_WINDOWS
 from uquant.validation.holdout import (
     HOLDOUT_DATA_DIRECTORY,
     HOLDOUT_START,
     LAST_IN_SAMPLE_DATE,
     HoldoutBinding,
+    _strategy_source_sha256,
     build_future_holdout_manifest,
     current_holdout_binding,
     holdout_data_identity,
@@ -39,7 +42,7 @@ def _binding() -> HoldoutBinding:
         production_commit="1" * 40,
         production_source_sha256="2" * 64,
         strategy_source_sha256=(
-            "1cbc76ede178659e32d64ed864c162e7f0e4b3e172153c8ba2997374e62435a8"
+            "e8cb6ea872a3d83ba963d7a4e485b9b934d96fdd051f8cb815573f52a3a899f2"
         ),
         effective_config_sha256=(
             "ed52da44a359c1506e1d299f7bc341ad01b199d7f96997f7c01f2b8eca7cfc13"
@@ -81,10 +84,11 @@ def test_tracked_contract_freezes_date_path_policy_and_null_scores() -> None:
     assert contract.data_directory == "data/holdout/phase2-future-v1"
     assert contract.review_milestones == (40, 60)
     assert contract.parameter_changes_from_observation is False
+    assert dict(contract.phase1_windows) == dict(AI_ERA_WINDOWS)
     assert contract.strategy_anchor_commit == "fbbacefe0cb082778e57a84909f344475f556a57"
     assert (
         contract.strategy_source_sha256
-        == "1cbc76ede178659e32d64ed864c162e7f0e4b3e172153c8ba2997374e62435a8"
+        == "e8cb6ea872a3d83ba963d7a4e485b9b934d96fdd051f8cb815573f52a3a899f2"
     )
     assert (
         contract.strategy_config_sha256
@@ -218,6 +222,43 @@ def test_layout_requires_frozen_data_and_exact_official_windows(tmp_path: Path) 
         validate_holdout_layout(tmp_path, contract=contract, phase1_windows=moved_start)
 
 
+@pytest.mark.parametrize(
+    ("name", "bounds"),
+    (
+        ("continuous_ai_era", ("2023-01-03", "2026-08-06")),
+        ("h1_2023", ("2023-01-02", "2023-06-30")),
+    ),
+)
+def test_layout_rejects_mutated_live_phase1_windows(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+    name: str,
+    bounds: tuple[str, str],
+) -> None:
+    _csv(tmp_path / "data/frozen/a.csv", LAST_IN_SAMPLE_DATE)
+    mutated = {**AI_ERA_WINDOWS, name: bounds}
+    monkeypatch.setattr(holdout_module, "AI_ERA_WINDOWS", mutated)
+    monkeypatch.setattr(ai_era_module, "AI_ERA_WINDOWS", mutated)
+
+    with pytest.raises(RuntimeError, match="sealed Phase 1 windows"):
+        validate_holdout_layout(
+            tmp_path,
+            contract=load_future_holdout_contract(),
+            phase1_windows=mutated,
+        )
+
+
+def test_layout_rejects_a_forged_contract_dataclass(tmp_path: Path) -> None:
+    _csv(tmp_path / "data/frozen/a.csv", LAST_IN_SAMPLE_DATE)
+    forged = replace(
+        load_future_holdout_contract(),
+        data_directory="data/holdout/unsealed-forgery",
+    )
+
+    with pytest.raises(ValueError, match="reviewed sealed contract"):
+        validate_holdout_layout(tmp_path, contract=forged)
+
+
 def test_holdout_data_rejects_symlinks_and_unknown_file_types(tmp_path: Path) -> None:
     contract = load_future_holdout_contract()
     _csv(tmp_path / "data/frozen/a.csv", LAST_IN_SAMPLE_DATE)
@@ -246,6 +287,49 @@ def test_holdout_data_rejects_symlinks_and_unknown_file_types(tmp_path: Path) ->
 def test_current_binding_refuses_a_mixed_repository_root(tmp_path: Path) -> None:
     with pytest.raises(ValueError, match="owning repository"):
         current_holdout_binding(tmp_path)
+
+
+def _minimal_strategy_tree(root: Path) -> None:
+    files = {
+        "uquant/decision.py": "decision = 1\n",
+        "uquant/validation/ai_era.py": "windows = 1\n",
+        "uquant/validation/resources/ai_universe_manifest.json": "{}\n",
+        "benchmarks/reference_registry.json": "{}\n",
+        "benchmarks/config_parameter_governance.json": "{}\n",
+    }
+    for relative, content in files.items():
+        path = root / relative
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(content, encoding="utf-8")
+
+
+@pytest.mark.parametrize(
+    "relative",
+    (
+        "uquant/validation/ai_era.py",
+        "uquant/validation/resources/ai_universe_manifest.json",
+        "benchmarks/reference_registry.json",
+        "benchmarks/config_parameter_governance.json",
+    ),
+)
+def test_strategy_anchor_hash_covers_transitive_sources_and_resources(
+    tmp_path: Path,
+    relative: str,
+) -> None:
+    _minimal_strategy_tree(tmp_path)
+    before = _strategy_source_sha256(tmp_path)
+    (tmp_path / relative).write_text("mutated\n", encoding="utf-8")
+
+    assert _strategy_source_sha256(tmp_path) != before
+
+
+def test_strategy_anchor_hash_closes_the_recursive_path_inventory(tmp_path: Path) -> None:
+    _minimal_strategy_tree(tmp_path)
+    before = _strategy_source_sha256(tmp_path)
+    added = tmp_path / "uquant/validation/new_decision_rule.py"
+    added.write_text("new_rule = True\n", encoding="utf-8")
+
+    assert _strategy_source_sha256(tmp_path) != before
 
 
 def test_null_manifest_carries_prior_close_state_and_rejects_metrics() -> None:

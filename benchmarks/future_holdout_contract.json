@@ -1,10 +1,18 @@
 {
   "schema_version": 1,
   "contract_id": "phase2-future-holdout-v1",
-  "canonical_sha256": "5594511f08761906d78b3b2542b841dbef31dd3ecc86d4fb586a9748de86626a",
+  "canonical_sha256": "072e73075e0e5394dd20918e2db698d98365f22a2ea34b662638811b03b007bf",
   "dates": {
     "last_in_sample": "2026-08-05",
     "first_holdout": "2026-08-06"
+  },
+  "phase1_windows": {
+    "h1_2023": ["2023-01-03", "2023-06-30"],
+    "h2_2023": ["2023-07-03", "2023-12-29"],
+    "h1_2024": ["2024-01-02", "2024-07-01"],
+    "h2_2024": ["2024-07-01", "2024-12-31"],
+    "bull_crash_2025_2026": ["2025-01-02", "2026-07-31"],
+    "continuous_ai_era": ["2023-01-03", "2026-08-05"]
   },
   "data_directory": "data/holdout/phase2-future-v1",
   "review_milestones": [40, 60],
@@ -24,7 +32,7 @@
   },
   "strategy_anchor": {
     "candidate_commit": "fbbacefe0cb082778e57a84909f344475f556a57",
-    "decision_source_sha256": "1cbc76ede178659e32d64ed864c162e7f0e4b3e172153c8ba2997374e62435a8",
+    "decision_source_sha256": "e8cb6ea872a3d83ba963d7a4e485b9b934d96fdd051f8cb815573f52a3a899f2",
     "effective_config_sha256": "ed52da44a359c1506e1d299f7bc341ad01b199d7f96997f7c01f2b8eca7cfc13"
   }
 }

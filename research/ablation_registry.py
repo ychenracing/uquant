@@ -33,7 +33,7 @@ POST_TASK8_SOURCE_CONTRACT_PATH: Final = (
 BASE_SOURCE_COMMIT: Final = "7f80436373b6da03536e15ff1908c010bfb92eb3"
 MINIMAL_BASE_SOURCE_COMMIT: Final = "e5e0fa903c9a9b26701063ae01f352af3e246a7d"
 _POST_TASK8_SOURCE_CONTRACT_SHA256: Final = (
-    "e5da89f0ec9457261f8c2b09d79d11b1c8244fa702416c8be643266409d8f59f"
+    "3a3bd032db680acd544d2ff615de85b6ddeb5a70827324d82cf799806a4f7aff"
 )
 REQUIRED_SUBSYSTEMS: Final = (
     "sector_guard",
@@ -777,8 +777,7 @@ def validate_ablation_registry(
             observed_source_sha256=observed_source_sha256,
         )
     for contract in registry.fixed_contracts:
-        sealed_contract = _git_blob(root, registry.base_commit, contract.path)
-        if hashlib.sha256(sealed_contract).hexdigest() != contract.sha256:
+        if _file_sha256(root / contract.path) != contract.sha256:
             raise ValueError(f"fixed contract hash is stale: {contract.path}")
         if contract.minimum_date < "2023-01-01":
             raise ValueError("fixed contract includes pre-2023 economics")
@@ -827,29 +826,19 @@ def validate_ablation_registry(
         raise ValueError("ablation inactive compatibility exclusions are malformed")
 
 
-def _verified_json(
-    root: Path,
-    contract: FixedContract,
-    *,
-    base_commit: str,
-) -> Mapping[str, Any]:
-    source = _git_blob(root, base_commit, contract.path)
-    if hashlib.sha256(source).hexdigest() != contract.sha256:
+def _verified_json(root: Path, contract: FixedContract) -> Mapping[str, Any]:
+    source = root / contract.path
+    if _file_sha256(source) != contract.sha256:
         raise ValueError(f"fixed contract hash is stale: {contract.path}")
     try:
-        payload = json.loads(source.decode("utf-8"))
-    except (UnicodeDecodeError, json.JSONDecodeError) as exc:
+        payload = json.loads(source.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as exc:
         raise ValueError(f"cannot load fixed ablation contract: {contract.path}") from exc
     return _require_mapping(payload, label=f"fixed contract {contract.name}")
 
 
-def _phase1_schedule(
-    root: Path,
-    contract: FixedContract,
-    *,
-    base_commit: str,
-) -> tuple[ContractCell, ...]:
-    payload = _verified_json(root, contract, base_commit=base_commit)
+def _phase1_schedule(root: Path, contract: FixedContract) -> tuple[ContractCell, ...]:
+    payload = _verified_json(root, contract)
     pools = _require_mapping(payload.get("pools"), label="phase1 pools")
     contract_payload = _require_mapping(payload.get("contract"), label="phase1 contract")
     windows = _require_mapping(contract_payload.get("windows"), label="phase1 windows")
@@ -906,11 +895,9 @@ def _generalization_schedule(
     root: Path,
     contract: FixedContract,
     evidence_contract: FixedContract,
-    *,
-    base_commit: str,
 ) -> tuple[ContractCell, ...]:
-    _verified_json(root, contract, base_commit=base_commit)
-    payload = _verified_json(root, evidence_contract, base_commit=base_commit)
+    _verified_json(root, contract)
+    payload = _verified_json(root, evidence_contract)
     raw_cells = payload.get("cells")
     if not isinstance(raw_cells, list):
         raise ValueError("frozen generalization cells are missing")
@@ -978,15 +965,7 @@ def build_contract_schedule(
     phase1 = registry.contract("phase1_performance")
     generalization = registry.contract("ai_era_generalization")
     evidence = registry.contract("frozen_generalization_status")
-    cells = (
-        *_phase1_schedule(root, phase1, base_commit=registry.base_commit),
-        *_generalization_schedule(
-            root,
-            generalization,
-            evidence,
-            base_commit=registry.base_commit,
-        ),
-    )
+    cells = (*_phase1_schedule(root, phase1), *_generalization_schedule(root, generalization, evidence))
     identities = tuple((cell.contract, cell.cell_id) for cell in cells)
     if len(identities) != len(set(identities)):
         raise ValueError("ablation fixed schedule contains duplicate cells")

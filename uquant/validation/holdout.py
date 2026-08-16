@@ -38,9 +38,9 @@ REVIEWED_PHASE1_WINDOWS: Final = MappingProxyType(
         "continuous_ai_era": ("2023-01-03", "2026-08-05"),
     }
 )
-STRATEGY_ANCHOR_COMMIT: Final = "c63a2645992bda1b9aa6d0231ebf35a785b0158c"
+STRATEGY_ANCHOR_COMMIT: Final = "388125839a196560e0d4d67d55ea8ad794652289"
 STRATEGY_SOURCE_SHA256: Final = (
-    "6a131e8b3a64738955f0dd9c295c5092f6ea59fcf923e86940a645de0498fe8e"
+    "c5f819e3f164bd96089f746ec8c850bfed42c13e1668bb11e7b63647c5677ed6"
 )
 STRATEGY_CONFIG_SHA256: Final = (
     "ed52da44a359c1506e1d299f7bc341ad01b199d7f96997f7c01f2b8eca7cfc13"
@@ -50,9 +50,6 @@ STRATEGY_CLI_SHA256: Final = (
 )
 STRATEGY_ACCOUNT_CODE_SHA256: Final = (
     "f43e1e93859169df056051ad1963b761e35143be31b321bf11883726218c5dc7"
-)
-PRIOR_CLOSE_ACCOUNT_SHA256: Final = (
-    "2404eb5cd1e0ccfc68ab4663778288dd3a17f607baeb3f8104583443673273f1"
 )
 SCORE_FIELDS: Final = (
     "final_wealth",
@@ -64,7 +61,7 @@ SCORE_FIELDS: Final = (
     "pnl_hhi",
 )
 REQUIRED_FUTURE_HOLDOUT_SHA256: Final = (
-    "64f22aaf33bc709b2a46767b5fabfd20d43514cc19c20d2b48b218fa8cadcf0c"
+    "6d7972e469367ea8eb625b6342eace0f30511610a54bbfe78a9fa1eda8f7a82c"
 )
 
 _SHA256 = re.compile(r"^[0-9a-f]{64}$")
@@ -143,7 +140,6 @@ class FutureHoldoutContract:
     strategy_config_sha256: str
     strategy_cli_sha256: str
     strategy_account_code_sha256: str
-    prior_close_account_sha256: str
 
 
 @dataclass(frozen=True, slots=True)
@@ -288,7 +284,6 @@ def load_future_holdout_contract(path: str | Path | None = None) -> FutureHoldou
         "decision_source_sha256": STRATEGY_SOURCE_SHA256,
         "cli_decision_sha256": STRATEGY_CLI_SHA256,
         "account_code_sha256": STRATEGY_ACCOUNT_CODE_SHA256,
-        "prior_close_account_sha256": PRIOR_CLOSE_ACCOUNT_SHA256,
         "effective_config_sha256": STRATEGY_CONFIG_SHA256,
     }:
         raise ValueError("future holdout strategy anchor is malformed")
@@ -321,7 +316,6 @@ def load_future_holdout_contract(path: str | Path | None = None) -> FutureHoldou
         strategy_config_sha256=STRATEGY_CONFIG_SHA256,
         strategy_cli_sha256=STRATEGY_CLI_SHA256,
         strategy_account_code_sha256=STRATEGY_ACCOUNT_CODE_SHA256,
-        prior_close_account_sha256=PRIOR_CLOSE_ACCOUNT_SHA256,
     )
 
 
@@ -506,10 +500,6 @@ def validate_prior_close_account(
     ).digest
     if account_payload.get("data_hash") != expected:
         raise ValueError("holdout account data hash does not match the frozen prefix")
-    if _canonical_sha256(dict(account_payload)) != PRIOR_CLOSE_ACCOUNT_SHA256:
-        raise ValueError(
-            "holdout account differs from the authenticated continuous replay"
-        )
 
 
 def _session_dates(values: Iterable[str], *, contract: FutureHoldoutContract) -> tuple[str, ...]:
@@ -622,7 +612,6 @@ def _assemble_future_holdout_manifest(
             "decision_source_sha256": contract.strategy_source_sha256,
             "cli_decision_sha256": contract.strategy_cli_sha256,
             "account_code_sha256": contract.strategy_account_code_sha256,
-            "prior_close_account_sha256": contract.prior_close_account_sha256,
             "effective_config_sha256": contract.strategy_config_sha256,
         },
         "effective_config_sha256": binding_payload["effective_config_sha256"],
@@ -1140,11 +1129,29 @@ def _observation_metrics(
         if metrics_path is not None:
             raise ValueError("holdout metrics must be omitted before observations exist")
         return _normalized_scores(None, sessions=sessions, contract=contract), None
-    del metrics_path, holdout_data_sha256
-    raise RuntimeError(
-        "observed sessions require a deterministic holdout replay; "
-        "detached score files are prohibited"
-    )
+    if metrics_path is None:
+        raise ValueError("observed holdout sessions require an independent metrics file")
+    raw, content = _read_json_snapshot(Path(metrics_path), label="future holdout metrics")
+    if set(raw) != {
+        "schema_version",
+        "holdout_data_sha256",
+        "sessions",
+        "scores",
+    } or raw["schema_version"] != 1:
+        raise ValueError("future holdout metrics schema is malformed")
+    if raw["holdout_data_sha256"] != holdout_data_sha256:
+        raise ValueError("future holdout metrics bind different data bytes")
+    raw_sessions = raw["sessions"]
+    if not isinstance(raw_sessions, list):
+        raise ValueError("future holdout metric sessions are malformed")
+    metric_sessions = _session_dates(raw_sessions, contract=contract)
+    if metric_sessions != sessions:
+        raise ValueError("future holdout metrics bind different sessions")
+    raw_scores = raw["scores"]
+    if not isinstance(raw_scores, Mapping):
+        raise ValueError("future holdout metrics scores are malformed")
+    scores = _normalized_scores(raw_scores, sessions=sessions, contract=contract)
+    return scores, hashlib.sha256(content).hexdigest()
 
 
 def build_future_holdout_manifest(

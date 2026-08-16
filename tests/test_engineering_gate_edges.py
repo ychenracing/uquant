@@ -472,7 +472,7 @@ def test_holdout_observation_metrics_reject_every_detached_input(tmp_path: Path)
             holdout_data_sha256=data_sha256,
             contract=contract,
         )
-    with pytest.raises(RuntimeError, match="deterministic holdout replay"):
+    with pytest.raises(ValueError, match="require an independent metrics"):
         holdout_module._observation_metrics(
             None,
             sessions=(contract.first_holdout_date,),
@@ -493,16 +493,16 @@ def test_holdout_observation_metrics_reject_every_detached_input(tmp_path: Path)
             "pnl_hhi": 0.0,
         },
     }
-    for name, mutation in (
-        ("schema", {"schema_version": 2}),
-        ("data", {"holdout_data_sha256": "b" * 64}),
-        ("sessions-type", {"sessions": "bad"}),
-        ("sessions-value", {"sessions": ["2026-08-07"]}),
-        ("scores", {"scores": []}),
+    for name, mutation, message in (
+        ("schema", {"schema_version": 2}, "schema is malformed"),
+        ("data", {"holdout_data_sha256": "b" * 64}, "different data bytes"),
+        ("sessions-type", {"sessions": "bad"}, "sessions are malformed"),
+        ("sessions-value", {"sessions": ["2026-08-07"]}, "different sessions"),
+        ("scores", {"scores": []}, "scores are malformed"),
     ):
         path = tmp_path / f"{name}.json"
         path.write_text(json.dumps({**base, **mutation}), encoding="utf-8")
-        with pytest.raises(RuntimeError, match="deterministic holdout replay"):
+        with pytest.raises(ValueError, match=message):
             holdout_module._observation_metrics(
                 path,
                 sessions=(contract.first_holdout_date,),

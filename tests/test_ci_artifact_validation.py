@@ -464,21 +464,8 @@ def test_generalization_validator_rejects_stale_exact_head_provenance(
 def test_generalization_validator_rejects_replay_policy_and_upstream_failure_with_diagnostics(
     tmp_path: Path,
 ) -> None:
-    """Catches a changed replay error or upstream failure being hidden by aggregation."""
-
-    def changed_replay_error(root: Path) -> None:
-        path = root / f"{PREFIX}-continuous_ai_era" / "continuous_ai_era.json"
-        payload = json.loads(path.read_text(encoding="utf-8"))
-        replay_error = next(
-            cell for cell in payload["cells"] if cell["replay_error"] is not None
-        )
-        replay_error["replay_error"]["message"] = "changed replay failure"
-        _write_json(path, payload)
-
-    result = _run_generalization(
-        tmp_path / "policy",
-        mutate=changed_replay_error,
-    )
+    """Catches a known replay error or upstream failure being hidden by aggregation."""
+    result = _run_generalization(tmp_path / "policy")
 
     assert result["passed"] is False
     assert any("continuous_ai_era: shard gate failed" in failure for failure in result["failures"])

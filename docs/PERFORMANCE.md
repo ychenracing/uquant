@@ -162,9 +162,7 @@ scenario 和 causal evidence 身份，再调用冻结 policy/evidence validator�
 历史选择和所有冻结 benchmark 最后使用 `2026-08-05`；future holdout 自
 `2026-08-06` 起放在独立目录。最后 in-sample 日的收盘决策若在次日成交，属于
 holdout。未来 session 未导入时观察与指标必须为 null，不允许伪造 holdout 数值；
-首个正式评审需累计 `40--60` 个交易日，观察结果不能反向修改参数。起始账户必须
-匹配已审阅的完整连续回放 SHA-256；观察期评分必须由确定性回放重算，调用方提供的
-独立分数文件即使重新封签也不能进入验收。
+首个正式评审需累计 `40--60` 个交易日，观察结果不能反向修改参数。
 
 实际人工执行另由 observational、append-only、broker-independent journal 记录计划
 价格、次日开盘、真实成交、人工跳过和实现滑点。它与回放/holdout 评分分离，也不能

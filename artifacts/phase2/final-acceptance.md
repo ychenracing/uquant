@@ -202,7 +202,7 @@ baseline, seed, window, policy, or strategy-compensation change.
 The authoritative contract/layout/readback passes and proves:
 
 - sealed contract SHA-256:
-  `64f22aaf33bc709b2a46767b5fabfd20d43514cc19c20d2b48b218fa8cadcf0c`;
+  `d6e950ae6ee9da9c02894ce284e1023ae9a91e3890c7148d5a4d182cd4b14ff1`;
 - last in-sample `2026-08-05`, start `2026-08-06`, observation-driven
   parameter changes prohibited, 40/60-session review milestones;
 - zero holdout sessions and empty-data SHA-256
@@ -210,7 +210,7 @@ The authoritative contract/layout/readback passes and proves:
 - exact production HEAD and source/config/universe/industry/runtime/lock
   binding; and
 - immutable strategy anchor commit
-  `c63a2645992bda1b9aa6d0231ebf35a785b0158c`, strategy source
+  `f98b8840ae0232c0a273c832dbb4800752fb6a17`, strategy source
   `6a131e8b3a64738955f0dd9c295c5092f6ea59fcf923e86940a645de0498fe8e`,
   and account-code hash
   `f43e1e93859169df056051ad1963b761e35143be31b321bf11883726218c5dc7`.
@@ -245,11 +245,11 @@ and `ad3a273a0e24be474021d6c034688a9e4cec6807bd8b1dc1bf8ab375e36c7b00`.
 
 Later source changes are fail-closed and content-addressed, not allowed by path
 name. The post-Task8 contract binds base `e5e0fa903c9a9b26701063ae01f352af3e246a7d`,
-reviewed endpoint `f36596480958ee7c54d45b8d90697c2f9e83e5b3`, exact per-path
+reviewed endpoint `a605709c5c3c25136acf3f6526a7b812610cb9fd`, exact per-path
 before/after hashes, reviewed production source
-`44254bd9ba264d52c539734513e7c0c12d6fb26bb513163c3dc417d4e210b01c`,
+`6664b2ad21c56d315413f9fba08e60a3ea61e139fc7ee548c2751f6371c440ef`,
 and canonical seal
-`28c5ee31c25100cdf1beeb068fd267a76b56ebd6129d35620f3ee79ac553df96`.
+`f486948bdb2378e0575875762624405fffa43070a7217b564bb7b5a7a6e50365`.
 The mutation-rejection tests pass.
 
 Configuration governance records total fields `285 → 278 → 275`; economic

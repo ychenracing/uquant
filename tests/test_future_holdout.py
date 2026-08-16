@@ -104,7 +104,7 @@ def test_tracked_contract_freezes_date_path_policy_and_null_scores() -> None:
     assert contract.review_milestones == (40, 60)
     assert contract.parameter_changes_from_observation is False
     assert dict(contract.phase1_windows) == dict(AI_ERA_WINDOWS)
-    assert contract.strategy_anchor_commit == "c63a2645992bda1b9aa6d0231ebf35a785b0158c"
+    assert contract.strategy_anchor_commit == "f98b8840ae0232c0a273c832dbb4800752fb6a17"
     assert (
         contract.strategy_source_sha256
         == "6a131e8b3a64738955f0dd9c295c5092f6ea59fcf923e86940a645de0498fe8e"

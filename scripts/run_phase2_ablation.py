@@ -46,6 +46,12 @@ _SHA256_LENGTH = 64
 _BASELINE_CARRIER_SHA256 = "f1049fe9b5db63b2e8df68a9ff87930108ca38eea40ed456aa179eadd79e7bdd"
 _EVIDENCE_MANIFEST_PATH = _RUNNER_ROOT / "artifacts" / "phase2" / "ablations" / "evidence_manifest.json"
 _EVIDENCE_MANIFEST_CANONICAL_SHA256 = "507e7d9a57654953c2d92e85514ae0274b0985180537ef779e46f995536437a5"
+_MINIMAL_EVIDENCE_MANIFEST_PATH = (
+    _RUNNER_ROOT / "artifacts" / "phase2" / "ablations" / "minimal_evidence_manifest.json"
+)
+_MINIMAL_EVIDENCE_MANIFEST_CANONICAL_SHA256 = (
+    "58011315ec19111ea2caba0dd1b8cba06608150ca3726d62fbceefdc53fa9a6b"
+)
 _REPLAY_ERROR_FIELDS = {
     "type",
     "message",
@@ -451,11 +457,27 @@ def _read_worker_artifact(
     return dict(payload)
 
 
-def _load_trusted_evidence_manifest(path: Path | None = None) -> dict[str, Any]:
+def _evidence_manifest_anchor(registry_relative: Path) -> tuple[Path, str]:
+    """Select one compiled trust root from an exact registry identity."""
+    if registry_relative == Path("artifacts/phase2/ablations/registry.json"):
+        return _EVIDENCE_MANIFEST_PATH, _EVIDENCE_MANIFEST_CANONICAL_SHA256
+    if registry_relative == Path("artifacts/phase2/ablations/minimal_registry.json"):
+        return (
+            _MINIMAL_EVIDENCE_MANIFEST_PATH,
+            _MINIMAL_EVIDENCE_MANIFEST_CANONICAL_SHA256,
+        )
+    raise ValueError("ablation registry has no compiled evidence manifest")
+
+
+def _load_trusted_evidence_manifest(
+    path: Path | None = None,
+    *,
+    trusted_digest: str = _EVIDENCE_MANIFEST_CANONICAL_SHA256,
+) -> dict[str, Any]:
     """Load the tracked evidence manifest only when its compiled digest matches."""
     manifest_path = path or _EVIDENCE_MANIFEST_PATH
     manifest = _load_json_mapping(manifest_path, label="ablation evidence manifest")
-    if _sha256_mapping(manifest) != _EVIDENCE_MANIFEST_CANONICAL_SHA256:
+    if _sha256_mapping(manifest) != trusted_digest:
         raise ValueError("ablation evidence manifest trusted digest differs")
     if set(manifest) != {"schema_version", "payload_sha256", "payload"}:
         raise ValueError("ablation evidence manifest envelope is malformed")
@@ -3105,8 +3127,12 @@ def _readback_at_checkout(args: argparse.Namespace, *, source_root: Path) -> dic
         schedule=schedule,
     )
     binding_sha256 = hashlib.sha256(_canonical_bytes(binding)).hexdigest()
+    manifest_path, manifest_digest = _evidence_manifest_anchor(registry_relative)
     evidence_manifest = _compile_evidence_manifest(
-        _load_trusted_evidence_manifest(),
+        _load_trusted_evidence_manifest(
+            manifest_path,
+            trusted_digest=manifest_digest,
+        ),
         registry=registry,
         evidence_commit=evidence_commit,
         binding_sha256=binding_sha256,

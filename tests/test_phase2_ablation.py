@@ -1801,6 +1801,57 @@ def test_tracked_manifest_rejects_edit_and_self_resign(tmp_path: Path) -> None:
         runner._load_trusted_evidence_manifest(rewritten)
 
 
+def test_historical_and_post_deletion_manifests_are_distinct_trust_roots() -> None:
+    """Catches selecting or cross-accepting evidence from the other registry epoch."""
+    runner = _runner_module()
+    historical_path, historical_digest = runner._evidence_manifest_anchor(
+        Path("artifacts/phase2/ablations/registry.json")
+    )
+    minimal_path, minimal_digest = runner._evidence_manifest_anchor(
+        Path("artifacts/phase2/ablations/minimal_registry.json")
+    )
+
+    assert historical_path == runner._EVIDENCE_MANIFEST_PATH
+    assert historical_digest == runner._EVIDENCE_MANIFEST_CANONICAL_SHA256
+    assert minimal_path == runner._MINIMAL_EVIDENCE_MANIFEST_PATH
+    assert minimal_digest == runner._MINIMAL_EVIDENCE_MANIFEST_CANONICAL_SHA256
+    assert historical_path != minimal_path
+    assert historical_digest != minimal_digest
+
+    historical = runner._load_trusted_evidence_manifest(
+        historical_path,
+        trusted_digest=historical_digest,
+    )
+    minimal = runner._load_trusted_evidence_manifest(
+        minimal_path,
+        trusted_digest=minimal_digest,
+    )
+    historical_registry = load_ablation_registry(DEFAULT_ABLATION_REGISTRY_PATH)
+    minimal_registry = load_ablation_registry(MINIMAL_ABLATION_REGISTRY_PATH)
+    runner._compile_evidence_manifest(
+        historical,
+        registry=historical_registry,
+        evidence_commit="9592fcca3860d1901a7009d799d29d20959d1699",
+        binding_sha256="a009bf0e97499bc4bb40fc42e9e7e6999ea9f727492ab2ab4f86f2fc2ce34daf",
+        schedule_sha256="0b68ec13f311563a473785989474d719dc892b0eeef887154fadea04cb25e70a",
+    )
+    runner._compile_evidence_manifest(
+        minimal,
+        registry=minimal_registry,
+        evidence_commit="aa4b313e000002adae27b32f91b5a84425c78987",
+        binding_sha256="bc5c82c7f3b3a0ba28f6965f90160aca4aa78d12fe6c375c20b4207cf653fb74",
+        schedule_sha256="0b68ec13f311563a473785989474d719dc892b0eeef887154fadea04cb25e70a",
+    )
+    with pytest.raises(ValueError, match="manifest binding differs"):
+        runner._compile_evidence_manifest(
+            minimal,
+            registry=historical_registry,
+            evidence_commit="9592fcca3860d1901a7009d799d29d20959d1699",
+            binding_sha256="a009bf0e97499bc4bb40fc42e9e7e6999ea9f727492ab2ab4f86f2fc2ce34daf",
+            schedule_sha256="0b68ec13f311563a473785989474d719dc892b0eeef887154fadea04cb25e70a",
+        )
+
+
 @pytest.mark.parametrize("root_kind", ["schema1", "malformed"])
 def test_invalid_writer_rejects_any_existing_root_artifact(
     tmp_path: Path,

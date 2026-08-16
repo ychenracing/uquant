@@ -12,9 +12,12 @@ from collections.abc import Iterable, Mapping, Sequence
 from dataclasses import asdict, dataclass
 from datetime import date
 from pathlib import Path
-from typing import Any, Final
+from typing import Any, Final, cast
 
+from ..atomic_io import atomic_write_text
 from ..config import DEFAULT_CONFIG, config_fingerprint
+from ..data import DataStore
+from ..engine import code_fingerprint
 from .ai_era import AI_ERA_WINDOWS, runtime_environment_provenance
 from .universe import AIUniverse, load_ai_universe
 
@@ -22,6 +25,13 @@ LAST_IN_SAMPLE_DATE: Final = "2026-08-05"
 HOLDOUT_START: Final = "2026-08-06"
 HOLDOUT_DATA_DIRECTORY: Final = "data/holdout/phase2-future-v1"
 REVIEW_MILESTONES: Final = (40, 60)
+STRATEGY_ANCHOR_COMMIT: Final = "fbbacefe0cb082778e57a84909f344475f556a57"
+STRATEGY_SOURCE_SHA256: Final = (
+    "1cbc76ede178659e32d64ed864c162e7f0e4b3e172153c8ba2997374e62435a8"
+)
+STRATEGY_CONFIG_SHA256: Final = (
+    "ed52da44a359c1506e1d299f7bc341ad01b199d7f96997f7c01f2b8eca7cfc13"
+)
 SCORE_FIELDS: Final = (
     "final_wealth",
     "max_drawdown",
@@ -32,7 +42,7 @@ SCORE_FIELDS: Final = (
     "pnl_hhi",
 )
 REQUIRED_FUTURE_HOLDOUT_SHA256: Final = (
-    "0fe6859d78384b8632bb30dcce1c877229dbf640ed84e9ab6421f6ae4d0b4898"
+    "5594511f08761906d78b3b2542b841dbef31dd3ecc86d4fb586a9748de86626a"
 )
 
 _SHA256 = re.compile(r"^[0-9a-f]{64}$")
@@ -46,6 +56,7 @@ _CONTRACT_FIELDS = {
     "review_milestones",
     "score_fields",
     "observation_policy",
+    "strategy_anchor",
 }
 _MANIFEST_FIELDS = {
     "schema_version",
@@ -53,6 +64,7 @@ _MANIFEST_FIELDS = {
     "contract_sha256",
     "canonical_sha256",
     "production",
+    "strategy_anchor",
     "effective_config_sha256",
     "universe_sha256",
     "industry_sha256",
@@ -85,6 +97,9 @@ class FutureHoldoutContract:
     review_milestones: tuple[int, int]
     score_fields: tuple[str, ...]
     parameter_changes_from_observation: bool
+    strategy_anchor_commit: str
+    strategy_source_sha256: str
+    strategy_config_sha256: str
 
 
 @dataclass(frozen=True, slots=True)
@@ -93,6 +108,7 @@ class HoldoutBinding:
 
     production_commit: str
     production_source_sha256: str
+    strategy_source_sha256: str
     effective_config_sha256: str
     universe_sha256: str
     industry_sha256: str
@@ -107,6 +123,7 @@ class HoldoutBinding:
             raise ValueError("holdout production commit must be a full Git SHA")
         for field in (
             "production_source_sha256",
+            "strategy_source_sha256",
             "effective_config_sha256",
             "universe_sha256",
             "industry_sha256",
@@ -195,6 +212,7 @@ def load_future_holdout_contract(path: str | Path | None = None) -> FutureHoldou
         raise ValueError("future holdout contract differs from the reviewed contract")
     dates = raw["dates"]
     policy = raw["observation_policy"]
+    strategy_anchor = raw["strategy_anchor"]
     if not isinstance(dates, dict) or set(dates) != {"last_in_sample", "first_holdout"}:
         raise ValueError("future holdout date contract is malformed")
     if not isinstance(policy, dict) or set(policy) != {
@@ -203,6 +221,12 @@ def load_future_holdout_contract(path: str | Path | None = None) -> FutureHoldou
         "decision_at_last_in_sample_executes_in_holdout",
     }:
         raise ValueError("future holdout observation policy is malformed")
+    if not isinstance(strategy_anchor, dict) or strategy_anchor != {
+        "candidate_commit": STRATEGY_ANCHOR_COMMIT,
+        "decision_source_sha256": STRATEGY_SOURCE_SHA256,
+        "effective_config_sha256": STRATEGY_CONFIG_SHA256,
+    }:
+        raise ValueError("future holdout strategy anchor is malformed")
     if (
         dates != {"last_in_sample": LAST_IN_SAMPLE_DATE, "first_holdout": HOLDOUT_START}
         or raw["data_directory"] != HOLDOUT_DATA_DIRECTORY
@@ -226,6 +250,9 @@ def load_future_holdout_contract(path: str | Path | None = None) -> FutureHoldou
         review_milestones=REVIEW_MILESTONES,
         score_fields=SCORE_FIELDS,
         parameter_changes_from_observation=False,
+        strategy_anchor_commit=STRATEGY_ANCHOR_COMMIT,
+        strategy_source_sha256=STRATEGY_SOURCE_SHA256,
+        strategy_config_sha256=STRATEGY_CONFIG_SHA256,
     )
 
 
@@ -258,6 +285,34 @@ def maximum_observed_market_date(data_dir: str | Path) -> str:
     return max(dates)
 
 
+def _closed_csv_files(root: Path, *, label: str, missing_ok: bool) -> tuple[Path, ...]:
+    current = root.absolute()
+    symlinked = False
+    while True:
+        symlinked = symlinked or current.is_symlink()
+        if current == current.parent:
+            break
+        current = current.parent
+    if symlinked:
+        raise RuntimeError(f"{label} must not be a symlink")
+    if not root.exists():
+        if missing_ok:
+            return ()
+        raise RuntimeError(f"{label} is missing")
+    if not root.is_dir():
+        raise RuntimeError(f"{label} must be a directory")
+    files: list[Path] = []
+    for path in sorted(root.rglob("*")):
+        if path.is_symlink():
+            raise RuntimeError(f"{label} contains a symlink: {path}")
+        if path.is_dir():
+            continue
+        if not path.is_file() or path.suffix.lower() != ".csv":
+            raise RuntimeError(f"{label} contains an unsupported file: {path}")
+        files.append(path)
+    return tuple(files)
+
+
 def validate_holdout_layout(
     repository_root: str | Path,
     *,
@@ -266,33 +321,50 @@ def validate_holdout_layout(
 ) -> None:
     """Prove frozen data and official windows cannot consume future sessions."""
 
-    root = Path(repository_root).resolve()
+    supplied_root = Path(repository_root)
+    if supplied_root.is_symlink():
+        raise RuntimeError("holdout repository root must not be a symlink")
+    root = supplied_root.resolve()
     expected = load_future_holdout_contract() if contract is None else contract
     frozen = root / "data/frozen"
     holdout = root / expected.data_directory
     holdout_root = root / "data/holdout"
-    if frozen.is_dir():
-        observed_maximum = maximum_observed_market_date(frozen)
-        if observed_maximum > expected.last_in_sample_date:
-            raise RuntimeError("holdout data entered data/frozen")
-        if observed_maximum != expected.last_in_sample_date:
-            raise RuntimeError("maximum observed economic market date differs from the frozen boundary")
-    if any(end > expected.last_in_sample_date for _, end in phase1_windows.values()):
-        raise RuntimeError("Phase 1 window expanded into the future holdout")
-    if phase1_windows.get("continuous_ai_era", (None, None))[1] != expected.last_in_sample_date:
-        raise RuntimeError("Phase 1 continuous window no longer ends at the frozen boundary")
+    if frozen.is_symlink() or not frozen.is_dir():
+        raise RuntimeError("data/frozen is missing or not a physical directory")
+    if any(path.is_symlink() for path in frozen.rglob("*")):
+        raise RuntimeError("data/frozen contains a symlink")
+    observed_maximum = maximum_observed_market_date(frozen)
+    if observed_maximum > expected.last_in_sample_date:
+        raise RuntimeError("holdout data entered data/frozen")
+    if observed_maximum != expected.last_in_sample_date:
+        raise RuntimeError("maximum observed economic market date differs from the frozen boundary")
+    supplied_windows = dict(phase1_windows)
+    official_windows = dict(AI_ERA_WINDOWS)
+    if supplied_windows != official_windows:
+        expanded = any(
+            name in official_windows
+            and (bounds[0] < official_windows[name][0] or bounds[1] > official_windows[name][1])
+            for name, bounds in supplied_windows.items()
+        )
+        if expanded:
+            raise RuntimeError("Phase 1 window expanded beyond the immutable official bounds")
+        raise RuntimeError("official Phase 1 windows differ from the immutable contract")
+    if holdout_root.is_symlink():
+        raise RuntimeError("data/holdout must be a physical directory")
     if holdout_root.exists():
-        unexpected = [
-            path
-            for path in holdout_root.rglob("*.csv")
-            if not path.resolve().is_relative_to(holdout.resolve())
-        ]
+        if not holdout_root.is_dir():
+            raise RuntimeError("data/holdout must be a physical directory")
+        unexpected = []
+        for path in holdout_root.rglob("*"):
+            if path.is_symlink():
+                raise RuntimeError(f"future holdout contains a symlink: {path}")
+            if path != holdout and not path.is_relative_to(holdout):
+                unexpected.append(path)
         if unexpected:
             raise RuntimeError("future data is outside the isolated holdout directory")
-    if holdout.exists():
-        for path in sorted(holdout.rglob("*.csv")):
-            if any(value < expected.first_holdout_date for value in _csv_dates(path)):
-                raise RuntimeError("holdout directory contains an in-sample market row")
+    for path in _closed_csv_files(holdout, label="future holdout", missing_ok=True):
+        if any(value < expected.first_holdout_date for value in _csv_dates(path)):
+            raise RuntimeError("holdout directory contains an in-sample market row")
 
 
 def _state_hashes(account_payload: Mapping[str, Any], *, as_of: str) -> dict[str, str]:
@@ -320,6 +392,32 @@ def _state_hashes(account_payload: Mapping[str, Any], *, as_of: str) -> dict[str
         "pending_orders_sha256": _canonical_sha256(pending),
         "strategy_state_sha256": _canonical_sha256(strategy),
     }
+
+
+def validate_prior_close_account(
+    account_payload: Mapping[str, Any],
+    *,
+    frozen_data_dir: str | Path,
+) -> None:
+    """Require the prior-close state to match current code and frozen data bytes."""
+
+    if account_payload.get("code_hash") != code_fingerprint():
+        raise ValueError("holdout account code fingerprint is stale")
+    if account_payload.get("data_hash_as_of") != LAST_IN_SAMPLE_DATE:
+        raise ValueError("holdout account data hash is not bound to the prior close")
+    symbols = account_payload.get("data_hash_symbols")
+    if (
+        not isinstance(symbols, list)
+        or not symbols
+        or any(not isinstance(symbol, str) for symbol in symbols)
+    ):
+        raise ValueError("holdout account data hash symbols are malformed")
+    expected = DataStore(frozen_data_dir).manifest(
+        symbols,
+        as_of=LAST_IN_SAMPLE_DATE,
+    ).digest
+    if account_payload.get("data_hash") != expected:
+        raise ValueError("holdout account data hash does not match the frozen prefix")
 
 
 def _session_dates(values: Iterable[str], *, contract: FutureHoldoutContract) -> tuple[str, ...]:
@@ -358,6 +456,22 @@ def _normalized_scores(
             raise ValueError(f"holdout score must be finite: {name}")
     if not isinstance(normalized["account_orders"], int):
         raise ValueError("holdout account_orders must be an integer")
+    final_wealth = cast(float | int, normalized["final_wealth"])
+    gross_turnover = cast(float | int, normalized["gross_turnover"])
+    if float(final_wealth) <= 0:
+        raise ValueError("holdout final_wealth must be positive")
+    if int(normalized["account_orders"]) < 0:
+        raise ValueError("holdout account_orders must be nonnegative")
+    if float(gross_turnover) < 0:
+        raise ValueError("holdout gross_turnover must be nonnegative")
+    for name in ("max_drawdown", "top1_concentration", "top3_concentration", "pnl_hhi"):
+        value = cast(float | int, normalized[name])
+        if not 0 <= float(value) <= 1:
+            raise ValueError(f"holdout {name} must be between zero and one")
+    top1 = cast(float | int, normalized["top1_concentration"])
+    top3 = cast(float | int, normalized["top3_concentration"])
+    if float(top3) < float(top1):
+        raise ValueError("holdout top3_concentration must not be below top1_concentration")
     return normalized
 
 
@@ -368,6 +482,7 @@ def _binding_payload(binding: HoldoutBinding) -> dict[str, Any]:
             "commit": raw.pop("production_commit"),
             "source_sha256": raw.pop("production_source_sha256"),
         },
+        "strategy_source_sha256": raw.pop("strategy_source_sha256"),
         "effective_config_sha256": raw.pop("effective_config_sha256"),
         "universe_sha256": raw.pop("universe_sha256"),
         "industry_sha256": raw.pop("industry_sha256"),
@@ -387,6 +502,11 @@ def build_future_holdout_manifest(
     """Build a self-verifying post-checkout snapshot from independently supplied inputs."""
 
     sessions = _session_dates(holdout_sessions, contract=contract)
+    if (
+        binding.strategy_source_sha256 != contract.strategy_source_sha256
+        or binding.effective_config_sha256 != contract.strategy_config_sha256
+    ):
+        raise ValueError("current strategy source or config drifted from the observation anchor")
     normalized_scores = _normalized_scores(scores, sessions=sessions, contract=contract)
     data_sha256 = holdout_data_sha256 or _canonical_sha256(list(sessions))
     if not _SHA256.fullmatch(data_sha256):
@@ -397,6 +517,11 @@ def build_future_holdout_manifest(
         "manifest_id": "phase2-future-holdout-manifest-v1",
         "contract_sha256": contract.sha256,
         "production": binding_payload["production"],
+        "strategy_anchor": {
+            "candidate_commit": contract.strategy_anchor_commit,
+            "decision_source_sha256": binding_payload["strategy_source_sha256"],
+            "effective_config_sha256": contract.strategy_config_sha256,
+        },
         "effective_config_sha256": binding_payload["effective_config_sha256"],
         "universe_sha256": binding_payload["universe_sha256"],
         "industry_sha256": binding_payload["industry_sha256"],
@@ -491,6 +616,27 @@ def _source_paths(root: Path) -> tuple[Path, ...]:
     return paths
 
 
+def _strategy_source_sha256(root: Path) -> str:
+    operational_names = {
+        "__init__.py",
+        "__main__.py",
+        "atomic_io.py",
+        "cli.py",
+        "execution_journal.py",
+        "report.py",
+    }
+    paths = tuple(
+        sorted(
+            path
+            for path in (root / "uquant").glob("*.py")
+            if path.name not in operational_names
+        )
+    )
+    if not paths:
+        raise RuntimeError("cannot resolve anchored strategy source")
+    return _source_sha256(paths, root=root)
+
+
 def _source_sha256(paths: Sequence[Path], *, root: Path, from_git: str | None = None) -> str:
     digest = hashlib.sha256()
     for path in paths:
@@ -522,7 +668,10 @@ def holdout_source_sha256(repository_root: str | Path) -> str:
 def current_holdout_binding(repository_root: str | Path | None = None) -> HoldoutBinding:
     """Resolve a clean exact-HEAD production/runtime binding for post-checkout evidence."""
 
-    root = _repository_root() if repository_root is None else Path(repository_root).resolve()
+    owning_root = _repository_root().resolve()
+    root = owning_root if repository_root is None else Path(repository_root).resolve()
+    if root != owning_root:
+        raise ValueError("holdout binding requires the owning repository root")
     paths = _source_paths(root)
     relative_paths = [
         "uquant",
@@ -556,6 +705,7 @@ def current_holdout_binding(repository_root: str | Path | None = None) -> Holdou
     return HoldoutBinding(
         production_commit=head,
         production_source_sha256=source,
+        strategy_source_sha256=_strategy_source_sha256(root),
         effective_config_sha256=config_fingerprint(DEFAULT_CONFIG),
         universe_sha256=universe.sha256,
         industry_sha256=_industry_sha256(universe),
@@ -571,7 +721,10 @@ def holdout_data_identity(data_dir: str | Path) -> tuple[tuple[str, ...], str]:
     """Bind every isolated future-data byte and return its distinct sessions."""
 
     root = Path(data_dir)
-    paths = tuple(sorted(root.rglob("*.csv"))) if root.is_dir() else ()
+    try:
+        paths = _closed_csv_files(root, label="future holdout", missing_ok=True)
+    except RuntimeError as exc:
+        raise ValueError(str(exc)) from exc
     digest = hashlib.sha256()
     sessions: set[str] = set()
     for path in paths:
@@ -595,12 +748,16 @@ def generate_future_holdout_manifest(
 ) -> dict[str, Any]:
     """Generate the ignored exact-HEAD manifest used by the final acceptance gate."""
 
-    root = _repository_root() if repository_root is None else Path(repository_root).resolve()
+    owning_root = _repository_root().resolve()
+    root = owning_root if repository_root is None else Path(repository_root).resolve()
+    if root != owning_root:
+        raise ValueError("holdout manifest requires the owning repository root")
     contract = load_future_holdout_contract(root / "benchmarks/future_holdout_contract.json")
     validate_holdout_layout(root, contract=contract)
     from ..account import load_account
 
     account = load_account(account_path).to_dict()
+    validate_prior_close_account(account, frozen_data_dir=root / "data/frozen")
     sessions, data_sha256 = holdout_data_identity(root / contract.data_directory)
     if sessions:
         raise RuntimeError("automatic holdout generation requires reviewed metrics for observed sessions")
@@ -620,11 +777,27 @@ def generate_future_holdout_manifest(
         holdout_sessions=sessions,
         holdout_data_sha256=data_sha256,
     )
+    tracked = subprocess.run(
+        ["git", "-C", str(root), "ls-files", "-z"],
+        check=True,
+        capture_output=True,
+    ).stdout.split(b"\0")  # nosec B603
+    protected_paths = [
+        Path(account_path),
+        *(root / value.decode("utf-8") for value in tracked if value),
+        *(path for path in (root / "data/frozen").rglob("*") if path.is_file()),
+        *_closed_csv_files(
+            root / contract.data_directory,
+            label="future holdout",
+            missing_ok=True,
+        ),
+    ]
     destination = Path(output_path)
-    if destination.resolve() == Path(account_path).resolve():
-        raise ValueError("holdout manifest cannot overwrite the prior-close account")
-    destination.parent.mkdir(parents=True, exist_ok=True)
-    destination.write_text(json.dumps(manifest, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    atomic_write_text(
+        destination,
+        json.dumps(manifest, ensure_ascii=False, indent=2) + "\n",
+        protected_paths=protected_paths,
+    )
     validate_future_holdout_manifest(
         _read_json(destination, label="future holdout manifest"),
         contract=contract,

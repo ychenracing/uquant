@@ -2,21 +2,28 @@ from __future__ import annotations
 
 import hashlib
 import json
+from dataclasses import replace
 from pathlib import Path
 
 import pytest
 
+from uquant.data import DataStore
+from uquant.engine import code_fingerprint
+from uquant.validation.ai_era import AI_ERA_WINDOWS
 from uquant.validation.holdout import (
     HOLDOUT_DATA_DIRECTORY,
     HOLDOUT_START,
     LAST_IN_SAMPLE_DATE,
     HoldoutBinding,
     build_future_holdout_manifest,
+    current_holdout_binding,
+    holdout_data_identity,
     holdout_source_sha256,
     load_future_holdout_contract,
     maximum_observed_market_date,
     validate_future_holdout_manifest,
     validate_holdout_layout,
+    validate_prior_close_account,
 )
 
 
@@ -31,7 +38,12 @@ def _binding() -> HoldoutBinding:
     return HoldoutBinding(
         production_commit="1" * 40,
         production_source_sha256="2" * 64,
-        effective_config_sha256="3" * 64,
+        strategy_source_sha256=(
+            "1cbc76ede178659e32d64ed864c162e7f0e4b3e172153c8ba2997374e62435a8"
+        ),
+        effective_config_sha256=(
+            "ed52da44a359c1506e1d299f7bc341ad01b199d7f96997f7c01f2b8eca7cfc13"
+        ),
         universe_sha256="4" * 64,
         industry_sha256="5" * 64,
         python_full_version="3.12.13",
@@ -69,6 +81,15 @@ def test_tracked_contract_freezes_date_path_policy_and_null_scores() -> None:
     assert contract.data_directory == "data/holdout/phase2-future-v1"
     assert contract.review_milestones == (40, 60)
     assert contract.parameter_changes_from_observation is False
+    assert contract.strategy_anchor_commit == "fbbacefe0cb082778e57a84909f344475f556a57"
+    assert (
+        contract.strategy_source_sha256
+        == "1cbc76ede178659e32d64ed864c162e7f0e4b3e172153c8ba2997374e62435a8"
+    )
+    assert (
+        contract.strategy_config_sha256
+        == "ed52da44a359c1506e1d299f7bc341ad01b199d7f96997f7c01f2b8eca7cfc13"
+    )
     assert contract.score_fields == (
         "final_wealth",
         "max_drawdown",
@@ -140,7 +161,7 @@ def test_layout_isolates_future_rows_and_rejects_expanded_phase1_windows(
     contract = load_future_holdout_contract()
     _csv(tmp_path / "data/frozen/a.csv", LAST_IN_SAMPLE_DATE)
     _csv(tmp_path / HOLDOUT_DATA_DIRECTORY / "a.csv", HOLDOUT_START)
-    windows = {"continuous_ai_era": ("2023-01-03", LAST_IN_SAMPLE_DATE)}
+    windows = dict(AI_ERA_WINDOWS)
 
     validate_holdout_layout(tmp_path, contract=contract, phase1_windows=windows)
 
@@ -158,7 +179,10 @@ def test_layout_isolates_future_rows_and_rejects_expanded_phase1_windows(
         validate_holdout_layout(
             tmp_path,
             contract=contract,
-            phase1_windows={"continuous_ai_era": ("2023-01-03", "2026-08-06")},
+            phase1_windows={
+                **AI_ERA_WINDOWS,
+                "continuous_ai_era": ("2023-01-03", "2026-08-06"),
+            },
         )
 
 
@@ -170,8 +194,58 @@ def test_layout_requires_the_observed_frozen_market_boundary(tmp_path: Path) -> 
         validate_holdout_layout(
             tmp_path,
             contract=contract,
-            phase1_windows={"continuous_ai_era": ("2023-01-03", LAST_IN_SAMPLE_DATE)},
+            phase1_windows=AI_ERA_WINDOWS,
         )
+
+
+def test_layout_requires_frozen_data_and_exact_official_windows(tmp_path: Path) -> None:
+    contract = load_future_holdout_contract()
+    with pytest.raises(RuntimeError, match="data/frozen"):
+        validate_holdout_layout(tmp_path, contract=contract)
+
+    _csv(tmp_path / "data/frozen/a.csv", LAST_IN_SAMPLE_DATE)
+    missing = dict(AI_ERA_WINDOWS)
+    missing.pop("h1_2023")
+    with pytest.raises(RuntimeError, match="official Phase 1 windows"):
+        validate_holdout_layout(tmp_path, contract=contract, phase1_windows=missing)
+
+    added = {**AI_ERA_WINDOWS, "new_window": ("2026-08-01", LAST_IN_SAMPLE_DATE)}
+    with pytest.raises(RuntimeError, match="official Phase 1 windows"):
+        validate_holdout_layout(tmp_path, contract=contract, phase1_windows=added)
+
+    moved_start = {**AI_ERA_WINDOWS, "h1_2023": ("2023-01-04", "2023-06-30")}
+    with pytest.raises(RuntimeError, match="official Phase 1 windows"):
+        validate_holdout_layout(tmp_path, contract=contract, phase1_windows=moved_start)
+
+
+def test_holdout_data_rejects_symlinks_and_unknown_file_types(tmp_path: Path) -> None:
+    contract = load_future_holdout_contract()
+    _csv(tmp_path / "data/frozen/a.csv", LAST_IN_SAMPLE_DATE)
+    outside = tmp_path / "outside"
+    _csv(outside / "a.csv", HOLDOUT_START)
+    holdout = tmp_path / HOLDOUT_DATA_DIRECTORY
+    holdout.parent.mkdir(parents=True)
+    holdout.symlink_to(outside, target_is_directory=True)
+    with pytest.raises(RuntimeError, match="symlink"):
+        validate_holdout_layout(tmp_path, contract=contract)
+    holdout.unlink()
+
+    holdout.mkdir()
+    (holdout / "linked.csv").symlink_to(outside / "a.csv")
+    with pytest.raises(RuntimeError, match="symlink"):
+        validate_holdout_layout(tmp_path, contract=contract)
+    (holdout / "linked.csv").unlink()
+
+    (holdout / "future.parquet").write_bytes(b"not-csv")
+    with pytest.raises(RuntimeError, match="unsupported"):
+        validate_holdout_layout(tmp_path, contract=contract)
+    with pytest.raises(ValueError, match="unsupported"):
+        holdout_data_identity(holdout)
+
+
+def test_current_binding_refuses_a_mixed_repository_root(tmp_path: Path) -> None:
+    with pytest.raises(ValueError, match="owning repository"):
+        current_holdout_binding(tmp_path)
 
 
 def test_null_manifest_carries_prior_close_state_and_rejects_metrics() -> None:
@@ -212,6 +286,31 @@ def test_null_manifest_carries_prior_close_state_and_rejects_metrics() -> None:
         )
 
 
+def test_prior_close_account_must_match_current_code_and_frozen_prefix(
+    tmp_path: Path,
+) -> None:
+    frozen = tmp_path / "data/frozen"
+    _csv(frozen / "sz300308.csv", "2026-08-04", LAST_IN_SAMPLE_DATE)
+    account = _account()
+    account.update(
+        code_hash=code_fingerprint(),
+        data_hash_symbols=["sz300308"],
+        data_hash=DataStore(frozen).manifest(
+            ["sz300308"], as_of=LAST_IN_SAMPLE_DATE
+        ).digest,
+    )
+
+    validate_prior_close_account(account, frozen_data_dir=frozen)
+
+    stale_code = {**account, "code_hash": "0" * 64}
+    with pytest.raises(ValueError, match="code fingerprint"):
+        validate_prior_close_account(stale_code, frozen_data_dir=frozen)
+
+    stale_data = {**account, "data_hash": "1" * 64}
+    with pytest.raises(ValueError, match="frozen prefix"):
+        validate_prior_close_account(stale_data, frozen_data_dir=frozen)
+
+
 def test_manifest_fails_closed_when_state_binding_or_policy_is_stale() -> None:
     contract = load_future_holdout_contract()
     binding = _binding()
@@ -242,6 +341,21 @@ def test_manifest_fails_closed_when_state_binding_or_policy_is_stale() -> None:
             holdout_sessions=(),
         )
 
+    with pytest.raises(ValueError, match="strategy source or config drifted"):
+        build_future_holdout_manifest(
+            contract=contract,
+            binding=replace(binding, strategy_source_sha256="7" * 64),
+            account_payload=account,
+            holdout_sessions=(),
+        )
+    with pytest.raises(ValueError, match="strategy source or config drifted"):
+        build_future_holdout_manifest(
+            contract=contract,
+            binding=replace(binding, effective_config_sha256="8" * 64),
+            account_payload=account,
+            holdout_sessions=(),
+        )
+
     changed_manifest = json.loads(json.dumps(manifest))
     changed_manifest["observation"]["parameter_changes_from_observation"] = True
     with pytest.raises(ValueError, match="parameter changes"):
@@ -251,4 +365,39 @@ def test_manifest_fails_closed_when_state_binding_or_policy_is_stale() -> None:
             binding=binding,
             account_payload=account,
             holdout_sessions=(),
+        )
+
+
+@pytest.mark.parametrize(
+    ("field", "value"),
+    (
+        ("final_wealth", 0.0),
+        ("max_drawdown", -0.01),
+        ("max_drawdown", 1.01),
+        ("account_orders", -1),
+        ("gross_turnover", -0.01),
+        ("top1_concentration", 1.01),
+        ("top3_concentration", -0.01),
+        ("top3_concentration", 0.3),
+        ("pnl_hhi", 1.01),
+    ),
+)
+def test_observed_scores_enforce_metric_specific_bounds(field: str, value: float) -> None:
+    scores: dict[str, float | int | None] = {
+        "final_wealth": 1_000_000.0,
+        "max_drawdown": 0.1,
+        "account_orders": 1,
+        "gross_turnover": 0.5,
+        "top1_concentration": 0.4,
+        "top3_concentration": 0.8,
+        "pnl_hhi": 0.3,
+    }
+    scores[field] = value
+    with pytest.raises(ValueError, match=field):
+        build_future_holdout_manifest(
+            contract=load_future_holdout_contract(),
+            binding=_binding(),
+            account_payload=_account(),
+            holdout_sessions=(HOLDOUT_START,),
+            scores=scores,
         )

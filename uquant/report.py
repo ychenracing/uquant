@@ -20,6 +20,10 @@ def render_execution_journal(records: tuple[JournalRecord, ...]) -> str:
         "|---:|---|---|---|---|---:|---:|---:|---:|---:|---|",
     ]
     plans: dict[str, JournalRecord] = {}
+
+    def markdown_cell(value: str) -> str:
+        return value.replace("\\", "\\\\").replace("|", "\\|").replace("\r\n", "<br>").replace("\n", "<br>").replace("\r", "<br>")
+
     for item in records:
         if item.status is JournalStatus.PLANNED:
             plans[item.plan_id] = item
@@ -42,7 +46,7 @@ def render_execution_journal(records: tuple[JournalRecord, ...]) -> str:
                     "" if item.actual_price is None else f"{item.actual_price:.4f}",
                     "" if item.actual_shares is None else str(item.actual_shares),
                     slippage,
-                    item.manual_skip or "",
+                    markdown_cell(item.manual_skip or ""),
                 )
             )
             + " |"

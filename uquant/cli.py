@@ -7,6 +7,7 @@ import json
 from pathlib import Path
 
 from .account import load_account, migrate_account, save_account
+from .atomic_io import atomic_write_text
 from .broker import sync_broker_snapshot
 from .config import DEFAULT_CONFIG
 from .engine import ProductionEngine, code_fingerprint
@@ -218,7 +219,11 @@ def main(argv: list[str] | None = None) -> int:
         else:
             rendered = render_execution_journal(read_execution_journal(args.journal))
             if args.output:
-                Path(args.output).write_text(rendered, encoding="utf-8")
+                atomic_write_text(
+                    args.output,
+                    rendered,
+                    protected_paths=(args.journal,),
+                )
             print(rendered)
             return 0
         print(json.dumps(record_to_dict(record), ensure_ascii=False, sort_keys=True))

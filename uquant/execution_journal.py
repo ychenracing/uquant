@@ -2,11 +2,14 @@
 
 from __future__ import annotations
 
+import fcntl
 import hashlib
 import json
 import math
 import os
 import re
+import stat
+from collections.abc import Callable
 from contextlib import suppress
 from dataclasses import asdict, dataclass
 from datetime import datetime
@@ -68,7 +71,7 @@ def _hash_record(value: dict[str, Any]) -> str:
     return hashlib.sha256(_canonical_bytes(value, omit_hash=True)).hexdigest()
 
 
-def _timestamp(value: str, *, field: str) -> str:
+def _timestamp(value: str, *, field: str) -> datetime:
     if not isinstance(value, str):
         raise ValueError(f"journal {field} must be an ISO timestamp")
     try:
@@ -77,7 +80,7 @@ def _timestamp(value: str, *, field: str) -> str:
         raise ValueError(f"journal {field} must be an ISO timestamp") from exc
     if parsed.tzinfo is None or parsed.utcoffset() is None:
         raise ValueError(f"journal {field} must include a UTC offset")
-    return value
+    return parsed
 
 
 def _positive_number(value: float, *, field: str) -> float:
@@ -145,6 +148,10 @@ def _validate_record(record: JournalRecord) -> None:
         _positive_shares(record.actual_shares, field="actual_shares")
         if any(value is None for value in (record.slippage_per_share, record.slippage_bps, record.slippage_value)):
             raise ValueError("filled journal event lacks derived slippage")
+        for field in ("slippage_per_share", "slippage_bps", "slippage_value"):
+            value = getattr(record, field)
+            if isinstance(value, bool) or not isinstance(value, (int, float)) or not math.isfinite(float(value)):
+                raise ValueError(f"journal {field} must be finite")
         if any(value is not None for value in (record.symbol, record.side, record.planned_price, record.planned_shares, record.manual_skip)):
             raise ValueError("filled journal event duplicates planned or skip data")
     else:
@@ -171,31 +178,35 @@ def _validate_record(record: JournalRecord) -> None:
             raise ValueError("skipped journal event contains unrelated data")
 
 
-def read_execution_journal(path: str | Path) -> tuple[JournalRecord, ...]:
-    """Read and validate the complete append-only hash chain and lifecycle."""
-
-    source = Path(path)
-    if not source.exists():
-        return ()
-    if source.is_symlink() or not source.is_file():
-        raise ValueError("execution journal must be a regular file")
+def _decode_journal_text(text: str) -> tuple[JournalRecord, ...]:
     records: list[JournalRecord] = []
     previous = _ZERO_HASH
-    try:
-        lines = source.read_text(encoding="utf-8").splitlines()
-    except (OSError, UnicodeError) as exc:
-        raise ValueError("execution journal is unreadable") from exc
+    lines = text.splitlines()
     if any(not line.strip() for line in lines):
         raise ValueError("execution journal contains an empty record")
-    plans: dict[str, JournalRecord] = {}
-    filled_shares: dict[str, int] = {}
-    terminal: set[str] = set()
     for sequence, line in enumerate(lines, start=1):
         try:
             raw = json.loads(line, parse_constant=lambda value: (_ for _ in ()).throw(ValueError(value)))
         except (json.JSONDecodeError, ValueError) as exc:
             raise ValueError("execution journal contains invalid JSON") from exc
         record = _decode_record(raw, previous=previous, sequence=sequence)
+        records.append(record)
+        previous = record.record_sha256
+    _validate_lifecycle(records)
+    return tuple(records)
+
+
+def _validate_lifecycle(records: list[JournalRecord] | tuple[JournalRecord, ...]) -> None:
+    plans: dict[str, JournalRecord] = {}
+    filled_shares: dict[str, int] = {}
+    plan_opens: dict[str, float] = {}
+    terminal: set[str] = set()
+    prior_recorded: datetime | None = None
+    for record in records:
+        recorded = _timestamp(record.recorded_at, field="recorded_at")
+        if prior_recorded is not None and recorded < prior_recorded:
+            raise ValueError("execution journal chronology is not monotonic")
+        prior_recorded = recorded
         if record.status is JournalStatus.PLANNED:
             if record.plan_id in plans:
                 raise ValueError("execution journal plan_id is duplicated")
@@ -207,7 +218,18 @@ def read_execution_journal(path: str | Path) -> tuple[JournalRecord, ...]:
                 raise ValueError("execution journal event references an unknown plan")
             if record.plan_id in terminal:
                 raise ValueError("execution journal plan is already terminal")
+            planned_at = _timestamp(plan.recorded_at, field="recorded_at")
+            if recorded < planned_at:
+                raise ValueError("execution journal event chronology predates its plan")
+            assert record.next_open is not None
+            prior_open = plan_opens.setdefault(record.plan_id, record.next_open)
+            if record.next_open != prior_open:
+                raise ValueError("execution journal next open differs within one plan")
             if record.status is JournalStatus.FILLED:
+                assert record.actual_time is not None
+                actual_time = _timestamp(record.actual_time, field="actual_time")
+                if actual_time < planned_at or actual_time > recorded:
+                    raise ValueError("execution journal fill chronology is invalid")
                 assert record.actual_shares is not None
                 total = filled_shares[record.plan_id] + record.actual_shares
                 assert plan.planned_shares is not None
@@ -216,61 +238,110 @@ def read_execution_journal(path: str | Path) -> tuple[JournalRecord, ...]:
                 filled_shares[record.plan_id] = total
                 if total == plan.planned_shares:
                     terminal.add(record.plan_id)
+                assert plan.side is not None
+                assert record.actual_price is not None
+                direction = 1.0 if plan.side == "BUY" else -1.0
+                per_share = direction * (record.actual_price - record.next_open)
+                expected = (
+                    per_share,
+                    per_share / record.next_open * 10_000.0,
+                    per_share * record.actual_shares,
+                )
+                observed = (
+                    record.slippage_per_share,
+                    record.slippage_bps,
+                    record.slippage_value,
+                )
+                if any(
+                    value is None
+                    or not math.isclose(float(value), wanted, rel_tol=1e-12, abs_tol=1e-12)
+                    for value, wanted in zip(observed, expected, strict=True)
+                ):
+                    raise ValueError("execution journal derived slippage is invalid")
             else:
                 terminal.add(record.plan_id)
-        records.append(record)
-        previous = record.record_sha256
-    return tuple(records)
 
 
-def _append(path: Path, payload: dict[str, Any]) -> JournalRecord:
-    records = read_execution_journal(path)
-    payload.update(
-        schema_version=1,
-        sequence=len(records) + 1,
-        previous_sha256=records[-1].record_sha256 if records else _ZERO_HASH,
-    )
-    payload["record_sha256"] = _hash_record(payload)
-    record = _decode_record(
-        payload,
-        previous=payload["previous_sha256"],
-        sequence=payload["sequence"],
-    )
-    matching = tuple(item for item in records if item.plan_id == record.plan_id)
-    if record.status is JournalStatus.PLANNED:
-        if matching:
-            raise ValueError("execution journal plan_id is duplicated")
-    else:
-        plan = next(
-            (item for item in matching if item.status is JournalStatus.PLANNED),
-            None,
-        )
-        if plan is None:
-            raise ValueError("execution journal event references an unknown plan")
-        if any(item.status is JournalStatus.SKIPPED for item in matching):
-            raise ValueError("execution journal plan is already terminal")
-        prior_fills = tuple(item for item in matching if item.status is JournalStatus.FILLED)
-        assert plan.planned_shares is not None
-        filled = sum(item.actual_shares or 0 for item in prior_fills)
-        if filled == plan.planned_shares:
-            raise ValueError("execution journal plan is already terminal")
-        if record.status is JournalStatus.FILLED:
-            assert record.actual_shares is not None
-            if filled + record.actual_shares > plan.planned_shares:
-                raise ValueError("execution journal fills exceed planned shares")
-    path.parent.mkdir(parents=True, exist_ok=True)
-    flags = os.O_APPEND | os.O_CREAT | os.O_WRONLY
-    descriptor = os.open(path, flags, 0o600)
+def _read_descriptor(descriptor: int) -> tuple[JournalRecord, ...]:
+    os.lseek(descriptor, 0, os.SEEK_SET)
     try:
-        with os.fdopen(descriptor, "ab", closefd=True) as handle:
-            handle.write(_canonical_bytes(payload) + b"\n")
-            handle.flush()
-            os.fsync(handle.fileno())
-    except BaseException:
+        with os.fdopen(os.dup(descriptor), "r", encoding="utf-8") as handle:
+            return _decode_journal_text(handle.read())
+    except (OSError, UnicodeError) as exc:
+        raise ValueError("execution journal is unreadable") from exc
+
+
+def read_execution_journal(path: str | Path) -> tuple[JournalRecord, ...]:
+    """Read and validate the complete append-only hash chain and lifecycle."""
+
+    source = Path(path)
+    flags = os.O_RDONLY | getattr(os, "O_NOFOLLOW", 0)
+    try:
+        descriptor = os.open(source, flags)
+    except FileNotFoundError:
+        return ()
+    except OSError as exc:
+        raise ValueError("execution journal must be a regular file") from exc
+    try:
+        fcntl.flock(descriptor, fcntl.LOCK_SH)
+        if not stat.S_ISREG(os.fstat(descriptor).st_mode):
+            raise ValueError("execution journal must be a regular file")
+        return _read_descriptor(descriptor)
+    finally:
         with suppress(OSError):
-            os.close(descriptor)
-        raise
-    return record
+            fcntl.flock(descriptor, fcntl.LOCK_UN)
+        os.close(descriptor)
+
+
+PayloadFactory = Callable[[tuple[JournalRecord, ...]], dict[str, Any]]
+
+
+def _fsync_directory(path: Path) -> None:
+    if os.name == "nt":
+        return
+    descriptor = os.open(path, os.O_RDONLY | getattr(os, "O_DIRECTORY", 0))
+    try:
+        os.fsync(descriptor)
+    finally:
+        os.close(descriptor)
+
+
+def _append(path: Path, payload_factory: PayloadFactory) -> JournalRecord:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    flags = os.O_APPEND | os.O_CREAT | os.O_RDWR | getattr(os, "O_NOFOLLOW", 0)
+    try:
+        descriptor = os.open(path, flags, 0o600)
+    except OSError as exc:
+        raise ValueError("execution journal must be a regular file") from exc
+    try:
+        fcntl.flock(descriptor, fcntl.LOCK_EX)
+        if not stat.S_ISREG(os.fstat(descriptor).st_mode):
+            raise ValueError("execution journal must be a regular file")
+        records = _read_descriptor(descriptor)
+        payload = payload_factory(records)
+        payload.update(
+            schema_version=1,
+            sequence=len(records) + 1,
+            previous_sha256=records[-1].record_sha256 if records else _ZERO_HASH,
+        )
+        payload["record_sha256"] = _hash_record(payload)
+        record = _decode_record(
+            payload,
+            previous=payload["previous_sha256"],
+            sequence=payload["sequence"],
+        )
+        _validate_lifecycle([*records, record])
+        encoded = _canonical_bytes(payload) + b"\n"
+        written = os.write(descriptor, encoded)
+        if written != len(encoded):
+            raise OSError("short execution journal append")
+        os.fsync(descriptor)
+        _fsync_directory(path.parent)
+        return record
+    finally:
+        with suppress(OSError):
+            fcntl.flock(descriptor, fcntl.LOCK_UN)
+        os.close(descriptor)
 
 
 def _event_payload(
@@ -322,18 +393,16 @@ def append_planned(
 ) -> JournalRecord:
     """Append one operator-authored next-open execution plan."""
 
-    return _append(
-        Path(path),
-        _event_payload(
-            status=JournalStatus.PLANNED,
-            plan_id=plan_id,
-            recorded_at=recorded_at,
-            symbol=symbol,
-            side=side,
-            planned_price=planned_price,
-            planned_shares=planned_shares,
-        ),
+    payload = _event_payload(
+        status=JournalStatus.PLANNED,
+        plan_id=plan_id,
+        recorded_at=recorded_at,
+        symbol=symbol,
+        side=side,
+        planned_price=planned_price,
+        planned_shares=planned_shares,
     )
+    return _append(Path(path), lambda _: payload)
 
 
 def append_filled(
@@ -348,21 +417,24 @@ def append_filled(
 ) -> JournalRecord:
     """Append an actual manual fill with slippage versus the observed next open."""
 
-    records = read_execution_journal(path)
-    plan = next(
-        (item for item in records if item.plan_id == plan_id and item.status is JournalStatus.PLANNED),
-        None,
-    )
-    if plan is None or plan.side is None:
-        raise ValueError("execution journal fill references an unknown plan")
     open_price = _positive_number(next_open, field="next_open")
     fill_price = _positive_number(actual_price, field="actual_price")
     shares = _positive_shares(actual_shares, field="actual_shares")
-    direction = 1.0 if plan.side == "BUY" else -1.0
-    per_share = direction * (fill_price - open_price)
-    return _append(
-        Path(path),
-        _event_payload(
+
+    def payload(records: tuple[JournalRecord, ...]) -> dict[str, Any]:
+        plan = next(
+            (
+                item
+                for item in records
+                if item.plan_id == plan_id and item.status is JournalStatus.PLANNED
+            ),
+            None,
+        )
+        if plan is None or plan.side is None:
+            raise ValueError("execution journal fill references an unknown plan")
+        direction = 1.0 if plan.side == "BUY" else -1.0
+        per_share = direction * (fill_price - open_price)
+        return _event_payload(
             status=JournalStatus.FILLED,
             plan_id=plan_id,
             recorded_at=recorded_at,
@@ -373,8 +445,9 @@ def append_filled(
             slippage_per_share=per_share,
             slippage_bps=per_share / open_price * 10_000.0,
             slippage_value=per_share * shares,
-        ),
-    )
+        )
+
+    return _append(Path(path), payload)
 
 
 def append_skipped(
@@ -387,16 +460,14 @@ def append_skipped(
 ) -> JournalRecord:
     """Append an explicit manual decision not to execute the remaining plan."""
 
-    return _append(
-        Path(path),
-        _event_payload(
-            status=JournalStatus.SKIPPED,
-            plan_id=plan_id,
-            recorded_at=recorded_at,
-            next_open=next_open,
-            manual_skip=manual_skip,
-        ),
+    payload = _event_payload(
+        status=JournalStatus.SKIPPED,
+        plan_id=plan_id,
+        recorded_at=recorded_at,
+        next_open=next_open,
+        manual_skip=manual_skip,
     )
+    return _append(Path(path), lambda _: payload)
 
 
 def record_to_dict(record: JournalRecord) -> dict[str, Any]:

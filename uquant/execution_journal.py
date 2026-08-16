@@ -56,6 +56,25 @@ class JournalRecord:
     record_sha256: str
 
 
+@dataclass(frozen=True, slots=True)
+class JournalCheckpoint:
+    """Externally retained journal position used to verify later readback."""
+
+    schema_version: int
+    sequence: int
+    record_sha256: str
+
+    def __post_init__(self) -> None:
+        if self.schema_version != 1:
+            raise ValueError("trusted checkpoint schema is malformed")
+        if isinstance(self.sequence, bool) or not isinstance(self.sequence, int) or self.sequence < 0:
+            raise ValueError("trusted checkpoint sequence is malformed")
+        if not _SHA256.fullmatch(self.record_sha256):
+            raise ValueError("trusted checkpoint hash is malformed")
+        if self.sequence == 0 and self.record_sha256 != _ZERO_HASH:
+            raise ValueError("trusted empty checkpoint hash is malformed")
+
+
 def _canonical_bytes(value: dict[str, Any], *, omit_hash: bool = False) -> bytes:
     payload = {key: item for key, item in value.items() if key != "record_sha256"} if omit_hash else value
     return json.dumps(
@@ -271,22 +290,63 @@ def _read_descriptor(descriptor: int) -> tuple[JournalRecord, ...]:
         raise ValueError("execution journal is unreadable") from exc
 
 
-def read_execution_journal(path: str | Path) -> tuple[JournalRecord, ...]:
-    """Read and validate the complete append-only hash chain and lifecycle."""
+def _verify_checkpoint(
+    records: tuple[JournalRecord, ...],
+    trusted_checkpoint: JournalCheckpoint | None,
+) -> None:
+    if trusted_checkpoint is None:
+        return
+    if len(records) < trusted_checkpoint.sequence:
+        raise ValueError("execution journal is behind the trusted checkpoint")
+    if trusted_checkpoint.sequence == 0:
+        return
+    retained = records[trusted_checkpoint.sequence - 1]
+    if retained.record_sha256 != trusted_checkpoint.record_sha256:
+        raise ValueError("execution journal differs from the trusted checkpoint")
+
+
+def execution_journal_checkpoint(
+    records: tuple[JournalRecord, ...],
+) -> JournalCheckpoint:
+    """Return a tail checkpoint that must be retained outside the journal."""
+
+    if not records:
+        return JournalCheckpoint(
+            schema_version=1,
+            sequence=0,
+            record_sha256=_ZERO_HASH,
+        )
+    return JournalCheckpoint(
+        schema_version=1,
+        sequence=len(records),
+        record_sha256=records[-1].record_sha256,
+    )
+
+
+def read_execution_journal(
+    path: str | Path,
+    *,
+    trusted_checkpoint: JournalCheckpoint | None = None,
+) -> tuple[JournalRecord, ...]:
+    """Validate the journal, plus continuity from an externally retained tail."""
 
     source = Path(path)
     flags = os.O_RDONLY | getattr(os, "O_NOFOLLOW", 0)
     try:
         descriptor = os.open(source, flags)
     except FileNotFoundError:
-        return ()
+        records: tuple[JournalRecord, ...] = ()
+        _verify_checkpoint(records, trusted_checkpoint)
+        return records
     except OSError as exc:
         raise ValueError("execution journal must be a regular file") from exc
     try:
         fcntl.flock(descriptor, fcntl.LOCK_SH)
         if not stat.S_ISREG(os.fstat(descriptor).st_mode):
             raise ValueError("execution journal must be a regular file")
-        return _read_descriptor(descriptor)
+        records = _read_descriptor(descriptor)
+        _verify_checkpoint(records, trusted_checkpoint)
+        return records
     finally:
         with suppress(OSError):
             fcntl.flock(descriptor, fcntl.LOCK_UN)

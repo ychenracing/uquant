@@ -7,21 +7,12 @@ import json
 from pathlib import Path
 
 from .account import load_account, migrate_account, save_account
-from .atomic_io import atomic_write_text
 from .broker import sync_broker_snapshot
 from .config import DEFAULT_CONFIG
 from .engine import ProductionEngine, code_fingerprint
-from .execution_journal import (
-    append_filled,
-    append_planned,
-    append_skipped,
-    read_execution_journal,
-    record_to_dict,
-)
 from .leader import REFERENCE_UNIVERSE
-from .report import render_daily_report, render_execution_journal
+from .report import render_daily_report
 from .types import AccountState
-from .validation.holdout import generate_future_holdout_manifest
 
 
 def _parser() -> argparse.ArgumentParser:
@@ -76,6 +67,11 @@ def _parser() -> argparse.ArgumentParser:
     backtest.add_argument("--output", default=None)
     holdout = sub.add_parser("holdout-manifest")
     holdout.add_argument("--account", required=True)
+    holdout.add_argument(
+        "--metrics",
+        default=None,
+        help="independent observed-session metrics JSON (required after sessions exist)",
+    )
     holdout.add_argument("--output", default="benchmarks/future_holdout_manifest.json")
     journal = sub.add_parser("execution-journal")
     journal_sub = journal.add_subparsers(dest="journal_action", required=True)
@@ -181,13 +177,24 @@ def main(argv: list[str] | None = None) -> int:
         print(payload)
         return 0
     if args.command == "holdout-manifest":
+        from .validation.holdout import generate_future_holdout_manifest
+
         holdout_manifest = generate_future_holdout_manifest(
             account_path=args.account,
             output_path=args.output,
+            metrics_path=args.metrics,
         )
         print(json.dumps(holdout_manifest, ensure_ascii=False, sort_keys=True))
         return 0
     if args.command == "execution-journal":
+        from .execution_journal import (
+            append_filled,
+            append_planned,
+            append_skipped,
+            read_execution_journal,
+            record_to_dict,
+        )
+
         if args.journal_action == "planned":
             record = append_planned(
                 args.journal,
@@ -217,6 +224,9 @@ def main(argv: list[str] | None = None) -> int:
                 manual_skip=args.manual_skip,
             )
         else:
+            from .atomic_io import atomic_write_text
+            from .report import render_execution_journal
+
             rendered = render_execution_journal(read_execution_journal(args.journal))
             if args.output:
                 atomic_write_text(

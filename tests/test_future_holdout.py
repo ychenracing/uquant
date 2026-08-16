@@ -7,8 +7,10 @@ from pathlib import Path
 
 import pytest
 
+from uquant.account import save_account
 from uquant.data import DataStore
 from uquant.engine import code_fingerprint
+from uquant.types import AccountState
 from uquant.validation import ai_era as ai_era_module
 from uquant.validation import holdout as holdout_module
 from uquant.validation.ai_era import AI_ERA_WINDOWS
@@ -17,7 +19,11 @@ from uquant.validation.holdout import (
     HOLDOUT_START,
     LAST_IN_SAMPLE_DATE,
     HoldoutBinding,
+    _assemble_future_holdout_manifest,
+    _strategy_account_code_sha256,
     _strategy_source_sha256,
+    _validate_future_holdout_manifest_payload,
+    _validated_strategy_cli_sha256,
     build_future_holdout_manifest,
     current_holdout_binding,
     holdout_data_identity,
@@ -43,6 +49,9 @@ def _binding() -> HoldoutBinding:
         production_source_sha256="2" * 64,
         strategy_source_sha256=(
             "e8cb6ea872a3d83ba963d7a4e485b9b934d96fdd051f8cb815573f52a3a899f2"
+        ),
+        strategy_cli_sha256=(
+            "db34c26631b9b64c6d359149b927f0bee86c89dba74360efddc922342b6f24ad"
         ),
         effective_config_sha256=(
             "ed52da44a359c1506e1d299f7bc341ad01b199d7f96997f7c01f2b8eca7cfc13"
@@ -76,6 +85,16 @@ def _account() -> dict[str, object]:
     }
 
 
+def _single_holdout_file_sha256(relative: str, content: bytes) -> str:
+    digest = hashlib.sha256()
+    encoded_relative = relative.encode()
+    digest.update(len(encoded_relative).to_bytes(4, "big"))
+    digest.update(encoded_relative)
+    digest.update(len(content).to_bytes(8, "big"))
+    digest.update(content)
+    return digest.hexdigest()
+
+
 def test_tracked_contract_freezes_date_path_policy_and_null_scores() -> None:
     contract = load_future_holdout_contract()
 
@@ -93,6 +112,14 @@ def test_tracked_contract_freezes_date_path_policy_and_null_scores() -> None:
     assert (
         contract.strategy_config_sha256
         == "ed52da44a359c1506e1d299f7bc341ad01b199d7f96997f7c01f2b8eca7cfc13"
+    )
+    assert (
+        contract.strategy_cli_sha256
+        == "db34c26631b9b64c6d359149b927f0bee86c89dba74360efddc922342b6f24ad"
+    )
+    assert (
+        contract.strategy_account_code_sha256
+        == "afd9073e25cc181183f31ab81d88bb9a33dbc5a7589fe4956f486eead7b9cb59"
     )
     assert contract.score_fields == (
         "final_wealth",
@@ -292,6 +319,15 @@ def test_current_binding_refuses_a_mixed_repository_root(tmp_path: Path) -> None
 def _minimal_strategy_tree(root: Path) -> None:
     files = {
         "uquant/decision.py": "decision = 1\n",
+        "uquant/cli.py": (
+            "def main(args):\n"
+            "    if args.command == 'daily':\n"
+            "        engine = ProductionEngine(args.data_dir)\n"
+            "        account = load_account(args.account)\n"
+            "        decision = engine.decide(account=account)\n"
+            "        account.pending_orders = list(decision.pending_orders)\n"
+            "        save_account(account, args.account)\n"
+        ),
         "uquant/validation/ai_era.py": "windows = 1\n",
         "uquant/validation/resources/ai_universe_manifest.json": "{}\n",
         "benchmarks/reference_registry.json": "{}\n",
@@ -332,22 +368,91 @@ def test_strategy_anchor_hash_closes_the_recursive_path_inventory(tmp_path: Path
     assert _strategy_source_sha256(tmp_path) != before
 
 
+def test_strategy_anchor_hash_covers_cli_decision_and_account_persistence(
+    tmp_path: Path,
+) -> None:
+    _minimal_strategy_tree(tmp_path)
+    cli_hash = getattr(holdout_module, "_strategy_cli_sha256", None)
+    assert cli_hash is not None
+    before = cli_hash(tmp_path)
+    (tmp_path / "uquant/cli.py").write_text(
+        "def main(args):\n"
+        "    if args.command == 'daily':\n"
+        "        engine = ProductionEngine(args.data_dir, cfg=forged_config)\n"
+        "        account = load_account(args.account)\n"
+        "        decision = engine.decide(account=account)\n"
+        "        account.pending_orders = []\n"
+        "        save_account(account, args.account)\n",
+        encoding="utf-8",
+    )
+
+    assert cli_hash(tmp_path) != before
+    repository_root = Path(holdout_module.__file__).resolve().parents[2]
+    assert (
+        _validated_strategy_cli_sha256(repository_root)
+        == "db34c26631b9b64c6d359149b927f0bee86c89dba74360efddc922342b6f24ad"
+    )
+
+
+def test_cli_anchor_does_not_subtract_side_effecting_operational_parser_code(
+    tmp_path: Path,
+) -> None:
+    cli = tmp_path / "uquant/cli.py"
+    cli.parent.mkdir(parents=True)
+    cli.write_text(
+        "def _parser(sub):\n"
+        "    return sub\n",
+        encoding="utf-8",
+    )
+    before = holdout_module._strategy_cli_sha256(tmp_path)
+    cli.write_text(
+        "def _parser(sub):\n"
+        "    holdout = sub.add_parser(\n"
+        "        'holdout-manifest', help=mutate_default_config()\n"
+        "    )\n"
+        "    return sub\n",
+        encoding="utf-8",
+    )
+
+    assert holdout_module._strategy_cli_sha256(tmp_path) != before
+
+    cli.write_text(
+        "def main(args):\n"
+        "    return 2\n",
+        encoding="utf-8",
+    )
+    before = holdout_module._strategy_cli_sha256(tmp_path)
+    cli.write_text(
+        "def main(args):\n"
+        "    if args.command == 'holdout-manifest':\n"
+        "        return 0\n"
+        "    else:\n"
+        "        mutate_default_config()\n"
+        "    return 2\n",
+        encoding="utf-8",
+    )
+
+    assert holdout_module._strategy_cli_sha256(tmp_path) != before
+
+
 def test_null_manifest_carries_prior_close_state_and_rejects_metrics() -> None:
     contract = load_future_holdout_contract()
     binding = _binding()
     account = _account()
 
-    manifest = build_future_holdout_manifest(
+    manifest = _assemble_future_holdout_manifest(
         contract=contract,
         binding=binding,
         account_payload=account,
         holdout_sessions=(),
+        holdout_data_sha256="a" * 64,
     )
 
     assert manifest["observation"] == {
         "session_count": 0,
         "first_session": None,
         "last_session": None,
+        "metrics_sha256": None,
         "parameter_changes_from_observation": False,
     }
     assert all(value is None for value in manifest["scores"].values())
@@ -361,23 +466,29 @@ def test_null_manifest_carries_prior_close_state_and_rejects_metrics() -> None:
     }
 
     with pytest.raises(ValueError, match="scores must be null when no holdout sessions exist"):
-        build_future_holdout_manifest(
+        _assemble_future_holdout_manifest(
             contract=contract,
             binding=binding,
             account_payload=account,
             holdout_sessions=(),
             scores={"final_wealth": 1.0},
+            holdout_data_sha256="a" * 64,
         )
 
 
-def test_prior_close_account_must_match_current_code_and_frozen_prefix(
+def test_prior_close_account_carries_the_exact_frozen_candidate_code_hash(
     tmp_path: Path,
 ) -> None:
+    repository_root = Path(holdout_module.__file__).resolve().parents[2]
+    assert (
+        _strategy_account_code_sha256(repository_root)
+        == "afd9073e25cc181183f31ab81d88bb9a33dbc5a7589fe4956f486eead7b9cb59"
+    )
     frozen = tmp_path / "data/frozen"
     _csv(frozen / "sz300308.csv", "2026-08-04", LAST_IN_SAMPLE_DATE)
     account = _account()
     account.update(
-        code_hash=code_fingerprint(),
+        code_hash="afd9073e25cc181183f31ab81d88bb9a33dbc5a7589fe4956f486eead7b9cb59",
         data_hash_symbols=["sz300308"],
         data_hash=DataStore(frozen).manifest(
             ["sz300308"], as_of=LAST_IN_SAMPLE_DATE
@@ -386,69 +497,183 @@ def test_prior_close_account_must_match_current_code_and_frozen_prefix(
 
     validate_prior_close_account(account, frozen_data_dir=frozen)
 
-    stale_code = {**account, "code_hash": "0" * 64}
-    with pytest.raises(ValueError, match="code fingerprint"):
-        validate_prior_close_account(stale_code, frozen_data_dir=frozen)
+    mutable_current_code = {**account, "code_hash": code_fingerprint()}
+    with pytest.raises(ValueError, match="frozen candidate"):
+        validate_prior_close_account(mutable_current_code, frozen_data_dir=frozen)
 
     stale_data = {**account, "data_hash": "1" * 64}
     with pytest.raises(ValueError, match="frozen prefix"):
         validate_prior_close_account(stale_data, frozen_data_dir=frozen)
 
 
+def test_manifest_readback_rebuilds_observed_evidence_from_authoritative_files(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    monkeypatch.setattr(holdout_module, "_repository_root", lambda: tmp_path)
+    monkeypatch.setattr(
+        holdout_module,
+        "current_holdout_binding",
+        lambda repository_root=None: _binding(),
+    )
+    contract_source = Path("benchmarks/future_holdout_contract.json")
+    contract_path = tmp_path / "benchmarks/future_holdout_contract.json"
+    contract_path.parent.mkdir(parents=True)
+    contract_path.write_bytes(contract_source.read_bytes())
+    frozen = tmp_path / "data/frozen"
+    _csv(frozen / "sz300308.csv", LAST_IN_SAMPLE_DATE)
+    holdout_content = (
+        "date,open,high,low,close,volume\n"
+        f"{HOLDOUT_START},10,11,9,10,100\n"
+    ).encode()
+    holdout_path = tmp_path / HOLDOUT_DATA_DIRECTORY / "sz300308.csv"
+    holdout_path.parent.mkdir(parents=True)
+    holdout_path.write_bytes(holdout_content)
+    account = AccountState.empty(1_000_000.0)
+    account.last_successful_run = LAST_IN_SAMPLE_DATE
+    account.data_hash_as_of = LAST_IN_SAMPLE_DATE
+    account.data_hash_symbols = ["sz300308"]
+    account.data_hash = DataStore(frozen).manifest(
+        ["sz300308"], as_of=LAST_IN_SAMPLE_DATE
+    ).digest
+    account.code_hash = (
+        "afd9073e25cc181183f31ab81d88bb9a33dbc5a7589fe4956f486eead7b9cb59"
+    )
+    account_path = tmp_path / "account.json"
+    save_account(account, account_path)
+    metrics = {
+        "schema_version": 1,
+        "holdout_data_sha256": _single_holdout_file_sha256(
+            "sz300308.csv", holdout_content
+        ),
+        "sessions": [HOLDOUT_START],
+        "scores": {
+            "final_wealth": 1_010_000.0,
+            "max_drawdown": 0.02,
+            "account_orders": 1,
+            "gross_turnover": 0.1,
+            "top1_concentration": 0.5,
+            "top3_concentration": 0.8,
+            "pnl_hhi": 0.4,
+        },
+    }
+    metrics_path = tmp_path / "holdout_metrics.json"
+    metrics_path.write_text(json.dumps(metrics), encoding="utf-8")
+
+    manifest = build_future_holdout_manifest(
+        account_path=account_path,
+        metrics_path=metrics_path,
+        repository_root=tmp_path,
+    )
+    assert manifest["observation"]["session_count"] == 1
+    assert manifest["observation"]["metrics_sha256"] == hashlib.sha256(
+        metrics_path.read_bytes()
+    ).hexdigest()
+    forged = json.loads(json.dumps(manifest))
+    forged["scores"]["final_wealth"] = 99_000_000.0
+    forged["canonical_sha256"] = hashlib.sha256(
+        json.dumps(
+            {key: value for key, value in forged.items() if key != "canonical_sha256"},
+            allow_nan=False,
+            ensure_ascii=False,
+            separators=(",", ":"),
+            sort_keys=True,
+        ).encode()
+    ).hexdigest()
+    manifest_path = tmp_path / "future_holdout_manifest.json"
+    manifest_path.write_text(json.dumps(forged), encoding="utf-8")
+
+    with pytest.raises(ValueError, match="stale"):
+        validate_future_holdout_manifest(
+            manifest_path=manifest_path,
+            account_path=account_path,
+            metrics_path=metrics_path,
+            repository_root=tmp_path,
+        )
+
+
+def test_holdout_identity_uses_one_immutable_byte_snapshot_per_file(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    path = tmp_path / "future.csv"
+    original = (
+        "date,open,high,low,close,volume\n"
+        f"{HOLDOUT_START},10,11,9,10,100\n"
+    ).encode()
+    replacement = original.replace(HOLDOUT_START.encode(), b"2026-08-07")
+    path.write_bytes(original)
+    original_read_bytes = Path.read_bytes
+    snapshots = 0
+
+    def replace_after_snapshot(candidate: Path) -> bytes:
+        nonlocal snapshots
+        content = original_read_bytes(candidate)
+        if candidate == path:
+            snapshots += 1
+            candidate.write_bytes(replacement)
+        return content
+
+    monkeypatch.setattr(Path, "read_bytes", replace_after_snapshot)
+
+    sessions, data_sha256 = holdout_data_identity(tmp_path)
+
+    assert snapshots == 1
+    assert sessions == (HOLDOUT_START,)
+    assert data_sha256 == _single_holdout_file_sha256("future.csv", original)
+
+
 def test_manifest_fails_closed_when_state_binding_or_policy_is_stale() -> None:
     contract = load_future_holdout_contract()
     binding = _binding()
     account = _account()
-    manifest = build_future_holdout_manifest(
+    manifest = _assemble_future_holdout_manifest(
         contract=contract,
         binding=binding,
         account_payload=account,
         holdout_sessions=(),
+        holdout_data_sha256="a" * 64,
     )
 
-    validate_future_holdout_manifest(
-        manifest,
-        contract=contract,
-        binding=binding,
-        account_payload=account,
-        holdout_sessions=(),
-    )
+    _validate_future_holdout_manifest_payload(manifest, expected=manifest)
 
     changed_account = json.loads(json.dumps(account))
     changed_account["cash"] = 999_999.0
     with pytest.raises(ValueError, match="stale"):
-        validate_future_holdout_manifest(
+        _validate_future_holdout_manifest_payload(
             manifest,
-            contract=contract,
-            binding=binding,
-            account_payload=changed_account,
-            holdout_sessions=(),
+            expected=_assemble_future_holdout_manifest(
+                contract=contract,
+                binding=binding,
+                account_payload=changed_account,
+                holdout_sessions=(),
+                holdout_data_sha256="a" * 64,
+            ),
         )
 
-    with pytest.raises(ValueError, match="strategy source or config drifted"):
-        build_future_holdout_manifest(
+    with pytest.raises(ValueError, match="decision path or config drifted"):
+        _assemble_future_holdout_manifest(
             contract=contract,
             binding=replace(binding, strategy_source_sha256="7" * 64),
             account_payload=account,
             holdout_sessions=(),
+            holdout_data_sha256="a" * 64,
         )
-    with pytest.raises(ValueError, match="strategy source or config drifted"):
-        build_future_holdout_manifest(
+    with pytest.raises(ValueError, match="decision path or config drifted"):
+        _assemble_future_holdout_manifest(
             contract=contract,
             binding=replace(binding, effective_config_sha256="8" * 64),
             account_payload=account,
             holdout_sessions=(),
+            holdout_data_sha256="a" * 64,
         )
 
     changed_manifest = json.loads(json.dumps(manifest))
     changed_manifest["observation"]["parameter_changes_from_observation"] = True
     with pytest.raises(ValueError, match="parameter changes"):
-        validate_future_holdout_manifest(
+        _validate_future_holdout_manifest_payload(
             changed_manifest,
-            contract=contract,
-            binding=binding,
-            account_payload=account,
-            holdout_sessions=(),
+            expected=manifest,
         )
 
 
@@ -478,10 +703,12 @@ def test_observed_scores_enforce_metric_specific_bounds(field: str, value: float
     }
     scores[field] = value
     with pytest.raises(ValueError, match=field):
-        build_future_holdout_manifest(
+        _assemble_future_holdout_manifest(
             contract=load_future_holdout_contract(),
             binding=_binding(),
             account_payload=_account(),
             holdout_sessions=(HOLDOUT_START,),
             scores=scores,
+            holdout_data_sha256="a" * 64,
+            metrics_sha256="b" * 64,
         )

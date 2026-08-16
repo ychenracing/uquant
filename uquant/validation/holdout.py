@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import ast
 import csv
 import hashlib
 import json
@@ -18,7 +19,6 @@ from typing import Any, Final, cast
 from ..atomic_io import atomic_write_text
 from ..config import DEFAULT_CONFIG, config_fingerprint
 from ..data import DataStore
-from ..engine import code_fingerprint
 from . import ai_era as ai_era_module
 from .ai_era import AI_ERA_WINDOWS, runtime_environment_provenance
 from .universe import AIUniverse, load_ai_universe
@@ -44,6 +44,12 @@ STRATEGY_SOURCE_SHA256: Final = (
 STRATEGY_CONFIG_SHA256: Final = (
     "ed52da44a359c1506e1d299f7bc341ad01b199d7f96997f7c01f2b8eca7cfc13"
 )
+STRATEGY_CLI_SHA256: Final = (
+    "db34c26631b9b64c6d359149b927f0bee86c89dba74360efddc922342b6f24ad"
+)
+STRATEGY_ACCOUNT_CODE_SHA256: Final = (
+    "afd9073e25cc181183f31ab81d88bb9a33dbc5a7589fe4956f486eead7b9cb59"
+)
 SCORE_FIELDS: Final = (
     "final_wealth",
     "max_drawdown",
@@ -54,7 +60,7 @@ SCORE_FIELDS: Final = (
     "pnl_hhi",
 )
 REQUIRED_FUTURE_HOLDOUT_SHA256: Final = (
-    "072e73075e0e5394dd20918e2db698d98365f22a2ea34b662638811b03b007bf"
+    "be1159f18c7364a668f1b595efb70aada6d2051c57e76c8f684cbbc2df8dc918"
 )
 
 _SHA256 = re.compile(r"^[0-9a-f]{64}$")
@@ -108,6 +114,10 @@ _STRATEGY_OPERATIONAL_RELATIVES: Final = {
     "uquant/report.py",
     "uquant/validation/holdout.py",
 }
+_CLI_OPERATIONAL_COMMANDS: Final = {
+    "execution-journal",
+    "holdout-manifest",
+}
 
 
 @dataclass(frozen=True, slots=True)
@@ -125,6 +135,8 @@ class FutureHoldoutContract:
     strategy_anchor_commit: str
     strategy_source_sha256: str
     strategy_config_sha256: str
+    strategy_cli_sha256: str
+    strategy_account_code_sha256: str
 
 
 @dataclass(frozen=True, slots=True)
@@ -134,6 +146,7 @@ class HoldoutBinding:
     production_commit: str
     production_source_sha256: str
     strategy_source_sha256: str
+    strategy_cli_sha256: str
     effective_config_sha256: str
     universe_sha256: str
     industry_sha256: str
@@ -149,6 +162,7 @@ class HoldoutBinding:
         for field in (
             "production_source_sha256",
             "strategy_source_sha256",
+            "strategy_cli_sha256",
             "effective_config_sha256",
             "universe_sha256",
             "industry_sha256",
@@ -198,12 +212,13 @@ def _canonical_sha256(value: object, *, omit_seal: bool = False) -> str:
     return hashlib.sha256(_canonical_bytes(value, omit_seal=omit_seal)).hexdigest()
 
 
-def _read_json(path: Path, *, label: str) -> dict[str, Any]:
+def _read_json_snapshot(path: Path, *, label: str) -> tuple[dict[str, Any], bytes]:
     if path.is_symlink() or not path.is_file():
         raise ValueError(f"{label} is missing or not a regular file: {path}")
     try:
+        content = path.read_bytes()
         value = json.loads(
-            path.read_text(encoding="utf-8"),
+            content.decode("utf-8"),
             object_pairs_hook=_reject_duplicate_keys,
             parse_constant=_reject_nonstandard_constant,
         )
@@ -211,7 +226,11 @@ def _read_json(path: Path, *, label: str) -> dict[str, Any]:
         raise ValueError(f"{label} is corrupt") from exc
     if not isinstance(value, dict):
         raise ValueError(f"{label} must be a JSON object")
-    return value
+    return value, content
+
+
+def _read_json(path: Path, *, label: str) -> dict[str, Any]:
+    return _read_json_snapshot(path, label=label)[0]
 
 
 def _repository_root() -> Path:
@@ -225,7 +244,7 @@ def load_future_holdout_contract(path: str | Path | None = None) -> FutureHoldou
     raw = _read_json(source, label="future holdout contract")
     if set(raw) != _CONTRACT_FIELDS:
         raise ValueError("future holdout contract schema is malformed")
-    if raw["schema_version"] != 1 or raw["contract_id"] != "phase2-future-holdout-v1":
+    if raw["schema_version"] != 2 or raw["contract_id"] != "phase2-future-holdout-v1":
         raise ValueError("future holdout contract identity is malformed")
     seal = raw["canonical_sha256"]
     if (
@@ -253,6 +272,8 @@ def load_future_holdout_contract(path: str | Path | None = None) -> FutureHoldou
     if not isinstance(strategy_anchor, dict) or strategy_anchor != {
         "candidate_commit": STRATEGY_ANCHOR_COMMIT,
         "decision_source_sha256": STRATEGY_SOURCE_SHA256,
+        "cli_decision_sha256": STRATEGY_CLI_SHA256,
+        "account_code_sha256": STRATEGY_ACCOUNT_CODE_SHA256,
         "effective_config_sha256": STRATEGY_CONFIG_SHA256,
     }:
         raise ValueError("future holdout strategy anchor is malformed")
@@ -283,17 +304,18 @@ def load_future_holdout_contract(path: str | Path | None = None) -> FutureHoldou
         strategy_anchor_commit=STRATEGY_ANCHOR_COMMIT,
         strategy_source_sha256=STRATEGY_SOURCE_SHA256,
         strategy_config_sha256=STRATEGY_CONFIG_SHA256,
+        strategy_cli_sha256=STRATEGY_CLI_SHA256,
+        strategy_account_code_sha256=STRATEGY_ACCOUNT_CODE_SHA256,
     )
 
 
-def _csv_dates(path: Path) -> tuple[str, ...]:
+def _csv_dates_from_text(text: str, *, path: Path) -> tuple[str, ...]:
     try:
-        with path.open(encoding="utf-8", newline="") as handle:
-            reader = csv.DictReader(handle)
-            if reader.fieldnames is None or "date" not in reader.fieldnames:
-                raise RuntimeError(f"market data lacks date column: {path}")
-            values = tuple(row["date"] for row in reader)
-    except (OSError, csv.Error) as exc:
+        reader = csv.DictReader(text.splitlines())
+        if reader.fieldnames is None or "date" not in reader.fieldnames:
+            raise RuntimeError(f"market data lacks date column: {path}")
+        values = tuple(row["date"] for row in reader)
+    except csv.Error as exc:
         raise RuntimeError(f"cannot inspect market data: {path}") from exc
     for value in values:
         try:
@@ -302,6 +324,14 @@ def _csv_dates(path: Path) -> tuple[str, ...]:
         except ValueError as exc:
             raise RuntimeError(f"market data contains invalid date: {path}") from exc
     return values
+
+
+def _csv_dates(path: Path) -> tuple[str, ...]:
+    try:
+        text = path.read_text(encoding="utf-8")
+    except (OSError, UnicodeError) as exc:
+        raise RuntimeError(f"cannot inspect market data: {path}") from exc
+    return _csv_dates_from_text(text, path=path)
 
 
 def maximum_observed_market_date(data_dir: str | Path) -> str:
@@ -348,8 +378,8 @@ def validate_holdout_layout(
     *,
     contract: FutureHoldoutContract | None = None,
     phase1_windows: Mapping[str, tuple[str, str]] | None = None,
-) -> None:
-    """Prove frozen data and official windows cannot consume future sessions."""
+) -> tuple[tuple[str, ...], str]:
+    """Validate isolation and return the one-read future-data identity."""
 
     supplied_root = Path(repository_root)
     if supplied_root.is_symlink():
@@ -400,9 +430,13 @@ def validate_holdout_layout(
                 unexpected.append(path)
         if unexpected:
             raise RuntimeError("future data is outside the isolated holdout directory")
-    for path in _closed_csv_files(holdout, label="future holdout", missing_ok=True):
-        if any(value < expected.first_holdout_date for value in _csv_dates(path)):
-            raise RuntimeError("holdout directory contains an in-sample market row")
+    try:
+        sessions, data_sha256 = holdout_data_identity(holdout)
+    except ValueError as exc:
+        raise RuntimeError(str(exc)) from exc
+    if any(value < expected.first_holdout_date for value in sessions):
+        raise RuntimeError("holdout directory contains an in-sample market row")
+    return sessions, data_sha256
 
 
 def _state_hashes(account_payload: Mapping[str, Any], *, as_of: str) -> dict[str, str]:
@@ -437,10 +471,10 @@ def validate_prior_close_account(
     *,
     frozen_data_dir: str | Path,
 ) -> None:
-    """Require the prior-close state to match current code and frozen data bytes."""
+    """Require the unchanged frozen-candidate state and frozen data prefix."""
 
-    if account_payload.get("code_hash") != code_fingerprint():
-        raise ValueError("holdout account code fingerprint is stale")
+    if account_payload.get("code_hash") != STRATEGY_ACCOUNT_CODE_SHA256:
+        raise ValueError("holdout account is not from the exact frozen candidate")
     if account_payload.get("data_hash_as_of") != LAST_IN_SAMPLE_DATE:
         raise ValueError("holdout account data hash is not bound to the prior close")
     symbols = account_payload.get("data_hash_symbols")
@@ -521,6 +555,7 @@ def _binding_payload(binding: HoldoutBinding) -> dict[str, Any]:
             "source_sha256": raw.pop("production_source_sha256"),
         },
         "strategy_source_sha256": raw.pop("strategy_source_sha256"),
+        "strategy_cli_sha256": raw.pop("strategy_cli_sha256"),
         "effective_config_sha256": raw.pop("effective_config_sha256"),
         "universe_sha256": raw.pop("universe_sha256"),
         "industry_sha256": raw.pop("industry_sha256"),
@@ -528,36 +563,45 @@ def _binding_payload(binding: HoldoutBinding) -> dict[str, Any]:
     }
 
 
-def build_future_holdout_manifest(
+def _assemble_future_holdout_manifest(
     *,
     contract: FutureHoldoutContract,
     binding: HoldoutBinding,
     account_payload: Mapping[str, Any],
     holdout_sessions: Iterable[str],
     scores: Mapping[str, float | int | None] | None = None,
-    holdout_data_sha256: str | None = None,
+    holdout_data_sha256: str,
+    metrics_sha256: str | None = None,
 ) -> dict[str, Any]:
-    """Build a self-verifying post-checkout snapshot from independently supplied inputs."""
+    """Assemble already-read authoritative inputs into the sealed schema."""
 
     sessions = _session_dates(holdout_sessions, contract=contract)
     if (
         binding.strategy_source_sha256 != contract.strategy_source_sha256
+        or binding.strategy_cli_sha256 != contract.strategy_cli_sha256
         or binding.effective_config_sha256 != contract.strategy_config_sha256
     ):
-        raise ValueError("current strategy source or config drifted from the observation anchor")
+        raise ValueError(
+            "current strategy decision path or config drifted from the observation anchor"
+        )
     normalized_scores = _normalized_scores(scores, sessions=sessions, contract=contract)
-    data_sha256 = holdout_data_sha256 or _canonical_sha256(list(sessions))
-    if not _SHA256.fullmatch(data_sha256):
+    if not _SHA256.fullmatch(holdout_data_sha256):
         raise ValueError("holdout data identity must be SHA-256")
+    if metrics_sha256 is not None and not _SHA256.fullmatch(metrics_sha256):
+        raise ValueError("holdout metrics identity must be SHA-256")
+    if bool(sessions) != (metrics_sha256 is not None):
+        raise ValueError("observed sessions and independent metrics evidence must agree")
     binding_payload = _binding_payload(binding)
     manifest: dict[str, Any] = {
-        "schema_version": 1,
-        "manifest_id": "phase2-future-holdout-manifest-v1",
+        "schema_version": 2,
+        "manifest_id": "phase2-future-holdout-manifest-v2",
         "contract_sha256": contract.sha256,
         "production": binding_payload["production"],
         "strategy_anchor": {
             "candidate_commit": contract.strategy_anchor_commit,
-            "decision_source_sha256": binding_payload["strategy_source_sha256"],
+            "decision_source_sha256": contract.strategy_source_sha256,
+            "cli_decision_sha256": contract.strategy_cli_sha256,
+            "account_code_sha256": contract.strategy_account_code_sha256,
             "effective_config_sha256": contract.strategy_config_sha256,
         },
         "effective_config_sha256": binding_payload["effective_config_sha256"],
@@ -570,7 +614,7 @@ def build_future_holdout_manifest(
         },
         "data": {
             "directory": contract.data_directory,
-            "sha256": data_sha256,
+            "sha256": holdout_data_sha256,
         },
         "prior_close_state": _state_hashes(
             account_payload,
@@ -581,6 +625,7 @@ def build_future_holdout_manifest(
             "session_count": len(sessions),
             "first_session": sessions[0] if sessions else None,
             "last_session": sessions[-1] if sessions else None,
+            "metrics_sha256": metrics_sha256,
             "parameter_changes_from_observation": False,
         },
         "scores": normalized_scores,
@@ -589,16 +634,12 @@ def build_future_holdout_manifest(
     return manifest
 
 
-def validate_future_holdout_manifest(
+def _validate_future_holdout_manifest_payload(
     manifest: Mapping[str, Any],
     *,
-    contract: FutureHoldoutContract,
-    binding: HoldoutBinding,
-    account_payload: Mapping[str, Any],
-    holdout_sessions: Iterable[str],
-    holdout_data_sha256: str | None = None,
+    expected: Mapping[str, Any],
 ) -> None:
-    """Reject a stale, weakened, resealed, or internally inconsistent manifest."""
+    """Reject a stale, weakened, resealed, or inconsistent readback payload."""
 
     raw = dict(manifest)
     observation = raw.get("observation")
@@ -609,18 +650,7 @@ def validate_future_holdout_manifest(
     seal = raw.get("canonical_sha256")
     if not isinstance(seal, str) or seal != _canonical_sha256(raw, omit_seal=True):
         raise ValueError("future holdout manifest hash is invalid")
-    scores = raw.get("scores")
-    if not isinstance(scores, Mapping):
-        raise ValueError("future holdout scores are malformed")
-    expected = build_future_holdout_manifest(
-        contract=contract,
-        binding=binding,
-        account_payload=account_payload,
-        holdout_sessions=holdout_sessions,
-        scores=dict(scores),
-        holdout_data_sha256=holdout_data_sha256,
-    )
-    if raw != expected:
+    if raw != dict(expected):
         raise ValueError("future holdout manifest is stale")
 
 
@@ -694,6 +724,159 @@ def _strategy_source_sha256(root: Path) -> str:
     return _source_sha256(_strategy_source_paths(base), root=base)
 
 
+def _assigned_names(statement: ast.stmt) -> set[str]:
+    if not isinstance(statement, (ast.Assign, ast.AnnAssign)):
+        return set()
+    targets = statement.targets if isinstance(statement, ast.Assign) else [statement.target]
+    return {
+        node.id
+        for target in targets
+        for node in ast.walk(target)
+        if isinstance(node, ast.Name)
+    }
+
+
+def _loaded_names(statement: ast.stmt) -> set[str]:
+    return {
+        node.id
+        for node in ast.walk(statement)
+        if isinstance(node, ast.Name) and isinstance(node.ctx, ast.Load)
+    }
+
+
+def _adds_operational_parser(statement: ast.stmt) -> bool:
+    return any(
+        isinstance(node, ast.Call)
+        and isinstance(node.func, ast.Attribute)
+        and node.func.attr == "add_parser"
+        and bool(node.args)
+        and isinstance(node.args[0], ast.Constant)
+        and node.args[0].value in _CLI_OPERATIONAL_COMMANDS
+        for node in ast.walk(statement)
+    )
+
+
+def _safe_parser_value(value: ast.expr) -> bool:
+    if isinstance(value, ast.Constant):
+        return True
+    if isinstance(value, (ast.List, ast.Tuple)):
+        return all(_safe_parser_value(item) for item in value.elts)
+    return isinstance(value, ast.Name) and value.id in {"float", "int", "str"}
+
+
+def _safe_operational_parser_statement(
+    statement: ast.stmt,
+    *,
+    operational_names: set[str],
+) -> bool:
+    value: ast.expr | None = None
+    if isinstance(statement, ast.Assign):
+        if len(statement.targets) != 1 or not isinstance(statement.targets[0], ast.Name):
+            return False
+        value = statement.value
+    elif isinstance(statement, ast.Expr):
+        value = statement.value
+    if not isinstance(value, ast.Call):
+        return False
+    calls = [node for node in ast.walk(value) if isinstance(node, ast.Call)]
+    if len(calls) != 1 or not isinstance(value.func, ast.Attribute):
+        return False
+    receiver = value.func.value
+    if (
+        not isinstance(receiver, ast.Name)
+        or receiver.id not in {"sub", *operational_names}
+        or value.func.attr not in {"add_argument", "add_parser", "add_subparsers"}
+    ):
+        return False
+    return all(_safe_parser_value(item) for item in value.args) and all(
+        item.arg is not None and _safe_parser_value(item.value)
+        for item in value.keywords
+    )
+
+
+def _parser_strategy_body(body: list[ast.stmt]) -> list[ast.stmt]:
+    operational_names: set[str] = set()
+    retained: list[ast.stmt] = []
+    for statement in body:
+        assigned = _assigned_names(statement)
+        if _adds_operational_parser(statement) or _loaded_names(statement) & operational_names:
+            operational_names.update(assigned)
+            if _safe_operational_parser_statement(
+                statement,
+                operational_names=operational_names,
+            ):
+                continue
+        retained.append(statement)
+    return retained
+
+
+def _command_guard(statement: ast.stmt) -> str | None:
+    if (
+        not isinstance(statement, ast.If)
+        or statement.orelse
+        or not isinstance(statement.test, ast.Compare)
+    ):
+        return None
+    comparison = statement.test
+    if (
+        len(comparison.ops) != 1
+        or not isinstance(comparison.ops[0], ast.Eq)
+        or len(comparison.comparators) != 1
+        or not isinstance(comparison.left, ast.Attribute)
+        or comparison.left.attr != "command"
+        or not isinstance(comparison.left.value, ast.Name)
+        or comparison.left.value.id != "args"
+        or not isinstance(comparison.comparators[0], ast.Constant)
+        or not isinstance(comparison.comparators[0].value, str)
+    ):
+        return None
+    return comparison.comparators[0].value
+
+
+def _cli_strategy_ast(source: bytes) -> bytes:
+    """Compile the production CLI decision/config/persistence path to canonical AST."""
+
+    try:
+        tree = ast.parse(source)
+    except (SyntaxError, ValueError) as exc:
+        raise RuntimeError("cannot compile the anchored production CLI") from exc
+    retained: list[ast.stmt] = []
+    for statement in tree.body:
+        if isinstance(statement, (ast.FunctionDef, ast.AsyncFunctionDef)):
+            if statement.name == "_parser":
+                statement.body = _parser_strategy_body(statement.body)
+            elif statement.name == "main":
+                statement.body = [
+                    item
+                    for item in statement.body
+                    if _command_guard(item) not in _CLI_OPERATIONAL_COMMANDS
+                ]
+        retained.append(statement)
+    tree.body = retained
+    return ast.dump(
+        tree,
+        annotate_fields=True,
+        include_attributes=False,
+    ).encode("utf-8")
+
+
+def _strategy_cli_sha256(root: Path, *, from_git: str | None = None) -> str:
+    """Hash compiled CLI semantics that can affect decisions or persisted state."""
+
+    base = Path(root).resolve()
+    path = base / "uquant/cli.py"
+    source = (
+        path.read_bytes()
+        if from_git is None
+        else subprocess.run(
+            ["git", "-C", str(base), "show", f"{from_git}:uquant/cli.py"],
+            check=True,
+            capture_output=True,
+        ).stdout  # nosec B603
+    )
+    return hashlib.sha256(_cli_strategy_ast(source)).hexdigest()
+
+
 def _git_strategy_relatives(root: Path, *, commit: str) -> tuple[str, ...]:
     completed = subprocess.run(
         [
@@ -736,6 +919,68 @@ def _validated_strategy_source_sha256(root: Path) -> str:
     if anchored_sha256 != STRATEGY_SOURCE_SHA256 or current_sha256 != anchored_sha256:
         raise RuntimeError("strategy source bytes drifted from the Task 8 anchor")
     return current_sha256
+
+
+def _validated_strategy_cli_sha256(root: Path) -> str:
+    anchored = _strategy_cli_sha256(root, from_git=STRATEGY_ANCHOR_COMMIT)
+    current = _strategy_cli_sha256(root)
+    if anchored != STRATEGY_CLI_SHA256 or current != anchored:
+        raise RuntimeError("production CLI decision path drifted from the Task 8 anchor")
+    return current
+
+
+def _strategy_account_code_sha256(root: Path) -> str:
+    """Reconstruct the exact code fingerprint written by the frozen candidate."""
+
+    completed = subprocess.run(
+        [
+            "git",
+            "-C",
+            str(root),
+            "ls-tree",
+            "-r",
+            "--name-only",
+            STRATEGY_ANCHOR_COMMIT,
+            "--",
+            "uquant",
+        ],
+        check=True,
+        capture_output=True,
+        text=True,
+    )  # nosec B603
+    package_sources = tuple(
+        sorted(
+            relative
+            for relative in completed.stdout.splitlines()
+            if Path(relative).parent == Path("uquant")
+            and Path(relative).suffix == ".py"
+        )
+    )
+    if not package_sources:
+        raise RuntimeError("cannot resolve the frozen account code inventory")
+    digest = hashlib.sha256()
+    for relative in (
+        *package_sources,
+        "benchmarks/reference_registry.json",
+        "benchmarks/config_parameter_governance.json",
+    ):
+        content = subprocess.run(
+            [
+                "git",
+                "-C",
+                str(root),
+                "show",
+                f"{STRATEGY_ANCHOR_COMMIT}:{relative}",
+            ],
+            check=True,
+            capture_output=True,
+        ).stdout  # nosec B603
+        digest.update(Path(relative).name.encode())
+        digest.update(content)
+    value = digest.hexdigest()
+    if value != STRATEGY_ACCOUNT_CODE_SHA256:
+        raise RuntimeError("frozen account code anchor differs from the exact candidate")
+    return value
 
 
 def _source_sha256(paths: Sequence[Path], *, root: Path, from_git: str | None = None) -> str:
@@ -803,10 +1048,12 @@ def current_holdout_binding(repository_root: str | Path | None = None) -> Holdou
         raise RuntimeError("holdout production source does not match exact HEAD")
     universe = load_ai_universe()
     runtime = runtime_environment_provenance(root)
+    _strategy_account_code_sha256(root)
     return HoldoutBinding(
         production_commit=head,
         production_source_sha256=source,
         strategy_source_sha256=_validated_strategy_source_sha256(root),
+        strategy_cli_sha256=_validated_strategy_cli_sha256(root),
         effective_config_sha256=config_fingerprint(DEFAULT_CONFIG),
         universe_sha256=universe.sha256,
         industry_sha256=_industry_sha256(universe),
@@ -835,64 +1082,148 @@ def holdout_data_identity(data_dir: str | Path) -> tuple[tuple[str, ...], str]:
         digest.update(relative)
         digest.update(len(content).to_bytes(8, "big"))
         digest.update(content)
-        sessions.update(_csv_dates(path))
+        try:
+            decoded = content.decode("utf-8")
+        except UnicodeError as exc:
+            raise ValueError(f"cannot inspect market data: {path}") from exc
+        sessions.update(_csv_dates_from_text(decoded, path=path))
     if not paths:
         digest.update(b"uquant.empty-future-holdout.v1")
     return tuple(sorted(sessions)), digest.hexdigest()
+
+
+def _manifest_repository_root(repository_root: str | Path | None) -> Path:
+    owning_root = _repository_root().resolve()
+    root = owning_root if repository_root is None else Path(repository_root).resolve()
+    if root != owning_root:
+        raise ValueError("holdout manifest requires the owning repository root")
+    return root
+
+
+def _observation_metrics(
+    metrics_path: str | Path | None,
+    *,
+    sessions: tuple[str, ...],
+    holdout_data_sha256: str,
+    contract: FutureHoldoutContract,
+) -> tuple[dict[str, float | int | None], str | None]:
+    if not sessions:
+        if metrics_path is not None:
+            raise ValueError("holdout metrics must be omitted before observations exist")
+        return _normalized_scores(None, sessions=sessions, contract=contract), None
+    if metrics_path is None:
+        raise ValueError("observed holdout sessions require an independent metrics file")
+    raw, content = _read_json_snapshot(Path(metrics_path), label="future holdout metrics")
+    if set(raw) != {
+        "schema_version",
+        "holdout_data_sha256",
+        "sessions",
+        "scores",
+    } or raw["schema_version"] != 1:
+        raise ValueError("future holdout metrics schema is malformed")
+    if raw["holdout_data_sha256"] != holdout_data_sha256:
+        raise ValueError("future holdout metrics bind different data bytes")
+    raw_sessions = raw["sessions"]
+    if not isinstance(raw_sessions, list):
+        raise ValueError("future holdout metric sessions are malformed")
+    metric_sessions = _session_dates(raw_sessions, contract=contract)
+    if metric_sessions != sessions:
+        raise ValueError("future holdout metrics bind different sessions")
+    raw_scores = raw["scores"]
+    if not isinstance(raw_scores, Mapping):
+        raise ValueError("future holdout metrics scores are malformed")
+    scores = _normalized_scores(raw_scores, sessions=sessions, contract=contract)
+    return scores, hashlib.sha256(content).hexdigest()
+
+
+def build_future_holdout_manifest(
+    *,
+    account_path: str | Path,
+    metrics_path: str | Path | None = None,
+    repository_root: str | Path | None = None,
+) -> dict[str, Any]:
+    """Build evidence only from authoritative repository and file inputs."""
+
+    root = _manifest_repository_root(repository_root)
+    contract = load_future_holdout_contract(
+        root / "benchmarks/future_holdout_contract.json"
+    )
+    sessions, data_sha256 = validate_holdout_layout(root, contract=contract)
+    from ..account import load_account
+
+    account = load_account(account_path).to_dict()
+    validate_prior_close_account(account, frozen_data_dir=root / "data/frozen")
+    scores, metrics_sha256 = _observation_metrics(
+        metrics_path,
+        sessions=sessions,
+        holdout_data_sha256=data_sha256,
+        contract=contract,
+    )
+    binding = current_holdout_binding(root)
+    return _assemble_future_holdout_manifest(
+        contract=contract,
+        binding=binding,
+        account_payload=account,
+        holdout_sessions=sessions,
+        scores=scores,
+        holdout_data_sha256=data_sha256,
+        metrics_sha256=metrics_sha256,
+    )
+
+
+def validate_future_holdout_manifest(
+    *,
+    manifest_path: str | Path,
+    account_path: str | Path,
+    metrics_path: str | Path | None = None,
+    repository_root: str | Path | None = None,
+) -> None:
+    """Re-read every authoritative input and reject stale or forged evidence."""
+
+    manifest = _read_json(Path(manifest_path), label="future holdout manifest")
+    expected = build_future_holdout_manifest(
+        account_path=account_path,
+        metrics_path=metrics_path,
+        repository_root=repository_root,
+    )
+    _validate_future_holdout_manifest_payload(manifest, expected=expected)
 
 
 def generate_future_holdout_manifest(
     *,
     account_path: str | Path,
     output_path: str | Path,
+    metrics_path: str | Path | None = None,
     repository_root: str | Path | None = None,
 ) -> dict[str, Any]:
     """Generate the ignored exact-HEAD manifest used by the final acceptance gate."""
 
-    owning_root = _repository_root().resolve()
-    root = owning_root if repository_root is None else Path(repository_root).resolve()
-    if root != owning_root:
-        raise ValueError("holdout manifest requires the owning repository root")
+    root = _manifest_repository_root(repository_root)
     contract = load_future_holdout_contract(root / "benchmarks/future_holdout_contract.json")
-    validate_holdout_layout(root, contract=contract)
-    from ..account import load_account
-
-    account = load_account(account_path).to_dict()
-    validate_prior_close_account(account, frozen_data_dir=root / "data/frozen")
-    sessions, data_sha256 = holdout_data_identity(root / contract.data_directory)
-    if sessions:
-        raise RuntimeError("automatic holdout generation requires reviewed metrics for observed sessions")
-    binding = current_holdout_binding(root)
     manifest = build_future_holdout_manifest(
-        contract=contract,
-        binding=binding,
-        account_payload=account,
-        holdout_sessions=sessions,
-        holdout_data_sha256=data_sha256,
-    )
-    validate_future_holdout_manifest(
-        manifest,
-        contract=contract,
-        binding=binding,
-        account_payload=account,
-        holdout_sessions=sessions,
-        holdout_data_sha256=data_sha256,
+        account_path=account_path,
+        metrics_path=metrics_path,
+        repository_root=root,
     )
     tracked = subprocess.run(
         ["git", "-C", str(root), "ls-files", "-z"],
         check=True,
         capture_output=True,
     ).stdout.split(b"\0")  # nosec B603
-    protected_paths = [
-        Path(account_path),
-        *(root / value.decode("utf-8") for value in tracked if value),
-        *(path for path in (root / "data/frozen").rglob("*") if path.is_file()),
-        *_closed_csv_files(
-            root / contract.data_directory,
-            label="future holdout",
-            missing_ok=True,
-        ),
-    ]
+    protected_paths = [Path(account_path)]
+    if metrics_path is not None:
+        protected_paths.append(Path(metrics_path))
+    protected_paths.extend(
+        [
+            *(root / value.decode("utf-8") for value in tracked if value),
+            *(path for path in (root / "data/frozen").rglob("*") if path.is_file()),
+            *_closed_csv_files(
+                root / contract.data_directory,
+                label="future holdout",
+                missing_ok=True,
+            ),
+        ]
+    )
     destination = Path(output_path)
     atomic_write_text(
         destination,
@@ -900,11 +1231,9 @@ def generate_future_holdout_manifest(
         protected_paths=protected_paths,
     )
     validate_future_holdout_manifest(
-        _read_json(destination, label="future holdout manifest"),
-        contract=contract,
-        binding=binding,
-        account_payload=account,
-        holdout_sessions=sessions,
-        holdout_data_sha256=data_sha256,
+        manifest_path=destination,
+        account_path=account_path,
+        metrics_path=metrics_path,
+        repository_root=root,
     )
     return manifest

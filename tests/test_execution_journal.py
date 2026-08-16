@@ -9,6 +9,7 @@ from typing import Any
 
 import pytest
 
+from uquant import execution_journal as journal_module
 from uquant.atomic_io import atomic_write_text
 from uquant.cli import main
 from uquant.execution_journal import (
@@ -168,6 +169,58 @@ def test_journal_rejects_tampering_and_never_imports_strategy_or_state(tmp_path:
         )
         for name in imported
     )
+
+
+def test_retained_checkpoint_detects_truncation_and_full_chain_reseal(
+    tmp_path: Path,
+) -> None:
+    path = tmp_path / "execution.jsonl"
+    append_planned(
+        path,
+        plan_id="plan-1",
+        recorded_at="2026-08-05T15:01:00+08:00",
+        symbol="sz300308",
+        side="BUY",
+        planned_price=947.74,
+        planned_shares=100,
+    )
+    append_filled(
+        path,
+        plan_id="plan-1",
+        recorded_at="2026-08-06T09:32:00+08:00",
+        next_open=950.0,
+        actual_time="2026-08-06T09:31:00+08:00",
+        actual_price=951.0,
+        actual_shares=100,
+    )
+    checkpoint_factory = getattr(
+        journal_module,
+        "execution_journal_checkpoint",
+        None,
+    )
+    assert checkpoint_factory is not None
+    checkpoint = checkpoint_factory(read_execution_journal(path))
+    original_lines = path.read_text(encoding="utf-8").splitlines()
+
+    path.write_text(original_lines[0] + "\n", encoding="utf-8")
+    with pytest.raises(ValueError, match="trusted checkpoint"):
+        read_execution_journal(path, trusted_checkpoint=checkpoint)
+
+    rows = [json.loads(line) for line in original_lines]
+    rows[0]["plan_id"] = "resealed-plan"
+    rows[0]["previous_sha256"] = "0" * 64
+    _reseal(rows[0])
+    rows[1]["plan_id"] = "resealed-plan"
+    rows[1]["previous_sha256"] = rows[0]["record_sha256"]
+    _reseal(rows[1])
+    path.write_text(
+        "\n".join(json.dumps(row) for row in rows) + "\n",
+        encoding="utf-8",
+    )
+
+    assert len(read_execution_journal(path)) == 2
+    with pytest.raises(ValueError, match="trusted checkpoint"):
+        read_execution_journal(path, trusted_checkpoint=checkpoint)
 
 
 def test_cli_uses_the_ignored_default_journal_and_renders_it(

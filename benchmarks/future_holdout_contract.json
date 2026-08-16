@@ -1,7 +1,7 @@
 {
-  "schema_version": 1,
+  "schema_version": 2,
   "contract_id": "phase2-future-holdout-v1",
-  "canonical_sha256": "072e73075e0e5394dd20918e2db698d98365f22a2ea34b662638811b03b007bf",
+  "canonical_sha256": "be1159f18c7364a668f1b595efb70aada6d2051c57e76c8f684cbbc2df8dc918",
   "dates": {
     "last_in_sample": "2026-08-05",
     "first_holdout": "2026-08-06"
@@ -33,6 +33,8 @@
   "strategy_anchor": {
     "candidate_commit": "fbbacefe0cb082778e57a84909f344475f556a57",
     "decision_source_sha256": "e8cb6ea872a3d83ba963d7a4e485b9b934d96fdd051f8cb815573f52a3a899f2",
+    "cli_decision_sha256": "db34c26631b9b64c6d359149b927f0bee86c89dba74360efddc922342b6f24ad",
+    "account_code_sha256": "afd9073e25cc181183f31ab81d88bb9a33dbc5a7589fe4956f486eead7b9cb59",
     "effective_config_sha256": "ed52da44a359c1506e1d299f7bc341ad01b199d7f96997f7c01f2b8eca7cfc13"
   }
 }

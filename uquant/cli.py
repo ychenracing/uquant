@@ -10,9 +10,17 @@ from .account import load_account, migrate_account, save_account
 from .broker import sync_broker_snapshot
 from .config import DEFAULT_CONFIG
 from .engine import ProductionEngine, code_fingerprint
+from .execution_journal import (
+    append_filled,
+    append_planned,
+    append_skipped,
+    read_execution_journal,
+    record_to_dict,
+)
 from .leader import REFERENCE_UNIVERSE
-from .report import render_daily_report
+from .report import render_daily_report, render_execution_journal
 from .types import AccountState
+from .validation.holdout import generate_future_holdout_manifest
 
 
 def _parser() -> argparse.ArgumentParser:
@@ -65,6 +73,36 @@ def _parser() -> argparse.ArgumentParser:
     backtest.add_argument("--end", required=True)
     backtest.add_argument("--data-dir", required=True)
     backtest.add_argument("--output", default=None)
+    holdout = sub.add_parser("holdout-manifest")
+    holdout.add_argument("--account", required=True)
+    holdout.add_argument("--output", default="benchmarks/future_holdout_manifest.json")
+    journal = sub.add_parser("execution-journal")
+    journal_sub = journal.add_subparsers(dest="journal_action", required=True)
+    journal_plan = journal_sub.add_parser("planned")
+    journal_plan.add_argument("--journal", default="execution_journal.jsonl")
+    journal_plan.add_argument("--plan-id", required=True)
+    journal_plan.add_argument("--recorded-at", required=True)
+    journal_plan.add_argument("--symbol", required=True)
+    journal_plan.add_argument("--side", choices=("BUY", "SELL"), required=True)
+    journal_plan.add_argument("--planned-price", type=float, required=True)
+    journal_plan.add_argument("--planned-shares", type=int, required=True)
+    journal_fill = journal_sub.add_parser("filled")
+    journal_fill.add_argument("--journal", default="execution_journal.jsonl")
+    journal_fill.add_argument("--plan-id", required=True)
+    journal_fill.add_argument("--recorded-at", required=True)
+    journal_fill.add_argument("--next-open", type=float, required=True)
+    journal_fill.add_argument("--actual-time", required=True)
+    journal_fill.add_argument("--actual-price", type=float, required=True)
+    journal_fill.add_argument("--actual-shares", type=int, required=True)
+    journal_skip = journal_sub.add_parser("skipped")
+    journal_skip.add_argument("--journal", default="execution_journal.jsonl")
+    journal_skip.add_argument("--plan-id", required=True)
+    journal_skip.add_argument("--recorded-at", required=True)
+    journal_skip.add_argument("--next-open", type=float, required=True)
+    journal_skip.add_argument("--manual-skip", required=True)
+    journal_report = journal_sub.add_parser("report")
+    journal_report.add_argument("--journal", default="execution_journal.jsonl")
+    journal_report.add_argument("--output", default=None)
     return parser
 
 
@@ -140,5 +178,49 @@ def main(argv: list[str] | None = None) -> int:
         if args.output:
             Path(args.output).write_text(payload, encoding="utf-8")
         print(payload)
+        return 0
+    if args.command == "holdout-manifest":
+        holdout_manifest = generate_future_holdout_manifest(
+            account_path=args.account,
+            output_path=args.output,
+        )
+        print(json.dumps(holdout_manifest, ensure_ascii=False, sort_keys=True))
+        return 0
+    if args.command == "execution-journal":
+        if args.journal_action == "planned":
+            record = append_planned(
+                args.journal,
+                plan_id=args.plan_id,
+                recorded_at=args.recorded_at,
+                symbol=args.symbol,
+                side=args.side,
+                planned_price=args.planned_price,
+                planned_shares=args.planned_shares,
+            )
+        elif args.journal_action == "filled":
+            record = append_filled(
+                args.journal,
+                plan_id=args.plan_id,
+                recorded_at=args.recorded_at,
+                next_open=args.next_open,
+                actual_time=args.actual_time,
+                actual_price=args.actual_price,
+                actual_shares=args.actual_shares,
+            )
+        elif args.journal_action == "skipped":
+            record = append_skipped(
+                args.journal,
+                plan_id=args.plan_id,
+                recorded_at=args.recorded_at,
+                next_open=args.next_open,
+                manual_skip=args.manual_skip,
+            )
+        else:
+            rendered = render_execution_journal(read_execution_journal(args.journal))
+            if args.output:
+                Path(args.output).write_text(rendered, encoding="utf-8")
+            print(rendered)
+            return 0
+        print(json.dumps(record_to_dict(record), ensure_ascii=False, sort_keys=True))
         return 0
     return 2

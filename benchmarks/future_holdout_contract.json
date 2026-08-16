@@ -1,0 +1,25 @@
+{
+  "schema_version": 1,
+  "contract_id": "phase2-future-holdout-v1",
+  "canonical_sha256": "0fe6859d78384b8632bb30dcce1c877229dbf640ed84e9ab6421f6ae4d0b4898",
+  "dates": {
+    "last_in_sample": "2026-08-05",
+    "first_holdout": "2026-08-06"
+  },
+  "data_directory": "data/holdout/phase2-future-v1",
+  "review_milestones": [40, 60],
+  "score_fields": [
+    "final_wealth",
+    "max_drawdown",
+    "account_orders",
+    "gross_turnover",
+    "top1_concentration",
+    "top3_concentration",
+    "pnl_hhi"
+  ],
+  "observation_policy": {
+    "parameter_changes_from_observation": false,
+    "empty_observation_scores": null,
+    "decision_at_last_in_sample_executes_in_holdout": true
+  }
+}

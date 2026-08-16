@@ -6,7 +6,51 @@ from collections.abc import Mapping
 from typing import Any
 
 from .attribution import validate_economic_attribution
+from .execution_journal import JournalRecord, JournalStatus
 from .types import AccountState, Decision
+
+
+def render_execution_journal(records: tuple[JournalRecord, ...]) -> str:
+    """Render observational execution events without deriving strategy intent."""
+
+    lines = [
+        "# Manual Execution Journal",
+        "",
+        "| Seq | Plan | Status | Symbol | Side | Planned | Next open | Actual | Shares | Slippage | Note |",
+        "|---:|---|---|---|---|---:|---:|---:|---:|---:|---|",
+    ]
+    plans: dict[str, JournalRecord] = {}
+    for item in records:
+        if item.status is JournalStatus.PLANNED:
+            plans[item.plan_id] = item
+        plan = plans.get(item.plan_id)
+        symbol = plan.symbol if plan is not None else None
+        side = plan.side if plan is not None else None
+        planned_price = plan.planned_price if plan is not None else None
+        slippage = "" if item.slippage_bps is None else f"{item.slippage_bps:.4f} bps"
+        lines.append(
+            "| "
+            + " | ".join(
+                (
+                    str(item.sequence),
+                    item.plan_id,
+                    item.status.value,
+                    symbol or "",
+                    side or "",
+                    "" if planned_price is None else f"{planned_price:.4f}",
+                    "" if item.next_open is None else f"{item.next_open:.4f}",
+                    "" if item.actual_price is None else f"{item.actual_price:.4f}",
+                    "" if item.actual_shares is None else str(item.actual_shares),
+                    slippage,
+                    item.manual_skip or "",
+                )
+            )
+            + " |"
+        )
+    if not records:
+        lines.append("| — | — | — | — | — | — | — | — | — | — | — |")
+    lines.append("")
+    return "\n".join(lines)
 
 
 def render_economic_attribution_report(attribution: Mapping[str, Any]) -> str:

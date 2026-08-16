@@ -36,6 +36,7 @@ from research.ablation_registry import (
 from uquant.engine import ProductionEngine
 
 ROOT = Path(__file__).resolve().parents[1]
+RESULTS_PATH = ROOT / "artifacts" / "phase2" / "ablations" / "results.json"
 
 
 def _runner_module():
@@ -80,6 +81,61 @@ def test_registry_covers_every_mandated_active_subsystem_once() -> None:
         "group_balanced_reference",
     }
     assert all(item.reason == "inactive_in_frozen_config" for item in registry.exclusions)
+
+
+def test_results_classify_all_subsystems_from_authenticated_evidence() -> None:
+    """Catches missing dimensions, relabeled invalid runs, or an unsupported deletion."""
+    payload = json.loads(RESULTS_PATH.read_text(encoding="utf-8"))
+    rows = payload["subsystems"]
+    by_name = {row["subsystem"]: row for row in rows}
+    historical = load_ablation_registry(DEFAULT_ABLATION_REGISTRY_PATH)
+
+    assert payload["schema_version"] == 1
+    assert set(by_name) == {item.subsystem for item in historical.experiments}
+    assert len(rows) == 13
+    assert {name: row["decision"] for name, row in by_name.items()} == {
+        "sector_guard": "KEEP",
+        "chronic_overlay": "KEEP",
+        "transition_overlay": "DELETE",
+        "capital_budget_ladder": "KEEP",
+        "challenger_scout": "INCONCLUSIVE",
+        "conviction_weighting": "INCONCLUSIVE",
+        "recovery_conviction_weighting": "KEEP",
+        "tactical_rebound_probe": "KEEP",
+        "strategic_trailing": "KEEP",
+        "restoration_special_handling": "KEEP",
+        "add_tranche": "KEEP",
+        "replacement_rotation": "KEEP",
+        "dynamic_risk_anchors": "KEEP",
+    }
+    assert payload["decision_counts"] == {"DELETE": 1, "INCONCLUSIVE": 2, "KEEP": 10}
+    assert payload["metric_directions"] == {
+        "account_orders": "lower_is_better",
+        "acute_return": "higher_is_better",
+        "annual_turnover": "lower_is_better",
+        "final_wealth": "higher_is_better",
+        "gross_turnover": "lower_is_better",
+        "max_drawdown": "lower_is_better",
+        "pnl_hhi": "lower_is_better",
+        "top1_concentration": "lower_is_better",
+        "top3_concentration": "lower_is_better",
+    }
+    for row in rows:
+        assert set(row["evidence_epochs"]) <= {"pre_deletion", "post_deletion"}
+        for epoch in row["evidence_epochs"].values():
+            for contract in epoch["contracts"].values():
+                assert set(contract["dimensions"]) == set(payload["metric_directions"])
+    for subsystem in ("challenger_scout", "conviction_weighting"):
+        assert by_name[subsystem]["decision"] == "INCONCLUSIVE"
+        assert all(
+            epoch["artifact_kind"] == "invalid_experiment"
+            and epoch["invalid_reason"] == "no_behavior_divergence"
+            for epoch in by_name[subsystem]["evidence_epochs"].values()
+        )
+    transition = by_name["transition_overlay"]
+    assert set(transition["evidence_epochs"]) == {"pre_deletion"}
+    assert transition["all_common_valid_metric_deltas_zero"] is True
+    assert transition["status_transition_count"] == 0
 
 
 def test_post_deletion_registry_is_derived_without_relabeling_historical_evidence() -> None:

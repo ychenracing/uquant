@@ -339,14 +339,15 @@ def test_performance_workflow_tracks_every_production_identity_input() -> None:
     workflow = (ROOT / ".github" / "workflows" / "strategy-performance.yml").read_text(
         encoding="utf-8"
     )
-    for path in ("pyproject.toml", "requirements.txt", "uv.lock"):
-        assert f'- "{path}"' in workflow
+    assert "paths:" not in workflow
     assert "--output benchmarks/ai_era_performance.json" in workflow
-    assert "path: benchmarks/ai_era_performance.json" in workflow
-    assert "Verify artifact binds the checked-out HEAD" in workflow
-    assert "artifact_commit = payload[\"provenance\"][\"binding\"][\"production_commit\"]" in workflow
-    assert "[\"git\", \"rev-parse\", \"HEAD\"], text=True" in workflow
-    assert "if artifact_commit != checkout_commit:" in workflow
+    assert "benchmarks/ai_era_performance.json" in workflow
+    assert "Verify exact HEAD and full provenance" in workflow
+    assert "-m uquant.validation.ci_artifacts phase1" in workflow
+    assert "UPSTREAM_RESULT: ${{ steps.phase1-gate.outcome }}" in workflow
+    assert "--upstream-result \"$UPSTREAM_RESULT\"" in workflow
+    assert "artifacts/phase1/ci/phase1-validation.json" in workflow
+    assert "ai-era-performance-${{ github.run_id }}-attempt-${{ github.run_attempt }}" in workflow
     assert "/benchmarks/ai_era_performance.json" in (ROOT / ".gitignore").read_text(
         encoding="utf-8"
     )

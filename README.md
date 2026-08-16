@@ -31,6 +31,31 @@ uquant 是专门面向 2023 年以来 A 股 AI 产业链的日频量化决策系
 | 最小交易金额 | 20,000 元 |
 | 最大成交量参与率 | 0.5% |
 
+## 验证与演进边界
+
+生产与泛化共用 `uquant/validation/resources/ai_universe_manifest.json` 中经过内容摘要
+保护的 34 只 A 股 AI 产业链证券及其点时行业归属；消费、白酒、新能源或宽基股票
+不进入可交易全集。每天仍由使用者人工运行、核对并辅助下单，研究和 CI 不会改变
+这一定位。2023 年以前的行始终只是 warm-up。
+
+Phase 2 Generalization 在六个官方窗口分别保留完整全集、逐一/全部移除三只核心、
+去 optical、行业均衡、有效子行业和固定随机池。随机契约只允许基准种子 `20260810`、
+索引 `0..4`、池大小 `5 / 9 / 15 / 20`；失败种子不替换，样本不足也保留为证据。
+报告覆盖 `final_wealth`、`max_drawdown`、`account_orders`、`gross_turnover`、
+`annual_turnover`、`top1_concentration`、`top3_concentration` 和 `pnl_hhi`，并按冻结
+champion 与不可放宽的政策失败关闭。
+
+经济归因沿稳定事件身份连接 Target、Order、Tranche 和 Fill；展示用原因文字不是
+归因键。账本满足 `realized_pnl + open_pnl = final_equity - initial_cash`，而 cash drag
+与 risk avoidance 是诊断量，不伪装成会计 PnL。配置字段由 `MARKET_RULE`、`SAFETY`、
+`ECONOMIC`、`DERIVED`、`COMPATIBILITY` 五类完整治理，只有 `ECONOMIC` 可进入候选
+选择。独立消融的当前结论是 `KEEP=10`、`DELETE=1`、`INCONCLUSIVE=2`。
+
+历史样本截至 `2026-08-05`；独立 future holdout 从 `2026-08-06` 开始，首个评审需
+累计 `40--60` 个交易日。在导入首个未来交易日以前，观察和指标必须为 null；holdout
+表现不得反向调参。另有 observational、append-only、broker-independent 的人工执行
+journal 记录计划价、次日开盘、真实成交、人工跳过与滑点，但不写入决策或账户状态。
+
 ## 安装
 
 唯一受支持的解释器是 Python 3.12。使用锁定依赖：
@@ -120,7 +145,7 @@ date,open,high,low,close,volume
 | `uquant/portfolio*.py` | 唯一目标组合及各生命周期职责 |
 | `uquant/execution.py` | 次日开盘执行模型与订单生命周期 |
 | `uquant/account.py`、`broker.py` | 账户持久化和券商对账 |
-| `uquant/validation/` | 数据完整性与统一 AI-era 绩效门禁 |
+| `uquant/validation/` | 数据完整性、Phase 1 绩效和 Phase 2 泛化门禁 |
 | `research/` | 与生产导入隔离的离线研究工具 |
 | `tests/` | 行为、不变量和失败路径测试 |
 
@@ -151,6 +176,11 @@ uv run python -m uquant.validation promotion \
 
 该文件是 checkout 后生成并由 CI 上传的运行证据，不纳入 Git；否则文件内的
 `production_commit` 会反过来改变提交 SHA，无法与生成它的 HEAD 精确相等。
+
+GitHub 对每个 PR 和 `main` push 独立给出 `Engineering`、`Phase 1 Performance` 和
+`Phase 2 Generalization` 三个稳定阻断结论。Phase 2 按六个官方窗口分片，但最终结论
+会在所有分片结束后检查精确 HEAD、完整 provenance、234 条记录和冻结政策；任何
+缺失、回放错误或阈值失败都不会被其他成功分片抵消。
 
 ## 使用限制
 

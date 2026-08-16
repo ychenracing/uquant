@@ -1,0 +1,418 @@
+from __future__ import annotations
+
+import copy
+import importlib
+import json
+from collections.abc import Callable, Mapping
+from pathlib import Path
+from typing import Any
+
+import pytest
+
+from uquant.validation.generalization_matrix import _hash_json
+from uquant.validation.promotion import _artifact_binding
+
+ROOT = Path(__file__).resolve().parents[1]
+OFFICIAL_WINDOWS = (
+    "h1_2023",
+    "h2_2023",
+    "h1_2024",
+    "h2_2024",
+    "bull_crash_2025_2026",
+    "continuous_ai_era",
+)
+PREFIX = "ai-era-generalization-123-attempt-2"
+
+
+def _ci_module() -> Any:
+    try:
+        return importlib.import_module("uquant.validation.ci_artifacts")
+    except ModuleNotFoundError:
+        pytest.fail("executable CI artifact validator module is missing")
+
+
+def _write_json(path: Path, payload: Mapping[str, Any]) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(
+        json.dumps(payload, allow_nan=False, separators=(",", ":"), sort_keys=True) + "\n",
+        encoding="utf-8",
+    )
+
+
+def _phase1_candidate() -> dict[str, Any]:
+    return {
+        "data": {
+            "snapshot_id": "snapshot",
+            "files_verified": 36,
+            "manifest_sha256": "1" * 64,
+            "checksums_sha256": "2" * 64,
+        },
+        "production": {
+            "repository": "ychenracing/uquant",
+            "commit": "a" * 40,
+            "source_sha256": "3" * 64,
+        },
+        "environment": {
+            "python_full_version": "3.12.13",
+            "numpy_version": "2.5.1",
+            "pandas_version": "3.0.5",
+            "uv_version": "0.11.33",
+            "uv_lock_sha256": "4" * 64,
+        },
+        "effective_config_sha256": "5" * 64,
+    }
+
+
+def _phase1_payload(candidate: Mapping[str, Any]) -> dict[str, Any]:
+    generated_at = "2026-08-16T00:00:00+00:00"
+    return {
+        "schema_version": 3,
+        "profile": "full",
+        "passed": True,
+        "failures": [],
+        "cells": {},
+        "protected": {},
+        "summary": {},
+        "provenance": {
+            "candidate": copy.deepcopy(candidate),
+            "binding": _artifact_binding(candidate, generated_at=generated_at),
+            "baseline_sha256": "6" * 64,
+            "validation_fingerprint": "7" * 64,
+            "champion_commit": "b" * 40,
+            "generated_at": generated_at,
+        },
+    }
+
+
+def _run_phase1(
+    tmp_path: Path,
+    payload: Mapping[str, Any],
+    *,
+    upstream_result: str = "success",
+) -> dict[str, Any]:
+    module = _ci_module()
+    artifact = tmp_path / "phase1.json"
+    report = tmp_path / "phase1-diagnostic.json"
+    _write_json(artifact, payload)
+    result = module.run_phase1_validation(
+        artifact=artifact,
+        report_output=report,
+        upstream_result=upstream_result,
+        expected_candidate=_phase1_candidate(),
+        checkout_head="a" * 40,
+    )
+    assert json.loads(report.read_text(encoding="utf-8")) == result
+    return result
+
+
+def test_phase1_validator_accepts_exact_full_provenance_and_success(tmp_path: Path) -> None:
+    """Catches the executable validator rejecting a complete exact-HEAD artifact."""
+    result = _run_phase1(tmp_path, _phase1_payload(_phase1_candidate()))
+
+    assert result == {"passed": True, "failures": []}
+
+
+@pytest.mark.parametrize(
+    ("mutate", "message"),
+    (
+        (
+            lambda payload: payload["provenance"]["candidate"].pop("environment"),
+            "candidate provenance differs",
+        ),
+        (
+            lambda payload: payload["provenance"]["candidate"]["production"].update(
+                commit="c" * 40
+            ),
+            "candidate provenance differs",
+        ),
+        (
+            lambda payload: payload.update(passed=False, failures=["economic gate failed"]),
+            "Phase 1 gate did not pass",
+        ),
+    ),
+    ids=("incomplete-provenance", "stale-head", "failed-gate"),
+)
+def test_phase1_validator_rejects_incomplete_stale_or_failed_artifact(
+    tmp_path: Path,
+    mutate: Callable[[dict[str, Any]], object],
+    message: str,
+) -> None:
+    """Catches incomplete/stale provenance or an advertised failed Phase 1 gate being accepted."""
+    payload = _phase1_payload(_phase1_candidate())
+    mutate(payload)
+
+    result = _run_phase1(tmp_path, payload)
+
+    assert result["passed"] is False
+    assert any(message in failure for failure in result["failures"])
+
+
+def test_phase1_validator_rejects_upstream_failure_and_writes_diagnostics(tmp_path: Path) -> None:
+    """Catches a failed gate step being converted to success by provenance readback."""
+    result = _run_phase1(
+        tmp_path,
+        _phase1_payload(_phase1_candidate()),
+        upstream_result="failure",
+    )
+
+    assert result["passed"] is False
+    assert "upstream Phase 1 result was failure" in result["failures"]
+
+
+def test_phase1_validator_writes_diagnostic_when_authoritative_provenance_fails(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Catches production provenance construction escaping before diagnostics exist."""
+    module = _ci_module()
+    artifact = tmp_path / "phase1.json"
+    report = tmp_path / "phase1-diagnostic.json"
+    _write_json(artifact, _phase1_payload(_phase1_candidate()))
+
+    def fail_runtime_provenance(data_dir: str | Path) -> dict[str, Any]:
+        raise RuntimeError(f"authoritative provenance unavailable for {data_dir}")
+
+    monkeypatch.setattr(module, "_runtime_provenance", fail_runtime_provenance)
+
+    exit_code = module.main(
+        [
+            "phase1",
+            "--artifact",
+            str(artifact),
+            "--report-output",
+            str(report),
+            "--upstream-result",
+            "success",
+            "--data-dir",
+            "data/frozen",
+        ]
+    )
+    result = json.loads(report.read_text(encoding="utf-8"))
+
+    assert exit_code == 1
+    assert result["passed"] is False
+    assert result["failures"] == [
+        "cannot construct authoritative Phase 1 provenance: "
+        "authoritative provenance unavailable for data/frozen"
+    ]
+
+
+def test_phase1_validator_rejects_duplicate_json_keys_and_writes_diagnostics(
+    tmp_path: Path,
+) -> None:
+    """Catches ambiguous duplicate-key evidence being silently last-key-wins parsed."""
+    module = _ci_module()
+    artifact = tmp_path / "phase1.json"
+    report = tmp_path / "phase1-diagnostic.json"
+    artifact.write_text(
+        '{"passed":true,"provenance":{},"provenance":{}}\n',
+        encoding="utf-8",
+    )
+
+    result = module.run_phase1_validation(
+        artifact=artifact,
+        report_output=report,
+        upstream_result="success",
+        expected_candidate=_phase1_candidate(),
+        checkout_head="a" * 40,
+    )
+
+    assert result["passed"] is False
+    assert any("duplicate JSON key: provenance" in failure for failure in result["failures"])
+    assert json.loads(report.read_text(encoding="utf-8")) == result
+
+
+def _champion() -> dict[str, Any]:
+    return json.loads(
+        (ROOT / "artifacts" / "phase2" / "champion-generalization-matrix.json").read_text(
+            encoding="utf-8"
+        )
+    )
+
+
+def _common_provenance(champion: Mapping[str, Any]) -> dict[str, Any]:
+    provenance = champion["provenance"]
+    return {
+        key: copy.deepcopy(value)
+        for key, value in provenance.items()
+        if key not in {"window_fingerprint", "scenario_fingerprint", "evidence_fingerprint"}
+    }
+
+
+def _shard_provenance(
+    common: Mapping[str, Any],
+    *,
+    window: str,
+    cells: list[dict[str, Any]],
+) -> dict[str, Any]:
+    first = cells[0]
+    scenario_payload = [
+        {
+            "window": {
+                "name": cell["window"],
+                "start": cell["start"],
+                "end": cell["end"],
+            },
+            "name": cell["scenario"],
+            "family": cell["family"],
+            "symbols": cell["symbols"],
+            "reference_symbols": cell["reference_symbols"],
+            "removed_symbols": cell["removed_symbols"],
+            "status": cell["status"],
+            "industry": cell["industry"],
+            "pool_size": cell["pool_size"],
+            "seed_index": cell["seed_index"],
+            "derived_seed": cell["derived_seed"],
+            "evidence": cell["evidence"],
+        }
+        for cell in cells
+    ]
+    return {
+        **copy.deepcopy(common),
+        "window_fingerprint": _hash_json(
+            [{"name": window, "start": first["start"], "end": first["end"]}]
+        ),
+        "scenario_fingerprint": _hash_json(scenario_payload),
+        "evidence_fingerprint": _hash_json(
+            [{"window": window, "evidence": first["evidence"]}]
+        ),
+    }
+
+
+def _write_champion_shards(tmp_path: Path) -> tuple[Path, dict[str, Any]]:
+    champion = _champion()
+    common = _common_provenance(champion)
+    root = tmp_path / "shards"
+    for window in OFFICIAL_WINDOWS:
+        cells = [
+            copy.deepcopy(cell) for cell in champion["cells"] if cell["window"] == window
+        ]
+        failures = [
+            failure for failure in champion["failures"] if f"{window}/" in failure
+        ]
+        aggregate = copy.deepcopy(champion["aggregates"]["by_window"][window])
+        shard = {
+            "schema_version": champion["schema_version"],
+            "gate": champion["gate"],
+            "passed": not failures,
+            "failures": failures,
+            "provenance": _shard_provenance(common, window=window, cells=cells),
+            "concentration_definition": copy.deepcopy(champion["concentration_definition"]),
+            "aggregates": {"all": aggregate, "by_window": {window: aggregate}},
+            "cells": cells,
+        }
+        _write_json(root / f"{PREFIX}-{window}" / f"{window}.json", shard)
+    return root, common
+
+
+def _run_generalization(
+    tmp_path: Path,
+    *,
+    mutate: Callable[[Path], None] | None = None,
+    upstream_result: str = "success",
+) -> dict[str, Any]:
+    module = _ci_module()
+    shard_root, common = _write_champion_shards(tmp_path)
+    if mutate is not None:
+        mutate(shard_root)
+    report = tmp_path / "generalization-diagnostic.json"
+    merged = tmp_path / "generalization-merged.json"
+    result = module.run_generalization_validation(
+        shard_root=shard_root,
+        artifact_prefix=PREFIX,
+        report_output=report,
+        merged_output=merged,
+        upstream_result=upstream_result,
+        expected_common_provenance=common,
+        expected_schema_version=1,
+        data_dir=None,
+    )
+    assert json.loads(report.read_text(encoding="utf-8")) == result
+    return result
+
+
+def test_generalization_validator_rejects_missing_and_extra_attempt_shards(
+    tmp_path: Path,
+) -> None:
+    """Catches an incomplete attempt or a broad pattern mixing an extra artifact."""
+
+    def missing(root: Path) -> None:
+        target = root / f"{PREFIX}-h1_2023" / "h1_2023.json"
+        target.unlink()
+        target.parent.rmdir()
+
+    missing_result = _run_generalization(tmp_path / "missing", mutate=missing)
+    assert any("artifact set differs" in failure for failure in missing_result["failures"])
+
+    def extra(root: Path) -> None:
+        (root / f"{PREFIX}-prior-attempt").mkdir()
+
+    extra_result = _run_generalization(tmp_path / "extra", mutate=extra)
+    assert any("artifact set differs" in failure for failure in extra_result["failures"])
+
+
+def test_generalization_validator_rejects_duplicate_cell_and_mixed_window(
+    tmp_path: Path,
+) -> None:
+    """Catches duplicate evidence or a shard carrying records from another window."""
+
+    def duplicate(root: Path) -> None:
+        path = root / f"{PREFIX}-h1_2023" / "h1_2023.json"
+        payload = json.loads(path.read_text(encoding="utf-8"))
+        payload["cells"].append(copy.deepcopy(payload["cells"][0]))
+        _write_json(path, payload)
+
+    duplicate_result = _run_generalization(tmp_path / "duplicate", mutate=duplicate)
+    assert any("duplicate cell" in failure for failure in duplicate_result["failures"])
+
+    def mixed(root: Path) -> None:
+        path = root / f"{PREFIX}-h2_2023" / "h2_2023.json"
+        payload = json.loads(path.read_text(encoding="utf-8"))
+        payload["cells"][0]["window"] = "h1_2023"
+        _write_json(path, payload)
+
+    mixed_result = _run_generalization(tmp_path / "mixed", mutate=mixed)
+    assert any("contains mixed windows" in failure for failure in mixed_result["failures"])
+
+
+def test_generalization_validator_rejects_stale_exact_head_provenance(
+    tmp_path: Path,
+) -> None:
+    """Catches a complete shard set whose HEAD/provenance belongs to another checkout."""
+
+    def stale(root: Path) -> None:
+        path = root / f"{PREFIX}-h1_2024" / "h1_2024.json"
+        payload = json.loads(path.read_text(encoding="utf-8"))
+        payload["provenance"]["head"] = "f" * 40
+        _write_json(path, payload)
+
+    result = _run_generalization(tmp_path, mutate=stale)
+
+    assert any("provenance differs from exact HEAD and inputs" in failure for failure in result["failures"])
+
+
+def test_generalization_validator_rejects_replay_policy_and_upstream_failure_with_diagnostics(
+    tmp_path: Path,
+) -> None:
+    """Catches a known replay error or upstream failure being hidden by aggregation."""
+    result = _run_generalization(tmp_path / "policy")
+
+    assert result["passed"] is False
+    assert any("continuous_ai_era: shard gate failed" in failure for failure in result["failures"])
+    assert any("policy/evidence validation failed" in failure for failure in result["failures"])
+    assert any("cell replay failed" in failure for failure in result["failures"])
+
+    upstream = _run_generalization(tmp_path / "upstream", upstream_result="failure")
+    assert "generalization shard job result was failure" in upstream["failures"]
+
+
+def test_generalization_validator_rejects_duplicate_shard_json_key(tmp_path: Path) -> None:
+    """Catches a shard using duplicate JSON keys to make provenance ambiguous."""
+
+    def duplicate_key(root: Path) -> None:
+        path = root / f"{PREFIX}-h2_2024" / "h2_2024.json"
+        path.write_text('{"cells":[],"cells":[],"provenance":{}}\n', encoding="utf-8")
+
+    result = _run_generalization(tmp_path, mutate=duplicate_key)
+
+    assert any("duplicate JSON key: cells" in failure for failure in result["failures"])

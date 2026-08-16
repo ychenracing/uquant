@@ -23,8 +23,18 @@ MINIMAL_ABLATION_REGISTRY_PATH: Final = (
     / "ablations"
     / "minimal_registry.json"
 )
+POST_TASK8_SOURCE_CONTRACT_PATH: Final = (
+    Path(__file__).resolve().parents[1]
+    / "artifacts"
+    / "phase2"
+    / "ablations"
+    / "post_task8_source_contract.json"
+)
 BASE_SOURCE_COMMIT: Final = "7f80436373b6da03536e15ff1908c010bfb92eb3"
 MINIMAL_BASE_SOURCE_COMMIT: Final = "e5e0fa903c9a9b26701063ae01f352af3e246a7d"
+_POST_TASK8_SOURCE_CONTRACT_SHA256: Final = (
+    "e5da89f0ec9457261f8c2b09d79d11b1c8244fa702416c8be643266409d8f59f"
+)
 REQUIRED_SUBSYSTEMS: Final = (
     "sector_guard",
     "chronic_overlay",
@@ -169,6 +179,87 @@ def source_fingerprint(
         digest.update(len(content).to_bytes(8, "big"))
         digest.update(content)
     return digest.hexdigest()
+
+
+def _git_bytes(root: Path, arguments: Sequence[str]) -> bytes:
+    git = shutil.which("git")
+    if git is None:
+        raise RuntimeError("cannot resolve git for ablation source validation")
+    try:
+        completed = subprocess.run(  # nosec B603
+            [git, "-C", str(root), *arguments],
+            check=True,
+            capture_output=True,
+        )
+    except (OSError, subprocess.CalledProcessError) as exc:
+        raise ValueError("cannot read reviewed ablation source from Git objects") from exc
+    return completed.stdout
+
+
+def _production_paths_at_commit(root: Path, commit: str) -> tuple[str, ...]:
+    if not _COMMIT.fullmatch(commit):
+        raise ValueError("post-Task8 source commit is invalid")
+    names = _git_bytes(root, ("ls-tree", "-r", "--name-only", commit, "--", "uquant"))
+    discovered = set(_PRODUCTION_FIXED_PATHS)
+    for name in names.decode("utf-8").splitlines():
+        path = Path(name)
+        if path.suffix == ".py" or (
+            path.suffix == ".json"
+            and path.parent.as_posix() == "uquant/validation/resources"
+        ):
+            discovered.add(path.as_posix())
+    return tuple(sorted(discovered))
+
+
+def _git_blob(root: Path, commit: str, relative: str) -> bytes:
+    path = Path(relative)
+    if path.is_absolute() or ".." in path.parts:
+        raise ValueError("post-Task8 source path escapes its root")
+    return _git_bytes(root, ("show", f"{commit}:{path.as_posix()}"))
+
+
+def _source_fingerprint_at_commit(
+    root: Path,
+    commit: str,
+    paths: Sequence[str],
+) -> str:
+    digest = hashlib.sha256()
+    for relative in paths:
+        encoded_path = relative.encode()
+        content = _git_blob(root, commit, relative)
+        digest.update(len(encoded_path).to_bytes(4, "big"))
+        digest.update(encoded_path)
+        digest.update(len(content).to_bytes(8, "big"))
+        digest.update(content)
+    return digest.hexdigest()
+
+
+def _source_delta(
+    root: Path,
+    base_commit: str,
+    reviewed_commit: str,
+    base_paths: Sequence[str],
+    reviewed_paths: Sequence[str],
+) -> list[dict[str, str | None]]:
+    base_set = set(base_paths)
+    reviewed_set = set(reviewed_paths)
+    deltas: list[dict[str, str | None]] = []
+    for relative in sorted(base_set | reviewed_set):
+        before = _git_blob(root, base_commit, relative) if relative in base_set else None
+        after = _git_blob(root, reviewed_commit, relative) if relative in reviewed_set else None
+        if before == after:
+            continue
+        deltas.append(
+            {
+                "path": relative,
+                "status": (
+                    "added" if before is None else "deleted" if after is None else "modified"
+                ),
+                "before_sha256": hashlib.sha256(before).hexdigest() if before is not None else None,
+                "after_sha256": hashlib.sha256(after).hexdigest() if after is not None else None,
+            }
+        )
+    return deltas
 
 
 @dataclass(frozen=True, slots=True)
@@ -550,6 +641,101 @@ def _is_protected(path: str, protected_paths: Sequence[str]) -> bool:
     return any(path == protected or path.startswith(f"{protected}/") for protected in protected_paths)
 
 
+def _strict_json_object(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
+    result: dict[str, Any] = {}
+    for key, value in pairs:
+        if key in result:
+            raise ValueError(f"duplicate post-Task8 source contract key: {key}")
+        result[key] = value
+    return result
+
+
+def _validate_post_task8_source(
+    registry: AblationRegistry,
+    *,
+    root: Path,
+    observed_source_sha256: str,
+) -> None:
+    """Accept only the exact, sealed Git-object delta reviewed after Task 8."""
+    if (
+        registry.registry_id != "phase2-post-transition-deletion-ablation-v1"
+        or registry.base_commit != MINIMAL_BASE_SOURCE_COMMIT
+    ):
+        raise ValueError("ablation production source differs from the reviewed source hash")
+    try:
+        payload = json.loads(
+            POST_TASK8_SOURCE_CONTRACT_PATH.read_text(encoding="utf-8"),
+            object_pairs_hook=_strict_json_object,
+        )
+    except (OSError, json.JSONDecodeError) as exc:
+        raise ValueError("cannot load post-Task8 source contract") from exc
+    contract = _require_mapping(payload, label="post-Task8 source contract")
+    if set(contract) != {
+        "schema_version",
+        "contract_id",
+        "canonical_sha256",
+        "base",
+        "reviewed",
+        "deltas",
+    }:
+        raise ValueError("post-Task8 source contract fields are invalid")
+    if contract.get("schema_version") != 1 or contract.get("contract_id") != (
+        "phase2-post-task8-source-v1"
+    ):
+        raise ValueError("post-Task8 source contract identity differs")
+    seal = _require_text(contract.get("canonical_sha256"), label="post-Task8 source seal")
+    unsealed = {key: value for key, value in contract.items() if key != "canonical_sha256"}
+    if seal != _POST_TASK8_SOURCE_CONTRACT_SHA256 or canonical_sha256(unsealed) != seal:
+        raise ValueError("post-Task8 source contract seal differs")
+
+    base = _require_mapping(contract.get("base"), label="post-Task8 base source")
+    reviewed = _require_mapping(contract.get("reviewed"), label="post-Task8 reviewed source")
+    source_fields = {"commit", "production_source_sha256", "path_count"}
+    if set(base) != source_fields or set(reviewed) != source_fields:
+        raise ValueError("post-Task8 source endpoint fields are invalid")
+    base_commit = _require_text(base.get("commit"), label="post-Task8 base commit")
+    reviewed_commit = _require_text(
+        reviewed.get("commit"), label="post-Task8 reviewed commit"
+    )
+    if (
+        base_commit != registry.base_commit
+        or base.get("production_source_sha256") != registry.source_sha256
+        or not _COMMIT.fullmatch(reviewed_commit)
+    ):
+        raise ValueError("post-Task8 source endpoints differ from the registry")
+
+    base_paths = _production_paths_at_commit(root, base_commit)
+    reviewed_paths = _production_paths_at_commit(root, reviewed_commit)
+    if base != {
+        "commit": base_commit,
+        "production_source_sha256": _source_fingerprint_at_commit(
+            root, base_commit, base_paths
+        ),
+        "path_count": len(base_paths),
+    }:
+        raise ValueError("post-Task8 base Git source differs from its reviewed endpoint")
+    reviewed_source_sha256 = _source_fingerprint_at_commit(
+        root, reviewed_commit, reviewed_paths
+    )
+    if reviewed != {
+        "commit": reviewed_commit,
+        "production_source_sha256": reviewed_source_sha256,
+        "path_count": len(reviewed_paths),
+    }:
+        raise ValueError("post-Task8 reviewed Git source differs from its endpoint")
+    deltas = contract.get("deltas")
+    if not isinstance(deltas, list) or deltas != _source_delta(
+        root,
+        base_commit,
+        reviewed_commit,
+        base_paths,
+        reviewed_paths,
+    ):
+        raise ValueError("post-Task8 exact source delta differs from the reviewed contract")
+    if observed_source_sha256 != reviewed_source_sha256:
+        raise ValueError("ablation production source differs from the reviewed source hash")
+
+
 def validate_ablation_registry(
     registry: AblationRegistry,
     *,
@@ -583,10 +769,16 @@ def validate_ablation_registry(
     hashes = tuple(item.carrier.sha256 for item in registry.experiments)
     if len(hashes) != len(set(hashes)):
         raise ValueError("ablation carrier identities must be unique")
-    if source_fingerprint(root) != registry.source_sha256:
-        raise ValueError("ablation production source differs from the reviewed source hash")
+    observed_source_sha256 = source_fingerprint(root)
+    if observed_source_sha256 != registry.source_sha256:
+        _validate_post_task8_source(
+            registry,
+            root=root,
+            observed_source_sha256=observed_source_sha256,
+        )
     for contract in registry.fixed_contracts:
-        if _file_sha256(root / contract.path) != contract.sha256:
+        sealed_contract = _git_blob(root, registry.base_commit, contract.path)
+        if hashlib.sha256(sealed_contract).hexdigest() != contract.sha256:
             raise ValueError(f"fixed contract hash is stale: {contract.path}")
         if contract.minimum_date < "2023-01-01":
             raise ValueError("fixed contract includes pre-2023 economics")
@@ -635,19 +827,29 @@ def validate_ablation_registry(
         raise ValueError("ablation inactive compatibility exclusions are malformed")
 
 
-def _verified_json(root: Path, contract: FixedContract) -> Mapping[str, Any]:
-    source = root / contract.path
-    if _file_sha256(source) != contract.sha256:
+def _verified_json(
+    root: Path,
+    contract: FixedContract,
+    *,
+    base_commit: str,
+) -> Mapping[str, Any]:
+    source = _git_blob(root, base_commit, contract.path)
+    if hashlib.sha256(source).hexdigest() != contract.sha256:
         raise ValueError(f"fixed contract hash is stale: {contract.path}")
     try:
-        payload = json.loads(source.read_text(encoding="utf-8"))
-    except (OSError, json.JSONDecodeError) as exc:
+        payload = json.loads(source.decode("utf-8"))
+    except (UnicodeDecodeError, json.JSONDecodeError) as exc:
         raise ValueError(f"cannot load fixed ablation contract: {contract.path}") from exc
     return _require_mapping(payload, label=f"fixed contract {contract.name}")
 
 
-def _phase1_schedule(root: Path, contract: FixedContract) -> tuple[ContractCell, ...]:
-    payload = _verified_json(root, contract)
+def _phase1_schedule(
+    root: Path,
+    contract: FixedContract,
+    *,
+    base_commit: str,
+) -> tuple[ContractCell, ...]:
+    payload = _verified_json(root, contract, base_commit=base_commit)
     pools = _require_mapping(payload.get("pools"), label="phase1 pools")
     contract_payload = _require_mapping(payload.get("contract"), label="phase1 contract")
     windows = _require_mapping(contract_payload.get("windows"), label="phase1 windows")
@@ -704,9 +906,11 @@ def _generalization_schedule(
     root: Path,
     contract: FixedContract,
     evidence_contract: FixedContract,
+    *,
+    base_commit: str,
 ) -> tuple[ContractCell, ...]:
-    _verified_json(root, contract)
-    payload = _verified_json(root, evidence_contract)
+    _verified_json(root, contract, base_commit=base_commit)
+    payload = _verified_json(root, evidence_contract, base_commit=base_commit)
     raw_cells = payload.get("cells")
     if not isinstance(raw_cells, list):
         raise ValueError("frozen generalization cells are missing")
@@ -774,7 +978,15 @@ def build_contract_schedule(
     phase1 = registry.contract("phase1_performance")
     generalization = registry.contract("ai_era_generalization")
     evidence = registry.contract("frozen_generalization_status")
-    cells = (*_phase1_schedule(root, phase1), *_generalization_schedule(root, generalization, evidence))
+    cells = (
+        *_phase1_schedule(root, phase1, base_commit=registry.base_commit),
+        *_generalization_schedule(
+            root,
+            generalization,
+            evidence,
+            base_commit=registry.base_commit,
+        ),
+    )
     identities = tuple((cell.contract, cell.cell_id) for cell in cells)
     if len(identities) != len(set(identities)):
         raise ValueError("ablation fixed schedule contains duplicate cells")

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import re
+import subprocess
 from pathlib import Path
 from typing import Any
 
@@ -250,6 +251,27 @@ def test_artifact_names_bind_each_upload_and_download_to_one_run_attempt() -> No
     )
     assert shard_name == f"{prefix}-${{{{ matrix.window }}}}"
     assert pattern == f"{prefix}-*"
+
+
+def test_post_checkout_self_binding_artifacts_are_git_ignored() -> None:
+    """Catches a generated exact-HEAD artifact becoming eligible for an accidental commit."""
+    artifacts = (
+        "benchmarks/ai_era_performance.json",
+        "benchmarks/ai_era_generalization.json",
+        "benchmarks/future_holdout_manifest.json",
+    )
+
+    result = subprocess.run(
+        ["git", "check-ignore", "--stdin"],
+        cwd=ROOT,
+        input="\n".join(artifacts) + "\n",
+        capture_output=True,
+        check=False,
+        text=True,
+    )
+
+    assert result.returncode == 0
+    assert tuple(result.stdout.splitlines()) == artifacts
 
 
 @pytest.mark.parametrize("path", DOCS, ids=lambda path: path.name)

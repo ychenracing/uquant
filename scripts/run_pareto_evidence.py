@@ -137,6 +137,7 @@ def main(argv: list[str] | None = None) -> int:
 
     args = _parser().parse_args(argv)
     root = Path(args.repo_root).resolve()
+    payload: Mapping[str, Any]
     if args.command == "reference-audit":
         payload = audit_references(root)
     else:

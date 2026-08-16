@@ -120,9 +120,17 @@ canonical manifest 固定 34 只 A 股 AI 产业链股票及点时行业身份�
 | `pnl_hhi` | 绝对 symbol PnL 份额 HHI |
 
 聚合同时保留 median、worst、p10 wealth、p90 drawdown、p90 orders 与全部换手/集中度
-尾部。policy 逐 cell 对比冻结 champion，并检查 intrinsic floor 与固定随机组的正收益
-比例、p10/p90 边界。`REPLAY_ERROR` 和 `INSUFFICIENT_SAMPLE` 是明确证据状态；前者
-强制失败，后者不能伪造指标，也不能通过删行、补值或换 seed 取得通过。
+尾部。v2 policy 逐 cell 对比冻结 champion，并检查 intrinsic floor 与固定随机组的正收益
+比例、p10/p90 边界。报告始终显示原始 literal tail 结果；阻断结论同时使用已认证 champion
+的 floor/ceiling 作为 non-regression 有效边界，因此 champion 相等或未变 cell 不需要先
+Pareto 改进才能通过，而任何超出冻结边界与逐 cell 容差的恶化仍然失败。
+
+`REPLAY_ERROR` 和 `INSUFFICIENT_SAMPLE` 是明确证据状态。与已认证 baseline 完全相同的
+replay error 可以保留；新增或变化的 replay error 必须失败。若候选恢复了 baseline 的
+replay error，tail non-regression 只在共同有效样本上比较，恢复 cell 还必须落在该组已认证
+有效样本的最差包络及既有逐 cell 容差内。若该组没有已认证有效样本，则不得推导或豁免
+恢复包络，候选组只能按原始 literal policy 通过。样本不足记录不能伪造指标，也不能通过
+删行、补值或换 seed 取得通过。
 
 归因用稳定的 event、origin subsystem/mechanism、lifecycle、replacement 与
 industry-at-entry 身份连接 Target、Order、Tranche、Fill。原因文本不作为归因键；
@@ -154,7 +162,9 @@ scenario 和 causal evidence 身份，再调用冻结 policy/evidence validator�
 历史选择和所有冻结 benchmark 最后使用 `2026-08-05`；future holdout 自
 `2026-08-06` 起放在独立目录。最后 in-sample 日的收盘决策若在次日成交，属于
 holdout。未来 session 未导入时观察与指标必须为 null，不允许伪造 holdout 数值；
-首个正式评审需累计 `40--60` 个交易日，观察结果不能反向修改参数。
+首个正式评审需累计 `40--60` 个交易日，观察结果不能反向修改参数。起始账户必须
+匹配已审阅的完整连续回放 SHA-256；观察期评分必须由确定性回放重算，调用方提供的
+独立分数文件即使重新封签也不能进入验收。
 
 实际人工执行另由 observational、append-only、broker-independent journal 记录计划
 价格、次日开盘、真实成交、人工跳过和实现滑点。它与回放/holdout 评分分离，也不能

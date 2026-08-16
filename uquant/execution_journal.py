@@ -15,7 +15,7 @@ from dataclasses import asdict, dataclass
 from datetime import datetime
 from enum import Enum
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 
 _SHA256 = re.compile(r"^[0-9a-f]{64}$")
 _PLAN_ID = re.compile(r"^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$")
@@ -240,31 +240,31 @@ def _validate_lifecycle(records: list[JournalRecord] | tuple[JournalRecord, ...]
             planned_at = _timestamp(plan.recorded_at, field="recorded_at")
             if recorded < planned_at:
                 raise ValueError("execution journal event chronology predates its plan")
-            assert record.next_open is not None
-            prior_open = plan_opens.setdefault(record.plan_id, record.next_open)
-            if record.next_open != prior_open:
+            next_open = cast(float, record.next_open)
+            prior_open = plan_opens.setdefault(record.plan_id, next_open)
+            if next_open != prior_open:
                 raise ValueError("execution journal next open differs within one plan")
             if record.status is JournalStatus.FILLED:
-                assert record.actual_time is not None
-                actual_time = _timestamp(record.actual_time, field="actual_time")
+                actual_time_raw = cast(str, record.actual_time)
+                actual_time = _timestamp(actual_time_raw, field="actual_time")
                 if actual_time < planned_at or actual_time > recorded:
                     raise ValueError("execution journal fill chronology is invalid")
-                assert record.actual_shares is not None
-                total = filled_shares[record.plan_id] + record.actual_shares
-                assert plan.planned_shares is not None
-                if total > plan.planned_shares:
+                actual_shares = cast(int, record.actual_shares)
+                planned_shares = cast(int, plan.planned_shares)
+                total = filled_shares[record.plan_id] + actual_shares
+                if total > planned_shares:
                     raise ValueError("execution journal fills exceed planned shares")
                 filled_shares[record.plan_id] = total
-                if total == plan.planned_shares:
+                if total == planned_shares:
                     terminal.add(record.plan_id)
-                assert plan.side is not None
-                assert record.actual_price is not None
-                direction = 1.0 if plan.side == "BUY" else -1.0
-                per_share = direction * (record.actual_price - record.next_open)
+                side = cast(str, plan.side)
+                actual_price = cast(float, record.actual_price)
+                direction = 1.0 if side == "BUY" else -1.0
+                per_share = direction * (actual_price - next_open)
                 expected = (
                     per_share,
-                    per_share / record.next_open * 10_000.0,
-                    per_share * record.actual_shares,
+                    per_share / next_open * 10_000.0,
+                    per_share * actual_shares,
                 )
                 observed = (
                     record.slippage_per_share,

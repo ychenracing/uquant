@@ -5,6 +5,7 @@ from __future__ import annotations
 import hashlib
 import json
 import os
+import shutil
 import subprocess  # nosec B404 - fixed Python command and JSON argument only
 import sys
 from collections.abc import Mapping
@@ -131,10 +132,17 @@ def _sha256_json(value: Any) -> str:
     ).hexdigest()
 
 
+def _git_executable() -> str:
+    executable = shutil.which("git")
+    if executable is None:
+        raise RuntimeError("cannot resolve git executable for Phase 1 equivalence")
+    return executable
+
+
 def _git_commit(root: Path) -> str:
     try:
         return subprocess.run(
-            ["git", "-C", str(root), "rev-parse", "HEAD"],
+            [_git_executable(), "-C", str(root), "rev-parse", "HEAD"],
             check=True,
             capture_output=True,
             text=True,

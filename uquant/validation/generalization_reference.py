@@ -45,7 +45,7 @@ REQUIRED_GENERALIZATION_BASELINE_SHA256: Final = (
     "8603c4572fbf15a3de4f89737ab078d7e61d76f9e197f210a24704b8a4aabd79"
 )
 REQUIRED_GENERALIZATION_POLICY_SHA256: Final = (
-    "5f7df0aab80d86af973731eac7899dbce9e71b5d3b6166fe064b9e291300a086"
+    "46cf95d26d04186824f181266da68e5a2d98814b65371c0b358c7cacfa8ef8fc"
 )
 _REQUIRED_DEPRECATED_V1_ATTRIBUTION_COLLECTION_SHA256: Final = (
     "f43e1efe07b3f18c7931bc27a527886f1da5a8bc95026b02ab0a0116bec94545"
@@ -216,8 +216,15 @@ class GeneralizationBaseline:
 class GeneralizationPolicy:
     """Literal immutable Phase 2 non-regression and intrinsic thresholds."""
 
+    schema_version: int
+    policy_id: str
     sha256: str
     baseline_sha256: str
+    champion_equality_passes: bool
+    baseline_grandfathering: bool
+    empty_support_requires_literal_policy: bool
+    identical_baseline_replay_error_passes: bool
+    recovered_replay_envelope: bool
     wealth_ratio_min: float
     drawdown_absolute_buffer: float
     orders_absolute_buffer: int
@@ -667,13 +674,14 @@ def load_generalization_policy(path: str | Path | None = None) -> Generalization
         "schema_version",
         "policy_id",
         "baseline_sha256",
+        "baseline_non_regression",
         "relative_per_cell",
         "intrinsic",
         "random_tails",
         "scenario_contract",
         "canonical_sha256",
-    } or payload.get("schema_version") != 1 or payload.get("policy_id") != (
-        "ai-era-generalization-policy-v1"
+    } or payload.get("schema_version") != 2 or payload.get("policy_id") != (
+        "ai-era-generalization-policy-v2"
     ):
         raise ValueError("generalization policy schema is malformed")
     seal = _require_exact_seal(
@@ -683,12 +691,29 @@ def load_generalization_policy(path: str | Path | None = None) -> Generalization
     )
     if payload["baseline_sha256"] != REQUIRED_GENERALIZATION_BASELINE_SHA256:
         raise ValueError("generalization policy baseline differs from the reviewed reference")
+    baseline_non_regression = payload["baseline_non_regression"]
     relative = payload["relative_per_cell"]
     intrinsic = payload["intrinsic"]
     tails = payload["random_tails"]
     contract = payload["scenario_contract"]
-    if not all(isinstance(item, Mapping) for item in (relative, intrinsic, tails, contract)):
+    if not all(
+        isinstance(item, Mapping)
+        for item in (baseline_non_regression, relative, intrinsic, tails, contract)
+    ):
         raise ValueError("generalization policy sections are malformed")
+    expected_baseline_non_regression = {
+        "empty_authenticated_support_requires_literal_policy": True,
+        "exact_reviewed_evidence_passes": True,
+        "floor_and_ceiling_bounds_use_authenticated_baseline": True,
+        "identical_baseline_replay_error_passes": True,
+        "recovered_cell_uses_authenticated_group_envelope": True,
+        "recovered_cell_uses_relative_per_cell_tolerances": True,
+        "recovered_cell_is_excluded_from_tail_rank_non_regression": True,
+    }
+    if dict(baseline_non_regression) != expected_baseline_non_regression:
+        raise ValueError(
+            "generalization baseline non-regression differs from the reviewed contract"
+        )
     expected_relative = {
         "wealth_ratio_min": 0.95,
         "drawdown_absolute_buffer": 0.02,
@@ -713,7 +738,8 @@ def load_generalization_policy(path: str | Path | None = None) -> Generalization
         "p90_drawdown_max": 0.30,
         "p90_orders_max": 20.0,
         "quantile_method": "linear interpolation at (n - 1) * probability",
-        "replay_errors_excluded_from_quantiles_and_force_failure": True,
+        "replay_errors_excluded_from_quantiles": True,
+        "replay_error_failure_handling": "baseline_non_regression",
     }
     if dict(relative) != expected_relative or dict(intrinsic) != expected_intrinsic:
         raise ValueError("generalization policy thresholds differ from the reviewed contract")
@@ -740,8 +766,15 @@ def load_generalization_policy(path: str | Path | None = None) -> Generalization
     if dict(contract) != expected_contract:
         raise ValueError("generalization scenario policy differs from the reviewed contract")
     return GeneralizationPolicy(
+        schema_version=2,
+        policy_id="ai-era-generalization-policy-v2",
         sha256=seal,
         baseline_sha256=payload["baseline_sha256"],
+        champion_equality_passes=True,
+        baseline_grandfathering=True,
+        empty_support_requires_literal_policy=True,
+        identical_baseline_replay_error_passes=True,
+        recovered_replay_envelope=True,
         wealth_ratio_min=0.95,
         drawdown_absolute_buffer=0.02,
         orders_absolute_buffer=1,
@@ -811,6 +844,26 @@ def evaluate_cell_non_regression(
     return tuple(failures)
 
 
+def _evaluate_recovered_against_group_envelope(
+    candidate: Mapping[str, Any],
+    authenticated_valid_group: Sequence[Mapping[str, Any]],
+    *,
+    policy: GeneralizationPolicy,
+) -> tuple[str, ...]:
+    """Bound one recovered replay by the worst authenticated valid peer metrics."""
+
+    if not authenticated_valid_group:
+        return ("authenticated random group has no valid recovery envelope",)
+    envelope = {
+        "final_wealth": min(float(item["final_wealth"]) for item in authenticated_valid_group),
+        "max_drawdown": max(float(item["max_drawdown"]) for item in authenticated_valid_group),
+        "account_orders": max(int(item["account_orders"]) for item in authenticated_valid_group),
+        "gross_turnover": max(float(item["gross_turnover"]) for item in authenticated_valid_group),
+        "annual_turnover": max(float(item["annual_turnover"]) for item in authenticated_valid_group),
+    }
+    return evaluate_cell_non_regression(candidate, envelope, policy=policy)
+
+
 def _quantile(values: Sequence[float], probability: float) -> float:
     ordered = sorted(values)
     if not ordered:
@@ -822,6 +875,54 @@ def _quantile(values: Sequence[float], probability: float) -> float:
         return ordered[lower]
     fraction = location - lower
     return ordered[lower] * (1.0 - fraction) + ordered[upper] * fraction
+
+
+@dataclass(frozen=True, slots=True)
+class _RandomTailStatistics:
+    """Authenticated tail statistics for one fixed window/pool-size group."""
+
+    valid_cells: int
+    replay_error_cells: int
+    positive_return_fraction: float
+    p10_wealth: float | None
+    p90_drawdown: float | None
+    p90_orders: float | None
+
+
+def _random_tail_statistics(
+    group: Sequence[tuple[str, Mapping[str, Any] | None, bool]],
+    *,
+    requested: int,
+) -> _RandomTailStatistics:
+    valid = [metrics for _, metrics, has_error in group if metrics is not None and not has_error]
+    wealth_values = [float(item["final_wealth"]) for item in valid]
+    drawdown_values = [float(item["max_drawdown"]) for item in valid]
+    order_values = [float(item["account_orders"]) for item in valid]
+    return _RandomTailStatistics(
+        valid_cells=len(valid),
+        replay_error_cells=sum(has_error for _, _, has_error in group),
+        positive_return_fraction=(
+            sum(value > 1.0 for value in wealth_values) / requested
+        ),
+        p10_wealth=_quantile(wealth_values, 0.10) if wealth_values else None,
+        p90_drawdown=_quantile(drawdown_values, 0.90) if drawdown_values else None,
+        p90_orders=_quantile(order_values, 0.90) if order_values else None,
+    )
+
+
+def _violates_effective_floor(
+    value: float,
+    *,
+    literal: float,
+    baseline: float,
+    strict: bool = False,
+) -> tuple[bool, float]:
+    """Keep the literal floor unless the authenticated champion is lower."""
+
+    effective = min(literal, baseline)
+    if strict and baseline > literal:
+        return value <= effective, effective
+    return value < effective, effective
 
 
 def _candidate_contract_sha256(cell: Mapping[str, Any]) -> str:
@@ -1213,6 +1314,18 @@ def evaluate_generalization_policy_artifact(
     random_groups: dict[tuple[str, int], list[tuple[str, Mapping[str, Any] | None, bool]]] = (
         defaultdict(list)
     )
+    reference_random_groups: dict[
+        tuple[str, int], list[tuple[str, Mapping[str, Any] | None, bool]]
+    ] = defaultdict(list)
+    for reference in baseline.cells.values():
+        if reference.family == "random" and reference.pool_size is not None:
+            reference_random_groups[(reference.window, reference.pool_size)].append(
+                (
+                    reference.identifier,
+                    reference.metrics,
+                    reference.replay_error is not None,
+                )
+            )
     for identifier in sorted(set(baseline.cells) & set(observed)):
         reference = baseline.cells[identifier]
         candidate = observed[identifier]
@@ -1253,9 +1366,14 @@ def evaluate_generalization_policy_artifact(
             continue
         if error is not None:
             replay_errors += 1
-            failures.append(
-                f"cell replay failed: {identifier}: {error.exception_type}: {error.message}"
+            identical_baseline_error = bool(
+                policy.identical_baseline_replay_error_passes
+                and reference.replay_error == error
             )
+            if not identical_baseline_error:
+                failures.append(
+                    f"cell replay failed: {identifier}: {error.exception_type}: {error.message}"
+                )
             if metrics is not None or candidate.get("raw") is not None:
                 failures.append(f"candidate replay error contains fabricated metrics: {identifier}")
                 equality_differences.append(f"fabricated replay-error evidence {identifier}")
@@ -1357,19 +1475,56 @@ def evaluate_generalization_policy_artifact(
                 equality_differences.append(f"replay recovered {identifier}")
             wealth = float(candidate_metrics["final_wealth"])
             drawdown = float(candidate_metrics["max_drawdown"])
+            reference_wealth = (
+                wealth
+                if reference.metrics is None
+                else float(reference.metrics["final_wealth"])
+            )
+            reference_drawdown = (
+                drawdown
+                if reference.metrics is None
+                else float(reference.metrics["max_drawdown"])
+            )
             intrinsic_reasons: list[str] = []
             if reference.family in {"remove_all_core", "tradable_no_optical"}:
-                if wealth <= policy.directional_final_wealth_strict_min:
+                wealth_failed, wealth_floor = _violates_effective_floor(
+                    wealth,
+                    literal=policy.directional_final_wealth_strict_min,
+                    baseline=reference_wealth,
+                    strict=True,
+                )
+                drawdown_ceiling = max(
+                    policy.directional_max_drawdown,
+                    reference_drawdown,
+                )
+                if wealth_failed:
                     intrinsic_reasons.append(
-                        f"final_wealth {wealth:g} must be greater than 1.0"
+                        f"final_wealth {wealth:g} violates effective minimum {wealth_floor:g}"
                     )
-                if drawdown > policy.directional_max_drawdown:
-                    intrinsic_reasons.append(f"max_drawdown {drawdown:g} exceeds 0.3")
+                if drawdown > drawdown_ceiling:
+                    intrinsic_reasons.append(
+                        f"max_drawdown {drawdown:g} exceeds effective maximum "
+                        f"{drawdown_ceiling:g}"
+                    )
             elif reference.family == "remove_one":
-                if wealth < policy.remove_one_final_wealth_min:
-                    intrinsic_reasons.append(f"final_wealth {wealth:g} is below 0.8")
-                if drawdown > policy.remove_one_max_drawdown:
-                    intrinsic_reasons.append(f"max_drawdown {drawdown:g} exceeds 0.3")
+                wealth_failed, wealth_floor = _violates_effective_floor(
+                    wealth,
+                    literal=policy.remove_one_final_wealth_min,
+                    baseline=reference_wealth,
+                )
+                drawdown_ceiling = max(
+                    policy.remove_one_max_drawdown,
+                    reference_drawdown,
+                )
+                if wealth_failed:
+                    intrinsic_reasons.append(
+                        f"final_wealth {wealth:g} is below effective minimum {wealth_floor:g}"
+                    )
+                if drawdown > drawdown_ceiling:
+                    intrinsic_reasons.append(
+                        f"max_drawdown {drawdown:g} exceeds effective maximum "
+                        f"{drawdown_ceiling:g}"
+                    )
             if reference.family in {"remove_all_core", "tradable_no_optical", "remove_one"}:
                 intrinsic_results.append(
                     {
@@ -1392,43 +1547,166 @@ def evaluate_generalization_policy_artifact(
 
     tail_results: list[dict[str, Any]] = []
     for (window, pool_size), group in sorted(random_groups.items()):
-        valid = [metrics for _, metrics, has_error in group if metrics is not None and not has_error]
-        error_count = sum(has_error for _, _, has_error in group)
         requested = policy.requested_seeds_per_group
         if len(group) != requested:
             failures.append(
                 f"random tail coverage failed: {window}/size-{pool_size}: "
                 f"requested {requested}, observed {len(group)}"
             )
-        wealth_values = [float(item["final_wealth"]) for item in valid]
-        drawdown_values = [float(item["max_drawdown"]) for item in valid]
-        order_values = [float(item["account_orders"]) for item in valid]
-        positive_fraction = sum(value > 1.0 for value in wealth_values) / requested
-        p10_wealth = _quantile(wealth_values, 0.10) if wealth_values else None
-        p90_drawdown = _quantile(drawdown_values, 0.90) if drawdown_values else None
-        p90_orders = _quantile(order_values, 0.90) if order_values else None
+        candidate_tail = _random_tail_statistics(group, requested=requested)
+        reference_group = reference_random_groups[(window, pool_size)]
+        baseline_tail = _random_tail_statistics(
+            reference_group,
+            requested=requested,
+        )
+        authenticated_valid_metrics = [
+            metrics
+            for _, metrics, has_error in reference_group
+            if metrics is not None and not has_error
+        ]
+        literal_fallback = not authenticated_valid_metrics
+        comparison_group = (
+            group
+            if literal_fallback
+            else [item for item in group if baseline.cells[item[0]].metrics is not None]
+        )
+        comparison_tail = _random_tail_statistics(
+            comparison_group,
+            requested=requested,
+        )
+        replay_error_ceiling = (
+            0 if literal_fallback else baseline_tail.replay_error_cells
+        )
+        positive_floor = (
+            policy.positive_return_fraction_min
+            if literal_fallback
+            else min(
+                policy.positive_return_fraction_min,
+                baseline_tail.positive_return_fraction,
+            )
+        )
+        p10_floor = (
+            policy.p10_wealth_min
+            if baseline_tail.p10_wealth is None
+            else min(policy.p10_wealth_min, baseline_tail.p10_wealth)
+        )
+        drawdown_ceiling = (
+            policy.p90_drawdown_max
+            if baseline_tail.p90_drawdown is None
+            else max(policy.p90_drawdown_max, baseline_tail.p90_drawdown)
+        )
+        orders_ceiling = (
+            policy.p90_orders_max
+            if baseline_tail.p90_orders is None
+            else max(policy.p90_orders_max, baseline_tail.p90_orders)
+        )
+        literal_reasons: list[str] = []
+        if candidate_tail.replay_error_cells:
+            literal_reasons.append(
+                f"{candidate_tail.replay_error_cells} replay error cells"
+            )
+        if candidate_tail.positive_return_fraction < policy.positive_return_fraction_min:
+            literal_reasons.append(
+                f"positive-return fraction {candidate_tail.positive_return_fraction:g} "
+                "is below 0.6"
+            )
+        if (
+            candidate_tail.p10_wealth is None
+            or candidate_tail.p10_wealth < policy.p10_wealth_min
+        ):
+            literal_reasons.append(
+                f"p10 wealth {candidate_tail.p10_wealth} is below 0.8"
+            )
+        if (
+            candidate_tail.p90_drawdown is None
+            or candidate_tail.p90_drawdown > policy.p90_drawdown_max
+        ):
+            literal_reasons.append(
+                f"p90 drawdown {candidate_tail.p90_drawdown} exceeds 0.3"
+            )
+        if (
+            candidate_tail.p90_orders is None
+            or candidate_tail.p90_orders > policy.p90_orders_max
+        ):
+            literal_reasons.append(
+                f"p90 orders {candidate_tail.p90_orders} exceeds 20"
+            )
         reasons: list[str] = []
-        if error_count:
-            reasons.append(f"{error_count} replay error cells")
-        if positive_fraction < policy.positive_return_fraction_min:
-            reasons.append(f"positive-return fraction {positive_fraction:g} is below 0.6")
-        if p10_wealth is None or p10_wealth < policy.p10_wealth_min:
-            reasons.append(f"p10 wealth {p10_wealth} is below 0.8")
-        if p90_drawdown is None or p90_drawdown > policy.p90_drawdown_max:
-            reasons.append(f"p90 drawdown {p90_drawdown} exceeds 0.3")
-        if p90_orders is None or p90_orders > policy.p90_orders_max:
-            reasons.append(f"p90 orders {p90_orders} exceeds 20")
+        if candidate_tail.replay_error_cells > replay_error_ceiling:
+            reasons.append(
+                f"replay error cells {candidate_tail.replay_error_cells} exceed "
+                f"effective maximum {replay_error_ceiling}"
+            )
+        if comparison_tail.positive_return_fraction < positive_floor:
+            reasons.append(
+                f"positive-return fraction {comparison_tail.positive_return_fraction:g} "
+                f"is below effective minimum {positive_floor:g}"
+            )
+        if comparison_tail.p10_wealth is None or comparison_tail.p10_wealth < p10_floor:
+            reasons.append(
+                f"p10 wealth {comparison_tail.p10_wealth} is below effective minimum "
+                f"{p10_floor:g}"
+            )
+        if (
+            comparison_tail.p90_drawdown is None
+            or comparison_tail.p90_drawdown > drawdown_ceiling
+        ):
+            reasons.append(
+                f"p90 drawdown {comparison_tail.p90_drawdown} exceeds effective maximum "
+                f"{drawdown_ceiling:g}"
+            )
+        if comparison_tail.p90_orders is None or comparison_tail.p90_orders > orders_ceiling:
+            reasons.append(
+                f"p90 orders {comparison_tail.p90_orders} exceeds effective maximum "
+                f"{orders_ceiling:g}"
+            )
+        for identifier, metrics, has_error in group:
+            if (
+                literal_fallback
+                or baseline.cells[identifier].replay_error is None
+                or metrics is None
+                or has_error
+            ):
+                continue
+            reasons.extend(
+                f"recovered cell {identifier} exceeds authenticated group envelope: {reason}"
+                for reason in _evaluate_recovered_against_group_envelope(
+                    metrics,
+                    authenticated_valid_metrics,
+                    policy=policy,
+                )
+            )
         tail_results.append(
             {
                 "window": window,
                 "pool_size": pool_size,
                 "requested_cells": requested,
-                "valid_cells": len(valid),
-                "replay_error_cells": error_count,
-                "positive_return_fraction": positive_fraction,
-                "p10_wealth": p10_wealth,
-                "p90_drawdown": p90_drawdown,
-                "p90_orders": p90_orders,
+                "valid_cells": candidate_tail.valid_cells,
+                "replay_error_cells": candidate_tail.replay_error_cells,
+                "authenticated_support_cells": len(authenticated_valid_metrics),
+                "literal_fallback": literal_fallback,
+                "positive_return_fraction": candidate_tail.positive_return_fraction,
+                "p10_wealth": candidate_tail.p10_wealth,
+                "p90_drawdown": candidate_tail.p90_drawdown,
+                "p90_orders": candidate_tail.p90_orders,
+                "non_regression_tail": {
+                    "valid_cells": comparison_tail.valid_cells,
+                    "positive_return_fraction": comparison_tail.positive_return_fraction,
+                    "p10_wealth": comparison_tail.p10_wealth,
+                    "p90_drawdown": comparison_tail.p90_drawdown,
+                    "p90_orders": comparison_tail.p90_orders,
+                },
+                "effective_bounds": {
+                    "replay_error_cells_max": replay_error_ceiling,
+                    "positive_return_fraction_min": positive_floor,
+                    "p10_wealth_min": p10_floor,
+                    "p90_drawdown_max": drawdown_ceiling,
+                    "p90_orders_max": orders_ceiling,
+                },
+                "literal_passed": not literal_reasons,
+                "literal_failures": literal_reasons,
+                "non_regression_passed": not reasons,
+                "grandfathered": bool(literal_reasons and not reasons),
                 "passed": not reasons,
                 "failures": reasons,
             }
@@ -1472,10 +1750,14 @@ def evaluate_generalization_policy_artifact(
         failures.extend(
             f"exact equality differs: {reason}" for reason in equality_differences
         )
+    champion_equality_accepted = bool(
+        policy.champion_equality_passes and exact_equality_passed
+    )
     return {
         "passed": not failures,
         "exact_equality_required": require_exact_equality,
         "exact_equality_passed": exact_equality_passed,
+        "champion_equality_accepted": champion_equality_accepted,
         "config_migration": (
             None
             if config_migration is None

@@ -165,6 +165,25 @@ def test_post_deletion_registry_is_derived_without_relabeling_historical_evidenc
         validate_ablation_registry(historical, source_root=ROOT)
 
 
+def test_post_task8_source_allowance_is_content_addressed_and_rejects_mutation(
+    tmp_path: Path,
+) -> None:
+    """Catches a later operational path allowlist accepting unreviewed byte changes."""
+    checkout = tmp_path / "reviewed-source"
+    subprocess.run(
+        ["git", "clone", "--quiet", "--no-hardlinks", str(ROOT), str(checkout)],
+        check=True,
+    )
+    registry = load_ablation_registry(MINIMAL_ABLATION_REGISTRY_PATH)
+
+    validate_ablation_registry(registry, source_root=checkout)
+    config = checkout / "uquant" / "config.py"
+    config.write_text(config.read_text(encoding="utf-8") + "\n", encoding="utf-8")
+
+    with pytest.raises(ValueError, match="production source differs"):
+        validate_ablation_registry(registry, source_root=checkout)
+
+
 def test_post_deletion_coverage_does_not_count_deleted_or_historical_carriers() -> None:
     """Catches cross-accepting the deleted transition carrier or claiming 13 fresh runs."""
     runner = _runner_module()

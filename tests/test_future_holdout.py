@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import copy
 import hashlib
 import json
 from dataclasses import replace
@@ -30,7 +31,6 @@ from uquant.validation.holdout import (
     holdout_source_sha256,
     load_future_holdout_contract,
     maximum_observed_market_date,
-    validate_future_holdout_manifest,
     validate_holdout_layout,
     validate_prior_close_account,
 )
@@ -48,7 +48,7 @@ def _binding() -> HoldoutBinding:
         production_commit="1" * 40,
         production_source_sha256="2" * 64,
         strategy_source_sha256=(
-            "e8cb6ea872a3d83ba963d7a4e485b9b934d96fdd051f8cb815573f52a3a899f2"
+            "6a131e8b3a64738955f0dd9c295c5092f6ea59fcf923e86940a645de0498fe8e"
         ),
         strategy_cli_sha256=(
             "db34c26631b9b64c6d359149b927f0bee86c89dba74360efddc922342b6f24ad"
@@ -104,10 +104,10 @@ def test_tracked_contract_freezes_date_path_policy_and_null_scores() -> None:
     assert contract.review_milestones == (40, 60)
     assert contract.parameter_changes_from_observation is False
     assert dict(contract.phase1_windows) == dict(AI_ERA_WINDOWS)
-    assert contract.strategy_anchor_commit == "fbbacefe0cb082778e57a84909f344475f556a57"
+    assert contract.strategy_anchor_commit == "c63a2645992bda1b9aa6d0231ebf35a785b0158c"
     assert (
         contract.strategy_source_sha256
-        == "e8cb6ea872a3d83ba963d7a4e485b9b934d96fdd051f8cb815573f52a3a899f2"
+        == "6a131e8b3a64738955f0dd9c295c5092f6ea59fcf923e86940a645de0498fe8e"
     )
     assert (
         contract.strategy_config_sha256
@@ -118,8 +118,12 @@ def test_tracked_contract_freezes_date_path_policy_and_null_scores() -> None:
         == "db34c26631b9b64c6d359149b927f0bee86c89dba74360efddc922342b6f24ad"
     )
     assert (
+        contract.prior_close_account_sha256
+        == "2404eb5cd1e0ccfc68ab4663778288dd3a17f607baeb3f8104583443673273f1"
+    )
+    assert (
         contract.strategy_account_code_sha256
-        == "afd9073e25cc181183f31ab81d88bb9a33dbc5a7589fe4956f486eead7b9cb59"
+        == "f43e1e93859169df056051ad1963b761e35143be31b321bf11883726218c5dc7"
     )
     assert contract.score_fields == (
         "final_wealth",
@@ -368,6 +372,26 @@ def test_strategy_anchor_hash_closes_the_recursive_path_inventory(tmp_path: Path
     assert _strategy_source_sha256(tmp_path) != before
 
 
+@pytest.mark.parametrize(
+    "relative",
+    (
+        "uquant/validation/ci_artifacts.py",
+        "uquant/validation/equivalence.py",
+    ),
+)
+def test_strategy_anchor_ignores_gate_only_operational_validation_tools(
+    tmp_path: Path,
+    relative: str,
+) -> None:
+    _minimal_strategy_tree(tmp_path)
+    before = _strategy_source_sha256(tmp_path)
+    path = tmp_path / relative
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text("gate_only = True\n", encoding="utf-8")
+
+    assert _strategy_source_sha256(tmp_path) == before
+
+
 def test_strategy_anchor_hash_covers_cli_decision_and_account_persistence(
     tmp_path: Path,
 ) -> None:
@@ -477,27 +501,34 @@ def test_null_manifest_carries_prior_close_state_and_rejects_metrics() -> None:
 
 
 def test_prior_close_account_carries_the_exact_frozen_candidate_code_hash(
+    monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,
 ) -> None:
     repository_root = Path(holdout_module.__file__).resolve().parents[2]
     assert (
         _strategy_account_code_sha256(repository_root)
-        == "afd9073e25cc181183f31ab81d88bb9a33dbc5a7589fe4956f486eead7b9cb59"
+        == "f43e1e93859169df056051ad1963b761e35143be31b321bf11883726218c5dc7"
     )
     frozen = tmp_path / "data/frozen"
     _csv(frozen / "sz300308.csv", "2026-08-04", LAST_IN_SAMPLE_DATE)
     account = _account()
     account.update(
-        code_hash="afd9073e25cc181183f31ab81d88bb9a33dbc5a7589fe4956f486eead7b9cb59",
+        code_hash="f43e1e93859169df056051ad1963b761e35143be31b321bf11883726218c5dc7",
         data_hash_symbols=["sz300308"],
         data_hash=DataStore(frozen).manifest(
             ["sz300308"], as_of=LAST_IN_SAMPLE_DATE
         ).digest,
     )
+    monkeypatch.setattr(
+        holdout_module,
+        "PRIOR_CLOSE_ACCOUNT_SHA256",
+        holdout_module._canonical_sha256(account),
+    )
 
     validate_prior_close_account(account, frozen_data_dir=frozen)
 
-    mutable_current_code = {**account, "code_hash": code_fingerprint()}
+    assert code_fingerprint() == account["code_hash"]
+    mutable_current_code = {**account, "code_hash": "0" * 64}
     with pytest.raises(ValueError, match="frozen candidate"):
         validate_prior_close_account(mutable_current_code, frozen_data_dir=frozen)
 
@@ -505,8 +536,33 @@ def test_prior_close_account_carries_the_exact_frozen_candidate_code_hash(
     with pytest.raises(ValueError, match="frozen prefix"):
         validate_prior_close_account(stale_data, frozen_data_dir=frozen)
 
+    for _, mutate in (
+        ("cash", lambda value: value.__setitem__("cash", 999_999.0)),
+        (
+            "positions",
+            lambda value: value["positions"]["sz300308"].__setitem__("shares", 99),
+        ),
+        (
+            "pending orders",
+            lambda value: value["pending_orders"].append(
+                {
+                    "signal_date": LAST_IN_SAMPLE_DATE,
+                    "symbol": "sz300308",
+                    "side": "BUY",
+                }
+            ),
+        ),
+        ("strategy state", lambda value: value.__setitem__("risk", "CAUTION")),
+    ):
+        forged = copy.deepcopy(account)
+        mutate(forged)
+        assert forged["code_hash"] == account["code_hash"]
+        assert forged["data_hash"] == account["data_hash"]
+        with pytest.raises(ValueError, match="authenticated continuous replay"):
+            validate_prior_close_account(forged, frozen_data_dir=frozen)
 
-def test_manifest_readback_rebuilds_observed_evidence_from_authoritative_files(
+
+def test_manifest_rejects_detached_observed_scores_even_after_resealing(
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,
 ) -> None:
@@ -515,6 +571,11 @@ def test_manifest_readback_rebuilds_observed_evidence_from_authoritative_files(
         holdout_module,
         "current_holdout_binding",
         lambda repository_root=None: _binding(),
+    )
+    monkeypatch.setattr(
+        holdout_module,
+        "validate_prior_close_account",
+        lambda account_payload, *, frozen_data_dir: None,
     )
     contract_source = Path("benchmarks/future_holdout_contract.json")
     contract_path = tmp_path / "benchmarks/future_holdout_contract.json"
@@ -537,7 +598,7 @@ def test_manifest_readback_rebuilds_observed_evidence_from_authoritative_files(
         ["sz300308"], as_of=LAST_IN_SAMPLE_DATE
     ).digest
     account.code_hash = (
-        "afd9073e25cc181183f31ab81d88bb9a33dbc5a7589fe4956f486eead7b9cb59"
+        "f43e1e93859169df056051ad1963b761e35143be31b321bf11883726218c5dc7"
     )
     account_path = tmp_path / "account.json"
     save_account(account, account_path)
@@ -560,36 +621,15 @@ def test_manifest_readback_rebuilds_observed_evidence_from_authoritative_files(
     metrics_path = tmp_path / "holdout_metrics.json"
     metrics_path.write_text(json.dumps(metrics), encoding="utf-8")
 
-    manifest = build_future_holdout_manifest(
-        account_path=account_path,
-        metrics_path=metrics_path,
-        repository_root=tmp_path,
-    )
-    assert manifest["observation"]["session_count"] == 1
-    assert manifest["observation"]["metrics_sha256"] == hashlib.sha256(
-        metrics_path.read_bytes()
-    ).hexdigest()
-    forged = json.loads(json.dumps(manifest))
-    forged["scores"]["final_wealth"] = 99_000_000.0
-    forged["canonical_sha256"] = hashlib.sha256(
-        json.dumps(
-            {key: value for key, value in forged.items() if key != "canonical_sha256"},
-            allow_nan=False,
-            ensure_ascii=False,
-            separators=(",", ":"),
-            sort_keys=True,
-        ).encode()
-    ).hexdigest()
-    manifest_path = tmp_path / "future_holdout_manifest.json"
-    manifest_path.write_text(json.dumps(forged), encoding="utf-8")
-
-    with pytest.raises(ValueError, match="stale"):
-        validate_future_holdout_manifest(
-            manifest_path=manifest_path,
-            account_path=account_path,
-            metrics_path=metrics_path,
-            repository_root=tmp_path,
-        )
+    for final_wealth in (1_010_000.0, 99_000_000.0):
+        metrics["scores"]["final_wealth"] = final_wealth
+        metrics_path.write_text(json.dumps(metrics), encoding="utf-8")
+        with pytest.raises(RuntimeError, match="deterministic holdout replay"):
+            build_future_holdout_manifest(
+                account_path=account_path,
+                metrics_path=metrics_path,
+                repository_root=tmp_path,
+            )
 
 
 def test_holdout_identity_uses_one_immutable_byte_snapshot_per_file(

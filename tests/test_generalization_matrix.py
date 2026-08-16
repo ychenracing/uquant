@@ -1929,8 +1929,8 @@ def test_matrix_source_provenance_rejects_committed_governance_divergence(
         _head_and_source(tmp_path)
 
 
-def test_untouched_champion_has_exact_equality_but_records_frozen_gate_failures() -> None:
-    """Catches Pareto-only equality or dishonest suppression of champion failures."""
+def test_untouched_champion_exact_equality_is_an_accepted_policy_result() -> None:
+    """Catches requiring a Pareto improvement over exact reviewed evidence."""
     baseline = load_generalization_baseline()
     policy = load_generalization_policy()
     artifact = json.loads(
@@ -1947,14 +1947,115 @@ def test_untouched_champion_has_exact_equality_but_records_frozen_gate_failures(
     )
 
     assert result["exact_equality_passed"] is True
-    assert result["passed"] is False
+    assert result["passed"] is True
+    assert result["champion_equality_accepted"] is True
+    assert result["failures"] == []
     assert result["economic_cells_expected"] == 192
     assert result["economic_cells_valid"] == 191
     assert result["replay_error_cells"] == 1
-    assert any("continuous_ai_era/random__20__0000" in item for item in result["failures"])
-    assert any("random tail" in item for item in result["failures"])
-    assert not any("exact equality differs" in item for item in result["failures"])
-    assert not any("intrinsic directional" in item for item in result["failures"])
+    assert any(
+        not item["literal_passed"] for item in result["random_tail_results"]
+    )
+    assert all(item["passed"] for item in result["random_tail_results"])
+    assert all(
+        item["non_regression_passed"] == item["passed"]
+        for item in result["random_tail_results"]
+    )
+    assert any(item["grandfathered"] for item in result["random_tail_results"])
+
+
+def test_equal_champion_tail_bounds_survive_a_benign_non_tail_improvement() -> None:
+    """Catches benign candidate drift reviving absolute floors the champion never met."""
+    baseline = load_generalization_baseline()
+    artifact = json.loads(
+        (Path("artifacts") / "phase2" / "champion-generalization-matrix.json").read_text(
+            encoding="utf-8"
+        )
+    )
+    cell = next(
+        item
+        for item in artifact["cells"]
+        if item["family"] == "full" and item["metrics"] is not None
+    )
+    improved_wealth = float(cell["metrics"]["final_wealth"]) * 1.01
+    cell["metrics"]["final_wealth"] = improved_wealth
+    cell["raw"]["final_wealth"] = improved_wealth
+
+    result = evaluate_generalization_policy_artifact(
+        artifact,
+        baseline=baseline,
+        policy=load_generalization_policy(),
+    )
+
+    assert result["exact_equality_passed"] is False
+    assert result["champion_equality_accepted"] is False
+    assert result["passed"] is True
+    assert result["failures"] == []
+
+
+def test_grandfathered_random_tail_rejects_worsening_beyond_the_baseline() -> None:
+    """Catches grandfathering turning a frozen tail ceiling into an unbounded waiver."""
+    artifact = json.loads(
+        (Path("artifacts") / "phase2" / "champion-generalization-matrix.json").read_text(
+            encoding="utf-8"
+        )
+    )
+    group = [
+        item
+        for item in artifact["cells"]
+        if item["window"] == "continuous_ai_era"
+        and item["family"] == "random"
+        and item["pool_size"] == 15
+        and item["metrics"] is not None
+    ]
+    cell = max(group, key=lambda item: float(item["metrics"]["max_drawdown"]))
+    worsened_drawdown = float(cell["metrics"]["max_drawdown"]) + 0.001
+    cell["metrics"]["max_drawdown"] = worsened_drawdown
+    cell["raw"]["max_drawdown"] = worsened_drawdown
+
+    result = evaluate_generalization_policy_artifact(
+        artifact,
+        baseline=load_generalization_baseline(),
+        policy=load_generalization_policy(),
+    )
+
+    assert result["exact_equality_passed"] is False
+    assert result["champion_equality_accepted"] is False
+    assert result["passed"] is False
+    assert len(result["failures"]) == 1
+    assert "continuous_ai_era/size-15: p90 drawdown" in result["failures"][0]
+    failed_tail = next(
+        item
+        for item in result["random_tail_results"]
+        if item["window"] == "continuous_ai_era" and item["pool_size"] == 15
+    )
+    assert failed_tail["non_regression_passed"] is False
+    assert failed_tail["grandfathered"] is False
+
+
+def test_champion_equality_acceptance_does_not_hide_a_genuine_cell_degradation() -> None:
+    """Catches an equality exemption bypassing the frozen per-cell non-regression gate."""
+    baseline = load_generalization_baseline()
+    artifact = json.loads(
+        (Path("artifacts") / "phase2" / "champion-generalization-matrix.json").read_text(
+            encoding="utf-8"
+        )
+    )
+    cell = next(item for item in artifact["cells"] if item["metrics"] is not None)
+    degraded_wealth = float(cell["metrics"]["final_wealth"]) * 0.94
+    cell["metrics"]["final_wealth"] = degraded_wealth
+    cell["raw"]["final_wealth"] = degraded_wealth
+
+    result = evaluate_generalization_policy_artifact(
+        artifact,
+        baseline=baseline,
+        policy=load_generalization_policy(),
+    )
+
+    assert result["exact_equality_passed"] is False
+    assert result["champion_equality_accepted"] is False
+    assert result["passed"] is False
+    assert any("cell non-regression failed" in item for item in result["failures"])
 
 
 def test_relative_cell_policy_accepts_equality_and_enforces_literal_boundaries() -> None:

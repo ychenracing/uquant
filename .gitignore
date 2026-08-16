@@ -14,6 +14,7 @@ account_state.json
 daily_report_*.md
 # Generated only after checkout so its production_commit can equal the exact HEAD.
 /benchmarks/ai_era_performance.json
+/benchmarks/ai_era_generalization.json
 /benchmarks/future_holdout_manifest.json
 /data/holdout/phase2-future-v1/
 /execution_journal.jsonl

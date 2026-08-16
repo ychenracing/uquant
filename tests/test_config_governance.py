@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import copy
+import dataclasses
 import hashlib
 import json
 from dataclasses import fields
@@ -10,6 +12,7 @@ import pytest
 
 from research.candidate_search import ReplayObservation, search_candidates, validate_shared_config
 from research.parameter_stress import factorial_perturbations, one_at_a_time_perturbations
+from uquant import config_governance as governance_module
 from uquant.config import SystemConfig
 from uquant.config_governance import (
     ParameterCategory,
@@ -73,6 +76,152 @@ def test_governance_is_compile_anchored_against_resealing(tmp_path: Path) -> Non
 
     with pytest.raises(RuntimeError, match="compiled reviewed governance"):
         load_config_governance(edited)
+
+
+@pytest.mark.parametrize(
+    "mutation",
+    (
+        "schema",
+        "baseline",
+        "malformed_sha",
+        "stale_seal",
+        "counts_shape",
+        "count_type",
+        "total_change",
+        "economic_change",
+        "migration_shape",
+        "champion",
+        "candidate",
+        "categories_shape",
+        "category_groups",
+        "group_shape",
+        "owner",
+        "rationale",
+        "duplicate_field",
+        "missing_field",
+        "removal_plan_shape",
+        "removal_entry_shape",
+        "removal_category",
+        "removal_owner",
+        "removal_rationale",
+        "removal_order",
+        "removed_ledger",
+        "current_count",
+        "before_count",
+        "after_count",
+    ),
+)
+def test_governance_rejects_signed_but_semantically_invalid_contracts(
+    mutation: str,
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    payload = copy.deepcopy(json.loads(GOVERNANCE_PATH.read_text(encoding="utf-8")))
+    if mutation == "schema":
+        payload["schema_version"] = 2
+    elif mutation == "baseline":
+        payload["baseline_commit"] = "0" * 40
+    elif mutation == "malformed_sha":
+        payload["artifact_sha256"] = "bad"
+    elif mutation == "stale_seal":
+        payload["counts"]["current"]["economic_fields"] += 1
+    elif mutation == "counts_shape":
+        payload["counts"] = {}
+    elif mutation == "count_type":
+        payload["counts"]["current"]["total_fields"] = True
+    elif mutation == "total_change":
+        payload["counts"]["before"]["total_fields"] = 286
+    elif mutation == "economic_change":
+        payload["counts"]["after"]["economic_fields"] += 1
+    elif mutation == "migration_shape":
+        payload["config_migration"] = {}
+    elif mutation == "champion":
+        payload["config_migration"]["champion_config_sha256"] = "0" * 64
+    elif mutation == "candidate":
+        payload["config_migration"]["candidate_config_sha256"] = "bad"
+    elif mutation == "categories_shape":
+        payload["categories"] = {}
+    elif mutation == "category_groups":
+        payload["categories"]["MARKET_RULE"] = {}
+    elif mutation == "group_shape":
+        payload["categories"]["MARKET_RULE"][0].pop("owner")
+    elif mutation == "owner":
+        payload["categories"]["MARKET_RULE"][0]["owner"] = "UNKNOWN"
+    elif mutation == "rationale":
+        payload["categories"]["MARKET_RULE"][0]["rationale"] = ""
+    elif mutation == "duplicate_field":
+        field = payload["categories"]["MARKET_RULE"][0]["fields"][0]
+        payload["categories"]["MARKET_RULE"][0]["fields"].append(field)
+    elif mutation == "missing_field":
+        payload["categories"]["MARKET_RULE"][0]["fields"].pop()
+    elif mutation == "removal_plan_shape":
+        payload["removal_plan"] = []
+    elif mutation == "removal_entry_shape":
+        payload["removal_plan"][0].pop("owner")
+    elif mutation == "removal_category":
+        payload["removal_plan"][0]["category"] = "ECONOMIC"
+    elif mutation == "removal_owner":
+        payload["removal_plan"][0]["owner"] = "UNKNOWN"
+    elif mutation == "removal_rationale":
+        payload["removal_plan"][0]["rationale"] = ""
+    elif mutation == "removal_order":
+        payload["removal_plan"][0]["field"] = "changed"
+    elif mutation == "removed_ledger":
+        payload["removed_fields"] = [1]
+    elif mutation == "current_count":
+        payload["counts"]["current"]["economic_fields"] += 1
+    elif mutation == "before_count":
+        payload["counts"]["before"]["economic_fields"] += 1
+        payload["counts"]["after"]["economic_fields"] += 1
+    else:
+        payload["counts"]["after"]["economic_fields"] -= 1
+        payload["counts"]["before"]["economic_fields"] -= 1
+
+    if mutation != "stale_seal" and mutation != "malformed_sha":
+        payload["artifact_sha256"] = _canonical_sha256(payload)
+        monkeypatch.setattr(
+            governance_module,
+            "REQUIRED_CONFIG_PARAMETER_GOVERNANCE_SHA256",
+            payload["artifact_sha256"],
+        )
+    path = tmp_path / f"{mutation}.json"
+    path.write_text(json.dumps(payload), encoding="utf-8")
+    with pytest.raises(RuntimeError):
+        load_config_governance(path)
+
+
+def test_governance_value_helpers_fail_closed_on_unknown_or_untrusted_inputs() -> None:
+    governance = load_config_governance()
+    with pytest.raises(ValueError, match="not governed exactly once"):
+        governance.entry("not_a_field")
+    with pytest.raises(ValueError, match="trusted SystemConfig"):
+        validate_governed_config_migration({})  # type: ignore[arg-type]
+
+
+def test_governance_json_and_deletion_helpers_fail_closed(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    with pytest.raises(RuntimeError, match="duplicate key"):
+        governance_module._reject_duplicate_keys([("a", 1), ("a", 2)])
+    with pytest.raises(RuntimeError, match="non-standard number"):
+        governance_module._reject_nonstandard_constant("NaN")
+    with pytest.raises(RuntimeError, match="missing or not a regular file"):
+        load_config_governance(tmp_path / "missing.json")
+    corrupt = tmp_path / "corrupt.json"
+    corrupt.write_text("{", encoding="utf-8")
+    with pytest.raises(RuntimeError, match="artifact is corrupt"):
+        load_config_governance(corrupt)
+    assert "leader_mature_score" in governance_module.economic_parameter_names()
+
+    governance = load_config_governance()
+    monkeypatch.setattr(
+        governance_module,
+        "load_config_governance",
+        lambda: dataclasses.replace(governance, removed_fields=()),
+    )
+    with pytest.raises(ValueError, match="authorized field deletion"):
+        validate_governed_config_migration(SystemConfig())
 
 
 def test_governed_config_migration_binds_both_exact_config_identities() -> None:

@@ -1410,10 +1410,16 @@ def _replay_command(
         str(data_dir),
         "--checkpoint-dir",
         str(
-            checkpoint_dir if checkpoint_dir is not None else Path("/tmp/uquant-phase2-ablation-checkpoints")
+            checkpoint_dir
+            if checkpoint_dir is not None
+            else Path(tempfile.gettempdir()) / "uquant-phase2-ablation-checkpoints"
         ),
         "--output",
-        str(output if output is not None else Path("/tmp/uquant-phase2-ablation-progress.json")),
+        str(
+            output
+            if output is not None
+            else Path(tempfile.gettempdir()) / "uquant-phase2-ablation-progress.json"
+        ),
         "--experiment",
         experiment_id,
     ]

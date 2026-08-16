@@ -29,7 +29,7 @@
 | pip-audit | 生产依赖不得包含已知未处理漏洞 |
 | 数据完整性 | 冻结文件、清单和 SHA-256 必须互相一致 |
 | Phase 1 经济性 | `promotion --profile full` 中所有 AI-era 场景的财富、回撤、订单、换手和急跌收益必须通过 |
-| Phase 2 泛化 | 六个固定窗口的完整矩阵必须通过冻结 non-regression、intrinsic 与 random-tail policy |
+| Phase 2 泛化 | 六个固定窗口的完整矩阵必须通过 v2 冻结 policy：保留 literal 诊断，并以已认证 baseline 的逐 cell、intrinsic 与 random-tail 有效边界执行 non-regression |
 
 上述门禁均为阻断条件，不能用另一项检查的成功抵消失败。
 

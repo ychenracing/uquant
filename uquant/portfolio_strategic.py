@@ -1133,10 +1133,20 @@ class StrategicPortfolioPolicy(PortfolioCore):
             }
             requested = sum(restore.values())
             current_strategy_gross = sum(current_selected.values())
+            # If live exposure already exceeds the current risk cap, the outer
+            # allocator owns the required sell plan.  The strategy still must
+            # hand it an admissible pre-risk vector: per-member winner drift
+            # plus saved loser restoration can otherwise exceed max_gross
+            # before the risk reducer gets a chance to run.
+            restore_gross_cap = (
+                min(self.cfg.max_gross, max(0.0, risk.target_gross_cap))
+                if current_strategy_gross <= risk.target_gross_cap + 1e-12
+                else self.cfg.max_gross
+            )
             scale = (
-                min(1.0, risk.target_gross_cap / requested)
-                if requested > 0 and current_strategy_gross <= risk.target_gross_cap + 1e-12
-                else 1.0
+                min(1.0, restore_gross_cap / requested)
+                if requested > 0
+                else 0.0
             )
             proposed = {symbol: weight * scale for symbol, weight in restore.items()}
             equity = account.cash + sum(

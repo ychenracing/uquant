@@ -4452,6 +4452,59 @@ def test_strategic_restore_completes_against_scaled_attainable_weights() -> None
     assert account.candidate_tenure["strategic_damage_guard_complete_epoch"] == 1
 
 
+def test_strategic_restore_caps_winner_drift_before_outer_risk_reduction() -> None:
+    """Winner drift plus saved loser weights must not bypass the hard gross cap."""
+
+    dates = pd.bdate_range("2025-01-02", periods=150)
+    frame = _trend_frame(dates)
+    symbols = ("drift_winner", "restore_a", "restore_b")
+    account = AccountState(
+        initial_cash=100.0,
+        cash=17.0,
+        positions={
+            symbols[0]: Position(symbols[0], shares=35, avg_cost=1.0, highest_close=1.0),
+            symbols[1]: Position(symbols[1], shares=32, avg_cost=1.0, highest_close=1.0),
+            symbols[2]: Position(symbols[2], shares=16, avg_cost=1.0, highest_close=1.0),
+        },
+        strategic_cohort_symbols=list(symbols),
+        strategic_cohort_targets={symbol: 1.0 / 3.0 for symbol in symbols},
+        strategic_restore_weights=dict(zip(symbols, (0.345, 0.34, 0.315), strict=True)),
+        strategic_candidate_signature="strategic_qualification:reversal_industry:drift_winner,restore_a,restore_b",
+        strategic_epoch=1,
+        candidate_tenure={
+            "strategic_cohort_active": 1,
+            "strategic_cohort_started": 1,
+            "strategic_damage_guard_active_epoch": 1,
+        },
+        capital_budget_level=2,
+        operating_peak=100.0,
+        capital_peak=100.0,
+    )
+    bounded_repair = RiskAssessment(
+        Risk.NORMAL,
+        0.82,
+        0,
+        {"transition_damage": 0.0},
+        (),
+        "PERSISTENT_STRESS",
+        freeze_new_risk=True,
+        reduction_level=2,
+    )
+
+    targets = PortfolioAllocator(DEFAULT_CONFIG.override(min_trade_value=0.0)).allocate(
+        date=dates[-1],
+        opportunity=Opportunity.STRONG_TREND,
+        risk=bounded_repair,
+        user_panel={symbol: frame for symbol in symbols},
+        leaders={symbol: _leader(symbol, 0.90) for symbol in symbols},
+        account=account,
+        prices={symbol: 1.0 for symbol in symbols},
+    )
+
+    assert sum(target.weight for target in targets if target.weight > 0.0) == pytest.approx(0.82)
+    assert max(target.weight for target in targets) <= DEFAULT_CONFIG.max_symbol_weight
+
+
 def test_strategic_restore_settles_an_unexecutable_subthreshold_gap() -> None:
     dates = pd.bdate_range("2025-01-02", periods=150)
     symbol = "micro_strategic_restore"

@@ -8,6 +8,7 @@ import hashlib
 import json
 import math
 import re
+import shutil
 import subprocess  # nosec B404
 from collections.abc import Iterable, Mapping, Sequence
 from dataclasses import asdict, dataclass
@@ -37,9 +38,9 @@ REVIEWED_PHASE1_WINDOWS: Final = MappingProxyType(
         "continuous_ai_era": ("2023-01-03", "2026-08-05"),
     }
 )
-STRATEGY_ANCHOR_COMMIT: Final = "fbbacefe0cb082778e57a84909f344475f556a57"
+STRATEGY_ANCHOR_COMMIT: Final = "c63a2645992bda1b9aa6d0231ebf35a785b0158c"
 STRATEGY_SOURCE_SHA256: Final = (
-    "e8cb6ea872a3d83ba963d7a4e485b9b934d96fdd051f8cb815573f52a3a899f2"
+    "6a131e8b3a64738955f0dd9c295c5092f6ea59fcf923e86940a645de0498fe8e"
 )
 STRATEGY_CONFIG_SHA256: Final = (
     "ed52da44a359c1506e1d299f7bc341ad01b199d7f96997f7c01f2b8eca7cfc13"
@@ -48,7 +49,10 @@ STRATEGY_CLI_SHA256: Final = (
     "db34c26631b9b64c6d359149b927f0bee86c89dba74360efddc922342b6f24ad"
 )
 STRATEGY_ACCOUNT_CODE_SHA256: Final = (
-    "afd9073e25cc181183f31ab81d88bb9a33dbc5a7589fe4956f486eead7b9cb59"
+    "f43e1e93859169df056051ad1963b761e35143be31b321bf11883726218c5dc7"
+)
+PRIOR_CLOSE_ACCOUNT_SHA256: Final = (
+    "2404eb5cd1e0ccfc68ab4663778288dd3a17f607baeb3f8104583443673273f1"
 )
 SCORE_FIELDS: Final = (
     "final_wealth",
@@ -60,7 +64,7 @@ SCORE_FIELDS: Final = (
     "pnl_hhi",
 )
 REQUIRED_FUTURE_HOLDOUT_SHA256: Final = (
-    "be1159f18c7364a668f1b595efb70aada6d2051c57e76c8f684cbbc2df8dc918"
+    "64f22aaf33bc709b2a46767b5fabfd20d43514cc19c20d2b48b218fa8cadcf0c"
 )
 
 _SHA256 = re.compile(r"^[0-9a-f]{64}$")
@@ -112,6 +116,8 @@ _STRATEGY_OPERATIONAL_RELATIVES: Final = {
     "uquant/cli.py",
     "uquant/execution_journal.py",
     "uquant/report.py",
+    "uquant/validation/ci_artifacts.py",
+    "uquant/validation/equivalence.py",
     "uquant/validation/holdout.py",
 }
 _CLI_OPERATIONAL_COMMANDS: Final = {
@@ -137,6 +143,7 @@ class FutureHoldoutContract:
     strategy_config_sha256: str
     strategy_cli_sha256: str
     strategy_account_code_sha256: str
+    prior_close_account_sha256: str
 
 
 @dataclass(frozen=True, slots=True)
@@ -237,6 +244,13 @@ def _repository_root() -> Path:
     return Path(__file__).resolve().parents[2]
 
 
+def _git_executable() -> str:
+    executable = shutil.which("git")
+    if executable is None:
+        raise RuntimeError("cannot resolve git executable for holdout provenance")
+    return executable
+
+
 def load_future_holdout_contract(path: str | Path | None = None) -> FutureHoldoutContract:
     """Load the reviewed contract and reject edits even when locally resealed."""
 
@@ -274,6 +288,7 @@ def load_future_holdout_contract(path: str | Path | None = None) -> FutureHoldou
         "decision_source_sha256": STRATEGY_SOURCE_SHA256,
         "cli_decision_sha256": STRATEGY_CLI_SHA256,
         "account_code_sha256": STRATEGY_ACCOUNT_CODE_SHA256,
+        "prior_close_account_sha256": PRIOR_CLOSE_ACCOUNT_SHA256,
         "effective_config_sha256": STRATEGY_CONFIG_SHA256,
     }:
         raise ValueError("future holdout strategy anchor is malformed")
@@ -306,6 +321,7 @@ def load_future_holdout_contract(path: str | Path | None = None) -> FutureHoldou
         strategy_config_sha256=STRATEGY_CONFIG_SHA256,
         strategy_cli_sha256=STRATEGY_CLI_SHA256,
         strategy_account_code_sha256=STRATEGY_ACCOUNT_CODE_SHA256,
+        prior_close_account_sha256=PRIOR_CLOSE_ACCOUNT_SHA256,
     )
 
 
@@ -490,6 +506,10 @@ def validate_prior_close_account(
     ).digest
     if account_payload.get("data_hash") != expected:
         raise ValueError("holdout account data hash does not match the frozen prefix")
+    if _canonical_sha256(dict(account_payload)) != PRIOR_CLOSE_ACCOUNT_SHA256:
+        raise ValueError(
+            "holdout account differs from the authenticated continuous replay"
+        )
 
 
 def _session_dates(values: Iterable[str], *, contract: FutureHoldoutContract) -> tuple[str, ...]:
@@ -602,6 +622,7 @@ def _assemble_future_holdout_manifest(
             "decision_source_sha256": contract.strategy_source_sha256,
             "cli_decision_sha256": contract.strategy_cli_sha256,
             "account_code_sha256": contract.strategy_account_code_sha256,
+            "prior_close_account_sha256": contract.prior_close_account_sha256,
             "effective_config_sha256": contract.strategy_config_sha256,
         },
         "effective_config_sha256": binding_payload["effective_config_sha256"],
@@ -869,7 +890,7 @@ def _strategy_cli_sha256(root: Path, *, from_git: str | None = None) -> str:
         path.read_bytes()
         if from_git is None
         else subprocess.run(
-            ["git", "-C", str(base), "show", f"{from_git}:uquant/cli.py"],
+            [_git_executable(), "-C", str(base), "show", f"{from_git}:uquant/cli.py"],
             check=True,
             capture_output=True,
         ).stdout  # nosec B603
@@ -880,7 +901,7 @@ def _strategy_cli_sha256(root: Path, *, from_git: str | None = None) -> str:
 def _git_strategy_relatives(root: Path, *, commit: str) -> tuple[str, ...]:
     completed = subprocess.run(
         [
-            "git",
+            _git_executable(),
             "-C",
             str(root),
             "ls-tree",
@@ -934,7 +955,7 @@ def _strategy_account_code_sha256(root: Path) -> str:
 
     completed = subprocess.run(
         [
-            "git",
+            _git_executable(),
             "-C",
             str(root),
             "ls-tree",
@@ -966,7 +987,7 @@ def _strategy_account_code_sha256(root: Path) -> str:
     ):
         content = subprocess.run(
             [
-                "git",
+                _git_executable(),
                 "-C",
                 str(root),
                 "show",
@@ -991,7 +1012,7 @@ def _source_sha256(paths: Sequence[Path], *, root: Path, from_git: str | None = 
             path.read_bytes()
             if from_git is None
             else subprocess.run(
-                ["git", "-C", str(root), "show", f"{from_git}:{relative}"],
+                [_git_executable(), "-C", str(root), "show", f"{from_git}:{relative}"],
                 check=True,
                 capture_output=True,
             ).stdout  # nosec B603
@@ -1029,7 +1050,15 @@ def current_holdout_binding(repository_root: str | Path | None = None) -> Holdou
         "uv.lock",
     ]
     status = subprocess.run(
-        ["git", "-C", str(root), "status", "--porcelain", "--", *relative_paths],
+        [
+            _git_executable(),
+            "-C",
+            str(root),
+            "status",
+            "--porcelain",
+            "--",
+            *relative_paths,
+        ],
         check=True,
         capture_output=True,
         text=True,
@@ -1037,7 +1066,7 @@ def current_holdout_binding(repository_root: str | Path | None = None) -> Holdou
     if status.stdout.strip():
         raise RuntimeError("holdout provenance requires committed production source")
     completed = subprocess.run(
-        ["git", "-C", str(root), "rev-parse", "HEAD"],
+        [_git_executable(), "-C", str(root), "rev-parse", "HEAD"],
         check=True,
         capture_output=True,
         text=True,
@@ -1111,29 +1140,11 @@ def _observation_metrics(
         if metrics_path is not None:
             raise ValueError("holdout metrics must be omitted before observations exist")
         return _normalized_scores(None, sessions=sessions, contract=contract), None
-    if metrics_path is None:
-        raise ValueError("observed holdout sessions require an independent metrics file")
-    raw, content = _read_json_snapshot(Path(metrics_path), label="future holdout metrics")
-    if set(raw) != {
-        "schema_version",
-        "holdout_data_sha256",
-        "sessions",
-        "scores",
-    } or raw["schema_version"] != 1:
-        raise ValueError("future holdout metrics schema is malformed")
-    if raw["holdout_data_sha256"] != holdout_data_sha256:
-        raise ValueError("future holdout metrics bind different data bytes")
-    raw_sessions = raw["sessions"]
-    if not isinstance(raw_sessions, list):
-        raise ValueError("future holdout metric sessions are malformed")
-    metric_sessions = _session_dates(raw_sessions, contract=contract)
-    if metric_sessions != sessions:
-        raise ValueError("future holdout metrics bind different sessions")
-    raw_scores = raw["scores"]
-    if not isinstance(raw_scores, Mapping):
-        raise ValueError("future holdout metrics scores are malformed")
-    scores = _normalized_scores(raw_scores, sessions=sessions, contract=contract)
-    return scores, hashlib.sha256(content).hexdigest()
+    del metrics_path, holdout_data_sha256
+    raise RuntimeError(
+        "observed sessions require a deterministic holdout replay; "
+        "detached score files are prohibited"
+    )
 
 
 def build_future_holdout_manifest(
@@ -1206,7 +1217,7 @@ def generate_future_holdout_manifest(
         repository_root=root,
     )
     tracked = subprocess.run(
-        ["git", "-C", str(root), "ls-files", "-z"],
+        [_git_executable(), "-C", str(root), "ls-files", "-z"],
         check=True,
         capture_output=True,
     ).stdout.split(b"\0")  # nosec B603

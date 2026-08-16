@@ -1,6 +1,15 @@
 {
   "baseline_sha256": "8603c4572fbf15a3de4f89737ab078d7e61d76f9e197f210a24704b8a4aabd79",
-  "canonical_sha256": "5f7df0aab80d86af973731eac7899dbce9e71b5d3b6166fe064b9e291300a086",
+  "baseline_non_regression": {
+    "empty_authenticated_support_requires_literal_policy": true,
+    "exact_reviewed_evidence_passes": true,
+    "floor_and_ceiling_bounds_use_authenticated_baseline": true,
+    "identical_baseline_replay_error_passes": true,
+    "recovered_cell_uses_authenticated_group_envelope": true,
+    "recovered_cell_uses_relative_per_cell_tolerances": true,
+    "recovered_cell_is_excluded_from_tail_rank_non_regression": true
+  },
+  "canonical_sha256": "46cf95d26d04186824f181266da68e5a2d98814b65371c0b358c7cacfa8ef8fc",
   "intrinsic": {
     "directional_families": [
       "remove_all_core",
@@ -11,7 +20,7 @@
     "remove_one_final_wealth_min": 0.8,
     "remove_one_max_drawdown": 0.3
   },
-  "policy_id": "ai-era-generalization-policy-v1",
+  "policy_id": "ai-era-generalization-policy-v2",
   "random_tails": {
     "group_by": [
       "window",
@@ -23,7 +32,8 @@
     "positive_return_definition": "final_wealth > 1.0",
     "positive_return_fraction_min": 0.6,
     "quantile_method": "linear interpolation at (n - 1) * probability",
-    "replay_errors_excluded_from_quantiles_and_force_failure": true,
+    "replay_error_failure_handling": "baseline_non_regression",
+    "replay_errors_excluded_from_quantiles": true,
     "requested_seeds_per_group": 5
   },
   "relative_per_cell": {
@@ -89,5 +99,5 @@
       }
     ]
   },
-  "schema_version": 1
+  "schema_version": 2
 }

@@ -5,6 +5,7 @@ import dataclasses
 import hashlib
 import json
 from pathlib import Path
+from types import SimpleNamespace
 from typing import Any
 
 import pytest
@@ -15,7 +16,10 @@ from uquant.validation.generalization_contract import (
     RANDOM_BASE_SEED,
     RANDOM_POOL_SIZES,
     RANDOM_SEED_INDEXES,
+    ContractScenario,
+    GeneralizationWindow,
     ScenarioStatus,
+    _evidence_payload,
     build_official_scenarios,
     official_windows,
     scenario_contract_fingerprint,
@@ -205,6 +209,73 @@ def test_evidence_and_lookback_change_the_scenario_contract_fingerprint() -> Non
         dataclasses.replace(base[0], evidence_sha256="0" * 64)
 
 
+def test_contract_scenario_rejects_every_ambiguous_identity_edge() -> None:
+    base = build_official_scenarios(
+        window=official_windows(("h1_2023",))[0],
+        evidence=_evidence(),
+    )[0]
+    mutations: tuple[dict[str, object], ...] = (
+        {"name": ""},
+        {"symbols": ()},
+        {"symbols": tuple(reversed(base.symbols))},
+        {"reference_symbols": tuple(reversed(base.reference_symbols))},
+        {"symbols": (*base.symbols, "zz999999")},
+        {"raw_scenario": None},
+        {"status": ScenarioStatus.INSUFFICIENT_SAMPLE},
+        {"lookback_sessions": 0},
+        {"evidence_scores": tuple(reversed(base.evidence_scores))},
+        {
+            "evidence_scores": (
+                (base.evidence_scores[0][0], float("nan")),
+                *base.evidence_scores[1:],
+            )
+        },
+        {"evidence_sha256": "bad"},
+        {"evidence_eligible_symbols": base.evidence_eligible_symbols[1:]},
+        {"evidence_ineligible_symbols": ("z", "a")},
+        {
+            "evidence_ineligible_symbols": (
+                *base.evidence_ineligible_symbols,
+                base.evidence_eligible_symbols[0],
+            )
+        },
+        {"evidence_as_of": "2022-12-29"},
+        {"family": "random"},
+        {"pool_size": 5},
+    )
+    for changes in mutations:
+        with pytest.raises(ValueError):
+            dataclasses.replace(base, **changes)  # type: ignore[arg-type]
+
+    with pytest.raises(ValueError, match="requires a name"):
+        GeneralizationWindow(name="", start="2023-01-03", end="2023-06-30")
+    with pytest.raises(ValueError, match="canonical"):
+        GeneralizationWindow(name="h1", start="20230103", end="20230630")
+    with pytest.raises(ValueError, match="unique"):
+        official_windows(("h1_2023", "h1_2023"))
+    with pytest.raises(ValueError, match="lookback must be positive"):
+        _evidence_payload(_evidence(), lookback_sessions=0)
+    nonfinite = SimpleNamespace(
+        as_of="2022-12-30",
+        scores=(("sh600487", float("nan")),),
+        eligible_symbols=("sh600487",),
+        ineligible_symbols=(),
+    )
+    with pytest.raises(ValueError, match="scores must be finite"):
+        _evidence_payload(nonfinite, lookback_sessions=120)  # type: ignore[arg-type]
+
+    insufficient = next(
+        item
+        for item in build_official_scenarios(
+            window=official_windows(("h1_2023",))[0], evidence=_evidence()
+        )
+        if item.status is ScenarioStatus.INSUFFICIENT_SAMPLE
+    )
+    assert isinstance(insufficient, ContractScenario)
+    with pytest.raises(ValueError, match="insufficient sample"):
+        dataclasses.replace(insufficient, raw_scenario=base.raw_scenario)
+
+
 def _read_contract(path: Path) -> dict[str, Any]:
     payload = json.loads(path.read_text(encoding="utf-8"))
     assert isinstance(payload, dict)
@@ -233,7 +304,14 @@ def test_frozen_generalization_baseline_and_policy_load_with_complete_coverage()
     assert sum(cell.economic for cell in baseline.cells.values()) == 192
     assert sum(cell.replay_error is not None for cell in baseline.cells.values()) == 1
     assert baseline.runner_head == "80ad88ea03952bcb2839e6aab6390bb9541f739e"
+    assert policy.schema_version == 2
+    assert policy.policy_id == "ai-era-generalization-policy-v2"
     assert policy.baseline_sha256 == baseline.sha256
+    assert policy.champion_equality_passes is True
+    assert policy.baseline_grandfathering is True
+    assert policy.empty_support_requires_literal_policy is True
+    assert policy.identical_baseline_replay_error_passes is True
+    assert policy.recovered_replay_envelope is True
     assert policy.random_base_seed == 20260810
     assert policy.random_seed_indexes == (0, 1, 2, 3, 4)
     assert policy.random_pool_sizes == (5, 9, 15, 20)
@@ -301,6 +379,29 @@ def test_edited_and_resealed_policy_threshold_weakening_fails_compiled_anchor(
 
     with pytest.raises(ValueError, match=r"compiled|reviewed"):
         load_generalization_policy(changed)
+
+
+@pytest.mark.parametrize(
+    ("field", "changed"),
+    (
+        ("schema_version", 1),
+        ("policy_id", "ai-era-generalization-policy-v1"),
+    ),
+)
+def test_edited_and_resealed_policy_revision_fails_compiled_anchor(
+    field: str,
+    changed: int | str,
+    tmp_path: Path,
+) -> None:
+    """Catches interpreting reviewed v2 semantics under the retired v1 identity."""
+    payload = copy.deepcopy(_read_contract(GENERALIZATION_POLICY_PATH))
+    payload[field] = changed
+    _reseal_contract(payload)
+    changed_policy = tmp_path / f"changed-policy-{field}.json"
+    changed_policy.write_text(json.dumps(payload, sort_keys=True), encoding="utf-8")
+
+    with pytest.raises(ValueError, match=r"schema|compiled|reviewed"):
+        load_generalization_policy(changed_policy)
 
 
 def test_edited_and_resealed_policy_seed_contract_fails_compiled_anchor(

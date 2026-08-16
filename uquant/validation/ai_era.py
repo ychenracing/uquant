@@ -10,6 +10,7 @@ import shutil
 import subprocess  # nosec B404
 from datetime import date
 from pathlib import Path
+from types import MappingProxyType
 from typing import Final
 
 import numpy as np
@@ -17,14 +18,16 @@ import pandas as pd
 
 AI_ERA_START: Final = "2023-01-01"
 
-AI_ERA_WINDOWS: Final[dict[str, tuple[str, str]]] = {
-    "h1_2023": ("2023-01-03", "2023-06-30"),
-    "h2_2023": ("2023-07-03", "2023-12-29"),
-    "h1_2024": ("2024-01-02", "2024-07-01"),
-    "h2_2024": ("2024-07-01", "2024-12-31"),
-    "bull_crash_2025_2026": ("2025-01-02", "2026-07-31"),
-    "continuous_ai_era": ("2023-01-03", "2026-08-05"),
-}
+AI_ERA_WINDOWS: Final = MappingProxyType(
+    {
+        "h1_2023": ("2023-01-03", "2023-06-30"),
+        "h2_2023": ("2023-07-03", "2023-12-29"),
+        "h1_2024": ("2024-01-02", "2024-07-01"),
+        "h2_2024": ("2024-07-01", "2024-12-31"),
+        "bull_crash_2025_2026": ("2025-01-02", "2026-07-31"),
+        "continuous_ai_era": ("2023-01-03", "2026-08-05"),
+    }
+)
 
 AI_ERA_ACUTE_WINDOWS: Final[dict[str, tuple[str, str]]] = {
     "h1_2023": ("2023-04-20", "2023-05-25"),

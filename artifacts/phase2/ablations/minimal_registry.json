@@ -1,0 +1,11 @@
+{
+  "schema_version": 1,
+  "registry_id": "phase2-post-transition-deletion-ablation-v1",
+  "parent_registry_path": "registry.json",
+  "parent_registry_sha256": "71787c3fb1bf874bf111f83a4123f225d4aad1cc895b67ee1bf5b5ba62810370",
+  "source_contract": {
+    "base_commit": "e5e0fa903c9a9b26701063ae01f352af3e246a7d",
+    "production_source_sha256": "9bedfd5fb2bed6d3a1624efcca6f1d442c765abdee9e4749170fbb2e89536d6b"
+  },
+  "deleted_subsystems": ["transition_overlay"]
+}

@@ -10,13 +10,56 @@ from uquant.account import load_account, migrate_account
 from uquant.types import (
     AccountOrder,
     AccountState,
+    AttributionMechanism,
     Fill,
+    Lifecycle,
     OrderStatus,
+    OriginSubsystem,
+    PendingOrder,
     Position,
+    ReductionPolicy,
     Tranche,
+    derive_attribution_event_id,
 )
+from uquant.validation.universe import REQUIRED_AI_UNIVERSE_SHA256
 
 SYMBOL = "sz300308"
+
+
+def _identity(
+    *,
+    signal_date: str = "2026-01-05",
+    symbol: str = SYMBOL,
+    target_weight: float = 0.0,
+    lifecycle: str = Lifecycle.CORE.value,
+    reason_code: str = "strategy_target",
+    exit_kind: str = "strategy",
+    reduction_policy: str = ReductionPolicy.FIFO.value,
+) -> dict[str, str | None]:
+    fields: dict[str, str | None] = {
+        "origin_subsystem": OriginSubsystem.LEADER.value,
+        "mechanism": AttributionMechanism.LEADER_SELECTION.value,
+        "origin_lifecycle": lifecycle,
+        "replaces_symbol": None,
+        "industry_at_entry": "optical",
+        "industry_manifest_sha256": REQUIRED_AI_UNIVERSE_SHA256,
+    }
+    fields["event_id"] = derive_attribution_event_id(
+        signal_date=signal_date,
+        symbol=symbol,
+        target_weight=target_weight,
+        lifecycle=lifecycle,
+        origin_lifecycle=lifecycle,
+        origin_subsystem=OriginSubsystem.LEADER.value,
+        mechanism=AttributionMechanism.LEADER_SELECTION.value,
+        replaces_symbol=None,
+        industry_at_entry="optical",
+        industry_manifest_sha256=REQUIRED_AI_UNIVERSE_SHA256,
+        reduction_policy=reduction_policy,
+        reason_code=reason_code,
+        exit_kind=exit_kind,
+    )
+    return fields
 
 
 def _write_payload(tmp_path, payload: dict[str, Any], name: str = "account.json"):
@@ -29,11 +72,12 @@ def _position_state() -> AccountState:
     state = AccountState.empty(2_000_000.0)
     state.data_hash = "data"
     state.code_hash = "code"
+    identity = _identity(target_weight=0.05)
     state.positions[SYMBOL] = Position(
         symbol=SYMBOL,
         shares=100,
         avg_cost=10.0,
-        entry_date="2026-01-05",
+        entry_date="2026-01-06",
         highest_close=11.0,
         lifecycle="CORE",
         tranches=[
@@ -42,8 +86,8 @@ def _position_state() -> AccountState:
                 lifecycle="CORE",
                 shares=100,
                 avg_cost=10.0,
-                entry_date="2026-01-05",
-                sellable_date="2026-01-06",
+                entry_date="2026-01-06",
+                sellable_date="2026-01-07",
                 highest_close=11.0,
                 lowest_close=9.0,
                 mfe=0.10,
@@ -52,10 +96,155 @@ def _position_state() -> AccountState:
                 entry_confidence=0.9,
                 entry_regime="TREND",
                 entry_industry_strength=0.7,
+                **identity,
             )
         ],
     )
+    state.order_ledger = [
+        AccountOrder(
+            order_id="O000000001",
+            signal_date="2026-01-05",
+            submitted_date="2026-01-05",
+            symbol=SYMBOL,
+            side="BUY",
+            target_weight=0.05,
+            reason="native chain fixture",
+            lifecycle="CORE",
+            status=OrderStatus.FILLED.value,
+            requested_shares=100,
+            filled_shares=100,
+            last_update_date="2026-01-06",
+            last_event="FILLED",
+            **identity,
+        )
+    ]
+    state.next_order_sequence = 2
+    state.fills = [
+        Fill(
+            signal_date="2026-01-05",
+            fill_date="2026-01-06",
+            symbol=SYMBOL,
+            side="BUY",
+            shares=100,
+            price=10.0,
+            gross_value=1_000.0,
+            commission=5.0,
+            stamp_duty=0.0,
+            transfer_fee=0.1,
+            slippage_cost=0.2,
+            reason="native chain fixture",
+            lifecycle="CORE",
+            order_id="O000000001",
+            **identity,
+        )
+    ]
     return state
+
+
+@pytest.mark.parametrize("next_sequence", (1, 3, 999_999_999))
+def test_native_account_rejects_nonexact_next_order_sequence(
+    tmp_path,
+    next_sequence: int,
+) -> None:
+    """The durable sequence is exactly one greater than the largest ledger ID."""
+
+    state = _position_state()
+    payload = state.to_dict()
+    payload["next_order_sequence"] = next_sequence
+
+    with pytest.raises(RuntimeError, match="next order sequence"):
+        load_account(_write_payload(tmp_path, payload))
+
+
+def test_native_account_rejects_zero_order_identifier(tmp_path) -> None:
+    """O000000000 is formatted like an ID but is outside the allocation scheme."""
+
+    state = _position_state()
+    payload = state.to_dict()
+    payload["order_ledger"][0]["order_id"] = "O000000000"
+    payload["fills"][0]["order_id"] = "O000000000"
+    payload["next_order_sequence"] = 1
+
+    with pytest.raises(RuntimeError, match="invalid order id"):
+        load_account(_write_payload(tmp_path, payload))
+
+
+@pytest.mark.parametrize(
+    "unicode_order_id",
+    (
+        "O" + chr(0x0660) * 8 + chr(0x0661),
+        "O" + chr(0xFF10) * 8 + chr(0xFF11),
+    ),
+)
+def test_native_account_rejects_unicode_digit_order_identifier(
+    tmp_path,
+    unicode_order_id: str,
+) -> None:
+    """Only the ASCII O plus nine ASCII digits allocation scheme is durable."""
+
+    state = _position_state()
+    payload = state.to_dict()
+    payload["order_ledger"][0]["order_id"] = unicode_order_id
+    payload["fills"][0]["order_id"] = unicode_order_id
+
+    with pytest.raises(RuntimeError, match="invalid order id"):
+        load_account(_write_payload(tmp_path, payload))
+
+
+def test_native_account_requires_explicit_next_order_sequence(tmp_path) -> None:
+    """Current schema evidence cannot silently derive a missing durable sequence."""
+
+    payload = _position_state().to_dict()
+    payload.pop("next_order_sequence")
+
+    with pytest.raises(RuntimeError, match="requires next_order_sequence"):
+        load_account(_write_payload(tmp_path, payload))
+
+
+@pytest.mark.parametrize("reference", ("fill", "pending", "replaced_by"))
+def test_native_account_rejects_unicode_digits_in_order_references(
+    tmp_path,
+    reference: str,
+) -> None:
+    """Every durable order reference uses the same closed ASCII ID grammar."""
+
+    unicode_order_id = "O" + chr(0x0660) * 8 + chr(0x0661)
+    state = _position_state()
+    if reference == "fill":
+        state.fills[0].order_id = unicode_order_id
+    elif reference == "pending":
+        state.pending_orders = [
+            PendingOrder(
+                signal_date="2026-01-05",
+                symbol=SYMBOL,
+                side="BUY",
+                target_weight=0.05,
+                reason="native chain fixture",
+                lifecycle="CORE",
+                order_id=unicode_order_id,
+                **_identity(target_weight=0.05),
+            )
+        ]
+    else:
+        state.order_ledger[0].replaced_by = unicode_order_id
+
+    with pytest.raises(RuntimeError, match="invalid order id"):
+        load_account(_write_payload(tmp_path, state.to_dict()))
+
+
+def test_empty_native_account_requires_initial_order_sequence(tmp_path) -> None:
+    """An empty current account has one canonical next sequence: one."""
+
+    state = AccountState.empty(2_000_000.0)
+    state.data_hash = "data"
+    state.code_hash = "code"
+    payload = state.to_dict()
+    canonical = load_account(_write_payload(tmp_path, payload, "canonical-empty.json"))
+    assert canonical.next_order_sequence == 1
+    payload["next_order_sequence"] = 2
+
+    with pytest.raises(RuntimeError, match="next order sequence"):
+        load_account(_write_payload(tmp_path, payload, "inflated-empty.json"))
 
 
 def test_sector_guard_cohort_round_trips_in_native_schema(tmp_path) -> None:
@@ -109,6 +298,11 @@ def test_native_v3_rejects_invalid_tranche_economic_metadata(
 
 
 def _sell_fill_state() -> AccountState:
+    identity = _identity(
+        reason_code="risk_gross_cap",
+        exit_kind="risk",
+        reduction_policy=ReductionPolicy.RISK_PRIORITY.value,
+    )
     order = AccountOrder(
         order_id="O000000001",
         signal_date="2026-01-05",
@@ -127,6 +321,7 @@ def _sell_fill_state() -> AccountState:
         reduction_policy="RISK_PRIORITY",
         reason_code="risk_gross_cap",
         exit_kind="risk",
+        **identity,
     )
     allocation = {
         "tranche_id": "lot-1",
@@ -145,6 +340,7 @@ def _sell_fill_state() -> AccountState:
         "slippage_cost": 0.2,
         "fees": 6.1,
         "transaction_costs": 6.3,
+        **identity,
     }
     fill = Fill(
         signal_date=order.signal_date,
@@ -166,6 +362,7 @@ def _sell_fill_state() -> AccountState:
         reason_code=order.reason_code,
         exit_kind=order.exit_kind,
         sold_tranches=[allocation],
+        **identity,
     )
     state = AccountState.empty(2_000_000.0)
     state.order_ledger = [order]

@@ -39,7 +39,7 @@ uquant 把数据、信号、风险、组合、执行和账户放在一条可审�
 | `account.py` | 账户校验、序列化和原子持久化 |
 | `broker.py` | 券商快照、成交幂等和持仓对账 |
 | `report.py` | 只读日报 |
-| `validation/` | 冻结数据、统一 AI-era 绩效和证据完整性门禁 |
+| `validation/` | 冻结数据、Phase 1 绩效、Phase 2 泛化和证据完整性门禁 |
 | `research/` | 调用方驱动的离线分析，不参与生产导入 |
 
 ## 决策时点
@@ -48,7 +48,7 @@ uquant 把数据、信号、风险、组合、执行和账户放在一条可审�
 
 账户中的数据摘要覆盖已经参与决策的历史前缀。新增交易日允许追加；修改已经使用的历史行会导致摘要不一致并停止运行。
 
-2023 年以前的行情前缀只用于形成均线、ATR 等因果特征。经济账本在 AI-era 起点重新定基；pre-2023 行不能产生发布验收使用的权益、订单、成交、换手、回撤、Sharpe 或 Calmar。生产验收只覆盖 `h1_2023`、`h2_2023`、`h1_2024`、`h2_2024`、`bull_crash_2025_2026` 和 `continuous_ai_era`。
+2023 年以前的行情前缀只用于形成均线、ATR 等因果特征 warm-up。经济账本在 AI-era 起点重新定基；这些行不能产生发布验收使用的权益、订单、成交、换手、回撤、Sharpe 或 Calmar。生产验收只覆盖 `h1_2023`、`h2_2023`、`h1_2024`、`h2_2024`、`bull_crash_2025_2026` 和 `continuous_ai_era`。
 
 ## 共享参考上下文
 
@@ -97,7 +97,21 @@ uquant 把数据、信号、风险、组合、执行和账户放在一条可审�
 
 ## 验证与失败处理
 
-验证层锁定数据清单、执行口径、六个官方 AI-era 场景和证据摘要。`promotion --profile full` 是唯一阻断发布的经济性真相；研究性子集或替代实现比较不参与生产放行。缺文件、重复 JSON 键、摘要漂移、未提交生产源码或运行中修改证据都会失败关闭。
+验证层锁定数据清单、执行口径、六个官方 AI-era 窗口和证据摘要。34 只证券的
+canonical AI universe manifest 同时拥有点时成员与行业身份；Generalization 对每个
+窗口构造同一固定场景契约，不允许研究模块另建证券全集或修改参考上下文。
+
+`Engineering`、`Phase 1 Performance` 和 `Phase 2 Generalization` 是三个独立阻断结论。
+Phase 1 始终运行 `promotion --profile full`；Phase 2 的六个分片全部结束后，aggregator
+检查精确 HEAD、生产源码、配置、冻结数据、运行时、锁文件、universe、行业、窗口、
+场景与前窗证据身份，并用冻结 policy 重算完整 cell 证据。路径过滤、矩阵 fail-fast
+和并发取消都不能让最终结论跳过。缺文件、重复 JSON 键、摘要漂移、未提交生产源码
+或运行中修改证据都会失败关闭。
+
+经济归因的稳定身份从 Target 传播到 Order、Tranche 和 Fill；人工可读 reason text
+只用于展示。已实现与未平仓 lot PnL 必须和账户权益变化对账，cash drag 与配对的
+risk avoidance 只能作为诊断。每日运行、核对和下单仍由人工负责；外部 journal 与
+holdout 观察不进入 `ProductionEngine.decide()` 或账户状态。
 
 关键错误不会被自动修补：
 

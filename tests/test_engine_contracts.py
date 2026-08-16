@@ -1,17 +1,19 @@
 from __future__ import annotations
 
 import copy
+import hashlib
 import json
+from pathlib import Path
 
 import pandas as pd
 import pytest
 
+from uquant import engine as engine_module
 from uquant.account import load_account, migrate_account, save_account
 from uquant.config import DEFAULT_CONFIG, config_fingerprint
 from uquant.engine import (
     ProductionEngine,
     _decision_config_for_universe,
-    attribution,
     code_fingerprint,
 )
 from uquant.leader import REFERENCE_UNIVERSE
@@ -20,12 +22,16 @@ from uquant.types import (
     ACCOUNT_SCHEMA_VERSION,
     AccountOrder,
     AccountState,
+    AttributionMechanism,
     Fill,
+    OriginSubsystem,
     PendingOrder,
     Position,
     ReductionPolicy,
     Tranche,
+    derive_attribution_event_id,
 )
+from uquant.validation.universe import REQUIRED_AI_UNIVERSE_SHA256
 
 SYMBOLS = ["sz300308", "sz300502", "sz300394", "sh688008", "sh603986"]
 RISK_REGRESSION_POOLS = (
@@ -33,6 +39,27 @@ RISK_REGRESSION_POOLS = (
     tuple(SYMBOLS),
     tuple(REFERENCE_UNIVERSE),
 )
+
+
+def test_code_fingerprint_includes_config_parameter_governance(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    governance = tmp_path / "config_parameter_governance.json"
+    governance.write_text('{"artifact_sha256":"1"}\n', encoding="utf-8")
+    monkeypatch.setattr(
+        engine_module,
+        "DEFAULT_GOVERNANCE_PATH",
+        governance,
+        raising=False,
+    )
+    first = engine_module.code_fingerprint()
+
+    governance.write_text('{"artifact_sha256":"2"}\n', encoding="utf-8")
+
+    assert engine_module.code_fingerprint() != first
+
+
 POOL_D = (
     "sz300308",
     "sz300502",
@@ -52,6 +79,64 @@ POOL_D = (
 )
 
 
+def _identity(
+    *,
+    signal_date: str = "2026-01-05",
+    symbol: str = "sz300308",
+    target_weight: float = 0.5,
+    lifecycle: str = "CORE",
+    reduction_policy: str = ReductionPolicy.FIFO.value,
+    reason_code: str = "strategy_target",
+    exit_kind: str = "strategy",
+) -> dict[str, str | None]:
+    fields: dict[str, str | None] = {
+        "origin_subsystem": OriginSubsystem.LEADER.value,
+        "mechanism": AttributionMechanism.LEADER_SELECTION.value,
+        "origin_lifecycle": lifecycle,
+        "replaces_symbol": None,
+        "industry_at_entry": "optical",
+        "industry_manifest_sha256": REQUIRED_AI_UNIVERSE_SHA256,
+    }
+    fields["event_id"] = derive_attribution_event_id(
+        signal_date=signal_date,
+        symbol=symbol,
+        target_weight=target_weight,
+        lifecycle=lifecycle,
+        origin_lifecycle=lifecycle,
+        origin_subsystem=OriginSubsystem.LEADER.value,
+        mechanism=AttributionMechanism.LEADER_SELECTION.value,
+        replaces_symbol=None,
+        industry_at_entry="optical",
+        industry_manifest_sha256=REQUIRED_AI_UNIVERSE_SHA256,
+        reduction_policy=reduction_policy,
+        reason_code=reason_code,
+        exit_kind=exit_kind,
+    )
+    return fields
+
+
+def _refresh_payload_event_id(order: dict[str, object]) -> None:
+    order["event_id"] = derive_attribution_event_id(
+        signal_date=str(order["signal_date"]),
+        symbol=str(order["symbol"]),
+        target_weight=float(order["target_weight"]),
+        lifecycle=str(order["lifecycle"]),
+        origin_lifecycle=str(order["origin_lifecycle"]),
+        origin_subsystem=str(order["origin_subsystem"]),
+        mechanism=str(order["mechanism"]),
+        replaces_symbol=(
+            str(order["replaces_symbol"])
+            if order["replaces_symbol"] is not None
+            else None
+        ),
+        industry_at_entry=str(order["industry_at_entry"]),
+        industry_manifest_sha256=str(order["industry_manifest_sha256"]),
+        reduction_policy=str(order["reduction_policy"]),
+        reason_code=str(order["reason_code"]),
+        exit_kind=str(order["exit_kind"]),
+    )
+
+
 def test_decision_config_is_invariant_to_unrelated_universe_size() -> None:
     assert not DEFAULT_CONFIG.same_day_leader_pipeline_enabled
     assert not DEFAULT_CONFIG.group_balanced_reference_enabled
@@ -61,11 +146,6 @@ def test_decision_config_is_invariant_to_unrelated_universe_size() -> None:
     assert _decision_config_for_universe(9) is DEFAULT_CONFIG
     assert _decision_config_for_universe(10) is DEFAULT_CONFIG
     assert _decision_config_for_universe(32) is DEFAULT_CONFIG
-    explicit = DEFAULT_CONFIG.override(adaptive_broad_universe_compatibility_enabled=False)
-    assert _decision_config_for_universe(3, explicit) is explicit
-    assert _decision_config_for_universe(32, explicit) is explicit
-
-
 def test_determinism_one_target_and_hard_constraints(data_dir):
     engine = ProductionEngine(data_dir)
     initial = AccountState.empty(2e6)
@@ -82,6 +162,22 @@ def test_determinism_one_target_and_hard_constraints(data_dir):
     )
     assert first_payload == second_payload
     assert first_payload["effective_config_sha256"] == config_fingerprint(engine.cfg)
+    encoded = json.dumps(first_payload, sort_keys=True, separators=(",", ":")).encode()
+    assert first.decision_digest == hashlib.sha256(encoded).hexdigest()
+    legacy = first.legacy_canonical_payload()
+    assert set(legacy) == {"date", "opportunity", "risk", "targets", "orders"}
+    assert all(
+        set(target)
+        == {
+            "symbol",
+            "weight",
+            "lifecycle",
+            "reduction_policy",
+            "reason_code",
+            "exit_kind",
+        }
+        for target in legacy["targets"]
+    )
     assert state1.to_dict() == state2.to_dict()
     assert len({item.symbol for item in first.targets}) == len(first.targets)
     positive = [item for item in first.targets if item.weight > 0]
@@ -137,9 +233,15 @@ def test_state_round_trip_and_fail_closed_hashes(data_dir, tmp_path):
     state.strategic_exit_bands = {"sz300308": [0.10, 0.08, 0.06]}
     state.strategic_active_bands = {"sz300308": [True, False, False]}
     state.strategic_restore_weights = {"sz300308": 0.30}
+    state.risk_streaks["opportunity_evidence"] = -1
+    state.risk_streaks["opportunity_evidence_run"] = 2
     path = tmp_path / "account.json"
     save_account(state, path)
     assert load_account(path).to_dict() == state.to_dict()
+    invalid_evidence = copy.deepcopy(state)
+    invalid_evidence.risk_streaks["opportunity_evidence"] = -2
+    with pytest.raises(RuntimeError, match="opportunity_evidence"):
+        save_account(invalid_evidence, tmp_path / "invalid-evidence.json")
     corrupt = tmp_path / "corrupt.json"
     corrupt.write_text("{", encoding="utf-8")
     with pytest.raises(RuntimeError):
@@ -166,20 +268,29 @@ def test_order_state_migrates_sequence_and_rejects_broken_references(tmp_path):
             target_weight=0.5,
             reason="entry",
             lifecycle="CORE",
+            **_identity(),
         )
     ]
     payload = state.to_dict()
     payload.pop("next_order_sequence")
-    migrated = tmp_path / "migrated-account.json"
-    migrated.write_text(json.dumps(payload), encoding="utf-8")
-    assert load_account(migrated).next_order_sequence == 8
+    missing_native = tmp_path / "missing-native-sequence.json"
+    missing_native.write_text(json.dumps(payload), encoding="utf-8")
+    with pytest.raises(RuntimeError, match="requires next_order_sequence"):
+        load_account(missing_native)
 
-    payload["next_order_sequence"] = 7
+    legacy_payload = copy.deepcopy(payload)
+    legacy_payload["schema_version"] = 3
+    migrated = tmp_path / "derived-legacy-sequence.json"
+    migrated.write_text(json.dumps(legacy_payload), encoding="utf-8")
+    assert load_account(migrated, allow_legacy_schema=True).next_order_sequence == 8
+
+    legacy_payload["next_order_sequence"] = 7
     collision = tmp_path / "collision-account.json"
-    collision.write_text(json.dumps(payload), encoding="utf-8")
+    collision.write_text(json.dumps(legacy_payload), encoding="utf-8")
     with pytest.raises(RuntimeError, match="reuse an order id"):
-        load_account(collision)
+        load_account(collision, allow_legacy_schema=True)
 
+    payload = state.to_dict()
     payload["next_order_sequence"] = 8
     payload["pending_orders"] = [
         {
@@ -192,12 +303,143 @@ def test_order_state_migrates_sequence_and_rejects_broken_references(tmp_path):
             "remaining_shares": 0,
             "attempts": 0,
             "order_id": "O000000999",
+            **_identity(),
         }
     ]
     unknown = tmp_path / "unknown-order-account.json"
     unknown.write_text(json.dumps(payload), encoding="utf-8")
     with pytest.raises(RuntimeError, match="unknown account order"):
         load_account(unknown)
+
+
+@pytest.mark.parametrize(
+    ("order_ids", "old_sequence", "expected_sequence"),
+    (
+        ((), 2, 1),
+        (("O000000001", "O000000007"), 99, 8),
+    ),
+)
+def test_legacy_migration_normalizes_explicit_nonreuse_sequence(
+    tmp_path,
+    order_ids: tuple[str, ...],
+    old_sequence: int,
+    expected_sequence: int,
+) -> None:
+    """A valid loose legacy sequence becomes the exact v5 durable sequence."""
+
+    state = AccountState.empty(2e6)
+    state.schema_version = 3
+    state.data_hash = "data"
+    state.code_hash = "legacy-code"
+    state.order_ledger = [
+        AccountOrder(
+            order_id=order_id,
+            signal_date="2026-01-05",
+            submitted_date="2026-01-05",
+            symbol="sz300308",
+            side="BUY",
+            target_weight=0.5,
+            reason="legacy entry",
+            lifecycle="CORE",
+            **_identity(),
+        )
+        for order_id in order_ids
+    ]
+    state.next_order_sequence = old_sequence
+    source = tmp_path / f"legacy-{old_sequence}.json"
+    destination = tmp_path / f"native-{old_sequence}.json"
+    source.write_text(json.dumps(state.to_dict()), encoding="utf-8")
+
+    migrated = migrate_account(
+        source,
+        destination,
+        new_code_hash="native-code",
+        acknowledge_code_change=True,
+    )
+
+    assert migrated.next_order_sequence == expected_sequence
+    assert load_account(destination).next_order_sequence == expected_sequence
+    assert migrated.account_migrations[-1]["order_sequence_migration"] == {
+        "policy": "legacy_nonreuse_to_v5_exact_ledger_max_plus_one",
+        "source_was_explicit": True,
+        "old_next_order_sequence": old_sequence,
+        "new_next_order_sequence": expected_sequence,
+        "reason": "v5_requires_exact_max_durable_order_id_plus_one",
+    }
+
+
+def test_legacy_migration_rejects_reusable_explicit_sequence(tmp_path) -> None:
+    """Normalization cannot excuse a legacy sequence that already permits collision."""
+
+    state = AccountState.empty(2e6)
+    state.schema_version = 3
+    state.data_hash = "data"
+    state.code_hash = "legacy-code"
+    state.order_ledger = [
+        AccountOrder(
+            order_id="O000000007",
+            signal_date="2026-01-05",
+            submitted_date="2026-01-05",
+            symbol="sz300308",
+            side="BUY",
+            target_weight=0.5,
+            reason="legacy entry",
+            lifecycle="CORE",
+            **_identity(),
+        )
+    ]
+    state.next_order_sequence = 7
+    source = tmp_path / "legacy-reuse.json"
+    source.write_text(json.dumps(state.to_dict()), encoding="utf-8")
+
+    with pytest.raises(RuntimeError, match="reuse an order id"):
+        migrate_account(
+            source,
+            tmp_path / "must-not-exist.json",
+            new_code_hash="native-code",
+            acknowledge_code_change=True,
+        )
+
+
+def test_legacy_migration_derives_missing_sequence_and_writes_v5_field(tmp_path) -> None:
+    """Only the legacy route may derive a missing sequence, with an explicit audit."""
+
+    state = AccountState.empty(2e6)
+    state.schema_version = 3
+    state.data_hash = "data"
+    state.code_hash = "legacy-code"
+    state.order_ledger = [
+        AccountOrder(
+            order_id="O000000007",
+            signal_date="2026-01-05",
+            submitted_date="2026-01-05",
+            symbol="sz300308",
+            side="BUY",
+            target_weight=0.5,
+            reason="legacy entry",
+            lifecycle="CORE",
+            **_identity(),
+        )
+    ]
+    payload = state.to_dict()
+    payload.pop("next_order_sequence")
+    source = tmp_path / "legacy-missing-sequence.json"
+    destination = tmp_path / "native-derived-sequence.json"
+    source.write_text(json.dumps(payload), encoding="utf-8")
+
+    migrated = migrate_account(
+        source,
+        destination,
+        new_code_hash="native-code",
+        acknowledge_code_change=True,
+    )
+
+    assert migrated.next_order_sequence == 8
+    assert json.loads(destination.read_text(encoding="utf-8"))["next_order_sequence"] == 8
+    audit = migrated.account_migrations[-1]["order_sequence_migration"]
+    assert audit["source_was_explicit"] is False
+    assert audit["old_next_order_sequence"] == 8
+    assert audit["new_next_order_sequence"] == 8
 
 
 def test_legacy_account_requires_acknowledged_schema_migration(tmp_path):
@@ -293,6 +535,10 @@ def test_schema_v3_rejects_nonfinite_or_unreconciled_position_lots(tmp_path):
                     "2026-01-03",
                     12.0,
                     lowest_close=9.0,
+                    **_identity(
+                        signal_date="2026-01-02",
+                        target_weight=0.0,
+                    ),
                 )
             ],
         )
@@ -317,6 +563,7 @@ def test_schema_v3_rejects_nonfinite_or_unreconciled_position_lots(tmp_path):
 
 
 def test_pending_and_ledger_immutable_order_metadata_must_match(tmp_path):
+    identity = _identity()
     pending = PendingOrder(
         signal_date="2026-01-05",
         symbol="sz300308",
@@ -329,6 +576,7 @@ def test_pending_and_ledger_immutable_order_metadata_must_match(tmp_path):
         entry_confidence=0.90,
         entry_regime="TREND",
         entry_industry_strength=0.70,
+        **identity,
     )
     ledger = AccountOrder(
         order_id="O000000001",
@@ -344,6 +592,7 @@ def test_pending_and_ledger_immutable_order_metadata_must_match(tmp_path):
         entry_confidence=pending.entry_confidence,
         entry_regime=pending.entry_regime,
         entry_industry_strength=pending.entry_industry_strength,
+        **identity,
     )
     state = AccountState.empty(2e6)
     state.data_hash = "data"
@@ -371,6 +620,7 @@ def test_pending_and_ledger_immutable_order_metadata_must_match(tmp_path):
     for field, changed in changes.items():
         payload = copy.deepcopy(valid)
         payload["pending_orders"][0][field] = changed
+        _refresh_payload_event_id(payload["pending_orders"][0])
         malformed = tmp_path / f"order-{field}.json"
         malformed.write_text(json.dumps(payload), encoding="utf-8")
         with pytest.raises(RuntimeError, match=rf"immutable metadata.*{field}"):
@@ -655,57 +905,6 @@ def test_daily_decision_marks_position_and_tranche_excursions(data_dir):
     assert by_id["expensive-core"].lowest_close == pytest.approx(close)
     assert by_id["expensive-core"].mfe == pytest.approx(0.0)
     assert by_id["expensive-core"].mae == pytest.approx(-0.5)
-
-
-def test_attribution_tracks_promoted_lot_by_tranche_identity():
-    symbol = "sz300308"
-    buy = Fill(
-        signal_date="2026-01-01",
-        fill_date="2026-01-02",
-        symbol=symbol,
-        side="BUY",
-        shares=100,
-        price=10.0,
-        gross_value=1_000.0,
-        commission=0.0,
-        stamp_duty=0.0,
-        transfer_fee=0.0,
-        slippage_cost=0.0,
-        reason="challenger scout",
-        lifecycle="SATELLITE",
-    )
-    sell = Fill(
-        signal_date="2026-01-09",
-        fill_date="2026-01-12",
-        symbol=symbol,
-        side="SELL",
-        shares=40,
-        price=12.0,
-        gross_value=480.0,
-        commission=0.0,
-        stamp_duty=0.0,
-        transfer_fee=0.0,
-        slippage_cost=0.0,
-        reason="core risk reduction",
-        lifecycle="CORE",
-        sold_tranches=[
-            {
-                "tranche_id": f"2026-01-02:{symbol}:1",
-                "shares": 40,
-                "unit_cost": 10.0,
-                "lifecycle": "CORE",
-                "entry_date": "2026-01-02",
-                "mfe": 0.30,
-                "mae": -0.05,
-            }
-        ],
-    )
-
-    result = attribution([buy, sell])
-
-    assert result["by_lifecycle"]["core"]["realized_pnl"] == pytest.approx(80.0)
-    assert result["open_shares_by_lifecycle"]["core"] == 60
-    assert result["open_shares_by_lifecycle"]["satellite"] == 0
 
 
 def test_stale_code_hash_fails_closed(data_dir):

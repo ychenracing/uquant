@@ -133,7 +133,7 @@ def _assess(
     )
 
 
-def _isolated_transition_config(**overrides: object) -> SystemConfig:
+def _isolated_risk_config(**overrides: object) -> SystemConfig:
     return DEFAULT_CONFIG.override(
         dynamic_risk_anchors_enabled=False,
         chronic_overlay_enabled=False,
@@ -348,7 +348,7 @@ def test_active_strategic_damage_guard_keeps_its_cap_until_strategy_completes() 
         dates=dates,
         states={},
         account=account,
-        cfg=_isolated_transition_config(),
+        cfg=_isolated_risk_config(),
     )
 
     assert assessment.evidence["strategic_damage_guard"] is True
@@ -364,7 +364,7 @@ def test_active_strategic_damage_guard_keeps_its_cap_until_strategy_completes() 
         dates=dates,
         states={},
         account=account,
-        cfg=_isolated_transition_config(),
+        cfg=_isolated_risk_config(),
     )
 
     assert completed.evidence["strategic_damage_guard"] is False
@@ -396,7 +396,7 @@ def test_recorded_economic_restore_clears_protection_after_price_drift() -> None
         dates=dates,
         states={},
         account=account,
-        cfg=_isolated_transition_config(),
+        cfg=_isolated_risk_config(),
         user_panel={"a": frame, "b": frame},
         equity=1_000.0,
     )
@@ -406,74 +406,26 @@ def test_recorded_economic_restore_clears_protection_after_price_drift() -> None
     assert account.candidate_tenure["post_shock_restore_complete"] == 0
 
 
-def test_transition_freeze_survives_noise_and_requires_consecutive_repair() -> None:
+def test_transition_damage_observation_does_not_create_a_standalone_freeze() -> None:
     dates = pd.bdate_range("2026-01-02", periods=80)
-    damaged_1, damaged_2, noisy, repair_1, repair_2 = dates[-5:]
-    states = {
-        damaged_1: "damaged",
-        damaged_2: "damaged",
-        noisy: "between_thresholds",
-        repair_1: "healthy",
-        repair_2: "healthy",
-    }
-    cfg = _isolated_transition_config(
-        transition_confirm_days=2,
-        transition_repair_days=2,
-        transition_damage_repair=0.30,
-    )
+    damaged_dates = dates[-4:]
+    states = {date: "damaged" for date in damaged_dates}
+    cfg = _isolated_risk_config()
     account = AccountState.empty(100.0)
 
-    first = _assess(
-        date=damaged_1,
-        dates=dates,
-        states=states,
-        account=account,
-        cfg=cfg,
-    )
-    assert not first.freeze_new_risk
+    assessments = [
+        _assess(
+            date=date,
+            dates=dates,
+            states=states,
+            account=account,
+            cfg=cfg,
+        )
+        for date in damaged_dates
+    ]
 
-    activated = _assess(
-        date=damaged_2,
-        dates=dates,
-        states=states,
-        account=account,
-        cfg=cfg,
-    )
-    assert activated.freeze_new_risk
-    assert account.risk_streaks["transition_damage_active"] == 1
-
-    still_active = _assess(
-        date=noisy,
-        dates=dates,
-        states=states,
-        account=account,
-        cfg=cfg,
-    )
-    assert cfg.transition_damage_repair < still_active.evidence["transition_damage"]
-    assert still_active.evidence["transition_damage"] < cfg.transition_damage_freeze
-    assert account.risk_streaks["transition_damage_active"] == 1
-    assert account.risk_streaks["transition_damage_repair"] == 0
-
-    one_repair = _assess(
-        date=repair_1,
-        dates=dates,
-        states=states,
-        account=account,
-        cfg=cfg,
-    )
-    assert one_repair.freeze_new_risk
-    assert account.risk_streaks["transition_damage_repair"] == 1
-
-    repaired = _assess(
-        date=repair_2,
-        dates=dates,
-        states=states,
-        account=account,
-        cfg=cfg,
-    )
-    assert not repaired.freeze_new_risk
-    assert account.risk_streaks["transition_damage_active"] == 0
-    assert account.risk_streaks["transition_damage_repair"] == 0
+    assert all(not item.freeze_new_risk for item in assessments)
+    assert not any(key.startswith("transition_damage_") for key in account.risk_streaks)
 
 
 def test_reanchor_pause_and_missing_candidate_break_confirmation_streak() -> None:
@@ -558,7 +510,6 @@ def test_assess_risk_only_reanchors_during_a_confirmed_healthy_period(
         caution_confirm_days=99,
         risk_off_confirm_days=99,
         crisis_confirm_days=99,
-        transition_repair_days=2,
     )
     observed: list[bool] = []
 
@@ -583,20 +534,10 @@ def test_assess_risk_only_reanchors_during_a_confirmed_healthy_period(
         cfg=cfg,
     )
 
-    active_transition = AccountState.empty(100.0)
-    active_transition.risk_streaks["transition_damage_active"] = 1
-    _assess(
-        date=date,
-        dates=dates,
-        states={date: "healthy"},
-        account=active_transition,
-        cfg=cfg,
-    )
-
     damaged = AccountState.empty(100.0)
     _assess(date=date, dates=dates, states={date: "damaged"}, account=damaged, cfg=cfg)
 
-    assert observed == [True, False, False, False]
+    assert observed == [True, False, False]
 
 
 def _damaged_holding_frame(dates: pd.DatetimeIndex) -> pd.DataFrame:
@@ -632,8 +573,7 @@ def test_shock_rearm_uses_canonical_tech_calendar_not_panel_order() -> None:
     date = dates[-1]
     dense = _damaged_holding_frame(dates)
     sparse = _damaged_holding_frame(pd.DatetimeIndex((dates[0], date)))
-    cfg = _isolated_transition_config(
-        transition_overlay_enabled=False,
+    cfg = _isolated_risk_config(
         shock_rearm_days=5,
         incomplete_universe_rearm_days=5,
     )
@@ -713,7 +653,7 @@ def test_confirmed_risk_off_always_reduces_gross_without_extreme_vote_bundle() -
     date = dates[-1]
     account = AccountState.empty(100.0)
     account.risk = Risk.RISK_OFF.value
-    cfg = _isolated_transition_config()
+    cfg = _isolated_risk_config()
 
     assessment = _assess(
         date=date,
@@ -809,7 +749,7 @@ def test_mature_strategic_cohort_break_uses_concentrated_cohort_severity() -> No
         operating_peak=300.0,
         capital_peak=300.0,
     )
-    cfg = _isolated_transition_config(transition_overlay_enabled=False)
+    cfg = _isolated_risk_config()
 
     assessment: RiskAssessment | None = None
     for date in dates[-cfg.concentrated_break_confirm_days :]:
@@ -1122,7 +1062,7 @@ def test_protected_restore_cannot_use_overweight_members_to_hide_a_missing_membe
         for symbol in symbols[:2]
     }
     account.protected_weights = {symbol: 0.30 for symbol in symbols}
-    cfg = _isolated_transition_config()
+    cfg = _isolated_risk_config()
 
     _assess(
         date=date,

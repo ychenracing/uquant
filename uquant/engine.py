@@ -6,6 +6,7 @@ import copy
 import hashlib
 import json
 from collections.abc import Iterable
+from dataclasses import replace
 from pathlib import Path
 from statistics import median
 from typing import Any
@@ -13,7 +14,18 @@ from typing import Any
 import numpy as np
 import pandas as pd
 
-from .config import DEFAULT_CONFIG, SystemConfig, config_fingerprint
+from .attribution import (
+    build_daily_ledger_row,
+    build_daily_replay_evidence_row,
+    build_economic_attribution,
+)
+from .config import (
+    DEFAULT_CONFIG,
+    SystemConfig,
+    canonical_control_float,
+    config_fingerprint,
+)
+from .config_governance import DEFAULT_GOVERNANCE_PATH
 from .data import DataStore, normalize_symbol
 from .execution import (
     ExecutionPlanner,
@@ -43,10 +55,17 @@ from .types import (
     Fill,
     LeaderScore,
     Opportunity,
+    PendingOrder,
+    Side,
+    Target,
+    derive_attribution_event_id,
 )
 from .validation.ai_era import require_ai_era_interval
+from .validation.universe import REQUIRED_AI_UNIVERSE_SHA256, default_ai_universe
 
 INDEX_SYMBOLS = ("sh000300", "sh000682")
+_LEGACY_INDUSTRY = "legacy_unmapped"
+_LEGACY_MANIFEST_SHA256 = "0" * 64
 
 
 def _decision_config_for_universe(
@@ -64,6 +83,135 @@ def _decision_config_for_universe(
     return cfg
 
 
+def _attach_target_attribution(
+    *,
+    signal_date: str,
+    targets: tuple[Target, ...],
+    retained_orders: Iterable[PendingOrder] = (),
+    cfg: SystemConfig = DEFAULT_CONFIG,
+) -> tuple[Target, ...]:
+    """Finalize deterministic IDs and PIT industry for newly causal targets."""
+
+    universe = default_ai_universe()
+    retained_by_symbol = {
+        order.symbol: order
+        for order in retained_orders
+        # Presence in the active pending collection is authoritative. A
+        # blocked order can still have ``remaining_shares == 0`` before the
+        # next open supplies the first executable quantity.
+        if order.event_id
+    }
+    attributed: list[Target] = []
+    for target in targets:
+        if target.event_id:
+            attributed.append(target)
+            continue
+        retained = retained_by_symbol.get(target.symbol)
+        if (
+            retained is not None
+            and retained.side == Side.SELL.value
+            and abs(retained.target_weight) <= 1e-12
+            and abs(target.weight) <= 1e-12
+            and retained.lifecycle == target.lifecycle
+            and retained.reduction_policy == target.reduction_policy
+        ):
+            # A full liquidation is one causal event even when a later daily
+            # classifier gives the still-unfilled residual a different label.
+            # Preserve the originating machine identity at the production
+            # boundary; direct merge callers still fail closed on fabricated
+            # or genuinely changed attributed intents.
+            attributed.append(
+                replace(
+                    target,
+                    event_id=retained.event_id,
+                    origin_subsystem=retained.origin_subsystem,
+                    mechanism=retained.mechanism,
+                    origin_lifecycle=retained.origin_lifecycle,
+                    replaces_symbol=retained.replaces_symbol,
+                    industry_at_entry=retained.industry_at_entry,
+                    industry_manifest_sha256=retained.industry_manifest_sha256,
+                )
+            )
+            continue
+        if (
+            retained is not None
+            and retained.side == Side.BUY.value
+            and target.weight > 1e-12
+            and abs(retained.target_weight - target.weight) < cfg.min_trade_weight
+            and retained.lifecycle == target.lifecycle
+            and retained.reduction_policy == target.reduction_policy
+            and retained.reason_code == target.reason_code
+            and retained.exit_kind == target.exit_kind
+            and retained.origin_subsystem == target.origin_subsystem
+            and retained.origin_lifecycle == target.origin_lifecycle
+            and retained.replaces_symbol == target.replaces_symbol
+        ):
+            # A partially filled GTC buy remains the causal event submitted on
+            # its original signal date. Daily portfolio classification may
+            # move from restoration to cohort/hold while the target stays
+            # inside the reviewed no-trade band; that is not a new order cause.
+            attributed.append(
+                replace(
+                    target,
+                    event_id=retained.event_id,
+                    origin_subsystem=retained.origin_subsystem,
+                    mechanism=retained.mechanism,
+                    origin_lifecycle=retained.origin_lifecycle,
+                    replaces_symbol=retained.replaces_symbol,
+                    industry_at_entry=retained.industry_at_entry,
+                    industry_manifest_sha256=retained.industry_manifest_sha256,
+                )
+            )
+            continue
+        if retained is not None and (
+            abs(retained.target_weight - target.weight) < cfg.min_trade_weight
+            and retained.lifecycle == target.lifecycle
+            and retained.reduction_policy == target.reduction_policy
+            and retained.origin_subsystem == target.origin_subsystem
+            and retained.mechanism == target.mechanism
+            and retained.origin_lifecycle == target.origin_lifecycle
+            and retained.replaces_symbol == target.replaces_symbol
+        ):
+            attributed.append(
+                replace(
+                    target,
+                    event_id=retained.event_id,
+                    industry_at_entry=retained.industry_at_entry,
+                    industry_manifest_sha256=retained.industry_manifest_sha256,
+                )
+            )
+            continue
+        industry = universe.industry_of(target.symbol, signal_date)
+        manifest = REQUIRED_AI_UNIVERSE_SHA256
+        if industry == "unknown":
+            industry = _LEGACY_INDUSTRY
+            manifest = _LEGACY_MANIFEST_SHA256
+        event_id = derive_attribution_event_id(
+            signal_date=signal_date,
+            symbol=target.symbol,
+            target_weight=target.weight,
+            lifecycle=target.lifecycle,
+            origin_lifecycle=target.origin_lifecycle,
+            origin_subsystem=target.origin_subsystem,
+            mechanism=target.mechanism,
+            replaces_symbol=target.replaces_symbol,
+            industry_at_entry=industry,
+            industry_manifest_sha256=manifest,
+            reduction_policy=target.reduction_policy,
+            reason_code=target.reason_code,
+            exit_kind=target.exit_kind,
+        )
+        attributed.append(
+            replace(
+                target,
+                event_id=event_id,
+                industry_at_entry=industry,
+                industry_manifest_sha256=manifest,
+            )
+        )
+    return tuple(attributed)
+
+
 def code_fingerprint() -> str:
     """Return a stable digest of all production modules in the package root."""
     root = Path(__file__).resolve().parent
@@ -71,8 +219,9 @@ def code_fingerprint() -> str:
     for path in sorted(root.glob("*.py")):
         digest.update(path.name.encode())
         digest.update(path.read_bytes())
-    digest.update(DEFAULT_REGISTRY_PATH.name.encode())
-    digest.update(DEFAULT_REGISTRY_PATH.read_bytes())
+    for path in (DEFAULT_REGISTRY_PATH, DEFAULT_GOVERNANCE_PATH):
+        digest.update(path.name.encode())
+        digest.update(path.read_bytes())
     return digest.hexdigest()
 
 
@@ -332,6 +481,12 @@ class ProductionEngine:
             account=account,
             prices=prices,
         )
+        targets = _attach_target_attribution(
+            signal_date=str(date.date()),
+            targets=targets,
+            retained_orders=account.pending_orders,
+            cfg=self.cfg,
+        )
         if not decision_cfg.group_balanced_reference_enabled:
             # The selected policy uses the security-weighted view for decisions.
             # Preserve the independently computed point-in-time snapshot only
@@ -357,43 +512,12 @@ class ProductionEngine:
             current=orders,
             submitted_date=str(date.date()),
         )
-        canonical = {
-            "date": str(date.date()),
-            "opportunity": opportunity.value,
-            "risk": risk.state.value,
-            "targets": [
-                {
-                    "symbol": item.symbol,
-                    "weight": round(item.weight, 12),
-                    "lifecycle": item.lifecycle,
-                    "reduction_policy": item.reduction_policy,
-                    "reason_code": item.reason_code,
-                    "exit_kind": item.exit_kind,
-                }
-                for item in targets
-            ],
-            "orders": [
-                {
-                    "order_id": item.order_id,
-                    "symbol": item.symbol,
-                    "side": item.side,
-                    "target_weight": round(item.target_weight, 12),
-                    "reduction_policy": item.reduction_policy,
-                    "reason_code": item.reason_code,
-                    "exit_kind": item.exit_kind,
-                }
-                for item in orders
-            ],
-        }
-        digest = hashlib.sha256(
-            json.dumps(canonical, sort_keys=True, separators=(",", ":")).encode()
-        ).hexdigest()
         account.last_successful_run = str(date.date())
         account.data_hash = data_digest
         account.data_hash_as_of = str(date.date())
         account.data_hash_symbols = list(current_symbols)
         account.code_hash = current_code_hash
-        return Decision(
+        decision = Decision(
             date=str(date.date()),
             opportunity=opportunity,
             risk=risk.state,
@@ -408,6 +532,9 @@ class ProductionEngine:
                 "shock_state": risk.shock_state,
                 "reduction_level": risk.reduction_level,
                 "severity": risk.severity,
+                "target_gross_cap": canonical_control_float(risk.target_gross_cap),
+                "system_gross_cap": canonical_control_float(decision_cfg.max_gross),
+                "freeze_new_risk": risk.freeze_new_risk,
                 "strategic_epoch": account.strategic_epoch,
                 "strategic_candidate_signature": (account.strategic_candidate_signature),
                 "factor_profile": leader_factor_profile,
@@ -426,8 +553,15 @@ class ProductionEngine:
                     )
                 ],
             },
-            decision_digest=digest,
+            decision_digest="",
         )
+        canonical = decision.canonical_payload(
+            effective_config_sha256=config_fingerprint(decision_cfg)
+        )
+        digest = hashlib.sha256(
+            json.dumps(canonical, sort_keys=True, separators=(",", ":")).encode()
+        ).hexdigest()
+        return replace(decision, decision_digest=digest)
 
     def deterministic_decision(
         self, *, symbols: Iterable[str], as_of: str, account: AccountState
@@ -458,6 +592,9 @@ class ProductionEngine:
         # First state has no prior persisted hash. Daily production requires hashes after initialization.
         equity_rows: list[tuple[pd.Timestamp, float]] = []
         decisions: list[Decision] = []
+        daily_ledger: list[dict[str, Any]] = []
+        daily_replay_evidence: list[dict[str, Any]] = []
+        previous_equity = account.initial_cash
         raw_user_panel = {symbol: self._raw[symbol] for symbol in user_symbols}
         for date in sessions:
             self.execution.execute_open(date=date, account=account, panel=raw_user_panel)
@@ -465,6 +602,33 @@ class ProductionEngine:
             equity_rows.append((date, equity))
             decision = self.decide(symbols=user_symbols, as_of=str(date.date()), account=account)
             decisions.append(decision)
+            close_prices = {
+                symbol: self._price(symbol, date)
+                for symbol, position in account.positions.items()
+                if position.shares > 0
+            }
+            daily_ledger.append(
+                build_daily_ledger_row(
+                    date=str(date.date()),
+                    account=account,
+                    close_prices=close_prices,
+                    previous_equity=previous_equity,
+                    target_weights={item.symbol: item.weight for item in decision.targets},
+                    target_gross=decision.target_gross,
+                    risk_gross_cap=float(decision.risk_summary["target_gross_cap"]),
+                    system_gross_cap=float(decision.risk_summary["system_gross_cap"]),
+                    risk_state=decision.risk.value,
+                    opportunity=decision.opportunity.value,
+                )
+            )
+            daily_replay_evidence.append(
+                build_daily_replay_evidence_row(
+                    date=str(date.date()),
+                    account=account,
+                    close_prices=close_prices,
+                )
+            )
+            previous_equity = equity
             account.pending_orders = list(decision.pending_orders)
         final_date = sessions[-1]
         final_equity = self.equity(account, final_date)
@@ -489,12 +653,41 @@ class ProductionEngine:
             final_wealth=final_equity / account.initial_cash,
             final_equity=final_equity,
             decision_digests=[item.decision_digest for item in decisions],
+            decision_trace=[
+                item.canonical_payload(
+                    effective_config_sha256=config_fingerprint(self.cfg)
+                )
+                for item in decisions
+            ],
+            legacy_decision_digests=[
+                hashlib.sha256(
+                    json.dumps(
+                        item.legacy_canonical_payload(),
+                        sort_keys=True,
+                        separators=(",", ":"),
+                    ).encode()
+                ).hexdigest()
+                for item in decisions
+            ],
+            daily_replay_evidence=daily_replay_evidence,
             pending_orders=len(account.pending_orders),
             final_account=account.to_dict(),
-            attribution=attribution(
-                account.fills,
-                panel=raw_user_panel,
-                benchmark=self._raw["sh000682"],
+            attribution=build_economic_attribution(
+                account=account,
+                final_prices={
+                    symbol: self._price(symbol, final_date)
+                    for symbol, position in account.positions.items()
+                    if position.shares > 0
+                },
+                sessions=tuple(str(date.date()) for date in sessions),
+                economic_start=str(sessions[0].date()),
+                economic_end=str(sessions[-1].date()),
+                final_equity=final_equity,
+                daily_ledger=daily_ledger,
+                benchmark_close={
+                    str(date.date()): float(self._raw["sh000682"].loc[date, "close"])
+                    for date in sessions
+                },
             ),
             internal_events={
                 "risk": len(account.risk_events),
@@ -531,7 +724,6 @@ def _drawdown_stats(equity: pd.Series) -> dict[str, float | int]:
         "max_drawdown_duration": duration,
         "peak_to_recovery_days": recovery,
     }
-
 
 def performance_metrics(
     *,
@@ -715,272 +907,4 @@ def performance_metrics(
             for item in orders
         ],
         "equity_curve": [{"date": str(date)[:10], "equity": value} for date, value in equity.items()],
-    }
-
-
-def attribution(
-    fills: list[Fill],
-    *,
-    panel: dict[str, pd.DataFrame] | None = None,
-    benchmark: pd.DataFrame | None = None,
-) -> dict[str, Any]:
-    """Attribute actual sold lots and calculate causal, offline exit outcomes."""
-    lifecycle_names = ("core", "add1", "add2", "satellite", "recovery")
-    empty_bucket = {
-        "fills": 0,
-        "gross_value": 0.0,
-        "fees": 0.0,
-        "realized_pnl": 0.0,
-        "mfe": [],
-        "mae": [],
-    }
-    lifecycle: dict[str, dict[str, Any]] = {name: copy.deepcopy(empty_bucket) for name in lifecycle_names}
-    lots: dict[str, list[dict[str, Any]]] = {}
-    reason_buckets: dict[str, dict[str, Any]] = {}
-    post_exit: list[dict[str, Any]] = []
-
-    def reason_family(fill: Fill) -> str:
-        """Map one sell fill to a stable economic attribution family."""
-
-        normalized = fill.reason.lower().replace("-", "_")
-        code = fill.reason_code.lower()
-        exit_kind = fill.exit_kind.lower()
-        if exit_kind == "sector_guard" or "sector" in code or "sector" in normalized:
-            return "sector_guard"
-        # Structured execution intent has precedence over a strategy's
-        # retained human-readable target reason.  A sparse portfolio-risk cut
-        # may deliberately preserve that text for auditability, but it is
-        # still economically a risk exit.
-        if exit_kind in {"risk", "risk_off", "crisis", "capital_budget"}:
-            return "risk_off"
-        if "strategic" in code or "strategic" in normalized:
-            return "strategic_tail"
-        if "rotation" in code or "rotation" in normalized or "replacement" in normalized:
-            return "rotation"
-        if "satellite" in code or "satellite" in normalized or "scout" in normalized:
-            return "satellite_expiry"
-        if "recovery" in code or "recovery" in normalized:
-            return "recovery_exit"
-        if "lifecycle" in code or "lifecycle" in normalized:
-            return "lifecycle_exit"
-        if "risk" in normalized or "crisis" in normalized:
-            return "risk_off"
-        return "strategy"
-
-    for fill in fills:
-        fees = fill.commission + fill.stamp_duty + fill.transfer_fee
-        if fill.side == "BUY":
-            name = fill.lifecycle.lower()
-            bucket = lifecycle.setdefault(name, copy.deepcopy(empty_bucket))
-            bucket["fills"] += 1
-            bucket["gross_value"] += fill.gross_value
-            bucket["fees"] += fees
-            active_lots = lots.setdefault(fill.symbol, [])
-            tranche_id = (
-                f"broker-fill:{fill.fill_id}"
-                if fill.fill_id
-                else f"{fill.fill_date}:{fill.symbol}:{len(active_lots) + 1}"
-            )
-            active_lots.append(
-                {
-                    "tranche_id": tranche_id,
-                    "shares": fill.shares,
-                    "unit_cost": (fill.gross_value + fees) / fill.shares,
-                    "lifecycle": name,
-                    "entry_date": fill.fill_date,
-                }
-            )
-            continue
-
-        family = reason_family(fill)
-        reason_bucket = reason_buckets.setdefault(
-            family,
-            {"fills": 0, "gross_value": 0.0, "fees": 0.0, "realized_pnl": 0.0},
-        )
-        reason_bucket["fills"] += 1
-        reason_bucket["gross_value"] += fill.gross_value
-        reason_bucket["fees"] += fees
-
-        allocations = list(fill.sold_tranches)
-        if not allocations:
-            remaining = fill.shares
-            for lot in lots.get(fill.symbol, []):
-                available = int(lot["shares"])
-                if available <= 0 or remaining <= 0:
-                    continue
-                sold = min(available, remaining)
-                allocations.append(
-                    {
-                        "shares": sold,
-                        "unit_cost": float(lot["unit_cost"]),
-                        "lifecycle": str(lot["lifecycle"]).upper(),
-                        "entry_date": str(lot["entry_date"]),
-                        "mfe": 0.0,
-                        "mae": 0.0,
-                    }
-                )
-                remaining -= sold
-        unit_proceeds = (fill.gross_value - fees) / max(fill.shares, 1)
-        fill_pnl = 0.0
-        for allocation in allocations:
-            sold = int(allocation.get("shares", 0))
-            if sold <= 0:
-                continue
-            origin = str(allocation.get("lifecycle", fill.lifecycle)).lower()
-            unit_cost = float(allocation.get("unit_cost", allocation.get("avg_cost", 0.0)))
-            pnl = sold * (unit_proceeds - unit_cost)
-            fill_pnl += pnl
-            bucket = lifecycle.setdefault(origin, copy.deepcopy(empty_bucket))
-            bucket["fills"] += 1
-            bucket["gross_value"] += sold * fill.price
-            bucket["fees"] += fees * sold / max(fill.shares, 1)
-            bucket["realized_pnl"] += pnl
-            bucket["mfe"].append(float(allocation.get("mfe", 0.0)))
-            bucket["mae"].append(float(allocation.get("mae", 0.0)))
-            remaining = sold
-            symbol_lots = lots.get(fill.symbol, [])
-            tranche_id = str(allocation.get("tranche_id", ""))
-            exact = [lot for lot in symbol_lots if tranche_id and lot.get("tranche_id") == tranche_id]
-            candidates = exact or symbol_lots
-            for lot in candidates:
-                if remaining <= 0:
-                    break
-                if not exact and (
-                    str(lot["lifecycle"]) != origin
-                    or str(lot["entry_date"]) != str(allocation.get("entry_date", lot["entry_date"]))
-                ):
-                    continue
-                consumed = min(int(lot["shares"]), remaining)
-                lot["shares"] -= consumed
-                remaining -= consumed
-                if exact and int(lot["shares"]) > 0:
-                    # Lifecycle promotion changes the economic lot in place;
-                    # retain that identity for the unsold remainder.
-                    lot["lifecycle"] = origin
-        reason_bucket["realized_pnl"] += fill_pnl
-        lots[fill.symbol] = [lot for lot in lots.get(fill.symbol, []) if int(lot["shares"]) > 0]
-
-        frame = panel.get(fill.symbol) if panel is not None else None
-        fill_date = pd.Timestamp(fill.fill_date)
-        if frame is None or fill_date not in frame.index:
-            continue
-        location = int(frame.index.get_indexer(pd.DatetimeIndex([fill_date]))[0])
-        benchmark_location = (
-            int(benchmark.index.get_indexer(pd.DatetimeIndex([fill_date]))[0])
-            if benchmark is not None and fill_date in benchmark.index
-            else -1
-        )
-        horizons: dict[str, Any] = {}
-        for horizon in (5, 10, 20, 40):
-            future_location = location + horizon
-            if future_location >= len(frame):
-                horizons[str(horizon)] = None
-                continue
-            absolute = float(frame.iloc[future_location]["close"] / fill.price - 1.0)
-            benchmark_return = 0.0
-            if (
-                benchmark is not None
-                and benchmark_location >= 0
-                and benchmark_location + horizon < len(benchmark)
-            ):
-                benchmark_return = float(
-                    benchmark.iloc[benchmark_location + horizon]["close"]
-                    / benchmark.iloc[benchmark_location]["close"]
-                    - 1.0
-                )
-            relative = absolute - benchmark_return
-            horizons[str(horizon)] = {
-                "absolute_return": absolute,
-                "relative_return": relative,
-                "avoided_loss": max(0.0, -absolute),
-                "false_exit_regret": max(0.0, relative),
-            }
-        post_exit.append(
-            {
-                "symbol": fill.symbol,
-                "exit_date": fill.fill_date,
-                "reason_code": fill.reason_code,
-                "reason_family": family,
-                "exit_kind": fill.exit_kind,
-                "horizons": horizons,
-            }
-        )
-
-    open_lots = {
-        name: int(
-            sum(
-                int(lot["shares"])
-                for symbol_lots in lots.values()
-                for lot in symbol_lots
-                if str(lot["lifecycle"]) == name
-            )
-        )
-        for name in lifecycle
-    }
-    for bucket in lifecycle.values():
-        for key in ("mfe", "mae"):
-            values = list(bucket[key])
-            bucket[f"median_{key}"] = float(np.median(values)) if values else 0.0
-            del bucket[key]
-
-    replacement_spread: dict[str, list[dict[str, Any]]] = {"20": [], "40": []}
-    replacement_exits = [
-        fill for fill in fills if fill.side == "SELL" and reason_family(fill) in {"rotation", "recovery_exit"}
-    ]
-    for entry in fills:
-        marker = "replaces "
-        normalized_reason = entry.reason.lower().replace("-", "_")
-        if entry.side != "BUY" or marker not in normalized_reason:
-            continue
-        old_symbol = normalized_reason.split(marker, 1)[1].split(maxsplit=1)[0].strip(" ,.:;()[]")
-        linked_exits = [
-            fill
-            for fill in replacement_exits
-            if fill.symbol.lower() == old_symbol
-            and pd.Timestamp(fill.fill_date) <= pd.Timestamp(entry.fill_date)
-            and entry.symbol.lower() in fill.reason.lower()
-        ]
-        if not linked_exits or panel is None:
-            continue
-        linked_exit = max(
-            linked_exits,
-            key=lambda fill: (pd.Timestamp(fill.fill_date), fill.fill_id, fill.order_id),
-        )
-        old_frame = panel.get(linked_exit.symbol)
-        new_frame = panel.get(entry.symbol)
-        entry_date = pd.Timestamp(entry.fill_date)
-        if (
-            old_frame is None
-            or new_frame is None
-            or entry_date not in old_frame.index
-            or entry_date not in new_frame.index
-        ):
-            continue
-        old_location = int(old_frame.index.get_indexer(pd.DatetimeIndex([entry_date]))[0])
-        new_location = int(new_frame.index.get_indexer(pd.DatetimeIndex([entry_date]))[0])
-        old_start = float(old_frame.iloc[old_location]["close"])
-        if old_start <= 0 or entry.price <= 0:
-            continue
-        for horizon in (20, 40):
-            if old_location + horizon >= len(old_frame) or new_location + horizon >= len(new_frame):
-                continue
-            old_return = float(old_frame.iloc[old_location + horizon]["close"] / old_start - 1.0)
-            new_return = float(new_frame.iloc[new_location + horizon]["close"] / entry.price - 1.0)
-            replacement_spread[str(horizon)].append(
-                {
-                    "old_symbol": linked_exit.symbol,
-                    "new_symbol": entry.symbol,
-                    "entry_date": entry.fill_date,
-                    "gross_value": entry.gross_value,
-                    "old_return": old_return,
-                    "new_return": new_return,
-                    "spread": new_return - old_return,
-                }
-            )
-    return {
-        "by_lifecycle": lifecycle,
-        "by_reason": reason_buckets,
-        "open_shares_by_lifecycle": open_lots,
-        "post_exit": post_exit,
-        "replacement_spread": replacement_spread,
     }

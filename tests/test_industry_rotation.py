@@ -7,7 +7,13 @@ from uquant.config import DEFAULT_CONFIG
 from uquant.industry import compute_industry_signals
 from uquant.portfolio import PortfolioAllocator
 from uquant.reference import build_reference_context
-from uquant.types import AccountState, LeaderScore, Lifecycle
+from uquant.types import (
+    AccountState,
+    AttributionMechanism,
+    LeaderScore,
+    Lifecycle,
+    OriginSubsystem,
+)
 
 
 def _raw(ret20: float, ret60: float, ret120: float, above: float) -> dict[str, float]:
@@ -209,6 +215,8 @@ def test_low_confidence_unknowns_share_one_aggregate_cap() -> None:
         account=AccountState.empty(2_000_000.0),
         lifecycle=Lifecycle.CORE,
         reason="unknown confidence cap contract",
+        origin_subsystem=OriginSubsystem.LEADER,
+        mechanism=AttributionMechanism.LEADER_SELECTION,
     )
 
     assert sum(target.weight for target in targets) == pytest.approx(

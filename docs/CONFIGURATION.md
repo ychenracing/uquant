@@ -20,7 +20,7 @@ PY
 
 配置只面向 2023 年以来的 A 股 AI 产业链现金多头组合，运行频率为日频，收盘后决策、下一交易日执行，并保留人工核对环节。经济性验收不得早于 `2023-01-01`；更早数据只允许作为特征 warm-up，不得用于收益、回撤、订单或换手门槛。唯一支持的运行时是 Python 3.12。
 
-以下四个曾由引擎隐藏覆盖的生产路径开关现在直接固定在 `DEFAULT_CONFIG`；`_decision_config_for_universe()` 对所有股票池大小都返回同一个传入配置：
+以下生产路径开关由 `DEFAULT_CONFIG` 直接定义；`_decision_config_for_universe()` 对所有股票池大小都返回同一个传入配置：
 
 | 参数 | 生产默认值 |
 |---|---:|
@@ -28,6 +28,19 @@ PY
 | `group_balanced_reference_enabled` | false |
 | `hierarchical_industry_shrinkage_enabled` | false |
 | `evidence_family_voting_enabled` | false |
+
+## 参数治理
+
+`benchmarks/config_parameter_governance.json` 要求每个 `SystemConfig` 字段恰好属于
+`MARKET_RULE`、`SAFETY`、`ECONOMIC`、`DERIVED` 或 `COMPATIBILITY` 一类，并有唯一
+owner。市场费用、T+1、涨跌停、停牌、手数、现金和组合硬上限不是搜索自由；derived
+字段不能独立覆盖，compatibility 字段只用于确定性等价，只有 `ECONOMIC` 字段可以
+进入候选选择。任何被接受的默认值变化都必须重新通过 Phase 1 和完整的 Phase 2
+Generalization 六窗口门禁，不能由人工日常运行或研究脚本临时注入场景专用参数。
+
+官方 Generalization 的六个窗口、基准种子 `20260810`、索引 `0..4`、池大小
+`5 / 9 / 15 / 20` 是验证输入，不是 `SystemConfig` 调参项。future holdout 从
+`2026-08-06` 起只做观察，不能据其表现改参数；2023 年以前的数据仍只作 warm-up。
 
 ## 资金与执行
 
@@ -201,6 +214,6 @@ PY
 1. 一次只改变一个参数族，并记录精确配置摘要；
 2. 先运行相关单元测试，再运行统一的 `promotion --profile full` AI-era 绩效门；
 3. 同时观察收益、最大回撤、订单数、换手和急跌期表现；
-4. 使用六个官方 2023+ 时间区间和经过评审的股票池，不以单一高收益区间选择参数；
+4. 使用预先划分的 2023+ in-sample 研究证据，不以单一高收益区间或官方随机 cell 选择参数；
 5. 不通过降低费用、放宽数据校验或修改统计口径制造改善；
-6. 任何默认值变化都应单独提交，并附可复现证据。
+6. 任何默认值变化都应单独提交，并附可复现证据；固定官方窗口、种子和证券池不得作为调节旋钮。

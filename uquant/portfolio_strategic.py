@@ -8,7 +8,15 @@ import pandas as pd
 
 from .features import scalar
 from .portfolio_core import PortfolioCore, strategic_dominant_symbol
-from .types import AccountState, LeaderScore, Lifecycle, RiskAssessment, Target
+from .types import (
+    AccountState,
+    AttributionMechanism,
+    LeaderScore,
+    Lifecycle,
+    OriginSubsystem,
+    RiskAssessment,
+    Target,
+)
 
 
 class StrategicPortfolioPolicy(PortfolioCore):
@@ -789,6 +797,8 @@ class StrategicPortfolioPolicy(PortfolioCore):
                     account=account,
                     lifecycle=Lifecycle.CORE,
                     reason="strategic cohort completed staged exit",
+                    origin_subsystem=OriginSubsystem.STRATEGIC,
+                    mechanism=AttributionMechanism.STRATEGIC_TRAILING_EXIT,
                 )
             # A portfolio-risk event may have copied the active cohort into
             # protected_weights before the strategy's own exit bands finished.
@@ -1123,10 +1133,20 @@ class StrategicPortfolioPolicy(PortfolioCore):
             }
             requested = sum(restore.values())
             current_strategy_gross = sum(current_selected.values())
+            # If live exposure already exceeds the current risk cap, the outer
+            # allocator owns the required sell plan.  The strategy still must
+            # hand it an admissible pre-risk vector: per-member winner drift
+            # plus saved loser restoration can otherwise exceed max_gross
+            # before the risk reducer gets a chance to run.
+            restore_gross_cap = (
+                min(self.cfg.max_gross, max(0.0, risk.target_gross_cap))
+                if current_strategy_gross <= risk.target_gross_cap + 1e-12
+                else self.cfg.max_gross
+            )
             scale = (
-                min(1.0, risk.target_gross_cap / requested)
-                if requested > 0 and current_strategy_gross <= risk.target_gross_cap + 1e-12
-                else 1.0
+                min(1.0, restore_gross_cap / requested)
+                if requested > 0
+                else 0.0
             )
             proposed = {symbol: weight * scale for symbol, weight in restore.items()}
             equity = account.cash + sum(
@@ -1216,6 +1236,8 @@ class StrategicPortfolioPolicy(PortfolioCore):
             account=account,
             lifecycle=Lifecycle.CORE,
             reason="prequalified strategic leader cohort with staged profit protection",
+            origin_subsystem=OriginSubsystem.STRATEGIC,
+            mechanism=AttributionMechanism.STRATEGIC_COHORT,
             reasons=(
                 {
                     dominant_symbol: "strategic dominant one-shot profit lock",
@@ -1223,4 +1245,17 @@ class StrategicPortfolioPolicy(PortfolioCore):
                 if dominant_profit_lock_armed_now and dominant_symbol is not None
                 else None
             ),
+            mechanisms={
+                symbol: (
+                    AttributionMechanism.STRATEGIC_PROFIT_LOCK
+                    if dominant_profit_lock_armed_now and symbol == dominant_symbol
+                    else AttributionMechanism.STRATEGIC_TRAILING_EXIT
+                    if symbol in account.strategic_exit_bands
+                    else AttributionMechanism.STRATEGIC_RESTORATION
+                    if symbol in account.strategic_restore_weights
+                    and proposed.get(symbol, 0.0) > current_selected.get(symbol, 0.0) + 1e-12
+                    else AttributionMechanism.STRATEGIC_COHORT
+                )
+                for symbol in set(account.positions) | set(proposed)
+            },
         )

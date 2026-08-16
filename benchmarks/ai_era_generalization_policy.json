@@ -1,0 +1,103 @@
+{
+  "baseline_sha256": "8603c4572fbf15a3de4f89737ab078d7e61d76f9e197f210a24704b8a4aabd79",
+  "baseline_non_regression": {
+    "empty_authenticated_support_requires_literal_policy": true,
+    "exact_reviewed_evidence_passes": true,
+    "floor_and_ceiling_bounds_use_authenticated_baseline": true,
+    "identical_baseline_replay_error_passes": true,
+    "recovered_cell_uses_authenticated_group_envelope": true,
+    "recovered_cell_uses_relative_per_cell_tolerances": true,
+    "recovered_cell_is_excluded_from_tail_rank_non_regression": true
+  },
+  "canonical_sha256": "46cf95d26d04186824f181266da68e5a2d98814b65371c0b358c7cacfa8ef8fc",
+  "intrinsic": {
+    "directional_families": [
+      "remove_all_core",
+      "tradable_no_optical"
+    ],
+    "directional_final_wealth_strict_min": 1.0,
+    "directional_max_drawdown": 0.3,
+    "remove_one_final_wealth_min": 0.8,
+    "remove_one_max_drawdown": 0.3
+  },
+  "policy_id": "ai-era-generalization-policy-v2",
+  "random_tails": {
+    "group_by": [
+      "window",
+      "pool_size"
+    ],
+    "p10_wealth_min": 0.8,
+    "p90_drawdown_max": 0.3,
+    "p90_orders_max": 20.0,
+    "positive_return_definition": "final_wealth > 1.0",
+    "positive_return_fraction_min": 0.6,
+    "quantile_method": "linear interpolation at (n - 1) * probability",
+    "replay_error_failure_handling": "baseline_non_regression",
+    "replay_errors_excluded_from_quantiles": true,
+    "requested_seeds_per_group": 5
+  },
+  "relative_per_cell": {
+    "drawdown_absolute_buffer": 0.02,
+    "orders_absolute_buffer": 1,
+    "orders_ratio_max": 1.1,
+    "turnover_ratio_max": 1.1,
+    "wealth_ratio_min": 0.95,
+    "zero_reference_turnover_requires_zero": true
+  },
+  "scenario_contract": {
+    "economic_cells_per_window": 32,
+    "evidence_fingerprint": "2a9696d4ed914ea0081a7b2bb0cd8b02a52622acdfed7d35863150544327d8a0",
+    "insufficient_sample_records_per_window": 7,
+    "lookback_sessions": 120,
+    "random_base_seed": 20260810,
+    "random_pool_sizes": [
+      5,
+      9,
+      15,
+      20
+    ],
+    "random_seed_indexes": [
+      0,
+      1,
+      2,
+      3,
+      4
+    ],
+    "records_per_window": 39,
+    "scenario_fingerprint": "debe233bfc80c98ec37f7becfa13a37efb462bdf695d3822d077250841b0cd2a",
+    "window_fingerprint": "6fe63da8edd2acc1267cb2cd494e5662663ad11a25dbcf4656074d188fad5b3e",
+    "windows": [
+      {
+        "end": "2023-06-30",
+        "name": "h1_2023",
+        "start": "2023-01-03"
+      },
+      {
+        "end": "2023-12-29",
+        "name": "h2_2023",
+        "start": "2023-07-03"
+      },
+      {
+        "end": "2024-07-01",
+        "name": "h1_2024",
+        "start": "2024-01-02"
+      },
+      {
+        "end": "2024-12-31",
+        "name": "h2_2024",
+        "start": "2024-07-01"
+      },
+      {
+        "end": "2026-07-31",
+        "name": "bull_crash_2025_2026",
+        "start": "2025-01-02"
+      },
+      {
+        "end": "2026-08-05",
+        "name": "continuous_ai_era",
+        "start": "2023-01-03"
+      }
+    ]
+  },
+  "schema_version": 2
+}

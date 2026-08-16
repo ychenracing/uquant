@@ -17,6 +17,7 @@ from statistics import median
 from typing import Any, Final, cast
 
 from ..config import DEFAULT_CONFIG, config_fingerprint
+from ..config_governance import GOVERNANCE_PATH
 from ..engine import ProductionEngine
 from .ai_era import (
     AI_ERA_ACUTE_WINDOWS,
@@ -29,6 +30,7 @@ from .manifest import verify_data_manifest
 
 SCHEMA_VERSION: Final = 4
 REPOSITORY: Final = "ychenracing/uquant"
+CONFIG_PARAMETER_GOVERNANCE_PATH: Final = GOVERNANCE_PATH.as_posix()
 REQUIRED_POOLS: Final = ("a", "b", "c", "d", "e")
 # These hashes are independent trust anchors.  Editing the baseline and
 # recomputing its self-fingerprint cannot silently change the reviewed A-E
@@ -399,6 +401,7 @@ def _production_paths(root: Path) -> list[Path]:
         root / "requirements.txt",
         root / "uv.lock",
         root / REFERENCE_REGISTRY_PATH,
+        root / CONFIG_PARAMETER_GOVERNANCE_PATH,
         *((root / "uquant").rglob("*.py")),
     ]
     return sorted(paths, key=lambda path: path.relative_to(root).as_posix())
@@ -446,6 +449,7 @@ def _production_source_fingerprint_at_commit(root: Path, commit: str) -> str:
             "requirements.txt",
             "uv.lock",
             REFERENCE_REGISTRY_PATH,
+            CONFIG_PARAMETER_GOVERNANCE_PATH,
             "uquant",
         ],
         label="cannot inspect promotion production commit",
@@ -453,7 +457,14 @@ def _production_source_fingerprint_at_commit(root: Path, commit: str) -> str:
     paths = sorted(
         path
         for path in listing.splitlines()
-        if path in {"pyproject.toml", "requirements.txt", "uv.lock", REFERENCE_REGISTRY_PATH}
+        if path
+        in {
+            "pyproject.toml",
+            "requirements.txt",
+            "uv.lock",
+            REFERENCE_REGISTRY_PATH,
+            CONFIG_PARAMETER_GOVERNANCE_PATH,
+        }
         or (path.startswith("uquant/") and path.endswith(".py"))
     )
     entries = [
@@ -483,6 +494,7 @@ def _production_commit(root: Path) -> str:
             "requirements.txt",
             "uv.lock",
             REFERENCE_REGISTRY_PATH,
+            CONFIG_PARAMETER_GOVERNANCE_PATH,
         ],
         label="cannot inspect promotion candidate source",
     )

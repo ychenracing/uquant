@@ -2,7 +2,7 @@
 
 本文定义仓库当前采用的质量标准。质量改进必须提高可读性、可维护性和故障可诊断性，同时保持策略决策与回测结果不变。
 
-所有门禁只在 Python 3.12 下运行。生产经济性范围是 2023 年以来的 A 股 AI 产业链；更早行情只能作为特征 warm-up，不能进入经济统计或发布验收。
+所有门禁只在 Python 3.12 下运行。生产经济性范围是 2023 年以来的 A 股 AI 产业链；更早行情只能作为特征 warm-up，不能进入经济统计或发布验收。每日产品仍由人工运行、核对和辅助下单，质量或研究工具不得接管账户与券商操作。
 
 ## 行为边界
 
@@ -28,9 +28,17 @@
 | Bandit | 静态安全检查不得出现未处理问题 |
 | pip-audit | 生产依赖不得包含已知未处理漏洞 |
 | 数据完整性 | 冻结文件、清单和 SHA-256 必须互相一致 |
-| 经济性回归 | 唯一 `promotion --profile full` 门中所有 AI-era 场景的财富、回撤、订单和换手约束必须通过 |
+| Phase 1 经济性 | `promotion --profile full` 中所有 AI-era 场景的财富、回撤、订单、换手和急跌收益必须通过 |
+| Phase 2 泛化 | 六个固定窗口的完整矩阵必须通过 v2 冻结 policy：保留 literal 诊断，并以已认证 baseline 的逐 cell、intrinsic 与 random-tail 有效边界执行 non-regression |
 
 上述门禁均为阻断条件，不能用另一项检查的成功抵消失败。
+
+对每个 PR 和 `main` push，GitHub 必须稳定给出 `Engineering`、
+`Phase 1 Performance`、`Phase 2 Generalization` 三个独立最终结论。Engineering 的
+always-running summary 同时要求 quality 与 security；Phase 1 summary 要求未删减的
+full profile 和精确 provenance；Phase 2 的 `if: always()` aggregator 要求六个 shard
+全部存在且身份、234-record coverage、raw evidence 和 policy 都有效。必需结论不得
+使用 path filter、矩阵 fail-fast、并发取消、`continue-on-error` 或失败转成功。
 
 ## 注释标准
 
@@ -60,11 +68,11 @@ README 提供快速开始和文档导航；其余文档各自保持单一职责�
 
 每轮质量工作按照以下顺序执行：
 
-1. 在修改前保存测试、静态检查和冻结回测证据。
+1. 在修改前保存测试、静态检查和冻结回测/泛化证据。
 2. 小批量修改注释、文档或经验证的健壮性问题。
 3. 审查修改是否触及策略所有者、参数默认值或交易路径。
-4. 运行相关测试，再运行完整质量门。
-5. 对比修改前后 full AI-era 指标与关键输出摘要，要求逐项一致。
+4. 运行相关测试，再运行 Engineering、Phase 1 和 Phase 2 完整门禁。
+5. 对比修改前后 full AI-era 与 Generalization 指标、状态和关键输出摘要。
 6. 再次审查完整差异；若发现有效问题，修复后重新执行本流程。
 
 不得通过改写基线、放宽断言、删除失败场景或改变统计口径制造通过结果。无法证明行为等价的改动不属于本质量任务。
@@ -77,4 +85,5 @@ README 提供快速开始和文档导航；其余文档各自保持单一职责�
 - 研究模块不得成为第二个生产决策入口，也不得被生产包反向依赖。
 - 生产决策必须继续由 `ProductionEngine.decide()` 驱动，目标权重必须继续由唯一组合分配器生成。
 - 数据或证据缺失、摘要漂移和账户不一致必须失败关闭。
-- 任何平行的研究性或替代实现比较都不能成为第二个发布门，也不能覆盖统一 AI-era 门的失败。
+- canonical 34-stock AI universe、固定 `20260810` seed contract、归因、参数治理和 future holdout 都是受保护验证输入。
+- 任何平行的研究性或替代实现比较都不能成为发布门，也不能覆盖 Phase 1 或 Phase 2 的失败。

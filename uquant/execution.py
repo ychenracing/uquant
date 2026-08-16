@@ -3,30 +3,38 @@
 from __future__ import annotations
 
 import math
+from copy import deepcopy
+from dataclasses import fields
 from datetime import date as date_type
 from datetime import timedelta
 from typing import Any
 
 import pandas as pd
 
+from .account import validate_pending_order_for_account_write
 from .config import SystemConfig
 from .features import scalar
 from .portfolio_core import symbol_weight_cap
 from .types import (
+    ATTRIBUTION_IDENTITY_FIELDS,
     ORDER_INTENT_IMMUTABLE_FIELDS,
     AccountOrder,
     AccountState,
     Fill,
     Lifecycle,
     OrderStatus,
+    OriginSubsystem,
     PendingOrder,
     Position,
     ReductionPolicy,
     Side,
     Target,
     Tranche,
+    derive_attribution_event_id,
     order_intent_metadata,
+    validate_attribution_compatibility,
 )
+from .validation.universe import REQUIRED_AI_UNIVERSE_SHA256, default_ai_universe
 
 
 def fee_components(side: str, gross: float, cfg: SystemConfig) -> tuple[float, float, float]:
@@ -137,15 +145,119 @@ def plan_orders(
             and current_value / equity < 0.95 * target.weight
             and difference >= restoration_threshold
         )
+        buy_will_be_planned = bool(
+            difference > 0
+            and not (
+                target.weight != 0
+                and abs(difference) < threshold
+                and not restoration_buy_below_completion
+            )
+        )
+        if buy_will_be_planned:
+            if target.origin_subsystem == OriginSubsystem.UNATTRIBUTED_LEGACY.value:
+                raise RuntimeError(
+                    "unattributed legacy identity cannot originate a production Target BUY"
+                )
+            if not target.event_id:
+                raise RuntimeError(f"new BUY for {target.symbol} requires a canonical event_id")
+            try:
+                validate_attribution_compatibility(
+                    origin_subsystem=target.origin_subsystem,
+                    mechanism=target.mechanism,
+                    side=Side.BUY.value,
+                )
+            except (TypeError, ValueError) as exc:
+                raise RuntimeError(
+                    f"new BUY for {target.symbol} has incompatible attribution: {exc}"
+                ) from exc
+            retained_identity = next(
+                (
+                    order
+                    for order in account.pending_orders
+                    if order.side == Side.BUY.value
+                    and order.symbol == target.symbol
+                    and abs(order.target_weight - target.weight) < cfg.min_trade_weight
+                    and order.lifecycle == target.lifecycle
+                    and order.reduction_policy == target.reduction_policy
+                    and all(
+                        getattr(order, field) == getattr(target, field)
+                        for field in ATTRIBUTION_IDENTITY_FIELDS
+                    )
+                ),
+                None,
+            )
+            identity_signal_date = (
+                retained_identity.signal_date
+                if retained_identity is not None
+                else signal_date
+            )
+            industry = default_ai_universe().industry_of(
+                target.symbol,
+                identity_signal_date,
+            )
+            if industry == "unknown":
+                raise RuntimeError(
+                    f"new BUY for {target.symbol} has no point-in-time AI-universe membership"
+                )
+            if (
+                target.industry_at_entry != industry
+                or target.industry_manifest_sha256 != REQUIRED_AI_UNIVERSE_SHA256
+            ):
+                raise RuntimeError(
+                    f"new BUY for {target.symbol} has invalid point-in-time industry attribution"
+                )
+            try:
+                expected_event_id = derive_attribution_event_id(
+                    signal_date=identity_signal_date,
+                    symbol=target.symbol,
+                    target_weight=(
+                        retained_identity.target_weight
+                        if retained_identity is not None
+                        else target.weight
+                    ),
+                    lifecycle=target.lifecycle,
+                    origin_lifecycle=target.origin_lifecycle,
+                    origin_subsystem=target.origin_subsystem,
+                    mechanism=target.mechanism,
+                    replaces_symbol=target.replaces_symbol,
+                    industry_at_entry=target.industry_at_entry,
+                    industry_manifest_sha256=target.industry_manifest_sha256,
+                    reduction_policy=target.reduction_policy,
+                    reason_code=target.reason_code,
+                    exit_kind=target.exit_kind,
+                )
+            except (TypeError, ValueError) as exc:
+                raise RuntimeError(
+                    f"new BUY for {target.symbol} has malformed attribution identity"
+                ) from exc
+            if target.event_id != expected_event_id:
+                raise RuntimeError("new BUY event_id differs from canonical derivation")
+            if retained_identity is not None:
+                # Count today's still-live intent while carrying the exact
+                # canonical order object. Merge retains it without fabricating
+                # a new signal date, target weight, event, or broker order.
+                planned.append(retained_identity)
+                continue
         if target.weight == 0 and current_value > 0:
             difference = -current_value
         elif abs(difference) < threshold and not restoration_buy_below_completion:
             continue
+        side = Side.BUY.value if difference > 0 else Side.SELL.value
+        try:
+            validate_attribution_compatibility(
+                origin_subsystem=target.origin_subsystem,
+                mechanism=target.mechanism,
+                side=side,
+            )
+        except (TypeError, ValueError) as exc:
+            raise RuntimeError(
+                f"new {side} for {target.symbol} has incompatible attribution: {exc}"
+            ) from exc
         planned.append(
             PendingOrder(
                 signal_date=signal_date,
                 symbol=target.symbol,
-                side=Side.BUY.value if difference > 0 else Side.SELL.value,
+                side=side,
                 target_weight=target.weight,
                 reason=target.reason,
                 lifecycle=target.lifecycle,
@@ -156,6 +268,13 @@ def plan_orders(
                 entry_confidence=target.confidence,
                 entry_regime=account.opportunity,
                 entry_industry_strength=target.entry_industry_strength,
+                event_id=target.event_id,
+                origin_subsystem=target.origin_subsystem,
+                mechanism=target.mechanism,
+                origin_lifecycle=target.origin_lifecycle,
+                replaces_symbol=target.replaces_symbol,
+                industry_at_entry=target.industry_at_entry,
+                industry_manifest_sha256=target.industry_manifest_sha256,
             )
         )
     # Exactly one direction per symbol. Sells execute first at the next open.
@@ -175,6 +294,14 @@ def merge_pending_orders(
     """Keep blocked/partial orders while letting today's target supersede stale intent."""
     target_by_symbol = {target.symbol: target for target in targets}
 
+    def same_attribution(order: PendingOrder, target: Target) -> bool:
+        """Require the complete causal identity, including the stable event."""
+
+        return all(
+            getattr(order, field) == getattr(target, field)
+            for field in ATTRIBUTION_IDENTITY_FIELDS
+        )
+
     def durable_subthreshold_buy(
         order: PendingOrder,
         target: Target | None,
@@ -190,8 +317,7 @@ def merge_pending_orders(
             and target.weight > 1e-12
             and order.lifecycle == target.lifecycle
             and order.reduction_policy == target.reduction_policy
-            and order.reason_code == target.reason_code
-            and order.exit_kind == target.exit_kind
+            and same_attribution(order, target)
             and abs(order.target_weight - target.weight)
             < cfg.min_trade_weight
         )
@@ -207,15 +333,7 @@ def merge_pending_orders(
         same_execution_policy = (
             order.lifecycle == target.lifecycle
             and order.reduction_policy == target.reduction_policy
-            and order.reason_code == target.reason_code
-            and order.exit_kind == target.exit_kind
-        )
-        durable_full_exit = bool(
-            order.side == Side.SELL.value
-            and order.order_id
-            and order.remaining_shares > 0
-            and abs(order.target_weight) <= 1e-12
-            and abs(target.weight) <= 1e-12
+            and same_attribution(order, target)
         )
         durable_partial_risk_exit = bool(
             cfg is not None
@@ -227,9 +345,10 @@ def merge_pending_orders(
             and target.weight > 1e-12
             and target.weight < order.target_weight
             and order.target_weight - target.weight < cfg.min_trade_weight
+            and same_attribution(order, target)
         )
         if (
-            (consistent and (same_execution_policy or durable_full_exit))
+            (consistent and same_execution_policy)
             or durable_partial_risk_exit
             or durable_subthreshold_buy(order, target)
         ):
@@ -251,6 +370,7 @@ def merge_pending_orders(
                 and target.weight > 1e-12
                 and target.weight < existing.target_weight
                 and existing.target_weight - target.weight < cfg.min_trade_weight
+                and same_attribution(existing, target)
             )
             if durable_partial_risk_exit:
                 continue
@@ -258,23 +378,15 @@ def merge_pending_orders(
             existing is not None
             and existing.side == order.side
             and abs(existing.target_weight - order.target_weight) <= 1e-12
-            and (
-                (
-                    existing.lifecycle == order.lifecycle
-                    and existing.reduction_policy == order.reduction_policy
-                    and existing.reason_code == order.reason_code
-                    and existing.exit_kind == order.exit_kind
-                )
-                or (
-                    existing.side == Side.SELL.value
-                    and abs(existing.target_weight) <= 1e-12
-                    and abs(order.target_weight) <= 1e-12
-                )
+            and existing.lifecycle == order.lifecycle
+            and existing.reduction_policy == order.reduction_policy
+            and all(
+                getattr(existing, field) == getattr(order, field)
+                for field in ATTRIBUTION_IDENTITY_FIELDS
             )
         ):
-            # An unchanged GTC instruction remains one broker order.  A full
-            # exit is also already maximally conservative, so a later change
-            # in attribution cannot justify replacing its immutable intent.
+            # An unchanged GTC instruction remains one broker order. Display
+            # prose/reason codes cannot split a causal event.
             continue
         merged[order.symbol] = order
     return tuple(sorted(merged.values(), key=lambda item: (item.side != Side.SELL.value, item.symbol)))
@@ -287,6 +399,8 @@ def _register_account_order(
     submitted_date: str,
 ) -> AccountOrder:
     """Reuse a matching ledger order or allocate a stable new order identifier."""
+
+    validate_pending_order_for_account_write(account, order)
 
     if order.order_id:
         existing = next(
@@ -332,6 +446,13 @@ def _register_account_order(
         entry_confidence=order.entry_confidence,
         entry_regime=order.entry_regime,
         entry_industry_strength=order.entry_industry_strength,
+        event_id=order.event_id,
+        origin_subsystem=order.origin_subsystem,
+        mechanism=order.mechanism,
+        origin_lifecycle=order.origin_lifecycle,
+        replaces_symbol=order.replaces_symbol,
+        industry_at_entry=order.industry_at_entry,
+        industry_manifest_sha256=order.industry_manifest_sha256,
     )
     account.order_ledger.append(entry)
     return entry
@@ -342,7 +463,7 @@ def _active_order_status(order: AccountOrder) -> str:
     return str(OrderStatus.PARTIALLY_FILLED.value if order.filled_shares > 0 else OrderStatus.OPEN.value)
 
 
-def reconcile_account_orders(
+def _reconcile_account_orders_mutating(
     *,
     account: AccountState,
     previous: list[PendingOrder],
@@ -378,6 +499,77 @@ def reconcile_account_orders(
         entry.cancel_reason = "daily target changed" if replacement is not None else "daily target removed"
         entry.last_update_date = submitted_date
         entry.last_event = entry.status
+    return current
+
+
+def _preflight_reconciliation_batch(
+    *,
+    previous: list[PendingOrder],
+    current: tuple[PendingOrder, ...],
+) -> None:
+    """Reject active-order cardinality ambiguity before shadow reconciliation."""
+
+    def unique_orders(
+        orders: list[PendingOrder] | tuple[PendingOrder, ...],
+        *,
+        batch: str,
+    ) -> dict[str, PendingOrder]:
+        seen_symbols: set[str] = set()
+        seen_ids: dict[str, PendingOrder] = {}
+        for order in orders:
+            if order.symbol in seen_symbols:
+                raise RuntimeError(f"duplicate {batch} symbol {order.symbol}")
+            seen_symbols.add(order.symbol)
+            if order.order_id:
+                if order.order_id in seen_ids:
+                    raise RuntimeError(f"duplicate {batch} order_id {order.order_id}")
+                seen_ids[order.order_id] = order
+        return seen_ids
+
+    previous_by_id = unique_orders(previous, batch="previous")
+    current_by_id = unique_orders(current, batch="current")
+    for order_id in sorted(previous_by_id.keys() & current_by_id.keys()):
+        if order_intent_metadata(previous_by_id[order_id]) != order_intent_metadata(
+            current_by_id[order_id]
+        ):
+            raise RuntimeError(f"conflicting previous/current order_id {order_id}")
+
+
+def reconcile_account_orders(
+    *,
+    account: AccountState,
+    previous: list[PendingOrder],
+    current: tuple[PendingOrder, ...],
+    submitted_date: str,
+) -> tuple[PendingOrder, ...]:
+    """Reconcile one all-or-nothing batch against a shadow ledger."""
+
+    _preflight_reconciliation_batch(previous=previous, current=current)
+    shadow_account = deepcopy(account)
+    shadow_previous, shadow_current = deepcopy((previous, current))
+    _reconcile_account_orders_mutating(
+        account=shadow_account,
+        previous=shadow_previous,
+        current=shadow_current,
+        submitted_date=submitted_date,
+    )
+
+    original_ledger = {order.order_id: order for order in account.order_ledger}
+    committed_ledger: list[AccountOrder] = []
+    for shadow_order in shadow_account.order_ledger:
+        original_order = original_ledger.get(shadow_order.order_id)
+        if original_order is None:
+            committed_ledger.append(shadow_order)
+            continue
+        for field in fields(AccountOrder):
+            setattr(original_order, field.name, getattr(shadow_order, field.name))
+        committed_ledger.append(original_order)
+    account.order_ledger = committed_ledger
+    account.next_order_sequence = shadow_account.next_order_sequence
+    for original, shadow in zip(previous, shadow_previous, strict=True):
+        original.order_id = shadow.order_id
+    for original, shadow in zip(current, shadow_current, strict=True):
+        original.order_id = shadow.order_id
     return current
 
 
@@ -463,6 +655,13 @@ def _consume_sell_tranches(
                 "entry_confidence": tranche.entry_confidence,
                 "entry_regime": tranche.entry_regime,
                 "entry_industry_strength": tranche.entry_industry_strength,
+                "event_id": tranche.event_id,
+                "origin_subsystem": tranche.origin_subsystem,
+                "mechanism": tranche.mechanism,
+                "origin_lifecycle": tranche.origin_lifecycle,
+                "replaces_symbol": tranche.replaces_symbol,
+                "industry_at_entry": tranche.industry_at_entry,
+                "industry_manifest_sha256": tranche.industry_manifest_sha256,
             }
         )
         tranche.shares -= sold
@@ -722,6 +921,13 @@ class ExecutionPlanner:
                         entry_confidence=order.entry_confidence,
                         entry_regime=order.entry_regime,
                         entry_industry_strength=order.entry_industry_strength,
+                        event_id=order.event_id,
+                        origin_subsystem=order.origin_subsystem,
+                        mechanism=order.mechanism,
+                        origin_lifecycle=order.origin_lifecycle,
+                        replaces_symbol=order.replaces_symbol,
+                        industry_at_entry=order.industry_at_entry,
+                        industry_manifest_sha256=order.industry_manifest_sha256,
                     )
                 )
                 account.positions[order.symbol] = current
@@ -764,6 +970,13 @@ class ExecutionPlanner:
                 reason_code=order.reason_code,
                 exit_kind=order.exit_kind,
                 sold_tranches=sold_tranches,
+                event_id=order.event_id,
+                origin_subsystem=order.origin_subsystem,
+                mechanism=order.mechanism,
+                origin_lifecycle=order.origin_lifecycle,
+                replaces_symbol=order.replaces_symbol,
+                industry_at_entry=order.industry_at_entry,
+                industry_manifest_sha256=order.industry_manifest_sha256,
             )
             account.fills.append(fill)
             fills.append(fill)

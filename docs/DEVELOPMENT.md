@@ -3,6 +3,8 @@
 ## 环境
 
 项目只支持 Python 3.12；本地开发、CI、绩效复现和证据生成必须使用同一 3.12 锁定环境。
+产品仍是 2023+ A 股 AI 产业链的人工日频决策辅助；更早行情只作特征 warm-up，
+开发工具不得把研究输出接入人工账户或下单路径。
 
 ```bash
 python -m pip install uv
@@ -54,6 +56,20 @@ Git 忽略；发布证据必须由 checkout 后的命令重建，不能提交一
 
 分支覆盖率门槛为 85%。任何命令失败都应单独处理，不能由另一项成功抵消。
 
+### 独立 CI 结论
+
+每个 PR 和 `main` push 必须得到以下三个稳定结果：
+
+| 必需结论 | 组成 |
+|---|---|
+| `Engineering` | `quality` 与 `security` 都成功后才成功；summary 总是运行 |
+| `Phase 1 Performance` | 未删减的 `promotion --profile full`、精确 HEAD 与完整 provenance |
+| `Phase 2 Generalization` | 六个官方窗口分片全部完成后的 234-record policy/evidence 聚合 |
+
+不得为必需结论添加 path filter、`continue-on-error`、失败转成功或可取消矩阵。失败
+分片也必须上传 JSON；`if: always()` aggregator 下载精确六件 artifact，拒绝缺失、
+额外、旧 HEAD、来源/配置/数据/runtime/universe/industry 身份漂移及任何 policy 失败。
+
 ## 测试放置
 
 | 改动 | 至少需要的测试 |
@@ -86,9 +102,9 @@ Git 忽略；发布证据必须由 checkout 后的命令重建，不能提交一
 3. 做最小改动；
 4. 运行相关单元测试；
 5. 运行静态检查和完整测试；
-6. 运行唯一阻断发布的 full AI-era 绩效门；
-7. 在六个官方 2023+ 时间区间和证券池检查稳定性；
-8. 审查配置、代码、日报和文档是否一致。
+6. 运行不可拆分的 full AI-era Phase 1 绩效门；
+7. 运行六个固定 2023+ 窗口的 Phase 2 Generalization 门，不改变种子、池或样本失败；
+8. 审查配置、代码、日报、归因和文档是否一致。
 
 参数搜索只能生成候选，不能自动写入生产默认值。最终选择必须有独立验证证据。
 
@@ -134,6 +150,7 @@ git status --short
 - 没有修改冻结数据或基线；
 - 没有放宽测试、覆盖率或验证条件；
 - 没有把 2023 年以前的 warm-up 行计入经济指标或发布门槛；
+- 没有改变 canonical 34-stock AI universe、固定随机池、attribution 或 holdout 合约；
 - 文档和代码使用一致术语；
 - 新公共接口有清晰契约；
 - 完整质量门有本次运行证据。

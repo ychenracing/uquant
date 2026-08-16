@@ -1,0 +1,422 @@
+{
+  "schema_version": 1,
+  "contract_id": "uquant-config-governance-v1",
+  "baseline_commit": "e71c3f6cf42244f71e59458ec15375b92ed4da1f",
+  "counts": {
+    "before": {"total_fields": 285, "economic_fields": 164},
+    "after": {"total_fields": 278, "economic_fields": 164},
+    "current": {"total_fields": 275, "economic_fields": 164}
+  },
+  "config_migration": {
+    "champion_config_sha256": "023d709731196a325d9cd03e95ece92e4baf63d2c5c66bb9f7d0e7a190e7bf20",
+    "candidate_config_sha256": "ed52da44a359c1506e1d299f7bc341ad01b199d7f96997f7c01f2b8eca7cfc13"
+  },
+  "categories": {
+    "MARKET_RULE": [
+      {
+        "owner": "ACCOUNTING",
+        "rationale": "Fixes the capital basis used by live accounting and every comparable replay; changing it would change market-lot economics rather than strategy selection.",
+        "fields": ["initial_cash"]
+      },
+      {
+        "owner": "EXECUTION",
+        "rationale": "Models externally constrained A-share fees, liquidity, and executable-order rules and therefore is not candidate-search freedom.",
+        "fields": [
+          "commission_rate",
+          "min_commission",
+          "stamp_duty",
+          "transfer_fee",
+          "slippage",
+          "max_volume_participation",
+          "minimum_median_amount",
+          "min_trade_value"
+        ]
+      }
+    ],
+    "SAFETY": [
+      {
+        "owner": "PORTFOLIO",
+        "rationale": "Enforces non-negotiable portfolio concentration, gross-exposure, position-count, and minimum-action safety boundaries.",
+        "fields": [
+          "max_gross",
+          "max_symbol_weight",
+          "max_positions",
+          "min_trade_weight",
+          "restoration_min_trade_weight",
+          "protected_restore_min_trade_weight"
+        ]
+      },
+      {
+        "owner": "STRATEGIC",
+        "rationale": "Bounds strategic-cohort loss containment and post-damage exposure; candidate search must not optimize away these protections.",
+        "fields": [
+          "strategic_cohort_disaster_stop",
+          "strategic_cohort_tail_line",
+          "strategic_cohort_tail_confirm_days",
+          "strategic_cohort_guard_days",
+          "strategic_damage_guard_dd",
+          "strategic_damage_guard_transition",
+          "strategic_damage_guard_gross",
+          "strategic_guard_level2_cap"
+        ]
+      },
+      {
+        "owner": "RISK",
+        "rationale": "Defines production risk detection, confirmation, recovery, drawdown ladders, and exposure caps; weakening these controls is outside economic search.",
+        "fields": [
+          "recovery_cohort_tail_guard_days",
+          "recovery_cohort_tail_line",
+          "caution_confirm_days",
+          "risk_off_confirm_days",
+          "crisis_confirm_days",
+          "recovery_risk_confirm_days",
+          "fast_v_recovery_confirm_days",
+          "fast_v_recovery_return",
+          "fast_v_recovery_index_return",
+          "fast_v_recovery_breadth",
+          "fast_v_recovery_below_ma20",
+          "fast_v_recovery_gross",
+          "risk_fast_return",
+          "risk_breadth",
+          "risk_below_ma20",
+          "risk_correlation",
+          "risk_volatility_ratio",
+          "dynamic_risk_anchors_enabled",
+          "risk_anchor_count",
+          "risk_anchor_min_groups",
+          "risk_anchor_confirm_days",
+          "risk_anchor_min_secular_score",
+          "risk_breadth_name_weight",
+          "transition_damage_freeze",
+          "transition_damage_repair",
+          "chronic_overlay_enabled",
+          "chronic_confirm_days",
+          "chronic_repair_days",
+          "chronic_moderate_cap",
+          "chronic_severe_cap",
+          "operating_dd_caution",
+          "capital_dd_risk_off",
+          "capital_dd_crisis",
+          "capital_budget_ladder_enabled",
+          "capital_budget_new_cohort_grace_days",
+          "capital_budget_emerging_cohort_grace_days",
+          "capital_budget_level2_dd",
+          "capital_budget_level2_cap",
+          "capital_budget_level3_dd",
+          "capital_budget_level3_cap",
+          "capital_budget_repair_days",
+          "capital_guard_relapse_dd",
+          "capital_guard_min_recovery_days",
+          "capital_guard_cooldown_days",
+          "concentrated_break_dd",
+          "concentrated_break_ratio",
+          "concentrated_break_confirm_days",
+          "portfolio_break_dd",
+          "portfolio_break_votes",
+          "incomplete_universe_tail_dd",
+          "unbacked_universe_tail_dd",
+          "unbacked_recovery_anchor_min_days",
+          "incomplete_universe_crisis_gross",
+          "incomplete_universe_rearm_days",
+          "concentrated_crisis_gross",
+          "severe_crisis_gross",
+          "market_crisis_gross",
+          "concentrated_repair_days",
+          "severe_shock_ret5",
+          "severe_shock_wait_days",
+          "persistent_v_recovery_wait_days",
+          "severe_recovery_gross",
+          "concentrated_recovery_gross",
+          "shock_rearm_days",
+          "risk_off_gross",
+          "narrow_anchor_guard_gross",
+          "narrow_anchor_divergence",
+          "risk_overlay_enabled",
+          "fail_closed"
+        ]
+      },
+      {
+        "owner": "SECTOR_RISK",
+        "rationale": "Defines held-sector shock detection, confirmation, containment, and repair policy and is fixed safety policy rather than an objective-search dimension.",
+        "fields": [
+          "sector_guard_enabled",
+          "sector_guard_min_symbols",
+          "sector_shock_return",
+          "sector_shock_breadth",
+          "sector_weighted_shock_return",
+          "sector_weighted_negative_exposure",
+          "sector_shock_window",
+          "sector_shock_confirmations",
+          "sector_guard_divergence",
+          "sector_guard_gross",
+          "sector_guard_min_sessions",
+          "sector_recovery_ma",
+          "sector_recovery_return",
+          "sector_recovery_breadth",
+          "sector_recovery_confirmations"
+        ]
+      }
+    ],
+    "ECONOMIC": [
+      {
+        "owner": "FEATURES",
+        "rationale": "Controls causal feature horizons and minimum observable history used to form investable signals, so it is reviewable economic model freedom.",
+        "fields": [
+          "min_history",
+          "emerging_min_history",
+          "trend_fast",
+          "trend_medium",
+          "trend_slow",
+          "breakout_window",
+          "atr_window",
+          "correlation_window"
+        ]
+      },
+      {
+        "owner": "LEADER_SELECTION",
+        "rationale": "Controls causal leader eligibility, confidence, tenure, cluster scoring, and industry-rotation selection and is directly attributable economic behavior.",
+        "fields": [
+          "leader_mature_score",
+          "leader_emerging_score",
+          "leader_min_confidence",
+          "leader_tenure_days",
+          "emerging_tenure_days",
+          "industry_signal_min_members",
+          "industry_rotation_min_score",
+          "industry_rotation_min_confidence",
+          "stable_reference_global_weight",
+          "unknown_industry_confidence",
+          "regime_factor_blend_enabled"
+        ]
+      },
+      {
+        "owner": "PORTFOLIO",
+        "rationale": "Controls economically attributable leader admission, rotation, sizing, pyramiding, diversification, and scout behavior within fixed hard limits.",
+        "fields": [
+          "emerging_expiry_days",
+          "replacement_edge",
+          "replacement_confirm_days",
+          "replacement_transfer_cap",
+          "min_hold_days",
+          "max_rotations_20d",
+          "add1_min_mfe",
+          "add2_min_mfe",
+          "add_tranche_cooldown_sessions",
+          "add_index_chase_ret5",
+          "add1_weight",
+          "add2_weight",
+          "trend_entry_gross",
+          "single_core_entry_cap",
+          "core_admission_weight",
+          "trend_target_gross",
+          "choppy_target_gross",
+          "max_satellites",
+          "industry_weight_cap",
+          "industry_duplicate_penalty",
+          "strong_cluster_penalty",
+          "strong_cluster_min_score",
+          "strong_cluster_max_gap",
+          "correlation_admission_penalty",
+          "industry_rotation_enabled",
+          "industry_rotation_edge",
+          "industry_rotation_deterioration",
+          "industry_rotation_breadth",
+          "dynamic_k_confirm_days",
+          "dynamic_k_expand_interval",
+          "dynamic_k_change_interval",
+          "unknown_industry_weight_cap",
+          "weak_gross",
+          "strong_trend_gross",
+          "confidence_sizing_enabled",
+          "high_confidence_entry_gross",
+          "exceptional_entry_gross",
+          "high_confidence_entry_score",
+          "high_confidence_entry_breadth",
+          "high_confidence_entry_vol20",
+          "conviction_weighting_enabled",
+          "challenger_scout_enabled",
+          "challenger_scout_weight",
+          "challenger_scout_confirm_days",
+          "challenger_scout_score_edge",
+          "challenger_scout_incumbent_hysteresis"
+        ]
+      },
+      {
+        "owner": "RECOVERY",
+        "rationale": "Controls attributable recovery membership, substitution, rebound, sizing, retention, and profit realization while safety caps remain fixed.",
+        "fields": [
+          "recovery_cohort_graduation_days",
+          "recovery_cohort_weak_graduation_days",
+          "recovery_cohort_weak_market_ret120",
+          "recovery_weak_market_min_index_ret60",
+          "recovery_reserve_min_score",
+          "recovery_reserve_min_ret60",
+          "recovery_reserve_min_ret120",
+          "recovery_substitution_edge",
+          "recovery_substitution_max_ret20",
+          "recovery_substitution_shock_window",
+          "recovery_target_gross",
+          "recovery_expansive_universe_gross",
+          "recovery_conviction_weighting_enabled",
+          "recovery_conviction_retention_bonus",
+          "recovery_add_window_days",
+          "recovery_member_confirm_days",
+          "recovery_winner_mfe_arm",
+          "recovery_winner_trail",
+          "recovery_transition_weak_leg_ret120",
+          "recovery_transition_strong_leg_max_ret120",
+          "recovery_transition_min_divergence",
+          "one_anchor_gross_cap",
+          "two_anchor_gross_cap",
+          "tactical_rebound_weight",
+          "tactical_probe_weight",
+          "tactical_rebound_max_ret20",
+          "tactical_rebound_breadth_max_ret20",
+          "tactical_rebound_min_industries",
+          "tactical_rebound_oversold_max_ret5",
+          "tactical_rebound_min_ret60",
+          "tactical_rebound_oversold_min_ret60",
+          "tactical_rebound_max_ret120",
+          "tactical_overheat_cooldown_days",
+          "tactical_rebound_take_profit",
+          "tactical_frozen_take_profit",
+          "tactical_rebound_cooldown_days"
+        ]
+      },
+      {
+        "owner": "OPPORTUNITY",
+        "rationale": "Controls the causal opportunity-state recovery detector and is an attributable economic signal decision.",
+        "fields": [
+          "recovery_crash_drawdown",
+          "recovery_crash_lookback",
+          "recovery_stabilize_days",
+          "recovery_breadth_min",
+          "recovery_confirm_days"
+        ]
+      },
+      {
+        "owner": "STRATEGIC",
+        "rationale": "Controls attributable strategic-cohort discovery, confirmation, transition, dominance, sizing, and profit-taking behavior within immutable safety controls.",
+        "fields": [
+          "leader_cycle_confirm_days",
+          "leader_cycle_min_mature",
+          "leader_cycle_min_score",
+          "leader_cycle_impulse_return",
+          "leader_cycle_impulse_index_return",
+          "leader_cycle_impulse_breadth",
+          "leader_cycle_min_market_ret120",
+          "leader_cycle_impulse_min_market_ret120",
+          "strategic_dynamic_enabled",
+          "strategic_cohort_size",
+          "strategic_cohort_min_size",
+          "strategic_two_name_gross",
+          "strategic_one_name_gross",
+          "strategic_two_name_min_score",
+          "strategic_one_name_min_score",
+          "strategic_one_name_min_secular_score",
+          "strategic_two_name_confirm_days",
+          "strategic_one_name_confirm_days",
+          "strategic_secular_min_score",
+          "strategic_secular_min_confidence",
+          "strategic_cohort_min_ret240",
+          "strategic_persistent_max_ret120",
+          "strategic_established_min_median_ret240",
+          "strategic_reversal_max_ret240",
+          "strategic_reversal_min_ret5",
+          "strategic_reversal_min_median_ret20",
+          "strategic_reversal_max_tech_ret120",
+          "strategic_epoch_cooldown_sessions",
+          "strategic_epoch_min_symbol_change",
+          "strategic_long_cycle_min_ret20",
+          "strategic_long_cycle_min_ret60",
+          "strategic_long_cycle_min_ret120",
+          "strategic_current_factor_floor",
+          "strategic_transition_min_score",
+          "strategic_transition_min_component",
+          "strategic_transition_impulse_min_history",
+          "strategic_transition_impulse_min_score",
+          "strategic_transition_impulse_min_leader_score",
+          "strategic_transition_impulse_min_secular_score",
+          "strategic_transition_impulse_min_secular_confidence",
+          "strategic_transition_impulse_min_ret20",
+          "strategic_transition_impulse_min_ret60",
+          "strategic_transition_impulse_min_ret120",
+          "strategic_transition_impulse_max_ret120",
+          "strategic_transition_impulse_min_market_ret20",
+          "strategic_long_cycle_max_tech_ret120",
+          "strategic_cohort_confirm_days",
+          "strategic_cohort_profit_arm",
+          "strategic_dominant_max_weight",
+          "strategic_dominant_min_leader_gap",
+          "strategic_dominant_profit_lock_mfe",
+          "strategic_dominant_retained_gross",
+          "strategic_cohort_trail_atr",
+          "strategic_cohort_trail_spacing",
+          "strategic_cohort_trail_bands",
+          "strategic_cohort_exit_step",
+          "strategic_gradual_post_guard_exit_step",
+          "strategic_post_guard_exit_step"
+        ]
+      }
+    ],
+    "DERIVED": [],
+    "COMPATIBILITY": [
+      {
+        "owner": "CONTROL_PLANE",
+        "rationale": "Retains an explicitly gated alternative production path for backward comparison; it is not eligible for candidate optimization without separate causal equivalence and review.",
+        "fields": [
+          "hierarchical_industry_shrinkage_enabled",
+          "group_balanced_reference_enabled",
+          "same_day_leader_pipeline_enabled",
+          "evidence_family_voting_enabled"
+        ]
+      }
+    ]
+  },
+  "removal_plan": [
+    {
+      "field": "strategic_cohort_symbols",
+      "category": "COMPATIBILITY",
+      "owner": "STRATEGIC",
+      "rationale": "The SystemConfig tuple is never read by production; live strategic membership is separately owned and serialized by AccountState."
+    },
+    {
+      "field": "strategic_partial_universe_max_size",
+      "category": "COMPATIBILITY",
+      "owner": "STRATEGIC",
+      "rationale": "The legacy universe-size threshold has no production, state, or serialization consumer."
+    },
+    {
+      "field": "adaptive_broad_universe_min_size",
+      "category": "COMPATIBILITY",
+      "owner": "STRATEGIC",
+      "rationale": "The legacy broad-universe threshold has no production, state, or serialization consumer."
+    },
+    {
+      "field": "adaptive_broad_universe_compatibility_enabled",
+      "category": "COMPATIBILITY",
+      "owner": "CONTROL_PLANE",
+      "rationale": "The false compatibility switch is not consulted by universe configuration selection or any production decision path."
+    },
+    {
+      "field": "strategic_expansive_universe_min_size",
+      "category": "COMPATIBILITY",
+      "owner": "STRATEGIC",
+      "rationale": "The abandoned expansive-universe threshold has no production, state, or serialization consumer."
+    },
+    {
+      "field": "strategic_persistent_confirm_days",
+      "category": "COMPATIBILITY",
+      "owner": "STRATEGIC",
+      "rationale": "The persistent-route confirmation slot is validated but never read by the production route or durable state."
+    },
+    {
+      "field": "strategic_reversal_confirm_days",
+      "category": "COMPATIBILITY",
+      "owner": "STRATEGIC",
+      "rationale": "The reversal-route confirmation slot is validated but never read by the production route or durable state."
+    }
+  ],
+  "removed_fields": ["strategic_cohort_symbols", "strategic_partial_universe_max_size", "adaptive_broad_universe_min_size", "adaptive_broad_universe_compatibility_enabled", "strategic_expansive_universe_min_size", "strategic_persistent_confirm_days", "strategic_reversal_confirm_days"],
+  "artifact_sha256": "58d7fd95900e1ce3d41b84523445964641374d25938eaf4c8fe9a4871ce9bd76"
+}

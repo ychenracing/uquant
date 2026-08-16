@@ -12,6 +12,12 @@ import pandas as pd
 from .config import SystemConfig
 from .features import scalar
 from .industry import compute_industry_signals
+from .validation.universe import default_ai_universe
+
+
+def production_reference_symbols() -> tuple[str, ...]:
+    """Return the production reference membership from the canonical PIT manifest."""
+    return default_ai_universe().symbols
 
 
 @dataclass(frozen=True, slots=True)

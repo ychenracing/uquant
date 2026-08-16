@@ -2,11 +2,17 @@
 
 from __future__ import annotations
 
+import hashlib
+import json
+import math
 from dataclasses import asdict, dataclass, field
+from datetime import date as date_type
 from enum import Enum
-from typing import Any
+from typing import Any, TypedDict
 
-ACCOUNT_SCHEMA_VERSION = 3
+from .config import canonical_control_float
+
+ACCOUNT_SCHEMA_VERSION = 5
 
 
 class Opportunity(str, Enum):
@@ -38,11 +44,120 @@ class Lifecycle(str, Enum):
     RECOVERY = "RECOVERY"
 
 
+class OriginSubsystem(str, Enum):
+    """Closed causal owners for attribution-bearing economic events."""
+
+    LEADER = "LEADER"
+    RECOVERY = "RECOVERY"
+    STRATEGIC = "STRATEGIC"
+    RISK = "RISK"
+    BROKER_RECONCILIATION = "BROKER_RECONCILIATION"
+    LEGACY_MIGRATION = "LEGACY_MIGRATION"
+    UNATTRIBUTED_LEGACY = "UNATTRIBUTED_LEGACY"
+
+
+class AttributionMechanism(str, Enum):
+    """Closed registry of causal mechanisms that may create economic events."""
+
+    LEADER_SELECTION = "LEADER_SELECTION"
+    LEADER_ROTATION = "LEADER_ROTATION"
+    LEADER_LIFECYCLE_EXIT = "LEADER_LIFECYCLE_EXIT"
+    LEADER_LIFECYCLE_PROMOTION = "LEADER_LIFECYCLE_PROMOTION"
+    LEADER_PYRAMID = "LEADER_PYRAMID"
+    CHALLENGER_SCOUT = "CHALLENGER_SCOUT"
+    SATELLITE_EXPIRY = "SATELLITE_EXPIRY"
+    RECOVERY_COHORT = "RECOVERY_COHORT"
+    RECOVERY_SUBSTITUTION = "RECOVERY_SUBSTITUTION"
+    RECOVERY_CAP = "RECOVERY_CAP"
+    RECOVERY_REARM = "RECOVERY_REARM"
+    TACTICAL_REBOUND = "TACTICAL_REBOUND"
+    POST_SHOCK_RESTORATION = "POST_SHOCK_RESTORATION"
+    STRATEGIC_COHORT = "STRATEGIC_COHORT"
+    STRATEGIC_TRAILING_EXIT = "STRATEGIC_TRAILING_EXIT"
+    STRATEGIC_PROFIT_LOCK = "STRATEGIC_PROFIT_LOCK"
+    STRATEGIC_RESTORATION = "STRATEGIC_RESTORATION"
+    RISK_GROSS_CAP = "RISK_GROSS_CAP"
+    SECTOR_GUARD = "SECTOR_GUARD"
+    STRATEGIC_DAMAGE_GUARD = "STRATEGIC_DAMAGE_GUARD"
+    RISK_OFF = "RISK_OFF"
+    CRISIS = "CRISIS"
+    CAPITAL_BUDGET = "CAPITAL_BUDGET"
+    RISK_FREEZE = "RISK_FREEZE"
+    BROKER_RECONCILIATION = "BROKER_RECONCILIATION"
+    LEGACY_MIGRATION = "LEGACY_MIGRATION"
+    LEGACY_UNCLASSIFIED = "LEGACY_UNCLASSIFIED"
+
+
 class Side(str, Enum):
     """Supported cash-equity order directions."""
 
     BUY = "BUY"
     SELL = "SELL"
+
+
+_ATTRIBUTION_COMPATIBILITY: dict[
+    tuple[OriginSubsystem, AttributionMechanism],
+    frozenset[Side],
+] = {
+    (OriginSubsystem.LEADER, AttributionMechanism.LEADER_SELECTION): frozenset(Side),
+    (OriginSubsystem.LEADER, AttributionMechanism.LEADER_ROTATION): frozenset(Side),
+    (OriginSubsystem.LEADER, AttributionMechanism.LEADER_LIFECYCLE_EXIT): frozenset({Side.SELL}),
+    (OriginSubsystem.LEADER, AttributionMechanism.LEADER_LIFECYCLE_PROMOTION): frozenset(),
+    (OriginSubsystem.LEADER, AttributionMechanism.LEADER_PYRAMID): frozenset({Side.BUY}),
+    (OriginSubsystem.LEADER, AttributionMechanism.CHALLENGER_SCOUT): frozenset({Side.BUY}),
+    (OriginSubsystem.LEADER, AttributionMechanism.SATELLITE_EXPIRY): frozenset({Side.SELL}),
+    (OriginSubsystem.RECOVERY, AttributionMechanism.RECOVERY_COHORT): frozenset(Side),
+    (OriginSubsystem.RECOVERY, AttributionMechanism.RECOVERY_SUBSTITUTION): frozenset(Side),
+    (OriginSubsystem.RECOVERY, AttributionMechanism.RECOVERY_CAP): frozenset(Side),
+    (OriginSubsystem.RECOVERY, AttributionMechanism.RECOVERY_REARM): frozenset({Side.BUY}),
+    (OriginSubsystem.RECOVERY, AttributionMechanism.TACTICAL_REBOUND): frozenset(Side),
+    (OriginSubsystem.RECOVERY, AttributionMechanism.POST_SHOCK_RESTORATION): frozenset({Side.BUY}),
+    (OriginSubsystem.STRATEGIC, AttributionMechanism.STRATEGIC_COHORT): frozenset(Side),
+    (OriginSubsystem.STRATEGIC, AttributionMechanism.STRATEGIC_TRAILING_EXIT): frozenset({Side.SELL}),
+    (OriginSubsystem.STRATEGIC, AttributionMechanism.STRATEGIC_PROFIT_LOCK): frozenset({Side.SELL}),
+    (OriginSubsystem.STRATEGIC, AttributionMechanism.STRATEGIC_RESTORATION): frozenset({Side.BUY}),
+    (OriginSubsystem.RISK, AttributionMechanism.RISK_GROSS_CAP): frozenset({Side.SELL}),
+    (OriginSubsystem.RISK, AttributionMechanism.SECTOR_GUARD): frozenset({Side.SELL}),
+    (OriginSubsystem.RISK, AttributionMechanism.STRATEGIC_DAMAGE_GUARD): frozenset({Side.SELL}),
+    (OriginSubsystem.RISK, AttributionMechanism.RISK_OFF): frozenset({Side.SELL}),
+    (OriginSubsystem.RISK, AttributionMechanism.CRISIS): frozenset({Side.SELL}),
+    (OriginSubsystem.RISK, AttributionMechanism.CAPITAL_BUDGET): frozenset({Side.SELL}),
+    (OriginSubsystem.RISK, AttributionMechanism.RISK_FREEZE): frozenset(),
+    (
+        OriginSubsystem.BROKER_RECONCILIATION,
+        AttributionMechanism.BROKER_RECONCILIATION,
+    ): frozenset({Side.SELL}),
+    (OriginSubsystem.LEGACY_MIGRATION, AttributionMechanism.LEGACY_MIGRATION): frozenset({Side.SELL}),
+    (
+        OriginSubsystem.UNATTRIBUTED_LEGACY,
+        AttributionMechanism.LEGACY_UNCLASSIFIED,
+    ): frozenset({Side.BUY}),
+}
+
+
+def validate_attribution_compatibility(
+    *,
+    origin_subsystem: str,
+    mechanism: str,
+    side: str | None = None,
+) -> None:
+    """Validate the one authoritative origin/mechanism/side registry."""
+
+    origin = OriginSubsystem(origin_subsystem)
+    causal_mechanism = AttributionMechanism(mechanism)
+    allowed_sides = _ATTRIBUTION_COMPATIBILITY.get((origin, causal_mechanism))
+    if allowed_sides is None:
+        raise ValueError(
+            f"attribution pair {origin.value}/{causal_mechanism.value} is not registered"
+        )
+    if side is None:
+        return
+    direction = Side(side)
+    if direction not in allowed_sides:
+        raise ValueError(
+            f"attribution pair {origin.value}/{causal_mechanism.value} "
+            f"is not permitted for {direction.value}"
+        )
 
 
 class OrderStatus(str, Enum):
@@ -68,6 +183,102 @@ class ReductionPolicy(str, Enum):
     RISK_PRIORITY = "RISK_PRIORITY"
 
 
+class AttributionIdentity(TypedDict):
+    """Canonical metadata copied without reinterpretation between domain objects."""
+
+    event_id: str
+    origin_subsystem: str
+    mechanism: str
+    origin_lifecycle: str
+    replaces_symbol: str | None
+    industry_at_entry: str
+    industry_manifest_sha256: str
+
+
+def derive_attribution_event_id(
+    *,
+    signal_date: str,
+    symbol: str,
+    target_weight: float,
+    lifecycle: str,
+    origin_lifecycle: str,
+    origin_subsystem: str,
+    mechanism: str,
+    replaces_symbol: str | None,
+    industry_at_entry: str,
+    industry_manifest_sha256: str,
+    reduction_policy: str,
+    reason_code: str,
+    exit_kind: str,
+) -> str:
+    """Derive one replay-stable attribution identity from canonical intent.
+
+    The v2 payload deliberately excludes prose, wall-clock state, process
+    hashes, UUIDs, broker fill timing, and mutable account order sequencing.
+    IEEE-754 hexadecimal weight encoding avoids locale or decimal-rendering
+    ambiguity while symbol, weight, mechanism, and replacement dimensions
+    prevent same-session economic intents from sharing an identity.
+    """
+
+    try:
+        date_type.fromisoformat(signal_date)
+    except (TypeError, ValueError) as exc:
+        raise ValueError("attribution signal_date must be an ISO date") from exc
+    if not isinstance(symbol, str) or not symbol:
+        raise ValueError("attribution symbol must be non-empty text")
+    if not isinstance(target_weight, (int, float)) or isinstance(target_weight, bool):
+        raise ValueError("attribution target_weight must be finite")
+    weight = float(target_weight)
+    if not math.isfinite(weight) or not 0.0 <= weight <= 1.0:
+        raise ValueError("attribution target_weight must be between zero and one")
+    Lifecycle(lifecycle)
+    Lifecycle(origin_lifecycle)
+    OriginSubsystem(origin_subsystem)
+    AttributionMechanism(mechanism)
+    validate_attribution_compatibility(
+        origin_subsystem=origin_subsystem,
+        mechanism=mechanism,
+    )
+    ReductionPolicy(reduction_policy)
+    if replaces_symbol is not None and (
+        not isinstance(replaces_symbol, str) or not replaces_symbol
+    ):
+        raise ValueError("attribution replacement symbol must be non-empty text")
+    if not isinstance(industry_at_entry, str) or not industry_at_entry:
+        raise ValueError("attribution industry_at_entry must be non-empty text")
+    if (
+        not isinstance(industry_manifest_sha256, str)
+        or len(industry_manifest_sha256) != 64
+        or any(character not in "0123456789abcdef" for character in industry_manifest_sha256)
+    ):
+        raise ValueError("attribution industry manifest must be SHA-256")
+    # Kept as compatibility/display arguments for persisted domain objects.
+    # Neither display/backward field participates in attribution identity.
+    del reason_code, exit_kind
+    payload = {
+        "schema": "uquant.attribution-event.v2",
+        "signal_date": signal_date,
+        "symbol": symbol,
+        "target_weight": weight.hex(),
+        "lifecycle": lifecycle,
+        "origin_lifecycle": origin_lifecycle,
+        "origin_subsystem": origin_subsystem,
+        "mechanism": mechanism,
+        "replaces_symbol": replaces_symbol,
+        "industry_at_entry": industry_at_entry,
+        "industry_manifest_sha256": industry_manifest_sha256,
+        "reduction_policy": reduction_policy,
+    }
+    encoded = json.dumps(
+        payload,
+        allow_nan=False,
+        ensure_ascii=False,
+        separators=(",", ":"),
+        sort_keys=True,
+    ).encode("utf-8")
+    return "evt_" + hashlib.sha256(encoded).hexdigest()
+
+
 @dataclass(slots=True)
 class Tranche:
     """A T+1-aware lot belonging to one position lifecycle."""
@@ -86,6 +297,13 @@ class Tranche:
     entry_confidence: float = 0.0
     entry_regime: str = Opportunity.CHOPPY.value
     entry_industry_strength: float = 0.0
+    event_id: str = ""
+    origin_subsystem: str = ""
+    mechanism: str = ""
+    origin_lifecycle: str = ""
+    replaces_symbol: str | None = None
+    industry_at_entry: str = ""
+    industry_manifest_sha256: str = ""
 
 
 @dataclass(slots=True)
@@ -126,6 +344,13 @@ class PendingOrder:
     entry_confidence: float = 0.0
     entry_regime: str = Opportunity.CHOPPY.value
     entry_industry_strength: float = 0.0
+    event_id: str = ""
+    origin_subsystem: str = ""
+    mechanism: str = ""
+    origin_lifecycle: str = ""
+    replaces_symbol: str | None = None
+    industry_at_entry: str = ""
+    industry_manifest_sha256: str = ""
 
 
 @dataclass(slots=True)
@@ -156,6 +381,24 @@ class AccountOrder:
     entry_confidence: float = 0.0
     entry_regime: str = Opportunity.CHOPPY.value
     entry_industry_strength: float = 0.0
+    event_id: str = ""
+    origin_subsystem: str = ""
+    mechanism: str = ""
+    origin_lifecycle: str = ""
+    replaces_symbol: str | None = None
+    industry_at_entry: str = ""
+    industry_manifest_sha256: str = ""
+
+
+ATTRIBUTION_IDENTITY_FIELDS: tuple[str, ...] = (
+    "event_id",
+    "origin_subsystem",
+    "mechanism",
+    "origin_lifecycle",
+    "replaces_symbol",
+    "industry_at_entry",
+    "industry_manifest_sha256",
+)
 
 
 ORDER_INTENT_IMMUTABLE_FIELDS: tuple[str, ...] = (
@@ -172,6 +415,7 @@ ORDER_INTENT_IMMUTABLE_FIELDS: tuple[str, ...] = (
     "entry_confidence",
     "entry_regime",
     "entry_industry_strength",
+    *ATTRIBUTION_IDENTITY_FIELDS,
 )
 
 
@@ -203,6 +447,13 @@ class Fill:
     reason_code: str = "strategy_target"
     exit_kind: str = "strategy"
     sold_tranches: list[dict[str, Any]] = field(default_factory=list)
+    event_id: str = ""
+    origin_subsystem: str = ""
+    mechanism: str = ""
+    origin_lifecycle: str = ""
+    replaces_symbol: str | None = None
+    industry_at_entry: str = ""
+    industry_manifest_sha256: str = ""
 
 
 @dataclass(slots=True)
@@ -339,6 +590,13 @@ class Target:
     reason_code: str = "strategy_target"
     exit_kind: str = "strategy"
     entry_industry_strength: float = 0.0
+    event_id: str = ""
+    origin_subsystem: str = ""
+    mechanism: str = ""
+    origin_lifecycle: str = ""
+    replaces_symbol: str | None = None
+    industry_at_entry: str = ""
+    industry_manifest_sha256: str = ""
 
 
 @dataclass(frozen=True, slots=True)
@@ -358,16 +616,85 @@ class Decision:
     def canonical_payload(self, *, effective_config_sha256: str) -> dict[str, Any]:
         """Return the complete deterministic decision contract for evidence."""
 
+        pending_by_event = {
+            item.event_id: item for item in self.pending_orders if item.event_id
+        }
+        targets: list[dict[str, Any]] = []
+        for item in self.targets:
+            retained = pending_by_event.get(item.event_id)
+            event_signal_date = self.date if retained is None else retained.signal_date
+            event_target_weight = item.weight if retained is None else retained.target_weight
+            targets.append(
+                {
+                    "symbol": item.symbol,
+                    "weight": round(item.weight, 12),
+                    "lifecycle": item.lifecycle,
+                    "reduction_policy": item.reduction_policy,
+                    "reason_code": item.reason_code,
+                    "exit_kind": item.exit_kind,
+                    "event_id": item.event_id,
+                    "event_signal_date": event_signal_date,
+                    "event_target_weight_hex": float(event_target_weight).hex(),
+                    "origin_subsystem": item.origin_subsystem,
+                    "mechanism": item.mechanism,
+                    "origin_lifecycle": item.origin_lifecycle,
+                    "replaces_symbol": item.replaces_symbol,
+                    "industry_at_entry": item.industry_at_entry,
+                    "industry_manifest_sha256": item.industry_manifest_sha256,
+                }
+            )
         return {
+            "schema": "uquant.decision-control-plane.v2",
             "date": self.date,
             "opportunity": self.opportunity.value,
             "risk": {
+                # Descriptive shock/severity diagnostics stay in risk_summary, but
+                # are not control evidence: no independent daily carrier can replay
+                # them.  The fields below are cross-bound to the frozen digest,
+                # daily ledger, compiled config, or exact targets.
                 "state": self.risk.value,
-                "shock_state": str(self.risk_summary.get("shock_state", "")),
-                "reduction_level": int(self.risk_summary.get("reduction_level", 0)),
-                "severity": str(self.risk_summary.get("severity", "NORMAL")),
+                "target_gross_cap": canonical_control_float(
+                    float(self.risk_summary.get("target_gross_cap", 0.0))
+                ),
+                "system_gross_cap": canonical_control_float(
+                    float(self.risk_summary.get("system_gross_cap", 0.0))
+                ),
             },
             "target_gross": round(self.target_gross, 12),
+            "targets": targets,
+            "orders": [
+                {
+                    "order_id": item.order_id,
+                    "signal_date": item.signal_date,
+                    "snapshot_kind": (
+                        "ORIGIN" if item.signal_date == self.date else "CARRIED_FORWARD"
+                    ),
+                    "symbol": item.symbol,
+                    "side": item.side,
+                    "target_weight": round(item.target_weight, 12),
+                    "reduction_policy": item.reduction_policy,
+                    "reason_code": item.reason_code,
+                    "exit_kind": item.exit_kind,
+                    "event_id": item.event_id,
+                    "origin_subsystem": item.origin_subsystem,
+                    "mechanism": item.mechanism,
+                    "origin_lifecycle": item.origin_lifecycle,
+                    "replaces_symbol": item.replaces_symbol,
+                    "industry_at_entry": item.industry_at_entry,
+                    "industry_manifest_sha256": item.industry_manifest_sha256,
+                }
+                for item in self.pending_orders
+            ],
+            "effective_config_sha256": effective_config_sha256,
+        }
+
+    def legacy_canonical_payload(self) -> dict[str, Any]:
+        """Reconstruct the exact frozen schema-v3 decision digest payload."""
+
+        return {
+            "date": self.date,
+            "opportunity": self.opportunity.value,
+            "risk": self.risk.value,
             "targets": [
                 {
                     "symbol": item.symbol,
@@ -391,5 +718,4 @@ class Decision:
                 }
                 for item in self.pending_orders
             ],
-            "effective_config_sha256": effective_config_sha256,
         }

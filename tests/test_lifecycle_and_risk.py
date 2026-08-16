@@ -5,7 +5,6 @@ import pandas as pd
 import pytest
 
 from uquant.config import DEFAULT_CONFIG
-from uquant.engine import attribution
 from uquant.execution import (
     ExecutionPlanner,
     merge_pending_orders,
@@ -23,10 +22,11 @@ from uquant.risk import (
 )
 from uquant.types import (
     AccountState,
-    Fill,
+    AttributionMechanism,
     LeaderScore,
     Lifecycle,
     Opportunity,
+    OriginSubsystem,
     PendingOrder,
     Position,
     ReductionPolicy,
@@ -34,7 +34,49 @@ from uquant.types import (
     RiskAssessment,
     Target,
     Tranche,
+    derive_attribution_event_id,
 )
+from uquant.validation.universe import REQUIRED_AI_UNIVERSE_SHA256, default_ai_universe
+
+
+def _identity(
+    *,
+    signal_date: str,
+    symbol: str,
+    target_weight: float,
+    lifecycle: str,
+    origin_subsystem: str,
+    mechanism: str,
+    reduction_policy: str = ReductionPolicy.FIFO.value,
+    reason_code: str = "strategy_target",
+    exit_kind: str = "strategy",
+) -> dict[str, str | None]:
+    industry = default_ai_universe().industry_of(symbol, signal_date)
+    if industry == "unknown":
+        industry = "optical"
+    return {
+        "event_id": derive_attribution_event_id(
+            signal_date=signal_date,
+            symbol=symbol,
+            target_weight=target_weight,
+            lifecycle=lifecycle,
+            origin_lifecycle=lifecycle,
+            origin_subsystem=origin_subsystem,
+            mechanism=mechanism,
+            replaces_symbol=None,
+            industry_at_entry=industry,
+            industry_manifest_sha256=REQUIRED_AI_UNIVERSE_SHA256,
+            reduction_policy=reduction_policy,
+            reason_code=reason_code,
+            exit_kind=exit_kind,
+        ),
+        "origin_subsystem": origin_subsystem,
+        "mechanism": mechanism,
+        "origin_lifecycle": lifecycle,
+        "replaces_symbol": None,
+        "industry_at_entry": industry,
+        "industry_manifest_sha256": REQUIRED_AI_UNIVERSE_SHA256,
+    }
 
 
 def _trend_frame(
@@ -354,6 +396,10 @@ def test_recovery_substitution_rejects_an_overextended_challenger():
     assert admitted is not None
     assert admitted_account.replacement_events[-1]["new_symbol"] == "challenger"
     assert admitted_account.anchor_weights == pytest.approx({"lead": 0.60, "challenger": 0.30})
+    replacement = next(target for target in admitted if target.symbol == "challenger")
+    assert replacement.origin_subsystem == OriginSubsystem.RECOVERY.value
+    assert replacement.mechanism == AttributionMechanism.RECOVERY_SUBSTITUTION.value
+    assert replacement.replaces_symbol == "weak"
 
 
 def test_recovery_substitution_respects_transfer_cap_and_retains_lead_drift():
@@ -457,7 +503,7 @@ def test_strategic_cohort_discovers_arbitrary_symbols_without_a_static_prior():
     allocator = PortfolioAllocator(DEFAULT_CONFIG)
     expected = {"arbitrary_optical", "arbitrary_compute", "arbitrary_equipment"}
 
-    assert DEFAULT_CONFIG.strategic_cohort_symbols == ()
+    assert account.strategic_cohort_symbols == []
     for date in dates[-DEFAULT_CONFIG.strategic_cohort_confirm_days :]:
         allocator._initialize_strategic_cohort(
             date=date,
@@ -999,7 +1045,7 @@ def test_persistent_industry_outranks_a_shorter_established_group() -> None:
         1.0,
         0,
         {
-            "configured_user_universe_size": DEFAULT_CONFIG.adaptive_broad_universe_min_size,
+            "configured_user_universe_size": 10,
             "risk_anchor_symbols": ["sentinel"],
             "risk_anchor_group_count": 3,
             "breadth20": 1.0,
@@ -1059,7 +1105,7 @@ def test_broad_established_group_rejects_weak_median_persistence() -> None:
         1.0,
         0,
         {
-            "configured_user_universe_size": DEFAULT_CONFIG.adaptive_broad_universe_min_size,
+            "configured_user_universe_size": 10,
             "risk_anchor_symbols": ["sentinel"],
             "risk_anchor_group_count": 3,
             "breadth20": 1.0,
@@ -1301,7 +1347,7 @@ def test_weak_regime_can_admit_the_dynamic_persistent_industry_route() -> None:
     allocator = PortfolioAllocator(DEFAULT_CONFIG)
     targets: tuple[Target, ...] = ()
 
-    for date in dates[-DEFAULT_CONFIG.strategic_persistent_confirm_days :]:
+    for date in dates[-3:]:
         targets = allocator.allocate(
             date=date,
             opportunity=Opportunity.WEAK,
@@ -1396,7 +1442,7 @@ def test_unqualified_universe_padding_cannot_authorize_a_partial_cohort() -> Non
     weak_frame = _strategic_frame(dates)
     weak_frame["ret240"] = -0.20
     weak_frame["ret120"] = -0.10
-    for index in range(DEFAULT_CONFIG.strategic_partial_universe_max_size):
+    for index in range(8):
         symbol = f"weak_{index}"
         broad_panel[symbol] = weak_frame.copy()
         broad_leaders[symbol] = _leader(symbol, 0.20, industry=f"weak_group_{index}")
@@ -1895,6 +1941,17 @@ def test_level_one_freeze_retains_partial_sell_and_cancels_partial_buy():
     symbol = "durable_direction"
     allocator = PortfolioAllocator(DEFAULT_CONFIG)
     leader = _leader(symbol, 0.90)
+    sell_identity = _identity(
+        signal_date="2026-01-05",
+        symbol=symbol,
+        target_weight=0.30,
+        lifecycle=Lifecycle.CORE.value,
+        origin_subsystem=OriginSubsystem.RISK.value,
+        mechanism=AttributionMechanism.RISK_GROSS_CAP.value,
+        reduction_policy=ReductionPolicy.RISK_PRIORITY.value,
+        reason_code="risk_gross_cap",
+        exit_kind="risk",
+    )
 
     sell = PendingOrder(
         "2026-01-05",
@@ -1909,6 +1966,7 @@ def test_level_one_freeze_retains_partial_sell_and_cancels_partial_buy():
         reduction_policy=ReductionPolicy.RISK_PRIORITY.value,
         reason_code="risk_gross_cap",
         exit_kind="risk",
+        **sell_identity,
     )
     selling = AccountState(
         initial_cash=1_000_000.0,
@@ -1938,6 +1996,7 @@ def test_level_one_freeze_retains_partial_sell_and_cancels_partial_buy():
             reduction_policy=ReductionPolicy.RISK_PRIORITY.value,
             reason_code="risk_gross_cap",
             exit_kind="risk",
+            **sell_identity,
         ),
     )
     replanned_sells = plan_orders(
@@ -2022,6 +2081,16 @@ def test_freeze_overlay_keeps_structural_sell_and_drops_replacement_buy() -> Non
         "recovery anchor exit: confirmed structural break",
         reason_code="recovery_exit",
         exit_kind="lifecycle",
+        **_identity(
+            signal_date="2026-01-06",
+            symbol=exiting,
+            target_weight=0.0,
+            lifecycle=Lifecycle.RECOVERY.value,
+            origin_subsystem=OriginSubsystem.RECOVERY.value,
+            mechanism=AttributionMechanism.TACTICAL_REBOUND.value,
+            reason_code="recovery_exit",
+            exit_kind="lifecycle",
+        ),
     )
     proposed_buy = Target(
         replacement,
@@ -3784,7 +3853,6 @@ def test_every_freeze_source_persistently_blocks_empty_book_buys(
     )
     account = AccountState.empty(100.0)
     account.capital_budget_level = 1
-    account.risk_streaks["transition_damage_active"] = 1
     allocator = PortfolioAllocator(DEFAULT_CONFIG)
 
     for _ in range(5):
@@ -3926,6 +3994,17 @@ def test_partial_fill_direction_survives_real_daily_execute_replan_cycle():
         reduction_policy=ReductionPolicy.RISK_PRIORITY.value,
         reason_code="risk_gross_cap",
         exit_kind="risk",
+        **_identity(
+            signal_date="2026-01-05",
+            symbol=symbol,
+            target_weight=0.30,
+            lifecycle=Lifecycle.CORE.value,
+            origin_subsystem=OriginSubsystem.RISK.value,
+            mechanism=AttributionMechanism.RISK_GROSS_CAP.value,
+            reduction_policy=ReductionPolicy.RISK_PRIORITY.value,
+            reason_code="risk_gross_cap",
+            exit_kind="risk",
+        ),
     )
     selling = AccountState(
         initial_cash=10_000.0,
@@ -4036,6 +4115,14 @@ def test_partial_fill_direction_survives_real_daily_execute_replan_cycle():
             0.60,
             "leader add",
             Lifecycle.CORE.value,
+            **_identity(
+                signal_date="2026-01-05",
+                symbol=star,
+                target_weight=0.60,
+                lifecycle=Lifecycle.CORE.value,
+                origin_subsystem=OriginSubsystem.LEADER.value,
+                mechanism=AttributionMechanism.LEADER_SELECTION.value,
+            ),
         )
     ]
     buy_planner = ExecutionPlanner(DEFAULT_CONFIG.override(max_volume_participation=0.002))
@@ -4363,6 +4450,59 @@ def test_strategic_restore_completes_against_scaled_attainable_weights() -> None
     assert account.strategic_restore_weights == {}
     assert account.candidate_tenure["strategic_damage_guard_active_epoch"] == 0
     assert account.candidate_tenure["strategic_damage_guard_complete_epoch"] == 1
+
+
+def test_strategic_restore_caps_winner_drift_before_outer_risk_reduction() -> None:
+    """Winner drift plus saved loser weights must not bypass the hard gross cap."""
+
+    dates = pd.bdate_range("2025-01-02", periods=150)
+    frame = _trend_frame(dates)
+    symbols = ("drift_winner", "restore_a", "restore_b")
+    account = AccountState(
+        initial_cash=100.0,
+        cash=17.0,
+        positions={
+            symbols[0]: Position(symbols[0], shares=35, avg_cost=1.0, highest_close=1.0),
+            symbols[1]: Position(symbols[1], shares=32, avg_cost=1.0, highest_close=1.0),
+            symbols[2]: Position(symbols[2], shares=16, avg_cost=1.0, highest_close=1.0),
+        },
+        strategic_cohort_symbols=list(symbols),
+        strategic_cohort_targets={symbol: 1.0 / 3.0 for symbol in symbols},
+        strategic_restore_weights=dict(zip(symbols, (0.345, 0.34, 0.315), strict=True)),
+        strategic_candidate_signature="strategic_qualification:reversal_industry:drift_winner,restore_a,restore_b",
+        strategic_epoch=1,
+        candidate_tenure={
+            "strategic_cohort_active": 1,
+            "strategic_cohort_started": 1,
+            "strategic_damage_guard_active_epoch": 1,
+        },
+        capital_budget_level=2,
+        operating_peak=100.0,
+        capital_peak=100.0,
+    )
+    bounded_repair = RiskAssessment(
+        Risk.NORMAL,
+        0.82,
+        0,
+        {"transition_damage": 0.0},
+        (),
+        "PERSISTENT_STRESS",
+        freeze_new_risk=True,
+        reduction_level=2,
+    )
+
+    targets = PortfolioAllocator(DEFAULT_CONFIG.override(min_trade_value=0.0)).allocate(
+        date=dates[-1],
+        opportunity=Opportunity.STRONG_TREND,
+        risk=bounded_repair,
+        user_panel={symbol: frame for symbol in symbols},
+        leaders={symbol: _leader(symbol, 0.90) for symbol in symbols},
+        account=account,
+        prices={symbol: 1.0 for symbol in symbols},
+    )
+
+    assert sum(target.weight for target in targets if target.weight > 0.0) == pytest.approx(0.82)
+    assert max(target.weight for target in targets) <= DEFAULT_CONFIG.max_symbol_weight
 
 
 def test_strategic_restore_settles_an_unexecutable_subthreshold_gap() -> None:
@@ -5823,8 +5963,14 @@ def test_effective_n_drives_dynamic_k_and_rotation_records_attribution():
     assert rotation_account.replacement_events
     event = rotation_account.replacement_events[-1]
     assert (event["old_symbol"], event["new_symbol"]) == ("weak", "new")
-    assert next(item for item in rotation_targets if item.symbol == "new").weight > 0
-    assert next(item for item in rotation_targets if item.symbol == "weak").weight == 0
+    replacement = next(item for item in rotation_targets if item.symbol == "new")
+    replaced = next(item for item in rotation_targets if item.symbol == "weak")
+    assert replacement.weight > 0
+    assert replaced.weight == 0
+    assert replacement.origin_subsystem == replaced.origin_subsystem == OriginSubsystem.LEADER.value
+    assert replacement.mechanism == replaced.mechanism == AttributionMechanism.LEADER_ROTATION.value
+    assert replacement.replaces_symbol == "weak"
+    assert replaced.replaces_symbol is None
 
 
 def test_allocator_enforces_risk_cap_on_anchored_early_return():
@@ -6920,42 +7066,3 @@ def test_narrow_market_two_of_three_anchor_damage_applies_graded_guard():
     assert assessment.state is Risk.RISK_OFF
     assert assessment.target_gross_cap == pytest.approx(DEFAULT_CONFIG.narrow_anchor_guard_gross)
     assert "narrow-market concentrated anchor damage" in assessment.reasons
-
-
-def test_lifecycle_and_reason_attribution_reconciles_realized_fills():
-    fills = [
-        Fill(
-            signal_date="2025-01-02",
-            fill_date="2025-01-03",
-            symbol="sz300308",
-            side="BUY",
-            shares=100,
-            price=10.0,
-            gross_value=1_000.0,
-            commission=5.0,
-            stamp_duty=0.0,
-            transfer_fee=0.0,
-            slippage_cost=0.0,
-            reason="confirmed mature leader core",
-            lifecycle="CORE",
-        ),
-        Fill(
-            signal_date="2025-02-02",
-            fill_date="2025-02-03",
-            symbol="sz300308",
-            side="SELL",
-            shares=100,
-            price=12.0,
-            gross_value=1_200.0,
-            commission=5.0,
-            stamp_duty=1.0,
-            transfer_fee=0.0,
-            slippage_cost=0.0,
-            reason="rotation exit: replacement confirmed",
-            lifecycle="CORE",
-        ),
-    ]
-    result = attribution(fills)
-    assert result["by_lifecycle"]["core"]["realized_pnl"] == pytest.approx(189.0)
-    assert result["by_reason"]["rotation"]["fills"] == 1
-    assert result["open_shares_by_lifecycle"]["core"] == 0

@@ -8,6 +8,12 @@ from dataclasses import asdict, dataclass, replace
 from typing import Any
 
 
+def canonical_control_float(value: float) -> float:
+    """Serialize one control-plane float with the exact schema-v2 precision."""
+
+    return round(float(value), 12)
+
+
 @dataclass(frozen=True, slots=True)
 class SystemConfig:
     """Immutable strategy, risk, execution, and portfolio configuration.
@@ -102,9 +108,6 @@ class SystemConfig:
     leader_cycle_impulse_breadth: float = 0.10
     leader_cycle_min_market_ret120: float = 0.01
     leader_cycle_impulse_min_market_ret120: float = -0.01
-    # Strategic membership is evidence-derived. This empty compatibility field
-    # accepts serialized input but never supplies a symbol-specific prior.
-    strategic_cohort_symbols: tuple[str, ...] = ()
     strategic_dynamic_enabled: bool = True
     strategic_cohort_size: int = 3
     strategic_cohort_min_size: int = 3
@@ -117,9 +120,6 @@ class SystemConfig:
     strategic_one_name_confirm_days: int = 4
     # Serialized compatibility fields. Universe size is diagnostic only, and
     # none of these thresholds may select a production decision path.
-    strategic_partial_universe_max_size: int = 8
-    adaptive_broad_universe_min_size: int = 10
-    adaptive_broad_universe_compatibility_enabled: bool = True
     strategic_secular_min_score: float = 0.58
     strategic_secular_min_confidence: float = 0.65
     # Both routes below use reviewed causal thresholds and discover synchronized
@@ -127,13 +127,10 @@ class SystemConfig:
     strategic_cohort_min_ret240: float = 1.70
     strategic_persistent_max_ret120: float = 1.50
     strategic_established_min_median_ret240: float = 1.00
-    strategic_expansive_universe_min_size: int = 20
-    strategic_persistent_confirm_days: int = 3
     strategic_reversal_max_ret240: float = -0.15
     strategic_reversal_min_ret5: float = 0.05
     strategic_reversal_min_median_ret20: float = -0.05
     strategic_reversal_max_tech_ret120: float = -0.01
-    strategic_reversal_confirm_days: int = 2
     strategic_epoch_cooldown_sessions: int = 30
     strategic_epoch_min_symbol_change: int = 1
     # A secular winner may consolidate normally, but a new cohort must not be
@@ -240,11 +237,8 @@ class SystemConfig:
     stable_reference_global_weight: float = 0.70
     unknown_industry_confidence: float = 0.55
     unknown_industry_weight_cap: float = 0.18
-    transition_overlay_enabled: bool = True
     transition_damage_freeze: float = 0.58
     transition_damage_repair: float = 0.38
-    transition_confirm_days: int = 3
-    transition_repair_days: int = 4
     chronic_overlay_enabled: bool = True
     chronic_confirm_days: int = 4
     chronic_repair_days: int = 5
@@ -522,10 +516,6 @@ class SystemConfig:
             raise ValueError(
                 "leader_cycle_impulse_min_market_ret120 must not exceed the ordinary market floor"
             )
-        if self.strategic_cohort_symbols:
-            raise ValueError(
-                "strategic_cohort_symbols must remain empty; membership is discovered dynamically"
-            )
         if not 1 <= self.strategic_cohort_size <= min(3, self.max_positions):
             raise ValueError("strategic_cohort_size must be in [1, min(3, max_positions)]")
         if not 1 <= self.strategic_cohort_min_size <= self.strategic_cohort_size:
@@ -554,8 +544,6 @@ class SystemConfig:
             raise ValueError("strategic_cohort_min_ret240 cannot be negative")
         if self.strategic_established_min_median_ret240 < 0:
             raise ValueError("strategic_established_min_median_ret240 cannot be negative")
-        if self.strategic_persistent_confirm_days < 1:
-            raise ValueError("strategic_persistent_confirm_days must be positive")
         if not -1 < self.strategic_reversal_max_ret240 < 0:
             raise ValueError("strategic_reversal_max_ret240 must be in (-1, 0)")
         if not 0 < self.strategic_reversal_min_ret5 < 1:
@@ -564,8 +552,6 @@ class SystemConfig:
             raise ValueError("strategic_reversal_min_median_ret20 must be in (-1, 0]")
         if not -1 < self.strategic_reversal_max_tech_ret120 <= 0:
             raise ValueError("strategic_reversal_max_tech_ret120 must be in (-1, 0]")
-        if self.strategic_reversal_confirm_days < 1:
-            raise ValueError("strategic_reversal_confirm_days must be positive")
         if not 20 <= self.strategic_epoch_cooldown_sessions <= 40:
             raise ValueError("strategic epoch cooldown must be in [20, 40]")
         if not 1 <= self.strategic_epoch_min_symbol_change <= 3:
@@ -729,8 +715,6 @@ class SystemConfig:
                 raise ValueError(f"{name} must be in [0, 1]")
         if self.transition_damage_repair >= self.transition_damage_freeze:
             raise ValueError("transition repair must be below freeze threshold")
-        if self.transition_confirm_days < 1 or self.transition_repair_days < 1:
-            raise ValueError("transition confirmation windows must be positive")
         if self.chronic_confirm_days < 3 or self.chronic_repair_days < 3:
             raise ValueError("chronic confirmation windows must be at least three")
         if not 0 <= self.chronic_severe_cap <= self.chronic_moderate_cap <= 0.60:

@@ -10,7 +10,15 @@ import pandas as pd
 from .features import scalar
 from .leader import credible_recovery_reserve
 from .portfolio_leaders import LeaderPortfolioPolicy
-from .types import AccountState, LeaderScore, Lifecycle, RiskAssessment, Target
+from .types import (
+    AccountState,
+    AttributionMechanism,
+    LeaderScore,
+    Lifecycle,
+    OriginSubsystem,
+    RiskAssessment,
+    Target,
+)
 
 
 class RecoveryPortfolioPolicy(LeaderPortfolioPolicy):
@@ -62,12 +70,28 @@ class RecoveryPortfolioPolicy(LeaderPortfolioPolicy):
                     if weights_now.get(symbol, 0.0) > 0
                 }
                 proposed.update(missing)
+                structured_replacements: dict[str, str] = {}
+                for event in reversed(account.replacement_events):
+                    if event.get("route") != "recovery_anchor_substitution":
+                        continue
+                    new_symbol = event.get("new_symbol")
+                    old_symbol = event.get("old_symbol")
+                    if (
+                        isinstance(new_symbol, str)
+                        and isinstance(old_symbol, str)
+                        and new_symbol in missing
+                        and new_symbol not in structured_replacements
+                    ):
+                        structured_replacements[new_symbol] = old_symbol
                 return self._targets(
                     proposed=proposed,
                     leaders=leaders,
                     account=account,
                     lifecycle=Lifecycle.CORE,
                     reason="confirmed recovery anchor substitution",
+                    origin_subsystem=OriginSubsystem.RECOVERY,
+                    mechanism=AttributionMechanism.RECOVERY_SUBSTITUTION,
+                    replaces_symbols=structured_replacements,
                 )
             account.candidate_tenure["recovery_substitution_pending"] = 0
 
@@ -274,10 +298,13 @@ class RecoveryPortfolioPolicy(LeaderPortfolioPolicy):
             account=account,
             lifecycle=Lifecycle.CORE,
             reason="confirmed recovery anchor substitution",
+            origin_subsystem=OriginSubsystem.RECOVERY,
+            mechanism=AttributionMechanism.RECOVERY_SUBSTITUTION,
             reasons={
                 incumbent: f"recovery anchor exit: {challenger.symbol} confirmed edge",
                 challenger.symbol: f"recovery anchor entry: replaces {incumbent}",
             },
+            replaces_symbols={challenger.symbol: incumbent},
         )
         if risk_neutral_only:
             # A warning-state substitution is financed only by the broken

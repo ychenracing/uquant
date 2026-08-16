@@ -17,15 +17,109 @@ from uquant.execution import (
     reconcile_account_orders,
 )
 from uquant.types import (
+    ACCOUNT_SCHEMA_VERSION,
+    ATTRIBUTION_IDENTITY_FIELDS,
     AccountOrder,
     AccountState,
+    AttributionMechanism,
     OrderStatus,
+    OriginSubsystem,
     PendingOrder,
     Position,
     ReductionPolicy,
     Target,
     Tranche,
+    derive_attribution_event_id,
 )
+from uquant.validation.universe import REQUIRED_AI_UNIVERSE_SHA256, default_ai_universe
+
+
+def _attribution_identity(
+    *,
+    signal_date: str,
+    symbol: str,
+    target_weight: float,
+    origin_subsystem: str,
+    mechanism: str,
+    reduction_policy: str = ReductionPolicy.FIFO.value,
+    reason_code: str = "strategy_target",
+    exit_kind: str = "strategy",
+) -> dict[str, str | None]:
+    lifecycle = "CORE"
+    industry = default_ai_universe().industry_of(symbol, signal_date)
+    if industry == "unknown":
+        # SELL-only unit fixtures may model pre-universe inventory. Production
+        # BUY fixtures must use a point-in-time manifest member.
+        industry = "legacy_unmapped" if origin_subsystem != OriginSubsystem.LEADER.value else "optical"
+    manifest = REQUIRED_AI_UNIVERSE_SHA256 if industry != "legacy_unmapped" else "0" * 64
+    fields: dict[str, str | None] = {
+        "origin_subsystem": origin_subsystem,
+        "mechanism": mechanism,
+        "origin_lifecycle": lifecycle,
+        "replaces_symbol": None,
+        "industry_at_entry": industry,
+        "industry_manifest_sha256": manifest,
+    }
+    fields["event_id"] = derive_attribution_event_id(
+        signal_date=signal_date,
+        symbol=symbol,
+        target_weight=target_weight,
+        lifecycle=lifecycle,
+        origin_lifecycle=lifecycle,
+        origin_subsystem=origin_subsystem,
+        mechanism=mechanism,
+        replaces_symbol=None,
+        industry_at_entry=industry,
+        industry_manifest_sha256=manifest,
+        reduction_policy=reduction_policy,
+        reason_code=reason_code,
+        exit_kind=exit_kind,
+    )
+    return fields
+
+
+def _canonical_pending(
+    signal_date: str,
+    symbol: str,
+    side: str,
+    target_weight: float,
+    reason: str,
+    lifecycle: str = "CORE",
+    **metadata: object,
+) -> PendingOrder:
+    assert lifecycle == "CORE"
+    origin = (
+        OriginSubsystem.LEADER.value
+        if side == "BUY"
+        else OriginSubsystem.RISK.value
+    )
+    mechanism = (
+        AttributionMechanism.LEADER_SELECTION.value
+        if side == "BUY"
+        else AttributionMechanism.RISK_OFF.value
+    )
+    identity = _attribution_identity(
+        signal_date=signal_date,
+        symbol=symbol,
+        target_weight=target_weight,
+        origin_subsystem=origin,
+        mechanism=mechanism,
+        reduction_policy=str(
+            metadata.get("reduction_policy", ReductionPolicy.FIFO.value)
+        ),
+        reason_code=str(metadata.get("reason_code", "strategy_target")),
+        exit_kind=str(metadata.get("exit_kind", "strategy")),
+    )
+    return PendingOrder(
+        signal_date,
+        symbol,
+        side,
+        target_weight,
+        reason,
+        lifecycle,
+        **metadata,
+        **identity,
+    )
 
 
 def _frame(rows):
@@ -35,6 +129,13 @@ def _frame(rows):
 
 
 def test_broker_snapshot_reconciles_real_fills_idempotently():
+    identity = _attribution_identity(
+        signal_date="2026-01-05",
+        symbol="sz300308",
+        target_weight=0.50,
+        origin_subsystem=OriginSubsystem.LEADER.value,
+        mechanism=AttributionMechanism.LEADER_SELECTION.value,
+    )
     pending = PendingOrder(
         signal_date="2026-01-05",
         symbol="sz300308",
@@ -43,6 +144,7 @@ def test_broker_snapshot_reconciles_real_fills_idempotently():
         reason="confirmed mature leader core",
         lifecycle="CORE",
         order_id="O000000001",
+        **identity,
     )
     ledger = AccountOrder(
         order_id="O000000001",
@@ -54,6 +156,7 @@ def test_broker_snapshot_reconciles_real_fills_idempotently():
         reason=pending.reason,
         lifecycle="CORE",
         status=OrderStatus.OPEN.value,
+        **identity,
     )
     account = AccountState(
         initial_cash=2_000_000.0,
@@ -154,6 +257,13 @@ def test_broker_as_of_is_durable_idempotent_and_monotonic(tmp_path):
 
 
 def test_broker_sync_rolls_back_every_state_on_late_validation_failure():
+    identity = _attribution_identity(
+        signal_date="2026-01-05",
+        symbol="sz300308",
+        target_weight=0.50,
+        origin_subsystem=OriginSubsystem.LEADER.value,
+        mechanism=AttributionMechanism.LEADER_SELECTION.value,
+    )
     pending = PendingOrder(
         "2026-01-05",
         "sz300308",
@@ -162,6 +272,7 @@ def test_broker_sync_rolls_back_every_state_on_late_validation_failure():
         "entry",
         "CORE",
         order_id="O000000001",
+        **identity,
     )
     ledger = AccountOrder(
         "O000000001",
@@ -173,6 +284,7 @@ def test_broker_sync_rolls_back_every_state_on_late_validation_failure():
         "entry",
         "CORE",
         status=OrderStatus.OPEN.value,
+        **identity,
     )
     account = AccountState(
         initial_cash=2_000_000.0,
@@ -223,6 +335,23 @@ def test_broker_sync_rolls_back_every_state_on_late_validation_failure():
 
 def test_partial_broker_sell_attribution_creates_a_complete_degraded_allocation(tmp_path):
     symbol = "sz300308"
+    order_identity = _attribution_identity(
+        signal_date="2026-01-05",
+        symbol=symbol,
+        target_weight=0.0,
+        origin_subsystem=OriginSubsystem.RISK.value,
+        mechanism=AttributionMechanism.RISK_GROSS_CAP.value,
+        reduction_policy=ReductionPolicy.RISK_PRIORITY.value,
+        reason_code="risk_gross_cap",
+        exit_kind="risk",
+    )
+    tranche_identity = _attribution_identity(
+        signal_date="2026-01-02",
+        symbol=symbol,
+        target_weight=0.0,
+        origin_subsystem=OriginSubsystem.LEGACY_MIGRATION.value,
+        mechanism=AttributionMechanism.LEGACY_MIGRATION.value,
+    )
     pending = PendingOrder(
         "2026-01-05",
         symbol,
@@ -234,6 +363,7 @@ def test_partial_broker_sell_attribution_creates_a_complete_degraded_allocation(
         reduction_policy=ReductionPolicy.RISK_PRIORITY.value,
         reason_code="risk_gross_cap",
         exit_kind="risk",
+        **order_identity,
     )
     ledger = AccountOrder(
         "O000000001",
@@ -248,14 +378,15 @@ def test_partial_broker_sell_attribution_creates_a_complete_degraded_allocation(
         reduction_policy=ReductionPolicy.RISK_PRIORITY.value,
         reason_code="risk_gross_cap",
         exit_kind="risk",
+        **order_identity,
     )
     account = AccountState(
         initial_cash=2_000.0,
         cash=0.0,
         positions={
-            symbol: Position(
-                symbol,
-                shares=200,
+                symbol: Position(
+                    symbol,
+                    shares=150,
                 avg_cost=10.0,
                 entry_date="2026-01-02",
                 highest_close=12.0,
@@ -269,6 +400,7 @@ def test_partial_broker_sell_attribution_creates_a_complete_degraded_allocation(
                         "2026-01-03",
                         12.0,
                         lowest_close=9.0,
+                        **tranche_identity,
                     )
                 ],
             )
@@ -276,6 +408,15 @@ def test_partial_broker_sell_attribution_creates_a_complete_degraded_allocation(
         pending_orders=[pending],
         order_ledger=[ledger],
         next_order_sequence=2,
+        account_migrations=[
+            {
+                "migrated_at_utc": "2026-01-01T00:00:00+00:00",
+                "from_schema": 3,
+                "to_schema": ACCOUNT_SCHEMA_VERSION,
+                "from_code_hash": "old-code",
+                "to_code_hash": "code",
+            }
+        ],
         data_hash="data",
         code_hash="code",
         operating_peak=2_000.0,
@@ -302,16 +443,7 @@ def test_partial_broker_sell_attribution_creates_a_complete_degraded_allocation(
                     "remaining_shares": 0,
                 }
             ],
-            "positions": [
-                {
-                    "symbol": "300308",
-                    "shares": 50,
-                    "sellable_shares": 50,
-                    "avg_cost": 10.0,
-                    "entry_date": "2026-01-02",
-                    "highest_close": 12.0,
-                }
-            ],
+            "positions": [],
         },
     )
 
@@ -330,8 +462,7 @@ def test_partial_broker_sell_attribution_creates_a_complete_degraded_allocation(
     assert event["broker_shares"] == 150
     assert event["attributed_shares"] == 100
     assert event["degraded_shares"] == 50
-    assert account.positions[symbol].shares == 50
-    assert sum(item.shares for item in account.positions[symbol].tranches) == 50
+    assert symbol not in account.positions
 
     path = tmp_path / "degraded-account.json"
     save_account(account, path)
@@ -340,6 +471,13 @@ def test_partial_broker_sell_attribution_creates_a_complete_degraded_allocation(
 
 
 def test_existing_order_id_rejects_immutable_metadata_drift():
+    identity = _attribution_identity(
+        signal_date="2026-01-05",
+        symbol="sz300308",
+        target_weight=0.50,
+        origin_subsystem=OriginSubsystem.LEADER.value,
+        mechanism=AttributionMechanism.LEADER_SELECTION.value,
+    )
     ledger = AccountOrder(
         "O000000001",
         "2026-01-05",
@@ -350,8 +488,9 @@ def test_existing_order_id_rejects_immutable_metadata_drift():
         "entry",
         "CORE",
         status=OrderStatus.OPEN.value,
+        **identity,
     )
-    drifted = PendingOrder(
+    drifted = _canonical_pending(
         "2026-01-05",
         "sz300308",
         "BUY",
@@ -439,18 +578,22 @@ def test_next_open_and_t1_enforced():
         )
     }
     account = AccountState.empty(2e6)
-    account.pending_orders = [PendingOrder("2026-01-05", "sz300308", "BUY", 0.5, "entry", "CORE")]
+    account.pending_orders = [
+        _canonical_pending("2026-01-05", "sz300308", "BUY", 0.5, "entry")
+    ]
     planner = ExecutionPlanner(DEFAULT_CONFIG)
     assert planner.execute_open(date=pd.Timestamp("2026-01-05"), account=account, panel=panel) == []
     fills = planner.execute_open(date=pd.Timestamp("2026-01-06"), account=account, panel=panel)
     assert fills and fills[0].fill_date > fills[0].signal_date
-    account.pending_orders = [PendingOrder("2026-01-06", "sz300308", "SELL", 0.0, "exit", "CORE")]
+    account.pending_orders = [
+        _canonical_pending("2026-01-06", "sz300308", "SELL", 0.0, "exit")
+    ]
     assert planner.execute_open(date=pd.Timestamp("2026-01-06"), account=account, panel=panel) == []
 
 
 def test_limit_and_suspension_keep_pending():
     panel = {
-        "sz000001": _frame(
+        "sh603986": _frame(
             [
                 {
                     "date": "2026-01-05",
@@ -483,7 +626,9 @@ def test_limit_and_suspension_keep_pending():
         )
     }
     account = AccountState.empty(2e6)
-    account.pending_orders = [PendingOrder("2026-01-05", "sz000001", "BUY", 0.5, "entry", "CORE")]
+    account.pending_orders = [
+        _canonical_pending("2026-01-05", "sh603986", "BUY", 0.5, "entry")
+    ]
     planner = ExecutionPlanner(DEFAULT_CONFIG)
     assert planner.execute_open(date=pd.Timestamp("2026-01-06"), account=account, panel=panel) == []
     assert account.pending_orders
@@ -493,7 +638,7 @@ def test_limit_and_suspension_keep_pending():
 
 def test_continuous_up_limits_remain_pending_until_market_reopens():
     panel = {
-        "sz000001": _frame(
+        "sh603986": _frame(
             [
                 {
                     "date": "2026-01-05",
@@ -535,7 +680,9 @@ def test_continuous_up_limits_remain_pending_until_market_reopens():
         )
     }
     account = AccountState.empty(2e6)
-    account.pending_orders = [PendingOrder("2026-01-05", "sz000001", "BUY", 0.5, "entry", "CORE")]
+    account.pending_orders = [
+        _canonical_pending("2026-01-05", "sh603986", "BUY", 0.5, "entry")
+    ]
     planner = ExecutionPlanner(DEFAULT_CONFIG)
     assert planner.execute_open(date=pd.Timestamp("2026-01-06"), account=account, panel=panel) == []
     assert planner.execute_open(date=pd.Timestamp("2026-01-07"), account=account, panel=panel) == []
@@ -547,7 +694,7 @@ def test_continuous_up_limits_remain_pending_until_market_reopens():
 
 def test_continuous_down_limits_retain_sell_until_market_reopens():
     panel = {
-        "sz000001": _frame(
+        "sh603986": _frame(
             [
                 {
                     "date": "2026-01-05",
@@ -589,7 +736,7 @@ def test_continuous_down_limits_retain_sell_until_market_reopens():
         )
     }
     position = Position(
-        symbol="sz000001",
+        symbol="sh603986",
         shares=10000,
         avg_cost=10,
         entry_date="2026-01-01",
@@ -598,11 +745,13 @@ def test_continuous_down_limits_retain_sell_until_market_reopens():
     account = AccountState(
         initial_cash=100000,
         cash=0,
-        positions={"sz000001": position},
+        positions={"sh603986": position},
         operating_peak=100000,
         capital_peak=100000,
     )
-    account.pending_orders = [PendingOrder("2026-01-05", "sz000001", "SELL", 0.0, "exit", "CORE")]
+    account.pending_orders = [
+        _canonical_pending("2026-01-05", "sh603986", "SELL", 0.0, "exit")
+    ]
     planner = ExecutionPlanner(DEFAULT_CONFIG)
     assert planner.execute_open(date=pd.Timestamp("2026-01-06"), account=account, panel=panel) == []
     assert planner.execute_open(date=pd.Timestamp("2026-01-07"), account=account, panel=panel) == []
@@ -610,12 +759,12 @@ def test_continuous_down_limits_retain_sell_until_market_reopens():
     fills = planner.execute_open(date=pd.Timestamp("2026-01-08"), account=account, panel=panel)
     assert len(fills) == 1
     assert fills[0].side == "SELL"
-    assert "sz000001" not in account.positions
+    assert "sh603986" not in account.positions
 
 
 def test_large_opening_gap_reprices_target_and_preserves_weight_cap():
     panel = {
-        "sz000001": _frame(
+        "sh603986": _frame(
             [
                 {
                     "date": "2026-01-05",
@@ -639,19 +788,21 @@ def test_large_opening_gap_reprices_target_and_preserves_weight_cap():
         )
     }
     account = AccountState.empty(2e6)
-    account.pending_orders = [PendingOrder("2026-01-05", "sz000001", "BUY", 0.60, "entry", "CORE")]
+    account.pending_orders = [
+        _canonical_pending("2026-01-05", "sh603986", "BUY", 0.60, "entry")
+    ]
     fills = ExecutionPlanner(DEFAULT_CONFIG).execute_open(
         date=pd.Timestamp("2026-01-06"), account=account, panel=panel
     )
     assert len(fills) == 1
-    position_value = account.positions["sz000001"].shares * fills[0].price
+    position_value = account.positions["sh603986"].shares * fills[0].price
     post_fill_equity = account.cash + position_value
     assert position_value / post_fill_equity <= DEFAULT_CONFIG.max_symbol_weight + 1e-12
     assert account.cash >= 0
 
 
 def test_decisive_strategic_owner_can_fill_above_ordinary_symbol_cap() -> None:
-    symbol = "causal_dominant"
+    symbol = "sh603986"
     panel = {
         symbol: _frame(
             [
@@ -687,7 +838,9 @@ def test_decisive_strategic_owner_can_fill_above_ordinary_symbol_cap() -> None:
         }
     )
     account.pending_orders = [
-        PendingOrder("2026-01-05", symbol, "BUY", 1.0, "dominant strategic owner", "CORE")
+        _canonical_pending(
+            "2026-01-05", symbol, "BUY", 1.0, "dominant strategic owner"
+        )
     ]
 
     fills = ExecutionPlanner(DEFAULT_CONFIG).execute_open(
@@ -749,7 +902,9 @@ def test_partial_fill_is_retained_and_star_initial_buy_is_at_least_200():
         )
     }
     account = AccountState.empty(2e6)
-    account.pending_orders = [PendingOrder("2026-01-05", "sh688008", "BUY", 0.60, "entry", "CORE")]
+    account.pending_orders = [
+        _canonical_pending("2026-01-05", "sh688008", "BUY", 0.60, "entry")
+    ]
     cfg = DEFAULT_CONFIG.override(max_volume_participation=0.002)
     fills = ExecutionPlanner(cfg).execute_open(date=pd.Timestamp("2026-01-06"), account=account, panel=panel)
     assert fills and fills[0].shares >= 200
@@ -758,7 +913,7 @@ def test_partial_fill_is_retained_and_star_initial_buy_is_at_least_200():
 
 def test_sells_release_cash_before_buys():
     panel = {
-        "sz000001": _frame(
+        "sh603986": _frame(
             [
                 {
                     "date": "2026-01-05",
@@ -780,7 +935,7 @@ def test_sells_release_cash_before_buys():
                 },
             ]
         ),
-        "sz000002": _frame(
+        "sz002371": _frame(
             [
                 {
                     "date": "2026-01-05",
@@ -804,18 +959,18 @@ def test_sells_release_cash_before_buys():
         ),
     }
     old = Position(
-        symbol="sz000001",
+        symbol="sh603986",
         shares=10000,
         avg_cost=10,
         entry_date="2026-01-01",
         tranches=[Tranche("old", "CORE", 10000, 10, "2026-01-01", "2026-01-02", 10)],
     )
     account = AccountState(
-        initial_cash=100000, cash=0, positions={"sz000001": old}, operating_peak=100000, capital_peak=100000
+        initial_cash=100000, cash=0, positions={"sh603986": old}, operating_peak=100000, capital_peak=100000
     )
     account.pending_orders = [
-        PendingOrder("2026-01-05", "sz000002", "BUY", 0.5, "entry", "CORE"),
-        PendingOrder("2026-01-05", "sz000001", "SELL", 0.0, "exit", "CORE"),
+        _canonical_pending("2026-01-05", "sz002371", "BUY", 0.5, "entry"),
+        _canonical_pending("2026-01-05", "sh603986", "SELL", 0.0, "exit"),
     ]
     fills = ExecutionPlanner(DEFAULT_CONFIG).execute_open(
         date=pd.Timestamp("2026-01-06"), account=account, panel=panel
@@ -824,25 +979,25 @@ def test_sells_release_cash_before_buys():
 
 
 def test_compatible_blocked_order_survives_daily_replanning():
-    retained = PendingOrder("2026-01-05", "sz000001", "BUY", 0.5, "entry", "CORE", attempts=2)
-    target = Target("sz000001", 0.5, "CORE", 0.8, 1.0, "mature anchored leader")
+    retained = PendingOrder("2026-01-05", "sh603986", "BUY", 0.5, "entry", "CORE", attempts=2)
+    target = Target("sh603986", 0.5, "CORE", 0.8, 1.0, "mature anchored leader")
     merged = merge_pending_orders(retained=[retained], planned=(), targets=(target,))
     assert merged == (retained,)
     assert merged[0].attempts == 2
 
 
 def test_new_exit_target_cancels_stale_blocked_buy():
-    retained = PendingOrder("2026-01-05", "sz000001", "BUY", 0.5, "entry", "CORE")
-    planned = PendingOrder("2026-01-06", "sz000001", "SELL", 0.0, "risk", "CORE")
-    target = Target("sz000001", 0.0, "CORE", 0.0, 0.0, "risk")
+    retained = PendingOrder("2026-01-05", "sh603986", "BUY", 0.5, "entry", "CORE")
+    planned = PendingOrder("2026-01-06", "sh603986", "SELL", 0.0, "risk", "CORE")
+    target = Target("sh603986", 0.0, "CORE", 0.0, 0.0, "risk")
     merged = merge_pending_orders(retained=[retained], planned=(planned,), targets=(target,))
     assert merged == (planned,)
 
 
-def test_zero_weight_sell_keeps_original_intent_when_daily_reason_changes():
+def test_zero_weight_sell_is_replaced_when_causal_execution_policy_changes():
     retained = PendingOrder(
         "2026-01-05",
-        "sz000001",
+        "sh603986",
         "SELL",
         0.0,
         "recovery exit",
@@ -854,7 +1009,7 @@ def test_zero_weight_sell_keeps_original_intent_when_daily_reason_changes():
     )
     planned = PendingOrder(
         "2026-01-06",
-        "sz000001",
+        "sh603986",
         "SELL",
         0.0,
         "lifecycle exit",
@@ -863,7 +1018,7 @@ def test_zero_weight_sell_keeps_original_intent_when_daily_reason_changes():
         exit_kind="lifecycle",
     )
     target = Target(
-        "sz000001",
+        "sh603986",
         0.0,
         "CORE",
         0.0,
@@ -875,7 +1030,7 @@ def test_zero_weight_sell_keeps_original_intent_when_daily_reason_changes():
 
     merged = merge_pending_orders(retained=[retained], planned=(planned,), targets=(target,))
 
-    assert merged == (retained,)
+    assert merged == (planned,)
 
 
 def test_partial_risk_sell_survives_a_subthreshold_risk_escalation() -> None:
@@ -980,9 +1135,20 @@ def test_submitted_buy_survives_economically_equivalent_target_drift() -> None:
 
 def test_broker_order_ledger_counts_submission_and_replacement_not_fills():
     account = AccountState.empty(2e6)
-    retained = PendingOrder("2026-01-05", "sz000001", "BUY", 0.5, "entry", "CORE")
-    same = PendingOrder("2026-01-06", "sz000001", "BUY", 0.5, "refresh", "CORE")
-    target = Target("sz000001", 0.5, "CORE", 0.8, 1.0, "entry")
+    retained = _canonical_pending("2026-01-05", "sh603986", "BUY", 0.5, "entry")
+    same = replace(retained, signal_date="2026-01-06", reason="refresh", order_id="")
+    retained_identity = {
+        field: getattr(retained, field) for field in ATTRIBUTION_IDENTITY_FIELDS
+    }
+    target = Target(
+        "sh603986",
+        0.5,
+        "CORE",
+        0.8,
+        1.0,
+        "entry",
+        **retained_identity,
+    )
     current = merge_pending_orders(
         retained=[retained],
         planned=(same,),
@@ -997,8 +1163,22 @@ def test_broker_order_ledger_counts_submission_and_replacement_not_fills():
     assert current == (retained,)
     assert len(account.order_ledger) == 1
 
-    replacement = PendingOrder("2026-01-07", "sz000001", "SELL", 0.0, "risk", "CORE")
-    exit_target = Target("sz000001", 0.0, "CORE", 0.0, 0.0, "risk")
+    replacement = _canonical_pending(
+        "2026-01-07", "sh603986", "SELL", 0.0, "risk"
+    )
+    replacement_identity = {
+        field: getattr(replacement, field)
+        for field in ATTRIBUTION_IDENTITY_FIELDS
+    }
+    exit_target = Target(
+        "sh603986",
+        0.0,
+        "CORE",
+        0.0,
+        0.0,
+        "risk",
+        **replacement_identity,
+    )
     replaced = merge_pending_orders(
         retained=list(current),
         planned=(replacement,),
@@ -1017,7 +1197,7 @@ def test_broker_order_ledger_counts_submission_and_replacement_not_fills():
 
 def test_blocked_then_filled_instruction_remains_one_broker_order():
     panel = {
-        "sz000001": _frame(
+        "sh603986": _frame(
             [
                 {
                     "date": "2026-01-05",
@@ -1050,7 +1230,9 @@ def test_blocked_then_filled_instruction_remains_one_broker_order():
         )
     }
     account = AccountState.empty(2e6)
-    account.pending_orders = [PendingOrder("2026-01-05", "sz000001", "BUY", 0.5, "entry", "CORE")]
+    account.pending_orders = [
+        _canonical_pending("2026-01-05", "sh603986", "BUY", 0.5, "entry")
+    ]
     planner = ExecutionPlanner(DEFAULT_CONFIG)
     assert planner.execute_open(date=pd.Timestamp("2026-01-06"), account=account, panel=panel) == []
     assert len(account.order_ledger) == 1
@@ -1062,8 +1244,18 @@ def test_blocked_then_filled_instruction_remains_one_broker_order():
 
 
 def test_execution_policy_metadata_flows_from_target_to_order_ledger_and_fill():
+    identity = _attribution_identity(
+        signal_date="2026-01-05",
+        symbol="sh603986",
+        target_weight=0.0,
+        origin_subsystem=OriginSubsystem.RISK.value,
+        mechanism=AttributionMechanism.RISK_GROSS_CAP.value,
+        reduction_policy=ReductionPolicy.RISK_PRIORITY.value,
+        reason_code="portfolio_damage",
+        exit_kind="portfolio_risk",
+    )
     target = Target(
-        "sz000001",
+        "sh603986",
         0.0,
         "CORE",
         0.0,
@@ -1072,9 +1264,10 @@ def test_execution_policy_metadata_flows_from_target_to_order_ledger_and_fill():
         reduction_policy=ReductionPolicy.RISK_PRIORITY.value,
         reason_code="portfolio_damage",
         exit_kind="portfolio_risk",
+        **identity,
     )
     position = Position(
-        symbol="sz000001",
+        symbol="sh603986",
         shares=100,
         avg_cost=10.0,
         entry_date="2026-01-01",
@@ -1164,9 +1357,11 @@ def test_execution_policy_metadata_flows_from_target_to_order_ledger_and_fill():
 
 
 def test_buy_tranche_uses_the_fill_all_in_unit_cost():
-    symbol = "sz000001"
+    symbol = "sh603986"
     account = AccountState.empty(2_000_000.0)
-    account.pending_orders = [PendingOrder("2026-01-05", symbol, "BUY", 0.50, "entry", "CORE")]
+    account.pending_orders = [
+        _canonical_pending("2026-01-05", symbol, "BUY", 0.50, "entry")
+    ]
     panel = {
         symbol: _frame(
             [
@@ -1195,10 +1390,10 @@ def test_buy_tranche_uses_the_fill_all_in_unit_cost():
     assert position.avg_cost == pytest.approx(all_in_unit_cost)
 
 
-def test_merge_replaces_same_weight_order_when_execution_policy_changes():
+def test_merge_replaces_only_when_same_weight_machine_execution_policy_changes():
     retained = PendingOrder(
         "2026-01-05",
-        "sz000001",
+        "sh603986",
         "SELL",
         0.0,
         "exit",
@@ -1206,13 +1401,13 @@ def test_merge_replaces_same_weight_order_when_execution_policy_changes():
     )
     planned = PendingOrder(
         "2026-01-06",
-        "sz000001",
+        "sh603986",
         "SELL",
         0.0,
         "exit",
         "CORE",
     )
-    target = Target("sz000001", 0.0, "CORE", 0.0, 0.0, "exit")
+    target = Target("sh603986", 0.0, "CORE", 0.0, 0.0, "exit")
     changes: tuple[dict[str, str], ...] = (
         {"reduction_policy": ReductionPolicy.RISK_PRIORITY.value},
         {"reason_code": "sector_shock"},
@@ -1226,13 +1421,17 @@ def test_merge_replaces_same_weight_order_when_execution_policy_changes():
             planned=(replacement,),
             targets=(changed_target,),
         )
-        assert merged == (replacement,)
+        assert merged == (
+            replacement
+            if set(change) == {"reduction_policy"}
+            else retained,
+        )
 
 
 def test_merge_replaces_same_weight_order_when_lifecycle_changes():
     retained = PendingOrder(
         "2026-01-05",
-        "sz000001",
+        "sh603986",
         "BUY",
         0.50,
         "controlled rebound",
@@ -1243,14 +1442,14 @@ def test_merge_replaces_same_weight_order_when_lifecycle_changes():
     )
     replacement = PendingOrder(
         "2026-01-06",
-        "sz000001",
+        "sh603986",
         "BUY",
         0.50,
         "mature leader",
         "CORE",
     )
     target = Target(
-        "sz000001",
+        "sh603986",
         0.50,
         "CORE",
         0.90,
@@ -1272,7 +1471,7 @@ def test_merge_replaces_same_weight_order_when_lifecycle_changes():
 def test_merge_retains_partial_risk_sell_with_nonzero_target_weight():
     retained = PendingOrder(
         "2026-01-05",
-        "sz000001",
+        "sh603986",
         "SELL",
         0.30,
         "risk trim",
@@ -1286,7 +1485,7 @@ def test_merge_retains_partial_risk_sell_with_nonzero_target_weight():
     )
     planned = replace(retained, signal_date="2026-01-06", order_id="")
     target = Target(
-        "sz000001",
+        "sh603986",
         0.30,
         "CORE",
         0.0,
@@ -1307,7 +1506,7 @@ def test_merge_retains_partial_risk_sell_with_nonzero_target_weight():
 
 
 def test_risk_priority_is_t1_aware_and_survives_partial_fills_across_days():
-    symbol = "sz000001"
+    symbol = "sh603986"
     tranches = [
         Tranche(
             "core-healthy",
@@ -1402,13 +1601,12 @@ def test_risk_priority_is_t1_aware_and_survives_partial_fills_across_days():
         lifecycle="SATELLITE",
         tranches=tranches,
     )
-    order = PendingOrder(
+    order = _canonical_pending(
         "2026-01-05",
         symbol,
         "SELL",
         0.0,
         "crisis reduction",
-        "CORE",
         reduction_policy=ReductionPolicy.RISK_PRIORITY.value,
         reason_code="crisis",
         exit_kind="portfolio_risk",
@@ -1548,7 +1746,7 @@ def test_risk_priority_is_t1_aware_and_survives_partial_fills_across_days():
 
 
 def test_fifo_exit_keeps_historical_lot_order_and_rebuilds_position():
-    symbol = "sz000001"
+    symbol = "sh603986"
     position = Position(
         symbol=symbol,
         shares=200,
@@ -1581,7 +1779,9 @@ def test_fifo_exit_keeps_historical_lot_order_and_rebuilds_position():
         initial_cash=2_000.0,
         cash=0.0,
         positions={symbol: position},
-        pending_orders=[PendingOrder("2026-01-05", symbol, "SELL", 0.0, "exit", "CORE")],
+        pending_orders=[
+            _canonical_pending("2026-01-05", symbol, "SELL", 0.0, "exit")
+        ],
         operating_peak=2_000.0,
         capital_peak=2_000.0,
     )
@@ -1621,8 +1821,10 @@ def test_sell_funded_recovery_handoff_waits_when_incumbent_sale_is_limit_blocked
     signal_date = "2026-01-05"
     fill_date = "2026-01-06"
     release_date = "2026-01-07"
+    old_symbol = "sz300308"
+    new_symbol = "sz300502"
     incumbent = Position(
-        symbol="old_core",
+        symbol=old_symbol,
         shares=4_000,
         avg_cost=100.0,
         entry_date="2025-12-01",
@@ -1639,6 +1841,20 @@ def test_sell_funded_recovery_handoff_waits_when_incumbent_sale_is_limit_blocked
             )
         ],
     )
+    old_identity = _attribution_identity(
+        signal_date=signal_date,
+        symbol=old_symbol,
+        target_weight=0.0,
+        origin_subsystem=OriginSubsystem.RECOVERY.value,
+        mechanism=AttributionMechanism.RECOVERY_COHORT.value,
+    )
+    new_identity = _attribution_identity(
+        signal_date=signal_date,
+        symbol=new_symbol,
+        target_weight=0.40,
+        origin_subsystem=OriginSubsystem.RECOVERY.value,
+        mechanism=AttributionMechanism.RECOVERY_COHORT.value,
+    )
     account = AccountState(
         initial_cash=1_000_000.0,
         cash=600_000.0,
@@ -1648,20 +1864,36 @@ def test_sell_funded_recovery_handoff_waits_when_incumbent_sale_is_limit_blocked
         capital_peak=1_000_000.0,
     )
     targets = (
-        Target("old_core", 0.0, "RECOVERY", 0.0, 0.0, "recovery cohort construction"),
-        Target("new_owner", 0.40, "RECOVERY", 0.9, 1.0, "recovery cohort construction"),
+        Target(
+            old_symbol,
+            0.0,
+            "CORE",
+            0.0,
+            0.0,
+            "recovery cohort construction",
+            **old_identity,
+        ),
+        Target(
+            new_symbol,
+            0.40,
+            "CORE",
+            0.9,
+            1.0,
+            "recovery cohort construction",
+            **new_identity,
+        ),
     )
     account.pending_orders = list(
         plan_orders(
             signal_date=signal_date,
             targets=targets,
             account=account,
-            prices={"old_core": 100.0, "new_owner": 100.0},
+            prices={old_symbol: 100.0, new_symbol: 100.0},
             cfg=DEFAULT_CONFIG,
         )
     )
     panel = {
-        "old_core": _frame(
+        old_symbol: _frame(
             [
                 {
                     "date": signal_date,
@@ -1674,25 +1906,25 @@ def test_sell_funded_recovery_handoff_waits_when_incumbent_sale_is_limit_blocked
                 },
                 {
                     "date": fill_date,
-                    "open": 90.0,
-                    "high": 90.0,
-                    "low": 90.0,
-                    "close": 90.0,
+                        "open": 80.0,
+                        "high": 80.0,
+                        "low": 80.0,
+                        "close": 80.0,
                     "volume": 1_000_000,
-                    "amount": 90_000_000,
+                        "amount": 80_000_000,
                 },
                 {
                     "date": release_date,
-                    "open": 90.0,
-                    "high": 91.0,
-                    "low": 89.0,
-                    "close": 90.0,
+                        "open": 80.0,
+                        "high": 81.0,
+                        "low": 79.0,
+                        "close": 80.0,
                     "volume": 1_000_000,
-                    "amount": 90_000_000,
+                        "amount": 80_000_000,
                 },
             ]
         ),
-        "new_owner": _frame(
+        new_symbol: _frame(
             [
                 {
                     "date": signal_date,
@@ -1733,8 +1965,8 @@ def test_sell_funded_recovery_handoff_waits_when_incumbent_sale_is_limit_blocked
 
     assert not [fill for fill in fills if fill.side == "BUY"]
     assert {order.side for order in account.pending_orders} == {"SELL", "BUY"}
-    assert account.positions["old_core"].shares == 4_000
-    assert "new_owner" not in account.positions
+    assert account.positions[old_symbol].shares == 4_000
+    assert new_symbol not in account.positions
 
     released = ExecutionPlanner(DEFAULT_CONFIG).execute_open(
         date=pd.Timestamp(release_date),
@@ -1742,7 +1974,7 @@ def test_sell_funded_recovery_handoff_waits_when_incumbent_sale_is_limit_blocked
         panel=panel,
     )
     assert {fill.side for fill in released} == {"SELL", "BUY"}
-    assert "old_core" not in account.positions
-    equity = account.cash + account.positions["new_owner"].shares * 100.0
-    gross = account.positions["new_owner"].shares * 100.0 / equity
+    assert old_symbol not in account.positions
+    equity = account.cash + account.positions[new_symbol].shares * 100.0
+    gross = account.positions[new_symbol].shares * 100.0 / equity
     assert gross <= 0.40 + 1e-12

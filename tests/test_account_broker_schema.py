@@ -10,10 +10,59 @@ import pytest
 import uquant.account as account_module
 from uquant.account import load_account, migrate_account, save_account
 from uquant.broker import sync_broker_snapshot
-from uquant.types import AccountOrder, AccountState, Fill, OrderStatus, PendingOrder
+from uquant.types import (
+    ACCOUNT_SCHEMA_VERSION,
+    AccountOrder,
+    AccountState,
+    AttributionMechanism,
+    Fill,
+    Lifecycle,
+    OrderStatus,
+    OriginSubsystem,
+    PendingOrder,
+    ReductionPolicy,
+    derive_attribution_event_id,
+)
+from uquant.validation.universe import REQUIRED_AI_UNIVERSE_SHA256
+
+
+def _identity(
+    *,
+    signal_date: str = "2026-01-05",
+    symbol: str = "sz300308",
+    target_weight: float = 0.5,
+    lifecycle: str = Lifecycle.CORE.value,
+    reason_code: str = "strategy_target",
+    exit_kind: str = "strategy",
+) -> dict[str, str | None]:
+    fields: dict[str, str | None] = {
+        "origin_subsystem": OriginSubsystem.LEADER.value,
+        "mechanism": AttributionMechanism.LEADER_SELECTION.value,
+        "origin_lifecycle": lifecycle,
+        "replaces_symbol": None,
+        "industry_at_entry": "optical",
+        "industry_manifest_sha256": REQUIRED_AI_UNIVERSE_SHA256,
+    }
+    fields["event_id"] = derive_attribution_event_id(
+        signal_date=signal_date,
+        symbol=symbol,
+        target_weight=target_weight,
+        lifecycle=lifecycle,
+        origin_lifecycle=lifecycle,
+        origin_subsystem=OriginSubsystem.LEADER.value,
+        mechanism=AttributionMechanism.LEADER_SELECTION.value,
+        replaces_symbol=None,
+        industry_at_entry="optical",
+        industry_manifest_sha256=REQUIRED_AI_UNIVERSE_SHA256,
+        reduction_policy=ReductionPolicy.FIFO.value,
+        reason_code=reason_code,
+        exit_kind=exit_kind,
+    )
+    return fields
 
 
 def _state_with_open_order() -> AccountState:
+    identity = _identity()
     pending = PendingOrder(
         signal_date="2026-01-05",
         symbol="sz300308",
@@ -26,6 +75,7 @@ def _state_with_open_order() -> AccountState:
         entry_confidence=0.9,
         entry_regime="TREND",
         entry_industry_strength=0.7,
+        **identity,
     )
     ledger = AccountOrder(
         order_id=pending.order_id,
@@ -42,6 +92,7 @@ def _state_with_open_order() -> AccountState:
         entry_confidence=pending.entry_confidence,
         entry_regime=pending.entry_regime,
         entry_industry_strength=pending.entry_industry_strength,
+        **identity,
     )
     return AccountState(
         initial_cash=2_000_000.0,
@@ -97,6 +148,7 @@ def test_account_loader_strictly_validates_pending_order_fields(tmp_path, field,
     state = _state_with_open_order()
     state.pending_orders[0].order_id = ""
     state.order_ledger = []
+    state.next_order_sequence = 1
     payload = state.to_dict()
     payload["pending_orders"][0][field] = value
 
@@ -159,6 +211,7 @@ def _state_with_fill() -> AccountState:
             reduction_policy=order.reduction_policy,
             reason_code=order.reason_code,
             exit_kind=order.exit_kind,
+            **_identity(),
         )
     ]
     return state
@@ -488,7 +541,7 @@ def test_schema_v2_order_and_fill_metadata_remain_migratable(tmp_path):
         acknowledge_code_change=True,
     )
 
-    assert migrated.schema_version == 3
+    assert migrated.schema_version == ACCOUNT_SCHEMA_VERSION
     assert load_account(path).fills[0].order_id == ""
 
 
@@ -539,16 +592,26 @@ def test_schema_v2_linked_sell_gets_auditable_degraded_attribution(
         acknowledge_code_change=True,
     )
 
-    assert migrated.schema_version == 3
-    assert migrated.fills[0].sold_tranches == [
-        {
-            "tranche_id": "legacy-v2-unattributed:O000000001:2026-01-07:1",
-            "lifecycle": "CORE",
-            "shares": 100,
-            "attribution_quality": "degraded_schema_v2_missing_sold_tranches",
-            "source_schema": 2,
-        }
-    ]
+    assert migrated.schema_version == ACCOUNT_SCHEMA_VERSION
+    sold_lot = migrated.fills[0].sold_tranches[0]
+    assert {
+        key: sold_lot[key]
+        for key in (
+            "tranche_id",
+            "lifecycle",
+            "shares",
+            "attribution_quality",
+            "source_schema",
+        )
+    } == {
+        "tranche_id": "legacy-v2-unattributed:O000000001:2026-01-07:1",
+        "lifecycle": "CORE",
+        "shares": 100,
+        "attribution_quality": "degraded_schema_v2_missing_sold_tranches",
+        "source_schema": 2,
+    }
+    assert sold_lot["origin_subsystem"] == OriginSubsystem.LEGACY_MIGRATION.value
+    assert sold_lot["mechanism"] == AttributionMechanism.LEGACY_MIGRATION.value
     audit = migrated.account_migrations[-1]["degraded_sell_attribution"]
     assert audit["policy"] == "synthetic_single_lot_exact_share_backfill"
     assert audit["fills"] == [
@@ -562,5 +625,5 @@ def test_schema_v2_linked_sell_gets_auditable_degraded_attribution(
     ]
 
     reloaded = load_account(path)
-    assert reloaded.schema_version == 3
+    assert reloaded.schema_version == ACCOUNT_SCHEMA_VERSION
     assert reloaded.fills[0].sold_tranches == migrated.fills[0].sold_tranches

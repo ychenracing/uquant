@@ -606,30 +606,6 @@ def assess_risk(
             "trend_health": trend_health,
         }
     )
-    transition_key = "transition_damage_confirmed"
-    transition_active_key = "transition_damage_active"
-    transition_repair_key = "transition_damage_repair"
-    transition_observed = bool(
-        cfg.transition_overlay_enabled and transition_damage >= cfg.transition_damage_freeze
-    )
-    account.risk_streaks[transition_key] = (
-        account.risk_streaks.get(transition_key, 0) + 1 if transition_observed else 0
-    )
-    if account.risk_streaks[transition_key] >= cfg.transition_confirm_days:
-        account.risk_streaks[transition_active_key] = 1
-        account.risk_streaks[transition_repair_key] = 0
-    elif account.risk_streaks.get(transition_active_key, 0) == 1:
-        account.risk_streaks[transition_repair_key] = (
-            account.risk_streaks.get(transition_repair_key, 0) + 1
-            if transition_damage <= cfg.transition_damage_repair
-            else 0
-        )
-        if account.risk_streaks[transition_repair_key] >= cfg.transition_repair_days:
-            account.risk_streaks[transition_active_key] = 0
-            account.risk_streaks[transition_repair_key] = 0
-    else:
-        account.risk_streaks[transition_repair_key] = 0
-    transition_freeze = account.risk_streaks.get(transition_active_key, 0) == 1
     choppy_context = account.opportunity in {
         "CHOPPY",
         "WEAK",
@@ -781,7 +757,6 @@ def assess_risk(
         cfg=cfg,
         allow_reanchor=(
             account.risk == Risk.NORMAL.value
-            and not transition_freeze
             and transition_damage <= cfg.transition_damage_repair
             and votes <= 1
         ),
@@ -1122,7 +1097,7 @@ def assess_risk(
         elif capital_dd >= cfg.capital_budget_level2_dd and independent_damage:
             observed_budget_level = 2
         elif max(capital_dd, operating_dd) >= cfg.operating_dd_caution and (
-            transition_freeze or votes >= 2 or (votes >= 1 and held_damage_ratio > 0)
+            votes >= 2 or (votes >= 1 and held_damage_ratio > 0)
         ):
             observed_budget_level = 1
         cohort_grace_days = (
@@ -1212,8 +1187,7 @@ def assess_risk(
             "strategic_guard_level2_epoch"
         ] = account.strategic_epoch
     freeze_new_risk = bool(
-        transition_freeze
-        or strategic_damage_guard
+        strategic_damage_guard
         or account.capital_budget_level >= 1
         or account.chronic_level >= 1
     )

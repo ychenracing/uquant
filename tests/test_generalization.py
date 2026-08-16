@@ -25,6 +25,7 @@ from uquant.validation.generalization import (
     reference_payload,
     run_generalization,
     scenario_fingerprint,
+    symbol_pnl_concentration,
     symbol_pnl_from_result,
 )
 
@@ -106,11 +107,20 @@ def test_generalization_production_commit_requires_clean_valid_head(
                 "--",
                 "uquant",
                 "pyproject.toml",
+                "benchmarks/config_parameter_governance.json",
             ],
             "cannot inspect generalization production source",
         ),
         (
-            ["log", "-1", "--format=%H", "--", "uquant", "pyproject.toml"],
+            [
+                "log",
+                "-1",
+                "--format=%H",
+                "--",
+                "uquant",
+                "pyproject.toml",
+                "benchmarks/config_parameter_governance.json",
+            ],
             "cannot resolve immutable production commit",
         ),
     ]
@@ -133,7 +143,11 @@ def test_generalization_source_fingerprint_covers_exact_production_tree(tmp_path
     package = tmp_path / "uquant"
     nested = package / "validation"
     nested.mkdir(parents=True)
+    benchmarks = tmp_path / "benchmarks"
+    benchmarks.mkdir()
     (tmp_path / "pyproject.toml").write_text("[project]\nname = 'fixture'\n", encoding="utf-8")
+    governance = benchmarks / "config_parameter_governance.json"
+    governance.write_text('{"artifact_sha256":"1"}\n', encoding="utf-8")
     (package / "__init__.py").write_text("VALUE = 1\n", encoding="utf-8")
     (nested / "module.py").write_text("VALUE = 2\n", encoding="utf-8")
 
@@ -143,6 +157,13 @@ def test_generalization_source_fingerprint_covers_exact_production_tree(tmp_path
 
     (nested / "module.py").write_text("VALUE = 3\n", encoding="utf-8")
     assert generalization_module._production_source_fingerprint(tmp_path) != first
+
+    after_python_mutation = generalization_module._production_source_fingerprint(tmp_path)
+    governance.write_text('{"artifact_sha256":"2"}\n', encoding="utf-8")
+    assert (
+        generalization_module._production_source_fingerprint(tmp_path)
+        != after_python_mutation
+    )
 
     (tmp_path / "pyproject.toml").unlink()
     with pytest.raises(RuntimeError, match="cannot fingerprint generalization production source"):
@@ -878,6 +899,24 @@ def test_symbol_pnl_reconciles_fills_and_open_positions_to_total_profit() -> Non
     result["final_equity"] = 1093.0
     with pytest.raises(ValueError, match="does not reconcile"):
         symbol_pnl_from_result(result, {"a": 20.0, "b": 25.0})
+
+
+def test_symbol_pnl_concentration_uses_exact_absolute_contributions() -> None:
+    """Catches fabricated attribution or signed cancellation in concentration metrics."""
+    assert symbol_pnl_concentration({"a": 3.0, "b": -1.0}) == pytest.approx(
+        {
+            "top1_concentration": 0.75,
+            "top3_concentration": 1.0,
+            "pnl_hhi": 0.625,
+        }
+    )
+    assert symbol_pnl_concentration({}) == {
+        "top1_concentration": 0.0,
+        "top3_concentration": 0.0,
+        "pnl_hhi": 0.0,
+    }
+    with pytest.raises(ValueError, match="invalid symbol PnL"):
+        symbol_pnl_concentration({"a": float("nan")})
 
 
 def test_observation_rejects_inexact_orders_and_out_of_universe_attribution() -> None:

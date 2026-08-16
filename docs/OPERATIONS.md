@@ -115,6 +115,13 @@ uv run uquant daily \
 
 若人工决定不执行某个意图，应保留真实账户状态，并按订单生命周期显式取消或替换；不要伪造成交来消除挂单。
 
+### 外部执行 journal
+
+人工闭环可另写 observational、append-only、broker-independent journal，逐笔记录
+计划价格、下一交易日开盘、实际成交时间/价格/股数、人工跳过和由此计算的滑点。
+该文件不连接券商、不回写 `account_state.json`，也不作为候选排序、风险状态或参数
+输入；系统账户和完整券商快照仍是生产状态的权威来源。
+
 ## 历史回放
 
 ```bash
@@ -127,6 +134,16 @@ uv run uquant backtest \
 ```
 
 数据目录可以保留 2023 年以前的行情，但这些行只用于形成指标 warm-up；上市前证券不可见。初始权益、订单、成交、换手和绩效统计都从 2023+ 回放起点开始。回放执行模型和每日决策共用同一引擎。
+
+## Future holdout
+
+历史研究和冻结 benchmark 最后一天是 `2026-08-05`，future holdout 的第一天是
+`2026-08-06`，存放在与 `data/frozen` 隔离的目录。`2026-08-05` 收盘决策若在次日
+执行，整个成交归入 holdout。未导入未来 session 时，观察和指标必须保持 null；
+不能创建占位收益、沿用历史指标或据观察期表现修改参数。首次评审必须累计
+`40--60` 个交易日，并继续保留人工运行、完整券商对账与外部 journal。起始账户
+必须逐字节匹配已审阅的 `continuous_ai_era/full` 回放摘要；未来评分只接受可重放、
+可重算的执行证据，独立填写或重新封签的指标 JSON 会被拒绝。
 
 ## 常见故障
 
@@ -176,4 +193,8 @@ uv run python -m uquant.validation promotion \
 确认其 provenance 中 `production_commit` 与待发布 HEAD 完全一致，并保留 CI
 上传件。不要把旧 artifact 提交进仓库后当作当前版本证明。
 
-策略或参数发生变化时还必须运行上述唯一的 full AI-era 阻断绩效门。注释和文档工作也要证明可执行 AST 与 AI-era 回测指标保持不变。
+发布分支还必须在 GitHub 得到独立的 `Engineering`、`Phase 1 Performance` 与
+`Phase 2 Generalization` 成功结论。Phase 1 保持上述 full profile；Phase 2 对六个
+固定官方窗口聚合全部 shard，并检查精确 HEAD、完整 provenance、234 条记录、冻结
+policy 与所有失败状态。诊断 artifact 即使失败也要保留，任何一个门都不能由另一个
+成功抵消。注释和文档工作仍要证明可执行 AST 与 AI-era 指标保持不变。

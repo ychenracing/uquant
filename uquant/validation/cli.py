@@ -8,8 +8,10 @@ from collections.abc import Iterable
 from pathlib import Path
 from typing import Any
 
+from .ai_era import AI_ERA_WINDOWS
 from .competitor import run_competitor_gate
 from .generalization import run_generalization
+from .generalization_matrix import run_generalization_matrix
 from .manifest import verify_data_manifest
 from .promotion import run_promotion
 
@@ -79,6 +81,11 @@ def _parser() -> argparse.ArgumentParser:
     generalization.add_argument("--lookback-sessions", type=int, default=120)
     generalization.add_argument("--random-seed-count", type=int, default=300)
     generalization.add_argument("--output", default=None)
+    matrix = sub.add_parser("generalization-matrix")
+    matrix.add_argument("--data-dir", required=True)
+    matrix.add_argument("--window", action="append", choices=tuple(AI_ERA_WINDOWS), default=None)
+    matrix.add_argument("--lookback-sessions", type=int, default=120)
+    matrix.add_argument("--output", default=None)
     competitor = sub.add_parser("competitor")
     competitor.add_argument("--data-dir", required=True)
     competitor.add_argument(
@@ -115,13 +122,28 @@ def main(argv: list[str] | None = None) -> int:
             lookback_sessions=args.lookback_sessions,
             random_seeds=range(args.random_seed_count),
         )
+    elif args.command == "generalization-matrix":
+        report = run_generalization_matrix(
+            data_dir=args.data_dir,
+            window_names=tuple(args.window) if args.window is not None else None,
+            lookback_sessions=args.lookback_sessions,
+        )
     else:
         reference = _require_reviewed_reference(args.reference, gate="competitor")
         report = run_competitor_gate(
             data_dir=args.data_dir,
             reference_path=reference,
         )
-    payload = json.dumps(report, ensure_ascii=False, indent=2, sort_keys=True)
+    if args.command == "generalization-matrix":
+        payload = json.dumps(
+            report,
+            allow_nan=False,
+            ensure_ascii=False,
+            separators=(",", ":"),
+            sort_keys=True,
+        )
+    else:
+        payload = json.dumps(report, ensure_ascii=False, indent=2, sort_keys=True)
     if getattr(args, "output", None):
         output = Path(args.output)
         output.parent.mkdir(parents=True, exist_ok=True)

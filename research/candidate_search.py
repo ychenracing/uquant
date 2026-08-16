@@ -15,11 +15,20 @@ from collections.abc import Callable, Iterable, Mapping, Sequence
 from dataclasses import dataclass
 from datetime import date
 from statistics import median, pvariance
+from typing import Final, cast, get_type_hints
 
+from uquant.config import DEFAULT_CONFIG, SystemConfig
+from uquant.config_governance import ParameterCategory, load_config_governance
 from uquant.validation.ai_era import AI_ERA_WINDOWS
 
 type Scalar = str | int | float | bool | None
 type SharedConfig = Mapping[str, Scalar]
+type SystemConfigFieldType = type[bool] | type[int] | type[float]
+
+_SYSTEM_CONFIG_FIELD_TYPES: Final[Mapping[str, SystemConfigFieldType]] = cast(
+    dict[str, SystemConfigFieldType],
+    get_type_hints(SystemConfig),
+)
 
 _PER_POOL_KEYS = {
     "per_pool",
@@ -32,6 +41,32 @@ _PER_POOL_KEYS = {
 }
 
 
+def validate_economic_parameter_names(names: Iterable[str]) -> tuple[str, ...]:
+    """Validate names before candidate values are expanded or replayed."""
+
+    governance = load_config_governance()
+    validated: list[str] = []
+    for raw_name in names:
+        if not isinstance(raw_name, str) or not raw_name.strip():
+            raise ValueError("candidate parameter names must be non-empty strings")
+        if raw_name != raw_name.strip():
+            raise ValueError("candidate parameter names must be canonical exact strings")
+        name = raw_name
+        try:
+            entry = governance.entry(name)
+        except ValueError as exc:
+            raise ValueError(
+                f"candidate overrides must name declared ECONOMIC SystemConfig fields: {name}"
+            ) from exc
+        if entry.category is not ParameterCategory.ECONOMIC:
+            raise ValueError(
+                "candidate overrides must name declared ECONOMIC SystemConfig fields: "
+                f"{name} is {entry.category.value}"
+            )
+        validated.append(name)
+    return tuple(sorted(validated))
+
+
 def _canonical(parameters: SharedConfig) -> str:
     return json.dumps(
         dict(sorted(parameters.items())),
@@ -42,23 +77,52 @@ def _canonical(parameters: SharedConfig) -> str:
     )
 
 
+def _validated_system_config_value(name: str, value: Scalar) -> Scalar:
+    """Normalize safe numeric ergonomics to the exact annotated field type."""
+
+    expected = _SYSTEM_CONFIG_FIELD_TYPES.get(name)
+    if expected is bool:
+        if type(value) is not bool:
+            raise ValueError(f"candidate parameter {name} requires bool")
+        return value
+    if expected is int:
+        if isinstance(value, bool) or not isinstance(value, (int, float)):
+            raise ValueError(f"candidate parameter {name} requires int")
+        if isinstance(value, float):
+            if not math.isfinite(value) or not value.is_integer():
+                raise ValueError(f"candidate parameter {name} requires int")
+            return int(value)
+        return int(value)
+    if expected is float:
+        if isinstance(value, bool) or not isinstance(value, (int, float)):
+            raise ValueError(f"candidate parameter {name} requires float")
+        normalized = float(value)
+        if not math.isfinite(normalized):
+            raise ValueError(f"candidate parameter must be finite: {name}")
+        return normalized
+    raise ValueError(f"candidate parameter has unsupported SystemConfig type: {name}")
+
+
 def validate_shared_config(
     parameters: SharedConfig,
     *,
     pool_names: Iterable[str] = (),
 ) -> dict[str, Scalar]:
-    """Return a detached flat config or reject pool-specific profiles.
+    """Return validated ECONOMIC overrides or reject all other freedom.
 
-    SystemConfig is flat today. Restricting research candidates to scalar
-    values makes it impossible to smuggle an A/B/C/D/E parameter table into a
-    candidate while retaining all ordinary numeric, string, and boolean knobs.
+    SystemConfig is flat today. Restricting research candidates to scalar,
+    governed ECONOMIC values makes it impossible to smuggle an A/B/C/D/E
+    parameter table or a market-rule, safety, derived, compatibility, or
+    unknown override into a replay candidate.
     """
     pools = {str(name).strip().lower() for name in pool_names}
     clean: dict[str, Scalar] = {}
     for raw_name, value in parameters.items():
         if not isinstance(raw_name, str) or not raw_name.strip():
             raise ValueError("candidate parameter names must be non-empty strings")
-        name = raw_name.strip()
+        if raw_name != raw_name.strip():
+            raise ValueError("candidate parameter names must be canonical exact strings")
+        name = raw_name
         lowered = name.lower()
         if (
             lowered in _PER_POOL_KEYS
@@ -67,12 +131,16 @@ def validate_shared_config(
             or lowered.startswith("profile.")
         ):
             raise ValueError(f"per-pool candidate parameters are forbidden: {name}")
+        validate_economic_parameter_names((name,))
         if not isinstance(value, (str, int, float, bool, type(None))):
             raise ValueError(f"candidate parameters must be scalar: {name}")
-        if isinstance(value, float) and not math.isfinite(value):
-            raise ValueError(f"candidate parameter must be finite: {name}")
-        clean[name] = value
-    return dict(sorted(clean.items()))
+        clean[name] = _validated_system_config_value(name, value)
+    ordered = dict(sorted(clean.items()))
+    try:
+        DEFAULT_CONFIG.override(**ordered)
+    except (TypeError, ValueError) as exc:
+        raise ValueError(f"invalid ECONOMIC SystemConfig override: {exc}") from exc
+    return ordered
 
 
 def _deduplicated_values(values: Iterable[Scalar], *, name: str) -> tuple[Scalar, ...]:
@@ -97,7 +165,7 @@ def enumerate_candidates(
 ) -> tuple[dict[str, Scalar], ...]:
     """Enumerate a factorial grid in a stable, input-order-independent order."""
     base_config = validate_shared_config(base or {}, pool_names=pool_names)
-    names = tuple(sorted(parameter_grid))
+    names = validate_economic_parameter_names(parameter_grid)
     if len(names) != len(set(names)):
         raise ValueError("candidate grid parameter names must be unique")
     values = tuple(_deduplicated_values(parameter_grid[name], name=name) for name in names)

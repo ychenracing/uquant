@@ -374,6 +374,28 @@ def test_promotion_candidate_commit_checks_reference_registry(
     assert "benchmarks/reference_registry.json" in observed_status_arguments
 
 
+def test_promotion_candidate_commit_checks_config_governance(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    observed_status_arguments: list[str] = []
+
+    def git_stdout(_root: Path, arguments: list[str], *, label: str) -> str:
+        del label
+        if arguments[0] == "status":
+            observed_status_arguments.extend(arguments)
+            if "benchmarks/config_parameter_governance.json" in arguments:
+                return " M benchmarks/config_parameter_governance.json\n"
+            return ""
+        return "e" * 40
+
+    monkeypatch.setattr(promotion_module, "_git_stdout", git_stdout)
+
+    with pytest.raises(RuntimeError, match="requires committed production source"):
+        promotion_module._production_commit(tmp_path)
+    assert "benchmarks/config_parameter_governance.json" in observed_status_arguments
+
+
 def test_promotion_candidate_commit_checks_uv_lock(
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,
@@ -396,7 +418,7 @@ def test_promotion_candidate_commit_checks_uv_lock(
     assert "uv.lock" in observed_status_arguments
 
 
-def test_production_source_fingerprint_includes_reference_registry(
+def test_production_source_fingerprint_includes_control_artifacts(
     tmp_path: Path,
 ) -> None:
     (tmp_path / "uquant").mkdir()
@@ -408,6 +430,8 @@ def test_production_source_fingerprint_includes_reference_registry(
     (tmp_path / "uquant" / "engine.py").write_text("engine\n", encoding="utf-8")
     registry = tmp_path / "benchmarks" / "reference_registry.json"
     registry.write_text('{"version":1}\n', encoding="utf-8")
+    governance = tmp_path / "benchmarks" / "config_parameter_governance.json"
+    governance.write_text('{"artifact_sha256":"1"}\n', encoding="utf-8")
     first = promotion_module._production_source_fingerprint(tmp_path)
 
     registry.write_text('{"version":2}\n', encoding="utf-8")
@@ -419,12 +443,18 @@ def test_production_source_fingerprint_includes_reference_registry(
 
     assert promotion_module._production_source_fingerprint(tmp_path) != second
 
+    third = promotion_module._production_source_fingerprint(tmp_path)
+    governance.write_text('{"artifact_sha256":"2"}\n', encoding="utf-8")
 
-def test_committed_source_fingerprint_includes_reference_registry(
+    assert promotion_module._production_source_fingerprint(tmp_path) != third
+
+
+def test_committed_source_fingerprint_includes_control_artifacts(
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,
 ) -> None:
     registry_content = '{"version":1}\n'
+    governance_content = '{"artifact_sha256":"1"}\n'
     lock_content = "lock-version-1\n"
 
     def git_stdout(_root: Path, arguments: list[str], *, label: str) -> str:
@@ -433,10 +463,13 @@ def test_committed_source_fingerprint_includes_reference_registry(
             return (
                 "pyproject.toml\nrequirements.txt\nuv.lock\nuquant/engine.py\n"
                 "benchmarks/reference_registry.json\n"
+                "benchmarks/config_parameter_governance.json\n"
             )
         path = arguments[-1].split(":", maxsplit=1)[1]
         if path == "benchmarks/reference_registry.json":
             return registry_content
+        if path == "benchmarks/config_parameter_governance.json":
+            return governance_content
         if path == "uv.lock":
             return lock_content
         return f"{path}\n"
@@ -456,6 +489,14 @@ def test_committed_source_fingerprint_includes_reference_registry(
     assert (
         promotion_module._production_source_fingerprint_at_commit(tmp_path, "e" * 40)
         != second
+    )
+
+    third = promotion_module._production_source_fingerprint_at_commit(tmp_path, "e" * 40)
+    governance_content = '{"artifact_sha256":"2"}\n'
+
+    assert (
+        promotion_module._production_source_fingerprint_at_commit(tmp_path, "e" * 40)
+        != third
     )
 
 

@@ -2,33 +2,94 @@
 
 from __future__ import annotations
 
+import hashlib
 import json
 import math
 import os
+import re
 import tempfile
+from collections.abc import Mapping
 from contextlib import suppress
 from datetime import UTC, datetime
 from datetime import date as date_type
 from pathlib import Path
+from types import SimpleNamespace
 from typing import Any
 
 from .types import (
     ACCOUNT_SCHEMA_VERSION,
+    ATTRIBUTION_IDENTITY_FIELDS,
     ORDER_INTENT_IMMUTABLE_FIELDS,
     AccountOrder,
     AccountState,
+    AttributionMechanism,
     Fill,
     Lifecycle,
     Opportunity,
     OrderStatus,
+    OriginSubsystem,
     PendingOrder,
     Position,
     ReductionPolicy,
     Risk,
     Side,
     Tranche,
+    derive_attribution_event_id,
     order_intent_metadata,
+    validate_attribution_compatibility,
 )
+from .validation.universe import (
+    CANONICAL_INDUSTRIES,
+    REQUIRED_AI_UNIVERSE_SHA256,
+    default_ai_universe,
+)
+
+_EVENT_ID = re.compile(r"^evt_[0-9a-f]{64}$")
+_ORDER_ID = re.compile(r"^O[0-9]{9}$")
+_LEGACY_INDUSTRY = "legacy_unmapped"
+_LEGACY_MANIFEST_SHA256 = "0" * 64
+_HISTORICAL_ATTRIBUTION_SCHEMA_VERSION = 4
+
+_UNLINKED_NATIVE_IDENTITY_FIELDS = (
+    "signal_date",
+    "symbol",
+    "side",
+    "lifecycle",
+    "reduction_policy",
+    "exit_kind",
+    "event_id",
+    "origin_subsystem",
+    "mechanism",
+    "origin_lifecycle",
+    "replaces_symbol",
+    "industry_at_entry",
+    "industry_manifest_sha256",
+)
+_UNLINKED_LEGACY_IDENTITY_FIELDS = (
+    "signal_date",
+    "symbol",
+    "side",
+    "lifecycle",
+    "reduction_policy",
+    "reason_code",
+    "exit_kind",
+)
+
+
+def _unlinked_fill_matches_order(
+    fill: Fill,
+    order: AccountOrder,
+    *,
+    native: bool,
+) -> bool:
+    """Match only stable structured fields; prose is never a join key."""
+
+    fields = (
+        _UNLINKED_NATIVE_IDENTITY_FIELDS
+        if native
+        else _UNLINKED_LEGACY_IDENTITY_FIELDS
+    )
+    return all(getattr(fill, field) == getattr(order, field) for field in fields)
 
 
 def _reject_nonstandard_json_constant(value: str) -> None:
@@ -79,7 +140,184 @@ def _required_text(value: Any, *, field: str) -> str:
     return value
 
 
-def _validate_order_intent(order: PendingOrder | AccountOrder, *, label: str) -> date_type:
+def _derive_v4_attribution_event_id(
+    *,
+    signal_date: str,
+    symbol: str,
+    target_weight: float,
+    lifecycle: str,
+    origin_lifecycle: str,
+    origin_subsystem: str,
+    mechanism: str,
+    replaces_symbol: str | None,
+    industry_at_entry: str,
+    industry_manifest_sha256: str,
+    reduction_policy: str,
+    reason_code: str,
+    exit_kind: str,
+) -> str:
+    """Read only the exact machine-only event format written by schema v4."""
+
+    # Current derivation performs the shared closed-vocabulary and scalar
+    # validation. Its result is intentionally discarded at this migration-only
+    # boundary before reconstructing the exact historical payload.
+    derive_attribution_event_id(
+        signal_date=signal_date,
+        symbol=symbol,
+        target_weight=target_weight,
+        lifecycle=lifecycle,
+        origin_lifecycle=origin_lifecycle,
+        origin_subsystem=origin_subsystem,
+        mechanism=mechanism,
+        replaces_symbol=replaces_symbol,
+        industry_at_entry=industry_at_entry,
+        industry_manifest_sha256=industry_manifest_sha256,
+        reduction_policy=reduction_policy,
+        reason_code=reason_code,
+        exit_kind=exit_kind,
+    )
+    # Schema-v4's v1 payload already excluded both display fields. They remain
+    # function arguments only because persisted order objects carry them.
+    del reason_code, exit_kind
+    payload = {
+        "schema": "uquant.attribution-event.v1",
+        "signal_date": signal_date,
+        "symbol": symbol,
+        "target_weight": float(target_weight).hex(),
+        "lifecycle": lifecycle,
+        "origin_lifecycle": origin_lifecycle,
+        "origin_subsystem": origin_subsystem,
+        "mechanism": mechanism,
+        "replaces_symbol": replaces_symbol,
+        "industry_at_entry": industry_at_entry,
+        "industry_manifest_sha256": industry_manifest_sha256,
+        "reduction_policy": reduction_policy,
+    }
+    encoded = json.dumps(
+        payload,
+        allow_nan=False,
+        ensure_ascii=False,
+        separators=(",", ":"),
+        sort_keys=True,
+    ).encode("utf-8")
+    return "evt_" + hashlib.sha256(encoded).hexdigest()
+
+
+def _validate_attribution_identity(
+    item: Any,
+    *,
+    label: str,
+    verify_event_derivation: bool = False,
+    event_schema_version: int = ACCOUNT_SCHEMA_VERSION,
+) -> None:
+    """Validate one canonical identity, including explicit migration defaults."""
+
+    if not isinstance(item.event_id, str) or not _EVENT_ID.fullmatch(item.event_id):
+        raise RuntimeError(f"{label} has invalid event_id")
+    try:
+        origin = OriginSubsystem(item.origin_subsystem)
+    except (TypeError, ValueError) as exc:
+        raise RuntimeError(f"{label} has invalid origin_subsystem") from exc
+    try:
+        mechanism = AttributionMechanism(item.mechanism)
+    except (TypeError, ValueError) as exc:
+        raise RuntimeError(f"{label} has invalid mechanism") from exc
+    try:
+        validate_attribution_compatibility(
+            origin_subsystem=origin.value,
+            mechanism=mechanism.value,
+            side=getattr(item, "side", None),
+        )
+    except (TypeError, ValueError) as exc:
+        if (
+            getattr(item, "side", None) == Side.BUY.value
+            and origin is OriginSubsystem.LEGACY_MIGRATION
+        ):
+            raise RuntimeError(
+                f"{label} legacy migration identity cannot create a BUY"
+            ) from exc
+        elif (
+            getattr(item, "side", None) == Side.BUY.value
+            and origin is OriginSubsystem.BROKER_RECONCILIATION
+        ):
+            raise RuntimeError(
+                f"{label} broker reconciliation identity cannot create a BUY"
+            ) from exc
+        else:
+            raise RuntimeError(f"{label} has incompatible attribution: {exc}") from exc
+    try:
+        Lifecycle(item.origin_lifecycle)
+    except (TypeError, ValueError) as exc:
+        raise RuntimeError(f"{label} has invalid origin_lifecycle") from exc
+    if item.replaces_symbol is not None and (
+        not isinstance(item.replaces_symbol, str) or not item.replaces_symbol.strip()
+    ):
+        raise RuntimeError(f"{label} has invalid replaces_symbol")
+    legacy_identity = bool(
+        origin is OriginSubsystem.LEGACY_MIGRATION
+        and mechanism is AttributionMechanism.LEGACY_MIGRATION
+    )
+    broker_degraded_identity = bool(
+        origin is OriginSubsystem.BROKER_RECONCILIATION
+        and mechanism is AttributionMechanism.BROKER_RECONCILIATION
+    )
+    migrated_inventory_sale = bool(
+        getattr(item, "side", None) == Side.SELL.value
+    )
+    if item.industry_at_entry in CANONICAL_INDUSTRIES:
+        if item.industry_manifest_sha256 != REQUIRED_AI_UNIVERSE_SHA256:
+            raise RuntimeError(f"{label} has invalid industry manifest SHA-256")
+    elif item.industry_at_entry == _LEGACY_INDUSTRY and (
+        legacy_identity or broker_degraded_identity or migrated_inventory_sale
+    ):
+        if item.industry_manifest_sha256 != _LEGACY_MANIFEST_SHA256:
+            raise RuntimeError(f"{label} has invalid legacy industry manifest SHA-256")
+    else:
+        raise RuntimeError(f"{label} has invalid industry_at_entry")
+    if verify_event_derivation:
+        try:
+            derivation = (
+                _derive_v4_attribution_event_id
+                if event_schema_version == _HISTORICAL_ATTRIBUTION_SCHEMA_VERSION
+                else derive_attribution_event_id
+            )
+            if event_schema_version not in {
+                _HISTORICAL_ATTRIBUTION_SCHEMA_VERSION,
+                ACCOUNT_SCHEMA_VERSION,
+            }:
+                raise ValueError("unsupported attribution event schema")
+            expected = derivation(
+                signal_date=item.signal_date,
+                symbol=item.symbol,
+                target_weight=item.target_weight,
+                lifecycle=item.lifecycle,
+                origin_lifecycle=item.origin_lifecycle,
+                origin_subsystem=item.origin_subsystem,
+                mechanism=item.mechanism,
+                replaces_symbol=item.replaces_symbol,
+                industry_at_entry=item.industry_at_entry,
+                industry_manifest_sha256=item.industry_manifest_sha256,
+                reduction_policy=item.reduction_policy,
+                reason_code=item.reason_code,
+                exit_kind=item.exit_kind,
+            )
+        except (TypeError, ValueError) as exc:
+            raise RuntimeError(f"{label} has malformed attribution identity") from exc
+        if item.event_id != expected:
+            if event_schema_version == _HISTORICAL_ATTRIBUTION_SCHEMA_VERSION:
+                raise RuntimeError(
+                    f"{label} v4 event_id differs from canonical derivation"
+                )
+            raise RuntimeError(f"{label} event_id differs from canonical derivation")
+
+
+def _validate_order_intent(
+    order: PendingOrder | AccountOrder,
+    *,
+    label: str,
+    validate_attribution: bool = False,
+    event_schema_version: int = ACCOUNT_SCHEMA_VERSION,
+) -> date_type:
     """Validate the immutable economic identity shared by durable orders."""
     signal_date = _required_iso_date(order.signal_date, field=f"{label} signal_date")
     _required_text(order.symbol, field=f"{label} symbol")
@@ -115,7 +353,35 @@ def _validate_order_intent(order: PendingOrder | AccountOrder, *, label: str) ->
         order.entry_industry_strength,
         field=f"{label} entry_industry_strength",
     )
+    if validate_attribution:
+        _validate_attribution_identity(
+            order,
+            label=label,
+            verify_event_derivation=True,
+            event_schema_version=event_schema_version,
+        )
+        if order.side == Side.BUY.value:
+            expected_industry = default_ai_universe().industry_of(order.symbol, signal_date)
+            if expected_industry == "unknown":
+                raise RuntimeError(f"{label} BUY has no point-in-time AI-universe membership")
+            if order.industry_at_entry != expected_industry:
+                raise RuntimeError(f"{label} BUY industry_at_entry differs from point-in-time membership")
     return signal_date
+
+
+def validate_pending_order_for_account_write(
+    state: AccountState,
+    order: PendingOrder,
+) -> None:
+    """Validate one current-schema order before execution mutates the ledger."""
+
+    if state.schema_version != ACCOUNT_SCHEMA_VERSION:
+        raise RuntimeError("pending order registration requires the current account schema")
+    _validate_order_intent(
+        order,
+        label="pending order",
+        validate_attribution=True,
+    )
 
 
 def _validate_fill(
@@ -123,6 +389,7 @@ def _validate_fill(
     *,
     ledger: dict[str, AccountOrder],
     allow_schema_v2_missing_sell_attribution: bool = False,
+    validate_attribution: bool = False,
 ) -> None:
     """Validate one fill and reconcile its immutable order attribution."""
 
@@ -154,8 +421,12 @@ def _validate_fill(
     _required_text(fill.exit_kind, field="fill exit_kind")
     if not isinstance(fill.order_id, str) or not isinstance(fill.fill_id, str):
         raise RuntimeError("fill identifiers must be text")
+    if fill.order_id:
+        _order_sequence(fill.order_id)
     if fill.fill_id and not fill.fill_id.strip():
         raise RuntimeError("fill_id cannot contain only whitespace")
+    if validate_attribution:
+        _validate_attribution_identity(fill, label="fill")
 
     order = ledger.get(fill.order_id) if fill.order_id else None
     if fill.order_id and order is None:
@@ -165,11 +436,16 @@ def _validate_fill(
             "signal_date",
             "symbol",
             "side",
-            "reason",
             "lifecycle",
             "reduction_policy",
-            "reason_code",
             "exit_kind",
+            "event_id",
+            "origin_subsystem",
+            "mechanism",
+            "origin_lifecycle",
+            "replaces_symbol",
+            "industry_at_entry",
+            "industry_manifest_sha256",
         )
         changed = [name for name in fields_that_must_match if getattr(fill, name) != getattr(order, name)]
         if changed:
@@ -287,6 +563,12 @@ def _validate_fill(
                 allocation["entry_industry_strength"],
                 field="fill sold-lot entry_industry_strength",
             )
+        if validate_attribution:
+            allocation_identity = SimpleNamespace(**allocation)
+            _validate_attribution_identity(
+                allocation_identity,
+                label="fill sold-lot attribution",
+            )
 
         fee_components = tuple(allocated_fee_totals)
         has_fee_detail = any(name in allocation for name in (*fee_components, "fees", "transaction_costs"))
@@ -390,6 +672,26 @@ def _validate_nonnegative_integer_map(values: Any, *, field: str) -> None:
     for key, value in values.items():
         _required_text(key, field=f"{field} key")
         _nonnegative_integer(value, field=f"{field}[{key}]")
+
+
+def _validate_risk_streaks(values: Any) -> None:
+    """Validate streak counters plus the signed opportunity evidence sentinel."""
+
+    if not isinstance(values, dict):
+        raise RuntimeError("risk_streaks must be an object")
+    for key, value in values.items():
+        _required_text(key, field="risk_streaks key")
+        if key == "opportunity_evidence":
+            if (
+                isinstance(value, bool)
+                or not isinstance(value, int)
+                or value not in {-1, 0, 1}
+            ):
+                raise RuntimeError(
+                    "risk_streaks[opportunity_evidence] must be -1, 0, or 1"
+                )
+            continue
+        _nonnegative_integer(value, field=f"risk_streaks[{key}]")
 
 
 def _validate_weight_map(values: Any, *, field: str) -> set[str]:
@@ -634,7 +936,7 @@ def _validate_strategy_risk_state(state: AccountState) -> None:
     _validate_nonnegative_integer_map(state.leader_tenure, field="leader_tenure")
     _validate_nonnegative_integer_map(state.candidate_tenure, field="candidate_tenure")
     _validate_nonnegative_integer_map(state.replacement_tenure, field="replacement_tenure")
-    _validate_nonnegative_integer_map(state.risk_streaks, field="risk_streaks")
+    _validate_risk_streaks(state.risk_streaks)
     for field, value in (
         ("sector_recovery_streak", state.sector_recovery_streak),
         ("dynamic_k", state.dynamic_k),
@@ -718,8 +1020,8 @@ def _validate_strategy_risk_state(state: AccountState) -> None:
 
 def _tranche(payload: dict[str, Any], *, schema_version: int) -> Tranche:
     """Load a tranche while deriving safe current-schema economic metadata."""
-    native_v3 = schema_version == ACCOUNT_SCHEMA_VERSION
-    if native_v3:
+    native_schema = schema_version >= _HISTORICAL_ATTRIBUTION_SCHEMA_VERSION
+    if native_schema:
         avg_cost = payload.get("avg_cost", 0.0)
         highest = payload.get("highest_close", avg_cost)
         lowest = payload.get("lowest_close", avg_cost)
@@ -729,9 +1031,9 @@ def _tranche(payload: dict[str, Any], *, schema_version: int) -> Tranche:
         lowest = float(payload.get("lowest_close", avg_cost))
         if lowest <= 0:
             lowest = avg_cost
-    convert_text = (lambda value: value) if native_v3 else str
-    convert_int = (lambda value: value) if native_v3 else int
-    convert_float = (lambda value: value) if native_v3 else float
+    convert_text = (lambda value: value) if native_schema else str
+    convert_int = (lambda value: value) if native_schema else int
+    convert_float = (lambda value: value) if native_schema else float
     return Tranche(
         tranche_id=convert_text(payload["tranche_id"]),
         lifecycle=convert_text(payload.get("lifecycle", "CORE")),
@@ -763,16 +1065,25 @@ def _tranche(payload: dict[str, Any], *, schema_version: int) -> Tranche:
         entry_confidence=convert_float(payload.get("entry_confidence", 0.0)),
         entry_regime=convert_text(payload.get("entry_regime", "CHOPPY")),
         entry_industry_strength=convert_float(payload.get("entry_industry_strength", 0.0)),
+        event_id=convert_text(payload.get("event_id", "")),
+        origin_subsystem=convert_text(payload.get("origin_subsystem", "")),
+        mechanism=convert_text(payload.get("mechanism", "")),
+        origin_lifecycle=convert_text(payload.get("origin_lifecycle", "")),
+        replaces_symbol=payload.get("replaces_symbol"),
+        industry_at_entry=convert_text(payload.get("industry_at_entry", "")),
+        industry_manifest_sha256=convert_text(
+            payload.get("industry_manifest_sha256", "")
+        ),
     )
 
 
 def _position(payload: dict[str, Any], *, schema_version: int) -> Position:
     """Decode a position and reconcile aggregate shares with its tranche lots."""
 
-    native_v3 = schema_version == ACCOUNT_SCHEMA_VERSION
-    convert_text = (lambda value: value) if native_v3 else str
-    convert_int = (lambda value: value) if native_v3 else int
-    convert_float = (lambda value: value) if native_v3 else float
+    native_schema = schema_version >= _HISTORICAL_ATTRIBUTION_SCHEMA_VERSION
+    convert_text = (lambda value: value) if native_schema else str
+    convert_int = (lambda value: value) if native_schema else int
+    convert_float = (lambda value: value) if native_schema else float
     position = Position(
         symbol=convert_text(payload["symbol"]),
         shares=convert_int(payload.get("shares", 0)),
@@ -782,7 +1093,7 @@ def _position(payload: dict[str, Any], *, schema_version: int) -> Position:
         lifecycle=convert_text(payload.get("lifecycle", "CORE")),
         tranches=[_tranche(item, schema_version=schema_version) for item in payload.get("tranches", [])],
     )
-    if schema_version < ACCOUNT_SCHEMA_VERSION and position.shares > 0:
+    if schema_version < _HISTORICAL_ATTRIBUTION_SCHEMA_VERSION and position.shares > 0:
         known_shares = sum(item.shares for item in position.tranches)
         if known_shares > position.shares:
             raise ValueError("compatible position tranches exceed aggregate shares")
@@ -813,7 +1124,11 @@ def _position(payload: dict[str, Any], *, schema_version: int) -> Position:
     return position
 
 
-def _validate_position_state(state: AccountState) -> None:
+def _validate_position_state(
+    state: AccountState,
+    *,
+    validate_attribution: bool = False,
+) -> None:
     """Reject durable positions whose aggregate and lot inventories diverge."""
     lifecycles = {item.value for item in Lifecycle}
     try:
@@ -902,19 +1217,22 @@ def _validate_position_state(state: AccountState) -> None:
                 tranche.entry_industry_strength,
                 field="account tranche entry_industry_strength",
             )
+            if validate_attribution:
+                _validate_attribution_identity(
+                    tranche,
+                    label="account tranche",
+                )
         if position.shares != sum(item.shares for item in position.tranches):
             raise RuntimeError("account position shares do not reconcile to tranches")
 
 
 def _order_sequence(order_id: str) -> int:
-    if (
-        not isinstance(order_id, str)
-        or len(order_id) != 10
-        or not order_id.startswith("O")
-        or not order_id[1:].isdigit()
-    ):
+    if not isinstance(order_id, str) or _ORDER_ID.fullmatch(order_id) is None:
         raise RuntimeError(f"account state has invalid order id: {order_id!r}")
-    return int(order_id[1:])
+    sequence = int(order_id[1:])
+    if sequence <= 0:
+        raise RuntimeError(f"account state has invalid order id: {order_id!r}")
+    return sequence
 
 
 def _validate_order_state(
@@ -922,6 +1240,8 @@ def _validate_order_state(
     *,
     sequence_was_explicit: bool,
     allow_schema_v2_missing_sell_attribution: bool = False,
+    validate_attribution: bool = False,
+    event_schema_version: int = ACCOUNT_SCHEMA_VERSION,
 ) -> None:
     """Validate order identifiers, lifecycle transitions, fills, and references."""
 
@@ -935,7 +1255,16 @@ def _validate_order_state(
         raise RuntimeError("account state has duplicate order ids")
     sequences = [_order_sequence(order_id) for order_id in identifiers]
     required_next = max(sequences, default=0) + 1
-    if sequence_was_explicit and state.next_order_sequence < required_next:
+    if state.next_order_sequence > 999_999_999:
+        raise RuntimeError("account state next order sequence exceeds the canonical ID space")
+    if sequence_was_explicit and event_schema_version == ACCOUNT_SCHEMA_VERSION:
+        if state.next_order_sequence < required_next:
+            raise RuntimeError("account state next order sequence would reuse an order id")
+        if state.next_order_sequence > required_next:
+            raise RuntimeError(
+                "account state next order sequence does not exactly follow the durable ledger"
+            )
+    elif sequence_was_explicit and state.next_order_sequence < required_next:
         raise RuntimeError("account state next order sequence would reuse an order id")
     state.next_order_sequence = max(state.next_order_sequence, required_next)
     if state.next_order_sequence <= 0:
@@ -945,7 +1274,12 @@ def _validate_order_state(
     reduction_policies = {item.value for item in ReductionPolicy}
     ledger = {ledger_item.order_id: ledger_item for ledger_item in state.order_ledger}
     for ledger_item in state.order_ledger:
-        signal_date = _validate_order_intent(ledger_item, label="account order")
+        signal_date = _validate_order_intent(
+            ledger_item,
+            label="account order",
+            validate_attribution=validate_attribution,
+            event_schema_version=event_schema_version,
+        )
         submitted_date = _required_iso_date(
             ledger_item.submitted_date,
             field="account order submitted_date",
@@ -997,6 +1331,8 @@ def _validate_order_state(
     pending_ids = [item.order_id for item in state.pending_orders if item.order_id]
     if len(pending_ids) != len(set(pending_ids)):
         raise RuntimeError("account state has duplicate pending order ids")
+    for order_id in pending_ids:
+        _order_sequence(order_id)
     terminal = {
         OrderStatus.FILLED.value,
         OrderStatus.CANCELLED.value,
@@ -1030,7 +1366,12 @@ def _validate_order_state(
         if pending.attempts != pending_account_order.attempts:
             raise RuntimeError("pending order attempts differ from account order")
     for pending_item in state.pending_orders:
-        _validate_order_intent(pending_item, label="pending order")
+        _validate_order_intent(
+            pending_item,
+            label="pending order",
+            validate_attribution=validate_attribution,
+            event_schema_version=event_schema_version,
+        )
         _nonnegative_integer(
             pending_item.remaining_shares,
             field="pending order remaining_shares",
@@ -1052,6 +1393,7 @@ def _validate_order_state(
             fill,
             ledger=ledger,
             allow_schema_v2_missing_sell_attribution=(allow_schema_v2_missing_sell_attribution),
+            validate_attribution=validate_attribution,
         )
     fill_ids = [fill.fill_id for fill in state.fills if fill.fill_id]
     if len(fill_ids) != len(set(fill_ids)):
@@ -1061,15 +1403,23 @@ def _validate_order_state(
     unlinked_fills = [fill for fill in state.fills if not fill.order_id]
 
     def unlinked_identity_matches(fill: Fill, order: AccountOrder) -> bool:
-        """Match an unlinked fill to the immutable identity of one order."""
-
-        return bool(
-            fill.signal_date == order.signal_date
-            and fill.symbol == order.symbol
-            and fill.side == order.side
-            and fill.reason == order.reason
-            and fill.lifecycle == order.lifecycle
+        return _unlinked_fill_matches_order(
+            fill,
+            order,
+            native=validate_attribution,
         )
+
+    for fill in unlinked_fills:
+        structured_matches = sum(
+            unlinked_identity_matches(fill, candidate)
+            for candidate in state.order_ledger
+        )
+        if validate_attribution and structured_matches != 1:
+            raise RuntimeError(
+                "native unlinked fill must match exactly one structured account order"
+            )
+        if not validate_attribution and structured_matches > 1:
+            raise RuntimeError("unlinked fill has ambiguous structured order identity")
 
     for fill in state.fills:
         if fill.order_id:
@@ -1123,6 +1473,127 @@ def _validate_order_state(
                 raise RuntimeError("account order update predates its latest fill")
 
 
+def _validate_lot_origin_chains(
+    state: AccountState,
+    *,
+    schema_version: int = ACCOUNT_SCHEMA_VERSION,
+) -> None:
+    """Bind every native live/sold lot to a validated originating BUY."""
+
+    legacy_migration_boundary = any(
+        isinstance(event.get("from_schema"), int)
+        and not isinstance(event.get("from_schema"), bool)
+        and int(event["from_schema"]) < schema_version
+        and event.get("to_schema") == schema_version
+        and isinstance(event.get("migrated_at_utc"), str)
+        and bool(str(event["migrated_at_utc"]).strip())
+        and isinstance(event.get("from_code_hash"), str)
+        and bool(str(event["from_code_hash"]).strip())
+        and isinstance(event.get("to_code_hash"), str)
+        and bool(str(event["to_code_hash"]).strip())
+        for event in state.account_migrations
+    )
+    ledger = {order.order_id: order for order in state.order_ledger}
+
+    def originating_buy_order(fill: Fill) -> AccountOrder | None:
+        if fill.side != Side.BUY.value:
+            return None
+        if fill.order_id:
+            candidate = ledger.get(fill.order_id)
+            return candidate if candidate is not None and candidate.side == Side.BUY.value else None
+        candidates = [
+            order
+            for order in state.order_ledger
+            if order.side == Side.BUY.value
+            and _unlinked_fill_matches_order(fill, order, native=True)
+        ]
+        return candidates[0] if len(candidates) == 1 else None
+
+    buy_fills: dict[tuple[str, str], list[Fill]] = {}
+    acquired_shares: dict[tuple[str, str], int] = {}
+    for fill in state.fills:
+        if originating_buy_order(fill) is None:
+            continue
+        key = (fill.symbol, fill.event_id)
+        buy_fills.setdefault(key, []).append(fill)
+        acquired_shares[key] = acquired_shares.get(key, 0) + fill.shares
+
+    attributed_lot_shares: dict[tuple[str, str], int] = {}
+
+    def validate_lot(
+        lot: Any,
+        *,
+        symbol: str,
+        shares: int,
+        entry_date: str,
+        label: str,
+        sold_allocation: dict[str, Any] | None = None,
+    ) -> None:
+        legacy = bool(
+            lot.origin_subsystem == OriginSubsystem.LEGACY_MIGRATION.value
+            and lot.mechanism == AttributionMechanism.LEGACY_MIGRATION.value
+        )
+        if legacy:
+            if not legacy_migration_boundary:
+                raise RuntimeError(f"{label} legacy identity lacks an explicit migration boundary")
+            return
+        broker_degraded = bool(
+            lot.origin_subsystem == OriginSubsystem.BROKER_RECONCILIATION.value
+            and lot.mechanism == AttributionMechanism.BROKER_RECONCILIATION.value
+        )
+        if broker_degraded:
+            if (
+                sold_allocation is None
+                or sold_allocation.get("degraded") is not True
+                or not isinstance(sold_allocation.get("degradation_reason"), str)
+                or not str(sold_allocation["degradation_reason"]).strip()
+            ):
+                raise RuntimeError(f"{label} broker reconciliation identity is not a degraded SELL")
+            return
+
+        key = (symbol, lot.event_id)
+        candidates = buy_fills.get(key, [])
+        matches = [
+            fill
+            for fill in candidates
+            if fill.fill_date == entry_date
+            and all(
+                getattr(fill, field) == getattr(lot, field)
+                for field in ATTRIBUTION_IDENTITY_FIELDS
+            )
+        ]
+        if not matches:
+            raise RuntimeError(f"{label} does not chain to an originating BUY")
+        attributed_lot_shares[key] = attributed_lot_shares.get(key, 0) + shares
+
+    for symbol, position in state.positions.items():
+        for tranche in position.tranches:
+            validate_lot(
+                tranche,
+                symbol=symbol,
+                shares=tranche.shares,
+                entry_date=tranche.entry_date,
+                label="account tranche",
+            )
+    for fill in state.fills:
+        for allocation in fill.sold_tranches:
+            validate_lot(
+                SimpleNamespace(**allocation),
+                symbol=fill.symbol,
+                shares=int(allocation["shares"]),
+                entry_date=str(allocation.get("entry_date", "")),
+                label="fill sold lot",
+                sold_allocation=allocation,
+            )
+
+    for key, attributed in attributed_lot_shares.items():
+        if attributed > acquired_shares.get(key, 0):
+            raise RuntimeError(
+                "native lot shares exceed originating BUY fill shares for "
+                f"{key[0]} {key[1]}"
+            )
+
+
 def load_account(
     path: str | Path,
     *,
@@ -1135,6 +1606,17 @@ def load_account(
     negative balances, and missing provenance hashes when fail-closed operation
     is expected.
     """
+    payload = _read_account_payload(path)
+    return account_from_dict(
+        payload,
+        require_hashes=require_hashes,
+        allow_legacy_schema=allow_legacy_schema,
+    )
+
+
+def _read_account_payload(path: str | Path) -> dict[str, Any]:
+    """Read one account JSON object with the strict parser used by migration."""
+
     source = Path(path)
     try:
         payload = json.loads(
@@ -1143,8 +1625,20 @@ def load_account(
         )
     except (OSError, json.JSONDecodeError, ValueError) as exc:
         raise RuntimeError(f"account state is missing or corrupt: {source}") from exc
-    if not isinstance(payload, dict):
+    if not isinstance(payload, Mapping):
         raise RuntimeError("account state must be a JSON object")
+    return dict(payload)
+
+
+def account_from_dict(
+    value: Mapping[str, Any],
+    *,
+    require_hashes: bool = True,
+    allow_legacy_schema: bool = False,
+) -> AccountState:
+    """Decode and fully validate an in-memory durable account payload."""
+
+    payload = dict(value)
     raw_schema_version = payload.get("schema_version", 1)
     if isinstance(raw_schema_version, bool):
         raise RuntimeError("account state has an invalid schema version")
@@ -1155,7 +1649,10 @@ def load_account(
             schema_version = int(raw_schema_version)
         except (TypeError, ValueError) as exc:
             raise RuntimeError("account state has an invalid schema version") from exc
-        if not allow_legacy_schema or schema_version == ACCOUNT_SCHEMA_VERSION:
+        if (
+            not allow_legacy_schema
+            or schema_version >= _HISTORICAL_ATTRIBUTION_SCHEMA_VERSION
+        ):
             raise RuntimeError("native account schema_version must be an integer")
     if schema_version > ACCOUNT_SCHEMA_VERSION or schema_version < 1:
         raise RuntimeError(f"unsupported account schema {schema_version}; expected {ACCOUNT_SCHEMA_VERSION}")
@@ -1164,8 +1661,10 @@ def load_account(
             f"account schema {schema_version} requires explicit migration; "
             "run `uquant account-migrate --help`"
         )
-    native_v3 = schema_version == ACCOUNT_SCHEMA_VERSION
+    native_schema = schema_version >= _HISTORICAL_ATTRIBUTION_SCHEMA_VERSION
     sequence_was_explicit = "next_order_sequence" in payload
+    if schema_version == ACCOUNT_SCHEMA_VERSION and not sequence_was_explicit:
+        raise RuntimeError("current account schema requires next_order_sequence")
     operating_peak = payload.get("operating_peak")
     capital_peak = payload.get("capital_peak")
     if operating_peak is None:
@@ -1174,8 +1673,8 @@ def load_account(
         capital_peak = payload["initial_cash"]
     try:
         state = AccountState(
-            initial_cash=(payload["initial_cash"] if native_v3 else float(payload["initial_cash"])),
-            cash=(payload["cash"] if native_v3 else float(payload["cash"])),
+            initial_cash=(payload["initial_cash"] if native_schema else float(payload["initial_cash"])),
+            cash=(payload["cash"] if native_schema else float(payload["cash"])),
             schema_version=schema_version,
             positions={
                 symbol: _position(item, schema_version=schema_version)
@@ -1185,26 +1684,28 @@ def load_account(
             order_ledger=[AccountOrder(**item) for item in payload.get("order_ledger", [])],
             next_order_sequence=(
                 payload.get("next_order_sequence", 1)
-                if native_v3
+                if native_schema
                 else int(payload.get("next_order_sequence", 1))
             ),
             fills=[Fill(**item) for item in payload.get("fills", [])],
             broker_as_of=payload.get("broker_as_of", ""),
             opportunity=(
                 payload.get("opportunity", "CHOPPY")
-                if native_v3
+                if native_schema
                 else str(payload.get("opportunity", "CHOPPY"))
             ),
-            risk=(payload.get("risk", "NORMAL") if native_v3 else str(payload.get("risk", "NORMAL"))),
+            risk=(payload.get("risk", "NORMAL") if native_schema else str(payload.get("risk", "NORMAL"))),
             shock_state=(
-                payload.get("shock_state", "NONE") if native_v3 else str(payload.get("shock_state", "NONE"))
+                payload.get("shock_state", "NONE")
+                if native_schema
+                else str(payload.get("shock_state", "NONE"))
             ),
             sector_shock_dates=payload.get("sector_shock_dates", []),
             sector_guard_active=payload.get("sector_guard_active", False),
             sector_guard_started=payload.get("sector_guard_started", ""),
             sector_guard_symbols=(
                 payload.get("sector_guard_symbols", [])
-                if native_v3
+                if native_schema
                 else [str(item) for item in payload.get("sector_guard_symbols", [])]
             ),
             sector_recovery_streak=payload.get("sector_recovery_streak", 0),
@@ -1216,7 +1717,7 @@ def load_account(
             replacement_tenure={str(k): v for k, v in payload.get("replacement_tenure", {}).items()},
             active_leaders=(
                 payload.get("active_leaders", [])
-                if native_v3
+                if native_schema
                 else [str(item) for item in payload.get("active_leaders", [])]
             ),
             dynamic_k=payload.get("dynamic_k", 0),
@@ -1226,28 +1727,30 @@ def load_account(
             rotation_dates=payload.get("rotation_dates", []),
             replacement_events=(
                 payload.get("replacement_events", [])
-                if native_v3
+                if native_schema
                 else list(payload.get("replacement_events", []))
             ),
             lifecycle_events=(
                 payload.get("lifecycle_events", [])
-                if native_v3
+                if native_schema
                 else list(payload.get("lifecycle_events", []))
             ),
             risk_events=(
-                payload.get("risk_events", []) if native_v3 else list(payload.get("risk_events", []))
+                payload.get("risk_events", [])
+                if native_schema
+                else list(payload.get("risk_events", []))
             ),
             account_migrations=list(payload.get("account_migrations", [])),
             anchor_weights={str(k): v for k, v in payload.get("anchor_weights", {}).items()},
             recovery_anchor_date=payload.get("recovery_anchor_date", ""),
             recovery_conviction_symbol=(
                 payload.get("recovery_conviction_symbol", "")
-                if native_v3
+                if native_schema
                 else str(payload.get("recovery_conviction_symbol", ""))
             ),
             tactical_anchor_symbol=(
                 payload.get("tactical_anchor_symbol", "")
-                if native_v3
+                if native_schema
                 else str(payload.get("tactical_anchor_symbol", ""))
             ),
             protected_weights={str(k): v for k, v in payload.get("protected_weights", {}).items()},
@@ -1275,19 +1778,19 @@ def load_account(
             strategic_rearm_date=payload.get("strategic_rearm_date", ""),
             strategic_candidate_signature=(
                 payload.get("strategic_candidate_signature", "")
-                if native_v3
+                if native_schema
                 else str(payload.get("strategic_candidate_signature", ""))
             ),
             strategic_previous_symbols=payload.get("strategic_previous_symbols", []),
             risk_anchor_symbols=payload.get("risk_anchor_symbols", []),
             risk_anchor_signature=(
                 payload.get("risk_anchor_signature", "")
-                if native_v3
+                if native_schema
                 else str(payload.get("risk_anchor_signature", ""))
             ),
             risk_anchor_candidate_signature=(
                 payload.get("risk_anchor_candidate_signature", "")
-                if native_v3
+                if native_schema
                 else str(payload.get("risk_anchor_candidate_signature", ""))
             ),
             risk_anchor_candidate_streak=payload.get("risk_anchor_candidate_streak", 0),
@@ -1298,30 +1801,40 @@ def load_account(
             chronic_streak=payload.get("chronic_streak", 0),
             chronic_repair_streak=payload.get("chronic_repair_streak", 0),
             scout_signature=(
-                payload.get("scout_signature", "") if native_v3 else str(payload.get("scout_signature", ""))
+                payload.get("scout_signature", "")
+                if native_schema
+                else str(payload.get("scout_signature", ""))
             ),
             scout_entry_date=payload.get("scout_entry_date", ""),
             reconciliation_events=(
                 payload.get("reconciliation_events", [])
-                if native_v3
+                if native_schema
                 else list(payload.get("reconciliation_events", []))
             ),
             shock_start_date=payload.get("shock_start_date", ""),
             shock_severity=(
                 payload.get("shock_severity", "NORMAL")
-                if native_v3
+                if native_schema
                 else str(payload.get("shock_severity", "NORMAL"))
             ),
             last_shock_date=payload.get("last_shock_date", ""),
             last_successful_run=payload.get("last_successful_run", ""),
-            data_hash=(payload.get("data_hash", "") if native_v3 else str(payload.get("data_hash", ""))),
+            data_hash=(
+                payload.get("data_hash", "")
+                if native_schema
+                else str(payload.get("data_hash", ""))
+            ),
             data_hash_as_of=payload.get("data_hash_as_of", ""),
             data_hash_symbols=(
                 payload.get("data_hash_symbols", [])
-                if native_v3
+                if native_schema
                 else [str(item) for item in payload.get("data_hash_symbols", [])]
             ),
-            code_hash=(payload.get("code_hash", "") if native_v3 else str(payload.get("code_hash", ""))),
+            code_hash=(
+                payload.get("code_hash", "")
+                if native_schema
+                else str(payload.get("code_hash", ""))
+            ),
         )
     except (AttributeError, KeyError, TypeError, ValueError) as exc:
         raise RuntimeError("account state violates schema") from exc
@@ -1333,16 +1846,507 @@ def load_account(
     cash = _finite_number(state.cash, field="account state cash", minimum=-1e-6)
     if initial_cash == 0.0 or cash < -1e-6:
         raise RuntimeError("account state violates cash invariants")
-    _validate_position_state(state)
+    validate_attribution = schema_version >= _HISTORICAL_ATTRIBUTION_SCHEMA_VERSION
+    _validate_position_state(
+        state,
+        validate_attribution=validate_attribution,
+    )
     _validate_order_state(
         state,
         sequence_was_explicit=sequence_was_explicit,
         allow_schema_v2_missing_sell_attribution=(allow_legacy_schema and schema_version == 2),
+        validate_attribution=validate_attribution,
+        event_schema_version=schema_version,
     )
     _validate_strategy_risk_state(state)
+    if validate_attribution:
+        _validate_lot_origin_chains(state, schema_version=schema_version)
     if require_hashes and (not state.data_hash or not state.code_hash):
         raise RuntimeError("account state missing validation hashes")
     return state
+
+
+def _legacy_attribution_owner(
+    reason_code: str,
+    exit_kind: str,
+    *,
+    side: str,
+) -> tuple[str, str, bool]:
+    """Classify legacy stable codes without inspecting human-readable reason."""
+
+    exact: dict[str, tuple[OriginSubsystem, AttributionMechanism]] = {
+        "strategy_target": (
+            OriginSubsystem.LEADER,
+            AttributionMechanism.LEADER_SELECTION,
+        ),
+        "rotation": (
+            OriginSubsystem.LEADER,
+            AttributionMechanism.LEADER_ROTATION,
+        ),
+        "lifecycle_exit": (
+            OriginSubsystem.LEADER,
+            AttributionMechanism.LEADER_LIFECYCLE_EXIT,
+        ),
+        "challenger_scout": (
+            OriginSubsystem.LEADER,
+            AttributionMechanism.CHALLENGER_SCOUT,
+        ),
+        "satellite_expiry": (
+            OriginSubsystem.LEADER,
+            AttributionMechanism.SATELLITE_EXPIRY,
+        ),
+        "recovery_cohort": (
+            OriginSubsystem.RECOVERY,
+            AttributionMechanism.RECOVERY_COHORT,
+        ),
+        "recovery_exit": (
+            OriginSubsystem.RECOVERY,
+            AttributionMechanism.TACTICAL_REBOUND,
+        ),
+        "strategic_cohort": (
+            OriginSubsystem.STRATEGIC,
+            AttributionMechanism.STRATEGIC_COHORT,
+        ),
+        "strategic_tail": (
+            OriginSubsystem.STRATEGIC,
+            AttributionMechanism.STRATEGIC_TRAILING_EXIT,
+        ),
+        "risk_gross_cap": (
+            OriginSubsystem.RISK,
+            AttributionMechanism.RISK_GROSS_CAP,
+        ),
+        "sector_guard": (
+            OriginSubsystem.RISK,
+            AttributionMechanism.SECTOR_GUARD,
+        ),
+        "strategic_damage_guard": (
+            OriginSubsystem.RISK,
+            AttributionMechanism.STRATEGIC_DAMAGE_GUARD,
+        ),
+        "risk_off": (OriginSubsystem.RISK, AttributionMechanism.RISK_OFF),
+        "crisis": (OriginSubsystem.RISK, AttributionMechanism.CRISIS),
+        "capital_budget": (
+            OriginSubsystem.RISK,
+            AttributionMechanism.CAPITAL_BUDGET,
+        ),
+        "risk_freeze_hold": (
+            OriginSubsystem.RISK,
+            AttributionMechanism.RISK_FREEZE,
+        ),
+    }
+    selected = exact.get(reason_code)
+    if selected is None and exit_kind in exact:
+        selected = exact[exit_kind]
+    unclassified_buy = selected is None and side == Side.BUY.value
+    if unclassified_buy:
+        # Preserve uncertainty honestly. This closed degraded category is
+        # machine-valid but is never emitted by production Target call sites.
+        selected = (
+            OriginSubsystem.UNATTRIBUTED_LEGACY,
+            AttributionMechanism.LEGACY_UNCLASSIFIED,
+        )
+    elif selected is None:
+        selected = (
+            OriginSubsystem.LEGACY_MIGRATION,
+            AttributionMechanism.LEGACY_MIGRATION,
+        )
+    return selected[0].value, selected[1].value, unclassified_buy
+
+
+def _legacy_industry(symbol: str, entry_date: str) -> tuple[str, str]:
+    """Resolve the best deterministic PIT industry available during migration."""
+
+    try:
+        industry = default_ai_universe().industry_of(symbol, entry_date)
+    except (TypeError, ValueError):
+        industry = "unknown"
+    if industry == "unknown":
+        return _LEGACY_INDUSTRY, _LEGACY_MANIFEST_SHA256
+    return industry, REQUIRED_AI_UNIVERSE_SHA256
+
+
+def _populate_legacy_attribution(state: AccountState) -> list[dict[str, str]]:
+    """Populate v1-v3 identity from stable structured fields only."""
+
+    unknown_buy_reclassifications: dict[str, dict[str, str]] = {}
+
+    replacements = {
+        (str(event.get("signal_date", "")), str(event.get("new_symbol", ""))): str(
+            event.get("old_symbol", "")
+        )
+        for event in state.replacement_events
+        if event.get("signal_date") and event.get("new_symbol") and event.get("old_symbol")
+    }
+
+    def populate_order(order: PendingOrder | AccountOrder) -> None:
+        origin, mechanism, unclassified_buy = _legacy_attribution_owner(
+            order.reason_code,
+            order.exit_kind,
+            side=order.side,
+        )
+        industry, manifest = _legacy_industry(order.symbol, order.signal_date)
+        replaces_symbol = replacements.get((order.signal_date, order.symbol))
+        order.origin_subsystem = origin
+        order.mechanism = mechanism
+        order.origin_lifecycle = order.lifecycle
+        order.replaces_symbol = replaces_symbol
+        order.industry_at_entry = industry
+        order.industry_manifest_sha256 = manifest
+        order.event_id = derive_attribution_event_id(
+            signal_date=order.signal_date,
+            symbol=order.symbol,
+            target_weight=order.target_weight,
+            lifecycle=order.lifecycle,
+            origin_lifecycle=order.origin_lifecycle,
+            origin_subsystem=order.origin_subsystem,
+            mechanism=order.mechanism,
+            replaces_symbol=order.replaces_symbol,
+            industry_at_entry=order.industry_at_entry,
+            industry_manifest_sha256=order.industry_manifest_sha256,
+            reduction_policy=order.reduction_policy,
+            reason_code=order.reason_code,
+            exit_kind=order.exit_kind,
+        )
+        if unclassified_buy:
+            unknown_buy_reclassifications.setdefault(
+                order.event_id,
+                {
+                    "event_id": order.event_id,
+                    "signal_date": order.signal_date,
+                    "symbol": order.symbol,
+                },
+            )
+
+    for ledger_order in state.order_ledger:
+        populate_order(ledger_order)
+    ledger = {order.order_id: order for order in state.order_ledger}
+    for pending_order in state.pending_orders:
+        linked = ledger.get(pending_order.order_id) if pending_order.order_id else None
+        if linked is None:
+            populate_order(pending_order)
+            continue
+        for field in (
+            "event_id",
+            "origin_subsystem",
+            "mechanism",
+            "origin_lifecycle",
+            "replaces_symbol",
+            "industry_at_entry",
+            "industry_manifest_sha256",
+        ):
+            setattr(pending_order, field, getattr(linked, field))
+
+    for symbol, position in state.positions.items():
+        for tranche in position.tranches:
+            industry, manifest = _legacy_industry(symbol, tranche.entry_date)
+            tranche.origin_subsystem = OriginSubsystem.LEGACY_MIGRATION.value
+            tranche.mechanism = AttributionMechanism.LEGACY_MIGRATION.value
+            tranche.origin_lifecycle = tranche.lifecycle
+            tranche.replaces_symbol = None
+            tranche.industry_at_entry = industry
+            tranche.industry_manifest_sha256 = manifest
+            tranche.event_id = derive_attribution_event_id(
+                signal_date=tranche.entry_date,
+                symbol=symbol,
+                target_weight=0.0,
+                lifecycle=tranche.lifecycle,
+                origin_lifecycle=tranche.origin_lifecycle,
+                origin_subsystem=tranche.origin_subsystem,
+                mechanism=tranche.mechanism,
+                replaces_symbol=None,
+                industry_at_entry=industry,
+                industry_manifest_sha256=manifest,
+                reduction_policy=ReductionPolicy.FIFO.value,
+                reason_code=f"legacy_tranche:{tranche.tranche_id}",
+                exit_kind="legacy_migration",
+            )
+
+    identity_fields = (
+        "event_id",
+        "origin_subsystem",
+        "mechanism",
+        "origin_lifecycle",
+        "replaces_symbol",
+        "industry_at_entry",
+        "industry_manifest_sha256",
+    )
+    for fill_index, fill in enumerate(state.fills, start=1):
+        linked = ledger.get(fill.order_id) if fill.order_id else None
+        if not fill.order_id:
+            candidates = [
+                order
+                for order in state.order_ledger
+                if _unlinked_fill_matches_order(fill, order, native=False)
+            ]
+            if len(candidates) > 1:
+                raise RuntimeError(
+                    "legacy unlinked fill has ambiguous structured order identity"
+                )
+            linked = candidates[0] if candidates else None
+        if linked is not None:
+            for field in identity_fields:
+                setattr(fill, field, getattr(linked, field))
+        else:
+            origin, mechanism, unclassified_buy = _legacy_attribution_owner(
+                fill.reason_code,
+                fill.exit_kind,
+                side=fill.side,
+            )
+            industry, manifest = _legacy_industry(fill.symbol, fill.signal_date)
+            fill.origin_subsystem = origin
+            fill.mechanism = mechanism
+            fill.origin_lifecycle = fill.lifecycle
+            fill.replaces_symbol = replacements.get((fill.signal_date, fill.symbol))
+            fill.industry_at_entry = industry
+            fill.industry_manifest_sha256 = manifest
+            fill.event_id = derive_attribution_event_id(
+                signal_date=fill.signal_date,
+                symbol=fill.symbol,
+                target_weight=0.0,
+                lifecycle=fill.lifecycle,
+                origin_lifecycle=fill.origin_lifecycle,
+                origin_subsystem=fill.origin_subsystem,
+                mechanism=fill.mechanism,
+                replaces_symbol=fill.replaces_symbol,
+                industry_at_entry=industry,
+                industry_manifest_sha256=manifest,
+                reduction_policy=fill.reduction_policy,
+                reason_code=f"{fill.reason_code}:legacy_fill:{fill.fill_id or fill_index}",
+                exit_kind=fill.exit_kind,
+            )
+            if unclassified_buy:
+                unknown_buy_reclassifications.setdefault(
+                    fill.event_id,
+                    {
+                        "event_id": fill.event_id,
+                        "signal_date": fill.signal_date,
+                        "symbol": fill.symbol,
+                    },
+                )
+        for allocation_index, allocation in enumerate(fill.sold_tranches, start=1):
+            entry_date = str(allocation.get("entry_date") or fill.fill_date)
+            lifecycle = str(allocation.get("lifecycle") or fill.lifecycle)
+            industry, manifest = _legacy_industry(fill.symbol, entry_date)
+            allocation.update(
+                origin_subsystem=OriginSubsystem.LEGACY_MIGRATION.value,
+                mechanism=AttributionMechanism.LEGACY_MIGRATION.value,
+                origin_lifecycle=lifecycle,
+                replaces_symbol=None,
+                industry_at_entry=industry,
+                industry_manifest_sha256=manifest,
+            )
+            allocation["event_id"] = derive_attribution_event_id(
+                signal_date=entry_date,
+                symbol=fill.symbol,
+                target_weight=0.0,
+                lifecycle=lifecycle,
+                origin_lifecycle=lifecycle,
+                origin_subsystem=OriginSubsystem.LEGACY_MIGRATION.value,
+                mechanism=AttributionMechanism.LEGACY_MIGRATION.value,
+                replaces_symbol=None,
+                industry_at_entry=industry,
+                industry_manifest_sha256=manifest,
+                reduction_policy=ReductionPolicy.FIFO.value,
+                reason_code=(
+                    "legacy_sold_tranche:"
+                    + str(allocation.get("tranche_id") or allocation_index)
+                ),
+                exit_kind="legacy_migration",
+            )
+    return [
+        unknown_buy_reclassifications[event_id]
+        for event_id in sorted(unknown_buy_reclassifications)
+    ]
+
+
+def _migrate_v4_attribution_event_ids(state: AccountState) -> dict[str, Any]:
+    """Map validated schema-v4 events to the machine-only schema-v5 format."""
+
+    event_id_map: dict[str, str] = {}
+    reverse_event_id_map: dict[str, str] = {}
+    object_assignments: list[tuple[Any, str]] = []
+    allocation_assignments: list[tuple[dict[str, Any], str]] = []
+
+    def record_mapping(old_event_id: str, new_event_id: str) -> None:
+        existing = event_id_map.get(old_event_id)
+        if existing is not None and existing != new_event_id:
+            raise RuntimeError("v4 event_id maps to conflicting machine identities")
+        reverse_existing = reverse_event_id_map.get(new_event_id)
+        if reverse_existing is not None and reverse_existing != old_event_id:
+            raise RuntimeError("v4 event_id migration has a reverse-map collision")
+        event_id_map[old_event_id] = new_event_id
+        reverse_event_id_map[new_event_id] = old_event_id
+
+    def current_event_id(
+        item: Any,
+        *,
+        signal_date: str,
+        symbol: str,
+        target_weight: float,
+        lifecycle: str,
+        reduction_policy: str,
+        reason_code: str,
+        exit_kind: str,
+    ) -> str:
+        return derive_attribution_event_id(
+            signal_date=signal_date,
+            symbol=symbol,
+            target_weight=target_weight,
+            lifecycle=lifecycle,
+            origin_lifecycle=item.origin_lifecycle,
+            origin_subsystem=item.origin_subsystem,
+            mechanism=item.mechanism,
+            replaces_symbol=item.replaces_symbol,
+            industry_at_entry=item.industry_at_entry,
+            industry_manifest_sha256=item.industry_manifest_sha256,
+            reduction_policy=reduction_policy,
+            reason_code=reason_code,
+            exit_kind=exit_kind,
+        )
+
+    durable_orders: list[AccountOrder | PendingOrder] = [
+        *state.order_ledger,
+        *state.pending_orders,
+    ]
+    for order in durable_orders:
+        old_event_id = order.event_id
+        new_event_id = current_event_id(
+            order,
+            signal_date=order.signal_date,
+            symbol=order.symbol,
+            target_weight=order.target_weight,
+            lifecycle=order.lifecycle,
+            reduction_policy=order.reduction_policy,
+            reason_code=order.reason_code,
+            exit_kind=order.exit_kind,
+        )
+        record_mapping(old_event_id, new_event_id)
+        object_assignments.append((order, new_event_id))
+
+    for fill in state.fills:
+        old_event_id = fill.event_id
+        mapped_fill_event_id = event_id_map.get(old_event_id)
+        if mapped_fill_event_id is None:
+            raise RuntimeError("v4 fill event_id lacks a validated originating order")
+        object_assignments.append((fill, mapped_fill_event_id))
+
+    def migrate_detached_lot(
+        lot: Any,
+        *,
+        signal_date: str,
+        symbol: str,
+        lifecycle: str,
+        reason_code: str,
+        exit_kind: str,
+        label: str,
+    ) -> str:
+        old_event_id = lot.event_id
+        expected_old = _derive_v4_attribution_event_id(
+            signal_date=signal_date,
+            symbol=symbol,
+            target_weight=0.0,
+            lifecycle=lifecycle,
+            origin_lifecycle=lot.origin_lifecycle,
+            origin_subsystem=lot.origin_subsystem,
+            mechanism=lot.mechanism,
+            replaces_symbol=lot.replaces_symbol,
+            industry_at_entry=lot.industry_at_entry,
+            industry_manifest_sha256=lot.industry_manifest_sha256,
+            reduction_policy=ReductionPolicy.FIFO.value,
+            reason_code=reason_code,
+            exit_kind=exit_kind,
+        )
+        if old_event_id != expected_old:
+            raise RuntimeError(f"{label} v4 event_id differs from canonical derivation")
+        new_event_id = current_event_id(
+            lot,
+            signal_date=signal_date,
+            symbol=symbol,
+            target_weight=0.0,
+            lifecycle=lifecycle,
+            reduction_policy=ReductionPolicy.FIFO.value,
+            reason_code=reason_code,
+            exit_kind=exit_kind,
+        )
+        record_mapping(old_event_id, new_event_id)
+        return new_event_id
+
+    for symbol, position in state.positions.items():
+        for tranche in position.tranches:
+            mapped_event_id = event_id_map.get(tranche.event_id)
+            if mapped_event_id is not None:
+                object_assignments.append((tranche, mapped_event_id))
+                continue
+            if (
+                tranche.origin_subsystem != OriginSubsystem.LEGACY_MIGRATION.value
+                or tranche.mechanism != AttributionMechanism.LEGACY_MIGRATION.value
+            ):
+                raise RuntimeError("v4 tranche event_id lacks a validated originating BUY")
+            migrated_event_id = migrate_detached_lot(
+                tranche,
+                signal_date=tranche.entry_date,
+                symbol=symbol,
+                lifecycle=tranche.lifecycle,
+                reason_code=f"legacy_tranche:{tranche.tranche_id}",
+                exit_kind="legacy_migration",
+                label="account tranche",
+            )
+            object_assignments.append((tranche, migrated_event_id))
+
+    for fill in state.fills:
+        for allocation_index, allocation in enumerate(fill.sold_tranches, start=1):
+            old_event_id = str(allocation["event_id"])
+            mapped_event_id = event_id_map.get(old_event_id)
+            if mapped_event_id is not None:
+                allocation_assignments.append((allocation, mapped_event_id))
+                continue
+            lot = SimpleNamespace(**allocation)
+            if (
+                lot.origin_subsystem == OriginSubsystem.LEGACY_MIGRATION.value
+                and lot.mechanism == AttributionMechanism.LEGACY_MIGRATION.value
+            ):
+                reason_code = "legacy_sold_tranche:" + str(
+                    allocation.get("tranche_id") or allocation_index
+                )
+                exit_kind = "legacy_migration"
+            elif (
+                lot.origin_subsystem == OriginSubsystem.BROKER_RECONCILIATION.value
+                and lot.mechanism == AttributionMechanism.BROKER_RECONCILIATION.value
+                and allocation.get("degraded") is True
+            ):
+                reason_code = f"broker_reconciliation:degraded-sale:{fill.fill_id}"
+                exit_kind = "broker_reconciliation"
+            else:
+                raise RuntimeError("v4 sold lot event_id lacks a validated originating BUY")
+            migrated_event_id = migrate_detached_lot(
+                lot,
+                signal_date=str(allocation["entry_date"]),
+                symbol=fill.symbol,
+                lifecycle=str(allocation["lifecycle"]),
+                reason_code=reason_code,
+                exit_kind=exit_kind,
+                label="fill sold lot",
+            )
+            allocation_assignments.append((allocation, migrated_event_id))
+
+    # Apply only after every old identity, chain, and bidirectional mapping has
+    # been validated. A collision therefore cannot leave even the in-memory
+    # migration candidate partially resealed.
+    for item, event_id in object_assignments:
+        item.event_id = event_id
+    for allocation, event_id in allocation_assignments:
+        allocation["event_id"] = event_id
+
+    return {
+        "policy": "validated_v4_to_v5_machine_identity",
+        "event_id_map": [
+            {
+                "from_event_id": old_event_id,
+                "to_event_id": event_id_map[old_event_id],
+            }
+            for old_event_id in sorted(event_id_map)
+        ],
+    }
 
 
 def migrate_account(
@@ -1361,9 +2365,15 @@ def migrate_account(
         raise RuntimeError("account migration requires --acknowledge-code-change")
     if not new_code_hash:
         raise RuntimeError("account migration requires a non-empty code hash")
-    state = load_account(source, allow_legacy_schema=True)
+    source_payload = _read_account_payload(source)
+    source_sequence_was_explicit = "next_order_sequence" in source_payload
+    state = account_from_dict(
+        source_payload,
+        allow_legacy_schema=True,
+    )
     previous_schema = state.schema_version
     previous_code_hash = state.code_hash
+    previous_next_order_sequence = state.next_order_sequence
     degraded_sell_attributions: list[dict[str, Any]] = []
     if previous_schema == 2:
         for index, fill in enumerate(state.fills, start=1):
@@ -1388,6 +2398,29 @@ def migrate_account(
                     "shares": fill.shares,
                 }
             )
+    attribution_event_id_migration: dict[str, Any] | None = None
+    legacy_unknown_buy_classifications: list[dict[str, str]] = []
+    if previous_schema < _HISTORICAL_ATTRIBUTION_SCHEMA_VERSION:
+        legacy_unknown_buy_classifications = _populate_legacy_attribution(state)
+    elif previous_schema == _HISTORICAL_ATTRIBUTION_SCHEMA_VERSION:
+        attribution_event_id_migration = _migrate_v4_attribution_event_ids(state)
+    order_sequence_migration: dict[str, Any] | None = None
+    if previous_schema < ACCOUNT_SCHEMA_VERSION:
+        exact_next_order_sequence = (
+            max(
+                (_order_sequence(order.order_id) for order in state.order_ledger),
+                default=0,
+            )
+            + 1
+        )
+        state.next_order_sequence = exact_next_order_sequence
+        order_sequence_migration = {
+            "policy": "legacy_nonreuse_to_v5_exact_ledger_max_plus_one",
+            "source_was_explicit": source_sequence_was_explicit,
+            "old_next_order_sequence": previous_next_order_sequence,
+            "new_next_order_sequence": exact_next_order_sequence,
+            "reason": "v5_requires_exact_max_durable_order_id_plus_one",
+        }
     state.schema_version = ACCOUNT_SCHEMA_VERSION
     state.code_hash = new_code_hash
     migration_event: dict[str, Any] = {
@@ -1402,6 +2435,17 @@ def migrate_account(
             "policy": "synthetic_single_lot_exact_share_backfill",
             "fills": degraded_sell_attributions,
         }
+    if attribution_event_id_migration is not None:
+        migration_event["attribution_event_id_migration"] = (
+            attribution_event_id_migration
+        )
+    if legacy_unknown_buy_classifications:
+        migration_event["legacy_unknown_buy_classification"] = {
+            "policy": "pre_v4_unknown_buy_to_unattributed_legacy",
+            "events": legacy_unknown_buy_classifications,
+        }
+    if order_sequence_migration is not None:
+        migration_event["order_sequence_migration"] = order_sequence_migration
     state.account_migrations.append(migration_event)
     save_account(state, destination)
     return state
@@ -1421,10 +2465,18 @@ def _fsync_directory(path: Path) -> None:
 
 def save_account(state: AccountState, path: str | Path) -> None:
     """Atomically persist an account state after flushing it to stable storage."""
-    if state.schema_version == ACCOUNT_SCHEMA_VERSION:
-        _validate_position_state(state)
-        _validate_order_state(state, sequence_was_explicit=True)
+    if state.schema_version != ACCOUNT_SCHEMA_VERSION:
+        raise RuntimeError(
+            f"account schema {state.schema_version} requires explicit migration before save"
+        )
+    _validate_position_state(state, validate_attribution=True)
+    _validate_order_state(
+        state,
+        sequence_was_explicit=True,
+        validate_attribution=True,
+    )
     _validate_strategy_risk_state(state)
+    _validate_lot_origin_chains(state)
     destination = Path(path)
     destination.parent.mkdir(parents=True, exist_ok=True)
     handle, temporary = tempfile.mkstemp(prefix=destination.name, dir=destination.parent)

@@ -7,17 +7,97 @@ import pytest
 from uquant.broker import sync_broker_snapshot
 from uquant.config import DEFAULT_CONFIG
 from uquant.types import (
+    ACCOUNT_SCHEMA_VERSION,
     AccountOrder,
     AccountState,
+    AttributionMechanism,
+    Lifecycle,
     OrderStatus,
+    OriginSubsystem,
     PendingOrder,
     Position,
     Tranche,
+    derive_attribution_event_id,
 )
+from uquant.validation.universe import REQUIRED_AI_UNIVERSE_SHA256
+
+
+def _identity(
+    *,
+    signal_date: str = "2026-01-05",
+    symbol: str = "sz300308",
+    target_weight: float = 0.50,
+    lifecycle: str = Lifecycle.CORE.value,
+    origin_subsystem: str = OriginSubsystem.LEADER.value,
+    mechanism: str = AttributionMechanism.LEADER_SELECTION.value,
+) -> dict[str, str | None]:
+    fields: dict[str, str | None] = {
+        "origin_subsystem": origin_subsystem,
+        "mechanism": mechanism,
+        "origin_lifecycle": lifecycle,
+        "replaces_symbol": None,
+        "industry_at_entry": "optical",
+        "industry_manifest_sha256": REQUIRED_AI_UNIVERSE_SHA256,
+    }
+    fields["event_id"] = derive_attribution_event_id(
+        signal_date=signal_date,
+        symbol=symbol,
+        target_weight=target_weight,
+        lifecycle=lifecycle,
+        origin_lifecycle=lifecycle,
+        origin_subsystem=origin_subsystem,
+        mechanism=mechanism,
+        replaces_symbol=None,
+        industry_at_entry="optical",
+        industry_manifest_sha256=REQUIRED_AI_UNIVERSE_SHA256,
+        reduction_policy="FIFO",
+        reason_code="strategy_target",
+        exit_kind="strategy",
+    )
+    return fields
+
+
+def _migration_event() -> dict[str, object]:
+    return {
+        "migrated_at_utc": "2026-01-01T00:00:00+00:00",
+        "from_schema": 3,
+        "to_schema": ACCOUNT_SCHEMA_VERSION,
+        "from_code_hash": "old-code",
+        "to_code_hash": "code",
+    }
+
+
+def _legacy_tranche(
+    *,
+    symbol: str,
+    shares: int,
+    lifecycle: str = Lifecycle.CORE.value,
+    highest_close: float = 1.0,
+    avg_cost: float = 1.0,
+) -> Tranche:
+    return Tranche(
+        tranche_id=f"migrated:{symbol}",
+        lifecycle=lifecycle,
+        shares=shares,
+        avg_cost=avg_cost,
+        entry_date="2026-01-02",
+        sellable_date="2026-01-03",
+        highest_close=highest_close,
+        lowest_close=avg_cost,
+        **_identity(
+            signal_date="2026-01-02",
+            symbol=symbol,
+            target_weight=0.0,
+            lifecycle=lifecycle,
+            origin_subsystem=OriginSubsystem.LEGACY_MIGRATION.value,
+            mechanism=AttributionMechanism.LEGACY_MIGRATION.value,
+        ),
+    )
 
 
 def _buy_account(*, requested_shares: int = 100) -> AccountState:
     remaining = requested_shares
+    identity = _identity()
     pending = PendingOrder(
         signal_date="2026-01-05",
         symbol="sz300308",
@@ -27,6 +107,7 @@ def _buy_account(*, requested_shares: int = 100) -> AccountState:
         lifecycle="CORE",
         remaining_shares=remaining,
         order_id="O000000001",
+        **identity,
     )
     order = AccountOrder(
         order_id="O000000001",
@@ -40,6 +121,7 @@ def _buy_account(*, requested_shares: int = 100) -> AccountState:
         status=OrderStatus.OPEN.value,
         requested_shares=requested_shares,
         remaining_shares=remaining,
+        **identity,
     )
     return AccountState(
         initial_cash=2_000.0,
@@ -112,9 +194,18 @@ def test_snapshot_cannot_overwrite_engine_owned_position_metadata() -> None:
                 sellable_date="2026-01-03",
                 highest_close=15.0,
                 lowest_close=9.0,
+                **_identity(
+                    signal_date="2026-01-02",
+                    symbol=symbol,
+                    target_weight=0.0,
+                    lifecycle="ADD2",
+                    origin_subsystem=OriginSubsystem.LEGACY_MIGRATION.value,
+                    mechanism=AttributionMechanism.LEGACY_MIGRATION.value,
+                ),
             )
         ],
     )
+    account.account_migrations = [_migration_event()]
 
     sync_broker_snapshot(
         account,
@@ -143,48 +234,32 @@ def test_snapshot_cannot_overwrite_engine_owned_position_metadata() -> None:
     assert position.tranches[0].highest_close == 15.0
 
 
-def test_unmatched_external_inventory_uses_audited_degraded_defaults() -> None:
+def test_unmatched_external_inventory_fails_closed_without_a_planned_buy() -> None:
     account = AccountState.empty(2_000.0)
+    before = account.to_dict()
 
-    sync_broker_snapshot(
-        account,
-        {
-            "as_of": "2026-01-06",
-            "cash": 1_000.0,
-            "fills": [],
-            "positions": [
-                {
-                    "symbol": "300308",
-                    "shares": 100,
-                    "sellable_shares": 100,
-                    "avg_cost": 10.0,
-                    "entry_date": "2000-01-01",
-                    "lifecycle": "SATELLITE",
-                    "highest_close": 999.0,
-                }
-            ],
-        },
-    )
+    with pytest.raises(ValueError, match="exceeds known BUY lot inventory"):
+        sync_broker_snapshot(
+            account,
+            {
+                "as_of": "2026-01-06",
+                "cash": 1_000.0,
+                "fills": [],
+                "positions": [
+                    {
+                        "symbol": "300308",
+                        "shares": 100,
+                        "sellable_shares": 100,
+                        "avg_cost": 10.0,
+                        "entry_date": "2000-01-01",
+                        "lifecycle": "SATELLITE",
+                        "highest_close": 999.0,
+                    }
+                ],
+            },
+        )
 
-    position = account.positions["sz300308"]
-    assert position.entry_date == "2026-01-06"
-    assert position.lifecycle == "CORE"
-    assert position.highest_close == 10.0
-    assert len(position.tranches) == 1
-    assert position.tranches[0].lifecycle == "CORE"
-    assert position.tranches[0].highest_close == 10.0
-    event = account.reconciliation_events[-1]
-    assert event == {
-        "date": "2026-01-06",
-        "symbol": "sz300308",
-        "event": "economic_lot_degraded",
-        "unmatched_shares": 100,
-        "reason": "broker snapshot exceeded known lot inventory",
-        "quality": "degraded_external_inventory",
-        "default_lifecycle": "CORE",
-        "default_entry_date": "2026-01-06",
-        "default_highest_close": 10.0,
-    }
+    assert account.to_dict() == before
 
 
 def test_same_day_fill_permutations_reconcile_identically_by_execution_sequence() -> None:
@@ -364,8 +439,16 @@ def test_broker_zero_position_settles_strategic_sell_only_state_atomically() -> 
         cash=50.0,
         positions={
             exiting: Position(exiting, shares=30, avg_cost=1.0),
-            survivor: Position(survivor, shares=20, avg_cost=1.0),
+            survivor: Position(
+                survivor,
+                shares=20,
+                avg_cost=1.0,
+                entry_date="2026-01-02",
+                highest_close=1.0,
+                tranches=[_legacy_tranche(symbol=survivor, shares=20)],
+            ),
         },
+        account_migrations=[_migration_event()],
         strategic_cohort_symbols=[exiting, survivor],
         strategic_cohort_targets={exiting: 0.30, survivor: 0.20},
         strategic_exit_bands={exiting: [0.06] * 5},

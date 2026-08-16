@@ -26,6 +26,7 @@ from typing import Any
 import pandas as pd
 
 from ..config import SystemConfig
+from ..config_governance import GOVERNANCE_PATH
 from ..engine import ProductionEngine
 from .ai_era import require_ai_era_interval
 from .manifest import verify_data_manifest
@@ -49,6 +50,10 @@ _COMPETITOR_PROVENANCE_FIELDS = {
     "reference_commit",
     "reference_sha256",
 }
+_FIXED_PRODUCTION_PATHS = (
+    "pyproject.toml",
+    GOVERNANCE_PATH.as_posix(),
+)
 _POLICY_FIELDS = {
     "wealth_floor_ratio",
     "drawdown_tolerance",
@@ -806,7 +811,10 @@ def _validated_competitor_best(value: Any) -> dict[str, Any]:
 
 def _production_source_fingerprint(root: Path) -> str:
     digest = hashlib.sha256()
-    paths = [root / "pyproject.toml", *sorted((root / "uquant").rglob("*.py"))]
+    paths = [
+        *(root / relative for relative in _FIXED_PRODUCTION_PATHS),
+        *sorted((root / "uquant").rglob("*.py")),
+    ]
     if any(not path.is_file() for path in paths):
         raise RuntimeError("cannot fingerprint generalization production source")
     for path in paths:
@@ -849,7 +857,7 @@ def _production_commit(root: Path) -> str:
             "--untracked-files=all",
             "--",
             "uquant",
-            "pyproject.toml",
+            *_FIXED_PRODUCTION_PATHS,
         ],
         label="cannot inspect generalization production source",
     )
@@ -857,7 +865,7 @@ def _production_commit(root: Path) -> str:
         raise RuntimeError("generalization production provenance requires committed source")
     commit = _git_stdout(
         root,
-        ["log", "-1", "--format=%H", "--", "uquant", "pyproject.toml"],
+        ["log", "-1", "--format=%H", "--", "uquant", *_FIXED_PRODUCTION_PATHS],
         label="cannot resolve immutable production commit",
     ).strip()
     if not _COMMIT.fullmatch(commit):
@@ -1257,6 +1265,34 @@ def symbol_pnl_from_result(
                 f"observed={observed:.8f}, expected={expected:.8f}"
             )
     return dict(sorted(pnl.items()))
+
+
+def symbol_pnl_concentration(symbol_pnl: Mapping[str, float]) -> dict[str, float]:
+    """Measure Top-1, Top-3, and HHI from exact absolute symbol PnL.
+
+    Absolute contributions avoid signed cancellation.  A portfolio with no
+    non-zero symbol PnL has no contribution concentration, represented by
+    exact zeros rather than a fabricated or non-finite ratio.
+    """
+    if any(
+        not isinstance(symbol, str) or not symbol or not math.isfinite(float(value))
+        for symbol, value in symbol_pnl.items()
+    ):
+        raise ValueError("invalid symbol PnL for concentration")
+    absolute = sorted((abs(float(value)) for value in symbol_pnl.values() if value != 0.0), reverse=True)
+    denominator = sum(absolute)
+    if denominator == 0.0:
+        return {
+            "top1_concentration": 0.0,
+            "top3_concentration": 0.0,
+            "pnl_hhi": 0.0,
+        }
+    weights = [value / denominator for value in absolute]
+    return {
+        "top1_concentration": weights[0],
+        "top3_concentration": sum(weights[:3]),
+        "pnl_hhi": sum(weight * weight for weight in weights),
+    }
 
 
 def _deployment_from_result(result: Mapping[str, Any]) -> tuple[tuple[str, str], ...]:

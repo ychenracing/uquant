@@ -1,0 +1,24 @@
+{
+  "schema_version": 1,
+  "contract_id": "phase1-frozen-champion-v1",
+  "production": {
+    "repository": "ychenracing/uquant",
+    "commit": "cf8fecff76564fd4ed87faa0da336a06d433fd93",
+    "source_sha256": "1ba818600877ee07558d14589df8054100368706b88455e05bd33f9adaf05199"
+  },
+  "effective_config_sha256": "023d709731196a325d9cd03e95ece92e4baf63d2c5c66bb9f7d0e7a190e7bf20",
+  "data": {
+    "snapshot_id": "20260809T094222Z-causal-tech-index-rebase",
+    "files_verified": 36,
+    "manifest_sha256": "343009138d22f8d4a20768f706207fe4d4bcd03581b0c5945c5485ecbd28788d",
+    "checksums_sha256": "ba460d65f791f238d8a4a16ac62e2225c1832caa6f4da5003166a894edf80e29"
+  },
+  "environment": {
+    "python_full_version": "3.12.13",
+    "numpy_version": "2.5.1",
+    "pandas_version": "3.0.5",
+    "uv_version": "0.11.33",
+    "uv_lock_sha256": "4accf16535b5ac95b831c9289e0ad2ff21282dc5dfae3f05dd0fb095089d6a61"
+  },
+  "github_phase1_artifact_sha256": "86d894f46a22740cb4bc59a279cb2150927f312947859ad2559e3a17b45f5deb"
+}

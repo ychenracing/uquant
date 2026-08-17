@@ -130,8 +130,9 @@ not automatic refactor instructions.
 
 Task 8 ran the authenticated economic/provenance section, derived and committed
 source bindings, and reran affected contracts. Task 9 then ran the Engineering
-section with zero deselections plus final provenance readback on the published
-candidate. The sections below retain the commands and exact evidence identities.
+section with zero deselections plus final provenance readback on the candidate;
+the root publication step subsequently fast-forwarded `main`. The sections below
+retain the commands and exact evidence identities.
 
 ### Engineering — Task 9 final zero-deselection proof
 
@@ -190,7 +191,7 @@ run; never hand-enter a score or reuse a digest from another tree.
 ### Publication and remote verification
 
 ```bash
-# Pre-publication guard and fast-forward used by Task 9.
+# Equivalent CLI reference for the verified non-forced publication sequence.
 git fetch origin main
 test "$(git rev-parse origin/main)" = \
   "e2663695fd008fb960b86f33bc36309a2f525b68"
@@ -199,7 +200,8 @@ git fetch origin main
 test "$(git rev-parse HEAD^{tree})" = "$(git rev-parse origin/main^{tree})"
 ```
 
-Task 9 fast-forwarded `main` from
+After Task 9 completed the final gates, the root publication step used the
+GitHub connector's `update_ref` operation with `force=false` to move `main` from
 `e2663695fd008fb960b86f33bc36309a2f525b68` through the recoverable remote
 Git-object chain `c47367bba64c827fe18f788c9a3650e13ece306f` ->
 `42f6cbdfcf3c3e396200758f80485b49b9e245bf` ->
@@ -790,16 +792,17 @@ All commands used `UV_CACHE_DIR=/tmp/uquant-balanced-review/uv-cache`.
 | Baseline `AGENTS.md` diff and SHA-256 | Pass: no diff; exact SHA-256 `640298ceac5187724d2cf769b13f4d7e2381cbcb10faf46e99bdac378547f808` |
 
 The remote Git-object checkpoint chain is readable by exact commit identity.
-Task 9 completed the zero-deselection Engineering/provenance suite, exact-HEAD
-readback, and non-forced fast-forward described below.
+Task 9 completed the zero-deselection Engineering/provenance suite and exact-HEAD
+readback; the root publication step then performed the non-forced fast-forward
+described below.
 
 ## Task 9 final verification and publication
 
 Task 9 verified detached remote candidate
 `941a430794231aec22177fe293fdfa3a2618023f` with tree
-`75cbc992f85d5a704182d03632caa1f781a3fda8`, then fast-forwarded `main`
-without force. The candidate was four commits ahead of the baseline, zero
-commits behind, with the baseline as its merge base.
+`75cbc992f85d5a704182d03632caa1f781a3fda8`. The root publication step then
+fast-forwarded `main` without force. The candidate was four commits ahead of the
+baseline, zero commits behind, with the baseline as its merge base.
 
 | Final check | Result |
 |---|---|

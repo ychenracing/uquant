@@ -3798,6 +3798,114 @@ def test_synchronized_crisis_repair_reopens_only_protected_weights() -> None:
     }
 
 
+def test_generic_protected_restore_waits_for_existing_confirmation_before_expansion() -> None:
+    dates = pd.bdate_range("2025-01-02", periods=150)
+    date = dates[-1]
+    symbols = ("restore_a", "restore_b")
+    frame = _trend_frame(dates)
+    protected = AccountState.empty(100.0)
+    protected.protected_weights = {symbol: 0.40 for symbol in symbols}
+    protected.capital_budget_level = 1
+    protected.capital_budget_repair_streak = 1
+    first_repair = RiskAssessment(
+        Risk.CAUTION,
+        0.50,
+        1,
+        {"transition_damage": 0.20, "freeze_new_risk": True},
+        ("level-1 protected restoration",),
+        "RECOVERY",
+        freeze_new_risk=True,
+        reduction_level=1,
+    )
+    allocator = PortfolioAllocator(DEFAULT_CONFIG)
+
+    first_targets = allocator.allocate(
+        date=date,
+        opportunity=Opportunity.RECOVERY,
+        risk=first_repair,
+        user_panel={symbol: frame for symbol in symbols},
+        leaders={symbol: _leader(symbol, 0.90) for symbol in symbols},
+        account=protected,
+        prices={symbol: 1.0 for symbol in symbols},
+    )
+
+    assert {target.symbol: target.weight for target in first_targets} == pytest.approx(
+        {symbol: 0.25 for symbol in symbols}
+    )
+    assert protected.candidate_tenure["post_shock_restore_submitted"] == 1
+    assert protected.candidate_tenure["post_shock_restore_deferred_expansion"] == 1
+
+    protected.positions = {
+        symbol: Position(
+            symbol,
+            shares=25,
+            avg_cost=1.0,
+            lifecycle=Lifecycle.RECOVERY.value,
+        )
+        for symbol in symbols
+    }
+    protected.cash = 50.0
+    protected.capital_budget_level = 0
+    protected.capital_budget_repair_streak = 0
+    deferred = allocator.allocate(
+        date=date,
+        opportunity=Opportunity.RECOVERY,
+        risk=RiskAssessment(Risk.NORMAL, 1.0, 0, {}, (), "NONE"),
+        user_panel={symbol: frame for symbol in symbols},
+        leaders={symbol: _leader(symbol, 0.90) for symbol in symbols},
+        account=protected,
+        prices={symbol: 1.0 for symbol in symbols},
+    )
+
+    assert protected.candidate_tenure.get("post_shock_restore_complete", 0) == 0
+    assert {target.symbol: target.weight for target in deferred} == pytest.approx(
+        {symbol: 0.25 for symbol in symbols}
+    )
+
+    protected.risk_streaks["protected_structure_normalization"] = (
+        DEFAULT_CONFIG.recovery_risk_confirm_days
+    )
+    expanded = allocator.allocate(
+        date=date,
+        opportunity=Opportunity.RECOVERY,
+        risk=RiskAssessment(Risk.NORMAL, 1.0, 0, {}, (), "NONE"),
+        user_panel={symbol: frame for symbol in symbols},
+        leaders={symbol: _leader(symbol, 0.90) for symbol in symbols},
+        account=protected,
+        prices={symbol: 1.0 for symbol in symbols},
+    )
+
+    assert {target.symbol: target.weight for target in expanded} == pytest.approx(
+        {symbol: 0.40 for symbol in symbols}
+    )
+    assert protected.candidate_tenure["post_shock_restore_deferred_expansion"] == 0
+
+    protected.positions = {
+        symbol: Position(
+            symbol,
+            shares=40,
+            avg_cost=1.0,
+            lifecycle=Lifecycle.RECOVERY.value,
+        )
+        for symbol in symbols
+    }
+    protected.cash = 20.0
+    settled = allocator.allocate(
+        date=date,
+        opportunity=Opportunity.RECOVERY,
+        risk=RiskAssessment(Risk.NORMAL, 1.0, 0, {}, (), "NONE"),
+        user_panel={symbol: frame for symbol in symbols},
+        leaders={symbol: _leader(symbol, 0.90) for symbol in symbols},
+        account=protected,
+        prices={symbol: 1.0 for symbol in symbols},
+    )
+
+    assert protected.candidate_tenure["post_shock_restore_complete"] == 1
+    assert {target.symbol: target.weight for target in settled} == pytest.approx(
+        {symbol: 0.40 for symbol in symbols}
+    )
+
+
 @pytest.mark.parametrize(
     "frozen",
     (
@@ -5691,6 +5799,93 @@ def test_confirmed_live_core_waits_in_place_while_leader_owner_rearms() -> None:
     assert account.candidate_tenure.get("leader_cycle_armed", 0) == 0
 
 
+def test_partially_unconfirmed_core_uses_existing_lifecycle_exit_confirmation() -> None:
+    dates = pd.bdate_range("2025-01-02", periods=150)
+    date = dates[-1]
+    symbols = ("healthy_core", "temporarily_unconfirmed_core")
+    frame = _trend_frame(dates)
+    account = AccountState(
+        initial_cash=100.0,
+        cash=40.0,
+        positions={
+            symbol: Position(
+                symbol,
+                shares=30,
+                avg_cost=0.80,
+                entry_date=str(dates[-20].date()),
+                highest_close=1.0,
+                lifecycle=Lifecycle.CORE.value,
+            )
+            for symbol in symbols
+        },
+        active_leaders=list(symbols),
+        dynamic_k=2,
+        last_k_change_date=str(date.date()),
+        operating_peak=100.0,
+        capital_peak=100.0,
+    )
+    risk = RiskAssessment(
+        Risk.NORMAL,
+        1.0,
+        0,
+        {"broad_ret120": -0.02, "tech_ret120": -0.02},
+        (),
+        "NONE",
+    )
+
+    targets = PortfolioAllocator(DEFAULT_CONFIG).allocate(
+        date=date,
+        opportunity=Opportunity.STRONG_TREND,
+        risk=risk,
+        user_panel={symbol: frame for symbol in symbols},
+        leaders={
+            symbols[0]: _leader(symbols[0], 0.90, industry="optical"),
+            symbols[1]: _leader(
+                symbols[1],
+                0.75,
+                mature=False,
+                industry="equipment",
+            ),
+        },
+        account=account,
+        prices={symbol: 1.0 for symbol in symbols},
+    )
+
+    assert {target.symbol: target.weight for target in targets} == pytest.approx(
+        {symbol: 0.30 for symbol in symbols}
+    )
+    assert (
+        account.replacement_tenure[
+            f"lifecycle_exit:{symbols[1]}"
+        ]
+        == 0
+    )
+
+    broken = _risk_frame(dates, close=0.70, ma20=1.0, ret5=-0.16)
+    for _ in range(DEFAULT_CONFIG.replacement_confirm_days):
+        targets = PortfolioAllocator(DEFAULT_CONFIG).allocate(
+            date=date,
+            opportunity=Opportunity.STRONG_TREND,
+            risk=risk,
+            user_panel={symbol: broken for symbol in symbols},
+            leaders={
+                symbols[0]: _leader(symbols[0], 0.90, industry="optical"),
+                symbols[1]: _leader(
+                    symbols[1],
+                    0.75,
+                    mature=False,
+                    industry="equipment",
+                ),
+            },
+            account=account,
+            prices={symbol: 1.0 for symbol in symbols},
+        )
+
+    assert {target.symbol: target.weight for target in targets} == pytest.approx(
+        {symbols[0]: 0.30, symbols[1]: 0.0}
+    )
+
+
 def test_synchronized_impulse_tolerates_only_a_near_zero_slow_index_leg() -> None:
     leaders = {"impulse": _leader("impulse", 0.83)}
 
@@ -6639,7 +6834,7 @@ def test_profitable_restore_drawdown_is_not_a_capital_failure() -> None:
     assert account.candidate_tenure.get("capital_guard_cooldown", 0) == 0
 
 
-def test_profitable_restore_with_confirmed_market_damage_is_a_failed_restoration() -> None:
+def test_profitable_restore_with_confirmed_market_damage_uses_ordinary_repair() -> None:
     dates = pd.bdate_range("2025-01-02", periods=160)
     date = dates[-1]
     damaged = _risk_frame(dates, close=75.0, ma20=100.0, ret5=-0.10)
@@ -6660,7 +6855,7 @@ def test_profitable_restore_with_confirmed_market_damage_is_a_failed_restoration
         },
         protected_weights={symbol: 1.0 / 3.0 for symbol in symbols},
         risk=Risk.CAUTION.value,
-        operating_peak=400.0,
+        operating_peak=330.0,
         capital_peak=400.0,
         risk_events=[
             {
@@ -6674,6 +6869,29 @@ def test_profitable_restore_with_confirmed_market_damage_is_a_failed_restoration
     strategic_account.candidate_tenure["strategic_cohort_active"] = 1
     anchored_account = copy.deepcopy(account)
     anchored_account.anchor_weights = {symbol: 1.0 / 3.0 for symbol in symbols}
+    normalized_account = copy.deepcopy(account)
+    normalized_account.risk = Risk.NORMAL.value
+    unrearmed_account = copy.deepcopy(account)
+    unrearmed_account.last_shock_date = str(dates[-10].date())
+    unrearmed_account.risk_events.append(
+        {
+            "date": unrearmed_account.last_shock_date,
+            "from": Risk.CAUTION.value,
+            "to": Risk.CRISIS.value,
+            "reasons": ["market-backed drawdown relapse in restored holdings"],
+        }
+    )
+    severe_account = copy.deepcopy(account)
+    severe_account.operating_peak = 400.0
+    severely_damaged = _risk_frame(
+        dates,
+        close=75.0,
+        ma20=100.0,
+        ret5=DEFAULT_CONFIG.severe_shock_ret5 - 0.01,
+    )
+    severe_reference_panel, severe_reference_leaders = _reference_context(
+        severely_damaged
+    )
 
     assessment = assess_risk(
         date=date,
@@ -6695,9 +6913,73 @@ def test_profitable_restore_with_confirmed_market_damage_is_a_failed_restoration
     assert assessment.reasons == (
         "market-backed drawdown relapse in restored holdings",
     )
-    assert account.candidate_tenure["capital_guard_cooldown"] == (
-        DEFAULT_CONFIG.capital_guard_cooldown_days
+    assert account.candidate_tenure.get("capital_guard_cooldown", 0) == 0
+    assert account.protected_weights
+
+    normalized_assessment = assess_risk(
+        date=date,
+        broad=damaged,
+        tech=damaged,
+        reference_panel=reference_panel,
+        reference_returns=None,
+        user_panel={symbol: damaged for symbol in symbols},
+        leaders={
+            **reference_leaders,
+            **{symbol: _leader(symbol, 0.80) for symbol in symbols},
+        },
+        account=normalized_account,
+        equity=300.0,
+        cfg=DEFAULT_CONFIG,
     )
+
+    assert "market-backed drawdown relapse in restored holdings" not in (
+        normalized_assessment.reasons
+    )
+    assert normalized_account.candidate_tenure.get("capital_guard_cooldown", 0) == 0
+
+    unrearmed_assessment = assess_risk(
+        date=date,
+        broad=damaged,
+        tech=damaged,
+        reference_panel=reference_panel,
+        reference_returns=None,
+        user_panel={symbol: damaged for symbol in symbols},
+        leaders={
+            **reference_leaders,
+            **{symbol: _leader(symbol, 0.80) for symbol in symbols},
+        },
+        account=unrearmed_account,
+        equity=300.0,
+        cfg=DEFAULT_CONFIG,
+    )
+
+    assert "market-backed drawdown relapse in restored holdings" not in (
+        unrearmed_assessment.reasons
+    )
+    assert unrearmed_account.candidate_tenure.get("capital_guard_cooldown", 0) == 0
+
+    severe_assessment = assess_risk(
+        date=date,
+        broad=severely_damaged,
+        tech=severely_damaged,
+        reference_panel=severe_reference_panel,
+        reference_returns=None,
+        user_panel={symbol: severely_damaged for symbol in symbols},
+        leaders={
+            **severe_reference_leaders,
+            **{symbol: _leader(symbol, 0.80) for symbol in symbols},
+        },
+        account=severe_account,
+        equity=300.0,
+        cfg=DEFAULT_CONFIG,
+    )
+
+    assert severe_assessment.reasons == (
+        "market-backed severe portfolio break in restored holdings",
+    )
+    assert severe_account.candidate_tenure[
+        "capital_guard_cooldown"
+    ] == DEFAULT_CONFIG.capital_guard_cooldown_days
 
     for specialized_account in (strategic_account, anchored_account):
         specialized_assessment = assess_risk(
@@ -6725,7 +7007,66 @@ def test_profitable_restore_with_confirmed_market_damage_is_a_failed_restoration
         )
 
 
-def test_failed_restoration_retires_strategic_restore_before_early_return():
+def test_profitable_market_backed_relapse_preserves_restoration_ownership() -> None:
+    dates = pd.bdate_range("2025-01-02", periods=150)
+    date = dates[-1]
+    frame = _trend_frame(dates)
+    symbols = ("restored_a", "restored_b")
+    protected = {symbol: 0.30 for symbol in symbols}
+    account = AccountState(
+        initial_cash=100.0,
+        cash=40.0,
+        positions={
+            symbol: Position(
+                symbol,
+                shares=30,
+                avg_cost=1.0,
+                entry_date=str(dates[-20].date()),
+                highest_close=1.0,
+            )
+            for symbol in symbols
+        },
+        protected_weights=dict(protected),
+        candidate_tenure={"post_shock_restore_complete": 1},
+        operating_peak=100.0,
+        capital_peak=100.0,
+    )
+    guarded = RiskAssessment(
+        Risk.CRISIS,
+        DEFAULT_CONFIG.market_crisis_gross,
+        4,
+        {},
+        ("market-backed drawdown relapse in restored holdings",),
+        "CAPITAL_GUARD_COOLDOWN",
+        freeze_new_risk=True,
+        reduction_level=3,
+        severity="SEVERE",
+    )
+
+    PortfolioAllocator(DEFAULT_CONFIG).allocate(
+        date=date,
+        opportunity=Opportunity.WEAK,
+        risk=guarded,
+        user_panel={symbol: frame for symbol in symbols},
+        leaders={symbol: _leader(symbol, 0.90) for symbol in symbols},
+        account=account,
+        prices={symbol: 1.0 for symbol in symbols},
+    )
+
+    assert account.protected_weights == protected
+    assert account.candidate_tenure["post_shock_restore_complete"] == 1
+
+
+@pytest.mark.parametrize(
+    "reason",
+    (
+        "capital drawdown relapse in restored holdings",
+        "market-backed severe portfolio break in restored holdings",
+    ),
+)
+def test_failed_restoration_retires_strategic_restore_before_early_return(
+    reason: str,
+) -> None:
     dates = pd.bdate_range("2025-01-02", periods=150)
     date = dates[-1]
     frame = _trend_frame(dates)
@@ -6756,7 +7097,7 @@ def test_failed_restoration_retires_strategic_restore_before_early_return():
         DEFAULT_CONFIG.market_crisis_gross,
         4,
         {},
-        ("capital drawdown relapse in restored holdings",),
+        (reason,),
         "CAPITAL_GUARD_COOLDOWN",
         freeze_new_risk=True,
         reduction_level=3,

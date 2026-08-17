@@ -356,6 +356,32 @@ def test_daily_holdout_append_requires_the_contracted_exchange_session_prefix(
     ).exists()
 
 
+def test_daily_holdout_append_cannot_skip_the_prior_daily_replay(
+    tmp_path: Path,
+) -> None:
+    contract = load_future_holdout_contract()
+    frozen = tmp_path / "data/frozen"
+    snapshot = tmp_path / "snapshot"
+    _csv(frozen / "sh000300.csv", LAST_IN_SAMPLE_DATE)
+    _csv(snapshot / "sh000300.csv", contract.review_sessions[0])
+    append_holdout_snapshot(
+        repository_root=tmp_path,
+        snapshot_dir=snapshot,
+        contract=contract,
+    )
+
+    _csv(snapshot / "sh000300.csv", contract.review_sessions[1])
+    with pytest.raises(ValueError, match="prior daily replay checkpoint"):
+        append_holdout_snapshot(
+            repository_root=tmp_path,
+            snapshot_dir=snapshot,
+            contract=contract,
+        )
+    assert not (
+        tmp_path / HOLDOUT_DATA_DIRECTORY / contract.review_sessions[1]
+    ).exists()
+
+
 @pytest.mark.parametrize(("column", "value"), (("open", "inf"), ("amount", "-inf")))
 def test_daily_holdout_append_rejects_nonfinite_market_values(
     tmp_path: Path,
@@ -588,6 +614,7 @@ def test_holdout_replay_reuses_the_prior_journal_checkpoint(
         repository_root=tmp_path,
         account_path=account_path,
         output_path=output,
+        decision_output_path=tmp_path / "artifacts/decision.json",
         journal_path=journal,
     )
     assert first["journal_checkpoint"]["sequence"] == 1
@@ -598,8 +625,192 @@ def test_holdout_replay_reuses_the_prior_journal_checkpoint(
         generate_future_holdout_replay(
             repository_root=tmp_path,
             account_path=account_path,
-            output_path=tmp_path / "reports/renamed-replay.json",
+            output_path=output,
+            decision_output_path=tmp_path / "artifacts/decision.json",
             journal_path=journal,
+        )
+
+
+def test_holdout_replay_cannot_batch_skipped_daily_decisions(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    _install_holdout_contract(tmp_path)
+    contract = load_future_holdout_contract()
+    replay = _valid_replay()
+    second_digest, second_decision = _decision_record(contract.review_sessions[1])
+    replay["sessions"] = list(contract.review_sessions[:2])
+    replay["decision_digests"] = [
+        *replay["decision_digests"],
+        second_digest,
+    ]
+    replay["decisions"] = [*replay["decisions"], second_decision]
+    replay["canonical_sha256"] = hashlib.sha256(
+        json.dumps(
+            {key: value for key, value in replay.items() if key != "canonical_sha256"},
+            allow_nan=False,
+            ensure_ascii=False,
+            separators=(",", ":"),
+            sort_keys=True,
+        ).encode()
+    ).hexdigest()
+    monkeypatch.setattr(
+        "uquant.validation.holdout_runtime.replay_future_holdout",
+        lambda **_kwargs: replay,
+    )
+
+    with pytest.raises(ValueError, match="one uncheckpointed daily session"):
+        generate_future_holdout_replay(
+            repository_root=tmp_path,
+            account_path=tmp_path / "account.json",
+            output_path=tmp_path / "artifacts/replay.json",
+            decision_output_path=tmp_path / "artifacts/decision.json",
+        )
+    assert not (tmp_path / "artifacts/replay.json").exists()
+
+
+def test_holdout_checkpoint_protects_prior_replay_and_decision_carriers(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    _install_holdout_contract(tmp_path)
+    replay = _valid_replay()
+    monkeypatch.setattr(
+        "uquant.validation.holdout_runtime.replay_future_holdout",
+        lambda **_kwargs: replay,
+    )
+    output = tmp_path / "artifacts/replay.json"
+    decision_output = tmp_path / "artifacts/decision.json"
+    generate_future_holdout_replay(
+        repository_root=tmp_path,
+        account_path=tmp_path / "account.json",
+        output_path=output,
+        decision_output_path=decision_output,
+    )
+    checkpoint = json.loads(
+        (tmp_path / "artifacts/future_holdout_checkpoint.json").read_text(
+            encoding="utf-8"
+        )
+    )
+    assert checkpoint["sessions"] == [HOLDOUT_START]
+    assert checkpoint["replay_output_path"] == str(output.resolve())
+    assert checkpoint["decision_output_path"] == str(decision_output.resolve())
+
+    decision_output.write_text("{}\n", encoding="utf-8")
+    with pytest.raises(ValueError, match="prior daily decision artifact"):
+        generate_future_holdout_replay(
+            repository_root=tmp_path,
+            account_path=tmp_path / "account.json",
+            output_path=output,
+            decision_output_path=decision_output,
+        )
+
+
+def test_holdout_checkpoint_prevents_output_carrier_switching(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    _install_holdout_contract(tmp_path)
+    replay = _valid_replay()
+    monkeypatch.setattr(
+        "uquant.validation.holdout_runtime.replay_future_holdout",
+        lambda **_kwargs: replay,
+    )
+    output = tmp_path / "artifacts/replay.json"
+    decision_output = tmp_path / "artifacts/decision.json"
+    generate_future_holdout_replay(
+        repository_root=tmp_path,
+        account_path=tmp_path / "account.json",
+        output_path=output,
+        decision_output_path=decision_output,
+    )
+
+    with pytest.raises(ValueError, match="checkpointed output paths"):
+        generate_future_holdout_replay(
+            repository_root=tmp_path,
+            account_path=tmp_path / "account.json",
+            output_path=tmp_path / "reports/renamed-replay.json",
+            decision_output_path=tmp_path / "reports/renamed-decision.json",
+        )
+
+
+def test_holdout_checkpoint_rejects_mutation_of_the_prior_data_prefix(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    _install_holdout_contract(tmp_path)
+    contract = load_future_holdout_contract()
+    first_path = (
+        tmp_path
+        / HOLDOUT_DATA_DIRECTORY
+        / contract.review_sessions[0]
+        / "sh000300.csv"
+    )
+    _csv(first_path, contract.review_sessions[0])
+    first_snapshot = holdout_runtime_module._capture_holdout_data(
+        tmp_path / HOLDOUT_DATA_DIRECTORY
+    )
+    first = _valid_replay()
+    first["holdout_data_sha256"] = first_snapshot.sha256
+    first["canonical_sha256"] = hashlib.sha256(
+        json.dumps(
+            {key: value for key, value in first.items() if key != "canonical_sha256"},
+            allow_nan=False,
+            ensure_ascii=False,
+            separators=(",", ":"),
+            sort_keys=True,
+        ).encode()
+    ).hexdigest()
+    monkeypatch.setattr(
+        "uquant.validation.holdout_runtime.replay_future_holdout",
+        lambda **_kwargs: first,
+    )
+    output = tmp_path / "artifacts/replay.json"
+    decision_output = tmp_path / "artifacts/decision.json"
+    generate_future_holdout_replay(
+        repository_root=tmp_path,
+        account_path=tmp_path / "account.json",
+        output_path=output,
+        decision_output_path=decision_output,
+    )
+
+    _csv(first_path, contract.review_sessions[0], close=11.0)
+    _csv(
+        tmp_path
+        / HOLDOUT_DATA_DIRECTORY
+        / contract.review_sessions[1]
+        / "sh000300.csv",
+        contract.review_sessions[1],
+    )
+    current = holdout_runtime_module._capture_holdout_data(
+        tmp_path / HOLDOUT_DATA_DIRECTORY
+    )
+    second_digest, second_decision = _decision_record(contract.review_sessions[1])
+    extended = json.loads(json.dumps(first))
+    extended["holdout_data_sha256"] = current.sha256
+    extended["sessions"] = list(contract.review_sessions[:2])
+    extended["decision_digests"].append(second_digest)
+    extended["decisions"].append(second_decision)
+    extended["canonical_sha256"] = hashlib.sha256(
+        json.dumps(
+            {key: value for key, value in extended.items() if key != "canonical_sha256"},
+            allow_nan=False,
+            ensure_ascii=False,
+            separators=(",", ":"),
+            sort_keys=True,
+        ).encode()
+    ).hexdigest()
+    monkeypatch.setattr(
+        "uquant.validation.holdout_runtime.replay_future_holdout",
+        lambda **_kwargs: extended,
+    )
+
+    with pytest.raises(ValueError, match="checkpointed data prefix"):
+        generate_future_holdout_replay(
+            repository_root=tmp_path,
+            account_path=tmp_path / "account.json",
+            output_path=output,
+            decision_output_path=decision_output,
         )
 
 

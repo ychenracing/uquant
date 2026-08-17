@@ -547,6 +547,55 @@ class LeaderPortfolioPolicy(StrategicPortfolioPolicy):
         winner_bonus = min(0.20, 0.50 * max(0.0, peak_mfe))
         return leaders[symbol].score + winner_bonus
 
+    def _leader_lifecycle_exit_confirmed(
+        self,
+        *,
+        symbol: str,
+        date: pd.Timestamp,
+        user_panel: dict[str, pd.DataFrame],
+        leaders: dict[str, LeaderScore],
+        account: AccountState,
+    ) -> bool:
+        """Reuse the existing per-symbol damage confirmation across owner gaps."""
+        position = account.positions.get(symbol)
+        frame = user_panel.get(symbol)
+        leader = leaders.get(symbol)
+        key = f"lifecycle_exit:{symbol}"
+        if (
+            position is None
+            or position.shares <= 0
+            or frame is None
+            or date not in frame.index
+            or leader is None
+        ):
+            account.replacement_tenure[key] = 0
+            return False
+        row = frame.loc[date]
+        peak_mfe = position.highest_close / max(position.avg_cost, 1e-12) - 1.0
+        protected_winner = peak_mfe >= 0.20
+        broken = bool(
+            not leader.mature
+            and scalar(row, "close")
+            < scalar(
+                row,
+                f"ma{self.cfg.trend_medium if protected_winner else self.cfg.trend_fast}",
+            )
+            and scalar(row, f"ret{self.cfg.trend_fast}", 0.0)
+            <= (-0.15 if protected_winner else -0.08)
+        )
+        account.replacement_tenure[key] = (
+            account.replacement_tenure.get(key, 0) + 1 if broken else 0
+        )
+        held_sessions = (
+            len(frame.loc[pd.Timestamp(position.entry_date) : date])
+            if position.entry_date
+            else 0
+        )
+        return bool(
+            account.replacement_tenure[key] >= self.cfg.replacement_confirm_days
+            and held_sessions >= self.cfg.min_hold_days
+        )
+
     def _industry_handoff(
         self,
         *,
@@ -820,34 +869,12 @@ class LeaderPortfolioPolicy(StrategicPortfolioPolicy):
         # This is a lifecycle exit, not a second risk controller: it requires
         # persistent loss of both maturity and price structure.
         for symbol in list(active):
-            frame = user_panel[symbol]
-            row = frame.loc[date]
-            exit_position = account.positions.get(symbol)
-            peak_mfe = (
-                exit_position.highest_close / max(exit_position.avg_cost, 1e-12) - 1.0
-                if exit_position is not None
-                else 0.0
-            )
-            protected_winner = peak_mfe >= 0.20
-            broken = (
-                not leaders[symbol].mature
-                and scalar(row, "close")
-                < scalar(
-                    row,
-                    f"ma{self.cfg.trend_medium if protected_winner else self.cfg.trend_fast}",
-                )
-                and scalar(row, f"ret{self.cfg.trend_fast}", 0.0) <= (-0.15 if protected_winner else -0.08)
-            )
-            key = f"lifecycle_exit:{symbol}"
-            account.replacement_tenure[key] = account.replacement_tenure.get(key, 0) + 1 if broken else 0
-            held_sessions = (
-                len(frame.loc[pd.Timestamp(exit_position.entry_date) : date])
-                if exit_position is not None and exit_position.entry_date
-                else 0
-            )
-            if (
-                account.replacement_tenure[key] >= self.cfg.replacement_confirm_days
-                and held_sessions >= self.cfg.min_hold_days
+            if self._leader_lifecycle_exit_confirmed(
+                symbol=symbol,
+                date=date,
+                user_panel=user_panel,
+                leaders=leaders,
+                account=account,
             ):
                 active.remove(symbol)
                 reasons[symbol] = "leader lifecycle exit: confirmed structural deterioration"

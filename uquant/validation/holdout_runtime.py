@@ -9,6 +9,7 @@ import json
 import math
 import os
 import shutil
+import stat
 import subprocess  # nosec B404
 import tempfile
 from collections.abc import Mapping, Sequence
@@ -84,7 +85,13 @@ _CHECKPOINT_FIELDS = {
     "production_source_sha256",
     "prior_close_account_sha256",
     "holdout_data_sha256",
+    "sessions",
+    "decision_digests",
     "replay_canonical_sha256",
+    "replay_output_path",
+    "replay_output_sha256",
+    "decision_output_path",
+    "decision_output_sha256",
     "journal_checkpoint",
     "canonical_sha256",
 }
@@ -112,22 +119,27 @@ class _HoldoutDataSnapshot:
     files: tuple[tuple[str, bytes], ...]
 
 
-def _capture_holdout_data(root: Path) -> _HoldoutDataSnapshot:
-    try:
-        paths = _closed_csv_files(root, label="future holdout", missing_ok=False)
-    except RuntimeError as exc:
-        raise ValueError(str(exc)) from exc
+def _snapshot_files_sha256(files: Sequence[tuple[str, bytes]]) -> str:
     digest = hashlib.sha256()
-    sessions: set[str] = set()
-    files: list[tuple[str, bytes]] = []
-    for path in paths:
-        relative = path.relative_to(root).as_posix()
-        content = path.read_bytes()
+    for relative, content in files:
         relative_bytes = relative.encode()
         digest.update(len(relative_bytes).to_bytes(4, "big"))
         digest.update(relative_bytes)
         digest.update(len(content).to_bytes(8, "big"))
         digest.update(content)
+    return digest.hexdigest()
+
+
+def _capture_holdout_data(root: Path) -> _HoldoutDataSnapshot:
+    try:
+        paths = _closed_csv_files(root, label="future holdout", missing_ok=False)
+    except RuntimeError as exc:
+        raise ValueError(str(exc)) from exc
+    sessions: set[str] = set()
+    files: list[tuple[str, bytes]] = []
+    for path in paths:
+        relative = path.relative_to(root).as_posix()
+        content = path.read_bytes()
         try:
             decoded = content.decode("utf-8")
         except UnicodeError as exc:
@@ -136,9 +148,41 @@ def _capture_holdout_data(root: Path) -> _HoldoutDataSnapshot:
         files.append((relative, content))
     return _HoldoutDataSnapshot(
         sessions=tuple(sorted(sessions)),
-        sha256=digest.hexdigest(),
+        sha256=_snapshot_files_sha256(files),
         files=tuple(files),
     )
+
+
+def _validated_snapshot_prefix_sha256(
+    snapshot: _HoldoutDataSnapshot,
+    *,
+    prefix_sessions: Sequence[str],
+) -> str:
+    inventories: dict[str, set[str]] = {}
+    for relative, content in snapshot.files:
+        path = Path(relative)
+        if len(path.parts) != 2 or path.parts[0] not in snapshot.sessions:
+            raise ValueError("future holdout data is not stored as daily snapshots")
+        session, name = path.parts
+        try:
+            dates = _csv_dates_from_text(content.decode("utf-8"), path=path)
+        except (RuntimeError, UnicodeError) as exc:
+            raise ValueError("future holdout daily snapshot is malformed") from exc
+        if dates != (session,):
+            raise ValueError("future holdout daily snapshot must contain its one session")
+        inventories.setdefault(session, set()).add(name)
+    if set(inventories) != set(snapshot.sessions) or any(
+        inventory != next(iter(inventories.values()))
+        for inventory in inventories.values()
+    ):
+        raise ValueError("future holdout daily snapshot inventory is incomplete")
+    prefix = set(prefix_sessions)
+    selected = tuple(
+        item for item in snapshot.files if Path(item[0]).parts[0] in prefix
+    )
+    if prefix and {Path(relative).parts[0] for relative, _ in selected} != prefix:
+        raise ValueError("future holdout checkpointed data prefix is incomplete")
+    return _snapshot_files_sha256(selected)
 
 
 def _reject_output_in_protected_data(
@@ -166,6 +210,33 @@ def _paths_overlap(left: str | Path, right: str | Path) -> bool:
         except OSError:
             return False
     return False
+
+
+def _resolved_path_text(path: str | Path) -> str:
+    return str(Path(path).resolve(strict=False))
+
+
+def _read_protected_artifact(path: str | Path, *, label: str) -> bytes:
+    source = Path(path)
+    current = source.absolute()
+    while True:
+        if current.is_symlink():
+            raise ValueError(f"{label} contains a symlink")
+        if current == current.parent:
+            break
+        current = current.parent
+    flags = os.O_RDONLY | getattr(os, "O_NOFOLLOW", 0)
+    try:
+        descriptor = os.open(source, flags)
+    except OSError as exc:
+        raise ValueError(f"{label} is missing or unsafe") from exc
+    try:
+        if not stat.S_ISREG(os.fstat(descriptor).st_mode):
+            raise ValueError(f"{label} is missing or unsafe")
+        with os.fdopen(os.dup(descriptor), "rb") as handle:
+            return handle.read()
+    finally:
+        os.close(descriptor)
 
 
 def _git_metadata_paths(repository_root: Path) -> tuple[Path, ...]:
@@ -387,6 +458,25 @@ def append_holdout_snapshot(
         reviewed.review_sessions[len(existing_sessions)]
     ):
         raise ValueError("holdout snapshot must be the next contracted exchange session")
+    if existing_sessions:
+        checkpoint_path = root / _CHECKPOINT_RELATIVE
+        prior_checkpoint = _read_checkpoint_carrier(
+            checkpoint_path,
+            contract=reviewed,
+        )
+        if prior_checkpoint is None:
+            raise ValueError(
+                "prior daily replay checkpoint is required before the next holdout append"
+            )
+        prior_payload, _ = prior_checkpoint
+        _verify_checkpoint_artifacts(prior_payload, contract=reviewed)
+        if (
+            tuple(prior_payload["sessions"]) != existing_sessions
+            or prior_payload["holdout_data_sha256"] != holdout_data_identity(holdout_root)[1]
+        ):
+            raise ValueError(
+                "prior daily replay checkpoint does not match the current holdout prefix"
+            )
 
     holdout_root.mkdir(parents=True, exist_ok=True)
     staging = Path(tempfile.mkdtemp(prefix=f".{session}-", dir=holdout_root))
@@ -761,15 +851,28 @@ def read_future_holdout_replay(
     return raw
 
 
-def _checkpoint_payload(replay: Mapping[str, Any]) -> dict[str, Any]:
+def _checkpoint_payload(
+    replay: Mapping[str, Any],
+    *,
+    replay_output_path: str | Path,
+    replay_output_bytes: bytes,
+    decision_output_path: str | Path,
+    decision_output_bytes: bytes,
+) -> dict[str, Any]:
     payload: dict[str, Any] = {
-        "schema_version": 1,
-        "checkpoint_id": "phase2-future-holdout-journal-checkpoint-v1",
+        "schema_version": 2,
+        "checkpoint_id": "phase2-future-holdout-daily-checkpoint-v2",
         "contract_sha256": replay.get("contract_sha256"),
         "production_source_sha256": replay.get("production_source_sha256"),
         "prior_close_account_sha256": replay.get("prior_close_account_sha256"),
         "holdout_data_sha256": replay.get("holdout_data_sha256"),
+        "sessions": replay.get("sessions"),
+        "decision_digests": replay.get("decision_digests"),
         "replay_canonical_sha256": replay.get("canonical_sha256"),
+        "replay_output_path": _resolved_path_text(replay_output_path),
+        "replay_output_sha256": hashlib.sha256(replay_output_bytes).hexdigest(),
+        "decision_output_path": _resolved_path_text(decision_output_path),
+        "decision_output_sha256": hashlib.sha256(decision_output_bytes).hexdigest(),
         "journal_checkpoint": replay.get("journal_checkpoint"),
     }
     payload["canonical_sha256"] = _canonical_sha256(payload)
@@ -791,9 +894,9 @@ def _read_checkpoint_carrier(
         set(raw) != _CHECKPOINT_FIELDS
         or not isinstance(seal, str)
         or seal != _canonical_sha256(unsealed)
-        or raw.get("schema_version") != 1
+        or raw.get("schema_version") != 2
         or raw.get("checkpoint_id")
-        != "phase2-future-holdout-journal-checkpoint-v1"
+        != "phase2-future-holdout-daily-checkpoint-v2"
         or raw.get("contract_sha256") != contract.sha256
         or raw.get("production_source_sha256")
         != holdout_source_sha256(Path(__file__).resolve().parents[2])
@@ -803,8 +906,28 @@ def _read_checkpoint_carrier(
         or len(cast(str, raw["holdout_data_sha256"])) != 64
         or not isinstance(raw.get("replay_canonical_sha256"), str)
         or len(cast(str, raw["replay_canonical_sha256"])) != 64
+        or not isinstance(raw.get("replay_output_path"), str)
+        or not Path(cast(str, raw["replay_output_path"])).is_absolute()
+        or not isinstance(raw.get("replay_output_sha256"), str)
+        or len(cast(str, raw["replay_output_sha256"])) != 64
+        or not isinstance(raw.get("decision_output_path"), str)
+        or not Path(cast(str, raw["decision_output_path"])).is_absolute()
+        or not isinstance(raw.get("decision_output_sha256"), str)
+        or len(cast(str, raw["decision_output_sha256"])) != 64
     ):
         raise ValueError("future holdout journal checkpoint carrier is invalid")
+    sessions = raw.get("sessions")
+    digests = raw.get("decision_digests")
+    if (
+        not isinstance(sessions, list)
+        or not sessions
+        or any(not isinstance(value, str) for value in sessions)
+        or _session_dates(sessions, contract=contract) != tuple(sessions)
+        or not isinstance(digests, list)
+        or len(digests) != len(sessions)
+        or any(not isinstance(value, str) or len(value) != 64 for value in digests)
+    ):
+        raise ValueError("future holdout journal checkpoint history is malformed")
     checkpoint = raw.get("journal_checkpoint")
     if not isinstance(checkpoint, Mapping):
         raise ValueError("future holdout journal checkpoint is malformed")
@@ -813,6 +936,102 @@ def _read_checkpoint_carrier(
     except (TypeError, ValueError) as exc:
         raise ValueError("future holdout journal checkpoint is malformed") from exc
     return raw, trusted
+
+
+def _verify_checkpoint_artifacts(
+    checkpoint: Mapping[str, Any],
+    *,
+    contract: FutureHoldoutContract,
+) -> dict[str, Any]:
+    replay_path = cast(str, checkpoint["replay_output_path"])
+    try:
+        before = _read_protected_artifact(
+            replay_path,
+            label="prior deterministic replay artifact",
+        )
+        if hashlib.sha256(before).hexdigest() != checkpoint["replay_output_sha256"]:
+            raise ValueError("prior deterministic replay artifact hash changed")
+        replay = read_future_holdout_replay(
+            replay_path,
+            contract=contract,
+            sessions=cast(Sequence[str], checkpoint["sessions"]),
+            holdout_data_sha256=cast(str, checkpoint["holdout_data_sha256"]),
+        )
+        after = _read_protected_artifact(
+            replay_path,
+            label="prior deterministic replay artifact",
+        )
+        if before != after:
+            raise ValueError("prior deterministic replay artifact changed during readback")
+        if (
+            replay["canonical_sha256"] != checkpoint["replay_canonical_sha256"]
+            or replay["decision_digests"] != checkpoint["decision_digests"]
+            or replay["journal_checkpoint"] != checkpoint["journal_checkpoint"]
+        ):
+            raise ValueError("prior deterministic replay artifact checkpoint is stale")
+    except (OSError, ValueError) as exc:
+        raise ValueError("prior deterministic replay artifact is missing or changed") from exc
+
+    decision_path = cast(str, checkpoint["decision_output_path"])
+    try:
+        before = _read_protected_artifact(
+            decision_path,
+            label="prior daily decision artifact",
+        )
+        if hashlib.sha256(before).hexdigest() != checkpoint["decision_output_sha256"]:
+            raise ValueError("prior daily decision artifact hash changed")
+        read_future_holdout_decision(decision_path, replay=replay)
+        after = _read_protected_artifact(
+            decision_path,
+            label="prior daily decision artifact",
+        )
+        if before != after:
+            raise ValueError("prior daily decision artifact changed during readback")
+    except (OSError, ValueError) as exc:
+        raise ValueError("prior daily decision artifact is missing or changed") from exc
+    return replay
+
+
+def _validate_daily_replay_continuity(
+    replay: Mapping[str, Any],
+    *,
+    prior_checkpoint: Mapping[str, Any] | None,
+    contract: FutureHoldoutContract,
+) -> None:
+    sessions = replay.get("sessions")
+    digests = replay.get("decision_digests")
+    if (
+        not isinstance(sessions, list)
+        or not sessions
+        or any(not isinstance(value, str) for value in sessions)
+        or _session_dates(sessions, contract=contract) != tuple(sessions)
+        or not isinstance(digests, list)
+        or len(digests) != len(sessions)
+    ):
+        raise ValueError("future holdout replay daily history is malformed")
+    if prior_checkpoint is None:
+        if len(sessions) != 1:
+            raise ValueError(
+                "future holdout replay requires exactly one uncheckpointed daily session"
+            )
+        return
+
+    prior_sessions = cast(list[str], prior_checkpoint["sessions"])
+    prior_digests = cast(list[str], prior_checkpoint["decision_digests"])
+    if sessions[: len(prior_sessions)] != prior_sessions:
+        raise ValueError("future holdout replay changed the checkpointed session prefix")
+    if len(sessions) not in {len(prior_sessions), len(prior_sessions) + 1}:
+        raise ValueError(
+            "future holdout replay requires exactly one uncheckpointed daily session"
+        )
+    if digests[: len(prior_digests)] != prior_digests:
+        raise ValueError("future holdout replay changed a checkpointed daily decision")
+    if (
+        len(sessions) == len(prior_sessions)
+        and replay.get("holdout_data_sha256")
+        != prior_checkpoint["holdout_data_sha256"]
+    ):
+        raise ValueError("future holdout replay changed the checkpointed data prefix")
 
 
 def _daily_decision_payload(replay: Mapping[str, Any]) -> dict[str, Any]:
@@ -893,16 +1112,54 @@ def generate_future_holdout_replay(
         holdout_data_directory=contract.data_directory,
         checkpoint_path=checkpoint_path,
     )
+    if decision_output_path is None:
+        raise ValueError(
+            "future holdout replay requires a daily decision output artifact"
+        )
     prior_checkpoint = _read_checkpoint_carrier(
         checkpoint_path,
         contract=contract,
     )
+    prior_payload = None if prior_checkpoint is None else prior_checkpoint[0]
+    if prior_payload is not None:
+        if (
+            prior_payload["replay_output_path"] != _resolved_path_text(output_path)
+            or prior_payload["decision_output_path"]
+            != _resolved_path_text(decision_output_path)
+        ):
+            raise ValueError(
+                "future holdout replay must reuse the checkpointed output paths"
+            )
+        _verify_checkpoint_artifacts(prior_payload, contract=contract)
     trusted_checkpoint = None if prior_checkpoint is None else prior_checkpoint[1]
     replay = replay_future_holdout(
         repository_root=root,
         account_path=account_path,
         journal_path=journal_path,
         trusted_journal_checkpoint=trusted_checkpoint,
+        contract=contract,
+    )
+    holdout_root = root / contract.data_directory
+    if holdout_root.exists():
+        snapshot = _capture_holdout_data(holdout_root)
+        _validated_snapshot_prefix_sha256(
+            snapshot,
+            prefix_sessions=snapshot.sessions,
+        )
+        replay_sessions = tuple(cast(Sequence[str], replay.get("sessions", ())))
+        if (
+            snapshot.sessions != replay_sessions
+            or snapshot.sha256 != replay.get("holdout_data_sha256")
+        ):
+            raise ValueError("future holdout data changed during deterministic replay")
+        if prior_payload is not None and _validated_snapshot_prefix_sha256(
+            snapshot,
+            prefix_sessions=cast(Sequence[str], prior_payload["sessions"]),
+        ) != prior_payload["holdout_data_sha256"]:
+            raise ValueError("future holdout changed the checkpointed data prefix")
+    _validate_daily_replay_continuity(
+        replay,
+        prior_checkpoint=prior_payload,
         contract=contract,
     )
     destination = Path(output_path)
@@ -924,31 +1181,44 @@ def generate_future_holdout_replay(
     )
     if observed != replay:
         raise RuntimeError("future holdout replay changed during readback")
-    if decision_output_path is not None:
-        latest = _daily_decision_payload(replay)
-        atomic_write_text(
-            decision_output_path,
-            json.dumps(latest, ensure_ascii=False, indent=2) + "\n",
-            protected_paths=(
-                destination,
-                account_path,
-                *(() if journal_path is None else (journal_path,)),
-            ),
-        )
-        observed_decision = read_future_holdout_decision(
-            decision_output_path,
-            replay=replay,
-        )
-        if observed_decision != latest:
-            raise RuntimeError("future holdout daily decision changed during readback")
-    checkpoint = _checkpoint_payload(replay)
+    latest = _daily_decision_payload(replay)
+    atomic_write_text(
+        decision_output_path,
+        json.dumps(latest, ensure_ascii=False, indent=2) + "\n",
+        protected_paths=(
+            destination,
+            account_path,
+            *(() if journal_path is None else (journal_path,)),
+        ),
+    )
+    observed_decision = read_future_holdout_decision(
+        decision_output_path,
+        replay=replay,
+    )
+    if observed_decision != latest:
+        raise RuntimeError("future holdout daily decision changed during readback")
+    replay_output_bytes = _read_protected_artifact(
+        destination,
+        label="deterministic replay artifact",
+    )
+    decision_output_bytes = _read_protected_artifact(
+        decision_output_path,
+        label="daily decision artifact",
+    )
+    checkpoint = _checkpoint_payload(
+        replay,
+        replay_output_path=destination,
+        replay_output_bytes=replay_output_bytes,
+        decision_output_path=decision_output_path,
+        decision_output_bytes=decision_output_bytes,
+    )
     atomic_write_text(
         checkpoint_path,
         json.dumps(checkpoint, ensure_ascii=False, indent=2) + "\n",
         protected_paths=(
             destination,
             account_path,
-            *(() if decision_output_path is None else (decision_output_path,)),
+            decision_output_path,
             *(() if journal_path is None else (journal_path,)),
         ),
     )
@@ -958,4 +1228,5 @@ def generate_future_holdout_replay(
     )
     if observed_checkpoint is None or observed_checkpoint[0] != checkpoint:
         raise RuntimeError("future holdout journal checkpoint changed during readback")
+    _verify_checkpoint_artifacts(checkpoint, contract=contract)
     return replay

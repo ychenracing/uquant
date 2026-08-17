@@ -87,6 +87,8 @@ def _reset_recovery_owner_rearm(account: AccountState) -> None:
         "recovery_owner_handoff",
         "recovery_owner_rearm_submitted",
         "recovery_owner_rearm_complete",
+        "post_shock_restore_submitted",
+        "post_shock_restore_deferred_expansion",
     ):
         account.candidate_tenure[key] = 0
 
@@ -1033,6 +1035,23 @@ def assess_risk(
         if recovery_transition_dates and user_panel
         else math.inf
     )
+    last_shock_was_market_backed = bool(
+        account.last_shock_date
+        and any(
+            event.get("date") == account.last_shock_date
+            and event.get("to") == Risk.CRISIS.value
+            and any(
+                reason
+                in {
+                    "market-backed drawdown relapse in restored holdings",
+                    "market-backed severe portfolio break in restored holdings",
+                }
+                for reason in event.get("reasons", ())
+                if isinstance(reason, str)
+            )
+            for event in account.risk_events
+        )
+    )
     capital_impaired_restoration_relapse = (
         bool(account.positions)
         and bool(account.protected_weights)
@@ -1049,6 +1068,22 @@ def assess_risk(
     market_backed_restoration_relapse = (
         bool(account.positions)
         and bool(account.protected_weights)
+        # This route refines an already-cautious restoration. A normalized
+        # book first passes through the generic confirmed state transition;
+        # independent market evidence must not bypass that confirmation.
+        and account.risk == Risk.CAUTION.value
+        # Reuse the existing shock-epoch rearm before opening another ordinary
+        # sell/restore loop. The only early exception is a severe holdings
+        # impulse that has already crossed the established portfolio-break
+        # line; it cannot wait for a historical shock epoch to expire.
+        and (
+            shock_rearmed
+            or (
+                not last_shock_was_market_backed
+                and immediate_severe_break
+                and operating_dd >= cfg.portfolio_break_dd
+            )
+        )
         # Strategic cohorts retain their dedicated mature-tail guard; the
         # generic restoration guard must not turn ordinary strategic
         # high-water giveback into a failed-restoration cash lock.
@@ -1059,11 +1094,21 @@ def assess_risk(
         # A profitable restored account is not failed by high-water giveback
         # alone.  It is failed when the deployed book, the independent market
         # basket, and sector breadth all confirm the same post-recovery damage.
+        and equity >= account.initial_cash - 1e-12
         and operating_dd >= cfg.capital_guard_relapse_dd
         and sessions_since_recovery >= cfg.capital_guard_min_recovery_days
         and held_damage_ratio >= cfg.concentrated_break_ratio
         and votes >= 3
         and sector_stress >= 0.50
+    )
+    terminal_market_backed_restoration_relapse = bool(
+        market_backed_restoration_relapse
+        # A synchronized severe holdings impulse beyond the existing
+        # portfolio-break line is no longer an ordinary repair. Reuse the
+        # established capital cooldown so the damaged cohort cannot churn
+        # through repeated sell/rebuy cycles.
+        and immediate_severe_break
+        and operating_dd >= cfg.portfolio_break_dd
     )
     capital_drawdown_relapse = bool(
         capital_impaired_restoration_relapse
@@ -1850,7 +1895,10 @@ def assess_risk(
             }
         account.shock_start_date = str(date.date())
         account.last_shock_date = str(date.date())
-        if capital_drawdown_relapse:
+        if (
+            capital_impaired_restoration_relapse
+            or terminal_market_backed_restoration_relapse
+        ):
             account.candidate_tenure["capital_guard_cooldown"] = cfg.capital_guard_cooldown_days
         account.candidate_tenure["last_shock_incomplete_universe"] = int(
             incomplete_universe_tail_break and credible_reserve
@@ -1916,6 +1964,8 @@ def assess_risk(
         concentrated_reason = (
             "confirmed dynamic cohort structural break"
             if held_cohort_break_confirmed
+            else "market-backed severe portfolio break in restored holdings"
+            if terminal_market_backed_restoration_relapse
             else "market-backed drawdown relapse in restored holdings"
             if market_backed_restoration_relapse
             else "capital drawdown relapse in restored holdings"

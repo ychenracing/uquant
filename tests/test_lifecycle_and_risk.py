@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import copy
+
 import numpy as np
 import pandas as pd
 import pytest
@@ -6635,6 +6637,92 @@ def test_profitable_restore_drawdown_is_not_a_capital_failure() -> None:
 
     assert "capital drawdown relapse in restored holdings" not in assessment.reasons
     assert account.candidate_tenure.get("capital_guard_cooldown", 0) == 0
+
+
+def test_profitable_restore_with_confirmed_market_damage_is_a_failed_restoration() -> None:
+    dates = pd.bdate_range("2025-01-02", periods=160)
+    date = dates[-1]
+    damaged = _risk_frame(dates, close=75.0, ma20=100.0, ret5=-0.10)
+    reference_panel, reference_leaders = _reference_context(damaged)
+    symbols = ("profitable_a", "profitable_b", "profitable_c")
+    account = AccountState(
+        initial_cash=100.0,
+        cash=75.0,
+        positions={
+            symbol: Position(
+                symbol,
+                shares=1,
+                avg_cost=100.0,
+                entry_date=str(dates[-30].date()),
+                highest_close=100.0,
+            )
+            for symbol in symbols
+        },
+        protected_weights={symbol: 1.0 / 3.0 for symbol in symbols},
+        risk=Risk.CAUTION.value,
+        operating_peak=400.0,
+        capital_peak=400.0,
+        risk_events=[
+            {
+                "date": str(dates[-20].date()),
+                "from": Risk.CRISIS.value,
+                "to": Risk.CAUTION.value,
+            }
+        ],
+    )
+    strategic_account = copy.deepcopy(account)
+    strategic_account.candidate_tenure["strategic_cohort_active"] = 1
+    anchored_account = copy.deepcopy(account)
+    anchored_account.anchor_weights = {symbol: 1.0 / 3.0 for symbol in symbols}
+
+    assessment = assess_risk(
+        date=date,
+        broad=damaged,
+        tech=damaged,
+        reference_panel=reference_panel,
+        reference_returns=None,
+        user_panel={symbol: damaged for symbol in symbols},
+        leaders={
+            **reference_leaders,
+            **{symbol: _leader(symbol, 0.80) for symbol in symbols},
+        },
+        account=account,
+        equity=300.0,
+        cfg=DEFAULT_CONFIG,
+    )
+
+    assert assessment.state is Risk.CRISIS
+    assert assessment.reasons == (
+        "market-backed drawdown relapse in restored holdings",
+    )
+    assert account.candidate_tenure["capital_guard_cooldown"] == (
+        DEFAULT_CONFIG.capital_guard_cooldown_days
+    )
+
+    for specialized_account in (strategic_account, anchored_account):
+        specialized_assessment = assess_risk(
+            date=date,
+            broad=damaged,
+            tech=damaged,
+            reference_panel=reference_panel,
+            reference_returns=None,
+            user_panel={symbol: damaged for symbol in symbols},
+            leaders={
+                **reference_leaders,
+                **{symbol: _leader(symbol, 0.80) for symbol in symbols},
+            },
+            account=specialized_account,
+            equity=300.0,
+            cfg=DEFAULT_CONFIG,
+        )
+
+        assert "market-backed drawdown relapse in restored holdings" not in (
+            specialized_assessment.reasons
+        )
+        assert (
+            specialized_account.candidate_tenure.get("capital_guard_cooldown", 0)
+            == 0
+        )
 
 
 def test_failed_restoration_retires_strategic_restore_before_early_return():

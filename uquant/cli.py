@@ -70,9 +70,23 @@ def _parser() -> argparse.ArgumentParser:
     holdout.add_argument(
         "--metrics",
         default=None,
-        help="independent observed-session metrics JSON (required after sessions exist)",
+        help="deterministic holdout replay artifact (required after sessions exist)",
     )
+    holdout.add_argument("--journal", default=None)
     holdout.add_argument("--output", default="benchmarks/future_holdout_manifest.json")
+    holdout_append = sub.add_parser("holdout-append")
+    holdout_append.add_argument("--snapshot-dir", required=True)
+    holdout_replay = sub.add_parser("holdout-replay")
+    holdout_replay.add_argument("--account", required=True)
+    holdout_replay.add_argument("--journal", default="execution_journal.jsonl")
+    holdout_replay.add_argument(
+        "--output",
+        default="artifacts/future_holdout_replay.json",
+    )
+    holdout_replay.add_argument(
+        "--decision-output",
+        default="artifacts/future_holdout_decision.json",
+    )
     journal = sub.add_parser("execution-journal")
     journal_sub = journal.add_subparsers(dest="journal_action", required=True)
     journal_plan = journal_sub.add_parser("planned")
@@ -183,8 +197,32 @@ def main(argv: list[str] | None = None) -> int:
             account_path=args.account,
             output_path=args.output,
             metrics_path=args.metrics,
+            journal_path=args.journal,
         )
         print(json.dumps(holdout_manifest, ensure_ascii=False, sort_keys=True))
+        return 0
+    if args.command == "holdout-append":
+        from .validation.holdout_runtime import append_holdout_snapshot
+
+        root = Path(__file__).resolve().parents[1]
+        result = append_holdout_snapshot(
+            repository_root=root,
+            snapshot_dir=args.snapshot_dir,
+        )
+        print(json.dumps(result, ensure_ascii=False, sort_keys=True))
+        return 0
+    if args.command == "holdout-replay":
+        from .validation.holdout_runtime import generate_future_holdout_replay
+
+        root = Path(__file__).resolve().parents[1]
+        replay = generate_future_holdout_replay(
+            repository_root=root,
+            account_path=args.account,
+            output_path=args.output,
+            decision_output_path=args.decision_output,
+            journal_path=args.journal,
+        )
+        print(json.dumps(replay, ensure_ascii=False, sort_keys=True))
         return 0
     if args.command == "execution-journal":
         from .execution_journal import (

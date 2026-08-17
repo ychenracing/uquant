@@ -27,7 +27,73 @@ from .universe import AIUniverse, load_ai_universe
 LAST_IN_SAMPLE_DATE: Final = "2026-08-05"
 HOLDOUT_START: Final = "2026-08-06"
 HOLDOUT_DATA_DIRECTORY: Final = "data/holdout/phase2-future-v1"
-REVIEW_MILESTONES: Final = (40, 60)
+REVIEW_MILESTONES: Final = (20, 40, 60)
+REVIEW_CALENDAR_SOURCE: Final = (
+    "https://www.sse.com.cn/disclosure/announcement/general/c/"
+    "c_20251222_10802507.shtml"
+)
+REVIEW_SESSIONS: Final = (
+    "2026-08-06",
+    "2026-08-07",
+    "2026-08-10",
+    "2026-08-11",
+    "2026-08-12",
+    "2026-08-13",
+    "2026-08-14",
+    "2026-08-17",
+    "2026-08-18",
+    "2026-08-19",
+    "2026-08-20",
+    "2026-08-21",
+    "2026-08-24",
+    "2026-08-25",
+    "2026-08-26",
+    "2026-08-27",
+    "2026-08-28",
+    "2026-08-31",
+    "2026-09-01",
+    "2026-09-02",
+    "2026-09-03",
+    "2026-09-04",
+    "2026-09-07",
+    "2026-09-08",
+    "2026-09-09",
+    "2026-09-10",
+    "2026-09-11",
+    "2026-09-14",
+    "2026-09-15",
+    "2026-09-16",
+    "2026-09-17",
+    "2026-09-18",
+    "2026-09-21",
+    "2026-09-22",
+    "2026-09-23",
+    "2026-09-24",
+    "2026-09-28",
+    "2026-09-29",
+    "2026-09-30",
+    "2026-10-08",
+    "2026-10-09",
+    "2026-10-12",
+    "2026-10-13",
+    "2026-10-14",
+    "2026-10-15",
+    "2026-10-16",
+    "2026-10-19",
+    "2026-10-20",
+    "2026-10-21",
+    "2026-10-22",
+    "2026-10-23",
+    "2026-10-26",
+    "2026-10-27",
+    "2026-10-28",
+    "2026-10-29",
+    "2026-10-30",
+    "2026-11-02",
+    "2026-11-03",
+    "2026-11-04",
+    "2026-11-05",
+)
 REVIEWED_PHASE1_WINDOWS: Final = MappingProxyType(
     {
         "h1_2023": ("2023-01-03", "2023-06-30"),
@@ -38,9 +104,9 @@ REVIEWED_PHASE1_WINDOWS: Final = MappingProxyType(
         "continuous_ai_era": ("2023-01-03", "2026-08-05"),
     }
 )
-STRATEGY_ANCHOR_COMMIT: Final = "f98b8840ae0232c0a273c832dbb4800752fb6a17"
+STRATEGY_ANCHOR_COMMIT: Final = "798a86e05fb61d4c7fcdd39b708ea042ce635a73"
 STRATEGY_SOURCE_SHA256: Final = (
-    "6a131e8b3a64738955f0dd9c295c5092f6ea59fcf923e86940a645de0498fe8e"
+    "5312817b24cce2f0b4ea7937a8b6758166546569fa6e35c1cc32d4f4cf900cb1"
 )
 STRATEGY_CONFIG_SHA256: Final = (
     "ed52da44a359c1506e1d299f7bc341ad01b199d7f96997f7c01f2b8eca7cfc13"
@@ -49,10 +115,10 @@ STRATEGY_CLI_SHA256: Final = (
     "db34c26631b9b64c6d359149b927f0bee86c89dba74360efddc922342b6f24ad"
 )
 STRATEGY_ACCOUNT_CODE_SHA256: Final = (
-    "f43e1e93859169df056051ad1963b761e35143be31b321bf11883726218c5dc7"
+    "4a0d9bdec4cceee2181ae32a49473bf72c9513e8328e29e0791344810c8c761e"
 )
 PRIOR_CLOSE_ACCOUNT_SHA256: Final = (
-    "2404eb5cd1e0ccfc68ab4663778288dd3a17f607baeb3f8104583443673273f1"
+    "5b086866ff5dbdeb00b80dd6c7c4d394a9f0f0373f15569fc7d935492760ef6a"
 )
 SCORE_FIELDS: Final = (
     "final_wealth",
@@ -64,7 +130,7 @@ SCORE_FIELDS: Final = (
     "pnl_hhi",
 )
 REQUIRED_FUTURE_HOLDOUT_SHA256: Final = (
-    "d6e950ae6ee9da9c02894ce284e1023ae9a91e3890c7148d5a4d182cd4b14ff1"
+    "d89cf4dbc549432ca7bea98a48e5089d0c894afb05c3c5719cc5be3120d1d641"
 )
 
 _SHA256 = re.compile(r"^[0-9a-f]{64}$")
@@ -76,6 +142,7 @@ _CONTRACT_FIELDS = {
     "dates",
     "phase1_windows",
     "data_directory",
+    "review_calendar",
     "review_milestones",
     "score_fields",
     "observation_policy",
@@ -119,10 +186,13 @@ _STRATEGY_OPERATIONAL_RELATIVES: Final = {
     "uquant/validation/ci_artifacts.py",
     "uquant/validation/equivalence.py",
     "uquant/validation/holdout.py",
+    "uquant/validation/holdout_runtime.py",
 }
 _CLI_OPERATIONAL_COMMANDS: Final = {
     "execution-journal",
+    "holdout-append",
     "holdout-manifest",
+    "holdout-replay",
 }
 
 
@@ -134,7 +204,8 @@ class FutureHoldoutContract:
     last_in_sample_date: str
     first_holdout_date: str
     data_directory: str
-    review_milestones: tuple[int, int]
+    review_sessions: tuple[str, ...]
+    review_milestones: tuple[int, ...]
     score_fields: tuple[str, ...]
     parameter_changes_from_observation: bool
     phase1_windows: Mapping[str, tuple[str, str]]
@@ -258,7 +329,7 @@ def load_future_holdout_contract(path: str | Path | None = None) -> FutureHoldou
     raw = _read_json(source, label="future holdout contract")
     if set(raw) != _CONTRACT_FIELDS:
         raise ValueError("future holdout contract schema is malformed")
-    if raw["schema_version"] != 2 or raw["contract_id"] != "phase2-future-holdout-v1":
+    if raw["schema_version"] != 3 or raw["contract_id"] != "phase2-future-holdout-v1":
         raise ValueError("future holdout contract identity is malformed")
     seal = raw["canonical_sha256"]
     if (
@@ -271,6 +342,7 @@ def load_future_holdout_contract(path: str | Path | None = None) -> FutureHoldou
     dates = raw["dates"]
     phase1_windows = raw["phase1_windows"]
     policy = raw["observation_policy"]
+    review_calendar = raw["review_calendar"]
     strategy_anchor = raw["strategy_anchor"]
     if not isinstance(dates, dict) or set(dates) != {"last_in_sample", "first_holdout"}:
         raise ValueError("future holdout date contract is malformed")
@@ -283,6 +355,12 @@ def load_future_holdout_contract(path: str | Path | None = None) -> FutureHoldou
         "decision_at_last_in_sample_executes_in_holdout",
     }:
         raise ValueError("future holdout observation policy is malformed")
+    if review_calendar != {
+        "exchange": "SSE",
+        "source": REVIEW_CALENDAR_SOURCE,
+        "sessions": list(REVIEW_SESSIONS),
+    }:
+        raise ValueError("future holdout review calendar is malformed")
     if not isinstance(strategy_anchor, dict) or strategy_anchor != {
         "candidate_commit": STRATEGY_ANCHOR_COMMIT,
         "decision_source_sha256": STRATEGY_SOURCE_SHA256,
@@ -295,6 +373,8 @@ def load_future_holdout_contract(path: str | Path | None = None) -> FutureHoldou
     if (
         dates != {"last_in_sample": LAST_IN_SAMPLE_DATE, "first_holdout": HOLDOUT_START}
         or raw["data_directory"] != HOLDOUT_DATA_DIRECTORY
+        or len(REVIEW_SESSIONS) != REVIEW_MILESTONES[-1]
+        or REVIEW_SESSIONS[0] != HOLDOUT_START
         or raw["review_milestones"] != list(REVIEW_MILESTONES)
         or raw["score_fields"] != list(SCORE_FIELDS)
         or policy
@@ -312,6 +392,7 @@ def load_future_holdout_contract(path: str | Path | None = None) -> FutureHoldou
         last_in_sample_date=LAST_IN_SAMPLE_DATE,
         first_holdout_date=HOLDOUT_START,
         data_directory=HOLDOUT_DATA_DIRECTORY,
+        review_sessions=REVIEW_SESSIONS,
         review_milestones=REVIEW_MILESTONES,
         score_fields=SCORE_FIELDS,
         parameter_changes_from_observation=False,
@@ -450,8 +531,12 @@ def validate_holdout_layout(
         sessions, data_sha256 = holdout_data_identity(holdout)
     except ValueError as exc:
         raise RuntimeError(str(exc)) from exc
-    if any(value < expected.first_holdout_date for value in sessions):
-        raise RuntimeError("holdout directory contains an in-sample market row")
+    try:
+        _session_dates(sessions, contract=expected)
+    except ValueError as exc:
+        if "predates the frozen boundary" in str(exc):
+            raise RuntimeError("holdout directory contains an in-sample market row") from exc
+        raise RuntimeError(str(exc)) from exc
     return sessions, data_sha256
 
 
@@ -523,6 +608,8 @@ def _session_dates(values: Iterable[str], *, contract: FutureHoldoutContract) ->
             raise ValueError("holdout session must be an ISO date") from exc
         if parsed < date.fromisoformat(contract.first_holdout_date):
             raise ValueError("holdout session predates the frozen boundary")
+    if sessions != contract.review_sessions[: len(sessions)]:
+        raise ValueError("holdout sessions must be the contracted exchange session prefix")
     return sessions
 
 
@@ -1135,22 +1222,64 @@ def _observation_metrics(
     sessions: tuple[str, ...],
     holdout_data_sha256: str,
     contract: FutureHoldoutContract,
+    account_path: str | Path | None = None,
+    repository_root: str | Path | None = None,
+    journal_path: str | Path | None = None,
 ) -> tuple[dict[str, float | int | None], str | None]:
     if not sessions:
         if metrics_path is not None:
             raise ValueError("holdout metrics must be omitted before observations exist")
         return _normalized_scores(None, sessions=sessions, contract=contract), None
-    del metrics_path, holdout_data_sha256
-    raise RuntimeError(
-        "observed sessions require a deterministic holdout replay; "
-        "detached score files are prohibited"
+    if metrics_path is None:
+        raise RuntimeError(
+            "observed sessions require a deterministic holdout replay; "
+            "detached score files are prohibited"
+        )
+    from .holdout_runtime import (
+        read_future_holdout_replay,
+        replay_future_holdout,
     )
+
+    source = Path(metrics_path)
+    try:
+        before = source.read_bytes()
+        observed = read_future_holdout_replay(
+            source,
+            contract=contract,
+            sessions=sessions,
+            holdout_data_sha256=holdout_data_sha256,
+        )
+        after = source.read_bytes()
+    except (OSError, ValueError) as exc:
+        raise RuntimeError(
+            "observed sessions require a deterministic holdout replay; "
+            "detached score files are prohibited"
+        ) from exc
+    if before != after:
+        raise RuntimeError("future holdout replay changed during readback")
+    if account_path is None or repository_root is None:
+        raise RuntimeError(
+            "observed sessions require deterministic holdout re-execution"
+        )
+    expected = replay_future_holdout(
+        repository_root=repository_root,
+        account_path=account_path,
+        journal_path=journal_path,
+        contract=contract,
+    )
+    if observed != expected:
+        raise RuntimeError(
+            "future holdout replay differs from deterministic re-execution"
+        )
+    scores = cast(Mapping[str, float | int | None], observed["scores"])
+    return dict(scores), hashlib.sha256(before).hexdigest()
 
 
 def build_future_holdout_manifest(
     *,
     account_path: str | Path,
     metrics_path: str | Path | None = None,
+    journal_path: str | Path | None = None,
     repository_root: str | Path | None = None,
 ) -> dict[str, Any]:
     """Build evidence only from authoritative repository and file inputs."""
@@ -1169,6 +1298,9 @@ def build_future_holdout_manifest(
         sessions=sessions,
         holdout_data_sha256=data_sha256,
         contract=contract,
+        account_path=account_path,
+        repository_root=root,
+        journal_path=journal_path,
     )
     binding = current_holdout_binding(root)
     return _assemble_future_holdout_manifest(
@@ -1187,6 +1319,7 @@ def validate_future_holdout_manifest(
     manifest_path: str | Path,
     account_path: str | Path,
     metrics_path: str | Path | None = None,
+    journal_path: str | Path | None = None,
     repository_root: str | Path | None = None,
 ) -> None:
     """Re-read every authoritative input and reject stale or forged evidence."""
@@ -1195,6 +1328,7 @@ def validate_future_holdout_manifest(
     expected = build_future_holdout_manifest(
         account_path=account_path,
         metrics_path=metrics_path,
+        journal_path=journal_path,
         repository_root=repository_root,
     )
     _validate_future_holdout_manifest_payload(manifest, expected=expected)
@@ -1205,6 +1339,7 @@ def generate_future_holdout_manifest(
     account_path: str | Path,
     output_path: str | Path,
     metrics_path: str | Path | None = None,
+    journal_path: str | Path | None = None,
     repository_root: str | Path | None = None,
 ) -> dict[str, Any]:
     """Generate the ignored exact-HEAD manifest used by the final acceptance gate."""
@@ -1214,6 +1349,7 @@ def generate_future_holdout_manifest(
     manifest = build_future_holdout_manifest(
         account_path=account_path,
         metrics_path=metrics_path,
+        journal_path=journal_path,
         repository_root=root,
     )
     tracked = subprocess.run(
@@ -1224,6 +1360,8 @@ def generate_future_holdout_manifest(
     protected_paths = [Path(account_path)]
     if metrics_path is not None:
         protected_paths.append(Path(metrics_path))
+    if journal_path is not None:
+        protected_paths.append(Path(journal_path))
     protected_paths.extend(
         [
             *(root / value.decode("utf-8") for value in tracked if value),
@@ -1245,6 +1383,7 @@ def generate_future_holdout_manifest(
         manifest_path=destination,
         account_path=account_path,
         metrics_path=metrics_path,
+        journal_path=journal_path,
         repository_root=root,
     )
     return manifest

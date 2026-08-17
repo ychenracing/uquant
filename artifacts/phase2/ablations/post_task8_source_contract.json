@@ -1,16 +1,16 @@
 {
   "schema_version": 1,
   "contract_id": "phase2-post-task8-source-v1",
-  "canonical_sha256": "f486948bdb2378e0575875762624405fffa43070a7217b564bb7b5a7a6e50365",
+  "canonical_sha256": "9ffe11cc90749ee8beb0434db1529fcb61583cc495f6f197ae130ed01181b2fb",
   "base": {
     "commit": "e5e0fa903c9a9b26701063ae01f352af3e246a7d",
     "production_source_sha256": "9bedfd5fb2bed6d3a1624efcca6f1d442c765abdee9e4749170fbb2e89536d6b",
     "path_count": 48
   },
   "reviewed": {
-    "commit": "a605709c5c3c25136acf3f6526a7b812610cb9fd",
-    "production_source_sha256": "6664b2ad21c56d315413f9fba08e60a3ea61e139fc7ee548c2751f6371c440ef",
-    "path_count": 52
+    "commit": "2f6a85afdd89f17aea54b84a79a344854d13b827",
+    "production_source_sha256": "1aeac50857e49531de598461dfc43ac0ee4aca2f37bc33291311403205d09370",
+    "path_count": 53
   },
   "deltas": [
     {
@@ -23,13 +23,19 @@
       "path": "uquant/cli.py",
       "status": "modified",
       "before_sha256": "389fb27f3f53385a96d6dfb97713f1d937e02675c0ce6c0b858772cf2a51bbf3",
-      "after_sha256": "77bb55e72853b934e86f8782c1e115cb097aedbee366aabb1acc1881d3f71c19"
+      "after_sha256": "8019d5b270c5743c159a11d1e8617be4b3835b85fc24cad8490e8189e739cadf"
     },
     {
       "path": "uquant/execution_journal.py",
       "status": "added",
       "before_sha256": null,
       "after_sha256": "0663382cb0a64d21893905b7cdcacb27b1d2f935ebafc33d0294f60029d19a10"
+    },
+    {
+      "path": "uquant/portfolio.py",
+      "status": "modified",
+      "before_sha256": "6e822d83381886ff5bee13f32aa659cfb305b252a17ffd6e1b87338aaa6a26c6",
+      "after_sha256": "7c9753b46b1180f8c5044c5c2178c6d401a42fd151a9394c14c53742b9e99afc"
     },
     {
       "path": "uquant/portfolio_strategic.py",
@@ -42,6 +48,12 @@
       "status": "modified",
       "before_sha256": "04d746a90b12c26273d9389f9c1c9f35b0567a365ef141fc2d9bf8a260dc0b2f",
       "after_sha256": "659df2866a30640f52321293e343e6c7ea76230be1fe08e7f864fb5be7dd37bd"
+    },
+    {
+      "path": "uquant/risk.py",
+      "status": "modified",
+      "before_sha256": "d26bc72ee62497dd8c2e44fe16d24536b7c4baa0d5628680746c5336c223c8f1",
+      "after_sha256": "74a031856ef9f7d90ca5c0d7f208cc9141a4b3c8e077a81962b914722b2b84c1"
     },
     {
       "path": "uquant/validation/ci_artifacts.py",
@@ -65,7 +77,13 @@
       "path": "uquant/validation/holdout.py",
       "status": "added",
       "before_sha256": null,
-      "after_sha256": "4187671579d337b30547a4cb11f0ea98c1b41a83eff8bed02458b3463af569bd"
+      "after_sha256": "033e92c7129b954fe7508ca247c0d494ca604c5944978e401c1e6f3d1171b4f7"
+    },
+    {
+      "path": "uquant/validation/holdout_runtime.py",
+      "status": "added",
+      "before_sha256": null,
+      "after_sha256": "a49e848474f20ed16c1e96ad4925ec5984202a0db9f062fb7a42a9a16cb44e6d"
     }
   ]
 }

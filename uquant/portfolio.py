@@ -702,6 +702,7 @@ class PortfolioAllocator(RecoveryPortfolioPolicy):
                 marker in risk.reasons
                 for marker in (
                     "capital drawdown relapse in restored holdings",
+                    "market-backed drawdown relapse in restored holdings",
                     "capital guard cooldown after failed restoration",
                 )
             )

@@ -1033,7 +1033,7 @@ def assess_risk(
         if recovery_transition_dates and user_panel
         else math.inf
     )
-    capital_drawdown_relapse = (
+    capital_impaired_restoration_relapse = (
         bool(account.positions)
         and bool(account.protected_weights)
         # This route is a fail-safe for an economically impaired account, not
@@ -1045,6 +1045,29 @@ def assess_risk(
         and operating_dd >= cfg.capital_guard_relapse_dd
         and sessions_since_recovery >= cfg.capital_guard_min_recovery_days
         and (held_damage_ratio >= cfg.concentrated_break_ratio or (votes >= 2 and sector_stress >= 0.50))
+    )
+    market_backed_restoration_relapse = (
+        bool(account.positions)
+        and bool(account.protected_weights)
+        # Strategic cohorts retain their dedicated mature-tail guard; the
+        # generic restoration guard must not turn ordinary strategic
+        # high-water giveback into a failed-restoration cash lock.
+        and not strategic_active
+        # Anchored recovery cohorts likewise retain their dedicated mature
+        # cohort guard instead of being short-circuited by this generic path.
+        and not account.anchor_weights
+        # A profitable restored account is not failed by high-water giveback
+        # alone.  It is failed when the deployed book, the independent market
+        # basket, and sector breadth all confirm the same post-recovery damage.
+        and operating_dd >= cfg.capital_guard_relapse_dd
+        and sessions_since_recovery >= cfg.capital_guard_min_recovery_days
+        and held_damage_ratio >= cfg.concentrated_break_ratio
+        and votes >= 3
+        and sector_stress >= 0.50
+    )
+    capital_drawdown_relapse = bool(
+        capital_impaired_restoration_relapse
+        or market_backed_restoration_relapse
     )
     concentrated_confirmed = (
         account_break_confirmed
@@ -1893,6 +1916,8 @@ def assess_risk(
         concentrated_reason = (
             "confirmed dynamic cohort structural break"
             if held_cohort_break_confirmed
+            else "market-backed drawdown relapse in restored holdings"
+            if market_backed_restoration_relapse
             else "capital drawdown relapse in restored holdings"
             if capital_drawdown_relapse
             else "reserve-backed incomplete-universe tail guard"

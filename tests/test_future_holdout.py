@@ -48,7 +48,7 @@ def _binding() -> HoldoutBinding:
         production_commit="1" * 40,
         production_source_sha256="2" * 64,
         strategy_source_sha256=(
-            "6a131e8b3a64738955f0dd9c295c5092f6ea59fcf923e86940a645de0498fe8e"
+            "5312817b24cce2f0b4ea7937a8b6758166546569fa6e35c1cc32d4f4cf900cb1"
         ),
         strategy_cli_sha256=(
             "db34c26631b9b64c6d359149b927f0bee86c89dba74360efddc922342b6f24ad"
@@ -101,13 +101,20 @@ def test_tracked_contract_freezes_date_path_policy_and_null_scores() -> None:
     assert contract.last_in_sample_date == "2026-08-05"
     assert contract.first_holdout_date == "2026-08-06"
     assert contract.data_directory == "data/holdout/phase2-future-v1"
-    assert contract.review_milestones == (40, 60)
+    assert contract.review_milestones == (20, 40, 60)
+    assert len(contract.review_sessions) == 60
+    assert contract.review_sessions[0] == "2026-08-06"
+    assert contract.review_sessions[19] == "2026-09-02"
+    assert contract.review_sessions[39] == "2026-10-08"
+    assert contract.review_sessions[59] == "2026-11-05"
+    assert "2026-09-25" not in contract.review_sessions
+    assert "2026-10-01" not in contract.review_sessions
     assert contract.parameter_changes_from_observation is False
     assert dict(contract.phase1_windows) == dict(AI_ERA_WINDOWS)
-    assert contract.strategy_anchor_commit == "f98b8840ae0232c0a273c832dbb4800752fb6a17"
+    assert contract.strategy_anchor_commit == "798a86e05fb61d4c7fcdd39b708ea042ce635a73"
     assert (
         contract.strategy_source_sha256
-        == "6a131e8b3a64738955f0dd9c295c5092f6ea59fcf923e86940a645de0498fe8e"
+        == "5312817b24cce2f0b4ea7937a8b6758166546569fa6e35c1cc32d4f4cf900cb1"
     )
     assert (
         contract.strategy_config_sha256
@@ -119,11 +126,11 @@ def test_tracked_contract_freezes_date_path_policy_and_null_scores() -> None:
     )
     assert (
         contract.prior_close_account_sha256
-        == "2404eb5cd1e0ccfc68ab4663778288dd3a17f607baeb3f8104583443673273f1"
+        == "5b086866ff5dbdeb00b80dd6c7c4d394a9f0f0373f15569fc7d935492760ef6a"
     )
     assert (
         contract.strategy_account_code_sha256
-        == "f43e1e93859169df056051ad1963b761e35143be31b321bf11883726218c5dc7"
+        == "4a0d9bdec4cceee2181ae32a49473bf72c9513e8328e29e0791344810c8c761e"
     )
     assert contract.score_fields == (
         "final_wealth",
@@ -507,13 +514,13 @@ def test_prior_close_account_carries_the_exact_frozen_candidate_code_hash(
     repository_root = Path(holdout_module.__file__).resolve().parents[2]
     assert (
         _strategy_account_code_sha256(repository_root)
-        == "f43e1e93859169df056051ad1963b761e35143be31b321bf11883726218c5dc7"
+        == "4a0d9bdec4cceee2181ae32a49473bf72c9513e8328e29e0791344810c8c761e"
     )
     frozen = tmp_path / "data/frozen"
     _csv(frozen / "sz300308.csv", "2026-08-04", LAST_IN_SAMPLE_DATE)
     account = _account()
     account.update(
-        code_hash="f43e1e93859169df056051ad1963b761e35143be31b321bf11883726218c5dc7",
+        code_hash="4a0d9bdec4cceee2181ae32a49473bf72c9513e8328e29e0791344810c8c761e",
         data_hash_symbols=["sz300308"],
         data_hash=DataStore(frozen).manifest(
             ["sz300308"], as_of=LAST_IN_SAMPLE_DATE
@@ -598,7 +605,7 @@ def test_manifest_rejects_detached_observed_scores_even_after_resealing(
         ["sz300308"], as_of=LAST_IN_SAMPLE_DATE
     ).digest
     account.code_hash = (
-        "f43e1e93859169df056051ad1963b761e35143be31b321bf11883726218c5dc7"
+        "4a0d9bdec4cceee2181ae32a49473bf72c9513e8328e29e0791344810c8c761e"
     )
     account_path = tmp_path / "account.json"
     save_account(account, account_path)

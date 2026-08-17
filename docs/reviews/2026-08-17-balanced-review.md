@@ -199,8 +199,12 @@ git fetch origin main
 test "$(git rev-parse HEAD^{tree})" = "$(git rev-parse origin/main^{tree})"
 ```
 
-No publication has occurred. Before a non-forced push, the reviewed commit must
-match the locally verified tree. After that push (or on a candidate PR), all
+No `main` publication has occurred: the remote `main` ref remains
+`e2663695fd008fb960b86f33bc36309a2f525b68`. Task 8 has a recoverable remote
+Git-object chain at `c47367bba64c827fe18f788c9a3650e13ece306f` ->
+`42f6cbdfcf3c3e396200758f80485b49b9e245bf` ->
+`5568ac5df8f0fa96fd1ff3a2b5922da248426606`; Task 9 must complete the final
+zero-deselection gates before fast-forwarding `main`. After that update, all
 three workflows must complete green before release, merge, or handoff is
 declared complete.
 
@@ -690,3 +694,102 @@ The final self-review rechecked the Task 7 brief, complete baseline diff, Task 7
 working diff, finding dispositions, deterministic red/green evidence, source
 anchor non-rebinding, canonical output and compatibility surfaces, and the
 absence of accidental tracked paths. No remote write or publication occurred.
+
+## Task 8 authenticated economics and provenance binding
+
+Task 8 ran the complete frozen Phase 1 and all six Phase 2 windows from the clean
+pre-binding source anchor
+`9b2f665eb23f1deafba8a1f6a686a47fbc3436b5`. Remote source checkpoint
+`c47367bba64c827fe18f788c9a3650e13ece306f` has the identical tree
+`9f218d1d4b6222282095c777655b5bcce2a985e1`. No strategy owner, parameter,
+policy threshold, window, pool, seed, universe, data byte, market rule, economic
+formula, decision, order, account, replay result, or historical score was tuned
+or relabeled. The authenticated evidence is retained under
+`/tmp/uquant-balanced-review/final`.
+
+### Task 8 economics
+
+| Evidence | SHA-256 | Result |
+|---|---|---|
+| `phase1.json` | `3943258459115ad68a11752030a7d48e793297d1a7d321c860a848ccfb688f8b` | Pass: 30 official and 15 protected cells; median wealth `4.14785416600156`, 340 account orders, worst drawdown `0.2786861829563525` |
+| `phase1-validation.json` | `c0ac47fc7e3c18dd4d322d1af9ed42b84a24b963cf350db3af4d3aaa574175c3` | Pass with no failures |
+| `generalization-matrix.json` | `62cafaa16b3ccbeaa1704c19ab4b7fa1073d5d300a96afe62eef19e973ac9406` | Pass: 234 records, 192 economic cells, 42 insufficient-sample records, zero replay errors |
+| `generalization-policy-report.json` | `7a7e2a58046eb9e69e215a59e74647b6591e0f58d5e588e5bd9ae43ff8b5e7aa` | Frozen policy pass with no failures |
+
+Each Phase 2 window contributed exactly 39 records: 32 economic and seven
+insufficient-sample records. All 192 economic attributions reconciled, with
+maximum absolute reconciliation error
+`7.450580596923828e-09`. Aggregate median wealth was
+`1.1151492647234051`, p10 wealth `0.9936017483997773`, p90 drawdown
+`0.21151575819020615`, worst drawdown `0.2825468776869108`, median orders
+`6`, p90 orders `19.80000000000001`, median annual turnover
+`2.720569961945872`, and p90 annual turnover `6.964561529134746`.
+
+Phase 1's 30 official and 15 protected metric mappings are exactly equal to the
+committed baseline artifact at `e2663695fd008fb960b86f33bc36309a2f525b68`
+(blob SHA-256
+`d81bb2f67413f58ca255f51bf42702fe547ee51460ed8bb269760b89f11d836b`),
+including its summary and validation fingerprint. Phase 2 compared against the
+unchanged committed champion blob
+`926ea8419ab8aad7a05577eee56aeefa90c33cc7faa4e1ee1d2bbbaac77439cc`.
+The frozen policy authenticated the existing configuration migration from
+`023d709731196a325d9cd03e95ece92e4baf63d2c5c66bb9f7d0e7a190e7bf20`
+to `ed52da44a359c1506e1d299f7bc341ad01b199d7f96997f7c01f2b8eca7cfc13`,
+so exact champion equality was not required. All 30 intrinsic checks and all 24
+random-tail checks passed; every random-tail result passed its frozen
+non-regression comparison. The prior champion's sole replay error,
+`continuous_ai_era/random__20__0000`, became a reconciled economic cell, taking
+valid cells from 191 to 192 and replay errors from one to zero. Thus no
+unauthorized economic deterioration occurred.
+
+### Task 8 exact source binding
+
+The holdout identities were re-derived from remote committed Git object
+`c47367bba64c827fe18f788c9a3650e13ece306f`, not from dirty working-tree
+bytes. The 42-path strategy inventory hashes
+to `f9c78557e38342c5a994f19fde63352f635ac37c5d2d7a187ba410b98caa1aed`;
+the Git-object CLI semantic hash is
+`fb3da89b7bb8ec745e2249d10173855edc5976a6d1d5f4fd952552d7a2e7e427`;
+and the Git-object account-code identity is
+`de361ef93a218449df927f5aab14e5013110cc3141a89f94686156bed37a66fc`.
+The authentic `continuous_ai_era/full` final account has prior close
+`2026-08-05`, the same account-code identity, 36 frozen symbols, data digest
+`9a73ed7e19d34ab8876c7ddb9e974147e1c43d8dcfcaa73abe85c7f9a3ee492e`,
+and canonical account digest
+`251c90cef356821547c633c69595371aa857a704d8ea21e5119be16136ac0fc8`.
+`validate_prior_close_account` accepted that exact artifact. The rebound holdout
+contract canonical seal is
+`f1555d2f5527b83899ade8f934f67de8df6050aa2ebc7453d0d4245c618e2aeb`.
+
+The stable remote sequence is source checkpoint
+`c47367bba64c827fe18f788c9a3650e13ece306f`, holdout-only anchor
+`42f6cbdfcf3c3e396200758f80485b49b9e245bf`, and post-source binding
+`5568ac5df8f0fa96fd1ff3a2b5922da248426606`. From the holdout anchor,
+`_production_paths_at_commit`, `_source_fingerprint_at_commit`, and
+`_source_delta` reproduced a 48-path base fingerprint
+`9bedfd5fb2bed6d3a1624efcca6f1d442c765abdee9e4749170fbb2e89536d6b`,
+a 53-path reviewed fingerprint
+`3356a4e2e99da02ed215cc98163fe83f04c9bddc21c96b37850287599784b26a`,
+and 14 exact deltas. Their post-Task8 canonical seal is
+`09b8e9709bb09a31dddc79659faf725afc616956364ec5324e354b6e83fb2b44`.
+The three remote trees are respectively `9f218d1d4b6222282095c777655b5bcce2a985e1`,
+`856ed05df998e00b1406a20ff40077964e054fe3`, and
+`e92a0518e1015de7125b811717552b5da8526403`. This avoids circular
+self-binding and leaves historical evidence and economics unchanged.
+
+### Task 8 affected gate
+
+All commands used `UV_CACHE_DIR=/tmp/uquant-balanced-review/uv-cache`.
+
+| Command/check | Result |
+|---|---|
+| Five-file affected pytest command | Pass: all 188 collected tests, including the four formerly deferred identity-only nodes |
+| `uv run ruff check .` | Pass: `All checks passed!` |
+| `uv run mypy uquant scripts research` | Pass: no issues in 66 source files |
+| `git diff --check` | Pass: no whitespace errors |
+| Baseline `AGENTS.md` diff and SHA-256 | Pass: no diff; exact SHA-256 `640298ceac5187724d2cf769b13f4d7e2381cbcb10faf46e99bdac378547f808` |
+
+The remote Git-object checkpoint chain is readable by exact commit identity,
+but `main` remains at the baseline. Task 9 owns the complete zero-deselection
+Engineering/provenance suite, exact-HEAD readback, and final fast-forward of
+`main` after this documentation-only commit.

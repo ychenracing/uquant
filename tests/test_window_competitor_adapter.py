@@ -1,8 +1,10 @@
 from __future__ import annotations
 
 import importlib.util
+import os
 import sys
 from pathlib import Path
+from types import SimpleNamespace
 
 import pytest
 
@@ -152,3 +154,109 @@ def test_missing_fill_signal_date_fails_closed_when_mapping_is_ambiguous() -> No
 
     with pytest.raises(RuntimeError, match="exactly one close submission"):
         adapter._link_missing_signal_dates(fills, submissions)
+
+
+def test_workers_must_be_positive_before_source_validation(capsys) -> None:
+    """Catches a late ProcessPool error obscuring an invalid CLI argument."""
+
+    with pytest.raises(SystemExit):
+        adapter.main(["--workers", "0"])
+
+    assert "--workers must be positive" in capsys.readouterr().err
+
+
+def test_adapter_output_refuses_a_symlink_target(tmp_path: Path) -> None:
+    """Catches evidence output escaping through a caller-controlled symlink."""
+
+    canonical_data = tmp_path / "canonical"
+    canonical_data.mkdir()
+    (canonical_data / "sz300308.csv").write_text(
+        "date,open,high,low,close,volume,amount\n"
+        "2025-01-02,1,1,1,1,1,1\n",
+        encoding="utf-8",
+    )
+    victim = tmp_path / "victim.json"
+    victim.write_text("preserve me", encoding="utf-8")
+    output = tmp_path / "output.json"
+    output.symlink_to(victim)
+    args = SimpleNamespace(
+        systems=(),
+        pools=(),
+        windows=(),
+        workers=1,
+        output=output,
+        data_dir=canonical_data,
+        trade_data_dir=None,
+    )
+
+    with pytest.raises(ValueError, match="symlink"):
+        adapter._execute_matrix(args, {}, canonical_data, tmp_path / "trade")
+
+    assert victim.read_text(encoding="utf-8") == "preserve me"
+
+
+def test_adapter_output_cannot_name_a_competitor_source_file(tmp_path: Path) -> None:
+    """Catches evidence output replacing a consumed file inside a source tree."""
+
+    source_root = tmp_path / "qwen"
+    source_root.mkdir()
+    source = source_root / "engine.py"
+    source.write_text("preserve source\n", encoding="utf-8")
+    canonical_data = tmp_path / "canonical"
+    canonical_data.mkdir()
+    (canonical_data / "sz300308.csv").write_text(
+        "date,open,high,low,close,volume,amount\n"
+        "2025-01-02,1,1,1,1,1,1\n",
+        encoding="utf-8",
+    )
+    args = SimpleNamespace(
+        systems=(),
+        pools=(),
+        windows=(),
+        workers=1,
+        output=source,
+        data_dir=canonical_data,
+        trade_data_dir=None,
+    )
+
+    with pytest.raises(ValueError, match="input tree"):
+        adapter._execute_matrix(
+            args,
+            {"qwenquant": source_root},
+            canonical_data,
+            tmp_path / "trade",
+        )
+
+    assert source.read_text(encoding="utf-8") == "preserve source\n"
+
+
+def test_adapter_output_cannot_hardlink_to_caller_trade_data(tmp_path: Path) -> None:
+    """Catches an output alias to a consumed caller-provided trade CSV."""
+
+    canonical_data = tmp_path / "canonical"
+    canonical_data.mkdir()
+    (canonical_data / "sz300308.csv").write_text(
+        "date,open,high,low,close,volume,amount\n"
+        "2025-01-02,1,1,1,1,1,1\n",
+        encoding="utf-8",
+    )
+    trade_data = tmp_path / "trade"
+    trade_data.mkdir()
+    trade_csv = trade_data / "300308.csv"
+    trade_csv.write_text("preserve trade data\n", encoding="utf-8")
+    output = tmp_path / "result.json"
+    os.link(trade_csv, output)
+    args = SimpleNamespace(
+        systems=(),
+        pools=(),
+        windows=(),
+        workers=1,
+        output=output,
+        data_dir=canonical_data,
+        trade_data_dir=trade_data,
+    )
+
+    with pytest.raises(ValueError, match="protected path"):
+        adapter._execute_matrix(args, {}, canonical_data, trade_data)
+
+    assert trade_csv.read_text(encoding="utf-8") == "preserve trade data\n"

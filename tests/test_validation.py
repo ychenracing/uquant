@@ -133,6 +133,74 @@ def test_frozen_manifest_rejects_untracked_csv(tmp_path: Path) -> None:
         verify_data_manifest(tmp_path)
 
 
+def test_frozen_manifest_rejects_duplicate_json_keys(tmp_path: Path) -> None:
+    _frozen_fixture(tmp_path)
+    manifest = tmp_path / "DATA_MANIFEST.json"
+    manifest.write_text(
+        manifest.read_text(encoding="utf-8").replace(
+            '"snapshot_id": "fixture"',
+            '"snapshot_id": "forged", "snapshot_id": "fixture"',
+            1,
+        ),
+        encoding="utf-8",
+    )
+
+    with pytest.raises(DataContractError, match="duplicate key"):
+        verify_data_manifest(tmp_path)
+
+
+@pytest.mark.parametrize(
+    ("filename", "message"),
+    [
+        ("DATA_MANIFEST.json", "missing or corrupt"),
+        ("SHA256SUMS", "cannot read frozen checksum"),
+    ],
+)
+def test_frozen_manifest_attributes_invalid_utf8_to_the_data_contract(
+    filename: str,
+    message: str,
+    tmp_path: Path,
+) -> None:
+    """Catches a raw codec exception escaping a frozen-data trust boundary."""
+
+    _frozen_fixture(tmp_path)
+    (tmp_path / filename).write_bytes(b"\xff")
+
+    with pytest.raises(DataContractError, match=message):
+        verify_data_manifest(tmp_path)
+
+
+def test_frozen_manifest_rejects_symlinked_metadata_and_split_hash_truth(
+    tmp_path: Path,
+) -> None:
+    """Exercises metadata identity and manifest/checksum disagreement."""
+
+    _frozen_fixture(tmp_path)
+    manifest = tmp_path / "DATA_MANIFEST.json"
+    payload = json.loads(manifest.read_text(encoding="utf-8"))
+    payload["results"][0]["sha256"] = "0" * 64
+    manifest.write_text(json.dumps(payload), encoding="utf-8")
+    with pytest.raises(DataContractError, match="manifest checksum differs"):
+        verify_data_manifest(tmp_path)
+
+    victim = tmp_path / "manifest-victim.json"
+    victim.write_text(json.dumps(payload), encoding="utf-8")
+    manifest.unlink()
+    manifest.symlink_to(victim)
+    with pytest.raises(DataContractError, match="metadata must be regular"):
+        verify_data_manifest(tmp_path)
+
+    symlink_root = tmp_path / "symlink-data"
+    symlink_root.mkdir()
+    csv = _frozen_fixture(symlink_root)
+    csv_victim = tmp_path / "csv-victim"
+    csv_victim.write_bytes(csv.read_bytes())
+    csv.unlink()
+    csv.symlink_to(csv_victim)
+    with pytest.raises(DataContractError, match="data must be a regular file"):
+        verify_data_manifest(symlink_root)
+
+
 def test_frozen_manifest_rejects_unsafe_symbol(tmp_path: Path) -> None:
     csv = _frozen_fixture(tmp_path)
     digest = hashlib.sha256(csv.read_bytes()).hexdigest()

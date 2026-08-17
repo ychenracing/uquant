@@ -5,6 +5,7 @@ import copy
 import hashlib
 import json
 import os
+import stat
 import subprocess
 from pathlib import Path
 from types import SimpleNamespace
@@ -12,8 +13,15 @@ from types import SimpleNamespace
 import pandas as pd
 import pytest
 
+import uquant.atomic_io as atomic_io_module
 import uquant.validation as validation_package
-from uquant.atomic_io import _aliases, _fsync_directory, atomic_write_text
+from uquant.atomic_io import (
+    _aliases,
+    _fsync_directory,
+    atomic_write_bytes,
+    atomic_write_text,
+    validate_atomic_output_boundary,
+)
 from uquant.data import DataContractError
 from uquant.validation import equivalence as equivalence_module
 from uquant.validation import holdout as holdout_module
@@ -24,6 +32,24 @@ from uquant.validation.manifest import _checksum_entries, verify_data_manifest
 from uquant.validation.replay_evidence import VerifiedMarketData
 
 ROOT = Path(__file__).resolve().parents[1]
+
+
+def _holdout_binding() -> HoldoutBinding:
+    contract = holdout_module.load_future_holdout_contract()
+    return HoldoutBinding(
+        production_commit="1" * 40,
+        production_source_sha256="2" * 64,
+        strategy_source_sha256=contract.strategy_source_sha256,
+        strategy_cli_sha256=contract.strategy_cli_sha256,
+        effective_config_sha256=contract.strategy_config_sha256,
+        universe_sha256="6" * 64,
+        industry_sha256="7" * 64,
+        python_full_version="3.12.13",
+        numpy_version="2.5.1",
+        pandas_version="3.0.5",
+        uv_version="0.11.33",
+        uv_lock_sha256="8" * 64,
+    )
 
 
 def _write_snapshot(root: Path, *, symbol: str = "sh000300") -> tuple[Path, str]:
@@ -69,9 +95,239 @@ def test_atomic_output_covers_success_alias_and_platform_edges(
         atomic_write_text(hardlink, "forbidden", protected_paths=(destination,))
 
     monkeypatch.setattr(os.path, "samefile", lambda *_: (_ for _ in ()).throw(OSError()))
-    assert _aliases(destination, hardlink) is False
+    with pytest.raises(ValueError, match="cannot verify protected path identity"):
+        _aliases(destination, hardlink)
+    with pytest.raises(ValueError, match="cannot verify protected path identity"):
+        atomic_write_text(hardlink, "forbidden", protected_paths=(destination,))
+    assert destination.read_text(encoding="utf-8") == "complete\n"
     monkeypatch.setattr(os, "name", "nt")
     _fsync_directory(tmp_path)
+
+
+@pytest.mark.skipif(os.name == "nt", reason="POSIX permission modes")
+def test_atomic_output_preserves_existing_modes_and_new_files_honor_umask(
+    tmp_path: Path,
+) -> None:
+    """Catches replacement publishing mkstemp's private mode as file policy."""
+
+    existing_text = tmp_path / "existing.txt"
+    existing_text.write_text("prior", encoding="utf-8")
+    existing_text.chmod(0o640)
+    atomic_write_text(existing_text, "updated")
+    assert stat.S_IMODE(existing_text.stat().st_mode) == 0o640
+
+    existing_bytes = tmp_path / "existing.bin"
+    existing_bytes.write_bytes(b"prior")
+    existing_bytes.chmod(0o644)
+    atomic_write_bytes(existing_bytes, b"updated")
+    assert stat.S_IMODE(existing_bytes.stat().st_mode) == 0o644
+
+    prior_umask = os.umask(0o027)
+    try:
+        new_text = tmp_path / "new.txt"
+        new_bytes = tmp_path / "new.bin"
+        atomic_write_text(new_text, "new")
+        atomic_write_bytes(new_bytes, b"new")
+    finally:
+        os.umask(prior_umask)
+    assert stat.S_IMODE(new_text.stat().st_mode) == 0o640
+    assert stat.S_IMODE(new_bytes.stat().st_mode) == 0o640
+
+
+@pytest.mark.skipif(os.name == "nt", reason="POSIX permission modes")
+def test_atomic_output_tightens_an_existing_private_mode_before_writing(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Catches a private replacement being staged temporarily as world-readable."""
+
+    destination = tmp_path / "private.txt"
+    destination.write_text("prior", encoding="utf-8")
+    destination.chmod(0o600)
+    observed_payloads: list[bytes] = []
+    real_fchmod = os.fchmod
+
+    def inspect_mode(descriptor: int, mode: int) -> None:
+        staged = tuple(tmp_path.glob(".private.txt.*"))
+        assert len(staged) == 1
+        observed_payloads.append(staged[0].read_bytes())
+        real_fchmod(descriptor, mode)
+
+    monkeypatch.setattr(os, "fchmod", inspect_mode)
+    prior_umask = os.umask(0o022)
+    try:
+        atomic_write_text(destination, "private payload")
+    finally:
+        os.umask(prior_umask)
+
+    assert observed_payloads == [b""]
+    assert destination.read_text(encoding="utf-8") == "private payload"
+
+
+def test_atomic_output_boundary_failures_remain_attributable_and_clean(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Exercises resolution, inventory, mode, collision, and cleanup failures."""
+
+    destination = tmp_path / "output.json"
+    protected_root = tmp_path / "inputs"
+    protected_root.mkdir()
+    real_resolve = Path.resolve
+
+    with monkeypatch.context() as patch:
+        patch.setattr(
+            Path,
+            "resolve",
+            lambda self, *args, **kwargs: (
+                (_ for _ in ()).throw(OSError("target resolution failed"))
+                if self == destination
+                else real_resolve(self, *args, **kwargs)
+            ),
+        )
+        with pytest.raises(ValueError, match="cannot resolve atomic output"):
+            validate_atomic_output_boundary(destination)
+
+    with monkeypatch.context() as patch:
+        patch.setattr(
+            Path,
+            "resolve",
+            lambda self, *args, **kwargs: (
+                (_ for _ in ()).throw(RuntimeError("symlink loop"))
+                if self == destination
+                else real_resolve(self, *args, **kwargs)
+            ),
+        )
+        with pytest.raises(ValueError, match="cannot resolve atomic output"):
+            validate_atomic_output_boundary(destination)
+
+    with monkeypatch.context() as patch:
+        patch.setattr(
+            Path,
+            "resolve",
+            lambda self, *args, **kwargs: (
+                (_ for _ in ()).throw(OSError("root resolution failed"))
+                if self == protected_root
+                else real_resolve(self, *args, **kwargs)
+            ),
+        )
+        with pytest.raises(ValueError, match="cannot resolve protected input tree"):
+            validate_atomic_output_boundary(
+                destination,
+                protected_roots=(protected_root,),
+            )
+
+    with monkeypatch.context() as patch:
+        patch.setattr(
+            Path,
+            "rglob",
+            lambda self, pattern: (_ for _ in ()).throw(OSError("inventory failed")),
+        )
+        with pytest.raises(ValueError, match="cannot inventory protected input tree"):
+            validate_atomic_output_boundary(
+                destination,
+                protected_roots=(protected_root,),
+            )
+
+    with monkeypatch.context() as patch:
+        patch.setattr(atomic_io_module.os, "name", "nt")
+        assert atomic_io_module._existing_destination_mode(destination) is None
+
+    destination.write_text("prior", encoding="utf-8")
+    with monkeypatch.context() as patch:
+        patch.setattr(
+            Path,
+            "stat",
+            lambda self: (_ for _ in ()).throw(OSError("mode inspection failed")),
+        )
+        with pytest.raises(ValueError, match="cannot inspect atomic output mode"):
+            atomic_io_module._existing_destination_mode(destination)
+
+    real_open = atomic_io_module.os.open
+    collisions = 0
+
+    def collide_once(path: Path, flags: int, mode: int) -> int:
+        nonlocal collisions
+        collisions += 1
+        if collisions == 1:
+            raise FileExistsError("collision")
+        return real_open(path, flags, mode)
+
+    with monkeypatch.context() as patch:
+        patch.setattr(atomic_io_module.os, "open", collide_once)
+        descriptor, temporary = atomic_io_module._open_temporary(
+            destination,
+            existing_mode=None,
+        )
+        os.close(descriptor)
+        temporary.unlink()
+    assert collisions == 2
+
+    with monkeypatch.context() as patch:
+        patch.setattr(
+            atomic_io_module.os,
+            "fchmod",
+            lambda *_: (_ for _ in ()).throw(OSError("chmod failed")),
+        )
+        with pytest.raises(OSError, match="chmod failed"):
+            atomic_io_module._open_temporary(destination, existing_mode=0o600)
+    assert not tuple(tmp_path.glob(".output.json.*"))
+
+    with monkeypatch.context() as patch:
+        patch.setattr(
+            atomic_io_module.os,
+            "open",
+            lambda *_: (_ for _ in ()).throw(FileExistsError("exhausted")),
+        )
+        with pytest.raises(FileExistsError, match="cannot allocate atomic temporary"):
+            atomic_io_module._open_temporary(destination, existing_mode=None)
+
+
+def test_holdout_git_strategy_inventory_filters_operational_and_generated_paths(
+    tmp_path: Path,
+) -> None:
+    for relative in (
+        "uquant/engine.py",
+        "uquant/cli.py",
+        "uquant/__pycache__/engine.py",
+        "uquant/compiled.pyc",
+        "benchmarks/reference_registry.json",
+        "benchmarks/config_parameter_governance.json",
+        "README.md",
+    ):
+        path = tmp_path / relative
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(f"fixture for {relative}\n", encoding="utf-8")
+    subprocess.run(["git", "init", "--quiet", str(tmp_path)], check=True)
+    subprocess.run(["git", "-C", str(tmp_path), "add", "."], check=True)
+    subprocess.run(
+        [
+            "git",
+            "-C",
+            str(tmp_path),
+            "-c",
+            "user.name=UQuant Tests",
+            "-c",
+            "user.email=tests@uquant.invalid",
+            "commit",
+            "--quiet",
+            "-m",
+            "Create strategy inventory fixture",
+        ],
+        check=True,
+    )
+    head = subprocess.run(
+        ["git", "-C", str(tmp_path), "rev-parse", "HEAD"],
+        check=True,
+        capture_output=True,
+        text=True,
+    ).stdout.strip()
+
+    assert holdout_module._git_strategy_relatives(tmp_path, commit=head) == (
+        "benchmarks/config_parameter_governance.json",
+        "benchmarks/reference_registry.json",
+        "uquant/engine.py",
+    )
 
 
 def test_frozen_manifest_rejects_each_inventory_and_checksum_boundary(tmp_path: Path) -> None:
@@ -191,10 +447,7 @@ def test_verified_market_data_rejects_noncausal_and_invalid_lookups() -> None:
         panel.loc[last, "close"] = original
 
 
-def test_exact_head_holdout_binding_and_defensive_value_edges(
-    tmp_path: Path,
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
+def test_current_holdout_binding_matches_exact_head_and_reviewed_strategy_anchors() -> None:
     binding = current_holdout_binding(ROOT)
     head = subprocess.run(
         ["git", "-C", str(ROOT), "rev-parse", "HEAD"],
@@ -202,8 +455,16 @@ def test_exact_head_holdout_binding_and_defensive_value_edges(
         capture_output=True,
         text=True,
     ).stdout.strip()
+
     assert binding.production_commit == head
     assert binding.strategy_source_sha256 == holdout_module.STRATEGY_SOURCE_SHA256
+
+
+def test_holdout_binding_and_defensive_value_edges(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    binding = _holdout_binding()
 
     values = binding.__dict__ if hasattr(binding, "__dict__") else {
         field: getattr(binding, field) for field in binding.__dataclass_fields__
@@ -241,6 +502,36 @@ def test_exact_head_holdout_binding_and_defensive_value_edges(
     non_object.write_text("[]", encoding="utf-8")
     with pytest.raises(ValueError, match="must be a JSON object"):
         holdout_module._read_json_snapshot(non_object, label="fixture")
+
+    first_member = SimpleNamespace(
+        symbol="sh000300",
+        industry="broad-index",
+        effective_from=pd.Timestamp("2020-01-01").date(),
+        effective_to=None,
+    )
+    second_member = SimpleNamespace(
+        symbol="sz300308",
+        industry="semiconductors",
+        effective_from=pd.Timestamp("2021-01-01").date(),
+        effective_to=pd.Timestamp("2026-01-01").date(),
+    )
+    expected_industry_payload = [
+        {
+            "symbol": "sh000300",
+            "industry": "broad-index",
+            "effective_from": "2020-01-01",
+            "effective_to": None,
+        },
+        {
+            "symbol": "sz300308",
+            "industry": "semiconductors",
+            "effective_from": "2021-01-01",
+            "effective_to": "2026-01-01",
+        },
+    ]
+    assert holdout_module._industry_sha256(
+        SimpleNamespace(members=(first_member, second_member))
+    ) == holdout_module._canonical_sha256(expected_industry_payload)
 
     monkeypatch.setattr(holdout_module.shutil, "which", lambda _: None)
     with pytest.raises(RuntimeError, match="cannot resolve git"):
@@ -295,9 +586,9 @@ def test_signed_holdout_contract_rejects_semantic_boundary_changes(
         holdout_module.load_future_holdout_contract(path)
 
 
-def test_holdout_sessions_scores_and_manifest_identity_fail_closed(tmp_path: Path) -> None:
+def test_holdout_sessions_scores_and_manifest_validation_fail_closed(tmp_path: Path) -> None:
     contract = holdout_module.load_future_holdout_contract()
-    binding = current_holdout_binding(ROOT)
+    binding = _holdout_binding()
     account = {
         "last_successful_run": contract.last_in_sample_date,
         "data_hash_as_of": contract.last_in_sample_date,
@@ -312,6 +603,13 @@ def test_holdout_sessions_scores_and_manifest_identity_fail_closed(tmp_path: Pat
         holdout_module._session_dates(("bad",), contract=contract)
     with pytest.raises(ValueError, match="predates"):
         holdout_module._session_dates((contract.last_in_sample_date,), contract=contract)
+    with pytest.raises(ValueError, match="contracted exchange session prefix"):
+        holdout_module._session_dates(
+            (contract.review_sessions[1],), contract=contract
+        )
+    assert holdout_module._session_dates(
+        (contract.first_holdout_date,), contract=contract
+    ) == (contract.first_holdout_date,)
     with pytest.raises(ValueError, match="unknown holdout scores"):
         holdout_module._normalized_scores(
             {"unknown": 1.0}, sessions=(), contract=contract
@@ -319,6 +617,10 @@ def test_holdout_sessions_scores_and_manifest_identity_fail_closed(tmp_path: Pat
     with pytest.raises(ValueError, match="require every score"):
         holdout_module._normalized_scores(
             {}, sessions=(contract.first_holdout_date,), contract=contract
+        )
+    with pytest.raises(ValueError, match="must be null"):
+        holdout_module._normalized_scores(
+            {"final_wealth": 1.0}, sessions=(), contract=contract
         )
     invalid_scores: dict[str, float | int | None] = {
         "final_wealth": 1.0,
@@ -341,6 +643,27 @@ def test_holdout_sessions_scores_and_manifest_identity_fail_closed(tmp_path: Pat
             sessions=(contract.first_holdout_date,),
             contract=contract,
         )
+    for mutation, message in (
+        ({"final_wealth": 0.0}, "must be positive"),
+        ({"account_orders": -1}, "must be nonnegative"),
+        ({"gross_turnover": -1.0}, "must be nonnegative"),
+        ({"max_drawdown": 2.0}, "must be between zero and one"),
+        (
+            {"top1_concentration": 0.2, "top3_concentration": 0.1},
+            "must not be below",
+        ),
+    ):
+        with pytest.raises(ValueError, match=message):
+            holdout_module._normalized_scores(
+                {**invalid_scores, **mutation},
+                sessions=(contract.first_holdout_date,),
+                contract=contract,
+            )
+    assert holdout_module._normalized_scores(
+        invalid_scores,
+        sessions=(contract.first_holdout_date,),
+        contract=contract,
+    ) == invalid_scores
     for field, value, message in (
         ("holdout_data_sha256", "bad", "data identity"),
         ("metrics_sha256", "bad", "metrics identity"),
@@ -374,6 +697,19 @@ def test_holdout_sessions_scores_and_manifest_identity_fail_closed(tmp_path: Pat
     changed["canonical_sha256"] = "0" * 64
     with pytest.raises(ValueError, match="hash is invalid"):
         holdout_module._validate_future_holdout_manifest_payload(changed, expected=valid)
+    changed = copy.deepcopy(valid)
+    changed["observation"]["parameter_changes_from_observation"] = True
+    changed["canonical_sha256"] = holdout_module._canonical_sha256(
+        changed,
+        omit_seal=True,
+    )
+    with pytest.raises(ValueError, match="parameter changes"):
+        holdout_module._validate_future_holdout_manifest_payload(changed, expected=valid)
+    with pytest.raises(ValueError, match="is stale"):
+        holdout_module._validate_future_holdout_manifest_payload(
+            valid,
+            expected={**valid, "manifest_id": "different"},
+        )
 
     assert holdout_module.holdout_data_identity(tmp_path) == (
         (),
@@ -389,6 +725,20 @@ def test_holdout_ast_and_git_anchor_helpers_reject_unsafe_or_drifted_inputs(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
+    assert holdout_module._safe_parser_value(ast.Constant(value=1)) is True
+    assert holdout_module._safe_parser_value(
+        ast.List(elts=[ast.Constant(value="x")], ctx=ast.Load())
+    ) is True
+    assert holdout_module._safe_parser_value(ast.Name(id="float")) is True
+    assert holdout_module._safe_parser_value(ast.Name(id="forbidden")) is False
+    safe_statement = ast.parse(
+        "sub.add_parser('holdout-manifest', help='reviewed')"
+    ).body[0]
+    assert holdout_module._safe_operational_parser_statement(
+        safe_statement,
+        operational_names=set(),
+    ) is True
+
     assignment = ast.parse("a = b = 1").body[0]
     expression = ast.parse("unsafe()") .body[0]
     nested_call = ast.parse("sub.add_parser(build_name())").body[0]
@@ -434,6 +784,11 @@ def test_holdout_ast_and_git_anchor_helpers_reject_unsafe_or_drifted_inputs(
     with pytest.raises(RuntimeError, match="CLI decision path drifted"):
         holdout_module._validated_strategy_cli_sha256(ROOT)
 
+    with monkeypatch.context() as patch:
+        patch.setattr(holdout_module, "STRATEGY_ACCOUNT_CODE_SHA256", "0" * 64)
+        with pytest.raises(RuntimeError, match="account code anchor differs"):
+            holdout_module._strategy_account_code_sha256(ROOT)
+
     monkeypatch.setattr(
         holdout_module.subprocess,
         "run",
@@ -449,6 +804,18 @@ def test_reviewed_holdout_strategy_anchor_rejects_one_byte_mutation(tmp_path: Pa
     checkout = tmp_path / "reviewed-strategy"
     subprocess.run(
         ["git", "clone", "--quiet", "--no-hardlinks", str(ROOT), str(checkout)],
+        check=True,
+    )
+    subprocess.run(
+        [
+            "git",
+            "-C",
+            str(checkout),
+            "checkout",
+            "--quiet",
+            "--detach",
+            holdout_module.STRATEGY_ANCHOR_COMMIT,
+        ],
         check=True,
     )
     assert (

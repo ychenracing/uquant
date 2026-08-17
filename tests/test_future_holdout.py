@@ -418,10 +418,13 @@ def test_strategy_anchor_hash_covers_cli_decision_and_account_persistence(
     )
 
     assert cli_hash(tmp_path) != before
+
+
+def test_current_strategy_cli_matches_reviewed_anchor() -> None:
     repository_root = Path(holdout_module.__file__).resolve().parents[2]
     assert (
         _validated_strategy_cli_sha256(repository_root)
-        == "db34c26631b9b64c6d359149b927f0bee86c89dba74360efddc922342b6f24ad"
+        == holdout_module.STRATEGY_CLI_SHA256
     )
 
 
@@ -507,20 +510,31 @@ def test_null_manifest_carries_prior_close_state_and_rejects_metrics() -> None:
         )
 
 
-def test_prior_close_account_carries_the_exact_frozen_candidate_code_hash(
+def test_current_code_fingerprint_matches_frozen_candidate_account_code_hash() -> None:
+    repository_root = Path(holdout_module.__file__).resolve().parents[2]
+
+    assert (
+        _strategy_account_code_sha256(repository_root)
+        == holdout_module.STRATEGY_ACCOUNT_CODE_SHA256
+    )
+    assert code_fingerprint() == holdout_module.STRATEGY_ACCOUNT_CODE_SHA256
+
+
+def test_prior_close_account_rejects_code_data_and_state_tampering(
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,
 ) -> None:
-    repository_root = Path(holdout_module.__file__).resolve().parents[2]
-    assert (
-        _strategy_account_code_sha256(repository_root)
-        == "c61b9a06bc898c843e153c97c80a3dc631bcd8dfb120b5995985d1fdc8c30608"
+    current_code_hash = code_fingerprint()
+    monkeypatch.setattr(
+        holdout_module,
+        "STRATEGY_ACCOUNT_CODE_SHA256",
+        current_code_hash,
     )
     frozen = tmp_path / "data/frozen"
     _csv(frozen / "sz300308.csv", "2026-08-04", LAST_IN_SAMPLE_DATE)
     account = _account()
     account.update(
-        code_hash="c61b9a06bc898c843e153c97c80a3dc631bcd8dfb120b5995985d1fdc8c30608",
+        code_hash=current_code_hash,
         data_hash_symbols=["sz300308"],
         data_hash=DataStore(frozen).manifest(
             ["sz300308"], as_of=LAST_IN_SAMPLE_DATE
@@ -534,10 +548,21 @@ def test_prior_close_account_carries_the_exact_frozen_candidate_code_hash(
 
     validate_prior_close_account(account, frozen_data_dir=frozen)
 
-    assert code_fingerprint() == account["code_hash"]
     mutable_current_code = {**account, "code_hash": "0" * 64}
     with pytest.raises(ValueError, match="frozen candidate"):
         validate_prior_close_account(mutable_current_code, frozen_data_dir=frozen)
+
+    wrong_date = {**account, "data_hash_as_of": "2026-08-04"}
+    with pytest.raises(ValueError, match="prior close"):
+        validate_prior_close_account(wrong_date, frozen_data_dir=frozen)
+
+    for symbols in ([], ["sz300308", 1]):
+        malformed_symbols = {**account, "data_hash_symbols": symbols}
+        with pytest.raises(ValueError, match="symbols are malformed"):
+            validate_prior_close_account(
+                malformed_symbols,
+                frozen_data_dir=frozen,
+            )
 
     stale_data = {**account, "data_hash": "1" * 64}
     with pytest.raises(ValueError, match="frozen prefix"):

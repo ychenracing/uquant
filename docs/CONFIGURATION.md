@@ -120,23 +120,27 @@ Generalization 六窗口门禁，不能由人工日常运行或研究脚本临�
 |---|---:|---|
 | `strategic_dynamic_enabled` | true | 自动发现长周期候选 |
 | `strategic_cohort_size` | 3 | 完整组合成员数 |
-| `strategic_cohort_confirm_days` | 2 | 完整组合确认期 |
+| `strategic_cohort_confirm_days` | 2 | 当前战略路由确认期；完整三成员及同步反转单/双成员均使用 |
 | `strategic_secular_min_score` | 0.58 | 长周期最低分数 |
 | `strategic_secular_min_confidence` | 0.65 | 最低置信度 |
 | `strategic_cohort_min_ret240` | 1.70 | 240 日持续收益门槛 |
 | `strategic_dominant_max_weight` | 0.95 | 独立证据确认的战略主导者特例上限 |
 | `strategic_damage_guard_gross` | 0.89 | 战略组合受损时的仓位上限 |
-| `strategic_partial_universe_max_size` | 8 | 允许不完整组合的最大全集 |
 | `strategic_two_name_gross` | 0.85 | 双成员总仓 |
-| `strategic_two_name_confirm_days` | 3 | 双成员确认期 |
+| `strategic_two_name_confirm_days` | 3 | 为配置兼容和治理清单保留；当前路由不选择 |
 | `strategic_one_name_gross` | 0.50 | 单成员总仓 |
-| `strategic_one_name_confirm_days` | 4 | 单成员确认期 |
+| `strategic_one_name_confirm_days` | 4 | 为配置兼容和治理清单保留；当前路由不选择 |
 | `strategic_epoch_cooldown_sessions` | 30 | 完整退出后的冷却 |
 | `strategic_cohort_profit_arm` | 0.10 | ATR 保护启动 MFE |
 | `strategic_cohort_trail_atr` | 3.55 | ATR 保护距离 |
 | `strategic_cohort_disaster_stop` | -0.20 | 灾难退出线 |
 
-`strategic_cohort_symbols` 默认必须为空；生产候选来自调用方给出的固定全集。
+`strategic_cohort_symbols` 是账户状态字段，不是 `SystemConfig` 参数；新账户初始为空，
+成员只能从调用方给出的固定全集中按因果证据动态产生。单/双成员只在同步反转证据下
+可入场；该条件会先选择 `strategic_cohort_confirm_days=2`，因此两者当前都要求连续两日确认。
+`strategic_two_name_confirm_days=3` 和 `strategic_one_name_confirm_days=4` 仍保留在
+`SystemConfig` 和参数治理清单中，以维持配置兼容，但当前路由不会选中它们；
+成员路由也不按证券全集大小切换。
 
 ## 风险与资本预算
 
@@ -151,6 +155,7 @@ Generalization 六窗口门禁，不能由人工日常运行或研究脚本临�
 | `risk_off_confirm_days` | 2 |
 | `crisis_confirm_days` | 1 |
 | `risk_off_gross` | 0.66 |
+| `narrow_anchor_guard_gross` | 0.84 |
 | `operating_dd_caution` | 0.08 |
 | `capital_dd_risk_off` | 0.14 |
 | `capital_dd_crisis` | 0.20 |

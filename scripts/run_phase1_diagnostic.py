@@ -305,7 +305,17 @@ def _run_trace(args: argparse.Namespace) -> dict[str, Any]:
 
 
 def _load_trace(path: str) -> Mapping[str, Any]:
-    payload = json.loads(Path(path).read_text(encoding="utf-8"))
+    try:
+        encoded = Path(path).read_bytes()
+        payload = json.loads(encoded)
+    except (OSError, UnicodeError, json.JSONDecodeError) as exc:
+        raise RuntimeError(f"invalid diagnostic trace: {path}") from exc
+    try:
+        canonical = _canonical_bytes(payload) + b"\n"
+    except (TypeError, ValueError) as exc:
+        raise RuntimeError(f"diagnostic trace is not canonical: {path}") from exc
+    if encoded != canonical:
+        raise RuntimeError(f"diagnostic trace is not canonical: {path}")
     if not isinstance(payload, Mapping) or not isinstance(payload.get("trace"), list):
         raise RuntimeError(f"invalid diagnostic trace: {path}")
     if payload.get("trace_sha256") != _sha256(_canonical_bytes(payload["trace"])):

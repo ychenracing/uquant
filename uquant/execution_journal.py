@@ -373,6 +373,7 @@ def _append(path: Path, payload_factory: PayloadFactory) -> JournalRecord:
         descriptor = os.open(path, flags, 0o600)
     except OSError as exc:
         raise ValueError("execution journal must be a regular file") from exc
+    primary_error: BaseException | None = None
     try:
         fcntl.flock(descriptor, fcntl.LOCK_EX)
         if not stat.S_ISREG(os.fstat(descriptor).st_mode):
@@ -392,16 +393,54 @@ def _append(path: Path, payload_factory: PayloadFactory) -> JournalRecord:
         )
         _validate_lifecycle([*records, record])
         encoded = _canonical_bytes(payload) + b"\n"
-        written = os.write(descriptor, encoded)
-        if written != len(encoded):
-            raise OSError("short execution journal append")
+        starting_eof = os.lseek(descriptor, 0, os.SEEK_END)
+        written = 0
+        try:
+            while written < len(encoded):
+                appended = os.write(descriptor, encoded[written:])
+                if appended <= 0:
+                    raise OSError("short execution journal append made no progress")
+                written += appended
+        except BaseException as primary:
+            try:
+                os.ftruncate(descriptor, starting_eof)
+                os.fsync(descriptor)
+            except BaseException as rollback_error:
+                primary.add_note(
+                    "execution journal rollback also failed: "
+                    f"{type(rollback_error).__name__}: {rollback_error}"
+                )
+            raise
         os.fsync(descriptor)
         _fsync_directory(path.parent)
         return record
+    except BaseException as error:
+        primary_error = error
+        raise
     finally:
-        with suppress(OSError):
+        cleanup_errors: list[tuple[str, BaseException]] = []
+        try:
             fcntl.flock(descriptor, fcntl.LOCK_UN)
-        os.close(descriptor)
+        except BaseException as cleanup_error:
+            cleanup_errors.append(("lock cleanup", cleanup_error))
+        try:
+            os.close(descriptor)
+        except BaseException as cleanup_error:
+            cleanup_errors.append(("descriptor cleanup", cleanup_error))
+        if primary_error is not None:
+            for label, failure in cleanup_errors:
+                primary_error.add_note(
+                    f"execution journal {label} also failed: "
+                    f"{type(failure).__name__}: {failure}"
+                )
+        elif cleanup_errors:
+            _, first_failure = cleanup_errors[0]
+            for later_label, later_error in cleanup_errors[1:]:
+                first_failure.add_note(
+                    f"execution journal {later_label} also failed: "
+                    f"{type(later_error).__name__}: {later_error}"
+                )
+            raise first_failure
 
 
 def _event_payload(

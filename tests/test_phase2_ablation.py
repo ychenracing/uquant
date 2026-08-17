@@ -4,12 +4,14 @@ import copy
 import hashlib
 import importlib.util
 import json
+import shutil
 import subprocess
 import sys
 from pathlib import Path
 
 import pytest
 
+from research import ablation_registry as ablation_registry_module
 from research.ablation import (
     AblationCell,
     AblationMetrics,
@@ -37,6 +39,75 @@ from uquant.engine import ProductionEngine
 
 ROOT = Path(__file__).resolve().parents[1]
 RESULTS_PATH = ROOT / "artifacts" / "phase2" / "ablations" / "results.json"
+POST_TASK8_SOURCE_CONTRACT_PATH = (
+    ROOT / "artifacts" / "phase2" / "ablations" / "post_task8_source_contract.json"
+)
+
+
+def _reviewed_source_commit() -> str:
+    contract = json.loads(POST_TASK8_SOURCE_CONTRACT_PATH.read_text(encoding="utf-8"))
+    reviewed = contract["reviewed"]
+    assert isinstance(reviewed, dict)
+    commit = reviewed["commit"]
+    assert isinstance(commit, str)
+    return commit
+
+
+def _reviewed_source_checkout(destination: Path) -> Path:
+    commit = _reviewed_source_commit()
+    subprocess.run(
+        ["git", "clone", "--quiet", "--no-hardlinks", str(ROOT), str(destination)],
+        check=True,
+    )
+    subprocess.run(
+        ["git", "-C", str(destination), "checkout", "--quiet", "--detach", commit],
+        check=True,
+    )
+    return destination
+
+
+def _current_runner_with_reviewed_production_checkout(destination: Path) -> Path:
+    subprocess.run(
+        ["git", "clone", "--quiet", "--no-hardlinks", str(ROOT), str(destination)],
+        check=True,
+    )
+    subprocess.run(
+        [
+            "git",
+            "-C",
+            str(destination),
+            "restore",
+            f"--source={_reviewed_source_commit()}",
+            "--staged",
+            "--worktree",
+            "--",
+            "uquant",
+            "pyproject.toml",
+            "requirements.txt",
+            "uv.lock",
+            "benchmarks/reference_registry.json",
+            "benchmarks/config_parameter_governance.json",
+        ],
+        check=True,
+    )
+    subprocess.run(
+        [
+            "git",
+            "-C",
+            str(destination),
+            "-c",
+            "user.name=UQuant Tests",
+            "-c",
+            "user.email=tests@uquant.invalid",
+            "commit",
+            "--quiet",
+            "--allow-empty",
+            "-m",
+            "Test current runner against reviewed production",
+        ],
+        check=True,
+    )
+    return destination
 
 
 def _runner_module():
@@ -160,20 +231,26 @@ def test_post_deletion_registry_is_derived_without_relabeling_historical_evidenc
     assert minimal.fixed_contracts == historical.fixed_contracts
     assert minimal.invariants == historical.invariants
     assert minimal.exclusions == historical.exclusions
-    validate_ablation_registry(minimal, source_root=ROOT)
     with pytest.raises(ValueError, match="production source differs"):
         validate_ablation_registry(historical, source_root=ROOT)
+
+
+def test_current_source_matches_reviewed_post_task8_contract() -> None:
+    registry = load_ablation_registry(MINIMAL_ABLATION_REGISTRY_PATH)
+    observed_source_sha256 = source_fingerprint(ROOT)
+
+    ablation_registry_module._validate_post_task8_source(
+        registry,
+        root=ROOT,
+        observed_source_sha256=observed_source_sha256,
+    )
 
 
 def test_post_task8_source_allowance_is_content_addressed_and_rejects_mutation(
     tmp_path: Path,
 ) -> None:
     """Catches a later operational path allowlist accepting unreviewed byte changes."""
-    checkout = tmp_path / "reviewed-source"
-    subprocess.run(
-        ["git", "clone", "--quiet", "--no-hardlinks", str(ROOT), str(checkout)],
-        check=True,
-    )
+    checkout = _reviewed_source_checkout(tmp_path / "reviewed-source")
     registry = load_ablation_registry(MINIMAL_ABLATION_REGISTRY_PATH)
 
     validate_ablation_registry(registry, source_root=checkout)
@@ -246,7 +323,6 @@ def test_registry_carriers_are_unique_one_at_a_time_and_content_addressed() -> N
 def test_registry_preserves_market_safety_and_frozen_contracts() -> None:
     """Catches ablations of execution/accounting/PIT controls or changed seeds/windows."""
     registry = load_ablation_registry(MINIMAL_ABLATION_REGISTRY_PATH)
-    validate_ablation_registry(registry, source_root=ROOT)
 
     invariant = registry.invariants
     assert {
@@ -573,6 +649,15 @@ def test_registry_and_source_hashes_are_deterministic_and_mutation_sensitive(
     with pytest.raises(ValueError, match="fixed contract hash"):
         load_ablation_registry(changed)
 
+    ambiguous = DEFAULT_ABLATION_REGISTRY_PATH.read_text(encoding="utf-8").replace(
+        '"schema_version": 1,',
+        '"schema_version": 1,\n  "schema_version": 1,',
+        1,
+    )
+    changed.write_text(ambiguous, encoding="utf-8")
+    with pytest.raises(ValueError, match=r"duplicate.*key"):
+        load_ablation_registry(changed)
+
     resealed = copy.deepcopy(payload)
     patch_carrier = next(
         item["carrier"] for item in resealed["experiments"] if item["carrier"]["type"] == "patch"
@@ -585,6 +670,61 @@ def test_registry_and_source_hashes_are_deterministic_and_mutation_sensitive(
     changed.write_text(json.dumps(resealed), encoding="utf-8")
     with pytest.raises(ValueError, match="reviewed carrier"):
         load_ablation_registry(changed)
+
+
+def test_trusted_ablation_json_readers_normalize_invalid_utf8(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Catches codec errors escaping the ablation domain trust boundary."""
+
+    invalid = tmp_path / "invalid.json"
+    encoded = b"\xff"
+    invalid.write_bytes(encoded)
+
+    with pytest.raises(ValueError, match="cannot load ablation registry"):
+        load_ablation_registry(invalid)
+
+    minimal = load_ablation_registry(MINIMAL_ABLATION_REGISTRY_PATH)
+    monkeypatch.setattr(
+        ablation_registry_module,
+        "POST_TASK8_SOURCE_CONTRACT_PATH",
+        invalid,
+    )
+    with pytest.raises(ValueError, match="cannot load post-Task8 source contract"):
+        ablation_registry_module._validate_post_task8_source(
+            minimal,
+            root=ROOT,
+            observed_source_sha256=minimal.source_sha256,
+        )
+
+    runner = _runner_module()
+    with pytest.raises(ValueError, match="evidence manifest is unreadable"):
+        runner._load_trusted_evidence_manifest(invalid)
+    with pytest.raises(ValueError, match="test artifact is unreadable"):
+        runner._load_json_mapping(invalid, label="test artifact")
+    assert runner._checkpoint_payload_schema(invalid) is None
+
+    digest = hashlib.sha256(encoded).hexdigest()
+    raw = tmp_path / "raw" / f"{digest}.worker.json"
+    raw.parent.mkdir()
+    raw.write_bytes(encoded)
+    reference = {
+        "path": f"raw/{digest}.worker.json",
+        "payload_sha256": digest,
+        "file_sha256": digest,
+    }
+    with pytest.raises(ValueError, match="raw worker artifact is unreadable"):
+        runner._read_worker_artifact(tmp_path, reference)
+
+    with pytest.raises(ValueError, match="experiment artifact is unreadable"):
+        runner._validate_evidence_manifest_entry(
+            tmp_path,
+            {
+                "artifact": {"path": "invalid.json"},
+                "raw": {"path": "raw/unused.json"},
+            },
+        )
 
 
 def test_fixed_schedule_is_complete_deterministic_and_preserves_known_status() -> None:
@@ -619,12 +759,13 @@ def test_carrier_materializes_in_an_isolated_clean_content_addressed_checkout(
     """Catches in-place execution, dirty patch trees, or unverified carrier state."""
     registry = load_ablation_registry(MINIMAL_ABLATION_REGISTRY_PATH)
     experiment = next(item for item in registry.experiments if item.subsystem == subsystem)
+    source_root = _reviewed_source_checkout(tmp_path / "reviewed-source")
     destination = tmp_path / subsystem
 
     with isolated_carrier_checkout(
         registry,
         experiment,
-        source_root=ROOT,
+        source_root=source_root,
         destination=destination,
     ) as checkout:
         assert checkout.root == destination.resolve()
@@ -645,9 +786,11 @@ def test_carrier_materializes_in_an_isolated_clean_content_addressed_checkout(
         if experiment.carrier.kind == "patch":
             assert checkout.experiment_commit != checkout.base_commit
             target = checkout.root / experiment.carrier.touched_paths[0]
-            target.write_text(target.read_text(encoding="utf-8") + "\n", encoding="utf-8")
+            original = target.read_text(encoding="utf-8")
+            target.write_text(original + "\n", encoding="utf-8")
             with pytest.raises(ValueError, match="changed after materialization"):
                 verify_carrier_checkout(registry, experiment, checkout)
+            target.write_text(original, encoding="utf-8")
         else:
             assert checkout.experiment_commit == checkout.base_commit
             assert checkout.source_sha256 == registry.source_sha256
@@ -660,11 +803,12 @@ def test_baseline_materializes_as_exact_isolated_clean_source(
 ) -> None:
     """Catches baseline execution from a dirty task worktree or a moving HEAD."""
     registry = load_ablation_registry(MINIMAL_ABLATION_REGISTRY_PATH)
+    source_root = _reviewed_source_checkout(tmp_path / "reviewed-source")
     destination = tmp_path / "baseline"
 
     with isolated_baseline_checkout(
         registry,
-        source_root=ROOT,
+        source_root=source_root,
         destination=destination,
     ) as checkout:
         assert checkout.base_commit == registry.base_commit
@@ -682,6 +826,86 @@ def test_baseline_materializes_as_exact_isolated_clean_source(
         )
 
     assert not destination.exists()
+
+
+def test_baseline_checkout_rejects_a_clean_post_replay_commit_switch(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    """Catches replay attribution surviving a clean reset to another commit."""
+
+    registry = load_ablation_registry(MINIMAL_ABLATION_REGISTRY_PATH)
+    destination = tmp_path / "baseline"
+    current = subprocess.run(
+        ["git", "-C", str(ROOT), "rev-parse", "HEAD"],
+        check=True,
+        capture_output=True,
+        text=True,
+    ).stdout.strip()
+    assert current != registry.base_commit
+    monkeypatch.setattr(
+        "research.ablation_registry.validate_ablation_registry",
+        lambda *_args, **_kwargs: None,
+    )
+    monkeypatch.setattr(
+        "research.ablation_registry.source_fingerprint",
+        lambda _root: registry.source_sha256,
+    )
+
+    with (
+        pytest.raises(ValueError, match="changed during replay"),
+        isolated_baseline_checkout(
+            registry,
+            source_root=ROOT,
+            destination=destination,
+        ) as checkout,
+    ):
+        subprocess.run(
+            ["git", "-C", str(checkout.root), "reset", "--hard", current],
+            check=True,
+            capture_output=True,
+            text=True,
+        )
+
+
+def test_partial_ablation_worktree_add_is_cleaned_up(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    """Catches a partial Git add bypassing isolated-checkout recovery."""
+
+    registry = load_ablation_registry(MINIMAL_ABLATION_REGISTRY_PATH)
+    destination = tmp_path / "partial"
+    removals: list[Path] = []
+    monkeypatch.setattr(
+        ablation_registry_module,
+        "validate_ablation_registry",
+        lambda *_args, **_kwargs: None,
+    )
+
+    def git(root: Path, arguments: tuple[str, ...], **_kwargs: object) -> str:
+        if arguments[:2] == ("worktree", "add"):
+            destination.mkdir(parents=True)
+            raise RuntimeError("injected partial add")
+        if arguments[:2] == ("worktree", "remove"):
+            removals.append(Path(arguments[-1]))
+            shutil.rmtree(destination)
+            return ""
+        raise AssertionError((root, arguments))
+
+    monkeypatch.setattr(ablation_registry_module, "_git", git)
+
+    with (
+        pytest.raises(RuntimeError, match="partial add"),
+        isolated_baseline_checkout(
+            registry,
+            source_root=ROOT,
+            destination=destination,
+        ),
+    ):
+        pytest.fail("partial checkout must not yield")
+
+    assert removals == [destination.resolve()]
 
 
 def test_hashed_first_divergence_is_required_and_stage_ordered() -> None:
@@ -987,7 +1211,11 @@ def test_worker_comparison_retains_variant_failure_without_hiding_it_from_covera
 
 def test_validation_runner_proves_every_carrier_and_is_deterministic(tmp_path: Path) -> None:
     """Catches undocumented carriers, runtime drift, and nondeterministic rerun evidence."""
-    script = ROOT / "scripts" / "run_phase2_ablation.py"
+    source_root = _current_runner_with_reviewed_production_checkout(
+        tmp_path / "reviewed-source"
+    )
+    script = source_root / "scripts" / "run_phase2_ablation.py"
+    registry_path = source_root / MINIMAL_ABLATION_REGISTRY_PATH.relative_to(ROOT)
     first = tmp_path / "first.json"
     second = tmp_path / "second.json"
     command = [
@@ -995,20 +1223,20 @@ def test_validation_runner_proves_every_carrier_and_is_deterministic(tmp_path: P
         str(script),
         "validate",
         "--source-root",
-        str(ROOT),
+        str(source_root),
         "--registry",
-        str(MINIMAL_ABLATION_REGISTRY_PATH),
+        str(registry_path),
     ]
     first_run = subprocess.run(
         [*command, "--output", str(first)],
-        cwd=ROOT,
+        cwd=source_root,
         capture_output=True,
         text=True,
         check=False,
     )
     second_run = subprocess.run(
         [*command, "--output", str(second)],
-        cwd=ROOT,
+        cwd=source_root,
         capture_output=True,
         text=True,
         check=False,
@@ -1303,9 +1531,26 @@ def test_atomic_checkpoint_is_content_addressed_and_rejects_stale_or_mutated(
         )
         == payload
     )
+    canonical = checkpoint.read_text(encoding="utf-8")
+    checkpoint.write_text(
+        canonical.replace(
+            '"schema_version":1,',
+            '"schema_version":1,"schema_version":1,',
+            1,
+        ),
+        encoding="utf-8",
+    )
+    with pytest.raises(ValueError, match="canonical"):
+        runner._read_checkpoint(
+            checkpoint,
+            binding_sha256="a" * 64,
+            kind="baseline",
+        )
+
+    runner._write_checkpoint(checkpoint, payload)
     stale = json.loads(checkpoint.read_text(encoding="utf-8"))
     stale["payload"]["binding_sha256"] = "b" * 64
-    checkpoint.write_text(json.dumps(stale), encoding="utf-8")
+    checkpoint.write_bytes(runner._canonical_bytes(stale) + b"\n")
     with pytest.raises(ValueError, match="content hash"):
         runner._read_checkpoint(
             checkpoint,
@@ -1520,7 +1765,7 @@ def test_raw_backed_checkpoint_recomputes_real_comparison_after_reseal(tmp_path:
     authentic_envelope = copy.deepcopy(envelope)
     envelope["payload"]["comparison"]["cells"][0]["delta"]["final_wealth"] = 999.0
     envelope["payload_sha256"] = runner._sha256_mapping(envelope["payload"])
-    experiment_path.write_bytes(runner._canonical_bytes(envelope))
+    experiment_path.write_bytes(runner._canonical_bytes(envelope) + b"\n")
 
     with pytest.raises(ValueError, match="recomputed comparison"):
         runner._read_experiment_result(
@@ -1544,7 +1789,7 @@ def test_raw_backed_checkpoint_recomputes_real_comparison_after_reseal(tmp_path:
     forged_envelope["payload"]["variant_worker_artifact"] = forged_reference
     forged_envelope["payload"]["comparison"]["variant_provenance"] = forged_variant["provenance"]
     forged_envelope["payload_sha256"] = runner._sha256_mapping(forged_envelope["payload"])
-    experiment_path.write_bytes(runner._canonical_bytes(forged_envelope))
+    experiment_path.write_bytes(runner._canonical_bytes(forged_envelope) + b"\n")
     with pytest.raises(ValueError, match="checkout/config/data/runtime"):
         runner._read_experiment_result(
             experiment_path,
@@ -1755,6 +2000,50 @@ def test_replay_command_materializes_exact_historical_evidence_commit(tmp_path: 
         runner._validate_replay_command(wrong_commit, expected=command)
 
 
+def test_evidence_checkout_rejects_a_clean_post_replay_commit_switch(
+    tmp_path: Path,
+) -> None:
+    """Catches historical evidence attributed after a clean checkout reset."""
+
+    runner = _runner_module()
+    evidence_commit = "9592fcca3860d1901a7009d799d29d20959d1699"
+    current = runner._git_output(ROOT, "rev-parse", "HEAD")
+    assert current != evidence_commit
+
+    with (
+        pytest.raises(ValueError, match="changed during replay"),
+        runner._isolated_evidence_checkout(ROOT, evidence_commit) as checkout,
+    ):
+        subprocess.run(
+            ["git", "-C", str(checkout), "reset", "--hard", current],
+            check=True,
+            capture_output=True,
+            text=True,
+        )
+
+
+def test_evidence_checkout_cleanup_does_not_relabel_a_replay_failure(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Catches cleanup spawn failures masking or relabeling the caller's error."""
+
+    runner = _runner_module()
+    evidence_commit = "9592fcca3860d1901a7009d799d29d20959d1699"
+    original_run = runner.subprocess.run
+
+    with (
+        pytest.raises(OSError, match="caller replay failure"),
+        runner._isolated_evidence_checkout(ROOT, evidence_commit),
+    ):
+        def fail_remove(command: list[str], **kwargs: object) -> object:
+            if "remove" in command:
+                raise OSError("cleanup spawn failure")
+            return original_run(command, **kwargs)
+
+        monkeypatch.setattr(runner.subprocess, "run", fail_remove)
+        raise OSError("caller replay failure")
+
+
 @pytest.mark.parametrize("mutation", ["economics", "trace"])
 def test_manifest_anchor_rejects_fully_resealed_worker_attack(
     tmp_path: Path,
@@ -1874,6 +2163,24 @@ def test_tracked_manifest_rejects_edit_and_self_resign(tmp_path: Path) -> None:
 
     with pytest.raises(ValueError, match="trusted digest"):
         runner._load_trusted_evidence_manifest(rewritten)
+
+
+def test_trusted_evidence_manifest_rejects_duplicate_keys(tmp_path: Path) -> None:
+    """Catches last-key-wins JSON preserving a compiled canonical mapping digest."""
+
+    runner = _runner_module()
+    encoded = runner._EVIDENCE_MANIFEST_PATH.read_text(encoding="utf-8")
+    duplicated = encoded.replace(
+        '"schema_version": 1',
+        '"schema_version": 999,\n  "schema_version": 1',
+        1,
+    )
+    assert duplicated != encoded
+    path = tmp_path / "duplicate-evidence-manifest.json"
+    path.write_text(duplicated, encoding="utf-8")
+
+    with pytest.raises(ValueError, match="duplicate key"):
+        runner._load_trusted_evidence_manifest(path)
 
 
 def test_historical_and_post_deletion_manifests_are_distinct_trust_roots() -> None:

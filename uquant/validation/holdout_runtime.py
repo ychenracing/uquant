@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import csv
+import fcntl
 import hashlib
 import io
 import json
@@ -12,7 +13,8 @@ import shutil
 import stat
 import subprocess  # nosec B404
 import tempfile
-from collections.abc import Mapping, Sequence
+from collections.abc import Iterator, Mapping, Sequence
+from contextlib import contextmanager, suppress
 from dataclasses import asdict, dataclass
 from pathlib import Path
 from typing import Any, cast
@@ -117,6 +119,12 @@ class _HoldoutDataSnapshot:
     sessions: tuple[str, ...]
     sha256: str
     files: tuple[tuple[str, bytes], ...]
+
+
+@dataclass(frozen=True, slots=True)
+class _ArtifactSnapshot:
+    payload: bytes | None
+    mode: int | None
 
 
 def _snapshot_files_sha256(files: Sequence[tuple[str, bytes]]) -> str:
@@ -307,6 +315,7 @@ def _reject_authoritative_output_paths(
     journal_path: str | Path | None,
     holdout_data_directory: str,
     checkpoint_path: Path,
+    lock_paths: Sequence[Path],
 ) -> None:
     outputs = [Path(output_path)]
     if decision_output_path is not None:
@@ -318,6 +327,7 @@ def _reject_authoritative_output_paths(
     protected: list[Path] = [
         Path(account_path),
         checkpoint_path,
+        *lock_paths,
         repository_root / "data/frozen",
         repository_root / holdout_data_directory,
         *(repository_root / relative for relative in _AUTHORITATIVE_REPOSITORY_RELATIVES),
@@ -335,6 +345,7 @@ def _reject_authoritative_output_paths(
     carrier_protected = [
         Path(account_path),
         *outputs,
+        *lock_paths,
         repository_root / "data/frozen",
         repository_root / holdout_data_directory,
         *(repository_root / relative for relative in _AUTHORITATIVE_REPOSITORY_RELATIVES),
@@ -1057,6 +1068,247 @@ def _daily_decision_payload(replay: Mapping[str, Any]) -> dict[str, Any]:
     return latest
 
 
+def _canonical_carrier_path(path: str | Path) -> Path:
+    """Resolve lexical aliases only after rejecting every visible symlink component."""
+
+    current = Path(path).absolute()
+    while True:
+        if current.is_symlink():
+            raise ValueError("future holdout evidence artifact contains a symlink")
+        if current == current.parent:
+            break
+        current = current.parent
+    return Path(path).resolve(strict=False)
+
+
+def _artifact_snapshots(paths: Sequence[Path]) -> dict[Path, _ArtifactSnapshot]:
+    """Capture exact carrier bytes and modes before an evidence update."""
+
+    snapshots: dict[Path, _ArtifactSnapshot] = {}
+    for path in paths:
+        if not path.is_absolute():
+            raise ValueError("future holdout evidence artifact path is not canonical")
+        current = path.absolute()
+        while True:
+            if current.is_symlink():
+                raise ValueError("future holdout evidence artifact contains a symlink")
+            if current == current.parent:
+                break
+            current = current.parent
+        if not path.exists():
+            snapshots[path] = _ArtifactSnapshot(payload=None, mode=None)
+            continue
+        payload = _read_protected_artifact(
+            path,
+            label="future holdout evidence artifact",
+        )
+        mode: int | None = None
+        if os.name != "nt":
+            try:
+                status = path.stat(follow_symlinks=False)
+            except OSError as exc:
+                raise ValueError(
+                    "cannot inspect future holdout evidence artifact mode"
+                ) from exc
+            if not stat.S_ISREG(status.st_mode):
+                raise ValueError("future holdout evidence artifact is unsafe")
+            mode = stat.S_IMODE(status.st_mode)
+        snapshots[path] = _ArtifactSnapshot(payload=payload, mode=mode)
+    return snapshots
+
+
+def _link_bytes_if_absent(
+    path: Path,
+    payload: bytes,
+    *,
+    mode: int | None = None,
+) -> bool:
+    """Publish exact bytes without replacing a concurrently installed generation."""
+
+    descriptor, temporary_name = tempfile.mkstemp(
+        prefix=f".{path.name}.rollback-",
+        dir=path.parent,
+    )
+    temporary = Path(temporary_name)
+    preserve_temporary = False
+    try:
+        with os.fdopen(descriptor, "wb") as handle:
+            handle.write(payload)
+            handle.flush()
+            if mode is not None:
+                os.fchmod(handle.fileno(), mode)
+            os.fsync(handle.fileno())
+        try:
+            os.link(temporary, path)
+        except FileExistsError:
+            return False
+        except BaseException as exc:
+            preserve_temporary = True
+            exc.add_note(f"rollback bytes preserved for recovery at {temporary}")
+            raise
+        return True
+    finally:
+        if not preserve_temporary:
+            temporary.unlink(missing_ok=True)
+
+
+def _restore_owned_artifact(
+    path: Path,
+    payload: bytes | None,
+    expected: bytes,
+    *,
+    mode: int | None = None,
+) -> None:
+    """Atomically claim one generation, then restore without overwriting a successor."""
+
+    descriptor, quarantine_name = tempfile.mkstemp(
+        prefix=f".{path.name}.claimed-",
+        dir=path.parent,
+    )
+    os.close(descriptor)
+    quarantine = Path(quarantine_name)
+    quarantine.unlink()
+    claimed = False
+    preserve_quarantine = False
+    try:
+        try:
+            os.replace(path, quarantine)
+            claimed = True
+        except FileNotFoundError:
+            return
+        try:
+            current = _read_protected_artifact(
+                quarantine,
+                label="future holdout rollback artifact",
+            )
+        except ValueError:
+            with suppress(FileExistsError):
+                os.link(quarantine, path, follow_symlinks=False)
+            return
+        if current != expected:
+            with suppress(FileExistsError):
+                os.link(quarantine, path, follow_symlinks=False)
+            return
+        if payload is not None:
+            _link_bytes_if_absent(path, payload, mode=mode)
+    except BaseException as exc:
+        if claimed:
+            preserve_quarantine = True
+            exc.add_note(f"claimed carrier preserved for recovery at {quarantine}")
+        raise
+    finally:
+        if not preserve_quarantine:
+            quarantine.unlink(missing_ok=True)
+
+
+def _restore_artifact_snapshots(
+    snapshots: Mapping[Path, _ArtifactSnapshot],
+    owned: Mapping[Path, bytes],
+) -> tuple[BaseException, ...]:
+    """Restore only carriers that still contain this transaction's bytes."""
+
+    failures: list[BaseException] = []
+    for path, snapshot in snapshots.items():
+        expected = owned.get(path)
+        if expected is None:
+            continue
+        try:
+            _restore_owned_artifact(
+                path,
+                snapshot.payload,
+                expected,
+                mode=snapshot.mode,
+            )
+        except BaseException as exc:
+            failures.append(exc)
+    return tuple(failures)
+
+
+def _artifact_bundle_lock_paths(paths: Sequence[Path]) -> tuple[Path, ...]:
+    """Return globally stable lock identities for every canonical carrier."""
+
+    locks = {
+        Path(tempfile.gettempdir())
+        / f"uquant-future-holdout-carrier-{hashlib.sha256(str(path).encode('utf-8')).hexdigest()}.lock"
+        for path in paths
+    }
+    return tuple(sorted(locks, key=str))
+
+
+@contextmanager
+def _artifact_bundle_lock(
+    repository_root: Path,
+    carrier_paths: Sequence[Path] = (),
+) -> Iterator[None]:
+    """Serialize complete replay/decision/checkpoint evidence transactions."""
+
+    lock_paths = tuple(
+        sorted(
+            {
+                _artifact_bundle_lock_path(repository_root),
+                *_artifact_bundle_lock_paths(carrier_paths),
+            },
+            key=str,
+        )
+    )
+    descriptors: list[int] = []
+    primary: BaseException | None = None
+    try:
+        for lock_path in lock_paths:
+            lock_path.parent.mkdir(parents=True, exist_ok=True)
+            current = lock_path.absolute()
+            while True:
+                if current.is_symlink():
+                    raise ValueError("future holdout evidence lock contains a symlink")
+                if current == current.parent:
+                    break
+                current = current.parent
+            flags = os.O_CREAT | os.O_RDWR | getattr(os, "O_NOFOLLOW", 0)
+            try:
+                descriptor = os.open(lock_path, flags, 0o600)
+            except OSError as exc:
+                raise ValueError("future holdout evidence lock is unsafe") from exc
+            descriptors.append(descriptor)
+            fcntl.flock(descriptor, fcntl.LOCK_EX)
+            if not stat.S_ISREG(os.fstat(descriptor).st_mode):
+                raise ValueError("future holdout evidence lock is unsafe")
+        yield
+    except BaseException as exc:
+        primary = exc
+        raise
+    finally:
+        cleanup_failures: list[OSError] = []
+        for descriptor in reversed(descriptors):
+            try:
+                fcntl.flock(descriptor, fcntl.LOCK_UN)
+            except OSError as exc:
+                cleanup_failures.append(exc)
+            try:
+                os.close(descriptor)
+            except OSError as exc:
+                cleanup_failures.append(exc)
+        if cleanup_failures:
+            notes = tuple(
+                f"future holdout lock cleanup also failed: {type(exc).__name__}: {exc}"
+                for exc in cleanup_failures
+            )
+            if primary is not None:
+                for note in notes:
+                    primary.add_note(note)
+            else:
+                failure = RuntimeError("future holdout evidence lock cleanup failed")
+                for note in notes:
+                    failure.add_note(note)
+                raise failure from cleanup_failures[0]
+
+
+def _artifact_bundle_lock_path(repository_root: Path) -> Path:
+    """Place the stable lock outside every repository evidence inventory."""
+
+    identity = hashlib.sha256(str(repository_root.resolve()).encode("utf-8")).hexdigest()
+    return Path(tempfile.gettempdir()) / f"uquant-future-holdout-{identity}.lock"
+
+
 def read_future_holdout_decision(
     path: str | Path,
     *,
@@ -1078,41 +1330,53 @@ def read_future_holdout_decision(
     return raw
 
 
-def generate_future_holdout_replay(
+def _generate_future_holdout_replay_locked(
     *,
-    repository_root: str | Path,
+    repository_root: Path,
     account_path: str | Path,
-    output_path: str | Path,
-    decision_output_path: str | Path | None = None,
+    output_path: Path,
+    decision_output_path: Path | None,
+    checkpoint_path: Path,
     journal_path: str | Path | None = None,
 ) -> dict[str, Any]:
-    """Generate, atomically persist, and re-read the deterministic replay."""
+    """Generate and persist evidence while the caller owns the bundle lock."""
 
-    root = Path(repository_root).resolve()
+    root = repository_root
     contract = load_future_holdout_contract(
         root / "benchmarks/future_holdout_contract.json"
     )
-    checkpoint_path = root / _CHECKPOINT_RELATIVE
+    destination = output_path
+    decision_destination = decision_output_path
     protected_data = (root / "data/frozen", root / contract.data_directory)
     _reject_output_in_protected_data(
-        output_path,
+        destination,
         protected_directories=protected_data,
     )
-    if decision_output_path is not None:
+    if decision_destination is not None:
         _reject_output_in_protected_data(
-            decision_output_path,
+            decision_destination,
             protected_directories=protected_data,
         )
     _reject_authoritative_output_paths(
         repository_root=root,
-        output_path=output_path,
-        decision_output_path=decision_output_path,
+        output_path=destination,
+        decision_output_path=decision_destination,
         account_path=account_path,
         journal_path=journal_path,
         holdout_data_directory=contract.data_directory,
         checkpoint_path=checkpoint_path,
+        lock_paths=(
+            _artifact_bundle_lock_path(root),
+            *_artifact_bundle_lock_paths(
+                (
+                    destination,
+                    checkpoint_path,
+                    *(() if decision_destination is None else (decision_destination,)),
+                )
+            ),
+        ),
     )
-    if decision_output_path is None:
+    if decision_destination is None:
         raise ValueError(
             "future holdout replay requires a daily decision output artifact"
         )
@@ -1123,9 +1387,9 @@ def generate_future_holdout_replay(
     prior_payload = None if prior_checkpoint is None else prior_checkpoint[0]
     if prior_payload is not None:
         if (
-            prior_payload["replay_output_path"] != _resolved_path_text(output_path)
+            prior_payload["replay_output_path"] != _resolved_path_text(destination)
             or prior_payload["decision_output_path"]
-            != _resolved_path_text(decision_output_path)
+            != _resolved_path_text(decision_destination)
         ):
             raise ValueError(
                 "future holdout replay must reuse the checkpointed output paths"
@@ -1162,71 +1426,121 @@ def generate_future_holdout_replay(
         prior_checkpoint=prior_payload,
         contract=contract,
     )
-    destination = Path(output_path)
-    atomic_write_text(
-        destination,
-        json.dumps(replay, ensure_ascii=False, indent=2) + "\n",
-        protected_paths=(
-            account_path,
-            root / "data/frozen",
-            root / contract.data_directory,
-            *(() if journal_path is None else (journal_path,)),
-        ),
+    snapshots = _artifact_snapshots(
+        (destination, decision_destination, checkpoint_path)
     )
-    observed = read_future_holdout_replay(
-        destination,
-        contract=contract,
-        sessions=tuple(replay["sessions"]),
-        holdout_data_sha256=str(replay["holdout_data_sha256"]),
-    )
-    if observed != replay:
-        raise RuntimeError("future holdout replay changed during readback")
-    latest = _daily_decision_payload(replay)
-    atomic_write_text(
-        decision_output_path,
-        json.dumps(latest, ensure_ascii=False, indent=2) + "\n",
-        protected_paths=(
+    owned: dict[Path, bytes] = {}
+    try:
+        replay_text = json.dumps(replay, ensure_ascii=False, indent=2) + "\n"
+        owned[destination] = replay_text.encode("utf-8")
+        atomic_write_text(
             destination,
-            account_path,
-            *(() if journal_path is None else (journal_path,)),
-        ),
-    )
-    observed_decision = read_future_holdout_decision(
-        decision_output_path,
-        replay=replay,
-    )
-    if observed_decision != latest:
-        raise RuntimeError("future holdout daily decision changed during readback")
-    replay_output_bytes = _read_protected_artifact(
-        destination,
-        label="deterministic replay artifact",
-    )
-    decision_output_bytes = _read_protected_artifact(
-        decision_output_path,
-        label="daily decision artifact",
-    )
-    checkpoint = _checkpoint_payload(
-        replay,
-        replay_output_path=destination,
-        replay_output_bytes=replay_output_bytes,
-        decision_output_path=decision_output_path,
-        decision_output_bytes=decision_output_bytes,
-    )
-    atomic_write_text(
-        checkpoint_path,
-        json.dumps(checkpoint, ensure_ascii=False, indent=2) + "\n",
-        protected_paths=(
+            replay_text,
+            protected_paths=(
+                account_path,
+                root / "data/frozen",
+                root / contract.data_directory,
+                *(() if journal_path is None else (journal_path,)),
+            ),
+        )
+        observed = read_future_holdout_replay(
             destination,
-            account_path,
-            decision_output_path,
-            *(() if journal_path is None else (journal_path,)),
-        ),
-    )
-    observed_checkpoint = _read_checkpoint_carrier(
-        checkpoint_path,
-        contract=contract,
-    )
-    if observed_checkpoint is None or observed_checkpoint[0] != checkpoint:
-        raise RuntimeError("future holdout journal checkpoint changed during readback")
-    _verify_checkpoint_artifacts(checkpoint, contract=contract)
+            contract=contract,
+            sessions=tuple(replay["sessions"]),
+            holdout_data_sha256=str(replay["holdout_data_sha256"]),
+        )
+        if observed != replay:
+            raise RuntimeError("future holdout replay changed during readback")
+        latest = _daily_decision_payload(replay)
+        decision_text = json.dumps(latest, ensure_ascii=False, indent=2) + "\n"
+        owned[decision_destination] = decision_text.encode("utf-8")
+        atomic_write_text(
+            decision_destination,
+            decision_text,
+            protected_paths=(
+                destination,
+                account_path,
+                *(() if journal_path is None else (journal_path,)),
+            ),
+        )
+        observed_decision = read_future_holdout_decision(
+            decision_destination,
+            replay=replay,
+        )
+        if observed_decision != latest:
+            raise RuntimeError("future holdout daily decision changed during readback")
+        replay_output_bytes = _read_protected_artifact(
+            destination,
+            label="deterministic replay artifact",
+        )
+        decision_output_bytes = _read_protected_artifact(
+            decision_destination,
+            label="daily decision artifact",
+        )
+        checkpoint = _checkpoint_payload(
+            replay,
+            replay_output_path=destination,
+            replay_output_bytes=replay_output_bytes,
+            decision_output_path=decision_destination,
+            decision_output_bytes=decision_output_bytes,
+        )
+        checkpoint_text = json.dumps(checkpoint, ensure_ascii=False, indent=2) + "\n"
+        owned[checkpoint_path] = checkpoint_text.encode("utf-8")
+        atomic_write_text(
+            checkpoint_path,
+            checkpoint_text,
+            protected_paths=(
+                destination,
+                account_path,
+                decision_destination,
+                *(() if journal_path is None else (journal_path,)),
+            ),
+        )
+        observed_checkpoint = _read_checkpoint_carrier(
+            checkpoint_path,
+            contract=contract,
+        )
+        if observed_checkpoint is None or observed_checkpoint[0] != checkpoint:
+            raise RuntimeError("future holdout journal checkpoint changed during readback")
+        _verify_checkpoint_artifacts(checkpoint, contract=contract)
+    except BaseException as primary:
+        for failure in _restore_artifact_snapshots(snapshots, owned):
+            primary.add_note(
+                f"future holdout rollback also failed: {type(failure).__name__}: {failure}"
+            )
+        raise
     return replay
+
+
+def generate_future_holdout_replay(
+    *,
+    repository_root: str | Path,
+    account_path: str | Path,
+    output_path: str | Path,
+    decision_output_path: str | Path | None = None,
+    journal_path: str | Path | None = None,
+) -> dict[str, Any]:
+    """Generate, atomically persist, and re-read the deterministic replay."""
+
+    root = Path(repository_root).resolve()
+    checkpoint = _canonical_carrier_path(root / _CHECKPOINT_RELATIVE)
+    destination = _canonical_carrier_path(output_path)
+    decision_destination = (
+        None
+        if decision_output_path is None
+        else _canonical_carrier_path(decision_output_path)
+    )
+    carriers = (
+        destination,
+        checkpoint,
+        *(() if decision_destination is None else (decision_destination,)),
+    )
+    with _artifact_bundle_lock(root, carriers):
+        return _generate_future_holdout_replay_locked(
+            repository_root=root,
+            account_path=account_path,
+            output_path=destination,
+            decision_output_path=decision_destination,
+            checkpoint_path=checkpoint,
+            journal_path=journal_path,
+        )

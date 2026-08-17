@@ -14,6 +14,15 @@ _SHA256 = re.compile(r"^[0-9a-f]{64}$")
 _SYMBOL = re.compile(r"^(?:sh|sz|bj)[0-9]{6}$")
 
 
+def _reject_duplicate_keys(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
+    payload: dict[str, Any] = {}
+    for key, value in pairs:
+        if key in payload:
+            raise DataContractError(f"frozen manifest contains duplicate key: {key}")
+        payload[key] = value
+    return payload
+
+
 def _digest(path: Path) -> str:
     digest = hashlib.sha256()
     with path.open("rb") as stream:
@@ -27,7 +36,7 @@ def _checksum_entries(path: Path) -> dict[str, str]:
     entries: dict[str, str] = {}
     try:
         lines = path.read_text(encoding="utf-8").splitlines()
-    except OSError as exc:
+    except (OSError, UnicodeError) as exc:
         raise DataContractError(f"cannot read frozen checksum file: {path}") from exc
     for line_number, line in enumerate(lines, start=1):
         parts = line.split()
@@ -54,8 +63,11 @@ def verify_data_manifest(root: str | Path) -> dict[str, Any]:
     if manifest_path.is_symlink() or checksums_path.is_symlink():
         raise DataContractError("frozen metadata must be regular files")
     try:
-        manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
-    except (OSError, json.JSONDecodeError) as exc:
+        manifest = json.loads(
+            manifest_path.read_text(encoding="utf-8"),
+            object_pairs_hook=_reject_duplicate_keys,
+        )
+    except (OSError, UnicodeError, json.JSONDecodeError) as exc:
         raise DataContractError("frozen DATA_MANIFEST.json is missing or corrupt") from exc
     if not isinstance(manifest, dict) or not isinstance(manifest.get("results"), list):
         raise DataContractError("frozen manifest has an invalid results inventory")

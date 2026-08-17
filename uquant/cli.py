@@ -7,6 +7,7 @@ import json
 from pathlib import Path
 
 from .account import load_account, migrate_account, save_account
+from .atomic_io import atomic_write_text, validate_atomic_output_boundary
 from .broker import sync_broker_snapshot
 from .config import DEFAULT_CONFIG
 from .engine import ProductionEngine, code_fingerprint
@@ -142,6 +143,16 @@ def main(argv: list[str] | None = None) -> int:
         print(args.output)
         return 0
     if args.command == "daily":
+        exact_inputs: list[str] = [args.account]
+        if args.broker_snapshot:
+            exact_inputs.append(args.broker_snapshot)
+        daily_protected = tuple(Path(path) for path in exact_inputs)
+        if args.output:
+            daily_protected = validate_atomic_output_boundary(
+                args.output,
+                protected_paths=exact_inputs,
+                protected_roots=(args.data_dir,),
+            )
         engine = ProductionEngine(args.data_dir)
         account = load_account(args.account)
         if args.broker_snapshot:
@@ -152,7 +163,7 @@ def main(argv: list[str] | None = None) -> int:
         save_account(account, args.account)
         report = render_daily_report(decision, account)
         if args.output:
-            Path(args.output).write_text(report, encoding="utf-8")
+            atomic_write_text(args.output, report, protected_paths=daily_protected)
         print(report)
         return 0
     if args.command == "account-sync":
@@ -183,11 +194,17 @@ def main(argv: list[str] | None = None) -> int:
         )
         return 0
     if args.command == "backtest":
+        backtest_protected: tuple[Path, ...] = ()
+        if args.output:
+            backtest_protected = validate_atomic_output_boundary(
+                args.output,
+                protected_roots=(args.data_dir,),
+            )
         engine = ProductionEngine(args.data_dir)
         result = engine.backtest(symbols=args.symbols, start=args.start, end=args.end)
         payload = json.dumps(result, ensure_ascii=False, indent=2)
         if args.output:
-            Path(args.output).write_text(payload, encoding="utf-8")
+            atomic_write_text(args.output, payload, protected_paths=backtest_protected)
         print(payload)
         return 0
     if args.command == "holdout-manifest":
@@ -262,7 +279,6 @@ def main(argv: list[str] | None = None) -> int:
                 manual_skip=args.manual_skip,
             )
         else:
-            from .atomic_io import atomic_write_text
             from .report import render_execution_journal
 
             rendered = render_execution_journal(read_execution_journal(args.journal))

@@ -23,6 +23,7 @@ from research.window_matrix import (
     WINDOW_SPECS,
     WINDOWS,
 )
+from uquant.atomic_io import atomic_write_text, validate_atomic_output_boundary
 from uquant.engine import ProductionEngine
 
 SYSTEMS = ("uquant", "aquant", "qwenquant", "trade")
@@ -559,15 +560,29 @@ def main(argv: Sequence[str] | None = None) -> int:
     args = parser.parse_args(argv)
     if args.workers < 1:
         parser.error("--workers must be positive")
+    protected_inputs = validate_atomic_output_boundary(
+        args.output,
+        protected_paths=(
+            args.competitor_results,
+            repository_root / "benchmarks" / "promotion_baseline.json",
+            repository_root / "scripts" / "run_five_window_outperformance.py",
+            repository_root / "scripts" / "run_window_competitor_adapter.py",
+            repository_root / "research" / "window_matrix.py",
+        ),
+        protected_roots=(
+            repository_root / "data" / "frozen",
+            repository_root / "uquant",
+        ),
+    )
     payload = build(
         repository_root=repository_root,
         competitor_path=args.competitor_results,
         workers=args.workers,
     )
-    args.output.parent.mkdir(parents=True, exist_ok=True)
-    args.output.write_text(
+    atomic_write_text(
+        args.output,
         json.dumps(payload, ensure_ascii=False, indent=2, allow_nan=False) + "\n",
-        encoding="utf-8",
+        protected_paths=protected_inputs,
     )
     print(json.dumps(payload["evaluation"], ensure_ascii=False, indent=2))
     return 0 if payload["evaluation"]["passed"] else 1

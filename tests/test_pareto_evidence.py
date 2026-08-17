@@ -5,6 +5,8 @@ import json
 from pathlib import Path
 from types import ModuleType
 
+import pytest
+
 from uquant.validation.ai_era import AI_ERA_WINDOWS
 
 
@@ -102,3 +104,65 @@ def test_smoke_inputs_reuse_frozen_pool_e_and_point_in_time_industries() -> None
     assert payload["end"] == AI_ERA_WINDOWS["continuous_ai_era"][1]
     assert set(payload["industries"]) == set(payload["universe"])
     assert all(industry != "unknown" for industry in payload["industries"].values())
+
+
+def test_reference_audit_output_cannot_overwrite_a_reviewed_input(
+    tmp_path: Path,
+) -> None:
+    """Catches an audit report destroying the reviewed evidence it inspected."""
+
+    source = tmp_path / "benchmarks" / "competitor_matrix_reference.json"
+    _write_json(source, {"windows": _windows(), "results": {}})
+    original = source.read_bytes()
+
+    with pytest.raises(ValueError, match="protected path"):
+        _module().main(
+            [
+                "--repo-root",
+                str(tmp_path),
+                "reference-audit",
+                "--output",
+                str(source),
+            ]
+        )
+
+    assert source.read_bytes() == original
+
+
+def test_smoke_output_preflights_the_consumed_market_data_tree(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    """Catches smoke evidence replacing market data after replay starts."""
+
+    promotion = {
+        "pools": {"a": [], "e": ["sz300308"]},
+        "contract": {
+            "windows": {
+                "continuous_ai_era": {"start": "2023-01-03", "end": "2026-07-31"}
+            }
+        },
+    }
+    _write_json(tmp_path / "benchmarks" / "promotion_baseline.json", promotion)
+    market_data = tmp_path / "data" / "frozen" / "sz300308.csv"
+    market_data.parent.mkdir(parents=True)
+    original = b"date,open,high,low,close,volume\n"
+    market_data.write_bytes(original)
+    module = _module()
+
+    def fail_replay(**_: object) -> dict[str, object]:
+        raise AssertionError("smoke replay started before output preflight")
+
+    monkeypatch.setattr(module, "run_generalization_smoke", fail_replay)
+    with pytest.raises(ValueError, match="protected input tree"):
+        module.main(
+            [
+                "--repo-root",
+                str(tmp_path),
+                "smoke",
+                "--output",
+                str(market_data),
+            ]
+        )
+
+    assert market_data.read_bytes() == original

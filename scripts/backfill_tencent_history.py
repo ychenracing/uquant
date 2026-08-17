@@ -14,8 +14,6 @@ import csv
 import hashlib
 import json
 import math
-import os
-import tempfile
 import time
 from collections.abc import Sequence
 from concurrent.futures import ThreadPoolExecutor
@@ -28,6 +26,11 @@ from urllib.error import HTTPError, URLError
 from urllib.parse import urlencode, urlsplit
 from urllib.request import HTTPRedirectHandler, Request, build_opener
 
+from uquant.atomic_io import (
+    atomic_write_bytes,
+    atomic_write_text,
+    validate_atomic_output_path,
+)
 from uquant.leader import stable_reference_requires_history
 
 ENDPOINT = "https://web.ifzq.gtimg.cn/appstock/app/fqkline/get"
@@ -344,15 +347,16 @@ def _write_metadata(data_dir: Path, results: list[BackfillResult]) -> None:
         },
         "results": [asdict(item) for item in results],
     }
-    (data_dir / "DATA_MANIFEST.json").write_text(
-        json.dumps(manifest, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
+    atomic_write_text(
+        data_dir / "DATA_MANIFEST.json",
+        json.dumps(manifest, ensure_ascii=False, indent=2) + "\n",
     )
     sums = "".join(f"{item.sha256}  {item.symbol}.csv\n" for item in results)
-    (data_dir / "SHA256SUMS").write_text(sums, encoding="utf-8")
+    atomic_write_text(data_dir / "SHA256SUMS", sums)
 
 
 def main(argv: Sequence[str] | None = None) -> int:
-    """Validate arguments, stage all symbol payloads, and replace them atomically."""
+    """Validate inputs and atomically replace each complete managed payload."""
 
     root = Path(__file__).resolve().parents[1]
     parser = argparse.ArgumentParser(description=__doc__)
@@ -360,11 +364,23 @@ def main(argv: Sequence[str] | None = None) -> int:
     parser.add_argument("--workers", type=int, default=8)
     parser.add_argument("--tech-proxy-only", action="store_true")
     args = parser.parse_args(argv)
+    try:
+        validate_atomic_output_path(args.data_dir)
+    except ValueError as exc:
+        parser.error(f"backfill managed paths must not contain symlinks: {exc}")
     paths = sorted(args.data_dir.glob("*.csv"))
     if not paths:
         parser.error(f"no CSV files found in {args.data_dir}")
     if args.workers <= 0:
         parser.error("--workers must be positive")
+    managed_paths = (
+        *paths,
+        args.data_dir / "DATA_MANIFEST.json",
+        args.data_dir / "SHA256SUMS",
+    )
+    symlinks = [path for path in managed_paths if path.is_symlink()]
+    if args.data_dir.is_symlink() or symlinks:
+        parser.error(f"backfill managed paths must not be symlinks: {symlinks}")
     if args.tech_proxy_only:
         manifest_path = args.data_dir / "DATA_MANIFEST.json"
         manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
@@ -374,7 +390,7 @@ def main(argv: Sequence[str] | None = None) -> int:
             parser.error("tech proxy has already been applied")
         path = args.data_dir / f"{TECH_INDEX}.csv"
         updated, payload = _prepend_tech_proxy(current, path.read_bytes())
-        path.write_bytes(payload)
+        atomic_write_bytes(path, payload)
         results = [updated if item.symbol == TECH_INDEX else item for item in results]
         _write_metadata(args.data_dir, sorted(results, key=lambda item: item.symbol))
         print(f"history backfill: added {updated.historical_rows_added} tech rows", flush=True)
@@ -387,13 +403,8 @@ def main(argv: Sequence[str] | None = None) -> int:
         for result, payload in staged
     ]
     results = sorted((item[0] for item in staged), key=lambda item: item.symbol)
-    with tempfile.TemporaryDirectory(prefix=".history-backfill-", dir=args.data_dir.parent) as tmp:
-        stage_dir = Path(tmp)
-        for result, payload in staged:
-            (stage_dir / f"{result.symbol}.csv").write_bytes(payload)
-        for result in results:
-            source = stage_dir / f"{result.symbol}.csv"
-            os.replace(source, args.data_dir / source.name)
+    for result, payload in sorted(staged, key=lambda item: item[0].symbol):
+        atomic_write_bytes(args.data_dir / f"{result.symbol}.csv", payload)
     _write_metadata(args.data_dir, results)
     print(
         f"history backfill: added {sum(item.historical_rows_added for item in results)} rows",

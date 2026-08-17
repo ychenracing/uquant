@@ -9,6 +9,7 @@ from pathlib import Path
 from typing import Any
 
 from research.generalization_smoke import run_generalization_smoke
+from uquant.atomic_io import atomic_write_text, validate_atomic_output_boundary
 from uquant.leader import INDUSTRY
 from uquant.validation.ai_era import AI_ERA_WINDOWS
 from uquant.validation.competitor import REQUIRED_COMPETITORS, REQUIRED_POOLS
@@ -113,12 +114,15 @@ def smoke_inputs(repository_root: str | Path) -> dict[str, Any]:
     }
 
 
-def _write(payload: Mapping[str, Any], output: str | Path | None) -> None:
+def _write(
+    payload: Mapping[str, Any],
+    output: str | Path | None,
+    *,
+    protected_paths: tuple[Path, ...] = (),
+) -> None:
     encoded = json.dumps(payload, ensure_ascii=False, indent=2, sort_keys=True) + "\n"
     if output is not None:
-        target = Path(output)
-        target.parent.mkdir(parents=True, exist_ok=True)
-        target.write_text(encoded, encoding="utf-8")
+        atomic_write_text(output, encoded, protected_paths=protected_paths)
     print(encoded, end="")
 
 
@@ -138,11 +142,27 @@ def main(argv: list[str] | None = None) -> int:
     args = _parser().parse_args(argv)
     root = Path(args.repo_root).resolve()
     payload: Mapping[str, Any]
+    protected_paths: tuple[Path, ...]
     if args.command == "reference-audit":
+        exact_inputs = (
+            root / "benchmarks" / "competitor_matrix_reference.json",
+            root / "benchmarks" / "generalization_baseline.json",
+            root / "benchmarks" / "competitor_bull_reference.json",
+        )
+        protected_paths = validate_atomic_output_boundary(
+            args.output,
+            protected_paths=exact_inputs,
+        )
         payload = audit_references(root)
     else:
-        payload = run_generalization_smoke(**smoke_inputs(root))
-    _write(payload, args.output)
+        inputs = smoke_inputs(root)
+        protected_paths = validate_atomic_output_boundary(
+            args.output,
+            protected_paths=(root / "benchmarks" / "promotion_baseline.json",),
+            protected_roots=(Path(inputs["data_dir"]),),
+        )
+        payload = run_generalization_smoke(**inputs)
+    _write(payload, args.output, protected_paths=protected_paths)
     return 0
 
 

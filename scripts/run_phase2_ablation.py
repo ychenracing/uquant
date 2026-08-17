@@ -446,7 +446,7 @@ def _read_worker_artifact(
     try:
         encoded = path.read_bytes()
         payload = json.loads(encoded)
-    except (OSError, json.JSONDecodeError) as exc:
+    except (OSError, UnicodeError, json.JSONDecodeError) as exc:
         raise ValueError("ablation raw worker artifact is unreadable") from exc
     if (
         hashlib.sha256(encoded).hexdigest() != digest
@@ -469,6 +469,17 @@ def _evidence_manifest_anchor(registry_relative: Path) -> tuple[Path, str]:
     raise ValueError("ablation registry has no compiled evidence manifest")
 
 
+def _reject_duplicate_json_keys(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
+    """Reject ambiguous JSON objects at compiled evidence trust boundaries."""
+
+    payload: dict[str, Any] = {}
+    for key, value in pairs:
+        if key in payload:
+            raise ValueError(f"ablation JSON contains duplicate key: {key}")
+        payload[key] = value
+    return payload
+
+
 def _load_trusted_evidence_manifest(
     path: Path | None = None,
     *,
@@ -476,7 +487,16 @@ def _load_trusted_evidence_manifest(
 ) -> dict[str, Any]:
     """Load the tracked evidence manifest only when its compiled digest matches."""
     manifest_path = path or _EVIDENCE_MANIFEST_PATH
-    manifest = _load_json_mapping(manifest_path, label="ablation evidence manifest")
+    try:
+        parsed = json.loads(
+            manifest_path.read_text(encoding="utf-8"),
+            object_pairs_hook=_reject_duplicate_json_keys,
+        )
+    except (OSError, UnicodeError, json.JSONDecodeError) as exc:
+        raise ValueError("ablation evidence manifest is unreadable") from exc
+    if not isinstance(parsed, Mapping):
+        raise ValueError("ablation evidence manifest is malformed")
+    manifest = dict(parsed)
     if _sha256_mapping(manifest) != trusted_digest:
         raise ValueError("ablation evidence manifest trusted digest differs")
     if set(manifest) != {"schema_version", "payload_sha256", "payload"}:
@@ -606,7 +626,7 @@ def _validate_evidence_manifest_entry(
     try:
         artifact_bytes = artifact_path.read_bytes()
         envelope = json.loads(artifact_bytes)
-    except (OSError, json.JSONDecodeError) as exc:
+    except (OSError, UnicodeError, json.JSONDecodeError) as exc:
         raise ValueError("ablation evidence manifest experiment artifact is unreadable") from exc
     if hashlib.sha256(artifact_bytes).hexdigest() != artifact.get("file_sha256"):
         raise ValueError("ablation evidence manifest experiment artifact hash differs")
@@ -621,7 +641,7 @@ def _validate_evidence_manifest_entry(
     try:
         raw_bytes = raw_path.read_bytes()
         worker = json.loads(raw_bytes)
-    except (OSError, json.JSONDecodeError) as exc:
+    except (OSError, UnicodeError, json.JSONDecodeError) as exc:
         raise ValueError("ablation evidence manifest raw worker is unreadable") from exc
     if hashlib.sha256(raw_bytes).hexdigest() != raw.get("file_sha256"):
         raise ValueError("ablation evidence manifest raw worker file hash differs")
@@ -747,9 +767,12 @@ def _read_checkpoint(
 ) -> dict[str, Any]:
     """Read and authenticate one checkpoint against the exact run binding."""
     try:
-        envelope = json.loads(path.read_text(encoding="utf-8"))
-    except (OSError, json.JSONDecodeError) as exc:
+        encoded = path.read_bytes()
+        envelope = json.loads(encoded)
+    except (OSError, UnicodeError, json.JSONDecodeError) as exc:
         raise ValueError("ablation checkpoint is unreadable") from exc
+    if _canonical_bytes(envelope) + b"\n" != encoded:
+        raise ValueError("ablation checkpoint canonical encoding differs")
     if not isinstance(envelope, Mapping) or set(envelope) != {
         "schema_version",
         "payload_sha256",
@@ -1345,45 +1368,62 @@ def _isolated_evidence_checkout(
         raise RuntimeError("cannot resolve git for ablation evidence checkout")
     with tempfile.TemporaryDirectory(prefix="uquant-phase2-evidence-parent-") as temporary:
         checkout = Path(temporary) / "checkout"
+        primary: BaseException | None = None
+        add_attempted = False
         try:
-            subprocess.run(  # nosec B603
-                [
-                    git,
-                    "-C",
-                    str(repository_root),
-                    "worktree",
-                    "add",
-                    "--detach",
-                    str(checkout),
-                    evidence_commit,
-                ],
-                check=True,
-                capture_output=True,
-                text=True,
-            )
-            if _git_output(checkout, "rev-parse", "HEAD") != evidence_commit or _git_output(
-                checkout, "status", "--porcelain", "--untracked-files=all"
-            ):
-                raise ValueError("ablation evidence checkout is not exact and clean")
-            yield checkout
-        except (OSError, subprocess.CalledProcessError) as exc:
-            raise RuntimeError("cannot materialize ablation evidence commit") from exc
-        finally:
-            if checkout.exists():
+            try:
+                add_attempted = True
                 subprocess.run(  # nosec B603
                     [
                         git,
                         "-C",
                         str(repository_root),
                         "worktree",
-                        "remove",
-                        "--force",
+                        "add",
+                        "--detach",
                         str(checkout),
+                        evidence_commit,
                     ],
-                    check=False,
+                    check=True,
                     capture_output=True,
                     text=True,
                 )
+            except (OSError, subprocess.CalledProcessError) as exc:
+                raise RuntimeError("cannot materialize ablation evidence commit") from exc
+            if _git_output(checkout, "rev-parse", "HEAD") != evidence_commit or _git_output(
+                checkout, "status", "--porcelain", "--untracked-files=all"
+            ):
+                raise ValueError("ablation evidence checkout is not exact and clean")
+            yield checkout
+            if _git_output(checkout, "rev-parse", "HEAD") != evidence_commit or _git_output(
+                checkout, "status", "--porcelain", "--untracked-files=all"
+            ):
+                raise ValueError("ablation evidence checkout changed during replay")
+        except BaseException as exc:
+            primary = exc
+            raise
+        finally:
+            if add_attempted:
+                try:
+                    subprocess.run(  # nosec B603
+                        [
+                            git,
+                            "-C",
+                            str(repository_root),
+                            "worktree",
+                            "remove",
+                            "--force",
+                            str(checkout),
+                        ],
+                        check=True,
+                        capture_output=True,
+                        text=True,
+                    )
+                except (OSError, subprocess.CalledProcessError) as exc:
+                    if primary is not None:
+                        primary.add_note(f"ablation evidence cleanup also failed: {exc}")
+                    else:
+                        raise RuntimeError("cannot remove ablation evidence checkout") from exc
 
 
 def _replay_command(
@@ -1924,7 +1964,7 @@ def _read_experiment_result(
 def _load_json_mapping(path: Path, *, label: str) -> dict[str, Any]:
     try:
         payload = json.loads(path.read_text(encoding="utf-8"))
-    except (OSError, json.JSONDecodeError) as exc:
+    except (OSError, UnicodeError, json.JSONDecodeError) as exc:
         raise ValueError(f"{label} is unreadable") from exc
     if not isinstance(payload, Mapping):
         raise ValueError(f"{label} is malformed")
@@ -2528,7 +2568,7 @@ def _validate_evidence_archive(
 def _checkpoint_payload_schema(path: Path) -> int | None:
     try:
         envelope = json.loads(path.read_text(encoding="utf-8"))
-    except (OSError, json.JSONDecodeError):
+    except (OSError, UnicodeError, json.JSONDecodeError):
         return None
     if not isinstance(envelope, Mapping) or not isinstance(envelope.get("payload"), Mapping):
         return None

@@ -584,8 +584,11 @@ def load_ablation_registry(
     """Load and structurally validate the immutable registry artifact."""
     source = Path(path)
     try:
-        payload = json.loads(source.read_text(encoding="utf-8"))
-    except (OSError, json.JSONDecodeError) as exc:
+        payload = json.loads(
+            source.read_text(encoding="utf-8"),
+            object_pairs_hook=_strict_json_object,
+        )
+    except (OSError, UnicodeError, json.JSONDecodeError) as exc:
         raise ValueError(f"cannot load ablation registry: {source}") from exc
     raw = _require_mapping(payload, label="ablation registry")
     if set(raw) == _TOP_LEVEL_FIELDS:
@@ -645,7 +648,7 @@ def _strict_json_object(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
     result: dict[str, Any] = {}
     for key, value in pairs:
         if key in result:
-            raise ValueError(f"duplicate post-Task8 source contract key: {key}")
+            raise ValueError(f"ablation JSON contains duplicate key: {key}")
         result[key] = value
     return result
 
@@ -667,7 +670,7 @@ def _validate_post_task8_source(
             POST_TASK8_SOURCE_CONTRACT_PATH.read_text(encoding="utf-8"),
             object_pairs_hook=_strict_json_object,
         )
-    except (OSError, json.JSONDecodeError) as exc:
+    except (OSError, UnicodeError, json.JSONDecodeError) as exc:
         raise ValueError("cannot load post-Task8 source contract") from exc
     contract = _require_mapping(payload, label="post-Task8 source contract")
     if set(contract) != {
@@ -1083,8 +1086,11 @@ def isolated_carrier_checkout(
     if target.exists():
         raise ValueError("isolated ablation checkout destination already exists")
     target.parent.mkdir(parents=True, exist_ok=True)
-    _git(root, ("worktree", "add", "--detach", str(target), registry.base_commit))
+    primary: BaseException | None = None
+    add_attempted = False
     try:
+        add_attempted = True
+        _git(root, ("worktree", "add", "--detach", str(target), registry.base_commit))
         if source_fingerprint(target) != registry.source_sha256:
             raise ValueError("isolated ablation checkout differs from registry source")
         if experiment.carrier.kind == "patch":
@@ -1123,8 +1129,19 @@ def isolated_carrier_checkout(
         )
         verify_carrier_checkout(registry, experiment, checkout)
         yield checkout
+        verify_carrier_checkout(registry, experiment, checkout)
+    except BaseException as exc:
+        primary = exc
+        raise
     finally:
-        _git(root, ("worktree", "remove", "--force", str(target)))
+        if add_attempted:
+            try:
+                _git(root, ("worktree", "remove", "--force", str(target)))
+            except RuntimeError as exc:
+                if primary is not None:
+                    primary.add_note(f"ablation worktree cleanup also failed: {exc}")
+                else:
+                    raise
 
 
 @contextmanager
@@ -1141,8 +1158,11 @@ def isolated_baseline_checkout(
     if target.exists():
         raise ValueError("isolated ablation checkout destination already exists")
     target.parent.mkdir(parents=True, exist_ok=True)
-    _git(root, ("worktree", "add", "--detach", str(target), registry.base_commit))
+    primary: BaseException | None = None
+    add_attempted = False
     try:
+        add_attempted = True
+        _git(root, ("worktree", "add", "--detach", str(target), registry.base_commit))
         observed_source = source_fingerprint(target)
         if observed_source != registry.source_sha256:
             raise ValueError("isolated ablation baseline differs from registry source")
@@ -1160,5 +1180,22 @@ def isolated_baseline_checkout(
         ):
             raise ValueError("isolated ablation baseline is not exact and clean")
         yield checkout
+        if (
+            _git(target, ("rev-parse", "HEAD")) != checkout.experiment_commit
+            or _git(target, ("rev-parse", "HEAD^{tree}")) != checkout.tree_sha256
+            or _git(target, ("status", "--porcelain", "--untracked-files=all"))
+            or source_fingerprint(target) != checkout.source_sha256
+        ):
+            raise ValueError("isolated ablation baseline changed during replay")
+    except BaseException as exc:
+        primary = exc
+        raise
     finally:
-        _git(root, ("worktree", "remove", "--force", str(target)))
+        if add_attempted:
+            try:
+                _git(root, ("worktree", "remove", "--force", str(target)))
+            except RuntimeError as exc:
+                if primary is not None:
+                    primary.add_note(f"ablation worktree cleanup also failed: {exc}")
+                else:
+                    raise

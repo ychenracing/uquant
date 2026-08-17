@@ -1,5 +1,11 @@
 # Phase 2 final acceptance
 
+> **Historical snapshot:** This report records the Phase 2 Task 11 acceptance
+> candidate and its evidence at the commits named below. It is retained unchanged as
+> provenance, not as a description of the current `HEAD` or current release status.
+> Use the current [performance contract](../../docs/PERFORMANCE.md) and
+> [operations guide](../../docs/OPERATIONS.md) for operational guidance.
+
 ## Decision
 
 Task 11 is **ACCEPTED** under the authorized Generalization policy-v2

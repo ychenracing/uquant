@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import importlib.util
+import json
 import sys
 from pathlib import Path
 
@@ -109,3 +110,66 @@ def test_equal_on_all_four_metrics_is_not_full_outperformance() -> None:
 
     assert not report["passed"]
     assert "a/aquant:strictly_better" in report["failures"]
+
+
+def test_output_cannot_overwrite_the_competitor_artifact(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    """Catches a report path destroying the evidence consumed by the report."""
+
+    artifact = tmp_path / "competitor.json"
+    original = json.dumps({"source": "competitor"})
+    artifact.write_text(original, encoding="utf-8")
+    monkeypatch.setattr(
+        outperformance,
+        "build",
+        lambda **kwargs: {"evaluation": {"passed": True}},
+    )
+
+    with pytest.raises(ValueError, match="protected path"):
+        outperformance.main(
+            [
+                "--competitor-results",
+                str(artifact),
+                "--output",
+                str(artifact),
+            ]
+        )
+
+    assert artifact.read_text(encoding="utf-8") == original
+
+
+@pytest.mark.parametrize(
+    "protected_output",
+    [
+        SCRIPT.parents[1] / "data" / "frozen" / "SHA256SUMS",
+        SCRIPT.parents[1] / "uquant" / "engine.py",
+    ],
+)
+def test_output_preflights_data_and_source_inputs_before_build(
+    protected_output: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    """Catches evidence output damaging data or source after a costly build."""
+
+    artifact = tmp_path / "competitor.json"
+    artifact.write_text("{}", encoding="utf-8")
+    original = protected_output.read_bytes()
+
+    def fail_build(**_: object) -> dict[str, object]:
+        raise AssertionError("outperformance build started before output preflight")
+
+    monkeypatch.setattr(outperformance, "build", fail_build)
+    with pytest.raises(ValueError, match="protected input tree"):
+        outperformance.main(
+            [
+                "--competitor-results",
+                str(artifact),
+                "--output",
+                str(protected_output),
+            ]
+        )
+
+    assert protected_output.read_bytes() == original

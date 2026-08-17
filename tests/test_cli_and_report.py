@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import os
 from pathlib import Path
 from types import SimpleNamespace
 from typing import Any
@@ -168,6 +169,68 @@ def test_cli_account_init_daily_sync_and_backtest(
     assert "positions_reconciled" in capsys.readouterr().out
 
 
+def test_daily_report_preflights_and_consumes_a_broker_snapshot(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    """Exercises the successful broker-input/report-output boundary."""
+
+    monkeypatch.setattr("uquant.cli.ProductionEngine", _FakeEngine)
+    account_path = tmp_path / "account.json"
+    _state(account_path)
+    snapshot = tmp_path / "broker.json"
+    snapshot.write_text(
+        json.dumps(
+            {
+                "as_of": "2026-06-30",
+                "cash": 2_000_000.0,
+                "positions": [],
+                "fills": [],
+            }
+        ),
+        encoding="utf-8",
+    )
+    output = tmp_path / "daily.md"
+
+    assert (
+        main(
+            [
+                "daily",
+                "--data-dir",
+                str(tmp_path / "frozen"),
+                "--symbols",
+                "sz300308",
+                "--date",
+                "2026-06-30",
+                "--account",
+                str(account_path),
+                "--broker-snapshot",
+                str(snapshot),
+                "--output",
+                str(output),
+            ]
+        )
+        == 0
+    )
+    assert "fake-decision" in output.read_text(encoding="utf-8")
+    assert (
+        main(
+            [
+                "backtest",
+                "--data-dir",
+                str(tmp_path / "frozen"),
+                "--symbols",
+                "sz300308",
+                "--start",
+                "2026-01-01",
+                "--end",
+                "2026-01-31",
+            ]
+        )
+        == 0
+    )
+
+
 def test_cli_explicit_account_migration(tmp_path: Path, capsys: Any) -> None:
     account_path = tmp_path / "legacy.json"
     state = _state(account_path)
@@ -191,6 +254,126 @@ def test_cli_explicit_account_migration(tmp_path: Path, capsys: Any) -> None:
     )
     assert load_account(account_path).account_migrations
     assert "schema_version" in capsys.readouterr().out
+
+
+def test_daily_report_output_cannot_overwrite_the_account(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    """Catches a report path destroying the durable account it reports on."""
+
+    monkeypatch.setattr("uquant.cli.ProductionEngine", _FakeEngine)
+    account_path = tmp_path / "account.json"
+    _state(account_path)
+    original = account_path.read_bytes()
+
+    with pytest.raises(ValueError, match="protected path"):
+        main(
+            [
+                "daily",
+                "--data-dir",
+                "fixture",
+                "--symbols",
+                "sz300308",
+                "--date",
+                "2026-06-30",
+                "--account",
+                str(account_path),
+                "--output",
+                str(account_path),
+            ]
+        )
+
+    assert account_path.read_bytes() == original
+
+
+def test_daily_report_preflights_a_hardlink_to_the_account(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    """Catches account replacement hiding an invocation-time output alias."""
+
+    monkeypatch.setattr("uquant.cli.ProductionEngine", _FakeEngine)
+    account_path = tmp_path / "account.json"
+    output_path = tmp_path / "daily.md"
+    _state(account_path)
+    original = account_path.read_bytes()
+    os.link(account_path, output_path)
+
+    with pytest.raises(ValueError, match="protected path"):
+        main(
+            [
+                "daily",
+                "--data-dir",
+                "fixture",
+                "--symbols",
+                "sz300308",
+                "--date",
+                "2026-06-30",
+                "--account",
+                str(account_path),
+                "--output",
+                str(output_path),
+            ]
+        )
+
+    assert account_path.read_bytes() == original
+    assert output_path.read_bytes() == original
+
+
+@pytest.mark.parametrize("command", ["daily", "backtest"])
+def test_cli_report_preflights_the_consumed_market_data_tree(
+    command: str,
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    """Catches a report overwriting replay input after it has been consumed."""
+
+    data_dir = tmp_path / "frozen"
+    data_dir.mkdir()
+    market_data = data_dir / "sz300308.csv"
+    original = b"date,open,high,low,close,volume\n2026-01-02,1,1,1,1,1\n"
+    market_data.write_bytes(original)
+    account_path = tmp_path / "account.json"
+    _state(account_path)
+
+    def fail_replay(_: str | Path) -> _FakeEngine:
+        raise AssertionError("market replay started before output preflight")
+
+    monkeypatch.setattr("uquant.cli.ProductionEngine", fail_replay)
+    if command == "daily":
+        args = [
+            "daily",
+            "--data-dir",
+            str(data_dir),
+            "--symbols",
+            "sz300308",
+            "--date",
+            "2026-01-02",
+            "--account",
+            str(account_path),
+            "--output",
+            str(market_data),
+        ]
+    else:
+        args = [
+            "backtest",
+            "--data-dir",
+            str(data_dir),
+            "--symbols",
+            "sz300308",
+            "--start",
+            "2026-01-02",
+            "--end",
+            "2026-01-02",
+            "--output",
+            str(market_data),
+        ]
+
+    with pytest.raises(ValueError, match="protected input tree"):
+        main(args)
+
+    assert market_data.read_bytes() == original
 
 
 def test_daily_report_renders_every_action_and_pending_order() -> None:

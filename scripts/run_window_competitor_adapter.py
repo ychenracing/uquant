@@ -34,6 +34,7 @@ from research.window_matrix import (
     LOCKED_COMPETITOR_SOURCES,
     WINDOWS,
 )
+from uquant.atomic_io import atomic_write_text, validate_atomic_output_path
 
 TARGET_START = "2025-01-02"
 TARGET_END = "2026-07-31"
@@ -955,6 +956,11 @@ def _execute_matrix(
 ) -> int:
     """Execute the requested replay matrix and write validated evidence."""
 
+    input_roots = [*roots.values(), Path(args.data_dir), canonical_data_dir, trade_data_dir]
+    if args.trade_data_dir is not None:
+        input_roots.append(Path(args.trade_data_dir))
+    protected_inputs = _validate_output_boundary(args.output, input_roots)
+
     tasks = [
         Task(
             system,
@@ -1016,13 +1022,42 @@ def _execute_matrix(
         "windows": list(args.windows),
         "rows": rows,
     }
-    args.output.parent.mkdir(parents=True, exist_ok=True)
-    args.output.write_text(
+    atomic_write_text(
+        args.output,
         json.dumps(payload, ensure_ascii=False, indent=2, allow_nan=False) + "\n",
-        encoding="utf-8",
+        protected_paths=protected_inputs,
     )
     print(f"reference adapter: wrote {args.output}", flush=True)
     return 0
+
+
+def _validate_output_boundary(
+    output: Path,
+    input_roots: Sequence[Path],
+) -> tuple[Path, ...]:
+    """Reject an output contained in or aliased to any consumed input tree."""
+
+    try:
+        target = output.resolve(strict=False)
+    except OSError as exc:
+        raise ValueError(f"cannot resolve adapter output path: {output}") from exc
+    protected: list[Path] = []
+    for item in input_roots:
+        root = Path(item)
+        try:
+            canonical_root = root.resolve(strict=False)
+        except OSError as exc:
+            raise ValueError(f"cannot resolve adapter input tree: {root}") from exc
+        if target == canonical_root or canonical_root in target.parents:
+            raise ValueError(f"adapter output is inside a consumed input tree: {root}")
+        protected.append(root)
+        if root.is_dir():
+            try:
+                protected.extend(sorted(root.rglob("*")))
+            except OSError as exc:
+                raise ValueError(f"cannot inventory adapter input tree: {root}") from exc
+    validate_atomic_output_path(output, protected_paths=protected)
+    return tuple(protected)
 
 
 def _validate_complete_rows(
@@ -1119,6 +1154,8 @@ def main(argv: Sequence[str] | None = None) -> int:
         default=root / "benchmarks/window_competitor_results.json",
     )
     args = parser.parse_args(argv)
+    if args.workers < 1:
+        parser.error("--workers must be positive")
     roots = {
         "qwenquant": args.qwen_root,
         "aquant": args.aquant_root,

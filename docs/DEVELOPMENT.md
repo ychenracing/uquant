@@ -41,7 +41,7 @@ uv run python -m uquant.validation data-manifest --data-dir data/frozen
 uv run pytest --cov=uquant --cov-report=term-missing --cov-report=xml
 uv run python -m compileall -q uquant scripts research tests
 uv run python -m build
-uv run bandit -q -r uquant
+uv run bandit -q -r uquant research scripts
 uv export --frozen --no-dev --no-emit-project --no-hashes \
   --output-file /tmp/uquant-requirements.txt
 uv run pip-audit --requirement /tmp/uquant-requirements.txt

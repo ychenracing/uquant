@@ -51,8 +51,9 @@ champion 与不可放宽的政策失败关闭。
 `ECONOMIC`、`DERIVED`、`COMPATIBILITY` 五类完整治理，只有 `ECONOMIC` 可进入候选
 选择。独立消融的当前结论是 `KEEP=10`、`DELETE=1`、`INCONCLUSIVE=2`。
 
-历史样本截至 `2026-08-05`；独立 future holdout 从 `2026-08-06` 开始，首个评审需
-累计 `40--60` 个交易日。在导入首个未来交易日以前，观察和指标必须为 null；holdout
+历史样本截至 `2026-08-05`；独立 future holdout 从 `2026-08-06` 开始，固定里程碑为
+`20 / 40 / 60` 个交易日，首次正式评审仍需累计 `40--60` 个交易日。在导入首个
+未来交易日以前，观察和指标必须为 null；holdout
 表现不得反向调参。另有 observational、append-only、broker-independent 的人工执行
 journal 记录计划价、次日开盘、真实成交、人工跳过与滑点，但不写入决策或账户状态。
 
@@ -167,7 +168,7 @@ uv run mypy uquant scripts research
 uv run pytest --cov=uquant --cov-report=term-missing
 uv run python -m compileall -q uquant scripts research tests
 uv run python -m uquant.validation data-manifest --data-dir data/frozen
-uv run bandit -q -r uquant
+uv run bandit -q -r uquant research scripts
 uv run python -m uquant.validation promotion \
   --data-dir data/frozen \
   --profile full \
@@ -180,7 +181,9 @@ uv run python -m uquant.validation promotion \
 GitHub 对每个 PR 和 `main` push 独立给出 `Engineering`、`Phase 1 Performance` 和
 `Phase 2 Generalization` 三个稳定阻断结论。Phase 2 按六个官方窗口分片，但最终结论
 会在所有分片结束后检查精确 HEAD、完整 provenance、234 条记录和冻结政策；任何
-缺失、回放错误或阈值失败都不会被其他成功分片抵消。
+缺失记录，或新增/变化的回放错误，以及政策失败都不会被其他成功分片抵消。
+已认证 baseline 的回放错误若在候选中恢复为有效 cell，则按[性能与证据](docs/PERFORMANCE.md)中的
+共同样本与恢复包络规则验证，不作为“新增/变化的回放错误”处理。
 
 ## 使用限制
 

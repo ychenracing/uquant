@@ -122,14 +122,33 @@ def test_compare_rejects_tampered_trace(
 ) -> None:
     monkeypatch.setattr(diagnostic, "_runner_provenance", lambda: {})
     trace = tmp_path / "trace.json"
-    trace.write_text(
-        '{"trace":[{"date":"2023-01-03"}],"trace_sha256":"' + "0" * 64 + '"}',
-        encoding="utf-8",
+    trace.write_bytes(
+        diagnostic._canonical_bytes(
+            {
+                "trace": [{"date": "2023-01-03"}],
+                "trace_sha256": "0" * 64,
+            }
+        )
+        + b"\n"
     )
     args: Any = type("Args", (), {"left": str(trace), "right": str(trace)})()
 
     with pytest.raises(RuntimeError, match="trace hash mismatch"):
         diagnostic._compare(args)
+
+
+def test_compare_rejects_noncanonical_duplicate_trace_keys(tmp_path: Path) -> None:
+    trace = [{"date": "2023-01-03"}]
+    payload = {
+        "trace": trace,
+        "trace_sha256": diagnostic._sha256(diagnostic._canonical_bytes(trace)),
+    }
+    encoded = diagnostic._canonical_bytes(payload) + b"\n"
+    path = tmp_path / "trace.json"
+    path.write_bytes(encoded.replace(b'{"trace":', b'{"trace":[],"trace":', 1))
+
+    with pytest.raises(RuntimeError, match="canonical"):
+        diagnostic._load_trace(str(path))
 
 
 def test_compare_does_not_treat_empty_trace_aliases_as_executable_change(
@@ -154,7 +173,7 @@ def test_compare_does_not_treat_empty_trace_aliases_as_executable_change(
             "trace": trace,
             "trace_sha256": diagnostic._sha256(diagnostic._canonical_bytes(trace)),
         }
-        path.write_bytes(diagnostic._canonical_bytes(payload))
+        path.write_bytes(diagnostic._canonical_bytes(payload) + b"\n")
         return path
 
     args: Any = type(

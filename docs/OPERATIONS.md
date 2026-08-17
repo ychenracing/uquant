@@ -140,8 +140,9 @@ uv run uquant backtest \
 历史研究和冻结 benchmark 最后一天是 `2026-08-05`，future holdout 的第一天是
 `2026-08-06`，存放在与 `data/frozen` 隔离的目录。`2026-08-05` 收盘决策若在次日
 执行，整个成交归入 holdout。未导入未来 session 时，观察和指标必须保持 null；
-不能创建占位收益、沿用历史指标或据观察期表现修改参数。首次评审必须累计
-`40--60` 个交易日，并继续保留人工运行、完整券商对账与外部 journal。起始账户
+不能创建占位收益、沿用历史指标或据观察期表现修改参数。固定里程碑是
+`20 / 40 / 60` 个交易日，首次正式评审必须累计 `40--60` 个交易日，并继续保留人工运行、
+完整券商对账与外部 journal。起始账户
 必须逐字节匹配已审阅的 `continuous_ai_era/full` 回放摘要；未来评分只接受可重放、
 可重算的执行证据，独立填写或重新封签的指标 JSON 会被拒绝。
 
@@ -182,7 +183,7 @@ uv run mypy uquant scripts research
 uv run pytest --cov=uquant --cov-report=term-missing
 uv run python -m compileall -q uquant scripts research tests
 uv run python -m build
-uv run bandit -q -r uquant
+uv run bandit -q -r uquant research scripts
 uv run python -m uquant.validation promotion \
   --data-dir data/frozen \
   --profile full \

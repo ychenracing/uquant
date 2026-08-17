@@ -48,10 +48,10 @@ def _binding() -> HoldoutBinding:
         production_commit="1" * 40,
         production_source_sha256="2" * 64,
         strategy_source_sha256=(
-            "9d7308e143cc9e7f544885b556e306985b54cb0682410cbdc48cf7e2de3ba704"
+            "f9c78557e38342c5a994f19fde63352f635ac37c5d2d7a187ba410b98caa1aed"
         ),
         strategy_cli_sha256=(
-            "db34c26631b9b64c6d359149b927f0bee86c89dba74360efddc922342b6f24ad"
+            "fb3da89b7bb8ec745e2249d10173855edc5976a6d1d5f4fd952552d7a2e7e427"
         ),
         effective_config_sha256=(
             "ed52da44a359c1506e1d299f7bc341ad01b199d7f96997f7c01f2b8eca7cfc13"
@@ -111,10 +111,10 @@ def test_tracked_contract_freezes_date_path_policy_and_null_scores() -> None:
     assert "2026-10-01" not in contract.review_sessions
     assert contract.parameter_changes_from_observation is False
     assert dict(contract.phase1_windows) == dict(AI_ERA_WINDOWS)
-    assert contract.strategy_anchor_commit == "b3c0bd1704e08ae12388225c9b4e76a51cf26219"
+    assert contract.strategy_anchor_commit == "c47367bba64c827fe18f788c9a3650e13ece306f"
     assert (
         contract.strategy_source_sha256
-        == "9d7308e143cc9e7f544885b556e306985b54cb0682410cbdc48cf7e2de3ba704"
+        == "f9c78557e38342c5a994f19fde63352f635ac37c5d2d7a187ba410b98caa1aed"
     )
     assert (
         contract.strategy_config_sha256
@@ -122,15 +122,15 @@ def test_tracked_contract_freezes_date_path_policy_and_null_scores() -> None:
     )
     assert (
         contract.strategy_cli_sha256
-        == "db34c26631b9b64c6d359149b927f0bee86c89dba74360efddc922342b6f24ad"
+        == "fb3da89b7bb8ec745e2249d10173855edc5976a6d1d5f4fd952552d7a2e7e427"
     )
     assert (
         contract.prior_close_account_sha256
-        == "1ca877bddcf4fcd4a997f45e878bafe8f22736b79430c38974b85351db612dea"
+        == "251c90cef356821547c633c69595371aa857a704d8ea21e5119be16136ac0fc8"
     )
     assert (
         contract.strategy_account_code_sha256
-        == "c61b9a06bc898c843e153c97c80a3dc631bcd8dfb120b5995985d1fdc8c30608"
+        == "de361ef93a218449df927f5aab14e5013110cc3141a89f94686156bed37a66fc"
     )
     assert contract.score_fields == (
         "final_wealth",
@@ -630,7 +630,7 @@ def test_manifest_rejects_detached_observed_scores_even_after_resealing(
         ["sz300308"], as_of=LAST_IN_SAMPLE_DATE
     ).digest
     account.code_hash = (
-        "c61b9a06bc898c843e153c97c80a3dc631bcd8dfb120b5995985d1fdc8c30608"
+        "de361ef93a218449df927f5aab14e5013110cc3141a89f94686156bed37a66fc"
     )
     account_path = tmp_path / "account.json"
     save_account(account, account_path)

@@ -48,7 +48,7 @@ def _binding() -> HoldoutBinding:
         production_commit="1" * 40,
         production_source_sha256="2" * 64,
         strategy_source_sha256=(
-            "14f022da8e176762017deaa496bf85e4cad8fca60693284986df7639299c272f"
+            "0e6d744972d9ad990a21babeb398694d96b222d76eef9791d87baa2c587513e3"
         ),
         strategy_cli_sha256=(
             "db34c26631b9b64c6d359149b927f0bee86c89dba74360efddc922342b6f24ad"
@@ -111,10 +111,10 @@ def test_tracked_contract_freezes_date_path_policy_and_null_scores() -> None:
     assert "2026-10-01" not in contract.review_sessions
     assert contract.parameter_changes_from_observation is False
     assert dict(contract.phase1_windows) == dict(AI_ERA_WINDOWS)
-    assert contract.strategy_anchor_commit == "4b2cfa111bb90a13947477e9ff5d725541a798f5"
+    assert contract.strategy_anchor_commit == "c88ea943da6cf903c3dd1acc720bebd958e8b1ba"
     assert (
         contract.strategy_source_sha256
-        == "14f022da8e176762017deaa496bf85e4cad8fca60693284986df7639299c272f"
+        == "0e6d744972d9ad990a21babeb398694d96b222d76eef9791d87baa2c587513e3"
     )
     assert (
         contract.strategy_config_sha256
@@ -126,11 +126,11 @@ def test_tracked_contract_freezes_date_path_policy_and_null_scores() -> None:
     )
     assert (
         contract.prior_close_account_sha256
-        == "8f051c3a3493d01766069674771cd1a66dc3a2b5a4a1b50458cba0b5c904d083"
+        == "41defe5f9931743e3eddb3ebb636b952b9fc62ebd347d53f94cf724b84ccc366"
     )
     assert (
         contract.strategy_account_code_sha256
-        == "ee5cd94297303edac0d4db7b4e594bc4b4545f9d28cc39fabf387f091362164b"
+        == "ac110a0a6a23f218130f73dfa85a9e431108ee5c53eab1baa51fd3a44195cb5d"
     )
     assert contract.score_fields == (
         "final_wealth",
@@ -514,13 +514,13 @@ def test_prior_close_account_carries_the_exact_frozen_candidate_code_hash(
     repository_root = Path(holdout_module.__file__).resolve().parents[2]
     assert (
         _strategy_account_code_sha256(repository_root)
-        == "ee5cd94297303edac0d4db7b4e594bc4b4545f9d28cc39fabf387f091362164b"
+        == "ac110a0a6a23f218130f73dfa85a9e431108ee5c53eab1baa51fd3a44195cb5d"
     )
     frozen = tmp_path / "data/frozen"
     _csv(frozen / "sz300308.csv", "2026-08-04", LAST_IN_SAMPLE_DATE)
     account = _account()
     account.update(
-        code_hash="ee5cd94297303edac0d4db7b4e594bc4b4545f9d28cc39fabf387f091362164b",
+        code_hash="ac110a0a6a23f218130f73dfa85a9e431108ee5c53eab1baa51fd3a44195cb5d",
         data_hash_symbols=["sz300308"],
         data_hash=DataStore(frozen).manifest(
             ["sz300308"], as_of=LAST_IN_SAMPLE_DATE
@@ -605,7 +605,7 @@ def test_manifest_rejects_detached_observed_scores_even_after_resealing(
         ["sz300308"], as_of=LAST_IN_SAMPLE_DATE
     ).digest
     account.code_hash = (
-        "ee5cd94297303edac0d4db7b4e594bc4b4545f9d28cc39fabf387f091362164b"
+        "ac110a0a6a23f218130f73dfa85a9e431108ee5c53eab1baa51fd3a44195cb5d"
     )
     account_path = tmp_path / "account.json"
     save_account(account, account_path)

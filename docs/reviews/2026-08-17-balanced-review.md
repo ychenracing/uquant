@@ -128,11 +128,10 @@ not automatic refactor instructions.
 
 ## Final validation and publication state
 
-Task 8 runs the authenticated economic/provenance section, derives and commits
-source bindings, and reruns affected contracts. Task 9 then runs the Engineering
-section with zero deselections plus final provenance readback after that last
-metadata commit. These are the canonical final gates; append their evidence
-identities here.
+Task 8 ran the authenticated economic/provenance section, derived and committed
+source bindings, and reran affected contracts. Task 9 then ran the Engineering
+section with zero deselections plus final provenance readback on the published
+candidate. The sections below retain the commands and exact evidence identities.
 
 ### Engineering — Task 9 final zero-deselection proof
 
@@ -191,6 +190,7 @@ run; never hand-enter a score or reuse a digest from another tree.
 ### Publication and remote verification
 
 ```bash
+# Pre-publication guard and fast-forward used by Task 9.
 git fetch origin main
 test "$(git rev-parse origin/main)" = \
   "e2663695fd008fb960b86f33bc36309a2f525b68"
@@ -199,14 +199,14 @@ git fetch origin main
 test "$(git rev-parse HEAD^{tree})" = "$(git rev-parse origin/main^{tree})"
 ```
 
-No `main` publication has occurred: the remote `main` ref remains
-`e2663695fd008fb960b86f33bc36309a2f525b68`. Task 8 has a recoverable remote
-Git-object chain at `c47367bba64c827fe18f788c9a3650e13ece306f` ->
+Task 9 fast-forwarded `main` from
+`e2663695fd008fb960b86f33bc36309a2f525b68` through the recoverable remote
+Git-object chain `c47367bba64c827fe18f788c9a3650e13ece306f` ->
 `42f6cbdfcf3c3e396200758f80485b49b9e245bf` ->
-`5568ac5df8f0fa96fd1ff3a2b5922da248426606`; Task 9 must complete the final
-zero-deselection gates before fast-forwarding `main`. After that update, all
-three workflows must complete green before release, merge, or handoff is
-declared complete.
+`5568ac5df8f0fa96fd1ff3a2b5922da248426606` ->
+`941a430794231aec22177fe293fdfa3a2618023f`. The final ledger correction is a
+documentation-only direct descendant; it does not change any reviewed source,
+binding, strategy, economic result, or `AGENTS.md` byte.
 
 ## Task 1 integrity checks
 
@@ -789,7 +789,34 @@ All commands used `UV_CACHE_DIR=/tmp/uquant-balanced-review/uv-cache`.
 | `git diff --check` | Pass: no whitespace errors |
 | Baseline `AGENTS.md` diff and SHA-256 | Pass: no diff; exact SHA-256 `640298ceac5187724d2cf769b13f4d7e2381cbcb10faf46e99bdac378547f808` |
 
-The remote Git-object checkpoint chain is readable by exact commit identity,
-but `main` remains at the baseline. Task 9 owns the complete zero-deselection
-Engineering/provenance suite, exact-HEAD readback, and final fast-forward of
-`main` after this documentation-only commit.
+The remote Git-object checkpoint chain is readable by exact commit identity.
+Task 9 completed the zero-deselection Engineering/provenance suite, exact-HEAD
+readback, and non-forced fast-forward described below.
+
+## Task 9 final verification and publication
+
+Task 9 verified detached remote candidate
+`941a430794231aec22177fe293fdfa3a2618023f` with tree
+`75cbc992f85d5a704182d03632caa1f781a3fda8`, then fast-forwarded `main`
+without force. The candidate was four commits ahead of the baseline, zero
+commits behind, with the baseline as its merge base.
+
+| Final check | Result |
+|---|---|
+| Full `pytest --cov=uquant` | Pass: 1,276 passed; zero failed, errored, skipped, or deselected; 85.39% branch coverage against an 85% gate |
+| Four exact identity nodes | Pass: 4 passed independently |
+| Ruff and strict mypy | Pass; mypy checked 66 source files |
+| Frozen manifest | Pass: 36 files; manifest `343009138d22f8d4a20768f706207fe4d4bcd03581b0c5945c5485ecbd28788d`; checksums `ba460d65f791f238d8a4a16ac62e2225c1832caa6f4da5003166a894edf80e29` |
+| Compile, build, Bandit, frozen export, pip-audit | Pass; sdist and wheel built; no known dependency vulnerabilities |
+| Strategy and repository integrity | Pass: 17 strategy/risk/portfolio files and `AGENTS.md` are byte-identical to the baseline |
+| Documentation integrity | Pass: 20 Markdown files, 20 unique H1 headings, 11 valid local links, and 49 valid Bash fences |
+
+The first published candidate completed all three push workflows successfully:
+
+- [Engineering gates](https://github.com/ychenracing/uquant/actions/runs/32078660793)
+- [AI-Era performance](https://github.com/ychenracing/uquant/actions/runs/32078660789)
+- [AI-Era generalization](https://github.com/ychenracing/uquant/actions/runs/32078660787)
+
+This ledger-only correction is deliberately outside the reviewed production and
+binding inventories. Its own exact-HEAD identity, documentation, Engineering,
+performance, and generalization checks must also remain green before handoff.

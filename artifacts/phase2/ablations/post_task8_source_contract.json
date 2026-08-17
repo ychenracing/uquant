@@ -1,15 +1,15 @@
 {
   "schema_version": 1,
   "contract_id": "phase2-post-task8-source-v1",
-  "canonical_sha256": "579fa17a7c7caef22994a63182af5554745d65fefe58acf1ab2ce6d5b2f8cd31",
+  "canonical_sha256": "09b8e9709bb09a31dddc79659faf725afc616956364ec5324e354b6e83fb2b44",
   "base": {
     "commit": "e5e0fa903c9a9b26701063ae01f352af3e246a7d",
     "production_source_sha256": "9bedfd5fb2bed6d3a1624efcca6f1d442c765abdee9e4749170fbb2e89536d6b",
     "path_count": 48
   },
   "reviewed": {
-    "commit": "a742d9becc8bdaf62856ddf3af648ede32090208",
-    "production_source_sha256": "100bc7924f06bd10834ee662ca501f16a0949fd6f3f7172202603c908523fe4e",
+    "commit": "42f6cbdfcf3c3e396200758f80485b49b9e245bf",
+    "production_source_sha256": "3356a4e2e99da02ed215cc98163fe83f04c9bddc21c96b37850287599784b26a",
     "path_count": 53
   },
   "deltas": [
@@ -17,19 +17,19 @@
       "path": "uquant/atomic_io.py",
       "status": "added",
       "before_sha256": null,
-      "after_sha256": "67bcb69f82100e5fe4eddf20c66c86fe3423f2bec11f3b019d59d7d89f24458b"
+      "after_sha256": "b312bfb39b9bcfa10aed2e92796fcc375577e313b892b24e0f2e830a9f221be6"
     },
     {
       "path": "uquant/cli.py",
       "status": "modified",
       "before_sha256": "389fb27f3f53385a96d6dfb97713f1d937e02675c0ce6c0b858772cf2a51bbf3",
-      "after_sha256": "8019d5b270c5743c159a11d1e8617be4b3835b85fc24cad8490e8189e739cadf"
+      "after_sha256": "1d0512a79909070944b058965c278c97e9464a13797d388d00b95fb07c3765e5"
     },
     {
       "path": "uquant/execution_journal.py",
       "status": "added",
       "before_sha256": null,
-      "after_sha256": "0663382cb0a64d21893905b7cdcacb27b1d2f935ebafc33d0294f60029d19a10"
+      "after_sha256": "b948b994e39af71729b42ff9c6ae98cf2d7b068a858bfabb5c83ec3c630d9ebf"
     },
     {
       "path": "uquant/portfolio.py",
@@ -71,7 +71,7 @@
       "path": "uquant/validation/equivalence.py",
       "status": "modified",
       "before_sha256": "95de71c614a6836fe7ebb7a931a968427c41c7d56383cb61f71d33a8b62ea5e3",
-      "after_sha256": "b698df9ab00fbcdb6db95c64b9a5bd7fe93fb6ca3741ec080d79a73b3a262076"
+      "after_sha256": "6e4b06e3ce3439a8ce0de3c1e88d8a99a9dae3790de9e7714ef4c7793fbcf9a4"
     },
     {
       "path": "uquant/validation/generalization_reference.py",
@@ -83,13 +83,19 @@
       "path": "uquant/validation/holdout.py",
       "status": "added",
       "before_sha256": null,
-      "after_sha256": "b20ab1944d195e5df6227030d701c77931549f58af4f31089edfbb6224524fcc"
+      "after_sha256": "31c3173c0452af8d47c5c93d5cb96be2467e8e81e053094f44ebb254c2e870eb"
     },
     {
       "path": "uquant/validation/holdout_runtime.py",
       "status": "added",
       "before_sha256": null,
-      "after_sha256": "201cdd4afd58ce148f8bb78b2b2f36482c35cd52cfd29706ae04c32f15cac5d0"
+      "after_sha256": "034de9b4446d5750c59683d805505f463a26bdaa4f35cd7d03be54ba73480ff6"
+    },
+    {
+      "path": "uquant/validation/manifest.py",
+      "status": "modified",
+      "before_sha256": "767c32ed71027f8ef212d1fae3a0604d5e7eb6747d53064c9583fc36197d4e13",
+      "after_sha256": "780bc28eab468af28dcaf78fdd13a433dba4643e2497956b5d5cf141aaab3cd0"
     }
   ]
 }

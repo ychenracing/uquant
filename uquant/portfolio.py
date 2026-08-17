@@ -1358,14 +1358,34 @@ class PortfolioAllocator(RecoveryPortfolioPolicy):
             # fresh protected book.
             restore_complete_key = "post_shock_restore_complete"
             restore_submitted_key = "post_shock_restore_submitted"
+            restore_deferred_key = "post_shock_restore_deferred_expansion"
             restore_previously_submitted = (
                 account.candidate_tenure.get(restore_submitted_key, 0) == 1
+            )
+            restore_expansion_deferred = (
+                account.candidate_tenure.get(restore_deferred_key, 0) == 1
             )
             pending_restore_buys = {
                 order.symbol
                 for order in account.pending_orders
                 if order.side == "BUY" and order.symbol in proposed
             }
+            restore_confirmation_ready = bool(
+                account.risk_streaks.get("protected_structure_normalization", 0)
+                >= self.cfg.recovery_risk_confirm_days
+            )
+            if (
+                restore_expansion_deferred
+                and restore_confirmation_ready
+                and not pending_restore_buys
+            ):
+                # The existing recovery confirmation has now caught up with
+                # the first bounded step. Reopen one final submission against
+                # the saved intent instead of treating that step as complete.
+                account.candidate_tenure[restore_submitted_key] = 0
+                account.candidate_tenure[restore_deferred_key] = 0
+                restore_previously_submitted = False
+                restore_expansion_deferred = False
             executable_buy_gap = {
                 symbol: max(
                     0.0,
@@ -1387,7 +1407,10 @@ class PortfolioAllocator(RecoveryPortfolioPolicy):
                 proposed
                 and not pending_restore_buys
                 and (
-                    restore_previously_submitted
+                    (
+                        restore_previously_submitted
+                        and not restore_expansion_deferred
+                    )
                     or (
                         fully_repaired
                         and all(
@@ -1403,14 +1426,49 @@ class PortfolioAllocator(RecoveryPortfolioPolicy):
                     )
                 )
             )
-            if synchronized_protected_restore and proposed:
-                # This exact risk transition owns one restoration submission.
-                # Once its durable children finish, later price drift must not
-                # manufacture a fresh rebalance order for the same event.
+            restore_submission_has_buy = bool(
+                pending_restore_buys
+                or any(
+                    gap + 1e-12 * equity
+                    >= restoration_trade_threshold[symbol]
+                    for symbol, gap in executable_buy_gap.items()
+                )
+            )
+            if (
+                restore_expansion_deferred
+                and not restore_confirmation_ready
+                and not pending_restore_buys
+                and not economic_restore_complete
+            ):
+                return self._targets(
+                    proposed={
+                        symbol: weights_now.get(symbol, 0.0)
+                        for symbol in proposed
+                        if weights_now.get(symbol, 0.0) > 1e-12
+                    },
+                    leaders=leaders,
+                    account=account,
+                    lifecycle=Lifecycle.RECOVERY,
+                    reason="awaiting confirmed recovery before restore expansion",
+                    origin_subsystem=OriginSubsystem.RECOVERY,
+                    mechanism=AttributionMechanism.POST_SHOCK_RESTORATION,
+                )
+            if proposed and (
+                synchronized_protected_restore or restore_submission_has_buy
+            ):
+                # Pending capacity-limited children may finish. A generic
+                # bounded step waits for the existing recovery confirmation
+                # before any cap expansion; a synchronized or already-
+                # confirmed step then keeps the original one-shot semantics.
                 account.candidate_tenure[restore_submitted_key] = 1
+                account.candidate_tenure[restore_deferred_key] = int(
+                    not synchronized_protected_restore
+                    and not restore_confirmation_ready
+                )
             if economic_restore_complete:
                 account.candidate_tenure[restore_complete_key] = 1
                 account.candidate_tenure[restore_submitted_key] = 0
+                account.candidate_tenure[restore_deferred_key] = 0
             restoration_sell_mechanisms = {
                 symbol: AttributionMechanism.RECOVERY_COHORT
                 for symbol in account.positions
@@ -2465,6 +2523,95 @@ class PortfolioAllocator(RecoveryPortfolioPolicy):
                     for symbol in live_symbols
                 },
             )
+
+        live_generic_core = {
+            symbol
+            for symbol in live_symbols
+            if account.positions[symbol].lifecycle
+            in {
+                Lifecycle.CORE.value,
+                Lifecycle.ADD1.value,
+                Lifecycle.ADD2.value,
+            }
+        }
+        cohort_prefix = "slow_market_owner_cohort:"
+        for key in tuple(account.replacement_tenure):
+            if (
+                key.startswith(cohort_prefix)
+                and key[len(cohort_prefix) :] not in live_symbols
+            ):
+                account.replacement_tenure[key] = 0
+        slow_market_owner_trigger = bool(
+            live_symbols
+            and live_generic_core == live_symbols
+            and risk.state is Risk.NORMAL
+            and not freeze_active
+            and opportunity is Opportunity.STRONG_TREND
+            and len(live_symbols) <= self.cfg.leader_cycle_min_mature
+            and min(
+                float(risk.evidence.get("broad_ret120", -math.inf)),
+                float(risk.evidence.get("tech_ret120", -math.inf)),
+            )
+            < self.cfg.leader_cycle_min_market_ret120
+        )
+        if slow_market_owner_trigger:
+            for symbol in live_symbols:
+                account.replacement_tenure[f"{cohort_prefix}{symbol}"] = 1
+        slow_market_owner_active = any(
+            account.replacement_tenure.get(f"{cohort_prefix}{symbol}", 0) == 1
+            for symbol in live_symbols
+        )
+        if (
+            live_symbols
+            and live_generic_core == live_symbols
+            and slow_market_owner_active
+            and risk.state is Risk.NORMAL
+            and not freeze_active
+        ):
+            # A minimum viable leader cohort can face a strong short-term
+            # impulse while one slow index leg remains just below the ordinary
+            # owner threshold. Once that exact handoff occurs, keep its live
+            # cohort under the existing per-symbol exit confirmation until
+            # every marked member has left the broker book.
+            confirmed_exits = {
+                symbol
+                for symbol in live_symbols
+                if self._leader_lifecycle_exit_confirmed(
+                    symbol=symbol,
+                    date=date,
+                    user_panel=user_panel,
+                    leaders=leaders,
+                    account=account,
+                )
+            }
+            retained = live_symbols - confirmed_exits
+            if retained:
+                account.active_leaders = [
+                    symbol
+                    for symbol in account.active_leaders
+                    if symbol not in confirmed_exits
+                ]
+                return self._targets(
+                    proposed={symbol: weights_now[symbol] for symbol in retained},
+                    leaders=leaders,
+                    account=account,
+                    lifecycle=Lifecycle.CORE,
+                    reason="live core retained through slow-market owner handoff",
+                    origin_subsystem=OriginSubsystem.LEADER,
+                    mechanism=AttributionMechanism.LEADER_SELECTION,
+                    lifecycles={
+                        symbol: Lifecycle(account.positions[symbol].lifecycle)
+                        for symbol in live_symbols
+                    },
+                    reasons={
+                        symbol: "leader lifecycle exit: confirmed structural deterioration"
+                        for symbol in confirmed_exits
+                    },
+                    mechanisms={
+                        symbol: AttributionMechanism.LEADER_LIFECYCLE_EXIT
+                        for symbol in confirmed_exits
+                    },
+                )
 
         # With no independently confirmed recovery leader the robust action is
         # cash. This prevents a broad input pool from turning into a generic,

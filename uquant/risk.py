@@ -87,6 +87,8 @@ def _reset_recovery_owner_rearm(account: AccountState) -> None:
         "recovery_owner_handoff",
         "recovery_owner_rearm_submitted",
         "recovery_owner_rearm_complete",
+        "post_shock_restore_submitted",
+        "post_shock_restore_deferred_expansion",
     ):
         account.candidate_tenure[key] = 0
 

@@ -3798,7 +3798,7 @@ def test_synchronized_crisis_repair_reopens_only_protected_weights() -> None:
     }
 
 
-def test_generic_protected_restore_keeps_existing_one_shot_semantics() -> None:
+def test_generic_protected_restore_waits_for_existing_confirmation_before_expansion() -> None:
     dates = pd.bdate_range("2025-01-02", periods=150)
     date = dates[-1]
     symbols = ("restore_a", "restore_b")
@@ -3832,7 +3832,8 @@ def test_generic_protected_restore_keeps_existing_one_shot_semantics() -> None:
     assert {target.symbol: target.weight for target in first_targets} == pytest.approx(
         {symbol: 0.25 for symbol in symbols}
     )
-    assert "post_shock_restore_deferred_expansion" not in protected.candidate_tenure
+    assert protected.candidate_tenure["post_shock_restore_submitted"] == 1
+    assert protected.candidate_tenure["post_shock_restore_deferred_expansion"] == 1
 
     protected.positions = {
         symbol: Position(
@@ -3846,7 +3847,7 @@ def test_generic_protected_restore_keeps_existing_one_shot_semantics() -> None:
     protected.cash = 50.0
     protected.capital_budget_level = 0
     protected.capital_budget_repair_streak = 0
-    expanded = allocator.allocate(
+    deferred = allocator.allocate(
         date=date,
         opportunity=Opportunity.RECOVERY,
         risk=RiskAssessment(Risk.NORMAL, 1.0, 0, {}, (), "NONE"),
@@ -3857,10 +3858,27 @@ def test_generic_protected_restore_keeps_existing_one_shot_semantics() -> None:
     )
 
     assert protected.candidate_tenure.get("post_shock_restore_complete", 0) == 0
+    assert {target.symbol: target.weight for target in deferred} == pytest.approx(
+        {symbol: 0.25 for symbol in symbols}
+    )
+
+    protected.risk_streaks["protected_structure_normalization"] = (
+        DEFAULT_CONFIG.recovery_risk_confirm_days
+    )
+    expanded = allocator.allocate(
+        date=date,
+        opportunity=Opportunity.RECOVERY,
+        risk=RiskAssessment(Risk.NORMAL, 1.0, 0, {}, (), "NONE"),
+        user_panel={symbol: frame for symbol in symbols},
+        leaders={symbol: _leader(symbol, 0.90) for symbol in symbols},
+        account=protected,
+        prices={symbol: 1.0 for symbol in symbols},
+    )
+
     assert {target.symbol: target.weight for target in expanded} == pytest.approx(
         {symbol: 0.40 for symbol in symbols}
     )
-    assert "post_shock_restore_deferred_expansion" not in protected.candidate_tenure
+    assert protected.candidate_tenure["post_shock_restore_deferred_expansion"] == 0
 
     protected.positions = {
         symbol: Position(
@@ -5784,11 +5802,15 @@ def test_confirmed_live_core_waits_in_place_while_leader_owner_rearms() -> None:
 def test_partially_unconfirmed_core_does_not_bypass_leader_owner_rearm() -> None:
     dates = pd.bdate_range("2025-01-02", periods=150)
     date = dates[-1]
-    symbols = ("healthy_core", "temporarily_unconfirmed_core")
+    symbols = (
+        "healthy_core_a",
+        "healthy_core_b",
+        "temporarily_unconfirmed_core",
+    )
     frame = _trend_frame(dates)
     account = AccountState(
         initial_cash=100.0,
-        cash=40.0,
+        cash=10.0,
         positions={
             symbol: Position(
                 symbol,
@@ -5801,7 +5823,7 @@ def test_partially_unconfirmed_core_does_not_bypass_leader_owner_rearm() -> None
             for symbol in symbols
         },
         active_leaders=list(symbols),
-        dynamic_k=2,
+        dynamic_k=3,
         last_k_change_date=str(date.date()),
         operating_peak=100.0,
         capital_peak=100.0,
@@ -5822,11 +5844,12 @@ def test_partially_unconfirmed_core_does_not_bypass_leader_owner_rearm() -> None
         user_panel={symbol: frame for symbol in symbols},
         leaders={
             symbols[0]: _leader(symbols[0], 0.90, industry="optical"),
-            symbols[1]: _leader(
-                symbols[1],
+            symbols[1]: _leader(symbols[1], 0.88, industry="equipment"),
+            symbols[2]: _leader(
+                symbols[2],
                 0.75,
                 mature=False,
-                industry="equipment",
+                industry="materials",
             ),
         },
         account=account,
@@ -5836,7 +5859,94 @@ def test_partially_unconfirmed_core_does_not_bypass_leader_owner_rearm() -> None
     assert {target.symbol: target.weight for target in targets} == pytest.approx(
         {symbol: 0.0 for symbol in symbols}
     )
-    assert f"lifecycle_exit:{symbols[1]}" not in account.replacement_tenure
+    assert f"lifecycle_exit:{symbols[2]}" not in account.replacement_tenure
+
+
+def test_slow_market_owner_cohort_reuses_existing_lifecycle_exit_confirmation() -> None:
+    dates = pd.bdate_range("2025-01-02", periods=150)
+    date = dates[-1]
+    symbols = ("healthy_core", "temporarily_unconfirmed_core")
+    healthy = _trend_frame(dates)
+    account = AccountState(
+        initial_cash=100.0,
+        cash=40.0,
+        positions={
+            symbol: Position(
+                symbol,
+                shares=30,
+                avg_cost=0.80,
+                entry_date=str(dates[-20].date()),
+                highest_close=1.0,
+                lifecycle=Lifecycle.CORE.value,
+            )
+            for symbol in symbols
+        },
+        active_leaders=list(symbols),
+        dynamic_k=2,
+        last_k_change_date=str(date.date()),
+        operating_peak=100.0,
+        capital_peak=100.0,
+    )
+    leaders = {
+        symbols[0]: _leader(symbols[0], 0.90, industry="optical"),
+        symbols[1]: _leader(
+            symbols[1],
+            0.75,
+            mature=False,
+            industry="equipment",
+        ),
+    }
+    slow_market = RiskAssessment(
+        Risk.NORMAL,
+        1.0,
+        0,
+        {"broad_ret120": -0.02, "tech_ret120": -0.02},
+        (),
+        "NONE",
+    )
+    allocator = PortfolioAllocator(DEFAULT_CONFIG)
+
+    retained = allocator.allocate(
+        date=date,
+        opportunity=Opportunity.STRONG_TREND,
+        risk=slow_market,
+        user_panel={symbol: healthy for symbol in symbols},
+        leaders=leaders,
+        account=account,
+        prices={symbol: 1.0 for symbol in symbols},
+    )
+
+    assert {target.symbol: target.weight for target in retained} == pytest.approx(
+        {symbol: 0.30 for symbol in symbols}
+    )
+    assert all(
+        account.replacement_tenure[f"slow_market_owner_cohort:{symbol}"] == 1
+        for symbol in symbols
+    )
+
+    aligned_market = RiskAssessment(
+        Risk.NORMAL,
+        1.0,
+        0,
+        {"broad_ret120": 0.02, "tech_ret120": 0.02},
+        (),
+        "NONE",
+    )
+    broken = _risk_frame(dates, close=0.70, ma20=1.0, ret5=-0.16)
+    for _ in range(DEFAULT_CONFIG.replacement_confirm_days):
+        retained = allocator.allocate(
+            date=date,
+            opportunity=Opportunity.STRONG_TREND,
+            risk=aligned_market,
+            user_panel={symbols[0]: healthy, symbols[1]: broken},
+            leaders=leaders,
+            account=account,
+            prices={symbol: 1.0 for symbol in symbols},
+        )
+
+    assert {target.symbol: target.weight for target in retained} == pytest.approx(
+        {symbols[0]: 0.30, symbols[1]: 0.0}
+    )
 
 
 def test_synchronized_impulse_tolerates_only_a_near_zero_slow_index_leg() -> None:

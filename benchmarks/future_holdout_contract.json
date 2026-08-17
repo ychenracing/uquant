@@ -1,7 +1,7 @@
 {
   "schema_version": 3,
   "contract_id": "phase2-future-holdout-v1",
-  "canonical_sha256": "66744b50b89c552a82ee9f775ab026d5b10abf58fcbe3ab13cdb9c324982acf9",
+  "canonical_sha256": "577e06c4e4dae2ebcf5833443038379339d6ba63cda249f499897d3b7eeed91d",
   "dates": {
     "last_in_sample": "2026-08-05",
     "first_holdout": "2026-08-06"
@@ -97,11 +97,11 @@
     "decision_at_last_in_sample_executes_in_holdout": true
   },
   "strategy_anchor": {
-    "candidate_commit": "c88ea943da6cf903c3dd1acc720bebd958e8b1ba",
-    "decision_source_sha256": "0e6d744972d9ad990a21babeb398694d96b222d76eef9791d87baa2c587513e3",
+    "candidate_commit": "b3c0bd1704e08ae12388225c9b4e76a51cf26219",
+    "decision_source_sha256": "9d7308e143cc9e7f544885b556e306985b54cb0682410cbdc48cf7e2de3ba704",
     "cli_decision_sha256": "db34c26631b9b64c6d359149b927f0bee86c89dba74360efddc922342b6f24ad",
-    "account_code_sha256": "ac110a0a6a23f218130f73dfa85a9e431108ee5c53eab1baa51fd3a44195cb5d",
-    "prior_close_account_sha256": "41defe5f9931743e3eddb3ebb636b952b9fc62ebd347d53f94cf724b84ccc366",
+    "account_code_sha256": "c61b9a06bc898c843e153c97c80a3dc631bcd8dfb120b5995985d1fdc8c30608",
+    "prior_close_account_sha256": "1ca877bddcf4fcd4a997f45e878bafe8f22736b79430c38974b85351db612dea",
     "effective_config_sha256": "ed52da44a359c1506e1d299f7bc341ad01b199d7f96997f7c01f2b8eca7cfc13"
   }
 }

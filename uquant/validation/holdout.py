@@ -104,7 +104,7 @@ REVIEWED_PHASE1_WINDOWS: Final = MappingProxyType(
         "continuous_ai_era": ("2023-01-03", "2026-08-05"),
     }
 )
-STRATEGY_ANCHOR_COMMIT: Final = "798a86e05fb61d4c7fcdd39b708ea042ce635a73"
+STRATEGY_ANCHOR_COMMIT: Final = "6aedaa886fc71f60d6ce65eb828f107cfea1957e"
 STRATEGY_SOURCE_SHA256: Final = (
     "5312817b24cce2f0b4ea7937a8b6758166546569fa6e35c1cc32d4f4cf900cb1"
 )
@@ -130,7 +130,7 @@ SCORE_FIELDS: Final = (
     "pnl_hhi",
 )
 REQUIRED_FUTURE_HOLDOUT_SHA256: Final = (
-    "d89cf4dbc549432ca7bea98a48e5089d0c894afb05c3c5719cc5be3120d1d641"
+    "ce5df90c5f9c402852a6f34e5584153712dca2ee420592690f3da5da6dce4ca6"
 )
 
 _SHA256 = re.compile(r"^[0-9a-f]{64}$")

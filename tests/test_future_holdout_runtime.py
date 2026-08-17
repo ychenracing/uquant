@@ -533,7 +533,8 @@ def test_holdout_replay_protects_resolved_git_metadata(
 ) -> None:
     repository_root = Path(__file__).parents[1]
     git_metadata = holdout_runtime_module._git_metadata_paths(repository_root)
-    assert len(git_metadata) >= 2
+    assert git_metadata
+    assert (repository_root / ".git") in git_metadata
 
     def unexpected_replay(**_kwargs: object) -> dict[str, object]:
         pytest.fail("Git metadata validation must finish before replay")

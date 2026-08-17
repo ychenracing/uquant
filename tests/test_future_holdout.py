@@ -111,7 +111,7 @@ def test_tracked_contract_freezes_date_path_policy_and_null_scores() -> None:
     assert "2026-10-01" not in contract.review_sessions
     assert contract.parameter_changes_from_observation is False
     assert dict(contract.phase1_windows) == dict(AI_ERA_WINDOWS)
-    assert contract.strategy_anchor_commit == "798a86e05fb61d4c7fcdd39b708ea042ce635a73"
+    assert contract.strategy_anchor_commit == "6aedaa886fc71f60d6ce65eb828f107cfea1957e"
     assert (
         contract.strategy_source_sha256
         == "5312817b24cce2f0b4ea7937a8b6758166546569fa6e35c1cc32d4f4cf900cb1"

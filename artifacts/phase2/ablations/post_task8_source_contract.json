@@ -1,15 +1,15 @@
 {
   "schema_version": 1,
   "contract_id": "phase2-post-task8-source-v1",
-  "canonical_sha256": "16b0979fb6c69850449bd75ed40228ed3f254d0d3f3a9d563aaac8933792295f",
+  "canonical_sha256": "3d2d20fa288daf3494bd1c18b65a23aca08046007c2435a9cd01948d848aba94",
   "base": {
     "commit": "e5e0fa903c9a9b26701063ae01f352af3e246a7d",
     "production_source_sha256": "9bedfd5fb2bed6d3a1624efcca6f1d442c765abdee9e4749170fbb2e89536d6b",
     "path_count": 48
   },
   "reviewed": {
-    "commit": "6aedaa886fc71f60d6ce65eb828f107cfea1957e",
-    "production_source_sha256": "f925932fc6829c2172786b04609b2c86152e38497c171753eeaa98e570684eb7",
+    "commit": "5836341c2fa5d5143cbb7093911035ff57238c53",
+    "production_source_sha256": "9a0052d99f86ad1147342e050d956cddd04f54c64b881677964c17b482aacc47",
     "path_count": 53
   },
   "deltas": [
@@ -77,7 +77,7 @@
       "path": "uquant/validation/holdout.py",
       "status": "added",
       "before_sha256": null,
-      "after_sha256": "033e92c7129b954fe7508ca247c0d494ca604c5944978e401c1e6f3d1171b4f7"
+      "after_sha256": "a8c521a38ee07f67f4f453afd040cf7adb425c5784caa5301016ecfcf80c74cd"
     },
     {
       "path": "uquant/validation/holdout_runtime.py",

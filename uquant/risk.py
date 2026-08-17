@@ -87,8 +87,6 @@ def _reset_recovery_owner_rearm(account: AccountState) -> None:
         "recovery_owner_handoff",
         "recovery_owner_rearm_submitted",
         "recovery_owner_rearm_complete",
-        "post_shock_restore_submitted",
-        "post_shock_restore_deferred_expansion",
     ):
         account.candidate_tenure[key] = 0
 
@@ -1044,7 +1042,7 @@ def assess_risk(
                 reason
                 in {
                     "market-backed drawdown relapse in restored holdings",
-                    "market-backed severe portfolio break in restored holdings",
+                    "market-backed portfolio break in incomplete restoration",
                 }
                 for reason in event.get("reasons", ())
                 if isinstance(reason, str)
@@ -1073,14 +1071,15 @@ def assess_risk(
         # independent market evidence must not bypass that confirmation.
         and account.risk == Risk.CAUTION.value
         # Reuse the existing shock-epoch rearm before opening another ordinary
-        # sell/restore loop. The only early exception is a severe holdings
-        # impulse that has already crossed the established portfolio-break
-        # line; it cannot wait for a historical shock epoch to expire.
+        # sell/restore loop. The only early exception is an independently
+        # confirmed break of an incomplete restoration that has already
+        # crossed the established portfolio-break line.
         and (
             shock_rearmed
             or (
                 not last_shock_was_market_backed
-                and immediate_severe_break
+                and account.candidate_tenure.get("post_shock_restore_complete", 0)
+                == 0
                 and operating_dd >= cfg.portfolio_break_dd
             )
         )
@@ -1103,11 +1102,11 @@ def assess_risk(
     )
     terminal_market_backed_restoration_relapse = bool(
         market_backed_restoration_relapse
-        # A synchronized severe holdings impulse beyond the existing
+        # An incomplete restoration that has already crossed the existing
         # portfolio-break line is no longer an ordinary repair. Reuse the
-        # established capital cooldown so the damaged cohort cannot churn
-        # through repeated sell/rebuy cycles.
-        and immediate_severe_break
+        # established capital cooldown so the same damaged cohort cannot
+        # churn through repeated sell/rebuy cycles.
+        and account.candidate_tenure.get("post_shock_restore_complete", 0) == 0
         and operating_dd >= cfg.portfolio_break_dd
     )
     capital_drawdown_relapse = bool(
@@ -1964,7 +1963,7 @@ def assess_risk(
         concentrated_reason = (
             "confirmed dynamic cohort structural break"
             if held_cohort_break_confirmed
-            else "market-backed severe portfolio break in restored holdings"
+            else "market-backed portfolio break in incomplete restoration"
             if terminal_market_backed_restoration_relapse
             else "market-backed drawdown relapse in restored holdings"
             if market_backed_restoration_relapse

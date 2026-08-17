@@ -3798,7 +3798,7 @@ def test_synchronized_crisis_repair_reopens_only_protected_weights() -> None:
     }
 
 
-def test_generic_protected_restore_waits_for_existing_confirmation_before_expansion() -> None:
+def test_generic_protected_restore_keeps_existing_one_shot_semantics() -> None:
     dates = pd.bdate_range("2025-01-02", periods=150)
     date = dates[-1]
     symbols = ("restore_a", "restore_b")
@@ -3832,8 +3832,7 @@ def test_generic_protected_restore_waits_for_existing_confirmation_before_expans
     assert {target.symbol: target.weight for target in first_targets} == pytest.approx(
         {symbol: 0.25 for symbol in symbols}
     )
-    assert protected.candidate_tenure["post_shock_restore_submitted"] == 1
-    assert protected.candidate_tenure["post_shock_restore_deferred_expansion"] == 1
+    assert "post_shock_restore_deferred_expansion" not in protected.candidate_tenure
 
     protected.positions = {
         symbol: Position(
@@ -3847,24 +3846,6 @@ def test_generic_protected_restore_waits_for_existing_confirmation_before_expans
     protected.cash = 50.0
     protected.capital_budget_level = 0
     protected.capital_budget_repair_streak = 0
-    deferred = allocator.allocate(
-        date=date,
-        opportunity=Opportunity.RECOVERY,
-        risk=RiskAssessment(Risk.NORMAL, 1.0, 0, {}, (), "NONE"),
-        user_panel={symbol: frame for symbol in symbols},
-        leaders={symbol: _leader(symbol, 0.90) for symbol in symbols},
-        account=protected,
-        prices={symbol: 1.0 for symbol in symbols},
-    )
-
-    assert protected.candidate_tenure.get("post_shock_restore_complete", 0) == 0
-    assert {target.symbol: target.weight for target in deferred} == pytest.approx(
-        {symbol: 0.25 for symbol in symbols}
-    )
-
-    protected.risk_streaks["protected_structure_normalization"] = (
-        DEFAULT_CONFIG.recovery_risk_confirm_days
-    )
     expanded = allocator.allocate(
         date=date,
         opportunity=Opportunity.RECOVERY,
@@ -3875,10 +3856,11 @@ def test_generic_protected_restore_waits_for_existing_confirmation_before_expans
         prices={symbol: 1.0 for symbol in symbols},
     )
 
+    assert protected.candidate_tenure.get("post_shock_restore_complete", 0) == 0
     assert {target.symbol: target.weight for target in expanded} == pytest.approx(
         {symbol: 0.40 for symbol in symbols}
     )
-    assert protected.candidate_tenure["post_shock_restore_deferred_expansion"] == 0
+    assert "post_shock_restore_deferred_expansion" not in protected.candidate_tenure
 
     protected.positions = {
         symbol: Position(
@@ -5799,7 +5781,7 @@ def test_confirmed_live_core_waits_in_place_while_leader_owner_rearms() -> None:
     assert account.candidate_tenure.get("leader_cycle_armed", 0) == 0
 
 
-def test_partially_unconfirmed_core_uses_existing_lifecycle_exit_confirmation() -> None:
+def test_partially_unconfirmed_core_does_not_bypass_leader_owner_rearm() -> None:
     dates = pd.bdate_range("2025-01-02", periods=150)
     date = dates[-1]
     symbols = ("healthy_core", "temporarily_unconfirmed_core")
@@ -5852,38 +5834,9 @@ def test_partially_unconfirmed_core_uses_existing_lifecycle_exit_confirmation() 
     )
 
     assert {target.symbol: target.weight for target in targets} == pytest.approx(
-        {symbol: 0.30 for symbol in symbols}
+        {symbol: 0.0 for symbol in symbols}
     )
-    assert (
-        account.replacement_tenure[
-            f"lifecycle_exit:{symbols[1]}"
-        ]
-        == 0
-    )
-
-    broken = _risk_frame(dates, close=0.70, ma20=1.0, ret5=-0.16)
-    for _ in range(DEFAULT_CONFIG.replacement_confirm_days):
-        targets = PortfolioAllocator(DEFAULT_CONFIG).allocate(
-            date=date,
-            opportunity=Opportunity.STRONG_TREND,
-            risk=risk,
-            user_panel={symbol: broken for symbol in symbols},
-            leaders={
-                symbols[0]: _leader(symbols[0], 0.90, industry="optical"),
-                symbols[1]: _leader(
-                    symbols[1],
-                    0.75,
-                    mature=False,
-                    industry="equipment",
-                ),
-            },
-            account=account,
-            prices={symbol: 1.0 for symbol in symbols},
-        )
-
-    assert {target.symbol: target.weight for target in targets} == pytest.approx(
-        {symbols[0]: 0.30, symbols[1]: 0.0}
-    )
+    assert f"lifecycle_exit:{symbols[1]}" not in account.replacement_tenure
 
 
 def test_synchronized_impulse_tolerates_only_a_near_zero_slow_index_leg() -> None:
@@ -6975,7 +6928,7 @@ def test_profitable_restore_with_confirmed_market_damage_uses_ordinary_repair() 
     )
 
     assert severe_assessment.reasons == (
-        "market-backed severe portfolio break in restored holdings",
+        "market-backed portfolio break in incomplete restoration",
     )
     assert severe_account.candidate_tenure[
         "capital_guard_cooldown"
@@ -7061,7 +7014,7 @@ def test_profitable_market_backed_relapse_preserves_restoration_ownership() -> N
     "reason",
     (
         "capital drawdown relapse in restored holdings",
-        "market-backed severe portfolio break in restored holdings",
+        "market-backed portfolio break in incomplete restoration",
     ),
 )
 def test_failed_restoration_retires_strategic_restore_before_early_return(

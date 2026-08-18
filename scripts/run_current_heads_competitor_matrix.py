@@ -24,7 +24,6 @@ from typing import Any, Literal
 import numpy as np
 import pandas as pd
 
-from uquant.atomic_io import atomic_write_text
 from research.current_heads import (
     MATRIX_STATUSES,
     REQUIRED_METRICS,
@@ -32,6 +31,7 @@ from research.current_heads import (
     load_comparison_contract,
     load_source_registry,
 )
+from uquant.atomic_io import atomic_write_text
 
 _MARKET_COLUMNS = ("date", "open", "high", "low", "close", "volume", "amount")
 _SHA40 = 40

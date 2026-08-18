@@ -1,0 +1,70 @@
+{
+  "schema_version": 1,
+  "registry_id": "current-heads-source-registry-v1",
+  "frozen_at_utc": "2026-08-18T06:19:00Z",
+  "systems": [
+    "uquant",
+    "aquant",
+    "qwenquant",
+    "trade"
+  ],
+  "repositories": {
+    "uquant": {
+      "repository": "ychenracing/uquant",
+      "commit": "ea24f1837f8b7f2d91e73a5d3c70875f2ea98015",
+      "tree_sha": "ba60ec93b03288e06260d6795b5ad1d1f65063ff",
+      "python_source_sha256": "1c2578874d5b590084d7185312196ce1e59c52c4631ca8fa8ec7fb285b0381d5",
+      "python_source_files": 114,
+      "lock_sha256": "108b267be30756ab7b8f89118364bf3c694be790876fe4a1d27cafef83b842fd",
+      "lock_files": ["pyproject.toml", "requirements.txt", "uv.lock"],
+      "adapter_sha256": "a6d64a5c41edecb30e430ef21d773c709c8472550756c235ddbc461bdb5bd6f3",
+      "read_only": true
+    },
+    "aquant": {
+      "repository": "ychenracing/aquant",
+      "commit": "55009a628515a0d612034c132bc90d21cf720c25",
+      "tree_sha": "f983c73fd3822e29693e1ce41ec51fd325402161",
+      "python_source_sha256": "2db29e59393c11e2c623f66ca7af416f0a0ab656f6f56a206884fa0dee7635bf",
+      "python_source_files": 75,
+      "lock_sha256": "ab4e030ed2690efe137b634a7ae086df0d819c11bdb7a7c991ca1ce8a872bd70",
+      "lock_files": [
+        "aquant/requirements-dev.txt",
+        "aquant/requirements-lock-py310.txt",
+        "aquant/requirements-lock-py311.txt",
+        "aquant/requirements-lock-py312.txt",
+        "aquant/requirements.txt",
+        "pyproject.toml"
+      ],
+      "adapter_sha256": "a6d64a5c41edecb30e430ef21d773c709c8472550756c235ddbc461bdb5bd6f3",
+      "read_only": true
+    },
+    "qwenquant": {
+      "repository": "ychenracing/qwenquant",
+      "commit": "63e05fe7adc2eae67d78e2cfca6222f88e041d89",
+      "tree_sha": "d2c44a8f68a466518a135e54dfa0fdbbb4df0ead",
+      "python_source_sha256": "53edfe11affc6a437cf9b4eeddb869d0eff9cd6e43f2fdee716797f5a4a09339",
+      "python_source_files": 119,
+      "lock_sha256": "353e965976df8edc5b1cf2a6bcf4ce635535bf51dc0830bfaa5adce4184c3856",
+      "lock_files": ["pyproject.toml", "requirements-lock.txt", "requirements.txt"],
+      "adapter_sha256": "a6d64a5c41edecb30e430ef21d773c709c8472550756c235ddbc461bdb5bd6f3",
+      "read_only": true
+    },
+    "trade": {
+      "repository": "ychenracing/trade",
+      "commit": "2066fbf0f99be94142c5d0cb0b6c99d276c2472d",
+      "tree_sha": "0967ca2b05971da6f5a0334086747c4d0a39479b",
+      "python_source_sha256": "48280acee356ee4bd28fa83b260426f3025e6b3bd93c1cee2f92188486761b90",
+      "python_source_files": 135,
+      "lock_sha256": "182d6bbfc2dba29d568f521ee765de335227e721e783a8a9a9cdfef436db7ba2",
+      "lock_files": [
+        "requirements-dev.txt",
+        "requirements-lock-py311.txt",
+        "requirements-lock.txt",
+        "requirements.txt"
+      ],
+      "adapter_sha256": "a6d64a5c41edecb30e430ef21d773c709c8472550756c235ddbc461bdb5bd6f3",
+      "read_only": true
+    }
+  },
+  "payload_sha256": "3370b7676381899d04ea389bfebf919ee3dee8bc1a9e4961f108902d35fb8774"
+}

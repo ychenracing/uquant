@@ -1,0 +1,136 @@
+{
+  "schema_version": 1,
+  "contract_id": "current-heads-comparison-v1",
+  "systems": [
+    "uquant",
+    "aquant",
+    "qwenquant",
+    "trade"
+  ],
+  "market": "A-share AI supply chain",
+  "execution_contract": {
+    "initial_cash": 2000000.0,
+    "calendar": "sh000300_intersection_sh000682",
+    "signal": "close_t",
+    "execution": "next_tradable_open",
+    "mark": "daily_close",
+    "intraday_exit": false,
+    "prelisting": "invisible until first observable row",
+    "commission_rate": 0.00025,
+    "minimum_commission": 5.0,
+    "sell_stamp_duty": 0.0005,
+    "transfer_fee": 0.00001,
+    "one_way_slippage": 0.001,
+    "max_volume_participation": 0.005,
+    "t_plus_one": true,
+    "board_lot_shares": 100,
+    "star_initial_minimum_shares": 200,
+    "limit_locked_orders_pending": true,
+    "suspended_orders_pending": true,
+    "partial_fills": true,
+    "account_order_measure": "distinct orders with positive filled shares",
+    "stock_adjustment": "qfq",
+    "index_adjustment": "raw",
+    "position_direction": "cash_long_only",
+    "star_board_rules": true,
+    "price_limits": true,
+    "capacity": true
+  },
+  "windows": {
+    "h1_2023": {
+      "start": "2023-01-03",
+      "end": "2023-06-30",
+      "acute_start": "2023-04-20",
+      "acute_end": "2023-05-25"
+    },
+    "h2_2023": {
+      "start": "2023-07-03",
+      "end": "2023-12-29",
+      "acute_start": "2023-07-26",
+      "acute_end": "2023-08-25"
+    },
+    "h1_2024": {
+      "start": "2024-01-02",
+      "end": "2024-07-01",
+      "acute_start": "2024-01-03",
+      "acute_end": "2024-02-02"
+    },
+    "h2_2024": {
+      "start": "2024-07-01",
+      "end": "2024-12-31",
+      "acute_start": "2024-08-01",
+      "acute_end": "2024-09-02"
+    },
+    "bull_crash_2025_2026": {
+      "start": "2025-01-02",
+      "end": "2026-07-31",
+      "acute_start": "2026-06-30",
+      "acute_end": "2026-07-30"
+    },
+    "continuous_ai_era": {
+      "start": "2023-01-03",
+      "end": "2026-08-05",
+      "acute_start": "2026-06-30",
+      "acute_end": "2026-07-30"
+    }
+  },
+  "official_pools": {
+    "a": ["sz300308", "sz300502", "sz300394"],
+    "b": ["sz300308", "sz300502", "sz300394", "sh688008", "sh603986"],
+    "c": [
+      "sz300308", "sz300502", "sz300394", "sh688008", "sh603986",
+      "sz002409", "sh688072", "sh688300", "sz300054"
+    ],
+    "d": [
+      "sz300308", "sz300502", "sz300394", "sh688498", "sh601869",
+      "sh688256", "sh688008", "sh603986", "sh688072", "sh688082",
+      "sh688120", "sh688300", "sz300054", "sh688361", "sz300604"
+    ],
+    "e": [
+      "sz300308", "sz300502", "sz300394", "sh688498", "sz002281",
+      "sh601869", "sh600487", "sh688256", "sh688041", "sh688008",
+      "sh603986", "sz300223", "sh688110", "sh688766", "sz002371",
+      "sh688012", "sh688072", "sh688082", "sh688120", "sh688037",
+      "sh688361", "sz300604", "sh688200", "sh688019", "sz300054",
+      "sz002409", "sz300666", "sh688233", "sh688268", "sh688146",
+      "sh688300", "sh603688"
+    ]
+  },
+  "generalization": {
+    "records_per_window": 39,
+    "ready_records_per_window": 32,
+    "insufficient_records_per_window": 7,
+    "full_universe": true,
+    "remove_one_core": ["sz300308", "sz300502", "sz300394"],
+    "remove_all_core": true,
+    "no_optical": true,
+    "industry_balanced": true,
+    "effective_subindustries": true,
+    "industry_min_sample": 2,
+    "random_pool_sizes": [5, 9, 15, 20],
+    "random_seed_indexes": [0, 1, 2, 3, 4],
+    "random_base_seed": 20260810
+  },
+  "metrics": [
+    "final_wealth",
+    "total_return",
+    "cagr",
+    "sharpe",
+    "calmar",
+    "max_drawdown",
+    "account_orders",
+    "gross_turnover",
+    "annual_turnover",
+    "acute_return",
+    "top1_concentration",
+    "top3_concentration",
+    "pnl_hhi"
+  ],
+  "statuses": ["SUCCESS", "REPLAY_ERROR", "INSUFFICIENT_SAMPLE"],
+  "expected_cells": {
+    "official_pool": 120,
+    "generalization": 936,
+    "total": 1056
+  },
+  "payload_sha256": "6377ecb540835a8ef9e1eb6011a6a72cc2f70907c592d3620265c2eed459ec4d"
+}

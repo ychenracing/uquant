@@ -1,6 +1,8 @@
 from __future__ import annotations
 
+import importlib.util
 import json
+import sys
 from pathlib import Path
 
 import pytest
@@ -18,6 +20,12 @@ from uquant.validation.current_heads import (
 )
 
 ROOT = Path(__file__).resolve().parents[1]
+RUNNER = ROOT / "scripts/run_current_heads_competitor_matrix.py"
+SPEC = importlib.util.spec_from_file_location("current_heads_runner_under_test", RUNNER)
+assert SPEC is not None and SPEC.loader is not None
+runner = importlib.util.module_from_spec(SPEC)
+sys.modules[SPEC.name] = runner
+SPEC.loader.exec_module(runner)
 
 
 def test_current_heads_contract_freezes_every_shared_comparison_axis() -> None:
@@ -137,4 +145,176 @@ def test_source_registry_rejects_a_different_claimed_remote_head(tmp_path: Path)
                 "qwenquant": "63e05fe7adc2eae67d78e2cfca6222f88e041d89",
                 "aquant": "55009a628515a0d612034c132bc90d21cf720c25",
             },
+        )
+
+
+def _market_csv(path: Path) -> Path:
+    path.write_text(
+        "date,open,high,low,close,volume,amount\n"
+        "2023-01-02,9,10,8,9.5,100,950\n"
+        "2023-01-03,10,11,9,10.5,100,1050\n"
+        "2023-01-04,11,12,10,11.5,100,1150\n",
+        encoding="utf-8",
+    )
+    return path
+
+
+def test_bounded_staging_rejects_missing_columns_and_hides_future_rows(tmp_path: Path) -> None:
+    source = tmp_path / "source"
+    target = tmp_path / "target"
+    source.mkdir()
+    _market_csv(source / "sz300308.csv")
+
+    result = runner.stage_bounded_market_data(source, target, through="2023-01-03")
+
+    staged = (target / "sz300308.csv").read_text(encoding="utf-8")
+    assert "2023-01-03" in staged
+    assert "2023-01-04" not in staged
+    assert result["files"] == 1
+    assert len(result["sha256"]) == 64
+
+    (source / "sz300308.csv").write_text(
+        "date,open,high,low,close,volume\n2023-01-03,1,1,1,1,1\n",
+        encoding="utf-8",
+    )
+    with pytest.raises(ValueError, match="required columns"):
+        runner.stage_bounded_market_data(source, tmp_path / "invalid", through="2023-01-03")
+
+
+def test_point_in_time_visibility_never_invents_a_prelisting_row(tmp_path: Path) -> None:
+    source = tmp_path / "source"
+    target = tmp_path / "target"
+    source.mkdir()
+    _market_csv(source / "sz300308.csv")
+
+    runner.stage_bounded_market_data(source, target, through="2023-01-04")
+
+    assert runner.visible_symbols(target, ("sz300308",), as_of="2023-01-01") == ()
+    assert runner.visible_symbols(target, ("sz300308",), as_of="2023-01-03") == (
+        "sz300308",
+    )
+
+
+def _raw_worker_row() -> dict[str, object]:
+    return {
+        "system": "trade",
+        "pool": "cell",
+        "window": "h1_2023",
+        "requested_symbols": ["sz300308"],
+        "effective_symbols": ["sz300308"],
+        "start": "2023-01-03",
+        "end": "2023-01-04",
+        "final_wealth": 1.1,
+        "total_return": 0.1,
+        "max_drawdown": 0.02,
+        "account_orders": 1,
+        "turnover": 0.1,
+        "order_ledger": [],
+        "equity_curve": [
+            {"date": "2023-01-03", "equity": 2_000_000.0},
+            {"date": "2023-01-04", "equity": 2_200_000.0},
+        ],
+        "fills": [
+            {
+                "fill_date": "2023-01-03",
+                "signal_date": "2023-01-02",
+                "symbol": "sz300308",
+                "side": "BUY",
+                "price": 10.0,
+                "shares": 100,
+                "reason": "production",
+            }
+        ],
+        "risk_reductions": [],
+        "risk_events": [],
+        "replacements": [],
+        "extra": {},
+    }
+
+
+def test_worker_row_normalization_rejects_empty_nan_and_future_evidence(tmp_path: Path) -> None:
+    data = tmp_path / "data"
+    data.mkdir()
+    _market_csv(data / "sz300308.csv")
+    request = runner.ReplayRequest(
+        system="trade",
+        axis="official_pool",
+        name="a",
+        family="official_pool",
+        window="h1_2023",
+        start="2023-01-03",
+        end="2023-01-04",
+        acute_start="2023-01-03",
+        acute_end="2023-01-04",
+        symbols=("sz300308",),
+    )
+
+    normalized = runner.normalize_replay_row(request, _raw_worker_row(), data_dir=data)
+    assert tuple(normalized) == REQUIRED_METRICS
+    assert normalized["final_wealth"] == pytest.approx(1.1)
+
+    empty = _raw_worker_row()
+    empty["equity_curve"] = []
+    with pytest.raises(ValueError, match="equity curve is empty"):
+        runner.normalize_replay_row(request, empty, data_dir=data)
+
+    nan = _raw_worker_row()
+    nan["final_wealth"] = float("nan")
+    with pytest.raises(ValueError, match="finite"):
+        runner.normalize_replay_row(request, nan, data_dir=data)
+
+    future = _raw_worker_row()
+    future["equity_curve"] = [
+        *future["equity_curve"],  # type: ignore[misc]
+        {"date": "2023-01-05", "equity": 2_300_000.0},
+    ]
+    with pytest.raises(ValueError, match="outside its requested window"):
+        runner.normalize_replay_row(request, future, data_dir=data)
+
+
+def test_status_cells_are_mutually_exclusive_and_errors_remain_explicit() -> None:
+    request = runner.ReplayRequest(
+        system="trade",
+        axis="generalization",
+        name="subindustry__small",
+        family="subindustry",
+        window="h1_2023",
+        start="2023-01-03",
+        end="2023-06-30",
+        acute_start="2023-04-20",
+        acute_end="2023-05-25",
+        symbols=("sz300308",),
+    )
+    provenance = {
+        "system_commit": "0" * 40,
+        "data_sha256": "1" * 64,
+        "config_sha256": "2" * 64,
+        "runtime_sha256": "3" * 64,
+        "evidence_sha256": "4" * 64,
+    }
+
+    replay_error = runner.build_matrix_cell(
+        request,
+        status="REPLAY_ERROR",
+        metrics=None,
+        error={"class": "RuntimeError", "message": "kept"},
+        provenance=provenance,
+    )
+    insufficient = runner.build_matrix_cell(
+        request,
+        status="INSUFFICIENT_SAMPLE",
+        metrics=None,
+        error={"class": "InsufficientSample", "message": "one symbol"},
+        provenance=provenance,
+    )
+    assert replay_error["error"]["message"] == "kept"
+    assert insufficient["status"] == "INSUFFICIENT_SAMPLE"
+
+    with pytest.raises(ValueError, match="SUCCESS requires metrics and no error"):
+        runner.build_matrix_cell(
+            request,
+            status="SUCCESS",
+            metrics=None,
+            error={"class": "RuntimeError", "message": "bad"},
+            provenance=provenance,
         )

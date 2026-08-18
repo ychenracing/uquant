@@ -17,7 +17,7 @@
       "python_source_files": 114,
       "lock_sha256": "108b267be30756ab7b8f89118364bf3c694be790876fe4a1d27cafef83b842fd",
       "lock_files": ["pyproject.toml", "requirements.txt", "uv.lock"],
-      "adapter_sha256": "a6d64a5c41edecb30e430ef21d773c709c8472550756c235ddbc461bdb5bd6f3",
+      "adapter_sha256": "38687daf2fc5146bd06c5b9d61e56b46720fd6b21bbefe1b493f1611e038662e",
       "read_only": true
     },
     "aquant": {
@@ -35,7 +35,7 @@
         "aquant/requirements.txt",
         "pyproject.toml"
       ],
-      "adapter_sha256": "a6d64a5c41edecb30e430ef21d773c709c8472550756c235ddbc461bdb5bd6f3",
+      "adapter_sha256": "38687daf2fc5146bd06c5b9d61e56b46720fd6b21bbefe1b493f1611e038662e",
       "read_only": true
     },
     "qwenquant": {
@@ -46,7 +46,7 @@
       "python_source_files": 119,
       "lock_sha256": "353e965976df8edc5b1cf2a6bcf4ce635535bf51dc0830bfaa5adce4184c3856",
       "lock_files": ["pyproject.toml", "requirements-lock.txt", "requirements.txt"],
-      "adapter_sha256": "a6d64a5c41edecb30e430ef21d773c709c8472550756c235ddbc461bdb5bd6f3",
+      "adapter_sha256": "38687daf2fc5146bd06c5b9d61e56b46720fd6b21bbefe1b493f1611e038662e",
       "read_only": true
     },
     "trade": {
@@ -62,9 +62,9 @@
         "requirements-lock.txt",
         "requirements.txt"
       ],
-      "adapter_sha256": "a6d64a5c41edecb30e430ef21d773c709c8472550756c235ddbc461bdb5bd6f3",
+      "adapter_sha256": "38687daf2fc5146bd06c5b9d61e56b46720fd6b21bbefe1b493f1611e038662e",
       "read_only": true
     }
   },
-  "payload_sha256": "3370b7676381899d04ea389bfebf919ee3dee8bc1a9e4961f108902d35fb8774"
+  "payload_sha256": "e5c082ce934b2970e6a2d0a0231495e197e4fa4a81e4efc154ed9187fd32a3a0"
 }

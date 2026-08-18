@@ -56,10 +56,10 @@ qwenquant 和 trade 的两次正式批次输出逐字节一致。aquant 首次�
 
 正式矩阵中的每个 Replay Error 和 Insufficient Sample 都保留为原始状态，没有删行、
 补值、换 seed 或回退到旧版本数字。最终状态计数和两次运行摘要由矩阵工件自身提供，
-并由 `python -m uquant.validation.current_heads` 独立重算校验。
+并由 `python -m research.current_heads` 独立重算校验。
 
 两份最终矩阵逐字节一致，文件 SHA-256 均为
-`eee63f982741d3ce604b082d8fcbdc03f6d8ad96eed7d11ce57a34f00f24c0ed`。完整矩阵为
+`f1a2e8c2617bcd772dae721c91cf324d40cfc3ef881f0dd70d03f202bb47f8c7`。完整矩阵为
 828 `SUCCESS`、60 `REPLAY_ERROR`、168 `INSUFFICIENT_SAMPLE`：uquant、aquant、
 qwenquant 各为 222/0/42，trade 为 162/60/42。60 个 Replay Error 全部属于 trade，
 原样保留错误类别和信息。

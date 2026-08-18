@@ -25,7 +25,7 @@ import numpy as np
 import pandas as pd
 
 from uquant.atomic_io import atomic_write_text
-from uquant.validation.current_heads import (
+from research.current_heads import (
     MATRIX_STATUSES,
     REQUIRED_METRICS,
     canonical_sha256,

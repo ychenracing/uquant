@@ -70,20 +70,19 @@ jobs:
       - name: Sync locked development environment
         run: uv sync --frozen --extra dev
       - name: Validate frozen four-current-HEAD evidence
-        run: uv run python -m uquant.validation.current_heads
+        run: uv run python -m research.current_heads
 
   phase1-performance:
     name: Phase 1 Performance
     if: ${{ always() }}
-    needs: [ai-era-performance, current-head-matrix]
+    needs: ai-era-performance
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
       - name: Require full Phase 1 gate
         run: |
           performance='${{ needs.ai-era-performance.result }}'
-          matrix='${{ needs.current-head-matrix.result }}'
-          if [ "$performance" != "success" ] || [ "$matrix" != "success" ]; then
-            echo "Phase 1 Performance failed: ai-era-performance=$performance current-head-matrix=$matrix"
+          if [ "$performance" != "success" ]; then
+            echo "Phase 1 Performance failed: ai-era-performance=$performance"
             exit 1
           fi

@@ -1,0 +1,13 @@
+{
+  "coverage_percent": 84.24,
+  "evidence_role": "preserved first final Engineering Gate failure",
+  "failed": 3,
+  "failures": [
+    "test_current_holdout_binding_matches_exact_head_and_reviewed_strategy_anchors: new validation module was incorrectly placed under the production source inventory",
+    "test_current_source_matches_reviewed_post_task8_contract: production source fingerprint changed for the same placement reason",
+    "test_phase1_summary_catches_path_skips_and_partial_or_stale_performance_evidence: current-head job was incorrectly added to the existing Phase 1 summary needs set"
+  ],
+  "passed": 1291,
+  "resolution": "move pure comparison validation to research/current_heads.py and keep current-head CI as an independent blocking job; do not modify production anchors or coverage threshold",
+  "schema_version": 1
+}

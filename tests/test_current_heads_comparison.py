@@ -7,9 +7,7 @@ from pathlib import Path
 
 import pytest
 
-from uquant.validation.ai_era import AI_ERA_ACUTE_WINDOWS, AI_ERA_WINDOWS
-from uquant.validation.competitor import CANONICAL_EXECUTION_CONTRACT
-from uquant.validation.current_heads import (
+from research.current_heads import (
     MATRIX_STATUSES,
     REQUIRED_METRICS,
     REQUIRED_SYSTEMS,
@@ -19,6 +17,11 @@ from uquant.validation.current_heads import (
     python_source_sha256,
     validate_matrix_cell,
 )
+from research.current_heads import (
+    main as current_heads_main,
+)
+from uquant.validation.ai_era import AI_ERA_ACUTE_WINDOWS, AI_ERA_WINDOWS
+from uquant.validation.competitor import CANONICAL_EXECUTION_CONTRACT
 
 ROOT = Path(__file__).resolve().parents[1]
 RUNNER = ROOT / "scripts/run_current_heads_competitor_matrix.py"
@@ -476,3 +479,7 @@ def test_matrix_readback_keeps_empty_effective_insufficient_sample() -> None:
     )
 
     validate_matrix_cell(cell, contract=contract, registry=registry)
+
+
+def test_matrix_validator_cli_reads_committed_matrix() -> None:
+    assert current_heads_main([]) == 0

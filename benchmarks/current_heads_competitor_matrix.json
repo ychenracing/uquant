@@ -1,5 +1,5 @@
 {
-  "adapter_sha256": "7ad1bed67e4ade012c4d2817b32f801f3b050571eb2a30fdebe22e603a53c8d2",
+  "adapter_sha256": "b83891561b723ea64c70c2023dd37b9df4221d9a9f66db1d316d42689e1251a4",
   "aggregates": {
     "aquant": {
       "generalization": {
@@ -64415,7 +64415,7 @@
     "qwenquant": "0b3681e10b75425ad8600e75835677a6a125ed13",
     "trade": "cee1620f40af3af8f839e15db188a9e388a78dd0"
   },
-  "payload_sha256": "7f64de4e10baee039dadbe083dd8e666f2358c1f1e77ce3b91345c723d8b7801",
+  "payload_sha256": "4b777baf28ef40666fce9a01506b3ae782f605df825c324557b7992287b61c5f",
   "runtimes": {
     "aquant": {
       "numpy_version": "2.2.6",
@@ -64452,7 +64452,7 @@
     }
   },
   "schema_version": 1,
-  "source_registry_sha256": "b5f42c4de104820199c99b0b1a982cf678ee1dcd3a3e69fea3e450d52afef21c",
+  "source_registry_sha256": "c2462b783d25259acf67bfd9f4d943b71d788a1e46edbb577e267aeafe1dbefc",
   "summary": {
     "cells": 1056,
     "generalization_cells": 936,

@@ -164,7 +164,8 @@ qwenquant 和 trade 的远程 HEAD，在完全相同的数据、信号时点、n
 T+1 和股票池合同下形成 1,056 个逐 Cell 结果。矩阵固定包含 120 个官方池 Cell 和 936
 个泛化 Cell；`REPLAY_ERROR` 与 `INSUFFICIENT_SAMPLE` 都是必须保留的证据状态，不能
 删行、补值或用旧版本数字替代。源码、依赖、适配器、数据、配置和运行时身份分别绑定到
-registry、矩阵顶层和每个 Cell，CI 会独立重算行数、身份、状态、摘要与聚合。
+registry、矩阵顶层和每个 Cell，CI 会通过 `python -m research.current_heads` 独立重算
+行数、身份、状态、摘要与聚合。
 
 该矩阵用于 Risk Sentinel 融合前的当前版本基线和后续归因，不是自动推广门，也不替代
 历史已认证 champion。当前矩阵里某个系统领先或落后都不改变既有生产政策；历史横向

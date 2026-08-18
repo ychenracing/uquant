@@ -11,9 +11,9 @@ from collections.abc import Mapping, Sequence
 from pathlib import Path
 from typing import Any, Final, cast
 
-from .ai_era import AI_ERA_ACUTE_WINDOWS, AI_ERA_WINDOWS
-from .competitor import CANONICAL_EXECUTION_CONTRACT
-from .generalization_contract import (
+from uquant.validation.ai_era import AI_ERA_ACUTE_WINDOWS, AI_ERA_WINDOWS
+from uquant.validation.competitor import CANONICAL_EXECUTION_CONTRACT
+from uquant.validation.generalization_contract import (
     CORE_SYMBOLS,
     INDUSTRY_MIN_SAMPLE,
     RANDOM_BASE_SEED,
@@ -583,9 +583,9 @@ def load_current_heads_matrix(
 def main(argv: Sequence[str] | None = None) -> int:
     """Validate a committed current-HEAD matrix from an independent entry point."""
 
-    root = Path(__file__).resolve().parents[2]
+    root = Path(__file__).resolve().parents[1]
     parser = argparse.ArgumentParser(
-        prog="python -m uquant.validation.current_heads"
+        prog="python -m research.current_heads"
     )
     parser.add_argument(
         "--matrix",

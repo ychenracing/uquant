@@ -1,0 +1,28 @@
+name: Restore Phase 1 aquant isolation
+on:
+  push:
+    branches:
+      - codex/uquant-phase-1-current-head-baseline
+permissions:
+  contents: write
+jobs:
+  restore:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          fetch-depth: 0
+      - name: Restore verified checkpoint
+        shell: bash
+        run: |
+          set -euo pipefail
+          base64 --decode artifacts/.checkpoint-aquant-isolation/payload.b64 > /tmp/aquant-isolation.tar.xz
+          test "$(sha256sum /tmp/aquant-isolation.tar.xz | cut -d' ' -f1)" = "5bd8f3d6a4cac49ba71abe4ba980c9f36d9004b323ea0cf751265f1996399c80"
+          tar -xJf /tmp/aquant-isolation.tar.xz -C .
+          rm -rf artifacts/.checkpoint-aquant-isolation
+          rm -f .github/workflows/phase1-aquant-isolation-bootstrap.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "fix: isolate aquant replay cells"
+          git push origin HEAD:codex/uquant-phase-1-current-head-baseline

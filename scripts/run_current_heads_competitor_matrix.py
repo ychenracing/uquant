@@ -150,10 +150,49 @@ def visible_symbols(data_dir: Path, symbols: Sequence[str], *, as_of: str) -> tu
     return tuple(visible)
 
 
+def observable_symbols_in_window(
+    data_dir: Path,
+    symbols: Sequence[str],
+    *,
+    start: str,
+    end: str,
+) -> tuple[str, ...]:
+    """Apply one shared at-start membership and observable-window contract."""
+
+    visible: list[str] = []
+    for symbol in symbols:
+        path = data_dir / f"{symbol}.csv"
+        if not path.is_file():
+            continue
+        first = ""
+        observed = False
+        with path.open("r", encoding="utf-8", newline="") as reader:
+            for row in csv.DictReader(reader):
+                current = str(row["date"])
+                if not first:
+                    first = current
+                if start <= current <= end:
+                    observed = True
+                    break
+        if first and first <= start and observed:
+            visible.append(symbol)
+    return tuple(visible)
+
+
+def _resolve_data_symbol(data_dir: Path, symbol: str) -> str:
+    direct = data_dir / f"{symbol}.csv"
+    if direct.is_file():
+        return symbol
+    if len(symbol) == 6 and symbol.isdigit():
+        matches = [prefix + symbol for prefix in ("sh", "sz") if (data_dir / f"{prefix}{symbol}.csv").is_file()]
+        if len(matches) == 1:
+            return matches[0]
+    raise ValueError(f"final mark data is missing: {symbol}")
+
+
 def _close_at(data_dir: Path, symbol: str, target: str) -> float:
-    path = data_dir / f"{symbol}.csv"
-    if not path.is_file():
-        raise ValueError(f"final mark data is missing: {symbol}")
+    canonical = _resolve_data_symbol(data_dir, symbol)
+    path = data_dir / f"{canonical}.csv"
     observed: float | None = None
     with path.open("r", encoding="utf-8", newline="") as reader:
         for row in csv.DictReader(reader):
@@ -186,6 +225,7 @@ def _concentration_from_fills(
             or price <= 0
         ):
             raise ValueError("replay fill is malformed")
+        symbol = _resolve_data_symbol(data_dir, symbol)
         fill_date = str(raw.get("fill_date", raw.get("date", "")))
         if not fill_date or fill_date > end:
             raise ValueError("replay fill is outside its requested window")
@@ -217,6 +257,7 @@ def normalize_replay_row(
     raw: Any,
     *,
     data_dir: Path,
+    execution_symbols: Sequence[str] | None = None,
 ) -> dict[str, float | int]:
     """Normalize one production replay without hiding malformed evidence."""
 
@@ -226,10 +267,11 @@ def normalize_replay_row(
         raise ValueError("worker system identity mismatch")
     if (raw.get("start"), raw.get("end")) != (request.start, request.end):
         raise ValueError("worker window identity mismatch")
-    if raw.get("requested_symbols") != list(request.symbols):
+    expected_symbols = tuple(request.symbols if execution_symbols is None else execution_symbols)
+    if raw.get("requested_symbols") != list(expected_symbols):
         raise ValueError("worker requested symbol contract mismatch")
     effective = raw.get("effective_symbols")
-    if not isinstance(effective, list) or not set(effective) <= set(request.symbols):
+    if not isinstance(effective, list) or not set(effective) <= set(expected_symbols):
         raise ValueError("worker effective symbol contract mismatch")
     curve = raw.get("equity_curve")
     if not isinstance(curve, list) or not curve:
@@ -306,6 +348,7 @@ def build_matrix_cell(
     metrics: dict[str, float | int] | None,
     error: dict[str, str] | None,
     provenance: dict[str, str],
+    effective_symbols: Sequence[str] | None = None,
 ) -> dict[str, Any]:
     """Build one mutually exclusive SUCCESS/error/sample matrix record."""
 
@@ -339,6 +382,9 @@ def build_matrix_cell(
         "name": request.name,
         "family": request.family,
         "symbols": list(request.symbols),
+        "effective_symbols": list(
+            request.symbols if effective_symbols is None else effective_symbols
+        ),
         "status": status,
         "metrics": metrics,
         "error": error,
@@ -556,9 +602,17 @@ def _execute_competitor_request(task: tuple[dict[str, Any], dict[str, str]]) -> 
     data_dir = Path(paths["data_root"]) / request.window
     runtime = _runtime_payload()
     config = _competitor_config_payload(request.system)
+    execution_symbols = observable_symbols_in_window(
+        data_dir,
+        request.symbols,
+        start=request.start,
+        end=request.end,
+    )
     try:
+        if not execution_symbols:
+            raise RuntimeError("shared stock-pool contract has no observable symbol in this window")
         adapter = _load_legacy_adapter(Path(paths["repository_root"]), request.system)
-        adapter.POOLS = {request.name: request.symbols}
+        adapter.POOLS = {request.name: execution_symbols}
         adapter.WINDOWS = {request.window: (request.start, request.end)}
         legacy_task = adapter.Task(
             request.system,
@@ -571,7 +625,12 @@ def _execute_competitor_request(task: tuple[dict[str, Any], dict[str, str]]) -> 
             str(Path(paths["trade_data_root"]) / request.window),
         )
         raw = adapter._run(legacy_task)
-        metrics = normalize_replay_row(request, raw, data_dir=data_dir)
+        metrics = normalize_replay_row(
+            request,
+            raw,
+            data_dir=data_dir,
+            execution_symbols=execution_symbols,
+        )
         return {
             "request": asdict(request),
             "status": "SUCCESS",
@@ -581,6 +640,7 @@ def _execute_competitor_request(task: tuple[dict[str, Any], dict[str, str]]) -> 
             "runtime_sha256": canonical_sha256(runtime),
             "config_sha256": canonical_sha256(config),
             "evidence_sha256": canonical_sha256(raw),
+            "effective_symbols": list(execution_symbols),
         }
     except Exception as exc:
         error = {"class": type(exc).__name__, "message": str(exc)}
@@ -594,6 +654,7 @@ def _execute_competitor_request(task: tuple[dict[str, Any], dict[str, str]]) -> 
             "runtime_sha256": canonical_sha256(runtime),
             "config_sha256": canonical_sha256(config),
             "evidence_sha256": canonical_sha256(evidence),
+            "effective_symbols": list(execution_symbols),
         }
 
 
@@ -739,14 +800,31 @@ def _execute_uquant_official(task: tuple[dict[str, Any], str]) -> dict[str, Any]
     request = _request_from_payload(task[0])
     data_dir = Path(task[1]) / request.window
     runtime = _runtime_payload()
+    execution_symbols = observable_symbols_in_window(
+        data_dir,
+        request.symbols,
+        start=request.start,
+        end=request.end,
+    )
     try:
         from uquant.engine import ProductionEngine
+        from uquant.validation.generalization import symbol_pnl_from_result
 
+        if not execution_symbols:
+            raise RuntimeError("shared stock-pool contract has no observable symbol in this window")
         raw = ProductionEngine(data_dir).backtest(
-            symbols=request.symbols,
+            symbols=execution_symbols,
             start=request.start,
             end=request.end,
         )
+        if not isinstance(raw.get("symbol_pnl"), dict):
+            raw["symbol_pnl"] = symbol_pnl_from_result(
+                raw,
+                {
+                    symbol: _close_at(data_dir, symbol, request.end)
+                    for symbol in execution_symbols
+                },
+            )
         metrics = _normalize_uquant_raw(request, raw)
         config_sha256 = str(raw.get("effective_config_sha256", ""))
         if len(config_sha256) != 64:
@@ -760,6 +838,7 @@ def _execute_uquant_official(task: tuple[dict[str, Any], str]) -> dict[str, Any]
             "runtime_sha256": canonical_sha256(runtime),
             "config_sha256": config_sha256,
             "evidence_sha256": canonical_sha256(raw),
+            "effective_symbols": list(execution_symbols),
         }
     except Exception as exc:
         error = {"class": type(exc).__name__, "message": str(exc)}
@@ -774,6 +853,7 @@ def _execute_uquant_official(task: tuple[dict[str, Any], str]) -> dict[str, Any]
                 {"system": "uquant", "production_entry": "ProductionEngine.backtest"}
             ),
             "evidence_sha256": canonical_sha256({"request": asdict(request), "error": error}),
+            "effective_symbols": list(execution_symbols),
         }
 
 
@@ -800,7 +880,7 @@ def run_uquant_official_batch(
 
 
 def _uquant_generalization_rows(
-    requests: Sequence[ReplayRequest], phase2_raw: dict[str, Any]
+    requests: Sequence[ReplayRequest], phase2_raw: dict[str, Any], *, data_root: Path
 ) -> list[dict[str, Any]]:
     by_id = {
         f"generalization/uquant/{cell['window']}/{cell['scenario']}": cell
@@ -819,6 +899,12 @@ def _uquant_generalization_rows(
         if cell is None or not isinstance(cell.get("raw"), dict):
             raise ValueError(f"raw uquant Phase 2 cell is missing: {request.cell_id}")
         raw = cell["raw"]
+        effective_symbols = observable_symbols_in_window(
+            data_root / request.window,
+            request.symbols,
+            start=request.start,
+            end=request.end,
+        )
         rows.append(
             {
                 "request": asdict(request),
@@ -829,6 +915,7 @@ def _uquant_generalization_rows(
                 "runtime_sha256": canonical_sha256(runtime_raw),
                 "config_sha256": str(raw["effective_config_sha256"]),
                 "evidence_sha256": canonical_sha256(cell),
+                "effective_symbols": list(effective_symbols),
             }
         )
     return rows
@@ -910,7 +997,11 @@ def assemble_matrix(
                 data_root=runtime_dir / "data",
                 workers=uquant_workers,
             ),
-            *_uquant_generalization_rows(ready_by_system["uquant"], phase2_raw),
+            *_uquant_generalization_rows(
+                ready_by_system["uquant"],
+                phase2_raw,
+                data_root=runtime_dir / "data",
+            ),
         ]
     }
     runtimes: dict[str, Any] = {
@@ -956,6 +1047,7 @@ def assemble_matrix(
                         "runtime_sha256": row["runtime_sha256"],
                         "evidence_sha256": row["evidence_sha256"],
                     },
+                    effective_symbols=row.get("effective_symbols"),
                 )
             )
         for request in insufficient_by_system[system]:
@@ -988,6 +1080,12 @@ def assemble_matrix(
                             {"request": asdict(request), "error": error}
                         ),
                     },
+                    effective_symbols=observable_symbols_in_window(
+                        runtime_dir / "data" / request.window,
+                        request.symbols,
+                        start=request.start,
+                        end=request.end,
+                    ),
                 )
             )
     if len(cells) != 1056 or len(expected_ids) != 1056:

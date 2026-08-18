@@ -253,6 +253,12 @@ def test_worker_row_normalization_rejects_empty_nan_and_future_evidence(tmp_path
     assert tuple(normalized) == REQUIRED_METRICS
     assert normalized["final_wealth"] == pytest.approx(1.1)
 
+    unprefixed = _raw_worker_row()
+    unprefixed["fills"][0]["symbol"] = "300308"  # type: ignore[index]
+    assert runner.normalize_replay_row(request, unprefixed, data_dir=data)[
+        "top1_concentration"
+    ] == pytest.approx(1.0)
+
     empty = _raw_worker_row()
     empty["equity_curve"] = []
     with pytest.raises(ValueError, match="equity curve is empty"):

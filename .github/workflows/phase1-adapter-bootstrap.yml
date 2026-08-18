@@ -1,0 +1,28 @@
+name: Restore Phase 1 adapter checkpoint
+on:
+  push:
+    branches:
+      - codex/uquant-phase-1-current-head-baseline
+permissions:
+  contents: write
+jobs:
+  restore:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          fetch-depth: 0
+      - name: Restore verified checkpoint
+        shell: bash
+        run: |
+          set -euo pipefail
+          cat artifacts/.checkpoint-adapter/part-* | base64 --decode > /tmp/adapter.tar.xz
+          test "$(sha256sum /tmp/adapter.tar.xz | cut -d' ' -f1)" = "7d7b12229a27fc093599cb7e0941e69e9bf5f76806def0747cdc94f6a7924c9e"
+          tar -xJf /tmp/adapter.tar.xz -C .
+          rm -rf artifacts/.checkpoint-adapter
+          rm -f .github/workflows/phase1-adapter-bootstrap.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "feat: add isolated current HEAD replay adapter"
+          git push origin HEAD:codex/uquant-phase-1-current-head-baseline

@@ -283,9 +283,7 @@ def build_lane_validation_report(
         raise ValueError("future holdout observations must be a complete calendar prefix")
     lane_reports: list[dict[str, Any]] = []
     for lane in lanes:
-        sessions = tuple(
-            session for session in observed_sessions if session >= lane.activation_session
-        )
+        sessions = tuple(session for session in observed_sessions if session >= lane.activation_session)
         next_milestone = next(
             (value for value in contract.review_milestones if value > len(sessions)),
             None,
@@ -330,3 +328,27 @@ def build_lane_validation_report(
     }
     report["canonical_sha256"] = _canonical_sha256(report)
     return report
+
+
+def lane_binding_payload(lane: HoldoutLane) -> dict[str, Any]:
+    """Return the complete immutable identity embedded in replay evidence."""
+
+    return {
+        "lane_id": lane.lane_id,
+        "activation_session": lane.activation_session,
+        "source_commit": lane.source_commit,
+        "production_source_sha256": lane.production_source_sha256,
+        "sentinel_source_sha256": lane.sentinel_source_sha256,
+        "effective_config_sha256": lane.effective_config_sha256,
+        "data_contract_sha256": lane.data_contract_sha256,
+        "data_directory": lane.data_directory,
+        "runtime": {
+            "python_full_version": lane.python_full_version,
+            "numpy_version": lane.numpy_version,
+            "pandas_version": lane.pandas_version,
+            "uv_version": lane.uv_version,
+            "uv_lock_sha256": lane.uv_lock_sha256,
+        },
+        "parent_lane": lane.parent_lane,
+        "economic_behavior": lane.economic_behavior,
+    }

@@ -37,6 +37,7 @@ from uquant.validation.holdout import (
     holdout_source_sha256,
     load_future_holdout_contract,
 )
+from uquant.validation.holdout_lanes import lane_binding_payload, load_lane_registry
 from uquant.validation.holdout_runtime import (
     append_holdout_snapshot,
     generate_future_holdout_replay,
@@ -88,14 +89,29 @@ def _install_holdout_contract(root: Path) -> None:
 def _valid_replay(session: str = HOLDOUT_START) -> dict[str, object]:
     contract = load_future_holdout_contract()
     decision_digest, decision = _decision_record(session)
+    observed_metrics = {
+        "final_wealth": 1.0,
+        "max_drawdown": 0.0,
+        "account_orders": 0,
+        "gross_turnover": 0.0,
+        "top1_concentration": 0.0,
+        "top3_concentration": 0.0,
+        "pnl_hhi": 0.0,
+    }
     replay: dict[str, object] = {
-        "schema_version": 1,
-        "replay_id": "phase2-future-holdout-replay-v1",
+        "schema_version": 2,
+        "replay_id": "phase2-future-holdout-replay-v2",
         "contract_sha256": contract.sha256,
         "production_source_sha256": holdout_source_sha256(Path(__file__).parents[1]),
         "holdout_data_sha256": "a" * 64,
         "prior_close_account_sha256": contract.prior_close_account_sha256,
         "sessions": [session],
+        "lane_binding": lane_binding_payload(
+            load_lane_registry(
+                Path(__file__).parents[1]
+                / "benchmarks/future_holdout_lane_registry.json"
+            )[0]
+        ),
         "decision_digests": [decision_digest],
         "decisions": [decision],
         "journal_checkpoint": {
@@ -109,15 +125,9 @@ def _valid_replay(session: str = HOLDOUT_START) -> dict[str, object]:
             "next": 20,
             "review_action": "REPORT_ONLY",
         },
-        "scores": {
-            "final_wealth": 1.0,
-            "max_drawdown": 0.0,
-            "account_orders": 0,
-            "gross_turnover": 0.0,
-            "top1_concentration": 0.0,
-            "top3_concentration": 0.0,
-            "pnl_hhi": 0.0,
-        },
+        "score_status": "NON_REVIEWABLE",
+        "observed_metrics": observed_metrics,
+        "scores": {field: None for field in observed_metrics},
         "final_account_sha256": "c" * 64,
     }
     replay["canonical_sha256"] = hashlib.sha256(
@@ -416,53 +426,7 @@ def test_holdout_replay_outputs_cannot_descend_into_protected_data(
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,
 ) -> None:
-    contract = load_future_holdout_contract()
-    replay = {
-        "schema_version": 1,
-        "replay_id": "phase2-future-holdout-replay-v1",
-        "contract_sha256": contract.sha256,
-        "holdout_data_sha256": "a" * 64,
-        "prior_close_account_sha256": contract.prior_close_account_sha256,
-        "sessions": [HOLDOUT_START],
-        "decision_digests": ["b" * 64],
-        "decisions": [
-            {
-                "date": HOLDOUT_START,
-                "decision_digest": "b" * 64,
-                "payload": {"date": HOLDOUT_START},
-            }
-        ],
-        "journal_checkpoint": {
-            "schema_version": 1,
-            "sequence": 0,
-            "record_sha256": "0" * 64,
-        },
-        "milestones": {
-            "fixed": [20, 40, 60],
-            "reached": [],
-            "next": 20,
-            "review_action": "REPORT_ONLY",
-        },
-        "scores": {
-            "final_wealth": 1.0,
-            "max_drawdown": 0.0,
-            "account_orders": 0,
-            "gross_turnover": 0.0,
-            "top1_concentration": 0.0,
-            "top3_concentration": 0.0,
-            "pnl_hhi": 0.0,
-        },
-        "final_account_sha256": "c" * 64,
-    }
-    replay["canonical_sha256"] = hashlib.sha256(
-        json.dumps(
-            replay,
-            allow_nan=False,
-            ensure_ascii=False,
-            separators=(",", ":"),
-            sort_keys=True,
-        ).encode()
-    ).hexdigest()
+    replay = _valid_replay()
     contract_path = tmp_path / "benchmarks/future_holdout_contract.json"
     contract_path.parent.mkdir(parents=True)
     contract_path.write_text(
@@ -1502,49 +1466,7 @@ def test_holdout_replay_readback_binds_data_sessions_scores_decisions_and_journa
     tmp_path: Path,
 ) -> None:
     contract = load_future_holdout_contract()
-    decision_digest, decision = _decision_record(HOLDOUT_START)
-    source_sha256 = holdout_source_sha256(Path(__file__).parents[1])
-    replay = {
-        "schema_version": 1,
-        "replay_id": "phase2-future-holdout-replay-v1",
-        "contract_sha256": contract.sha256,
-        "production_source_sha256": source_sha256,
-        "holdout_data_sha256": "a" * 64,
-        "prior_close_account_sha256": contract.prior_close_account_sha256,
-        "sessions": [HOLDOUT_START],
-        "decision_digests": [decision_digest],
-        "decisions": [decision],
-        "journal_checkpoint": {
-            "schema_version": 1,
-            "sequence": 0,
-            "record_sha256": "0" * 64,
-        },
-        "milestones": {
-            "fixed": [20, 40, 60],
-            "reached": [],
-            "next": 20,
-            "review_action": "REPORT_ONLY",
-        },
-        "scores": {
-            "final_wealth": 1.0,
-            "max_drawdown": 0.0,
-            "account_orders": 0,
-            "gross_turnover": 0.0,
-            "top1_concentration": 0.0,
-            "top3_concentration": 0.0,
-            "pnl_hhi": 0.0,
-        },
-        "final_account_sha256": "c" * 64,
-    }
-    replay["canonical_sha256"] = hashlib.sha256(
-        json.dumps(
-            replay,
-            allow_nan=False,
-            ensure_ascii=False,
-            separators=(",", ":"),
-            sort_keys=True,
-        ).encode()
-    ).hexdigest()
+    replay = _valid_replay()
     path = tmp_path / "replay.json"
     path.write_text(json.dumps(replay), encoding="utf-8")
 
@@ -1621,48 +1543,7 @@ def test_manifest_scores_accept_only_the_exact_reexecuted_replay(
     tmp_path: Path,
 ) -> None:
     contract = load_future_holdout_contract()
-    decision_digest, decision = _decision_record(HOLDOUT_START)
-    replay = {
-        "schema_version": 1,
-        "replay_id": "phase2-future-holdout-replay-v1",
-        "contract_sha256": contract.sha256,
-        "production_source_sha256": holdout_source_sha256(Path(__file__).parents[1]),
-        "holdout_data_sha256": "a" * 64,
-        "prior_close_account_sha256": contract.prior_close_account_sha256,
-        "sessions": [HOLDOUT_START],
-        "decision_digests": [decision_digest],
-        "decisions": [decision],
-        "journal_checkpoint": {
-            "schema_version": 1,
-            "sequence": 0,
-            "record_sha256": "0" * 64,
-        },
-        "milestones": {
-            "fixed": [20, 40, 60],
-            "reached": [],
-            "next": 20,
-            "review_action": "REPORT_ONLY",
-        },
-        "scores": {
-            "final_wealth": 1.0,
-            "max_drawdown": 0.0,
-            "account_orders": 0,
-            "gross_turnover": 0.0,
-            "top1_concentration": 0.0,
-            "top3_concentration": 0.0,
-            "pnl_hhi": 0.0,
-        },
-        "final_account_sha256": "c" * 64,
-    }
-    replay["canonical_sha256"] = hashlib.sha256(
-        json.dumps(
-            replay,
-            allow_nan=False,
-            ensure_ascii=False,
-            separators=(",", ":"),
-            sort_keys=True,
-        ).encode()
-    ).hexdigest()
+    replay = _valid_replay()
     path = tmp_path / "replay.json"
     path.write_text(json.dumps(replay), encoding="utf-8")
     monkeypatch.setattr(
@@ -1749,8 +1630,14 @@ def test_holdout_replay_uses_the_production_next_open_then_decision_path(
     )
 
     assert first == second
+    assert first["schema_version"] == 2
+    assert first["replay_id"] == "phase2-future-holdout-replay-v2"
     assert first["sessions"] == [HOLDOUT_START]
-    assert first["scores"]["final_wealth"] == pytest.approx(1.0)
+    assert first["score_status"] == "NON_REVIEWABLE"
+    assert all(value is None for value in first["scores"].values())
+    assert first["observed_metrics"]["final_wealth"] == pytest.approx(1.0)
+    assert first["lane_binding"]["lane_id"] == "champion_pre_sentinel"
+    assert first["lane_binding"]["activation_session"] == HOLDOUT_START
     assert len(first["decision_digests"]) == 1
     assert first["decisions"][0]["date"] == HOLDOUT_START
     assert first["milestones"]["fixed"] == [20, 40, 60]
@@ -1786,8 +1673,9 @@ def test_holdout_replay_counts_prior_close_orders_filled_on_the_boundary(
         contract=load_future_holdout_contract(),
     )
 
-    assert replay["scores"]["account_orders"] == 1
-    assert replay["scores"]["gross_turnover"] > 0
+    assert all(value is None for value in replay["scores"].values())
+    assert replay["observed_metrics"]["account_orders"] == 1
+    assert replay["observed_metrics"]["gross_turnover"] > 0
 
 
 def test_holdout_replay_uses_the_same_future_bytes_for_identity_and_execution(

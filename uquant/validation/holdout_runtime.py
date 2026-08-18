@@ -42,11 +42,13 @@ from .holdout import (
     _normalized_scores,
     _read_json,
     _session_dates,
+    _validated_score_values,
     holdout_data_identity,
     holdout_source_sha256,
     load_future_holdout_contract,
     validate_prior_close_account,
 )
+from .holdout_lanes import lane_binding_payload, load_lane_registry
 from .universe import load_ai_universe
 
 _REPLAY_FIELDS = {
@@ -57,10 +59,13 @@ _REPLAY_FIELDS = {
     "holdout_data_sha256",
     "prior_close_account_sha256",
     "sessions",
+    "lane_binding",
     "decision_digests",
     "decisions",
     "journal_checkpoint",
     "milestones",
+    "score_status",
+    "observed_metrics",
     "scores",
     "final_account_sha256",
     "canonical_sha256",
@@ -180,14 +185,11 @@ def _validated_snapshot_prefix_sha256(
             raise ValueError("future holdout daily snapshot must contain its one session")
         inventories.setdefault(session, set()).add(name)
     if set(inventories) != set(snapshot.sessions) or any(
-        inventory != next(iter(inventories.values()))
-        for inventory in inventories.values()
+        inventory != next(iter(inventories.values())) for inventory in inventories.values()
     ):
         raise ValueError("future holdout daily snapshot inventory is incomplete")
     prefix = set(prefix_sessions)
-    selected = tuple(
-        item for item in snapshot.files if Path(item[0]).parts[0] in prefix
-    )
+    selected = tuple(item for item in snapshot.files if Path(item[0]).parts[0] in prefix)
     if prefix and {Path(relative).parts[0] for relative, _ in selected} != prefix:
         raise ValueError("future holdout checkpointed data prefix is incomplete")
     return _snapshot_files_sha256(selected)
@@ -202,9 +204,7 @@ def _reject_output_in_protected_data(
     for protected in protected_directories:
         directory = Path(protected).resolve(strict=False)
         if target == directory or target.is_relative_to(directory):
-            raise ValueError(
-                f"holdout output is inside a protected data directory: {directory}"
-            )
+            raise ValueError(f"holdout output is inside a protected data directory: {directory}")
 
 
 def _paths_overlap(left: str | Path, right: str | Path) -> bool:
@@ -339,9 +339,7 @@ def _reject_authoritative_output_paths(
     for output in outputs:
         for authoritative in protected:
             if _paths_overlap(output, authoritative):
-                raise ValueError(
-                    f"holdout output overlaps an authoritative path: {authoritative}"
-                )
+                raise ValueError(f"holdout output overlaps an authoritative path: {authoritative}")
     carrier_protected = [
         Path(account_path),
         *outputs,
@@ -356,9 +354,7 @@ def _reject_authoritative_output_paths(
         carrier_protected.append(Path(journal_path))
     for authoritative in carrier_protected:
         if _paths_overlap(checkpoint_path, authoritative):
-            raise ValueError(
-                f"holdout checkpoint overlaps an authoritative path: {authoritative}"
-            )
+            raise ValueError(f"holdout checkpoint overlaps an authoritative path: {authoritative}")
 
 
 def _csv_inventory(root: Path, *, label: str) -> dict[str, Path]:
@@ -391,9 +387,7 @@ def _one_snapshot_row(path: Path, *, expected_header: tuple[str, ...]) -> tuple[
     if session != rows[0]["date"]:
         raise ValueError(f"holdout snapshot contains a non-canonical date: {path.name}")
     numeric_columns = tuple(
-        column
-        for column in ("open", "high", "low", "close", "volume", "amount")
-        if column in header
+        column for column in ("open", "high", "low", "close", "volume", "amount") if column in header
     )
     try:
         numeric_values = tuple(float(rows[0][column]) for column in numeric_columns)
@@ -434,9 +428,7 @@ def append_holdout_snapshot(
     encoded: dict[str, bytes] = {}
     sessions: set[str] = set()
     for name in sorted(frozen):
-        frozen_header = tuple(
-            next(csv.reader(frozen[name].read_text(encoding="utf-8").splitlines()))
-        )
+        frozen_header = tuple(next(csv.reader(frozen[name].read_text(encoding="utf-8").splitlines())))
         session, content = _one_snapshot_row(
             snapshot[name],
             expected_header=frozen_header,
@@ -465,8 +457,9 @@ def append_holdout_snapshot(
         if observed != encoded or len(tuple(destination.iterdir())) != len(encoded):
             raise ValueError("holdout snapshot conflicts with the immutable daily append")
         return {"session": session, "files": len(encoded), "idempotent": True}
-    if len(existing_sessions) >= len(reviewed.review_sessions) or session != (
-        reviewed.review_sessions[len(existing_sessions)]
+    if (
+        len(existing_sessions) >= len(reviewed.review_sessions)
+        or session != (reviewed.review_sessions[len(existing_sessions)])
     ):
         raise ValueError("holdout snapshot must be the next contracted exchange session")
     if existing_sessions:
@@ -476,18 +469,14 @@ def append_holdout_snapshot(
             contract=reviewed,
         )
         if prior_checkpoint is None:
-            raise ValueError(
-                "prior daily replay checkpoint is required before the next holdout append"
-            )
+            raise ValueError("prior daily replay checkpoint is required before the next holdout append")
         prior_payload, _ = prior_checkpoint
         _verify_checkpoint_artifacts(prior_payload, contract=reviewed)
         if (
             tuple(prior_payload["sessions"]) != existing_sessions
             or prior_payload["holdout_data_sha256"] != holdout_data_identity(holdout_root)[1]
         ):
-            raise ValueError(
-                "prior daily replay checkpoint does not match the current holdout prefix"
-            )
+            raise ValueError("prior daily replay checkpoint does not match the current holdout prefix")
 
     holdout_root.mkdir(parents=True, exist_ok=True)
     staging = Path(tempfile.mkdtemp(prefix=f".{session}-", dir=holdout_root))
@@ -533,9 +522,7 @@ def _merged_csv_text(
                 if not session:
                     raise ValueError(f"future market row lacks a date: {relative}")
                 if session in rows and rows[session] != dict(row):
-                    raise ValueError(
-                        f"future market row conflicts with an existing date: {relative}"
-                    )
+                    raise ValueError(f"future market row conflicts with an existing date: {relative}")
                 rows[session] = dict(row)
         except (UnicodeError, csv.Error) as exc:
             raise ValueError(f"cannot materialize future market data: {relative}") from exc
@@ -598,9 +585,7 @@ def _decision_payload(decision: Decision) -> dict[str, object]:
     return {
         "date": decision.date,
         "decision_digest": decision.decision_digest,
-        "payload": decision.canonical_payload(
-            effective_config_sha256=config_fingerprint()
-        ),
+        "payload": decision.canonical_payload(effective_config_sha256=config_fingerprint()),
     }
 
 
@@ -620,15 +605,22 @@ def replay_future_holdout(
     journal_path: str | Path | None = None,
     trusted_journal_checkpoint: JournalCheckpoint | None = None,
     contract: FutureHoldoutContract | None = None,
+    lane_id: str = "champion_pre_sentinel",
 ) -> dict[str, Any]:
     """Replay every observed session from the authenticated prior-close account."""
 
     root = Path(repository_root).resolve()
     reviewed = load_future_holdout_contract() if contract is None else contract
+    registry_path = Path(__file__).resolve().parents[2] / "benchmarks/future_holdout_lane_registry.json"
+    lanes = load_lane_registry(registry_path)
+    lane = next((item for item in lanes if item.lane_id == lane_id), None)
+    if lane is None:
+        raise ValueError(f"unknown future holdout lane: {lane_id}")
     source_sha256 = holdout_source_sha256(Path(__file__).resolve().parents[2])
     holdout_root = root / reviewed.data_directory
     snapshot = _capture_holdout_data(holdout_root)
-    sessions, data_sha256 = snapshot.sessions, snapshot.sha256
+    sessions = tuple(session for session in snapshot.sessions if session >= lane.activation_session)
+    data_sha256 = snapshot.sha256
     if not sessions:
         raise ValueError("future holdout replay requires at least one observed session")
     _session_dates(sessions, contract=reviewed)
@@ -636,9 +628,7 @@ def replay_future_holdout(
     validate_prior_close_account(account.to_dict(), frozen_data_dir=root / "data/frozen")
     universe = load_ai_universe()
     user_symbols = universe.symbols
-    required_symbols = tuple(
-        sorted(set(user_symbols) | set(REFERENCE_UNIVERSE) | set(INDEX_SYMBOLS))
-    )
+    required_symbols = tuple(sorted(set(user_symbols) | set(REFERENCE_UNIVERSE) | set(INDEX_SYMBOLS)))
 
     with tempfile.TemporaryDirectory(prefix="uquant-holdout-overlay-") as temporary:
         overlay = Path(temporary) / "data"
@@ -647,9 +637,7 @@ def replay_future_holdout(
         engine._load(required_symbols)
         expected_sessions = tuple(
             str(value.date())
-            for value in engine._raw[INDEX_SYMBOLS[0]].index.intersection(
-                engine._raw[INDEX_SYMBOLS[1]].index
-            )
+            for value in engine._raw[INDEX_SYMBOLS[0]].index.intersection(engine._raw[INDEX_SYMBOLS[1]].index)
             if str(value.date()) in set(sessions)
         )
         if expected_sessions != sessions:
@@ -709,16 +697,17 @@ def replay_future_holdout(
             raise RuntimeError("holdout symbol PnL does not reconcile to replay equity")
         concentration = symbol_pnl_concentration(symbol_pnl)
         filled_order_ids = {fill.order_id for fill in new_fills if fill.order_id}
-        scores: dict[str, float | int | None] = {
-            "final_wealth": final_equity / starting_equity,
-            "max_drawdown": _drawdown(equities),
-            "account_orders": len(filled_order_ids),
-            "gross_turnover": sum(fill.gross_value for fill in new_fills)
-            / starting_equity,
-            **concentration,
-        }
+        observed_metrics = _validated_score_values(
+            {
+                "final_wealth": final_equity / starting_equity,
+                "max_drawdown": _drawdown(equities),
+                "account_orders": len(filled_order_ids),
+                "gross_turnover": sum(fill.gross_value for fill in new_fills) / starting_equity,
+                **concentration,
+            }
+        )
         normalized_scores = _normalized_scores(
-            scores,
+            observed_metrics if len(sessions) >= reviewed.review_milestones[0] else None,
             sessions=sessions,
             contract=reviewed,
         )
@@ -740,13 +729,14 @@ def replay_future_holdout(
         None,
     )
     replay: dict[str, Any] = {
-        "schema_version": 1,
-        "replay_id": "phase2-future-holdout-replay-v1",
+        "schema_version": 2,
+        "replay_id": "phase2-future-holdout-replay-v2",
         "contract_sha256": reviewed.sha256,
         "production_source_sha256": source_sha256,
         "holdout_data_sha256": data_sha256,
         "prior_close_account_sha256": reviewed.prior_close_account_sha256,
         "sessions": list(sessions),
+        "lane_binding": lane_binding_payload(lane),
         "decision_digests": [str(item["decision_digest"]) for item in decisions],
         "decisions": decisions,
         "journal_checkpoint": asdict(checkpoint),
@@ -756,6 +746,8 @@ def replay_future_holdout(
             "next": next_milestone,
             "review_action": "REPORT_ONLY",
         },
+        "score_status": (f"MILESTONE_{reached[-1]}_REVIEWABLE" if reached else "NON_REVIEWABLE"),
+        "observed_metrics": observed_metrics,
         "scores": normalized_scores,
         "final_account_sha256": _canonical_sha256(account.to_dict()),
     }
@@ -780,23 +772,30 @@ def read_future_holdout_replay(
     if not isinstance(seal, str) or seal != _canonical_sha256(unsealed):
         raise ValueError("future holdout replay hash is invalid")
     source_sha256 = raw.get("production_source_sha256")
-    if (
-        not isinstance(source_sha256, str)
-        or source_sha256 != holdout_source_sha256(Path(__file__).resolve().parents[2])
+    if not isinstance(source_sha256, str) or source_sha256 != holdout_source_sha256(
+        Path(__file__).resolve().parents[2]
     ):
         raise ValueError("future holdout replay source binding is stale")
     expected_sessions = tuple(sessions)
     _session_dates(expected_sessions, contract=contract)
     if (
-        raw.get("schema_version") != 1
-        or raw.get("replay_id") != "phase2-future-holdout-replay-v1"
+        raw.get("schema_version") != 2
+        or raw.get("replay_id") != "phase2-future-holdout-replay-v2"
         or raw.get("contract_sha256") != contract.sha256
         or raw.get("holdout_data_sha256") != holdout_data_sha256
-        or raw.get("prior_close_account_sha256")
-        != contract.prior_close_account_sha256
+        or raw.get("prior_close_account_sha256") != contract.prior_close_account_sha256
         or tuple(raw.get("sessions", ())) != expected_sessions
     ):
         raise ValueError("future holdout replay binding is stale")
+    lanes = load_lane_registry(
+        Path(__file__).resolve().parents[2] / "benchmarks/future_holdout_lane_registry.json"
+    )
+    lane = next(
+        (item for item in lanes if lane_binding_payload(item) == raw.get("lane_binding")),
+        None,
+    )
+    if lane is None or any(session < lane.activation_session for session in expected_sessions):
+        raise ValueError("future holdout replay lane binding is stale")
     digests = raw.get("decision_digests")
     decisions = raw.get("decisions")
     if (
@@ -804,10 +803,7 @@ def read_future_holdout_replay(
         or not isinstance(decisions, list)
         or len(digests) != len(expected_sessions)
         or len(decisions) != len(expected_sessions)
-        or any(
-            not isinstance(item, str) or len(item) != 64
-            for item in digests
-        )
+        or any(not isinstance(item, str) or len(item) != 64 for item in digests)
         or any(
             not isinstance(item, Mapping)
             or set(item) != {"date", "decision_digest", "payload"}
@@ -815,10 +811,7 @@ def read_future_holdout_replay(
             or item.get("decision_digest") != digest
             or not isinstance(item.get("payload"), Mapping)
             or cast(Mapping[str, object], item["payload"]).get("date") != session
-            or _decision_payload_sha256(
-                cast(Mapping[str, object], item["payload"])
-            )
-            != digest
+            or _decision_payload_sha256(cast(Mapping[str, object], item["payload"])) != digest
             for item, session, digest in zip(
                 decisions,
                 expected_sessions,
@@ -856,6 +849,13 @@ def read_future_holdout_replay(
     if not isinstance(scores, Mapping):
         raise ValueError("future holdout replay scores are malformed")
     _normalized_scores(scores, sessions=expected_sessions, contract=contract)
+    observed_metrics = raw.get("observed_metrics")
+    if not isinstance(observed_metrics, Mapping):
+        raise ValueError("future holdout replay observed metrics are malformed")
+    _validated_score_values(observed_metrics)
+    expected_score_status = f"MILESTONE_{reached[-1]}_REVIEWABLE" if reached else "NON_REVIEWABLE"
+    if raw.get("score_status") != expected_score_status:
+        raise ValueError("future holdout replay score status is malformed")
     final_account_sha256 = raw.get("final_account_sha256")
     if not isinstance(final_account_sha256, str) or len(final_account_sha256) != 64:
         raise ValueError("future holdout replay final account identity is malformed")
@@ -906,13 +906,10 @@ def _read_checkpoint_carrier(
         or not isinstance(seal, str)
         or seal != _canonical_sha256(unsealed)
         or raw.get("schema_version") != 2
-        or raw.get("checkpoint_id")
-        != "phase2-future-holdout-daily-checkpoint-v2"
+        or raw.get("checkpoint_id") != "phase2-future-holdout-daily-checkpoint-v2"
         or raw.get("contract_sha256") != contract.sha256
-        or raw.get("production_source_sha256")
-        != holdout_source_sha256(Path(__file__).resolve().parents[2])
-        or raw.get("prior_close_account_sha256")
-        != contract.prior_close_account_sha256
+        or raw.get("production_source_sha256") != holdout_source_sha256(Path(__file__).resolve().parents[2])
+        or raw.get("prior_close_account_sha256") != contract.prior_close_account_sha256
         or not isinstance(raw.get("holdout_data_sha256"), str)
         or len(cast(str, raw["holdout_data_sha256"])) != 64
         or not isinstance(raw.get("replay_canonical_sha256"), str)
@@ -1022,9 +1019,7 @@ def _validate_daily_replay_continuity(
         raise ValueError("future holdout replay daily history is malformed")
     if prior_checkpoint is None:
         if len(sessions) != 1:
-            raise ValueError(
-                "future holdout replay requires exactly one uncheckpointed daily session"
-            )
+            raise ValueError("future holdout replay requires exactly one uncheckpointed daily session")
         return
 
     prior_sessions = cast(list[str], prior_checkpoint["sessions"])
@@ -1032,15 +1027,12 @@ def _validate_daily_replay_continuity(
     if sessions[: len(prior_sessions)] != prior_sessions:
         raise ValueError("future holdout replay changed the checkpointed session prefix")
     if len(sessions) not in {len(prior_sessions), len(prior_sessions) + 1}:
-        raise ValueError(
-            "future holdout replay requires exactly one uncheckpointed daily session"
-        )
+        raise ValueError("future holdout replay requires exactly one uncheckpointed daily session")
     if digests[: len(prior_digests)] != prior_digests:
         raise ValueError("future holdout replay changed a checkpointed daily decision")
     if (
         len(sessions) == len(prior_sessions)
-        and replay.get("holdout_data_sha256")
-        != prior_checkpoint["holdout_data_sha256"]
+        and replay.get("holdout_data_sha256") != prior_checkpoint["holdout_data_sha256"]
     ):
         raise ValueError("future holdout replay changed the checkpointed data prefix")
 
@@ -1107,9 +1099,7 @@ def _artifact_snapshots(paths: Sequence[Path]) -> dict[Path, _ArtifactSnapshot]:
             try:
                 status = path.stat(follow_symlinks=False)
             except OSError as exc:
-                raise ValueError(
-                    "cannot inspect future holdout evidence artifact mode"
-                ) from exc
+                raise ValueError("cannot inspect future holdout evidence artifact mode") from exc
             if not stat.S_ISREG(status.st_mode):
                 raise ValueError("future holdout evidence artifact is unsafe")
             mode = stat.S_IMODE(status.st_mode)
@@ -1319,11 +1309,7 @@ def read_future_holdout_decision(
     raw = _read_json(Path(path), label="future holdout daily decision")
     seal = raw.get("canonical_sha256")
     unsealed = {key: value for key, value in raw.items() if key != "canonical_sha256"}
-    if (
-        set(raw) != _DAILY_DECISION_FIELDS
-        or not isinstance(seal, str)
-        or seal != _canonical_sha256(unsealed)
-    ):
+    if set(raw) != _DAILY_DECISION_FIELDS or not isinstance(seal, str) or seal != _canonical_sha256(unsealed):
         raise ValueError("future holdout daily decision hash is invalid")
     if raw != _daily_decision_payload(replay):
         raise ValueError("future holdout daily decision binding is stale")
@@ -1342,9 +1328,7 @@ def _generate_future_holdout_replay_locked(
     """Generate and persist evidence while the caller owns the bundle lock."""
 
     root = repository_root
-    contract = load_future_holdout_contract(
-        root / "benchmarks/future_holdout_contract.json"
-    )
+    contract = load_future_holdout_contract(root / "benchmarks/future_holdout_contract.json")
     destination = output_path
     decision_destination = decision_output_path
     protected_data = (root / "data/frozen", root / contract.data_directory)
@@ -1377,23 +1361,17 @@ def _generate_future_holdout_replay_locked(
         ),
     )
     if decision_destination is None:
-        raise ValueError(
-            "future holdout replay requires a daily decision output artifact"
-        )
+        raise ValueError("future holdout replay requires a daily decision output artifact")
     prior_checkpoint = _read_checkpoint_carrier(
         checkpoint_path,
         contract=contract,
     )
     prior_payload = None if prior_checkpoint is None else prior_checkpoint[0]
     if prior_payload is not None:
-        if (
-            prior_payload["replay_output_path"] != _resolved_path_text(destination)
-            or prior_payload["decision_output_path"]
-            != _resolved_path_text(decision_destination)
-        ):
-            raise ValueError(
-                "future holdout replay must reuse the checkpointed output paths"
-            )
+        if prior_payload["replay_output_path"] != _resolved_path_text(destination) or prior_payload[
+            "decision_output_path"
+        ] != _resolved_path_text(decision_destination):
+            raise ValueError("future holdout replay must reuse the checkpointed output paths")
         _verify_checkpoint_artifacts(prior_payload, contract=contract)
     trusted_checkpoint = None if prior_checkpoint is None else prior_checkpoint[1]
     replay = replay_future_holdout(
@@ -1411,24 +1389,23 @@ def _generate_future_holdout_replay_locked(
             prefix_sessions=snapshot.sessions,
         )
         replay_sessions = tuple(cast(Sequence[str], replay.get("sessions", ())))
-        if (
-            snapshot.sessions != replay_sessions
-            or snapshot.sha256 != replay.get("holdout_data_sha256")
-        ):
+        if snapshot.sessions != replay_sessions or snapshot.sha256 != replay.get("holdout_data_sha256"):
             raise ValueError("future holdout data changed during deterministic replay")
-        if prior_payload is not None and _validated_snapshot_prefix_sha256(
-            snapshot,
-            prefix_sessions=cast(Sequence[str], prior_payload["sessions"]),
-        ) != prior_payload["holdout_data_sha256"]:
+        if (
+            prior_payload is not None
+            and _validated_snapshot_prefix_sha256(
+                snapshot,
+                prefix_sessions=cast(Sequence[str], prior_payload["sessions"]),
+            )
+            != prior_payload["holdout_data_sha256"]
+        ):
             raise ValueError("future holdout changed the checkpointed data prefix")
     _validate_daily_replay_continuity(
         replay,
         prior_checkpoint=prior_payload,
         contract=contract,
     )
-    snapshots = _artifact_snapshots(
-        (destination, decision_destination, checkpoint_path)
-    )
+    snapshots = _artifact_snapshots((destination, decision_destination, checkpoint_path))
     owned: dict[Path, bytes] = {}
     try:
         replay_text = json.dumps(replay, ensure_ascii=False, indent=2) + "\n"
@@ -1505,9 +1482,7 @@ def _generate_future_holdout_replay_locked(
         _verify_checkpoint_artifacts(checkpoint, contract=contract)
     except BaseException as primary:
         for failure in _restore_artifact_snapshots(snapshots, owned):
-            primary.add_note(
-                f"future holdout rollback also failed: {type(failure).__name__}: {failure}"
-            )
+            primary.add_note(f"future holdout rollback also failed: {type(failure).__name__}: {failure}")
         raise
     return replay
 
@@ -1526,9 +1501,7 @@ def generate_future_holdout_replay(
     checkpoint = _canonical_carrier_path(root / _CHECKPOINT_RELATIVE)
     destination = _canonical_carrier_path(output_path)
     decision_destination = (
-        None
-        if decision_output_path is None
-        else _canonical_carrier_path(decision_output_path)
+        None if decision_output_path is None else _canonical_carrier_path(decision_output_path)
     )
     carriers = (
         destination,

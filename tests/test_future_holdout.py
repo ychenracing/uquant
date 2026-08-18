@@ -499,7 +499,7 @@ def test_null_manifest_carries_prior_close_state_and_rejects_metrics() -> None:
         "strategy_state_sha256",
     }
 
-    with pytest.raises(ValueError, match="scores must be null when no holdout sessions exist"):
+    with pytest.raises(ValueError, match="before the first review milestone"):
         _assemble_future_holdout_manifest(
             contract=contract,
             binding=binding,
@@ -779,8 +779,42 @@ def test_observed_scores_enforce_metric_specific_bounds(field: str, value: float
             contract=load_future_holdout_contract(),
             binding=_binding(),
             account_payload=_account(),
-            holdout_sessions=(HOLDOUT_START,),
+            holdout_sessions=load_future_holdout_contract().review_sessions[:20],
             scores=scores,
+            holdout_data_sha256="a" * 64,
+            metrics_sha256="b" * 64,
+        )
+
+
+def test_formal_scores_stay_null_before_first_review_milestone() -> None:
+    contract = load_future_holdout_contract()
+    sessions = contract.review_sessions[:9]
+    manifest = _assemble_future_holdout_manifest(
+        contract=contract,
+        binding=_binding(),
+        account_payload=_account(),
+        holdout_sessions=sessions,
+        scores=None,
+        holdout_data_sha256="a" * 64,
+        metrics_sha256="b" * 64,
+    )
+
+    assert manifest["scores"] == {field: None for field in contract.score_fields}
+    with pytest.raises(ValueError, match="before the first review milestone"):
+        _assemble_future_holdout_manifest(
+            contract=contract,
+            binding=_binding(),
+            account_payload=_account(),
+            holdout_sessions=sessions,
+            scores={
+                "final_wealth": 1.0,
+                "max_drawdown": 0.0,
+                "account_orders": 0,
+                "gross_turnover": 0.0,
+                "top1_concentration": 0.0,
+                "top3_concentration": 0.0,
+                "pnl_hhi": 0.0,
+            },
             holdout_data_sha256="a" * 64,
             metrics_sha256="b" * 64,
         )

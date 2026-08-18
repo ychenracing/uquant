@@ -29,8 +29,7 @@ HOLDOUT_START: Final = "2026-08-06"
 HOLDOUT_DATA_DIRECTORY: Final = "data/holdout/phase2-future-v1"
 REVIEW_MILESTONES: Final = (20, 40, 60)
 REVIEW_CALENDAR_SOURCE: Final = (
-    "https://www.sse.com.cn/disclosure/announcement/general/c/"
-    "c_20251222_10802507.shtml"
+    "https://www.sse.com.cn/disclosure/announcement/general/c/c_20251222_10802507.shtml"
 )
 REVIEW_SESSIONS: Final = (
     "2026-08-06",
@@ -105,21 +104,11 @@ REVIEWED_PHASE1_WINDOWS: Final = MappingProxyType(
     }
 )
 STRATEGY_ANCHOR_COMMIT: Final = "c47367bba64c827fe18f788c9a3650e13ece306f"
-STRATEGY_SOURCE_SHA256: Final = (
-    "f9c78557e38342c5a994f19fde63352f635ac37c5d2d7a187ba410b98caa1aed"
-)
-STRATEGY_CONFIG_SHA256: Final = (
-    "ed52da44a359c1506e1d299f7bc341ad01b199d7f96997f7c01f2b8eca7cfc13"
-)
-STRATEGY_CLI_SHA256: Final = (
-    "fb3da89b7bb8ec745e2249d10173855edc5976a6d1d5f4fd952552d7a2e7e427"
-)
-STRATEGY_ACCOUNT_CODE_SHA256: Final = (
-    "de361ef93a218449df927f5aab14e5013110cc3141a89f94686156bed37a66fc"
-)
-PRIOR_CLOSE_ACCOUNT_SHA256: Final = (
-    "251c90cef356821547c633c69595371aa857a704d8ea21e5119be16136ac0fc8"
-)
+STRATEGY_SOURCE_SHA256: Final = "f9c78557e38342c5a994f19fde63352f635ac37c5d2d7a187ba410b98caa1aed"
+STRATEGY_CONFIG_SHA256: Final = "ed52da44a359c1506e1d299f7bc341ad01b199d7f96997f7c01f2b8eca7cfc13"
+STRATEGY_CLI_SHA256: Final = "fb3da89b7bb8ec745e2249d10173855edc5976a6d1d5f4fd952552d7a2e7e427"
+STRATEGY_ACCOUNT_CODE_SHA256: Final = "de361ef93a218449df927f5aab14e5013110cc3141a89f94686156bed37a66fc"
+PRIOR_CLOSE_ACCOUNT_SHA256: Final = "251c90cef356821547c633c69595371aa857a704d8ea21e5119be16136ac0fc8"
 SCORE_FIELDS: Final = (
     "final_wealth",
     "max_drawdown",
@@ -129,9 +118,7 @@ SCORE_FIELDS: Final = (
     "top3_concentration",
     "pnl_hhi",
 )
-REQUIRED_FUTURE_HOLDOUT_SHA256: Final = (
-    "f1555d2f5527b83899ade8f934f67de8df6050aa2ebc7453d0d4245c618e2aeb"
-)
+REQUIRED_FUTURE_HOLDOUT_SHA256: Final = "f1555d2f5527b83899ade8f934f67de8df6050aa2ebc7453d0d4245c618e2aeb"
 
 _SHA256 = re.compile(r"^[0-9a-f]{64}$")
 _COMMIT = re.compile(r"^[0-9a-f]{40}$")
@@ -487,10 +474,7 @@ def validate_holdout_layout(
         raise ValueError("holdout layout requires the reviewed sealed contract")
     expected = reviewed
     sealed_windows = dict(expected.phase1_windows)
-    if (
-        dict(AI_ERA_WINDOWS) != sealed_windows
-        or dict(ai_era_module.AI_ERA_WINDOWS) != sealed_windows
-    ):
+    if dict(AI_ERA_WINDOWS) != sealed_windows or dict(ai_era_module.AI_ERA_WINDOWS) != sealed_windows:
         raise RuntimeError("live AI-era schedule differs from the sealed Phase 1 windows")
     frozen = root / "data/frozen"
     holdout = root / expected.data_directory
@@ -552,11 +536,7 @@ def _state_hashes(account_payload: Mapping[str, Any], *, as_of: str) -> dict[str
         for symbol, value in positions.items()
         if isinstance(value, Mapping)
     }
-    strategy = {
-        key: value
-        for key, value in account_payload.items()
-        if key not in _ACCOUNT_EXECUTION_FIELDS
-    }
+    strategy = {key: value for key, value in account_payload.items() if key not in _ACCOUNT_EXECUTION_FIELDS}
     return {
         "as_of": as_of,
         "account_sha256": _canonical_sha256(dict(account_payload)),
@@ -579,22 +559,20 @@ def validate_prior_close_account(
     if account_payload.get("data_hash_as_of") != LAST_IN_SAMPLE_DATE:
         raise ValueError("holdout account data hash is not bound to the prior close")
     symbols = account_payload.get("data_hash_symbols")
-    if (
-        not isinstance(symbols, list)
-        or not symbols
-        or any(not isinstance(symbol, str) for symbol in symbols)
-    ):
+    if not isinstance(symbols, list) or not symbols or any(not isinstance(symbol, str) for symbol in symbols):
         raise ValueError("holdout account data hash symbols are malformed")
-    expected = DataStore(frozen_data_dir).manifest(
-        symbols,
-        as_of=LAST_IN_SAMPLE_DATE,
-    ).digest
+    expected = (
+        DataStore(frozen_data_dir)
+        .manifest(
+            symbols,
+            as_of=LAST_IN_SAMPLE_DATE,
+        )
+        .digest
+    )
     if account_payload.get("data_hash") != expected:
         raise ValueError("holdout account data hash does not match the frozen prefix")
     if _canonical_sha256(dict(account_payload)) != PRIOR_CLOSE_ACCOUNT_SHA256:
-        raise ValueError(
-            "holdout account differs from the authenticated continuous replay"
-        )
+        raise ValueError("holdout account differs from the authenticated continuous replay")
 
 
 def _session_dates(values: Iterable[str], *, contract: FutureHoldoutContract) -> tuple[str, ...]:
@@ -624,12 +602,21 @@ def _normalized_scores(
     if unknown:
         raise ValueError(f"unknown holdout scores: {sorted(unknown)}")
     normalized = {name: supplied.get(name) for name in contract.score_fields}
-    if not sessions:
+    if len(sessions) < contract.review_milestones[0]:
         if any(value is not None for value in normalized.values()):
-            raise ValueError("scores must be null when no holdout sessions exist")
+            raise ValueError("formal holdout scores must be null before the first review milestone")
         return normalized
     if any(value is None for value in normalized.values()):
-        raise ValueError("observed holdout sessions require every score")
+        raise ValueError("reviewable holdout sessions require every formal score")
+    return _validated_score_values(normalized)
+
+
+def _validated_score_values(
+    scores: Mapping[str, float | int | None],
+) -> dict[str, float | int | None]:
+    """Validate complete replay metrics independently of review eligibility."""
+
+    normalized = dict(scores)
     for name, value in normalized.items():
         if isinstance(value, bool) or not isinstance(value, (int, float)) or not math.isfinite(float(value)):
             raise ValueError(f"holdout score must be finite: {name}")
@@ -688,9 +675,7 @@ def _assemble_future_holdout_manifest(
         or binding.strategy_cli_sha256 != contract.strategy_cli_sha256
         or binding.effective_config_sha256 != contract.strategy_config_sha256
     ):
-        raise ValueError(
-            "current strategy decision path or config drifted from the observation anchor"
-        )
+        raise ValueError("current strategy decision path or config drifted from the observation anchor")
     normalized_scores = _normalized_scores(scores, sessions=sessions, contract=contract)
     if not _SHA256.fullmatch(holdout_data_sha256):
         raise ValueError("holdout data identity must be SHA-256")
@@ -751,7 +736,10 @@ def _validate_future_holdout_manifest_payload(
 
     raw = dict(manifest)
     observation = raw.get("observation")
-    if isinstance(observation, Mapping) and observation.get("parameter_changes_from_observation") is not False:
+    if (
+        isinstance(observation, Mapping)
+        and observation.get("parameter_changes_from_observation") is not False
+    ):
         raise ValueError("holdout parameter changes from observation are prohibited")
     if set(raw) != _MANIFEST_FIELDS:
         raise ValueError("future holdout manifest schema is malformed")
@@ -798,11 +786,7 @@ def _is_strategy_relative(relative: str) -> bool:
     if relative in _STRATEGY_FIXED_RELATIVES:
         return True
     path = Path(relative)
-    return (
-        relative.startswith("uquant/")
-        and "__pycache__" not in path.parts
-        and path.suffix != ".pyc"
-    )
+    return relative.startswith("uquant/") and "__pycache__" not in path.parts and path.suffix != ".pyc"
 
 
 def _strategy_source_paths(root: Path) -> tuple[Path, ...]:
@@ -813,14 +797,8 @@ def _strategy_source_paths(root: Path) -> tuple[Path, ...]:
     )
     fixed_paths = tuple(root / relative for relative in _STRATEGY_FIXED_RELATIVES)
     paths = tuple(sorted({*package_paths, *fixed_paths}))
-    resources = tuple(
-        path for path in paths if path.is_relative_to(root / "uquant/validation/resources")
-    )
-    if (
-        not paths
-        or not resources
-        or any(path.is_symlink() or not path.is_file() for path in paths)
-    ):
+    resources = tuple(path for path in paths if path.is_relative_to(root / "uquant/validation/resources"))
+    if not paths or not resources or any(path.is_symlink() or not path.is_file() for path in paths):
         raise RuntimeError("cannot resolve complete anchored strategy source")
     return paths
 
@@ -836,12 +814,7 @@ def _assigned_names(statement: ast.stmt) -> set[str]:
     if not isinstance(statement, (ast.Assign, ast.AnnAssign)):
         return set()
     targets = statement.targets if isinstance(statement, ast.Assign) else [statement.target]
-    return {
-        node.id
-        for target in targets
-        for node in ast.walk(target)
-        if isinstance(node, ast.Name)
-    }
+    return {node.id for target in targets for node in ast.walk(target) if isinstance(node, ast.Name)}
 
 
 def _loaded_names(statement: ast.stmt) -> set[str]:
@@ -897,8 +870,7 @@ def _safe_operational_parser_statement(
     ):
         return False
     return all(_safe_parser_value(item) for item in value.args) and all(
-        item.arg is not None and _safe_parser_value(item.value)
-        for item in value.keywords
+        item.arg is not None and _safe_parser_value(item.value) for item in value.keywords
     )
 
 
@@ -919,11 +891,7 @@ def _parser_strategy_body(body: list[ast.stmt]) -> list[ast.stmt]:
 
 
 def _command_guard(statement: ast.stmt) -> str | None:
-    if (
-        not isinstance(statement, ast.If)
-        or statement.orelse
-        or not isinstance(statement.test, ast.Compare)
-    ):
+    if not isinstance(statement, ast.If) or statement.orelse or not isinstance(statement.test, ast.Compare):
         return None
     comparison = statement.test
     if (
@@ -955,9 +923,7 @@ def _cli_strategy_ast(source: bytes) -> bytes:
                 statement.body = _parser_strategy_body(statement.body)
             elif statement.name == "main":
                 statement.body = [
-                    item
-                    for item in statement.body
-                    if _command_guard(item) not in _CLI_OPERATIONAL_COMMANDS
+                    item for item in statement.body if _command_guard(item) not in _CLI_OPERATIONAL_COMMANDS
                 ]
         retained.append(statement)
     tree.body = retained
@@ -1004,11 +970,7 @@ def _git_strategy_relatives(root: Path, *, commit: str) -> tuple[str, ...]:
         text=True,
     )  # nosec B603
     return tuple(
-        sorted(
-            relative
-            for relative in completed.stdout.splitlines()
-            if _is_strategy_relative(relative)
-        )
+        sorted(relative for relative in completed.stdout.splitlines() if _is_strategy_relative(relative))
     )
 
 
@@ -1060,8 +1022,7 @@ def _strategy_account_code_sha256(root: Path) -> str:
         sorted(
             relative
             for relative in completed.stdout.splitlines()
-            if Path(relative).parent == Path("uquant")
-            and Path(relative).suffix == ".py"
+            if Path(relative).parent == Path("uquant") and Path(relative).suffix == ".py"
         )
     )
     if not package_sources:
@@ -1232,8 +1193,7 @@ def _observation_metrics(
         return _normalized_scores(None, sessions=sessions, contract=contract), None
     if metrics_path is None:
         raise RuntimeError(
-            "observed sessions require a deterministic holdout replay; "
-            "detached score files are prohibited"
+            "observed sessions require a deterministic holdout replay; detached score files are prohibited"
         )
     from .holdout_runtime import (
         read_future_holdout_replay,
@@ -1252,15 +1212,12 @@ def _observation_metrics(
         after = source.read_bytes()
     except (OSError, ValueError) as exc:
         raise RuntimeError(
-            "observed sessions require a deterministic holdout replay; "
-            "detached score files are prohibited"
+            "observed sessions require a deterministic holdout replay; detached score files are prohibited"
         ) from exc
     if before != after:
         raise RuntimeError("future holdout replay changed during readback")
     if account_path is None or repository_root is None:
-        raise RuntimeError(
-            "observed sessions require deterministic holdout re-execution"
-        )
+        raise RuntimeError("observed sessions require deterministic holdout re-execution")
     expected = replay_future_holdout(
         repository_root=repository_root,
         account_path=account_path,
@@ -1268,9 +1225,7 @@ def _observation_metrics(
         contract=contract,
     )
     if observed != expected:
-        raise RuntimeError(
-            "future holdout replay differs from deterministic re-execution"
-        )
+        raise RuntimeError("future holdout replay differs from deterministic re-execution")
     scores = cast(Mapping[str, float | int | None], observed["scores"])
     return dict(scores), hashlib.sha256(before).hexdigest()
 
@@ -1285,9 +1240,7 @@ def build_future_holdout_manifest(
     """Build evidence only from authoritative repository and file inputs."""
 
     root = _manifest_repository_root(repository_root)
-    contract = load_future_holdout_contract(
-        root / "benchmarks/future_holdout_contract.json"
-    )
+    contract = load_future_holdout_contract(root / "benchmarks/future_holdout_contract.json")
     sessions, data_sha256 = validate_holdout_layout(root, contract=contract)
     from ..account import load_account
 

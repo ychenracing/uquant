@@ -1,0 +1,72 @@
+{
+  "artifacts": {
+    "decision_equivalence": {
+      "baseline_trace_sha256": "30a78ee94ce9613b50595238e5fc0ec95cf22442e645233b8fb05c37c8a01e7c",
+      "case_count": 45,
+      "path": "artifacts/current_heads/baseline/decision_equivalence.json",
+      "sha256": "829129d40d04730b5158d46566865fba9d885723897aa5cf9b5dc8b78b837dcf",
+      "status": "BASELINE_CAPTURED"
+    },
+    "phase1": {
+      "official_cells": 30,
+      "passed": true,
+      "path": "artifacts/current_heads/baseline/uquant_phase1.json",
+      "protected_cells": 15,
+      "sha256": "cb8d0344bbcbcd61576a251501ec0b9394125108afae14838acf0360ad033364"
+    },
+    "phase2": {
+      "format": "compact identity-preserving baseline; full raw replay retained only as generation input",
+      "full_raw_sha256": "4abb0a14585afe7bd0bf250646e9a1d1a155de2ddda1a05fcf9cd2eda05083d4",
+      "passed": true,
+      "path": "artifacts/current_heads/baseline/uquant_phase2.json",
+      "records": 234,
+      "sha256": "8ddc212e72d2c2b9bd0ca6a662e2aa736571730e9a709449da70019c2aea9f05"
+    }
+  },
+  "baseline_kind": "pre-sentinel-current-head",
+  "data": {
+    "checksums_sha256": "ba460d65f791f238d8a4a16ac62e2225c1832caa6f4da5003166a894edf80e29",
+    "files_verified": 36,
+    "manifest_sha256": "343009138d22f8d4a20768f706207fe4d4bcd03581b0c5945c5485ecbd28788d",
+    "snapshot_id": "20260809T094222Z-causal-tech-index-rebase"
+  },
+  "effective_config_sha256": "ed52da44a359c1506e1d299f7bc341ad01b199d7f96997f7c01f2b8eca7cfc13",
+  "engineering": {
+    "bandit": "passed",
+    "branch_coverage_percent": 85.31,
+    "build": "passed",
+    "compileall": "passed",
+    "mypy": "passed",
+    "pip_audit": "no known vulnerabilities",
+    "pytest": "1276 passed",
+    "ruff": "passed"
+  },
+  "forbidden_production_file_sha256": {
+    "uquant/account.py": "24b75917086b2c035a80cb39e45e7d58780e0b00d69f4dfa5b0d6e98f8c7bf2f",
+    "uquant/config.py": "fed4fc491831e551163ce4796b1bb5e5a5b9d247595ecf45ad4234abe66b3031",
+    "uquant/engine.py": "4b9e6064dc4567cc236aff8ff12d59376ec7ccd5b6fa32021c1544d20c8258a2",
+    "uquant/execution.py": "0b9699420234d1f5fdc5258e44ee644f21da51d787ba70ce7db87f789b3521ba",
+    "uquant/portfolio.py": "1298eda4f5bc4312a2426e1f555421e58471fd5a4c589e5a5f907c64cc60c15f",
+    "uquant/risk.py": "831c6d47f11f634d07d20f5066d6217b705c3d69dd6dc2dbcd0999282801ceb4"
+  },
+  "historical_champion_diagnostic": {
+    "current_commit": "ea24f1837f8b7f2d91e73a5d3c70875f2ea98015",
+    "error": "Phase 1 decision payload diverged: a/bull",
+    "error_class": "RuntimeError",
+    "first_divergence": "a/bull",
+    "gate_role": "diagnostic only; historical champion and current pre-sentinel baseline are distinct contracts",
+    "reference_commit": "cf8fecff76564fd4ed87faa0da336a06d433fd93",
+    "status": "DIVERGED_BEFORE_THIS_PHASE"
+  },
+  "production_commit": "ea24f1837f8b7f2d91e73a5d3c70875f2ea98015",
+  "production_source_sha256": "e1d878716983d2a2f0c872d80d4cae4e7906065354d879ba7ab99538a529407c",
+  "production_tree_sha": "ba60ec93b03288e06260d6795b5ad1d1f65063ff",
+  "runtime": {
+    "numpy": "2.5.1",
+    "pandas": "3.0.5",
+    "python": "3.12.13",
+    "uv": "0.11.33"
+  },
+  "schema_version": 1,
+  "uv_lock_sha256": "4accf16535b5ac95b831c9289e0ad2ff21282dc5dfae3f05dd0fb095089d6a61"
+}

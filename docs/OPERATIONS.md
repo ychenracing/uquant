@@ -146,6 +146,38 @@ uv run uquant backtest \
 必须逐字节匹配已审阅的 `continuous_ai_era/full` 回放摘要；未来评分只接受可重放、
 可重算的执行证据，独立填写或重新封签的指标 JSON 会被拒绝。
 
+每日先以独立目录导入恰好一个完整市场快照，再生成确定性回放；历史冻结数据、Future
+Holdout 数据和人工 Journal 不得共用目录。以下门禁会按当前数据重新计算 Lane 工件，
+数据缺失时只接受 0 个观察日和全 `null` 正式评分：
+
+```bash
+uv run python -m uquant.validation holdout-lanes
+```
+
+人工 Journal 使用 v2 hash chain，每行包含决策日、计划证券/方向/权重/参考价、次日
+开盘、实际成交、人工跳过原因、实现滑点、券商订单 ID、记录时间和前后哈希。它只写
+独立 JSONL，不连接券商、不调用 `ProductionEngine`，也不写模型账户：
+
+```bash
+uv run python -m uquant.validation holdout-journal planned \
+  --plan-id 20260805-sz300308-buy \
+  --decision-date 2026-08-05 \
+  --recorded-at 2026-08-05T15:01:00+08:00 \
+  --symbol sz300308 --side BUY --planned-weight 0.08 \
+  --planned-price 947.74 --planned-shares 100
+
+uv run python -m uquant.validation holdout-journal filled \
+  --plan-id 20260805-sz300308-buy \
+  --recorded-at 2026-08-06T09:32:00+08:00 \
+  --next-open 950.00 --actual-time 2026-08-06T09:31:05+08:00 \
+  --actual-price 951.00 --actual-shares 100 \
+  --broker-order-id manual-broker-001
+```
+
+跳过时使用 `holdout-journal skipped --manual-skip "原因"`。只能追加事件；不得编辑、
+截断或重封既有行。外部 checkpoint 会检测整链重封和截断。人工成交仅改变 Journal
+checkpoint，不能改变模型 Decision Digest、回放分数或候选晋级。
+
 ## 常见故障
 
 | 现象 | 含义 | 处理 |

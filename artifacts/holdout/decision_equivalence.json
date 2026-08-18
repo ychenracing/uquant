@@ -1,0 +1,24 @@
+{
+  "schema_version": 1,
+  "report_id": "phase2-future-holdout-decision-equivalence-v1",
+  "baseline_commit": "b9ee014c3d71a16060c5189bbd4b5d3ddee9c5e6",
+  "candidate_commit": "79bef935bb568faa2366deea484de3b76e9c7d01",
+  "production_account_code_sha256": "de361ef93a218449df927f5aab14e5013110cc3141a89f94686156bed37a66fc",
+  "phase1_baseline_trace_sha256": "30a78ee94ce9613b50595238e5fc0ec95cf22442e645233b8fb05c37c8a01e7c",
+  "phase1_baseline_cases": 45,
+  "protected_bytes": {
+    "uquant/account.py": "24b75917086b2c035a80cb39e45e7d58780e0b00d69f4dfa5b0d6e98f8c7bf2f",
+    "uquant/config.py": "fed4fc491831e551163ce4796b1bb5e5a5b9d247595ecf45ad4234abe66b3031",
+    "uquant/engine.py": "4b9e6064dc4567cc236aff8ff12d59376ec7ccd5b6fa32021c1544d20c8258a2",
+    "uquant/execution.py": "0b9699420234d1f5fdc5258e44ee644f21da51d787ba70ce7db87f789b3521ba",
+    "uquant/portfolio.py": "1298eda4f5bc4312a2426e1f555421e58471fd5a4c589e5a5f907c64cc60c15f",
+    "uquant/risk.py": "831c6d47f11f634d07d20f5066d6217b705c3d69dd6dc2dbcd0999282801ceb4",
+    "uquant/cli.py": "1d0512a79909070944b058965c278c97e9464a13797d388d00b95fb07c3765e5",
+    "uquant/execution_journal.py": "b948b994e39af71729b42ff9c6ae98cf2d7b068a858bfabb5c83ec3c630d9ebf",
+    "benchmarks/future_holdout_contract.json": "326a4fec36d1b99aca279a5bdd6e1b44c1e6f9a3a064200b992074534169ed9d"
+  },
+  "journal_fill_decision_digest_test": "PASSED",
+  "journal_fill_decision_payload_test": "PASSED",
+  "protected_byte_differences": [],
+  "passed": true
+}

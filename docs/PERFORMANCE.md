@@ -186,6 +186,13 @@ holdout。未来 session 未导入时观察与指标必须为 null，不允许�
 价格、次日开盘、真实成交、人工跳过和实现滑点。它与回放/holdout 评分分离，也不能
 写入决策或账户状态；日常系统仍是盘后人工运行、核对并辅助下单。
 
+`benchmarks/future_holdout_lane_registry.json` 为追加式候选登记簿。每条 Lane 固定
+真实启用日、完整 Git commit、生产与 Sentinel 源码、有效配置、数据合同、Python、
+NumPy、pandas、uv 和锁文件摘要；已开始观察的身份不得修改或删除，新 Lane 不得从已
+观察日期回填。当前仅登记合同原有的 `champion_pre_sentinel`，没有凭空创建 Sentinel
+候选。`artifacts/holdout/lane_validation.json` 明确记录样本量、下一里程碑和七个正式
+评分；少于 20 日时这些评分全部为 `null`，诊断指标也不得伪装为正式评分。
+
 ## 如何判断改动是否安全
 
 对注释、文档或工程质量改动，应同时满足：

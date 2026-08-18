@@ -1,0 +1,13 @@
+{
+  "schema_version": 1,
+  "diagnostic_id": "phase2-production-fingerprint-boundary-first-divergence-v1",
+  "detected_during": "milestone-3-targeted-tests",
+  "failure": "current code_fingerprint did not match the frozen candidate account code hash",
+  "expected_sha256": "de361ef93a218449df927f5aab14e5013110cc3141a89f94686156bed37a66fc",
+  "observed_sha256": "eae9d9007a26d449947eb92d9b34dd9b8e286661e654948aadeda8cf7d7948b8",
+  "first_divergence": "operational Journal v2 edits were initially placed in package-root files included by code_fingerprint",
+  "resolution": "moved Phase 2 Journal and CLI into uquant/validation; restored package-root production CLI and legacy Journal to exact baseline bytes",
+  "post_resolution_sha256": "de361ef93a218449df927f5aab14e5013110cc3141a89f94686156bed37a66fc",
+  "economic_files_changed": [],
+  "status": "RESOLVED_WITH_FAILURE_EVIDENCE_PRESERVED"
+}

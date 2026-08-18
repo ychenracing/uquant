@@ -1,0 +1,28 @@
+{
+  "schema_version": 1,
+  "registry_id": "phase2-future-holdout-lanes-v1",
+  "canonical_sha256": "98af895a59547a15bf0a7b5ab1541fdfa01a78ba55352e1254b836d9a4e3b947",
+  "contract_sha256": "f1555d2f5527b83899ade8f934f67de8df6050aa2ebc7453d0d4245c618e2aeb",
+  "lanes": [
+    {
+      "lane_id": "champion_pre_sentinel",
+      "activation_session": "2026-08-06",
+      "source_commit": "c47367bba64c827fe18f788c9a3650e13ece306f",
+      "production_source_sha256": "f9c78557e38342c5a994f19fde63352f635ac37c5d2d7a187ba410b98caa1aed",
+      "sentinel_source_sha256": "f9c78557e38342c5a994f19fde63352f635ac37c5d2d7a187ba410b98caa1aed",
+      "effective_config_sha256": "ed52da44a359c1506e1d299f7bc341ad01b199d7f96997f7c01f2b8eca7cfc13",
+      "data_contract_sha256": "f1555d2f5527b83899ade8f934f67de8df6050aa2ebc7453d0d4245c618e2aeb",
+      "data_directory": "data/holdout/phase2-future-v1",
+      "runtime": {
+        "python_full_version": "3.12.13",
+        "numpy_version": "2.5.1",
+        "pandas_version": "3.0.5",
+        "uv_version": "0.11.33",
+        "uv_lock_sha256": "4accf16535b5ac95b831c9289e0ad2ff21282dc5dfae3f05dd0fb095089d6a61"
+      },
+      "parent_lane": null,
+      "economic_behavior": "IDENTICAL",
+      "status": "OBSERVING"
+    }
+  ]
+}

@@ -632,16 +632,12 @@ def test_holdout_sessions_scores_and_manifest_validation_fail_closed(tmp_path: P
         "pnl_hhi": 0.0,
     }
     with pytest.raises(ValueError, match="must be finite"):
-        holdout_module._normalized_scores(
+        holdout_module._validated_score_values(
             {**invalid_scores, "final_wealth": True},
-            sessions=(contract.first_holdout_date,),
-            contract=contract,
         )
     with pytest.raises(ValueError, match="account_orders must be an integer"):
-        holdout_module._normalized_scores(
+        holdout_module._validated_score_values(
             {**invalid_scores, "account_orders": 1.0},
-            sessions=(contract.first_holdout_date,),
-            contract=contract,
         )
     for mutation, message in (
         ({"final_wealth": 0.0}, "must be positive"),
@@ -654,16 +650,10 @@ def test_holdout_sessions_scores_and_manifest_validation_fail_closed(tmp_path: P
         ),
     ):
         with pytest.raises(ValueError, match=message):
-            holdout_module._normalized_scores(
+            holdout_module._validated_score_values(
                 {**invalid_scores, **mutation},
-                sessions=(contract.first_holdout_date,),
-                contract=contract,
             )
-    assert holdout_module._normalized_scores(
-        invalid_scores,
-        sessions=(contract.first_holdout_date,),
-        contract=contract,
-    ) == invalid_scores
+    assert holdout_module._validated_score_values(invalid_scores) == invalid_scores
     for field, value, message in (
         ("holdout_data_sha256", "bad", "data identity"),
         ("metrics_sha256", "bad", "metrics identity"),
@@ -673,7 +663,7 @@ def test_holdout_sessions_scores_and_manifest_validation_fail_closed(tmp_path: P
             "contract": contract,
             "binding": binding,
             "account_payload": account,
-            "holdout_sessions": (contract.first_holdout_date,),
+            "holdout_sessions": contract.review_sessions[:20],
             "scores": invalid_scores,
             "holdout_data_sha256": "a" * 64,
             "metrics_sha256": "b" * 64,

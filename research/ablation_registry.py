@@ -30,11 +30,25 @@ POST_TASK8_SOURCE_CONTRACT_PATH: Final = (
     / "ablations"
     / "post_task8_source_contract.json"
 )
+FUTURE_HOLDOUT_OVERLAY_PATH: Final = (
+    Path(__file__).resolve().parents[1]
+    / "benchmarks"
+    / "future_holdout_observation_overlay.json"
+)
 BASE_SOURCE_COMMIT: Final = "7f80436373b6da03536e15ff1908c010bfb92eb3"
 MINIMAL_BASE_SOURCE_COMMIT: Final = "e5e0fa903c9a9b26701063ae01f352af3e246a7d"
 _POST_TASK8_SOURCE_CONTRACT_SHA256: Final = (
     "09b8e9709bb09a31dddc79659faf725afc616956364ec5324e354b6e83fb2b44"
 )
+_FUTURE_HOLDOUT_OVERLAY_SHA256: Final = (
+    "4251fc07954eaa1cf005f44caf1433b904d3d6eeac2cc75f616f295f67e9e13a"
+)
+_FUTURE_HOLDOUT_OVERLAY_PATHS: Final = {
+    "uquant/validation/execution_journal.py",
+    "uquant/validation/holdout.py",
+    "uquant/validation/holdout_lanes.py",
+    "uquant/validation/holdout_runtime.py",
+}
 REQUIRED_SUBSYSTEMS: Final = (
     "sector_guard",
     "chronic_overlay",
@@ -260,6 +274,65 @@ def _source_delta(
             }
         )
     return deltas
+
+
+def _validate_future_holdout_overlay(
+    root: Path,
+    *,
+    reviewed_commit: str,
+    reviewed_paths: Sequence[str],
+) -> None:
+    """Allow only the sealed non-economic observation overlay after Task 8."""
+
+    try:
+        payload = json.loads(
+            FUTURE_HOLDOUT_OVERLAY_PATH.read_text(encoding="utf-8"),
+            object_pairs_hook=_strict_json_object,
+        )
+    except (OSError, UnicodeError, json.JSONDecodeError) as exc:
+        raise ValueError("cannot load Future Holdout observation overlay") from exc
+    overlay = _require_mapping(payload, label="Future Holdout observation overlay")
+    if set(overlay) != {
+        "schema_version",
+        "contract_id",
+        "reviewed_commit",
+        "paths",
+        "policy",
+        "canonical_sha256",
+    }:
+        raise ValueError("Future Holdout observation overlay fields are invalid")
+    seal = _require_text(overlay.get("canonical_sha256"), label="observation overlay seal")
+    unsealed = {key: value for key, value in overlay.items() if key != "canonical_sha256"}
+    policy = _require_mapping(overlay.get("policy"), label="observation overlay policy")
+    paths = _require_mapping(overlay.get("paths"), label="observation overlay paths")
+    if (
+        overlay.get("schema_version") != 1
+        or overlay.get("contract_id") != "phase2-future-holdout-observation-overlay-v1"
+        or overlay.get("reviewed_commit") != reviewed_commit
+        or seal != _FUTURE_HOLDOUT_OVERLAY_SHA256
+        or canonical_sha256(unsealed) != seal
+        or policy
+        != {
+            "economic_behavior_changes": False,
+            "production_decision_source_changes": False,
+            "scope": "FUTURE_HOLDOUT_OBSERVATION_ONLY",
+        }
+        or set(paths) != _FUTURE_HOLDOUT_OVERLAY_PATHS
+        or any(not isinstance(value, str) or not _SHA256.fullmatch(value) for value in paths.values())
+    ):
+        raise ValueError("Future Holdout observation overlay identity is invalid")
+
+    reviewed_set = set(reviewed_paths)
+    current_set = set(_production_paths(root))
+    if current_set != reviewed_set | (_FUTURE_HOLDOUT_OVERLAY_PATHS - reviewed_set):
+        raise ValueError("ablation production source differs from the reviewed source hash")
+    for relative in sorted(current_set):
+        current = (root / relative).read_bytes()
+        if relative in _FUTURE_HOLDOUT_OVERLAY_PATHS:
+            if hashlib.sha256(current).hexdigest() != paths[relative]:
+                raise ValueError("Future Holdout observation overlay bytes differ")
+        elif current != _git_blob(root, reviewed_commit, relative):
+            raise ValueError("ablation production source differs from the reviewed source hash")
 
 
 @dataclass(frozen=True, slots=True)
@@ -735,8 +808,14 @@ def _validate_post_task8_source(
         reviewed_paths,
     ):
         raise ValueError("post-Task8 exact source delta differs from the reviewed contract")
+    if observed_source_sha256 != source_fingerprint(root):
+        raise ValueError("ablation observed source digest differs from the working tree")
     if observed_source_sha256 != reviewed_source_sha256:
-        raise ValueError("ablation production source differs from the reviewed source hash")
+        _validate_future_holdout_overlay(
+            root,
+            reviewed_commit=reviewed_commit,
+            reviewed_paths=reviewed_paths,
+        )
 
 
 def validate_ablation_registry(

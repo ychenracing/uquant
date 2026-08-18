@@ -1,12 +1,12 @@
 from __future__ import annotations
 
+import importlib.util
 import json
 from dataclasses import replace
 from pathlib import Path
 
 import pytest
 
-from uquant.validation.cli import main as validation_main
 from uquant.validation.holdout import SCORE_FIELDS, load_future_holdout_contract
 from uquant.validation.holdout_lanes import (
     HoldoutLane,
@@ -23,6 +23,15 @@ STRATEGY_SHA256 = "f9c78557e38342c5a994f19fde63352f635ac37c5d2d7a187ba410b98caa1
 CONFIG_SHA256 = "ed52da44a359c1506e1d299f7bc341ad01b199d7f96997f7c01f2b8eca7cfc13"
 LOCK_SHA256 = "4accf16535b5ac95b831c9289e0ad2ff21282dc5dfae3f05dd0fb095089d6a61"
 EMPTY_DATA_SHA256 = "4308b714db46527214f6bbc47f46e904dbdc5f747144da5a67766495934ac17b"
+
+_CLI_SPEC = importlib.util.spec_from_file_location(
+    "future_holdout_cli_lanes",
+    Path(__file__).parents[1] / "scripts/future_holdout.py",
+)
+assert _CLI_SPEC is not None and _CLI_SPEC.loader is not None
+_CLI_MODULE = importlib.util.module_from_spec(_CLI_SPEC)
+_CLI_SPEC.loader.exec_module(_CLI_MODULE)
+future_holdout_main = _CLI_MODULE.main
 
 
 def _lane(lane_id: str = "champion_pre_sentinel") -> HoldoutLane:
@@ -258,7 +267,7 @@ def test_tracked_validation_is_exact_empty_observation_report() -> None:
 
 
 def test_validation_cli_recomputes_tracked_lane_evidence(capsys: pytest.CaptureFixture[str]) -> None:
-    assert validation_main(["holdout-lanes"]) == 0
+    assert future_holdout_main(["validate-lanes"]) == 0
     output = json.loads(capsys.readouterr().out)
     assert output["observed_sessions"] == 0
     assert output["lanes"][0]["next_milestone"] == 20

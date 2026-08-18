@@ -34,7 +34,7 @@ jobs:
       - name: Frozen-data integrity
         run: uv run python -m uquant.validation data-manifest --data-dir data/frozen
       - name: Future holdout contract and lane integrity
-        run: uv run python -m uquant.validation holdout-lanes
+        run: uv run python scripts/future_holdout.py validate-lanes
       - name: Tests and branch coverage
         run: uv run pytest --cov=uquant --cov-report=term-missing --cov-report=xml
       - name: Bytecode compilation

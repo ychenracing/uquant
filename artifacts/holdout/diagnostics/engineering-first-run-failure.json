@@ -1,0 +1,23 @@
+{
+  "schema_version": 1,
+  "diagnostic_id": "phase2-final-engineering-first-run-failure-v1",
+  "candidate_commit": "e5c8d043c683a8d4d64c734f7aff800f885c99ec",
+  "passed_tests": 1316,
+  "failed_tests": 4,
+  "coverage_percent": 84.74,
+  "failures": [
+    "wheel build subprocess did not inherit a writable uv cache",
+    "new observation-only validation module entered the legacy strategy-source inventory",
+    "pre-milestone score normalization accepted an incomplete all-null mapping",
+    "Phase 2 ablation inventory did not distinguish the sealed observation overlay"
+  ],
+  "resolution": [
+    "rerun all gates with UV_CACHE_DIR exported",
+    "exclude only new observation-only modules from the frozen strategy identity",
+    "require complete supplied score schemas while keeping all formal values null before day 20",
+    "bind the exact observation overlay paths and bytes in a sealed contract"
+  ],
+  "economic_behavior_changed": false,
+  "baseline_lowered": false,
+  "status": "PRESERVED_FOR_FULL_RERUN"
+}

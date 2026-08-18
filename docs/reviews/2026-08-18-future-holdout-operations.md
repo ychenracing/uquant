@@ -40,3 +40,8 @@ CI recomputes the lane report from the sealed contract, registry, and isolated h
 data. The release remains blocked if the observation prefix changes, a Lane backfills,
 formal scores appear before 20 sessions, data history is overwritten, the Journal chain
 is altered, or any production economic file or decision output diverges.
+
+The observation-only Python overlay is independently sealed by
+`benchmarks/future_holdout_observation_overlay.json`. Phase 2 source validation permits
+only those exact four path hashes while continuing to require every non-observation
+production byte to match the reviewed post-Task-8 source contract.

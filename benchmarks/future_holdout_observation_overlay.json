@@ -1,0 +1,17 @@
+{
+  "schema_version": 1,
+  "contract_id": "phase2-future-holdout-observation-overlay-v1",
+  "reviewed_commit": "42f6cbdfcf3c3e396200758f80485b49b9e245bf",
+  "paths": {
+    "uquant/validation/execution_journal.py": "1a6673b9ea134cff48ff4e5322240bb744f317836d91b75cab9220da91852d53",
+    "uquant/validation/holdout.py": "6335055b9a839baaa2951d76fb4a4282913d8c45c9ac1e4df87a599fb0265f97",
+    "uquant/validation/holdout_lanes.py": "33fb1f87ea6657637af2b09b792b9bd1fb62ef38908cbaa5addd96c4e54c78e9",
+    "uquant/validation/holdout_runtime.py": "0d22d065b0b9a54af047f0a0700630f0b5d630bde55b60b4702570f6bda38957"
+  },
+  "policy": {
+    "economic_behavior_changes": false,
+    "production_decision_source_changes": false,
+    "scope": "FUTURE_HOLDOUT_OBSERVATION_ONLY"
+  },
+  "canonical_sha256": "4251fc07954eaa1cf005f44caf1433b904d3d6eeac2cc75f616f295f67e9e13a"
+}

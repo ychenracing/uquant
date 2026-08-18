@@ -1,18 +1,27 @@
 from __future__ import annotations
 
 import ast
+import importlib.util
 import json
 from pathlib import Path
 
 import pytest
 
 from uquant.execution_journal import append_planned as append_legacy_planned
-from uquant.validation.cli import main as validation_main
 from uquant.validation.execution_journal import (
     append_filled,
     append_planned,
     read_execution_journal,
 )
+
+_CLI_SPEC = importlib.util.spec_from_file_location(
+    "future_holdout_cli",
+    Path(__file__).parents[1] / "scripts/future_holdout.py",
+)
+assert _CLI_SPEC is not None and _CLI_SPEC.loader is not None
+_CLI_MODULE = importlib.util.module_from_spec(_CLI_SPEC)
+_CLI_SPEC.loader.exec_module(_CLI_MODULE)
+future_holdout_main = _CLI_MODULE.main
 
 
 def _append_complete_plan(path: Path) -> None:
@@ -118,9 +127,9 @@ def test_phase2_journal_cli_requires_and_emits_complete_plan(
     capsys: pytest.CaptureFixture[str],
 ) -> None:
     monkeypatch.chdir(tmp_path)
-    assert validation_main(
+    assert future_holdout_main(
         [
-            "holdout-journal",
+            "journal",
             "planned",
             "--plan-id",
             "cli-plan",
@@ -144,3 +153,57 @@ def test_phase2_journal_cli_requires_and_emits_complete_plan(
     assert payload["schema_version"] == 2
     assert payload["decision_date"] == "2026-08-05"
     assert payload["record_hash"]
+    assert future_holdout_main(
+        [
+            "journal",
+            "filled",
+            "--plan-id",
+            "cli-plan",
+            "--recorded-at",
+            "2026-08-06T09:32:00+08:00",
+            "--next-open",
+            "950.0",
+            "--actual-time",
+            "2026-08-06T09:31:05+08:00",
+            "--actual-price",
+            "951.0",
+            "--actual-shares",
+            "100",
+            "--broker-order-id",
+            "manual-broker-001",
+        ]
+    ) == 0
+    filled = json.loads(capsys.readouterr().out)
+    assert filled["broker_order_id"] == "manual-broker-001"
+    assert future_holdout_main(["journal", "report"]) == 0
+    report = capsys.readouterr().out
+    assert "Future Holdout Manual Execution Journal" in report
+    assert "manual-broker-001" in report
+
+
+def test_phase2_journal_cli_records_manual_skip(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    monkeypatch.chdir(tmp_path)
+    path = tmp_path / "future_holdout_execution_journal.jsonl"
+    _append_complete_plan(path)
+
+    assert future_holdout_main(
+        [
+            "journal",
+            "skipped",
+            "--plan-id",
+            "phase2-plan-1",
+            "--recorded-at",
+            "2026-08-06T09:32:00+08:00",
+            "--next-open",
+            "950.0",
+            "--manual-skip",
+            "operator declined remainder",
+        ]
+    ) == 0
+    skipped = json.loads(capsys.readouterr().out)
+    assert skipped["manual_skip"] is True
+    assert skipped["manual_skip_reason"] == "operator declined remainder"

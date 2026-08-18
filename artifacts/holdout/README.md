@@ -12,7 +12,8 @@ This directory contains report-only, tracked validation evidence for the immutab
 - `decision_equivalence.json` records protected-byte equality, the unchanged production
   account code fingerprint, and the Journal/Decision Digest isolation test.
 - `diagnostics/` preserves the first production-fingerprint boundary failure and its
-  fail-closed resolution instead of deleting failed evidence.
+  fail-closed resolution plus the first full Engineering failure instead of deleting
+  failed evidence.
 
-Run `uv run python -m uquant.validation holdout-lanes` to fail closed if the registry,
+Run `uv run python scripts/future_holdout.py validate-lanes` to fail closed if the registry,
 data identity, observation prefix, milestone policy, or tracked evidence differs.

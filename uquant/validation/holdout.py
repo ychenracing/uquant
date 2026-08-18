@@ -173,7 +173,9 @@ _STRATEGY_OPERATIONAL_RELATIVES: Final = {
     "uquant/validation/ci_artifacts.py",
     "uquant/validation/equivalence.py",
     "uquant/validation/holdout.py",
+    "uquant/validation/holdout_lanes.py",
     "uquant/validation/holdout_runtime.py",
+    "uquant/validation/execution_journal.py",
 }
 _CLI_OPERATIONAL_COMMANDS: Final = {
     "execution-journal",
@@ -605,7 +607,11 @@ def _normalized_scores(
     if len(sessions) < contract.review_milestones[0]:
         if any(value is not None for value in normalized.values()):
             raise ValueError("formal holdout scores must be null before the first review milestone")
+        if scores is not None and set(supplied) != set(contract.score_fields):
+            raise ValueError("provided holdout scores require every score field")
         return normalized
+    if scores is not None and set(supplied) != set(contract.score_fields):
+        raise ValueError("provided holdout scores require every score field")
     if any(value is None for value in normalized.values()):
         raise ValueError("reviewable holdout sessions require every formal score")
     return _validated_score_values(normalized)

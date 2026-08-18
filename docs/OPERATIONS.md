@@ -151,7 +151,7 @@ Holdout 数据和人工 Journal 不得共用目录。以下门禁会按当前数
 数据缺失时只接受 0 个观察日和全 `null` 正式评分：
 
 ```bash
-uv run python -m uquant.validation holdout-lanes
+uv run python scripts/future_holdout.py validate-lanes
 ```
 
 人工 Journal 使用 v2 hash chain，每行包含决策日、计划证券/方向/权重/参考价、次日
@@ -159,14 +159,14 @@ uv run python -m uquant.validation holdout-lanes
 独立 JSONL，不连接券商、不调用 `ProductionEngine`，也不写模型账户：
 
 ```bash
-uv run python -m uquant.validation holdout-journal planned \
+uv run python scripts/future_holdout.py journal planned \
   --plan-id 20260805-sz300308-buy \
   --decision-date 2026-08-05 \
   --recorded-at 2026-08-05T15:01:00+08:00 \
   --symbol sz300308 --side BUY --planned-weight 0.08 \
   --planned-price 947.74 --planned-shares 100
 
-uv run python -m uquant.validation holdout-journal filled \
+uv run python scripts/future_holdout.py journal filled \
   --plan-id 20260805-sz300308-buy \
   --recorded-at 2026-08-06T09:32:00+08:00 \
   --next-open 950.00 --actual-time 2026-08-06T09:31:05+08:00 \
@@ -174,7 +174,7 @@ uv run python -m uquant.validation holdout-journal filled \
   --broker-order-id manual-broker-001
 ```
 
-跳过时使用 `holdout-journal skipped --manual-skip "原因"`。只能追加事件；不得编辑、
+跳过时使用 `future_holdout.py journal skipped --manual-skip "原因"`。只能追加事件；不得编辑、
 截断或重封既有行。外部 checkpoint 会检测整链重封和截断。人工成交仅改变 Journal
 checkpoint，不能改变模型 Decision Digest、回放分数或候选晋级。
 

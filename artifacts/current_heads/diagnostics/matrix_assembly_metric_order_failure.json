@@ -1,0 +1,10 @@
+{
+  "error_class": "ValueError",
+  "error_message": "SUCCESS requires metrics and no error",
+  "evidence_role": "preserved failed assembly; no economic cell was discarded",
+  "failure_stage": "assemble after uquant official 30/30",
+  "first_divergence": "serialized SUCCESS metrics had the complete 13-field set in JSON-sorted order while build_matrix_cell incorrectly required insertion order",
+  "occurred_in_both_formal_runs": true,
+  "resolution": "validate exact metric-key set independent of JSON object order",
+  "schema_version": 1
+}

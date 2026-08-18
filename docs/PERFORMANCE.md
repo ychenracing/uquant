@@ -157,6 +157,20 @@ scenario 和 causal evidence 身份，再调用冻结 policy/evidence validator�
 
 只报告最优股票池、最优区间或平均值会掩盖薄弱场景。参数选择与最终验证应使用不同区间或不同证券子集。
 
+### 四个当前 HEAD 横向基线
+
+`benchmarks/current_heads_competitor_matrix.json` 冻结实施开始时 uquant、aquant、
+qwenquant 和 trade 的远程 HEAD，在完全相同的数据、信号时点、next-open、费用滑点、
+T+1 和股票池合同下形成 1,056 个逐 Cell 结果。矩阵固定包含 120 个官方池 Cell 和 936
+个泛化 Cell；`REPLAY_ERROR` 与 `INSUFFICIENT_SAMPLE` 都是必须保留的证据状态，不能
+删行、补值或用旧版本数字替代。源码、依赖、适配器、数据、配置和运行时身份分别绑定到
+registry、矩阵顶层和每个 Cell，CI 会独立重算行数、身份、状态、摘要与聚合。
+
+该矩阵用于 Risk Sentinel 融合前的当前版本基线和后续归因，不是自动推广门，也不替代
+历史已认证 champion。当前矩阵里某个系统领先或落后都不改变既有生产政策；历史横向
+结果同样不保证未来。完整审阅、隔离运行说明和已知限制见
+`docs/reviews/2026-08-18-current-heads-baseline.md`。
+
 ## Future holdout 与人工执行证据
 
 历史选择和所有冻结 benchmark 最后使用 `2026-08-05`；future holdout 自

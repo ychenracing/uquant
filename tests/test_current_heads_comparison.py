@@ -17,6 +17,7 @@ from uquant.validation.current_heads import (
     load_comparison_contract,
     load_source_registry,
     python_source_sha256,
+    validate_matrix_cell,
 )
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -326,7 +327,152 @@ def test_status_cells_are_mutually_exclusive_and_errors_remain_explicit() -> Non
         )
 
 
+def test_success_cell_accepts_json_sorted_complete_metric_keys() -> None:
+    request = runner.ReplayRequest(
+        system="aquant",
+        axis="generalization",
+        name="full",
+        family="full",
+        window="h1_2023",
+        start="2023-01-03",
+        end="2023-06-30",
+        acute_start="2023-04-20",
+        acute_end="2023-05-25",
+        symbols=("sz300308", "sz300502"),
+    )
+    metrics = {field: 0 for field in sorted(REQUIRED_METRICS)}
+    metrics["final_wealth"] = 1.0
+    cell = runner.build_matrix_cell(
+        request,
+        status="SUCCESS",
+        metrics=metrics,
+        error=None,
+        provenance={
+            "system_commit": "0" * 40,
+            "data_sha256": "1" * 64,
+            "config_sha256": "2" * 64,
+            "runtime_sha256": "3" * 64,
+            "evidence_sha256": "4" * 64,
+        },
+    )
+
+    assert set(cell["metrics"]) == set(REQUIRED_METRICS)
+
+
 def test_aquant_cells_use_fresh_spawned_processes() -> None:
     assert runner.competitor_executor_policy("aquant") == ("spawn", 1)
     assert runner.competitor_executor_policy("qwenquant") == ("fork", None)
     assert runner.competitor_executor_policy("trade") == ("fork", None)
+
+
+def test_matrix_readback_rejects_mutually_inconsistent_status_payloads() -> None:
+    contract = load_comparison_contract(
+        ROOT / "benchmarks/current_heads_comparison_contract.json"
+    )
+    registry = load_source_registry(
+        ROOT / "benchmarks/current_heads_source_registry.json"
+    )
+    request = runner.ReplayRequest(
+        system="trade",
+        axis="official_pool",
+        name="a",
+        family="official_pool",
+        window="h1_2023",
+        start="2023-01-03",
+        end="2023-06-30",
+        acute_start="2023-04-20",
+        acute_end="2023-05-25",
+        symbols=tuple(contract["official_pools"]["a"]),
+    )
+    cell = runner.build_matrix_cell(
+        request,
+        status="REPLAY_ERROR",
+        metrics=None,
+        error={"class": "RuntimeError", "message": "preserved"},
+        provenance={
+            "system_commit": registry["repositories"]["trade"]["commit"],
+            "data_sha256": "1" * 64,
+            "config_sha256": "2" * 64,
+            "runtime_sha256": "3" * 64,
+            "evidence_sha256": "4" * 64,
+        },
+    )
+    validate_matrix_cell(cell, contract=contract, registry=registry)
+
+    cell["metrics"] = {field: 0.0 for field in REQUIRED_METRICS}
+    with pytest.raises(ValueError, match="REPLAY_ERROR requires explicit error only"):
+        validate_matrix_cell(cell, contract=contract, registry=registry)
+
+
+def test_matrix_readback_rejects_wrong_official_pool_membership() -> None:
+    contract = load_comparison_contract(
+        ROOT / "benchmarks/current_heads_comparison_contract.json"
+    )
+    registry = load_source_registry(
+        ROOT / "benchmarks/current_heads_source_registry.json"
+    )
+    request = runner.ReplayRequest(
+        system="qwenquant",
+        axis="official_pool",
+        name="a",
+        family="official_pool",
+        window="h1_2023",
+        start="2023-01-03",
+        end="2023-06-30",
+        acute_start="2023-04-20",
+        acute_end="2023-05-25",
+        symbols=("sz000001",),
+    )
+    cell = runner.build_matrix_cell(
+        request,
+        status="REPLAY_ERROR",
+        metrics=None,
+        error={"class": "RuntimeError", "message": "preserved"},
+        provenance={
+            "system_commit": registry["repositories"]["qwenquant"]["commit"],
+            "data_sha256": "1" * 64,
+            "config_sha256": "2" * 64,
+            "runtime_sha256": "3" * 64,
+            "evidence_sha256": "4" * 64,
+        },
+    )
+
+    with pytest.raises(ValueError, match="official pool membership differs"):
+        validate_matrix_cell(cell, contract=contract, registry=registry)
+
+
+def test_matrix_readback_keeps_empty_effective_insufficient_sample() -> None:
+    contract = load_comparison_contract(
+        ROOT / "benchmarks/current_heads_comparison_contract.json"
+    )
+    registry = load_source_registry(
+        ROOT / "benchmarks/current_heads_source_registry.json"
+    )
+    request = runner.ReplayRequest(
+        system="uquant",
+        axis="generalization",
+        name="subindustry__passives",
+        family="subindustry",
+        window="h1_2023",
+        start="2023-01-03",
+        end="2023-06-30",
+        acute_start="2023-04-20",
+        acute_end="2023-05-25",
+        symbols=("sz000636",),
+    )
+    cell = runner.build_matrix_cell(
+        request,
+        status="INSUFFICIENT_SAMPLE",
+        metrics=None,
+        error={"class": "InsufficientSample", "message": "one symbol"},
+        effective_symbols=(),
+        provenance={
+            "system_commit": registry["repositories"]["uquant"]["commit"],
+            "data_sha256": "1" * 64,
+            "config_sha256": "2" * 64,
+            "runtime_sha256": "3" * 64,
+            "evidence_sha256": "4" * 64,
+        },
+    )
+
+    validate_matrix_cell(cell, contract=contract, registry=registry)

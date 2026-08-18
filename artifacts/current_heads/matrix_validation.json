@@ -1,0 +1,23 @@
+{
+  "adapter_sha256": "7ad1bed67e4ade012c4d2817b32f801f3b050571eb2a30fdebe22e603a53c8d2",
+  "contract_payload_sha256": "6377ecb540835a8ef9e1eb6011a6a72cc2f70907c592d3620265c2eed459ec4d",
+  "matrix_file_sha256": "eee63f982741d3ce604b082d8fcbdc03f6d8ad96eed7d11ce57a34f00f24c0ed",
+  "matrix_payload_sha256": "7f64de4e10baee039dadbe083dd8e666f2358c1f1e77ce3b91345c723d8b7801",
+  "passed": true,
+  "repeatability": {
+    "aquant_worker_sha256": "1d8891eb216bc16fd022194b8fcde03c8240cde4d6f28a3d390c2ee179f68ef0",
+    "matrix_run1_sha256": "eee63f982741d3ce604b082d8fcbdc03f6d8ad96eed7d11ce57a34f00f24c0ed",
+    "matrix_run2_sha256": "eee63f982741d3ce604b082d8fcbdc03f6d8ad96eed7d11ce57a34f00f24c0ed",
+    "qwenquant_worker_sha256": "4bf43b7fbf9c3da075118e9dda5e8cba509663161bd6c98fdaaf5fb11da0a5a3",
+    "trade_worker_sha256": "35025b826279316b6d9e276998d2c93d082d22d9de68e3af22dcc2d68039f33b"
+  },
+  "schema_version": 1,
+  "source_registry_payload_sha256": "b5f42c4de104820199c99b0b1a982cf678ee1dcd3a3e69fea3e450d52afef21c",
+  "status_counts": {
+    "insufficient_sample": 168,
+    "replay_error": 60,
+    "success": 828,
+    "total": 1056
+  },
+  "uquant_phase2_full_raw_sha256": "be298a3810025cdac92ad3c4312488e8cf39f7bb6edc83a94909101cba977ecd"
+}

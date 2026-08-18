@@ -1,0 +1,34 @@
+{
+  "schema_version": 1,
+  "status": "REPEATABILITY_FAILURE_PRESERVED",
+  "adapter_commit_before_fix": "e4d8a1c31950b1690af77ffba820fae00174b19f",
+  "resolution_commit": "b8f4e43f6a1ab39c4c9c58c994ca67eeee7144db",
+  "run1": {
+    "artifact": "artifacts/current_heads/diagnostics/aquant_process_reuse_run1.json",
+    "sha256": "8f61496711eeb97b3a53074f5429cfc2c300c4854edca71ef4d27933009b97e5",
+    "success": 50,
+    "replay_error": 172
+  },
+  "run2": {
+    "artifact": "artifacts/current_heads/diagnostics/aquant_process_reuse_run2.json",
+    "sha256": "0916600bc991d54dbe5481570aae61475afcd5ab4dd1abc2881a9fc0aea9785b",
+    "success": 50,
+    "replay_error": 172
+  },
+  "differing_rows": 16,
+  "first_divergence": {
+    "cell_id": "official_pool/aquant/continuous_ai_era/d",
+    "run1": {
+      "status": "REPLAY_ERROR",
+      "error": {
+        "class": "ValueError",
+        "message": "worker equity curve omits the acute interval"
+      }
+    },
+    "run2": {
+      "status": "SUCCESS"
+    }
+  },
+  "root_cause": "Aquant binds AQUANT_DATA_DIR and static calendar state at module import; a reused worker process therefore leaked its first window binding into later cells, and concurrent scheduling changed which binding each cell observed.",
+  "resolution": "The read-only aquant source remains unchanged. The uquant validation adapter now spawns a fresh process for every aquant cell with max_tasks_per_child=1."
+}

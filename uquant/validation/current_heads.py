@@ -2,12 +2,14 @@
 
 from __future__ import annotations
 
+import argparse
 import hashlib
 import json
+import math
 import re
 from collections.abc import Mapping, Sequence
 from pathlib import Path
-from typing import Any, Final
+from typing import Any, Final, cast
 
 from .ai_era import AI_ERA_ACUTE_WINDOWS, AI_ERA_WINDOWS
 from .competitor import CANONICAL_EXECUTION_CONTRACT
@@ -55,6 +57,29 @@ _REPOSITORY_FIELDS = {
     "lock_files",
     "adapter_sha256",
     "read_only",
+}
+_CELL_FIELDS = {
+    "cell_id",
+    "axis",
+    "system",
+    "window",
+    "start",
+    "end",
+    "name",
+    "family",
+    "symbols",
+    "effective_symbols",
+    "status",
+    "metrics",
+    "error",
+    "provenance",
+}
+_CELL_PROVENANCE_FIELDS = {
+    "system_commit",
+    "data_sha256",
+    "config_sha256",
+    "runtime_sha256",
+    "evidence_sha256",
 }
 
 
@@ -252,3 +277,346 @@ def load_source_registry(
             raise ValueError(f"{name} remote HEAD mismatch")
     return payload
 
+
+def validate_matrix_cell(
+    cell: Mapping[str, Any],
+    *,
+    contract: Mapping[str, Any],
+    registry: Mapping[str, Any],
+) -> None:
+    """Fail closed on one committed current-HEAD matrix record."""
+
+    if set(cell) != _CELL_FIELDS:
+        raise ValueError("matrix cell fields are incomplete or unexpected")
+    system = cell.get("system")
+    axis = cell.get("axis")
+    window = cell.get("window")
+    name = cell.get("name")
+    family = cell.get("family")
+    if system not in REQUIRED_SYSTEMS:
+        raise ValueError("matrix cell system is unknown")
+    if axis not in {"official_pool", "generalization"}:
+        raise ValueError("matrix cell axis is unknown")
+    windows = contract.get("windows")
+    if not isinstance(windows, Mapping) or window not in windows:
+        raise ValueError("matrix cell window is unknown")
+    bounds = windows[window]
+    if not isinstance(bounds, Mapping) or (
+        cell.get("start"),
+        cell.get("end"),
+    ) != (bounds.get("start"), bounds.get("end")):
+        raise ValueError("matrix cell window bounds differ from the contract")
+    if not isinstance(name, str) or not name or not isinstance(family, str) or not family:
+        raise ValueError("matrix cell identity is incomplete")
+    expected_id = f"{axis}/{system}/{window}/{name}"
+    if cell.get("cell_id") != expected_id:
+        raise ValueError("matrix cell ID differs from its dimensions")
+    symbols = cell.get("symbols")
+    effective = cell.get("effective_symbols")
+    if (
+        not isinstance(symbols, list)
+        or not symbols
+        or not all(isinstance(item, str) and item for item in symbols)
+        or len(symbols) != len(set(symbols))
+    ):
+        raise ValueError("matrix cell symbols are malformed")
+    if (
+        not isinstance(effective, list)
+        or not all(isinstance(item, str) and item for item in effective)
+        or len(effective) != len(set(effective))
+    ):
+        raise ValueError("matrix cell effective_symbols are malformed")
+    symbols_list = cast(list[str], symbols)
+    effective_list = cast(list[str], effective)
+    if not set(effective_list).issubset(symbols_list):
+        raise ValueError("matrix effective symbols are outside the requested pool")
+    if axis == "official_pool":
+        pools = contract.get("official_pools")
+        if (
+            family != "official_pool"
+            or not isinstance(pools, Mapping)
+            or name not in pools
+            or symbols_list != pools[name]
+        ):
+            raise ValueError("official pool membership differs from the contract")
+
+    status = cell.get("status")
+    metrics = cell.get("metrics")
+    error = cell.get("error")
+    if status == "SUCCESS":
+        if not isinstance(metrics, Mapping) or error is not None:
+            raise ValueError("SUCCESS requires metrics only")
+        if set(metrics) != set(REQUIRED_METRICS):
+            raise ValueError("SUCCESS metric schema differs")
+        for field, value in metrics.items():
+            if isinstance(value, bool) or not isinstance(value, (int, float)):
+                raise ValueError(f"matrix metric is not numeric: {field}")
+            if not math.isfinite(float(value)):
+                raise ValueError(f"matrix metric is not finite: {field}")
+        orders = metrics["account_orders"]
+        if isinstance(orders, bool) or not isinstance(orders, int) or orders < 0:
+            raise ValueError("matrix account_orders is invalid")
+        if float(metrics["final_wealth"]) <= 0:
+            raise ValueError("matrix final_wealth is invalid")
+        if not 0 <= float(metrics["max_drawdown"]) <= 1:
+            raise ValueError("matrix max_drawdown is invalid")
+        for field in (
+            "gross_turnover",
+            "annual_turnover",
+            "top1_concentration",
+            "top3_concentration",
+            "pnl_hhi",
+        ):
+            if float(metrics[field]) < 0:
+                raise ValueError(f"matrix metric is negative: {field}")
+    elif status in {"REPLAY_ERROR", "INSUFFICIENT_SAMPLE"}:
+        if (
+            metrics is not None
+            or not isinstance(error, Mapping)
+            or set(error) != {"class", "message"}
+            or not all(isinstance(value, str) and value for value in error.values())
+        ):
+            raise ValueError(f"{status} requires explicit error only")
+    else:
+        raise ValueError("matrix cell status is unknown")
+
+    provenance = cell.get("provenance")
+    if not isinstance(provenance, Mapping) or set(provenance) != _CELL_PROVENANCE_FIELDS:
+        raise ValueError("matrix cell provenance is incomplete")
+    repository = registry.get("repositories", {}).get(system)
+    if not isinstance(repository, Mapping):
+        raise ValueError("matrix system is absent from source registry")
+    _require_hash(
+        provenance.get("system_commit"),
+        field="system_commit",
+        pattern=_SHA40,
+        label="a 40-character SHA",
+    )
+    if provenance.get("system_commit") != repository.get("commit"):
+        raise ValueError("matrix cell commit differs from source registry")
+    for field in _CELL_PROVENANCE_FIELDS - {"system_commit"}:
+        _require_hash(
+            provenance.get(field), field=field, pattern=_SHA256, label="SHA-256"
+        )
+
+
+def _matrix_quantile(values: Sequence[float], probability: float) -> float:
+    ordered = sorted(values)
+    position = (len(ordered) - 1) * probability
+    lower = math.floor(position)
+    upper = math.ceil(position)
+    if lower == upper:
+        return ordered[lower]
+    fraction = position - lower
+    return ordered[lower] * (1 - fraction) + ordered[upper] * fraction
+
+
+def _matrix_aggregates(cells: Sequence[Mapping[str, Any]]) -> dict[str, Any]:
+    result: dict[str, Any] = {}
+    for system in REQUIRED_SYSTEMS:
+        result[system] = {}
+        for axis in ("official_pool", "generalization"):
+            group = [
+                item
+                for item in cells
+                if item["system"] == system and item["axis"] == axis
+            ]
+            success = [item for item in group if item["status"] == "SUCCESS"]
+            metric_summary: dict[str, Any] = {}
+            for field in REQUIRED_METRICS:
+                values = [float(item["metrics"][field]) for item in success]
+                if values:
+                    metric_summary[field] = {
+                        "min": min(values),
+                        "p10": _matrix_quantile(values, 0.10),
+                        "median": _matrix_quantile(values, 0.50),
+                        "p90": _matrix_quantile(values, 0.90),
+                        "max": max(values),
+                    }
+            result[system][axis] = {
+                "cells": len(group),
+                "success": len(success),
+                "replay_error": sum(
+                    item["status"] == "REPLAY_ERROR" for item in group
+                ),
+                "insufficient_sample": sum(
+                    item["status"] == "INSUFFICIENT_SAMPLE" for item in group
+                ),
+                "metrics": metric_summary,
+            }
+    return result
+
+
+def load_current_heads_matrix(
+    path: Path,
+    *,
+    contract_path: Path,
+    registry_path: Path,
+    adapter_path: Path | None = None,
+) -> dict[str, Any]:
+    """Load and independently read back the complete 1,056-cell matrix."""
+
+    contract = load_comparison_contract(contract_path)
+    registry = load_source_registry(registry_path, adapter_path=adapter_path)
+    payload = _load_hashed_payload(path)
+    expected_fields = {
+        "schema_version",
+        "contract_sha256",
+        "source_registry_sha256",
+        "adapter_sha256",
+        "data",
+        "runtimes",
+        "summary",
+        "aggregates",
+        "legacy_source_diagnostic",
+        "cells",
+        "payload_sha256",
+    }
+    if set(payload) != expected_fields or payload.get("schema_version") != 1:
+        raise ValueError("current-head matrix schema is incomplete or unsupported")
+    if payload.get("contract_sha256") != contract["payload_sha256"]:
+        raise ValueError("matrix comparison contract identity differs")
+    if payload.get("source_registry_sha256") != registry["payload_sha256"]:
+        raise ValueError("matrix source registry identity differs")
+    if adapter_path is not None:
+        observed_adapter = hashlib.sha256(adapter_path.read_bytes()).hexdigest()
+        if payload.get("adapter_sha256") != observed_adapter:
+            raise ValueError("matrix adapter identity differs")
+    data = payload.get("data")
+    if (
+        not isinstance(data, Mapping)
+        or set(data) != {"snapshot", "bounded_windows"}
+        or not isinstance(data["snapshot"], Mapping)
+        or not isinstance(data["bounded_windows"], Mapping)
+        or set(data["bounded_windows"]) != set(contract["windows"])
+    ):
+        raise ValueError("matrix bounded-data provenance is incomplete")
+    runtimes = payload.get("runtimes")
+    if (
+        not isinstance(runtimes, Mapping)
+        or set(runtimes) != set(REQUIRED_SYSTEMS)
+        or any(not isinstance(runtimes[name], Mapping) for name in REQUIRED_SYSTEMS)
+    ):
+        raise ValueError("matrix runtime provenance is incomplete")
+    uquant_runtimes = runtimes["uquant"]
+    if (
+        not isinstance(uquant_runtimes, Mapping)
+        or set(uquant_runtimes) != {"official", "generalization"}
+        or any(
+            not isinstance(uquant_runtimes[axis], Mapping)
+            for axis in ("official", "generalization")
+        )
+    ):
+        raise ValueError("uquant axis-specific runtime provenance is incomplete")
+    cells = payload.get("cells")
+    if not isinstance(cells, list) or len(cells) != contract["expected_cells"]["total"]:
+        raise ValueError("current-head matrix does not contain exactly 1,056 cells")
+    if any(not isinstance(cell, Mapping) for cell in cells):
+        raise ValueError("current-head matrix contains a malformed cell")
+    for cell in cells:
+        validate_matrix_cell(cell, contract=contract, registry=registry)
+        system_runtime = runtimes[cell["system"]]
+        if cell["system"] == "uquant":
+            system_runtime = system_runtime[
+                "official" if cell["axis"] == "official_pool" else "generalization"
+            ]
+        expected_runtime = canonical_sha256(system_runtime)
+        if cell["provenance"]["runtime_sha256"] != expected_runtime:
+            raise ValueError("matrix cell runtime differs from system runtime provenance")
+
+    identifiers = [str(cell["cell_id"]) for cell in cells]
+    if len(identifiers) != len(set(identifiers)):
+        raise ValueError("current-head matrix contains duplicate cell identities")
+    signatures_by_system: dict[str, set[tuple[Any, ...]]] = {}
+    for system in REQUIRED_SYSTEMS:
+        system_cells = [cell for cell in cells if cell["system"] == system]
+        official = [cell for cell in system_cells if cell["axis"] == "official_pool"]
+        generalization = [cell for cell in system_cells if cell["axis"] == "generalization"]
+        if len(system_cells) != 264 or len(official) != 30 or len(generalization) != 234:
+            raise ValueError(f"{system} matrix dimensions are incomplete")
+        expected_official = {
+            f"official_pool/{system}/{window}/{pool}"
+            for window in contract["windows"]
+            for pool in contract["official_pools"]
+        }
+        if {cell["cell_id"] for cell in official} != expected_official:
+            raise ValueError(f"{system} official matrix identities differ")
+        if sum(
+            cell["status"] == "INSUFFICIENT_SAMPLE" for cell in generalization
+        ) != 42:
+            raise ValueError(f"{system} insufficient-sample evidence count differs")
+        signatures_by_system[system] = {
+            (
+                cell["axis"],
+                cell["window"],
+                cell["start"],
+                cell["end"],
+                cell["name"],
+                cell["family"],
+                tuple(cell["symbols"]),
+            )
+            for cell in system_cells
+        }
+    reference = signatures_by_system[REQUIRED_SYSTEMS[0]]
+    if any(signatures_by_system[system] != reference for system in REQUIRED_SYSTEMS[1:]):
+        raise ValueError("systems do not share one identical preregistered request matrix")
+
+    summary = {
+        "cells": len(cells),
+        "success": sum(cell["status"] == "SUCCESS" for cell in cells),
+        "replay_error": sum(cell["status"] == "REPLAY_ERROR" for cell in cells),
+        "insufficient_sample": sum(
+            cell["status"] == "INSUFFICIENT_SAMPLE" for cell in cells
+        ),
+        "official_pool_cells": sum(cell["axis"] == "official_pool" for cell in cells),
+        "generalization_cells": sum(
+            cell["axis"] == "generalization" for cell in cells
+        ),
+    }
+    if payload.get("summary") != summary:
+        raise ValueError("matrix summary differs from its literal cells")
+    if payload.get("aggregates") != _matrix_aggregates(cells):
+        raise ValueError("matrix aggregates differ from their literal cells")
+    return payload
+
+
+def main(argv: Sequence[str] | None = None) -> int:
+    """Validate a committed current-HEAD matrix from an independent entry point."""
+
+    root = Path(__file__).resolve().parents[2]
+    parser = argparse.ArgumentParser(
+        prog="python -m uquant.validation.current_heads"
+    )
+    parser.add_argument(
+        "--matrix",
+        type=Path,
+        default=root / "benchmarks/current_heads_competitor_matrix.json",
+    )
+    parser.add_argument(
+        "--contract",
+        type=Path,
+        default=root / "benchmarks/current_heads_comparison_contract.json",
+    )
+    parser.add_argument(
+        "--source-registry",
+        type=Path,
+        default=root / "benchmarks/current_heads_source_registry.json",
+    )
+    parser.add_argument(
+        "--adapter",
+        type=Path,
+        default=root / "scripts/run_current_heads_competitor_matrix.py",
+    )
+    args = parser.parse_args(argv)
+    payload = load_current_heads_matrix(
+        args.matrix,
+        contract_path=args.contract,
+        registry_path=args.source_registry,
+        adapter_path=args.adapter,
+    )
+    print(json.dumps(payload["summary"], sort_keys=True))
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

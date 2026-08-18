@@ -355,7 +355,11 @@ def build_matrix_cell(
     if status not in MATRIX_STATUSES:
         raise ValueError("matrix status is unknown")
     if status == "SUCCESS":
-        if metrics is None or error is not None or tuple(metrics) != REQUIRED_METRICS:
+        if (
+            metrics is None
+            or error is not None
+            or set(metrics) != set(REQUIRED_METRICS)
+        ):
             raise ValueError("SUCCESS requires metrics and no error")
     elif metrics is not None or not isinstance(error, dict) or set(error) != {"class", "message"}:
         raise ValueError(f"{status} requires an explicit error and no metrics")
@@ -1024,8 +1028,14 @@ def assemble_matrix(
             ),
         ]
     }
+    phase2_runtime = phase2_raw.get("provenance", {}).get("runtime")
+    if not isinstance(phase2_runtime, dict):
+        raise ValueError("raw Phase 2 runtime provenance is missing")
     runtimes: dict[str, Any] = {
-        "uquant": raw_rows["uquant"][0]["runtime"],
+        "uquant": {
+            "official": raw_rows["uquant"][0]["runtime"],
+            "generalization": phase2_runtime,
+        },
     }
     for system in ("aquant", "qwenquant", "trade"):
         payload = json.loads((runtime_dir / f"{system}.json").read_text(encoding="utf-8"))
@@ -1095,7 +1105,11 @@ def assemble_matrix(
                         "system_commit": source["commit"],
                         "data_sha256": data_sha256,
                         "config_sha256": config_sha256,
-                        "runtime_sha256": canonical_sha256(runtimes[system]),
+                        "runtime_sha256": canonical_sha256(
+                            runtimes[system]["generalization"]
+                            if system == "uquant"
+                            else runtimes[system]
+                        ),
                         "evidence_sha256": canonical_sha256(
                             {"request": asdict(request), "error": error}
                         ),

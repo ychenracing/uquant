@@ -1,0 +1,10 @@
+{
+  "error_class": "ValueError",
+  "error_message": "matrix cell runtime differs from system runtime provenance",
+  "evidence_role": "preserved failed independent readback",
+  "first_divergence": "generalization/uquant/h1_2023/full",
+  "first_observed_runtime_sha256": "dcaf746b46ccdb04b537069fba7a862a9550bdc772b41cb6cb578bdc63d46d57",
+  "incorrect_top_level_runtime_sha256": "9454264fe136d1a5421a2f92f76655286b5048cf07e8826dfd6f57732ffb9311",
+  "resolution": "preserve and validate distinct uquant official and Phase 2 generalization runtime payloads by axis",
+  "schema_version": 1
+}

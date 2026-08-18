@@ -25,14 +25,14 @@ from ..account import load_account
 from ..atomic_io import atomic_write_text
 from ..config import config_fingerprint
 from ..engine import INDEX_SYMBOLS, ProductionEngine
-from ..execution_journal import (
+from ..leader import REFERENCE_UNIVERSE
+from ..types import Decision, Fill
+from .execution_journal import (
     JournalCheckpoint,
     JournalRecord,
     execution_journal_checkpoint,
     read_execution_journal,
 )
-from ..leader import REFERENCE_UNIVERSE
-from ..types import Decision, Fill
 from .generalization import symbol_pnl_concentration
 from .holdout import (
     FutureHoldoutContract,

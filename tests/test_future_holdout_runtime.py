@@ -17,7 +17,6 @@ import pytest
 from uquant.account import save_account
 from uquant.data import DataStore
 from uquant.engine import INDEX_SYMBOLS, code_fingerprint
-from uquant.execution_journal import append_planned
 from uquant.leader import REFERENCE_UNIVERSE
 from uquant.types import (
     AccountOrder,
@@ -29,6 +28,7 @@ from uquant.types import (
     derive_attribution_event_id,
 )
 from uquant.validation import holdout_runtime as holdout_runtime_module
+from uquant.validation.execution_journal import append_filled, append_planned
 from uquant.validation.holdout import (
     HOLDOUT_DATA_DIRECTORY,
     HOLDOUT_START,
@@ -588,6 +588,26 @@ def test_holdout_replay_reuses_the_prior_journal_checkpoint(
     )
     assert first["journal_checkpoint"]["sequence"] == 1
     assert (tmp_path / "artifacts/future_holdout_checkpoint.json").is_file()
+    append_filled(
+        journal,
+        plan_id="holdout-1",
+        recorded_at="2026-08-06T09:32:00+08:00",
+        next_open=10.1,
+        actual_time="2026-08-06T09:31:00+08:00",
+        actual_price=10.2,
+        actual_shares=100,
+        broker_order_id="manual-fill-1",
+    )
+    after_manual_fill = generate_future_holdout_replay(
+        repository_root=tmp_path,
+        account_path=account_path,
+        output_path=output,
+        decision_output_path=tmp_path / "artifacts/decision.json",
+        journal_path=journal,
+    )
+    assert after_manual_fill["journal_checkpoint"]["sequence"] == 2
+    assert after_manual_fill["decision_digests"] == first["decision_digests"]
+    assert after_manual_fill["decisions"] == first["decisions"]
     journal.write_text("", encoding="utf-8")
 
     with pytest.raises(ValueError, match="behind the trusted checkpoint"):

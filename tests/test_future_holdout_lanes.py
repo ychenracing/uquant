@@ -6,6 +6,7 @@ from pathlib import Path
 
 import pytest
 
+from uquant.validation.cli import main as validation_main
 from uquant.validation.holdout import SCORE_FIELDS, load_future_holdout_contract
 from uquant.validation.holdout_lanes import (
     HoldoutLane,
@@ -254,3 +255,11 @@ def test_tracked_validation_is_exact_empty_observation_report() -> None:
     )
 
     assert json.loads(VALIDATION.read_text(encoding="utf-8")) == expected
+
+
+def test_validation_cli_recomputes_tracked_lane_evidence(capsys: pytest.CaptureFixture[str]) -> None:
+    assert validation_main(["holdout-lanes"]) == 0
+    output = json.loads(capsys.readouterr().out)
+    assert output["observed_sessions"] == 0
+    assert output["lanes"][0]["next_milestone"] == 20
+    assert all(value is None for value in output["lanes"][0]["scores"].values())

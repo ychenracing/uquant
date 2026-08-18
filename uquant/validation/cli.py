@@ -93,14 +93,121 @@ def _parser() -> argparse.ArgumentParser:
         default=str(Path("benchmarks") / "competitor_matrix_reference.json"),
     )
     competitor.add_argument("--output", default=None)
+    holdout_lanes = sub.add_parser("holdout-lanes")
+    holdout_lanes.add_argument("--repository-root", default=".")
+    holdout_lanes.add_argument(
+        "--registry",
+        default=str(Path("benchmarks") / "future_holdout_lane_registry.json"),
+    )
+    holdout_lanes.add_argument(
+        "--evidence",
+        default=str(Path("artifacts") / "holdout" / "lane_validation.json"),
+    )
+    journal = sub.add_parser("holdout-journal")
+    journal_sub = journal.add_subparsers(dest="journal_action", required=True)
+    journal_plan = journal_sub.add_parser("planned")
+    journal_plan.add_argument("--journal", default="future_holdout_execution_journal.jsonl")
+    journal_plan.add_argument("--plan-id", required=True)
+    journal_plan.add_argument("--decision-date", required=True)
+    journal_plan.add_argument("--recorded-at", required=True)
+    journal_plan.add_argument("--symbol", required=True)
+    journal_plan.add_argument("--side", choices=("BUY", "SELL"), required=True)
+    journal_plan.add_argument("--planned-weight", type=float, required=True)
+    journal_plan.add_argument("--planned-price", type=float, required=True)
+    journal_plan.add_argument("--planned-shares", type=int, required=True)
+    journal_fill = journal_sub.add_parser("filled")
+    journal_fill.add_argument("--journal", default="future_holdout_execution_journal.jsonl")
+    journal_fill.add_argument("--plan-id", required=True)
+    journal_fill.add_argument("--recorded-at", required=True)
+    journal_fill.add_argument("--next-open", type=float, required=True)
+    journal_fill.add_argument("--actual-time", required=True)
+    journal_fill.add_argument("--actual-price", type=float, required=True)
+    journal_fill.add_argument("--actual-shares", type=int, required=True)
+    journal_fill.add_argument("--broker-order-id", required=True)
+    journal_skip = journal_sub.add_parser("skipped")
+    journal_skip.add_argument("--journal", default="future_holdout_execution_journal.jsonl")
+    journal_skip.add_argument("--plan-id", required=True)
+    journal_skip.add_argument("--recorded-at", required=True)
+    journal_skip.add_argument("--next-open", type=float, required=True)
+    journal_skip.add_argument("--manual-skip", required=True)
+    journal_report = journal_sub.add_parser("report")
+    journal_report.add_argument("--journal", default="future_holdout_execution_journal.jsonl")
     return parser
 
 
 def main(argv: list[str] | None = None) -> int:
     """Run one validation command and return a process-compatible status."""
     args = _parser().parse_args(argv)
+    if args.command == "holdout-journal":
+        from .execution_journal import (
+            append_filled,
+            append_planned,
+            append_skipped,
+            read_execution_journal,
+            record_to_dict,
+            render_execution_journal,
+        )
+
+        if args.journal_action == "planned":
+            record = append_planned(
+                args.journal,
+                plan_id=args.plan_id,
+                decision_date=args.decision_date,
+                recorded_at=args.recorded_at,
+                symbol=args.symbol,
+                side=args.side,
+                planned_weight=args.planned_weight,
+                planned_price=args.planned_price,
+                planned_shares=args.planned_shares,
+            )
+        elif args.journal_action == "filled":
+            record = append_filled(
+                args.journal,
+                plan_id=args.plan_id,
+                recorded_at=args.recorded_at,
+                next_open=args.next_open,
+                actual_time=args.actual_time,
+                actual_price=args.actual_price,
+                actual_shares=args.actual_shares,
+                broker_order_id=args.broker_order_id,
+            )
+        elif args.journal_action == "skipped":
+            record = append_skipped(
+                args.journal,
+                plan_id=args.plan_id,
+                recorded_at=args.recorded_at,
+                next_open=args.next_open,
+                manual_skip=args.manual_skip,
+            )
+        else:
+            print(render_execution_journal(read_execution_journal(args.journal)))
+            return 0
+        print(json.dumps(record_to_dict(record), ensure_ascii=False, sort_keys=True))
+        return 0
     if args.command == "data-manifest":
         report = verify_data_manifest(args.data_dir)
+    elif args.command == "holdout-lanes":
+        from .holdout import holdout_data_identity, load_future_holdout_contract
+        from .holdout_lanes import build_lane_validation_report, load_lane_registry
+
+        root = Path(args.repository_root).resolve()
+        contract = load_future_holdout_contract()
+        sessions, data_sha256 = holdout_data_identity(root / contract.data_directory)
+        report = build_lane_validation_report(
+            lanes=load_lane_registry(root / args.registry),
+            contract=contract,
+            observed_sessions=sessions,
+            holdout_data_sha256=data_sha256,
+        )
+        try:
+            tracked = json.loads(
+                (root / args.evidence).read_text(encoding="utf-8"),
+                object_pairs_hook=_reject_duplicate_keys,
+            )
+        except (OSError, UnicodeError, json.JSONDecodeError, ValueError) as exc:
+            raise RuntimeError("cannot read tracked future holdout lane evidence") from exc
+        if tracked != report:
+            raise RuntimeError("tracked future holdout lane evidence is stale")
     elif args.command == "promotion":
         report = run_promotion(
             data_dir=args.data_dir,
@@ -128,12 +235,14 @@ def main(argv: list[str] | None = None) -> int:
             window_names=tuple(args.window) if args.window is not None else None,
             lookback_sessions=args.lookback_sessions,
         )
-    else:
+    elif args.command == "competitor":
         reference = _require_reviewed_reference(args.reference, gate="competitor")
         report = run_competitor_gate(
             data_dir=args.data_dir,
             reference_path=reference,
         )
+    else:
+        raise AssertionError(f"unhandled validation command: {args.command}")
     if args.command == "generalization-matrix":
         payload = json.dumps(
             report,

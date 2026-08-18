@@ -19,7 +19,7 @@ from itertools import pairwise
 from multiprocessing import get_context
 from pathlib import Path
 from statistics import stdev
-from typing import Any
+from typing import Any, Literal
 
 import numpy as np
 import pandas as pd
@@ -658,6 +658,24 @@ def _execute_competitor_request(task: tuple[dict[str, Any], dict[str, str]]) -> 
         }
 
 
+def competitor_executor_policy(
+    system: str,
+) -> tuple[Literal["fork", "spawn"], int | None]:
+    """Return the process lifecycle required by each read-only competitor.
+
+    Aquant binds ``AQUANT_DATA_DIR`` and static calendars when its modules are
+    imported.  Reusing a process across window-bounded cells therefore leaks
+    the first cell's data root into later cells.  A fresh spawned process per
+    cell preserves the source unchanged while making every replay independent.
+    """
+
+    if system == "aquant":
+        return "spawn", 1
+    if system in {"qwenquant", "trade"}:
+        return "fork", None
+    raise ValueError("unknown competitor executor policy")
+
+
 def run_competitor_batch(
     *,
     system: str,
@@ -690,9 +708,11 @@ def run_competitor_batch(
     }
     tasks = [(asdict(item), paths) for item in requests]
     rows: list[dict[str, Any]] = []
+    start_method, max_tasks_per_child = competitor_executor_policy(system)
     with ProcessPoolExecutor(
         max_workers=workers,
-        mp_context=get_context("fork"),
+        mp_context=get_context(start_method),
+        max_tasks_per_child=max_tasks_per_child,
     ) as executor:
         futures = {executor.submit(_execute_competitor_request, task): task[0] for task in tasks}
         for index, future in enumerate(as_completed(futures), start=1):

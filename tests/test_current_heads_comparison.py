@@ -324,3 +324,9 @@ def test_status_cells_are_mutually_exclusive_and_errors_remain_explicit() -> Non
             error={"class": "RuntimeError", "message": "bad"},
             provenance=provenance,
         )
+
+
+def test_aquant_cells_use_fresh_spawned_processes() -> None:
+    assert runner.competitor_executor_policy("aquant") == ("spawn", 1)
+    assert runner.competitor_executor_policy("qwenquant") == ("fork", None)
+    assert runner.competitor_executor_policy("trade") == ("fork", None)

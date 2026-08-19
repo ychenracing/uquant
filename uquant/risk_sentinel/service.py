@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from collections.abc import Mapping
+from dataclasses import replace
 
 import pandas as pd
 
@@ -45,4 +46,14 @@ def evaluate_sentinel(
         leader_symbols=leader_symbols,
         capital_drawdown=capital_drawdown,
     )
-    return build_risk_opinion(evidence=evidence, coverage=coverage)
+    weakest = tuple(
+        item.industry
+        for item in sorted(
+            evidence.subindustries,
+            key=lambda item: (item.fast_return, item.industry),
+        )[:3]
+    )
+    return replace(
+        build_risk_opinion(evidence=evidence, coverage=coverage),
+        weakest_subindustries=weakest,
+    )

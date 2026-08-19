@@ -115,6 +115,55 @@ class CoverageHealth:
 
 
 @dataclass(frozen=True, slots=True)
+class SubindustryEvidence:
+    """Robust per-subindustry evidence before equal-group aggregation."""
+
+    industry: str
+    member_count: int
+    fast_return: float
+    downside_breadth: float
+    below_ma20: float
+    volatility_ratio: float
+
+    def __post_init__(self) -> None:
+        if not isinstance(self.industry, str) or not self.industry:
+            raise ValueError("subindustry name must be non-empty")
+        if (
+            isinstance(self.member_count, bool)
+            or not isinstance(self.member_count, int)
+            or self.member_count < 1
+        ):
+            raise ValueError("subindustry member_count must be positive")
+        for field in ("fast_return", "volatility_ratio"):
+            value = getattr(self, field)
+            if (
+                isinstance(value, bool)
+                or not isinstance(value, (int, float))
+                or not math.isfinite(float(value))
+            ):
+                raise ValueError(f"subindustry {field} must be finite")
+            object.__setattr__(self, field, float(value))
+        for field in ("downside_breadth", "below_ma20"):
+            object.__setattr__(
+                self,
+                field,
+                _unit_interval(getattr(self, field), label=f"subindustry {field}"),
+            )
+
+    def to_dict(self) -> dict[str, object]:
+        """Return deterministic JSON fields."""
+
+        return {
+            "industry": self.industry,
+            "member_count": self.member_count,
+            "fast_return": self.fast_return,
+            "downside_breadth": self.downside_breadth,
+            "below_ma20": self.below_ma20,
+            "volatility_ratio": self.volatility_ratio,
+        }
+
+
+@dataclass(frozen=True, slots=True)
 class SentinelAssessment:
     """One deterministic, observation-only Sentinel opinion."""
 

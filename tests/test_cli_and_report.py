@@ -8,7 +8,7 @@ from typing import Any
 
 import pytest
 
-from uquant.account import load_account, save_account
+from uquant.account import economic_state_sha256, load_account, save_account
 from uquant.attribution import build_economic_attribution
 from uquant.cli import main
 from uquant.report import render_daily_report, render_economic_attribution_report
@@ -254,6 +254,35 @@ def test_cli_explicit_account_migration(tmp_path: Path, capsys: Any) -> None:
     )
     assert load_account(account_path).account_migrations
     assert "schema_version" in capsys.readouterr().out
+
+
+def test_cli_explicit_code_identity_only_migration(
+    tmp_path: Path,
+    capsys: Any,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    account_path = tmp_path / "account.json"
+    before = _state(account_path)
+    before_sha = economic_state_sha256(before)
+    monkeypatch.setattr("uquant.cli.code_fingerprint", lambda: "phase-4-code")
+
+    assert (
+        main(
+            [
+                "account-code-migrate",
+                "--account",
+                str(account_path),
+                "--acknowledge-code-change",
+            ]
+        )
+        == 0
+    )
+
+    migrated = load_account(account_path)
+    assert migrated.code_hash == "phase-4-code"
+    assert economic_state_sha256(migrated) == before_sha
+    assert migrated.account_migrations[-1]["migration_type"] == "code_identity_only"
+    assert "economic_state_sha256" in capsys.readouterr().out
 
 
 def test_daily_report_output_cannot_overwrite_the_account(

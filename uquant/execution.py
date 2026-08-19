@@ -469,8 +469,10 @@ def _reconcile_account_orders_mutating(
     previous: list[PendingOrder],
     current: tuple[PendingOrder, ...],
     submitted_date: str,
+    removed_buy_reason: str | None = None,
 ) -> tuple[PendingOrder, ...]:
     """Persist submissions and cancel/replace transitions without counting fills."""
+    preexisting_ids = {order.order_id for order in account.order_ledger}
     for order in previous:
         _register_account_order(
             account,
@@ -494,9 +496,30 @@ def _reconcile_account_orders_mutating(
         }:
             continue
         replacement = current_by_symbol.get(order.symbol)
+        sentinel_cancel_request = bool(
+            removed_buy_reason is not None
+            and order.side == Side.BUY.value
+            and replacement is None
+        )
+        if sentinel_cancel_request and order.order_id in preexisting_ids:
+            # A broker-visible order remains authoritative until the next
+            # snapshot confirms cancellation or reports a final fill. Removing
+            # the local continuation intent prevents further risk while this
+            # audit marker records the outstanding external action.
+            assert removed_buy_reason is not None
+            entry.cancel_reason = removed_buy_reason
+            entry.last_update_date = submitted_date
+            entry.last_event = "CANCEL_REQUESTED"
+            continue
         entry.status = OrderStatus.REPLACED.value if replacement is not None else OrderStatus.CANCELLED.value
         entry.replaced_by = replacement.order_id if replacement is not None else ""
-        entry.cancel_reason = "daily target changed" if replacement is not None else "daily target removed"
+        if replacement is not None:
+            entry.cancel_reason = "daily target changed"
+        elif sentinel_cancel_request:
+            assert removed_buy_reason is not None
+            entry.cancel_reason = removed_buy_reason
+        else:
+            entry.cancel_reason = "daily target removed"
         entry.last_update_date = submitted_date
         entry.last_event = entry.status
     return current
@@ -541,8 +564,12 @@ def reconcile_account_orders(
     previous: list[PendingOrder],
     current: tuple[PendingOrder, ...],
     submitted_date: str,
+    removed_buy_reason: str | None = None,
 ) -> tuple[PendingOrder, ...]:
     """Reconcile one all-or-nothing batch against a shadow ledger."""
+
+    if removed_buy_reason is not None and not removed_buy_reason:
+        raise ValueError("removed buy reason must be non-empty")
 
     _preflight_reconciliation_batch(previous=previous, current=current)
     shadow_account = deepcopy(account)
@@ -552,6 +579,7 @@ def reconcile_account_orders(
         previous=shadow_previous,
         current=shadow_current,
         submitted_date=submitted_date,
+        removed_buy_reason=removed_buy_reason,
     )
 
     original_ledger = {order.order_id: order for order in account.order_ledger}

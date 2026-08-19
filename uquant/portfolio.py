@@ -520,11 +520,27 @@ class PortfolioAllocator(RecoveryPortfolioPolicy):
         prices: dict[str, float],
     ) -> tuple[Target, ...]:
         """Apply the risk engine's gross cap to every strategy return path."""
+        sentinel_only_freeze = bool(
+            risk.evidence.get("sentinel_freeze_new_risk", False)
+            and not risk.evidence.get("base_freeze_new_risk", False)
+        )
+        strategy_risk = risk
+        if sentinel_only_freeze:
+            strategy_evidence = {
+                **risk.evidence,
+                "sentinel_freeze_new_risk": False,
+                "freeze_new_risk": False,
+            }
+            strategy_risk = replace(
+                risk,
+                evidence=strategy_evidence,
+                freeze_new_risk=False,
+            )
         try:
             targets = self._allocate_strategy(
                 date=date,
                 opportunity=opportunity,
-                risk=risk,
+                risk=strategy_risk,
                 user_panel=user_panel,
                 leaders=leaders,
                 account=account,
@@ -535,6 +551,14 @@ class PortfolioAllocator(RecoveryPortfolioPolicy):
                 f"portfolio allocation failed on {date.date()} "
                 f"for opportunity={opportunity.value}, risk={risk.state.value}: {exc}"
             ) from exc
+        if sentinel_only_freeze:
+            weights_now, _ = current_weights(account, prices)
+            targets = self._frozen_existing_targets(
+                strategy_targets=targets,
+                leaders=leaders,
+                account=account,
+                weights_now=weights_now,
+            )
         gross_cap = min(self.cfg.max_gross, max(0.0, risk.target_gross_cap))
         risk_reason, risk_reason_code, risk_exit_kind = self._risk_reduction_metadata(risk)
         target_gross = sum(item.weight for item in targets if item.weight > 0)
@@ -616,6 +640,12 @@ class PortfolioAllocator(RecoveryPortfolioPolicy):
         marked weight.
         """
         proposed_by_symbol = {target.symbol: target for target in strategy_targets or ()}
+        replacement_sources = {
+            target.replaces_symbol
+            for target in strategy_targets or ()
+            if target.replaces_symbol is not None
+            and target.weight > weights_now.get(target.symbol, 0.0) + 1e-12
+        }
         frozen: list[Target] = []
         for symbol in sorted(account.positions):
             position = account.positions[symbol]
@@ -656,7 +686,11 @@ class PortfolioAllocator(RecoveryPortfolioPolicy):
                 )
                 continue
             strategy_target = proposed_by_symbol.get(symbol)
-            if strategy_target is not None and strategy_target.weight + 1e-12 < current_weight:
+            if (
+                strategy_target is not None
+                and strategy_target.weight + 1e-12 < current_weight
+                and symbol not in replacement_sources
+            ):
                 frozen.append(strategy_target)
                 continue
             score = leaders.get(symbol)

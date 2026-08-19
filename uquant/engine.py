@@ -542,6 +542,11 @@ class ProductionEngine:
             previous=previous_orders,
             current=orders,
             submitted_date=str(date.date()),
+            removed_buy_reason=(
+                "sentinel_freeze_new_risk"
+                if risk.evidence.get("sentinel_freeze_new_risk", False)
+                else None
+            ),
         )
         account.last_successful_run = str(date.date())
         account.data_hash = data_digest

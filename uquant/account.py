@@ -2349,6 +2349,65 @@ def _migrate_v4_attribution_event_ids(state: AccountState) -> dict[str, Any]:
     }
 
 
+def economic_state_sha256(state: AccountState) -> str:
+    """Hash every durable economic field while excluding code-only audit data."""
+
+    if not isinstance(state, AccountState):
+        raise ValueError("economic state hash requires AccountState")
+    payload = state.to_dict()
+    payload.pop("code_hash", None)
+    payload.pop("account_migrations", None)
+    encoded = json.dumps(
+        payload,
+        allow_nan=False,
+        ensure_ascii=False,
+        separators=(",", ":"),
+        sort_keys=True,
+    ).encode("utf-8")
+    return hashlib.sha256(encoded).hexdigest()
+
+
+def migrate_code_identity(
+    source: str | Path,
+    destination: str | Path,
+    *,
+    new_code_hash: str,
+    acknowledge_code_change: bool,
+) -> AccountState:
+    """Rebind a current account to reviewed code without economic mutation."""
+
+    if not acknowledge_code_change:
+        raise RuntimeError("account migration requires --acknowledge-code-change")
+    if not isinstance(new_code_hash, str) or not new_code_hash.strip():
+        raise RuntimeError("account migration requires a non-empty code hash")
+    state = load_account(source)
+    if state.code_hash == new_code_hash:
+        raise RuntimeError("account already uses the requested code hash")
+    before = economic_state_sha256(state)
+    previous_code_hash = state.code_hash
+    state.code_hash = new_code_hash
+    after = economic_state_sha256(state)
+    if after != before:
+        raise RuntimeError("code identity migration changed economic state")
+    state.account_migrations.append(
+        {
+            "migration_type": "code_identity_only",
+            "migrated_at_utc": datetime.now(UTC).isoformat(),
+            "from_schema": state.schema_version,
+            "to_schema": state.schema_version,
+            "from_code_hash": previous_code_hash,
+            "to_code_hash": new_code_hash,
+            "economic_state_sha256_before": before,
+            "economic_state_sha256_after": after,
+        }
+    )
+    save_account(state, destination)
+    persisted = load_account(destination)
+    if economic_state_sha256(persisted) != before:
+        raise RuntimeError("persisted code identity migration changed economic state")
+    return persisted
+
+
 def migrate_account(
     source: str | Path,
     destination: str | Path,

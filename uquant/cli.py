@@ -6,7 +6,13 @@ import argparse
 import json
 from pathlib import Path
 
-from .account import load_account, migrate_account, save_account
+from .account import (
+    economic_state_sha256,
+    load_account,
+    migrate_account,
+    migrate_code_identity,
+    save_account,
+)
 from .atomic_io import atomic_write_text, validate_atomic_output_boundary
 from .broker import sync_broker_snapshot
 from .config import DEFAULT_CONFIG
@@ -59,6 +65,18 @@ def _parser() -> argparse.ArgumentParser:
         "--acknowledge-code-change",
         action="store_true",
         help="confirm that the reviewed production code fingerprint becomes authoritative",
+    )
+    code_migrate = sub.add_parser("account-code-migrate")
+    code_migrate.add_argument("--account", required=True)
+    code_migrate.add_argument(
+        "--output",
+        default=None,
+        help="destination account file (defaults to atomic in-place migration)",
+    )
+    code_migrate.add_argument(
+        "--acknowledge-code-change",
+        action="store_true",
+        help="confirm a code-identity-only migration with no economic-state changes",
     )
     backtest = sub.add_parser("backtest")
     backtest.add_argument("--symbols", nargs="+", required=True)
@@ -187,6 +205,27 @@ def main(argv: list[str] | None = None) -> int:
                     "account": destination,
                     "schema_version": state.schema_version,
                     "code_hash": state.code_hash,
+                },
+                ensure_ascii=False,
+                sort_keys=True,
+            )
+        )
+        return 0
+    if args.command == "account-code-migrate":
+        destination = args.output or args.account
+        state = migrate_code_identity(
+            args.account,
+            destination,
+            new_code_hash=code_fingerprint(),
+            acknowledge_code_change=args.acknowledge_code_change,
+        )
+        print(
+            json.dumps(
+                {
+                    "account": destination,
+                    "schema_version": state.schema_version,
+                    "code_hash": state.code_hash,
+                    "economic_state_sha256": economic_state_sha256(state),
                 },
                 ensure_ascii=False,
                 sort_keys=True,

@@ -10,6 +10,85 @@ from .execution_journal import JournalRecord, JournalStatus
 from .types import AccountState, Decision
 
 
+def _sentinel_values(value: object, *, limit: int = 3) -> tuple[str, ...]:
+    if not isinstance(value, (list, tuple)):
+        return ()
+    return tuple(str(item) for item in value[:limit] if str(item))
+
+
+def _family_dates(value: object) -> str:
+    if not isinstance(value, Mapping):
+        return "NONE"
+    rows = [f"{key}={value[key]}" for key in sorted(value) if value[key] is not None]
+    return ", ".join(rows) if rows else "NONE"
+
+
+def _risk_sentinel_section(summary: Mapping[str, Any]) -> list[str]:
+    coverage = str(summary.get("sentinel_causal_coverage_status", "NOT_READY"))
+    base_freeze = bool(
+        summary.get("base_freeze_new_risk", summary.get("freeze_new_risk", False))
+    )
+    sentinel_freeze = bool(summary.get("sentinel_freeze_new_risk", False))
+    if coverage != "READY":
+        owner = "DATA_NOT_READY"
+    elif base_freeze and sentinel_freeze:
+        owner = "BOTH"
+    elif base_freeze:
+        owner = "BASE_RISK"
+    elif sentinel_freeze:
+        owner = "SENTINEL"
+    else:
+        owner = "NONE"
+    freeze = bool(summary.get("freeze_new_risk", base_freeze or sentinel_freeze))
+    assessment = summary.get("sentinel_assessment")
+    observed = summary.get("sentinel_causal_observed_level", "NOT_READY")
+    if isinstance(assessment, Mapping):
+        observed = assessment.get("level", observed)
+    trusted = bool(summary.get("sentinel_causal_confirmation_history_trusted", False))
+    incremental = _sentinel_values(
+        summary.get("sentinel_causal_incremental_families")
+    )
+    earlier = _sentinel_values(summary.get("sentinel_causal_earlier_families"))
+    weakest = _sentinel_values(
+        summary.get("sentinel_causal_weakest_subindustries")
+    )
+    reasons = _sentinel_values(summary.get("sentinel_causal_reasons"))
+    if owner == "DATA_NOT_READY":
+        manual = "verify missing or stale market data; do not infer safety."
+    elif freeze:
+        manual = "do not open, add, rotate, or start new Recovery."
+    elif str(observed) not in {"NORMAL", "NOT_READY"}:
+        manual = "observe only; production authority remains unchanged."
+    else:
+        manual = "follow the existing Daily Report orders only."
+    return [
+        "## Risk Sentinel",
+        "",
+        f"- Mode: {summary.get('sentinel_mode', 'FREEZE_ONLY')}",
+        "- Observed / causal level: "
+        f"{observed} / {summary.get('sentinel_causal_effective_level', 'NORMAL')}",
+        "- Coverage / confidence: "
+        f"{coverage} / {float(summary.get('sentinel_causal_confidence', 0.0)):.1%}",
+        "- Confirmation: "
+        + ("TRUSTED" if trusted else "UNTRUSTED")
+        + f"; confirm={int(summary.get('sentinel_causal_confirmation_days', 0))}; "
+        f"repair={int(summary.get('sentinel_causal_repair_days', 0))}",
+        f"- Freeze Owner: **{owner}**",
+        f"- New Risk Allowed: **{'NO' if freeze else 'YES'}**",
+        "- Incremental / earlier families: "
+        f"{', '.join(incremental) or 'NONE'} / {', '.join(earlier) or 'NONE'}",
+        "- First family dates: Base["
+        + _family_dates(summary.get("base_first_family_dates"))
+        + "]; Sentinel["
+        + _family_dates(summary.get("sentinel_first_family_dates"))
+        + "]",
+        f"- Weakest subindustries: {', '.join(weakest) or 'NONE'}",
+        f"- Reasons: {'; '.join(reasons) or 'NONE'}",
+        f"- Manual action: {manual}",
+        "",
+    ]
+
+
 def render_execution_journal(records: tuple[JournalRecord, ...]) -> str:
     """Render observational execution events without deriving strategy intent."""
 
@@ -207,6 +286,7 @@ def render_daily_report(decision: Decision, account: AccountState) -> str:
         f"Factor Profile: **{decision.risk_summary.get('factor_profile', 'CHOPPY')}**  ",
         f"Strategic Epoch: **{decision.risk_summary.get('strategic_epoch', 0)}**",
         "",
+        *_risk_sentinel_section(decision.risk_summary),
         "## Targets",
         "",
         "| Symbol | Action | Target | Lifecycle | Reason |",

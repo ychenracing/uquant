@@ -584,6 +584,21 @@ class ProductionEngine:
                     if latest_causal is not None
                     else 0.0
                 ),
+                "sentinel_causal_observed_level": (
+                    latest_causal.level.value
+                    if latest_causal is not None
+                    else "NOT_READY"
+                ),
+                "sentinel_causal_active_families": (
+                    list(latest_causal.active_families)
+                    if latest_causal is not None
+                    else []
+                ),
+                "sentinel_causal_reasons": (
+                    list(latest_causal.reasons)
+                    if latest_causal is not None
+                    else ["causal market history is not ready"]
+                ),
                 "sentinel_causal_weakest_subindustries": (
                     list(latest_causal.weakest_subindustries)
                     if latest_causal is not None

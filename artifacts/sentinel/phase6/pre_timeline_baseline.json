@@ -1,0 +1,54 @@
+{
+  "contract_id": "risk-sentinel-phase6-pre-timeline-v1",
+  "counts": {
+    "decisions": 118,
+    "fills": 8,
+    "order_ledger": 8,
+    "pending_order_intents": 8,
+    "pending_orders": 0,
+    "targets": 318
+  },
+  "fixture": {
+    "case": "a/h1_2024",
+    "end": "2024-07-01",
+    "start": "2024-01-02",
+    "symbols": [
+      "sz300308",
+      "sz300502",
+      "sz300394"
+    ]
+  },
+  "hashes": {
+    "canonical_decisions_sha256": "719998185545006f86c0ffcf3f90f29a9524ac4cc4bbed4e883fe42a3e906359",
+    "decision_digests_sha256": "93ef9e3e20af747a374ec0ecec565838cf4c0cade1c51a7ae8752bff39fed636",
+    "economic_account_sha256": "4d57b9da0458c33f16e98ab2c9d2a6003607ea11a46b161f0022af5c71b697a4",
+    "fills_sha256": "b3e3cf06478d4ca1267093c1c3cdc080e6e8a9ec9b8ad050c19a2df5f02abf06",
+    "order_ledger_sha256": "b88b43ff47c58fcd4c1ff543ce478926c63a6597f54872c3efe3468bd94756de",
+    "pending_order_intents_sha256": "62ec80d82b99f3eda6e2c8fba8bfd05e16e5108c74b3c7b7b1c292cae6100dde",
+    "pending_orders_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+    "risk_controls_sha256": "c437e1996b49619e976520a04584e4c8606f92ab5a56df21a035133702ba7c2a",
+    "targets_and_event_ids_sha256": "2edf44a9eaf4c4c082a757c3162c412558a8a34236eaa580971a497c849d336d"
+  },
+  "metrics": {
+    "account_orders": 8,
+    "acute_return": 0.06390679898215934,
+    "annual_turnover": 4.204869685406779,
+    "final_wealth": 1.9042531401193852,
+    "gross_turnover": 2.0503083589999997,
+    "max_drawdown": 0.156742775678121
+  },
+  "production": {
+    "code_fingerprint": "1e000f0cdb303ed71c07198636e70fe88c4210767f74128b2f57512575f102ed",
+    "effective_config_sha256": "dae4d79fdd813832c6ab152611437c13be1d38227c7280691874d3a9267d93d5",
+    "head": "b4717a65f1658d9ff2311362d1ad49d490d13a5d",
+    "tree": "b57ef25eace449a839006527b3b93c905970c3ab"
+  },
+  "schema_version": 1,
+  "verification": {
+    "phase1_sha256": "91c9eb98409ecf8262fed553aec7521c2bb3c1f0d64d1e1abc9e71cf1a8d56bf",
+    "phase1_source": "artifacts/sentinel/freeze_only/phase1_freeze_only_promotion.json",
+    "phase2_sha256": "15a3dd17e0b9be18497db00acb71ea7add7df5ed118e1042e36dc27fe0b3e680",
+    "phase2_source": "artifacts/sentinel/freeze_only/generalization_freeze_only_summary.json",
+    "pytest": "1403 passed in 1021.34s"
+  }
+}

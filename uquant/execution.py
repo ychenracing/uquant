@@ -506,7 +506,8 @@ def _reconcile_account_orders_mutating(
             # snapshot confirms cancellation or reports a final fill. Removing
             # the local continuation intent prevents further risk while this
             # audit marker records the outstanding external action.
-            assert removed_buy_reason is not None
+            if removed_buy_reason is None:
+                raise RuntimeError("Sentinel cancellation reason disappeared")
             entry.cancel_reason = removed_buy_reason
             entry.last_update_date = submitted_date
             entry.last_event = "CANCEL_REQUESTED"
@@ -516,7 +517,8 @@ def _reconcile_account_orders_mutating(
         if replacement is not None:
             entry.cancel_reason = "daily target changed"
         elif sentinel_cancel_request:
-            assert removed_buy_reason is not None
+            if removed_buy_reason is None:
+                raise RuntimeError("Sentinel cancellation reason disappeared")
             entry.cancel_reason = removed_buy_reason
         else:
             entry.cancel_reason = "daily target removed"

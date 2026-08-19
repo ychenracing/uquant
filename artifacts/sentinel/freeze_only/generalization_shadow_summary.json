@@ -1,0 +1,42 @@
+{
+  "schema_version": 1,
+  "mode": "SHADOW",
+  "passed": true,
+  "failures": [],
+  "cells": {
+    "total": 234,
+    "full": 6,
+    "industry_balanced": 6,
+    "random": 120,
+    "remove_all_core": 6,
+    "remove_one": 18,
+    "subindustry": 72,
+    "tradable_no_optical": 6
+  },
+  "all": {
+    "economic_cells_expected": 192,
+    "economic_cells_valid": 192,
+    "replay_error_cells": 0,
+    "median_wealth": 1.1151492647234051,
+    "p10_wealth": 0.9936017483997773,
+    "p90_drawdown": 0.21151575819020615,
+    "worst_wealth": 0.7932770869722039,
+    "worst_drawdown": 0.2825468776869108
+  },
+  "random": {
+    "count": 120,
+    "minimum_wealth": 0.8310192035788272,
+    "p10_wealth_nearest_rank": 0.9982387916180984,
+    "median_wealth_nearest_rank": 1.1151492647234051,
+    "p90_drawdown_nearest_rank": 0.21176660815745507,
+    "maximum_drawdown": 0.2825468776869108
+  },
+  "provenance": {
+    "local_commit": "ad8545ca725a303f8d0e7efe6c5d04614749c161",
+    "effective_config_sha256": "61d2392401a64b48353efe9d3ae302988525e70bcb7a9e0fc4e329739dfebe72",
+    "data_manifest_sha256": "343009138d22f8d4a20768f706207fe4d4bcd03581b0c5945c5485ecbd28788d",
+    "scenario_fingerprint": "debe233bfc80c98ec37f7becfa13a37efb462bdf695d3822d077250841b0cd2a",
+    "evidence_fingerprint": "2a9696d4ed914ea0081a7b2bb0cd8b02a52622acdfed7d35863150544327d8a0",
+    "raw_artifact_sha256": "213868e52fbffb31aba0218db67ad6ba2a881c66530e7214af00c89d7f68da00"
+  }
+}

@@ -1,0 +1,552 @@
+{
+  "cells": {
+    "a/bull_crash_2025_2026": {
+      "account_orders": 10,
+      "acute_return": 0.0,
+      "annual_turnover": 12.683909636237434,
+      "cagr": 4.1190860963869085,
+      "calmar": 25.130079207890116,
+      "final_wealth": 13.166460741078918,
+      "gross_turnover": 20.02170859935,
+      "max_drawdown": 0.16391058946975523,
+      "sharpe": 3.2550056075419906
+    },
+    "a/continuous_ai_era": {
+      "account_orders": 12,
+      "acute_return": 0.0,
+      "annual_turnover": 8.617420330729114,
+      "cagr": 1.4372723602623085,
+      "calmar": 5.294411102556627,
+      "final_wealth": 24.509661802900865,
+      "gross_turnover": 30.944373005800003,
+      "max_drawdown": 0.27146973146234554,
+      "sharpe": 2.23560874667324
+    },
+    "a/h1_2023": {
+      "account_orders": 2,
+      "acute_return": 0.11715608847564862,
+      "annual_turnover": 3.7108136809830508,
+      "cagr": 23.565045289997638,
+      "calmar": 163.1186219210871,
+      "final_wealth": 4.76347009227032,
+      "gross_turnover": 1.8094050179999999,
+      "max_drawdown": 0.14446569626733263,
+      "sharpe": 4.773335826774018
+    },
+    "a/h1_2024": {
+      "account_orders": 8,
+      "acute_return": 0.06390679898215934,
+      "annual_turnover": 4.204869685406779,
+      "cagr": 2.7469047209345923,
+      "calmar": 17.524920743878468,
+      "final_wealth": 1.9042531401193852,
+      "gross_turnover": 2.0503083589999997,
+      "max_drawdown": 0.156742775678121,
+      "sharpe": 2.428413460779033
+    },
+    "a/h2_2023": {
+      "account_orders": 4,
+      "acute_return": 0.0,
+      "annual_turnover": 2.175597516701613,
+      "cagr": 0.19150572463382676,
+      "calmar": 1.4762920225050573,
+      "final_wealth": 1.0939347216708701,
+      "gross_turnover": 1.1147689754999999,
+      "max_drawdown": 0.1297207610110016,
+      "sharpe": 0.8759055361286745
+    },
+    "a/h2_2024": {
+      "account_orders": 2,
+      "acute_return": 0.046108107936000176,
+      "annual_turnover": 2.4105832960000004,
+      "cagr": 0.09118964471141866,
+      "calmar": 10.260718832324557,
+      "final_wealth": 1.0461081079360002,
+      "gross_turnover": 1.245136,
+      "max_drawdown": 0.008887256945794286,
+      "sharpe": 2.2616193724545277
+    },
+    "b/bull_crash_2025_2026": {
+      "account_orders": 9,
+      "acute_return": 0.0,
+      "annual_turnover": 10.312967113050522,
+      "cagr": 4.05981729945408,
+      "calmar": 22.707378094235185,
+      "final_wealth": 12.92663740360599,
+      "gross_turnover": 16.27914643465,
+      "max_drawdown": 0.17878846613668542,
+      "sharpe": 3.2252177519574694
+    },
+    "b/continuous_ai_era": {
+      "account_orders": 12,
+      "acute_return": 0.0,
+      "annual_turnover": 8.617420330729114,
+      "cagr": 1.4372723602623085,
+      "calmar": 5.294411102556627,
+      "final_wealth": 24.509661802900865,
+      "gross_turnover": 30.944373005800003,
+      "max_drawdown": 0.27146973146234554,
+      "sharpe": 2.23560874667324
+    },
+    "b/h1_2023": {
+      "account_orders": 2,
+      "acute_return": 0.11715608847564862,
+      "annual_turnover": 3.7108136809830508,
+      "cagr": 23.565045289997638,
+      "calmar": 163.1186219210871,
+      "final_wealth": 4.76347009227032,
+      "gross_turnover": 1.8094050179999999,
+      "max_drawdown": 0.14446569626733263,
+      "sharpe": 4.773335826774018
+    },
+    "b/h1_2024": {
+      "account_orders": 8,
+      "acute_return": 0.06390679898215934,
+      "annual_turnover": 4.204869685406779,
+      "cagr": 2.7469047209345923,
+      "calmar": 17.524920743878468,
+      "final_wealth": 1.9042531401193852,
+      "gross_turnover": 2.0503083589999997,
+      "max_drawdown": 0.156742775678121,
+      "sharpe": 2.428413460779033
+    },
+    "b/h2_2023": {
+      "account_orders": 4,
+      "acute_return": 0.0,
+      "annual_turnover": 2.175597516701613,
+      "cagr": 0.19150572463382676,
+      "calmar": 1.4762920225050573,
+      "final_wealth": 1.0939347216708701,
+      "gross_turnover": 1.1147689754999999,
+      "max_drawdown": 0.1297207610110016,
+      "sharpe": 0.8759055361286745
+    },
+    "b/h2_2024": {
+      "account_orders": 2,
+      "acute_return": 0.046108107936000176,
+      "annual_turnover": 2.4105832960000004,
+      "cagr": 0.09118964471141866,
+      "calmar": 10.260718832324557,
+      "final_wealth": 1.0461081079360002,
+      "gross_turnover": 1.245136,
+      "max_drawdown": 0.008887256945794286,
+      "sharpe": 2.2616193724545277
+    },
+    "c/bull_crash_2025_2026": {
+      "account_orders": 9,
+      "acute_return": 0.0,
+      "annual_turnover": 10.312967113050522,
+      "cagr": 4.05981729945408,
+      "calmar": 22.707378094235185,
+      "final_wealth": 12.92663740360599,
+      "gross_turnover": 16.27914643465,
+      "max_drawdown": 0.17878846613668542,
+      "sharpe": 3.2252177519574694
+    },
+    "c/continuous_ai_era": {
+      "account_orders": 12,
+      "acute_return": 0.0,
+      "annual_turnover": 8.617420330729114,
+      "cagr": 1.4372723602623085,
+      "calmar": 5.294411102556627,
+      "final_wealth": 24.509661802900865,
+      "gross_turnover": 30.944373005800003,
+      "max_drawdown": 0.27146973146234554,
+      "sharpe": 2.23560874667324
+    },
+    "c/h1_2023": {
+      "account_orders": 2,
+      "acute_return": 0.11715608847564862,
+      "annual_turnover": 3.7108136809830508,
+      "cagr": 23.565045289997638,
+      "calmar": 163.1186219210871,
+      "final_wealth": 4.76347009227032,
+      "gross_turnover": 1.8094050179999999,
+      "max_drawdown": 0.14446569626733263,
+      "sharpe": 4.773335826774018
+    },
+    "c/h1_2024": {
+      "account_orders": 8,
+      "acute_return": 0.06390679898215934,
+      "annual_turnover": 4.204869685406779,
+      "cagr": 2.7469047209345923,
+      "calmar": 17.524920743878468,
+      "final_wealth": 1.9042531401193852,
+      "gross_turnover": 2.0503083589999997,
+      "max_drawdown": 0.156742775678121,
+      "sharpe": 2.428413460779033
+    },
+    "c/h2_2023": {
+      "account_orders": 4,
+      "acute_return": 0.0,
+      "annual_turnover": 2.175597516701613,
+      "cagr": 0.19150572463382676,
+      "calmar": 1.4762920225050573,
+      "final_wealth": 1.0939347216708701,
+      "gross_turnover": 1.1147689754999999,
+      "max_drawdown": 0.1297207610110016,
+      "sharpe": 0.8759055361286745
+    },
+    "c/h2_2024": {
+      "account_orders": 2,
+      "acute_return": 0.046108107936000176,
+      "annual_turnover": 2.4105832960000004,
+      "cagr": 0.09118964471141866,
+      "calmar": 10.260718832324557,
+      "final_wealth": 1.0461081079360002,
+      "gross_turnover": 1.245136,
+      "max_drawdown": 0.008887256945794286,
+      "sharpe": 2.2616193724545277
+    },
+    "d/bull_crash_2025_2026": {
+      "account_orders": 22,
+      "acute_return": 0.0,
+      "annual_turnover": 12.158624469845025,
+      "cagr": 3.2726674179401156,
+      "calmar": 11.743199405234513,
+      "final_wealth": 9.898430324246553,
+      "gross_turnover": 19.1925394524,
+      "max_drawdown": 0.2786861829563525,
+      "sharpe": 2.7789456863029307
+    },
+    "d/continuous_ai_era": {
+      "account_orders": 12,
+      "acute_return": 0.0,
+      "annual_turnover": 8.617420330729114,
+      "cagr": 1.4372723602623085,
+      "calmar": 5.294411102556627,
+      "final_wealth": 24.509661802900865,
+      "gross_turnover": 30.944373005800003,
+      "max_drawdown": 0.27146973146234554,
+      "sharpe": 2.23560874667324
+    },
+    "d/h1_2023": {
+      "account_orders": 2,
+      "acute_return": 0.11715608847564862,
+      "annual_turnover": 3.7108136809830508,
+      "cagr": 23.565045289997638,
+      "calmar": 163.1186219210871,
+      "final_wealth": 4.76347009227032,
+      "gross_turnover": 1.8094050179999999,
+      "max_drawdown": 0.14446569626733263,
+      "sharpe": 4.773335826774018
+    },
+    "d/h1_2024": {
+      "account_orders": 8,
+      "acute_return": 0.06390679898215934,
+      "annual_turnover": 4.204869685406779,
+      "cagr": 2.7469047209345923,
+      "calmar": 17.524920743878468,
+      "final_wealth": 1.9042531401193852,
+      "gross_turnover": 2.0503083589999997,
+      "max_drawdown": 0.156742775678121,
+      "sharpe": 2.428413460779033
+    },
+    "d/h2_2023": {
+      "account_orders": 6,
+      "acute_return": -0.0650937403038,
+      "annual_turnover": 3.64479577558871,
+      "cagr": 0.09701497094306921,
+      "calmar": 0.7146327761121812,
+      "final_wealth": 1.0485877503340604,
+      "gross_turnover": 1.8675813065,
+      "max_drawdown": 0.135754997791817,
+      "sharpe": 0.5028774635789014
+    },
+    "d/h2_2024": {
+      "account_orders": 10,
+      "acute_return": 0.046108107936000176,
+      "annual_turnover": 5.748331486348001,
+      "cagr": 1.8609527659943996,
+      "calmar": 22.254466291428525,
+      "final_wealth": 1.7210796718424954,
+      "gross_turnover": 2.9691794867500003,
+      "max_drawdown": 0.08362154102572927,
+      "sharpe": 2.8414998935063207
+    },
+    "e/bull_crash_2025_2026": {
+      "account_orders": 12,
+      "acute_return": 0.0,
+      "annual_turnover": 13.449323299304188,
+      "cagr": 4.558480972167717,
+      "calmar": 25.513482075745983,
+      "final_wealth": 14.994171560450225,
+      "gross_turnover": 21.2299235551,
+      "max_drawdown": 0.1786694955488326,
+      "sharpe": 3.3955520022171544
+    },
+    "e/continuous_ai_era": {
+      "account_orders": 12,
+      "acute_return": 0.0,
+      "annual_turnover": 8.617420330729114,
+      "cagr": 1.4372723602623085,
+      "calmar": 5.294411102556627,
+      "final_wealth": 24.509661802900865,
+      "gross_turnover": 30.944373005800003,
+      "max_drawdown": 0.27146973146234554,
+      "sharpe": 2.23560874667324
+    },
+    "e/h1_2023": {
+      "account_orders": 2,
+      "acute_return": 0.11715608847564862,
+      "annual_turnover": 3.7108136809830508,
+      "cagr": 23.565045289997638,
+      "calmar": 163.1186219210871,
+      "final_wealth": 4.76347009227032,
+      "gross_turnover": 1.8094050179999999,
+      "max_drawdown": 0.14446569626733263,
+      "sharpe": 4.773335826774018
+    },
+    "e/h1_2024": {
+      "account_orders": 8,
+      "acute_return": 0.06390679898215934,
+      "annual_turnover": 4.204869685406779,
+      "cagr": 2.7469047209345923,
+      "calmar": 17.524920743878468,
+      "final_wealth": 1.9042531401193852,
+      "gross_turnover": 2.0503083589999997,
+      "max_drawdown": 0.156742775678121,
+      "sharpe": 2.428413460779033
+    },
+    "e/h2_2023": {
+      "account_orders": 6,
+      "acute_return": 0.018087637363260578,
+      "annual_turnover": 4.3551487581693555,
+      "cagr": 0.19520154340077367,
+      "calmar": 1.424111543476617,
+      "final_wealth": 1.0956720592566103,
+      "gross_turnover": 2.2315638265,
+      "max_drawdown": 0.13706899876974332,
+      "sharpe": 0.7400618700112199
+    },
+    "e/h2_2024": {
+      "account_orders": 5,
+      "acute_return": 0.046108107936000176,
+      "annual_turnover": 4.247191599129601,
+      "cagr": 2.4654749897250725,
+      "calmar": 28.69340188090895,
+      "final_wealth": 1.9002164923944647,
+      "gross_turnover": 2.1937973136,
+      "max_drawdown": 0.08592480598703311,
+      "sharpe": 3.071787823462017
+    }
+  },
+  "failures": [],
+  "passed": true,
+  "profile": "full",
+  "protected": {
+    "a/bull": {
+      "account_orders": 10,
+      "acute_return": null,
+      "annual_turnover": 16.043885698816887,
+      "cagr": 6.889654392311725,
+      "calmar": 42.03300356980903,
+      "final_wealth": 13.166460741078918,
+      "gross_turnover": 20.02170859935,
+      "max_drawdown": 0.16391058946975523,
+      "sharpe": 3.683600883169784
+    },
+    "a/year_2023": {
+      "account_orders": 4,
+      "acute_return": null,
+      "annual_turnover": 4.101809319,
+      "cagr": 3.1478541660015598,
+      "calmar": 11.595599071192163,
+      "final_wealth": 4.14785416600156,
+      "gross_turnover": 4.101809319,
+      "max_drawdown": 0.27146973146234554,
+      "sharpe": 2.8273216092879405
+    },
+    "a/year_2024": {
+      "account_orders": 11,
+      "acute_return": null,
+      "annual_turnover": 2.9881574710999996,
+      "cagr": 0.755626686894189,
+      "calmar": 4.820807106580181,
+      "final_wealth": 1.755626686894189,
+      "gross_turnover": 2.9881574710999996,
+      "max_drawdown": 0.156742775678121,
+      "sharpe": 1.4842984001389925
+    },
+    "b/bull": {
+      "account_orders": 9,
+      "acute_return": null,
+      "annual_turnover": 13.04487893107715,
+      "cagr": 6.774287905110627,
+      "calmar": 37.88996041798145,
+      "final_wealth": 12.92663740360599,
+      "gross_turnover": 16.27914643465,
+      "max_drawdown": 0.17878846613668542,
+      "sharpe": 3.649499399427263
+    },
+    "b/year_2023": {
+      "account_orders": 4,
+      "acute_return": null,
+      "annual_turnover": 4.101809319,
+      "cagr": 3.1478541660015598,
+      "calmar": 11.595599071192163,
+      "final_wealth": 4.14785416600156,
+      "gross_turnover": 4.101809319,
+      "max_drawdown": 0.27146973146234554,
+      "sharpe": 2.8273216092879405
+    },
+    "b/year_2024": {
+      "account_orders": 11,
+      "acute_return": null,
+      "annual_turnover": 2.9881574710999996,
+      "cagr": 0.755626686894189,
+      "calmar": 4.820807106580181,
+      "final_wealth": 1.755626686894189,
+      "gross_turnover": 2.9881574710999996,
+      "max_drawdown": 0.156742775678121,
+      "sharpe": 1.4842984001389925
+    },
+    "c/bull": {
+      "account_orders": 9,
+      "acute_return": null,
+      "annual_turnover": 13.04487893107715,
+      "cagr": 6.774287905110627,
+      "calmar": 37.88996041798145,
+      "final_wealth": 12.92663740360599,
+      "gross_turnover": 16.27914643465,
+      "max_drawdown": 0.17878846613668542,
+      "sharpe": 3.649499399427263
+    },
+    "c/year_2023": {
+      "account_orders": 4,
+      "acute_return": null,
+      "annual_turnover": 4.101809319,
+      "cagr": 3.1478541660015598,
+      "calmar": 11.595599071192163,
+      "final_wealth": 4.14785416600156,
+      "gross_turnover": 4.101809319,
+      "max_drawdown": 0.27146973146234554,
+      "sharpe": 2.8273216092879405
+    },
+    "c/year_2024": {
+      "account_orders": 11,
+      "acute_return": null,
+      "annual_turnover": 2.9881574710999996,
+      "cagr": 0.755626686894189,
+      "calmar": 4.820807106580181,
+      "final_wealth": 1.755626686894189,
+      "gross_turnover": 2.9881574710999996,
+      "max_drawdown": 0.156742775678121,
+      "sharpe": 1.4842984001389925
+    },
+    "d/bull": {
+      "account_orders": 10,
+      "acute_return": null,
+      "annual_turnover": 14.447636432958276,
+      "cagr": 7.093176186571224,
+      "calmar": 39.673566980257135,
+      "final_wealth": 13.591658837177397,
+      "gross_turnover": 18.0296950527,
+      "max_drawdown": 0.17878846613668542,
+      "sharpe": 3.7275935293490607
+    },
+    "d/year_2023": {
+      "account_orders": 4,
+      "acute_return": null,
+      "annual_turnover": 4.101809319,
+      "cagr": 3.1478541660015598,
+      "calmar": 11.595599071192163,
+      "final_wealth": 4.14785416600156,
+      "gross_turnover": 4.101809319,
+      "max_drawdown": 0.27146973146234554,
+      "sharpe": 2.8273216092879405
+    },
+    "d/year_2024": {
+      "account_orders": 11,
+      "acute_return": null,
+      "annual_turnover": 2.9881574710999996,
+      "cagr": 0.755626686894189,
+      "calmar": 4.820807106580181,
+      "final_wealth": 1.755626686894189,
+      "gross_turnover": 2.9881574710999996,
+      "max_drawdown": 0.156742775678121,
+      "sharpe": 1.4842984001389925
+    },
+    "e/bull": {
+      "account_orders": 10,
+      "acute_return": null,
+      "annual_turnover": 14.447636432958276,
+      "cagr": 7.093176186571224,
+      "calmar": 39.673566980257135,
+      "final_wealth": 13.591658837177397,
+      "gross_turnover": 18.0296950527,
+      "max_drawdown": 0.17878846613668542,
+      "sharpe": 3.7275935293490607
+    },
+    "e/year_2023": {
+      "account_orders": 4,
+      "acute_return": null,
+      "annual_turnover": 4.101809319,
+      "cagr": 3.1478541660015598,
+      "calmar": 11.595599071192163,
+      "final_wealth": 4.14785416600156,
+      "gross_turnover": 4.101809319,
+      "max_drawdown": 0.27146973146234554,
+      "sharpe": 2.8273216092879405
+    },
+    "e/year_2024": {
+      "account_orders": 11,
+      "acute_return": null,
+      "annual_turnover": 2.9881574710999996,
+      "cagr": 0.755626686894189,
+      "calmar": 4.820807106580181,
+      "final_wealth": 1.755626686894189,
+      "gross_turnover": 2.9881574710999996,
+      "max_drawdown": 0.156742775678121,
+      "sharpe": 1.4842984001389925
+    }
+  },
+  "provenance": {
+    "baseline_sha256": "b3067ae1bde683d832f9593d80eeea2616d1c934f41291e85ab36d9a6a695bc2",
+    "binding": {
+      "data_manifest_sha256": "343009138d22f8d4a20768f706207fe4d4bcd03581b0c5945c5485ecbd28788d",
+      "data_snapshot_id": "20260809T094222Z-causal-tech-index-rebase",
+      "effective_config_sha256": "61d2392401a64b48353efe9d3ae302988525e70bcb7a9e0fc4e329739dfebe72",
+      "generated_at": "2026-08-19T04:27:53.296602+00:00",
+      "numpy_version": "2.5.1",
+      "pandas_version": "3.0.5",
+      "production_commit": "ad8545ca725a303f8d0e7efe6c5d04614749c161",
+      "production_source_sha256": "50cd2c30678fdecb0dde244948c892b7f1576e9886216a6ce94040924a0e705e",
+      "python_full_version": "3.12.13",
+      "uv_lock_sha256": "4accf16535b5ac95b831c9289e0ad2ff21282dc5dfae3f05dd0fb095089d6a61",
+      "uv_version": "0.11.33"
+    },
+    "candidate": {
+      "data": {
+        "checksums_sha256": "ba460d65f791f238d8a4a16ac62e2225c1832caa6f4da5003166a894edf80e29",
+        "files_verified": 36,
+        "manifest_sha256": "343009138d22f8d4a20768f706207fe4d4bcd03581b0c5945c5485ecbd28788d",
+        "snapshot_id": "20260809T094222Z-causal-tech-index-rebase"
+      },
+      "effective_config_sha256": "61d2392401a64b48353efe9d3ae302988525e70bcb7a9e0fc4e329739dfebe72",
+      "environment": {
+        "numpy_version": "2.5.1",
+        "pandas_version": "3.0.5",
+        "python_full_version": "3.12.13",
+        "uv_lock_sha256": "4accf16535b5ac95b831c9289e0ad2ff21282dc5dfae3f05dd0fb095089d6a61",
+        "uv_version": "0.11.33"
+      },
+      "production": {
+        "commit": "ad8545ca725a303f8d0e7efe6c5d04614749c161",
+        "repository": "ychenracing/uquant",
+        "source_sha256": "50cd2c30678fdecb0dde244948c892b7f1576e9886216a6ce94040924a0e705e"
+      }
+    },
+    "champion_commit": "9bb58420365b471ee11b4cdfe31793008233ad50",
+    "generated_at": "2026-08-19T04:27:53.296602+00:00",
+    "validation_fingerprint": "6f04569dc1449673b885e485a5e3ea051f4eb2898f2af876ac9c3b4fb6b7eb29"
+  },
+  "schema_version": 4,
+  "summary": {
+    "median_final_wealth": 4.14785416600156,
+    "official_cells": 30,
+    "protected_cells": 15,
+    "total_account_orders": 340,
+    "worst_max_drawdown": 0.2786861829563525
+  }
+}

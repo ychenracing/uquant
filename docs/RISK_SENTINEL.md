@@ -1,9 +1,10 @@
 # Independent Risk Sentinel Shadow Mode
 
-Independent Risk Sentinel 是与生产决策隔离的只读观察器。它读取 canonical 34-stock
+Independent Risk Sentinel 默认仍是与生产决策隔离的只读观察器。它读取 canonical 34-stock
 AI universe、点时行业、冻结行情、两个指数和已有账户快照，只输出独立 JSON/Markdown
 证据。它不调用 `ProductionEngine`，不生成目标、订单或成交，不写账户，也不改变正式
-`RiskAssessment`、组合分配或执行行为。
+`RiskAssessment`、组合分配或执行行为。Phase 4 增加了受控的 Freeze-only 集成代码，但
+候选未通过经济硬门，默认模式已回到 `SHADOW`，生产决策不会求值 Sentinel。
 
 ## 证据与 Coverage
 
@@ -28,7 +29,9 @@ Coverage Confidence 固定为：
 
 uquant 正式风险负责生产状态机与经济行为。Sentinel 只描述同日可见的跨市场、等权子行业、
 领导者、当前持仓和已有资本高水位证据。工件同时保留正式风险状态、同日正式风险事件与双方
-证据家族差异，供人工分析；不存在 Sentinel 到正式风险状态的映射或适配器。
+证据家族差异，供人工分析。非默认 `FREEZE_ONLY` 模式下，唯一允许的映射位于
+`uquant.assess_risk()`，且只能设置现有 `freeze_new_risk`；不能修改正式风险状态、总仓上限、
+减仓级别或冲击状态，也不能直接产生目标、卖单、风险动作或账户状态。该候选当前不得晋级。
 
 ## 离线 Calibration 边界
 

@@ -197,6 +197,21 @@ uv run uquant-sentinel \
 指针。Sentinel 意见、Coverage 与正式风险的差异仅供人工观察，不能写回账户、订单或生产
 参数。完整合同见 [RISK_SENTINEL.md](RISK_SENTINEL.md)。
 
+Phase 4 的 Freeze-only 候选未通过 99% Bull wealth 门，生产默认保持 `SHADOW`。不要在
+账户或命令行外部把 Sentinel 观察手工转换为卖单、风险动作或总仓限制。
+
+生产源码升级后，先备份账户，再使用显式代码身份迁移：
+
+```bash
+uv run uquant account-code-migrate \
+  --account account_state.json \
+  --acknowledge-code-change
+```
+
+命令只更新 `code_hash` 并追加 `code_identity_only` 审计事件；输出
+`economic_state_sha256`。迁移前、落盘后和严格重载后的该摘要必须一致。若摘要变化或未显式
+确认，迁移失败关闭。通用 schema 转换仍使用单独的 `account-migrate`，不能把两种操作混用。
+
 ## 常见故障
 
 | 现象 | 含义 | 处理 |

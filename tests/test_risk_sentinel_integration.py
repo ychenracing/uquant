@@ -159,6 +159,28 @@ def test_duplicate_families_do_not_create_incremental_authority() -> None:
     assert integrated.evidence["sentinel_earlier_supported"] is False
 
 
+def test_ineligible_overlay_preserves_base_freeze_evidence_semantics() -> None:
+    """Diagnostics must not turn a CAUTION state flag into a strategy freeze."""
+
+    base = replace(
+        _base(active_families=("breadth_structure", "market_velocity")),
+        state=Risk.CAUTION,
+        freeze_new_risk=True,
+        reduction_level=1,
+    )
+
+    integrated = integrate_freeze_only(
+        base=base,
+        sentinel=_sentinel(),
+        cfg=FREEZE_CFG,
+    )
+
+    assert integrated.freeze_new_risk is True
+    assert integrated.evidence["base_freeze_new_risk"] is True
+    assert integrated.evidence["sentinel_freeze_new_risk"] is False
+    assert integrated.evidence["freeze_new_risk"] is False
+
+
 def test_incremental_confirmed_evidence_only_sets_freeze() -> None:
     base = _base(active_families=("market_velocity",))
 

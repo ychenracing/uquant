@@ -147,7 +147,6 @@ def integrate_freeze_only(
         "sentinel_severe_direct": severe_direct,
         "sentinel_bull_silent": bull_silent,
         "sentinel_freeze_new_risk": sentinel_freeze,
-        "freeze_new_risk": base.freeze_new_risk or sentinel_freeze,
     }
     return replace(
         base,

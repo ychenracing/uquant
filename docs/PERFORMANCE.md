@@ -228,3 +228,17 @@ Shadow 精确相同，财富保留 100%，机会成本为 0。
 Phase 1 的 30 个官方单元和 15 个保护单元全部通过；显式 Shadow 与 Freeze-only 的
 Generalization 均为 234/234，通过 no-optical、remove-core 和 120 个固定随机池，且所有
 经济/status 字段 0 差异。完整结果与原始矩阵摘要见 `artifacts/sentinel/freeze_only/`。
+
+## Phase 5 有限总仓上限拒绝证据
+
+70%/50% 固定候选在任何正式结果读取前锁定。与 Freeze-only 完全成对的
+`a/h1_2024` 回放于 2024-01-31 首次行为分叉：DEFENSIVE 候选把基础 1.00 cap 收紧到 0.70，
+随后由现有分配器和订单链执行 `RISK_PRIORITY` 减仓。
+
+候选最终财富从 1.9042531401 降至 1.7490263510，财富保留 91.848%；MDD 仍为
+15.6743%，Acute 从 6.3907% 降至 5.2928%，订单从 8 增至 12，gross turnover 从 2.0503 增至
+3.2588。该单元违反财富、Acute、订单和换手门，且 MDD 没有改善。按预注册
+停止规则，候选被拒绝，不继续运行无法改变晋级结论的全矩阵，也不以结果反调阈值。
+Phase 4 已通过的 30 个官方、15 个保护和 234 个 Generalization 单元仍是生产基线证据；
+它们不是 Phase 5 候选通过的替代证据。成对曲线与逐事件归因见
+`artifacts/sentinel/gross_cap/a_h1_2024_paired.json`。

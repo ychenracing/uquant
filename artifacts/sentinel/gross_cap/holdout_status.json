@@ -1,0 +1,10 @@
+{
+  "schema": "uquant.future-holdout-lane-status.v1",
+  "lane_id": "sentinel_limited_gross_cap",
+  "economic_behavior": "GROSS_CAP",
+  "parent_lane": "sentinel_freeze_only",
+  "activation_session": null,
+  "status": "NOT_ACTIVATED_GATE_FAILED",
+  "backfilled": false,
+  "reason": "Locked 70/50 candidate failed mandatory economic gates; Freeze-only remains production default."
+}

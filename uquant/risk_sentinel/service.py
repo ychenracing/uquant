@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import math
 from collections.abc import Callable, Mapping
 from dataclasses import dataclass
 from datetime import date
@@ -10,7 +11,7 @@ import pandas as pd
 
 from .coverage import assess_coverage
 from .evidence import build_market_evidence
-from .models import SentinelAssessment, SentinelLevel
+from .models import SentinelAssessment, SentinelLevel, WarmupStatus
 from .opinion import build_risk_opinion
 
 
@@ -32,6 +33,22 @@ def _positive_days(value: int, *, label: str) -> int:
     return value
 
 
+def severe_direct_observation(assessment: SentinelAssessment) -> bool:
+    """Return whether one trusted CRITICAL row meets the narrow direct trigger."""
+
+    families = set(assessment.evidence_families)
+    broad = assessment.metrics.get("broad_fast_return", 0.0)
+    tech = assessment.metrics.get("tech_fast_return", 0.0)
+    synchronized = assessment.metrics.get("synchronized_subindustry_damage", 0.0)
+    severe_velocity = (broad <= -0.025 and tech <= -0.025) or min(broad, tech) <= -0.05
+    return bool(
+        assessment.level is SentinelLevel.CRITICAL
+        and {"market_velocity", "breadth_structure"}.issubset(families)
+        and severe_velocity
+        and synchronized >= 0.40
+    )
+
+
 def apply_causal_hysteresis(
     assessments: tuple[SentinelAssessment, ...],
     *,
@@ -39,6 +56,7 @@ def apply_causal_hysteresis(
     confirm_days: int,
     repair_days: int,
     severe_direct: bool = False,
+    min_confidence: float = 0.0,
 ) -> SentinelHysteresis:
     """Rebuild confirmation and repair using only observations visible at ``as_of``.
 
@@ -55,6 +73,13 @@ def apply_causal_hysteresis(
         raise ValueError("Sentinel hysteresis as_of must be an ISO date") from exc
     if not isinstance(severe_direct, bool):
         raise ValueError("Sentinel severe_direct must be boolean")
+    if (
+        isinstance(min_confidence, bool)
+        or not isinstance(min_confidence, (int, float))
+        or not math.isfinite(float(min_confidence))
+        or not 0.0 <= float(min_confidence) <= 1.0
+    ):
+        raise ValueError("Sentinel min_confidence must be in [0, 1]")
     visible = tuple(
         sorted(
             (item for item in assessments if date.fromisoformat(item.date) <= boundary),
@@ -76,7 +101,11 @@ def apply_causal_hysteresis(
     first_evidence_date: str | None = None
     for item in visible:
         observed = item.level
-        if item.level is SentinelLevel.NOT_READY:
+        trusted = bool(
+            item.coverage.status is WarmupStatus.READY
+            and item.confidence >= float(min_confidence)
+        )
+        if item.level is SentinelLevel.NOT_READY or not trusted:
             active_streak = 0
             critical_streak = 0
             active_start_date = None
@@ -95,18 +124,19 @@ def apply_causal_hysteresis(
             else:
                 critical_streak = 0
                 critical_start_date = None
-            direct_today = bool(
-                severe_direct
-                and item.level is SentinelLevel.CRITICAL
-                and item.date == as_of
+            direct_observation = bool(
+                severe_direct and severe_direct_observation(item)
             )
-            if direct_today or critical_streak >= confirmation_required:
+            if direct_observation or critical_streak >= confirmation_required:
+                if effective is SentinelLevel.NORMAL:
+                    repair_confirmed = False
                 if effective is not SentinelLevel.CRITICAL:
                     first_evidence_date = critical_start_date
                 effective = SentinelLevel.CRITICAL
             elif effective is SentinelLevel.NORMAL and active_streak >= confirmation_required:
                 effective = SentinelLevel.DEFENSIVE
                 first_evidence_date = active_start_date
+                repair_confirmed = False
             continue
 
         active_streak = 0

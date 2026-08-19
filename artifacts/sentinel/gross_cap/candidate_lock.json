@@ -1,0 +1,41 @@
+{
+  "schema": "uquant.sentinel-gross-cap-candidate-lock.v1",
+  "locked_at": "2026-08-19",
+  "baseline_commit": "b4717a65f1658d9ff2311362d1ad49d490d13a5d",
+  "candidate": {
+    "NORMAL": null,
+    "CAUTION": null,
+    "DEFENSIVE": 0.7,
+    "CRITICAL": 0.5,
+    "NOT_READY": null,
+    "confirm_sessions": 2,
+    "repair_sessions": 3,
+    "severe_direct_trigger": true
+  },
+  "invariants": {
+    "final_cap": "min(base_cap, sentinel_cap)",
+    "mapping_boundary": "uquant.assess_risk()",
+    "order_generation": "PortfolioAllocator via RiskAssessment",
+    "reduction_policy": "RISK_PRIORITY",
+    "threshold_retuning_after_results": false
+  },
+  "promotion_gates": {
+    "bull_wealth_retention_min": 0.99,
+    "acute_return_must_not_worsen": true,
+    "max_incremental_orders": 1,
+    "required_improvement_any": {
+      "max_drawdown_percentage_points": 1.0,
+      "independent_acute_percentage_points": 2.0,
+      "generalization_tail": "material"
+    }
+  },
+  "excluded_research_candidates": [
+    "DEFENSIVE=0.8",
+    "DEFENSIVE=0.6",
+    "CRITICAL=0.6",
+    "CRITICAL=0.4",
+    "confirm_sessions=3",
+    "repair_sessions=5"
+  ],
+  "status": "LOCKED_BEFORE_PAIRED_OFFICIAL_EVIDENCE"
+}

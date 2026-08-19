@@ -1,10 +1,11 @@
-# Independent Risk Sentinel Shadow Mode
+# Independent Risk Sentinel
 
-Independent Risk Sentinel 默认仍是与生产决策隔离的只读观察器。它读取 canonical 34-stock
+Independent Risk Sentinel 的生产默认是 Phase 4 `FREEZE_ONLY`。独立评估器读取 canonical 34-stock
 AI universe、点时行业、冻结行情、两个指数和已有账户快照，只输出独立 JSON/Markdown
 证据。它不调用 `ProductionEngine`，不生成目标、订单或成交，不写账户，也不改变正式
-`RiskAssessment`、组合分配或执行行为。Phase 4 增加了受控的 Freeze-only 集成代码，但
-候选未通过经济硬门，默认模式已回到 `SHADOW`，生产决策不会求值 Sentinel。
+`RiskAssessment`、组合分配或执行行为。受控集成只允许在 `uquant.assess_risk()` 汇合；
+Phase 5 的 `LIMITED_GROSS_CAP` 已实现为显式研究模式，但固定候选未通过经济硬门，
+所以没有成为默认模式。
 
 ## 证据与 Coverage
 
@@ -29,13 +30,26 @@ Coverage Confidence 固定为：
 
 uquant 正式风险负责生产状态机与经济行为。Sentinel 只描述同日可见的跨市场、等权子行业、
 领导者、当前持仓和已有资本高水位证据。工件同时保留正式风险状态、同日正式风险事件与双方
-证据家族差异，供人工分析。非默认 `FREEZE_ONLY` 模式下，唯一允许的映射位于
-`uquant.assess_risk()`，且只能设置现有 `freeze_new_risk`；不能修改正式风险状态、总仓上限、
-减仓级别或冲击状态，也不能直接产生目标、卖单、风险动作或账户状态。该候选当前不得晋级。
+证据家族差异，供人工分析。唯一允许的映射位于 `uquant.assess_risk()`。`FREEZE_ONLY`
+只能设置现有 `freeze_new_risk`；研究模式 `LIMITED_GROSS_CAP` 只能提供候选总仓上限，
+最终值恒为 `min(base_cap, sentinel_cap)`。两种模式都不能修改正式风险状态、减仓级别或
+冲击状态，也不能直接产生目标、卖单、风险动作或账户状态。
 由于 Phase 4 尚无双方逐家族、逐交易日的点时首次证据载体，“更早”路径失败关闭；只有同日
 新增 family 能提供增量资格，输出会明确记录 `sentinel_earlier_supported=false`。当前账户和
 行业状态也不回填成历史确认，`confirmation_history_trusted=false`；常规两日确认不取得权限，
 仅 severe-direct 窄例外可绕过确认天数。
+
+## Phase 5 有限总仓上限
+
+正式候选在成对证据前锁定：`NORMAL/CAUTION/NOT_READY` 不加 cap，`DEFENSIVE=0.70`，
+`CRITICAL=0.50`。READY 且置信度达到门槛的风险证据需连续两日确认；连续三日低风险证据
+才解除 cap。确认和修复每次都从截至当日的市场历史重算，不创建第二 Risk State、Cooldown、
+Recovery Owner 或账户高水位。当前持仓、领导者和账户回撤不会回填历史。
+
+当候选 cap 真正严于基础 cap 时，既有 `RiskAssessment` 携带唯一 cap，
+`PortfolioAllocator` 使用 `RISK_PRIORITY` 产生必要的组合减仓，归因身份固定为
+`sentinel_gross_cap` / `RISK_GROSS_CAP`。Sentinel 自身从不选择证券或数量，也不生成卖单。
+固定候选因财富、回撤、订单和换手硬门失败而被拒绝；默认仍是 `FREEZE_ONLY`。
 
 ## 离线 Calibration 边界
 
@@ -77,3 +91,4 @@ uv run uquant-sentinel \
 - 缺少某个证券的足够历史会降低 Coverage，而不是用未来数据或较低门槛补齐。
 - 离线 Calibration 的精度、召回、提前量和机会成本必须与 Future Holdout 正式评分分开。
 - `sentinel_shadow` Holdout Lane 从真实启用日开始，不能回填此前观察。
+- `sentinel_limited_gross_cap` 未激活，没有可合法登记的真实启用日；不得回填 Lane。

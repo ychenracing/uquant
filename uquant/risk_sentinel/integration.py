@@ -10,7 +10,7 @@ from uquant.config import SystemConfig
 from uquant.types import Opportunity, RiskAssessment
 
 from .models import RISK_FAMILIES, SentinelAssessment, SentinelLevel, WarmupStatus
-from .service import SentinelHysteresis
+from .service import SentinelHysteresis, severe_direct_observation
 
 _FORMAL_SENTINEL_CAPS: dict[SentinelLevel, float] = {
     SentinelLevel.DEFENSIVE: 0.70,
@@ -55,17 +55,9 @@ def sentinel_freeze_authorized(risk: RiskAssessment) -> bool:
 
 
 def _severe_direct(assessment: SentinelAssessment, cfg: SystemConfig) -> bool:
-    families = set(assessment.evidence_families)
-    broad = assessment.metrics.get("broad_fast_return", 0.0)
-    tech = assessment.metrics.get("tech_fast_return", 0.0)
-    synchronized = assessment.metrics.get("synchronized_subindustry_damage", 0.0)
-    severe_velocity = (broad <= -0.025 and tech <= -0.025) or min(broad, tech) <= -0.05
     return bool(
         cfg.risk_sentinel_severe_direct_enabled
-        and assessment.level is SentinelLevel.CRITICAL
-        and {"market_velocity", "breadth_structure"}.issubset(families)
-        and severe_velocity
-        and synchronized >= 0.40
+        and severe_direct_observation(assessment)
     )
 
 
@@ -114,6 +106,11 @@ def integrate_freeze_only(
     earlier_families: list[str] = []
     incremental = bool(incremental_families or earlier_families)
     severe_direct = _severe_direct(sentinel, cfg)
+    severe_direct_authorized = bool(
+        severe_direct
+        and sentinel.coverage.status is WarmupStatus.READY
+        and sentinel.confidence >= cfg.risk_sentinel_min_confidence
+    )
     confirmation_days = int(sentinel.metrics.get("evidence_confirmation_days", 0.0))
     confirmation_history_trusted = bool(
         sentinel.metrics.get("confirmation_history_trusted", 0.0) == 1.0
@@ -130,7 +127,7 @@ def integrate_freeze_only(
                 confirmation_history_trusted
                 and confirmation_days >= cfg.risk_sentinel_confirm_days
             )
-            or severe_direct
+            or severe_direct_authorized
         )
     )
     opportunity_value = (
@@ -150,26 +147,9 @@ def integrate_freeze_only(
     )
     sentinel_freeze = eligible and not bull_silent
     effective_level = (
-        SentinelLevel.CRITICAL
-        if cfg.risk_sentinel_mode == "LIMITED_GROSS_CAP" and severe_direct
-        else (
-            hysteresis.effective_level
-            if hysteresis is not None
-            else SentinelLevel.NORMAL
-        )
-    )
-    sentinel_cap = (
-        sentinel_cap_for_level(effective_level, cfg)
-        if cfg.risk_sentinel_mode == "LIMITED_GROSS_CAP"
-        else None
-    )
-    target_gross_cap = min(
-        base.target_gross_cap,
-        sentinel_cap if sentinel_cap is not None else 1.0,
-    )
-    sentinel_cap_binding = bool(
-        sentinel_cap is not None
-        and target_gross_cap < base.target_gross_cap - 1e-12
+        hysteresis.effective_level
+        if hysteresis is not None
+        else SentinelLevel.NORMAL
     )
     evidence: dict[str, Any] = {
         **base.evidence,
@@ -190,21 +170,16 @@ def integrate_freeze_only(
         "sentinel_confirmation_history_trusted": confirmation_history_trusted,
         "sentinel_repair_days_required": cfg.risk_sentinel_repair_days,
         "sentinel_effective_level": effective_level.value,
-        "sentinel_cap": sentinel_cap,
-        "sentinel_cap_binding": sentinel_cap_binding,
         "sentinel_repair_confirmed": (
             hysteresis.repair_confirmed if hysteresis is not None else False
         ),
         "sentinel_repair_days": hysteresis.repair_days if hysteresis is not None else 0,
-        "sentinel_severe_direct": severe_direct,
+        "sentinel_severe_direct": severe_direct_authorized,
         "sentinel_bull_silent": bull_silent,
         "sentinel_freeze_new_risk": sentinel_freeze,
     }
     return replace(
         base,
         evidence=evidence,
-        target_gross_cap=target_gross_cap,
-        freeze_new_risk=(
-            base.freeze_new_risk or sentinel_freeze or sentinel_cap is not None
-        ),
+        freeze_new_risk=base.freeze_new_risk or sentinel_freeze,
     )

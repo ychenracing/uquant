@@ -188,3 +188,15 @@ severe-direct 当日例外仍可授权。
 修正后的 `a/h1_2024` 候选与显式 Shadow 没有经济分叉：财富、回撤、Acute、订单和换手
 逐项相同，财富保留 100%。Phase 1 的 45 个单元和 Generalization 的 234 个单元全部通过，
 因此 `FREEZE_ONLY` 达到晋级门槛。
+
+## Phase 5 Sentinel 有限总仓上限
+
+非默认研究模式 `LIMITED_GROSS_CAP` 使用锁定映射：NORMAL/CAUTION 不加 cap，
+DEFENSIVE 0.70，CRITICAL 0.50。两日确认和三日修复均从截至决策日的历史证据因果重算。
+Sentinel 只把候选 cap 交给 `uquant.assess_risk()`；最终 cap 恒为基础 cap 与候选 cap 的
+较小值。它不拥有第二风险状态、恢复状态或账户高水位。
+
+绑定 cap 后，减仓继续走 `RiskAssessment`、`PortfolioAllocator`、`RISK_PRIORITY` 和唯一
+订单链，稳定归因为 `sentinel_gross_cap`。固定候选在 `a/h1_2024` 的首个行为分叉发生于
+2024-01-31，并显著增加订单和换手、降低财富且没有改善 MDD，因此未晋级；生产策略继续
+使用 Phase 4 `FREEZE_ONLY`。

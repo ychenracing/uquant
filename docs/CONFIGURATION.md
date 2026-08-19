@@ -93,6 +93,19 @@ Generalization 六窗口门禁，不能由人工日常运行或研究脚本临�
 
 所有机会仓位最终都取自身目标与 `target_gross_cap` 的较小值。
 
+## Risk Sentinel 模式
+
+| 参数 | 默认值 | 边界 |
+|---|---:|---|
+| `risk_sentinel_mode` | `FREEZE_ONLY` | `LIMITED_GROSS_CAP` 仅保留为被拒绝的研究模式 |
+| `risk_sentinel_defensive_gross_cap` | 0.70 | 锁定，不可按回放结果调节 |
+| `risk_sentinel_critical_gross_cap` | 0.50 | 锁定，不可按回放结果调节 |
+| `risk_sentinel_confirm_days` | 2 | 历史证据因果重算 |
+| `risk_sentinel_repair_days` | 3 | 连续低风险历史证据因果重算 |
+
+Sentinel cap 只能由 `uquant.assess_risk()` 与基础 cap 取最小值；配置覆盖不能让 Sentinel
+放宽基础风险。该模式不改变 `max_symbol_weight` 或任何单票集中度政策。
+
 ## 领涨、持有与替换
 
 | 参数 | 默认值 |

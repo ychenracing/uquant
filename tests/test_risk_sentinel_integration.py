@@ -232,7 +232,7 @@ def test_limited_gross_cap_fails_closed_without_causal_confirmation() -> None:
     )
 
     assert integrated.target_gross_cap == base.target_gross_cap
-    assert integrated.evidence["sentinel_cap"] is None
+    assert "sentinel_cap" not in integrated.evidence
 
 
 def test_assess_risk_is_the_only_public_freeze_mapping_boundary(

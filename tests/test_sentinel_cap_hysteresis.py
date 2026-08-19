@@ -42,7 +42,11 @@ def _assessment(date: str, level: SentinelLevel) -> SentinelAssessment:
         reasons=("risk",) if active else ("clear",),
         first_evidence_date=date if active else None,
         coverage=_coverage(),
-        metrics={},
+        metrics={
+            "broad_fast_return": -0.04 if active else 0.0,
+            "tech_fast_return": -0.05 if active else 0.0,
+            "synchronized_subindustry_damage": 0.60 if active else 0.0,
+        },
     )
 
 
@@ -84,6 +88,28 @@ def test_one_defensive_session_does_not_confirm() -> None:
     assert result.confirmation_days == 1
 
 
+def test_low_confidence_or_degraded_risk_cannot_confirm_or_repair() -> None:
+    low_confidence = replace(
+        _assessment("2026-08-18", SentinelLevel.DEFENSIVE),
+        confidence=0.79,
+    )
+    degraded = replace(
+        _assessment("2026-08-19", SentinelLevel.DEFENSIVE),
+        coverage=replace(_coverage(), status=WarmupStatus.DEGRADED),
+    )
+
+    result = apply_causal_hysteresis(
+        (low_confidence, degraded),
+        as_of="2026-08-19",
+        confirm_days=2,
+        repair_days=3,
+        min_confidence=0.80,
+    )
+
+    assert result.effective_level is SentinelLevel.NORMAL
+    assert result.confirmation_days == 0
+
+
 def test_critical_direct_trigger_is_explicit_and_single_session() -> None:
     history = (_assessment("2026-08-19", SentinelLevel.CRITICAL),)
 
@@ -104,6 +130,44 @@ def test_critical_direct_trigger_is_explicit_and_single_session() -> None:
 
     assert ordinary.effective_level is SentinelLevel.NORMAL
     assert direct.effective_level is SentinelLevel.CRITICAL
+
+
+def test_severe_direct_activation_requires_three_low_sessions_to_release() -> None:
+    direct = _assessment("2026-08-17", SentinelLevel.CRITICAL)
+    low = (
+        _assessment("2026-08-18", SentinelLevel.NORMAL),
+        _assessment("2026-08-19", SentinelLevel.CAUTION),
+        _assessment("2026-08-20", SentinelLevel.NORMAL),
+    )
+
+    one_day = apply_causal_hysteresis(
+        (direct, low[0]),
+        as_of="2026-08-18",
+        confirm_days=2,
+        repair_days=3,
+        severe_direct=True,
+    )
+    two_days = apply_causal_hysteresis(
+        (direct, *low[:2]),
+        as_of="2026-08-19",
+        confirm_days=2,
+        repair_days=3,
+        severe_direct=True,
+    )
+    repaired = apply_causal_hysteresis(
+        (direct, *low),
+        as_of="2026-08-20",
+        confirm_days=2,
+        repair_days=3,
+        severe_direct=True,
+    )
+
+    assert one_day.effective_level is SentinelLevel.CRITICAL
+    assert one_day.repair_days == 1
+    assert two_days.effective_level is SentinelLevel.CRITICAL
+    assert two_days.repair_days == 2
+    assert repaired.effective_level is SentinelLevel.NORMAL
+    assert repaired.repair_confirmed is True
 
 
 def test_active_cap_requires_three_low_risk_sessions_to_release() -> None:
@@ -141,6 +205,29 @@ def test_active_cap_requires_three_low_risk_sessions_to_release() -> None:
     assert repaired.effective_level is SentinelLevel.NORMAL
     assert repaired.repair_confirmed is True
     assert repaired.repair_days == 3
+
+
+def test_new_confirmed_episode_clears_prior_repair_attribution() -> None:
+    history = (
+        _assessment("2026-08-11", SentinelLevel.DEFENSIVE),
+        _assessment("2026-08-12", SentinelLevel.DEFENSIVE),
+        _assessment("2026-08-13", SentinelLevel.NORMAL),
+        _assessment("2026-08-14", SentinelLevel.CAUTION),
+        _assessment("2026-08-15", SentinelLevel.NORMAL),
+        _assessment("2026-08-18", SentinelLevel.DEFENSIVE),
+        _assessment("2026-08-19", SentinelLevel.DEFENSIVE),
+    )
+
+    result = apply_causal_hysteresis(
+        history,
+        as_of="2026-08-19",
+        confirm_days=2,
+        repair_days=3,
+    )
+
+    assert result.effective_level is SentinelLevel.DEFENSIVE
+    assert result.repair_days == 0
+    assert result.repair_confirmed is False
 
 
 def test_future_assessments_do_not_change_as_of_result() -> None:

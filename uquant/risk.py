@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import math
 from collections.abc import Mapping
+from dataclasses import replace
 
 import numpy as np
 import pandas as pd
@@ -18,8 +19,8 @@ from .risk_sector import (
     observe_deployed_sector,
     update_sector_guard,
 )
-from .risk_sentinel.integration import integrate_freeze_only
-from .risk_sentinel.models import SentinelAssessment
+from .risk_sentinel.integration import integrate_freeze_only, sentinel_cap_for_level
+from .risk_sentinel.models import SentinelAssessment, SentinelLevel
 from .risk_sentinel.service import apply_causal_hysteresis
 from .types import AccountState, LeaderScore, Opportunity, Risk, RiskAssessment
 
@@ -2226,9 +2227,9 @@ def assess_risk(
 ) -> RiskAssessment:
     """Return formal uquant risk with the optional freeze-only Sentinel overlay.
 
-    The base assessor remains the sole owner of state, severity, reductions,
-    and gross caps.  Integration is deliberately applied only to its immutable
-    result, so Sentinel cannot mutate the durable account or create a parallel
+    The base assessor remains the sole owner of state, severity and reductions.
+    This public boundary alone may take the minimum of its cap and a Sentinel
+    candidate, so Sentinel cannot mutate durable state or create a parallel
     risk transition.
     """
 
@@ -2252,14 +2253,47 @@ def assess_risk(
             as_of=str(date.date()),
             confirm_days=cfg.risk_sentinel_confirm_days,
             repair_days=cfg.risk_sentinel_repair_days,
+            severe_direct=cfg.risk_sentinel_severe_direct_enabled,
+            min_confidence=cfg.risk_sentinel_min_confidence,
         )
         if cfg.risk_sentinel_mode == "LIMITED_GROSS_CAP" and sentinel_history
         else None
     )
-    return integrate_freeze_only(
+    integrated = integrate_freeze_only(
         base=base,
         sentinel=sentinel_assessment,
         cfg=cfg,
         opportunity=sentinel_opportunity,
         hysteresis=hysteresis,
+    )
+    effective_level = (
+        hysteresis.effective_level
+        if hysteresis is not None
+        else SentinelLevel.NORMAL
+    )
+    sentinel_cap = (
+        sentinel_cap_for_level(effective_level, cfg)
+        if cfg.risk_sentinel_mode == "LIMITED_GROSS_CAP"
+        else None
+    )
+    final_cap = min(
+        base.target_gross_cap,
+        sentinel_cap if sentinel_cap is not None else 1.0,
+    )
+    cap_binding = bool(
+        sentinel_cap is not None
+        and final_cap < base.target_gross_cap - 1e-12
+    )
+    return replace(
+        integrated,
+        evidence={
+            **integrated.evidence,
+            "base_target_gross_cap": base.target_gross_cap,
+            "sentinel_cap": sentinel_cap,
+            "sentinel_cap_binding": cap_binding,
+        },
+        target_gross_cap=final_cap,
+        freeze_new_risk=(
+            integrated.freeze_new_risk or sentinel_cap is not None
+        ),
     )

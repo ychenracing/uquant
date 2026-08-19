@@ -787,6 +787,16 @@ class ProductionEngine:
                     "base_target_gross_cap": item.risk_summary[
                         "base_target_gross_cap"
                     ],
+                    "effective_level": item.risk_summary.get(
+                        "sentinel_effective_level"
+                    ),
+                    "sentinel_cap": item.risk_summary.get("sentinel_cap"),
+                    "sentinel_cap_binding": item.risk_summary.get(
+                        "sentinel_cap_binding", False
+                    ),
+                    "repair_confirmed": item.risk_summary.get(
+                        "sentinel_repair_confirmed", False
+                    ),
                 }
                 for item in decisions
                 if isinstance(item.risk_summary.get("sentinel_assessment"), dict)
@@ -798,6 +808,7 @@ class ProductionEngine:
                     )
                     or bool(item.risk_summary.get("sentinel_incremental", False))
                     or bool(item.risk_summary.get("sentinel_freeze_new_risk", False))
+                    or item.risk_summary.get("sentinel_cap") is not None
                 )
             ],
             pending_orders=len(account.pending_orders),

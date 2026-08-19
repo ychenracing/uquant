@@ -225,11 +225,11 @@ def _attach_target_attribution(
 
 
 def code_fingerprint() -> str:
-    """Return a stable digest of all production modules in the package root."""
+    """Return a stable digest of every production Python module and contract."""
     root = Path(__file__).resolve().parent
     digest = hashlib.sha256()
-    for path in sorted(root.glob("*.py")):
-        digest.update(path.name.encode())
+    for path in sorted(root.rglob("*.py")):
+        digest.update(path.relative_to(root).as_posix().encode())
         digest.update(path.read_bytes())
     for path in (DEFAULT_REGISTRY_PATH, DEFAULT_GOVERNANCE_PATH):
         digest.update(path.name.encode())

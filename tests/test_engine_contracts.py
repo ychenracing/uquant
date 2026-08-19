@@ -67,6 +67,31 @@ def test_code_fingerprint_includes_config_parameter_governance(
     assert engine_module.code_fingerprint() != first
 
 
+def test_code_fingerprint_recursively_includes_production_subpackages(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    package = tmp_path / "uquant"
+    package.mkdir()
+    (package / "engine.py").write_text("root = 1\n", encoding="utf-8")
+    sentinel = package / "risk_sentinel"
+    sentinel.mkdir()
+    nested = sentinel / "history.py"
+    nested.write_text("timeline = 1\n", encoding="utf-8")
+    registry = tmp_path / "registry.json"
+    governance = tmp_path / "governance.json"
+    registry.write_text("{}\n", encoding="utf-8")
+    governance.write_text("{}\n", encoding="utf-8")
+    monkeypatch.setattr(engine_module, "__file__", str(package / "engine.py"))
+    monkeypatch.setattr(engine_module, "DEFAULT_REGISTRY_PATH", registry)
+    monkeypatch.setattr(engine_module, "DEFAULT_GOVERNANCE_PATH", governance)
+
+    first = engine_module.code_fingerprint()
+    nested.write_text("timeline = 2\n", encoding="utf-8")
+
+    assert engine_module.code_fingerprint() != first
+
+
 POOL_D = (
     "sz300308",
     "sz300502",

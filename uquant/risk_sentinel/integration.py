@@ -143,6 +143,7 @@ def integrate_freeze_only(
     sentinel_freeze = eligible and not bull_silent
     evidence: dict[str, Any] = {
         **base.evidence,
+        "base_target_gross_cap": base.target_gross_cap,
         "base_freeze_new_risk": base.freeze_new_risk,
         "base_family_active": base_active,
         "sentinel_family_active": sentinel_active,

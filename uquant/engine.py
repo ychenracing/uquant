@@ -706,6 +706,58 @@ class ProductionEngine:
                 for item in decisions
             ],
             daily_replay_evidence=daily_replay_evidence,
+            sentinel_events=[
+                {
+                    "date": item.date,
+                    "level": item.risk_summary["sentinel_assessment"]["level"],
+                    "confidence": item.risk_summary["sentinel_assessment"][
+                        "confidence"
+                    ],
+                    "families": item.risk_summary["sentinel_assessment"][
+                        "evidence_families"
+                    ],
+                    "base_family_active": item.risk_summary["base_family_active"],
+                    "sentinel_family_active": item.risk_summary[
+                        "sentinel_family_active"
+                    ],
+                    "combined_family_active": item.risk_summary[
+                        "combined_family_active"
+                    ],
+                    "incremental": item.risk_summary["sentinel_incremental"],
+                    "incremental_families": item.risk_summary[
+                        "sentinel_incremental_families"
+                    ],
+                    "earlier_families": item.risk_summary[
+                        "sentinel_earlier_families"
+                    ],
+                    "first_base_date": item.risk_summary["first_base_date"],
+                    "first_sentinel_date": item.risk_summary["first_sentinel_date"],
+                    "confirmation_days": item.risk_summary[
+                        "sentinel_confirmation_days"
+                    ],
+                    "freeze_new_risk": item.risk_summary[
+                        "sentinel_freeze_new_risk"
+                    ],
+                    "base_freeze_new_risk": item.risk_summary[
+                        "base_freeze_new_risk"
+                    ],
+                    "target_gross_cap": item.risk_summary["target_gross_cap"],
+                    "base_target_gross_cap": item.risk_summary[
+                        "base_target_gross_cap"
+                    ],
+                }
+                for item in decisions
+                if isinstance(item.risk_summary.get("sentinel_assessment"), dict)
+                and (
+                    bool(
+                        item.risk_summary["sentinel_assessment"].get(
+                            "evidence_families"
+                        )
+                    )
+                    or bool(item.risk_summary.get("sentinel_incremental", False))
+                    or bool(item.risk_summary.get("sentinel_freeze_new_risk", False))
+                )
+            ],
             pending_orders=len(account.pending_orders),
             final_account=account.to_dict(),
             attribution=build_economic_attribution(

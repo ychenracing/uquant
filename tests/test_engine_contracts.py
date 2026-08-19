@@ -201,6 +201,11 @@ def test_backtest_reports_the_exact_effective_config_hash(data_dir) -> None:
     )
 
     assert result["effective_config_sha256"] == config_fingerprint(engine.cfg)
+    assert isinstance(result["sentinel_events"], list)
+    assert all(
+        event["target_gross_cap"] == event["base_target_gross_cap"]
+        for event in result["sentinel_events"]
+    )
 
 
 def test_shared_engine_leader_cache_isolated_by_adaptive_config(data_dir):

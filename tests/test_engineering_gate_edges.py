@@ -27,7 +27,7 @@ from uquant.validation import equivalence as equivalence_module
 from uquant.validation import holdout as holdout_module
 from uquant.validation import universe as universe_module
 from uquant.validation.equivalence import Phase1Case, Phase1DecisionTrace
-from uquant.validation.holdout import HoldoutBinding, current_holdout_binding
+from uquant.validation.holdout import HoldoutBinding
 from uquant.validation.manifest import _checksum_entries, verify_data_manifest
 from uquant.validation.replay_evidence import VerifiedMarketData
 
@@ -447,21 +447,14 @@ def test_verified_market_data_rejects_noncausal_and_invalid_lookups() -> None:
         panel.loc[last, "close"] = original
 
 
-def test_current_holdout_binding_matches_exact_head_and_reviewed_strategy_anchors() -> None:
-    binding = current_holdout_binding(ROOT)
-    head = subprocess.run(
-        ["git", "-C", str(ROOT), "rev-parse", "HEAD"],
-        check=True,
-        capture_output=True,
-        text=True,
-    ).stdout.strip()
-
-    assert binding.production_commit == head
-    assert binding.strategy_source_sha256 == holdout_module.STRATEGY_SOURCE_SHA256
+def test_phase4_source_requires_a_new_holdout_account_binding() -> None:
+    with pytest.raises(RuntimeError, match=r"strategy source .* drifted"):
+        holdout_module._validated_strategy_source_sha256(ROOT)
 
 
-def test_shadow_sentinel_package_is_observational_not_strategy_inventory() -> None:
-    assert holdout_module._is_strategy_relative("uquant/risk_sentinel/service.py") is False
+def test_phase4_sentinel_decision_code_is_strategy_inventory() -> None:
+    assert holdout_module._is_strategy_relative("uquant/risk_sentinel/service.py") is True
+    assert holdout_module._is_strategy_relative("uquant/risk_sentinel/integration.py") is True
     assert holdout_module._is_strategy_relative("uquant/risk_sentinel/cli.py") is False
     assert holdout_module._is_strategy_relative("uquant/risk_sentinel_evasion.py") is True
 

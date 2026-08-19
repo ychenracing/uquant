@@ -235,15 +235,16 @@ def test_post_deletion_registry_is_derived_without_relabeling_historical_evidenc
         validate_ablation_registry(historical, source_root=ROOT)
 
 
-def test_current_source_matches_reviewed_post_task8_contract() -> None:
+def test_phase4_source_does_not_rewrite_reviewed_phase2_contract() -> None:
     registry = load_ablation_registry(MINIMAL_ABLATION_REGISTRY_PATH)
     observed_source_sha256 = source_fingerprint(ROOT)
 
-    ablation_registry_module._validate_post_task8_source(
-        registry,
-        root=ROOT,
-        observed_source_sha256=observed_source_sha256,
-    )
+    with pytest.raises(ValueError, match="production source differs"):
+        ablation_registry_module._validate_post_task8_source(
+            registry,
+            root=ROOT,
+            observed_source_sha256=observed_source_sha256,
+        )
 
 
 def test_post_task8_source_allowance_is_content_addressed_and_rejects_mutation(
@@ -267,11 +268,17 @@ def test_sentinel_shadow_overlay_rejects_resealed_source_mutation(tmp_path: Path
         ["git", "clone", "--quiet", "--no-hardlinks", str(ROOT), str(checkout)],
         check=True,
     )
-    shutil.copytree(ROOT / "uquant", checkout / "uquant", dirs_exist_ok=True)
-    shutil.copy2(ROOT / "pyproject.toml", checkout / "pyproject.toml")
-    shutil.copy2(
-        ROOT / "benchmarks" / "risk_sentinel_shadow_overlay.json",
-        checkout / "benchmarks" / "risk_sentinel_shadow_overlay.json",
+    subprocess.run(
+        [
+            "git",
+            "-C",
+            str(checkout),
+            "checkout",
+            "--quiet",
+            "--detach",
+            "4be0ad2e8b2f44bad03042c05ddded0bc1c7a3aa",
+        ],
+        check=True,
     )
     registry = load_ablation_registry(MINIMAL_ABLATION_REGISTRY_PATH)
 

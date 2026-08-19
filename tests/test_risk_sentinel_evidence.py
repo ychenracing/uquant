@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import math
 from collections import OrderedDict
 
 import pandas as pd
@@ -122,3 +123,21 @@ def test_correlated_breadth_indicators_count_as_one_family() -> None:
     assert evidence.families.count("breadth_structure") == 1
     assert evidence.first_evidence_date is not None
     assert evidence.metrics["evidence_confirmation_days"] >= 2.0
+
+
+def test_constant_reference_returns_produce_finite_neutral_correlation() -> None:
+    constant = _prices()
+    constant["close"] = 100.0
+    panel = {symbol: constant.copy() for symbol in ("a", "b", "c", "d")}
+
+    evidence = build_market_evidence(
+        as_of="2026-08-19",
+        broad_frame=_prices(),
+        tech_frame=_prices(),
+        reference_panel=panel,
+        point_in_time_industries={symbol: "optical" for symbol in panel},
+        held_symbols=(),
+    )
+
+    assert evidence.metrics["median_correlation"] == 0.0
+    assert all(math.isfinite(value) for value in evidence.metrics.values())

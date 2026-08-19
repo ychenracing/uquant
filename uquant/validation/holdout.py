@@ -176,6 +176,10 @@ _STRATEGY_OPERATIONAL_RELATIVES: Final = {
     "uquant/validation/holdout_lanes.py",
     "uquant/validation/holdout_runtime.py",
     "uquant/validation/execution_journal.py",
+    "uquant/risk_sentinel/__main__.py",
+    "uquant/risk_sentinel/calibration.py",
+    "uquant/risk_sentinel/cli.py",
+    "uquant/risk_sentinel/validation.py",
 }
 _CLI_OPERATIONAL_COMMANDS: Final = {
     "execution-journal",
@@ -787,8 +791,6 @@ def _source_paths(root: Path) -> tuple[Path, ...]:
 
 
 def _is_strategy_relative(relative: str) -> bool:
-    if relative.startswith("uquant/risk_sentinel/"):
-        return False
     if relative in _STRATEGY_OPERATIONAL_RELATIVES:
         return False
     if relative in _STRATEGY_FIXED_RELATIVES:

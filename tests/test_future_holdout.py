@@ -24,7 +24,6 @@ from uquant.validation.holdout import (
     _strategy_account_code_sha256,
     _strategy_source_sha256,
     _validate_future_holdout_manifest_payload,
-    _validated_strategy_cli_sha256,
     build_future_holdout_manifest,
     current_holdout_binding,
     holdout_data_identity,
@@ -420,12 +419,15 @@ def test_strategy_anchor_hash_covers_cli_decision_and_account_persistence(
     assert cli_hash(tmp_path) != before
 
 
-def test_current_strategy_cli_matches_reviewed_anchor() -> None:
+def test_phase4_migration_cli_does_not_rewrite_the_reviewed_holdout_anchor() -> None:
     repository_root = Path(holdout_module.__file__).resolve().parents[2]
-    assert (
-        _validated_strategy_cli_sha256(repository_root)
-        == holdout_module.STRATEGY_CLI_SHA256
+    anchored = holdout_module._strategy_cli_sha256(
+        repository_root,
+        from_git=holdout_module.STRATEGY_ANCHOR_COMMIT,
     )
+
+    assert anchored == holdout_module.STRATEGY_CLI_SHA256
+    assert holdout_module._strategy_cli_sha256(repository_root) != anchored
 
 
 def test_cli_anchor_does_not_subtract_side_effecting_operational_parser_code(
@@ -510,14 +512,14 @@ def test_null_manifest_carries_prior_close_state_and_rejects_metrics() -> None:
         )
 
 
-def test_current_code_fingerprint_matches_frozen_candidate_account_code_hash() -> None:
+def test_phase4_code_identity_requires_explicit_account_migration() -> None:
     repository_root = Path(holdout_module.__file__).resolve().parents[2]
 
     assert (
         _strategy_account_code_sha256(repository_root)
         == holdout_module.STRATEGY_ACCOUNT_CODE_SHA256
     )
-    assert code_fingerprint() == holdout_module.STRATEGY_ACCOUNT_CODE_SHA256
+    assert code_fingerprint() != holdout_module.STRATEGY_ACCOUNT_CODE_SHA256
 
 
 def test_prior_close_account_rejects_code_data_and_state_tampering(

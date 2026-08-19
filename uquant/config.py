@@ -319,7 +319,7 @@ class SystemConfig:
         "SHADOW",
         "FREEZE_ONLY",
         "LIMITED_GROSS_CAP",
-    ] = "FREEZE_ONLY"
+    ] = "SHADOW"
     risk_sentinel_min_confidence: float = 0.80
     risk_sentinel_confirm_days: int = 2
     risk_sentinel_repair_days: int = 3

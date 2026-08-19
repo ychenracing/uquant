@@ -98,7 +98,8 @@ def _median_correlation(
     returns = pd.DataFrame(series).dropna(how="all")
     correlation = returns.corr(min_periods=10)
     values = correlation.where(~np.eye(len(correlation), dtype=bool)).stack()
-    return float(values.median()) if not values.empty else 0.0
+    median = float(values.median()) if not values.empty else 0.0
+    return median if math.isfinite(median) else 0.0
 
 
 def _index_return(frame: pd.DataFrame, point: pd.Timestamp, sessions: int) -> float:

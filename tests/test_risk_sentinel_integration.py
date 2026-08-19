@@ -16,6 +16,8 @@ from uquant.risk_sentinel.models import (
 )
 from uquant.types import Risk, RiskAssessment
 
+FREEZE_CFG = DEFAULT_CONFIG.override(risk_sentinel_mode="FREEZE_ONLY")
+
 
 def _coverage(status: WarmupStatus = WarmupStatus.READY) -> CoverageHealth:
     component = 1.0 if status is WarmupStatus.READY else 0.0
@@ -112,7 +114,7 @@ def test_freeze_requires_ready_confident_confirmed_evidence(
     integrated = integrate_freeze_only(
         base=base,
         sentinel=sentinel,
-        cfg=DEFAULT_CONFIG,
+        cfg=FREEZE_CFG,
     )
 
     assert integrated.freeze_new_risk is False
@@ -127,7 +129,7 @@ def test_duplicate_families_do_not_create_incremental_authority() -> None:
     integrated = integrate_freeze_only(
         base=base,
         sentinel=sentinel,
-        cfg=DEFAULT_CONFIG,
+        cfg=FREEZE_CFG,
     )
 
     assert integrated.freeze_new_risk is False
@@ -143,7 +145,7 @@ def test_incremental_confirmed_evidence_only_sets_freeze() -> None:
     integrated = integrate_freeze_only(
         base=base,
         sentinel=_sentinel(),
-        cfg=DEFAULT_CONFIG,
+        cfg=FREEZE_CFG,
     )
 
     assert integrated.freeze_new_risk is True
@@ -171,7 +173,7 @@ def test_critical_velocity_and_breadth_can_trigger_without_confirmation() -> Non
     integrated = integrate_freeze_only(
         base=_base(active_families=("capital_damage",)),
         sentinel=sentinel,
-        cfg=DEFAULT_CONFIG,
+        cfg=FREEZE_CFG,
     )
 
     assert integrated.freeze_new_risk is True
@@ -209,11 +211,11 @@ def test_assess_risk_is_the_only_public_freeze_mapping_boundary(
         leaders={},
         account=None,  # type: ignore[arg-type]
         equity=1.0,
-        cfg=DEFAULT_CONFIG,
+        cfg=FREEZE_CFG,
         sentinel_assessment=sentinel,
     )
 
-    assert observed["cfg"] is DEFAULT_CONFIG
+    assert observed["cfg"] is FREEZE_CFG
     assert "sentinel_assessment" not in observed
     assert integrated.freeze_new_risk is True
     assert integrated.target_gross_cap == base.target_gross_cap

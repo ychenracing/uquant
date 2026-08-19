@@ -325,6 +325,8 @@ class SystemConfig:
     risk_sentinel_confirm_days: int = 2
     risk_sentinel_repair_days: int = 3
     risk_sentinel_severe_direct_enabled: bool = True
+    risk_sentinel_defensive_gross_cap: float = 0.70
+    risk_sentinel_critical_gross_cap: float = 0.50
     risk_overlay_enabled: bool = True
     evidence_family_voting_enabled: bool = False
     fail_closed: bool = True
@@ -780,6 +782,19 @@ class SystemConfig:
             raise ValueError("risk_sentinel_min_confidence must be in [0, 1]")
         if not isinstance(self.risk_sentinel_severe_direct_enabled, bool):
             raise ValueError("risk_sentinel_severe_direct_enabled must be boolean")
+        locked_sentinel_caps = {
+            "risk_sentinel_defensive_gross_cap": 0.70,
+            "risk_sentinel_critical_gross_cap": 0.50,
+        }
+        for name, required in locked_sentinel_caps.items():
+            value = getattr(self, name)
+            if (
+                isinstance(value, bool)
+                or not isinstance(value, (int, float))
+                or not math.isfinite(float(value))
+                or not math.isclose(float(value), required, rel_tol=0.0, abs_tol=1e-12)
+            ):
+                raise ValueError(f"{name} is locked to {required:.2f}")
         for name in ("risk_sentinel_confirm_days", "risk_sentinel_repair_days"):
             value = getattr(self, name)
             if isinstance(value, bool) or not isinstance(value, int) or value < 1:

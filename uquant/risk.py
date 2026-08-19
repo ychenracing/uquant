@@ -20,6 +20,7 @@ from .risk_sector import (
 )
 from .risk_sentinel.integration import integrate_freeze_only
 from .risk_sentinel.models import SentinelAssessment
+from .risk_sentinel.service import apply_causal_hysteresis
 from .types import AccountState, LeaderScore, Opportunity, Risk, RiskAssessment
 
 # Compatibility export only. Production anchors live in AccountState and are
@@ -2220,6 +2221,7 @@ def assess_risk(
     reference_context: ReferenceContext | None = None,
     configured_universe_size: int | None = None,
     sentinel_assessment: SentinelAssessment | None = None,
+    sentinel_history: tuple[SentinelAssessment, ...] = (),
     sentinel_opportunity: Opportunity | str | None = None,
 ) -> RiskAssessment:
     """Return formal uquant risk with the optional freeze-only Sentinel overlay.
@@ -2244,9 +2246,20 @@ def assess_risk(
         reference_context=reference_context,
         configured_universe_size=configured_universe_size,
     )
+    hysteresis = (
+        apply_causal_hysteresis(
+            sentinel_history,
+            as_of=str(date.date()),
+            confirm_days=cfg.risk_sentinel_confirm_days,
+            repair_days=cfg.risk_sentinel_repair_days,
+        )
+        if cfg.risk_sentinel_mode == "LIMITED_GROSS_CAP" and sentinel_history
+        else None
+    )
     return integrate_freeze_only(
         base=base,
         sentinel=sentinel_assessment,
         cfg=cfg,
         opportunity=sentinel_opportunity,
+        hysteresis=hysteresis,
     )

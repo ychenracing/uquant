@@ -5,11 +5,11 @@
   "counts": {
     "before": {"total_fields": 285, "economic_fields": 164},
     "after": {"total_fields": 278, "economic_fields": 164},
-    "current": {"total_fields": 280, "economic_fields": 164}
+    "current": {"total_fields": 282, "economic_fields": 164}
   },
   "config_migration": {
     "champion_config_sha256": "023d709731196a325d9cd03e95ece92e4baf63d2c5c66bb9f7d0e7a190e7bf20",
-    "candidate_config_sha256": "dae4d79fdd813832c6ab152611437c13be1d38227c7280691874d3a9267d93d5"
+    "candidate_config_sha256": "728cb7d617da22001cb9cea47f573f5bc0bcf1e7ec4909c776038ac485a71a40"
   },
   "categories": {
     "MARKET_RULE": [
@@ -69,6 +69,8 @@
           "risk_sentinel_confirm_days",
           "risk_sentinel_repair_days",
           "risk_sentinel_severe_direct_enabled",
+          "risk_sentinel_defensive_gross_cap",
+          "risk_sentinel_critical_gross_cap",
           "recovery_cohort_tail_guard_days",
           "recovery_cohort_tail_line",
           "caution_confirm_days",
@@ -423,5 +425,5 @@
     }
   ],
   "removed_fields": ["strategic_cohort_symbols", "strategic_partial_universe_max_size", "adaptive_broad_universe_min_size", "adaptive_broad_universe_compatibility_enabled", "strategic_expansive_universe_min_size", "strategic_persistent_confirm_days", "strategic_reversal_confirm_days"],
-  "artifact_sha256": "e83b303c6405103dad8824186c2fe74d96aaf60ca134ca580c0243a7e45e9dc7"
+  "artifact_sha256": "8e6ed56ab12b25df52dfe641d3dc49e8b0e747716ad4cab71b43f51549953024"
 }

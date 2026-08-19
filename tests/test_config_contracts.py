@@ -19,6 +19,8 @@ INVALID_OVERRIDES: tuple[tuple[dict[str, Any], str], ...] = (
     ({"risk_sentinel_severe_direct_enabled": 1}, "risk_sentinel_severe_direct_enabled"),
     ({"risk_sentinel_confirm_days": 0}, "risk_sentinel_confirm_days"),
     ({"risk_sentinel_repair_days": 0}, "risk_sentinel_repair_days"),
+    ({"risk_sentinel_defensive_gross_cap": 0.69}, "risk_sentinel_defensive_gross_cap"),
+    ({"risk_sentinel_critical_gross_cap": 0.51}, "risk_sentinel_critical_gross_cap"),
     ({"initial_cash": 0}, "initial_cash"),
     ({"max_gross": 0}, "max_gross"),
     ({"max_symbol_weight": 0.61}, "max_symbol_weight"),
@@ -181,6 +183,8 @@ def test_configuration_serialization_is_complete_and_detached() -> None:
     assert payload["risk_sentinel_confirm_days"] == 2
     assert payload["risk_sentinel_repair_days"] == 3
     assert payload["risk_sentinel_severe_direct_enabled"] is True
+    assert payload["risk_sentinel_defensive_gross_cap"] == pytest.approx(0.70)
+    assert payload["risk_sentinel_critical_gross_cap"] == pytest.approx(0.50)
     assert payload["sector_guard_enabled"] is True
     assert payload["sector_guard_gross"] == pytest.approx(0.40)
     assert payload["industry_rotation_enabled"] is True

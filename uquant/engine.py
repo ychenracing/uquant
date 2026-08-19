@@ -48,7 +48,8 @@ from .reference import build_reference_context
 from .reference_registry import DEFAULT_REGISTRY_PATH, resolve_reference_symbols
 from .risk import assess_risk
 from .risk_sentinel.integration import sentinel_freeze_authorized
-from .risk_sentinel.service import evaluate_sentinel
+from .risk_sentinel.models import SentinelAssessment
+from .risk_sentinel.service import evaluate_recent_sentinel_levels, evaluate_sentinel
 from .types import (
     ACCOUNT_SCHEMA_VERSION,
     AccountOrder,
@@ -241,6 +242,7 @@ class ProductionEngine:
         self._reference_returns: pd.DataFrame | None = None
         self._code_hash: str | None = None
         self._leader_score_cache: dict[tuple[object, ...], dict[str, LeaderScore]] = {}
+        self._sentinel_market_history_cache: dict[str, SentinelAssessment] = {}
 
     def _load(self, symbols: Iterable[str]) -> None:
         for symbol in sorted({normalize_symbol(item) for item in symbols}):
@@ -416,6 +418,7 @@ class ProductionEngine:
         prices = {symbol: self._price(symbol, date) for symbol in visible_users | set(account.positions)}
         _, equity = current_weights(account, prices)
         sentinel = None
+        sentinel_history: tuple[SentinelAssessment, ...] = ()
         if decision_cfg.risk_sentinel_mode != "SHADOW":
             universe = default_ai_universe()
             canonical_symbols = universe.symbols_as_of(str(date.date()))
@@ -445,6 +448,41 @@ class ProductionEngine:
                     1.0 - equity / max(account.capital_peak, 1e-12),
                 ),
             )
+            if decision_cfg.risk_sentinel_mode == "LIMITED_GROSS_CAP":
+                common_sessions = broad.index.intersection(tech.index)
+                visible_sessions = tuple(
+                    str(session.date())
+                    for session in common_sessions
+                    if session <= date
+                )
+                missing_sessions = tuple(
+                    session
+                    for session in visible_sessions
+                    if session not in self._sentinel_market_history_cache
+                )
+                if missing_sessions:
+                    historical_reference_panel = {
+                        symbol: self._features[symbol]
+                        for symbol in REFERENCE_UNIVERSE
+                    }
+                    reconstructed = evaluate_recent_sentinel_levels(
+                        sessions=missing_sessions,
+                        broad_frame=broad,
+                        tech_frame=tech,
+                        reference_panel=historical_reference_panel,
+                        point_in_time_industries=lambda session: {
+                            symbol: universe.industry_of(symbol, session)
+                            for symbol in universe.symbols_as_of(session)
+                        },
+                    )
+                    self._sentinel_market_history_cache.update(
+                        {item.date: item for item in reconstructed}
+                    )
+                sentinel_history = tuple(
+                    self._sentinel_market_history_cache[session]
+                    for session in sorted(self._sentinel_market_history_cache)
+                    if session <= str(date.date())
+                )
         risk = assess_risk(
             date=date,
             broad=broad,
@@ -461,6 +499,7 @@ class ProductionEngine:
             ),
             configured_universe_size=len(user_symbols),
             sentinel_assessment=sentinel,
+            sentinel_history=sentinel_history,
             sentinel_opportunity=account.opportunity,
         )
         risk.evidence["configured_user_universe_size"] = len(user_symbols)

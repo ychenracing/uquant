@@ -10,6 +10,29 @@ from uquant.config import SystemConfig
 from uquant.types import Opportunity, RiskAssessment
 
 from .models import RISK_FAMILIES, SentinelAssessment, SentinelLevel, WarmupStatus
+from .service import SentinelHysteresis
+
+_FORMAL_SENTINEL_CAPS: dict[SentinelLevel, float] = {
+    SentinelLevel.DEFENSIVE: 0.70,
+    SentinelLevel.CRITICAL: 0.50,
+}
+
+
+def sentinel_cap_for_level(
+    level: SentinelLevel,
+    cfg: SystemConfig | None = None,
+) -> float | None:
+    """Return the locked Phase 5 production cap for one effective level."""
+
+    if not isinstance(level, SentinelLevel):
+        raise ValueError("Sentinel cap level is invalid")
+    if cfg is None:
+        return _FORMAL_SENTINEL_CAPS.get(level)
+    configured = {
+        SentinelLevel.DEFENSIVE: cfg.risk_sentinel_defensive_gross_cap,
+        SentinelLevel.CRITICAL: cfg.risk_sentinel_critical_gross_cap,
+    }
+    return configured.get(level)
 
 
 def _family_flags(values: Mapping[str, object] | None) -> dict[str, bool]:
@@ -52,18 +75,18 @@ def integrate_freeze_only(
     sentinel: SentinelAssessment | None,
     cfg: SystemConfig,
     opportunity: Opportunity | str | None = None,
+    hysteresis: SentinelHysteresis | None = None,
 ) -> RiskAssessment:
-    """Overlay only ``freeze_new_risk`` while preserving every base risk output.
+    """Map Sentinel evidence into the single formal uquant risk assessment.
 
     Family flags are OR-combined, never summed.  A Sentinel trigger must be
     ready, confident, confirmed (unless severe-direct), and add a same-day
-    family or earlier evidence.  The suggested gross cap remains diagnostic.
+    family or earlier evidence. LIMITED_GROSS_CAP may additionally tighten,
+    but can never relax, the base gross cap.
     """
 
     if cfg.risk_sentinel_mode == "SHADOW" or sentinel is None:
         return base
-    if cfg.risk_sentinel_mode == "LIMITED_GROSS_CAP":
-        raise RuntimeError("LIMITED_GROSS_CAP is not implemented in Phase 4")
 
     base_active = _family_flags(
         base.evidence.get("family_votes")
@@ -126,6 +149,28 @@ def integrate_freeze_only(
         )
     )
     sentinel_freeze = eligible and not bull_silent
+    effective_level = (
+        SentinelLevel.CRITICAL
+        if cfg.risk_sentinel_mode == "LIMITED_GROSS_CAP" and severe_direct
+        else (
+            hysteresis.effective_level
+            if hysteresis is not None
+            else SentinelLevel.NORMAL
+        )
+    )
+    sentinel_cap = (
+        sentinel_cap_for_level(effective_level, cfg)
+        if cfg.risk_sentinel_mode == "LIMITED_GROSS_CAP"
+        else None
+    )
+    target_gross_cap = min(
+        base.target_gross_cap,
+        sentinel_cap if sentinel_cap is not None else 1.0,
+    )
+    sentinel_cap_binding = bool(
+        sentinel_cap is not None
+        and target_gross_cap < base.target_gross_cap - 1e-12
+    )
     evidence: dict[str, Any] = {
         **base.evidence,
         "base_target_gross_cap": base.target_gross_cap,
@@ -144,6 +189,13 @@ def integrate_freeze_only(
         "sentinel_confirmation_days": confirmation_days,
         "sentinel_confirmation_history_trusted": confirmation_history_trusted,
         "sentinel_repair_days_required": cfg.risk_sentinel_repair_days,
+        "sentinel_effective_level": effective_level.value,
+        "sentinel_cap": sentinel_cap,
+        "sentinel_cap_binding": sentinel_cap_binding,
+        "sentinel_repair_confirmed": (
+            hysteresis.repair_confirmed if hysteresis is not None else False
+        ),
+        "sentinel_repair_days": hysteresis.repair_days if hysteresis is not None else 0,
         "sentinel_severe_direct": severe_direct,
         "sentinel_bull_silent": bull_silent,
         "sentinel_freeze_new_risk": sentinel_freeze,
@@ -151,5 +203,8 @@ def integrate_freeze_only(
     return replace(
         base,
         evidence=evidence,
-        freeze_new_risk=base.freeze_new_risk or sentinel_freeze,
+        target_gross_cap=target_gross_cap,
+        freeze_new_risk=(
+            base.freeze_new_risk or sentinel_freeze or sentinel_cap is not None
+        ),
     )

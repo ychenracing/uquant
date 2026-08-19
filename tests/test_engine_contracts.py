@@ -3,6 +3,7 @@ from __future__ import annotations
 import copy
 import hashlib
 import json
+from dataclasses import replace
 from pathlib import Path
 
 import pandas as pd
@@ -914,6 +915,74 @@ def test_shadow_mode_keeps_sentinel_out_of_the_production_decision_path(
         as_of="2026-06-30",
         account=AccountState.empty(2e6),
     )
+
+
+def test_limited_cap_recomputes_market_history_and_passes_it_only_to_risk(
+    data_dir,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from uquant.types import Risk, RiskAssessment
+
+    assessment = SentinelAssessment(
+        date="2026-06-30",
+        level=SentinelLevel.DEFENSIVE,
+        confidence=1.0,
+        suggested_gross_cap=0.50,
+        freeze_new_risk=True,
+        evidence_families=("breadth_structure", "market_velocity"),
+        reasons=("risk",),
+        first_evidence_date="2026-06-30",
+        coverage=CoverageHealth(
+            status=WarmupStatus.READY,
+            confidence=1.0,
+            component_observation=1.0,
+            subindustry_coverage=1.0,
+            held_industry_mapping=1.0,
+            reference_warmup=1.0,
+            missing_indices=(),
+            new_symbols=(),
+            stale_symbols=(),
+        ),
+        metrics={},
+    )
+    history = (
+        replace(
+            assessment,
+            date="2026-06-27",
+            first_evidence_date="2026-06-27",
+        ),
+        assessment,
+    )
+    observed: dict[str, object] = {}
+
+    monkeypatch.setattr(engine_module, "evaluate_sentinel", lambda **_: assessment)
+
+    def recent(**kwargs: object) -> tuple[SentinelAssessment, ...]:
+        observed["recent"] = kwargs
+        return history
+
+    def normal_risk(**kwargs: object) -> RiskAssessment:
+        observed["risk"] = kwargs
+        return RiskAssessment(Risk.NORMAL, 1.0, 0, {}, (), "NONE")
+
+    monkeypatch.setattr(engine_module, "evaluate_recent_sentinel_levels", recent)
+    monkeypatch.setattr(engine_module, "assess_risk", normal_risk)
+    ProductionEngine(
+        data_dir,
+        DEFAULT_CONFIG.override(risk_sentinel_mode="LIMITED_GROSS_CAP"),
+    ).decide(
+        symbols=SYMBOLS,
+        as_of="2026-06-30",
+        account=AccountState.empty(2e6),
+    )
+
+    recent_args = observed["recent"]
+    assert isinstance(recent_args, dict)
+    assert recent_args["sessions"][-1] == "2026-06-30"
+    risk_args = observed["risk"]
+    assert isinstance(risk_args, dict)
+    assert risk_args["sentinel_assessment"] is assessment
+    assert risk_args["sentinel_history"] == history
 
 
 def test_decision_routes_sentinel_pending_buy_cancellation_through_execution(

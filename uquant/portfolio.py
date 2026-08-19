@@ -73,6 +73,7 @@ class PortfolioAllocator(RecoveryPortfolioPolicy):
             "crisis": AttributionMechanism.CRISIS,
             "capital_budget": AttributionMechanism.CAPITAL_BUDGET,
             "risk_gross_cap": AttributionMechanism.RISK_GROSS_CAP,
+            "sentinel_gross_cap": AttributionMechanism.RISK_GROSS_CAP,
         }
         try:
             return registry[reason_code]
@@ -476,6 +477,12 @@ class PortfolioAllocator(RecoveryPortfolioPolicy):
     @staticmethod
     def _risk_reduction_metadata(risk: RiskAssessment) -> tuple[str, str, str]:
         """Return the causal owner of a hard portfolio gross reduction."""
+        if bool(risk.evidence.get("sentinel_cap_binding", False)):
+            return (
+                "Sentinel limited gross cap",
+                "sentinel_gross_cap",
+                "portfolio_risk",
+            )
         if bool(risk.evidence.get("sector_guard_active", False)):
             return ("sector guard gross cap", "sector_guard", "sector_guard")
         if bool(risk.evidence.get("strategic_damage_guard", False)):
@@ -586,6 +593,7 @@ class PortfolioAllocator(RecoveryPortfolioPolicy):
             and not bool(risk.evidence.get("sector_guard_active", False))
             and not bool(risk.evidence.get("strategic_damage_guard", False))
             and not bool(risk.evidence.get("acute_sector_evacuation", False))
+            and not bool(risk.evidence.get("sentinel_cap_binding", False))
             # Strategy-owned reductions, including the one-shot profit lock,
             # remain authoritative.  This exception only converts an ordinary
             # level-1 cap into a freeze of an unchanged incumbent.

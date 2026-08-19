@@ -954,6 +954,46 @@ def test_decision_routes_sentinel_pending_buy_cancellation_through_execution(
     assert observed["removed_buy_reason"] == "sentinel_freeze_new_risk"
 
 
+def test_decision_does_not_route_sentinel_diagnostic_without_formal_flag(
+    data_dir,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from uquant.types import Risk, RiskAssessment
+
+    observed: dict[str, object] = {}
+
+    def diagnostic_only(**_: object) -> RiskAssessment:
+        return RiskAssessment(
+            Risk.NORMAL,
+            1.0,
+            0,
+            {
+                "base_freeze_new_risk": False,
+                "sentinel_freeze_new_risk": True,
+                "freeze_new_risk": False,
+            },
+            (),
+            "NONE",
+            freeze_new_risk=False,
+        )
+
+    original = engine_module.reconcile_account_orders
+
+    def reconcile(**kwargs: object):
+        observed.update(kwargs)
+        return original(**kwargs)  # type: ignore[arg-type]
+
+    monkeypatch.setattr(engine_module, "assess_risk", diagnostic_only)
+    monkeypatch.setattr(engine_module, "reconcile_account_orders", reconcile)
+    ProductionEngine(data_dir).decide(
+        symbols=SYMBOLS,
+        as_of="2026-06-30",
+        account=AccountState.empty(2e6),
+    )
+
+    assert observed["removed_buy_reason"] is None
+
+
 def test_future_dated_state_fails_closed(data_dir):
     engine = ProductionEngine(data_dir)
     state = AccountState.empty(2e6)

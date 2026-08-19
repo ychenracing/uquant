@@ -4,7 +4,6 @@ from __future__ import annotations
 
 from collections.abc import Mapping
 from dataclasses import replace
-from datetime import date
 from typing import Any
 
 from uquant.config import SystemConfig
@@ -18,31 +17,18 @@ def _family_flags(values: Mapping[str, object] | None) -> dict[str, bool]:
     return {family: bool(source.get(family, False)) for family in sorted(RISK_FAMILIES)}
 
 
-def _first_base_dates(
-    *,
-    base: RiskAssessment,
-    active: Mapping[str, bool],
-    assessment_date: str,
-) -> dict[str, str | None]:
-    supplied = base.evidence.get("family_first_dates", {})
-    supplied = supplied if isinstance(supplied, Mapping) else {}
-    result: dict[str, str | None] = {}
-    for family in sorted(RISK_FAMILIES):
-        value = supplied.get(family)
-        result[family] = (
-            str(value)
-            if isinstance(value, str) and value
-            else assessment_date
-            if active[family]
-            else None
-        )
-    return result
+def sentinel_freeze_authorized(risk: RiskAssessment) -> bool:
+    """Return whether the formal flag attributes this freeze to Sentinel.
 
+    Evidence is diagnostic only: it can attribute a flag that already exists,
+    but it can never manufacture behavioral authority on its own.
+    """
 
-def _at_least_one_session_earlier(first: str | None, second: str | None) -> bool:
-    if first is None or second is None:
-        return False
-    return date.fromisoformat(first) < date.fromisoformat(second)
+    return bool(
+        risk.freeze_new_risk
+        and risk.evidence.get("sentinel_freeze_new_risk", False)
+        and not risk.evidence.get("base_freeze_new_risk", False)
+    )
 
 
 def _severe_direct(assessment: SentinelAssessment, cfg: SystemConfig) -> bool:
@@ -92,24 +78,17 @@ def integrate_freeze_only(
         family: base_active[family] or sentinel_active[family]
         for family in sorted(RISK_FAMILIES)
     }
-    first_base = _first_base_dates(
-        base=base,
-        active=base_active,
-        assessment_date=sentinel.date,
-    )
     first_sentinel = sentinel.first_evidence_date
     incremental_families = sorted(
         family
         for family in RISK_FAMILIES
         if sentinel_active[family] and not base_active[family]
     )
-    earlier_families = sorted(
-        family
-        for family in RISK_FAMILIES
-        if sentinel_active[family]
-        and base_active[family]
-        and _at_least_one_session_earlier(first_sentinel, first_base[family])
-    )
+    # Phase 4 has no persisted, point-in-time family history for base risk or
+    # Sentinel.  Never infer an earlier vote from today's membership/holdings.
+    # The diagnostic remains explicit and fail-closed until such a carrier is
+    # introduced in a later phase.
+    earlier_families: list[str] = []
     incremental = bool(incremental_families or earlier_families)
     severe_direct = _severe_direct(sentinel, cfg)
     confirmation_days = int(sentinel.metrics.get("evidence_confirmation_days", 0.0))
@@ -152,8 +131,9 @@ def integrate_freeze_only(
         "sentinel_incremental": incremental,
         "sentinel_incremental_families": incremental_families,
         "sentinel_earlier_families": earlier_families,
-        "first_base_date": first_base,
+        "first_base_date": {},
         "first_sentinel_date": first_sentinel,
+        "sentinel_earlier_supported": False,
         "sentinel_assessment": sentinel.to_dict(),
         "sentinel_confirmation_days": confirmation_days,
         "sentinel_repair_days_required": cfg.risk_sentinel_repair_days,

@@ -482,6 +482,7 @@ def _reconcile_account_orders_mutating(
     for order in current:
         _register_account_order(account, order, submitted_date=submitted_date)
 
+    reconciled_current = list(current)
     current_ids = {order.order_id for order in current}
     current_by_symbol = {order.symbol: order for order in current}
     ledger = {item.order_id: item for item in account.order_ledger}
@@ -511,6 +512,10 @@ def _reconcile_account_orders_mutating(
             entry.cancel_reason = removed_buy_reason
             entry.last_update_date = submitted_date
             entry.last_event = "CANCEL_REQUESTED"
+            # Keep the broker-visible intent durable but non-executable until
+            # an authoritative broker snapshot confirms cancellation or a
+            # final fill.  Dropping it here would orphan the live order.
+            reconciled_current.append(order)
             continue
         entry.status = OrderStatus.REPLACED.value if replacement is not None else OrderStatus.CANCELLED.value
         entry.replaced_by = replacement.order_id if replacement is not None else ""
@@ -524,7 +529,12 @@ def _reconcile_account_orders_mutating(
             entry.cancel_reason = "daily target removed"
         entry.last_update_date = submitted_date
         entry.last_event = entry.status
-    return current
+    return tuple(
+        sorted(
+            reconciled_current,
+            key=lambda item: (item.side != Side.SELL.value, item.symbol),
+        )
+    )
 
 
 def _preflight_reconciliation_batch(
@@ -576,7 +586,7 @@ def reconcile_account_orders(
     _preflight_reconciliation_batch(previous=previous, current=current)
     shadow_account = deepcopy(account)
     shadow_previous, shadow_current = deepcopy((previous, current))
-    _reconcile_account_orders_mutating(
+    shadow_result = _reconcile_account_orders_mutating(
         account=shadow_account,
         previous=shadow_previous,
         current=shadow_current,
@@ -600,7 +610,15 @@ def reconcile_account_orders(
         original.order_id = shadow.order_id
     for original, shadow in zip(current, shadow_current, strict=True):
         original.order_id = shadow.order_id
-    return current
+    originals_by_id = {
+        order.order_id: order
+        for order in (*previous, *current)
+        if order.order_id
+    }
+    return tuple(
+        originals_by_id.get(order.order_id, order)
+        for order in shadow_result
+    )
 
 
 _RISK_LIFECYCLE_PRIORITY = {
@@ -782,6 +800,16 @@ class ExecutionPlanner:
         ledger = {item.order_id: item for item in account.order_ledger}
         for order in orders:
             account_order = ledger[order.order_id]
+            if (
+                order.side == Side.BUY.value
+                and account_order.cancel_reason == "sentinel_freeze_new_risk"
+                and account_order.status
+                in {OrderStatus.OPEN.value, OrderStatus.PARTIALLY_FILLED.value}
+            ):
+                account_order.last_update_date = date_str
+                account_order.last_event = "CANCEL_REQUESTED"
+                retained.append(order)
+                continue
             if (
                 order.side == Side.BUY.value
                 and account.candidate_tenure.get("recovery_owner_handoff", 0) == 1

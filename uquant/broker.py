@@ -342,8 +342,13 @@ def sync_broker_snapshot(
     cash = _nonnegative(payload, "cash")
     raw_positions = payload.get("positions")
     raw_fills = payload.get("fills", [])
-    if not isinstance(raw_positions, list) or not isinstance(raw_fills, list):
-        raise ValueError("broker positions and fills must be arrays")
+    raw_orders = payload.get("orders", [])
+    if (
+        not isinstance(raw_positions, list)
+        or not isinstance(raw_fills, list)
+        or not isinstance(raw_orders, list)
+    ):
+        raise ValueError("broker positions, fills, and orders must be arrays")
 
     # Work on a complete copy.  Fills, ledger transitions, events, cash, and
     # positions become visible together only after every snapshot invariant has
@@ -598,6 +603,31 @@ def sync_broker_snapshot(
         order.last_event = "BROKER_FILL"
         if order.status == OrderStatus.FILLED.value:
             completed_order_ids.add(order_id)
+
+    seen_broker_orders: set[str] = set()
+    for raw in raw_orders:
+        if not isinstance(raw, dict):
+            raise ValueError("each broker order must be an object")
+        order_id = str(raw.get("order_id", "")).strip()
+        if not order_id or order_id in seen_broker_orders:
+            raise ValueError("broker orders require unique stable order_id values")
+        seen_broker_orders.add(order_id)
+        order = ledger.get(order_id)
+        if order is None:
+            raise ValueError(f"broker order references unknown order {order_id!r}")
+        status = str(raw.get("status", "")).upper()
+        if status != OrderStatus.CANCELLED.value:
+            raise ValueError("Phase 4 broker order updates only confirm cancellation")
+        remaining = _broker_integer(raw, "remaining_shares")
+        if remaining != 0:
+            raise ValueError("broker cancellation must report zero live remaining shares")
+        if order.status in {OrderStatus.FILLED.value, OrderStatus.REPLACED.value}:
+            raise ValueError("broker cannot cancel a filled or replaced order")
+        if order.status != OrderStatus.CANCELLED.value:
+            order.status = OrderStatus.CANCELLED.value
+            order.last_update_date = as_of
+            order.last_event = "BROKER_CANCELLED"
+        completed_order_ids.add(order_id)
 
     reconciled_positions: dict[str, Position] = {}
     for raw in raw_positions:

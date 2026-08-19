@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import math
 from dataclasses import asdict, dataclass, replace
 from typing import Any, Literal
 
@@ -770,8 +771,15 @@ class SystemConfig:
             "LIMITED_GROSS_CAP",
         }:
             raise ValueError("risk_sentinel_mode is invalid")
-        if not 0.0 <= self.risk_sentinel_min_confidence <= 1.0:
+        if (
+            isinstance(self.risk_sentinel_min_confidence, bool)
+            or not isinstance(self.risk_sentinel_min_confidence, (int, float))
+            or not math.isfinite(float(self.risk_sentinel_min_confidence))
+            or not 0.0 <= self.risk_sentinel_min_confidence <= 1.0
+        ):
             raise ValueError("risk_sentinel_min_confidence must be in [0, 1]")
+        if not isinstance(self.risk_sentinel_severe_direct_enabled, bool):
+            raise ValueError("risk_sentinel_severe_direct_enabled must be boolean")
         for name in ("risk_sentinel_confirm_days", "risk_sentinel_repair_days"):
             value = getattr(self, name)
             if isinstance(value, bool) or not isinstance(value, int) or value < 1:

@@ -1,8 +1,11 @@
 from __future__ import annotations
 
+import pandas as pd
 import pytest
 
-from uquant.execution import reconcile_account_orders
+from uquant.broker import sync_broker_snapshot
+from uquant.config import DEFAULT_CONFIG
+from uquant.execution import ExecutionPlanner, reconcile_account_orders
 from uquant.types import (
     AccountOrder,
     AccountState,
@@ -77,6 +80,7 @@ def _ledger(*, status: str, filled: int = 0, remaining: int = 0) -> AccountOrder
         reason="confirmed entry",
         lifecycle="CORE",
         status=status,
+        requested_shares=filled + remaining,
         filled_shares=filled,
         remaining_shares=remaining,
         **_identity(side="BUY"),
@@ -127,12 +131,53 @@ def test_submitted_buy_records_cancel_request_without_faking_broker_confirmation
         removed_buy_reason="sentinel_freeze_new_risk",
     )
 
-    assert current == ()
+    assert current == (previous[0],)
     assert ledger.status == status
     assert ledger.filled_shares == filled
     assert ledger.remaining_shares == remaining
     assert ledger.cancel_reason == "sentinel_freeze_new_risk"
     assert ledger.last_event == "CANCEL_REQUESTED"
+
+    account.pending_orders = list(current)
+    fills = ExecutionPlanner(DEFAULT_CONFIG).execute_open(
+        date=pd.Timestamp("2026-08-20"),
+        account=account,
+        panel={},
+    )
+    assert fills == []
+    assert account.pending_orders == [previous[0]]
+
+
+def test_broker_cancel_confirmation_retires_cancel_requested_buy() -> None:
+    ledger = _ledger(status=OrderStatus.OPEN.value, remaining=500)
+    ledger.cancel_reason = "sentinel_freeze_new_risk"
+    ledger.last_event = "CANCEL_REQUESTED"
+    account = AccountState.empty(2_000_000.0)
+    account.order_ledger = [ledger]
+    account.pending_orders = [_pending(order_id=ledger.order_id, remaining=500)]
+    account.next_order_sequence = 2
+
+    result = sync_broker_snapshot(
+        account,
+        {
+            "as_of": "2026-08-20",
+            "cash": 2_000_000.0,
+            "positions": [],
+            "fills": [],
+            "orders": [
+                {
+                    "order_id": ledger.order_id,
+                    "status": OrderStatus.CANCELLED.value,
+                    "remaining_shares": 0,
+                }
+            ],
+        },
+    )
+
+    assert account.pending_orders == []
+    assert account.order_ledger[0].status == OrderStatus.CANCELLED.value
+    assert account.order_ledger[0].last_event == "BROKER_CANCELLED"
+    assert result["pending_orders"] == 0
 
 
 def test_sentinel_cancellation_policy_never_blocks_a_sell() -> None:

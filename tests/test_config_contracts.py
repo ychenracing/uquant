@@ -15,6 +15,8 @@ INVALID_OVERRIDES: tuple[tuple[dict[str, Any], str], ...] = (
     ({"risk_sentinel_mode": "INVALID"}, "risk_sentinel_mode"),
     ({"risk_sentinel_min_confidence": -0.01}, "risk_sentinel_min_confidence"),
     ({"risk_sentinel_min_confidence": 1.01}, "risk_sentinel_min_confidence"),
+    ({"risk_sentinel_min_confidence": True}, "risk_sentinel_min_confidence"),
+    ({"risk_sentinel_severe_direct_enabled": 1}, "risk_sentinel_severe_direct_enabled"),
     ({"risk_sentinel_confirm_days": 0}, "risk_sentinel_confirm_days"),
     ({"risk_sentinel_repair_days": 0}, "risk_sentinel_repair_days"),
     ({"initial_cash": 0}, "initial_cash"),

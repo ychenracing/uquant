@@ -137,6 +137,8 @@ def test_duplicate_families_do_not_create_incremental_authority() -> None:
     assert integrated.evidence["combined_family_active"]["breadth_structure"] is True
     assert integrated.evidence["combined_family_active"]["market_velocity"] is True
     assert integrated.evidence["combined_family_vote_count"] == 2
+    assert integrated.evidence["sentinel_earlier_families"] == []
+    assert integrated.evidence["sentinel_earlier_supported"] is False
 
 
 def test_incremental_confirmed_evidence_only_sets_freeze() -> None:
@@ -160,7 +162,7 @@ def test_incremental_confirmed_evidence_only_sets_freeze() -> None:
     ]
     assert integrated.evidence["base_family_active"]["market_velocity"] is True
     assert integrated.evidence["sentinel_family_active"]["market_velocity"] is True
-    assert integrated.evidence["first_base_date"]["market_velocity"] == "2026-08-19"
+    assert integrated.evidence["first_base_date"] == {}
     assert integrated.evidence["first_sentinel_date"] == "2026-08-18"
 
 

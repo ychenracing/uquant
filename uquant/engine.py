@@ -47,6 +47,7 @@ from .portfolio import PortfolioAllocator, current_weights
 from .reference import build_reference_context
 from .reference_registry import DEFAULT_REGISTRY_PATH, resolve_reference_symbols
 from .risk import assess_risk
+from .risk_sentinel.integration import sentinel_freeze_authorized
 from .risk_sentinel.service import evaluate_sentinel
 from .types import (
     ACCOUNT_SCHEMA_VERSION,
@@ -546,7 +547,7 @@ class ProductionEngine:
             submitted_date=str(date.date()),
             removed_buy_reason=(
                 "sentinel_freeze_new_risk"
-                if risk.evidence.get("sentinel_freeze_new_risk", False)
+                if sentinel_freeze_authorized(risk)
                 else None
             ),
         )

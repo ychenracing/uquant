@@ -268,6 +268,71 @@ def test_sentinel_freeze_preserves_real_final_strategic_completion_state() -> No
     assert account.strategic_rearm_date
 
 
+def test_sentinel_stale_recovery_release_cannot_commit_same_day_new_cohort() -> None:
+    dates = pd.bdate_range("2025-01-02", periods=130)
+    candidates = ("new_a", "new_b", "new_c")
+    frame = pd.DataFrame(
+        {
+            "close": [1.0] * 129 + [1.10],
+            "ma20": 1.0,
+            "ma60": 0.95,
+            "ma120": 1.20,
+            "ret5": 0.10,
+            "ret20": -0.05,
+            "ret60": -0.10,
+            "ret120": -0.40,
+            "amount": 1_000_000_000.0,
+        },
+        index=dates,
+    )
+    account = AccountState(
+        initial_cash=100.0,
+        cash=100.0,
+        anchor_weights={"old_anchor": 0.40},
+        recovery_anchor_date=str(dates[0].date()),
+        recovery_conviction_symbol="old_conviction",
+        candidate_tenure={"recovery_cohort_locked": 1},
+        operating_peak=100.0,
+        capital_peak=100.0,
+    )
+    risk = RiskAssessment(
+        Risk.NORMAL,
+        1.0,
+        0,
+        {
+            "base_freeze_new_risk": False,
+            "sentinel_freeze_new_risk": True,
+            "freeze_new_risk": True,
+            "broad_ret120": 0.10,
+            "tech_ret120": 0.10,
+            "risk_anchor_group_count": 3,
+        },
+        (),
+        "NONE",
+        freeze_new_risk=True,
+    )
+
+    targets = PortfolioAllocator(DEFAULT_CONFIG).allocate(
+        date=dates[-1],
+        opportunity=Opportunity.RECOVERY,
+        risk=risk,
+        user_panel={symbol: frame for symbol in candidates},
+        leaders={
+            symbol: LeaderScore(symbol, 0.90, 0.95, True, False, symbol, {})
+            for symbol in candidates
+        },
+        account=account,
+        prices={symbol: 1.10 for symbol in candidates},
+    )
+
+    assert targets == ()
+    assert account.anchor_weights == {}
+    assert account.recovery_anchor_date == ""
+    assert account.recovery_conviction_symbol == "old_conviction"
+    assert account.candidate_tenure["recovery_cohort_locked"] == 0
+    assert account.candidate_tenure["recovery_cohort_graduated"] == 1
+
+
 def test_confirmed_fast_recovery_hands_reduced_core_to_new_owner_without_raising_gross() -> None:
     dates = pd.bdate_range("2025-01-02", periods=130)
     recovery_close = [2.0] * 119 + [0.70 + 0.04 * index for index in range(11)]

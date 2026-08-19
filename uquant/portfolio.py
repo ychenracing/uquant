@@ -732,9 +732,20 @@ class PortfolioAllocator(RecoveryPortfolioPolicy):
             commit_tenure_prefixes(("tactical_", "recovery_cycle_"))
             account.tactical_anchor_symbol = planned_account.tactical_anchor_symbol
         if recovery_exit:
-            commit_tenure_prefixes(("recovery_", "post_shock_"))
-            account.recovery_anchor_date = planned_account.recovery_anchor_date
-            account.recovery_conviction_symbol = planned_account.recovery_conviction_symbol
+            # Commit the canonical old-cohort release, never the unrestricted
+            # planner's possible same-day recovery admission.
+            account.recovery_anchor_date = ""
+            account.candidate_tenure["recovery_cohort_locked"] = 0
+            account.candidate_tenure["recovery_cohort_graduated"] = 1
+            account.candidate_tenure["diversification_capped"] = 0
+            account.candidate_tenure["confirmed_anchor_pair"] = 0
+            account.candidate_tenure["confirmed_pair_balanced"] = 0
+            account.candidate_tenure["recovery_substitution_pending"] = 0
+            account.candidate_tenure["recovery_substitution_completed"] = 0
+            account.candidate_tenure["cross_industry_hard_risk_trail"] = 0
+            for key in tuple(account.replacement_tenure):
+                if key.startswith("hard_risk_winner_trail:"):
+                    account.replacement_tenure.pop(key, None)
         if strategic_exit:
             commit_tenure_prefixes(("strategic_",))
             account.strategic_epochs_completed = planned_account.strategic_epochs_completed

@@ -17,6 +17,7 @@ from uquant.risk import (
     _update_capital_budget_ladder,
     _update_dynamic_anchors,
     assess_risk,
+    build_base_market_family_snapshot,
 )
 from uquant.risk_sector import SectorGuardTransition, SectorObservation
 from uquant.types import AccountState, LeaderScore, Position, Risk, RiskAssessment
@@ -157,6 +158,80 @@ def test_correlated_structure_indicators_cast_one_family_vote() -> None:
 
     assert families["breadth_structure"]
     assert sum(families.values()) == 1
+
+
+def test_base_market_snapshot_owns_existing_market_family_thresholds() -> None:
+    snapshot = build_base_market_family_snapshot(
+        average_fast_return=DEFAULT_CONFIG.risk_fast_return,
+        declining_ratio=DEFAULT_CONFIG.risk_breadth,
+        below_ma20_ratio=DEFAULT_CONFIG.risk_below_ma20,
+        sector_stress_ratio=0.50,
+        median_correlation=DEFAULT_CONFIG.risk_correlation,
+        volatility_ratio=DEFAULT_CONFIG.risk_volatility_ratio,
+        tech_speed=-0.055,
+        broad_speed=0.0,
+        cfg=DEFAULT_CONFIG,
+    )
+
+    assert snapshot.indicator_active == {
+        "sector_breadth_shock": True,
+        "below_ma20_structure": True,
+        "multi_industry_sync": True,
+        "correlation_shock": True,
+        "volatility_shock": True,
+        "index_velocity": True,
+    }
+    assert snapshot.family_active == {
+        "breadth_structure": True,
+        "covariance_stress": True,
+        "market_velocity": True,
+    }
+
+
+def test_base_market_snapshot_does_not_include_account_or_leadership_families() -> None:
+    snapshot = build_base_market_family_snapshot(
+        average_fast_return=0.0,
+        declining_ratio=0.0,
+        below_ma20_ratio=0.0,
+        sector_stress_ratio=0.0,
+        median_correlation=float("nan"),
+        volatility_ratio=1.0,
+        tech_speed=0.0,
+        broad_speed=0.0,
+        cfg=DEFAULT_CONFIG,
+    )
+
+    assert snapshot.family_active == {
+        "breadth_structure": False,
+        "covariance_stress": False,
+        "market_velocity": False,
+    }
+
+
+def test_base_market_snapshot_preserves_formal_reason_order_with_leadership() -> None:
+    snapshot = build_base_market_family_snapshot(
+        average_fast_return=DEFAULT_CONFIG.risk_fast_return,
+        declining_ratio=DEFAULT_CONFIG.risk_breadth,
+        below_ma20_ratio=DEFAULT_CONFIG.risk_below_ma20,
+        sector_stress_ratio=0.50,
+        median_correlation=DEFAULT_CONFIG.risk_correlation,
+        volatility_ratio=DEFAULT_CONFIG.risk_volatility_ratio,
+        tech_speed=-0.055,
+        broad_speed=0.0,
+        cfg=DEFAULT_CONFIG,
+    )
+
+    indicators = snapshot.with_leadership(leader_failure=True)
+
+    assert list(indicators) == [
+        "sector_breadth_shock",
+        "below_ma20_structure",
+        "multi_industry_sync",
+        "correlation_shock",
+        "volatility_shock",
+        "leader_failure",
+        "index_velocity",
+    ]
 
 
 def test_true_crash_escalates_across_independent_evidence_families() -> None:

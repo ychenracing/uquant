@@ -16,9 +16,9 @@
     "code_fingerprint": "1e000f0cdb303ed71c07198636e70fe88c4210767f74128b2f57512575f102ed"
   },
   "candidate": {
-    "commit": "f635d4bdc4614e001466ad7573bcb9943cbfb533",
-    "remote_commit": "6dce895fc8d7c3acb7c41a44fc46f0ffc3ae2a2b",
-    "code_fingerprint": "a074453bb58a9178991ab91866ef53775e3fb93029ed0b4b742dacd66dc5d55d"
+    "commit": "a310fb98b8b0474b0f4a840bba0ab7830d63031c",
+    "remote_commit": "c03bc1cdd3decec4e25105a432fe30539860ec71",
+    "code_fingerprint": "7ba223f678ffc3c26ffb254985108c81ebac5c57ea298b0d898219825263a990"
   },
   "effective_config_sha256": "dae4d79fdd813832c6ab152611437c13be1d38227c7280691874d3a9267d93d5",
   "counts": {

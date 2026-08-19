@@ -907,7 +907,9 @@ def test_shadow_mode_keeps_sentinel_out_of_the_production_decision_path(
 
     monkeypatch.setattr(engine_module, "evaluate_sentinel", forbidden)
 
-    ProductionEngine(data_dir).decide(
+    ProductionEngine(
+        data_dir, DEFAULT_CONFIG.override(risk_sentinel_mode="SHADOW")
+    ).decide(
         symbols=SYMBOLS,
         as_of="2026-06-30",
         account=AccountState.empty(2e6),

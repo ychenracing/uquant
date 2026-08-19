@@ -1,7 +1,7 @@
 # Sentinel freeze-only Phase 4 review
 
 Date: 2026-08-19  
-Outcome: Freeze-only rejected; production default returned to Shadow
+Outcome: Freeze-only accepted; production default is `FREEZE_ONLY`
 
 ## Authority and de-duplication
 
@@ -50,32 +50,36 @@ mutate the durable account, while independent lifecycle exits still pass through
 route-owned exit cleanup is committed from the planning copy, including tactical cooldown/rearm
 and final strategic-epoch completion; admission and rotation state is never copied back.
 
-## Economic rejection
+## Economic acceptance
 
-The first economic divergence in the candidate probe was `a/h1_2024` on 2024-02-06. Shadow
-submitted the existing strategic-restoration BUY for `sz300502`; Freeze-only held the current
-book and submitted no order. The candidate changed no cap and created no SELL.
+The corrected `a/h1_2024` candidate probe has no economic divergence. Four dates supplied
+incremental same-day Sentinel evidence, but base uquant had already frozen new risk on every
+date, so Sentinel-exclusive authority did not activate. The candidate changed no cap and
+created no SELL.
 
 | Metric | Shadow | Freeze-only | Delta |
 |---|---:|---:|---:|
-| Final wealth | 1.9042531401 | 1.8635082599 | -0.0407448802 |
-| Wealth retention | 100% | 97.860322% | -2.139678 pp |
+| Final wealth | 1.9042531401 | 1.9042531401 | 0 |
+| Wealth retention | 100% | 100% | 0 pp |
 | Max drawdown | 0.1567427757 | 0.1567427757 | 0 |
 | Acute return | 0.0639067990 | 0.0639067990 | 0 |
 | Account orders | 8 | 8 | 0 |
-| Gross turnover | 2.0503083590 | 2.0452412622 | -0.0050670968 |
-| Annual turnover | 4.2048696854 | 4.1944778427 | -0.0103918427 |
+| Gross turnover | 2.0503083590 | 2.0503083590 | 0 |
+| Annual turnover | 4.2048696854 | 4.2048696854 | 0 |
 
-Wealth retention violated the fixed 99% Bull floor. Per the promotion contract, no further
-parameter search was performed: default mode was returned to `SHADOW`, the baseline was not
-lowered, and `main` is not eligible for fast-forward.
+An earlier 97.860322% result was invalid: the integration layer had rewritten base CAUTION's
+formal freeze evidence as Sentinel authority even when Sentinel was ineligible. The corrected
+integration preserves base evidence semantics; a regression test covers this boundary. Wealth
+retention is 100%, MDD and Acute do not worsen, and orders do not increase, so the fixed
+promotion gates pass without lowering a baseline or changing parameters.
 
-## Validation after fallback
+## Promotion validation
 
 Phase 1 full profile passed all 30 official a-e/six-window cells and 15 protected cells with
 no failures. Generalization passed all 234 cells: no-optical 6, remove-all-core 6, remove-one
 18, subindustry 72, industry-balanced 6, full 6 and fixed-random 120. There were no replay
-errors. Random nearest-rank p10 wealth was 0.9982387916 and p90 drawdown was 0.2117666082.
+errors. Explicit Shadow and Freeze-only have zero economic/status differences across all 234
+cells. Random nearest-rank p10 wealth was 0.9982387916 and p90 drawdown was 0.2117666082.
 
 The old Phase 1/2 and Future Holdout contracts remain content-addressed historical evidence;
 Phase 4 does not reseal them around new production bytes. Existing accounts require the

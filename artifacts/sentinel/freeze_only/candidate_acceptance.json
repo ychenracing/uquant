@@ -1,0 +1,64 @@
+{
+  "schema_version": 1,
+  "decision": "PROMOTE_FREEZE_ONLY",
+  "candidate_mode": "FREEZE_ONLY",
+  "baseline_mode": "SHADOW",
+  "case": "a/h1_2024",
+  "window": ["2024-01-02", "2024-07-01"],
+  "symbols": ["sz300308", "sz300502", "sz300394"],
+  "first_economic_divergence": null,
+  "economic_divergence_count": 0,
+  "sentinel_direct_sell_count": 0,
+  "target_gross_cap_equal": true,
+  "sentinel_incremental_evidence": {
+    "count": 4,
+    "dates": ["2024-03-27", "2024-03-28", "2024-03-29", "2024-04-10"],
+    "base_freeze_already_true_on_all_dates": true,
+    "sentinel_exclusive_authority_dates": [],
+    "incremental_families": ["live_book_damage", "market_velocity"],
+    "earlier_families": [],
+    "sentinel_earlier_supported": false
+  },
+  "metrics": {
+    "shadow": {
+      "final_wealth": 1.9042531401193852,
+      "max_drawdown": 0.156742775678121,
+      "acute_return": 0.06390679898215934,
+      "account_orders": 8,
+      "gross_turnover": 2.0503083589999997,
+      "annual_turnover": 4.204869685406779
+    },
+    "freeze_only": {
+      "final_wealth": 1.9042531401193852,
+      "max_drawdown": 0.156742775678121,
+      "acute_return": 0.06390679898215934,
+      "account_orders": 8,
+      "gross_turnover": 2.0503083589999997,
+      "annual_turnover": 4.204869685406779
+    },
+    "delta": {
+      "wealth_ratio": 1.0,
+      "wealth_opportunity_cost": 0.0,
+      "max_drawdown": 0.0,
+      "acute_return": 0.0,
+      "account_orders": 0,
+      "gross_turnover": 0.0,
+      "annual_turnover": 0.0
+    }
+  },
+  "gates": {
+    "bull_wealth_retention_at_least_99_percent": true,
+    "mdd_not_worse": true,
+    "acute_not_worse": true,
+    "orders_increase_at_most_one": true,
+    "phase1_passed": true,
+    "generalization_passed": true
+  },
+  "provenance": {
+    "local_head": "56f8819b7a97e586e5a4e3654b3b6d6b827595cb",
+    "effective_config_sha256": "dae4d79fdd813832c6ab152611437c13be1d38227c7280691874d3a9267d93d5",
+    "data_manifest_sha256": "343009138d22f8d4a20768f706207fe4d4bcd03581b0c5945c5485ecbd28788d",
+    "probe_artifact_sha256": "f99b2b819ccf398ea72cf8a0bb1248765d73a84a30298afb6b57761e45339dcd"
+  },
+  "main_update_allowed": true
+}

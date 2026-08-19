@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "mode": "SHADOW",
+  "mode": "FREEZE_ONLY",
   "passed": true,
   "failures": [],
   "cells": {
@@ -31,13 +31,17 @@
     "p90_drawdown_nearest_rank": 0.21176660815745507,
     "maximum_drawdown": 0.2825468776869108
   },
+  "comparison_to_shadow": {
+    "cells_compared": 234,
+    "economic_and_status_mismatches": 0,
+    "normalized_economic_sha256": "110d63d96dcff79098bf7e6903002c30971a1e1415502375216b795d8deb6706"
+  },
   "provenance": {
-    "local_commit": "af1b78b9f17cd8a7afd8472bd8b84346cbe5e3a0",
-    "effective_config_sha256": "61d2392401a64b48353efe9d3ae302988525e70bcb7a9e0fc4e329739dfebe72",
-    "source_sha256": "3f6eadf75f726362a3dceff334329c37565d8e1bb3080ef2151c6a5785c4b5bf",
+    "local_commit": "56f8819b7a97e586e5a4e3654b3b6d6b827595cb",
+    "effective_config_sha256": "dae4d79fdd813832c6ab152611437c13be1d38227c7280691874d3a9267d93d5",
+    "source_sha256": "81587b7da3ce4cdebaec52190e28a418ab4bde0c06ee2515a5a9d272e3cd685f",
     "data_manifest_sha256": "343009138d22f8d4a20768f706207fe4d4bcd03581b0c5945c5485ecbd28788d",
     "scenario_fingerprint": "debe233bfc80c98ec37f7becfa13a37efb462bdf695d3822d077250841b0cd2a",
-    "evidence_fingerprint": "2a9696d4ed914ea0081a7b2bb0cd8b02a52622acdfed7d35863150544327d8a0",
-    "raw_artifact_sha256": "ad0d436209a5e7229c6d5bcab17c6ef8432e6485dada0dbf1d87b7cd725eca1c"
+    "raw_artifact_sha256": "199773983526dc3c0a9fc48a4d51fa86e090c353356b2bd26b5b90c056c0857d"
   }
 }

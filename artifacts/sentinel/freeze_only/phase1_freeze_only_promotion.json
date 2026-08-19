@@ -506,12 +506,12 @@
     "binding": {
       "data_manifest_sha256": "343009138d22f8d4a20768f706207fe4d4bcd03581b0c5945c5485ecbd28788d",
       "data_snapshot_id": "20260809T094222Z-causal-tech-index-rebase",
-      "effective_config_sha256": "61d2392401a64b48353efe9d3ae302988525e70bcb7a9e0fc4e329739dfebe72",
-      "generated_at": "2026-08-19T06:01:58.731788+00:00",
+      "effective_config_sha256": "dae4d79fdd813832c6ab152611437c13be1d38227c7280691874d3a9267d93d5",
+      "generated_at": "2026-08-19T06:48:18.341551+00:00",
       "numpy_version": "2.5.1",
       "pandas_version": "3.0.5",
-      "production_commit": "af1b78b9f17cd8a7afd8472bd8b84346cbe5e3a0",
-      "production_source_sha256": "a4e6ba3695a8d886cf30a6104185c04509d65251d4d4295259831a61d6c99a1b",
+      "production_commit": "43dabd839c8aab7ecb73e77ef0a513e84cc6bb40",
+      "production_source_sha256": "ca983c21973e3f7c0222c4309333264ec8fc24c7ba615a64b3d09ea279d7dfdd",
       "python_full_version": "3.12.13",
       "uv_lock_sha256": "4accf16535b5ac95b831c9289e0ad2ff21282dc5dfae3f05dd0fb095089d6a61",
       "uv_version": "0.11.33"
@@ -523,7 +523,7 @@
         "manifest_sha256": "343009138d22f8d4a20768f706207fe4d4bcd03581b0c5945c5485ecbd28788d",
         "snapshot_id": "20260809T094222Z-causal-tech-index-rebase"
       },
-      "effective_config_sha256": "61d2392401a64b48353efe9d3ae302988525e70bcb7a9e0fc4e329739dfebe72",
+      "effective_config_sha256": "dae4d79fdd813832c6ab152611437c13be1d38227c7280691874d3a9267d93d5",
       "environment": {
         "numpy_version": "2.5.1",
         "pandas_version": "3.0.5",
@@ -532,13 +532,13 @@
         "uv_version": "0.11.33"
       },
       "production": {
-        "commit": "af1b78b9f17cd8a7afd8472bd8b84346cbe5e3a0",
+        "commit": "43dabd839c8aab7ecb73e77ef0a513e84cc6bb40",
         "repository": "ychenracing/uquant",
-        "source_sha256": "a4e6ba3695a8d886cf30a6104185c04509d65251d4d4295259831a61d6c99a1b"
+        "source_sha256": "ca983c21973e3f7c0222c4309333264ec8fc24c7ba615a64b3d09ea279d7dfdd"
       }
     },
     "champion_commit": "9bb58420365b471ee11b4cdfe31793008233ad50",
-    "generated_at": "2026-08-19T06:01:58.731788+00:00",
+    "generated_at": "2026-08-19T06:48:18.341551+00:00",
     "validation_fingerprint": "6f04569dc1449673b885e485a5e3ea051f4eb2898f2af876ac9c3b4fb6b7eb29"
   },
   "schema_version": 4,

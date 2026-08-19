@@ -221,10 +221,10 @@ NumPy、pandas、uv 和锁文件摘要；已开始观察的身份不得修改或
 
 ## Phase 4 Freeze-only 验收
 
-Freeze-only 在 `a/h1_2024` 的首个经济分叉为 2024-02-06：候选阻止了一笔既有策略的
-恢复 BUY。MDD、Acute 和订单数没有恶化，换手略降，但最终财富由 1.9042531401 降至
-1.8635082599，仅保留 97.860322%，未达到 99% Bull wealth 硬门。因此默认回到 Shadow。
+修正后的 Freeze-only 在 `a/h1_2024` 没有经济分叉：最终财富 1.9042531401、MDD
+0.1567427757、Acute 0.0639067990、订单 8、gross turnover 2.0503083590，均与显式
+Shadow 精确相同，财富保留 100%，机会成本为 0。
 
-回退后 Phase 1 的 30 个官方单元和 15 个保护单元全部通过；Generalization 的 234 个
-单元全部通过，包含 no-optical、remove-core 和 120 个固定随机池。完整结果与原始矩阵
-摘要见 `artifacts/sentinel/freeze_only/`。
+Phase 1 的 30 个官方单元和 15 个保护单元全部通过；显式 Shadow 与 Freeze-only 的
+Generalization 均为 234/234，通过 no-optical、remove-core 和 120 个固定随机池，且所有
+经济/status 字段 0 差异。完整结果与原始矩阵摘要见 `artifacts/sentinel/freeze_only/`。

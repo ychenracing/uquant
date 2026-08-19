@@ -1,0 +1,11 @@
+{
+  "schema_version": 1,
+  "baseline_commit": "4be0ad2e8b2f44bad03042c05ddded0bc1c7a3aa",
+  "shadow_commit": "af1b78b9f17cd8a7afd8472bd8b84346cbe5e3a0",
+  "cells_compared": 45,
+  "decision_payload_mismatches": 0,
+  "economic_account_hash_mismatches": 0,
+  "baseline_normalized_sha256": "01f6eb737f2e96d6cd047af0bb75a48f038e466ecc58aef8793123ed7843bd61",
+  "shadow_normalized_sha256": "01f6eb737f2e96d6cd047af0bb75a48f038e466ecc58aef8793123ed7843bd61",
+  "passed": true
+}

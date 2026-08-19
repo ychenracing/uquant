@@ -787,6 +787,8 @@ def _source_paths(root: Path) -> tuple[Path, ...]:
 
 
 def _is_strategy_relative(relative: str) -> bool:
+    if relative.startswith("uquant/risk_sentinel/"):
+        return False
     if relative in _STRATEGY_OPERATIONAL_RELATIVES:
         return False
     if relative in _STRATEGY_FIXED_RELATIVES:

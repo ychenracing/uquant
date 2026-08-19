@@ -46,7 +46,7 @@ _POST_TASK8_SOURCE_CONTRACT_SHA256: Final = (
     "09b8e9709bb09a31dddc79659faf725afc616956364ec5324e354b6e83fb2b44"
 )
 _FUTURE_HOLDOUT_OVERLAY_SHA256: Final = (
-    "4251fc07954eaa1cf005f44caf1433b904d3d6eeac2cc75f616f295f67e9e13a"
+    "ac7390001989a950e82a94a844feb84e9ce682585c01e3e57e175b1f71d7fdba"
 )
 _FUTURE_HOLDOUT_OVERLAY_PATHS: Final = {
     "uquant/validation/execution_journal.py",
@@ -55,7 +55,7 @@ _FUTURE_HOLDOUT_OVERLAY_PATHS: Final = {
     "uquant/validation/holdout_runtime.py",
 }
 _RISK_SENTINEL_OVERLAY_SHA256: Final = (
-    "9b671c85fdad19dc855a492b60e1d861f2772becbeb9337d6ddf6bfa5121c677"
+    "4ce6fc0bdf09e658b5be96b45e251a4b40632d174fd53922cfbfb8fb6e022e1d"
 )
 _RISK_SENTINEL_SOURCE_COMMIT: Final = "e02b0ad5c38aa119b2d21cb3142589b1f3f2fae1"
 _RISK_SENTINEL_OVERLAY_PATHS: Final = {

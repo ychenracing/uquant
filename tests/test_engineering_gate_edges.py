@@ -460,6 +460,12 @@ def test_current_holdout_binding_matches_exact_head_and_reviewed_strategy_anchor
     assert binding.strategy_source_sha256 == holdout_module.STRATEGY_SOURCE_SHA256
 
 
+def test_shadow_sentinel_package_is_observational_not_strategy_inventory() -> None:
+    assert holdout_module._is_strategy_relative("uquant/risk_sentinel/service.py") is False
+    assert holdout_module._is_strategy_relative("uquant/risk_sentinel/cli.py") is False
+    assert holdout_module._is_strategy_relative("uquant/risk_sentinel_evasion.py") is True
+
+
 def test_holdout_binding_and_defensive_value_edges(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,

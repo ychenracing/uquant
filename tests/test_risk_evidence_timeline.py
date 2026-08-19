@@ -7,12 +7,14 @@ import pandas as pd
 
 from uquant.config import DEFAULT_CONFIG
 from uquant.risk_sentinel import history as history_module
+from uquant.risk_sentinel.integration import _severe_direct
 from uquant.risk_sentinel.models import (
     CoverageHealth,
     SentinelAssessment,
     SentinelLevel,
     WarmupStatus,
 )
+from uquant.risk_sentinel.service import evaluate_sentinel
 from uquant.validation.universe import AIUniverse, UniverseMember
 
 
@@ -97,23 +99,35 @@ def test_timeline_truncates_future_rows_and_resolves_pit_membership_and_industry
     tech = _frame(dates)
     panel = {symbol: _frame(dates) for symbol in ("a", "b", "c", "d", "new")}
     universe = _universe(dates)
-    observed: list[tuple[str, tuple[str, ...], str, pd.Timestamp]] = []
+    observed: list[tuple[str, tuple[str, ...], str]] = []
+    original_builder = history_module.build_market_evidence_from_observations
 
-    def fake_evaluate(**kwargs):
+    def recording_builder(**kwargs):
         as_of = str(kwargs["as_of"])
-        reference_panel = kwargs["reference_panel"]
+        names = kwargs["names"]
         industries = kwargs["point_in_time_industries"]
         observed.append(
             (
                 as_of,
-                tuple(reference_panel),
+                tuple(names),
                 industries.get("a", "unknown"),
-                max(frame.index.max() for frame in reference_panel.values()),
             )
         )
-        return _assessment(as_of, active=as_of >= str(dates[25].date()))
+        return original_builder(**kwargs)
 
-    monkeypatch.setattr(history_module, "evaluate_sentinel", fake_evaluate)
+    monkeypatch.setattr(
+        history_module,
+        "build_market_evidence_from_observations",
+        recording_builder,
+    )
+    monkeypatch.setattr(
+        history_module,
+        "build_risk_opinion",
+        lambda *, evidence, coverage: _assessment(
+            evidence.date,
+            active=evidence.date >= str(dates[25].date()),
+        ),
+    )
     as_of = str(dates[26].date())
     timeline = history_module.build_risk_evidence_timeline(
         as_of=as_of,
@@ -125,7 +139,6 @@ def test_timeline_truncates_future_rows_and_resolves_pit_membership_and_industry
         cfg=DEFAULT_CONFIG,
     )
 
-    assert all(last <= pd.Timestamp(row_date) for row_date, _, _, last in observed)
     before_change = next(item for item in observed if item[0] == str(dates[22].date()))
     after_change = next(item for item in observed if item[0] == str(dates[23].date()))
     before_listing = next(item for item in observed if item[0] == str(dates[23].date()))
@@ -148,8 +161,8 @@ def test_timeline_is_deterministic_and_future_crash_cannot_change_history(monkey
 
     monkeypatch.setattr(
         history_module,
-        "evaluate_sentinel",
-        lambda **kwargs: _assessment(str(kwargs["as_of"]), active=False),
+        "build_risk_opinion",
+        lambda *, evidence, coverage: _assessment(evidence.date, active=False),
     )
     kwargs = {
         "as_of": str(dates[-2].date()),
@@ -171,6 +184,87 @@ def test_timeline_is_deterministic_and_future_crash_cannot_change_history(monkey
     )
 
     assert original == with_future_crash == reordered
+
+
+def test_cached_full_timeline_prefix_matches_direct_causal_rebuild(monkeypatch) -> None:
+    dates = pd.bdate_range("2026-01-05", periods=29)
+    universe = _universe(dates)
+    broad = _frame(dates)
+    tech = _frame(dates)
+    panel = {symbol: _frame(dates) for symbol in ("a", "b", "c", "d", "new")}
+    monkeypatch.setattr(
+        history_module,
+        "build_risk_opinion",
+        lambda *, evidence, coverage: _assessment(
+            evidence.date,
+            active=evidence.date >= str(dates[25].date()),
+        ),
+    )
+    common = {
+        "broad_frame": broad,
+        "tech_frame": tech,
+        "reference_panel": panel,
+        "reference_returns": None,
+        "universe": universe,
+        "cfg": DEFAULT_CONFIG,
+    }
+    full = history_module.build_risk_evidence_timeline(
+        as_of=str(dates[-1].date()),
+        **common,
+    )
+    point = str(dates[26].date())
+    cached_prefix = history_module.risk_evidence_timeline_prefix(
+        full,
+        as_of=point,
+        cfg=DEFAULT_CONFIG,
+    )
+    rebuilt = history_module.build_risk_evidence_timeline(as_of=point, **common)
+
+    assert cached_prefix == rebuilt
+
+
+def test_precomputed_market_rows_match_the_canonical_single_day_service() -> None:
+    dates = pd.bdate_range("2026-01-05", periods=29)
+    universe = _universe(dates)
+    broad = _frame(dates)
+    tech = _frame(dates)
+    panel = {symbol: _frame(dates) for symbol in ("a", "b", "c", "d", "new")}
+    timeline = history_module.build_risk_evidence_timeline(
+        as_of=str(dates[-1].date()),
+        broad_frame=broad,
+        tech_frame=tech,
+        reference_panel=panel,
+        reference_returns=None,
+        universe=universe,
+        cfg=DEFAULT_CONFIG,
+    )
+
+    for row in timeline.sentinel_rows:
+        symbols = universe.symbols_as_of(row.date)
+        industries = {symbol: universe.industry_of(symbol, row.date) for symbol in symbols}
+        direct = evaluate_sentinel(
+            as_of=row.date,
+            broad_frame=broad.loc[:row.date].tail(61),
+            tech_frame=tech.loc[:row.date].tail(61),
+            reference_panel={
+                symbol: panel[symbol].loc[:row.date].tail(61) for symbol in symbols
+            },
+            point_in_time_industries=industries,
+            held_symbols=(),
+            leader_symbols=(),
+            capital_drawdown=None,
+        )
+        assert row.coverage_status is direct.coverage.status
+        assert row.confidence == direct.confidence
+        assert row.level is direct.level
+        assert row.active_families == tuple(
+            family
+            for family in history_module._MARKET_FAMILIES
+            if family in direct.evidence_families
+        )
+        assert row.reasons == direct.reasons
+        assert row.weakest_subindustries == direct.weakest_subindustries
+        assert row.severe_direct is _severe_direct(direct, DEFAULT_CONFIG)
 
 
 def test_timeline_public_boundary_has_no_account_or_current_book_input() -> None:

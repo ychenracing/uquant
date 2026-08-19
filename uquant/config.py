@@ -325,6 +325,7 @@ class SystemConfig:
     risk_sentinel_confirm_days: int = 2
     risk_sentinel_repair_days: int = 3
     risk_sentinel_severe_direct_enabled: bool = True
+    risk_sentinel_causal_confirmation_enabled: bool = False
     risk_overlay_enabled: bool = True
     evidence_family_voting_enabled: bool = False
     fail_closed: bool = True
@@ -780,6 +781,8 @@ class SystemConfig:
             raise ValueError("risk_sentinel_min_confidence must be in [0, 1]")
         if not isinstance(self.risk_sentinel_severe_direct_enabled, bool):
             raise ValueError("risk_sentinel_severe_direct_enabled must be boolean")
+        if not isinstance(self.risk_sentinel_causal_confirmation_enabled, bool):
+            raise ValueError("risk_sentinel_causal_confirmation_enabled must be boolean")
         for name in ("risk_sentinel_confirm_days", "risk_sentinel_repair_days"):
             value = getattr(self, name)
             if isinstance(value, bool) or not isinstance(value, int) or value < 1:
@@ -802,8 +805,14 @@ DEFAULT_CONFIG = SystemConfig()
 def config_fingerprint(cfg: SystemConfig = DEFAULT_CONFIG) -> str:
     """Return a canonical digest of every effective production setting."""
 
+    payload = cfg.to_dict()
+    if payload["risk_sentinel_causal_confirmation_enabled"] is False:
+        # Phase 6 adds a governed, disabled authority switch. Keeping its
+        # disabled representation out of the canonical payload preserves the
+        # reviewed economic identity; enabling it creates a distinct identity.
+        payload.pop("risk_sentinel_causal_confirmation_enabled")
     encoded = json.dumps(
-        cfg.to_dict(),
+        payload,
         allow_nan=False,
         separators=(",", ":"),
         sort_keys=True,

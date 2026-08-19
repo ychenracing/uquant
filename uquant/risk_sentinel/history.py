@@ -4,16 +4,18 @@ from __future__ import annotations
 
 import math
 from collections.abc import Mapping
+from dataclasses import replace
 
 import numpy as np
 import pandas as pd
 
 from uquant.config import SystemConfig
 from uquant.features import scalar
-from uquant.reference import build_reference_context
-from uquant.risk import build_base_market_family_snapshot
+from uquant.market_risk import build_base_market_family_snapshot
 from uquant.validation.universe import AIUniverse
 
+from .coverage import assess_coverage, build_coverage_health
+from .evidence import NameMarketEvidence, build_market_evidence_from_observations
 from .integration import _severe_direct
 from .models import (
     BaseMarketRiskRow,
@@ -23,19 +25,101 @@ from .models import (
     SentinelMarketRow,
     WarmupStatus,
 )
-from .service import evaluate_sentinel
+from .opinion import build_risk_opinion
 
 _MARKET_FAMILIES = (
     "breadth_structure",
     "covariance_stress",
     "market_velocity",
 )
+_MARKET_LOOKBACK = 61
+
+
+def _valid_close(frame: pd.DataFrame) -> pd.Series:
+    values = pd.to_numeric(frame["close"], errors="coerce")
+    return values[values > 0.0].astype(float)
+
+
+def _prepared_name_observations(
+    reference_panel: Mapping[str, pd.DataFrame],
+) -> tuple[
+    dict[str, dict[pd.Timestamp, NameMarketEvidence]],
+    dict[str, pd.Series],
+]:
+    observations: dict[str, dict[pd.Timestamp, NameMarketEvidence]] = {}
+    returns: dict[str, pd.Series] = {}
+    for symbol, frame in sorted(reference_panel.items()):
+        close = _valid_close(frame)
+        daily = close.pct_change(fill_method=None)
+        returns[symbol] = daily
+        fast = close / close.shift(5) - 1.0
+        below = close < close.rolling(20).mean()
+        recent = daily.rolling(5).std(ddof=0)
+        prior = daily.shift(5).rolling(15).std(ddof=0)
+        ratio = recent / prior
+        fallback = pd.Series(
+            np.where(recent > 1e-12, 3.0, 1.0),
+            index=recent.index,
+            dtype=float,
+        )
+        ratio = ratio.where(prior > 1e-12, fallback)
+        ratio = ratio.clip(upper=3.0)
+        prepared: dict[pd.Timestamp, NameMarketEvidence] = {}
+        for session in close.index[20:]:
+            point = pd.Timestamp(session).normalize()
+            fast_value = float(fast.loc[session])
+            ratio_value = float(ratio.loc[session])
+            if not math.isfinite(fast_value) or not math.isfinite(ratio_value):
+                continue
+            prepared[point] = NameMarketEvidence(
+                fast_return=fast_value,
+                downside=float(fast_value < 0.0),
+                below_ma20=float(below.loc[session]),
+                volatility_ratio=ratio_value,
+            )
+        observations[symbol] = prepared
+    return observations, returns
+
+
+def _prepared_index_returns(
+    frame: pd.DataFrame,
+) -> tuple[dict[pd.Timestamp, float], dict[pd.Timestamp, float]]:
+    close = _valid_close(frame)
+    return (
+        {
+            pd.Timestamp(key).normalize(): float(value)  # type: ignore[arg-type]
+            for key, value in (close / close.shift(5) - 1.0).dropna().items()
+        },
+        {
+            pd.Timestamp(key).normalize(): float(value)  # type: ignore[arg-type]
+            for key, value in (close / close.shift(20) - 1.0).dropna().items()
+        },
+    )
+
+
+def _prepared_correlation(
+    *,
+    session: pd.Timestamp,
+    symbols: tuple[str, ...],
+    returns: Mapping[str, pd.Series],
+) -> float:
+    series = {
+        symbol: returns[symbol].loc[:session].tail(20)
+        for symbol in symbols
+        if symbol in returns
+    }
+    if len(series) < 4:
+        return 0.0
+    correlation = pd.DataFrame(series).dropna(how="all").corr(min_periods=10)
+    values = correlation.where(~np.eye(len(correlation), dtype=bool)).stack()
+    median = float(values.median()) if not values.empty else 0.0
+    return median if math.isfinite(median) else 0.0
 
 
 def _prefix(frame: pd.DataFrame, point: pd.Timestamp) -> pd.DataFrame:
     if not isinstance(frame.index, pd.DatetimeIndex):
         raise ValueError("risk evidence timeline requires DatetimeIndex frames")
-    return frame.loc[:point]
+    return frame.loc[:point].tail(_MARKET_LOOKBACK)
 
 
 def _level_rank(level: SentinelLevel) -> int:
@@ -144,6 +228,8 @@ def _timeline_sessions(
     broad_frame: pd.DataFrame,
     tech_frame: pd.DataFrame,
     point: pd.Timestamp,
+    reference_panel: Mapping[str, pd.DataFrame],
+    universe: AIUniverse,
 ) -> tuple[pd.Timestamp, ...]:
     if not isinstance(broad_frame.index, pd.DatetimeIndex) or not isinstance(
         tech_frame.index,
@@ -157,8 +243,28 @@ def _timeline_sessions(
             if pd.Timestamp(item).normalize() <= point
         }
     )
+    first_membership = min(
+        (member.effective_from for member in universe.members if member.tradable),
+        default=point.date(),
+    )
     for index, session in enumerate(candidates):
-        if len(broad_frame.loc[:session]) >= 21 and len(tech_frame.loc[:session]) >= 21:
+        if session.date() < first_membership:
+            continue
+        session_text = str(session.date())
+        symbols = universe.symbols_as_of(session_text)
+        industries = {
+            symbol: universe.industry_of(symbol, session_text) for symbol in symbols
+        }
+        coverage = assess_coverage(
+            as_of=session_text,
+            broad_frame=broad_frame,
+            tech_frame=tech_frame,
+            expected_symbols=symbols,
+            reference_panel=reference_panel,
+            point_in_time_industries=industries,
+            held_symbols=(),
+        )
+        if coverage.status is WarmupStatus.READY:
             return tuple(candidates[index:])
     return ()
 
@@ -176,22 +282,98 @@ def _base_row(
     ready = session in broad_frame.index and session in tech_frame.index
     flags = {family: False for family in _MARKET_FAMILIES}
     if ready:
-        visible_returns = [
-            scalar(frame.loc[session], "ret5")
-            for frame in reference_panel.values()
-            if session in frame.index and math.isfinite(scalar(frame.loc[session], "ret5"))
-        ]
-        context = build_reference_context(
-            date=session,
-            panel=reference_panel,
-            industries=industries,
-            cfg=cfg,
-            reference_returns=(
-                reference_returns.loc[:session]
-                if reference_returns is not None
-                else None
-            ),
+        visible_returns: list[float] = []
+        below_ma20: list[bool] = []
+        sector_returns: dict[str, list[float]] = {}
+        sector_below20: dict[str, list[bool]] = {}
+        for symbol, frame in reference_panel.items():
+            if session not in frame.index:
+                continue
+            row = frame.loc[session]
+            ret5 = scalar(row, "ret5")
+            close = scalar(row, "close")
+            ma20 = scalar(row, f"ma{cfg.trend_fast}")
+            industry = industries.get(symbol, "unknown")
+            if math.isfinite(ret5):
+                visible_returns.append(ret5)
+                sector_returns.setdefault(industry, []).append(ret5)
+            if math.isfinite(close) and math.isfinite(ma20):
+                below = close < ma20
+                below_ma20.append(below)
+                sector_below20.setdefault(industry, []).append(below)
+        declining_name = (
+            float(np.mean(np.asarray(visible_returns) < 0.0))
+            if visible_returns
+            else 0.0
         )
+        below_name = float(np.mean(below_ma20)) if below_ma20 else 0.0
+        if cfg.group_balanced_reference_enabled:
+            declining_group = (
+                float(
+                    np.mean(
+                        [
+                            float(np.mean(np.asarray(values) < 0.0))
+                            for values in sector_returns.values()
+                        ]
+                    )
+                )
+                if sector_returns
+                else declining_name
+            )
+        else:
+            declining_group = (
+                float(
+                    np.mean(
+                        [float(np.mean(values)) < 0.0 for values in sector_returns.values()]
+                    )
+                )
+                if sector_returns
+                else declining_name
+            )
+        below_group = (
+            float(
+                np.mean(
+                    [float(np.mean(values)) for values in sector_below20.values()]
+                )
+            )
+            if sector_below20
+            else below_name
+        )
+        name_weight = cfg.risk_breadth_name_weight
+        declining_ratio = (
+            name_weight * declining_name
+            + (1.0 - name_weight) * declining_group
+        )
+        below_ratio = name_weight * below_name + (1.0 - name_weight) * below_group
+        sector_stress = (
+            float(
+                np.mean(
+                    [float(np.mean(values)) < -0.04 for values in sector_returns.values()]
+                )
+            )
+            if sector_returns
+            else 0.0
+        )
+        returns = (
+            reference_returns.loc[:session].tail(_MARKET_LOOKBACK)
+            if reference_returns is not None
+            else pd.DataFrame(
+                {
+                    symbol: frame["close"].pct_change(fill_method=None)
+                    for symbol, frame in reference_panel.items()
+                }
+            )
+        )
+        correlation = float("nan")
+        if len(returns.columns) >= 4:
+            values = (
+                returns.tail(cfg.correlation_window)
+                .corr()
+                .where(~np.eye(len(returns.columns), dtype=bool))
+                .stack()
+            )
+            if not values.empty:
+                correlation = float(values.median())
         tech_returns = tech_frame.loc[:session, "close"].pct_change(fill_method=None)
         recent_vol = float(tech_returns.tail(10).std(ddof=0))
         normal_vol = float(tech_returns.tail(60).std(ddof=0))
@@ -200,10 +382,10 @@ def _base_row(
             average_fast_return=(
                 float(np.mean(visible_returns)) if visible_returns else 0.0
             ),
-            declining_ratio=context.declining,
-            below_ma20_ratio=1.0 - context.breadth20,
-            sector_stress_ratio=context.sector_stress,
-            median_correlation=context.median_correlation,
+            declining_ratio=declining_ratio,
+            below_ma20_ratio=below_ratio,
+            sector_stress_ratio=sector_stress,
+            median_correlation=correlation,
             volatility_ratio=volatility_ratio,
             tech_speed=min(
                 scalar(tech_frame.loc[session], "ret5", 0.0),
@@ -240,6 +422,71 @@ def _first_dates(
     return tuple(sorted(result.items()))
 
 
+def _assemble_timeline(
+    *,
+    as_of: str,
+    sentinel_rows: tuple[SentinelMarketRow, ...],
+    base_rows: tuple[BaseMarketRiskRow, ...],
+    cfg: SystemConfig,
+) -> RiskEvidenceTimeline:
+    state = fold_sentinel_market_state(
+        sentinel_rows,
+        confirm_days=cfg.risk_sentinel_confirm_days,
+        repair_days=cfg.risk_sentinel_repair_days,
+    )
+    sentinel_first = _first_dates(sentinel_rows)
+    base_first = _first_dates(base_rows)
+    sentinel_first_map = dict(sentinel_first)
+    base_first_map = dict(base_first)
+    current_sentinel = set(sentinel_rows[-1].active_families) if sentinel_rows else set()
+    current_base = set(base_rows[-1].active_families) if base_rows else set()
+    return RiskEvidenceTimeline(
+        as_of=as_of,
+        sessions=tuple(row.date for row in sentinel_rows),
+        sentinel_rows=sentinel_rows,
+        base_rows=base_rows,
+        sentinel_first_family_dates=sentinel_first,
+        base_first_family_dates=base_first,
+        incremental_families=tuple(sorted(current_sentinel - current_base)),
+        earlier_families=tuple(
+            sorted(
+                family
+                for family, first in sentinel_first_map.items()
+                if family not in base_first_map or first < base_first_map[family]
+            )
+        ),
+        confirmation_days=state.confirmation_days,
+        repair_days=state.repair_days,
+        effective_level=state.effective_level,
+        confirmed_since=state.confirmed_since,
+        confirmation_history_trusted=state.confirmation_history_trusted,
+        trust_reasons=state.trust_reasons,
+    )
+
+
+def risk_evidence_timeline_prefix(
+    timeline: RiskEvidenceTimeline,
+    *,
+    as_of: str,
+    cfg: SystemConfig,
+) -> RiskEvidenceTimeline:
+    """Return a causally folded immutable prefix from one verified full cache."""
+
+    point = pd.Timestamp(as_of).normalize()
+    sentinel_rows = tuple(
+        row for row in timeline.sentinel_rows if pd.Timestamp(row.date) <= point
+    )
+    base_rows = tuple(row for row in timeline.base_rows if pd.Timestamp(row.date) <= point)
+    if len(sentinel_rows) != len(base_rows):
+        raise RuntimeError("base and Sentinel timeline prefixes differ")
+    return _assemble_timeline(
+        as_of=str(point.date()),
+        sentinel_rows=sentinel_rows,
+        base_rows=base_rows,
+        cfg=cfg,
+    )
+
+
 def build_risk_evidence_timeline(
     *,
     as_of: str,
@@ -253,7 +500,16 @@ def build_risk_evidence_timeline(
     """Rebuild complete PIT market history without current account inputs."""
 
     point = pd.Timestamp(as_of).normalize()
-    sessions = _timeline_sessions(broad_frame, tech_frame, point)
+    sessions = _timeline_sessions(
+        broad_frame,
+        tech_frame,
+        point,
+        reference_panel,
+        universe,
+    )
+    name_observations, name_returns = _prepared_name_observations(reference_panel)
+    broad_fast, broad_medium = _prepared_index_returns(broad_frame)
+    tech_fast, tech_medium = _prepared_index_returns(tech_frame)
     sentinel_rows: list[SentinelMarketRow] = []
     base_rows: list[BaseMarketRiskRow] = []
     for session in sessions:
@@ -270,15 +526,71 @@ def build_risk_evidence_timeline(
         }
         broad_prefix = _prefix(broad_frame, session)
         tech_prefix = _prefix(tech_frame, session)
-        assessment = evaluate_sentinel(
+        observed = frozenset(
+            symbol for symbol in symbols if session in reference_panel[symbol].index
+        )
+        counts = {
+            symbol: int(reference_panel[symbol].index.searchsorted(session, side="right"))
+            for symbol in symbols
+            if symbol in reference_panel
+        }
+        warmed = frozenset(
+            symbol for symbol in observed if counts.get(symbol, 0) >= 21
+        )
+        new = observed - warmed
+        stale = frozenset(
+            symbol
+            for symbol in symbols
+            if symbol not in observed and counts.get(symbol, 0) > 0
+        )
+        missing_indices = tuple(
+            name
+            for name, frame in (("sh000300", broad_frame), ("sh000682", tech_frame))
+            if session not in frame.index
+            or int(frame.index.searchsorted(session, side="right")) < 21
+        )
+        coverage = build_coverage_health(
+            expected_symbols=symbols,
+            observed_symbols=observed,
+            warmed_symbols=warmed,
+            stale_symbols=stale,
+            new_symbols=new,
+            point_in_time_industries=industries,
+            held_symbols=(),
+            missing_indices=missing_indices,
+        )
+        names = {
+            symbol: name_observations[symbol][session]
+            for symbol in symbols
+            if session in name_observations.get(symbol, {})
+        }
+        evidence = build_market_evidence_from_observations(
             as_of=session_text,
-            broad_frame=broad_prefix,
-            tech_frame=tech_prefix,
-            reference_panel=panel,
+            names=names,
             point_in_time_industries=industries,
             held_symbols=(),
             leader_symbols=(),
             capital_drawdown=None,
+            broad_fast=broad_fast.get(session, 0.0),
+            broad_medium=broad_medium.get(session, 0.0),
+            tech_fast=tech_fast.get(session, 0.0),
+            tech_medium=tech_medium.get(session, 0.0),
+            median_correlation=_prepared_correlation(
+                session=session,
+                symbols=symbols,
+                returns=name_returns,
+            ),
+        )
+        weakest = tuple(
+            item.industry
+            for item in sorted(
+                evidence.subindustries,
+                key=lambda item: (item.fast_return, item.industry),
+            )[:3]
+        )
+        assessment = replace(
+            build_risk_opinion(evidence=evidence, coverage=coverage),
+            weakest_subindustries=weakest,
         )
         active = {
             family: family in assessment.evidence_families
@@ -311,40 +623,9 @@ def build_risk_evidence_timeline(
             )
         )
 
-    sentinel_tuple = tuple(sentinel_rows)
-    base_tuple = tuple(base_rows)
-    state = fold_sentinel_market_state(
-        sentinel_tuple,
-        confirm_days=cfg.risk_sentinel_confirm_days,
-        repair_days=cfg.risk_sentinel_repair_days,
-    )
-    sentinel_first = _first_dates(sentinel_tuple)
-    base_first = _first_dates(base_tuple)
-    sentinel_first_map = dict(sentinel_first)
-    base_first_map = dict(base_first)
-    current_sentinel = set(sentinel_tuple[-1].active_families) if sentinel_tuple else set()
-    current_base = set(base_tuple[-1].active_families) if base_tuple else set()
-    incremental = tuple(sorted(current_sentinel - current_base))
-    earlier = tuple(
-        sorted(
-            family
-            for family, first in sentinel_first_map.items()
-            if family not in base_first_map or first < base_first_map[family]
-        )
-    )
-    return RiskEvidenceTimeline(
+    return _assemble_timeline(
         as_of=str(point.date()),
-        sessions=tuple(row.date for row in sentinel_tuple),
-        sentinel_rows=sentinel_tuple,
-        base_rows=base_tuple,
-        sentinel_first_family_dates=sentinel_first,
-        base_first_family_dates=base_first,
-        incremental_families=incremental,
-        earlier_families=earlier,
-        confirmation_days=state.confirmation_days,
-        repair_days=state.repair_days,
-        effective_level=state.effective_level,
-        confirmed_since=state.confirmed_since,
-        confirmation_history_trusted=state.confirmation_history_trusted,
-        trust_reasons=state.trust_reasons,
+        sentinel_rows=tuple(sentinel_rows),
+        base_rows=tuple(base_rows),
+        cfg=cfg,
     )

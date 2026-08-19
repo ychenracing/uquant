@@ -48,7 +48,9 @@ class MarketEvidence:
 
 
 @dataclass(frozen=True, slots=True)
-class _NameEvidence:
+class NameMarketEvidence:
+    """Precomputed causal facts for one reference name and one session."""
+
     fast_return: float
     downside: float
     below_ma20: float
@@ -63,7 +65,7 @@ def _causal_close(frame: pd.DataFrame, point: pd.Timestamp) -> pd.Series:
     return values.astype(float)
 
 
-def _name_evidence(frame: pd.DataFrame, point: pd.Timestamp) -> _NameEvidence | None:
+def _name_evidence(frame: pd.DataFrame, point: pd.Timestamp) -> NameMarketEvidence | None:
     close = _causal_close(frame, point)
     if len(close) < _MINIMUM_HISTORY or close.index[-1].normalize() != point:
         return None
@@ -76,7 +78,7 @@ def _name_evidence(frame: pd.DataFrame, point: pd.Timestamp) -> _NameEvidence | 
         volatility_ratio = 3.0 if recent > 1e-12 else 1.0
     else:
         volatility_ratio = min(3.0, recent / prior)
-    return _NameEvidence(
+    return NameMarketEvidence(
         fast_return=fast_return,
         downside=float(fast_return < 0.0),
         below_ma20=below_ma20,
@@ -109,30 +111,32 @@ def _index_return(frame: pd.DataFrame, point: pd.Timestamp, sessions: int) -> fl
     return float(close.iloc[-1] / close.iloc[-(sessions + 1)] - 1.0)
 
 
-def _snapshot(
+def _snapshot_from_observations(
     *,
     point: pd.Timestamp,
-    broad_frame: pd.DataFrame,
-    tech_frame: pd.DataFrame,
-    reference_panel: Mapping[str, pd.DataFrame],
+    names: Mapping[str, NameMarketEvidence],
     point_in_time_industries: Mapping[str, str],
     held_symbols: tuple[str, ...],
     leader_symbols: tuple[str, ...],
     capital_drawdown: float | None,
+    broad_fast: float,
+    broad_medium: float,
+    tech_fast: float,
+    tech_medium: float,
+    median_correlation: float,
 ) -> tuple[
     tuple[SubindustryEvidence, ...],
     dict[str, float],
     dict[str, bool],
     dict[str, str],
 ]:
-    names: dict[str, _NameEvidence] = {}
-    grouped: dict[str, list[_NameEvidence]] = {}
-    for symbol in sorted(reference_panel):
-        item = _name_evidence(reference_panel[symbol], point)
+    grouped: dict[str, list[NameMarketEvidence]] = {}
+    visible_names: dict[str, NameMarketEvidence] = {}
+    for symbol, item in sorted(names.items()):
         industry = point_in_time_industries.get(symbol, "unknown")
-        if item is None or industry == "unknown":
+        if industry == "unknown":
             continue
-        names[symbol] = item
+        visible_names[symbol] = item
         grouped.setdefault(industry, []).append(item)
     subindustries = tuple(
         SubindustryEvidence(
@@ -150,7 +154,11 @@ def _snapshot(
         if subindustries
         else 0.0
     )
-    name_fast = float(np.mean([item.fast_return for item in names.values()])) if names else 0.0
+    name_fast = (
+        float(np.mean([item.fast_return for item in visible_names.values()]))
+        if visible_names
+        else 0.0
+    )
     equal_downside = (
         float(np.mean([item.downside_breadth for item in subindustries]))
         if subindustries
@@ -175,21 +183,18 @@ def _snapshot(
         if subindustries
         else 0.0
     )
-    broad_fast = _index_return(broad_frame, point, 5)
-    tech_fast = _index_return(tech_frame, point, 5)
-    broad_medium = _index_return(broad_frame, point, 20)
-    tech_medium = _index_return(tech_frame, point, 20)
-    median_correlation = _median_correlation(reference_panel, point)
     volatility_ratio = (
         float(np.mean([item.volatility_ratio for item in subindustries]))
         if subindustries
         else 1.0
     )
 
-    held = [names[symbol] for symbol in held_symbols if symbol in names]
+    held = [visible_names[symbol] for symbol in held_symbols if symbol in visible_names]
     held_fast = float(np.mean([item.fast_return for item in held])) if held else 0.0
     held_downside = float(np.mean([item.downside for item in held])) if held else 0.0
-    leaders = [names[symbol] for symbol in leader_symbols if symbol in names]
+    leaders = [
+        visible_names[symbol] for symbol in leader_symbols if symbol in visible_names
+    ]
     leader_fast = float(np.mean([item.fast_return for item in leaders])) if leaders else 0.0
     leader_below = float(np.mean([item.below_ma20 for item in leaders])) if leaders else 0.0
     capital = 0.0 if capital_drawdown is None else float(capital_drawdown)
@@ -254,6 +259,52 @@ def _snapshot(
     return subindustries, metrics, votes, reasons
 
 
+def build_market_evidence_from_observations(
+    *,
+    as_of: str,
+    names: Mapping[str, NameMarketEvidence],
+    point_in_time_industries: Mapping[str, str],
+    held_symbols: tuple[str, ...],
+    leader_symbols: tuple[str, ...] = (),
+    capital_drawdown: float | None = None,
+    broad_fast: float,
+    broad_medium: float,
+    tech_fast: float,
+    tech_medium: float,
+    median_correlation: float,
+) -> MarketEvidence:
+    """Build the canonical opinion inputs from already-causal observations."""
+
+    point = pd.Timestamp(as_of).normalize()
+    subindustries, metrics, votes, reasons = _snapshot_from_observations(
+        point=point,
+        names=names,
+        point_in_time_industries=point_in_time_industries,
+        held_symbols=held_symbols,
+        leader_symbols=leader_symbols,
+        capital_drawdown=capital_drawdown,
+        broad_fast=broad_fast,
+        broad_medium=broad_medium,
+        tech_fast=tech_fast,
+        tech_medium=tech_medium,
+        median_correlation=median_correlation,
+    )
+    if set(votes) != RISK_FAMILIES:
+        raise RuntimeError("Sentinel evidence family coverage is incomplete")
+    current_families = {family for family, triggered in votes.items() if triggered}
+    first = str(point.date()) if current_families else None
+    metrics["evidence_confirmation_days"] = float(bool(current_families))
+    metrics["confirmation_history_trusted"] = 0.0
+    return MarketEvidence(
+        date=str(point.date()),
+        subindustries=subindustries,
+        metrics=dict(sorted(metrics.items())),
+        family_votes=dict(sorted(votes.items())),
+        family_reasons={family: reasons[family] for family in sorted(current_families)},
+        first_evidence_date=first,
+    )
+
+
 def build_market_evidence(
     *,
     as_of: str,
@@ -268,35 +319,21 @@ def build_market_evidence(
     """Build causal evidence; rows after `as_of` are never visible."""
 
     point = pd.Timestamp(as_of).normalize()
-    subindustries, metrics, votes, reasons = _snapshot(
-        point=point,
-        broad_frame=broad_frame,
-        tech_frame=tech_frame,
-        reference_panel=reference_panel,
+    names = {
+        symbol: item
+        for symbol in sorted(reference_panel)
+        if (item := _name_evidence(reference_panel[symbol], point)) is not None
+    }
+    return build_market_evidence_from_observations(
+        as_of=as_of,
+        names=names,
         point_in_time_industries=point_in_time_industries,
         held_symbols=held_symbols,
         leader_symbols=leader_symbols,
         capital_drawdown=capital_drawdown,
-    )
-    if set(votes) != RISK_FAMILIES:
-        raise RuntimeError("Sentinel evidence family coverage is incomplete")
-    current_families = {family for family, triggered in votes.items() if triggered}
-    # Historical account membership, leaders, capital drawdown, and point-in-
-    # time industries are not carried into Phase 4 production. Replaying
-    # today's values backward would fabricate confirmation. Record only the
-    # current observation and fail closed on multi-session confirmation.
-    first = str(point.date()) if current_families else None
-    confirmation_days = 1 if current_families else 0
-    metrics["evidence_confirmation_days"] = float(confirmation_days)
-    metrics["confirmation_history_trusted"] = 0.0
-    return MarketEvidence(
-        date=str(point.date()),
-        subindustries=subindustries,
-        metrics=dict(sorted(metrics.items())),
-        family_votes=dict(sorted(votes.items())),
-        family_reasons={
-            family: reasons[family]
-            for family in sorted(current_families)
-        },
-        first_evidence_date=first,
+        broad_fast=_index_return(broad_frame, point, 5),
+        broad_medium=_index_return(broad_frame, point, 20),
+        tech_fast=_index_return(tech_frame, point, 5),
+        tech_medium=_index_return(tech_frame, point, 20),
+        median_correlation=_median_correlation(reference_panel, point),
     )

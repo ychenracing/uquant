@@ -20,6 +20,7 @@ from uquant.leader import REFERENCE_UNIVERSE
 from uquant.report import render_daily_report
 from uquant.risk_sentinel.models import (
     CoverageHealth,
+    RiskEvidenceTimeline,
     SentinelAssessment,
     SentinelLevel,
     WarmupStatus,
@@ -206,6 +207,53 @@ def test_backtest_reports_the_exact_effective_config_hash(data_dir) -> None:
         event["target_gross_cap"] == event["base_target_gross_cap"]
         for event in result["sentinel_events"]
     )
+
+
+def test_sentinel_timeline_cache_depends_only_on_data_universe_and_config(
+    data_dir: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    engine = ProductionEngine(data_dir)
+    universe = default_ai_universe()
+    engine._load((*universe.symbols, *engine_module.INDEX_SYMBOLS))
+    calls: list[str] = []
+
+    def fake_build(**kwargs: object) -> RiskEvidenceTimeline:
+        as_of = str(kwargs["as_of"])
+        calls.append(as_of)
+        return RiskEvidenceTimeline(
+            as_of=as_of,
+            sessions=(),
+            sentinel_rows=(),
+            base_rows=(),
+            sentinel_first_family_dates=(),
+            base_first_family_dates=(),
+            incremental_families=(),
+            earlier_families=(),
+            confirmation_days=0,
+            repair_days=0,
+            effective_level=SentinelLevel.NORMAL,
+            confirmed_since=None,
+            confirmation_history_trusted=False,
+            trust_reasons=("fixture",),
+        )
+
+    monkeypatch.setattr(engine_module, "build_risk_evidence_timeline", fake_build)
+    first = engine._causal_risk_timeline(
+        as_of="2026-06-30",
+        cfg=DEFAULT_CONFIG,
+        universe=universe,
+    )
+    second = engine._causal_risk_timeline(
+        as_of="2026-07-01",
+        cfg=DEFAULT_CONFIG,
+        universe=universe,
+    )
+
+    assert first.as_of == "2026-06-30"
+    assert second.as_of == "2026-07-01"
+    assert len(calls) == 1
+    assert not hasattr(first, "account")
 
 
 def test_shared_engine_leader_cache_isolated_by_adaptive_config(data_dir):

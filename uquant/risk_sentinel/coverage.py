@@ -54,6 +54,47 @@ def assess_coverage(
         else:
             stale.add(symbol)
 
+    missing_indices: list[str] = []
+    for index_name, frame_name in _INDEX_NAMES:
+        frame = broad_frame if frame_name == "broad" else tech_frame
+        visible = _prefix(frame, point)
+        if (
+            visible.empty
+            or len(visible) < minimum_history
+            or pd.Timestamp(visible.index[-1]).normalize() != point
+        ):
+            missing_indices.append(index_name)
+
+    return build_coverage_health(
+        expected_symbols=expected,
+        observed_symbols=frozenset(observed),
+        warmed_symbols=frozenset(warmed),
+        stale_symbols=frozenset(stale),
+        new_symbols=frozenset(new),
+        point_in_time_industries=point_in_time_industries,
+        held_symbols=held_symbols,
+        missing_indices=tuple(missing_indices),
+    )
+
+
+def build_coverage_health(
+    *,
+    expected_symbols: tuple[str, ...],
+    observed_symbols: frozenset[str],
+    warmed_symbols: frozenset[str],
+    stale_symbols: frozenset[str],
+    new_symbols: frozenset[str],
+    point_in_time_industries: Mapping[str, str],
+    held_symbols: tuple[str, ...],
+    missing_indices: tuple[str, ...],
+) -> CoverageHealth:
+    """Apply the canonical coverage policy to precomputed causal facts."""
+
+    expected = tuple(sorted(set(expected_symbols)))
+    observed = set(observed_symbols)
+    warmed = set(warmed_symbols)
+    stale = set(stale_symbols)
+    new = set(new_symbols)
     component_observation = len(observed) / len(expected) if expected else 0.0
     reference_warmup = len(warmed) / len(expected) if expected else 0.0
     expected_groups = {
@@ -84,17 +125,6 @@ def assess_coverage(
         + 0.20 * held_industry_mapping
     )
 
-    missing_indices: list[str] = []
-    for index_name, frame_name in _INDEX_NAMES:
-        frame = broad_frame if frame_name == "broad" else tech_frame
-        visible = _prefix(frame, point)
-        if (
-            visible.empty
-            or len(visible) < minimum_history
-            or pd.Timestamp(visible.index[-1]).normalize() != point
-        ):
-            missing_indices.append(index_name)
-
     if missing_indices or confidence < 0.60 or reference_warmup < 0.50:
         status = WarmupStatus.NOT_READY
     elif confidence < 0.85 or reference_warmup < 0.80 or new or stale:
@@ -108,7 +138,7 @@ def assess_coverage(
         subindustry_coverage=subindustry_coverage,
         held_industry_mapping=held_industry_mapping,
         reference_warmup=reference_warmup,
-        missing_indices=tuple(missing_indices),
+        missing_indices=tuple(sorted(missing_indices)),
         new_symbols=tuple(new),
         stale_symbols=tuple(stale),
     )

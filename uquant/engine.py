@@ -47,7 +47,12 @@ from .portfolio import PortfolioAllocator, current_weights
 from .reference import build_reference_context
 from .reference_registry import DEFAULT_REGISTRY_PATH, resolve_reference_symbols
 from .risk import assess_risk
+from .risk_sentinel.history import (
+    build_risk_evidence_timeline,
+    risk_evidence_timeline_prefix,
+)
 from .risk_sentinel.integration import sentinel_freeze_authorized
+from .risk_sentinel.models import RiskEvidenceTimeline
 from .risk_sentinel.service import evaluate_sentinel
 from .types import (
     ACCOUNT_SCHEMA_VERSION,
@@ -63,11 +68,16 @@ from .types import (
     derive_attribution_event_id,
 )
 from .validation.ai_era import require_ai_era_interval
-from .validation.universe import REQUIRED_AI_UNIVERSE_SHA256, default_ai_universe
+from .validation.universe import (
+    REQUIRED_AI_UNIVERSE_SHA256,
+    AIUniverse,
+    default_ai_universe,
+)
 
 INDEX_SYMBOLS = ("sh000300", "sh000682")
 _LEGACY_INDUSTRY = "legacy_unmapped"
 _LEGACY_MANIFEST_SHA256 = "0" * 64
+_SHARED_RISK_TIMELINE_CACHE: dict[tuple[str, str, str, int], RiskEvidenceTimeline] = {}
 
 
 def _decision_config_for_universe(
@@ -241,6 +251,8 @@ class ProductionEngine:
         self._reference_returns: pd.DataFrame | None = None
         self._code_hash: str | None = None
         self._leader_score_cache: dict[tuple[object, ...], dict[str, LeaderScore]] = {}
+        self._risk_timeline_cache_key: tuple[str, str, str, int] | None = None
+        self._risk_timeline_cache: RiskEvidenceTimeline | None = None
 
     def _load(self, symbols: Iterable[str]) -> None:
         for symbol in sorted({normalize_symbol(item) for item in symbols}):
@@ -261,6 +273,59 @@ class ProductionEngine:
         if frame.empty:
             raise RuntimeError(f"{symbol} has no mark price at {date.date()}")
         return float(frame.iloc[-1][field])
+
+    def _causal_risk_timeline(
+        self,
+        *,
+        as_of: str,
+        cfg: SystemConfig,
+        universe: AIUniverse,
+    ) -> RiskEvidenceTimeline:
+        """Return one immutable data/config cache prefix without account inputs."""
+
+        broad = self._features["sh000300"]
+        tech = self._features["sh000682"]
+        common = broad.index.intersection(tech.index)
+        if common.empty:
+            raise RuntimeError("Sentinel timeline has no common index session")
+        full_as_of = str(pd.Timestamp(common[-1]).date())
+        timeline_symbols = tuple(sorted({*universe.symbols, *INDEX_SYMBOLS}))
+        full_data_digest = self.data.manifest(
+            timeline_symbols,
+            as_of=pd.Timestamp(full_as_of),
+        ).digest
+        key = (
+            full_data_digest,
+            config_fingerprint(cfg),
+            str(universe.sha256),
+            id(build_risk_evidence_timeline),
+        )
+        if self._risk_timeline_cache_key != key:
+            timeline = _SHARED_RISK_TIMELINE_CACHE.get(key)
+            if timeline is None:
+                timeline = build_risk_evidence_timeline(
+                    as_of=full_as_of,
+                    broad_frame=broad,
+                    tech_frame=tech,
+                    reference_panel={
+                        symbol: self._features[symbol]
+                        for symbol in sorted(universe.symbols)
+                        if symbol in self._features
+                    },
+                    reference_returns=self._reference_returns,
+                    universe=universe,
+                    cfg=cfg,
+                )
+                _SHARED_RISK_TIMELINE_CACHE[key] = timeline
+            self._risk_timeline_cache_key = key
+            self._risk_timeline_cache = timeline
+        if self._risk_timeline_cache is None:
+            raise RuntimeError("Sentinel timeline cache was not initialized")
+        return risk_evidence_timeline_prefix(
+            self._risk_timeline_cache,
+            as_of=as_of,
+            cfg=cfg,
+        )
 
     def equity(self, account: AccountState, date: pd.Timestamp, field: str = "close") -> float:
         """Mark current positions at the latest visible field and add cash."""
@@ -415,14 +480,19 @@ class ProductionEngine:
         visible_users = set(user_panel)
         prices = {symbol: self._price(symbol, date) for symbol in visible_users | set(account.positions)}
         _, equity = current_weights(account, prices)
+        universe = default_ai_universe()
+        canonical_symbols = universe.symbols_as_of(str(date.date()))
+        if active_reference_symbols != canonical_symbols:
+            raise RuntimeError(
+                "point-in-time reference registry differs from canonical universe"
+            )
+        causal_timeline = self._causal_risk_timeline(
+            as_of=str(date.date()),
+            cfg=decision_cfg,
+            universe=universe,
+        )
         sentinel = None
         if decision_cfg.risk_sentinel_mode != "SHADOW":
-            universe = default_ai_universe()
-            canonical_symbols = universe.symbols_as_of(str(date.date()))
-            if active_reference_symbols != canonical_symbols:
-                raise RuntimeError(
-                    "point-in-time reference registry differs from canonical universe"
-                )
             sentinel = evaluate_sentinel(
                 as_of=str(date.date()),
                 broad_frame=broad,
@@ -465,6 +535,62 @@ class ProductionEngine:
         )
         risk.evidence["configured_user_universe_size"] = len(user_symbols)
         risk.evidence["universe_size_is_diagnostic_only"] = True
+        latest_causal = (
+            causal_timeline.sentinel_rows[-1]
+            if causal_timeline.sentinel_rows
+            else None
+        )
+        risk.evidence.update(
+            {
+                "sentinel_mode": decision_cfg.risk_sentinel_mode,
+                "sentinel_causal_confirmation_authority_enabled": (
+                    decision_cfg.risk_sentinel_causal_confirmation_enabled
+                ),
+                "sentinel_causal_confirmation_history_trusted": (
+                    causal_timeline.confirmation_history_trusted
+                ),
+                "sentinel_causal_confirmation_days": (
+                    causal_timeline.confirmation_days
+                ),
+                "sentinel_causal_repair_days": causal_timeline.repair_days,
+                "sentinel_causal_effective_level": (
+                    causal_timeline.effective_level.value
+                ),
+                "sentinel_causal_confirmed_since": (
+                    causal_timeline.confirmed_since
+                ),
+                "sentinel_causal_trust_reasons": list(
+                    causal_timeline.trust_reasons
+                ),
+                "sentinel_causal_incremental_families": list(
+                    causal_timeline.incremental_families
+                ),
+                "sentinel_causal_earlier_families": list(
+                    causal_timeline.earlier_families
+                ),
+                "sentinel_first_family_dates": dict(
+                    causal_timeline.sentinel_first_family_dates
+                ),
+                "base_first_family_dates": dict(
+                    causal_timeline.base_first_family_dates
+                ),
+                "sentinel_causal_coverage_status": (
+                    latest_causal.coverage_status.value
+                    if latest_causal is not None
+                    else "NOT_READY"
+                ),
+                "sentinel_causal_confidence": (
+                    latest_causal.confidence
+                    if latest_causal is not None
+                    else 0.0
+                ),
+                "sentinel_causal_weakest_subindustries": (
+                    list(latest_causal.weakest_subindustries)
+                    if latest_causal is not None
+                    else []
+                ),
+            }
+        )
         structural_users = {
             symbol: structural_leaders[symbol]
             for symbol in user_symbols

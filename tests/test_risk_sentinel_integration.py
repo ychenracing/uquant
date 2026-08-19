@@ -140,6 +140,28 @@ def test_untrusted_confirmation_history_cannot_authorize_freeze() -> None:
     assert integrated.evidence["sentinel_confirmation_history_trusted"] is False
 
 
+def test_causal_history_diagnostics_have_no_phase6_authority() -> None:
+    sentinel = replace(
+        _sentinel(),
+        metrics={
+            **_sentinel().metrics,
+            "confirmation_history_trusted": 0.0,
+            "causal_confirmation_history_trusted": 1.0,
+            "causal_confirmation_days": 20.0,
+        },
+    )
+
+    integrated = integrate_freeze_only(
+        base=_base(active_families=("market_velocity",)),
+        sentinel=sentinel,
+        cfg=FREEZE_CFG,
+    )
+
+    assert FREEZE_CFG.risk_sentinel_causal_confirmation_enabled is False
+    assert integrated.freeze_new_risk is False
+    assert integrated.evidence["sentinel_freeze_new_risk"] is False
+
+
 def test_duplicate_families_do_not_create_incremental_authority() -> None:
     base = _base(active_families=("breadth_structure", "market_velocity"))
     sentinel = replace(_sentinel(), first_evidence_date="2026-08-19")

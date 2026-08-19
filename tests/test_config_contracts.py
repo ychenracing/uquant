@@ -17,6 +17,10 @@ INVALID_OVERRIDES: tuple[tuple[dict[str, Any], str], ...] = (
     ({"risk_sentinel_min_confidence": 1.01}, "risk_sentinel_min_confidence"),
     ({"risk_sentinel_min_confidence": True}, "risk_sentinel_min_confidence"),
     ({"risk_sentinel_severe_direct_enabled": 1}, "risk_sentinel_severe_direct_enabled"),
+    (
+        {"risk_sentinel_causal_confirmation_enabled": 1},
+        "risk_sentinel_causal_confirmation_enabled",
+    ),
     ({"risk_sentinel_confirm_days": 0}, "risk_sentinel_confirm_days"),
     ({"risk_sentinel_repair_days": 0}, "risk_sentinel_repair_days"),
     ({"initial_cash": 0}, "initial_cash"),
@@ -181,6 +185,7 @@ def test_configuration_serialization_is_complete_and_detached() -> None:
     assert payload["risk_sentinel_confirm_days"] == 2
     assert payload["risk_sentinel_repair_days"] == 3
     assert payload["risk_sentinel_severe_direct_enabled"] is True
+    assert payload["risk_sentinel_causal_confirmation_enabled"] is False
     assert payload["sector_guard_enabled"] is True
     assert payload["sector_guard_gross"] == pytest.approx(0.40)
     assert payload["industry_rotation_enabled"] is True
@@ -218,9 +223,20 @@ def test_configuration_serialization_is_complete_and_detached() -> None:
     assert DEFAULT_CONFIG.max_gross == 1.0
 
 
+def test_disabled_causal_confirmation_preserves_frozen_config_identity() -> None:
+    assert config_fingerprint(DEFAULT_CONFIG) == (
+        "dae4d79fdd813832c6ab152611437c13be1d38227c7280691874d3a9267d93d5"
+    )
+    assert config_fingerprint(
+        DEFAULT_CONFIG.override(risk_sentinel_causal_confirmation_enabled=True)
+    ) != config_fingerprint(DEFAULT_CONFIG)
+
+
 def test_effective_config_hash_is_canonical_and_semantically_sensitive() -> None:
+    payload = DEFAULT_CONFIG.to_dict()
+    payload.pop("risk_sentinel_causal_confirmation_enabled")
     encoded = json.dumps(
-        DEFAULT_CONFIG.to_dict(),
+        payload,
         allow_nan=False,
         separators=(",", ":"),
         sort_keys=True,

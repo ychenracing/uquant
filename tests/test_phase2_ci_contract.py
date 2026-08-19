@@ -76,7 +76,7 @@ def _assert_locked_runtime(workflow: dict[str, Any]) -> None:
                 assert ref == PINNED_ACTIONS[repository]
                 assert re.fullmatch(r"[0-9a-f]{40}", ref)
             if uses is not None and uses.startswith("actions/setup-python@"):
-                assert step["with"]["python-version"] == "3.12"
+                assert step["with"]["python-version"] == "3.12.13"
 
 
 def _assert_always_blocking_summary(

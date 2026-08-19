@@ -86,3 +86,19 @@ def test_service_is_deterministic_and_does_not_mutate_inputs() -> None:
     pd.testing.assert_frame_equal(tech, snapshots["tech"])
     pd.testing.assert_frame_equal(panel["a"], snapshots["a"])
     pd.testing.assert_frame_equal(panel["b"], snapshots["b"])
+
+
+def test_service_includes_read_only_leader_and_capital_context() -> None:
+    assessment = evaluate_sentinel(
+        as_of="2026-08-19",
+        broad_frame=_frame(),
+        tech_frame=_frame(),
+        reference_panel={"a": _frame(shock=-0.08), "b": _frame()},
+        point_in_time_industries={"a": "optical", "b": "storage"},
+        held_symbols=("a",),
+        leader_symbols=("a",),
+        capital_drawdown=0.09,
+    )
+
+    assert assessment.metrics["capital_drawdown"] == 0.09
+    assert "capital_damage" in assessment.evidence_families

@@ -28,6 +28,7 @@
 | Bandit | 静态安全检查不得出现未处理问题 |
 | pip-audit | 生产依赖不得包含已知未处理漏洞 |
 | 数据完整性 | 冻结文件、清单和 SHA-256 必须互相一致 |
+| Shadow Sentinel | calibration 合同、canonical universe 和生产导入隔离必须有效；只读重复运行工件必须确定 |
 | Phase 1 经济性 | `promotion --profile full` 中所有 AI-era 场景的财富、回撤、订单、换手和急跌收益必须通过 |
 | Phase 2 泛化 | 六个固定窗口的完整矩阵必须通过 v2 冻结 policy：保留 literal 诊断，并以已认证 baseline 的逐 cell、intrinsic 与 random-tail 有效边界执行 non-regression |
 
@@ -61,6 +62,7 @@ README 提供快速开始和文档导航；其余文档各自保持单一职责�
 | `PERFORMANCE.md` | 回测口径、指标解释、证据边界和结果复现 |
 | `DEVELOPMENT.md` | 开发环境、测试命令和提交检查清单 |
 | `QUALITY.md` | 本文所列的质量与行为保持契约 |
+| `RISK_SENTINEL.md` | Shadow Sentinel 证据、Coverage、Calibration 和只读运行边界 |
 
 文档应足以指导使用和维护，但避免重复粘贴完整参数表、源码流程或测试实现。
 
@@ -87,3 +89,4 @@ README 提供快速开始和文档导航；其余文档各自保持单一职责�
 - 数据或证据缺失、摘要漂移和账户不一致必须失败关闭。
 - canonical 34-stock AI universe、固定 `20260810` seed contract、归因、参数治理和 future holdout 都是受保护验证输入。
 - 任何平行的研究性或替代实现比较都不能成为发布门，也不能覆盖 Phase 1 或 Phase 2 的失败。
+- Shadow Sentinel 只能输出观察工件；不得写账户、进入生产导入图或改变目标、订单、成交和经济指标。

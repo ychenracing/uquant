@@ -6,10 +6,12 @@ from .models import (
     SentinelLevel,
     WarmupStatus,
 )
+from .service import evaluate_sentinel
 
 __all__ = [
     "CoverageHealth",
     "SentinelAssessment",
     "SentinelLevel",
     "WarmupStatus",
+    "evaluate_sentinel",
 ]

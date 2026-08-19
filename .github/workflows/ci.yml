@@ -35,6 +35,8 @@ jobs:
         run: uv run python -m uquant.validation data-manifest --data-dir data/frozen
       - name: Future holdout contract and lane integrity
         run: uv run python scripts/future_holdout.py validate-lanes
+      - name: Shadow Sentinel contract and import isolation
+        run: uv run python -m uquant.risk_sentinel --validate-contracts
       - name: Tests and branch coverage
         run: uv run pytest --cov=uquant --cov-report=term-missing --cov-report=xml
       - name: Bytecode compilation

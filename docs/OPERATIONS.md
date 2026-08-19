@@ -178,6 +178,25 @@ uv run python scripts/future_holdout.py journal filled \
 截断或重封既有行。外部 checkpoint 会检测整链重封和截断。人工成交仅改变 Journal
 checkpoint，不能改变模型 Decision Digest、回放分数或候选晋级。
 
+## Shadow Sentinel
+
+Independent Risk Sentinel 是生产流程之外的只读风险观察。日常运行前先验证合同与导入隔离，
+再以同一 canonical 数据交易日和已有账户生成独立工件：
+
+```bash
+uv run python -m uquant.risk_sentinel --validate-contracts
+uv run uquant-sentinel \
+  --data-dir data/frozen \
+  --date 2026-08-05 \
+  --account account_state.json \
+  --output artifacts/sentinel/2026-08-05.json
+```
+
+输出不能位于数据目录，也不能覆盖账户；成功时同时写 JSON、Markdown 和
+`latest_success.json`。运行前后应比较账户 SHA-256，确认未变化。失败运行保留现有最新成功
+指针。Sentinel 意见、Coverage 与正式风险的差异仅供人工观察，不能写回账户、订单或生产
+参数。完整合同见 [RISK_SENTINEL.md](RISK_SENTINEL.md)。
+
 ## 常见故障
 
 | 现象 | 含义 | 处理 |
@@ -212,6 +231,7 @@ checkpoint，不能改变模型 Decision Digest、回放分数或候选晋级。
 ```bash
 uv run ruff check .
 uv run mypy uquant scripts research
+uv run python -m uquant.risk_sentinel --validate-contracts
 uv run pytest --cov=uquant --cov-report=term-missing
 uv run python -m compileall -q uquant scripts research tests
 uv run python -m build

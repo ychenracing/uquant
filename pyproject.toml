@@ -27,6 +27,7 @@ dev = [
 
 [project.scripts]
 uquant = "uquant.cli:main"
+uquant-sentinel = "uquant.risk_sentinel.cli:main"
 
 [tool.setuptools.packages.find]
 include = ["uquant*", "research*"]

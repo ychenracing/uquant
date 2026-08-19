@@ -20,6 +20,8 @@ def evaluate_sentinel(
     reference_panel: Mapping[str, pd.DataFrame],
     point_in_time_industries: Mapping[str, str],
     held_symbols: tuple[str, ...],
+    leader_symbols: tuple[str, ...] = (),
+    capital_drawdown: float | None = None,
 ) -> SentinelAssessment:
     """Evaluate causal inputs without modifying them or any durable state."""
 
@@ -40,5 +42,7 @@ def evaluate_sentinel(
         reference_panel=reference_panel,
         point_in_time_industries=point_in_time_industries,
         held_symbols=held_symbols,
+        leader_symbols=leader_symbols,
+        capital_drawdown=capital_drawdown,
     )
     return build_risk_opinion(evidence=evidence, coverage=coverage)

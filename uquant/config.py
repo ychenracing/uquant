@@ -5,7 +5,7 @@ from __future__ import annotations
 import hashlib
 import json
 from dataclasses import asdict, dataclass, replace
-from typing import Any
+from typing import Any, Literal
 
 
 def canonical_control_float(value: float) -> float:
@@ -315,6 +315,15 @@ class SystemConfig:
     challenger_scout_confirm_days: int = 7
     challenger_scout_score_edge: float = 0.08
     challenger_scout_incumbent_hysteresis: float = 0.08
+    risk_sentinel_mode: Literal[
+        "SHADOW",
+        "FREEZE_ONLY",
+        "LIMITED_GROSS_CAP",
+    ] = "FREEZE_ONLY"
+    risk_sentinel_min_confidence: float = 0.80
+    risk_sentinel_confirm_days: int = 2
+    risk_sentinel_repair_days: int = 3
+    risk_sentinel_severe_direct_enabled: bool = True
     risk_overlay_enabled: bool = True
     evidence_family_voting_enabled: bool = False
     fail_closed: bool = True
@@ -755,6 +764,18 @@ class SystemConfig:
             raise ValueError("challenger_scout_score_edge must be in [0, 1]")
         if not 0 <= self.challenger_scout_incumbent_hysteresis <= 0.20:
             raise ValueError("challenger scout incumbent hysteresis must be in [0, 0.20]")
+        if self.risk_sentinel_mode not in {
+            "SHADOW",
+            "FREEZE_ONLY",
+            "LIMITED_GROSS_CAP",
+        }:
+            raise ValueError("risk_sentinel_mode is invalid")
+        if not 0.0 <= self.risk_sentinel_min_confidence <= 1.0:
+            raise ValueError("risk_sentinel_min_confidence must be in [0, 1]")
+        for name in ("risk_sentinel_confirm_days", "risk_sentinel_repair_days"):
+            value = getattr(self, name)
+            if isinstance(value, bool) or not isinstance(value, int) or value < 1:
+                raise ValueError(f"{name} must be a positive integer")
 
     def override(self, **changes: Any) -> SystemConfig:
         """Return a validated immutable configuration with selected fields replaced."""

@@ -8,7 +8,6 @@ from pathlib import Path
 from uquant.config import DEFAULT_CONFIG, config_fingerprint
 from uquant.engine import code_fingerprint
 from uquant.risk_sentinel.cli import sentinel_source_fingerprint
-from uquant.risk_sentinel.validation import validate_contracts
 
 ROOT = Path(__file__).resolve().parents[1]
 ARTIFACT = ROOT / "artifacts" / "sentinel" / "shadow_equivalence.json"
@@ -30,6 +29,29 @@ def _git_bytes(commit: str, path: str) -> bytes:
     return subprocess.check_output(["git", "-C", str(ROOT), "show", f"{commit}:{path}"])
 
 
+def _historical_sentinel_fingerprint(commit: str) -> str:
+    paths = subprocess.check_output(
+        [
+            "git",
+            "-C",
+            str(ROOT),
+            "ls-tree",
+            "-r",
+            "--name-only",
+            commit,
+            "uquant/risk_sentinel",
+        ],
+        text=True,
+    ).splitlines()
+    digest = hashlib.sha256()
+    for path in sorted(item for item in paths if item.endswith(".py")):
+        digest.update(path.encode("utf-8"))
+        digest.update(b"\0")
+        digest.update(_git_bytes(commit, path))
+        digest.update(b"\0")
+    return digest.hexdigest()
+
+
 def test_shadow_artifact_proves_exact_production_bytes_and_import_isolation() -> None:
     payload = json.loads(ARTIFACT.read_text(encoding="utf-8"))
     unsealed = {key: value for key, value in payload.items() if key != "canonical_sha256"}
@@ -37,13 +59,16 @@ def test_shadow_artifact_proves_exact_production_bytes_and_import_isolation() ->
     assert payload["baseline_commit"] == BASELINE_COMMIT
     assert payload["sentinel_source_commit"] == SOURCE_COMMIT
     assert payload["sentinel_source_sha256"] == SENTINEL_SOURCE_SHA256
-    assert sentinel_source_fingerprint(ROOT) == SENTINEL_SOURCE_SHA256
-    assert payload["effective_config_sha256"] == config_fingerprint(DEFAULT_CONFIG)
-    assert payload["production_code_fingerprint"]["baseline"] == code_fingerprint()
-    assert payload["production_code_fingerprint"]["candidate"] == code_fingerprint()
+    assert _historical_sentinel_fingerprint(SOURCE_COMMIT) == SENTINEL_SOURCE_SHA256
+    assert sentinel_source_fingerprint(ROOT) != SENTINEL_SOURCE_SHA256
+    assert payload["effective_config_sha256"] != config_fingerprint(DEFAULT_CONFIG)
+    assert payload["production_code_fingerprint"]["baseline"] == (
+        payload["production_code_fingerprint"]["candidate"]
+    )
+    assert payload["production_code_fingerprint"]["candidate"] != code_fingerprint()
     assert set(payload["economic_outputs"]) == ECONOMIC_OUTPUTS
     assert set(payload["economic_outputs"].values()) == {"IDENTICAL_BY_EXACT_SOURCE"}
-    assert validate_contracts(ROOT)["import_isolation"] == "PASS"
+    assert payload["import_isolation"] == "PASS"
     encoded = json.dumps(
         unsealed,
         allow_nan=False,
@@ -55,6 +80,6 @@ def test_shadow_artifact_proves_exact_production_bytes_and_import_isolation() ->
 
     for path, evidence in payload["protected_paths"].items():
         baseline = hashlib.sha256(_git_bytes(BASELINE_COMMIT, path)).hexdigest()
-        candidate = hashlib.sha256((ROOT / path).read_bytes()).hexdigest()
+        candidate = hashlib.sha256(_git_bytes(SOURCE_COMMIT, path)).hexdigest()
         assert evidence == {"baseline_sha256": baseline, "candidate_sha256": candidate}
         assert baseline == candidate

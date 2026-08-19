@@ -47,6 +47,7 @@ from .portfolio import PortfolioAllocator, current_weights
 from .reference import build_reference_context
 from .reference_registry import DEFAULT_REGISTRY_PATH, resolve_reference_symbols
 from .risk import assess_risk
+from .risk_sentinel.service import evaluate_sentinel
 from .types import (
     ACCOUNT_SCHEMA_VERSION,
     AccountOrder,
@@ -413,6 +414,34 @@ class ProductionEngine:
         visible_users = set(user_panel)
         prices = {symbol: self._price(symbol, date) for symbol in visible_users | set(account.positions)}
         _, equity = current_weights(account, prices)
+        universe = default_ai_universe()
+        canonical_symbols = universe.symbols_as_of(str(date.date()))
+        if active_reference_symbols != canonical_symbols:
+            raise RuntimeError(
+                "point-in-time reference registry differs from canonical universe"
+            )
+        sentinel = evaluate_sentinel(
+            as_of=str(date.date()),
+            broad_frame=broad,
+            tech_frame=tech,
+            reference_panel=reference_panel,
+            point_in_time_industries={
+                symbol: universe.industry_of(symbol, str(date.date()))
+                for symbol in canonical_symbols
+            },
+            held_symbols=tuple(
+                sorted(
+                    symbol
+                    for symbol, position in account.positions.items()
+                    if position.shares > 0
+                )
+            ),
+            leader_symbols=tuple(sorted(account.active_leaders)),
+            capital_drawdown=max(
+                0.0,
+                1.0 - equity / max(account.capital_peak, 1e-12),
+            ),
+        )
         risk = assess_risk(
             date=date,
             broad=broad,
@@ -428,6 +457,8 @@ class ProductionEngine:
                 reference_context if decision_cfg.group_balanced_reference_enabled else None
             ),
             configured_universe_size=len(user_symbols),
+            sentinel_assessment=sentinel,
+            sentinel_opportunity=account.opportunity,
         )
         risk.evidence["configured_user_universe_size"] = len(user_symbols)
         risk.evidence["universe_size_is_diagnostic_only"] = True

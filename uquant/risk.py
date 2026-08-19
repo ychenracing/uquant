@@ -18,7 +18,9 @@ from .risk_sector import (
     observe_deployed_sector,
     update_sector_guard,
 )
-from .types import AccountState, LeaderScore, Risk, RiskAssessment
+from .risk_sentinel.integration import integrate_freeze_only
+from .risk_sentinel.models import SentinelAssessment
+from .types import AccountState, LeaderScore, Opportunity, Risk, RiskAssessment
 
 # Compatibility export only. Production anchors live in AccountState and are
 # selected from reference evidence; no symbol receives a static risk role.
@@ -404,7 +406,7 @@ def _capital_budget_repair_drawdown_confirmed(
     return max(capital_drawdown, operating_drawdown) < threshold
 
 
-def assess_risk(
+def _assess_base_risk(
     *,
     date: pd.Timestamp,
     broad: pd.DataFrame,
@@ -2200,4 +2202,51 @@ def assess_risk(
             3 if state is Risk.CRISIS else 2 if state is Risk.RISK_OFF else 1 if state is Risk.CAUTION else 0,
         ),
         severity=account.shock_severity,
+    )
+
+
+def assess_risk(
+    *,
+    date: pd.Timestamp,
+    broad: pd.DataFrame,
+    tech: pd.DataFrame,
+    reference_panel: dict[str, pd.DataFrame],
+    reference_returns: pd.DataFrame | None,
+    user_panel: dict[str, pd.DataFrame],
+    leaders: dict[str, LeaderScore],
+    account: AccountState,
+    equity: float,
+    cfg: SystemConfig,
+    reference_context: ReferenceContext | None = None,
+    configured_universe_size: int | None = None,
+    sentinel_assessment: SentinelAssessment | None = None,
+    sentinel_opportunity: Opportunity | str | None = None,
+) -> RiskAssessment:
+    """Return formal uquant risk with the optional freeze-only Sentinel overlay.
+
+    The base assessor remains the sole owner of state, severity, reductions,
+    and gross caps.  Integration is deliberately applied only to its immutable
+    result, so Sentinel cannot mutate the durable account or create a parallel
+    risk transition.
+    """
+
+    base = _assess_base_risk(
+        date=date,
+        broad=broad,
+        tech=tech,
+        reference_panel=reference_panel,
+        reference_returns=reference_returns,
+        user_panel=user_panel,
+        leaders=leaders,
+        account=account,
+        equity=equity,
+        cfg=cfg,
+        reference_context=reference_context,
+        configured_universe_size=configured_universe_size,
+    )
+    return integrate_freeze_only(
+        base=base,
+        sentinel=sentinel_assessment,
+        cfg=cfg,
+        opportunity=sentinel_opportunity,
     )

@@ -121,3 +121,4 @@ def test_correlated_breadth_indicators_count_as_one_family() -> None:
     assert evidence.family_votes["market_velocity"] is True
     assert evidence.families.count("breadth_structure") == 1
     assert evidence.first_evidence_date is not None
+    assert evidence.metrics["evidence_confirmation_days"] >= 2.0

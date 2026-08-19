@@ -281,9 +281,11 @@ def build_market_evidence(
         raise RuntimeError("Sentinel evidence family coverage is incomplete")
     current_families = {family for family, triggered in votes.items() if triggered}
     first: str | None = None
+    confirmation_days = 0
     if current_families:
         common = broad_frame.index.intersection(tech_frame.index)
         common = common[common <= point][-21:]
+        historical: list[tuple[pd.Timestamp, dict[str, bool]]] = []
         for candidate in common:
             _, _, historical_votes, _ = _snapshot(
                 point=pd.Timestamp(candidate).normalize(),
@@ -295,9 +297,18 @@ def build_market_evidence(
                 leader_symbols=leader_symbols,
                 capital_drawdown=capital_drawdown,
             )
+            historical.append((pd.Timestamp(candidate).normalize(), historical_votes))
             if any(historical_votes[family] for family in current_families):
-                first = str(pd.Timestamp(candidate).date())
+                first = first or str(pd.Timestamp(candidate).date())
+        required_families = min(2, len(current_families))
+        for _, historical_votes in reversed(historical):
+            active_count = sum(
+                historical_votes[family] for family in current_families
+            )
+            if active_count < required_families:
                 break
+            confirmation_days += 1
+    metrics["evidence_confirmation_days"] = float(confirmation_days)
     return MarketEvidence(
         date=str(point.date()),
         subindustries=subindustries,

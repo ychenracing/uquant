@@ -18,6 +18,12 @@ from uquant.engine import (
 )
 from uquant.leader import REFERENCE_UNIVERSE
 from uquant.report import render_daily_report
+from uquant.risk_sentinel.models import (
+    CoverageHealth,
+    SentinelAssessment,
+    SentinelLevel,
+    WarmupStatus,
+)
 from uquant.types import (
     ACCOUNT_SCHEMA_VERSION,
     AccountOrder,
@@ -31,7 +37,7 @@ from uquant.types import (
     Tranche,
     derive_attribution_event_id,
 )
-from uquant.validation.universe import REQUIRED_AI_UNIVERSE_SHA256
+from uquant.validation.universe import REQUIRED_AI_UNIVERSE_SHA256, default_ai_universe
 
 SYMBOLS = ["sz300308", "sz300502", "sz300394", "sh688008", "sh603986"]
 RISK_REGRESSION_POOLS = (
@@ -821,6 +827,67 @@ def test_decision_keeps_sector_guard_cohort_in_risk_panel(
     )
 
     assert omitted in observed["user_panel"]
+
+
+def test_decision_evaluates_sentinel_from_canonical_point_in_time_universe(
+    data_dir,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from uquant.types import Risk, RiskAssessment
+
+    assessment = SentinelAssessment(
+        date="2026-06-30",
+        level=SentinelLevel.NORMAL,
+        confidence=1.0,
+        suggested_gross_cap=None,
+        freeze_new_risk=False,
+        evidence_families=(),
+        reasons=("no independent risk family triggered",),
+        first_evidence_date=None,
+        coverage=CoverageHealth(
+            status=WarmupStatus.READY,
+            confidence=1.0,
+            component_observation=1.0,
+            subindustry_coverage=1.0,
+            held_industry_mapping=1.0,
+            reference_warmup=1.0,
+            missing_indices=(),
+            new_symbols=(),
+            stale_symbols=(),
+        ),
+        metrics={"evidence_confirmation_days": 0.0},
+    )
+    observed: dict[str, object] = {}
+
+    def sentinel(**kwargs: object) -> SentinelAssessment:
+        observed["sentinel"] = kwargs
+        return assessment
+
+    def normal_risk(**kwargs: object) -> RiskAssessment:
+        observed["risk"] = kwargs
+        return RiskAssessment(Risk.NORMAL, 1.0, 0, {}, (), "NONE")
+
+    monkeypatch.setattr(engine_module, "evaluate_sentinel", sentinel)
+    monkeypatch.setattr(engine_module, "assess_risk", normal_risk)
+    ProductionEngine(data_dir).decide(
+        symbols=SYMBOLS,
+        as_of="2026-06-30",
+        account=AccountState.empty(2e6),
+    )
+
+    sentinel_args = observed["sentinel"]
+    assert isinstance(sentinel_args, dict)
+    industries = sentinel_args["point_in_time_industries"]
+    assert isinstance(industries, dict)
+    universe = default_ai_universe()
+    assert tuple(sorted(industries)) == universe.symbols_as_of("2026-06-30")
+    assert industries == {
+        symbol: universe.industry_of(symbol, "2026-06-30")
+        for symbol in universe.symbols_as_of("2026-06-30")
+    }
+    risk_args = observed["risk"]
+    assert isinstance(risk_args, dict)
+    assert risk_args["sentinel_assessment"] is assessment
 
 
 def test_future_dated_state_fails_closed(data_dir):

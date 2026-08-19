@@ -1,5 +1,6 @@
 """Independent, read-only risk observation for Shadow Mode."""
 
+from .integration import integrate_freeze_only
 from .models import (
     CoverageHealth,
     SentinelAssessment,
@@ -14,4 +15,5 @@ __all__ = [
     "SentinelLevel",
     "WarmupStatus",
     "evaluate_sentinel",
+    "integrate_freeze_only",
 ]

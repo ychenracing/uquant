@@ -12,6 +12,11 @@ import uquant
 from uquant.config import DEFAULT_CONFIG, config_fingerprint
 
 INVALID_OVERRIDES: tuple[tuple[dict[str, Any], str], ...] = (
+    ({"risk_sentinel_mode": "INVALID"}, "risk_sentinel_mode"),
+    ({"risk_sentinel_min_confidence": -0.01}, "risk_sentinel_min_confidence"),
+    ({"risk_sentinel_min_confidence": 1.01}, "risk_sentinel_min_confidence"),
+    ({"risk_sentinel_confirm_days": 0}, "risk_sentinel_confirm_days"),
+    ({"risk_sentinel_repair_days": 0}, "risk_sentinel_repair_days"),
     ({"initial_cash": 0}, "initial_cash"),
     ({"max_gross": 0}, "max_gross"),
     ({"max_symbol_weight": 0.61}, "max_symbol_weight"),
@@ -169,6 +174,11 @@ def test_every_configuration_safety_contract_fails_closed(
 
 def test_configuration_serialization_is_complete_and_detached() -> None:
     payload = DEFAULT_CONFIG.to_dict()
+    assert payload["risk_sentinel_mode"] == "FREEZE_ONLY"
+    assert payload["risk_sentinel_min_confidence"] == pytest.approx(0.80)
+    assert payload["risk_sentinel_confirm_days"] == 2
+    assert payload["risk_sentinel_repair_days"] == 3
+    assert payload["risk_sentinel_severe_direct_enabled"] is True
     assert payload["sector_guard_enabled"] is True
     assert payload["sector_guard_gross"] == pytest.approx(0.40)
     assert payload["industry_rotation_enabled"] is True

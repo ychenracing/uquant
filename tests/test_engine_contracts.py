@@ -281,6 +281,33 @@ def test_sentinel_timeline_cache_depends_only_on_data_universe_and_config(
     assert not hasattr(first, "account")
 
 
+def test_sealed_timeline_disk_cache_rejects_tampering(tmp_path: Path) -> None:
+    key = ("data", "config", "universe", "code")
+    path = tmp_path / "timeline.json"
+    timeline = RiskEvidenceTimeline(
+        as_of="2026-08-19",
+        sessions=(),
+        sentinel_rows=(),
+        base_rows=(),
+        sentinel_first_family_dates=(),
+        base_first_family_dates=(),
+        incremental_families=(),
+        earlier_families=(),
+        confirmation_days=0,
+        repair_days=0,
+        effective_level=SentinelLevel.NORMAL,
+        confirmed_since=None,
+        confirmation_history_trusted=False,
+        trust_reasons=("fixture",),
+    )
+    engine_module._write_risk_timeline_disk_cache(path, key=key, timeline=timeline)
+
+    assert engine_module._load_risk_timeline_disk_cache(path, key=key) == timeline
+    payload = path.read_text(encoding="utf-8").replace("fixture", "tampered")
+    path.write_text(payload, encoding="utf-8")
+    assert engine_module._load_risk_timeline_disk_cache(path, key=key) is None
+
+
 def test_shared_engine_leader_cache_isolated_by_adaptive_config(data_dir):
     """A prior small-pool replay must not seed broad-pool structural scores."""
     as_of = "2026-06-30"

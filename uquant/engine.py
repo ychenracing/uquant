@@ -5,6 +5,7 @@ from __future__ import annotations
 import copy
 import hashlib
 import json
+import tempfile
 from collections.abc import Iterable
 from dataclasses import replace
 from pathlib import Path
@@ -14,6 +15,7 @@ from typing import Any
 import numpy as np
 import pandas as pd
 
+from .atomic_io import atomic_write_text
 from .attribution import (
     build_daily_ledger_row,
     build_daily_replay_evidence_row,
@@ -49,7 +51,9 @@ from .reference_registry import DEFAULT_REGISTRY_PATH, resolve_reference_symbols
 from .risk import assess_risk
 from .risk_sentinel.history import (
     build_risk_evidence_timeline,
+    risk_evidence_timeline_from_dict,
     risk_evidence_timeline_prefix,
+    risk_evidence_timeline_to_dict,
 )
 from .risk_sentinel.integration import sentinel_freeze_authorized
 from .risk_sentinel.models import RiskEvidenceTimeline
@@ -78,6 +82,72 @@ INDEX_SYMBOLS = ("sh000300", "sh000682")
 _LEGACY_INDUSTRY = "legacy_unmapped"
 _LEGACY_MANIFEST_SHA256 = "0" * 64
 _SHARED_RISK_TIMELINE_CACHE: dict[tuple[str, str, str, int], RiskEvidenceTimeline] = {}
+_RISK_TIMELINE_BUILDER = build_risk_evidence_timeline
+_RISK_TIMELINE_CACHE_SCHEMA = "uquant.risk-evidence-cache.v1"
+
+
+def _canonical_json(value: Any) -> bytes:
+    return json.dumps(
+        value,
+        allow_nan=False,
+        ensure_ascii=False,
+        separators=(",", ":"),
+        sort_keys=True,
+    ).encode("utf-8")
+
+
+def _risk_timeline_disk_path(key: tuple[str, str, str, str]) -> Path:
+    identity = hashlib.sha256(_canonical_json(list(key))).hexdigest()
+    return Path(tempfile.gettempdir()) / "uquant-risk-evidence-v1" / f"{identity}.json"
+
+
+def _load_risk_timeline_disk_cache(
+    path: Path,
+    *,
+    key: tuple[str, str, str, str],
+) -> RiskEvidenceTimeline | None:
+    if path.is_symlink() or not path.is_file():
+        return None
+    try:
+        envelope = json.loads(path.read_text(encoding="utf-8"))
+        if not isinstance(envelope, dict) or set(envelope) != {"payload", "sha256"}:
+            return None
+        payload = envelope["payload"]
+        if not isinstance(payload, dict):
+            return None
+        if hashlib.sha256(_canonical_json(payload)).hexdigest() != envelope["sha256"]:
+            return None
+        if payload.get("schema") != _RISK_TIMELINE_CACHE_SCHEMA:
+            return None
+        if payload.get("key") != list(key):
+            return None
+        timeline = payload.get("timeline")
+        if not isinstance(timeline, dict):
+            return None
+        return risk_evidence_timeline_from_dict(timeline)
+    except (OSError, TypeError, ValueError, KeyError, json.JSONDecodeError):
+        return None
+
+
+def _write_risk_timeline_disk_cache(
+    path: Path,
+    *,
+    key: tuple[str, str, str, str],
+    timeline: RiskEvidenceTimeline,
+) -> None:
+    payload = {
+        "schema": _RISK_TIMELINE_CACHE_SCHEMA,
+        "key": list(key),
+        "timeline": risk_evidence_timeline_to_dict(timeline),
+    }
+    envelope = {
+        "payload": payload,
+        "sha256": hashlib.sha256(_canonical_json(payload)).hexdigest(),
+    }
+    atomic_write_text(
+        path,
+        json.dumps(envelope, ensure_ascii=False, separators=(",", ":"), sort_keys=True),
+    )
 
 
 def _decision_config_for_universe(
@@ -300,8 +370,20 @@ class ProductionEngine:
             str(universe.sha256),
             id(build_risk_evidence_timeline),
         )
+        disk_key = (
+            full_data_digest,
+            config_fingerprint(cfg),
+            str(universe.sha256),
+            self._code_hash or code_fingerprint(),
+        )
         if self._risk_timeline_cache_key != key:
             timeline = _SHARED_RISK_TIMELINE_CACHE.get(key)
+            disk_path = _risk_timeline_disk_path(disk_key)
+            if timeline is None and build_risk_evidence_timeline is _RISK_TIMELINE_BUILDER:
+                timeline = _load_risk_timeline_disk_cache(
+                    disk_path,
+                    key=disk_key,
+                )
             if timeline is None:
                 timeline = build_risk_evidence_timeline(
                     as_of=full_as_of,
@@ -316,6 +398,12 @@ class ProductionEngine:
                     universe=universe,
                     cfg=cfg,
                 )
+                if build_risk_evidence_timeline is _RISK_TIMELINE_BUILDER:
+                    _write_risk_timeline_disk_cache(
+                        disk_path,
+                        key=disk_key,
+                        timeline=timeline,
+                    )
                 _SHARED_RISK_TIMELINE_CACHE[key] = timeline
             self._risk_timeline_cache_key = key
             self._risk_timeline_cache = timeline

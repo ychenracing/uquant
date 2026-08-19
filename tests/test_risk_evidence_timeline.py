@@ -98,6 +98,7 @@ def test_timeline_truncates_future_rows_and_resolves_pit_membership_and_industry
     broad = _frame(dates)
     tech = _frame(dates)
     panel = {symbol: _frame(dates) for symbol in ("a", "b", "c", "d", "new")}
+    panel["b"] = panel["b"].drop(index=dates[24])
     universe = _universe(dates)
     observed: list[tuple[str, tuple[str, ...], str]] = []
     original_builder = history_module.build_market_evidence_from_observations
@@ -229,6 +230,7 @@ def test_precomputed_market_rows_match_the_canonical_single_day_service() -> Non
     broad = _frame(dates)
     tech = _frame(dates)
     panel = {symbol: _frame(dates) for symbol in ("a", "b", "c", "d", "new")}
+    panel["b"] = panel["b"].drop(index=dates[24])
     timeline = history_module.build_risk_evidence_timeline(
         as_of=str(dates[-1].date()),
         broad_frame=broad,
@@ -273,3 +275,24 @@ def test_timeline_public_boundary_has_no_account_or_current_book_input() -> None
     assert parameters.isdisjoint(
         {"account", "account_state", "held_symbols", "capital_drawdown", "leader_tenure"}
     )
+
+
+def test_immutable_timeline_cache_round_trip_has_no_account_carrier() -> None:
+    dates = pd.bdate_range("2026-01-05", periods=25)
+    universe = _universe(dates)
+    timeline = history_module.build_risk_evidence_timeline(
+        as_of=str(dates[-1].date()),
+        broad_frame=_frame(dates),
+        tech_frame=_frame(dates),
+        reference_panel={
+            symbol: _frame(dates) for symbol in ("a", "b", "c", "d", "new")
+        },
+        reference_returns=None,
+        universe=universe,
+        cfg=DEFAULT_CONFIG,
+    )
+
+    payload = history_module.risk_evidence_timeline_to_dict(timeline)
+
+    assert history_module.risk_evidence_timeline_from_dict(payload) == timeline
+    assert "account" not in repr(payload).lower()

@@ -5,6 +5,7 @@ from __future__ import annotations
 import math
 from collections.abc import Mapping
 from dataclasses import replace
+from typing import Any
 
 import numpy as np
 import pandas as pd
@@ -102,7 +103,28 @@ def _prepared_correlation(
     session: pd.Timestamp,
     symbols: tuple[str, ...],
     returns: Mapping[str, pd.Series],
+    rolling: Mapping[pd.Timestamp, pd.DataFrame],
+    complete: pd.DataFrame,
+    positions: dict[tuple[str, ...], np.ndarray],
 ) -> float:
+    if (
+        len(symbols) >= 4
+        and session in complete.index
+        and all(
+            symbol in complete.columns and bool(complete.at[session, symbol])
+            for symbol in symbols
+        )
+    ):
+        matrix = rolling[session]
+        if symbols not in positions:
+            positions[symbols] = matrix.columns.get_indexer(pd.Index(symbols))
+        selected = matrix.to_numpy(dtype=float, copy=False)[
+            np.ix_(positions[symbols], positions[symbols])
+        ]
+        values = selected[~np.eye(len(selected), dtype=bool)]
+        finite = values[np.isfinite(values)]
+        median = float(np.median(finite)) if finite.size else 0.0
+        return median if math.isfinite(median) else 0.0
     series = {
         symbol: returns[symbol].loc[:session].tail(20)
         for symbol in symbols
@@ -111,9 +133,22 @@ def _prepared_correlation(
     if len(series) < 4:
         return 0.0
     correlation = pd.DataFrame(series).dropna(how="all").corr(min_periods=10)
-    values = correlation.where(~np.eye(len(correlation), dtype=bool)).stack()
-    median = float(values.median()) if not values.empty else 0.0
+    corr_values = correlation.where(~np.eye(len(correlation), dtype=bool)).stack()
+    median = float(corr_values.median()) if not corr_values.empty else 0.0
     return median if math.isfinite(median) else 0.0
+
+
+def _rolling_correlation_cache(
+    returns: Mapping[str, pd.Series],
+) -> tuple[dict[pd.Timestamp, pd.DataFrame], pd.DataFrame]:
+    frame = pd.DataFrame({symbol: returns[symbol] for symbol in sorted(returns)})
+    rolling = frame.rolling(20, min_periods=10).corr(pairwise=True)
+    complete = frame.notna().rolling(20, min_periods=20).sum().eq(20)
+    panels = {
+        pd.Timestamp(session).normalize(): values.droplevel(0)  # type: ignore[arg-type]
+        for session, values in rolling.groupby(level=0, sort=False)
+    }
+    return panels, complete
 
 
 def _prefix(frame: pd.DataFrame, point: pd.Timestamp) -> pd.DataFrame:
@@ -487,6 +522,147 @@ def risk_evidence_timeline_prefix(
     )
 
 
+def risk_evidence_timeline_to_dict(
+    timeline: RiskEvidenceTimeline,
+) -> dict[str, Any]:
+    """Serialize an immutable timeline for a sealed data/config cache."""
+
+    return {
+        "as_of": timeline.as_of,
+        "sessions": list(timeline.sessions),
+        "sentinel_rows": [
+            {
+                "date": row.date,
+                "coverage_status": row.coverage_status.value,
+                "confidence": row.confidence,
+                "level": row.level.value,
+                "freeze_candidate": row.freeze_candidate,
+                "family_active": [list(item) for item in row.family_active],
+                "reasons": list(row.reasons),
+                "weakest_subindustries": list(row.weakest_subindustries),
+                "severe_direct": row.severe_direct,
+            }
+            for row in timeline.sentinel_rows
+        ],
+        "base_rows": [
+            {
+                "date": row.date,
+                "family_active": [list(item) for item in row.family_active],
+                "data_ready": row.data_ready,
+            }
+            for row in timeline.base_rows
+        ],
+        "sentinel_first_family_dates": [
+            list(item) for item in timeline.sentinel_first_family_dates
+        ],
+        "base_first_family_dates": [
+            list(item) for item in timeline.base_first_family_dates
+        ],
+        "incremental_families": list(timeline.incremental_families),
+        "earlier_families": list(timeline.earlier_families),
+        "confirmation_days": timeline.confirmation_days,
+        "repair_days": timeline.repair_days,
+        "effective_level": timeline.effective_level.value,
+        "confirmed_since": timeline.confirmed_since,
+        "confirmation_history_trusted": timeline.confirmation_history_trusted,
+        "trust_reasons": list(timeline.trust_reasons),
+    }
+
+
+def risk_evidence_timeline_from_dict(payload: Mapping[str, Any]) -> RiskEvidenceTimeline:
+    """Validate and restore a timeline cache without executable serialization."""
+
+    required = {
+        "as_of",
+        "sessions",
+        "sentinel_rows",
+        "base_rows",
+        "sentinel_first_family_dates",
+        "base_first_family_dates",
+        "incremental_families",
+        "earlier_families",
+        "confirmation_days",
+        "repair_days",
+        "effective_level",
+        "confirmed_since",
+        "confirmation_history_trusted",
+        "trust_reasons",
+    }
+    if set(payload) != required:
+        raise ValueError("risk evidence timeline cache fields are invalid")
+    sentinel_raw = payload["sentinel_rows"]
+    base_raw = payload["base_rows"]
+    if not isinstance(sentinel_raw, list) or not isinstance(base_raw, list):
+        raise ValueError("risk evidence timeline cache rows are invalid")
+    sentinel_rows = tuple(
+        SentinelMarketRow(
+            date=str(row["date"]),
+            coverage_status=WarmupStatus(str(row["coverage_status"])),
+            confidence=float(row["confidence"]),
+            level=SentinelLevel(str(row["level"])),
+            freeze_candidate=bool(row["freeze_candidate"]),
+            family_active=tuple(
+                (str(item[0]), bool(item[1])) for item in row["family_active"]
+            ),
+            reasons=tuple(str(item) for item in row["reasons"]),
+            weakest_subindustries=tuple(
+                str(item) for item in row["weakest_subindustries"]
+            ),
+            severe_direct=bool(row["severe_direct"]),
+        )
+        for row in sentinel_raw
+        if isinstance(row, Mapping)
+    )
+    base_rows = tuple(
+        BaseMarketRiskRow(
+            date=str(row["date"]),
+            family_active=tuple(
+                (str(item[0]), bool(item[1])) for item in row["family_active"]
+            ),
+            data_ready=bool(row["data_ready"]),
+        )
+        for row in base_raw
+        if isinstance(row, Mapping)
+    )
+    if len(sentinel_rows) != len(sentinel_raw) or len(base_rows) != len(base_raw):
+        raise ValueError("risk evidence timeline cache contains invalid rows")
+    timeline = RiskEvidenceTimeline(
+        as_of=str(payload["as_of"]),
+        sessions=tuple(str(item) for item in payload["sessions"]),
+        sentinel_rows=sentinel_rows,
+        base_rows=base_rows,
+        sentinel_first_family_dates=tuple(
+            (str(item[0]), str(item[1]))
+            for item in payload["sentinel_first_family_dates"]
+        ),
+        base_first_family_dates=tuple(
+            (str(item[0]), str(item[1]))
+            for item in payload["base_first_family_dates"]
+        ),
+        incremental_families=tuple(
+            str(item) for item in payload["incremental_families"]
+        ),
+        earlier_families=tuple(str(item) for item in payload["earlier_families"]),
+        confirmation_days=int(payload["confirmation_days"]),
+        repair_days=int(payload["repair_days"]),
+        effective_level=SentinelLevel(str(payload["effective_level"])),
+        confirmed_since=(
+            None
+            if payload["confirmed_since"] is None
+            else str(payload["confirmed_since"])
+        ),
+        confirmation_history_trusted=bool(
+            payload["confirmation_history_trusted"]
+        ),
+        trust_reasons=tuple(str(item) for item in payload["trust_reasons"]),
+    )
+    if timeline.sessions != tuple(row.date for row in timeline.sentinel_rows):
+        raise ValueError("risk evidence timeline cache sessions differ from rows")
+    if timeline.sessions != tuple(row.date for row in timeline.base_rows):
+        raise ValueError("risk evidence timeline cache base rows differ from sessions")
+    return timeline
+
+
 def build_risk_evidence_timeline(
     *,
     as_of: str,
@@ -508,6 +684,10 @@ def build_risk_evidence_timeline(
         universe,
     )
     name_observations, name_returns = _prepared_name_observations(reference_panel)
+    rolling_correlation, complete_correlation = _rolling_correlation_cache(
+        name_returns
+    )
+    correlation_positions: dict[tuple[str, ...], np.ndarray] = {}
     broad_fast, broad_medium = _prepared_index_returns(broad_frame)
     tech_fast, tech_medium = _prepared_index_returns(tech_frame)
     sentinel_rows: list[SentinelMarketRow] = []
@@ -577,8 +757,11 @@ def build_risk_evidence_timeline(
             tech_medium=tech_medium.get(session, 0.0),
             median_correlation=_prepared_correlation(
                 session=session,
-                symbols=symbols,
+                symbols=tuple(sorted(names)),
                 returns=name_returns,
+                rolling=rolling_correlation,
+                complete=complete_correlation,
+                positions=correlation_positions,
             ),
         )
         weakest = tuple(

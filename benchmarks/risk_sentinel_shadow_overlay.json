@@ -1,0 +1,26 @@
+{
+  "schema_version": 1,
+  "contract_id": "phase3-risk-sentinel-shadow-overlay-v1",
+  "base_reviewed_commit": "42f6cbdfcf3c3e396200758f80485b49b9e245bf",
+  "source_commit": "e02b0ad5c38aa119b2d21cb3142589b1f3f2fae1",
+  "prior_overlay_sha256": "4251fc07954eaa1cf005f44caf1433b904d3d6eeac2cc75f616f295f67e9e13a",
+  "paths": {
+    "pyproject.toml": "78ef5f581f33ed41fbeb41db37fa52da649434ea6865f561f0812c9ff2462d41",
+    "uquant/risk_sentinel/__init__.py": "0fd78e7e445c0780de82e29e5a4d2d1eb0a34902b73c959723c3cc4a9c97d5c5",
+    "uquant/risk_sentinel/__main__.py": "958d875603a3c23d1ca1619ebbee8237d45bb4f99355cc512f35abdbdf3a0c80",
+    "uquant/risk_sentinel/calibration.py": "8e99be41fc6c021f62983527fc432809a22da2e97866c7c887672ce720e133de",
+    "uquant/risk_sentinel/cli.py": "ac43f14df969008c87332d7df3f74260f26c14e5540b5d193cb2be89bbc2c221",
+    "uquant/risk_sentinel/coverage.py": "66caf9cc163d8ab5e6bb9bc13e755663206ae2c4ffbcfb569a30bcaa07b3bc4c",
+    "uquant/risk_sentinel/evidence.py": "9fcb3be961003bb2bbc70523f0dda87149de9060c7e6e6dfda2c61c444186400",
+    "uquant/risk_sentinel/models.py": "915452c27dff9c4e9791c2728be825b72b16af420e56e4ca898d4fd702dcdc16",
+    "uquant/risk_sentinel/opinion.py": "6c66599f720600d497e9b85ce28659a15cc5fb115734aa83851f4ab3a3492e83",
+    "uquant/risk_sentinel/service.py": "8935b47efe284be02b2768fa6a0bdf1f4ddd32577c42af9313d3d5b9dac4f362",
+    "uquant/risk_sentinel/validation.py": "9351925cbf72c1e5e1badedb97b62f1164685f3ac14cda370e3c5699ea7b1efd"
+  },
+  "policy": {
+    "economic_behavior_changes": false,
+    "production_decision_source_changes": false,
+    "scope": "RISK_SENTINEL_SHADOW_OBSERVATION_ONLY"
+  },
+  "canonical_sha256": "9b671c85fdad19dc855a492b60e1d861f2772becbeb9337d6ddf6bfa5121c677"
+}

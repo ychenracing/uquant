@@ -1,0 +1,62 @@
+{
+  "schema_version": 1,
+  "report_id": "phase3-risk-sentinel-shadow-equivalence-v1",
+  "baseline_commit": "87f4366683e4531d0744d78380bf5c336fce2f57",
+  "sentinel_source_commit": "e02b0ad5c38aa119b2d21cb3142589b1f3f2fae1",
+  "sentinel_source_sha256": "0f26fc5be244a985b20cb426b025a909f85939ee7a5ee8905b9367559093b46e",
+  "effective_config_sha256": "ed52da44a359c1506e1d299f7bc341ad01b199d7f96997f7c01f2b8eca7cfc13",
+  "production_code_fingerprint": {
+    "baseline": "de361ef93a218449df927f5aab14e5013110cc3141a89f94686156bed37a66fc",
+    "candidate": "de361ef93a218449df927f5aab14e5013110cc3141a89f94686156bed37a66fc"
+  },
+  "protected_paths": {
+    "uquant/account.py": {
+      "baseline_sha256": "24b75917086b2c035a80cb39e45e7d58780e0b00d69f4dfa5b0d6e98f8c7bf2f",
+      "candidate_sha256": "24b75917086b2c035a80cb39e45e7d58780e0b00d69f4dfa5b0d6e98f8c7bf2f"
+    },
+    "uquant/config.py": {
+      "baseline_sha256": "fed4fc491831e551163ce4796b1bb5e5a5b9d247595ecf45ad4234abe66b3031",
+      "candidate_sha256": "fed4fc491831e551163ce4796b1bb5e5a5b9d247595ecf45ad4234abe66b3031"
+    },
+    "uquant/engine.py": {
+      "baseline_sha256": "4b9e6064dc4567cc236aff8ff12d59376ec7ccd5b6fa32021c1544d20c8258a2",
+      "candidate_sha256": "4b9e6064dc4567cc236aff8ff12d59376ec7ccd5b6fa32021c1544d20c8258a2"
+    },
+    "uquant/execution.py": {
+      "baseline_sha256": "0b9699420234d1f5fdc5258e44ee644f21da51d787ba70ce7db87f789b3521ba",
+      "candidate_sha256": "0b9699420234d1f5fdc5258e44ee644f21da51d787ba70ce7db87f789b3521ba"
+    },
+    "uquant/portfolio.py": {
+      "baseline_sha256": "1298eda4f5bc4312a2426e1f555421e58471fd5a4c589e5a5f907c64cc60c15f",
+      "candidate_sha256": "1298eda4f5bc4312a2426e1f555421e58471fd5a4c589e5a5f907c64cc60c15f"
+    },
+    "uquant/portfolio_leaders.py": {
+      "baseline_sha256": "64be28bc8fb707372d987eb529f60c9c2792b3c4bf60e3da724fa6bcd92fed77",
+      "candidate_sha256": "64be28bc8fb707372d987eb529f60c9c2792b3c4bf60e3da724fa6bcd92fed77"
+    },
+    "uquant/portfolio_strategic.py": {
+      "baseline_sha256": "df416789de3f0ac9d3e88676ca5a00af00203d9578a153ef11011517c45dc1e8",
+      "candidate_sha256": "df416789de3f0ac9d3e88676ca5a00af00203d9578a153ef11011517c45dc1e8"
+    },
+    "uquant/risk.py": {
+      "baseline_sha256": "831c6d47f11f634d07d20f5066d6217b705c3d69dd6dc2dbcd0999282801ceb4",
+      "candidate_sha256": "831c6d47f11f634d07d20f5066d6217b705c3d69dd6dc2dbcd0999282801ceb4"
+    },
+    "uquant/types.py": {
+      "baseline_sha256": "f019b0cec576204717bdac96fdb47cf6238f6a56255b0832f6af1c008e85b072",
+      "candidate_sha256": "f019b0cec576204717bdac96fdb47cf6238f6a56255b0832f6af1c008e85b072"
+    }
+  },
+  "import_isolation": "PASS",
+  "equivalence_basis": "EXACT_PRODUCTION_SOURCE_AND_CONFIG_BYTES",
+  "economic_outputs": {
+    "decision_digest": "IDENTICAL_BY_EXACT_SOURCE",
+    "target_weights": "IDENTICAL_BY_EXACT_SOURCE",
+    "orders": "IDENTICAL_BY_EXACT_SOURCE",
+    "fills": "IDENTICAL_BY_EXACT_SOURCE",
+    "final_wealth": "IDENTICAL_BY_EXACT_SOURCE",
+    "max_drawdown": "IDENTICAL_BY_EXACT_SOURCE",
+    "trade_count": "IDENTICAL_BY_EXACT_SOURCE"
+  },
+  "canonical_sha256": "ff0be98cd5800f968abbcfff3a067a017a59439087556f16a247845803b6720f"
+}

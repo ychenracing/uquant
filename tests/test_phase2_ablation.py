@@ -261,6 +261,28 @@ def test_post_task8_source_allowance_is_content_addressed_and_rejects_mutation(
         validate_ablation_registry(registry, source_root=checkout)
 
 
+def test_sentinel_shadow_overlay_rejects_resealed_source_mutation(tmp_path: Path) -> None:
+    checkout = tmp_path / "sentinel-source"
+    subprocess.run(
+        ["git", "clone", "--quiet", "--no-hardlinks", str(ROOT), str(checkout)],
+        check=True,
+    )
+    shutil.copytree(ROOT / "uquant", checkout / "uquant", dirs_exist_ok=True)
+    shutil.copy2(ROOT / "pyproject.toml", checkout / "pyproject.toml")
+    shutil.copy2(
+        ROOT / "benchmarks" / "risk_sentinel_shadow_overlay.json",
+        checkout / "benchmarks" / "risk_sentinel_shadow_overlay.json",
+    )
+    registry = load_ablation_registry(MINIMAL_ABLATION_REGISTRY_PATH)
+
+    validate_ablation_registry(registry, source_root=checkout)
+    sentinel = checkout / "uquant" / "risk_sentinel" / "service.py"
+    sentinel.write_text(sentinel.read_text(encoding="utf-8") + "\n", encoding="utf-8")
+
+    with pytest.raises(ValueError, match="Sentinel Shadow observation overlay bytes"):
+        validate_ablation_registry(registry, source_root=checkout)
+
+
 def test_post_deletion_coverage_does_not_count_deleted_or_historical_carriers() -> None:
     """Catches cross-accepting the deleted transition carrier or claiming 13 fresh runs."""
     runner = _runner_module()

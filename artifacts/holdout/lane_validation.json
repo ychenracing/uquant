@@ -39,7 +39,41 @@
         "top3_concentration": null,
         "pnl_hhi": null
       }
+    },
+    {
+      "lane_id": "sentinel_shadow",
+      "activation_session": "2026-08-19",
+      "source_commit": "e02b0ad5c38aa119b2d21cb3142589b1f3f2fae1",
+      "production_source_sha256": "f9c78557e38342c5a994f19fde63352f635ac37c5d2d7a187ba410b98caa1aed",
+      "sentinel_source_sha256": "0f26fc5be244a985b20cb426b025a909f85939ee7a5ee8905b9367559093b46e",
+      "effective_config_sha256": "ed52da44a359c1506e1d299f7bc341ad01b199d7f96997f7c01f2b8eca7cfc13",
+      "data_contract_sha256": "f1555d2f5527b83899ade8f934f67de8df6050aa2ebc7453d0d4245c618e2aeb",
+      "holdout_data_sha256": "4308b714db46527214f6bbc47f46e904dbdc5f747144da5a67766495934ac17b",
+      "runtime": {
+        "python_full_version": "3.12.13",
+        "numpy_version": "2.5.1",
+        "pandas_version": "3.0.5",
+        "uv_version": "0.11.33",
+        "uv_lock_sha256": "4accf16535b5ac95b831c9289e0ad2ff21282dc5dfae3f05dd0fb095089d6a61"
+      },
+      "economic_behavior": "IDENTICAL",
+      "status": "OBSERVING",
+      "observed_sessions": 0,
+      "first_observed_session": null,
+      "last_observed_session": null,
+      "next_milestone": 20,
+      "formal_reviewable": false,
+      "score_status": "NON_REVIEWABLE",
+      "scores": {
+        "final_wealth": null,
+        "max_drawdown": null,
+        "account_orders": null,
+        "gross_turnover": null,
+        "top1_concentration": null,
+        "top3_concentration": null,
+        "pnl_hhi": null
+      }
     }
   ],
-  "canonical_sha256": "a420e2ef0a647add1fabcf3dbb0dc427fa340c713d80904fc1b9c9ef0e72f2bf"
+  "canonical_sha256": "68fc1178385731e9336b375332bf9d5cb7590f8dce42f0d5497c251101d293a4"
 }

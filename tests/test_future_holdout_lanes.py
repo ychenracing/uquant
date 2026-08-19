@@ -23,6 +23,8 @@ STRATEGY_SHA256 = "f9c78557e38342c5a994f19fde63352f635ac37c5d2d7a187ba410b98caa1
 CONFIG_SHA256 = "ed52da44a359c1506e1d299f7bc341ad01b199d7f96997f7c01f2b8eca7cfc13"
 LOCK_SHA256 = "4accf16535b5ac95b831c9289e0ad2ff21282dc5dfae3f05dd0fb095089d6a61"
 EMPTY_DATA_SHA256 = "4308b714db46527214f6bbc47f46e904dbdc5f747144da5a67766495934ac17b"
+SENTINEL_SOURCE_COMMIT = "e02b0ad5c38aa119b2d21cb3142589b1f3f2fae1"
+SENTINEL_SOURCE_SHA256 = "0f26fc5be244a985b20cb426b025a909f85939ee7a5ee8905b9367559093b46e"
 
 _CLI_SPEC = importlib.util.spec_from_file_location(
     "future_holdout_cli_lanes",
@@ -55,7 +57,17 @@ def _lane(lane_id: str = "champion_pre_sentinel") -> HoldoutLane:
     )
 
 
-def test_tracked_registry_binds_original_contract_and_has_no_invented_candidate() -> None:
+def _sentinel_lane() -> HoldoutLane:
+    return replace(
+        _lane("sentinel_shadow"),
+        activation_session="2026-08-19",
+        source_commit=SENTINEL_SOURCE_COMMIT,
+        sentinel_source_sha256=SENTINEL_SOURCE_SHA256,
+        parent_lane="champion_pre_sentinel",
+    )
+
+
+def test_tracked_registry_appends_exact_non_backfilled_sentinel_lane() -> None:
     contract = load_future_holdout_contract()
     lanes = load_lane_registry(REGISTRY)
 
@@ -64,7 +76,9 @@ def test_tracked_registry_binds_original_contract_and_has_no_invented_candidate(
     assert contract.first_holdout_date == "2026-08-06"
     assert contract.review_milestones == (20, 40, 60)
     assert contract.parameter_changes_from_observation is False
-    assert lanes == (_lane(),)
+    assert lanes == (_lane(), _sentinel_lane())
+    assert lanes[1].economic_behavior == "IDENTICAL"
+    assert lanes[1].status == "OBSERVING"
 
 
 def test_registry_rejects_duplicate_ids_missing_or_forward_parents() -> None:
@@ -255,6 +269,19 @@ def test_empty_holdout_report_remains_null_and_bound_to_empty_data_identity() ->
     assert all(value is None for value in report["lanes"][0]["scores"].values())
 
 
+def test_tracked_sentinel_lane_has_no_observations_or_formal_scores() -> None:
+    report = json.loads(VALIDATION.read_text(encoding="utf-8"))
+    lane = report["lanes"][1]
+
+    assert lane["lane_id"] == "sentinel_shadow"
+    assert lane["activation_session"] == "2026-08-19"
+    assert lane["observed_sessions"] == 0
+    assert lane["next_milestone"] == 20
+    assert lane["formal_reviewable"] is False
+    assert lane["score_status"] == "NON_REVIEWABLE"
+    assert lane["scores"] == {field: None for field in SCORE_FIELDS}
+
+
 def test_tracked_validation_is_exact_empty_observation_report() -> None:
     expected = build_lane_validation_report(
         lanes=load_lane_registry(REGISTRY),
@@ -271,4 +298,8 @@ def test_validation_cli_recomputes_tracked_lane_evidence(capsys: pytest.CaptureF
     output = json.loads(capsys.readouterr().out)
     assert output["observed_sessions"] == 0
     assert output["lanes"][0]["next_milestone"] == 20
-    assert all(value is None for value in output["lanes"][0]["scores"].values())
+    assert all(
+        value is None
+        for lane in output["lanes"]
+        for value in lane["scores"].values()
+    )

@@ -35,6 +35,11 @@ FUTURE_HOLDOUT_OVERLAY_PATH: Final = (
     / "benchmarks"
     / "future_holdout_observation_overlay.json"
 )
+RISK_SENTINEL_OVERLAY_PATH: Final = (
+    Path(__file__).resolve().parents[1]
+    / "benchmarks"
+    / "risk_sentinel_shadow_overlay.json"
+)
 BASE_SOURCE_COMMIT: Final = "7f80436373b6da03536e15ff1908c010bfb92eb3"
 MINIMAL_BASE_SOURCE_COMMIT: Final = "e5e0fa903c9a9b26701063ae01f352af3e246a7d"
 _POST_TASK8_SOURCE_CONTRACT_SHA256: Final = (
@@ -48,6 +53,23 @@ _FUTURE_HOLDOUT_OVERLAY_PATHS: Final = {
     "uquant/validation/holdout.py",
     "uquant/validation/holdout_lanes.py",
     "uquant/validation/holdout_runtime.py",
+}
+_RISK_SENTINEL_OVERLAY_SHA256: Final = (
+    "9b671c85fdad19dc855a492b60e1d861f2772becbeb9337d6ddf6bfa5121c677"
+)
+_RISK_SENTINEL_SOURCE_COMMIT: Final = "e02b0ad5c38aa119b2d21cb3142589b1f3f2fae1"
+_RISK_SENTINEL_OVERLAY_PATHS: Final = {
+    "pyproject.toml",
+    "uquant/risk_sentinel/__init__.py",
+    "uquant/risk_sentinel/__main__.py",
+    "uquant/risk_sentinel/calibration.py",
+    "uquant/risk_sentinel/cli.py",
+    "uquant/risk_sentinel/coverage.py",
+    "uquant/risk_sentinel/evidence.py",
+    "uquant/risk_sentinel/models.py",
+    "uquant/risk_sentinel/opinion.py",
+    "uquant/risk_sentinel/service.py",
+    "uquant/risk_sentinel/validation.py",
 }
 REQUIRED_SUBSYSTEMS: Final = (
     "sector_guard",
@@ -324,11 +346,97 @@ def _validate_future_holdout_overlay(
 
     reviewed_set = set(reviewed_paths)
     current_set = set(_production_paths(root))
-    if current_set != reviewed_set | (_FUTURE_HOLDOUT_OVERLAY_PATHS - reviewed_set):
+    sentinel_new_paths = _RISK_SENTINEL_OVERLAY_PATHS - reviewed_set
+    if not sentinel_new_paths.issubset(current_set):
+        legacy_expected = reviewed_set | (_FUTURE_HOLDOUT_OVERLAY_PATHS - reviewed_set)
+        if current_set != legacy_expected:
+            raise ValueError("ablation production source differs from the reviewed source hash")
+        for relative in sorted(current_set):
+            current = (root / relative).read_bytes()
+            if relative in _FUTURE_HOLDOUT_OVERLAY_PATHS:
+                if hashlib.sha256(current).hexdigest() != paths[relative]:
+                    raise ValueError("Future Holdout observation overlay bytes differ")
+            elif current != _git_blob(root, reviewed_commit, relative):
+                raise ValueError("ablation production source differs from the reviewed source hash")
+        return
+
+    sentinel_path = root / "benchmarks" / RISK_SENTINEL_OVERLAY_PATH.name
+    try:
+        sentinel_payload = json.loads(
+            sentinel_path.read_text(encoding="utf-8"),
+            object_pairs_hook=_strict_json_object,
+        )
+    except (OSError, UnicodeError, json.JSONDecodeError) as exc:
+        raise ValueError("cannot load Risk Sentinel Shadow observation overlay") from exc
+    sentinel = _require_mapping(
+        sentinel_payload,
+        label="Risk Sentinel Shadow observation overlay",
+    )
+    if set(sentinel) != {
+        "schema_version",
+        "contract_id",
+        "base_reviewed_commit",
+        "source_commit",
+        "prior_overlay_sha256",
+        "paths",
+        "policy",
+        "canonical_sha256",
+    }:
+        raise ValueError("Risk Sentinel Shadow observation overlay fields are invalid")
+    sentinel_seal = _require_text(
+        sentinel.get("canonical_sha256"),
+        label="Risk Sentinel Shadow observation overlay seal",
+    )
+    sentinel_unsealed = {
+        key: value for key, value in sentinel.items() if key != "canonical_sha256"
+    }
+    sentinel_policy = _require_mapping(
+        sentinel.get("policy"),
+        label="Risk Sentinel Shadow observation overlay policy",
+    )
+    sentinel_paths = _require_mapping(
+        sentinel.get("paths"),
+        label="Risk Sentinel Shadow observation overlay paths",
+    )
+    if (
+        sentinel.get("schema_version") != 1
+        or sentinel.get("contract_id") != "phase3-risk-sentinel-shadow-overlay-v1"
+        or sentinel.get("base_reviewed_commit") != reviewed_commit
+        or sentinel.get("source_commit") != _RISK_SENTINEL_SOURCE_COMMIT
+        or sentinel.get("prior_overlay_sha256") != _FUTURE_HOLDOUT_OVERLAY_SHA256
+        or sentinel_seal != _RISK_SENTINEL_OVERLAY_SHA256
+        or canonical_sha256(sentinel_unsealed) != sentinel_seal
+        or sentinel_policy
+        != {
+            "economic_behavior_changes": False,
+            "production_decision_source_changes": False,
+            "scope": "RISK_SENTINEL_SHADOW_OBSERVATION_ONLY",
+        }
+        or set(sentinel_paths) != _RISK_SENTINEL_OVERLAY_PATHS
+        or any(
+            not isinstance(value, str) or not _SHA256.fullmatch(value)
+            for value in sentinel_paths.values()
+        )
+    ):
+        raise ValueError("Risk Sentinel Shadow observation overlay identity is invalid")
+    for relative in sorted(_RISK_SENTINEL_OVERLAY_PATHS):
+        committed = _git_blob(root, _RISK_SENTINEL_SOURCE_COMMIT, relative)
+        if hashlib.sha256(committed).hexdigest() != sentinel_paths[relative]:
+            raise ValueError("Risk Sentinel Shadow source commit bytes differ")
+
+    expected_set = (
+        reviewed_set
+        | (_FUTURE_HOLDOUT_OVERLAY_PATHS - reviewed_set)
+        | (_RISK_SENTINEL_OVERLAY_PATHS - reviewed_set)
+    )
+    if current_set != expected_set:
         raise ValueError("ablation production source differs from the reviewed source hash")
     for relative in sorted(current_set):
         current = (root / relative).read_bytes()
-        if relative in _FUTURE_HOLDOUT_OVERLAY_PATHS:
+        if relative in _RISK_SENTINEL_OVERLAY_PATHS:
+            if hashlib.sha256(current).hexdigest() != sentinel_paths[relative]:
+                raise ValueError("Risk Sentinel Shadow observation overlay bytes differ")
+        elif relative in _FUTURE_HOLDOUT_OVERLAY_PATHS:
             if hashlib.sha256(current).hexdigest() != paths[relative]:
                 raise ValueError("Future Holdout observation overlay bytes differ")
         elif current != _git_blob(root, reviewed_commit, relative):

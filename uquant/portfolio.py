@@ -642,7 +642,31 @@ class PortfolioAllocator(RecoveryPortfolioPolicy):
     ) -> None:
         """Commit only monotonic strategy cleanup for allowed independent exits."""
 
-        if not allowed_exit_symbols:
+        live_symbols = {
+            symbol
+            for symbol, position in account.positions.items()
+            if position.shares > 0
+        }
+        tactical_exit = bool(
+            account.candidate_tenure.get("tactical_active", 0) == 1
+            and planned_account.candidate_tenure.get("tactical_active", 0) == 0
+        )
+        strategic_exit = bool(
+            account.candidate_tenure.get("strategic_cohort_active", 0) == 1
+            and planned_account.candidate_tenure.get("strategic_cohort_active", 0) == 0
+        )
+        recovery_exit = bool(
+            account.anchor_weights != planned_account.anchor_weights
+            and not set(account.anchor_weights).intersection(live_symbols)
+        )
+        cleanup_symbols = set(allowed_exit_symbols)
+        if tactical_exit and account.tactical_anchor_symbol:
+            cleanup_symbols.add(account.tactical_anchor_symbol)
+        if strategic_exit:
+            cleanup_symbols.update(account.strategic_cohort_symbols)
+        if recovery_exit:
+            cleanup_symbols.update(account.anchor_weights)
+        if not cleanup_symbols and not (tactical_exit or strategic_exit or recovery_exit):
             return
         for field_name in (
             "active_leaders",
@@ -658,7 +682,7 @@ class PortfolioAllocator(RecoveryPortfolioPolicy):
                 [
                     symbol
                     for symbol in current
-                    if symbol not in allowed_exit_symbols or symbol in planned
+                    if symbol not in cleanup_symbols or symbol in planned
                 ],
             )
         for field_name in (
@@ -673,13 +697,13 @@ class PortfolioAllocator(RecoveryPortfolioPolicy):
         ):
             current = getattr(account, field_name)
             planned = getattr(planned_account, field_name)
-            for symbol in allowed_exit_symbols:
+            for symbol in cleanup_symbols:
                 if symbol in current and symbol not in planned:
                     current.pop(symbol, None)
         for field_name in ("recovery_conviction_symbol", "tactical_anchor_symbol"):
             symbol = getattr(account, field_name)
             if (
-                symbol in allowed_exit_symbols
+                symbol in cleanup_symbols
                 and not getattr(planned_account, field_name)
             ):
                 setattr(account, field_name, "")
@@ -689,10 +713,37 @@ class PortfolioAllocator(RecoveryPortfolioPolicy):
             event_name = str(event.get("event", "")).lower()
             if (
                 isinstance(event_symbol, str)
-                and event_symbol in allowed_exit_symbols
+                and event_symbol in cleanup_symbols
                 and "exit" in event_name
             ):
                 account.lifecycle_events.append(deepcopy(event))
+
+        def commit_tenure_prefixes(prefixes: tuple[str, ...]) -> None:
+            keys = set(account.candidate_tenure) | set(planned_account.candidate_tenure)
+            for key in keys:
+                if not key.startswith(prefixes):
+                    continue
+                if key in planned_account.candidate_tenure:
+                    account.candidate_tenure[key] = planned_account.candidate_tenure[key]
+                else:
+                    account.candidate_tenure.pop(key, None)
+
+        if tactical_exit:
+            commit_tenure_prefixes(("tactical_", "recovery_cycle_"))
+            account.tactical_anchor_symbol = planned_account.tactical_anchor_symbol
+        if recovery_exit:
+            commit_tenure_prefixes(("recovery_", "post_shock_"))
+            account.recovery_anchor_date = planned_account.recovery_anchor_date
+            account.recovery_conviction_symbol = planned_account.recovery_conviction_symbol
+        if strategic_exit:
+            commit_tenure_prefixes(("strategic_",))
+            account.strategic_epochs_completed = planned_account.strategic_epochs_completed
+            account.strategic_last_exit_date = planned_account.strategic_last_exit_date
+            account.strategic_rearm_date = planned_account.strategic_rearm_date
+            account.strategic_candidate_signature = planned_account.strategic_candidate_signature
+            account.strategic_previous_symbols = list(
+                planned_account.strategic_previous_symbols
+            )
 
     @staticmethod
     def _frozen_existing_targets(

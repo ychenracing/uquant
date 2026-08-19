@@ -46,7 +46,9 @@ BUY risk is not renewed.
 The behavioral gate checks the formal `RiskAssessment.freeze_new_risk` first. Sentinel evidence
 can attribute an already-authorized freeze but cannot activate allocator or cancellation behavior
 when the formal flag is false. Counterfactual admissions, cohorts and rotations therefore cannot
-mutate the durable account, while independent lifecycle exits still pass through.
+mutate the durable account, while independent lifecycle exits still pass through. Only monotonic,
+route-owned exit cleanup is committed from the planning copy, including tactical cooldown/rearm
+and final strategic-epoch completion; admission and rotation state is never copied back.
 
 ## Economic rejection
 

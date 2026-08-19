@@ -160,6 +160,114 @@ def test_final_tactical_exit_retires_stale_restore_owner() -> None:
     assert account.tactical_anchor_symbol == ""
 
 
+def test_sentinel_freeze_preserves_real_tactical_exit_completion_state() -> None:
+    symbol = "deep_candidate"
+    frame = _tactical_frame(ret20=-0.10, ret120=-0.40)
+    date = frame.index[-1]
+    account = AccountState(
+        initial_cash=100.0,
+        cash=40.0,
+        positions={
+            symbol: Position(
+                symbol,
+                shares=60,
+                avg_cost=0.70,
+                lifecycle=Lifecycle.RECOVERY.value,
+                entry_date=str(frame.index[0].date()),
+            )
+        },
+        tactical_anchor_symbol=symbol,
+        protected_weights={symbol: 0.60},
+        strategic_restore_weights={symbol: 0.60},
+        candidate_tenure={"tactical_active": 1, "tactical_promotable": 0},
+        operating_peak=100.0,
+        capital_peak=100.0,
+    )
+    risk = RiskAssessment(
+        Risk.NORMAL,
+        1.0,
+        0,
+        {
+            "base_freeze_new_risk": False,
+            "sentinel_freeze_new_risk": True,
+            "freeze_new_risk": True,
+        },
+        (),
+        "NONE",
+        freeze_new_risk=True,
+    )
+
+    targets = PortfolioAllocator(DEFAULT_CONFIG).allocate(
+        date=date,
+        opportunity=Opportunity.CHOPPY,
+        risk=risk,
+        user_panel={symbol: frame},
+        leaders={
+            symbol: LeaderScore(symbol, 0.90, 0.95, True, False, "independent", {})
+        },
+        account=account,
+        prices={symbol: 0.94},
+    )
+
+    assert {target.symbol: target.weight for target in targets} == {symbol: 0.0}
+    assert account.candidate_tenure["tactical_active"] == 0
+    assert account.candidate_tenure["tactical_cooldown"] == (
+        DEFAULT_CONFIG.tactical_rebound_cooldown_days
+    )
+    assert account.candidate_tenure["recovery_cycle_rearm_pending"] == 1
+    assert account.tactical_anchor_symbol == ""
+
+
+def test_sentinel_freeze_preserves_real_final_strategic_completion_state() -> None:
+    symbol = "completed_member"
+    date = pd.Timestamp("2025-12-31")
+    account = AccountState(
+        initial_cash=100.0,
+        cash=100.0,
+        strategic_cohort_symbols=[symbol],
+        strategic_exit_bands={symbol: [0.0] * 5},
+        strategic_active_bands={symbol: [True] * 5},
+        protected_weights={symbol: 0.30},
+        strategic_epoch=1,
+        candidate_tenure={
+            "strategic_cohort_active": 1,
+            "strategic_cohort_started": 1,
+        },
+        operating_peak=100.0,
+        capital_peak=100.0,
+    )
+    risk = RiskAssessment(
+        Risk.NORMAL,
+        1.0,
+        0,
+        {
+            "base_freeze_new_risk": False,
+            "sentinel_freeze_new_risk": True,
+            "freeze_new_risk": True,
+        },
+        (),
+        "NONE",
+        freeze_new_risk=True,
+    )
+
+    targets = PortfolioAllocator(DEFAULT_CONFIG).allocate(
+        date=date,
+        opportunity=Opportunity.CHOPPY,
+        risk=risk,
+        user_panel={},
+        leaders={},
+        account=account,
+        prices={},
+    )
+
+    assert targets == ()
+    assert account.candidate_tenure["strategic_cohort_active"] == 0
+    assert account.candidate_tenure["strategic_cohort_completed"] == 1
+    assert account.strategic_epochs_completed == 1
+    assert account.strategic_last_exit_date == "2025-12-31"
+    assert account.strategic_rearm_date
+
+
 def test_confirmed_fast_recovery_hands_reduced_core_to_new_owner_without_raising_gross() -> None:
     dates = pd.bdate_range("2025-01-02", periods=130)
     recovery_close = [2.0] * 119 + [0.70 + 0.04 * index for index in range(11)]

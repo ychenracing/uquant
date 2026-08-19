@@ -62,8 +62,11 @@ def integrate_freeze_only(
 
     if cfg.risk_sentinel_mode == "SHADOW" or sentinel is None:
         return base
-    if cfg.risk_sentinel_mode == "LIMITED_GROSS_CAP":
-        raise RuntimeError("LIMITED_GROSS_CAP is not implemented in Phase 4")
+    if str(cfg.risk_sentinel_mode) == "LIMITED_GROSS_CAP":
+        raise RuntimeError(
+            "LIMITED_GROSS_CAP was rejected by the economic gate; "
+            "use FREEZE_ONLY or SHADOW."
+        )
 
     base_active = _family_flags(
         base.evidence.get("family_votes")

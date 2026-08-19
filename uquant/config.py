@@ -319,7 +319,6 @@ class SystemConfig:
     risk_sentinel_mode: Literal[
         "SHADOW",
         "FREEZE_ONLY",
-        "LIMITED_GROSS_CAP",
     ] = "FREEZE_ONLY"
     risk_sentinel_min_confidence: float = 0.80
     risk_sentinel_confirm_days: int = 2
@@ -766,11 +765,12 @@ class SystemConfig:
             raise ValueError("challenger_scout_score_edge must be in [0, 1]")
         if not 0 <= self.challenger_scout_incumbent_hysteresis <= 0.20:
             raise ValueError("challenger scout incumbent hysteresis must be in [0, 0.20]")
-        if self.risk_sentinel_mode not in {
-            "SHADOW",
-            "FREEZE_ONLY",
-            "LIMITED_GROSS_CAP",
-        }:
+        if str(self.risk_sentinel_mode) == "LIMITED_GROSS_CAP":
+            raise ValueError(
+                "LIMITED_GROSS_CAP was rejected by the economic gate; "
+                "use FREEZE_ONLY or SHADOW."
+            )
+        if self.risk_sentinel_mode not in {"SHADOW", "FREEZE_ONLY"}:
             raise ValueError("risk_sentinel_mode is invalid")
         if (
             isinstance(self.risk_sentinel_min_confidence, bool)

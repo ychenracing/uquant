@@ -244,13 +244,15 @@ def test_critical_velocity_and_breadth_can_trigger_without_confirmation() -> Non
     assert integrated.evidence["sentinel_severe_direct"] is True
 
 
-def test_limited_gross_cap_mode_is_not_a_phase4_execution_path() -> None:
-    with pytest.raises(RuntimeError, match="not implemented in Phase 4"):
-        integrate_freeze_only(
-            base=_base(),
-            sentinel=_sentinel(),
-            cfg=DEFAULT_CONFIG.override(risk_sentinel_mode="LIMITED_GROSS_CAP"),
-        )
+def test_limited_gross_cap_mode_is_explicitly_rejected() -> None:
+    with pytest.raises(
+        ValueError,
+        match=(
+            "LIMITED_GROSS_CAP was rejected by the economic gate; "
+            "use FREEZE_ONLY or SHADOW"
+        ),
+    ):
+        DEFAULT_CONFIG.override(risk_sentinel_mode="LIMITED_GROSS_CAP")  # type: ignore[arg-type]
 
 
 def test_assess_risk_is_the_only_public_freeze_mapping_boundary(

@@ -874,7 +874,10 @@ def test_decision_evaluates_sentinel_from_canonical_point_in_time_universe(
 
     monkeypatch.setattr(engine_module, "evaluate_sentinel", sentinel)
     monkeypatch.setattr(engine_module, "assess_risk", normal_risk)
-    ProductionEngine(data_dir).decide(
+    ProductionEngine(
+        data_dir,
+        DEFAULT_CONFIG.override(risk_sentinel_mode="FREEZE_ONLY"),
+    ).decide(
         symbols=SYMBOLS,
         as_of="2026-06-30",
         account=AccountState.empty(2e6),
@@ -893,6 +896,22 @@ def test_decision_evaluates_sentinel_from_canonical_point_in_time_universe(
     risk_args = observed["risk"]
     assert isinstance(risk_args, dict)
     assert risk_args["sentinel_assessment"] is assessment
+
+
+def test_shadow_mode_keeps_sentinel_out_of_the_production_decision_path(
+    data_dir,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    def forbidden(**_: object) -> SentinelAssessment:
+        raise AssertionError("Shadow Sentinel must remain outside production decisions")
+
+    monkeypatch.setattr(engine_module, "evaluate_sentinel", forbidden)
+
+    ProductionEngine(data_dir).decide(
+        symbols=SYMBOLS,
+        as_of="2026-06-30",
+        account=AccountState.empty(2e6),
+    )
 
 
 def test_decision_routes_sentinel_pending_buy_cancellation_through_execution(

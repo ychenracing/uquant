@@ -414,34 +414,36 @@ class ProductionEngine:
         visible_users = set(user_panel)
         prices = {symbol: self._price(symbol, date) for symbol in visible_users | set(account.positions)}
         _, equity = current_weights(account, prices)
-        universe = default_ai_universe()
-        canonical_symbols = universe.symbols_as_of(str(date.date()))
-        if active_reference_symbols != canonical_symbols:
-            raise RuntimeError(
-                "point-in-time reference registry differs from canonical universe"
-            )
-        sentinel = evaluate_sentinel(
-            as_of=str(date.date()),
-            broad_frame=broad,
-            tech_frame=tech,
-            reference_panel=reference_panel,
-            point_in_time_industries={
-                symbol: universe.industry_of(symbol, str(date.date()))
-                for symbol in canonical_symbols
-            },
-            held_symbols=tuple(
-                sorted(
-                    symbol
-                    for symbol, position in account.positions.items()
-                    if position.shares > 0
+        sentinel = None
+        if decision_cfg.risk_sentinel_mode != "SHADOW":
+            universe = default_ai_universe()
+            canonical_symbols = universe.symbols_as_of(str(date.date()))
+            if active_reference_symbols != canonical_symbols:
+                raise RuntimeError(
+                    "point-in-time reference registry differs from canonical universe"
                 )
-            ),
-            leader_symbols=tuple(sorted(account.active_leaders)),
-            capital_drawdown=max(
-                0.0,
-                1.0 - equity / max(account.capital_peak, 1e-12),
-            ),
-        )
+            sentinel = evaluate_sentinel(
+                as_of=str(date.date()),
+                broad_frame=broad,
+                tech_frame=tech,
+                reference_panel=reference_panel,
+                point_in_time_industries={
+                    symbol: universe.industry_of(symbol, str(date.date()))
+                    for symbol in canonical_symbols
+                },
+                held_symbols=tuple(
+                    sorted(
+                        symbol
+                        for symbol, position in account.positions.items()
+                        if position.shares > 0
+                    )
+                ),
+                leader_symbols=tuple(sorted(account.active_leaders)),
+                capital_drawdown=max(
+                    0.0,
+                    1.0 - equity / max(account.capital_peak, 1e-12),
+                ),
+            )
         risk = assess_risk(
             date=date,
             broad=broad,

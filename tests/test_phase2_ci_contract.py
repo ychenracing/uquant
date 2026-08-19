@@ -110,6 +110,9 @@ def test_engineering_summary_catches_quality_or_security_failure_without_skippin
         check_name="Engineering",
         needs={"quality", "security"},
     )
+    quality_steps = _steps(workflow["jobs"]["quality"])
+    pytest_step = next(step for step in quality_steps if step.get("name") == "Tests and branch coverage")
+    assert "--cov-fail-under=85" in pytest_step["run"]
 
 
 def test_phase1_summary_catches_path_skips_and_partial_or_stale_performance_evidence() -> None:

@@ -38,7 +38,7 @@ jobs:
       - name: Shadow Sentinel contract and import isolation
         run: uv run python -m uquant.risk_sentinel --validate-contracts
       - name: Tests and branch coverage
-        run: uv run pytest --cov=uquant --cov-report=term-missing --cov-report=xml
+        run: uv run pytest --cov=uquant --cov-report=term-missing --cov-report=xml --cov-fail-under=85
       - name: Bytecode compilation
         run: uv run python -m compileall -q uquant scripts research tests
       - name: Build wheel and source distribution

@@ -9,7 +9,7 @@ import pytest
 from uquant.account import save_account
 from uquant.data import DataStore
 from uquant.engine import code_fingerprint
-from uquant.risk_sentinel.cli import run_shadow
+from uquant.risk_sentinel.cli import main, run_shadow
 from uquant.types import AccountState
 from uquant.validation.universe import load_ai_universe
 
@@ -116,3 +116,15 @@ def test_shadow_cli_rejects_input_aliases_and_preserves_latest_on_failure(
         )
 
     assert (tmp_path / "latest_success.json").read_bytes() == latest
+
+
+def test_shadow_cli_validates_static_contracts_in_process(capsys: pytest.CaptureFixture[str]) -> None:
+    assert main(["--validate-contracts"]) == 0
+    payload = json.loads(capsys.readouterr().out)
+    assert payload["import_isolation"] == "PASS"
+    assert set(payload) == {
+        "calibration_contract_sha256",
+        "import_isolation",
+        "sentinel_source_sha256",
+        "universe_sha256",
+    }

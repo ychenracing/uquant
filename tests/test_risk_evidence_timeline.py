@@ -296,3 +296,24 @@ def test_immutable_timeline_cache_round_trip_has_no_account_carrier() -> None:
 
     assert history_module.risk_evidence_timeline_from_dict(payload) == timeline
     assert "account" not in repr(payload).lower()
+
+
+def test_reference_session_with_both_indices_missing_breaks_timeline_trust() -> None:
+    dates = pd.bdate_range("2026-01-05", periods=27)
+    missing = dates[25]
+    panel = {symbol: _frame(dates) for symbol in ("a", "b", "c", "d", "new")}
+
+    timeline = history_module.build_risk_evidence_timeline(
+        as_of=str(missing.date()),
+        broad_frame=_frame(dates).drop(index=missing),
+        tech_frame=_frame(dates).drop(index=missing),
+        reference_panel=panel,
+        reference_returns=None,
+        universe=_universe(dates),
+        cfg=DEFAULT_CONFIG,
+    )
+
+    assert str(missing.date()) in timeline.sessions
+    assert timeline.sentinel_rows[-1].coverage_status is WarmupStatus.NOT_READY
+    assert timeline.confirmation_history_trusted is False
+    assert "NOT_READY" in timeline.trust_reasons

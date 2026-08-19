@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import pytest
+
 from uquant.risk_sentinel.history import fold_sentinel_market_state
 from uquant.risk_sentinel.models import SentinelLevel, SentinelMarketRow, WarmupStatus
 
@@ -110,3 +112,29 @@ def test_severe_direct_can_confirm_immediately_only_after_history_is_trusted() -
     assert trusted.confirmed_since == "2026-01-08"
     assert untrusted.effective_level is SentinelLevel.NORMAL
     assert untrusted.confirmation_history_trusted is False
+
+
+@pytest.mark.parametrize(
+    ("first_level", "second_level"),
+    (
+        (SentinelLevel.DEFENSIVE, SentinelLevel.CRITICAL),
+        (SentinelLevel.CRITICAL, SentinelLevel.DEFENSIVE),
+    ),
+)
+def test_confirmation_streak_survives_freeze_candidate_level_changes(
+    first_level: SentinelLevel,
+    second_level: SentinelLevel,
+) -> None:
+    rows = (
+        _row("2026-01-05"),
+        _row("2026-01-06"),
+        _row("2026-01-07"),
+        _row("2026-01-08", level=first_level),
+        _row("2026-01-09", level=second_level),
+    )
+
+    state = fold_sentinel_market_state(rows, confirm_days=2, repair_days=3)
+
+    assert state.effective_level is second_level
+    assert state.confirmed_since == "2026-01-08"
+    assert state.confirmation_days == 2

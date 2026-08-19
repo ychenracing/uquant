@@ -180,7 +180,6 @@ def fold_sentinel_market_state(
     trusted = False
     effective = SentinelLevel.NORMAL
     confirmed_since: str | None = None
-    pending_level: SentinelLevel | None = None
     pending_since: str | None = None
     confirmation = 0
     repair = 0
@@ -198,7 +197,6 @@ def fold_sentinel_market_state(
             trusted = False
             effective = SentinelLevel.NORMAL
             confirmed_since = None
-            pending_level = None
             pending_since = None
             confirmation = 0
             repair = 0
@@ -221,12 +219,10 @@ def fold_sentinel_market_state(
             repair = 0
             if row.severe_direct:
                 confirmation = max(1, confirm_days)
-                pending_level = row.level
                 pending_since = row.date
-            elif pending_level is row.level:
+            elif confirmation > 0:
                 confirmation += 1
             else:
-                pending_level = row.level
                 pending_since = row.date
                 confirmation = 1
             if confirmation >= confirm_days and _level_rank(row.level) >= _level_rank(effective):
@@ -234,7 +230,6 @@ def fold_sentinel_market_state(
                 confirmed_since = pending_since
             continue
 
-        pending_level = None
         pending_since = None
         confirmation = 0
         if normal:
@@ -271,10 +266,15 @@ def _timeline_sessions(
         pd.DatetimeIndex,
     ):
         raise ValueError("risk evidence timeline requires DatetimeIndex indices")
+    market_sessions = broad_frame.index.union(tech_frame.index)
+    for frame in reference_panel.values():
+        if not isinstance(frame.index, pd.DatetimeIndex):
+            raise ValueError("risk evidence timeline requires DatetimeIndex frames")
+        market_sessions = market_sessions.union(frame.index)
     candidates = sorted(
         {
             pd.Timestamp(item).normalize()
-            for item in broad_frame.index.union(tech_frame.index)
+            for item in market_sessions
             if pd.Timestamp(item).normalize() <= point
         }
     )

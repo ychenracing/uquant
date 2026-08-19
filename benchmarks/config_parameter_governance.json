@@ -9,7 +9,7 @@
   },
   "config_migration": {
     "champion_config_sha256": "023d709731196a325d9cd03e95ece92e4baf63d2c5c66bb9f7d0e7a190e7bf20",
-    "candidate_config_sha256": "61d2392401a64b48353efe9d3ae302988525e70bcb7a9e0fc4e329739dfebe72"
+    "candidate_config_sha256": "dae4d79fdd813832c6ab152611437c13be1d38227c7280691874d3a9267d93d5"
   },
   "categories": {
     "MARKET_RULE": [
@@ -423,5 +423,5 @@
     }
   ],
   "removed_fields": ["strategic_cohort_symbols", "strategic_partial_universe_max_size", "adaptive_broad_universe_min_size", "adaptive_broad_universe_compatibility_enabled", "strategic_expansive_universe_min_size", "strategic_persistent_confirm_days", "strategic_reversal_confirm_days"],
-  "artifact_sha256": "30324da2f907252d099c83ff32fd97df9176b1683152a49b9c118a3d07701732"
+  "artifact_sha256": "e83b303c6405103dad8824186c2fe74d96aaf60ca134ca580c0243a7e45e9dc7"
 }

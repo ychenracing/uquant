@@ -176,7 +176,7 @@ def test_every_configuration_safety_contract_fails_closed(
 
 def test_configuration_serialization_is_complete_and_detached() -> None:
     payload = DEFAULT_CONFIG.to_dict()
-    assert payload["risk_sentinel_mode"] == "SHADOW"
+    assert payload["risk_sentinel_mode"] == "FREEZE_ONLY"
     assert payload["risk_sentinel_min_confidence"] == pytest.approx(0.80)
     assert payload["risk_sentinel_confirm_days"] == 2
     assert payload["risk_sentinel_repair_days"] == 3

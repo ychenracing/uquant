@@ -231,7 +231,7 @@ def test_governed_config_migration_binds_both_exact_config_identities() -> None:
         "023d709731196a325d9cd03e95ece92e4baf63d2c5c66bb9f7d0e7a190e7bf20"
     )
     assert migration.candidate_config_sha256 == (
-        "61d2392401a64b48353efe9d3ae302988525e70bcb7a9e0fc4e329739dfebe72"
+        "dae4d79fdd813832c6ab152611437c13be1d38227c7280691874d3a9267d93d5"
     )
     assert migration.removed_fields == (
         "strategic_cohort_symbols",

@@ -51,7 +51,7 @@ def test_account_migration_changes_only_code_identity_fields() -> None:
     assert payload["changed_fields"] == ["code_hash", "account_migrations[-1]"]
     assert payload["migration_event"] == {
         "migration_type": "code_identity_only",
-        "migrated_at_utc": "2026-08-19T15:17:04.044702+00:00",
+        "migrated_at_utc": "2026-08-19T16:21:31.869759+00:00",
         "from_schema": 5,
         "to_schema": 5,
     }

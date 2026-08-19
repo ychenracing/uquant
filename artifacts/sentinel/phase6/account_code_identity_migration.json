@@ -6,7 +6,7 @@
   "schema_version_before": 5,
   "schema_version_after": 5,
   "from_code_hash": "1e000f0cdb303ed71c07198636e70fe88c4210767f74128b2f57512575f102ed",
-  "to_code_hash": "c82585f0c4376f8dbf6b4016868304cdb847a6e928468d3cfc40439be741a282",
+  "to_code_hash": "a074453bb58a9178991ab91866ef53775e3fb93029ed0b4b742dacd66dc5d55d",
   "economic_state_sha256_before": "4d57b9da0458c33f16e98ab2c9d2a6003607ea11a46b161f0022af5c71b697a4",
   "economic_state_sha256_after": "4d57b9da0458c33f16e98ab2c9d2a6003607ea11a46b161f0022af5c71b697a4",
   "changed_fields": [
@@ -15,7 +15,7 @@
   ],
   "migration_event": {
     "migration_type": "code_identity_only",
-    "migrated_at_utc": "2026-08-19T15:17:04.044702+00:00",
+    "migrated_at_utc": "2026-08-19T16:21:31.869759+00:00",
     "from_schema": 5,
     "to_schema": 5
   }

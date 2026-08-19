@@ -1,0 +1,52 @@
+{
+  "schema": "uquant.phase6-zero-economic-equivalence.v1",
+  "status": "PASS",
+  "fixture": {
+    "case": "a/h1_2024",
+    "symbols": [
+      "sz300308",
+      "sz300502",
+      "sz300394"
+    ],
+    "start": "2024-01-02",
+    "end": "2024-07-01"
+  },
+  "baseline": {
+    "commit": "b4717a65f1658d9ff2311362d1ad49d490d13a5d",
+    "code_fingerprint": "1e000f0cdb303ed71c07198636e70fe88c4210767f74128b2f57512575f102ed"
+  },
+  "candidate": {
+    "commit": "6907dbe8a3e3bd993c4522d30d425b9783690063",
+    "remote_commit": "7a4ad1b0b1950c97c8895332f5d6ff28d99715ea",
+    "code_fingerprint": "c82585f0c4376f8dbf6b4016868304cdb847a6e928468d3cfc40439be741a282"
+  },
+  "effective_config_sha256": "dae4d79fdd813832c6ab152611437c13be1d38227c7280691874d3a9267d93d5",
+  "counts": {
+    "decisions": 118,
+    "targets": 318,
+    "pending_order_intents": 8,
+    "order_ledger": 8,
+    "fills": 8,
+    "pending_orders": 0
+  },
+  "exact_equal_hashes": {
+    "decision_digests_sha256": "93ef9e3e20af747a374ec0ecec565838cf4c0cade1c51a7ae8752bff39fed636",
+    "canonical_decisions_sha256": "719998185545006f86c0ffcf3f90f29a9524ac4cc4bbed4e883fe42a3e906359",
+    "risk_controls_sha256": "af0c51f5d6b9b7a0b04581aec579d3d3d6608c21bc9dd838a7804d0446af58b0",
+    "targets_and_event_ids_sha256": "c313fb389a4b83af4e36fceb23d2ece315d4a29f2afd02b551e6a2309c8169d5",
+    "pending_order_intents_sha256": "85b7c3470552d959f0a373d6354aa4de249cf0bef1f5c32d092c9550af6be15c",
+    "order_ledger_sha256": "b88b43ff47c58fcd4c1ff543ce478926c63a6597f54872c3efe3468bd94756de",
+    "fills_sha256": "b3e3cf06478d4ca1267093c1c3cdc080e6e8a9ec9b8ad050c19a2df5f02abf06",
+    "pending_orders_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+    "economic_account_projection_sha256": "9767048d187cc8765a263881b4af79a752e4752b98b2f5ae07b477840d191d06",
+    "economic_state_sha256": "4d57b9da0458c33f16e98ab2c9d2a6003607ea11a46b161f0022af5c71b697a4"
+  },
+  "exact_equal_metrics": {
+    "final_wealth": 1.9042531401193852,
+    "max_drawdown": 0.156742775678121,
+    "account_orders": 8,
+    "gross_turnover": 2.0503083589999997,
+    "annual_turnover": 4.204869685406779,
+    "acute_return": 0.06390679898215934
+  }
+}

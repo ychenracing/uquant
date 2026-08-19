@@ -559,6 +559,16 @@ class PortfolioAllocator(RecoveryPortfolioPolicy):
                 account=account,
                 weights_now=weights_now,
             )
+            allowed_exit_symbols = {
+                target.symbol
+                for target in targets
+                if target.weight + 1e-12 < weights_now.get(target.symbol, 0.0)
+            }
+            self._commit_frozen_exit_state(
+                account=account,
+                planned_account=strategy_account,
+                allowed_exit_symbols=allowed_exit_symbols,
+            )
         gross_cap = min(self.cfg.max_gross, max(0.0, risk.target_gross_cap))
         risk_reason, risk_reason_code, risk_exit_kind = self._risk_reduction_metadata(risk)
         target_gross = sum(item.weight for item in targets if item.weight > 0)
@@ -622,6 +632,67 @@ class PortfolioAllocator(RecoveryPortfolioPolicy):
             risk_exit_kind=risk_exit_kind,
             prices=prices,
         )
+
+    @staticmethod
+    def _commit_frozen_exit_state(
+        *,
+        account: AccountState,
+        planned_account: AccountState,
+        allowed_exit_symbols: set[str],
+    ) -> None:
+        """Commit only monotonic strategy cleanup for allowed independent exits."""
+
+        if not allowed_exit_symbols:
+            return
+        for field_name in (
+            "active_leaders",
+            "strategic_cohort_symbols",
+            "strategic_previous_symbols",
+            "risk_anchor_symbols",
+        ):
+            current = getattr(account, field_name)
+            planned = set(getattr(planned_account, field_name))
+            setattr(
+                account,
+                field_name,
+                [
+                    symbol
+                    for symbol in current
+                    if symbol not in allowed_exit_symbols or symbol in planned
+                ],
+            )
+        for field_name in (
+            "leader_tenure",
+            "satellite_entry_dates",
+            "anchor_weights",
+            "protected_weights",
+            "strategic_cohort_targets",
+            "strategic_exit_bands",
+            "strategic_active_bands",
+            "strategic_restore_weights",
+        ):
+            current = getattr(account, field_name)
+            planned = getattr(planned_account, field_name)
+            for symbol in allowed_exit_symbols:
+                if symbol in current and symbol not in planned:
+                    current.pop(symbol, None)
+        for field_name in ("recovery_conviction_symbol", "tactical_anchor_symbol"):
+            symbol = getattr(account, field_name)
+            if (
+                symbol in allowed_exit_symbols
+                and not getattr(planned_account, field_name)
+            ):
+                setattr(account, field_name, "")
+        existing_events = len(account.lifecycle_events)
+        for event in planned_account.lifecycle_events[existing_events:]:
+            event_symbol = event.get("symbol")
+            event_name = str(event.get("event", "")).lower()
+            if (
+                isinstance(event_symbol, str)
+                and event_symbol in allowed_exit_symbols
+                and "exit" in event_name
+            ):
+                account.lifecycle_events.append(deepcopy(event))
 
     @staticmethod
     def _frozen_existing_targets(

@@ -173,10 +173,17 @@ append-only、broker-independent journal 记录，但它不参与生产决策或
 ## Phase 4 Sentinel 冻结边界
 
 代码中存在受控的 `FREEZE_ONLY` 路径，但当前默认仍是 `SHADOW`。只有
-`uquant.assess_risk()` 可以把 Sentinel 的 READY、高置信、至少两个独立家族且具有增量
-或更早证据的意见映射到现有 `freeze_new_risk`；总仓上限、风险状态、减仓级别和冲击状态
+`uquant.assess_risk()` 可以把 Sentinel 的 READY、高置信、至少两个独立家族且具有同日增量
+证据的意见映射到现有 `freeze_new_risk`；总仓上限、风险状态、减仓级别和冲击状态
 保持基础 uquant 原值。冻结只阻止新开仓、ADD1/ADD2、SATELLITE、新 RECOVERY、主动轮动
 和未成交增量买单，不能单独卖出或降低健康持仓。
+
+Phase 4 没有可靠的逐家族点时首次日期载体，因此 `sentinel_earlier_supported=false`，更早证据
+只输出为关闭的诊断项，不能取得冻结权限。该路径只有正式 `RiskAssessment.freeze_new_risk`
+为真时才有行为；Sentinel evidence 字段本身不能绕过权限。
+同理，今日持仓、领导者、资本回撤或行业映射不会回填历史确认；生产输出
+`confirmation_history_trusted=false`，普通两日确认失败关闭，只有满足完整窄口径的
+severe-direct 当日例外仍可授权。
 
 Freeze-only 候选在 `a/h1_2024` 仅保留 97.860322% 的 Shadow 财富，低于 99% 硬门，
 因此已回退 Shadow，不能作为当前生产策略或 `main` 晋级依据。

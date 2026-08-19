@@ -121,8 +121,26 @@ def test_correlated_breadth_indicators_count_as_one_family() -> None:
     assert evidence.family_votes["breadth_structure"] is True
     assert evidence.family_votes["market_velocity"] is True
     assert evidence.families.count("breadth_structure") == 1
-    assert evidence.first_evidence_date is not None
-    assert evidence.metrics["evidence_confirmation_days"] >= 2.0
+    assert evidence.first_evidence_date == "2026-08-19"
+    assert evidence.metrics["evidence_confirmation_days"] == 1.0
+    assert evidence.metrics["confirmation_history_trusted"] == 0.0
+
+
+def test_current_account_damage_is_not_backfilled_into_confirmation_history() -> None:
+    evidence = build_market_evidence(
+        as_of="2026-08-19",
+        broad_frame=_prices(),
+        tech_frame=_prices(),
+        reference_panel={"a": _prices(), "b": _prices()},
+        point_in_time_industries={"a": "optical", "b": "storage"},
+        held_symbols=("a",),
+        capital_drawdown=0.10,
+    )
+
+    assert evidence.family_votes["capital_damage"] is True
+    assert evidence.first_evidence_date == "2026-08-19"
+    assert evidence.metrics["evidence_confirmation_days"] == 1.0
+    assert evidence.metrics["confirmation_history_trusted"] == 0.0
 
 
 def test_constant_reference_returns_produce_finite_neutral_correlation() -> None:

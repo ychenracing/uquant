@@ -71,6 +71,7 @@ uv run uquant account-sync \
 | `cash` | 可用现金 |
 | `positions` | 持仓、成本和当日可卖数量 |
 | `fills` | 已发生的真实成交 |
+| `orders` | 可选；券商确认已取消订单（`order_id`、`status=CANCELLED`、`remaining_shares=0`） |
 
 每笔成交必须包含系统生成的 `order_id`、稳定且唯一的 `fill_id`、证券、方向、股数、价格、费用、成交日期、`remaining_shares` 和 `final`。同日多笔新增成交必须有唯一 `execution_sequence`。
 
@@ -82,6 +83,10 @@ uv run uquant account-sync \
 - 跨日成交按日期排序，同日成交按序号排序；
 - 券商现金、股数、成本和可卖数量覆盖账户现实字段；
 - 机会、风险和持仓生命周期仍由系统状态保存。
+- Sentinel Freeze 对已进入券商的 BUY 只在 Order Ledger 记录 `CANCEL_REQUESTED`；该外部
+  订单不再进入本地可执行 pending，但其非终态 ledger 继续接受券商迟到成交。只有 `orders`
+  中的券商取消确认或最终成交才能结束该订单。不得在本地伪造 `CANCELLED`，取消待确认期间
+  不得创建同证券替代 BUY；同证券独立 SELL 仍可执行。
 
 ## 生成日报
 

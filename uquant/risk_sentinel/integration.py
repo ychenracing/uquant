@@ -92,6 +92,9 @@ def integrate_freeze_only(
     incremental = bool(incremental_families or earlier_families)
     severe_direct = _severe_direct(sentinel, cfg)
     confirmation_days = int(sentinel.metrics.get("evidence_confirmation_days", 0.0))
+    confirmation_history_trusted = bool(
+        sentinel.metrics.get("confirmation_history_trusted", 0.0) == 1.0
+    )
     enough_families = len(sentinel.evidence_families) >= 2
     eligible = bool(
         sentinel.coverage.status is WarmupStatus.READY
@@ -100,7 +103,10 @@ def integrate_freeze_only(
         and enough_families
         and incremental
         and (
-            confirmation_days >= cfg.risk_sentinel_confirm_days
+            (
+                confirmation_history_trusted
+                and confirmation_days >= cfg.risk_sentinel_confirm_days
+            )
             or severe_direct
         )
     )
@@ -136,6 +142,7 @@ def integrate_freeze_only(
         "sentinel_earlier_supported": False,
         "sentinel_assessment": sentinel.to_dict(),
         "sentinel_confirmation_days": confirmation_days,
+        "sentinel_confirmation_history_trusted": confirmation_history_trusted,
         "sentinel_repair_days_required": cfg.risk_sentinel_repair_days,
         "sentinel_severe_direct": severe_direct,
         "sentinel_bull_silent": bull_silent,

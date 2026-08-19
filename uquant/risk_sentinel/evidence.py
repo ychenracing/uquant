@@ -281,35 +281,14 @@ def build_market_evidence(
     if set(votes) != RISK_FAMILIES:
         raise RuntimeError("Sentinel evidence family coverage is incomplete")
     current_families = {family for family, triggered in votes.items() if triggered}
-    first: str | None = None
-    confirmation_days = 0
-    if current_families:
-        common = broad_frame.index.intersection(tech_frame.index)
-        common = common[common <= point][-21:]
-        historical: list[tuple[pd.Timestamp, dict[str, bool]]] = []
-        for candidate in common:
-            _, _, historical_votes, _ = _snapshot(
-                point=pd.Timestamp(candidate).normalize(),
-                broad_frame=broad_frame,
-                tech_frame=tech_frame,
-                reference_panel=reference_panel,
-                point_in_time_industries=point_in_time_industries,
-                held_symbols=held_symbols,
-                leader_symbols=leader_symbols,
-                capital_drawdown=capital_drawdown,
-            )
-            historical.append((pd.Timestamp(candidate).normalize(), historical_votes))
-            if any(historical_votes[family] for family in current_families):
-                first = first or str(pd.Timestamp(candidate).date())
-        required_families = min(2, len(current_families))
-        for _, historical_votes in reversed(historical):
-            active_count = sum(
-                historical_votes[family] for family in current_families
-            )
-            if active_count < required_families:
-                break
-            confirmation_days += 1
+    # Historical account membership, leaders, capital drawdown, and point-in-
+    # time industries are not carried into Phase 4 production. Replaying
+    # today's values backward would fabricate confirmation. Record only the
+    # current observation and fail closed on multi-session confirmation.
+    first = str(point.date()) if current_families else None
+    confirmation_days = 1 if current_families else 0
     metrics["evidence_confirmation_days"] = float(confirmation_days)
+    metrics["confirmation_history_trusted"] = 0.0
     return MarketEvidence(
         date=str(point.date()),
         subindustries=subindustries,

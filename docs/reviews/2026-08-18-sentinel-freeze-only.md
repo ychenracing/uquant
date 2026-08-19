@@ -12,10 +12,15 @@ It cannot change `Risk.state`, `target_gross_cap`, reduction level, shock state 
 
 The six canonical families are combined with boolean OR, so correlated base and Sentinel
 observations never create two votes. The risk summary records base, Sentinel and combined
-family flags, incremental and earlier families, first evidence dates, confirmation count,
+family flags, incremental and earlier diagnostics, confirmation count,
 raw Sentinel assessment and whether Sentinel received freeze authority. Eligibility requires
 READY coverage, confidence at least 0.80, two independent families, two-session confirmation
-or the narrow severe-direct exception, and genuinely incremental or earlier evidence.
+or the narrow severe-direct exception, and a genuinely incremental same-day family. Phase 4
+has no trustworthy point-in-time per-family first-date carrier, so earlier evidence fails closed
+with `sentinel_earlier_supported=false` rather than inferring history from today's state.
+Today's holdings, leaders, drawdown and industry mapping are likewise never replayed backward;
+production reports `confirmation_history_trusted=false`, so ordinary multi-session confirmation
+fails closed and only the narrow severe-direct exception can bypass it.
 
 The Sentinel evaluation uses `default_ai_universe()` and its point-in-time industry mapping;
 it verifies that the production reference registry has the same point-in-time membership.
@@ -23,7 +28,7 @@ No static trade risk basket is copied.
 
 ## Freeze behavior
 
-The allocator first obtains the ordinary strategy counterfactual. Sentinel-only freeze then
+The allocator obtains the ordinary strategy counterfactual on a deep account copy. Sentinel-only freeze then
 removes new symbols and clamps existing targets to current economic weights. This covers
 ordinary entries, strategic cohorts, ADD1, ADD2, SATELLITE, new RECOVERY, post-shock
 restoration and active rotation. Replacement-funded exits are held back so an incumbent is
@@ -33,7 +38,15 @@ all base-uquant reductions remain available; Sentinel alone does not reduce a he
 Unsubmitted incremental BUY intent is cancelled with reason `sentinel_freeze_new_risk`.
 Broker-visible OPEN or PARTIALLY_FILLED orders retain broker-authoritative status, filled and
 remaining quantities while the ledger records `CANCEL_REQUESTED`; later snapshots remain
-authoritative. Carried-forward BUY risk is not renewed. SELL orders are never blocked.
+authoritative. The external order remains durable in the nonterminal ledger, leaves the local
+executable pending set, and accepts late broker fills until `CANCELLED` confirmation or final
+fill. New same-symbol BUYs are blocked meanwhile, but an independent SELL is not. Carried-forward
+BUY risk is not renewed.
+
+The behavioral gate checks the formal `RiskAssessment.freeze_new_risk` first. Sentinel evidence
+can attribute an already-authorized freeze but cannot activate allocator or cancellation behavior
+when the formal flag is false. Counterfactual admissions, cohorts and rotations therefore cannot
+mutate the durable account, while independent lifecycle exits still pass through.
 
 ## Economic rejection
 

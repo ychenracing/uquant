@@ -32,6 +32,10 @@ uquant 正式风险负责生产状态机与经济行为。Sentinel 只描述同�
 证据家族差异，供人工分析。非默认 `FREEZE_ONLY` 模式下，唯一允许的映射位于
 `uquant.assess_risk()`，且只能设置现有 `freeze_new_risk`；不能修改正式风险状态、总仓上限、
 减仓级别或冲击状态，也不能直接产生目标、卖单、风险动作或账户状态。该候选当前不得晋级。
+由于 Phase 4 尚无双方逐家族、逐交易日的点时首次证据载体，“更早”路径失败关闭；只有同日
+新增 family 能提供增量资格，输出会明确记录 `sentinel_earlier_supported=false`。当前账户和
+行业状态也不回填成历史确认，`confirmation_history_trusted=false`；常规两日确认不取得权限，
+仅 severe-direct 窄例外可绕过确认天数。
 
 ## 离线 Calibration 边界
 

@@ -54,6 +54,7 @@ def _sentinel(
         coverage=coverage or _coverage(),
         metrics={
             "evidence_confirmation_days": float(confirmation_days),
+            "confirmation_history_trusted": 1.0,
             "broad_fast_return": -0.04,
             "tech_fast_return": -0.05,
             "synchronized_subindustry_damage": 0.60,
@@ -120,6 +121,23 @@ def test_freeze_requires_ready_confident_confirmed_evidence(
     assert integrated.freeze_new_risk is False
     assert integrated.target_gross_cap == base.target_gross_cap
     assert integrated.evidence["sentinel_freeze_new_risk"] is False
+
+
+def test_untrusted_confirmation_history_cannot_authorize_freeze() -> None:
+    sentinel = _sentinel()
+    sentinel = replace(
+        sentinel,
+        metrics={**sentinel.metrics, "confirmation_history_trusted": 0.0},
+    )
+
+    integrated = integrate_freeze_only(
+        base=_base(active_families=("market_velocity",)),
+        sentinel=sentinel,
+        cfg=FREEZE_CFG,
+    )
+
+    assert integrated.freeze_new_risk is False
+    assert integrated.evidence["sentinel_confirmation_history_trusted"] is False
 
 
 def test_duplicate_families_do_not_create_incremental_authority() -> None:

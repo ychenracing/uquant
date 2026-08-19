@@ -232,3 +232,40 @@ def test_real_allocator_sentinel_freeze_is_hold_only_and_state_pure() -> None:
 
     assert all(target.symbol == "old" and target.weight <= 0.50 for target in actual)
     assert account.to_dict() == before
+
+
+def test_strategy_owned_exit_cleanup_commits_without_entry_state(monkeypatch) -> None:
+    allocator = PortfolioAllocator(DEFAULT_CONFIG)
+    account = _account()
+    account.active_leaders = ["old"]
+
+    def exiting_strategy(*, account: AccountState, **_: object) -> tuple[Target, ...]:
+        account.active_leaders.remove("old")
+        account.lifecycle_events.append(
+            {"date": "2026-08-19", "symbol": "old", "event": "lifecycle_exit"}
+        )
+        account.rotation_dates.append("2026-08-19")
+        return (
+            _target(
+                "old",
+                0.0,
+                reason_code="lifecycle_exit",
+                mechanism=AttributionMechanism.LEADER_LIFECYCLE_EXIT.value,
+            ),
+        )
+
+    monkeypatch.setattr(allocator, "_allocate_strategy", exiting_strategy)
+    actual = allocator.allocate(
+        date=pd.Timestamp("2026-08-19"),
+        opportunity=Opportunity.STRONG_TREND,
+        risk=_risk(),
+        user_panel={},
+        leaders={},
+        account=account,
+        prices={"old": 100.0},
+    )
+
+    assert [(target.symbol, target.weight) for target in actual] == [("old", 0.0)]
+    assert account.active_leaders == []
+    assert account.lifecycle_events[-1]["event"] == "lifecycle_exit"
+    assert account.rotation_dates == []

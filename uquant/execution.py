@@ -90,6 +90,18 @@ def plan_orders(
     market = sum(position.shares * prices.get(symbol, 0.0) for symbol, position in account.positions.items())
     equity = account.cash + market
     planned: list[PendingOrder] = []
+    cancel_pending_buy_symbols = {
+        order.symbol
+        for order in account.order_ledger
+        if order.side == Side.BUY.value
+        and order.cancel_reason == "sentinel_freeze_new_risk"
+        and order.status
+        not in {
+            OrderStatus.FILLED.value,
+            OrderStatus.CANCELLED.value,
+            OrderStatus.REPLACED.value,
+        }
+    }
     for target in targets:
         current = account.positions.get(target.symbol)
         if (
@@ -154,6 +166,8 @@ def plan_orders(
             )
         )
         if buy_will_be_planned:
+            if target.symbol in cancel_pending_buy_symbols:
+                continue
             if target.origin_subsystem == OriginSubsystem.UNATTRIBUTED_LEGACY.value:
                 raise RuntimeError(
                     "unattributed legacy identity cannot originate a production Target BUY"
@@ -473,18 +487,42 @@ def _reconcile_account_orders_mutating(
 ) -> tuple[PendingOrder, ...]:
     """Persist submissions and cancel/replace transitions without counting fills."""
     preexisting_ids = {order.order_id for order in account.order_ledger}
+    preexisting_ledger = {order.order_id: order for order in account.order_ledger}
+    terminal_statuses = {
+        OrderStatus.FILLED.value,
+        OrderStatus.CANCELLED.value,
+        OrderStatus.REPLACED.value,
+    }
+    cancel_pending_symbols = {
+        entry.symbol
+        for entry in preexisting_ledger.values()
+        if entry.side == Side.BUY.value
+        and entry.cancel_reason == "sentinel_freeze_new_risk"
+        and entry.status not in terminal_statuses
+    }
+    newly_frozen_buy_symbols = {
+        order.symbol
+        for order in previous
+        if removed_buy_reason is not None and order.side == Side.BUY.value
+    }
+    blocked_buy_symbols = cancel_pending_symbols | newly_frozen_buy_symbols
+    effective_current = tuple(
+        order
+        for order in current
+        if order.side != Side.BUY.value or order.symbol not in blocked_buy_symbols
+    )
     for order in previous:
         _register_account_order(
             account,
             order,
             submitted_date=order.signal_date or submitted_date,
         )
-    for order in current:
+    for order in effective_current:
         _register_account_order(account, order, submitted_date=submitted_date)
 
-    reconciled_current = list(current)
-    current_ids = {order.order_id for order in current}
-    current_by_symbol = {order.symbol: order for order in current}
+    reconciled_current = list(effective_current)
+    current_ids = {order.order_id for order in effective_current}
+    current_by_symbol = {order.symbol: order for order in effective_current}
     ledger = {item.order_id: item for item in account.order_ledger}
     for order in previous:
         if order.order_id in current_ids:
@@ -500,22 +538,23 @@ def _reconcile_account_orders_mutating(
         sentinel_cancel_request = bool(
             removed_buy_reason is not None
             and order.side == Side.BUY.value
-            and replacement is None
+            and (replacement is None or replacement.side == Side.SELL.value)
         )
-        if sentinel_cancel_request and order.order_id in preexisting_ids:
+        existing_cancel_request = bool(
+            entry.cancel_reason == "sentinel_freeze_new_risk"
+            and entry.status not in terminal_statuses
+        )
+        if (sentinel_cancel_request or existing_cancel_request) and order.order_id in preexisting_ids:
             # A broker-visible order remains authoritative until the next
             # snapshot confirms cancellation or reports a final fill. Removing
             # the local continuation intent prevents further risk while this
             # audit marker records the outstanding external action.
-            if removed_buy_reason is None:
-                raise RuntimeError("Sentinel cancellation reason disappeared")
-            entry.cancel_reason = removed_buy_reason
+            if sentinel_cancel_request:
+                if removed_buy_reason is None:
+                    raise RuntimeError("Sentinel cancellation reason disappeared")
+                entry.cancel_reason = removed_buy_reason
             entry.last_update_date = submitted_date
             entry.last_event = "CANCEL_REQUESTED"
-            # Keep the broker-visible intent durable but non-executable until
-            # an authoritative broker snapshot confirms cancellation or a
-            # final fill.  Dropping it here would orphan the live order.
-            reconciled_current.append(order)
             continue
         entry.status = OrderStatus.REPLACED.value if replacement is not None else OrderStatus.CANCELLED.value
         entry.replaced_by = replacement.order_id if replacement is not None else ""
@@ -804,7 +843,11 @@ class ExecutionPlanner:
                 order.side == Side.BUY.value
                 and account_order.cancel_reason == "sentinel_freeze_new_risk"
                 and account_order.status
-                in {OrderStatus.OPEN.value, OrderStatus.PARTIALLY_FILLED.value}
+                not in {
+                    OrderStatus.FILLED.value,
+                    OrderStatus.CANCELLED.value,
+                    OrderStatus.REPLACED.value,
+                }
             ):
                 account_order.last_update_date = date_str
                 account_order.last_event = "CANCEL_REQUESTED"

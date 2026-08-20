@@ -1,0 +1,20 @@
+{
+  "schema": "uquant.sentinel-exclusive-freeze-atomicity-boundary.v1",
+  "rotation": {
+    "one_to_one_replacement_sell_suppressed_with_blocked_buy": true,
+    "multi_symbol_replacement_sells_suppressed_with_blocked_buys": true,
+    "independent_strategy_exit_preserved": true,
+    "healthy_holdings_preserved": true
+  },
+  "pending_buy": {
+    "unsubmitted_buy_cancelled": true,
+    "broker_visible_buy_uses_cancel_requested": true,
+    "broker_confirmation_required_for_terminal_cancel": true,
+    "partial_fill_quantity_and_identity_preserved": true,
+    "remaining_expansion_blocked": true,
+    "duplicate_replacement_blocked_until_terminal": true,
+    "independent_sell_preserved": true
+  },
+  "production_source_change_required": false,
+  "new_account_state_fields": 0
+}

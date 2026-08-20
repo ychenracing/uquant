@@ -93,3 +93,28 @@ def test_candidate_lock_forbids_retuning_and_non_freeze_authority() -> None:
         "forbidden_retuning": True,
         "official_economic_matrix_started": False,
     }
+
+
+def test_atomicity_boundary_records_rotation_and_broker_visible_buy_rules() -> None:
+    payload = _load("atomicity_boundary.json")
+
+    assert payload == {
+        "schema": "uquant.sentinel-exclusive-freeze-atomicity-boundary.v1",
+        "rotation": {
+            "one_to_one_replacement_sell_suppressed_with_blocked_buy": True,
+            "multi_symbol_replacement_sells_suppressed_with_blocked_buys": True,
+            "independent_strategy_exit_preserved": True,
+            "healthy_holdings_preserved": True,
+        },
+        "pending_buy": {
+            "unsubmitted_buy_cancelled": True,
+            "broker_visible_buy_uses_cancel_requested": True,
+            "broker_confirmation_required_for_terminal_cancel": True,
+            "partial_fill_quantity_and_identity_preserved": True,
+            "remaining_expansion_blocked": True,
+            "duplicate_replacement_blocked_until_terminal": True,
+            "independent_sell_preserved": True,
+        },
+        "production_source_change_required": False,
+        "new_account_state_fields": 0,
+    }

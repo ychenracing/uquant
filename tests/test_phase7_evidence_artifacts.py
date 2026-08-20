@@ -118,3 +118,81 @@ def test_atomicity_boundary_records_rotation_and_broker_visible_buy_rules() -> N
         "production_source_change_required": False,
         "new_account_state_fields": 0,
     }
+
+
+def test_small_gate_rejects_before_full_matrix_without_authority_pollution() -> None:
+    payload = _load("small_gate.json")
+
+    assert payload["decision"] == "REJECT"
+    assert payload["hard_gate"] == {
+        "target_gross_cap_equal_to_base": True,
+        "sentinel_direct_sell_count": 0,
+        "sentinel_risk_gross_cap_event_count": 0,
+        "healthy_holding_reduction_count": 0,
+        "new_account_state_fields": 0,
+        "passed": True,
+    }
+    assert payload["value_gate"] == {
+        "required_qualifying_non_severe_events": 1,
+        "observed_qualifying_non_severe_events": 0,
+        "passed": False,
+    }
+    stop = payload["stop_early"]
+    assert isinstance(stop, dict)
+    assert stop == {
+        "triggered": True,
+        "phase1_matrix_run": False,
+        "phase2_six_window_matrix_run": False,
+        "generalization_matrix_run": False,
+        "parameter_search_run": False,
+        "gross_cap_restarted": False,
+    }
+    cells = payload["cells"]
+    assert isinstance(cells, dict)
+    for cell in cells.values():
+        assert isinstance(cell, dict)
+        assert cell["baseline"] == cell["candidate"]
+
+
+def test_first_divergence_and_all_exclusive_events_are_preserved() -> None:
+    first = _load("first_divergence.json")
+    events = _load("exclusive_freeze_events.json")
+
+    assert first["date"] == "2024-06-25"
+    assert first["changed_fields"] == ["risk", "targets"]
+    causal = first["causal_evidence"]
+    assert isinstance(causal, dict)
+    assert causal["confirmation_history_trusted"] is True
+    assert causal["confirmation_days"] == 2
+    assert causal["comparison_class"] == "incremental_same_day"
+    assert causal["incremental_families"] == ["market_velocity"]
+    effect = first["economic_effect"]
+    assert isinstance(effect, dict)
+    assert effect["blocked_new_risk_count"] == 0
+
+    assert events["event_count"] == 1
+    assert events["qualifying_value_event_count"] == 0
+    raw_events = events["events"]
+    assert isinstance(raw_events, list)
+    assert len(raw_events) == 1
+    event = raw_events[0]
+    assert isinstance(event, dict)
+    assert event["date"] == "2024-06-25"
+    assert event["sentinel_exclusive_freeze"] is True
+    assert event["blocked_new_risk_count"] == 0
+    assert event["sentinel_direct_sell_count"] == 0
+    assert event["healthy_holding_reduction_count"] == 0
+
+
+def test_rejected_candidate_code_identity_migration_is_economically_exact() -> None:
+    payload = _load("account_code_identity_migration.json")
+
+    assert payload["status"] == "PASS"
+    assert payload["schema_version_before"] == payload["schema_version_after"] == 5
+    assert payload["economic_state_sha256_before"] == payload[
+        "economic_state_sha256_after"
+    ]
+    assert payload["changed_fields"] == ["code_hash", "account_migrations[-1]"]
+    event = payload["migration_event"]
+    assert isinstance(event, dict)
+    assert event["migration_type"] == "code_identity_only"

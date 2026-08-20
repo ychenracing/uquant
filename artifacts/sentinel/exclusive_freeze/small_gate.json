@@ -1,0 +1,105 @@
+{
+  "schema": "uquant.sentinel-exclusive-freeze-small-gate.v1",
+  "decision": "REJECT",
+  "reason": "No non-severe trusted Sentinel-exclusive Freeze blocked actual new risk in the three locked small-gate cases.",
+  "candidate_lock": {
+    "baseline_config_sha256": "dae4d79fdd813832c6ab152611437c13be1d38227c7280691874d3a9267d93d5",
+    "candidate_config_sha256": "b75d02d238e7ea18793c6f15727b34bc15b7a002b5ec4c4e620f86f1c39c93fa",
+    "only_changed_setting": "risk_sentinel_causal_confirmation_enabled"
+  },
+  "hard_gate": {
+    "target_gross_cap_equal_to_base": true,
+    "sentinel_direct_sell_count": 0,
+    "sentinel_risk_gross_cap_event_count": 0,
+    "healthy_holding_reduction_count": 0,
+    "new_account_state_fields": 0,
+    "passed": true
+  },
+  "value_gate": {
+    "required_qualifying_non_severe_events": 1,
+    "observed_qualifying_non_severe_events": 0,
+    "passed": false
+  },
+  "cells": {
+    "a/h1_2024": {
+      "exclusive_freeze_events": 1,
+      "blocked_new_risk_count": 0,
+      "baseline": {
+        "final_wealth": 1.9042531401193852,
+        "max_drawdown": 0.156742775678121,
+        "acute_return": 0.06390679898215934,
+        "account_orders": 8,
+        "gross_turnover": 2.0503083589999997,
+        "annual_turnover": 4.204869685406779
+      },
+      "candidate": {
+        "final_wealth": 1.9042531401193852,
+        "max_drawdown": 0.156742775678121,
+        "acute_return": 0.06390679898215934,
+        "account_orders": 8,
+        "gross_turnover": 2.0503083589999997,
+        "annual_turnover": 4.204869685406779
+      }
+    },
+    "d/h2_2024": {
+      "exclusive_freeze_events": 0,
+      "blocked_new_risk_count": 0,
+      "baseline": {
+        "final_wealth": 1.7210796718424954,
+        "max_drawdown": 0.08362154102572927,
+        "acute_return": 0.046108107936000176,
+        "account_orders": 10,
+        "gross_turnover": 2.9691794867500003,
+        "annual_turnover": 5.748331486348001
+      },
+      "candidate": {
+        "final_wealth": 1.7210796718424954,
+        "max_drawdown": 0.08362154102572927,
+        "acute_return": 0.046108107936000176,
+        "account_orders": 10,
+        "gross_turnover": 2.9691794867500003,
+        "annual_turnover": 5.748331486348001
+      }
+    },
+    "e/h2_2024": {
+      "exclusive_freeze_events": 0,
+      "blocked_new_risk_count": 0,
+      "baseline": {
+        "final_wealth": 1.9002164923944647,
+        "max_drawdown": 0.08592480598703311,
+        "acute_return": 0.046108107936000176,
+        "account_orders": 5,
+        "gross_turnover": 2.1937973136,
+        "annual_turnover": 4.247191599129601
+      },
+      "candidate": {
+        "final_wealth": 1.9002164923944647,
+        "max_drawdown": 0.08592480598703311,
+        "acute_return": 0.046108107936000176,
+        "account_orders": 5,
+        "gross_turnover": 2.1937973136,
+        "annual_turnover": 4.247191599129601
+      }
+    }
+  },
+  "aggregate_delta": {
+    "wealth_opportunity_cost": 0.0,
+    "max_drawdown": 0.0,
+    "acute_return": 0.0,
+    "account_orders": 0,
+    "gross_turnover": 0.0,
+    "annual_turnover": 0.0,
+    "blocked_order_value": 0.0,
+    "missed_upside": 0.0,
+    "avoided_loss": 0.0,
+    "net_opportunity_cost": 0.0
+  },
+  "stop_early": {
+    "triggered": true,
+    "phase1_matrix_run": false,
+    "phase2_six_window_matrix_run": false,
+    "generalization_matrix_run": false,
+    "parameter_search_run": false,
+    "gross_cap_restarted": false
+  }
+}

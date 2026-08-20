@@ -1,0 +1,86 @@
+{
+  "schema": "uquant.sentinel-exclusive-freeze-first-divergence.v1",
+  "scenario": "a/h1_2024",
+  "window": ["2024-01-02", "2024-07-01"],
+  "symbols": ["sz300308", "sz300394", "sz300502"],
+  "date": "2024-06-25",
+  "changed_fields": ["risk", "targets"],
+  "base": {
+    "risk_state": "NORMAL",
+    "freeze_new_risk": false,
+    "sentinel_freeze_new_risk": false,
+    "target_gross_cap": 1.0,
+    "targets": [
+      {
+        "symbol": "sz300308",
+        "weight": 0.13379229761639064,
+        "event_id": "evt_de09489046cbe42efb4fbde60923986f2a4e764cbd534e4c2374d387038ba25f",
+        "mechanism": "STRATEGIC_TRAILING_EXIT",
+        "reason_code": "strategic_cohort"
+      },
+      {
+        "symbol": "sz300502",
+        "weight": 0.4176517760519183,
+        "event_id": "evt_954e5a58272a42f94965239763f9374944239563a165fafe3cc9cbdf8999a3e8",
+        "mechanism": "STRATEGIC_COHORT",
+        "reason_code": "strategic_cohort"
+      }
+    ],
+    "orders": []
+  },
+  "candidate": {
+    "risk_state": "NORMAL",
+    "freeze_new_risk": true,
+    "sentinel_freeze_new_risk": true,
+    "target_gross_cap": 1.0,
+    "targets": [
+      {
+        "symbol": "sz300308",
+        "weight": 0.13379229761639064,
+        "event_id": "evt_de09489046cbe42efb4fbde60923986f2a4e764cbd534e4c2374d387038ba25f",
+        "mechanism": "STRATEGIC_TRAILING_EXIT",
+        "reason_code": "strategic_cohort"
+      },
+      {
+        "symbol": "sz300502",
+        "weight": 0.4176517760519183,
+        "event_id": "evt_1e7b5e342f4252ed4232fe935b4373002acc87489e76ef0f7087b59f0000dfeb",
+        "mechanism": "RISK_FREEZE",
+        "reason_code": "risk_freeze_hold"
+      }
+    ],
+    "orders": []
+  },
+  "causal_evidence": {
+    "coverage": "READY",
+    "confidence": 1.0,
+    "observed_level": "DEFENSIVE",
+    "effective_level": "DEFENSIVE",
+    "confirmation_history_trusted": true,
+    "confirmation_days": 2,
+    "confirmed_since": "2024-06-24",
+    "active_families": ["breadth_structure", "market_velocity"],
+    "incremental_families": ["market_velocity"],
+    "earlier_families": [],
+    "comparison_class": "incremental_same_day",
+    "sentinel_first_family_dates": {
+      "breadth_structure": "2014-02-26",
+      "market_velocity": "2014-02-25"
+    },
+    "base_first_family_dates": {
+      "breadth_structure": "2014-02-25",
+      "covariance_stress": "2015-08-18",
+      "market_velocity": "2014-02-25"
+    },
+    "severe_direct": false,
+    "bull_silent": false,
+    "timeline_aligned": true
+  },
+  "economic_effect": {
+    "target_weights_changed": false,
+    "orders_changed": false,
+    "fills_changed": false,
+    "equity_changed": false,
+    "blocked_new_risk_count": 0
+  }
+}

@@ -1,0 +1,29 @@
+{
+  "schema": "uquant.sentinel-exclusive-freeze-events.v1",
+  "cases_evaluated": ["a/h1_2024", "d/h2_2024", "e/h2_2024"],
+  "event_count": 1,
+  "qualifying_value_event_count": 0,
+  "events": [
+    {
+      "scenario": "a/h1_2024",
+      "date": "2024-06-25",
+      "non_severe_direct": true,
+      "coverage": "READY",
+      "confidence": 1.0,
+      "confirmation_history_trusted": true,
+      "confirmation_days": 2,
+      "active_families": ["breadth_structure", "market_velocity"],
+      "incremental_families": ["market_velocity"],
+      "earlier_families": [],
+      "comparison_class": "incremental_same_day",
+      "base_freeze_new_risk": false,
+      "sentinel_exclusive_freeze": true,
+      "blocked_new_risk_count": 0,
+      "blocked_orders": [],
+      "sentinel_direct_sell_count": 0,
+      "healthy_holding_reduction_count": 0,
+      "opportunity_cost": []
+    }
+  ],
+  "counterfactual_is_accounting_pnl": false
+}

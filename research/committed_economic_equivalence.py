@@ -96,7 +96,8 @@ def _load_checkpoint(
         for side, trace in raw_sides.items():
             if side not in _SIDES or not _valid_trace(trace):
                 raise RuntimeError("economic equivalence checkpoint is malformed")
-            assert isinstance(trace, dict)
+            if not isinstance(trace, dict):
+                raise RuntimeError("economic equivalence checkpoint is malformed")
             sides[side] = {str(field): str(value) for field, value in trace.items()}
         cases[name] = sides
     return cases

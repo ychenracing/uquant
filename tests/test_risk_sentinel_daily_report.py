@@ -59,12 +59,18 @@ def test_daily_report_distinguishes_every_freeze_owner(
     report = render_daily_report(_decision(summary), AccountState.empty(100.0))
 
     assert "## Risk Sentinel" in report
-    assert f"Freeze Owner: **{owner}**" in report
-    assert f"New Risk Allowed: **{'NO' if base or sentinel else 'YES'}**" in report
-    assert "Weakest subindustries: a, b, c" in report
-    assert "r1; r2; r3" in report
-    assert "d" not in report.split("Weakest subindustries: ", 1)[1].splitlines()[0]
-    assert "r4" not in report
+    assert f"- Owner: **{owner}**" in report
+    assert f"- Coverage: {coverage}" in report
+    assert "- Risk Families: NONE" in report
+    if coverage != "READY":
+        assert "- Conclusion: check market data; do not infer safety." in report
+    elif base or sentinel:
+        assert "- Conclusion: do not add new risk." in report
+    else:
+        assert "- Conclusion: normal execution; Sentinel remains observational." in report
+    assert "New Risk Allowed:" not in report
+    assert "Weakest subindustries:" not in report
+    assert "r1" not in report
 
 
 def test_daily_report_is_byte_deterministic_for_unordered_family_maps() -> None:

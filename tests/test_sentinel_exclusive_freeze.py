@@ -156,11 +156,12 @@ def test_summary_retains_first_divergence_and_nonsevere_value_event() -> None:
 
 def test_locked_configs_differ_only_by_causal_authority() -> None:
     validate = _locked_config_api()
-    candidate = DEFAULT_CONFIG.override(
-        risk_sentinel_causal_confirmation_enabled=True,
+    baseline = DEFAULT_CONFIG.override(
+        risk_sentinel_causal_confirmation_enabled=False,
     )
+    candidate = DEFAULT_CONFIG
 
-    assert validate(baseline=DEFAULT_CONFIG, candidate=candidate) == {
+    assert validate(baseline=baseline, candidate=candidate) == {
         "baseline_config_sha256": (
             "dae4d79fdd813832c6ab152611437c13be1d38227c7280691874d3a9267d93d5"
         ),
@@ -171,7 +172,7 @@ def test_locked_configs_differ_only_by_causal_authority() -> None:
 
     with pytest.raises(ValueError, match="differ only by causal confirmation authority"):
         validate(
-            baseline=DEFAULT_CONFIG,
+            baseline=baseline,
             candidate=candidate.override(risk_sentinel_confirm_days=1),
         )
 
@@ -251,9 +252,10 @@ def test_production_runner_rejects_retuning_before_loading_data() -> None:
             start="2024-01-02",
             end="2024-01-03",
             scenario="locked-config-contract",
-            baseline_cfg=DEFAULT_CONFIG,
+            baseline_cfg=DEFAULT_CONFIG.override(
+                risk_sentinel_causal_confirmation_enabled=False,
+            ),
             candidate_cfg=DEFAULT_CONFIG.override(
-                risk_sentinel_causal_confirmation_enabled=True,
                 risk_sentinel_confirm_days=1,
             ),
         )

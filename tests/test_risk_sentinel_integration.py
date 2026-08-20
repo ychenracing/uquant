@@ -19,7 +19,10 @@ from uquant.risk_sentinel.models import (
 )
 from uquant.types import Risk, RiskAssessment
 
-FREEZE_CFG = DEFAULT_CONFIG.override(risk_sentinel_mode="FREEZE_ONLY")
+FREEZE_CFG = DEFAULT_CONFIG.override(
+    risk_sentinel_mode="FREEZE_ONLY",
+    risk_sentinel_causal_confirmation_enabled=False,
+)
 
 
 def _coverage(status: WarmupStatus = WarmupStatus.READY) -> CoverageHealth:

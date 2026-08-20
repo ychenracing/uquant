@@ -185,7 +185,7 @@ def test_configuration_serialization_is_complete_and_detached() -> None:
     assert payload["risk_sentinel_confirm_days"] == 2
     assert payload["risk_sentinel_repair_days"] == 3
     assert payload["risk_sentinel_severe_direct_enabled"] is True
-    assert payload["risk_sentinel_causal_confirmation_enabled"] is False
+    assert payload["risk_sentinel_causal_confirmation_enabled"] is True
     assert payload["sector_guard_enabled"] is True
     assert payload["sector_guard_gross"] == pytest.approx(0.40)
     assert payload["industry_rotation_enabled"] is True
@@ -223,18 +223,17 @@ def test_configuration_serialization_is_complete_and_detached() -> None:
     assert DEFAULT_CONFIG.max_gross == 1.0
 
 
-def test_disabled_causal_confirmation_preserves_frozen_config_identity() -> None:
+def test_enabled_causal_confirmation_uses_the_locked_candidate_identity() -> None:
     assert config_fingerprint(DEFAULT_CONFIG) == (
-        "dae4d79fdd813832c6ab152611437c13be1d38227c7280691874d3a9267d93d5"
+        "b75d02d238e7ea18793c6f15727b34bc15b7a002b5ec4c4e620f86f1c39c93fa"
     )
     assert config_fingerprint(
-        DEFAULT_CONFIG.override(risk_sentinel_causal_confirmation_enabled=True)
+        DEFAULT_CONFIG.override(risk_sentinel_causal_confirmation_enabled=False)
     ) != config_fingerprint(DEFAULT_CONFIG)
 
 
 def test_effective_config_hash_is_canonical_and_semantically_sensitive() -> None:
     payload = DEFAULT_CONFIG.to_dict()
-    payload.pop("risk_sentinel_causal_confirmation_enabled")
     encoded = json.dumps(
         payload,
         allow_nan=False,

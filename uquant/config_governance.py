@@ -16,7 +16,7 @@ GOVERNANCE_PATH: Final = Path("benchmarks") / "config_parameter_governance.json"
 DEFAULT_GOVERNANCE_PATH: Final = Path(__file__).resolve().parents[1] / GOVERNANCE_PATH
 GOVERNANCE_BASE_COMMIT: Final = "e71c3f6cf42244f71e59458ec15375b92ed4da1f"
 REQUIRED_CONFIG_PARAMETER_GOVERNANCE_SHA256: Final = (
-    "90d8fe643ec35428a236d4de1d394e36c12c840c945a2bf6353db62fa5767d6e"
+    "1fe17526272729ff512cda123ab85bf33bc603a4fc556defae52ab430d61ce4d"
 )
 FROZEN_CHAMPION_CONFIG_SHA256: Final = (
     "023d709731196a325d9cd03e95ece92e4baf63d2c5c66bb9f7d0e7a190e7bf20"

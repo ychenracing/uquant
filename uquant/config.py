@@ -324,7 +324,7 @@ class SystemConfig:
     risk_sentinel_confirm_days: int = 2
     risk_sentinel_repair_days: int = 3
     risk_sentinel_severe_direct_enabled: bool = True
-    risk_sentinel_causal_confirmation_enabled: bool = False
+    risk_sentinel_causal_confirmation_enabled: bool = True
     risk_overlay_enabled: bool = True
     evidence_family_voting_enabled: bool = False
     fail_closed: bool = True

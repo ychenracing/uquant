@@ -1,0 +1,150 @@
+{
+  "schema": "uquant.sentinel-phase7-recovery-inventory.v1",
+  "source_base_commit": "711af1179aa72ce48ca3a6af58ecddb3a029a7ce",
+  "source_phase7_commit": "c559c009db309b3815aa8a3df8b59638504acc1a",
+  "whole_merge_or_cherry_pick": false,
+  "production_causal_confirmation_enabled": false,
+  "excluded_from_main": [
+    "candidate configuration",
+    "exclusive freeze authority",
+    "new state machine",
+    "new trading path"
+  ],
+  "files": [
+    {
+      "path": "artifacts/sentinel/exclusive_freeze/README.md",
+      "disposition": "archive",
+      "destination": "docs/reviews/phase7_rejection_summary.md"
+    },
+    {
+      "path": "artifacts/sentinel/exclusive_freeze/account_code_identity_migration.json",
+      "disposition": "discard",
+      "reason": "candidate-source identity is not a production identity"
+    },
+    {
+      "path": "artifacts/sentinel/exclusive_freeze/atomicity_boundary.json",
+      "disposition": "rewrite",
+      "destination": "existing freeze-boundary regression tests"
+    },
+    {
+      "path": "artifacts/sentinel/exclusive_freeze/candidate_lock.json",
+      "disposition": "discard",
+      "reason": "candidate configuration is prohibited"
+    },
+    {
+      "path": "artifacts/sentinel/exclusive_freeze/exclusive_freeze_events.json",
+      "disposition": "archive",
+      "destination": "docs/reviews/phase7_rejection_summary.md"
+    },
+    {
+      "path": "artifacts/sentinel/exclusive_freeze/final_decision.json",
+      "disposition": "archive",
+      "destination": "docs/reviews/phase7_rejection_summary.md"
+    },
+    {
+      "path": "artifacts/sentinel/exclusive_freeze/first_divergence.json",
+      "disposition": "archive",
+      "destination": "docs/reviews/phase7_rejection_summary.md"
+    },
+    {
+      "path": "artifacts/sentinel/exclusive_freeze/phase6_baseline.json",
+      "disposition": "discard",
+      "reason": "Phase 6 production evidence already exists on main"
+    },
+    {
+      "path": "artifacts/sentinel/exclusive_freeze/small_gate.json",
+      "disposition": "archive",
+      "destination": "docs/reviews/phase7_rejection_summary.md"
+    },
+    {
+      "path": "benchmarks/config_parameter_governance.json",
+      "disposition": "discard",
+      "reason": "candidate default identity is prohibited"
+    },
+    {
+      "path": "docs/OPERATIONS.md",
+      "disposition": "rewrite",
+      "destination": "Phase 8 production-state documentation"
+    },
+    {
+      "path": "docs/PERFORMANCE.md",
+      "disposition": "rewrite",
+      "destination": "Phase 8 rejection and evidence-closure documentation"
+    },
+    {
+      "path": "docs/RISK_SENTINEL.md",
+      "disposition": "rewrite",
+      "destination": "Phase 8 final Sentinel boundary documentation"
+    },
+    {
+      "path": "docs/superpowers/plans/2026-08-20-risk-sentinel-exclusive-freeze.md",
+      "disposition": "discard",
+      "reason": "rejected candidate implementation plan is not a production plan"
+    },
+    {
+      "path": "research/first_divergence.py",
+      "disposition": "merge",
+      "destination": "generic order-ledger trace fields only"
+    },
+    {
+      "path": "research/sentinel_exclusive_freeze.py",
+      "disposition": "rewrite",
+      "destination": "research/sentinel_evidence_closure.py"
+    },
+    {
+      "path": "tests/test_config_contracts.py",
+      "disposition": "discard",
+      "reason": "candidate-enabled default assertions are prohibited"
+    },
+    {
+      "path": "tests/test_config_governance.py",
+      "disposition": "discard",
+      "reason": "candidate config fingerprint is prohibited"
+    },
+    {
+      "path": "tests/test_phase7_evidence_artifacts.py",
+      "disposition": "rewrite",
+      "destination": "tests/test_phase8_consolidation_artifacts.py"
+    },
+    {
+      "path": "tests/test_risk_sentinel_integration.py",
+      "disposition": "discard",
+      "reason": "exclusive causal-confirmation authority tests are prohibited"
+    },
+    {
+      "path": "tests/test_sentinel_exclusive_freeze.py",
+      "disposition": "rewrite",
+      "destination": "generic trace and evidence-closure tests"
+    },
+    {
+      "path": "tests/test_sentinel_freeze_new_risk.py",
+      "disposition": "merge",
+      "destination": "multi-symbol atomic rotation boundary test only"
+    },
+    {
+      "path": "uquant/config.py",
+      "disposition": "discard",
+      "reason": "enabled candidate default is prohibited"
+    },
+    {
+      "path": "uquant/config_governance.py",
+      "disposition": "discard",
+      "reason": "candidate governance identity is prohibited"
+    },
+    {
+      "path": "uquant/engine.py",
+      "disposition": "discard",
+      "reason": "candidate authority wiring is prohibited"
+    },
+    {
+      "path": "uquant/risk.py",
+      "disposition": "discard",
+      "reason": "candidate authority wiring is prohibited"
+    },
+    {
+      "path": "uquant/risk_sentinel/integration.py",
+      "disposition": "discard",
+      "reason": "exclusive freeze authority is prohibited; diagnostics move to research closure"
+    }
+  ]
+}

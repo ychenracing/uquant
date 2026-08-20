@@ -32,6 +32,14 @@ _RISK_BEHAVIOR_FIELDS = (
     "shock_state",
     "target_gross_cap",
 )
+_FORBIDDEN_RISK_EVIDENCE_FIELDS = (
+    "reduction_level",
+    "shock_state",
+    "capital_budget_level",
+)
+_SENTINEL_CANCEL_EVENTS = frozenset(
+    {"CANCEL_REQUESTED", "CANCELLED", "BROKER_CANCELLED"}
+)
 
 
 def validate_locked_configs(
@@ -89,6 +97,15 @@ def _targets(row: Mapping[str, Any]) -> tuple[Mapping[str, Any], ...]:
     return tuple(raw)
 
 
+def _ledger(row: Mapping[str, Any]) -> tuple[Mapping[str, Any], ...]:
+    raw = row.get("order_ledger", ())
+    if not isinstance(raw, Sequence) or isinstance(raw, (str, bytes, bytearray)):
+        raise ValueError("exclusive-freeze trace order ledger must be a sequence")
+    if any(not isinstance(order, Mapping) for order in raw):
+        raise ValueError("exclusive-freeze trace ledger order must be a mapping")
+    return tuple(raw)
+
+
 def _risk_evidence(row: Mapping[str, Any]) -> Mapping[str, Any]:
     value = row.get("risk_evidence", {})
     if not isinstance(value, Mapping):
@@ -106,17 +123,46 @@ def _behavioral_risk(row: Mapping[str, Any]) -> tuple[object, dict[str, object]]
     )
 
 
-def _order_identity(order: Mapping[str, Any]) -> tuple[object, ...]:
-    event_id = order.get("event_id")
-    if isinstance(event_id, str) and event_id:
-        return (event_id,)
+def _risk_order_identity(order: Mapping[str, Any]) -> tuple[object, ...]:
+    """Identify the economic risk intent without attribution-only event-id churn."""
+
     return (
         order.get("side"),
         order.get("symbol"),
         order.get("target_weight"),
-        order.get("reason_code"),
-        order.get("exit_kind"),
+        order.get("lifecycle"),
     )
+
+
+def _same_risk_order(
+    left: Mapping[str, Any],
+    right: Mapping[str, Any],
+) -> bool:
+    left_event = left.get("event_id")
+    right_event = right.get("event_id")
+    return bool(
+        (isinstance(left_event, str) and left_event and left_event == right_event)
+        or _risk_order_identity(left) == _risk_order_identity(right)
+    )
+
+
+def _sentinel_cancelled_buy(order: Mapping[str, Any]) -> bool:
+    return bool(
+        str(order.get("side")) == "BUY"
+        and str(order.get("cancel_reason")) == "sentinel_freeze_new_risk"
+        and str(order.get("last_event")) in _SENTINEL_CANCEL_EVENTS
+        and int(order.get("remaining_shares", 0) or 0) > 0
+    )
+
+
+def _blocked_action_identity(order: Mapping[str, Any]) -> tuple[object, ...]:
+    event_id = order.get("event_id")
+    if isinstance(event_id, str) and event_id:
+        return ("event", event_id)
+    order_id = order.get("order_id")
+    if isinstance(order_id, str) and order_id:
+        return ("order", order_id)
+    return ("risk", *_risk_order_identity(order))
 
 
 def _gross_cap_event_count(value: object) -> int:
@@ -288,6 +334,12 @@ def summarize_exclusive_freeze_comparison(
     direct_sells = 0
     gross_cap_events = 0
     healthy_reductions = 0
+    forbidden_drifts = {
+        "risk_state": 0,
+        "reduction_level": 0,
+        "shock_state": 0,
+        "capital_budget_level": 0,
+    }
     caps_equal = True
     events: list[dict[str, Any]] = []
     forward = forward_returns or {}
@@ -298,18 +350,23 @@ def summarize_exclusive_freeze_comparison(
     ):
         baseline_evidence = _risk_evidence(baseline_row)
         candidate_evidence = _risk_evidence(candidate_row)
+        forbidden_drifts["risk_state"] += (
+            baseline_row.get("risk") != candidate_row.get("risk")
+        )
+        for field in _FORBIDDEN_RISK_EVIDENCE_FIELDS:
+            forbidden_drifts[field] += (
+                baseline_evidence.get(field) != candidate_evidence.get(field)
+            )
         caps_equal = caps_equal and (
             baseline_evidence.get("target_gross_cap")
             == candidate_evidence.get("target_gross_cap")
         )
         baseline_orders = _orders(baseline_row)
         candidate_orders = _orders(candidate_row)
-        baseline_ids = {_order_identity(order) for order in baseline_orders}
-        candidate_ids = {_order_identity(order) for order in candidate_orders}
         candidate_only = [
             order
             for order in candidate_orders
-            if _order_identity(order) not in baseline_ids
+            if not any(_same_risk_order(order, other) for other in baseline_orders)
         ]
         direct_sells += sum(
             str(order.get("side")) == "SELL" for order in candidate_only
@@ -326,12 +383,32 @@ def summarize_exclusive_freeze_comparison(
             and not bool(candidate_evidence.get("base_freeze_new_risk", False))
         ):
             continue
-        blocked = [
+        blocked_pending = [
             dict(order)
             for order in baseline_orders
             if str(order.get("side")) == "BUY"
-            and _order_identity(order) not in candidate_ids
+            and not any(_same_risk_order(order, other) for other in candidate_orders)
         ]
+        baseline_ledger = _ledger(baseline_row)
+        candidate_ledger = _ledger(candidate_row)
+        blocked_ledger = [
+            dict(order)
+            for order in candidate_ledger
+            if _sentinel_cancelled_buy(order)
+            and any(
+                _same_risk_order(order, other)
+                and not _sentinel_cancelled_buy(other)
+                for other in (*baseline_orders, *baseline_ledger)
+            )
+        ]
+        blocked: list[dict[str, Any]] = []
+        seen_blocked: set[tuple[object, ...]] = set()
+        for order in (*blocked_pending, *blocked_ledger):
+            identity = _blocked_action_identity(order)
+            if identity in seen_blocked:
+                continue
+            seen_blocked.add(identity)
+            blocked.append(order)
         blocked_symbols = {str(order.get("symbol", "")) for order in blocked}
         event_reductions = _healthy_reductions(
             baseline_row,
@@ -407,14 +484,29 @@ def summarize_exclusive_freeze_comparison(
         and int(event["healthy_holding_reduction_count"]) == 0
         for event in events
     )
+    hard_gate = {
+        "target_gross_cap_equal_to_base": caps_equal,
+        "sentinel_direct_sell_count": direct_sells,
+        "sentinel_risk_gross_cap_event_count": gross_cap_events,
+        "healthy_holding_reduction_count": healthy_reductions,
+        "risk_state_drift_count": forbidden_drifts["risk_state"],
+        "reduction_level_drift_count": forbidden_drifts["reduction_level"],
+        "shock_state_drift_count": forbidden_drifts["shock_state"],
+        "capital_budget_level_drift_count": forbidden_drifts[
+            "capital_budget_level"
+        ],
+    }
+    hard_gate["passed"] = bool(
+        caps_equal
+        and all(
+            int(value) == 0
+            for name, value in hard_gate.items()
+            if name != "target_gross_cap_equal_to_base"
+        )
+    )
     return {
         "first_divergence": _first_divergence(baseline_trace, candidate_trace),
-        "hard_gate": {
-            "target_gross_cap_equal_to_base": caps_equal,
-            "sentinel_direct_sell_count": direct_sells,
-            "sentinel_risk_gross_cap_event_count": gross_cap_events,
-            "healthy_holding_reduction_count": healthy_reductions,
-        },
+        "hard_gate": hard_gate,
         "value_gate": {
             "passed": qualifying > 0,
             "qualifying_non_severe_events": qualifying,

@@ -60,6 +60,9 @@
     "confirmation_days": 2,
     "confirmed_since": "2024-06-24",
     "active_families": ["breadth_structure", "market_velocity"],
+    "base_active_families": ["breadth_structure"],
+    "sentinel_active_families": ["breadth_structure", "market_velocity"],
+    "derived_incremental_families": ["market_velocity"],
     "incremental_families": ["market_velocity"],
     "earlier_families": [],
     "comparison_class": "incremental_same_day",
@@ -71,6 +74,12 @@
       "breadth_structure": "2014-02-25",
       "covariance_stress": "2015-08-18",
       "market_velocity": "2014-02-25"
+    },
+    "timeline_verification": {
+      "sessions_aligned": true,
+      "full_warmup_prefix_recomputed": true,
+      "account_derived_history_used": false,
+      "first_family_maps_recomputed_at_authority_boundary": true
     },
     "severe_direct": false,
     "bull_silent": false,

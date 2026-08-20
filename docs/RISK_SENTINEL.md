@@ -1,10 +1,15 @@
-# Independent Risk Sentinel Shadow Mode
+# Independent Risk Sentinel FREEZE_ONLY Evidence Mode
 
-Independent Risk Sentinel 默认仍是与生产决策隔离的只读观察器。它读取 canonical 34-stock
-AI universe、点时行业、冻结行情、两个指数和已有账户快照，只输出独立 JSON/Markdown
-证据。它不调用 `ProductionEngine`，不生成目标、订单或成交，不写账户，也不改变正式
-`RiskAssessment`、组合分配或执行行为。Phase 4 增加了受控的 Freeze-only 集成代码，但
-候选未通过经济硬门，默认模式已回到 `SHADOW`，生产决策不会求值 Sentinel。
+独立 Sentinel CLI 仍是只读观察器：它读取 canonical 34-stock AI universe、点时行业、
+冻结行情、两个指数和已有账户快照，只输出独立 JSON/Markdown 证据，不生成目标、订单或
+成交，也不写账户。普通 uquant Daily Report 同时通过 `ProductionEngine` 计算同源 Sentinel
+证据；生产默认模式是受控的 `FREEZE_ONLY`，唯一允许的经济映射是设置现有
+`RiskAssessment.freeze_new_risk`，不能取得卖出、总仓、减仓或账户写入权限。
+
+Phase 6 已加入从完整 warm-up 市场序列重算的、不可变且不依赖 AccountState 的双方点时
+Family 时间线，并将其收进普通 Daily Report；但
+`risk_sentinel_causal_confirmation_enabled` 默认保持 `false`，所以可信两日确认和更早
+Family 在 Phase 6 只作诊断，不取得新生产权限。现有 severe-direct 窄例外保持原样。
 
 ## 证据与 Coverage
 
@@ -27,15 +32,17 @@ Coverage Confidence 固定为：
 
 ## 与 uquant 基础风险的差异
 
-uquant 正式风险负责生产状态机与经济行为。Sentinel 只描述同日可见的跨市场、等权子行业、
-领导者、当前持仓和已有资本高水位证据。工件同时保留正式风险状态、同日正式风险事件与双方
-证据家族差异，供人工分析。非默认 `FREEZE_ONLY` 模式下，唯一允许的映射位于
-`uquant.assess_risk()`，且只能设置现有 `freeze_new_risk`；不能修改正式风险状态、总仓上限、
-减仓级别或冲击状态，也不能直接产生目标、卖单、风险动作或账户状态。该候选当前不得晋级。
-由于 Phase 4 尚无双方逐家族、逐交易日的点时首次证据载体，“更早”路径失败关闭；只有同日
-新增 family 能提供增量资格，输出会明确记录 `sentinel_earlier_supported=false`。当前账户和
-行业状态也不回填成历史确认，`confirmation_history_trusted=false`；常规两日确认不取得权限，
-仅 severe-direct 窄例外可绕过确认天数。
+uquant 正式风险负责生产状态机与经济行为。Sentinel 描述同日可见的跨市场、等权子行业、
+领导者、当前持仓和已有资本高水位证据；工件同时保留正式风险状态、同日正式风险事件与双方
+证据家族差异。`FREEZE_ONLY` 的唯一映射位于 `uquant.assess_risk()`，且只能设置现有
+`freeze_new_risk`；不能修改正式风险状态、总仓上限、减仓级别、冲击状态或资本预算，也不能
+直接产生目标、卖单、风险动作或账户状态。
+
+Phase 6 时间线只信任 `market_velocity`、`breadth_structure` 和
+`covariance_stress` 的完整市场前缀；双方使用同一交易日历和数据前缀，并重算首次 Family
+日期、当日增量和可信更早 Family。`live_book_damage` 与 `capital_damage` 只作当日诊断，
+当前账户、持仓或资本状态不会回填历史。Phase 7 曾锁定启用 causal confirmation 的唯一候选，
+但小门没有实际阻止新增风险，已正式 REJECT；生产 `main` 继续使用 Phase 6 的关闭开关。
 
 ## 离线 Calibration 边界
 
@@ -77,3 +84,21 @@ uv run uquant-sentinel \
 - 缺少某个证券的足够历史会降低 Coverage，而不是用未来数据或较低门槛补齐。
 - 离线 Calibration 的精度、召回、提前量和机会成本必须与 Future Holdout 正式评分分开。
 - `sentinel_shadow` Holdout Lane 从真实启用日开始，不能回填此前观察。
+
+## Phase 7 独立 Freeze 最终结论
+
+Phase 7 在 `711af1179aa72ce48ca3a6af58ecddb3a029a7ce` 上预先锁定唯一候选变化：
+`risk_sentinel_causal_confirmation_enabled: false -> true`。其余参数固定为
+`FREEZE_ONLY / 0.80 / 2 日确认 / 3 日修复 / severe-direct 保持启用 / gross-cap 禁止`；
+只有 `breadth_structure`、`covariance_stress` 和 `market_velocity` 可进入历史权限确认，
+`live_book_damage` 与 `capital_damage` 仍仅是当日诊断。
+
+锁定的三个小门 Cell 中，`a/h1_2024` 在 2024-06-25 出现一次非 severe-direct、
+Coverage READY、confidence 1.0、可信连续 2 日且基础风险未 Freeze 的 Sentinel 独立
+Freeze。然而当天没有新开、加仓、卫星、Recovery、Rotation 或未成交新增风险 BUY，实际
+阻止新增风险数为 0；另两个 Cell 没有独立 Freeze。候选因此没有证明最低增量价值，正式
+结论为 **REJECT**。
+
+候选开关只保留在拒绝证据分支，不得合并到生产 `main`。Phase 6 的生产默认 `false`
+保持不变；不创建 Sentinel Future Holdout Lane，不打稳定 Tag，不搜索参数，也不重启
+gross-cap。完整机器可读证据位于 `artifacts/sentinel/exclusive_freeze/`。

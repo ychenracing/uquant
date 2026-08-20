@@ -253,7 +253,7 @@ def integrate_freeze_only(
         "sentinel_earlier_families": earlier_families,
         "first_base_date": {},
         "first_sentinel_date": first_sentinel,
-        "sentinel_earlier_supported": False,
+        "sentinel_earlier_supported": bool(causal.earlier_families),
         "sentinel_assessment": sentinel.to_dict(),
         "sentinel_confirmation_days": causal.confirmation_days,
         "sentinel_confirmation_history_trusted": (

@@ -129,8 +129,19 @@ def test_small_gate_rejects_before_full_matrix_without_authority_pollution() -> 
         "sentinel_direct_sell_count": 0,
         "sentinel_risk_gross_cap_event_count": 0,
         "healthy_holding_reduction_count": 0,
+        "risk_state_drift_count": 0,
+        "reduction_level_drift_count": 0,
+        "shock_state_drift_count": 0,
+        "capital_budget_level_drift_count": 0,
         "new_account_state_fields": 0,
         "passed": True,
+    }
+    assert payload["blocked_new_risk_detection"] == {
+        "unsubmitted_planned_buy_absence": True,
+        "broker_cancel_requested": True,
+        "partial_fill_remaining_expansion": True,
+        "stable_order_or_event_identity": True,
+        "event_id_only_churn_is_not_blocked_risk": True,
     }
     assert payload["value_gate"] == {
         "required_qualifying_non_severe_events": 1,
@@ -166,6 +177,18 @@ def test_first_divergence_and_all_exclusive_events_are_preserved() -> None:
     assert causal["confirmation_days"] == 2
     assert causal["comparison_class"] == "incremental_same_day"
     assert causal["incremental_families"] == ["market_velocity"]
+    assert causal["base_active_families"] == ["breadth_structure"]
+    assert causal["sentinel_active_families"] == [
+        "breadth_structure",
+        "market_velocity",
+    ]
+    assert causal["derived_incremental_families"] == ["market_velocity"]
+    assert causal["timeline_verification"] == {
+        "sessions_aligned": True,
+        "full_warmup_prefix_recomputed": True,
+        "account_derived_history_used": False,
+        "first_family_maps_recomputed_at_authority_boundary": True,
+    }
     effect = first["economic_effect"]
     assert isinstance(effect, dict)
     assert effect["blocked_new_risk_count"] == 0
@@ -196,3 +219,29 @@ def test_rejected_candidate_code_identity_migration_is_economically_exact() -> N
     event = payload["migration_event"]
     assert isinstance(event, dict)
     assert event["migration_type"] == "code_identity_only"
+
+
+def test_final_decision_keeps_rejected_candidate_out_of_main_and_holdout() -> None:
+    payload = _load("final_decision.json")
+
+    assert payload["decision"] == "REJECT"
+    assert payload["small_gate"]["sentinel_exclusive_freeze_events"] == 1
+    assert payload["small_gate"]["qualifying_events_that_blocked_new_risk"] == 0
+    assert payload["release_actions"] == {
+        "merge_candidate_to_main": False,
+        "main_remains_phase6": True,
+        "future_holdout_lane_registered": False,
+        "stable_tag_created": False,
+        "active_sentinel_expansion_stopped": True,
+    }
+    assert payload["account_code_identity_migration"] == {
+        "status": "PASS",
+        "economic_state_exact": True,
+        "final_production_code_sha256": (
+            "ffe0f742884f3284cbbeef963dcfa3584536be15982464a281ee049f1098a64b"
+        ),
+        "evidence": "account_code_identity_migration.json",
+    }
+    assert payload["engineering"]["status"] == "PASS"
+    assert payload["engineering"]["pytest_passed"] == 1464
+    assert payload["engineering"]["branch_coverage_percent"] >= 85.0

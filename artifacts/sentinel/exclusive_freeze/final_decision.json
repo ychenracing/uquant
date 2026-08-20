@@ -1,0 +1,76 @@
+{
+  "schema": "uquant.sentinel-exclusive-freeze-final-decision.v1",
+  "phase": 7,
+  "decision": "REJECT",
+  "starting_main_commit": "711af1179aa72ce48ca3a6af58ecddb3a029a7ce",
+  "candidate_branch": "codex/uquant-phase-7-sentinel-exclusive-freeze",
+  "candidate_lock": "candidate_lock.json",
+  "reason": "The locked small gate found a trusted non-severe Sentinel-exclusive Freeze, but it blocked zero actual new-risk actions; the candidate therefore has no demonstrated incremental economic value.",
+  "small_gate": {
+    "cases": ["a/h1_2024", "d/h2_2024", "e/h2_2024"],
+    "sentinel_exclusive_freeze_events": 1,
+    "qualifying_events_that_blocked_new_risk": 0,
+    "first_divergence_date": "2024-06-25",
+    "hard_authority_gate_passed": true,
+    "economic_deltas": {
+      "final_wealth": 0.0,
+      "max_drawdown": 0.0,
+      "acute_return": 0.0,
+      "account_orders": 0,
+      "gross_turnover": 0.0,
+      "annual_turnover": 0.0,
+      "net_opportunity_cost": 0.0
+    }
+  },
+  "authority_pollution": {
+    "target_gross_cap_changed": false,
+    "sentinel_direct_sell_count": 0,
+    "risk_gross_cap_event_count": 0,
+    "healthy_holding_reduction_count": 0,
+    "risk_state_drift_count": 0,
+    "reduction_level_drift_count": 0,
+    "shock_state_drift_count": 0,
+    "capital_budget_level_drift_count": 0,
+    "new_account_state_fields": 0
+  },
+  "stop_early": {
+    "phase1_matrix_run": false,
+    "phase2_six_window_matrix_run": false,
+    "generalization_matrix_run": false,
+    "parameter_search_run": false,
+    "gross_cap_restarted": false
+  },
+  "release_actions": {
+    "merge_candidate_to_main": false,
+    "main_remains_phase6": true,
+    "future_holdout_lane_registered": false,
+    "stable_tag_created": false,
+    "active_sentinel_expansion_stopped": true
+  },
+  "account_code_identity_migration": {
+    "status": "PASS",
+    "economic_state_exact": true,
+    "final_production_code_sha256": "ffe0f742884f3284cbbeef963dcfa3584536be15982464a281ee049f1098a64b",
+    "evidence": "account_code_identity_migration.json"
+  },
+  "engineering": {
+    "status": "PASS",
+    "pytest_passed": 1464,
+    "branch_coverage_percent": 85.29,
+    "ruff": "PASS",
+    "mypy_strict": "PASS",
+    "frozen_data_manifest": "PASS",
+    "future_holdout_contract": "PASS_NO_PHASE7_LANE",
+    "sentinel_contract_and_import_isolation": "PASS",
+    "compileall": "PASS",
+    "build_sdist_and_wheel": "PASS",
+    "bandit": "PASS",
+    "dependency_audit": "PASS_NO_KNOWN_VULNERABILITIES"
+  },
+  "evidence": {
+    "first_divergence": "first_divergence.json",
+    "all_exclusive_events": "exclusive_freeze_events.json",
+    "small_gate": "small_gate.json",
+    "rotation_and_pending_buy_boundary": "atomicity_boundary.json"
+  }
+}

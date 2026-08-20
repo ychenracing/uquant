@@ -12,6 +12,10 @@
     "sentinel_direct_sell_count": 0,
     "sentinel_risk_gross_cap_event_count": 0,
     "healthy_holding_reduction_count": 0,
+    "risk_state_drift_count": 0,
+    "reduction_level_drift_count": 0,
+    "shock_state_drift_count": 0,
+    "capital_budget_level_drift_count": 0,
     "new_account_state_fields": 0,
     "passed": true
   },
@@ -19,6 +23,13 @@
     "required_qualifying_non_severe_events": 1,
     "observed_qualifying_non_severe_events": 0,
     "passed": false
+  },
+  "blocked_new_risk_detection": {
+    "unsubmitted_planned_buy_absence": true,
+    "broker_cancel_requested": true,
+    "partial_fill_remaining_expansion": true,
+    "stable_order_or_event_identity": true,
+    "event_id_only_churn_is_not_blocked_risk": true
   },
   "cells": {
     "a/h1_2024": {

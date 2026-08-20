@@ -216,6 +216,14 @@ uv run uquant account-code-migrate \
 `economic_state_sha256`。迁移前、落盘后和严格重载后的该摘要必须一致。若摘要变化或未显式
 确认，迁移失败关闭。通用 schema 转换仍使用单独的 `account-migrate`，不能把两种操作混用。
 
+### Phase 7 拒绝候选不得发布
+
+`codex/uquant-phase-7-sentinel-exclusive-freeze` 是保留完整分叉与拒绝证据的研究分支；其中
+开启的 causal confirmation 候选没有在锁定小门中实际阻止新增风险，正式结论为 REJECT。
+不得把该分支的启用开关合并到生产 `main`，不得为它创建 Future Holdout Lane 或稳定 Tag，
+也不得通过调整 confidence、确认/修复天数或重启 gross-cap 来延长本轮研究。生产运行继续
+使用 Phase 6 `main` 上默认关闭的 causal confirmation。
+
 ## 常见故障
 
 | 现象 | 含义 | 处理 |

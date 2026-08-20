@@ -42,6 +42,7 @@ def _row(
     date: str,
     sentinel_freeze: bool,
     orders: Sequence[Mapping[str, object]],
+    order_ledger: Sequence[Mapping[str, object]] = (),
 ) -> dict[str, object]:
     return {
         "date": date,
@@ -71,6 +72,7 @@ def _row(
             },
         ),
         "pending_orders": tuple(orders),
+        "order_ledger": tuple(order_ledger),
         "fills": (),
         "equity": 1_000_000.0,
     }
@@ -84,6 +86,19 @@ def _buy() -> dict[str, object]:
         "target_weight": 0.3,
         "reason_code": "strategy_target",
         "exit_kind": "",
+    }
+
+
+def _ledger_buy(*, cancel_requested: bool) -> dict[str, object]:
+    return {
+        **_buy(),
+        "order_id": "O000000001",
+        "status": "PARTIALLY_FILLED",
+        "requested_shares": 500,
+        "filled_shares": 200,
+        "remaining_shares": 300,
+        "cancel_reason": "sentinel_freeze_new_risk" if cancel_requested else "",
+        "last_event": "CANCEL_REQUESTED" if cancel_requested else "PARTIALLY_FILLED",
     }
 
 
@@ -117,6 +132,11 @@ def test_summary_retains_first_divergence_and_nonsevere_value_event() -> None:
         "sentinel_direct_sell_count": 0,
         "sentinel_risk_gross_cap_event_count": 0,
         "healthy_holding_reduction_count": 0,
+        "risk_state_drift_count": 0,
+        "reduction_level_drift_count": 0,
+        "shock_state_drift_count": 0,
+        "capital_budget_level_drift_count": 0,
+        "passed": True,
     }
     assert result["value_gate"] == {
         "passed": True,
@@ -177,6 +197,60 @@ def test_first_behavior_divergence_ignores_the_locked_switch_diagnostic() -> Non
     assert result["first_divergence"] is None
 
 
+def test_value_gate_counts_broker_visible_partial_buy_cancel_request() -> None:
+    summarize = _summary_api()
+    baseline = _row(
+        date="2026-08-19",
+        sentinel_freeze=False,
+        orders=(_buy(),),
+        order_ledger=(_ledger_buy(cancel_requested=False),),
+    )
+    candidate = _row(
+        date="2026-08-19",
+        sentinel_freeze=True,
+        orders=(_buy(),),
+        order_ledger=(_ledger_buy(cancel_requested=True),),
+    )
+
+    result = summarize(
+        baseline_trace=(baseline,),
+        candidate_trace=(candidate,),
+        baseline_metrics={},
+        candidate_metrics={},
+    )
+
+    assert result["value_gate"] == {
+        "passed": True,
+        "qualifying_non_severe_events": 1,
+    }
+    event = result["exclusive_freeze_events"][0]
+    assert event["blocked_new_risk_count"] == 1
+    assert event["blocked_orders"][0]["order_id"] == "O000000001"
+    assert event["blocked_orders"][0]["remaining_shares"] == 300
+
+
+def test_value_gate_does_not_miscount_economically_identical_buy_with_new_event_id() -> None:
+    summarize = _summary_api()
+    replacement = {**_buy(), "event_id": "metadata-rebound-event-id"}
+
+    result = summarize(
+        baseline_trace=(
+            _row(date="2026-08-19", sentinel_freeze=False, orders=(_buy(),)),
+        ),
+        candidate_trace=(
+            _row(date="2026-08-19", sentinel_freeze=True, orders=(replacement,)),
+        ),
+        baseline_metrics={},
+        candidate_metrics={},
+    )
+
+    assert result["exclusive_freeze_events"][0]["blocked_new_risk_count"] == 0
+    assert result["value_gate"] == {
+        "passed": False,
+        "qualifying_non_severe_events": 0,
+    }
+
+
 def test_locked_configs_differ_only_by_causal_authority() -> None:
     validate = _locked_config_api()
     baseline = DEFAULT_CONFIG.override(
@@ -229,6 +303,10 @@ def test_summary_detects_every_forbidden_authority_carrier() -> None:
     assert isinstance(candidate_evidence, dict)
     candidate_evidence["target_gross_cap"] = 0.7
     candidate_evidence["risk_events"] = [{"event": "RISK_GROSS_CAP"}]
+    candidate_row["risk"] = "RISK_OFF"
+    candidate_evidence["reduction_level"] = 1
+    candidate_evidence["shock_state"] = "ACTIVE"
+    candidate_evidence["capital_budget_level"] = 2
 
     result = summarize(
         baseline_trace=(baseline_row,),
@@ -242,6 +320,11 @@ def test_summary_detects_every_forbidden_authority_carrier() -> None:
         "sentinel_direct_sell_count": 1,
         "sentinel_risk_gross_cap_event_count": 1,
         "healthy_holding_reduction_count": 1,
+        "risk_state_drift_count": 1,
+        "reduction_level_drift_count": 1,
+        "shock_state_drift_count": 1,
+        "capital_budget_level_drift_count": 1,
+        "passed": False,
     }
     assert result["value_gate"] == {
         "passed": False,

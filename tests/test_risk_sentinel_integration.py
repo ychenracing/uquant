@@ -345,6 +345,7 @@ def test_causal_authority_accepts_only_strictly_comparable_earlier_family() -> N
         "breadth_structure"
     ]
     assert integrated.evidence["sentinel_causal_comparison"] == "earlier_confirmed"
+    assert integrated.evidence["sentinel_earlier_supported"] is True
 
 
 def test_current_account_damage_cannot_substitute_for_two_market_families() -> None:

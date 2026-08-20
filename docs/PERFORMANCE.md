@@ -228,3 +228,17 @@ Shadow 精确相同，财富保留 100%，机会成本为 0。
 Phase 1 的 30 个官方单元和 15 个保护单元全部通过；显式 Shadow 与 Freeze-only 的
 Generalization 均为 234/234，通过 no-optical、remove-core 和 120 个固定随机池，且所有
 经济/status 字段 0 差异。完整结果与原始矩阵摘要见 `artifacts/sentinel/freeze_only/`。
+
+## Phase 7 Sentinel-exclusive Freeze 小门
+
+候选参数在任何官方经济矩阵前完成锁定。三个预定小门 Cell 的基础版与候选版在最终财富、
+MDD、Acute、Account Orders、gross/annual turnover 上逐项相同，聚合经济差异和机会成本
+均为 0。唯一行为分叉是 `a/h1_2024` 的 2024-06-25：Sentinel 将现有
+`freeze_new_risk` 置为 true，但目标权重、订单、成交和权益均未改变，实际阻止新增风险为
+0。所有硬权限污染计数均为 0。
+
+由于预注册的价值硬门要求至少一次可信、非 severe-direct、基础未 Freeze 的 Sentinel
+独立 Freeze **实际阻止新增风险**，候选在小门即被拒绝。按 stop-early 合同，Phase 1、
+六窗口 Phase 2、no-optical、remove-core、industry-balanced、subindustry 和固定随机池
+没有运行；这些未运行项不得表述为通过。没有继续参数搜索，也没有登记 Future Holdout Lane。
+原始值和停止状态见 `artifacts/sentinel/exclusive_freeze/small_gate.json`。

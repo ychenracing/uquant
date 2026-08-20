@@ -23,7 +23,7 @@ from .risk_sector import (
     update_sector_guard,
 )
 from .risk_sentinel.integration import integrate_freeze_only
-from .risk_sentinel.models import SentinelAssessment
+from .risk_sentinel.models import RiskEvidenceTimeline, SentinelAssessment
 from .types import AccountState, LeaderScore, Opportunity, Risk, RiskAssessment
 
 # Compatibility export only. Production anchors live in AccountState and are
@@ -2208,6 +2208,7 @@ def assess_risk(
     configured_universe_size: int | None = None,
     sentinel_assessment: SentinelAssessment | None = None,
     sentinel_opportunity: Opportunity | str | None = None,
+    sentinel_causal_timeline: RiskEvidenceTimeline | None = None,
 ) -> RiskAssessment:
     """Return formal uquant risk with the optional freeze-only Sentinel overlay.
 
@@ -2236,4 +2237,5 @@ def assess_risk(
         sentinel=sentinel_assessment,
         cfg=cfg,
         opportunity=sentinel_opportunity,
+        causal_timeline=sentinel_causal_timeline,
     )

@@ -9,9 +9,12 @@ from uquant import risk as risk_module
 from uquant.config import DEFAULT_CONFIG
 from uquant.risk_sentinel.integration import integrate_freeze_only
 from uquant.risk_sentinel.models import (
+    BaseMarketRiskRow,
     CoverageHealth,
+    RiskEvidenceTimeline,
     SentinelAssessment,
     SentinelLevel,
+    SentinelMarketRow,
     WarmupStatus,
 )
 from uquant.types import Risk, RiskAssessment
@@ -84,6 +87,79 @@ def _base(*, active_families: tuple[str, ...] = ()) -> RiskAssessment:
         freeze_new_risk=False,
         reduction_level=0,
         severity="NORMAL",
+    )
+
+
+def _causal_timeline() -> RiskEvidenceTimeline:
+    market_pairs = (
+        ("breadth_structure", True),
+        ("covariance_stress", False),
+        ("market_velocity", True),
+    )
+    base_pairs = (
+        ("breadth_structure", False),
+        ("covariance_stress", False),
+        ("market_velocity", True),
+    )
+    sentinel_rows = tuple(
+        SentinelMarketRow(
+            date=date,
+            coverage_status=WarmupStatus.READY,
+            confidence=0.90,
+            level=SentinelLevel.DEFENSIVE,
+            freeze_candidate=True,
+            family_active=market_pairs,
+            reasons=("breadth structure deteriorated", "market velocity deteriorated"),
+            weakest_subindustries=("design",),
+        )
+        for date in ("2026-08-18", "2026-08-19")
+    )
+    base_rows = tuple(
+        BaseMarketRiskRow(date=date, family_active=base_pairs, data_ready=True)
+        for date in ("2026-08-18", "2026-08-19")
+    )
+    return RiskEvidenceTimeline(
+        as_of="2026-08-19",
+        sessions=("2026-08-18", "2026-08-19"),
+        sentinel_rows=sentinel_rows,
+        base_rows=base_rows,
+        sentinel_first_family_dates=(
+            ("breadth_structure", "2026-08-18"),
+            ("market_velocity", "2026-08-18"),
+        ),
+        base_first_family_dates=(("market_velocity", "2026-08-18"),),
+        incremental_families=("breadth_structure",),
+        earlier_families=("breadth_structure",),
+        confirmation_days=2,
+        repair_days=0,
+        effective_level=SentinelLevel.DEFENSIVE,
+        confirmed_since="2026-08-18",
+        confirmation_history_trusted=True,
+        trust_reasons=(),
+    )
+
+
+def _integrate_causal(
+    *,
+    base: RiskAssessment,
+    cfg,
+    timeline: RiskEvidenceTimeline | None = None,
+    sentinel: SentinelAssessment | None = None,
+) -> RiskAssessment:
+    return integrate_freeze_only(
+        base=base,
+        sentinel=sentinel or _sentinel(),
+        cfg=cfg,
+        causal_timeline=timeline or _causal_timeline(),
+    )
+
+
+def _timeline_with_current(**changes: object) -> RiskEvidenceTimeline:
+    timeline = _causal_timeline()
+    current = replace(timeline.sentinel_rows[-1], **changes)
+    return replace(
+        timeline,
+        sentinel_rows=(*timeline.sentinel_rows[:-1], current),
     )
 
 
@@ -162,6 +238,171 @@ def test_causal_history_diagnostics_have_no_phase6_authority() -> None:
     assert integrated.evidence["sentinel_freeze_new_risk"] is False
 
 
+def test_causal_history_authority_requires_the_locked_enable_switch() -> None:
+    base = _base(active_families=("market_velocity",))
+
+    disabled = _integrate_causal(base=base, cfg=FREEZE_CFG)
+    enabled = _integrate_causal(
+        base=base,
+        cfg=FREEZE_CFG.override(risk_sentinel_causal_confirmation_enabled=True),
+    )
+
+    assert disabled.freeze_new_risk is False
+    assert enabled.freeze_new_risk is True
+    assert enabled.target_gross_cap == base.target_gross_cap
+    assert enabled.state is base.state
+    assert enabled.reduction_level == base.reduction_level
+    assert enabled.shock_state == base.shock_state
+    assert enabled.severity == base.severity
+    assert enabled.evidence["sentinel_incremental_families"] == [
+        "breadth_structure"
+    ]
+    assert enabled.evidence["sentinel_earlier_families"] == []
+    assert enabled.evidence["sentinel_causal_comparison"] == "incremental_same_day"
+    assert enabled.evidence["sentinel_confirmation_days"] == 2
+    assert enabled.evidence["sentinel_confirmation_history_trusted"] is True
+
+
+@pytest.mark.parametrize(
+    "timeline",
+    (
+        _timeline_with_current(coverage_status=WarmupStatus.NOT_READY),
+        _timeline_with_current(confidence=0.79),
+        _timeline_with_current(
+            family_active=(
+                ("breadth_structure", False),
+                ("covariance_stress", False),
+                ("market_velocity", True),
+            )
+        ),
+        _timeline_with_current(freeze_candidate=False),
+        replace(_causal_timeline(), confirmation_history_trusted=False),
+        replace(_causal_timeline(), confirmation_days=1),
+        replace(
+            _causal_timeline(),
+            incremental_families=(),
+            earlier_families=(),
+        ),
+        replace(_causal_timeline(), as_of="2026-08-18"),
+    ),
+    ids=(
+        "coverage-not-ready",
+        "confidence-below-lock",
+        "one-comparable-family",
+        "current-freeze-not-requested",
+        "untrusted-history",
+        "one-confirmation-day",
+        "no-comparable-advantage",
+        "misaligned-as-of",
+    ),
+)
+def test_causal_authority_fails_closed_when_any_locked_condition_is_missing(
+    timeline: RiskEvidenceTimeline,
+) -> None:
+    integrated = _integrate_causal(
+        base=_base(active_families=("market_velocity",)),
+        cfg=FREEZE_CFG.override(risk_sentinel_causal_confirmation_enabled=True),
+        timeline=timeline,
+    )
+
+    assert integrated.freeze_new_risk is False
+    assert integrated.evidence["sentinel_freeze_new_risk"] is False
+
+
+def test_causal_authority_accepts_only_strictly_comparable_earlier_family() -> None:
+    timeline = _causal_timeline()
+    current_base = replace(
+        timeline.base_rows[-1],
+        family_active=(
+            ("breadth_structure", True),
+            ("covariance_stress", False),
+            ("market_velocity", True),
+        ),
+    )
+    timeline = replace(
+        timeline,
+        base_rows=(*timeline.base_rows[:-1], current_base),
+        base_first_family_dates=(
+            ("breadth_structure", "2026-08-19"),
+            ("market_velocity", "2026-08-18"),
+        ),
+        incremental_families=(),
+        earlier_families=("breadth_structure",),
+    )
+
+    integrated = _integrate_causal(
+        base=_base(active_families=("breadth_structure", "market_velocity")),
+        cfg=FREEZE_CFG.override(risk_sentinel_causal_confirmation_enabled=True),
+        timeline=timeline,
+    )
+
+    assert integrated.freeze_new_risk is True
+    assert integrated.evidence["sentinel_incremental_families"] == []
+    assert integrated.evidence["sentinel_earlier_families"] == [
+        "breadth_structure"
+    ]
+    assert integrated.evidence["sentinel_causal_comparison"] == "earlier_confirmed"
+
+
+def test_current_account_damage_cannot_substitute_for_two_market_families() -> None:
+    timeline = _timeline_with_current(
+        family_active=(
+            ("breadth_structure", False),
+            ("covariance_stress", False),
+            ("market_velocity", True),
+        )
+    )
+    sentinel = _sentinel(
+        families=("capital_damage", "live_book_damage", "market_velocity")
+    )
+
+    integrated = _integrate_causal(
+        base=_base(),
+        cfg=FREEZE_CFG.override(risk_sentinel_causal_confirmation_enabled=True),
+        timeline=timeline,
+        sentinel=sentinel,
+    )
+
+    assert integrated.freeze_new_risk is False
+    assert integrated.evidence["sentinel_causal_current_families"] == [
+        "market_velocity"
+    ]
+
+
+@pytest.mark.parametrize(
+    "sentinel",
+    (
+        _sentinel(confidence=0.79),
+        _sentinel(coverage=_coverage(WarmupStatus.NOT_READY)),
+    ),
+    ids=("live-confidence-below-lock", "live-coverage-not-ready"),
+)
+def test_current_sentinel_health_must_also_be_ready_and_confident(
+    sentinel: SentinelAssessment,
+) -> None:
+    integrated = _integrate_causal(
+        base=_base(),
+        cfg=FREEZE_CFG.override(risk_sentinel_causal_confirmation_enabled=True),
+        sentinel=sentinel,
+    )
+
+    assert integrated.freeze_new_risk is False
+    assert integrated.evidence["sentinel_freeze_new_risk"] is False
+
+
+def test_base_freeze_is_never_attributed_to_causal_sentinel_authority() -> None:
+    base = replace(_base(), freeze_new_risk=True)
+
+    integrated = _integrate_causal(
+        base=base,
+        cfg=FREEZE_CFG.override(risk_sentinel_causal_confirmation_enabled=True),
+    )
+
+    assert integrated.freeze_new_risk is True
+    assert integrated.evidence["base_freeze_new_risk"] is True
+    assert integrated.evidence["sentinel_freeze_new_risk"] is False
+
+
 def test_duplicate_families_do_not_create_incremental_authority() -> None:
     base = _base(active_families=("breadth_structure", "market_velocity"))
     sentinel = replace(_sentinel(), first_evidence_date="2026-08-19")
@@ -203,13 +444,12 @@ def test_ineligible_overlay_preserves_base_freeze_evidence_semantics() -> None:
     assert integrated.evidence["freeze_new_risk"] is False
 
 
-def test_incremental_confirmed_evidence_only_sets_freeze() -> None:
+def test_incremental_causally_confirmed_evidence_only_sets_freeze() -> None:
     base = _base(active_families=("market_velocity",))
 
-    integrated = integrate_freeze_only(
+    integrated = _integrate_causal(
         base=base,
-        sentinel=_sentinel(),
-        cfg=FREEZE_CFG,
+        cfg=FREEZE_CFG.override(risk_sentinel_causal_confirmation_enabled=True),
     )
 
     assert integrated.freeze_new_risk is True
@@ -267,6 +507,7 @@ def test_assess_risk_is_the_only_public_freeze_mapping_boundary(
 
     monkeypatch.setattr(risk_module, "_assess_base_risk", fake_base)
     sentinel = _sentinel()
+    cfg = FREEZE_CFG.override(risk_sentinel_causal_confirmation_enabled=True)
     integrated = risk_module.assess_risk(
         date=pd.Timestamp("2026-08-19"),
         broad=None,  # type: ignore[arg-type]
@@ -277,11 +518,12 @@ def test_assess_risk_is_the_only_public_freeze_mapping_boundary(
         leaders={},
         account=None,  # type: ignore[arg-type]
         equity=1.0,
-        cfg=FREEZE_CFG,
+        cfg=cfg,
         sentinel_assessment=sentinel,
+        sentinel_causal_timeline=_causal_timeline(),
     )
 
-    assert observed["cfg"] is FREEZE_CFG
+    assert observed["cfg"] is cfg
     assert "sentinel_assessment" not in observed
     assert integrated.freeze_new_risk is True
     assert integrated.target_gross_cap == base.target_gross_cap

@@ -620,6 +620,7 @@ class ProductionEngine:
             configured_universe_size=len(user_symbols),
             sentinel_assessment=sentinel,
             sentinel_opportunity=account.opportunity,
+            sentinel_causal_timeline=causal_timeline,
         )
         risk.evidence["configured_user_universe_size"] = len(user_symbols)
         risk.evidence["universe_size_is_diagnostic_only"] = True

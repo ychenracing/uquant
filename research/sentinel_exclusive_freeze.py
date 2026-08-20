@@ -22,6 +22,16 @@ _ECONOMIC_METRICS = (
     "annual_turnover",
     "acute_return",
 )
+_RISK_BEHAVIOR_FIELDS = (
+    "base_freeze_new_risk",
+    "base_target_gross_cap",
+    "capital_budget_level",
+    "freeze_new_risk",
+    "reduction_level",
+    "sentinel_freeze_new_risk",
+    "shock_state",
+    "target_gross_cap",
+)
 
 
 def validate_locked_configs(
@@ -86,6 +96,16 @@ def _risk_evidence(row: Mapping[str, Any]) -> Mapping[str, Any]:
     return value
 
 
+def _behavioral_risk(row: Mapping[str, Any]) -> tuple[object, dict[str, object]]:
+    """Project formal risk outputs without counting the locked switch itself."""
+
+    evidence = _risk_evidence(row)
+    return (
+        row.get("risk"),
+        {field: evidence.get(field) for field in _RISK_BEHAVIOR_FIELDS},
+    )
+
+
 def _order_identity(order: Mapping[str, Any]) -> tuple[object, ...]:
     event_id = order.get("event_id")
     if isinstance(event_id, str) and event_id:
@@ -122,8 +142,8 @@ def _first_divergence(
             left_value: object
             right_value: object
             if field == "risk":
-                left_value = (left.get("risk"), _risk_evidence(left))
-                right_value = (right.get("risk"), _risk_evidence(right))
+                left_value = _behavioral_risk(left)
+                right_value = _behavioral_risk(right)
             elif field == "orders":
                 left_value = _orders(left)
                 right_value = _orders(right)

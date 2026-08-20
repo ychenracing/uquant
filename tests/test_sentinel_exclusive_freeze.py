@@ -154,6 +154,29 @@ def test_summary_retains_first_divergence_and_nonsevere_value_event() -> None:
     ]
 
 
+def test_first_behavior_divergence_ignores_the_locked_switch_diagnostic() -> None:
+    summarize = _summary_api()
+    baseline = _row(date="2026-08-18", sentinel_freeze=False, orders=())
+    candidate = _row(date="2026-08-18", sentinel_freeze=False, orders=())
+    baseline_evidence = baseline["risk_evidence"]
+    candidate_evidence = candidate["risk_evidence"]
+    assert isinstance(baseline_evidence, dict)
+    assert isinstance(candidate_evidence, dict)
+    baseline_evidence["sentinel_causal_confirmation_authority_enabled"] = False
+    candidate_evidence["sentinel_causal_confirmation_authority_enabled"] = True
+    baseline_evidence["effective_config_sha256"] = "phase6"
+    candidate_evidence["effective_config_sha256"] = "candidate"
+
+    result = summarize(
+        baseline_trace=(baseline,),
+        candidate_trace=(candidate,),
+        baseline_metrics={},
+        candidate_metrics={},
+    )
+
+    assert result["first_divergence"] is None
+
+
 def test_locked_configs_differ_only_by_causal_authority() -> None:
     validate = _locked_config_api()
     baseline = DEFAULT_CONFIG.override(

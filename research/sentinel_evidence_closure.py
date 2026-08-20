@@ -14,7 +14,12 @@ import pandas as pd
 from uquant.atomic_io import atomic_write_text, validate_atomic_output_boundary
 from uquant.config import DEFAULT_CONFIG, config_fingerprint
 from uquant.engine import INDEX_SYMBOLS, ProductionEngine, code_fingerprint
-from uquant.risk_sentinel.models import RiskEvidenceTimeline
+from uquant.risk_sentinel.models import (
+    BaseMarketRiskRow,
+    RiskEvidenceTimeline,
+    SentinelMarketRow,
+    WarmupStatus,
+)
 from uquant.validation.universe import default_ai_universe
 
 _TRUSTED_MARKET_FAMILIES: Final = frozenset(
@@ -51,6 +56,45 @@ def _aligned_rows(timeline: RiskEvidenceTimeline) -> None:
         raise ValueError("evidence history as-of must equal its final session")
 
 
+def _row_first_dates(
+    rows: tuple[SentinelMarketRow, ...] | tuple[BaseMarketRiskRow, ...],
+) -> dict[str, str]:
+    result: dict[str, str] = {}
+    for row in rows:
+        ready = (
+            row.coverage_status is WarmupStatus.READY
+            if isinstance(row, SentinelMarketRow)
+            else row.data_ready
+        )
+        if not ready:
+            continue
+        for family in row.active_families:
+            if family not in _TRUSTED_MARKET_FAMILIES:
+                raise ValueError("evidence rows must contain trusted market families")
+            result.setdefault(family, row.date)
+    return result
+
+
+def _verified_first_dates(
+    timeline: RiskEvidenceTimeline,
+) -> tuple[dict[str, str], dict[str, str]]:
+    sentinel_supplied = _first_dates(
+        timeline.sentinel_first_family_dates,
+        label="Sentinel first-family dates",
+    )
+    base_supplied = _first_dates(
+        timeline.base_first_family_dates,
+        label="base first-family dates",
+    )
+    sentinel_derived = _row_first_dates(timeline.sentinel_rows)
+    base_derived = _row_first_dates(timeline.base_rows)
+    if sentinel_supplied != sentinel_derived:
+        raise ValueError("Sentinel first-family dates differ from rows")
+    if base_supplied != base_derived:
+        raise ValueError("base first-family dates differ from rows")
+    return sentinel_derived, base_derived
+
+
 def _forward_value(
     forward_returns: Mapping[str, Mapping[str, float | None]],
     *,
@@ -76,14 +120,7 @@ def analyze_evidence_closure(
     """Classify first comparable market-family evidence without authority."""
 
     _aligned_rows(timeline)
-    sentinel_first = _first_dates(
-        timeline.sentinel_first_family_dates,
-        label="Sentinel first-family dates",
-    )
-    base_first = _first_dates(
-        timeline.base_first_family_dates,
-        label="base first-family dates",
-    )
+    sentinel_first, base_first = _verified_first_dates(timeline)
     sessions = set(timeline.sessions)
     if any(date not in sessions for date in (*sentinel_first.values(), *base_first.values())):
         raise ValueError("first-family dates must belong to the aligned market history")
@@ -211,8 +248,10 @@ def run_evidence_closure(
         cfg=DEFAULT_CONFIG,
         universe=universe,
     )
+    _aligned_rows(timeline)
+    sentinel_first, _ = _verified_first_dates(timeline)
     trigger_dates = tuple(
-        sorted({date for _, date in timeline.sentinel_first_family_dates})
+        sorted(set(sentinel_first.values()))
     )
     forward_returns = _tech_forward_returns(
         engine._raw["sh000682"]["close"],

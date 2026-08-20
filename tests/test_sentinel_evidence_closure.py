@@ -185,6 +185,19 @@ def test_evidence_closure_rejects_non_market_or_misaligned_history() -> None:
         analyze_evidence_closure(misaligned, forward_returns={})
 
 
+def test_evidence_closure_rejects_first_dates_that_disagree_with_rows() -> None:
+    timeline = _timeline(
+        sentinel_active={"2026-01-02": ("market_velocity",)},
+        base_active={"2026-01-02": ("market_velocity",)},
+        sentinel_first={"market_velocity": "2026-01-02"},
+        base_first={"market_velocity": "2026-01-02"},
+    )
+    stale_metadata = replace(timeline, base_first_family_dates=())
+
+    with pytest.raises(ValueError, match="base first-family dates differ from rows"):
+        analyze_evidence_closure(stale_metadata, forward_returns={})
+
+
 def test_evidence_closure_runner_writes_canonical_account_free_artifact(
     data_dir: Path,
     tmp_path: Path,

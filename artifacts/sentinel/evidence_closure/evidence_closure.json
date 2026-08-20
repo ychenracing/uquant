@@ -48,9 +48,12 @@
   ],
   "production_causal_confirmation_enabled": false,
   "provenance": {
+    "analyzer_commit": "4067f0eb686ca29739f044dd4ee546b75c154a59",
+    "analyzer_sha256": "d3461617f6f7e57c1cc11a880fdcfbae87dc8f55fb8e6137a992c0be4fe14d48",
     "code_sha256": "591d1659c8d4498f37700c651fcde25bdf4ca89054df7ec8d849e5dda374c1b6",
     "config_sha256": "dae4d79fdd813832c6ab152611437c13be1d38227c7280691874d3a9267d93d5",
     "data_sha256": "9a73ed7e19d34ab8876c7ddb9e974147e1c43d8dcfcaa73abe85c7f9a3ee492e",
+    "regenerated_payload_sha256": "452686b1ac223ab321aa0461856aaee2e2b4cca3a33a2b690f0d130744c8dd44",
     "universe_sha256": "03f42c5066fb8e1c7b2f8e1b7dd38d508d8053f548ebb5596317ce587d7cffd0",
     "universe_size": 34
   },

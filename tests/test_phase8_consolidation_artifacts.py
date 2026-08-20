@@ -7,6 +7,7 @@ from pathlib import Path
 
 import pytest
 
+from research.sentinel_evidence_closure import run_evidence_closure
 from uquant.config import DEFAULT_CONFIG
 
 PHASE7_CHANGED_PATHS = {
@@ -45,6 +46,10 @@ def _inventory() -> dict[str, object]:
         "artifacts/sentinel/evidence_closure/phase7_recovery_inventory.json"
     )
     return json.loads(path.read_text(encoding="utf-8"))
+
+
+def _sha256(path: str | Path) -> str:
+    return hashlib.sha256(Path(path).read_bytes()).hexdigest()
 
 
 def test_phase7_recovery_inventory_classifies_every_changed_path_once() -> None:
@@ -110,6 +115,7 @@ def test_phase8_economic_equivalence_artifact_is_exact_and_complete() -> None:
     assert seal["replayed_candidate_commit"] == payload["candidate_commit"]
     assert seal["allowed_post_replay_paths"] == [
         "artifacts/sentinel/evidence_closure/economic_equivalence.json",
+        "artifacts/sentinel/evidence_closure/evidence_closure.json",
         "docs/reviews/2026-08-20-risk-sentinel-consolidation.md",
         "tests/test_phase8_consolidation_artifacts.py",
     ]
@@ -122,19 +128,51 @@ def test_phase8_economic_equivalence_artifact_is_exact_and_complete() -> None:
     ).stdout.splitlines()
     assert sorted(changed_after_rebind) == seal["allowed_post_replay_paths"]
 
-    def sha256(path: str) -> str:
-        return hashlib.sha256(Path(path).read_bytes()).hexdigest()
-
     assert seal["production_code_sha256"] == (
         "591d1659c8d4498f37700c651fcde25bdf4ca89054df7ec8d849e5dda374c1b6"
     )
     assert seal["config_sha256"] == (
         "dae4d79fdd813832c6ab152611437c13be1d38227c7280691874d3a9267d93d5"
     )
-    assert seal["uv_lock_sha256"] == sha256("uv.lock")
-    assert seal["equivalence_runner_sha256"] == sha256(
+    assert seal["uv_lock_sha256"] == _sha256("uv.lock")
+    assert seal["equivalence_runner_sha256"] == _sha256(
         "research/committed_economic_equivalence.py"
     )
+
+
+def test_phase8_evidence_closure_seal_matches_current_analyzer(
+    data_dir: Path,
+    tmp_path: Path,
+) -> None:
+    committed = json.loads(
+        Path("artifacts/sentinel/evidence_closure/evidence_closure.json").read_text(
+            encoding="utf-8"
+        )
+    )
+    provenance = committed["provenance"]
+    assert provenance["analyzer_commit"] == (
+        "4067f0eb686ca29739f044dd4ee546b75c154a59"
+    )
+    assert provenance["analyzer_sha256"] == _sha256(
+        "research/sentinel_evidence_closure.py"
+    )
+
+    output = tmp_path / "reviewed-evidence-closure.json"
+    regenerated = run_evidence_closure(
+        data_dir=data_dir,
+        as_of="2026-08-05",
+        output=output,
+    )
+    expected = json.loads(json.dumps(committed))
+    for field in (
+        "analyzer_commit",
+        "analyzer_sha256",
+        "regenerated_payload_sha256",
+    ):
+        del expected["provenance"][field]
+
+    assert regenerated == expected
+    assert provenance["regenerated_payload_sha256"] == _sha256(output)
 
 
 def test_phase8_account_migration_changes_identity_only() -> None:

@@ -13,6 +13,7 @@
   "delivery_seal": {
     "allowed_post_replay_paths": [
       "artifacts/sentinel/evidence_closure/economic_equivalence.json",
+      "artifacts/sentinel/evidence_closure/evidence_closure.json",
       "docs/reviews/2026-08-20-risk-sentinel-consolidation.md",
       "tests/test_phase8_consolidation_artifacts.py"
     ],

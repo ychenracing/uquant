@@ -1,0 +1,42 @@
+{
+  "schema": "uquant.sentinel-exclusive-freeze-candidate-lock.v1",
+  "baseline_commit": "711af1179aa72ce48ca3a6af58ecddb3a029a7ce",
+  "candidate_change": {
+    "risk_sentinel_causal_confirmation_enabled": true
+  },
+  "fixed_parameters": {
+    "mode": "FREEZE_ONLY",
+    "min_confidence": 0.8,
+    "confirm_days": 2,
+    "repair_days": 3,
+    "severe_direct_enabled": true,
+    "gross_cap": null
+  },
+  "config_sha256": {
+    "baseline": "dae4d79fdd813832c6ab152611437c13be1d38227c7280691874d3a9267d93d5",
+    "candidate": "b75d02d238e7ea18793c6f15727b34bc15b7a002b5ec4c4e620f86f1c39c93fa"
+  },
+  "comparable_history_families": [
+    "breadth_structure",
+    "covariance_stress",
+    "market_velocity"
+  ],
+  "current_day_diagnostic_only_families": [
+    "capital_damage",
+    "live_book_damage"
+  ],
+  "forbidden_authorities": [
+    "account_state_schema",
+    "capital_budget_level",
+    "direct_sell",
+    "fill",
+    "reduction_level",
+    "risk_action",
+    "risk_gross_cap",
+    "risk_state",
+    "shock_state",
+    "target_gross_cap"
+  ],
+  "forbidden_retuning": true,
+  "official_economic_matrix_started": false
+}

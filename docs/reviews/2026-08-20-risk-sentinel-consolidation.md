@@ -86,7 +86,7 @@ the complete sample.
 against the Stage 8 candidate on the authenticated 45-case Phase 1 matrix. The
 proof is bound to baseline
 `711af1179aa72ce48ca3a6af58ecddb3a029a7ce`, candidate
-`85c9f208258bba10a19103c82cacf52ef95fa4c2`, data snapshot
+`4067f0eb686ca29739f044dd4ee546b75c154a59`, data snapshot
 `20260809T094222Z-causal-tech-index-rebase`, and matrix SHA-256
 `d3435044bb6d2936d881a4d481e015044239f246493499b6700d6ff01013838b`.
 
@@ -100,9 +100,10 @@ The sealed exact dimensions are:
 - economic AccountState fields;
 - final wealth, maximum drawdown, and trade count.
 
-Commits after the candidate evidence commit only add or align documentation,
-research tooling, artifacts, and tests; they do not change production strategy,
-configuration, data, or runtime behavior. The proof is recorded in
+The complete matrix was rerun after the final Evidence Closure fix. Only the
+sealed equivalence artifact, its exact-HEAD contract test, and this review
+document follow the replayed candidate; a repository test enforces that closed
+post-replay path set. The proof is recorded in
 `artifacts/sentinel/evidence_closure/economic_equivalence.json`.
 
 ## Account code identity migration

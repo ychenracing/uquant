@@ -1,6 +1,8 @@
 from __future__ import annotations
 
+import hashlib
 import json
+import subprocess
 from pathlib import Path
 
 import pytest
@@ -101,6 +103,38 @@ def test_phase8_economic_equivalence_artifact_is_exact_and_complete() -> None:
     assert payload["baseline_commit"] == "711af1179aa72ce48ca3a6af58ecddb3a029a7ce"
     assert payload["baseline_trace_sha256"] == payload["candidate_trace_sha256"]
     assert all(payload["exact_dimensions"].values())
+
+    seal = payload["delivery_seal"]
+    assert payload["candidate_commit"] == "4067f0eb686ca29739f044dd4ee546b75c154a59"
+    assert seal["economic_replay_rerun"] is True
+    assert seal["replayed_candidate_commit"] == payload["candidate_commit"]
+    assert seal["allowed_post_replay_paths"] == [
+        "artifacts/sentinel/evidence_closure/economic_equivalence.json",
+        "docs/reviews/2026-08-20-risk-sentinel-consolidation.md",
+        "tests/test_phase8_consolidation_artifacts.py",
+    ]
+
+    changed_after_rebind = subprocess.run(
+        ["git", "diff", "--name-only", f"{payload['candidate_commit']}..HEAD"],
+        check=True,
+        capture_output=True,
+        text=True,
+    ).stdout.splitlines()
+    assert sorted(changed_after_rebind) == seal["allowed_post_replay_paths"]
+
+    def sha256(path: str) -> str:
+        return hashlib.sha256(Path(path).read_bytes()).hexdigest()
+
+    assert seal["production_code_sha256"] == (
+        "591d1659c8d4498f37700c651fcde25bdf4ca89054df7ec8d849e5dda374c1b6"
+    )
+    assert seal["config_sha256"] == (
+        "dae4d79fdd813832c6ab152611437c13be1d38227c7280691874d3a9267d93d5"
+    )
+    assert seal["uv_lock_sha256"] == sha256("uv.lock")
+    assert seal["equivalence_runner_sha256"] == sha256(
+        "research/committed_economic_equivalence.py"
+    )
 
 
 def test_phase8_account_migration_changes_identity_only() -> None:

@@ -111,8 +111,14 @@ def test_phase8_economic_equivalence_artifact_is_exact_and_complete() -> None:
 
     seal = payload["delivery_seal"]
     assert payload["candidate_commit"] == "4067f0eb686ca29739f044dd4ee546b75c154a59"
+    assert payload["candidate_remote_commit"] == (
+        "ca422cb981493bc2c16a2f2113fd5a3f9e6b5943"
+    )
     assert seal["economic_replay_rerun"] is True
     assert seal["replayed_candidate_commit"] == payload["candidate_commit"]
+    assert seal["replayed_candidate_remote_commit"] == (
+        payload["candidate_remote_commit"]
+    )
     assert seal["allowed_post_replay_paths"] == [
         "artifacts/sentinel/evidence_closure/economic_equivalence.json",
         "artifacts/sentinel/evidence_closure/evidence_closure.json",
@@ -153,6 +159,9 @@ def test_phase8_evidence_closure_seal_matches_current_analyzer(
     assert provenance["analyzer_commit"] == (
         "4067f0eb686ca29739f044dd4ee546b75c154a59"
     )
+    assert provenance["analyzer_remote_commit"] == (
+        "ca422cb981493bc2c16a2f2113fd5a3f9e6b5943"
+    )
     assert provenance["analyzer_sha256"] == _sha256(
         "research/sentinel_evidence_closure.py"
     )
@@ -166,6 +175,7 @@ def test_phase8_evidence_closure_seal_matches_current_analyzer(
     expected = json.loads(json.dumps(committed))
     for field in (
         "analyzer_commit",
+        "analyzer_remote_commit",
         "analyzer_sha256",
         "regenerated_payload_sha256",
     ):

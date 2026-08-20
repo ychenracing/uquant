@@ -49,6 +49,7 @@
   "production_causal_confirmation_enabled": false,
   "provenance": {
     "analyzer_commit": "4067f0eb686ca29739f044dd4ee546b75c154a59",
+    "analyzer_remote_commit": "ca422cb981493bc2c16a2f2113fd5a3f9e6b5943",
     "analyzer_sha256": "d3461617f6f7e57c1cc11a880fdcfbae87dc8f55fb8e6137a992c0be4fe14d48",
     "code_sha256": "591d1659c8d4498f37700c651fcde25bdf4ca89054df7ec8d849e5dda374c1b6",
     "config_sha256": "dae4d79fdd813832c6ab152611437c13be1d38227c7280691874d3a9267d93d5",

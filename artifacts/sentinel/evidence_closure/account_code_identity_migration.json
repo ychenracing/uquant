@@ -1,0 +1,25 @@
+{
+  "schema": "uquant.phase8-account-code-identity-migration.v1",
+  "status": "PASS",
+  "command": "uquant account-code-migrate --acknowledge-code-change",
+  "sample": "five-symbol account initialized from production main at 2026-08-05",
+  "schema_version_before": 5,
+  "schema_version_after": 5,
+  "from_code_hash": "7ba223f678ffc3c26ffb254985108c81ebac5c57ea298b0d898219825263a990",
+  "to_code_hash": "591d1659c8d4498f37700c651fcde25bdf4ca89054df7ec8d849e5dda374c1b6",
+  "economic_state_sha256_before": "ddb996e13ef7e1f5689474b02a36934a73da1b2e7abb541b806a07b1b097a449",
+  "economic_state_sha256_after": "ddb996e13ef7e1f5689474b02a36934a73da1b2e7abb541b806a07b1b097a449",
+  "economic_payload_equal": true,
+  "changed_fields": [
+    "code_hash",
+    "account_migrations[-1]"
+  ],
+  "migration_event": {
+    "migration_type": "code_identity_only",
+    "migrated_at_utc": "2026-08-20T14:55:24.647210+00:00",
+    "from_schema": 5,
+    "to_schema": 5,
+    "economic_state_sha256_before": "ddb996e13ef7e1f5689474b02a36934a73da1b2e7abb541b806a07b1b097a449",
+    "economic_state_sha256_after": "ddb996e13ef7e1f5689474b02a36934a73da1b2e7abb541b806a07b1b097a449"
+  }
+}

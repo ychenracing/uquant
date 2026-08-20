@@ -7,7 +7,6 @@ import pytest
 
 from uquant.config import DEFAULT_CONFIG
 
-
 PHASE7_CHANGED_PATHS = {
     "artifacts/sentinel/exclusive_freeze/README.md",
     "artifacts/sentinel/exclusive_freeze/account_code_identity_migration.json",
@@ -88,3 +87,35 @@ def test_consolidated_production_modes_reject_candidate_and_gross_cap_values() -
         DEFAULT_CONFIG.override(  # type: ignore[arg-type]
             risk_sentinel_mode="SENTINEL_EXCLUSIVE_FREEZE"
         )
+
+
+def test_phase8_economic_equivalence_artifact_is_exact_and_complete() -> None:
+    payload = json.loads(
+        Path("artifacts/sentinel/evidence_closure/economic_equivalence.json").read_text(
+            encoding="utf-8"
+        )
+    )
+
+    assert payload["passed"] is True
+    assert payload["cases"] == 45
+    assert payload["baseline_commit"] == "711af1179aa72ce48ca3a6af58ecddb3a029a7ce"
+    assert payload["baseline_trace_sha256"] == payload["candidate_trace_sha256"]
+    assert all(payload["exact_dimensions"].values())
+
+
+def test_phase8_account_migration_changes_identity_only() -> None:
+    payload = json.loads(
+        Path(
+            "artifacts/sentinel/evidence_closure/account_code_identity_migration.json"
+        ).read_text(encoding="utf-8")
+    )
+
+    assert payload["status"] == "PASS"
+    assert payload["schema_version_before"] == payload["schema_version_after"] == 5
+    assert payload["economic_payload_equal"] is True
+    assert (
+        payload["economic_state_sha256_before"]
+        == payload["economic_state_sha256_after"]
+    )
+    assert payload["changed_fields"] == ["code_hash", "account_migrations[-1]"]
+    assert payload["migration_event"]["migration_type"] == "code_identity_only"

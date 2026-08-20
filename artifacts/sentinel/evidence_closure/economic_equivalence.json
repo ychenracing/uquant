@@ -1,0 +1,28 @@
+{
+  "baseline_commit": "711af1179aa72ce48ca3a6af58ecddb3a029a7ce",
+  "baseline_trace_sha256": "8dab09e7019c1f0c8ea4e21f1f061260a2c4eb25a87abd8d75da73f86cab57f3",
+  "candidate_commit": "85c9f208258bba10a19103c82cacf52ef95fa4c2",
+  "candidate_trace_sha256": "8dab09e7019c1f0c8ea4e21f1f061260a2c4eb25a87abd8d75da73f86cab57f3",
+  "cases": 45,
+  "data": {
+    "checksums_sha256": "ba460d65f791f238d8a4a16ac62e2225c1832caa6f4da5003166a894edf80e29",
+    "files_verified": 36,
+    "manifest_sha256": "343009138d22f8d4a20768f706207fe4d4bcd03581b0c5945c5485ecbd28788d",
+    "snapshot_id": "20260809T094222Z-causal-tech-index-rebase"
+  },
+  "exact_dimensions": {
+    "account_state_economic_fields": true,
+    "decision_digest": true,
+    "fills": true,
+    "final_wealth": true,
+    "max_drawdown": true,
+    "orders": true,
+    "risk_assessment_control": true,
+    "target_portfolio": true,
+    "trade_count": true
+  },
+  "matrix_sha256": "d3435044bb6d2936d881a4d481e015044239f246493499b6700d6ff01013838b",
+  "passed": true,
+  "proof_contract": "Each case hashes every canonical daily Decision payload and the final economic AccountState after removing code_hash only. Equal decisions, fills, order ledger, cash and positions on identical authenticated prices deterministically preserve wealth, drawdown and trade count.",
+  "schema": "uquant.committed-economic-equivalence.v1"
+}

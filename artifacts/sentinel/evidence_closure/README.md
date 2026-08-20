@@ -24,3 +24,30 @@ production causal-confirmation authority remains disabled, actual production
 opportunity cost is zero for every row. The artifact uses the existing
 configuration without overriding thresholds or confirmation parameters and
 does not read or write an account.
+
+`economic_equivalence.json` binds the Stage 8 comparison to production main
+`711af117` and the authenticated 45-case Phase 1 matrix. Its baseline and
+candidate trace digests are identical. The trace contract covers canonical
+daily decisions plus the final economic account, including order and fill
+history; only the production code identity is excluded from the economic
+account hash.
+
+The resumable comparison is available as:
+
+```bash
+uv run python -m research.committed_economic_equivalence \
+  --baseline-root /path/to/clean-main \
+  --candidate-root /path/to/clean-candidate \
+  --data-dir data/frozen \
+  --checkpoint /tmp/uquant-equivalence-checkpoint.json \
+  --output /tmp/uquant-equivalence.json \
+  --jobs 4
+```
+
+Each completed side/case trace is atomically checkpointed and bound to both
+commit SHAs, the data manifest, and the exact matrix digest. A mismatched
+checkpoint is rejected instead of silently reused.
+
+`account_code_identity_migration.json` records the mandatory explicit account
+code-identity migration. Schema and every economic field remain equal; only
+`code_hash` and the appended `code_identity_only` audit event change.

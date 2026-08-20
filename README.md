@@ -12,6 +12,8 @@ uquant 是专门面向 2023 年以来 A 股 AI 产业链的日频量化决策系
 - **严格因果时点**：信号只读取决策日及以前的数据，成交最早发生在下一可交易日开盘。
 - **双轴判断**：机会状态决定是否值得承担风险，风险状态独立给出最高仓位；强机会不能覆盖风险上限。
 - **组合级风控**：同时约束总仓、单票、持仓数、行业集中度、相关性、流动性和资本回撤。
+- **独立风险观察**：Risk Sentinel 以点时市场证据补充基础风险，并在同一日报中说明
+  Coverage、Owner 与风险 Family；它不能直接卖出或修改总仓上限。
 - **低换手执行**：连续确认、最短持有、替换优势、轮动预算、目标迟滞和订单复用共同过滤无效交易。
 - **A 股交易约束**：模拟 T+1、涨跌停、停牌、手数、科创板首次买入、费用、滑点、容量和部分成交。
 - **可恢复账户**：账户保存订单、成交、持仓生命周期、风险状态和数据指纹，并使用原子写入。
@@ -109,7 +111,9 @@ uv run uquant daily \
   --output daily_report_2026-07-21.md
 ```
 
-日报包含机会状态、风险状态、目标总仓、目标持仓数、逐票目标权重、订单意图和决策证据。生成意图后仍需人工核对券商状态。
+日报包含机会状态、风险状态、Risk Sentinel、目标总仓、目标持仓数、逐票目标权重、
+订单意图和决策证据。日常只运行这一次 `uquant daily`，不需要再运行独立 Sentinel CLI；
+生成意图后仍需人工核对券商状态。
 
 ### 4. 历史回放
 
@@ -143,6 +147,7 @@ date,open,high,low,close,volume
 | `uquant/data.py`、`features.py` | 点时数据与因果特征 |
 | `uquant/leader.py`、`industry.py` | 领涨与行业证据 |
 | `uquant/opportunity.py`、`risk*.py` | 机会和风险状态 |
+| `uquant/risk_sentinel/` | 独立点时风险证据、Coverage 与 Freeze-only 映射 |
 | `uquant/portfolio*.py` | 唯一目标组合及各生命周期职责 |
 | `uquant/execution.py` | 次日开盘执行模型与订单生命周期 |
 | `uquant/account.py`、`broker.py` | 账户持久化和券商对账 |
@@ -157,6 +162,7 @@ date,open,high,low,close,volume
 - [参数参考](docs/CONFIGURATION.md)
 - [运行手册](docs/OPERATIONS.md)
 - [性能与证据](docs/PERFORMANCE.md)
+- [Risk Sentinel](docs/RISK_SENTINEL.md)
 - [开发指南](docs/DEVELOPMENT.md)
 - [质量契约](docs/QUALITY.md)
 

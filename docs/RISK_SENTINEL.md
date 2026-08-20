@@ -1,10 +1,14 @@
-# Independent Risk Sentinel Shadow Mode
+# Independent Risk Sentinel — Production FREEZE_ONLY
 
-Independent Risk Sentinel 默认仍是与生产决策隔离的只读观察器。它读取 canonical 34-stock
-AI universe、点时行业、冻结行情、两个指数和已有账户快照，只输出独立 JSON/Markdown
-证据。它不调用 `ProductionEngine`，不生成目标、订单或成交，不写账户，也不改变正式
-`RiskAssessment`、组合分配或执行行为。Phase 4 增加了受控的 Freeze-only 集成代码，但
-候选未通过经济硬门，默认模式已回到 `SHADOW`，生产决策不会求值 Sentinel。
+生产默认模式是 `FREEZE_ONLY`。Independent Risk Sentinel 读取 canonical 34-stock AI
+universe、点时行业、冻结行情、两个指数和已有账户快照，形成独立风险证据；同一份
+摘要进入唯一 `uquant daily` 报告。它不能生成目标、订单或成交，不能直接 SELL，不能
+修改 `target_gross_cap`，也不能写第二账户或第二状态机。
+
+生产映射仍只有 Phase 4 已晋级的窄 Freeze-only 边界：合格意见最多设置现有
+`RiskAssessment.freeze_new_risk`。Phase 6 的完整市场时间线用于因果诊断，但
+`risk_sentinel_causal_confirmation_enabled=false`，所以两日可信确认本身没有新增生产
+权限。Phase 7 尝试仅启用该权限，因没有实际阻止新增风险而 REJECT，未合并 main。
 
 ## 证据与 Coverage
 
@@ -27,15 +31,16 @@ Coverage Confidence 固定为：
 
 ## 与 uquant 基础风险的差异
 
-uquant 正式风险负责生产状态机与经济行为。Sentinel 只描述同日可见的跨市场、等权子行业、
-领导者、当前持仓和已有资本高水位证据。工件同时保留正式风险状态、同日正式风险事件与双方
-证据家族差异，供人工分析。非默认 `FREEZE_ONLY` 模式下，唯一允许的映射位于
-`uquant.assess_risk()`，且只能设置现有 `freeze_new_risk`；不能修改正式风险状态、总仓上限、
-减仓级别或冲击状态，也不能直接产生目标、卖单、风险动作或账户状态。该候选当前不得晋级。
-由于 Phase 4 尚无双方逐家族、逐交易日的点时首次证据载体，“更早”路径失败关闭；只有同日
-新增 family 能提供增量资格，输出会明确记录 `sentinel_earlier_supported=false`。当前账户和
-行业状态也不回填成历史确认，`confirmation_history_trusted=false`；常规两日确认不取得权限，
-仅 severe-direct 窄例外可绕过确认天数。
+uquant 正式风险负责生产状态机与经济行为。Sentinel 描述跨市场、等权子行业、领导者、
+当前持仓和已有资本高水位证据。只有 `market_velocity`、`breadth_structure` 和
+`covariance_stress` 可以进入完整历史时间线；`live_book_damage` 与 `capital_damage`
+只作当日诊断，当前账户不会回填历史。
+
+Phase 8 Evidence Closure 在同一市场序列上比较双方首次 Family 日期。结果是三个可信
+市场 Family 全部为 `DUPLICATE`，`EARLIER=0`、`INCREMENTAL=0`、
+`FALSE_POSITIVE=0`。详细机器证据位于
+`artifacts/sentinel/evidence_closure/evidence_closure.json`。这项分析不改变 confidence、
+确认日、修复日或任何基础风险阈值，也不取得新的 Freeze 权限。
 
 ## 离线 Calibration 边界
 
@@ -57,7 +62,7 @@ SHA-256 或版本身份。JSON 使用 canonical seal；同输入同提交重复�
 uv run python -m uquant.risk_sentinel --validate-contracts
 ```
 
-运行某一已存在的 canonical 数据交易日：
+以下独立 CLI 仅用于离线审计或故障诊断，不是日常生产步骤：
 
 ```bash
 uv run uquant-sentinel \
@@ -68,8 +73,8 @@ uv run uquant-sentinel \
 ```
 
 输出目录必须与账户和数据目录分离。账户或数据别名、非共同指数交易日、canonical universe
-与点时 reference registry 不一致都会失败关闭。Shadow 输出只供观察；人工不能把其中的
-总仓或冻结建议写回模型账户。
+与点时 reference registry 不一致都会失败关闭。日常只运行一次 `uquant daily`；人工不能把
+离线 Sentinel 观察转换成卖单、总仓限制或账户状态。
 
 ## 已知边界
 

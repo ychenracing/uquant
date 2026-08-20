@@ -228,3 +228,17 @@ Shadow 精确相同，财富保留 100%，机会成本为 0。
 Phase 1 的 30 个官方单元和 15 个保护单元全部通过；显式 Shadow 与 Freeze-only 的
 Generalization 均为 234/234，通过 no-optical、remove-core 和 120 个固定随机池，且所有
 经济/status 字段 0 差异。完整结果与原始矩阵摘要见 `artifacts/sentinel/freeze_only/`。
+
+## Phase 7 REJECT 与 Phase 8 Evidence Closure
+
+Phase 7 只启用可信因果确认候选。三个预锁定小门 Cell 中，`a/h1_2024` 在
+2024-06-25 出现一次非 severe-direct、Coverage READY、confidence 1.0、可信连续两日且
+base 未 Freeze 的 Sentinel 独立 Freeze，但当天实际阻止新增风险数为 0。财富、MDD、
+Acute、账户订单和换手均为零差异；直接 SELL、`RISK_GROSS_CAP`、健康持仓减仓及禁止风险
+字段漂移也均为0。因此候选因没有增量经济价值而 REJECT，未运行昂贵完整矩阵，未合并 main。
+
+Phase 8 只回收长期审计价值。截止 2026-08-05 的点时时间线显示三个可信市场 Family
+均为重复能力：`market_velocity` Base/Sentinel 首日均为 2014-02-25；
+`breadth_structure` 为 2014-02-25 / 2014-02-26；`covariance_stress` 为
+2015-08-18 / 2024-09-30。`EARLIER=0`、`INCREMENTAL=0`、
+`FALSE_POSITIVE=0`。该工件不读账户，生产因果确认开关保持关闭，实际机会成本为0。

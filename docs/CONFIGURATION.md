@@ -167,6 +167,20 @@ Generalization 六窗口门禁，不能由人工日常运行或研究脚本临�
 
 资本预算阶梯默认开启；`evidence_family_voting_enabled` 明确默认为 `false`。风险状态仍消费同一份因果证据，但生产不会在引擎内部按股票池大小偷偷打开证据家族投票或另一个策略配置。改变这些开关会显著影响回撤和恢复速度，必须重新运行完整 AI-era 门禁。
 
+### Risk Sentinel 生产边界
+
+| 参数 | 生产默认值 | 边界 |
+|---|---:|---|
+| `risk_sentinel_mode` | `FREEZE_ONLY` | 仅允许 `SHADOW` / `FREEZE_ONLY` |
+| `risk_sentinel_min_confidence` | 0.80 | 不在 Phase 8 搜索或调整 |
+| `risk_sentinel_confirm_days` | 2 | 完整市场历史诊断 |
+| `risk_sentinel_repair_days` | 3 | 完整市场历史诊断 |
+| `risk_sentinel_causal_confirmation_enabled` | false | Phase 7 候选 REJECT，保持关闭 |
+
+`LIMITED_GROSS_CAP` 会抛出明确拒绝错误；`SENTINEL_EXCLUSIVE_FREEZE` 和其他未知值
+同样无效。Sentinel 不修改基础 Risk state、总仓上限、减仓等级、冲击状态或资本预算，
+也不产生 SELL、目标、订单、Fill 或账户字段。
+
 ## 持仓同步冲击
 
 | 参数 | 默认值 |

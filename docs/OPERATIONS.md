@@ -183,10 +183,13 @@ uv run python scripts/future_holdout.py journal filled \
 截断或重封既有行。外部 checkpoint 会检测整链重封和截断。人工成交仅改变 Journal
 checkpoint，不能改变模型 Decision Digest、回放分数或候选晋级。
 
-## Sentinel operation
+## Risk Sentinel 日报融合
 
-Independent Risk Sentinel 是生产流程之外的只读风险观察。日常运行前先验证合同与导入隔离，
-再以同一 canonical 数据交易日和已有账户生成独立工件：
+生产默认是 `FREEZE_ONLY`。`uquant daily` 已在唯一日报中显示 Mode、Level、Coverage、
+Confidence、Owner、Risk Families、AI Industry Risk 和受限结论；日常不再要求额外运行
+Sentinel CLI。Sentinel 不能直接 SELL、降低 `target_gross_cap`、创建第二账户或增加账户字段。
+
+下列命令只用于工程合同验证或离线故障诊断：
 
 ```bash
 uv run python -m uquant.risk_sentinel --validate-contracts
@@ -197,12 +200,10 @@ uv run uquant-sentinel \
   --output artifacts/sentinel/2026-08-05.json
 ```
 
-输出不能位于数据目录，也不能覆盖账户；成功时同时写 JSON、Markdown 和
-`latest_success.json`。运行前后应比较账户 SHA-256，确认未变化。失败运行保留现有最新成功
-指针。在 `SHADOW` 模式下 Sentinel 意见、Coverage 与正式风险的差异仅供人工观察；生产
-默认 `FREEZE_ONLY` 也只能由 `uquant.assess_risk()` 把合格意见映射到现有
-`RiskAssessment.freeze_new_risk`。不要在账户或命令行外部把 Sentinel 观察手工转换为
-卖单、风险动作或总仓限制。完整合同见 [RISK_SENTINEL.md](RISK_SENTINEL.md)。
+输出不能位于数据目录，也不能覆盖账户；失败运行保留现有最新成功指针。生产映射最多设置
+现有 `RiskAssessment.freeze_new_risk`。Phase 6 可信历史的生产权限开关保持 `false`；
+Phase 7 独立确认候选已经 REJECT。不要把 Sentinel 观察手工转换为卖单、风险动作或总仓
+限制。完整合同见 [RISK_SENTINEL.md](RISK_SENTINEL.md)。
 
 生产源码升级后，先备份账户，再使用显式代码身份迁移：
 

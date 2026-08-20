@@ -35,9 +35,9 @@
 
 ```python
 def test_phase7_review_classifies_every_changed_path():
-    review = Path("docs/reviews/phase7_artifact_review.md").read_text()
-    assert all(path in review for path in PHASE7_CHANGED_PATHS)
-    assert "risk_sentinel_causal_confirmation_enabled: false" in review
+    payload = json.loads(Path("artifacts/sentinel/evidence_closure/phase7_recovery_inventory.json").read_text())
+    assert {row["path"] for row in payload["files"]} == PHASE7_CHANGED_PATHS
+    assert payload["production_causal_confirmation_enabled"] is False
     assert not Path("artifacts/sentinel/exclusive_freeze/candidate_lock.json").exists()
 ```
 

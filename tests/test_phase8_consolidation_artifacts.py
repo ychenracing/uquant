@@ -3,6 +3,10 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
+import pytest
+
+from uquant.config import DEFAULT_CONFIG
+
 
 PHASE7_CHANGED_PATHS = {
     "artifacts/sentinel/exclusive_freeze/README.md",
@@ -72,3 +76,15 @@ def test_phase7_recovery_inventory_excludes_candidate_authority_assets() -> None
     assert payload["whole_merge_or_cherry_pick"] is False
     assert not Path("artifacts/sentinel/exclusive_freeze/candidate_lock.json").exists()
     assert not Path("research/sentinel_exclusive_freeze.py").exists()
+
+
+def test_consolidated_production_modes_reject_candidate_and_gross_cap_values() -> None:
+    assert DEFAULT_CONFIG.risk_sentinel_mode == "FREEZE_ONLY"
+    assert DEFAULT_CONFIG.risk_sentinel_causal_confirmation_enabled is False
+
+    with pytest.raises(ValueError, match="LIMITED_GROSS_CAP was rejected"):
+        DEFAULT_CONFIG.override(risk_sentinel_mode="LIMITED_GROSS_CAP")  # type: ignore[arg-type]
+    with pytest.raises(ValueError, match="risk_sentinel_mode is invalid"):
+        DEFAULT_CONFIG.override(  # type: ignore[arg-type]
+            risk_sentinel_mode="SENTINEL_EXCLUSIVE_FREEZE"
+        )

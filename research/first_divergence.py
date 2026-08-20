@@ -307,6 +307,7 @@ def _trace_row(
     raw_targets = tuple(asdict(target) for target in decision.targets)
     raw_fills = tuple(asdict(fill) for fill in new_fills)
     raw_orders = tuple(asdict(order) for order in decision.pending_orders)
+    raw_order_ledger = tuple(asdict(order) for order in account.order_ledger)
 
     return {
         "date": decision.date,
@@ -333,6 +334,7 @@ def _trace_row(
         "fills": _project_records(raw_fills, _FILL_FIELDS),
         "pending_orders": raw_orders,
         "orders": _project_records(raw_orders, _ORDER_FIELDS),
+        "order_ledger": raw_order_ledger,
     }
 
 

@@ -1,0 +1,71 @@
+{
+  "account_history_used": false,
+  "as_of": "2026-08-05",
+  "counterfactual_is_accounting_pnl": false,
+  "events": [
+    {
+      "base_first_date": "2014-02-25",
+      "classification": "DUPLICATE",
+      "diagnostic_opportunity_cost_return": 0.0,
+      "family": "market_velocity",
+      "forward_tech_return_10d": -0.05220379034284206,
+      "forward_tech_return_20d": -0.05287602957852644,
+      "forward_tech_return_5d": -0.008311321459370302,
+      "outcome_status": "DUPLICATE",
+      "production_opportunity_cost": 0.0,
+      "relationship": "DUPLICATE",
+      "sentinel_first_date": "2014-02-25",
+      "trigger_date": "2014-02-25"
+    },
+    {
+      "base_first_date": "2014-02-25",
+      "classification": "DUPLICATE",
+      "diagnostic_opportunity_cost_return": 0.0,
+      "family": "breadth_structure",
+      "forward_tech_return_10d": -0.04550539573903134,
+      "forward_tech_return_20d": -0.032994991768642734,
+      "forward_tech_return_5d": -0.0009549918832145732,
+      "outcome_status": "DUPLICATE",
+      "production_opportunity_cost": 0.0,
+      "relationship": "DUPLICATE",
+      "sentinel_first_date": "2014-02-26",
+      "trigger_date": "2014-02-26"
+    },
+    {
+      "base_first_date": "2015-08-18",
+      "classification": "DUPLICATE",
+      "diagnostic_opportunity_cost_return": 0.1136741297081969,
+      "family": "covariance_stress",
+      "forward_tech_return_10d": 0.18629728263279755,
+      "forward_tech_return_20d": 0.1136741297081969,
+      "forward_tech_return_5d": 0.08111923131166399,
+      "outcome_status": "DUPLICATE",
+      "production_opportunity_cost": 0.0,
+      "relationship": "DUPLICATE",
+      "sentinel_first_date": "2024-09-30",
+      "trigger_date": "2024-09-30"
+    }
+  ],
+  "production_causal_confirmation_enabled": false,
+  "provenance": {
+    "code_sha256": "591d1659c8d4498f37700c651fcde25bdf4ca89054df7ec8d849e5dda374c1b6",
+    "config_sha256": "dae4d79fdd813832c6ab152611437c13be1d38227c7280691874d3a9267d93d5",
+    "data_sha256": "9a73ed7e19d34ab8876c7ddb9e974147e1c43d8dcfcaa73abe85c7f9a3ee492e",
+    "universe_sha256": "03f42c5066fb8e1c7b2f8e1b7dd38d508d8053f548ebb5596317ce587d7cffd0",
+    "universe_size": 34
+  },
+  "schema": "uquant.sentinel-evidence-closure.v1",
+  "source": "RiskEvidenceTimeline",
+  "summary": {
+    "duplicate": 3,
+    "earlier": 0,
+    "false_positive": 0,
+    "incremental": 0,
+    "total_first_family_events": 3
+  },
+  "trusted_market_families": [
+    "breadth_structure",
+    "covariance_stress",
+    "market_velocity"
+  ]
+}

@@ -151,6 +151,62 @@ def test_sentinel_freeze_suppresses_sell_funded_rotation(monkeypatch) -> None:
     ]
 
 
+def test_sentinel_freeze_suppresses_multi_symbol_rotation_atomically(
+    monkeypatch,
+) -> None:
+    account = AccountState(
+        initial_cash=1_000.0,
+        cash=0.0,
+        positions={
+            symbol: Position(
+                symbol=symbol,
+                shares=5,
+                avg_cost=100.0,
+                entry_date="2026-01-01",
+                highest_close=100.0,
+                lifecycle=Lifecycle.CORE.value,
+            )
+            for symbol in ("old-a", "old-b")
+        },
+        operating_peak=1_000.0,
+        capital_peak=1_000.0,
+    )
+    allocator = PortfolioAllocator(DEFAULT_CONFIG)
+    planned = (
+        _target(
+            "old-a",
+            0.0,
+            reason_code="rotation_exit",
+            mechanism=AttributionMechanism.LEADER_ROTATION.value,
+        ),
+        _target(
+            "old-b",
+            0.0,
+            reason_code="rotation_exit",
+            mechanism=AttributionMechanism.LEADER_ROTATION.value,
+        ),
+        _target("new-a", 0.55, replaces_symbol="old-a"),
+        _target("new-b", 0.45, replaces_symbol="old-b"),
+    )
+    monkeypatch.setattr(allocator, "_allocate_strategy", lambda **_: planned)
+
+    actual = allocator.allocate(
+        date=pd.Timestamp("2026-08-19"),
+        opportunity=Opportunity.STRONG_TREND,
+        risk=_risk(),
+        user_panel={},
+        leaders={},
+        account=account,
+        prices={symbol: 100.0 for symbol in ("old-a", "old-b", "new-a", "new-b")},
+    )
+
+    assert [(target.symbol, target.weight) for target in actual] == [
+        ("old-a", 0.50),
+        ("old-b", 0.50),
+    ]
+    assert account.positions.keys() == {"old-a", "old-b"}
+
+
 def test_sentinel_diagnostics_cannot_bypass_formal_freeze_authority(monkeypatch) -> None:
     allocator = PortfolioAllocator(DEFAULT_CONFIG)
     account = _account()

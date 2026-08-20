@@ -99,6 +99,7 @@ def test_trace_backtest_preserves_production_backtest_result_and_captures_causal
         "fills",
         "pending_orders",
         "orders",
+        "order_ledger",
     }
     assert all(required <= set(row) for row in trace)
     for row in trace:

@@ -26,3 +26,5 @@ daily_report_*.md
 /artifacts/future_holdout_decision.json
 /artifacts/future_holdout_checkpoint.json
 .worktrees/
+/.risk_differential_runtime/
+/risk_differential_observations.jsonl

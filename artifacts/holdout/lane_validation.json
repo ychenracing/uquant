@@ -1,79 +1,117 @@
 {
-  "schema_version": 1,
-  "report_id": "phase2-future-holdout-lane-validation-v1",
+  "canonical_sha256": "d5e25563da46c890a704e5e8a281dd2e18c50bb23298b9ae91c54deaffecc0b7",
   "contract_sha256": "f1555d2f5527b83899ade8f934f67de8df6050aa2ebc7453d0d4245c618e2aeb",
   "holdout_data_sha256": "4308b714db46527214f6bbc47f46e904dbdc5f747144da5a67766495934ac17b",
-  "observed_sessions": 0,
-  "review_milestones": [20, 40, 60],
   "lanes": [
     {
-      "lane_id": "champion_pre_sentinel",
       "activation_session": "2026-08-06",
-      "source_commit": "c47367bba64c827fe18f788c9a3650e13ece306f",
-      "production_source_sha256": "f9c78557e38342c5a994f19fde63352f635ac37c5d2d7a187ba410b98caa1aed",
-      "sentinel_source_sha256": "f9c78557e38342c5a994f19fde63352f635ac37c5d2d7a187ba410b98caa1aed",
-      "effective_config_sha256": "ed52da44a359c1506e1d299f7bc341ad01b199d7f96997f7c01f2b8eca7cfc13",
       "data_contract_sha256": "f1555d2f5527b83899ade8f934f67de8df6050aa2ebc7453d0d4245c618e2aeb",
-      "holdout_data_sha256": "4308b714db46527214f6bbc47f46e904dbdc5f747144da5a67766495934ac17b",
-      "runtime": {
-        "python_full_version": "3.12.13",
-        "numpy_version": "2.5.1",
-        "pandas_version": "3.0.5",
-        "uv_version": "0.11.33",
-        "uv_lock_sha256": "4accf16535b5ac95b831c9289e0ad2ff21282dc5dfae3f05dd0fb095089d6a61"
-      },
       "economic_behavior": "IDENTICAL",
-      "status": "OBSERVING",
-      "observed_sessions": 0,
+      "effective_config_sha256": "ed52da44a359c1506e1d299f7bc341ad01b199d7f96997f7c01f2b8eca7cfc13",
       "first_observed_session": null,
+      "formal_reviewable": false,
+      "holdout_data_sha256": "4308b714db46527214f6bbc47f46e904dbdc5f747144da5a67766495934ac17b",
+      "lane_id": "champion_pre_sentinel",
       "last_observed_session": null,
       "next_milestone": 20,
-      "formal_reviewable": false,
+      "observed_sessions": 0,
+      "production_source_sha256": "f9c78557e38342c5a994f19fde63352f635ac37c5d2d7a187ba410b98caa1aed",
+      "runtime": {
+        "numpy_version": "2.5.1",
+        "pandas_version": "3.0.5",
+        "python_full_version": "3.12.13",
+        "uv_lock_sha256": "4accf16535b5ac95b831c9289e0ad2ff21282dc5dfae3f05dd0fb095089d6a61",
+        "uv_version": "0.11.33"
+      },
       "score_status": "NON_REVIEWABLE",
       "scores": {
-        "final_wealth": null,
-        "max_drawdown": null,
         "account_orders": null,
+        "final_wealth": null,
         "gross_turnover": null,
+        "max_drawdown": null,
+        "pnl_hhi": null,
         "top1_concentration": null,
-        "top3_concentration": null,
-        "pnl_hhi": null
-      }
+        "top3_concentration": null
+      },
+      "sentinel_source_sha256": "f9c78557e38342c5a994f19fde63352f635ac37c5d2d7a187ba410b98caa1aed",
+      "source_commit": "c47367bba64c827fe18f788c9a3650e13ece306f",
+      "status": "OBSERVING"
     },
     {
-      "lane_id": "sentinel_shadow",
       "activation_session": "2026-08-19",
-      "source_commit": "e02b0ad5c38aa119b2d21cb3142589b1f3f2fae1",
-      "production_source_sha256": "f9c78557e38342c5a994f19fde63352f635ac37c5d2d7a187ba410b98caa1aed",
-      "sentinel_source_sha256": "0f26fc5be244a985b20cb426b025a909f85939ee7a5ee8905b9367559093b46e",
-      "effective_config_sha256": "ed52da44a359c1506e1d299f7bc341ad01b199d7f96997f7c01f2b8eca7cfc13",
       "data_contract_sha256": "f1555d2f5527b83899ade8f934f67de8df6050aa2ebc7453d0d4245c618e2aeb",
-      "holdout_data_sha256": "4308b714db46527214f6bbc47f46e904dbdc5f747144da5a67766495934ac17b",
-      "runtime": {
-        "python_full_version": "3.12.13",
-        "numpy_version": "2.5.1",
-        "pandas_version": "3.0.5",
-        "uv_version": "0.11.33",
-        "uv_lock_sha256": "4accf16535b5ac95b831c9289e0ad2ff21282dc5dfae3f05dd0fb095089d6a61"
-      },
       "economic_behavior": "IDENTICAL",
-      "status": "OBSERVING",
-      "observed_sessions": 0,
+      "effective_config_sha256": "ed52da44a359c1506e1d299f7bc341ad01b199d7f96997f7c01f2b8eca7cfc13",
       "first_observed_session": null,
+      "formal_reviewable": false,
+      "holdout_data_sha256": "4308b714db46527214f6bbc47f46e904dbdc5f747144da5a67766495934ac17b",
+      "lane_id": "sentinel_shadow",
       "last_observed_session": null,
       "next_milestone": 20,
-      "formal_reviewable": false,
+      "observed_sessions": 0,
+      "production_source_sha256": "f9c78557e38342c5a994f19fde63352f635ac37c5d2d7a187ba410b98caa1aed",
+      "runtime": {
+        "numpy_version": "2.5.1",
+        "pandas_version": "3.0.5",
+        "python_full_version": "3.12.13",
+        "uv_lock_sha256": "4accf16535b5ac95b831c9289e0ad2ff21282dc5dfae3f05dd0fb095089d6a61",
+        "uv_version": "0.11.33"
+      },
       "score_status": "NON_REVIEWABLE",
       "scores": {
-        "final_wealth": null,
-        "max_drawdown": null,
         "account_orders": null,
+        "final_wealth": null,
         "gross_turnover": null,
+        "max_drawdown": null,
+        "pnl_hhi": null,
         "top1_concentration": null,
-        "top3_concentration": null,
-        "pnl_hhi": null
-      }
+        "top3_concentration": null
+      },
+      "sentinel_source_sha256": "0f26fc5be244a985b20cb426b025a909f85939ee7a5ee8905b9367559093b46e",
+      "source_commit": "e02b0ad5c38aa119b2d21cb3142589b1f3f2fae1",
+      "status": "OBSERVING"
+    },
+    {
+      "activation_session": "2026-08-24",
+      "data_contract_sha256": "f1555d2f5527b83899ade8f934f67de8df6050aa2ebc7453d0d4245c618e2aeb",
+      "economic_behavior": "IDENTICAL",
+      "effective_config_sha256": "ed52da44a359c1506e1d299f7bc341ad01b199d7f96997f7c01f2b8eca7cfc13",
+      "first_observed_session": null,
+      "formal_reviewable": false,
+      "holdout_data_sha256": "4308b714db46527214f6bbc47f46e904dbdc5f747144da5a67766495934ac17b",
+      "lane_id": "risk_differential_shadow",
+      "last_observed_session": null,
+      "next_milestone": 20,
+      "observed_sessions": 0,
+      "production_source_sha256": "f9c78557e38342c5a994f19fde63352f635ac37c5d2d7a187ba410b98caa1aed",
+      "runtime": {
+        "numpy_version": "2.5.1",
+        "pandas_version": "3.0.5",
+        "python_full_version": "3.12.13",
+        "uv_lock_sha256": "4accf16535b5ac95b831c9289e0ad2ff21282dc5dfae3f05dd0fb095089d6a61",
+        "uv_version": "0.11.33"
+      },
+      "score_status": "NON_REVIEWABLE",
+      "scores": {
+        "account_orders": null,
+        "final_wealth": null,
+        "gross_turnover": null,
+        "max_drawdown": null,
+        "pnl_hhi": null,
+        "top1_concentration": null,
+        "top3_concentration": null
+      },
+      "sentinel_source_sha256": "00be16d693985af0cbf708d1010f74dfa9cfbc3508b5b2a4fa09a49814108f30",
+      "source_commit": "ba314003044a229969270bee6854240dfb7f211e",
+      "status": "OBSERVING"
     }
   ],
-  "canonical_sha256": "68fc1178385731e9336b375332bf9d5cb7590f8dce42f0d5497c251101d293a4"
+  "observed_sessions": 0,
+  "report_id": "phase2-future-holdout-lane-validation-v1",
+  "review_milestones": [
+    20,
+    40,
+    60
+  ],
+  "schema_version": 1
 }

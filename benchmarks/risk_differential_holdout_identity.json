@@ -1,0 +1,17 @@
+{
+  "activation_session": "2026-08-24",
+  "capability_registry_sha256": "a9f800681e499922430d99fc7e346af687d86e52f64eeb89039a6b1a1c065e86",
+  "counterfactual_policy_set_sha256": "5b1d6fb455d940fa145926f41f057a14b1d9a0161d65ca7fa30ba9fdd2879754",
+  "data_contract_sha256": "f1555d2f5527b83899ade8f934f67de8df6050aa2ebc7453d0d4245c618e2aeb",
+  "effective_config_sha256": "ed52da44a359c1506e1d299f7bc341ad01b199d7f96997f7c01f2b8eca7cfc13",
+  "identity_id": "risk-differential-future-holdout-v1",
+  "no_backfill": true,
+  "parameter_changes_from_observation": false,
+  "payload_sha256": "00be16d693985af0cbf708d1010f74dfa9cfbc3508b5b2a4fa09a49814108f30",
+  "production_authority_changes_from_observation": false,
+  "risk_differential_contract_sha256": "0aee1f55a5a94d35be443556cadd74e200b21bb86c7d5ed89b2a8b4469af3413",
+  "schema_version": 1,
+  "trade_python_source_sha256": "48280acee356ee4bd28fa83b260426f3025e6b3bd93c1cee2f92188486761b90",
+  "trade_source_commit": "2066fbf0f99be94142c5d0cb0b6c99d276c2472d",
+  "uquant_source_commit": "ba314003044a229969270bee6854240dfb7f211e"
+}

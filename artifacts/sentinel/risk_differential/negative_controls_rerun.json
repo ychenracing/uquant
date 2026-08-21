@@ -1,0 +1,168 @@
+{
+  "payload_sha256": "ee672dc5d894c6e587862a1574fa1e2395700dc9937061e8ae32116fcf66c8a0",
+  "phase5_limited_gross_cap": {
+    "archived_evidence_sha256": "c9f1030f0871663ff1583950b69bcd637fb4196cc20b315f32c98bb7a49b3b59",
+    "detached_rerun": true,
+    "gate_diagnostics": {
+      "account_order_delta": 4,
+      "acute_return_delta": -0.01097916003499022,
+      "annual_turnover_delta": 2.47846522811017,
+      "gross_turnover_delta": 1.2085078385,
+      "max_drawdown_improvement_percentage_points": 0.0,
+      "wealth_retention": 0.9184841626984643
+    },
+    "matches_archived_evidence": true,
+    "metrics": {
+      "base": {
+        "account_orders": 8,
+        "acute_return": 0.06390679898215934,
+        "annual_turnover": 4.204869685406779,
+        "final_wealth": 1.9042531401193852,
+        "gross_turnover": 2.0503083589999997,
+        "max_drawdown": 0.156742775678121
+      },
+      "candidate": {
+        "account_orders": 12,
+        "acute_return": 0.05292763894716912,
+        "annual_turnover": 6.683334913516949,
+        "final_wealth": 1.749026350968475,
+        "gross_turnover": 3.2588161975,
+        "max_drawdown": 0.156742775678121
+      }
+    },
+    "rerun_sha256": "c9f1030f0871663ff1583950b69bcd637fb4196cc20b315f32c98bb7a49b3b59",
+    "source_commit": "9a82143a3079bdd846c995962a246a66c834c1d5",
+    "status": "REJECTED"
+  },
+  "phase7_exclusive_freeze": {
+    "actionable_buy_intents": 0,
+    "archive_commit": "239d7957ee2e42c510cdb51802bd99574af8b0b1",
+    "cases": [
+      {
+        "baseline_config_sha256": "dae4d79fdd813832c6ab152611437c13be1d38227c7280691874d3a9267d93d5",
+        "blocked_new_risk_count": 0,
+        "candidate_config_sha256": "b75d02d238e7ea18793c6f15727b34bc15b7a002b5ec4c4e620f86f1c39c93fa",
+        "exclusive_freeze_events": 1,
+        "hard_gate": {
+          "capital_budget_level_drift_count": 0,
+          "healthy_holding_reduction_count": 0,
+          "passed": true,
+          "reduction_level_drift_count": 0,
+          "risk_state_drift_count": 0,
+          "sentinel_direct_sell_count": 0,
+          "sentinel_risk_gross_cap_event_count": 0,
+          "shock_state_drift_count": 0,
+          "target_gross_cap_equal_to_base": true
+        },
+        "metrics": {
+          "baseline": {
+            "account_orders": 8,
+            "annual_turnover": 4.204869685406779,
+            "final_wealth": 1.9042531401193852,
+            "gross_turnover": 2.0503083589999997,
+            "max_drawdown": 0.156742775678121
+          },
+          "candidate": {
+            "account_orders": 8,
+            "annual_turnover": 4.204869685406779,
+            "final_wealth": 1.9042531401193852,
+            "gross_turnover": 2.0503083589999997,
+            "max_drawdown": 0.156742775678121
+          }
+        },
+        "scenario": "a/h1_2024",
+        "value_gate": {
+          "passed": false,
+          "qualifying_non_severe_events": 0
+        }
+      },
+      {
+        "baseline_config_sha256": "dae4d79fdd813832c6ab152611437c13be1d38227c7280691874d3a9267d93d5",
+        "blocked_new_risk_count": 0,
+        "candidate_config_sha256": "b75d02d238e7ea18793c6f15727b34bc15b7a002b5ec4c4e620f86f1c39c93fa",
+        "exclusive_freeze_events": 0,
+        "hard_gate": {
+          "capital_budget_level_drift_count": 0,
+          "healthy_holding_reduction_count": 0,
+          "passed": true,
+          "reduction_level_drift_count": 0,
+          "risk_state_drift_count": 0,
+          "sentinel_direct_sell_count": 0,
+          "sentinel_risk_gross_cap_event_count": 0,
+          "shock_state_drift_count": 0,
+          "target_gross_cap_equal_to_base": true
+        },
+        "metrics": {
+          "baseline": {
+            "account_orders": 10,
+            "annual_turnover": 5.748331486348001,
+            "final_wealth": 1.7210796718424954,
+            "gross_turnover": 2.9691794867500003,
+            "max_drawdown": 0.08362154102572927
+          },
+          "candidate": {
+            "account_orders": 10,
+            "annual_turnover": 5.748331486348001,
+            "final_wealth": 1.7210796718424954,
+            "gross_turnover": 2.9691794867500003,
+            "max_drawdown": 0.08362154102572927
+          }
+        },
+        "scenario": "d/h2_2024",
+        "value_gate": {
+          "passed": false,
+          "qualifying_non_severe_events": 0
+        }
+      },
+      {
+        "baseline_config_sha256": "dae4d79fdd813832c6ab152611437c13be1d38227c7280691874d3a9267d93d5",
+        "blocked_new_risk_count": 0,
+        "candidate_config_sha256": "b75d02d238e7ea18793c6f15727b34bc15b7a002b5ec4c4e620f86f1c39c93fa",
+        "exclusive_freeze_events": 0,
+        "hard_gate": {
+          "capital_budget_level_drift_count": 0,
+          "healthy_holding_reduction_count": 0,
+          "passed": true,
+          "reduction_level_drift_count": 0,
+          "risk_state_drift_count": 0,
+          "sentinel_direct_sell_count": 0,
+          "sentinel_risk_gross_cap_event_count": 0,
+          "shock_state_drift_count": 0,
+          "target_gross_cap_equal_to_base": true
+        },
+        "metrics": {
+          "baseline": {
+            "account_orders": 5,
+            "annual_turnover": 4.247191599129601,
+            "final_wealth": 1.9002164923944647,
+            "gross_turnover": 2.1937973136,
+            "max_drawdown": 0.08592480598703311
+          },
+          "candidate": {
+            "account_orders": 5,
+            "annual_turnover": 4.247191599129601,
+            "final_wealth": 1.9002164923944647,
+            "gross_turnover": 2.1937973136,
+            "max_drawdown": 0.08592480598703311
+          }
+        },
+        "scenario": "e/h2_2024",
+        "value_gate": {
+          "passed": false,
+          "qualifying_non_severe_events": 0
+        }
+      }
+    ],
+    "detached_rerun": true,
+    "economic_delta": 0.0,
+    "exact_economic_equivalence": true,
+    "exclusive_events": 1,
+    "matches_archived_evidence": true,
+    "requested_source_commit": "c559c009db309b3815aa8a3df8b59638504acc1a",
+    "requested_source_commit_available": false,
+    "resolved_reviewed_terminal_commit": "1441b8f4aa3131bb7c7c0b0e3f0c7fa222a17668",
+    "source_resolution": "the report SHA is unreachable; re-ran the reachable reviewed terminal of the archived candidate branch and bound the archive commit",
+    "status": "REJECTED"
+  },
+  "schema_version": 1
+}

@@ -2,14 +2,17 @@
 
 from __future__ import annotations
 
+import contextlib
 import json
+from collections.abc import Iterable, Iterator
 from dataclasses import dataclass, fields
 from pathlib import Path
 
 import pandas as pd
 
+import uquant.engine as engine_module
 from uquant.config import DEFAULT_CONFIG, SystemConfig
-from uquant.data import normalize_symbol
+from uquant.data import DataContractError, DataManifest, DataStore, normalize_symbol
 from uquant.engine import INDEX_SYMBOLS, ProductionEngine
 from uquant.leader import REFERENCE_UNIVERSE
 from uquant.types import AccountState
@@ -56,6 +59,30 @@ class TraceDivergence:
     right: DecisionTrace
 
 
+class _CausalReplayDataStore(DataStore):
+    """Research-only manifest adapter that ignores symbols not yet observable."""
+
+    def manifest(
+        self,
+        symbols: Iterable[str],
+        *,
+        source: str = "frozen",
+        as_of: str | pd.Timestamp | None = None,
+    ) -> DataManifest:
+        bound = pd.Timestamp(as_of).normalize() if as_of is not None else None
+        visible: list[str] = []
+        for symbol in sorted({normalize_symbol(item) for item in symbols}):
+            if not (self.root / f"{symbol}.csv").is_file():
+                continue
+            frame = self.load(symbol)
+            if bound is not None and frame.loc[:bound].empty:
+                continue
+            visible.append(symbol)
+        if not visible:
+            raise DataContractError("causal replay manifest has no observable symbols")
+        return super().manifest(visible, source=source, as_of=bound)
+
+
 def first_divergence(left: CellTrace, right: CellTrace) -> TraceDivergence | None:
     """Return the first changed decision, rejecting incomparable calendars."""
     left_dates = tuple(item.date for item in left.observations)
@@ -79,6 +106,32 @@ class CandidateRunner:
         self.data_dir = Path(data_dir)
         self.cfg = cfg
 
+    def _causal_load_symbols(self, normalized: tuple[str, ...]) -> set[str]:
+        """Exclude reference symbols that do not yet exist in the bounded data view."""
+
+        visible_references = {
+            symbol
+            for symbol in REFERENCE_UNIVERSE
+            if (self.data_dir / f"{symbol}.csv").is_file()
+        }
+        return set(normalized) | visible_references | set(INDEX_SYMBOLS)
+
+    @contextlib.contextmanager
+    def _causal_reference_scope(self) -> Iterator[None]:
+        """Temporarily constrain the production module global inside an isolated replay."""
+
+        visible = tuple(
+            symbol
+            for symbol in REFERENCE_UNIVERSE
+            if (self.data_dir / f"{symbol}.csv").is_file()
+        )
+        previous = engine_module.REFERENCE_UNIVERSE  # type: ignore[attr-defined]
+        engine_module.REFERENCE_UNIVERSE = visible  # type: ignore[attr-defined]
+        try:
+            yield
+        finally:
+            engine_module.REFERENCE_UNIVERSE = previous  # type: ignore[attr-defined]
+
     def trace_cell(
         self,
         *,
@@ -95,7 +148,8 @@ class CandidateRunner:
         if not normalized:
             raise ValueError("candidate trace requires a non-empty universe")
         engine = ProductionEngine(self.data_dir, self.cfg)
-        engine._load(set(normalized) | set(REFERENCE_UNIVERSE) | set(INDEX_SYMBOLS))
+        engine.data = _CausalReplayDataStore(self.data_dir)
+        engine._load(self._causal_load_symbols(normalized))
         sessions = engine._raw["sh000300"].index.intersection(engine._raw["sh000682"].index)
         sessions = sessions[(sessions >= pd.Timestamp(start)) & (sessions <= pd.Timestamp(end))]
         if len(sessions) < 2:
@@ -107,11 +161,12 @@ class CandidateRunner:
             fill_start = len(account.fills)
             engine.execution.execute_open(date=date, account=account, panel=raw_user_panel)
             equity = engine.equity(account, date)
-            decision = engine.decide(
-                symbols=normalized,
-                as_of=str(date.date()),
-                account=account,
-            )
+            with self._causal_reference_scope():
+                decision = engine.decide(
+                    symbols=normalized,
+                    as_of=str(date.date()),
+                    account=account,
+                )
             account.pending_orders = list(decision.pending_orders)
             family_votes = decision.risk_summary.get("family_votes", {})
             if isinstance(family_votes, dict):

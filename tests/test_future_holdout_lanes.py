@@ -25,6 +25,8 @@ LOCK_SHA256 = "4accf16535b5ac95b831c9289e0ad2ff21282dc5dfae3f05dd0fb095089d6a61"
 EMPTY_DATA_SHA256 = "4308b714db46527214f6bbc47f46e904dbdc5f747144da5a67766495934ac17b"
 SENTINEL_SOURCE_COMMIT = "e02b0ad5c38aa119b2d21cb3142589b1f3f2fae1"
 SENTINEL_SOURCE_SHA256 = "0f26fc5be244a985b20cb426b025a909f85939ee7a5ee8905b9367559093b46e"
+DIFFERENTIAL_SOURCE_COMMIT = "ba314003044a229969270bee6854240dfb7f211e"
+DIFFERENTIAL_SOURCE_SHA256 = "00be16d693985af0cbf708d1010f74dfa9cfbc3508b5b2a4fa09a49814108f30"
 
 _CLI_SPEC = importlib.util.spec_from_file_location(
     "future_holdout_cli_lanes",
@@ -67,6 +69,16 @@ def _sentinel_lane() -> HoldoutLane:
     )
 
 
+def _differential_lane() -> HoldoutLane:
+    return replace(
+        _lane("risk_differential_shadow"),
+        activation_session="2026-08-24",
+        source_commit=DIFFERENTIAL_SOURCE_COMMIT,
+        sentinel_source_sha256=DIFFERENTIAL_SOURCE_SHA256,
+        parent_lane="sentinel_shadow",
+    )
+
+
 def test_tracked_registry_appends_exact_non_backfilled_sentinel_lane() -> None:
     contract = load_future_holdout_contract()
     lanes = load_lane_registry(REGISTRY)
@@ -76,9 +88,10 @@ def test_tracked_registry_appends_exact_non_backfilled_sentinel_lane() -> None:
     assert contract.first_holdout_date == "2026-08-06"
     assert contract.review_milestones == (20, 40, 60)
     assert contract.parameter_changes_from_observation is False
-    assert lanes == (_lane(), _sentinel_lane())
+    assert lanes == (_lane(), _sentinel_lane(), _differential_lane())
     assert lanes[1].economic_behavior == "IDENTICAL"
     assert lanes[1].status == "OBSERVING"
+    assert lanes[:2] == (_lane(), _sentinel_lane())
 
 
 def test_registry_rejects_duplicate_ids_missing_or_forward_parents() -> None:
@@ -281,6 +294,13 @@ def test_tracked_sentinel_lane_has_no_observations_or_formal_scores() -> None:
     assert lane["score_status"] == "NON_REVIEWABLE"
     assert lane["scores"] == {field: None for field in SCORE_FIELDS}
 
+    differential = report["lanes"][2]
+    assert differential["lane_id"] == "risk_differential_shadow"
+    assert differential["activation_session"] == "2026-08-24"
+    assert differential["observed_sessions"] == 0
+    assert differential["score_status"] == "NON_REVIEWABLE"
+    assert differential["scores"] == {field: None for field in SCORE_FIELDS}
+
 
 def test_tracked_validation_is_exact_empty_observation_report() -> None:
     expected = build_lane_validation_report(
@@ -298,11 +318,7 @@ def test_validation_cli_recomputes_tracked_lane_evidence(capsys: pytest.CaptureF
     output = json.loads(capsys.readouterr().out)
     assert output["observed_sessions"] == 0
     assert output["lanes"][0]["next_milestone"] == 20
-    assert all(
-        value is None
-        for lane in output["lanes"]
-        for value in lane["scores"].values()
-    )
+    assert all(value is None for lane in output["lanes"] for value in lane["scores"].values())
 
 
 def test_static_lane_validation_is_independent_from_local_observation_report(
@@ -323,35 +339,38 @@ def test_static_lane_validation_is_independent_from_local_observation_report(
     observed = root / "data/holdout/phase2-future-v1/2026-08-06/market.csv"
     observed.parent.mkdir(parents=True)
     observed.write_text(
-        "date,open,high,low,close,volume\n"
-        "2026-08-06,10,11,9,10.5,1000\n",
+        "date,open,high,low,close,volume\n2026-08-06,10,11,9,10.5,1000\n",
         encoding="utf-8",
     )
     local_report = root / "future_holdout_lane_report.json"
 
-    assert future_holdout_main(
-        [
-            "report-lanes",
-            "--repository-root",
-            str(root),
-            "--output",
-            str(local_report),
-        ]
-    ) == 0
+    assert (
+        future_holdout_main(
+            [
+                "report-lanes",
+                "--repository-root",
+                str(root),
+                "--output",
+                str(local_report),
+            ]
+        )
+        == 0
+    )
     reported = json.loads(capsys.readouterr().out)
     assert reported["observed_sessions"] == 1
     assert reported["lanes"][0]["first_observed_session"] == "2026-08-06"
     assert json.loads(local_report.read_text(encoding="utf-8")) == reported
 
-    assert future_holdout_main(
-        [
-            "validate-static-lanes",
-            "--repository-root",
-            str(root),
-        ]
-    ) == 0
+    assert (
+        future_holdout_main(
+            [
+                "validate-static-lanes",
+                "--repository-root",
+                str(root),
+            ]
+        )
+        == 0
+    )
     static = json.loads(capsys.readouterr().out)
     assert static["observed_sessions"] == 0
-    assert static == json.loads(
-        (root / "artifacts/holdout/lane_validation.json").read_text(encoding="utf-8")
-    )
+    assert static == json.loads((root / "artifacts/holdout/lane_validation.json").read_text(encoding="utf-8"))

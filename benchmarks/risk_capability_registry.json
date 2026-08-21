@@ -1,0 +1,616 @@
+{
+  "capabilities": [
+    {
+      "action_classification": "DIRECTLY_REPLAYABLE",
+      "capability_id": "observation.warmup_health",
+      "category": "OBSERVATION",
+      "economic_counterfactual_supported": false,
+      "exact_transfer_possible": false,
+      "mapping_status": "ABSORBED_SENTINEL",
+      "production_promotion_allowed_this_phase": false,
+      "rationale": "both expose READY/DEGRADED/NOT_READY and fail closed",
+      "sentinel_equivalent": [
+        "uquant/risk_sentinel/coverage.py"
+      ],
+      "trade_source": [
+        "quantfusion/risk/governance.py"
+      ],
+      "uquant_base_equivalent": []
+    },
+    {
+      "action_classification": "DIRECTLY_REPLAYABLE",
+      "capability_id": "observation.risk_opinion",
+      "category": "OBSERVATION",
+      "economic_counterfactual_supported": false,
+      "exact_transfer_possible": true,
+      "mapping_status": "PARTIAL_EQUIVALENT",
+      "production_promotion_allowed_this_phase": false,
+      "rationale": "standardized opinion exists but ownership differs",
+      "sentinel_equivalent": [
+        "uquant/risk_sentinel/opinion.py"
+      ],
+      "trade_source": [
+        "quantfusion/risk/governance.py",
+        "quantfusion/config/overlay.py",
+        "quantfusion/risk/overlay/policy.py"
+      ],
+      "uquant_base_equivalent": [
+        "uquant/risk.py"
+      ]
+    },
+    {
+      "action_classification": "DIRECTLY_REPLAYABLE",
+      "capability_id": "observation.basket_coverage_confidence",
+      "category": "OBSERVATION",
+      "economic_counterfactual_supported": false,
+      "exact_transfer_possible": false,
+      "mapping_status": "ABSORBED_SENTINEL",
+      "production_promotion_allowed_this_phase": false,
+      "rationale": "same 0.45/0.35/0.20 dimensions",
+      "sentinel_equivalent": [
+        "uquant/risk_sentinel/coverage.py"
+      ],
+      "trade_source": [
+        "quantfusion/risk/governance.py"
+      ],
+      "uquant_base_equivalent": []
+    },
+    {
+      "action_classification": "DIRECTLY_REPLAYABLE",
+      "capability_id": "calibration.risk_event_outcomes",
+      "category": "OFFLINE_CALIBRATION",
+      "economic_counterfactual_supported": false,
+      "exact_transfer_possible": false,
+      "mapping_status": "ABSORBED_SENTINEL",
+      "production_promotion_allowed_this_phase": false,
+      "rationale": "same 1/3/5/10/20-day offline outcome contract",
+      "sentinel_equivalent": [
+        "uquant/risk_sentinel/calibration.py"
+      ],
+      "trade_source": [
+        "quantfusion/risk/governance.py",
+        "quantfusion/application/stress.py"
+      ],
+      "uquant_base_equivalent": []
+    },
+    {
+      "action_classification": "DIRECTLY_REPLAYABLE",
+      "capability_id": "calibration.false_positive_opportunity_cost",
+      "category": "OFFLINE_CALIBRATION",
+      "economic_counterfactual_supported": false,
+      "exact_transfer_possible": false,
+      "mapping_status": "ABSORBED_SENTINEL",
+      "production_promotion_allowed_this_phase": false,
+      "rationale": "existing Sentinel calibration measures opportunity cost",
+      "sentinel_equivalent": [
+        "uquant/risk_sentinel/calibration.py"
+      ],
+      "trade_source": [
+        "quantfusion/risk/governance.py"
+      ],
+      "uquant_base_equivalent": []
+    },
+    {
+      "action_classification": "DIRECTLY_REPLAYABLE",
+      "capability_id": "calibration.bull_silence",
+      "category": "OFFLINE_CALIBRATION",
+      "economic_counterfactual_supported": false,
+      "exact_transfer_possible": false,
+      "mapping_status": "ABSORBED_SENTINEL",
+      "production_promotion_allowed_this_phase": false,
+      "rationale": "existing Sentinel contract includes bull silence",
+      "sentinel_equivalent": [
+        "uquant/risk_sentinel/calibration.py"
+      ],
+      "trade_source": [
+        "quantfusion/risk/governance.py"
+      ],
+      "uquant_base_equivalent": []
+    },
+    {
+      "action_classification": "DIRECTLY_REPLAYABLE",
+      "capability_id": "calibration.missed_shock",
+      "category": "OFFLINE_CALIBRATION",
+      "economic_counterfactual_supported": false,
+      "exact_transfer_possible": false,
+      "mapping_status": "ABSORBED_SENTINEL",
+      "production_promotion_allowed_this_phase": false,
+      "rationale": "existing Sentinel contract includes missed-shock depth",
+      "sentinel_equivalent": [
+        "uquant/risk_sentinel/calibration.py"
+      ],
+      "trade_source": [
+        "quantfusion/risk/governance.py"
+      ],
+      "uquant_base_equivalent": []
+    },
+    {
+      "action_classification": "NON_TRANSFERABLE",
+      "capability_id": "observation.sleeve_agreement",
+      "category": "OBSERVATION",
+      "economic_counterfactual_supported": false,
+      "exact_transfer_possible": false,
+      "mapping_status": "INCREMENTAL_OBSERVATIONAL",
+      "production_promotion_allowed_this_phase": false,
+      "rationale": "trade sleeve topology has no unambiguous uquant analogue",
+      "sentinel_equivalent": [],
+      "trade_source": [
+        "quantfusion/risk/governance.py",
+        "quantfusion/engine/ensemble_orchestration.py"
+      ],
+      "uquant_base_equivalent": []
+    },
+    {
+      "action_classification": "DIRECTLY_REPLAYABLE",
+      "capability_id": "risk.market_velocity",
+      "category": "OBSERVATION",
+      "economic_counterfactual_supported": false,
+      "exact_transfer_possible": true,
+      "mapping_status": "ABSORBED_BASE",
+      "production_promotion_allowed_this_phase": false,
+      "rationale": "same causal index-velocity family",
+      "sentinel_equivalent": [
+        "uquant/risk_sentinel/evidence.py"
+      ],
+      "trade_source": [
+        "quantfusion/risk/overlay/evidence.py"
+      ],
+      "uquant_base_equivalent": [
+        "uquant/market_risk.py"
+      ]
+    },
+    {
+      "action_classification": "DIRECTLY_REPLAYABLE",
+      "capability_id": "risk.breadth_structure",
+      "category": "OBSERVATION",
+      "economic_counterfactual_supported": false,
+      "exact_transfer_possible": true,
+      "mapping_status": "ABSORBED_BASE",
+      "production_promotion_allowed_this_phase": false,
+      "rationale": "same breadth/MA structural family",
+      "sentinel_equivalent": [
+        "uquant/risk_sentinel/evidence.py"
+      ],
+      "trade_source": [
+        "quantfusion/risk/overlay/evidence.py"
+      ],
+      "uquant_base_equivalent": [
+        "uquant/market_risk.py"
+      ]
+    },
+    {
+      "action_classification": "DIRECTLY_REPLAYABLE",
+      "capability_id": "risk.ma_structure",
+      "category": "OBSERVATION",
+      "economic_counterfactual_supported": false,
+      "exact_transfer_possible": false,
+      "mapping_status": "ABSORBED_BASE",
+      "production_promotion_allowed_this_phase": false,
+      "rationale": "MA20 structural damage already votes in Base and Sentinel",
+      "sentinel_equivalent": [
+        "uquant/risk_sentinel/evidence.py"
+      ],
+      "trade_source": [
+        "quantfusion/risk/overlay/evidence.py"
+      ],
+      "uquant_base_equivalent": [
+        "uquant/market_risk.py"
+      ]
+    },
+    {
+      "action_classification": "DIRECTLY_REPLAYABLE",
+      "capability_id": "risk.covariance_correlation",
+      "category": "OBSERVATION",
+      "economic_counterfactual_supported": false,
+      "exact_transfer_possible": true,
+      "mapping_status": "ABSORBED_BASE",
+      "production_promotion_allowed_this_phase": false,
+      "rationale": "correlation shock is a canonical family",
+      "sentinel_equivalent": [
+        "uquant/risk_sentinel/evidence.py"
+      ],
+      "trade_source": [
+        "quantfusion/risk/overlay/evidence.py"
+      ],
+      "uquant_base_equivalent": [
+        "uquant/market_risk.py"
+      ]
+    },
+    {
+      "action_classification": "DIRECTLY_REPLAYABLE",
+      "capability_id": "risk.volatility_expansion",
+      "category": "OBSERVATION",
+      "economic_counterfactual_supported": false,
+      "exact_transfer_possible": false,
+      "mapping_status": "ABSORBED_BASE",
+      "production_promotion_allowed_this_phase": false,
+      "rationale": "volatility shock already feeds covariance_stress",
+      "sentinel_equivalent": [
+        "uquant/risk_sentinel/evidence.py"
+      ],
+      "trade_source": [
+        "quantfusion/risk/overlay/evidence.py"
+      ],
+      "uquant_base_equivalent": [
+        "uquant/market_risk.py"
+      ]
+    },
+    {
+      "action_classification": "DIRECTLY_REPLAYABLE",
+      "capability_id": "risk.leadership_damage",
+      "category": "OBSERVATION",
+      "economic_counterfactual_supported": false,
+      "exact_transfer_possible": true,
+      "mapping_status": "ABSORBED_BASE",
+      "production_promotion_allowed_this_phase": false,
+      "rationale": "leadership damage is a canonical family",
+      "sentinel_equivalent": [
+        "uquant/risk_sentinel/evidence.py"
+      ],
+      "trade_source": [
+        "quantfusion/risk/overlay/evidence.py"
+      ],
+      "uquant_base_equivalent": [
+        "uquant/market_risk.py"
+      ]
+    },
+    {
+      "action_classification": "DIRECTLY_REPLAYABLE",
+      "capability_id": "risk.live_book_damage",
+      "category": "OBSERVATION",
+      "economic_counterfactual_supported": false,
+      "exact_transfer_possible": true,
+      "mapping_status": "ABSORBED_BASE",
+      "production_promotion_allowed_this_phase": false,
+      "rationale": "live-book damage is present and not backfilled",
+      "sentinel_equivalent": [
+        "uquant/risk_sentinel/evidence.py"
+      ],
+      "trade_source": [
+        "quantfusion/risk/overlay/evidence.py"
+      ],
+      "uquant_base_equivalent": [
+        "uquant/market_risk.py"
+      ]
+    },
+    {
+      "action_classification": "DIRECTLY_REPLAYABLE",
+      "capability_id": "risk.capital_damage",
+      "category": "RISK_STATE",
+      "economic_counterfactual_supported": false,
+      "exact_transfer_possible": true,
+      "mapping_status": "ABSORBED_BASE",
+      "production_promotion_allowed_this_phase": false,
+      "rationale": "Base owns capital high-water and Sentinel reads it only",
+      "sentinel_equivalent": [
+        "uquant/risk_sentinel/evidence.py"
+      ],
+      "trade_source": [
+        "quantfusion/risk/managers.py"
+      ],
+      "uquant_base_equivalent": [
+        "uquant/risk.py"
+      ]
+    },
+    {
+      "action_classification": "DIRECTLY_REPLAYABLE",
+      "capability_id": "observation.subindustry_equal_weighting",
+      "category": "OBSERVATION",
+      "economic_counterfactual_supported": false,
+      "exact_transfer_possible": false,
+      "mapping_status": "ABSORBED_SENTINEL",
+      "production_promotion_allowed_this_phase": false,
+      "rationale": "Sentinel already aggregates subindustries equally",
+      "sentinel_equivalent": [
+        "uquant/risk_sentinel/evidence.py"
+      ],
+      "trade_source": [
+        "quantfusion/risk/overlay/evidence.py",
+        "quantfusion/engine/sector_risk.py"
+      ],
+      "uquant_base_equivalent": []
+    },
+    {
+      "action_classification": "HYBRID_DIAGNOSTIC",
+      "capability_id": "risk.early_sector_risk",
+      "category": "OBSERVATION",
+      "economic_counterfactual_supported": false,
+      "exact_transfer_possible": false,
+      "mapping_status": "PARTIAL_EQUIVALENT",
+      "production_promotion_allowed_this_phase": false,
+      "rationale": "both expose causal sector stress, but trade's early sector precursor is not semantically identical to uquant's holdings-sector guard",
+      "sentinel_equivalent": [],
+      "trade_source": [
+        "quantfusion/engine/sector_risk.py"
+      ],
+      "uquant_base_equivalent": [
+        "uquant/risk_sector.py"
+      ]
+    },
+    {
+      "action_classification": "DIRECTLY_REPLAYABLE",
+      "capability_id": "observation.weakest_cluster",
+      "category": "OBSERVATION",
+      "economic_counterfactual_supported": false,
+      "exact_transfer_possible": false,
+      "mapping_status": "ABSORBED_SENTINEL",
+      "production_promotion_allowed_this_phase": false,
+      "rationale": "Sentinel emits weakest_subindustries",
+      "sentinel_equivalent": [
+        "uquant/risk_sentinel/evidence.py"
+      ],
+      "trade_source": [
+        "quantfusion/risk/overlay/evidence.py"
+      ],
+      "uquant_base_equivalent": []
+    },
+    {
+      "action_classification": "TRANSLATABLE",
+      "capability_id": "admission.block_new_entries",
+      "category": "ADMISSION_GATE",
+      "economic_counterfactual_supported": true,
+      "exact_transfer_possible": true,
+      "mapping_status": "PARTIAL_EQUIVALENT",
+      "production_promotion_allowed_this_phase": false,
+      "rationale": "maps to existing freeze without new authority",
+      "sentinel_equivalent": [
+        "uquant/risk_sentinel/integration.py"
+      ],
+      "trade_source": [
+        "quantfusion/risk/overlay/adapter.py"
+      ],
+      "uquant_base_equivalent": [
+        "uquant/portfolio.py"
+      ]
+    },
+    {
+      "action_classification": "TRANSLATABLE",
+      "capability_id": "admission.block_pyramids",
+      "category": "ADMISSION_GATE",
+      "economic_counterfactual_supported": true,
+      "exact_transfer_possible": true,
+      "mapping_status": "PARTIAL_EQUIVALENT",
+      "production_promotion_allowed_this_phase": false,
+      "rationale": "same-symbol additions can be clamped research-only",
+      "sentinel_equivalent": [
+        "uquant/risk_sentinel/integration.py"
+      ],
+      "trade_source": [
+        "quantfusion/risk/overlay/adapter.py"
+      ],
+      "uquant_base_equivalent": [
+        "uquant/portfolio.py"
+      ]
+    },
+    {
+      "action_classification": "TRANSLATABLE",
+      "capability_id": "exposure.recommended_gross_cap",
+      "category": "EXPOSURE_POLICY",
+      "economic_counterfactual_supported": true,
+      "exact_transfer_possible": true,
+      "mapping_status": "REJECTED_PREVIOUSLY",
+      "production_promotion_allowed_this_phase": false,
+      "rationale": "Base owns caps; Sentinel Phase 5 gross-cap authority was rejected",
+      "sentinel_equivalent": [],
+      "trade_source": [
+        "quantfusion/risk/governance.py"
+      ],
+      "uquant_base_equivalent": [
+        "uquant/risk.py"
+      ]
+    },
+    {
+      "action_classification": "NON_TRANSFERABLE",
+      "capability_id": "exposure.graded_trim",
+      "category": "EXPOSURE_POLICY",
+      "economic_counterfactual_supported": false,
+      "exact_transfer_possible": false,
+      "mapping_status": "INCREMENTAL_EXECUTION_POLICY",
+      "production_promotion_allowed_this_phase": false,
+      "rationale": "depends on trade sleeve scoring and emits sells",
+      "sentinel_equivalent": [],
+      "trade_source": [
+        "quantfusion/risk/overlay/policy_base.py",
+        "quantfusion/risk/overlay/actions.py"
+      ],
+      "uquant_base_equivalent": []
+    },
+    {
+      "action_classification": "HYBRID_DIAGNOSTIC",
+      "capability_id": "exposure.transition_trim",
+      "category": "EXPOSURE_POLICY",
+      "economic_counterfactual_supported": false,
+      "exact_transfer_possible": false,
+      "mapping_status": "PARTIAL_EQUIVALENT",
+      "production_promotion_allowed_this_phase": false,
+      "rationale": "uquant has transition/sector reductions but no identical ranking",
+      "sentinel_equivalent": [],
+      "trade_source": [
+        "quantfusion/engine/market_regime.py",
+        "quantfusion/engine/sector_risk.py"
+      ],
+      "uquant_base_equivalent": [
+        "uquant/risk_sector.py"
+      ]
+    },
+    {
+      "action_classification": "HYBRID_DIAGNOSTIC",
+      "capability_id": "exposure.concentration_cluster_guard",
+      "category": "EXPOSURE_POLICY",
+      "economic_counterfactual_supported": false,
+      "exact_transfer_possible": false,
+      "mapping_status": "PARTIAL_EQUIVALENT",
+      "production_promotion_allowed_this_phase": false,
+      "rationale": "concentration is guarded but trade ranking is not transferable",
+      "sentinel_equivalent": [],
+      "trade_source": [
+        "quantfusion/risk/overlay/policy_base.py",
+        "quantfusion/engine/universe_risk.py"
+      ],
+      "uquant_base_equivalent": [
+        "uquant/portfolio_core.py"
+      ]
+    },
+    {
+      "action_classification": "TRANSLATABLE",
+      "capability_id": "exit.catastrophe_stop",
+      "category": "SYMBOL_EXIT_POLICY",
+      "economic_counterfactual_supported": true,
+      "exact_transfer_possible": true,
+      "mapping_status": "ABSORBED_ARCHITECTURALLY",
+      "production_promotion_allowed_this_phase": false,
+      "rationale": "uquant has causal risk exits and next-open execution; threshold remains research-only",
+      "sentinel_equivalent": [],
+      "trade_source": [
+        "quantfusion/risk/overlay/evidence.py"
+      ],
+      "uquant_base_equivalent": [
+        "uquant/risk.py",
+        "uquant/execution.py"
+      ]
+    },
+    {
+      "action_classification": "TRANSLATABLE",
+      "capability_id": "exit.cost_absolute_stop",
+      "category": "SYMBOL_EXIT_POLICY",
+      "economic_counterfactual_supported": true,
+      "exact_transfer_possible": true,
+      "mapping_status": "PARTIAL_EQUIVALENT",
+      "production_promotion_allowed_this_phase": false,
+      "rationale": "transfer is mechanically defined but not existing Sentinel authority",
+      "sentinel_equivalent": [],
+      "trade_source": [
+        "quantfusion/risk/overlay/evidence.py"
+      ],
+      "uquant_base_equivalent": [
+        "uquant/portfolio.py"
+      ]
+    },
+    {
+      "action_classification": "TRANSLATABLE",
+      "capability_id": "exit.atr_chandelier",
+      "category": "SYMBOL_EXIT_POLICY",
+      "economic_counterfactual_supported": true,
+      "exact_transfer_possible": true,
+      "mapping_status": "PARTIAL_EQUIVALENT",
+      "production_promotion_allowed_this_phase": false,
+      "rationale": "Wilder ATR line can be reproduced without trade imports",
+      "sentinel_equivalent": [],
+      "trade_source": [
+        "quantfusion/risk/overlay/evidence.py"
+      ],
+      "uquant_base_equivalent": [
+        "uquant/portfolio.py"
+      ]
+    },
+    {
+      "action_classification": "TRANSLATABLE",
+      "capability_id": "exit.profit_tier_giveback",
+      "category": "SYMBOL_EXIT_POLICY",
+      "economic_counterfactual_supported": true,
+      "exact_transfer_possible": true,
+      "mapping_status": "ABSORBED_ARCHITECTURALLY",
+      "production_promotion_allowed_this_phase": false,
+      "rationale": "uquant already has lifecycle profit protection; exact trade line stays shadow",
+      "sentinel_equivalent": [],
+      "trade_source": [
+        "quantfusion/risk/overlay/evidence.py"
+      ],
+      "uquant_base_equivalent": [
+        "uquant/portfolio.py",
+        "uquant/config.py"
+      ]
+    },
+    {
+      "action_classification": "NON_TRANSFERABLE",
+      "capability_id": "cooldown.catastrophe",
+      "category": "COOLDOWN_POLICY",
+      "economic_counterfactual_supported": false,
+      "exact_transfer_possible": false,
+      "mapping_status": "ABSORBED_ARCHITECTURALLY",
+      "production_promotion_allowed_this_phase": false,
+      "rationale": "uquant already owns cooldown; a second symbol cooldown is forbidden",
+      "sentinel_equivalent": [],
+      "trade_source": [
+        "quantfusion/risk/overlay/adapter.py"
+      ],
+      "uquant_base_equivalent": [
+        "uquant/types.py",
+        "uquant/risk.py"
+      ]
+    },
+    {
+      "action_classification": "NON_TRANSFERABLE",
+      "capability_id": "risk.re_shock_persistence",
+      "category": "RISK_STATE",
+      "economic_counterfactual_supported": false,
+      "exact_transfer_possible": false,
+      "mapping_status": "ABSORBED_BASE",
+      "production_promotion_allowed_this_phase": false,
+      "rationale": "Base owns shock/recovery persistence",
+      "sentinel_equivalent": [],
+      "trade_source": [
+        "quantfusion/risk/overlay/policy_base.py"
+      ],
+      "uquant_base_equivalent": [
+        "uquant/risk.py"
+      ]
+    },
+    {
+      "action_classification": "NON_TRANSFERABLE",
+      "capability_id": "risk.recovery",
+      "category": "RISK_STATE",
+      "economic_counterfactual_supported": false,
+      "exact_transfer_possible": false,
+      "mapping_status": "ABSORBED_BASE",
+      "production_promotion_allowed_this_phase": false,
+      "rationale": "Base owns the sole recovery state machine",
+      "sentinel_equivalent": [],
+      "trade_source": [
+        "quantfusion/risk/managers.py",
+        "regime_adaptive.py"
+      ],
+      "uquant_base_equivalent": [
+        "uquant/risk.py",
+        "uquant/risk_sector.py"
+      ]
+    },
+    {
+      "action_classification": "NON_TRANSFERABLE",
+      "capability_id": "execution.risk_owner",
+      "category": "EXECUTION_OWNERSHIP",
+      "economic_counterfactual_supported": false,
+      "exact_transfer_possible": false,
+      "mapping_status": "ABSORBED_ARCHITECTURALLY",
+      "production_promotion_allowed_this_phase": false,
+      "rationale": "uquant already has one owner; overlay ownership cannot be copied",
+      "sentinel_equivalent": [],
+      "trade_source": [
+        "quantfusion/risk/overlay/policy_base.py"
+      ],
+      "uquant_base_equivalent": [
+        "uquant/risk.py",
+        "uquant/execution.py"
+      ]
+    },
+    {
+      "action_classification": "NON_TRANSFERABLE",
+      "capability_id": "exposure.structural_shock_trim",
+      "category": "EXPOSURE_POLICY",
+      "economic_counterfactual_supported": false,
+      "exact_transfer_possible": false,
+      "mapping_status": "REJECTED_PREVIOUSLY",
+      "production_promotion_allowed_this_phase": false,
+      "rationale": "trade disables legacy shock trim by default and Sentinel cannot sell",
+      "sentinel_equivalent": [],
+      "trade_source": [
+        "quantfusion/risk/overlay/policy_base.py"
+      ],
+      "uquant_base_equivalent": []
+    }
+  ],
+  "payload_sha256": "a9f800681e499922430d99fc7e346af687d86e52f64eeb89039a6b1a1c065e86",
+  "registry_id": "trade-risk-capability-inventory-v1",
+  "schema_version": 1,
+  "trade_commit": "2066fbf0f99be94142c5d0cb0b6c99d276c2472d"
+}

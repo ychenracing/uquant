@@ -58,7 +58,11 @@ champion 与不可放宽的政策失败关闭。
 未来交易日以前，观察和指标必须为 null；holdout
 表现不得反向调参。另有 observational、append-only、broker-independent 的人工执行
 journal 记录计划价、次日开盘、真实成交、人工跳过与滑点，并汇总成交率和真实滑点；
-它不写入决策或账户状态。默认 journal 和外部 checkpoint 均被 Git 忽略。
+它不写入决策或账户状态。生产只使用 v2
+`future_holdout_execution_journal.jsonl`；默认 Journal、外部 checkpoint、本地 Lane 报告和
+生产观察备份均被 Git 忽略。
+非空 Journal 必须由外部 checkpoint 锚定；首条计划记录后的显式 bootstrap 和后续 checkpoint
+都应复制到独立存储。
 
 ## 安装
 
@@ -115,6 +119,26 @@ uv run uquant daily \
 日报包含机会状态、风险状态、Risk Sentinel、目标总仓、目标持仓数、逐票目标权重、
 订单意图和决策证据。日常只运行这一次 `uquant daily`，不需要再运行独立 Sentinel CLI；
 生成意图后仍需人工核对券商状态。
+
+真实 Future Holdout 运行时，推荐使用一次性的生产观察入口。它先验证 Journal 并保存运行前
+证据，再导入一个完整 holdout 市场快照、生成确定性重放、调用同一个 `uquant daily`、输出
+本地 Lane 报告并封存运行后证据：
+
+```bash
+uv run python scripts/production_observation.py run \
+  --date 2026-08-06 \
+  --symbols sz300308 sz300502 sz300394 sh688008 sh603986 \
+  --account account_state.json \
+  --data-dir data/live \
+  --broker-snapshot broker_snapshot.json \
+  --holdout-snapshot-dir incoming/2026-08-06 \
+  --holdout-account holdout_prior_close_account.json
+```
+
+该入口仍不会连接券商、自动下单或把观察证据写回决策。完整输入、失败恢复和备份校验见
+[运行手册](docs/OPERATIONS.md)。
+入口会串行化同一仓库/账户的完整事务，在任何市场或账户写入前拒绝输出别名并读回验证运行前
+备份；最终成功或失败 receipt 都由备份 manifest 哈希绑定。
 
 ### 4. 历史回放
 

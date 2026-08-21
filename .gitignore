@@ -20,4 +20,9 @@ daily_report_*.md
 /execution_journal.jsonl
 /future_holdout_execution_journal.jsonl
 /future_holdout_execution_journal.checkpoint.json
+/future_holdout_lane_report.json
+/production_observation_backups/
+/artifacts/future_holdout_replay.json
+/artifacts/future_holdout_decision.json
+/artifacts/future_holdout_checkpoint.json
 .worktrees/

@@ -303,3 +303,55 @@ def test_validation_cli_recomputes_tracked_lane_evidence(capsys: pytest.CaptureF
         for lane in output["lanes"]
         for value in lane["scores"].values()
     )
+
+
+def test_static_lane_validation_is_independent_from_local_observation_report(
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    root = tmp_path / "repository"
+    (root / "benchmarks").mkdir(parents=True)
+    (root / "artifacts/holdout").mkdir(parents=True)
+    for source in (
+        Path("benchmarks/future_holdout_contract.json"),
+        REGISTRY,
+        VALIDATION,
+    ):
+        destination = root / source
+        destination.write_bytes(source.read_bytes())
+
+    observed = root / "data/holdout/phase2-future-v1/2026-08-06/market.csv"
+    observed.parent.mkdir(parents=True)
+    observed.write_text(
+        "date,open,high,low,close,volume\n"
+        "2026-08-06,10,11,9,10.5,1000\n",
+        encoding="utf-8",
+    )
+    local_report = root / "future_holdout_lane_report.json"
+
+    assert future_holdout_main(
+        [
+            "report-lanes",
+            "--repository-root",
+            str(root),
+            "--output",
+            str(local_report),
+        ]
+    ) == 0
+    reported = json.loads(capsys.readouterr().out)
+    assert reported["observed_sessions"] == 1
+    assert reported["lanes"][0]["first_observed_session"] == "2026-08-06"
+    assert json.loads(local_report.read_text(encoding="utf-8")) == reported
+
+    assert future_holdout_main(
+        [
+            "validate-static-lanes",
+            "--repository-root",
+            str(root),
+        ]
+    ) == 0
+    static = json.loads(capsys.readouterr().out)
+    assert static["observed_sessions"] == 0
+    assert static == json.loads(
+        (root / "artifacts/holdout/lane_validation.json").read_text(encoding="utf-8")
+    )

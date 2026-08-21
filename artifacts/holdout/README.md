@@ -8,7 +8,9 @@ This directory contains report-only, tracked validation evidence for the immutab
   real future data is absent.
 - Future deterministic replay artifacts remain separate from historical replay.
 - Manual execution is stored only in the append-only execution Journal and never in
-  this model-scoring evidence.
+  this model-scoring evidence. Its default JSONL and external checkpoint are ignored
+  by Git; `journal report`, `journal checkpoint`, and `journal verify` provide the
+  operator summary and retained-prefix integrity checks.
 - `decision_equivalence.json` records protected-byte equality, the unchanged production
   account code fingerprint, and the Journal/Decision Digest isolation test.
 - `diagnostics/` preserves the first production-fingerprint boundary failure and its

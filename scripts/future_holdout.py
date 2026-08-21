@@ -5,13 +5,16 @@ from __future__ import annotations
 import argparse
 import json
 from collections.abc import Iterable
+from dataclasses import asdict
 from pathlib import Path
 from typing import Any
 
 from uquant.validation.execution_journal import (
+    JournalCheckpoint,
     append_filled,
     append_planned,
     append_skipped,
+    execution_journal_checkpoint,
     read_execution_journal,
     record_to_dict,
     render_execution_journal,
@@ -66,6 +69,11 @@ def _parser() -> argparse.ArgumentParser:
     skipped.add_argument("--manual-skip", required=True)
     report = journal_sub.add_parser("report")
     report.add_argument("--journal", default="future_holdout_execution_journal.jsonl")
+    checkpoint = journal_sub.add_parser("checkpoint")
+    checkpoint.add_argument("--journal", default="future_holdout_execution_journal.jsonl")
+    verify = journal_sub.add_parser("verify")
+    verify.add_argument("--journal", default="future_holdout_execution_journal.jsonl")
+    verify.add_argument("--checkpoint")
     return parser
 
 
@@ -89,6 +97,25 @@ def _validate_lanes(args: argparse.Namespace) -> dict[str, Any]:
     if tracked != report:
         raise RuntimeError("tracked future holdout lane evidence is stale")
     return report
+
+
+def _load_checkpoint(path: str | None) -> JournalCheckpoint | None:
+    if path is None:
+        return None
+    try:
+        payload = json.loads(
+            Path(path).read_text(encoding="utf-8"),
+            object_pairs_hook=_reject_duplicate_keys,
+        )
+        if not isinstance(payload, dict) or set(payload) != {
+            "schema_version",
+            "sequence",
+            "record_sha256",
+        }:
+            raise ValueError("checkpoint schema is malformed")
+        return JournalCheckpoint(**payload)
+    except (OSError, UnicodeError, json.JSONDecodeError, TypeError, ValueError) as exc:
+        raise ValueError("cannot read trusted execution journal checkpoint") from exc
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -127,6 +154,25 @@ def main(argv: list[str] | None = None) -> int:
             next_open=args.next_open,
             manual_skip=args.manual_skip,
         )
+    elif args.journal_action == "checkpoint":
+        records = read_execution_journal(args.journal)
+        print(json.dumps(asdict(execution_journal_checkpoint(records)), sort_keys=True))
+        return 0
+    elif args.journal_action == "verify":
+        trusted = _load_checkpoint(args.checkpoint)
+        records = read_execution_journal(args.journal, trusted_checkpoint=trusted)
+        current = execution_journal_checkpoint(records)
+        print(
+            json.dumps(
+                {
+                    "checkpoint": asdict(current),
+                    "records": len(records),
+                    "status": "VALID",
+                },
+                sort_keys=True,
+            )
+        )
+        return 0
     else:
         print(render_execution_journal(read_execution_journal(args.journal)))
         return 0

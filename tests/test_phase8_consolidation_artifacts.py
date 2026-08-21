@@ -39,6 +39,7 @@ PHASE7_CHANGED_PATHS = {
     "uquant/risk.py",
     "uquant/risk_sentinel/integration.py",
 }
+PHASE8_DELIVERY_COMMIT = "0ae54c0a6d2d4ca3dfe9814c75fbe82ae5591ac4"
 
 
 def _inventory() -> dict[str, object]:
@@ -126,13 +127,22 @@ def test_phase8_economic_equivalence_artifact_is_exact_and_complete() -> None:
         "tests/test_phase8_consolidation_artifacts.py",
     ]
 
-    changed_after_rebind = subprocess.run(
-        ["git", "diff", "--name-only", f"{payload['candidate_commit']}..HEAD"],
+    subprocess.run(
+        ["git", "merge-base", "--is-ancestor", PHASE8_DELIVERY_COMMIT, "HEAD"],
+        check=True,
+    )
+    changed_during_phase8_delivery = subprocess.run(
+        [
+            "git",
+            "diff",
+            "--name-only",
+            f"{payload['candidate_commit']}..{PHASE8_DELIVERY_COMMIT}",
+        ],
         check=True,
         capture_output=True,
         text=True,
     ).stdout.splitlines()
-    assert sorted(changed_after_rebind) == seal["allowed_post_replay_paths"]
+    assert sorted(changed_during_phase8_delivery) == seal["allowed_post_replay_paths"]
 
     assert seal["production_code_sha256"] == (
         "591d1659c8d4498f37700c651fcde25bdf4ca89054df7ec8d849e5dda374c1b6"

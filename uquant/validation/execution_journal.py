@@ -764,87 +764,11 @@ def record_to_dict(record: JournalRecord) -> dict[str, Any]:
     }
 
 
-def summarize_execution_journal(
-    records: tuple[JournalRecord, ...],
-) -> dict[str, Any]:
-    """Aggregate observed execution without inferring or changing strategy intent."""
-
-    plans: dict[str, JournalRecord] = {}
-    filled_by_plan: dict[str, int] = {}
-    skipped: set[str] = set()
-    reference_notional = 0.0
-    realized_slippage = 0.0
-    for item in records:
-        if item.status is JournalStatus.PLANNED:
-            plans[item.plan_id] = item
-            filled_by_plan[item.plan_id] = 0
-        elif item.status is JournalStatus.FILLED:
-            shares = cast(int, item.actual_shares)
-            filled_by_plan[item.plan_id] += shares
-            reference_notional += cast(float, item.next_open) * shares
-            realized_slippage += cast(float, item.slippage_value)
-        else:
-            skipped.add(item.plan_id)
-
-    states = {"filled": 0, "partial": 0, "open": 0, "skipped": 0}
-    for plan_id, plan in plans.items():
-        filled = filled_by_plan[plan_id]
-        planned = cast(int, plan.planned_shares)
-        if plan_id in skipped:
-            states["skipped"] += 1
-        elif filled == planned:
-            states["filled"] += 1
-        elif filled:
-            states["partial"] += 1
-        else:
-            states["open"] += 1
-
-    planned_shares = sum(cast(int, plan.planned_shares) for plan in plans.values())
-    filled_shares = sum(filled_by_plan.values())
-    return {
-        "schema_version": 1,
-        "plan_count": len(plans),
-        "filled_plans": states["filled"],
-        "partial_plans": states["partial"],
-        "open_plans": states["open"],
-        "skipped_plans": states["skipped"],
-        "planned_shares": planned_shares,
-        "filled_shares": filled_shares,
-        "fill_ratio": filled_shares / planned_shares if planned_shares else 0.0,
-        "reference_notional": reference_notional,
-        "realized_slippage": realized_slippage,
-        "weighted_slippage_bps": (
-            realized_slippage / reference_notional * 10_000.0
-            if reference_notional
-            else None
-        ),
-    }
-
-
 def render_execution_journal(records: tuple[JournalRecord, ...]) -> str:
     """Render v1/v2 observational events without deriving strategy intent."""
 
-    summary = summarize_execution_journal(records)
-    weighted_slippage = summary["weighted_slippage_bps"]
     lines = [
         "# Future Holdout Manual Execution Journal",
-        "",
-        "## Execution Summary",
-        "",
-        "| Metric | Value |",
-        "|---|---:|",
-        f"| Plans | {summary['plan_count']} |",
-        "| Filled / Partial / Open / Skipped | "
-        f"{summary['filled_plans']} / {summary['partial_plans']} / "
-        f"{summary['open_plans']} / {summary['skipped_plans']} |",
-        f"| Planned / Filled shares | {summary['planned_shares']} / {summary['filled_shares']} |",
-        f"| Fill ratio | {summary['fill_ratio']:.2%} |",
-        f"| Realized slippage | {summary['realized_slippage']:.4f} |",
-        "| Weighted slippage | "
-        + ("N/A" if weighted_slippage is None else f"{weighted_slippage:.4f} bps")
-        + " |",
-        "",
-        "## Events",
         "",
         "| Seq | Decision | Plan | Status | Symbol | Side | Weight | Planned | Next open | Actual | Shares | Slippage | Broker/Note |",
         "|---:|---|---|---|---|---|---:|---:|---:|---:|---:|---:|---|",

@@ -7,17 +7,21 @@ import json
 from collections.abc import Iterable
 from dataclasses import asdict
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 
 from uquant.validation.execution_journal import (
     JournalCheckpoint,
+    JournalRecord,
+    JournalStatus,
     append_filled,
     append_planned,
     append_skipped,
     execution_journal_checkpoint,
     read_execution_journal,
     record_to_dict,
-    render_execution_journal,
+)
+from uquant.validation.execution_journal import (
+    render_execution_journal as render_execution_events,
 )
 from uquant.validation.holdout import holdout_data_identity, load_future_holdout_contract
 from uquant.validation.holdout_lanes import build_lane_validation_report, load_lane_registry
@@ -116,6 +120,97 @@ def _load_checkpoint(path: str | None) -> JournalCheckpoint | None:
         return JournalCheckpoint(**payload)
     except (OSError, UnicodeError, json.JSONDecodeError, TypeError, ValueError) as exc:
         raise ValueError("cannot read trusted execution journal checkpoint") from exc
+
+
+def summarize_execution_journal(
+    records: tuple[JournalRecord, ...],
+) -> dict[str, Any]:
+    """Aggregate observed execution without importing any strategy state."""
+
+    plans: dict[str, JournalRecord] = {}
+    filled_by_plan: dict[str, int] = {}
+    skipped: set[str] = set()
+    reference_notional = 0.0
+    realized_slippage = 0.0
+    for item in records:
+        if item.status is JournalStatus.PLANNED:
+            plans[item.plan_id] = item
+            filled_by_plan[item.plan_id] = 0
+        elif item.status is JournalStatus.FILLED:
+            shares = cast(int, item.actual_shares)
+            filled_by_plan[item.plan_id] += shares
+            reference_notional += cast(float, item.next_open) * shares
+            realized_slippage += cast(float, item.slippage_value)
+        else:
+            skipped.add(item.plan_id)
+
+    states = {"filled": 0, "partial": 0, "open": 0, "skipped": 0}
+    for plan_id, plan in plans.items():
+        filled = filled_by_plan[plan_id]
+        planned = cast(int, plan.planned_shares)
+        if plan_id in skipped:
+            states["skipped"] += 1
+        elif filled == planned:
+            states["filled"] += 1
+        elif filled:
+            states["partial"] += 1
+        else:
+            states["open"] += 1
+
+    planned_shares = sum(cast(int, plan.planned_shares) for plan in plans.values())
+    filled_shares = sum(filled_by_plan.values())
+    return {
+        "schema_version": 1,
+        "plan_count": len(plans),
+        "filled_plans": states["filled"],
+        "partial_plans": states["partial"],
+        "open_plans": states["open"],
+        "skipped_plans": states["skipped"],
+        "planned_shares": planned_shares,
+        "filled_shares": filled_shares,
+        "fill_ratio": filled_shares / planned_shares if planned_shares else 0.0,
+        "reference_notional": reference_notional,
+        "realized_slippage": realized_slippage,
+        "weighted_slippage_bps": (
+            realized_slippage / reference_notional * 10_000.0
+            if reference_notional
+            else None
+        ),
+    }
+
+
+def render_execution_journal(records: tuple[JournalRecord, ...]) -> str:
+    """Render aggregate operator outcomes before the immutable event rows."""
+
+    summary = summarize_execution_journal(records)
+    weighted_slippage = summary["weighted_slippage_bps"]
+    event_report = render_execution_events(records)
+    _, separator, event_table = event_report.partition("\n\n")
+    if not separator:
+        raise ValueError("execution journal event report is malformed")
+    lines = [
+        "# Future Holdout Manual Execution Journal",
+        "",
+        "## Execution Summary",
+        "",
+        "| Metric | Value |",
+        "|---|---:|",
+        f"| Plans | {summary['plan_count']} |",
+        "| Filled / Partial / Open / Skipped | "
+        f"{summary['filled_plans']} / {summary['partial_plans']} / "
+        f"{summary['open_plans']} / {summary['skipped_plans']} |",
+        f"| Planned / Filled shares | {summary['planned_shares']} / {summary['filled_shares']} |",
+        f"| Fill ratio | {summary['fill_ratio']:.2%} |",
+        f"| Realized slippage | {summary['realized_slippage']:.4f} |",
+        "| Weighted slippage | "
+        + ("N/A" if weighted_slippage is None else f"{weighted_slippage:.4f} bps")
+        + " |",
+        "",
+        "## Events",
+        "",
+        event_table,
+    ]
+    return "\n".join(lines)
 
 
 def main(argv: list[str] | None = None) -> int:

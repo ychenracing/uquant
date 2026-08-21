@@ -13,8 +13,6 @@ from uquant.validation.execution_journal import (
     append_planned,
     append_skipped,
     read_execution_journal,
-    render_execution_journal,
-    summarize_execution_journal,
 )
 
 _CLI_SPEC = importlib.util.spec_from_file_location(
@@ -25,6 +23,8 @@ assert _CLI_SPEC is not None and _CLI_SPEC.loader is not None
 _CLI_MODULE = importlib.util.module_from_spec(_CLI_SPEC)
 _CLI_SPEC.loader.exec_module(_CLI_MODULE)
 future_holdout_main = _CLI_MODULE.main
+render_execution_journal = _CLI_MODULE.render_execution_journal
+summarize_execution_journal = _CLI_MODULE.summarize_execution_journal
 
 
 def _append_complete_plan(path: Path) -> None:

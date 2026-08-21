@@ -7,6 +7,8 @@ from __future__ import annotations
 
 import hashlib
 import json
+import shutil
+import subprocess  # nosec B404 - fixed local git identity query only
 from dataclasses import asdict, dataclass
 from pathlib import Path
 from typing import Any, Literal, cast
@@ -29,6 +31,18 @@ MAPPING_STATUSES = frozenset(
 )
 ACTION_CLASSIFICATIONS = frozenset(
     {"DIRECTLY_REPLAYABLE", "TRANSLATABLE", "HYBRID_DIAGNOSTIC", "NON_TRANSFERABLE"}
+)
+DIFFERENTIAL_CLASSIFICATIONS = frozenset(
+    {
+        "AGREE_ALL",
+        "TRADE_ONLY",
+        "BASE_ONLY",
+        "SENTINEL_ONLY",
+        "TRADE_AND_SENTINEL_NOT_BASE",
+        "TRADE_AND_BASE_NOT_SENTINEL",
+        "BASE_AND_SENTINEL_NOT_TRADE",
+        "NOT_COMPARABLE",
+    }
 )
 CAPABILITY_CATEGORIES = frozenset(
     {
@@ -175,6 +189,14 @@ class RiskDifferentialEvent:
     base_already_protected: bool
     existing_gross_exposure: float = 0.0
 
+    def __post_init__(self) -> None:
+        if self.classification not in DIFFERENTIAL_CLASSIFICATIONS:
+            raise ValueError("risk differential classification is unknown")
+        if self.actionable_buy_intents < 0 or self.actionable_pyramid_intents < 0:
+            raise ValueError("risk differential actionability counts must be nonnegative")
+        if not self.existing_gross_exposure >= 0.0:
+            raise ValueError("existing gross exposure must be nonnegative")
+
 
 @dataclass(frozen=True, slots=True)
 class CapabilityRecord:
@@ -227,9 +249,23 @@ def validate_capabilities(
 
 
 def validate_registry_checkout(root: Path, identity: dict[str, Any]) -> None:
-    marker = root / ".frozen_commit"
-    if not marker.is_file() or marker.read_text(encoding="utf-8").strip() != identity["commit"]:
+    git_executable = shutil.which("git")
+    if git_executable is None or not (root / ".git").exists():
+        raise ValueError("challenger must be a real Git checkout")
+    completed = subprocess.run(  # nosec B603 - absolute git executable and fixed argv
+        [str(Path(git_executable).resolve()), "rev-parse", "HEAD"],
+        cwd=root,
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+    if completed.returncode != 0 or completed.stdout.strip() != identity["commit"]:
         raise ValueError("challenger commit mismatch")
+    if hash_python_sources(root) != identity["python_source_sha256"]:
+        raise ValueError("challenger full Python-source hash mismatch")
+    lock_files = tuple(str(item) for item in identity.get("lock_files", ()))
+    if not lock_files or hash_lock_files(root, lock_files) != identity["lock_sha256"]:
+        raise ValueError("challenger lock hash mismatch")
     required = tuple(str(item) for item in identity["risk_source_files"])
     if hash_selected_sources(root, required) != identity["risk_source_sha256"]:
         raise ValueError("challenger Python risk-source hash mismatch")

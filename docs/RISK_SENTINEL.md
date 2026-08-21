@@ -95,3 +95,11 @@ Risk Sentinel 包含 `trade` 的全部执行政策，也不允许 Sentinel 生�
 机器清单、三方逐日 replay、counterfactual 和 terminal promotion decision 位于
 `artifacts/sentinel/risk_differential/`。它们均为 observation/research evidence，不是生产
 指令。
+
+`risk_differential_shadow` 只接受冻结交易日表中、且 holdout 数据目录确实已出现的 session；
+周末、未来日、无数据日和 activation 前日期都会失败关闭。CLI 不接受调用方编写的风险事实；
+它从 source-bound holdout 数据内部运行锁定的 uquant/trade 引擎，再派生闭合字段、严格类型、
+互斥且排序的 contract axes。每行绑定真实 Git HEAD、完整 trade Python/lock hash、lane identity、
+当时的数据身份、uquant Decision Digest 和派生 payload seal。
+前 19 个真实 session 的 formal scores 必须为 `null`；从第 20 个真实 session 起才生成 20/40/60
+milestone 的 observation-only 汇总，且永远不能改变生产参数或权限。

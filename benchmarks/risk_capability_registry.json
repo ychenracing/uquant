@@ -30,7 +30,9 @@
         "uquant/risk_sentinel/opinion.py"
       ],
       "trade_source": [
-        "quantfusion/risk/governance.py"
+        "quantfusion/risk/governance.py",
+        "quantfusion/config/overlay.py",
+        "quantfusion/risk/overlay/policy.py"
       ],
       "uquant_base_equivalent": [
         "uquant/risk.py"
@@ -66,7 +68,8 @@
         "uquant/risk_sentinel/calibration.py"
       ],
       "trade_source": [
-        "quantfusion/risk/governance.py"
+        "quantfusion/risk/governance.py",
+        "quantfusion/application/stress.py"
       ],
       "uquant_base_equivalent": []
     },
@@ -132,7 +135,8 @@
       "rationale": "trade sleeve topology has no unambiguous uquant analogue",
       "sentinel_equivalent": [],
       "trade_source": [
-        "quantfusion/risk/governance.py"
+        "quantfusion/risk/governance.py",
+        "quantfusion/engine/ensemble_orchestration.py"
       ],
       "uquant_base_equivalent": []
     },
@@ -301,9 +305,27 @@
         "uquant/risk_sentinel/evidence.py"
       ],
       "trade_source": [
-        "quantfusion/risk/overlay/evidence.py"
+        "quantfusion/risk/overlay/evidence.py",
+        "quantfusion/engine/sector_risk.py"
       ],
       "uquant_base_equivalent": []
+    },
+    {
+      "action_classification": "HYBRID_DIAGNOSTIC",
+      "capability_id": "risk.early_sector_risk",
+      "category": "OBSERVATION",
+      "economic_counterfactual_supported": false,
+      "exact_transfer_possible": false,
+      "mapping_status": "PARTIAL_EQUIVALENT",
+      "production_promotion_allowed_this_phase": false,
+      "rationale": "both expose causal sector stress, but trade's early sector precursor is not semantically identical to uquant's holdings-sector guard",
+      "sentinel_equivalent": [],
+      "trade_source": [
+        "quantfusion/engine/sector_risk.py"
+      ],
+      "uquant_base_equivalent": [
+        "uquant/risk_sector.py"
+      ]
     },
     {
       "action_classification": "DIRECTLY_REPLAYABLE",
@@ -388,7 +410,8 @@
       "rationale": "depends on trade sleeve scoring and emits sells",
       "sentinel_equivalent": [],
       "trade_source": [
-        "quantfusion/risk/overlay/policy_base.py"
+        "quantfusion/risk/overlay/policy_base.py",
+        "quantfusion/risk/overlay/actions.py"
       ],
       "uquant_base_equivalent": []
     },
@@ -403,7 +426,8 @@
       "rationale": "uquant has transition/sector reductions but no identical ranking",
       "sentinel_equivalent": [],
       "trade_source": [
-        "quantfusion/engine/market_regime.py"
+        "quantfusion/engine/market_regime.py",
+        "quantfusion/engine/sector_risk.py"
       ],
       "uquant_base_equivalent": [
         "uquant/risk_sector.py"
@@ -420,7 +444,8 @@
       "rationale": "concentration is guarded but trade ranking is not transferable",
       "sentinel_equivalent": [],
       "trade_source": [
-        "quantfusion/risk/overlay/policy_base.py"
+        "quantfusion/risk/overlay/policy_base.py",
+        "quantfusion/engine/universe_risk.py"
       ],
       "uquant_base_equivalent": [
         "uquant/portfolio_core.py"
@@ -542,7 +567,8 @@
       "rationale": "Base owns the sole recovery state machine",
       "sentinel_equivalent": [],
       "trade_source": [
-        "quantfusion/risk/managers.py"
+        "quantfusion/risk/managers.py",
+        "regime_adaptive.py"
       ],
       "uquant_base_equivalent": [
         "uquant/risk.py",
@@ -583,7 +609,7 @@
       "uquant_base_equivalent": []
     }
   ],
-  "payload_sha256": "21487a7ef042d092452dee63c3f9d9f28facc44361e11de7f3891ffd50de2e7d",
+  "payload_sha256": "a9f800681e499922430d99fc7e346af687d86e52f64eeb89039a6b1a1c065e86",
   "registry_id": "trade-risk-capability-inventory-v1",
   "schema_version": 1,
   "trade_commit": "2066fbf0f99be94142c5d0cb0b6c99d276c2472d"

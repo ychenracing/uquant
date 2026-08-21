@@ -253,7 +253,21 @@ uv run python scripts/future_holdout.py journal verify
 Risk Differential / counterfactual 观察不得转换成人工 SELL、gross-cap override 或配置
 变更。日常生产操作仍只有一条 `uquant daily` 路径；`trade` checkout 只在显式
 observation-only challenger 命令中使用，缺失或身份不匹配时该观察必须 fail closed，
-且不得计入 Differential holdout session。
+且该 checkout 必须同时匹配注册 Git HEAD、完整 Python source hash、风险源 hash 与四个 lock
+文件 hash。追加命令不接受外部 payload：
+
+```bash
+uv run python scripts/future_holdout.py append-risk-differential \
+  --trade-root /path/to/pinned/trade-checkout \
+  --date 2026-08-24
+```
+
+命令只从已验证的 holdout session 内部运行两套引擎并派生 observation；调用方不能提交自填
+风险等级、axes 或 actionability。任何失败或身份不匹配的运行不得计入 Differential holdout
+session。
+追加命令还会验证日期同时属于冻结 review calendar 和真实 holdout data sessions，并复核既有
+Journal 的 hash chain、字段类型、互斥 axes 与 source identity。只有真实 session 数达到 20 后
+才产生 formal differential scores；此前固定为 `OBSERVING / NON_REVIEWABLE`。
 
 生产默认是 `FREEZE_ONLY`。`uquant daily` 已在唯一日报中显示 Mode、Level、Coverage、
 Confidence、Owner、Risk Families、AI Industry Risk 和受限结论；日常不再要求额外运行

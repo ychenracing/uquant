@@ -61,9 +61,17 @@ POLICY_SET = (
     ShadowPolicy("sentinel_freeze_only_control", "CONTROL", None, "explicit production mapping"),
     ShadowPolicy("trade_entry_freeze_shadow", "EXACT_TRANSFER", "block_new_entries", "block new symbols"),
     ShadowPolicy("trade_pyramid_freeze_shadow", "EXACT_TRANSFER", "block_pyramiding", "clamp additions"),
-    ShadowPolicy("trade_gross_cap_shadow", "EXACT_TRANSFER", "recommended_gross_cap", "monotone gross cap"),
     ShadowPolicy(
-        "trade_layered_protection_shadow", "EXACT_TRANSFER", "layered_protection", "next-open layered stop"
+        "trade_gross_cap_shadow",
+        "TRANSLATED_SHADOW",
+        "recommended_gross_cap",
+        "translated monotone gross-cap diagnostic",
+    ),
+    ShadowPolicy(
+        "trade_layered_protection_shadow",
+        "TRANSLATED_SHADOW",
+        "layered_protection",
+        "translated next-open layered-stop diagnostic",
     ),
     ShadowPolicy(
         "trade_cluster_trim_hybrid_shadow", "HYBRID_DIAGNOSTIC", "cluster_trim", "uquant retention ordering"
@@ -87,6 +95,8 @@ def classify_promotion(candidate_id: str, transfer_kind: str, metrics: Mapping[s
         return "HYBRID_DIAGNOSTIC_ONLY"
     if not metrics.get("sample_pass", False):
         return "INSUFFICIENT_SAMPLE"
+    if transfer_kind != "EXACT_TRANSFER" or not metrics.get("causal_validity_pass", False):
+        return "REJECTED_NO_INCREMENTAL_VALUE"
     if not metrics.get("detection_pass", False):
         return "REJECTED_NO_INCREMENTAL_VALUE"
     if not metrics.get("economic_pass", False) or not metrics.get("generalization_pass", False):

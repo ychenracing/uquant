@@ -9,7 +9,9 @@ from research.candidate_runner import DecisionTrace
 from research.risk_differential import (
     align_three_way,
     classify_boolean_axis,
+    classify_normalized_scalar,
     differential_events,
+    forward_outcomes,
     normalize_trade_governance,
     normalize_uquant_decision,
     prefix_trace_sha256,
@@ -36,6 +38,45 @@ def test_missing_capability_is_not_false() -> None:
         }
     )
     assert row.market_velocity is None
+
+
+def test_missing_trade_admission_fields_are_not_coerced_to_false() -> None:
+    row = normalize_trade_governance(
+        {
+            "date": "2026-08-05",
+            "risk_level": 1,
+            "risk_confidence": 0.8,
+        }
+    )
+    assert row.block_new_entries is None
+    assert row.block_pyramiding is None
+
+
+def test_scalar_classification_preserves_exact_risk_magnitude() -> None:
+    assert classify_normalized_scalar(
+        trade=2, base=1, sentinel=1, higher_is_riskier=True
+    ) == "TRADE_ONLY"
+    assert classify_normalized_scalar(
+        trade=2, base=1, sentinel=0, higher_is_riskier=True
+    ) == "TRADE_ONLY"
+    assert classify_normalized_scalar(
+        trade=0.35, base=0.60, sentinel=0.60, higher_is_riskier=False
+    ) == "TRADE_ONLY"
+    assert classify_normalized_scalar(
+        trade=0.85, base=0.60, sentinel=0.60, higher_is_riskier=False
+    ) == "BASE_AND_SENTINEL_NOT_TRADE"
+
+
+def test_incomplete_forward_horizon_is_null_not_truncated() -> None:
+    outcomes = forward_outcomes(
+        ["2026-08-04"],
+        ["2026-08-04", "2026-08-05"],
+        [1.0, 0.9],
+        [1.0, 0.8],
+        horizons=(1, 3),
+    )[0]["outcomes"]
+    assert outcomes["1d"] is not None
+    assert outcomes["3d"] is None
 
 
 def test_uquant_adapter_reads_base_and_sentinel_from_same_decision() -> None:

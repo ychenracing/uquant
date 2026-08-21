@@ -57,6 +57,26 @@ def classify_boolean_axis(*, trade: bool | None, base: bool | None, sentinel: bo
     return "NOT_COMPARABLE"
 
 
+def classify_normalized_scalar(
+    *,
+    trade: float | int | None,
+    base: float | int | None,
+    sentinel: float | int | None,
+    higher_is_riskier: bool,
+) -> str:
+    """Classify the exact most-riskful normalized scalar value."""
+
+    if trade is None or base is None or sentinel is None:
+        return "NOT_COMPARABLE"
+    values = (trade, base, sentinel)
+    most_riskful = max(values) if higher_is_riskier else min(values)
+    return classify_boolean_axis(
+        trade=trade == most_riskful,
+        base=base == most_riskful,
+        sentinel=sentinel == most_riskful,
+    )
+
+
 def align_three_way(
     trade: Sequence[RiskTraceRow],
     base: Sequence[RiskTraceRow],
@@ -126,6 +146,8 @@ def normalize_trade_governance(row: dict[str, Any]) -> RiskTraceRow:
     gross = opinion.get("recommended_gross_cap")
     if gross is None and row.get("gross_cap_derived_from_pinned_level_contract"):
         gross = {0: 1.0, 1: 0.85, 2: 0.60, 3: 0.35}.get(level)
+    block_new_entries = opinion.get("block_new_entries")
+    block_pyramids = opinion.get("block_pyramids")
     return replace(
         RiskTraceRow.empty(str(opinion["date"]), "trade", status=status, severity_rank=level),
         confidence=float(opinion.get("risk_confidence", 0.0)),
@@ -136,8 +158,10 @@ def normalize_trade_governance(row: dict[str, Any]) -> RiskTraceRow:
         live_book_damage=families.get("live_book_damage"),
         capital_damage=families.get("capital_damage"),
         concentration_damage=families.get("concentration_damage"),
-        block_new_entries=bool(opinion.get("block_new_entries")),
-        block_pyramiding=bool(opinion.get("block_pyramids")),
+        block_new_entries=(
+            bool(block_new_entries) if block_new_entries is not None else None
+        ),
+        block_pyramiding=bool(block_pyramids) if block_pyramids is not None else None,
         recommended_gross_cap=float(gross) if gross is not None else None,
         weakest_clusters=tuple(str(item) for item in opinion.get("weakest_clusters", ())),
         action_candidates=tuple(str(item) for item in row.get("action_candidates", ())),
@@ -258,7 +282,10 @@ def forward_outcomes(
         pos = positions[event]
         outcomes: dict[str, Any] = {}
         for horizon in horizons:
-            end = min(pos + horizon, len(dates) - 1)
+            end = pos + horizon
+            if end >= len(dates):
+                outcomes[f"{horizon}d"] = None
+                continue
             p0, m0 = portfolio[pos], market[pos]
             p_window = portfolio[pos : end + 1]
             running_peak = p_window[0]

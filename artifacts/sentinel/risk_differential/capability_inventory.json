@@ -30,7 +30,9 @@
         "uquant/risk_sentinel/opinion.py"
       ],
       "trade_source": [
-        "quantfusion/risk/governance.py"
+        "quantfusion/risk/governance.py",
+        "quantfusion/config/overlay.py",
+        "quantfusion/risk/overlay/policy.py"
       ],
       "uquant_base_equivalent": [
         "uquant/risk.py"
@@ -66,7 +68,8 @@
         "uquant/risk_sentinel/calibration.py"
       ],
       "trade_source": [
-        "quantfusion/risk/governance.py"
+        "quantfusion/risk/governance.py",
+        "quantfusion/application/stress.py"
       ],
       "uquant_base_equivalent": []
     },
@@ -132,7 +135,8 @@
       "rationale": "trade sleeve topology has no unambiguous uquant analogue",
       "sentinel_equivalent": [],
       "trade_source": [
-        "quantfusion/risk/governance.py"
+        "quantfusion/risk/governance.py",
+        "quantfusion/engine/ensemble_orchestration.py"
       ],
       "uquant_base_equivalent": []
     },
@@ -301,9 +305,27 @@
         "uquant/risk_sentinel/evidence.py"
       ],
       "trade_source": [
-        "quantfusion/risk/overlay/evidence.py"
+        "quantfusion/risk/overlay/evidence.py",
+        "quantfusion/engine/sector_risk.py"
       ],
       "uquant_base_equivalent": []
+    },
+    {
+      "action_classification": "HYBRID_DIAGNOSTIC",
+      "capability_id": "risk.early_sector_risk",
+      "category": "OBSERVATION",
+      "economic_counterfactual_supported": false,
+      "exact_transfer_possible": false,
+      "mapping_status": "PARTIAL_EQUIVALENT",
+      "production_promotion_allowed_this_phase": false,
+      "rationale": "both expose causal sector stress, but trade's early sector precursor is not semantically identical to uquant's holdings-sector guard",
+      "sentinel_equivalent": [],
+      "trade_source": [
+        "quantfusion/engine/sector_risk.py"
+      ],
+      "uquant_base_equivalent": [
+        "uquant/risk_sector.py"
+      ]
     },
     {
       "action_classification": "DIRECTLY_REPLAYABLE",
@@ -388,7 +410,8 @@
       "rationale": "depends on trade sleeve scoring and emits sells",
       "sentinel_equivalent": [],
       "trade_source": [
-        "quantfusion/risk/overlay/policy_base.py"
+        "quantfusion/risk/overlay/policy_base.py",
+        "quantfusion/risk/overlay/actions.py"
       ],
       "uquant_base_equivalent": []
     },
@@ -403,7 +426,8 @@
       "rationale": "uquant has transition/sector reductions but no identical ranking",
       "sentinel_equivalent": [],
       "trade_source": [
-        "quantfusion/engine/market_regime.py"
+        "quantfusion/engine/market_regime.py",
+        "quantfusion/engine/sector_risk.py"
       ],
       "uquant_base_equivalent": [
         "uquant/risk_sector.py"
@@ -420,7 +444,8 @@
       "rationale": "concentration is guarded but trade ranking is not transferable",
       "sentinel_equivalent": [],
       "trade_source": [
-        "quantfusion/risk/overlay/policy_base.py"
+        "quantfusion/risk/overlay/policy_base.py",
+        "quantfusion/engine/universe_risk.py"
       ],
       "uquant_base_equivalent": [
         "uquant/portfolio_core.py"
@@ -542,7 +567,8 @@
       "rationale": "Base owns the sole recovery state machine",
       "sentinel_equivalent": [],
       "trade_source": [
-        "quantfusion/risk/managers.py"
+        "quantfusion/risk/managers.py",
+        "regime_adaptive.py"
       ],
       "uquant_base_equivalent": [
         "uquant/risk.py",
@@ -589,15 +615,15 @@
     "ABSORBED_SENTINEL": 8,
     "INCREMENTAL_EXECUTION_POLICY": 1,
     "INCREMENTAL_OBSERVATIONAL": 1,
-    "PARTIAL_EQUIVALENT": 7,
+    "PARTIAL_EQUIVALENT": 8,
     "REJECTED_PREVIOUSLY": 2
   },
-  "payload_sha256": "8400c4e05354e2879e9dfb60c2d07c772f24d9d773f36a2ac41c9848286d1984",
+  "payload_sha256": "6b03f08e8dda6575a73aec19a098ed6505220287c94315943bdadf255037403f",
   "provenance": {
-    "adapter_sha256": "3e100e9fe659c573988c8506b1ae0230d65807eb3fdfeccdeda1bbb18ecfae4d",
-    "capability_registry_sha256": "21487a7ef042d092452dee63c3f9d9f28facc44361e11de7f3891ffd50de2e7d",
+    "adapter_sha256": "ea1098018297664dcb4f1ee2ea1c361a975e15bcdd73b6aec0701ada13881636",
+    "capability_registry_sha256": "a9f800681e499922430d99fc7e346af687d86e52f64eeb89039a6b1a1c065e86",
     "contract_sha256": "0aee1f55a5a94d35be443556cadd74e200b21bb86c7d5ed89b2a8b4469af3413",
-    "market_data_prefix_sha256": "aea57de0a358413f75441c063a8cfe50ca1d5b948e042a4c14b717f89d97eb7f",
+    "market_data_prefix_sha256": "a37d50e5412ea76db723c5ea1dd047daa4a7837c6f2dcbbbd3b681026c6b0200",
     "runtime": {
       "numpy": "2.5.1",
       "pandas": "3.0.5",
@@ -605,8 +631,8 @@
       "python_hash_seed": "0"
     },
     "scope": "all",
-    "sealed_trade_challenger_trace_sha256": "47ed9f5e601f162ece19f2558fa8744a74de51b631d944c88afe6b59b1f47133",
-    "source_registry_sha256": "808133382319d0c289c6a4381f6ceac4519b0636aaa758683fa8ac97d7580775",
+    "sealed_trade_challenger_trace_sha256": "74b51c4f9c8ef904581955311b95a68035f149a3c4ebccb2e5aa9a5e28fcaeef",
+    "source_registry_sha256": "12d2e9a21c83e2c43101face4920eeee1902ad674d8f15cc0daa46c863088eea",
     "trade_commit": "2066fbf0f99be94142c5d0cb0b6c99d276c2472d",
     "uquant_starting_commit": "ba314003044a229969270bee6854240dfb7f211e"
   },

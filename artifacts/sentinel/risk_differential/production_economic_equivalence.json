@@ -1,7 +1,7 @@
 {
   "baseline_commit": "ba314003044a229969270bee6854240dfb7f211e",
   "baseline_trace_sha256": "8dab09e7019c1f0c8ea4e21f1f061260a2c4eb25a87abd8d75da73f86cab57f3",
-  "candidate_commit": "351ec91828bf6fd3a3b1d7c7e77da548d8379696",
+  "candidate_commit": "9bda827550ee26c536d91e2238f0d52174b4c612",
   "candidate_trace_sha256": "8dab09e7019c1f0c8ea4e21f1f061260a2c4eb25a87abd8d75da73f86cab57f3",
   "cases": 45,
   "data": {

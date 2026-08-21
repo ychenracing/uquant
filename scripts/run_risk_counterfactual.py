@@ -7,9 +7,11 @@ import argparse
 import gzip
 import hashlib
 import json
+import os
+import platform
 from concurrent.futures import ProcessPoolExecutor, as_completed
 from copy import deepcopy
-from dataclasses import replace
+from dataclasses import asdict, replace
 from pathlib import Path
 from typing import Any
 
@@ -47,6 +49,8 @@ from uquant.validation.ai_era import require_ai_era_interval
 
 POLICIES = (
     "baseline_uquant",
+    "base_only_control",
+    "sentinel_freeze_only_control",
     "trade_entry_freeze_shadow",
     "trade_pyramid_freeze_shadow",
     "trade_gross_cap_shadow",
@@ -54,19 +58,20 @@ POLICIES = (
     "trade_cluster_trim_hybrid_shadow",
 )
 EXECUTED_POLICIES = (
+    "baseline_uquant",
+    "base_only_control",
+    "sentinel_freeze_only_control",
+    "trade_entry_freeze_shadow",
+    "trade_pyramid_freeze_shadow",
+    "trade_gross_cap_shadow",
+    "trade_layered_protection_shadow",
+    "trade_cluster_trim_hybrid_shadow",
+)
+GENERALIZATION_POLICIES = (
+    "baseline_uquant",
     "trade_gross_cap_shadow",
     "trade_layered_protection_shadow",
 )
-EVALUATION_CELLS = {
-    "trade_gross_cap_shadow": frozenset({"official_pool/h1_2023/a", "official_pool/h1_2024/a"}),
-    "trade_layered_protection_shadow": frozenset(
-        {
-            "official_pool/h1_2023/a",
-            "official_pool/h1_2024/a",
-            "official_pool/bull_crash_2025_2026/a",
-        }
-    ),
-}
 
 
 def _write(path: Path, payload: dict[str, Any]) -> None:
@@ -75,6 +80,34 @@ def _write(path: Path, payload: dict[str, Any]) -> None:
         path,
         json.dumps(payload, ensure_ascii=False, sort_keys=True, indent=2, allow_nan=False) + "\n",
     )
+
+
+def _write_job_checkpoint(path: Path, *, identity: str, result: dict[str, Any]) -> None:
+    payload: dict[str, Any] = {"identity": identity, "result": result}
+    payload["payload_sha256"] = canonical_sha256(payload)
+    _write(path, payload)
+
+
+def _load_job_checkpoint(path: Path, *, identity: str) -> dict[str, Any] | None:
+    if not path.is_file():
+        return None
+    try:
+        payload = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, UnicodeError, json.JSONDecodeError):
+        return None
+    if (
+        not isinstance(payload, dict)
+        or payload.get("identity") != identity
+        or payload.get("payload_sha256") != canonical_sha256(payload)
+        or not isinstance(payload.get("result"), dict)
+    ):
+        return None
+    return dict(payload["result"])
+
+
+def _checkpoint_path(cache_dir: Path, cell_id: str, policy_id: str) -> Path:
+    job_id = hashlib.sha256(f"{cell_id}:{policy_id}".encode()).hexdigest()
+    return cache_dir / f"{job_id}.json"
 
 
 def _prices(engine: ProductionEngine, account: AccountState, date: pd.Timestamp) -> dict[str, float]:
@@ -151,14 +184,22 @@ def _layered_targets(
 def run_cell_policy(cell: dict[str, Any], policy_id: str, data_dir: Path) -> dict[str, Any]:
     start, end = require_ai_era_interval(cell["start"], cell["end"])
     symbols = tuple(sorted(normalize_symbol(item) for item in cell["symbols"]))
-    engine = ProductionEngine(data_dir, DEFAULT_CONFIG)
+    cfg = (
+        DEFAULT_CONFIG.override(risk_sentinel_mode="SHADOW")
+        if policy_id == "base_only_control"
+        else DEFAULT_CONFIG
+    )
+    engine = ProductionEngine(data_dir, cfg)
     engine._load(set(symbols) | set(REFERENCE_UNIVERSE) | set(INDEX_SYMBOLS))
     sessions = engine._raw["sh000300"].index.intersection(engine._raw["sh000682"].index)
     sessions = sessions[(sessions >= pd.Timestamp(start)) & (sessions <= pd.Timestamp(end))]
-    account = AccountState.empty(DEFAULT_CONFIG.initial_cash)
+    account = AccountState.empty(cfg.initial_cash)
     panel = {symbol: engine._raw[symbol] for symbol in symbols}
     trade_by_date = {item["date"]: item["trade"] for item in cell["days"]}
     equity_rows: list[tuple[pd.Timestamp, float]] = []
+    decision_digests: list[str] = []
+    target_plans: list[dict[str, Any]] = []
+    pending_order_plans: list[dict[str, Any]] = []
     trigger_count = 0
     blocked_buy_intents = 0
     blocked_pyramid_intents = 0
@@ -169,6 +210,7 @@ def run_cell_policy(cell: dict[str, Any], policy_id: str, data_dir: Path) -> dic
         previous = deepcopy(account)
         planned = deepcopy(account)
         decision = engine.decide(symbols=symbols, as_of=str(date.date()), account=planned)
+        decision_digests.append(decision.decision_digest)
         targets = decision.targets
         trade = trade_by_date[str(date.date())]
         prices = _prices(engine, planned, date)
@@ -232,7 +274,7 @@ def run_cell_policy(cell: dict[str, Any], policy_id: str, data_dir: Path) -> dic
                 signal_date=str(date.date()),
                 targets=targets,
                 retained_orders=previous.pending_orders,
-                cfg=DEFAULT_CONFIG,
+                cfg=cfg,
             )
             planned.pending_orders = list(
                 rebuild_shadow_orders(
@@ -241,12 +283,21 @@ def run_cell_policy(cell: dict[str, Any], policy_id: str, data_dir: Path) -> dic
                     signal_date=str(date.date()),
                     targets=targets,
                     prices=prices,
-                    cfg=DEFAULT_CONFIG,
+                    cfg=cfg,
                     removed_buy_reason=removed_buy_reason,
                 )
             )
         else:
             planned.pending_orders = list(decision.pending_orders)
+        target_plans.append(
+            {"date": str(date.date()), "targets": [asdict(item) for item in targets]}
+        )
+        pending_order_plans.append(
+            {
+                "date": str(date.date()),
+                "pending_orders": [asdict(item) for item in planned.pending_orders],
+            }
+        )
         account = planned
     metrics = performance_metrics(
         equity_rows=equity_rows,
@@ -266,9 +317,11 @@ def run_cell_policy(cell: dict[str, Any], policy_id: str, data_dir: Path) -> dic
     risk_sells = sum(fill.side == "SELL" and fill.exit_kind == "risk" for fill in account.fills)
     return {
         "cell_id": cell["cell_id"],
+        "matrix_axis": cell["axis"],
         "window": cell["window"],
         "universe": cell["universe"],
         "policy_id": policy_id,
+        "execution_mode": "FULL_PRODUCTION_ENGINE_REPLAY",
         "trigger_count": trigger_count,
         "final_wealth": float(series.iloc[-1] / account.initial_cash),
         "total_return": float(series.iloc[-1] / account.initial_cash - 1.0),
@@ -280,6 +333,16 @@ def run_cell_policy(cell: dict[str, Any], policy_id: str, data_dir: Path) -> dic
         "risk_sell_orders": int(risk_sells),
         "blocked_buy_intents": int(blocked_buy_intents),
         "blocked_pyramid_intents": int(blocked_pyramid_intents),
+        "decision_digest_sha256": canonical_sha256({"digests": decision_digests}),
+        "target_plan_sha256": canonical_sha256({"days": target_plans}),
+        "pending_order_plan_sha256": canonical_sha256({"days": pending_order_plans}),
+        "fill_ledger_sha256": canonical_sha256(
+            {"fills": [asdict(item) for item in account.fills]}
+        ),
+        "order_ledger_sha256": canonical_sha256(
+            {"orders": [asdict(item) for item in account.order_ledger]}
+        ),
+        "economic_account_sha256": canonical_sha256(account.to_dict()),
     }
 
 
@@ -303,23 +366,13 @@ def main() -> int:
     )
     days_by_cell = {item["cell_id"]: item["days"] for item in daily["cells"]}
     exclusive = json.loads((root / "artifacts/sentinel/risk_differential/exclusive_events.json").read_text())
-    actionable_admission = [
-        item
-        for item in exclusive["events"]
-        if item["event_id"].startswith("official_pool/")
-        and item["axis"] in {"block_new_entries", "block_pyramiding"}
-        and (item["actionable_buy_intents"] or item["actionable_pyramid_intents"])
-    ]
-    if actionable_admission:
-        raise RuntimeError(
-            "admission policies require full replay because actionable exclusive intents exist"
-        )
     contract = json.loads((root / "benchmarks/current_heads_comparison_contract.json").read_text())
-    established = json.loads((root / "benchmarks/current_heads_competitor_matrix.json").read_text())
     windows = contract["windows"]
     cells = []
     for item in matrix["cells"]:
-        if item.get("axis") != "official_pool" or item.get("status") != "SUCCESS":
+        if item.get("axis") not in {"official_pool", "generalization"} or item.get(
+            "status"
+        ) != "SUCCESS":
             continue
         window = windows[item["window"]]
         cells.append(
@@ -329,68 +382,46 @@ def main() -> int:
                 "acute": {"start": window["acute_start"], "end": window["acute_end"]},
             }
         )
-    established_baselines = {
-        f"{item['axis']}/{item['window']}/{item['name']}": item["metrics"]
-        for item in established["cells"]
-        if item["axis"] == "official_pool" and item["system"] == "uquant" and item["status"] == "SUCCESS"
-    }
     results = []
-    for cell in cells:
-        metrics = established_baselines[cell["cell_id"]]
-        results.append(
-            {
-                "cell_id": cell["cell_id"],
-                "window": cell["window"],
-                "universe": cell["universe"],
-                "policy_id": "baseline_uquant",
-                "trigger_count": 0,
-                "final_wealth": metrics["final_wealth"],
-                "total_return": metrics["total_return"],
-                "max_drawdown": metrics["max_drawdown"],
-                "acute_return": metrics["acute_return"],
-                "account_orders": metrics["account_orders"],
-                "gross_turnover": metrics["gross_turnover"],
-                "annual_turnover": metrics["annual_turnover"],
-                "risk_sell_orders": 0,
-                "blocked_buy_intents": 0,
-                "blocked_pyramid_intents": 0,
-                "equivalence_reason": "sealed production-equivalent current-head baseline",
-            }
-        )
-    jobs = [
-        (cell, policy, str(root / "data/frozen"))
+    runner_identity = canonical_sha256(
+        {
+            "matrix_sha256": matrix["payload_sha256"],
+            "daily_trace_sha256": hashlib.sha256(
+                (root / "artifacts/sentinel/risk_differential/risk_differential_daily.json.gz").read_bytes()
+            ).hexdigest(),
+            "policy_set": [asdict(policy) for policy in POLICY_SET],
+            "runner_sha256": hashlib.sha256(Path(__file__).read_bytes()).hexdigest(),
+        }
+    )
+    cache_dir = root / ".risk_differential_runtime/counterfactual" / runner_identity
+    jobs = []
+    expected_jobs = sum(
+        len(EXECUTED_POLICIES if cell["axis"] == "official_pool" else GENERALIZATION_POLICIES)
         for cell in cells
-        for policy in EXECUTED_POLICIES
-        if cell["cell_id"] in EVALUATION_CELLS[policy]
-    ]
+    )
+    for cell in cells:
+        policies = EXECUTED_POLICIES if cell["axis"] == "official_pool" else GENERALIZATION_POLICIES
+        for policy in policies:
+            checkpoint = _checkpoint_path(cache_dir, cell["cell_id"], policy)
+            cached = _load_job_checkpoint(checkpoint, identity=runner_identity)
+            if cached is not None:
+                results.append(cached)
+            else:
+                jobs.append((cell, policy, str(root / "data/frozen")))
+    if results:
+        print(f"resuming {len(results)}/{expected_jobs} completed jobs", flush=True)
     with ProcessPoolExecutor(max_workers=max(1, args.workers)) as pool:
         futures = {pool.submit(_worker, job): (job[0]["cell_id"], job[1]) for job in jobs}
-        for index, future in enumerate(as_completed(futures), start=1):
-            results.append(future.result())
+        for future in as_completed(futures):
+            result = future.result()
+            results.append(result)
             cell_id, policy = futures[future]
-            print(f"[{index}/{len(jobs)}] {cell_id}:{policy}", flush=True)
-    baselines = {item["cell_id"]: item for item in results if item["policy_id"] == "baseline_uquant"}
-    for policy in (
-        "trade_entry_freeze_shadow",
-        "trade_pyramid_freeze_shadow",
-        "trade_cluster_trim_hybrid_shadow",
-    ):
-        results.extend(
-            {
-                **baseline,
-                "policy_id": policy,
-                "trigger_count": 0,
-                "risk_sell_orders": 0,
-                "blocked_buy_intents": 0,
-                "blocked_pyramid_intents": 0,
-                "equivalence_reason": (
-                    "no actionable exclusive BUY/pyramid intent"
-                    if policy != "trade_cluster_trim_hybrid_shadow"
-                    else "daily weakest-cluster challenger state is unobservable"
-                ),
-            }
-            for baseline in baselines.values()
-        )
+            _write_job_checkpoint(
+                _checkpoint_path(cache_dir, cell_id, policy),
+                identity=runner_identity,
+                result=result,
+            )
+            print(f"[{len(results)}/{expected_jobs}] {cell_id}:{policy}", flush=True)
     payload = {
         "schema_version": 1,
         "provenance": {
@@ -402,6 +433,11 @@ def main() -> int:
             "frozen_exclusive_events_sha256": exclusive["payload_sha256"],
             "uquant_starting_commit": matrix["provenance"]["uquant_starting_commit"],
             "trade_commit": matrix["provenance"]["trade_commit"],
+            "counterfactual_runner_identity": runner_identity,
+            "runtime": {
+                "python": platform.python_version(),
+                "python_hash_seed": os.environ.get("PYTHONHASHSEED"),
+            },
         },
         "policy_set": [
             {
@@ -415,10 +451,12 @@ def main() -> int:
         "cells": sorted(results, key=lambda item: (item["cell_id"], item["policy_id"])),
         "production_behavior_changed": False,
         "fixed_policy_stop_rule": {
-            "trade_gross_cap_shadow": (
-                "two preregistered representative cells plus archived Phase 5 gate failure"
+            "official_scope": "all 30 official cells executed for every control and shadow policy",
+            "generalization": (
+                "all economically READY generalization cells executed for baseline and every "
+                "shadow policy that passed the preregistered sample gate; insufficient-sample "
+                "and non-transferable candidates stop before generalization"
             ),
-            "trade_layered_protection_shadow": ("three preregistered representative risk regimes"),
         },
     }
     payload["payload_sha256"] = canonical_sha256(payload)

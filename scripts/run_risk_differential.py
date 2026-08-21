@@ -17,26 +17,29 @@ from concurrent.futures import ProcessPoolExecutor, as_completed
 from dataclasses import asdict
 from datetime import UTC, datetime
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 
 import numpy as np
 import pandas as pd
 
 from research.risk_counterfactual import POLICY_SET
-from research.risk_differential import BOOLEAN_AXES, classify_boolean_axis
+from research.risk_differential import (
+    BOOLEAN_AXES,
+    classify_boolean_axis,
+    classify_normalized_scalar,
+)
 from research.risk_differential_models import (
     CapabilityRecord,
     canonical_bytes,
     canonical_sha256,
     hash_lock_files,
-    hash_python_sources,
     hash_selected_sources,
     validate_capabilities,
     validate_registry_checkout,
 )
 from research.risk_replay_runtime import (
     ReplayCell,
-    build_trade_data_view,
+    causal_data_prefix_sha256,
     run_trade_cell,
     run_uquant_cell,
 )
@@ -44,8 +47,12 @@ from uquant.atomic_io import atomic_write_bytes, atomic_write_text
 
 STARTING_MAIN = "ba314003044a229969270bee6854240dfb7f211e"
 TRADE_COMMIT = "2066fbf0f99be94142c5d0cb0b6c99d276c2472d"
-TRADE_FULL_SOURCE_SHA256 = "48280acee356ee4bd28fa83b260426f3025e6b3bd93c1cee2f92188486761b90"
-TRADE_FULL_LOCK_SHA256 = "182d6bbfc2dba29d568f521ee765de335227e721e783a8a9a9cdfef436db7ba2"
+TRADE_LOCK_FILES = (
+    "requirements-dev.txt",
+    "requirements-lock-py311.txt",
+    "requirements-lock.txt",
+    "requirements.txt",
+)
 TRADE_RISK_FILES = (
     "quantfusion/config/overlay.py",
     "quantfusion/risk/governance.py",
@@ -62,11 +69,53 @@ TRADE_RISK_FILES = (
     "quantfusion/application/stress.py",
     "regime_adaptive.py",
 )
+RISK_DIFFERENTIAL_AXES = (
+    *BOOLEAN_AXES,
+    "recommended_gross_cap",
+    "layered_protection",
+    "cluster_trim",
+    "cooldown_or_reentry_lock",
+    "execution_owner",
+)
+
+
+def validate_contract_axes(values: tuple[str, ...] | list[str]) -> tuple[str, ...]:
+    """Reject duplicate, unknown, or omitted axes before any replay begins."""
+
+    axes = tuple(str(value) for value in values)
+    if len(axes) != len(set(axes)):
+        raise ValueError("risk differential contract axes must be unique")
+    unknown = set(axes) - set(RISK_DIFFERENTIAL_AXES)
+    if unknown:
+        raise ValueError(f"risk differential contract has unknown axes: {sorted(unknown)}")
+    missing = set(RISK_DIFFERENTIAL_AXES) - set(axes)
+    if missing:
+        raise ValueError(f"risk differential contract omits closed axes: {sorted(missing)}")
+    return axes
+
+
+def _standard_warning_sets(
+    trade: int | None, base: int | None, sentinel: int | None
+) -> tuple[str, ...]:
+    """Return the report's named warning sets, with ALL_SILENT as an agreement subset."""
+
+    if trade is None or base is None or sentinel is None:
+        return ()
+    if trade == base == sentinel:
+        return ("ALL_AGREE", "ALL_SILENT") if trade == 0 else ("ALL_AGREE",)
+    classification = classify_normalized_scalar(
+        trade=trade, base=base, sentinel=sentinel, higher_is_riskier=True
+    )
+    return (
+        "TRADE_AND_SENTINEL_ONLY"
+        if classification == "TRADE_AND_SENTINEL_NOT_BASE"
+        else classification,
+    )
 
 
 def _cap(
     identifier: str,
-    source: str,
+    source: str | tuple[str, ...],
     category: str,
     mapping: str,
     action: str,
@@ -79,7 +128,7 @@ def _cap(
 ) -> CapabilityRecord:
     return CapabilityRecord(
         capability_id=identifier,
-        trade_source=(source,),
+        trade_source=(source,) if isinstance(source, str) else source,
         category=category,
         uquant_base_equivalent=base,
         sentinel_equivalent=sentinel,
@@ -110,7 +159,11 @@ def capability_inventory() -> tuple[CapabilityRecord, ...]:
             ),
             _cap(
                 "observation.risk_opinion",
-                g,
+                (
+                    g,
+                    "quantfusion/config/overlay.py",
+                    "quantfusion/risk/overlay/policy.py",
+                ),
                 "OBSERVATION",
                 "PARTIAL_EQUIVALENT",
                 "DIRECTLY_REPLAYABLE",
@@ -130,7 +183,7 @@ def capability_inventory() -> tuple[CapabilityRecord, ...]:
             ),
             _cap(
                 "calibration.risk_event_outcomes",
-                g,
+                (g, "quantfusion/application/stress.py"),
                 "OFFLINE_CALIBRATION",
                 "ABSORBED_SENTINEL",
                 "DIRECTLY_REPLAYABLE",
@@ -166,7 +219,7 @@ def capability_inventory() -> tuple[CapabilityRecord, ...]:
             ),
             _cap(
                 "observation.sleeve_agreement",
-                g,
+                (g, "quantfusion/engine/ensemble_orchestration.py"),
                 "OBSERVATION",
                 "INCREMENTAL_OBSERVATIONAL",
                 "NON_TRANSFERABLE",
@@ -260,12 +313,24 @@ def capability_inventory() -> tuple[CapabilityRecord, ...]:
             ),
             _cap(
                 "observation.subindustry_equal_weighting",
-                e,
+                (e, "quantfusion/engine/sector_risk.py"),
                 "OBSERVATION",
                 "ABSORBED_SENTINEL",
                 "DIRECTLY_REPLAYABLE",
                 sentinel=("uquant/risk_sentinel/evidence.py",),
                 rationale="Sentinel already aggregates subindustries equally",
+            ),
+            _cap(
+                "risk.early_sector_risk",
+                "quantfusion/engine/sector_risk.py",
+                "OBSERVATION",
+                "PARTIAL_EQUIVALENT",
+                "HYBRID_DIAGNOSTIC",
+                base=("uquant/risk_sector.py",),
+                rationale=(
+                    "both expose causal sector stress, but trade's early sector precursor "
+                    "is not semantically identical to uquant's holdings-sector guard"
+                ),
             ),
             _cap(
                 "observation.weakest_cluster",
@@ -313,7 +378,7 @@ def capability_inventory() -> tuple[CapabilityRecord, ...]:
             ),
             _cap(
                 "exposure.graded_trim",
-                p,
+                (p, "quantfusion/risk/overlay/actions.py"),
                 "EXPOSURE_POLICY",
                 "INCREMENTAL_EXECUTION_POLICY",
                 "NON_TRANSFERABLE",
@@ -321,7 +386,10 @@ def capability_inventory() -> tuple[CapabilityRecord, ...]:
             ),
             _cap(
                 "exposure.transition_trim",
-                "quantfusion/engine/market_regime.py",
+                (
+                    "quantfusion/engine/market_regime.py",
+                    "quantfusion/engine/sector_risk.py",
+                ),
                 "EXPOSURE_POLICY",
                 "PARTIAL_EQUIVALENT",
                 "HYBRID_DIAGNOSTIC",
@@ -330,7 +398,7 @@ def capability_inventory() -> tuple[CapabilityRecord, ...]:
             ),
             _cap(
                 "exposure.concentration_cluster_guard",
-                p,
+                (p, "quantfusion/engine/universe_risk.py"),
                 "EXPOSURE_POLICY",
                 "PARTIAL_EQUIVALENT",
                 "HYBRID_DIAGNOSTIC",
@@ -401,7 +469,7 @@ def capability_inventory() -> tuple[CapabilityRecord, ...]:
             ),
             _cap(
                 "risk.recovery",
-                m,
+                (m, "regime_adaptive.py"),
                 "RISK_STATE",
                 "ABSORBED_BASE",
                 "NON_TRANSFERABLE",
@@ -458,6 +526,7 @@ def _adapter_cache_identity(root: Path) -> str:
         root / "research/risk_differential.py",
         root / "research/risk_differential_models.py",
         root / "research/risk_replay_runtime.py",
+        root / "research/candidate_runner.py",
         root / "benchmarks/risk_differential_contract.json",
         root / "benchmarks/risk_differential_source_registry.json",
     )
@@ -469,51 +538,258 @@ def _adapter_cache_identity(root: Path) -> str:
     )
 
 
+def _derive_checkout_identity(
+    root: Path,
+    *,
+    lock_files: tuple[str, ...],
+    risk_files: tuple[str, ...] = (),
+) -> dict[str, str]:
+    """Derive every source identity directly from one real checkout."""
+
+    git_executable = shutil.which("git")
+    if git_executable is None:
+        raise RuntimeError("git executable is required to bind source identity")
+    completed = subprocess.run(  # nosec B603 - absolute git executable and fixed argv
+        [str(Path(git_executable).resolve()), "rev-parse", "HEAD"],
+        cwd=root,
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+    if completed.returncode != 0:
+        raise RuntimeError(f"source checkout has no readable HEAD: {root}")
+    identity = {
+        "commit": completed.stdout.strip(),
+        "python_source_sha256": _hash_checkout_python_sources(root),
+        "lock_sha256": hash_lock_files(root, lock_files),
+    }
+    if risk_files:
+        identity["risk_source_sha256"] = hash_selected_sources(root, risk_files)
+    return identity
+
+
+def _hash_checkout_python_sources(root: Path) -> str:
+    """Hash every tracked Python source from the checkout, excluding environment files."""
+
+    git_executable = shutil.which("git")
+    if git_executable is None:
+        raise RuntimeError("git executable is required to enumerate Python sources")
+    completed = subprocess.run(  # nosec B603 - absolute git executable and fixed argv
+        [str(Path(git_executable).resolve()), "ls-files", "-z", "*.py"],
+        cwd=root,
+        check=False,
+        capture_output=True,
+    )
+    if completed.returncode != 0:
+        raise RuntimeError(f"cannot enumerate Python sources: {root}")
+    relative_paths = sorted(
+        (item.decode("utf-8") for item in completed.stdout.split(b"\0") if item),
+    )
+    if not relative_paths:
+        raise RuntimeError(f"checkout has no tracked Python sources: {root}")
+    digest = hashlib.sha256()
+    for relative in relative_paths:
+        path = root / relative
+        if path.is_symlink() or not path.is_file():
+            raise RuntimeError(f"tracked Python source is missing or unsafe: {relative}")
+        digest.update(relative.encode("utf-8"))
+        digest.update(path.read_bytes())
+    return digest.hexdigest()
+
+
+def _require_unchanged_checkout(
+    frozen: dict[str, str], current: dict[str, str], *, label: str
+) -> None:
+    if frozen != current:
+        changed = sorted(key for key in set(frozen) | set(current) if frozen.get(key) != current.get(key))
+        raise RuntimeError(f"{label} source checkout moved: {changed}")
+
+
+def _registry_source_identity(identity: dict[str, Any]) -> dict[str, str]:
+    keys = ("commit", "python_source_sha256", "lock_sha256", "risk_source_sha256")
+    return {key: str(identity[key]) for key in keys if key in identity}
+
+
+def _cell_cache_identity(
+    cell: ReplayCell,
+    data_dir: Path,
+    *,
+    source_registry: dict[str, Any],
+    adapter_sha256: str,
+    uquant_runtime_source_sha256: str | None = None,
+) -> str:
+    """Bind a replay cell to its causal bytes and both engine/source identities."""
+
+    uquant = source_registry["uquant"]
+    trade = source_registry["trade"]
+    return canonical_sha256(
+        {
+            "cell": asdict(cell),
+            "causal_data_prefix_sha256": causal_data_prefix_sha256(
+                data_dir, as_of=cell.end
+            ),
+            "adapter_sha256": adapter_sha256,
+            "uquant_runner_source": {
+                "commit": uquant["commit"],
+                "python_source_sha256": uquant["python_source_sha256"],
+                "runtime_python_source_sha256": (
+                    uquant_runtime_source_sha256 or uquant["python_source_sha256"]
+                ),
+                "lock_sha256": uquant.get("lock_sha256"),
+            },
+            "trade_runner_source": {
+                "commit": trade["commit"],
+                "python_source_sha256": trade["python_source_sha256"],
+                "risk_source_sha256": trade["risk_source_sha256"],
+                "lock_sha256": trade.get("lock_sha256"),
+            },
+        }
+    )
+
+
+def _replay_result_sha256(payload: dict[str, Any]) -> str:
+    normalized = {key: value for key, value in payload.items() if key != "result_sha256"}
+    return canonical_sha256(normalized)
+
+
+def _load_replay_cache(
+    path: Path, cell: ReplayCell, expected_identity: str
+) -> dict[str, Any] | None:
+    """Read a cache only when its full identity and immutable result seal match."""
+
+    if not path.is_file():
+        return None
+    try:
+        raw = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return None
+    if not isinstance(raw, dict):
+        return None
+    payload = cast(dict[str, Any], raw)
+    if canonical_sha256({"cell": payload.get("cell")}) != canonical_sha256(
+        {"cell": asdict(cell)}
+    ):
+        return None
+    if payload.get("cache_identity") != expected_identity:
+        return None
+    if payload.get("runtime_identity", {}).get("python_hash_seed") != "0":
+        return None
+    if payload.get("result_sha256") != _replay_result_sha256(payload):
+        return None
+    return payload
+
+
 def _run_replay_cell(
-    args: tuple[ReplayCell, str, str, str, dict[str, Any] | None, dict[str, Any] | None]
+    args: tuple[
+        ReplayCell,
+        str,
+        str,
+        str,
+        str,
+        dict[str, Any] | None,
+    ]
 ) -> dict[str, Any]:
-    cell, data_dir, trade_root, data_view, cached_uquant, cached_trade = args
-    uquant = cached_uquant or run_uquant_cell(cell, Path(data_dir))
+    cell, data_dir, trade_root, data_view, cache_identity, cached_trade = args
+    uquant = run_uquant_cell(cell, Path(data_dir))
     trade = cached_trade or run_trade_cell(cell, Path(trade_root), Path(data_view))
     if uquant["dates"] != trade["dates"]:
         raise RuntimeError(
             f"calendar mismatch for {cell.cell_id}: "
             f"uquant={len(uquant['dates'])}, trade={len(trade['dates'])}"
         )
-    return {
+    result = {
         "cell": asdict(cell),
         "uquant": uquant,
         "trade": trade,
+        "cache_identity": cache_identity,
         "runtime_identity": {"python_hash_seed": os.environ.get("PYTHONHASHSEED")},
     }
+    result["result_sha256"] = _replay_result_sha256(result)
+    return result
 
 
-def seal_trade_trace(root: Path, trade_root: Path) -> None:
-    """Seal the already executed pinned challenger trace as a deterministic input."""
+def _run_trade_trace_cell(args: tuple[ReplayCell, str, str, str]) -> dict[str, Any]:
+    cell, trade_root, data_view, cache_identity = args
+    result = {
+        "cell": asdict(cell),
+        "trade": run_trade_cell(cell, Path(trade_root), Path(data_view)),
+        "cache_identity": cache_identity,
+        "runtime_identity": {"python_hash_seed": os.environ.get("PYTHONHASHSEED")},
+    }
+    result["result_sha256"] = _replay_result_sha256(result)
+    return result
+
+
+def seal_trade_trace(root: Path, trade_root: Path, *, workers: int) -> None:
+    """Execute and seal the pinned challenger trace from its verified Git checkout."""
 
     registry = json.loads((root / "benchmarks/risk_differential_source_registry.json").read_text())
     validate_registry_checkout(trade_root, registry["trade"])
-    cells: dict[str, dict[str, Any]] = {}
-    for cache in sorted((root / ".risk_differential_runtime/cells").glob("*.json")):
-        payload = json.loads(cache.read_text(encoding="utf-8"))
-        cell_id = str(payload["cell"]["cell_id"])
-        cells[cell_id] = {
-            "cell_id": cell_id,
-            "source_cache_sha256": hashlib.sha256(cache.read_bytes()).hexdigest(),
-            "trace": payload["trade"],
-        }
     expected, _ = _replay_cells(root, "all")
-    expected_ids = {cell.cell_id for cell in expected}
-    if set(cells) != expected_ids:
-        raise RuntimeError(
-            f"pinned challenger trace coverage mismatch: {len(cells)} != {len(expected_ids)}"
+    runtime = root / ".risk_differential_runtime"
+    data_view = root / "data/frozen"
+    trace_runner_identity = canonical_sha256(
+        {
+            "source_registry_sha256": registry["payload_sha256"],
+            "runner_sha256": hashlib.sha256(Path(__file__).read_bytes()).hexdigest(),
+            "runtime_adapter_sha256": hashlib.sha256(
+                (root / "research/risk_replay_runtime.py").read_bytes()
+            ).hexdigest(),
+        }
+    )
+    cache_dir = runtime / "trade_trace" / trace_runner_identity
+    cache_dir.mkdir(parents=True, exist_ok=True)
+    cells: dict[str, dict[str, Any]] = {}
+    pending: list[ReplayCell] = []
+    uquant_runtime_source_sha256 = _hash_checkout_python_sources(root)
+    cell_identities = {
+        cell.cell_id: _cell_cache_identity(
+            cell,
+            root / "data/frozen",
+            source_registry=registry,
+            adapter_sha256=_adapter_cache_identity(root),
+            uquant_runtime_source_sha256=uquant_runtime_source_sha256,
         )
+        for cell in expected
+    }
+    for cell in expected:
+        cache = cache_dir / f"{hashlib.sha256(cell.cell_id.encode()).hexdigest()}.json"
+        payload = _load_replay_cache(cache, cell, cell_identities[cell.cell_id])
+        if payload is not None:
+            cells[cell.cell_id] = {
+                "cell_id": cell.cell_id,
+                "cache_identity": cell_identities[cell.cell_id],
+                "source_cache_sha256": hashlib.sha256(cache.read_bytes()).hexdigest(),
+                "trace": payload["trade"],
+            }
+            continue
+        pending.append(cell)
+    arguments = [
+        (cell, str(trade_root), str(data_view), cell_identities[cell.cell_id])
+        for cell in pending
+    ]
+    with ProcessPoolExecutor(max_workers=max(1, workers)) as pool:
+        futures = {pool.submit(_run_trade_trace_cell, item): item[0] for item in arguments}
+        for index, future in enumerate(as_completed(futures), start=1):
+            cell = futures[future]
+            payload = future.result()
+            cache = cache_dir / f"{hashlib.sha256(cell.cell_id.encode()).hexdigest()}.json"
+            _write(cache, payload)
+            cells[cell.cell_id] = {
+                "cell_id": cell.cell_id,
+                "cache_identity": cell_identities[cell.cell_id],
+                "source_cache_sha256": hashlib.sha256(cache.read_bytes()).hexdigest(),
+                "trace": payload["trade"],
+            }
+            print(f"[{index}/{len(pending)}] {cell.cell_id}", flush=True)
+    validate_registry_checkout(trade_root, registry["trade"])
     sealed = _seal(
         {
             "schema_version": 1,
             "trade_commit": registry["trade"]["commit"],
             "trade_source_sha256": registry["trade"]["risk_source_sha256"],
             "source_registry_sha256": registry["payload_sha256"],
+            "trace_runner_identity": trace_runner_identity,
             "generation_note": (
                 "materialized from the completed pinned-source replay before outcome analysis"
             ),
@@ -574,7 +850,7 @@ def _replay_cells(root: Path, scope: str) -> tuple[list[ReplayCell], list[dict[s
 
 
 def _trace_fact(row: dict[str, Any]) -> dict[str, Any]:
-    return {
+    fact = {
         "status": row["status"],
         "confidence": row["confidence"],
         "severity_rank": row["severity_rank"],
@@ -587,30 +863,38 @@ def _trace_fact(row: dict[str, Any]) -> dict[str, Any]:
         "action_candidates": row["action_candidates"],
         "execution_owner": row["execution_owner"],
     }
-
-
-def _classify_scalar(trade: Any, base: Any, sentinel: Any, *, risk_predicate: Any) -> str:
-    if None in (trade, base, sentinel):
-        return "NOT_COMPARABLE"
-    if trade == base == sentinel:
-        return "AGREE_ALL"
-    return classify_boolean_axis(
-        trade=bool(risk_predicate(trade)),
-        base=bool(risk_predicate(base)),
-        sentinel=bool(risk_predicate(sentinel)),
-    )
+    if "decision_identity" in row:
+        fact["decision_identity"] = row["decision_identity"]
+    return fact
 
 
 def replay(root: Path, *, trade_root: Path, workers: int, scope: str) -> None:
     registry = json.loads((root / "benchmarks/risk_differential_source_registry.json").read_text())
     capability = json.loads((root / "benchmarks/risk_capability_registry.json").read_text())
+    contract = json.loads((root / "benchmarks/risk_differential_contract.json").read_text())
+    axes = validate_contract_axes(contract["axes"])
     validate_registry_checkout(trade_root, registry["trade"])
     cells, excluded = _replay_cells(root, scope)
     runtime = root / ".risk_differential_runtime"
-    data_view = runtime / "trade_data"
-    build_trade_data_view(root / "data/frozen", data_view)
-    cache_dir = runtime / "cells" / _adapter_cache_identity(root)
+    data_view = root / "data/frozen"
+    adapter_identity = _adapter_cache_identity(root)
+    cache_dir = runtime / "cells" / adapter_identity
     cache_dir.mkdir(parents=True, exist_ok=True)
+    cell_data_prefixes = {
+        cell.cell_id: causal_data_prefix_sha256(root / "data/frozen", as_of=cell.end)
+        for cell in cells
+    }
+    uquant_runtime_source_sha256 = _hash_checkout_python_sources(root)
+    cell_identities = {
+        cell.cell_id: _cell_cache_identity(
+            cell,
+            root / "data/frozen",
+            source_registry=registry,
+            adapter_sha256=adapter_identity,
+            uquant_runtime_source_sha256=uquant_runtime_source_sha256,
+        )
+        for cell in cells
+    }
     trace_path = root / "artifacts/sentinel/risk_differential/trade_challenger_trace.json.gz"
     if not trace_path.is_file():
         raise RuntimeError("sealed challenger trace is required; run seal-trade-trace first")
@@ -619,40 +903,33 @@ def replay(root: Path, *, trade_root: Path, workers: int, scope: str) -> None:
         raise RuntimeError("sealed challenger trace has an invalid canonical seal")
     if trace_payload["source_registry_sha256"] != registry["payload_sha256"]:
         raise RuntimeError("sealed challenger trace is not source-registry bound")
-    reusable_trade = {item["cell_id"]: item["trace"] for item in trace_payload["cells"]}
-    reusable_uquant: dict[str, dict[str, Any]] = {}
-    for old_cache in sorted((runtime / "cells").rglob("*.json")):
-        try:
-            old_payload = json.loads(old_cache.read_text(encoding="utf-8"))
-            if old_payload.get("runtime_identity", {}).get("python_hash_seed") != "0":
-                continue
-            old_cell_id = str(old_payload["cell"]["cell_id"])
-            old_uquant = old_payload["uquant"]
-        except (KeyError, TypeError, json.JSONDecodeError):
-            continue
-        existing = reusable_uquant.get(old_cell_id)
-        if existing is not None and canonical_sha256(existing) != canonical_sha256(old_uquant):
-            raise RuntimeError(f"conflicting deterministic uquant cache for {old_cell_id}")
-        reusable_uquant[old_cell_id] = old_uquant
+    reusable_trade = {
+        item["cell_id"]: item["trace"]
+        for item in trace_payload["cells"]
+        if item.get("cache_identity") == cell_identities.get(item["cell_id"])
+    }
+    missing_trade = sorted(set(cell_identities) - set(reusable_trade))
+    if missing_trade:
+        raise RuntimeError(
+            "sealed challenger trace is stale for current causal/source identity; "
+            "run seal-trade-trace first"
+        )
     pending: list[ReplayCell] = []
     results: list[dict[str, Any]] = []
     for cell in cells:
         cache = cache_dir / f"{hashlib.sha256(cell.cell_id.encode()).hexdigest()}.json"
-        if cache.is_file():
-            cached = json.loads(cache.read_text(encoding="utf-8"))
-            if cached.get("runtime_identity", {}).get("python_hash_seed") == "0":
-                results.append(cached)
-            else:
-                pending.append(cell)
-        else:
+        cached = _load_replay_cache(cache, cell, cell_identities[cell.cell_id])
+        if cached is None:
             pending.append(cell)
+        else:
+            results.append(cached)
     args = [
         (
             cell,
             str(root / "data/frozen"),
             str(trade_root),
             str(data_view),
-            reusable_uquant.get(cell.cell_id),
+            cell_identities[cell.cell_id],
             reusable_trade.get(cell.cell_id),
         )
         for cell in pending
@@ -666,8 +943,6 @@ def replay(root: Path, *, trade_root: Path, workers: int, scope: str) -> None:
             _write(cache, result)
             results.append(result)
             print(f"[{index}/{len(pending)}] {cell.cell_id}", flush=True)
-    contract = json.loads((root / "benchmarks/risk_differential_contract.json").read_text())
-    axes = tuple(contract["axes"])
     classifications = (
         "AGREE_ALL",
         "TRADE_ONLY",
@@ -680,6 +955,7 @@ def replay(root: Path, *, trade_root: Path, workers: int, scope: str) -> None:
     )
     axis_counts: dict[str, Counter[str]] = {axis: Counter() for axis in axes}
     axis_counts["warning_level"] = Counter()
+    standard_warning_counts: Counter[str] = Counter()
     exclusive: list[dict[str, Any]] = []
     sealed_cells: list[dict[str, Any]] = []
     for result in sorted(results, key=lambda item: item["cell"]["cell_id"]):
@@ -692,6 +968,16 @@ def replay(root: Path, *, trade_root: Path, workers: int, scope: str) -> None:
             base = result["uquant"]["base"][index]
             sentinel = result["uquant"]["sentinel"][index]
             trade = result["trade"]["trade"][index]
+            decision_identity = base.get("decision_identity")
+            if (
+                not isinstance(decision_identity, dict)
+                or decision_identity.get("date") != date
+                or len(str(decision_identity.get("decision_digest_sha256", ""))) != 64
+                or sentinel.get("decision_identity") != decision_identity
+            ):
+                raise RuntimeError(
+                    f"uquant normalized facts are not decision-bound for {cell['cell_id']}:{date}"
+                )
             classifications_for_day: dict[str, str] = {}
             for axis in BOOLEAN_AXES:
                 classification = classify_boolean_axis(
@@ -699,19 +985,24 @@ def replay(root: Path, *, trade_root: Path, workers: int, scope: str) -> None:
                 )
                 classifications_for_day[axis] = classification
                 axis_counts[axis][classification] += 1
-            warning = _classify_scalar(
-                trade["severity_rank"],
-                base["severity_rank"],
-                sentinel["severity_rank"],
-                risk_predicate=lambda value: int(value) > 0,
+            warning = classify_normalized_scalar(
+                trade=trade["severity_rank"],
+                base=base["severity_rank"],
+                sentinel=sentinel["severity_rank"],
+                higher_is_riskier=True,
             )
             classifications_for_day["warning_level"] = warning
             axis_counts["warning_level"][warning] += 1
-            gross = _classify_scalar(
-                trade["recommended_gross_cap"],
-                base["recommended_gross_cap"],
-                sentinel["recommended_gross_cap"],
-                risk_predicate=lambda value: float(value) < 1.0,
+            standard_warning_counts.update(
+                _standard_warning_sets(
+                    trade["severity_rank"], base["severity_rank"], sentinel["severity_rank"]
+                )
+            )
+            gross = classify_normalized_scalar(
+                trade=trade["recommended_gross_cap"],
+                base=base["recommended_gross_cap"],
+                sentinel=sentinel["recommended_gross_cap"],
+                higher_is_riskier=False,
             )
             classifications_for_day["recommended_gross_cap"] = gross
             axis_counts["recommended_gross_cap"][gross] += 1
@@ -770,25 +1061,31 @@ def replay(root: Path, *, trade_root: Path, workers: int, scope: str) -> None:
             }
         )
     sealed_cells.extend(excluded)
+    validate_registry_checkout(trade_root, registry["trade"])
     provenance = {
         "uquant_starting_commit": registry["uquant"]["commit"],
         "trade_commit": registry["trade"]["commit"],
         "source_registry_sha256": registry["payload_sha256"],
         "contract_sha256": contract["payload_sha256"],
         "capability_registry_sha256": capability["payload_sha256"],
-        "market_data_prefix_sha256": hashlib.sha256(
-            b"".join(
-                path.name.encode() + path.read_bytes()
-                for path in sorted((root / "data/frozen").glob("*.csv"))
-            )
-        ).hexdigest(),
+        "market_data_prefix_sha256": canonical_sha256(
+            {
+                "cell_prefixes": [
+                    {
+                        "cell_id": cell_id,
+                        "causal_data_prefix_sha256": cell_data_prefixes[cell_id],
+                    }
+                    for cell_id in sorted(cell_data_prefixes)
+                ]
+            }
+        ),
         "runtime": {
             "python": platform.python_version(),
             "numpy": np.__version__,
             "pandas": pd.__version__,
             "python_hash_seed": os.environ.get("PYTHONHASHSEED"),
         },
-        "adapter_sha256": _adapter_cache_identity(root),
+        "adapter_sha256": adapter_identity,
         "sealed_trade_challenger_trace_sha256": hashlib.sha256(trace_path.read_bytes()).hexdigest(),
         "scope": scope,
     }
@@ -850,6 +1147,17 @@ def replay(root: Path, *, trade_root: Path, workers: int, scope: str) -> None:
                     axis: {name: int(axis_counts[axis].get(name, 0)) for name in classifications}
                     for axis in (*axes, "warning_level")
                 },
+                "standard_warning_event_sets": {
+                    name: int(standard_warning_counts.get(name, 0))
+                    for name in (
+                        "TRADE_ONLY",
+                        "BASE_ONLY",
+                        "SENTINEL_ONLY",
+                        "TRADE_AND_SENTINEL_ONLY",
+                        "ALL_AGREE",
+                        "ALL_SILENT",
+                    )
+                },
                 "cells": matrix_cells,
             }
         ),
@@ -882,22 +1190,7 @@ def preregister(
             "schema_version": 1,
             "contract_id": "risk-differential-closure-v1",
             "source_matrix_contract_sha256": current["payload_sha256"],
-            "axes": [
-                "market_velocity",
-                "breadth_structure",
-                "covariance_stress",
-                "leadership_damage",
-                "live_book_damage",
-                "capital_damage",
-                "concentration_damage",
-                "block_new_entries",
-                "block_pyramiding",
-                "recommended_gross_cap",
-                "layered_protection",
-                "cluster_trim",
-                "cooldown_or_reentry_lock",
-                "execution_owner",
-            ],
+            "axes": list(validate_contract_axes(RISK_DIFFERENTIAL_AXES)),
             "outcome_horizons": [1, 3, 5, 10, 20],
             "shock_definition": {"horizon_sessions": 20, "portfolio_drawdown_lte": -0.08},
             "episode_merge_sessions": 5,
@@ -909,24 +1202,39 @@ def preregister(
             "parameter_search_allowed": False,
         }
     )
-    _write(root / "benchmarks/risk_differential_contract.json", contract)
-    risk_source_sha = hash_selected_sources(trade_root, TRADE_RISK_FILES)
-    git_executable = shutil.which("git")
-    if git_executable is None:
-        raise RuntimeError("git executable is required to bind the starting commit")
-    uquant_sha = subprocess.run(  # nosec B603 - absolute git executable and fixed argv
-        [git_executable, "rev-parse", "HEAD"],
-        cwd=baseline_root,
-        check=True,
-        capture_output=True,
-        text=True,
-    ).stdout.strip()
-    trade_sha = (trade_root / ".frozen_commit").read_text(encoding="utf-8").strip()
-    if uquant_sha != STARTING_MAIN or trade_sha != TRADE_COMMIT:
-        raise RuntimeError("source checkout moved after the closure baseline freeze")
+    baseline_lock_files = ("pyproject.toml", "requirements.txt", "uv.lock")
+    uquant_identity = _derive_checkout_identity(
+        baseline_root, lock_files=baseline_lock_files
+    )
+    trade_identity = _derive_checkout_identity(
+        trade_root,
+        lock_files=TRADE_LOCK_FILES,
+        risk_files=TRADE_RISK_FILES,
+    )
     existing_registry = root / "benchmarks/risk_differential_source_registry.json"
-    if frozen_at_utc is None and existing_registry.is_file():
-        frozen_at_utc = json.loads(existing_registry.read_text())["frozen_at_utc"]
+    frozen_registry = (
+        json.loads(existing_registry.read_text(encoding="utf-8"))
+        if existing_registry.is_file()
+        else None
+    )
+    if frozen_registry is not None:
+        _require_unchanged_checkout(
+            _registry_source_identity(frozen_registry["uquant"]),
+            uquant_identity,
+            label="uquant",
+        )
+        _require_unchanged_checkout(
+            _registry_source_identity(frozen_registry["trade"]),
+            trade_identity,
+            label="trade",
+        )
+        if frozen_at_utc is None:
+            frozen_at_utc = str(frozen_registry["frozen_at_utc"])
+    elif (
+        uquant_identity["commit"] != STARTING_MAIN
+        or trade_identity["commit"] != TRADE_COMMIT
+    ):
+        raise RuntimeError("source checkout moved after the closure baseline freeze")
     if frozen_at_utc is None:
         frozen_at_utc = datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
     registry = _seal(
@@ -936,31 +1244,30 @@ def preregister(
             "frozen_at_utc": frozen_at_utc,
             "uquant": {
                 "repository": "ychenracing/uquant",
-                "commit": uquant_sha,
-                "python_source_sha256": hash_python_sources(baseline_root),
-                "lock_sha256": hash_lock_files(
-                    baseline_root, ("pyproject.toml", "requirements.txt", "uv.lock")
-                ),
+                "commit": uquant_identity["commit"],
+                "python_source_sha256": uquant_identity["python_source_sha256"],
+                "lock_files": list(baseline_lock_files),
+                "lock_sha256": uquant_identity["lock_sha256"],
             },
             "trade": {
                 "repository": "ychenracing/trade",
-                "commit": trade_sha,
-                "python_source_sha256": TRADE_FULL_SOURCE_SHA256,
-                "python_source_identity_source": "sealed current-heads registry at identical commit",
-                "lock_sha256": TRADE_FULL_LOCK_SHA256,
+                "commit": trade_identity["commit"],
+                "python_source_sha256": trade_identity["python_source_sha256"],
+                "python_source_identity_source": "derived from the actual preregistration checkout",
+                "lock_files": list(TRADE_LOCK_FILES),
+                "lock_sha256": trade_identity["lock_sha256"],
                 "risk_source_files": list(TRADE_RISK_FILES),
-                "risk_source_sha256": risk_source_sha,
+                "risk_source_sha256": trade_identity["risk_source_sha256"],
                 "read_only": True,
             },
         }
     )
-    _write(root / "benchmarks/risk_differential_source_registry.json", registry)
     capabilities = capability_inventory()
     capability_payload = _seal(
         {
             "schema_version": 1,
             "registry_id": "trade-risk-capability-inventory-v1",
-            "trade_commit": TRADE_COMMIT,
+            "trade_commit": trade_identity["commit"],
             "capabilities": [
                 {**record.__dict__}
                 if hasattr(record, "__dict__")
@@ -981,7 +1288,6 @@ def preregister(
             ],
         }
     )
-    _write(root / "benchmarks/risk_capability_registry.json", capability_payload)
     policy_identity: dict[str, object] = {
         "policies": [asdict(item) for item in POLICY_SET],
     }
@@ -990,9 +1296,9 @@ def preregister(
             "schema_version": 1,
             "identity_id": "risk-differential-future-holdout-v1",
             "activation_session": "2026-08-24",
-            "uquant_source_commit": STARTING_MAIN,
-            "trade_source_commit": TRADE_COMMIT,
-            "trade_python_source_sha256": TRADE_FULL_SOURCE_SHA256,
+            "uquant_source_commit": uquant_identity["commit"],
+            "trade_source_commit": trade_identity["commit"],
+            "trade_python_source_sha256": trade_identity["python_source_sha256"],
             "risk_differential_contract_sha256": contract["payload_sha256"],
             "capability_registry_sha256": capability_payload["payload_sha256"],
             "counterfactual_policy_set_sha256": canonical_sha256(policy_identity),
@@ -1003,6 +1309,23 @@ def preregister(
             "no_backfill": True,
         }
     )
+    _require_unchanged_checkout(
+        uquant_identity,
+        _derive_checkout_identity(baseline_root, lock_files=baseline_lock_files),
+        label="uquant",
+    )
+    _require_unchanged_checkout(
+        trade_identity,
+        _derive_checkout_identity(
+            trade_root,
+            lock_files=TRADE_LOCK_FILES,
+            risk_files=TRADE_RISK_FILES,
+        ),
+        label="trade",
+    )
+    _write(root / "benchmarks/risk_differential_contract.json", contract)
+    _write(root / "benchmarks/risk_differential_source_registry.json", registry)
+    _write(root / "benchmarks/risk_capability_registry.json", capability_payload)
     _write(root / "benchmarks/risk_differential_holdout_identity.json", holdout_identity)
 
 
@@ -1142,7 +1465,7 @@ def main() -> int:
     elif args.command == "seal-initial-evidence":
         seal_initial_evidence(root)
     elif args.command == "seal-trade-trace":
-        seal_trade_trace(root, args.trade_root)
+        seal_trade_trace(root, args.trade_root, workers=args.workers)
     else:
         replay(root, trade_root=args.trade_root, workers=args.workers, scope=args.scope)
     return 0

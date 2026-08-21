@@ -2,7 +2,8 @@
   "actionable_trade_only_warning_episodes": 6,
   "architecture_goal_reached": true,
   "capability_inventory_complete": true,
-  "final_decision": "NO_INCREMENTAL_PROMOTABLE_RISK_CAPABILITY",
+  "conclusion_code": "NO_INCREMENTAL_PROMOTABLE_RISK_CAPABILITY",
+  "final_decision": "NO_PROMOTABLE_INCREMENTAL_RISK",
   "future_holdout": {
     "formal_scores": null,
     "lane_id": "risk_differential_shadow",
@@ -16,25 +17,25 @@
   "insufficient_sample_capabilities": [
     "trade_entry_freeze_shadow",
     "trade_pyramid_freeze_shadow",
-    "trade_gross_cap_shadow"
+    "trade_layered_protection_shadow"
   ],
   "negative_controls": {
     "phase5_limited_gross_cap": "REJECTED",
     "phase7_exclusive_freeze": "REJECTED"
   },
-  "payload_sha256": "17afd3bed4ae987aab1927edcfc9df519b3bcf26ee84ba1dbf5cdf041cbc2173",
+  "payload_sha256": "6f9a2a642b2bfbd8e3d8a7d13154ee5da5f84bab7c429d975695ab24403d45f7",
   "production_authority_changed": false,
   "production_behavior_changed": false,
   "promotion_candidates": [],
   "rejected_capabilities": [
-    "trade_layered_protection_shadow",
+    "trade_gross_cap_shadow",
     "phase5_rejected_gross_cap_control",
     "phase7_rejected_exclusive_freeze_control"
   ],
   "schema_version": 1,
   "trade_material_incremental_capabilities": [],
-  "trade_only_warning_episodes": 398,
-  "trade_only_warning_events": 530,
+  "trade_only_warning_episodes": 409,
+  "trade_only_warning_events": 649,
   "trade_structural_differentials_not_proven_incremental": [
     "observation.sleeve_agreement",
     "exposure.graded_trim"

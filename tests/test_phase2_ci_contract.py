@@ -112,10 +112,18 @@ def test_engineering_summary_catches_quality_or_security_failure_without_skippin
     )
     quality_steps = _steps(workflow["jobs"]["quality"])
     assert "workflow_dispatch" in workflow["on"]
+    holdout_step = next(
+        step
+        for step in quality_steps
+        if step.get("name") == "Future holdout contract and lane integrity"
+    )
+    assert "validate-static-lanes" in holdout_step["run"]
+    assert "report-lanes" not in holdout_step["run"]
     journal_step = next(
         step for step in quality_steps if step.get("name") == "Manual execution evidence contract"
     )
     assert "journal verify" in journal_step["run"]
+    assert "production_observation.py --help" in journal_step["run"]
     assert "git check-ignore" in journal_step["run"]
     pytest_step = next(step for step in quality_steps if step.get("name") == "Tests and branch coverage")
     assert "--cov-fail-under=85" in pytest_step["run"]
@@ -288,6 +296,11 @@ def test_real_execution_evidence_is_ignored_and_untracked() -> None:
     evidence = (
         "future_holdout_execution_journal.jsonl",
         "future_holdout_execution_journal.checkpoint.json",
+        "future_holdout_lane_report.json",
+        "production_observation_backups/example/receipt.json",
+        "artifacts/future_holdout_replay.json",
+        "artifacts/future_holdout_decision.json",
+        "artifacts/future_holdout_checkpoint.json",
     )
     ignored = subprocess.run(
         ["git", "check-ignore", "--stdin"],

@@ -4,11 +4,13 @@ from __future__ import annotations
 
 import argparse
 import json
+import tempfile
 from collections.abc import Iterable
 from dataclasses import asdict
 from pathlib import Path
 from typing import Any, cast
 
+from uquant.atomic_io import atomic_write_text, validate_atomic_output_boundary
 from uquant.validation.execution_journal import (
     JournalCheckpoint,
     JournalRecord,
@@ -26,6 +28,10 @@ from uquant.validation.execution_journal import (
 from uquant.validation.holdout import holdout_data_identity, load_future_holdout_contract
 from uquant.validation.holdout_lanes import build_lane_validation_report, load_lane_registry
 
+CANONICAL_JOURNAL_PATH = "future_holdout_execution_journal.jsonl"
+CANONICAL_JOURNAL_CHECKPOINT_PATH = "future_holdout_execution_journal.checkpoint.json"
+CANONICAL_LOCAL_LANE_REPORT_PATH = "future_holdout_lane_report.json"
+
 
 def _reject_duplicate_keys(pairs: Iterable[tuple[str, Any]]) -> dict[str, Any]:
     result: dict[str, Any] = {}
@@ -39,15 +45,20 @@ def _reject_duplicate_keys(pairs: Iterable[tuple[str, Any]]) -> dict[str, Any]:
 def _parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="python scripts/future_holdout.py")
     sub = parser.add_subparsers(dest="command", required=True)
-    lanes = sub.add_parser("validate-lanes")
-    lanes.add_argument("--repository-root", default=".")
-    lanes.add_argument("--registry", default="benchmarks/future_holdout_lane_registry.json")
-    lanes.add_argument("--evidence", default="artifacts/holdout/lane_validation.json")
+    for command in ("validate-lanes", "validate-static-lanes"):
+        lanes = sub.add_parser(command)
+        lanes.add_argument("--repository-root", default=".")
+        lanes.add_argument("--registry", default="benchmarks/future_holdout_lane_registry.json")
+        lanes.add_argument("--evidence", default="artifacts/holdout/lane_validation.json")
+    local = sub.add_parser("report-lanes")
+    local.add_argument("--repository-root", default=".")
+    local.add_argument("--registry", default="benchmarks/future_holdout_lane_registry.json")
+    local.add_argument("--output", default=CANONICAL_LOCAL_LANE_REPORT_PATH)
 
     journal = sub.add_parser("journal")
     journal_sub = journal.add_subparsers(dest="journal_action", required=True)
     planned = journal_sub.add_parser("planned")
-    planned.add_argument("--journal", default="future_holdout_execution_journal.jsonl")
+    planned.add_argument("--journal", default=CANONICAL_JOURNAL_PATH)
     planned.add_argument("--plan-id", required=True)
     planned.add_argument("--decision-date", required=True)
     planned.add_argument("--recorded-at", required=True)
@@ -57,7 +68,7 @@ def _parser() -> argparse.ArgumentParser:
     planned.add_argument("--planned-price", type=float, required=True)
     planned.add_argument("--planned-shares", type=int, required=True)
     filled = journal_sub.add_parser("filled")
-    filled.add_argument("--journal", default="future_holdout_execution_journal.jsonl")
+    filled.add_argument("--journal", default=CANONICAL_JOURNAL_PATH)
     filled.add_argument("--plan-id", required=True)
     filled.add_argument("--recorded-at", required=True)
     filled.add_argument("--next-open", type=float, required=True)
@@ -66,49 +77,102 @@ def _parser() -> argparse.ArgumentParser:
     filled.add_argument("--actual-shares", type=int, required=True)
     filled.add_argument("--broker-order-id", required=True)
     skipped = journal_sub.add_parser("skipped")
-    skipped.add_argument("--journal", default="future_holdout_execution_journal.jsonl")
+    skipped.add_argument("--journal", default=CANONICAL_JOURNAL_PATH)
     skipped.add_argument("--plan-id", required=True)
     skipped.add_argument("--recorded-at", required=True)
     skipped.add_argument("--next-open", type=float, required=True)
     skipped.add_argument("--manual-skip", required=True)
     report = journal_sub.add_parser("report")
-    report.add_argument("--journal", default="future_holdout_execution_journal.jsonl")
+    report.add_argument("--journal", default=CANONICAL_JOURNAL_PATH)
     checkpoint = journal_sub.add_parser("checkpoint")
-    checkpoint.add_argument("--journal", default="future_holdout_execution_journal.jsonl")
+    checkpoint.add_argument("--journal", default=CANONICAL_JOURNAL_PATH)
+    checkpoint.add_argument("--output", default=CANONICAL_JOURNAL_CHECKPOINT_PATH)
     verify = journal_sub.add_parser("verify")
-    verify.add_argument("--journal", default="future_holdout_execution_journal.jsonl")
-    verify.add_argument("--checkpoint")
+    verify.add_argument("--journal", default=CANONICAL_JOURNAL_PATH)
+    verify.add_argument("--checkpoint", default=CANONICAL_JOURNAL_CHECKPOINT_PATH)
     return parser
 
 
-def _validate_lanes(args: argparse.Namespace) -> dict[str, Any]:
+def build_local_lane_report(args: argparse.Namespace) -> dict[str, Any]:
+    """Recompute an untracked report from the operator's local future data."""
+
     root = Path(args.repository_root).resolve()
-    contract = load_future_holdout_contract()
+    contract = load_future_holdout_contract(root / "benchmarks/future_holdout_contract.json")
     sessions, data_sha256 = holdout_data_identity(root / contract.data_directory)
+    return build_lane_validation_report(
+        lanes=load_lane_registry(root / args.registry),
+        contract=contract,
+        observed_sessions=sessions,
+        holdout_data_sha256=data_sha256,
+    )
+
+
+def _read_tracked_lane_evidence(root: Path, evidence: str) -> dict[str, Any]:
+    try:
+        tracked = json.loads(
+            (root / evidence).read_text(encoding="utf-8"),
+            object_pairs_hook=_reject_duplicate_keys,
+        )
+    except (OSError, UnicodeError, json.JSONDecodeError, ValueError) as exc:
+        raise RuntimeError("cannot read tracked future holdout lane evidence") from exc
+    if not isinstance(tracked, dict):
+        raise RuntimeError("tracked future holdout lane evidence is malformed")
+    return tracked
+
+
+def _validate_static_lanes(args: argparse.Namespace) -> dict[str, Any]:
+    """Validate tracked zero-session evidence without reading local observations."""
+
+    root = Path(args.repository_root).resolve()
+    contract = load_future_holdout_contract(root / "benchmarks/future_holdout_contract.json")
+    with tempfile.TemporaryDirectory(prefix="uquant-empty-holdout-") as empty:
+        sessions, data_sha256 = holdout_data_identity(empty)
     report = build_lane_validation_report(
         lanes=load_lane_registry(root / args.registry),
         contract=contract,
         observed_sessions=sessions,
         holdout_data_sha256=data_sha256,
     )
-    try:
-        tracked = json.loads(
-            (root / args.evidence).read_text(encoding="utf-8"),
-            object_pairs_hook=_reject_duplicate_keys,
-        )
-    except (OSError, UnicodeError, json.JSONDecodeError, ValueError) as exc:
-        raise RuntimeError("cannot read tracked future holdout lane evidence") from exc
-    if tracked != report:
+    if _read_tracked_lane_evidence(root, args.evidence) != report:
         raise RuntimeError("tracked future holdout lane evidence is stale")
     return report
 
 
-def _load_checkpoint(path: str | None) -> JournalCheckpoint | None:
+def _write_local_lane_report(args: argparse.Namespace) -> dict[str, Any]:
+    root = Path(args.repository_root).resolve()
+    report = build_local_lane_report(args)
+    destination = Path(args.output)
+    if not destination.is_absolute():
+        destination = root / destination
+    contract = load_future_holdout_contract(root / "benchmarks/future_holdout_contract.json")
+    protected = validate_atomic_output_boundary(
+        destination,
+        protected_paths=(root / args.registry,),
+        protected_roots=(root / contract.data_directory,),
+    )
+    atomic_write_text(
+        destination,
+        json.dumps(report, ensure_ascii=False, indent=2, sort_keys=True) + "\n",
+        protected_paths=protected,
+    )
+    return report
+
+
+def load_journal_checkpoint(
+    path: str | None,
+    *,
+    missing_ok: bool = False,
+) -> JournalCheckpoint | None:
+    """Load one trusted external tail checkpoint without accepting loose JSON."""
+
     if path is None:
+        return None
+    source = Path(path)
+    if missing_ok and not source.exists():
         return None
     try:
         payload = json.loads(
-            Path(path).read_text(encoding="utf-8"),
+            source.read_text(encoding="utf-8"),
             object_pairs_hook=_reject_duplicate_keys,
         )
         if not isinstance(payload, dict) or set(payload) != {
@@ -120,6 +184,35 @@ def _load_checkpoint(path: str | None) -> JournalCheckpoint | None:
         return JournalCheckpoint(**payload)
     except (OSError, UnicodeError, json.JSONDecodeError, TypeError, ValueError) as exc:
         raise ValueError("cannot read trusted execution journal checkpoint") from exc
+
+
+def write_journal_checkpoint(
+    journal: str | Path,
+    output: str | Path,
+) -> JournalCheckpoint:
+    """Atomically persist the current verified Journal tail."""
+
+    records = read_execution_journal(journal)
+    checkpoint = execution_journal_checkpoint(records)
+    atomic_write_text(
+        output,
+        json.dumps(asdict(checkpoint), sort_keys=True) + "\n",
+        protected_paths=(journal,),
+    )
+    return checkpoint
+
+
+def read_trusted_execution_journal(
+    journal: str | Path,
+    checkpoint: str | Path,
+) -> tuple[JournalRecord, ...]:
+    """Verify one Journal against an external tail, except for a truly empty bootstrap."""
+
+    trusted = load_journal_checkpoint(str(checkpoint), missing_ok=True)
+    records = read_execution_journal(journal, trusted_checkpoint=trusted)
+    if trusted is None and records:
+        raise ValueError("nonempty execution journal requires a trusted checkpoint")
+    return records
 
 
 def summarize_execution_journal(
@@ -215,8 +308,11 @@ def render_execution_journal(records: tuple[JournalRecord, ...]) -> str:
 
 def main(argv: list[str] | None = None) -> int:
     args = _parser().parse_args(argv)
-    if args.command == "validate-lanes":
-        print(json.dumps(_validate_lanes(args), ensure_ascii=False, indent=2, sort_keys=True))
+    if args.command in {"validate-lanes", "validate-static-lanes"}:
+        print(json.dumps(_validate_static_lanes(args), ensure_ascii=False, indent=2, sort_keys=True))
+        return 0
+    if args.command == "report-lanes":
+        print(json.dumps(_write_local_lane_report(args), ensure_ascii=False, indent=2, sort_keys=True))
         return 0
     if args.journal_action == "planned":
         record = append_planned(
@@ -250,12 +346,11 @@ def main(argv: list[str] | None = None) -> int:
             manual_skip=args.manual_skip,
         )
     elif args.journal_action == "checkpoint":
-        records = read_execution_journal(args.journal)
-        print(json.dumps(asdict(execution_journal_checkpoint(records)), sort_keys=True))
+        rendered = json.dumps(asdict(write_journal_checkpoint(args.journal, args.output)), sort_keys=True)
+        print(rendered)
         return 0
     elif args.journal_action == "verify":
-        trusted = _load_checkpoint(args.checkpoint)
-        records = read_execution_journal(args.journal, trusted_checkpoint=trusted)
+        records = read_trusted_execution_journal(args.journal, args.checkpoint)
         current = execution_journal_checkpoint(records)
         print(
             json.dumps(

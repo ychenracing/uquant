@@ -314,11 +314,9 @@ def test_journal_cli_emits_and_verifies_an_external_checkpoint(
         "sequence": 1,
         "record_sha256": read_execution_journal(journal)[0].record_sha256,
     }
-    checkpoint.write_text(json.dumps(checkpoint_payload), encoding="utf-8")
+    assert json.loads(checkpoint.read_text(encoding="utf-8")) == checkpoint_payload
 
-    assert future_holdout_main(
-        ["journal", "verify", "--checkpoint", str(checkpoint)]
-    ) == 0
+    assert future_holdout_main(["journal", "verify"]) == 0
     verification = json.loads(capsys.readouterr().out)
     assert verification == {
         "checkpoint": checkpoint_payload,
@@ -331,3 +329,15 @@ def test_journal_cli_emits_and_verifies_an_external_checkpoint(
         future_holdout_main(
             ["journal", "verify", "--checkpoint", str(checkpoint)]
         )
+
+
+def test_journal_cli_rejects_a_nonempty_journal_without_a_trusted_checkpoint(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    monkeypatch.chdir(tmp_path)
+    journal = tmp_path / "future_holdout_execution_journal.jsonl"
+    _append_complete_plan(journal)
+
+    with pytest.raises(ValueError, match=r"nonempty.*trusted checkpoint"):
+        future_holdout_main(["journal", "verify"])

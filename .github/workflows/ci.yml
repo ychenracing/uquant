@@ -35,12 +35,15 @@ jobs:
       - name: Frozen-data integrity
         run: uv run python -m uquant.validation data-manifest --data-dir data/frozen
       - name: Future holdout contract and lane integrity
-        run: uv run python scripts/future_holdout.py validate-lanes
+        run: uv run python scripts/future_holdout.py validate-static-lanes
       - name: Manual execution evidence contract
         run: |
           uv run python scripts/future_holdout.py journal verify
+          uv run python scripts/production_observation.py --help
           git check-ignore -q --no-index future_holdout_execution_journal.jsonl
           git check-ignore -q --no-index future_holdout_execution_journal.checkpoint.json
+          git check-ignore -q --no-index future_holdout_lane_report.json
+          git check-ignore -q --no-index production_observation_backups/example/receipt.json
       - name: Shadow Sentinel contract and import isolation
         run: uv run python -m uquant.risk_sentinel --validate-contracts
       - name: Tests and branch coverage

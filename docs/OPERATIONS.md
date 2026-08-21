@@ -152,12 +152,58 @@ uv run uquant backtest \
 可重算的执行证据，独立填写或重新封签的指标 JSON 会被拒绝。
 
 每日先以独立目录导入恰好一个完整市场快照，再生成确定性回放；历史冻结数据、Future
-Holdout 数据和人工 Journal 不得共用目录。以下门禁会按当前数据重新计算 Lane 工件，
-数据缺失时只接受 0 个观察日和全 `null` 正式评分：
+Holdout 数据和人工 Journal 不得共用目录。远程 CI 只验证仓库跟踪的零观察基线，不读取
+操作者本地数据：
 
 ```bash
-uv run python scripts/future_holdout.py validate-lanes
+uv run python scripts/future_holdout.py validate-static-lanes
 ```
+
+本地真实观察使用独立、Git 忽略的报告。它按当前 holdout 数据重算观察日、下一里程碑和
+Lane 身份；即使已有非零观察，也不会要求修改仓库内的零观察基线：
+
+```bash
+uv run python scripts/future_holdout.py report-lanes
+```
+
+兼容命令 `validate-lanes` 等同于 `validate-static-lanes`。不要把本地
+`future_holdout_lane_report.json` 提交或复制到跟踪的
+`artifacts/holdout/lane_validation.json`。
+
+### 唯一生产观察命令
+
+准备好恰好一个交易日、且文件清单与 `data/frozen` 完全一致的市场快照后，日常使用：
+
+```bash
+uv run python scripts/production_observation.py run \
+  --run-id 2026-08-06 \
+  --date 2026-08-06 \
+  --symbols sz300308 sz300502 sz300394 sh688008 sh603986 \
+  --account account_state.json \
+  --data-dir data/live \
+  --broker-snapshot broker_snapshot.json \
+  --holdout-snapshot-dir incoming/2026-08-06 \
+  --holdout-account holdout_prior_close_account.json
+```
+
+`holdout_prior_close_account.json` 是合约审阅的 `2026-08-05` 收盘账户，只供确定性 Future
+Holdout 重放；日常 `account_state.json` 仍是唯一生产账户。命令严格依次执行：
+
+1. 获取同一仓库/账户的全事务互斥锁，以现有外部 checkpoint 验证 v2 Journal；非空 Journal
+   缺少 checkpoint 时拒绝运行；
+2. 在 `production_observation_backups/<run-id>/` 保存运行前账户、券商快照、holdout 起始账户、
+   Journal 和 checkpoint，并在任何快照追加或账户写入前立即读回验证；
+3. 不可变追加一个 holdout 市场 session，并生成确定性 replay/decision；
+4. 调用原有 `uquant daily --broker-snapshot`，在同一路径完成账户对账和唯一 Daily Report；
+5. 生成本地非零 Lane 报告，原子更新 Journal checkpoint；
+6. 归档运行后账户、日报、Journal、replay、decision、Lane 报告和 checkpoint，以 SHA-256
+   manifest 绑定最终 `COMPLETED` 或 `FAILED` receipt 后释放互斥锁。
+
+默认日报是 `daily_report_<date>.md`，Lane 报告是
+`future_holdout_lane_report.json`。重复的 `run-id` 会被明确拒绝，避免覆盖原始证据；修复输入后
+重跑应使用例如 `2026-08-06-retry1`。如果在 holdout 追加后失败，已追加 session 保持不可变；
+同一快照可幂等重试，但进入下一 session 前必须先成功生成当前 replay checkpoint。
+所有可写输出必须彼此独立，也不能位于备份树或与其硬链接；任何别名都在创建备份前拒绝。
 
 人工 Journal 使用 v2 hash chain，每行包含决策日、计划证券/方向/权重/参考价、次日
 开盘、实际成交、人工跳过原因、实现滑点、券商订单 ID、记录时间和前后哈希。它只写
@@ -171,6 +217,10 @@ uv run python scripts/future_holdout.py journal planned \
   --symbol sz300308 --side BUY --planned-weight 0.08 \
   --planned-price 947.74 --planned-shares 100
 
+# 首条 planned 是唯一显式 bootstrap；追加后立即建立并外存信任锚
+uv run python scripts/future_holdout.py journal checkpoint
+uv run python scripts/future_holdout.py journal verify
+
 uv run python scripts/future_holdout.py journal filled \
   --plan-id 20260805-sz300308-buy \
   --recorded-at 2026-08-06T09:32:00+08:00 \
@@ -180,19 +230,23 @@ uv run python scripts/future_holdout.py journal filled \
 
 uv run python scripts/future_holdout.py journal report
 
-uv run python scripts/future_holdout.py journal checkpoint \
-  > future_holdout_execution_journal.checkpoint.json
+# 每次追加后更新、外存并验证 checkpoint
+uv run python scripts/future_holdout.py journal checkpoint
 
-uv run python scripts/future_holdout.py journal verify \
-  --checkpoint future_holdout_execution_journal.checkpoint.json
+uv run python scripts/future_holdout.py journal verify
 ```
 
 跳过时使用 `future_holdout.py journal skipped --manual-skip "原因"`。只能追加事件；不得编辑、
 截断或重封既有行。部分成交可追加多条 `filled`，剩余部分最终用 `skipped` 显式收口。
 `report` 汇总完整、部分、未成交和跳过计划，以及成交率、实现滑点和按次日开盘名义金额
 加权的滑点bps。外部checkpoint应复制到独立存储；`verify` 会检测截断或已保留前缀被重封。
-默认Journal及checkpoint已被Git忽略，自定义路径同样不得提交。人工成交仅改变Journal
-checkpoint，不能改变模型Decision Digest、回放分数或候选晋级。
+只有空 Journal 可以没有 checkpoint；非空 Journal 缺少 checkpoint 会失败，不能从当前尾部静默
+重封。首条 `planned` 后运行 `checkpoint` 是单独可审计的 bootstrap，之后每次追加都应立即更新
+并外存信任锚。
+`scripts/future_holdout.py journal` 是唯一生产 v2 Journal 入口；`uquant execution-journal`
+只保留为旧 v1 数据兼容接口，不用于新增真实证据。默认 Journal 及 checkpoint 已被 Git 忽略，
+自定义路径同样不得提交。人工成交仅改变 Journal checkpoint，不能改变模型 Decision Digest、
+回放分数或候选晋级。
 
 ## Risk Sentinel 日报融合
 
@@ -256,6 +310,21 @@ uv run uquant account-code-migrate \
 - 当前 Git 提交和生产源码摘要。
 
 账户保存使用原子替换，但仍应把备份写到独立目录。恢复时先在副本上运行 `account-sync` 和 `daily`，确认输出一致后再切换。
+
+单命令生成的 checkpoint 可随时做只读校验：
+
+```bash
+uv run python scripts/production_observation.py verify-backup \
+  --checkpoint production_observation_backups/2026-08-06
+```
+
+校验会重算 manifest 与每个载体（包括最终 `receipt.json`）的 SHA-256/大小，拒绝篡改、缺失和
+未登记文件。`PREPARED` 表示只有已读回验证的运行前备份；`COMPLETED` 和 `FAILED` 都必须具备
+与 manifest 状态一致且被哈希绑定的 receipt。失败恢复不提供
+自动覆盖：先复制 `account.before.json` 到独立恢复目录，在副本上执行 `account-sync` 和
+`daily`，核对 Decision Digest、Target、Orders、Fills、Account 与原日报后，再人工决定是否
+替换生产账户。`receipt.json` 为 `FAILED` 时按最后成功 step 定位边界，不要删除已经不可变追加的
+holdout session。
 
 ## 发布前检查
 

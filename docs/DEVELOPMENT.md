@@ -69,8 +69,13 @@ Git 忽略；发布证据必须由 checkout 后的命令重建，不能提交一
 不得为必需结论添加 path filter、`continue-on-error`、失败转成功或可取消矩阵。失败
 分片也必须上传 JSON；`if: always()` aggregator 下载精确六件 artifact，拒绝缺失、
 额外、旧 HEAD、来源/配置/数据/runtime/universe/industry 身份漂移及任何 policy 失败。
-`Engineering gates` 也支持从 GitHub Actions 手动触发；quality 会验证默认真实执行
-Journal及其checkpoint保持未跟踪、哈希链可读，并继续执行完整测试和覆盖率门。
+`Engineering gates` 也支持从 GitHub Actions 手动触发；quality 使用
+`validate-static-lanes` 验证跟踪的零观察基线，并验证默认真实执行 Journal、checkpoint、
+本地 Lane 报告和生产观察备份保持未跟踪，哈希链与单命令入口可加载，然后继续执行完整测试
+和覆盖率门。本地非零观察只由 `report-lanes` 生成，不能反写静态 CI 工件。
+生产观察入口的回归合同还覆盖：输出/备份路径及硬链接别名在副作用前拒绝、非空 Journal
+必须有可信 checkpoint、运行前备份即时读回、最终 receipt 被 manifest 绑定，以及同一
+仓库/账户的完整事务跨进程串行化。
 
 ## 测试放置
 

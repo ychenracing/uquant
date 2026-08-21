@@ -10,6 +10,11 @@ from dataclasses import asdict
 from pathlib import Path
 from typing import Any, cast
 
+from research.risk_differential import append_observation
+from research.risk_differential_models import (
+    canonical_sha256,
+    validate_registry_checkout,
+)
 from uquant.atomic_io import atomic_write_text, validate_atomic_output_boundary
 from uquant.validation.execution_journal import (
     JournalCheckpoint,
@@ -31,6 +36,7 @@ from uquant.validation.holdout_lanes import build_lane_validation_report, load_l
 CANONICAL_JOURNAL_PATH = "future_holdout_execution_journal.jsonl"
 CANONICAL_JOURNAL_CHECKPOINT_PATH = "future_holdout_execution_journal.checkpoint.json"
 CANONICAL_LOCAL_LANE_REPORT_PATH = "future_holdout_lane_report.json"
+CANONICAL_DIFFERENTIAL_JOURNAL_PATH = "risk_differential_observations.jsonl"
 
 
 def _reject_duplicate_keys(pairs: Iterable[tuple[str, Any]]) -> dict[str, Any]:
@@ -54,6 +60,12 @@ def _parser() -> argparse.ArgumentParser:
     local.add_argument("--repository-root", default=".")
     local.add_argument("--registry", default="benchmarks/future_holdout_lane_registry.json")
     local.add_argument("--output", default=CANONICAL_LOCAL_LANE_REPORT_PATH)
+    differential = sub.add_parser("append-risk-differential")
+    differential.add_argument("--repository-root", default=".")
+    differential.add_argument("--trade-root", required=True)
+    differential.add_argument("--date", required=True)
+    differential.add_argument("--payload", required=True)
+    differential.add_argument("--journal", default=CANONICAL_DIFFERENTIAL_JOURNAL_PATH)
 
     journal = sub.add_parser("journal")
     journal_sub = journal.add_subparsers(dest="journal_action", required=True)
@@ -156,6 +168,74 @@ def _write_local_lane_report(args: argparse.Namespace) -> dict[str, Any]:
         protected_paths=protected,
     )
     return report
+
+
+def _append_risk_differential(args: argparse.Namespace) -> dict[str, Any]:
+    """Append one source-bound observation without touching production state."""
+
+    root = Path(args.repository_root).resolve()
+    identity = json.loads(
+        (root / "benchmarks/risk_differential_holdout_identity.json").read_text(encoding="utf-8"),
+        object_pairs_hook=_reject_duplicate_keys,
+    )
+    if identity.get("payload_sha256") != canonical_sha256(identity):
+        raise ValueError("risk differential holdout identity is not sealed")
+    source_registry = json.loads(
+        (root / "benchmarks/risk_differential_source_registry.json").read_text(encoding="utf-8"),
+        object_pairs_hook=_reject_duplicate_keys,
+    )
+    validate_registry_checkout(Path(args.trade_root), source_registry["trade"])
+    lane = next(
+        item
+        for item in load_lane_registry(root / "benchmarks/future_holdout_lane_registry.json")
+        if item.lane_id == "risk_differential_shadow"
+    )
+    if lane.sentinel_source_sha256 != identity["payload_sha256"]:
+        raise ValueError("risk differential lane source identity changed")
+    payload_path = Path(args.payload)
+    raw = json.loads(
+        payload_path.read_text(encoding="utf-8"),
+        object_pairs_hook=_reject_duplicate_keys,
+    )
+    required = {
+        "trade_only_axes",
+        "sentinel_only_axes",
+        "base_only_axes",
+        "all_agree_axes",
+        "trade_and_sentinel_not_base_axes",
+        "trade_risk_level",
+        "base_risk_level",
+        "sentinel_risk_level",
+        "trade_block_new_entries",
+        "base_freeze_new_risk",
+        "sentinel_freeze_authorized",
+        "actionable_buy_intents",
+        "actionable_pyramid_intents",
+    }
+    if not isinstance(raw, dict) or set(raw) != required:
+        raise ValueError("risk differential observation payload schema is malformed")
+    for field in (
+        "trade_only_axes",
+        "sentinel_only_axes",
+        "base_only_axes",
+        "all_agree_axes",
+        "trade_and_sentinel_not_base_axes",
+    ):
+        if not isinstance(raw[field], list) or any(not isinstance(item, str) for item in raw[field]):
+            raise ValueError("risk differential axes must be string lists")
+    record = {
+        "date": args.date,
+        **raw,
+        "lane_id": lane.lane_id,
+        "lane_identity_sha256": identity["payload_sha256"],
+        "trade_source_commit": source_registry["trade"]["commit"],
+        "trade_source_sha256": source_registry["trade"]["python_source_sha256"],
+        "parameter_changes_from_observation": False,
+        "production_authority_changes_from_observation": False,
+        "formal_scores": None,
+        "review_status": "NON_REVIEWABLE",
+    }
+    return append_observation(Path(args.journal), record, activation=lane.activation_session)
 
 
 def load_journal_checkpoint(
@@ -265,9 +345,7 @@ def summarize_execution_journal(
         "reference_notional": reference_notional,
         "realized_slippage": realized_slippage,
         "weighted_slippage_bps": (
-            realized_slippage / reference_notional * 10_000.0
-            if reference_notional
-            else None
+            realized_slippage / reference_notional * 10_000.0 if reference_notional else None
         ),
     }
 
@@ -313,6 +391,9 @@ def main(argv: list[str] | None = None) -> int:
         return 0
     if args.command == "report-lanes":
         print(json.dumps(_write_local_lane_report(args), ensure_ascii=False, indent=2, sort_keys=True))
+        return 0
+    if args.command == "append-risk-differential":
+        print(json.dumps(_append_risk_differential(args), ensure_ascii=False, sort_keys=True))
         return 0
     if args.journal_action == "planned":
         record = append_planned(

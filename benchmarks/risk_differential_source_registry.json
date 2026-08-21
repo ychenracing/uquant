@@ -1,0 +1,37 @@
+{
+  "frozen_at_utc": "2026-08-21T08:56:16Z",
+  "payload_sha256": "808133382319d0c289c6a4381f6ceac4519b0636aaa758683fa8ac97d7580775",
+  "registry_id": "risk-differential-closure-v1",
+  "schema_version": 1,
+  "trade": {
+    "commit": "2066fbf0f99be94142c5d0cb0b6c99d276c2472d",
+    "lock_sha256": "182d6bbfc2dba29d568f521ee765de335227e721e783a8a9a9cdfef436db7ba2",
+    "python_source_identity_source": "sealed current-heads registry at identical commit",
+    "python_source_sha256": "48280acee356ee4bd28fa83b260426f3025e6b3bd93c1cee2f92188486761b90",
+    "read_only": true,
+    "repository": "ychenracing/trade",
+    "risk_source_files": [
+      "quantfusion/config/overlay.py",
+      "quantfusion/risk/governance.py",
+      "quantfusion/risk/managers.py",
+      "quantfusion/risk/overlay/actions.py",
+      "quantfusion/risk/overlay/adapter.py",
+      "quantfusion/risk/overlay/evidence.py",
+      "quantfusion/risk/overlay/policy.py",
+      "quantfusion/risk/overlay/policy_base.py",
+      "quantfusion/engine/sector_risk.py",
+      "quantfusion/engine/universe_risk.py",
+      "quantfusion/engine/market_regime.py",
+      "quantfusion/engine/ensemble_orchestration.py",
+      "quantfusion/application/stress.py",
+      "regime_adaptive.py"
+    ],
+    "risk_source_sha256": "1e8a0a33d76b99fce9e741190b71d81bc35877ee9bb485441c7397fd6a46fda1"
+  },
+  "uquant": {
+    "commit": "ba314003044a229969270bee6854240dfb7f211e",
+    "lock_sha256": "bee22a02137c45404ab0f47728523021674cc1494196b168a23e2b9d1fc5880f",
+    "python_source_sha256": "736ac5fc71f63681e491a93d4d341814defbf7fd05545a82877b116cc26a8475",
+    "repository": "ychenracing/uquant"
+  }
+}

@@ -1,0 +1,152 @@
+{
+  "axes": [
+    "market_velocity",
+    "breadth_structure",
+    "covariance_stress",
+    "leadership_damage",
+    "live_book_damage",
+    "capital_damage",
+    "concentration_damage",
+    "block_new_entries",
+    "block_pyramiding",
+    "recommended_gross_cap",
+    "layered_protection",
+    "cluster_trim",
+    "cooldown_or_reentry_lock",
+    "execution_owner"
+  ],
+  "contract_id": "risk-differential-closure-v1",
+  "episode_merge_sessions": 5,
+  "minimum_distinct_windows": 2,
+  "minimum_exclusive_episodes": 5,
+  "minimum_universe_families": 2,
+  "official_pools": {
+    "a": [
+      "sz300308",
+      "sz300502",
+      "sz300394"
+    ],
+    "b": [
+      "sz300308",
+      "sz300502",
+      "sz300394",
+      "sh688008",
+      "sh603986"
+    ],
+    "c": [
+      "sz300308",
+      "sz300502",
+      "sz300394",
+      "sh688008",
+      "sh603986",
+      "sz002409",
+      "sh688072",
+      "sh688300",
+      "sz300054"
+    ],
+    "d": [
+      "sz300308",
+      "sz300502",
+      "sz300394",
+      "sh688498",
+      "sh601869",
+      "sh688256",
+      "sh688008",
+      "sh603986",
+      "sh688072",
+      "sh688082",
+      "sh688120",
+      "sh688300",
+      "sz300054",
+      "sh688361",
+      "sz300604"
+    ],
+    "e": [
+      "sz300308",
+      "sz300502",
+      "sz300394",
+      "sh688498",
+      "sz002281",
+      "sh601869",
+      "sh600487",
+      "sh688256",
+      "sh688041",
+      "sh688008",
+      "sh603986",
+      "sz300223",
+      "sh688110",
+      "sh688766",
+      "sz002371",
+      "sh688012",
+      "sh688072",
+      "sh688082",
+      "sh688120",
+      "sh688037",
+      "sh688361",
+      "sz300604",
+      "sh688200",
+      "sh688019",
+      "sz300054",
+      "sz002409",
+      "sz300666",
+      "sh688233",
+      "sh688268",
+      "sh688146",
+      "sh688300",
+      "sh603688"
+    ]
+  },
+  "outcome_horizons": [
+    1,
+    3,
+    5,
+    10,
+    20
+  ],
+  "parameter_search_allowed": false,
+  "payload_sha256": "0aee1f55a5a94d35be443556cadd74e200b21bb86c7d5ed89b2a8b4469af3413",
+  "schema_version": 1,
+  "shock_definition": {
+    "horizon_sessions": 20,
+    "portfolio_drawdown_lte": -0.08
+  },
+  "source_matrix_contract_sha256": "6377ecb540835a8ef9e1eb6011a6a72cc2f70907c592d3620265c2eed459ec4d",
+  "windows": {
+    "bull_crash_2025_2026": {
+      "acute_end": "2026-07-30",
+      "acute_start": "2026-06-30",
+      "end": "2026-07-31",
+      "start": "2025-01-02"
+    },
+    "continuous_ai_era": {
+      "acute_end": "2026-07-30",
+      "acute_start": "2026-06-30",
+      "end": "2026-08-05",
+      "start": "2023-01-03"
+    },
+    "h1_2023": {
+      "acute_end": "2023-05-25",
+      "acute_start": "2023-04-20",
+      "end": "2023-06-30",
+      "start": "2023-01-03"
+    },
+    "h1_2024": {
+      "acute_end": "2024-02-02",
+      "acute_start": "2024-01-03",
+      "end": "2024-07-01",
+      "start": "2024-01-02"
+    },
+    "h2_2023": {
+      "acute_end": "2023-08-25",
+      "acute_start": "2023-07-26",
+      "end": "2023-12-29",
+      "start": "2023-07-03"
+    },
+    "h2_2024": {
+      "acute_end": "2024-09-02",
+      "acute_start": "2024-08-01",
+      "end": "2024-12-31",
+      "start": "2024-07-01"
+    }
+  }
+}

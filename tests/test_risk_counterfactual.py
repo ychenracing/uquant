@@ -1,7 +1,11 @@
 from __future__ import annotations
 
+import importlib.util
 from copy import deepcopy
+from pathlib import Path
+from types import SimpleNamespace
 
+import pandas as pd
 import pytest
 
 from research.risk_counterfactual import (
@@ -17,6 +21,15 @@ from research.risk_counterfactual import (
 from uquant.config import DEFAULT_CONFIG
 from uquant.portfolio import PortfolioAllocator
 from uquant.types import AccountState, Position, Target
+
+_SCRIPT_SPEC = importlib.util.spec_from_file_location(
+    "risk_counterfactual_runner_under_test",
+    Path(__file__).parents[1] / "scripts/run_risk_counterfactual.py",
+)
+assert _SCRIPT_SPEC is not None and _SCRIPT_SPEC.loader is not None
+_SCRIPT = importlib.util.module_from_spec(_SCRIPT_SPEC)
+_SCRIPT_SPEC.loader.exec_module(_SCRIPT)
+_layered_targets = _SCRIPT._layered_targets
 
 
 def _target(symbol: str, weight: float) -> Target:
@@ -97,3 +110,29 @@ def test_negative_controls_and_hybrid_can_never_promote() -> None:
     for candidate in NEGATIVE_CONTROL_IDS:
         assert classify_promotion(candidate, "NEGATIVE_CONTROL", metrics) != "PROMOTION_CANDIDATE"
     assert classify_promotion("cluster", "HYBRID_DIAGNOSTIC", metrics) == "HYBRID_DIAGNOSTIC_ONLY"
+
+
+def test_layered_shadow_emits_canonical_risk_attribution() -> None:
+    date = pd.Timestamp("2026-08-21")
+    frame = pd.DataFrame(
+        {"open": [7.0], "high": [7.2], "low": [6.8], "close": [7.0]},
+        index=[date],
+    )
+    account = AccountState.empty(1_000_000.0)
+    account.positions["sz000001"] = Position(
+        symbol="sz000001",
+        shares=10_000,
+        avg_cost=10.0,
+        highest_close=10.0,
+    )
+    targets, triggered = _layered_targets(
+        engine=SimpleNamespace(_raw={"sz000001": frame}),
+        date=date,
+        account=account,
+        targets=(),
+        trade={"severity_rank": 0},
+        equity=1_000_000.0,
+    )
+    assert triggered == 1
+    assert targets[0].origin_subsystem == "RISK"
+    assert targets[0].mechanism == "RISK_OFF"

@@ -7,9 +7,14 @@ import json
 from collections.abc import Sequence
 from dataclasses import asdict, dataclass, replace
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 
-from research.risk_differential_models import RiskDifferentialEvent, RiskTraceRow, canonical_bytes
+from research.risk_differential_models import (
+    RiskDifferentialEvent,
+    RiskTraceRow,
+    TraceStatus,
+    canonical_bytes,
+)
 
 BOOLEAN_AXES = (
     "market_velocity",
@@ -147,20 +152,17 @@ def normalize_uquant_decision(decision: Any) -> tuple[RiskTraceRow, RiskTraceRow
     evidence = {name: json.loads(value) for name, value in decision.risk_evidence}
     base_families = evidence.get("base_family_active", {})
     sentinel_families = evidence.get("sentinel_family_active", {})
-    base_level = str(evidence.get("severity", decision.risk))
+    # The canonical Base Risk control state is Decision.risk.  Evidence
+    # ``severity`` describes a different damage dimension (for example
+    # MARKET/SEVERE) and must never be interpreted as the state enum.
+    base_level = str(decision.risk)
+    base_rank = {"NORMAL": 0, "CAUTION": 1, "RISK_OFF": 2, "CRISIS": 3}.get(base_level, 0)
     rank_by_level = {"NORMAL": 0, "CAUTION": 1, "DEFENSIVE": 2, "CRITICAL": 3}
-    base_rank = rank_by_level.get(base_level, 0)
     sentinel_level = str(evidence.get("sentinel_causal_effective_level", "NORMAL"))
     sentinel_rank = rank_by_level.get(sentinel_level, 0)
     status = str(evidence.get("sentinel_causal_coverage_status", "UNOBSERVABLE"))
     if status not in {"READY", "DEGRADED", "NOT_READY"}:
         status = "UNOBSERVABLE"
-    common = {
-        "date": str(decision.date),
-        "weakest_clusters": (),
-        "action_candidates": (),
-        "reasons": (),
-    }
     base = RiskTraceRow(
         system="uquant_base",
         status="READY",
@@ -177,16 +179,21 @@ def normalize_uquant_decision(decision: Any) -> tuple[RiskTraceRow, RiskTraceRow
         block_new_entries=bool(evidence.get("base_freeze_new_risk", False)),
         block_pyramiding=bool(evidence.get("base_freeze_new_risk", False)),
         recommended_gross_cap=float(evidence.get("base_target_gross_cap", 1.0)),
+        weakest_clusters=(),
+        action_candidates=(),
         execution_owner="uquant_base_risk",
-        **common,
+        reasons=(),
+        date=str(decision.date),
     )
     if status in {"NOT_READY", "UNOBSERVABLE"}:
-        sentinel = RiskTraceRow.empty(str(decision.date), "uquant_sentinel", status=status)
+        sentinel = RiskTraceRow.empty(
+            str(decision.date), "uquant_sentinel", status=cast(TraceStatus, status)
+        )
     else:
         assessment = evidence.get("sentinel_assessment", {})
         sentinel = RiskTraceRow(
             system="uquant_sentinel",
-            status=status,
+            status=cast(TraceStatus, status),
             confidence=float(evidence.get("sentinel_causal_confidence", 0.0)),
             severity_rank=sentinel_rank,
             level=sentinel_level,

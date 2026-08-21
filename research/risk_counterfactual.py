@@ -8,9 +8,10 @@ from dataclasses import dataclass, replace
 
 import pandas as pd
 
+from uquant.config import SystemConfig
 from uquant.execution import merge_pending_orders, plan_orders, reconcile_account_orders
 from uquant.portfolio_core import current_weights
-from uquant.types import AccountState, Target
+from uquant.types import AccountState, PendingOrder, Target
 
 NEGATIVE_CONTROL_IDS = frozenset(
     {"phase5_rejected_gross_cap_control", "phase7_rejected_exclusive_freeze_control"}
@@ -148,9 +149,9 @@ def rebuild_shadow_orders(
     signal_date: str,
     targets: tuple[Target, ...],
     prices: dict[str, float],
-    cfg: object,
+    cfg: SystemConfig,
     removed_buy_reason: str | None = None,
-) -> tuple[object, ...]:
+) -> tuple[PendingOrder, ...]:
     """Regenerate intents through the production planner on a research account."""
 
     account.order_ledger = deepcopy(previous_account.order_ledger)

@@ -250,6 +250,11 @@ uv run python scripts/future_holdout.py journal verify
 
 ## Risk Sentinel 日报融合
 
+Risk Differential / counterfactual 观察不得转换成人工 SELL、gross-cap override 或配置
+变更。日常生产操作仍只有一条 `uquant daily` 路径；`trade` checkout 只在显式
+observation-only challenger 命令中使用，缺失或身份不匹配时该观察必须 fail closed，
+且不得计入 Differential holdout session。
+
 生产默认是 `FREEZE_ONLY`。`uquant daily` 已在唯一日报中显示 Mode、Level、Coverage、
 Confidence、Owner、Risk Families、AI Industry Risk 和受限结论；日常不再要求额外运行
 Sentinel CLI。Sentinel 不能直接 SELL、降低 `target_gross_cap`、创建第二账户或增加账户字段。

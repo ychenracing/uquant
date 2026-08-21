@@ -4,6 +4,8 @@
 from __future__ import annotations
 
 import argparse
+import gzip
+import hashlib
 import json
 from concurrent.futures import ProcessPoolExecutor, as_completed
 from copy import deepcopy
@@ -27,9 +29,20 @@ from research.risk_differential_models import canonical_sha256
 from uquant.atomic_io import atomic_write_text
 from uquant.config import DEFAULT_CONFIG
 from uquant.data import normalize_symbol
-from uquant.engine import INDEX_SYMBOLS, ProductionEngine, performance_metrics
+from uquant.engine import (
+    INDEX_SYMBOLS,
+    ProductionEngine,
+    _attach_target_attribution,
+    performance_metrics,
+)
 from uquant.leader import REFERENCE_UNIVERSE
-from uquant.types import AccountState, ReductionPolicy, Target
+from uquant.types import (
+    AccountState,
+    AttributionMechanism,
+    OriginSubsystem,
+    ReductionPolicy,
+    Target,
+)
 from uquant.validation.ai_era import require_ai_era_interval
 
 POLICIES = (
@@ -41,10 +54,19 @@ POLICIES = (
     "trade_cluster_trim_hybrid_shadow",
 )
 EXECUTED_POLICIES = (
-    "baseline_uquant",
     "trade_gross_cap_shadow",
     "trade_layered_protection_shadow",
 )
+EVALUATION_CELLS = {
+    "trade_gross_cap_shadow": frozenset({"official_pool/h1_2023/a", "official_pool/h1_2024/a"}),
+    "trade_layered_protection_shadow": frozenset(
+        {
+            "official_pool/h1_2023/a",
+            "official_pool/h1_2024/a",
+            "official_pool/bull_crash_2025_2026/a",
+        }
+    ),
+}
 
 
 def _write(path: Path, payload: dict[str, Any]) -> None:
@@ -116,11 +138,11 @@ def _layered_targets(
             weight=0.0,
             reason=f"trade layered protection shadow: {kind}",
             reduction_policy=ReductionPolicy.RISK_PRIORITY.value,
-            reason_code="trade_layered_protection_shadow",
+            reason_code="risk_off",
             exit_kind="risk",
             event_id="",
-            origin_subsystem="risk",
-            mechanism="trade_layered_protection_shadow",
+            origin_subsystem=OriginSubsystem.RISK.value,
+            mechanism=AttributionMechanism.RISK_OFF.value,
             origin_lifecycle=position.lifecycle,
         )
     return tuple(by_symbol[key] for key in sorted(by_symbol)), triggered
@@ -186,7 +208,7 @@ def run_cell_policy(cell: dict[str, Any], policy_id: str, data_dir: Path) -> dic
                     account=planned,
                     gross_cap=cap,
                     risk_reason="trade challenger gross-cap shadow",
-                    risk_reason_code="trade_gross_cap_shadow",
+                    risk_reason_code="risk_gross_cap",
                     risk_exit_kind="risk",
                     prices=prices,
                 )
@@ -206,6 +228,12 @@ def run_cell_policy(cell: dict[str, Any], policy_id: str, data_dir: Path) -> dic
         # Daily weakest-cluster state is not serialized by trade. The hybrid
         # diagnostic therefore fails closed to an exact no-trigger baseline.
         if changed:
+            targets = _attach_target_attribution(
+                signal_date=str(date.date()),
+                targets=targets,
+                retained_orders=previous.pending_orders,
+                cfg=DEFAULT_CONFIG,
+            )
             planned.pending_orders = list(
                 rebuild_shadow_orders(
                     account=planned,
@@ -268,6 +296,12 @@ def main() -> int:
     matrix = json.loads(
         (root / "artifacts/sentinel/risk_differential/risk_differential_matrix.json").read_text()
     )
+    daily = json.loads(
+        gzip.decompress(
+            (root / "artifacts/sentinel/risk_differential/risk_differential_daily.json.gz").read_bytes()
+        )
+    )
+    days_by_cell = {item["cell_id"]: item["days"] for item in daily["cells"]}
     exclusive = json.loads((root / "artifacts/sentinel/risk_differential/exclusive_events.json").read_text())
     actionable_admission = [
         item
@@ -281,6 +315,7 @@ def main() -> int:
             "admission policies require full replay because actionable exclusive intents exist"
         )
     contract = json.loads((root / "benchmarks/current_heads_comparison_contract.json").read_text())
+    established = json.loads((root / "benchmarks/current_heads_competitor_matrix.json").read_text())
     windows = contract["windows"]
     cells = []
     for item in matrix["cells"]:
@@ -290,11 +325,44 @@ def main() -> int:
         cells.append(
             {
                 **item,
+                "days": days_by_cell[item["cell_id"]],
                 "acute": {"start": window["acute_start"], "end": window["acute_end"]},
             }
         )
-    jobs = [(cell, policy, str(root / "data/frozen")) for cell in cells for policy in EXECUTED_POLICIES]
+    established_baselines = {
+        f"{item['axis']}/{item['window']}/{item['name']}": item["metrics"]
+        for item in established["cells"]
+        if item["axis"] == "official_pool" and item["system"] == "uquant" and item["status"] == "SUCCESS"
+    }
     results = []
+    for cell in cells:
+        metrics = established_baselines[cell["cell_id"]]
+        results.append(
+            {
+                "cell_id": cell["cell_id"],
+                "window": cell["window"],
+                "universe": cell["universe"],
+                "policy_id": "baseline_uquant",
+                "trigger_count": 0,
+                "final_wealth": metrics["final_wealth"],
+                "total_return": metrics["total_return"],
+                "max_drawdown": metrics["max_drawdown"],
+                "acute_return": metrics["acute_return"],
+                "account_orders": metrics["account_orders"],
+                "gross_turnover": metrics["gross_turnover"],
+                "annual_turnover": metrics["annual_turnover"],
+                "risk_sell_orders": 0,
+                "blocked_buy_intents": 0,
+                "blocked_pyramid_intents": 0,
+                "equivalence_reason": "sealed production-equivalent current-head baseline",
+            }
+        )
+    jobs = [
+        (cell, policy, str(root / "data/frozen"))
+        for cell in cells
+        for policy in EXECUTED_POLICIES
+        if cell["cell_id"] in EVALUATION_CELLS[policy]
+    ]
     with ProcessPoolExecutor(max_workers=max(1, args.workers)) as pool:
         futures = {pool.submit(_worker, job): (job[0]["cell_id"], job[1]) for job in jobs}
         for index, future in enumerate(as_completed(futures), start=1):
@@ -325,6 +393,16 @@ def main() -> int:
         )
     payload = {
         "schema_version": 1,
+        "provenance": {
+            "risk_differential_matrix_sha256": matrix["payload_sha256"],
+            "daily_trace_gzip_sha256": hashlib.sha256(
+                (root / "artifacts/sentinel/risk_differential/risk_differential_daily.json.gz").read_bytes()
+            )
+            .hexdigest(),
+            "frozen_exclusive_events_sha256": exclusive["payload_sha256"],
+            "uquant_starting_commit": matrix["provenance"]["uquant_starting_commit"],
+            "trade_commit": matrix["provenance"]["trade_commit"],
+        },
         "policy_set": [
             {
                 "policy_id": policy.policy_id,
@@ -336,6 +414,12 @@ def main() -> int:
         ],
         "cells": sorted(results, key=lambda item: (item["cell_id"], item["policy_id"])),
         "production_behavior_changed": False,
+        "fixed_policy_stop_rule": {
+            "trade_gross_cap_shadow": (
+                "two preregistered representative cells plus archived Phase 5 gate failure"
+            ),
+            "trade_layered_protection_shadow": ("three preregistered representative risk regimes"),
+        },
     }
     payload["payload_sha256"] = canonical_sha256(payload)
     _write(root / "artifacts/sentinel/risk_differential/counterfactual_raw.json", payload)

@@ -194,6 +194,8 @@ class CapabilityRecord:
     def from_value(cls, value: CapabilityRecord | dict[str, Any]) -> CapabilityRecord:
         if isinstance(value, cls):
             return value
+        if not isinstance(value, dict):
+            raise TypeError("capability record must be a mapping")
         normalized = dict(value)
         for key in ("trade_source", "uquant_base_equivalent", "sentinel_equivalent"):
             normalized[key] = tuple(normalized.get(key, ()))

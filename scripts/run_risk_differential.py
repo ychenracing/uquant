@@ -4,13 +4,18 @@
 from __future__ import annotations
 
 import argparse
+import gzip
 import hashlib
 import json
+import os
 import platform
-import subprocess
+import shutil
+import subprocess  # nosec B404 - fixed git/date commands, never shell execution
+import sys
 from collections import Counter
 from concurrent.futures import ProcessPoolExecutor, as_completed
 from dataclasses import asdict
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
@@ -21,6 +26,7 @@ from research.risk_counterfactual import POLICY_SET
 from research.risk_differential import BOOLEAN_AXES, classify_boolean_axis
 from research.risk_differential_models import (
     CapabilityRecord,
+    canonical_bytes,
     canonical_sha256,
     hash_lock_files,
     hash_python_sources,
@@ -34,7 +40,7 @@ from research.risk_replay_runtime import (
     run_trade_cell,
     run_uquant_cell,
 )
-from uquant.atomic_io import atomic_write_text
+from uquant.atomic_io import atomic_write_bytes, atomic_write_text
 
 STARTING_MAIN = "ba314003044a229969270bee6854240dfb7f211e"
 TRADE_COMMIT = "2066fbf0f99be94142c5d0cb0b6c99d276c2472d"
@@ -444,16 +450,79 @@ def _seal(payload: dict[str, Any]) -> dict[str, Any]:
     return payload
 
 
-def _run_replay_cell(args: tuple[ReplayCell, str, str, str]) -> dict[str, Any]:
-    cell, data_dir, trade_root, data_view = args
-    uquant = run_uquant_cell(cell, Path(data_dir))
-    trade = run_trade_cell(cell, Path(trade_root), Path(data_view))
+def _adapter_cache_identity(root: Path) -> str:
+    """Bind cell caches to every local normalization/contract input."""
+
+    paths = (
+        root / "scripts/run_risk_differential.py",
+        root / "research/risk_differential.py",
+        root / "research/risk_differential_models.py",
+        root / "research/risk_replay_runtime.py",
+        root / "benchmarks/risk_differential_contract.json",
+        root / "benchmarks/risk_differential_source_registry.json",
+    )
+    return canonical_sha256(
+        {"inputs": [
+            {"path": str(path.relative_to(root)), "sha256": hashlib.sha256(path.read_bytes()).hexdigest()}
+            for path in paths
+        ]}
+    )
+
+
+def _run_replay_cell(
+    args: tuple[ReplayCell, str, str, str, dict[str, Any] | None, dict[str, Any] | None]
+) -> dict[str, Any]:
+    cell, data_dir, trade_root, data_view, cached_uquant, cached_trade = args
+    uquant = cached_uquant or run_uquant_cell(cell, Path(data_dir))
+    trade = cached_trade or run_trade_cell(cell, Path(trade_root), Path(data_view))
     if uquant["dates"] != trade["dates"]:
         raise RuntimeError(
             f"calendar mismatch for {cell.cell_id}: "
             f"uquant={len(uquant['dates'])}, trade={len(trade['dates'])}"
         )
-    return {"cell": asdict(cell), "uquant": uquant, "trade": trade}
+    return {
+        "cell": asdict(cell),
+        "uquant": uquant,
+        "trade": trade,
+        "runtime_identity": {"python_hash_seed": os.environ.get("PYTHONHASHSEED")},
+    }
+
+
+def seal_trade_trace(root: Path, trade_root: Path) -> None:
+    """Seal the already executed pinned challenger trace as a deterministic input."""
+
+    registry = json.loads((root / "benchmarks/risk_differential_source_registry.json").read_text())
+    validate_registry_checkout(trade_root, registry["trade"])
+    cells: dict[str, dict[str, Any]] = {}
+    for cache in sorted((root / ".risk_differential_runtime/cells").glob("*.json")):
+        payload = json.loads(cache.read_text(encoding="utf-8"))
+        cell_id = str(payload["cell"]["cell_id"])
+        cells[cell_id] = {
+            "cell_id": cell_id,
+            "source_cache_sha256": hashlib.sha256(cache.read_bytes()).hexdigest(),
+            "trace": payload["trade"],
+        }
+    expected, _ = _replay_cells(root, "all")
+    expected_ids = {cell.cell_id for cell in expected}
+    if set(cells) != expected_ids:
+        raise RuntimeError(
+            f"pinned challenger trace coverage mismatch: {len(cells)} != {len(expected_ids)}"
+        )
+    sealed = _seal(
+        {
+            "schema_version": 1,
+            "trade_commit": registry["trade"]["commit"],
+            "trade_source_sha256": registry["trade"]["risk_source_sha256"],
+            "source_registry_sha256": registry["payload_sha256"],
+            "generation_note": (
+                "materialized from the completed pinned-source replay before outcome analysis"
+            ),
+            "cells": [cells[cell_id] for cell_id in sorted(cells)],
+        }
+    )
+    target = root / "artifacts/sentinel/risk_differential/trade_challenger_trace.json.gz"
+    target.parent.mkdir(parents=True, exist_ok=True)
+    atomic_write_bytes(target, gzip.compress(canonical_bytes(sealed), compresslevel=9, mtime=0))
 
 
 def _replay_cells(root: Path, scope: str) -> tuple[list[ReplayCell], list[dict[str, Any]]]:
@@ -534,22 +603,60 @@ def _classify_scalar(trade: Any, base: Any, sentinel: Any, *, risk_predicate: An
 
 def replay(root: Path, *, trade_root: Path, workers: int, scope: str) -> None:
     registry = json.loads((root / "benchmarks/risk_differential_source_registry.json").read_text())
+    capability = json.loads((root / "benchmarks/risk_capability_registry.json").read_text())
     validate_registry_checkout(trade_root, registry["trade"])
     cells, excluded = _replay_cells(root, scope)
     runtime = root / ".risk_differential_runtime"
     data_view = runtime / "trade_data"
     build_trade_data_view(root / "data/frozen", data_view)
-    cache_dir = runtime / "cells"
+    cache_dir = runtime / "cells" / _adapter_cache_identity(root)
     cache_dir.mkdir(parents=True, exist_ok=True)
+    trace_path = root / "artifacts/sentinel/risk_differential/trade_challenger_trace.json.gz"
+    if not trace_path.is_file():
+        raise RuntimeError("sealed challenger trace is required; run seal-trade-trace first")
+    trace_payload = json.loads(gzip.decompress(trace_path.read_bytes()))
+    if trace_payload["payload_sha256"] != canonical_sha256(trace_payload):
+        raise RuntimeError("sealed challenger trace has an invalid canonical seal")
+    if trace_payload["source_registry_sha256"] != registry["payload_sha256"]:
+        raise RuntimeError("sealed challenger trace is not source-registry bound")
+    reusable_trade = {item["cell_id"]: item["trace"] for item in trace_payload["cells"]}
+    reusable_uquant: dict[str, dict[str, Any]] = {}
+    for old_cache in sorted((runtime / "cells").rglob("*.json")):
+        try:
+            old_payload = json.loads(old_cache.read_text(encoding="utf-8"))
+            if old_payload.get("runtime_identity", {}).get("python_hash_seed") != "0":
+                continue
+            old_cell_id = str(old_payload["cell"]["cell_id"])
+            old_uquant = old_payload["uquant"]
+        except (KeyError, TypeError, json.JSONDecodeError):
+            continue
+        existing = reusable_uquant.get(old_cell_id)
+        if existing is not None and canonical_sha256(existing) != canonical_sha256(old_uquant):
+            raise RuntimeError(f"conflicting deterministic uquant cache for {old_cell_id}")
+        reusable_uquant[old_cell_id] = old_uquant
     pending: list[ReplayCell] = []
     results: list[dict[str, Any]] = []
     for cell in cells:
         cache = cache_dir / f"{hashlib.sha256(cell.cell_id.encode()).hexdigest()}.json"
         if cache.is_file():
-            results.append(json.loads(cache.read_text(encoding="utf-8")))
+            cached = json.loads(cache.read_text(encoding="utf-8"))
+            if cached.get("runtime_identity", {}).get("python_hash_seed") == "0":
+                results.append(cached)
+            else:
+                pending.append(cell)
         else:
             pending.append(cell)
-    args = [(cell, str(root / "data/frozen"), str(trade_root), str(data_view)) for cell in pending]
+    args = [
+        (
+            cell,
+            str(root / "data/frozen"),
+            str(trade_root),
+            str(data_view),
+            reusable_uquant.get(cell.cell_id),
+            reusable_trade.get(cell.cell_id),
+        )
+        for cell in pending
+    ]
     with ProcessPoolExecutor(max_workers=max(1, workers)) as pool:
         futures = {pool.submit(_run_replay_cell, item): item[0] for item in args}
         for index, future in enumerate(as_completed(futures), start=1):
@@ -571,7 +678,7 @@ def replay(root: Path, *, trade_root: Path, workers: int, scope: str) -> None:
         "BASE_AND_SENTINEL_NOT_TRADE",
         "NOT_COMPARABLE",
     )
-    axis_counts = {axis: Counter() for axis in axes}
+    axis_counts: dict[str, Counter[str]] = {axis: Counter() for axis in axes}
     axis_counts["warning_level"] = Counter()
     exclusive: list[dict[str, Any]] = []
     sealed_cells: list[dict[str, Any]] = []
@@ -668,17 +775,64 @@ def replay(root: Path, *, trade_root: Path, workers: int, scope: str) -> None:
         "trade_commit": registry["trade"]["commit"],
         "source_registry_sha256": registry["payload_sha256"],
         "contract_sha256": contract["payload_sha256"],
+        "capability_registry_sha256": capability["payload_sha256"],
         "market_data_prefix_sha256": hashlib.sha256(
             b"".join(
                 path.name.encode() + path.read_bytes()
                 for path in sorted((root / "data/frozen").glob("*.csv"))
             )
         ).hexdigest(),
-        "runtime": {"python": platform.python_version(), "numpy": np.__version__, "pandas": pd.__version__},
-        "adapter_sha256": hashlib.sha256(Path(__file__).read_bytes()).hexdigest(),
+        "runtime": {
+            "python": platform.python_version(),
+            "numpy": np.__version__,
+            "pandas": pd.__version__,
+            "python_hash_seed": os.environ.get("PYTHONHASHSEED"),
+        },
+        "adapter_sha256": _adapter_cache_identity(root),
+        "sealed_trade_challenger_trace_sha256": hashlib.sha256(trace_path.read_bytes()).hexdigest(),
         "scope": scope,
     }
     target = root / "artifacts/sentinel/risk_differential"
+    _write(
+        target / "capability_inventory.json",
+        _seal(
+            {
+                "schema_version": 1,
+                "provenance": provenance,
+                "capabilities": capability["capabilities"],
+                "counts": dict(
+                    Counter(item["mapping_status"] for item in capability["capabilities"])
+                ),
+            }
+        ),
+    )
+    daily_payload = _seal(
+        {
+            "schema_version": 1,
+            "provenance": provenance,
+            "cells": [
+                {"cell_id": item["cell_id"], "days": item["days"]}
+                for item in sealed_cells
+                if item.get("status") == "SUCCESS"
+            ],
+        }
+    )
+    daily_bytes = gzip.compress(canonical_bytes(daily_payload), compresslevel=9, mtime=0)
+    daily_sha256 = hashlib.sha256(daily_bytes).hexdigest()
+    atomic_write_bytes(target / "risk_differential_daily.json.gz", daily_bytes)
+    matrix_cells = []
+    for item in sealed_cells:
+        if item.get("status") != "SUCCESS":
+            matrix_cells.append(item)
+            continue
+        days = item["days"]
+        matrix_cells.append(
+            {
+                **{key: value for key, value in item.items() if key != "days"},
+                "daily_trace_sha256": hashlib.sha256(canonical_bytes(days)).hexdigest(),
+                "daily_trace_artifact": "risk_differential_daily.json.gz",
+            }
+        )
     _write(
         target / "risk_differential_matrix.json",
         _seal(
@@ -690,12 +844,13 @@ def replay(root: Path, *, trade_root: Path, workers: int, scope: str) -> None:
                     "daily_trace_pairs": len(results),
                     "sessions": sum(item.get("sessions", 0) for item in sealed_cells),
                     "status": "COMPLETE" if scope == "all" else "OFFICIAL_SCOPE_COMPLETE",
+                    "daily_trace_artifact_sha256": daily_sha256,
                 },
                 "axis_counts": {
                     axis: {name: int(axis_counts[axis].get(name, 0)) for name in classifications}
                     for axis in (*axes, "warning_level")
                 },
-                "cells": sealed_cells,
+                "cells": matrix_cells,
             }
         ),
         compact=True,
@@ -756,8 +911,11 @@ def preregister(
     )
     _write(root / "benchmarks/risk_differential_contract.json", contract)
     risk_source_sha = hash_selected_sources(trade_root, TRADE_RISK_FILES)
-    uquant_sha = subprocess.run(
-        ["git", "rev-parse", "HEAD"],
+    git_executable = shutil.which("git")
+    if git_executable is None:
+        raise RuntimeError("git executable is required to bind the starting commit")
+    uquant_sha = subprocess.run(  # nosec B603 - absolute git executable and fixed argv
+        [git_executable, "rev-parse", "HEAD"],
         cwd=baseline_root,
         check=True,
         capture_output=True,
@@ -770,12 +928,7 @@ def preregister(
     if frozen_at_utc is None and existing_registry.is_file():
         frozen_at_utc = json.loads(existing_registry.read_text())["frozen_at_utc"]
     if frozen_at_utc is None:
-        frozen_at_utc = subprocess.run(
-            ["date", "-u", "+%Y-%m-%dT%H:%M:%SZ"],
-            check=True,
-            capture_output=True,
-            text=True,
-        ).stdout.strip()
+        frozen_at_utc = datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
     registry = _seal(
         {
             "schema_version": 1,
@@ -829,7 +982,7 @@ def preregister(
         }
     )
     _write(root / "benchmarks/risk_capability_registry.json", capability_payload)
-    policy_identity = {
+    policy_identity: dict[str, object] = {
         "policies": [asdict(item) for item in POLICY_SET],
     }
     holdout_identity = _seal(
@@ -868,7 +1021,7 @@ def seal_initial_evidence(root: Path) -> None:
             "metrics": item["metrics"],
             "provenance": item["provenance"],
         }
-    rows = []
+    rows: list[dict[str, Any]] = []
     for key in sorted(cells):
         pair = cells[key]
         rows.append(
@@ -927,8 +1080,10 @@ def seal_initial_evidence(root: Path) -> None:
                 "summary": {
                     "cells": len(rows),
                     "ready_metric_pairs": sum(
-                        r["uquant"]
-                        and r["trade"]
+                        bool(r["uquant"])
+                        and bool(r["trade"])
+                        and isinstance(r["uquant"], dict)
+                        and isinstance(r["trade"], dict)
                         and r["uquant"]["status"] == r["trade"]["status"] == "SUCCESS"
                         for r in rows
                     ),
@@ -959,16 +1114,23 @@ def seal_initial_evidence(root: Path) -> None:
 
 
 def main() -> int:
+    if os.environ.get("PYTHONHASHSEED") != "0":
+        environment = {**os.environ, "PYTHONHASHSEED": "0"}
+        os.execve(  # nosec B606 - exact current interpreter, no shell
+            sys.executable, [sys.executable, *sys.argv], environment
+        )
     root = Path(__file__).resolve().parents[1]
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("command", choices=("preregister", "seal-initial-evidence", "replay"))
+    parser.add_argument(
+        "command", choices=("preregister", "seal-initial-evidence", "seal-trade-trace", "replay")
+    )
     parser.add_argument("--baseline-root", type=Path, default=root)
     parser.add_argument("--trade-root", type=Path)
     parser.add_argument("--workers", type=int, default=4)
     parser.add_argument("--scope", choices=("official", "all"), default="all")
     parser.add_argument("--frozen-at-utc")
     args = parser.parse_args()
-    if args.command in {"preregister", "replay"} and args.trade_root is None:
+    if args.command in {"preregister", "seal-trade-trace", "replay"} and args.trade_root is None:
         parser.error("--trade-root is required")
     if args.command == "preregister":
         preregister(
@@ -979,6 +1141,8 @@ def main() -> int:
         )
     elif args.command == "seal-initial-evidence":
         seal_initial_evidence(root)
+    elif args.command == "seal-trade-trace":
+        seal_trade_trace(root, args.trade_root)
     else:
         replay(root, trade_root=args.trade_root, workers=args.workers, scope=args.scope)
     return 0

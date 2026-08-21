@@ -1,0 +1,193 @@
+{
+  "calibration": {
+    "base": {
+      "axis": "warning_level",
+      "bull_silence_rate": 0.546821075235831,
+      "caution_freeze_opportunity_cost": 0.0,
+      "false_positive_opportunity_cost": 0.0,
+      "median_lead_time": 2.0,
+      "missed_shock_count": 82,
+      "missed_shock_depth": -0.15674277567812112,
+      "precision": 0.21068548387096775,
+      "recall": 0.6693548387096774,
+      "warning_episode_count": 992
+    },
+    "sentinel": {
+      "axis": "warning_level",
+      "bull_silence_rate": 0.7846460618145563,
+      "caution_freeze_opportunity_cost": 0.0,
+      "false_positive_opportunity_cost": 0.0,
+      "median_lead_time": 3.0,
+      "missed_shock_count": 158,
+      "missed_shock_depth": -0.15674277567812112,
+      "precision": 0.16885245901639345,
+      "recall": 0.3629032258064516,
+      "warning_episode_count": 610
+    },
+    "trade": {
+      "axis": "warning_level",
+      "bull_silence_rate": 0.9530638852672751,
+      "caution_freeze_opportunity_cost": 0.0,
+      "false_positive_opportunity_cost": 0.0,
+      "median_lead_time": 13.0,
+      "missed_shock_count": 144,
+      "missed_shock_depth": -0.15674277567812112,
+      "precision": 0.16666666666666666,
+      "recall": 0.41935483870967744,
+      "warning_episode_count": 858
+    }
+  },
+  "candidates": [
+    {
+      "actionable_exclusive_episode_count": 0,
+      "candidate_axis": "block_new_entries",
+      "candidate_id": "trade_entry_freeze_shadow",
+      "decision": "INSUFFICIENT_SAMPLE",
+      "exclusive_episode_count": 0,
+      "gates": {
+        "detection_pass": false,
+        "economic_pass": false,
+        "generalization_pass": false,
+        "sample_pass": false
+      },
+      "sample_metrics": {
+        "distinct_families": 0,
+        "distinct_windows": 0,
+        "exclusive_episode_count": 0,
+        "false_positive_opportunity_cost": 0.0,
+        "precision": null
+      },
+      "transfer_kind": "EXACT_TRANSFER"
+    },
+    {
+      "actionable_exclusive_episode_count": 1,
+      "candidate_axis": "block_pyramiding",
+      "candidate_id": "trade_pyramid_freeze_shadow",
+      "decision": "INSUFFICIENT_SAMPLE",
+      "exclusive_episode_count": 1,
+      "gates": {
+        "detection_pass": false,
+        "economic_pass": false,
+        "generalization_pass": false,
+        "sample_pass": false
+      },
+      "sample_metrics": {
+        "distinct_families": 1,
+        "distinct_windows": 1,
+        "exclusive_episode_count": 1,
+        "false_positive_opportunity_cost": 0.0,
+        "precision": 1.0
+      },
+      "transfer_kind": "EXACT_TRANSFER"
+    },
+    {
+      "actionable_exclusive_episode_count": 0,
+      "candidate_axis": "recommended_gross_cap",
+      "candidate_id": "trade_gross_cap_shadow",
+      "decision": "INSUFFICIENT_SAMPLE",
+      "exclusive_episode_count": 0,
+      "gates": {
+        "detection_pass": false,
+        "economic_pass": false,
+        "generalization_pass": false,
+        "sample_pass": false
+      },
+      "sample_metrics": {
+        "distinct_families": 0,
+        "distinct_windows": 0,
+        "exclusive_episode_count": 0,
+        "false_positive_opportunity_cost": 0.0,
+        "precision": null
+      },
+      "transfer_kind": "EXACT_TRANSFER"
+    },
+    {
+      "actionable_exclusive_episode_count": 6,
+      "candidate_axis": "warning_level",
+      "candidate_id": "trade_layered_protection_shadow",
+      "decision": "REJECTED_NO_INCREMENTAL_VALUE",
+      "exclusive_episode_count": 398,
+      "gates": {
+        "detection_pass": false,
+        "economic_pass": false,
+        "generalization_pass": false,
+        "sample_pass": true
+      },
+      "sample_metrics": {
+        "distinct_families": 8,
+        "distinct_windows": 4,
+        "exclusive_episode_count": 398,
+        "false_positive_opportunity_cost": 0.0,
+        "precision": 0.2135678391959799
+      },
+      "transfer_kind": "EXACT_TRANSFER"
+    },
+    {
+      "actionable_exclusive_episode_count": 6,
+      "candidate_axis": "warning_level",
+      "candidate_id": "trade_cluster_trim_hybrid_shadow",
+      "decision": "HYBRID_DIAGNOSTIC_ONLY",
+      "exclusive_episode_count": 398,
+      "gates": {
+        "detection_pass": false,
+        "economic_pass": false,
+        "generalization_pass": false,
+        "sample_pass": true
+      },
+      "sample_metrics": {
+        "distinct_families": 8,
+        "distinct_windows": 4,
+        "exclusive_episode_count": 398,
+        "false_positive_opportunity_cost": 0.0,
+        "precision": 0.2135678391959799
+      },
+      "transfer_kind": "HYBRID_DIAGNOSTIC"
+    },
+    {
+      "actionable_exclusive_episode_count": 0,
+      "candidate_axis": "recommended_gross_cap",
+      "candidate_id": "phase5_rejected_gross_cap_control",
+      "decision": "REJECTED_NO_INCREMENTAL_VALUE",
+      "exclusive_episode_count": 0,
+      "gates": {
+        "detection_pass": false,
+        "economic_pass": false,
+        "generalization_pass": false,
+        "sample_pass": false
+      },
+      "sample_metrics": {
+        "distinct_families": 0,
+        "distinct_windows": 0,
+        "exclusive_episode_count": 0,
+        "false_positive_opportunity_cost": 0.0,
+        "precision": null
+      },
+      "transfer_kind": "NEGATIVE_CONTROL"
+    },
+    {
+      "actionable_exclusive_episode_count": 0,
+      "candidate_axis": "block_new_entries",
+      "candidate_id": "phase7_rejected_exclusive_freeze_control",
+      "decision": "REJECTED_NO_INCREMENTAL_VALUE",
+      "exclusive_episode_count": 40,
+      "gates": {
+        "detection_pass": false,
+        "economic_pass": false,
+        "generalization_pass": false,
+        "sample_pass": true
+      },
+      "sample_metrics": {
+        "distinct_families": 4,
+        "distinct_windows": 4,
+        "exclusive_episode_count": 40,
+        "false_positive_opportunity_cost": 0.0,
+        "precision": 0.25
+      },
+      "transfer_kind": "NEGATIVE_CONTROL"
+    }
+  ],
+  "no_parameter_search": true,
+  "payload_sha256": "d67e4578b9f3ccad1ae2260160d41aeddb3f3191c402c1e7a9644182570b1d4c",
+  "promotion_candidates": [],
+  "schema_version": 1
+}

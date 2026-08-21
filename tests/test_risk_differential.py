@@ -73,6 +73,34 @@ def test_uquant_adapter_reads_base_and_sentinel_from_same_decision() -> None:
     assert sentinel.market_velocity is False
 
 
+def test_base_warning_level_uses_canonical_decision_risk_not_damage_severity() -> None:
+    evidence = {
+        "severity": "MARKET",
+        "base_freeze_new_risk": True,
+        "base_target_gross_cap": 0.6,
+        "sentinel_causal_coverage_status": "NOT_READY",
+    }
+    trace = DecisionTrace(
+        date="2026-01-05",
+        opportunity="WATCH",
+        risk="RISK_OFF",
+        transition_damage=0.0,
+        family_votes=(),
+        sector_guard_active=False,
+        capital_budget_level=0,
+        leaders=(),
+        strategic_tag="",
+        targets=(),
+        orders=(),
+        fills=(),
+        equity=1.0,
+        risk_evidence=tuple((key, json.dumps(value)) for key, value in evidence.items()),
+    )
+    base, _ = normalize_uquant_decision(trace)
+    assert base.level == "RISK_OFF"
+    assert base.severity_rank == 2
+
+
 def test_trace_dates_must_align() -> None:
     with pytest.raises(ValueError, match="aligned"):
         align_three_way(

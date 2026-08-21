@@ -18,4 +18,6 @@ daily_report_*.md
 /benchmarks/future_holdout_manifest.json
 /data/holdout/phase2-future-v1/
 /execution_journal.jsonl
+/future_holdout_execution_journal.jsonl
+/future_holdout_execution_journal.checkpoint.json
 .worktrees/

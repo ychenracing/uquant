@@ -177,11 +177,22 @@ uv run python scripts/future_holdout.py journal filled \
   --next-open 950.00 --actual-time 2026-08-06T09:31:05+08:00 \
   --actual-price 951.00 --actual-shares 100 \
   --broker-order-id manual-broker-001
+
+uv run python scripts/future_holdout.py journal report
+
+uv run python scripts/future_holdout.py journal checkpoint \
+  > future_holdout_execution_journal.checkpoint.json
+
+uv run python scripts/future_holdout.py journal verify \
+  --checkpoint future_holdout_execution_journal.checkpoint.json
 ```
 
 跳过时使用 `future_holdout.py journal skipped --manual-skip "原因"`。只能追加事件；不得编辑、
-截断或重封既有行。外部 checkpoint 会检测整链重封和截断。人工成交仅改变 Journal
-checkpoint，不能改变模型 Decision Digest、回放分数或候选晋级。
+截断或重封既有行。部分成交可追加多条 `filled`，剩余部分最终用 `skipped` 显式收口。
+`report` 汇总完整、部分、未成交和跳过计划，以及成交率、实现滑点和按次日开盘名义金额
+加权的滑点bps。外部checkpoint应复制到独立存储；`verify` 会检测截断或已保留前缀被重封。
+默认Journal及checkpoint已被Git忽略，自定义路径同样不得提交。人工成交仅改变Journal
+checkpoint，不能改变模型Decision Digest、回放分数或候选晋级。
 
 ## Risk Sentinel 日报融合
 

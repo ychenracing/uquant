@@ -57,7 +57,8 @@ champion 与不可放宽的政策失败关闭。
 `20 / 40 / 60` 个交易日，首次正式评审仍需累计 `40--60` 个交易日。在导入首个
 未来交易日以前，观察和指标必须为 null；holdout
 表现不得反向调参。另有 observational、append-only、broker-independent 的人工执行
-journal 记录计划价、次日开盘、真实成交、人工跳过与滑点，但不写入决策或账户状态。
+journal 记录计划价、次日开盘、真实成交、人工跳过与滑点，并汇总成交率和真实滑点；
+它不写入决策或账户状态。默认 journal 和外部 checkpoint 均被 Git 忽略。
 
 ## 安装
 

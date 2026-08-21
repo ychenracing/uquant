@@ -11,6 +11,7 @@ from uquant.execution_journal import append_planned as append_legacy_planned
 from uquant.validation.execution_journal import (
     append_filled,
     append_planned,
+    append_skipped,
     read_execution_journal,
 )
 
@@ -22,6 +23,8 @@ assert _CLI_SPEC is not None and _CLI_SPEC.loader is not None
 _CLI_MODULE = importlib.util.module_from_spec(_CLI_SPEC)
 _CLI_SPEC.loader.exec_module(_CLI_MODULE)
 future_holdout_main = _CLI_MODULE.main
+render_execution_journal = _CLI_MODULE.render_execution_journal
+summarize_execution_journal = _CLI_MODULE.summarize_execution_journal
 
 
 def _append_complete_plan(path: Path) -> None:
@@ -207,3 +210,124 @@ def test_phase2_journal_cli_records_manual_skip(
     skipped = json.loads(capsys.readouterr().out)
     assert skipped["manual_skip"] is True
     assert skipped["manual_skip_reason"] == "operator declined remainder"
+
+
+def test_execution_summary_classifies_each_plan_and_weights_real_slippage(
+    tmp_path: Path,
+) -> None:
+    path = tmp_path / "execution.jsonl"
+    plans = (
+        ("skipped-after-fill", "BUY", 10.0, 100),
+        ("filled", "SELL", 20.0, 200),
+        ("open", "BUY", 40.0, 100),
+        ("partial", "BUY", 30.0, 100),
+    )
+    for offset, (plan_id, side, price, shares) in enumerate(plans, start=1):
+        append_planned(
+            path,
+            plan_id=plan_id,
+            decision_date="2026-08-05",
+            recorded_at=f"2026-08-05T15:0{offset}:00+08:00",
+            symbol="sz300308",
+            side=side,
+            planned_weight=0.10,
+            planned_price=price,
+            planned_shares=shares,
+        )
+    append_filled(
+        path,
+        plan_id="skipped-after-fill",
+        recorded_at="2026-08-06T09:31:00+08:00",
+        next_open=10.0,
+        actual_time="2026-08-06T09:30:30+08:00",
+        actual_price=11.0,
+        actual_shares=40,
+        broker_order_id="broker-partial-1",
+    )
+    append_skipped(
+        path,
+        plan_id="skipped-after-fill",
+        recorded_at="2026-08-06T09:32:00+08:00",
+        next_open=10.0,
+        manual_skip="operator declined remainder",
+    )
+    append_filled(
+        path,
+        plan_id="filled",
+        recorded_at="2026-08-06T09:33:00+08:00",
+        next_open=20.0,
+        actual_time="2026-08-06T09:32:30+08:00",
+        actual_price=19.0,
+        actual_shares=200,
+        broker_order_id="broker-filled-1",
+    )
+    append_filled(
+        path,
+        plan_id="partial",
+        recorded_at="2026-08-06T09:34:00+08:00",
+        next_open=30.0,
+        actual_time="2026-08-06T09:33:30+08:00",
+        actual_price=30.0,
+        actual_shares=50,
+        broker_order_id="broker-partial-2",
+    )
+
+    records = read_execution_journal(path)
+    summary = summarize_execution_journal(records)
+
+    assert summary == {
+        "schema_version": 1,
+        "plan_count": 4,
+        "filled_plans": 1,
+        "partial_plans": 1,
+        "open_plans": 1,
+        "skipped_plans": 1,
+        "planned_shares": 500,
+        "filled_shares": 290,
+        "fill_ratio": 0.58,
+        "reference_notional": 5900.0,
+        "realized_slippage": 240.0,
+        "weighted_slippage_bps": pytest.approx(406.77966101694915),
+    }
+    report = render_execution_journal(records)
+    assert "## Execution Summary" in report
+    assert "| Plans | 4 |" in report
+    assert "| Filled / Partial / Open / Skipped | 1 / 1 / 1 / 1 |" in report
+    assert "| Fill ratio | 58.00% |" in report
+    assert "| Weighted slippage | 406.7797 bps |" in report
+
+
+def test_journal_cli_emits_and_verifies_an_external_checkpoint(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    monkeypatch.chdir(tmp_path)
+    journal = tmp_path / "future_holdout_execution_journal.jsonl"
+    checkpoint = tmp_path / "future_holdout_execution_journal.checkpoint.json"
+    _append_complete_plan(journal)
+
+    assert future_holdout_main(["journal", "checkpoint"]) == 0
+    checkpoint_payload = json.loads(capsys.readouterr().out)
+    assert checkpoint_payload == {
+        "schema_version": 1,
+        "sequence": 1,
+        "record_sha256": read_execution_journal(journal)[0].record_sha256,
+    }
+    checkpoint.write_text(json.dumps(checkpoint_payload), encoding="utf-8")
+
+    assert future_holdout_main(
+        ["journal", "verify", "--checkpoint", str(checkpoint)]
+    ) == 0
+    verification = json.loads(capsys.readouterr().out)
+    assert verification == {
+        "checkpoint": checkpoint_payload,
+        "records": 1,
+        "status": "VALID",
+    }
+
+    journal.write_text("", encoding="utf-8")
+    with pytest.raises(ValueError, match="behind the trusted checkpoint"):
+        future_holdout_main(
+            ["journal", "verify", "--checkpoint", str(checkpoint)]
+        )

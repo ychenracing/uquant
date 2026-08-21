@@ -111,6 +111,12 @@ def test_engineering_summary_catches_quality_or_security_failure_without_skippin
         needs={"quality", "security"},
     )
     quality_steps = _steps(workflow["jobs"]["quality"])
+    assert "workflow_dispatch" in workflow["on"]
+    journal_step = next(
+        step for step in quality_steps if step.get("name") == "Manual execution evidence contract"
+    )
+    assert "journal verify" in journal_step["run"]
+    assert "git check-ignore" in journal_step["run"]
     pytest_step = next(step for step in quality_steps if step.get("name") == "Tests and branch coverage")
     assert "--cov-fail-under=85" in pytest_step["run"]
 
@@ -275,6 +281,33 @@ def test_post_checkout_self_binding_artifacts_are_git_ignored() -> None:
 
     assert result.returncode == 0
     assert tuple(result.stdout.splitlines()) == artifacts
+
+
+def test_real_execution_evidence_is_ignored_and_untracked() -> None:
+    """Catches private operator evidence becoming eligible for an accidental commit."""
+    evidence = (
+        "future_holdout_execution_journal.jsonl",
+        "future_holdout_execution_journal.checkpoint.json",
+    )
+    ignored = subprocess.run(
+        ["git", "check-ignore", "--stdin"],
+        cwd=ROOT,
+        input="\n".join(evidence) + "\n",
+        capture_output=True,
+        check=False,
+        text=True,
+    )
+    tracked = subprocess.run(
+        ["git", "ls-files", "--error-unmatch", *evidence],
+        cwd=ROOT,
+        capture_output=True,
+        check=False,
+        text=True,
+    )
+
+    assert ignored.returncode == 0
+    assert tuple(ignored.stdout.splitlines()) == evidence
+    assert tracked.returncode != 0
 
 
 @pytest.mark.parametrize("path", DOCS, ids=lambda path: path.name)

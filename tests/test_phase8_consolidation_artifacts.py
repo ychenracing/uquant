@@ -136,7 +136,7 @@ def test_phase8_economic_equivalence_artifact_is_exact_and_complete() -> None:
             "git",
             "diff",
             "--name-only",
-            f"{payload['candidate_commit']}..{PHASE8_DELIVERY_COMMIT}",
+            f"{payload['candidate_remote_commit']}..{PHASE8_DELIVERY_COMMIT}",
         ],
         check=True,
         capture_output=True,

@@ -898,6 +898,7 @@ def architecture_snapshot(
         raise AssertionError(f"unknown module authorities: {invalid}")
     graph: dict[str, set[str]] = {module: set() for module in modules}
     private_imports: list[dict[str, object]] = []
+    private_module_calls: list[dict[str, object]] = []
     relocated_private_imports: list[dict[str, object]] = []
     forbidden_imports: list[dict[str, object]] = []
     function_rows: list[dict[str, object]] = []
@@ -923,6 +924,27 @@ def architecture_snapshot(
             "function_count": len(functions),
             "class_count": sum(isinstance(node, ast.ClassDef) for node in tree.body),
         }
+        module_aliases: dict[str, str] = {}
+        for imported_node in ast.walk(tree):
+            if isinstance(imported_node, ast.Import):
+                for alias in imported_node.names:
+                    target = _longest_internal_module(alias.name, modules)
+                    if alias.asname is not None and target is not None and target != module:
+                        module_aliases[alias.asname] = target
+            elif isinstance(imported_node, ast.ImportFrom):
+                target_base = _resolve_from(
+                    module,
+                    is_package=is_package,
+                    level=imported_node.level,
+                    imported=imported_node.module,
+                )
+                for alias in imported_node.names:
+                    alias_target = _longest_internal_module(
+                        f"{target_base}.{alias.name}".strip("."),
+                        modules,
+                    )
+                    if alias_target is not None and alias_target != module:
+                        module_aliases[alias.asname or alias.name] = alias_target
         for ignored in tree.type_ignores:
             text = source_lines[ignored.lineno - 1].strip()
             tag = ignored.tag or ""
@@ -1011,6 +1033,23 @@ def architecture_snapshot(
                                 "line": node.lineno,
                             }
                         )
+            elif (
+                isinstance(node, ast.Call)
+                and isinstance(node.func, ast.Attribute)
+                and node.func.attr.startswith("_")
+                and isinstance(node.func.value, ast.Name)
+                and node.func.value.id in module_aliases
+            ):
+                imported_from = module_aliases[node.func.value.id]
+                private_module_calls.append(
+                    {
+                        "id": f"{module}:{imported_from}:{node.func.attr}",
+                        "importer": module,
+                        "imported_from": imported_from,
+                        "name": node.func.attr,
+                        "line": node.lineno,
+                    }
+                )
 
     fan_in: dict[str, set[str]] = {module: set() for module in modules}
     for importer, targets in graph.items():
@@ -1092,6 +1131,10 @@ def architecture_snapshot(
             "strongly_connected_components": components,
             "cycles": cycles,
             "cross_module_private_imports": sorted_private_imports,
+            "cross_module_private_module_calls": sorted(
+                private_module_calls,
+                key=_row_id,
+            ),
             "task5_relocated_private_imports": sorted(
                 relocated_private_imports,
                 key=_row_id,

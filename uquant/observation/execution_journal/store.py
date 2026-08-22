@@ -112,12 +112,12 @@ def read_execution_journal(
     )
 
 
-def _read_legacy_v1_execution_journal(
+def read_legacy_v1_execution_journal(
     path: str | Path,
     *,
     trusted_checkpoint: JournalCheckpoint | None = None,
 ) -> tuple[JournalRecord, ...]:
-    """Read through the frozen historical-v1 compatibility profile."""
+    """Read through the frozen v1-only facade profile without exposing a writer."""
 
     return _read_execution_journal(
         path,

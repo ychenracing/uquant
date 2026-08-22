@@ -176,7 +176,7 @@ date,open,high,low,close,volume
 | `uquant/risk_sentinel/` | 独立点时风险证据、Coverage 与 Freeze-only 映射 |
 | `uquant/portfolio*.py` | 唯一目标组合及各生命周期职责 |
 | `uquant/execution.py` | 次日开盘执行模型与订单生命周期 |
-| `uquant/account.py`、`broker.py` | 账户持久化和券商对账 |
+| `uquant/account/`、`broker.py` | 账户持久化和券商对账 |
 | `uquant/validation/` | 数据完整性、Phase 1 绩效和 Phase 2 泛化门禁 |
 | `research/` | 与生产导入隔离的离线研究工具 |
 | `tests/` | 行为、不变量和失败路径测试 |

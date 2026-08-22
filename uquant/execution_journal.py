@@ -55,8 +55,12 @@ for _type, _name in (
     (JournalCheckpoint, "JournalCheckpoint"),
     (JournalRecord, "JournalRecord"),
 ):
-    _type.__init__.__module__ = __name__
-    _type.__init__.__qualname__ = f"{_name}.__init__"
+    for _method_name in ("__init__", "__repr__", "__eq__", "__hash__"):
+        _method = getattr(_type, _method_name)
+        _method.__module__ = __name__
+        _method.__qualname__ = f"{_name}.{_method_name}"
+JournalCheckpoint.__post_init__.__module__ = __name__
+JournalCheckpoint.__post_init__.__qualname__ = "JournalCheckpoint.__post_init__"
 
 
 def _legacy_record(record: Any) -> JournalRecord:
@@ -155,7 +159,7 @@ def read_execution_journal(
             record_sha256=trusted_checkpoint.record_sha256,
         )
     )
-    records = _journal_store._read_legacy_v1_execution_journal(
+    records = _journal_store.read_legacy_v1_execution_journal(
         path,
         trusted_checkpoint=canonical_checkpoint,
     )

@@ -35,27 +35,7 @@ _V1_PLANNED_BYTES = (
     b'"symbol":"sz300308"}\n'
 )
 
-_REQUIRED_IMMUTABLE_REFERENCES = {
-    "uquant/account.py": {
-        "artifacts/architecture_refactor/baseline_inventory.json",
-        "artifacts/phase2/ablations/registry.json",
-    },
-    "uquant/attribution.py": {
-        "artifacts/architecture_refactor/baseline_inventory.json",
-        "benchmarks/architecture_refactor_public_api.json",
-    },
-    "uquant/execution_journal.py": {
-        "artifacts/architecture_refactor/baseline_inventory.json",
-        "artifacts/phase2/ablations/post_task8_source_contract.json",
-        "uquant/cli.py",
-        "uquant/validation/holdout.py",
-    },
-    "uquant/validation/execution_journal.py": {
-        "artifacts/architecture_refactor/baseline_inventory.json",
-        "research/ablation_registry.py",
-        "uquant/validation/holdout.py",
-    },
-}
+_SOURCE_SURFACE_REGISTRY = "benchmarks/source_surface_registry.json"
 
 
 def test_task5_cleanup_inventory_is_bound_to_immutable_start_blobs() -> None:
@@ -93,19 +73,50 @@ def test_task5_cleanup_inventory_covers_immutable_authority_references() -> None
     payload = json.loads(_INVENTORY.read_text(encoding="utf-8"))
     assert payload["live_reference_derivation"]["immutable_commit"] == _TASK5_START
     entries = {entry["path"]: entry for entry in payload["entries"]}
-    for replaced_path, required_references in _REQUIRED_IMMUTABLE_REFERENCES.items():
-        recorded = {
-            reference
-            for references in entries[replaced_path]["live_references"].values()
-            for reference in references
+    registry = json.loads(
+        subprocess.run(
+            ["git", "show", f"{_TASK5_START}:{_SOURCE_SURFACE_REGISTRY}"],
+            cwd=ROOT,
+            check=True,
+            capture_output=True,
+            text=True,
+        ).stdout
+    )
+    registry_paths = {
+        surface["id"]: set(surface["source_paths"])
+        for surface in registry["surfaces"]
+    }
+    for replaced_path, entry in entries.items():
+        result = subprocess.run(
+            [
+                "git",
+                "grep",
+                "-l",
+                "--fixed-strings",
+                replaced_path,
+                _TASK5_START,
+                "--",
+            ],
+            cwd=ROOT,
+            check=True,
+            capture_output=True,
+            text=True,
+        )
+        immutable_references = {
+            line.split(":", 1)[1] for line in result.stdout.splitlines()
         }
-        assert required_references <= recorded
-        for reference in required_references:
-            subprocess.run(
-                ["git", "cat-file", "-e", f"{_TASK5_START}:{reference}"],
-                cwd=ROOT,
-                check=True,
-            )
+        assert _SOURCE_SURFACE_REGISTRY in immutable_references
+        recorded = set(entry["live_references"]["immutable_path_references"])
+        assert immutable_references - recorded == {_SOURCE_SURFACE_REGISTRY}
+        assert recorded == immutable_references - {_SOURCE_SURFACE_REGISTRY}
+        recorded_surface_ids = set(
+            entry["live_references"]["current_source_surface_registry"]
+        )
+        assert recorded_surface_ids == {
+            surface_id
+            for surface_id, source_paths in registry_paths.items()
+            if replaced_path in source_paths
+        }
 
 
 def test_task5_private_edges_are_exactly_bound_to_the_mechanical_split() -> None:
@@ -113,8 +124,10 @@ def test_task5_private_edges_are_exactly_bound_to_the_mechanical_split() -> None
     assert isinstance(graph, dict)
     relocated = graph["task5_relocated_private_imports"]
     ordinary = graph["cross_module_private_imports"]
+    private_module_calls = graph["cross_module_private_module_calls"]
     assert isinstance(relocated, list)
     assert isinstance(ordinary, list)
+    assert isinstance(private_module_calls, list)
     assert {str(row["id"]) for row in relocated} == _TASK5_RELOCATED_PRIVATE_IMPORTS
     task5_prefixes = (
         "uquant.account",
@@ -136,6 +149,12 @@ def test_task5_private_edges_are_exactly_bound_to_the_mechanical_split() -> None
         }
         - allowed
     )
+    assert not {
+        str(row["id"])
+        for row in private_module_calls
+        if str(row["importer"]).startswith(task5_prefixes)
+        or str(row["imported_from"]).startswith(task5_prefixes)
+    }
 
 
 def test_task5_public_objects_keep_legacy_module_and_pickle_identities() -> None:
@@ -224,6 +243,16 @@ def test_task5_public_objects_keep_legacy_module_and_pickle_identities() -> None
     assert LegacyRecord.__init__.__qualname__ == "JournalRecord.__init__"
     assert LegacyCheckpoint.__init__.__module__ == "uquant.execution_journal"
     assert LegacyCheckpoint.__init__.__qualname__ == "JournalCheckpoint.__init__"
+    for legacy_type, frozen_name in (
+        (LegacyRecord, "JournalRecord"),
+        (LegacyCheckpoint, "JournalCheckpoint"),
+    ):
+        for method_name in ("__repr__", "__eq__", "__hash__"):
+            method = getattr(legacy_type, method_name)
+            assert method.__module__ == "uquant.execution_journal"
+            assert method.__qualname__ == f"{frozen_name}.{method_name}"
+    assert LegacyCheckpoint.__post_init__.__module__ == "uquant.execution_journal"
+    assert LegacyCheckpoint.__post_init__.__qualname__ == "JournalCheckpoint.__post_init__"
 
 
 @pytest.mark.parametrize(

@@ -50,12 +50,18 @@ MODULE_AUTHORITIES = {
     "uquant.cli": "cli_runner",
     "uquant.config": "production_safe",
     "uquant.config_governance": "production_safe",
+    "uquant.contracts": "production_safe",
+    "uquant.contracts.json": "production_safe",
+    "uquant.contracts.source_surfaces": "production_safe",
     "uquant.data": "production_safe",
     "uquant.engine": "production_safe",
     "uquant.execution": "production_safe",
     "uquant.execution_journal": "production_safe",
     "uquant.features": "production_safe",
     "uquant.industry": "production_safe",
+    "uquant.infrastructure": "production_safe",
+    "uquant.infrastructure.atomic_io": "production_safe",
+    "uquant.infrastructure.file_lock": "production_safe",
     "uquant.leader": "production_safe",
     "uquant.market_risk": "production_safe",
     "uquant.opportunity": "production_safe",
@@ -64,6 +70,8 @@ MODULE_AUTHORITIES = {
     "uquant.portfolio_leaders": "production_safe",
     "uquant.portfolio_recovery": "production_safe",
     "uquant.portfolio_strategic": "production_safe",
+    "uquant.provenance": "production_safe",
+    "uquant.provenance.source_surfaces": "production_safe",
     "uquant.reference": "production_safe",
     "uquant.reference_registry": "production_safe",
     "uquant.report": "production_safe",
@@ -1160,7 +1168,13 @@ def tracked_file_inventory(root: Path, commit: str) -> dict[str, object]:
 
 
 def representative_replay(
-    *, name: str, start: str, end: str, symbols: Sequence[str], root: Path = ROOT
+    *,
+    name: str,
+    start: str,
+    end: str,
+    symbols: Sequence[str],
+    root: Path = ROOT,
+    account_code_hash: str | None = None,
 ) -> dict[str, object]:
     from uquant.engine import ProductionEngine
 
@@ -1184,6 +1198,14 @@ def representative_replay(
             "effective_config_sha256",
         )
     }
+    raw_final_account = result["final_account"]
+    if not isinstance(raw_final_account, dict):
+        raise AssertionError("representative replay final account must be a mapping")
+    final_account = dict(raw_final_account)
+    if account_code_hash is not None:
+        if not isinstance(final_account.get("code_hash"), str):
+            raise AssertionError("representative account lacks its source identity")
+        final_account["code_hash"] = account_code_hash
     return {
         "name": name,
         "symbols": list(symbols),
@@ -1191,7 +1213,7 @@ def representative_replay(
         "requested_end": end,
         "metrics": metrics,
         "decision_digests_sha256": canonical_sha256(result["decision_digests"]),
-        "final_account_sha256": canonical_sha256(result["final_account"]),
+        "final_account_sha256": canonical_sha256(final_account),
         "daily_replay_evidence_sha256": canonical_sha256(result["daily_replay_evidence"]),
     }
 

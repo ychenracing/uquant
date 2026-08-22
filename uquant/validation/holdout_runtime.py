@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import csv
-import fcntl
 import hashlib
 import io
 import json
@@ -25,6 +24,7 @@ from ..account import load_account
 from ..atomic_io import atomic_write_text
 from ..config import config_fingerprint
 from ..engine import INDEX_SYMBOLS, ProductionEngine
+from ..infrastructure.file_lock import FileLockMode, acquire_file_lock, release_file_lock
 from ..leader import REFERENCE_UNIVERSE
 from ..types import Decision, Fill
 from .execution_journal import (
@@ -1259,7 +1259,7 @@ def _artifact_bundle_lock(
             except OSError as exc:
                 raise ValueError("future holdout evidence lock is unsafe") from exc
             descriptors.append(descriptor)
-            fcntl.flock(descriptor, fcntl.LOCK_EX)
+            acquire_file_lock(descriptor, FileLockMode.EXCLUSIVE)
             if not stat.S_ISREG(os.fstat(descriptor).st_mode):
                 raise ValueError("future holdout evidence lock is unsafe")
         yield
@@ -1270,7 +1270,7 @@ def _artifact_bundle_lock(
         cleanup_failures: list[OSError] = []
         for descriptor in reversed(descriptors):
             try:
-                fcntl.flock(descriptor, fcntl.LOCK_UN)
+                release_file_lock(descriptor)
             except OSError as exc:
                 cleanup_failures.append(exc)
             try:

@@ -9,7 +9,7 @@ from pathlib import Path
 
 import pytest
 
-import uquant.atomic_io as atomic_io
+import uquant.infrastructure.atomic_io as atomic_io
 from uquant.validation.execution_journal import (
     append_planned,
     execution_journal_checkpoint,

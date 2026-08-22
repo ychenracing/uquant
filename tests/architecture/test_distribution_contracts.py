@@ -3,6 +3,7 @@ from __future__ import annotations
 import subprocess
 import sys
 from collections.abc import Mapping
+from pathlib import Path
 
 import pytest
 
@@ -14,6 +15,8 @@ from ._analysis import (
     sha256_file,
     tracked_file_inventory,
 )
+
+TASK_1_HEAD = "cd46d17d7808db6ec04684b0d1d7bd9a9f2d8836"
 
 
 def test_same_named_module_and_package_never_compete_for_import_authority() -> None:
@@ -114,22 +117,34 @@ def test_immutable_baseline_recomputation_ignores_future_live_registry_changes(
     test_initial_debt_is_recomputed_from_the_immutable_git_tree(baseline_inventory)
 
 
-def test_generator_accepts_an_explicit_baseline_from_the_task_1_head() -> None:
+def test_generator_accepts_an_explicit_baseline_from_the_task_1_head(
+    tmp_path: Path,
+) -> None:
     from ._baseline import BASELINE_COMMIT
     from ._generate_baselines import verify_generation_context
 
+    candidate = tmp_path / "task-1-head"
+    subprocess.run(
+        ["git", "clone", "--quiet", "--no-checkout", str(ROOT), str(candidate)],
+        check=True,
+    )
+    subprocess.run(
+        ["git", "checkout", "--quiet", "--detach", TASK_1_HEAD],
+        cwd=candidate,
+        check=True,
+    )
     head = subprocess.run(
         ["git", "rev-parse", "HEAD"],
-        cwd=ROOT,
+        cwd=candidate,
         check=True,
         capture_output=True,
         text=True,
     ).stdout.strip()
-    assert head != BASELINE_COMMIT
+    assert head == TASK_1_HEAD
     verified = verify_generation_context(
         baseline_root=ROOT,
         baseline_commit=BASELINE_COMMIT,
-        candidate_root=ROOT,
+        candidate_root=candidate,
     )
     assert verified == BASELINE_COMMIT
 
@@ -157,11 +172,14 @@ def test_three_representative_replays_match_the_frozen_baseline(
     assert len(scenarios) == 3
     expected = scenarios[scenario_index]
     assert isinstance(expected, Mapping)
+    baseline = baseline_inventory["baseline"]
+    assert isinstance(baseline, Mapping)
     observed = representative_replay(
         name=str(expected["name"]),
         start=str(expected["requested_start"]),
         end=str(expected["requested_end"]),
         symbols=tuple(str(symbol) for symbol in expected["symbols"]),
+        account_code_hash=str(baseline["code_fingerprint"]),
     )
     assert observed == expected
 

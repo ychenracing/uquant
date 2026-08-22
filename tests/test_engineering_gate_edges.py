@@ -13,16 +13,16 @@ from types import SimpleNamespace
 import pandas as pd
 import pytest
 
-import uquant.atomic_io as atomic_io_module
+import uquant.infrastructure.atomic_io as atomic_io_module
 import uquant.validation as validation_package
-from uquant.atomic_io import (
+from uquant.data import DataContractError
+from uquant.infrastructure.atomic_io import (
     _aliases,
     _fsync_directory,
     atomic_write_bytes,
     atomic_write_text,
     validate_atomic_output_boundary,
 )
-from uquant.data import DataContractError
 from uquant.validation import equivalence as equivalence_module
 from uquant.validation import holdout as holdout_module
 from uquant.validation import universe as universe_module

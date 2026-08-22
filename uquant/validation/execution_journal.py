@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import fcntl
 import hashlib
 import json
 import math
@@ -16,6 +15,12 @@ from datetime import date, datetime
 from enum import Enum
 from pathlib import Path
 from typing import Any, cast
+
+from uquant.infrastructure.file_lock import (
+    FileLockMode,
+    acquire_file_lock,
+    release_file_lock,
+)
 
 _SHA256 = re.compile(r"^[0-9a-f]{64}$")
 _PLAN_ID = re.compile(r"^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$")
@@ -443,7 +448,7 @@ def read_execution_journal(
     except OSError as exc:
         raise ValueError("execution journal must be a regular file") from exc
     try:
-        fcntl.flock(descriptor, fcntl.LOCK_SH)
+        acquire_file_lock(descriptor, FileLockMode.SHARED)
         if not stat.S_ISREG(os.fstat(descriptor).st_mode):
             raise ValueError("execution journal must be a regular file")
         records = _read_descriptor(descriptor)
@@ -451,7 +456,7 @@ def read_execution_journal(
         return records
     finally:
         with suppress(OSError):
-            fcntl.flock(descriptor, fcntl.LOCK_UN)
+            release_file_lock(descriptor)
         os.close(descriptor)
 
 
@@ -477,7 +482,7 @@ def _append(path: Path, payload_factory: PayloadFactory) -> JournalRecord:
         raise ValueError("execution journal must be a regular file") from exc
     primary_error: BaseException | None = None
     try:
-        fcntl.flock(descriptor, fcntl.LOCK_EX)
+        acquire_file_lock(descriptor, FileLockMode.EXCLUSIVE)
         if not stat.S_ISREG(os.fstat(descriptor).st_mode):
             raise ValueError("execution journal must be a regular file")
         records = _read_descriptor(descriptor)
@@ -522,7 +527,7 @@ def _append(path: Path, payload_factory: PayloadFactory) -> JournalRecord:
     finally:
         cleanup_errors: list[tuple[str, BaseException]] = []
         try:
-            fcntl.flock(descriptor, fcntl.LOCK_UN)
+            release_file_lock(descriptor)
         except BaseException as cleanup_error:
             cleanup_errors.append(("lock cleanup", cleanup_error))
         try:

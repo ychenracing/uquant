@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import argparse
 import contextlib
-import fcntl
 import hashlib
 import importlib.util
 import io
@@ -28,6 +27,11 @@ from uquant.atomic_io import (
 )
 from uquant.cli import main as uquant_main
 from uquant.engine import code_fingerprint
+from uquant.infrastructure.file_lock import (
+    FileLockMode,
+    acquire_file_lock,
+    release_file_lock,
+)
 from uquant.validation.holdout_runtime import (
     append_holdout_snapshot,
     generate_future_holdout_replay,
@@ -415,11 +419,11 @@ def _observation_lock(root: Path, account: Path) -> Iterator[None]:
         metadata = os.fstat(descriptor)
         if not stat.S_ISREG(metadata.st_mode):
             raise ValueError("production observation lock must be a regular file")
-        fcntl.flock(descriptor, fcntl.LOCK_EX)
+        acquire_file_lock(descriptor, FileLockMode.EXCLUSIVE)
         yield
     finally:
         try:
-            fcntl.flock(descriptor, fcntl.LOCK_UN)
+            release_file_lock(descriptor)
         finally:
             os.close(descriptor)
 

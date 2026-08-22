@@ -606,7 +606,7 @@ def test_journal_reports_each_cleanup_failure_after_a_complete_append(
     path = tmp_path / "execution.jsonl"
     original_open = journal_module.os.open
     original_close = journal_module.os.close
-    original_flock = journal_module.fcntl.flock
+    original_release = journal_module.release_file_lock
     append_descriptor: int | None = None
 
     def capture_open(
@@ -620,9 +620,9 @@ def test_journal_reports_each_cleanup_failure_after_a_complete_append(
             append_descriptor = descriptor
         return descriptor
 
-    def unlock_then_fail(descriptor: int, operation: int) -> None:
-        original_flock(descriptor, operation)
-        if descriptor == append_descriptor and operation == journal_module.fcntl.LOCK_UN:
+    def unlock_then_fail(descriptor: int) -> None:
+        original_release(descriptor)
+        if descriptor == append_descriptor:
             raise OSError("injected unlock failure")
 
     def close_then_fail(descriptor: int) -> None:
@@ -632,7 +632,7 @@ def test_journal_reports_each_cleanup_failure_after_a_complete_append(
 
     with monkeypatch.context() as patch:
         patch.setattr(journal_module.os, "open", capture_open)
-        patch.setattr(journal_module.fcntl, "flock", unlock_then_fail)
+        patch.setattr(journal_module, "release_file_lock", unlock_then_fail)
         patch.setattr(journal_module.os, "close", close_then_fail)
         with pytest.raises(OSError, match="injected unlock failure") as caught:
             append_planned(

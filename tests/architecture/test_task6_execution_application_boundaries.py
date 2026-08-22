@@ -9,6 +9,7 @@ import io
 import json
 import pickle
 import subprocess
+import sys
 from pathlib import Path
 
 import pytest
@@ -639,6 +640,18 @@ def test_task6_public_reflection_and_pickle_identities_remain_legacy() -> None:
     assert signature.parameters["cfg"].annotation == "SystemConfig"
     assert signature.parameters["cfg"].default is DEFAULT_CONFIG
     assert signature.return_annotation == "None"
+
+
+def test_task6_engine_imports_when_python_strips_docstrings_and_assertions() -> None:
+    completed = subprocess.run(
+        [sys.executable, "-OO", "-c", "import uquant.engine"],
+        cwd=ROOT,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+
+    assert completed.returncode == 0, completed.stderr
 
 
 def test_task6_engine_method_reflection_and_descriptors_match_immutable_source() -> None:

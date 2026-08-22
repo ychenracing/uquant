@@ -51,8 +51,10 @@ __all__ = (
 
 
 def _restore_class_method_docstring(function: Any) -> None:
-    assert function.__doc__ is not None
-    head, *tail = function.__doc__.splitlines()
+    docstring = function.__doc__
+    if docstring is None:
+        return
+    head, *tail = docstring.splitlines()
     function.__doc__ = "\n".join((head, *(f"    {line}" if line else line for line in tail)))
 
 

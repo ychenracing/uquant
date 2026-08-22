@@ -117,6 +117,12 @@ _CHECKPOINT2_PACKAGE_PATHS = (
     "uquant/portfolio/leaders/__init__.py",
     *_CHECKPOINT2_OWNER_METHODS,
 )
+_CHECKPOINT3_PACKAGE_PATHS = (
+    "uquant/portfolio/strategic/__init__.py",
+    "uquant/portfolio/strategic/discovery.py",
+    "uquant/portfolio/strategic/lifecycle.py",
+    "uquant/portfolio/strategic/targets.py",
+)
 _CHECKPOINT2_TRANSPORT_NAMES = {
     "_session_distance": "_leader_session_distance",
 }
@@ -450,6 +456,8 @@ def test_task8_checkpoint1_source_surface_migration_is_exact() -> None:
             expected.update(_CHECKPOINT1_PACKAGE_PATHS)
         if "uquant/portfolio_leaders.py" in expected:
             expected.update(_CHECKPOINT2_PACKAGE_PATHS)
+        if "uquant/portfolio_strategic.py" in expected:
+            expected.update(_CHECKPOINT3_PACKAGE_PATHS)
         assert set(candidate_surfaces[identifier]["source_paths"]) == expected
         assert candidate_surfaces[identifier]["resource_paths"] == baseline["resource_paths"]
         assert {
@@ -678,7 +686,13 @@ def test_task8_checkpoint2_private_and_complexity_relocations_are_exact() -> Non
         for path, names in _CHECKPOINT2_OWNER_METHODS.items()
         for name in names
     }
-    assert set(_TASK8_RELOCATED_FUNCTION_DEBT) == expected_functions
+    checkpoint12_functions = {
+        identifier
+        for identifier, legacy in _TASK8_RELOCATED_FUNCTION_DEBT.items()
+        if legacy.startswith("uquant.portfolio:PortfolioAllocator.")
+        or legacy.startswith("uquant.portfolio_leaders:LeaderPortfolioPolicy.")
+    }
+    assert checkpoint12_functions == expected_functions
     assert {
         legacy
         for legacy in _TASK8_RELOCATED_FUNCTION_DEBT.values()

@@ -1,5 +1,5 @@
 {
-  "canonical_sha256": "52e960a6789a6e5361d27021b30479014e7e2ceb3856cbbdd3505ec385cea1a8",
+  "canonical_sha256": "3e9af3c4c9b570089bef3678e74b6ba8b67aeb5eb05b40386319cef30c7c3bbb",
   "registry_version": 2,
   "surfaces": [
     {
@@ -89,6 +89,10 @@
         "uquant/portfolio/leaders/targets.py",
         "uquant/portfolio/pipeline.py",
         "uquant/portfolio/risk_reduction.py",
+        "uquant/portfolio/strategic/__init__.py",
+        "uquant/portfolio/strategic/discovery.py",
+        "uquant/portfolio/strategic/lifecycle.py",
+        "uquant/portfolio/strategic/targets.py",
         "uquant/portfolio_core.py",
         "uquant/portfolio_leaders.py",
         "uquant/portfolio_recovery.py",
@@ -482,6 +486,10 @@
         "uquant/portfolio/leaders/targets.py",
         "uquant/portfolio/pipeline.py",
         "uquant/portfolio/risk_reduction.py",
+        "uquant/portfolio/strategic/__init__.py",
+        "uquant/portfolio/strategic/discovery.py",
+        "uquant/portfolio/strategic/lifecycle.py",
+        "uquant/portfolio/strategic/targets.py",
         "uquant/portfolio_core.py",
         "uquant/portfolio_leaders.py",
         "uquant/portfolio_recovery.py",

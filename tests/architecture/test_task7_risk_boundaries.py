@@ -67,6 +67,10 @@ _TASK8_PORTFOLIO_PACKAGE_PATHS = {
     "uquant/portfolio/leaders/targets.py",
     "uquant/portfolio/pipeline.py",
     "uquant/portfolio/risk_reduction.py",
+    "uquant/portfolio/strategic/__init__.py",
+    "uquant/portfolio/strategic/discovery.py",
+    "uquant/portfolio/strategic/lifecycle.py",
+    "uquant/portfolio/strategic/targets.py",
 }
 
 _MOVED_HELPER_OWNERS = {

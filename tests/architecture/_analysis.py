@@ -133,6 +133,10 @@ MODULE_AUTHORITIES = {
     "uquant.portfolio.leaders.targets": "production_safe",
     "uquant.portfolio.pipeline": "production_safe",
     "uquant.portfolio.risk_reduction": "production_safe",
+    "uquant.portfolio.strategic": "production_safe",
+    "uquant.portfolio.strategic.discovery": "production_safe",
+    "uquant.portfolio.strategic.lifecycle": "production_safe",
+    "uquant.portfolio.strategic.targets": "production_safe",
     "uquant.portfolio_core": "production_safe",
     "uquant.portfolio_leaders": "production_safe",
     "uquant.portfolio_recovery": "production_safe",
@@ -198,6 +202,7 @@ _CONTRACT_RELOCATIONS = {
     "uquant.contracts.universe": "uquant.validation.universe",
     "uquant.models.trading": "uquant.types",
     "uquant.portfolio.leaders.admission": "uquant.portfolio_leaders",
+    "uquant.portfolio.strategic.discovery": "uquant.portfolio_strategic",
 }
 _DEBT_RELOCATIONS = {
     **_CONTRACT_RELOCATIONS,
@@ -266,6 +271,15 @@ _DEBT_RELOCATIONS = {
             "uquant.portfolio.leaders.admission",
             "uquant.portfolio.leaders.lifecycle",
             "uquant.portfolio.leaders.targets",
+        )
+    },
+    **{
+        module: "uquant.portfolio_strategic"
+        for module in (
+            "uquant.portfolio.strategic",
+            "uquant.portfolio.strategic.discovery",
+            "uquant.portfolio.strategic.lifecycle",
+            "uquant.portfolio.strategic.targets",
         )
     },
 }
@@ -724,6 +738,25 @@ _TASK8_RELOCATED_PRIVATE_IMPORT_GROUPS = (
         "uquant.portfolio.leaders.targets",
         ("_cap_opportunity_gross", "_leader_targets"),
     ),
+    (
+        "uquant.portfolio.strategic",
+        "uquant.portfolio.strategic.discovery",
+        ("_initialize_strategic_cohort",),
+    ),
+    (
+        "uquant.portfolio.strategic",
+        "uquant.portfolio.strategic.lifecycle",
+        (
+            "_bounded_strategic_restore_risk_open",
+            "_retire_strategic_member",
+            "_strategic_cohort_targets",
+        ),
+    ),
+    (
+        "uquant.portfolio.strategic.lifecycle",
+        "uquant.portfolio.strategic.targets",
+        ("_strategic_active_targets", "_strategic_completed_exit_targets"),
+    ),
 )
 _TASK8_RELOCATED_PRIVATE_IMPORTS = frozenset(
     f"{importer}:{imported_from}:{name}"
@@ -795,6 +828,26 @@ _TASK8_RELOCATED_FUNCTION_DEBT = {
             (
                 "uquant.portfolio.leaders.targets",
                 ("_cap_opportunity_gross", "_leader_targets"),
+            ),
+        )
+        for name in names
+    },
+    **{
+        f"{owner}:{name}": (
+            f"uquant.portfolio_strategic:StrategicPortfolioPolicy.{name}"
+        )
+        for owner, names in (
+            (
+                "uquant.portfolio.strategic.discovery",
+                ("_initialize_strategic_cohort",),
+            ),
+            (
+                "uquant.portfolio.strategic.lifecycle",
+                (
+                    "_bounded_strategic_restore_risk_open",
+                    "_retire_strategic_member",
+                    "_strategic_cohort_targets",
+                ),
             ),
         )
         for name in names

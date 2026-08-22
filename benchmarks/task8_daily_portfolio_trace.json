@@ -1,0 +1,2588 @@
+{
+  "baseline_commit": "4b6bedb03fb7c58914d9d5032a2514c67f41f6ba",
+  "baseline_tree": "d3824f7c5d89521b8284b5de08cc1e82e3ab7ebd",
+  "checkpoint_2_boundary": "AccountState observed at allocate entry after ProductionEngine.execute_open has settled the session's pending orders; complete position, pending-order and durable lifecycle-right fields are projected before any allocation-owner mutation.",
+  "checkpoint_names": [
+    "account_before",
+    "settled_invalid_lifecycle_rights",
+    "risk_reduction_freeze_draft",
+    "leader_admission_lifecycle_target_draft",
+    "strategic_discovery_lifecycle_target_draft",
+    "recovery_ownership_substitution_admission_target_draft",
+    "owner_handoff_gross_cap_sparse_reduction_result",
+    "final_ordered_targets_reasons_attribution",
+    "account_after"
+  ],
+  "contract": "uquant-task8-daily-allocation-trace-v1",
+  "payload_sha256": "df13d16106c759a7c0fe940a892d66d9d83e96759c04b0c79c063461430b4436",
+  "projection": "nine ordered complete allocation/account/lifecycle owner checkpoint payload hashes",
+  "scenarios": [
+    {
+      "name": "early_ai_entry",
+      "record_count": 14,
+      "records": [
+        {
+          "checkpoint_sha256": [
+            {
+              "name": "account_before",
+              "sha256": "57cae004ba1ef672c31716261e0b727dd08f19970d99fc59cbd933fbdbb45c91"
+            },
+            {
+              "name": "settled_invalid_lifecycle_rights",
+              "sha256": "f9c999a34e010a7ba8796e57f7b23247d172667697646720288b24a25d98d60b"
+            },
+            {
+              "name": "risk_reduction_freeze_draft",
+              "sha256": "32592aa5091fb49bcc21a0560370fd00042c97abc0fb7d3634576c61a0a13742"
+            },
+            {
+              "name": "leader_admission_lifecycle_target_draft",
+              "sha256": "8e660653e1134f2c55fef80aa1972f0eea6c3a92f5f23084069b719049076547"
+            },
+            {
+              "name": "strategic_discovery_lifecycle_target_draft",
+              "sha256": "7cae402db24944e4d2252b273efb86f2c57247bd2759b272cfbd8cdd7bcbf358"
+            },
+            {
+              "name": "recovery_ownership_substitution_admission_target_draft",
+              "sha256": "7d9248d6b2d4d3f99f6e215e07eba7ef992ee55383d303205c8c534c4c1610c0"
+            },
+            {
+              "name": "owner_handoff_gross_cap_sparse_reduction_result",
+              "sha256": "3694ea2cc5cc06b994c9cf81a0a7bfb5e59bdfcc0281eeba2e742ddc4de05069"
+            },
+            {
+              "name": "final_ordered_targets_reasons_attribution",
+              "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+            },
+            {
+              "name": "account_after",
+              "sha256": "f1f1227d989d0c0666d1b1502eb170dc1211d637a6f60214515e67cad45b3049"
+            }
+          ],
+          "date": "2023-01-03",
+          "ordered_checkpoint_sha256": "c9ff49b94075e15eb0c585aef11caec314dded0b11f460caf161f0078dce3dcb"
+        },
+        {
+          "checkpoint_sha256": [
+            {
+              "name": "account_before",
+              "sha256": "a11db70c58fdc024a3d7402fbcf508930e946e145ed2b6cc2ea5284e3f22cca5"
+            },
+            {
+              "name": "settled_invalid_lifecycle_rights",
+              "sha256": "8f170b47792e8c0720536b72d8d18fe269318a3fe34b179dda829b1b8190d154"
+            },
+            {
+              "name": "risk_reduction_freeze_draft",
+              "sha256": "6c76f9f5150edf41862a9861781a41063ff6101825e064be3533110e0553263a"
+            },
+            {
+              "name": "leader_admission_lifecycle_target_draft",
+              "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+            },
+            {
+              "name": "strategic_discovery_lifecycle_target_draft",
+              "sha256": "301ba311982190db46bc25c79ae8256ae051a29ccee90e69527ed6282d63e34d"
+            },
+            {
+              "name": "recovery_ownership_substitution_admission_target_draft",
+              "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+            },
+            {
+              "name": "owner_handoff_gross_cap_sparse_reduction_result",
+              "sha256": "8bb7140f64bf9dc38952537378e9048a61edae30daef19a1338a0e29a578c73c"
+            },
+            {
+              "name": "final_ordered_targets_reasons_attribution",
+              "sha256": "583c060f500d92034869eaaba373246d8097648911318beb194a7b616b3a0277"
+            },
+            {
+              "name": "account_after",
+              "sha256": "a24ea82d445267ee3bf1646ff84432de03b6e9a29b0df80f82cbb3d7dacf73f0"
+            }
+          ],
+          "date": "2023-01-04",
+          "ordered_checkpoint_sha256": "ab92aeecd35543e084ac1c2a6505128f8b346b8e4b61642891ff98827ad6ece9"
+        },
+        {
+          "checkpoint_sha256": [
+            {
+              "name": "account_before",
+              "sha256": "65ed602d3b508e3cde67230cc14a3f1cf20e61f7185a2d1cecb29a25cb898430"
+            },
+            {
+              "name": "settled_invalid_lifecycle_rights",
+              "sha256": "c2cb753e6b1473a036426ab2e7cdd7c4365629ca7835e2a0ec6b33d18c88cb99"
+            },
+            {
+              "name": "risk_reduction_freeze_draft",
+              "sha256": "2afdc7465ca167db578b00bc7ad5c56d7569e45aebb0105d2f4c0262dbfff7ab"
+            },
+            {
+              "name": "leader_admission_lifecycle_target_draft",
+              "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+            },
+            {
+              "name": "strategic_discovery_lifecycle_target_draft",
+              "sha256": "3437af477a4eb7cfe50306f55f05c7bddc33fb9ceef77240910b1a52ad33d454"
+            },
+            {
+              "name": "recovery_ownership_substitution_admission_target_draft",
+              "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+            },
+            {
+              "name": "owner_handoff_gross_cap_sparse_reduction_result",
+              "sha256": "8476fffc8de10b129b7213b63e1b944181770d7f15d0d7a40d01781c8d096bea"
+            },
+            {
+              "name": "final_ordered_targets_reasons_attribution",
+              "sha256": "6d298b462c2fa5c95176153823692d0ef3275f037ecf7ef453b21dc7305dd031"
+            },
+            {
+              "name": "account_after",
+              "sha256": "8b0e1d3e6f64df6c11ee54ec8486e549b86eebf6125a35007612f894bc8456a3"
+            }
+          ],
+          "date": "2023-01-05",
+          "ordered_checkpoint_sha256": "404d0a437549c46b38989f0e9bc129253b5aa632e87318b847de8dbdbf0808b1"
+        },
+        {
+          "checkpoint_sha256": [
+            {
+              "name": "account_before",
+              "sha256": "f1a81ea6b0429b075b80a9997435878213d457c7d6802a3f978267b3387fff2c"
+            },
+            {
+              "name": "settled_invalid_lifecycle_rights",
+              "sha256": "4e8d134508a5f9038539c5b75d42e86d0ab3a4f40f7ef2e6fd55210603a81103"
+            },
+            {
+              "name": "risk_reduction_freeze_draft",
+              "sha256": "33265d5ca937fc25f69054bf44757cd1f138fb166d1e33b6c2c2a36bd19e7127"
+            },
+            {
+              "name": "leader_admission_lifecycle_target_draft",
+              "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+            },
+            {
+              "name": "strategic_discovery_lifecycle_target_draft",
+              "sha256": "ee1aafc07f8f1dac7829ea1ce430e68fad70d3f0c7e98786b91e376750e5dbd2"
+            },
+            {
+              "name": "recovery_ownership_substitution_admission_target_draft",
+              "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+            },
+            {
+              "name": "owner_handoff_gross_cap_sparse_reduction_result",
+              "sha256": "d8eaa8adfe8fa7bc3d2d0ef5c003a51c8c72b97a64cfafe98935ec631b155a9f"
+            },
+            {
+              "name": "final_ordered_targets_reasons_attribution",
+              "sha256": "a7775882c3e694298f2ec2f1713dbbce6b670fc8e965f3879e8e5049321da0a9"
+            },
+            {
+              "name": "account_after",
+              "sha256": "6757fa1854ce479420fbf87585fe62cfb1d58772fc38fbc5f7a36ca6cc9fc89f"
+            }
+          ],
+          "date": "2023-01-06",
+          "ordered_checkpoint_sha256": "a99c8bd67a510209d54911b3581d1f71bf50b261ed42bf4b99e94f5fb8191254"
+        },
+        {
+          "checkpoint_sha256": [
+            {
+              "name": "account_before",
+              "sha256": "ed191c48555941bbc466b3b0689c21f4f8aadd1344685049fb7d1711c06cc2da"
+            },
+            {
+              "name": "settled_invalid_lifecycle_rights",
+              "sha256": "fb19647edc13f0aa3c2d4d5a00022ef986288543fc5716a04737ac1a4a684a5d"
+            },
+            {
+              "name": "risk_reduction_freeze_draft",
+              "sha256": "d1b2795d2dda860dc21e31d36c25bbe572af31a17d85dfd71b2f11b032183a27"
+            },
+            {
+              "name": "leader_admission_lifecycle_target_draft",
+              "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+            },
+            {
+              "name": "strategic_discovery_lifecycle_target_draft",
+              "sha256": "6209c4db2d0684ea38c95305e4b37e4577be5be4c7d82aa0470e10c2d1b95d57"
+            },
+            {
+              "name": "recovery_ownership_substitution_admission_target_draft",
+              "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+            },
+            {
+              "name": "owner_handoff_gross_cap_sparse_reduction_result",
+              "sha256": "6c4e2e237b8818145375991740097bef17b9061c67f99c853de26b62566eedea"
+            },
+            {
+              "name": "final_ordered_targets_reasons_attribution",
+              "sha256": "ca7535ffbd2181917d730f737b834afb587552872cda65a87df473a83b6e8316"
+            },
+            {
+              "name": "account_after",
+              "sha256": "25a26ec1446a071e3a8b6c8ca79028c54ae2807e8a42deac88853e86df9f6dad"
+            }
+          ],
+          "date": "2023-01-09",
+          "ordered_checkpoint_sha256": "6e2b5d6d57be1c9b61f0a03b7d5a9a643df5622dd51c46a576a5034f5523c3ec"
+        },
+        {
+          "checkpoint_sha256": [
+            {
+              "name": "account_before",
+              "sha256": "39e7a97520071af57ef297dbed71ff54fef4fd6263a57b72f7850582baf93adb"
+            },
+            {
+              "name": "settled_invalid_lifecycle_rights",
+              "sha256": "5ea970dd5d5c46c24957272f42c11f26a06fa3b0de95117997cd8d8992118971"
+            },
+            {
+              "name": "risk_reduction_freeze_draft",
+              "sha256": "e29ab1cfa66c6b338a8dce80d1bf8e9d15bde8784d99456a8e22592528956ed6"
+            },
+            {
+              "name": "leader_admission_lifecycle_target_draft",
+              "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+            },
+            {
+              "name": "strategic_discovery_lifecycle_target_draft",
+              "sha256": "6b90bbab7feee9b05f80295cb2e579727d8a1e1607224ba2ca1f0be3dafaefc8"
+            },
+            {
+              "name": "recovery_ownership_substitution_admission_target_draft",
+              "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+            },
+            {
+              "name": "owner_handoff_gross_cap_sparse_reduction_result",
+              "sha256": "f3284aef5b3edf8fbd0f67ce81b6b706e5e084f17ceaa476c6b6b7c28801e7df"
+            },
+            {
+              "name": "final_ordered_targets_reasons_attribution",
+              "sha256": "7ce52bc574bc5c78aadb3e9d636d80d41e19d2557ae7dbb11100b37450e44ca7"
+            },
+            {
+              "name": "account_after",
+              "sha256": "d76a83549861603b86511025b4fdb5ce8514da5ba2c61d9f0c7f693a1b3f3cbd"
+            }
+          ],
+          "date": "2023-01-10",
+          "ordered_checkpoint_sha256": "a721049dbca516eca06ec2bdc8ebc07c5023b7b09803998dcd765d5dfb8761f3"
+        },
+        {
+          "checkpoint_sha256": [
+            {
+              "name": "account_before",
+              "sha256": "233fc84867c1f002811cd3bdac760754b8eaf289e32a8caf670f9b3a29f51502"
+            },
+            {
+              "name": "settled_invalid_lifecycle_rights",
+              "sha256": "9e6057fc6dfafcef70173e8ca771591ed64cf30cd45191be2091b054bb17126b"
+            },
+            {
+              "name": "risk_reduction_freeze_draft",
+              "sha256": "04f33841da98277a783bd00fe7bbbd359d582161647a05c45a8f2935d9d05a1e"
+            },
+            {
+              "name": "leader_admission_lifecycle_target_draft",
+              "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+            },
+            {
+              "name": "strategic_discovery_lifecycle_target_draft",
+              "sha256": "142f045b06040fb66e074b285d50f355a5682f3a6af2063a8455eafe29845f12"
+            },
+            {
+              "name": "recovery_ownership_substitution_admission_target_draft",
+              "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+            },
+            {
+              "name": "owner_handoff_gross_cap_sparse_reduction_result",
+              "sha256": "299c921a01caef72c1358393480b5a1707e5f4ec4d9da7676a7d08fc25a1ac24"
+            },
+            {
+              "name": "final_ordered_targets_reasons_attribution",
+              "sha256": "3d9cc6054b37537c54abca5724c29eddafcf271dd85bcf3f560a10860198ce33"
+            },
+            {
+              "name": "account_after",
+              "sha256": "84d552707703a8a5bde9e9ed4751372eabba823d9f43806be05f241c72c5e08f"
+            }
+          ],
+          "date": "2023-01-11",
+          "ordered_checkpoint_sha256": "418bfaf09ad813f2c3b58d9520a7fb601a83d700a9bd8d657ba3cd6f1f901579"
+        },
+        {
+          "checkpoint_sha256": [
+            {
+              "name": "account_before",
+              "sha256": "32a6d9f5702b54785266ca7ca4bb090b01ac70fb7b761fb03345976e66a97b02"
+            },
+            {
+              "name": "settled_invalid_lifecycle_rights",
+              "sha256": "ed59161345743690070dace4e6e7c4a1da287b21326497fd4b7dddb0edb1e56a"
+            },
+            {
+              "name": "risk_reduction_freeze_draft",
+              "sha256": "40ad71b4250f64a8e7cec0b92fbb706e88b34780851626dd37c4f88e7d322c44"
+            },
+            {
+              "name": "leader_admission_lifecycle_target_draft",
+              "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+            },
+            {
+              "name": "strategic_discovery_lifecycle_target_draft",
+              "sha256": "bc48738267dee2f51f3539faa9a3c3957bc01dc1f6106b7b302a14908be7f603"
+            },
+            {
+              "name": "recovery_ownership_substitution_admission_target_draft",
+              "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+            },
+            {
+              "name": "owner_handoff_gross_cap_sparse_reduction_result",
+              "sha256": "9a3ab7da0a477c4b5e2a04e4caab9c47ead377914644190209bea7236e14d3d7"
+            },
+            {
+              "name": "final_ordered_targets_reasons_attribution",
+              "sha256": "3a16e241256b7dd1126ec89b8c1d4eed13f0048b128e64530efe1b9c318db394"
+            },
+            {
+              "name": "account_after",
+              "sha256": "23d0ce4c5e645831858043b3be8e36a18fb7c90181e4f5040f1ee084ad35dc38"
+            }
+          ],
+          "date": "2023-01-12",
+          "ordered_checkpoint_sha256": "eac268899a8d86a98d35e7acad5dd6173d05f1f110029164d9c51539be262a1a"
+        },
+        {
+          "checkpoint_sha256": [
+            {
+              "name": "account_before",
+              "sha256": "f5788cbea39c8d2e6a4fda72231b30d17635c78269e78bd83f9a1ce72be27ceb"
+            },
+            {
+              "name": "settled_invalid_lifecycle_rights",
+              "sha256": "6d5a2144fd02855dfb49bfbe0d89b825147b659ddf48bfb1940b693008ff41c5"
+            },
+            {
+              "name": "risk_reduction_freeze_draft",
+              "sha256": "93c8cc6cdabff8bb45d6efa58de334001d3d2dc1b9dee59e64fef77a1d6eda39"
+            },
+            {
+              "name": "leader_admission_lifecycle_target_draft",
+              "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+            },
+            {
+              "name": "strategic_discovery_lifecycle_target_draft",
+              "sha256": "d301a06a0cb6f3add369df0afa95468a4f26a6ba9644f8e94f19059716f13eee"
+            },
+            {
+              "name": "recovery_ownership_substitution_admission_target_draft",
+              "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+            },
+            {
+              "name": "owner_handoff_gross_cap_sparse_reduction_result",
+              "sha256": "b9d10b848ab84988a66cd1226f7296df8d2d0a8ef3b445751164a70285d32e70"
+            },
+            {
+              "name": "final_ordered_targets_reasons_attribution",
+              "sha256": "364fd2b26d0e3f0ad9812b26109d0b0343a15c3c692f9fdbbd89559a5872e8ab"
+            },
+            {
+              "name": "account_after",
+              "sha256": "2913096ada2db71b77878cfdf2ec1567110f7f48031dafe6fb05b7d9bd63a655"
+            }
+          ],
+          "date": "2023-01-13",
+          "ordered_checkpoint_sha256": "83061afd50d36e8aa869dab050913fee9558068925f1f9fcb3b75c52e7722d95"
+        },
+        {
+          "checkpoint_sha256": [
+            {
+              "name": "account_before",
+              "sha256": "55f06b90b0fa199bfd0bc2c07f1421aad06e7b776c3c8afb7522f88492fd7dfe"
+            },
+            {
+              "name": "settled_invalid_lifecycle_rights",
+              "sha256": "fc91b46db52c767ec3b2a2899a19e87ac70c74f2f73fbab1bd77663d7b6b36e7"
+            },
+            {
+              "name": "risk_reduction_freeze_draft",
+              "sha256": "ea13b83bb8d49e6fcd83f651c031711203ba768aa07cdb7f995b6b234e0a1eb8"
+            },
+            {
+              "name": "leader_admission_lifecycle_target_draft",
+              "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+            },
+            {
+              "name": "strategic_discovery_lifecycle_target_draft",
+              "sha256": "36b135fa201bd7bf54fe4311315605001874843cfda05f97a40ab2bbe766815d"
+            },
+            {
+              "name": "recovery_ownership_substitution_admission_target_draft",
+              "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+            },
+            {
+              "name": "owner_handoff_gross_cap_sparse_reduction_result",
+              "sha256": "5acc59d1b972528904d72597c46121d9c12ccf012eddfe3851a64a3a5b717237"
+            },
+            {
+              "name": "final_ordered_targets_reasons_attribution",
+              "sha256": "8d9e9ab85a0617f580c2b181ad294deb8554f3851abfd2b503f94e10e6a312b8"
+            },
+            {
+              "name": "account_after",
+              "sha256": "4d89b8b7bd3e9a214648c87738835c19bdf83c6c2c21e6bff12f809cb13f2bb1"
+            }
+          ],
+          "date": "2023-01-16",
+          "ordered_checkpoint_sha256": "8fdc33008d42cbb85551e6bb4b9a939891ccc3a685a32c95e08225df2293b5f6"
+        },
+        {
+          "checkpoint_sha256": [
+            {
+              "name": "account_before",
+              "sha256": "fd05603f475879606e667f922bd84681ffe9027b80cebc72369d2e4b71f42f12"
+            },
+            {
+              "name": "settled_invalid_lifecycle_rights",
+              "sha256": "6aa2f3a0591ee1660eb3b148b2ad7739aaf33f83bae6bcdfbac08c748d5aeae3"
+            },
+            {
+              "name": "risk_reduction_freeze_draft",
+              "sha256": "5e2e29312c2d5072ef3a69ff8016ed1ba6373081f50faa469ebc9bc627823f8e"
+            },
+            {
+              "name": "leader_admission_lifecycle_target_draft",
+              "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+            },
+            {
+              "name": "strategic_discovery_lifecycle_target_draft",
+              "sha256": "0a025e33da159c0db147e73c3e986a22b6542935c2e41ce0081506a1f41c348a"
+            },
+            {
+              "name": "recovery_ownership_substitution_admission_target_draft",
+              "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+            },
+            {
+              "name": "owner_handoff_gross_cap_sparse_reduction_result",
+              "sha256": "35277e2a2ce494827a609dea38ca63a96743287af6747601ae09143a9fc0857b"
+            },
+            {
+              "name": "final_ordered_targets_reasons_attribution",
+              "sha256": "f8489090d97a14e3cb0e84ed6be906cd76a33d1197211a4aa379b9ddfb673dd2"
+            },
+            {
+              "name": "account_after",
+              "sha256": "7f6b9efd2065947bd57d9e6f115ccbd24c85e2a9f9a97b59ef8fe9f29172bb62"
+            }
+          ],
+          "date": "2023-01-17",
+          "ordered_checkpoint_sha256": "afd82407083313e62e448475cd00fa5d938bfdb5d1949575c29741ddba914db0"
+        },
+        {
+          "checkpoint_sha256": [
+            {
+              "name": "account_before",
+              "sha256": "50438372ea180c4f3a1dc3e6560066bab6bca1c74f6c0464c2b81ceed6875c74"
+            },
+            {
+              "name": "settled_invalid_lifecycle_rights",
+              "sha256": "6a8f9d996ddaf79a9a4844aa242d447049d402ac59de1261dedd92d463276339"
+            },
+            {
+              "name": "risk_reduction_freeze_draft",
+              "sha256": "fff5b44379331c43a26ef247f6fe69f013a74aba66cbaf96c93b8cd8aff3f684"
+            },
+            {
+              "name": "leader_admission_lifecycle_target_draft",
+              "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+            },
+            {
+              "name": "strategic_discovery_lifecycle_target_draft",
+              "sha256": "ab663bea0e500049ec9dcbf9d3f3a04fc18a3bed3978739ef6d6cda806753e65"
+            },
+            {
+              "name": "recovery_ownership_substitution_admission_target_draft",
+              "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+            },
+            {
+              "name": "owner_handoff_gross_cap_sparse_reduction_result",
+              "sha256": "d27b304ffbd8185fb587b1952beb1dbb8023ea8e53e01d4c247771fe411f31f5"
+            },
+            {
+              "name": "final_ordered_targets_reasons_attribution",
+              "sha256": "40f846ea2754b0e99b1711b84b7e50573cbf321b2ba2792a8803adfa34f28c9b"
+            },
+            {
+              "name": "account_after",
+              "sha256": "b67b75252658403f6979c5dfbcdbbf1b26bc7eb7bac3e524e7845bcd3f25acb4"
+            }
+          ],
+          "date": "2023-01-18",
+          "ordered_checkpoint_sha256": "5011bc764ae4fbe835d9654cd5535a676a60d329347ff9eddcbf91e3109243d1"
+        },
+        {
+          "checkpoint_sha256": [
+            {
+              "name": "account_before",
+              "sha256": "c3f3de3ed4598a4af68ed2c5702456165502fa7175aecff12a583389d6386f85"
+            },
+            {
+              "name": "settled_invalid_lifecycle_rights",
+              "sha256": "47ef25c119c401303758229551cfc7f55ff64beb5f2802196b8a14c4ec7d6f1a"
+            },
+            {
+              "name": "risk_reduction_freeze_draft",
+              "sha256": "98d01102b74f048c646f396b5e0d0d215349c399181f422c4a0b19a83b82d7f3"
+            },
+            {
+              "name": "leader_admission_lifecycle_target_draft",
+              "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+            },
+            {
+              "name": "strategic_discovery_lifecycle_target_draft",
+              "sha256": "2c6a47018b74f3b72ac49a550992a1c0cdab67df3575899f2faac776ff79398b"
+            },
+            {
+              "name": "recovery_ownership_substitution_admission_target_draft",
+              "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+            },
+            {
+              "name": "owner_handoff_gross_cap_sparse_reduction_result",
+              "sha256": "5ddb4c7fbd81df351ef9282ee04f10067ab3f0ce0a539aba816cb05178126710"
+            },
+            {
+              "name": "final_ordered_targets_reasons_attribution",
+              "sha256": "ee4fbdd1a38f99b25dfc8a567e0970a661a71d142816d7d747b600876fabd1a9"
+            },
+            {
+              "name": "account_after",
+              "sha256": "15f4edaa92b7a74d459520820402d4a1ac198388d87b3d0e10fe821275db79e0"
+            }
+          ],
+          "date": "2023-01-19",
+          "ordered_checkpoint_sha256": "48ff059e9eae2e0235cea3bb8ce2a1f5e5678e3e02f41e25b704dd11747d4645"
+        },
+        {
+          "checkpoint_sha256": [
+            {
+              "name": "account_before",
+              "sha256": "8017d0b272fbaa644e578798986450ffdc50cff77b88bd2e85af99716b17354d"
+            },
+            {
+              "name": "settled_invalid_lifecycle_rights",
+              "sha256": "c4e64117e8d1df8d8ad1277c3cbaf142f9e639518ae8d0260a7a8cbf53f14f6b"
+            },
+            {
+              "name": "risk_reduction_freeze_draft",
+              "sha256": "228b77b8558492922cf5520a46faf16e3e3f48e243b2b26f3603f35840a0ff77"
+            },
+            {
+              "name": "leader_admission_lifecycle_target_draft",
+              "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+            },
+            {
+              "name": "strategic_discovery_lifecycle_target_draft",
+              "sha256": "665fcf450decab76f4d09242dd85c32af8b232022136b8622225c3da3e52faf5"
+            },
+            {
+              "name": "recovery_ownership_substitution_admission_target_draft",
+              "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+            },
+            {
+              "name": "owner_handoff_gross_cap_sparse_reduction_result",
+              "sha256": "4e6ae2849e7220f04d4ae692e83b5b63cb6004a1b1a353a27faff72efad1fe90"
+            },
+            {
+              "name": "final_ordered_targets_reasons_attribution",
+              "sha256": "0d54d3947547937da4b12d8cc73d8248578bbbed8ae987f7159e32bc4e9267b0"
+            },
+            {
+              "name": "account_after",
+              "sha256": "806d769048c37d61499c57f29460c25d43083b0b636ec786df9e4c34dac9bdb1"
+            }
+          ],
+          "date": "2023-01-20",
+          "ordered_checkpoint_sha256": "38b306d3afc5dfe7dcc4158f1fe63516d474e953c97b6c5fbddb033d719303ea"
+        }
+      ],
+      "records_sha256": "98ee606a8a1da0001dcd74c493213c22badc214bd6877016b540ed3c9d26858a",
+      "requested_end": "2023-01-20",
+      "requested_start": "2023-01-03",
+      "symbols": [
+        "sz300308",
+        "sz300502",
+        "sz300394"
+      ]
+    },
+    {
+      "name": "late_2024_rotation",
+      "record_count": 23,
+      "records": [
+        {
+          "checkpoint_sha256": [
+            {
+              "name": "account_before",
+              "sha256": "507bb12ac71c3dfbe6a56a12cf7f54c85f9df3f6b67f09f095cd79ec9fca8ab4"
+            },
+            {
+              "name": "settled_invalid_lifecycle_rights",
+              "sha256": "1644d14f1169dc5f0154215ff17ab233752f378ae41c058b5098f882285adab1"
+            },
+            {
+              "name": "risk_reduction_freeze_draft",
+              "sha256": "d21dceeba33b11250bbfa38156b6fd08ff124fcc48d229967e67112cc5c9892b"
+            },
+            {
+              "name": "leader_admission_lifecycle_target_draft",
+              "sha256": "d95157d63607da4e751fd5df31a62b7e5ec6ab565890fecaa0330d97bf08be79"
+            },
+            {
+              "name": "strategic_discovery_lifecycle_target_draft",
+              "sha256": "6b5143bb96754a847128f0ef8508ac4fdffdf0868046d4c7b5a536d5a2aa4ffa"
+            },
+            {
+              "name": "recovery_ownership_substitution_admission_target_draft",
+              "sha256": "787e2469830fb29dd8ce2fc3d0c2c67f4bd6b5619f7f1d8c9107e589401db06b"
+            },
+            {
+              "name": "owner_handoff_gross_cap_sparse_reduction_result",
+              "sha256": "81c7d186fe9f02760ee953ebecf55c2c4d63dfab7b3bf1e65feee12bd571bb1d"
+            },
+            {
+              "name": "final_ordered_targets_reasons_attribution",
+              "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+            },
+            {
+              "name": "account_after",
+              "sha256": "b8db9000616d0bec3712a2b6a5806848a0479ca76eefb72243e0b941b6de7366"
+            }
+          ],
+          "date": "2024-08-01",
+          "ordered_checkpoint_sha256": "0e66714b92ed2024ddb80c73bc24321c6a0412bb09b5f707043d01bb76c978b0"
+        },
+        {
+          "checkpoint_sha256": [
+            {
+              "name": "account_before",
+              "sha256": "9a51f514c5512ceea39f8275217d18aed73ba8f1bef6885961ca15d2c510c571"
+            },
+            {
+              "name": "settled_invalid_lifecycle_rights",
+              "sha256": "d3aed5b422ec14ba412edf87492d6c2ec6ecfa25827727e4a01e4010872a276b"
+            },
+            {
+              "name": "risk_reduction_freeze_draft",
+              "sha256": "8f15e6c75f5f1f43a8aa40a4d94ecd067247722958e4b9837f60c2fc4b359ae3"
+            },
+            {
+              "name": "leader_admission_lifecycle_target_draft",
+              "sha256": "28fb35e6878e029e8c733d6768a5caf215f75d2dad14b074984d7934880d7453"
+            },
+            {
+              "name": "strategic_discovery_lifecycle_target_draft",
+              "sha256": "d314b4205850e5eeedd4ee389b2401ab84d8b13561b4031f88cd41e36a16c5c1"
+            },
+            {
+              "name": "recovery_ownership_substitution_admission_target_draft",
+              "sha256": "57d6cba0c5180eeed7a2d077ec9fce84744db962573ed4c966f6787b527b5361"
+            },
+            {
+              "name": "owner_handoff_gross_cap_sparse_reduction_result",
+              "sha256": "affe1d245d0f0f276af04f07c7a856c540cc949697b904ce03afa5a833bc0037"
+            },
+            {
+              "name": "final_ordered_targets_reasons_attribution",
+              "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+            },
+            {
+              "name": "account_after",
+              "sha256": "342e8938e83c94c3595cf5ad43dcc0bdd176ee155279ebd8657564551a7752f9"
+            }
+          ],
+          "date": "2024-08-02",
+          "ordered_checkpoint_sha256": "ca6ac01be2d26fc3f2f77f7c031de7fe30da7c079d43eda2ca768e0c1de66a9a"
+        },
+        {
+          "checkpoint_sha256": [
+            {
+              "name": "account_before",
+              "sha256": "0e5e6713d6298fb1df1c210a590c004f3202a84eb937cdd1fab73ac9b20a61aa"
+            },
+            {
+              "name": "settled_invalid_lifecycle_rights",
+              "sha256": "79cf3ca86776ce735446e15adf683509bb2503494b1f189ac58d33de5c3b891c"
+            },
+            {
+              "name": "risk_reduction_freeze_draft",
+              "sha256": "0853de45cfe118e3a452088a4cc985e6a3002795a4c56aeab114eb33d80cd8a1"
+            },
+            {
+              "name": "leader_admission_lifecycle_target_draft",
+              "sha256": "32a24c8c1734df9efa54f1f14969caf257d68ac255dfd8bdaebb167c10c9feb7"
+            },
+            {
+              "name": "strategic_discovery_lifecycle_target_draft",
+              "sha256": "be6906ed0513ef8ba347ba617e5d63e964698260a42190259b55741384d6ee68"
+            },
+            {
+              "name": "recovery_ownership_substitution_admission_target_draft",
+              "sha256": "ace634e350c89a5123f65d51b4a0bac0a649097ec356aaf8ad1071b47470c595"
+            },
+            {
+              "name": "owner_handoff_gross_cap_sparse_reduction_result",
+              "sha256": "b456d976e45bafa0861a263a635be1796087f9218d2582cc0b55f8fe444cc325"
+            },
+            {
+              "name": "final_ordered_targets_reasons_attribution",
+              "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+            },
+            {
+              "name": "account_after",
+              "sha256": "75d384217f159307e7c2cecf21f6507e5ce9ae01370f214159dea5b3e9b084bd"
+            }
+          ],
+          "date": "2024-08-05",
+          "ordered_checkpoint_sha256": "8c7d6d949c6abc8744a3a9100eeb5caefec85ec8a323a80fb41426e538a266b6"
+        },
+        {
+          "checkpoint_sha256": [
+            {
+              "name": "account_before",
+              "sha256": "86fdc233225467bfa027004d2812c1c39d00451e29d8f28bdff909a18b0ef04f"
+            },
+            {
+              "name": "settled_invalid_lifecycle_rights",
+              "sha256": "7ec05f43582a4edfe33f65d0a8de2ee0d6c81967918689de9b92ad776c8ff8c9"
+            },
+            {
+              "name": "risk_reduction_freeze_draft",
+              "sha256": "c86c05645162bd34a41f9fe2ff33b209093eb94abf6c11c7fafa86faeeaaa195"
+            },
+            {
+              "name": "leader_admission_lifecycle_target_draft",
+              "sha256": "8c5f59af0bf2d7b30a3cc567d54591e4da1c4881208688a0949cc4dee97d53c4"
+            },
+            {
+              "name": "strategic_discovery_lifecycle_target_draft",
+              "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+            },
+            {
+              "name": "recovery_ownership_substitution_admission_target_draft",
+              "sha256": "e74d30269e7ce8a44e86671d39a1a9f2c6ef3d82a2b5436494898fc9498f77f9"
+            },
+            {
+              "name": "owner_handoff_gross_cap_sparse_reduction_result",
+              "sha256": "565a98bad60854847eb5d59c96dd7a59ceb41db979e53cfb6b27afcbd79fade3"
+            },
+            {
+              "name": "final_ordered_targets_reasons_attribution",
+              "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+            },
+            {
+              "name": "account_after",
+              "sha256": "13e1bb61ac1b0f71487e6906b05da06e8aa2c089641523f2f5b75819f34da676"
+            }
+          ],
+          "date": "2024-08-06",
+          "ordered_checkpoint_sha256": "2a3c69c5aa3cd1c0b80b893341197d949ebf523d708291fc8bdd39b4de346ab8"
+        },
+        {
+          "checkpoint_sha256": [
+            {
+              "name": "account_before",
+              "sha256": "04fc18da8c350ee89e330ac14aef9a94f159f634b2b9f1118700974c16c4e40a"
+            },
+            {
+              "name": "settled_invalid_lifecycle_rights",
+              "sha256": "53957b8adb89c9118138f65adc4d2e20c0e314d5dc2b469d249f23141d36559f"
+            },
+            {
+              "name": "risk_reduction_freeze_draft",
+              "sha256": "492c2202c16325f3156325bc946e10078050f7a865dc0d81498fc9d4bd220961"
+            },
+            {
+              "name": "leader_admission_lifecycle_target_draft",
+              "sha256": "a5a75a2539e3912c51da577743d3cf2b08c4e4828a1759b247ad521b14fb645d"
+            },
+            {
+              "name": "strategic_discovery_lifecycle_target_draft",
+              "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+            },
+            {
+              "name": "recovery_ownership_substitution_admission_target_draft",
+              "sha256": "d8d76c4127e32d3beb3dbc504fa2266a4b8b1d0ad223d6d3d8f52a88e40bbaf9"
+            },
+            {
+              "name": "owner_handoff_gross_cap_sparse_reduction_result",
+              "sha256": "d5696992438fcdcb94abfdb292761989b9b42330767a3bf7faa45ce9da478852"
+            },
+            {
+              "name": "final_ordered_targets_reasons_attribution",
+              "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+            },
+            {
+              "name": "account_after",
+              "sha256": "1801bc2e5ab2ddd8634b7abd0d813be013cac9b63b36f747c98b6361c8c6bdf5"
+            }
+          ],
+          "date": "2024-08-07",
+          "ordered_checkpoint_sha256": "2bfc17846b630b8c45f806cc4f46529a57a54bc578e8c983d738e75d52959e41"
+        },
+        {
+          "checkpoint_sha256": [
+            {
+              "name": "account_before",
+              "sha256": "ff3d3df7cafb051554dc9f1f05e2fd5ac71b477e000e7499bd1c98cb3f5c68be"
+            },
+            {
+              "name": "settled_invalid_lifecycle_rights",
+              "sha256": "08a1e57a36d6fe4d482ff61f1791c162bad538e371e1a5ad6cd90653f176b581"
+            },
+            {
+              "name": "risk_reduction_freeze_draft",
+              "sha256": "0a3f529a87492238987d4c01f4cccda10bd47fb7a3be83a4b434a06709f31fbb"
+            },
+            {
+              "name": "leader_admission_lifecycle_target_draft",
+              "sha256": "ca925f55f5695c80792a478a4f0e57348ed0376416e7153d44bf94d4912a8bda"
+            },
+            {
+              "name": "strategic_discovery_lifecycle_target_draft",
+              "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+            },
+            {
+              "name": "recovery_ownership_substitution_admission_target_draft",
+              "sha256": "0046c6e4a9ca042aef603575443488dee30ba99aa9964bb910fc0f8d6c98fb98"
+            },
+            {
+              "name": "owner_handoff_gross_cap_sparse_reduction_result",
+              "sha256": "8a103d452e6d476510a3ae5692c517cab6338323673f240af5dc49a0a8815bcd"
+            },
+            {
+              "name": "final_ordered_targets_reasons_attribution",
+              "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+            },
+            {
+              "name": "account_after",
+              "sha256": "75caf3d3cfc61d471db9088b4fc8f97bddeba537842c65c75af4231fcd3b3590"
+            }
+          ],
+          "date": "2024-08-08",
+          "ordered_checkpoint_sha256": "29999867db5276f9bf1df70a3482eb2b14abe2a63146ffd9cb8b7b99ec8a0715"
+        },
+        {
+          "checkpoint_sha256": [
+            {
+              "name": "account_before",
+              "sha256": "0777925a33fb93c40e66598e35baf8e66536807cc04c4379fac9c718fb44f27a"
+            },
+            {
+              "name": "settled_invalid_lifecycle_rights",
+              "sha256": "93bc075a851f5b16e4743dfee27906579b882dcacd1df5b3a175b7c63c1b24de"
+            },
+            {
+              "name": "risk_reduction_freeze_draft",
+              "sha256": "73a02e28b3cae7e7b0d02f363203616a99147e50d3be773da36709d0353a7243"
+            },
+            {
+              "name": "leader_admission_lifecycle_target_draft",
+              "sha256": "73a88e9bdb832e9404333f4f922857a69feaf4dccde4c640ec73ed0dc046dd68"
+            },
+            {
+              "name": "strategic_discovery_lifecycle_target_draft",
+              "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+            },
+            {
+              "name": "recovery_ownership_substitution_admission_target_draft",
+              "sha256": "eb9fc3494f5273b4b32bdb4f6a99210636e1fa1d4d305de5ee07f6b24b90cc60"
+            },
+            {
+              "name": "owner_handoff_gross_cap_sparse_reduction_result",
+              "sha256": "5352afe449823e0bbaa988feb96460fb81b4aecc0d35831e5fad3b30a3c7d199"
+            },
+            {
+              "name": "final_ordered_targets_reasons_attribution",
+              "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+            },
+            {
+              "name": "account_after",
+              "sha256": "48ad2d326f62d67f40ee2121c86096ebcb341737f36cf375562676996fb4aa62"
+            }
+          ],
+          "date": "2024-08-09",
+          "ordered_checkpoint_sha256": "80cdc788c31f1df9a17ca40a2c6d26c743176b529d4443679ba1617ede73fc87"
+        },
+        {
+          "checkpoint_sha256": [
+            {
+              "name": "account_before",
+              "sha256": "5bd3a7de1b6bff43a2c61c25b949f29bbc7662e47ed7c906fd1cf695746aee3e"
+            },
+            {
+              "name": "settled_invalid_lifecycle_rights",
+              "sha256": "23aeaabf856b01bc92eeff8a60d495f54ddb6ea29ca02feb1accec8db58d4b64"
+            },
+            {
+              "name": "risk_reduction_freeze_draft",
+              "sha256": "554a6fd9e21a93c8d526fe6c8192f75ba1dd416d8c70d59c26f4047d8d1e8336"
+            },
+            {
+              "name": "leader_admission_lifecycle_target_draft",
+              "sha256": "e8a5685788e65cc60d8eb339c2fcbd394266a643f731f1c2b295e4b9a9529fd9"
+            },
+            {
+              "name": "strategic_discovery_lifecycle_target_draft",
+              "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+            },
+            {
+              "name": "recovery_ownership_substitution_admission_target_draft",
+              "sha256": "7d8d028eda5fa22642f1935a77e862dc1fc2cedb56f0a317fd504ef70db4a98f"
+            },
+            {
+              "name": "owner_handoff_gross_cap_sparse_reduction_result",
+              "sha256": "faa1639b246256e708c823bf93014d41009888b6b9511d09726ea17058dcfbcf"
+            },
+            {
+              "name": "final_ordered_targets_reasons_attribution",
+              "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+            },
+            {
+              "name": "account_after",
+              "sha256": "ed6989be692e2a8dc949f960e7475cd1cb9d8bc808e3a80551a25c40797e4a2c"
+            }
+          ],
+          "date": "2024-08-12",
+          "ordered_checkpoint_sha256": "69f5e7f262094e225bec51ac41fc8512db95cdd01ec7b5c6460e5301fa18f85b"
+        },
+        {
+          "checkpoint_sha256": [
+            {
+              "name": "account_before",
+              "sha256": "1ac127094b4608c3b817aed4f29e1ed5507ae63b70902584835eaae6122b0fbf"
+            },
+            {
+              "name": "settled_invalid_lifecycle_rights",
+              "sha256": "f97853f8a6a08d18c20b29b091b2a60fa1e058cc342b03379faad529d6937654"
+            },
+            {
+              "name": "risk_reduction_freeze_draft",
+              "sha256": "1c66aeae1f668110d177eec4b10dacb39033a3b339c4e857217c253918a2c004"
+            },
+            {
+              "name": "leader_admission_lifecycle_target_draft",
+              "sha256": "1c9940b5ffc7c9ba054dfcae09a58eb805529f18fd6b408949eacf30479f5a3b"
+            },
+            {
+              "name": "strategic_discovery_lifecycle_target_draft",
+              "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+            },
+            {
+              "name": "recovery_ownership_substitution_admission_target_draft",
+              "sha256": "1dce2a1861c5aa2017ce1c77277a2a13a862eb14c6d8788fe66d8cfa54972215"
+            },
+            {
+              "name": "owner_handoff_gross_cap_sparse_reduction_result",
+              "sha256": "10d600a78ce9339d66b240221be6d08b2de16643794ce1ad16ab90d472cd7084"
+            },
+            {
+              "name": "final_ordered_targets_reasons_attribution",
+              "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+            },
+            {
+              "name": "account_after",
+              "sha256": "1ac127094b4608c3b817aed4f29e1ed5507ae63b70902584835eaae6122b0fbf"
+            }
+          ],
+          "date": "2024-08-13",
+          "ordered_checkpoint_sha256": "cfc4083458c55873f1279a7eb41257385d42522a40f218be453f3bd7cb0deee5"
+        },
+        {
+          "checkpoint_sha256": [
+            {
+              "name": "account_before",
+              "sha256": "eadea66a06da56a2ca1081ff10d427deeadcf28b53609047de855e22ef082314"
+            },
+            {
+              "name": "settled_invalid_lifecycle_rights",
+              "sha256": "5fddbde7b8c1fb4c928c421743ee9d0aa776cc9239de9c907098cbbf8dd8d9ee"
+            },
+            {
+              "name": "risk_reduction_freeze_draft",
+              "sha256": "ee4841bbfac1b541537700d9de15da67f7180df8b2aae877077b8532d01a2903"
+            },
+            {
+              "name": "leader_admission_lifecycle_target_draft",
+              "sha256": "954443458feaf32e46ddc54e7bbbae557ffe8d177526652129c3b8acc11043c4"
+            },
+            {
+              "name": "strategic_discovery_lifecycle_target_draft",
+              "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+            },
+            {
+              "name": "recovery_ownership_substitution_admission_target_draft",
+              "sha256": "e71e22e4f6418b09c88daf7c15451cb2414e4dd4aaf45645f6bf00d40ca60d88"
+            },
+            {
+              "name": "owner_handoff_gross_cap_sparse_reduction_result",
+              "sha256": "fd39318261f62f12e076df4682c5c711dfb57a37c453d60e6261f88da79d312f"
+            },
+            {
+              "name": "final_ordered_targets_reasons_attribution",
+              "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+            },
+            {
+              "name": "account_after",
+              "sha256": "eadea66a06da56a2ca1081ff10d427deeadcf28b53609047de855e22ef082314"
+            }
+          ],
+          "date": "2024-08-14",
+          "ordered_checkpoint_sha256": "672f70221e372861707b8ab5263fb108ad72f767d30d9298053fa2f92f375277"
+        },
+        {
+          "checkpoint_sha256": [
+            {
+              "name": "account_before",
+              "sha256": "ab69f6392f343d6926a4c591de00d6728e4a320257eba53c33d26a70b4110139"
+            },
+            {
+              "name": "settled_invalid_lifecycle_rights",
+              "sha256": "d1e030a77ec601c8cf7919b180edfb1711a26adc75d1a63a52af3f6801eef59a"
+            },
+            {
+              "name": "risk_reduction_freeze_draft",
+              "sha256": "67cfe87ce5f3e08b33f000480ef5121a7c8ae7af4cbb3e0361754d44de84bcfc"
+            },
+            {
+              "name": "leader_admission_lifecycle_target_draft",
+              "sha256": "f8b8b8b750d4dad352b9e5dd568157aae6321d52eb6d78dff44f2b1084ac69a2"
+            },
+            {
+              "name": "strategic_discovery_lifecycle_target_draft",
+              "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+            },
+            {
+              "name": "recovery_ownership_substitution_admission_target_draft",
+              "sha256": "b5086bcbd56fae543ceef81bbd2e506530b9f80fc07a8cd2d8071c9dedda2953"
+            },
+            {
+              "name": "owner_handoff_gross_cap_sparse_reduction_result",
+              "sha256": "8bacbb2239ae8dca4deb7fe507f3731499f8cdb50c23ff9d1206fe687b6461a9"
+            },
+            {
+              "name": "final_ordered_targets_reasons_attribution",
+              "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+            },
+            {
+              "name": "account_after",
+              "sha256": "ab69f6392f343d6926a4c591de00d6728e4a320257eba53c33d26a70b4110139"
+            }
+          ],
+          "date": "2024-08-15",
+          "ordered_checkpoint_sha256": "2ac5f8a6bbcbf54850d5be5e01aeffffeeab76bd72587d0c0450d5de10c4ca40"
+        },
+        {
+          "checkpoint_sha256": [
+            {
+              "name": "account_before",
+              "sha256": "973f2d74066634e3bdda628e07c3e4df07f8918d58cff94f27c943ba2f09aa00"
+            },
+            {
+              "name": "settled_invalid_lifecycle_rights",
+              "sha256": "2b970dc8213eda131f5709bc4bef8d4ad1b02f65ba0de4fb99de540af087cdf0"
+            },
+            {
+              "name": "risk_reduction_freeze_draft",
+              "sha256": "78a2f19ee00497667561133960b198f8043c3d3e8c6fc893766e1049a7f30b92"
+            },
+            {
+              "name": "leader_admission_lifecycle_target_draft",
+              "sha256": "fdc6d5c22380b6e03387d824cbfd8f16bb5ed6b09793bd7aaf94d687c533fc90"
+            },
+            {
+              "name": "strategic_discovery_lifecycle_target_draft",
+              "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+            },
+            {
+              "name": "recovery_ownership_substitution_admission_target_draft",
+              "sha256": "e91f2ad46501ccf95d257ef10be87e61e60662f73f97970f092f14db23bb4b5a"
+            },
+            {
+              "name": "owner_handoff_gross_cap_sparse_reduction_result",
+              "sha256": "bf43fcd6a1d3bc5bf7e00ef16aa648539d64567439e7ceb2bfd22749295f28d3"
+            },
+            {
+              "name": "final_ordered_targets_reasons_attribution",
+              "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+            },
+            {
+              "name": "account_after",
+              "sha256": "973f2d74066634e3bdda628e07c3e4df07f8918d58cff94f27c943ba2f09aa00"
+            }
+          ],
+          "date": "2024-08-16",
+          "ordered_checkpoint_sha256": "7200b74e3f6ae9793f5327ee90b2cdb9757a311b57ff27316dc59acf25f6b7b4"
+        },
+        {
+          "checkpoint_sha256": [
+            {
+              "name": "account_before",
+              "sha256": "fa6c0cc7212abd046fab9bb649bcb76792df79e96dbc1e3e2987d06d868cee88"
+            },
+            {
+              "name": "settled_invalid_lifecycle_rights",
+              "sha256": "2ccba6e1ad7411608d8198d0998eae40bcc93b5e9ed46c1df12b6cdb7d64617c"
+            },
+            {
+              "name": "risk_reduction_freeze_draft",
+              "sha256": "810606103644d20d39ce83826c60bd82a4f9f12c8768a224d6bc2794525fd115"
+            },
+            {
+              "name": "leader_admission_lifecycle_target_draft",
+              "sha256": "3052539b2887343b2bc9e9f16934f648a78a4f9f7241ca95440d55cb116349bc"
+            },
+            {
+              "name": "strategic_discovery_lifecycle_target_draft",
+              "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+            },
+            {
+              "name": "recovery_ownership_substitution_admission_target_draft",
+              "sha256": "885a68409cd8a7ad03d18bd3751821ba29225871de3478a633ae6f0cea3d2915"
+            },
+            {
+              "name": "owner_handoff_gross_cap_sparse_reduction_result",
+              "sha256": "df8607a5be35cdf582bd6edcd61b382818da2459e6c9be463f3fe6eee458511f"
+            },
+            {
+              "name": "final_ordered_targets_reasons_attribution",
+              "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+            },
+            {
+              "name": "account_after",
+              "sha256": "fa6c0cc7212abd046fab9bb649bcb76792df79e96dbc1e3e2987d06d868cee88"
+            }
+          ],
+          "date": "2024-08-19",
+          "ordered_checkpoint_sha256": "c6784258869e9f0ea66bb994dff434b7d8086bc89afb65bf05827bfcc1138359"
+        },
+        {
+          "checkpoint_sha256": [
+            {
+              "name": "account_before",
+              "sha256": "192b9d43cb60a3fe75c2a85907f71b8759c1f5d4df69dffd9a8064224fb3fcc5"
+            },
+            {
+              "name": "settled_invalid_lifecycle_rights",
+              "sha256": "6841c18114106b48d824885d1805aa2464cd824326615800eda33e4514c04b39"
+            },
+            {
+              "name": "risk_reduction_freeze_draft",
+              "sha256": "8a9cd77fb52781e185a8f11467770ba9b4a3d01aef9df0142bc2b78ae6ecc29c"
+            },
+            {
+              "name": "leader_admission_lifecycle_target_draft",
+              "sha256": "19a1eb13a60885180f368aa43a58ae67fdd9655e6c9442d3d9c27fd27fe44f22"
+            },
+            {
+              "name": "strategic_discovery_lifecycle_target_draft",
+              "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+            },
+            {
+              "name": "recovery_ownership_substitution_admission_target_draft",
+              "sha256": "5fec0e19b059174a6941b97f86aa895e12c426b5dc317253ee777b3b94091e8f"
+            },
+            {
+              "name": "owner_handoff_gross_cap_sparse_reduction_result",
+              "sha256": "67d0261456dc654d41cc6b396aed18aff68db1bf4ce5fdba4eb165970a9f3688"
+            },
+            {
+              "name": "final_ordered_targets_reasons_attribution",
+              "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+            },
+            {
+              "name": "account_after",
+              "sha256": "192b9d43cb60a3fe75c2a85907f71b8759c1f5d4df69dffd9a8064224fb3fcc5"
+            }
+          ],
+          "date": "2024-08-20",
+          "ordered_checkpoint_sha256": "b76c1ff4ef9c0b4ee56dc251bc89781fbe7ecbc6cb0c90af64a2568384aeef39"
+        },
+        {
+          "checkpoint_sha256": [
+            {
+              "name": "account_before",
+              "sha256": "78ad10c376d917907d4945c8cf6a215a7e8d9e8bc2333076eebede9a625356df"
+            },
+            {
+              "name": "settled_invalid_lifecycle_rights",
+              "sha256": "51a123122248c1b96cc36bb29c83fe2d76e14fe18d9f6fbe4f36bbac0c482bb0"
+            },
+            {
+              "name": "risk_reduction_freeze_draft",
+              "sha256": "3279630a97f4531a0452f09cea07a0ed7892b0b328d390bd6d0532cedf131a64"
+            },
+            {
+              "name": "leader_admission_lifecycle_target_draft",
+              "sha256": "502c5e1688e2a9ca3e222cda1dcbadc7006ee6ca2808eb912d3f80f726c603cf"
+            },
+            {
+              "name": "strategic_discovery_lifecycle_target_draft",
+              "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+            },
+            {
+              "name": "recovery_ownership_substitution_admission_target_draft",
+              "sha256": "eb2e6161400b20d86d8da636b7c26a5a40ad218be37583d7281abb791149ea7d"
+            },
+            {
+              "name": "owner_handoff_gross_cap_sparse_reduction_result",
+              "sha256": "989a3b31df5750d4298aac5f3826eaeeabb1915c0851577454dc0529ffa0aed4"
+            },
+            {
+              "name": "final_ordered_targets_reasons_attribution",
+              "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+            },
+            {
+              "name": "account_after",
+              "sha256": "78ad10c376d917907d4945c8cf6a215a7e8d9e8bc2333076eebede9a625356df"
+            }
+          ],
+          "date": "2024-08-21",
+          "ordered_checkpoint_sha256": "741a58a6b6fefe73937d7985ec36cded796ae242eddad14ea3a3cd86ddd5fb1d"
+        },
+        {
+          "checkpoint_sha256": [
+            {
+              "name": "account_before",
+              "sha256": "54f4fa761f811e65f676b4ebbf0e1f2fd4c76f229bed765f350e47e4526b3f31"
+            },
+            {
+              "name": "settled_invalid_lifecycle_rights",
+              "sha256": "53cdbed850f4c540956dc7ee7b9953f79ec38a920353c9bcd9ca3a78e9e29498"
+            },
+            {
+              "name": "risk_reduction_freeze_draft",
+              "sha256": "05c6a708d6baa294e39d28ac30bf01b764fa322b2e56785b8ac2ed0e7531032a"
+            },
+            {
+              "name": "leader_admission_lifecycle_target_draft",
+              "sha256": "0415a79a258d9eff47ba3ca7c6a53e301a84352ca50f74658625e5929a852874"
+            },
+            {
+              "name": "strategic_discovery_lifecycle_target_draft",
+              "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+            },
+            {
+              "name": "recovery_ownership_substitution_admission_target_draft",
+              "sha256": "d2b59a4278b73bdef70b06ce02e3e15ab4271cd6e2a3211b8e719d100d5e4950"
+            },
+            {
+              "name": "owner_handoff_gross_cap_sparse_reduction_result",
+              "sha256": "902949a9085dffe05b52a89b0483a0b425b150c0070cc5486ef5d31e8750f6d2"
+            },
+            {
+              "name": "final_ordered_targets_reasons_attribution",
+              "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+            },
+            {
+              "name": "account_after",
+              "sha256": "54f4fa761f811e65f676b4ebbf0e1f2fd4c76f229bed765f350e47e4526b3f31"
+            }
+          ],
+          "date": "2024-08-22",
+          "ordered_checkpoint_sha256": "168fb633d7a23dff28c1ca0b931002a001771a63d22452ef01621ca1499c1d8e"
+        },
+        {
+          "checkpoint_sha256": [
+            {
+              "name": "account_before",
+              "sha256": "d4635dd4d5b7d4b7741ed741e5b711db68ad39958a8a92ef5cb0513ed308d847"
+            },
+            {
+              "name": "settled_invalid_lifecycle_rights",
+              "sha256": "83359416f6c461c33296b7397ae9658d4550e2b57b69545ce4071e61f4e97c88"
+            },
+            {
+              "name": "risk_reduction_freeze_draft",
+              "sha256": "c7812bc178b612bae0fb68bc6d5556fb0d3a1bd16c480513e05e1b772ffd58ce"
+            },
+            {
+              "name": "leader_admission_lifecycle_target_draft",
+              "sha256": "86774b6167014ebf90938ef9e8fc8a3a9eb11add1eb4610949cf1183ed29a657"
+            },
+            {
+              "name": "strategic_discovery_lifecycle_target_draft",
+              "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+            },
+            {
+              "name": "recovery_ownership_substitution_admission_target_draft",
+              "sha256": "a25151076ec4a9f7b9954ff2836896905fe520b75294ae9e4aa2a83e3ceeae83"
+            },
+            {
+              "name": "owner_handoff_gross_cap_sparse_reduction_result",
+              "sha256": "0e802bf7aecb2e770d989c5456bc19d1e84a1093f7e0391bbdb6c60fa8bd7bb9"
+            },
+            {
+              "name": "final_ordered_targets_reasons_attribution",
+              "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+            },
+            {
+              "name": "account_after",
+              "sha256": "d4635dd4d5b7d4b7741ed741e5b711db68ad39958a8a92ef5cb0513ed308d847"
+            }
+          ],
+          "date": "2024-08-23",
+          "ordered_checkpoint_sha256": "6fa02a874315fb607ab304c614724d9fb48f998eb533efc575875ed60ced691a"
+        },
+        {
+          "checkpoint_sha256": [
+            {
+              "name": "account_before",
+              "sha256": "ffd03fc5b9ca51949cb82d8ecd11837e63af1673968e2af77ff2cc0c03cdddf4"
+            },
+            {
+              "name": "settled_invalid_lifecycle_rights",
+              "sha256": "c1837b0a4fcd6e568dd8f71485768089791bd6d25c243320187df2d767fe4a41"
+            },
+            {
+              "name": "risk_reduction_freeze_draft",
+              "sha256": "969ae44328c596074ff139d152d658264491b2751e35f34159515cabc42537bd"
+            },
+            {
+              "name": "leader_admission_lifecycle_target_draft",
+              "sha256": "e11b4907dc05830f570976791ede3f1425e9664426fde4635ac4b10ec6eaa67b"
+            },
+            {
+              "name": "strategic_discovery_lifecycle_target_draft",
+              "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+            },
+            {
+              "name": "recovery_ownership_substitution_admission_target_draft",
+              "sha256": "b7a43292c2bfade0102a05cf7ba0b1cc3141e3830762e5f679217f1b174ce519"
+            },
+            {
+              "name": "owner_handoff_gross_cap_sparse_reduction_result",
+              "sha256": "592e911fdea87a7360d05e89522a97c93d4c62185020d5616875e3f50c7f4ef9"
+            },
+            {
+              "name": "final_ordered_targets_reasons_attribution",
+              "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+            },
+            {
+              "name": "account_after",
+              "sha256": "ffd03fc5b9ca51949cb82d8ecd11837e63af1673968e2af77ff2cc0c03cdddf4"
+            }
+          ],
+          "date": "2024-08-26",
+          "ordered_checkpoint_sha256": "2a37241305536cae7943b8166c0fa7ccc260da4701ad51328387990b2cf784a5"
+        },
+        {
+          "checkpoint_sha256": [
+            {
+              "name": "account_before",
+              "sha256": "a0e07e89e2a79da62efc51384fc8f7c39688adea213bd4970adeb28dc73b33ca"
+            },
+            {
+              "name": "settled_invalid_lifecycle_rights",
+              "sha256": "63e5c42ab935276782ce59ea3bfb3b13dd0751592370253b29c9add60a8540ac"
+            },
+            {
+              "name": "risk_reduction_freeze_draft",
+              "sha256": "bcaf4e4d5c5776848fd182d983d5dbae9234cbef9a4ade010a65fa49639bf9b9"
+            },
+            {
+              "name": "leader_admission_lifecycle_target_draft",
+              "sha256": "4385275786c8f6c07624e5278f5be55fddc77c03cecb3dbd61c86bcc564fda48"
+            },
+            {
+              "name": "strategic_discovery_lifecycle_target_draft",
+              "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+            },
+            {
+              "name": "recovery_ownership_substitution_admission_target_draft",
+              "sha256": "2ec141cd2df1404d15b17ae7223461df9aaa3e148b7beea946f41534721a7b23"
+            },
+            {
+              "name": "owner_handoff_gross_cap_sparse_reduction_result",
+              "sha256": "8af464fb302dd63b1cc0bab5fd34c55613d96e4b2212a112228a8fbbc2a7e46c"
+            },
+            {
+              "name": "final_ordered_targets_reasons_attribution",
+              "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+            },
+            {
+              "name": "account_after",
+              "sha256": "a0e07e89e2a79da62efc51384fc8f7c39688adea213bd4970adeb28dc73b33ca"
+            }
+          ],
+          "date": "2024-08-27",
+          "ordered_checkpoint_sha256": "d2db8539af8a13e754d98f8694537e79ef3faf82f04b489dc7c9936bcf1fbbf7"
+        },
+        {
+          "checkpoint_sha256": [
+            {
+              "name": "account_before",
+              "sha256": "381e8c5ab294c5506de9d4674a7a92efd6a15a5f832c4a0b8d63b2d77e78aa5d"
+            },
+            {
+              "name": "settled_invalid_lifecycle_rights",
+              "sha256": "a9d4e8850c07ab52e80e7f074ef34695bc472a09ca7e345ccaa552ca84fb3b60"
+            },
+            {
+              "name": "risk_reduction_freeze_draft",
+              "sha256": "d2ad4541e7a7a58a1eba706983272446eb7e95682d282bea1c9b635af2ae62ef"
+            },
+            {
+              "name": "leader_admission_lifecycle_target_draft",
+              "sha256": "6bb008a8cac35fe17e63e847ec6d8a2299d36faa707ce262c9890852b8fdb3ff"
+            },
+            {
+              "name": "strategic_discovery_lifecycle_target_draft",
+              "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+            },
+            {
+              "name": "recovery_ownership_substitution_admission_target_draft",
+              "sha256": "1543e3256b698162641e50847f407db184e79f06d60994973fca6f2d00b6fa61"
+            },
+            {
+              "name": "owner_handoff_gross_cap_sparse_reduction_result",
+              "sha256": "aa2aa8a6ed1098d5d0c079674422a902d61cd739dd3038d3cf6d51bd8bc42566"
+            },
+            {
+              "name": "final_ordered_targets_reasons_attribution",
+              "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+            },
+            {
+              "name": "account_after",
+              "sha256": "381e8c5ab294c5506de9d4674a7a92efd6a15a5f832c4a0b8d63b2d77e78aa5d"
+            }
+          ],
+          "date": "2024-08-28",
+          "ordered_checkpoint_sha256": "e5251e10065d73395a200b8e08a03ec1b2b21fbb396b66de5721a07d3b61c02c"
+        },
+        {
+          "checkpoint_sha256": [
+            {
+              "name": "account_before",
+              "sha256": "6df9ad201c9f3df0ae358f38a3729fac1348ca22270daf2fea01ffc5ff9925e3"
+            },
+            {
+              "name": "settled_invalid_lifecycle_rights",
+              "sha256": "01942cb92a41dc1330f8fa2b8ac3ac99ace60d7472588f0328910acfe38ba31d"
+            },
+            {
+              "name": "risk_reduction_freeze_draft",
+              "sha256": "6a0d119d601fb747a11e0cab5f32c90d8eaf474b6befdaeee1233fd3d5d3bc31"
+            },
+            {
+              "name": "leader_admission_lifecycle_target_draft",
+              "sha256": "4d88b6083c83aca8cbdd350f4e83db4caf6a45a68e2d77d913e69024ccbd1954"
+            },
+            {
+              "name": "strategic_discovery_lifecycle_target_draft",
+              "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+            },
+            {
+              "name": "recovery_ownership_substitution_admission_target_draft",
+              "sha256": "f5e742b86a29eb2d64def4c7af49e5ecfb008e0bbb2055e551faa053d51c281d"
+            },
+            {
+              "name": "owner_handoff_gross_cap_sparse_reduction_result",
+              "sha256": "47f1e99034c0897c9bfa0ecb4106612bca69afe05220c909cead4b01914866be"
+            },
+            {
+              "name": "final_ordered_targets_reasons_attribution",
+              "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+            },
+            {
+              "name": "account_after",
+              "sha256": "6df9ad201c9f3df0ae358f38a3729fac1348ca22270daf2fea01ffc5ff9925e3"
+            }
+          ],
+          "date": "2024-08-29",
+          "ordered_checkpoint_sha256": "2fd0715f32e0df17f046a0a0a628c954991e33283816aff987708854ba8fcb2d"
+        },
+        {
+          "checkpoint_sha256": [
+            {
+              "name": "account_before",
+              "sha256": "b01edb3bfbb2a82e7c757df9fbbe29524d437304c9ef553a31f10a4432a8bf14"
+            },
+            {
+              "name": "settled_invalid_lifecycle_rights",
+              "sha256": "0799ef004058a0f9764bd9ab1b4ada51e5a8d53a4a7acb8b35d07ec231ad6345"
+            },
+            {
+              "name": "risk_reduction_freeze_draft",
+              "sha256": "72b51c3e515c06255fe6d139eaf83f2d3e6f310774e6c731415eedda307b9f58"
+            },
+            {
+              "name": "leader_admission_lifecycle_target_draft",
+              "sha256": "7f9c35c001972aa519b656a7d9aab27e2dbd5e52bfbaceeca5bd0820640c412a"
+            },
+            {
+              "name": "strategic_discovery_lifecycle_target_draft",
+              "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+            },
+            {
+              "name": "recovery_ownership_substitution_admission_target_draft",
+              "sha256": "b8119cb974e9ff7f78261731e6b58d5b66ae5f1f20ef763da591a5ef928ae305"
+            },
+            {
+              "name": "owner_handoff_gross_cap_sparse_reduction_result",
+              "sha256": "e6f58d478d8cb440016a7ce3d2d4e56071697e74956421792d96b95fb12219e1"
+            },
+            {
+              "name": "final_ordered_targets_reasons_attribution",
+              "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+            },
+            {
+              "name": "account_after",
+              "sha256": "b01edb3bfbb2a82e7c757df9fbbe29524d437304c9ef553a31f10a4432a8bf14"
+            }
+          ],
+          "date": "2024-08-30",
+          "ordered_checkpoint_sha256": "a83b4bf8307e521d8a753abba91097a3b9cd260028ec31e73024f7275bfb98e3"
+        },
+        {
+          "checkpoint_sha256": [
+            {
+              "name": "account_before",
+              "sha256": "68b87108a27c5aa14d26ea60300bc7e9edc9fda99b4f4ff840ff1d13dada437d"
+            },
+            {
+              "name": "settled_invalid_lifecycle_rights",
+              "sha256": "e2d73c1ee9931570c9a381c1a5e7c535c857117f16b74a2a4c358f808a71363d"
+            },
+            {
+              "name": "risk_reduction_freeze_draft",
+              "sha256": "38bd5713471d863a45aaeeb7a6fda689989ec76caa2a910a965b0beb68d856ae"
+            },
+            {
+              "name": "leader_admission_lifecycle_target_draft",
+              "sha256": "8ff460745eb235a5b99c31b53eeada098301f9dc1037ec4d9ad6cf6edad5c0bf"
+            },
+            {
+              "name": "strategic_discovery_lifecycle_target_draft",
+              "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+            },
+            {
+              "name": "recovery_ownership_substitution_admission_target_draft",
+              "sha256": "69c36c5ab6bfa58946a58e171fcb6e9f9b53c6659d1cd580e114cc5f4a257e6e"
+            },
+            {
+              "name": "owner_handoff_gross_cap_sparse_reduction_result",
+              "sha256": "169bf6bd9c8abd056b127138d276469637627a43a44b28642e1b1312627f51d9"
+            },
+            {
+              "name": "final_ordered_targets_reasons_attribution",
+              "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+            },
+            {
+              "name": "account_after",
+              "sha256": "68b87108a27c5aa14d26ea60300bc7e9edc9fda99b4f4ff840ff1d13dada437d"
+            }
+          ],
+          "date": "2024-09-02",
+          "ordered_checkpoint_sha256": "4d39726e71338f8aeb58023cb50eebed929dd3d833bf1e9613b7f737c1a87589"
+        }
+      ],
+      "records_sha256": "042dacbf1e819732bdf17a3fce18445dd619600b1e8d3d2cdb62f6f59e529b47",
+      "requested_end": "2024-09-02",
+      "requested_start": "2024-08-01",
+      "symbols": [
+        "sz300308",
+        "sz300502",
+        "sz300394",
+        "sh688008",
+        "sh603986"
+      ]
+    },
+    {
+      "name": "recent_shock",
+      "record_count": 23,
+      "records": [
+        {
+          "checkpoint_sha256": [
+            {
+              "name": "account_before",
+              "sha256": "576843bc0e1344e868a5c9b43b18298247e0e719c0892fe0d61cef43ef4f0d33"
+            },
+            {
+              "name": "settled_invalid_lifecycle_rights",
+              "sha256": "2fc0281b23b54f9131b00489539db0b2ad15390cedb082629e24377ff2494a48"
+            },
+            {
+              "name": "risk_reduction_freeze_draft",
+              "sha256": "3409b600c06549633191b67389af795281cad75baf6872ca9cba366e17d79ce7"
+            },
+            {
+              "name": "leader_admission_lifecycle_target_draft",
+              "sha256": "bf151f8dacf086849160ef910882fdeb1c1e2f23b78840b6a27afc2b40bc1b32"
+            },
+            {
+              "name": "strategic_discovery_lifecycle_target_draft",
+              "sha256": "92ce6cac9a1a2c05755391bfadb03d3d0570ae3994349f04277f71fdd3a78b7c"
+            },
+            {
+              "name": "recovery_ownership_substitution_admission_target_draft",
+              "sha256": "ca7e2712606d6870226a2b5033ef826da99f0c8b1cceae3e22e312836b96e02d"
+            },
+            {
+              "name": "owner_handoff_gross_cap_sparse_reduction_result",
+              "sha256": "75da8155207c3e937ba8719307e3cc3850bfd04d7b6fad30a8edec14646a1c9b"
+            },
+            {
+              "name": "final_ordered_targets_reasons_attribution",
+              "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+            },
+            {
+              "name": "account_after",
+              "sha256": "698a8490cd39b21ee581144315c0240362ad6b4e1dddc7c47ab5121c71fa4be9"
+            }
+          ],
+          "date": "2026-06-30",
+          "ordered_checkpoint_sha256": "9a384205685d28fe964b0b4186d816320101ac9f56d4a62ff4af64dc449531d8"
+        },
+        {
+          "checkpoint_sha256": [
+            {
+              "name": "account_before",
+              "sha256": "369e3d949b0304cb9bb8d328627c200f5b318d44747750cb3688d6e1291a85d1"
+            },
+            {
+              "name": "settled_invalid_lifecycle_rights",
+              "sha256": "a3adc93b2c01215cc0e28cd6e4696d1f0e90463564156833a5c982a508f3352a"
+            },
+            {
+              "name": "risk_reduction_freeze_draft",
+              "sha256": "28115a3b27946e576976de13685914f89027c991551d0060a67e76a833912372"
+            },
+            {
+              "name": "leader_admission_lifecycle_target_draft",
+              "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+            },
+            {
+              "name": "strategic_discovery_lifecycle_target_draft",
+              "sha256": "4a683effb39ab4087f3a54f225601ccafd2f3b0de7160901b015679265df39f6"
+            },
+            {
+              "name": "recovery_ownership_substitution_admission_target_draft",
+              "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+            },
+            {
+              "name": "owner_handoff_gross_cap_sparse_reduction_result",
+              "sha256": "b10c8fff72937db886ef1dcba3e5ebacfc032823f507ce7ce95ca787615204b9"
+            },
+            {
+              "name": "final_ordered_targets_reasons_attribution",
+              "sha256": "6ce35ced940c10882584fa8bc05d2b34429a5fe9d6cc331dcbfe8c4c36f58078"
+            },
+            {
+              "name": "account_after",
+              "sha256": "24fe5ca8e5ba5e38eccc26633f5aaa2d7375f2f9d150d8087f2af144d2cfba32"
+            }
+          ],
+          "date": "2026-07-01",
+          "ordered_checkpoint_sha256": "86d8fb0488112e2f3658b254fbc3b32cd6df52a17ba4d5acf8ed09cc41f475f5"
+        },
+        {
+          "checkpoint_sha256": [
+            {
+              "name": "account_before",
+              "sha256": "2b8e5f4cdc12e3133636c4be465a9051e1db417cf3f33831090d65014babdea0"
+            },
+            {
+              "name": "settled_invalid_lifecycle_rights",
+              "sha256": "94e0fe99a27400ec77924ad6c21abb565f2206247b2aa86214884f5fdebe4304"
+            },
+            {
+              "name": "risk_reduction_freeze_draft",
+              "sha256": "c382d54dfe3b30ff0babd2c956da291c4bdfdba836fdb878eed3bf007a68221d"
+            },
+            {
+              "name": "leader_admission_lifecycle_target_draft",
+              "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+            },
+            {
+              "name": "strategic_discovery_lifecycle_target_draft",
+              "sha256": "c38e6acf4f16b7354042ada22bb00d71f43f6e123d6dfa457d7565216e6b82ec"
+            },
+            {
+              "name": "recovery_ownership_substitution_admission_target_draft",
+              "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+            },
+            {
+              "name": "owner_handoff_gross_cap_sparse_reduction_result",
+              "sha256": "6a71a7dcffaaca5c57ff02e147a0f003447258bf91fa4d545c6d2dec6dec24ad"
+            },
+            {
+              "name": "final_ordered_targets_reasons_attribution",
+              "sha256": "d24ce8b040b7b58868768f5680222dff68f53495445a0f14df2707367b94d666"
+            },
+            {
+              "name": "account_after",
+              "sha256": "4969d534f8d81817cb7888c9a1bdc457c7783f6ad23c8cfb0688e41afcc70571"
+            }
+          ],
+          "date": "2026-07-02",
+          "ordered_checkpoint_sha256": "8b4df79adb74bec73c1996ce90adb9c087d8758b6885831647f5a940645dd394"
+        },
+        {
+          "checkpoint_sha256": [
+            {
+              "name": "account_before",
+              "sha256": "36636b72309babef37ca45f58beb482f6fc77d4458ac44e0bc71ad0d83c4acc6"
+            },
+            {
+              "name": "settled_invalid_lifecycle_rights",
+              "sha256": "0145d0984c2857e3ff835bd71adade968c13c3b638d7d932de0e371add0e6717"
+            },
+            {
+              "name": "risk_reduction_freeze_draft",
+              "sha256": "182a2116da8e784f8598c9b4e7a1bfe0dfa912d3725f59a61586480b548ac6aa"
+            },
+            {
+              "name": "leader_admission_lifecycle_target_draft",
+              "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+            },
+            {
+              "name": "strategic_discovery_lifecycle_target_draft",
+              "sha256": "1772a90c5d413a51cf126da1997e0f09442e4305ddb546b5df4c54936f6db8df"
+            },
+            {
+              "name": "recovery_ownership_substitution_admission_target_draft",
+              "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+            },
+            {
+              "name": "owner_handoff_gross_cap_sparse_reduction_result",
+              "sha256": "d6789d4d03c0b267020f2bd021ced9c90358e439b9db47207e3c15442367208f"
+            },
+            {
+              "name": "final_ordered_targets_reasons_attribution",
+              "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+            },
+            {
+              "name": "account_after",
+              "sha256": "2809a0dfb86f40fb083c8d5f5b1d45c3476e0e85498b94eb36c944970a0162d6"
+            }
+          ],
+          "date": "2026-07-03",
+          "ordered_checkpoint_sha256": "b0390b3d9f477a708fe44e416aa245cc0c9b2ec4ff3d565338786e138991f2b1"
+        },
+        {
+          "checkpoint_sha256": [
+            {
+              "name": "account_before",
+              "sha256": "469644f3891e14a5e68fa5b631de936c93f6fb71e123531473c2a22809cd8044"
+            },
+            {
+              "name": "settled_invalid_lifecycle_rights",
+              "sha256": "6853bda41233be944014063e624e2bd59df68ae3631c8946b3567aa1cc7244d3"
+            },
+            {
+              "name": "risk_reduction_freeze_draft",
+              "sha256": "975648a1495fdb7e5967b476964d6c297ab7a1d6bbcd35cb5fc3441d9fef5025"
+            },
+            {
+              "name": "leader_admission_lifecycle_target_draft",
+              "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+            },
+            {
+              "name": "strategic_discovery_lifecycle_target_draft",
+              "sha256": "ae18bb82656804f40b6c589eb606f92f0134427de85b375ae511b31615b7f82c"
+            },
+            {
+              "name": "recovery_ownership_substitution_admission_target_draft",
+              "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+            },
+            {
+              "name": "owner_handoff_gross_cap_sparse_reduction_result",
+              "sha256": "8854bb4364434c29dbae7a72ea32bc93385b573a1085c7edf35b013fc07ff16e"
+            },
+            {
+              "name": "final_ordered_targets_reasons_attribution",
+              "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+            },
+            {
+              "name": "account_after",
+              "sha256": "e771bb1ad4c723761e19936eb4a3d7b99aaec78ac7ac458427987ab98394de83"
+            }
+          ],
+          "date": "2026-07-06",
+          "ordered_checkpoint_sha256": "f029307a1872563cf61b75c5a88b9bf911d848e508e4e83fd7772746bf2c962d"
+        },
+        {
+          "checkpoint_sha256": [
+            {
+              "name": "account_before",
+              "sha256": "fe55c87e5b216a165f48d465915e8dd35d7b93d57e591836f1b1c15220a41855"
+            },
+            {
+              "name": "settled_invalid_lifecycle_rights",
+              "sha256": "93c3fd8a6024cb3abd515e9e466ad7b98209bed104a99d82aed460dd3e4cb4a9"
+            },
+            {
+              "name": "risk_reduction_freeze_draft",
+              "sha256": "e8f9c9024d73365eb271343131022a9247019ed73cff32d2a168d1b1e913f7d3"
+            },
+            {
+              "name": "leader_admission_lifecycle_target_draft",
+              "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+            },
+            {
+              "name": "strategic_discovery_lifecycle_target_draft",
+              "sha256": "111e51b1a4edbb996431ee17de35555da4b179d32e956c0e5ec9feaaaa842562"
+            },
+            {
+              "name": "recovery_ownership_substitution_admission_target_draft",
+              "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+            },
+            {
+              "name": "owner_handoff_gross_cap_sparse_reduction_result",
+              "sha256": "855479c58ee7d2df251fd1715d40dc5c3d0c1c4d6f26098d16c77c12746722c0"
+            },
+            {
+              "name": "final_ordered_targets_reasons_attribution",
+              "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+            },
+            {
+              "name": "account_after",
+              "sha256": "f59c2089ffdd18803437d06f5c33a84c89d26b36ac82a369bfdf45b062567524"
+            }
+          ],
+          "date": "2026-07-07",
+          "ordered_checkpoint_sha256": "539e051857eebb85f30942f322366d8f4b5b5a5e49ba3e54ee147e55469e26c6"
+        },
+        {
+          "checkpoint_sha256": [
+            {
+              "name": "account_before",
+              "sha256": "960fb04f69dc3f39aab819b297d6759bfce1d93514830f846478f307210e87e6"
+            },
+            {
+              "name": "settled_invalid_lifecycle_rights",
+              "sha256": "5d8347f0c680fdbef564ad83e723cd72b8da94e435d1f304597e941bb9a686d0"
+            },
+            {
+              "name": "risk_reduction_freeze_draft",
+              "sha256": "1711283e4a0a423ef81926e12eaaa8a8c4631fbd8b5d05a177197c8ba5412254"
+            },
+            {
+              "name": "leader_admission_lifecycle_target_draft",
+              "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+            },
+            {
+              "name": "strategic_discovery_lifecycle_target_draft",
+              "sha256": "c4cb5f5757ae9d772a207067ec8da570bf157add16f76f5ca14ba46bea05616a"
+            },
+            {
+              "name": "recovery_ownership_substitution_admission_target_draft",
+              "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+            },
+            {
+              "name": "owner_handoff_gross_cap_sparse_reduction_result",
+              "sha256": "478322b93a5c37015a97a1dd1d45bc86138d6fbfc585f42982a97df260288122"
+            },
+            {
+              "name": "final_ordered_targets_reasons_attribution",
+              "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+            },
+            {
+              "name": "account_after",
+              "sha256": "52e2851ca5172dbb49281f7d0f4120e84f7816f5be3bba743e1659dd63dae4c5"
+            }
+          ],
+          "date": "2026-07-08",
+          "ordered_checkpoint_sha256": "5f260aadfdbdc7a30319c4f574c88f8e6c425a4c77cad6da51f6e16e24b20455"
+        },
+        {
+          "checkpoint_sha256": [
+            {
+              "name": "account_before",
+              "sha256": "961e9142f65e6810d55409463dbf0bf4aa70c3dbe00f6030314a63ac081c5031"
+            },
+            {
+              "name": "settled_invalid_lifecycle_rights",
+              "sha256": "0ca382b0d08890fa742728f696d7f00b40737621d1f1abd7ca630c58fe319de0"
+            },
+            {
+              "name": "risk_reduction_freeze_draft",
+              "sha256": "3828865974e492b060151f06574bec3e00c6991a9cf061680b5e149eead43122"
+            },
+            {
+              "name": "leader_admission_lifecycle_target_draft",
+              "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+            },
+            {
+              "name": "strategic_discovery_lifecycle_target_draft",
+              "sha256": "3620bcd9bc72fd043ccac6d3b5fdc6c20ab3c9a5496b911a1f053ec375b8079b"
+            },
+            {
+              "name": "recovery_ownership_substitution_admission_target_draft",
+              "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+            },
+            {
+              "name": "owner_handoff_gross_cap_sparse_reduction_result",
+              "sha256": "bfd7fb448cda2238275231599ba6041b4709bd5d337a79c3c18959f863acebf5"
+            },
+            {
+              "name": "final_ordered_targets_reasons_attribution",
+              "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+            },
+            {
+              "name": "account_after",
+              "sha256": "74f7d6c0f9e9696b2858652b8bf44e7fcfd18addd213f003e8e67665e01a30db"
+            }
+          ],
+          "date": "2026-07-09",
+          "ordered_checkpoint_sha256": "c587976175eb5386ddd95cb5c34c6af67b9b70f69bb1f3157e43483f519baf19"
+        },
+        {
+          "checkpoint_sha256": [
+            {
+              "name": "account_before",
+              "sha256": "9ebeaf90ef93ab257955b2446d04c676d15c58ed1844388c2e20075a27f07a91"
+            },
+            {
+              "name": "settled_invalid_lifecycle_rights",
+              "sha256": "4c8f6b5d0c23bf093331bcdb6b9077bd9a2a7da3ace2f4e2fe65772b6e9f9f22"
+            },
+            {
+              "name": "risk_reduction_freeze_draft",
+              "sha256": "c83055870173a57dd7571ae49ff838cd494a65b64872908c5035d720145768de"
+            },
+            {
+              "name": "leader_admission_lifecycle_target_draft",
+              "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+            },
+            {
+              "name": "strategic_discovery_lifecycle_target_draft",
+              "sha256": "fc723f7c9ae0d00d509076bc96b5d22bd918ee1c83e88e2518d41bfdbe6e4808"
+            },
+            {
+              "name": "recovery_ownership_substitution_admission_target_draft",
+              "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+            },
+            {
+              "name": "owner_handoff_gross_cap_sparse_reduction_result",
+              "sha256": "2f43b1badc424cfcdc0a1d0b3061149be62e21ed174d6a620cea4fa1579e735d"
+            },
+            {
+              "name": "final_ordered_targets_reasons_attribution",
+              "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+            },
+            {
+              "name": "account_after",
+              "sha256": "acdf9f7ea72ef1353960340a7783164ba4794089d3d375bc0de3de5da08cc9ee"
+            }
+          ],
+          "date": "2026-07-10",
+          "ordered_checkpoint_sha256": "f4b6059e95331092ed490b305a55d6df593a8f19cee52b6429f478e385030ffc"
+        },
+        {
+          "checkpoint_sha256": [
+            {
+              "name": "account_before",
+              "sha256": "7b452c7f6c874948efb370dff7c78f0aaf2e8c2881544a26f8c247bbe532c9c8"
+            },
+            {
+              "name": "settled_invalid_lifecycle_rights",
+              "sha256": "4380afcfcf20f6319dda4a9f116b6fde791eb2a66f15b822cba49e8783095793"
+            },
+            {
+              "name": "risk_reduction_freeze_draft",
+              "sha256": "2ee25b90198e28d010a6ed6126ca5f819e42171305b75f0f33b6c53362b4cce3"
+            },
+            {
+              "name": "leader_admission_lifecycle_target_draft",
+              "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+            },
+            {
+              "name": "strategic_discovery_lifecycle_target_draft",
+              "sha256": "135851b6385dfa47da7a8638d5278e4567b97a794a8e2482dd3691297d6b24c9"
+            },
+            {
+              "name": "recovery_ownership_substitution_admission_target_draft",
+              "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+            },
+            {
+              "name": "owner_handoff_gross_cap_sparse_reduction_result",
+              "sha256": "46000939a8eac6fc5f6ac807d93567bf2e98a16e9f6e8782b6ac9ccd00efbba2"
+            },
+            {
+              "name": "final_ordered_targets_reasons_attribution",
+              "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+            },
+            {
+              "name": "account_after",
+              "sha256": "0e73e471f3c45f7fa1a3cb20216bc14abc103f4b5936aeac3f6d0dedb720d350"
+            }
+          ],
+          "date": "2026-07-13",
+          "ordered_checkpoint_sha256": "c74054e53c6b42529596bf6557fe5c5d2e34e6162096c2f9a3dca1a95ce78a8b"
+        },
+        {
+          "checkpoint_sha256": [
+            {
+              "name": "account_before",
+              "sha256": "4e35fcfe55b19301ffd9b7cba965bd845c6b9982e9c7d1bc33f3cd6a40a62e22"
+            },
+            {
+              "name": "settled_invalid_lifecycle_rights",
+              "sha256": "dae0c56c6ff47aa3a0f5b476f51be8eaf96a4629680469e2ed72a228baf6f788"
+            },
+            {
+              "name": "risk_reduction_freeze_draft",
+              "sha256": "b81d2b7de99182072e60007707e9c80a19579111ff7a14f5b02adfb9d435729d"
+            },
+            {
+              "name": "leader_admission_lifecycle_target_draft",
+              "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+            },
+            {
+              "name": "strategic_discovery_lifecycle_target_draft",
+              "sha256": "12f833f9ccce0824087992bdea8daaf94494bdb8606ab051e8b386291313a796"
+            },
+            {
+              "name": "recovery_ownership_substitution_admission_target_draft",
+              "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+            },
+            {
+              "name": "owner_handoff_gross_cap_sparse_reduction_result",
+              "sha256": "fd0e34a1e5980c837f9d865c3f43d50276985a4a100debae0bdb07f10f95bede"
+            },
+            {
+              "name": "final_ordered_targets_reasons_attribution",
+              "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+            },
+            {
+              "name": "account_after",
+              "sha256": "536ba93fb3d0e55ab242e796b115f7decca57d3cfaed4680c84b1cd5b37435aa"
+            }
+          ],
+          "date": "2026-07-14",
+          "ordered_checkpoint_sha256": "f18e93c8d9cfe035cbcd4279d44ede611f12b95c5e85d5abd0b2a0669a76db09"
+        },
+        {
+          "checkpoint_sha256": [
+            {
+              "name": "account_before",
+              "sha256": "d52df95104bd4240a2cc4a9bba57bf6fdfb8a5512701c9b77a1d6a9545cdf201"
+            },
+            {
+              "name": "settled_invalid_lifecycle_rights",
+              "sha256": "ba85137f54c3ebe6ff1a94a4d9c2341661260e514c48b53afc9be9185d2e9024"
+            },
+            {
+              "name": "risk_reduction_freeze_draft",
+              "sha256": "a45a2451bb52c4957d6d54f668305b6ea6c5c2fa422837125fea0161a8f5ce9e"
+            },
+            {
+              "name": "leader_admission_lifecycle_target_draft",
+              "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+            },
+            {
+              "name": "strategic_discovery_lifecycle_target_draft",
+              "sha256": "34e803a4ec30aad80c38b2c04e1b4895d440d86c9cd1025a6de988acefe525c1"
+            },
+            {
+              "name": "recovery_ownership_substitution_admission_target_draft",
+              "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+            },
+            {
+              "name": "owner_handoff_gross_cap_sparse_reduction_result",
+              "sha256": "18fb3a7abd4474093ca801fb0c6919692708a23dedcc286c570bec910442f8a1"
+            },
+            {
+              "name": "final_ordered_targets_reasons_attribution",
+              "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+            },
+            {
+              "name": "account_after",
+              "sha256": "a739d67986378b806e5a60c5e0cae6147a30ea88976146e1bd20770fe025a1f1"
+            }
+          ],
+          "date": "2026-07-15",
+          "ordered_checkpoint_sha256": "750cd62ae3d3761eb6fe999cb5dba88b2b55d7763ee0336f2ea5f7836123cf69"
+        },
+        {
+          "checkpoint_sha256": [
+            {
+              "name": "account_before",
+              "sha256": "3cce674d96635fb90ceaef3953ee65fec0d10e665685f6ae99d1f0761ed7d7d0"
+            },
+            {
+              "name": "settled_invalid_lifecycle_rights",
+              "sha256": "db3557296a5bd4eb82edccb1d2812b737ce003d111116cd1beaddd661d98bc48"
+            },
+            {
+              "name": "risk_reduction_freeze_draft",
+              "sha256": "67e9566c07c9a610ae32d627e11cd5d2566fd735169581f38406b1610fa2ba28"
+            },
+            {
+              "name": "leader_admission_lifecycle_target_draft",
+              "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+            },
+            {
+              "name": "strategic_discovery_lifecycle_target_draft",
+              "sha256": "8792cdb53a45f00a176904e779f0e6ac2a870a073b31b40e373cdef00b96a358"
+            },
+            {
+              "name": "recovery_ownership_substitution_admission_target_draft",
+              "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+            },
+            {
+              "name": "owner_handoff_gross_cap_sparse_reduction_result",
+              "sha256": "d8520b80da542954755af424231a58e29f74a6a58c84c3b8e7306ebcca5a1ba8"
+            },
+            {
+              "name": "final_ordered_targets_reasons_attribution",
+              "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+            },
+            {
+              "name": "account_after",
+              "sha256": "2c51eb3b4c5abe77e03f02c330258fd31d0e7850bddfc0695282409358dcd9d0"
+            }
+          ],
+          "date": "2026-07-16",
+          "ordered_checkpoint_sha256": "4a42453e1ddd2d70b0d5d8e5bdc3754b7105d69836cb7fbf7382aeb437b136ba"
+        },
+        {
+          "checkpoint_sha256": [
+            {
+              "name": "account_before",
+              "sha256": "615e99e65d5cfd8513aef72b9444e16dd7e19695ebb96f6b749fa2264e0deacd"
+            },
+            {
+              "name": "settled_invalid_lifecycle_rights",
+              "sha256": "3294e53ca9e8e4eacb878865e7443af9dd9f92a56a3eb72c121eb6d164717a5e"
+            },
+            {
+              "name": "risk_reduction_freeze_draft",
+              "sha256": "7c8a1c8765e465c57925a65f9e674b219a4a599335c29113ce9661e2e53b7e29"
+            },
+            {
+              "name": "leader_admission_lifecycle_target_draft",
+              "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+            },
+            {
+              "name": "strategic_discovery_lifecycle_target_draft",
+              "sha256": "7ea4cca1061b45de4b5f086a322196f8e77a3e5578ba21ac5faf9ea203ea0ddf"
+            },
+            {
+              "name": "recovery_ownership_substitution_admission_target_draft",
+              "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+            },
+            {
+              "name": "owner_handoff_gross_cap_sparse_reduction_result",
+              "sha256": "6c3352730fe9301f0800d2acfd7d23a544b19d1b136b0ec4ce4c07f84fe6d976"
+            },
+            {
+              "name": "final_ordered_targets_reasons_attribution",
+              "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+            },
+            {
+              "name": "account_after",
+              "sha256": "c5c2ff46e41d5ff5b7f93e9308a1f8a30af77192aca4e6d946ba8791ed40ccea"
+            }
+          ],
+          "date": "2026-07-17",
+          "ordered_checkpoint_sha256": "5c0eb73a3846fa20ab64c60938bbcdf9737b57c201b04b1e1399225f660f26fe"
+        },
+        {
+          "checkpoint_sha256": [
+            {
+              "name": "account_before",
+              "sha256": "e6392d7f6cbde41bdc890295335b00b835bfc28073236fe59794a2a511d65971"
+            },
+            {
+              "name": "settled_invalid_lifecycle_rights",
+              "sha256": "9c41f20693897f72e478ed7783c986198deb1f1a181fe439006c3590b09d4e85"
+            },
+            {
+              "name": "risk_reduction_freeze_draft",
+              "sha256": "785427c7d910fea4041e5556db29eec9cf17a1e4523a35064f492e13b9aa4742"
+            },
+            {
+              "name": "leader_admission_lifecycle_target_draft",
+              "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+            },
+            {
+              "name": "strategic_discovery_lifecycle_target_draft",
+              "sha256": "44e6e8ddcbe8546db79f103fb87c32c586dba83efdb5b5e379f55fcb08f61f58"
+            },
+            {
+              "name": "recovery_ownership_substitution_admission_target_draft",
+              "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+            },
+            {
+              "name": "owner_handoff_gross_cap_sparse_reduction_result",
+              "sha256": "e8b3b84726b288326624b4f693cfc410f8a485f9dd6f9543baf1b2de2f7ea2e3"
+            },
+            {
+              "name": "final_ordered_targets_reasons_attribution",
+              "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+            },
+            {
+              "name": "account_after",
+              "sha256": "d34b61b2d819c968e64ef4b046ef8e3a3ede7bf742eeab8680d073c30d71968d"
+            }
+          ],
+          "date": "2026-07-20",
+          "ordered_checkpoint_sha256": "329def9553508dc7bd796b02c0808d608844f826d59a67c1716d2074fc666754"
+        },
+        {
+          "checkpoint_sha256": [
+            {
+              "name": "account_before",
+              "sha256": "0aa866e2b0ccb4ab5c03758704d9251f6c3d36e19cb8a4e309d2512672cc5513"
+            },
+            {
+              "name": "settled_invalid_lifecycle_rights",
+              "sha256": "b8808b5f9bdb78ca9e2dc525f33d9daf3cb3b0f114509cb3bf0c79937b067afa"
+            },
+            {
+              "name": "risk_reduction_freeze_draft",
+              "sha256": "40e49b2c57811b3f87f322e5ebc04ba16b3608795c71976163bcfc91aeb5699e"
+            },
+            {
+              "name": "leader_admission_lifecycle_target_draft",
+              "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+            },
+            {
+              "name": "strategic_discovery_lifecycle_target_draft",
+              "sha256": "20a517e04248cf1d3f538d4813c73474900f058df2a4094498ff9a094670722f"
+            },
+            {
+              "name": "recovery_ownership_substitution_admission_target_draft",
+              "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+            },
+            {
+              "name": "owner_handoff_gross_cap_sparse_reduction_result",
+              "sha256": "7b6f87995a8d87c072c5244e31382f3faf2e3131694bf9c88ebf26e461c839b6"
+            },
+            {
+              "name": "final_ordered_targets_reasons_attribution",
+              "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+            },
+            {
+              "name": "account_after",
+              "sha256": "41559d82a0e6fb1157125384a26cf0a9503d69252171d588f558d08683b2030d"
+            }
+          ],
+          "date": "2026-07-21",
+          "ordered_checkpoint_sha256": "dfc1f07d32f148d183ce12b39735d055a36d781060485ab398c9dd293473c4ae"
+        },
+        {
+          "checkpoint_sha256": [
+            {
+              "name": "account_before",
+              "sha256": "2da1507e105d665f9ca652b0cdc82b2b438e7712c1603c9c2bf3f27135fee01b"
+            },
+            {
+              "name": "settled_invalid_lifecycle_rights",
+              "sha256": "9532954a468b0f82e9efaa6d492f3c6c4f7c5580c61b45dbd8cd676e0610b858"
+            },
+            {
+              "name": "risk_reduction_freeze_draft",
+              "sha256": "808a7e2c180d065666dde582a6cc760f7f7dd64811f2ab18c3b3830246a42eea"
+            },
+            {
+              "name": "leader_admission_lifecycle_target_draft",
+              "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+            },
+            {
+              "name": "strategic_discovery_lifecycle_target_draft",
+              "sha256": "00449e5eb3d1052f9cfd1f98368702494026cdd26d64e0db698416e036063e03"
+            },
+            {
+              "name": "recovery_ownership_substitution_admission_target_draft",
+              "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+            },
+            {
+              "name": "owner_handoff_gross_cap_sparse_reduction_result",
+              "sha256": "a2c6ce6d5429f42cd5ff0a1eb16f3da46df0d9efe7641e80a6ef3b76ee257c95"
+            },
+            {
+              "name": "final_ordered_targets_reasons_attribution",
+              "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+            },
+            {
+              "name": "account_after",
+              "sha256": "11b4d378c7daab5cdd9d4d6eb69cf3fe9c2a437fabf1808845951705d4f4c6a3"
+            }
+          ],
+          "date": "2026-07-22",
+          "ordered_checkpoint_sha256": "9ce7172f058b6780e73778ac73f37a93a5cb5d542c41113751d6dcb238ccfc09"
+        },
+        {
+          "checkpoint_sha256": [
+            {
+              "name": "account_before",
+              "sha256": "0796c4979625b7c2f62747a8320ab47109cea94ac838735fab655c81fe470d29"
+            },
+            {
+              "name": "settled_invalid_lifecycle_rights",
+              "sha256": "a00cf4c5a74e5689edd014b68528a7555ce6c034f508a76c972865492002e300"
+            },
+            {
+              "name": "risk_reduction_freeze_draft",
+              "sha256": "cb6dfa384ee7cd8d8dbaaf8e486d695114c6174698c7c19a1899c981893722e8"
+            },
+            {
+              "name": "leader_admission_lifecycle_target_draft",
+              "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+            },
+            {
+              "name": "strategic_discovery_lifecycle_target_draft",
+              "sha256": "8b837f793b0470236d3cbac753d28797f4b0e62a15cf73c338e3c15d55d2b786"
+            },
+            {
+              "name": "recovery_ownership_substitution_admission_target_draft",
+              "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+            },
+            {
+              "name": "owner_handoff_gross_cap_sparse_reduction_result",
+              "sha256": "63dbc563dbdbdac32b66769e9f2541de35a894da52c9d69cb9677fe945a63334"
+            },
+            {
+              "name": "final_ordered_targets_reasons_attribution",
+              "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+            },
+            {
+              "name": "account_after",
+              "sha256": "3db96cb5951a8e8e9daae9f85ad4b2ff9baecdbf3525dd10197827965387390f"
+            }
+          ],
+          "date": "2026-07-23",
+          "ordered_checkpoint_sha256": "60eb7bf8728174516196031e317e290ee0c466d553004c160f467a38cacb0f7c"
+        },
+        {
+          "checkpoint_sha256": [
+            {
+              "name": "account_before",
+              "sha256": "2cd5ccfdb7c8ea52f22cd80c4e12ff401ccb918b651b480b0fd3a8062c5f43cc"
+            },
+            {
+              "name": "settled_invalid_lifecycle_rights",
+              "sha256": "5338d6daab7308c2abaf0cb31c4767e99f5c777e93b67db79f25e1f62595074b"
+            },
+            {
+              "name": "risk_reduction_freeze_draft",
+              "sha256": "0d0a75677fdd3bbdf8b76a8211e1fb783078e7693cf0424b13e086fa2a3eda43"
+            },
+            {
+              "name": "leader_admission_lifecycle_target_draft",
+              "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+            },
+            {
+              "name": "strategic_discovery_lifecycle_target_draft",
+              "sha256": "be5efc4f2445f58fdf8da33d835285f22c1edf9084397cf17a762ef37e99d9e4"
+            },
+            {
+              "name": "recovery_ownership_substitution_admission_target_draft",
+              "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+            },
+            {
+              "name": "owner_handoff_gross_cap_sparse_reduction_result",
+              "sha256": "fec65a6ffbbf90968b7b3555478363b29278b58687aff1a26e7bb760a3e18a53"
+            },
+            {
+              "name": "final_ordered_targets_reasons_attribution",
+              "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+            },
+            {
+              "name": "account_after",
+              "sha256": "7a1d96014414e29e05206423f336f31a4604091cb6ddb5f6788b7e8e515e77c3"
+            }
+          ],
+          "date": "2026-07-24",
+          "ordered_checkpoint_sha256": "c3b3a85e2711e4346d0c2a3234bc9887fc338d83c09b50f862317bd980e557b1"
+        },
+        {
+          "checkpoint_sha256": [
+            {
+              "name": "account_before",
+              "sha256": "a0a67ff7a31aff678498ddb4a0574fd5b402a5dd524fe3b3c4a99b00a7c4e617"
+            },
+            {
+              "name": "settled_invalid_lifecycle_rights",
+              "sha256": "83989836f67fac1af5389d8419615ecd2483b7603fdf7426756cf532a8441782"
+            },
+            {
+              "name": "risk_reduction_freeze_draft",
+              "sha256": "172a57734b858397b3858bcd46d2b80a56bf295ccac8b87e9a7b1b4cda2e518a"
+            },
+            {
+              "name": "leader_admission_lifecycle_target_draft",
+              "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+            },
+            {
+              "name": "strategic_discovery_lifecycle_target_draft",
+              "sha256": "4a757e699dfd711cd20e40ee5827380bd0caebf8836ddd3e203a03bf5cf396cb"
+            },
+            {
+              "name": "recovery_ownership_substitution_admission_target_draft",
+              "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+            },
+            {
+              "name": "owner_handoff_gross_cap_sparse_reduction_result",
+              "sha256": "48d6d2d374f191ba5da4eeafd36ab7ca4b5fbbcab575e9928a051999d1e1e322"
+            },
+            {
+              "name": "final_ordered_targets_reasons_attribution",
+              "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+            },
+            {
+              "name": "account_after",
+              "sha256": "716d2ae550a4e858b0c63ac1fbf201fc0ed4d1ccc6c67d1f0483280fb3a2271a"
+            }
+          ],
+          "date": "2026-07-27",
+          "ordered_checkpoint_sha256": "62d50b4bbc9a8d5e73aef78804c214f6417ad6177c83ebf37eefb5074d6182ad"
+        },
+        {
+          "checkpoint_sha256": [
+            {
+              "name": "account_before",
+              "sha256": "2310dbfff24185feaf800b011d659deaedf1a555ccaa5c7669c9af53ee4221b5"
+            },
+            {
+              "name": "settled_invalid_lifecycle_rights",
+              "sha256": "53091556fd7854faea2c46da47a09c0b4bc657abdbfd931cffb65859701dc750"
+            },
+            {
+              "name": "risk_reduction_freeze_draft",
+              "sha256": "11d3a0064d3b0ec21c1ac08e0e672bb5001bf3d873b3eb132b5644ddbccd74ae"
+            },
+            {
+              "name": "leader_admission_lifecycle_target_draft",
+              "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+            },
+            {
+              "name": "strategic_discovery_lifecycle_target_draft",
+              "sha256": "e1e639d58a8a9308eea391cad3e4d91450393695e962813f57f98866c998baa1"
+            },
+            {
+              "name": "recovery_ownership_substitution_admission_target_draft",
+              "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+            },
+            {
+              "name": "owner_handoff_gross_cap_sparse_reduction_result",
+              "sha256": "2dc9467af047ad1c2846b226fc576046a33677c89530c34e6640d41862a9dd67"
+            },
+            {
+              "name": "final_ordered_targets_reasons_attribution",
+              "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+            },
+            {
+              "name": "account_after",
+              "sha256": "a635d17d6f72ff8a0a1082208a95d61693c7c427fa2f93b1d0e7443646a60858"
+            }
+          ],
+          "date": "2026-07-28",
+          "ordered_checkpoint_sha256": "963c599792c87fbd4c1eb6a1ed4c8012d33faee4643664b2c4c4c730de388ca9"
+        },
+        {
+          "checkpoint_sha256": [
+            {
+              "name": "account_before",
+              "sha256": "bd51f701ca5217cb21a88a52caaea4e1ca235bebccb09dd599c73494374ae63b"
+            },
+            {
+              "name": "settled_invalid_lifecycle_rights",
+              "sha256": "e8d0d8d6f16e0ea7f8ce832768577c86347662981acb4c43d35816685529bc82"
+            },
+            {
+              "name": "risk_reduction_freeze_draft",
+              "sha256": "04eaf87983e9538e8ff8b7c3c4d276a723246a0f4c3acb8e362b286c24dd158f"
+            },
+            {
+              "name": "leader_admission_lifecycle_target_draft",
+              "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+            },
+            {
+              "name": "strategic_discovery_lifecycle_target_draft",
+              "sha256": "dee93ad0b7b33ba898d42ba5f1502928184aff94e4f37b44a6aa59ef41b998e9"
+            },
+            {
+              "name": "recovery_ownership_substitution_admission_target_draft",
+              "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+            },
+            {
+              "name": "owner_handoff_gross_cap_sparse_reduction_result",
+              "sha256": "e15069bcb056ac3cca7cb8abec868732493df92b4df7db59aa41694e5f70ff5c"
+            },
+            {
+              "name": "final_ordered_targets_reasons_attribution",
+              "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+            },
+            {
+              "name": "account_after",
+              "sha256": "c76fd96f8a426821666e2bf8e6a6ad4b2ecba46337bb274f3dbf51b82872026b"
+            }
+          ],
+          "date": "2026-07-29",
+          "ordered_checkpoint_sha256": "3671b62a6d08914c05b40bc75c0856162fd02b9349fb8e087faddc269dbb7282"
+        },
+        {
+          "checkpoint_sha256": [
+            {
+              "name": "account_before",
+              "sha256": "889d38e911a30d4db9db6316bdfa980c52b079f1e70ed99189990b15987d69c3"
+            },
+            {
+              "name": "settled_invalid_lifecycle_rights",
+              "sha256": "a7f5f9dff84856cd6c247ded29913e3cc696c3beaaa1183b1248a341ef6ef0bf"
+            },
+            {
+              "name": "risk_reduction_freeze_draft",
+              "sha256": "a54de2a73fde6638a19d5e5d6de0c4c22881db7929954653c39fb020bba72bda"
+            },
+            {
+              "name": "leader_admission_lifecycle_target_draft",
+              "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+            },
+            {
+              "name": "strategic_discovery_lifecycle_target_draft",
+              "sha256": "17cd3cc0b54bc6dfd36700a37458d7cbee939b7f2d2876933c0492a996f36c61"
+            },
+            {
+              "name": "recovery_ownership_substitution_admission_target_draft",
+              "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+            },
+            {
+              "name": "owner_handoff_gross_cap_sparse_reduction_result",
+              "sha256": "d58252eec738ed53428dd75328ddace4f1d92d65e713d5528f110d156d15b00d"
+            },
+            {
+              "name": "final_ordered_targets_reasons_attribution",
+              "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+            },
+            {
+              "name": "account_after",
+              "sha256": "547045a55f3886817dadc4333dc9d63cdc7b6e64dbad43802e4b173dd4ba0e10"
+            }
+          ],
+          "date": "2026-07-30",
+          "ordered_checkpoint_sha256": "24635a28069e5834f2173f7e37f8f10769a5845cad18fceb854ddd4bb2e824f3"
+        }
+      ],
+      "records_sha256": "ca5ab1ce99c6788c410df64d7834dab26471a1ef3e28b7aa930842001b5fa445",
+      "requested_end": "2026-07-30",
+      "requested_start": "2026-06-30",
+      "symbols": [
+        "sz300308",
+        "sz300502",
+        "sz300394",
+        "sh688008",
+        "sh603986"
+      ]
+    }
+  ],
+  "schema_version": 1
+}

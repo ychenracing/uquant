@@ -634,16 +634,16 @@ def replay_future_holdout(
         overlay = Path(temporary) / "data"
         _materialize_overlay(root, overlay, snapshot)
         engine = ProductionEngine(overlay)
-        engine._load(required_symbols)
+        engine.workspace.load(required_symbols)
         expected_sessions = tuple(
             str(value.date())
-            for value in engine._raw[INDEX_SYMBOLS[0]].index.intersection(engine._raw[INDEX_SYMBOLS[1]].index)
+            for value in engine.workspace.common_sessions(*INDEX_SYMBOLS)
             if str(value.date()) in set(sessions)
         )
         if expected_sessions != sessions:
             raise ValueError("holdout sessions are not complete across both market indices")
         if any(
-            session not in {str(value.date()) for value in engine._raw[symbol].index}
+            session not in {str(value.date()) for value in engine.workspace.raw_frame(symbol).index}
             for symbol in required_symbols
             for session in sessions
         ):
@@ -651,7 +651,7 @@ def replay_future_holdout(
 
         prior_date = pd.Timestamp(reviewed.last_in_sample_date)
         starting_values = {
-            symbol: position.shares * engine._price(symbol, prior_date)
+            symbol: position.shares * engine.workspace.price(symbol, prior_date)
             for symbol, position in account.positions.items()
             if position.shares > 0
         }
@@ -659,7 +659,7 @@ def replay_future_holdout(
         initial_fill_count = len(account.fills)
         equities = [starting_equity]
         decisions: list[dict[str, object]] = []
-        raw_user_panel = {symbol: engine._raw[symbol] for symbol in user_symbols}
+        raw_user_panel = {symbol: engine.workspace.raw_frame(symbol) for symbol in user_symbols}
         for session in sessions:
             replay_date = pd.Timestamp(session)
             engine.execution.execute_open(
@@ -679,7 +679,7 @@ def replay_future_holdout(
         final_date = pd.Timestamp(sessions[-1])
         final_equity = engine.equity(account, final_date)
         final_values = {
-            symbol: position.shares * engine._price(symbol, final_date)
+            symbol: position.shares * engine.workspace.price(symbol, final_date)
             for symbol, position in account.positions.items()
             if position.shares > 0
         }

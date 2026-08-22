@@ -111,11 +111,12 @@ def _checkpoint_path(cache_dir: Path, cell_id: str, policy_id: str) -> Path:
 
 
 def _prices(engine: ProductionEngine, account: AccountState, date: pd.Timestamp) -> dict[str, float]:
-    symbols = set(account.positions) | set(engine._raw)
+    symbols = set(account.positions) | set(engine.workspace.loaded_symbols)
+    visible = set(engine.workspace.visible_symbols(symbols, as_of=date))
     return {
-        symbol: engine._price(symbol, date)
+        symbol: engine.workspace.price(symbol, date)
         for symbol in symbols
-        if symbol in engine._raw and not engine._raw[symbol].loc[:date].empty
+        if symbol in visible
     }
 
 
@@ -133,9 +134,9 @@ def _layered_targets(
     drawdown = 0.0 if account_peak <= 0 else max(0.0, 1.0 - equity / account_peak)
     triggered = 0
     for symbol, position in sorted(account.positions.items()):
-        if position.shares <= 0 or symbol not in engine._raw:
+        if position.shares <= 0 or symbol not in engine.workspace.loaded_symbols:
             continue
-        frame = engine._raw[symbol].loc[:date]
+        frame = engine.workspace.raw_frame(symbol).loc[:date]
         closes = pd.to_numeric(frame["close"], errors="coerce")
         atr = None
         if len(frame) >= 20:
@@ -151,7 +152,9 @@ def _layered_targets(
             atr=atr,
             risk_level=int(trade.get("severity_rank") or 0),
             account_drawdown=drawdown,
-            trend_adjustment=trend_health_adjustment(engine._raw[symbol], date),
+            trend_adjustment=trend_health_adjustment(
+                engine.workspace.raw_frame(symbol), date
+            ),
         )
         if float(closes.iloc[-1]) > line + 1e-12:
             continue
@@ -190,11 +193,11 @@ def run_cell_policy(cell: dict[str, Any], policy_id: str, data_dir: Path) -> dic
         else DEFAULT_CONFIG
     )
     engine = ProductionEngine(data_dir, cfg)
-    engine._load(set(symbols) | set(REFERENCE_UNIVERSE) | set(INDEX_SYMBOLS))
-    sessions = engine._raw["sh000300"].index.intersection(engine._raw["sh000682"].index)
+    engine.workspace.load(set(symbols) | set(REFERENCE_UNIVERSE) | set(INDEX_SYMBOLS))
+    sessions = engine.workspace.common_sessions(*INDEX_SYMBOLS)
     sessions = sessions[(sessions >= pd.Timestamp(start)) & (sessions <= pd.Timestamp(end))]
     account = AccountState.empty(cfg.initial_cash)
-    panel = {symbol: engine._raw[symbol] for symbol in symbols}
+    panel = {symbol: engine.workspace.raw_frame(symbol) for symbol in symbols}
     trade_by_date = {item["date"]: item["trade"] for item in cell["days"]}
     equity_rows: list[tuple[pd.Timestamp, float]] = []
     decision_digests: list[str] = []
@@ -305,9 +308,9 @@ def run_cell_policy(cell: dict[str, Any], policy_id: str, data_dir: Path) -> dic
         orders=account.order_ledger,
         initial_cash=account.initial_cash,
         risk_events=account.risk_events,
-        benchmark_total_return=float(
-            engine._raw["sh000682"].loc[sessions[-1], "close"]
-            / engine._raw["sh000682"].loc[sessions[0], "close"]
+        benchmark_total_return=(
+            engine.workspace.price("sh000682", sessions[-1])
+            / engine.workspace.price("sh000682", sessions[0])
             - 1.0
         ),
     )

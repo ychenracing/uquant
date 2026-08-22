@@ -1,5 +1,5 @@
 {
-  "canonical_sha256": "f70dd1feaa4dd76fcf191c91001ad6208422bb7ee56774f3c9234b7dda9096a2",
+  "canonical_sha256": "ea7b084c76f64cd132ffca26f98c90a58981c4c8630cc98167c1827e63d552c6",
   "registry_version": 2,
   "surfaces": [
     {
@@ -40,6 +40,9 @@
         "uquant/infrastructure/__init__.py",
         "uquant/infrastructure/atomic_files.py",
         "uquant/leader.py",
+        "uquant/market/__init__.py",
+        "uquant/market/replay.py",
+        "uquant/market/workspace.py",
         "uquant/market_risk.py",
         "uquant/models/__init__.py",
         "uquant/models/account.py",
@@ -234,6 +237,9 @@
         "uquant/cli.py",
         "uquant/contracts/runtime_identity.py",
         "uquant/contracts/universe.py",
+        "uquant/market/__init__.py",
+        "uquant/market/replay.py",
+        "uquant/market/workspace.py",
         "uquant/risk_sentinel/__main__.py",
         "uquant/risk_sentinel/calibration.py",
         "uquant/risk_sentinel/cli.py",
@@ -331,6 +337,9 @@
         "uquant/infrastructure/file_lock.py",
         "uquant/infrastructure/git_source.py",
         "uquant/leader.py",
+        "uquant/market/__init__.py",
+        "uquant/market/replay.py",
+        "uquant/market/workspace.py",
         "uquant/market_risk.py",
         "uquant/models/__init__.py",
         "uquant/models/account.py",

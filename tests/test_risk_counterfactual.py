@@ -438,7 +438,12 @@ def test_layered_shadow_emits_canonical_risk_attribution() -> None:
         highest_close=10.0,
     )
     targets, triggered = _layered_targets(
-        engine=SimpleNamespace(_raw={"sz000001": frame}),
+        engine=SimpleNamespace(
+            workspace=SimpleNamespace(
+                loaded_symbols=("sz000001",),
+                raw_frame=lambda _symbol: frame,
+            )
+        ),
         date=date,
         account=account,
         targets=(),

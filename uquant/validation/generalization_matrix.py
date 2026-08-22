@@ -900,8 +900,10 @@ def run_generalization_matrix(
     windows = official_windows(window_names)
     universe = load_ai_universe()
     engine = ProductionEngine(data_dir, cfg=expected_config)
-    engine._load(universe.symbols)
-    histories = {symbol: engine._raw[symbol]["close"] for symbol in universe.symbols}
+    engine.workspace.load(universe.symbols)
+    histories = {
+        symbol: engine.workspace.raw_frame(symbol)["close"] for symbol in universe.symbols
+    }
     scenario_rows: list[ContractScenario] = []
     for window in windows:
         causal_cutoff = (pd.Timestamp(window.start) - pd.Timedelta(days=1)).date().isoformat()
@@ -952,7 +954,7 @@ def run_generalization_matrix(
             raise RuntimeError(f"matrix replay has invalid final positions: {scenario.name}")
         final_date = pd.Timestamp(cast(str, raw["end"]))
         final_prices = {
-            str(symbol): engine._price(str(symbol), final_date)
+            str(symbol): engine.workspace.price(str(symbol), final_date)
             for symbol, position in positions.items()
             if isinstance(position, Mapping) and int(position.get("shares", 0)) > 0
         }

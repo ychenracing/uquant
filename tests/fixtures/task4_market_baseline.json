@@ -1,0 +1,51 @@
+{
+  "schema_version": 1,
+  "baseline": {
+    "commit": "f9fd489806a86b3a56f62b8668aafa252012d405",
+    "engine_blob": "4bc2917f3c5e06943a5f1f17ebb520619163b6b0",
+    "data_tree_sha256": "40383be1fb85aad22b082170467a93c4b45fd7a7cdd9037c8a7339e19bf96a7b"
+  },
+  "load": {
+    "keys": ["sh000300", "sh000682", "sz300308"],
+    "raw_shape": [2892, 6],
+    "raw_columns": ["open", "high", "low", "close", "volume", "amount"],
+    "raw_sha256": "366f498426be3e626d8e2787ea19cdd9184e7d19107464a32681dd4392e8e345",
+    "feature_shape": [2892, 33],
+    "feature_sha256": "d37dbe85ed6cc43fdfaa06e9b3aaf91a8d5ddc6ad0fc2fd6f5dcc1febb99161e",
+    "index_first": "2014-01-02",
+    "index_last": "2026-08-05"
+  },
+  "price": {
+    "latest_before": 18.06,
+    "open_exact": 18.25,
+    "before_first": {
+      "type": "RuntimeError",
+      "message": "sz300308 has no mark price at 2000-01-01"
+    },
+    "missing_symbol": {
+      "type": "KeyError",
+      "message": "'sh999999'"
+    },
+    "missing_field": {
+      "type": "KeyError",
+      "message": "'missing'"
+    }
+  },
+  "common_sessions": {
+    "count": 3060,
+    "first": "2014-01-02",
+    "last": "2026-08-05"
+  },
+  "reference_returns": {
+    "shape": [3061, 34],
+    "sha256": "5501993f418df539f16f17a568f873c777679af00794bda480a9d8a0e8ac7088",
+    "index_first": "2014-01-02",
+    "index_last": "2026-08-05"
+  },
+  "manifest": {
+    "digest": "bef611cac5b8bf011d67bec1458b68daf65bc6e3bb288a5dd45732a4ace43482",
+    "start": "2024-01-02",
+    "end": "2026-06-26",
+    "symbol_count": 36
+  }
+}

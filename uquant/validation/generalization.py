@@ -1875,8 +1875,8 @@ def run_generalization(
             if runner is not None:
                 raise ValueError("a custom runner must provide pre_window_prices")
             engine = ProductionEngine(data_dir)
-            engine._load(symbols)  # Same causal source used by production replay.
-            histories = {symbol: engine._raw[symbol]["close"] for symbol in symbols}
+            engine.workspace.load(symbols)  # Same causal source used by production replay.
+            histories = {symbol: engine.workspace.raw_frame(symbol)["close"] for symbol in symbols}
         evidence = compute_pre_window_evidence(
             histories,
             symbols,
@@ -1917,9 +1917,8 @@ def run_generalization(
                 )
                 if not isinstance(raw_positions, Mapping):
                     raise ValueError("backtest final positions are invalid")
-                final_prices = {
-                    str(symbol): engine._price(str(symbol), final_date) for symbol in raw_positions
-                }
+                price = engine.workspace.price
+                final_prices = {str(symbol): price(str(symbol), final_date) for symbol in raw_positions}
                 enriched = dict(result)
                 enriched["symbol_pnl"] = symbol_pnl_from_result(result, final_prices)
                 return enriched

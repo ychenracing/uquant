@@ -2,19 +2,18 @@
 
 from __future__ import annotations
 
-import contextlib
 import json
-from collections.abc import Iterable, Iterator
+from collections.abc import Iterable
 from dataclasses import dataclass, fields
 from pathlib import Path
 
 import pandas as pd
 
-import uquant.engine as engine_module
 from uquant.config import DEFAULT_CONFIG, SystemConfig
 from uquant.data import DataContractError, DataManifest, DataStore, normalize_symbol
 from uquant.engine import INDEX_SYMBOLS, ProductionEngine
 from uquant.leader import REFERENCE_UNIVERSE
+from uquant.market import ReplayHarness, ReplayUniverse
 from uquant.types import AccountState
 from uquant.validation.ai_era import require_ai_era_interval
 
@@ -116,21 +115,20 @@ class CandidateRunner:
         }
         return set(normalized) | visible_references | set(INDEX_SYMBOLS)
 
-    @contextlib.contextmanager
-    def _causal_reference_scope(self) -> Iterator[None]:
-        """Temporarily constrain the production module global inside an isolated replay."""
+    def replay_universe(self, symbols: Iterable[str]) -> ReplayUniverse:
+        """Bind physically present references without process-global mutation."""
 
-        visible = tuple(
+        normalized = tuple(sorted({normalize_symbol(symbol) for symbol in symbols}))
+        visible_references = tuple(
             symbol
             for symbol in REFERENCE_UNIVERSE
             if (self.data_dir / f"{symbol}.csv").is_file()
         )
-        previous = engine_module.REFERENCE_UNIVERSE  # type: ignore[attr-defined]
-        engine_module.REFERENCE_UNIVERSE = visible  # type: ignore[attr-defined]
-        try:
-            yield
-        finally:
-            engine_module.REFERENCE_UNIVERSE = previous  # type: ignore[attr-defined]
+        return ReplayUniverse.from_symbols(
+            tradable_symbols=normalized,
+            reference_symbols=visible_references,
+            index_symbols=INDEX_SYMBOLS,
+        )
 
     def trace_cell(
         self,
@@ -149,24 +147,23 @@ class CandidateRunner:
             raise ValueError("candidate trace requires a non-empty universe")
         engine = ProductionEngine(self.data_dir, self.cfg)
         engine.data = _CausalReplayDataStore(self.data_dir)
-        engine._load(self._causal_load_symbols(normalized))
-        sessions = engine._raw["sh000300"].index.intersection(engine._raw["sh000682"].index)
-        sessions = sessions[(sessions >= pd.Timestamp(start)) & (sessions <= pd.Timestamp(end))]
+        replay_universe = self.replay_universe(normalized)
+        harness = ReplayHarness(workspace=engine.workspace, universe=replay_universe)
+        sessions = harness.sessions(start=start, end=end)
         if len(sessions) < 2:
             raise RuntimeError("candidate trace window has fewer than two sessions")
         account = AccountState.empty(self.cfg.initial_cash)
-        raw_user_panel = {symbol: engine._raw[symbol] for symbol in normalized}
+        raw_user_panel = harness.raw_panel(normalized)
         observations: list[DecisionTrace] = []
         for date in sessions:
             fill_start = len(account.fills)
             engine.execution.execute_open(date=date, account=account, panel=raw_user_panel)
             equity = engine.equity(account, date)
-            with self._causal_reference_scope():
-                decision = engine.decide(
-                    symbols=normalized,
-                    as_of=str(date.date()),
-                    account=account,
-                )
+            decision = engine.decide(
+                symbols=normalized,
+                as_of=str(date.date()),
+                account=account,
+            )
             account.pending_orders = list(decision.pending_orders)
             family_votes = decision.risk_summary.get("family_votes", {})
             if isinstance(family_votes, dict):

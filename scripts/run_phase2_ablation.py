@@ -1614,7 +1614,7 @@ def _replay_cell(
         raise RuntimeError("ablation replay final positions are malformed")
     final_date = pd.Timestamp(str(raw.get("end", end)))
     final_prices = {
-        str(symbol): engine._price(str(symbol), final_date)
+        str(symbol): engine.workspace.price(str(symbol), final_date)
         for symbol, position in positions.items()
         if isinstance(position, Mapping) and int(position.get("shares", 0)) > 0
     }

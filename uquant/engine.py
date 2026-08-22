@@ -10,7 +10,7 @@ from collections.abc import Iterable
 from dataclasses import replace
 from pathlib import Path
 from statistics import median
-from typing import Any
+from typing import Any, cast
 
 import numpy as np
 import pandas as pd
@@ -41,7 +41,6 @@ from .execution import (
     plan_orders,
     reconcile_account_orders,
 )
-from .features import compute_features
 from .leader import (
     INDUSTRY,
     REFERENCE_UNIVERSE,
@@ -50,6 +49,8 @@ from .leader import (
     compute_leaders,
     compute_structural_leaders,
 )
+from .market import MarketWorkspace as _MarketWorkspace
+from .market import ReplayCache as _ReplayCache
 from .opportunity import classify_opportunity
 from .portfolio import PortfolioAllocator, current_weights
 from .reference import build_reference_context
@@ -81,7 +82,7 @@ from .types import (
 INDEX_SYMBOLS = ("sh000300", "sh000682")
 _LEGACY_INDUSTRY = "legacy_unmapped"
 _LEGACY_MANIFEST_SHA256 = "0" * 64
-_SHARED_RISK_TIMELINE_CACHE: dict[tuple[str, str, str, int], RiskEvidenceTimeline] = {}
+_SHARED_RISK_TIMELINE_CACHE: _ReplayCache[object, object] = _ReplayCache(capacity=8)
 _RISK_TIMELINE_BUILDER = build_risk_evidence_timeline
 _RISK_TIMELINE_CACHE_SCHEMA = "uquant.risk-evidence-cache.v1"
 
@@ -310,39 +311,41 @@ def code_fingerprint() -> str:
 class ProductionEngine:
     """Own the single decision path used by both daily operation and replay."""
 
+    def __setattr__(self, name: str, value: object) -> None:
+        """Keep the frozen ``data`` attribute and workspace authority identical."""
+        object.__setattr__(self, name, value)
+        workspace = self.__dict__.get("workspace")
+        if name == "data" and isinstance(workspace, _MarketWorkspace) and workspace.data is not value:
+            workspace.replace_data_store(cast(DataStore, value))
+
     def __init__(self, data_dir: str | Path, cfg: SystemConfig = DEFAULT_CONFIG) -> None:
         self.cfg = cfg
-        self.data = DataStore(data_dir)
+        self.workspace = _MarketWorkspace.production(
+            data_dir, cfg, reference_symbols=REFERENCE_UNIVERSE, index_symbols=INDEX_SYMBOLS
+        )
+        self.data = self.workspace.data
         self.execution = ExecutionPlanner(cfg)
         self.allocator = PortfolioAllocator(cfg)
-        self._raw: dict[str, pd.DataFrame] = {}
-        self._features: dict[str, pd.DataFrame] = {}
-        self._manifest_cache: dict[tuple[tuple[str, ...], str], str] = {}
-        self._reference_returns: pd.DataFrame | None = None
+        # Branch-free compatibility aliases for frozen test seams. Production,
+        # validation, research, and scripts use the owned workspace API.
+        self._raw = self.workspace._raw
+        self._features = self.workspace._features
         self._code_hash: str | None = None
         self._leader_score_cache: dict[tuple[object, ...], dict[str, LeaderScore]] = {}
-        self._risk_timeline_cache_key: tuple[str, str, str, int] | None = None
+        self._risk_timeline_cache_key: tuple[object, ...] | None = None
         self._risk_timeline_cache: RiskEvidenceTimeline | None = None
 
     def _load(self, symbols: Iterable[str]) -> None:
-        for symbol in sorted({normalize_symbol(item) for item in symbols}):
-            if symbol not in self._raw:
-                raw = self.data.load(symbol)
-                self._raw[symbol] = raw
-                self._features[symbol] = compute_features(raw, self.cfg)
-        if self._reference_returns is None and set(REFERENCE_UNIVERSE).issubset(self._raw):
-            self._reference_returns = pd.DataFrame(
-                {
-                    symbol: self._raw[symbol]["close"].pct_change(fill_method=None)
-                    for symbol in REFERENCE_UNIVERSE
-                }
-            )
+        """Compatibility forwarder; market ownership lives in ``workspace``."""
+        self.workspace.load(symbols)
 
     def _price(self, symbol: str, date: pd.Timestamp, field: str = "close") -> float:
-        frame = self._raw[symbol].loc[:date]
-        if frame.empty:
-            raise RuntimeError(f"{symbol} has no mark price at {date.date()}")
-        return float(frame.iloc[-1][field])
+        """Compatibility forwarder; market ownership lives in ``workspace``."""
+        return self.workspace.price(symbol, date, field)
+
+    @property
+    def _reference_returns(self) -> pd.DataFrame | None:
+        return self.workspace._reference_returns
 
     def _causal_risk_timeline(
         self,
@@ -359,33 +362,32 @@ class ProductionEngine:
         if common.empty:
             raise RuntimeError("Sentinel timeline has no common index session")
         full_as_of = str(pd.Timestamp(common[-1]).date())
-        timeline_symbols = tuple(sorted({*universe.symbols, *INDEX_SYMBOLS}))
-        full_data_digest = self.data.manifest(
-            timeline_symbols,
-            as_of=pd.Timestamp(full_as_of),
+        timeline_symbols = tuple(sorted({*universe.symbols, *self.workspace.universe.index_symbols}))
+        full_data_digest = self.workspace.manifest(
+            timeline_symbols, as_of=pd.Timestamp(full_as_of)
         ).digest
-        key = (
-            full_data_digest,
-            config_fingerprint(cfg),
-            str(universe.sha256),
-            id(build_risk_evidence_timeline),
-        )
-        disk_key = (
-            full_data_digest,
-            config_fingerprint(cfg),
-            str(universe.sha256),
-            self._code_hash or code_fingerprint(),
+        config_identity = config_fingerprint(cfg)
+        source_identity = self._code_hash or code_fingerprint()
+        key, disk_key = self.workspace.universe.cache_keys(
+            data_identity=full_data_digest,
+            config_identity=config_identity,
+            semantic_universe_identity=str(universe.sha256),
+            source_identity=source_identity,
+            builder_identity=build_risk_evidence_timeline,
         )
         if self._risk_timeline_cache_key != key:
-            timeline = _SHARED_RISK_TIMELINE_CACHE.get(key)
             disk_path = _risk_timeline_disk_path(disk_key)
-            if timeline is None and build_risk_evidence_timeline is _RISK_TIMELINE_BUILDER:
-                timeline = _load_risk_timeline_disk_cache(
-                    disk_path,
-                    key=disk_key,
-                )
-            if timeline is None:
-                timeline = build_risk_evidence_timeline(
+
+            def build_timeline() -> RiskEvidenceTimeline:
+                cached = None
+                if build_risk_evidence_timeline is _RISK_TIMELINE_BUILDER:
+                    cached = _load_risk_timeline_disk_cache(
+                        disk_path,
+                        key=disk_key,
+                    )
+                if cached is not None:
+                    return cached
+                built = build_risk_evidence_timeline(
                     as_of=full_as_of,
                     broad_frame=broad,
                     tech_frame=tech,
@@ -402,9 +404,14 @@ class ProductionEngine:
                     _write_risk_timeline_disk_cache(
                         disk_path,
                         key=disk_key,
-                        timeline=timeline,
+                        timeline=built,
                     )
-                _SHARED_RISK_TIMELINE_CACHE[key] = timeline
+                return built
+
+            timeline = cast(
+                RiskEvidenceTimeline,
+                _SHARED_RISK_TIMELINE_CACHE.get_or_build(key, build_timeline),
+            )
             self._risk_timeline_cache_key = key
             self._risk_timeline_cache = timeline
         if self._risk_timeline_cache is None:
@@ -479,7 +486,8 @@ class ProductionEngine:
         )
         if account.tactical_anchor_symbol:
             durable_symbols.add(account.tactical_anchor_symbol)
-        all_symbols = set(user_symbols) | durable_symbols | set(REFERENCE_UNIVERSE) | set(INDEX_SYMBOLS)
+        replay_universe = self.workspace.bind_tradable(set(user_symbols) | durable_symbols)
+        all_symbols = set(replay_universe.all_symbols)
         self._load(all_symbols)
         if date not in self._features["sh000300"].index or date not in self._features["sh000682"].index:
             raise RuntimeError("decision date is not a common index session")
@@ -493,36 +501,26 @@ class ProductionEngine:
                 verification_date = pd.Timestamp(verification_as_of).normalize()
                 if verification_date > date:
                     raise RuntimeError("account data provenance comes from a future date")
-                verification_key = (
+                verified_digest = self.workspace.manifest(
                     verification_symbols,
-                    str(verification_date.date()),
-                )
-                if verification_key not in self._manifest_cache:
-                    self._manifest_cache[verification_key] = self.data.manifest(
-                        verification_symbols,
-                        as_of=verification_date,
-                    ).digest
-                verified_digest = self._manifest_cache[verification_key]
+                    as_of=verification_date,
+                ).digest
             else:
                 # Accounts without an as-of boundary require their exact data
                 # snapshot. A successful run then records bounded provenance.
                 verified_digest = self.data.manifest(verification_symbols).digest
             if account.data_hash != verified_digest and self.cfg.fail_closed:
                 raise RuntimeError("historical data prefix differs from account state")
-        manifest_key = (current_symbols, str(date.date()))
-        if manifest_key not in self._manifest_cache:
-            self._manifest_cache[manifest_key] = self.data.manifest(
-                current_symbols,
-                as_of=date,
-            ).digest
-        data_digest = self._manifest_cache[manifest_key]
+        data_digest = self.workspace.manifest(current_symbols, as_of=date).digest
         if self._code_hash is None:
             self._code_hash = code_fingerprint()
         current_code_hash = self._code_hash
         if account.code_hash and account.code_hash != current_code_hash and self.cfg.fail_closed:
             raise RuntimeError("production code hash differs from account state")
         self._mark_account_positions(account, date)
-        active_reference_symbols = resolve_reference_symbols(date)
+        active_reference_symbols = self.workspace.filter_reference_symbols(
+            resolve_reference_symbols(date)
+        )
         reference_panel = {
             symbol: self._features[symbol] for symbol in active_reference_symbols
         }
@@ -570,7 +568,8 @@ class ProductionEngine:
         _, equity = current_weights(account, prices)
         universe = default_ai_universe()
         canonical_symbols = universe.symbols_as_of(str(date.date()))
-        if active_reference_symbols != canonical_symbols:
+        expected_reference_symbols = self.workspace.filter_reference_symbols(canonical_symbols)
+        if active_reference_symbols != expected_reference_symbols:
             raise RuntimeError(
                 "point-in-time reference registry differs from canonical universe"
             )
@@ -851,8 +850,8 @@ class ProductionEngine:
 
         start, end = require_ai_era_interval(start, end)
         user_symbols = tuple(sorted({normalize_symbol(item) for item in symbols}))
-        self._load(set(user_symbols) | set(REFERENCE_UNIVERSE) | set(INDEX_SYMBOLS))
-        sessions = self._raw["sh000300"].index.intersection(self._raw["sh000682"].index)
+        self.workspace.prepare(self.workspace.bind_tradable(user_symbols))
+        sessions = self.workspace.common_sessions(*self.workspace.universe.index_symbols)
         sessions = sessions[(sessions >= pd.Timestamp(start)) & (sessions <= pd.Timestamp(end))]
         if len(sessions) < 2:
             raise RuntimeError("backtest window has fewer than two sessions")
@@ -907,11 +906,9 @@ class ProductionEngine:
             initial_cash=account.initial_cash,
             risk_events=account.risk_events,
             benchmark_total_return=(
-                float(
-                    self._raw["sh000682"].loc[final_date, "close"]
-                    / self._raw["sh000682"].loc[sessions[0], "close"]
-                    - 1.0
-                )
+                self.workspace.price("sh000682", final_date)
+                / self.workspace.price("sh000682", sessions[0])
+                - 1.0
             ),
         )
         metrics.update(
@@ -1005,7 +1002,7 @@ class ProductionEngine:
                 final_equity=final_equity,
                 daily_ledger=daily_ledger,
                 benchmark_close={
-                    str(date.date()): float(self._raw["sh000682"].loc[date, "close"])
+                    str(date.date()): self.workspace.price("sh000682", date)
                     for date in sessions
                 },
             ),

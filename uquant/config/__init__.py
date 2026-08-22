@@ -12,6 +12,8 @@ from .model import (
 )
 
 SystemConfig.__module__ = __name__
+SystemConfig.override.__module__ = __name__
+SystemConfig.to_dict.__module__ = __name__
 canonical_control_float.__module__ = __name__
 config_fingerprint.__module__ = __name__
 

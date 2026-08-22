@@ -1,4 +1,13 @@
 {
+  "baseline": {
+    "baseline_blob_sha256": "6c7db41ae7630cb7cb0fbf65976259fd0033bd059f82a1a3e8c64063d1052d10",
+    "baseline_commit": "f9fd489806a86b3a56f62b8668aafa252012d405",
+    "baseline_path": "uquant/config.py",
+    "isolated_case_count": 188,
+    "order_probe_case_count": 7,
+    "pair_case_count": 17571,
+    "unknown_keyword_case_index": 195
+  },
   "cases": [
     {
       "changes": {

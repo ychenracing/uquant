@@ -1,5 +1,7 @@
 """Canonical domain-model package with stable compatibility identities."""
 
+from typing import Any, cast
+
 from .account import ACCOUNT_SCHEMA_VERSION, AccountState
 from .decision import Decision, LeaderScore, RiskAssessment, Target
 from .enums import (
@@ -28,9 +30,13 @@ from .trading import (
 
 AccountOrder.__module__ = "uquant.types"
 AccountState.__module__ = "uquant.types"
+cast(Any, AccountState.empty).__func__.__module__ = "uquant.types"
+AccountState.to_dict.__module__ = "uquant.types"
 AttributionIdentity.__module__ = "uquant.types"
 AttributionMechanism.__module__ = "uquant.types"
 Decision.__module__ = "uquant.types"
+Decision.canonical_payload.__module__ = "uquant.types"
+Decision.legacy_canonical_payload.__module__ = "uquant.types"
 Fill.__module__ = "uquant.types"
 LeaderScore.__module__ = "uquant.types"
 Lifecycle.__module__ = "uquant.types"
@@ -39,6 +45,7 @@ OrderStatus.__module__ = "uquant.types"
 OriginSubsystem.__module__ = "uquant.types"
 PendingOrder.__module__ = "uquant.types"
 Position.__module__ = "uquant.types"
+Position.sellable_shares.__module__ = "uquant.types"
 ReductionPolicy.__module__ = "uquant.types"
 Risk.__module__ = "uquant.types"
 RiskAssessment.__module__ = "uquant.types"

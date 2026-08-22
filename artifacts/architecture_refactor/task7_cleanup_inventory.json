@@ -1,0 +1,299 @@
+{
+  "baseline_commit": "36bc6968ee61eb578a8f19ee132aecb9b03fe7ca",
+  "baseline_tree": "3cc640cf565e116aa524466485dc7d9e1b511538",
+  "contract": "uquant-task7-pre-replacement-risk-inventory-v1",
+  "derivation": {
+    "authority": "Only Git objects reachable from immutable Task 6 commit 36bc6968ee61eb578a8f19ee132aecb9b03fe7ca are authority inputs. Candidate working-tree bytes are never used to reconstruct the monolith, its consumers, or its source-surface memberships.",
+    "checks": [
+      "git grep --fixed-strings for uquant/risk.py at the immutable commit",
+      "AST resolution of absolute, relative, and package-member uquant.risk imports across every tracked Python blob",
+      "AST collection of direct module attributes and literal getattr/setattr/delattr runtime seams",
+      "AST collection of dotted uquant.risk runtime identity strings",
+      "generation-2 source-surface memberships read from the immutable registry blob",
+      "Task 1 public API, definition, complexity, trace, authority, and performance artifacts read as immutable machine evidence"
+    ]
+  },
+  "entries": [
+    {
+      "path": "uquant/risk.py",
+      "classification": "CONSOLIDATE_THEN_DELETE",
+      "disposition": "REPLACE_WITH_SAME_NAME_PACKAGE_AFTER_EXACT_PARITY",
+      "authority_reason": "At the Task 7 boundary this blob is the sole Base Risk implementation and the only production owner of RiskAssessment.target_gross_cap, persistent risk/shock/recovery/capital/dynamic-anchor/sector-guard mutations, and Sentinel's final FREEZE_ONLY integration position. Its thresholds, comparison operators, evidence order, exception order, floating-point order, mutations, and returns are economic machine contracts.",
+      "git_blob_sha1": "96aeaaba421098ed2ec22a045e0b7d7e6da9396b",
+      "content_sha256": "74dd564b300e0b48e2a788c7be289e98bb033cf97d5b806c585f04e087ed36dd",
+      "size_bytes": 94481,
+      "frozen_public_names": [
+        "REFERENCE_ANCHORS",
+        "assess_risk"
+      ],
+      "consumed_compatibility_names": [
+        "REFERENCE_ANCHORS",
+        "_acute_sector_evacuation_required",
+        "_assess_base_risk",
+        "_capital_budget_repair_drawdown_confirmed",
+        "_evidence_family_votes",
+        "_persistent_crisis_cap",
+        "_portfolio_drawdowns",
+        "_strategic_crisis_severity",
+        "_strategic_damage_guard_required",
+        "_strategic_guard_level2_overlay_required",
+        "_update_capital_budget_ladder",
+        "_update_dynamic_anchors",
+        "assess_risk",
+        "build_base_market_family_snapshot"
+      ],
+      "frozen_runtime_seams": [
+        {
+          "name": "_assess_base_risk",
+          "consumer": "tests/test_risk_sentinel_integration.py",
+          "contract": "assess_risk performs a live uquant.risk module lookup so a patched Base assessor remains the only Sentinel FREEZE_ONLY integration boundary"
+        },
+        {
+          "name": "_update_dynamic_anchors",
+          "consumer": "tests/test_risk_transitions.py",
+          "contract": "the Base assessment path performs a live uquant.risk module lookup so re-anchor eligibility observation remains patchable"
+        }
+      ],
+      "exact_replacement_mapping": {
+        "REFERENCE_ANCHORS and every frozen compatibility import/reflection/pickle identity": "uquant/risk/__init__.py",
+        "_dynamic_anchor_candidate/_update_dynamic_anchors": "uquant/risk/anchors.py",
+        "_portfolio_drawdowns/_update_capital_budget_ladder/_capital_budget_repair_drawdown_confirmed": "uquant/risk/capital.py",
+        "strategic grace/damage/persistence/level-2/active helpers and _strategic_crisis_severity": "uquant/risk/strategic_guard.py",
+        "_reset_recovery_owner_rearm/_persistent_crisis_cap": "uquant/risk/recovery_state.py",
+        "_acute_sector_evacuation_required and unambiguous fixed-order transition slices": "uquant/risk/transitions.py",
+        "single Base Risk orchestration and assess_risk FREEZE_ONLY integration wrapper": "uquant/risk/assessment.py"
+      },
+      "live_references": {
+        "current_source_surface_registry": [
+          "economic_decision_v1",
+          "full_package_v1"
+        ],
+        "immutable_fixed_path_consumers": [
+          ".superpowers/sdd/2026-08-14-phase2-ai-era-generalization/task-8-report.md",
+          "artifacts/architecture_refactor/baseline_inventory.json",
+          "artifacts/current_heads/provenance_report.json",
+          "artifacts/holdout/decision_equivalence.json",
+          "artifacts/phase1/diagnostics/patches/level1-multi-family-cap.patch",
+          "artifacts/phase1/diagnostics/patches/strategic-severity-market.patch",
+          "artifacts/phase2/ablations/post_task8_source_contract.json",
+          "artifacts/phase2/ablations/registry.json",
+          "artifacts/sentinel/evidence_closure/phase7_recovery_inventory.json",
+          "artifacts/sentinel/risk_differential/capability_inventory.json",
+          "artifacts/sentinel/shadow_equivalence.json",
+          "benchmarks/architecture_refactor_public_api.json",
+          "benchmarks/risk_capability_registry.json",
+          "benchmarks/source_surface_registry.json",
+          "docs/reviews/2026-08-17-balanced-review.md",
+          "docs/reviews/phase7_artifact_review.md",
+          "docs/superpowers/plans/2026-08-13-phase1-ai-era-validation.md",
+          "docs/superpowers/plans/2026-08-17-balanced-code-and-documentation-review.md",
+          "docs/superpowers/plans/2026-08-19-risk-sentinel-causal-timeline.md",
+          "docs/superpowers/specs/2026-08-19-risk-sentinel-shadow-design.md",
+          "scripts/run_risk_differential.py",
+          "tests/test_phase8_consolidation_artifacts.py",
+          "tests/test_validation.py"
+        ],
+        "ast_import_consumers": [
+          {
+            "path": "tests/test_lifecycle_and_risk.py",
+            "symbols": [
+              "REFERENCE_ANCHORS",
+              "_persistent_crisis_cap",
+              "_portfolio_drawdowns",
+              "_update_dynamic_anchors",
+              "assess_risk"
+            ]
+          },
+          {
+            "path": "tests/test_risk_sentinel_integration.py",
+            "symbols": [
+              "risk module"
+            ]
+          },
+          {
+            "path": "tests/test_risk_transitions.py",
+            "symbols": [
+              "risk module",
+              "_capital_budget_repair_drawdown_confirmed",
+              "_evidence_family_votes",
+              "_strategic_crisis_severity",
+              "_strategic_damage_guard_required",
+              "_update_capital_budget_ladder",
+              "_update_dynamic_anchors",
+              "assess_risk",
+              "build_base_market_family_snapshot"
+            ]
+          },
+          {
+            "path": "tests/test_sector_guard.py",
+            "symbols": [
+              "risk module"
+            ]
+          },
+          {
+            "path": "uquant/application/__init__.py",
+            "symbols": [
+              "assess_risk"
+            ]
+          }
+        ],
+        "runtime_module_attribute_consumers": [
+          {
+            "path": "tests/test_risk_sentinel_integration.py",
+            "attributes": [
+              "_assess_base_risk",
+              "assess_risk"
+            ]
+          },
+          {
+            "path": "tests/test_risk_transitions.py",
+            "attributes": [
+              "_acute_sector_evacuation_required",
+              "_strategic_guard_level2_overlay_required",
+              "_update_dynamic_anchors"
+            ]
+          },
+          {
+            "path": "tests/test_sector_guard.py",
+            "attributes": [
+              "_acute_sector_evacuation_required"
+            ]
+          }
+        ],
+        "dotted_runtime_identity_consumers": [
+          {
+            "path": "tests/architecture/_analysis.py",
+            "values": [
+              "uquant.risk"
+            ]
+          },
+          {
+            "path": "tests/architecture/_baseline.py",
+            "values": [
+              "uquant.risk"
+            ]
+          },
+          {
+            "path": "tests/architecture/test_import_contracts.py",
+            "values": [
+              "uquant.risk"
+            ]
+          },
+          {
+            "path": "uquant/risk_sentinel/validation.py",
+            "values": [
+              "uquant.risk"
+            ]
+          }
+        ],
+        "current_executable_path_consumers": [
+          "benchmarks/source_surface_registry.json",
+          "scripts/run_risk_differential.py",
+          "tests/test_phase8_consolidation_artifacts.py",
+          "tests/test_validation.py"
+        ],
+        "historical_machine_evidence_to_preserve": [
+          "artifacts/architecture_refactor/baseline_inventory.json",
+          "artifacts/current_heads/provenance_report.json",
+          "artifacts/holdout/decision_equivalence.json",
+          "artifacts/phase1/diagnostics/patches/level1-multi-family-cap.patch",
+          "artifacts/phase1/diagnostics/patches/strategic-severity-market.patch",
+          "artifacts/phase2/ablations/post_task8_source_contract.json",
+          "artifacts/phase2/ablations/registry.json",
+          "artifacts/sentinel/evidence_closure/phase7_recovery_inventory.json",
+          "artifacts/sentinel/risk_differential/capability_inventory.json",
+          "artifacts/sentinel/shadow_equivalence.json",
+          "benchmarks/architecture_refactor_public_api.json",
+          "benchmarks/risk_capability_registry.json"
+        ],
+        "preservation_rulings": {
+          "benchmarks/architecture_refactor_public_api.json": "KEEP_AUTHORITATIVE: frozen Task 1 path and public contract remain immutable; Task 7 proves an exact same-name facade relocation instead of rewriting the baseline",
+          "benchmarks/risk_capability_registry.json and artifacts/sentinel/risk_differential/capability_inventory.json": "KEEP_AUTHORITATIVE_HISTORICAL_VOCABULARY: these sealed capability decisions identify the production file present during the historical closure; they are not current source discovery manifests",
+          "artifacts/current_heads/provenance_report.json, artifacts/holdout/decision_equivalence.json, artifacts/sentinel/shadow_equivalence.json": "KEEP_AUTHORITATIVE_HISTORICAL_BYTES: old per-path source identities remain verifiable and are not reinterpreted as package identities",
+          "artifacts/phase2/ablations/registry.json and post_task8_source_contract.json": "KEEP_AUTHORITATIVE_HISTORICAL_CONTRACT: protected-path evidence stays byte-identical; current generation-2 source identity migrates only through the reviewed source-surface registry",
+          "scripts/run_risk_differential.py": "KEEP_HISTORICAL_CAPABILITY_LABELS: the strings describe the closed historical Base Risk source in the sealed registry and do not read the current path; Task 10/11 may introduce a versioned current vocabulary only with separate evidence",
+          "tests/test_phase8_consolidation_artifacts.py and tests/test_validation.py": "KEEP_HISTORICAL_FIXTURE: literals assert an old delivery path set or dirty-source failure message and must not be rewritten as candidate authority",
+          "benchmarks/source_surface_registry.json": "MIGRATE_CURRENT_EXECUTABLE_IDENTITY: replace the monolith only in economic_decision_v1 and full_package_v1 with all seven reviewed package owners and reseal canonically"
+        }
+      },
+      "reflection_contract": {
+        "_acute_sector_evacuation_required": {
+          "raw_docstring": "Identify a newly confirmed, full-book fast collapse.\n\n    An ordinary synchronized sector break keeps the reviewed 40% gross cap.\n    Evacuation is reserved for the first observed session where both\n    equal-weight and economic-weight losses cross the existing fast-risk line\n    and almost all deployed capital is losing while the technology leadership\n    premium independently exceeds the existing sector-guard boundary.  Waiting for the ordinary\n    two-shock sector confirmation repeats the same evidence and exposes the\n    entire book to a second gap before the next-open order can execute.\n    No later outcome or universe identity enters.\n    ",
+          "signature": "(transition: 'SectorGuardTransition', cfg: 'SystemConfig', *, leadership_divergence: 'float', single_holding_observation: 'SectorObservation | None' = None, single_holding_is_leader: 'bool' = False) -> 'bool'"
+        },
+        "_assess_base_risk": {
+          "raw_docstring": "Assess market, breadth, correlation, holding, and drawdown risk.\n\n    This function is the sole authority for gross-exposure caps. It updates the\n    account's persistent shock/recovery state and returns the evidence used by\n    the portfolio allocator and daily report.\n    ",
+          "signature": "(*, date: 'pd.Timestamp', broad: 'pd.DataFrame', tech: 'pd.DataFrame', reference_panel: 'dict[str, pd.DataFrame]', reference_returns: 'pd.DataFrame | None', user_panel: 'dict[str, pd.DataFrame]', leaders: 'dict[str, LeaderScore]', account: 'AccountState', equity: 'float', cfg: 'SystemConfig', reference_context: 'ReferenceContext | None' = None, configured_universe_size: 'int | None' = None) -> 'RiskAssessment'"
+        },
+        "_capital_budget_repair_drawdown_confirmed": {
+          "raw_docstring": "Require drawdown repair before releasing a persistent capital tier.",
+          "signature": "(*, level: 'int', capital_drawdown: 'float', operating_drawdown: 'float', cfg: 'SystemConfig') -> 'bool'"
+        },
+        "_dynamic_anchor_candidate": {
+          "raw_docstring": "Select a deterministic, group-balanced anchor basket from references.",
+          "signature": "(leaders: 'dict[str, LeaderScore]', cfg: 'SystemConfig') -> 'list[str]'"
+        },
+        "_persistent_crisis_cap": {
+          "raw_docstring": "Keep severity—not a position label—as the persistent cap owner.",
+          "signature": "(severity: 'str', cfg: 'SystemConfig', *, reserve_backed: 'bool' = False) -> 'float'"
+        },
+        "_portfolio_drawdowns": {
+          "raw_docstring": null,
+          "signature": "(account: 'AccountState', equity: 'float') -> 'tuple[float, float]'"
+        },
+        "_reset_recovery_owner_rearm": {
+          "raw_docstring": "Close the prior recovery-owner epoch when a new shock takes control.",
+          "signature": "(account: 'AccountState') -> 'None'"
+        },
+        "_strategic_crisis_severity": {
+          "raw_docstring": "Classify strategic crises by live-book concentration, not its label.",
+          "signature": "(*, strategic_active: 'bool', reference_anchor_confirmed: 'bool', live_core_positions: 'int') -> 'str'"
+        },
+        "_strategic_damage_guard_active": {
+          "raw_docstring": "Keep a claimed guard authoritative until the strategy records repair.",
+          "signature": "(account: 'AccountState') -> 'bool'"
+        },
+        "_strategic_damage_guard_persists": {
+          "raw_docstring": "Keep the cap active only while a concentrated handoff is unfinished.",
+          "signature": "(account: 'AccountState', cfg: 'SystemConfig') -> 'bool'"
+        },
+        "_strategic_damage_guard_required": {
+          "raw_docstring": "Trim an immature concentrated handoff while preserving its lifecycle owner.",
+          "signature": "(*, account: 'AccountState', operating_drawdown: 'float', transition_damage: 'float', votes: 'int', cfg: 'SystemConfig') -> 'bool'"
+        },
+        "_strategic_grace_supported": {
+          "raw_docstring": "Protect only an evidenced early-cycle strategic reset.",
+          "signature": "(*, account: 'AccountState') -> 'bool'"
+        },
+        "_strategic_guard_level2_overlay_required": {
+          "raw_docstring": "Let an active strategic guard own a bounded level-2 refinement.",
+          "signature": "(account: 'AccountState') -> 'bool'"
+        },
+        "_update_capital_budget_ladder": {
+          "raw_docstring": "Escalate immediately and repair at most one capital tier per window.",
+          "signature": "(account: 'AccountState', *, observed_level: 'int', repair_confirmed: 'bool', repair_days: 'int') -> 'None'"
+        },
+        "_update_dynamic_anchors": {
+          "raw_docstring": "Apply confirmation hysteresis and reset break state on a true re-anchor.",
+          "signature": "(*, leaders: 'dict[str, LeaderScore]', account: 'AccountState', cfg: 'SystemConfig', allow_reanchor: 'bool') -> 'tuple[str, ...]'"
+        },
+        "assess_risk": {
+          "raw_docstring": "Return formal uquant risk with the optional freeze-only Sentinel overlay.\n\n    The base assessor remains the sole owner of state, severity, reductions,\n    and gross caps.  Integration is deliberately applied only to its immutable\n    result, so Sentinel cannot mutate the durable account or create a parallel\n    risk transition.\n    ",
+          "signature": "(*, date: 'pd.Timestamp', broad: 'pd.DataFrame', tech: 'pd.DataFrame', reference_panel: 'dict[str, pd.DataFrame]', reference_returns: 'pd.DataFrame | None', user_panel: 'dict[str, pd.DataFrame]', leaders: 'dict[str, LeaderScore]', account: 'AccountState', equity: 'float', cfg: 'SystemConfig', reference_context: 'ReferenceContext | None' = None, configured_universe_size: 'int | None' = None, sentinel_assessment: 'SentinelAssessment | None' = None, sentinel_opportunity: 'Opportunity | str | None' = None) -> 'RiskAssessment'"
+        }
+      },
+      "reproducibility": {
+        "content_command": "git cat-file blob 96aeaaba421098ed2ec22a045e0b7d7e6da9396b",
+        "byte_count_command": "git cat-file -s 96aeaaba421098ed2ec22a045e0b7d7e6da9396b",
+        "sha256_command": "git cat-file blob 96aeaaba421098ed2ec22a045e0b7d7e6da9396b | sha256sum",
+        "restore_command": "git cat-file blob 96aeaaba421098ed2ec22a045e0b7d7e6da9396b > uquant/risk.py",
+        "immutable_checkout_command": "git worktree add --detach /tmp/uquant-task7-baseline-36bc6968 36bc6968ee61eb578a8f19ee132aecb9b03fe7ca",
+        "reference_commands": [
+          "git grep -n --fixed-strings 'uquant/risk.py' 36bc6968ee61eb578a8f19ee132aecb9b03fe7ca -- .",
+          "resolve absolute/relative/package-member AST imports and runtime module attributes from every tracked *.py blob at 36bc6968ee61eb578a8f19ee132aecb9b03fe7ca",
+          "read benchmarks/source_surface_registry.json at 36bc6968ee61eb578a8f19ee132aecb9b03fe7ca and select surfaces containing uquant/risk.py"
+        ]
+      }
+    }
+  ]
+}

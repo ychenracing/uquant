@@ -132,6 +132,10 @@ MODULE_AUTHORITIES = {
     "uquant.portfolio.leaders.lifecycle": "production_safe",
     "uquant.portfolio.leaders.targets": "production_safe",
     "uquant.portfolio.pipeline": "production_safe",
+    "uquant.portfolio.recovery": "production_safe",
+    "uquant.portfolio.recovery.admission": "production_safe",
+    "uquant.portfolio.recovery.substitution": "production_safe",
+    "uquant.portfolio.recovery.targets": "production_safe",
     "uquant.portfolio.risk_reduction": "production_safe",
     "uquant.portfolio.strategic": "production_safe",
     "uquant.portfolio.strategic.discovery": "production_safe",
@@ -202,6 +206,7 @@ _CONTRACT_RELOCATIONS = {
     "uquant.contracts.universe": "uquant.validation.universe",
     "uquant.models.trading": "uquant.types",
     "uquant.portfolio.leaders.admission": "uquant.portfolio_leaders",
+    "uquant.portfolio.recovery.admission": "uquant.portfolio_recovery",
     "uquant.portfolio.strategic.discovery": "uquant.portfolio_strategic",
 }
 _DEBT_RELOCATIONS = {
@@ -280,6 +285,15 @@ _DEBT_RELOCATIONS = {
             "uquant.portfolio.strategic.discovery",
             "uquant.portfolio.strategic.lifecycle",
             "uquant.portfolio.strategic.targets",
+        )
+    },
+    **{
+        module: "uquant.portfolio_recovery"
+        for module in (
+            "uquant.portfolio.recovery",
+            "uquant.portfolio.recovery.admission",
+            "uquant.portfolio.recovery.substitution",
+            "uquant.portfolio.recovery.targets",
         )
     },
 }
@@ -757,6 +771,35 @@ _TASK8_RELOCATED_PRIVATE_IMPORT_GROUPS = (
         "uquant.portfolio.strategic.targets",
         ("_strategic_active_targets", "_strategic_completed_exit_targets"),
     ),
+    (
+        "uquant.portfolio.pipeline",
+        "uquant.portfolio.recovery.admission",
+        ("_recovery_admission_targets",),
+    ),
+    (
+        "uquant.portfolio.recovery",
+        "uquant.portfolio.recovery.substitution",
+        ("_recovery_anchor_substitution",),
+    ),
+    (
+        "uquant.portfolio.recovery.admission",
+        "uquant.portfolio.recovery.targets",
+        (
+            "_awaiting_recovery_cohort_targets",
+            "_controlled_oversold_rebound_targets",
+            "_locked_recovery_cohort_targets",
+            "_overextended_pullback_targets",
+            "_recovery_cohort_targets",
+        ),
+    ),
+    (
+        "uquant.portfolio.recovery.substitution",
+        "uquant.portfolio.recovery.targets",
+        (
+            "_confirmed_recovery_substitution_targets",
+            "_pending_recovery_substitution_targets",
+        ),
+    ),
 )
 _TASK8_RELOCATED_PRIVATE_IMPORTS = frozenset(
     f"{importer}:{imported_from}:{name}"
@@ -852,7 +895,49 @@ _TASK8_RELOCATED_FUNCTION_DEBT = {
         )
         for name in names
     },
+    **{
+        f"uquant.portfolio.recovery.{owner}:{name}": (
+            "uquant.portfolio:PortfolioAllocator._allocate_strategy"
+        )
+        for owner, names in (
+            ("admission", ("_recovery_admission_targets",)),
+            (
+                "targets",
+                (
+                    "_awaiting_recovery_cohort_targets",
+                    "_controlled_oversold_rebound_targets",
+                    "_locked_recovery_cohort_targets",
+                    "_overextended_pullback_targets",
+                    "_recovery_cohort_targets",
+                ),
+            ),
+        )
+        for name in names
+    },
+    **{
+        f"uquant.portfolio.recovery.{owner}:{name}": (
+            "uquant.portfolio_recovery:RecoveryPortfolioPolicy."
+            "_recovery_anchor_substitution"
+        )
+        for owner, names in (
+            ("substitution", ("_recovery_anchor_substitution",)),
+            (
+                "targets",
+                (
+                    "_confirmed_recovery_substitution_targets",
+                    "_pending_recovery_substitution_targets",
+                ),
+            ),
+        )
+        for name in names
+    },
 }
+
+_TASK8_ALLOCATE_STRATEGY_DEBT = frozenset(
+    identifier
+    for identifier, legacy in _TASK8_RELOCATED_FUNCTION_DEBT.items()
+    if legacy == "uquant.portfolio:PortfolioAllocator._allocate_strategy"
+)
 
 _TASK8_RELOCATED_TYPE_IGNORES = {
     f"uquant/portfolio/risk_reduction.py:{suffix}": f"uquant/portfolio.py:{suffix}"
@@ -1672,6 +1757,7 @@ def measured_debt(snapshot: Mapping[str, object]) -> dict[str, list[dict[str, ob
         for row in functions
         if int(row["lines"]) > FINAL_BUDGETS["max_function_lines"]
         and str(row["id"]) not in _TASK7_RELOCATED_FUNCTION_DEBT
+        and str(row["id"]) not in _TASK8_ALLOCATE_STRATEGY_DEBT
     ]
     task7_long = [
         row
@@ -1689,6 +1775,22 @@ def measured_debt(snapshot: Mapping[str, object]) -> dict[str, list[dict[str, ob
                 "measured_lines": largest["lines"],
             }
         )
+    task8_pipeline_long = [
+        row
+        for row in functions
+        if str(row["id"]) in _TASK8_ALLOCATE_STRATEGY_DEBT
+        and int(row["lines"]) > FINAL_BUDGETS["max_function_lines"]
+    ]
+    if task8_pipeline_long:
+        largest = max(task8_pipeline_long, key=lambda row: int(row["lines"]))
+        long_functions.append(
+            {
+                "id": "uquant.portfolio:PortfolioAllocator._allocate_strategy",
+                "path": largest["path"],
+                "qualname": largest["qualname"],
+                "measured_lines": largest["lines"],
+            }
+        )
     branchy_functions = [
         {
             "id": debt_id(row["id"]),
@@ -1699,6 +1801,7 @@ def measured_debt(snapshot: Mapping[str, object]) -> dict[str, list[dict[str, ob
         for row in functions
         if int(row["branch_points"]) > FINAL_BUDGETS["max_function_branch_points"]
         and str(row["id"]) not in _TASK7_RELOCATED_FUNCTION_DEBT
+        and str(row["id"]) not in _TASK8_ALLOCATE_STRATEGY_DEBT
     ]
     task7_branchy = [
         row
@@ -1711,6 +1814,25 @@ def measured_debt(snapshot: Mapping[str, object]) -> dict[str, list[dict[str, ob
         branchy_functions.append(
             {
                 "id": "uquant.risk:_assess_base_risk",
+                "path": branchiest["path"],
+                "qualname": branchiest["qualname"],
+                "measured_branch_points": branchiest["branch_points"],
+            }
+        )
+    task8_pipeline_branchy = [
+        row
+        for row in functions
+        if str(row["id"]) in _TASK8_ALLOCATE_STRATEGY_DEBT
+        and int(row["branch_points"]) > FINAL_BUDGETS["max_function_branch_points"]
+    ]
+    if task8_pipeline_branchy:
+        branchiest = max(
+            task8_pipeline_branchy,
+            key=lambda row: int(row["branch_points"]),
+        )
+        branchy_functions.append(
+            {
+                "id": "uquant.portfolio:PortfolioAllocator._allocate_strategy",
                 "path": branchiest["path"],
                 "qualname": branchiest["qualname"],
                 "measured_branch_points": branchiest["branch_points"],

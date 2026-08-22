@@ -123,6 +123,12 @@ _CHECKPOINT3_PACKAGE_PATHS = (
     "uquant/portfolio/strategic/lifecycle.py",
     "uquant/portfolio/strategic/targets.py",
 )
+_CHECKPOINT4_PACKAGE_PATHS = (
+    "uquant/portfolio/recovery/__init__.py",
+    "uquant/portfolio/recovery/admission.py",
+    "uquant/portfolio/recovery/substitution.py",
+    "uquant/portfolio/recovery/targets.py",
+)
 _CHECKPOINT2_TRANSPORT_NAMES = {
     "_session_distance": "_leader_session_distance",
 }
@@ -182,6 +188,27 @@ def _normalized_method(node: ast.FunctionDef) -> str:
     ):
         normalized.body[0].value.value = inspect.cleandoc(normalized.body[0].value.value)
     return ast.dump(normalized, include_attributes=False)
+
+
+def _expand_checkpoint4_pipeline(
+    candidate: ast.FunctionDef,
+    immutable: ast.FunctionDef,
+) -> ast.FunctionDef:
+    expanded = copy.deepcopy(candidate)
+    index = next(
+        index
+        for index, statement in enumerate(expanded.body)
+        if isinstance(statement, ast.Assign)
+        and isinstance(statement.value, ast.Call)
+        and isinstance(statement.value.func, ast.Name)
+        and statement.value.func.id == "_recovery_admission_targets"
+    )
+    assert ast.unparse(expanded.body[index + 1]) == (
+        "if recovery_admission_targets is not None:\n"
+        "    return recovery_admission_targets"
+    )
+    expanded.body[index : index + 2] = copy.deepcopy(immutable.body[78:82])
+    return expanded
 
 
 @pytest.fixture(scope="module")  # type: ignore[untyped-decorator]
@@ -404,7 +431,14 @@ def test_task8_checkpoint1_moved_methods_are_immutable_ast_exact() -> None:
         candidate = _function_nodes((ROOT / path).read_text(encoding="utf-8"))
         for name in names:
             observed.add(name)
-            assert _normalized_method(candidate[name]) == _normalized_method(immutable[name])
+            candidate_method = candidate[name]
+            if name == "_allocate_strategy":
+                candidate_method = _expand_checkpoint4_pipeline(
+                    candidate_method, immutable[name]
+                )
+            assert _normalized_method(candidate_method) == _normalized_method(
+                immutable[name]
+            )
     assert observed == set(immutable)
 
 
@@ -458,6 +492,8 @@ def test_task8_checkpoint1_source_surface_migration_is_exact() -> None:
             expected.update(_CHECKPOINT2_PACKAGE_PATHS)
         if "uquant/portfolio_strategic.py" in expected:
             expected.update(_CHECKPOINT3_PACKAGE_PATHS)
+        if "uquant/portfolio_recovery.py" in expected:
+            expected.update(_CHECKPOINT4_PACKAGE_PATHS)
         assert set(candidate_surfaces[identifier]["source_paths"]) == expected
         assert candidate_surfaces[identifier]["resource_paths"] == baseline["resource_paths"]
         assert {
@@ -533,16 +569,17 @@ def test_task8_checkpoint1_private_and_complexity_relocations_are_exact_and_clos
         if str(row["importer"]).startswith("uquant.portfolio.")
         or str(row["imported_from"]).startswith("uquant.portfolio.")
     }
-    checkpoint1_function_debt = {
-        identifier: legacy
-        for identifier, legacy in _TASK8_RELOCATED_FUNCTION_DEBT.items()
-        if legacy.startswith("uquant.portfolio:PortfolioAllocator.")
-    }
-    assert set(checkpoint1_function_debt) == {
+    expected_checkpoint1_functions = {
         f"{path.removesuffix('.py').replace('/', '.')}:{name}"
         for path, names in _CHECKPOINT1_OWNER_METHODS.items()
         for name in names
     }
+    checkpoint1_function_debt = {
+        identifier: legacy
+        for identifier, legacy in _TASK8_RELOCATED_FUNCTION_DEBT.items()
+        if identifier in expected_checkpoint1_functions
+    }
+    assert set(checkpoint1_function_debt) == expected_checkpoint1_functions
     assert set(checkpoint1_function_debt.values()) == {
         f"uquant.portfolio:PortfolioAllocator.{name}"
         for names in _CHECKPOINT1_OWNER_METHODS.values()
@@ -688,9 +725,8 @@ def test_task8_checkpoint2_private_and_complexity_relocations_are_exact() -> Non
     }
     checkpoint12_functions = {
         identifier
-        for identifier, legacy in _TASK8_RELOCATED_FUNCTION_DEBT.items()
-        if legacy.startswith("uquant.portfolio:PortfolioAllocator.")
-        or legacy.startswith("uquant.portfolio_leaders:LeaderPortfolioPolicy.")
+        for identifier in _TASK8_RELOCATED_FUNCTION_DEBT
+        if identifier in expected_functions
     }
     assert checkpoint12_functions == expected_functions
     assert {

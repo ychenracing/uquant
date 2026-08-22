@@ -1,0 +1,292 @@
+{
+  "baseline_commit": "908399a80f27a028c35f201b9bf5f1688eb412c0",
+  "baseline_tree": "8fd744507922e3d143923939e7d5e75f9148afc1",
+  "contract": "uquant-task6-pre-replacement-inventory-v1",
+  "derivation": {
+    "authority": "Only Git objects reachable from the immutable baseline commit are authoritative for this inventory. The edited candidate tree is not an input.",
+    "checks": [
+      "git grep --fixed-strings for each physical path at 908399a80f27a028c35f201b9bf5f1688eb412c0",
+      "AST resolution of absolute, relative, and package-member imports from every tracked Python blob at the baseline commit",
+      "AST collection of dotted runtime identity and monkeypatch strings",
+      "generation-2 source-surface registry membership read from the baseline blob",
+      "Task 1 public API, trace, performance, tracked-authority, and definition inventory read from immutable machine artifacts"
+    ]
+  },
+  "entries": [
+    {
+      "path": "uquant/execution.py",
+      "classification": "CONSOLIDATE_THEN_DELETE",
+      "disposition": "REPLACE_WITH_SAME_NAME_PACKAGE_AFTER_EXACT_PARITY",
+      "authority_reason": "At the Task 6 boundary this blob is the sole production implementation of fees, market blocking, order planning, pending reuse, account-order reconciliation, risk-priority tranche handling, sell-cost allocation, position rebuild, and next-open execution. Its ordering, arithmetic, mutation, attribution, and failure behavior are economic machine contracts.",
+      "git_blob_sha1": "0549b9b08c933d9e18e773f613c33ea9bbeaf922",
+      "content_sha256": "f598b6722e8dec0a879804db0dc9ec60fbe8d758945f1b6cb32bdd6a6cad975d",
+      "size_bytes": 46191,
+      "frozen_public_names": [
+        "ExecutionPlanner",
+        "_RISK_LIFECYCLE_PRIORITY",
+        "fee_components",
+        "merge_pending_orders",
+        "plan_orders",
+        "reconcile_account_orders",
+        "risk_priority_tranche_key"
+      ],
+      "exact_replacement_mapping": {
+        "fee_components": "uquant/execution/fees.py",
+        "_limit_rate/_blocked": "uquant/execution/market_constraints.py",
+        "plan_orders": "uquant/execution/order_planning.py",
+        "merge_pending_orders and its nested helpers": "uquant/execution/pending.py",
+        "order registration/active status/mutating reconciliation/batch preflight/reconcile_account_orders": "uquant/execution/reconciliation.py",
+        "risk_priority_tranche_key/sell selection and consumption/sell-cost allocation/position rebuild": "uquant/execution/tranches.py",
+        "ExecutionPlanner/execute_open": "uquant/execution/open_execution.py",
+        "frozen compatibility surface": "uquant/execution/__init__.py"
+      },
+      "live_references": {
+        "current_source_surface_registry": [
+          "economic_decision_v1",
+          "execution_account_v1",
+          "full_package_v1"
+        ],
+        "immutable_fixed_path_consumers": [
+          "README.md",
+          "artifacts/architecture_refactor/baseline_inventory.json",
+          "artifacts/architecture_refactor/task5_cleanup_inventory.json",
+          "artifacts/current_heads/provenance_report.json",
+          "artifacts/holdout/decision_equivalence.json",
+          "artifacts/phase2/ablations/registry.json",
+          "artifacts/sentinel/risk_differential/capability_inventory.json",
+          "artifacts/sentinel/shadow_equivalence.json",
+          "benchmarks/architecture_refactor_public_api.json",
+          "benchmarks/risk_capability_registry.json",
+          "benchmarks/source_surface_registry.json",
+          "docs/reviews/2026-08-17-balanced-review.md",
+          "docs/superpowers/plans/2026-08-13-phase1-ai-era-validation.md",
+          "docs/superpowers/plans/2026-08-14-phase2-ai-era-generalization.md",
+          "docs/superpowers/plans/2026-08-17-balanced-code-and-documentation-review.md",
+          "docs/superpowers/specs/2026-08-19-risk-sentinel-shadow-design.md",
+          "scripts/run_risk_differential.py",
+          "tests/test_phase2_ablation.py"
+        ],
+        "ast_import_consumers": [
+          {"path": "research/risk_counterfactual.py", "symbols": ["merge_pending_orders", "plan_orders", "reconcile_account_orders"]},
+          {"path": "tests/test_attribution_identity.py", "symbols": ["ExecutionPlanner", "merge_pending_orders", "plan_orders", "reconcile_account_orders"]},
+          {"path": "tests/test_execution.py", "symbols": ["ExecutionPlanner", "fee_components", "merge_pending_orders", "plan_orders", "reconcile_account_orders"]},
+          {"path": "tests/test_lifecycle_and_risk.py", "symbols": ["ExecutionPlanner", "merge_pending_orders", "plan_orders", "reconcile_account_orders"]},
+          {"path": "tests/test_properties.py", "symbols": ["fee_components"]},
+          {"path": "tests/test_recovery_contracts.py", "symbols": ["plan_orders"]},
+          {"path": "tests/test_sentinel_pending_buy_cancellation.py", "symbols": ["ExecutionPlanner", "reconcile_account_orders"]},
+          {"path": "uquant/broker.py", "symbols": ["_allocate_sell_costs", "risk_priority_tranche_key"]},
+          {"path": "uquant/engine.py", "symbols": ["ExecutionPlanner", "merge_pending_orders", "plan_orders", "reconcile_account_orders"]}
+        ],
+        "historical_machine_evidence_to_preserve": [
+          "artifacts/architecture_refactor/baseline_inventory.json",
+          "artifacts/architecture_refactor/task5_cleanup_inventory.json",
+          "artifacts/current_heads/provenance_report.json",
+          "artifacts/holdout/decision_equivalence.json",
+          "artifacts/phase2/ablations/registry.json",
+          "artifacts/sentinel/risk_differential/capability_inventory.json",
+          "artifacts/sentinel/shadow_equivalence.json",
+          "benchmarks/architecture_refactor_public_api.json",
+          "benchmarks/risk_capability_registry.json",
+          "benchmarks/source_surface_registry.json"
+        ]
+      },
+      "reproducibility": {
+        "content_command": "git cat-file blob 0549b9b08c933d9e18e773f613c33ea9bbeaf922",
+        "byte_count_command": "git cat-file -s 0549b9b08c933d9e18e773f613c33ea9bbeaf922",
+        "sha256_command": "git cat-file blob 0549b9b08c933d9e18e773f613c33ea9bbeaf922 | sha256sum",
+        "restore_command": "git cat-file blob 0549b9b08c933d9e18e773f613c33ea9bbeaf922 > uquant/execution.py",
+        "reference_commands": [
+          "git grep -n --fixed-strings 'uquant/execution.py' 908399a80f27a028c35f201b9bf5f1688eb412c0 -- .",
+          "resolve absolute/relative AST imports of uquant.execution from every tracked *.py blob at 908399a80f27a028c35f201b9bf5f1688eb412c0",
+          "read benchmarks/source_surface_registry.json from 908399a80f27a028c35f201b9bf5f1688eb412c0 and select surfaces containing uquant/execution.py"
+        ]
+      }
+    },
+    {
+      "path": "uquant/engine.py",
+      "classification": "CONSOLIDATE_THEN_RETAIN_FACADE",
+      "disposition": "RETAIN_THIN_COMPATIBILITY_FACADE_AFTER_APPLICATION_EXTRACTION",
+      "authority_reason": "At the Task 6 boundary this blob is the sole production decision and backtest orchestrator and owns the frozen ProductionEngine identity, public metrics/fingerprint entry points, causal risk-timeline cache seams, and runtime monkeypatch lookups. The path and class remain authoritative while concrete application responsibility is mechanically relocated.",
+      "git_blob_sha1": "084c7d76e9a787beb3e06c3908731ee2b7c9a389",
+      "content_sha256": "22b7b54437d8912e0917b61a68f23360368576928653c136e34fa97895c89d92",
+      "size_bytes": 51814,
+      "frozen_public_names": [
+        "INDEX_SYMBOLS",
+        "ProductionEngine",
+        "_LEGACY_INDUSTRY",
+        "_LEGACY_MANIFEST_SHA256",
+        "_RISK_TIMELINE_BUILDER",
+        "_RISK_TIMELINE_CACHE_SCHEMA",
+        "_SHARED_RISK_TIMELINE_CACHE",
+        "code_fingerprint",
+        "performance_metrics"
+      ],
+      "frozen_runtime_seams": [
+        "assess_risk",
+        "evaluate_sentinel",
+        "reconcile_account_orders",
+        "build_risk_evidence_timeline",
+        "code_fingerprint",
+        "_SHARED_RISK_TIMELINE_CACHE",
+        "_load_risk_timeline_disk_cache",
+        "_write_risk_timeline_disk_cache",
+        "_RISK_TIMELINE_BUILDER"
+      ],
+      "frozen_engine_instance_contract": [
+        "cfg",
+        "workspace",
+        "data",
+        "execution",
+        "allocator",
+        "_raw",
+        "_features",
+        "_code_hash",
+        "leader/risk cache attributes",
+        "_load",
+        "_price",
+        "_reference_returns",
+        "_causal_risk_timeline",
+        "equity",
+        "_mark_account_positions",
+        "decide",
+        "deterministic_decision",
+        "backtest"
+      ],
+      "exact_replacement_mapping": {
+        "code_fingerprint": "uquant/provenance/fingerprints.py registry-owned surface implementation, delegated by uquant/engine.py",
+        "canonical risk-timeline JSON/path/disk read-write/cache key/build/bounded shared cache": "uquant/application/risk_timeline_cache.py",
+        "decision config/attribution attachment/ordered decide body/deterministic-copy orchestration": "uquant/application/decision.py",
+        "backtest replay loop": "uquant/application/backtest.py",
+        "_drawdown_stats/performance_metrics": "uquant/application/metrics.py",
+        "ProductionEngine identity/constructor/frozen attributes/compatibility wrappers/runtime lookup seams/stable exports": "uquant/engine.py"
+      },
+      "live_references": {
+        "current_source_surface_registry": [
+          "economic_decision_v1",
+          "full_package_v1"
+        ],
+        "immutable_fixed_path_consumers": [
+          "README.md",
+          "artifacts/architecture_refactor/baseline_inventory.json",
+          "artifacts/architecture_refactor/task5_cleanup_inventory.json",
+          "artifacts/current_heads/provenance_report.json",
+          "artifacts/holdout/decision_equivalence.json",
+          "artifacts/sentinel/evidence_closure/phase7_recovery_inventory.json",
+          "artifacts/sentinel/shadow_equivalence.json",
+          "benchmarks/architecture_refactor_public_api.json",
+          "benchmarks/source_surface_registry.json",
+          "docs/reviews/2026-08-17-balanced-review.md",
+          "docs/reviews/phase7_artifact_review.md",
+          "docs/superpowers/plans/2026-08-13-phase1-ai-era-validation.md",
+          "docs/superpowers/plans/2026-08-14-phase2-ai-era-generalization.md",
+          "docs/superpowers/plans/2026-08-17-balanced-code-and-documentation-review.md",
+          "docs/superpowers/plans/2026-08-19-risk-sentinel-causal-timeline.md",
+          "docs/superpowers/specs/2026-08-19-risk-sentinel-shadow-design.md",
+          "scripts/run_phase2_ablation.py",
+          "tests/test_engineering_gate_edges.py",
+          "tests/test_market_workspace.py",
+          "tests/test_phase8_consolidation_artifacts.py",
+          "tests/test_source_surface_contracts.py",
+          "tests/test_source_surface_provenance.py",
+          "tests/test_validation.py"
+        ],
+        "ast_import_consumers": [
+          {"path": "research/candidate_runner.py", "symbols": ["INDEX_SYMBOLS", "ProductionEngine"]},
+          {"path": "research/first_divergence.py", "symbols": ["ProductionEngine"]},
+          {"path": "research/sentinel_evidence_closure.py", "symbols": ["INDEX_SYMBOLS", "ProductionEngine", "code_fingerprint"]},
+          {"path": "scripts/production_observation.py", "symbols": ["code_fingerprint"]},
+          {"path": "scripts/run_current_heads_competitor_matrix.py", "symbols": ["ProductionEngine"]},
+          {"path": "scripts/run_five_window_outperformance.py", "symbols": ["ProductionEngine"]},
+          {"path": "scripts/run_phase1_diagnostic.py", "symbols": ["ProductionEngine"]},
+          {"path": "scripts/run_phase2_ablation.py", "symbols": ["ProductionEngine"]},
+          {"path": "scripts/run_risk_counterfactual.py", "symbols": ["INDEX_SYMBOLS", "ProductionEngine", "_attach_target_attribution", "performance_metrics"]},
+          {"path": "scripts/run_window_outperformance.py", "symbols": ["ProductionEngine"]},
+          {"path": "tests/architecture/_analysis.py", "symbols": ["ProductionEngine"]},
+          {"path": "tests/architecture/_generate_baselines.py", "symbols": ["code_fingerprint"]},
+          {"path": "tests/architecture/conftest.py", "symbols": ["engine module"]},
+          {"path": "tests/architecture/test_public_api_contracts.py", "symbols": ["code_fingerprint"]},
+          {"path": "tests/test_ai_era_contract.py", "symbols": ["ProductionEngine"]},
+          {"path": "tests/test_attribution_identity.py", "symbols": ["ProductionEngine", "_attach_target_attribution"]},
+          {"path": "tests/test_data_and_leader.py", "symbols": ["ProductionEngine"]},
+          {"path": "tests/test_economic_attribution.py", "symbols": ["ProductionEngine", "code_fingerprint"]},
+          {"path": "tests/test_engine_contracts.py", "symbols": ["engine module", "ProductionEngine", "_decision_config_for_universe", "code_fingerprint", "performance_metrics"]},
+          {"path": "tests/test_first_divergence.py", "symbols": ["ProductionEngine"]},
+          {"path": "tests/test_future_holdout.py", "symbols": ["code_fingerprint"]},
+          {"path": "tests/test_future_holdout_runtime.py", "symbols": ["INDEX_SYMBOLS", "code_fingerprint"]},
+          {"path": "tests/test_generalization_matrix.py", "symbols": ["code_fingerprint"]},
+          {"path": "tests/test_market_cache.py", "symbols": ["engine module", "INDEX_SYMBOLS", "ProductionEngine"]},
+          {"path": "tests/test_market_replay.py", "symbols": ["engine module"]},
+          {"path": "tests/test_market_workspace.py", "symbols": ["INDEX_SYMBOLS", "ProductionEngine"]},
+          {"path": "tests/test_phase2_ablation.py", "symbols": ["ProductionEngine"]},
+          {"path": "tests/test_recovery_contracts.py", "symbols": ["ProductionEngine", "_attach_target_attribution"]},
+          {"path": "tests/test_risk_replay_runtime.py", "symbols": ["engine module"]},
+          {"path": "tests/test_risk_sentinel_cli.py", "symbols": ["code_fingerprint"]},
+          {"path": "tests/test_risk_sentinel_shadow_equivalence.py", "symbols": ["code_fingerprint"]},
+          {"path": "uquant/__init__.py", "symbols": ["ProductionEngine"]},
+          {"path": "uquant/cli.py", "symbols": ["ProductionEngine", "code_fingerprint"]},
+          {"path": "uquant/validation/competitor.py", "symbols": ["ProductionEngine"]},
+          {"path": "uquant/validation/generalization.py", "symbols": ["ProductionEngine"]},
+          {"path": "uquant/validation/generalization_matrix.py", "symbols": ["ProductionEngine", "code_fingerprint"]},
+          {"path": "uquant/validation/generalization_reference.py", "symbols": ["code_fingerprint"]},
+          {"path": "uquant/validation/holdout_runtime.py", "symbols": ["INDEX_SYMBOLS", "ProductionEngine"]},
+          {"path": "uquant/validation/promotion.py", "symbols": ["ProductionEngine"]}
+        ],
+        "dotted_runtime_identity_consumers": [
+          {"path": "tests/test_engine_contracts.py", "values": ["uquant.engine.assess_risk"]},
+          {"path": "uquant/validation/generalization.py", "values": ["uquant.engine.ProductionEngine"]},
+          {"path": "uquant/validation/promotion.py", "values": ["uquant.engine.ProductionEngine"]}
+        ],
+        "runtime_monkeypatch_and_cache_consumers": [
+          "tests/architecture/conftest.py",
+          "tests/test_engine_contracts.py",
+          "tests/test_market_cache.py",
+          "tests/test_market_replay.py"
+        ],
+        "historical_machine_evidence_to_preserve": [
+          "artifacts/architecture_refactor/baseline_inventory.json",
+          "artifacts/architecture_refactor/task5_cleanup_inventory.json",
+          "artifacts/current_heads/provenance_report.json",
+          "artifacts/holdout/decision_equivalence.json",
+          "artifacts/sentinel/evidence_closure/phase7_recovery_inventory.json",
+          "artifacts/sentinel/shadow_equivalence.json",
+          "benchmarks/architecture_refactor_public_api.json",
+          "benchmarks/source_surface_registry.json"
+        ]
+      },
+      "reproducibility": {
+        "content_command": "git cat-file blob 084c7d76e9a787beb3e06c3908731ee2b7c9a389",
+        "byte_count_command": "git cat-file -s 084c7d76e9a787beb3e06c3908731ee2b7c9a389",
+        "sha256_command": "git cat-file blob 084c7d76e9a787beb3e06c3908731ee2b7c9a389 | sha256sum",
+        "restore_command": "git cat-file blob 084c7d76e9a787beb3e06c3908731ee2b7c9a389 > uquant/engine.py",
+        "reference_commands": [
+          "git grep -n --fixed-strings 'uquant/engine.py' 908399a80f27a028c35f201b9bf5f1688eb412c0 -- .",
+          "resolve absolute/relative AST imports and package-member imports of uquant.engine from every tracked *.py blob at 908399a80f27a028c35f201b9bf5f1688eb412c0",
+          "collect AST string constants beginning uquant.engine. and direct runtime seam lookups from tracked Python blobs at 908399a80f27a028c35f201b9bf5f1688eb412c0",
+          "read benchmarks/source_surface_registry.json from 908399a80f27a028c35f201b9bf5f1688eb412c0 and select surfaces containing uquant/engine.py"
+        ]
+      }
+    }
+  ],
+  "retained_authoritative_inputs": [
+    {
+      "path": "requirements.txt",
+      "classification": "KEEP_AUTHORITATIVE",
+      "reason": "It remains bound into active source-identity contracts and historical verification; Task 6 does not alter or conditionally delete it."
+    },
+    {
+      "path": "artifacts/architecture_refactor/baseline_inventory.json",
+      "classification": "KEEP_AUTHORITATIVE",
+      "reason": "Task 1 immutable API, definition, trace, replay, performance, and tracked-file authority evidence."
+    },
+    {
+      "path": "benchmarks/architecture_refactor_public_api.json",
+      "classification": "KEEP_AUTHORITATIVE",
+      "reason": "Task 1 frozen engine/execution signatures, exports, errors, and Decision-to-Fill-to-AccountState trace."
+    },
+    {
+      "path": "benchmarks/source_surface_registry.json",
+      "classification": "KEEP_AUTHORITATIVE",
+      "reason": "Generation-2 reviewed membership authority for all five exact historical _v1 surface IDs; Task 6 updates current membership without changing historical semantics."
+    }
+  ]
+}

@@ -20,9 +20,9 @@ from ._task8_inventory import build_task8_inventory, current_reflection_contract
 
 _TASK8_START = "4b6bedb03fb7c58914d9d5032a2514c67f41f6ba"
 _TASK8_START_TREE = "d3824f7c5d89521b8284b5de08cc1e82e3ab7ebd"
-_INVENTORY_COMMIT = "d45c2abb713965152eab73755027a82209e9803d"
-_TRACE_LOGIC_BLOB = "ed9d36f303c207b139065737a012a2fbe763d898"
-_TRACE_RUNNER_SHA256 = "7864de33b5790aca8695182ea16810b7f2fc73d5fc65f60b286a3c1ea87c0530"
+_TRACE_LOGIC_COMMIT = "3aadf021dce9ed77c2359065146e38209866789c"
+_TRACE_LOGIC_BLOB = "cce9498d851d4007c57b2ba5eaa2e6f3216c444e"
+_TRACE_RUNNER_SHA256 = "00672c67b31374c50e1e56e236a45609374637b86f9900d47dc550abe5b1f1c3"
 _INVENTORY = ROOT / "artifacts" / "architecture_refactor" / "task8_cleanup_inventory.json"
 _DAILY_TRACE = ROOT / "benchmarks" / "task8_daily_portfolio_trace.json"
 _TRACE_RUNNER = ROOT / "tests" / "architecture" / "_task8_portfolio_trace.py"
@@ -79,7 +79,7 @@ def _assert_inventory_seals(payload: dict[str, Any]) -> None:
 
 @pytest.fixture(scope="module")  # type: ignore[untyped-decorator]
 def immutable_task8_inventory() -> dict[str, Any]:
-    return build_task8_inventory(ROOT)
+    return cast(dict[str, Any], build_task8_inventory(ROOT))
 
 
 @pytest.fixture(scope="module")  # type: ignore[untyped-decorator]
@@ -93,7 +93,7 @@ def immutable_task8_trace(tmp_path_factory: pytest.TempPathFactory) -> dict[str,
             implementation_identities=_IMPLEMENTATION_IDENTITIES,
             runner=_TRACE_RUNNER,
             runner_sha256=_TRACE_RUNNER_SHA256,
-            logic_commit=_INVENTORY_COMMIT,
+            logic_commit=_TRACE_LOGIC_COMMIT,
             logic_blob=_TRACE_LOGIC_BLOB,
         ),
     )

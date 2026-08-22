@@ -55,6 +55,15 @@ _FINGERPRINT_RUNTIME_CLOSURE_PATHS = {
     "uquant/provenance/fingerprints.py",
     "uquant/provenance/surfaces.py",
 }
+_TASK7_RISK_PACKAGE_PATHS = {
+    "uquant/risk/__init__.py",
+    "uquant/risk/anchors.py",
+    "uquant/risk/assessment.py",
+    "uquant/risk/capital.py",
+    "uquant/risk/recovery_state.py",
+    "uquant/risk/strategic_guard.py",
+    "uquant/risk/transitions.py",
+}
 
 _EXECUTION_OWNERS = {
     "fee_components": "uquant/execution/fees.py",
@@ -418,6 +427,9 @@ def test_task6_source_surface_migration_is_exact_for_all_five_v1_surfaces() -> N
         expected_sources = set(immutable[identifier]["source_paths"])
         expected_sources.discard("uquant/execution.py")
         expected_sources.update(additions[identifier])
+        if "uquant/risk.py" in expected_sources:
+            expected_sources.remove("uquant/risk.py")
+            expected_sources.update(_TASK7_RISK_PACKAGE_PATHS)
         assert set(candidate[identifier]["source_paths"]) == expected_sources
         assert candidate[identifier]["resource_paths"] == immutable[identifier]["resource_paths"]
 

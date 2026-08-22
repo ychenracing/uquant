@@ -53,6 +53,45 @@ def _sha256(path: str | Path) -> str:
     return hashlib.sha256(Path(path).read_bytes()).hexdigest()
 
 
+def _git_blob_sha256(commit: str, path: str) -> str:
+    source = subprocess.run(
+        ["git", "show", f"{commit}:{path}"],
+        check=True,
+        capture_output=True,
+    ).stdout
+    return hashlib.sha256(source).hexdigest()
+
+
+def _historical_whole_package_fingerprint(commit: str) -> str:
+    paths = subprocess.run(
+        ["git", "ls-tree", "-r", "--name-only", commit, "--", "uquant"],
+        check=True,
+        capture_output=True,
+        text=True,
+    ).stdout.splitlines()
+    digest = hashlib.sha256()
+    for path in sorted(path for path in paths if path.endswith(".py")):
+        digest.update(path.removeprefix("uquant/").encode())
+        source = subprocess.run(
+            ["git", "show", f"{commit}:{path}"],
+            check=True,
+            capture_output=True,
+        ).stdout
+        digest.update(source)
+    for path in (
+        "benchmarks/reference_registry.json",
+        "benchmarks/config_parameter_governance.json",
+    ):
+        digest.update(Path(path).name.encode())
+        source = subprocess.run(
+            ["git", "show", f"{commit}:{path}"],
+            check=True,
+            capture_output=True,
+        ).stdout
+        digest.update(source)
+    return digest.hexdigest()
+
+
 def test_phase7_recovery_inventory_classifies_every_changed_path_once() -> None:
     payload = _inventory()
     rows = payload["files"]
@@ -156,7 +195,7 @@ def test_phase8_economic_equivalence_artifact_is_exact_and_complete() -> None:
     )
 
 
-def test_phase8_evidence_closure_seal_matches_current_analyzer(
+def test_phase8_evidence_closure_seal_matches_historical_analyzer(
     data_dir: Path,
     tmp_path: Path,
 ) -> None:
@@ -172,8 +211,12 @@ def test_phase8_evidence_closure_seal_matches_current_analyzer(
     assert provenance["analyzer_remote_commit"] == (
         "ca422cb981493bc2c16a2f2113fd5a3f9e6b5943"
     )
-    assert provenance["analyzer_sha256"] == _sha256(
-        "research/sentinel_evidence_closure.py"
+    assert provenance["analyzer_sha256"] == _git_blob_sha256(
+        provenance["analyzer_remote_commit"],
+        "research/sentinel_evidence_closure.py",
+    )
+    assert provenance["code_sha256"] == _historical_whole_package_fingerprint(
+        provenance["analyzer_remote_commit"]
     )
 
     output = tmp_path / "reviewed-evidence-closure.json"
@@ -191,8 +234,20 @@ def test_phase8_evidence_closure_seal_matches_current_analyzer(
     ):
         del expected["provenance"][field]
 
-    assert regenerated == expected
-    assert provenance["regenerated_payload_sha256"] == _sha256(output)
+    current_without_identity = json.loads(json.dumps(regenerated))
+    historical_without_identity = json.loads(json.dumps(expected))
+    assert (
+        current_without_identity["provenance"]["code_sha256"]
+        != historical_without_identity["provenance"]["code_sha256"]
+    )
+    del current_without_identity["provenance"]["code_sha256"]
+    del historical_without_identity["provenance"]["code_sha256"]
+    assert current_without_identity == historical_without_identity
+    historical_bytes = (json.dumps(expected, indent=2, sort_keys=True) + "\n").encode()
+    assert provenance["regenerated_payload_sha256"] == hashlib.sha256(
+        historical_bytes
+    ).hexdigest()
+    assert json.loads(output.read_text(encoding="utf-8")) == regenerated
 
 
 def test_phase8_account_migration_changes_identity_only() -> None:

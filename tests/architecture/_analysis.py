@@ -136,6 +136,12 @@ MODULE_AUTHORITIES = {
     "uquant.reference_registry": "production_safe",
     "uquant.report": "production_safe",
     "uquant.risk": "production_safe",
+    "uquant.risk.anchors": "production_safe",
+    "uquant.risk.assessment": "production_safe",
+    "uquant.risk.capital": "production_safe",
+    "uquant.risk.recovery_state": "production_safe",
+    "uquant.risk.strategic_guard": "production_safe",
+    "uquant.risk.transitions": "production_safe",
     "uquant.risk_sector": "production_safe",
     "uquant.risk_sentinel": "production_safe",
     "uquant.risk_sentinel.__main__": "cli_runner",
@@ -220,6 +226,17 @@ _DEBT_RELOCATIONS = {
             "uquant.observation.execution_journal.models",
             "uquant.observation.execution_journal.rendering",
             "uquant.observation.execution_journal.store",
+        )
+    },
+    **{
+        module: "uquant.risk"
+        for module in (
+            "uquant.risk.anchors",
+            "uquant.risk.assessment",
+            "uquant.risk.capital",
+            "uquant.risk.recovery_state",
+            "uquant.risk.strategic_guard",
+            "uquant.risk.transitions",
         )
     },
 }
@@ -505,6 +522,118 @@ _TASK6_RELOCATED_PRIVATE_IMPORTS = frozenset(
     for name in names
 )
 
+# Task 7 turns references that were local to risk.py into these exact package
+# edges. This is a closed mechanical relocation set, not a prefix exemption.
+_TASK7_RELOCATED_PRIVATE_IMPORT_GROUPS = (
+    ("uquant.risk.assessment", "uquant.risk.anchors", ("_assess_dynamic_anchors",)),
+    (
+        "uquant.risk.assessment",
+        "uquant.risk.capital",
+        ("_apply_capital_overlays", "_observe_capital_budget", "_portfolio_drawdowns"),
+    ),
+    (
+        "uquant.risk.assessment",
+        "uquant.risk.recovery_state",
+        (
+            "_assess_protected_recovery",
+            "_assess_recovery_state",
+            "_reset_recovery_owner_rearm",
+        ),
+    ),
+    (
+        "uquant.risk.assessment",
+        "uquant.risk.strategic_guard",
+        ("_update_strategic_damage_guard",),
+    ),
+    (
+        "uquant.risk.assessment",
+        "uquant.risk.transitions",
+        (
+            "_assess_acute_and_cooldown",
+            "_assess_break_conditions",
+            "_assess_confirmed_concentrated_break",
+            "_resolve_risk_transition",
+        ),
+    ),
+    (
+        "uquant.risk.capital",
+        "uquant.risk.strategic_guard",
+        ("_strategic_grace_supported", "_strategic_guard_level2_overlay_required"),
+    ),
+    (
+        "uquant.risk.transitions",
+        "uquant.risk.recovery_state",
+        ("_persistent_crisis_cap", "_reset_recovery_owner_rearm"),
+    ),
+    (
+        "uquant.risk.transitions",
+        "uquant.risk.strategic_guard",
+        ("_strategic_crisis_severity",),
+    ),
+    (
+        "uquant.risk",
+        "uquant.risk.anchors",
+        ("_dynamic_anchor_candidate", "_update_dynamic_anchors"),
+    ),
+    (
+        "uquant.risk",
+        "uquant.risk.assessment",
+        ("_assess_base_risk", "_risk_runtime_seam"),
+    ),
+    (
+        "uquant.risk",
+        "uquant.risk.capital",
+        (
+            "_capital_budget_repair_drawdown_confirmed",
+            "_portfolio_drawdowns",
+            "_update_capital_budget_ladder",
+        ),
+    ),
+    (
+        "uquant.risk",
+        "uquant.risk.recovery_state",
+        ("_persistent_crisis_cap", "_reset_recovery_owner_rearm"),
+    ),
+    (
+        "uquant.risk",
+        "uquant.risk.strategic_guard",
+        (
+            "_strategic_crisis_severity",
+            "_strategic_damage_guard_active",
+            "_strategic_damage_guard_persists",
+            "_strategic_damage_guard_required",
+            "_strategic_grace_supported",
+            "_strategic_guard_level2_overlay_required",
+        ),
+    ),
+    (
+        "uquant.risk",
+        "uquant.risk.transitions",
+        ("_acute_sector_evacuation_required",),
+    ),
+)
+_TASK7_RELOCATED_PRIVATE_IMPORTS = frozenset(
+    f"{importer}:{imported_from}:{name}"
+    for importer, imported_from, names in _TASK7_RELOCATED_PRIVATE_IMPORT_GROUPS
+    for name in names
+)
+
+_TASK7_RELOCATED_FUNCTION_DEBT = {
+    identifier: "uquant.risk:_assess_base_risk"
+    for identifier in (
+        "uquant.risk.anchors:_assess_dynamic_anchors",
+        "uquant.risk.assessment:_assess_base_risk",
+        "uquant.risk.assessment:_assess_market_and_book_evidence",
+        "uquant.risk.capital:_observe_capital_budget",
+        "uquant.risk.recovery_state:_assess_protected_recovery",
+        "uquant.risk.recovery_state:_assess_recovery_state",
+        "uquant.risk.transitions:_assess_acute_and_cooldown",
+        "uquant.risk.transitions:_assess_break_conditions",
+        "uquant.risk.transitions:_assess_confirmed_concentrated_break",
+        "uquant.risk.transitions:_resolve_risk_transition",
+    )
+}
+
 # These functions are the exact Task 1 complexity-debt identities mechanically
 # moved out of execution.py/engine.py. The two extra physical signature lines
 # on attribution are the explicitly pinned dynamic legacy-constant seam, not
@@ -545,6 +674,8 @@ _PUBLIC_API_FACADE_PATHS = {
     "uquant.attribution": "uquant/attribution.py",
     # Task 6 preserves the historical module path as a same-name package facade.
     "uquant.execution": "uquant/execution.py",
+    # Task 7 preserves the public Base Risk import path through its package facade.
+    "uquant.risk": "uquant/risk.py",
 }
 
 _MUTABLE_CALLS = {
@@ -988,6 +1119,7 @@ def architecture_snapshot(
     private_module_calls: list[dict[str, object]] = []
     task5_relocated_private_imports: list[dict[str, object]] = []
     task6_relocated_private_imports: list[dict[str, object]] = []
+    task7_relocated_private_imports: list[dict[str, object]] = []
     forbidden_imports: list[dict[str, object]] = []
     function_rows: list[dict[str, object]] = []
     global_rows: list[dict[str, object]] = []
@@ -1109,6 +1241,8 @@ def architecture_snapshot(
                             task5_relocated_private_imports.append(row)
                         elif private_import_id in _TASK6_RELOCATED_PRIVATE_IMPORTS:
                             task6_relocated_private_imports.append(row)
+                        elif private_import_id in _TASK7_RELOCATED_PRIVATE_IMPORTS:
+                            task7_relocated_private_imports.append(row)
                         else:
                             private_imports.append(row)
                 for authority_target, target_authority in authority_targets.items():
@@ -1233,6 +1367,10 @@ def architecture_snapshot(
                 task6_relocated_private_imports,
                 key=_row_id,
             ),
+            "task7_relocated_private_imports": sorted(
+                task7_relocated_private_imports,
+                key=_row_id,
+            ),
             "forbidden_imports": sorted_forbidden_imports,
         },
         "module_globals": sorted(global_rows, key=lambda row: str(row["id"])),
@@ -1266,6 +1404,9 @@ def measured_debt(snapshot: Mapping[str, object]) -> dict[str, list[dict[str, ob
         relocated = _TASK6_RELOCATED_FUNCTION_DEBT.get(value)
         if relocated is not None:
             return relocated[0]
+        task7_relocated = _TASK7_RELOCATED_FUNCTION_DEBT.get(value)
+        if task7_relocated is not None:
+            return task7_relocated
         module, separator, suffix = value.partition(":")
         legacy = _DEBT_RELOCATIONS.get(module, module)
         return f"{legacy}{separator}{suffix}"
@@ -1289,7 +1430,24 @@ def measured_debt(snapshot: Mapping[str, object]) -> dict[str, list[dict[str, ob
         }
         for row in functions
         if int(row["lines"]) > FINAL_BUDGETS["max_function_lines"]
+        and str(row["id"]) not in _TASK7_RELOCATED_FUNCTION_DEBT
     ]
+    task7_long = [
+        row
+        for row in functions
+        if str(row["id"]) in _TASK7_RELOCATED_FUNCTION_DEBT
+        and int(row["lines"]) > FINAL_BUDGETS["max_function_lines"]
+    ]
+    if task7_long:
+        largest = max(task7_long, key=lambda row: int(row["lines"]))
+        long_functions.append(
+            {
+                "id": "uquant.risk:_assess_base_risk",
+                "path": largest["path"],
+                "qualname": largest["qualname"],
+                "measured_lines": largest["lines"],
+            }
+        )
     branchy_functions = [
         {
             "id": debt_id(row["id"]),
@@ -1299,7 +1457,24 @@ def measured_debt(snapshot: Mapping[str, object]) -> dict[str, list[dict[str, ob
         }
         for row in functions
         if int(row["branch_points"]) > FINAL_BUDGETS["max_function_branch_points"]
+        and str(row["id"]) not in _TASK7_RELOCATED_FUNCTION_DEBT
     ]
+    task7_branchy = [
+        row
+        for row in functions
+        if str(row["id"]) in _TASK7_RELOCATED_FUNCTION_DEBT
+        and int(row["branch_points"]) > FINAL_BUDGETS["max_function_branch_points"]
+    ]
+    if task7_branchy:
+        branchiest = max(task7_branchy, key=lambda row: int(row["branch_points"]))
+        branchy_functions.append(
+            {
+                "id": "uquant.risk:_assess_base_risk",
+                "path": branchiest["path"],
+                "qualname": branchiest["qualname"],
+                "measured_branch_points": branchiest["branch_points"],
+            }
+        )
     mutable_globals = [
         {
             "id": debt_id(row["id"]),

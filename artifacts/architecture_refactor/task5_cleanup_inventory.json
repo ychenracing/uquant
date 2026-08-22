@@ -1,0 +1,273 @@
+{
+  "baseline_commit": "3af754edf83b5ca67e06b1c3733eb5161dd7fd3c",
+  "contract": "uquant-task5-pre-deletion-inventory-v1",
+  "entries": [
+    {
+      "classification": "CONSOLIDATE_THEN_DELETE",
+      "authority_reason": "This is the only production account codec, ordered validator, migration, economic-identity, and persistence implementation at the Task 5 boundary. Its persisted schema and economic hash are machine contracts.",
+      "content_sha256": "17d89d750ee385d382f4fcecc4eaa8e45b4bc966821cd224e97eaee8953fd9a3",
+      "disposition": "CONSOLIDATE_THEN_DELETE_AFTER_PACKAGE_PARITY",
+      "exact_replacement_mapping": {
+        "account_from_dict/load_account": "uquant/account/codec.py",
+        "common scalar/date/text/JSON validation": "uquant/account/validation_common.py",
+        "economic_state_sha256": "uquant/account/economic_identity.py",
+        "legacy attribution/v4 event/code/schema migration": "uquant/account/migrations.py",
+        "order/fill/order-state/lot-origin validation": "uquant/account/validation_orders.py",
+        "position/tranche validation": "uquant/account/validation_positions.py",
+        "public compatibility surface": "uquant/account/__init__.py",
+        "save_account": "uquant/account/store.py",
+        "strategy/risk/audit validation": "uquant/account/validation_strategy.py"
+      },
+      "git_blob_sha1": "830987ca3518322ccad77fc5cb8dd3996e96866d",
+      "live_references": {
+        "current_source_surface_registry": [
+          "economic_decision_v1",
+          "execution_account_v1",
+          "sentinel_v1",
+          "full_package_v1"
+        ],
+        "immutable_path_references": [
+          "README.md",
+          "artifacts/architecture_refactor/baseline_inventory.json",
+          "artifacts/current_heads/provenance_report.json",
+          "artifacts/holdout/decision_equivalence.json",
+          "artifacts/phase2/ablations/registry.json",
+          "artifacts/sentinel/shadow_equivalence.json",
+          "benchmarks/architecture_refactor_public_api.json",
+          "docs/reviews/2026-08-17-balanced-review.md",
+          "docs/superpowers/plans/2026-08-14-phase2-ai-era-generalization.md",
+          "docs/superpowers/plans/2026-08-17-balanced-code-and-documentation-review.md",
+          "docs/superpowers/specs/2026-08-19-risk-sentinel-shadow-design.md",
+          "tests/test_phase2_ablation.py",
+          "tests/test_source_surface_contracts.py",
+          "tests/test_source_surface_provenance.py"
+        ],
+        "historical_machine_evidence_to_preserve": [
+          "artifacts/architecture_refactor/baseline_inventory.json",
+          "artifacts/current_heads/provenance_report.json",
+          "artifacts/holdout/decision_equivalence.json",
+          "artifacts/phase2/ablations/registry.json",
+          "artifacts/sentinel/shadow_equivalence.json",
+          "benchmarks/architecture_refactor_public_api.json"
+        ],
+        "production_consumers": [
+          "uquant/broker.py",
+          "uquant/cli.py",
+          "uquant/execution.py",
+          "uquant/risk_sentinel/cli.py",
+          "uquant/validation/holdout_runtime.py"
+        ],
+        "test_consumers": [
+          "tests/architecture/_analysis.py",
+          "tests/test_account_broker_schema.py",
+          "tests/test_account_code_identity_migration.py",
+          "tests/test_account_schema_v3_integrity.py",
+          "tests/test_attribution_identity.py",
+          "tests/test_cli_and_report.py",
+          "tests/test_engine_contracts.py",
+          "tests/test_execution.py",
+          "tests/test_future_holdout.py",
+          "tests/test_future_holdout_runtime.py",
+          "tests/test_risk_sentinel_cli.py"
+        ]
+      },
+      "path": "uquant/account.py",
+      "reproducibility": {
+        "byte_count_command": "git cat-file -s 830987ca3518322ccad77fc5cb8dd3996e96866d",
+        "content_command": "git cat-file blob 830987ca3518322ccad77fc5cb8dd3996e96866d",
+        "reference_commands": [
+          "git grep -n --fixed-strings 'uquant/account.py' 3af754edf83b5ca67e06b1c3733eb5161dd7fd3c --",
+          "rg -n 'from (uquant\\.)?account import|from \\.account import|import uquant\\.account' uquant tests research scripts --glob '*.py'"
+        ],
+        "sha256_command": "git cat-file blob 830987ca3518322ccad77fc5cb8dd3996e96866d | sha256sum"
+      },
+      "size_bytes": 107934
+    },
+    {
+      "classification": "CONSOLIDATE_THEN_DELETE",
+      "authority_reason": "This is the only production economic-attribution reconciliation, ledger, replay-evidence, diagnostics, and builder implementation at the Task 5 boundary.",
+      "content_sha256": "20a2082c81edcf7b7eb080f0cc7b364a5ef25bc3ac6a467dce647b08e1716d55",
+      "disposition": "CONSOLIDATE_THEN_DELETE_AFTER_PACKAGE_PARITY",
+      "exact_replacement_mapping": {
+        "build_economic_attribution orchestration": "uquant/attribution/builder.py",
+        "contribution/PnL grouping/concentration": "uquant/attribution/concentration.py",
+        "daily ledger": "uquant/attribution/ledger.py",
+        "economic schema/engine reconciliation": "uquant/attribution/validation.py",
+        "exit/post-exit diagnostics": "uquant/attribution/diagnostics.py",
+        "public compatibility surface": "uquant/attribution/__init__.py",
+        "replay evidence": "uquant/attribution/replay_evidence.py"
+      },
+      "git_blob_sha1": "a84b3cebfcc6fbd291895e5264dacf168fbe4b4c",
+      "live_references": {
+        "current_source_surface_registry": [
+          "economic_decision_v1",
+          "full_package_v1"
+        ],
+        "immutable_path_references": [
+          "artifacts/architecture_refactor/baseline_inventory.json",
+          "benchmarks/architecture_refactor_public_api.json",
+          "docs/reviews/2026-08-17-balanced-review.md",
+          "docs/superpowers/plans/2026-08-14-phase2-ai-era-generalization.md",
+          "docs/superpowers/plans/2026-08-17-balanced-code-and-documentation-review.md"
+        ],
+        "historical_machine_evidence_to_preserve": [
+          "artifacts/architecture_refactor/baseline_inventory.json",
+          "benchmarks/architecture_refactor_public_api.json"
+        ],
+        "production_consumers": [
+          "uquant/engine.py",
+          "uquant/report.py"
+        ],
+        "research_consumers": [
+          "research/trade_attribution.py"
+        ],
+        "test_consumers": [
+          "tests/test_attribution.py",
+          "tests/test_cli_and_report.py",
+          "tests/test_economic_attribution.py",
+          "tests/test_generalization_matrix.py"
+        ]
+      },
+      "path": "uquant/attribution.py",
+      "reproducibility": {
+        "byte_count_command": "git cat-file -s a84b3cebfcc6fbd291895e5264dacf168fbe4b4c",
+        "content_command": "git cat-file blob a84b3cebfcc6fbd291895e5264dacf168fbe4b4c",
+        "reference_commands": [
+          "git grep -n --fixed-strings 'uquant/attribution.py' 3af754edf83b5ca67e06b1c3733eb5161dd7fd3c --",
+          "rg -n 'from (uquant\\.)?attribution import|from \\.attribution import|import uquant\\.attribution' uquant tests research scripts --glob '*.py'"
+        ],
+        "sha256_command": "git cat-file blob a84b3cebfcc6fbd291895e5264dacf168fbe4b4c | sha256sum"
+      },
+      "size_bytes": 84496
+    },
+    {
+      "classification": "KEEP_AUTHORITATIVE",
+      "authority_reason": "This is the frozen legacy v1 import/API surface and historical codec. The path remains as a facade; its v1 bytes stay readable while its duplicate lifecycle/store/writer implementation is replaced.",
+      "content_sha256": "c3707c135d3209cda9e9759845bac86ca18e1bd17c8753cff1dcbe3db7002a49",
+      "disposition": "RETAIN_THIN_FACADE_AND_READ_ONLY_V1_CONTRACT",
+      "exact_replacement_mapping": {
+        "checkpoint/chain/lifecycle/read/store": "uquant/observation/execution_journal/{checkpoint,lifecycle,store}.py",
+        "legacy public facade": "uquant/execution_journal.py",
+        "models": "uquant/observation/execution_journal/models.py",
+        "v1 decode/verify/migrate": "uquant/observation/execution_journal/codec_v1.py",
+        "v2 sole append writer": "uquant/observation/execution_journal/codec_v2.py"
+      },
+      "git_blob_sha1": "10e421ab43e79503aba4db6ab4a60fa978d68972",
+      "live_references": {
+        "current_source_surface_registry": [
+          "execution_account_v1",
+          "full_package_v1"
+        ],
+        "immutable_path_references": [
+          "artifacts/architecture_refactor/baseline_inventory.json",
+          "artifacts/holdout/decision_equivalence.json",
+          "artifacts/phase2/ablations/post_task8_source_contract.json",
+          "benchmarks/architecture_refactor_public_api.json",
+          "docs/reviews/2026-08-17-balanced-review.md",
+          "docs/superpowers/plans/2026-08-14-phase2-ai-era-generalization.md",
+          "docs/superpowers/plans/2026-08-17-balanced-code-and-documentation-review.md",
+          "docs/superpowers/plans/2026-08-18-future-holdout-lanes.md",
+          "tests/test_execution_journal.py",
+          "uquant/validation/holdout.py"
+        ],
+        "historical_machine_evidence_to_preserve": [
+          "artifacts/architecture_refactor/baseline_inventory.json",
+          "artifacts/holdout/decision_equivalence.json",
+          "artifacts/phase2/ablations/post_task8_source_contract.json",
+          "benchmarks/architecture_refactor_public_api.json"
+        ],
+        "production_consumers": [
+          "uquant/cli.py",
+          "uquant/report.py",
+          "uquant/validation/holdout.py"
+        ],
+        "test_consumers": [
+          "tests/test_execution_journal.py",
+          "tests/test_file_lock.py",
+          "tests/test_future_holdout_journal.py",
+          "tests/windows_ci_smoke.py"
+        ]
+      },
+      "path": "uquant/execution_journal.py",
+      "reproducibility": {
+        "byte_count_command": "git cat-file -s 10e421ab43e79503aba4db6ab4a60fa978d68972",
+        "content_command": "git cat-file blob 10e421ab43e79503aba4db6ab4a60fa978d68972",
+        "reference_commands": [
+          "git grep -n --fixed-strings 'uquant/execution_journal.py' 3af754edf83b5ca67e06b1c3733eb5161dd7fd3c --",
+          "rg -n 'uquant\\.execution_journal|from \\.execution_journal import' uquant tests research scripts --glob '*.py'"
+        ],
+        "sha256_command": "git cat-file blob 10e421ab43e79503aba4db6ab4a60fa978d68972 | sha256sum"
+      },
+      "size_bytes": 22140
+    },
+    {
+      "classification": "KEEP_AUTHORITATIVE",
+      "authority_reason": "This is the current holdout v1/v2 facade and the sole v2 implementation at the Task 5 boundary. The path remains as a validation compatibility facade while canonical observation code assumes all implementation authority.",
+      "content_sha256": "506e13fc623c683a5b0fb95b6c75974125670ed1510dae6663844268345aef61",
+      "disposition": "RETAIN_THIN_FACADE",
+      "exact_replacement_mapping": {
+        "checkpoint/chain/lifecycle/read/store": "uquant/observation/execution_journal/{checkpoint,lifecycle,store}.py",
+        "current validation facade": "uquant/validation/execution_journal.py",
+        "models": "uquant/observation/execution_journal/models.py",
+        "rendering": "uquant/observation/execution_journal/rendering.py",
+        "v1 decode/verify/migrate": "uquant/observation/execution_journal/codec_v1.py",
+        "v2 sole append writer": "uquant/observation/execution_journal/codec_v2.py"
+      },
+      "git_blob_sha1": "546fa85accd665bf009e2473644de11461887dcd",
+      "live_references": {
+        "current_source_surface_registry": [
+          "full_package_v1",
+          "validation_runner_v1"
+        ],
+        "immutable_path_references": [
+          "artifacts/architecture_refactor/baseline_inventory.json",
+          "benchmarks/architecture_refactor_public_api.json",
+          "benchmarks/future_holdout_observation_overlay.json",
+          "research/ablation_registry.py",
+          "tests/test_future_holdout_journal.py",
+          "uquant/validation/holdout.py"
+        ],
+        "historical_machine_evidence_to_preserve": [
+          "artifacts/architecture_refactor/baseline_inventory.json",
+          "benchmarks/architecture_refactor_public_api.json",
+          "benchmarks/future_holdout_observation_overlay.json"
+        ],
+        "production_validation_consumers": [
+          "scripts/future_holdout.py",
+          "uquant/validation/holdout.py",
+          "uquant/validation/holdout_runtime.py"
+        ],
+        "research_consumers": [
+          "research/ablation_registry.py"
+        ],
+        "test_consumers": [
+          "tests/test_file_lock.py",
+          "tests/test_future_holdout_journal.py",
+          "tests/test_future_holdout_runtime.py",
+          "tests/test_production_observation.py"
+        ]
+      },
+      "path": "uquant/validation/execution_journal.py",
+      "reproducibility": {
+        "byte_count_command": "git cat-file -s 546fa85accd665bf009e2473644de11461887dcd",
+        "content_command": "git cat-file blob 546fa85accd665bf009e2473644de11461887dcd",
+        "reference_commands": [
+          "git grep -n --fixed-strings 'uquant/validation/execution_journal.py' 3af754edf83b5ca67e06b1c3733eb5161dd7fd3c --",
+          "rg -n 'uquant\\.validation\\.execution_journal|from \\.execution_journal import' uquant tests research scripts --glob '*.py'"
+        ],
+        "sha256_command": "git cat-file blob 546fa85accd665bf009e2473644de11461887dcd | sha256sum"
+      },
+      "size_bytes": 32819
+    }
+  ],
+  "live_reference_derivation": {
+    "immutable_commit": "3af754edf83b5ca67e06b1c3733eb5161dd7fd3c",
+    "method": "immutable_path_references equals the frozen git-grep path-reference set, excluding only benchmarks/source_surface_registry.json because current_source_surface_registry records its exact complete surface IDs; Python public-import consumers and authoritative machine evidence remain separately classified; current candidate bytes are not an authority source.",
+    "reproduction_commands": [
+      "git grep -n -E 'uquant/(account|attribution|execution_journal|validation/execution_journal)\\.py' 3af754edf83b5ca67e06b1c3733eb5161dd7fd3c --",
+      "git grep -n -E 'uquant\\.(account|attribution|execution_journal|validation\\.execution_journal)|from \\.((account|attribution|execution_journal)) import' 3af754edf83b5ca67e06b1c3733eb5161dd7fd3c -- '*.py'"
+    ]
+  },
+  "requirements_txt_disposition": "KEEP_AUTHORITATIVE",
+  "schema_version": 1
+}

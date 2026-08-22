@@ -2,6 +2,8 @@ from __future__ import annotations
 
 from collections.abc import Mapping
 
+import pytest
+
 from ._analysis import FINAL_BUDGETS, measured_debt
 
 
@@ -28,8 +30,8 @@ def _assert_exact_monotonic_debt(
     initial = _by_id(debt["initial"][category])
     allowlist = set(debt["temporary_allowlist"][category])
     observed = _by_id(current[category])
-    assert allowlist <= set(initial), f"{category} allowlist introduced non-baseline debt"
-    assert set(observed) == allowlist, f"{category} allowlist must exactly equal live debt"
+    assert allowlist == set(initial), f"{category} Task 1 allowlist drifted from initial debt"
+    assert set(observed) <= allowlist, f"{category} introduced non-baseline debt"
     if metric is not None:
         for identifier, row in observed.items():
             current_value = row[metric]
@@ -89,6 +91,37 @@ def test_global_type_ignore_and_duplicate_helper_debt_is_exact_and_monotonic(
         _assert_exact_monotonic_debt(
             category=category,
             metric=None,
+            baseline_inventory=baseline_inventory,
+            current=current,
+        )
+
+
+def test_live_debt_can_shrink_without_rewriting_the_task_1_baseline(
+    baseline_inventory: dict[str, object], current_architecture: dict[str, object]
+) -> None:
+    current = measured_debt(current_architecture)
+    current["oversized_modules"] = current["oversized_modules"][1:]
+    _assert_exact_monotonic_debt(
+        category="oversized_modules",
+        metric="measured_lines",
+        baseline_inventory=baseline_inventory,
+        current=current,
+    )
+
+
+def test_live_debt_cannot_exceed_its_initial_per_identity_severity(
+    baseline_inventory: dict[str, object], current_architecture: dict[str, object]
+) -> None:
+    current = measured_debt(current_architecture)
+    first = dict(current["oversized_modules"][0])
+    measured_lines = first["measured_lines"]
+    assert isinstance(measured_lines, int)
+    first["measured_lines"] = measured_lines + 1
+    current["oversized_modules"] = [first, *current["oversized_modules"][1:]]
+    with pytest.raises(AssertionError, match="worsened from"):
+        _assert_exact_monotonic_debt(
+            category="oversized_modules",
+            metric="measured_lines",
             baseline_inventory=baseline_inventory,
             current=current,
         )

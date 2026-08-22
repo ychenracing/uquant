@@ -16,6 +16,8 @@ import io
 import json
 import math
 import subprocess
+import tarfile
+import tomllib
 import types
 from collections import defaultdict
 from collections.abc import Callable, Iterable, Mapping, Sequence
@@ -37,6 +39,74 @@ FINAL_BUDGETS = {
     "max_duplicate_private_helper_groups": 0,
     "max_internal_scc_size": 1,
 }
+
+MODULE_AUTHORITIES = {
+    "uquant": "production_safe",
+    "uquant.__main__": "cli_runner",
+    "uquant.account": "production_safe",
+    "uquant.atomic_io": "production_safe",
+    "uquant.attribution": "production_safe",
+    "uquant.broker": "production_safe",
+    "uquant.cli": "cli_runner",
+    "uquant.config": "production_safe",
+    "uquant.config_governance": "production_safe",
+    "uquant.data": "production_safe",
+    "uquant.engine": "production_safe",
+    "uquant.execution": "production_safe",
+    "uquant.execution_journal": "production_safe",
+    "uquant.features": "production_safe",
+    "uquant.industry": "production_safe",
+    "uquant.leader": "production_safe",
+    "uquant.market_risk": "production_safe",
+    "uquant.opportunity": "production_safe",
+    "uquant.portfolio": "production_safe",
+    "uquant.portfolio_core": "production_safe",
+    "uquant.portfolio_leaders": "production_safe",
+    "uquant.portfolio_recovery": "production_safe",
+    "uquant.portfolio_strategic": "production_safe",
+    "uquant.reference": "production_safe",
+    "uquant.reference_registry": "production_safe",
+    "uquant.report": "production_safe",
+    "uquant.risk": "production_safe",
+    "uquant.risk_sector": "production_safe",
+    "uquant.risk_sentinel": "production_safe",
+    "uquant.risk_sentinel.__main__": "cli_runner",
+    "uquant.risk_sentinel.calibration": "validation_runner",
+    "uquant.risk_sentinel.cli": "cli_runner",
+    "uquant.risk_sentinel.coverage": "production_safe",
+    "uquant.risk_sentinel.evidence": "production_safe",
+    "uquant.risk_sentinel.history": "production_safe",
+    "uquant.risk_sentinel.integration": "production_safe",
+    "uquant.risk_sentinel.models": "production_safe",
+    "uquant.risk_sentinel.opinion": "production_safe",
+    "uquant.risk_sentinel.service": "production_safe",
+    "uquant.risk_sentinel.validation": "validation_runner",
+    "uquant.types": "production_safe",
+    "uquant.validation": "validation_runner",
+    "uquant.validation.__main__": "cli_runner",
+    "uquant.validation.ai_era": "production_safe",
+    "uquant.validation.ci_artifacts": "cli_runner",
+    "uquant.validation.cli": "cli_runner",
+    "uquant.validation.competitor": "validation_runner",
+    "uquant.validation.control_plane": "validation_runner",
+    "uquant.validation.equivalence": "validation_runner",
+    "uquant.validation.execution_journal": "validation_runner",
+    "uquant.validation.generalization": "validation_runner",
+    "uquant.validation.generalization_contract": "validation_runner",
+    "uquant.validation.generalization_matrix": "validation_runner",
+    "uquant.validation.generalization_reference": "validation_runner",
+    "uquant.validation.holdout": "validation_runner",
+    "uquant.validation.holdout_lanes": "validation_runner",
+    "uquant.validation.holdout_runtime": "validation_runner",
+    "uquant.validation.manifest": "validation_runner",
+    "uquant.validation.promotion": "validation_runner",
+    "uquant.validation.replay_evidence": "validation_runner",
+    "uquant.validation.universe": "production_safe",
+}
+
+_MODULE_AUTHORITY_VALUES = {"production_safe", "validation_runner", "cli_runner"}
+_NONPRODUCTION_IMPORT_AUTHORITIES = {"operator_script", "research", "test"}
+_RUNNER_AUTHORITIES = {"cli_runner", "validation_runner"}
 
 _MUTABLE_CALLS = {
     "collections.defaultdict",
@@ -96,6 +166,46 @@ def module_name(root: Path, path: Path) -> str:
 
 def production_sources(root: Path = ROOT) -> tuple[Path, ...]:
     return tuple(sorted((root / "uquant").rglob("*.py")))
+
+
+def git_python_sources(root: Path, commit: str) -> dict[str, str]:
+    """Read the tracked production Python bytes directly from an immutable Git tree."""
+
+    archive = subprocess.run(
+        ["git", "archive", "--format=tar", commit, "--", "uquant"],
+        cwd=root,
+        check=True,
+        capture_output=True,
+    ).stdout
+    result: dict[str, str] = {}
+    with tarfile.open(fileobj=io.BytesIO(archive), mode="r:") as payload:
+        for member in payload.getmembers():
+            if not member.isfile() or not member.name.endswith(".py"):
+                continue
+            extracted = payload.extractfile(member)
+            if extracted is None:
+                raise RuntimeError(f"Git archive member has no content: {member.name}")
+            result[member.name] = extracted.read().decode("utf-8")
+    return {path: result[path] for path in sorted(result)}
+
+
+def production_source_surface(source_texts: Mapping[str, str]) -> dict[str, object]:
+    entries = [
+        {
+            "path": path,
+            "bytes": len(source.encode("utf-8")),
+            "sha256": hashlib.sha256(source.encode("utf-8")).hexdigest(),
+        }
+        for path, source in sorted(source_texts.items())
+    ]
+    return {
+        "entries": entries,
+        "entry_count": len(entries),
+        "canonical_sha256": canonical_sha256(entries),
+        "tree_sha256": canonical_sha256(
+            [(entry["path"], entry["sha256"]) for entry in entries]
+        ),
+    }
 
 
 def _definition_start(node: ast.FunctionDef | ast.AsyncFunctionDef) -> int:
@@ -380,19 +490,60 @@ def _strongly_connected_components(graph: Mapping[str, set[str]]) -> list[list[s
     return sorted(result, key=lambda group: (-len(group), group))
 
 
-def architecture_snapshot(root: Path = ROOT) -> dict[str, object]:
+def _external_authority(target: str) -> str:
+    top = target.split(".", 1)[0]
+    return {
+        "research": "research",
+        "scripts": "operator_script",
+        "tests": "test",
+    }.get(top, "external_dependency")
+
+
+def _forbidden_authority_edge(importer_authority: str, target_authority: str) -> bool:
+    return target_authority in _NONPRODUCTION_IMPORT_AUTHORITIES or (
+        importer_authority == "production_safe" and target_authority in _RUNNER_AUTHORITIES
+    )
+
+
+def _row_id(row: dict[str, object]) -> str:
+    return str(row["id"])
+
+
+def architecture_snapshot(
+    root: Path = ROOT,
+    *,
+    source_texts: Mapping[str, str] | None = None,
+    module_authorities: Mapping[str, str] | None = None,
+) -> dict[str, object]:
     """Measure the live production module graph and all explicit debt dimensions."""
 
-    sources = production_sources(root)
     parsed: dict[str, tuple[Path, str, ast.Module]] = {}
-    for path in sources:
-        source = path.read_text(encoding="utf-8")
+    selected_sources = (
+        {
+            path.relative_to(root).as_posix(): path.read_text(encoding="utf-8")
+            for path in production_sources(root)
+        }
+        if source_texts is None
+        else dict(source_texts)
+    )
+    for relative, source in sorted(selected_sources.items()):
+        path = root / relative
         parsed[module_name(root, path)] = (
             path,
             source,
             ast.parse(source, filename=str(path), type_comments=True),
         )
     modules = set(parsed)
+    authorities = dict(MODULE_AUTHORITIES if module_authorities is None else module_authorities)
+    if set(authorities) != modules:
+        missing = sorted(modules - set(authorities))
+        stale = sorted(set(authorities) - modules)
+        raise AssertionError(
+            f"module authority map must be explicit and complete; missing={missing}, stale={stale}"
+        )
+    invalid = sorted(set(authorities.values()) - _MODULE_AUTHORITY_VALUES)
+    if invalid:
+        raise AssertionError(f"unknown module authorities: {invalid}")
     graph: dict[str, set[str]] = {module: set() for module in modules}
     private_imports: list[dict[str, object]] = []
     forbidden_imports: list[dict[str, object]] = []
@@ -442,12 +593,19 @@ def architecture_snapshot(root: Path = ROOT) -> dict[str, object]:
                     target = _longest_internal_module(alias.name, modules)
                     if target is not None and target != module:
                         graph[module].add(target)
-                    if alias.name.split(".", 1)[0] in {"research", "scripts", "tests"}:
+                    target_authority = (
+                        authorities[target]
+                        if target is not None
+                        else _external_authority(alias.name)
+                    )
+                    if _forbidden_authority_edge(authorities[module], target_authority):
                         forbidden_imports.append(
                             {
                                 "id": f"{module}:{node.lineno}:{alias.name}",
                                 "importer": module,
+                                "importer_authority": authorities[module],
                                 "target": alias.name,
+                                "target_authority": target_authority,
                                 "line": node.lineno,
                             }
                         )
@@ -461,13 +619,20 @@ def architecture_snapshot(root: Path = ROOT) -> dict[str, object]:
                 target = _longest_internal_module(target_base, modules)
                 if target is not None and target != module:
                     graph[module].add(target)
+                authority_targets: dict[str, str] = {}
                 for alias in node.names:
-                    if node.module is None:
-                        alias_target = _longest_internal_module(
-                            f"{target_base}.{alias.name}".strip("."), modules
+                    alias_target = _longest_internal_module(
+                        f"{target_base}.{alias.name}".strip("."), modules
+                    )
+                    if alias_target is not None and alias_target not in {module, target}:
+                        graph[module].add(alias_target)
+                        authority_targets[alias_target] = authorities[alias_target]
+                    else:
+                        authority_targets[target_base] = (
+                            authorities[target]
+                            if target is not None
+                            else _external_authority(target_base)
                         )
-                        if alias_target is not None and alias_target != module:
-                            graph[module].add(alias_target)
                     if alias.name.startswith("_") and target_base and target_base != module:
                         private_imports.append(
                             {
@@ -478,16 +643,18 @@ def architecture_snapshot(root: Path = ROOT) -> dict[str, object]:
                                 "line": node.lineno,
                             }
                         )
-                top = target_base.split(".", 1)[0]
-                if top in {"research", "scripts", "tests"}:
-                    forbidden_imports.append(
-                        {
-                            "id": f"{module}:{node.lineno}:{target_base}",
-                            "importer": module,
-                            "target": target_base,
-                            "line": node.lineno,
-                        }
-                    )
+                for authority_target, target_authority in authority_targets.items():
+                    if _forbidden_authority_edge(authorities[module], target_authority):
+                        forbidden_imports.append(
+                            {
+                                "id": f"{module}:{node.lineno}:{authority_target}",
+                                "importer": module,
+                                "importer_authority": authorities[module],
+                                "target": authority_target,
+                                "target_authority": target_authority,
+                                "line": node.lineno,
+                            }
+                        )
 
     fan_in: dict[str, set[str]] = {module: set() for module in modules}
     for importer, targets in graph.items():
@@ -549,6 +716,8 @@ def architecture_snapshot(root: Path = ROOT) -> dict[str, object]:
         if len(component) > 1
         or (len(component) == 1 and component[0] in graph[component[0]])
     ]
+    sorted_private_imports = sorted(private_imports, key=_row_id)
+    sorted_forbidden_imports = sorted(forbidden_imports, key=_row_id)
     return {
         "modules": {module: module_rows[module] for module in sorted(module_rows)},
         "functions": sorted(
@@ -556,6 +725,9 @@ def architecture_snapshot(root: Path = ROOT) -> dict[str, object]:
             key=lambda row: (str(row["path"]), cast(int, row["line"])),
         ),
         "import_graph": {
+            "module_authorities": {
+                module: authorities[module] for module in sorted(authorities)
+            },
             "edges": [
                 {"importer": importer, "imported": target}
                 for importer in sorted(graph)
@@ -563,10 +735,8 @@ def architecture_snapshot(root: Path = ROOT) -> dict[str, object]:
             ],
             "strongly_connected_components": components,
             "cycles": cycles,
-            "cross_module_private_imports": sorted(
-                private_imports, key=lambda row: str(row["id"])
-            ),
-            "forbidden_imports": sorted(forbidden_imports, key=lambda row: str(row["id"])),
+            "cross_module_private_imports": sorted_private_imports,
+            "forbidden_imports": sorted_forbidden_imports,
         },
         "module_globals": sorted(global_rows, key=lambda row: str(row["id"])),
         "type_ignores": sorted(type_ignores, key=lambda row: str(row["id"])),
@@ -800,23 +970,35 @@ def public_module_names(root: Path = ROOT) -> tuple[str, ...]:
     )
 
 
-def cli_help_snapshot() -> dict[str, str]:
+def cli_help_snapshot(root: Path = ROOT) -> dict[str, str]:
     from argparse import ArgumentParser, _SubParsersAction
 
-    from uquant.cli import _parser
+    project = tomllib.loads((root / "pyproject.toml").read_text(encoding="utf-8"))["project"]
+    scripts = project["scripts"]
+    if not isinstance(scripts, dict) or not scripts:
+        raise AssertionError("[project.scripts] must declare at least one CLI")
+    result: dict[str, str] = {}
 
-    parser = _parser()
-    result = {"uquant": parser.format_help()}
-
-    def collect(current: ArgumentParser) -> None:
+    def collect(current: ArgumentParser, command: str) -> None:
+        current.prog = command
+        result[command] = current.format_help()
         for action in current._actions:
             if not isinstance(action, _SubParsersAction):
                 continue
-            for child in action.choices.values():
-                result[child.prog] = child.format_help()
-                collect(child)
+            for name, child in action.choices.items():
+                collect(child, f"{command} {name}")
 
-    collect(parser)
+    for script, entrypoint in sorted(scripts.items()):
+        if not isinstance(script, str) or not isinstance(entrypoint, str):
+            raise AssertionError("project script names and entrypoints must be strings")
+        module_name_, separator, _ = entrypoint.partition(":")
+        if separator != ":":
+            raise AssertionError(f"project script entrypoint is malformed: {entrypoint}")
+        module = importlib.import_module(module_name_)
+        parser_factory = getattr(module, "_parser", None)
+        if not callable(parser_factory):
+            raise AssertionError(f"project script {script} has no complete _parser registry")
+        collect(parser_factory(), script)
     return {name: result[name] for name in sorted(result)}
 
 

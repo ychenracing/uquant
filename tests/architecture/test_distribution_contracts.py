@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import subprocess
+import sys
 from collections.abc import Mapping
 
 import pytest
@@ -26,17 +28,23 @@ def test_same_named_module_and_package_never_compete_for_import_authority() -> N
 def test_baseline_tracked_file_authority_is_complete_and_immutable(
     baseline_inventory: dict[str, object],
 ) -> None:
+    from ._baseline import BASELINE_COMMIT
+
     baseline = baseline_inventory["baseline"]
     authority = baseline_inventory["tracked_file_authority"]
     assert isinstance(baseline, Mapping)
     assert isinstance(authority, Mapping)
-    assert authority == tracked_file_inventory(ROOT, str(baseline["commit"]))
+    assert baseline["commit"] == BASELINE_COMMIT
+    assert authority == tracked_file_inventory(ROOT, BASELINE_COMMIT)
     assert authority["canonical_sha256"] == canonical_sha256(authority["entries"])
 
 
 def test_baseline_source_surface_and_public_contract_have_closed_integrity_hashes(
     baseline_inventory: dict[str, object],
 ) -> None:
+    from ._analysis import git_python_sources, production_source_surface
+    from ._baseline import BASELINE_COMMIT
+
     baseline = baseline_inventory["baseline"]
     public_contract = baseline_inventory["public_api_contract"]
     assert isinstance(baseline, Mapping)
@@ -56,6 +64,59 @@ def test_baseline_source_surface_and_public_contract_have_closed_integrity_hashe
         for entry in entries
     )
     assert public_contract["sha256"] == sha256_file(PUBLIC_API_PATH)
+    assert source_surface == production_source_surface(
+        git_python_sources(ROOT, BASELINE_COMMIT)
+    )
+
+
+def test_initial_debt_is_recomputed_from_the_immutable_git_tree(
+    baseline_inventory: dict[str, object],
+) -> None:
+    from ._analysis import architecture_snapshot, git_python_sources, measured_debt
+    from ._baseline import BASELINE_COMMIT
+
+    debt = baseline_inventory["architecture_debt"]
+    assert isinstance(debt, Mapping)
+    baseline_snapshot = architecture_snapshot(
+        source_texts=git_python_sources(ROOT, BASELINE_COMMIT)
+    )
+    expected_initial = measured_debt(baseline_snapshot)
+    assert debt["initial"] == expected_initial
+    assert debt["initial_sha256"] == canonical_sha256(expected_initial)
+
+
+def test_generator_accepts_an_explicit_baseline_from_the_task_1_head() -> None:
+    from ._baseline import BASELINE_COMMIT
+    from ._generate_baselines import verify_generation_context
+
+    head = subprocess.run(
+        ["git", "rev-parse", "HEAD"],
+        cwd=ROOT,
+        check=True,
+        capture_output=True,
+        text=True,
+    ).stdout.strip()
+    assert head != BASELINE_COMMIT
+    verified = verify_generation_context(
+        baseline_root=ROOT,
+        baseline_commit=BASELINE_COMMIT,
+        candidate_root=ROOT,
+    )
+    assert verified == BASELINE_COMMIT
+
+
+def test_generator_cli_requires_portable_baseline_arguments_and_no_caller_metrics() -> None:
+    completed = subprocess.run(
+        [sys.executable, "-m", "tests.architecture._generate_baselines", "--help"],
+        cwd=ROOT,
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+    assert "--baseline-root" in completed.stdout
+    assert "--baseline-commit" in completed.stdout
+    assert "--pytest-wall-seconds" not in completed.stdout
+    assert "--pytest-peak-rss-kib" not in completed.stdout
 
 
 @pytest.mark.parametrize("scenario_index", range(3))
@@ -87,5 +148,39 @@ def test_performance_baseline_records_wall_rss_and_pytest_time(
     assert isinstance(pytest_run, Mapping)
     assert float(replay["wall_seconds"]) > 0.0
     assert int(replay["peak_rss_kib"]) > 0
-    assert float(pytest_run["wall_seconds"]) > 0.0
-    assert int(pytest_run["peak_rss_kib"]) > 0
+    raw = pytest_run["raw_evidence"]
+    assert isinstance(raw, Mapping)
+    assert raw["command"] == [
+        "python",
+        "-m",
+        "pytest",
+        "-q",
+        "tests/test_config_contracts.py",
+        "tests/test_account_broker_schema.py",
+        "tests/test_engine_contracts.py",
+        "tests/test_execution.py",
+    ]
+    assert raw["exit_status"] == 0
+    counts = raw["test_counts"]
+    assert isinstance(counts, Mapping)
+    assert int(counts["total"]) > 0
+    assert counts == {
+        "total": counts["total"],
+        "passed": counts["total"],
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+    }
+    environment = raw["environment"]
+    assert isinstance(environment, Mapping)
+    baseline = baseline_inventory["baseline"]
+    assert isinstance(baseline, Mapping)
+    assert environment == {
+        "python_implementation": baseline["python_implementation"],
+        "python_version": baseline["python_version"],
+        "platform": baseline["platform"],
+        "uv_lock_sha256": baseline["uv_lock_sha256"],
+    }
+    assert float(raw["wall_seconds"]) > 0.0
+    assert int(raw["peak_rss_kib"]) > 0
+    assert pytest_run["evidence_sha256"] == canonical_sha256(raw)

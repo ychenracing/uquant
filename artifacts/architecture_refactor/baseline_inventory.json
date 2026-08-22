@@ -8453,6 +8453,69 @@
         }
       ],
       "forbidden_imports": [],
+      "module_authorities": {
+        "uquant": "production_safe",
+        "uquant.__main__": "cli_runner",
+        "uquant.account": "production_safe",
+        "uquant.atomic_io": "production_safe",
+        "uquant.attribution": "production_safe",
+        "uquant.broker": "production_safe",
+        "uquant.cli": "cli_runner",
+        "uquant.config": "production_safe",
+        "uquant.config_governance": "production_safe",
+        "uquant.data": "production_safe",
+        "uquant.engine": "production_safe",
+        "uquant.execution": "production_safe",
+        "uquant.execution_journal": "production_safe",
+        "uquant.features": "production_safe",
+        "uquant.industry": "production_safe",
+        "uquant.leader": "production_safe",
+        "uquant.market_risk": "production_safe",
+        "uquant.opportunity": "production_safe",
+        "uquant.portfolio": "production_safe",
+        "uquant.portfolio_core": "production_safe",
+        "uquant.portfolio_leaders": "production_safe",
+        "uquant.portfolio_recovery": "production_safe",
+        "uquant.portfolio_strategic": "production_safe",
+        "uquant.reference": "production_safe",
+        "uquant.reference_registry": "production_safe",
+        "uquant.report": "production_safe",
+        "uquant.risk": "production_safe",
+        "uquant.risk_sector": "production_safe",
+        "uquant.risk_sentinel": "production_safe",
+        "uquant.risk_sentinel.__main__": "cli_runner",
+        "uquant.risk_sentinel.calibration": "validation_runner",
+        "uquant.risk_sentinel.cli": "cli_runner",
+        "uquant.risk_sentinel.coverage": "production_safe",
+        "uquant.risk_sentinel.evidence": "production_safe",
+        "uquant.risk_sentinel.history": "production_safe",
+        "uquant.risk_sentinel.integration": "production_safe",
+        "uquant.risk_sentinel.models": "production_safe",
+        "uquant.risk_sentinel.opinion": "production_safe",
+        "uquant.risk_sentinel.service": "production_safe",
+        "uquant.risk_sentinel.validation": "validation_runner",
+        "uquant.types": "production_safe",
+        "uquant.validation": "validation_runner",
+        "uquant.validation.__main__": "cli_runner",
+        "uquant.validation.ai_era": "production_safe",
+        "uquant.validation.ci_artifacts": "cli_runner",
+        "uquant.validation.cli": "cli_runner",
+        "uquant.validation.competitor": "validation_runner",
+        "uquant.validation.control_plane": "validation_runner",
+        "uquant.validation.equivalence": "validation_runner",
+        "uquant.validation.execution_journal": "validation_runner",
+        "uquant.validation.generalization": "validation_runner",
+        "uquant.validation.generalization_contract": "validation_runner",
+        "uquant.validation.generalization_matrix": "validation_runner",
+        "uquant.validation.generalization_reference": "validation_runner",
+        "uquant.validation.holdout": "validation_runner",
+        "uquant.validation.holdout_lanes": "validation_runner",
+        "uquant.validation.holdout_runtime": "validation_runner",
+        "uquant.validation.manifest": "validation_runner",
+        "uquant.validation.promotion": "validation_runner",
+        "uquant.validation.replay_evidence": "validation_runner",
+        "uquant.validation.universe": "production_safe"
+      },
       "strongly_connected_components": [
         [
           "uquant.validation.holdout",
@@ -14523,7 +14586,8 @@
         }
       ]
     },
-    "policy": "Initial entries are exact measured current debt. The temporary allowlist must be a subset of these immutable identities, must equal live debt, may not grow in measured severity, and must decrease monotonically to empty by final acceptance.",
+    "initial_sha256": "6ee50cd6ac5db7f989ce6f5ae623f31d70e08a1e1ec69955156a8da30d735d03",
+    "policy": "Initial entries are exact measured current debt. The temporary allowlist equals those immutable identities and remains the exact Task 1 allowance. Live debt may only be a subset of the initial identities, may not grow in measured severity, and must be empty at final acceptance.",
     "temporary_allowlist": {
       "branchy_functions": [
         "uquant.account:_validate_attribution_identity",
@@ -14849,7 +14913,6 @@
     "type_ignore_count": 6
   },
   "baseline": {
-    "baseline_worktree": "/workspace/scratch/5353d1b571d9/uquant-base/.worktrees/uquant-modular-governance-baseline",
     "branch": "codex/uquant-modular-governance-20260822",
     "code_fingerprint": "591d1659c8d4498f37700c651fcde25bdf4ca89054df7ec8d849e5dda374c1b6",
     "commit": "f9fd489806a86b3a56f62b8668aafa252012d405",
@@ -14866,7 +14929,7 @@
       "verified_csv_count": 36
     },
     "numpy_version": "2.5.1",
-    "origin_main": "f9fd489806a86b3a56f62b8668aafa252012d405",
+    "origin_main_at_freeze": "f9fd489806a86b3a56f62b8668aafa252012d405",
     "pandas_version": "3.0.5",
     "platform": "Linux-6.18.35-x86_64-with-glibc2.39",
     "production_source_surface": {
@@ -15181,10 +15244,11 @@
       "entry_count": 61,
       "tree_sha256": "902cd43b768ccd60b2352533ea17a35a851f5e7d7e8d6adb65146c50ea2b7986"
     },
-    "python_executable": "/workspace/scratch/5353d1b571d9/uquant-base/.worktrees/uquant-modular-governance/.venv/bin/python3",
+    "python_executable_name": "python3",
     "python_implementation": "CPython",
     "python_version": "3.12.13",
     "requirements_sha256": "77c1e3d4685e5f55c0b3e7bf23ff101ff957973cc2e80aa4e5cdb4d02f0e2731",
+    "source": "explicit immutable Git tree",
     "universe": {
       "canonical_sha256": "03f42c5066fb8e1c7b2f8e1b7dd38d508d8053f548ebb5596317ce587d7cffd0",
       "manifest_id": "phase1-ai-universe-v1",
@@ -15233,25 +15297,52 @@
   "inventory_id": "uquant-modular-governance-baseline-v1",
   "performance_baseline": {
     "pytest_core_contracts": {
-      "command": "UV_CACHE_DIR=/workspace/scratch/5353d1b571d9/.uv-cache uv run pytest -q tests/test_config_contracts.py tests/test_account_broker_schema.py tests/test_engine_contracts.py tests/test_execution.py",
-      "measurement": "fresh child process measured with time.perf_counter and resource.RUSAGE_CHILDREN.ru_maxrss",
-      "peak_rss_kib": 183964,
-      "result": "passed",
-      "tests_passed": 266,
-      "wall_seconds": 37.273671
+      "evidence_sha256": "da647f87dfe27af1f8e3af59c88a373725c520eb0796372c163f11bfd9c49680",
+      "measurement": "generator-owned fresh child process; JUnit counts, exit status, command, environment, time.perf_counter wall time, and RUSAGE_CHILDREN peak RSS",
+      "raw_evidence": {
+        "command": [
+          "python",
+          "-m",
+          "pytest",
+          "-q",
+          "tests/test_config_contracts.py",
+          "tests/test_account_broker_schema.py",
+          "tests/test_engine_contracts.py",
+          "tests/test_execution.py"
+        ],
+        "environment": {
+          "platform": "Linux-6.18.35-x86_64-with-glibc2.39",
+          "python_implementation": "CPython",
+          "python_version": "3.12.13",
+          "uv_lock_sha256": "4accf16535b5ac95b831c9289e0ad2ff21282dc5dfae3f05dd0fb095089d6a61"
+        },
+        "exit_status": 0,
+        "junit_sha256": "72495f9a55b620eed8832c577b4b3b378418cce1b02110de75d6f7f2a3d8d9d4",
+        "peak_rss_kib": 184052,
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "stdout_sha256": "07079b599945360868a01e8935fd30d1f98026f8f782c51330b5b576bb99d782",
+        "test_counts": {
+          "errors": 0,
+          "failures": 0,
+          "passed": 266,
+          "skipped": 0,
+          "total": 266
+        },
+        "wall_seconds": 34.329527
+      }
     },
     "representative_replay": {
       "command": "ProductionEngine(data/frozen).backtest(symbols=[sz300308,sz300502,sz300394],start=2023-01-03,end=2023-01-20)",
       "measurement": "fresh child process measured with time.perf_counter and resource.RUSAGE_SELF.ru_maxrss",
-      "peak_rss_kib": 173624,
+      "peak_rss_kib": 176116,
       "scenario": "early_ai_entry",
-      "wall_seconds": 3.07708
+      "wall_seconds": 2.895368
     }
   },
   "public_api_contract": {
-    "contract_sha256": "fe3e95b7cd5a31c2ce3c3f6adcd3401f02fe49680912cf9fc362dbdb7259270f",
+    "contract_sha256": "54b1701a7ff2f90785c7dc5c16f6e99857a29d6b653d348663084a159820bf66",
     "path": "benchmarks/architecture_refactor_public_api.json",
-    "sha256": "2d14213d029fede674cf55463a780a89030e7f2d99cd3457b201970ddea63c34"
+    "sha256": "7636f6929e8526daf889e7a926973a696f3e04e67831e53972fefe70f3ecd7ca"
   },
   "recorded_on": "2026-08-22",
   "representative_replays": [

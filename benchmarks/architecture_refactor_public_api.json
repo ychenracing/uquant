@@ -236,7 +236,8 @@
       "uquant execution-journal skipped": "usage: uquant execution-journal skipped [-h] [--journal JOURNAL] --plan-id\n                                        PLAN_ID --recorded-at RECORDED_AT\n                                        --next-open NEXT_OPEN --manual-skip\n                                        MANUAL_SKIP\n\noptions:\n  -h, --help            show this help message and exit\n  --journal JOURNAL\n  --plan-id PLAN_ID\n  --recorded-at RECORDED_AT\n  --next-open NEXT_OPEN\n  --manual-skip MANUAL_SKIP\n",
       "uquant holdout-append": "usage: uquant holdout-append [-h] --snapshot-dir SNAPSHOT_DIR\n\noptions:\n  -h, --help            show this help message and exit\n  --snapshot-dir SNAPSHOT_DIR\n",
       "uquant holdout-manifest": "usage: uquant holdout-manifest [-h] --account ACCOUNT [--metrics METRICS]\n                               [--journal JOURNAL] [--output OUTPUT]\n\noptions:\n  -h, --help         show this help message and exit\n  --account ACCOUNT\n  --metrics METRICS  deterministic holdout replay artifact (required after\n                     sessions exist)\n  --journal JOURNAL\n  --output OUTPUT\n",
-      "uquant holdout-replay": "usage: uquant holdout-replay [-h] --account ACCOUNT [--journal JOURNAL]\n                             [--output OUTPUT]\n                             [--decision-output DECISION_OUTPUT]\n\noptions:\n  -h, --help            show this help message and exit\n  --account ACCOUNT\n  --journal JOURNAL\n  --output OUTPUT\n  --decision-output DECISION_OUTPUT\n"
+      "uquant holdout-replay": "usage: uquant holdout-replay [-h] --account ACCOUNT [--journal JOURNAL]\n                             [--output OUTPUT]\n                             [--decision-output DECISION_OUTPUT]\n\noptions:\n  -h, --help            show this help message and exit\n  --account ACCOUNT\n  --journal JOURNAL\n  --output OUTPUT\n  --decision-output DECISION_OUTPUT\n",
+      "uquant-sentinel": "usage: uquant-sentinel [-h] [--validate-contracts] [--data-dir DATA_DIR]\n                       [--date DATE] [--account ACCOUNT] [--output OUTPUT]\n\nIndependent Risk Sentinel Shadow Mode\n\noptions:\n  -h, --help            show this help message and exit\n  --validate-contracts\n  --data-dir DATA_DIR\n  --date DATE\n  --account ACCOUNT\n  --output OUTPUT\n"
     },
     "decision_fill_account_trace": {
       "account_after": {
@@ -31853,7 +31854,7 @@
     }
   },
   "contract_id": "uquant-modular-governance-public-api-v1",
-  "contract_sha256": "fe3e95b7cd5a31c2ce3c3f6adcd3401f02fe49680912cf9fc362dbdb7259270f",
+  "contract_sha256": "54b1701a7ff2f90785c7dc5c16f6e99857a29d6b653d348663084a159820bf66",
   "recorded_on": "2026-08-22",
   "schema_version": 1
 }

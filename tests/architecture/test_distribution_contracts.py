@@ -73,16 +73,45 @@ def test_initial_debt_is_recomputed_from_the_immutable_git_tree(
     baseline_inventory: dict[str, object],
 ) -> None:
     from ._analysis import architecture_snapshot, git_python_sources, measured_debt
-    from ._baseline import BASELINE_COMMIT
+    from ._baseline import BASELINE_COMMIT, BASELINE_MODULE_AUTHORITIES
 
     debt = baseline_inventory["architecture_debt"]
+    frozen_architecture = baseline_inventory["architecture"]
     assert isinstance(debt, Mapping)
+    assert isinstance(frozen_architecture, Mapping)
     baseline_snapshot = architecture_snapshot(
-        source_texts=git_python_sources(ROOT, BASELINE_COMMIT)
+        source_texts=git_python_sources(ROOT, BASELINE_COMMIT),
+        module_authorities=BASELINE_MODULE_AUTHORITIES,
     )
+    frozen_graph = frozen_architecture["import_graph"]
+    observed_graph = baseline_snapshot["import_graph"]
+    assert isinstance(frozen_graph, Mapping)
+    assert isinstance(observed_graph, Mapping)
+    assert frozen_graph["module_authorities"] == BASELINE_MODULE_AUTHORITIES
+    assert observed_graph["module_authorities"] == BASELINE_MODULE_AUTHORITIES
     expected_initial = measured_debt(baseline_snapshot)
     assert debt["initial"] == expected_initial
     assert debt["initial_sha256"] == canonical_sha256(expected_initial)
+
+
+@pytest.mark.parametrize("registry_change", ("add", "remove", "update"))
+def test_immutable_baseline_recomputation_ignores_future_live_registry_changes(
+    baseline_inventory: dict[str, object],
+    monkeypatch: pytest.MonkeyPatch,
+    registry_change: str,
+) -> None:
+    from . import _analysis
+
+    future_registry = dict(_analysis.MODULE_AUTHORITIES)
+    if registry_change == "add":
+        future_registry["uquant.future_domain"] = "production_safe"
+    elif registry_change == "remove":
+        del future_registry["uquant.opportunity"]
+    else:
+        future_registry["uquant.cli"] = "validation_runner"
+    monkeypatch.setattr(_analysis, "MODULE_AUTHORITIES", future_registry)
+
+    test_initial_debt_is_recomputed_from_the_immutable_git_tree(baseline_inventory)
 
 
 def test_generator_accepts_an_explicit_baseline_from_the_task_1_head() -> None:

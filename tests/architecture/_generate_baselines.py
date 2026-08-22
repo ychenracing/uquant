@@ -37,7 +37,7 @@ from ._analysis import (
     sha256_tree,
     tracked_file_inventory,
 )
-from ._baseline import BASELINE_COMMIT
+from ._baseline import BASELINE_COMMIT, BASELINE_MODULE_AUTHORITIES
 
 BASELINE_BRANCH = "codex/uquant-modular-governance-20260822"
 
@@ -347,6 +347,7 @@ def generate(
     architecture = architecture_snapshot(
         root=baseline_root,
         source_texts=baseline_sources,
+        module_authorities=BASELINE_MODULE_AUTHORITIES,
     )
     initial_debt = measured_debt(architecture)
     temporary_allowlist = {

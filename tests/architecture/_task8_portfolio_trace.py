@@ -107,13 +107,14 @@ _OFFICIAL_TRACE_SPECS = (
 )
 
 _FRAME_DIGESTS: dict[int, tuple[pd.DataFrame, dict[str, object]]] = {}
+_EXPECTED_CODE_FINGERPRINT: str | None = None
 
 
 def _jsonable(value: Any) -> Any:
     if isinstance(value, Enum):
         return value.value
     if isinstance(value, AccountState):
-        return _jsonable(value.to_dict())
+        return _jsonable(_economic_account_dict(value))
     if dataclasses.is_dataclass(value) and not isinstance(value, type):
         return _jsonable(dataclasses.asdict(value))
     if isinstance(value, pd.DataFrame):
@@ -161,8 +162,28 @@ def _jsonable(value: Any) -> Any:
 
 
 def _account_payload(account: AccountState) -> dict[str, Any]:
-    payload = _jsonable(account.to_dict())
+    payload = _jsonable(_economic_account_dict(account))
     assert isinstance(payload, dict)
+    return payload
+
+
+def _economic_account_dict(account: AccountState) -> dict[str, Any]:
+    global _EXPECTED_CODE_FINGERPRINT
+    payload = account.to_dict()
+    # A package relocation necessarily changes the source-surface fingerprint.
+    # It is independently fail-closed by the registry/provenance gates and is
+    # not an economic AccountState mutation.
+    observed = payload.pop("code_hash", "")
+    if observed:
+        if _EXPECTED_CODE_FINGERPRINT is None:
+            from uquant.engine import code_fingerprint
+
+            _EXPECTED_CODE_FINGERPRINT = code_fingerprint()
+        if observed != _EXPECTED_CODE_FINGERPRINT:
+            raise AssertionError("account code_hash does not match the replay source surface")
+        payload["_trace_code_hash_status"] = "matches_current_source"
+    else:
+        payload["_trace_code_hash_status"] = "unset"
     return payload
 
 
@@ -216,7 +237,9 @@ def portfolio_trace_replay(
 ) -> dict[str, Any]:
     import uquant.engine as engine_module
 
+    global _EXPECTED_CODE_FINGERPRINT
     _FRAME_DIGESTS.clear()
+    _EXPECTED_CODE_FINGERPRINT = None
     active: dict[str, Any] | None = None
     originals: list[tuple[type[object], str, object]] = []
     records: list[dict[str, Any]] = []
@@ -399,7 +422,8 @@ def official_portfolio_trace(root: Path) -> dict[str, Any]:
             "settled the session's pending orders; complete position, pending-order and durable "
             "lifecycle-right fields are projected before any allocation-owner mutation."
         ),
-        "contract": "uquant-task8-daily-allocation-trace-v1",
+        "contract": "uquant-task8-daily-allocation-trace-v2",
+        "excluded_structural_account_fields": ["code_hash"],
         "projection": (
             "nine ordered complete allocation/account/lifecycle owner checkpoint payload hashes"
         ),

@@ -9,7 +9,7 @@ import sys
 import tarfile
 import tempfile
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 
 from uquant.contracts.strict_json import canonical_json_sha256
 
@@ -85,7 +85,7 @@ def _git(root: Path, *arguments: str, text: bool = False) -> bytes | str:
         assert isinstance(output, str)
     else:
         assert isinstance(output, bytes)
-    return output
+    return cast(bytes | str, output)
 
 
 def _git_source(root: Path, path: str) -> bytes:
@@ -162,9 +162,7 @@ def _import_consumers(sources: dict[str, bytes], target: str) -> list[dict[str, 
     return consumers
 
 
-def _module_attribute_consumers(
-    sources: dict[str, bytes], target: str
-) -> list[dict[str, Any]]:
+def _module_attribute_consumers(sources: dict[str, bytes], target: str) -> list[dict[str, Any]]:
     parent, _, leaf = target.rpartition(".")
     consumers: list[dict[str, Any]] = []
     for path, source in sources.items():
@@ -173,9 +171,7 @@ def _module_attribute_consumers(
         for node in ast.walk(tree):
             if isinstance(node, ast.Import):
                 aliases.update(
-                    alias.asname or alias.name.split(".")[-1]
-                    for alias in node.names
-                    if alias.name == target
+                    alias.asname or alias.name.split(".")[-1] for alias in node.names if alias.name == target
                 )
             elif isinstance(node, ast.ImportFrom) and _resolved_import_from(path, node) == parent:
                 aliases.update(alias.asname or alias.name for alias in node.names if alias.name == leaf)
@@ -206,9 +202,7 @@ def _module_attribute_consumers(
     return consumers
 
 
-def _dotted_identity_consumers(
-    sources: dict[str, bytes], target: str
-) -> list[dict[str, Any]]:
+def _dotted_identity_consumers(sources: dict[str, bytes], target: str) -> list[dict[str, Any]]:
     consumers: list[dict[str, Any]] = []
     for path, source in sources.items():
         values = sorted(
@@ -231,23 +225,18 @@ def _class_methods(source: bytes, class_name: str) -> tuple[str, ...]:
         node for node in tree.body if isinstance(node, ast.ClassDef) and node.name == class_name
     )
     return tuple(
-        node.name
-        for node in class_node.body
-        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
+        node.name for node in class_node.body if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
     )
 
 
-def _method_consumers(
-    sources: dict[str, bytes], method_names: set[str]
-) -> list[dict[str, Any]]:
+def _method_consumers(sources: dict[str, bytes], method_names: set[str]) -> list[dict[str, Any]]:
     consumers: list[dict[str, Any]] = []
     for path, source in sources.items():
         methods = sorted(
             {
                 node.attr
                 for node in ast.walk(ast.parse(source))
-                if isinstance(node, ast.Attribute)
-                and node.attr in method_names
+                if isinstance(node, ast.Attribute) and node.attr in method_names
             }
         )
         if methods:
@@ -255,9 +244,7 @@ def _method_consumers(
     return consumers
 
 
-def _runtime_seams(
-    sources: dict[str, bytes], method_names: set[str]
-) -> list[dict[str, Any]]:
+def _runtime_seams(sources: dict[str, bytes], method_names: set[str]) -> list[dict[str, Any]]:
     seams: list[dict[str, Any]] = []
     for path, source in sources.items():
         tree = ast.parse(source)
@@ -313,12 +300,11 @@ def _reference_classification(paths: list[str]) -> dict[str, list[str]]:
         path
         for path in paths
         if path.startswith("artifacts/")
-        or path in {"benchmarks/architecture_refactor_public_api.json", "benchmarks/risk_capability_registry.json"}
+        or path
+        in {"benchmarks/architecture_refactor_public_api.json", "benchmarks/risk_capability_registry.json"}
     )
     documentation = sorted(
-        path
-        for path in paths
-        if path.startswith("docs/") or path.startswith(".superpowers/")
+        path for path in paths if path.startswith("docs/") or path.startswith(".superpowers/")
     )
     classified = set(current) | set(historical) | set(documentation)
     return {
@@ -329,8 +315,7 @@ def _reference_classification(paths: list[str]) -> dict[str, list[str]]:
     }
 
 
-def _reflection_contract(root: Path) -> dict[str, Any]:
-    script = r'''
+_REFLECTION_SCRIPT = r"""
 import builtins, hashlib, inspect, json, pickle, sys
 snapshot = sys.argv[1]
 if sys.argv[2] == "block-fcntl":
@@ -408,7 +393,51 @@ for name, module in list(sys.modules.items()):
         if source is not None and not __import__("pathlib").Path(source).resolve().is_relative_to(__import__("pathlib").Path(snapshot).resolve()):
             raise RuntimeError(f"reflection imported candidate module: {name}")
 print(json.dumps(payload, allow_nan=False, sort_keys=True))
-'''
+"""
+
+
+def _reflection_from_snapshot(snapshot: Path) -> dict[str, Any]:
+    modes = {
+        "normal": ((), "allow-fcntl"),
+        "optimized": (("-O",), "allow-fcntl"),
+        "double_optimized": (("-OO",), "allow-fcntl"),
+        "windows_no_fcntl": (("-OO",), "block-fcntl"),
+    }
+    observed: dict[str, Any] = {}
+    for name, (flags, fcntl_mode) in modes.items():
+        completed = subprocess.run(
+            [
+                sys.executable,
+                "-I",
+                *flags,
+                "-c",
+                _REFLECTION_SCRIPT,
+                str(snapshot),
+                fcntl_mode,
+            ],
+            cwd=snapshot,
+            check=True,
+            capture_output=True,
+            text=True,
+        )
+        value = json.loads(completed.stdout)
+        assert isinstance(value, dict)
+        observed[name] = value
+    normal = observed["normal"]
+    assert isinstance(normal, dict)
+    return {
+        "normal": normal,
+        "mode_sha256": {name: canonical_json_sha256(value) for name, value in observed.items()},
+    }
+
+
+def current_reflection_contract(root: Path) -> dict[str, Any]:
+    """Observe candidate public/reflection/pickle/import behavior in fresh processes."""
+
+    return _reflection_from_snapshot(root.resolve())
+
+
+def _reflection_contract(root: Path) -> dict[str, Any]:
     archive = _git(root, "archive", "--format=tar", TASK8_START)
     assert isinstance(archive, bytes)
     with tempfile.TemporaryDirectory(prefix="uquant-task8-inventory-") as temporary:
@@ -416,32 +445,7 @@ print(json.dumps(payload, allow_nan=False, sort_keys=True))
         snapshot.mkdir()
         with tarfile.open(fileobj=io.BytesIO(archive), mode="r:") as stream:
             stream.extractall(snapshot, filter="data")
-        modes = {
-            "normal": ((), "allow-fcntl"),
-            "optimized": (("-O",), "allow-fcntl"),
-            "double_optimized": (("-OO",), "allow-fcntl"),
-            "windows_no_fcntl": (("-OO",), "block-fcntl"),
-        }
-        observed: dict[str, Any] = {}
-        for name, (flags, fcntl_mode) in modes.items():
-            completed = subprocess.run(
-                [sys.executable, "-I", *flags, "-c", script, str(snapshot), fcntl_mode],
-                cwd=snapshot,
-                check=True,
-                capture_output=True,
-                text=True,
-            )
-            value = json.loads(completed.stdout)
-            assert isinstance(value, dict)
-            observed[name] = value
-    normal = observed["normal"]
-    assert isinstance(normal, dict)
-    return {
-        "normal": normal,
-        "mode_sha256": {
-            name: canonical_json_sha256(value) for name, value in observed.items()
-        },
-    }
+        return _reflection_from_snapshot(snapshot)
 
 
 def build_task8_inventory(root: Path) -> dict[str, Any]:
@@ -463,11 +467,7 @@ def build_task8_inventory(root: Path) -> dict[str, Any]:
         blob = _git(root, "rev-parse", f"{TASK8_START}:{path}", text=True)
         assert isinstance(blob, str)
         references = _fixed_references(root, path)
-        memberships = [
-            surface["id"]
-            for surface in registry["surfaces"]
-            if path in surface["source_paths"]
-        ]
+        memberships = [surface["id"] for surface in registry["surfaces"] if path in surface["source_paths"]]
         module_public = public_api["contract"]["modules"][module]
         classification = _reference_classification(references)
         entries.append(
@@ -501,27 +501,18 @@ def build_task8_inventory(root: Path) -> dict[str, Any]:
                 "live_references": {
                     "immutable_fixed_path_consumers": references,
                     "ast_import_consumers": _import_consumers(sources, module),
-                    "runtime_module_attribute_consumers": _module_attribute_consumers(
-                        sources, module
-                    ),
-                    "dotted_runtime_identity_consumers": _dotted_identity_consumers(
-                        sources, module
-                    ),
+                    "runtime_module_attribute_consumers": _module_attribute_consumers(sources, module),
+                    "dotted_runtime_identity_consumers": _dotted_identity_consumers(sources, module),
                     "consumed_private_method_attributes": [
                         {
                             "path": row["path"],
-                            "methods": sorted(
-                                set(row["methods"])
-                                & set(_class_methods(source, class_name))
-                            ),
+                            "methods": sorted(set(row["methods"]) & set(_class_methods(source, class_name))),
                         }
                         for row in method_consumers
                         if set(row["methods"]) & set(_class_methods(source, class_name))
                     ],
                     "runtime_monkeypatch_seams": [
-                        row
-                        for row in runtime_seams
-                        if row["attribute"] in _class_methods(source, class_name)
+                        row for row in runtime_seams if row["attribute"] in _class_methods(source, class_name)
                     ],
                     **classification,
                 },
@@ -571,4 +562,5 @@ __all__ = (
     "TASK8_START",
     "TASK8_START_TREE",
     "build_task8_inventory",
+    "current_reflection_contract",
 )

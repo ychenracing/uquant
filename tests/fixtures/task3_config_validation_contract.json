@@ -32,6 +32,7 @@
       }
     ],
     "pair_case_count": 17571,
+    "stimulus_manifest_sha256": "e88a379662b342cd702d66bb4fc55a897ac4019916a61a971b9375a064a46b78",
     "structural_only_adjacent_swaps": [
       {
         "baseline_clause_indexes": [

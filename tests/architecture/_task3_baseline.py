@@ -4,12 +4,15 @@ from __future__ import annotations
 
 import ast
 import base64
+import builtins
 import copy
+import dis
 import hashlib
 import importlib
 import inspect
 import io
 import json
+import math
 import os
 import pickle
 import subprocess
@@ -35,6 +38,13 @@ REACHABLE_WITNESS_CASE_COUNT = 2
 UNKNOWN_KEYWORD_CASE_INDEX = REACHABLE_WITNESS_START_INDEX + REACHABLE_WITNESS_CASE_COUNT
 TOTAL_VALIDATION_CASE_COUNT = UNKNOWN_KEYWORD_CASE_INDEX + 1
 VALIDATION_CLAUSE_COUNT = 159
+PAIR_CASE_COUNT = 17_571
+VALIDATION_STIMULUS_MANIFEST_SHA256 = (
+    "e88a379662b342cd702d66bb4fc55a897ac4019916a61a971b9375a064a46b78"
+)
+GOVERNED_EXTERNAL_GLOBALS: Mapping[str, object] = types.MappingProxyType(
+    {"math": math}
+)
 REACHABLE_WITNESSES = (
     (
         REACHABLE_WITNESS_START_INDEX,
@@ -91,7 +101,14 @@ class _ModuleScopeBindingVisitor(ast.NodeVisitor):
         self.deleted: set[str] = set()
         self.loaded: set[str] = set()
         self.indirect: set[str] = set()
+        self.mutated_roots: set[str] = set()
         self.dynamic = False
+
+    @staticmethod
+    def _root_name(node: ast.AST) -> str | None:
+        while isinstance(node, (ast.Attribute, ast.Subscript)):
+            node = node.value
+        return node.id if isinstance(node, ast.Name) else None
 
     def _record_nested_shadowing(self, node: ast.AST) -> None:
         for descendant in ast.walk(node):
@@ -113,6 +130,9 @@ class _ModuleScopeBindingVisitor(ast.NodeVisitor):
                 (ast.Store, ast.Del),
             ):
                 self.indirect.add(descendant.attr)
+                root_name = self._root_name(descendant)
+                if root_name is not None:
+                    self.mutated_roots.add(root_name)
             elif (
                 isinstance(descendant, ast.Subscript)
                 and isinstance(descendant.ctx, (ast.Store, ast.Del))
@@ -132,6 +152,9 @@ class _ModuleScopeBindingVisitor(ast.NodeVisitor):
     def visit_Attribute(self, node: ast.Attribute) -> None:
         if isinstance(node.ctx, (ast.Store, ast.Del)):
             self.indirect.add(node.attr)
+            root_name = self._root_name(node)
+            if root_name is not None:
+                self.mutated_roots.add(root_name)
         self.visit(node.value)
 
     def visit_Subscript(self, node: ast.Subscript) -> None:
@@ -197,6 +220,9 @@ class _ModuleScopeBindingVisitor(ast.NodeVisitor):
             and isinstance(node.args[1].value, str)
         ):
             self.indirect.add(node.args[1].value)
+            root_name = self._root_name(node.args[0])
+            if root_name is not None:
+                self.mutated_roots.add(root_name)
         for keyword in node.keywords:
             if keyword.arg is not None:
                 self.indirect.add(keyword.arg)
@@ -415,16 +441,17 @@ def _validation_module_name(path: str) -> str:
     return path.removesuffix(".py").replace("/", ".")
 
 
-def _expected_code(
+def _function_code_from_source(
     *,
+    source: str,
     path: str,
     qualname: str,
     first_lineno: int,
+    filename: str | None = None,
 ) -> types.CodeType:
-    source_path = (ROOT / path).resolve()
     module_code = compile(
-        source_path.read_text(encoding="utf-8"),
-        str(source_path),
+        source,
+        filename or path,
         "exec",
         dont_inherit=True,
     )
@@ -443,6 +470,170 @@ def _expected_code(
             f"expected one governed code object for {path}:{qualname}, got {len(matches)}"
         )
     return matches[0]
+
+
+def _expected_code(
+    *,
+    path: str,
+    qualname: str,
+    first_lineno: int,
+) -> types.CodeType:
+    source_path = (ROOT / path).resolve()
+    return _function_code_from_source(
+        source=source_path.read_text(encoding="utf-8"),
+        path=path,
+        qualname=qualname,
+        first_lineno=first_lineno,
+        filename=str(source_path),
+    )
+
+
+def _global_load_names(code: types.CodeType) -> set[str]:
+    names = {
+        cast(str, instruction.argval)
+        for instruction in dis.get_instructions(code)
+        if instruction.opname == "LOAD_GLOBAL"
+    }
+    for constant in code.co_consts:
+        if isinstance(constant, types.CodeType):
+            names.update(_global_load_names(constant))
+    return names
+
+
+def _module_import_positions(tree: ast.Module) -> dict[str, int]:
+    positions: dict[str, int] = {}
+    for position, statement in enumerate(tree.body):
+        if isinstance(statement, ast.Import):
+            for alias in statement.names:
+                name = alias.asname or alias.name.split(".", maxsplit=1)[0]
+                positions[name] = position
+        elif isinstance(statement, ast.ImportFrom) and statement.module != "__future__":
+            for alias in statement.names:
+                if alias.name == "*":
+                    raise AssertionError("governed modules may not use star imports")
+                positions[alias.asname or alias.name] = position
+    return positions
+
+
+def _resolved_module_imports(tree: ast.Module, module_name: str) -> dict[str, object]:
+    bindings: dict[str, object] = {}
+    package = module_name.rpartition(".")[0]
+    for statement in tree.body:
+        if isinstance(statement, ast.Import):
+            for alias in statement.names:
+                if alias.asname is None:
+                    imported_name = alias.name.split(".", maxsplit=1)[0]
+                    bindings[imported_name] = importlib.import_module(imported_name)
+                else:
+                    bindings[alias.asname] = importlib.import_module(alias.name)
+        elif isinstance(statement, ast.ImportFrom) and statement.module != "__future__":
+            relative_name = f"{'.' * statement.level}{statement.module or ''}"
+            imported_module = importlib.import_module(relative_name, package=package)
+            for alias in statement.names:
+                if alias.name == "*":
+                    raise AssertionError("governed modules may not use star imports")
+                bindings[alias.asname or alias.name] = getattr(imported_module, alias.name)
+    return bindings
+
+
+def _assert_governed_dependency_topology(
+    *,
+    path: str,
+    source: str,
+    tree: ast.Module,
+    functions: Mapping[str, ast.FunctionDef],
+) -> None:
+    """Reject source bindings that alter a governed function's global lookup."""
+
+    loaded_globals: set[str] = set()
+    for name, definition in functions.items():
+        code = _function_code_from_source(
+            source=source,
+            path=path,
+            qualname=name,
+            first_lineno=definition.lineno,
+        )
+        loaded_globals.update(_global_load_names(code))
+
+    import_positions = _module_import_positions(tree)
+    builtin_dependencies = loaded_globals.intersection(vars(builtins))
+    external_dependencies = loaded_globals.intersection(GOVERNED_EXTERNAL_GLOBALS)
+    unknown = loaded_globals.difference(
+        builtin_dependencies,
+        external_dependencies,
+        functions,
+    )
+    if unknown:
+        raise AssertionError(
+            f"governed callables have unresolved global dependencies in {path}: "
+            f"{sorted(unknown)!r}"
+        )
+
+    for name in builtin_dependencies:
+        for statement in tree.body:
+            visitor = _ModuleScopeBindingVisitor()
+            visitor.visit(statement)
+            if visitor.dynamic:
+                raise AssertionError(
+                    f"dynamic module binding can shadow builtin in {path}: {name}"
+                )
+            if name in visitor.bound or name in visitor.deleted or name in visitor.indirect:
+                raise AssertionError(
+                    f"governed builtin dependency is shadowed in {path}: {name}"
+                )
+
+    resolved_imports = _resolved_module_imports(
+        tree,
+        _validation_module_name(path),
+    )
+    for name in external_dependencies:
+        if (
+            name not in import_positions
+            or resolved_imports.get(name) is not GOVERNED_EXTERNAL_GLOBALS[name]
+        ):
+            raise AssertionError(
+                f"governed external dependency changed in {path}: {name}"
+            )
+
+    governed_import_positions = {
+        name: import_positions[name]
+        for name in external_dependencies
+    }
+    _assert_no_binding_bypass(
+        path=path,
+        tree=tree,
+        canonical_positions=governed_import_positions,
+    )
+
+
+def _assert_system_config_source_dispatch(tree: ast.Module) -> None:
+    config_classes = [
+        (position, node)
+        for position, node in enumerate(tree.body)
+        if isinstance(node, ast.ClassDef) and node.name == "SystemConfig"
+    ]
+    if len(config_classes) != 1:
+        raise AssertionError("candidate must define exactly one SystemConfig class")
+    position, config_class = config_classes[0]
+    forbidden_methods = {
+        node.name
+        for node in config_class.body
+        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
+        and node.name in {"__getattr__", "__getattribute__"}
+    }
+    if forbidden_methods:
+        raise AssertionError(
+            f"SystemConfig attribute dispatch changed: {sorted(forbidden_methods)!r}"
+        )
+    for statement in tree.body[position + 1 :]:
+        visitor = _ModuleScopeBindingVisitor()
+        visitor.visit(statement)
+        if visitor.dynamic:
+            raise AssertionError("dynamic binding follows the SystemConfig definition")
+        if "SystemConfig" in visitor.bound or "SystemConfig" in visitor.deleted:
+            raise AssertionError("SystemConfig class binding changed")
+        if "SystemConfig" in visitor.mutated_roots:
+            raise AssertionError("SystemConfig class dispatch was mutated")
 
 
 def _callable_source_dump(function: types.FunctionType) -> str:
@@ -504,6 +695,44 @@ def _assert_exact_runtime_function(
     return function
 
 
+def _assert_exact_runtime_globals(
+    *,
+    function: types.FunctionType,
+    expected_code: types.CodeType,
+    expected_bindings: Mapping[str, object],
+) -> None:
+    """Verify every actual LOAD_GLOBAL resolves to its governed object."""
+
+    function_builtins = cast(dict[str, object], cast(Any, function).__builtins__)
+    if function_builtins is not vars(builtins):
+        raise AssertionError(
+            f"governed function builtins changed: {function.__module__}.{function.__qualname__}"
+        )
+    for name in _global_load_names(expected_code):
+        if name in vars(builtins):
+            if name in function.__globals__:
+                raise AssertionError(
+                    f"governed builtin dependency is shadowed at runtime: "
+                    f"{function.__module__}.{function.__qualname__}->{name}"
+                )
+            if function_builtins.get(name) is not vars(builtins)[name]:
+                raise AssertionError(
+                    f"governed builtin dependency changed: "
+                    f"{function.__module__}.{function.__qualname__}->{name}"
+                )
+            continue
+        if name not in expected_bindings:
+            raise AssertionError(
+                f"governed runtime dependency is not declared: "
+                f"{function.__module__}.{function.__qualname__}->{name}"
+            )
+        if function.__globals__.get(name) is not expected_bindings[name]:
+            raise AssertionError(
+                f"governed runtime dependency changed: "
+                f"{function.__module__}.{function.__qualname__}->{name}"
+            )
+
+
 def candidate_validation_clause_dumps(
     source_overrides: Mapping[str, str] | None = None,
 ) -> tuple[str, ...]:
@@ -522,7 +751,8 @@ def candidate_validation_clause_dumps(
 
     functions: dict[str, dict[str, ast.FunctionDef]] = {}
     for path in CANDIDATE_VALIDATION_PATHS:
-        tree = ast.parse(source_for(path), filename=path)
+        path_source = source_for(path)
+        tree = ast.parse(path_source, filename=path)
         path_functions: dict[str, ast.FunctionDef] = {}
         canonical_positions: dict[str, int] = {}
         for position, node in enumerate(tree.body):
@@ -539,12 +769,20 @@ def candidate_validation_clause_dumps(
             tree=tree,
             canonical_positions=canonical_positions,
         )
+        _assert_governed_dependency_topology(
+            path=path,
+            source=path_source,
+            tree=tree,
+            functions=path_functions,
+        )
         functions[path] = path_functions
 
+    model_source = source_for(CANDIDATE_CONFIG_MODEL_PATH)
     model_tree = ast.parse(
-        source_for(CANDIDATE_CONFIG_MODEL_PATH),
+        model_source,
         filename=CANDIDATE_CONFIG_MODEL_PATH,
     )
+    _assert_system_config_source_dispatch(model_tree)
     root = _system_config_post_init(model_tree)
     if root.decorator_list:
         raise AssertionError("SystemConfig.__post_init__ may not be decorated")
@@ -648,6 +886,7 @@ def _assert_live_candidate_bindings(
     """Match live globals and code to the governed on-disk callable topology."""
 
     live_functions: dict[tuple[str, str], types.FunctionType] = {}
+    live_codes: dict[tuple[str, str], types.CodeType] = {}
     live_modules: dict[str, types.ModuleType] = {}
     for path, path_functions in functions.items():
         module_name = _validation_module_name(path)
@@ -662,12 +901,28 @@ def _assert_live_candidate_bindings(
                 qualname=name,
                 first_lineno=definition.lineno,
             )
+            live_codes[(path, name)] = expected_code
             live_functions[(path, name)] = _assert_exact_runtime_function(
                 function=vars(module).get(name),
                 module=module,
                 expected_code=expected_code,
                 expected_qualname=name,
                 definition=definition,
+            )
+
+    for path, path_functions in functions.items():
+        expected_bindings = dict(GOVERNED_EXTERNAL_GLOBALS)
+        expected_bindings.update(
+            {
+                name: live_functions[(path, name)]
+                for name in path_functions
+            }
+        )
+        for name in path_functions:
+            _assert_exact_runtime_globals(
+                function=live_functions[(path, name)],
+                expected_code=live_codes[(path, name)],
+                expected_bindings=expected_bindings,
             )
 
     model_module = importlib.import_module(_validation_module_name(CANDIDATE_CONFIG_MODEL_PATH))
@@ -679,6 +934,22 @@ def _assert_live_candidate_bindings(
     system_config = vars(model_module).get("SystemConfig")
     if not isinstance(system_config, type):
         raise AssertionError("SystemConfig live binding is not a class")
+    if type(system_config) is not type or system_config.__mro__ != (system_config, object):
+        raise AssertionError("SystemConfig class hierarchy or metaclass changed")
+    if system_config.__qualname__ != "SystemConfig":
+        raise AssertionError("SystemConfig class qualname changed")
+    if vars(system_config).get("__getattribute__") is not None:
+        raise AssertionError("SystemConfig defines a custom __getattribute__")
+    if "__getattr__" in vars(system_config):
+        raise AssertionError("SystemConfig defines a custom __getattr__")
+    if cast(object, system_config.__getattribute__) is not cast(
+        object,
+        object.__getattribute__,
+    ):
+        raise AssertionError("SystemConfig attribute dispatch changed")
+    default_config = vars(model_module).get("DEFAULT_CONFIG")
+    if type(default_config) is not system_config:
+        raise AssertionError("DEFAULT_CONFIG is not an exact SystemConfig instance")
     expected_root_code = _expected_code(
         path=CANDIDATE_CONFIG_MODEL_PATH,
         qualname="SystemConfig.__post_init__",
@@ -690,6 +961,17 @@ def _assert_live_candidate_bindings(
         expected_code=expected_root_code,
         expected_qualname="SystemConfig.__post_init__",
         definition=root,
+    )
+
+    model_bindings = {
+        local_name: live_functions[target]
+        for local_name, target in model_imports.items()
+        if target in live_functions
+    }
+    _assert_exact_runtime_globals(
+        function=live_root,
+        expected_code=expected_root_code,
+        expected_bindings=model_bindings,
     )
 
     for local_name, target in model_imports.items():
@@ -746,11 +1028,9 @@ def exception_observation(config: object, changes: Mapping[str, object]) -> dict
     raise AssertionError(f"expected invalid override to fail: {dict(changes)!r}")
 
 
-def validation_fixture_metadata(cases: Sequence[Mapping[str, object]]) -> dict[str, object]:
-    """Return deterministic provenance and matrix dimensions for the oracle."""
-
+def _validation_pair_count(cases: Sequence[Mapping[str, object]]) -> int:
     isolated = cases[:ISOLATED_VALIDATION_CASE_COUNT]
-    pair_count = sum(
+    return sum(
         1
         for index, left in enumerate(isolated)
         for right in isolated[index + 1 :]
@@ -758,6 +1038,27 @@ def validation_fixture_metadata(cases: Sequence[Mapping[str, object]]) -> dict[s
             cast(Mapping[str, object], right["changes"])
         )
     )
+
+
+def _stimulus_manifest_sha256(cases: Sequence[Mapping[str, object]]) -> str:
+    manifest: list[dict[str, object]] = []
+    for case in cases:
+        entry: dict[str, object] = {"changes": case["changes"]}
+        if "witness_id" in case:
+            entry["witness_id"] = case["witness_id"]
+        manifest.append(entry)
+    encoded = json.dumps(
+        manifest,
+        allow_nan=False,
+        separators=(",", ":"),
+        sort_keys=True,
+    ).encode()
+    return hashlib.sha256(encoded).hexdigest()
+
+
+def validation_fixture_metadata(cases: Sequence[Mapping[str, object]]) -> dict[str, object]:
+    """Return deterministic provenance and immutable matrix dimensions."""
+
     return {
         "baseline_blob_sha256": hashlib.sha256(git_blob(BASELINE_CONFIG_PATH)).hexdigest(),
         "baseline_commit": BASELINE_COMMIT,
@@ -784,7 +1085,8 @@ def validation_fixture_metadata(cases: Sequence[Mapping[str, object]]) -> dict[s
             }
             for swap_id, clause_indexes in STRUCTURAL_ONLY_ADJACENT_SWAPS
         ],
-        "pair_case_count": pair_count,
+        "pair_case_count": PAIR_CASE_COUNT,
+        "stimulus_manifest_sha256": VALIDATION_STIMULUS_MANIFEST_SHA256,
         "total_case_count": TOTAL_VALIDATION_CASE_COUNT,
         "unknown_keyword_case_index": UNKNOWN_KEYWORD_CASE_INDEX,
         "validation_clause_count": VALIDATION_CLAUSE_COUNT,
@@ -826,6 +1128,16 @@ def validate_validation_fixture_shape(fixture: Mapping[str, object]) -> None:
             str,
         ):
             raise AssertionError("every validation case must record string behavior")
+    observed_manifest = _stimulus_manifest_sha256(cases)
+    if observed_manifest != VALIDATION_STIMULUS_MANIFEST_SHA256:
+        raise AssertionError(
+            f"validation stimulus manifest changed: {observed_manifest}"
+        )
+    observed_pair_count = _validation_pair_count(cases)
+    if observed_pair_count != PAIR_CASE_COUNT:
+        raise AssertionError(
+            f"validation pair count changed: {observed_pair_count}"
+        )
     if fixture["baseline"] != validation_fixture_metadata(cases):
         raise AssertionError("validation fixture metadata is not the exact baseline partition")
 

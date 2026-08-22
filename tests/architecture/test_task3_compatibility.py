@@ -11,6 +11,7 @@ from typing import cast
 import pytest
 
 import uquant.config.model as config_model
+import uquant.config.validation.execution as execution_validation
 import uquant.config.validation.market as market_validation
 import uquant.config.validation.strategic as strategic_validation
 from uquant.config import DEFAULT_CONFIG
@@ -33,6 +34,7 @@ from ._task3_baseline import (
     current_load_method_pickles,
     current_method_contract,
     exception_observation,
+    validation_fixture_metadata,
 )
 
 VALIDATION_FIXTURE_PATH = ROOT / "tests" / "fixtures" / "task3_config_validation_contract.json"
@@ -249,6 +251,23 @@ def test_validation_fixture_partitions_are_exact_and_fail_closed() -> None:
     }
 
 
+def test_validation_capture_rejects_replaced_stimulus_with_regenerated_metadata() -> None:
+    fixture = copy.deepcopy(_validation_fixture())
+    cases = cast(list[dict[str, object]], fixture["cases"])
+    cases[15] = {
+        "changes": {"min_trade_weight": -1},
+        "exception_type": "ValueError",
+        "message": (
+            "protected_restore_min_trade_weight/restoration_min_trade_weight must be "
+            "positive, ordered, and no greater than min_trade_weight"
+        ),
+    }
+    fixture["baseline"] = validation_fixture_metadata(cases)
+
+    with pytest.raises(AssertionError):
+        capture_validation_contract(fixture)
+
+
 def test_split_validators_preserve_all_159_baseline_clauses_in_exact_ast_order() -> None:
     baseline = baseline_validation_clause_dumps()
     candidate = candidate_validation_clause_dumps()
@@ -356,6 +375,90 @@ def test_semantic_gate_verifies_live_validator_and_helper_bindings(
         "_validate_strategic_admission",
         rebound_helper,
     )
+    with pytest.raises(AssertionError):
+        candidate_validation_clause_dumps()
+
+
+def test_semantic_gate_rejects_source_builtin_shadow_that_changes_validation() -> None:
+    relative_path = "uquant/config/validation/execution.py"
+    source = (ROOT / relative_path).read_text(encoding="utf-8") + """
+
+getattr = lambda config, name: -1
+"""
+    namespace: dict[str, object] = {}
+    exec(compile(source, relative_path, "exec"), namespace)
+    mutated = namespace["validate_execution"]
+    assert callable(mutated)
+    with pytest.raises(ValueError, match="commission_rate cannot be negative"):
+        mutated(DEFAULT_CONFIG)
+
+    with pytest.raises(AssertionError):
+        candidate_validation_clause_dumps({relative_path: source})
+
+
+def test_semantic_gate_rejects_source_imported_global_retargeting() -> None:
+    relative_path = "uquant/config/validation/sentinel.py"
+    source = (ROOT / relative_path).read_text(encoding="utf-8")
+    mutated_source = source.replace("import math", "import types as math", 1)
+    namespace: dict[str, object] = {}
+    exec(compile(mutated_source, relative_path, "exec"), namespace)
+    mutated = namespace["validate_sentinel"]
+    assert callable(mutated)
+    with pytest.raises(AttributeError, match="isfinite"):
+        mutated(DEFAULT_CONFIG)
+
+    with pytest.raises(AssertionError):
+        candidate_validation_clause_dumps({relative_path: mutated_source})
+
+
+def test_semantic_gate_rejects_live_builtin_shadow_that_changes_validation(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    def shadow_getattr(config: object, name: str) -> int:
+        return -1
+
+    monkeypatch.setattr(execution_validation, "getattr", shadow_getattr, raising=False)
+    with pytest.raises(ValueError, match="commission_rate cannot be negative"):
+        execution_validation.validate_execution(DEFAULT_CONFIG)
+
+    with pytest.raises(AssertionError):
+        candidate_validation_clause_dumps()
+
+
+def test_semantic_gate_rejects_source_system_config_dispatch_rebinding() -> None:
+    relative_path = "uquant/config/model.py"
+    source = (ROOT / relative_path).read_text(encoding="utf-8") + """
+
+def _rebound_getattribute(self: object, name: str) -> object:
+    if name == "__post_init__":
+        return lambda: None
+    return object.__getattribute__(self, name)
+
+SystemConfig.__getattribute__ = _rebound_getattribute
+"""
+
+    with pytest.raises(AssertionError):
+        candidate_validation_clause_dumps({relative_path: source})
+
+
+def test_semantic_gate_rejects_live_system_config_dispatch_rebinding(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    config_type = type(DEFAULT_CONFIG)
+
+    def rebound_getattribute(self: object, name: str) -> object:
+        if name == "__post_init__":
+
+            def changed_validation() -> None:
+                raise ValueError("rebound SystemConfig dispatch changed valid behavior")
+
+            return changed_validation
+        return object.__getattribute__(self, name)
+
+    monkeypatch.setattr(config_type, "__getattribute__", rebound_getattribute)
+    with pytest.raises(ValueError, match="rebound SystemConfig dispatch"):
+        DEFAULT_CONFIG.override(initial_cash=12345)
+
     with pytest.raises(AssertionError):
         candidate_validation_clause_dumps()
 

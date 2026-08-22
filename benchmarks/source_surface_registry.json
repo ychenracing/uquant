@@ -1,5 +1,5 @@
 {
-  "canonical_sha256": "f39d9891dcd8ccf6196c1407a11d6cc6bea4c50bba234e2e9fb2f8a488e60777",
+  "canonical_sha256": "52e960a6789a6e5361d27021b30479014e7e2ceb3856cbbdd3505ec385cea1a8",
   "registry_version": 2,
   "surfaces": [
     {
@@ -83,6 +83,10 @@
         "uquant/portfolio/allocator.py",
         "uquant/portfolio/context.py",
         "uquant/portfolio/freeze.py",
+        "uquant/portfolio/leaders/__init__.py",
+        "uquant/portfolio/leaders/admission.py",
+        "uquant/portfolio/leaders/lifecycle.py",
+        "uquant/portfolio/leaders/targets.py",
         "uquant/portfolio/pipeline.py",
         "uquant/portfolio/risk_reduction.py",
         "uquant/portfolio_core.py",
@@ -472,6 +476,10 @@
         "uquant/portfolio/allocator.py",
         "uquant/portfolio/context.py",
         "uquant/portfolio/freeze.py",
+        "uquant/portfolio/leaders/__init__.py",
+        "uquant/portfolio/leaders/admission.py",
+        "uquant/portfolio/leaders/lifecycle.py",
+        "uquant/portfolio/leaders/targets.py",
         "uquant/portfolio/pipeline.py",
         "uquant/portfolio/risk_reduction.py",
         "uquant/portfolio_core.py",

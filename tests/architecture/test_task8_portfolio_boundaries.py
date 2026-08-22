@@ -91,6 +91,35 @@ _CHECKPOINT1_PACKAGE_PATHS = (
     "uquant/portfolio/pipeline.py",
     "uquant/portfolio/risk_reduction.py",
 )
+_CHECKPOINT2_OWNER_METHODS = {
+    "uquant/portfolio/leaders/admission.py": (
+        "_conviction_shares",
+        "_conviction_evidence_qualified",
+        "_correlations",
+        "_admission_utility",
+        "_dynamic_k",
+    ),
+    "uquant/portfolio/leaders/lifecycle.py": (
+        "_session_clock",
+        "_session_distance",
+        "_rotation_allowed",
+        "_update_leader_cycle_arm",
+        "_retention_score",
+        "_leader_lifecycle_exit_confirmed",
+        "_industry_handoff",
+    ),
+    "uquant/portfolio/leaders/targets.py": (
+        "_cap_opportunity_gross",
+        "_leader_targets",
+    ),
+}
+_CHECKPOINT2_PACKAGE_PATHS = (
+    "uquant/portfolio/leaders/__init__.py",
+    *_CHECKPOINT2_OWNER_METHODS,
+)
+_CHECKPOINT2_TRANSPORT_NAMES = {
+    "_session_distance": "_leader_session_distance",
+}
 
 
 def _git_source(path: str) -> bytes:
@@ -124,6 +153,14 @@ def _immutable_allocator_methods() -> dict[str, ast.FunctionDef]:
         node for node in tree.body if isinstance(node, ast.ClassDef) and node.name == "PortfolioAllocator"
     )
     return {node.name: node for node in allocator.body if isinstance(node, ast.FunctionDef)}
+
+
+def _immutable_policy_methods(path: str, class_name: str) -> dict[str, ast.FunctionDef]:
+    tree = ast.parse(_git_source(path))
+    policy = next(
+        node for node in tree.body if isinstance(node, ast.ClassDef) and node.name == class_name
+    )
+    return {node.name: node for node in policy.body if isinstance(node, ast.FunctionDef)}
 
 
 def _normalized_method(node: ast.FunctionDef) -> str:
@@ -411,6 +448,8 @@ def test_task8_checkpoint1_source_surface_migration_is_exact() -> None:
         if "uquant/portfolio.py" in expected:
             expected.remove("uquant/portfolio.py")
             expected.update(_CHECKPOINT1_PACKAGE_PATHS)
+        if "uquant/portfolio_leaders.py" in expected:
+            expected.update(_CHECKPOINT2_PACKAGE_PATHS)
         assert set(candidate_surfaces[identifier]["source_paths"]) == expected
         assert candidate_surfaces[identifier]["resource_paths"] == baseline["resource_paths"]
         assert {
@@ -486,12 +525,17 @@ def test_task8_checkpoint1_private_and_complexity_relocations_are_exact_and_clos
         if str(row["importer"]).startswith("uquant.portfolio.")
         or str(row["imported_from"]).startswith("uquant.portfolio.")
     }
-    assert set(_TASK8_RELOCATED_FUNCTION_DEBT) == {
+    checkpoint1_function_debt = {
+        identifier: legacy
+        for identifier, legacy in _TASK8_RELOCATED_FUNCTION_DEBT.items()
+        if legacy.startswith("uquant.portfolio:PortfolioAllocator.")
+    }
+    assert set(checkpoint1_function_debt) == {
         f"{path.removesuffix('.py').replace('/', '.')}:{name}"
         for path, names in _CHECKPOINT1_OWNER_METHODS.items()
         for name in names
     }
-    assert set(_TASK8_RELOCATED_FUNCTION_DEBT.values()) == {
+    assert set(checkpoint1_function_debt.values()) == {
         f"uquant.portfolio:PortfolioAllocator.{name}"
         for names in _CHECKPOINT1_OWNER_METHODS.values()
         for name in names
@@ -521,5 +565,161 @@ def test_task8_checkpoint1_private_and_complexity_relocations_are_exact_and_clos
     }
     mutation_debt = measured_debt(mutation)
     assert "uquant.portfolio:_unreviewed_task8_debt" in {
+        str(row["id"]) for row in mutation_debt["long_functions"]
+    }
+
+
+def test_task8_checkpoint2_leader_owners_and_thin_facade_are_complete() -> None:
+    assert all((ROOT / path).is_file() for path in _CHECKPOINT2_PACKAGE_PATHS)
+    facade = ast.parse((ROOT / "uquant/portfolio_leaders.py").read_text(encoding="utf-8"))
+    assert not any(isinstance(node, (ast.ClassDef, ast.FunctionDef)) for node in facade.body)
+    imports = {
+        alias.name
+        for node in facade.body
+        if isinstance(node, ast.ImportFrom)
+        for alias in node.names
+    }
+    assert imports == {"LeaderPortfolioPolicy"}
+
+
+def test_task8_checkpoint2_moved_leader_methods_are_immutable_ast_exact() -> None:
+    immutable = _immutable_policy_methods(
+        "uquant/portfolio_leaders.py", "LeaderPortfolioPolicy"
+    )
+    observed: set[str] = set()
+    for path, names in _CHECKPOINT2_OWNER_METHODS.items():
+        candidate = _function_nodes((ROOT / path).read_text(encoding="utf-8"))
+        for name in names:
+            observed.add(name)
+            candidate_node = copy.deepcopy(
+                candidate[_CHECKPOINT2_TRANSPORT_NAMES.get(name, name)]
+            )
+            candidate_node.name = name
+            assert _normalized_method(candidate_node) == _normalized_method(immutable[name])
+    assert observed == set(immutable)
+
+
+def test_task8_checkpoint2_ast_gate_rejects_leader_rule_mutations() -> None:
+    immutable = _immutable_policy_methods(
+        "uquant/portfolio_leaders.py", "LeaderPortfolioPolicy"
+    )
+
+    threshold = copy.deepcopy(immutable["_dynamic_k"])
+    numeric = next(
+        node
+        for node in ast.walk(threshold)
+        if isinstance(node, ast.Constant) and isinstance(node.value, float)
+    )
+    numeric.value = float(numeric.value) + 0.01
+    assert _normalized_method(threshold) != _normalized_method(immutable["_dynamic_k"])
+
+    comparison = copy.deepcopy(immutable["_rotation_allowed"])
+    compare = next(node for node in ast.walk(comparison) if isinstance(node, ast.Compare))
+    compare.ops[0] = ast.Gt() if not isinstance(compare.ops[0], ast.Gt) else ast.Lt()
+    assert _normalized_method(comparison) != _normalized_method(immutable["_rotation_allowed"])
+
+    boolean = copy.deepcopy(immutable["_leader_targets"])
+    bool_op = next(node for node in ast.walk(boolean) if isinstance(node, ast.BoolOp))
+    bool_op.op = ast.Or() if isinstance(bool_op.op, ast.And) else ast.And()
+    assert _normalized_method(boolean) != _normalized_method(immutable["_leader_targets"])
+
+    sort_key = copy.deepcopy(immutable["_cap_opportunity_gross"])
+    sorted_call = next(
+        node
+        for node in ast.walk(sort_key)
+        if isinstance(node, ast.Call)
+        and isinstance(node.func, ast.Name)
+        and node.func.id == "sorted"
+        and any(keyword.arg == "key" for keyword in node.keywords)
+    )
+    key = next(keyword for keyword in sorted_call.keywords if keyword.arg == "key")
+    key.value = ast.Lambda(
+        args=ast.arguments(
+            posonlyargs=[],
+            args=[ast.arg(arg="item")],
+            kwonlyargs=[],
+            kw_defaults=[],
+            defaults=[],
+        ),
+        body=ast.Constant(value=0),
+    )
+    assert _normalized_method(sort_key) != _normalized_method(
+        immutable["_cap_opportunity_gross"]
+    )
+
+    mutation_order = copy.deepcopy(immutable["_update_leader_cycle_arm"])
+    body_index = next(
+        index
+        for index, statement in enumerate(mutation_order.body[:-1])
+        if isinstance(statement, (ast.Assign, ast.AnnAssign, ast.Expr))
+        and isinstance(
+            mutation_order.body[index + 1], (ast.Assign, ast.AnnAssign, ast.Expr)
+        )
+    )
+    mutation_order.body[body_index], mutation_order.body[body_index + 1] = (
+        mutation_order.body[body_index + 1],
+        mutation_order.body[body_index],
+    )
+    assert _normalized_method(mutation_order) != _normalized_method(
+        immutable["_update_leader_cycle_arm"]
+    )
+
+
+def test_task8_checkpoint2_private_and_complexity_relocations_are_exact() -> None:
+    expected_functions = {
+        f"{path.removesuffix('.py').replace('/', '.')}:{name}"
+        for path, names in _CHECKPOINT1_OWNER_METHODS.items()
+        for name in names
+    } | {
+        (
+            f"{path.removesuffix('.py').replace('/', '.')}:"
+            f"{_CHECKPOINT2_TRANSPORT_NAMES.get(name, name)}"
+        )
+        for path, names in _CHECKPOINT2_OWNER_METHODS.items()
+        for name in names
+    }
+    assert set(_TASK8_RELOCATED_FUNCTION_DEBT) == expected_functions
+    assert {
+        legacy
+        for legacy in _TASK8_RELOCATED_FUNCTION_DEBT.values()
+        if legacy.startswith("uquant.portfolio_leaders:")
+    } == {
+        f"uquant.portfolio_leaders:LeaderPortfolioPolicy.{name}"
+        for names in _CHECKPOINT2_OWNER_METHODS.values()
+        for name in names
+    }
+
+    snapshot = architecture_snapshot()
+    graph = snapshot["import_graph"]
+    assert isinstance(graph, dict)
+    assert {
+        str(row["id"]) for row in graph["task8_relocated_private_imports"]
+    } == _TASK8_RELOCATED_PRIVATE_IMPORTS
+    assert not {
+        str(row["id"])
+        for row in graph["cross_module_private_imports"]
+        if str(row["importer"]).startswith("uquant.portfolio.leaders")
+        or str(row["imported_from"]).startswith("uquant.portfolio.leaders")
+    }
+
+    source_texts = {
+        path.relative_to(ROOT).as_posix(): path.read_text(encoding="utf-8")
+        for path in (ROOT / "uquant").rglob("*.py")
+    }
+    source_texts["uquant/portfolio/leaders/admission.py"] += (
+        "\nfrom .lifecycle import _unreviewed_leader_edge\n\n"
+        "def _unreviewed_leader_debt() -> int:\n"
+        + "".join(f"    value = {index}\n" for index in range(121))
+        + "    return value\n"
+    )
+    mutation = architecture_snapshot(source_texts=source_texts)
+    mutation_graph = mutation["import_graph"]
+    assert isinstance(mutation_graph, dict)
+    assert (
+        "uquant.portfolio.leaders.admission:"
+        "uquant.portfolio.leaders.lifecycle:_unreviewed_leader_edge"
+    ) in {str(row["id"]) for row in mutation_graph["cross_module_private_imports"]}
+    mutation_debt = measured_debt(mutation)
+    assert "uquant.portfolio_leaders:_unreviewed_leader_debt" in {
         str(row["id"]) for row in mutation_debt["long_functions"]
     }

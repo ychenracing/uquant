@@ -127,6 +127,10 @@ MODULE_AUTHORITIES = {
     "uquant.portfolio.allocator": "production_safe",
     "uquant.portfolio.context": "production_safe",
     "uquant.portfolio.freeze": "production_safe",
+    "uquant.portfolio.leaders": "production_safe",
+    "uquant.portfolio.leaders.admission": "production_safe",
+    "uquant.portfolio.leaders.lifecycle": "production_safe",
+    "uquant.portfolio.leaders.targets": "production_safe",
     "uquant.portfolio.pipeline": "production_safe",
     "uquant.portfolio.risk_reduction": "production_safe",
     "uquant.portfolio_core": "production_safe",
@@ -193,6 +197,7 @@ _CONTRACT_RELOCATIONS = {
     "uquant.contracts.runtime_identity": "uquant.validation.ai_era",
     "uquant.contracts.universe": "uquant.validation.universe",
     "uquant.models.trading": "uquant.types",
+    "uquant.portfolio.leaders.admission": "uquant.portfolio_leaders",
 }
 _DEBT_RELOCATIONS = {
     **_CONTRACT_RELOCATIONS,
@@ -252,6 +257,15 @@ _DEBT_RELOCATIONS = {
             "uquant.portfolio.freeze",
             "uquant.portfolio.pipeline",
             "uquant.portfolio.risk_reduction",
+        )
+    },
+    **{
+        module: "uquant.portfolio_leaders"
+        for module in (
+            "uquant.portfolio.leaders",
+            "uquant.portfolio.leaders.admission",
+            "uquant.portfolio.leaders.lifecycle",
+            "uquant.portfolio.leaders.targets",
         )
     },
 }
@@ -681,6 +695,35 @@ _TASK8_RELOCATED_PRIVATE_IMPORT_GROUPS = (
             "_turnover_aware_sector_cap",
         ),
     ),
+    (
+        "uquant.portfolio.leaders",
+        "uquant.portfolio.leaders.admission",
+        (
+            "_admission_utility",
+            "_conviction_evidence_qualified",
+            "_conviction_shares",
+            "_correlations",
+            "_dynamic_k",
+        ),
+    ),
+    (
+        "uquant.portfolio.leaders",
+        "uquant.portfolio.leaders.lifecycle",
+        (
+            "_industry_handoff",
+            "_leader_lifecycle_exit_confirmed",
+            "_retention_score",
+            "_rotation_allowed",
+            "_session_clock",
+            "_leader_session_distance",
+            "_update_leader_cycle_arm",
+        ),
+    ),
+    (
+        "uquant.portfolio.leaders",
+        "uquant.portfolio.leaders.targets",
+        ("_cap_opportunity_gross", "_leader_targets"),
+    ),
 )
 _TASK8_RELOCATED_PRIVATE_IMPORTS = frozenset(
     f"{importer}:{imported_from}:{name}"
@@ -688,33 +731,74 @@ _TASK8_RELOCATED_PRIVATE_IMPORTS = frozenset(
     for name in names
 )
 
+_TASK8_RELOCATED_FUNCTION_NAMES = {
+    "_leader_session_distance": "_session_distance",
+}
+
 _TASK8_RELOCATED_FUNCTION_DEBT = {
-    f"{owner}:{name}": f"uquant.portfolio:PortfolioAllocator.{name}"
-    for owner, names in (
-        (
-            "uquant.portfolio.allocator",
-            ("_confirmed_recovery_gross", "allocate"),
-        ),
-        (
-            "uquant.portfolio.freeze",
-            ("_commit_frozen_exit_state", "_frozen_existing_targets"),
-        ),
-        ("uquant.portfolio.pipeline", ("_allocate_strategy",)),
-        (
-            "uquant.portfolio.risk_reduction",
+    **{
+        f"{owner}:{name}": f"uquant.portfolio:PortfolioAllocator.{name}"
+        for owner, names in (
             (
-                "_risk_attribution_mechanism",
-                "_risk_lifecycle_rank",
-                "_risk_reduction_metadata",
-                "_risk_retention_score",
-                "_risk_retention_vector",
-                "_sparse_risk_reduce",
-                "_subset_retention_vector",
-                "_turnover_aware_sector_cap",
+                "uquant.portfolio.allocator",
+                ("_confirmed_recovery_gross", "allocate"),
             ),
-        ),
-    )
-    for name in names
+            (
+                "uquant.portfolio.freeze",
+                ("_commit_frozen_exit_state", "_frozen_existing_targets"),
+            ),
+            ("uquant.portfolio.pipeline", ("_allocate_strategy",)),
+            (
+                "uquant.portfolio.risk_reduction",
+                (
+                    "_risk_attribution_mechanism",
+                    "_risk_lifecycle_rank",
+                    "_risk_reduction_metadata",
+                    "_risk_retention_score",
+                    "_risk_retention_vector",
+                    "_sparse_risk_reduce",
+                    "_subset_retention_vector",
+                    "_turnover_aware_sector_cap",
+                ),
+            ),
+        )
+        for name in names
+    },
+    **{
+        f"{owner}:{name}": (
+            "uquant.portfolio_leaders:LeaderPortfolioPolicy."
+            f"{_TASK8_RELOCATED_FUNCTION_NAMES.get(name, name)}"
+        )
+        for owner, names in (
+            (
+                "uquant.portfolio.leaders.admission",
+                (
+                    "_admission_utility",
+                    "_conviction_evidence_qualified",
+                    "_conviction_shares",
+                    "_correlations",
+                    "_dynamic_k",
+                ),
+            ),
+            (
+                "uquant.portfolio.leaders.lifecycle",
+                (
+                    "_industry_handoff",
+                    "_leader_lifecycle_exit_confirmed",
+                    "_retention_score",
+                    "_rotation_allowed",
+                    "_session_clock",
+                    "_leader_session_distance",
+                    "_update_leader_cycle_arm",
+                ),
+            ),
+            (
+                "uquant.portfolio.leaders.targets",
+                ("_cap_opportunity_gross", "_leader_targets"),
+            ),
+        )
+        for name in names
+    },
 }
 
 _TASK8_RELOCATED_TYPE_IGNORES = {

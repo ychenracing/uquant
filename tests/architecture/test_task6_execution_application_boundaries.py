@@ -69,6 +69,10 @@ _TASK8_PORTFOLIO_PACKAGE_PATHS = {
     "uquant/portfolio/allocator.py",
     "uquant/portfolio/context.py",
     "uquant/portfolio/freeze.py",
+    "uquant/portfolio/leaders/__init__.py",
+    "uquant/portfolio/leaders/admission.py",
+    "uquant/portfolio/leaders/lifecycle.py",
+    "uquant/portfolio/leaders/targets.py",
     "uquant/portfolio/pipeline.py",
     "uquant/portfolio/risk_reduction.py",
 }

@@ -4,22 +4,9 @@ from __future__ import annotations
 
 from collections.abc import Callable
 from types import FunctionType
-from typing import Any, cast
+from typing import TYPE_CHECKING, Any, cast
 
 from ..portfolio_core import current_weights, effective_n
-from .allocator import PortfolioAllocator, _confirmed_recovery_gross, allocate
-from .freeze import _commit_frozen_exit_state, _frozen_existing_targets
-from .pipeline import _allocate_strategy
-from .risk_reduction import (
-    _risk_attribution_mechanism,
-    _risk_lifecycle_rank,
-    _risk_reduction_metadata,
-    _risk_retention_score,
-    _risk_retention_vector,
-    _sparse_risk_reduce,
-    _subset_retention_vector,
-    _turnover_aware_sector_cap,
-)
 
 
 def _compatibility_method[Function: Callable[..., Any]](
@@ -41,6 +28,7 @@ def _compatibility_method[Function: Callable[..., Any]](
 
 
 def _bind_compatibility_method[Function: Callable[..., Any]](
+    owner: type[Any],
     name: str,
     function: Function,
     *,
@@ -48,66 +36,102 @@ def _bind_compatibility_method[Function: Callable[..., Any]](
 ) -> None:
     compatible = _compatibility_method(function, name)
     descriptor: object = staticmethod(compatible) if static else compatible
-    setattr(PortfolioAllocator, name, descriptor)
+    setattr(owner, name, descriptor)
 
 
-_bind_compatibility_method(
-    "_confirmed_recovery_gross",
-    _confirmed_recovery_gross,
-)
-_bind_compatibility_method(
-    "_risk_attribution_mechanism",
-    _risk_attribution_mechanism,
-    static=True,
-)
-_bind_compatibility_method(
-    "_risk_retention_score",
-    _risk_retention_score,
-)
-_bind_compatibility_method(
-    "_risk_retention_vector",
-    _risk_retention_vector,
-    static=True,
-)
-_bind_compatibility_method(
-    "_risk_lifecycle_rank",
-    _risk_lifecycle_rank,
-    static=True,
-)
-_bind_compatibility_method(
-    "_subset_retention_vector",
-    _subset_retention_vector,
-)
-_bind_compatibility_method(
-    "_sparse_risk_reduce",
-    _sparse_risk_reduce,
-)
-_bind_compatibility_method(
-    "_risk_reduction_metadata",
-    _risk_reduction_metadata,
-    static=True,
-)
-_bind_compatibility_method(
-    "_turnover_aware_sector_cap",
-    _turnover_aware_sector_cap,
-)
-_bind_compatibility_method(
-    "allocate",
-    allocate,
-)
-_bind_compatibility_method(
-    "_commit_frozen_exit_state",
-    _commit_frozen_exit_state,
-    static=True,
-)
-_bind_compatibility_method(
-    "_frozen_existing_targets",
-    _frozen_existing_targets,
-    static=True,
-)
-_bind_compatibility_method(
-    "_allocate_strategy",
-    _allocate_strategy,
-)
+def _load_allocator() -> type[Any]:
+    # This remains the one eager assembly step. Keeping the imports inside it
+    # lets the historical leader facade load its nested owner package while
+    # the parent portfolio package is still initializing.
+    from .allocator import (
+        PortfolioAllocator as owner,
+    )
+    from .allocator import (
+        _confirmed_recovery_gross,
+        allocate,
+    )
+    from .freeze import _commit_frozen_exit_state, _frozen_existing_targets
+    from .pipeline import _allocate_strategy
+    from .risk_reduction import (
+        _risk_attribution_mechanism,
+        _risk_lifecycle_rank,
+        _risk_reduction_metadata,
+        _risk_retention_score,
+        _risk_retention_vector,
+        _sparse_risk_reduce,
+        _subset_retention_vector,
+        _turnover_aware_sector_cap,
+    )
+
+    _bind_compatibility_method(
+        owner,
+        "_confirmed_recovery_gross",
+        _confirmed_recovery_gross,
+    )
+    _bind_compatibility_method(
+        owner,
+        "_risk_attribution_mechanism",
+        _risk_attribution_mechanism,
+        static=True,
+    )
+    _bind_compatibility_method(
+        owner,
+        "_risk_retention_score",
+        _risk_retention_score,
+    )
+    _bind_compatibility_method(
+        owner,
+        "_risk_retention_vector",
+        _risk_retention_vector,
+        static=True,
+    )
+    _bind_compatibility_method(
+        owner,
+        "_risk_lifecycle_rank",
+        _risk_lifecycle_rank,
+        static=True,
+    )
+    _bind_compatibility_method(
+        owner,
+        "_subset_retention_vector",
+        _subset_retention_vector,
+    )
+    _bind_compatibility_method(
+        owner,
+        "_sparse_risk_reduce",
+        _sparse_risk_reduce,
+    )
+    _bind_compatibility_method(
+        owner,
+        "_risk_reduction_metadata",
+        _risk_reduction_metadata,
+        static=True,
+    )
+    _bind_compatibility_method(
+        owner,
+        "_turnover_aware_sector_cap",
+        _turnover_aware_sector_cap,
+    )
+    _bind_compatibility_method(owner, "allocate", allocate)
+    _bind_compatibility_method(
+        owner,
+        "_commit_frozen_exit_state",
+        _commit_frozen_exit_state,
+        static=True,
+    )
+    _bind_compatibility_method(
+        owner,
+        "_frozen_existing_targets",
+        _frozen_existing_targets,
+        static=True,
+    )
+    _bind_compatibility_method(owner, "_allocate_strategy", _allocate_strategy)
+    return owner
+
+
+if TYPE_CHECKING:
+    from .allocator import PortfolioAllocator
+else:
+    PortfolioAllocator = _load_allocator()
 
 __all__ = ["PortfolioAllocator", "current_weights", "effective_n"]

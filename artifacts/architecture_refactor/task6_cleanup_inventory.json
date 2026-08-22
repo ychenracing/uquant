@@ -240,7 +240,8 @@
           "tests/architecture/conftest.py",
           "tests/test_engine_contracts.py",
           "tests/test_market_cache.py",
-          "tests/test_market_replay.py"
+          "tests/test_market_replay.py",
+          "tests/test_risk_replay_runtime.py"
         ],
         "historical_machine_evidence_to_preserve": [
           "artifacts/architecture_refactor/baseline_inventory.json",

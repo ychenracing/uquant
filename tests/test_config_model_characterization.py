@@ -10,7 +10,6 @@ from pathlib import Path
 from typing import Any
 
 import pytest
-from architecture._task3_baseline import materialize_validation_changes
 
 from uquant.config import DEFAULT_CONFIG, SystemConfig, config_fingerprint
 from uquant.types import (
@@ -225,7 +224,7 @@ def test_all_frozen_config_validation_types_messages_and_order_are_exact(
     changes = case["changes"]
     assert isinstance(changes, dict)
     with pytest.raises(Exception) as captured:
-        DEFAULT_CONFIG.override(**materialize_validation_changes(changes))
+        DEFAULT_CONFIG.override(**changes)
 
     assert type(captured.value).__name__ == case["exception_type"]
     assert str(captured.value) == case["message"]

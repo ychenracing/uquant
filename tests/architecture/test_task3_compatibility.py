@@ -11,6 +11,8 @@ from typing import cast
 import pytest
 
 import uquant.config.model as config_model
+import uquant.config.validation.market as market_validation
+import uquant.config.validation.strategic as strategic_validation
 from uquant.config import DEFAULT_CONFIG
 
 from ._analysis import ROOT
@@ -18,8 +20,8 @@ from ._task3_baseline import (
     BASELINE_COMMIT,
     ISOLATED_VALIDATION_CASE_COUNT,
     METHOD_IDS,
-    OVERLAP_WITNESS_CASE_COUNT,
-    OVERLAP_WITNESS_START_INDEX,
+    REACHABLE_WITNESS_CASE_COUNT,
+    REACHABLE_WITNESS_START_INDEX,
     TOTAL_VALIDATION_CASE_COUNT,
     UNKNOWN_KEYWORD_CASE_INDEX,
     baseline_config_module,
@@ -35,7 +37,7 @@ from ._task3_baseline import (
 
 VALIDATION_FIXTURE_PATH = ROOT / "tests" / "fixtures" / "task3_config_validation_contract.json"
 
-ESCAPED_ADJACENT_SWAPS = (
+REACHABLE_ADJACENT_SWAPS = (
     (
         "leader-cycle-market-range-before-impulse-relation",
         "uquant/config/validation/strategic.py",
@@ -50,6 +52,9 @@ ESCAPED_ADJACENT_SWAPS = (
         3,
         "uquant.config.validation.strategic",
     ),
+)
+
+STRUCTURAL_ONLY_ADJACENT_SWAPS = (
     (
         "transition-range-before-repair-relation",
         "uquant/config/validation/risk.py",
@@ -64,6 +69,11 @@ ESCAPED_ADJACENT_SWAPS = (
         4,
         "uquant.config.validation.risk",
     ),
+)
+
+ALL_AUDITED_ADJACENT_SWAPS = (
+    *REACHABLE_ADJACENT_SWAPS,
+    *STRUCTURAL_ONLY_ADJACENT_SWAPS,
 )
 
 
@@ -152,6 +162,22 @@ def _mutated_model_source_with_adjacent_validator_calls_swapped(
     return ast.unparse(tree)
 
 
+def _market_wrapper_rebind_source() -> str:
+    relative_path = "uquant/config/validation/market.py"
+    source = (ROOT / relative_path).read_text(encoding="utf-8")
+    return source + """
+
+_original_validate_market = validate_market
+
+def _wrapped_validate_market(config: Any) -> None:
+    _original_validate_market(config)
+    if config.initial_cash == 12345:
+        raise ValueError("rebound validator changed valid behavior")
+
+validate_market = _wrapped_validate_market
+"""
+
+
 def test_validation_fixture_is_reproducible_from_immutable_baseline_behavior() -> None:
     fixture = _validation_fixture()
     metadata = fixture["baseline"]
@@ -169,6 +195,7 @@ def test_validation_fixture_is_reproducible_from_immutable_baseline_behavior() -
         "duplicate",
         "isolated-marker",
         "invalid-order-probe",
+        "synthetic-marker",
         "unknown-keyword-moved",
     ),
 )
@@ -191,6 +218,12 @@ def test_validation_capture_rejects_malformed_fixture_shapes(malformation: str) 
             "exception_type": "ValueError",
             "message": "initial_cash must be positive",
         }
+    elif malformation == "synthetic-marker":
+        cases[REACHABLE_WITNESS_START_INDEX]["changes"] = {
+            "leader_cycle_min_market_ret120": {
+                "__task3_comparison_probe__": "removed"
+            }
+        }
     else:
         cases[UNKNOWN_KEYWORD_CASE_INDEX], cases[UNKNOWN_KEYWORD_CASE_INDEX - 1] = (
             cases[UNKNOWN_KEYWORD_CASE_INDEX - 1],
@@ -208,8 +241,8 @@ def test_validation_fixture_partitions_are_exact_and_fail_closed() -> None:
 
     assert len(cases) == TOTAL_VALIDATION_CASE_COUNT
     assert metadata["total_case_count"] == TOTAL_VALIDATION_CASE_COUNT
-    assert metadata["overlap_witness_start_index"] == OVERLAP_WITNESS_START_INDEX
-    assert metadata["overlap_witness_case_count"] == OVERLAP_WITNESS_CASE_COUNT
+    assert metadata["reachable_witness_start_index"] == REACHABLE_WITNESS_START_INDEX
+    assert metadata["reachable_witness_case_count"] == REACHABLE_WITNESS_CASE_COUNT
     assert metadata["unknown_keyword_case_index"] == UNKNOWN_KEYWORD_CASE_INDEX
     assert cases[UNKNOWN_KEYWORD_CASE_INDEX]["changes"] == {
         "not_a_governed_parameter": True
@@ -224,6 +257,107 @@ def test_split_validators_preserve_all_159_baseline_clauses_in_exact_ast_order()
     assert len(candidate) == 159
     assert candidate == baseline
     assert all(left != right for left, right in pairwise(candidate))
+
+
+def test_semantic_gate_rejects_wrapper_and_runtime_rebinding_bypass() -> None:
+    relative_path = "uquant/config/validation/market.py"
+    mutated_source = _market_wrapper_rebind_source()
+    namespace: dict[str, object] = {}
+    exec(compile(mutated_source, relative_path, "exec"), namespace)
+    valid_config = DEFAULT_CONFIG.override(initial_cash=12345)
+    rebound = namespace["validate_market"]
+    assert callable(rebound)
+    with pytest.raises(ValueError, match="rebound validator changed valid behavior"):
+        rebound(valid_config)
+
+    with pytest.raises(AssertionError):
+        candidate_validation_clause_dumps({relative_path: mutated_source})
+
+
+@pytest.mark.parametrize(
+    "mutation",
+    (
+        "decorator",
+        "alias",
+        "conditional-rebind",
+        "conditional-delete",
+    ),
+)
+def test_semantic_gate_rejects_validator_binding_shadow_variants(
+    mutation: str,
+) -> None:
+    relative_path = "uquant/config/validation/market.py"
+    source = (ROOT / relative_path).read_text(encoding="utf-8")
+    if mutation == "decorator":
+        source = source.replace(
+            "def validate_market(config: Any) -> None:",
+            "@staticmethod\ndef validate_market(config: Any) -> None:",
+            1,
+        )
+    elif mutation == "alias":
+        source += "\n_validate_market_alias = validate_market\n"
+    elif mutation == "conditional-rebind":
+        source += "\nif False:\n    validate_market = lambda config: None\n"
+    else:
+        source += "\nif False:\n    del validate_market\n"
+
+    with pytest.raises(AssertionError):
+        candidate_validation_clause_dumps({relative_path: source})
+
+
+@pytest.mark.parametrize(
+    ("relative_path", "suffix"),
+    (
+        (
+            "uquant/config/model.py",
+            "\nvalidate_market = validate_execution\n",
+        ),
+        (
+            "uquant/config/validation/strategic.py",
+            "\nif False:\n    _validate_strategic_admission = lambda config: None\n",
+        ),
+    ),
+)
+def test_semantic_gate_rejects_model_and_helper_source_rebinding(
+    relative_path: str,
+    suffix: str,
+) -> None:
+    source = (ROOT / relative_path).read_text(encoding="utf-8") + suffix
+
+    with pytest.raises(AssertionError):
+        candidate_validation_clause_dumps({relative_path: source})
+
+
+def test_semantic_gate_verifies_live_validator_and_helper_bindings(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    original_market = market_validation.validate_market
+
+    def rebound_market(config: object) -> None:
+        original_market(config)
+
+    rebound_market.__module__ = original_market.__module__
+    rebound_market.__qualname__ = original_market.__qualname__
+    monkeypatch.setattr(market_validation, "validate_market", rebound_market)
+    monkeypatch.setattr(config_model, "validate_market", rebound_market)
+    with pytest.raises(AssertionError):
+        candidate_validation_clause_dumps()
+
+    monkeypatch.undo()
+    original_helper = strategic_validation._validate_strategic_admission
+
+    def rebound_helper(config: object) -> None:
+        original_helper(config)
+
+    rebound_helper.__module__ = original_helper.__module__
+    rebound_helper.__qualname__ = original_helper.__qualname__
+    monkeypatch.setattr(
+        strategic_validation,
+        "_validate_strategic_admission",
+        rebound_helper,
+    )
+    with pytest.raises(AssertionError):
+        candidate_validation_clause_dumps()
 
 
 @pytest.mark.parametrize("left_call_index", range(9))
@@ -269,9 +403,9 @@ def test_semantic_ast_gate_detects_predicate_and_raise_changes(
 
 @pytest.mark.parametrize(
     ("_witness_id", "relative_path", "function_name", "left_clause_index", "_module_name"),
-    ESCAPED_ADJACENT_SWAPS,
+    ALL_AUDITED_ADJACENT_SWAPS,
 )
-def test_semantic_ast_gate_detects_every_previously_escaped_adjacent_swap(
+def test_semantic_ast_gate_detects_every_audited_adjacent_swap(
     _witness_id: str,
     relative_path: str,
     function_name: str,
@@ -291,9 +425,9 @@ def test_semantic_ast_gate_detects_every_previously_escaped_adjacent_swap(
 
 @pytest.mark.parametrize(
     ("witness_id", "relative_path", "function_name", "left_clause_index", "module_name"),
-    ESCAPED_ADJACENT_SWAPS,
+    REACHABLE_ADJACENT_SWAPS,
 )
-def test_overlap_witnesses_detect_every_previously_escaped_adjacent_swap(
+def test_reachable_witnesses_detect_every_behavioral_adjacent_swap(
     monkeypatch: pytest.MonkeyPatch,
     witness_id: str,
     relative_path: str,
@@ -306,8 +440,8 @@ def test_overlap_witnesses_detect_every_previously_escaped_adjacent_swap(
     witness = next(
         case
         for case in cases[
-            OVERLAP_WITNESS_START_INDEX : OVERLAP_WITNESS_START_INDEX
-            + OVERLAP_WITNESS_CASE_COUNT
+            REACHABLE_WITNESS_START_INDEX : REACHABLE_WITNESS_START_INDEX
+            + REACHABLE_WITNESS_CASE_COUNT
         ]
         if case["witness_id"] == witness_id
     )
@@ -329,6 +463,42 @@ def test_overlap_witnesses_detect_every_previously_escaped_adjacent_swap(
     monkeypatch.setattr(module, function_name, mutated)
 
     assert exception_observation(DEFAULT_CONFIG, changes) != expected
+
+
+def test_transition_relation_swaps_are_structural_only_for_numeric_config() -> None:
+    fixture = _validation_fixture()
+    metadata = cast(Mapping[str, object], fixture["baseline"])
+    assert metadata["structural_only_adjacent_swaps"] == [
+        {
+            "baseline_clause_indexes": [140, 141],
+            "swap_id": "transition-range-before-repair-relation",
+        },
+        {
+            "baseline_clause_indexes": [141, 142],
+            "swap_id": "transition-repair-relation-before-chronic-window",
+        },
+    ]
+
+    expected = {
+        "exception_type": "ValueError",
+        "message": "invalid strategic damage guard transition",
+    }
+    for changes in (
+        {
+            "transition_damage_freeze": -0.1,
+            "transition_damage_repair": 0.0,
+        },
+        {
+            "chronic_confirm_days": 2,
+            "transition_damage_freeze": 0.3,
+            "transition_damage_repair": 0.4,
+        },
+    ):
+        assert (
+            exception_observation(baseline_config_module().DEFAULT_CONFIG, changes)
+            == expected
+        )
+        assert exception_observation(DEFAULT_CONFIG, changes) == expected
 
 
 def test_every_pair_of_isolated_invalid_stimuli_preserves_first_failure_order() -> None:

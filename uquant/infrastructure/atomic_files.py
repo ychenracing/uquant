@@ -2,10 +2,12 @@
 
 from __future__ import annotations
 
+import json
 import os
 import secrets
 import stat
-from collections.abc import Iterable
+import tempfile
+from collections.abc import Callable, Iterable
 from contextlib import suppress
 from pathlib import Path
 
@@ -18,6 +20,12 @@ def _fsync_directory(path: Path) -> None:
         os.fsync(descriptor)
     finally:
         os.close(descriptor)
+
+
+def fsync_directory(path: str | Path) -> None:
+    """Flush directory metadata using the shared platform implementation."""
+
+    _fsync_directory(Path(path))
 
 
 def _reject_symlink_path(path: Path) -> None:
@@ -150,6 +158,40 @@ def atomic_write_text(
     finally:
         with suppress(FileNotFoundError):
             temporary.unlink()
+
+
+def atomic_write_json_with_mode(
+    destination: str | Path,
+    payload_factory: Callable[[], object],
+    *,
+    mode: int,
+) -> None:
+    """Atomically serialize JSON after allocating the same-directory temporary."""
+
+    if isinstance(mode, bool) or not isinstance(mode, int) or not 0 <= mode <= 0o777:
+        raise ValueError("atomic output mode is malformed")
+    target = Path(destination)
+    target.parent.mkdir(parents=True, exist_ok=True)
+    descriptor, temporary = tempfile.mkstemp(prefix=target.name, dir=target.parent)
+    try:
+        if os.name != "nt" and mode != 0o600:
+            os.fchmod(descriptor, mode)
+        with os.fdopen(descriptor, "w", encoding="utf-8") as handle:
+            json.dump(
+                payload_factory(),
+                handle,
+                ensure_ascii=False,
+                indent=2,
+                sort_keys=True,
+                allow_nan=False,
+            )
+            handle.flush()
+            os.fsync(handle.fileno())
+        os.replace(temporary, target)
+        _fsync_directory(target.parent)
+    finally:
+        with suppress(FileNotFoundError):
+            os.unlink(temporary)
 
 
 def atomic_write_bytes(

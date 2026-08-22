@@ -281,7 +281,7 @@ def main(argv: list[str] | None = None) -> int:
         print(json.dumps(replay, ensure_ascii=False, sort_keys=True))
         return 0
     if args.command == "execution-journal":
-        from .execution_journal import (
+        from .observation.execution_journal import (
             append_filled,
             append_planned,
             append_skipped,

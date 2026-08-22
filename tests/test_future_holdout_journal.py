@@ -7,12 +7,23 @@ from pathlib import Path
 
 import pytest
 
-from uquant.execution_journal import append_planned as append_legacy_planned
 from uquant.validation.execution_journal import (
     append_filled,
     append_planned,
     append_skipped,
     read_execution_journal,
+)
+
+_V1_PLANNED_BYTES = (
+    b'{"actual_price":null,"actual_shares":null,"actual_time":null,'
+    b'"manual_skip":null,"next_open":null,"plan_id":"frozen-plan-1",'
+    b'"planned_price":947.74,"planned_shares":100,'
+    b'"previous_sha256":"0000000000000000000000000000000000000000000000000000000000000000",'
+    b'"record_sha256":"625f4800c03588a453b1c137a49bf6f8ecc1f9480eb1e094049e1135ae8a5b40",'
+    b'"recorded_at":"2026-08-05T15:01:00+08:00","schema_version":1,'
+    b'"sequence":1,"side":"BUY","slippage_bps":null,'
+    b'"slippage_per_share":null,"slippage_value":null,"status":"PLANNED",'
+    b'"symbol":"sz300308"}\n'
 )
 
 _CLI_SPEC = importlib.util.spec_from_file_location(
@@ -93,15 +104,7 @@ def test_phase2_journal_detects_history_edits_and_reads_legacy_rows(tmp_path: Pa
         read_execution_journal(phase2)
 
     legacy = tmp_path / "legacy.jsonl"
-    append_legacy_planned(
-        legacy,
-        plan_id="legacy-plan",
-        recorded_at="2026-08-05T15:01:00+08:00",
-        symbol="sz300308",
-        side="BUY",
-        planned_price=947.74,
-        planned_shares=100,
-    )
+    legacy.write_bytes(_V1_PLANNED_BYTES)
     assert read_execution_journal(legacy)[0].schema_version == 1
 
 

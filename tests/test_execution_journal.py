@@ -9,16 +9,17 @@ from typing import Any
 
 import pytest
 
-from uquant import execution_journal as journal_module
 from uquant.atomic_io import atomic_write_text
 from uquant.cli import main
-from uquant.execution_journal import (
+from uquant.observation import execution_journal as journal_surface
+from uquant.observation.execution_journal import (
     JournalStatus,
     append_filled,
     append_planned,
     append_skipped,
     read_execution_journal,
 )
+from uquant.observation.execution_journal import store as journal_module
 from uquant.report import render_execution_journal
 
 
@@ -36,8 +37,9 @@ def _concurrent_plan_worker(path: str, index: int, barrier: Any) -> None:
 
 
 def _reseal(payload: dict[str, object]) -> None:
-    unsigned = {key: value for key, value in payload.items() if key != "record_sha256"}
-    payload["record_sha256"] = hashlib.sha256(
+    hash_field = "record_hash" if payload.get("schema_version") == 2 else "record_sha256"
+    unsigned = {key: value for key, value in payload.items() if key != hash_field}
+    payload[hash_field] = hashlib.sha256(
         json.dumps(
             unsigned,
             allow_nan=False,
@@ -139,7 +141,7 @@ def test_journal_rejects_tampering_and_never_imports_strategy_or_state(tmp_path:
         planned_shares=100,
     )
     payload = json.loads(path.read_text(encoding="utf-8"))
-    payload["planned_price"] = 1.0
+    payload["planned_price_reference"] = 1.0
     path.write_text(json.dumps(payload) + "\n", encoding="utf-8")
     with pytest.raises(ValueError, match="hash"):
         read_execution_journal(path)
@@ -194,7 +196,7 @@ def test_retained_checkpoint_detects_truncation_and_full_chain_reseal(
         actual_shares=100,
     )
     checkpoint_factory = getattr(
-        journal_module,
+        journal_surface,
         "execution_journal_checkpoint",
         None,
     )
@@ -208,10 +210,10 @@ def test_retained_checkpoint_detects_truncation_and_full_chain_reseal(
 
     rows = [json.loads(line) for line in original_lines]
     rows[0]["plan_id"] = "resealed-plan"
-    rows[0]["previous_sha256"] = "0" * 64
+    rows[0]["previous_record_hash"] = "0" * 64
     _reseal(rows[0])
     rows[1]["plan_id"] = "resealed-plan"
-    rows[1]["previous_sha256"] = rows[0]["record_sha256"]
+    rows[1]["previous_record_hash"] = rows[0]["record_hash"]
     _reseal(rows[1])
     path.write_text(
         "\n".join(json.dumps(row) for row in rows) + "\n",
@@ -677,7 +679,7 @@ def test_readback_recomputes_slippage_and_rejects_forged_derived_values(
         actual_shares=100,
     )
     rows = [json.loads(line) for line in path.read_text(encoding="utf-8").splitlines()]
-    rows[1]["slippage_value"] = -100.0
+    rows[1]["realized_slippage"] = -100.0
     _reseal(rows[1])
     path.write_text("\n".join(json.dumps(row) for row in rows) + "\n", encoding="utf-8")
 

@@ -11,15 +11,15 @@ import time
 from contextlib import suppress
 from pathlib import Path
 
-from uquant.execution_journal import (
-    append_planned,
-    execution_journal_checkpoint,
-    read_execution_journal,
-)
 from uquant.infrastructure.file_lock import (
     FileLockMode,
     acquire_file_lock,
     release_file_lock,
+)
+from uquant.observation.execution_journal import (
+    append_planned,
+    execution_journal_checkpoint,
+    read_execution_journal,
 )
 
 ROOT = Path(__file__).resolve().parents[1]

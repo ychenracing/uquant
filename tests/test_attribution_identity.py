@@ -9,6 +9,7 @@ import pytest
 from uquant import account as account_module
 from uquant import types as domain
 from uquant.account import load_account, migrate_account, save_account
+from uquant.account import migrations as account_migrations_module
 from uquant.broker import sync_broker_snapshot
 from uquant.config import DEFAULT_CONFIG
 from uquant.engine import ProductionEngine, _attach_target_attribution
@@ -2369,7 +2370,7 @@ def test_v4_to_v5_rejects_reverse_event_id_collision_before_writing(
     # are locked literals above, so this exercises only the migration reverse
     # mapping invariant and cannot turn an invalid v4 object into a fixture.
     monkeypatch.setattr(
-        account_module,
+        account_migrations_module,
         "derive_attribution_event_id",
         lambda **_kwargs: "evt_" + "a" * 64,
     )

@@ -1,6 +1,8 @@
-"""Compatibility facade for the canonical observational execution journal."""
+"""Canonical read-v1/v2, write-v2 execution journal."""
 
-from uquant.observation.execution_journal import (
+from .checkpoint import execution_journal_checkpoint
+from .codec_v2 import record_to_dict
+from .models import (
     _BROKER_ORDER_ID,
     _PLAN_ID,
     _SHA256,
@@ -11,16 +13,17 @@ from uquant.observation.execution_journal import (
     JournalCheckpoint,
     JournalRecord,
     JournalStatus,
+)
+from .rendering import render_execution_journal
+from .store import (
     append_filled,
     append_planned,
     append_skipped,
-    execution_journal_checkpoint,
+    migrate_v1_journal,
     read_execution_journal,
-    record_to_dict,
-    render_execution_journal,
 )
 
-__all__ = (  # noqa: RUF022 - frozen public-name order
+__all__ = (  # noqa: RUF022 - stable canonical order
     "JournalCheckpoint",
     "JournalRecord",
     "JournalStatus",
@@ -35,21 +38,8 @@ __all__ = (  # noqa: RUF022 - frozen public-name order
     "append_planned",
     "append_skipped",
     "execution_journal_checkpoint",
+    "migrate_v1_journal",
     "read_execution_journal",
     "record_to_dict",
     "render_execution_journal",
 )
-
-for _value in (
-    JournalCheckpoint,
-    JournalRecord,
-    JournalStatus,
-    append_filled,
-    append_planned,
-    append_skipped,
-    execution_journal_checkpoint,
-    read_execution_journal,
-    record_to_dict,
-    render_execution_journal,
-):
-    _value.__module__ = __name__

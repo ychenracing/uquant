@@ -44,8 +44,22 @@ MODULE_AUTHORITIES = {
     "uquant": "production_safe",
     "uquant.__main__": "cli_runner",
     "uquant.account": "production_safe",
+    "uquant.account.codec": "production_safe",
+    "uquant.account.economic_identity": "production_safe",
+    "uquant.account.migrations": "production_safe",
+    "uquant.account.store": "production_safe",
+    "uquant.account.validation_common": "production_safe",
+    "uquant.account.validation_orders": "production_safe",
+    "uquant.account.validation_positions": "production_safe",
+    "uquant.account.validation_strategy": "production_safe",
     "uquant.atomic_io": "production_safe",
     "uquant.attribution": "production_safe",
+    "uquant.attribution.builder": "production_safe",
+    "uquant.attribution.concentration": "production_safe",
+    "uquant.attribution.diagnostics": "production_safe",
+    "uquant.attribution.ledger": "production_safe",
+    "uquant.attribution.replay_evidence": "production_safe",
+    "uquant.attribution.validation": "production_safe",
     "uquant.broker": "production_safe",
     "uquant.cli": "cli_runner",
     "uquant.config": "production_safe",
@@ -87,6 +101,15 @@ MODULE_AUTHORITIES = {
     "uquant.models.decision": "production_safe",
     "uquant.models.enums": "production_safe",
     "uquant.models.trading": "production_safe",
+    "uquant.observation": "production_safe",
+    "uquant.observation.execution_journal": "production_safe",
+    "uquant.observation.execution_journal.checkpoint": "production_safe",
+    "uquant.observation.execution_journal.codec_v1": "production_safe",
+    "uquant.observation.execution_journal.codec_v2": "production_safe",
+    "uquant.observation.execution_journal.lifecycle": "production_safe",
+    "uquant.observation.execution_journal.models": "production_safe",
+    "uquant.observation.execution_journal.rendering": "production_safe",
+    "uquant.observation.execution_journal.store": "production_safe",
     "uquant.opportunity": "production_safe",
     "uquant.portfolio": "production_safe",
     "uquant.portfolio_core": "production_safe",
@@ -148,6 +171,283 @@ _CONTRACT_RELOCATIONS = {
     "uquant.contracts.universe": "uquant.validation.universe",
     "uquant.models.trading": "uquant.types",
 }
+_DEBT_RELOCATIONS = {
+    **_CONTRACT_RELOCATIONS,
+    **{
+        module: "uquant.account"
+        for module in (
+            "uquant.account.codec",
+            "uquant.account.economic_identity",
+            "uquant.account.migrations",
+            "uquant.account.store",
+            "uquant.account.validation_common",
+            "uquant.account.validation_orders",
+            "uquant.account.validation_positions",
+            "uquant.account.validation_strategy",
+        )
+    },
+    **{
+        module: "uquant.attribution"
+        for module in (
+            "uquant.attribution.builder",
+            "uquant.attribution.concentration",
+            "uquant.attribution.diagnostics",
+            "uquant.attribution.ledger",
+            "uquant.attribution.replay_evidence",
+            "uquant.attribution.validation",
+        )
+    },
+    **{
+        module: "uquant.validation.execution_journal"
+        for module in (
+            "uquant.observation.execution_journal",
+            "uquant.observation.execution_journal.checkpoint",
+            "uquant.observation.execution_journal.codec_v1",
+            "uquant.observation.execution_journal.codec_v2",
+            "uquant.observation.execution_journal.lifecycle",
+            "uquant.observation.execution_journal.models",
+            "uquant.observation.execution_journal.rendering",
+            "uquant.observation.execution_journal.store",
+        )
+    },
+}
+
+# These exact edges were local private references inside the three Task 5
+# monoliths.  Enumerating them preserves their immutable identity after the
+# mechanical split without creating a package-wide exemption for future edges.
+_TASK5_RELOCATED_PRIVATE_IMPORT_GROUPS = (
+    (
+        "uquant.account",
+        "uquant.account.migrations",
+        (
+            "_legacy_attribution_owner",
+            "_legacy_industry",
+            "_migrate_v4_attribution_event_ids",
+            "_populate_legacy_attribution",
+        ),
+    ),
+    (
+        "uquant.account",
+        "uquant.account.validation_common",
+        (
+            "_EVENT_ID",
+            "_HISTORICAL_ATTRIBUTION_SCHEMA_VERSION",
+            "_LEGACY_INDUSTRY",
+            "_LEGACY_MANIFEST_SHA256",
+            "_ORDER_ID",
+            "_SHOCK_SEVERITIES",
+            "_SHOCK_STATES",
+            "_UNLINKED_LEGACY_IDENTITY_FIELDS",
+            "_UNLINKED_NATIVE_IDENTITY_FIELDS",
+        ),
+    ),
+    (
+        "uquant.account",
+        "uquant.account.validation_orders",
+        (
+            "_derive_v4_attribution_event_id",
+            "_validate_attribution_identity",
+            "_validate_fill",
+            "_validate_lot_origin_chains",
+            "_validate_order_intent",
+            "_validate_order_state",
+        ),
+    ),
+    (
+        "uquant.account",
+        "uquant.account.validation_positions",
+        ("_position", "_tranche", "_validate_position_state"),
+    ),
+    (
+        "uquant.account",
+        "uquant.account.validation_strategy",
+        ("_validate_audit_events", "_validate_risk_streaks", "_validate_strategy_risk_state"),
+    ),
+    (
+        "uquant.account.codec",
+        "uquant.account.validation_common",
+        ("_HISTORICAL_ATTRIBUTION_SCHEMA_VERSION", "_finite_number", "_reject_nonstandard_json_constant"),
+    ),
+    (
+        "uquant.account.codec",
+        "uquant.account.validation_orders",
+        ("_validate_lot_origin_chains", "_validate_order_state"),
+    ),
+    (
+        "uquant.account.codec",
+        "uquant.account.validation_positions",
+        ("_position", "_validate_position_state"),
+    ),
+    ("uquant.account.codec", "uquant.account.validation_strategy", ("_validate_strategy_risk_state",)),
+    ("uquant.account.migrations", "uquant.account.codec", ("_read_account_payload",)),
+    (
+        "uquant.account.migrations",
+        "uquant.account.validation_common",
+        (
+            "_HISTORICAL_ATTRIBUTION_SCHEMA_VERSION",
+            "_LEGACY_INDUSTRY",
+            "_LEGACY_MANIFEST_SHA256",
+            "_unlinked_fill_matches_order",
+        ),
+    ),
+    (
+        "uquant.account.migrations",
+        "uquant.account.validation_orders",
+        ("_derive_v4_attribution_event_id", "_order_sequence"),
+    ),
+    (
+        "uquant.account.store",
+        "uquant.account.validation_orders",
+        ("_validate_lot_origin_chains", "_validate_order_state"),
+    ),
+    ("uquant.account.store", "uquant.account.validation_positions", ("_validate_position_state",)),
+    ("uquant.account.store", "uquant.account.validation_strategy", ("_validate_strategy_risk_state",)),
+    (
+        "uquant.account.validation_orders",
+        "uquant.account.validation_common",
+        (
+            "_EVENT_ID",
+            "_HISTORICAL_ATTRIBUTION_SCHEMA_VERSION",
+            "_LEGACY_INDUSTRY",
+            "_LEGACY_MANIFEST_SHA256",
+            "_ORDER_ID",
+            "_finite_number",
+            "_nonnegative_integer",
+            "_required_iso_date",
+            "_required_text",
+            "_unlinked_fill_matches_order",
+        ),
+    ),
+    (
+        "uquant.account.validation_positions",
+        "uquant.account.validation_common",
+        (
+            "_HISTORICAL_ATTRIBUTION_SCHEMA_VERSION",
+            "_finite_number",
+            "_nonnegative_integer",
+            "_optional_iso_date",
+            "_required_iso_date",
+            "_required_text",
+        ),
+    ),
+    (
+        "uquant.account.validation_positions",
+        "uquant.account.validation_orders",
+        ("_validate_attribution_identity",),
+    ),
+    (
+        "uquant.account.validation_strategy",
+        "uquant.account.validation_common",
+        (
+            "_SHOCK_SEVERITIES",
+            "_SHOCK_STATES",
+            "_finite_number",
+            "_nonnegative_integer",
+            "_optional_finite_event_number",
+            "_optional_iso_date",
+            "_required_iso_date",
+            "_required_text",
+            "_validate_event_array",
+            "_validate_nonnegative_integer_map",
+            "_validate_symbol_list",
+            "_validate_weight_map",
+        ),
+    ),
+    ("uquant.attribution", "uquant.attribution.replay_evidence", ("_DAILY_REPLAY_FIELDS", "_LEDGER_FIELDS")),
+    (
+        "uquant.attribution",
+        "uquant.attribution.validation",
+        (
+            "_ACCOUNTING_FIELDS",
+            "_ATTRIBUTION_FIELDS",
+            "_COST_FIELDS",
+            "_GROUP_FIELDS",
+            "_LOT_COST_FIELDS",
+            "_LOT_FIELDS",
+        ),
+    ),
+    (
+        "uquant.attribution.builder",
+        "uquant.attribution.concentration",
+        ("_empty_pnl_bucket", "_finite", "_group_lot_pnl", "_holding_summary"),
+    ),
+    ("uquant.attribution.builder", "uquant.attribution.replay_evidence", ("_positive_integer",)),
+    ("uquant.attribution.builder", "uquant.attribution.validation", ("_economic_sessions",)),
+    ("uquant.attribution.diagnostics", "uquant.attribution.concentration", ("_finite",)),
+    ("uquant.attribution.ledger", "uquant.attribution.concentration", ("_finite",)),
+    ("uquant.attribution.replay_evidence", "uquant.attribution.concentration", ("_finite",)),
+    (
+        "uquant.attribution.validation",
+        "uquant.attribution.concentration",
+        ("_finite", "_group_lot_pnl", "_holding_summary"),
+    ),
+    (
+        "uquant.attribution.validation",
+        "uquant.attribution.replay_evidence",
+        (
+            "_LEDGER_FIELDS",
+            "_close",
+            "_positive_integer",
+            "_require_exact_fields",
+            "_validate_daily_replay_evidence",
+        ),
+    ),
+    (
+        "uquant.observation.execution_journal",
+        "uquant.observation.execution_journal.models",
+        ("_BROKER_ORDER_ID", "_PLAN_ID", "_SHA256", "_SYMBOL", "_V1_FIELDS", "_V2_FIELDS", "_ZERO_HASH"),
+    ),
+    (
+        "uquant.observation.execution_journal.checkpoint",
+        "uquant.observation.execution_journal.models",
+        ("_ZERO_HASH",),
+    ),
+    (
+        "uquant.observation.execution_journal.codec_v1",
+        "uquant.observation.execution_journal.lifecycle",
+        ("_timestamp", "_validate_record"),
+    ),
+    (
+        "uquant.observation.execution_journal.codec_v1",
+        "uquant.observation.execution_journal.models",
+        ("_SHA256", "_V1_FIELDS"),
+    ),
+    (
+        "uquant.observation.execution_journal.codec_v2",
+        "uquant.observation.execution_journal.lifecycle",
+        ("_validate_record",),
+    ),
+    (
+        "uquant.observation.execution_journal.codec_v2",
+        "uquant.observation.execution_journal.models",
+        ("_SHA256", "_V1_FIELDS", "_V2_FIELDS"),
+    ),
+    (
+        "uquant.observation.execution_journal.lifecycle",
+        "uquant.observation.execution_journal.models",
+        ("_BROKER_ORDER_ID", "_PLAN_ID", "_SYMBOL"),
+    ),
+    (
+        "uquant.observation.execution_journal.store",
+        "uquant.observation.execution_journal.lifecycle",
+        ("_positive_number", "_positive_shares", "_timestamp"),
+    ),
+    (
+        "uquant.observation.execution_journal.store",
+        "uquant.observation.execution_journal.models",
+        ("_ZERO_HASH",),
+    ),
+    (
+        "uquant.validation.execution_journal",
+        "uquant.observation.execution_journal",
+        ("_BROKER_ORDER_ID", "_PLAN_ID", "_SHA256", "_SYMBOL", "_V1_FIELDS", "_V2_FIELDS", "_ZERO_HASH"),
+    ),
+)
+_TASK5_RELOCATED_PRIVATE_IMPORTS = frozenset(
+    f"{importer}:{imported_from}:{name}"
+    for importer, imported_from, names in _TASK5_RELOCATED_PRIVATE_IMPORT_GROUPS
+    for name in names
+)
 _PUBLIC_API_IMPLEMENTATIONS = {
     legacy: current for current, legacy in _CONTRACT_RELOCATIONS.items()
 }
@@ -155,6 +455,9 @@ _PUBLIC_API_FACADE_PATHS = {
     # Task 3 converts the stable import path into its only valid package owner.
     # The immutable Task 1 contract continues to name the historical .py facade.
     "uquant.config": "uquant/config.py",
+    # Task 5 performs the same module-to-package transition for these facades.
+    "uquant.account": "uquant/account.py",
+    "uquant.attribution": "uquant/attribution.py",
 }
 
 _MUTABLE_CALLS = {
@@ -595,6 +898,7 @@ def architecture_snapshot(
         raise AssertionError(f"unknown module authorities: {invalid}")
     graph: dict[str, set[str]] = {module: set() for module in modules}
     private_imports: list[dict[str, object]] = []
+    relocated_private_imports: list[dict[str, object]] = []
     forbidden_imports: list[dict[str, object]] = []
     function_rows: list[dict[str, object]] = []
     global_rows: list[dict[str, object]] = []
@@ -682,16 +986,19 @@ def architecture_snapshot(
                             if target is not None
                             else _external_authority(target_base)
                         )
+                    private_import_id = f"{module}:{target_base}:{alias.name}"
                     if alias.name.startswith("_") and target_base and target_base != module:
-                        private_imports.append(
-                            {
-                                "id": f"{module}:{target_base}:{alias.name}",
-                                "importer": module,
-                                "imported_from": target_base,
-                                "name": alias.name,
-                                "line": node.lineno,
-                            }
-                        )
+                        row = {
+                            "id": private_import_id,
+                            "importer": module,
+                            "imported_from": target_base,
+                            "name": alias.name,
+                            "line": node.lineno,
+                        }
+                        if private_import_id in _TASK5_RELOCATED_PRIVATE_IMPORTS:
+                            relocated_private_imports.append(row)
+                        else:
+                            private_imports.append(row)
                 for authority_target, target_authority in authority_targets.items():
                     if _forbidden_authority_edge(authorities[module], target_authority):
                         forbidden_imports.append(
@@ -785,6 +1092,10 @@ def architecture_snapshot(
             "strongly_connected_components": components,
             "cycles": cycles,
             "cross_module_private_imports": sorted_private_imports,
+            "task5_relocated_private_imports": sorted(
+                relocated_private_imports,
+                key=_row_id,
+            ),
             "forbidden_imports": sorted_forbidden_imports,
         },
         "module_globals": sorted(global_rows, key=lambda row: str(row["id"])),
@@ -813,7 +1124,7 @@ def measured_debt(snapshot: Mapping[str, object]) -> dict[str, list[dict[str, ob
     def debt_id(identifier: object) -> str:
         value = str(identifier)
         module, separator, suffix = value.partition(":")
-        legacy = _CONTRACT_RELOCATIONS.get(module, module)
+        legacy = _DEBT_RELOCATIONS.get(module, module)
         return f"{legacy}{separator}{suffix}"
 
     oversized = [

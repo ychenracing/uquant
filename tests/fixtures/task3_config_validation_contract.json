@@ -1,0 +1,1388 @@
+{
+  "cases": [
+    {
+      "changes": {
+        "risk_sentinel_mode": "INVALID"
+      },
+      "exception_type": "ValueError",
+      "message": "risk_sentinel_mode is invalid"
+    },
+    {
+      "changes": {
+        "risk_sentinel_min_confidence": -0.01
+      },
+      "exception_type": "ValueError",
+      "message": "risk_sentinel_min_confidence must be in [0, 1]"
+    },
+    {
+      "changes": {
+        "risk_sentinel_min_confidence": 1.01
+      },
+      "exception_type": "ValueError",
+      "message": "risk_sentinel_min_confidence must be in [0, 1]"
+    },
+    {
+      "changes": {
+        "risk_sentinel_min_confidence": true
+      },
+      "exception_type": "ValueError",
+      "message": "risk_sentinel_min_confidence must be in [0, 1]"
+    },
+    {
+      "changes": {
+        "risk_sentinel_severe_direct_enabled": 1
+      },
+      "exception_type": "ValueError",
+      "message": "risk_sentinel_severe_direct_enabled must be boolean"
+    },
+    {
+      "changes": {
+        "risk_sentinel_causal_confirmation_enabled": 1
+      },
+      "exception_type": "ValueError",
+      "message": "risk_sentinel_causal_confirmation_enabled must be boolean"
+    },
+    {
+      "changes": {
+        "risk_sentinel_confirm_days": 0
+      },
+      "exception_type": "ValueError",
+      "message": "risk_sentinel_confirm_days must be a positive integer"
+    },
+    {
+      "changes": {
+        "risk_sentinel_repair_days": 0
+      },
+      "exception_type": "ValueError",
+      "message": "risk_sentinel_repair_days must be a positive integer"
+    },
+    {
+      "changes": {
+        "initial_cash": 0
+      },
+      "exception_type": "ValueError",
+      "message": "initial_cash must be positive"
+    },
+    {
+      "changes": {
+        "max_gross": 0
+      },
+      "exception_type": "ValueError",
+      "message": "max_gross must be in (0, 1]"
+    },
+    {
+      "changes": {
+        "max_symbol_weight": 0.61
+      },
+      "exception_type": "ValueError",
+      "message": "max_symbol_weight must be in (0, 0.60]"
+    },
+    {
+      "changes": {
+        "max_positions": 7
+      },
+      "exception_type": "ValueError",
+      "message": "max_positions must be in [1, 6]"
+    },
+    {
+      "changes": {
+        "emerging_min_history": 19
+      },
+      "exception_type": "ValueError",
+      "message": "emerging_min_history must be in [20, min_history]"
+    },
+    {
+      "changes": {
+        "leader_mature_score": 1.1
+      },
+      "exception_type": "ValueError",
+      "message": "leader_mature_score must be in [0, 1]"
+    },
+    {
+      "changes": {
+        "commission_rate": -0.1
+      },
+      "exception_type": "ValueError",
+      "message": "commission_rate cannot be negative"
+    },
+    {
+      "changes": {
+        "max_volume_participation": 1.01
+      },
+      "exception_type": "ValueError",
+      "message": "max_volume_participation must be in [0, 1]"
+    },
+    {
+      "changes": {
+        "protected_restore_min_trade_weight": 0.051
+      },
+      "exception_type": "ValueError",
+      "message": "protected_restore_min_trade_weight/restoration_min_trade_weight must be positive, ordered, and no greater than min_trade_weight"
+    },
+    {
+      "changes": {
+        "restoration_min_trade_weight": 0.06
+      },
+      "exception_type": "ValueError",
+      "message": "protected_restore_min_trade_weight/restoration_min_trade_weight must be positive, ordered, and no greater than min_trade_weight"
+    },
+    {
+      "changes": {
+        "concentrated_crisis_gross": 0.95
+      },
+      "exception_type": "ValueError",
+      "message": "invalid crisis/recovery gross targets"
+    },
+    {
+      "changes": {
+        "severe_recovery_gross": 0.6
+      },
+      "exception_type": "ValueError",
+      "message": "invalid differentiated recovery gross targets"
+    },
+    {
+      "changes": {
+        "sector_guard_min_symbols": 1
+      },
+      "exception_type": "ValueError",
+      "message": "sector_guard_min_symbols must be at least two"
+    },
+    {
+      "changes": {
+        "sector_shock_return": 0.0
+      },
+      "exception_type": "ValueError",
+      "message": "sector_shock_return must be in (-1, 0)"
+    },
+    {
+      "changes": {
+        "sector_shock_breadth": 1.1
+      },
+      "exception_type": "ValueError",
+      "message": "sector_shock_breadth must be in [0, 1]"
+    },
+    {
+      "changes": {
+        "sector_shock_confirmations": 5
+      },
+      "exception_type": "ValueError",
+      "message": "invalid sector shock confirmation window"
+    },
+    {
+      "changes": {
+        "sector_guard_divergence": -0.1
+      },
+      "exception_type": "ValueError",
+      "message": "sector_guard_divergence must be in [0, 1]"
+    },
+    {
+      "changes": {
+        "sector_guard_gross": 1.1
+      },
+      "exception_type": "ValueError",
+      "message": "sector_guard_gross must be in [0, max_gross]"
+    },
+    {
+      "changes": {
+        "sector_guard_min_sessions": 0
+      },
+      "exception_type": "ValueError",
+      "message": "sector guard recovery windows must be positive"
+    },
+    {
+      "changes": {
+        "sector_recovery_breadth": 1.1
+      },
+      "exception_type": "ValueError",
+      "message": "sector_recovery_breadth must be in [0, 1]"
+    },
+    {
+      "changes": {
+        "sector_recovery_confirmations": 0
+      },
+      "exception_type": "ValueError",
+      "message": "sector_recovery_confirmations must be positive"
+    },
+    {
+      "changes": {
+        "trend_entry_gross": 1.1
+      },
+      "exception_type": "ValueError",
+      "message": "invalid trend gross targets"
+    },
+    {
+      "changes": {
+        "add1_weight": 0.5,
+        "add2_weight": 0.4
+      },
+      "exception_type": "ValueError",
+      "message": "invalid add tranche weights"
+    },
+    {
+      "changes": {
+        "add1_min_mfe": 0.2,
+        "add2_min_mfe": 0.1
+      },
+      "exception_type": "ValueError",
+      "message": "invalid add-tranche MFE thresholds"
+    },
+    {
+      "changes": {
+        "add_tranche_cooldown_sessions": 0
+      },
+      "exception_type": "ValueError",
+      "message": "add_tranche_cooldown_sessions must be positive"
+    },
+    {
+      "changes": {
+        "add_index_chase_ret5": 1.0
+      },
+      "exception_type": "ValueError",
+      "message": "add_index_chase_ret5 must be in (0, 1)"
+    },
+    {
+      "changes": {
+        "replacement_edge": 1.1
+      },
+      "exception_type": "ValueError",
+      "message": "replacement_edge must be in [0, 1]"
+    },
+    {
+      "changes": {
+        "industry_signal_min_members": 0
+      },
+      "exception_type": "ValueError",
+      "message": "industry_signal_min_members must be positive"
+    },
+    {
+      "changes": {
+        "industry_rotation_edge": 1.1
+      },
+      "exception_type": "ValueError",
+      "message": "industry_rotation_edge must be in [0, 1]"
+    },
+    {
+      "changes": {
+        "replacement_confirm_days": 0
+      },
+      "exception_type": "ValueError",
+      "message": "replacement confirmation and minimum hold must be positive"
+    },
+    {
+      "changes": {
+        "replacement_transfer_cap": 0.0
+      },
+      "exception_type": "ValueError",
+      "message": "invalid replacement transfer cap"
+    },
+    {
+      "changes": {
+        "max_satellites": 3
+      },
+      "exception_type": "ValueError",
+      "message": "max_satellites must be in [0, 2]"
+    },
+    {
+      "changes": {
+        "dynamic_k_expand_interval": 21
+      },
+      "exception_type": "ValueError",
+      "message": "invalid dynamic K change intervals"
+    },
+    {
+      "changes": {
+        "dynamic_k_confirm_days": 0
+      },
+      "exception_type": "ValueError",
+      "message": "dynamic_k_confirm_days must be positive"
+    },
+    {
+      "changes": {
+        "recovery_cohort_weak_graduation_days": 19
+      },
+      "exception_type": "ValueError",
+      "message": "recovery cohort graduation days must preserve dynamic-K, weak, and mature ordering"
+    },
+    {
+      "changes": {
+        "recovery_cohort_weak_market_ret120": 0.0
+      },
+      "exception_type": "ValueError",
+      "message": "recovery_cohort_weak_market_ret120 must be in (-1, 0)"
+    },
+    {
+      "changes": {
+        "recovery_weak_market_min_index_ret60": 1.0
+      },
+      "exception_type": "ValueError",
+      "message": "recovery_weak_market_min_index_ret60 must be in (-1, 1)"
+    },
+    {
+      "changes": {
+        "recovery_cohort_tail_guard_days": 59
+      },
+      "exception_type": "ValueError",
+      "message": "recovery cohort tail guard must be at least 60 sessions"
+    },
+    {
+      "changes": {
+        "recovery_cohort_tail_line": 0.05
+      },
+      "exception_type": "ValueError",
+      "message": "recovery cohort tail line must sit between caution and crisis"
+    },
+    {
+      "changes": {
+        "recovery_transition_weak_leg_ret120": 0.0
+      },
+      "exception_type": "ValueError",
+      "message": "recovery transition weak-leg return must be in (-1, 0)"
+    },
+    {
+      "changes": {
+        "recovery_transition_strong_leg_max_ret120": 0.0
+      },
+      "exception_type": "ValueError",
+      "message": "recovery transition strong-leg return must be in (0, 1)"
+    },
+    {
+      "changes": {
+        "recovery_transition_min_divergence": 0.0
+      },
+      "exception_type": "ValueError",
+      "message": "recovery transition divergence must be in (0, 1)"
+    },
+    {
+      "changes": {
+        "recovery_member_confirm_days": 1
+      },
+      "exception_type": "ValueError",
+      "message": "recovery_member_confirm_days must be at least 2"
+    },
+    {
+      "changes": {
+        "tactical_rebound_max_ret20": 0.0
+      },
+      "exception_type": "ValueError",
+      "message": "tactical rebound return thresholds must be ordered in (-1, 0)"
+    },
+    {
+      "changes": {
+        "tactical_rebound_breadth_max_ret20": -0.25
+      },
+      "exception_type": "ValueError",
+      "message": "tactical rebound return thresholds must be ordered in (-1, 0)"
+    },
+    {
+      "changes": {
+        "tactical_rebound_min_industries": 1
+      },
+      "exception_type": "ValueError",
+      "message": "tactical_rebound_min_industries must be at least 2"
+    },
+    {
+      "changes": {
+        "tactical_rebound_oversold_max_ret5": 0.0
+      },
+      "exception_type": "ValueError",
+      "message": "tactical_rebound_oversold_max_ret5 must be in (-1, 0)"
+    },
+    {
+      "changes": {
+        "tactical_rebound_min_ret60": 0.0
+      },
+      "exception_type": "ValueError",
+      "message": "tactical rebound ret60 thresholds must be ordered in (0, 1)"
+    },
+    {
+      "changes": {
+        "tactical_rebound_oversold_min_ret60": 0.05
+      },
+      "exception_type": "ValueError",
+      "message": "tactical rebound ret60 thresholds must be ordered in (0, 1)"
+    },
+    {
+      "changes": {
+        "tactical_rebound_max_ret120": 0.0
+      },
+      "exception_type": "ValueError",
+      "message": "tactical_rebound_max_ret120 must be positive"
+    },
+    {
+      "changes": {
+        "tactical_overheat_cooldown_days": 0
+      },
+      "exception_type": "ValueError",
+      "message": "tactical_overheat_cooldown_days must be positive"
+    },
+    {
+      "changes": {
+        "leader_cycle_confirm_days": 0
+      },
+      "exception_type": "ValueError",
+      "message": "leader_cycle_confirm_days must be positive"
+    },
+    {
+      "changes": {
+        "leader_cycle_min_mature": 7
+      },
+      "exception_type": "ValueError",
+      "message": "leader_cycle_min_mature must be in [1, max_positions]"
+    },
+    {
+      "changes": {
+        "leader_cycle_min_score": 1.1
+      },
+      "exception_type": "ValueError",
+      "message": "leader_cycle_min_score must be in [0, 1]"
+    },
+    {
+      "changes": {
+        "leader_cycle_impulse_breadth": 1.1
+      },
+      "exception_type": "ValueError",
+      "message": "leader_cycle_impulse_breadth must be in [0, 1]"
+    },
+    {
+      "changes": {
+        "leader_cycle_min_market_ret120": 1.0
+      },
+      "exception_type": "ValueError",
+      "message": "leader_cycle_min_market_ret120 must be in (-1, 1)"
+    },
+    {
+      "changes": {
+        "leader_cycle_impulse_min_market_ret120": 0.02
+      },
+      "exception_type": "ValueError",
+      "message": "leader_cycle_impulse_min_market_ret120 must not exceed the ordinary market floor"
+    },
+    {
+      "changes": {
+        "strategic_epoch_cooldown_sessions": 19
+      },
+      "exception_type": "ValueError",
+      "message": "strategic epoch cooldown must be in [20, 40]"
+    },
+    {
+      "changes": {
+        "strategic_epoch_min_symbol_change": 0
+      },
+      "exception_type": "ValueError",
+      "message": "strategic epoch symbol change must be in [1, 3]"
+    },
+    {
+      "changes": {
+        "strategic_long_cycle_max_tech_ret120": 0.0
+      },
+      "exception_type": "ValueError",
+      "message": "strategic_long_cycle_max_tech_ret120 must be in (0, 1)"
+    },
+    {
+      "changes": {
+        "strategic_persistent_max_ret120": 0.0
+      },
+      "exception_type": "ValueError",
+      "message": "strategic_persistent_max_ret120 must be positive"
+    },
+    {
+      "changes": {
+        "strategic_long_cycle_min_ret60": -1.0
+      },
+      "exception_type": "ValueError",
+      "message": "strategic_long_cycle_min_ret60 must be in (-1, 1)"
+    },
+    {
+      "changes": {
+        "strategic_long_cycle_min_ret120": -1.0
+      },
+      "exception_type": "ValueError",
+      "message": "strategic_long_cycle_min_ret120 must be in (-1, 1)"
+    },
+    {
+      "changes": {
+        "strategic_current_factor_floor": 1.1
+      },
+      "exception_type": "ValueError",
+      "message": "strategic_current_factor_floor must be in [0, 1]"
+    },
+    {
+      "changes": {
+        "strategic_transition_min_score": 1.1
+      },
+      "exception_type": "ValueError",
+      "message": "strategic_transition_min_score must be in [0, 1]"
+    },
+    {
+      "changes": {
+        "strategic_transition_min_component": 1.1
+      },
+      "exception_type": "ValueError",
+      "message": "strategic_transition_min_component must be in [0, 1]"
+    },
+    {
+      "changes": {
+        "strategic_transition_impulse_min_history": 240
+      },
+      "exception_type": "ValueError",
+      "message": "strategic_transition_impulse_min_history must be at least 241"
+    },
+    {
+      "changes": {
+        "strategic_transition_impulse_min_score": 1.1
+      },
+      "exception_type": "ValueError",
+      "message": "strategic_transition_impulse_min_score must be in [0, 1]"
+    },
+    {
+      "changes": {
+        "strategic_transition_impulse_min_leader_score": 1.1
+      },
+      "exception_type": "ValueError",
+      "message": "strategic_transition_impulse_min_leader_score must be in [0, 1]"
+    },
+    {
+      "changes": {
+        "strategic_transition_impulse_min_secular_score": 1.1
+      },
+      "exception_type": "ValueError",
+      "message": "strategic_transition_impulse_min_secular_score must be in [0, 1]"
+    },
+    {
+      "changes": {
+        "strategic_transition_impulse_min_secular_confidence": 1.1
+      },
+      "exception_type": "ValueError",
+      "message": "strategic_transition_impulse_min_secular_confidence must be in [0, 1]"
+    },
+    {
+      "changes": {
+        "strategic_transition_impulse_min_ret20": -1.0
+      },
+      "exception_type": "ValueError",
+      "message": "strategic_transition_impulse_min_ret20 must be in (-1, 1)"
+    },
+    {
+      "changes": {
+        "strategic_transition_impulse_min_ret60": -1.0
+      },
+      "exception_type": "ValueError",
+      "message": "strategic_transition_impulse_min_ret60 must be in (-1, 1)"
+    },
+    {
+      "changes": {
+        "strategic_transition_impulse_min_ret120": -1.0
+      },
+      "exception_type": "ValueError",
+      "message": "strategic_transition_impulse_min_ret120 must be in (-1, 1)"
+    },
+    {
+      "changes": {
+        "strategic_transition_impulse_max_ret120": 1.0
+      },
+      "exception_type": "ValueError",
+      "message": "strategic_transition_impulse_max_ret120 must be in (-1, 1)"
+    },
+    {
+      "changes": {
+        "strategic_transition_impulse_max_ret120": 0.1,
+        "strategic_transition_impulse_min_ret120": 0.1
+      },
+      "exception_type": "ValueError",
+      "message": "strategic transition impulse ret120 bounds are inverted"
+    },
+    {
+      "changes": {
+        "strategic_transition_impulse_min_market_ret20": -1.0
+      },
+      "exception_type": "ValueError",
+      "message": "strategic_transition_impulse_min_market_ret20 must be in (-1, 1)"
+    },
+    {
+      "changes": {
+        "strategic_cohort_confirm_days": 0
+      },
+      "exception_type": "ValueError",
+      "message": "strategic_cohort_confirm_days must be positive"
+    },
+    {
+      "changes": {
+        "strategic_cohort_profit_arm": 1.1
+      },
+      "exception_type": "ValueError",
+      "message": "strategic_cohort_profit_arm must be in [0, 1]"
+    },
+    {
+      "changes": {
+        "strategic_dominant_max_weight": 1.01
+      },
+      "exception_type": "ValueError",
+      "message": "invalid strategic dominant max weight"
+    },
+    {
+      "changes": {
+        "strategic_dominant_min_leader_gap": 0.0
+      },
+      "exception_type": "ValueError",
+      "message": "invalid strategic dominant leader gap"
+    },
+    {
+      "changes": {
+        "strategic_dominant_profit_lock_mfe": 0.0
+      },
+      "exception_type": "ValueError",
+      "message": "invalid strategic dominant profit lock"
+    },
+    {
+      "changes": {
+        "strategic_dominant_retained_gross": 0.5
+      },
+      "exception_type": "ValueError",
+      "message": "invalid strategic dominant retained gross"
+    },
+    {
+      "changes": {
+        "strategic_cohort_trail_atr": 0.0
+      },
+      "exception_type": "ValueError",
+      "message": "invalid strategic cohort trailing distances"
+    },
+    {
+      "changes": {
+        "strategic_cohort_trail_bands": 4
+      },
+      "exception_type": "ValueError",
+      "message": "strategic_cohort_trail_bands must be an odd integer >=3"
+    },
+    {
+      "changes": {
+        "strategic_cohort_exit_step": 0.0
+      },
+      "exception_type": "ValueError",
+      "message": "invalid strategic cohort exit step"
+    },
+    {
+      "changes": {
+        "strategic_gradual_post_guard_exit_step": 0.0
+      },
+      "exception_type": "ValueError",
+      "message": "invalid strategic post-guard exit step"
+    },
+    {
+      "changes": {
+        "strategic_post_guard_exit_step": 0.0
+      },
+      "exception_type": "ValueError",
+      "message": "invalid strategic post-guard exit step"
+    },
+    {
+      "changes": {
+        "strategic_cohort_disaster_stop": 0.0
+      },
+      "exception_type": "ValueError",
+      "message": "strategic cohort disaster stop must be in (-1, 0)"
+    },
+    {
+      "changes": {
+        "strategic_cohort_tail_line": 0.05
+      },
+      "exception_type": "ValueError",
+      "message": "invalid strategic cohort tail line"
+    },
+    {
+      "changes": {
+        "strategic_cohort_guard_days": 0
+      },
+      "exception_type": "ValueError",
+      "message": "strategic_cohort_guard_days must be positive"
+    },
+    {
+      "changes": {
+        "strategic_damage_guard_dd": 0.0
+      },
+      "exception_type": "ValueError",
+      "message": "invalid strategic damage guard drawdown"
+    },
+    {
+      "changes": {
+        "strategic_damage_guard_transition": 0.0
+      },
+      "exception_type": "ValueError",
+      "message": "invalid strategic damage guard transition"
+    },
+    {
+      "changes": {
+        "strategic_damage_guard_gross": 1.01
+      },
+      "exception_type": "ValueError",
+      "message": "invalid strategic damage guard gross"
+    },
+    {
+      "changes": {
+        "strategic_guard_level2_cap": 0.49
+      },
+      "exception_type": "ValueError",
+      "message": "invalid strategic guard level-2 cap"
+    },
+    {
+      "changes": {
+        "tactical_frozen_take_profit": 0.05
+      },
+      "exception_type": "ValueError",
+      "message": "tactical take-profit thresholds must be ordered in (0, 1)"
+    },
+    {
+      "changes": {
+        "capital_guard_cooldown_days": 0
+      },
+      "exception_type": "ValueError",
+      "message": "capital_guard_cooldown_days must be positive"
+    },
+    {
+      "changes": {
+        "capital_guard_min_recovery_days": 0
+      },
+      "exception_type": "ValueError",
+      "message": "capital_guard_min_recovery_days must be positive"
+    },
+    {
+      "changes": {
+        "capital_guard_relapse_dd": 0.09
+      },
+      "exception_type": "ValueError",
+      "message": "capital_guard_relapse_dd is outside its safety range"
+    },
+    {
+      "changes": {
+        "strategic_cohort_tail_confirm_days": 0
+      },
+      "exception_type": "ValueError",
+      "message": "strategic_cohort_tail_confirm_days must be positive"
+    },
+    {
+      "changes": {
+        "fast_v_recovery_confirm_days": 0
+      },
+      "exception_type": "ValueError",
+      "message": "fast_v_recovery_confirm_days must be positive"
+    },
+    {
+      "changes": {
+        "persistent_v_recovery_wait_days": 4
+      },
+      "exception_type": "ValueError",
+      "message": "persistent V-recovery wait cannot precede severe wait"
+    },
+    {
+      "changes": {
+        "fast_v_recovery_breadth": 1.1
+      },
+      "exception_type": "ValueError",
+      "message": "fast V-recovery breadth thresholds must be in [0, 1]"
+    },
+    {
+      "changes": {
+        "fast_v_recovery_gross": 1.0
+      },
+      "exception_type": "ValueError",
+      "message": "invalid fast V-recovery gross"
+    },
+    {
+      "changes": {
+        "narrow_anchor_guard_gross": 0.65
+      },
+      "exception_type": "ValueError",
+      "message": "invalid narrow anchor guard gross"
+    },
+    {
+      "changes": {
+        "narrow_anchor_divergence": 1.1
+      },
+      "exception_type": "ValueError",
+      "message": "narrow_anchor_divergence must be in [0, 1]"
+    },
+    {
+      "changes": {
+        "capital_dd_risk_off": 0.05
+      },
+      "exception_type": "ValueError",
+      "message": "invalid ordered portfolio drawdown thresholds"
+    },
+    {
+      "changes": {
+        "incomplete_universe_crisis_gross": 0.8
+      },
+      "exception_type": "ValueError",
+      "message": "invalid incomplete-universe crisis gross"
+    },
+    {
+      "changes": {
+        "incomplete_universe_rearm_days": 91
+      },
+      "exception_type": "ValueError",
+      "message": "invalid incomplete-universe rearm days"
+    },
+    {
+      "changes": {
+        "recovery_reserve_min_score": 1.1
+      },
+      "exception_type": "ValueError",
+      "message": "recovery reserve score must be in [0, 1]"
+    },
+    {
+      "changes": {
+        "recovery_reserve_min_ret120": 0.5,
+        "recovery_reserve_min_ret60": 0.1
+      },
+      "exception_type": "ValueError",
+      "message": "invalid recovery reserve return thresholds"
+    },
+    {
+      "changes": {
+        "recovery_substitution_edge": 1.1
+      },
+      "exception_type": "ValueError",
+      "message": "recovery substitution edge must be in [0, 1]"
+    },
+    {
+      "changes": {
+        "recovery_substitution_max_ret20": 1.0
+      },
+      "exception_type": "ValueError",
+      "message": "recovery substitution max ret20 must be in (0, 1)"
+    },
+    {
+      "changes": {
+        "recovery_substitution_shock_window": 0
+      },
+      "exception_type": "ValueError",
+      "message": "recovery substitution shock window must be positive"
+    },
+    {
+      "changes": {
+        "unbacked_universe_tail_dd": 0.09
+      },
+      "exception_type": "ValueError",
+      "message": "unbacked universe tail must precede operating caution"
+    },
+    {
+      "changes": {
+        "unbacked_recovery_anchor_min_days": 0
+      },
+      "exception_type": "ValueError",
+      "message": "unbacked recovery anchor minimum age must be positive"
+    },
+    {
+      "changes": {
+        "risk_anchor_count": 0
+      },
+      "exception_type": "ValueError",
+      "message": "risk_anchor_count must be in [1, 3]"
+    },
+    {
+      "changes": {
+        "risk_anchor_min_groups": 4
+      },
+      "exception_type": "ValueError",
+      "message": "risk_anchor_min_groups must be in [1, risk_anchor_count]"
+    },
+    {
+      "changes": {
+        "risk_anchor_confirm_days": 0
+      },
+      "exception_type": "ValueError",
+      "message": "risk_anchor_confirm_days must be in [1, 10]"
+    },
+    {
+      "changes": {
+        "sector_weighted_shock_return": 0.0
+      },
+      "exception_type": "ValueError",
+      "message": "sector_weighted_shock_return must be in (-1, 0)"
+    },
+    {
+      "changes": {
+        "sector_weighted_negative_exposure": 1.1
+      },
+      "exception_type": "ValueError",
+      "message": "sector_weighted_negative_exposure must be in [0, 1]"
+    },
+    {
+      "changes": {
+        "challenger_scout_incumbent_hysteresis": 0.21
+      },
+      "exception_type": "ValueError",
+      "message": "challenger scout incumbent hysteresis must be in [0, 0.20]"
+    },
+    {
+      "changes": {
+        "min_trade_value": -1.0
+      },
+      "exception_type": "ValueError",
+      "message": "min_trade_value cannot be negative"
+    },
+    {
+      "changes": {
+        "recovery_expansive_universe_gross": 0.49
+      },
+      "exception_type": "ValueError",
+      "message": "expansive recovery gross must be in [0.50, recovery_target_gross]"
+    },
+    {
+      "changes": {
+        "recovery_add_window_days": 0
+      },
+      "exception_type": "ValueError",
+      "message": "recovery_add_window_days must be positive"
+    },
+    {
+      "changes": {
+        "recovery_winner_mfe_arm": 0.0
+      },
+      "exception_type": "ValueError",
+      "message": "recovery_winner_mfe_arm must be in (0, 2)"
+    },
+    {
+      "changes": {
+        "recovery_winner_trail": 0.0
+      },
+      "exception_type": "ValueError",
+      "message": "recovery_winner_trail must be in (0, 1)"
+    },
+    {
+      "changes": {
+        "tactical_probe_weight": 0.0
+      },
+      "exception_type": "ValueError",
+      "message": "tactical probe/rebound weights must be positive, ordered, and within max_symbol_weight"
+    },
+    {
+      "changes": {
+        "strategic_cohort_size": 0
+      },
+      "exception_type": "ValueError",
+      "message": "strategic_cohort_size must be in [1, min(3, max_positions)]"
+    },
+    {
+      "changes": {
+        "strategic_cohort_min_size": 0
+      },
+      "exception_type": "ValueError",
+      "message": "strategic_cohort_min_size must be in [1, strategic_cohort_size]"
+    },
+    {
+      "changes": {
+        "strategic_two_name_gross": 0.79
+      },
+      "exception_type": "ValueError",
+      "message": "strategic_two_name_gross must be in [0.80, 0.90]"
+    },
+    {
+      "changes": {
+        "strategic_one_name_gross": 0.44
+      },
+      "exception_type": "ValueError",
+      "message": "strategic_one_name_gross must be in [0.45, 0.55]"
+    },
+    {
+      "changes": {
+        "strategic_two_name_min_score": 1.1
+      },
+      "exception_type": "ValueError",
+      "message": "strategic_two_name_min_score must be in [0, 1]"
+    },
+    {
+      "changes": {
+        "strategic_one_name_min_score": 1.1
+      },
+      "exception_type": "ValueError",
+      "message": "strategic_one_name_min_score must be in [0, 1]"
+    },
+    {
+      "changes": {
+        "strategic_one_name_min_secular_score": 1.1
+      },
+      "exception_type": "ValueError",
+      "message": "strategic_one_name_min_secular_score must be in [0, 1]"
+    },
+    {
+      "changes": {
+        "strategic_two_name_confirm_days": 2
+      },
+      "exception_type": "ValueError",
+      "message": "smaller strategic cohorts require progressively longer confirmation"
+    },
+    {
+      "changes": {
+        "strategic_secular_min_score": 1.1
+      },
+      "exception_type": "ValueError",
+      "message": "strategic_secular_min_score must be in [0, 1]"
+    },
+    {
+      "changes": {
+        "strategic_secular_min_confidence": 1.1
+      },
+      "exception_type": "ValueError",
+      "message": "strategic_secular_min_confidence must be in [0, 1]"
+    },
+    {
+      "changes": {
+        "strategic_cohort_min_ret240": -0.1
+      },
+      "exception_type": "ValueError",
+      "message": "strategic_cohort_min_ret240 cannot be negative"
+    },
+    {
+      "changes": {
+        "strategic_established_min_median_ret240": -0.1
+      },
+      "exception_type": "ValueError",
+      "message": "strategic_established_min_median_ret240 cannot be negative"
+    },
+    {
+      "changes": {
+        "strategic_reversal_max_ret240": 0.0
+      },
+      "exception_type": "ValueError",
+      "message": "strategic_reversal_max_ret240 must be in (-1, 0)"
+    },
+    {
+      "changes": {
+        "strategic_reversal_min_ret5": 0.0
+      },
+      "exception_type": "ValueError",
+      "message": "strategic_reversal_min_ret5 must be in (0, 1)"
+    },
+    {
+      "changes": {
+        "strategic_reversal_min_median_ret20": -1.0
+      },
+      "exception_type": "ValueError",
+      "message": "strategic_reversal_min_median_ret20 must be in (-1, 0]"
+    },
+    {
+      "changes": {
+        "strategic_reversal_max_tech_ret120": -1.0
+      },
+      "exception_type": "ValueError",
+      "message": "strategic_reversal_max_tech_ret120 must be in (-1, 0]"
+    },
+    {
+      "changes": {
+        "strategic_long_cycle_min_ret20": -1.0
+      },
+      "exception_type": "ValueError",
+      "message": "strategic_long_cycle_min_ret20 must be in (-1, 1)"
+    },
+    {
+      "changes": {
+        "chronic_confirm_days": 2
+      },
+      "exception_type": "ValueError",
+      "message": "chronic confirmation windows must be at least three"
+    },
+    {
+      "changes": {
+        "chronic_severe_cap": 0.5
+      },
+      "exception_type": "ValueError",
+      "message": "invalid chronic deterioration caps"
+    },
+    {
+      "changes": {
+        "capital_budget_level2_dd": 0.07
+      },
+      "exception_type": "ValueError",
+      "message": "invalid capital budget drawdown ladder"
+    },
+    {
+      "changes": {
+        "severe_crisis_gross": 0.6
+      },
+      "exception_type": "ValueError",
+      "message": "invalid severity and capital-budget caps"
+    },
+    {
+      "changes": {
+        "capital_budget_repair_days": 0
+      },
+      "exception_type": "ValueError",
+      "message": "capital budget repair days must be positive"
+    },
+    {
+      "changes": {
+        "high_confidence_entry_gross": 0.79
+      },
+      "exception_type": "ValueError",
+      "message": "invalid confidence-conditioned entry gross"
+    },
+    {
+      "changes": {
+        "high_confidence_entry_vol20": 1.0
+      },
+      "exception_type": "ValueError",
+      "message": "high_confidence_entry_vol20 must be in (0, 1)"
+    },
+    {
+      "changes": {
+        "challenger_scout_weight": 0.0
+      },
+      "exception_type": "ValueError",
+      "message": "challenger_scout_weight must be in (0, 0.08]"
+    },
+    {
+      "changes": {
+        "challenger_scout_confirm_days": 4
+      },
+      "exception_type": "ValueError",
+      "message": "challenger_scout_confirm_days must be in [5, 10]"
+    },
+    {
+      "changes": {
+        "challenger_scout_score_edge": 1.1
+      },
+      "exception_type": "ValueError",
+      "message": "challenger_scout_score_edge must be in [0, 1]"
+    },
+    {
+      "changes": {
+        "risk_sentinel_mode": "LIMITED_GROSS_CAP"
+      },
+      "exception_type": "ValueError",
+      "message": "LIMITED_GROSS_CAP was rejected by the economic gate; use FREEZE_ONLY or SHADOW."
+    },
+    {
+      "changes": {
+        "leader_emerging_score": 1.1
+      },
+      "exception_type": "ValueError",
+      "message": "leader_emerging_score must be in [0, 1]"
+    },
+    {
+      "changes": {
+        "leader_min_confidence": 1.1
+      },
+      "exception_type": "ValueError",
+      "message": "leader_min_confidence must be in [0, 1]"
+    },
+    {
+      "changes": {
+        "industry_weight_cap": 1.1
+      },
+      "exception_type": "ValueError",
+      "message": "industry_weight_cap must be in [0, 1]"
+    },
+    {
+      "changes": {
+        "concentrated_break_ratio": 1.1
+      },
+      "exception_type": "ValueError",
+      "message": "concentrated_break_ratio must be in [0, 1]"
+    },
+    {
+      "changes": {
+        "recovery_breadth_min": 1.1
+      },
+      "exception_type": "ValueError",
+      "message": "recovery_breadth_min must be in [0, 1]"
+    },
+    {
+      "changes": {
+        "recovery_conviction_retention_bonus": 1.1
+      },
+      "exception_type": "ValueError",
+      "message": "recovery_conviction_retention_bonus must be in [0, 1]"
+    },
+    {
+      "changes": {
+        "industry_rotation_min_score": 1.1
+      },
+      "exception_type": "ValueError",
+      "message": "industry_rotation_min_score must be in [0, 1]"
+    },
+    {
+      "changes": {
+        "industry_rotation_min_confidence": 1.1
+      },
+      "exception_type": "ValueError",
+      "message": "industry_rotation_min_confidence must be in [0, 1]"
+    },
+    {
+      "changes": {
+        "industry_rotation_deterioration": 1.1
+      },
+      "exception_type": "ValueError",
+      "message": "industry_rotation_deterioration must be in [0, 1]"
+    },
+    {
+      "changes": {
+        "industry_rotation_breadth": 1.1
+      },
+      "exception_type": "ValueError",
+      "message": "industry_rotation_breadth must be in [0, 1]"
+    },
+    {
+      "changes": {
+        "min_commission": -0.1
+      },
+      "exception_type": "ValueError",
+      "message": "min_commission cannot be negative"
+    },
+    {
+      "changes": {
+        "stamp_duty": -0.1
+      },
+      "exception_type": "ValueError",
+      "message": "stamp_duty cannot be negative"
+    },
+    {
+      "changes": {
+        "transfer_fee": -0.1
+      },
+      "exception_type": "ValueError",
+      "message": "transfer_fee cannot be negative"
+    },
+    {
+      "changes": {
+        "slippage": -0.1
+      },
+      "exception_type": "ValueError",
+      "message": "slippage cannot be negative"
+    },
+    {
+      "changes": {
+        "max_volume_participation": -0.1
+      },
+      "exception_type": "ValueError",
+      "message": "max_volume_participation cannot be negative"
+    },
+    {
+      "changes": {
+        "risk_anchor_min_secular_score": 1.1
+      },
+      "exception_type": "ValueError",
+      "message": "risk_anchor_min_secular_score must be in [0, 1]"
+    },
+    {
+      "changes": {
+        "risk_breadth_name_weight": 1.1
+      },
+      "exception_type": "ValueError",
+      "message": "risk_breadth_name_weight must be in [0, 1]"
+    },
+    {
+      "changes": {
+        "stable_reference_global_weight": 1.1
+      },
+      "exception_type": "ValueError",
+      "message": "stable_reference_global_weight must be in [0, 1]"
+    },
+    {
+      "changes": {
+        "unknown_industry_confidence": 1.1
+      },
+      "exception_type": "ValueError",
+      "message": "unknown_industry_confidence must be in [0, 1]"
+    },
+    {
+      "changes": {
+        "unknown_industry_weight_cap": 1.1
+      },
+      "exception_type": "ValueError",
+      "message": "unknown_industry_weight_cap must be in [0, 1]"
+    },
+    {
+      "changes": {
+        "transition_damage_freeze": 1.1
+      },
+      "exception_type": "ValueError",
+      "message": "transition_damage_freeze must be in [0, 1]"
+    },
+    {
+      "changes": {
+        "high_confidence_entry_score": 1.1
+      },
+      "exception_type": "ValueError",
+      "message": "high_confidence_entry_score must be in [0, 1]"
+    },
+    {
+      "changes": {
+        "high_confidence_entry_breadth": 1.1
+      },
+      "exception_type": "ValueError",
+      "message": "high_confidence_entry_breadth must be in [0, 1]"
+    },
+    {
+      "changes": {
+        "transition_damage_repair": -0.1
+      },
+      "exception_type": "ValueError",
+      "message": "transition_damage_repair must be in [0, 1]"
+    },
+    {
+      "changes": {
+        "initial_cash": 0,
+        "risk_sentinel_mode": "INVALID"
+      },
+      "exception_type": "ValueError",
+      "message": "initial_cash must be positive"
+    },
+    {
+      "changes": {
+        "commission_rate": -0.1,
+        "sector_guard_min_symbols": 1
+      },
+      "exception_type": "ValueError",
+      "message": "commission_rate cannot be negative"
+    },
+    {
+      "changes": {
+        "sector_guard_min_symbols": 1,
+        "trend_entry_gross": 1.1
+      },
+      "exception_type": "ValueError",
+      "message": "sector_guard_min_symbols must be at least two"
+    },
+    {
+      "changes": {
+        "recovery_member_confirm_days": 1,
+        "trend_entry_gross": 1.1
+      },
+      "exception_type": "ValueError",
+      "message": "invalid trend gross targets"
+    },
+    {
+      "changes": {
+        "recovery_member_confirm_days": 1,
+        "strategic_cohort_size": 0
+      },
+      "exception_type": "ValueError",
+      "message": "recovery_member_confirm_days must be at least 2"
+    },
+    {
+      "changes": {
+        "risk_anchor_count": 0,
+        "strategic_cohort_size": 0
+      },
+      "exception_type": "ValueError",
+      "message": "strategic_cohort_size must be in [1, min(3, max_positions)]"
+    },
+    {
+      "changes": {
+        "risk_anchor_count": 0,
+        "risk_sentinel_mode": "INVALID"
+      },
+      "exception_type": "ValueError",
+      "message": "risk_anchor_count must be in [1, 3]"
+    },
+    {
+      "changes": {
+        "not_a_governed_parameter": true
+      },
+      "exception_type": "TypeError",
+      "message": "SystemConfig.__init__() got an unexpected keyword argument 'not_a_governed_parameter'"
+    }
+  ],
+  "schema_version": 1
+}

@@ -1,12 +1,13 @@
 from __future__ import annotations
 
+import ast
 import copy
 from collections.abc import Mapping
 from pathlib import Path
 
 import pytest
 
-from ._analysis import architecture_snapshot
+from ._analysis import ROOT, architecture_snapshot
 
 
 def _ids(rows: object) -> set[str]:
@@ -169,3 +170,58 @@ def test_private_import_and_cycle_debt_can_disappear_without_baseline_edits(
     test_internal_import_cycles_are_exact_and_can_only_disappear(
         baseline_inventory, reduced
     )
+
+
+def test_domain_models_have_no_dataframe_filesystem_or_runner_dependencies() -> None:
+    forbidden_external = {
+        "glob",
+        "os",
+        "pandas",
+        "pathlib",
+        "research",
+        "shutil",
+        "subprocess",
+        "tempfile",
+    }
+    observed_external: set[str] = set()
+    for path in (ROOT / "uquant" / "models").rglob("*.py"):
+        tree = ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
+        for node in ast.walk(tree):
+            if isinstance(node, ast.Import):
+                observed_external.update(alias.name.partition(".")[0] for alias in node.names)
+            elif isinstance(node, ast.ImportFrom) and node.level == 0 and node.module:
+                observed_external.add(node.module.partition(".")[0])
+
+    assert observed_external.isdisjoint(forbidden_external)
+
+
+def test_config_and_models_keep_the_required_leaf_dependency_direction(
+    current_architecture: dict[str, object],
+) -> None:
+    graph = current_architecture["import_graph"]
+    assert isinstance(graph, Mapping)
+    edges = graph["edges"]
+    assert isinstance(edges, list)
+    forbidden_model_prefixes = (
+        "uquant.application",
+        "uquant.validation",
+    )
+    forbidden_config_prefixes = (
+        "uquant.account",
+        "uquant.engine",
+        "uquant.execution",
+        "uquant.market",
+        "uquant.portfolio",
+        "uquant.risk",
+    )
+    violations = []
+    for edge in edges:
+        assert isinstance(edge, Mapping)
+        importer = str(edge["importer"])
+        imported = str(edge["imported"])
+        if importer.startswith("uquant.models") and imported.startswith(forbidden_model_prefixes):
+            violations.append(dict(edge))
+        if importer.startswith("uquant.config") and imported.startswith(forbidden_config_prefixes):
+            violations.append(dict(edge))
+
+    assert violations == []

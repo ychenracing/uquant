@@ -49,6 +49,16 @@ MODULE_AUTHORITIES = {
     "uquant.broker": "production_safe",
     "uquant.cli": "cli_runner",
     "uquant.config": "production_safe",
+    "uquant.config.model": "production_safe",
+    "uquant.config.validation": "production_safe",
+    "uquant.config.validation.execution": "production_safe",
+    "uquant.config.validation.market": "production_safe",
+    "uquant.config.validation.portfolio": "production_safe",
+    "uquant.config.validation.recovery": "production_safe",
+    "uquant.config.validation.risk": "production_safe",
+    "uquant.config.validation.sentinel": "production_safe",
+    "uquant.config.validation.strategic": "production_safe",
+    "uquant.config.views": "production_safe",
     "uquant.config_governance": "production_safe",
     "uquant.contracts": "production_safe",
     "uquant.contracts.json": "production_safe",
@@ -69,6 +79,11 @@ MODULE_AUTHORITIES = {
     "uquant.infrastructure.git_source": "production_safe",
     "uquant.leader": "production_safe",
     "uquant.market_risk": "production_safe",
+    "uquant.models": "production_safe",
+    "uquant.models.account": "production_safe",
+    "uquant.models.decision": "production_safe",
+    "uquant.models.enums": "production_safe",
+    "uquant.models.trading": "production_safe",
     "uquant.opportunity": "production_safe",
     "uquant.portfolio": "production_safe",
     "uquant.portfolio_core": "production_safe",
@@ -123,14 +138,20 @@ _MODULE_AUTHORITY_VALUES = {"production_safe", "validation_runner", "cli_runner"
 _NONPRODUCTION_IMPORT_AUTHORITIES = {"operator_script", "research", "test"}
 _RUNNER_AUTHORITIES = {"cli_runner", "validation_runner"}
 
-# Task 2 mechanically relocates these implementations while the immutable Task 1
-# debt and public-API identities continue to name their compatibility paths.
+# Later tasks mechanically relocate these implementations while the immutable
+# Task 1 debt and public-API identities continue to name compatibility paths.
 _CONTRACT_RELOCATIONS = {
     "uquant.contracts.runtime_identity": "uquant.validation.ai_era",
     "uquant.contracts.universe": "uquant.validation.universe",
+    "uquant.models.trading": "uquant.types",
 }
 _PUBLIC_API_IMPLEMENTATIONS = {
     legacy: current for current, legacy in _CONTRACT_RELOCATIONS.items()
+}
+_PUBLIC_API_FACADE_PATHS = {
+    # Task 3 converts the stable import path into its only valid package owner.
+    # The immutable Task 1 contract continues to name the historical .py facade.
+    "uquant.config": "uquant/config.py",
 }
 
 _MUTABLE_CALLS = {
@@ -989,7 +1010,10 @@ def public_module_contract(module: str, root: Path = ROOT) -> dict[str, object]:
         elif inspect.isfunction(value):
             callables[name] = signature_contract(value)
     return {
-        "path": module_path.relative_to(root).as_posix(),
+        "path": _PUBLIC_API_FACADE_PATHS.get(
+            module,
+            module_path.relative_to(root).as_posix(),
+        ),
         "public_names": names,
         "functions": {name: callables[name] for name in sorted(callables)},
         "classes": {name: classes[name] for name in sorted(classes)},

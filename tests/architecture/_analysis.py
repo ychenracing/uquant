@@ -124,6 +124,11 @@ MODULE_AUTHORITIES = {
     "uquant.observation.execution_journal.store": "production_safe",
     "uquant.opportunity": "production_safe",
     "uquant.portfolio": "production_safe",
+    "uquant.portfolio.allocator": "production_safe",
+    "uquant.portfolio.context": "production_safe",
+    "uquant.portfolio.freeze": "production_safe",
+    "uquant.portfolio.pipeline": "production_safe",
+    "uquant.portfolio.risk_reduction": "production_safe",
     "uquant.portfolio_core": "production_safe",
     "uquant.portfolio_leaders": "production_safe",
     "uquant.portfolio_recovery": "production_safe",
@@ -237,6 +242,16 @@ _DEBT_RELOCATIONS = {
             "uquant.risk.recovery_state",
             "uquant.risk.strategic_guard",
             "uquant.risk.transitions",
+        )
+    },
+    **{
+        module: "uquant.portfolio"
+        for module in (
+            "uquant.portfolio.allocator",
+            "uquant.portfolio.context",
+            "uquant.portfolio.freeze",
+            "uquant.portfolio.pipeline",
+            "uquant.portfolio.risk_reduction",
         )
     },
 }
@@ -634,6 +649,83 @@ _TASK7_RELOCATED_FUNCTION_DEBT = {
     )
 }
 
+# Task 8 turns only these local PortfolioAllocator references into package
+# edges. The set is exact and closed; future private imports remain debt.
+_TASK8_RELOCATED_PRIVATE_IMPORT_GROUPS = (
+    (
+        "uquant.portfolio",
+        "uquant.portfolio.allocator",
+        ("_confirmed_recovery_gross",),
+    ),
+    (
+        "uquant.portfolio",
+        "uquant.portfolio.freeze",
+        ("_commit_frozen_exit_state", "_frozen_existing_targets"),
+    ),
+    (
+        "uquant.portfolio",
+        "uquant.portfolio.pipeline",
+        ("_allocate_strategy",),
+    ),
+    (
+        "uquant.portfolio",
+        "uquant.portfolio.risk_reduction",
+        (
+            "_risk_attribution_mechanism",
+            "_risk_lifecycle_rank",
+            "_risk_reduction_metadata",
+            "_risk_retention_score",
+            "_risk_retention_vector",
+            "_sparse_risk_reduce",
+            "_subset_retention_vector",
+            "_turnover_aware_sector_cap",
+        ),
+    ),
+)
+_TASK8_RELOCATED_PRIVATE_IMPORTS = frozenset(
+    f"{importer}:{imported_from}:{name}"
+    for importer, imported_from, names in _TASK8_RELOCATED_PRIVATE_IMPORT_GROUPS
+    for name in names
+)
+
+_TASK8_RELOCATED_FUNCTION_DEBT = {
+    f"{owner}:{name}": f"uquant.portfolio:PortfolioAllocator.{name}"
+    for owner, names in (
+        (
+            "uquant.portfolio.allocator",
+            ("_confirmed_recovery_gross", "allocate"),
+        ),
+        (
+            "uquant.portfolio.freeze",
+            ("_commit_frozen_exit_state", "_frozen_existing_targets"),
+        ),
+        ("uquant.portfolio.pipeline", ("_allocate_strategy",)),
+        (
+            "uquant.portfolio.risk_reduction",
+            (
+                "_risk_attribution_mechanism",
+                "_risk_lifecycle_rank",
+                "_risk_reduction_metadata",
+                "_risk_retention_score",
+                "_risk_retention_vector",
+                "_sparse_risk_reduce",
+                "_subset_retention_vector",
+                "_turnover_aware_sector_cap",
+            ),
+        ),
+    )
+    for name in names
+}
+
+_TASK8_RELOCATED_TYPE_IGNORES = {
+    f"uquant/portfolio/risk_reduction.py:{suffix}": f"uquant/portfolio.py:{suffix}"
+    for suffix in (
+        "[arg-type]:self._risk_lifecycle_rank(retained_vector),  # type: ignore[arg-type]:0",
+        "[return-value]:return tuple(max(0.0, value) for value in retained)  # type: ignore[return-value]:0",
+        "[return-value]:return tuple(sum(vector[index] for vector in vectors) for index in range(6))  # type: ignore[return-value]:0",
+    )
+}
+
 # These functions are the exact Task 1 complexity-debt identities mechanically
 # moved out of execution.py/engine.py. The two extra physical signature lines
 # on attribution are the explicitly pinned dynamic legacy-constant seam, not
@@ -676,6 +768,8 @@ _PUBLIC_API_FACADE_PATHS = {
     "uquant.execution": "uquant/execution.py",
     # Task 7 preserves the public Base Risk import path through its package facade.
     "uquant.risk": "uquant/risk.py",
+    # Task 8 preserves the public allocator path through its same-name package facade.
+    "uquant.portfolio": "uquant/portfolio.py",
 }
 
 _MUTABLE_CALLS = {
@@ -1120,6 +1214,7 @@ def architecture_snapshot(
     task5_relocated_private_imports: list[dict[str, object]] = []
     task6_relocated_private_imports: list[dict[str, object]] = []
     task7_relocated_private_imports: list[dict[str, object]] = []
+    task8_relocated_private_imports: list[dict[str, object]] = []
     forbidden_imports: list[dict[str, object]] = []
     function_rows: list[dict[str, object]] = []
     global_rows: list[dict[str, object]] = []
@@ -1243,6 +1338,8 @@ def architecture_snapshot(
                             task6_relocated_private_imports.append(row)
                         elif private_import_id in _TASK7_RELOCATED_PRIVATE_IMPORTS:
                             task7_relocated_private_imports.append(row)
+                        elif private_import_id in _TASK8_RELOCATED_PRIVATE_IMPORTS:
+                            task8_relocated_private_imports.append(row)
                         else:
                             private_imports.append(row)
                 for authority_target, target_authority in authority_targets.items():
@@ -1371,6 +1468,10 @@ def architecture_snapshot(
                 task7_relocated_private_imports,
                 key=_row_id,
             ),
+            "task8_relocated_private_imports": sorted(
+                task8_relocated_private_imports,
+                key=_row_id,
+            ),
             "forbidden_imports": sorted_forbidden_imports,
         },
         "module_globals": sorted(global_rows, key=lambda row: str(row["id"])),
@@ -1407,6 +1508,9 @@ def measured_debt(snapshot: Mapping[str, object]) -> dict[str, list[dict[str, ob
         task7_relocated = _TASK7_RELOCATED_FUNCTION_DEBT.get(value)
         if task7_relocated is not None:
             return task7_relocated
+        task8_relocated = _TASK8_RELOCATED_FUNCTION_DEBT.get(value)
+        if task8_relocated is not None:
+            return task8_relocated
         module, separator, suffix = value.partition(":")
         legacy = _DEBT_RELOCATIONS.get(module, module)
         return f"{legacy}{separator}{suffix}"
@@ -1492,7 +1596,13 @@ def measured_debt(snapshot: Mapping[str, object]) -> dict[str, list[dict[str, ob
         "branchy_functions": branchy_functions,
         "cross_module_private_imports": list(imports["cross_module_private_imports"]),
         "mutable_module_globals": mutable_globals,
-        "production_type_ignores": list(type_ignores),
+        "production_type_ignores": [
+            {
+                **row,
+                "id": _TASK8_RELOCATED_TYPE_IGNORES.get(str(row["id"]), row["id"]),
+            }
+            for row in type_ignores
+        ],
         "duplicate_private_helper_groups": list(helpers["same_private_name"]),
         "internal_import_cycles": list(imports["cycles"]),
     }

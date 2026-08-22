@@ -64,6 +64,14 @@ _TASK7_RISK_PACKAGE_PATHS = {
     "uquant/risk/strategic_guard.py",
     "uquant/risk/transitions.py",
 }
+_TASK8_PORTFOLIO_PACKAGE_PATHS = {
+    "uquant/portfolio/__init__.py",
+    "uquant/portfolio/allocator.py",
+    "uquant/portfolio/context.py",
+    "uquant/portfolio/freeze.py",
+    "uquant/portfolio/pipeline.py",
+    "uquant/portfolio/risk_reduction.py",
+}
 
 _EXECUTION_OWNERS = {
     "fee_components": "uquant/execution/fees.py",
@@ -430,6 +438,9 @@ def test_task6_source_surface_migration_is_exact_for_all_five_v1_surfaces() -> N
         if "uquant/risk.py" in expected_sources:
             expected_sources.remove("uquant/risk.py")
             expected_sources.update(_TASK7_RISK_PACKAGE_PATHS)
+        if "uquant/portfolio.py" in expected_sources:
+            expected_sources.remove("uquant/portfolio.py")
+            expected_sources.update(_TASK8_PORTFOLIO_PACKAGE_PATHS)
         assert set(candidate[identifier]["source_paths"]) == expected_sources
         assert candidate[identifier]["resource_paths"] == immutable[identifier]["resource_paths"]
 

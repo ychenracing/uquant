@@ -56,6 +56,14 @@ _RISK_PACKAGE_PATHS = {
     "uquant/risk/strategic_guard.py",
     "uquant/risk/transitions.py",
 }
+_TASK8_PORTFOLIO_PACKAGE_PATHS = {
+    "uquant/portfolio/__init__.py",
+    "uquant/portfolio/allocator.py",
+    "uquant/portfolio/context.py",
+    "uquant/portfolio/freeze.py",
+    "uquant/portfolio/pipeline.py",
+    "uquant/portfolio/risk_reduction.py",
+}
 
 _MOVED_HELPER_OWNERS = {
     "_acute_sector_evacuation_required": "uquant/risk/transitions.py",
@@ -687,6 +695,9 @@ def test_task7_source_surface_migration_is_exact_and_requirements_stay_bound() -
         if "uquant/risk.py" in expected:
             expected.remove("uquant/risk.py")
             expected.update(_RISK_PACKAGE_PATHS)
+        if "uquant/portfolio.py" in expected:
+            expected.remove("uquant/portfolio.py")
+            expected.update(_TASK8_PORTFOLIO_PACKAGE_PATHS)
         assert set(candidate[identifier]["source_paths"]) == expected
         assert candidate[identifier]["resource_paths"] == immutable[identifier]["resource_paths"]
     assert (ROOT / "requirements.txt").read_bytes() == _git_source("requirements.txt")
@@ -836,6 +847,7 @@ def test_task7_private_and_complexity_relocations_are_exact_and_fail_closed() ->
         module: authority
         for module, authority in MODULE_AUTHORITIES.items()
         if not module.startswith("uquant.risk.")
+        and not module.startswith("uquant.portfolio.")
     }
     immutable = architecture_snapshot(
         source_texts=immutable_sources,

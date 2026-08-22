@@ -1,7 +1,9 @@
 from __future__ import annotations
 
+import ast
 import copy
 import hashlib
+import inspect
 import json
 import subprocess
 from collections import Counter
@@ -14,7 +16,14 @@ from uquant.contracts.strict_json import canonical_json_sha256
 from uquant.portfolio import PortfolioAllocator
 
 from . import _task8_portfolio_trace as trace_module
-from ._analysis import ROOT
+from ._analysis import (
+    _TASK8_RELOCATED_FUNCTION_DEBT,
+    _TASK8_RELOCATED_PRIVATE_IMPORTS,
+    _TASK8_RELOCATED_TYPE_IGNORES,
+    ROOT,
+    architecture_snapshot,
+    measured_debt,
+)
 from ._task8_immutable_trace import assert_trace_seals, immutable_trace_from_archive
 from ._task8_inventory import build_task8_inventory, current_reflection_contract
 
@@ -56,6 +65,32 @@ _IMPORT_CONSUMER_COUNTS = {
     "uquant/portfolio_strategic.py": 1,
     "uquant/portfolio_recovery.py": 1,
 }
+_CHECKPOINT1_OWNER_METHODS = {
+    "uquant/portfolio/allocator.py": ("_confirmed_recovery_gross", "allocate"),
+    "uquant/portfolio/risk_reduction.py": (
+        "_risk_attribution_mechanism",
+        "_risk_retention_score",
+        "_risk_retention_vector",
+        "_risk_lifecycle_rank",
+        "_subset_retention_vector",
+        "_sparse_risk_reduce",
+        "_risk_reduction_metadata",
+        "_turnover_aware_sector_cap",
+    ),
+    "uquant/portfolio/freeze.py": (
+        "_commit_frozen_exit_state",
+        "_frozen_existing_targets",
+    ),
+    "uquant/portfolio/pipeline.py": ("_allocate_strategy",),
+}
+_CHECKPOINT1_PACKAGE_PATHS = (
+    "uquant/portfolio/__init__.py",
+    "uquant/portfolio/allocator.py",
+    "uquant/portfolio/context.py",
+    "uquant/portfolio/freeze.py",
+    "uquant/portfolio/pipeline.py",
+    "uquant/portfolio/risk_reduction.py",
+)
 
 
 def _git_source(path: str) -> bytes:
@@ -74,7 +109,36 @@ def _assert_inventory_seals(payload: dict[str, Any]) -> None:
     assert payload["canonical_sha256"] == canonical_json_sha256(
         {key: value for key, value in payload.items() if key != "canonical_sha256"}
     )
-    assert tuple(entry["path"] for entry in payload["entries"]) == tuple(_IMPLEMENTATION_IDENTITIES)
+    assert tuple(entry["path"] for entry in payload["entries"]) == tuple(
+        _IMPLEMENTATION_IDENTITIES
+    )
+
+
+def _function_nodes(source: str) -> dict[str, ast.FunctionDef]:
+    return {node.name: node for node in ast.parse(source).body if isinstance(node, ast.FunctionDef)}
+
+
+def _immutable_allocator_methods() -> dict[str, ast.FunctionDef]:
+    tree = ast.parse(_git_source("uquant/portfolio.py"))
+    allocator = next(
+        node for node in tree.body if isinstance(node, ast.ClassDef) and node.name == "PortfolioAllocator"
+    )
+    return {node.name: node for node in allocator.body if isinstance(node, ast.FunctionDef)}
+
+
+def _normalized_method(node: ast.FunctionDef) -> str:
+    normalized = copy.deepcopy(node)
+    normalized.decorator_list = []
+    if normalized.args.args and normalized.args.args[0].arg == "self":
+        normalized.args.args[0].annotation = None
+    if (
+        normalized.body
+        and isinstance(normalized.body[0], ast.Expr)
+        and isinstance(normalized.body[0].value, ast.Constant)
+        and isinstance(normalized.body[0].value.value, str)
+    ):
+        normalized.body[0].value.value = inspect.cleandoc(normalized.body[0].value.value)
+    return ast.dump(normalized, include_attributes=False)
 
 
 @pytest.fixture(scope="module")  # type: ignore[untyped-decorator]
@@ -280,3 +344,182 @@ def test_task8_oracle_owner_event_coverage_is_nonempty_and_explicit(
     # The three windows do not reach leader target construction; the focused
     # leader branch fixtures remain mandatory at checkpoint 2.
     assert counts["_leader_targets"] == 0
+
+
+def test_task8_checkpoint1_real_package_owners_replace_only_portfolio_monolith() -> None:
+    assert not (ROOT / "uquant/portfolio.py").exists()
+    assert all((ROOT / path).is_file() for path in _CHECKPOINT1_PACKAGE_PATHS)
+    assert (ROOT / "uquant/portfolio_leaders.py").is_file()
+    assert (ROOT / "uquant/portfolio_strategic.py").is_file()
+    assert (ROOT / "uquant/portfolio_recovery.py").is_file()
+
+
+def test_task8_checkpoint1_moved_methods_are_immutable_ast_exact() -> None:
+    immutable = _immutable_allocator_methods()
+    observed: set[str] = set()
+    for path, names in _CHECKPOINT1_OWNER_METHODS.items():
+        candidate = _function_nodes((ROOT / path).read_text(encoding="utf-8"))
+        for name in names:
+            observed.add(name)
+            assert _normalized_method(candidate[name]) == _normalized_method(immutable[name])
+    assert observed == set(immutable)
+
+
+def test_task8_checkpoint1_ast_gate_rejects_threshold_compare_and_call_order_mutations() -> None:
+    immutable = _immutable_allocator_methods()
+    threshold = copy.deepcopy(immutable["_confirmed_recovery_gross"])
+    numeric = next(
+        node
+        for node in ast.walk(threshold)
+        if isinstance(node, ast.Constant) and isinstance(node.value, float)
+    )
+    numeric.value = float(numeric.value) + 0.01
+    assert _normalized_method(threshold) != _normalized_method(immutable["_confirmed_recovery_gross"])
+
+    comparison = copy.deepcopy(immutable["allocate"])
+    compare = next(node for node in ast.walk(comparison) if isinstance(node, ast.Compare))
+    compare.ops[0] = ast.Gt() if not isinstance(compare.ops[0], ast.Gt) else ast.Lt()
+    assert _normalized_method(comparison) != _normalized_method(immutable["allocate"])
+
+    orchestration = copy.deepcopy(immutable["_allocate_strategy"])
+    body_index = next(
+        index
+        for index, statement in enumerate(orchestration.body[:-1])
+        if isinstance(statement, (ast.Assign, ast.AnnAssign, ast.Expr))
+        and isinstance(orchestration.body[index + 1], (ast.Assign, ast.AnnAssign, ast.Expr))
+    )
+    orchestration.body[body_index], orchestration.body[body_index + 1] = (
+        orchestration.body[body_index + 1],
+        orchestration.body[body_index],
+    )
+    assert _normalized_method(orchestration) != _normalized_method(immutable["_allocate_strategy"])
+
+
+def test_task8_checkpoint1_source_surface_migration_is_exact() -> None:
+    immutable = json.loads(_git_source("benchmarks/source_surface_registry.json"))
+    candidate = json.loads(
+        (ROOT / "benchmarks/source_surface_registry.json").read_text(encoding="utf-8")
+    )
+    assert candidate["canonical_sha256"] == canonical_json_sha256(
+        {key: value for key, value in candidate.items() if key != "canonical_sha256"}
+    )
+    immutable_surfaces = {surface["id"]: surface for surface in immutable["surfaces"]}
+    candidate_surfaces = {surface["id"]: surface for surface in candidate["surfaces"]}
+    assert tuple(candidate_surfaces) == tuple(immutable_surfaces)
+    for identifier, baseline in immutable_surfaces.items():
+        expected = set(baseline["source_paths"])
+        if "uquant/portfolio.py" in expected:
+            expected.remove("uquant/portfolio.py")
+            expected.update(_CHECKPOINT1_PACKAGE_PATHS)
+        assert set(candidate_surfaces[identifier]["source_paths"]) == expected
+        assert candidate_surfaces[identifier]["resource_paths"] == baseline["resource_paths"]
+        assert {
+            key: value
+            for key, value in candidate_surfaces[identifier].items()
+            if key not in {"source_paths", "resource_paths"}
+        } == {
+            key: value
+            for key, value in baseline.items()
+            if key not in {"source_paths", "resource_paths"}
+        }
+
+
+def test_task8_checkpoint1_has_one_allocator_and_sparse_reducer_without_reverse_imports() -> None:
+    package_sources = {
+        path.relative_to(ROOT).as_posix(): ast.parse(path.read_text(encoding="utf-8"))
+        for path in sorted((ROOT / "uquant/portfolio").glob("*.py"))
+    }
+    classes = [
+        node
+        for tree in package_sources.values()
+        for node in tree.body
+        if isinstance(node, ast.ClassDef) and node.name == "PortfolioAllocator"
+    ]
+    reducers = [
+        node
+        for tree in package_sources.values()
+        for node in tree.body
+        if isinstance(node, ast.FunctionDef) and node.name == "_sparse_risk_reduce"
+    ]
+    assert len(classes) == 1
+    assert len(reducers) == 1
+    forbidden = {
+        "fcntl",
+        "research",
+        "scripts",
+        "tests",
+        "uquant.account",
+        "uquant.application",
+        "uquant.engine",
+        "uquant.execution",
+        "uquant.validation",
+    }
+    for path, tree in package_sources.items():
+        imports = {
+            alias.name
+            for node in ast.walk(tree)
+            if isinstance(node, ast.Import)
+            for alias in node.names
+        } | {
+            node.module
+            for node in ast.walk(tree)
+            if isinstance(node, ast.ImportFrom) and node.level == 0 and node.module
+        }
+        assert not {
+            name
+            for name in imports
+            for blocked in forbidden
+            if name == blocked or name.startswith(f"{blocked}.")
+        }, path
+
+
+def test_task8_checkpoint1_private_and_complexity_relocations_are_exact_and_closed() -> None:
+    snapshot = architecture_snapshot()
+    graph = snapshot["import_graph"]
+    assert isinstance(graph, dict)
+    relocated = graph["task8_relocated_private_imports"]
+    ordinary = graph["cross_module_private_imports"]
+    assert {str(row["id"]) for row in relocated} == _TASK8_RELOCATED_PRIVATE_IMPORTS
+    assert not {
+        str(row["id"])
+        for row in ordinary
+        if str(row["importer"]).startswith("uquant.portfolio.")
+        or str(row["imported_from"]).startswith("uquant.portfolio.")
+    }
+    assert set(_TASK8_RELOCATED_FUNCTION_DEBT) == {
+        f"{path.removesuffix('.py').replace('/', '.')}:{name}"
+        for path, names in _CHECKPOINT1_OWNER_METHODS.items()
+        for name in names
+    }
+    assert set(_TASK8_RELOCATED_FUNCTION_DEBT.values()) == {
+        f"uquant.portfolio:PortfolioAllocator.{name}"
+        for names in _CHECKPOINT1_OWNER_METHODS.values()
+        for name in names
+    }
+    observed_type_ignores = {
+        str(row["id"])
+        for row in snapshot["type_ignores"]
+        if str(row["path"]).startswith("uquant/portfolio/")
+    }
+    assert observed_type_ignores == set(_TASK8_RELOCATED_TYPE_IGNORES)
+
+    source_texts = {
+        path.relative_to(ROOT).as_posix(): path.read_text(encoding="utf-8")
+        for path in (ROOT / "uquant").rglob("*.py")
+    }
+    source_texts["uquant/portfolio/allocator.py"] += (
+        "\nfrom .freeze import _unreviewed_task8_edge\n\n"
+        "def _unreviewed_task8_debt() -> int:\n"
+        + "".join(f"    value = {index}\n" for index in range(121))
+        + "    return value\n"
+    )
+    mutation = architecture_snapshot(source_texts=source_texts)
+    mutation_graph = mutation["import_graph"]
+    assert isinstance(mutation_graph, dict)
+    assert "uquant.portfolio.allocator:uquant.portfolio.freeze:_unreviewed_task8_edge" in {
+        str(row["id"]) for row in mutation_graph["cross_module_private_imports"]
+    }
+    mutation_debt = measured_debt(mutation)
+    assert "uquant.portfolio:_unreviewed_task8_debt" in {
+        str(row["id"]) for row in mutation_debt["long_functions"]
+    }

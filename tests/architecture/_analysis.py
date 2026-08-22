@@ -52,6 +52,11 @@ MODULE_AUTHORITIES = {
     "uquant.account.validation_orders": "production_safe",
     "uquant.account.validation_positions": "production_safe",
     "uquant.account.validation_strategy": "production_safe",
+    "uquant.application": "production_safe",
+    "uquant.application.backtest": "production_safe",
+    "uquant.application.decision": "production_safe",
+    "uquant.application.metrics": "production_safe",
+    "uquant.application.risk_timeline_cache": "production_safe",
     "uquant.atomic_io": "production_safe",
     "uquant.attribution": "production_safe",
     "uquant.attribution.builder": "production_safe",
@@ -83,6 +88,13 @@ MODULE_AUTHORITIES = {
     "uquant.data": "production_safe",
     "uquant.engine": "production_safe",
     "uquant.execution": "production_safe",
+    "uquant.execution.fees": "production_safe",
+    "uquant.execution.market_constraints": "production_safe",
+    "uquant.execution.open_execution": "production_safe",
+    "uquant.execution.order_planning": "production_safe",
+    "uquant.execution.pending": "production_safe",
+    "uquant.execution.reconciliation": "production_safe",
+    "uquant.execution.tranches": "production_safe",
     "uquant.execution_journal": "production_safe",
     "uquant.features": "production_safe",
     "uquant.industry": "production_safe",
@@ -448,6 +460,79 @@ _TASK5_RELOCATED_PRIVATE_IMPORTS = frozenset(
     for importer, imported_from, names in _TASK5_RELOCATED_PRIVATE_IMPORT_GROUPS
     for name in names
 )
+
+# Task 6 turns references that were local to execution.py/engine.py into these
+# exact package edges. They remain temporary debt owned by Task 10; this is not
+# a prefix or package-wide exemption.
+_TASK6_RELOCATED_PRIVATE_IMPORT_GROUPS = (
+    (
+        "uquant.application",
+        "uquant.application.decision",
+        ("_attach_target_attribution", "_decision_config_for_universe", "_mark_account_positions"),
+    ),
+    ("uquant.application", "uquant.application.metrics", ("_drawdown_stats",)),
+    (
+        "uquant.application",
+        "uquant.application.risk_timeline_cache",
+        (
+            "_canonical_json",
+            "_causal_risk_timeline",
+            "_load_risk_timeline_disk_cache",
+            "_risk_timeline_disk_path",
+            "_write_risk_timeline_disk_cache",
+        ),
+    ),
+    ("uquant.execution.open_execution", "uquant.execution.market_constraints", ("_blocked",)),
+    (
+        "uquant.execution.open_execution",
+        "uquant.execution.reconciliation",
+        ("_active_order_status", "_register_account_order"),
+    ),
+    (
+        "uquant.execution.open_execution",
+        "uquant.execution.tranches",
+        ("_allocate_sell_costs", "_consume_sell_tranches", "_rebuild_position_from_tranches"),
+    ),
+    (
+        "uquant.execution",
+        "uquant.execution.tranches",
+        ("_RISK_LIFECYCLE_PRIORITY", "_allocate_sell_costs"),
+    ),
+)
+_TASK6_RELOCATED_PRIVATE_IMPORTS = frozenset(
+    f"{importer}:{imported_from}:{name}"
+    for importer, imported_from, names in _TASK6_RELOCATED_PRIVATE_IMPORT_GROUPS
+    for name in names
+)
+
+# These functions are the exact Task 1 complexity-debt identities mechanically
+# moved out of execution.py/engine.py. The two extra physical signature lines
+# on attribution are the explicitly pinned dynamic legacy-constant seam, not
+# additional function-body complexity.
+_TASK6_RELOCATED_FUNCTION_DEBT = {
+    "uquant.application.backtest:backtest": ("uquant.engine:ProductionEngine.backtest", 0),
+    "uquant.application.decision:_attach_target_attribution": (
+        "uquant.engine:_attach_target_attribution",
+        2,
+    ),
+    "uquant.application.decision:decide": ("uquant.engine:ProductionEngine.decide", 0),
+    "uquant.application.metrics:performance_metrics": ("uquant.engine:performance_metrics", 0),
+    "uquant.execution.open_execution:ExecutionPlanner.execute_open": (
+        "uquant.execution:ExecutionPlanner.execute_open",
+        0,
+    ),
+    "uquant.execution.order_planning:plan_orders": ("uquant.execution:plan_orders", 0),
+    "uquant.execution.pending:merge_pending_orders": ("uquant.execution:merge_pending_orders", 0),
+    "uquant.execution.reconciliation:_reconcile_account_orders_mutating": (
+        "uquant.execution:_reconcile_account_orders_mutating",
+        0,
+    ),
+}
+_TASK6_RELOCATED_GLOBAL_DEBT = {
+    "uquant.execution.tranches:_RISK_LIFECYCLE_PRIORITY": (
+        "uquant.execution:_RISK_LIFECYCLE_PRIORITY"
+    ),
+}
 _PUBLIC_API_IMPLEMENTATIONS = {
     legacy: current for current, legacy in _CONTRACT_RELOCATIONS.items()
 }
@@ -458,6 +543,8 @@ _PUBLIC_API_FACADE_PATHS = {
     # Task 5 performs the same module-to-package transition for these facades.
     "uquant.account": "uquant/account.py",
     "uquant.attribution": "uquant/attribution.py",
+    # Task 6 preserves the historical module path as a same-name package facade.
+    "uquant.execution": "uquant/execution.py",
 }
 
 _MUTABLE_CALLS = {
@@ -899,7 +986,8 @@ def architecture_snapshot(
     graph: dict[str, set[str]] = {module: set() for module in modules}
     private_imports: list[dict[str, object]] = []
     private_module_calls: list[dict[str, object]] = []
-    relocated_private_imports: list[dict[str, object]] = []
+    task5_relocated_private_imports: list[dict[str, object]] = []
+    task6_relocated_private_imports: list[dict[str, object]] = []
     forbidden_imports: list[dict[str, object]] = []
     function_rows: list[dict[str, object]] = []
     global_rows: list[dict[str, object]] = []
@@ -1018,7 +1106,9 @@ def architecture_snapshot(
                             "line": node.lineno,
                         }
                         if private_import_id in _TASK5_RELOCATED_PRIVATE_IMPORTS:
-                            relocated_private_imports.append(row)
+                            task5_relocated_private_imports.append(row)
+                        elif private_import_id in _TASK6_RELOCATED_PRIVATE_IMPORTS:
+                            task6_relocated_private_imports.append(row)
                         else:
                             private_imports.append(row)
                 for authority_target, target_authority in authority_targets.items():
@@ -1136,7 +1226,11 @@ def architecture_snapshot(
                 key=_row_id,
             ),
             "task5_relocated_private_imports": sorted(
-                relocated_private_imports,
+                task5_relocated_private_imports,
+                key=_row_id,
+            ),
+            "task6_relocated_private_imports": sorted(
+                task6_relocated_private_imports,
                 key=_row_id,
             ),
             "forbidden_imports": sorted_forbidden_imports,
@@ -1166,9 +1260,20 @@ def measured_debt(snapshot: Mapping[str, object]) -> dict[str, list[dict[str, ob
 
     def debt_id(identifier: object) -> str:
         value = str(identifier)
+        relocated_global = _TASK6_RELOCATED_GLOBAL_DEBT.get(value)
+        if relocated_global is not None:
+            return relocated_global
+        relocated = _TASK6_RELOCATED_FUNCTION_DEBT.get(value)
+        if relocated is not None:
+            return relocated[0]
         module, separator, suffix = value.partition(":")
         legacy = _DEBT_RELOCATIONS.get(module, module)
         return f"{legacy}{separator}{suffix}"
+
+    def function_lines(row: Mapping[str, object]) -> int:
+        relocated = _TASK6_RELOCATED_FUNCTION_DEBT.get(str(row["id"]))
+        overhead = 0 if relocated is None else relocated[1]
+        return int(row["lines"]) - overhead
 
     oversized = [
         {"id": debt_id(module), "path": row["path"], "measured_lines": row["lines"]}
@@ -1180,7 +1285,7 @@ def measured_debt(snapshot: Mapping[str, object]) -> dict[str, list[dict[str, ob
             "id": debt_id(row["id"]),
             "path": row["path"],
             "qualname": row["qualname"],
-            "measured_lines": row["lines"],
+            "measured_lines": function_lines(row),
         }
         for row in functions
         if int(row["lines"]) > FINAL_BUDGETS["max_function_lines"]

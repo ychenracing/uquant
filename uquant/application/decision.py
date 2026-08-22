@@ -1,0 +1,580 @@
+"""Task 6 mechanical owner for decision."""
+
+from __future__ import annotations
+
+import copy
+import hashlib
+import json
+from collections.abc import Callable, Iterable
+from dataclasses import replace
+from typing import Protocol
+
+import pandas as pd
+
+from ..config import (
+    DEFAULT_CONFIG,
+    SystemConfig,
+    canonical_control_float,
+    config_fingerprint,
+)
+from ..contracts.universe import (
+    REQUIRED_AI_UNIVERSE_SHA256,
+    AIUniverse,
+    default_ai_universe,
+)
+from ..data import DataManifest, DataStore, normalize_symbol
+from ..execution import merge_pending_orders, plan_orders
+from ..leader import (
+    INDUSTRY,
+    apply_leader_tenure,
+    apply_opportunity_alpha,
+    compute_leaders,
+    compute_structural_leaders,
+)
+from ..opportunity import classify_opportunity
+from ..portfolio import PortfolioAllocator, current_weights
+from ..reference import build_reference_context
+from ..reference_registry import resolve_reference_symbols
+from ..risk_sentinel.integration import sentinel_freeze_authorized
+from ..risk_sentinel.models import RiskEvidenceTimeline, SentinelAssessment
+from ..types import (
+    ACCOUNT_SCHEMA_VERSION,
+    AccountState,
+    Decision,
+    LeaderScore,
+    Opportunity,
+    PendingOrder,
+    RiskAssessment,
+    Side,
+    Target,
+    derive_attribution_event_id,
+)
+
+
+class _ReplayUniverseRuntime(Protocol):
+    @property
+    def all_symbols(self) -> tuple[str, ...]: ...
+
+
+class _DecisionWorkspaceRuntime(Protocol):
+    def bind_tradable(self, symbols: Iterable[str]) -> _ReplayUniverseRuntime: ...
+
+    def filter_reference_symbols(self, symbols: Iterable[str]) -> tuple[str, ...]: ...
+
+    def manifest(
+        self,
+        symbols: Iterable[str],
+        *,
+        as_of: str | pd.Timestamp,
+    ) -> DataManifest: ...
+
+
+class DecisionEngineRuntime(Protocol):
+    """Static structural view of the exact state consumed by decision orchestration."""
+
+    @property
+    def cfg(self) -> SystemConfig: ...
+
+    @property
+    def workspace(self) -> _DecisionWorkspaceRuntime: ...
+
+    @property
+    def data(self) -> DataStore: ...
+
+    @property
+    def allocator(self) -> PortfolioAllocator: ...
+
+    _raw: dict[str, pd.DataFrame]
+    _features: dict[str, pd.DataFrame]
+    _code_hash: str | None
+    _leader_score_cache: dict[tuple[object, ...], dict[str, LeaderScore]]
+
+    def _load(self, symbols: Iterable[str]) -> None: ...
+
+    def _price(self, symbol: str, date: pd.Timestamp, field: str = "close") -> float: ...
+
+    @property
+    def _reference_returns(self) -> pd.DataFrame | None: ...
+
+    def _causal_risk_timeline(
+        self,
+        *,
+        as_of: str,
+        cfg: SystemConfig,
+        universe: AIUniverse,
+    ) -> RiskEvidenceTimeline: ...
+
+    def _mark_account_positions(self, account: AccountState, date: pd.Timestamp) -> None: ...
+
+    def decide(self, *, symbols: Iterable[str], as_of: str, account: AccountState) -> Decision: ...
+
+    def equity(
+        self,
+        account: AccountState,
+        date: pd.Timestamp,
+        field: str = "close",
+    ) -> float: ...
+
+
+def _decision_config_for_universe(
+    configured_universe_size: int,
+    cfg: SystemConfig = DEFAULT_CONFIG,
+) -> SystemConfig:
+    """Return one production policy regardless of unrelated universe members.
+
+    The positional argument remains for state/API compatibility and diagnostic
+    provenance.  It must never select a different strategy configuration: an
+    otherwise irrelevant symbol cannot change the decision path merely by
+    crossing a pool-size threshold.
+    """
+    del configured_universe_size
+    return cfg
+
+
+def _attach_target_attribution(
+    legacy_industry: str,
+    legacy_manifest_sha256: str,
+    *,
+    signal_date: str,
+    targets: tuple[Target, ...],
+    retained_orders: Iterable[PendingOrder] = (),
+    cfg: SystemConfig = DEFAULT_CONFIG,
+) -> tuple[Target, ...]:
+    """Finalize deterministic IDs and PIT industry for newly causal targets."""
+
+    universe = default_ai_universe()
+    retained_by_symbol = {
+        order.symbol: order
+        for order in retained_orders
+        # Presence in the active pending collection is authoritative. A
+        # blocked order can still have ``remaining_shares == 0`` before the
+        # next open supplies the first executable quantity.
+        if order.event_id
+    }
+    attributed: list[Target] = []
+    for target in targets:
+        if target.event_id:
+            attributed.append(target)
+            continue
+        retained = retained_by_symbol.get(target.symbol)
+        if (
+            retained is not None
+            and retained.side == Side.SELL.value
+            and abs(retained.target_weight) <= 1e-12
+            and abs(target.weight) <= 1e-12
+            and retained.lifecycle == target.lifecycle
+            and retained.reduction_policy == target.reduction_policy
+        ):
+            # A full liquidation is one causal event even when a later daily
+            # classifier gives the still-unfilled residual a different label.
+            # Preserve the originating machine identity at the production
+            # boundary; direct merge callers still fail closed on fabricated
+            # or genuinely changed attributed intents.
+            attributed.append(
+                replace(
+                    target,
+                    event_id=retained.event_id,
+                    origin_subsystem=retained.origin_subsystem,
+                    mechanism=retained.mechanism,
+                    origin_lifecycle=retained.origin_lifecycle,
+                    replaces_symbol=retained.replaces_symbol,
+                    industry_at_entry=retained.industry_at_entry,
+                    industry_manifest_sha256=retained.industry_manifest_sha256,
+                )
+            )
+            continue
+        if (
+            retained is not None
+            and retained.side == Side.BUY.value
+            and target.weight > 1e-12
+            and abs(retained.target_weight - target.weight) < cfg.min_trade_weight
+            and retained.lifecycle == target.lifecycle
+            and retained.reduction_policy == target.reduction_policy
+            and retained.reason_code == target.reason_code
+            and retained.exit_kind == target.exit_kind
+            and retained.origin_subsystem == target.origin_subsystem
+            and retained.origin_lifecycle == target.origin_lifecycle
+            and retained.replaces_symbol == target.replaces_symbol
+        ):
+            # A partially filled GTC buy remains the causal event submitted on
+            # its original signal date. Daily portfolio classification may
+            # move from restoration to cohort/hold while the target stays
+            # inside the reviewed no-trade band; that is not a new order cause.
+            attributed.append(
+                replace(
+                    target,
+                    event_id=retained.event_id,
+                    origin_subsystem=retained.origin_subsystem,
+                    mechanism=retained.mechanism,
+                    origin_lifecycle=retained.origin_lifecycle,
+                    replaces_symbol=retained.replaces_symbol,
+                    industry_at_entry=retained.industry_at_entry,
+                    industry_manifest_sha256=retained.industry_manifest_sha256,
+                )
+            )
+            continue
+        if retained is not None and (
+            abs(retained.target_weight - target.weight) < cfg.min_trade_weight
+            and retained.lifecycle == target.lifecycle
+            and retained.reduction_policy == target.reduction_policy
+            and retained.origin_subsystem == target.origin_subsystem
+            and retained.mechanism == target.mechanism
+            and retained.origin_lifecycle == target.origin_lifecycle
+            and retained.replaces_symbol == target.replaces_symbol
+        ):
+            attributed.append(
+                replace(
+                    target,
+                    event_id=retained.event_id,
+                    industry_at_entry=retained.industry_at_entry,
+                    industry_manifest_sha256=retained.industry_manifest_sha256,
+                )
+            )
+            continue
+        industry = universe.industry_of(target.symbol, signal_date)
+        manifest = REQUIRED_AI_UNIVERSE_SHA256
+        if industry == "unknown":
+            industry = legacy_industry
+            manifest = legacy_manifest_sha256
+        event_id = derive_attribution_event_id(
+            signal_date=signal_date,
+            symbol=target.symbol,
+            target_weight=target.weight,
+            lifecycle=target.lifecycle,
+            origin_lifecycle=target.origin_lifecycle,
+            origin_subsystem=target.origin_subsystem,
+            mechanism=target.mechanism,
+            replaces_symbol=target.replaces_symbol,
+            industry_at_entry=industry,
+            industry_manifest_sha256=manifest,
+            reduction_policy=target.reduction_policy,
+            reason_code=target.reason_code,
+            exit_kind=target.exit_kind,
+        )
+        attributed.append(
+            replace(
+                target,
+                event_id=event_id,
+                industry_at_entry=industry,
+                industry_manifest_sha256=manifest,
+            )
+        )
+    return tuple(attributed)
+
+
+def _mark_account_positions(
+    self: DecisionEngineRuntime,
+    account: AccountState,
+    date: pd.Timestamp,
+) -> None:
+    """Advance every owned economic lot once using the causal closing mark.
+
+    Daily operation and replay both enter through :meth:`decide`, so keeping
+    mark-to-market state here prevents live trailing exits, winner retention,
+    and lot-priority decisions from diverging from a backtest.  Suspended
+    holdings retain their prior mark until the next observed session.
+    """
+    for symbol, position in account.positions.items():
+        frame = self._raw.get(symbol)
+        if frame is None or date not in frame.index:
+            continue
+        close = self._price(symbol, date)
+        position.highest_close = max(position.highest_close, close)
+        for tranche in position.tranches:
+            tranche.highest_close = max(tranche.highest_close, close)
+            tranche.lowest_close = close if tranche.lowest_close <= 0 else min(tranche.lowest_close, close)
+            excursion = close / max(tranche.avg_cost, 1e-12) - 1.0
+            tranche.mfe = max(tranche.mfe, excursion)
+            tranche.mae = min(tranche.mae, excursion)
+
+
+def decide(
+    self: DecisionEngineRuntime,
+    assess_risk_fn: Callable[..., RiskAssessment],
+    evaluate_sentinel_fn: Callable[..., SentinelAssessment],
+    reconcile_account_orders_fn: Callable[..., tuple[PendingOrder, ...]],
+    code_fingerprint_fn: Callable[[], str],
+    attach_target_attribution_fn: Callable[..., tuple[Target, ...]],
+    *,
+    symbols: Iterable[str],
+    as_of: str,
+    account: AccountState,
+) -> Decision:
+    """Produce and persist one causal close-date portfolio decision.
+
+    The account is advanced in place after all data, code, state, and
+    chronology checks succeed. Returned orders are next-open intentions;
+    this method never fills them on the signal date.
+    """
+    if account.schema_version != ACCOUNT_SCHEMA_VERSION:
+        raise RuntimeError(f"account schema {account.schema_version} requires explicit migration")
+    date = pd.Timestamp(as_of).normalize()
+    if account.last_successful_run and pd.Timestamp(account.last_successful_run) >= date:
+        raise RuntimeError("decision date must be strictly after the last successful run")
+    broker_as_of = getattr(account, "broker_as_of", "")
+    if broker_as_of and date < pd.Timestamp(str(broker_as_of)):
+        raise RuntimeError("decision date predates the authoritative broker snapshot")
+    user_symbols = tuple(sorted({normalize_symbol(item) for item in symbols}))
+    if not user_symbols:
+        raise ValueError("at least one technology-sector symbol is required")
+    durable_symbols = (
+        set(account.positions)
+        | set(account.protected_weights)
+        | set(account.sector_guard_symbols)
+        | set(account.anchor_weights)
+        | set(account.strategic_cohort_symbols)
+        | set(account.strategic_cohort_targets)
+        | set(account.strategic_restore_weights)
+        | set(account.active_leaders)
+        | {order.symbol for order in account.pending_orders}
+    )
+    if account.tactical_anchor_symbol:
+        durable_symbols.add(account.tactical_anchor_symbol)
+    replay_universe = self.workspace.bind_tradable(set(user_symbols) | durable_symbols)
+    all_symbols = set(replay_universe.all_symbols)
+    self._load(all_symbols)
+    if date not in self._features["sh000300"].index or date not in self._features["sh000682"].index:
+        raise RuntimeError("decision date is not a common index session")
+    current_symbols = tuple(
+        sorted(symbol for symbol in all_symbols if not self._raw[symbol].loc[:date].empty)
+    )
+    if account.data_hash:
+        verification_symbols = tuple(sorted(account.data_hash_symbols or current_symbols))
+        verification_as_of = account.data_hash_as_of or account.last_successful_run
+        if verification_as_of:
+            verification_date = pd.Timestamp(verification_as_of).normalize()
+            if verification_date > date:
+                raise RuntimeError("account data provenance comes from a future date")
+            verified_digest = self.workspace.manifest(verification_symbols, as_of=verification_date).digest
+        else:
+            verified_digest = self.data.manifest(verification_symbols).digest
+        if account.data_hash != verified_digest and self.cfg.fail_closed:
+            raise RuntimeError("historical data prefix differs from account state")
+    data_digest = self.workspace.manifest(current_symbols, as_of=date).digest
+    if self._code_hash is None:
+        self._code_hash = code_fingerprint_fn()
+    current_code_hash = self._code_hash
+    if account.code_hash and account.code_hash != current_code_hash and self.cfg.fail_closed:
+        raise RuntimeError("production code hash differs from account state")
+    self._mark_account_positions(account, date)
+    active_reference_symbols = self.workspace.filter_reference_symbols(resolve_reference_symbols(date))
+    reference_panel = {symbol: self._features[symbol] for symbol in active_reference_symbols}
+    strategy_symbols = tuple(sorted(set(user_symbols) | durable_symbols))
+    user_panel = {
+        symbol: self._features[symbol]
+        for symbol in strategy_symbols
+        if not self._raw[symbol].loc[:date].empty
+    }
+    combined = dict(reference_panel)
+    combined.update(user_panel)
+    broad = self._features["sh000300"]
+    tech = self._features["sh000682"]
+    decision_cfg = _decision_config_for_universe(len(user_symbols), self.cfg)
+    reference_context = build_reference_context(
+        date=date,
+        panel=reference_panel,
+        industries=INDUSTRY,
+        cfg=decision_cfg,
+        reference_returns=self._reference_returns,
+    )
+    if decision_cfg.same_day_leader_pipeline_enabled:
+        structural_leaders = compute_structural_leaders(
+            combined, as_of=date, tech=tech, cfg=decision_cfg, score_cache=self._leader_score_cache
+        )
+    else:
+        structural_leaders = compute_leaders(
+            combined,
+            as_of=date,
+            tech=tech,
+            account=account,
+            cfg=decision_cfg,
+            score_cache=self._leader_score_cache,
+        )
+    visible_users = set(user_panel)
+    prices = {symbol: self._price(symbol, date) for symbol in visible_users | set(account.positions)}
+    _, equity = current_weights(account, prices)
+    universe = default_ai_universe()
+    canonical_symbols = universe.symbols_as_of(str(date.date()))
+    expected_reference_symbols = self.workspace.filter_reference_symbols(canonical_symbols)
+    if active_reference_symbols != expected_reference_symbols:
+        raise RuntimeError("point-in-time reference registry differs from canonical universe")
+    causal_timeline = self._causal_risk_timeline(as_of=str(date.date()), cfg=decision_cfg, universe=universe)
+    sentinel = None
+    if decision_cfg.risk_sentinel_mode != "SHADOW":
+        sentinel = evaluate_sentinel_fn(
+            as_of=str(date.date()),
+            broad_frame=broad,
+            tech_frame=tech,
+            reference_panel=reference_panel,
+            point_in_time_industries={
+                symbol: universe.industry_of(symbol, str(date.date())) for symbol in canonical_symbols
+            },
+            held_symbols=tuple(
+                sorted((symbol for symbol, position in account.positions.items() if position.shares > 0))
+            ),
+            leader_symbols=tuple(sorted(account.active_leaders)),
+            capital_drawdown=max(0.0, 1.0 - equity / max(account.capital_peak, 1e-12)),
+        )
+    risk = assess_risk_fn(
+        date=date,
+        broad=broad,
+        tech=tech,
+        reference_panel=reference_panel,
+        reference_returns=self._reference_returns,
+        user_panel=user_panel,
+        leaders=structural_leaders,
+        account=account,
+        equity=equity,
+        cfg=decision_cfg,
+        reference_context=reference_context if decision_cfg.group_balanced_reference_enabled else None,
+        configured_universe_size=len(user_symbols),
+        sentinel_assessment=sentinel,
+        sentinel_opportunity=account.opportunity,
+    )
+    risk.evidence["configured_user_universe_size"] = len(user_symbols)
+    risk.evidence["universe_size_is_diagnostic_only"] = True
+    latest_causal = causal_timeline.sentinel_rows[-1] if causal_timeline.sentinel_rows else None
+    risk.evidence.update(
+        {
+            "sentinel_mode": decision_cfg.risk_sentinel_mode,
+            "sentinel_causal_confirmation_authority_enabled": decision_cfg.risk_sentinel_causal_confirmation_enabled,
+            "sentinel_causal_confirmation_history_trusted": causal_timeline.confirmation_history_trusted,
+            "sentinel_causal_confirmation_days": causal_timeline.confirmation_days,
+            "sentinel_causal_repair_days": causal_timeline.repair_days,
+            "sentinel_causal_effective_level": causal_timeline.effective_level.value,
+            "sentinel_causal_confirmed_since": causal_timeline.confirmed_since,
+            "sentinel_causal_trust_reasons": list(causal_timeline.trust_reasons),
+            "sentinel_causal_incremental_families": list(causal_timeline.incremental_families),
+            "sentinel_causal_earlier_families": list(causal_timeline.earlier_families),
+            "sentinel_first_family_dates": dict(causal_timeline.sentinel_first_family_dates),
+            "base_first_family_dates": dict(causal_timeline.base_first_family_dates),
+            "sentinel_causal_coverage_status": latest_causal.coverage_status.value
+            if latest_causal is not None
+            else "NOT_READY",
+            "sentinel_causal_confidence": latest_causal.confidence if latest_causal is not None else 0.0,
+            "sentinel_causal_observed_level": latest_causal.level.value
+            if latest_causal is not None
+            else "NOT_READY",
+            "sentinel_causal_active_families": list(latest_causal.active_families)
+            if latest_causal is not None
+            else [],
+            "sentinel_causal_reasons": list(latest_causal.reasons)
+            if latest_causal is not None
+            else ["causal market history is not ready"],
+            "sentinel_causal_weakest_subindustries": list(latest_causal.weakest_subindustries)
+            if latest_causal is not None
+            else [],
+        }
+    )
+    structural_users = {
+        symbol: structural_leaders[symbol] for symbol in user_symbols if symbol in structural_leaders
+    }
+    opportunity = classify_opportunity(
+        date=date,
+        broad=broad,
+        tech=tech,
+        reference_panel=reference_panel,
+        leaders=structural_users,
+        risk=risk.state,
+        account=account,
+        cfg=decision_cfg,
+        reference_context=reference_context if decision_cfg.group_balanced_reference_enabled else None,
+    )
+    if decision_cfg.same_day_leader_pipeline_enabled:
+        alpha_leaders = apply_opportunity_alpha(structural_leaders, opportunity=opportunity, cfg=decision_cfg)
+        all_leaders = apply_leader_tenure(alpha_leaders, account=account, cfg=decision_cfg)
+    else:
+        all_leaders = structural_leaders
+    user_leaders = {symbol: all_leaders[symbol] for symbol in user_symbols if symbol in all_leaders}
+    leader_factor_profile = (
+        "TREND"
+        if opportunity in {Opportunity.STRONG_TREND, Opportunity.TREND}
+        else "RECOVERY"
+        if opportunity is Opportunity.RECOVERY
+        else "CHOPPY"
+    )
+    targets = self.allocator.allocate(
+        date=date,
+        opportunity=opportunity,
+        risk=risk,
+        user_panel=user_panel,
+        leaders=user_leaders,
+        account=account,
+        prices=prices,
+    )
+    targets = attach_target_attribution_fn(
+        signal_date=str(date.date()), targets=targets, retained_orders=account.pending_orders, cfg=self.cfg
+    )
+    if not decision_cfg.group_balanced_reference_enabled:
+        risk.evidence.update(reference_context.evidence())
+    planned_orders = plan_orders(
+        signal_date=str(date.date()), targets=targets, account=account, prices=prices, cfg=self.cfg
+    )
+    previous_orders = list(account.pending_orders)
+    orders = merge_pending_orders(
+        retained=previous_orders, planned=planned_orders, targets=targets, cfg=self.cfg
+    )
+    orders = reconcile_account_orders_fn(
+        account=account,
+        previous=previous_orders,
+        current=orders,
+        submitted_date=str(date.date()),
+        removed_buy_reason="sentinel_freeze_new_risk" if sentinel_freeze_authorized(risk) else None,
+    )
+    account.last_successful_run = str(date.date())
+    account.data_hash = data_digest
+    account.data_hash_as_of = str(date.date())
+    account.data_hash_symbols = list(current_symbols)
+    account.code_hash = current_code_hash
+    decision = Decision(
+        date=str(date.date()),
+        opportunity=opportunity,
+        risk=risk.state,
+        target_gross=sum(item.weight for item in targets),
+        target_k=sum(item.weight > 0 for item in targets),
+        targets=targets,
+        pending_orders=orders,
+        risk_summary={
+            **risk.evidence,
+            "votes": risk.votes,
+            "reasons": list(risk.reasons),
+            "shock_state": risk.shock_state,
+            "reduction_level": risk.reduction_level,
+            "severity": risk.severity,
+            "target_gross_cap": canonical_control_float(risk.target_gross_cap),
+            "system_gross_cap": canonical_control_float(decision_cfg.max_gross),
+            "freeze_new_risk": risk.freeze_new_risk,
+            "strategic_epoch": account.strategic_epoch,
+            "strategic_candidate_signature": account.strategic_candidate_signature,
+            "factor_profile": leader_factor_profile,
+            "effective_config_sha256": config_fingerprint(decision_cfg),
+            "leader_ranking": [
+                {
+                    "symbol": item.symbol,
+                    "score": item.score,
+                    "industry": item.industry,
+                    "mature": item.mature,
+                    "emerging": item.emerging,
+                }
+                for item in sorted(
+                    user_leaders.values(), key=lambda candidate: (-candidate.score, candidate.symbol)
+                )
+            ],
+        },
+        decision_digest="",
+    )
+    canonical = decision.canonical_payload(effective_config_sha256=config_fingerprint(decision_cfg))
+    digest = hashlib.sha256(json.dumps(canonical, sort_keys=True, separators=(",", ":")).encode()).hexdigest()
+    return replace(decision, decision_digest=digest)
+
+
+def deterministic_decision(
+    self: DecisionEngineRuntime,
+    *,
+    symbols: Iterable[str],
+    as_of: str,
+    account: AccountState,
+) -> tuple[Decision, AccountState]:
+    """Evaluate a decision on a deep copy and return both result and copy."""
+    cloned = copy.deepcopy(account)
+    return (self.decide(symbols=symbols, as_of=as_of, account=cloned), cloned)

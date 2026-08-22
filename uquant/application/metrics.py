@@ -1,0 +1,219 @@
+"""Task 6 mechanical owner for metrics."""
+
+from __future__ import annotations
+
+from statistics import median
+from typing import Any
+
+import numpy as np
+import pandas as pd
+
+from ..types import AccountOrder, Fill
+
+
+def _drawdown_stats(equity: pd.Series) -> dict[str, float | int]:
+    peak = equity.cummax()
+    drawdown = equity / peak - 1.0
+    underwater = drawdown < 0
+    duration = current = 0
+    for flag in underwater:
+        current = current + 1 if flag else 0
+        duration = max(duration, current)
+    trough = int(drawdown.to_numpy(dtype=float).argmin())
+    recovery = 0
+    peak_value = float(peak.iloc[trough])
+    for value in equity.iloc[trough + 1 :]:
+        recovery += 1
+        if value >= peak_value:
+            break
+    return {
+        "max_drawdown": float(-drawdown.min()),
+        "rolling_drawdown_p95": float((-drawdown).quantile(0.95)),
+        "max_drawdown_duration": duration,
+        "peak_to_recovery_days": recovery,
+    }
+
+
+def performance_metrics(
+    *,
+    equity_rows: list[tuple[pd.Timestamp, float]],
+    fills: list[Fill],
+    orders: list[AccountOrder],
+    initial_cash: float,
+    risk_events: list[dict[str, Any]],
+    benchmark_total_return: float,
+) -> dict[str, Any]:
+    """Calculate portfolio, drawdown, turnover, order, and attribution metrics."""
+    broker_orders = [item for item in orders if item.filled_shares > 0]
+    equity = pd.Series({date: value for date, value in equity_rows}, dtype=float).sort_index()
+    returns = equity.pct_change(fill_method=None).dropna()
+    years = max(len(equity) / 242.0, 1 / 242.0)
+    total_return = float(equity.iloc[-1] / initial_cash - 1.0)
+    cagr = float((equity.iloc[-1] / initial_cash) ** (1.0 / years) - 1.0)
+    sharpe = (
+        float(np.sqrt(242) * returns.mean() / returns.std(ddof=0)) if returns.std(ddof=0) > 1e-12 else 0.0
+    )
+    dd = _drawdown_stats(equity)
+    max_dd = float(dd["max_drawdown"])
+    gross_turnover = sum(item.gross_value for item in fills) / initial_cash
+    fees = sum(item.commission + item.stamp_duty + item.transfer_fee for item in fills)
+    holding_days: list[int] = []
+    buy_lots: dict[str, list[list[Any]]] = {}
+    inventory: dict[str, int] = {}
+    round_trips = 0
+    for fill in fills:
+        if fill.side == "BUY":
+            buy_lots.setdefault(fill.symbol, []).append([fill.shares, pd.Timestamp(fill.fill_date)])
+            inventory[fill.symbol] = inventory.get(fill.symbol, 0) + fill.shares
+            continue
+        before = inventory.get(fill.symbol, 0)
+        remaining = fill.shares
+        if fill.sold_tranches:
+            for allocation in fill.sold_tranches:
+                entry_date = str(allocation.get("entry_date", ""))
+                if entry_date:
+                    holding_days.append((pd.Timestamp(fill.fill_date) - pd.Timestamp(entry_date)).days)
+            # Execution supplied authoritative lot identity. The synthetic FIFO
+            # queue is needed only when a fill lacks tranche attribution.
+            remaining = 0
+        else:
+            for lot in buy_lots.get(fill.symbol, []):
+                available = int(lot[0])
+                if available <= 0 or remaining <= 0:
+                    continue
+                sold = min(available, remaining)
+                holding_days.append((pd.Timestamp(fill.fill_date) - pd.Timestamp(lot[1])).days)
+                lot[0] = available - sold
+                remaining -= sold
+        buy_lots[fill.symbol] = [lot for lot in buy_lots.get(fill.symbol, []) if int(lot[0]) > 0]
+        inventory[fill.symbol] = max(0, before - fill.shares)
+        if before > 0 and inventory[fill.symbol] == 0:
+            round_trips += 1
+    rolling20 = equity.pct_change(20, fill_method=None)
+    rolling60 = equity.pct_change(60, fill_method=None)
+    first_caution = next(
+        (str(item.get("date")) for item in risk_events if item.get("to") == "CAUTION"),
+        None,
+    )
+    first_risk_off = next(
+        (str(item.get("date")) for item in risk_events if item.get("to") in {"RISK_OFF", "CRISIS"}),
+        None,
+    )
+    risk_tokens = ("risk", "drawdown", "shock", "crisis", "capital protection")
+    structured_risk_exits = {
+        "risk",
+        "portfolio_risk",
+        "sector_guard",
+        "risk_off",
+        "crisis",
+        "capital_budget",
+    }
+    first_reduce = next(
+        (
+            fill.fill_date
+            for fill in fills
+            if fill.side == "SELL"
+            and (
+                fill.exit_kind in structured_risk_exits
+                or any(token in fill.reason.lower() for token in risk_tokens)
+            )
+        ),
+        None,
+    )
+    first_action = min(
+        (pd.Timestamp(value) for value in (first_caution, first_risk_off, first_reduce) if value),
+        default=None,
+    )
+    drawdown = 1.0 - equity / equity.cummax()
+
+    def lead_to_drawdown(threshold: float) -> int | None:
+        """Count sessions from the first risk action to a drawdown crossing."""
+
+        crossings = drawdown[drawdown >= threshold]
+        if crossings.empty or first_action is None:
+            return None
+        target = crossings.index[0]
+        target_location = equity.index.get_indexer(pd.Index([target]))[0]
+        action_location = equity.index.get_indexer(
+            pd.Index([first_action]),
+            method="ffill",
+        )[0]
+        return int(target_location - action_location)
+
+    return {
+        "total_return": total_return,
+        "cagr": cagr,
+        "benchmark_total_return": benchmark_total_return,
+        "excess_return": total_return - benchmark_total_return,
+        "sharpe": sharpe,
+        "calmar": cagr / max_dd if max_dd > 1e-12 else 0.0,
+        **dd,
+        "worst_20d": float(rolling20.min()) if rolling20.notna().any() else 0.0,
+        "worst_60d": float(rolling60.min()) if rolling60.notna().any() else 0.0,
+        "account_orders": len(broker_orders),
+        "submitted_account_orders": len(orders),
+        "unfilled_account_submissions": sum(item.filled_shares == 0 for item in orders),
+        "round_trips": round_trips,
+        "gross_turnover": gross_turnover,
+        "annual_turnover": gross_turnover / years,
+        "median_holding_days": float(median(holding_days)) if holding_days else 0.0,
+        "fees": fees,
+        "slippage_cost": sum(item.slippage_cost for item in fills),
+        "first_caution": first_caution,
+        "first_risk_off": first_risk_off,
+        "first_reduce": first_reduce,
+        "lead_to_10pct_dd": lead_to_drawdown(0.10),
+        "lead_to_15pct_dd": lead_to_drawdown(0.15),
+        "risk_events": risk_events,
+        "order_ledger": [
+            {
+                "order_id": item.order_id,
+                "signal_date": item.signal_date,
+                "submitted_date": item.submitted_date,
+                "symbol": item.symbol,
+                "side": item.side,
+                "target_weight": item.target_weight,
+                "reason": item.reason,
+                "lifecycle": item.lifecycle,
+                "reduction_policy": item.reduction_policy,
+                "reason_code": item.reason_code,
+                "exit_kind": item.exit_kind,
+                "status": item.status,
+                "requested_shares": item.requested_shares,
+                "filled_shares": item.filled_shares,
+                "remaining_shares": item.remaining_shares,
+                "attempts": item.attempts,
+                "last_update_date": item.last_update_date,
+                "last_event": item.last_event,
+                "replaced_by": item.replaced_by,
+                "cancel_reason": item.cancel_reason,
+            }
+            for item in broker_orders
+        ],
+        "submission_ledger": [
+            {
+                "order_id": item.order_id,
+                "signal_date": item.signal_date,
+                "submitted_date": item.submitted_date,
+                "symbol": item.symbol,
+                "side": item.side,
+                "target_weight": item.target_weight,
+                "reason": item.reason,
+                "lifecycle": item.lifecycle,
+                "reduction_policy": item.reduction_policy,
+                "reason_code": item.reason_code,
+                "exit_kind": item.exit_kind,
+                "status": item.status,
+                "requested_shares": item.requested_shares,
+                "filled_shares": item.filled_shares,
+                "remaining_shares": item.remaining_shares,
+                "attempts": item.attempts,
+                "last_update_date": item.last_update_date,
+                "last_event": item.last_event,
+                "replaced_by": item.replaced_by,
+                "cancel_reason": item.cancel_reason,
+            }
+            for item in orders
+        ],
+        "equity_curve": [{"date": str(date)[:10], "equity": value} for date, value in equity.items()],
+    }

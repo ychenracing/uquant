@@ -11,6 +11,7 @@ import pytest
 from uquant import engine as engine_module
 from uquant.account import load_account, migrate_account, save_account
 from uquant.config import DEFAULT_CONFIG, config_fingerprint
+from uquant.contracts.strict_json import canonical_json_bytes, canonical_json_sha256
 from uquant.engine import (
     ProductionEngine,
     _decision_config_for_universe,
@@ -48,18 +49,52 @@ RISK_REGRESSION_POOLS = (
 )
 
 
+def _write_engine_source_surface(
+    root: Path,
+    *,
+    economic_sources: tuple[str, ...] = ("uquant/engine.py",),
+    economic_resources: tuple[str, ...] = (
+        "benchmarks/config_parameter_governance.json",
+    ),
+) -> None:
+    surfaces = [
+        {
+            "id": identifier,
+            "source_paths": list(
+                economic_sources
+                if identifier == "economic_decision_v1"
+                else ("uquant/engine.py",)
+            ),
+            "resource_paths": list(economic_resources if identifier == "economic_decision_v1" else ()),
+        }
+        for identifier in (
+            "economic_decision_v1",
+            "execution_account_v1",
+            "sentinel_v1",
+            "validation_runner_v1",
+            "full_package_v1",
+        )
+    ]
+    unsealed: dict[str, object] = {"registry_version": 2, "surfaces": surfaces}
+    payload = {**unsealed, "canonical_sha256": canonical_json_sha256(unsealed)}
+    registry = root / "benchmarks/source_surface_registry.json"
+    registry.parent.mkdir(parents=True, exist_ok=True)
+    registry.write_bytes(canonical_json_bytes(payload) + b"\n")
+
+
 def test_code_fingerprint_includes_config_parameter_governance(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    governance = tmp_path / "config_parameter_governance.json"
+    package = tmp_path / "uquant"
+    package.mkdir()
+    engine = package / "engine.py"
+    engine.write_text("decision = 1\n", encoding="utf-8")
+    governance = tmp_path / "benchmarks/config_parameter_governance.json"
+    governance.parent.mkdir()
     governance.write_text('{"artifact_sha256":"1"}\n', encoding="utf-8")
-    monkeypatch.setattr(
-        engine_module,
-        "DEFAULT_GOVERNANCE_PATH",
-        governance,
-        raising=False,
-    )
+    _write_engine_source_surface(tmp_path)
+    monkeypatch.setattr(engine_module, "__file__", str(engine))
     first = engine_module.code_fingerprint()
 
     governance.write_text('{"artifact_sha256":"2"}\n', encoding="utf-8")
@@ -67,7 +102,7 @@ def test_code_fingerprint_includes_config_parameter_governance(
     assert engine_module.code_fingerprint() != first
 
 
-def test_code_fingerprint_recursively_includes_production_subpackages(
+def test_code_fingerprint_excludes_unregistered_production_subpackages(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -78,17 +113,20 @@ def test_code_fingerprint_recursively_includes_production_subpackages(
     sentinel.mkdir()
     nested = sentinel / "history.py"
     nested.write_text("timeline = 1\n", encoding="utf-8")
-    registry = tmp_path / "registry.json"
-    governance = tmp_path / "governance.json"
-    registry.write_text("{}\n", encoding="utf-8")
+    governance = tmp_path / "benchmarks/config_parameter_governance.json"
+    governance.parent.mkdir()
     governance.write_text("{}\n", encoding="utf-8")
+    _write_engine_source_surface(tmp_path)
     monkeypatch.setattr(engine_module, "__file__", str(package / "engine.py"))
-    monkeypatch.setattr(engine_module, "DEFAULT_REGISTRY_PATH", registry)
-    monkeypatch.setattr(engine_module, "DEFAULT_GOVERNANCE_PATH", governance)
 
     first = engine_module.code_fingerprint()
     nested.write_text("timeline = 2\n", encoding="utf-8")
 
+    assert engine_module.code_fingerprint() == first
+    _write_engine_source_surface(
+        tmp_path,
+        economic_sources=("uquant/engine.py", "uquant/risk_sentinel/history.py"),
+    )
     assert engine_module.code_fingerprint() != first
 
 

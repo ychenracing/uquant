@@ -1,7 +1,11 @@
 from __future__ import annotations
 
+import ast
+import copy
 import json
+import types
 from collections.abc import Mapping, Sequence
+from itertools import pairwise
 from typing import cast
 
 import pytest
@@ -14,9 +18,15 @@ from ._task3_baseline import (
     BASELINE_COMMIT,
     ISOLATED_VALIDATION_CASE_COUNT,
     METHOD_IDS,
+    OVERLAP_WITNESS_CASE_COUNT,
+    OVERLAP_WITNESS_START_INDEX,
+    TOTAL_VALIDATION_CASE_COUNT,
+    UNKNOWN_KEYWORD_CASE_INDEX,
     baseline_config_module,
     baseline_load_method_pickles,
     baseline_method_contract,
+    baseline_validation_clause_dumps,
+    candidate_validation_clause_dumps,
     capture_validation_contract,
     current_load_method_pickles,
     current_method_contract,
@@ -25,11 +35,121 @@ from ._task3_baseline import (
 
 VALIDATION_FIXTURE_PATH = ROOT / "tests" / "fixtures" / "task3_config_validation_contract.json"
 
+ESCAPED_ADJACENT_SWAPS = (
+    (
+        "leader-cycle-market-range-before-impulse-relation",
+        "uquant/config/validation/strategic.py",
+        "_validate_strategic_admission",
+        4,
+        "uquant.config.validation.strategic",
+    ),
+    (
+        "strategic-transition-max-range-before-inverted-range",
+        "uquant/config/validation/strategic.py",
+        "_validate_strategic_transition_bounds",
+        3,
+        "uquant.config.validation.strategic",
+    ),
+    (
+        "transition-range-before-repair-relation",
+        "uquant/config/validation/risk.py",
+        "_validate_risk_anchors_and_capital",
+        3,
+        "uquant.config.validation.risk",
+    ),
+    (
+        "transition-repair-relation-before-chronic-window",
+        "uquant/config/validation/risk.py",
+        "_validate_risk_anchors_and_capital",
+        4,
+        "uquant.config.validation.risk",
+    ),
+)
+
 
 def _validation_fixture() -> dict[str, object]:
     value = json.loads(VALIDATION_FIXTURE_PATH.read_text(encoding="utf-8"))
     assert isinstance(value, dict)
     return value
+
+
+def _mutated_source_with_adjacent_function_clauses_swapped(
+    relative_path: str,
+    function_name: str,
+    left_clause_index: int,
+) -> str:
+    source = (ROOT / relative_path).read_text(encoding="utf-8")
+    tree = ast.parse(source, filename=relative_path)
+    function = next(
+        node
+        for node in tree.body
+        if isinstance(node, ast.FunctionDef) and node.name == function_name
+    )
+    offset = int(
+        bool(function.body)
+        and isinstance(function.body[0], ast.Expr)
+        and isinstance(function.body[0].value, ast.Constant)
+        and isinstance(function.body[0].value.value, str)
+    )
+    left = offset + left_clause_index
+    function.body[left], function.body[left + 1] = (
+        function.body[left + 1],
+        function.body[left],
+    )
+    ast.fix_missing_locations(tree)
+    return ast.unparse(tree)
+
+
+def _compiled_mutated_function(
+    relative_path: str,
+    function_name: str,
+    left_clause_index: int,
+    module: types.ModuleType,
+) -> object:
+    source = _mutated_source_with_adjacent_function_clauses_swapped(
+        relative_path,
+        function_name,
+        left_clause_index,
+    )
+    tree = ast.parse(source, filename=relative_path)
+    function = next(
+        node
+        for node in tree.body
+        if isinstance(node, ast.FunctionDef) and node.name == function_name
+    )
+    namespace = dict(vars(module))
+    exec(compile(ast.Module(body=[function], type_ignores=[]), relative_path, "exec"), namespace)
+    return namespace[function_name]
+
+
+def _mutated_model_source_with_adjacent_validator_calls_swapped(
+    left_call_index: int,
+) -> str:
+    relative_path = "uquant/config/model.py"
+    source = (ROOT / relative_path).read_text(encoding="utf-8")
+    tree = ast.parse(source, filename=relative_path)
+    config_class = next(
+        node
+        for node in tree.body
+        if isinstance(node, ast.ClassDef) and node.name == "SystemConfig"
+    )
+    post_init = next(
+        node
+        for node in config_class.body
+        if isinstance(node, ast.FunctionDef) and node.name == "__post_init__"
+    )
+    offset = int(
+        isinstance(post_init.body[0], ast.Expr)
+        and isinstance(post_init.body[0].value, ast.Constant)
+        and isinstance(post_init.body[0].value.value, str)
+    )
+    left = offset + left_call_index
+    post_init.body[left], post_init.body[left + 1] = (
+        post_init.body[left + 1],
+        post_init.body[left],
+    )
+    ast.fix_missing_locations(tree)
+    return ast.unparse(tree)
 
 
 def test_validation_fixture_is_reproducible_from_immutable_baseline_behavior() -> None:
@@ -39,6 +159,176 @@ def test_validation_fixture_is_reproducible_from_immutable_baseline_behavior() -
     assert metadata["baseline_commit"] == BASELINE_COMMIT
 
     assert capture_validation_contract(fixture) == fixture
+
+
+@pytest.mark.parametrize(
+    "malformation",
+    (
+        "shortened",
+        "repartitioned",
+        "duplicate",
+        "isolated-marker",
+        "invalid-order-probe",
+        "unknown-keyword-moved",
+    ),
+)
+def test_validation_capture_rejects_malformed_fixture_shapes(malformation: str) -> None:
+    fixture = copy.deepcopy(_validation_fixture())
+    cases = cast(list[dict[str, object]], fixture["cases"])
+    metadata = cast(dict[str, object], fixture["baseline"])
+
+    if malformation == "shortened":
+        cases.pop()
+    elif malformation == "repartitioned":
+        metadata["isolated_case_count"] = ISOLATED_VALIDATION_CASE_COUNT - 1
+    elif malformation == "duplicate":
+        cases[1] = copy.deepcopy(cases[0])
+    elif malformation == "isolated-marker":
+        cases[0]["witness_id"] = "not-isolated"
+    elif malformation == "invalid-order-probe":
+        cases[metadata["order_probe_start_index"]] = {
+            "changes": {"initial_cash": -1},
+            "exception_type": "ValueError",
+            "message": "initial_cash must be positive",
+        }
+    else:
+        cases[UNKNOWN_KEYWORD_CASE_INDEX], cases[UNKNOWN_KEYWORD_CASE_INDEX - 1] = (
+            cases[UNKNOWN_KEYWORD_CASE_INDEX - 1],
+            cases[UNKNOWN_KEYWORD_CASE_INDEX],
+        )
+
+    with pytest.raises(AssertionError):
+        capture_validation_contract(fixture)
+
+
+def test_validation_fixture_partitions_are_exact_and_fail_closed() -> None:
+    fixture = _validation_fixture()
+    cases = cast(Sequence[Mapping[str, object]], fixture["cases"])
+    metadata = cast(Mapping[str, object], fixture["baseline"])
+
+    assert len(cases) == TOTAL_VALIDATION_CASE_COUNT
+    assert metadata["total_case_count"] == TOTAL_VALIDATION_CASE_COUNT
+    assert metadata["overlap_witness_start_index"] == OVERLAP_WITNESS_START_INDEX
+    assert metadata["overlap_witness_case_count"] == OVERLAP_WITNESS_CASE_COUNT
+    assert metadata["unknown_keyword_case_index"] == UNKNOWN_KEYWORD_CASE_INDEX
+    assert cases[UNKNOWN_KEYWORD_CASE_INDEX]["changes"] == {
+        "not_a_governed_parameter": True
+    }
+
+
+def test_split_validators_preserve_all_159_baseline_clauses_in_exact_ast_order() -> None:
+    baseline = baseline_validation_clause_dumps()
+    candidate = candidate_validation_clause_dumps()
+
+    assert len(baseline) == 159
+    assert len(candidate) == 159
+    assert candidate == baseline
+    assert all(left != right for left, right in pairwise(candidate))
+
+
+@pytest.mark.parametrize("left_call_index", range(9))
+def test_semantic_ast_gate_detects_every_adjacent_validator_block_swap(
+    left_call_index: int,
+) -> None:
+    relative_path = "uquant/config/model.py"
+    mutated_source = _mutated_model_source_with_adjacent_validator_calls_swapped(
+        left_call_index
+    )
+
+    assert candidate_validation_clause_dumps({relative_path: mutated_source}) != (
+        baseline_validation_clause_dumps()
+    )
+
+
+@pytest.mark.parametrize(
+    ("original", "replacement"),
+    (
+        (
+            "config.leader_cycle_confirm_days < 1",
+            "config.leader_cycle_confirm_days < 2",
+        ),
+        (
+            '"leader_cycle_confirm_days must be positive"',
+            '"leader_cycle_confirm_days changed"',
+        ),
+    ),
+)
+def test_semantic_ast_gate_detects_predicate_and_raise_changes(
+    original: str,
+    replacement: str,
+) -> None:
+    relative_path = "uquant/config/validation/strategic.py"
+    source = (ROOT / relative_path).read_text(encoding="utf-8")
+    assert source.count(original) == 1
+    mutated_source = source.replace(original, replacement, 1)
+
+    assert candidate_validation_clause_dumps({relative_path: mutated_source}) != (
+        baseline_validation_clause_dumps()
+    )
+
+
+@pytest.mark.parametrize(
+    ("_witness_id", "relative_path", "function_name", "left_clause_index", "_module_name"),
+    ESCAPED_ADJACENT_SWAPS,
+)
+def test_semantic_ast_gate_detects_every_previously_escaped_adjacent_swap(
+    _witness_id: str,
+    relative_path: str,
+    function_name: str,
+    left_clause_index: int,
+    _module_name: str,
+) -> None:
+    mutated_source = _mutated_source_with_adjacent_function_clauses_swapped(
+        relative_path,
+        function_name,
+        left_clause_index,
+    )
+
+    assert candidate_validation_clause_dumps({relative_path: mutated_source}) != (
+        baseline_validation_clause_dumps()
+    )
+
+
+@pytest.mark.parametrize(
+    ("witness_id", "relative_path", "function_name", "left_clause_index", "module_name"),
+    ESCAPED_ADJACENT_SWAPS,
+)
+def test_overlap_witnesses_detect_every_previously_escaped_adjacent_swap(
+    monkeypatch: pytest.MonkeyPatch,
+    witness_id: str,
+    relative_path: str,
+    function_name: str,
+    left_clause_index: int,
+    module_name: str,
+) -> None:
+    fixture = _validation_fixture()
+    cases = cast(Sequence[Mapping[str, object]], fixture["cases"])
+    witness = next(
+        case
+        for case in cases[
+            OVERLAP_WITNESS_START_INDEX : OVERLAP_WITNESS_START_INDEX
+            + OVERLAP_WITNESS_CASE_COUNT
+        ]
+        if case["witness_id"] == witness_id
+    )
+    changes = cast(Mapping[str, object], witness["changes"])
+    expected = {
+        "exception_type": witness["exception_type"],
+        "message": witness["message"],
+    }
+    assert exception_observation(baseline_config_module().DEFAULT_CONFIG, changes) == expected
+    assert exception_observation(DEFAULT_CONFIG, changes) == expected
+
+    module = __import__(module_name, fromlist=[function_name])
+    mutated = _compiled_mutated_function(
+        relative_path,
+        function_name,
+        left_clause_index,
+        module,
+    )
+    monkeypatch.setattr(module, function_name, mutated)
+
+    assert exception_observation(DEFAULT_CONFIG, changes) != expected
 
 
 def test_every_pair_of_isolated_invalid_stimuli_preserves_first_failure_order() -> None:

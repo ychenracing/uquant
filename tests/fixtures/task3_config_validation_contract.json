@@ -5,8 +5,46 @@
     "baseline_path": "uquant/config.py",
     "isolated_case_count": 188,
     "order_probe_case_count": 7,
+    "order_probe_indexes": [
+      188,
+      189,
+      190,
+      191,
+      192,
+      193,
+      194
+    ],
+    "order_probe_start_index": 188,
+    "overlap_witness_case_count": 4,
+    "overlap_witness_indexes": [
+      195,
+      196,
+      197,
+      198
+    ],
+    "overlap_witness_start_index": 195,
+    "overlap_witnesses": [
+      {
+        "case_index": 195,
+        "witness_id": "leader-cycle-market-range-before-impulse-relation"
+      },
+      {
+        "case_index": 196,
+        "witness_id": "strategic-transition-max-range-before-inverted-range"
+      },
+      {
+        "case_index": 197,
+        "witness_id": "transition-range-before-repair-relation"
+      },
+      {
+        "case_index": 198,
+        "witness_id": "transition-repair-relation-before-chronic-window"
+      }
+    ],
     "pair_case_count": 17571,
-    "unknown_keyword_case_index": 195
+    "total_case_count": 200,
+    "unknown_keyword_case_index": 199,
+    "validation_clause_count": 159
   },
   "cases": [
     {
@@ -1387,11 +1425,49 @@
     },
     {
       "changes": {
+        "leader_cycle_min_market_ret120": -2.0
+      },
+      "exception_type": "ValueError",
+      "message": "leader_cycle_min_market_ret120 must be in (-1, 1)",
+      "witness_id": "leader-cycle-market-range-before-impulse-relation"
+    },
+    {
+      "changes": {
+        "strategic_transition_impulse_max_ret120": -1.0,
+        "strategic_transition_impulse_min_ret120": -0.5
+      },
+      "exception_type": "ValueError",
+      "message": "strategic_transition_impulse_max_ret120 must be in (-1, 1)",
+      "witness_id": "strategic-transition-max-range-before-inverted-range"
+    },
+    {
+      "changes": {
+        "transition_damage_freeze": {
+          "__task3_comparison_probe__": "range-and-relation"
+        }
+      },
+      "exception_type": "ValueError",
+      "message": "transition_damage_freeze must be in [0, 1]",
+      "witness_id": "transition-range-before-repair-relation"
+    },
+    {
+      "changes": {
+        "chronic_confirm_days": 2,
+        "transition_damage_freeze": {
+          "__task3_comparison_probe__": "relation-only"
+        }
+      },
+      "exception_type": "ValueError",
+      "message": "transition repair must be below freeze threshold",
+      "witness_id": "transition-repair-relation-before-chronic-window"
+    },
+    {
+      "changes": {
         "not_a_governed_parameter": true
       },
       "exception_type": "TypeError",
       "message": "SystemConfig.__init__() got an unexpected keyword argument 'not_a_governed_parameter'"
     }
   ],
-  "schema_version": 1
+  "schema_version": 2
 }

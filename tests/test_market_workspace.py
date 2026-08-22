@@ -1,9 +1,11 @@
 from __future__ import annotations
 
+import ast
 import hashlib
 import json
 import subprocess
 from pathlib import Path
+from types import SimpleNamespace
 from typing import Any
 
 import pandas as pd
@@ -42,6 +44,38 @@ def _captured(call: Any) -> dict[str, str]:
     except Exception as exc:
         return {"type": type(exc).__name__, "message": str(exc)}
     raise AssertionError("characterization call did not raise")
+
+
+def _outcome(call: Any) -> tuple[str, object]:
+    try:
+        return ("return", call())
+    except Exception as exc:
+        return ("exception", (type(exc).__name__, str(exc)))
+
+
+def _immutable_task1_price() -> Any:
+    metadata = _baseline()["baseline"]
+    source = subprocess.run(
+        ["git", "show", f"{metadata['commit']}:uquant/engine.py"],
+        cwd=ROOT,
+        check=True,
+        capture_output=True,
+        text=True,
+    ).stdout
+    tree = ast.parse(source, filename="immutable-task1:uquant/engine.py")
+    engine = next(
+        node
+        for node in tree.body
+        if isinstance(node, ast.ClassDef) and node.name == "ProductionEngine"
+    )
+    price = next(
+        node
+        for node in engine.body
+        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)) and node.name == "_price"
+    )
+    namespace: dict[str, object] = {"pd": pd}
+    exec(compile(ast.Module(body=[price], type_ignores=[]), "<immutable-task1-price>", "exec"), namespace)
+    return namespace["_price"]
 
 
 def _production_universe(*tradable: str) -> ReplayUniverse:
@@ -170,6 +204,36 @@ def test_workspace_load_features_price_sessions_and_manifest_match_task1_baselin
     assert len(sessions) == expected["common_sessions"]["count"]
     assert str(sessions[0].date()) == expected["common_sessions"]["first"]
     assert str(sessions[-1].date()) == expected["common_sessions"]["last"]
+
+
+@pytest.mark.parametrize(
+    ("symbol", "date", "field"),
+    (
+        ("sz300308", pd.Timestamp("2023-01-07"), "close"),
+        ("sz300308", pd.Timestamp("2023-01-06"), "open"),
+        ("SZ300308", pd.Timestamp("2023-01-07"), "close"),
+        ("300308", pd.Timestamp("2023-01-07"), "close"),
+        ("sh999999", pd.Timestamp("2023-01-07"), "close"),
+        ("SZ300308", pd.Timestamp("2000-01-01"), "missing"),
+        ("sh999999", pd.Timestamp("2000-01-01"), "missing"),
+        ("sz300308", pd.Timestamp("2000-01-01"), "missing"),
+        ("sz300308", pd.Timestamp("2023-01-07"), "missing"),
+    ),
+)
+def test_workspace_price_matches_immutable_task1_symbol_date_field_order(
+    symbol: str,
+    date: pd.Timestamp,
+    field: str,
+) -> None:
+    raw = DataStore(ROOT / "data" / "frozen").load("sz300308")
+    baseline = SimpleNamespace(_raw={"sz300308": raw})
+    task1_price = _immutable_task1_price()
+    workspace = MarketWorkspace(ROOT / "data" / "frozen", DEFAULT_CONFIG)
+    workspace.load(("sz300308",))
+
+    expected = _outcome(lambda: task1_price(baseline, symbol, date, field))
+    observed = _outcome(lambda: workspace.price(symbol, date, field))
+    assert observed == expected
 
 
 def test_workspace_reference_returns_and_manifest_match_task1_baseline() -> None:

@@ -142,12 +142,12 @@ class MarketWorkspace:
     ) -> float:
         """Return the latest visible field using the historical failure contract."""
 
-        normalized = normalize_symbol(symbol)
+        frame = self._raw[symbol]
         date = pd.Timestamp(as_of)
-        frame = self._raw[normalized].loc[:date]
-        if frame.empty:
-            raise RuntimeError(f"{normalized} has no mark price at {date.date()}")
-        return float(frame.iloc[-1][field])
+        visible = frame.loc[:date]
+        if visible.empty:
+            raise RuntimeError(f"{symbol} has no mark price at {date.date()}")
+        return float(visible.iloc[-1][field])
 
     def common_sessions(self, left: str, right: str) -> pd.DatetimeIndex:
         """Return the ordered intersection of two already loaded frames."""

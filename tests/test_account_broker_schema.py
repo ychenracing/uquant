@@ -470,6 +470,41 @@ def test_save_serializes_inside_the_atomic_writer(tmp_path, monkeypatch):
         save_account(state, tmp_path / "durable.json")
 
 
+def test_save_allocates_and_cleans_temporary_before_to_dict_descriptor_failure(
+    tmp_path,
+    monkeypatch,
+):
+    events: list[str] = []
+
+    class DescriptorFailureState(AccountState):
+        @property
+        def to_dict(self):
+            events.append("to_dict")
+            raise LookupError("descriptor failure")
+
+    original_mkstemp = atomic_files_module.tempfile.mkstemp
+    original_unlink = atomic_files_module.os.unlink
+
+    def observed_mkstemp(*args, **kwargs):
+        events.append("temporary")
+        return original_mkstemp(*args, **kwargs)
+
+    def observed_unlink(path):
+        events.append("cleanup")
+        return original_unlink(path)
+
+    monkeypatch.setattr(atomic_files_module.tempfile, "mkstemp", observed_mkstemp)
+    monkeypatch.setattr(atomic_files_module.os, "unlink", observed_unlink)
+    destination = tmp_path / "nested" / "durable.json"
+
+    with pytest.raises(LookupError, match="descriptor failure"):
+        save_account(DescriptorFailureState.empty(2_000_000.0), destination)
+
+    assert events == ["temporary", "to_dict", "cleanup"]
+    assert destination.parent.is_dir()
+    assert not destination.exists()
+
+
 @pytest.mark.parametrize(
     "mutate",
     [

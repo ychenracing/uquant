@@ -11,7 +11,7 @@ import stat
 import subprocess
 from collections.abc import Callable
 from pathlib import Path
-from typing import Any
+from typing import Any, get_type_hints
 
 import pytest
 
@@ -34,6 +34,28 @@ _V1_PLANNED_BYTES = (
     b'"slippage_per_share":null,"slippage_value":null,"status":"PLANNED",'
     b'"symbol":"sz300308"}\n'
 )
+
+_REQUIRED_IMMUTABLE_REFERENCES = {
+    "uquant/account.py": {
+        "artifacts/architecture_refactor/baseline_inventory.json",
+        "artifacts/phase2/ablations/registry.json",
+    },
+    "uquant/attribution.py": {
+        "artifacts/architecture_refactor/baseline_inventory.json",
+        "benchmarks/architecture_refactor_public_api.json",
+    },
+    "uquant/execution_journal.py": {
+        "artifacts/architecture_refactor/baseline_inventory.json",
+        "artifacts/phase2/ablations/post_task8_source_contract.json",
+        "uquant/cli.py",
+        "uquant/validation/holdout.py",
+    },
+    "uquant/validation/execution_journal.py": {
+        "artifacts/architecture_refactor/baseline_inventory.json",
+        "research/ablation_registry.py",
+        "uquant/validation/holdout.py",
+    },
+}
 
 
 def test_task5_cleanup_inventory_is_bound_to_immutable_start_blobs() -> None:
@@ -63,6 +85,27 @@ def test_task5_cleanup_inventory_is_bound_to_immutable_start_blobs() -> None:
             text=True,
         ).stdout.strip()
         assert observed_blob == entry["git_blob_sha1"]
+
+
+def test_task5_cleanup_inventory_covers_immutable_authority_references() -> None:
+    """Freeze authority/public references derived only from immutable 3af754e bytes."""
+
+    payload = json.loads(_INVENTORY.read_text(encoding="utf-8"))
+    assert payload["live_reference_derivation"]["immutable_commit"] == _TASK5_START
+    entries = {entry["path"]: entry for entry in payload["entries"]}
+    for replaced_path, required_references in _REQUIRED_IMMUTABLE_REFERENCES.items():
+        recorded = {
+            reference
+            for references in entries[replaced_path]["live_references"].values()
+            for reference in references
+        }
+        assert required_references <= recorded
+        for reference in required_references:
+            subprocess.run(
+                ["git", "cat-file", "-e", f"{_TASK5_START}:{reference}"],
+                cwd=ROOT,
+                check=True,
+            )
 
 
 def test_task5_private_edges_are_exactly_bound_to_the_mechanical_split() -> None:
@@ -175,6 +218,13 @@ def test_task5_public_objects_keep_legacy_module_and_pickle_identities() -> None
         assert type(restored).__module__ == type(value).__module__
         assert type(restored).__qualname__ == type(value).__qualname__
 
+    assert LegacyRecord.__annotations__["status"] == "JournalStatus"
+    assert get_type_hints(LegacyRecord)["status"] is LegacyStatus
+    assert LegacyRecord.__init__.__module__ == "uquant.execution_journal"
+    assert LegacyRecord.__init__.__qualname__ == "JournalRecord.__init__"
+    assert LegacyCheckpoint.__init__.__module__ == "uquant.execution_journal"
+    assert LegacyCheckpoint.__init__.__qualname__ == "JournalCheckpoint.__init__"
+
 
 @pytest.mark.parametrize(
     ("module_name", "owned_names"),
@@ -263,6 +313,93 @@ def test_historical_v1_golden_bytes_remain_readable(tmp_path: Path) -> None:
     assert len(records) == 1
     assert record_to_dict(records[0]) == json.loads(_V1_PLANNED_BYTES)
     assert path.read_bytes() == _V1_PLANNED_BYTES
+
+
+def test_legacy_v1_facade_preserves_frozen_decode_error_priority(tmp_path: Path) -> None:
+    from uquant.execution_journal import read_execution_journal as read_legacy
+    from uquant.observation.execution_journal import append_planned
+    from uquant.validation.execution_journal import read_execution_journal as read_current
+
+    v2_path = tmp_path / "canonical-v2.jsonl"
+    append_planned(
+        v2_path,
+        plan_id="canonical-plan-1",
+        recorded_at="2026-08-05T15:01:00+08:00",
+        decision_date="2026-08-05",
+        symbol="sz300308",
+        side="BUY",
+        planned_price=947.74,
+        planned_shares=100,
+    )
+    with pytest.raises(ValueError, match=r"^execution journal record schema is malformed$"):
+        read_legacy(v2_path)
+
+    malformed = json.loads(_V1_PLANNED_BYTES)
+    malformed["plan_id"] = " bad"
+    malformed["recorded_at"] = "not-a-time"
+    unsigned = {key: value for key, value in malformed.items() if key != "record_sha256"}
+    malformed["record_sha256"] = hashlib.sha256(
+        json.dumps(
+            unsigned,
+            allow_nan=False,
+            ensure_ascii=False,
+            separators=(",", ":"),
+            sort_keys=True,
+        ).encode("utf-8")
+    ).hexdigest()
+    malformed_path = tmp_path / "malformed-v1.jsonl"
+    malformed_path.write_text(
+        json.dumps(malformed, ensure_ascii=False, separators=(",", ":"), sort_keys=True) + "\n",
+        encoding="utf-8",
+    )
+    with pytest.raises(ValueError, match=r"^execution journal plan_id is malformed$"):
+        read_legacy(malformed_path)
+    with pytest.raises(ValueError, match=r"^journal recorded_at must be an ISO timestamp$"):
+        read_current(malformed_path)
+
+    version_mismatch = json.loads(_V1_PLANNED_BYTES)
+    version_mismatch["schema_version"] = 2
+    unsigned = {
+        key: value for key, value in version_mismatch.items() if key != "record_sha256"
+    }
+    version_mismatch["record_sha256"] = hashlib.sha256(
+        json.dumps(
+            unsigned,
+            allow_nan=False,
+            ensure_ascii=False,
+            separators=(",", ":"),
+            sort_keys=True,
+        ).encode("utf-8")
+    ).hexdigest()
+    mismatch_path = tmp_path / "v1-fields-v2-version.jsonl"
+    mismatch_path.write_text(
+        json.dumps(
+            version_mismatch,
+            ensure_ascii=False,
+            separators=(",", ":"),
+            sort_keys=True,
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    with pytest.raises(ValueError, match=r"^execution journal sequence is malformed$"):
+        read_legacy(mismatch_path)
+    with pytest.raises(ValueError, match=r"^execution journal record schema is malformed$"):
+        read_current(mismatch_path)
+
+
+def test_legacy_v1_records_keep_frozen_compact_report_columns(tmp_path: Path) -> None:
+    from uquant.execution_journal import read_execution_journal
+    from uquant.report import render_execution_journal
+
+    path = tmp_path / "historical-v1.jsonl"
+    path.write_bytes(_V1_PLANNED_BYTES)
+    assert render_execution_journal(read_execution_journal(path)) == (
+        "# Manual Execution Journal\n\n"
+        "| Seq | Plan | Status | Symbol | Side | Planned | Next open | Actual | Shares | Slippage | Note |\n"
+        "|---:|---|---|---|---|---:|---:|---:|---:|---:|---|\n"
+        "| 1 | frozen-plan-1 | PLANNED | sz300308 | BUY | 947.7400 |  |  |  |  |  |\n"
+    )
 
 
 def test_historical_v1_migration_is_explicit_and_writes_only_v2(tmp_path: Path) -> None:

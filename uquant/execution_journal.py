@@ -7,14 +7,12 @@ from pathlib import Path
 from typing import Any, cast
 
 from .observation.execution_journal import models as _models
+from .observation.execution_journal import store as _journal_store
 from .observation.execution_journal.checkpoint import (
     execution_journal_checkpoint as _canonical_checkpoint,
 )
 from .observation.execution_journal.models import (
     JournalCheckpoint as _CanonicalCheckpoint,
-)
-from .observation.execution_journal.store import (
-    read_execution_journal as _read_canonical_journal,
 )
 
 JournalCheckpoint = _models.LegacyJournalCheckpoint
@@ -51,7 +49,14 @@ for _type, _name in (
     _type.__qualname__ = _name
     _type.__module__ = __name__
 JournalRecord.__dataclass_fields__["status"].type = "JournalStatus"
+JournalRecord.__annotations__["status"] = "JournalStatus"
 JournalRecord.__init__.__annotations__["status"] = "JournalStatus"
+for _type, _name in (
+    (JournalCheckpoint, "JournalCheckpoint"),
+    (JournalRecord, "JournalRecord"),
+):
+    _type.__init__.__module__ = __name__
+    _type.__init__.__qualname__ = f"{_name}.__init__"
 
 
 def _legacy_record(record: Any) -> JournalRecord:
@@ -150,9 +155,10 @@ def read_execution_journal(
             record_sha256=trusted_checkpoint.record_sha256,
         )
     )
-    records = _read_canonical_journal(path, trusted_checkpoint=canonical_checkpoint)
-    if any(record.schema_version != 1 for record in records):
-        raise ValueError("v1 execution journal facade cannot read v2 records")
+    records = _journal_store._read_legacy_v1_execution_journal(
+        path,
+        trusted_checkpoint=canonical_checkpoint,
+    )
     return tuple(_legacy_record(record) for record in records)
 
 

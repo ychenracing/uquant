@@ -25,6 +25,6 @@ def save_account(state: AccountState, path: str | Path) -> None:
     _validate_lot_origin_chains(state)
     atomic_write_json_with_mode(
         path,
-        state.to_dict,
+        lambda: state.to_dict(),
         mode=0o600,
     )

@@ -51,9 +51,18 @@ def _positive_shares(value: int, *, field: str) -> int:
     return value
 
 
-def _validate_record(record: JournalRecord) -> None:
-    if not _PLAN_ID.fullmatch(record.plan_id):
+def validate_plan_id(value: str) -> None:
+    if not _PLAN_ID.fullmatch(value):
         raise ValueError("execution journal plan_id is malformed")
+
+
+def _validate_record(
+    record: JournalRecord,
+    *,
+    plan_id_validated: bool = False,
+) -> None:
+    if not plan_id_validated:
+        validate_plan_id(record.plan_id)
     recorded_at = _timestamp(record.recorded_at, field="recorded_at")
     decision_date = _date(record.decision_date, field="decision_date")
     if decision_date > recorded_at.date():

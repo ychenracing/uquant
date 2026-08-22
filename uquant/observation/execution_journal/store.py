@@ -18,17 +18,23 @@ from uquant.infrastructure.file_lock import (
 )
 
 from .checkpoint import verify_checkpoint
+from .codec_v1 import decode_legacy_v1_record
 from .codec_v2 import decode_record, encode_v2_record, event_payload
 from .lifecycle import _positive_number, _positive_shares, _timestamp, validate_lifecycle
 from .models import _ZERO_HASH, JournalCheckpoint, JournalRecord, JournalStatus
 
 
-def _decode_journal_text(text: str) -> tuple[JournalRecord, ...]:
+def _decode_journal_text(
+    text: str,
+    *,
+    legacy_v1_contract: bool = False,
+) -> tuple[JournalRecord, ...]:
     records: list[JournalRecord] = []
     previous = _ZERO_HASH
     lines = text.splitlines()
     if any(not line.strip() for line in lines):
         raise ValueError("execution journal contains an empty record")
+    decoder = decode_legacy_v1_record if legacy_v1_contract else decode_record
     for sequence, line in enumerate(lines, start=1):
         try:
             raw = json.loads(
@@ -37,29 +43,35 @@ def _decode_journal_text(text: str) -> tuple[JournalRecord, ...]:
             )
         except (json.JSONDecodeError, ValueError) as exc:
             raise ValueError("execution journal contains invalid JSON") from exc
-        record = decode_record(raw, previous=previous, sequence=sequence)
+        record = decoder(raw, previous=previous, sequence=sequence)
         records.append(record)
         previous = record.record_sha256
     validate_lifecycle(records)
     return tuple(records)
 
 
-def _read_descriptor(descriptor: int) -> tuple[JournalRecord, ...]:
+def _read_descriptor(
+    descriptor: int,
+    *,
+    legacy_v1_contract: bool = False,
+) -> tuple[JournalRecord, ...]:
     os.lseek(descriptor, 0, os.SEEK_SET)
     try:
         with os.fdopen(os.dup(descriptor), "r", encoding="utf-8") as handle:
-            return _decode_journal_text(handle.read())
+            return _decode_journal_text(
+                handle.read(),
+                legacy_v1_contract=legacy_v1_contract,
+            )
     except (OSError, UnicodeError) as exc:
         raise ValueError("execution journal is unreadable") from exc
 
 
-def read_execution_journal(
+def _read_execution_journal(
     path: str | Path,
     *,
-    trusted_checkpoint: JournalCheckpoint | None = None,
+    trusted_checkpoint: JournalCheckpoint | None,
+    legacy_v1_contract: bool,
 ) -> tuple[JournalRecord, ...]:
-    """Validate the journal, plus continuity from an externally retained tail."""
-
     source = Path(path)
     flags = os.O_RDONLY | getattr(os, "O_NOFOLLOW", 0)
     try:
@@ -74,13 +86,44 @@ def read_execution_journal(
         acquire_file_lock(descriptor, FileLockMode.SHARED)
         if not stat.S_ISREG(os.fstat(descriptor).st_mode):
             raise ValueError("execution journal must be a regular file")
-        records = _read_descriptor(descriptor)
+        records = _read_descriptor(
+            descriptor,
+            legacy_v1_contract=legacy_v1_contract,
+        )
         verify_checkpoint(records, trusted_checkpoint)
         return records
     finally:
         with suppress(OSError):
             release_file_lock(descriptor)
         os.close(descriptor)
+
+
+def read_execution_journal(
+    path: str | Path,
+    *,
+    trusted_checkpoint: JournalCheckpoint | None = None,
+) -> tuple[JournalRecord, ...]:
+    """Validate the journal, plus continuity from an externally retained tail."""
+
+    return _read_execution_journal(
+        path,
+        trusted_checkpoint=trusted_checkpoint,
+        legacy_v1_contract=False,
+    )
+
+
+def _read_legacy_v1_execution_journal(
+    path: str | Path,
+    *,
+    trusted_checkpoint: JournalCheckpoint | None = None,
+) -> tuple[JournalRecord, ...]:
+    """Read through the frozen historical-v1 compatibility profile."""
+
+    return _read_execution_journal(
+        path,
+        trusted_checkpoint=trusted_checkpoint,
+        legacy_v1_contract=True,
+    )
 
 
 PayloadFactory = Callable[[tuple[JournalRecord, ...]], dict[str, Any]]

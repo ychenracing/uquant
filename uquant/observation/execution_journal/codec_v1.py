@@ -6,7 +6,7 @@ import hashlib
 import json
 from typing import Any
 
-from .lifecycle import _timestamp, _validate_record
+from .lifecycle import _timestamp, _validate_record, validate_plan_id
 from .models import _SHA256, _V1_FIELDS, JournalRecord, JournalStatus
 
 
@@ -32,12 +32,21 @@ def hash_record(value: dict[str, Any]) -> str:
     return hashlib.sha256(canonical_record_bytes(value, omit_hash=True)).hexdigest()
 
 
-def decode_v1_record(raw: Any, *, previous: str, sequence: int) -> JournalRecord:
-    """Decode and validate one historical v1 record without exposing a writer."""
-
-    if not isinstance(raw, dict) or raw.get("schema_version") != 1 or set(raw) != _V1_FIELDS:
+def _decode_v1_record(
+    raw: Any,
+    *,
+    previous: str,
+    sequence: int,
+    legacy_contract: bool,
+) -> JournalRecord:
+    if legacy_contract:
+        if not isinstance(raw, dict) or set(raw) != _V1_FIELDS:
+            raise ValueError("execution journal record schema is malformed")
+        if raw["schema_version"] != 1 or raw["sequence"] != sequence:
+            raise ValueError("execution journal sequence is malformed")
+    elif not isinstance(raw, dict) or raw.get("schema_version") != 1 or set(raw) != _V1_FIELDS:
         raise ValueError("execution journal record schema is malformed")
-    if raw["sequence"] != sequence:
+    elif raw["sequence"] != sequence:
         raise ValueError("execution journal sequence is malformed")
     if raw["previous_sha256"] != previous or not _SHA256.fullmatch(str(raw["record_sha256"])):
         raise ValueError("execution journal hash chain is malformed")
@@ -47,6 +56,8 @@ def decode_v1_record(raw: Any, *, previous: str, sequence: int) -> JournalRecord
         status = JournalStatus(raw["status"])
     except (TypeError, ValueError) as exc:
         raise ValueError("execution journal status is invalid") from exc
+    if legacy_contract:
+        validate_plan_id(raw["plan_id"])
     recorded_date = _timestamp(raw["recorded_at"], field="recorded_at").date().isoformat()
     record = JournalRecord(
         **{**raw, "status": status},
@@ -54,5 +65,27 @@ def decode_v1_record(raw: Any, *, previous: str, sequence: int) -> JournalRecord
         planned_weight=None,
         broker_order_id=None,
     )
-    _validate_record(record)
+    _validate_record(record, plan_id_validated=legacy_contract)
     return record
+
+
+def decode_v1_record(raw: Any, *, previous: str, sequence: int) -> JournalRecord:
+    """Decode and validate one historical v1 record without exposing a writer."""
+
+    return _decode_v1_record(
+        raw,
+        previous=previous,
+        sequence=sequence,
+        legacy_contract=False,
+    )
+
+
+def decode_legacy_v1_record(raw: Any, *, previous: str, sequence: int) -> JournalRecord:
+    """Decode with the frozen error precedence of the historical v1 facade."""
+
+    return _decode_v1_record(
+        raw,
+        previous=previous,
+        sequence=sequence,
+        legacy_contract=True,
+    )

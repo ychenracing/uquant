@@ -26,7 +26,7 @@ def render_compact_execution_journal(records: tuple[JournalRecord, ...]) -> str:
         )
 
     for item in records:
-        if item.status is JournalStatus.PLANNED:
+        if item.status.value == JournalStatus.PLANNED.value:
             plans[item.plan_id] = item
         plan = plans.get(item.plan_id)
         symbol = plan.symbol if plan is not None else None
@@ -79,7 +79,7 @@ def render_execution_journal(records: tuple[JournalRecord, ...]) -> str:
         )
 
     for item in records:
-        if item.status is JournalStatus.PLANNED:
+        if item.status.value == JournalStatus.PLANNED.value:
             plans[item.plan_id] = item
         plan = plans.get(item.plan_id)
         slippage = "" if item.slippage_bps is None else f"{item.slippage_bps:.4f} bps"

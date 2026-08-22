@@ -13,10 +13,10 @@ from types import SimpleNamespace
 import pandas as pd
 import pytest
 
-import uquant.infrastructure.atomic_io as atomic_io_module
+import uquant.infrastructure.atomic_files as atomic_io_module
 import uquant.validation as validation_package
 from uquant.data import DataContractError
-from uquant.infrastructure.atomic_io import (
+from uquant.infrastructure.atomic_files import (
     _aliases,
     _fsync_directory,
     atomic_write_bytes,

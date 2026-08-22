@@ -11,9 +11,9 @@ import numpy as np
 import pandas as pd
 
 from uquant.config import SystemConfig
+from uquant.contracts.universe import AIUniverse
 from uquant.features import scalar
 from uquant.market_risk import build_base_market_family_snapshot
-from uquant.validation.universe import AIUniverse
 
 from .coverage import assess_coverage, build_coverage_health
 from .evidence import NameMarketEvidence, build_market_evidence_from_observations

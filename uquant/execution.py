@@ -13,6 +13,7 @@ import pandas as pd
 
 from .account import validate_pending_order_for_account_write
 from .config import SystemConfig
+from .contracts.universe import REQUIRED_AI_UNIVERSE_SHA256, default_ai_universe
 from .features import scalar
 from .portfolio_core import symbol_weight_cap
 from .types import (
@@ -34,7 +35,6 @@ from .types import (
     order_intent_metadata,
     validate_attribution_compatibility,
 )
-from .validation.universe import REQUIRED_AI_UNIVERSE_SHA256, default_ai_universe
 
 
 def fee_components(side: str, gross: float, cfg: SystemConfig) -> tuple[float, float, float]:

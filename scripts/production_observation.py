@@ -415,17 +415,43 @@ def _observation_lock(root: Path, account: Path) -> Iterator[None]:
     _reject_symlink_chain(lock_path, label="production observation lock")
     flags = os.O_RDWR | os.O_CREAT | getattr(os, "O_NOFOLLOW", 0)
     descriptor = os.open(lock_path, flags, 0o600)
+    acquired = False
+    primary_error: BaseException | None = None
     try:
         metadata = os.fstat(descriptor)
         if not stat.S_ISREG(metadata.st_mode):
             raise ValueError("production observation lock must be a regular file")
         acquire_file_lock(descriptor, FileLockMode.EXCLUSIVE)
+        acquired = True
         yield
+    except BaseException as error:
+        primary_error = error
+        raise
     finally:
+        cleanup_errors: list[tuple[str, BaseException]] = []
+        if acquired:
+            try:
+                release_file_lock(descriptor)
+            except BaseException as cleanup_error:
+                cleanup_errors.append(("lock cleanup", cleanup_error))
         try:
-            release_file_lock(descriptor)
-        finally:
             os.close(descriptor)
+        except BaseException as cleanup_error:
+            cleanup_errors.append(("descriptor cleanup", cleanup_error))
+        if primary_error is not None:
+            for label, failure in cleanup_errors:
+                primary_error.add_note(
+                    f"production observation {label} also failed: "
+                    f"{type(failure).__name__}: {failure}"
+                )
+        elif cleanup_errors:
+            _, first_failure = cleanup_errors[0]
+            for later_label, later_error in cleanup_errors[1:]:
+                first_failure.add_note(
+                    f"production observation {later_label} also failed: "
+                    f"{type(later_error).__name__}: {later_error}"
+                )
+            raise first_failure
 
 
 def _require_physical_directory(path: Path, *, label: str) -> None:

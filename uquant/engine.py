@@ -28,6 +28,12 @@ from .config import (
     config_fingerprint,
 )
 from .config_governance import DEFAULT_GOVERNANCE_PATH
+from .contracts.runtime_identity import require_ai_era_interval
+from .contracts.universe import (
+    REQUIRED_AI_UNIVERSE_SHA256,
+    AIUniverse,
+    default_ai_universe,
+)
 from .data import DataStore, normalize_symbol
 from .execution import (
     ExecutionPlanner,
@@ -70,12 +76,6 @@ from .types import (
     Side,
     Target,
     derive_attribution_event_id,
-)
-from .validation.ai_era import require_ai_era_interval
-from .validation.universe import (
-    REQUIRED_AI_UNIVERSE_SHA256,
-    AIUniverse,
-    default_ai_universe,
 )
 
 INDEX_SYMBOLS = ("sh000300", "sh000682")

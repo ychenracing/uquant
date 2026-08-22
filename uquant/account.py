@@ -16,6 +16,11 @@ from pathlib import Path
 from types import SimpleNamespace
 from typing import Any
 
+from .contracts.universe import (
+    CANONICAL_INDUSTRIES,
+    REQUIRED_AI_UNIVERSE_SHA256,
+    default_ai_universe,
+)
 from .types import (
     ACCOUNT_SCHEMA_VERSION,
     ATTRIBUTION_IDENTITY_FIELDS,
@@ -37,11 +42,6 @@ from .types import (
     derive_attribution_event_id,
     order_intent_metadata,
     validate_attribution_compatibility,
-)
-from .validation.universe import (
-    CANONICAL_INDUSTRIES,
-    REQUIRED_AI_UNIVERSE_SHA256,
-    default_ai_universe,
 )
 
 _EVENT_ID = re.compile(r"^evt_[0-9a-f]{64}$")

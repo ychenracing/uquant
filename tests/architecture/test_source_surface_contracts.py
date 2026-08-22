@@ -1,7 +1,9 @@
 from __future__ import annotations
 
+import tomllib
+
 from uquant.contracts.source_surfaces import SOURCE_SURFACE_IDS
-from uquant.provenance.source_surfaces import load_source_surface_registry
+from uquant.provenance.surfaces import load_source_surface_registry
 
 from ._analysis import MODULE_AUTHORITIES, ROOT, architecture_snapshot, module_name
 
@@ -44,16 +46,50 @@ def test_reviewed_source_registry_uses_exact_physical_paths() -> None:
     assert "requirements.txt" in registry.surface("full_package_v1").resource_paths
 
 
-def test_full_package_surface_covers_every_owned_python_source() -> None:
+def test_full_package_surface_matches_declared_distribution_inputs() -> None:
+    """Breaks if release provenance drifts from package discovery or package data."""
     registry = load_source_surface_registry(ROOT)
-    expected = {
+    configuration = tomllib.loads((ROOT / "pyproject.toml").read_text(encoding="utf-8"))
+    setuptools = configuration["tool"]["setuptools"]
+    includes = setuptools["packages"]["find"]["include"]
+    assert includes == ["uquant*", "research*"]
+    package_roots = tuple(ROOT / pattern.removesuffix("*") for pattern in includes)
+    expected_sources = {
         path.relative_to(ROOT).as_posix()
-        for parent in (ROOT / "uquant", ROOT / "research", ROOT / "scripts")
-        for path in parent.rglob("*.py")
+        for package_root in package_roots
+        for path in package_root.rglob("*.py")
+        if path.is_file()
+    }
+    expected_package_data = {
+        path.relative_to(ROOT).as_posix()
+        for package, patterns in setuptools["package-data"].items()
+        for pattern in patterns
+        for path in (ROOT.joinpath(*package.split("."))).glob(pattern)
+        if path.is_file()
+    }
+    readme = configuration["project"]["readme"]
+    license_files = configuration["project"]["license-files"]
+    expected_resources = expected_package_data | {
+        str(readme),
+        *(str(path) for path in license_files),
+        "benchmarks/source_surface_registry.json",
+        "pyproject.toml",
+        "requirements.txt",
+        "uv.lock",
+    }
+
+    full_package = registry.surface("full_package_v1")
+    validation_runner = registry.surface("validation_runner_v1")
+    script_sources = {
+        path.relative_to(ROOT).as_posix()
+        for path in (ROOT / "scripts").rglob("*.py")
         if path.is_file()
     }
 
-    assert set(registry.surface("full_package_v1").source_paths) == expected
+    assert set(full_package.source_paths) == expected_sources
+    assert set(full_package.resource_paths) == expected_resources
+    assert script_sources <= set(validation_runner.source_paths)
+    assert script_sources.isdisjoint(full_package.source_paths)
 
 
 def test_economic_surface_covers_runtime_imports_without_runner_authority() -> None:
@@ -63,10 +99,11 @@ def test_economic_surface_covers_runtime_imports_without_runner_authority() -> N
     closure = _production_closure("uquant", "uquant.engine")
 
     assert closure <= economic_modules
+    assert not any(module.startswith("uquant.validation") for module in closure)
     assert all(MODULE_AUTHORITIES[module] == "production_safe" for module in economic_modules)
     assert not any(
-        relative.startswith(("research/", "scripts/", "tests/"))
-        for relative in economic.source_paths
+        relative.startswith(("research/", "scripts/", "tests/", "uquant/validation/"))
+        for relative in economic.paths
     )
     assert "uquant.validation" not in economic_modules
     assert "uquant.risk_sentinel.cli" not in economic_modules

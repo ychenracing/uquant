@@ -5,14 +5,14 @@ import json
 
 import pytest
 
-from uquant.contracts.json import (
-    canonical_json_bytes,
-    canonical_json_sha256,
-    strict_json_loads,
-)
 from uquant.contracts.source_surfaces import (
     SOURCE_SURFACE_IDS,
     parse_source_surface_registry,
+)
+from uquant.contracts.strict_json import (
+    canonical_json_bytes,
+    canonical_json_sha256,
+    strict_json_loads,
 )
 
 _MINIMAL_REGISTRY_SEAL = "93debfcb71ff35b020a9f9156f744a03772fdd9083fab690c0bff90bdd8919ee"

@@ -106,3 +106,19 @@ def test_runtime_provenance_binds_python_numeric_stack_and_lockfile() -> None:
         "uv_version": "0.11.33",
         "uv_lock_sha256": hashlib.sha256((root / "uv.lock").read_bytes()).hexdigest(),
     }
+
+
+def test_validation_ai_era_is_a_compatible_view_of_runtime_identity() -> None:
+    """Breaks if legacy and production interval/runtime behavior can diverge."""
+    from uquant.contracts import runtime_identity as production_contract
+    from uquant.validation import ai_era as compatibility_contract
+
+    assert compatibility_contract.AI_ERA_START is production_contract.AI_ERA_START
+    assert compatibility_contract.AI_ERA_WINDOWS is production_contract.AI_ERA_WINDOWS
+    assert compatibility_contract.AI_ERA_ACUTE_WINDOWS is production_contract.AI_ERA_ACUTE_WINDOWS
+    assert compatibility_contract.require_ai_era_interval is (
+        production_contract.require_ai_era_interval
+    )
+    assert compatibility_contract.runtime_environment_provenance is (
+        production_contract.runtime_environment_provenance
+    )

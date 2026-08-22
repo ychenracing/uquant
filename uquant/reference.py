@@ -10,9 +10,9 @@ import numpy as np
 import pandas as pd
 
 from .config import SystemConfig
+from .contracts.universe import default_ai_universe
 from .features import scalar
 from .industry import compute_industry_signals
-from .validation.universe import default_ai_universe
 
 
 def production_reference_symbols() -> tuple[str, ...]:

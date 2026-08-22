@@ -8,7 +8,7 @@ from dataclasses import dataclass
 from pathlib import PurePosixPath
 from typing import Final, cast
 
-from .json import canonical_json_sha256, strict_json_loads
+from .strict_json import canonical_json_sha256, strict_json_loads
 
 SOURCE_SURFACE_IDS: Final = (
     "economic_decision_v1",

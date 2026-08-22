@@ -16,6 +16,7 @@ from .account import (
     _validate_strategy_risk_state,
 )
 from .config import DEFAULT_CONFIG, SystemConfig
+from .contracts.universe import REQUIRED_AI_UNIVERSE_SHA256, default_ai_universe
 from .data import normalize_symbol
 from .execution import _allocate_sell_costs, risk_priority_tranche_key
 from .types import (
@@ -34,7 +35,6 @@ from .types import (
     derive_attribution_event_id,
     order_intent_metadata,
 )
-from .validation.universe import REQUIRED_AI_UNIVERSE_SHA256, default_ai_universe
 
 
 def _broker_reconciliation_identity(

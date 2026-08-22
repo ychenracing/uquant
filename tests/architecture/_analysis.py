@@ -52,7 +52,10 @@ MODULE_AUTHORITIES = {
     "uquant.config_governance": "production_safe",
     "uquant.contracts": "production_safe",
     "uquant.contracts.json": "production_safe",
+    "uquant.contracts.runtime_identity": "production_safe",
     "uquant.contracts.source_surfaces": "production_safe",
+    "uquant.contracts.strict_json": "production_safe",
+    "uquant.contracts.universe": "production_safe",
     "uquant.data": "production_safe",
     "uquant.engine": "production_safe",
     "uquant.execution": "production_safe",
@@ -60,8 +63,10 @@ MODULE_AUTHORITIES = {
     "uquant.features": "production_safe",
     "uquant.industry": "production_safe",
     "uquant.infrastructure": "production_safe",
+    "uquant.infrastructure.atomic_files": "production_safe",
     "uquant.infrastructure.atomic_io": "production_safe",
     "uquant.infrastructure.file_lock": "production_safe",
+    "uquant.infrastructure.git_source": "production_safe",
     "uquant.leader": "production_safe",
     "uquant.market_risk": "production_safe",
     "uquant.opportunity": "production_safe",
@@ -71,7 +76,9 @@ MODULE_AUTHORITIES = {
     "uquant.portfolio_recovery": "production_safe",
     "uquant.portfolio_strategic": "production_safe",
     "uquant.provenance": "production_safe",
+    "uquant.provenance.fingerprints": "production_safe",
     "uquant.provenance.source_surfaces": "production_safe",
+    "uquant.provenance.surfaces": "production_safe",
     "uquant.reference": "production_safe",
     "uquant.reference_registry": "production_safe",
     "uquant.report": "production_safe",
@@ -115,6 +122,16 @@ MODULE_AUTHORITIES = {
 _MODULE_AUTHORITY_VALUES = {"production_safe", "validation_runner", "cli_runner"}
 _NONPRODUCTION_IMPORT_AUTHORITIES = {"operator_script", "research", "test"}
 _RUNNER_AUTHORITIES = {"cli_runner", "validation_runner"}
+
+# Task 2 mechanically relocates these implementations while the immutable Task 1
+# debt and public-API identities continue to name their compatibility paths.
+_CONTRACT_RELOCATIONS = {
+    "uquant.contracts.runtime_identity": "uquant.validation.ai_era",
+    "uquant.contracts.universe": "uquant.validation.universe",
+}
+_PUBLIC_API_IMPLEMENTATIONS = {
+    legacy: current for current, legacy in _CONTRACT_RELOCATIONS.items()
+}
 
 _MUTABLE_CALLS = {
     "collections.defaultdict",
@@ -768,14 +785,21 @@ def measured_debt(snapshot: Mapping[str, object]) -> dict[str, list[dict[str, ob
     assert isinstance(imports, Mapping)
     assert isinstance(helpers, Mapping)
     assert isinstance(type_ignores, list)
+
+    def debt_id(identifier: object) -> str:
+        value = str(identifier)
+        module, separator, suffix = value.partition(":")
+        legacy = _CONTRACT_RELOCATIONS.get(module, module)
+        return f"{legacy}{separator}{suffix}"
+
     oversized = [
-        {"id": module, "path": row["path"], "measured_lines": row["lines"]}
+        {"id": debt_id(module), "path": row["path"], "measured_lines": row["lines"]}
         for module, row in modules.items()
         if isinstance(row, Mapping) and int(row["lines"]) > FINAL_BUDGETS["max_module_lines"]
     ]
     long_functions = [
         {
-            "id": row["id"],
+            "id": debt_id(row["id"]),
             "path": row["path"],
             "qualname": row["qualname"],
             "measured_lines": row["lines"],
@@ -785,7 +809,7 @@ def measured_debt(snapshot: Mapping[str, object]) -> dict[str, list[dict[str, ob
     ]
     branchy_functions = [
         {
-            "id": row["id"],
+            "id": debt_id(row["id"]),
             "path": row["path"],
             "qualname": row["qualname"],
             "measured_branch_points": row["branch_points"],
@@ -795,7 +819,7 @@ def measured_debt(snapshot: Mapping[str, object]) -> dict[str, list[dict[str, ob
     ]
     mutable_globals = [
         {
-            "id": row["id"],
+            "id": debt_id(row["id"]),
             "path": row["path"],
             "name": row["name"],
             "mutable_initializer": row["mutable_initializer"],
@@ -932,7 +956,13 @@ def public_module_contract(module: str, root: Path = ROOT) -> dict[str, object]:
     module_path = root / relative.with_suffix(".py")
     if not module_path.exists():
         module_path = root / relative / "__init__.py"
-    names = _source_public_names(module_path, imported)
+    implementation = _PUBLIC_API_IMPLEMENTATIONS.get(module)
+    names_path = (
+        root / Path(*implementation.split(".")).with_suffix(".py")
+        if implementation is not None
+        else module_path
+    )
+    names = _source_public_names(names_path, imported)
     callables: dict[str, object] = {}
     classes: dict[str, object] = {}
     dataclass_contracts: dict[str, object] = {}

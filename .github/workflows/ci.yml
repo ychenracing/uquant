@@ -81,18 +81,35 @@ jobs:
           --cache-dir /tmp/uquant-pip-audit-cache
           --requirement /tmp/uquant-requirements.txt
 
+  windows_smoke:
+    name: Windows smoke
+    runs-on: windows-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
+        with:
+          python-version: "3.12.13"
+      - name: Install uv
+        run: python -m pip install --disable-pip-version-check "uv==${env:UV_VERSION}"
+      - name: Sync locked production environment
+        run: uv sync --frozen
+      - name: Native Windows imports, CLIs, journal, and lock contention
+        run: uv run --no-sync python tests/windows_ci_smoke.py
+
   engineering:
     name: Engineering
     if: ${{ always() }}
-    needs: [quality, security]
+    needs: [quality, security, windows_smoke]
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
-      - name: Require quality and security
+      - name: Require quality, security, and Windows smoke
         run: |
           quality='${{ needs.quality.result }}'
           security='${{ needs.security.result }}'
-          if [ "$quality" != "success" ] || [ "$security" != "success" ]; then
-            echo "Engineering failed: quality=$quality security=$security"
+          windows_smoke='${{ needs.windows_smoke.result }}'
+          if [ "$quality" != "success" ] || [ "$security" != "success" ] || [ "$windows_smoke" != "success" ]; then
+            echo "Engineering failed: quality=$quality security=$security windows_smoke=$windows_smoke"
             exit 1
           fi

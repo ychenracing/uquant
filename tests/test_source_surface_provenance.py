@@ -1,16 +1,17 @@
 from __future__ import annotations
 
+import json
 import subprocess
 from pathlib import Path
 
 import pytest
 
-from uquant.contracts.json import canonical_json_bytes, canonical_json_sha256
-from uquant.provenance.source_surfaces import (
+from uquant.contracts.strict_json import canonical_json_bytes, canonical_json_sha256
+from uquant.provenance.fingerprints import (
     git_source_surface_fingerprint,
-    load_source_surface_registry,
     source_surface_fingerprint,
 )
+from uquant.provenance.surfaces import load_source_surface_registry
 
 
 def _write_registry(
@@ -20,6 +21,7 @@ def _write_registry(
     economic_resources: tuple[str, ...] = (
         "benchmarks/config_parameter_governance.json",
     ),
+    full_resources: tuple[str, ...] = ("pyproject.toml", "requirements.txt", "uv.lock"),
 ) -> Path:
     surfaces = [
         {
@@ -45,7 +47,7 @@ def _write_registry(
         {
             "id": "full_package_v1",
             "source_paths": ["uquant/__init__.py"],
-            "resource_paths": ["pyproject.toml", "requirements.txt", "uv.lock"],
+            "resource_paths": list(full_resources),
         },
     ]
     unsealed: dict[str, object] = {
@@ -155,3 +157,31 @@ def test_registry_loader_is_strict_for_worktree_and_git_documents(tmp_path: Path
     registry_path.write_text(text.replace('"registry_version":2', '"registry_version":NaN'))
     with pytest.raises(ValueError, match="nonstandard JSON constant"):
         load_source_surface_registry(tmp_path)
+
+
+def test_full_package_fingerprint_includes_its_sealed_registry_without_recursion(
+    tmp_path: Path,
+) -> None:
+    """Breaks if registry self-membership is omitted or needs a recursive digest."""
+    _git(tmp_path, "init", "-q")
+    _git(tmp_path, "config", "user.email", "uquant-tests@example.invalid")
+    _git(tmp_path, "config", "user.name", "uquant tests")
+    registry_path = _write_registry(
+        tmp_path,
+        full_resources=("benchmarks/source_surface_registry.json",),
+    )
+    package = tmp_path / "uquant/__init__.py"
+    package.parent.mkdir(parents=True, exist_ok=True)
+    package.write_bytes(b"package-v1\n")
+    expected = source_surface_fingerprint(tmp_path, "full_package_v1")
+    _git(tmp_path, "add", ".")
+    _git(tmp_path, "commit", "-qm", "self-membered registry")
+
+    payload = json.loads(registry_path.read_bytes())
+    registry_path.write_text(
+        json.dumps(payload, ensure_ascii=False, indent=2, sort_keys=True) + "\n",
+        encoding="utf-8",
+    )
+
+    assert source_surface_fingerprint(tmp_path, "full_package_v1") != expected
+    assert git_source_surface_fingerprint(tmp_path, "HEAD", "full_package_v1") == expected

@@ -35,10 +35,11 @@ uquant 是专门面向 2023 年以来 A 股 AI 产业链的日频量化决策系
 
 ## 验证与演进边界
 
-生产与泛化共用 `uquant/validation/resources/ai_universe_manifest.json` 中经过内容摘要
-保护的 34 只 A 股 AI 产业链证券及其点时行业归属；消费、白酒、新能源或宽基股票
-不进入可交易全集。每天仍由使用者人工运行、核对并辅助下单，研究和 CI 不会改变
-这一定位。2023 年以前的行始终只是 warm-up。
+生产与泛化共用 `uquant/contracts/resources/ai_universe_manifest.json` 中经过内容摘要
+保护的 34 只 A 股 AI 产业链证券及其点时行业归属；旧的 `uquant.validation` 导入与
+资源路径保留为兼容入口。消费、白酒、新能源或宽基股票不进入可交易全集。每天仍
+由使用者人工运行、核对并辅助下单，研究和 CI 不会改变这一定位。2023 年以前的行
+始终只是 warm-up。
 
 Phase 2 Generalization 在六个官方窗口分别保留完整全集、逐一/全部移除三只核心、
 去 optical、行业均衡、有效子行业和固定随机池。随机契约只允许基准种子 `20260810`、

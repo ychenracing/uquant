@@ -22,6 +22,17 @@ from ._analysis import (
     architecture_snapshot,
     measured_debt,
 )
+from ._task7_immutable_trace import assert_trace_seals, immutable_trace_from_archive
+from ._task7_ownership import (
+    OrchestrationCall,
+    StageSlice,
+    assert_stage_call,
+    ast_dump,
+    field_unpacks,
+    normalized_stage_statements,
+    same_fields,
+    same_keywords,
+)
 from ._task7_risk_trace import _RISK_ACCOUNT_FIELDS, risk_trace_replay
 
 _TASK7_START = "36bc6968ee61eb578a8f19ee132aecb9b03fe7ca"
@@ -31,6 +42,10 @@ _RISK_SHA256 = "74dd564b300e0b48e2a788c7be289e98bb033cf97d5b806c585f04e087ed36dd
 _RISK_BYTES = 94_481
 _INVENTORY = ROOT / "artifacts" / "architecture_refactor" / "task7_cleanup_inventory.json"
 _DAILY_TRACE = ROOT / "benchmarks" / "task7_daily_risk_trace.json"
+_TRACE_RUNNER = ROOT / "tests" / "architecture" / "_task7_risk_trace.py"
+_TRACE_RUNNER_SHA256 = "cc81e38b79296746d473406be8a649657a8a35efa42cbe7b8b845dd9767d5a2f"
+_TRACE_LOGIC_COMMIT = "13feebe2f68fda0815a3cf507c3d7e15b4c5db14"
+_TRACE_LOGIC_BLOB = "81c805b8bc39d30b86911484ee266dec156260be"
 
 _RISK_PACKAGE_PATHS = {
     "uquant/risk/__init__.py",
@@ -79,6 +94,274 @@ _COMPATIBILITY_NAMES = {
     "_update_dynamic_anchors",
     "assess_risk",
     "build_base_market_family_snapshot",
+}
+
+
+_MARKET_BOOK_FIELDS = same_fields(
+    "market_context average_fast declining below sector_stress correlation vol_ratio "
+    "leader_failure operating_dd capital_dd tech_speed broad_speed transition_damage "
+    "trend_health breadth20 breadth60 declining_name declining_group below_name below_group "
+    "reasons family_votes votes sector_guard held_damage held_ret5 held_damage_ratio "
+    "held_loss_ratio held_repair_ratio"
+)
+_ANCHOR_FIELDS = (
+    ("anchor_symbols", "symbols"),
+    ("anchor_groups", "groups"),
+    ("reference_anchor_armed", "reference_armed"),
+    ("reference_anchor_break", "reference_break"),
+    ("anchor_break_key", "break_key"),
+    ("immediate_reference_break", "immediate_reference_break"),
+)
+_BREAK_FIELDS = same_fields(
+    "shock_rearmed concentrated_structure_break emergency_tail_break narrow_anchor_guard "
+    "immediate_severe_break persistent_market_break strategic_active recovery_anchor_elapsed "
+    "held_cohort_break_confirmed strategic_current_gross strategic_tail_break"
+)
+_RECOVERY_FIELDS = same_fields(
+    "credible_reserve incomplete_universe_tail_break reference_anchor_confirmed "
+    "capital_impaired_restoration_relapse market_backed_restoration_relapse "
+    "terminal_market_backed_restoration_relapse capital_drawdown_relapse concentrated_confirmed"
+)
+_CAPITAL_OBSERVATION_FIELDS = same_fields(
+    "independent_damage worsening_damage observed_budget_level"
+)
+_CAPITAL_OVERLAY_FIELDS = same_fields(
+    "strategic_guard_level2_overlay freeze_new_risk overlay_cap overlay_reduction_level"
+)
+_TRANSITION_FIELDS = same_fields("state shock cap sector_guard_forced observation")
+
+_STAGE_SLICES = {
+    "_assess_market_and_book_evidence": StageSlice(
+        "uquant/risk/assessment.py",
+        3,
+        78,
+        terminal_constructor="MarketBookEvidence",
+        terminal_fields=_MARKET_BOOK_FIELDS,
+    ),
+    "_assess_dynamic_anchors": StageSlice(
+        "uquant/risk/anchors.py",
+        78,
+        91,
+        terminal_constructor="AnchorAssessment",
+        terminal_fields=(
+            ("symbols", "anchor_symbols"),
+            ("groups", "anchor_groups"),
+            ("reference_armed", "reference_anchor_armed"),
+            ("reference_break", "reference_anchor_break"),
+            ("break_key", "anchor_break_key"),
+            ("immediate_reference_break", "immediate_reference_break"),
+        ),
+        transport="live_anchor_callee",
+    ),
+    "_assess_break_conditions": StageSlice(
+        "uquant/risk/transitions.py",
+        91,
+        117,
+        terminal_constructor="BreakConditions",
+        terminal_fields=_BREAK_FIELDS,
+    ),
+    "_assess_recovery_state": StageSlice(
+        "uquant/risk/recovery_state.py",
+        117,
+        136,
+        terminal_constructor="RecoveryAssessment",
+        terminal_fields=_RECOVERY_FIELDS,
+    ),
+    "_observe_capital_budget": StageSlice(
+        "uquant/risk/capital.py",
+        136,
+        140,
+        terminal_constructor="CapitalObservation",
+        terminal_fields=_CAPITAL_OBSERVATION_FIELDS,
+    ),
+    "_update_strategic_damage_guard": StageSlice(
+        "uquant/risk/strategic_guard.py",
+        140,
+        144,
+        terminal_expression="strategic_damage_guard",
+        transport="operating_drawdown_parameter",
+    ),
+    "_apply_capital_overlays": StageSlice(
+        "uquant/risk/capital.py",
+        144,
+        153,
+        terminal_constructor="CapitalOverlays",
+        terminal_fields=_CAPITAL_OVERLAY_FIELDS,
+    ),
+    "_assess_acute_and_cooldown": StageSlice(
+        "uquant/risk/transitions.py",
+        154,
+        162,
+        terminal_expression="(previous, acute_sector_evacuation)",
+    ),
+    "_assess_protected_recovery": StageSlice(
+        "uquant/risk/recovery_state.py",
+        162,
+        178,
+        terminal_expression="None",
+    ),
+    "_assess_confirmed_concentrated_break": StageSlice(
+        "uquant/risk/transitions.py",
+        178,
+        179,
+        terminal_expression="None",
+    ),
+    "_resolve_risk_transition": StageSlice(
+        "uquant/risk/transitions.py",
+        179,
+        202,
+        terminal_constructor="RiskTransitionResolution",
+        terminal_fields=_TRANSITION_FIELDS,
+    ),
+}
+
+_ORCHESTRATION_CALLS = {
+    "_assess_market_and_book_evidence": OrchestrationCall(
+        3,
+        "market_book",
+        same_keywords(
+            "date broad tech reference_panel reference_returns user_panel leaders account equity "
+            "cfg reference_context"
+        ),
+        (
+            "if isinstance(market_book, RiskAssessment):\n    return market_book",
+            *field_unpacks("market_book", _MARKET_BOOK_FIELDS),
+        ),
+    ),
+    "_assess_dynamic_anchors": OrchestrationCall(
+        34,
+        "anchor_assessment",
+        (
+            *same_keywords(
+                "date reference_panel leaders account cfg transition_damage votes"
+            ),
+            (
+                "update_dynamic_anchors",
+                "cast(Callable[..., tuple[str, ...]], "
+                "_risk_runtime_seam('_update_dynamic_anchors'))",
+            ),
+        ),
+        field_unpacks("anchor_assessment", _ANCHOR_FIELDS),
+    ),
+    "_assess_break_conditions": OrchestrationCall(
+        41,
+        "break_conditions",
+        same_keywords(
+            "date tech user_panel account equity cfg held_damage held_damage_ratio held_ret5 "
+            "operating_dd votes sector_stress transition_damage market_context"
+        ),
+        field_unpacks("break_conditions", _BREAK_FIELDS),
+    ),
+    "_assess_recovery_state": OrchestrationCall(
+        53,
+        "recovery_assessment",
+        same_keywords(
+            "date tech user_panel leaders account equity cfg shock_rearmed strategic_active "
+            "operating_dd capital_dd recovery_anchor_elapsed emergency_tail_break "
+            "concentrated_structure_break immediate_severe_break persistent_market_break "
+            "reference_anchor_armed held_damage_ratio votes sector_stress immediate_reference_break "
+            "anchor_break_key held_cohort_break_confirmed strategic_tail_break"
+        ),
+        field_unpacks("recovery_assessment", _RECOVERY_FIELDS),
+    ),
+    "_observe_capital_budget": OrchestrationCall(
+        62,
+        "capital_observation",
+        same_keywords(
+            "account cfg sector_guard reference_anchor_break held_damage_ratio transition_damage "
+            "votes capital_dd operating_dd sector_stress strategic_active"
+        ),
+        field_unpacks(
+            "capital_observation",
+            (
+                ("independent_damage", "independent_damage"),
+                ("observed_budget_level", "observed_budget_level"),
+            ),
+        ),
+    ),
+    "_update_strategic_damage_guard": OrchestrationCall(
+        65,
+        "strategic_damage_guard",
+        (
+            ("account", "account"),
+            ("operating_drawdown", "operating_dd"),
+            ("transition_damage", "transition_damage"),
+            ("votes", "votes"),
+            ("cfg", "cfg"),
+        ),
+        (),
+    ),
+    "_apply_capital_overlays": OrchestrationCall(
+        66,
+        "capital_overlays",
+        same_keywords(
+            "account cfg observed_budget_level transition_damage votes held_damage_ratio capital_dd "
+            "operating_dd strategic_damage_guard"
+        ),
+        field_unpacks("capital_overlays", _CAPITAL_OVERLAY_FIELDS),
+    ),
+    "_assess_acute_and_cooldown": OrchestrationCall(
+        72,
+        "transition_short_circuit",
+        same_keywords(
+            "date user_panel account equity cfg market_context sector_guard concentrated_confirmed "
+            "held_ret5 votes continuous_evidence average_fast declining below sector_stress "
+            "correlation vol_ratio leader_failure held_damage_ratio held_loss_ratio "
+            "held_repair_ratio tech_speed broad_speed operating_dd capital_dd strategic_active "
+            "strategic_current_gross"
+        ),
+        (
+            "if isinstance(transition_short_circuit, RiskAssessment):\n"
+            "    return transition_short_circuit",
+            "previous, acute_sector_evacuation = transition_short_circuit",
+        ),
+    ),
+    "_assess_protected_recovery": OrchestrationCall(
+        75,
+        "protected_recovery",
+        same_keywords(
+            "date broad tech user_panel leaders account equity cfg previous votes continuous_evidence "
+            "market_context average_fast declining below sector_stress correlation vol_ratio "
+            "leader_failure held_damage_ratio held_repair_ratio tech_speed broad_speed operating_dd "
+            "capital_dd credible_reserve freeze_new_risk overlay_cap overlay_reduction_level "
+            "sector_guard shock_rearmed strategic_active"
+        ),
+        ("if protected_recovery is not None:\n    return protected_recovery",),
+    ),
+    "_assess_confirmed_concentrated_break": OrchestrationCall(
+        77,
+        "confirmed_break",
+        same_keywords(
+            "date user_panel leaders account equity cfg previous concentrated_confirmed votes "
+            "continuous_evidence market_context average_fast declining below sector_stress "
+            "correlation vol_ratio leader_failure held_damage_ratio held_repair_ratio held_ret5 "
+            "tech_speed broad_speed operating_dd capital_dd strategic_active "
+            "strategic_current_gross overlay_cap credible_reserve "
+            "capital_impaired_restoration_relapse market_backed_restoration_relapse "
+            "terminal_market_backed_restoration_relapse incomplete_universe_tail_break "
+            "reference_anchor_confirmed held_cohort_break_confirmed capital_drawdown_relapse "
+            "immediate_reference_break"
+        ),
+        ("if confirmed_break is not None:\n    return confirmed_break",),
+    ),
+    "_resolve_risk_transition": OrchestrationCall(
+        79,
+        "transition_resolution",
+        same_keywords(
+            "date user_panel account equity cfg previous shock_rearmed capital_dd votes sector_stress "
+            "narrow_anchor_guard operating_dd independent_damage reasons sector_guard held_ret5 "
+            "credible_reserve strategic_active overlay_cap"
+        ),
+        field_unpacks(
+            "transition_resolution",
+            (
+                ("state", "state"),
+                ("shock", "shock"),
+                ("cap", "cap"),
+                ("observation", "observation"),
+            ),
+        ),
+    ),
 }
 
 
@@ -241,6 +524,89 @@ def _normalized_definition(node: ast.FunctionDef) -> ast.FunctionDef:
     return normalized
 
 
+def _stage_source(path: str, overrides: dict[str, str] | None) -> str:
+    if overrides is not None and path in overrides:
+        return overrides[path]
+    return (ROOT / path).read_text(encoding="utf-8")
+
+
+def _assert_task7_ownership_surface(overrides: dict[str, str] | None = None) -> None:
+    immutable = _top_level_definitions(ast.parse(_git_source("uquant/risk.py")))[
+        "_assess_base_risk"
+    ]
+    candidate_definitions: dict[str, ast.FunctionDef] = {}
+    for stage_name, spec in _STAGE_SLICES.items():
+        definitions = _top_level_definitions(
+            ast.parse(_stage_source(spec.path, overrides), filename=spec.path)
+        )
+        stage = definitions[stage_name]
+        candidate_definitions[stage_name] = stage
+        statements = normalized_stage_statements(stage, spec)
+        expected = immutable.body[spec.source_start : spec.source_stop]
+        assert len(statements) == len(expected)
+        for offset, (observed, source) in enumerate(zip(statements, expected, strict=True)):
+            assert ast_dump(observed) == ast_dump(source), (
+                stage_name,
+                spec.source_start + offset,
+            )
+
+    assessment_path = "uquant/risk/assessment.py"
+    assessment = _top_level_definitions(
+        ast.parse(_stage_source(assessment_path, overrides), filename=assessment_path)
+    )["_assess_base_risk"]
+    assert len(assessment.body) == 85
+    residual = {0: 0, 1: 1, 2: 2, 71: 153, 84: 202}
+    for candidate_index, source_index in residual.items():
+        assert ast_dump(assessment.body[candidate_index]) == ast_dump(
+            immutable.body[source_index]
+        )
+
+    covered = set(residual)
+    for stage_name, call_spec in _ORCHESTRATION_CALLS.items():
+        stage = candidate_definitions[stage_name]
+        assert stage.args.posonlyargs == []
+        assert stage.args.args == []
+        assert stage.args.vararg is None
+        assert stage.args.kwarg is None
+        assert tuple(argument.arg for argument in stage.args.kwonlyargs) == tuple(
+            keyword for keyword, _ in call_spec.keywords
+        )
+        assert all(default is None for default in stage.args.kw_defaults)
+        call_coverage = assert_stage_call(
+            body=assessment.body,
+            stage_name=stage_name,
+            spec=call_spec,
+        )
+        assert not covered & call_coverage
+        covered.update(call_coverage)
+    assert covered == set(range(len(assessment.body)))
+
+
+def _mutated_capital_stage(kind: str) -> str:
+    path = ROOT / "uquant/risk/capital.py"
+    tree = ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
+    function = _top_level_definitions(tree)["_observe_capital_budget"]
+    mutated = False
+    if kind == "compare":
+        for node in ast.walk(function):
+            if (
+                isinstance(node, ast.Compare)
+                and not mutated
+                and ast.unparse(node) == "held_damage_ratio >= cfg.concentrated_break_ratio"
+            ):
+                node.ops[0] = ast.Gt()
+                mutated = True
+    elif kind == "threshold":
+        for node in ast.walk(function):
+            if isinstance(node, ast.Constant) and not mutated and node.value == 0.68:
+                node.value = 0.67
+                mutated = True
+    else:
+        raise AssertionError(f"unknown mutation kind: {kind}")
+    assert mutated
+    return ast.unparse(tree)
+
+
 def test_task7_inventory_is_bound_to_the_immutable_risk_blob_and_consumers() -> None:
     payload = json.loads(_INVENTORY.read_text(encoding="utf-8"))
     assert payload["baseline_commit"] == _TASK7_START
@@ -326,16 +692,54 @@ def test_task7_source_surface_migration_is_exact_and_requirements_stay_bound() -
     assert (ROOT / "requirements.txt").read_bytes() == _git_source("requirements.txt")
 
 
-def test_task7_daily_risk_trace_is_sealed_and_bound_to_the_immutable_start() -> None:
+@pytest.fixture(scope="module")
+def immutable_task7_trace(
+    tmp_path_factory: pytest.TempPathFactory,
+) -> dict[str, object]:
+    return immutable_trace_from_archive(
+        root=ROOT,
+        destination=tmp_path_factory.mktemp("task7-immutable-trace") / "snapshot",
+        baseline_commit=_TASK7_START,
+        risk_sha256=_RISK_SHA256,
+        risk_size=_RISK_BYTES,
+        runner=_TRACE_RUNNER,
+        runner_sha256=_TRACE_RUNNER_SHA256,
+        logic_commit=_TRACE_LOGIC_COMMIT,
+        logic_blob=_TRACE_LOGIC_BLOB,
+    )
+
+
+def test_task7_daily_risk_trace_is_sealed_and_bound_to_the_immutable_start(
+    immutable_task7_trace: dict[str, object],
+) -> None:
     payload = json.loads(_DAILY_TRACE.read_text(encoding="utf-8"))
-    assert payload["baseline_commit"] == _TASK7_START
-    assert payload["baseline_tree"] == _TASK7_START_TREE
-    assert payload["risk_account_fields"] == list(_RISK_ACCOUNT_FIELDS)
+    assert_trace_seals(
+        payload,
+        baseline_commit=_TASK7_START,
+        baseline_tree=_TASK7_START_TREE,
+        account_fields=_RISK_ACCOUNT_FIELDS,
+    )
+    assert payload == immutable_task7_trace
+
+
+def test_task7_resigned_trace_tamper_is_rejected(
+    immutable_task7_trace: dict[str, object],
+) -> None:
+    payload = json.loads(_DAILY_TRACE.read_text(encoding="utf-8"))
+    payload["scenarios"][0]["records"][0]["ordered_checkpoint_sha256"] = "0" * 64
+    payload["scenarios"][0]["records_sha256"] = canonical_json_sha256(
+        payload["scenarios"][0]["records"]
+    )
     unsigned = {key: value for key, value in payload.items() if key != "payload_sha256"}
-    assert payload["payload_sha256"] == canonical_json_sha256(unsigned)
-    for scenario in payload["scenarios"]:
-        assert scenario["record_count"] == len(scenario["records"])
-        assert scenario["records_sha256"] == canonical_json_sha256(scenario["records"])
+    payload["payload_sha256"] = canonical_json_sha256(unsigned)
+    assert_trace_seals(
+        payload,
+        baseline_commit=_TASK7_START,
+        baseline_tree=_TASK7_START_TREE,
+        account_fields=_RISK_ACCOUNT_FIELDS,
+    )
+    with pytest.raises(AssertionError):
+        assert payload == immutable_task7_trace
 
 
 @pytest.mark.parametrize("scenario_index", range(3))
@@ -380,56 +784,15 @@ def test_task7_moved_helper_bodies_are_exactly_bound_to_immutable_source() -> No
 
 
 def test_task7_ownership_slices_are_real_and_assessment_order_is_fixed() -> None:
-    expected_owners = {
-        "uquant/risk/anchors.py": {"_assess_dynamic_anchors"},
-        "uquant/risk/assessment.py": {"_assess_market_and_book_evidence"},
-        "uquant/risk/capital.py": {
-            "_apply_capital_overlays",
-            "_observe_capital_budget",
-        },
-        "uquant/risk/recovery_state.py": {
-            "_assess_protected_recovery",
-            "_assess_recovery_state",
-        },
-        "uquant/risk/strategic_guard.py": {"_update_strategic_damage_guard"},
-        "uquant/risk/transitions.py": {
-            "_assess_acute_and_cooldown",
-            "_assess_break_conditions",
-            "_assess_confirmed_concentrated_break",
-            "_resolve_risk_transition",
-        },
-    }
-    for path, expected in expected_owners.items():
-        definitions = _top_level_definitions(
-            ast.parse((ROOT / path).read_text(encoding="utf-8"), filename=path)
-        )
-        assert expected <= set(definitions)
+    _assert_task7_ownership_surface()
 
-    assessment = _top_level_definitions(
-        ast.parse(
-            (ROOT / "uquant/risk/assessment.py").read_text(encoding="utf-8"),
-            filename="uquant/risk/assessment.py",
+
+@pytest.mark.parametrize("kind", ("compare", "threshold"))
+def test_task7_ownership_slice_gate_rejects_economic_mutation(kind: str) -> None:
+    with pytest.raises(AssertionError):
+        _assert_task7_ownership_surface(
+            {"uquant/risk/capital.py": _mutated_capital_stage(kind)}
         )
-    )["_assess_base_risk"]
-    fixed_order = [
-        "_assess_market_and_book_evidence",
-        "_assess_dynamic_anchors",
-        "_assess_break_conditions",
-        "_assess_recovery_state",
-        "_observe_capital_budget",
-        "_update_strategic_damage_guard",
-        "_apply_capital_overlays",
-        "_assess_acute_and_cooldown",
-        "_assess_protected_recovery",
-        "_assess_confirmed_concentrated_break",
-        "_resolve_risk_transition",
-    ]
-    observed = [
-        node.func.id
-        for node in ast.walk(assessment)
-        if isinstance(node, ast.Call) and isinstance(node.func, ast.Name) and node.func.id in fixed_order
-    ]
-    assert observed == fixed_order
 
 
 def test_task7_private_and_complexity_relocations_are_exact_and_fail_closed() -> None:

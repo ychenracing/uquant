@@ -199,6 +199,15 @@ MODULE_AUTHORITIES = {
     "uquant.validation.generalization_policy.schema": "validation_runner",
     "uquant.validation.generalization_reference": "validation_runner",
     "uquant.validation.holdout": "validation_runner",
+    "uquant.validation.holdout.artifact_transaction": "validation_runner",
+    "uquant.validation.holdout.checkpoints": "validation_runner",
+    "uquant.validation.holdout.contract": "validation_runner",
+    "uquant.validation.holdout.lanes": "validation_runner",
+    "uquant.validation.holdout.manifest": "validation_runner",
+    "uquant.validation.holdout.replay": "validation_runner",
+    "uquant.validation.holdout.service": "validation_runner",
+    "uquant.validation.holdout.snapshots": "validation_runner",
+    "uquant.validation.holdout.source_identity": "validation_runner",
     "uquant.validation.holdout_lanes": "validation_runner",
     "uquant.validation.holdout_runtime": "validation_runner",
     "uquant.validation.manifest": "validation_runner",
@@ -868,6 +877,22 @@ _TASK9_RELOCATED_PRIVATE_IMPORT_GROUPS = (
         "uquant.validation.generalization_policy.schema",
         ("_ADDITIVE_ATTRIBUTION_IDENTITY_FIELDS", "_ARTIFACT_FIELDS_V1", "_ARTIFACT_FIELDS_V2", "_ATTRIBUTION_DEFINITION", "_BASELINE_CELL_FIELDS", "_CELL_FIELDS_V1", "_CELL_FIELDS_V2", "_COMMIT", "_DATA_FIELDS", "_DEPRECATED_V1_ATTRIBUTION_TOKEN", "_EVIDENCE_FIELDS", "_METRIC_FIELDS", "_PROVENANCE_FIELDS", "_REQUIRED_DEPRECATED_V1_ATTRIBUTION_COLLECTION_SHA256", "_ROOT", "_RUNTIME_FIELDS", "_SHA256", "_artifact_equality_sha256", "_canonical_sha256", "_derived_seed", "_hash_json", "_metric_payload", "_metrics_reconciled_from_raw", "_provenance_schema_failures", "_read_json", "_reject_duplicate_keys", "_reject_nonstandard_constant", "_replay_error", "_require_exact_seal", "_require_sha256", "_schema_failures"),
     ),
+    ("uquant.validation.holdout.checkpoints", "uquant.validation.holdout.artifact_transaction", ("_read_protected_artifact", "_resolved_path_text")),
+    ("uquant.validation.holdout.checkpoints", "uquant.validation.holdout.contract", ("_canonical_sha256", "_read_json", "_session_dates")),
+    ("uquant.validation.holdout.manifest", "uquant.validation.holdout.contract", ("_MANIFEST_FIELDS", "_SHA256", "_canonical_sha256", "_session_dates")),
+    ("uquant.validation.holdout.manifest", "uquant.validation.holdout.source_identity", ("_state_hashes",)),
+    ("uquant.validation.holdout.replay", "uquant.validation.holdout.contract", ("_canonical_sha256", "_read_json", "_session_dates")),
+    ("uquant.validation.holdout.replay", "uquant.validation.holdout.manifest", ("_normalized_scores", "_validated_score_values")),
+    ("uquant.validation.holdout.replay", "uquant.validation.holdout.snapshots", ("_capture_holdout_data", "_materialize_overlay")),
+    ("uquant.validation.holdout.service", "uquant.validation.holdout.artifact_transaction", ("_artifact_bundle_lock", "_artifact_bundle_lock_path", "_artifact_bundle_lock_paths", "_artifact_snapshots", "_canonical_carrier_path", "_read_protected_artifact", "_reject_authoritative_output_paths", "_reject_output_in_protected_data", "_resolved_path_text", "_restore_artifact_snapshots")),
+    ("uquant.validation.holdout.service", "uquant.validation.holdout.checkpoints", ("_checkpoint_payload", "_read_checkpoint_carrier", "_validate_daily_replay_continuity", "_verify_checkpoint_artifacts")),
+    ("uquant.validation.holdout.service", "uquant.validation.holdout.contract", ("_CHECKPOINT_RELATIVE", "_closed_csv_files", "_git_executable", "_read_json", "_repository_root")),
+    ("uquant.validation.holdout.service", "uquant.validation.holdout.manifest", ("_assemble_future_holdout_manifest", "_normalized_scores", "_validate_future_holdout_manifest_payload")),
+    ("uquant.validation.holdout.service", "uquant.validation.holdout.replay", ("_daily_decision_payload",)),
+    ("uquant.validation.holdout.service", "uquant.validation.holdout.snapshots", ("_capture_holdout_data", "_validated_snapshot_prefix_sha256")),
+    ("uquant.validation.holdout.snapshots", "uquant.validation.holdout.contract", ("_CHECKPOINT_RELATIVE", "_closed_csv_files", "_csv_dates_from_text", "_session_dates")),
+    ("uquant.validation.holdout.source_identity", "uquant.validation.holdout.contract", ("_ACCOUNT_EXECUTION_FIELDS", "_CLI_OPERATIONAL_COMMANDS", "_COMMIT", "_SHA256", "_STRATEGY_FIXED_RELATIVES", "_STRATEGY_OPERATIONAL_RELATIVES", "_canonical_sha256", "_git_executable", "_repository_root")),
+    ("uquant.validation.holdout_runtime", "uquant.validation.holdout.contract", ("_CHECKPOINT_RELATIVE",)),
 )
 _TASK9_RELOCATED_PRIVATE_IMPORTS = frozenset(
     f"{importer}:{imported_from}:{name}"
@@ -895,6 +920,30 @@ _TASK9_RELOCATED_FUNCTION_DEBT = {
             ("uquant.validation.generalization_policy.evaluator", ("evaluate_generalization_policy_artifact",)),
             ("uquant.validation.generalization_policy.projection", ("_project_raw_evidence_for_frozen_v1",)),
             ("uquant.validation.generalization_policy.schema", ("_provenance_schema_failures",)),
+        )
+        for name in names
+    },
+    **{
+        f"uquant.validation.holdout.contract:{name}": (
+            f"uquant.validation.holdout:{name}",
+            0,
+        )
+        for name in ("load_future_holdout_contract", "validate_holdout_layout")
+    },
+    "uquant.validation.holdout.lanes:validate_lane_registry": (
+        "uquant.validation.holdout_lanes:validate_lane_registry",
+        0,
+    ),
+    **{
+        f"uquant.validation.holdout.{owner}:{name}": (
+            f"uquant.validation.holdout_runtime:{name}",
+            overhead,
+        )
+        for owner, names, overhead in (
+            ("checkpoints", ("_read_checkpoint_carrier",), 0),
+            ("replay", ("replay_future_holdout", "read_future_holdout_replay"), 0),
+            ("service", ("_generate_future_holdout_replay_locked",), 0),
+            ("snapshots", ("append_holdout_snapshot",), 2),
         )
         for name in names
     },
@@ -932,6 +981,28 @@ _TASK9_RELOCATED_GLOBAL_DEBT = {
             "_PROVENANCE_FIELDS",
             "_RUNTIME_FIELDS",
         )
+    },
+    **{
+        f"uquant.validation.holdout.contract:{name}": f"uquant.validation.holdout:{name}"
+        for name in (
+            "_ACCOUNT_EXECUTION_FIELDS",
+            "_CLI_OPERATIONAL_COMMANDS",
+            "_CONTRACT_FIELDS",
+            "_MANIFEST_FIELDS",
+            "_STRATEGY_FIXED_RELATIVES",
+            "_STRATEGY_OPERATIONAL_RELATIVES",
+        )
+    },
+    **{
+        f"uquant.validation.holdout.lanes:{name}": f"uquant.validation.holdout_lanes:{name}"
+        for name in ("_BEHAVIORS", "_LANE_FIELDS", "_REGISTRY_FIELDS", "_RUNTIME_FIELDS")
+    },
+    "uquant.validation.holdout.checkpoints:_CHECKPOINT_FIELDS": (
+        "uquant.validation.holdout_runtime:_CHECKPOINT_FIELDS"
+    ),
+    **{
+        f"uquant.validation.holdout.replay:{name}": f"uquant.validation.holdout_runtime:{name}"
+        for name in ("_DAILY_DECISION_FIELDS", "_REPLAY_FIELDS")
     },
 }
 
@@ -1122,6 +1193,8 @@ _PUBLIC_API_FACADE_PATHS = {
     "uquant.portfolio": "uquant/portfolio.py",
     # Task 9 preserves generalization's public path through its same-name package facade.
     "uquant.validation.generalization": "uquant/validation/generalization.py",
+    # Task 9 preserves Holdout's public path through its same-name package facade.
+    "uquant.validation.holdout": "uquant/validation/holdout.py",
 }
 
 _MUTABLE_CALLS = {

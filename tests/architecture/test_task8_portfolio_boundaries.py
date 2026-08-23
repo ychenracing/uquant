@@ -26,7 +26,13 @@ from ._analysis import (
 )
 from ._task8_immutable_trace import assert_trace_seals, immutable_trace_from_archive
 from ._task8_inventory import build_task8_inventory, current_reflection_contract
-from ._task9_relocation import GENERALIZATION_OWNERS, POLICY_OWNERS
+from ._task9_relocation import (
+    GENERALIZATION_OWNERS,
+    HOLDOUT_LANES_FACADE,
+    HOLDOUT_OWNERS,
+    HOLDOUT_RUNTIME_FACADE,
+    POLICY_OWNERS,
+)
 
 _TASK8_START = "4b6bedb03fb7c58914d9d5032a2514c67f41f6ba"
 _TASK8_START_TREE = "d3824f7c5d89521b8284b5de08cc1e82e3ab7ebd"
@@ -500,6 +506,13 @@ def test_task8_checkpoint1_source_surface_migration_is_exact() -> None:
             expected.update(GENERALIZATION_OWNERS)
         if "uquant/validation/generalization_reference.py" in expected:
             expected.update(POLICY_OWNERS)
+        if "uquant/validation/holdout.py" in expected:
+            expected.remove("uquant/validation/holdout.py")
+            expected.update(HOLDOUT_OWNERS)
+        if HOLDOUT_RUNTIME_FACADE in expected:
+            expected.update(HOLDOUT_OWNERS[5:])
+        if HOLDOUT_LANES_FACADE in expected:
+            expected.add(HOLDOUT_OWNERS[4])
         assert set(candidate_surfaces[identifier]["source_paths"]) == expected
         assert candidate_surfaces[identifier]["resource_paths"] == baseline["resource_paths"]
         assert {

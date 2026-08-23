@@ -27,7 +27,13 @@ from ._analysis import (
     architecture_snapshot,
     measured_debt,
 )
-from ._task9_relocation import GENERALIZATION_OWNERS, POLICY_OWNERS
+from ._task9_relocation import (
+    GENERALIZATION_OWNERS,
+    HOLDOUT_LANES_FACADE,
+    HOLDOUT_OWNERS,
+    HOLDOUT_RUNTIME_FACADE,
+    POLICY_OWNERS,
+)
 
 _TASK6_START = "908399a80f27a028c35f201b9bf5f1688eb412c0"
 _INVENTORY = ROOT / "artifacts" / "architecture_refactor" / "task6_cleanup_inventory.json"
@@ -459,6 +465,13 @@ def test_task6_source_surface_migration_is_exact_for_all_five_v1_surfaces() -> N
             expected_sources.update(GENERALIZATION_OWNERS)
         if "uquant/validation/generalization_reference.py" in expected_sources:
             expected_sources.update(POLICY_OWNERS)
+        if "uquant/validation/holdout.py" in expected_sources:
+            expected_sources.remove("uquant/validation/holdout.py")
+            expected_sources.update(HOLDOUT_OWNERS)
+        if HOLDOUT_RUNTIME_FACADE in expected_sources:
+            expected_sources.update(HOLDOUT_OWNERS[5:])
+        if HOLDOUT_LANES_FACADE in expected_sources:
+            expected_sources.add(HOLDOUT_OWNERS[4])
         assert set(candidate[identifier]["source_paths"]) == expected_sources
         assert candidate[identifier]["resource_paths"] == immutable[identifier]["resource_paths"]
 

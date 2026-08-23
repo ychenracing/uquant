@@ -33,31 +33,84 @@ POLICY_OWNERS = (
     "uquant/validation/generalization_policy/projection.py",
     "uquant/validation/generalization_policy/evaluator.py",
 )
+HOLDOUT_OWNERS = (
+    "uquant/validation/holdout/__init__.py",
+    "uquant/validation/holdout/contract.py",
+    "uquant/validation/holdout/source_identity.py",
+    "uquant/validation/holdout/manifest.py",
+    "uquant/validation/holdout/lanes.py",
+    "uquant/validation/holdout/snapshots.py",
+    "uquant/validation/holdout/replay.py",
+    "uquant/validation/holdout/checkpoints.py",
+    "uquant/validation/holdout/artifact_transaction.py",
+    "uquant/validation/holdout/service.py",
+)
+HOLDOUT_RUNTIME_FACADE = "uquant/validation/holdout_runtime.py"
+HOLDOUT_LANES_FACADE = "uquant/validation/holdout_lanes.py"
 RELOCATIONS = {
     "uquant/validation/generalization.py": GENERALIZATION_OWNERS,
     "uquant/validation/generalization_reference.py": POLICY_OWNERS,
+    "uquant/validation/holdout.py": (
+        HOLDOUT_OWNERS[0],
+        HOLDOUT_OWNERS[1],
+        HOLDOUT_OWNERS[2],
+        HOLDOUT_OWNERS[3],
+        HOLDOUT_OWNERS[9],
+    ),
+    HOLDOUT_RUNTIME_FACADE: (
+        HOLDOUT_RUNTIME_FACADE,
+        HOLDOUT_OWNERS[5],
+        HOLDOUT_OWNERS[6],
+        HOLDOUT_OWNERS[7],
+        HOLDOUT_OWNERS[8],
+        HOLDOUT_OWNERS[9],
+    ),
+    HOLDOUT_LANES_FACADE: (HOLDOUT_LANES_FACADE, HOLDOUT_OWNERS[4]),
 }
-_SOURCE_RANGES = {
-    GENERALIZATION_OWNERS[1]: ((34, 269),),
-    GENERALIZATION_OWNERS[2]: ((272, 626),),
-    GENERALIZATION_OWNERS[3]: ((629, 938),),
-    GENERALIZATION_OWNERS[4]: ((941, 1213),),
-    GENERALIZATION_OWNERS[5]: ((1216, 1444),),
-    GENERALIZATION_OWNERS[6]: ((1447, 1800),),
-    GENERALIZATION_OWNERS[7]: ((1803, 1937),),
-    POLICY_OWNERS[2]: ((39, 474),),
-    POLICY_OWNERS[3]: ((477, 796),),
-    POLICY_OWNERS[4]: ((928, 1097),),
-    POLICY_OWNERS[5]: ((799, 925), (1100, 1778)),
+_SOURCE_SLICES = {
+    GENERALIZATION_OWNERS[1]: (("uquant/validation/generalization.py", ((34, 269),)),),
+    GENERALIZATION_OWNERS[2]: (("uquant/validation/generalization.py", ((272, 626),)),),
+    GENERALIZATION_OWNERS[3]: (("uquant/validation/generalization.py", ((629, 938),)),),
+    GENERALIZATION_OWNERS[4]: (("uquant/validation/generalization.py", ((941, 1213),)),),
+    GENERALIZATION_OWNERS[5]: (("uquant/validation/generalization.py", ((1216, 1444),)),),
+    GENERALIZATION_OWNERS[6]: (("uquant/validation/generalization.py", ((1447, 1800),)),),
+    GENERALIZATION_OWNERS[7]: (("uquant/validation/generalization.py", ((1803, 1937),)),),
+    POLICY_OWNERS[2]: (("uquant/validation/generalization_reference.py", ((39, 474),)),),
+    POLICY_OWNERS[3]: (("uquant/validation/generalization_reference.py", ((477, 796),)),),
+    POLICY_OWNERS[4]: (("uquant/validation/generalization_reference.py", ((928, 1097),)),),
+    POLICY_OWNERS[5]: (("uquant/validation/generalization_reference.py", ((799, 925), (1100, 1778))),),
+    HOLDOUT_OWNERS[1]: (
+        (HOLDOUT_RUNTIME_FACADE, ((105, 105),)),
+        ("uquant/validation/holdout.py", ((27, 210), (254, 530), (584, 597), (1155, 1179))),
+    ),
+    HOLDOUT_OWNERS[2]: (("uquant/validation/holdout.py", ((213, 251), (533, 581), (763, 1152))),),
+    HOLDOUT_OWNERS[3]: (("uquant/validation/holdout.py", ((600, 760),)),),
+    HOLDOUT_OWNERS[4]: ((HOLDOUT_LANES_FACADE, ((14, 354),)),),
+    HOLDOUT_OWNERS[5]: ((HOLDOUT_RUNTIME_FACADE, ((122, 195), (360, 556))),),
+    HOLDOUT_OWNERS[6]: ((HOLDOUT_RUNTIME_FACADE, ((54, 87), (559, 862), (1040, 1060), (1302, 1316))),),
+    HOLDOUT_OWNERS[7]: ((HOLDOUT_RUNTIME_FACADE, ((88, 104), (865, 1037))),),
+    HOLDOUT_OWNERS[8]: ((HOLDOUT_RUNTIME_FACADE, ((106, 119), (129, 132), (198, 357), (1063, 1299))),),
+    HOLDOUT_OWNERS[9]: (
+        ("uquant/validation/holdout.py", ((1182, 1352),)),
+        (HOLDOUT_RUNTIME_FACADE, ((1319, 1519),)),
+    ),
 }
-_OWNER_LEGACY = {
-    path: "uquant/validation/generalization.py"
-    for path in GENERALIZATION_OWNERS[1:]
-} | {
-    path: "uquant/validation/generalization_reference.py"
-    for path in POLICY_OWNERS[2:]
+_TRANSPORT_HELPERS = {
+    "compatibility_value",
+    "runtime_compatibility_value",
+    "_compatibility_head_and_source",
 }
-_TRANSPORT_HELPERS = {"compatibility_value", "_compatibility_head_and_source"}
+_PATH_TRANSPORT_HELPERS = {HOLDOUT_OWNERS[9]: {"append_holdout_snapshot"}}
+_PATH_TRANSPORT_ASSIGNS: dict[str, set[str]] = {}
+_RETAINED_FACADES = {
+    "uquant/validation/generalization_reference.py",
+    HOLDOUT_RUNTIME_FACADE,
+    HOLDOUT_LANES_FACADE,
+}
+_FACADE_SOURCE_SLICES = {
+    HOLDOUT_RUNTIME_FACADE: ((HOLDOUT_RUNTIME_FACADE, ((1, 1519),)),),
+    HOLDOUT_LANES_FACADE: ((HOLDOUT_LANES_FACADE, ((1, 377),)),),
+}
 
 
 def _git(root: Path, *args: str) -> bytes:
@@ -81,25 +134,15 @@ def _entry(inventory: Mapping[str, Any], path: str) -> Mapping[str, Any]:
 def approved_relocations(inventory: Mapping[str, Any]) -> dict[str, tuple[str, ...]]:
     """Bind owner paths to the immutable inventory, not candidate declarations."""
 
-    generalization = _entry(inventory, "uquant/validation/generalization.py")
-    policy = _entry(inventory, "uquant/validation/generalization_reference.py")
-    generalization_paths = tuple(
-        sorted(set(generalization["symbol_owner_mapping"].values()))
-    )
-    policy_paths = tuple(
-        sorted(
-            {
-                *policy["symbol_owner_mapping"].values(),
-                "uquant/validation/generalization_policy/__init__.py",
-            }
-        )
-    )
-    assert generalization_paths == tuple(sorted(GENERALIZATION_OWNERS))
-    assert policy_paths == tuple(sorted(POLICY_OWNERS))
-    return {
-        "uquant/validation/generalization.py": generalization_paths,
-        "uquant/validation/generalization_reference.py": policy_paths,
-    }
+    approved: dict[str, tuple[str, ...]] = {}
+    for legacy, declared in RELOCATIONS.items():
+        entry = _entry(inventory, legacy)
+        paths = set(entry["symbol_owner_mapping"].values())
+        if legacy == "uquant/validation/generalization_reference.py":
+            paths.add("uquant/validation/generalization_policy/__init__.py")
+        approved[legacy] = tuple(sorted(paths))
+        assert approved[legacy] == tuple(sorted(declared))
+    return approved
 
 
 def _expected_registry(root: Path) -> dict[str, Any]:
@@ -109,7 +152,7 @@ def _expected_registry(root: Path) -> dict[str, Any]:
         for legacy, owners in RELOCATIONS.items():
             if legacy not in paths:
                 continue
-            if legacy != "uquant/validation/generalization_reference.py":
+            if legacy not in _RETAINED_FACADES:
                 paths.remove(legacy)
             paths.update(owners)
         surface["source_paths"] = sorted(paths)
@@ -173,6 +216,25 @@ def build_relocation_contract(
 
 
 class _TransportNormalizer(ast.NodeTransformer):
+    def visit_FunctionDef(self, node: ast.FunctionDef) -> ast.AST:
+        node = cast(ast.FunctionDef, self.generic_visit(node))
+        if node.name == "append_holdout_snapshot":
+            node.args.kwonlyargs = [
+                argument
+                for argument in node.args.kwonlyargs
+                if argument.arg not in {"_read_checkpoint", "_verify_checkpoint"}
+            ]
+            node.args.kw_defaults = node.args.kw_defaults[:3]
+        return node
+
+    def visit_Name(self, node: ast.Name) -> ast.AST:
+        replacements = {
+            "_read_checkpoint": "_read_checkpoint_carrier",
+            "_verify_checkpoint": "_verify_checkpoint_artifacts",
+        }
+        node.id = replacements.get(node.id, node.id)
+        return node
+
     def visit_Subscript(self, node: ast.Subscript) -> ast.AST:
         node = cast(ast.Subscript, self.generic_visit(node))
         if (
@@ -188,7 +250,7 @@ class _TransportNormalizer(ast.NodeTransformer):
         node = cast(ast.Call, self.generic_visit(node))
         if (
             isinstance(node.func, ast.Name)
-            and node.func.id == "compatibility_value"
+            and node.func.id in {"compatibility_value", "runtime_compatibility_value"}
             and len(node.args) == 2
             and isinstance(node.args[0], ast.Constant)
             and isinstance(node.args[0].value, str)
@@ -201,8 +263,26 @@ class _TransportNormalizer(ast.NodeTransformer):
             node.func.id = "_head_and_source"
         return node
 
+    def visit_ImportFrom(self, node: ast.ImportFrom) -> ast.AST:
+        node = cast(ast.ImportFrom, self.generic_visit(node))
+        if node.module == "account" and node.level == 3:
+            node.level = 2
+        return node
 
-def _candidate_statements(source: str) -> list[ast.stmt]:
+
+class _ImmutableTransportNormalizer(ast.NodeTransformer):
+    def visit_ImportFrom(self, node: ast.ImportFrom) -> ast.AST | None:
+        if (
+            node.module == "holdout_runtime"
+            and node.level == 1
+            and {alias.name for alias in node.names}
+            == {"read_future_holdout_replay", "replay_future_holdout"}
+        ):
+            return None
+        return self.generic_visit(node)
+
+
+def _candidate_statements(source: str, *, owner: str) -> list[ast.stmt]:
     statements: list[ast.stmt] = []
     for node in ast.parse(source).body:
         if isinstance(node, (ast.Import, ast.ImportFrom)):
@@ -215,6 +295,21 @@ def _candidate_statements(source: str) -> list[ast.stmt]:
             continue
         if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)) and node.name in _TRANSPORT_HELPERS:
             continue
+        if (
+            isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
+            and node.name in _PATH_TRANSPORT_HELPERS.get(owner, set())
+        ):
+            continue
+        if isinstance(node, (ast.Assign, ast.AnnAssign)):
+            targets = node.targets if isinstance(node, ast.Assign) else (node.target,)
+            if any(isinstance(target, ast.Name) and target.id == "__all__" for target in targets):
+                continue
+            if any(
+                isinstance(target, ast.Name)
+                and target.id in _PATH_TRANSPORT_ASSIGNS.get(owner, set())
+                for target in targets
+            ):
+                continue
         statements.append(node)
     return statements
 
@@ -227,10 +322,75 @@ def _immutable_statements(source: str, ranges: tuple[tuple[int, int], ...]) -> l
     ]
 
 
+def _defined_top_level_symbols(source: str) -> set[str]:
+    """Return names owned by the immutable legacy module itself."""
+
+    symbols: set[str] = set()
+    for node in ast.parse(source).body:
+        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
+            symbols.add(node.name)
+        elif isinstance(node, (ast.Assign, ast.AnnAssign)):
+            targets = node.targets if isinstance(node, ast.Assign) else (node.target,)
+            symbols.update(
+                target.id for target in targets if isinstance(target, ast.Name)
+            )
+    return symbols
+
+
+def has_immutable_local_relocation_lineage(
+    root: Path,
+    *,
+    importer_owner: str,
+    imported_from_owner: str,
+    name: str,
+    legacy_sources: Mapping[str, str] | None = None,
+) -> bool:
+    """Prove a new owner edge was a local immutable legacy reference.
+
+    A split may turn two slices of one legacy module into separate owners.  Such an
+    edge is admissible only when the imported symbol was defined in its immutable
+    legacy module and the importer's declared slice from that same module loaded it.
+    """
+
+    def legacy_source(path: str) -> str:
+        if legacy_sources is not None and path in legacy_sources:
+            return legacy_sources[path]
+        legacy_path = (
+            path
+            if path.endswith(".py")
+            else path.replace(".", "/") + ".py"
+        )
+        return _git_source(root, legacy_path)
+
+    importer_path = importer_owner.replace(".", "/") + ".py"
+    imported_from_path = imported_from_owner.replace(".", "/") + ".py"
+    importer_slices = _SOURCE_SLICES.get(
+        importer_path, _FACADE_SOURCE_SLICES.get(importer_path, ())
+    )
+    definition_sources = {
+        legacy
+        for legacy, _ranges in _SOURCE_SLICES.get(imported_from_path, ())
+        if name in _defined_top_level_symbols(legacy_source(legacy))
+    }
+    return any(
+        legacy in definition_sources
+        and any(
+            isinstance(node, ast.Name)
+            and isinstance(node.ctx, ast.Load)
+            and node.id == name
+            for statement in _immutable_statements(legacy_source(legacy), ranges)
+            for node in ast.walk(statement)
+        )
+        for legacy, ranges in importer_slices
+    )
+
+
 def _normalized_dump(node: ast.stmt, *, candidate: bool) -> str:
     value = copy.deepcopy(node)
     if candidate:
         value = cast(ast.stmt, _TransportNormalizer().visit(value))
+    else:
+        value = cast(ast.stmt, _ImmutableTransportNormalizer().visit(value))
     return ast.dump(ast.fix_missing_locations(value), include_attributes=False)
 
 
@@ -239,10 +399,10 @@ def owner_ast_rows(
 ) -> tuple[dict[str, tuple[str, ...]], dict[str, tuple[str, ...]]]:
     expected: dict[str, tuple[str, ...]] = {}
     observed: dict[str, tuple[str, ...]] = {}
-    for owner, ranges in _SOURCE_RANGES.items():
-        legacy = _OWNER_LEGACY[owner]
+    for owner, slices in _SOURCE_SLICES.items():
         expected[owner] = tuple(
             _normalized_dump(node, candidate=False)
+            for legacy, ranges in slices
             for node in _immutable_statements(_git_source(root, legacy), ranges)
         )
         source = (
@@ -252,7 +412,7 @@ def owner_ast_rows(
         )
         observed[owner] = tuple(
             _normalized_dump(node, candidate=True)
-            for node in _candidate_statements(source)
+            for node in _candidate_statements(source, owner=owner)
         )
     return expected, observed
 
@@ -266,9 +426,13 @@ def assert_owner_ast_exact(
 
 __all__ = (
     "GENERALIZATION_OWNERS",
+    "HOLDOUT_LANES_FACADE",
+    "HOLDOUT_OWNERS",
+    "HOLDOUT_RUNTIME_FACADE",
     "POLICY_OWNERS",
     "RELOCATIONS",
     "approved_relocations",
     "assert_owner_ast_exact",
     "build_relocation_contract",
+    "has_immutable_local_relocation_lineage",
 )

@@ -34,7 +34,13 @@ from ._task7_ownership import (
     same_keywords,
 )
 from ._task7_risk_trace import _RISK_ACCOUNT_FIELDS, risk_trace_replay
-from ._task9_relocation import GENERALIZATION_OWNERS, POLICY_OWNERS
+from ._task9_relocation import (
+    GENERALIZATION_OWNERS,
+    HOLDOUT_LANES_FACADE,
+    HOLDOUT_OWNERS,
+    HOLDOUT_RUNTIME_FACADE,
+    POLICY_OWNERS,
+)
 
 _TASK7_START = "36bc6968ee61eb578a8f19ee132aecb9b03fe7ca"
 _TASK7_START_TREE = "3cc640cf565e116aa524466485dc7d9e1b511538"
@@ -79,10 +85,11 @@ _TASK8_PORTFOLIO_PACKAGE_PATHS = {
 }
 _TASK9_NEW_OWNER_MODULES = frozenset(
     path.removesuffix("/__init__.py").removesuffix(".py").replace("/", ".")
-    for path in (*GENERALIZATION_OWNERS, *POLICY_OWNERS)
+    for path in (*GENERALIZATION_OWNERS, *POLICY_OWNERS, *HOLDOUT_OWNERS)
 ) - {
     "uquant.validation.generalization",
     "uquant.validation.generalization_reference",
+    "uquant.validation.holdout",
 }
 
 _MOVED_HELPER_OWNERS = {
@@ -723,6 +730,13 @@ def test_task7_source_surface_migration_is_exact_and_requirements_stay_bound() -
             expected.update(GENERALIZATION_OWNERS)
         if "uquant/validation/generalization_reference.py" in expected:
             expected.update(POLICY_OWNERS)
+        if "uquant/validation/holdout.py" in expected:
+            expected.remove("uquant/validation/holdout.py")
+            expected.update(HOLDOUT_OWNERS)
+        if HOLDOUT_RUNTIME_FACADE in expected:
+            expected.update(HOLDOUT_OWNERS[5:])
+        if HOLDOUT_LANES_FACADE in expected:
+            expected.add(HOLDOUT_OWNERS[4])
         assert set(candidate[identifier]["source_paths"]) == expected
         assert candidate[identifier]["resource_paths"] == immutable[identifier]["resource_paths"]
     assert (ROOT / "requirements.txt").read_bytes() == _git_source("requirements.txt")
@@ -845,8 +859,18 @@ def test_task7_private_and_complexity_relocations_are_exact_and_fail_closed() ->
         "uquant.validation.generalization_policy.evaluator",
         "uquant.validation.generalization_policy.projection",
         "uquant.validation.generalization_policy.schema",
+        "uquant.validation.holdout.artifact_transaction",
+        "uquant.validation.holdout.checkpoints",
+        "uquant.validation.holdout.contract",
+        "uquant.validation.holdout.lanes",
+        "uquant.validation.holdout.manifest",
+        "uquant.validation.holdout.replay",
+        "uquant.validation.holdout.service",
+        "uquant.validation.holdout.snapshots",
+        "uquant.validation.holdout.source_identity",
     } == _TASK9_NEW_OWNER_MODULES
     assert "uquant.validation.generalization.unreviewed" not in _TASK9_NEW_OWNER_MODULES
+    assert "uquant.validation.holdout.unreviewed" not in _TASK9_NEW_OWNER_MODULES
     candidate = architecture_snapshot()
     graph = candidate["import_graph"]
     functions = candidate["functions"]

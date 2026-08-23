@@ -3,6 +3,7 @@ from __future__ import annotations
 import ast
 import copy
 import json
+import subprocess
 from functools import cache
 from pathlib import Path
 from typing import Any, cast
@@ -28,10 +29,14 @@ from ._task9_inventory import (
 )
 from ._task9_relocation import (
     GENERALIZATION_OWNERS,
+    HOLDOUT_LANES_FACADE,
+    HOLDOUT_OWNERS,
+    HOLDOUT_RUNTIME_FACADE,
     POLICY_OWNERS,
     approved_relocations,
     assert_owner_ast_exact,
     build_relocation_contract,
+    has_immutable_local_relocation_lineage,
 )
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -57,6 +62,18 @@ _LEGACY_IMPLEMENTATIONS = (
     "uquant/validation/holdout_lanes.py",
     "uquant/risk_sentinel/cli.py",
     "uquant/risk_sentinel/validation.py",
+)
+_HOLDOUT_OWNERS = (
+    "uquant/validation/holdout/__init__.py",
+    "uquant/validation/holdout/contract.py",
+    "uquant/validation/holdout/source_identity.py",
+    "uquant/validation/holdout/manifest.py",
+    "uquant/validation/holdout/lanes.py",
+    "uquant/validation/holdout/snapshots.py",
+    "uquant/validation/holdout/replay.py",
+    "uquant/validation/holdout/checkpoints.py",
+    "uquant/validation/holdout/artifact_transaction.py",
+    "uquant/validation/holdout/service.py",
 )
 _FIXED_REFERENCE_COUNTS = (5, 5, 11, 10, 7, 10, 8)
 _IMPORT_CONSUMER_COUNTS = (16, 3, 8, 4, 4, 4, 1)
@@ -273,6 +290,32 @@ def test_task9_checkpoint2_relocation_is_closed_and_source_bound() -> None:
     assert approved_relocations(_immutable_inventory()) == {
         "uquant/validation/generalization.py": tuple(sorted(GENERALIZATION_OWNERS)),
         "uquant/validation/generalization_reference.py": tuple(sorted(POLICY_OWNERS)),
+        "uquant/validation/holdout.py": tuple(
+            sorted(
+                (
+                    HOLDOUT_OWNERS[0],
+                    HOLDOUT_OWNERS[1],
+                    HOLDOUT_OWNERS[2],
+                    HOLDOUT_OWNERS[3],
+                    HOLDOUT_OWNERS[9],
+                )
+            )
+        ),
+        HOLDOUT_RUNTIME_FACADE: tuple(
+            sorted(
+                (
+                    HOLDOUT_RUNTIME_FACADE,
+                    HOLDOUT_OWNERS[5],
+                    HOLDOUT_OWNERS[6],
+                    HOLDOUT_OWNERS[7],
+                    HOLDOUT_OWNERS[8],
+                    HOLDOUT_OWNERS[9],
+                )
+            )
+        ),
+        HOLDOUT_LANES_FACADE: tuple(
+            sorted((HOLDOUT_LANES_FACADE, HOLDOUT_OWNERS[4]))
+        ),
     }
     payload = _relocation_contract()
     claimed = payload["canonical_sha256"]
@@ -343,6 +386,22 @@ def _task9_legacy_module(module: str) -> str:
         "uquant.validation.generalization_policy."
     ):
         return "uquant.validation.generalization_reference"
+    if module in {
+        "uquant.validation.holdout.contract",
+        "uquant.validation.holdout.manifest",
+        "uquant.validation.holdout.service",
+        "uquant.validation.holdout.source_identity",
+    }:
+        return "uquant.validation.holdout"
+    if module in {
+        "uquant.validation.holdout.artifact_transaction",
+        "uquant.validation.holdout.checkpoints",
+        "uquant.validation.holdout.replay",
+        "uquant.validation.holdout.snapshots",
+    }:
+        return "uquant.validation.holdout_runtime"
+    if module == "uquant.validation.holdout.lanes":
+        return "uquant.validation.holdout_lanes"
     return module
 
 
@@ -359,26 +418,56 @@ def test_task9_checkpoint2_relocated_debt_is_exact_bidirectional_and_non_growing
         or ".generalization." in str(row["imported_from"])
         or ".generalization_policy." in str(row["imported_from"])
     }
+    assert not (
+        {str(row["id"]) for row in relocated}
+        & {str(row["id"]) for row in graph["cross_module_private_imports"]}
+    )
+    immutable_entries = {
+        str(entry["module"]): entry for entry in _immutable_inventory()["entries"]
+    }
     immutable_symbols = {
-        str(entry["module"]): set(entry["defined_top_level_symbols"])
-        for entry in _immutable_inventory()["entries"][:2]
+        module: set(entry["defined_top_level_symbols"])
+        for module, entry in immutable_entries.items()
     }
     for row in relocated:
         importer = _task9_legacy_module(str(row["importer"]))
         imported_from = _task9_legacy_module(str(row["imported_from"]))
         name = str(row["name"])
-        if importer == imported_from:
+        if str(row["importer"]).startswith("uquant.validation.holdout"):
+            importer_path = importer.replace(".", "/") + ".py"
+            consumers = immutable_entries[imported_from]["live_references"][
+                "cross_module_private_import_consumers"
+            ]
+            if not any(
+                consumer["path"] == importer_path and name in consumer["symbols"]
+                for consumer in consumers
+            ):
+                assert has_immutable_local_relocation_lineage(
+                    ROOT,
+                    importer_owner=str(row["importer"]),
+                    imported_from_owner=str(row["imported_from"]),
+                    name=name,
+                )
+        elif importer == imported_from:
             assert name in immutable_symbols[importer]
         else:
-            assert (
+            if (
                 importer,
                 imported_from,
                 name,
-            ) == (
+            ) != (
                 "uquant.validation.generalization_reference",
                 "uquant.validation.generalization_matrix",
                 "_head_and_source",
-            )
+            ):
+                importer_path = importer.replace(".", "/") + ".py"
+                consumers = immutable_entries[imported_from]["live_references"][
+                    "cross_module_private_import_consumers"
+                ]
+                assert any(
+                    consumer["path"] == importer_path and name in consumer["symbols"]
+                    for consumer in consumers
+                )
 
     functions = snapshot["functions"]
     candidate_function_debt = {
@@ -388,6 +477,7 @@ def test_task9_checkpoint2_relocated_debt_is_exact_bidirectional_and_non_growing
             (
                 "uquant.validation.generalization.",
                 "uquant.validation.generalization_policy.",
+                "uquant.validation.holdout.",
             )
         )
         and (
@@ -417,6 +507,7 @@ def test_task9_checkpoint2_relocated_debt_is_exact_bidirectional_and_non_growing
             (
                 "uquant.validation.generalization.",
                 "uquant.validation.generalization_policy.",
+                "uquant.validation.holdout.",
             )
         )
         and (bool(row["mutable_initializer"]) or bool(row["mutation_sites"]))
@@ -449,3 +540,145 @@ def test_task9_checkpoint2_unknown_debt_is_not_hidden_by_relocation() -> None:
         for row in mutation["module_globals"]
         if bool(row["mutable_initializer"]) or bool(row["mutation_sites"])
     }
+
+
+def test_task9_checkpoint3_local_holdout_lineage_fails_closed_without_definition_or_reference() -> None:
+    legacy_path = "uquant/validation/holdout_runtime.py"
+    immutable_source = subprocess.run(
+        ["git", "show", f"{_TASK9_START}:{legacy_path}"],
+        cwd=ROOT,
+        check=True,
+        capture_output=True,
+        text=True,
+    ).stdout
+    arguments = {
+        "importer_owner": "uquant.validation.holdout.service",
+        "imported_from_owner": "uquant.validation.holdout.artifact_transaction",
+        "name": "_artifact_bundle_lock",
+    }
+    assert has_immutable_local_relocation_lineage(ROOT, **arguments)
+    missing_definition = immutable_source.replace(
+        "def _artifact_bundle_lock(", "def artifact_bundle_lock(", 1
+    )
+    assert not has_immutable_local_relocation_lineage(
+        ROOT,
+        **arguments,
+        legacy_sources={legacy_path: missing_definition},
+    )
+    missing_reference = immutable_source.replace(
+        "with _artifact_bundle_lock(root, carriers):",
+        "with artifact_bundle_lock(root, carriers):",
+        1,
+    )
+    assert not has_immutable_local_relocation_lineage(
+        ROOT,
+        **arguments,
+        legacy_sources={legacy_path: missing_reference},
+    )
+
+
+def test_task9_checkpoint3_unknown_holdout_debt_is_not_hidden_by_relocation() -> None:
+    source_texts = {
+        path.relative_to(ROOT).as_posix(): path.read_text(encoding="utf-8")
+        for path in (ROOT / "uquant").rglob("*.py")
+    }
+    path = "uquant/validation/holdout/service.py"
+    source_texts[path] += (
+        "\nfrom .contract import _TASK9_UNREVIEWED_HOLDOUT_PRIVATE\n"
+        "_TASK9_UNREVIEWED_HOLDOUT_MUTABLE = []\n"
+    )
+    mutation = architecture_snapshot(source_texts=source_texts)
+    graph = mutation["import_graph"]
+    private_import = (
+        "uquant.validation.holdout.service:"
+        "uquant.validation.holdout.contract:_TASK9_UNREVIEWED_HOLDOUT_PRIVATE"
+    )
+    assert private_import in {
+        str(row["id"]) for row in graph["cross_module_private_imports"]
+    }
+    assert private_import not in {
+        str(row["id"]) for row in graph["task9_relocated_private_imports"]
+    }
+    assert "uquant.validation.holdout.service:_TASK9_UNREVIEWED_HOLDOUT_MUTABLE" in {
+        str(row["id"])
+        for row in mutation["module_globals"]
+        if bool(row["mutable_initializer"]) or bool(row["mutation_sites"])
+    }
+
+
+def test_task9_checkpoint3_has_real_holdout_owners_and_thin_facades() -> None:
+    assert all((ROOT / path).is_file() for path in _HOLDOUT_OWNERS)
+    assert not (ROOT / "uquant/validation/holdout.py").exists()
+    assert len(
+        (ROOT / "uquant/validation/holdout_runtime.py")
+        .read_text(encoding="utf-8")
+        .splitlines()
+    ) < 180
+    assert len(
+        (ROOT / "uquant/validation/holdout_lanes.py")
+        .read_text(encoding="utf-8")
+        .splitlines()
+    ) < 100
+
+
+@pytest.mark.parametrize(
+    ("owner", "mutation"),
+    (
+        ("uquant/validation/holdout/contract.py", "constant"),
+        ("uquant/validation/holdout/lanes.py", "comparison"),
+        ("uquant/validation/holdout/service.py", "service_order"),
+        ("uquant/validation/holdout/snapshots.py", "checkpoint_handoff"),
+    ),
+)
+def test_task9_checkpoint3_ast_gate_rejects_holdout_rule_and_order_mutations(
+    owner: str,
+    mutation: str,
+) -> None:
+    tree = ast.parse((ROOT / owner).read_text(encoding="utf-8"))
+    if mutation == "constant":
+        assignment = next(
+            node
+            for node in tree.body
+            if isinstance(node, ast.AnnAssign)
+            and isinstance(node.target, ast.Name)
+            and node.target.id == "HOLDOUT_START"
+        )
+        assert isinstance(assignment.value, ast.Constant)
+        assignment.value.value = "2026-08-07"
+    elif mutation == "comparison":
+        comparison = next(
+            node
+            for node in ast.walk(tree)
+            if isinstance(node, ast.Compare) and isinstance(node.ops[0], ast.LtE)
+        )
+        comparison.ops[0] = ast.Lt()
+    else:
+        function_name = (
+            "_generate_future_holdout_replay_locked"
+            if mutation == "service_order"
+            else "append_holdout_snapshot"
+        )
+        function = next(
+            node
+            for node in tree.body
+            if isinstance(node, ast.FunctionDef) and node.name == function_name
+        )
+        if mutation == "service_order":
+            function.body[1], function.body[2] = function.body[2], function.body[1]
+        else:
+            index = next(
+                index
+                for index, node in enumerate(function.body)
+                if isinstance(node, ast.If)
+                and any(
+                    isinstance(child, ast.Name)
+                    and child.id == "_read_checkpoint"
+                    for child in ast.walk(node)
+                )
+            )
+            function.body[index - 1], function.body[index] = (
+                function.body[index],
+                function.body[index - 1],
+            )
+    with pytest.raises(AssertionError):
+        assert_owner_ast_exact(ROOT, candidate_sources={owner: ast.unparse(tree)})

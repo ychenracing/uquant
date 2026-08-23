@@ -120,10 +120,10 @@ def test_live_debt_cannot_exceed_its_initial_per_identity_severity(
         next(
             row
             for row in current["oversized_modules"]
-            if row["measured_lines"] == initial[str(row["id"])]["measured_lines"]
+            if str(row["id"]) in initial
         )
     )
-    measured_lines = first["measured_lines"]
+    measured_lines = initial[str(first["id"])]["measured_lines"]
     assert isinstance(measured_lines, int)
     first["measured_lines"] = measured_lines + 1
     current["oversized_modules"] = [

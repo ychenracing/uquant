@@ -306,13 +306,11 @@ def _materialize_overlay(
 
 __all__ = (
     "_HoldoutDataSnapshot",
-    "_ArtifactSnapshot",
     "_snapshot_files_sha256",
     "_capture_holdout_data",
     "_validated_snapshot_prefix_sha256",
     "_csv_inventory",
     "_one_snapshot_row",
-    "append_holdout_snapshot",
     "_merged_csv_text",
     "_materialize_overlay",
 )

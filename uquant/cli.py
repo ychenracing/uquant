@@ -1,7 +1,5 @@
 """Single command-line interface for daily production and causal replay."""
 
-# mypy: disable-error-code=call-arg
-
 from __future__ import annotations
 
 import argparse

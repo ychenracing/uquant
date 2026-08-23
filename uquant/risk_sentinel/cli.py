@@ -22,7 +22,7 @@ from uquant.validation.ai_era import runtime_environment_provenance
 from uquant.validation.universe import canonical_sha256, load_ai_universe
 
 from .models import RISK_FAMILIES
-from .provenance import sentinel_source_fingerprint as _sentinel_source_fingerprint
+from .provenance import legacy_sentinel_source_fingerprint
 from .service import evaluate_sentinel
 
 _BROAD_INDEX: Final = "sh000300"
@@ -42,7 +42,7 @@ def _canonical_json(value: object) -> str:
 def sentinel_source_fingerprint(repository_root: str | Path) -> str:
     """Hash the exact Sentinel Python path names and bytes."""
 
-    return _sentinel_source_fingerprint(repository_root)
+    return legacy_sentinel_source_fingerprint(repository_root)
 
 
 def _repository_commit(root: Path) -> str:

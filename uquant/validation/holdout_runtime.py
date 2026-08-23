@@ -1,8 +1,6 @@
 """Compatibility facade for future-holdout replay and artifact transactions."""
 
 # ruff: noqa: F401, F405, I001 - frozen compatibility exports and seams
-# mypy: disable-error-code="assignment, no-redef"
-
 from __future__ import annotations
 
 import os

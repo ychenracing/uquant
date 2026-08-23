@@ -3,6 +3,7 @@ from __future__ import annotations
 import ast
 import copy
 import json
+import shutil
 import subprocess
 from functools import cache
 from pathlib import Path
@@ -688,8 +689,13 @@ def test_task9_checkpoint4_sentinel_fingerprint_has_one_cli_independent_owner() 
     from uquant.risk_sentinel import cli, provenance, validation
 
     root = ROOT
-    assert cli.sentinel_source_fingerprint(root) == provenance.sentinel_source_fingerprint(root)
-    assert validation.sentinel_source_fingerprint is provenance.sentinel_source_fingerprint
+    assert cli.sentinel_source_fingerprint(root) == provenance.legacy_sentinel_source_fingerprint(
+        root
+    )
+    assert (
+        validation.legacy_sentinel_source_fingerprint
+        is provenance.legacy_sentinel_source_fingerprint
+    )
     assert "uquant.risk_sentinel.cli" not in {
         module.__name__
         for module in validation.__dict__.values()
@@ -702,3 +708,50 @@ def test_task9_checkpoint4_sentinel_fingerprint_has_one_cli_independent_owner() 
         isinstance(node, ast.ImportFrom) and node.level == 1 and node.module == "cli"
         for node in ast.walk(provenance_tree)
     )
+
+
+def test_task9_checkpoint4_current_sentinel_identity_calls_reviewed_surface(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from uquant.risk_sentinel import provenance
+
+    calls: list[tuple[Path, str]] = []
+
+    def _reviewed_surface(root: str | Path, surface_id: str) -> str:
+        calls.append((Path(root), surface_id))
+        return "current-sentinel-identity"
+
+    monkeypatch.setattr(provenance, "source_surface_fingerprint", _reviewed_surface)
+
+    assert provenance.current_sentinel_surface_fingerprint(ROOT) == "current-sentinel-identity"
+    assert calls == [(ROOT, "sentinel_v1")]
+
+
+def test_task9_checkpoint4_current_sentinel_identity_includes_provenance_member(
+    tmp_path: Path,
+) -> None:
+    from uquant.provenance.surfaces import load_source_surface_registry
+    from uquant.risk_sentinel.provenance import current_sentinel_surface_fingerprint
+
+    registry = load_source_surface_registry(ROOT)
+    registry_path = ROOT / "benchmarks/source_surface_registry.json"
+    target_registry = tmp_path / "benchmarks/source_surface_registry.json"
+    target_registry.parent.mkdir(parents=True)
+    shutil.copyfile(registry_path, target_registry)
+    for relative in registry.surface("sentinel_v1").paths:
+        source = ROOT / relative
+        target = tmp_path / relative
+        target.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copyfile(source, target)
+
+    before = current_sentinel_surface_fingerprint(tmp_path)
+    provenance_path = tmp_path / "uquant/risk_sentinel/provenance.py"
+    provenance_path.write_bytes(provenance_path.read_bytes() + b"\n# mutation\n")
+
+    assert current_sentinel_surface_fingerprint(tmp_path) != before
+
+
+def test_task9_checkpoint4_facades_use_native_strict_mypy_without_broad_disables() -> None:
+    for relative in ("uquant/cli.py", "uquant/validation/holdout_runtime.py"):
+        source = (ROOT / relative).read_text(encoding="utf-8")
+        assert "# mypy: disable-error-code" not in source

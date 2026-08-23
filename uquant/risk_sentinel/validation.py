@@ -9,7 +9,7 @@ from typing import Final
 from uquant.validation.universe import load_ai_universe
 
 from .calibration import load_calibration_contract
-from .provenance import sentinel_source_fingerprint
+from .provenance import legacy_sentinel_source_fingerprint
 
 _FORBIDDEN_IMPORTS: Final = (
     "uquant.engine",
@@ -59,6 +59,6 @@ def validate_contracts(repository_root: str | Path | None = None) -> dict[str, o
     return {
         "calibration_contract_sha256": calibration.sha256,
         "import_isolation": "PASS",
-        "sentinel_source_sha256": sentinel_source_fingerprint(root),
+        "sentinel_source_sha256": legacy_sentinel_source_fingerprint(root),
         "universe_sha256": universe.sha256,
     }

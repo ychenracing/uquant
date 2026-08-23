@@ -6,6 +6,8 @@ import ast
 import hashlib
 from pathlib import Path
 
+from uquant.provenance.fingerprints import source_surface_fingerprint
+
 
 def _legacy_cli_bytes(*, cli_path: Path, provenance_path: Path) -> bytes:
     """Project the relocated fingerprint body into its frozen CLI identity."""
@@ -37,7 +39,7 @@ def _legacy_cli_bytes(*, cli_path: Path, provenance_path: Path) -> bytes:
     )
     cli_lines[cli_function.lineno - 1 : cli_function.end_lineno] = legacy_function
     legacy = "".join(cli_lines).replace(
-        "from .provenance import sentinel_source_fingerprint as _sentinel_source_fingerprint\n",
+        "from .provenance import legacy_sentinel_source_fingerprint\n",
         "",
         1,
     )
@@ -48,8 +50,12 @@ def _legacy_validation_bytes(validation_path: Path) -> bytes:
     """Project the relocated fingerprint import into its frozen CLI edge."""
 
     return validation_path.read_bytes().replace(
-        b"from .provenance import sentinel_source_fingerprint\n",
+        b"from .provenance import legacy_sentinel_source_fingerprint\n",
         b"from .cli import sentinel_source_fingerprint\n",
+        1,
+    ).replace(
+        b"legacy_sentinel_source_fingerprint(root)",
+        b"sentinel_source_fingerprint(root)",
         1,
     )
 
@@ -72,8 +78,8 @@ def _legacy_sentinel_source_fingerprint(repository_root: str | Path) -> str:
     return digest.hexdigest()
 
 
-def sentinel_source_fingerprint(repository_root: str | Path) -> str:
-    """Hash the exact Sentinel Python path names and bytes."""
+def legacy_sentinel_source_fingerprint(repository_root: str | Path) -> str:
+    """Return the sealed pre-refactor Sentinel identity for legacy contracts."""
 
     root = Path(repository_root)
     package = root / "uquant" / "risk_sentinel"
@@ -95,3 +101,9 @@ def sentinel_source_fingerprint(repository_root: str | Path) -> str:
         )
         digest.update(b"\0")
     return digest.hexdigest()
+
+
+def current_sentinel_surface_fingerprint(repository_root: str | Path) -> str:
+    """Return the reviewed current Sentinel source-surface identity."""
+
+    return source_surface_fingerprint(repository_root, "sentinel_v1")

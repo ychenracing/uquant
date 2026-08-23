@@ -26,6 +26,7 @@ from ._analysis import (
 )
 from ._task8_immutable_trace import assert_trace_seals, immutable_trace_from_archive
 from ._task8_inventory import build_task8_inventory, current_reflection_contract
+from ._task9_relocation import GENERALIZATION_OWNERS, POLICY_OWNERS
 
 _TASK8_START = "4b6bedb03fb7c58914d9d5032a2514c67f41f6ba"
 _TASK8_START_TREE = "d3824f7c5d89521b8284b5de08cc1e82e3ab7ebd"
@@ -494,6 +495,11 @@ def test_task8_checkpoint1_source_surface_migration_is_exact() -> None:
             expected.update(_CHECKPOINT3_PACKAGE_PATHS)
         if "uquant/portfolio_recovery.py" in expected:
             expected.update(_CHECKPOINT4_PACKAGE_PATHS)
+        if "uquant/validation/generalization.py" in expected:
+            expected.remove("uquant/validation/generalization.py")
+            expected.update(GENERALIZATION_OWNERS)
+        if "uquant/validation/generalization_reference.py" in expected:
+            expected.update(POLICY_OWNERS)
         assert set(candidate_surfaces[identifier]["source_paths"]) == expected
         assert candidate_surfaces[identifier]["resource_paths"] == baseline["resource_paths"]
         assert {

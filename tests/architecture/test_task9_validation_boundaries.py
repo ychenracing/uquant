@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import ast
 import copy
 import json
 from functools import cache
@@ -10,16 +11,28 @@ import pytest
 
 from uquant.contracts.strict_json import canonical_json_sha256
 
+from ._analysis import (
+    _TASK9_RELOCATED_FUNCTION_DEBT,
+    _TASK9_RELOCATED_GLOBAL_DEBT,
+    _TASK9_RELOCATED_PRIVATE_IMPORTS,
+    FINAL_BUDGETS,
+    architecture_snapshot,
+)
 from ._task9_immutable_oracle import (
     candidate_behavior_from_subprocess,
-    candidate_oracle_from_subprocess,
     immutable_oracle_from_archive,
 )
 from ._task9_inventory import (
     build_task9_inventory,
     current_reflection_contract,
 )
-from ._task9_validation_oracle import build_validation_oracle
+from ._task9_relocation import (
+    GENERALIZATION_OWNERS,
+    POLICY_OWNERS,
+    approved_relocations,
+    assert_owner_ast_exact,
+    build_relocation_contract,
+)
 
 ROOT = Path(__file__).resolve().parents[2]
 _TASK9_START = "719288f6067686b3199d305899ddc09adf098a0d"
@@ -183,12 +196,6 @@ def test_task9_resigned_immutable_blob_tamper_is_rejected() -> None:
         _assert_immutable_inventory(payload)
 
 
-def test_task9_validation_oracle_is_frozen_before_owner_replacement() -> None:
-    payload = _validation_oracle()
-    _assert_validation_oracle_seals(payload)
-    assert build_validation_oracle(ROOT) == payload
-
-
 def test_task9_validation_oracle_is_fresh_from_immutable_archive(
     tmp_path: Path,
 ) -> None:
@@ -205,13 +212,6 @@ def test_task9_validation_oracle_is_fresh_from_immutable_archive(
     )
     _assert_validation_oracle_seals(immutable)
     assert immutable == payload
-
-
-def test_task9_candidate_validation_oracle_uses_a_fresh_process() -> None:
-    payload = _validation_oracle()
-    candidate = candidate_oracle_from_subprocess(root=ROOT)
-    _assert_validation_oracle_seals(candidate)
-    assert candidate == payload
 
 
 def test_task9_relocated_candidate_behavior_matches_frozen_oracle_exactly() -> None:
@@ -262,3 +262,190 @@ def test_task9_resigned_validation_oracle_tamper_is_rejected(
     _assert_validation_oracle_seals(payload)
     with pytest.raises(AssertionError):
         assert payload == _validation_oracle()
+
+
+@cache
+def _relocation_contract() -> dict[str, Any]:
+    return build_relocation_contract(ROOT, _immutable_inventory())
+
+
+def test_task9_checkpoint2_relocation_is_closed_and_source_bound() -> None:
+    assert approved_relocations(_immutable_inventory()) == {
+        "uquant/validation/generalization.py": tuple(sorted(GENERALIZATION_OWNERS)),
+        "uquant/validation/generalization_reference.py": tuple(sorted(POLICY_OWNERS)),
+    }
+    payload = _relocation_contract()
+    claimed = payload["canonical_sha256"]
+    unsigned = dict(payload)
+    del unsigned["canonical_sha256"]
+    assert claimed == canonical_json_sha256(unsigned)
+    assert not (ROOT / "uquant/validation/generalization.py").exists()
+    assert len(
+        (ROOT / "uquant/validation/generalization_reference.py")
+        .read_text(encoding="utf-8")
+        .splitlines()
+    ) < 180
+
+
+def test_task9_checkpoint2_resigned_relocation_tamper_is_rejected() -> None:
+    payload = copy.deepcopy(_relocation_contract())
+    payload["entries"][0]["owners"][0]["path"] = "uquant/validation/unapproved.py"
+    del payload["canonical_sha256"]
+    payload["canonical_sha256"] = canonical_json_sha256(payload)
+    unsigned = dict(payload)
+    claimed = unsigned.pop("canonical_sha256")
+    assert claimed == canonical_json_sha256(unsigned)
+    with pytest.raises(AssertionError):
+        assert payload == _relocation_contract()
+
+
+def test_task9_checkpoint2_owner_slices_are_immutable_ast_exact() -> None:
+    assert_owner_ast_exact(ROOT)
+
+
+@pytest.mark.parametrize("mutation", ("threshold", "comparison", "order"))
+def test_task9_checkpoint2_ast_gate_rejects_rule_mutations(mutation: str) -> None:
+    path = (
+        "uquant/validation/generalization/gates.py"
+        if mutation == "threshold"
+        else "uquant/validation/generalization_policy/evaluator.py"
+    )
+    source = (ROOT / path).read_text(encoding="utf-8")
+    tree = ast.parse(source)
+    if mutation == "threshold":
+        value = next(
+            node
+            for node in ast.walk(tree)
+            if isinstance(node, ast.Constant) and node.value == 0.10
+        )
+        value.value = 0.11
+    elif mutation == "comparison":
+        comparison = next(node for node in ast.walk(tree) if isinstance(node, ast.Compare))
+        comparison.ops[0] = ast.Gt() if isinstance(comparison.ops[0], ast.Lt) else ast.Lt()
+    else:
+        function = next(
+            node
+            for node in tree.body
+            if isinstance(node, ast.FunctionDef)
+            and node.name == "evaluate_generalization_policy_artifact"
+        )
+        function.body[2], function.body[3] = function.body[3], function.body[2]
+    with pytest.raises(AssertionError):
+        assert_owner_ast_exact(ROOT, candidate_sources={path: ast.unparse(tree)})
+
+
+def _task9_legacy_module(module: str) -> str:
+    if module == "uquant.validation.generalization" or module.startswith(
+        "uquant.validation.generalization."
+    ):
+        return "uquant.validation.generalization"
+    if module == "uquant.validation.generalization_reference" or module.startswith(
+        "uquant.validation.generalization_policy."
+    ):
+        return "uquant.validation.generalization_reference"
+    return module
+
+
+def test_task9_checkpoint2_relocated_debt_is_exact_bidirectional_and_non_growing() -> None:
+    snapshot = architecture_snapshot()
+    graph = snapshot["import_graph"]
+    relocated = graph["task9_relocated_private_imports"]
+    assert {str(row["id"]) for row in relocated} == _TASK9_RELOCATED_PRIVATE_IMPORTS
+    assert not {
+        str(row["id"])
+        for row in graph["cross_module_private_imports"]
+        if ".generalization." in str(row["importer"])
+        or ".generalization_policy." in str(row["importer"])
+        or ".generalization." in str(row["imported_from"])
+        or ".generalization_policy." in str(row["imported_from"])
+    }
+    immutable_symbols = {
+        str(entry["module"]): set(entry["defined_top_level_symbols"])
+        for entry in _immutable_inventory()["entries"][:2]
+    }
+    for row in relocated:
+        importer = _task9_legacy_module(str(row["importer"]))
+        imported_from = _task9_legacy_module(str(row["imported_from"]))
+        name = str(row["name"])
+        if importer == imported_from:
+            assert name in immutable_symbols[importer]
+        else:
+            assert (
+                importer,
+                imported_from,
+                name,
+            ) == (
+                "uquant.validation.generalization_reference",
+                "uquant.validation.generalization_matrix",
+                "_head_and_source",
+            )
+
+    functions = snapshot["functions"]
+    candidate_function_debt = {
+        str(row["id"])
+        for row in functions
+        if str(row["id"]).startswith(
+            (
+                "uquant.validation.generalization.",
+                "uquant.validation.generalization_policy.",
+            )
+        )
+        and (
+            int(row["lines"]) > FINAL_BUDGETS["max_function_lines"]
+            or int(row["branch_points"]) > FINAL_BUDGETS["max_function_branch_points"]
+        )
+    }
+    assert set(_TASK9_RELOCATED_FUNCTION_DEBT) == candidate_function_debt
+    baseline_debt = json.loads(
+        (ROOT / "artifacts/architecture_refactor/baseline_inventory.json").read_text(
+            encoding="utf-8"
+        )
+    )["architecture_debt"]["initial"]
+    legacy_function_debt = {
+        str(row["id"])
+        for category in ("long_functions", "branchy_functions")
+        for row in baseline_debt[category]
+    }
+    assert {
+        legacy for legacy, _ in _TASK9_RELOCATED_FUNCTION_DEBT.values()
+    } <= legacy_function_debt
+
+    candidate_globals = {
+        str(row["id"])
+        for row in snapshot["module_globals"]
+        if str(row["id"]).startswith(
+            (
+                "uquant.validation.generalization.",
+                "uquant.validation.generalization_policy.",
+            )
+        )
+        and (bool(row["mutable_initializer"]) or bool(row["mutation_sites"]))
+    }
+    assert set(_TASK9_RELOCATED_GLOBAL_DEBT) == candidate_globals
+    legacy_global_debt = {
+        str(row["id"]) for row in baseline_debt["mutable_module_globals"]
+    }
+    assert set(_TASK9_RELOCATED_GLOBAL_DEBT.values()) <= legacy_global_debt
+
+
+def test_task9_checkpoint2_unknown_debt_is_not_hidden_by_relocation() -> None:
+    source_texts = {
+        path.relative_to(ROOT).as_posix(): path.read_text(encoding="utf-8")
+        for path in (ROOT / "uquant").rglob("*.py")
+    }
+    path = "uquant/validation/generalization/baseline.py"
+    source_texts[path] += (
+        "\nfrom .models import _TASK9_UNREVIEWED_PRIVATE\n"
+        "_TASK9_UNREVIEWED_MUTABLE = []\n"
+    )
+    mutation = architecture_snapshot(source_texts=source_texts)
+    graph = mutation["import_graph"]
+    assert (
+        "uquant.validation.generalization.baseline:"
+        "uquant.validation.generalization.models:_TASK9_UNREVIEWED_PRIVATE"
+    ) in {str(row["id"]) for row in graph["cross_module_private_imports"]}
+    assert "uquant.validation.generalization.baseline:_TASK9_UNREVIEWED_MUTABLE" in {
+        str(row["id"])
+        for row in mutation["module_globals"]
+        if bool(row["mutable_initializer"]) or bool(row["mutation_sites"])
+    }

@@ -1,0 +1,161 @@
+"""Compatibility facade for deterministic generalization validation."""
+
+from __future__ import annotations
+
+import hashlib as hashlib
+import shutil as shutil
+import subprocess as subprocess
+
+from ..manifest import verify_data_manifest as verify_data_manifest
+from .baseline import (
+    _parse_policy,
+    _policy_number,
+    _read_generalization_baseline,
+    _reject_duplicate_keys,
+    _reject_nonstandard_constant,
+    _validate_baseline_envelope,
+    load_generalization_baseline,
+    reference_payload,
+)
+from .gates import (
+    _aggregate_gate_results,
+    _reference_aggregate,
+    _relative_change,
+    evaluate_generalization,
+)
+from .metrics import (
+    _deployment_from_result,
+    _quantile,
+    aggregate_metrics,
+    industry_pnl_shares,
+    observation_from_result,
+    prior_dependence,
+    symbol_pnl_concentration,
+    symbol_pnl_from_result,
+)
+from .models import (
+    _BASELINE_SCHEMA_VERSION,
+    _COMMIT,
+    _COMPETITOR_BEST_FIELDS,
+    _COMPETITOR_PROVENANCE_FIELDS,
+    _EXECUTION_CONTRACT,
+    _FIXED_PRODUCTION_PATHS,
+    _POLICY_FIELDS,
+    _PROVENANCE_SECTIONS,
+    _REFERENCE_FIELDS,
+    _SHA256,
+    GeneralizationBaseline,
+    GeneralizationObservation,
+    GeneralizationPolicy,
+    GeneralizationScenario,
+    PreWindowEvidence,
+)
+from .provenance import (
+    _exact_fields,
+    _fingerprint,
+    _git_executable,
+    _immutable_validation_inputs,
+    _nonempty_text,
+    _production_commit,
+    _production_source_fingerprint,
+    _validated_competitor_best,
+    _validated_provenance,
+    _validation_fingerprint,
+    build_generalization_provenance,
+)
+from .provenance import _git_stdout as _git_stdout
+from .runner import (
+    run_generalization,
+)
+from .scenarios import (
+    _canonical_symbols,
+    _derived_seed,
+    _slug,
+    _unique_integers,
+    _validate_industry_coverage,
+    build_generalization_scenarios,
+    compute_pre_window_evidence,
+    scenario_fingerprint,
+)
+
+for _value in (
+    PreWindowEvidence,
+    GeneralizationScenario,
+    GeneralizationObservation,
+    GeneralizationBaseline,
+    GeneralizationPolicy,
+    _canonical_symbols,
+    _slug,
+    _validate_industry_coverage,
+    compute_pre_window_evidence,
+    _derived_seed,
+    _unique_integers,
+    build_generalization_scenarios,
+    scenario_fingerprint,
+    _fingerprint,
+    _validation_fingerprint,
+    _exact_fields,
+    _nonempty_text,
+    _validated_provenance,
+    _validated_competitor_best,
+    _production_source_fingerprint,
+    _git_executable,
+    _git_stdout,
+    _production_commit,
+    _immutable_validation_inputs,
+    build_generalization_provenance,
+    _reject_duplicate_keys,
+    _reject_nonstandard_constant,
+    _policy_number,
+    _parse_policy,
+    _read_generalization_baseline,
+    _validate_baseline_envelope,
+    load_generalization_baseline,
+    reference_payload,
+    symbol_pnl_from_result,
+    symbol_pnl_concentration,
+    _deployment_from_result,
+    observation_from_result,
+    _quantile,
+    aggregate_metrics,
+    prior_dependence,
+    industry_pnl_shares,
+    _reference_aggregate,
+    _relative_change,
+    _aggregate_gate_results,
+    evaluate_generalization,
+    run_generalization,
+):
+    _value.__module__ = __name__
+
+__all__ = (  # noqa: RUF022 - frozen public-name order
+    "GeneralizationBaseline",
+    "GeneralizationObservation",
+    "GeneralizationPolicy",
+    "GeneralizationScenario",
+    "PreWindowEvidence",
+    "_BASELINE_SCHEMA_VERSION",
+    "_COMMIT",
+    "_COMPETITOR_BEST_FIELDS",
+    "_COMPETITOR_PROVENANCE_FIELDS",
+    "_EXECUTION_CONTRACT",
+    "_FIXED_PRODUCTION_PATHS",
+    "_POLICY_FIELDS",
+    "_PROVENANCE_SECTIONS",
+    "_REFERENCE_FIELDS",
+    "_SHA256",
+    "aggregate_metrics",
+    "build_generalization_provenance",
+    "build_generalization_scenarios",
+    "compute_pre_window_evidence",
+    "evaluate_generalization",
+    "industry_pnl_shares",
+    "load_generalization_baseline",
+    "observation_from_result",
+    "prior_dependence",
+    "reference_payload",
+    "run_generalization",
+    "scenario_fingerprint",
+    "symbol_pnl_concentration",
+    "symbol_pnl_from_result",
+)

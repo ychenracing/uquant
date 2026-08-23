@@ -183,8 +183,20 @@ MODULE_AUTHORITIES = {
     "uquant.validation.equivalence": "validation_runner",
     "uquant.validation.execution_journal": "validation_runner",
     "uquant.validation.generalization": "validation_runner",
+    "uquant.validation.generalization.baseline": "validation_runner",
+    "uquant.validation.generalization.gates": "validation_runner",
+    "uquant.validation.generalization.metrics": "validation_runner",
+    "uquant.validation.generalization.models": "validation_runner",
+    "uquant.validation.generalization.provenance": "validation_runner",
+    "uquant.validation.generalization.runner": "validation_runner",
+    "uquant.validation.generalization.scenarios": "validation_runner",
     "uquant.validation.generalization_contract": "validation_runner",
     "uquant.validation.generalization_matrix": "validation_runner",
+    "uquant.validation.generalization_policy": "validation_runner",
+    "uquant.validation.generalization_policy.cells": "validation_runner",
+    "uquant.validation.generalization_policy.evaluator": "validation_runner",
+    "uquant.validation.generalization_policy.projection": "validation_runner",
+    "uquant.validation.generalization_policy.schema": "validation_runner",
     "uquant.validation.generalization_reference": "validation_runner",
     "uquant.validation.holdout": "validation_runner",
     "uquant.validation.holdout_lanes": "validation_runner",
@@ -807,6 +819,122 @@ _TASK8_RELOCATED_PRIVATE_IMPORTS = frozenset(
     for name in names
 )
 
+_TASK9_RELOCATED_PRIVATE_IMPORT_GROUPS = (
+    (
+        "uquant.validation.generalization",
+        "uquant.validation.generalization.baseline",
+        ("_parse_policy", "_policy_number", "_read_generalization_baseline", "_reject_duplicate_keys", "_reject_nonstandard_constant", "_validate_baseline_envelope"),
+    ),
+    ("uquant.validation.generalization", "uquant.validation.generalization.gates", ("_aggregate_gate_results", "_reference_aggregate", "_relative_change")),
+    ("uquant.validation.generalization", "uquant.validation.generalization.metrics", ("_deployment_from_result", "_quantile")),
+    (
+        "uquant.validation.generalization",
+        "uquant.validation.generalization.models",
+        ("_BASELINE_SCHEMA_VERSION", "_COMMIT", "_COMPETITOR_BEST_FIELDS", "_COMPETITOR_PROVENANCE_FIELDS", "_EXECUTION_CONTRACT", "_FIXED_PRODUCTION_PATHS", "_POLICY_FIELDS", "_PROVENANCE_SECTIONS", "_REFERENCE_FIELDS", "_SHA256"),
+    ),
+    (
+        "uquant.validation.generalization",
+        "uquant.validation.generalization.provenance",
+        ("_exact_fields", "_fingerprint", "_git_executable", "_git_stdout", "_immutable_validation_inputs", "_nonempty_text", "_production_commit", "_production_source_fingerprint", "_validated_competitor_best", "_validated_provenance", "_validation_fingerprint"),
+    ),
+    ("uquant.validation.generalization", "uquant.validation.generalization.scenarios", ("_canonical_symbols", "_derived_seed", "_slug", "_unique_integers", "_validate_industry_coverage")),
+    ("uquant.validation.generalization.baseline", "uquant.validation.generalization.models", ("_BASELINE_SCHEMA_VERSION", "_POLICY_FIELDS", "_REFERENCE_FIELDS", "_SHA256")),
+    ("uquant.validation.generalization.baseline", "uquant.validation.generalization.provenance", ("_validated_competitor_best", "_validated_provenance", "_validation_fingerprint")),
+    ("uquant.validation.generalization.gates", "uquant.validation.generalization.metrics", ("_quantile",)),
+    ("uquant.validation.generalization.provenance", "uquant.validation.generalization.models", ("_COMMIT", "_COMPETITOR_BEST_FIELDS", "_COMPETITOR_PROVENANCE_FIELDS", "_EXECUTION_CONTRACT", "_FIXED_PRODUCTION_PATHS", "_PROVENANCE_SECTIONS", "_SHA256")),
+    ("uquant.validation.generalization.provenance", "uquant.validation.generalization.scenarios", ("_canonical_symbols", "_validate_industry_coverage")),
+    ("uquant.validation.generalization.runner", "uquant.validation.generalization.baseline", ("_read_generalization_baseline", "_validate_baseline_envelope")),
+    ("uquant.validation.generalization.runner", "uquant.validation.generalization.provenance", ("_immutable_validation_inputs", "_production_commit", "_production_source_fingerprint", "_validated_provenance")),
+    ("uquant.validation.generalization.runner", "uquant.validation.generalization.scenarios", ("_canonical_symbols", "_validate_industry_coverage")),
+    ("uquant.validation.generalization_policy.cells", "uquant.validation.generalization_policy.projection", ("_attribution_neutral_equality_sha256",)),
+    (
+        "uquant.validation.generalization_policy.cells",
+        "uquant.validation.generalization_policy.schema",
+        ("_ATTRIBUTION_DEFINITION", "_BASELINE_CELL_FIELDS", "_COMMIT", "_artifact_equality_sha256", "_derived_seed", "_metric_payload", "_read_json", "_reject_duplicate_keys", "_reject_nonstandard_constant", "_replay_error", "_require_exact_seal", "_require_sha256"),
+    ),
+    ("uquant.validation.generalization_policy.evaluator", "uquant.validation.generalization_matrix", ("_head_and_source",)),
+    ("uquant.validation.generalization_policy.evaluator", "uquant.validation.generalization_policy.projection", ("_attribution_neutral_equality_sha256", "_candidate_contract_sha256")),
+    (
+        "uquant.validation.generalization_policy.evaluator",
+        "uquant.validation.generalization_policy.schema",
+        ("_ARTIFACT_FIELDS_V1", "_ARTIFACT_FIELDS_V2", "_ATTRIBUTION_DEFINITION", "_CELL_FIELDS_V1", "_CELL_FIELDS_V2", "_EVIDENCE_FIELDS", "_ROOT", "_artifact_equality_sha256", "_metric_payload", "_metrics_reconciled_from_raw", "_provenance_schema_failures", "_replay_error", "_schema_failures"),
+    ),
+    ("uquant.validation.generalization_policy.projection", "uquant.validation.generalization_policy.schema", ("_ADDITIVE_ATTRIBUTION_IDENTITY_FIELDS", "_DEPRECATED_V1_ATTRIBUTION_TOKEN", "_REQUIRED_DEPRECATED_V1_ATTRIBUTION_COLLECTION_SHA256", "_artifact_equality_sha256", "_hash_json")),
+    ("uquant.validation.generalization_reference", "uquant.validation.generalization_policy.cells", ("_load_baseline_cells",)),
+    ("uquant.validation.generalization_reference", "uquant.validation.generalization_policy.evaluator", ("_RandomTailStatistics", "_evaluate_recovered_against_group_envelope", "_quantile", "_random_tail_statistics", "_violates_effective_floor")),
+    ("uquant.validation.generalization_reference", "uquant.validation.generalization_policy.projection", ("_attribution_neutral_equality_sha256", "_candidate_contract_sha256", "_project_raw_evidence_for_frozen_v1", "_v2_economic_projection")),
+    (
+        "uquant.validation.generalization_reference",
+        "uquant.validation.generalization_policy.schema",
+        ("_ADDITIVE_ATTRIBUTION_IDENTITY_FIELDS", "_ARTIFACT_FIELDS_V1", "_ARTIFACT_FIELDS_V2", "_ATTRIBUTION_DEFINITION", "_BASELINE_CELL_FIELDS", "_CELL_FIELDS_V1", "_CELL_FIELDS_V2", "_COMMIT", "_DATA_FIELDS", "_DEPRECATED_V1_ATTRIBUTION_TOKEN", "_EVIDENCE_FIELDS", "_METRIC_FIELDS", "_PROVENANCE_FIELDS", "_REQUIRED_DEPRECATED_V1_ATTRIBUTION_COLLECTION_SHA256", "_ROOT", "_RUNTIME_FIELDS", "_SHA256", "_artifact_equality_sha256", "_canonical_sha256", "_derived_seed", "_hash_json", "_metric_payload", "_metrics_reconciled_from_raw", "_provenance_schema_failures", "_read_json", "_reject_duplicate_keys", "_reject_nonstandard_constant", "_replay_error", "_require_exact_seal", "_require_sha256", "_schema_failures"),
+    ),
+)
+_TASK9_RELOCATED_PRIVATE_IMPORTS = frozenset(
+    f"{importer}:{imported_from}:{name}"
+    for importer, imported_from, names in _TASK9_RELOCATED_PRIVATE_IMPORT_GROUPS
+    for name in names
+)
+
+_TASK9_RELOCATED_FUNCTION_DEBT = {
+    **{
+        f"{owner}:{name}": (f"uquant.validation.generalization:{name}", overhead)
+        for owner, names, overhead in (
+            ("uquant.validation.generalization.baseline", ("_parse_policy",), 0),
+            ("uquant.validation.generalization.gates", ("evaluate_generalization",), 0),
+            ("uquant.validation.generalization.metrics", ("symbol_pnl_from_result",), 0),
+            ("uquant.validation.generalization.provenance", ("_validated_provenance",), 0),
+            ("uquant.validation.generalization.runner", ("run_generalization",), 4),
+            ("uquant.validation.generalization.scenarios", ("build_generalization_scenarios",), 0),
+        )
+        for name in names
+    },
+    **{
+        f"{owner}:{name}": (f"uquant.validation.generalization_reference:{name}", 0)
+        for owner, names in (
+            ("uquant.validation.generalization_policy.cells", ("_load_baseline_cells", "load_generalization_baseline", "load_generalization_policy")),
+            ("uquant.validation.generalization_policy.evaluator", ("evaluate_generalization_policy_artifact",)),
+            ("uquant.validation.generalization_policy.projection", ("_project_raw_evidence_for_frozen_v1",)),
+            ("uquant.validation.generalization_policy.schema", ("_provenance_schema_failures",)),
+        )
+        for name in names
+    },
+}
+_TASK9_RELOCATED_GLOBAL_DEBT = {
+    **{
+        f"uquant.validation.generalization.models:{name}": (
+            f"uquant.validation.generalization:{name}"
+        )
+        for name in (
+            "_COMPETITOR_BEST_FIELDS",
+            "_COMPETITOR_PROVENANCE_FIELDS",
+            "_EXECUTION_CONTRACT",
+            "_POLICY_FIELDS",
+            "_PROVENANCE_SECTIONS",
+            "_REFERENCE_FIELDS",
+        )
+    },
+    **{
+        f"uquant.validation.generalization_policy.schema:{name}": (
+            f"uquant.validation.generalization_reference:{name}"
+        )
+        for name in (
+            "_ADDITIVE_ATTRIBUTION_IDENTITY_FIELDS",
+            "_ARTIFACT_FIELDS_V1",
+            "_ARTIFACT_FIELDS_V2",
+            "_ATTRIBUTION_DEFINITION",
+            "_BASELINE_CELL_FIELDS",
+            "_CELL_FIELDS_V1",
+            "_CELL_FIELDS_V2",
+            "_DATA_FIELDS",
+            "_DEPRECATED_V1_ATTRIBUTION_TOKEN",
+            "_EVIDENCE_FIELDS",
+            "_METRIC_FIELDS",
+            "_PROVENANCE_FIELDS",
+            "_RUNTIME_FIELDS",
+        )
+    },
+}
+
 _TASK8_RELOCATED_FUNCTION_NAMES = {
     "_leader_session_distance": "_session_distance",
 }
@@ -992,6 +1120,8 @@ _PUBLIC_API_FACADE_PATHS = {
     "uquant.risk": "uquant/risk.py",
     # Task 8 preserves the public allocator path through its same-name package facade.
     "uquant.portfolio": "uquant/portfolio.py",
+    # Task 9 preserves generalization's public path through its same-name package facade.
+    "uquant.validation.generalization": "uquant/validation/generalization.py",
 }
 
 _MUTABLE_CALLS = {
@@ -1437,6 +1567,7 @@ def architecture_snapshot(
     task6_relocated_private_imports: list[dict[str, object]] = []
     task7_relocated_private_imports: list[dict[str, object]] = []
     task8_relocated_private_imports: list[dict[str, object]] = []
+    task9_relocated_private_imports: list[dict[str, object]] = []
     forbidden_imports: list[dict[str, object]] = []
     function_rows: list[dict[str, object]] = []
     global_rows: list[dict[str, object]] = []
@@ -1562,6 +1693,8 @@ def architecture_snapshot(
                             task7_relocated_private_imports.append(row)
                         elif private_import_id in _TASK8_RELOCATED_PRIVATE_IMPORTS:
                             task8_relocated_private_imports.append(row)
+                        elif private_import_id in _TASK9_RELOCATED_PRIVATE_IMPORTS:
+                            task9_relocated_private_imports.append(row)
                         else:
                             private_imports.append(row)
                 for authority_target, target_authority in authority_targets.items():
@@ -1694,6 +1827,10 @@ def architecture_snapshot(
                 task8_relocated_private_imports,
                 key=_row_id,
             ),
+            "task9_relocated_private_imports": sorted(
+                task9_relocated_private_imports,
+                key=_row_id,
+            ),
             "forbidden_imports": sorted_forbidden_imports,
         },
         "module_globals": sorted(global_rows, key=lambda row: str(row["id"])),
@@ -1724,6 +1861,9 @@ def measured_debt(snapshot: Mapping[str, object]) -> dict[str, list[dict[str, ob
         relocated_global = _TASK6_RELOCATED_GLOBAL_DEBT.get(value)
         if relocated_global is not None:
             return relocated_global
+        task9_relocated_global = _TASK9_RELOCATED_GLOBAL_DEBT.get(value)
+        if task9_relocated_global is not None:
+            return task9_relocated_global
         relocated = _TASK6_RELOCATED_FUNCTION_DEBT.get(value)
         if relocated is not None:
             return relocated[0]
@@ -1733,13 +1873,21 @@ def measured_debt(snapshot: Mapping[str, object]) -> dict[str, list[dict[str, ob
         task8_relocated = _TASK8_RELOCATED_FUNCTION_DEBT.get(value)
         if task8_relocated is not None:
             return task8_relocated
+        task9_relocated = _TASK9_RELOCATED_FUNCTION_DEBT.get(value)
+        if task9_relocated is not None:
+            return task9_relocated[0]
         module, separator, suffix = value.partition(":")
         legacy = _DEBT_RELOCATIONS.get(module, module)
         return f"{legacy}{separator}{suffix}"
 
     def function_lines(row: Mapping[str, object]) -> int:
         relocated = _TASK6_RELOCATED_FUNCTION_DEBT.get(str(row["id"]))
-        overhead = 0 if relocated is None else relocated[1]
+        task9_relocated = _TASK9_RELOCATED_FUNCTION_DEBT.get(str(row["id"]))
+        overhead = (
+            relocated[1]
+            if relocated is not None
+            else (task9_relocated[1] if task9_relocated is not None else 0)
+        )
         return int(row["lines"]) - overhead
 
     oversized = [

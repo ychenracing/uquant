@@ -34,6 +34,7 @@ from ._task7_ownership import (
     same_keywords,
 )
 from ._task7_risk_trace import _RISK_ACCOUNT_FIELDS, risk_trace_replay
+from ._task9_relocation import GENERALIZATION_OWNERS, POLICY_OWNERS
 
 _TASK7_START = "36bc6968ee61eb578a8f19ee132aecb9b03fe7ca"
 _TASK7_START_TREE = "3cc640cf565e116aa524466485dc7d9e1b511538"
@@ -75,6 +76,13 @@ _TASK8_PORTFOLIO_PACKAGE_PATHS = {
     "uquant/portfolio/strategic/discovery.py",
     "uquant/portfolio/strategic/lifecycle.py",
     "uquant/portfolio/strategic/targets.py",
+}
+_TASK9_NEW_OWNER_MODULES = frozenset(
+    path.removesuffix("/__init__.py").removesuffix(".py").replace("/", ".")
+    for path in (*GENERALIZATION_OWNERS, *POLICY_OWNERS)
+) - {
+    "uquant.validation.generalization",
+    "uquant.validation.generalization_reference",
 }
 
 _MOVED_HELPER_OWNERS = {
@@ -710,6 +718,11 @@ def test_task7_source_surface_migration_is_exact_and_requirements_stay_bound() -
         if "uquant/portfolio.py" in expected:
             expected.remove("uquant/portfolio.py")
             expected.update(_TASK8_PORTFOLIO_PACKAGE_PATHS)
+        if "uquant/validation/generalization.py" in expected:
+            expected.remove("uquant/validation/generalization.py")
+            expected.update(GENERALIZATION_OWNERS)
+        if "uquant/validation/generalization_reference.py" in expected:
+            expected.update(POLICY_OWNERS)
         assert set(candidate[identifier]["source_paths"]) == expected
         assert candidate[identifier]["resource_paths"] == immutable[identifier]["resource_paths"]
     assert (ROOT / "requirements.txt").read_bytes() == _git_source("requirements.txt")
@@ -819,6 +832,21 @@ def test_task7_ownership_slice_gate_rejects_economic_mutation(kind: str) -> None
 
 
 def test_task7_private_and_complexity_relocations_are_exact_and_fail_closed() -> None:
+    assert {
+        "uquant.validation.generalization.baseline",
+        "uquant.validation.generalization.gates",
+        "uquant.validation.generalization.metrics",
+        "uquant.validation.generalization.models",
+        "uquant.validation.generalization.provenance",
+        "uquant.validation.generalization.runner",
+        "uquant.validation.generalization.scenarios",
+        "uquant.validation.generalization_policy",
+        "uquant.validation.generalization_policy.cells",
+        "uquant.validation.generalization_policy.evaluator",
+        "uquant.validation.generalization_policy.projection",
+        "uquant.validation.generalization_policy.schema",
+    } == _TASK9_NEW_OWNER_MODULES
+    assert "uquant.validation.generalization.unreviewed" not in _TASK9_NEW_OWNER_MODULES
     candidate = architecture_snapshot()
     graph = candidate["import_graph"]
     functions = candidate["functions"]
@@ -860,6 +888,7 @@ def test_task7_private_and_complexity_relocations_are_exact_and_fail_closed() ->
         for module, authority in MODULE_AUTHORITIES.items()
         if not module.startswith("uquant.risk.")
         and not module.startswith("uquant.portfolio.")
+        and module not in _TASK9_NEW_OWNER_MODULES
     }
     immutable = architecture_snapshot(
         source_texts=immutable_sources,

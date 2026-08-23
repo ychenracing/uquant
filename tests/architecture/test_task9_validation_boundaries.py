@@ -10,6 +10,10 @@ import pytest
 
 from uquant.contracts.strict_json import canonical_json_sha256
 
+from ._task9_immutable_oracle import (
+    candidate_oracle_from_subprocess,
+    immutable_oracle_from_archive,
+)
 from ._task9_inventory import (
     build_task9_inventory,
     current_reflection_contract,
@@ -19,6 +23,9 @@ from ._task9_validation_oracle import build_validation_oracle
 ROOT = Path(__file__).resolve().parents[2]
 _TASK9_START = "719288f6067686b3199d305899ddc09adf098a0d"
 _TASK9_START_TREE = "459d592cb24c6cfed2082bfd2f7519a9badee67d"
+_ORACLE_EVIDENCE_COMMIT = "edc758ed438e1a47d58ff61072f1584ca9a2e8c4"
+_ORACLE_RUNNER_BLOB = "090f8cfc1fea6a4f07ac252a6e1f52e3f46e83e9"
+_ORACLE_RUNNER_SHA256 = "ed2d3f1f7c4d4ad29402eb77b00b4dd60f72063de2ef478f0f67ceff58dc7b94"
 _INVENTORY = ROOT / "artifacts/architecture_refactor/task9_cleanup_inventory.json"
 _VALIDATION_ORACLE = (
     ROOT / "artifacts/architecture_refactor/task9_validation_contract_oracle.json"
@@ -174,3 +181,54 @@ def test_task9_validation_oracle_is_frozen_before_owner_replacement() -> None:
     payload = _validation_oracle()
     _assert_validation_oracle_seals(payload)
     assert build_validation_oracle(ROOT) == payload
+
+
+def test_task9_validation_oracle_is_fresh_from_immutable_archive(
+    tmp_path: Path,
+) -> None:
+    payload = _validation_oracle()
+    immutable = immutable_oracle_from_archive(
+        root=ROOT,
+        destination=tmp_path / "snapshot",
+        baseline_commit=_TASK9_START,
+        baseline_tree=_TASK9_START_TREE,
+        evidence_commit=_ORACLE_EVIDENCE_COMMIT,
+        runner_blob=_ORACLE_RUNNER_BLOB,
+        runner_sha256=_ORACLE_RUNNER_SHA256,
+        source_identities=payload["source_identity"]["legacy_files"],
+    )
+    _assert_validation_oracle_seals(immutable)
+    assert immutable == payload
+
+
+def test_task9_candidate_validation_oracle_uses_a_fresh_process() -> None:
+    payload = _validation_oracle()
+    candidate = candidate_oracle_from_subprocess(root=ROOT)
+    _assert_validation_oracle_seals(candidate)
+    assert candidate == payload
+
+
+@pytest.mark.parametrize(
+    "mutation",
+    ("failure_message", "failure_omission", "source_identity"),
+)
+def test_task9_resigned_validation_oracle_tamper_is_rejected(
+    mutation: str,
+) -> None:
+    payload = copy.deepcopy(_validation_oracle())
+    if mutation == "failure_message":
+        payload["failure_order"][0]["message"] = "candidate-authored replacement"
+    elif mutation == "failure_omission":
+        payload["failure_order"].pop()
+        payload["coverage"]["failure_labels"].pop()
+    else:
+        payload["source_identity"]["legacy_files"][0]["sha256"] = "0" * 64
+    payload["success_sha256"] = canonical_json_sha256(payload["success"])
+    payload["failure_order_sha256"] = canonical_json_sha256(
+        payload["failure_order"]
+    )
+    del payload["payload_sha256"]
+    payload["payload_sha256"] = canonical_json_sha256(payload)
+    _assert_validation_oracle_seals(payload)
+    with pytest.raises(AssertionError):
+        assert payload == _validation_oracle()

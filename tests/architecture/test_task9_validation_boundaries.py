@@ -11,6 +11,7 @@ import pytest
 from uquant.contracts.strict_json import canonical_json_sha256
 
 from ._task9_immutable_oracle import (
+    candidate_behavior_from_subprocess,
     candidate_oracle_from_subprocess,
     immutable_oracle_from_archive,
 )
@@ -26,6 +27,11 @@ _TASK9_START_TREE = "459d592cb24c6cfed2082bfd2f7519a9badee67d"
 _ORACLE_EVIDENCE_COMMIT = "edc758ed438e1a47d58ff61072f1584ca9a2e8c4"
 _ORACLE_RUNNER_BLOB = "090f8cfc1fea6a4f07ac252a6e1f52e3f46e83e9"
 _ORACLE_RUNNER_SHA256 = "ed2d3f1f7c4d4ad29402eb77b00b4dd60f72063de2ef478f0f67ceff58dc7b94"
+_CANDIDATE_EVIDENCE_COMMIT = "66582931df52e407b8c949048ce63a1789323982"
+_CANDIDATE_RUNNER_BLOB = "37f09a28ee3c96cc71b36b5156576fc0e870e720"
+_CANDIDATE_RUNNER_SHA256 = (
+    "39a3cb1e9e410560f9cb2ea4fbc28930cc287f3d3b5d8759753b9700668c1282"
+)
 _INVENTORY = ROOT / "artifacts/architecture_refactor/task9_cleanup_inventory.json"
 _VALIDATION_ORACLE = (
     ROOT / "artifacts/architecture_refactor/task9_validation_contract_oracle.json"
@@ -206,6 +212,30 @@ def test_task9_candidate_validation_oracle_uses_a_fresh_process() -> None:
     candidate = candidate_oracle_from_subprocess(root=ROOT)
     _assert_validation_oracle_seals(candidate)
     assert candidate == payload
+
+
+def test_task9_relocated_candidate_behavior_matches_frozen_oracle_exactly() -> None:
+    frozen = _validation_oracle()
+    candidate = candidate_behavior_from_subprocess(
+        root=ROOT,
+        evidence_commit=_CANDIDATE_EVIDENCE_COMMIT,
+        runner_blob=_CANDIDATE_RUNNER_BLOB,
+        runner_sha256=_CANDIDATE_RUNNER_SHA256,
+    )
+    assert candidate == {
+        "success": frozen["success"],
+        "failure_order": frozen["failure_order"],
+    }
+
+
+def test_task9_candidate_behavior_runner_tamper_is_rejected() -> None:
+    with pytest.raises(AssertionError):
+        candidate_behavior_from_subprocess(
+            root=ROOT,
+            evidence_commit=_CANDIDATE_EVIDENCE_COMMIT,
+            runner_blob=_CANDIDATE_RUNNER_BLOB,
+            runner_sha256="0" * 64,
+        )
 
 
 @pytest.mark.parametrize(

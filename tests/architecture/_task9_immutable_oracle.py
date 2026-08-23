@@ -10,6 +10,7 @@ from pathlib import Path
 from typing import Any, cast
 
 _RUNNER_RELATIVE = "tests/architecture/_task9_validation_oracle.py"
+_CANDIDATE_RUNNER_RELATIVE = "tests/architecture/_task9_candidate_oracle.py"
 
 
 def _run_isolated(*, snapshot: Path, runner: Path) -> dict[str, Any]:
@@ -102,7 +103,60 @@ def candidate_oracle_from_subprocess(*, root: Path) -> dict[str, Any]:
     )
 
 
+def candidate_behavior_from_subprocess(
+    *,
+    root: Path,
+    evidence_commit: str,
+    runner_blob: str,
+    runner_sha256: str,
+) -> dict[str, Any]:
+    """Run the source-projected collector after binding its implementation."""
+
+    runner = root / _CANDIDATE_RUNNER_RELATIVE
+    runner_source = runner.read_bytes()
+    assert hashlib.sha256(runner_source).hexdigest() == runner_sha256
+    observed_blob = subprocess.run(
+        ["git", "rev-parse", f"{evidence_commit}:{_CANDIDATE_RUNNER_RELATIVE}"],
+        cwd=root,
+        check=True,
+        capture_output=True,
+        text=True,
+    ).stdout.strip()
+    assert observed_blob == runner_blob
+    immutable_runner = subprocess.run(
+        ["git", "cat-file", "blob", runner_blob],
+        cwd=root,
+        check=True,
+        capture_output=True,
+    ).stdout
+    assert immutable_runner == runner_source
+    launcher = "\n".join(
+        (
+            "import runpy, sys",
+            "snapshot = sys.argv[1]",
+            "sys.path[:] = [snapshot + '/tests', snapshot] + [entry for entry in sys.path "
+            "if '__editable__.uquant' not in entry]",
+            "sys.meta_path[:] = [finder for finder in sys.meta_path "
+            "if not finder.__class__.__module__.startswith('__editable___uquant_')]",
+            "sys.argv[:] = ['_task9_candidate_oracle.py', snapshot]",
+            "runpy.run_module('architecture._task9_candidate_oracle', run_name='__main__')",
+        )
+    )
+    completed = subprocess.run(
+        [sys.executable, "-I", "-c", launcher, str(root.resolve())],
+        cwd=root,
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+    assert completed.stderr == ""
+    payload = json.loads(completed.stdout)
+    assert isinstance(payload, dict)
+    return cast(dict[str, Any], payload)
+
+
 __all__ = (
+    "candidate_behavior_from_subprocess",
     "candidate_oracle_from_subprocess",
     "immutable_oracle_from_archive",
 )

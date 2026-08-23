@@ -155,6 +155,11 @@ def _expected_registry(root: Path) -> dict[str, Any]:
             if legacy not in _RETAINED_FACADES:
                 paths.remove(legacy)
             paths.update(owners)
+        if {
+            "uquant/risk_sentinel/cli.py",
+            "uquant/risk_sentinel/validation.py",
+        } & paths:
+            paths.add("uquant/risk_sentinel/provenance.py")
         surface["source_paths"] = sorted(paths)
     del registry["canonical_sha256"]
     registry["canonical_sha256"] = canonical_json_sha256(registry)

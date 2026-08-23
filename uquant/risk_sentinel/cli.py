@@ -22,6 +22,7 @@ from uquant.validation.ai_era import runtime_environment_provenance
 from uquant.validation.universe import canonical_sha256, load_ai_universe
 
 from .models import RISK_FAMILIES
+from .provenance import sentinel_source_fingerprint as _sentinel_source_fingerprint
 from .service import evaluate_sentinel
 
 _BROAD_INDEX: Final = "sh000300"
@@ -41,19 +42,7 @@ def _canonical_json(value: object) -> str:
 def sentinel_source_fingerprint(repository_root: str | Path) -> str:
     """Hash the exact Sentinel Python path names and bytes."""
 
-    root = Path(repository_root)
-    package = root / "uquant" / "risk_sentinel"
-    paths = tuple(sorted(package.glob("*.py")))
-    if not paths:
-        raise RuntimeError("Sentinel source package is missing")
-    digest = hashlib.sha256()
-    for path in paths:
-        relative = path.relative_to(root).as_posix().encode("utf-8")
-        digest.update(relative)
-        digest.update(b"\0")
-        digest.update(path.read_bytes())
-        digest.update(b"\0")
-    return digest.hexdigest()
+    return _sentinel_source_fingerprint(repository_root)
 
 
 def _repository_commit(root: Path) -> str:

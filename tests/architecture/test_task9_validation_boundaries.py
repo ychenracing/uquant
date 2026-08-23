@@ -682,3 +682,23 @@ def test_task9_checkpoint3_ast_gate_rejects_holdout_rule_and_order_mutations(
             )
     with pytest.raises(AssertionError):
         assert_owner_ast_exact(ROOT, candidate_sources={owner: ast.unparse(tree)})
+
+
+def test_task9_checkpoint4_sentinel_fingerprint_has_one_cli_independent_owner() -> None:
+    from uquant.risk_sentinel import cli, provenance, validation
+
+    root = ROOT
+    assert cli.sentinel_source_fingerprint(root) == provenance.sentinel_source_fingerprint(root)
+    assert validation.sentinel_source_fingerprint is provenance.sentinel_source_fingerprint
+    assert "uquant.risk_sentinel.cli" not in {
+        module.__name__
+        for module in validation.__dict__.values()
+        if hasattr(module, "__name__")
+    }
+    provenance_tree = ast.parse(
+        (ROOT / "uquant/risk_sentinel/provenance.py").read_text(encoding="utf-8")
+    )
+    assert not any(
+        isinstance(node, ast.ImportFrom) and node.level == 1 and node.module == "cli"
+        for node in ast.walk(provenance_tree)
+    )

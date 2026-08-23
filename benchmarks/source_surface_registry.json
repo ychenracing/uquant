@@ -1,5 +1,5 @@
 {
-  "canonical_sha256": "49ad25272fb2d0c442a44314bf15e7915ae3807c38f4d3a4105364f5cd93fc75",
+  "canonical_sha256": "f78c45b5be673e88c92ff5068f37020fe55dcb19b2506e274ad9f35b98192647",
   "registry_version": 2,
   "surfaces": [
     {
@@ -246,6 +246,7 @@
         "uquant/risk_sentinel/integration.py",
         "uquant/risk_sentinel/models.py",
         "uquant/risk_sentinel/opinion.py",
+        "uquant/risk_sentinel/provenance.py",
         "uquant/risk_sentinel/service.py",
         "uquant/risk_sentinel/validation.py",
         "uquant/types.py",
@@ -341,6 +342,7 @@
         "uquant/risk_sentinel/__main__.py",
         "uquant/risk_sentinel/calibration.py",
         "uquant/risk_sentinel/cli.py",
+        "uquant/risk_sentinel/provenance.py",
         "uquant/risk_sentinel/validation.py",
         "uquant/validation/__init__.py",
         "uquant/validation/__main__.py",
@@ -548,6 +550,7 @@
         "uquant/risk_sentinel/integration.py",
         "uquant/risk_sentinel/models.py",
         "uquant/risk_sentinel/opinion.py",
+        "uquant/risk_sentinel/provenance.py",
         "uquant/risk_sentinel/service.py",
         "uquant/risk_sentinel/validation.py",
         "uquant/types.py",

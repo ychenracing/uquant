@@ -513,6 +513,11 @@ def test_task8_checkpoint1_source_surface_migration_is_exact() -> None:
             expected.update(HOLDOUT_OWNERS[5:])
         if HOLDOUT_LANES_FACADE in expected:
             expected.add(HOLDOUT_OWNERS[4])
+        if {
+            "uquant/risk_sentinel/cli.py",
+            "uquant/risk_sentinel/validation.py",
+        } & expected:
+            expected.add("uquant/risk_sentinel/provenance.py")
         assert set(candidate_surfaces[identifier]["source_paths"]) == expected
         assert candidate_surfaces[identifier]["resource_paths"] == baseline["resource_paths"]
         assert {

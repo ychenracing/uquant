@@ -90,7 +90,7 @@ _TASK9_NEW_OWNER_MODULES = frozenset(
     "uquant.validation.generalization",
     "uquant.validation.generalization_reference",
     "uquant.validation.holdout",
-}
+} | {"uquant.risk_sentinel.provenance"}
 
 _MOVED_HELPER_OWNERS = {
     "_acute_sector_evacuation_required": "uquant/risk/transitions.py",
@@ -737,6 +737,11 @@ def test_task7_source_surface_migration_is_exact_and_requirements_stay_bound() -
             expected.update(HOLDOUT_OWNERS[5:])
         if HOLDOUT_LANES_FACADE in expected:
             expected.add(HOLDOUT_OWNERS[4])
+        if {
+            "uquant/risk_sentinel/cli.py",
+            "uquant/risk_sentinel/validation.py",
+        } & expected:
+            expected.add("uquant/risk_sentinel/provenance.py")
         assert set(candidate[identifier]["source_paths"]) == expected
         assert candidate[identifier]["resource_paths"] == immutable[identifier]["resource_paths"]
     assert (ROOT / "requirements.txt").read_bytes() == _git_source("requirements.txt")
@@ -868,6 +873,7 @@ def test_task7_private_and_complexity_relocations_are_exact_and_fail_closed() ->
         "uquant.validation.holdout.service",
         "uquant.validation.holdout.snapshots",
         "uquant.validation.holdout.source_identity",
+        "uquant.risk_sentinel.provenance",
     } == _TASK9_NEW_OWNER_MODULES
     assert "uquant.validation.generalization.unreviewed" not in _TASK9_NEW_OWNER_MODULES
     assert "uquant.validation.holdout.unreviewed" not in _TASK9_NEW_OWNER_MODULES

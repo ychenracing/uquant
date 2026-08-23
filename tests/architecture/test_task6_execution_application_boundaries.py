@@ -472,6 +472,11 @@ def test_task6_source_surface_migration_is_exact_for_all_five_v1_surfaces() -> N
             expected_sources.update(HOLDOUT_OWNERS[5:])
         if HOLDOUT_LANES_FACADE in expected_sources:
             expected_sources.add(HOLDOUT_OWNERS[4])
+        if {
+            "uquant/risk_sentinel/cli.py",
+            "uquant/risk_sentinel/validation.py",
+        } & expected_sources:
+            expected_sources.add("uquant/risk_sentinel/provenance.py")
         assert set(candidate[identifier]["source_paths"]) == expected_sources
         assert candidate[identifier]["resource_paths"] == immutable[identifier]["resource_paths"]
 

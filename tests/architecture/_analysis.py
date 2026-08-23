@@ -170,6 +170,7 @@ MODULE_AUTHORITIES = {
     "uquant.risk_sentinel.integration": "production_safe",
     "uquant.risk_sentinel.models": "production_safe",
     "uquant.risk_sentinel.opinion": "production_safe",
+    "uquant.risk_sentinel.provenance": "production_safe",
     "uquant.risk_sentinel.service": "production_safe",
     "uquant.risk_sentinel.validation": "validation_runner",
     "uquant.types": "production_safe",

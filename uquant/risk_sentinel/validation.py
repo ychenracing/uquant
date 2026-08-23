@@ -9,7 +9,7 @@ from typing import Final
 from uquant.validation.universe import load_ai_universe
 
 from .calibration import load_calibration_contract
-from .cli import sentinel_source_fingerprint
+from .provenance import sentinel_source_fingerprint
 
 _FORBIDDEN_IMPORTS: Final = (
     "uquant.engine",

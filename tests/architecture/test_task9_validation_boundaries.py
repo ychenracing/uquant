@@ -14,11 +14,15 @@ from ._task9_inventory import (
     build_task9_inventory,
     current_reflection_contract,
 )
+from ._task9_validation_oracle import build_validation_oracle
 
 ROOT = Path(__file__).resolve().parents[2]
 _TASK9_START = "719288f6067686b3199d305899ddc09adf098a0d"
 _TASK9_START_TREE = "459d592cb24c6cfed2082bfd2f7519a9badee67d"
 _INVENTORY = ROOT / "artifacts/architecture_refactor/task9_cleanup_inventory.json"
+_VALIDATION_ORACLE = (
+    ROOT / "artifacts/architecture_refactor/task9_validation_contract_oracle.json"
+)
 _LEGACY_IMPLEMENTATIONS = (
     "uquant/validation/generalization.py",
     "uquant/validation/generalization_reference.py",
@@ -54,6 +58,26 @@ def _assert_inventory_seal(payload: dict[str, Any]) -> None:
 def _assert_immutable_inventory(payload: dict[str, Any]) -> None:
     _assert_inventory_seal(payload)
     assert payload == _immutable_inventory()
+
+
+@cache
+def _validation_oracle() -> dict[str, Any]:
+    value = json.loads(_VALIDATION_ORACLE.read_text(encoding="utf-8"))
+    assert isinstance(value, dict)
+    return cast(dict[str, Any], value)
+
+
+def _assert_validation_oracle_seals(payload: dict[str, Any]) -> None:
+    assert payload["baseline_commit"] == _TASK9_START
+    assert payload["baseline_tree"] == _TASK9_START_TREE
+    assert payload["contract"] == "uquant-task9-validation-contract-oracle-v1"
+    assert payload["success_sha256"] == canonical_json_sha256(payload["success"])
+    assert payload["failure_order_sha256"] == canonical_json_sha256(
+        payload["failure_order"]
+    )
+    unsigned = dict(payload)
+    del unsigned["payload_sha256"]
+    assert payload["payload_sha256"] == canonical_json_sha256(unsigned)
 
 
 def test_task9_cleanup_inventory_precedes_every_legacy_replacement() -> None:
@@ -144,3 +168,9 @@ def test_task9_resigned_immutable_blob_tamper_is_rejected() -> None:
     _assert_inventory_seal(payload)
     with pytest.raises(AssertionError):
         _assert_immutable_inventory(payload)
+
+
+def test_task9_validation_oracle_is_frozen_before_owner_replacement() -> None:
+    payload = _validation_oracle()
+    _assert_validation_oracle_seals(payload)
+    assert build_validation_oracle(ROOT) == payload

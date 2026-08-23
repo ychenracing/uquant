@@ -39,7 +39,7 @@ def _legacy_cli_bytes(*, cli_path: Path, provenance_path: Path) -> bytes:
     )
     cli_lines[cli_function.lineno - 1 : cli_function.end_lineno] = legacy_function
     legacy = "".join(cli_lines).replace(
-        "from .provenance import legacy_sentinel_source_fingerprint\n",
+        "from .provenance import legacy_sentinel_source_fingerprint as _legacy_sentinel_source_fingerprint\n",
         "",
         1,
     )
@@ -50,12 +50,8 @@ def _legacy_validation_bytes(validation_path: Path) -> bytes:
     """Project the relocated fingerprint import into its frozen CLI edge."""
 
     return validation_path.read_bytes().replace(
-        b"from .provenance import legacy_sentinel_source_fingerprint\n",
+        b"from .provenance import legacy_sentinel_source_fingerprint as sentinel_source_fingerprint\n",
         b"from .cli import sentinel_source_fingerprint\n",
-        1,
-    ).replace(
-        b"legacy_sentinel_source_fingerprint(root)",
-        b"sentinel_source_fingerprint(root)",
         1,
     )
 

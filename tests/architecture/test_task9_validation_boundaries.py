@@ -692,10 +692,9 @@ def test_task9_checkpoint4_sentinel_fingerprint_has_one_cli_independent_owner() 
     assert cli.sentinel_source_fingerprint(root) == provenance.legacy_sentinel_source_fingerprint(
         root
     )
-    assert (
-        validation.legacy_sentinel_source_fingerprint
-        is provenance.legacy_sentinel_source_fingerprint
-    )
+    assert "legacy_sentinel_source_fingerprint" not in vars(cli)
+    assert validation.sentinel_source_fingerprint is provenance.legacy_sentinel_source_fingerprint
+    assert "legacy_sentinel_source_fingerprint" not in vars(validation)
     assert "uquant.risk_sentinel.cli" not in {
         module.__name__
         for module in validation.__dict__.values()

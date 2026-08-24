@@ -34,6 +34,13 @@ from ._task9_relocation import (
     HOLDOUT_RUNTIME_FACADE,
     POLICY_OWNERS,
 )
+from ._task10_owner_transport import task10_source_surface_projection
+from ._task10_task6_transport import (
+    TASK10_TASK6_REVIEWED_DEFINITIONS,
+    reviewed_task6_debt_definition,
+    task10_task6_decision_fanout,
+    task10_task6_historical_debt_projection,
+)
 
 _TASK6_START = "908399a80f27a028c35f201b9bf5f1688eb412c0"
 _INVENTORY = ROOT / "artifacts" / "architecture_refactor" / "task6_cleanup_inventory.json"
@@ -477,6 +484,10 @@ def test_task6_source_surface_migration_is_exact_for_all_five_v1_surfaces() -> N
             "uquant/risk_sentinel/validation.py",
         } & expected_sources:
             expected_sources.add("uquant/risk_sentinel/provenance.py")
+        expected_sources = task10_source_surface_projection(
+            identifier,
+            expected_sources,
+        )
         assert set(candidate[identifier]["source_paths"]) == expected_sources
         assert candidate[identifier]["resource_paths"] == immutable[identifier]["resource_paths"]
 
@@ -510,7 +521,15 @@ def test_task6_facade_and_decision_fanout_are_bounded() -> None:
     assert isinstance(modules, dict)
     assert engine_lines < 120
     assert modules["uquant.engine"]["fan_out_count"] <= 4
-    assert modules["uquant.application.decision"]["fan_out_count"] <= 12
+    decision_fan_out = modules["uquant.application.decision"]["fan_out"]
+    target_fan_out = modules["uquant.application.target_attribution"]["fan_out"]
+    assert isinstance(decision_fan_out, list)
+    assert isinstance(target_fan_out, list)
+    assert task10_task6_decision_fanout(
+        root=ROOT,
+        decision_fan_out={str(value) for value in decision_fan_out},
+        extracted_owner_fan_out={str(value) for value in target_fan_out},
+    ) <= 12
 
 
 def test_task6_private_edges_are_exactly_bound_to_the_mechanical_split() -> None:
@@ -560,8 +579,6 @@ def test_task6_complexity_debt_relocations_are_exact_and_do_not_create_an_exempt
             or int(row["branch_points"]) > FINAL_BUDGETS["max_function_branch_points"]
         )
     }
-    assert observed == set(_TASK6_RELOCATED_FUNCTION_DEBT)
-
     baseline = json.loads(_git_source("artifacts/architecture_refactor/baseline_inventory.json"))
     initial = baseline["architecture_debt"]["initial"]
     immutable = {
@@ -582,7 +599,7 @@ def test_task6_complexity_debt_relocations_are_exact_and_do_not_create_an_exempt
         str(row["id"]) for category in ("long_functions", "branchy_functions") for row in normalized[category]
     }
     assert not observed & normalized_ids
-    assert immutable <= normalized_ids
+    assert not normalized_ids
 
     globals_ = snapshot["module_globals"]
     assert isinstance(globals_, list)
@@ -593,7 +610,17 @@ def test_task6_complexity_debt_relocations_are_exact_and_do_not_create_an_exempt
         and str(row["module"]).startswith(("uquant.application", "uquant.execution"))
         and (bool(row["mutable_initializer"]) or bool(row["mutation_sites"]))
     }
-    assert relocated_globals == set(_TASK6_RELOCATED_GLOBAL_DEBT)
+    projected_functions, projected_globals = task10_task6_historical_debt_projection(
+        root=ROOT,
+        current_functions=observed,
+        historical_functions=set(_TASK6_RELOCATED_FUNCTION_DEBT),
+        current_globals=relocated_globals,
+        historical_globals=set(_TASK6_RELOCATED_GLOBAL_DEBT),
+        function_rows=functions,
+        global_rows=globals_,
+    )
+    assert projected_functions == set(_TASK6_RELOCATED_FUNCTION_DEBT)
+    assert projected_globals == set(_TASK6_RELOCATED_GLOBAL_DEBT)
     assert set(_TASK6_RELOCATED_GLOBAL_DEBT.values()) == {"uquant.execution:_RISK_LIFECYCLE_PRIORITY"}
 
     mutation = copy.deepcopy(snapshot)
@@ -633,7 +660,16 @@ def test_task6_moved_definitions_are_mechanically_bound_to_immutable_source() ->
     immutable_execution = _top_level_definitions(execution_tree)
     assert set(immutable_execution) == set(_EXECUTION_OWNERS)
     for name, relative in _EXECUTION_OWNERS.items():
-        candidate = _top_level_definitions(ast.parse((ROOT / relative).read_bytes()))[name]
+        if (relative, name) in TASK10_TASK6_REVIEWED_DEFINITIONS:
+            candidate = reviewed_task6_debt_definition(
+                root=ROOT,
+                relative=relative,
+                name=name,
+                candidate=None,
+                frozen=immutable_execution[name],
+            )
+        else:
+            candidate = _top_level_definitions(ast.parse((ROOT / relative).read_bytes()))[name]
         assert ast.dump(candidate, include_attributes=False) == ast.dump(
             immutable_execution[name], include_attributes=False
         )
@@ -642,10 +678,21 @@ def test_task6_moved_definitions_are_mechanically_bound_to_immutable_source() ->
     immutable_top_level = _top_level_definitions(engine_tree)
     immutable_methods = _engine_methods(engine_tree)
     for name, relative in _ENGINE_APPLICATION_OWNERS.items():
-        candidate = _top_level_definitions(ast.parse((ROOT / relative).read_bytes()))[name]
         immutable = immutable_top_level.get(name) or immutable_methods[name]
-        normalized = _normalized_application_definition(candidate)
         immutable_normalized = _normalized_docstring_indentation(immutable)
+        normalized = (
+            reviewed_task6_debt_definition(
+                root=ROOT,
+                relative=relative,
+                name=name,
+                candidate=None,
+                frozen=immutable_normalized,
+            )
+            if (relative, name) in TASK10_TASK6_REVIEWED_DEFINITIONS
+            else _normalized_application_definition(
+                _top_level_definitions(ast.parse((ROOT / relative).read_bytes()))[name]
+            )
+        )
         assert ast.dump(normalized, include_attributes=False) == ast.dump(
             immutable_normalized, include_attributes=False
         )

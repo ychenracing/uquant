@@ -17,24 +17,36 @@ from pathlib import Path
 from typing import Any
 
 from .models import (
-    _BASELINE_SCHEMA_VERSION,
-    _POLICY_FIELDS,
-    _REFERENCE_FIELDS,
-    _SHA256,
+    BASELINE_SCHEMA_VERSION as _BASELINE_SCHEMA_VERSION,
+)
+from .models import (
+    POLICY_FIELDS as _POLICY_FIELDS,
+)
+from .models import (
+    REFERENCE_FIELDS as _REFERENCE_FIELDS,
+)
+from .models import (
+    SHA256_PATTERN as _SHA256,
+)
+from .models import (
     GeneralizationBaseline,
     GeneralizationObservation,
     GeneralizationPolicy,
     GeneralizationScenario,
 )
 from .provenance import (
-    _validated_competitor_best,
-    _validated_provenance,
-    _validation_fingerprint,
+    validated_competitor_best as _validated_competitor_best,
+)
+from .provenance import (
+    validated_provenance as _validated_provenance,
+)
+from .provenance import (
+    validation_fingerprint as _validation_fingerprint,
 )
 from .scenarios import scenario_fingerprint
 
 
-def _reject_duplicate_keys(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
+def _reject_duplicate_baseline_keys(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
     result: dict[str, Any] = {}
     for key, value in pairs:
         if key in result:
@@ -43,7 +55,7 @@ def _reject_duplicate_keys(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
     return result
 
 
-def _reject_nonstandard_constant(value: str) -> None:
+def _reject_nonstandard_baseline_constant(value: str) -> None:
     raise RuntimeError(f"generalization baseline contains a non-standard number: {value}")
 
 
@@ -57,8 +69,10 @@ def _policy_number(payload: Mapping[str, Any], name: str) -> float:
     return numeric
 
 
-def _parse_policy(value: Any) -> GeneralizationPolicy:
-    """Parse a complete policy object and enforce every numeric bound."""
+def _parse_policy_limits(
+    *,
+    value: Any,
+) -> tuple[dict[str, float], int]:
     if not isinstance(value, Mapping):
         raise RuntimeError("generalization baseline policy must be an object")
     observed = set(value)
@@ -115,6 +129,14 @@ def _parse_policy(value: Any) -> GeneralizationPolicy:
         raise RuntimeError("generalization remove-all competitor ratio must be in [0.95, 1.5]")
     if not 0 <= numbers["no_optical_max_drawdown"] <= 1:
         raise RuntimeError("generalization no-optical drawdown ceiling must be in [0, 1]")
+    return numbers, raw_order_tolerance
+
+
+def _parse_policy(value: Any) -> GeneralizationPolicy:
+    """Parse a complete policy object and enforce every numeric bound."""
+    numbers, raw_order_tolerance = _parse_policy_limits(
+        value=value,
+    )
     if not 0.5 < numbers["random_min_positive_fraction"] <= 1:
         raise RuntimeError("generalization random positive fraction must be in (0.5, 1]")
     if numbers["random_p10_min_wealth"] < 1:
@@ -307,3 +329,14 @@ def reference_payload(
             for name in sorted(by_name)
         },
     }
+
+
+_reject_duplicate_keys = _reject_duplicate_baseline_keys
+_reject_nonstandard_constant = _reject_nonstandard_baseline_constant
+
+parse_policy = _parse_policy
+policy_number = _policy_number
+read_generalization_baseline = _read_generalization_baseline
+reject_duplicate_keys = _reject_duplicate_keys
+reject_nonstandard_constant = _reject_nonstandard_constant
+validate_baseline_envelope = _validate_baseline_envelope

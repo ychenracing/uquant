@@ -117,12 +117,17 @@ def _recovery_cohort_targets(
             else "causal crash-recovery leader"
         ),
         origin_subsystem=OriginSubsystem.RECOVERY,
-        mechanism=(
-            AttributionMechanism.RECOVERY_CAP
-            if capped
-            else AttributionMechanism.RECOVERY_COHORT
-        ),
+        mechanism=(AttributionMechanism.RECOVERY_CAP if capped else AttributionMechanism.RECOVERY_COHORT),
     )
+
+
+# Stable owned APIs for Task-10 admission stages.  Historical private names
+# remain exact Task-8 implementation identities for immutable expansion.
+overextended_pullback_targets = _overextended_pullback_targets
+controlled_oversold_rebound_targets = _controlled_oversold_rebound_targets
+locked_recovery_cohort_targets = _locked_recovery_cohort_targets
+awaiting_recovery_cohort_targets = _awaiting_recovery_cohort_targets
+recovery_cohort_targets = _recovery_cohort_targets
 
 
 def _pending_recovery_substitution_targets(
@@ -168,3 +173,7 @@ def _confirmed_recovery_substitution_targets(
         },
         replaces_symbols={challenger.symbol: incumbent},
     )
+
+
+confirmed_recovery_substitution_targets = _confirmed_recovery_substitution_targets
+pending_recovery_substitution_targets = _pending_recovery_substitution_targets

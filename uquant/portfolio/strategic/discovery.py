@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import math
+from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
 import pandas as pd
@@ -14,83 +15,77 @@ from ...types import (
     RiskAssessment,
     Target,
 )
+from .qualification_candidates import StrategicRoute, select_strategic_route
 
 
 class StrategicPortfolioPolicy(PortfolioCore):
     """Discover, protect, trail, and retire a causal strategic cohort."""
 
     if TYPE_CHECKING:
-        def _bounded_strategic_restore_risk_open(self, *, risk: RiskAssessment, account: AccountState) -> bool:
-            ...
+
+        def _bounded_strategic_restore_risk_open(
+            self, *, risk: RiskAssessment, account: AccountState
+        ) -> bool: ...
 
         @staticmethod
-        def _retire_strategic_member(account: AccountState, symbol: str) -> None:
-            ...
+        def _retire_strategic_member(account: AccountState, symbol: str) -> None: ...
 
-        def _initialize_strategic_cohort(self, *, date: pd.Timestamp, user_panel: dict[str, pd.DataFrame], leaders: dict[str, LeaderScore], account: AccountState, risk: RiskAssessment, admission_open: bool=True) -> None:
-            ...
+        def _initialize_strategic_cohort(
+            self,
+            *,
+            date: pd.Timestamp,
+            user_panel: dict[str, pd.DataFrame],
+            leaders: dict[str, LeaderScore],
+            account: AccountState,
+            risk: RiskAssessment,
+            admission_open: bool = True,
+        ) -> None: ...
 
-        def _strategic_cohort_targets(self, *, date: pd.Timestamp, risk: RiskAssessment, user_panel: dict[str, pd.DataFrame], leaders: dict[str, LeaderScore], account: AccountState, prices: dict[str, float], weights_now: dict[str, float], admission_open: bool=True) -> tuple[Target, ...] | None:
-            ...
+        def _strategic_cohort_targets(
+            self,
+            *,
+            date: pd.Timestamp,
+            risk: RiskAssessment,
+            user_panel: dict[str, pd.DataFrame],
+            leaders: dict[str, LeaderScore],
+            account: AccountState,
+            prices: dict[str, float],
+            weights_now: dict[str, float],
+            admission_open: bool = True,
+        ) -> tuple[Target, ...] | None: ...
 
 
 StrategicPortfolioPolicy.__module__ = "uquant.portfolio_strategic"
 
 
-def _initialize_strategic_cohort(
+def _reset_qualification_streaks(account: AccountState) -> None:
+    for key in tuple(account.replacement_tenure):
+        if key.startswith("strategic_qualification:"):
+            account.replacement_tenure[key] = 0
+
+
+def _strategic_discovery_open(
     self: StrategicPortfolioPolicy,
     *,
     date: pd.Timestamp,
     user_panel: dict[str, pd.DataFrame],
-    leaders: dict[str, LeaderScore],
     account: AccountState,
     risk: RiskAssessment,
-    admission_open: bool = True,
-) -> None:
-    """Discover and activate a persistent long-cycle cohort causally."""
-    evaluated_key = "strategic_cohort_evaluated"
-    if (
-        not self.cfg.strategic_dynamic_enabled
-        or account.candidate_tenure.get("strategic_cohort_active", 0) == 1
-    ):
-        return
-    live_general_leaders = {
-        symbol
-        for symbol in account.active_leaders
-        if (position := account.positions.get(symbol)) is not None
-        and position.shares > 0
-    }
-    if live_general_leaders:
-        # An operating leader book already has one lifecycle owner and a
-        # confirmed replacement process. Strategic discovery must not
-        # relabel it and silently bypass rotation hysteresis.
-        return
-    initial_check_key = "strategic_long_cycle_initial_check"
-    long_cycle_open_key = "strategic_long_cycle_open"
+) -> bool:
     qualification_key = "strategic_cohort_qualification"
-
-    def reset_qualification_streaks() -> None:
-        """Clear all candidate streaks when the strategic gate is not admissible."""
-
-        for key in tuple(account.replacement_tenure):
-            if key.startswith("strategic_qualification:"):
-                account.replacement_tenure[key] = 0
-
-    account.candidate_tenure[initial_check_key] = 1
-
-    # Pool membership must never bypass the independent account-risk gate.
-    unsafe_new_cohort = (
+    long_cycle_open_key = "strategic_long_cycle_open"
+    account.candidate_tenure["strategic_long_cycle_initial_check"] = 1
+    unsafe = (
         risk.freeze_new_risk
         or bool(risk.evidence.get("freeze_new_risk", False))
         or risk.state.value in {"RISK_OFF", "CRISIS"}
         or (risk.state.value == "CAUTION" and risk.votes >= 2)
     )
-    if unsafe_new_cohort:
-        reset_qualification_streaks()
+    if unsafe:
+        _reset_qualification_streaks(account)
         account.candidate_tenure[qualification_key] = 0
         account.candidate_tenure[long_cycle_open_key] = 0
-        return
-
+        return False
     if account.strategic_last_exit_date:
         last_exit = pd.Timestamp(account.strategic_last_exit_date)
         visible_sessions = sorted(
@@ -102,11 +97,20 @@ def _initialize_strategic_cohort(
             }
         )
         if len(visible_sessions) < self.cfg.strategic_epoch_cooldown_sessions:
-            reset_qualification_streaks()
+            _reset_qualification_streaks(account)
             account.candidate_tenure[qualification_key] = 0
             account.candidate_tenure[long_cycle_open_key] = 0
-            return
+            return False
+    return True
 
+
+def _strategic_snapshots(
+    self: StrategicPortfolioPolicy,
+    *,
+    date: pd.Timestamp,
+    user_panel: dict[str, pd.DataFrame],
+    leaders: dict[str, LeaderScore],
+) -> dict[str, dict[str, float]]:
     snapshots: dict[str, dict[str, float]] = {}
     for symbol, frame in user_panel.items():
         if date not in frame.index:
@@ -148,342 +152,15 @@ def _initialize_strategic_cohort(
             "breakout_quality": components.get("breakout_quality", 0.0),
             "transition_score": transition_score,
         }
-    if not snapshots:
-        reset_qualification_streaks()
-        account.candidate_tenure[qualification_key] = 0
-        account.candidate_tenure[long_cycle_open_key] = 0
-        return
-    def has_known_industry(symbol: str) -> bool:
-        """Return whether a candidate has sufficiently confident industry evidence."""
+    return snapshots
 
-        return bool(
-            symbol in leaders
-            and leaders[symbol].components.get("unknown_industry", 1.0) < 0.5
-            and snapshots[symbol]["industry_confidence"] >= self.cfg.unknown_industry_confidence
-        )
 
-    established_candidates = sorted(
-        (
-            symbol
-            for symbol, values in snapshots.items()
-            if values["secular_score"] >= self.cfg.strategic_secular_min_score
-            and values["secular_confidence"] >= self.cfg.strategic_secular_min_confidence
-            and values["ret20"] >= self.cfg.strategic_long_cycle_min_ret20
-            and values["ret60"] >= self.cfg.strategic_long_cycle_min_ret60
-            and values["ret120"] >= self.cfg.strategic_long_cycle_min_ret120
-            and values["leader_score"] >= self.cfg.leader_mature_score
-            and values["leader_confidence"] >= self.cfg.leader_min_confidence
-            and values["momentum60"] >= self.cfg.strategic_current_factor_floor
-            and values["momentum120"] >= self.cfg.strategic_current_factor_floor
-            and values["relative_strength"] >= self.cfg.strategic_current_factor_floor
-            and values["trend_persistence"] >= 2 / 3
-            and has_known_industry(symbol)
-        ),
-        key=lambda symbol: (
-            -snapshots[symbol]["secular_score"],
-            -snapshots[symbol]["secular_confidence"],
-            -snapshots[symbol]["leader_score"],
-            -snapshots[symbol]["persistent_ret240"],
-            -snapshots[symbol]["ret20"],
-            symbol,
-        ),
-    )
-    transition_candidates = sorted(
-        (
-            symbol
-            for symbol, values in snapshots.items()
-            if values["transition_score"] >= self.cfg.strategic_transition_min_score
-            and values["leader_score"] >= self.cfg.leader_emerging_score
-            and values["leader_confidence"] >= self.cfg.leader_min_confidence
-            and values["ret20"] > 0.0
-            and values["ret60"] > 0.0
-            and values["ret120"] > 0.0
-            and values["relative_strength"] >= self.cfg.strategic_transition_min_component
-            and values["breakout_quality"] >= self.cfg.strategic_transition_min_component
-            and values["trend_persistence"] >= 2 / 3
-            and has_known_industry(symbol)
-        ),
-        key=lambda symbol: (
-            -snapshots[symbol]["transition_score"],
-            -snapshots[symbol]["leader_score"],
-            -snapshots[symbol]["ret60"],
-            -snapshots[symbol]["ret20"],
-            symbol,
-        ),
-    )
-    # A lower-latency route observes a synchronized industry impulse before
-    # 240-session evidence can possibly mature.  It remains a strategic
-    # trend admission: the outer allocator requires NORMAL risk plus a
-    # TREND/STRONG_TREND regime, every member must persist above its medium
-    # trend, and the ordinary cohort confirmation/sizing/exit lifecycle is
-    # reused unchanged.  There is no weak-index, ret5, ret240, or special
-    # reversal bypass.
-    impulse_candidates = sorted(
-        (
-            symbol
-            for symbol, values in snapshots.items()
-            if values["history"] >= self.cfg.strategic_transition_impulse_min_history
-            and values["transition_score"] >= self.cfg.strategic_transition_impulse_min_score
-            and values["leader_score"] >= self.cfg.strategic_transition_impulse_min_leader_score
-            and values["secular_score"] >= self.cfg.strategic_transition_impulse_min_secular_score
-            and values["secular_confidence"]
-            >= self.cfg.strategic_transition_impulse_min_secular_confidence
-            and values["leader_confidence"] >= self.cfg.leader_min_confidence
-            and values["ret20"] >= self.cfg.strategic_transition_impulse_min_ret20
-            and values["ret60"] >= self.cfg.strategic_transition_impulse_min_ret60
-            and values["ret120"] >= self.cfg.strategic_transition_impulse_min_ret120
-            and values["ret120"] <= self.cfg.strategic_transition_impulse_max_ret120
-            and float(risk.evidence.get("broad_ret20", 0.0))
-            >= self.cfg.strategic_transition_impulse_min_market_ret20
-            and float(risk.evidence.get("tech_ret20", 0.0))
-            >= self.cfg.strategic_transition_impulse_min_market_ret20
-            and values["trend_persistence"] >= 2 / 3
-            and has_known_industry(symbol)
-        ),
-        key=lambda symbol: (
-            -snapshots[symbol]["transition_score"],
-            -snapshots[symbol]["ret20"],
-            -snapshots[symbol]["leader_score"],
-            symbol,
-        ),
-    )
-    persistent_candidates = sorted(
-        (
-            symbol
-            for symbol, values in snapshots.items()
-            if values["persistent_ret240"] >= self.cfg.strategic_cohort_min_ret240
-            and values["ret120"] <= self.cfg.strategic_persistent_max_ret120
-            and has_known_industry(symbol)
-        ),
-        key=lambda symbol: (
-            -snapshots[symbol]["persistent_ret240"],
-            -snapshots[symbol]["leader_score"],
-            -snapshots[symbol]["ret20"],
-            symbol,
-        ),
-    )
-    reversal_candidates = sorted(
-        (
-            symbol
-            for symbol, values in snapshots.items()
-            if values["ret240"] <= self.cfg.strategic_reversal_max_ret240
-            and values["ret5"] >= self.cfg.strategic_reversal_min_ret5
-            and has_known_industry(symbol)
-        ),
-        key=lambda symbol: (
-            -snapshots[symbol]["ret20"],
-            -snapshots[symbol]["ret5"],
-            -snapshots[symbol]["leader_score"],
-            symbol,
-        ),
-    )
-
-    # Industry agreement is evidence, not a quota.  When three independently
-    # qualified names agree inside one industry, prefer that coherent group
-    # over a mixed basket assembled from marginally higher individual ranks.
-    # If no industry has enough qualified names, the established route still
-    # falls back to global relative evidence so small/diverse universes remain
-    # investable.
-    def synchronized_groups(
-        candidates: list[str],
-        *,
-        primary_component: str,
-    ) -> list[list[str]]:
-        """Rank coherent industry groups without imposing an industry quota."""
-
-        by_industry: dict[str, list[str]] = {}
-        for symbol in candidates:
-            by_industry.setdefault(leaders[symbol].industry, []).append(symbol)
-        groups = [
-            symbols[: self.cfg.strategic_cohort_size]
-            for symbols in by_industry.values()
-            if len(symbols) >= self.cfg.strategic_cohort_min_size
-        ]
-        groups.sort(
-            key=lambda symbols: (
-                -float(pd.Series([snapshots[s][primary_component] for s in symbols]).median()),
-                -float(pd.Series([snapshots[s]["leader_score"] for s in symbols]).median()),
-                leaders[symbols[0]].industry,
-            )
-        )
-        return groups
-
-    high_quality_groups = synchronized_groups(
-        transition_candidates,
-        primary_component="transition_score",
-    )
-    established_groups = synchronized_groups(
-        established_candidates,
-        primary_component="secular_score",
-    )
-    impulse_groups = synchronized_groups(
-        impulse_candidates,
-        primary_component="transition_score",
-    )
-    persistent_groups = synchronized_groups(
-        persistent_candidates,
-        primary_component="persistent_ret240",
-    )
-    reversal_groups = synchronized_groups(
-        reversal_candidates,
-        primary_component="ret20",
-    )
-    impulse_groups.sort(
-        key=lambda symbols: (
-            -float(pd.Series([snapshots[s]["ret20"] for s in symbols]).median()),
-            -float(pd.Series([snapshots[s]["leader_score"] for s in symbols]).median()),
-            leaders[symbols[0]].industry,
-        )
-    )
-    # A synchronized, currently accelerating group is the explicit
-    # leadership hand-off route.  Prefer it to a mixed set of lagging
-    # long-horizon winners once all independent transition gates agree.
-    synchronized_reversal = bool(
-        reversal_groups
-        and float(
-            pd.Series(
-                [snapshots[symbol]["ret20"] for symbol in reversal_groups[0][:2]]
-            ).median()
-        )
-        >= self.cfg.strategic_reversal_min_median_ret20
-        and float(risk.evidence.get("tech_ret120", math.inf))
-        <= self.cfg.strategic_reversal_max_tech_ret120
-    )
-    anchor_state_observed = "risk_anchor_symbols" in risk.evidence
-    anchors_not_yet_armed = bool(
-        anchor_state_observed and not risk.evidence.get("risk_anchor_symbols", [])
-    )
-    decisive_reversal_symbol: str | None = None
-    decisive_reversal_pair: list[str] = []
-    if anchor_state_observed and synchronized_reversal:
-        decisive_reversal_pair = sorted(
-            reversal_groups[0][:2],
-            key=lambda symbol: (-leaders[symbol].score, symbol),
-        )
-        if len(decisive_reversal_pair) == 2:
-            lead, runner = decisive_reversal_pair
-            lead_evidence = snapshots[lead]
-            runner_evidence = snapshots[runner]
-            if (
-                lead_evidence["leader_score"]
-                - runner_evidence["leader_score"]
-                >= self.cfg.strategic_dominant_min_leader_gap
-                and lead_evidence["ret60"] - runner_evidence["ret60"]
-                >= self.cfg.strategic_dominant_min_leader_gap
-                and lead_evidence["leader_score"]
-                >= self.cfg.strategic_secular_min_score
-                and lead_evidence["trend_persistence"] >= 2 / 3
-                and runner_evidence["trend_persistence"] < 2 / 3
-                and lead_evidence["short_relative_strength"]
-                >= self.cfg.strategic_transition_min_component
-                and lead_evidence["breakout_quality"]
-                >= self.cfg.strategic_transition_min_component
-            ):
-                decisive_reversal_symbol = lead
-    # Durable 240-session industry evidence dominates shorter factor
-    # admission even after dynamic risk anchors have armed. A proven
-    # cluster remains stronger evidence than a merely recent winner.
-    if decisive_reversal_symbol is not None:
-        # Authorization for a dominant owner depends only on the pair's
-        # synchronized economic evidence.  Unrelated pool members and the
-        # configured universe-size route cannot suppress or create it.
-        long_cycle_symbols = decisive_reversal_pair
-        route = "reversal_industry"
-    elif persistent_groups:
-        long_cycle_symbols = persistent_groups[0]
-        route = "persistent_industry"
-    elif high_quality_groups:
-        long_cycle_symbols = high_quality_groups[0]
-        route = "transition"
-    elif established_groups:
-        long_cycle_symbols = established_groups[0]
-        route = "established"
-    elif len(established_candidates) >= self.cfg.strategic_cohort_min_size:
-        long_cycle_symbols = established_candidates[: self.cfg.strategic_cohort_size]
-        route = "established"
-    elif impulse_groups:
-        long_cycle_symbols = impulse_groups[0]
-        route = "transition_impulse"
-    elif anchor_state_observed and synchronized_reversal:
-        long_cycle_symbols = reversal_groups[0][:2]
-        route = "reversal_industry"
-    elif len(established_candidates) >= 2:
-        long_cycle_symbols = established_candidates[:2]
-        route = "established"
-    elif established_candidates:
-        long_cycle_symbols = established_candidates[:1]
-        route = "established"
-    elif len(transition_candidates) >= 2:
-        long_cycle_symbols = transition_candidates[:2]
-        route = "transition"
-    else:
-        long_cycle_symbols = []
-        route = "none"
-    if (
-        route == "established"
-        and all(
-            leaders[symbol].mature
-            for symbol in long_cycle_symbols
-            if symbol in leaders
-        )
-        and float(
-            pd.Series(
-                [snapshots[symbol]["persistent_ret240"] for symbol in long_cycle_symbols]
-            ).median()
-        )
-        < self.cfg.strategic_established_min_median_ret240
-    ):
-        # Already-mature leaders need durable median persistence; emerging
-        # candidates keep their separate current-factor confirmation.
-        long_cycle_symbols = []
-        route = "none"
-    evidence_route = route
-    admission_state = (
-        "SECULAR"
-        if route in {"established", "persistent_industry"}
-        else "EMERGING_SECULAR"
-        if route in {"transition", "transition_impulse", "reversal_industry"}
-        else "NONE"
-    )
-    persistent_route_hard_evidence = bool(
-        route == "persistent_industry"
-        and long_cycle_symbols
-        and all(
-            snapshots[symbol]["persistent_ret240"]
-            >= self.cfg.strategic_cohort_min_ret240
-            for symbol in long_cycle_symbols
-        )
-    )
-    long_cycle_industries = {
-        leaders[symbol].industry
-        for symbol in long_cycle_symbols
-        if symbol in leaders and leaders[symbol].industry != "unknown"
-    }
-    independent_risk_coverage = bool(
-        int(
-            risk.evidence.get(
-                "risk_anchor_group_count",
-                self.cfg.strategic_cohort_min_size,
-            )
-        )
-        >= self.cfg.strategic_cohort_min_size
-    )
-    synchronized_before_anchor_arm = bool(
-        anchors_not_yet_armed
-        and (persistent_route_hard_evidence or route == "reversal_industry")
-        and len(long_cycle_industries) == 1
-        and (
-            len(long_cycle_symbols) >= self.cfg.strategic_cohort_min_size
-            or (admission_state == "EMERGING_SECULAR" and bool(reversal_groups))
-        )
-    )
-    independent_market_confirmation = bool(
-        float(
-            risk.evidence.get(
-                "breadth20",
-                self.cfg.high_confidence_entry_breadth,
-            )
-        )
+def _independent_market_confirmation(
+    self: StrategicPortfolioPolicy,
+    risk: RiskAssessment,
+) -> bool:
+    return bool(
+        float(risk.evidence.get("breadth20", self.cfg.high_confidence_entry_breadth))
         >= self.cfg.high_confidence_entry_breadth
         and float(risk.evidence.get("broad_ret20", 0.0))
         >= self.cfg.strategic_transition_impulse_min_market_ret20
@@ -494,10 +171,6 @@ def _initialize_strategic_cohort(
             float(risk.evidence.get("tech_ret120", 0.0)),
         )
         > self.cfg.recovery_transition_weak_leg_ret120
-        # The cohort evidence is name-specific, while this independent
-        # market guard prevents spending an epoch at a broad blow-off top.
-        # A later consolidation can still qualify with the same causal
-        # long-cycle evidence.
         and max(
             float(
                 risk.evidence.get(
@@ -509,186 +182,351 @@ def _initialize_strategic_cohort(
         )
         <= self.cfg.strategic_long_cycle_max_tech_ret120
     )
-    cohort_count = len(long_cycle_symbols)
-    negative_long_cycle_backed = bool(
-        all(
-            snapshots[symbol]["ret120"] > 0.0
-            for symbol in long_cycle_symbols
-        )
-        or anchor_state_observed
-        or synchronized_reversal
-        or route == "transition_impulse"
-    )
-    partial_cohort_supported = bool(synchronized_reversal)
-    cohort_quality = bool(
-        cohort_count >= 3
+
+
+def _strategic_cohort_quality(
+    self: StrategicPortfolioPolicy,
+    *,
+    symbols: list[str],
+    snapshots: dict[str, dict[str, float]],
+    partial_supported: bool,
+    synchronized_reversal: bool,
+) -> bool:
+    count = len(symbols)
+    return bool(
+        count >= 3
         or (
-            cohort_count == 2
-            and partial_cohort_supported
+            count == 2
+            and partial_supported
             and (
                 synchronized_reversal
                 or all(
-                    snapshots[symbol]["leader_score"]
-                    >= self.cfg.strategic_two_name_min_score
-                    for symbol in long_cycle_symbols
+                    snapshots[symbol]["leader_score"] >= self.cfg.strategic_two_name_min_score
+                    for symbol in symbols
                 )
             )
         )
         or (
-            cohort_count == 1
-            and partial_cohort_supported
-            and snapshots[long_cycle_symbols[0]]["leader_score"]
-            >= self.cfg.strategic_one_name_min_score
-            and snapshots[long_cycle_symbols[0]]["secular_score"]
-            >= self.cfg.strategic_one_name_min_secular_score
-            and snapshots[long_cycle_symbols[0]]["leader_confidence"]
-            >= self.cfg.leader_min_confidence
+            count == 1
+            and partial_supported
+            and snapshots[symbols[0]]["leader_score"] >= self.cfg.strategic_one_name_min_score
+            and snapshots[symbols[0]]["secular_score"] >= self.cfg.strategic_one_name_min_secular_score
+            and snapshots[symbols[0]]["leader_confidence"] >= self.cfg.leader_min_confidence
         )
     )
-    raw_long_cycle = bool(
-        cohort_quality
-        and negative_long_cycle_backed
-        # A fully armed, cross-industry sentinel basket is the ordinary
-        # independent gate. During its initial hysteresis only, three
-        # independently qualified names agreeing inside one known
-        # industry may confirm from their synchronized evidence. A mixed
-        # basket never receives this start-up exception.
-        and (
-            synchronized_before_anchor_arm
-            or (
-                independent_risk_coverage
-                and independent_market_confirmation
-            )
-        )
-    )
-    if not raw_long_cycle:
-        long_cycle_symbols = []
-    # This is a causal eligibility gate, not a verdict frozen at the first
-    # day of an arbitrary backtest window.  A secular move that develops
-    # later must be investable once the same persistent evidence exists.
-    account.candidate_tenure[long_cycle_open_key] = int(raw_long_cycle)
 
-    route_symbols = long_cycle_symbols
-    # Rank order may move by a few basis points during confirmation; cohort
-    # identity is its route plus economic membership, not that transient
-    # ordering.  Canonicalizing prevents a stable group from resetting its
-    # streak every day while still resetting on any member or route change.
-    signature_body = ",".join(
+
+@dataclass(frozen=True, slots=True)
+class _QualifiedRoute:
+    symbols: list[str]
+    route: str
+    admission_state: str
+    signature: str
+    decisive_reversal_symbol: str | None
+
+
+def _synchronized_before_anchor(
+    self: StrategicPortfolioPolicy,
+    *,
+    route: StrategicRoute,
+    symbols: list[str],
+    industries: set[str],
+    hard_persistent: bool,
+    admission_state: str,
+) -> bool:
+    return bool(
+        route.anchors_not_yet_armed
+        and (hard_persistent or route.route == "reversal_industry")
+        and len(industries) == 1
+        and (
+            len(symbols) >= self.cfg.strategic_cohort_min_size
+            or (admission_state == "EMERGING_SECULAR" and bool(route.reversal_groups))
+        )
+    )
+
+
+def _negative_long_cycle_backed(
+    *,
+    route: StrategicRoute,
+    symbols: list[str],
+    snapshots: dict[str, dict[str, float]],
+) -> bool:
+    return bool(
+        all(snapshots[symbol]["ret120"] > 0.0 for symbol in symbols)
+        or route.anchor_state_observed
+        or route.synchronized_reversal
+        or route.route == "transition_impulse"
+    )
+
+
+def _qualification_evidence(
+    self: StrategicPortfolioPolicy,
+    *,
+    route: StrategicRoute,
+    snapshots: dict[str, dict[str, float]],
+    leaders: dict[str, LeaderScore],
+    risk: RiskAssessment,
+) -> tuple[bool, bool]:
+    symbols = route.symbols
+    admission_state = (
+        "SECULAR"
+        if route.route in {"established", "persistent_industry"}
+        else "EMERGING_SECULAR"
+        if route.route in {"transition", "transition_impulse", "reversal_industry"}
+        else "NONE"
+    )
+    hard_persistent = bool(
+        route.route == "persistent_industry"
+        and symbols
+        and all(
+            snapshots[symbol]["persistent_ret240"] >= self.cfg.strategic_cohort_min_ret240
+            for symbol in symbols
+        )
+    )
+    industries = {
+        leaders[symbol].industry
+        for symbol in symbols
+        if symbol in leaders and leaders[symbol].industry != "unknown"
+    }
+    independent_risk_coverage = bool(
+        int(risk.evidence.get("risk_anchor_group_count", self.cfg.strategic_cohort_min_size))
+        >= self.cfg.strategic_cohort_min_size
+    )
+    synchronized_before_anchor = _synchronized_before_anchor(
+        self,
+        route=route,
+        symbols=symbols,
+        industries=industries,
+        hard_persistent=hard_persistent,
+        admission_state=admission_state,
+    )
+    negative_backed = _negative_long_cycle_backed(
+        route=route,
+        symbols=symbols,
+        snapshots=snapshots,
+    )
+    quality = _strategic_cohort_quality(
+        self,
+        symbols=symbols,
+        snapshots=snapshots,
+        partial_supported=bool(route.synchronized_reversal),
+        synchronized_reversal=route.synchronized_reversal,
+    )
+    raw = bool(
+        quality
+        and negative_backed
+        and (
+            synchronized_before_anchor
+            or (independent_risk_coverage and _independent_market_confirmation(self, risk))
+        )
+    )
+    return raw, synchronized_before_anchor
+
+
+def _route_signature(
+    *,
+    route: StrategicRoute,
+    symbols: list[str],
+    leaders: dict[str, LeaderScore],
+) -> tuple[str, str]:
+    admission_state = (
+        "SECULAR"
+        if route.route in {"established", "persistent_industry"}
+        else "EMERGING_SECULAR"
+        if route.route in {"transition", "transition_impulse", "reversal_industry"}
+        else "NONE"
+    )
+    body = ",".join(
         f"{symbol}:{leaders[symbol].industry if symbol in leaders else 'unknown'}"
-        for symbol in sorted(route_symbols)
+        for symbol in sorted(symbols)
     )
-    signature = (
-        f"strategic_qualification:{admission_state}:{signature_body}"
-        f":evidence={evidence_route}"
-    )
+    return admission_state, f"strategic_qualification:{admission_state}:{body}:evidence={route.route}"
+
+
+def _update_route_qualification(
+    self: StrategicPortfolioPolicy,
+    *,
+    symbols: list[str],
+    signature: str,
+    account: AccountState,
+) -> list[str]:
     previous = set(account.strategic_previous_symbols)
-    same_members = bool(previous) and set(route_symbols) == previous
-    new_members = len(set(route_symbols) - previous)
-    # A completed cohort is not permanently banned.  After the ordinary
-    # cooldown has reset every qualification streak, the same economic
-    # members may earn a new epoch from fresh causal evidence.  A different
-    # cohort must still clear the configured membership-change threshold.
+    same_members = bool(previous) and set(symbols) == previous
+    new_members = len(set(symbols) - previous)
     if previous and not same_members and new_members < self.cfg.strategic_epoch_min_symbol_change:
-        route_symbols = []
-        account.candidate_tenure[qualification_key] = 0
-    if route_symbols:
+        symbols = []
+        account.candidate_tenure["strategic_cohort_qualification"] = 0
+    if symbols:
         for key in tuple(account.replacement_tenure):
             if key.startswith("strategic_qualification:") and key != signature:
                 account.replacement_tenure[key] = 0
         account.replacement_tenure[signature] = account.replacement_tenure.get(signature, 0) + 1
-        account.candidate_tenure[qualification_key] = account.replacement_tenure[signature]
+        account.candidate_tenure["strategic_cohort_qualification"] = account.replacement_tenure[signature]
     else:
-        reset_qualification_streaks()
-        account.candidate_tenure[qualification_key] = 0
-    required_confirm_days = (
-        self.cfg.strategic_cohort_confirm_days
-        if synchronized_reversal or len(route_symbols) >= self.cfg.strategic_cohort_size
-        else self.cfg.strategic_two_name_confirm_days
-        if len(route_symbols) == 2
-        else self.cfg.strategic_one_name_confirm_days
-        if len(route_symbols) == 1
-        else self.cfg.strategic_cohort_confirm_days
-    )
-    route_admission_open = bool(
-        admission_open
-        or (
-            (persistent_route_hard_evidence or synchronized_reversal)
-            and anchors_not_yet_armed
-            and synchronized_before_anchor_arm
+        _reset_qualification_streaks(account)
+        account.candidate_tenure["strategic_cohort_qualification"] = 0
+    return symbols
+
+
+def _route_admission_open(
+    self: StrategicPortfolioPolicy,
+    *,
+    route: StrategicRoute,
+    symbols: list[str],
+    snapshots: dict[str, dict[str, float]],
+    admission_open: bool,
+    synchronized_before_anchor: bool,
+) -> bool:
+    hard_persistent = bool(
+        route.route == "persistent_industry"
+        and symbols
+        and all(
+            snapshots[symbol]["persistent_ret240"] >= self.cfg.strategic_cohort_min_ret240
+            for symbol in symbols
         )
     )
+    return bool(
+        admission_open
+        or (
+            (hard_persistent or route.synchronized_reversal)
+            and route.anchors_not_yet_armed
+            and synchronized_before_anchor
+        )
+    )
+
+
+def _qualify_strategic_route(
+    self: StrategicPortfolioPolicy,
+    *,
+    route: StrategicRoute,
+    snapshots: dict[str, dict[str, float]],
+    leaders: dict[str, LeaderScore],
+    account: AccountState,
+    risk: RiskAssessment,
+    admission_open: bool,
+) -> _QualifiedRoute | None:
+    raw, synchronized_before_anchor = _qualification_evidence(
+        self,
+        route=route,
+        snapshots=snapshots,
+        leaders=leaders,
+        risk=risk,
+    )
+    symbols = list(route.symbols) if raw else []
+    account.candidate_tenure["strategic_long_cycle_open"] = int(raw)
+    admission_state, signature = _route_signature(
+        route=route,
+        symbols=symbols,
+        leaders=leaders,
+    )
+    symbols = _update_route_qualification(
+        self,
+        symbols=symbols,
+        signature=signature,
+        account=account,
+    )
+    required_days = (
+        self.cfg.strategic_cohort_confirm_days
+        if route.synchronized_reversal or len(symbols) >= self.cfg.strategic_cohort_size
+        else self.cfg.strategic_two_name_confirm_days
+        if len(symbols) == 2
+        else self.cfg.strategic_one_name_confirm_days
+        if len(symbols) == 1
+        else self.cfg.strategic_cohort_confirm_days
+    )
+    route_admission_open = _route_admission_open(
+        self,
+        route=route,
+        symbols=symbols,
+        snapshots=snapshots,
+        admission_open=admission_open,
+        synchronized_before_anchor=synchronized_before_anchor,
+    )
     if (
-        not route_symbols
+        not symbols
         or not route_admission_open
-        or account.candidate_tenure[qualification_key] < required_confirm_days
+        or account.candidate_tenure["strategic_cohort_qualification"] < required_days
         or account.pending_orders
         or account.protected_weights
     ):
-        return
-    # A locked recovery cohort owns the whole deployed risk budget, not
-    # only symbols that happen to overlap a later secular route.  Do not
-    # replace that lower-turnover, winner-preserving lifecycle with a
-    # second label merely because independent secular evidence confirms.
-    # An unlocked old anchor may still hand off when the opportunity is
-    # disjoint; once a locked cohort graduates or exits this route becomes
-    # available again.
-    live_anchor_symbols = {
-        symbol
-        for symbol in account.anchor_weights
-        if account.positions.get(symbol) is not None and account.positions[symbol].shares > 0
-    }
-    locked_recovery_owner = bool(
-        live_anchor_symbols
-        and account.candidate_tenure.get("recovery_cohort_locked", 0) == 1
+        return None
+    return _QualifiedRoute(
+        symbols,
+        route.route,
+        admission_state,
+        signature,
+        route.decisive_reversal_symbol,
     )
-    if locked_recovery_owner or live_anchor_symbols & set(route_symbols):
-        account.candidate_tenure["strategic_deferred_to_recovery"] = 1
-        return
-    # A persistently qualified secular cluster is also a causal graduation
-    # signal for an old recovery cohort.  Clear every recovery-only lock so
-    # the hand-off cannot leave stale anchors controlling later decisions.
-    self._release_recovery_anchor(account)
-    account.tactical_anchor_symbol = ""
-    account.candidate_tenure["tactical_active"] = 0
-    account.candidate_tenure["tactical_promotable"] = 0
-    account.candidate_tenure["strategic_deferred_to_recovery"] = 0
-    account.candidate_tenure[evaluated_key] = 1
-    weighted_symbols = sorted(
-        route_symbols,
-        key=lambda symbol: (-leaders[symbol].score, symbol),
-    )
-    dominant_symbol = (
-        decisive_reversal_symbol
-        if route == "reversal_industry" and len(weighted_symbols) == 2
-        else None
-    )
-    account.strategic_cohort_symbols = (
-        [dominant_symbol] if dominant_symbol is not None else list(weighted_symbols)
-    )
+
+
+def _strategic_target_weights(
+    self: StrategicPortfolioPolicy,
+    *,
+    symbols: list[str],
+    weighted_symbols: list[str],
+    dominant_symbol: str | None,
+) -> dict[str, float]:
     if dominant_symbol is not None:
-        account.strategic_cohort_targets = {
-            dominant_symbol: self.cfg.strategic_dominant_max_weight
-        }
-    elif len(route_symbols) == 1:
-        account.strategic_cohort_targets = {
+        return {dominant_symbol: self.cfg.strategic_dominant_max_weight}
+    if len(symbols) == 1:
+        return {
             weighted_symbols[0]: min(
                 self.cfg.max_symbol_weight,
                 self.cfg.strategic_one_name_gross,
             )
         }
-    elif len(route_symbols) == 2:
+    if len(symbols) == 2:
         cohort_gross = min(self.cfg.max_gross, self.cfg.strategic_two_name_gross)
         lead_weight = min(self.cfg.max_symbol_weight, 0.60 * cohort_gross)
-        account.strategic_cohort_targets = {
+        return {
             weighted_symbols[0]: lead_weight,
             weighted_symbols[1]: max(0.0, cohort_gross - lead_weight),
         }
-    else:
-        weight = min(
-            self.cfg.max_symbol_weight,
-            self.cfg.max_gross / len(route_symbols),
-        )
-        account.strategic_cohort_targets = {symbol: weight for symbol in weighted_symbols}
+    weight = min(self.cfg.max_symbol_weight, self.cfg.max_gross / len(symbols))
+    return {symbol: weight for symbol in weighted_symbols}
+
+
+def _activate_strategic_cohort(
+    self: StrategicPortfolioPolicy,
+    *,
+    qualified: _QualifiedRoute,
+    snapshots: dict[str, dict[str, float]],
+    leaders: dict[str, LeaderScore],
+    account: AccountState,
+) -> None:
+    live_anchors = {
+        symbol
+        for symbol in account.anchor_weights
+        if account.positions.get(symbol) is not None and account.positions[symbol].shares > 0
+    }
+    locked_recovery = bool(live_anchors and account.candidate_tenure.get("recovery_cohort_locked", 0) == 1)
+    if locked_recovery or live_anchors & set(qualified.symbols):
+        account.candidate_tenure["strategic_deferred_to_recovery"] = 1
+        return
+    self._release_recovery_anchor(account)
+    account.tactical_anchor_symbol = ""
+    account.candidate_tenure["tactical_active"] = 0
+    account.candidate_tenure["tactical_promotable"] = 0
+    account.candidate_tenure["strategic_deferred_to_recovery"] = 0
+    account.candidate_tenure["strategic_cohort_evaluated"] = 1
+    weighted_symbols = sorted(
+        qualified.symbols,
+        key=lambda symbol: (-leaders[symbol].score, symbol),
+    )
+    dominant_symbol = (
+        qualified.decisive_reversal_symbol
+        if qualified.route == "reversal_industry" and len(weighted_symbols) == 2
+        else None
+    )
+    account.strategic_cohort_symbols = (
+        [dominant_symbol] if dominant_symbol is not None else list(weighted_symbols)
+    )
+    account.strategic_cohort_targets = _strategic_target_weights(
+        self,
+        symbols=qualified.symbols,
+        weighted_symbols=weighted_symbols,
+        dominant_symbol=dominant_symbol,
+    )
     account.strategic_exit_bands.clear()
     account.strategic_active_bands.clear()
     account.strategic_restore_weights.clear()
@@ -703,12 +541,11 @@ def _initialize_strategic_cohort(
     account.strategic_epoch += 1
     account.candidate_tenure["strategic_early_cycle_epoch"] = (
         account.strategic_epoch
-        if route_symbols
+        if qualified.symbols
         and all(
-            snapshots[symbol]["persistent_ret240"]
-            >= self.cfg.strategic_cohort_min_ret240
+            snapshots[symbol]["persistent_ret240"] >= self.cfg.strategic_cohort_min_ret240
             and snapshots[symbol]["ret120"] < 0.0
-            for symbol in route_symbols
+            for symbol in qualified.symbols
         )
         else 0
     )
@@ -716,4 +553,75 @@ def _initialize_strategic_cohort(
         account.strategic_epoch if dominant_symbol is not None else 0
     )
     account.candidate_tenure["strategic_dominant_profit_lock_epoch"] = 0
-    account.strategic_candidate_signature = signature
+    account.strategic_candidate_signature = qualified.signature
+
+
+def _initialize_strategic_cohort(
+    self: StrategicPortfolioPolicy,
+    *,
+    date: pd.Timestamp,
+    user_panel: dict[str, pd.DataFrame],
+    leaders: dict[str, LeaderScore],
+    account: AccountState,
+    risk: RiskAssessment,
+    admission_open: bool = True,
+) -> None:
+    """Discover and activate a persistent long-cycle cohort causally."""
+
+    if (
+        not self.cfg.strategic_dynamic_enabled
+        or account.candidate_tenure.get("strategic_cohort_active", 0) == 1
+    ):
+        return
+    live_general_leaders = {
+        symbol
+        for symbol in account.active_leaders
+        if (position := account.positions.get(symbol)) is not None and position.shares > 0
+    }
+    if live_general_leaders:
+        return
+    if not _strategic_discovery_open(
+        self,
+        date=date,
+        user_panel=user_panel,
+        account=account,
+        risk=risk,
+    ):
+        return
+    snapshots = _strategic_snapshots(
+        self,
+        date=date,
+        user_panel=user_panel,
+        leaders=leaders,
+    )
+    if not snapshots:
+        _reset_qualification_streaks(account)
+        account.candidate_tenure["strategic_cohort_qualification"] = 0
+        account.candidate_tenure["strategic_long_cycle_open"] = 0
+        return
+    route = select_strategic_route(
+        self,
+        snapshots=snapshots,
+        leaders=leaders,
+        risk=risk,
+    )
+    qualified = _qualify_strategic_route(
+        self,
+        route=route,
+        snapshots=snapshots,
+        leaders=leaders,
+        account=account,
+        risk=risk,
+        admission_open=admission_open,
+    )
+    if qualified is not None:
+        _activate_strategic_cohort(
+            self,
+            qualified=qualified,
+            snapshots=snapshots,
+            leaders=leaders,
+            account=account,
+        )
+
+
+initialize_strategic_cohort = _initialize_strategic_cohort

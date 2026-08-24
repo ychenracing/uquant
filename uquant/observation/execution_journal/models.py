@@ -21,54 +21,66 @@ _BROKER_ORDER_ID = re.compile(r"^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$")
 _ZERO_HASH = "0" * 64
 
 
-_V1_FIELDS = {
-    "schema_version",
-    "sequence",
-    "status",
-    "plan_id",
-    "recorded_at",
-    "symbol",
-    "side",
-    "planned_price",
-    "planned_shares",
-    "next_open",
-    "actual_time",
-    "actual_price",
-    "actual_shares",
-    "manual_skip",
-    "slippage_per_share",
-    "slippage_bps",
-    "slippage_value",
-    "previous_sha256",
-    "record_sha256",
-}
+_V1_FIELDS = frozenset(
+    {
+        "schema_version",
+        "sequence",
+        "status",
+        "plan_id",
+        "recorded_at",
+        "symbol",
+        "side",
+        "planned_price",
+        "planned_shares",
+        "next_open",
+        "actual_time",
+        "actual_price",
+        "actual_shares",
+        "manual_skip",
+        "slippage_per_share",
+        "slippage_bps",
+        "slippage_value",
+        "previous_sha256",
+        "record_sha256",
+    }
+)
 
 
-_V2_FIELDS = {
-    "schema_version",
-    "sequence",
-    "status",
-    "plan_id",
-    "recorded_at",
-    "decision_date",
-    "planned_symbol",
-    "planned_side",
-    "planned_weight",
-    "planned_price_reference",
-    "planned_shares",
-    "next_open",
-    "actual_fill_time",
-    "actual_fill_price",
-    "actual_fill_shares",
-    "manual_skip",
-    "manual_skip_reason",
-    "realized_slippage",
-    "slippage_per_share",
-    "slippage_bps",
-    "broker_order_id",
-    "previous_record_hash",
-    "record_hash",
-}
+_V2_FIELDS = frozenset(
+    {
+        "schema_version",
+        "sequence",
+        "status",
+        "plan_id",
+        "recorded_at",
+        "decision_date",
+        "planned_symbol",
+        "planned_side",
+        "planned_weight",
+        "planned_price_reference",
+        "planned_shares",
+        "next_open",
+        "actual_fill_time",
+        "actual_fill_price",
+        "actual_fill_shares",
+        "manual_skip",
+        "manual_skip_reason",
+        "realized_slippage",
+        "slippage_per_share",
+        "slippage_bps",
+        "broker_order_id",
+        "previous_record_hash",
+        "record_hash",
+    }
+)
+
+BROKER_ORDER_ID_PATTERN = _BROKER_ORDER_ID
+PLAN_ID_PATTERN = _PLAN_ID
+SHA256_PATTERN = _SHA256
+SYMBOL_PATTERN = _SYMBOL
+V1_FIELDS = _V1_FIELDS
+V2_FIELDS = _V2_FIELDS
+ZERO_HASH = _ZERO_HASH
 
 
 class JournalStatus(str, Enum):

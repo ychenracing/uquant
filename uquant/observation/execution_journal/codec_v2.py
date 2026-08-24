@@ -5,14 +5,11 @@ from __future__ import annotations
 from typing import Any
 
 from .codec_v1 import canonical_record_bytes, decode_v1_record, hash_record
-from .lifecycle import _validate_record
-from .models import (
-    _SHA256,
-    _V1_FIELDS,
-    _V2_FIELDS,
-    JournalRecord,
-    JournalStatus,
-)
+from .lifecycle import validate_journal_record as _validate_record
+from .models import SHA256_PATTERN as _SHA256
+from .models import V1_FIELDS as _V1_FIELDS
+from .models import V2_FIELDS as _V2_FIELDS
+from .models import JournalRecord, JournalStatus
 
 
 def decode_v2_record(raw: Any, *, previous: str, sequence: int) -> JournalRecord:

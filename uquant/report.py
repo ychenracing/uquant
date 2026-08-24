@@ -21,9 +21,7 @@ def _sentinel_values(value: object, *, limit: int = 3) -> tuple[str, ...]:
 
 def _risk_sentinel_section(summary: Mapping[str, Any]) -> list[str]:
     coverage = str(summary.get("sentinel_causal_coverage_status", "NOT_READY"))
-    base_freeze = bool(
-        summary.get("base_freeze_new_risk", summary.get("freeze_new_risk", False))
-    )
+    base_freeze = bool(summary.get("base_freeze_new_risk", summary.get("freeze_new_risk", False)))
     sentinel_freeze = bool(summary.get("sentinel_freeze_new_risk", False))
     if coverage != "READY":
         owner = "DATA_NOT_READY"
@@ -41,9 +39,7 @@ def _risk_sentinel_section(summary: Mapping[str, Any]) -> list[str]:
     if isinstance(assessment, Mapping):
         observed = assessment.get("level", observed)
     families = _sentinel_values(summary.get("sentinel_causal_active_families"))
-    weakest = _sentinel_values(
-        summary.get("sentinel_causal_weakest_subindustries")
-    )
+    weakest = _sentinel_values(summary.get("sentinel_causal_weakest_subindustries"))
     if owner == "DATA_NOT_READY":
         conclusion = "check market data; do not infer safety."
     elif freeze:
@@ -71,68 +67,29 @@ def render_execution_journal(records: tuple[JournalRecord, ...]) -> str:
     return render_compact_execution_journal(records)
 
 
-def render_economic_attribution_report(attribution: Mapping[str, Any]) -> str:
-    """Render reconciled accounting separately from explicitly diagnostic effects."""
-
-    interval_value = attribution.get("interval")
-    if not isinstance(interval_value, Mapping):
-        raise ValueError("economic attribution report requires validated canonical evidence")
-    canonical = validate_economic_attribution(
-        attribution,
-        economic_start=str(interval_value.get("economic_start")),
-        economic_end=str(interval_value.get("economic_end")),
-    )
-    interval = canonical["interval"]
-    accounting = canonical["accounting"]
-    costs = canonical["costs"]
-    concentration = canonical["symbol_concentration"]
-    diagnostics = canonical["diagnostics"]
-    positive = concentration["positive"]
-    top1 = positive.get("top1")
-    top3 = positive.get("top3")
-    hhi = positive.get("hhi")
-
-    def percentage(value: Any) -> str:
-        return "N/A" if value is None else f"{float(value):.2%}"
-
-    cash_drag = diagnostics["cash_drag"]
-    avoidance = diagnostics["risk_avoidance"]
-    avoidance_line = (
-        f"Risk avoidance (paired counterfactual, not accounting PnL): {float(avoidance['value']):.6f}"
-        if avoidance.get("status") == "PAIRED_COUNTERFACTUAL"
-        else "Risk avoidance: N/A — requires an exact paired counterfactual"
-    )
-    industry_rows = [
-        f"{name} | {float(bucket['total_pnl']):.6f}"
-        for name, bucket in canonical["by_industry"].items()
-    ] or ["N/A | 0.000000"]
-    mechanism_rows = [
-        f"{name} | {float(bucket['total_pnl']):.6f}"
-        for name, bucket in canonical["by_mechanism"].items()
-        if any(float(bucket[field]) != 0.0 for field in ("total_pnl", "all_in_costs"))
-    ] or ["N/A | 0.000000"]
-    exit_mechanism_rows = [
-        f"{name} | {float(bucket['total_pnl']):.6f}"
-        for name, bucket in canonical["by_exit_mechanism"].items()
-        if any(float(bucket[field]) != 0.0 for field in ("total_pnl", "all_in_costs"))
-    ] or ["N/A | 0.000000"]
-    origin_lifecycle_rows = [
-        f"{name} | {float(bucket['total_pnl']):.6f}"
-        for name, bucket in canonical["by_origin_lifecycle"].items()
-        if any(float(bucket[field]) != 0.0 for field in ("total_pnl", "all_in_costs"))
-    ] or ["N/A | 0.000000"]
-    current_lifecycle_rows = [
-        f"{name} | {float(bucket['total_pnl']):.6f}"
-        for name, bucket in canonical["by_current_lifecycle"].items()
-        if any(float(bucket[field]) != 0.0 for field in ("total_pnl", "all_in_costs"))
-    ] or ["N/A | 0.000000"]
-    industry_hhi = canonical["industry_concentration"]["positive"].get("hhi")
-    holding = canonical["holding_period_sessions"]
-    turnover = canonical["turnover"]
-    replacements = canonical["replacements"]
+def _economic_attribution_report_lines(
+    *,
+    accounting: Any,
+    avoidance_line: Any,
+    cash_drag: Any,
+    costs: Any,
+    current_lifecycle_rows: Any,
+    exit_mechanism_rows: Any,
+    hhi: Any,
+    holding: Any,
+    industry_hhi: Any,
+    industry_rows: Any,
+    interval: Any,
+    mechanism_rows: Any,
+    origin_lifecycle_rows: Any,
+    percentage: Any,
+    replacements: Any,
+    top1: Any,
+    top3: Any,
+    turnover: Any,
+) -> Any:
     lines = [
-        "# Economic Attribution — "
-        f"{interval['economic_start']} to {interval['economic_end']}",
+        f"# Economic Attribution — {interval['economic_start']} to {interval['economic_end']}",
         "",
         "## Reconciled Accounting PnL",
         "",
@@ -155,8 +112,7 @@ def render_economic_attribution_report(attribution: Mapping[str, Any]) -> str:
         "Industry | Total PnL",
         "--- | ---:",
         *industry_rows,
-        "Positive industry HHI: "
-        + ("N/A" if industry_hhi is None else f"{float(industry_hhi):.6f}"),
+        "Positive industry HHI: " + ("N/A" if industry_hhi is None else f"{float(industry_hhi):.6f}"),
         "",
         "## Origin Mechanism Contribution",
         "",
@@ -203,6 +159,87 @@ def render_economic_attribution_report(attribution: Mapping[str, Any]) -> str:
         avoidance_line,
         "",
     ]
+    return lines
+
+
+def render_economic_attribution_report(attribution: Mapping[str, Any]) -> str:
+    """Render reconciled accounting separately from explicitly diagnostic effects."""
+
+    interval_value = attribution.get("interval")
+    if not isinstance(interval_value, Mapping):
+        raise ValueError("economic attribution report requires validated canonical evidence")
+    canonical = validate_economic_attribution(
+        attribution,
+        economic_start=str(interval_value.get("economic_start")),
+        economic_end=str(interval_value.get("economic_end")),
+    )
+    interval = canonical["interval"]
+    accounting = canonical["accounting"]
+    costs = canonical["costs"]
+    concentration = canonical["symbol_concentration"]
+    diagnostics = canonical["diagnostics"]
+    positive = concentration["positive"]
+    top1 = positive.get("top1")
+    top3 = positive.get("top3")
+    hhi = positive.get("hhi")
+
+    def percentage(value: Any) -> str:
+        return "N/A" if value is None else f"{float(value):.2%}"
+
+    cash_drag = diagnostics["cash_drag"]
+    avoidance = diagnostics["risk_avoidance"]
+    avoidance_line = (
+        f"Risk avoidance (paired counterfactual, not accounting PnL): {float(avoidance['value']):.6f}"
+        if avoidance.get("status") == "PAIRED_COUNTERFACTUAL"
+        else "Risk avoidance: N/A — requires an exact paired counterfactual"
+    )
+    industry_rows = [
+        f"{name} | {float(bucket['total_pnl']):.6f}" for name, bucket in canonical["by_industry"].items()
+    ] or ["N/A | 0.000000"]
+    mechanism_rows = [
+        f"{name} | {float(bucket['total_pnl']):.6f}"
+        for name, bucket in canonical["by_mechanism"].items()
+        if any(float(bucket[field]) != 0.0 for field in ("total_pnl", "all_in_costs"))
+    ] or ["N/A | 0.000000"]
+    exit_mechanism_rows = [
+        f"{name} | {float(bucket['total_pnl']):.6f}"
+        for name, bucket in canonical["by_exit_mechanism"].items()
+        if any(float(bucket[field]) != 0.0 for field in ("total_pnl", "all_in_costs"))
+    ] or ["N/A | 0.000000"]
+    origin_lifecycle_rows = [
+        f"{name} | {float(bucket['total_pnl']):.6f}"
+        for name, bucket in canonical["by_origin_lifecycle"].items()
+        if any(float(bucket[field]) != 0.0 for field in ("total_pnl", "all_in_costs"))
+    ] or ["N/A | 0.000000"]
+    current_lifecycle_rows = [
+        f"{name} | {float(bucket['total_pnl']):.6f}"
+        for name, bucket in canonical["by_current_lifecycle"].items()
+        if any(float(bucket[field]) != 0.0 for field in ("total_pnl", "all_in_costs"))
+    ] or ["N/A | 0.000000"]
+    industry_hhi = canonical["industry_concentration"]["positive"].get("hhi")
+    holding = canonical["holding_period_sessions"]
+    turnover = canonical["turnover"]
+    replacements = canonical["replacements"]
+    lines = _economic_attribution_report_lines(
+        accounting=accounting,
+        avoidance_line=avoidance_line,
+        cash_drag=cash_drag,
+        costs=costs,
+        current_lifecycle_rows=current_lifecycle_rows,
+        exit_mechanism_rows=exit_mechanism_rows,
+        hhi=hhi,
+        holding=holding,
+        industry_hhi=industry_hhi,
+        industry_rows=industry_rows,
+        interval=interval,
+        mechanism_rows=mechanism_rows,
+        origin_lifecycle_rows=origin_lifecycle_rows,
+        percentage=percentage,
+        replacements=replacements,
+        top1=top1,
+        top3=top3,
+        turnover=turnover,
+    )
     return "\n".join(lines)
 
 
@@ -285,8 +322,7 @@ def render_daily_report(decision: Decision, account: AccountState) -> str:
         [
             "",
             f"Decision digest: `{decision.decision_digest}`",
-            "Effective config: "
-            f"`{decision.risk_summary.get('effective_config_sha256', 'UNAVAILABLE')}`",
+            f"Effective config: `{decision.risk_summary.get('effective_config_sha256', 'UNAVAILABLE')}`",
             "",
         ]
     )

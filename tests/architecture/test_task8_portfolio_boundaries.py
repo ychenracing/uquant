@@ -33,6 +33,16 @@ from ._task9_relocation import (
     HOLDOUT_RUNTIME_FACADE,
     POLICY_OWNERS,
 )
+from ._task10_owner_transport import (
+    expand_task10_portfolio_pipeline,
+    task10_private_relocation_projection,
+    task10_source_surface_projection,
+)
+from ._task10_portfolio_transport import (
+    expand_task10_checkpoint1_method,
+    task10_task8_type_ignore_projection,
+)
+from ._task10_reviewed_owner_transport import expand_reviewed_task10_owner
 
 _TASK8_START = "4b6bedb03fb7c58914d9d5032a2514c67f41f6ba"
 _TASK8_START_TREE = "d3824f7c5d89521b8284b5de08cc1e82e3ab7ebd"
@@ -440,8 +450,19 @@ def test_task8_checkpoint1_moved_methods_are_immutable_ast_exact() -> None:
             observed.add(name)
             candidate_method = candidate[name]
             if name == "_allocate_strategy":
+                candidate_method = expand_task10_portfolio_pipeline(
+                    root=ROOT,
+                    candidate=None,
+                )
                 candidate_method = _expand_checkpoint4_pipeline(
                     candidate_method, immutable[name]
+                )
+            else:
+                candidate_method = expand_task10_checkpoint1_method(
+                    root=ROOT,
+                    relative=path,
+                    name=name,
+                    candidate=None,
                 )
             assert _normalized_method(candidate_method) == _normalized_method(
                 immutable[name]
@@ -518,6 +539,7 @@ def test_task8_checkpoint1_source_surface_migration_is_exact() -> None:
             "uquant/risk_sentinel/validation.py",
         } & expected:
             expected.add("uquant/risk_sentinel/provenance.py")
+        expected = task10_source_surface_projection(identifier, expected)
         assert set(candidate_surfaces[identifier]["source_paths"]) == expected
         assert candidate_surfaces[identifier]["resource_paths"] == baseline["resource_paths"]
         assert {
@@ -586,7 +608,12 @@ def test_task8_checkpoint1_private_and_complexity_relocations_are_exact_and_clos
     assert isinstance(graph, dict)
     relocated = graph["task8_relocated_private_imports"]
     ordinary = graph["cross_module_private_imports"]
-    assert {str(row["id"]) for row in relocated} == _TASK8_RELOCATED_PRIVATE_IMPORTS
+    assert task10_private_relocation_projection(
+        root=ROOT,
+        task=8,
+        observed={str(row["id"]) for row in relocated},
+        expected=set(_TASK8_RELOCATED_PRIVATE_IMPORTS),
+    ) == _TASK8_RELOCATED_PRIVATE_IMPORTS
     assert not {
         str(row["id"])
         for row in ordinary
@@ -614,7 +641,11 @@ def test_task8_checkpoint1_private_and_complexity_relocations_are_exact_and_clos
         for row in snapshot["type_ignores"]
         if str(row["path"]).startswith("uquant/portfolio/")
     }
-    assert observed_type_ignores == set(_TASK8_RELOCATED_TYPE_IGNORES)
+    assert task10_task8_type_ignore_projection(
+        root=ROOT,
+        observed=observed_type_ignores,
+        expected=set(_TASK8_RELOCATED_TYPE_IGNORES),
+    ) == set(_TASK8_RELOCATED_TYPE_IGNORES)
 
     source_texts = {
         path.relative_to(ROOT).as_posix(): path.read_text(encoding="utf-8")
@@ -663,6 +694,13 @@ def test_task8_checkpoint2_moved_leader_methods_are_immutable_ast_exact() -> Non
             candidate_node = copy.deepcopy(
                 candidate[_CHECKPOINT2_TRANSPORT_NAMES.get(name, name)]
             )
+            if name in {"_dynamic_k", "_update_leader_cycle_arm", "_leader_targets"}:
+                candidate_node = expand_reviewed_task10_owner(
+                    root=ROOT,
+                    relative=path,
+                    name=name,
+                    candidate=None,
+                )
             candidate_node.name = name
             assert _normalized_method(candidate_node) == _normalized_method(immutable[name])
     assert observed == set(immutable)
@@ -766,9 +804,12 @@ def test_task8_checkpoint2_private_and_complexity_relocations_are_exact() -> Non
     snapshot = architecture_snapshot()
     graph = snapshot["import_graph"]
     assert isinstance(graph, dict)
-    assert {
-        str(row["id"]) for row in graph["task8_relocated_private_imports"]
-    } == _TASK8_RELOCATED_PRIVATE_IMPORTS
+    assert task10_private_relocation_projection(
+        root=ROOT,
+        task=8,
+        observed={str(row["id"]) for row in graph["task8_relocated_private_imports"]},
+        expected=set(_TASK8_RELOCATED_PRIVATE_IMPORTS),
+    ) == _TASK8_RELOCATED_PRIVATE_IMPORTS
     assert not {
         str(row["id"])
         for row in graph["cross_module_private_imports"]

@@ -6,9 +6,10 @@ from pathlib import Path
 
 from ..infrastructure.atomic_files import atomic_write_json_with_mode
 from ..types import ACCOUNT_SCHEMA_VERSION, AccountState
-from .validation_orders import _validate_lot_origin_chains, _validate_order_state
-from .validation_positions import _validate_position_state
-from .validation_strategy import _validate_strategy_risk_state
+from .validation_attribution import validate_lot_origin_chains as _validate_lot_origin_chains
+from .validation_orders import validate_order_state as _validate_order_state
+from .validation_positions import validate_position_state as _validate_position_state
+from .validation_strategy import validate_strategy_risk_state as _validate_strategy_risk_state
 
 
 def save_account(state: AccountState, path: str | Path) -> None:

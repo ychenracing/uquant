@@ -8,14 +8,19 @@ from pathlib import Path
 
 from uquant.provenance.fingerprints import source_surface_fingerprint
 
+from .legacy_surface import immutable_legacy_surface
 
-def _legacy_cli_bytes(*, cli_path: Path, provenance_path: Path) -> bytes:
+
+def _legacy_cli_source_bytes(*, cli_source: bytes, provenance_source: bytes) -> bytes:
     """Project the relocated fingerprint body into its frozen CLI identity."""
 
-    cli_source = cli_path.read_text(encoding="utf-8")
-    provenance_source = provenance_path.read_text(encoding="utf-8")
-    cli_tree = ast.parse(cli_source, filename=str(cli_path))
-    provenance_tree = ast.parse(provenance_source, filename=str(provenance_path))
+    cli_text = cli_source.decode("utf-8")
+    provenance_text = provenance_source.decode("utf-8")
+    cli_tree = ast.parse(cli_text, filename="uquant/risk_sentinel/cli.py")
+    provenance_tree = ast.parse(
+        provenance_text,
+        filename="uquant/risk_sentinel/provenance.py",
+    )
     cli_function = next(
         node
         for node in cli_tree.body
@@ -27,8 +32,8 @@ def _legacy_cli_bytes(*, cli_path: Path, provenance_path: Path) -> bytes:
         if isinstance(node, ast.FunctionDef)
         and node.name == "_legacy_sentinel_source_fingerprint"
     )
-    cli_lines = cli_source.splitlines(keepends=True)
-    provenance_lines = provenance_source.splitlines(keepends=True)
+    cli_lines = cli_text.splitlines(keepends=True)
+    provenance_lines = provenance_text.splitlines(keepends=True)
     legacy_function = provenance_lines[
         provenance_function.lineno - 1 : provenance_function.end_lineno
     ]
@@ -44,6 +49,14 @@ def _legacy_cli_bytes(*, cli_path: Path, provenance_path: Path) -> bytes:
         1,
     )
     return legacy.encode("utf-8")
+
+
+def _legacy_cli_bytes(*, cli_path: Path, provenance_path: Path) -> bytes:
+    """Project the relocated fingerprint body into its frozen CLI identity."""
+    return _legacy_cli_source_bytes(
+        cli_source=cli_path.read_bytes(),
+        provenance_source=provenance_path.read_bytes(),
+    )
 
 
 def _legacy_validation_bytes(validation_path: Path) -> bytes:
@@ -79,21 +92,29 @@ def legacy_sentinel_source_fingerprint(repository_root: str | Path) -> str:
 
     root = Path(repository_root)
     package = root / "uquant" / "risk_sentinel"
-    provenance_path = package / "provenance.py"
-    paths = tuple(sorted(path for path in package.glob("*.py") if path != provenance_path))
-    if not paths:
+    if not tuple(package.glob("*.py")):
         raise RuntimeError("Sentinel source package is missing")
+    members = dict(immutable_legacy_surface())
+    provenance_source = members["uquant/risk_sentinel/provenance.py"]
     digest = hashlib.sha256()
-    for path in paths:
-        relative = path.relative_to(root).as_posix().encode("utf-8")
-        digest.update(relative)
+    for relative, source in members.items():
+        if relative == "uquant/risk_sentinel/provenance.py":
+            continue
+        digest.update(relative.encode("utf-8"))
         digest.update(b"\0")
         digest.update(
-            _legacy_cli_bytes(cli_path=path, provenance_path=provenance_path)
-            if path.name == "cli.py"
-            else _legacy_validation_bytes(path)
-            if path.name == "validation.py"
-            else path.read_bytes()
+            _legacy_cli_source_bytes(
+                cli_source=source,
+                provenance_source=provenance_source,
+            )
+            if relative.endswith("/cli.py")
+            else source.replace(
+                b"from .provenance import legacy_sentinel_source_fingerprint as sentinel_source_fingerprint\n",
+                b"from .cli import sentinel_source_fingerprint\n",
+                1,
+            )
+            if relative.endswith("/validation.py")
+            else source
         )
         digest.update(b"\0")
     return digest.hexdigest()

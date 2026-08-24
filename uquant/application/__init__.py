@@ -25,18 +25,18 @@ from ..types import AccountState, Decision, PendingOrder, Target
 from ..types import LeaderScore as LeaderScore
 from .backtest import backtest as run_backtest
 from .backtest import equity as mark_equity
-from .decision import _attach_target_attribution as attach_target_attribution
-from .decision import _decision_config_for_universe as decision_config_for_universe
-from .decision import _mark_account_positions as mark_account_positions
 from .decision import decide as run_decision
+from .decision import decision_config_for_universe as decision_config_for_universe
 from .decision import deterministic_decision
-from .metrics import _drawdown_stats as drawdown_stats
+from .decision import mark_account_positions as mark_account_positions
+from .metrics import equity_drawdown_stats as drawdown_stats
 from .metrics import performance_metrics as calculate_performance_metrics
-from .risk_timeline_cache import _canonical_json as canonical_risk_json
-from .risk_timeline_cache import _causal_risk_timeline as causal_risk_timeline
-from .risk_timeline_cache import _load_risk_timeline_disk_cache as load_risk_timeline_disk_cache
-from .risk_timeline_cache import _risk_timeline_disk_path as risk_timeline_disk_path
-from .risk_timeline_cache import _write_risk_timeline_disk_cache as write_risk_timeline_disk_cache
+from .risk_timeline_cache import canonical_risk_timeline_json as canonical_risk_json
+from .risk_timeline_cache import causal_risk_timeline as causal_risk_timeline
+from .risk_timeline_cache import load_risk_timeline_disk_cache as load_risk_timeline_disk_cache
+from .risk_timeline_cache import risk_timeline_disk_path as risk_timeline_disk_path
+from .risk_timeline_cache import write_risk_timeline_disk_cache as write_risk_timeline_disk_cache
+from .target_attribution import attach_target_attribution as attach_target_attribution
 
 __all__ = (
     "calculate_performance_metrics",

@@ -7,9 +7,15 @@ from datetime import date, datetime
 from typing import cast
 
 from .models import (
-    _BROKER_ORDER_ID,
-    _PLAN_ID,
-    _SYMBOL,
+    BROKER_ORDER_ID_PATTERN as _BROKER_ORDER_ID,
+)
+from .models import (
+    PLAN_ID_PATTERN as _PLAN_ID,
+)
+from .models import (
+    SYMBOL_PATTERN as _SYMBOL,
+)
+from .models import (
     JournalRecord,
     JournalStatus,
 )
@@ -56,6 +62,95 @@ def validate_plan_id(value: str) -> None:
         raise ValueError("execution journal plan_id is malformed")
 
 
+def _validate_planned_record(record: JournalRecord) -> None:
+    if record.symbol is None or not _SYMBOL.fullmatch(record.symbol) or record.side not in {"BUY", "SELL"}:
+        raise ValueError("planned journal symbol or side is malformed")
+    if record.planned_price is None or record.planned_shares is None:
+        raise ValueError("planned journal event lacks price or shares")
+    _positive_number(record.planned_price, field="planned_price")
+    _positive_shares(record.planned_shares, field="planned_shares")
+    expected_null = (
+        record.next_open,
+        record.actual_time,
+        record.actual_price,
+        record.actual_shares,
+        record.manual_skip,
+        record.slippage_per_share,
+        record.slippage_bps,
+        record.slippage_value,
+        record.broker_order_id,
+    )
+    if any(value is not None for value in expected_null):
+        raise ValueError("planned journal event contains execution data")
+
+
+def _validate_filled_record(record: JournalRecord) -> None:
+    if (
+        record.next_open is None
+        or record.actual_time is None
+        or record.actual_price is None
+        or record.actual_shares is None
+    ):
+        raise ValueError("filled journal event lacks execution data")
+    _positive_number(record.next_open, field="next_open")
+    _timestamp(record.actual_time, field="actual_time")
+    _positive_number(record.actual_price, field="actual_price")
+    _positive_shares(record.actual_shares, field="actual_shares")
+    if any(
+        value is None for value in (record.slippage_per_share, record.slippage_bps, record.slippage_value)
+    ):
+        raise ValueError("filled journal event lacks derived slippage")
+    for field in ("slippage_per_share", "slippage_bps", "slippage_value"):
+        value = getattr(record, field)
+        if isinstance(value, bool) or not isinstance(value, (int, float)) or not math.isfinite(float(value)):
+            raise ValueError(f"journal {field} must be finite")
+    if record.schema_version == 1:
+        if any(
+            value is not None
+            for value in (
+                record.symbol,
+                record.side,
+                record.planned_price,
+                record.planned_shares,
+                record.manual_skip,
+            )
+        ):
+            raise ValueError("filled journal event duplicates planned or skip data")
+    elif (
+        record.symbol is None
+        or record.side is None
+        or record.planned_price is None
+        or record.planned_shares is None
+        or record.manual_skip is not None
+    ):
+        raise ValueError("filled journal event lacks its immutable plan identity")
+
+
+def _validate_skipped_record(record: JournalRecord) -> None:
+    if not isinstance(record.manual_skip, str) or not record.manual_skip.strip():
+        raise ValueError("skipped journal event requires a manual skip reason")
+    if record.next_open is None:
+        raise ValueError("skipped journal event requires the observed next open")
+    _positive_number(record.next_open, field="next_open")
+    unrelated = [
+        record.actual_time,
+        record.actual_price,
+        record.actual_shares,
+        record.slippage_per_share,
+        record.slippage_bps,
+        record.slippage_value,
+        record.broker_order_id,
+    ]
+    if record.schema_version == 1:
+        unrelated.extend((record.symbol, record.side, record.planned_price, record.planned_shares))
+    elif any(
+        value is None for value in (record.symbol, record.side, record.planned_price, record.planned_shares)
+    ):
+        raise ValueError("skipped journal event lacks its immutable plan identity")
+    if any(value is not None for value in unrelated):
+        raise ValueError("skipped journal event contains unrelated data")
+
+
 def _validate_record(
     record: JournalRecord,
     *,
@@ -77,97 +172,98 @@ def _validate_record(
     if record.broker_order_id is not None and not _BROKER_ORDER_ID.fullmatch(record.broker_order_id):
         raise ValueError("journal broker_order_id is malformed")
     if record.status is JournalStatus.PLANNED:
-        if (
-            record.symbol is None
-            or not _SYMBOL.fullmatch(record.symbol)
-            or record.side not in {"BUY", "SELL"}
-        ):
-            raise ValueError("planned journal symbol or side is malformed")
-        if record.planned_price is None or record.planned_shares is None:
-            raise ValueError("planned journal event lacks price or shares")
-        _positive_number(record.planned_price, field="planned_price")
-        _positive_shares(record.planned_shares, field="planned_shares")
-        expected_null = (
-            record.next_open,
-            record.actual_time,
-            record.actual_price,
-            record.actual_shares,
-            record.manual_skip,
-            record.slippage_per_share,
-            record.slippage_bps,
-            record.slippage_value,
-            record.broker_order_id,
-        )
-        if any(value is not None for value in expected_null):
-            raise ValueError("planned journal event contains execution data")
+        _validate_planned_record(record)
     elif record.status is JournalStatus.FILLED:
-        if (
-            record.next_open is None
-            or record.actual_time is None
-            or record.actual_price is None
-            or record.actual_shares is None
-        ):
-            raise ValueError("filled journal event lacks execution data")
-        _positive_number(record.next_open, field="next_open")
-        _timestamp(record.actual_time, field="actual_time")
-        _positive_number(record.actual_price, field="actual_price")
-        _positive_shares(record.actual_shares, field="actual_shares")
-        if any(
-            value is None for value in (record.slippage_per_share, record.slippage_bps, record.slippage_value)
-        ):
-            raise ValueError("filled journal event lacks derived slippage")
-        for field in ("slippage_per_share", "slippage_bps", "slippage_value"):
-            value = getattr(record, field)
-            if (
-                isinstance(value, bool)
-                or not isinstance(value, (int, float))
-                or not math.isfinite(float(value))
-            ):
-                raise ValueError(f"journal {field} must be finite")
-        if record.schema_version == 1:
-            if any(
-                value is not None
-                for value in (
-                    record.symbol,
-                    record.side,
-                    record.planned_price,
-                    record.planned_shares,
-                    record.manual_skip,
-                )
-            ):
-                raise ValueError("filled journal event duplicates planned or skip data")
-        elif (
-            record.symbol is None
-            or record.side is None
-            or record.planned_price is None
-            or record.planned_shares is None
-            or record.manual_skip is not None
-        ):
-            raise ValueError("filled journal event lacks its immutable plan identity")
+        _validate_filled_record(record)
     else:
-        if not isinstance(record.manual_skip, str) or not record.manual_skip.strip():
-            raise ValueError("skipped journal event requires a manual skip reason")
-        if record.next_open is None:
-            raise ValueError("skipped journal event requires the observed next open")
-        _positive_number(record.next_open, field="next_open")
-        unrelated = [
-            record.actual_time,
-            record.actual_price,
-            record.actual_shares,
-            record.slippage_per_share,
-            record.slippage_bps,
-            record.slippage_value,
-            record.broker_order_id,
-        ]
-        if record.schema_version == 1:
-            unrelated.extend((record.symbol, record.side, record.planned_price, record.planned_shares))
-        elif any(
-            value is None
-            for value in (record.symbol, record.side, record.planned_price, record.planned_shares)
-        ):
-            raise ValueError("skipped journal event lacks its immutable plan identity")
-        if any(value is not None for value in unrelated):
-            raise ValueError("skipped journal event contains unrelated data")
+        _validate_skipped_record(record)
+
+
+def _validate_filled_lifecycle(
+    record: JournalRecord,
+    *,
+    plan: JournalRecord,
+    planned_at: datetime,
+    recorded: datetime,
+    next_open: float,
+    filled_shares: dict[str, int],
+    terminal: set[str],
+) -> None:
+    actual_time_raw = cast(str, record.actual_time)
+    actual_time = _timestamp(actual_time_raw, field="actual_time")
+    if actual_time < planned_at or actual_time > recorded:
+        raise ValueError("execution journal fill chronology is invalid")
+    actual_shares = cast(int, record.actual_shares)
+    planned_shares = cast(int, plan.planned_shares)
+    total = filled_shares[record.plan_id] + actual_shares
+    if total > planned_shares:
+        raise ValueError("execution journal fills exceed planned shares")
+    filled_shares[record.plan_id] = total
+    if total == planned_shares:
+        terminal.add(record.plan_id)
+    side = cast(str, plan.side)
+    actual_price = cast(float, record.actual_price)
+    direction = 1.0 if side == "BUY" else -1.0
+    per_share = direction * (actual_price - next_open)
+    expected = (
+        per_share,
+        per_share / next_open * 10_000.0,
+        per_share * actual_shares,
+    )
+    observed = (
+        record.slippage_per_share,
+        record.slippage_bps,
+        record.slippage_value,
+    )
+    if any(
+        value is None or not math.isclose(float(value), wanted, rel_tol=1e-12, abs_tol=1e-12)
+        for value, wanted in zip(observed, expected, strict=True)
+    ):
+        raise ValueError("execution journal derived slippage is invalid")
+
+
+def _validate_terminal_lifecycle(
+    record: JournalRecord,
+    *,
+    recorded: datetime,
+    plans: dict[str, JournalRecord],
+    filled_shares: dict[str, int],
+    plan_opens: dict[str, float],
+    terminal: set[str],
+) -> None:
+    plan = plans.get(record.plan_id)
+    if plan is None:
+        raise ValueError("execution journal event references an unknown plan")
+    if record.plan_id in terminal:
+        raise ValueError("execution journal plan is already terminal")
+    planned_at = _timestamp(plan.recorded_at, field="recorded_at")
+    if recorded < planned_at:
+        raise ValueError("execution journal event chronology predates its plan")
+    if record.schema_version == 2 and (
+        record.decision_date != plan.decision_date
+        or record.symbol != plan.symbol
+        or record.side != plan.side
+        or record.planned_weight != plan.planned_weight
+        or record.planned_price != plan.planned_price
+        or record.planned_shares != plan.planned_shares
+    ):
+        raise ValueError("execution journal event plan identity differs from its plan")
+    next_open = cast(float, record.next_open)
+    prior_open = plan_opens.setdefault(record.plan_id, next_open)
+    if next_open != prior_open:
+        raise ValueError("execution journal next open differs within one plan")
+    if record.status is JournalStatus.FILLED:
+        _validate_filled_lifecycle(
+            record,
+            plan=plan,
+            planned_at=planned_at,
+            recorded=recorded,
+            next_open=next_open,
+            filled_shares=filled_shares,
+            terminal=terminal,
+        )
+    else:
+        terminal.add(record.plan_id)
 
 
 def _validate_lifecycle(records: list[JournalRecord] | tuple[JournalRecord, ...]) -> None:
@@ -187,61 +283,18 @@ def _validate_lifecycle(records: list[JournalRecord] | tuple[JournalRecord, ...]
             plans[record.plan_id] = record
             filled_shares[record.plan_id] = 0
         else:
-            plan = plans.get(record.plan_id)
-            if plan is None:
-                raise ValueError("execution journal event references an unknown plan")
-            if record.plan_id in terminal:
-                raise ValueError("execution journal plan is already terminal")
-            planned_at = _timestamp(plan.recorded_at, field="recorded_at")
-            if recorded < planned_at:
-                raise ValueError("execution journal event chronology predates its plan")
-            if record.schema_version == 2 and (
-                record.decision_date != plan.decision_date
-                or record.symbol != plan.symbol
-                or record.side != plan.side
-                or record.planned_weight != plan.planned_weight
-                or record.planned_price != plan.planned_price
-                or record.planned_shares != plan.planned_shares
-            ):
-                raise ValueError("execution journal event plan identity differs from its plan")
-            next_open = cast(float, record.next_open)
-            prior_open = plan_opens.setdefault(record.plan_id, next_open)
-            if next_open != prior_open:
-                raise ValueError("execution journal next open differs within one plan")
-            if record.status is JournalStatus.FILLED:
-                actual_time_raw = cast(str, record.actual_time)
-                actual_time = _timestamp(actual_time_raw, field="actual_time")
-                if actual_time < planned_at or actual_time > recorded:
-                    raise ValueError("execution journal fill chronology is invalid")
-                actual_shares = cast(int, record.actual_shares)
-                planned_shares = cast(int, plan.planned_shares)
-                total = filled_shares[record.plan_id] + actual_shares
-                if total > planned_shares:
-                    raise ValueError("execution journal fills exceed planned shares")
-                filled_shares[record.plan_id] = total
-                if total == planned_shares:
-                    terminal.add(record.plan_id)
-                side = cast(str, plan.side)
-                actual_price = cast(float, record.actual_price)
-                direction = 1.0 if side == "BUY" else -1.0
-                per_share = direction * (actual_price - next_open)
-                expected = (
-                    per_share,
-                    per_share / next_open * 10_000.0,
-                    per_share * actual_shares,
-                )
-                observed = (
-                    record.slippage_per_share,
-                    record.slippage_bps,
-                    record.slippage_value,
-                )
-                if any(
-                    value is None or not math.isclose(float(value), wanted, rel_tol=1e-12, abs_tol=1e-12)
-                    for value, wanted in zip(observed, expected, strict=True)
-                ):
-                    raise ValueError("execution journal derived slippage is invalid")
-            else:
-                terminal.add(record.plan_id)
+            _validate_terminal_lifecycle(
+                record,
+                recorded=recorded,
+                plans=plans,
+                filled_shares=filled_shares,
+                plan_opens=plan_opens,
+                terminal=terminal,
+            )
 
 
 validate_lifecycle = _validate_lifecycle
+journal_timestamp = _timestamp
+positive_journal_number = _positive_number
+positive_journal_shares = _positive_shares
+validate_journal_record = _validate_record

@@ -8,6 +8,8 @@ from types import SimpleNamespace
 
 import pytest
 
+from research import window_competitor_adapter as implementation
+
 SCRIPT = Path(__file__).resolve().parents[1] / "scripts" / "run_window_competitor_adapter.py"
 SPEC = importlib.util.spec_from_file_location("window_competitor_adapter_under_test", SCRIPT)
 assert SPEC is not None and SPEC.loader is not None
@@ -31,6 +33,47 @@ def test_five_window_contract_preserves_the_inclusive_july_boundary() -> None:
         "h2_2024": ("2024-07-01", "2024-12-31"),
         "bull_crash_2025_2026": ("2025-01-02", "2026-07-31"),
     }
+
+
+def test_public_replay_capability_binds_and_restores_one_request(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    original_pools = implementation.POOLS
+    original_windows = implementation.WINDOWS
+    observed: dict[str, object] = {}
+    task = implementation.Task(
+        "trade",
+        "probe",
+        "period",
+        "qwen",
+        "aquant",
+        "trade",
+        "data",
+        "trade-data",
+    )
+
+    def capture(current: implementation.Task) -> dict[str, object]:
+        observed["task"] = current
+        observed["pools"] = implementation.POOLS
+        observed["windows"] = implementation.WINDOWS
+        return {"status": "captured"}
+
+    monkeypatch.setattr(implementation, "_run", capture)
+    result = implementation.run_replay_task(
+        task,
+        pools={"probe": ("sz300308",)},
+        windows={"period": ("2025-01-02", "2026-07-31")},
+        repository_root=Path(__file__).resolve().parents[1],
+    )
+
+    assert result == {"status": "captured"}
+    assert observed == {
+        "task": task,
+        "pools": {"probe": ("sz300308",)},
+        "windows": {"period": ("2025-01-02", "2026-07-31")},
+    }
+    assert implementation.POOLS is original_pools
+    assert implementation.WINDOWS is original_windows
 
 
 def test_source_locks_match_the_reviewed_frozen_repositories() -> None:

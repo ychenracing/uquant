@@ -1,0 +1,192 @@
+"""Fail-closed historical debt projection for Task-10 risk owner splits."""
+
+from __future__ import annotations
+
+from collections.abc import Mapping, Sequence, Set
+from pathlib import Path
+
+from ._analysis_debt import MODULE_AUTHORITIES, architecture_snapshot, git_python_sources
+from ._task10_owner_transport import (
+    _definitions,
+    _source,
+    expand_task10_risk_assessment,
+    expand_task10_risk_stage,
+    task10_task7_reviewed_sources,
+)
+
+_TASK7_REVIEW_COMMIT = "c0cde6c60bbf234d08e836f84981aa1b3231279b"
+
+_TASK7_TASK10_AUTHORITY_STALE = frozenset(
+    {
+        "uquant.account.validation_attribution",
+        "uquant.application.target_attribution",
+        "uquant.attribution.validation_artifact",
+        "uquant.attribution.validation_lots",
+        "uquant.broker_contract",
+        "uquant.risk_sentinel.history_cache",
+        "uquant.risk_sentinel.legacy_surface",
+        "uquant.validation.competitor_reference",
+        "uquant.validation.generalization_matrix_evidence",
+        "uquant.validation.generalization_matrix_validation",
+        "uquant.validation.generalization_policy.cell_policy",
+        "uquant.validation.generalization_policy.evaluation_stages",
+        "uquant.validation.generalization_policy.tail_evaluation",
+        "uquant.validation.holdout.capabilities",
+        "uquant.validation.holdout.cli_operations",
+        "uquant.validation.production_observation",
+        "uquant.validation.production_observation_contract",
+        "uquant.validation.promotion_contract",
+    }
+)
+
+
+def task10_task7_historical_authorities(
+    authorities: Mapping[str, str],
+    source_paths: Set[str],
+) -> dict[str, str]:
+    """Remove only exact Task-10 modules absent from the Task-7 source archive."""
+    source_modules = {
+        path.removesuffix("/__init__.py").removesuffix(".py").replace("/", ".") for path in source_paths
+    }
+    stale = set(authorities) - source_modules
+    assert stale == _TASK7_TASK10_AUTHORITY_STALE
+    return {
+        module: authority
+        for module, authority in authorities.items()
+        if module not in _TASK7_TASK10_AUTHORITY_STALE
+    }
+
+
+_TASK7_FUNCTION_OWNERS: Mapping[str, tuple[str, str]] = {
+    "uquant.risk.anchors:_assess_dynamic_anchors": (
+        "uquant/risk/anchors.py",
+        "_assess_dynamic_anchors",
+    ),
+    "uquant.risk.assessment:_assess_base_risk": (
+        "uquant/risk/assessment.py",
+        "_assess_base_risk",
+    ),
+    "uquant.risk.assessment:_assess_market_and_book_evidence": (
+        "uquant/risk/assessment.py",
+        "_assess_market_and_book_evidence",
+    ),
+    "uquant.risk.capital:_observe_capital_budget": (
+        "uquant/risk/capital.py",
+        "_observe_capital_budget",
+    ),
+    "uquant.risk.recovery_state:_assess_protected_recovery": (
+        "uquant/risk/recovery_state.py",
+        "_assess_protected_recovery",
+    ),
+    "uquant.risk.recovery_state:_assess_recovery_state": (
+        "uquant/risk/recovery_state.py",
+        "_assess_recovery_state",
+    ),
+    "uquant.risk.transitions:_assess_acute_and_cooldown": (
+        "uquant/risk/transitions.py",
+        "_assess_acute_and_cooldown",
+    ),
+    "uquant.risk.transitions:_assess_break_conditions": (
+        "uquant/risk/transitions.py",
+        "_assess_break_conditions",
+    ),
+    "uquant.risk.transitions:_assess_confirmed_concentrated_break": (
+        "uquant/risk/transitions.py",
+        "_assess_confirmed_concentrated_break",
+    ),
+    "uquant.risk.transitions:_resolve_risk_transition": (
+        "uquant/risk/transitions.py",
+        "_resolve_risk_transition",
+    ),
+}
+
+
+def task10_task7_function_debt_projection(
+    *,
+    root: Path,
+    observed: Set[str],
+    expected: Set[str],
+    function_rows: Sequence[Mapping[str, object]],
+    overrides: Mapping[str, str] | None = None,
+) -> set[str]:
+    """Restore historical Task-7 IDs from the immutable reviewed projection."""
+    missing = set(expected) - set(observed)
+    assert not (set(observed) - set(expected))
+    assert missing == set(_TASK7_FUNCTION_OWNERS)
+    current_rows = {str(row["id"]): row for row in function_rows}
+    for identifier in set(_TASK7_FUNCTION_OWNERS) & set(current_rows):
+        current_lines = current_rows[identifier]["lines"]
+        current_branches = current_rows[identifier]["branch_points"]
+        assert isinstance(current_lines, int) and current_lines <= 120
+        assert isinstance(current_branches, int) and current_branches <= 20
+    reviewed_sources = task10_task7_reviewed_sources(root=root, overrides=overrides)
+    archived_sources = git_python_sources(root, _TASK7_REVIEW_COMMIT)
+    archived_modules = {
+        path.removesuffix("/__init__.py").removesuffix(".py").replace("/", ".")
+        for path in archived_sources
+    }
+    stale_authorities = set(MODULE_AUTHORITIES) - archived_modules
+    assert stale_authorities == {
+        "uquant.validation.holdout.capabilities",
+        "uquant.validation.production_observation_contract",
+    }
+    reviewed = architecture_snapshot(
+        root=root,
+        source_texts=archived_sources,
+        module_authorities={
+            module: authority
+            for module, authority in MODULE_AUTHORITIES.items()
+            if module in archived_modules
+        },
+    )
+    reviewed_functions = reviewed["functions"]
+    assert isinstance(reviewed_functions, list)
+    rows = {str(row["id"]): row for row in reviewed_functions}
+    for identifier, (relative, function_name) in _TASK7_FUNCTION_OWNERS.items():
+        row = rows[identifier]
+        assert int(row["lines"]) <= 120
+        assert int(row["branch_points"]) <= 20
+        function = _definitions(_source(root, relative, reviewed_sources))[function_name]
+        if function_name == "_assess_base_risk":
+            expanded = expand_task10_risk_assessment(
+                root=root,
+                candidate=function,
+                overrides=reviewed_sources,
+            )
+            assert len(expanded.body) == 85
+        else:
+            expand_task10_risk_stage(
+                root=root,
+                relative=relative,
+                stage_name=function_name,
+                wrapper=function,
+                overrides=reviewed_sources,
+            )
+    return set(observed) | missing
+
+
+def task10_task7_historical_base_lines(
+    *,
+    root: Path,
+    current_row: Mapping[str, object],
+) -> int:
+    """Return the immutable pre-Task-10 base span after the live budget check."""
+    assert current_row["id"] == "uquant.risk.assessment:_assess_base_risk"
+    current_lines = current_row["lines"]
+    current_branches = current_row["branch_points"]
+    assert isinstance(current_lines, int) and current_lines <= 120
+    assert isinstance(current_branches, int) and current_branches <= 20
+    reviewed_sources = task10_task7_reviewed_sources(root=root)
+    reviewed = _definitions(
+        _source(root, "uquant/risk/assessment.py", reviewed_sources)
+    )["_assess_base_risk"]
+    expanded = expand_task10_risk_assessment(
+        root=root,
+        candidate=reviewed,
+        overrides=reviewed_sources,
+    )
+    assert len(expanded.body) == 85
+    assert expanded.end_lineno is not None
+    span = expanded.end_lineno - expanded.lineno + 1
+    assert isinstance(span, int)
+    return span

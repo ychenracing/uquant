@@ -14,9 +14,10 @@ import json
 import math
 import shutil
 import subprocess  # nosec B404
-import sys
-from collections.abc import Iterable, Iterator, Mapping
+from collections.abc import Callable, Iterable, Iterator, Mapping, Set
 from contextlib import contextmanager
+from contextvars import ContextVar
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, cast
 
@@ -25,20 +26,33 @@ import pandas as pd
 from ..ai_era import require_ai_era_interval
 from ..manifest import verify_data_manifest
 from .models import (
-    _COMMIT,
-    _COMPETITOR_BEST_FIELDS,
-    _COMPETITOR_PROVENANCE_FIELDS,
-    _EXECUTION_CONTRACT,
-    _FIXED_PRODUCTION_PATHS,
-    _PROVENANCE_SECTIONS,
-    _SHA256,
+    COMMIT_PATTERN as _COMMIT,
 )
-from .scenarios import _canonical_symbols, _validate_industry_coverage
+from .models import (
+    COMPETITOR_BEST_FIELDS as _COMPETITOR_BEST_FIELDS,
+)
+from .models import (
+    COMPETITOR_PROVENANCE_FIELDS as _COMPETITOR_PROVENANCE_FIELDS,
+)
+from .models import (
+    EXECUTION_CONTRACT as _EXECUTION_CONTRACT,
+)
+from .models import (
+    FIXED_PRODUCTION_PATHS as _FIXED_PRODUCTION_PATHS,
+)
+from .models import (
+    PROVENANCE_SECTIONS as _PROVENANCE_SECTIONS,
+)
+from .models import (
+    SHA256_PATTERN as _SHA256,
+)
+from .scenarios import (
+    canonical_symbols as _canonical_symbols,
+)
+from .scenarios import (
+    validate_industry_coverage as _validate_industry_coverage,
+)
 
-
-def compatibility_value[Value](name: str, fallback: Value) -> Value:
-    facade = sys.modules.get("uquant.validation.generalization")
-    return cast(Value, getattr(facade, name, fallback)) if facade is not None else fallback
 
 def _fingerprint(value: Any) -> str:
     return hashlib.sha256(json.dumps(value, sort_keys=True, separators=(",", ":")).encode()).hexdigest()
@@ -60,7 +74,7 @@ def _validation_fingerprint(
     )
 
 
-def _exact_fields(value: Any, expected: set[str], *, label: str) -> Mapping[str, Any]:
+def _exact_fields(value: Any, expected: Set[str], *, label: str) -> Mapping[str, Any]:
     if not isinstance(value, Mapping):
         raise RuntimeError(f"generalization {label} must be an object")
     observed = set(value)
@@ -79,39 +93,15 @@ def _nonempty_text(value: Any, *, label: str) -> str:
     return value
 
 
-def _validated_provenance(value: Any) -> dict[str, Any]:
-    """Validate and normalize every input needed to reproduce the replay."""
-    root = _exact_fields(value, _PROVENANCE_SECTIONS, label="provenance")
-    data = _exact_fields(
-        root["data"],
-        {"snapshot_id", "files_verified", "manifest_sha256", "checksums_sha256"},
-        label="provenance.data",
-    )
-    snapshot_id = _nonempty_text(data["snapshot_id"], label="provenance.data.snapshot_id")
-    files_verified = data["files_verified"]
-    if isinstance(files_verified, bool) or not isinstance(files_verified, int) or files_verified < 1:
-        raise RuntimeError("generalization provenance.data.files_verified must be a positive integer")
-    data_hashes: dict[str, str] = {}
-    for name in ("manifest_sha256", "checksums_sha256"):
-        digest = _nonempty_text(data[name], label=f"provenance.data.{name}")
-        if not _SHA256.fullmatch(digest):
-            raise RuntimeError(f"generalization provenance.data.{name} must be SHA-256")
-        data_hashes[name] = digest
-
-    dataset = _exact_fields(
-        root["dataset"],
-        {"universe", "industries", "prior_symbols", "start", "end"},
-        label="provenance.dataset",
-    )
-    universe_value = dataset["universe"]
-    prior_value = dataset["prior_symbols"]
-    if not isinstance(universe_value, list) or not isinstance(prior_value, list):
-        raise RuntimeError("generalization provenance dataset memberships must be lists")
-    try:
-        universe = _canonical_symbols(universe_value, label="provenance dataset universe")
-        priors = _canonical_symbols(prior_value, label="provenance dataset prior symbols")
-    except ValueError as exc:
-        raise RuntimeError(str(exc)) from exc
+def _validate_dataset_environment_and_production(
+    *,
+    dataset: Mapping[str, Any],
+    prior_value: list[Any],
+    priors: tuple[str, ...],
+    root: Mapping[str, Any],
+    universe: tuple[str, ...],
+    universe_value: list[Any],
+) -> tuple[str, str, int | float, dict[str, str], str, str, str]:
     if list(universe) != universe_value or list(priors) != prior_value:
         raise RuntimeError("generalization provenance dataset memberships must be canonical")
     if not set(priors) <= set(universe):
@@ -119,7 +109,10 @@ def _validated_provenance(value: Any) -> dict[str, Any]:
     industries = dataset["industries"]
     if not isinstance(industries, Mapping):
         raise RuntimeError("generalization provenance.dataset.industries must be an object")
-    normalized_industries = dict(sorted(industries.items(), key=lambda item: str(item[0])))
+    normalized_industries = cast(
+        dict[str, str],
+        dict(sorted(industries.items(), key=lambda item: str(item[0]))),
+    )
     try:
         _validate_industry_coverage(universe, normalized_industries)
     except ValueError as exc:
@@ -164,6 +157,52 @@ def _validated_provenance(value: Any) -> dict[str, Any]:
         raise RuntimeError("generalization production commit must be immutable")
     if not _SHA256.fullmatch(source_sha256):
         raise RuntimeError("generalization production source_sha256 must be SHA-256")
+    return commit, end, initial_cash, normalized_industries, repository, source_sha256, start
+
+
+def _validated_provenance(value: Any) -> dict[str, Any]:
+    """Validate and normalize every input needed to reproduce the replay."""
+    root = _exact_fields(value, _PROVENANCE_SECTIONS, label="provenance")
+    data = _exact_fields(
+        root["data"],
+        {"snapshot_id", "files_verified", "manifest_sha256", "checksums_sha256"},
+        label="provenance.data",
+    )
+    snapshot_id = _nonempty_text(data["snapshot_id"], label="provenance.data.snapshot_id")
+    files_verified = data["files_verified"]
+    if isinstance(files_verified, bool) or not isinstance(files_verified, int) or files_verified < 1:
+        raise RuntimeError("generalization provenance.data.files_verified must be a positive integer")
+    data_hashes: dict[str, str] = {}
+    for name in ("manifest_sha256", "checksums_sha256"):
+        digest = _nonempty_text(data[name], label=f"provenance.data.{name}")
+        if not _SHA256.fullmatch(digest):
+            raise RuntimeError(f"generalization provenance.data.{name} must be SHA-256")
+        data_hashes[name] = digest
+
+    dataset = _exact_fields(
+        root["dataset"],
+        {"universe", "industries", "prior_symbols", "start", "end"},
+        label="provenance.dataset",
+    )
+    universe_value = dataset["universe"]
+    prior_value = dataset["prior_symbols"]
+    if not isinstance(universe_value, list) or not isinstance(prior_value, list):
+        raise RuntimeError("generalization provenance dataset memberships must be lists")
+    try:
+        universe = _canonical_symbols(universe_value, label="provenance dataset universe")
+        priors = _canonical_symbols(prior_value, label="provenance dataset prior symbols")
+    except ValueError as exc:
+        raise RuntimeError(str(exc)) from exc
+    commit, end, initial_cash, normalized_industries, repository, source_sha256, start = (
+        _validate_dataset_environment_and_production(
+            dataset=dataset,
+            prior_value=prior_value,
+            priors=priors,
+            root=root,
+            universe=universe,
+            universe_value=universe_value,
+        )
+    )
 
     return {
         "data": {
@@ -241,7 +280,7 @@ def _production_source_fingerprint(root: Path) -> str:
     return digest.hexdigest()
 
 
-def _git_executable() -> str:
+def _generalization_git_executable() -> str:
     executable = shutil.which("git")
     if executable is None:
         raise RuntimeError("cannot resolve git executable for generalization provenance")
@@ -262,8 +301,42 @@ def _git_stdout(root: Path, arguments: list[str], *, label: str) -> str:
     return completed.stdout
 
 
+@dataclass(frozen=True, slots=True)
+class GeneralizationRuntimeCapabilities:
+    git_stdout: Callable[..., str]
+    production_source_fingerprint: Callable[[Path], str]
+    verify_data_manifest: Callable[[str | Path], dict[str, Any]]
+
+
+_DEFAULT_RUNTIME_CAPABILITIES = GeneralizationRuntimeCapabilities(
+    git_stdout=_git_stdout,
+    production_source_fingerprint=_production_source_fingerprint,
+    verify_data_manifest=verify_data_manifest,
+)
+_RUNTIME_CAPABILITIES: ContextVar[GeneralizationRuntimeCapabilities] = ContextVar(
+    "uquant_generalization_runtime_capabilities",
+    default=_DEFAULT_RUNTIME_CAPABILITIES,
+)
+
+
+def generalization_runtime_capabilities() -> GeneralizationRuntimeCapabilities:
+    return _RUNTIME_CAPABILITIES.get()
+
+
+@contextmanager
+def generalization_runtime_scope(
+    capabilities: GeneralizationRuntimeCapabilities,
+) -> Iterator[None]:
+    token = _RUNTIME_CAPABILITIES.set(capabilities)
+    try:
+        yield
+    finally:
+        _RUNTIME_CAPABILITIES.reset(token)
+
+
 def _production_commit(root: Path) -> str:
-    status = compatibility_value("_git_stdout", _git_stdout)(
+    git_stdout = generalization_runtime_capabilities().git_stdout
+    status = git_stdout(
         root,
         [
             "status",
@@ -277,7 +350,7 @@ def _production_commit(root: Path) -> str:
     )
     if status.strip():
         raise RuntimeError("generalization production provenance requires committed source")
-    commit = compatibility_value("_git_stdout", _git_stdout)(
+    commit = git_stdout(
         root,
         ["log", "-1", "--format=%H", "--", "uquant", *_FIXED_PRODUCTION_PATHS],
         label="cannot resolve immutable production commit",
@@ -302,13 +375,10 @@ def _immutable_validation_inputs(
         yield
     finally:
         try:
+            capabilities = generalization_runtime_capabilities()
             current_baseline = hashlib.sha256(baseline_path.read_bytes()).hexdigest()
-            data_after = compatibility_value(
-                "verify_data_manifest", verify_data_manifest
-            )(data_dir)
-            source_after = compatibility_value(
-                "_production_source_fingerprint", _production_source_fingerprint
-            )(repository_root)
+            data_after = capabilities.verify_data_manifest(data_dir)
+            source_after = capabilities.production_source_fingerprint(repository_root)
         except Exception as exc:
             raise RuntimeError("generalization source or data changed during validation") from exc
         if current_baseline != baseline_sha256:
@@ -354,3 +424,18 @@ def build_generalization_provenance(
             },
         }
     )
+
+
+_git_executable = _generalization_git_executable
+
+exact_fields = _exact_fields
+fingerprint = _fingerprint
+git_executable = _git_executable
+git_stdout = _git_stdout
+immutable_validation_inputs = _immutable_validation_inputs
+nonempty_text = _nonempty_text
+production_commit = _production_commit
+production_source_fingerprint = _production_source_fingerprint
+validated_competitor_best = _validated_competitor_best
+validated_provenance = _validated_provenance
+validation_fingerprint = _validation_fingerprint

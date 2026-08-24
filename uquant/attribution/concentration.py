@@ -130,3 +130,9 @@ def _holding_summary(lots: Sequence[Mapping[str, Any]]) -> dict[str, float | int
         "weighted_average": sum(int(lot["shares"]) * int(lot["holding_sessions"]) for lot in lots)
         / total_shares,
     }
+
+
+# Stable domain stages used by attribution validation owners.
+finite_attribution_number = _finite
+group_lot_pnl = _group_lot_pnl
+holding_summary = _holding_summary

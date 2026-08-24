@@ -52,30 +52,34 @@ _UNLINKED_LEGACY_IDENTITY_FIELDS = (
 )
 
 
-_SHOCK_STATES = {
-    "NONE",
-    "SHOCK",
-    "RECOVERY",
-    "FAILED_REPAIR",
-    "PERSISTENT_STRESS",
-    "SECTOR_GUARD",
-    "CAPITAL_GUARD_COOLDOWN",
-    "UNBACKED_COOLDOWN",
-    "FAST_V_RECOVERY",
-    "ROTATION_RECOVERY",
-}
+_SHOCK_STATES = frozenset(
+    {
+        "NONE",
+        "SHOCK",
+        "RECOVERY",
+        "FAILED_REPAIR",
+        "PERSISTENT_STRESS",
+        "SECTOR_GUARD",
+        "CAPITAL_GUARD_COOLDOWN",
+        "UNBACKED_COOLDOWN",
+        "FAST_V_RECOVERY",
+        "ROTATION_RECOVERY",
+    }
+)
 
 
-_SHOCK_SEVERITIES = {
-    "NORMAL",
-    "MARKET",
-    "CONCENTRATED",
-    "SEVERE",
-    "ANCHOR_BREAK",  # Accepted when normalizing compatible durable accounts.
-    "COHORT_BREAK",
-    "INCOMPLETE_UNIVERSE",
-    "INCOMPLETE_UNIVERSE_UNBACKED",
-}
+_SHOCK_SEVERITIES = frozenset(
+    {
+        "NORMAL",
+        "MARKET",
+        "CONCENTRATED",
+        "SEVERE",
+        "ANCHOR_BREAK",  # Accepted when normalizing compatible durable accounts.
+        "COHORT_BREAK",
+        "INCOMPLETE_UNIVERSE",
+        "INCOMPLETE_UNIVERSE_UNBACKED",
+    }
+)
 
 
 def _unlinked_fill_matches_order(
@@ -201,3 +205,27 @@ def _optional_finite_event_number(
             field=f"{field} {name}",
             minimum=minimum,
         )
+
+
+# Stable owned validation vocabulary used by domain-specific account validators.
+EVENT_ID_PATTERN = _EVENT_ID
+finite_number = _finite_number
+HISTORICAL_ATTRIBUTION_SCHEMA_VERSION = _HISTORICAL_ATTRIBUTION_SCHEMA_VERSION
+LEGACY_INDUSTRY = _LEGACY_INDUSTRY
+LEGACY_MANIFEST_SHA256 = _LEGACY_MANIFEST_SHA256
+nonnegative_integer = _nonnegative_integer
+optional_finite_event_number = _optional_finite_event_number
+optional_iso_date = _optional_iso_date
+ORDER_ID_PATTERN = _ORDER_ID
+reject_nonstandard_account_json_constant = _reject_nonstandard_json_constant
+required_iso_date = _required_iso_date
+required_text = _required_text
+SHOCK_SEVERITIES = _SHOCK_SEVERITIES
+SHOCK_STATES = _SHOCK_STATES
+unlinked_fill_matches_order = _unlinked_fill_matches_order
+UNLINKED_LEGACY_IDENTITY_FIELDS = _UNLINKED_LEGACY_IDENTITY_FIELDS
+UNLINKED_NATIVE_IDENTITY_FIELDS = _UNLINKED_NATIVE_IDENTITY_FIELDS
+validate_account_event_array = _validate_event_array
+validate_account_symbol_list = _validate_symbol_list
+validate_account_weight_map = _validate_weight_map
+validate_nonnegative_account_integer_map = _validate_nonnegative_integer_map

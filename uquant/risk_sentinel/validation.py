@@ -18,7 +18,7 @@ _FORBIDDEN_IMPORTS: Final = (
     "uquant.risk",
     "uquant.risk_sentinel.calibration",
 )
-_OFFLINE_MODULES: Final = {"calibration.py", "validation.py"}
+_OFFLINE_MODULES: Final = frozenset({"calibration.py", "validation.py"})
 
 
 def validate_contracts(repository_root: str | Path | None = None) -> dict[str, object]:
@@ -49,10 +49,7 @@ def validate_contracts(repository_root: str | Path | None = None) -> dict[str, o
             violations.extend(
                 f"{path.relative_to(root)}:{name}"
                 for name in names
-                if any(
-                    name == item or name.startswith(f"{item}.")
-                    for item in _FORBIDDEN_IMPORTS
-                )
+                if any(name == item or name.startswith(f"{item}.") for item in _FORBIDDEN_IMPORTS)
             )
     if violations:
         raise RuntimeError(f"Sentinel import isolation failed: {sorted(violations)}")

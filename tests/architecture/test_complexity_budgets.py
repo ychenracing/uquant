@@ -116,19 +116,13 @@ def test_live_debt_cannot_exceed_its_initial_per_identity_severity(
     debt = baseline_inventory["architecture_debt"]
     assert isinstance(debt, Mapping)
     initial = _by_id(debt["initial"]["oversized_modules"])
-    first = dict(
-        next(
-            row
-            for row in current["oversized_modules"]
-            if str(row["id"]) in initial
-        )
-    )
+    identifier, initial_row = next(iter(initial.items()))
+    first = dict(initial_row)
     measured_lines = initial[str(first["id"])]["measured_lines"]
     assert isinstance(measured_lines, int)
     first["measured_lines"] = measured_lines + 1
-    current["oversized_modules"] = [
-        first if row["id"] == first["id"] else row for row in current["oversized_modules"]
-    ]
+    assert str(first["id"]) == identifier
+    current["oversized_modules"] = [first]
     with pytest.raises(AssertionError, match="worsened from"):
         _assert_exact_monotonic_debt(
             category="oversized_modules",

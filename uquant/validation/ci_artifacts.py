@@ -6,6 +6,7 @@ import argparse
 import copy
 import json
 from collections.abc import Iterable, Mapping, Sequence
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, cast
 
@@ -17,37 +18,40 @@ from .generalization_contract import (
     RANDOM_POOL_SIZES,
     RANDOM_SEED_INDEXES,
 )
-from .generalization_matrix import (
-    _aggregate,
-    _hash_json,
-    _head_and_source,
-    _industry_sha256,
-)
+from .generalization_matrix import aggregate_matrix_observations as _aggregate
+from .generalization_matrix import hash_matrix_json as _hash_json
+from .generalization_matrix import head_and_source as _head_and_source
+from .generalization_matrix import industry_sha256 as _industry_sha256
 from .generalization_reference import (
     GeneralizationBaseline,
     GeneralizationPolicy,
-    _candidate_contract_sha256,
     evaluate_generalization_policy_artifact,
     load_generalization_baseline,
     load_generalization_policy,
 )
+from .generalization_reference import (
+    candidate_contract_sha256 as _candidate_contract_sha256,
+)
 from .manifest import verify_data_manifest
-from .promotion import _artifact_binding, _runtime_provenance
+from .promotion import artifact_binding as _artifact_binding
+from .promotion import runtime_provenance as _runtime_provenance
 from .universe import load_ai_universe
 
 _ROOT = Path(__file__).resolve().parents[2]
 _OFFICIAL_WINDOWS = tuple(AI_ERA_WINDOWS)
-_PHASE1_PROVENANCE_FIELDS = {
-    "candidate",
-    "binding",
-    "baseline_sha256",
-    "validation_fingerprint",
-    "champion_commit",
-    "generated_at",
-}
+_PHASE1_PROVENANCE_FIELDS = frozenset(
+    {
+        "candidate",
+        "binding",
+        "baseline_sha256",
+        "validation_fingerprint",
+        "champion_commit",
+        "generated_at",
+    }
+)
 
 
-def _reject_duplicate_keys(pairs: Iterable[tuple[str, Any]]) -> dict[str, Any]:
+def _reject_duplicate_ci_keys(pairs: Iterable[tuple[str, Any]]) -> dict[str, Any]:
     payload: dict[str, Any] = {}
     for key, value in pairs:
         if key in payload:
@@ -101,20 +105,14 @@ def run_phase1_validation(
             try:
                 expected = _runtime_provenance(data_dir)
             except (OSError, RuntimeError, TypeError, ValueError) as exc:
-                raise RuntimeError(
-                    f"cannot construct authoritative Phase 1 provenance: {exc}"
-                ) from exc
+                raise RuntimeError(f"cannot construct authoritative Phase 1 provenance: {exc}") from exc
         else:
             expected = copy.deepcopy(dict(expected_candidate))
         expected_production = expected.get("production")
         expected_head = (
             checkout_head
             if checkout_head is not None
-            else (
-                str(expected_production.get("commit"))
-                if isinstance(expected_production, Mapping)
-                else ""
-            )
+            else (str(expected_production.get("commit")) if isinstance(expected_production, Mapping) else "")
         )
         payload = _load_json_object(Path(artifact), label="Phase 1 artifact")
         if payload.get("passed") is not True:
@@ -138,10 +136,7 @@ def run_phase1_validation(
                 failures.append("Phase 1 candidate provenance is malformed")
             else:
                 production = candidate.get("production")
-                if (
-                    not isinstance(production, Mapping)
-                    or production.get("commit") != expected_head
-                ):
+                if not isinstance(production, Mapping) or production.get("commit") != expected_head:
                     failures.append("Phase 1 candidate does not bind exact checkout HEAD")
             if not isinstance(binding, Mapping) or binding.get("production_commit") != expected_head:
                 failures.append("Phase 1 artifact binding does not bind exact checkout HEAD")
@@ -183,13 +178,9 @@ def _shard_fingerprints(window: str, cells: list[Mapping[str, Any]]) -> dict[str
         raise ValueError(f"{window}: shard has no cells")
     first = cells[0]
     return {
-        "window_fingerprint": _hash_json(
-            [{"name": window, "start": first["start"], "end": first["end"]}]
-        ),
+        "window_fingerprint": _hash_json([{"name": window, "start": first["start"], "end": first["end"]}]),
         "scenario_fingerprint": _hash_json(_scenario_payload(cells)),
-        "evidence_fingerprint": _hash_json(
-            [{"window": window, "evidence": first["evidence"]}]
-        ),
+        "evidence_fingerprint": _hash_json([{"window": window, "evidence": first["evidence"]}]),
     }
 
 
@@ -215,7 +206,7 @@ def _valid_aggregate(cells: Sequence[Mapping[str, Any]]) -> dict[str, float | in
         metrics.append(compact)
         observations.append(
             GeneralizationObservation(
-                name=f'{cell["window"]}/{cell["scenario"]}',
+                name=f"{cell['window']}/{cell['scenario']}",
                 family=str(cell["family"]),
                 final_wealth=float(compact["final_wealth"]),
                 max_drawdown=float(compact["max_drawdown"]),
@@ -284,14 +275,264 @@ def _merge_artifacts(
     first["aggregates"] = {
         "all": _valid_aggregate(merged_cells),
         "by_window": {
-            window: _valid_aggregate(
-                [cell for cell in merged_cells if cell.get("window") == window]
-            )
+            window: _valid_aggregate([cell for cell in merged_cells if cell.get("window") == window])
             for window in _OFFICIAL_WINDOWS
         },
     }
     first["cells"] = merged_cells
     return first
+
+
+@dataclass(slots=True)
+class _GeneralizationValidationState:
+    failures: list[str] = field(default_factory=list)
+    structural_failure: bool = False
+    artifacts: dict[str, dict[str, Any]] = field(default_factory=dict)
+    summaries: dict[str, Any] = field(default_factory=dict)
+    policy_report: dict[str, Any] | None = None
+
+    def fail(self, message: str, *, structural: bool = True) -> None:
+        self.failures.append(message)
+        self.structural_failure = self.structural_failure or structural
+
+
+@dataclass(frozen=True, slots=True)
+class _GeneralizationValidationInputs:
+    baseline: GeneralizationBaseline
+    policy: GeneralizationPolicy
+    expected_common: Mapping[str, Any]
+    scenario_contract: Mapping[str, Any]
+    root: Path
+
+
+def _generalization_validation_inputs(
+    state: _GeneralizationValidationState,
+    *,
+    shard_root: str | Path,
+    artifact_prefix: str,
+    data_dir: str | Path | None,
+    expected_common_provenance: Mapping[str, Any] | None,
+    baseline: GeneralizationBaseline | None,
+    policy: GeneralizationPolicy | None,
+) -> _GeneralizationValidationInputs:
+    if _OFFICIAL_WINDOWS != (
+        "h1_2023",
+        "h2_2023",
+        "h1_2024",
+        "h2_2024",
+        "bull_crash_2025_2026",
+        "continuous_ai_era",
+    ):
+        state.fail("official window set or order changed")
+    if (
+        RANDOM_BASE_SEED != 20260810
+        or RANDOM_SEED_INDEXES != (0, 1, 2, 3, 4)
+        or RANDOM_POOL_SIZES != (5, 9, 15, 20)
+    ):
+        state.fail("fixed random-pool contract changed")
+    trusted_baseline = load_generalization_baseline() if baseline is None else baseline
+    trusted_policy = load_generalization_policy() if policy is None else policy
+    expected_common = (
+        _current_common_provenance(cast(str | Path, data_dir))
+        if expected_common_provenance is None
+        else copy.deepcopy(dict(expected_common_provenance))
+    )
+    scenario_contract = _policy_scenario_contract()
+    root = Path(shard_root)
+    expected_directories = {f"{artifact_prefix}-{window}" for window in _OFFICIAL_WINDOWS}
+    observed_directories = {path.name for path in root.iterdir()} if root.is_dir() else set()
+    if observed_directories != expected_directories:
+        state.fail(
+            "downloaded shard artifact set differs: "
+            f"expected={sorted(expected_directories)} "
+            f"observed={sorted(observed_directories)}"
+        )
+    return _GeneralizationValidationInputs(
+        baseline=trusted_baseline,
+        policy=trusted_policy,
+        expected_common=expected_common,
+        scenario_contract=scenario_contract,
+        root=root,
+    )
+
+
+def _validated_shard_payload(
+    state: _GeneralizationValidationState,
+    *,
+    inputs: _GeneralizationValidationInputs,
+    artifact_prefix: str,
+    window: str,
+    expected_schema_version: int,
+) -> tuple[dict[str, Any], list[Mapping[str, Any]], Mapping[str, Any], Path] | None:
+    directory = inputs.root / f"{artifact_prefix}-{window}"
+    paths = sorted(directory.rglob("*.json")) if directory.is_dir() else []
+    if len(paths) != 1:
+        state.fail(f"{window}: expected exactly one JSON shard, found {len(paths)}")
+        return None
+    try:
+        candidate = _load_json_object(paths[0], label=f"{window} shard")
+    except ValueError as exc:
+        state.fail(str(exc))
+        return None
+    cells_value = candidate.get("cells")
+    provenance = candidate.get("provenance")
+    if not isinstance(cells_value, list) or any(not isinstance(cell, Mapping) for cell in cells_value):
+        state.fail(f"{window}: shard cells are malformed")
+        return None
+    cells = cast(list[Mapping[str, Any]], cells_value)
+    if len(cells) != 39:
+        state.fail(f"{window}: shard does not contain exactly 39 records")
+    if candidate.get("schema_version") != expected_schema_version:
+        state.fail(f"{window}: shard schema differs from the required version")
+    if candidate.get("gate") != "ai-era-generalization":
+        state.fail(f"{window}: shard gate identity differs")
+    if not isinstance(provenance, Mapping):
+        state.fail(f"{window}: shard provenance is malformed")
+        return None
+    return candidate, cells, provenance, paths[0]
+
+
+def _validate_shard_cell_contracts(
+    state: _GeneralizationValidationState,
+    *,
+    cells: list[Mapping[str, Any]],
+    identifiers: list[str],
+    baseline: GeneralizationBaseline,
+) -> None:
+    for cell, identifier in zip(cells, identifiers, strict=True):
+        reference = baseline.cells.get(identifier)
+        if reference is None:
+            continue
+        try:
+            contract_sha256 = _candidate_contract_sha256(cell)
+        except (TypeError, ValueError) as exc:
+            state.fail(f"{identifier}: contract is malformed: {exc}")
+            continue
+        evidence = cell.get("evidence")
+        evidence_sha256 = evidence.get("sha256") if isinstance(evidence, Mapping) else None
+        if contract_sha256 != reference.contract_sha256:
+            state.fail(f"{identifier}: contract differs from frozen evidence")
+        if evidence_sha256 != reference.evidence_sha256:
+            state.fail(f"{identifier}: evidence identity differs from frozen evidence")
+
+
+def _validate_shard_structure(
+    state: _GeneralizationValidationState,
+    *,
+    window: str,
+    cells: list[Mapping[str, Any]],
+    baseline: GeneralizationBaseline,
+) -> None:
+    observed_windows = {cell.get("window") for cell in cells}
+    if observed_windows != {window}:
+        state.fail(f"{window}: shard contains mixed windows: {sorted(map(str, observed_windows))}")
+    identifiers = [f"{cell.get('window')}/{cell.get('scenario')}" for cell in cells]
+    duplicates = sorted({identifier for identifier in identifiers if identifiers.count(identifier) > 1})
+    if duplicates:
+        state.fail(f"{window}: duplicate cell records: {duplicates}")
+    expected_ids = {identifier for identifier in baseline.cells if identifier.startswith(f"{window}/")}
+    if set(identifiers) != expected_ids:
+        state.fail(f"{window}: exact 39-cell identity set differs")
+    _validate_shard_cell_contracts(
+        state,
+        cells=cells,
+        identifiers=identifiers,
+        baseline=baseline,
+    )
+
+
+def _validate_shard_provenance(
+    state: _GeneralizationValidationState,
+    *,
+    window: str,
+    cells: list[Mapping[str, Any]],
+    provenance: Mapping[str, Any],
+    expected_common: Mapping[str, Any],
+) -> None:
+    try:
+        expected_provenance = {
+            **copy.deepcopy(dict(expected_common)),
+            **_shard_fingerprints(window, cells),
+        }
+    except (KeyError, TypeError, ValueError) as exc:
+        state.fail(f"{window}: cannot recompute shard provenance: {exc}")
+        return
+    if dict(provenance) != expected_provenance:
+        state.fail(f"{window}: provenance differs from exact HEAD and inputs")
+
+
+def _validate_generalization_shard(
+    state: _GeneralizationValidationState,
+    *,
+    inputs: _GeneralizationValidationInputs,
+    artifact_prefix: str,
+    window: str,
+    expected_schema_version: int,
+) -> None:
+    loaded = _validated_shard_payload(
+        state,
+        inputs=inputs,
+        artifact_prefix=artifact_prefix,
+        window=window,
+        expected_schema_version=expected_schema_version,
+    )
+    if loaded is None:
+        return
+    candidate, cells, provenance, path = loaded
+    _validate_shard_structure(
+        state,
+        window=window,
+        cells=cells,
+        baseline=inputs.baseline,
+    )
+    _validate_shard_provenance(
+        state,
+        window=window,
+        cells=cells,
+        provenance=provenance,
+        expected_common=inputs.expected_common,
+    )
+    if candidate.get("passed") is not True:
+        state.fail(f"{window}: shard gate failed", structural=False)
+    state.summaries[window] = {
+        "artifact": path.as_posix(),
+        "passed": candidate.get("passed"),
+        "failures": candidate.get("failures"),
+        "records": len(cells),
+        "head": provenance.get("head"),
+    }
+    state.artifacts[window] = candidate
+
+
+def _merge_generalization_shards(
+    state: _GeneralizationValidationState,
+    *,
+    inputs: _GeneralizationValidationInputs,
+    merged_output: str | Path,
+    data_dir: str | Path | None,
+) -> None:
+    if len(state.artifacts) != len(_OFFICIAL_WINDOWS) or state.structural_failure:
+        return
+    merged = _merge_artifacts(
+        state.artifacts,
+        common_provenance=inputs.expected_common,
+        scenario_contract=inputs.scenario_contract,
+    )
+    if len(cast(list[Any], merged["cells"])) != 234:
+        state.fail("merged matrix does not contain exactly 234 records")
+    _write_json(Path(merged_output), merged)
+    state.policy_report = evaluate_generalization_policy_artifact(
+        merged,
+        baseline=inputs.baseline,
+        policy=inputs.policy,
+        data_dir=data_dir,
+    )
+    if state.policy_report.get("passed") is not True:
+        state.fail(
+            "merged generalization policy/evidence validation failed",
+            structural=False,
+        )
+        state.failures.extend(str(item) for item in state.policy_report.get("failures", []))
 
 
 def run_generalization_validation(
@@ -308,168 +549,51 @@ def run_generalization_validation(
     policy: GeneralizationPolicy | None = None,
 ) -> dict[str, Any]:
     """Validate one exact attempt's six shards and always write diagnostics."""
-    failures: list[str] = []
-    structural_failure = False
-    artifacts: dict[str, dict[str, Any]] = {}
-    summaries: dict[str, Any] = {}
-    policy_report: dict[str, Any] | None = None
-
-    def fail(message: str, *, structural: bool = True) -> None:
-        nonlocal structural_failure
-        failures.append(message)
-        structural_failure = structural_failure or structural
-
+    state = _GeneralizationValidationState()
     try:
-        if _OFFICIAL_WINDOWS != (
-            "h1_2023",
-            "h2_2023",
-            "h1_2024",
-            "h2_2024",
-            "bull_crash_2025_2026",
-            "continuous_ai_era",
-        ):
-            fail("official window set or order changed")
-        if (
-            RANDOM_BASE_SEED != 20260810
-            or RANDOM_SEED_INDEXES != (0, 1, 2, 3, 4)
-            or RANDOM_POOL_SIZES != (5, 9, 15, 20)
-        ):
-            fail("fixed random-pool contract changed")
-        trusted_baseline = load_generalization_baseline() if baseline is None else baseline
-        trusted_policy = load_generalization_policy() if policy is None else policy
-        expected_common = (
-            _current_common_provenance(cast(str | Path, data_dir))
-            if expected_common_provenance is None
-            else copy.deepcopy(dict(expected_common_provenance))
+        inputs = _generalization_validation_inputs(
+            state,
+            shard_root=shard_root,
+            artifact_prefix=artifact_prefix,
+            data_dir=data_dir,
+            expected_common_provenance=expected_common_provenance,
+            baseline=baseline,
+            policy=policy,
         )
-        scenario_contract = _policy_scenario_contract()
-        root = Path(shard_root)
-        expected_directories = {
-            f"{artifact_prefix}-{window}" for window in _OFFICIAL_WINDOWS
-        }
-        observed_directories = {path.name for path in root.iterdir()} if root.is_dir() else set()
-        if observed_directories != expected_directories:
-            fail(
-                "downloaded shard artifact set differs: "
-                f"expected={sorted(expected_directories)} "
-                f"observed={sorted(observed_directories)}"
-            )
         for window in _OFFICIAL_WINDOWS:
-            directory = root / f"{artifact_prefix}-{window}"
-            paths = sorted(directory.rglob("*.json")) if directory.is_dir() else []
-            if len(paths) != 1:
-                fail(f"{window}: expected exactly one JSON shard, found {len(paths)}")
-                continue
-            try:
-                candidate = _load_json_object(paths[0], label=f"{window} shard")
-            except ValueError as exc:
-                fail(str(exc))
-                continue
-            cells_value = candidate.get("cells")
-            provenance = candidate.get("provenance")
-            if not isinstance(cells_value, list) or any(
-                not isinstance(cell, Mapping) for cell in cells_value
-            ):
-                fail(f"{window}: shard cells are malformed")
-                continue
-            cells = cast(list[Mapping[str, Any]], cells_value)
-            if len(cells) != 39:
-                fail(f"{window}: shard does not contain exactly 39 records")
-            if candidate.get("schema_version") != expected_schema_version:
-                fail(f"{window}: shard schema differs from the required version")
-            if candidate.get("gate") != "ai-era-generalization":
-                fail(f"{window}: shard gate identity differs")
-            if not isinstance(provenance, Mapping):
-                fail(f"{window}: shard provenance is malformed")
-                continue
-            observed_windows = {cell.get("window") for cell in cells}
-            if observed_windows != {window}:
-                fail(f"{window}: shard contains mixed windows: {sorted(map(str, observed_windows))}")
-            identifiers = [f'{cell.get("window")}/{cell.get("scenario")}' for cell in cells]
-            duplicates = sorted(
-                {identifier for identifier in identifiers if identifiers.count(identifier) > 1}
+            _validate_generalization_shard(
+                state,
+                inputs=inputs,
+                artifact_prefix=artifact_prefix,
+                window=window,
+                expected_schema_version=expected_schema_version,
             )
-            if duplicates:
-                fail(f"{window}: duplicate cell records: {duplicates}")
-            expected_ids = {
-                identifier
-                for identifier in trusted_baseline.cells
-                if identifier.startswith(f"{window}/")
-            }
-            if set(identifiers) != expected_ids:
-                fail(f"{window}: exact 39-cell identity set differs")
-            for cell, identifier in zip(cells, identifiers, strict=True):
-                reference = trusted_baseline.cells.get(identifier)
-                if reference is None:
-                    continue
-                try:
-                    contract_sha256 = _candidate_contract_sha256(cell)
-                except (TypeError, ValueError) as exc:
-                    fail(f"{identifier}: contract is malformed: {exc}")
-                    continue
-                evidence = cell.get("evidence")
-                evidence_sha256 = (
-                    evidence.get("sha256") if isinstance(evidence, Mapping) else None
-                )
-                if contract_sha256 != reference.contract_sha256:
-                    fail(f"{identifier}: contract differs from frozen evidence")
-                if evidence_sha256 != reference.evidence_sha256:
-                    fail(f"{identifier}: evidence identity differs from frozen evidence")
-            try:
-                expected_provenance = {
-                    **copy.deepcopy(expected_common),
-                    **_shard_fingerprints(window, cells),
-                }
-            except (KeyError, TypeError, ValueError) as exc:
-                fail(f"{window}: cannot recompute shard provenance: {exc}")
-            else:
-                if dict(provenance) != expected_provenance:
-                    fail(f"{window}: provenance differs from exact HEAD and inputs")
-            if candidate.get("passed") is not True:
-                fail(f"{window}: shard gate failed", structural=False)
-            summaries[window] = {
-                "artifact": paths[0].as_posix(),
-                "passed": candidate.get("passed"),
-                "failures": candidate.get("failures"),
-                "records": len(cells),
-                "head": provenance.get("head"),
-            }
-            artifacts[window] = candidate
-        if len(artifacts) == len(_OFFICIAL_WINDOWS) and not structural_failure:
-            merged = _merge_artifacts(
-                artifacts,
-                common_provenance=expected_common,
-                scenario_contract=scenario_contract,
-            )
-            if len(cast(list[Any], merged["cells"])) != 234:
-                fail("merged matrix does not contain exactly 234 records")
-            _write_json(Path(merged_output), merged)
-            policy_report = evaluate_generalization_policy_artifact(
-                merged,
-                baseline=trusted_baseline,
-                policy=trusted_policy,
-                data_dir=data_dir,
-            )
-            if policy_report.get("passed") is not True:
-                fail("merged generalization policy/evidence validation failed", structural=False)
-                failures.extend(str(item) for item in policy_report.get("failures", []))
+        _merge_generalization_shards(
+            state,
+            inputs=inputs,
+            merged_output=merged_output,
+            data_dir=data_dir,
+        )
     except (KeyError, OSError, TypeError, ValueError) as exc:
-        fail(f"Generalization aggregator raised {type(exc).__name__}: {exc}")
+        state.fail(f"Generalization aggregator raised {type(exc).__name__}: {exc}")
     if upstream_result != "success":
-        fail(f"generalization shard job result was {upstream_result}", structural=False)
+        state.fail(
+            f"generalization shard job result was {upstream_result}",
+            structural=False,
+        )
     report: dict[str, Any] = {
-        "passed": not failures,
+        "passed": not state.failures,
         "shard_job_result": upstream_result,
         "official_windows": list(_OFFICIAL_WINDOWS),
-        "shards": summaries,
-        "policy": policy_report,
-        "failures": failures,
+        "shards": state.summaries,
+        "policy": state.policy_report,
+        "failures": state.failures,
     }
     _write_json(Path(report_output), report)
     return report
 
 
-def _parser() -> argparse.ArgumentParser:
+def _ci_artifact_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="python -m uquant.validation.ci_artifacts")
     subparsers = parser.add_subparsers(dest="command", required=True)
     phase1 = subparsers.add_parser("phase1")
@@ -507,6 +631,10 @@ def main(argv: list[str] | None = None) -> int:
             data_dir=args.data_dir,
         )
     return 0 if report["passed"] else 1
+
+
+_parser = _ci_artifact_parser
+_reject_duplicate_keys = _reject_duplicate_ci_keys
 
 
 if __name__ == "__main__":

@@ -6,11 +6,11 @@ import hashlib
 import json
 import math
 import re
-from collections.abc import Mapping
+from collections.abc import Mapping, Set
 from dataclasses import dataclass
 from pathlib import Path
 from types import MappingProxyType
-from typing import Any, Final
+from typing import Any, Final, Never
 
 from ..generalization import symbol_pnl_concentration
 from ..generalization_contract import (
@@ -31,120 +31,193 @@ REQUIRED_GENERALIZATION_POLICY_SHA256: Final = (
 _REQUIRED_DEPRECATED_V1_ATTRIBUTION_COLLECTION_SHA256: Final = (
     "f43e1efe07b3f18c7931bc27a527886f1da5a8bc95026b02ab0a0116bec94545"
 )
-_DEPRECATED_V1_ATTRIBUTION_TOKEN: Final = {
-    "status": "DEPRECATED_NON_CAUSAL_V1_ATTRIBUTION",
-    "frozen_collection_sha256": _REQUIRED_DEPRECATED_V1_ATTRIBUTION_COLLECTION_SHA256,
-}
+_DEPRECATED_V1_ATTRIBUTION_TOKEN: Final = MappingProxyType(
+    {
+        "status": "DEPRECATED_NON_CAUSAL_V1_ATTRIBUTION",
+        "frozen_collection_sha256": _REQUIRED_DEPRECATED_V1_ATTRIBUTION_COLLECTION_SHA256,
+    }
+)
 
 _SHA256 = re.compile(r"^[0-9a-f]{64}$")
 _COMMIT = re.compile(r"^[0-9a-f]{40,64}$")
-_ARTIFACT_FIELDS_V1 = {
-    "schema_version",
-    "gate",
-    "passed",
-    "failures",
-    "provenance",
-    "concentration_definition",
-    "aggregates",
-    "cells",
-}
-_ARTIFACT_FIELDS_V2 = {*_ARTIFACT_FIELDS_V1, "attribution_definition"}
-_PROVENANCE_FIELDS = {
-    "head",
-    "source_sha256",
-    "effective_config_sha256",
-    "data",
-    "runtime",
-    "universe_sha256",
-    "industry_sha256",
-    "window_fingerprint",
-    "scenario_fingerprint",
-    "evidence_fingerprint",
-    "lookback_sessions",
-}
-_DATA_FIELDS = {"snapshot_id", "files_verified", "manifest_sha256", "checksums_sha256"}
-_RUNTIME_FIELDS = {
-    "python_full_version",
-    "numpy_version",
-    "pandas_version",
-    "uv_version",
-    "uv_lock_sha256",
-}
-_CELL_FIELDS_V1 = {
-    "window",
-    "start",
-    "end",
-    "scenario",
-    "family",
-    "status",
-    "economic",
-    "symbols",
-    "reference_symbols",
-    "removed_symbols",
-    "industry",
-    "pool_size",
-    "seed_index",
-    "derived_seed",
-    "evidence",
-    "raw",
-    "metrics",
-    "replay_error",
-}
-_CELL_FIELDS_V2 = {
-    *_CELL_FIELDS_V1,
-    "attribution_status",
-    "attribution",
-    "concentration",
-}
-_ATTRIBUTION_DEFINITION = {
-    "schema": "uquant.economic-attribution.v1",
-    "interval": "cell start/end inclusive; no pre-window warmup or post-end data",
-    "accounting_identity": "realized_pnl + open_pnl = final_equity - initial_cash",
-    "lot_identity": "originating BUY event plus per-SELL sold_tranches",
-    "concentration": "positive, signed-net, and absolute PnL denominators",
-    "diagnostics": "cash drag and paired risk avoidance are not accounting PnL",
-}
-_EVIDENCE_FIELDS = {
-    "as_of",
-    "scores",
-    "eligible_symbols",
-    "ineligible_symbols",
-    "lookback_sessions",
-    "sha256",
-}
-_METRIC_FIELDS = {
-    "final_wealth",
-    "max_drawdown",
-    "account_orders",
-    "gross_turnover",
-    "annual_turnover",
-    "top1_concentration",
-    "top3_concentration",
-    "pnl_hhi",
-}
-_BASELINE_CELL_FIELDS = {
-    "window",
-    "scenario",
-    "family",
-    "status",
-    "economic",
-    "pool_size",
-    "seed_index",
-    "derived_seed",
-    "evidence_sha256",
-    "contract_sha256",
-    "metrics",
-    "replay_error",
-}
-_ADDITIVE_ATTRIBUTION_IDENTITY_FIELDS = {
-    "event_id",
-    "origin_subsystem",
-    "mechanism",
-    "origin_lifecycle",
-    "replaces_symbol",
-    "industry_at_entry",
-    "industry_manifest_sha256",
-}
+
+
+class ImmutableGeneralizationDefinition(dict[str, str]):
+    """JSON-compatible immutable policy definition."""
+
+    @staticmethod
+    def _reject_mutation() -> Never:
+        raise TypeError("policy definitions are immutable")
+
+    def __setitem__(self, key: str, value: str, /) -> None:
+        del key, value
+        self._reject_mutation()
+
+    def __delitem__(self, key: str, /) -> None:
+        del key
+        self._reject_mutation()
+
+    def clear(self) -> None:
+        self._reject_mutation()
+
+    def pop(self, key: str, default: object = None, /) -> Never:
+        del key, default
+        self._reject_mutation()
+
+    def popitem(self) -> Never:
+        self._reject_mutation()
+
+    def setdefault(self, key: str, default: str | None = None, /) -> Never:
+        del key, default
+        self._reject_mutation()
+
+    def update(self, other: object = (), /, **kwargs: str) -> None:
+        del other, kwargs
+        self._reject_mutation()
+
+    def __ior__(self, value: object, /) -> Never:
+        del value
+        self._reject_mutation()
+
+    def __or__(self, value: object, /) -> Any:
+        if not isinstance(value, dict):
+            return NotImplemented
+        result = dict(self)
+        result.update(value)
+        return result
+
+    def __deepcopy__(self, memo: dict[int, object]) -> dict[str, str]:
+        del memo
+        return dict(self)
+
+
+_ARTIFACT_FIELDS_V1 = frozenset(
+    {
+        "schema_version",
+        "gate",
+        "passed",
+        "failures",
+        "provenance",
+        "concentration_definition",
+        "aggregates",
+        "cells",
+    }
+)
+_ARTIFACT_FIELDS_V2 = frozenset({*_ARTIFACT_FIELDS_V1, "attribution_definition"})
+_PROVENANCE_FIELDS = frozenset(
+    {
+        "head",
+        "source_sha256",
+        "effective_config_sha256",
+        "data",
+        "runtime",
+        "universe_sha256",
+        "industry_sha256",
+        "window_fingerprint",
+        "scenario_fingerprint",
+        "evidence_fingerprint",
+        "lookback_sessions",
+    }
+)
+_DATA_FIELDS = frozenset({"snapshot_id", "files_verified", "manifest_sha256", "checksums_sha256"})
+_RUNTIME_FIELDS = frozenset(
+    {
+        "python_full_version",
+        "numpy_version",
+        "pandas_version",
+        "uv_version",
+        "uv_lock_sha256",
+    }
+)
+_CELL_FIELDS_V1 = frozenset(
+    {
+        "window",
+        "start",
+        "end",
+        "scenario",
+        "family",
+        "status",
+        "economic",
+        "symbols",
+        "reference_symbols",
+        "removed_symbols",
+        "industry",
+        "pool_size",
+        "seed_index",
+        "derived_seed",
+        "evidence",
+        "raw",
+        "metrics",
+        "replay_error",
+    }
+)
+_CELL_FIELDS_V2 = frozenset(
+    {
+        *_CELL_FIELDS_V1,
+        "attribution_status",
+        "attribution",
+        "concentration",
+    }
+)
+_ATTRIBUTION_DEFINITION = ImmutableGeneralizationDefinition(
+    {
+        "schema": "uquant.economic-attribution.v1",
+        "interval": "cell start/end inclusive; no pre-window warmup or post-end data",
+        "accounting_identity": "realized_pnl + open_pnl = final_equity - initial_cash",
+        "lot_identity": "originating BUY event plus per-SELL sold_tranches",
+        "concentration": "positive, signed-net, and absolute PnL denominators",
+        "diagnostics": "cash drag and paired risk avoidance are not accounting PnL",
+    }
+)
+_EVIDENCE_FIELDS = frozenset(
+    {
+        "as_of",
+        "scores",
+        "eligible_symbols",
+        "ineligible_symbols",
+        "lookback_sessions",
+        "sha256",
+    }
+)
+_METRIC_FIELDS = frozenset(
+    {
+        "final_wealth",
+        "max_drawdown",
+        "account_orders",
+        "gross_turnover",
+        "annual_turnover",
+        "top1_concentration",
+        "top3_concentration",
+        "pnl_hhi",
+    }
+)
+_BASELINE_CELL_FIELDS = frozenset(
+    {
+        "window",
+        "scenario",
+        "family",
+        "status",
+        "economic",
+        "pool_size",
+        "seed_index",
+        "derived_seed",
+        "evidence_sha256",
+        "contract_sha256",
+        "metrics",
+        "replay_error",
+    }
+)
+_ADDITIVE_ATTRIBUTION_IDENTITY_FIELDS = frozenset(
+    {
+        "event_id",
+        "origin_subsystem",
+        "mechanism",
+        "origin_lifecycle",
+        "replaces_symbol",
+        "industry_at_entry",
+        "industry_manifest_sha256",
+    }
+)
 
 
 @dataclass(frozen=True, slots=True)
@@ -226,7 +299,7 @@ class GeneralizationPolicy:
     windows: tuple[tuple[str, str, str], ...]
 
 
-def _reject_duplicate_keys(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
+def _reject_duplicate_policy_keys(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
     result: dict[str, Any] = {}
     for key, value in pairs:
         if key in result:
@@ -235,11 +308,11 @@ def _reject_duplicate_keys(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
     return result
 
 
-def _reject_nonstandard_constant(value: str) -> None:
+def _reject_nonstandard_policy_constant(value: str) -> None:
     raise ValueError(f"generalization contract contains non-standard number: {value}")
 
 
-def _read_json(path: Path, *, label: str) -> dict[str, Any]:
+def _read_policy_json(path: Path, *, label: str) -> dict[str, Any]:
     if path.is_symlink() or not path.is_file():
         raise ValueError(f"{label} is missing or not a regular file: {path}")
     try:
@@ -255,7 +328,7 @@ def _read_json(path: Path, *, label: str) -> dict[str, Any]:
     return payload
 
 
-def _hash_json(value: Any) -> str:
+def _hash_policy_json(value: Any) -> str:
     try:
         encoded = json.dumps(
             value,
@@ -283,7 +356,7 @@ def _artifact_equality_sha256(artifact: Mapping[str, Any]) -> str:
 
 def _schema_failures(
     value: Any,
-    expected_fields: set[str],
+    expected_fields: Set[str],
     *,
     label: str,
 ) -> tuple[str, ...]:
@@ -299,21 +372,8 @@ def _schema_failures(
     return tuple(failures)
 
 
-def _provenance_schema_failures(value: Any) -> tuple[str, ...]:
-    failures = list(_schema_failures(value, _PROVENANCE_FIELDS, label="candidate provenance"))
-    if not isinstance(value, Mapping):
-        return tuple(failures)
-    failures.extend(
-        _schema_failures(value.get("data"), _DATA_FIELDS, label="candidate provenance data")
-    )
-    failures.extend(
-        _schema_failures(
-            value.get("runtime"), _RUNTIME_FIELDS, label="candidate provenance runtime"
-        )
-    )
-    head = value.get("head")
-    if not isinstance(head, str) or not _COMMIT.fullmatch(head):
-        failures.append("candidate provenance HEAD is malformed")
+def _provenance_hash_failures(value: Mapping[str, Any]) -> list[str]:
+    failures: list[str] = []
     for name in (
         "source_sha256",
         "effective_config_sha256",
@@ -326,33 +386,56 @@ def _provenance_schema_failures(value: Any) -> tuple[str, ...]:
         digest = value.get(name)
         if not isinstance(digest, str) or not _SHA256.fullmatch(digest):
             failures.append(f"candidate provenance {name} is malformed")
+    return failures
+
+
+def _data_provenance_failures(data: Any) -> list[str]:
+    failures: list[str] = []
+    if not isinstance(data, Mapping):
+        return failures
+    if not isinstance(data.get("snapshot_id"), str) or not data["snapshot_id"]:
+        failures.append("candidate provenance data snapshot_id is malformed")
+    files_verified = data.get("files_verified")
+    if isinstance(files_verified, bool) or not isinstance(files_verified, int) or files_verified < 1:
+        failures.append("candidate provenance data files_verified is malformed")
+    for name in ("manifest_sha256", "checksums_sha256"):
+        digest = data.get(name)
+        if not isinstance(digest, str) or not _SHA256.fullmatch(digest):
+            failures.append(f"candidate provenance data {name} is malformed")
+    return failures
+
+
+def _runtime_provenance_failures(runtime: Any) -> list[str]:
+    failures: list[str] = []
+    if not isinstance(runtime, Mapping):
+        return failures
+    for name in _RUNTIME_FIELDS - {"uv_lock_sha256"}:
+        version = runtime.get(name)
+        if not isinstance(version, str) or not version:
+            failures.append(f"candidate provenance runtime {name} is malformed")
+    lock_digest = runtime.get("uv_lock_sha256")
+    if not isinstance(lock_digest, str) or not _SHA256.fullmatch(lock_digest):
+        failures.append("candidate provenance runtime uv_lock_sha256 is malformed")
+    return failures
+
+
+def _provenance_schema_failures(value: Any) -> tuple[str, ...]:
+    failures = list(_schema_failures(value, _PROVENANCE_FIELDS, label="candidate provenance"))
+    if not isinstance(value, Mapping):
+        return tuple(failures)
+    data = value.get("data")
+    runtime = value.get("runtime")
+    failures.extend(_schema_failures(data, _DATA_FIELDS, label="candidate provenance data"))
+    failures.extend(_schema_failures(runtime, _RUNTIME_FIELDS, label="candidate provenance runtime"))
+    head = value.get("head")
+    if not isinstance(head, str) or not _COMMIT.fullmatch(head):
+        failures.append("candidate provenance HEAD is malformed")
+    failures.extend(_provenance_hash_failures(value))
     lookback = value.get("lookback_sessions")
     if isinstance(lookback, bool) or not isinstance(lookback, int) or lookback < 1:
         failures.append("candidate provenance lookback_sessions is malformed")
-    data = value.get("data")
-    if isinstance(data, Mapping):
-        if not isinstance(data.get("snapshot_id"), str) or not data["snapshot_id"]:
-            failures.append("candidate provenance data snapshot_id is malformed")
-        files_verified = data.get("files_verified")
-        if (
-            isinstance(files_verified, bool)
-            or not isinstance(files_verified, int)
-            or files_verified < 1
-        ):
-            failures.append("candidate provenance data files_verified is malformed")
-        for name in ("manifest_sha256", "checksums_sha256"):
-            digest = data.get(name)
-            if not isinstance(digest, str) or not _SHA256.fullmatch(digest):
-                failures.append(f"candidate provenance data {name} is malformed")
-    runtime = value.get("runtime")
-    if isinstance(runtime, Mapping):
-        for name in _RUNTIME_FIELDS - {"uv_lock_sha256"}:
-            version = runtime.get(name)
-            if not isinstance(version, str) or not version:
-                failures.append(f"candidate provenance runtime {name} is malformed")
-        lock_digest = runtime.get("uv_lock_sha256")
-        if not isinstance(lock_digest, str) or not _SHA256.fullmatch(lock_digest):
-            failures.append("candidate provenance runtime uv_lock_sha256 is malformed")
+    failures.extend(_data_provenance_failures(data))
+    failures.extend(_runtime_provenance_failures(runtime))
     return tuple(failures)
 
 
@@ -391,7 +474,7 @@ def _metrics_reconciled_from_raw(
     return reconciled
 
 
-def _canonical_sha256(payload: Mapping[str, Any]) -> str:
+def _generalization_policy_sha256(payload: Mapping[str, Any]) -> str:
     return _hash_json({key: payload[key] for key in sorted(payload) if key != "canonical_sha256"})
 
 
@@ -450,6 +533,50 @@ def _replay_error(value: Any, *, identifier: str) -> ReplayError | None:
     return ReplayError(exception_type=value["exception_type"], message=value["message"])
 
 
-def _derived_seed(size: int, seed_index: int) -> int:
+def _policy_derived_seed(size: int, seed_index: int) -> int:
     payload = f"{RANDOM_BASE_SEED}:{size}:{seed_index}".encode()
     return int.from_bytes(hashlib.sha256(payload).digest()[:8], "big")
+
+
+_canonical_sha256 = _generalization_policy_sha256
+_derived_seed = _policy_derived_seed
+_hash_json = _hash_policy_json
+_read_json = _read_policy_json
+_reject_duplicate_keys = _reject_duplicate_policy_keys
+_reject_nonstandard_constant = _reject_nonstandard_policy_constant
+
+# Stable package-owner surface consumed by the ordered evaluation stages.  The
+# aliases retain the exact immutable function and value identities while making
+# the ownership edge explicit instead of importing another module's privates.
+ARTIFACT_FIELDS_V1 = _ARTIFACT_FIELDS_V1
+ARTIFACT_FIELDS_V2 = _ARTIFACT_FIELDS_V2
+ADDITIVE_ATTRIBUTION_IDENTITY_FIELDS = _ADDITIVE_ATTRIBUTION_IDENTITY_FIELDS
+ATTRIBUTION_DEFINITION = _ATTRIBUTION_DEFINITION
+BASELINE_CELL_FIELDS = _BASELINE_CELL_FIELDS
+CELL_FIELDS_V1 = _CELL_FIELDS_V1
+CELL_FIELDS_V2 = _CELL_FIELDS_V2
+COMMIT_PATTERN = _COMMIT
+DATA_FIELDS = _DATA_FIELDS
+DEPRECATED_V1_ATTRIBUTION_TOKEN = _DEPRECATED_V1_ATTRIBUTION_TOKEN
+EVIDENCE_FIELDS = _EVIDENCE_FIELDS
+METRIC_FIELDS = _METRIC_FIELDS
+PROVENANCE_FIELDS = _PROVENANCE_FIELDS
+REPOSITORY_ROOT = _ROOT
+ROOT = _ROOT
+REQUIRED_DEPRECATED_V1_ATTRIBUTION_COLLECTION_SHA256 = _REQUIRED_DEPRECATED_V1_ATTRIBUTION_COLLECTION_SHA256
+RUNTIME_FIELDS = _RUNTIME_FIELDS
+SHA256_PATTERN = _SHA256
+artifact_equality_sha256 = _artifact_equality_sha256
+canonical_sha256 = _canonical_sha256
+derived_seed = _derived_seed
+hash_json = _hash_json
+metric_payload = _metric_payload
+metrics_reconciled_from_raw = _metrics_reconciled_from_raw
+provenance_schema_failures = _provenance_schema_failures
+read_json = _read_json
+reject_duplicate_keys = _reject_duplicate_keys
+reject_nonstandard_constant = _reject_nonstandard_constant
+replay_error = _replay_error
+require_exact_seal = _require_exact_seal
+require_sha256 = _require_sha256
+schema_failures = _schema_failures

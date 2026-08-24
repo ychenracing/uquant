@@ -8,12 +8,16 @@ from .order_planning import plan_orders
 from .pending import merge_pending_orders
 from .reconciliation import reconcile_account_orders
 from .tranches import (
-    _RISK_LIFECYCLE_PRIORITY,
-    risk_priority_tranche_key,
+    RISK_LIFECYCLE_PRIORITY as _RISK_LIFECYCLE_PRIORITY,
 )
 from .tranches import (
-    _allocate_sell_costs as _allocate_sell_costs,
+    allocate_sell_costs as _allocate_sell_costs,
 )
+from .tranches import (
+    risk_priority_tranche_key,
+)
+
+allocate_sell_costs = _allocate_sell_costs
 
 __all__ = (  # noqa: RUF022 - immutable legacy export order
     "ExecutionPlanner",

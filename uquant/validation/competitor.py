@@ -17,19 +17,15 @@ from datetime import date, datetime, timedelta
 from pathlib import Path
 from typing import Any, Final
 
+import uquant.validation.competitor_reference as _competitor_reference
+
 from ..engine import ProductionEngine
 from .ai_era import AI_ERA_WINDOWS, require_ai_era_interval
 
 _SHA256 = re.compile(r"[0-9a-f]{64}")
 _COMMIT = re.compile(r"[0-9a-f]{40}")
-_METRIC_FIELDS = {"final_wealth", "max_drawdown", "account_orders"}
-_POLICY_FIELDS = {
-    "wealth_floor_ratio",
-    "drawdown_tolerance",
-    "absolute_max_drawdown",
-    "order_tolerance",
-    "order_ceiling_ratio",
-}
+_METRIC_FIELDS = _competitor_reference.METRIC_FIELDS
+_POLICY_FIELDS = _competitor_reference.POLICY_FIELDS
 
 
 @dataclass(frozen=True, slots=True)
@@ -158,31 +154,18 @@ class RepositoryProvenance:
         }
 
 
-LOCKED_COMPETITOR_PROVENANCE: Final[tuple[tuple[str, RepositoryProvenance], ...]] = (
+LOCKED_COMPETITOR_PROVENANCE: Final[tuple[tuple[str, RepositoryProvenance], ...]] = tuple(
     (
-        "aquant",
+        name,
         RepositoryProvenance(
-            repository="ychenracing/aquant",
-            commit="3c38fbbf679a0fb1b4ee8f3d47b6931d3eb8fdbd",
-            adapter_source_sha256=("0fdc39c40239e51b5c91024507bef1bed222cd83575e4d9f870b8ada2f73a50a"),
+            repository=repository,
+            commit=commit,
+            adapter_source_sha256=adapter_source_sha256,
         ),
-    ),
-    (
-        "qwenquant",
-        RepositoryProvenance(
-            repository="ychenracing/qwenquant",
-            commit="0b3681e10b75425ad8600e75835677a6a125ed13",
-            adapter_source_sha256=("66fc531989e294990d40dae5f0c0ff867fe4e144ab2bae81863b42e7113c46c0"),
-        ),
-    ),
-    (
-        "trade",
-        RepositoryProvenance(
-            repository="ychenracing/trade",
-            commit="cee1620f40af3af8f839e15db188a9e388a78dd0",
-            adapter_source_sha256=("03e33e1396ca31d61e724bcd9cf58971ae656134740eb8929313167aa8ed8597"),
-        ),
-    ),
+    )
+    for name, repository, commit, adapter_source_sha256 in (
+        _competitor_reference.LOCKED_REPOSITORY_IDENTITIES
+    )
 )
 
 
@@ -281,7 +264,7 @@ class CompetitorMatrixReference:
 type Runner = Callable[[str, tuple[str, ...], MatrixWindow], Mapping[str, Any]]
 
 
-def _reject_duplicate_keys(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
+def _reject_duplicate_competitor_keys(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
     output: dict[str, Any] = {}
     for key, value in pairs:
         if key in output:
@@ -296,7 +279,7 @@ def _object(value: Any, *, label: str) -> dict[str, Any]:
     return value
 
 
-def _finite(value: Any, *, label: str) -> float:
+def _finite_competitor_metric(value: Any, *, label: str) -> float:
     if isinstance(value, bool) or not isinstance(value, (int, float)):
         raise RuntimeError(f"competitor matrix {label} must be numeric")
     result = float(value)
@@ -415,7 +398,7 @@ def data_provenance_from_directory(data_dir: str | Path) -> DataProvenance:
     )
 
 
-def _parse_policy(value: Any) -> GatePolicy:
+def _parse_competitor_policy(value: Any) -> GatePolicy:
     """Parse gate tolerances and reject missing, extra, or unsafe values."""
 
     payload = _object(value, label="policy")
@@ -504,13 +487,7 @@ def _expected_result_cells(pools: Sequence[str]) -> set[str]:
     }
 
 
-def load_competitor_matrix(
-    path: str | Path,
-    *,
-    data_dir: str | Path | None = None,
-) -> CompetitorMatrixReference:
-    """Strictly load a reviewed full matrix and optionally bind it to local data."""
-    source = Path(path)
+def _read_competitor_reference(source: Path) -> tuple[bytes, dict[str, Any]]:
     try:
         raw = source.read_bytes()
         value = json.loads(raw.decode("utf-8"), object_pairs_hook=_reject_duplicate_keys)
@@ -538,6 +515,10 @@ def load_competitor_matrix(
         raise RuntimeError(f"competitor matrix has unexpected sections: {unexpected_sections}")
     if isinstance(payload["schema_version"], bool) or payload["schema_version"] != 1:
         raise RuntimeError("unsupported competitor matrix schema")
+    return raw, payload
+
+
+def _validated_frozen_time(payload: Mapping[str, Any]) -> str:
     frozen = payload["frozen_at_utc"]
     if not isinstance(frozen, str):
         raise RuntimeError("competitor frozen_at_utc provenance is malformed")
@@ -547,16 +528,13 @@ def load_competitor_matrix(
         raise RuntimeError("competitor frozen_at_utc provenance is malformed") from exc
     if frozen_time.tzinfo is None or frozen_time.utcoffset() != timedelta(0):
         raise RuntimeError("competitor frozen_at_utc provenance must be UTC")
+    return frozen
 
-    policy = _parse_policy(payload["policy"])
-    execution_contract = _parse_execution_contract(payload["execution_contract"])
-    data_provenance = _parse_data_provenance(payload["data_provenance"])
-    if data_dir is not None:
-        current_data = data_provenance_from_directory(data_dir)
-        if current_data != data_provenance:
-            raise RuntimeError("competitor data provenance mismatch")
 
-    raw_repositories = _object(payload["repositories"], label="repositories")
+def _validated_competitor_repositories(
+    value: Any,
+) -> tuple[tuple[str, RepositoryProvenance], ...]:
+    raw_repositories = _object(value, label="repositories")
     missing_repositories = sorted(set(REQUIRED_COMPETITORS) - set(raw_repositories))
     unexpected_repositories = sorted(set(raw_repositories) - set(REQUIRED_COMPETITORS))
     if missing_repositories:
@@ -570,10 +548,15 @@ def load_competitor_matrix(
     for name, observed in repositories:
         if observed != locked[name]:
             raise RuntimeError(f"competitor commit/adapter provenance mismatch: {name}")
+    return repositories
 
-    pools = _parse_pools(payload["pools"])
-    _validate_windows(payload["windows"])
-    raw_results = _object(payload["results"], label="results")
+
+def _validated_competitor_results(
+    value: Any,
+    *,
+    pools: tuple[tuple[str, tuple[str, ...]], ...],
+) -> tuple[tuple[str, CompetitorMetrics], ...]:
+    raw_results = _object(value, label="results")
     expected_cells = _expected_result_cells([name for name, _ in pools])
     observed_cells = set(raw_results)
     missing_cells = sorted(expected_cells - observed_cells)
@@ -582,9 +565,34 @@ def load_competitor_matrix(
         raise RuntimeError(f"competitor matrix is missing result cells: {missing_cells}")
     if unexpected_cells:
         raise RuntimeError(f"competitor matrix has unexpected result cells: {unexpected_cells}")
-    results = tuple(
+    return tuple(
         (name, _parse_metrics(raw_results[name], label=f"results.{name}")) for name in sorted(expected_cells)
     )
+
+
+def load_competitor_matrix(
+    path: str | Path,
+    *,
+    data_dir: str | Path | None = None,
+) -> CompetitorMatrixReference:
+    """Strictly load a reviewed full matrix and optionally bind it to local data."""
+    source = Path(path)
+    raw, payload = _read_competitor_reference(source)
+    frozen = _validated_frozen_time(payload)
+
+    policy = _parse_policy(payload["policy"])
+    execution_contract = _parse_execution_contract(payload["execution_contract"])
+    data_provenance = _parse_data_provenance(payload["data_provenance"])
+    if data_dir is not None:
+        current_data = data_provenance_from_directory(data_dir)
+        if current_data != data_provenance:
+            raise RuntimeError("competitor data provenance mismatch")
+
+    repositories = _validated_competitor_repositories(payload["repositories"])
+
+    pools = _parse_pools(payload["pools"])
+    _validate_windows(payload["windows"])
+    results = _validated_competitor_results(payload["results"], pools=pools)
     return CompetitorMatrixReference(
         source_sha256=hashlib.sha256(raw).hexdigest(),
         frozen_at_utc=frozen,
@@ -783,3 +791,8 @@ def run_competitor_gate(
     if data_provenance_from_directory(data_dir) != reference.data_provenance:
         raise RuntimeError("competitor data changed during validation")
     return report
+
+
+_finite = _finite_competitor_metric
+_parse_policy = _parse_competitor_policy
+_reject_duplicate_keys = _reject_duplicate_competitor_keys

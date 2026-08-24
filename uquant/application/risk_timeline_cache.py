@@ -165,3 +165,10 @@ def _causal_risk_timeline(
     if self._risk_timeline_cache is None:
         raise RuntimeError("Sentinel timeline cache was not initialized")
     return risk_evidence_timeline_prefix(self._risk_timeline_cache, as_of=as_of, cfg=cfg)
+
+
+canonical_risk_timeline_json = _canonical_json
+causal_risk_timeline = _causal_risk_timeline
+load_risk_timeline_disk_cache = _load_risk_timeline_disk_cache
+risk_timeline_disk_path = _risk_timeline_disk_path
+write_risk_timeline_disk_cache = _write_risk_timeline_disk_cache

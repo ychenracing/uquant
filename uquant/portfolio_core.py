@@ -56,8 +56,7 @@ def strategic_dominant_symbol(account: AccountState) -> str | None:
     if (
         account.strategic_epoch <= 0
         or account.candidate_tenure.get("strategic_cohort_active", 0) != 1
-        or account.candidate_tenure.get("strategic_dominant_epoch", -1)
-        != account.strategic_epoch
+        or account.candidate_tenure.get("strategic_dominant_epoch", -1) != account.strategic_epoch
         or len(account.strategic_cohort_targets) != 1
     ):
         return None
@@ -72,6 +71,19 @@ def symbol_weight_cap(cfg: SystemConfig, account: AccountState, symbol: str) -> 
         if strategic_dominant_symbol(account) == symbol
         else cfg.max_symbol_weight
     )
+
+
+def _unknown_industry_scale(
+    *,
+    cfg: SystemConfig,
+    proposed: dict[str, float],
+    leaders: dict[str, LeaderScore],
+) -> float:
+    low_confidence_unknowns = {
+        symbol for symbol, score in leaders.items() if score.components.get("unknown_industry", 0.0) >= 0.5
+    }
+    unknown_gross = sum(max(0.0, proposed.get(symbol, 0.0)) for symbol in low_confidence_unknowns)
+    return min(1.0, cfg.unknown_industry_weight_cap / unknown_gross) if unknown_gross > 0 else 1.0
 
 
 class PortfolioCore:
@@ -135,14 +147,10 @@ class PortfolioCore:
         """Convert proposed weights into capped, attributed, deterministic targets."""
 
         targets: list[Target] = []
-        low_confidence_unknowns = {
-            symbol
-            for symbol, score in leaders.items()
-            if score.components.get("unknown_industry", 0.0) >= 0.5
-        }
-        unknown_gross = sum(max(0.0, proposed.get(symbol, 0.0)) for symbol in low_confidence_unknowns)
-        unknown_scale = (
-            min(1.0, self.cfg.unknown_industry_weight_cap / unknown_gross) if unknown_gross > 0 else 1.0
+        unknown_scale = _unknown_industry_scale(
+            cfg=self.cfg,
+            proposed=proposed,
+            leaders=leaders,
         )
         for symbol in sorted(set(account.positions) | set(proposed)):
             score = leaders.get(symbol)

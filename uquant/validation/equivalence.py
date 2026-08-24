@@ -145,13 +145,13 @@ print(json.dumps({
 """
 
 
-def _sha256_json(value: Any) -> str:
+def _sha256_equivalence_json(value: Any) -> str:
     return hashlib.sha256(
         json.dumps(value, allow_nan=False, separators=(",", ":"), sort_keys=True).encode("utf-8")
     ).hexdigest()
 
 
-def _git_executable() -> str:
+def _equivalence_git_executable() -> str:
     executable = shutil.which("git")
     if executable is None:
         raise RuntimeError("cannot resolve git executable for Phase 1 equivalence")
@@ -193,7 +193,7 @@ def _require_clean_equivalence_tree(root: Path) -> None:
         raise RuntimeError("Phase 1 equivalence requires clean committed inputs")
 
 
-def _reject_duplicate_keys(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
+def _reject_duplicate_equivalence_keys(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
     payload: dict[str, Any] = {}
     for key, value in pairs:
         if key in payload:
@@ -279,9 +279,7 @@ def _immutable_equivalence_data(
             try:
                 private = verify_data_manifest(snapshot)
             except (OSError, RuntimeError) as exc:
-                raise RuntimeError(
-                    "Phase 1 equivalence private data changed during replay"
-                ) from exc
+                raise RuntimeError("Phase 1 equivalence private data changed during replay") from exc
             if private != dict(expected):
                 raise RuntimeError("Phase 1 equivalence private data changed during replay")
             try:
@@ -363,9 +361,7 @@ def _trusted_dependency_paths() -> tuple[str, ...]:
         if not raw:
             continue
         path = Path(raw).resolve()
-        if path.is_dir() and any(
-            part in {"site-packages", "dist-packages"} for part in path.parts
-        ):
+        if path.is_dir() and any(part in {"site-packages", "dist-packages"} for part in path.parts):
             value = str(path)
             if value not in paths:
                 paths.append(value)
@@ -436,9 +432,7 @@ def compare_phase1_commits(
         _isolated_equivalence_tree(frozen_path, frozen_commit) as frozen_source,
         _isolated_equivalence_tree(candidate_path, candidate_commit) as candidate_source,
     ):
-        data_provenance = _baseline_data_provenance(
-            frozen_source / "benchmarks" / "promotion_baseline.json"
-        )
+        data_provenance = _baseline_data_provenance(frozen_source / "benchmarks" / "promotion_baseline.json")
         with _immutable_equivalence_data(Path(data_dir), data_provenance) as stable_data:
             replay_cases = (
                 phase1_cases(frozen_source / "benchmarks" / "promotion_baseline.json")
@@ -477,3 +471,14 @@ def compare_phase1_commits(
         "data": data_provenance,
         "passed": True,
     }
+
+
+_git_executable = _equivalence_git_executable
+_reject_duplicate_keys = _reject_duplicate_equivalence_keys
+_sha256_json = _sha256_equivalence_json
+
+baseline_data_provenance = _baseline_data_provenance
+git_commit = _git_commit
+immutable_equivalence_data = _immutable_equivalence_data
+isolated_equivalence_tree = _isolated_equivalence_tree
+require_clean_equivalence_tree = _require_clean_equivalence_tree

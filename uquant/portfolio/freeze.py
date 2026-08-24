@@ -13,19 +13,13 @@ from ..types import (
 )
 
 
-def _commit_frozen_exit_state(
+def _frozen_cleanup_scope(
     *,
     account: AccountState,
     planned_account: AccountState,
     allowed_exit_symbols: set[str],
-) -> None:
-    """Commit only monotonic strategy cleanup for allowed independent exits."""
-
-    live_symbols = {
-        symbol
-        for symbol, position in account.positions.items()
-        if position.shares > 0
-    }
+) -> tuple[set[str], bool, bool, bool]:
+    live_symbols = {symbol for symbol, position in account.positions.items() if position.shares > 0}
     tactical_exit = bool(
         account.candidate_tenure.get("tactical_active", 0) == 1
         and planned_account.candidate_tenure.get("tactical_active", 0) == 0
@@ -45,8 +39,15 @@ def _commit_frozen_exit_state(
         cleanup_symbols.update(account.strategic_cohort_symbols)
     if recovery_exit:
         cleanup_symbols.update(account.anchor_weights)
-    if not cleanup_symbols and not (tactical_exit or strategic_exit or recovery_exit):
-        return
+    return cleanup_symbols, tactical_exit, strategic_exit, recovery_exit
+
+
+def _commit_frozen_symbol_cleanup(
+    *,
+    account: AccountState,
+    planned_account: AccountState,
+    cleanup_symbols: set[str],
+) -> None:
     for field_name in (
         "active_leaders",
         "strategic_cohort_symbols",
@@ -58,11 +59,7 @@ def _commit_frozen_exit_state(
         setattr(
             account,
             field_name,
-            [
-                symbol
-                for symbol in current
-                if symbol not in cleanup_symbols or symbol in planned
-            ],
+            [symbol for symbol in current if symbol not in cleanup_symbols or symbol in planned],
         )
     for field_name in (
         "leader_tenure",
@@ -81,59 +78,104 @@ def _commit_frozen_exit_state(
                 current.pop(symbol, None)
     for field_name in ("recovery_conviction_symbol", "tactical_anchor_symbol"):
         symbol = getattr(account, field_name)
-        if (
-            symbol in cleanup_symbols
-            and not getattr(planned_account, field_name)
-        ):
+        if symbol in cleanup_symbols and not getattr(planned_account, field_name):
             setattr(account, field_name, "")
+
+
+def _commit_frozen_exit_events(
+    *,
+    account: AccountState,
+    planned_account: AccountState,
+    cleanup_symbols: set[str],
+) -> None:
     existing_events = len(account.lifecycle_events)
     for event in planned_account.lifecycle_events[existing_events:]:
         event_symbol = event.get("symbol")
         event_name = str(event.get("event", "")).lower()
-        if (
-            isinstance(event_symbol, str)
-            and event_symbol in cleanup_symbols
-            and "exit" in event_name
-        ):
+        if isinstance(event_symbol, str) and event_symbol in cleanup_symbols and "exit" in event_name:
             account.lifecycle_events.append(deepcopy(event))
 
-    def commit_tenure_prefixes(prefixes: tuple[str, ...]) -> None:
-        keys = set(account.candidate_tenure) | set(planned_account.candidate_tenure)
-        for key in keys:
-            if not key.startswith(prefixes):
-                continue
-            if key in planned_account.candidate_tenure:
-                account.candidate_tenure[key] = planned_account.candidate_tenure[key]
-            else:
-                account.candidate_tenure.pop(key, None)
+
+def _commit_frozen_tenure_prefixes(
+    *,
+    account: AccountState,
+    planned_account: AccountState,
+    prefixes: tuple[str, ...],
+) -> None:
+    keys = set(account.candidate_tenure) | set(planned_account.candidate_tenure)
+    for key in keys:
+        if not key.startswith(prefixes):
+            continue
+        if key in planned_account.candidate_tenure:
+            account.candidate_tenure[key] = planned_account.candidate_tenure[key]
+        else:
+            account.candidate_tenure.pop(key, None)
+
+
+def _commit_frozen_recovery_exit(account: AccountState) -> None:
+    account.recovery_anchor_date = ""
+    account.candidate_tenure["recovery_cohort_locked"] = 0
+    account.candidate_tenure["recovery_cohort_graduated"] = 1
+    account.candidate_tenure["diversification_capped"] = 0
+    account.candidate_tenure["confirmed_anchor_pair"] = 0
+    account.candidate_tenure["confirmed_pair_balanced"] = 0
+    account.candidate_tenure["recovery_substitution_pending"] = 0
+    account.candidate_tenure["recovery_substitution_completed"] = 0
+    account.candidate_tenure["cross_industry_hard_risk_trail"] = 0
+    for key in tuple(account.replacement_tenure):
+        if key.startswith("hard_risk_winner_trail:"):
+            account.replacement_tenure.pop(key, None)
+
+
+def _commit_frozen_exit_state(
+    *,
+    account: AccountState,
+    planned_account: AccountState,
+    allowed_exit_symbols: set[str],
+) -> None:
+    """Commit only monotonic strategy cleanup for allowed independent exits."""
+
+    cleanup_symbols, tactical_exit, strategic_exit, recovery_exit = _frozen_cleanup_scope(
+        account=account,
+        planned_account=planned_account,
+        allowed_exit_symbols=allowed_exit_symbols,
+    )
+    if not cleanup_symbols and not (tactical_exit or strategic_exit or recovery_exit):
+        return
+    _commit_frozen_symbol_cleanup(
+        account=account,
+        planned_account=planned_account,
+        cleanup_symbols=cleanup_symbols,
+    )
+    _commit_frozen_exit_events(
+        account=account,
+        planned_account=planned_account,
+        cleanup_symbols=cleanup_symbols,
+    )
 
     if tactical_exit:
-        commit_tenure_prefixes(("tactical_", "recovery_cycle_"))
+        _commit_frozen_tenure_prefixes(
+            account=account,
+            planned_account=planned_account,
+            prefixes=("tactical_", "recovery_cycle_"),
+        )
         account.tactical_anchor_symbol = planned_account.tactical_anchor_symbol
     if recovery_exit:
         # Commit the canonical old-cohort release, never the unrestricted
         # planner's possible same-day recovery admission.
-        account.recovery_anchor_date = ""
-        account.candidate_tenure["recovery_cohort_locked"] = 0
-        account.candidate_tenure["recovery_cohort_graduated"] = 1
-        account.candidate_tenure["diversification_capped"] = 0
-        account.candidate_tenure["confirmed_anchor_pair"] = 0
-        account.candidate_tenure["confirmed_pair_balanced"] = 0
-        account.candidate_tenure["recovery_substitution_pending"] = 0
-        account.candidate_tenure["recovery_substitution_completed"] = 0
-        account.candidate_tenure["cross_industry_hard_risk_trail"] = 0
-        for key in tuple(account.replacement_tenure):
-            if key.startswith("hard_risk_winner_trail:"):
-                account.replacement_tenure.pop(key, None)
+        _commit_frozen_recovery_exit(account)
     if strategic_exit:
-        commit_tenure_prefixes(("strategic_",))
+        _commit_frozen_tenure_prefixes(
+            account=account,
+            planned_account=planned_account,
+            prefixes=("strategic_",),
+        )
         account.strategic_epochs_completed = planned_account.strategic_epochs_completed
         account.strategic_last_exit_date = planned_account.strategic_last_exit_date
         account.strategic_rearm_date = planned_account.strategic_rearm_date
         account.strategic_candidate_signature = planned_account.strategic_candidate_signature
-        account.strategic_previous_symbols = list(
-            planned_account.strategic_previous_symbols
-        )
+        account.strategic_previous_symbols = list(planned_account.strategic_previous_symbols)
+
 
 def _frozen_existing_targets(
     *,
@@ -158,11 +200,7 @@ def _frozen_existing_targets(
             continue
         current_weight = weights_now.get(symbol, 0.0)
         pending_sell = next(
-            (
-                order
-                for order in account.pending_orders
-                if order.symbol == symbol and order.side == "SELL"
-            ),
+            (order for order in account.pending_orders if order.symbol == symbol and order.side == "SELL"),
             None,
         )
         if pending_sell is not None and current_weight > pending_sell.target_weight + 1e-12:
@@ -184,9 +222,7 @@ def _frozen_existing_targets(
                     origin_lifecycle=pending_sell.origin_lifecycle,
                     replaces_symbol=pending_sell.replaces_symbol,
                     industry_at_entry=pending_sell.industry_at_entry,
-                    industry_manifest_sha256=(
-                        pending_sell.industry_manifest_sha256
-                    ),
+                    industry_manifest_sha256=(pending_sell.industry_manifest_sha256),
                 )
             )
             continue
@@ -219,3 +255,7 @@ def _frozen_existing_targets(
             )
         )
     return tuple(frozen)
+
+
+commit_frozen_exit_state = _commit_frozen_exit_state
+frozen_existing_targets = _frozen_existing_targets

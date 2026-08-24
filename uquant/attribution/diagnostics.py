@@ -10,7 +10,7 @@ from typing import Any
 
 import pandas as pd
 
-from .concentration import _finite
+from .concentration import finite_attribution_number as _finite
 
 
 def attribution_diagnostics(

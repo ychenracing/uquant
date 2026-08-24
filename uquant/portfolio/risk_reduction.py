@@ -22,6 +22,9 @@ if TYPE_CHECKING:
     from .allocator import PortfolioAllocator
 
 
+type RetentionVector = tuple[float, float, float, float, float, float]
+
+
 def _risk_attribution_mechanism(reason_code: str) -> AttributionMechanism:
     """Map the risk engine's closed structured code to one mechanism."""
 
@@ -36,9 +39,8 @@ def _risk_attribution_mechanism(reason_code: str) -> AttributionMechanism:
     try:
         return registry[reason_code]
     except KeyError as exc:
-        raise RuntimeError(
-            f"risk attribution reason code is not registered: {reason_code}"
-        ) from exc
+        raise RuntimeError(f"risk attribution reason code is not registered: {reason_code}") from exc
+
 
 def _risk_retention_score(
     self: PortfolioAllocator,
@@ -74,18 +76,11 @@ def _risk_retention_score(
         self.cfg.recovery_conviction_retention_bonus
         if self.cfg.recovery_conviction_weighting_enabled
         and account.recovery_conviction_symbol == target.symbol
-        and any(
-            tranche.lifecycle == Lifecycle.RECOVERY.value
-            for tranche in position.tranches
-        )
+        and any(tranche.lifecycle == Lifecycle.RECOVERY.value for tranche in position.tranches)
         else 0.0
     )
-    return (
-        target.alpha_score
-        + tranche_value
-        + min(0.20, 0.50 * max(0.0, peak_mfe))
-        + conviction_bonus
-    )
+    return target.alpha_score + tranche_value + min(0.20, 0.50 * max(0.0, peak_mfe)) + conviction_bonus
+
 
 def _risk_retention_vector(
     target: Target,
@@ -107,8 +102,7 @@ def _risk_retention_vector(
         and target.symbol in account.anchor_weights
     )
     conviction_owner = bool(
-        account.recovery_conviction_symbol == target.symbol
-        and target.symbol in account.positions
+        account.recovery_conviction_symbol == target.symbol and target.symbol in account.positions
     )
     position = account.positions.get(target.symbol)
     if position is None or not position.tranches:
@@ -116,8 +110,7 @@ def _risk_retention_vector(
         buckets = [0.0] * 6
         index = (
             0
-            if lifecycle == Lifecycle.RECOVERY.value
-            and (locked_recovery_anchor or conviction_owner)
+            if lifecycle == Lifecycle.RECOVERY.value and (locked_recovery_anchor or conviction_owner)
             else {
                 Lifecycle.CORE.value: 0,
                 Lifecycle.RECOVERY.value: 2,
@@ -144,8 +137,7 @@ def _risk_retention_vector(
         if tranche.shares <= 0:
             continue
         if tranche.lifecycle == Lifecycle.CORE.value or (
-            tranche.lifecycle == Lifecycle.RECOVERY.value
-            and (locked_recovery_anchor or conviction_owner)
+            tranche.lifecycle == Lifecycle.RECOVERY.value and (locked_recovery_anchor or conviction_owner)
         ):
             # MAE is causal tranche evidence.  A deeply impaired Core is
             # still retained after every incremental lifecycle, but before
@@ -184,6 +176,7 @@ def _risk_retention_vector(
         buckets[5],
     )
 
+
 def _risk_lifecycle_rank(
     retained: tuple[float, float, float, float, float, float],
 ) -> tuple[float, float, float, float, float, float]:
@@ -195,7 +188,26 @@ def _risk_lifecycle_rank(
     order.  Gross equality is essential: otherwise an empty portfolio
     would look structurally perfect and over-reduce below the risk cap.
     """
-    return tuple(max(0.0, value) for value in retained)  # type: ignore[return-value]
+    return (
+        max(0.0, retained[0]),
+        max(0.0, retained[1]),
+        max(0.0, retained[2]),
+        max(0.0, retained[3]),
+        max(0.0, retained[4]),
+        max(0.0, retained[5]),
+    )
+
+
+def _retention_totals(vectors: list[RetentionVector]) -> RetentionVector:
+    return (
+        sum(vector[0] for vector in vectors),
+        sum(vector[1] for vector in vectors),
+        sum(vector[2] for vector in vectors),
+        sum(vector[3] for vector in vectors),
+        sum(vector[4] for vector in vectors),
+        sum(vector[5] for vector in vectors),
+    )
+
 
 def _subset_retention_vector(
     self: PortfolioAllocator,
@@ -213,7 +225,198 @@ def _subset_retention_vector(
         )
         for target in targets
     ]
-    return tuple(sum(vector[index] for vector in vectors) for index in range(6))  # type: ignore[return-value]
+    return _retention_totals(vectors)
+
+
+def _retained_lifecycle_buckets(
+    *,
+    full_vectors: dict[str, RetentionVector],
+    desired_gross: float,
+) -> list[float]:
+    retained_by_bucket = [0.0] * 6
+    remaining_gross = desired_gross
+    for index in range(6):
+        available = sum(vector[index] for vector in full_vectors.values())
+        retained_by_bucket[index] = min(available, remaining_gross)
+        remaining_gross -= retained_by_bucket[index]
+    if remaining_gross > 1e-8:
+        raise RuntimeError("allocator lifecycle buckets do not reconcile to target gross")
+    return retained_by_bucket
+
+
+def _risk_boundary_bucket(
+    *,
+    targets: tuple[Target, ...],
+    full_vectors: dict[str, RetentionVector],
+    retained_by_bucket: list[float],
+) -> tuple[dict[str, float], int | None, float]:
+    base = {target.symbol: 0.0 for target in targets}
+    boundary_index: int | None = None
+    boundary_required = 0.0
+    for index, retained_bucket in enumerate(retained_by_bucket):
+        available = sum(vector[index] for vector in full_vectors.values())
+        if retained_bucket >= available - 1e-12:
+            for symbol, vector in full_vectors.items():
+                base[symbol] += vector[index]
+            continue
+        if retained_bucket > 1e-12:
+            boundary_index = index
+            boundary_required = retained_bucket
+        break
+    return base, boundary_index, boundary_required
+
+
+def _risk_boundary_plans(
+    *,
+    base: dict[str, float],
+    boundary_index: int | None,
+    boundary_required: float,
+    full_vectors: dict[str, RetentionVector],
+) -> list[dict[str, float]]:
+    candidate_plans: list[dict[str, float]] = []
+    if boundary_index is None:
+        candidate_plans.append(base)
+    else:
+        boundary_capacity = {
+            symbol: vector[boundary_index]
+            for symbol, vector in full_vectors.items()
+            if vector[boundary_index] > 1e-12
+        }
+        boundary_symbols = tuple(sorted(boundary_capacity))
+        for size in range(len(boundary_symbols) + 1):
+            for subset in combinations(boundary_symbols, size):
+                subset_total = sum(boundary_capacity[symbol] for symbol in subset)
+                if subset_total > boundary_required + 1e-12:
+                    continue
+                remainder = max(0.0, boundary_required - subset_total)
+                if remainder <= 1e-12:
+                    plan = dict(base)
+                    for symbol in subset:
+                        plan[symbol] += boundary_capacity[symbol]
+                    candidate_plans.append(plan)
+                    continue
+                for boundary_symbol in boundary_symbols:
+                    if boundary_symbol in subset:
+                        continue
+                    if remainder > boundary_capacity[boundary_symbol] + 1e-12:
+                        continue
+                    plan = dict(base)
+                    for symbol in subset:
+                        plan[symbol] += boundary_capacity[symbol]
+                    plan[boundary_symbol] += min(remainder, boundary_capacity[boundary_symbol])
+                    candidate_plans.append(plan)
+    if not candidate_plans:
+        raise RuntimeError("allocator could not construct an exact sparse risk plan")
+    return candidate_plans
+
+
+def _risk_plan_rank(
+    self: PortfolioAllocator,
+    plan: dict[str, float],
+    *,
+    target_by_symbol: dict[str, Target],
+    account: AccountState,
+    weights_now: dict[str, float],
+    safe_weights: dict[str, float],
+    eligible: tuple[Target, ...],
+    prices: dict[str, float] | None,
+    risk_reason_code: str,
+) -> tuple[object, ...]:
+    vectors = [
+        self._risk_retention_vector(
+            target_by_symbol[symbol],
+            account,
+            weight,
+            weights_now.get(symbol, 0.0),
+        )
+        for symbol, weight in plan.items()
+        if weight > 1e-12
+    ]
+    retained_vector = _retention_totals(vectors)
+    unchanged = sum(
+        abs(plan.get(target.symbol, 0.0) - safe_weights[target.symbol]) <= 1e-12 for target in eligible
+    )
+    utility = sum(
+        self._risk_retention_score(target, account) * plan.get(target.symbol, 0.0) for target in eligible
+    )
+    sector_guard_health = (
+        sum(
+            weight
+            * (
+                (prices or {}).get(symbol, account.positions[symbol].highest_close)
+                / max(account.positions[symbol].highest_close, 1e-12)
+                - 1.0
+            )
+            for symbol, weight in plan.items()
+            if weight > 1e-12 and symbol in account.positions
+        )
+        if risk_reason_code in {"sector_guard", "strategic_damage_guard"}
+        else 0.0
+    )
+    return (
+        self._risk_lifecycle_rank(retained_vector),
+        sector_guard_health,
+        unchanged,
+        utility,
+        tuple(symbol for symbol in sorted(plan) if plan[symbol] > 1e-12),
+    )
+
+
+def _materialize_risk_reduction_targets(
+    self: PortfolioAllocator,
+    *,
+    targets: tuple[Target, ...],
+    retained: dict[str, float],
+    weights_now: dict[str, float],
+    gross_cap: float,
+    risk_reason: str,
+    risk_reason_code: str,
+    risk_exit_kind: str,
+) -> tuple[Target, ...]:
+    capped: list[Target] = []
+    current_gross = sum(max(0.0, value) for value in weights_now.values())
+    for target in targets:
+        weight = retained.get(target.symbol, 0.0)
+        reason = target.reason
+        reduction_policy = target.reduction_policy
+        reason_code = target.reason_code
+        exit_kind = target.exit_kind
+        current_weight = weights_now.get(target.symbol, 0.0)
+        reducer_lowered_target = weight + 1e-12 < target.weight
+        risk_must_force_positive_trim = bool(
+            current_gross > gross_cap + 1e-12 and target.weight > 1e-12 and weight + 1e-12 < current_weight
+        )
+        risk_override_applied = False
+        if weight + 1e-12 < current_weight and (reducer_lowered_target or risk_must_force_positive_trim):
+            reason = f"{risk_reason}; {reason}"
+            reduction_policy = ReductionPolicy.RISK_PRIORITY.value
+            reason_code = risk_reason_code
+            exit_kind = risk_exit_kind
+            risk_override_applied = True
+        capped.append(
+            replace(
+                target,
+                weight=weight,
+                reason=reason,
+                reduction_policy=reduction_policy,
+                reason_code=reason_code,
+                exit_kind=exit_kind,
+                origin_subsystem=(
+                    OriginSubsystem.RISK.value if risk_override_applied else target.origin_subsystem
+                ),
+                mechanism=(
+                    self._risk_attribution_mechanism(risk_reason_code).value
+                    if risk_override_applied
+                    else target.mechanism
+                ),
+                origin_lifecycle=(target.origin_lifecycle or target.lifecycle),
+                event_id=("" if risk_override_applied else target.event_id),
+            )
+        )
+    if sum(item.weight for item in capped if item.weight > 0) > gross_cap + 1e-8:
+        raise RuntimeError("allocator failed to enforce sector risk gross cap")
+    return tuple(capped)
+
 
 def _sparse_risk_reduce(
     self: PortfolioAllocator,
@@ -270,165 +473,46 @@ def _sparse_risk_reduce(
     # turnover tie-break inside the single boundary bucket.  Enumerating
     # whole symbols first cannot express a mixed CORE/SATELLITE position
     # whose Satellite should be sold before another symbol's ADD2.
-    retained_by_bucket = [0.0] * 6
-    remaining_gross = desired_gross
-    for index in range(6):
-        available = sum(vector[index] for vector in full_vectors.values())
-        retained_by_bucket[index] = min(available, remaining_gross)
-        remaining_gross -= retained_by_bucket[index]
-    if remaining_gross > 1e-8:
-        raise RuntimeError("allocator lifecycle buckets do not reconcile to target gross")
+    retained_by_bucket = _retained_lifecycle_buckets(
+        full_vectors=full_vectors,
+        desired_gross=desired_gross,
+    )
+    base, boundary_index, boundary_required = _risk_boundary_bucket(
+        targets=targets,
+        full_vectors=full_vectors,
+        retained_by_bucket=retained_by_bucket,
+    )
+    candidate_plans = _risk_boundary_plans(
+        base=base,
+        boundary_index=boundary_index,
+        boundary_required=boundary_required,
+        full_vectors=full_vectors,
+    )
+    retained = max(
+        candidate_plans,
+        key=lambda plan: _risk_plan_rank(
+            self,
+            plan,
+            target_by_symbol=target_by_symbol,
+            account=account,
+            weights_now=weights_now,
+            safe_weights=safe_weights,
+            eligible=eligible,
+            prices=prices,
+            risk_reason_code=risk_reason_code,
+        ),
+    )
+    return _materialize_risk_reduction_targets(
+        self,
+        targets=targets,
+        retained=retained,
+        weights_now=weights_now,
+        gross_cap=gross_cap,
+        risk_reason=risk_reason,
+        risk_reason_code=risk_reason_code,
+        risk_exit_kind=risk_exit_kind,
+    )
 
-    base = {target.symbol: 0.0 for target in targets}
-    boundary_index: int | None = None
-    boundary_required = 0.0
-    for index, retained_bucket in enumerate(retained_by_bucket):
-        available = sum(vector[index] for vector in full_vectors.values())
-        if retained_bucket >= available - 1e-12:
-            for symbol, vector in full_vectors.items():
-                base[symbol] += vector[index]
-            continue
-        if retained_bucket > 1e-12:
-            boundary_index = index
-            boundary_required = retained_bucket
-        break
-
-    candidate_plans: list[dict[str, float]] = []
-    if boundary_index is None:
-        candidate_plans.append(base)
-    else:
-        boundary_capacity = {
-            symbol: vector[boundary_index]
-            for symbol, vector in full_vectors.items()
-            if vector[boundary_index] > 1e-12
-        }
-        boundary_symbols = tuple(sorted(boundary_capacity))
-        for size in range(len(boundary_symbols) + 1):
-            for subset in combinations(boundary_symbols, size):
-                subset_total = sum(boundary_capacity[symbol] for symbol in subset)
-                if subset_total > boundary_required + 1e-12:
-                    continue
-                remainder = max(0.0, boundary_required - subset_total)
-                if remainder <= 1e-12:
-                    plan = dict(base)
-                    for symbol in subset:
-                        plan[symbol] += boundary_capacity[symbol]
-                    candidate_plans.append(plan)
-                    continue
-                for boundary_symbol in boundary_symbols:
-                    if boundary_symbol in subset:
-                        continue
-                    if remainder > boundary_capacity[boundary_symbol] + 1e-12:
-                        continue
-                    plan = dict(base)
-                    for symbol in subset:
-                        plan[symbol] += boundary_capacity[symbol]
-                    plan[boundary_symbol] += min(
-                        remainder,
-                        boundary_capacity[boundary_symbol],
-                    )
-                    candidate_plans.append(plan)
-    if not candidate_plans:
-        raise RuntimeError("allocator could not construct an exact sparse risk plan")
-
-    def plan_rank(plan: dict[str, float]) -> tuple[object, ...]:
-        """Rank feasible risk plans by lifecycle retention, stability, and utility."""
-
-        vectors = [
-            self._risk_retention_vector(
-                target_by_symbol[symbol],
-                account,
-                weight,
-                weights_now.get(symbol, 0.0),
-            )
-            for symbol, weight in plan.items()
-            if weight > 1e-12
-        ]
-        retained_vector = tuple(sum(vector[index] for vector in vectors) for index in range(6))
-        unchanged = sum(
-            abs(plan.get(target.symbol, 0.0) - safe_weights[target.symbol]) <= 1e-12
-            for target in eligible
-        )
-        utility = sum(
-            self._risk_retention_score(target, account) * plan.get(target.symbol, 0.0)
-            for target in eligible
-        )
-        sector_guard_health = (
-            sum(
-                weight
-                * (
-                    (prices or {}).get(symbol, account.positions[symbol].highest_close)
-                    / max(account.positions[symbol].highest_close, 1e-12)
-                    - 1.0
-                )
-                for symbol, weight in plan.items()
-                if weight > 1e-12 and symbol in account.positions
-            )
-            if risk_reason_code
-            in {"sector_guard", "strategic_damage_guard"}
-            else 0.0
-        )
-        return (
-            self._risk_lifecycle_rank(retained_vector),  # type: ignore[arg-type]
-            sector_guard_health,
-            unchanged,
-            utility,
-            tuple(symbol for symbol in sorted(plan) if plan[symbol] > 1e-12),
-        )
-
-    retained = max(candidate_plans, key=plan_rank)
-
-    capped: list[Target] = []
-    current_gross = sum(max(0.0, value) for value in weights_now.values())
-    for target in targets:
-        weight = retained.get(target.symbol, 0.0)
-        reason = target.reason
-        reduction_policy = target.reduction_policy
-        reason_code = target.reason_code
-        exit_kind = target.exit_kind
-        # Preserve an already-more-conservative strategy exit (rotation,
-        # lifecycle expiry, stop, and so on).  Risk owns the metadata and
-        # tranche priority only when this reducer lowers the strategy's
-        # original target as well as the live exposure.
-        current_weight = weights_now.get(target.symbol, 0.0)
-        reducer_lowered_target = weight + 1e-12 < target.weight
-        risk_must_force_positive_trim = bool(
-            current_gross > gross_cap + 1e-12
-            and target.weight > 1e-12
-            and weight + 1e-12 < current_weight
-        )
-        risk_override_applied = False
-        if weight + 1e-12 < current_weight and (reducer_lowered_target or risk_must_force_positive_trim):
-            reason = f"{risk_reason}; {reason}"
-            reduction_policy = ReductionPolicy.RISK_PRIORITY.value
-            reason_code = risk_reason_code
-            exit_kind = risk_exit_kind
-            risk_override_applied = True
-        capped.append(
-            replace(
-                target,
-                weight=weight,
-                reason=reason,
-                reduction_policy=reduction_policy,
-                reason_code=reason_code,
-                exit_kind=exit_kind,
-                origin_subsystem=(
-                    OriginSubsystem.RISK.value
-                    if risk_override_applied
-                    else target.origin_subsystem
-                ),
-                mechanism=(
-                    self._risk_attribution_mechanism(risk_reason_code).value
-                    if risk_override_applied
-                    else target.mechanism
-                ),
-                origin_lifecycle=(target.origin_lifecycle or target.lifecycle),
-                event_id=("" if risk_override_applied else target.event_id),
-            )
-        )
-    if sum(item.weight for item in capped if item.weight > 0) > gross_cap + 1e-8:
-        raise RuntimeError("allocator failed to enforce sector risk gross cap")
-    return tuple(capped)
 
 def _risk_reduction_metadata(risk: RiskAssessment) -> tuple[str, str, str]:
     """Return the causal owner of a hard portfolio gross reduction."""
@@ -449,6 +533,7 @@ def _risk_reduction_metadata(risk: RiskAssessment) -> tuple[str, str, str]:
         return ("capital budget gross cap", "capital_budget", "capital_budget")
     return ("portfolio risk gross cap", "risk_gross_cap", "risk")
 
+
 def _turnover_aware_sector_cap(
     self: PortfolioAllocator,
     *,
@@ -463,3 +548,13 @@ def _turnover_aware_sector_cap(
         account=account,
         gross_cap=gross_cap,
     )
+
+
+risk_attribution_mechanism = _risk_attribution_mechanism
+risk_lifecycle_rank = _risk_lifecycle_rank
+risk_reduction_metadata = _risk_reduction_metadata
+risk_retention_score = _risk_retention_score
+risk_retention_vector = _risk_retention_vector
+sparse_risk_reduce = _sparse_risk_reduce
+subset_retention_vector = _subset_retention_vector
+turnover_aware_sector_cap = _turnover_aware_sector_cap

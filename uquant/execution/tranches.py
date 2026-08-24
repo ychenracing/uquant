@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from types import MappingProxyType
 from typing import Any
 
 from ..types import (
@@ -11,13 +12,15 @@ from ..types import (
     Tranche,
 )
 
-_RISK_LIFECYCLE_PRIORITY = {
-    Lifecycle.SATELLITE.value: 0,
-    Lifecycle.ADD2.value: 1,
-    Lifecycle.ADD1.value: 2,
-    Lifecycle.RECOVERY.value: 3,
-    Lifecycle.CORE.value: 4,
-}
+_RISK_LIFECYCLE_PRIORITY = MappingProxyType(
+    {
+        Lifecycle.SATELLITE.value: 0,
+        Lifecycle.ADD2.value: 1,
+        Lifecycle.ADD1.value: 2,
+        Lifecycle.RECOVERY.value: 3,
+        Lifecycle.CORE.value: 4,
+    }
+)
 
 
 def risk_priority_tranche_key(
@@ -155,3 +158,9 @@ def _rebuild_position_from_tranches(position: Position) -> None:
         key=lambda item: (item.entry_date, item.sellable_date, item.tranche_id),
     )
     position.lifecycle = newest.lifecycle
+
+
+RISK_LIFECYCLE_PRIORITY = _RISK_LIFECYCLE_PRIORITY
+allocate_sell_costs = _allocate_sell_costs
+consume_sell_tranches = _consume_sell_tranches
+rebuild_position_from_tranches = _rebuild_position_from_tranches

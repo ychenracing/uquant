@@ -5,6 +5,7 @@ from __future__ import annotations
 import math
 from collections.abc import Mapping
 from dataclasses import dataclass
+from typing import Any
 
 import numpy as np
 import pandas as pd
@@ -75,20 +76,15 @@ def _mean(values: list[float], default: float = 0.0) -> float:
     return float(np.mean(finite)) if finite else default
 
 
-def build_reference_context(
+def _build_reference_context_stage_1(
     *,
-    date: pd.Timestamp,
-    panel: Mapping[str, pd.DataFrame],
-    industries: Mapping[str, str],
-    cfg: SystemConfig,
-    reference_returns: pd.DataFrame | None = None,
-) -> ReferenceContext:
-    """Build a single causal reference observation with capped group authority."""
-    date = pd.Timestamp(date).normalize()
-    expected = tuple(
-        sorted(symbol for symbol, frame in panel.items() if not frame.empty and frame.index.min() <= date)
-    )
-    visible = tuple(sorted(symbol for symbol in expected if date in panel[symbol].index))
+    cfg: Any,
+    date: Any,
+    industries: Any,
+    panel: Any,
+    reference_returns: Any,
+    visible: Any,
+) -> tuple[Any, Any, Any, Any, Any, Any, Any, Any, Any, Any, Any, Any, Any, Any, Any]:
     grouped: dict[str, list[str]] = {}
     raw: dict[str, dict[str, float]] = {}
     above20: list[float] = []
@@ -142,17 +138,78 @@ def build_reference_context(
     breadth60 = name_weight * name_breadth60 + (1.0 - name_weight) * balanced_breadth60
     declining_ratio = name_weight * name_declining + (1.0 - name_weight) * balanced_declining
 
-    returns = reference_returns.loc[:date].tail(max(61, cfg.correlation_window)) if reference_returns is not None else pd.DataFrame(
-        {
-            symbol: panel[symbol].loc[:date, "close"].pct_change(fill_method=None)
-            for symbol in visible
-        }
+    returns = (
+        reference_returns.loc[:date].tail(max(61, cfg.correlation_window))
+        if reference_returns is not None
+        else pd.DataFrame(
+            {symbol: panel[symbol].loc[:date, "close"].pct_change(fill_method=None) for symbol in visible}
+        )
     )
     correlation = float("nan")
+    return (
+        balanced_breadth20,
+        balanced_breadth60,
+        balanced_declining,
+        breadth20,
+        breadth60,
+        correlation,
+        declining_ratio,
+        group_stress,
+        grouped,
+        name_breadth20,
+        name_breadth60,
+        name_declining,
+        raw,
+        ret20_values,
+        returns,
+    )
+
+
+def build_reference_context(
+    *,
+    date: pd.Timestamp,
+    panel: Mapping[str, pd.DataFrame],
+    industries: Mapping[str, str],
+    cfg: SystemConfig,
+    reference_returns: pd.DataFrame | None = None,
+) -> ReferenceContext:
+    """Build a single causal reference observation with capped group authority."""
+    date = pd.Timestamp(date).normalize()
+    expected = tuple(
+        sorted(symbol for symbol, frame in panel.items() if not frame.empty and frame.index.min() <= date)
+    )
+    visible = tuple(sorted(symbol for symbol in expected if date in panel[symbol].index))
+    (
+        balanced_breadth20,
+        balanced_breadth60,
+        balanced_declining,
+        breadth20,
+        breadth60,
+        correlation,
+        declining_ratio,
+        group_stress,
+        grouped,
+        name_breadth20,
+        name_breadth60,
+        name_declining,
+        raw,
+        ret20_values,
+        returns,
+    ) = _build_reference_context_stage_1(
+        cfg=cfg,
+        date=date,
+        industries=industries,
+        panel=panel,
+        reference_returns=reference_returns,
+        visible=visible,
+    )
     if len(returns.columns) >= 4:
-        stacked = returns.tail(cfg.correlation_window).corr().where(
-            ~np.eye(len(returns.columns), dtype=bool)
-        ).stack()
+        stacked = (
+            returns.tail(cfg.correlation_window)
+            .corr()
+            .where(~np.eye(len(returns.columns), dtype=bool))
+            .stack()
+        )
         if not stacked.empty:
             correlation = float(stacked.median())
 
@@ -164,11 +221,7 @@ def build_reference_context(
         hierarchical=cfg.hierarchical_industry_shrinkage_enabled,
     )
     industry_strength = tuple(sorted((name, signal.score) for name, signal in signals.items()))
-    global_strength = float(
-        0.45 * breadth20
-        + 0.35 * breadth60
-        + 0.20 * (1.0 - declining_ratio)
-    )
+    global_strength = float(0.45 * breadth20 + 0.35 * breadth60 + 0.20 * (1.0 - declining_ratio))
     coverage = len(visible) / len(expected) if expected else 0.0
     return ReferenceContext(
         date=date,

@@ -115,6 +115,9 @@ def _strategic_crisis_severity(
     return "MARKET"
 
 
+strategic_crisis_severity = _strategic_crisis_severity
+
+
 def _update_strategic_damage_guard(
     *,
     account: AccountState,
@@ -148,6 +151,14 @@ def _update_strategic_damage_guard(
     return strategic_damage_guard
 
 
+strategic_damage_guard_active = _strategic_damage_guard_active
+strategic_damage_guard_persists = _strategic_damage_guard_persists
+strategic_damage_guard_required = _strategic_damage_guard_required
+strategic_grace_supported = _strategic_grace_supported
+strategic_guard_level2_overlay_required = _strategic_guard_level2_overlay_required
+update_strategic_damage_guard = _update_strategic_damage_guard
+
+
 __all__ = (
     "_strategic_crisis_severity",
     "_strategic_damage_guard_active",
@@ -156,4 +167,11 @@ __all__ = (
     "_strategic_grace_supported",
     "_strategic_guard_level2_overlay_required",
     "_update_strategic_damage_guard",
+    "strategic_crisis_severity",
+    "strategic_damage_guard_active",
+    "strategic_damage_guard_persists",
+    "strategic_damage_guard_required",
+    "strategic_grace_supported",
+    "strategic_guard_level2_overlay_required",
+    "update_strategic_damage_guard",
 )

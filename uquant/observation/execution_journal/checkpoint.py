@@ -2,7 +2,8 @@
 
 from __future__ import annotations
 
-from .models import _ZERO_HASH, JournalCheckpoint, JournalRecord
+from .models import ZERO_HASH as _ZERO_HASH
+from .models import JournalCheckpoint, JournalRecord
 
 
 def verify_checkpoint(

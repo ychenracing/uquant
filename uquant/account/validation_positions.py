@@ -6,15 +6,27 @@ import math
 from typing import Any
 
 from ..types import AccountState, Lifecycle, Opportunity, Position, Tranche
-from .validation_common import (
-    _HISTORICAL_ATTRIBUTION_SCHEMA_VERSION,
-    _finite_number,
-    _nonnegative_integer,
-    _optional_iso_date,
-    _required_iso_date,
-    _required_text,
+from .validation_attribution import (
+    validate_attribution_identity as _validate_attribution_identity,
 )
-from .validation_orders import _validate_attribution_identity
+from .validation_common import (
+    HISTORICAL_ATTRIBUTION_SCHEMA_VERSION as _HISTORICAL_ATTRIBUTION_SCHEMA_VERSION,
+)
+from .validation_common import (
+    finite_number as _finite_number,
+)
+from .validation_common import (
+    nonnegative_integer as _nonnegative_integer,
+)
+from .validation_common import (
+    optional_iso_date as _optional_iso_date,
+)
+from .validation_common import (
+    required_iso_date as _required_iso_date,
+)
+from .validation_common import (
+    required_text as _required_text,
+)
 
 
 def _tranche(payload: dict[str, Any], *, schema_version: int) -> Tranche:
@@ -121,6 +133,70 @@ def _position(payload: dict[str, Any], *, schema_version: int) -> Position:
     return position
 
 
+def _validate_position_tranche(
+    tranche: Tranche,
+    *,
+    lifecycles: set[str],
+    validate_attribution: bool,
+) -> None:
+    _nonnegative_integer(tranche.shares, field="account tranche shares", positive=True)
+    tranche_cost = _finite_number(
+        tranche.avg_cost,
+        field="account tranche cost",
+        minimum=0.0,
+    )
+    if tranche_cost == 0.0:
+        raise RuntimeError("account tranche cost must be positive")
+    tranche_high = _finite_number(
+        tranche.highest_close,
+        field="account tranche highest close",
+        minimum=0.0,
+    )
+    tranche_low = _finite_number(
+        tranche.lowest_close,
+        field="account tranche lowest close",
+        minimum=0.0,
+    )
+    if tranche_high == 0.0 or tranche_low == 0.0:
+        raise RuntimeError("account tranche prices must be positive")
+    if tranche.lifecycle not in lifecycles:
+        raise RuntimeError("account tranche has invalid lifecycle")
+    if not tranche.entry_date or not tranche.sellable_date:
+        raise RuntimeError("account tranche requires entry and sellable dates")
+    entry_date = _required_iso_date(
+        tranche.entry_date,
+        field="account tranche entry date",
+    )
+    sellable_date = _required_iso_date(
+        tranche.sellable_date,
+        field="account tranche sellable date",
+    )
+    if sellable_date < entry_date:
+        raise RuntimeError("account tranche sellable date predates entry date")
+    _finite_number(tranche.mfe, field="account tranche mfe", minimum=0.0)
+    _finite_number(tranche.mae, field="account tranche mae", maximum=0.0)
+    _finite_number(tranche.entry_score, field="account tranche entry_score")
+    _finite_number(
+        tranche.entry_confidence,
+        field="account tranche entry_confidence",
+        minimum=0.0,
+        maximum=1.0,
+    )
+    if not isinstance(tranche.entry_regime, str) or tranche.entry_regime not in {
+        item.value for item in Opportunity
+    }:
+        raise RuntimeError("account tranche has invalid entry_regime")
+    _finite_number(
+        tranche.entry_industry_strength,
+        field="account tranche entry_industry_strength",
+    )
+    if validate_attribution:
+        _validate_attribution_identity(
+            tranche,
+            label="account tranche",
+        )
+
+
 def _validate_position_state(
     state: AccountState,
     *,
@@ -163,61 +239,15 @@ def _validate_position_state(
         if not all(tranche_ids) or len(tranche_ids) != len(set(tranche_ids)):
             raise RuntimeError("account position has invalid tranche ids")
         for tranche in position.tranches:
-            _nonnegative_integer(tranche.shares, field="account tranche shares", positive=True)
-            tranche_cost = _finite_number(
-                tranche.avg_cost,
-                field="account tranche cost",
-                minimum=0.0,
+            _validate_position_tranche(
+                tranche,
+                lifecycles=lifecycles,
+                validate_attribution=validate_attribution,
             )
-            if tranche_cost == 0.0:
-                raise RuntimeError("account tranche cost must be positive")
-            tranche_high = _finite_number(
-                tranche.highest_close,
-                field="account tranche highest close",
-                minimum=0.0,
-            )
-            tranche_low = _finite_number(
-                tranche.lowest_close,
-                field="account tranche lowest close",
-                minimum=0.0,
-            )
-            if tranche_high == 0.0 or tranche_low == 0.0:
-                raise RuntimeError("account tranche prices must be positive")
-            if tranche.lifecycle not in lifecycles:
-                raise RuntimeError("account tranche has invalid lifecycle")
-            if not tranche.entry_date or not tranche.sellable_date:
-                raise RuntimeError("account tranche requires entry and sellable dates")
-            entry_date = _required_iso_date(
-                tranche.entry_date,
-                field="account tranche entry date",
-            )
-            sellable_date = _required_iso_date(
-                tranche.sellable_date,
-                field="account tranche sellable date",
-            )
-            if sellable_date < entry_date:
-                raise RuntimeError("account tranche sellable date predates entry date")
-            _finite_number(tranche.mfe, field="account tranche mfe", minimum=0.0)
-            _finite_number(tranche.mae, field="account tranche mae", maximum=0.0)
-            _finite_number(tranche.entry_score, field="account tranche entry_score")
-            _finite_number(
-                tranche.entry_confidence,
-                field="account tranche entry_confidence",
-                minimum=0.0,
-                maximum=1.0,
-            )
-            if not isinstance(tranche.entry_regime, str) or tranche.entry_regime not in {
-                item.value for item in Opportunity
-            }:
-                raise RuntimeError("account tranche has invalid entry_regime")
-            _finite_number(
-                tranche.entry_industry_strength,
-                field="account tranche entry_industry_strength",
-            )
-            if validate_attribution:
-                _validate_attribution_identity(
-                    tranche,
-                    label="account tranche",
-                )
         if position.shares != sum(item.shares for item in position.tranches):
             raise RuntimeError("account position shares do not reconcile to tranches")
+
+
+position_from_payload = _position
+tranche_from_payload = _tranche
+validate_position_state = _validate_position_state

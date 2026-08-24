@@ -8,8 +8,10 @@ from ..config import SystemConfig
 from ..risk_sector import SectorGuardTransition
 from ..types import AccountState
 from .strategic_guard import (
-    _strategic_grace_supported,
-    _strategic_guard_level2_overlay_required,
+    strategic_grace_supported as _strategic_grace_supported,
+)
+from .strategic_guard import (
+    strategic_guard_level2_overlay_required as _strategic_guard_level2_overlay_required,
 )
 
 
@@ -44,6 +46,9 @@ def _portfolio_drawdowns(account: AccountState, equity: float) -> tuple[float, f
     operating = max(0.0, 1.0 - equity / max(account.operating_peak, 1e-12))
     capital = max(0.0, 1.0 - equity / max(account.capital_peak, 1e-12))
     return operating, capital
+
+
+portfolio_drawdowns = _portfolio_drawdowns
 
 
 def _update_capital_budget_ladder(
@@ -89,6 +94,91 @@ def _capital_budget_repair_drawdown_confirmed(
     return max(capital_drawdown, operating_drawdown) < threshold
 
 
+def _independent_capital_damage(
+    *,
+    sector_guard: SectorGuardTransition,
+    reference_anchor_break: bool,
+    held_damage_ratio: float,
+    transition_damage: float,
+    votes: int,
+    cfg: SystemConfig,
+) -> bool:
+    return bool(
+        sector_guard.active
+        or (
+            held_damage_ratio >= cfg.concentrated_break_ratio
+            and transition_damage >= cfg.transition_damage_freeze
+            and votes >= 2
+        )
+        or (
+            reference_anchor_break
+            and held_damage_ratio >= cfg.concentrated_break_ratio
+            and transition_damage >= cfg.transition_damage_freeze
+            and votes >= 4
+        )
+    )
+
+
+def _observed_capital_budget_level(
+    *,
+    capital_dd: float,
+    operating_dd: float,
+    worsening_damage: bool,
+    independent_damage: bool,
+    votes: int,
+    sector_stress: float,
+    transition_damage: float,
+    held_damage_ratio: float,
+    cfg: SystemConfig,
+) -> int:
+    if (
+        capital_dd >= cfg.capital_dd_crisis
+        and worsening_damage
+        and votes >= 4
+        and sector_stress >= 0.50
+        and transition_damage >= 0.68
+    ):
+        return 4
+    if (
+        capital_dd >= cfg.capital_budget_level3_dd
+        and worsening_damage
+        and votes >= 4
+        and transition_damage >= cfg.transition_damage_freeze
+    ):
+        return 3
+    if capital_dd >= cfg.capital_budget_level2_dd and independent_damage:
+        return 2
+    if max(capital_dd, operating_dd) >= cfg.operating_dd_caution and (
+        votes >= 2 or (votes >= 1 and held_damage_ratio > 0)
+    ):
+        return 1
+    return 0
+
+
+def _young_strategic_cohort(
+    *,
+    account: AccountState,
+    cfg: SystemConfig,
+    strategic_active: bool,
+) -> bool:
+    grace_days = (
+        cfg.capital_budget_emerging_cohort_grace_days
+        if account.strategic_candidate_signature.startswith("strategic_qualification:EMERGING_SECULAR:")
+        else cfg.capital_budget_new_cohort_grace_days
+    )
+    return bool(
+        strategic_active
+        and _strategic_grace_supported(account=account)
+        and account.strategic_candidate_signature.startswith(
+            (
+                "strategic_qualification:SECULAR:",
+                "strategic_qualification:EMERGING_SECULAR:",
+            )
+        )
+        and account.candidate_tenure.get("strategic_cohort_days", 0) < grace_days
+    )
+
+
 def _observe_capital_budget(
     *,
     account: AccountState,
@@ -105,19 +195,13 @@ def _observe_capital_budget(
 ) -> CapitalObservation:
     """Run the existing capital-damage and budget-observation slice in order."""
 
-    independent_damage = bool(
-        sector_guard.active
-        or (
-            held_damage_ratio >= cfg.concentrated_break_ratio
-            and transition_damage >= cfg.transition_damage_freeze
-            and votes >= 2
-        )
-        or (
-            reference_anchor_break
-            and held_damage_ratio >= cfg.concentrated_break_ratio
-            and transition_damage >= cfg.transition_damage_freeze
-            and votes >= 4
-        )
+    independent_damage = _independent_capital_damage(
+        sector_guard=sector_guard,
+        reference_anchor_break=reference_anchor_break,
+        held_damage_ratio=held_damage_ratio,
+        transition_damage=transition_damage,
+        votes=votes,
+        cfg=cfg,
     )
     worsening_damage = bool(
         independent_damage
@@ -125,44 +209,21 @@ def _observe_capital_budget(
     )
     observed_budget_level = 0
     if cfg.capital_budget_ladder_enabled:
-        if (
-            capital_dd >= cfg.capital_dd_crisis
-            and worsening_damage
-            and votes >= 4
-            and sector_stress >= 0.50
-            and transition_damage >= 0.68
-        ):
-            observed_budget_level = 4
-        elif (
-            capital_dd >= cfg.capital_budget_level3_dd
-            and worsening_damage
-            and votes >= 4
-            and transition_damage >= cfg.transition_damage_freeze
-        ):
-            observed_budget_level = 3
-        elif capital_dd >= cfg.capital_budget_level2_dd and independent_damage:
-            observed_budget_level = 2
-        elif max(capital_dd, operating_dd) >= cfg.operating_dd_caution and (
-            votes >= 2 or (votes >= 1 and held_damage_ratio > 0)
-        ):
-            observed_budget_level = 1
-        cohort_grace_days = (
-            cfg.capital_budget_emerging_cohort_grace_days
-            if account.strategic_candidate_signature.startswith("strategic_qualification:EMERGING_SECULAR:")
-            else cfg.capital_budget_new_cohort_grace_days
+        observed_budget_level = _observed_capital_budget_level(
+            capital_dd=capital_dd,
+            operating_dd=operating_dd,
+            worsening_damage=worsening_damage,
+            independent_damage=independent_damage,
+            votes=votes,
+            sector_stress=sector_stress,
+            transition_damage=transition_damage,
+            held_damage_ratio=held_damage_ratio,
+            cfg=cfg,
         )
-        young_strategic_cohort = bool(
-            strategic_active
-            and _strategic_grace_supported(
-                account=account,
-            )
-            and account.strategic_candidate_signature.startswith(
-                (
-                    "strategic_qualification:SECULAR:",
-                    "strategic_qualification:EMERGING_SECULAR:",
-                )
-            )
-            and account.candidate_tenure.get("strategic_cohort_days", 0) < cohort_grace_days
+        young_strategic_cohort = _young_strategic_cohort(
+            account=account,
+            cfg=cfg,
+            strategic_active=strategic_active,
         )
         young_cohort_systemic_break = bool(votes >= 5 and sector_stress >= 0.50 and transition_damage >= 0.80)
         if young_strategic_cohort and not young_cohort_systemic_break:
@@ -246,6 +307,12 @@ def _apply_capital_overlays(
     )
 
 
+apply_capital_overlays = _apply_capital_overlays
+capital_budget_repair_drawdown_confirmed = _capital_budget_repair_drawdown_confirmed
+observe_capital_budget = _observe_capital_budget
+update_capital_budget_ladder = _update_capital_budget_ladder
+
+
 __all__ = (
     "CapitalObservation",
     "CapitalOverlays",
@@ -254,4 +321,9 @@ __all__ = (
     "_observe_capital_budget",
     "_portfolio_drawdowns",
     "_update_capital_budget_ladder",
+    "apply_capital_overlays",
+    "capital_budget_repair_drawdown_confirmed",
+    "observe_capital_budget",
+    "portfolio_drawdowns",
+    "update_capital_budget_ladder",
 )

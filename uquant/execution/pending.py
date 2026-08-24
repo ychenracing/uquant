@@ -12,40 +12,59 @@ from ..types import (
 )
 
 
-def merge_pending_orders(
+def _same_attribution(order: PendingOrder, target: Target) -> bool:
+    """Require the complete causal identity, including the stable event."""
+
+    return all(getattr(order, field) == getattr(target, field) for field in ATTRIBUTION_IDENTITY_FIELDS)
+
+
+def _durable_subthreshold_buy(
+    order: PendingOrder,
+    target: Target | None,
+    cfg: SystemConfig | None,
+) -> bool:
+    """Keep a partially filled buy when its economic target is unchanged."""
+
+    return bool(
+        cfg is not None
+        and target is not None
+        and order.side == Side.BUY.value
+        and bool(order.order_id)
+        and order.remaining_shares > 0
+        and target.weight > 1e-12
+        and order.lifecycle == target.lifecycle
+        and order.reduction_policy == target.reduction_policy
+        and _same_attribution(order, target)
+        and abs(order.target_weight - target.weight) < cfg.min_trade_weight
+    )
+
+
+def _durable_partial_risk_exit(
+    order: PendingOrder,
+    target: Target | None,
+    cfg: SystemConfig | None,
+) -> bool:
+    return bool(
+        cfg is not None
+        and target is not None
+        and order.side == Side.SELL.value
+        and order.order_id
+        and order.remaining_shares > 0
+        and order.reduction_policy == ReductionPolicy.RISK_PRIORITY.value
+        and target.reduction_policy == ReductionPolicy.RISK_PRIORITY.value
+        and target.weight > 1e-12
+        and target.weight < order.target_weight
+        and order.target_weight - target.weight < cfg.min_trade_weight
+        and _same_attribution(order, target)
+    )
+
+
+def _retained_pending_by_symbol(
     *,
     retained: list[PendingOrder],
-    planned: tuple[PendingOrder, ...],
-    targets: tuple[Target, ...],
-    cfg: SystemConfig | None = None,
-) -> tuple[PendingOrder, ...]:
-    """Keep blocked/partial orders while letting today's target supersede stale intent."""
-    target_by_symbol = {target.symbol: target for target in targets}
-
-    def same_attribution(order: PendingOrder, target: Target) -> bool:
-        """Require the complete causal identity, including the stable event."""
-
-        return all(getattr(order, field) == getattr(target, field) for field in ATTRIBUTION_IDENTITY_FIELDS)
-
-    def durable_subthreshold_buy(
-        order: PendingOrder,
-        target: Target | None,
-    ) -> bool:
-        """Keep a partially filled buy when its economic target is unchanged."""
-
-        return bool(
-            cfg is not None
-            and target is not None
-            and order.side == Side.BUY.value
-            and bool(order.order_id)
-            and order.remaining_shares > 0
-            and target.weight > 1e-12
-            and order.lifecycle == target.lifecycle
-            and order.reduction_policy == target.reduction_policy
-            and same_attribution(order, target)
-            and abs(order.target_weight - target.weight) < cfg.min_trade_weight
-        )
-
+    target_by_symbol: dict[str, Target],
+    cfg: SystemConfig | None,
+) -> dict[str, PendingOrder]:
     merged: dict[str, PendingOrder] = {}
     for order in retained:
         target = target_by_symbol.get(order.symbol)
@@ -57,46 +76,31 @@ def merge_pending_orders(
         same_execution_policy = (
             order.lifecycle == target.lifecycle
             and order.reduction_policy == target.reduction_policy
-            and same_attribution(order, target)
-        )
-        durable_partial_risk_exit = bool(
-            cfg is not None
-            and order.side == Side.SELL.value
-            and order.order_id
-            and order.remaining_shares > 0
-            and order.reduction_policy == ReductionPolicy.RISK_PRIORITY.value
-            and target.reduction_policy == ReductionPolicy.RISK_PRIORITY.value
-            and target.weight > 1e-12
-            and target.weight < order.target_weight
-            and order.target_weight - target.weight < cfg.min_trade_weight
-            and same_attribution(order, target)
+            and _same_attribution(order, target)
         )
         if (
             (consistent and same_execution_policy)
-            or durable_partial_risk_exit
-            or durable_subthreshold_buy(order, target)
+            or _durable_partial_risk_exit(order, target, cfg)
+            or _durable_subthreshold_buy(order, target, cfg)
         ):
             merged[order.symbol] = order
+    return merged
+
+
+def _apply_planned_pending_orders(
+    *,
+    merged: dict[str, PendingOrder],
+    planned: tuple[PendingOrder, ...],
+    target_by_symbol: dict[str, Target],
+    cfg: SystemConfig | None,
+) -> None:
     for order in planned:
         existing = merged.get(order.symbol)
         if existing is not None:
             target = target_by_symbol.get(order.symbol)
-            if durable_subthreshold_buy(existing, target):
+            if _durable_subthreshold_buy(existing, target, cfg):
                 continue
-            durable_partial_risk_exit = bool(
-                cfg is not None
-                and target is not None
-                and existing.side == Side.SELL.value
-                and existing.order_id
-                and existing.remaining_shares > 0
-                and existing.reduction_policy == ReductionPolicy.RISK_PRIORITY.value
-                and target.reduction_policy == ReductionPolicy.RISK_PRIORITY.value
-                and target.weight > 1e-12
-                and target.weight < existing.target_weight
-                and existing.target_weight - target.weight < cfg.min_trade_weight
-                and same_attribution(existing, target)
-            )
-            if durable_partial_risk_exit:
+            if _durable_partial_risk_exit(existing, target, cfg):
                 continue
         if (
             existing is not None
@@ -112,4 +116,26 @@ def merge_pending_orders(
             # prose/reason codes cannot split a causal event.
             continue
         merged[order.symbol] = order
+
+
+def merge_pending_orders(
+    *,
+    retained: list[PendingOrder],
+    planned: tuple[PendingOrder, ...],
+    targets: tuple[Target, ...],
+    cfg: SystemConfig | None = None,
+) -> tuple[PendingOrder, ...]:
+    """Keep blocked/partial orders while letting today's target supersede stale intent."""
+    target_by_symbol = {target.symbol: target for target in targets}
+    merged = _retained_pending_by_symbol(
+        retained=retained,
+        target_by_symbol=target_by_symbol,
+        cfg=cfg,
+    )
+    _apply_planned_pending_orders(
+        merged=merged,
+        planned=planned,
+        target_by_symbol=target_by_symbol,
+        cfg=cfg,
+    )
     return tuple(sorted(merged.values(), key=lambda item: (item.side != Side.SELL.value, item.symbol)))

@@ -5,8 +5,10 @@ from __future__ import annotations
 import hashlib
 import json
 import math
+from collections.abc import Mapping
 from dataclasses import dataclass, field
 from datetime import date as date_type
+from types import MappingProxyType
 from typing import Any, TypedDict
 
 from .enums import (
@@ -19,44 +21,47 @@ from .enums import (
     Side,
 )
 
-_ATTRIBUTION_COMPATIBILITY: dict[
+_ATTRIBUTION_COMPATIBILITY: Mapping[
     tuple[OriginSubsystem, AttributionMechanism],
     frozenset[Side],
-] = {
-    (OriginSubsystem.LEADER, AttributionMechanism.LEADER_SELECTION): frozenset(Side),
-    (OriginSubsystem.LEADER, AttributionMechanism.LEADER_ROTATION): frozenset(Side),
-    (OriginSubsystem.LEADER, AttributionMechanism.LEADER_LIFECYCLE_EXIT): frozenset({Side.SELL}),
-    (OriginSubsystem.LEADER, AttributionMechanism.LEADER_LIFECYCLE_PROMOTION): frozenset(),
-    (OriginSubsystem.LEADER, AttributionMechanism.LEADER_PYRAMID): frozenset({Side.BUY}),
-    (OriginSubsystem.LEADER, AttributionMechanism.CHALLENGER_SCOUT): frozenset({Side.BUY}),
-    (OriginSubsystem.LEADER, AttributionMechanism.SATELLITE_EXPIRY): frozenset({Side.SELL}),
-    (OriginSubsystem.RECOVERY, AttributionMechanism.RECOVERY_COHORT): frozenset(Side),
-    (OriginSubsystem.RECOVERY, AttributionMechanism.RECOVERY_SUBSTITUTION): frozenset(Side),
-    (OriginSubsystem.RECOVERY, AttributionMechanism.RECOVERY_CAP): frozenset(Side),
-    (OriginSubsystem.RECOVERY, AttributionMechanism.RECOVERY_REARM): frozenset({Side.BUY}),
-    (OriginSubsystem.RECOVERY, AttributionMechanism.TACTICAL_REBOUND): frozenset(Side),
-    (OriginSubsystem.RECOVERY, AttributionMechanism.POST_SHOCK_RESTORATION): frozenset({Side.BUY}),
-    (OriginSubsystem.STRATEGIC, AttributionMechanism.STRATEGIC_COHORT): frozenset(Side),
-    (OriginSubsystem.STRATEGIC, AttributionMechanism.STRATEGIC_TRAILING_EXIT): frozenset({Side.SELL}),
-    (OriginSubsystem.STRATEGIC, AttributionMechanism.STRATEGIC_PROFIT_LOCK): frozenset({Side.SELL}),
-    (OriginSubsystem.STRATEGIC, AttributionMechanism.STRATEGIC_RESTORATION): frozenset({Side.BUY}),
-    (OriginSubsystem.RISK, AttributionMechanism.RISK_GROSS_CAP): frozenset({Side.SELL}),
-    (OriginSubsystem.RISK, AttributionMechanism.SECTOR_GUARD): frozenset({Side.SELL}),
-    (OriginSubsystem.RISK, AttributionMechanism.STRATEGIC_DAMAGE_GUARD): frozenset({Side.SELL}),
-    (OriginSubsystem.RISK, AttributionMechanism.RISK_OFF): frozenset({Side.SELL}),
-    (OriginSubsystem.RISK, AttributionMechanism.CRISIS): frozenset({Side.SELL}),
-    (OriginSubsystem.RISK, AttributionMechanism.CAPITAL_BUDGET): frozenset({Side.SELL}),
-    (OriginSubsystem.RISK, AttributionMechanism.RISK_FREEZE): frozenset(),
-    (
-        OriginSubsystem.BROKER_RECONCILIATION,
-        AttributionMechanism.BROKER_RECONCILIATION,
-    ): frozenset({Side.SELL}),
-    (OriginSubsystem.LEGACY_MIGRATION, AttributionMechanism.LEGACY_MIGRATION): frozenset({Side.SELL}),
-    (
-        OriginSubsystem.UNATTRIBUTED_LEGACY,
-        AttributionMechanism.LEGACY_UNCLASSIFIED,
-    ): frozenset({Side.BUY}),
-}
+] = MappingProxyType(
+    {
+        (OriginSubsystem.LEADER, AttributionMechanism.LEADER_SELECTION): frozenset(Side),
+        (OriginSubsystem.LEADER, AttributionMechanism.LEADER_ROTATION): frozenset(Side),
+        (OriginSubsystem.LEADER, AttributionMechanism.LEADER_LIFECYCLE_EXIT): frozenset({Side.SELL}),
+        (OriginSubsystem.LEADER, AttributionMechanism.LEADER_LIFECYCLE_PROMOTION): frozenset(),
+        (OriginSubsystem.LEADER, AttributionMechanism.LEADER_PYRAMID): frozenset({Side.BUY}),
+        (OriginSubsystem.LEADER, AttributionMechanism.CHALLENGER_SCOUT): frozenset({Side.BUY}),
+        (OriginSubsystem.LEADER, AttributionMechanism.SATELLITE_EXPIRY): frozenset({Side.SELL}),
+        (OriginSubsystem.RECOVERY, AttributionMechanism.RECOVERY_COHORT): frozenset(Side),
+        (OriginSubsystem.RECOVERY, AttributionMechanism.RECOVERY_SUBSTITUTION): frozenset(Side),
+        (OriginSubsystem.RECOVERY, AttributionMechanism.RECOVERY_CAP): frozenset(Side),
+        (OriginSubsystem.RECOVERY, AttributionMechanism.RECOVERY_REARM): frozenset({Side.BUY}),
+        (OriginSubsystem.RECOVERY, AttributionMechanism.TACTICAL_REBOUND): frozenset(Side),
+        (OriginSubsystem.RECOVERY, AttributionMechanism.POST_SHOCK_RESTORATION): frozenset({Side.BUY}),
+        (OriginSubsystem.STRATEGIC, AttributionMechanism.STRATEGIC_COHORT): frozenset(Side),
+        (OriginSubsystem.STRATEGIC, AttributionMechanism.STRATEGIC_TRAILING_EXIT): frozenset({Side.SELL}),
+        (OriginSubsystem.STRATEGIC, AttributionMechanism.STRATEGIC_PROFIT_LOCK): frozenset({Side.SELL}),
+        (OriginSubsystem.STRATEGIC, AttributionMechanism.STRATEGIC_RESTORATION): frozenset({Side.BUY}),
+        (OriginSubsystem.RISK, AttributionMechanism.RISK_GROSS_CAP): frozenset({Side.SELL}),
+        (OriginSubsystem.RISK, AttributionMechanism.SECTOR_GUARD): frozenset({Side.SELL}),
+        (OriginSubsystem.RISK, AttributionMechanism.STRATEGIC_DAMAGE_GUARD): frozenset({Side.SELL}),
+        (OriginSubsystem.RISK, AttributionMechanism.RISK_OFF): frozenset({Side.SELL}),
+        (OriginSubsystem.RISK, AttributionMechanism.CRISIS): frozenset({Side.SELL}),
+        (OriginSubsystem.RISK, AttributionMechanism.CAPITAL_BUDGET): frozenset({Side.SELL}),
+        (OriginSubsystem.RISK, AttributionMechanism.RISK_FREEZE): frozenset(),
+        (
+            OriginSubsystem.BROKER_RECONCILIATION,
+            AttributionMechanism.BROKER_RECONCILIATION,
+        ): frozenset({Side.SELL}),
+        (OriginSubsystem.LEGACY_MIGRATION, AttributionMechanism.LEGACY_MIGRATION): frozenset({Side.SELL}),
+        (
+            OriginSubsystem.UNATTRIBUTED_LEGACY,
+            AttributionMechanism.LEGACY_UNCLASSIFIED,
+        ): frozenset({Side.BUY}),
+    }
+)
+ATTRIBUTION_COMPATIBILITY = _ATTRIBUTION_COMPATIBILITY
 
 
 def validate_attribution_compatibility(
@@ -353,6 +358,7 @@ class Fill:
 
 
 __all__ = (
+    "ATTRIBUTION_COMPATIBILITY",
     "ATTRIBUTION_IDENTITY_FIELDS",
     "ORDER_INTENT_IMMUTABLE_FIELDS",
     "_ATTRIBUTION_COMPATIBILITY",

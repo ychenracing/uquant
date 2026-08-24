@@ -437,3 +437,9 @@ def first_executable_divergence(
                 "right": dict(right_item),
             }
     return None
+
+
+CAUSAL_STAGES = _CAUSAL_STAGES
+canonical_stages = _canonical_stages
+trace_row = _trace_row
+validate_trace_interval = _validate_trace_interval

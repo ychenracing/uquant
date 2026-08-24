@@ -11,60 +11,68 @@ from __future__ import annotations
 
 import math
 import re
+from collections.abc import Mapping
 from dataclasses import dataclass
+from types import MappingProxyType
 from typing import Any
 
 import pandas as pd
 
 from ...config_governance import GOVERNANCE_PATH
 
-_REFERENCE_FIELDS = {"final_wealth", "max_drawdown", "account_orders"}
+_REFERENCE_FIELDS = frozenset({"final_wealth", "max_drawdown", "account_orders"})
 _BASELINE_SCHEMA_VERSION = 3
 _SHA256 = re.compile(r"^[0-9a-f]{64}$")
 _COMMIT = re.compile(r"^[0-9a-f]{40,64}$")
-_PROVENANCE_SECTIONS = {"data", "dataset", "execution", "production"}
-_EXECUTION_CONTRACT: dict[str, Any] = {
-    "engine": "uquant.engine.ProductionEngine",
-    "decision": "daily_close_t",
-    "execution": "next_tradable_open",
-    "intraday_exit": False,
-    "prelisting": "invisible_until_first_observable_row",
-}
-_COMPETITOR_BEST_FIELDS = {"metric", "scenario", "value", "provenance"}
-_COMPETITOR_PROVENANCE_FIELDS = {
-    "repository",
-    "reference_path",
-    "reference_commit",
-    "reference_sha256",
-}
+_PROVENANCE_SECTIONS = frozenset({"data", "dataset", "execution", "production"})
+_EXECUTION_CONTRACT: Mapping[str, Any] = MappingProxyType(
+    {
+        "engine": "uquant.engine.ProductionEngine",
+        "decision": "daily_close_t",
+        "execution": "next_tradable_open",
+        "intraday_exit": False,
+        "prelisting": "invisible_until_first_observable_row",
+    }
+)
+_COMPETITOR_BEST_FIELDS = frozenset({"metric", "scenario", "value", "provenance"})
+_COMPETITOR_PROVENANCE_FIELDS = frozenset(
+    {
+        "repository",
+        "reference_path",
+        "reference_commit",
+        "reference_sha256",
+    }
+)
 _FIXED_PRODUCTION_PATHS = (
     "pyproject.toml",
     GOVERNANCE_PATH.as_posix(),
 )
-_POLICY_FIELDS = {
-    "wealth_floor_ratio",
-    "drawdown_tolerance",
-    "order_tolerance",
-    "order_ceiling_ratio",
-    "dominance_wealth_regression",
-    "dominance_drawdown_regression",
-    "dominance_order_regression",
-    "pareto_wealth_improvement",
-    "pareto_drawdown_improvement",
-    "pareto_order_improvement",
-    "pareto_wealth_regression",
-    "pareto_drawdown_regression",
-    "pareto_order_regression",
-    "remove_one_max_dependency",
-    "remove_all_min_wealth",
-    "remove_all_max_drawdown",
-    "remove_all_competitor_ratio",
-    "no_optical_min_wealth",
-    "no_optical_max_drawdown",
-    "random_min_positive_fraction",
-    "random_p10_min_wealth",
-    "optical_dependency_share_threshold",
-}
+_POLICY_FIELDS = frozenset(
+    {
+        "wealth_floor_ratio",
+        "drawdown_tolerance",
+        "order_tolerance",
+        "order_ceiling_ratio",
+        "dominance_wealth_regression",
+        "dominance_drawdown_regression",
+        "dominance_order_regression",
+        "pareto_wealth_improvement",
+        "pareto_drawdown_improvement",
+        "pareto_order_improvement",
+        "pareto_wealth_regression",
+        "pareto_drawdown_regression",
+        "pareto_order_regression",
+        "remove_one_max_dependency",
+        "remove_all_min_wealth",
+        "remove_all_max_drawdown",
+        "remove_all_competitor_ratio",
+        "no_optical_min_wealth",
+        "no_optical_max_drawdown",
+        "random_min_positive_fraction",
+        "random_p10_min_wealth",
+        "optical_dependency_share_threshold",
+    }
+)
 
 
 @dataclass(frozen=True, slots=True)
@@ -254,3 +262,15 @@ class GeneralizationPolicy:
     def to_dict(self) -> dict[str, float | int]:
         """Return a stable JSON-compatible representation without defaults."""
         return {name: getattr(self, name) for name in sorted(_POLICY_FIELDS)}
+
+
+BASELINE_SCHEMA_VERSION = _BASELINE_SCHEMA_VERSION
+COMMIT_PATTERN = _COMMIT
+COMPETITOR_BEST_FIELDS = _COMPETITOR_BEST_FIELDS
+COMPETITOR_PROVENANCE_FIELDS = _COMPETITOR_PROVENANCE_FIELDS
+EXECUTION_CONTRACT = _EXECUTION_CONTRACT
+FIXED_PRODUCTION_PATHS = _FIXED_PRODUCTION_PATHS
+POLICY_FIELDS = _POLICY_FIELDS
+PROVENANCE_SECTIONS = _PROVENANCE_SECTIONS
+REFERENCE_FIELDS = _REFERENCE_FIELDS
+SHA256_PATTERN = _SHA256

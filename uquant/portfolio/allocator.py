@@ -40,13 +40,10 @@ def _confirmed_recovery_gross(
         and account.capital_budget_level == 0
         and account.chronic_level == 0
     )
-    return (
-        explicit_cap
-        if fully_repaired
-        else min(self.cfg.recovery_target_gross, explicit_cap)
-    )
+    return explicit_cap if fully_repaired else min(self.cfg.recovery_target_gross, explicit_cap)
 
-def allocate(
+
+def _allocate_strategy_targets(
     self: PortfolioAllocator,
     *,
     date: pd.Timestamp,
@@ -56,8 +53,7 @@ def allocate(
     leaders: dict[str, LeaderScore],
     account: AccountState,
     prices: dict[str, float],
-) -> tuple[Target, ...]:
-    """Apply the risk engine's gross cap to every strategy return path."""
+) -> tuple[tuple[Target, ...], AccountState, bool]:
     sentinel_only_freeze = sentinel_freeze_authorized(risk)
     strategy_risk = risk
     if sentinel_only_freeze:
@@ -87,34 +83,20 @@ def allocate(
             f"portfolio allocation failed on {date.date()} "
             f"for opportunity={opportunity.value}, risk={risk.state.value}: {exc}"
         ) from exc
-    if sentinel_only_freeze:
-        weights_now, _ = current_weights(account, prices)
-        targets = self._frozen_existing_targets(
-            strategy_targets=targets,
-            leaders=leaders,
-            account=account,
-            weights_now=weights_now,
-        )
-        allowed_exit_symbols = {
-            target.symbol
-            for target in targets
-            if target.weight + 1e-12 < weights_now.get(target.symbol, 0.0)
-        }
-        self._commit_frozen_exit_state(
-            account=account,
-            planned_account=strategy_account,
-            allowed_exit_symbols=allowed_exit_symbols,
-        )
-    gross_cap = min(self.cfg.max_gross, max(0.0, risk.target_gross_cap))
-    risk_reason, risk_reason_code, risk_exit_kind = self._risk_reduction_metadata(risk)
-    target_gross = sum(item.weight for item in targets if item.weight > 0)
-    weights_now, _ = current_weights(account, prices)
-    current_gross = sum(weight for weight in weights_now.values() if weight > 0)
+    return targets, strategy_account, sentinel_only_freeze
+
+
+def _dominant_level1_retention(
+    *,
+    risk: RiskAssessment,
+    account: AccountState,
+    weights_now: dict[str, float],
+    target_gross: float,
+    current_gross: float,
+) -> bool:
     dominant_symbol = strategic_dominant_symbol(account)
-    live_symbols = {
-        symbol for symbol, weight in weights_now.items() if weight > 1e-12
-    }
-    dominant_level1_retention = bool(
+    live_symbols = {symbol for symbol, weight in weights_now.items() if weight > 1e-12}
+    return bool(
         dominant_symbol is not None
         and live_symbols == {dominant_symbol}
         and risk.state in {Risk.NORMAL, Risk.CAUTION}
@@ -126,6 +108,58 @@ def allocate(
         # remain authoritative.  This exception only converts an ordinary
         # level-1 cap into a freeze of an unchanged incumbent.
         and target_gross >= current_gross - 1e-12
+    )
+
+
+def allocate(
+    self: PortfolioAllocator,
+    *,
+    date: pd.Timestamp,
+    opportunity: Opportunity,
+    risk: RiskAssessment,
+    user_panel: dict[str, pd.DataFrame],
+    leaders: dict[str, LeaderScore],
+    account: AccountState,
+    prices: dict[str, float],
+) -> tuple[Target, ...]:
+    """Apply the risk engine's gross cap to every strategy return path."""
+    targets, strategy_account, sentinel_only_freeze = _allocate_strategy_targets(
+        self,
+        date=date,
+        opportunity=opportunity,
+        risk=risk,
+        user_panel=user_panel,
+        leaders=leaders,
+        account=account,
+        prices=prices,
+    )
+    if sentinel_only_freeze:
+        weights_now, _ = current_weights(account, prices)
+        targets = self._frozen_existing_targets(
+            strategy_targets=targets,
+            leaders=leaders,
+            account=account,
+            weights_now=weights_now,
+        )
+        allowed_exit_symbols = {
+            target.symbol for target in targets if target.weight + 1e-12 < weights_now.get(target.symbol, 0.0)
+        }
+        self._commit_frozen_exit_state(
+            account=account,
+            planned_account=strategy_account,
+            allowed_exit_symbols=allowed_exit_symbols,
+        )
+    gross_cap = min(self.cfg.max_gross, max(0.0, risk.target_gross_cap))
+    risk_reason, risk_reason_code, risk_exit_kind = self._risk_reduction_metadata(risk)
+    target_gross = sum(item.weight for item in targets if item.weight > 0)
+    weights_now, _ = current_weights(account, prices)
+    current_gross = sum(weight for weight in weights_now.values() if weight > 0)
+    dominant_level1_retention = _dominant_level1_retention(
+        risk=risk,
+        account=account,
+        weights_now=weights_now,
+        target_gross=target_gross,
+        current_gross=current_gross,
     )
     if dominant_level1_retention:
         gross_cap = max(
@@ -142,9 +176,7 @@ def allocate(
         # the ordinary capital ladder has already forced a reduction in
         # this epoch, a later fall back into the early-warning band cannot
         # layer a second, tighter strategic guard onto the same damage.
-        account.candidate_tenure[
-            "strategic_external_risk_epoch"
-        ] = account.strategic_epoch
+        account.candidate_tenure["strategic_external_risk_epoch"] = account.strategic_epoch
     if target_gross <= gross_cap + 1e-12:
         if current_gross <= gross_cap + 1e-12:
             return targets
@@ -288,3 +320,5 @@ class PortfolioAllocator(RecoveryPortfolioPolicy):
 
 
 PortfolioAllocator.__module__ = "uquant.portfolio"
+
+confirmed_recovery_gross = _confirmed_recovery_gross

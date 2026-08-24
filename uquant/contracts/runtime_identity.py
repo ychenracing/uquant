@@ -8,6 +8,7 @@ import shutil
 
 # Security: uv is invoked only through a resolved executable and fixed arguments.
 import subprocess  # nosec B404
+from collections.abc import Mapping
 from datetime import date
 from pathlib import Path
 from types import MappingProxyType
@@ -29,14 +30,16 @@ AI_ERA_WINDOWS: Final = MappingProxyType(
     }
 )
 
-AI_ERA_ACUTE_WINDOWS: Final[dict[str, tuple[str, str]]] = {
-    "h1_2023": ("2023-04-20", "2023-05-25"),
-    "h2_2023": ("2023-07-26", "2023-08-25"),
-    "h1_2024": ("2024-01-03", "2024-02-02"),
-    "h2_2024": ("2024-08-01", "2024-09-02"),
-    "bull_crash_2025_2026": ("2026-06-30", "2026-07-30"),
-    "continuous_ai_era": ("2026-06-30", "2026-07-30"),
-}
+AI_ERA_ACUTE_WINDOWS: Final[Mapping[str, tuple[str, str]]] = MappingProxyType(
+    {
+        "h1_2023": ("2023-04-20", "2023-05-25"),
+        "h2_2023": ("2023-07-26", "2023-08-25"),
+        "h1_2024": ("2024-01-03", "2024-02-02"),
+        "h2_2024": ("2024-08-01", "2024-09-02"),
+        "bull_crash_2025_2026": ("2026-06-30", "2026-07-30"),
+        "continuous_ai_era": ("2026-06-30", "2026-07-30"),
+    }
+)
 
 
 def require_ai_era_interval(start: str, end: str) -> tuple[str, str]:

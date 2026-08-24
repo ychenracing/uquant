@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import builtins
 import importlib.util
 import json
 import sys
@@ -30,6 +31,63 @@ assert SPEC is not None and SPEC.loader is not None
 runner = importlib.util.module_from_spec(SPEC)
 sys.modules[SPEC.name] = runner
 SPEC.loader.exec_module(runner)
+
+
+def test_adapter_initialization_failure_remains_a_replay_error(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    implementation = runner._implementation
+    monkeypatch.setattr(
+        implementation,
+        "observable_symbols_in_window",
+        lambda *_args, **_kwargs: ("sz300308",),
+    )
+    original_import = builtins.__import__
+
+    class AdapterInitProbeError(RuntimeError):
+        pass
+
+    def fail_adapter_import(
+        name: str,
+        globals: dict[str, object] | None = None,
+        locals: dict[str, object] | None = None,
+        fromlist: tuple[str, ...] = (),
+        level: int = 0,
+    ) -> object:
+        if name == "research.window_competitor_adapter":
+            raise AdapterInitProbeError("promotion baseline unavailable")
+        return original_import(name, globals, locals, fromlist, level)
+
+    monkeypatch.setattr(builtins, "__import__", fail_adapter_import)
+    request = {
+        "system": "trade",
+        "axis": "official_pool",
+        "name": "probe",
+        "family": "official_pool",
+        "window": "period",
+        "start": "2025-01-02",
+        "end": "2026-07-31",
+        "acute_start": "2025-01-02",
+        "acute_end": "2026-07-31",
+        "symbols": ["sz300308"],
+    }
+    paths = {
+        "data_root": str(tmp_path),
+        "repository_root": str(ROOT),
+        "qwen_root": "qwen",
+        "aquant_root": "aquant",
+        "trade_root": "trade",
+        "trade_data_root": str(tmp_path),
+    }
+
+    result = implementation._execute_competitor_request((request, paths))
+
+    assert result["status"] == "REPLAY_ERROR"
+    assert result["error"] == {
+        "class": "AdapterInitProbeError",
+        "message": "promotion baseline unavailable",
+    }
 
 
 def test_current_heads_contract_freezes_every_shared_comparison_axis() -> None:

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from datetime import UTC, datetime
 from pathlib import Path
 from types import SimpleNamespace
@@ -19,16 +20,26 @@ from ..types import (
     Side,
     derive_attribution_event_id,
 )
-from .codec import _read_account_payload, account_from_dict, load_account
+from .codec import account_from_dict, load_account
+from .codec import read_account_payload as _read_account_payload
 from .economic_identity import economic_state_sha256
 from .store import save_account
-from .validation_common import (
-    _HISTORICAL_ATTRIBUTION_SCHEMA_VERSION,
-    _LEGACY_INDUSTRY,
-    _LEGACY_MANIFEST_SHA256,
-    _unlinked_fill_matches_order,
+from .validation_attribution import (
+    derive_v4_attribution_event_id as _derive_v4_attribution_event_id,
 )
-from .validation_orders import _derive_v4_attribution_event_id, _order_sequence
+from .validation_common import (
+    HISTORICAL_ATTRIBUTION_SCHEMA_VERSION as _HISTORICAL_ATTRIBUTION_SCHEMA_VERSION,
+)
+from .validation_common import (
+    LEGACY_INDUSTRY as _LEGACY_INDUSTRY,
+)
+from .validation_common import (
+    LEGACY_MANIFEST_SHA256 as _LEGACY_MANIFEST_SHA256,
+)
+from .validation_common import (
+    unlinked_fill_matches_order as _unlinked_fill_matches_order,
+)
+from .validation_orders import order_sequence as _order_sequence
 
 
 def _legacy_attribution_owner(
@@ -130,9 +141,10 @@ def _legacy_industry(symbol: str, entry_date: str) -> tuple[str, str]:
     return industry, REQUIRED_AI_UNIVERSE_SHA256
 
 
-def _populate_legacy_attribution(state: AccountState) -> list[dict[str, str]]:
-    """Populate v1-v3 identity from stable structured fields only."""
-
+def _populate_legacy_attribution_stage_1(
+    *,
+    state: Any,
+) -> tuple[Any, Any]:
     unknown_buy_reclassifications: dict[str, dict[str, str]] = {}
 
     replacements = {
@@ -142,7 +154,28 @@ def _populate_legacy_attribution(state: AccountState) -> list[dict[str, str]]:
         for event in state.replacement_events
         if event.get("signal_date") and event.get("new_symbol") and event.get("old_symbol")
     }
+    return replacements, unknown_buy_reclassifications
 
+
+def _populate_legacy_attribution_stage_2() -> Any:
+    identity_fields = (
+        "event_id",
+        "origin_subsystem",
+        "mechanism",
+        "origin_lifecycle",
+        "replaces_symbol",
+        "industry_at_entry",
+        "industry_manifest_sha256",
+    )
+    return identity_fields
+
+
+def _populate_legacy_orders(
+    state: AccountState,
+    *,
+    replacements: dict[tuple[str, str], str],
+    unknown_buy_reclassifications: dict[str, dict[str, str]],
+) -> dict[str, AccountOrder]:
     def populate_order(order: PendingOrder | AccountOrder) -> None:
         origin, mechanism, unclassified_buy = _legacy_attribution_owner(
             order.reason_code,
@@ -200,7 +233,10 @@ def _populate_legacy_attribution(state: AccountState) -> list[dict[str, str]]:
             "industry_manifest_sha256",
         ):
             setattr(pending_order, field, getattr(linked, field))
+    return ledger
 
+
+def _populate_legacy_positions(state: AccountState) -> None:
     for symbol, position in state.positions.items():
         for tranche in position.tranches:
             industry, manifest = _legacy_industry(symbol, tranche.entry_date)
@@ -226,99 +262,127 @@ def _populate_legacy_attribution(state: AccountState) -> list[dict[str, str]]:
                 exit_kind="legacy_migration",
             )
 
-    identity_fields = (
-        "event_id",
-        "origin_subsystem",
-        "mechanism",
-        "origin_lifecycle",
-        "replaces_symbol",
-        "industry_at_entry",
-        "industry_manifest_sha256",
+
+def _populate_legacy_fill(
+    fill: Any,
+    *,
+    fill_index: int,
+    identity_fields: tuple[str, ...],
+    ledger: dict[str, AccountOrder],
+    replacements: dict[tuple[str, str], str],
+    state: AccountState,
+    unknown_buy_reclassifications: dict[str, dict[str, str]],
+) -> None:
+    linked = ledger.get(fill.order_id) if fill.order_id else None
+    if not fill.order_id:
+        candidates = [
+            order for order in state.order_ledger if _unlinked_fill_matches_order(fill, order, native=False)
+        ]
+        if len(candidates) > 1:
+            raise RuntimeError("legacy unlinked fill has ambiguous structured order identity")
+        linked = candidates[0] if candidates else None
+    if linked is not None:
+        for field in identity_fields:
+            setattr(fill, field, getattr(linked, field))
+    else:
+        origin, mechanism, unclassified_buy = _legacy_attribution_owner(
+            fill.reason_code,
+            fill.exit_kind,
+            side=fill.side,
+        )
+        industry, manifest = _legacy_industry(fill.symbol, fill.signal_date)
+        fill.origin_subsystem = origin
+        fill.mechanism = mechanism
+        fill.origin_lifecycle = fill.lifecycle
+        fill.replaces_symbol = replacements.get((fill.signal_date, fill.symbol))
+        fill.industry_at_entry = industry
+        fill.industry_manifest_sha256 = manifest
+        fill.event_id = derive_attribution_event_id(
+            signal_date=fill.signal_date,
+            symbol=fill.symbol,
+            target_weight=0.0,
+            lifecycle=fill.lifecycle,
+            origin_lifecycle=fill.origin_lifecycle,
+            origin_subsystem=fill.origin_subsystem,
+            mechanism=fill.mechanism,
+            replaces_symbol=fill.replaces_symbol,
+            industry_at_entry=industry,
+            industry_manifest_sha256=manifest,
+            reduction_policy=fill.reduction_policy,
+            reason_code=f"{fill.reason_code}:legacy_fill:{fill.fill_id or fill_index}",
+            exit_kind=fill.exit_kind,
+        )
+        if unclassified_buy:
+            unknown_buy_reclassifications.setdefault(
+                fill.event_id,
+                {
+                    "event_id": fill.event_id,
+                    "signal_date": fill.signal_date,
+                    "symbol": fill.symbol,
+                },
+            )
+    for allocation_index, allocation in enumerate(fill.sold_tranches, start=1):
+        entry_date = str(allocation.get("entry_date") or fill.fill_date)
+        lifecycle = str(allocation.get("lifecycle") or fill.lifecycle)
+        industry, manifest = _legacy_industry(fill.symbol, entry_date)
+        allocation.update(
+            origin_subsystem=OriginSubsystem.LEGACY_MIGRATION.value,
+            mechanism=AttributionMechanism.LEGACY_MIGRATION.value,
+            origin_lifecycle=lifecycle,
+            replaces_symbol=None,
+            industry_at_entry=industry,
+            industry_manifest_sha256=manifest,
+        )
+        allocation["event_id"] = derive_attribution_event_id(
+            signal_date=entry_date,
+            symbol=fill.symbol,
+            target_weight=0.0,
+            lifecycle=lifecycle,
+            origin_lifecycle=lifecycle,
+            origin_subsystem=OriginSubsystem.LEGACY_MIGRATION.value,
+            mechanism=AttributionMechanism.LEGACY_MIGRATION.value,
+            replaces_symbol=None,
+            industry_at_entry=industry,
+            industry_manifest_sha256=manifest,
+            reduction_policy=ReductionPolicy.FIFO.value,
+            reason_code=("legacy_sold_tranche:" + str(allocation.get("tranche_id") or allocation_index)),
+            exit_kind="legacy_migration",
+        )
+
+
+def _populate_legacy_attribution(state: AccountState) -> list[dict[str, str]]:
+    """Populate v1-v3 identity from stable structured fields only."""
+
+    replacements, unknown_buy_reclassifications = _populate_legacy_attribution_stage_1(
+        state=state,
     )
+
+    ledger = _populate_legacy_orders(
+        state,
+        replacements=replacements,
+        unknown_buy_reclassifications=unknown_buy_reclassifications,
+    )
+    _populate_legacy_positions(state)
+    identity_fields = _populate_legacy_attribution_stage_2()
     for fill_index, fill in enumerate(state.fills, start=1):
-        linked = ledger.get(fill.order_id) if fill.order_id else None
-        if not fill.order_id:
-            candidates = [
-                order
-                for order in state.order_ledger
-                if _unlinked_fill_matches_order(fill, order, native=False)
-            ]
-            if len(candidates) > 1:
-                raise RuntimeError("legacy unlinked fill has ambiguous structured order identity")
-            linked = candidates[0] if candidates else None
-        if linked is not None:
-            for field in identity_fields:
-                setattr(fill, field, getattr(linked, field))
-        else:
-            origin, mechanism, unclassified_buy = _legacy_attribution_owner(
-                fill.reason_code,
-                fill.exit_kind,
-                side=fill.side,
-            )
-            industry, manifest = _legacy_industry(fill.symbol, fill.signal_date)
-            fill.origin_subsystem = origin
-            fill.mechanism = mechanism
-            fill.origin_lifecycle = fill.lifecycle
-            fill.replaces_symbol = replacements.get((fill.signal_date, fill.symbol))
-            fill.industry_at_entry = industry
-            fill.industry_manifest_sha256 = manifest
-            fill.event_id = derive_attribution_event_id(
-                signal_date=fill.signal_date,
-                symbol=fill.symbol,
-                target_weight=0.0,
-                lifecycle=fill.lifecycle,
-                origin_lifecycle=fill.origin_lifecycle,
-                origin_subsystem=fill.origin_subsystem,
-                mechanism=fill.mechanism,
-                replaces_symbol=fill.replaces_symbol,
-                industry_at_entry=industry,
-                industry_manifest_sha256=manifest,
-                reduction_policy=fill.reduction_policy,
-                reason_code=f"{fill.reason_code}:legacy_fill:{fill.fill_id or fill_index}",
-                exit_kind=fill.exit_kind,
-            )
-            if unclassified_buy:
-                unknown_buy_reclassifications.setdefault(
-                    fill.event_id,
-                    {
-                        "event_id": fill.event_id,
-                        "signal_date": fill.signal_date,
-                        "symbol": fill.symbol,
-                    },
-                )
-        for allocation_index, allocation in enumerate(fill.sold_tranches, start=1):
-            entry_date = str(allocation.get("entry_date") or fill.fill_date)
-            lifecycle = str(allocation.get("lifecycle") or fill.lifecycle)
-            industry, manifest = _legacy_industry(fill.symbol, entry_date)
-            allocation.update(
-                origin_subsystem=OriginSubsystem.LEGACY_MIGRATION.value,
-                mechanism=AttributionMechanism.LEGACY_MIGRATION.value,
-                origin_lifecycle=lifecycle,
-                replaces_symbol=None,
-                industry_at_entry=industry,
-                industry_manifest_sha256=manifest,
-            )
-            allocation["event_id"] = derive_attribution_event_id(
-                signal_date=entry_date,
-                symbol=fill.symbol,
-                target_weight=0.0,
-                lifecycle=lifecycle,
-                origin_lifecycle=lifecycle,
-                origin_subsystem=OriginSubsystem.LEGACY_MIGRATION.value,
-                mechanism=AttributionMechanism.LEGACY_MIGRATION.value,
-                replaces_symbol=None,
-                industry_at_entry=industry,
-                industry_manifest_sha256=manifest,
-                reduction_policy=ReductionPolicy.FIFO.value,
-                reason_code=("legacy_sold_tranche:" + str(allocation.get("tranche_id") or allocation_index)),
-                exit_kind="legacy_migration",
-            )
+        _populate_legacy_fill(
+            fill,
+            fill_index=fill_index,
+            identity_fields=identity_fields,
+            ledger=ledger,
+            replacements=replacements,
+            state=state,
+            unknown_buy_reclassifications=unknown_buy_reclassifications,
+        )
     return [unknown_buy_reclassifications[event_id] for event_id in sorted(unknown_buy_reclassifications)]
 
 
-def _migrate_v4_attribution_event_ids(state: AccountState) -> dict[str, Any]:
-    """Map validated schema-v4 events to the machine-only schema-v5 format."""
-
+def _migrate_v4_attribution_event_ids_stage_1() -> tuple[
+    list[tuple[dict[str, Any], str]],
+    dict[str, str],
+    list[tuple[Any, str]],
+    Callable[[str, str], None],
+]:
     event_id_map: dict[str, str] = {}
     reverse_event_id_map: dict[str, str] = {}
     object_assignments: list[tuple[Any, str]] = []
@@ -334,6 +398,13 @@ def _migrate_v4_attribution_event_ids(state: AccountState) -> dict[str, Any]:
         event_id_map[old_event_id] = new_event_id
         reverse_event_id_map[new_event_id] = old_event_id
 
+    return allocation_assignments, event_id_map, object_assignments, record_mapping
+
+
+def _migrate_v4_attribution_event_ids_stage_2(
+    *,
+    state: AccountState,
+) -> tuple[Callable[..., str], list[AccountOrder | PendingOrder]]:
     def current_event_id(
         item: Any,
         *,
@@ -365,6 +436,63 @@ def _migrate_v4_attribution_event_ids(state: AccountState) -> dict[str, Any]:
         *state.order_ledger,
         *state.pending_orders,
     ]
+    return current_event_id, durable_orders
+
+
+def _migrate_detached_v4_lot(
+    lot: Any,
+    *,
+    current_event_id: Callable[..., str],
+    record_mapping: Callable[[str, str], None],
+    signal_date: str,
+    symbol: str,
+    lifecycle: str,
+    reason_code: str,
+    exit_kind: str,
+    label: str,
+) -> str:
+    old_event_id = lot.event_id
+    expected_old = _derive_v4_attribution_event_id(
+        signal_date=signal_date,
+        symbol=symbol,
+        target_weight=0.0,
+        lifecycle=lifecycle,
+        origin_lifecycle=lot.origin_lifecycle,
+        origin_subsystem=lot.origin_subsystem,
+        mechanism=lot.mechanism,
+        replaces_symbol=lot.replaces_symbol,
+        industry_at_entry=lot.industry_at_entry,
+        industry_manifest_sha256=lot.industry_manifest_sha256,
+        reduction_policy=ReductionPolicy.FIFO.value,
+        reason_code=reason_code,
+        exit_kind=exit_kind,
+    )
+    if old_event_id != expected_old:
+        raise RuntimeError(f"{label} v4 event_id differs from canonical derivation")
+    new_event_id = current_event_id(
+        lot,
+        signal_date=signal_date,
+        symbol=symbol,
+        target_weight=0.0,
+        lifecycle=lifecycle,
+        reduction_policy=ReductionPolicy.FIFO.value,
+        reason_code=reason_code,
+        exit_kind=exit_kind,
+    )
+    record_mapping(old_event_id, new_event_id)
+    return new_event_id
+
+
+def _migrate_v4_attribution_event_ids(state: AccountState) -> dict[str, Any]:
+    """Map validated schema-v4 events to the machine-only schema-v5 format."""
+
+    allocation_assignments, event_id_map, object_assignments, record_mapping = (
+        _migrate_v4_attribution_event_ids_stage_1()
+    )
+
+    current_event_id, durable_orders = _migrate_v4_attribution_event_ids_stage_2(
+        state=state,
+    )
     for order in durable_orders:
         old_event_id = order.event_id
         new_event_id = current_event_id(
@@ -387,47 +515,6 @@ def _migrate_v4_attribution_event_ids(state: AccountState) -> dict[str, Any]:
             raise RuntimeError("v4 fill event_id lacks a validated originating order")
         object_assignments.append((fill, mapped_fill_event_id))
 
-    def migrate_detached_lot(
-        lot: Any,
-        *,
-        signal_date: str,
-        symbol: str,
-        lifecycle: str,
-        reason_code: str,
-        exit_kind: str,
-        label: str,
-    ) -> str:
-        old_event_id = lot.event_id
-        expected_old = _derive_v4_attribution_event_id(
-            signal_date=signal_date,
-            symbol=symbol,
-            target_weight=0.0,
-            lifecycle=lifecycle,
-            origin_lifecycle=lot.origin_lifecycle,
-            origin_subsystem=lot.origin_subsystem,
-            mechanism=lot.mechanism,
-            replaces_symbol=lot.replaces_symbol,
-            industry_at_entry=lot.industry_at_entry,
-            industry_manifest_sha256=lot.industry_manifest_sha256,
-            reduction_policy=ReductionPolicy.FIFO.value,
-            reason_code=reason_code,
-            exit_kind=exit_kind,
-        )
-        if old_event_id != expected_old:
-            raise RuntimeError(f"{label} v4 event_id differs from canonical derivation")
-        new_event_id = current_event_id(
-            lot,
-            signal_date=signal_date,
-            symbol=symbol,
-            target_weight=0.0,
-            lifecycle=lifecycle,
-            reduction_policy=ReductionPolicy.FIFO.value,
-            reason_code=reason_code,
-            exit_kind=exit_kind,
-        )
-        record_mapping(old_event_id, new_event_id)
-        return new_event_id
-
     for symbol, position in state.positions.items():
         for tranche in position.tranches:
             mapped_event_id = event_id_map.get(tranche.event_id)
@@ -439,8 +526,10 @@ def _migrate_v4_attribution_event_ids(state: AccountState) -> dict[str, Any]:
                 or tranche.mechanism != AttributionMechanism.LEGACY_MIGRATION.value
             ):
                 raise RuntimeError("v4 tranche event_id lacks a validated originating BUY")
-            migrated_event_id = migrate_detached_lot(
+            migrated_event_id = _migrate_detached_v4_lot(
                 tranche,
+                current_event_id=current_event_id,
+                record_mapping=record_mapping,
                 signal_date=tranche.entry_date,
                 symbol=symbol,
                 lifecycle=tranche.lifecycle,
@@ -473,8 +562,10 @@ def _migrate_v4_attribution_event_ids(state: AccountState) -> dict[str, Any]:
                 exit_kind = "broker_reconciliation"
             else:
                 raise RuntimeError("v4 sold lot event_id lacks a validated originating BUY")
-            migrated_event_id = migrate_detached_lot(
+            migrated_event_id = _migrate_detached_v4_lot(
                 lot,
+                current_event_id=current_event_id,
+                record_mapping=record_mapping,
                 signal_date=str(allocation["entry_date"]),
                 symbol=fill.symbol,
                 lifecycle=str(allocation["lifecycle"]),
@@ -502,6 +593,12 @@ def _migrate_v4_attribution_event_ids(state: AccountState) -> dict[str, Any]:
             for old_event_id in sorted(event_id_map)
         ],
     }
+
+
+legacy_attribution_owner = _legacy_attribution_owner
+legacy_industry = _legacy_industry
+migrate_v4_attribution_event_ids = _migrate_v4_attribution_event_ids
+populate_legacy_attribution = _populate_legacy_attribution
 
 
 def migrate_code_identity(

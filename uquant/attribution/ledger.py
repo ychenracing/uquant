@@ -8,7 +8,7 @@ from datetime import date as date_type
 from typing import Any
 
 from ..types import AccountState
-from .concentration import _finite
+from .concentration import finite_attribution_number as _finite
 
 
 def build_daily_ledger_row(

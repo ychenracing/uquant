@@ -9,8 +9,23 @@ from collections.abc import Iterable, Mapping, Sequence
 from dataclasses import asdict
 from typing import Any, cast
 
-from .contract import _MANIFEST_FIELDS, _SHA256, FutureHoldoutContract, _canonical_sha256, _session_dates
-from .source_identity import HoldoutBinding, _state_hashes
+from .contract import (
+    MANIFEST_FIELDS as _MANIFEST_FIELDS,
+)
+from .contract import (
+    SHA256_PATTERN as _SHA256,
+)
+from .contract import (
+    FutureHoldoutContract,
+)
+from .contract import (
+    canonical_sha256 as _canonical_sha256,
+)
+from .contract import (
+    session_dates as _session_dates,
+)
+from .source_identity import HoldoutBinding
+from .source_identity import state_hashes as _state_hashes
 
 
 def _normalized_scores(
@@ -174,6 +189,13 @@ def _validate_future_holdout_manifest_payload(
         raise ValueError("future holdout manifest hash is invalid")
     if raw != dict(expected):
         raise ValueError("future holdout manifest is stale")
+
+
+assemble_future_holdout_manifest = _assemble_future_holdout_manifest
+binding_payload = _binding_payload
+normalized_scores = _normalized_scores
+validate_future_holdout_manifest_payload = _validate_future_holdout_manifest_payload
+validated_score_values = _validated_score_values
 
 __all__ = (
     "_normalized_scores",

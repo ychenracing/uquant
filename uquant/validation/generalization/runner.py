@@ -20,29 +20,120 @@ import pandas as pd
 from ...config import SystemConfig
 from ...engine import ProductionEngine
 from ..ai_era import require_ai_era_interval
-from ..manifest import verify_data_manifest
 from .baseline import (
-    _read_generalization_baseline,
-    _validate_baseline_envelope,
     load_generalization_baseline,
+)
+from .baseline import (
+    read_generalization_baseline as _read_generalization_baseline,
+)
+from .baseline import (
+    validate_baseline_envelope as _validate_baseline_envelope,
 )
 from .gates import evaluate_generalization
 from .metrics import symbol_pnl_from_result
-from .models import GeneralizationScenario
+from .models import GeneralizationBaseline, GeneralizationScenario
 from .provenance import (
-    _immutable_validation_inputs,
-    _production_commit,
-    _production_source_fingerprint,
-    _validated_provenance,
     build_generalization_provenance,
-    compatibility_value,
+    generalization_runtime_capabilities,
+)
+from .provenance import (
+    immutable_validation_inputs as _immutable_validation_inputs,
+)
+from .provenance import (
+    production_commit as _production_commit,
+)
+from .provenance import (  # noqa: F401 - immutable public-import projection
+    production_source_fingerprint as _production_source_fingerprint,
+)
+from .provenance import (
+    validated_provenance as _validated_provenance,
 )
 from .scenarios import (
-    _canonical_symbols,
-    _validate_industry_coverage,
     build_generalization_scenarios,
     compute_pre_window_evidence,
 )
+from .scenarios import (
+    canonical_symbols as _canonical_symbols,
+)
+from .scenarios import (
+    validate_industry_coverage as _validate_industry_coverage,
+)
+
+
+def _run_production_generalization_case(
+    *,
+    engine: ProductionEngine,
+    case: GeneralizationScenario,
+    start: str,
+    end: str,
+) -> Mapping[str, Any]:
+    """Enrich one production replay with exact symbol-level PnL."""
+
+    result = engine.backtest(symbols=case.symbols, start=start, end=end)
+    final_date = pd.Timestamp(str(result["end"]))
+    final_account = result.get("final_account", {})
+    raw_positions = final_account.get("positions", {}) if isinstance(final_account, Mapping) else {}
+    if not isinstance(raw_positions, Mapping):
+        raise ValueError("backtest final positions are invalid")
+    price = engine.workspace.price
+    final_prices = {str(symbol): price(str(symbol), final_date) for symbol in raw_positions}
+    enriched = dict(result)
+    enriched["symbol_pnl"] = symbol_pnl_from_result(result, final_prices)
+    return enriched
+
+
+def _prepare_generalization_cases(
+    *,
+    data_dir: str | Path,
+    symbols: tuple[str, ...],
+    industries: Mapping[str, str],
+    priors: tuple[str, ...],
+    start: str,
+    baseline_source: Path,
+    expected_provenance: Mapping[str, Any],
+    pre_window_prices: Mapping[str, pd.Series | pd.DataFrame] | None,
+    runner: Callable[[GeneralizationScenario], Mapping[str, Any]] | None,
+    lookback_sessions: int,
+    random_sizes: Iterable[int],
+    random_seeds: Iterable[int],
+    base_seed: int,
+    leave_top_k: Iterable[int],
+    balanced_per_industry: int,
+    industry_min_members: int,
+) -> tuple[ProductionEngine | None, tuple[GeneralizationScenario, ...], GeneralizationBaseline]:
+    engine: ProductionEngine | None = None
+    histories = pre_window_prices
+    if histories is None:
+        if runner is not None:
+            raise ValueError("a custom runner must provide pre_window_prices")
+        engine = ProductionEngine(data_dir)
+        engine.workspace.load(symbols)  # Same causal source used by production replay.
+        histories = {symbol: engine.workspace.raw_frame(symbol)["close"] for symbol in symbols}
+    evidence = compute_pre_window_evidence(
+        histories,
+        symbols,
+        window_start=start,
+        lookback_sessions=lookback_sessions,
+    )
+    cases = build_generalization_scenarios(
+        symbols,
+        industries,
+        priors,
+        window_start=start,
+        pre_window_evidence=evidence,
+        random_sizes=random_sizes,
+        random_seeds=random_seeds,
+        base_seed=base_seed,
+        leave_top_k=leave_top_k,
+        balanced_per_industry=balanced_per_industry,
+        industry_min_members=industry_min_members,
+    )
+    baseline = load_generalization_baseline(
+        baseline_source,
+        cases,
+        expected_provenance=expected_provenance,
+    )
+    return engine, cases, baseline
 
 
 def run_generalization(
@@ -74,12 +165,9 @@ def run_generalization(
         raise ValueError("explicit generalization provenance is only valid with a custom runner")
     if provenance is None:
         repository_root = Path(__file__).resolve().parents[3]
-        data_before = compatibility_value("verify_data_manifest", verify_data_manifest)(
-            data_dir
-        )
-        source_before = compatibility_value(
-            "_production_source_fingerprint", _production_source_fingerprint
-        )(repository_root)
+        capabilities = generalization_runtime_capabilities()
+        data_before = capabilities.verify_data_manifest(data_dir)
+        source_before = capabilities.production_source_fingerprint(repository_root)
         expected_provenance = build_generalization_provenance(
             data=data_before,
             universe=symbols,
@@ -118,37 +206,23 @@ def run_generalization(
         )
 
     with guard:
-        engine: ProductionEngine | None = None
-        histories = pre_window_prices
-        if histories is None:
-            if runner is not None:
-                raise ValueError("a custom runner must provide pre_window_prices")
-            engine = ProductionEngine(data_dir)
-            engine.workspace.load(symbols)  # Same causal source used by production replay.
-            histories = {symbol: engine.workspace.raw_frame(symbol)["close"] for symbol in symbols}
-        evidence = compute_pre_window_evidence(
-            histories,
-            symbols,
-            window_start=start,
+        engine, cases, baseline = _prepare_generalization_cases(
+            data_dir=data_dir,
+            symbols=symbols,
+            industries=industries,
+            priors=priors,
+            start=start,
+            baseline_source=baseline_source,
+            expected_provenance=expected_provenance,
+            pre_window_prices=pre_window_prices,
+            runner=runner,
             lookback_sessions=lookback_sessions,
-        )
-        cases = build_generalization_scenarios(
-            symbols,
-            industries,
-            priors,
-            window_start=start,
-            pre_window_evidence=evidence,
             random_sizes=random_sizes,
             random_seeds=random_seeds,
             base_seed=base_seed,
             leave_top_k=leave_top_k,
             balanced_per_industry=balanced_per_industry,
             industry_min_members=industry_min_members,
-        )
-        baseline = load_generalization_baseline(
-            baseline_source,
-            cases,
-            expected_provenance=expected_provenance,
         )
 
         selected_runner = runner
@@ -157,20 +231,12 @@ def run_generalization(
                 raise RuntimeError("production generalization runner was not initialized")
 
             def production_runner(case: GeneralizationScenario) -> Mapping[str, Any]:
-                """Enrich one production replay with exact symbol-level PnL."""
-                result = engine.backtest(symbols=case.symbols, start=start, end=end)
-                final_date = pd.Timestamp(str(result["end"]))
-                final_account = result.get("final_account", {})
-                raw_positions = (
-                    final_account.get("positions", {}) if isinstance(final_account, Mapping) else {}
+                return _run_production_generalization_case(
+                    engine=engine,
+                    case=case,
+                    start=start,
+                    end=end,
                 )
-                if not isinstance(raw_positions, Mapping):
-                    raise ValueError("backtest final positions are invalid")
-                price = engine.workspace.price
-                final_prices = {str(symbol): price(str(symbol), final_date) for symbol in raw_positions}
-                enriched = dict(result)
-                enriched["symbol_pnl"] = symbol_pnl_from_result(result, final_prices)
-                return enriched
 
             selected_runner = production_runner
 

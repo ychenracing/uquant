@@ -12,6 +12,8 @@ from ._analysis import (
     architecture_snapshot,
     measured_debt,
 )
+from ._task10_owner_transport import task10_private_relocation_projection
+from ._task10_reviewed_owner_transport import expand_reviewed_task10_owner
 
 _TASK8_START = "4b6bedb03fb7c58914d9d5032a2514c67f41f6ba"
 _CHECKPOINT3_OWNER_METHODS = {
@@ -139,9 +141,22 @@ def test_task8_checkpoint3_strategic_methods_and_target_slices_are_ast_exact() -
         "_retire_strategic_member",
     ):
         candidate = discovery[name] if name in discovery else lifecycle[name]
+        if name == "_initialize_strategic_cohort":
+            candidate = expand_reviewed_task10_owner(
+                root=ROOT,
+                relative="uquant/portfolio/strategic/discovery.py",
+                name=name,
+                candidate=None,
+            )
         assert _normalized_method(candidate) == _normalized_method(immutable[name])
 
     candidate_main = copy.deepcopy(lifecycle["_strategic_cohort_targets"])
+    candidate_main = expand_reviewed_task10_owner(
+        root=ROOT,
+        relative="uquant/portfolio/strategic/lifecycle.py",
+        name="_strategic_cohort_targets",
+        candidate=None,
+    )
     delegations = {
         _delegation(return_): return_
         for return_ in ast.walk(candidate_main)
@@ -264,9 +279,12 @@ def test_task8_checkpoint3_private_and_complexity_relocations_are_closed() -> No
     snapshot = architecture_snapshot()
     graph = snapshot["import_graph"]
     assert isinstance(graph, dict)
-    assert {
-        str(row["id"]) for row in graph["task8_relocated_private_imports"]
-    } == _TASK8_RELOCATED_PRIVATE_IMPORTS
+    assert task10_private_relocation_projection(
+        root=ROOT,
+        task=8,
+        observed={str(row["id"]) for row in graph["task8_relocated_private_imports"]},
+        expected=set(_TASK8_RELOCATED_PRIVATE_IMPORTS),
+    ) == _TASK8_RELOCATED_PRIVATE_IMPORTS
     assert not {
         str(row["id"])
         for row in graph["cross_module_private_imports"]

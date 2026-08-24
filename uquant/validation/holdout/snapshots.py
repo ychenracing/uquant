@@ -11,7 +11,7 @@ import math
 import os
 import shutil
 import tempfile
-from collections.abc import Callable, Sequence
+from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
@@ -19,13 +19,21 @@ from typing import Any
 import pandas as pd
 
 from .contract import (
-    _CHECKPOINT_RELATIVE,
+    CHECKPOINT_RELATIVE as _CHECKPOINT_RELATIVE,
+)
+from .contract import (
     FutureHoldoutContract,
-    _closed_csv_files,
-    _csv_dates_from_text,
-    _session_dates,
     holdout_data_identity,
     load_future_holdout_contract,
+)
+from .contract import (
+    closed_csv_files as _closed_csv_files,
+)
+from .contract import (
+    csv_dates_from_text as _csv_dates_from_text,
+)
+from .contract import (
+    session_dates as _session_dates,
 )
 
 
@@ -104,6 +112,7 @@ def _validated_snapshot_prefix_sha256(
         raise ValueError("future holdout checkpointed data prefix is incomplete")
     return _snapshot_files_sha256(selected)
 
+
 def _csv_inventory(root: Path, *, label: str) -> dict[str, Path]:
     if root.is_symlink() or not root.is_dir():
         raise ValueError(f"{label} must be a physical directory")
@@ -149,20 +158,11 @@ def _one_snapshot_row(path: Path, *, expected_header: tuple[str, ...]) -> tuple[
     return session, output.getvalue().encode("utf-8")
 
 
-def append_holdout_snapshot(
+def _encode_snapshot(
+    snapshot_root: Path,
     *,
-    repository_root: str | Path,
-    snapshot_dir: str | Path,
-    contract: FutureHoldoutContract | None = None,
-    _read_checkpoint: Callable[..., tuple[dict[str, Any], object] | None],
-    _verify_checkpoint: Callable[..., object],
-) -> dict[str, object]:
-    """Atomically append one complete daily snapshot outside the frozen prefix."""
-
-    root = Path(repository_root).resolve()
-    reviewed = load_future_holdout_contract() if contract is None else contract
-    frozen = _csv_inventory(root / "data/frozen", label="frozen market data")
-    snapshot_root = Path(snapshot_dir)
+    frozen: Mapping[str, Path],
+) -> tuple[str, dict[str, bytes]]:
     snapshot = _csv_inventory(snapshot_root, label="holdout snapshot")
     unsupported = tuple(
         path
@@ -173,7 +173,6 @@ def append_holdout_snapshot(
         raise ValueError("holdout snapshot contains unsupported entries")
     if set(snapshot) != set(frozen):
         raise ValueError("holdout snapshot files must exactly match the frozen CSV inventory")
-
     encoded: dict[str, bytes] = {}
     sessions: set[str] = set()
     for name in sorted(frozen):
@@ -186,47 +185,66 @@ def append_holdout_snapshot(
         encoded[name] = content
     if len(sessions) != 1:
         raise ValueError("holdout snapshot files must contain one common session")
-    session = next(iter(sessions))
+    return next(iter(sessions)), encoded
 
-    holdout_root = root / reviewed.data_directory
-    existing_sessions, _ = holdout_data_identity(holdout_root)
-    try:
-        _session_dates(existing_sessions, contract=reviewed)
-    except ValueError as exc:
-        raise ValueError("existing holdout data is not a contracted session prefix") from exc
-    destination = holdout_root / session
-    if destination.exists():
-        if destination.is_symlink() or not destination.is_dir():
-            raise ValueError("holdout daily append destination is unsafe")
-        observed = {
-            path.name: path.read_bytes()
-            for path in destination.iterdir()
-            if path.is_file() and not path.is_symlink()
-        }
-        if observed != encoded or len(tuple(destination.iterdir())) != len(encoded):
-            raise ValueError("holdout snapshot conflicts with the immutable daily append")
-        return {"session": session, "files": len(encoded), "idempotent": True}
+
+def _idempotent_snapshot_result(
+    destination: Path,
+    *,
+    session: str,
+    encoded: Mapping[str, bytes],
+) -> dict[str, object] | None:
+    if not destination.exists():
+        return None
+    if destination.is_symlink() or not destination.is_dir():
+        raise ValueError("holdout daily append destination is unsafe")
+    observed = {
+        path.name: path.read_bytes()
+        for path in destination.iterdir()
+        if path.is_file() and not path.is_symlink()
+    }
+    if observed != encoded or len(tuple(destination.iterdir())) != len(encoded):
+        raise ValueError("holdout snapshot conflicts with the immutable daily append")
+    return {"session": session, "files": len(encoded), "idempotent": True}
+
+
+def _validate_snapshot_predecessor(
+    *,
+    root: Path,
+    holdout_root: Path,
+    session: str,
+    existing_sessions: tuple[str, ...],
+    contract: FutureHoldoutContract,
+    read_checkpoint: Callable[..., tuple[dict[str, Any], object] | None],
+    verify_checkpoint: Callable[..., object],
+) -> None:
     if (
-        len(existing_sessions) >= len(reviewed.review_sessions)
-        or session != (reviewed.review_sessions[len(existing_sessions)])
+        len(existing_sessions) >= len(contract.review_sessions)
+        or session != contract.review_sessions[len(existing_sessions)]
     ):
         raise ValueError("holdout snapshot must be the next contracted exchange session")
-    if existing_sessions:
-        checkpoint_path = root / _CHECKPOINT_RELATIVE
-        prior_checkpoint = _read_checkpoint(
-            checkpoint_path,
-            contract=reviewed,
-        )
-        if prior_checkpoint is None:
-            raise ValueError("prior daily replay checkpoint is required before the next holdout append")
-        prior_payload, _ = prior_checkpoint
-        _verify_checkpoint(prior_payload, contract=reviewed)
-        if (
-            tuple(prior_payload["sessions"]) != existing_sessions
-            or prior_payload["holdout_data_sha256"] != holdout_data_identity(holdout_root)[1]
-        ):
-            raise ValueError("prior daily replay checkpoint does not match the current holdout prefix")
+    if not existing_sessions:
+        return
+    checkpoint_path = root / _CHECKPOINT_RELATIVE
+    prior_checkpoint = read_checkpoint(checkpoint_path, contract=contract)
+    if prior_checkpoint is None:
+        raise ValueError("prior daily replay checkpoint is required before the next holdout append")
+    prior_payload, _ = prior_checkpoint
+    verify_checkpoint(prior_payload, contract=contract)
+    if (
+        tuple(prior_payload["sessions"]) != existing_sessions
+        or prior_payload["holdout_data_sha256"] != holdout_data_identity(holdout_root)[1]
+    ):
+        raise ValueError("prior daily replay checkpoint does not match the current holdout prefix")
 
+
+def _install_snapshot(
+    holdout_root: Path,
+    *,
+    session: str,
+    destination: Path,
+    encoded: Mapping[str, bytes],
+) -> None:
     holdout_root.mkdir(parents=True, exist_ok=True)
     staging = Path(tempfile.mkdtemp(prefix=f".{session}-", dir=holdout_root))
     try:
@@ -247,6 +265,47 @@ def append_holdout_snapshot(
     finally:
         if staging.exists():
             shutil.rmtree(staging)
+
+
+def append_holdout_snapshot(
+    *,
+    repository_root: str | Path,
+    snapshot_dir: str | Path,
+    contract: FutureHoldoutContract | None = None,
+    _read_checkpoint: Callable[..., tuple[dict[str, Any], object] | None],
+    _verify_checkpoint: Callable[..., object],
+) -> dict[str, object]:
+    """Atomically append one complete daily snapshot outside the frozen prefix."""
+
+    root = Path(repository_root).resolve()
+    reviewed = load_future_holdout_contract() if contract is None else contract
+    frozen = _csv_inventory(root / "data/frozen", label="frozen market data")
+    session, encoded = _encode_snapshot(Path(snapshot_dir), frozen=frozen)
+    holdout_root = root / reviewed.data_directory
+    existing_sessions, _ = holdout_data_identity(holdout_root)
+    try:
+        _session_dates(existing_sessions, contract=reviewed)
+    except ValueError as exc:
+        raise ValueError("existing holdout data is not a contracted session prefix") from exc
+    destination = holdout_root / session
+    idempotent = _idempotent_snapshot_result(destination, session=session, encoded=encoded)
+    if idempotent is not None:
+        return idempotent
+    _validate_snapshot_predecessor(
+        root=root,
+        holdout_root=holdout_root,
+        session=session,
+        existing_sessions=existing_sessions,
+        contract=reviewed,
+        read_checkpoint=_read_checkpoint,
+        verify_checkpoint=_verify_checkpoint,
+    )
+    _install_snapshot(
+        holdout_root,
+        session=session,
+        destination=destination,
+        encoded=encoded,
+    )
     return {"session": session, "files": len(encoded), "idempotent": False}
 
 
@@ -303,6 +362,17 @@ def _materialize_overlay(
             _merged_csv_text(frozen[name], sorted(by_name[name])),
             encoding="utf-8",
         )
+
+
+HoldoutDataSnapshot = _HoldoutDataSnapshot
+capture_holdout_data = _capture_holdout_data
+csv_inventory = _csv_inventory
+materialize_overlay = _materialize_overlay
+merged_csv_text = _merged_csv_text
+one_snapshot_row = _one_snapshot_row
+snapshot_files_sha256 = _snapshot_files_sha256
+validated_snapshot_prefix_sha256 = _validated_snapshot_prefix_sha256
+
 
 __all__ = (
     "_HoldoutDataSnapshot",

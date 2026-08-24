@@ -88,49 +88,19 @@ def _active_order_status(order: AccountOrder) -> str:
     return str(OrderStatus.PARTIALLY_FILLED.value if order.filled_shares > 0 else OrderStatus.OPEN.value)
 
 
-def _reconcile_account_orders_mutating(
+def _reconcile_removed_orders(
     *,
-    account: AccountState,
     previous: list[PendingOrder],
-    current: tuple[PendingOrder, ...],
+    current_ids: set[str],
+    current_by_symbol: dict[str, PendingOrder],
+    ledger: dict[str, AccountOrder],
+    preexisting_ids: set[str],
+    terminal_statuses: set[str],
+    removed_buy_reason: str | None,
     submitted_date: str,
-    removed_buy_reason: str | None = None,
-) -> tuple[PendingOrder, ...]:
-    """Persist submissions and cancel/replace transitions without counting fills."""
-    preexisting_ids = {order.order_id for order in account.order_ledger}
-    preexisting_ledger = {order.order_id: order for order in account.order_ledger}
-    terminal_statuses = {
-        OrderStatus.FILLED.value,
-        OrderStatus.CANCELLED.value,
-        OrderStatus.REPLACED.value,
-    }
-    cancel_pending_symbols = {
-        entry.symbol
-        for entry in preexisting_ledger.values()
-        if entry.side == Side.BUY.value
-        and entry.cancel_reason == "sentinel_freeze_new_risk"
-        and entry.status not in terminal_statuses
-    }
-    newly_frozen_buy_symbols = {
-        order.symbol for order in previous if removed_buy_reason is not None and order.side == Side.BUY.value
-    }
-    blocked_buy_symbols = cancel_pending_symbols | newly_frozen_buy_symbols
-    effective_current = tuple(
-        order for order in current if order.side != Side.BUY.value or order.symbol not in blocked_buy_symbols
-    )
-    for order in previous:
-        _register_account_order(
-            account,
-            order,
-            submitted_date=order.signal_date or submitted_date,
-        )
-    for order in effective_current:
-        _register_account_order(account, order, submitted_date=submitted_date)
+) -> None:
+    """Record replacement and cancellation transitions in prior-order sequence."""
 
-    reconciled_current = list(effective_current)
-    current_ids = {order.order_id for order in effective_current}
-    current_by_symbol = {order.symbol: order for order in effective_current}
-    ledger = {item.order_id: item for item in account.order_ledger}
     for order in previous:
         if order.order_id in current_ids:
             continue
@@ -174,6 +144,61 @@ def _reconcile_account_orders_mutating(
             entry.cancel_reason = "daily target removed"
         entry.last_update_date = submitted_date
         entry.last_event = entry.status
+
+
+def _reconcile_account_orders_mutating(
+    *,
+    account: AccountState,
+    previous: list[PendingOrder],
+    current: tuple[PendingOrder, ...],
+    submitted_date: str,
+    removed_buy_reason: str | None = None,
+) -> tuple[PendingOrder, ...]:
+    """Persist submissions and cancel/replace transitions without counting fills."""
+    preexisting_ids = {order.order_id for order in account.order_ledger}
+    preexisting_ledger = {order.order_id: order for order in account.order_ledger}
+    terminal_statuses = {
+        OrderStatus.FILLED.value,
+        OrderStatus.CANCELLED.value,
+        OrderStatus.REPLACED.value,
+    }
+    cancel_pending_symbols = {
+        entry.symbol
+        for entry in preexisting_ledger.values()
+        if entry.side == Side.BUY.value
+        and entry.cancel_reason == "sentinel_freeze_new_risk"
+        and entry.status not in terminal_statuses
+    }
+    newly_frozen_buy_symbols = {
+        order.symbol for order in previous if removed_buy_reason is not None and order.side == Side.BUY.value
+    }
+    blocked_buy_symbols = cancel_pending_symbols | newly_frozen_buy_symbols
+    effective_current = tuple(
+        order for order in current if order.side != Side.BUY.value or order.symbol not in blocked_buy_symbols
+    )
+    for order in previous:
+        _register_account_order(
+            account,
+            order,
+            submitted_date=order.signal_date or submitted_date,
+        )
+    for order in effective_current:
+        _register_account_order(account, order, submitted_date=submitted_date)
+
+    reconciled_current = list(effective_current)
+    current_ids = {order.order_id for order in effective_current}
+    current_by_symbol = {order.symbol: order for order in effective_current}
+    ledger = {item.order_id: item for item in account.order_ledger}
+    _reconcile_removed_orders(
+        previous=previous,
+        current_ids=current_ids,
+        current_by_symbol=current_by_symbol,
+        ledger=ledger,
+        preexisting_ids=preexisting_ids,
+        terminal_statuses=terminal_statuses,
+        removed_buy_reason=removed_buy_reason,
+        submitted_date=submitted_date,
+    )
     return tuple(
         sorted(
             reconciled_current,
@@ -255,3 +280,7 @@ def reconcile_account_orders(
         original.order_id = shadow.order_id
     originals_by_id = {order.order_id: order for order in (*previous, *current) if order.order_id}
     return tuple(originals_by_id.get(order.order_id, order) for order in shadow_result)
+
+
+active_order_status = _active_order_status
+register_account_order = _register_account_order

@@ -16,23 +16,41 @@ from ...config import DEFAULT_CONFIG, config_fingerprint
 from ...data import DataStore
 from ..ai_era import runtime_environment_provenance
 from ..universe import AIUniverse, load_ai_universe
+from .capabilities import holdout_facade_capabilities
 from .contract import (
-    _ACCOUNT_EXECUTION_FIELDS,
-    _CLI_OPERATIONAL_COMMANDS,
-    _COMMIT,
-    _SHA256,
-    _STRATEGY_FIXED_RELATIVES,
-    _STRATEGY_OPERATIONAL_RELATIVES,
+    ACCOUNT_EXECUTION_FIELDS as _ACCOUNT_EXECUTION_FIELDS,
+)
+from .contract import (
+    CLI_OPERATIONAL_COMMANDS as _CLI_OPERATIONAL_COMMANDS,
+)
+from .contract import (
+    COMMIT_PATTERN as _COMMIT,
+)
+from .contract import (
     LAST_IN_SAMPLE_DATE,
     PRIOR_CLOSE_ACCOUNT_SHA256,
     STRATEGY_ACCOUNT_CODE_SHA256,
     STRATEGY_ANCHOR_COMMIT,
     STRATEGY_CLI_SHA256,
     STRATEGY_SOURCE_SHA256,
-    _canonical_sha256,
-    _git_executable,
-    _repository_root,
-    compatibility_value,
+)
+from .contract import (
+    SHA256_PATTERN as _SHA256,
+)
+from .contract import (
+    STRATEGY_FIXED_RELATIVES as _STRATEGY_FIXED_RELATIVES,
+)
+from .contract import (
+    STRATEGY_OPERATIONAL_RELATIVES as _STRATEGY_OPERATIONAL_RELATIVES,
+)
+from .contract import (
+    canonical_sha256 as _canonical_sha256,
+)
+from .contract import (
+    git_executable as _git_executable,
+)
+from .contract import (
+    repository_root as _repository_root,
 )
 
 
@@ -76,6 +94,7 @@ class HoldoutBinding:
             if not getattr(self, field):
                 raise ValueError(f"holdout {field} must be non-empty")
 
+
 def _state_hashes(account_payload: Mapping[str, Any], *, as_of: str) -> dict[str, str]:
     if account_payload.get("last_successful_run") != as_of or account_payload.get("data_hash_as_of") != as_of:
         raise ValueError("holdout account is not the exact prior-close state")
@@ -106,7 +125,18 @@ def validate_prior_close_account(
 ) -> None:
     """Require the unchanged frozen-candidate state and frozen data prefix."""
 
-    if account_payload.get("code_hash") != compatibility_value("STRATEGY_ACCOUNT_CODE_SHA256", STRATEGY_ACCOUNT_CODE_SHA256):
+    capabilities = holdout_facade_capabilities()
+    expected_code_sha256 = (
+        STRATEGY_ACCOUNT_CODE_SHA256
+        if capabilities is None
+        else capabilities.strategy_account_code_sha256
+    )
+    expected_account_sha256 = (
+        PRIOR_CLOSE_ACCOUNT_SHA256
+        if capabilities is None
+        else capabilities.prior_close_account_sha256
+    )
+    if account_payload.get("code_hash") != expected_code_sha256:
         raise ValueError("holdout account is not from the exact frozen candidate")
     if account_payload.get("data_hash_as_of") != LAST_IN_SAMPLE_DATE:
         raise ValueError("holdout account data hash is not bound to the prior close")
@@ -123,10 +153,11 @@ def validate_prior_close_account(
     )
     if account_payload.get("data_hash") != expected:
         raise ValueError("holdout account data hash does not match the frozen prefix")
-    if _canonical_sha256(dict(account_payload)) != compatibility_value("PRIOR_CLOSE_ACCOUNT_SHA256", PRIOR_CLOSE_ACCOUNT_SHA256):
+    if _canonical_sha256(dict(account_payload)) != expected_account_sha256:
         raise ValueError("holdout account differs from the authenticated continuous replay")
 
-def _industry_sha256(universe: AIUniverse) -> str:
+
+def _holdout_industry_sha256(universe: AIUniverse) -> str:
     payload = [
         {
             "symbol": member.symbol,
@@ -139,7 +170,7 @@ def _industry_sha256(universe: AIUniverse) -> str:
     return _canonical_sha256(payload)
 
 
-def _source_paths(root: Path) -> tuple[Path, ...]:
+def _holdout_source_paths(root: Path) -> tuple[Path, ...]:
     fixed = (
         root / "benchmarks/reference_registry.json",
         root / "benchmarks/config_parameter_governance.json",
@@ -351,25 +382,41 @@ def _git_strategy_relatives(root: Path, *, commit: str) -> tuple[str, ...]:
 
 
 def _validated_strategy_source_sha256(root: Path) -> str:
-    paths = compatibility_value("_strategy_source_paths", _strategy_source_paths)(root)
+    capabilities = holdout_facade_capabilities()
+    strategy_source_paths = (
+        _strategy_source_paths
+        if capabilities is None
+        else capabilities.strategy_source_paths
+    )
+    source_sha256 = _source_sha256 if capabilities is None else capabilities.source_sha256
+    git_strategy_relatives = (
+        _git_strategy_relatives
+        if capabilities is None
+        else capabilities.git_strategy_relatives
+    )
+    paths = strategy_source_paths(root)
     current_relatives = tuple(path.relative_to(root).as_posix() for path in paths)
-    anchored_relatives = compatibility_value("_git_strategy_relatives", _git_strategy_relatives)(root, commit=STRATEGY_ANCHOR_COMMIT)
+    anchored_relatives = git_strategy_relatives(root, commit=STRATEGY_ANCHOR_COMMIT)
     if current_relatives != anchored_relatives:
         raise RuntimeError("strategy source inventory drifted from the Task 8 anchor")
-    anchored_sha256 = _source_sha256(
+    anchored_sha256 = source_sha256(
         paths,
         root=root,
         from_git=STRATEGY_ANCHOR_COMMIT,
     )
-    current_sha256 = _source_sha256(paths, root=root)
+    current_sha256 = source_sha256(paths, root=root)
     if anchored_sha256 != STRATEGY_SOURCE_SHA256 or current_sha256 != anchored_sha256:
         raise RuntimeError("strategy source bytes drifted from the Task 8 anchor")
     return current_sha256
 
 
 def _validated_strategy_cli_sha256(root: Path) -> str:
-    anchored = compatibility_value("_strategy_cli_sha256", _strategy_cli_sha256)(root, from_git=STRATEGY_ANCHOR_COMMIT)
-    current = compatibility_value("_strategy_cli_sha256", _strategy_cli_sha256)(root)
+    capabilities = holdout_facade_capabilities()
+    strategy_cli_sha256 = (
+        _strategy_cli_sha256 if capabilities is None else capabilities.strategy_cli_sha256
+    )
+    anchored = strategy_cli_sha256(root, from_git=STRATEGY_ANCHOR_COMMIT)
+    current = strategy_cli_sha256(root)
     if anchored != STRATEGY_CLI_SHA256 or current != anchored:
         raise RuntimeError("production CLI decision path drifted from the Task 8 anchor")
     return current
@@ -378,6 +425,12 @@ def _validated_strategy_cli_sha256(root: Path) -> str:
 def _strategy_account_code_sha256(root: Path) -> str:
     """Reconstruct the exact code fingerprint written by the frozen candidate."""
 
+    capabilities = holdout_facade_capabilities()
+    expected_code_sha256 = (
+        STRATEGY_ACCOUNT_CODE_SHA256
+        if capabilities is None
+        else capabilities.strategy_account_code_sha256
+    )
     completed = subprocess.run(
         [
             _git_executable(),
@@ -423,7 +476,7 @@ def _strategy_account_code_sha256(root: Path) -> str:
         digest.update(Path(relative).name.encode())
         digest.update(content)
     value = digest.hexdigest()
-    if value != STRATEGY_ACCOUNT_CODE_SHA256:
+    if value != expected_code_sha256:
         raise RuntimeError("frozen account code anchor differs from the exact candidate")
     return value
 
@@ -517,6 +570,7 @@ def current_holdout_binding(repository_root: str | Path | None = None) -> Holdou
         uv_lock_sha256=runtime["uv_lock_sha256"],
     )
 
+
 __all__ = (
     "HoldoutBinding",
     "_state_hashes",
@@ -543,3 +597,26 @@ __all__ = (
     "holdout_source_sha256",
     "current_holdout_binding",
 )
+
+_industry_sha256 = _holdout_industry_sha256
+_source_paths = _holdout_source_paths
+adds_operational_parser = _adds_operational_parser
+assigned_names = _assigned_names
+cli_strategy_ast = _cli_strategy_ast
+command_guard = _command_guard
+git_strategy_relatives = _git_strategy_relatives
+industry_sha256 = _industry_sha256
+is_strategy_relative = _is_strategy_relative
+loaded_names = _loaded_names
+parser_strategy_body = _parser_strategy_body
+safe_operational_parser_statement = _safe_operational_parser_statement
+safe_parser_value = _safe_parser_value
+source_sha256 = _source_sha256
+source_paths = _source_paths
+state_hashes = _state_hashes
+strategy_account_code_sha256 = _strategy_account_code_sha256
+strategy_cli_sha256 = _strategy_cli_sha256
+strategy_source_sha256 = _strategy_source_sha256
+strategy_source_paths = _strategy_source_paths
+validated_strategy_cli_sha256 = _validated_strategy_cli_sha256
+validated_strategy_source_sha256 = _validated_strategy_source_sha256

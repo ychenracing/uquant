@@ -6,8 +6,12 @@ import hashlib
 import json
 from typing import Any
 
-from .lifecycle import _timestamp, _validate_record, validate_plan_id
-from .models import _SHA256, _V1_FIELDS, JournalRecord, JournalStatus
+from .lifecycle import journal_timestamp as _timestamp
+from .lifecycle import validate_journal_record as _validate_record
+from .lifecycle import validate_plan_id
+from .models import SHA256_PATTERN as _SHA256
+from .models import V1_FIELDS as _V1_FIELDS
+from .models import JournalRecord, JournalStatus
 
 
 def canonical_record_bytes(

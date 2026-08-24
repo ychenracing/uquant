@@ -13,7 +13,7 @@ import hashlib
 import json
 import random
 import re
-from collections.abc import Iterable, Mapping, Sequence
+from collections.abc import Callable, Iterable, Mapping, Sequence
 
 import pandas as pd
 
@@ -126,7 +126,7 @@ def compute_pre_window_evidence(
     )
 
 
-def _derived_seed(base_seed: int, size: int, seed: int) -> int:
+def _scenario_derived_seed(base_seed: int, size: int, seed: int) -> int:
     payload = f"{base_seed}:{size}:{seed}".encode()
     return int.from_bytes(hashlib.sha256(payload).digest()[:8], "big")
 
@@ -138,6 +138,189 @@ def _unique_integers(values: Iterable[int], *, label: str) -> tuple[int, ...]:
     if len(supplied) != len(set(supplied)):
         raise ValueError(f"{label} contains duplicates")
     return tuple(sorted(supplied))
+
+
+def _append_prior_removal_scenarios(
+    cases: list[GeneralizationScenario],
+    *,
+    base: tuple[str, ...],
+    priors: tuple[str, ...],
+    make_case: Callable[..., GeneralizationScenario],
+) -> None:
+    """Append single, pair, and complete prior-symbol removal cases."""
+    for symbol in priors:
+        remaining = tuple(item for item in base if item != symbol)
+        cases.append(
+            make_case(
+                f"remove_one__{symbol}",
+                "remove_one",
+                remaining,
+                removed_symbols=(symbol,),
+            )
+        )
+    for left in range(len(priors)):
+        for right in range(left + 1, len(priors)):
+            pair_removed = (priors[left], priors[right])
+            remaining = tuple(item for item in base if item not in set(pair_removed))
+            if remaining:
+                cases.append(
+                    make_case(
+                        f"remove_pair__{pair_removed[0]}__{pair_removed[1]}",
+                        "remove_pair",
+                        remaining,
+                        removed_symbols=pair_removed,
+                    )
+                )
+    remove_all = tuple(item for item in base if item not in set(priors))
+    if not remove_all:
+        raise ValueError("remove-all-priors scenario would have an empty universe")
+    cases.append(
+        make_case(
+            "remove_all_priors",
+            "remove_all",
+            remove_all,
+            removed_symbols=priors,
+        )
+    )
+
+
+def _append_industry_scenarios(
+    cases: list[GeneralizationScenario],
+    *,
+    base: tuple[str, ...],
+    industries: Mapping[str, str],
+    scores: Mapping[str, float],
+    balanced_per_industry: int,
+    industry_min_members: int,
+    make_case: Callable[..., GeneralizationScenario],
+) -> None:
+    """Append optical-removal, industry-only, and balanced-industry cases."""
+    no_optical = tuple(symbol for symbol in base if industries[symbol] != "optical")
+    if not no_optical:
+        raise ValueError("no-optical scenario would have an empty universe")
+    cases.append(
+        make_case(
+            "no_optical",
+            "no_optical",
+            no_optical,
+            removed_symbols=tuple(symbol for symbol in base if symbol not in no_optical),
+            source_industries=("optical",),
+        )
+    )
+
+    grouped: dict[str, list[str]] = {}
+    for symbol in base:
+        industry = industries[symbol]
+        grouped.setdefault(industry, []).append(symbol)
+    sparse: dict[str, tuple[str, ...]] = {}
+    for industry, members in sorted(grouped.items()):
+        canonical = tuple(sorted(members))
+        is_sparse = len(canonical) < industry_min_members
+        if is_sparse:
+            sparse[industry] = canonical
+        cases.append(
+            make_case(
+                f"industry_only__{_slug(industry)}",
+                "industry_only",
+                canonical,
+                diagnostic="singleton" if len(canonical) == 1 else "sparse" if is_sparse else "standard",
+                source_industries=(industry,),
+            )
+        )
+    if len(sparse) >= 2:
+        sparse_symbols = tuple(sorted(symbol for members in sparse.values() for symbol in members))
+        cases.append(
+            make_case(
+                "industry_sparse_combined",
+                "industry_only",
+                sparse_symbols,
+                diagnostic="combined_sparse",
+                source_industries=tuple(sorted(sparse)),
+            )
+        )
+
+    balanced = tuple(
+        sorted(
+            symbol
+            for industry in sorted(grouped)
+            for symbol in sorted(
+                grouped[industry],
+                key=lambda item: (item not in scores, -scores.get(item, 0.0), item),
+            )[:balanced_per_industry]
+        )
+    )
+    cases.append(
+        make_case(
+            "balanced_industries",
+            "balanced",
+            balanced,
+            diagnostic="includes_singletons" if sparse else "standard",
+            source_industries=tuple(sorted(grouped)),
+        )
+    )
+
+
+def _append_random_scenarios(
+    cases: list[GeneralizationScenario],
+    *,
+    base: tuple[str, ...],
+    random_sizes: Iterable[int],
+    random_seeds: Iterable[int],
+    base_seed: int,
+    make_case: Callable[..., GeneralizationScenario],
+) -> None:
+    """Append reproducible random-universe cases in canonical size/seed order."""
+    sizes = _unique_integers(random_sizes, label="random sizes")
+    seeds = _unique_integers(random_seeds, label="random seeds")
+    if not sizes or not seeds:
+        raise ValueError("random scenarios require at least one size and seed")
+    for size in sizes:
+        if size < 1 or size > len(base):
+            raise ValueError(f"random universe size is outside [1, {len(base)}]: {size}")
+        for seed in seeds:
+            chosen = tuple(
+                sorted(
+                    # Scenario reproducibility deliberately requires a non-cryptographic PRNG.
+                    random.Random(_derived_seed(base_seed, size, seed)).sample(  # nosec B311
+                        list(base),
+                        size,
+                    )
+                )
+            )
+            cases.append(
+                make_case(
+                    f"random_{size:02d}__{seed:04d}",
+                    "random",
+                    chosen,
+                    seed=seed,
+                )
+            )
+
+
+def _append_leave_top_scenarios(
+    cases: list[GeneralizationScenario],
+    *,
+    base: tuple[str, ...],
+    pre_window_evidence: PreWindowEvidence,
+    leave_top_k: Iterable[int],
+    make_case: Callable[..., GeneralizationScenario],
+) -> None:
+    """Append strongest-symbol removals using only frozen pre-window ranking."""
+    top_values = _unique_integers(leave_top_k, label="leave-top-k values")
+    ranking = tuple(symbol for symbol in pre_window_evidence.ranking if symbol in set(base))
+    for top_k in top_values:
+        if top_k < 1 or top_k >= len(ranking):
+            raise ValueError("leave-top-k value must leave at least one ranked symbol")
+        removed = ranking[:top_k]
+        remaining = tuple(symbol for symbol in base if symbol not in set(removed))
+        cases.append(
+            make_case(
+                f"leave_top_{top_k}",
+                "leave_top_k",
+                remaining,
+                removed_symbols=removed,
+            )
+        )
 
 
 def build_generalization_scenarios(
@@ -209,147 +392,31 @@ def build_generalization_scenarios(
         )
 
     cases: list[GeneralizationScenario] = [make_case("base", "baseline", base)]
-
-    for symbol in priors:
-        remaining = tuple(item for item in base if item != symbol)
-        cases.append(
-            make_case(
-                f"remove_one__{symbol}",
-                "remove_one",
-                remaining,
-                removed_symbols=(symbol,),
-            )
-        )
-    for left in range(len(priors)):
-        for right in range(left + 1, len(priors)):
-            pair_removed = (priors[left], priors[right])
-            remaining = tuple(item for item in base if item not in set(pair_removed))
-            if remaining:
-                cases.append(
-                    make_case(
-                        f"remove_pair__{pair_removed[0]}__{pair_removed[1]}",
-                        "remove_pair",
-                        remaining,
-                        removed_symbols=pair_removed,
-                    )
-                )
-    remove_all = tuple(item for item in base if item not in set(priors))
-    if not remove_all:
-        raise ValueError("remove-all-priors scenario would have an empty universe")
-    cases.append(
-        make_case(
-            "remove_all_priors",
-            "remove_all",
-            remove_all,
-            removed_symbols=priors,
-        )
+    _append_prior_removal_scenarios(cases, base=base, priors=priors, make_case=make_case)
+    _append_industry_scenarios(
+        cases,
+        base=base,
+        industries=industries,
+        scores=scores,
+        balanced_per_industry=balanced_per_industry,
+        industry_min_members=industry_min_members,
+        make_case=make_case,
     )
-
-    no_optical = tuple(symbol for symbol in base if industries[symbol] != "optical")
-    if not no_optical:
-        raise ValueError("no-optical scenario would have an empty universe")
-    cases.append(
-        make_case(
-            "no_optical",
-            "no_optical",
-            no_optical,
-            removed_symbols=tuple(symbol for symbol in base if symbol not in no_optical),
-            source_industries=("optical",),
-        )
+    _append_random_scenarios(
+        cases,
+        base=base,
+        random_sizes=random_sizes,
+        random_seeds=random_seeds,
+        base_seed=base_seed,
+        make_case=make_case,
     )
-
-    grouped: dict[str, list[str]] = {}
-    for symbol in base:
-        industry = industries[symbol]
-        grouped.setdefault(industry, []).append(symbol)
-    sparse: dict[str, tuple[str, ...]] = {}
-    for industry, members in sorted(grouped.items()):
-        canonical = tuple(sorted(members))
-        is_sparse = len(canonical) < industry_min_members
-        if is_sparse:
-            sparse[industry] = canonical
-        cases.append(
-            make_case(
-                f"industry_only__{_slug(industry)}",
-                "industry_only",
-                canonical,
-                diagnostic="singleton" if len(canonical) == 1 else "sparse" if is_sparse else "standard",
-                source_industries=(industry,),
-            )
-        )
-    if len(sparse) >= 2:
-        sparse_symbols = tuple(sorted(symbol for members in sparse.values() for symbol in members))
-        cases.append(
-            make_case(
-                "industry_sparse_combined",
-                "industry_only",
-                sparse_symbols,
-                diagnostic="combined_sparse",
-                source_industries=tuple(sorted(sparse)),
-            )
-        )
-
-    balanced = tuple(
-        sorted(
-            symbol
-            for industry in sorted(grouped)
-            for symbol in sorted(
-                grouped[industry],
-                key=lambda item: (item not in scores, -scores.get(item, 0.0), item),
-            )[:balanced_per_industry]
-        )
+    _append_leave_top_scenarios(
+        cases,
+        base=base,
+        pre_window_evidence=pre_window_evidence,
+        leave_top_k=leave_top_k,
+        make_case=make_case,
     )
-    cases.append(
-        make_case(
-            "balanced_industries",
-            "balanced",
-            balanced,
-            diagnostic="includes_singletons" if sparse else "standard",
-            source_industries=tuple(sorted(grouped)),
-        )
-    )
-
-    sizes = _unique_integers(random_sizes, label="random sizes")
-    seeds = _unique_integers(random_seeds, label="random seeds")
-    if not sizes or not seeds:
-        raise ValueError("random scenarios require at least one size and seed")
-    for size in sizes:
-        if size < 1 or size > len(base):
-            raise ValueError(f"random universe size is outside [1, {len(base)}]: {size}")
-        for seed in seeds:
-            chosen = tuple(
-                sorted(
-                    # Scenario reproducibility deliberately requires a non-cryptographic PRNG.
-                    random.Random(_derived_seed(base_seed, size, seed)).sample(  # nosec B311
-                        list(base),
-                        size,
-                    )
-                )
-            )
-            cases.append(
-                make_case(
-                    f"random_{size:02d}__{seed:04d}",
-                    "random",
-                    chosen,
-                    seed=seed,
-                )
-            )
-
-    top_values = _unique_integers(leave_top_k, label="leave-top-k values")
-    ranking = tuple(symbol for symbol in pre_window_evidence.ranking if symbol in set(base))
-    for top_k in top_values:
-        if top_k < 1 or top_k >= len(ranking):
-            raise ValueError("leave-top-k value must leave at least one ranked symbol")
-        removed = ranking[:top_k]
-        remaining = tuple(symbol for symbol in base if symbol not in set(removed))
-        cases.append(
-            make_case(
-                f"leave_top_{top_k}",
-                "leave_top_k",
-                remaining,
-                removed_symbols=removed,
-            )
-        )
 
     names = [case.name for case in cases]
     if len(names) != len(set(names)):
@@ -375,3 +442,12 @@ def scenario_fingerprint(cases: Sequence[GeneralizationScenario]) -> str:
         for case in cases
     ]
     return hashlib.sha256(json.dumps(payload, sort_keys=True, separators=(",", ":")).encode()).hexdigest()
+
+
+_derived_seed = _scenario_derived_seed
+
+canonical_symbols = _canonical_symbols
+derived_seed = _derived_seed
+slug = _slug
+unique_integers = _unique_integers
+validate_industry_coverage = _validate_industry_coverage

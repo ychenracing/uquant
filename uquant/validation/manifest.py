@@ -14,7 +14,7 @@ _SHA256 = re.compile(r"^[0-9a-f]{64}$")
 _SYMBOL = re.compile(r"^(?:sh|sz|bj)[0-9]{6}$")
 
 
-def _reject_duplicate_keys(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
+def _reject_duplicate_manifest_keys(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
     payload: dict[str, Any] = {}
     for key, value in pairs:
         if key in payload:
@@ -112,3 +112,6 @@ def verify_data_manifest(root: str | Path) -> dict[str, Any]:
         "manifest_sha256": _digest(manifest_path),
         "checksums_sha256": _digest(checksums_path),
     }
+
+
+_reject_duplicate_keys = _reject_duplicate_manifest_keys

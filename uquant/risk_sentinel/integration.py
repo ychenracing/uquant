@@ -46,58 +46,18 @@ def _severe_direct(assessment: SentinelAssessment, cfg: SystemConfig) -> bool:
     )
 
 
-def integrate_freeze_only(
+severe_direct = _severe_direct
+
+
+def _sentinel_freeze_eligibility(
     *,
-    base: RiskAssessment,
-    sentinel: SentinelAssessment | None,
+    sentinel: SentinelAssessment,
     cfg: SystemConfig,
-    opportunity: Opportunity | str | None = None,
-) -> RiskAssessment:
-    """Overlay only ``freeze_new_risk`` while preserving every base risk output.
-
-    Family flags are OR-combined, never summed.  A Sentinel trigger must be
-    ready, confident, confirmed (unless severe-direct), and add a same-day
-    family or earlier evidence.  The suggested gross cap remains diagnostic.
-    """
-
-    if cfg.risk_sentinel_mode == "SHADOW" or sentinel is None:
-        return base
-    if str(cfg.risk_sentinel_mode) == "LIMITED_GROSS_CAP":
-        raise RuntimeError(
-            "LIMITED_GROSS_CAP was rejected by the economic gate; "
-            "use FREEZE_ONLY or SHADOW."
-        )
-
-    base_active = _family_flags(
-        base.evidence.get("family_votes")
-        if isinstance(base.evidence.get("family_votes"), Mapping)
-        else None
-    )
-    sentinel_active = {
-        family: family in sentinel.evidence_families
-        for family in sorted(RISK_FAMILIES)
-    }
-    combined = {
-        family: base_active[family] or sentinel_active[family]
-        for family in sorted(RISK_FAMILIES)
-    }
-    first_sentinel = sentinel.first_evidence_date
-    incremental_families = sorted(
-        family
-        for family in RISK_FAMILIES
-        if sentinel_active[family] and not base_active[family]
-    )
-    # Phase 4 has no persisted, point-in-time family history for base risk or
-    # Sentinel.  Never infer an earlier vote from today's membership/holdings.
-    # The diagnostic remains explicit and fail-closed until such a carrier is
-    # introduced in a later phase.
-    earlier_families: list[str] = []
-    incremental = bool(incremental_families or earlier_families)
+    incremental: bool,
+) -> tuple[bool, bool, int, bool]:
     severe_direct = _severe_direct(sentinel, cfg)
     confirmation_days = int(sentinel.metrics.get("evidence_confirmation_days", 0.0))
-    confirmation_history_trusted = bool(
-        sentinel.metrics.get("confirmation_history_trusted", 0.0) == 1.0
-    )
+    confirmation_history_trusted = bool(sentinel.metrics.get("confirmation_history_trusted", 0.0) == 1.0)
     enough_families = len(sentinel.evidence_families) >= 2
     eligible = bool(
         sentinel.coverage.status is WarmupStatus.READY
@@ -106,16 +66,44 @@ def integrate_freeze_only(
         and enough_families
         and incremental
         and (
-            (
-                confirmation_history_trusted
-                and confirmation_days >= cfg.risk_sentinel_confirm_days
-            )
+            (confirmation_history_trusted and confirmation_days >= cfg.risk_sentinel_confirm_days)
             or severe_direct
         )
     )
-    opportunity_value = (
-        opportunity.value if isinstance(opportunity, Opportunity) else opportunity
+    return eligible, severe_direct, confirmation_days, confirmation_history_trusted
+
+
+def _freeze_only_evidence(
+    *,
+    base: RiskAssessment,
+    cfg: SystemConfig,
+    opportunity: Opportunity | str | None,
+    sentinel: SentinelAssessment,
+) -> tuple[dict[str, Any], bool]:
+    if str(cfg.risk_sentinel_mode) == "LIMITED_GROSS_CAP":
+        raise RuntimeError("LIMITED_GROSS_CAP was rejected by the economic gate; use FREEZE_ONLY or SHADOW.")
+
+    base_active = _family_flags(
+        base.evidence.get("family_votes") if isinstance(base.evidence.get("family_votes"), Mapping) else None
     )
+    sentinel_active = {family: family in sentinel.evidence_families for family in sorted(RISK_FAMILIES)}
+    combined = {family: base_active[family] or sentinel_active[family] for family in sorted(RISK_FAMILIES)}
+    first_sentinel = sentinel.first_evidence_date
+    incremental_families = sorted(
+        family for family in RISK_FAMILIES if sentinel_active[family] and not base_active[family]
+    )
+    # Phase 4 has no persisted, point-in-time family history for base risk or
+    # Sentinel.  Never infer an earlier vote from today's membership/holdings.
+    # The diagnostic remains explicit and fail-closed until such a carrier is
+    # introduced in a later phase.
+    earlier_families: list[str] = []
+    incremental = bool(incremental_families or earlier_families)
+    eligible, severe_direct, confirmation_days, confirmation_history_trusted = _sentinel_freeze_eligibility(
+        sentinel=sentinel,
+        cfg=cfg,
+        incremental=incremental,
+    )
+    opportunity_value = opportunity.value if isinstance(opportunity, Opportunity) else opportunity
     bull_silent = bool(
         sentinel.level is SentinelLevel.CAUTION
         and opportunity_value == Opportunity.STRONG_TREND.value
@@ -151,6 +139,31 @@ def integrate_freeze_only(
         "sentinel_bull_silent": bull_silent,
         "sentinel_freeze_new_risk": sentinel_freeze,
     }
+    return evidence, sentinel_freeze
+
+
+def integrate_freeze_only(
+    *,
+    base: RiskAssessment,
+    sentinel: SentinelAssessment | None,
+    cfg: SystemConfig,
+    opportunity: Opportunity | str | None = None,
+) -> RiskAssessment:
+    """Overlay only ``freeze_new_risk`` while preserving every base risk output.
+
+    Family flags are OR-combined, never summed.  A Sentinel trigger must be
+    ready, confident, confirmed (unless severe-direct), and add a same-day
+    family or earlier evidence.  The suggested gross cap remains diagnostic.
+    """
+
+    if cfg.risk_sentinel_mode == "SHADOW" or sentinel is None:
+        return base
+    evidence, sentinel_freeze = _freeze_only_evidence(
+        base=base,
+        cfg=cfg,
+        opportunity=opportunity,
+        sentinel=sentinel,
+    )
     return replace(
         base,
         evidence=evidence,

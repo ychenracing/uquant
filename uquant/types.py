@@ -33,7 +33,7 @@ from .models import (
 )
 from .models import trading as _trading
 
-_ATTRIBUTION_COMPATIBILITY = _trading._ATTRIBUTION_COMPATIBILITY
+_ATTRIBUTION_COMPATIBILITY = _trading.ATTRIBUTION_COMPATIBILITY
 del _trading
 
 __all__ = (  # noqa: RUF022 - preserve the frozen compatibility export order

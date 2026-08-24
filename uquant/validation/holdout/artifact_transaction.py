@@ -16,7 +16,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from ...infrastructure.file_lock import FileLockMode, acquire_file_lock, release_file_lock
-from .contract import runtime_compatibility_value
+from .capabilities import holdout_runtime_capabilities
 
 _AUTHORITATIVE_REPOSITORY_RELATIVES = (
     ".git",
@@ -33,10 +33,12 @@ _AUTHORITATIVE_REPOSITORY_RELATIVES = (
     "uv.lock",
 )
 
+
 @dataclass(frozen=True, slots=True)
 class _ArtifactSnapshot:
     payload: bytes | None
     mode: int | None
+
 
 def _reject_output_in_protected_data(
     output: str | Path,
@@ -50,7 +52,7 @@ def _reject_output_in_protected_data(
             raise ValueError(f"holdout output is inside a protected data directory: {directory}")
 
 
-def _paths_overlap(left: str | Path, right: str | Path) -> bool:
+def _holdout_artifact_paths_overlap(left: str | Path, right: str | Path) -> bool:
     first = Path(left).resolve(strict=False)
     second = Path(right).resolve(strict=False)
     if first == second or first.is_relative_to(second) or second.is_relative_to(first):
@@ -61,6 +63,9 @@ def _paths_overlap(left: str | Path, right: str | Path) -> bool:
         except OSError:
             return False
     return False
+
+
+_paths_overlap = _holdout_artifact_paths_overlap
 
 
 def _resolved_path_text(path: str | Path) -> str:
@@ -199,6 +204,7 @@ def _reject_authoritative_output_paths(
         if _paths_overlap(checkpoint_path, authoritative):
             raise ValueError(f"holdout checkpoint overlaps an authoritative path: {authoritative}")
 
+
 def _canonical_carrier_path(path: str | Path) -> Path:
     """Resolve lexical aliases only after rejecting every visible symlink component."""
 
@@ -215,6 +221,13 @@ def _canonical_carrier_path(path: str | Path) -> Path:
 def _artifact_snapshots(paths: Sequence[Path]) -> dict[Path, _ArtifactSnapshot]:
     """Capture exact carrier bytes and modes before an evidence update."""
 
+    capabilities = holdout_runtime_capabilities()
+    read_artifact = (
+        _read_protected_artifact
+        if capabilities is None
+        else capabilities.read_protected_artifact
+    )
+    os_adapter = os if capabilities is None else capabilities.os_adapter
     snapshots: dict[Path, _ArtifactSnapshot] = {}
     for path in paths:
         if not path.is_absolute():
@@ -229,12 +242,12 @@ def _artifact_snapshots(paths: Sequence[Path]) -> dict[Path, _ArtifactSnapshot]:
         if not path.exists():
             snapshots[path] = _ArtifactSnapshot(payload=None, mode=None)
             continue
-        payload = runtime_compatibility_value("_read_protected_artifact", _read_protected_artifact)(
+        payload = read_artifact(
             path,
             label="future holdout evidence artifact",
         )
         mode: int | None = None
-        if runtime_compatibility_value("os", os).name != "nt":
+        if os_adapter.name != "nt":
             try:
                 status = path.stat(follow_symlinks=False)
             except OSError as exc:
@@ -290,6 +303,12 @@ def _restore_owned_artifact(
 ) -> None:
     """Atomically claim one generation, then restore without overwriting a successor."""
 
+    capabilities = holdout_runtime_capabilities()
+    read_artifact = (
+        _read_protected_artifact
+        if capabilities is None
+        else capabilities.read_protected_artifact
+    )
     descriptor, quarantine_name = tempfile.mkstemp(
         prefix=f".{path.name}.claimed-",
         dir=path.parent,
@@ -306,7 +325,7 @@ def _restore_owned_artifact(
         except FileNotFoundError:
             return
         try:
-            current = runtime_compatibility_value("_read_protected_artifact", _read_protected_artifact)(
+            current = read_artifact(
                 quarantine,
                 label="future holdout rollback artifact",
             )
@@ -436,6 +455,25 @@ def _artifact_bundle_lock_path(repository_root: Path) -> Path:
 
     identity = hashlib.sha256(str(repository_root.resolve()).encode("utf-8")).hexdigest()
     return Path(tempfile.gettempdir()) / f"uquant-future-holdout-{identity}.lock"
+
+
+AUTHORITATIVE_REPOSITORY_RELATIVES = _AUTHORITATIVE_REPOSITORY_RELATIVES
+ArtifactSnapshot = _ArtifactSnapshot
+artifact_bundle_lock = _artifact_bundle_lock
+artifact_bundle_lock_path = _artifact_bundle_lock_path
+artifact_bundle_lock_paths = _artifact_bundle_lock_paths
+artifact_snapshots = _artifact_snapshots
+canonical_carrier_path = _canonical_carrier_path
+git_metadata_paths = _git_metadata_paths
+link_bytes_if_absent = _link_bytes_if_absent
+paths_overlap = _paths_overlap
+read_protected_artifact = _read_protected_artifact
+reject_authoritative_output_paths = _reject_authoritative_output_paths
+reject_output_in_protected_data = _reject_output_in_protected_data
+resolved_path_text = _resolved_path_text
+restore_artifact_snapshots = _restore_artifact_snapshots
+restore_owned_artifact = _restore_owned_artifact
+tracked_repository_paths = _tracked_repository_paths
 
 __all__ = (
     "_AUTHORITATIVE_REPOSITORY_RELATIVES",

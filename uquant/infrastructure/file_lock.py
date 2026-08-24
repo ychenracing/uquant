@@ -37,11 +37,6 @@ class _ForeignFunction(Protocol):
     def __call__(self, *arguments: object) -> int: ...
 
 
-class _WindowsKernel32(Protocol):
-    LockFileEx: _ForeignFunction
-    UnlockFileEx: _ForeignFunction
-
-
 class _Overlapped(ctypes.Structure):
     _fields_ = (
         ("Internal", ctypes.c_size_t),
@@ -63,12 +58,22 @@ def _posix_unlock(descriptor: int) -> None:
     module.flock(descriptor, module.LOCK_UN)
 
 
-def _windows_kernel() -> _WindowsKernel32:
-    loader_value = vars(ctypes).get("WinDLL")
-    if not callable(loader_value):
-        raise OSError("Windows file locking is unavailable")
-    loader = cast(Callable[..., object], loader_value)
-    return cast(_WindowsKernel32, loader("kernel32", use_last_error=True))
+def _windows_lock_function() -> _ForeignFunction:
+    if not callable(vars(ctypes).get("WinDLL")):
+        raise OSError("Windows file locking is unavailable") from None
+    function = vars(ctypes)["WinDLL"](
+        "kernel32", use_last_error=True
+    ).LockFileEx
+    return cast(_ForeignFunction, function)
+
+
+def _windows_unlock_function() -> _ForeignFunction:
+    if not callable(vars(ctypes).get("WinDLL")):
+        raise OSError("Windows file locking is unavailable") from None
+    function = vars(ctypes)["WinDLL"](
+        "kernel32", use_last_error=True
+    ).UnlockFileEx
+    return cast(_ForeignFunction, function)
 
 
 def _windows_error() -> OSError:
@@ -81,8 +86,7 @@ def _windows_error() -> OSError:
 
 def _windows_lock(descriptor: int, mode: FileLockMode) -> None:
     runtime = cast(_WindowsRuntimeModule, importlib.import_module("msvcrt"))
-    kernel = _windows_kernel()
-    function = kernel.LockFileEx
+    function = _windows_lock_function()
     function.argtypes = [
         wintypes.HANDLE,
         wintypes.DWORD,
@@ -108,8 +112,7 @@ def _windows_lock(descriptor: int, mode: FileLockMode) -> None:
 
 def _windows_unlock(descriptor: int) -> None:
     runtime = cast(_WindowsRuntimeModule, importlib.import_module("msvcrt"))
-    kernel = _windows_kernel()
-    function = kernel.UnlockFileEx
+    function = _windows_unlock_function()
     function.argtypes = [
         wintypes.HANDLE,
         wintypes.DWORD,

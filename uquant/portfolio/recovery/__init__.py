@@ -7,7 +7,7 @@ from types import FunctionType
 from typing import Any, cast
 
 from .admission import RecoveryPortfolioPolicy as RecoveryPortfolioPolicy
-from .substitution import _recovery_anchor_substitution
+from .substitution import recovery_anchor_substitution as _recovery_anchor_substitution
 
 
 def _recovery_compatibility_method[Function: Callable[..., Any]](

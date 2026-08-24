@@ -9,9 +9,7 @@ from typing import TYPE_CHECKING, Any, cast
 from ..portfolio_core import current_weights, effective_n
 
 
-def _compatibility_method[Function: Callable[..., Any]](
-    function: Function, name: str
-) -> Function:
+def _compatibility_method[Function: Callable[..., Any]](function: Function, name: str) -> Function:
     runtime_function = cast(FunctionType, function)
     raw_docstring = runtime_function.__doc__
     if isinstance(raw_docstring, str) and "\n" in raw_docstring:
@@ -47,20 +45,37 @@ def _load_allocator() -> type[Any]:
         PortfolioAllocator as owner,
     )
     from .allocator import (
-        _confirmed_recovery_gross,
         allocate,
     )
-    from .freeze import _commit_frozen_exit_state, _frozen_existing_targets
-    from .pipeline import _allocate_strategy
+    from .allocator import (
+        confirmed_recovery_gross as _confirmed_recovery_gross,
+    )
+    from .freeze import commit_frozen_exit_state as _commit_frozen_exit_state
+    from .freeze import frozen_existing_targets as _frozen_existing_targets
+    from .pipeline import allocate_strategy as _allocate_strategy
     from .risk_reduction import (
-        _risk_attribution_mechanism,
-        _risk_lifecycle_rank,
-        _risk_reduction_metadata,
-        _risk_retention_score,
-        _risk_retention_vector,
-        _sparse_risk_reduce,
-        _subset_retention_vector,
-        _turnover_aware_sector_cap,
+        risk_attribution_mechanism as _risk_attribution_mechanism,
+    )
+    from .risk_reduction import (
+        risk_lifecycle_rank as _risk_lifecycle_rank,
+    )
+    from .risk_reduction import (
+        risk_reduction_metadata as _risk_reduction_metadata,
+    )
+    from .risk_reduction import (
+        risk_retention_score as _risk_retention_score,
+    )
+    from .risk_reduction import (
+        risk_retention_vector as _risk_retention_vector,
+    )
+    from .risk_reduction import (
+        sparse_risk_reduce as _sparse_risk_reduce,
+    )
+    from .risk_reduction import (
+        subset_retention_vector as _subset_retention_vector,
+    )
+    from .risk_reduction import (
+        turnover_aware_sector_cap as _turnover_aware_sector_cap,
     )
 
     _bind_compatibility_method(
@@ -134,4 +149,4 @@ if TYPE_CHECKING:
 else:
     PortfolioAllocator = _load_allocator()
 
-__all__ = ["PortfolioAllocator", "current_weights", "effective_n"]
+__all__ = ("PortfolioAllocator", "current_weights", "effective_n")

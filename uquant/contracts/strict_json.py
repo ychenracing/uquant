@@ -49,3 +49,7 @@ def canonical_json_sha256(value: object) -> str:
     """Hash the canonical UTF-8 representation of a JSON value."""
 
     return hashlib.sha256(canonical_json_bytes(value)).hexdigest()
+
+
+reject_contract_json_constant = _reject_contract_json_constant
+reject_duplicate_json_keys = _reject_duplicate_json_keys

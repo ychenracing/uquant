@@ -35,3 +35,6 @@ def _blocked(
     if side == Side.BUY.value:
         return float(row["open"]) >= upper * 0.999 and float(row["low"]) >= upper * 0.999
     return float(row["open"]) <= lower * 1.001 and float(row["high"]) <= lower * 1.001
+
+
+market_execution_blocked = _blocked

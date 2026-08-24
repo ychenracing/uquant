@@ -3,14 +3,16 @@
 from __future__ import annotations
 
 import math
-from collections.abc import Iterable
+from collections.abc import Iterable, Mapping
+from types import MappingProxyType
+from typing import cast
 
 import numpy as np
 import pandas as pd
 
 from .config import SystemConfig
 from .features import scalar
-from .industry import compute_industry_signals, production_industries
+from .industry import IndustrySignal, compute_industry_signals, production_industries
 from .reference import production_reference_symbols
 from .types import AccountState, LeaderScore, Opportunity
 
@@ -33,39 +35,47 @@ def stable_reference_requires_history(symbol: str, first_observed_date: str) -> 
     )
 
 
-FACTOR_PROFILES: dict[str, dict[str, float]] = {
-    Opportunity.TREND.value: {
-        "momentum60": 0.18,
-        "momentum120": 0.12,
-        "relative_strength": 0.16,
-        "trend_persistence": 0.13,
-        "breakout_quality": 0.10,
-        "resilience": 0.06,
-        "industry_strength": 0.10,
-        "volume_expansion": 0.05,
-        "trend_efficiency": 0.10,
-    },
-    Opportunity.RECOVERY.value: {
-        "acceleration": 0.18,
-        "recovery": 0.18,
-        "resilience": 0.16,
-        "industry_rotation_strength": 0.13,
-        "relative_strength": 0.12,
-        "trend_persistence": 0.08,
-        "industry_breadth": 0.08,
-        "volume_expansion": 0.07,
-    },
-    Opportunity.CHOPPY.value: {
-        "resilience": 0.24,
-        "low_drawdown": 0.15,
-        "short_relative_strength": 0.16,
-        "trend_efficiency": 0.14,
-        "volume_expansion": 0.10,
-        "industry_strength": 0.09,
-        "trend_persistence": 0.07,
-        "momentum60": 0.05,
-    },
-}
+FACTOR_PROFILES: Mapping[str, Mapping[str, float]] = MappingProxyType(
+    {
+        Opportunity.TREND.value: MappingProxyType(
+            {
+                "momentum60": 0.18,
+                "momentum120": 0.12,
+                "relative_strength": 0.16,
+                "trend_persistence": 0.13,
+                "breakout_quality": 0.10,
+                "resilience": 0.06,
+                "industry_strength": 0.10,
+                "volume_expansion": 0.05,
+                "trend_efficiency": 0.10,
+            }
+        ),
+        Opportunity.RECOVERY.value: MappingProxyType(
+            {
+                "acceleration": 0.18,
+                "recovery": 0.18,
+                "resilience": 0.16,
+                "industry_rotation_strength": 0.13,
+                "relative_strength": 0.12,
+                "trend_persistence": 0.08,
+                "industry_breadth": 0.08,
+                "volume_expansion": 0.07,
+            }
+        ),
+        Opportunity.CHOPPY.value: MappingProxyType(
+            {
+                "resilience": 0.24,
+                "low_drawdown": 0.15,
+                "short_relative_strength": 0.16,
+                "trend_efficiency": 0.14,
+                "volume_expansion": 0.10,
+                "industry_strength": 0.09,
+                "trend_persistence": 0.07,
+                "momentum60": 0.05,
+            }
+        ),
+    }
+)
 
 INDUSTRY = production_industries()
 
@@ -113,15 +123,12 @@ def _profile_for(opportunity: str) -> str:
 
 def _residual_returns(series: pd.Series, market: pd.Series) -> pd.Series:
     """Remove the contemporaneous broad technology beta from one return series."""
-    aligned = pd.concat(
-        [series.rename("asset"), market.rename("market")], axis=1, sort=False
-    ).dropna()
+    aligned = pd.concat([series.rename("asset"), market.rename("market")], axis=1, sort=False).dropna()
     if len(aligned) < 20:
         return pd.Series(dtype=float)
     market_var = float(aligned["market"].var(ddof=0))
     beta = (
-        float(aligned[["asset", "market"]].cov(ddof=0).to_numpy(dtype=float)[0, 1])
-        / market_var
+        float(aligned[["asset", "market"]].cov(ddof=0).to_numpy(dtype=float)[0, 1]) / market_var
         if market_var > 1e-12
         else 0.0
     )
@@ -134,9 +141,7 @@ def _inferred_industries(
     tech: pd.DataFrame,
 ) -> dict[str, tuple[str, float]]:
     """Infer unknown groups from stable 60/120-day residual correlations."""
-    tech_returns = (
-        tech.loc[:as_of, "close"].astype(float).tail(121).pct_change(fill_method=None).dropna()
-    )
+    tech_returns = tech.loc[:as_of, "close"].astype(float).tail(121).pct_change(fill_method=None).dropna()
     group_returns: dict[str, list[pd.Series]] = {}
     for symbol in STABLE_REFERENCE_UNIVERSE:
         industry = INDUSTRY.get(symbol)
@@ -164,9 +169,7 @@ def _inferred_industries(
         for window in (60, 120):
             correlations: list[tuple[float, str]] = []
             for industry, basket in baskets.items():
-                aligned = pd.concat(
-                    [residual.tail(window), basket.tail(window)], axis=1, sort=False
-                ).dropna()
+                aligned = pd.concat([residual.tail(window), basket.tail(window)], axis=1, sort=False).dropna()
                 if len(aligned) < window:
                     continue
                 correlation = float(aligned.iloc[:, 0].corr(aligned.iloc[:, 1]))
@@ -185,61 +188,34 @@ def _inferred_industries(
         industry = winners[0]
         best = min(ranking[0][0] for ranking in window_rankings)
         margins = [
-            ranking[0][0] - (ranking[1][0] if len(ranking) > 1 else 0.0)
-            for ranking in window_rankings
+            ranking[0][0] - (ranking[1][0] if len(ranking) > 1 else 0.0) for ranking in window_rankings
         ]
         confidence = min(1.0, max(0.0, 0.70 * best + 0.30 * min(margins)))
         inferred[symbol] = (industry if confidence > 0 else "unknown", confidence)
     return inferred
 
 
-def _percentile(value: float, reference: Iterable[float]) -> float:
+def _leader_percentile(value: float, reference: Iterable[float]) -> float:
     values = np.array([item for item in reference if math.isfinite(item)], dtype=float)
     if not math.isfinite(value) or len(values) < 3:
         return 0.0
     return float((values < value).sum() + 0.5 * (values == value).sum()) / len(values)
 
 
-def compute_structural_leaders(
-    panel: dict[str, pd.DataFrame],
+def _raw_leader_features(
     *,
+    panel: dict[str, pd.DataFrame],
     as_of: pd.Timestamp,
-    tech: pd.DataFrame,
+    tech_row: pd.Series,
     cfg: SystemConfig,
-    score_cache: dict[tuple[object, ...], dict[str, LeaderScore]] | None = None,
-) -> dict[str, LeaderScore]:
-    """Score regime-neutral leaders using only data visible at ``as_of``.
-
-    Cross-sectional percentiles are anchored to the fixed reference universe;
-    account persistence and opportunity tilts are deliberately applied later.
-    """
-    if as_of not in tech.index:
-        raise RuntimeError("fixed tech index missing at decision date")
-    extra_symbols = tuple(sorted(set(panel) - set(REFERENCE_UNIVERSE)))
-    # Structural components include configuration-dependent industry evidence.
-    # A ProductionEngine is intentionally reused across promotion cells, so a
-    # key that omits cfg can leak small-pool hierarchical scores into the broad
-    # compatibility path (or the reverse) and make replay order affect returns.
-    cache_key = (as_of, extra_symbols, cfg, "STRUCTURAL")
-    cached = score_cache.get(cache_key) if score_cache is not None else None
-    if cached is not None:
-        return cached
-    tech_row = tech.loc[as_of]
-    inferred_industries = _inferred_industries(panel, as_of, tech)
-    effective_industries = {
-        symbol: (
-            industry if symbol in INDUSTRY or confidence >= cfg.unknown_industry_confidence else "unknown",
-            confidence,
-        )
-        for symbol, (industry, confidence) in inferred_industries.items()
-    }
+) -> dict[str, dict[str, float]]:
     raw: dict[str, dict[str, float]] = {}
     for symbol, frame in panel.items():
         if as_of not in frame.index:
             continue
         row = frame.loc[as_of]
-        # The feature store is date-sorted. Index position is the causal
-        # history length and avoids materialising a growing prefix every day.
+        # Index position is the causal history length and avoids materialising
+        # a growing prefix every day.
         history = int(frame.index.searchsorted(as_of, side="right"))
         close = scalar(row, "close")
         ma20 = scalar(row, f"ma{cfg.trend_fast}")
@@ -275,6 +251,17 @@ def compute_structural_leaders(
                 float(frame.loc[:as_of, "amount"].tail(20).median()) / max(cfg.minimum_median_amount, 1.0),
             ),
         }
+    return raw
+
+
+def _leader_reference_context(
+    *,
+    raw: dict[str, dict[str, float]],
+    panel: dict[str, pd.DataFrame],
+    as_of: pd.Timestamp,
+    effective_industries: dict[str, tuple[str, float]],
+    cfg: SystemConfig,
+) -> tuple[list[str], dict[str, IndustrySignal], dict[str, list[float]], list[float]]:
     references = [symbol for symbol in REFERENCE_UNIVERSE if symbol in raw]
     expected = [
         symbol for symbol in REFERENCE_UNIVERSE if symbol in panel and panel[symbol].index.min() <= as_of
@@ -301,175 +288,288 @@ def compute_structural_leaders(
         for values in industry_returns.values()
         if (finite := [value for value in values if math.isfinite(value)])
     ]
+    return references, industry_signals, industry_returns, industry_reference_means
+
+
+def _cross_sectional_leader_factors(
+    *,
+    symbol: str,
+    item: dict[str, float],
+    raw: dict[str, dict[str, float]],
+    references: list[str],
+    effective_industries: dict[str, tuple[str, float]],
+    industry_signals: dict[str, IndustrySignal],
+    industry_returns: dict[str, list[float]],
+    industry_reference_means: list[float],
+    cfg: SystemConfig,
+) -> tuple[dict[str, float], float, float]:
+    effective_industry, industry_inference_confidence = effective_industries.get(symbol, ("unknown", 0.0))
+    industry_signal = industry_signals.get(effective_industry)
+    industry_values = [
+        value for value in industry_returns.get(effective_industry, []) if math.isfinite(value)
+    ]
+    industry_mean = float(np.mean(industry_values)) if industry_values else float("nan")
+    global_momentum60 = _percentile(item["ret60"], (raw[name]["ret60"] for name in references))
+    global_momentum120 = _percentile(item["ret120"], (raw[name]["ret120"] for name in references))
+    industry_momentum60 = _percentile(item["ret60"], industry_values)
+    industry_momentum120 = _percentile(
+        item["ret120"],
+        (
+            raw[name]["ret120"]
+            for name in references
+            if effective_industries.get(name, ("unknown", 0.0))[0] == effective_industry
+        ),
+    )
+    blend = cfg.stable_reference_global_weight
+    factors = {
+        "momentum60": blend * global_momentum60 + (1.0 - blend) * industry_momentum60,
+        "momentum120": blend * global_momentum120 + (1.0 - blend) * industry_momentum120,
+        "relative_strength": _percentile(item["rs60"], (raw[name]["rs60"] for name in references)),
+        "relative_strength120": _percentile(item["rs120"], (raw[name]["rs120"] for name in references)),
+        "industry_relative_strength120": industry_momentum120,
+        "short_relative_strength": _percentile(item["ret20"], (raw[name]["ret20"] for name in references)),
+        "trend_persistence": item["trend"],
+        "breakout_quality": _percentile(item["breakout"], (raw[name]["breakout"] for name in references)),
+        "resilience": _percentile(item["resilience"], (raw[name]["resilience"] for name in references)),
+        "low_drawdown": _percentile(item["drawdown240"], (raw[name]["drawdown240"] for name in references)),
+        "recovery": _percentile(item["recovery120"], (raw[name]["recovery120"] for name in references)),
+        "acceleration": _percentile(item["accel"], (raw[name]["accel"] for name in references)),
+        "trend_efficiency": _percentile(item["efficiency"], (raw[name]["efficiency"] for name in references)),
+        "volume_expansion": item["volume"],
+        "industry_strength": _percentile(industry_mean, industry_reference_means),
+        **_industry_leader_factors(
+            industry_signal=industry_signal,
+            industry_inference_confidence=industry_inference_confidence,
+            liquidity=item["liquidity"],
+            cfg=cfg,
+        ),
+    }
+    return factors, global_momentum60, global_momentum120
+
+
+def _industry_leader_factors(
+    *,
+    industry_signal: IndustrySignal | None,
+    industry_inference_confidence: float,
+    liquidity: float,
+    cfg: SystemConfig,
+) -> dict[str, float]:
+    return {
+        "industry_rotation_strength": industry_signal.score if industry_signal is not None else 0.5,
+        "industry_rotation_raw_strength": (industry_signal.raw_score if industry_signal is not None else 0.5),
+        "industry_confidence": industry_signal.confidence if industry_signal is not None else 0.0,
+        "industry_breadth20": industry_signal.breadth20 if industry_signal is not None else 0.0,
+        "industry_breadth60": industry_signal.breadth60 if industry_signal is not None else 0.0,
+        "industry_return20": industry_signal.return20 if industry_signal is not None else 0.0,
+        "industry_return60": industry_signal.return60 if industry_signal is not None else 0.0,
+        "industry_breadth": (
+            0.5 * (industry_signal.breadth20 + industry_signal.breadth60)
+            if industry_signal is not None
+            else 0.0
+        ),
+        "industry_inference_confidence": industry_inference_confidence,
+        "unknown_industry": float(industry_inference_confidence < cfg.unknown_industry_confidence),
+        "liquidity": liquidity,
+        "factor_profile": -1.0,
+    }
+
+
+def _add_secular_leader_factors(
+    *,
+    item: dict[str, float],
+    factors: dict[str, float],
+    raw: dict[str, dict[str, float]],
+    references: list[str],
+) -> None:
+    secular_factors = {
+        "secular_ret240": _percentile(item["ret240"], (raw[name]["ret240"] for name in references)),
+        "secular_rs240": _percentile(item["rs240"], (raw[name]["rs240"] for name in references)),
+        "secular_efficiency": factors["trend_efficiency"],
+        "secular_r2": _percentile(item["trend_r2"], (raw[name]["trend_r2"] for name in references)),
+        "secular_persistence": item["above60_persistence"],
+        "secular_slope60": _percentile(item["ma60_slope"], (raw[name]["ma60_slope"] for name in references)),
+        "secular_slope120": _percentile(
+            item["ma120_slope"], (raw[name]["ma120_slope"] for name in references)
+        ),
+        "secular_resilience": (
+            factors["low_drawdown"]
+            + _percentile(
+                -item["downside_vol"],
+                (-raw[name]["downside_vol"] for name in references),
+            )
+            + factors["recovery"]
+        )
+        / 3.0,
+    }
+    secular_factors["secular_stability"] = (
+        0.25 * secular_factors["secular_efficiency"]
+        + 0.25 * secular_factors["secular_r2"]
+        + 0.20 * secular_factors["secular_persistence"]
+        + 0.15 * secular_factors["secular_slope60"]
+        + 0.15 * secular_factors["secular_slope120"]
+    )
+    secular_score = (
+        0.20 * secular_factors["secular_ret240"]
+        + 0.15 * factors["momentum120"]
+        + 0.15 * secular_factors["secular_rs240"]
+        + 0.10 * factors["industry_relative_strength120"]
+        + 0.10 * secular_factors["secular_stability"]
+        + 0.10 * secular_factors["secular_resilience"]
+        + 0.08 * factors["industry_strength"]
+        + 0.07 * factors["industry_breadth"]
+        + 0.05 * factors["liquidity"]
+    )
+    secular_confidence = min(1.0, item["history"] / 240.0) * item["liquidity"]
+    factors.update(secular_factors)
+    factors["secular_score"] = secular_score
+    factors["secular_confidence"] = secular_confidence
+
+
+def _build_structural_leader_score(
+    *,
+    symbol: str,
+    item: dict[str, float],
+    factors: dict[str, float],
+    global_momentum60: float,
+    global_momentum120: float,
+    effective_industry: str,
+    cfg: SystemConfig,
+) -> LeaderScore:
+    core_observed = sum(
+        math.isfinite(item[name])
+        for name in (
+            "ret20",
+            "ret60",
+            "ret120",
+            "rs60",
+            "trend",
+            "breakout",
+            "resilience",
+            "volume",
+            "accel",
+        )
+    )
+    confidence = min(1.0, item["history"] / cfg.min_history) * min(1.0, core_observed / 9.0)
+    stable_score = (
+        0.23 * global_momentum60
+        + 0.12 * global_momentum120
+        + 0.17 * factors["relative_strength"]
+        + 0.14 * factors["trend_persistence"]
+        + 0.10 * factors["breakout_quality"]
+        + 0.10 * factors["resilience"]
+        + 0.08 * factors["industry_strength"]
+        + 0.06 * factors["volume_expansion"]
+    )
+    factors.update(
+        {
+            "stable_score": stable_score,
+            "raw_ret60": item["ret60"],
+            "raw_ret120": item["ret120"],
+            "raw_accel": item["accel"],
+            "raw_history": item["history"],
+        }
+    )
+    score = stable_score * (0.55 + 0.45 * confidence)
+    mature = bool(
+        score >= cfg.leader_mature_score
+        and item["ret60"] > 0
+        and item["ret120"] > 0
+        and factors["trend_persistence"] >= 2 / 3
+        and confidence >= cfg.leader_min_confidence
+    )
+    emerging = bool(
+        not mature
+        and item["history"] >= cfg.emerging_min_history
+        and item["accel"] > 0
+        and factors["breakout_quality"] >= 0.70
+        and factors["relative_strength"] >= 0.70
+        and score >= cfg.leader_emerging_score
+    )
+    return LeaderScore(
+        symbol=symbol,
+        score=score,
+        confidence=confidence,
+        mature=mature,
+        emerging=emerging,
+        industry=effective_industry,
+        components=factors,
+    )
+
+
+def compute_structural_leaders(
+    panel: dict[str, pd.DataFrame],
+    *,
+    as_of: pd.Timestamp,
+    tech: pd.DataFrame,
+    cfg: SystemConfig,
+    score_cache: dict[tuple[object, ...], dict[str, LeaderScore]] | None = None,
+) -> dict[str, LeaderScore]:
+    """Score regime-neutral leaders using only data visible at ``as_of``.
+
+    Cross-sectional percentiles are anchored to the fixed reference universe;
+    account persistence and opportunity tilts are deliberately applied later.
+    """
+    if as_of not in tech.index:
+        raise RuntimeError("fixed tech index missing at decision date")
+    extra_symbols = tuple(sorted(set(panel) - set(REFERENCE_UNIVERSE)))
+    # Structural components include configuration-dependent industry evidence.
+    # A ProductionEngine is intentionally reused across promotion cells, so a
+    # key that omits cfg can leak small-pool hierarchical scores into the broad
+    # compatibility path (or the reverse) and make replay order affect returns.
+    cache_key = (as_of, extra_symbols, cfg, "STRUCTURAL")
+    cached = score_cache.get(cache_key) if score_cache is not None else None
+    if cached is not None:
+        return cached
+    tech_row = cast(pd.Series, tech.loc[as_of])
+    inferred_industries = _inferred_industries(panel, as_of, tech)
+    effective_industries = {
+        symbol: (
+            industry if symbol in INDUSTRY or confidence >= cfg.unknown_industry_confidence else "unknown",
+            confidence,
+        )
+        for symbol, (industry, confidence) in inferred_industries.items()
+    }
+    raw = _raw_leader_features(
+        panel=panel,
+        as_of=as_of,
+        tech_row=tech_row,
+        cfg=cfg,
+    )
+    references, industry_signals, industry_returns, industry_reference_means = _leader_reference_context(
+        raw=raw,
+        panel=panel,
+        as_of=as_of,
+        effective_industries=effective_industries,
+        cfg=cfg,
+    )
     base_results: dict[str, LeaderScore] = {}
     for symbol, item in raw.items():
-        effective_industry, industry_inference_confidence = effective_industries.get(symbol, ("unknown", 0.0))
-        industry_signal = industry_signals.get(effective_industry)
-        industry_values = [
-            value for value in industry_returns.get(effective_industry, []) if math.isfinite(value)
-        ]
-        industry_mean = float(np.mean(industry_values)) if industry_values else float("nan")
-        global_momentum60 = _percentile(item["ret60"], (raw[s]["ret60"] for s in references))
-        global_momentum120 = _percentile(item["ret120"], (raw[s]["ret120"] for s in references))
-        industry_momentum60 = _percentile(item["ret60"], industry_values)
-        industry_momentum120 = _percentile(
-            item["ret120"],
-            (
-                raw[s]["ret120"]
-                for s in references
-                if effective_industries.get(s, ("unknown", 0.0))[0] == effective_industry
-            ),
-        )
-        blend = cfg.stable_reference_global_weight
-        factors = {
-            "momentum60": blend * global_momentum60 + (1.0 - blend) * industry_momentum60,
-            "momentum120": blend * global_momentum120 + (1.0 - blend) * industry_momentum120,
-            "relative_strength": _percentile(item["rs60"], (raw[s]["rs60"] for s in references)),
-            "relative_strength120": _percentile(
-                item["rs120"],
-                (raw[s]["rs120"] for s in references),
-            ),
-            "industry_relative_strength120": industry_momentum120,
-            "short_relative_strength": _percentile(item["ret20"], (raw[s]["ret20"] for s in references)),
-            "trend_persistence": item["trend"],
-            "breakout_quality": _percentile(item["breakout"], (raw[s]["breakout"] for s in references)),
-            "resilience": _percentile(item["resilience"], (raw[s]["resilience"] for s in references)),
-            "low_drawdown": _percentile(item["drawdown240"], (raw[s]["drawdown240"] for s in references)),
-            "recovery": _percentile(item["recovery120"], (raw[s]["recovery120"] for s in references)),
-            "acceleration": _percentile(item["accel"], (raw[s]["accel"] for s in references)),
-            "trend_efficiency": _percentile(item["efficiency"], (raw[s]["efficiency"] for s in references)),
-            "volume_expansion": item["volume"],
-            "industry_strength": _percentile(
-                industry_mean,
-                industry_reference_means,
-            ),
-            "industry_rotation_strength": (industry_signal.score if industry_signal is not None else 0.5),
-            "industry_rotation_raw_strength": (
-                industry_signal.raw_score if industry_signal is not None else 0.5
-            ),
-            "industry_confidence": (industry_signal.confidence if industry_signal is not None else 0.0),
-            "industry_breadth20": (industry_signal.breadth20 if industry_signal is not None else 0.0),
-            "industry_breadth60": (industry_signal.breadth60 if industry_signal is not None else 0.0),
-            "industry_return20": (industry_signal.return20 if industry_signal is not None else 0.0),
-            "industry_return60": (industry_signal.return60 if industry_signal is not None else 0.0),
-            "industry_breadth": (
-                0.5 * (industry_signal.breadth20 + industry_signal.breadth60)
-                if industry_signal is not None
-                else 0.0
-            ),
-            "industry_inference_confidence": industry_inference_confidence,
-            "unknown_industry": float(industry_inference_confidence < cfg.unknown_industry_confidence),
-            "liquidity": item["liquidity"],
-            "factor_profile": -1.0,
-        }
-        secular_factors = {
-            "secular_ret240": _percentile(item["ret240"], (raw[s]["ret240"] for s in references)),
-            "secular_rs240": _percentile(item["rs240"], (raw[s]["rs240"] for s in references)),
-            "secular_efficiency": factors["trend_efficiency"],
-            "secular_r2": _percentile(item["trend_r2"], (raw[s]["trend_r2"] for s in references)),
-            "secular_persistence": item["above60_persistence"],
-            "secular_slope60": _percentile(
-                item["ma60_slope"],
-                (raw[s]["ma60_slope"] for s in references),
-            ),
-            "secular_slope120": _percentile(
-                item["ma120_slope"],
-                (raw[s]["ma120_slope"] for s in references),
-            ),
-            "secular_resilience": (
-                factors["low_drawdown"]
-                + _percentile(
-                    -item["downside_vol"],
-                    (-raw[s]["downside_vol"] for s in references),
-                )
-                + factors["recovery"]
-            )
-            / 3.0,
-        }
-        secular_factors["secular_stability"] = (
-            0.25 * secular_factors["secular_efficiency"]
-            + 0.25 * secular_factors["secular_r2"]
-            + 0.20 * secular_factors["secular_persistence"]
-            + 0.15 * secular_factors["secular_slope60"]
-            + 0.15 * secular_factors["secular_slope120"]
-        )
-        secular_score = (
-            0.20 * secular_factors["secular_ret240"]
-            + 0.15 * factors["momentum120"]
-            + 0.15 * secular_factors["secular_rs240"]
-            + 0.10 * factors["industry_relative_strength120"]
-            + 0.10 * secular_factors["secular_stability"]
-            + 0.10 * secular_factors["secular_resilience"]
-            + 0.08 * factors["industry_strength"]
-            + 0.07 * factors["industry_breadth"]
-            + 0.05 * factors["liquidity"]
-        )
-        secular_confidence = min(1.0, item["history"] / 240.0) * item["liquidity"]
-        factors.update(secular_factors)
-        factors["secular_score"] = secular_score
-        factors["secular_confidence"] = secular_confidence
-        # Production eligibility keeps the original nine-factor availability
-        # contract.  Long-horizon research features must not make an otherwise
-        # identical historical observation look less complete.
-        core_observed = sum(
-            math.isfinite(item[name])
-            for name in (
-                "ret20",
-                "ret60",
-                "ret120",
-                "rs60",
-                "trend",
-                "breakout",
-                "resilience",
-                "volume",
-                "accel",
-            )
-        )
-        confidence = min(1.0, item["history"] / cfg.min_history) * min(1.0, core_observed / 9.0)
-        stable_score = (
-            0.23 * global_momentum60
-            + 0.12 * global_momentum120
-            + 0.17 * factors["relative_strength"]
-            + 0.14 * factors["trend_persistence"]
-            + 0.10 * factors["breakout_quality"]
-            + 0.10 * factors["resilience"]
-            + 0.08 * factors["industry_strength"]
-            + 0.06 * factors["volume_expansion"]
-        )
-        factors.update(
-            {
-                "stable_score": stable_score,
-                "raw_ret60": item["ret60"],
-                "raw_ret120": item["ret120"],
-                "raw_accel": item["accel"],
-                "raw_history": item["history"],
-            }
-        )
-        raw_score = stable_score
-        score = raw_score * (0.55 + 0.45 * confidence)
-        mature = bool(
-            score >= cfg.leader_mature_score
-            and item["ret60"] > 0
-            and item["ret120"] > 0
-            and factors["trend_persistence"] >= 2 / 3
-            and confidence >= cfg.leader_min_confidence
-        )
-        emerging = bool(
-            not mature
-            and item["history"] >= cfg.emerging_min_history
-            and item["accel"] > 0
-            and factors["breakout_quality"] >= 0.70
-            and factors["relative_strength"] >= 0.70
-            and score >= cfg.leader_emerging_score
-        )
-        base_results[symbol] = LeaderScore(
+        effective_industry = effective_industries.get(symbol, ("unknown", 0.0))[0]
+        factors, global_momentum60, global_momentum120 = _cross_sectional_leader_factors(
             symbol=symbol,
-            score=score,
-            confidence=confidence,
-            mature=mature,
-            emerging=emerging,
-            industry=effective_industry,
-            components=factors,
+            item=item,
+            raw=raw,
+            references=references,
+            effective_industries=effective_industries,
+            industry_signals=industry_signals,
+            industry_returns=industry_returns,
+            industry_reference_means=industry_reference_means,
+            cfg=cfg,
+        )
+        _add_secular_leader_factors(
+            item=item,
+            factors=factors,
+            raw=raw,
+            references=references,
+        )
+        base_results[symbol] = _build_structural_leader_score(
+            symbol=symbol,
+            item=item,
+            factors=factors,
+            global_momentum60=global_momentum60,
+            global_momentum120=global_momentum120,
+            effective_industry=effective_industry,
+            cfg=cfg,
         )
     if score_cache is not None:
         score_cache[cache_key] = base_results
@@ -525,6 +625,9 @@ def apply_opportunity_alpha(
             components=factors,
         )
     return results
+
+
+_percentile = _leader_percentile
 
 
 def apply_leader_tenure(

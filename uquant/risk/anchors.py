@@ -112,6 +112,49 @@ def _update_dynamic_anchors(
     return tuple(account.risk_anchor_symbols)
 
 
+def _healthy_anchor_basket(
+    *,
+    complete: bool,
+    symbols: tuple[str, ...],
+    reference_panel: dict[str, pd.DataFrame],
+    date: pd.Timestamp,
+    cfg: SystemConfig,
+) -> bool:
+    return complete and all(
+        scalar(reference_panel[symbol].loc[date], "close")
+        > scalar(reference_panel[symbol].loc[date], f"ma{cfg.trend_medium}")
+        and scalar(
+            reference_panel[symbol].loc[date],
+            f"ret{cfg.trend_medium}",
+            -1.0,
+        )
+        > 0
+        for symbol in symbols
+    )
+
+
+def _immediate_anchor_break(
+    *,
+    armed: bool,
+    complete: bool,
+    symbols: tuple[str, ...],
+    anchor_ret5: list[float],
+    reference_panel: dict[str, pd.DataFrame],
+    date: pd.Timestamp,
+    cfg: SystemConfig,
+) -> bool:
+    return bool(
+        armed
+        and complete
+        and all(
+            scalar(reference_panel[symbol].loc[date], "close")
+            < scalar(reference_panel[symbol].loc[date], f"ma{cfg.trend_fast}")
+            for symbol in symbols
+        )
+        and float(np.mean(anchor_ret5)) <= cfg.severe_shock_ret5
+    )
+
+
 def _assess_dynamic_anchors(
     *,
     date: pd.Timestamp,
@@ -151,16 +194,12 @@ def _assess_dynamic_anchors(
     complete_anchor_basket = (
         len(anchor_damage) == cfg.risk_anchor_count and len(anchor_groups) >= cfg.risk_anchor_min_groups
     )
-    reference_anchor_healthy = complete_anchor_basket and all(
-        scalar(reference_panel[symbol].loc[date], "close")
-        > scalar(reference_panel[symbol].loc[date], f"ma{cfg.trend_medium}")
-        and scalar(
-            reference_panel[symbol].loc[date],
-            f"ret{cfg.trend_medium}",
-            -1.0,
-        )
-        > 0
-        for symbol in anchor_symbols
+    reference_anchor_healthy = _healthy_anchor_basket(
+        complete=complete_anchor_basket,
+        symbols=anchor_symbols,
+        reference_panel=reference_panel,
+        date=date,
+        cfg=cfg,
     )
     if reference_anchor_healthy:
         account.risk_streaks["reference_anchor_armed"] = 1
@@ -170,15 +209,14 @@ def _assess_dynamic_anchors(
     account.risk_streaks[anchor_break_key] = (
         account.risk_streaks.get(anchor_break_key, 0) + 1 if reference_anchor_break else 0
     )
-    immediate_reference_break = bool(
-        reference_anchor_armed
-        and complete_anchor_basket
-        and all(
-            scalar(reference_panel[symbol].loc[date], "close")
-            < scalar(reference_panel[symbol].loc[date], f"ma{cfg.trend_fast}")
-            for symbol in anchor_symbols
-        )
-        and float(np.mean(anchor_ret5)) <= cfg.severe_shock_ret5
+    immediate_reference_break = _immediate_anchor_break(
+        armed=reference_anchor_armed,
+        complete=complete_anchor_basket,
+        symbols=anchor_symbols,
+        anchor_ret5=anchor_ret5,
+        reference_panel=reference_panel,
+        date=date,
+        cfg=cfg,
     )
     return AnchorAssessment(
         symbols=anchor_symbols,
@@ -190,9 +228,17 @@ def _assess_dynamic_anchors(
     )
 
 
+assess_dynamic_anchors = _assess_dynamic_anchors
+dynamic_anchor_candidate = _dynamic_anchor_candidate
+update_dynamic_anchors = _update_dynamic_anchors
+
+
 __all__ = (
     "AnchorAssessment",
     "_assess_dynamic_anchors",
     "_dynamic_anchor_candidate",
     "_update_dynamic_anchors",
+    "assess_dynamic_anchors",
+    "dynamic_anchor_candidate",
+    "update_dynamic_anchors",
 )

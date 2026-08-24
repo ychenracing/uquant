@@ -20,6 +20,7 @@ from ._analysis import (
     ROOT,
     architecture_snapshot,
 )
+from ._task10_task5_transport import task5_private_relocation_projection
 
 _TASK5_START = "3af754edf83b5ca67e06b1c3733eb5161dd7fd3c"
 _INVENTORY = ROOT / "artifacts" / "architecture_refactor" / "task5_cleanup_inventory.json"
@@ -120,6 +121,8 @@ def test_task5_cleanup_inventory_covers_immutable_authority_references() -> None
 
 
 def test_task5_private_edges_are_exactly_bound_to_the_mechanical_split() -> None:
+    from uquant.attribution import concentration, replay_evidence
+
     graph = architecture_snapshot()["import_graph"]
     assert isinstance(graph, dict)
     relocated = graph["task5_relocated_private_imports"]
@@ -128,7 +131,19 @@ def test_task5_private_edges_are_exactly_bound_to_the_mechanical_split() -> None
     assert isinstance(relocated, list)
     assert isinstance(ordinary, list)
     assert isinstance(private_module_calls, list)
-    assert {str(row["id"]) for row in relocated} == _TASK5_RELOCATED_PRIVATE_IMPORTS
+    observed_relocated = {str(row["id"]) for row in relocated}
+    assert task5_private_relocation_projection(
+        root=ROOT,
+        expected=_TASK5_RELOCATED_PRIVATE_IMPORTS,
+        observed=observed_relocated,
+    ) == _TASK5_RELOCATED_PRIVATE_IMPORTS
+    assert concentration.group_lot_pnl is concentration._group_lot_pnl
+    assert concentration.holding_summary is concentration._holding_summary
+    assert replay_evidence.LEDGER_FIELDS is replay_evidence._LEDGER_FIELDS
+    assert (
+        replay_evidence.require_exact_attribution_fields
+        is replay_evidence._require_exact_fields
+    )
     task5_prefixes = (
         "uquant.account",
         "uquant.attribution",

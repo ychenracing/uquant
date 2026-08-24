@@ -43,6 +43,10 @@ class _FakeWindowsRuntime:
         return self.handle
 
 
+class _MissingWindowsFunctions:
+    pass
+
+
 def _integer(argument: Any) -> int:
     value = argument.value
     assert isinstance(value, int)
@@ -168,7 +172,16 @@ def test_windows_lock_uses_blocking_mode_and_matching_full_file_range(
         "import_module",
         lambda name: runtime if name == "msvcrt" else pytest.fail(name),
     )
-    monkeypatch.setattr(file_lock_module, "_windows_kernel", lambda: kernel)
+    monkeypatch.setattr(
+        file_lock_module,
+        "_windows_lock_function",
+        lambda: kernel.LockFileEx,
+    )
+    monkeypatch.setattr(
+        file_lock_module,
+        "_windows_unlock_function",
+        lambda: kernel.UnlockFileEx,
+    )
 
     file_lock_module._windows_lock(37, mode)
     file_lock_module._windows_unlock(37)
@@ -205,7 +218,16 @@ def test_windows_lock_propagates_the_exact_last_error(
         "import_module",
         lambda name: runtime if name == "msvcrt" else pytest.fail(name),
     )
-    monkeypatch.setattr(file_lock_module, "_windows_kernel", lambda: kernel)
+    monkeypatch.setattr(
+        file_lock_module,
+        "_windows_lock_function",
+        lambda: kernel.LockFileEx,
+    )
+    monkeypatch.setattr(
+        file_lock_module,
+        "_windows_unlock_function",
+        lambda: kernel.UnlockFileEx,
+    )
     monkeypatch.setattr(file_lock_module.ctypes, "get_last_error", lambda: 123, raising=False)
 
     with pytest.raises(OSError) as caught:
@@ -216,3 +238,92 @@ def test_windows_lock_propagates_the_exact_last_error(
 
     assert caught.value.errno == 123
     assert caught.value.strerror == "Windows file lock operation failed"
+
+
+@pytest.mark.parametrize(
+    "helper_name",
+    ["_windows_lock_function", "_windows_unlock_function"],
+)
+def test_windows_function_loader_reports_unavailable_runtime(
+    monkeypatch: pytest.MonkeyPatch,
+    helper_name: str,
+) -> None:
+    monkeypatch.delattr(file_lock_module.ctypes, "WinDLL", raising=False)
+
+    with pytest.raises(OSError, match="Windows file locking is unavailable"):
+        getattr(file_lock_module, helper_name)()
+
+
+@pytest.mark.parametrize(
+    "helper_name",
+    ["_windows_lock_function", "_windows_unlock_function"],
+)
+def test_windows_function_loader_rejects_noncallable_runtime(
+    monkeypatch: pytest.MonkeyPatch,
+    helper_name: str,
+) -> None:
+    monkeypatch.setattr(file_lock_module.ctypes, "WinDLL", None, raising=False)
+
+    with pytest.raises(OSError, match="Windows file locking is unavailable"):
+        getattr(file_lock_module, helper_name)()
+
+
+@pytest.mark.parametrize(
+    ("helper_name", "symbol"),
+    [
+        ("_windows_lock_function", "LockFileEx"),
+        ("_windows_unlock_function", "UnlockFileEx"),
+    ],
+)
+def test_windows_function_loader_preserves_missing_symbol_error(
+    monkeypatch: pytest.MonkeyPatch,
+    helper_name: str,
+    symbol: str,
+) -> None:
+    monkeypatch.setattr(
+        file_lock_module.ctypes,
+        "WinDLL",
+        lambda *args, **kwargs: _MissingWindowsFunctions(),
+        raising=False,
+    )
+
+    with pytest.raises(AttributeError) as caught:
+        getattr(file_lock_module, helper_name)()
+
+    assert str(caught.value) == (
+        f"'_MissingWindowsFunctions' object has no attribute '{symbol}'"
+    )
+
+
+@pytest.mark.parametrize(
+    "helper_name",
+    ["_windows_lock_function", "_windows_unlock_function"],
+)
+@pytest.mark.parametrize(
+    "failure",
+    [
+        AttributeError("loader attribute failure"),
+        KeyError("loader key failure"),
+        TypeError("loader type failure"),
+    ],
+)
+def test_windows_function_loader_preserves_callable_loader_errors(
+    monkeypatch: pytest.MonkeyPatch,
+    helper_name: str,
+    failure: Exception,
+) -> None:
+    def failing_loader(*args: object, **kwargs: object) -> object:
+        del args, kwargs
+        raise failure
+
+    monkeypatch.setattr(
+        file_lock_module.ctypes,
+        "WinDLL",
+        failing_loader,
+        raising=False,
+    )
+
+    with pytest.raises(type(failure)) as caught:
+        getattr(file_lock_module, helper_name)()
+
+    assert caught.value is failure

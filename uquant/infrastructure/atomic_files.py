@@ -12,20 +12,19 @@ from contextlib import suppress
 from pathlib import Path
 
 
-def _fsync_directory(path: Path) -> None:
+def fsync_directory(path: str | Path) -> None:
+    """Flush directory metadata using the shared platform implementation."""
+
     if os.name == "nt":
         return
-    descriptor = os.open(path, os.O_RDONLY | getattr(os, "O_DIRECTORY", 0))
+    descriptor = os.open(Path(path), os.O_RDONLY | getattr(os, "O_DIRECTORY", 0))
     try:
         os.fsync(descriptor)
     finally:
         os.close(descriptor)
 
 
-def fsync_directory(path: str | Path) -> None:
-    """Flush directory metadata using the shared platform implementation."""
-
-    _fsync_directory(Path(path))
+_fsync_directory = fsync_directory
 
 
 def _reject_symlink_path(path: Path) -> None:
@@ -45,9 +44,7 @@ def _aliases(left: Path, right: Path) -> bool:
         try:
             return os.path.samefile(left, right)
         except OSError as exc:
-            raise ValueError(
-                f"cannot verify protected path identity: {left} and {right}"
-            ) from exc
+            raise ValueError(f"cannot verify protected path identity: {left} and {right}") from exc
     return False
 
 
@@ -219,3 +216,9 @@ def atomic_write_bytes(
     finally:
         with suppress(FileNotFoundError):
             temporary.unlink()
+
+
+atomic_path_aliases = _aliases
+existing_destination_mode = _existing_destination_mode
+open_temporary = _open_temporary
+reject_symlink_path = _reject_symlink_path

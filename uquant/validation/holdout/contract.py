@@ -9,36 +9,19 @@ import hashlib
 import json
 import re
 import shutil
-import sys
 from collections.abc import Iterable, Mapping
 from dataclasses import dataclass
 from datetime import date
 from pathlib import Path
 from types import MappingProxyType
-from typing import Any, Final, cast
+from typing import Any, Final
 
 from .. import ai_era as ai_era_module
 from ..ai_era import AI_ERA_WINDOWS
+from .capabilities import holdout_facade_capabilities
 
 _CHECKPOINT_RELATIVE = Path("artifacts/future_holdout_checkpoint.json")
 
-
-def compatibility_value[CompatibilityValue](
-    name: str, fallback: CompatibilityValue
-) -> CompatibilityValue:
-    """Resolve an explicitly preserved legacy facade monkeypatch seam."""
-
-    facade = sys.modules.get("uquant.validation.holdout")
-    return fallback if facade is None else cast(CompatibilityValue, getattr(facade, name, fallback))
-
-
-def runtime_compatibility_value[CompatibilityValue](
-    name: str, fallback: CompatibilityValue
-) -> CompatibilityValue:
-    """Resolve an explicitly preserved runtime-facade monkeypatch seam."""
-
-    facade = sys.modules.get("uquant.validation.holdout_runtime")
-    return fallback if facade is None else cast(CompatibilityValue, getattr(facade, name, fallback))
 
 LAST_IN_SAMPLE_DATE: Final = "2026-08-05"
 HOLDOUT_START: Final = "2026-08-06"
@@ -138,71 +121,83 @@ REQUIRED_FUTURE_HOLDOUT_SHA256: Final = "f1555d2f5527b83899ade8f934f67de8df6050a
 
 _SHA256 = re.compile(r"^[0-9a-f]{64}$")
 _COMMIT = re.compile(r"^[0-9a-f]{40}$")
-_CONTRACT_FIELDS = {
-    "schema_version",
-    "contract_id",
-    "canonical_sha256",
-    "dates",
-    "phase1_windows",
-    "data_directory",
-    "review_calendar",
-    "review_milestones",
-    "score_fields",
-    "observation_policy",
-    "strategy_anchor",
-}
-_MANIFEST_FIELDS = {
-    "schema_version",
-    "manifest_id",
-    "contract_sha256",
-    "canonical_sha256",
-    "production",
-    "strategy_anchor",
-    "effective_config_sha256",
-    "universe_sha256",
-    "industry_sha256",
-    "environment",
-    "dates",
-    "data",
-    "prior_close_state",
-    "review_milestones",
-    "observation",
-    "scores",
-}
-_ACCOUNT_EXECUTION_FIELDS = {
-    "initial_cash",
-    "cash",
-    "positions",
-    "pending_orders",
-    "order_ledger",
-    "fills",
-}
-_STRATEGY_FIXED_RELATIVES: Final = {
-    "benchmarks/config_parameter_governance.json",
-    "benchmarks/reference_registry.json",
-}
-_STRATEGY_OPERATIONAL_RELATIVES: Final = {
-    "uquant/atomic_io.py",
-    "uquant/cli.py",
-    "uquant/execution_journal.py",
-    "uquant/report.py",
-    "uquant/validation/ci_artifacts.py",
-    "uquant/validation/equivalence.py",
-    "uquant/validation/holdout.py",
-    "uquant/validation/holdout_lanes.py",
-    "uquant/validation/holdout_runtime.py",
-    "uquant/validation/execution_journal.py",
-    "uquant/risk_sentinel/__main__.py",
-    "uquant/risk_sentinel/calibration.py",
-    "uquant/risk_sentinel/cli.py",
-    "uquant/risk_sentinel/validation.py",
-}
-_CLI_OPERATIONAL_COMMANDS: Final = {
-    "execution-journal",
-    "holdout-append",
-    "holdout-manifest",
-    "holdout-replay",
-}
+_CONTRACT_FIELDS = frozenset(
+    {
+        "schema_version",
+        "contract_id",
+        "canonical_sha256",
+        "dates",
+        "phase1_windows",
+        "data_directory",
+        "review_calendar",
+        "review_milestones",
+        "score_fields",
+        "observation_policy",
+        "strategy_anchor",
+    }
+)
+_MANIFEST_FIELDS = frozenset(
+    {
+        "schema_version",
+        "manifest_id",
+        "contract_sha256",
+        "canonical_sha256",
+        "production",
+        "strategy_anchor",
+        "effective_config_sha256",
+        "universe_sha256",
+        "industry_sha256",
+        "environment",
+        "dates",
+        "data",
+        "prior_close_state",
+        "review_milestones",
+        "observation",
+        "scores",
+    }
+)
+_ACCOUNT_EXECUTION_FIELDS = frozenset(
+    {
+        "initial_cash",
+        "cash",
+        "positions",
+        "pending_orders",
+        "order_ledger",
+        "fills",
+    }
+)
+_STRATEGY_FIXED_RELATIVES: Final = frozenset(
+    {
+        "benchmarks/config_parameter_governance.json",
+        "benchmarks/reference_registry.json",
+    }
+)
+_STRATEGY_OPERATIONAL_RELATIVES: Final = frozenset(
+    {
+        "uquant/atomic_io.py",
+        "uquant/cli.py",
+        "uquant/execution_journal.py",
+        "uquant/report.py",
+        "uquant/validation/ci_artifacts.py",
+        "uquant/validation/equivalence.py",
+        "uquant/validation/holdout.py",
+        "uquant/validation/holdout_lanes.py",
+        "uquant/validation/holdout_runtime.py",
+        "uquant/validation/execution_journal.py",
+        "uquant/risk_sentinel/__main__.py",
+        "uquant/risk_sentinel/calibration.py",
+        "uquant/risk_sentinel/cli.py",
+        "uquant/risk_sentinel/validation.py",
+    }
+)
+_CLI_OPERATIONAL_COMMANDS: Final = frozenset(
+    {
+        "execution-journal",
+        "holdout-append",
+        "holdout-manifest",
+        "holdout-replay",
+    }
+)
 
 
 @dataclass(frozen=True, slots=True)
@@ -225,7 +220,8 @@ class FutureHoldoutContract:
     strategy_account_code_sha256: str
     prior_close_account_sha256: str
 
-def _reject_duplicate_keys(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
+
+def _reject_duplicate_holdout_keys(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
     result: dict[str, Any] = {}
     for key, value in pairs:
         if key in result:
@@ -234,11 +230,11 @@ def _reject_duplicate_keys(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
     return result
 
 
-def _reject_nonstandard_constant(value: str) -> None:
+def _reject_nonstandard_holdout_constant(value: str) -> None:
     raise ValueError(f"holdout JSON contains non-standard number: {value}")
 
 
-def _canonical_bytes(value: object, *, omit_seal: bool = False) -> bytes:
+def _holdout_contract_canonical_bytes(value: object, *, omit_seal: bool = False) -> bytes:
     payload = value
     if omit_seal:
         if not isinstance(value, Mapping):
@@ -253,7 +249,10 @@ def _canonical_bytes(value: object, *, omit_seal: bool = False) -> bytes:
     ).encode("utf-8")
 
 
-def _canonical_sha256(value: object, *, omit_seal: bool = False) -> str:
+_canonical_bytes = _holdout_contract_canonical_bytes
+
+
+def _holdout_contract_sha256(value: object, *, omit_seal: bool = False) -> str:
     return hashlib.sha256(_canonical_bytes(value, omit_seal=omit_seal)).hexdigest()
 
 
@@ -274,7 +273,7 @@ def _read_json_snapshot(path: Path, *, label: str) -> tuple[dict[str, Any], byte
     return value, content
 
 
-def _read_json(path: Path, *, label: str) -> dict[str, Any]:
+def _read_holdout_json(path: Path, *, label: str) -> dict[str, Any]:
     return _read_json_snapshot(path, label=label)[0]
 
 
@@ -282,30 +281,36 @@ def _repository_root() -> Path:
     return Path(__file__).resolve().parents[3]
 
 
-def _git_executable() -> str:
+def _holdout_git_executable() -> str:
     executable = shutil.which("git")
     if executable is None:
         raise RuntimeError("cannot resolve git executable for holdout provenance")
     return executable
 
 
-def load_future_holdout_contract(path: str | Path | None = None) -> FutureHoldoutContract:
-    """Load the reviewed contract and reject edits even when locally resealed."""
-
-    source = _repository_root() / "benchmarks/future_holdout_contract.json" if path is None else Path(path)
-    raw = _read_json(source, label="future holdout contract")
+def _validate_contract_identity(raw: Mapping[str, Any]) -> str:
     if set(raw) != _CONTRACT_FIELDS:
         raise ValueError("future holdout contract schema is malformed")
     if raw["schema_version"] != 3 or raw["contract_id"] != "phase2-future-holdout-v1":
         raise ValueError("future holdout contract identity is malformed")
     seal = raw["canonical_sha256"]
+    capabilities = holdout_facade_capabilities()
+    required_seal = (
+        REQUIRED_FUTURE_HOLDOUT_SHA256
+        if capabilities is None
+        else capabilities.required_future_holdout_sha256
+    )
     if (
         not isinstance(seal, str)
         or not _SHA256.fullmatch(seal)
         or seal != _canonical_sha256(raw, omit_seal=True)
-        or seal != compatibility_value("REQUIRED_FUTURE_HOLDOUT_SHA256", REQUIRED_FUTURE_HOLDOUT_SHA256)
+        or seal != required_seal
     ):
         raise ValueError("future holdout contract differs from the reviewed contract")
+    return seal
+
+
+def _validate_contract_sections(raw: Mapping[str, Any]) -> tuple[dict[str, Any], dict[str, Any]]:
     dates = raw["dates"]
     phase1_windows = raw["phase1_windows"]
     policy = raw["observation_policy"]
@@ -337,6 +342,15 @@ def load_future_holdout_contract(path: str | Path | None = None) -> FutureHoldou
         "effective_config_sha256": STRATEGY_CONFIG_SHA256,
     }:
         raise ValueError("future holdout strategy anchor is malformed")
+    return dates, policy
+
+
+def _validate_contract_boundaries(
+    raw: Mapping[str, Any],
+    *,
+    dates: Mapping[str, Any],
+    policy: Mapping[str, Any],
+) -> None:
     if (
         dates != {"last_in_sample": LAST_IN_SAMPLE_DATE, "first_holdout": HOLDOUT_START}
         or raw["data_directory"] != HOLDOUT_DATA_DIRECTORY
@@ -354,6 +368,9 @@ def load_future_holdout_contract(path: str | Path | None = None) -> FutureHoldou
         raise ValueError("future holdout contract weakens the reviewed boundary")
     if date.fromisoformat(HOLDOUT_START) <= date.fromisoformat(LAST_IN_SAMPLE_DATE):
         raise ValueError("future holdout must begin after the in-sample boundary")
+
+
+def _reviewed_holdout_contract(seal: str) -> FutureHoldoutContract:
     return FutureHoldoutContract(
         sha256=seal,
         last_in_sample_date=LAST_IN_SAMPLE_DATE,
@@ -371,6 +388,17 @@ def load_future_holdout_contract(path: str | Path | None = None) -> FutureHoldou
         strategy_account_code_sha256=STRATEGY_ACCOUNT_CODE_SHA256,
         prior_close_account_sha256=PRIOR_CLOSE_ACCOUNT_SHA256,
     )
+
+
+def load_future_holdout_contract(path: str | Path | None = None) -> FutureHoldoutContract:
+    """Load the reviewed contract and reject edits even when locally resealed."""
+
+    source = _repository_root() / "benchmarks/future_holdout_contract.json" if path is None else Path(path)
+    raw = _read_json(source, label="future holdout contract")
+    seal = _validate_contract_identity(raw)
+    dates, policy = _validate_contract_sections(raw)
+    _validate_contract_boundaries(raw, dates=dates, policy=policy)
+    return _reviewed_holdout_contract(seal)
 
 
 def _csv_dates_from_text(text: str, *, path: Path) -> tuple[str, ...]:
@@ -437,6 +465,83 @@ def _closed_csv_files(root: Path, *, label: str, missing_ok: bool) -> tuple[Path
     return tuple(files)
 
 
+def _validate_frozen_boundary(root: Path, contract: FutureHoldoutContract) -> None:
+    frozen = root / "data/frozen"
+    if frozen.is_symlink() or not frozen.is_dir():
+        raise RuntimeError("data/frozen is missing or not a physical directory")
+    if any(path.is_symlink() for path in frozen.rglob("*")):
+        raise RuntimeError("data/frozen contains a symlink")
+    observed_maximum = maximum_observed_market_date(frozen)
+    if observed_maximum > contract.last_in_sample_date:
+        raise RuntimeError("holdout data entered data/frozen")
+    if observed_maximum != contract.last_in_sample_date:
+        raise RuntimeError("maximum observed economic market date differs from the frozen boundary")
+
+
+def _validate_live_schedule(contract: FutureHoldoutContract) -> None:
+    sealed_windows = dict(contract.phase1_windows)
+    capabilities = holdout_facade_capabilities()
+    live_windows = AI_ERA_WINDOWS if capabilities is None else capabilities.ai_era_windows
+    if (
+        dict(live_windows) != sealed_windows
+        or dict(ai_era_module.AI_ERA_WINDOWS) != sealed_windows
+    ):
+        raise RuntimeError("live AI-era schedule differs from the sealed Phase 1 windows")
+
+
+def _validate_phase1_windows(
+    contract: FutureHoldoutContract,
+    phase1_windows: Mapping[str, tuple[str, str]] | None,
+) -> None:
+    sealed_windows = dict(contract.phase1_windows)
+    supplied = sealed_windows if phase1_windows is None else dict(phase1_windows)
+    if supplied == sealed_windows:
+        return
+    expanded = any(
+        name in sealed_windows
+        and (bounds[0] < sealed_windows[name][0] or bounds[1] > sealed_windows[name][1])
+        for name, bounds in supplied.items()
+    )
+    if expanded:
+        raise RuntimeError("Phase 1 window expanded beyond the immutable official bounds")
+    raise RuntimeError("official Phase 1 windows differ from the immutable contract")
+
+
+def _validate_holdout_directory(root: Path, holdout: Path) -> None:
+    holdout_root = root / "data/holdout"
+    if holdout_root.is_symlink():
+        raise RuntimeError("data/holdout must be a physical directory")
+    if not holdout_root.exists():
+        return
+    if not holdout_root.is_dir():
+        raise RuntimeError("data/holdout must be a physical directory")
+    unexpected = []
+    for path in holdout_root.rglob("*"):
+        if path.is_symlink():
+            raise RuntimeError(f"future holdout contains a symlink: {path}")
+        if path != holdout and not path.is_relative_to(holdout):
+            unexpected.append(path)
+    if unexpected:
+        raise RuntimeError("future data is outside the isolated holdout directory")
+
+
+def _validated_holdout_identity(
+    holdout: Path,
+    contract: FutureHoldoutContract,
+) -> tuple[tuple[str, ...], str]:
+    try:
+        sessions, data_sha256 = holdout_data_identity(holdout)
+    except ValueError as exc:
+        raise RuntimeError(str(exc)) from exc
+    try:
+        _session_dates(sessions, contract=contract)
+    except ValueError as exc:
+        if "predates the frozen boundary" in str(exc):
+            raise RuntimeError("holdout directory contains an in-sample market row") from exc
+        raise RuntimeError(str(exc)) from exc
+    return sessions, data_sha256
+
+
 def validate_holdout_layout(
     repository_root: str | Path,
     *,
@@ -452,56 +557,13 @@ def validate_holdout_layout(
     reviewed = load_future_holdout_contract()
     if contract is not None and contract != reviewed:
         raise ValueError("holdout layout requires the reviewed sealed contract")
-    expected = reviewed
-    sealed_windows = dict(expected.phase1_windows)
-    if dict(compatibility_value("AI_ERA_WINDOWS", AI_ERA_WINDOWS)) != sealed_windows or dict(ai_era_module.AI_ERA_WINDOWS) != sealed_windows:
-        raise RuntimeError("live AI-era schedule differs from the sealed Phase 1 windows")
-    frozen = root / "data/frozen"
-    holdout = root / expected.data_directory
-    holdout_root = root / "data/holdout"
-    if frozen.is_symlink() or not frozen.is_dir():
-        raise RuntimeError("data/frozen is missing or not a physical directory")
-    if any(path.is_symlink() for path in frozen.rglob("*")):
-        raise RuntimeError("data/frozen contains a symlink")
-    observed_maximum = maximum_observed_market_date(frozen)
-    if observed_maximum > expected.last_in_sample_date:
-        raise RuntimeError("holdout data entered data/frozen")
-    if observed_maximum != expected.last_in_sample_date:
-        raise RuntimeError("maximum observed economic market date differs from the frozen boundary")
-    supplied_windows = sealed_windows if phase1_windows is None else dict(phase1_windows)
-    if supplied_windows != sealed_windows:
-        expanded = any(
-            name in sealed_windows
-            and (bounds[0] < sealed_windows[name][0] or bounds[1] > sealed_windows[name][1])
-            for name, bounds in supplied_windows.items()
-        )
-        if expanded:
-            raise RuntimeError("Phase 1 window expanded beyond the immutable official bounds")
-        raise RuntimeError("official Phase 1 windows differ from the immutable contract")
-    if holdout_root.is_symlink():
-        raise RuntimeError("data/holdout must be a physical directory")
-    if holdout_root.exists():
-        if not holdout_root.is_dir():
-            raise RuntimeError("data/holdout must be a physical directory")
-        unexpected = []
-        for path in holdout_root.rglob("*"):
-            if path.is_symlink():
-                raise RuntimeError(f"future holdout contains a symlink: {path}")
-            if path != holdout and not path.is_relative_to(holdout):
-                unexpected.append(path)
-        if unexpected:
-            raise RuntimeError("future data is outside the isolated holdout directory")
-    try:
-        sessions, data_sha256 = holdout_data_identity(holdout)
-    except ValueError as exc:
-        raise RuntimeError(str(exc)) from exc
-    try:
-        _session_dates(sessions, contract=expected)
-    except ValueError as exc:
-        if "predates the frozen boundary" in str(exc):
-            raise RuntimeError("holdout directory contains an in-sample market row") from exc
-        raise RuntimeError(str(exc)) from exc
-    return sessions, data_sha256
+    _validate_live_schedule(reviewed)
+    _validate_frozen_boundary(root, reviewed)
+    _validate_phase1_windows(reviewed, phase1_windows)
+    holdout = root / reviewed.data_directory
+    _validate_holdout_directory(root, holdout)
+    return _validated_holdout_identity(holdout, reviewed)
+
 
 def _session_dates(values: Iterable[str], *, contract: FutureHoldoutContract) -> tuple[str, ...]:
     sessions = tuple(values)
@@ -517,6 +579,7 @@ def _session_dates(values: Iterable[str], *, contract: FutureHoldoutContract) ->
     if sessions != contract.review_sessions[: len(sessions)]:
         raise ValueError("holdout sessions must be the contracted exchange session prefix")
     return sessions
+
 
 def holdout_data_identity(data_dir: str | Path) -> tuple[tuple[str, ...], str]:
     """Bind every isolated future-data byte and return its distinct sessions."""
@@ -544,10 +607,9 @@ def holdout_data_identity(data_dir: str | Path) -> tuple[tuple[str, ...], str]:
         digest.update(b"uquant.empty-future-holdout.v1")
     return tuple(sorted(sessions)), digest.hexdigest()
 
+
 __all__ = (
     "_CHECKPOINT_RELATIVE",
-    "compatibility_value",
-    "runtime_compatibility_value",
     "LAST_IN_SAMPLE_DATE",
     "HOLDOUT_START",
     "HOLDOUT_DATA_DIRECTORY",
@@ -589,3 +651,31 @@ __all__ = (
     "_session_dates",
     "holdout_data_identity",
 )
+
+_canonical_sha256 = _holdout_contract_sha256
+_git_executable = _holdout_git_executable
+_read_json = _read_holdout_json
+_reject_duplicate_keys = _reject_duplicate_holdout_keys
+_reject_nonstandard_constant = _reject_nonstandard_holdout_constant
+
+ACCOUNT_EXECUTION_FIELDS = _ACCOUNT_EXECUTION_FIELDS
+CHECKPOINT_RELATIVE = _CHECKPOINT_RELATIVE
+CLI_OPERATIONAL_COMMANDS = _CLI_OPERATIONAL_COMMANDS
+COMMIT_PATTERN = _COMMIT
+CONTRACT_FIELDS = _CONTRACT_FIELDS
+MANIFEST_FIELDS = _MANIFEST_FIELDS
+SHA256_PATTERN = _SHA256
+STRATEGY_FIXED_RELATIVES = _STRATEGY_FIXED_RELATIVES
+STRATEGY_OPERATIONAL_RELATIVES = _STRATEGY_OPERATIONAL_RELATIVES
+canonical_sha256 = _canonical_sha256
+canonical_bytes = _canonical_bytes
+closed_csv_files = _closed_csv_files
+csv_dates = _csv_dates
+csv_dates_from_text = _csv_dates_from_text
+git_executable = _git_executable
+read_json = _read_json
+read_json_snapshot = _read_json_snapshot
+reject_duplicate_keys = _reject_duplicate_keys
+reject_nonstandard_constant = _reject_nonstandard_constant
+repository_root = _repository_root
+session_dates = _session_dates

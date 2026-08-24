@@ -4,23 +4,28 @@ from __future__ import annotations
 
 import copy
 import math
-from dataclasses import fields, replace
+from dataclasses import dataclass, fields, replace
 from datetime import date as date_type
 from datetime import timedelta
 from typing import Any
 
-from .account import (
-    _validate_lot_origin_chains,
-    _validate_order_state,
-    _validate_position_state,
-    _validate_strategy_risk_state,
-)
+from .account import validate_lot_origin_chains as _validate_lot_origin_chains
+from .account import validate_order_state as _validate_order_state
+from .account import validate_position_state as _validate_position_state
+from .account import validate_strategy_risk_state as _validate_strategy_risk_state
+from .broker_contract import BrokerFillValues as _BrokerFillValues
+from .broker_contract import broker_date as _broker_date
+from .broker_contract import broker_integer as _broker_integer
+from .broker_contract import broker_nonnegative as _nonnegative
+from .broker_contract import ordered_broker_fills as _ordered_broker_fills
 from .config import DEFAULT_CONFIG, SystemConfig
 from .contracts.universe import REQUIRED_AI_UNIVERSE_SHA256, default_ai_universe
 from .data import normalize_symbol
-from .execution import _allocate_sell_costs, risk_priority_tranche_key
+from .execution import allocate_sell_costs as _allocate_sell_costs
+from .execution import risk_priority_tranche_key
 from .types import (
     ORDER_INTENT_IMMUTABLE_FIELDS,
+    AccountOrder,
     AccountState,
     AttributionIdentity,
     AttributionMechanism,
@@ -165,172 +170,24 @@ def _align_sellability(
     return aligned
 
 
-def _nonnegative(payload: dict[str, Any], key: str, default: float = 0.0) -> float:
-    raw_value = payload.get(key, default)
-    if isinstance(raw_value, bool) or not isinstance(raw_value, (int, float)):
-        raise ValueError(f"broker field {key} must be a finite number")
-    value = float(raw_value)
-    if not math.isfinite(value) or value < 0:
-        raise ValueError(f"broker field {key} must be finite and nonnegative")
-    return value
+@dataclass(slots=True)
+class _BrokerSyncState:
+    account: AccountState
+    as_of: str
+    snapshot_date: date_type
+    cash: float
+    raw_positions: list[Any]
+    raw_orders: list[Any]
+    ledger: dict[str, AccountOrder]
+    ordered_fills: list[dict[str, Any]]
+    known_fills: dict[str, Fill]
+    economic_tranches: dict[str, list[Tranche]]
+    imported_buy_lifecycle: dict[str, str]
+    imported: int
+    completed_order_ids: set[str]
 
 
-def _broker_integer(
-    payload: dict[str, Any],
-    key: str,
-    *,
-    default: int | None = None,
-    positive: bool = False,
-) -> int:
-    raw_value = payload.get(key, default)
-    if isinstance(raw_value, bool) or not isinstance(raw_value, int):
-        raise ValueError(f"broker field {key} must be an integer")
-    if raw_value < (1 if positive else 0):
-        qualifier = "positive" if positive else "nonnegative"
-        raise ValueError(f"broker field {key} must be {qualifier}")
-    return raw_value
-
-
-def _broker_date(value: Any, *, field: str) -> date_type:
-    if not isinstance(value, str) or not value:
-        raise ValueError(f"broker {field} requires an ISO date")
-    try:
-        return date_type.fromisoformat(value)
-    except ValueError as exc:
-        raise ValueError(f"broker {field} requires an ISO date") from exc
-
-
-def _ordered_broker_fills(
-    raw_fills: list[Any],
-    *,
-    as_of: str,
-    account: AccountState,
-    known_fills: dict[str, Fill],
-) -> list[dict[str, Any]]:
-    """Return broker fills in a deterministic, causally valid order.
-
-    ISO dates establish order across sessions.  Multiple new fills reported for
-    one session require a broker execution sequence because list order is not a
-    durable execution contract.  An incremental same-session snapshot must
-    repeat the already imported fills with their sequences so the continuation
-    can be ordered against durable state.
-    """
-    prepared: list[tuple[date_type, int | None, str, str, dict[str, Any]]] = []
-    seen_fill_ids: set[str] = set()
-    for raw in raw_fills:
-        if not isinstance(raw, dict):
-            raise ValueError("each broker fill must be an object")
-        fill_id = str(raw.get("fill_id", "")).strip()
-        if not fill_id:
-            raise ValueError("each broker fill requires a stable fill_id")
-        if fill_id in seen_fill_ids:
-            raise ValueError(f"broker snapshot repeats fill_id {fill_id!r}")
-        seen_fill_ids.add(fill_id)
-        order_id = str(raw.get("order_id", "")).strip()
-        fill_date = _broker_date(raw.get("fill_date", as_of), field="fill_date")
-        if "final" not in raw:
-            raise ValueError("broker fill requires explicit boolean final")
-        if not isinstance(raw["final"], bool):
-            raise ValueError("broker fill final must be boolean")
-        if "remaining_shares" not in raw:
-            raise ValueError("broker fill requires explicit remaining_shares")
-        _broker_integer(raw, "remaining_shares")
-        sequence: int | None = None
-        if "execution_sequence" in raw:
-            sequence = _broker_integer(raw, "execution_sequence", positive=True)
-        prepared.append((fill_date, sequence, order_id, fill_id, raw))
-
-    novel = [item for item in prepared if item[3] not in known_fills]
-    novel_by_date: dict[date_type, list[tuple[date_type, int | None, str, str, dict[str, Any]]]] = {}
-    for item in novel:
-        novel_by_date.setdefault(item[0], []).append(item)
-    for fill_date, same_date in novel_by_date.items():
-        if len(same_date) <= 1:
-            continue
-        sequences = [item[1] for item in same_date]
-        if any(sequence is None for sequence in sequences):
-            raise ValueError(
-                f"multiple new broker fills on {fill_date.isoformat()} require explicit execution_sequence"
-            )
-        concrete_sequences = [int(sequence) for sequence in sequences if sequence is not None]
-        if len(concrete_sequences) != len(set(concrete_sequences)):
-            raise ValueError(f"broker execution_sequence must be unique on {fill_date.isoformat()}")
-
-    prepared_by_id = {item[3]: item for item in prepared}
-    account_fills_by_order_date: dict[tuple[str, date_type], list[Fill]] = {}
-    for fill in account.fills:
-        if not fill.order_id:
-            continue
-        key = (fill.order_id, _broker_date(fill.fill_date, field="stored fill_date"))
-        account_fills_by_order_date.setdefault(key, []).append(fill)
-
-    novel_by_order: dict[str, list[tuple[date_type, int | None, str, str, dict[str, Any]]]] = {}
-    for item in novel:
-        novel_by_order.setdefault(item[2], []).append(item)
-    for order_id, order_fills in novel_by_order.items():
-        ordered = sorted(
-            order_fills,
-            key=lambda item: (item[0], item[1] if item[1] is not None else 0, item[3]),
-        )
-        order = next((item for item in account.order_ledger if item.order_id == order_id), None)
-        if order is not None and order.status in {
-            OrderStatus.FILLED.value,
-            OrderStatus.CANCELLED.value,
-            OrderStatus.REPLACED.value,
-        }:
-            raise ValueError("broker cannot append a fill to a terminal account order")
-        if order is not None and order.last_update_date and order.filled_shares:
-            last_update = _broker_date(order.last_update_date, field="order last_update_date")
-            first_new_date = ordered[0][0]
-            if first_new_date < last_update:
-                raise ValueError(f"broker fill for order {order_id!r} predates its latest imported fill")
-            if first_new_date == last_update:
-                known_same_day = account_fills_by_order_date.get((order_id, last_update), [])
-                known_items = [prepared_by_id.get(fill.fill_id) for fill in known_same_day]
-                if (
-                    not known_same_day
-                    or any(item is None or item[1] is None for item in known_items)
-                    or any(item[1] is None for item in ordered if item[0] == last_update)
-                ):
-                    raise ValueError(
-                        "same-day broker fill continuation requires all previously imported "
-                        "order fills and explicit execution_sequence"
-                    )
-                prior_sequences = [
-                    int(item[1]) for item in known_items if item is not None and item[1] is not None
-                ]
-                if len(prior_sequences) != len(set(prior_sequences)):
-                    raise ValueError("same-day imported broker fills require unique execution_sequence")
-                continuation_sequences = [
-                    int(item[1]) for item in ordered if item[0] == last_update and item[1] is not None
-                ]
-                if continuation_sequences and min(continuation_sequences) <= max(prior_sequences):
-                    raise ValueError("same-day broker fill continuation sequence must follow imported fills")
-        for item in ordered[:-1]:
-            if item[4]["final"]:
-                raise ValueError(f"final broker fill for order {order_id!r} must be its last reported fill")
-
-    return [
-        item[4]
-        for item in sorted(
-            prepared,
-            key=lambda item: (item[0], item[1] if item[1] is not None else 0, item[2], item[3]),
-        )
-    ]
-
-
-def sync_broker_snapshot(
-    account: AccountState,
-    payload: dict[str, Any],
-    *,
-    cfg: SystemConfig = DEFAULT_CONFIG,
-) -> dict[str, int | str]:
-    """Apply one idempotent, broker-authoritative account snapshot.
-
-    The snapshot owns cash, positions, available shares, and reported fills.
-    Strategy state remains intact so the next decision continues the same
-    lifecycle.  Every fill must reference the engine's broker-visible order ID.
-    """
+def _prepare_broker_sync(account: AccountState, payload: dict[str, Any]) -> _BrokerSyncState:
     as_of_value = payload.get("as_of", "")
     snapshot_date = _broker_date(as_of_value, field="snapshot as_of")
     as_of = str(as_of_value)
@@ -350,24 +207,15 @@ def sync_broker_snapshot(
     ):
         raise ValueError("broker positions, fills, and orders must be arrays")
 
-    # Work on a complete copy.  Fills, ledger transitions, events, cash, and
-    # positions become visible together only after every snapshot invariant has
-    # passed, so a late malformed position cannot leave a half-synced account.
-    original_account = account
-    account = copy.deepcopy(account)
-
-    # A broker import may repair aggregate positions, but it must never build
-    # on malformed order/fill history.  Validate that durable causal chain
-    # before interpreting any new fill against it.
+    working = copy.deepcopy(account)
     _validate_order_state(
-        account,
+        working,
         sequence_was_explicit=False,
         validate_attribution=True,
     )
-    _validate_strategy_risk_state(account)
-
-    ledger = {order.order_id: order for order in account.order_ledger}
-    for pending in account.pending_orders:
+    _validate_strategy_risk_state(working)
+    ledger = {order.order_id: order for order in working.order_ledger}
+    for pending in working.pending_orders:
         if not pending.order_id:
             continue
         order = ledger.get(pending.order_id)
@@ -389,230 +237,344 @@ def sync_broker_snapshot(
             raise ValueError(
                 "pending order immutable metadata differs from account order: " + ", ".join(changed)
             )
-    known_fills = {fill.fill_id: fill for fill in account.fills if fill.fill_id}
+    known_fills = {fill.fill_id: fill for fill in working.fills if fill.fill_id}
     ordered_fills = _ordered_broker_fills(
         raw_fills,
         as_of=as_of,
-        account=account,
+        account=working,
         known_fills=known_fills,
     )
     economic_tranches = {
-        symbol: copy.deepcopy(position.tranches) for symbol, position in account.positions.items()
+        symbol: copy.deepcopy(position.tranches) for symbol, position in working.positions.items()
     }
-    imported_buy_lifecycle: dict[str, str] = {}
-    imported = 0
-    completed_order_ids: set[str] = set()
-    for raw in ordered_fills:
-        fill_id = str(raw.get("fill_id", "")).strip()
-        if not fill_id:
-            raise ValueError("each broker fill requires a stable fill_id")
-        order_id = str(raw.get("order_id", "")).strip()
-        order = ledger.get(order_id)
-        if order is None:
-            raise ValueError(f"broker fill references unknown order {order_id!r}")
-        symbol = normalize_symbol(str(raw.get("symbol", "")))
-        side = str(raw.get("side", "")).upper()
-        if symbol != order.symbol or side != order.side:
-            raise ValueError("broker fill symbol/side differs from account order")
-        if side not in {Side.BUY.value, Side.SELL.value}:
-            raise ValueError("broker fill has invalid side")
-        shares = _broker_integer(raw, "shares", default=0, positive=True)
-        raw_price = raw.get("price", 0.0)
-        if isinstance(raw_price, bool) or not isinstance(raw_price, (int, float)):
-            raise ValueError("broker fill price must be a finite number")
-        price = float(raw_price)
-        if not math.isfinite(price) or price <= 0:
-            raise ValueError("broker fill shares and price must be positive")
-        fill_date_value = raw.get("fill_date", as_of)
-        parsed_fill_date = _broker_date(fill_date_value, field="fill_date")
-        fill_date = str(fill_date_value)
-        signal_date = _broker_date(order.signal_date, field="order signal_date")
-        submitted_date = _broker_date(order.submitted_date, field="order submitted_date")
-        if parsed_fill_date <= max(signal_date, submitted_date):
-            raise ValueError("broker fill date must be after order signal/submission")
-        if parsed_fill_date > snapshot_date:
-            raise ValueError("broker fill date is after snapshot as_of")
-        commission = _nonnegative(raw, "commission")
-        stamp_duty = _nonnegative(raw, "stamp_duty")
-        transfer_fee = _nonnegative(raw, "transfer_fee")
-        slippage_cost = _nonnegative(raw, "slippage_cost")
-        gross = _nonnegative(raw, "gross_value", shares * price)
-        expected_gross = shares * price
-        if not math.isclose(gross, expected_gross, rel_tol=1e-12, abs_tol=0.01):
-            raise ValueError("broker fill gross_value does not reconcile to shares * price")
-        final = raw["final"]
-        remaining = _broker_integer(raw, "remaining_shares")
-        if (final and remaining != 0) or (not final and remaining == 0):
-            raise ValueError("broker fill final and remaining_shares are inconsistent")
-        existing_fill = known_fills.get(fill_id)
-        if existing_fill is not None:
-            identity_matches = (
-                existing_fill.order_id == order_id
-                and existing_fill.fill_date == fill_date
-                and existing_fill.symbol == symbol
-                and existing_fill.side == side
-                and existing_fill.shares == shares
-                and math.isclose(existing_fill.price, price, rel_tol=1e-12, abs_tol=1e-12)
-                and math.isclose(existing_fill.gross_value, gross, rel_tol=1e-12, abs_tol=0.01)
-                and math.isclose(existing_fill.commission, commission, abs_tol=1e-12)
-                and math.isclose(existing_fill.stamp_duty, stamp_duty, abs_tol=1e-12)
-                and math.isclose(existing_fill.transfer_fee, transfer_fee, abs_tol=1e-12)
-                and math.isclose(existing_fill.slippage_cost, slippage_cost, abs_tol=1e-12)
-            )
-            if not identity_matches:
-                raise ValueError("broker fill_id was reused with different economics")
-            continue
-        if order.status in {
-            OrderStatus.FILLED.value,
-            OrderStatus.CANCELLED.value,
-            OrderStatus.REPLACED.value,
-        }:
-            raise ValueError("broker cannot append a fill to a terminal account order")
-        cumulative_filled = order.filled_shares + shares
-        reported_request = cumulative_filled + remaining
-        if order.requested_shares > 0 and reported_request != order.requested_shares:
-            raise ValueError("broker fill exceeds or contradicts requested order shares")
-        if final and order.requested_shares > 0 and cumulative_filled != order.requested_shares:
-            raise ValueError("final broker fill does not complete requested order shares")
-        sold_tranches: list[dict[str, Any]] = []
-        if side == Side.SELL.value:
-            sold_tranches = _allocate_broker_sale(
-                economic_tranches.setdefault(symbol, []),
-                shares=shares,
-                fill_date=fill_date,
-                policy=order.reduction_policy,
-            )
-            attributed_shares = sum(int(item["shares"]) for item in sold_tranches)
-            if attributed_shares != shares:
-                missing_shares = shares - attributed_shares
-                existing = account.positions.get(symbol)
-                fallback_cost = (
-                    existing.avg_cost
-                    if existing is not None and math.isfinite(existing.avg_cost) and existing.avg_cost > 0
-                    else price
-                )
-                fallback_entry_date = (
-                    existing.entry_date if existing is not None and existing.entry_date else fill_date
-                )
-                fallback_lifecycle = existing.lifecycle if existing is not None else order.lifecycle
-                sold_tranches.append(
-                    {
-                        "tranche_id": f"broker-degraded-sale:{fill_id}",
-                        "lifecycle": fallback_lifecycle,
-                        "shares": missing_shares,
-                        "cost": fallback_cost,
-                        "unit_cost": fallback_cost,
-                        "avg_cost": fallback_cost,
-                        "cost_basis": missing_shares * fallback_cost,
-                        "entry_date": fallback_entry_date,
-                        "mfe": 0.0,
-                        "mae": 0.0,
-                        "degraded": True,
-                        "degradation_reason": "broker sale exceeded known eligible lot inventory",
-                        **_broker_reconciliation_identity(
-                            symbol=symbol,
-                            signal_date=fallback_entry_date,
-                            lifecycle=fallback_lifecycle,
-                            token=f"degraded-sale:{fill_id}",
-                        ),
-                    }
-                )
-                account.reconciliation_events.append(
-                    {
-                        "date": as_of,
-                        "symbol": symbol,
-                        "event": "sell_lot_attribution_incomplete",
-                        "broker_shares": shares,
-                        "attributed_shares": attributed_shares,
-                        "degraded_shares": missing_shares,
-                    }
-                )
-            _allocate_sell_costs(
-                sold_tranches,
-                commission=commission,
-                stamp_duty=stamp_duty,
-                transfer_fee=transfer_fee,
-                slippage_cost=slippage_cost,
-            )
-        else:
-            full_unit_cost = (gross + commission + transfer_fee) / shares
-            economic_tranches.setdefault(symbol, []).append(
-                Tranche(
-                    tranche_id=f"broker-fill:{fill_id}",
-                    lifecycle=order.lifecycle,
-                    shares=shares,
-                    avg_cost=full_unit_cost,
-                    entry_date=fill_date,
-                    sellable_date=str(date_type.fromisoformat(fill_date) + timedelta(days=1)),
-                    highest_close=price,
-                    lowest_close=price,
-                    entry_score=order.entry_score,
-                    entry_confidence=order.entry_confidence,
-                    entry_regime=order.entry_regime,
-                    entry_industry_strength=order.entry_industry_strength,
-                    event_id=order.event_id,
-                    origin_subsystem=order.origin_subsystem,
-                    mechanism=order.mechanism,
-                    origin_lifecycle=order.origin_lifecycle,
-                    replaces_symbol=order.replaces_symbol,
-                    industry_at_entry=order.industry_at_entry,
-                    industry_manifest_sha256=order.industry_manifest_sha256,
-                )
-            )
-            imported_buy_lifecycle[symbol] = order.lifecycle
-        account.fills.append(
-            Fill(
-                signal_date=order.signal_date,
-                fill_date=fill_date,
-                symbol=symbol,
-                side=side,
-                shares=shares,
-                price=price,
-                gross_value=gross,
-                commission=commission,
-                stamp_duty=stamp_duty,
-                transfer_fee=transfer_fee,
-                slippage_cost=slippage_cost,
-                reason=order.reason,
-                lifecycle=order.lifecycle,
-                order_id=order_id,
-                fill_id=fill_id,
-                reduction_policy=order.reduction_policy,
-                reason_code=order.reason_code,
-                exit_kind=order.exit_kind,
-                sold_tranches=sold_tranches,
-                event_id=order.event_id,
-                origin_subsystem=order.origin_subsystem,
-                mechanism=order.mechanism,
-                origin_lifecycle=order.origin_lifecycle,
-                replaces_symbol=order.replaces_symbol,
-                industry_at_entry=order.industry_at_entry,
-                industry_manifest_sha256=order.industry_manifest_sha256,
-            )
-        )
-        known_fills[fill_id] = account.fills[-1]
-        imported += 1
-        order.filled_shares = cumulative_filled
-        if order.requested_shares == 0:
-            order.requested_shares = reported_request
-        order.remaining_shares = remaining
-        order.status = (
-            OrderStatus.FILLED.value if final and remaining == 0 else OrderStatus.PARTIALLY_FILLED.value
-        )
-        order.last_update_date = fill_date
-        order.last_event = "BROKER_FILL"
-        if order.status == OrderStatus.FILLED.value:
-            completed_order_ids.add(order_id)
+    return _BrokerSyncState(
+        account=working,
+        as_of=as_of,
+        snapshot_date=snapshot_date,
+        cash=cash,
+        raw_positions=raw_positions,
+        raw_orders=raw_orders,
+        ledger=ledger,
+        ordered_fills=ordered_fills,
+        known_fills=known_fills,
+        economic_tranches=economic_tranches,
+        imported_buy_lifecycle={},
+        imported=0,
+        completed_order_ids=set(),
+    )
 
+
+def _broker_fill_identity_matches(
+    existing: Fill,
+    *,
+    order_id: str,
+    fill_date: str,
+    symbol: str,
+    side: str,
+    shares: int,
+    price: float,
+    gross: float,
+    commission: float,
+    stamp_duty: float,
+    transfer_fee: float,
+    slippage_cost: float,
+) -> bool:
+    return (
+        existing.order_id == order_id
+        and existing.fill_date == fill_date
+        and existing.symbol == symbol
+        and existing.side == side
+        and existing.shares == shares
+        and math.isclose(existing.price, price, rel_tol=1e-12, abs_tol=1e-12)
+        and math.isclose(existing.gross_value, gross, rel_tol=1e-12, abs_tol=0.01)
+        and math.isclose(existing.commission, commission, abs_tol=1e-12)
+        and math.isclose(existing.stamp_duty, stamp_duty, abs_tol=1e-12)
+        and math.isclose(existing.transfer_fee, transfer_fee, abs_tol=1e-12)
+        and math.isclose(existing.slippage_cost, slippage_cost, abs_tol=1e-12)
+    )
+
+
+def _validated_fill_order_progress(
+    *,
+    order: AccountOrder,
+    existing_fill: Fill | None,
+    shares: int,
+    remaining: int,
+    final: bool,
+) -> tuple[int, int]:
+    if existing_fill is None and order.status in {
+        OrderStatus.FILLED.value,
+        OrderStatus.CANCELLED.value,
+        OrderStatus.REPLACED.value,
+    }:
+        raise ValueError("broker cannot append a fill to a terminal account order")
+    cumulative_filled = order.filled_shares + shares
+    reported_request = cumulative_filled + remaining
+    if existing_fill is None and order.requested_shares > 0 and reported_request != order.requested_shares:
+        raise ValueError("broker fill exceeds or contradicts requested order shares")
+    if (
+        existing_fill is None
+        and final
+        and order.requested_shares > 0
+        and cumulative_filled != order.requested_shares
+    ):
+        raise ValueError("final broker fill does not complete requested order shares")
+    return cumulative_filled, reported_request
+
+
+def _validated_broker_fill(state: _BrokerSyncState, raw: dict[str, Any]) -> _BrokerFillValues:
+    fill_id = str(raw.get("fill_id", "")).strip()
+    if not fill_id:
+        raise ValueError("each broker fill requires a stable fill_id")
+    order_id = str(raw.get("order_id", "")).strip()
+    order = state.ledger.get(order_id)
+    if order is None:
+        raise ValueError(f"broker fill references unknown order {order_id!r}")
+    symbol = normalize_symbol(str(raw.get("symbol", "")))
+    side = str(raw.get("side", "")).upper()
+    if symbol != order.symbol or side != order.side:
+        raise ValueError("broker fill symbol/side differs from account order")
+    if side not in {Side.BUY.value, Side.SELL.value}:
+        raise ValueError("broker fill has invalid side")
+    shares = _broker_integer(raw, "shares", default=0, positive=True)
+    raw_price = raw.get("price", 0.0)
+    if isinstance(raw_price, bool) or not isinstance(raw_price, (int, float)):
+        raise ValueError("broker fill price must be a finite number")
+    price = float(raw_price)
+    if not math.isfinite(price) or price <= 0:
+        raise ValueError("broker fill shares and price must be positive")
+    fill_date_value = raw.get("fill_date", state.as_of)
+    parsed_fill_date = _broker_date(fill_date_value, field="fill_date")
+    fill_date = str(fill_date_value)
+    signal_date = _broker_date(order.signal_date, field="order signal_date")
+    submitted_date = _broker_date(order.submitted_date, field="order submitted_date")
+    if parsed_fill_date <= max(signal_date, submitted_date):
+        raise ValueError("broker fill date must be after order signal/submission")
+    if parsed_fill_date > state.snapshot_date:
+        raise ValueError("broker fill date is after snapshot as_of")
+    commission = _nonnegative(raw, "commission")
+    stamp_duty = _nonnegative(raw, "stamp_duty")
+    transfer_fee = _nonnegative(raw, "transfer_fee")
+    slippage_cost = _nonnegative(raw, "slippage_cost")
+    gross = _nonnegative(raw, "gross_value", shares * price)
+    expected_gross = shares * price
+    if not math.isclose(gross, expected_gross, rel_tol=1e-12, abs_tol=0.01):
+        raise ValueError("broker fill gross_value does not reconcile to shares * price")
+    final = raw["final"]
+    remaining = _broker_integer(raw, "remaining_shares")
+    if (final and remaining != 0) or (not final and remaining == 0):
+        raise ValueError("broker fill final and remaining_shares are inconsistent")
+    existing_fill = state.known_fills.get(fill_id)
+    if existing_fill is not None:
+        identity_matches = _broker_fill_identity_matches(
+            existing_fill,
+            order_id=order_id,
+            fill_date=fill_date,
+            symbol=symbol,
+            side=side,
+            shares=shares,
+            price=price,
+            gross=gross,
+            commission=commission,
+            stamp_duty=stamp_duty,
+            transfer_fee=transfer_fee,
+            slippage_cost=slippage_cost,
+        )
+        if not identity_matches:
+            raise ValueError("broker fill_id was reused with different economics")
+    cumulative_filled, reported_request = _validated_fill_order_progress(
+        order=order,
+        existing_fill=existing_fill,
+        shares=shares,
+        remaining=remaining,
+        final=final,
+    )
+    return _BrokerFillValues(
+        fill_id=fill_id,
+        order_id=order_id,
+        order=order,
+        symbol=symbol,
+        side=side,
+        shares=shares,
+        price=price,
+        fill_date=fill_date,
+        commission=commission,
+        stamp_duty=stamp_duty,
+        transfer_fee=transfer_fee,
+        slippage_cost=slippage_cost,
+        gross=gross,
+        final=final,
+        remaining=remaining,
+        cumulative_filled=cumulative_filled,
+        reported_request=reported_request,
+        existing_fill=existing_fill,
+    )
+
+
+def _broker_fill_allocations(
+    state: _BrokerSyncState,
+    values: _BrokerFillValues,
+) -> list[dict[str, Any]]:
+    if values.side == Side.SELL.value:
+        sold_tranches = _allocate_broker_sale(
+            state.economic_tranches.setdefault(values.symbol, []),
+            shares=values.shares,
+            fill_date=values.fill_date,
+            policy=values.order.reduction_policy,
+        )
+        attributed_shares = sum(int(item["shares"]) for item in sold_tranches)
+        if attributed_shares != values.shares:
+            missing_shares = values.shares - attributed_shares
+            existing = state.account.positions.get(values.symbol)
+            fallback_cost = (
+                existing.avg_cost
+                if existing is not None and math.isfinite(existing.avg_cost) and existing.avg_cost > 0
+                else values.price
+            )
+            fallback_entry_date = (
+                existing.entry_date if existing is not None and existing.entry_date else values.fill_date
+            )
+            fallback_lifecycle = existing.lifecycle if existing is not None else values.order.lifecycle
+            sold_tranches.append(
+                {
+                    "tranche_id": f"broker-degraded-sale:{values.fill_id}",
+                    "lifecycle": fallback_lifecycle,
+                    "shares": missing_shares,
+                    "cost": fallback_cost,
+                    "unit_cost": fallback_cost,
+                    "avg_cost": fallback_cost,
+                    "cost_basis": missing_shares * fallback_cost,
+                    "entry_date": fallback_entry_date,
+                    "mfe": 0.0,
+                    "mae": 0.0,
+                    "degraded": True,
+                    "degradation_reason": "broker sale exceeded known eligible lot inventory",
+                    **_broker_reconciliation_identity(
+                        symbol=values.symbol,
+                        signal_date=fallback_entry_date,
+                        lifecycle=fallback_lifecycle,
+                        token=f"degraded-sale:{values.fill_id}",
+                    ),
+                }
+            )
+            state.account.reconciliation_events.append(
+                {
+                    "date": state.as_of,
+                    "symbol": values.symbol,
+                    "event": "sell_lot_attribution_incomplete",
+                    "broker_shares": values.shares,
+                    "attributed_shares": attributed_shares,
+                    "degraded_shares": missing_shares,
+                }
+            )
+        _allocate_sell_costs(
+            sold_tranches,
+            commission=values.commission,
+            stamp_duty=values.stamp_duty,
+            transfer_fee=values.transfer_fee,
+            slippage_cost=values.slippage_cost,
+        )
+        return sold_tranches
+    full_unit_cost = (values.gross + values.commission + values.transfer_fee) / values.shares
+    state.economic_tranches.setdefault(values.symbol, []).append(
+        Tranche(
+            tranche_id=f"broker-fill:{values.fill_id}",
+            lifecycle=values.order.lifecycle,
+            shares=values.shares,
+            avg_cost=full_unit_cost,
+            entry_date=values.fill_date,
+            sellable_date=str(date_type.fromisoformat(values.fill_date) + timedelta(days=1)),
+            highest_close=values.price,
+            lowest_close=values.price,
+            entry_score=values.order.entry_score,
+            entry_confidence=values.order.entry_confidence,
+            entry_regime=values.order.entry_regime,
+            entry_industry_strength=values.order.entry_industry_strength,
+            event_id=values.order.event_id,
+            origin_subsystem=values.order.origin_subsystem,
+            mechanism=values.order.mechanism,
+            origin_lifecycle=values.order.origin_lifecycle,
+            replaces_symbol=values.order.replaces_symbol,
+            industry_at_entry=values.order.industry_at_entry,
+            industry_manifest_sha256=values.order.industry_manifest_sha256,
+        )
+    )
+    state.imported_buy_lifecycle[values.symbol] = values.order.lifecycle
+    return []
+
+
+def _commit_imported_broker_fill(
+    state: _BrokerSyncState,
+    values: _BrokerFillValues,
+    sold_tranches: list[dict[str, Any]],
+) -> None:
+    order = values.order
+    state.account.fills.append(
+        Fill(
+            signal_date=order.signal_date,
+            fill_date=values.fill_date,
+            symbol=values.symbol,
+            side=values.side,
+            shares=values.shares,
+            price=values.price,
+            gross_value=values.gross,
+            commission=values.commission,
+            stamp_duty=values.stamp_duty,
+            transfer_fee=values.transfer_fee,
+            slippage_cost=values.slippage_cost,
+            reason=order.reason,
+            lifecycle=order.lifecycle,
+            order_id=values.order_id,
+            fill_id=values.fill_id,
+            reduction_policy=order.reduction_policy,
+            reason_code=order.reason_code,
+            exit_kind=order.exit_kind,
+            sold_tranches=sold_tranches,
+            event_id=order.event_id,
+            origin_subsystem=order.origin_subsystem,
+            mechanism=order.mechanism,
+            origin_lifecycle=order.origin_lifecycle,
+            replaces_symbol=order.replaces_symbol,
+            industry_at_entry=order.industry_at_entry,
+            industry_manifest_sha256=order.industry_manifest_sha256,
+        )
+    )
+    state.known_fills[values.fill_id] = state.account.fills[-1]
+    state.imported += 1
+    order.filled_shares = values.cumulative_filled
+    if order.requested_shares == 0:
+        order.requested_shares = values.reported_request
+    order.remaining_shares = values.remaining
+    order.status = (
+        OrderStatus.FILLED.value
+        if values.final and values.remaining == 0
+        else OrderStatus.PARTIALLY_FILLED.value
+    )
+    order.last_update_date = values.fill_date
+    order.last_event = "BROKER_FILL"
+    if order.status == OrderStatus.FILLED.value:
+        state.completed_order_ids.add(values.order_id)
+
+
+def _import_broker_fills(state: _BrokerSyncState) -> None:
+    for raw in state.ordered_fills:
+        values = _validated_broker_fill(state, raw)
+        if values.existing_fill is not None:
+            continue
+        sold_tranches = _broker_fill_allocations(state, values)
+        _commit_imported_broker_fill(state, values, sold_tranches)
+
+
+def _apply_broker_order_updates(state: _BrokerSyncState) -> None:
     seen_broker_orders: set[str] = set()
-    for raw in raw_orders:
+    for raw in state.raw_orders:
         if not isinstance(raw, dict):
             raise ValueError("each broker order must be an object")
         order_id = str(raw.get("order_id", "")).strip()
         if not order_id or order_id in seen_broker_orders:
             raise ValueError("broker orders require unique stable order_id values")
         seen_broker_orders.add(order_id)
-        order = ledger.get(order_id)
+        order = state.ledger.get(order_id)
         if order is None:
             raise ValueError(f"broker order references unknown order {order_id!r}")
         status = str(raw.get("status", "")).upper()
@@ -625,91 +587,111 @@ def sync_broker_snapshot(
             raise ValueError("broker cannot cancel a filled or replaced order")
         if order.status != OrderStatus.CANCELLED.value:
             order.status = OrderStatus.CANCELLED.value
-            order.last_update_date = as_of
+            order.last_update_date = state.as_of
             order.last_event = "BROKER_CANCELLED"
-        completed_order_ids.add(order_id)
+        state.completed_order_ids.add(order_id)
 
+
+def _reconciled_broker_position(
+    state: _BrokerSyncState,
+    raw: dict[str, Any],
+    *,
+    reconciled_positions: dict[str, Position],
+) -> tuple[str, Position]:
+    symbol = normalize_symbol(str(raw.get("symbol", "")))
+    if symbol in reconciled_positions:
+        raise ValueError(f"duplicate broker position {symbol}")
+    shares = _broker_integer(raw, "shares", default=0, positive=True)
+    sellable = _broker_integer(raw, "sellable_shares", default=-1)
+    avg_cost = _nonnegative(raw, "avg_cost")
+    if avg_cost <= 0 or sellable > shares:
+        raise ValueError("broker position requires positive shares/cost and bounded sellable_shares")
+    if "lifecycle" in raw and str(raw["lifecycle"]) not in {item.value for item in Lifecycle}:
+        raise ValueError("broker position has invalid lifecycle")
+    if "entry_date" in raw:
+        _broker_date(raw["entry_date"], field="position entry_date")
+    if "highest_close" in raw and _nonnegative(raw, "highest_close") <= 0:
+        raise ValueError("broker position highest_close must be finite and positive")
+    existing = state.account.positions.get(symbol)
+    tranches = state.economic_tranches.get(symbol, [])
+    economic_shares = sum(item.shares for item in tranches)
+    lifecycle = state.imported_buy_lifecycle.get(
+        symbol,
+        existing.lifecycle if existing is not None else Lifecycle.CORE.value,
+    )
+    strategy_highest = (
+        existing.highest_close
+        if existing is not None
+        else max((item.highest_close for item in tranches), default=avg_cost)
+    )
+    if economic_shares > shares:
+        _allocate_broker_sale(
+            tranches,
+            shares=economic_shares - shares,
+            fill_date="9999-12-31",
+            policy=ReductionPolicy.FIFO.value,
+        )
+        state.account.reconciliation_events.append(
+            {
+                "date": state.as_of,
+                "symbol": symbol,
+                "event": "broker_share_deficit_reconciled",
+                "shares": economic_shares - shares,
+            }
+        )
+    elif economic_shares < shares:
+        raise ValueError(f"broker position {symbol} exceeds known BUY lot inventory")
+    tranches = _align_sellability(
+        tranches,
+        sellable=sellable,
+        as_of=state.as_of,
+        next_date=str(state.snapshot_date + timedelta(days=1)),
+    )
+    if sum(item.shares for item in tranches) != shares:
+        raise RuntimeError("broker reconciliation lost tranche shares")
+    derived_entry_date = min(
+        (item.entry_date for item in tranches if item.entry_date),
+        default=state.as_of,
+    )
+    derived_highest = max([strategy_highest, *(item.highest_close for item in tranches)])
+    return symbol, Position(
+        symbol=symbol,
+        shares=shares,
+        avg_cost=avg_cost,
+        entry_date=derived_entry_date,
+        highest_close=derived_highest,
+        lifecycle=lifecycle,
+        tranches=tranches,
+    )
+
+
+def _reconcile_broker_positions(
+    state: _BrokerSyncState,
+    *,
+    cfg: SystemConfig,
+) -> dict[str, Position]:
     reconciled_positions: dict[str, Position] = {}
-    for raw in raw_positions:
+    for raw in state.raw_positions:
         if not isinstance(raw, dict):
             raise ValueError("each broker position must be an object")
-        symbol = normalize_symbol(str(raw.get("symbol", "")))
-        if symbol in reconciled_positions:
-            raise ValueError(f"duplicate broker position {symbol}")
-        shares = _broker_integer(raw, "shares", default=0, positive=True)
-        sellable = _broker_integer(raw, "sellable_shares", default=-1)
-        avg_cost = _nonnegative(raw, "avg_cost")
-        if avg_cost <= 0 or sellable > shares:
-            raise ValueError("broker position requires positive shares/cost and bounded sellable_shares")
-        if "lifecycle" in raw and str(raw["lifecycle"]) not in {item.value for item in Lifecycle}:
-            raise ValueError("broker position has invalid lifecycle")
-        if "entry_date" in raw:
-            _broker_date(raw["entry_date"], field="position entry_date")
-        if "highest_close" in raw and _nonnegative(raw, "highest_close") <= 0:
-            raise ValueError("broker position highest_close must be finite and positive")
-        existing = account.positions.get(symbol)
-        tranches = economic_tranches.get(symbol, [])
-        economic_shares = sum(item.shares for item in tranches)
-        lifecycle = imported_buy_lifecycle.get(
-            symbol,
-            existing.lifecycle if existing is not None else Lifecycle.CORE.value,
+        symbol, position = _reconciled_broker_position(
+            state,
+            raw,
+            reconciled_positions=reconciled_positions,
         )
-        strategy_highest = (
-            existing.highest_close
-            if existing is not None
-            else max((item.highest_close for item in tranches), default=avg_cost)
-        )
-        if economic_shares > shares:
-            _allocate_broker_sale(
-                tranches,
-                shares=economic_shares - shares,
-                fill_date="9999-12-31",
-                policy=ReductionPolicy.FIFO.value,
-            )
-            account.reconciliation_events.append(
-                {
-                    "date": as_of,
-                    "symbol": symbol,
-                    "event": "broker_share_deficit_reconciled",
-                    "shares": economic_shares - shares,
-                }
-            )
-        elif economic_shares < shares:
-            raise ValueError(
-                f"broker position {symbol} exceeds known BUY lot inventory"
-            )
-        tranches = _align_sellability(
-            tranches,
-            sellable=sellable,
-            as_of=as_of,
-            next_date=str(snapshot_date + timedelta(days=1)),
-        )
-        if sum(item.shares for item in tranches) != shares:
-            raise RuntimeError("broker reconciliation lost tranche shares")
-        derived_entry_date = min(
-            (item.entry_date for item in tranches if item.entry_date),
-            default=as_of,
-        )
-        derived_highest = max(
-            [strategy_highest, *(item.highest_close for item in tranches)],
-        )
-        reconciled_positions[symbol] = Position(
-            symbol=symbol,
-            shares=shares,
-            avg_cost=avg_cost,
-            entry_date=derived_entry_date,
-            highest_close=derived_highest,
-            lifecycle=lifecycle,
-            tranches=tranches,
-        )
+        reconciled_positions[symbol] = position
     if len(reconciled_positions) > cfg.max_positions:
         raise ValueError("broker snapshot exceeds the production position cap")
+    return reconciled_positions
 
-    # Exit bands are sell-only ownership of shares that still exist.  When an
-    # authoritative snapshot reports zero shares, settle that member in the
-    # same atomic reconciliation so stale bands cannot later resurrect it as
-    # a restoration BUY.  A strategic member without an exit band may have
-    # been temporarily risk-liquidated and therefore keeps its restore right.
+
+def _settle_broker_strategy_state(
+    state: _BrokerSyncState,
+    *,
+    reconciled_positions: dict[str, Position],
+    cfg: SystemConfig,
+) -> None:
+    account = state.account
     settled_strategic = set(account.strategic_exit_bands) - set(reconciled_positions)
     for symbol in settled_strategic:
         account.strategic_cohort_targets.pop(symbol, None)
@@ -734,7 +716,7 @@ def sync_broker_snapshot(
         and any(
             order.symbol in tactical_symbols
             and order.side == Side.BUY.value
-            and order.order_id not in completed_order_ids
+            and order.order_id not in state.completed_order_ids
             for order in account.pending_orders
         )
     )
@@ -745,10 +727,6 @@ def sync_broker_snapshot(
         and tactical_symbols.isdisjoint(account.anchor_weights)
         and not tactical_buy_open
     ):
-        # A broker-authoritative tactical zero with no durable BUY or restore
-        # owner is a completed exit.  Leaving ``tactical_active`` set would
-        # block every future tactical admission because no position remains to
-        # advance or retire that lifecycle.
         account.candidate_tenure["tactical_active"] = 0
         account.candidate_tenure["tactical_promotable"] = 0
         account.candidate_tenure["tactical_cooldown"] = max(
@@ -757,17 +735,25 @@ def sync_broker_snapshot(
         )
         account.tactical_anchor_symbol = ""
 
-    account.cash = cash
+
+def _commit_broker_sync(
+    original_account: AccountState,
+    state: _BrokerSyncState,
+    *,
+    reconciled_positions: dict[str, Position],
+) -> dict[str, int | str]:
+    account = state.account
+    account.cash = state.cash
     account.positions = reconciled_positions
     account.pending_orders = [
-        order for order in account.pending_orders if order.order_id not in completed_order_ids
+        order for order in account.pending_orders if order.order_id not in state.completed_order_ids
     ]
     pending_by_id = {order.order_id: order for order in account.pending_orders if order.order_id}
     for order_id, pending in pending_by_id.items():
-        entry = ledger.get(order_id)
+        entry = state.ledger.get(order_id)
         if entry is not None:
             pending.remaining_shares = entry.remaining_shares
-    account.broker_as_of = as_of
+    account.broker_as_of = state.as_of
     _validate_position_state(account, validate_attribution=True)
     _validate_order_state(
         account,
@@ -777,14 +763,35 @@ def sync_broker_snapshot(
     _validate_strategy_risk_state(account)
     _validate_lot_origin_chains(account)
     for state_field in fields(AccountState):
-        setattr(
-            original_account,
-            state_field.name,
-            getattr(account, state_field.name),
-        )
+        setattr(original_account, state_field.name, getattr(account, state_field.name))
     return {
-        "as_of": as_of,
-        "fills_imported": imported,
+        "as_of": state.as_of,
+        "fills_imported": state.imported,
         "positions_reconciled": len(reconciled_positions),
         "pending_orders": len(account.pending_orders),
     }
+
+
+def sync_broker_snapshot(
+    account: AccountState,
+    payload: dict[str, Any],
+    *,
+    cfg: SystemConfig = DEFAULT_CONFIG,
+) -> dict[str, int | str]:
+    """Apply one idempotent, broker-authoritative account snapshot.
+
+    The snapshot owns cash, positions, available shares, and reported fills.
+    Strategy state remains intact so the next decision continues the same
+    lifecycle.  Every fill must reference the engine's broker-visible order ID.
+    """
+    original_account = account
+    state = _prepare_broker_sync(account, payload)
+    _import_broker_fills(state)
+    _apply_broker_order_updates(state)
+    reconciled_positions = _reconcile_broker_positions(state, cfg=cfg)
+    _settle_broker_strategy_state(state, reconciled_positions=reconciled_positions, cfg=cfg)
+    return _commit_broker_sync(
+        original_account,
+        state,
+        reconciled_positions=reconciled_positions,
+    )

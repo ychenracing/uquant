@@ -39,6 +39,10 @@ from ._task9_relocation import (
     build_relocation_contract,
     has_immutable_local_relocation_lineage,
 )
+from ._task10_task9_transport import (
+    task9_historical_debt_projection,
+    task9_private_relocation_projection,
+)
 
 ROOT = Path(__file__).resolve().parents[2]
 _TASK9_START = "719288f6067686b3199d305899ddc09adf098a0d"
@@ -352,7 +356,7 @@ def test_task9_checkpoint2_ast_gate_rejects_rule_mutations(mutation: str) -> Non
     path = (
         "uquant/validation/generalization/gates.py"
         if mutation == "threshold"
-        else "uquant/validation/generalization_policy/evaluator.py"
+        else "uquant/validation/generalization_policy/evaluation_stages.py"
     )
     source = (ROOT / path).read_text(encoding="utf-8")
     tree = ast.parse(source)
@@ -364,16 +368,21 @@ def test_task9_checkpoint2_ast_gate_rejects_rule_mutations(mutation: str) -> Non
         )
         value.value = 0.11
     elif mutation == "comparison":
-        comparison = next(node for node in ast.walk(tree) if isinstance(node, ast.Compare))
-        comparison.ops[0] = ast.Gt() if isinstance(comparison.ops[0], ast.Lt) else ast.Lt()
+        function = next(
+            node
+            for node in tree.body
+            if isinstance(node, ast.FunctionDef) and node.name == "evaluate_policy_stages"
+        )
+        comparison = next(node for node in ast.walk(function) if isinstance(node, ast.Compare))
+        comparison.ops[0] = ast.Eq() if isinstance(comparison.ops[0], ast.NotEq) else ast.NotEq()
     else:
         function = next(
             node
             for node in tree.body
             if isinstance(node, ast.FunctionDef)
-            and node.name == "evaluate_generalization_policy_artifact"
+            and node.name == "evaluate_policy_stages"
         )
-        function.body[2], function.body[3] = function.body[3], function.body[2]
+        function.body[5], function.body[6] = function.body[6], function.body[5]
     with pytest.raises(AssertionError):
         assert_owner_ast_exact(ROOT, candidate_sources={path: ast.unparse(tree)})
 
@@ -410,7 +419,11 @@ def test_task9_checkpoint2_relocated_debt_is_exact_bidirectional_and_non_growing
     snapshot = architecture_snapshot()
     graph = snapshot["import_graph"]
     relocated = graph["task9_relocated_private_imports"]
-    assert {str(row["id"]) for row in relocated} == _TASK9_RELOCATED_PRIVATE_IMPORTS
+    assert task9_private_relocation_projection(
+        root=ROOT,
+        observed={str(row["id"]) for row in relocated},
+        expected=set(_TASK9_RELOCATED_PRIVATE_IMPORTS),
+    ) == _TASK9_RELOCATED_PRIVATE_IMPORTS
     assert not {
         str(row["id"])
         for row in graph["cross_module_private_imports"]
@@ -486,7 +499,26 @@ def test_task9_checkpoint2_relocated_debt_is_exact_bidirectional_and_non_growing
             or int(row["branch_points"]) > FINAL_BUDGETS["max_function_branch_points"]
         )
     }
-    assert set(_TASK9_RELOCATED_FUNCTION_DEBT) == candidate_function_debt
+    candidate_globals = {
+        str(row["id"])
+        for row in snapshot["module_globals"]
+        if str(row["id"]).startswith(
+            (
+                "uquant.validation.generalization.",
+                "uquant.validation.generalization_policy.",
+                "uquant.validation.holdout.",
+            )
+        )
+        and (bool(row["mutable_initializer"]) or bool(row["mutation_sites"]))
+    }
+    projected_functions, projected_globals = task9_historical_debt_projection(
+        root=ROOT,
+        current_functions=candidate_function_debt,
+        historical_functions=set(_TASK9_RELOCATED_FUNCTION_DEBT),
+        current_globals=candidate_globals,
+        historical_globals=set(_TASK9_RELOCATED_GLOBAL_DEBT),
+    )
+    assert set(_TASK9_RELOCATED_FUNCTION_DEBT) == projected_functions
     baseline_debt = json.loads(
         (ROOT / "artifacts/architecture_refactor/baseline_inventory.json").read_text(
             encoding="utf-8"
@@ -501,23 +533,44 @@ def test_task9_checkpoint2_relocated_debt_is_exact_bidirectional_and_non_growing
         legacy for legacy, _ in _TASK9_RELOCATED_FUNCTION_DEBT.values()
     } <= legacy_function_debt
 
-    candidate_globals = {
-        str(row["id"])
-        for row in snapshot["module_globals"]
-        if str(row["id"]).startswith(
-            (
-                "uquant.validation.generalization.",
-                "uquant.validation.generalization_policy.",
-                "uquant.validation.holdout.",
-            )
-        )
-        and (bool(row["mutable_initializer"]) or bool(row["mutation_sites"]))
-    }
-    assert set(_TASK9_RELOCATED_GLOBAL_DEBT) == candidate_globals
+    assert set(_TASK9_RELOCATED_GLOBAL_DEBT) == projected_globals
     legacy_global_debt = {
         str(row["id"]) for row in baseline_debt["mutable_module_globals"]
     }
     assert set(_TASK9_RELOCATED_GLOBAL_DEBT.values()) <= legacy_global_debt
+
+
+@pytest.mark.parametrize(
+    ("relative", "original", "mutation"),
+    (
+        (
+            "uquant/validation/generalization_policy/schema.py",
+            "schema_failures = _schema_failures",
+            "schema_failures = _replay_error",
+        ),
+        (
+            "uquant/validation/generalization_policy/evaluation_stages.py",
+            "schema.schema_failures(",
+            "schema.replay_error(",
+        ),
+    ),
+)
+def test_task9_task10_public_policy_transport_rejects_unknown_identity_or_callee(
+    relative: str,
+    original: str,
+    mutation: str,
+) -> None:
+    snapshot = architecture_snapshot()
+    relocated = snapshot["import_graph"]["task9_relocated_private_imports"]
+    source = (ROOT / relative).read_text(encoding="utf-8")
+    assert original in source
+    with pytest.raises(AssertionError):
+        task9_private_relocation_projection(
+            root=ROOT,
+            observed={str(row["id"]) for row in relocated},
+            expected=set(_TASK9_RELOCATED_PRIVATE_IMPORTS),
+            overrides={relative: source.replace(original, mutation, 1)},
+        )
 
 
 def test_task9_checkpoint2_unknown_debt_is_not_hidden_by_relocation() -> None:
@@ -657,7 +710,7 @@ def test_task9_checkpoint3_ast_gate_rejects_holdout_rule_and_order_mutations(
         function_name = (
             "_generate_future_holdout_replay_locked"
             if mutation == "service_order"
-            else "append_holdout_snapshot"
+            else "_validate_snapshot_predecessor"
         )
         function = next(
             node
@@ -673,7 +726,7 @@ def test_task9_checkpoint3_ast_gate_rejects_holdout_rule_and_order_mutations(
                 if isinstance(node, ast.If)
                 and any(
                     isinstance(child, ast.Name)
-                    and child.id == "_read_checkpoint"
+                    and child.id == "prior_checkpoint"
                     for child in ast.walk(node)
                 )
             )

@@ -18,9 +18,7 @@ GOVERNANCE_BASE_COMMIT: Final = "e71c3f6cf42244f71e59458ec15375b92ed4da1f"
 REQUIRED_CONFIG_PARAMETER_GOVERNANCE_SHA256: Final = (
     "90d8fe643ec35428a236d4de1d394e36c12c840c945a2bf6353db62fa5767d6e"
 )
-FROZEN_CHAMPION_CONFIG_SHA256: Final = (
-    "023d709731196a325d9cd03e95ece92e4baf63d2c5c66bb9f7d0e7a190e7bf20"
-)
+FROZEN_CHAMPION_CONFIG_SHA256: Final = "023d709731196a325d9cd03e95ece92e4baf63d2c5c66bb9f7d0e7a190e7bf20"
 REMOVAL_ORDER: Final = (
     "strategic_cohort_symbols",
     "strategic_partial_universe_max_size",
@@ -105,13 +103,18 @@ class GovernedConfigMigration:
     carrier_sha256: str
 
 
-def _reject_duplicate_keys(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
+def _reject_config_governance_duplicate_keys(
+    pairs: list[tuple[str, Any]],
+) -> dict[str, Any]:
     result: dict[str, Any] = {}
     for key, value in pairs:
         if key in result:
             raise RuntimeError(f"configuration governance contains duplicate key: {key}")
         result[key] = value
     return result
+
+
+_reject_duplicate_keys = _reject_config_governance_duplicate_keys
 
 
 def _reject_nonstandard_constant(value: str) -> None:
@@ -145,16 +148,16 @@ def _required_count(value: Any, *, label: str) -> int:
     return cast(int, value)
 
 
-def load_config_governance(path: str | Path | None = None) -> ConfigGovernance:
-    """Load the exact reviewed inventory and reject edits, gaps, and duplicates."""
-
+def _load_and_validate_governance_envelope(
+    path: str | Path | None,
+) -> tuple[dict[str, Any], dict[str, tuple[int, int]], str, str, str]:
     source = _default_path() if path is None else Path(path)
     if source.is_symlink() or not source.is_file():
         raise RuntimeError("configuration governance artifact is missing or not a regular file")
     try:
         payload = json.loads(
             source.read_text(encoding="utf-8"),
-            object_pairs_hook=_reject_duplicate_keys,
+            object_pairs_hook=_reject_config_governance_duplicate_keys,
             parse_constant=_reject_nonstandard_constant,
         )
     except RuntimeError:
@@ -219,42 +222,21 @@ def load_config_governance(path: str | Path | None = None) -> ConfigGovernance:
     candidate_config_sha256 = config_migration["candidate_config_sha256"]
     if champion_config_sha256 != FROZEN_CHAMPION_CONFIG_SHA256:
         raise RuntimeError("configuration governance champion identity changed")
-    if not isinstance(candidate_config_sha256, str) or not _SHA256.fullmatch(
-        candidate_config_sha256
-    ):
+    if not isinstance(candidate_config_sha256, str) or not _SHA256.fullmatch(candidate_config_sha256):
         raise RuntimeError("configuration governance candidate identity is malformed")
-
-    categories = _required_mapping(
-        payload["categories"],
-        label="categories",
-        keys={category.value for category in ParameterCategory},
+    return (
+        payload,
+        parsed_counts,
+        artifact_sha256,
+        champion_config_sha256,
+        candidate_config_sha256,
     )
-    entries: list[ParameterGovernance] = []
-    for category in ParameterCategory:
-        groups = categories[category.value]
-        if not isinstance(groups, list):
-            raise RuntimeError(f"configuration governance category is malformed: {category.value}")
-        for group in groups:
-            group = _required_mapping(
-                group,
-                label=f"category.{category.value}",
-                keys={"owner", "rationale", "fields"},
-            )
-            try:
-                owner = SubsystemOwner(group["owner"])
-            except (TypeError, ValueError) as exc:
-                raise RuntimeError("configuration governance owner is unknown") from exc
-            rationale = group["rationale"]
-            raw_fields = group["fields"]
-            if (
-                not isinstance(rationale, str)
-                or not rationale.strip()
-                or not isinstance(raw_fields, list)
-                or any(not isinstance(field, str) or not field for field in raw_fields)
-            ):
-                raise RuntimeError("configuration governance group is malformed")
-            entries.extend(ParameterGovernance(field, category, owner, rationale) for field in raw_fields)
 
+
+def _validate_governed_fields_and_removals(
+    entries: list[ParameterGovernance],
+    payload: dict[str, Any],
+) -> tuple[int, tuple[str, ...]]:
     entry_names = tuple(item.field for item in entries)
     if len(entry_names) != len(set(entry_names)):
         raise RuntimeError("configuration governance classifies a field more than once")
@@ -303,6 +285,52 @@ def load_config_governance(path: str | Path | None = None) -> ConfigGovernance:
         raise RuntimeError("configuration field disappeared without removal-ledger evidence")
 
     economic_count = sum(item.category is ParameterCategory.ECONOMIC for item in entries)
+    return economic_count, removed_fields
+
+
+def load_config_governance(path: str | Path | None = None) -> ConfigGovernance:
+    """Load the exact reviewed inventory and reject edits, gaps, and duplicates."""
+
+    (
+        payload,
+        parsed_counts,
+        artifact_sha256,
+        champion_config_sha256,
+        candidate_config_sha256,
+    ) = _load_and_validate_governance_envelope(path)
+
+    categories = _required_mapping(
+        payload["categories"],
+        label="categories",
+        keys={category.value for category in ParameterCategory},
+    )
+    entries: list[ParameterGovernance] = []
+    for category in ParameterCategory:
+        groups = categories[category.value]
+        if not isinstance(groups, list):
+            raise RuntimeError(f"configuration governance category is malformed: {category.value}")
+        for group in groups:
+            group = _required_mapping(
+                group,
+                label=f"category.{category.value}",
+                keys={"owner", "rationale", "fields"},
+            )
+            try:
+                owner = SubsystemOwner(group["owner"])
+            except (TypeError, ValueError) as exc:
+                raise RuntimeError("configuration governance owner is unknown") from exc
+            rationale = group["rationale"]
+            raw_fields = group["fields"]
+            if (
+                not isinstance(rationale, str)
+                or not rationale.strip()
+                or not isinstance(raw_fields, list)
+                or any(not isinstance(field, str) or not field for field in raw_fields)
+            ):
+                raise RuntimeError("configuration governance group is malformed")
+            entries.extend(ParameterGovernance(field, category, owner, rationale) for field in raw_fields)
+
+    economic_count, removed_fields = _validate_governed_fields_and_removals(entries, payload)
     if parsed_counts["current"] != (len(entries), economic_count):
         raise RuntimeError("configuration governance current counts are stale")
     if parsed_counts["before"] != (285, economic_count):

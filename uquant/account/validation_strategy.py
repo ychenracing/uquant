@@ -6,18 +6,40 @@ from typing import Any
 
 from ..types import AccountState, Lifecycle, Opportunity, Risk
 from .validation_common import (
-    _SHOCK_SEVERITIES,
-    _SHOCK_STATES,
-    _finite_number,
-    _nonnegative_integer,
-    _optional_finite_event_number,
-    _optional_iso_date,
-    _required_iso_date,
-    _required_text,
-    _validate_event_array,
-    _validate_nonnegative_integer_map,
-    _validate_symbol_list,
-    _validate_weight_map,
+    SHOCK_SEVERITIES as _SHOCK_SEVERITIES,
+)
+from .validation_common import (
+    SHOCK_STATES as _SHOCK_STATES,
+)
+from .validation_common import (
+    finite_number as _finite_number,
+)
+from .validation_common import (
+    nonnegative_integer as _nonnegative_integer,
+)
+from .validation_common import (
+    optional_finite_event_number as _optional_finite_event_number,
+)
+from .validation_common import (
+    optional_iso_date as _optional_iso_date,
+)
+from .validation_common import (
+    required_iso_date as _required_iso_date,
+)
+from .validation_common import (
+    required_text as _required_text,
+)
+from .validation_common import (
+    validate_account_event_array as _validate_event_array,
+)
+from .validation_common import (
+    validate_account_symbol_list as _validate_symbol_list,
+)
+from .validation_common import (
+    validate_account_weight_map as _validate_weight_map,
+)
+from .validation_common import (
+    validate_nonnegative_account_integer_map as _validate_nonnegative_integer_map,
 )
 
 
@@ -33,6 +55,91 @@ def _validate_risk_streaks(values: Any) -> None:
                 raise RuntimeError("risk_streaks[opportunity_evidence] must be -1, 0, or 1")
             continue
         _nonnegative_integer(value, field=f"risk_streaks[{key}]")
+
+
+def _validate_audit_events_stage_1(
+    *,
+    lifecycles: Any,
+    state: Any,
+) -> None:
+    reconciliation_event_types = {
+        "sell_lot_attribution_incomplete",
+        "broker_share_deficit_reconciled",
+        "economic_lot_degraded",
+    }
+    for event in _validate_event_array(
+        state.reconciliation_events,
+        field="reconciliation_events",
+    ):
+        _required_iso_date(event.get("date"), field="reconciliation event date")
+        _required_text(event.get("symbol"), field="reconciliation event symbol")
+        if event.get("event") not in reconciliation_event_types:
+            raise RuntimeError("reconciliation event has invalid event type")
+        for name in (
+            "shares",
+            "broker_shares",
+            "attributed_shares",
+            "degraded_shares",
+            "unmatched_shares",
+        ):
+            if name in event:
+                _nonnegative_integer(event[name], field=f"reconciliation event {name}")
+        if "reason" in event:
+            _required_text(event["reason"], field="reconciliation event reason")
+        if "quality" in event and event["quality"] != "degraded_external_inventory":
+            raise RuntimeError("reconciliation event has invalid quality")
+        if "default_lifecycle" in event and event["default_lifecycle"] not in lifecycles:
+            raise RuntimeError("reconciliation event has invalid default_lifecycle")
+        if "default_entry_date" in event:
+            _required_iso_date(
+                event["default_entry_date"],
+                field="reconciliation event default_entry_date",
+            )
+        if "default_highest_close" in event:
+            default_highest = _finite_number(
+                event["default_highest_close"],
+                field="reconciliation event default_highest_close",
+                minimum=0.0,
+            )
+            if default_highest == 0.0:
+                raise RuntimeError("reconciliation event default_highest_close must be positive")
+
+
+def _validate_audit_events_stage_2(
+    *,
+    risks: Any,
+    state: Any,
+) -> None:
+    for event in _validate_event_array(state.risk_events, field="risk_events"):
+        _required_iso_date(event.get("date"), field="risk event date")
+        event_name = event.get("event")
+        has_transition = "from" in event or "to" in event
+        if event_name is not None and event_name not in {
+            "sector_guard_on",
+            "sector_guard_off",
+        }:
+            raise RuntimeError("risk event has invalid event type")
+        if has_transition and (event.get("from") not in risks or event.get("to") not in risks):
+            raise RuntimeError("risk event has invalid risk transition")
+        for name in ("votes", "shock_count", "active_sessions"):
+            if name in event:
+                _nonnegative_integer(event[name], field=f"risk event {name}")
+        if "reasons" in event:
+            reasons = event["reasons"]
+            if not isinstance(reasons, list) or any(
+                not isinstance(reason, str) or not reason.strip() for reason in reasons
+            ):
+                raise RuntimeError("risk event reasons must be an array of text")
+        if "severity" in event and event["severity"] not in _SHOCK_SEVERITIES:
+            raise RuntimeError("risk event has invalid severity")
+        if "route" in event:
+            _required_text(event["route"], field="risk event route")
+        for name in (
+            "leadership_divergence",
+            "equal_weight_return",
+            "exposure_weighted_return",
+        ):
+            _optional_finite_event_number(event, name, field="risk event")
 
 
 def _validate_audit_events(state: AccountState) -> None:
@@ -79,147 +186,22 @@ def _validate_audit_events(state: AccountState) -> None:
         )
         _required_text(event.get("reason"), field="lifecycle event reason")
 
-    for event in _validate_event_array(state.risk_events, field="risk_events"):
-        _required_iso_date(event.get("date"), field="risk event date")
-        event_name = event.get("event")
-        has_transition = "from" in event or "to" in event
-        if event_name is not None and event_name not in {
-            "sector_guard_on",
-            "sector_guard_off",
-        }:
-            raise RuntimeError("risk event has invalid event type")
-        if has_transition and (event.get("from") not in risks or event.get("to") not in risks):
-            raise RuntimeError("risk event has invalid risk transition")
-        for name in ("votes", "shock_count", "active_sessions"):
-            if name in event:
-                _nonnegative_integer(event[name], field=f"risk event {name}")
-        if "reasons" in event:
-            reasons = event["reasons"]
-            if not isinstance(reasons, list) or any(
-                not isinstance(reason, str) or not reason.strip() for reason in reasons
-            ):
-                raise RuntimeError("risk event reasons must be an array of text")
-        if "severity" in event and event["severity"] not in _SHOCK_SEVERITIES:
-            raise RuntimeError("risk event has invalid severity")
-        if "route" in event:
-            _required_text(event["route"], field="risk event route")
-        for name in (
-            "leadership_divergence",
-            "equal_weight_return",
-            "exposure_weighted_return",
-        ):
-            _optional_finite_event_number(event, name, field="risk event")
-
-    reconciliation_event_types = {
-        "sell_lot_attribution_incomplete",
-        "broker_share_deficit_reconciled",
-        "economic_lot_degraded",
-    }
-    for event in _validate_event_array(
-        state.reconciliation_events,
-        field="reconciliation_events",
-    ):
-        _required_iso_date(event.get("date"), field="reconciliation event date")
-        _required_text(event.get("symbol"), field="reconciliation event symbol")
-        if event.get("event") not in reconciliation_event_types:
-            raise RuntimeError("reconciliation event has invalid event type")
-        for name in (
-            "shares",
-            "broker_shares",
-            "attributed_shares",
-            "degraded_shares",
-            "unmatched_shares",
-        ):
-            if name in event:
-                _nonnegative_integer(event[name], field=f"reconciliation event {name}")
-        if "reason" in event:
-            _required_text(event["reason"], field="reconciliation event reason")
-        if "quality" in event and event["quality"] != "degraded_external_inventory":
-            raise RuntimeError("reconciliation event has invalid quality")
-        if "default_lifecycle" in event and event["default_lifecycle"] not in lifecycles:
-            raise RuntimeError("reconciliation event has invalid default_lifecycle")
-        if "default_entry_date" in event:
-            _required_iso_date(
-                event["default_entry_date"],
-                field="reconciliation event default_entry_date",
-            )
-        if "default_highest_close" in event:
-            default_highest = _finite_number(
-                event["default_highest_close"],
-                field="reconciliation event default_highest_close",
-                minimum=0.0,
-            )
-            if default_highest == 0.0:
-                raise RuntimeError("reconciliation event default_highest_close must be positive")
-
-
-def _validate_strategy_risk_state(state: AccountState) -> None:
-    """Validate durable strategy/risk state shared by save, load, and broker sync.
-
-    These checks deliberately constrain only durable invariants.  They do not
-    require anchor symbols to be held because a causal next-open buy or a
-    broker-authoritative exit can temporarily separate targets from positions.
-    """
-    _finite_number(state.operating_peak, field="operating_peak", minimum=0.0)
-    _finite_number(state.capital_peak, field="capital_peak", minimum=0.0)
-    if not isinstance(state.opportunity, str) or state.opportunity not in {
-        item.value for item in Opportunity
-    }:
-        raise RuntimeError("account state has invalid opportunity")
-    if not isinstance(state.risk, str) or state.risk not in {item.value for item in Risk}:
-        raise RuntimeError("account state has invalid risk")
-    if not isinstance(state.shock_state, str) or state.shock_state not in _SHOCK_STATES:
-        raise RuntimeError("account state has invalid shock_state")
-    if not isinstance(state.shock_severity, str) or state.shock_severity not in _SHOCK_SEVERITIES:
-        raise RuntimeError("account state has invalid shock_severity")
-    if not isinstance(state.data_hash, str) or not isinstance(state.code_hash, str):
-        raise RuntimeError("account validation hashes must be text")
-
-    _validate_weight_map(state.anchor_weights, field="anchor_weights")
-    if not isinstance(state.recovery_conviction_symbol, str):
-        raise RuntimeError("account state has invalid recovery_conviction_symbol")
-    _validate_weight_map(state.protected_weights, field="protected_weights")
-    cohort_keys = _validate_symbol_list(
-        state.strategic_cohort_symbols,
-        field="strategic_cohort_symbols",
+    _validate_audit_events_stage_2(
+        risks=risks,
+        state=state,
     )
-    target_keys = _validate_weight_map(
-        state.strategic_cohort_targets,
-        field="strategic_cohort_targets",
+
+    _validate_audit_events_stage_1(
+        lifecycles=lifecycles,
+        state=state,
     )
-    restore_keys = _validate_weight_map(
-        state.strategic_restore_weights,
-        field="strategic_restore_weights",
-    )
-    if not target_keys <= cohort_keys or not restore_keys <= cohort_keys:
-        raise RuntimeError("strategic weights reference symbols outside the cohort")
-    if not isinstance(state.strategic_exit_bands, dict) or not isinstance(
-        state.strategic_active_bands,
-        dict,
-    ):
-        raise RuntimeError("strategic band state must be objects")
-    band_keys = set(state.strategic_exit_bands)
-    if band_keys != set(state.strategic_active_bands):
-        raise RuntimeError("strategic exit/active band keys differ")
-    if not band_keys <= cohort_keys:
-        raise RuntimeError("strategic bands reference symbols outside the cohort")
-    total_band_weight = 0.0
-    for symbol, bands in state.strategic_exit_bands.items():
-        _required_text(symbol, field="strategic band symbol")
-        active = state.strategic_active_bands[symbol]
-        if not isinstance(bands, list) or not bands:
-            raise RuntimeError("strategic exit bands must be non-empty arrays")
-        if not isinstance(active, list) or len(active) != len(bands):
-            raise RuntimeError("strategic exit/active band lengths differ")
-        if any(type(item) is not bool for item in active):
-            raise RuntimeError("strategic active bands must contain booleans")
-        for index, weight in enumerate(bands):
-            total_band_weight += _finite_number(
-                weight,
-                field=f"strategic_exit_bands[{symbol}][{index}]",
-                minimum=0.0,
-                maximum=1.0,
-            )
+
+
+def _validate_strategy_risk_state_stage_1(
+    *,
+    state: Any,
+    total_band_weight: Any,
+) -> None:
     if total_band_weight > 1.0 + 1e-6:
         raise RuntimeError("strategic exit band total weight exceeds one")
 
@@ -286,6 +268,89 @@ def _validate_strategy_risk_state(state: AccountState) -> None:
         raise RuntimeError("satellite_entry_dates must be an object")
     for shock_date in state.sector_shock_dates:
         _required_iso_date(shock_date, field="sector_shock_dates")
+
+
+def _validate_strategy_risk_state_stage_2(
+    *,
+    state: Any,
+) -> Any:
+    if not isinstance(state.shock_state, str) or state.shock_state not in _SHOCK_STATES:
+        raise RuntimeError("account state has invalid shock_state")
+    if not isinstance(state.shock_severity, str) or state.shock_severity not in _SHOCK_SEVERITIES:
+        raise RuntimeError("account state has invalid shock_severity")
+    if not isinstance(state.data_hash, str) or not isinstance(state.code_hash, str):
+        raise RuntimeError("account validation hashes must be text")
+
+    _validate_weight_map(state.anchor_weights, field="anchor_weights")
+    if not isinstance(state.recovery_conviction_symbol, str):
+        raise RuntimeError("account state has invalid recovery_conviction_symbol")
+    _validate_weight_map(state.protected_weights, field="protected_weights")
+    cohort_keys = _validate_symbol_list(
+        state.strategic_cohort_symbols,
+        field="strategic_cohort_symbols",
+    )
+    target_keys = _validate_weight_map(
+        state.strategic_cohort_targets,
+        field="strategic_cohort_targets",
+    )
+    restore_keys = _validate_weight_map(
+        state.strategic_restore_weights,
+        field="strategic_restore_weights",
+    )
+    if not target_keys <= cohort_keys or not restore_keys <= cohort_keys:
+        raise RuntimeError("strategic weights reference symbols outside the cohort")
+    if not isinstance(state.strategic_exit_bands, dict) or not isinstance(
+        state.strategic_active_bands,
+        dict,
+    ):
+        raise RuntimeError("strategic band state must be objects")
+    band_keys = set(state.strategic_exit_bands)
+    if band_keys != set(state.strategic_active_bands):
+        raise RuntimeError("strategic exit/active band keys differ")
+    if not band_keys <= cohort_keys:
+        raise RuntimeError("strategic bands reference symbols outside the cohort")
+    total_band_weight = 0.0
+    return total_band_weight
+
+
+def _validate_strategy_risk_state(state: AccountState) -> None:
+    """Validate durable strategy/risk state shared by save, load, and broker sync.
+
+    These checks deliberately constrain only durable invariants.  They do not
+    require anchor symbols to be held because a causal next-open buy or a
+    broker-authoritative exit can temporarily separate targets from positions.
+    """
+    _finite_number(state.operating_peak, field="operating_peak", minimum=0.0)
+    _finite_number(state.capital_peak, field="capital_peak", minimum=0.0)
+    if not isinstance(state.opportunity, str) or state.opportunity not in {
+        item.value for item in Opportunity
+    }:
+        raise RuntimeError("account state has invalid opportunity")
+    if not isinstance(state.risk, str) or state.risk not in {item.value for item in Risk}:
+        raise RuntimeError("account state has invalid risk")
+    total_band_weight = _validate_strategy_risk_state_stage_2(
+        state=state,
+    )
+    for symbol, bands in state.strategic_exit_bands.items():
+        _required_text(symbol, field="strategic band symbol")
+        active = state.strategic_active_bands[symbol]
+        if not isinstance(bands, list) or not bands:
+            raise RuntimeError("strategic exit bands must be non-empty arrays")
+        if not isinstance(active, list) or len(active) != len(bands):
+            raise RuntimeError("strategic exit/active band lengths differ")
+        if any(type(item) is not bool for item in active):
+            raise RuntimeError("strategic active bands must contain booleans")
+        for index, weight in enumerate(bands):
+            total_band_weight += _finite_number(
+                weight,
+                field=f"strategic_exit_bands[{symbol}][{index}]",
+                minimum=0.0,
+                maximum=1.0,
+            )
+    _validate_strategy_risk_state_stage_1(
+        state=state,
+        total_band_weight=total_band_weight,
+    )
     for rotation_date in state.rotation_dates:
         _required_iso_date(rotation_date, field="rotation_dates")
     for symbol, entry_date in state.satellite_entry_dates.items():
@@ -306,3 +371,8 @@ def _validate_strategy_risk_state(state: AccountState) -> None:
     ):
         _optional_iso_date(optional_date, field=date_field)
     _validate_audit_events(state)
+
+
+validate_audit_events = _validate_audit_events
+validate_risk_streaks = _validate_risk_streaks
+validate_strategy_risk_state = _validate_strategy_risk_state

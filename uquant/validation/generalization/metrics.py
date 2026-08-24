@@ -17,11 +17,11 @@ from typing import Any
 from .models import GeneralizationObservation, GeneralizationScenario
 
 
-def symbol_pnl_from_result(
-    result: Mapping[str, Any],
+def _accumulate_symbol_profit(
+    *,
     final_prices: Mapping[str, float],
-) -> dict[str, float]:
-    """Attribute total portfolio profit by transaction cash flow and final marks."""
+    result: Mapping[str, Any],
+) -> tuple[Mapping[Any, Any], dict[str, float]]:
     account = result.get("final_account")
     if not isinstance(account, Mapping):
         raise ValueError("backtest result is missing final_account")
@@ -58,6 +58,18 @@ def symbol_pnl_from_result(
         if shares < 0 or (shares > 0 and (not math.isfinite(mark) or mark <= 0)):
             raise ValueError(f"final mark is missing or invalid: {symbol}")
         pnl[str(symbol)] = pnl.get(str(symbol), 0.0) + shares * mark
+    return account, pnl
+
+
+def symbol_pnl_from_result(
+    result: Mapping[str, Any],
+    final_prices: Mapping[str, float],
+) -> dict[str, float]:
+    """Attribute total portfolio profit by transaction cash flow and final marks."""
+    account, pnl = _accumulate_symbol_profit(
+        final_prices=final_prices,
+        result=result,
+    )
 
     if "final_equity" in result and "initial_cash" in account:
         expected = float(result["final_equity"]) - float(account["initial_cash"])
@@ -246,3 +258,7 @@ def industry_pnl_shares(
     return {
         industry: {"pnl": pnl, "share_of_net_pnl": pnl / net} for industry, pnl in sorted(grouped.items())
     }
+
+
+deployment_from_result = _deployment_from_result
+quantile = _quantile

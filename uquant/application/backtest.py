@@ -64,72 +64,18 @@ def equity(
     )
 
 
-def backtest(
-    self: BacktestEngineRuntime,
-    performance_metrics_fn: Callable[..., dict[str, Any]],
+def _backtest_stage_1(
     *,
-    symbols: Iterable[str],
-    start: str,
-    end: str,
-    initial_cash: float | None = None,
-) -> dict[str, Any]:
-    """Replay the production decision and next-open execution path."""
-    start, end = require_ai_era_interval(start, end)
-    user_symbols = tuple(sorted({normalize_symbol(item) for item in symbols}))
-    self.workspace.prepare(self.workspace.bind_tradable(user_symbols))
-    sessions = self.workspace.common_sessions(*self.workspace.universe.index_symbols)
-    sessions = sessions[(sessions >= pd.Timestamp(start)) & (sessions <= pd.Timestamp(end))]
-    if len(sessions) < 2:
-        raise RuntimeError("backtest window has fewer than two sessions")
-    account = AccountState.empty(initial_cash or self.cfg.initial_cash)
-    equity_rows: list[tuple[pd.Timestamp, float]] = []
-    decisions: list[Decision] = []
-    daily_ledger: list[dict[str, Any]] = []
-    daily_replay_evidence: list[dict[str, Any]] = []
-    previous_equity = account.initial_cash
-    raw_user_panel = {symbol: self._raw[symbol] for symbol in user_symbols}
-    for date in sessions:
-        self.execution.execute_open(date=date, account=account, panel=raw_user_panel)
-        equity = self.equity(account, date)
-        equity_rows.append((date, equity))
-        decision = self.decide(symbols=user_symbols, as_of=str(date.date()), account=account)
-        decisions.append(decision)
-        close_prices = {
-            symbol: self._price(symbol, date)
-            for symbol, position in account.positions.items()
-            if position.shares > 0
-        }
-        daily_ledger.append(
-            build_daily_ledger_row(
-                date=str(date.date()),
-                account=account,
-                close_prices=close_prices,
-                previous_equity=previous_equity,
-                target_weights={item.symbol: item.weight for item in decision.targets},
-                target_gross=decision.target_gross,
-                risk_gross_cap=float(decision.risk_summary["target_gross_cap"]),
-                system_gross_cap=float(decision.risk_summary["system_gross_cap"]),
-                risk_state=decision.risk.value,
-                opportunity=decision.opportunity.value,
-            )
-        )
-        daily_replay_evidence.append(
-            build_daily_replay_evidence_row(date=str(date.date()), account=account, close_prices=close_prices)
-        )
-        previous_equity = equity
-        account.pending_orders = list(decision.pending_orders)
-    final_date = sessions[-1]
-    final_equity = self.equity(account, final_date)
-    metrics = performance_metrics_fn(
-        equity_rows=equity_rows,
-        fills=account.fills,
-        orders=account.order_ledger,
-        initial_cash=account.initial_cash,
-        risk_events=account.risk_events,
-        benchmark_total_return=self.workspace.price("sh000682", final_date)
-        / self.workspace.price("sh000682", sessions[0])
-        - 1.0,
-    )
+    account: Any,
+    daily_ledger: Any,
+    daily_replay_evidence: Any,
+    decisions: Any,
+    final_date: Any,
+    final_equity: Any,
+    metrics: Any,
+    self: Any,
+    sessions: Any,
+) -> None:
     metrics.update(
         start=str(sessions[0].date()),
         end=str(sessions[-1].date()),
@@ -201,5 +147,84 @@ def backtest(
             "unfilled_broker_submissions": sum(item.filled_shares == 0 for item in account.order_ledger),
         },
         daily_risk_states=[{"date": item.date, "state": item.risk.value} for item in decisions],
+    )
+
+
+def backtest(
+    self: BacktestEngineRuntime,
+    performance_metrics_fn: Callable[..., dict[str, Any]],
+    *,
+    symbols: Iterable[str],
+    start: str,
+    end: str,
+    initial_cash: float | None = None,
+) -> dict[str, Any]:
+    """Replay the production decision and next-open execution path."""
+    start, end = require_ai_era_interval(start, end)
+    user_symbols = tuple(sorted({normalize_symbol(item) for item in symbols}))
+    self.workspace.prepare(self.workspace.bind_tradable(user_symbols))
+    sessions = self.workspace.common_sessions(*self.workspace.universe.index_symbols)
+    sessions = sessions[(sessions >= pd.Timestamp(start)) & (sessions <= pd.Timestamp(end))]
+    if len(sessions) < 2:
+        raise RuntimeError("backtest window has fewer than two sessions")
+    account = AccountState.empty(initial_cash or self.cfg.initial_cash)
+    equity_rows: list[tuple[pd.Timestamp, float]] = []
+    decisions: list[Decision] = []
+    daily_ledger: list[dict[str, Any]] = []
+    daily_replay_evidence: list[dict[str, Any]] = []
+    previous_equity = account.initial_cash
+    raw_user_panel = {symbol: self._raw[symbol] for symbol in user_symbols}
+    for date in sessions:
+        self.execution.execute_open(date=date, account=account, panel=raw_user_panel)
+        equity = self.equity(account, date)
+        equity_rows.append((date, equity))
+        decision = self.decide(symbols=user_symbols, as_of=str(date.date()), account=account)
+        decisions.append(decision)
+        close_prices = {
+            symbol: self._price(symbol, date)
+            for symbol, position in account.positions.items()
+            if position.shares > 0
+        }
+        daily_ledger.append(
+            build_daily_ledger_row(
+                date=str(date.date()),
+                account=account,
+                close_prices=close_prices,
+                previous_equity=previous_equity,
+                target_weights={item.symbol: item.weight for item in decision.targets},
+                target_gross=decision.target_gross,
+                risk_gross_cap=float(decision.risk_summary["target_gross_cap"]),
+                system_gross_cap=float(decision.risk_summary["system_gross_cap"]),
+                risk_state=decision.risk.value,
+                opportunity=decision.opportunity.value,
+            )
+        )
+        daily_replay_evidence.append(
+            build_daily_replay_evidence_row(date=str(date.date()), account=account, close_prices=close_prices)
+        )
+        previous_equity = equity
+        account.pending_orders = list(decision.pending_orders)
+    final_date = sessions[-1]
+    final_equity = self.equity(account, final_date)
+    metrics = performance_metrics_fn(
+        equity_rows=equity_rows,
+        fills=account.fills,
+        orders=account.order_ledger,
+        initial_cash=account.initial_cash,
+        risk_events=account.risk_events,
+        benchmark_total_return=self.workspace.price("sh000682", final_date)
+        / self.workspace.price("sh000682", sessions[0])
+        - 1.0,
+    )
+    _backtest_stage_1(
+        account=account,
+        daily_ledger=daily_ledger,
+        daily_replay_evidence=daily_replay_evidence,
+        decisions=decisions,
+        final_date=final_date,
+        final_equity=final_equity,
+        metrics=metrics,
+        self=self,
+        sessions=sessions,
     )
     return metrics

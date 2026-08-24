@@ -18,10 +18,10 @@ from .observation.execution_journal.models import (
 JournalCheckpoint = _models.LegacyJournalCheckpoint
 JournalRecord = _models.LegacyJournalRecord
 JournalStatus = _models.LegacyJournalStatus
-_PLAN_ID = _models._PLAN_ID
-_SHA256 = _models._SHA256
-_SYMBOL = _models._SYMBOL
-_ZERO_HASH = _models._ZERO_HASH
+_PLAN_ID = _models.PLAN_ID_PATTERN
+_SHA256 = _models.SHA256_PATTERN
+_SYMBOL = _models.SYMBOL_PATTERN
+_ZERO_HASH = _models.ZERO_HASH
 
 __all__ = (  # noqa: RUF022 - frozen public-name order
     "JournalCheckpoint",

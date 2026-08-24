@@ -10,22 +10,43 @@ from .admission import (
     LeaderPortfolioPolicy as LeaderPortfolioPolicy,
 )
 from .admission import (
-    _admission_utility,
-    _conviction_evidence_qualified,
-    _conviction_shares,
-    _correlations,
-    _dynamic_k,
+    admission_utility as _admission_utility,
+)
+from .admission import (
+    conviction_evidence_qualified as _conviction_evidence_qualified,
+)
+from .admission import (
+    conviction_shares as _conviction_shares,
+)
+from .admission import (
+    dynamic_leader_count as _dynamic_k,
+)
+from .admission import (
+    leader_correlations as _correlations,
 )
 from .lifecycle import (
-    _industry_handoff,
-    _leader_lifecycle_exit_confirmed,
-    _leader_session_distance,
-    _retention_score,
-    _rotation_allowed,
-    _session_clock,
-    _update_leader_cycle_arm,
+    industry_handoff as _industry_handoff,
 )
-from .targets import _cap_opportunity_gross, _leader_targets
+from .lifecycle import (
+    leader_lifecycle_exit_confirmed as _leader_lifecycle_exit_confirmed,
+)
+from .lifecycle import (
+    leader_retention_score as _retention_score,
+)
+from .lifecycle import (
+    leader_rotation_allowed as _rotation_allowed,
+)
+from .lifecycle import (
+    leader_session_clock as _session_clock,
+)
+from .lifecycle import (
+    leader_session_distance as _leader_session_distance,
+)
+from .lifecycle import (
+    update_leader_cycle_arm as _update_leader_cycle_arm,
+)
+from .targets import cap_opportunity_gross as _cap_opportunity_gross
+from .targets import leader_targets as _leader_targets
 
 
 def _leader_compatibility_method[Function: Callable[..., Any]](

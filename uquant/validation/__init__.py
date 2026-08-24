@@ -9,13 +9,13 @@ from __future__ import annotations
 
 from typing import Any
 
-__all__ = [
-    "run_competitor_gate",
-    "run_generalization",
-    "run_generalization_matrix",
-    "run_promotion",
-    "verify_data_manifest",
-]
+__all__ = (
+        "run_competitor_gate",
+        "run_generalization",
+        "run_generalization_matrix",
+        "run_promotion",
+        "verify_data_manifest",
+)
 
 
 def __getattr__(name: str) -> Any:

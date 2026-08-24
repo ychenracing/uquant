@@ -16,35 +16,41 @@ from .contract import SCORE_FIELDS, FutureHoldoutContract, load_future_holdout_c
 _SHA256: Final = re.compile(r"^[0-9a-f]{64}$")
 _COMMIT: Final = re.compile(r"^[0-9a-f]{40}$")
 _LANE_ID: Final = re.compile(r"^[a-z][a-z0-9_]{2,63}$")
-_REGISTRY_FIELDS: Final = {
-    "schema_version",
-    "registry_id",
-    "canonical_sha256",
-    "contract_sha256",
-    "lanes",
-}
-_LANE_FIELDS: Final = {
-    "lane_id",
-    "activation_session",
-    "source_commit",
-    "production_source_sha256",
-    "sentinel_source_sha256",
-    "effective_config_sha256",
-    "data_contract_sha256",
-    "data_directory",
-    "runtime",
-    "parent_lane",
-    "economic_behavior",
-    "status",
-}
-_RUNTIME_FIELDS: Final = {
-    "python_full_version",
-    "numpy_version",
-    "pandas_version",
-    "uv_version",
-    "uv_lock_sha256",
-}
-_BEHAVIORS: Final = {"IDENTICAL", "FREEZE_ONLY", "GROSS_CAP"}
+_REGISTRY_FIELDS: Final = frozenset(
+    {
+        "schema_version",
+        "registry_id",
+        "canonical_sha256",
+        "contract_sha256",
+        "lanes",
+    }
+)
+_LANE_FIELDS: Final = frozenset(
+    {
+        "lane_id",
+        "activation_session",
+        "source_commit",
+        "production_source_sha256",
+        "sentinel_source_sha256",
+        "effective_config_sha256",
+        "data_contract_sha256",
+        "data_directory",
+        "runtime",
+        "parent_lane",
+        "economic_behavior",
+        "status",
+    }
+)
+_RUNTIME_FIELDS: Final = frozenset(
+    {
+        "python_full_version",
+        "numpy_version",
+        "pandas_version",
+        "uv_version",
+        "uv_lock_sha256",
+    }
+)
+_BEHAVIORS: Final = frozenset({"IDENTICAL", "FREEZE_ONLY", "GROSS_CAP"})
 _STATUSES: Final = (
     "OBSERVING",
     "MILESTONE_20",
@@ -77,7 +83,7 @@ class HoldoutLane:
     status: str
 
 
-def _reject_duplicate_keys(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
+def _reject_duplicate_lane_keys(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
     result: dict[str, Any] = {}
     for key, value in pairs:
         if key in result:
@@ -86,11 +92,11 @@ def _reject_duplicate_keys(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
     return result
 
 
-def _reject_nonstandard_constant(value: str) -> None:
+def _reject_nonstandard_lane_constant(value: str) -> None:
     raise ValueError(f"lane registry contains non-standard number: {value}")
 
 
-def _canonical_bytes(value: object, *, omit_seal: bool = False) -> bytes:
+def _lane_canonical_bytes(value: object, *, omit_seal: bool = False) -> bytes:
     payload = value
     if omit_seal:
         if not isinstance(value, dict):
@@ -105,7 +111,7 @@ def _canonical_bytes(value: object, *, omit_seal: bool = False) -> bytes:
     ).encode("utf-8")
 
 
-def _canonical_sha256(value: object, *, omit_seal: bool = False) -> str:
+def _lane_canonical_sha256(value: object, *, omit_seal: bool = False) -> str:
     return hashlib.sha256(_canonical_bytes(value, omit_seal=omit_seal)).hexdigest()
 
 
@@ -172,6 +178,69 @@ def _validate_hash(value: object, *, field: str) -> None:
         raise ValueError(f"future holdout lane {field} must be SHA-256")
 
 
+def _validate_lane_runtime(lane: HoldoutLane) -> None:
+    if any(
+        not isinstance(getattr(lane, field), str) or not getattr(lane, field)
+        for field in (
+            "python_full_version",
+            "numpy_version",
+            "pandas_version",
+            "uv_version",
+        )
+    ):
+        raise ValueError("future holdout lane runtime must be complete")
+
+
+def _validate_lane_identity(
+    lane: HoldoutLane,
+    *,
+    contract: FutureHoldoutContract,
+    prior_ids: set[str],
+) -> None:
+    if not isinstance(lane.lane_id, str) or not _LANE_ID.fullmatch(lane.lane_id):
+        raise ValueError("future holdout lane ID is malformed")
+    if lane.activation_session not in contract.review_sessions:
+        raise ValueError("future holdout lane activation must be a contracted session")
+    if not isinstance(lane.source_commit, str) or not _COMMIT.fullmatch(lane.source_commit):
+        raise ValueError("future holdout lane source commit must be a full Git SHA")
+    for field in (
+        "production_source_sha256",
+        "sentinel_source_sha256",
+        "effective_config_sha256",
+        "data_contract_sha256",
+        "uv_lock_sha256",
+    ):
+        _validate_hash(getattr(lane, field), field=field)
+    if lane.data_contract_sha256 != contract.sha256:
+        raise ValueError("future holdout lane data contract is stale")
+    if lane.data_directory != contract.data_directory:
+        raise ValueError("future holdout lane data directory is stale")
+    _validate_lane_runtime(lane)
+    if lane.parent_lane is not None and lane.parent_lane not in prior_ids:
+        raise ValueError("future holdout lane parent must precede the child")
+    if lane.economic_behavior not in _BEHAVIORS:
+        raise ValueError("future holdout lane behavior is invalid")
+    if lane.status not in _STATUSES:
+        raise ValueError("future holdout lane status is invalid")
+
+
+def _validate_legacy_lane(
+    legacy: HoldoutLane,
+    contract: FutureHoldoutContract,
+) -> None:
+    if (
+        legacy.lane_id != _LEGACY_LANE_ID
+        or legacy.activation_session != contract.first_holdout_date
+        or legacy.source_commit != contract.strategy_anchor_commit
+        or legacy.production_source_sha256 != contract.strategy_source_sha256
+        or legacy.sentinel_source_sha256 != contract.strategy_source_sha256
+        or legacy.effective_config_sha256 != contract.strategy_config_sha256
+        or legacy.parent_lane is not None
+        or legacy.economic_behavior != "IDENTICAL"
+    ):
+        raise ValueError("legacy future holdout lane differs from the sealed strategy anchor")
+
+
 def validate_lane_registry(
     lanes: tuple[HoldoutLane, ...],
     contract: FutureHoldoutContract,
@@ -185,54 +254,9 @@ def validate_lane_registry(
         raise ValueError("future holdout lane IDs must be unique")
     prior_ids: set[str] = set()
     for lane in lanes:
-        if not isinstance(lane.lane_id, str) or not _LANE_ID.fullmatch(lane.lane_id):
-            raise ValueError("future holdout lane ID is malformed")
-        if lane.activation_session not in contract.review_sessions:
-            raise ValueError("future holdout lane activation must be a contracted session")
-        if not isinstance(lane.source_commit, str) or not _COMMIT.fullmatch(lane.source_commit):
-            raise ValueError("future holdout lane source commit must be a full Git SHA")
-        for field in (
-            "production_source_sha256",
-            "sentinel_source_sha256",
-            "effective_config_sha256",
-            "data_contract_sha256",
-            "uv_lock_sha256",
-        ):
-            _validate_hash(getattr(lane, field), field=field)
-        if lane.data_contract_sha256 != contract.sha256:
-            raise ValueError("future holdout lane data contract is stale")
-        if lane.data_directory != contract.data_directory:
-            raise ValueError("future holdout lane data directory is stale")
-        if any(
-            not isinstance(getattr(lane, field), str) or not getattr(lane, field)
-            for field in (
-                "python_full_version",
-                "numpy_version",
-                "pandas_version",
-                "uv_version",
-            )
-        ):
-            raise ValueError("future holdout lane runtime must be complete")
-        if lane.parent_lane is not None and lane.parent_lane not in prior_ids:
-            raise ValueError("future holdout lane parent must precede the child")
-        if lane.economic_behavior not in _BEHAVIORS:
-            raise ValueError("future holdout lane behavior is invalid")
-        if lane.status not in _STATUSES:
-            raise ValueError("future holdout lane status is invalid")
+        _validate_lane_identity(lane, contract=contract, prior_ids=prior_ids)
         prior_ids.add(lane.lane_id)
-
-    legacy = lanes[0]
-    if (
-        legacy.lane_id != _LEGACY_LANE_ID
-        or legacy.activation_session != contract.first_holdout_date
-        or legacy.source_commit != contract.strategy_anchor_commit
-        or legacy.production_source_sha256 != contract.strategy_source_sha256
-        or legacy.sentinel_source_sha256 != contract.strategy_source_sha256
-        or legacy.effective_config_sha256 != contract.strategy_config_sha256
-        or legacy.parent_lane is not None
-        or legacy.economic_behavior != "IDENTICAL"
-    ):
-        raise ValueError("legacy future holdout lane differs from the sealed strategy anchor")
+    _validate_legacy_lane(lanes[0], contract)
 
 
 def _identity(lane: HoldoutLane) -> tuple[object, ...]:
@@ -355,6 +379,7 @@ def lane_binding_payload(lane: HoldoutLane) -> dict[str, Any]:
         "economic_behavior": lane.economic_behavior,
     }
 
+
 __all__ = (
     "_SHA256",
     "_COMMIT",
@@ -379,3 +404,25 @@ __all__ = (
     "build_lane_validation_report",
     "lane_binding_payload",
 )
+
+_canonical_bytes = _lane_canonical_bytes
+_canonical_sha256 = _lane_canonical_sha256
+_reject_duplicate_keys = _reject_duplicate_lane_keys
+_reject_nonstandard_constant = _reject_nonstandard_lane_constant
+
+BEHAVIORS = _BEHAVIORS
+COMMIT_PATTERN = _COMMIT
+LANE_FIELDS = _LANE_FIELDS
+LANE_ID_PATTERN = _LANE_ID
+LEGACY_LANE_ID = _LEGACY_LANE_ID
+REGISTRY_FIELDS = _REGISTRY_FIELDS
+RUNTIME_FIELDS = _RUNTIME_FIELDS
+SHA256_PATTERN = _SHA256
+STATUSES = _STATUSES
+canonical_bytes = _canonical_bytes
+canonical_sha256 = _canonical_sha256
+decode_lane = _decode_lane
+identity = _identity
+reject_duplicate_keys = _reject_duplicate_keys
+reject_nonstandard_constant = _reject_nonstandard_constant
+validate_hash = _validate_hash

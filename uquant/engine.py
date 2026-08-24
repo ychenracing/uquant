@@ -50,6 +50,7 @@ _attach_target_attribution = _application.bind_target_attribution(
     lambda: _LEGACY_INDUSTRY,
     lambda: _LEGACY_MANIFEST_SHA256,
 )
+attach_target_attribution = _attach_target_attribution
 
 
 def code_fingerprint() -> str:

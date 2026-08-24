@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import math
+from typing import Any
 
 import numpy as np
 import pandas as pd
@@ -13,23 +14,16 @@ from .reference import ReferenceContext
 from .types import AccountState, LeaderScore, Opportunity, Risk
 
 
-def classify_opportunity(
+def _classify_opportunity_stage_1(
     *,
-    date: pd.Timestamp,
-    broad: pd.DataFrame,
-    tech: pd.DataFrame,
-    reference_panel: dict[str, pd.DataFrame],
-    leaders: dict[str, LeaderScore],
-    risk: Risk,
-    account: AccountState,
-    cfg: SystemConfig,
-    reference_context: ReferenceContext | None = None,
-) -> Opportunity:
-    """Classify the opportunity regime with breadth, trend, and leader evidence.
-
-    Regime changes require persistent evidence stored in the account state, so
-    daily noise cannot freely switch the allocator between incompatible modes.
-    """
+    account: Any,
+    broad: Any,
+    cfg: Any,
+    date: Any,
+    reference_context: Any,
+    reference_panel: Any,
+    tech: Any,
+) -> tuple[Any, Any, Any, Any, Any, Any, Any, Any, Any]:
     broad_row = broad.loc[date]
     tech_row = tech.loc[date]
     breadth20: list[bool] = []
@@ -75,22 +69,30 @@ def classify_opportunity(
     )
     broad_ret1 = float(broad.loc[:date, "close"].pct_change(fill_method=None).iloc[-1])
     tech_ret1 = float(tech.loc[:date, "close"].pct_change(fill_method=None).iloc[-1])
-    fast_flip = (
-        broad_ret1 >= 0.03 and scalar(broad_row, "close") > scalar(broad_row, f"ma{cfg.trend_fast}")
-    ) or (tech_ret1 >= 0.03 and scalar(tech_row, "close") > scalar(tech_row, f"ma{cfg.trend_fast}"))
-    evidence = 0
-    if fast_flip or breadth60_ratio >= 0.65 or (breadth60_ratio >= 0.40 and (tech_bull or broad_bull)):
-        evidence = 1
-    elif breadth60_ratio < 0.35 and (bear_trend or scalar(tech_row, "drawdown120", 0.0) <= -0.25):
-        evidence = -1
-    previous_evidence = account.risk_streaks.get("opportunity_evidence", 99)
-    if evidence == previous_evidence:
-        run = account.risk_streaks.get("opportunity_evidence_run", 0) + 1
-    else:
-        run = 1
-    account.risk_streaks["opportunity_evidence"] = evidence
-    account.risk_streaks["opportunity_evidence_run"] = run
-    ranked = sorted((item.score for item in leaders.values()), reverse=True)
+    return (
+        bear_trend,
+        breadth20_ratio,
+        breadth60_ratio,
+        broad_bull,
+        broad_ret1,
+        broad_row,
+        tech_bull,
+        tech_ret1,
+        tech_row,
+    )
+
+
+def _classify_opportunity_stage_2(
+    *,
+    account: Any,
+    date: Any,
+    evidence: Any,
+    fast_flip: Any,
+    leaders: Any,
+    ranked: Any,
+    run: Any,
+    tech: Any,
+) -> tuple[Any, Any, Any, Any, Any]:
     score_gap = ranked[0] - ranked[2] if len(ranked) >= 3 else (ranked[0] if ranked else 0.0)
     mature_count = sum(item.mature for item in leaders.values())
     previous = Opportunity(account.opportunity)
@@ -109,6 +111,47 @@ def classify_opportunity(
 
     tech_history = tech.loc[:date, "close"]
     recent_crash = False
+    return mature_count, recent_crash, regime, score_gap, tech_history
+
+
+def _classify_opportunity_stage_3(
+    *,
+    account: Any,
+    bear_trend: Any,
+    breadth20_ratio: Any,
+    breadth60_ratio: Any,
+    broad_bull: Any,
+    cfg: Any,
+    date: Any,
+    fast_flip: Any,
+    leaders: Any,
+    tech: Any,
+    tech_bull: Any,
+    tech_row: Any,
+) -> tuple[Any, Any, Any, Any, Any, Any]:
+    evidence = 0
+    if fast_flip or breadth60_ratio >= 0.65 or (breadth60_ratio >= 0.40 and (tech_bull or broad_bull)):
+        evidence = 1
+    elif breadth60_ratio < 0.35 and (bear_trend or scalar(tech_row, "drawdown120", 0.0) <= -0.25):
+        evidence = -1
+    previous_evidence = account.risk_streaks.get("opportunity_evidence", 99)
+    if evidence == previous_evidence:
+        run = account.risk_streaks.get("opportunity_evidence_run", 0) + 1
+    else:
+        run = 1
+    account.risk_streaks["opportunity_evidence"] = evidence
+    account.risk_streaks["opportunity_evidence_run"] = run
+    ranked = sorted((item.score for item in leaders.values()), reverse=True)
+    mature_count, recent_crash, regime, score_gap, tech_history = _classify_opportunity_stage_2(
+        account=account,
+        date=date,
+        evidence=evidence,
+        fast_flip=fast_flip,
+        leaders=leaders,
+        ranked=ranked,
+        run=run,
+        tech=tech,
+    )
     if len(tech_history) >= 60:
         for point in tech_history.tail(cfg.recovery_crash_lookback + 1).index:
             history = tech.loc[:point, "close"].tail(60)
@@ -127,6 +170,62 @@ def classify_opportunity(
     # Require consecutive causal confirmation so small parameter changes cannot
     # move the portfolio into a materially different cohort on one noisy day.
     recovery_key = "recovery_stable"
+    return mature_count, recent_crash, recovery_key, regime, score_gap, stable
+
+
+def classify_opportunity(
+    *,
+    date: pd.Timestamp,
+    broad: pd.DataFrame,
+    tech: pd.DataFrame,
+    reference_panel: dict[str, pd.DataFrame],
+    leaders: dict[str, LeaderScore],
+    risk: Risk,
+    account: AccountState,
+    cfg: SystemConfig,
+    reference_context: ReferenceContext | None = None,
+) -> Opportunity:
+    """Classify the opportunity regime with breadth, trend, and leader evidence.
+
+    Regime changes require persistent evidence stored in the account state, so
+    daily noise cannot freely switch the allocator between incompatible modes.
+    """
+    (
+        bear_trend,
+        breadth20_ratio,
+        breadth60_ratio,
+        broad_bull,
+        broad_ret1,
+        broad_row,
+        tech_bull,
+        tech_ret1,
+        tech_row,
+    ) = _classify_opportunity_stage_1(
+        account=account,
+        broad=broad,
+        cfg=cfg,
+        date=date,
+        reference_context=reference_context,
+        reference_panel=reference_panel,
+        tech=tech,
+    )
+    fast_flip = (
+        broad_ret1 >= 0.03 and scalar(broad_row, "close") > scalar(broad_row, f"ma{cfg.trend_fast}")
+    ) or (tech_ret1 >= 0.03 and scalar(tech_row, "close") > scalar(tech_row, f"ma{cfg.trend_fast}"))
+    mature_count, recent_crash, recovery_key, regime, score_gap, stable = _classify_opportunity_stage_3(
+        account=account,
+        bear_trend=bear_trend,
+        breadth20_ratio=breadth20_ratio,
+        breadth60_ratio=breadth60_ratio,
+        broad_bull=broad_bull,
+        cfg=cfg,
+        date=date,
+        fast_flip=fast_flip,
+        leaders=leaders,
+        tech=tech,
+        tech_bull=tech_bull,
+        tech_row=tech_row,
+    )
     account.risk_streaks[recovery_key] = (
         account.risk_streaks.get(recovery_key, 0) + 1 if recent_crash and stable else 0
     )

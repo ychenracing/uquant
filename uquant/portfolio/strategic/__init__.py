@@ -10,12 +10,16 @@ from .discovery import (
     StrategicPortfolioPolicy as StrategicPortfolioPolicy,
 )
 from .discovery import (
-    _initialize_strategic_cohort,
+    initialize_strategic_cohort as _initialize_strategic_cohort,
 )
 from .lifecycle import (
-    _bounded_strategic_restore_risk_open,
-    _retire_strategic_member,
-    _strategic_cohort_targets,
+    bounded_strategic_restore_risk_open as _bounded_strategic_restore_risk_open,
+)
+from .lifecycle import (
+    retire_strategic_member as _retire_strategic_member,
+)
+from .lifecycle import (
+    strategic_cohort_targets as _strategic_cohort_targets,
 )
 
 

@@ -15,6 +15,11 @@ from ._analysis import (
     architecture_snapshot,
     measured_debt,
 )
+from ._task10_owner_transport import (
+    expand_task10_portfolio_pipeline,
+    task10_private_relocation_projection,
+)
+from ._task10_reviewed_owner_transport import expand_reviewed_task10_owner
 
 _TASK8_START = "4b6bedb03fb7c58914d9d5032a2514c67f41f6ba"
 _CHECKPOINT4_PACKAGE_PATHS = (
@@ -262,12 +267,11 @@ def test_task8_checkpoint4_substitution_method_and_targets_are_ast_exact() -> No
         "RecoveryPortfolioPolicy",
         "_recovery_anchor_substitution",
     )
-    candidate = copy.deepcopy(
-        _function_nodes(
-            (ROOT / "uquant/portfolio/recovery/substitution.py").read_text(
-                encoding="utf-8"
-            )
-        )["_recovery_anchor_substitution"]
+    candidate = expand_reviewed_task10_owner(
+        root=ROOT,
+        relative="uquant/portfolio/recovery/substitution.py",
+        name="_recovery_anchor_substitution",
+        candidate=None,
     )
     targets = _function_nodes(
         (ROOT / "uquant/portfolio/recovery/targets.py").read_text(encoding="utf-8")
@@ -320,12 +324,11 @@ def test_task8_checkpoint4_substitution_method_and_targets_are_ast_exact() -> No
 def test_task8_checkpoint4_admission_slice_and_target_builders_are_ast_exact() -> None:
     immutable_slice = _immutable_admission_slice()
     immutable_targets = _target_calls(immutable_slice)
-    admission = copy.deepcopy(
-        _function_nodes(
-            (ROOT / "uquant/portfolio/recovery/admission.py").read_text(
-                encoding="utf-8"
-            )
-        )["_recovery_admission_targets"]
+    admission = expand_reviewed_task10_owner(
+        root=ROOT,
+        relative="uquant/portfolio/recovery/admission.py",
+        name="_recovery_admission_targets",
+        candidate=None,
     )
     targets = _function_nodes(
         (ROOT / "uquant/portfolio/recovery/targets.py").read_text(encoding="utf-8")
@@ -369,9 +372,7 @@ def test_task8_checkpoint4_admission_slice_and_target_builders_are_ast_exact() -
 
 
 def test_task8_checkpoint4_pipeline_pins_admission_args_unpack_and_return() -> None:
-    pipeline = _function_nodes(
-        (ROOT / "uquant/portfolio/pipeline.py").read_text(encoding="utf-8")
-    )["_allocate_strategy"]
+    pipeline = expand_task10_portfolio_pipeline(root=ROOT, candidate=None)
     _assert_pipeline_handoff(pipeline)
 
 
@@ -438,12 +439,12 @@ def test_task8_checkpoint4_ast_gate_rejects_recovery_rule_mutations() -> None:
     statement_order[0], statement_order[1] = statement_order[1], statement_order[0]
     assert _statements_dump(statement_order) != _statements_dump(immutable_slice)
 
-    admission = _function_nodes(
-        (ROOT / "uquant/portfolio/recovery/admission.py").read_text(
-            encoding="utf-8"
-        )
-    )["_recovery_admission_targets"]
-    mutated_admission = copy.deepcopy(admission)
+    mutated_admission = expand_reviewed_task10_owner(
+        root=ROOT,
+        relative="uquant/portfolio/recovery/admission.py",
+        name="_recovery_admission_targets",
+        candidate=None,
+    )
     helper_call = next(
         node
         for node in ast.walk(mutated_admission)
@@ -460,9 +461,7 @@ def test_task8_checkpoint4_ast_gate_rejects_recovery_rule_mutations() -> None:
             mutated_admission.body, _ADMISSION_TARGET_HELPERS
         )
 
-    pipeline = _function_nodes(
-        (ROOT / "uquant/portfolio/pipeline.py").read_text(encoding="utf-8")
-    )["_allocate_strategy"]
+    pipeline = expand_task10_portfolio_pipeline(root=ROOT, candidate=None)
     mutated_pipeline = copy.deepcopy(pipeline)
     stage_call = next(
         node
@@ -483,9 +482,12 @@ def test_task8_checkpoint4_private_and_complexity_relocations_are_closed() -> No
     snapshot = architecture_snapshot()
     graph = snapshot["import_graph"]
     assert isinstance(graph, dict)
-    assert {
-        str(row["id"]) for row in graph["task8_relocated_private_imports"]
-    } == _TASK8_RELOCATED_PRIVATE_IMPORTS
+    assert task10_private_relocation_projection(
+        root=ROOT,
+        task=8,
+        observed={str(row["id"]) for row in graph["task8_relocated_private_imports"]},
+        expected=set(_TASK8_RELOCATED_PRIVATE_IMPORTS),
+    ) == _TASK8_RELOCATED_PRIVATE_IMPORTS
     assert not {
         str(row["id"])
         for row in graph["cross_module_private_imports"]

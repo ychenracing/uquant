@@ -35,16 +35,18 @@ CANONICAL_INDUSTRIES: Final = frozenset(
 
 _SHA256 = re.compile(r"^[0-9a-f]{64}$")
 _SYMBOL = re.compile(r"^(?:sh|sz|bj)[0-9]{6}$")
-_MEMBER_FIELDS = {
-    "symbol",
-    "ai_domain",
-    "industry",
-    "effective_from",
-    "effective_to",
-    "tradable",
-    "evidence",
-    "reviewed_at",
-}
+_MEMBER_FIELDS = frozenset(
+    {
+        "symbol",
+        "ai_domain",
+        "industry",
+        "effective_from",
+        "effective_to",
+        "tradable",
+        "evidence",
+        "reviewed_at",
+    }
+)
 
 
 @dataclass(frozen=True, slots=True)
@@ -100,7 +102,9 @@ class AIUniverse:
 
     def symbols_as_of(self, as_of: str | date) -> tuple[str, ...]:
         point = _parse_date(as_of, label="as_of")
-        return tuple(sorted(member.symbol for member in self.members if member.tradable and member.active(point)))
+        return tuple(
+            sorted(member.symbol for member in self.members if member.tradable and member.active(point))
+        )
 
     def industry_of(self, symbol: str, as_of: str | date) -> str:
         point = _parse_date(as_of, label="as_of")
@@ -110,7 +114,7 @@ class AIUniverse:
         return "unknown"
 
 
-def _reject_duplicate_keys(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
+def _reject_duplicate_universe_keys(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
     result: dict[str, Any] = {}
     for key, value in pairs:
         if key in result:
@@ -119,8 +123,12 @@ def _reject_duplicate_keys(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
     return result
 
 
-def _reject_nonstandard_constant(value: str) -> None:
+def _reject_nonstandard_universe_constant(value: str) -> None:
     raise ValueError(f"universe contract contains non-standard number: {value}")
+
+
+_reject_duplicate_keys = _reject_duplicate_universe_keys
+_reject_nonstandard_constant = _reject_nonstandard_universe_constant
 
 
 def _parse_date(value: str | date, *, label: str) -> date:
@@ -188,28 +196,37 @@ def ai_universe_manifest_bytes() -> bytes:
     return _resource_bytes("ai_universe_manifest.json")
 
 
-def _sha256(value: Any, *, label: str) -> str:
+def _universe_sha256(value: Any, *, label: str) -> str:
     if not isinstance(value, str) or not _SHA256.fullmatch(value):
         raise ValueError(f"{label} must be SHA-256")
     return value
 
 
-def load_phase1_frozen_champion(path: str | Path | None = None) -> FrozenChampion:
-    """Load the reviewed Phase 1 identity without accepting partial provenance."""
+_sha256 = _universe_sha256
+
+
+def _load_and_validate_frozen_champion_payload(
+    path: str | Path | None,
+) -> tuple[dict[str, Any], dict[str, Any], dict[str, Any], dict[str, Any], str]:
     payload = (
         _read_json_bytes(frozen_champion_bytes(), label="frozen champion")
         if path is None
         else _read_json(path, label="frozen champion")
     )
-    if set(payload) != {
-        "schema_version",
-        "contract_id",
-        "production",
-        "effective_config_sha256",
-        "data",
-        "environment",
-        "github_phase1_artifact_sha256",
-    } or payload["schema_version"] != 1 or payload["contract_id"] != "phase1-frozen-champion-v1":
+    if (
+        set(payload)
+        != {
+            "schema_version",
+            "contract_id",
+            "production",
+            "effective_config_sha256",
+            "data",
+            "environment",
+            "github_phase1_artifact_sha256",
+        }
+        or payload["schema_version"] != 1
+        or payload["contract_id"] != "phase1-frozen-champion-v1"
+    ):
         raise ValueError("frozen champion schema is malformed")
     production = payload["production"]
     data = payload["data"]
@@ -221,11 +238,18 @@ def load_phase1_frozen_champion(path: str | Path | None = None) -> FrozenChampio
     if canonical_sha256(payload) != REQUIRED_FROZEN_CHAMPION_SHA256:
         raise ValueError("frozen champion differs from the reviewed Phase 1 contract")
     if not isinstance(data, dict) or set(data) != {
-        "snapshot_id", "files_verified", "manifest_sha256", "checksums_sha256"
+        "snapshot_id",
+        "files_verified",
+        "manifest_sha256",
+        "checksums_sha256",
     }:
         raise ValueError("frozen champion data provenance is malformed")
     if not isinstance(environment, dict) or set(environment) != {
-        "python_full_version", "numpy_version", "pandas_version", "uv_version", "uv_lock_sha256"
+        "python_full_version",
+        "numpy_version",
+        "pandas_version",
+        "uv_version",
+        "uv_lock_sha256",
     }:
         raise ValueError("frozen champion environment provenance is malformed")
     if not isinstance(data["snapshot_id"], str) or not data["snapshot_id"]:
@@ -236,6 +260,12 @@ def load_phase1_frozen_champion(path: str | Path | None = None) -> FrozenChampio
         if not isinstance(environment[field], str) or not environment[field]:
             raise ValueError(f"frozen champion environment is malformed: {field}")
     artifact = _sha256(payload["github_phase1_artifact_sha256"], label="frozen champion GitHub artifact")
+    return payload, production, data, environment, artifact
+
+
+def load_phase1_frozen_champion(path: str | Path | None = None) -> FrozenChampion:
+    """Load the reviewed Phase 1 identity without accepting partial provenance."""
+    payload, production, data, environment, artifact = _load_and_validate_frozen_champion_payload(path)
     if artifact != GITHUB_PHASE1_ARTIFACT_SHA256:
         raise ValueError("frozen champion GitHub artifact differs from Phase 1")
     return FrozenChampion(
@@ -255,21 +285,13 @@ def load_phase1_frozen_champion(path: str | Path | None = None) -> FrozenChampio
     )
 
 
-def load_ai_universe(path: str | Path | None = None) -> AIUniverse:
-    """Load the one reviewed AI universe, rejecting stale or resealed membership."""
-    payload = (
-        _read_json_bytes(ai_universe_manifest_bytes(), label="AI universe manifest")
-        if path is None
-        else _read_json(path, label="AI universe manifest")
-    )
-    if set(payload) != {"schema_version", "manifest_id", "canonical_sha256", "members"}:
-        raise ValueError("AI universe manifest schema is malformed")
-    if payload["schema_version"] != 1 or payload["manifest_id"] != "phase1-ai-universe-v1":
-        raise ValueError("AI universe manifest identity is malformed")
+def _parse_universe_members(payload: dict[str, Any]) -> tuple[list[UniverseMember], str]:
     seal = _sha256(payload["canonical_sha256"], label="AI universe canonical SHA-256")
     observed = canonical_sha256(payload)
     if seal != observed or seal != REQUIRED_AI_UNIVERSE_SHA256:
-        raise ValueError("AI universe manifest canonical SHA-256 differs from the reviewed production reference")
+        raise ValueError(
+            "AI universe manifest canonical SHA-256 differs from the reviewed production reference"
+        )
     raw_members = payload["members"]
     if not isinstance(raw_members, list) or not raw_members:
         raise ValueError("AI universe manifest members are malformed")
@@ -290,7 +312,11 @@ def load_ai_universe(path: str | Path | None = None) -> AIUniverse:
         if not isinstance(raw["evidence"], str) or not raw["evidence"]:
             raise ValueError("AI universe manifest evidence is malformed")
         start = _parse_date(raw["effective_from"], label="effective_from")
-        end = _parse_date(raw["effective_to"], label="effective_to") if raw["effective_to"] is not None else None
+        end = (
+            _parse_date(raw["effective_to"], label="effective_to")
+            if raw["effective_to"] is not None
+            else None
+        )
         if end is not None and end <= start:
             raise ValueError("AI universe manifest interval is malformed")
         members.append(
@@ -305,6 +331,21 @@ def load_ai_universe(path: str | Path | None = None) -> AIUniverse:
                 reviewed_at=_parse_date(raw["reviewed_at"], label="reviewed_at"),
             )
         )
+    return members, seal
+
+
+def load_ai_universe(path: str | Path | None = None) -> AIUniverse:
+    """Load the one reviewed AI universe, rejecting stale or resealed membership."""
+    payload = (
+        _read_json_bytes(ai_universe_manifest_bytes(), label="AI universe manifest")
+        if path is None
+        else _read_json(path, label="AI universe manifest")
+    )
+    if set(payload) != {"schema_version", "manifest_id", "canonical_sha256", "members"}:
+        raise ValueError("AI universe manifest schema is malformed")
+    if payload["schema_version"] != 1 or payload["manifest_id"] != "phase1-ai-universe-v1":
+        raise ValueError("AI universe manifest identity is malformed")
+    members, seal = _parse_universe_members(payload)
     if len({member.symbol for member in members}) != 34 or len(members) != 34:
         raise ValueError("AI universe manifest must contain exactly 34 unique production symbols")
     if tuple(member.symbol for member in members) != tuple(sorted(member.symbol for member in members)):
@@ -318,3 +359,17 @@ _DEFAULT_UNIVERSE: Final = load_ai_universe()
 def default_ai_universe() -> AIUniverse:
     """Return the immutable reviewed universe shared by production helpers."""
     return _DEFAULT_UNIVERSE
+
+
+DEFAULT_UNIVERSE = _DEFAULT_UNIVERSE
+MEMBER_FIELDS = _MEMBER_FIELDS
+SHA256_PATTERN = _SHA256
+SYMBOL_PATTERN = _SYMBOL
+canonical_payload = _canonical_payload
+parse_date = _parse_date
+read_json = _read_json
+read_json_bytes = _read_json_bytes
+reject_duplicate_keys = _reject_duplicate_keys
+reject_nonstandard_constant = _reject_nonstandard_constant
+resource_bytes = _resource_bytes
+sha256_bytes = _sha256

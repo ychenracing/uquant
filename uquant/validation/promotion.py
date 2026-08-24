@@ -16,6 +16,8 @@ from pathlib import Path
 from statistics import median
 from typing import Any, Final, cast
 
+import uquant.validation.promotion_contract as _promotion_contract
+
 from ..config import DEFAULT_CONFIG, config_fingerprint
 from ..config_governance import GOVERNANCE_PATH
 from ..engine import ProductionEngine
@@ -27,6 +29,11 @@ from .ai_era import (
     runtime_environment_provenance,
 )
 from .manifest import verify_data_manifest
+
+EXECUTION_CONTRACT = _promotion_contract.EXECUTION_CONTRACT
+PROTECTED_INTERVALS = _promotion_contract.PROTECTED_INTERVALS
+_METRIC_FIELDS = _promotion_contract.METRIC_FIELDS
+_TOP_LEVEL_FIELDS = _promotion_contract.TOP_LEVEL_FIELDS
 
 SCHEMA_VERSION: Final = 4
 REPOSITORY: Final = "ychenracing/uquant"
@@ -42,152 +49,116 @@ REFERENCE_REGISTRY_PATH: Final = "benchmarks/reference_registry.json"
 _SHA256 = re.compile(r"^[0-9a-f]{64}$")
 _COMMIT = re.compile(r"^[0-9a-f]{40,64}$")
 
-EXECUTION_CONTRACT: Final[dict[str, Any]] = {
-    "engine": "uquant.engine.ProductionEngine",
-    "initial_cash": 2_000_000.0,
-    "market": "A-share AI supply chain",
-    "positioning": "cash-only long",
-    "decision": "daily close t",
-    "execution": "next tradable open",
-    "intraday_exit": False,
-    "automation": "human-assisted, no broker submission",
-    "prelisting": "invisible until first observable row",
-}
-
-# These intervals retain the report's explicit regression protections. They
-# overlap the six official windows, but are evaluated independently so a good
-# half-year aggregate cannot hide the reported 2023, 2024, or bull regression.
-PROTECTED_INTERVALS: Final[dict[str, dict[str, str]]] = {
-    "year_2023": {"start": "2023-01-03", "end": "2023-12-29"},
-    "year_2024": {"start": "2024-01-02", "end": "2024-12-31"},
-    "bull": {"start": "2025-04-01", "end": "2026-06-30"},
-}
 
 # Hard limits are compiled into validation before champion metrics are frozen.
 # A baseline edit therefore cannot weaken a gate or bless a bad candidate.
-AI_ERA_POLICY: Final[dict[str, Any]] = {
-    "schema_version": 1,
-    "official": {
-        "h1_2023": {
-            "min_final_wealth": 4.50,
-            "max_drawdown": 0.18,
-            "max_account_orders": 3,
-            "max_annual_turnover": 5.0,
-            "min_acute_return": -0.15,
-        },
-        "h2_2023": {
-            "min_final_wealth": 1.00,
-            "max_drawdown": 0.16,
-            "max_account_orders": 7,
-            "max_annual_turnover": 8.0,
-            "min_acute_return": -0.10,
-        },
-        "h1_2024": {
-            "min_final_wealth": 1.68,
-            "max_drawdown": 0.18,
-            "max_account_orders": 9,
-            "max_annual_turnover": 7.0,
-            "min_acute_return": -0.21,
-        },
-        "h2_2024": {
-            "min_final_wealth": 1.00,
-            "max_drawdown": 0.10,
-            "max_account_orders": 11,
-            "max_annual_turnover": 15.0,
-            "min_acute_return": -0.10,
-        },
-        "bull_crash_2025_2026": {
-            "min_final_wealth": 8.00,
-            "max_drawdown": 0.30,
-            "max_account_orders": 25,
-            "max_annual_turnover": 20.0,
-            "min_acute_return": -0.03,
-        },
-        "continuous_ai_era": {
-            "min_final_wealth": 15.00,
-            "max_drawdown": 0.2725,
-            "max_account_orders": 15,
-            # The phase-one candidate must first prove the explicit crash
-            # floor; the resulting AI-era turnover is then frozen in the
-            # champion and becomes blocking through champion_tolerance.
-            "max_annual_turnover": None,
-            "min_acute_return": -0.03,
-        },
-    },
-    "protected": {
-        "year_2023": {
-            "groups": {
-                "abcde": {
-                    "pools": ["a", "b", "c", "d", "e"],
-                    "min_final_wealth": 3.94,
-                    "max_drawdown": 0.2725,
-                    "max_account_orders": 4,
-                    "max_annual_turnover": 4.2241,
-                }
-            }
-        },
-        "year_2024": {
-            "groups": {
-                "abcde": {
-                    "pools": ["a", "b", "c", "d", "e"],
-                    "min_final_wealth": 1.7314,
+AI_ERA_POLICY: Final[Mapping[str, Any]] = cast(
+    Mapping[str, Any],
+    _promotion_contract.freeze_promotion_policy(
+        {
+            "schema_version": 1,
+            "official": {
+                "h1_2023": {
+                    "min_final_wealth": 4.50,
                     "max_drawdown": 0.18,
-                    "max_account_orders": 12,
-                    "max_annual_turnover": 2.9965,
-                }
-            }
-        },
-        "bull": {
-            "groups": {
-                "abc": {
-                    "pools": ["a", "b", "c"],
-                    "min_final_wealth": 12.827,
+                    "max_account_orders": 3,
+                    "max_annual_turnover": 5.0,
+                    "min_acute_return": -0.15,
+                },
+                "h2_2023": {
+                    "min_final_wealth": 1.00,
+                    "max_drawdown": 0.16,
+                    "max_account_orders": 7,
+                    "max_annual_turnover": 8.0,
+                    "min_acute_return": -0.10,
+                },
+                "h1_2024": {
+                    "min_final_wealth": 1.68,
                     "max_drawdown": 0.18,
+                    "max_account_orders": 9,
+                    "max_annual_turnover": 7.0,
+                    "min_acute_return": -0.21,
+                },
+                "h2_2024": {
+                    "min_final_wealth": 1.00,
+                    "max_drawdown": 0.10,
                     "max_account_orders": 11,
+                    "max_annual_turnover": 15.0,
+                    "min_acute_return": -0.10,
+                },
+                "bull_crash_2025_2026": {
+                    "min_final_wealth": 8.00,
+                    "max_drawdown": 0.30,
+                    "max_account_orders": 25,
+                    "max_annual_turnover": 20.0,
+                    "min_acute_return": -0.03,
+                },
+                "continuous_ai_era": {
+                    "min_final_wealth": 15.00,
+                    "max_drawdown": 0.2725,
+                    "max_account_orders": 15,
+                    # The phase-one candidate must first prove the explicit crash
+                    # floor; the resulting AI-era turnover is then frozen in the
+                    # champion and becomes blocking through champion_tolerance.
                     "max_annual_turnover": None,
+                    "min_acute_return": -0.03,
                 },
-                "de": {
-                    "pools": ["d", "e"],
-                    "min_final_wealth": 12.933,
-                    "max_drawdown": 0.20,
-                    "max_account_orders": 13,
-                    "max_annual_turnover": 14.451,
+            },
+            "protected": {
+                "year_2023": {
+                    "groups": {
+                        "abcde": {
+                            "pools": ["a", "b", "c", "d", "e"],
+                            "min_final_wealth": 3.94,
+                            "max_drawdown": 0.2725,
+                            "max_account_orders": 4,
+                            "max_annual_turnover": 4.2241,
+                        }
+                    }
                 },
-            }
-        },
-    },
-    "champion_tolerance": {
-        "wealth_floor_ratio": 0.99,
-        "drawdown_tolerance": 0.005,
-        "order_tolerance": 1,
-        "turnover_tolerance": 0.25,
-        "acute_return_tolerance": 0.0,
-    },
-}
+                "year_2024": {
+                    "groups": {
+                        "abcde": {
+                            "pools": ["a", "b", "c", "d", "e"],
+                            "min_final_wealth": 1.7314,
+                            "max_drawdown": 0.18,
+                            "max_account_orders": 12,
+                            "max_annual_turnover": 2.9965,
+                        }
+                    }
+                },
+                "bull": {
+                    "groups": {
+                        "abc": {
+                            "pools": ["a", "b", "c"],
+                            "min_final_wealth": 12.827,
+                            "max_drawdown": 0.18,
+                            "max_account_orders": 11,
+                            "max_annual_turnover": None,
+                        },
+                        "de": {
+                            "pools": ["d", "e"],
+                            "min_final_wealth": 12.933,
+                            "max_drawdown": 0.20,
+                            "max_account_orders": 13,
+                            "max_annual_turnover": 14.451,
+                        },
+                    }
+                },
+            },
+            "champion_tolerance": {
+                "wealth_floor_ratio": 0.99,
+                "drawdown_tolerance": 0.005,
+                "order_tolerance": 1,
+                "turnover_tolerance": 0.25,
+                "acute_return_tolerance": 0.0,
+            },
+        }
+    ),
+)
 
-_TOP_LEVEL_FIELDS = {
-    "schema_version",
-    "validation_fingerprint",
-    "contract",
-    "pools",
-    "policy",
-    "champion",
-    "provenance",
-}
-_METRIC_FIELDS = {
-    "final_wealth",
-    "cagr",
-    "max_drawdown",
-    "sharpe",
-    "calmar",
-    "account_orders",
-    "annual_turnover",
-    "gross_turnover",
-    "acute_return",
-}
 
-
-def _reject_duplicate_keys(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
+def _reject_duplicate_promotion_keys(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
     result: dict[str, Any] = {}
     for key, value in pairs:
         if key in result:
@@ -196,11 +167,11 @@ def _reject_duplicate_keys(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
     return result
 
 
-def _reject_nonstandard_constant(value: str) -> None:
+def _reject_nonstandard_promotion_constant(value: str) -> None:
     raise RuntimeError(f"promotion baseline contains a non-standard number: {value}")
 
 
-def _fingerprint(value: Any) -> str:
+def _promotion_fingerprint(value: Any) -> str:
     encoded = json.dumps(
         value,
         allow_nan=False,
@@ -211,13 +182,13 @@ def _fingerprint(value: Any) -> str:
     return hashlib.sha256(encoded).hexdigest()
 
 
-def _validation_fingerprint(spec: Mapping[str, Any]) -> str:
+def _promotion_validation_fingerprint(spec: Mapping[str, Any]) -> str:
     """Hash every immutable gate input except the hash field itself."""
 
     return _fingerprint({key: spec[key] for key in sorted(spec) if key != "validation_fingerprint"})
 
 
-def _finite_number(value: Any, *, label: str) -> float:
+def _finite_promotion_number(value: Any, *, label: str) -> float:
     if isinstance(value, bool) or not isinstance(value, (int, float)):
         raise RuntimeError(f"promotion value must be numeric: {label}")
     number = float(value)
@@ -242,26 +213,16 @@ def _validate_metric_payload(value: Any, *, label: str) -> None:
 def _contract_payload() -> dict[str, Any]:
     return {
         "ai_era_start": AI_ERA_START,
-        "windows": {
-            name: {"start": start, "end": end}
-            for name, (start, end) in AI_ERA_WINDOWS.items()
-        },
+        "windows": {name: {"start": start, "end": end} for name, (start, end) in AI_ERA_WINDOWS.items()},
         "acute_windows": {
-            name: {"start": start, "end": end}
-            for name, (start, end) in AI_ERA_ACUTE_WINDOWS.items()
+            name: {"start": start, "end": end} for name, (start, end) in AI_ERA_ACUTE_WINDOWS.items()
         },
-        "protected_intervals": deepcopy(PROTECTED_INTERVALS),
-        "execution": deepcopy(EXECUTION_CONTRACT),
+        "protected_intervals": {name: dict(bounds) for name, bounds in PROTECTED_INTERVALS.items()},
+        "execution": deepcopy(dict(EXECUTION_CONTRACT)),
     }
 
 
-def _validate_spec(spec: Mapping[str, Any]) -> None:
-    """Reject any incomplete, weakened, or pre-2023 economic contract."""
-
-    if set(spec) != _TOP_LEVEL_FIELDS:
-        raise RuntimeError("promotion baseline must contain the exact schema-v4 sections")
-    if spec["schema_version"] != SCHEMA_VERSION:
-        raise RuntimeError("unsupported promotion baseline schema")
+def _validate_contract(spec: Mapping[str, Any]) -> Mapping[str, Any]:
     contract = spec["contract"]
     if not isinstance(contract, Mapping):
         raise RuntimeError("promotion contract is malformed")
@@ -277,7 +238,10 @@ def _validate_spec(spec: Mapping[str, Any]) -> None:
         raise RuntimeError("promotion contract differs from the exact official windows")
     if spec["policy"] != AI_ERA_POLICY:
         raise RuntimeError("promotion policy differs from compiled AI-era policy")
+    return contract
 
+
+def _validate_pools(spec: Mapping[str, Any], contract: Mapping[str, Any]) -> None:
     pools = spec["pools"]
     if not isinstance(pools, Mapping) or tuple(pools) != REQUIRED_POOLS:
         raise RuntimeError("promotion must contain ordered pools a-e")
@@ -297,6 +261,8 @@ def _validate_spec(spec: Mapping[str, Any]) -> None:
         if not window["start"] <= acute["start"] <= acute["end"] <= window["end"]:
             raise RuntimeError(f"promotion acute interval is outside its official window: {name}")
 
+
+def _validate_champion(spec: Mapping[str, Any]) -> None:
     champion = spec["champion"]
     if not isinstance(champion, Mapping) or set(champion) != {
         "production_commit",
@@ -311,12 +277,8 @@ def _validate_spec(spec: Mapping[str, Any]) -> None:
         raise RuntimeError("promotion champion is malformed")
     if not _COMMIT.fullmatch(commit):
         raise RuntimeError("promotion champion commit is not immutable")
-    expected_cells = {
-        f"{pool}/{window}" for pool in REQUIRED_POOLS for window in AI_ERA_WINDOWS
-    }
-    expected_protected = {
-        f"{pool}/{interval}" for pool in REQUIRED_POOLS for interval in PROTECTED_INTERVALS
-    }
+    expected_cells = {f"{pool}/{window}" for pool in REQUIRED_POOLS for window in AI_ERA_WINDOWS}
+    expected_protected = {f"{pool}/{interval}" for pool in REQUIRED_POOLS for interval in PROTECTED_INTERVALS}
     if set(cells) != expected_cells or set(protected) != expected_protected:
         raise RuntimeError("promotion champion does not cover the full AI-era matrix")
     for name, metrics in {**cells, **protected}.items():
@@ -324,10 +286,8 @@ def _validate_spec(spec: Mapping[str, Any]) -> None:
     if _fingerprint(champion) != REQUIRED_CHAMPION_SHA256:
         raise RuntimeError("promotion champion differs from the compiled reviewed evidence")
 
-    provenance = spec["provenance"]
-    if not isinstance(provenance, Mapping) or set(provenance) != {"data", "reference"}:
-        raise RuntimeError("promotion provenance is malformed")
-    data = provenance["data"]
+
+def _validate_data_provenance(data: Any) -> None:
     if not isinstance(data, Mapping) or set(data) != {
         "snapshot_id",
         "files_verified",
@@ -342,7 +302,9 @@ def _validate_spec(spec: Mapping[str, Any]) -> None:
     for field in ("manifest_sha256", "checksums_sha256"):
         if not isinstance(data[field], str) or not _SHA256.fullmatch(data[field]):
             raise RuntimeError(f"promotion data provenance is malformed: {field}")
-    reference = provenance["reference"]
+
+
+def _validate_reference_provenance(reference: Any) -> None:
     if not isinstance(reference, Mapping) or set(reference) != {"repository", "commit", "purpose"}:
         raise RuntimeError("promotion reference provenance is malformed")
     if reference["repository"] != REPOSITORY:
@@ -352,6 +314,16 @@ def _validate_spec(spec: Mapping[str, Any]) -> None:
     if not isinstance(reference["purpose"], str) or not reference["purpose"]:
         raise RuntimeError("promotion reference purpose is missing")
 
+
+def _validate_promotion_provenance(spec: Mapping[str, Any]) -> None:
+    provenance = spec["provenance"]
+    if not isinstance(provenance, Mapping) or set(provenance) != {"data", "reference"}:
+        raise RuntimeError("promotion provenance is malformed")
+    _validate_data_provenance(provenance["data"])
+    _validate_reference_provenance(provenance["reference"])
+
+
+def _validate_baseline_fingerprint(spec: Mapping[str, Any]) -> None:
     validation_hash = spec["validation_fingerprint"]
     if not isinstance(validation_hash, str) or not _SHA256.fullmatch(validation_hash):
         raise RuntimeError("promotion validation_fingerprint must be SHA-256")
@@ -359,6 +331,20 @@ def _validate_spec(spec: Mapping[str, Any]) -> None:
         raise RuntimeError("promotion validation fingerprint is stale")
     if validation_hash != REQUIRED_BASELINE_SHA256:
         raise RuntimeError("promotion differs from the compiled reviewed baseline")
+
+
+def _validate_spec(spec: Mapping[str, Any]) -> None:
+    """Reject any incomplete, weakened, or pre-2023 economic contract."""
+
+    if set(spec) != _TOP_LEVEL_FIELDS:
+        raise RuntimeError("promotion baseline must contain the exact schema-v4 sections")
+    if spec["schema_version"] != SCHEMA_VERSION:
+        raise RuntimeError("unsupported promotion baseline schema")
+    contract = _validate_contract(spec)
+    _validate_pools(spec, contract)
+    _validate_champion(spec)
+    _validate_promotion_provenance(spec)
+    _validate_baseline_fingerprint(spec)
 
 
 def _load_spec(path: str | Path) -> tuple[bytes, dict[str, Any]]:
@@ -407,7 +393,7 @@ def _production_paths(root: Path) -> list[Path]:
     return sorted(paths, key=lambda path: path.relative_to(root).as_posix())
 
 
-def _production_source_fingerprint(root: Path) -> str:
+def _promotion_source_fingerprint(root: Path) -> str:
     paths = _production_paths(root)
     if any(not path.is_file() for path in paths):
         raise RuntimeError("cannot fingerprint promotion production source")
@@ -416,14 +402,14 @@ def _production_source_fingerprint(root: Path) -> str:
     )
 
 
-def _git_executable() -> str:
+def _promotion_git_executable() -> str:
     executable = shutil.which("git")
     if executable is None:
         raise RuntimeError("cannot resolve git executable for promotion provenance")
     return executable
 
 
-def _git_stdout(root: Path, arguments: list[str], *, label: str) -> str:
+def _promotion_git_stdout(root: Path, arguments: list[str], *, label: str) -> str:
     try:
         result = subprocess.run(
             [_git_executable(), "-C", str(root), *arguments],
@@ -481,7 +467,7 @@ def _production_source_fingerprint_at_commit(root: Path, commit: str) -> str:
     return _source_fingerprint_from_entries(entries)
 
 
-def _production_commit(root: Path) -> str:
+def _promotion_commit(root: Path) -> str:
     status = _git_stdout(
         root,
         [
@@ -546,7 +532,7 @@ def _artifact_binding(runtime: Mapping[str, Any], *, generated_at: str) -> dict[
 
 
 @contextmanager
-def _immutable_validation_inputs(
+def _promotion_immutable_validation_inputs(
     *,
     baseline_path: Path,
     baseline_sha256: str,
@@ -609,9 +595,7 @@ def _compact(result: Mapping[str, Any], *, acute: tuple[str, str] | None) -> dic
     return {
         **metrics,
         "account_orders": orders,
-        "acute_return": (
-            _acute_return(result, start=acute[0], end=acute[1]) if acute is not None else None
-        ),
+        "acute_return": (_acute_return(result, start=acute[0], end=acute[1]) if acute is not None else None),
     }
 
 
@@ -644,9 +628,7 @@ def _protected_gate(interval: str, pool: str) -> Mapping[str, Any]:
     raise RuntimeError(f"promotion protected policy omits pool: {pool}/{interval}")
 
 
-def _champion_violations(
-    *, name: str, metrics: Mapping[str, Any], champion: Mapping[str, Any]
-) -> list[str]:
+def _champion_violations(*, name: str, metrics: Mapping[str, Any], champion: Mapping[str, Any]) -> list[str]:
     if not champion:
         raise RuntimeError(f"promotion champion evidence is missing: {name}")
     tolerance = AI_ERA_POLICY["champion_tolerance"]
@@ -662,8 +644,7 @@ def _champion_violations(
     if (
         champion["acute_return"] is not None
         and metrics["acute_return"] is not None
-        and metrics["acute_return"]
-        < champion["acute_return"] - tolerance["acute_return_tolerance"]
+        and metrics["acute_return"] < champion["acute_return"] - tolerance["acute_return_tolerance"]
     ):
         failures.append(f"{name}: acute_return regressed from production champion")
     return failures
@@ -772,3 +753,19 @@ def run_promotion(
             "generated_at": generated_at,
         },
     }
+
+
+artifact_binding = _artifact_binding
+compact_promotion_payload = _compact
+runtime_provenance = _runtime_provenance
+
+_fingerprint = _promotion_fingerprint
+_finite_number = _finite_promotion_number
+_git_executable = _promotion_git_executable
+_git_stdout = _promotion_git_stdout
+_immutable_validation_inputs = _promotion_immutable_validation_inputs
+_production_commit = _promotion_commit
+_production_source_fingerprint = _promotion_source_fingerprint
+_reject_duplicate_keys = _reject_duplicate_promotion_keys
+_reject_nonstandard_constant = _reject_nonstandard_promotion_constant
+_validation_fingerprint = _promotion_validation_fingerprint

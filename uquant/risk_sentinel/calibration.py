@@ -14,20 +14,20 @@ from typing import Any, Final, cast
 import pandas as pd
 
 DEFAULT_CONTRACT_PATH: Final = (
-    Path(__file__).resolve().parents[2]
-    / "benchmarks"
-    / "risk_sentinel_calibration_contract.json"
+    Path(__file__).resolve().parents[2] / "benchmarks" / "risk_sentinel_calibration_contract.json"
 )
-_FIELDS: Final = {
-    "schema_version",
-    "contract_id",
-    "horizons",
-    "prediction_levels",
-    "shock_definition",
-    "lead_window_sessions",
-    "bull_definition",
-    "canonical_sha256",
-}
+_FIELDS: Final = frozenset(
+    {
+        "schema_version",
+        "contract_id",
+        "horizons",
+        "prediction_levels",
+        "shock_definition",
+        "lead_window_sessions",
+        "bull_definition",
+        "canonical_sha256",
+    }
+)
 
 
 @dataclass(frozen=True, slots=True)
@@ -44,7 +44,7 @@ class CalibrationContract:
     sha256: str
 
 
-def _reject_duplicate_keys(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
+def _reject_duplicate_calibration_keys(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
     result: dict[str, Any] = {}
     for key, value in pairs:
         if key in result:
@@ -57,7 +57,7 @@ def _reject_constant(value: str) -> None:
     raise ValueError(f"calibration contract contains non-standard number: {value}")
 
 
-def _canonical_sha256(value: Mapping[str, Any]) -> str:
+def _calibration_sha256(value: Mapping[str, Any]) -> str:
     payload = {key: item for key, item in value.items() if key != "canonical_sha256"}
     encoded = json.dumps(
         payload,
@@ -201,11 +201,7 @@ def calibrate_events(
             if horizon == reviewed.shock_horizon:
                 forward_twenty = forward
         drawdown = result[f"drawdown_{reviewed.shock_horizon}d"]
-        realized = (
-            None
-            if drawdown is None
-            else bool(cast(float, drawdown) <= reviewed.shock_drawdown_lte)
-        )
+        realized = None if drawdown is None else bool(cast(float, drawdown) <= reviewed.shock_drawdown_lte)
         result["realized_shock"] = realized
         result["false_positive"] = None if realized is None else not realized
         result["opportunity_cost"] = (
@@ -217,26 +213,58 @@ def calibrate_events(
     return tuple(results)
 
 
-def summarize_calibration(
+def _summarize_calibration_stage_1(
     *,
-    events: Sequence[Mapping[str, object]],
-    shock_dates: tuple[str, ...],
-    bull_dates: tuple[str, ...],
-    sessions: tuple[str, ...],
-    shock_depths: Mapping[str, float] | None = None,
-    contract: CalibrationContract | None = None,
-) -> dict[str, object]:
-    """Summarize pre-registered event detection and opportunity costs."""
+    bull_dates: Any,
+    complete: Any,
+    detected: Any,
+    events: Any,
+    shock_dates: Any,
+    shock_depths: Any,
+) -> tuple[Any, Any, Any, Any, Any, Any, Any]:
+    recall = detected / len(shock_dates) if shock_dates else None
+    lead_times = [
+        float(cast(int | float, item["lead_time"]))
+        for item in complete
+        if item.get("realized_shock") is True and isinstance(item.get("lead_time"), (int, float))
+    ]
+    false_costs = [
+        float(cast(int | float, item["opportunity_cost"]))
+        for item in complete
+        if item.get("realized_shock") is False and isinstance(item.get("opportunity_cost"), (int, float))
+    ]
+    predicted_dates = {str(item["event_date"]) for item in events if isinstance(item.get("event_date"), str)}
+    silent_bulls = sum(date not in predicted_dates for date in bull_dates)
+    missed = len(shock_dates) - detected
+    depths = shock_depths or {}
+    missed_depth_values = [
+        abs(float(depths[date])) for date in shock_dates if date not in predicted_dates and date in depths
+    ]
+    caution_costs = [
+        float(cast(int | float, item["opportunity_cost"]))
+        for item in complete
+        if item.get("level") == "CAUTION"
+        and item.get("realized_shock") is False
+        and isinstance(item.get("opportunity_cost"), (int, float))
+    ]
+    return caution_costs, false_costs, lead_times, missed, missed_depth_values, recall, silent_bulls
 
+
+def _summarize_calibration_stage_2(
+    *,
+    bull_dates: Any,
+    contract: Any,
+    events: Any,
+    sessions: Any,
+    shock_dates: Any,
+) -> tuple[Any, Any, Any]:
     reviewed = load_calibration_contract() if contract is None else contract
     if len(sessions) != len(set(sessions)) or tuple(sorted(sessions)) != sessions:
         raise ValueError("calibration sessions must be unique and ordered")
     positions = {session: index for index, session in enumerate(sessions)}
     if any(value not in positions for value in (*shock_dates, *bull_dates)):
         raise ValueError("calibration outcome date is outside sessions")
-    complete = [
-        item for item in events if isinstance(item.get("realized_shock"), bool)
-    ]
+    complete = [item for item in events if isinstance(item.get("realized_shock"), bool)]
     true_positive = sum(item["realized_shock"] is True for item in complete)
     precision = true_positive / len(complete) if complete else None
 
@@ -259,39 +287,37 @@ def summarize_calibration(
             )
             available.remove(chosen)
             detected += 1
-    recall = detected / len(shock_dates) if shock_dates else None
-    lead_times = [
-        float(cast(int | float, item["lead_time"]))
-        for item in complete
-        if item.get("realized_shock") is True
-        and isinstance(item.get("lead_time"), (int, float))
-    ]
-    false_costs = [
-        float(cast(int | float, item["opportunity_cost"]))
-        for item in complete
-        if item.get("realized_shock") is False
-        and isinstance(item.get("opportunity_cost"), (int, float))
-    ]
-    predicted_dates = {
-        str(item["event_date"])
-        for item in events
-        if isinstance(item.get("event_date"), str)
-    }
-    silent_bulls = sum(date not in predicted_dates for date in bull_dates)
-    missed = len(shock_dates) - detected
-    depths = shock_depths or {}
-    missed_depth_values = [
-        abs(float(depths[date]))
-        for date in shock_dates
-        if date not in predicted_dates and date in depths
-    ]
-    caution_costs = [
-        float(cast(int | float, item["opportunity_cost"]))
-        for item in complete
-        if item.get("level") == "CAUTION"
-        and item.get("realized_shock") is False
-        and isinstance(item.get("opportunity_cost"), (int, float))
-    ]
+    return complete, detected, precision
+
+
+def summarize_calibration(
+    *,
+    events: Sequence[Mapping[str, object]],
+    shock_dates: tuple[str, ...],
+    bull_dates: tuple[str, ...],
+    sessions: tuple[str, ...],
+    shock_depths: Mapping[str, float] | None = None,
+    contract: CalibrationContract | None = None,
+) -> dict[str, object]:
+    """Summarize pre-registered event detection and opportunity costs."""
+
+    complete, detected, precision = _summarize_calibration_stage_2(
+        bull_dates=bull_dates,
+        contract=contract,
+        events=events,
+        sessions=sessions,
+        shock_dates=shock_dates,
+    )
+    caution_costs, false_costs, lead_times, missed, missed_depth_values, recall, silent_bulls = (
+        _summarize_calibration_stage_1(
+            bull_dates=bull_dates,
+            complete=complete,
+            detected=detected,
+            events=events,
+            shock_dates=shock_dates,
+            shock_depths=shock_depths,
+        )
+    )
     return {
         "precision": precision,
         "recall": recall,
@@ -304,7 +330,9 @@ def summarize_calibration(
         ),
         "bull_silence_rate": silent_bulls / len(bull_dates) if bull_dates else None,
         "missed_shock_count": missed,
-        "missed_shock_depth": (
-            max(missed_depth_values) if missed_depth_values else None
-        ),
+        "missed_shock_depth": (max(missed_depth_values) if missed_depth_values else None),
     }
+
+
+_canonical_sha256 = _calibration_sha256
+_reject_duplicate_keys = _reject_duplicate_calibration_keys

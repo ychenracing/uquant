@@ -20,8 +20,12 @@ from uquant.infrastructure.file_lock import (
 from .checkpoint import verify_checkpoint
 from .codec_v1 import decode_legacy_v1_record
 from .codec_v2 import decode_record, encode_v2_record, event_payload
-from .lifecycle import _positive_number, _positive_shares, _timestamp, validate_lifecycle
-from .models import _ZERO_HASH, JournalCheckpoint, JournalRecord, JournalStatus
+from .lifecycle import journal_timestamp as _timestamp
+from .lifecycle import positive_journal_number as _positive_number
+from .lifecycle import positive_journal_shares as _positive_shares
+from .lifecycle import validate_lifecycle
+from .models import ZERO_HASH as _ZERO_HASH
+from .models import JournalCheckpoint, JournalRecord, JournalStatus
 
 
 def _decode_journal_text(

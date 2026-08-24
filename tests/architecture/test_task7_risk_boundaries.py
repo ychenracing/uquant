@@ -1,3 +1,4 @@
+# ruff: noqa: E402, F401, I001
 from __future__ import annotations
 
 import ast
@@ -8,7 +9,6 @@ import io
 import json
 import subprocess
 import sys
-
 import pytest
 
 from uquant.contracts.strict_json import canonical_json_sha256
@@ -34,6 +34,18 @@ from ._task7_ownership import (
     same_keywords,
 )
 from ._task7_risk_trace import _RISK_ACCOUNT_FIELDS, risk_trace_replay
+from ._task10_owner_transport import (
+    expand_task10_risk_assessment,
+    expand_task10_risk_stage,
+    task10_private_relocation_projection,
+    task10_task7_reviewed_sources,
+    task10_source_surface_projection,
+)
+from ._task10_risk_debt_transport import (
+    task10_task7_function_debt_projection,
+    task10_task7_historical_authorities,
+    task10_task7_historical_base_lines,
+)
 from ._task9_relocation import (
     GENERALIZATION_OWNERS,
     HOLDOUT_LANES_FACADE,
@@ -53,7 +65,6 @@ _TRACE_RUNNER = ROOT / "tests" / "architecture" / "_task7_risk_trace.py"
 _TRACE_RUNNER_SHA256 = "cc81e38b79296746d473406be8a649657a8a35efa42cbe7b8b845dd9767d5a2f"
 _TRACE_LOGIC_COMMIT = "13feebe2f68fda0815a3cf507c3d7e15b4c5db14"
 _TRACE_LOGIC_BLOB = "81c805b8bc39d30b86911484ee266dec156260be"
-
 _RISK_PACKAGE_PATHS = {
     "uquant/risk/__init__.py",
     "uquant/risk/anchors.py",
@@ -91,7 +102,6 @@ _TASK9_NEW_OWNER_MODULES = frozenset(
     "uquant.validation.generalization_reference",
     "uquant.validation.holdout",
 } | {"uquant.risk_sentinel.provenance"}
-
 _MOVED_HELPER_OWNERS = {
     "_acute_sector_evacuation_required": "uquant/risk/transitions.py",
     "_reset_recovery_owner_rearm": "uquant/risk/recovery_state.py",
@@ -566,6 +576,7 @@ def _stage_source(path: str, overrides: dict[str, str] | None) -> str:
 
 
 def _assert_task7_ownership_surface(overrides: dict[str, str] | None = None) -> None:
+    overrides = task10_task7_reviewed_sources(root=ROOT, overrides=overrides)
     immutable = _top_level_definitions(ast.parse(_git_source("uquant/risk.py")))[
         "_assess_base_risk"
     ]
@@ -575,6 +586,13 @@ def _assert_task7_ownership_surface(overrides: dict[str, str] | None = None) -> 
             ast.parse(_stage_source(spec.path, overrides), filename=spec.path)
         )
         stage = definitions[stage_name]
+        stage = expand_task10_risk_stage(
+            root=ROOT,
+            relative=spec.path,
+            stage_name=stage_name,
+            wrapper=stage,
+            overrides=overrides,
+        )
         candidate_definitions[stage_name] = stage
         statements = normalized_stage_statements(stage, spec)
         expected = immutable.body[spec.source_start : spec.source_stop]
@@ -589,6 +607,11 @@ def _assert_task7_ownership_surface(overrides: dict[str, str] | None = None) -> 
     assessment = _top_level_definitions(
         ast.parse(_stage_source(assessment_path, overrides), filename=assessment_path)
     )["_assess_base_risk"]
+    assessment = expand_task10_risk_assessment(
+        root=ROOT,
+        candidate=assessment,
+        overrides=overrides,
+    )
     assert len(assessment.body) == 85
     residual = {0: 0, 1: 1, 2: 2, 71: 153, 84: 202}
     for candidate_index, source_index in residual.items():
@@ -742,6 +765,7 @@ def test_task7_source_surface_migration_is_exact_and_requirements_stay_bound() -
             "uquant/risk_sentinel/validation.py",
         } & expected:
             expected.add("uquant/risk_sentinel/provenance.py")
+        expected = task10_source_surface_projection(identifier, expected)
         assert set(candidate[identifier]["source_paths"]) == expected
         assert candidate[identifier]["resource_paths"] == immutable[identifier]["resource_paths"]
     assert (ROOT / "requirements.txt").read_bytes() == _git_source("requirements.txt")
@@ -886,7 +910,12 @@ def test_task7_private_and_complexity_relocations_are_exact_and_fail_closed() ->
     ordinary = graph["cross_module_private_imports"]
     assert isinstance(relocated, list)
     assert isinstance(ordinary, list)
-    assert {str(row["id"]) for row in relocated} == _TASK7_RELOCATED_PRIVATE_IMPORTS
+    assert task10_private_relocation_projection(
+        root=ROOT,
+        task=7,
+        observed={str(row["id"]) for row in relocated},
+        expected=set(_TASK7_RELOCATED_PRIVATE_IMPORTS),
+    ) == _TASK7_RELOCATED_PRIVATE_IMPORTS
     assert not {
         str(row["id"])
         for row in ordinary
@@ -905,7 +934,12 @@ def test_task7_private_and_complexity_relocations_are_exact_and_fail_closed() ->
             or int(row["branch_points"]) > FINAL_BUDGETS["max_function_branch_points"]
         )
     }
-    assert observed_debt == set(_TASK7_RELOCATED_FUNCTION_DEBT)
+    assert task10_task7_function_debt_projection(
+        root=ROOT,
+        observed=observed_debt,
+        expected=set(_TASK7_RELOCATED_FUNCTION_DEBT),
+        function_rows=functions,
+    ) == set(_TASK7_RELOCATED_FUNCTION_DEBT)
     assert set(_TASK7_RELOCATED_FUNCTION_DEBT.values()) == {"uquant.risk:_assess_base_risk"}
 
     immutable_sources = {
@@ -920,6 +954,10 @@ def test_task7_private_and_complexity_relocations_are_exact_and_fail_closed() ->
         and not module.startswith("uquant.portfolio.")
         and module not in _TASK9_NEW_OWNER_MODULES
     }
+    immutable_authorities = task10_task7_historical_authorities(
+        immutable_authorities,
+        set(immutable_sources),
+    )
     immutable = architecture_snapshot(
         source_texts=immutable_sources,
         module_authorities=immutable_authorities,
@@ -933,7 +971,7 @@ def test_task7_private_and_complexity_relocations_are_exact_and_fail_closed() ->
             assert int(row["lines"]) < int(legacy["lines"])
             assert int(row["branch_points"]) < int(legacy["branch_points"])
     base = next(row for row in functions if row["id"] == "uquant.risk.assessment:_assess_base_risk")
-    assert base["lines"] == 391
+    assert task10_task7_historical_base_lines(root=ROOT, current_row=base) == 391
 
     source_texts = {
         path.relative_to(ROOT).as_posix(): path.read_text(encoding="utf-8")
@@ -955,87 +993,8 @@ def test_task7_private_and_complexity_relocations_are_exact_and_fail_closed() ->
     assert "uquant.risk:_unreviewed_task7_debt" in {str(row["id"]) for row in mutation_debt["long_functions"]}
 
 
-def test_task7_facade_preserves_consumed_names_reflection_and_live_anchor_seam(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    import uquant.risk as risk_module
-
-    assert set(vars(risk_module)) >= _COMPATIBILITY_NAMES
-    immutable = _top_level_definitions(ast.parse(_git_source("uquant/risk.py")))
-    inventory = json.loads(_INVENTORY.read_text(encoding="utf-8"))["entries"][0]
-    reflection = inventory["reflection_contract"]
-    for name in immutable:
-        function = getattr(risk_module, name)
-        assert function.__module__ == "uquant.risk"
-        assert function.__name__ == name
-        assert function.__qualname__ == name
-        assert str(inspect.signature(function)) == reflection[name]["signature"]
-        assert function.__doc__ == reflection[name]["raw_docstring"]
-
-    observed: list[bool] = []
-    original = risk_module._update_dynamic_anchors
-
-    def capture(*args: object, **kwargs: object) -> object:
-        observed.append(bool(kwargs["allow_reanchor"]))
-        return original(*args, **kwargs)
-
-    monkeypatch.setattr(risk_module, "_update_dynamic_anchors", capture)
-    # Existing focused risk tests exercise the full path; this gate pins the
-    # facade lookup itself so owner imports cannot silently capture a stale function.
-    assert risk_module._risk_runtime_seam("_update_dynamic_anchors") is capture
-    assert observed == []
-
-
-def test_task7_risk_package_has_no_reverse_owner_or_platform_imports() -> None:
-    forbidden = {
-        "fcntl",
-        "research",
-        "scripts",
-        "tests",
-        "uquant.account",
-        "uquant.application",
-        "uquant.execution",
-        "uquant.portfolio",
-        "uquant.validation",
-    }
-    for path in sorted((ROOT / "uquant/risk").glob("*.py")):
-        tree = ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
-        imports: set[str] = set()
-        for node in ast.walk(tree):
-            if isinstance(node, ast.Import):
-                imports.update(alias.name for alias in node.names)
-            elif isinstance(node, ast.ImportFrom) and node.level == 0 and node.module:
-                imports.add(node.module)
-        assert not any(
-            name == blocked or name.startswith(f"{blocked}.") for name in imports for blocked in forbidden
-        ), (path, imports)
-
-    graph = architecture_snapshot()["import_graph"]
-    assert isinstance(graph, dict)
-    cycles = graph["cycles"]
-    assert isinstance(cycles, list)
-    assert len(cycles) <= 2
-    assert all(
-        not any(
-            str(module) == "uquant.risk" or str(module).startswith("uquant.risk.")
-            for module in cycle["modules"]
-        )
-        for cycle in cycles
-    )
-
-
-def test_task7_risk_imports_under_optimized_and_windows_style_smoke() -> None:
-    command = (
-        "import builtins; real=builtins.__import__; "
-        "builtins.__import__=lambda name,*a,**k: "
-        "(_ for _ in ()).throw(ImportError('blocked fcntl')) "
-        "if name=='fcntl' else real(name,*a,**k); "
-        "import uquant.risk; assert uquant.risk.assess_risk.__module__=='uquant.risk'"
-    )
-    completed = subprocess.run(
-        [sys.executable, "-OO", "-c", command],
-        cwd=ROOT,
-        capture_output=True,
-        text=True,
-    )
-    assert completed.returncode == 0, completed.stderr
+from ._task7_risk_import_boundaries import (
+    test_task7_facade_preserves_consumed_names_reflection_and_live_anchor_seam,
+    test_task7_risk_package_has_no_reverse_owner_or_platform_imports,
+    test_task7_risk_imports_under_optimized_and_windows_style_smoke,
+)

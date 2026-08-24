@@ -13,6 +13,9 @@ from typing import Any, cast
 
 from uquant.contracts.strict_json import canonical_json_sha256
 
+from ._task10_owner_transport import task10_source_surface_projection
+from ._task10_task9_transport import reviewed_task9_owner_source
+
 TASK9_START = "719288f6067686b3199d305899ddc09adf098a0d"
 TASK9_START_TREE = "459d592cb24c6cfed2082bfd2f7519a9badee67d"
 GENERALIZATION_OWNERS = (
@@ -160,6 +163,7 @@ def _expected_registry(root: Path) -> dict[str, Any]:
             "uquant/risk_sentinel/validation.py",
         } & paths:
             paths.add("uquant/risk_sentinel/provenance.py")
+        paths = task10_source_surface_projection(str(surface["id"]), paths)
         surface["source_paths"] = sorted(paths)
     del registry["canonical_sha256"]
     registry["canonical_sha256"] = canonical_json_sha256(registry)
@@ -410,10 +414,10 @@ def owner_ast_rows(
             for legacy, ranges in slices
             for node in _immutable_statements(_git_source(root, legacy), ranges)
         )
-        source = (
-            (root / owner).read_text(encoding="utf-8")
-            if candidate_sources is None or owner not in candidate_sources
-            else candidate_sources[owner]
+        source = reviewed_task9_owner_source(
+            root,
+            owner=owner,
+            candidate_sources=candidate_sources,
         )
         observed[owner] = tuple(
             _normalized_dump(node, candidate=True)

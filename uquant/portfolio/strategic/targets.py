@@ -72,3 +72,7 @@ def _strategic_active_targets(
             for symbol in set(account.positions) | set(proposed)
         },
     )
+
+
+strategic_active_targets = _strategic_active_targets
+strategic_completed_exit_targets = _strategic_completed_exit_targets

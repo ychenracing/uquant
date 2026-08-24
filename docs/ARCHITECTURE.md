@@ -85,6 +85,11 @@ uquant 把数据、信号、风险、组合、执行和账户放在一条可审�
 
 订单先卖后买，并统一处理 T+1 可卖数量、停牌、涨跌停、手数、容量、现金、费用和滑点。未成交或部分成交的意图保留稳定 `order_id`；同一经济意图不会因为每日重算而重复计数。
 
+生产经济状态只沿 `Decision → Order → Fill → AccountState` 单向推进。Base Risk 汇总
+风险证据并拥有 `target_gross_cap`，`PortfolioAllocator` 在该上限内拥有唯一目标权重，
+执行层只能把既有目标转成订单和成交，账户层只能持久化已验证结果。Risk Sentinel 的
+`FREEZE_ONLY` 结论至多阻止新增风险，不能建立第二个仓位、卖出或账户权限。
+
 账户文件使用临时文件、刷盘和原子替换保存。当前数据契约记录现金、持仓 tranche、挂单、成交、机会/风险状态、组合生命周期、资本高水位、数据摘要和代码指纹。加载时会校验：
 
 - 现金、股数、价格和序号范围；
@@ -122,3 +127,13 @@ holdout 观察不进入 `ProductionEngine.decide()` 或账户状态。
 - 验证证据缺失：补齐经过评审的真实证据，不生成占位值。
 
 这种边界使系统在无法证明状态一致时停止，而不是继续给出看似完整的交易建议。
+
+## 源码身份与发布边界
+
+生产 wheel 只发现 `uquant*`；仓库内的 `research/`、`scripts/`、`tests/`、`artifacts/`、
+`benchmarks/`、`data/` 和 `docs/` 不进入安装包。仓库证据仍以
+`artifacts/architecture_refactor/baseline_inventory.json`、
+`benchmarks/source_surface_registry.json` 和 `data/frozen/DATA_MANIFEST.json` 为高风险
+锚点。既有 `full_package_v1` 与 `requirements.txt` 身份在 Task 11 保持
+`KEEP_AUTHORITATIVE`；将生产 wheel 边界纳入新的 source epoch 属于 Task 12 的一次性
+身份迁移，不能通过回填旧 epoch 或修改冻结 oracle 来伪造连续性。

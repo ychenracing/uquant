@@ -191,6 +191,11 @@ date,open,high,low,close,volume
 - [Risk Sentinel](docs/RISK_SENTINEL.md)
 - [开发指南](docs/DEVELOPMENT.md)
 - [质量契约](docs/QUALITY.md)
+- [经济权限与因果执行决策](docs/decisions/0001-economic-authority-and-causal-execution.md)
+- [源码身份与 holdout epoch 决策](docs/decisions/0002-source-identity-and-holdout-epochs.md)
+
+发布 wheel 只包含生产命名空间 `uquant*`；`research/`、`scripts/`、`tests/`、文档、
+验证工件和冻结数据仍保留在仓库中供复现与治理，但不是可安装的生产 API。
 
 ## 本地质量检查
 

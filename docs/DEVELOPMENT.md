@@ -32,6 +32,11 @@ UV_CACHE_DIR=/tmp/uquant-uv-cache uv sync --frozen --extra dev
 
 新增模块前先确认职责不能放入现有边界。不要复制第二套决策、执行或账户逻辑。
 
+构建发布物时，setuptools 只发现 `uquant*`。`research/` 是仓库内离线工具，不是安装后
+可依赖的公共包；脚本、测试、证据、冻结数据和文档也不进入 wheel。`requirements.txt`
+及现有 `full_package_v1` 在 Task 11 保持权威且不改写，Task 12 才把新发布边界登记为
+新的 source epoch，并按 no-backfill 规则验证迁移前后的冻结身份。
+
 ## 常用检查
 
 ```bash
@@ -143,6 +148,11 @@ Git 忽略；发布证据必须由 checkout 后的命令重建，不能提交一
 - 注释是否解释原因，文档是否与当前默认值一致。
 
 审查意见必须先验证实际调用路径。可能改变策略行为的修复需要独立证据，不能混入纯质量任务。
+
+代码/测试/helper 的物理行数、函数长度、branch point 与 CLI 行数是治理信号，用来决定
+未来是否值得重构，不是为了 998/999/1000 行反复压缩的单独发布门。生产经济、数据完整性、
+单一权限、源码身份、Packaging、Windows、CI 和明确接受项仍是硬阻断；private-import
+scanner 只约束真实仓库的开发期架构边界，不是任意 Python 对象图的安全沙箱。
 
 ## 提交前
 

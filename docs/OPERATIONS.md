@@ -345,6 +345,20 @@ uv run python scripts/production_observation.py verify-backup \
 替换生产账户。`receipt.json` 为 `FAILED` 时按最后成功 step 定位边界，不要删除已经不可变追加的
 holdout session。
 
+### 仓库证据的保留与恢复
+
+清理清单只覆盖删除、移动、外置、权限变更候选和高风险证据。一轮引用搜索无法证明
+安全删除时标记 `UNRESOLVED_KEEP`，而不是继续猜测；冻结数据、身份注册表、锁文件和
+当前治理清单标记 `KEEP_AUTHORITATIVE`。Task 11 的可恢复清单位于
+`artifacts/architecture_refactor/cleanup_inventory.json`，并为每个条目记录内容摘要、
+引用证据、权限理由和 Git 恢复命令。
+
+三项高风险锚分别是 `artifacts/architecture_refactor/baseline_inventory.json`、
+`benchmarks/source_surface_registry.json` 与 `data/frozen/DATA_MANIFEST.json`。
+恢复时先在隔离副本中用记录的 Git 对象还原并重算摘要，不覆盖当前账户、冻结数据或
+source epoch。Future Holdout 遵守 no-backfill：新交易日只能追加到当前 epoch，不能把
+后见数据或新打包身份写回旧基线。
+
 ## 发布前检查
 
 ```bash

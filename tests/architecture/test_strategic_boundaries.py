@@ -16,6 +16,7 @@ from ._owner_transport import architecture_private_relocation_projection
 from ._reviewed_owner_transport import expand_reviewed_architecture_owner
 
 _PORTFOLIO_REFERENCE_COMMIT = "4b6bedb03fb7c58914d9d5032a2514c67f41f6ba"
+_PORTFOLIO_REFERENCE_TREE = "d3824f7c5d89521b8284b5de08cc1e82e3ab7ebd"
 _STRATEGIC_OWNER_METHODS = {
     "uquant/portfolio/strategic/discovery.py": ("_initialize_strategic_cohort",),
     "uquant/portfolio/strategic/lifecycle.py": (
@@ -38,7 +39,7 @@ _STRATEGIC_PACKAGE_PATHS = (
 
 def _git_source(path: str) -> str:
     return subprocess.run(
-        ["git", "show", f"{_PORTFOLIO_REFERENCE_COMMIT}:{path}"],
+        ["git", "show", f"{_PORTFOLIO_REFERENCE_TREE}:{path}"],
         cwd=ROOT,
         check=True,
         capture_output=True,

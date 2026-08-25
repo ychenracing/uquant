@@ -830,6 +830,19 @@ def test_architecture_raw_scanner_rejects_serialized_private_object_recovery(
     assert measured_debt(snapshot)["cross_module_private_imports"]
 
 
+def test_architecture_raw_scanner_allows_stdlib_distribution_version_lookup() -> None:
+    sources = {
+        "scripts/build_probe.py": (
+            "import importlib.metadata\n"
+            "observed = importlib.metadata.version('build')\n"
+        ),
+    }
+    observed = scan_governed_private_edges(sources)
+    assert observed == {"direct": [], "qualified": [], "dynamic": []}
+    snapshot = architecture_snapshot(governed_source_texts=sources)
+    assert measured_debt(snapshot)["cross_module_private_imports"] == []
+
+
 @pytest.mark.parametrize(
     "source",
     (

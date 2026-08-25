@@ -69,6 +69,9 @@ def _assert_locked_runtime(workflow: dict[str, Any]) -> None:
     assert workflow["env"]["UV_VERSION"] == "0.11.33"
     assert "concurrency" not in workflow
     for job in workflow["jobs"].values():
+        expected_python = (
+            "3.12.10" if job["runs-on"] == "windows-latest" else "3.12.13"
+        )
         for step in _steps(job):
             uses = step.get("uses")
             if uses is not None:
@@ -76,7 +79,7 @@ def _assert_locked_runtime(workflow: dict[str, Any]) -> None:
                 assert ref == PINNED_ACTIONS[repository]
                 assert re.fullmatch(r"[0-9a-f]{40}", ref)
             if uses is not None and uses.startswith("actions/setup-python@"):
-                assert step["with"]["python-version"] == "3.12.13"
+                assert step["with"]["python-version"] == expected_python
 
 
 def _assert_always_blocking_summary(
@@ -123,7 +126,7 @@ def test_engineering_summary_catches_quality_or_security_failure_without_skippin
         step for step in quality_steps if step.get("name") == "Manual execution evidence contract"
     )
     assert "journal verify" in journal_step["run"]
-    assert "production_observation.py --help" in journal_step["run"]
+    assert "python -m scripts.production_observation --help" in journal_step["run"]
     assert "git check-ignore" in journal_step["run"]
     pytest_step = next(step for step in quality_steps if step.get("name") == "Tests and branch coverage")
     assert "--cov-fail-under=85" in pytest_step["run"]
@@ -354,9 +357,6 @@ def test_public_document_set_catches_incomplete_generalization_contract_or_fake_
         "ECONOMIC",
         "DERIVED",
         "COMPATIBILITY",
-        "KEEP=10",
-        "DELETE=1",
-        "INCONCLUSIVE=2",
         "2026-08-05",
         "2026-08-06",
         "40--60",

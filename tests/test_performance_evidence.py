@@ -66,7 +66,7 @@ def _assert_common_contract(payload: dict[str, Any]) -> None:
         (ROOT / "uv.lock").read_bytes()
     ).hexdigest()
     method = provenance["method"]
-    assert method["runner"] == "scripts/run_performance_diagnostic.py"
+    assert method["runner"] == "scripts/run_phase1_diagnostic.py"
     assert method["runner_commit"] == RUNNER_COMMIT
     assert method["runner_source_sha256"] == RUNNER_SOURCE_SHA256
     assert method["history_bundle"] == str(HISTORY_BUNDLE.relative_to(ROOT))
@@ -104,7 +104,7 @@ def _assert_replay_closure(commands: list[str], *, trace_count: int) -> None:
         for parts in parsed
     )
     assert all(
-        "/tmp/uquant-diagnostic-runner/scripts/run_performance_diagnostic.py" in parts
+        "/tmp/uquant-diagnostic-runner/scripts/run_phase1_diagnostic.py" in parts
         for parts in (*trace_commands, *compare_commands)
     )
     assert [

@@ -89,19 +89,19 @@ def _git(root: Path, *arguments: str, text: bool = False) -> bytes | str:
 
 
 def _git_source(root: Path, path: str) -> bytes:
-    value = _git(root, "show", f"{PORTFOLIO_REFERENCE_COMMIT}:{path}")
+    value = _git(root, "show", f"{PORTFOLIO_REFERENCE_TREE}:{path}")
     assert isinstance(value, bytes)
     return value
 
 
 def immutable_python_sources(root: Path) -> dict[str, bytes]:
-    listing = _git(root, "ls-tree", "-r", "--name-only", PORTFOLIO_REFERENCE_COMMIT, text=True)
+    listing = _git(root, "ls-tree", "-r", "--name-only", PORTFOLIO_REFERENCE_TREE, text=True)
     assert isinstance(listing, str)
     paths = [path for path in listing.splitlines() if path.endswith(".py")]
     batch = subprocess.run(
         ["git", "cat-file", "--batch"],
         cwd=root,
-        input="".join(f"{PORTFOLIO_REFERENCE_COMMIT}:{path}\n" for path in paths).encode(),
+        input="".join(f"{PORTFOLIO_REFERENCE_TREE}:{path}\n" for path in paths).encode(),
         check=True,
         capture_output=True,
     ).stdout
@@ -276,7 +276,7 @@ def _fixed_references(root: Path, path: str) -> list[str]:
         "-l",
         "--fixed-strings",
         path,
-        PORTFOLIO_REFERENCE_COMMIT,
+        PORTFOLIO_REFERENCE_TREE,
         "--",
         ".",
         text=True,
@@ -438,7 +438,7 @@ def current_reflection_contract(root: Path) -> dict[str, Any]:
 
 
 def _reflection_contract(root: Path) -> dict[str, Any]:
-    archive = _git(root, "archive", "--format=tar", PORTFOLIO_REFERENCE_COMMIT)
+    archive = _git(root, "archive", "--format=tar", PORTFOLIO_REFERENCE_TREE)
     assert isinstance(archive, bytes)
     with tempfile.TemporaryDirectory(prefix="uquant-task8-inventory-") as temporary:
         snapshot = Path(temporary) / "snapshot"
@@ -464,7 +464,7 @@ def build_portfolio_inventory(root: Path) -> dict[str, Any]:
     entries: list[dict[str, Any]] = []
     for path, module, class_name in LEGACY_IMPLEMENTATIONS:
         source = _git_source(root, path)
-        blob = _git(root, "rev-parse", f"{PORTFOLIO_REFERENCE_COMMIT}:{path}", text=True)
+        blob = _git(root, "rev-parse", f"{PORTFOLIO_REFERENCE_TREE}:{path}", text=True)
         assert isinstance(blob, str)
         references = _fixed_references(root, path)
         memberships = [surface["id"] for surface in registry["surfaces"] if path in surface["source_paths"]]
@@ -559,8 +559,8 @@ def build_portfolio_inventory(root: Path) -> dict[str, Any]:
 
 __all__ = (
     "LEGACY_IMPLEMENTATIONS",
-    "TASK8_START",
-    "TASK8_START_TREE",
+    "PORTFOLIO_REFERENCE_COMMIT",
+    "PORTFOLIO_REFERENCE_TREE",
     "build_portfolio_inventory",
     "current_reflection_contract",
 )

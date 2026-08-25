@@ -7,11 +7,12 @@ from pathlib import Path
 from ._analysis import ROOT
 
 _RISK_REFERENCE_COMMIT = "36bc6968ee61eb578a8f19ee132aecb9b03fe7ca"
+_RISK_REFERENCE_TREE = "3cc640cf565e116aa524466485dc7d9e1b511538"
 
 
 def _immutable_engine_reference_alias() -> str:
     source = subprocess.run(
-        ["git", "show", f"{_RISK_REFERENCE_COMMIT}:uquant/engine.py"],
+        ["git", "show", f"{_RISK_REFERENCE_TREE}:uquant/engine.py"],
         cwd=ROOT,
         check=True,
         capture_output=True,

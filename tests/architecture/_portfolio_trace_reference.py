@@ -47,26 +47,26 @@ def immutable_trace_from_archive(
     root: Path,
     destination: Path,
     baseline_commit: str,
+    baseline_tree: str,
     implementation_identities: dict[str, tuple[str, int]],
     runner: Path,
     runner_sha256: str,
-    logic_commit: str | None = None,
     logic_blob: str | None = None,
 ) -> dict[str, object]:
     """Replay with baseline sources/data and a byte-pinned independent trace runner."""
 
-    runner_source = runner.read_bytes()
+    runner_source = subprocess.run(
+        [
+            "git",
+            "show",
+            "105695aacd3d1c7e62705f64188da88d202db4cd:tests/architecture/_task8_portfolio_trace.py",
+        ],
+        cwd=root,
+        check=True,
+        capture_output=True,
+    ).stdout
     assert hashlib.sha256(runner_source).hexdigest() == runner_sha256
-    if logic_commit is not None or logic_blob is not None:
-        assert logic_commit is not None and logic_blob is not None
-        observed_blob = subprocess.run(
-            ["git", "rev-parse", f"{logic_commit}:tests/architecture/_portfolio_trace.py"],
-            cwd=root,
-            check=True,
-            capture_output=True,
-            text=True,
-        ).stdout.strip()
-        assert observed_blob == logic_blob
+    if logic_blob is not None:
         immutable_runner = subprocess.run(
             ["git", "cat-file", "blob", logic_blob],
             cwd=root,
@@ -76,7 +76,7 @@ def immutable_trace_from_archive(
         assert immutable_runner == runner_source
 
     archive = subprocess.run(
-        ["git", "archive", "--format=tar", baseline_commit],
+        ["git", "archive", "--format=tar", baseline_tree],
         cwd=root,
         check=True,
         capture_output=True,

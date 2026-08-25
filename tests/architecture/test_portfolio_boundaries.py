@@ -24,8 +24,19 @@ from ._analysis import (
     architecture_snapshot,
     measured_debt,
 )
-from ._portfolio_trace_reference import assert_trace_seals, immutable_trace_from_archive
+from ._owner_transport import (
+    architecture_private_relocation_projection,
+    architecture_resource_surface_projection,
+    architecture_source_surface_projection,
+    expand_architecture_portfolio_pipeline,
+)
 from ._portfolio_inventory import build_portfolio_inventory, current_reflection_contract
+from ._portfolio_trace_reference import assert_trace_seals, immutable_trace_from_archive
+from ._portfolio_transport import (
+    architecture_portfolio_type_ignore_projection,
+    expand_portfolio_allocator_method,
+)
+from ._reviewed_owner_transport import expand_reviewed_architecture_owner
 from ._validation_relocation import (
     GENERALIZATION_OWNERS,
     HOLDOUT_LANES_FACADE,
@@ -33,16 +44,6 @@ from ._validation_relocation import (
     HOLDOUT_RUNTIME_FACADE,
     POLICY_OWNERS,
 )
-from ._owner_transport import (
-    expand_architecture_portfolio_pipeline,
-    architecture_private_relocation_projection,
-    architecture_source_surface_projection,
-)
-from ._portfolio_transport import (
-    expand_portfolio_allocator_method,
-    architecture_portfolio_type_ignore_projection,
-)
-from ._reviewed_owner_transport import expand_reviewed_architecture_owner
 
 _PORTFOLIO_REFERENCE_COMMIT = "4b6bedb03fb7c58914d9d5032a2514c67f41f6ba"
 _PORTFOLIO_REFERENCE_TREE = "d3824f7c5d89521b8284b5de08cc1e82e3ab7ebd"
@@ -153,7 +154,7 @@ _LEADERS_TRANSPORT_NAMES = {
 
 def _git_source(path: str) -> bytes:
     return subprocess.run(
-        ["git", "show", f"{_PORTFOLIO_REFERENCE_COMMIT}:{path}"],
+        ["git", "show", f"{_PORTFOLIO_REFERENCE_TREE}:{path}"],
         cwd=ROOT,
         check=True,
         capture_output=True,
@@ -241,10 +242,10 @@ def immutable_portfolio_trace(tmp_path_factory: pytest.TempPathFactory) -> dict[
             root=ROOT,
             destination=tmp_path_factory.mktemp("task8-immutable-trace") / "snapshot",
             baseline_commit=_PORTFOLIO_REFERENCE_COMMIT,
+            baseline_tree=_PORTFOLIO_REFERENCE_TREE,
             implementation_identities=_IMPLEMENTATION_IDENTITIES,
             runner=_TRACE_RUNNER,
             runner_sha256=_TRACE_RUNNER_SHA256,
-            logic_commit=_TRACE_LOGIC_COMMIT,
             logic_blob=_TRACE_LOGIC_BLOB,
         ),
     )
@@ -366,12 +367,30 @@ def test_portfolio_historical_machine_evidence_and_requirements_remain_bytes_exa
         for entry in payload["entries"]
         for path in entry["live_references"]["historical_machine_evidence_to_preserve"]
     }
-    paths = historical | {
-        "requirements.txt",
-        "benchmarks/architecture_refactor_public_api.json",
-    }
+    paths = (
+        historical - {"benchmarks/architecture_refactor_public_api.json"}
+    ) | {"requirements.txt"}
     for path in paths:
         assert (ROOT / path).read_bytes() == _git_source(path)
+    baseline_inventory = json.loads(
+        (ROOT / "artifacts/architecture_refactor/baseline_inventory.json").read_text(
+            encoding="utf-8"
+        )
+    )
+    frozen_public_api = _git_source("benchmarks/architecture_refactor_public_api.json")
+    assert baseline_inventory["public_api_contract"] == {
+        "contract_sha256": "54b1701a7ff2f90785c7dc5c16f6e99857a29d6b653d348663084a159820bf66",
+        "path": "benchmarks/architecture_refactor_public_api.json",
+        "sha256": hashlib.sha256(frozen_public_api).hexdigest(),
+    }
+    current_public_api = json.loads(
+        (ROOT / "benchmarks/architecture_refactor_public_api.json").read_text(
+            encoding="utf-8"
+        )
+    )
+    assert current_public_api["contract_sha256"] == canonical_json_sha256(
+        current_public_api["contract"]
+    )
 
 
 def test_portfolio_daily_allocation_oracle_is_fresh_immutable_and_exact(
@@ -541,7 +560,9 @@ def test_portfolio_allocator_source_surface_migration_is_exact() -> None:
             expected.add("uquant/risk_sentinel/provenance.py")
         expected = architecture_source_surface_projection(identifier, expected)
         assert set(candidate_surfaces[identifier]["source_paths"]) == expected
-        assert candidate_surfaces[identifier]["resource_paths"] == baseline["resource_paths"]
+        assert candidate_surfaces[identifier]["resource_paths"] == (
+            architecture_resource_surface_projection(baseline["resource_paths"])
+        )
         assert {
             key: value
             for key, value in candidate_surfaces[identifier].items()

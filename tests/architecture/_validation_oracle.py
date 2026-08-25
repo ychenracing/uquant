@@ -962,7 +962,7 @@ if __name__ == "__main__":
 
 __all__ = (
     "LEGACY_PATHS",
-    "TASK9_START",
-    "TASK9_START_TREE",
+    "VALIDATION_REFERENCE_COMMIT",
+    "VALIDATION_REFERENCE_TREE",
     "build_validation_oracle",
 )

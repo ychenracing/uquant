@@ -9,6 +9,8 @@ import io
 import json
 import subprocess
 import sys
+from pathlib import Path
+
 import pytest
 
 from uquant.contracts.strict_json import canonical_json_sha256
@@ -35,6 +37,7 @@ from ._risk_ownership import (
 )
 from ._risk_trace import _RISK_ACCOUNT_FIELDS, risk_trace_replay
 from ._owner_transport import (
+    architecture_resource_surface_projection,
     expand_architecture_risk_assessment,
     expand_architecture_risk_stage,
     architecture_private_relocation_projection,
@@ -412,7 +415,7 @@ _ORCHESTRATION_CALLS = {
 
 def _git_source(path: str) -> bytes:
     return subprocess.run(
-        ["git", "show", f"{_RISK_REFERENCE_COMMIT}:{path}"],
+        ["git", "show", f"{_RISK_REFERENCE_TREE}:{path}"],
         cwd=ROOT,
         check=True,
         capture_output=True,
@@ -423,7 +426,7 @@ def _immutable_python_sources() -> dict[str, bytes]:
     paths = [
         path
         for path in subprocess.run(
-            ["git", "ls-tree", "-r", "--name-only", _RISK_REFERENCE_COMMIT],
+            ["git", "ls-tree", "-r", "--name-only", _RISK_REFERENCE_TREE],
             cwd=ROOT,
             check=True,
             capture_output=True,
@@ -434,7 +437,7 @@ def _immutable_python_sources() -> dict[str, bytes]:
     batch = subprocess.run(
         ["git", "cat-file", "--batch"],
         cwd=ROOT,
-        input="".join(f"{_RISK_REFERENCE_COMMIT}:{path}\n" for path in paths).encode(),
+        input="".join(f"{_RISK_REFERENCE_TREE}:{path}\n" for path in paths).encode(),
         check=True,
         capture_output=True,
     ).stdout
@@ -585,7 +588,41 @@ def _assert_risk_ownership_surface(overrides: dict[str, str] | None = None) -> N
         definitions = _top_level_definitions(
             ast.parse(_stage_source(spec.path, overrides), filename=spec.path)
         )
-        stage = definitions[stage_name]
+        if stage_name in definitions:
+            stage = definitions[stage_name]
+        else:
+            source_tree = ast.parse(
+                _stage_source(spec.path, overrides),
+                filename=spec.path,
+            )
+            aliases = [
+                node
+                for node in source_tree.body
+                if isinstance(node, ast.Assign)
+                and len(node.targets) == 1
+                and isinstance(node.targets[0], ast.Name)
+                and node.targets[0].id == stage_name
+                and isinstance(node.value, ast.Name)
+            ]
+            assert len(aliases) == 1
+            public = aliases[0].value.id
+            imports = [
+                node
+                for node in source_tree.body
+                if isinstance(node, ast.ImportFrom)
+                and any(
+                    alias.name == public and alias.asname is None
+                    for alias in node.names
+                )
+            ]
+            assert len(imports) == 1 and imports[0].level == 1 and imports[0].module
+            imported_path = (
+                Path(spec.path).parent
+                / f"{imports[0].module.replace('.', '/')}.py"
+            ).as_posix()
+            stage = _top_level_definitions(
+                ast.parse(_stage_source(imported_path, overrides), filename=imported_path)
+            )[public]
         stage = expand_architecture_risk_stage(
             root=ROOT,
             relative=spec.path,
@@ -689,7 +726,7 @@ def test_risk_inventory_is_bound_to_the_immutable_risk_blob_and_consumers() -> N
             "-l",
             "--fixed-strings",
             "uquant/risk.py",
-            _RISK_REFERENCE_COMMIT,
+            _RISK_REFERENCE_TREE,
             "--",
             ".",
         ],
@@ -767,7 +804,11 @@ def test_risk_source_surface_migration_is_exact_and_requirements_stay_bound() ->
             expected.add("uquant/risk_sentinel/provenance.py")
         expected = architecture_source_surface_projection(identifier, expected)
         assert set(candidate[identifier]["source_paths"]) == expected
-        assert candidate[identifier]["resource_paths"] == immutable[identifier]["resource_paths"]
+        assert candidate[identifier]["resource_paths"] == (
+            architecture_resource_surface_projection(
+                immutable[identifier]["resource_paths"]
+            )
+        )
     assert (ROOT / "requirements.txt").read_bytes() == _git_source("requirements.txt")
 
 
@@ -779,11 +820,11 @@ def immutable_risk_trace(
         root=ROOT,
         destination=tmp_path_factory.mktemp("task7-immutable-trace") / "snapshot",
         baseline_commit=_RISK_REFERENCE_COMMIT,
+        baseline_tree=_RISK_REFERENCE_TREE,
         risk_sha256=_RISK_SHA256,
         risk_size=_RISK_BYTES,
         runner=_TRACE_RUNNER,
         runner_sha256=_TRACE_RUNNER_SHA256,
-        logic_commit=_TRACE_LOGIC_COMMIT,
         logic_blob=_TRACE_LOGIC_BLOB,
     )
 

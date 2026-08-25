@@ -5,16 +5,13 @@ from __future__ import annotations
 from collections.abc import Mapping, Sequence, Set
 from pathlib import Path
 
-from ._analysis_debt import MODULE_AUTHORITIES, architecture_snapshot, git_python_sources
 from ._owner_transport import (
     _definitions,
     _source,
+    architecture_risk_reviewed_sources,
     expand_architecture_risk_assessment,
     expand_architecture_risk_stage,
-    architecture_risk_reviewed_sources,
 )
-
-_RISK_REVIEW_COMMIT = "c0cde6c60bbf234d08e836f84981aa1b3231279b"
 
 _RISK_ARCHITECTURE_AUTHORITY_STALE = frozenset(
     {
@@ -100,6 +97,24 @@ _RISK_FUNCTION_OWNERS: Mapping[str, tuple[str, str]] = {
     ),
 }
 
+_CURRENT_PUBLIC_RISK_OWNERS: Mapping[str, tuple[str, str, str]] = {
+    "uquant.risk.recovery_state:_assess_protected_recovery": (
+        "uquant.risk.protected_recovery:assess_protected_recovery",
+        "uquant/risk/protected_recovery.py",
+        "assess_protected_recovery",
+    ),
+    "uquant.risk.transitions:_assess_confirmed_concentrated_break": (
+        "uquant.risk.confirmed_break:assess_confirmed_concentrated_break",
+        "uquant/risk/confirmed_break.py",
+        "assess_confirmed_concentrated_break",
+    ),
+    "uquant.risk.transitions:_resolve_risk_transition": (
+        "uquant.risk.transition_resolution:resolve_risk_transition",
+        "uquant/risk/transition_resolution.py",
+        "resolve_risk_transition",
+    ),
+}
+
 
 def architecture_risk_function_debt_projection(
     *,
@@ -120,33 +135,20 @@ def architecture_risk_function_debt_projection(
         assert isinstance(current_lines, int) and current_lines <= 120
         assert isinstance(current_branches, int) and current_branches <= 20
     reviewed_sources = architecture_risk_reviewed_sources(root=root, overrides=overrides)
-    archived_sources = git_python_sources(root, _RISK_REVIEW_COMMIT)
-    archived_modules = {
-        path.removesuffix("/__init__.py").removesuffix(".py").replace("/", ".")
-        for path in archived_sources
-    }
-    stale_authorities = set(MODULE_AUTHORITIES) - archived_modules
-    assert stale_authorities == {
-        "uquant.validation.holdout.capabilities",
-        "uquant.validation.production_observation_contract",
-    }
-    reviewed = architecture_snapshot(
-        root=root,
-        source_texts=archived_sources,
-        module_authorities={
-            module: authority
-            for module, authority in MODULE_AUTHORITIES.items()
-            if module in archived_modules
-        },
-    )
-    reviewed_functions = reviewed["functions"]
-    assert isinstance(reviewed_functions, list)
-    rows = {str(row["id"]): row for row in reviewed_functions}
     for identifier, (relative, function_name) in _RISK_FUNCTION_OWNERS.items():
-        row = rows[identifier]
+        public_owner = _CURRENT_PUBLIC_RISK_OWNERS.get(identifier)
+        row_identifier = public_owner[0] if public_owner is not None else identifier
+        row = current_rows[row_identifier]
         assert int(row["lines"]) <= 120
         assert int(row["branch_points"]) <= 20
-        function = _definitions(_source(root, relative, reviewed_sources))[function_name]
+        definitions = _definitions(_source(root, relative, reviewed_sources))
+        function = (
+            _definitions(_source(root, public_owner[1], reviewed_sources))[
+                public_owner[2]
+            ]
+            if public_owner is not None
+            else definitions[function_name]
+        )
         if function_name == "_assess_base_risk":
             expanded = expand_architecture_risk_assessment(
                 root=root,

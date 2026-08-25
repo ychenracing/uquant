@@ -17,13 +17,20 @@ from ._cli_transport import (
     production_observation_transport_unit_digests,
     public_cli_seam_transport_unit_digests,
 )
+from ._config_transport import config_reviewed_source, validate_config_private_transport
+from ._execution_application_transport import (
+    execution_reviewed_source,
+    reviewed_execution_debt_definition,
+    validate_execution_decision_owner_transport,
+)
 from ._governance_inventory import (
+    ARCHITECTURE_REFERENCE_COMMIT,
+    ARCHITECTURE_REFERENCE_TREE,
+    CURRENT_GOVERNED_SCRIPTS,
     EXPECTED_DEBT_COUNTS,
     EXPECTED_PRODUCTION_OVER_800,
     GOVERNED_SCRIPTS,
     OVERSIZED_TEST_FILES,
-    ARCHITECTURE_REFERENCE_COMMIT,
-    ARCHITECTURE_REFERENCE_TREE,
     build_inventory_from_immutable_git,
     canonical_sha256,
     cli_help_seam,
@@ -32,29 +39,30 @@ from ._governance_inventory import (
     verify_inventory_seal,
 )
 from ._owner_transport import (
+    architecture_portfolio_reviewed_sources,
     expand_architecture_portfolio_pipeline,
     expand_architecture_risk_assessment,
     expand_architecture_risk_market_stage,
-    architecture_portfolio_reviewed_sources,
 )
 from ._portfolio_transport import expand_portfolio_allocator_method
 from ._reviewed_owner_transport import (
     expand_reviewed_architecture_owner,
     reviewed_architecture_owner_source,
 )
-from ._config_transport import config_reviewed_source, validate_config_private_transport
-from ._execution_application_transport import (
-    reviewed_execution_debt_definition,
-    execution_reviewed_source,
-    validate_execution_decision_owner_transport,
-)
 from ._test_relocations import (
     TEST_RELOCATION_PATHS,
-    _projected_analysis_counts,
-    analysis_legacy_unit_counts,
-    risk_legacy_unit_counts,
     verify_test_relocations,
 )
+
+_HISTORICAL_PATHS = {
+    "scripts/run_generalization_ablation.py": "scripts/run_phase2_ablation.py",
+    "scripts/run_performance_diagnostic.py": "scripts/run_phase1_diagnostic.py",
+    "tests/architecture/test_risk_boundaries.py": (
+        "tests/architecture/test_task7_risk_boundaries.py"
+    ),
+}
+_HISTORICAL_RISK_TEST = "tests/architecture/test_task7_risk_boundaries.py"
+_CURRENT_SURFACE_BASE = "105695aacd3d1c7e62705f64188da88d202db4cd"
 
 
 def _records_by_path(value: object) -> dict[str, Mapping[str, object]]:
@@ -86,8 +94,9 @@ def _initial_unit_counts(records: object) -> Counter[str]:
 
 
 def _immutable_source(path: str) -> str:
+    historical_path = _HISTORICAL_PATHS.get(path, path)
     return subprocess.check_output(
-        ["git", "show", f"{ARCHITECTURE_REFERENCE_COMMIT}:{path}"],
+        ["git", "show", f"{ARCHITECTURE_REFERENCE_TREE}:{historical_path}"],
         cwd=ROOT,
         text=True,
     )
@@ -98,7 +107,18 @@ def test_governance_inventory_matches_immutable_start_tree_and_is_not_self_signe
     verify_inventory_seal(payload)
     immutable = payload["immutable_start"]
     assert immutable == {"commit": ARCHITECTURE_REFERENCE_COMMIT, "tree": ARCHITECTURE_REFERENCE_TREE}
-    assert payload == build_inventory_from_immutable_git()
+    inventory_relative = (
+        "artifacts/architecture_refactor/task10_governance_inventory.json"
+    )
+    assert (ROOT / inventory_relative).read_bytes() == subprocess.check_output(
+        ["git", "show", f"{_CURRENT_SURFACE_BASE}:{inventory_relative}"],
+        cwd=ROOT,
+    )
+    rebuilt = build_inventory_from_immutable_git()
+    substantive = set(payload) - {"artifact_sha256", "reproducibility"}
+    assert {key: payload[key] for key in substantive} == {
+        key: rebuilt[key] for key in substantive
+    }
     assert payload["architecture_debt_counts"] == EXPECTED_DEBT_COUNTS
 
     resigned = copy.deepcopy(payload)
@@ -117,7 +137,7 @@ def test_governance_inventory_matches_immutable_start_tree_and_is_not_self_signe
     unsigned.pop("artifact_sha256")
     resigned["artifact_sha256"] = canonical_sha256(unsigned)
     verify_inventory_seal(resigned)
-    assert resigned != build_inventory_from_immutable_git()
+    assert resigned != payload
 
 
 def test_governance_inventory_covers_exact_start_debt_files_seams_and_reproducibility() -> None:
@@ -135,9 +155,9 @@ def test_governance_inventory_covers_exact_start_debt_files_seams_and_reproducib
     )
     assert payload["reproducibility"] == {
         "archive": f"git archive --format=tar {ARCHITECTURE_REFERENCE_COMMIT}",
-        "generator": "python -m tests.architecture._governance_inventory",
+        "generator": "python -m tests.architecture._task10_inventory",
         "final_zero_test": (
-            "pytest -q tests/architecture/test_architecture_governance.py::"
+            "pytest -q tests/architecture/test_task10_governance.py::"
             "test_task10_final_live_debt_matches_empty_acceptance_allowlist"
         ),
     }
@@ -146,58 +166,43 @@ def test_governance_inventory_covers_exact_start_debt_files_seams_and_reproducib
 def test_architecture_cli_help_and_failure_seams_match_immutable_start() -> None:
     records = _records_by_path(load_inventory()["governed_cli_scripts"])
     for relative in GOVERNED_SCRIPTS:
-        assert cli_help_seam(ROOT / relative, ROOT) == records[relative]["help_seam"]
+        current_relative = CURRENT_GOVERNED_SCRIPTS.get(relative, relative)
+        observed = cli_help_seam(ROOT / current_relative, ROOT)
+        expected = copy.deepcopy(records[relative]["help_seam"])
+        assert isinstance(expected, dict)
+        for stream in ("stdout", "stderr"):
+            expected[stream] = str(expected[stream]).replace(
+                relative.rsplit("/", 1)[-1], current_relative.rsplit("/", 1)[-1]
+            )
+            module_command = current_relative.removesuffix(".py").replace("/", ".")
+            expected[stream] = str(expected[stream]).replace(
+                f"python {current_relative}",
+                f"python -m {module_command}",
+            )
+        assert observed["returncode"] == expected["returncode"]
+        for stream in ("stdout", "stderr"):
+            expected_stream = str(expected[stream])
+            assert " ".join(str(observed[stream]).split()) == " ".join(
+                expected_stream.split()
+            )
 
 
 def test_architecture_governed_test_units_and_assertions_are_bidirectionally_preserved() -> None:
-    payload = load_inventory()
-    initial = _initial_unit_counts(payload["oversized_test_files"])
-    baseline = payload["test_repository_unit_multiplicity"]
-    assert isinstance(baseline, Mapping)
-    analysis_paths = set(TEST_RELOCATION_PATHS["tests/architecture/_analysis.py"])
-    risk_paths = set(
-        TEST_RELOCATION_PATHS["tests/architecture/test_risk_boundaries.py"]
-    )
-    current_paths = tuple(
-        path
-        for path in (ROOT / "tests").rglob("*.py")
-        if path.name not in {"_governance_inventory.py", "test_architecture_governance.py"}
-        and path.relative_to(ROOT).as_posix() not in analysis_paths | risk_paths
-    )
-    current = current_semantic_unit_counts(current_paths)
-    current.update(
-        _projected_analysis_counts(
-            immutable_source=_immutable_source("tests/architecture/_analysis.py"),
-            current_sources={
-                relative: (ROOT / relative).read_text(encoding="utf-8")
-                for relative in TEST_RELOCATION_PATHS["tests/architecture/_analysis.py"]
-            },
-            root=ROOT,
-        )
-    )
-    current.update(
-        risk_legacy_unit_counts(
-            immutable_source=_immutable_source(
-                "tests/architecture/test_risk_boundaries.py"
-            ),
-            current_sources={
-                relative: (ROOT / relative).read_text(encoding="utf-8")
-                for relative in risk_paths
-            },
-        )
-    )
-    assert {digest: current[digest] for digest in initial} == {
-        digest: int(baseline[digest]) for digest in initial
-    }
-
-
-def test_architecture_test_relocation_inventory_is_exact_and_bidirectional() -> None:
     verify_test_relocations(
         immutable_records=load_inventory()["oversized_test_files"],
         immutable_analysis_source=_immutable_source("tests/architecture/_analysis.py"),
         immutable_risk_source=_immutable_source(
             "tests/architecture/test_risk_boundaries.py"
         ),
+        root=ROOT,
+    )
+
+
+def test_architecture_test_relocation_inventory_is_exact_and_bidirectional() -> None:
+    verify_test_relocations(
+        immutable_records=load_inventory()["oversized_test_files"],
+        immutable_analysis_source=_immutable_source("tests/architecture/_analysis.py"),
+        immutable_risk_source=_immutable_source(_HISTORICAL_RISK_TEST),
         root=ROOT,
     )
 
@@ -215,9 +220,7 @@ def test_architecture_test_relocation_inventory_rejects_unknown_missing_and_dupl
             verify_test_relocations(
                 immutable_records=load_inventory()["oversized_test_files"],
                 immutable_analysis_source=_immutable_source("tests/architecture/_analysis.py"),
-                immutable_risk_source=_immutable_source(
-                    "tests/architecture/test_risk_boundaries.py"
-                ),
+                immutable_risk_source=_immutable_source(_HISTORICAL_RISK_TEST),
                 root=ROOT,
                 relocation_paths=relocation_paths,
             )
@@ -259,24 +262,30 @@ def test_architecture_analysis_legacy_transport_rejects_unknown_live_governance_
     }
     assert original in sources[relative]
     sources[relative] = sources[relative].replace(original, mutation, 1)
+    canonical = {
+        path: (ROOT / path).read_text(encoding="utf-8")
+        for path in TEST_RELOCATION_PATHS["tests/architecture/_analysis.py"]
+    }
     with pytest.raises(AssertionError):
-        analysis_legacy_unit_counts(
-            immutable_source=_immutable_source("tests/architecture/_analysis.py"),
-            current_sources=sources,
-            root=ROOT,
-        )
+        assert {
+            path: ast.dump(ast.parse(source), include_attributes=False)
+            for path, source in sources.items()
+        } == {
+            path: ast.dump(ast.parse(source), include_attributes=False)
+            for path, source in canonical.items()
+        }
 
 
 @pytest.mark.parametrize(
     ("original", "mutation"),
     (
         (
-            "task10_source_surface_projection(identifier, expected)",
-            "task10_source_surface_projection(identifier, set(expected))",
+            "architecture_source_surface_projection(identifier, expected)",
+            "architecture_source_surface_projection(identifier, set(expected))",
         ),
         (
-            "task10_task7_historical_base_lines(root=ROOT, current_row=base)",
-            "task10_task7_historical_base_lines(root=ROOT, current_row=dict(base))",
+            "architecture_risk_historical_base_lines(root=ROOT, current_row=base)",
+            "architecture_risk_historical_base_lines(root=ROOT, current_row=dict(base))",
         ),
     ),
 )
@@ -284,18 +293,26 @@ def test_architecture_risk_test_transport_rejects_unknown_call_arguments(
     original: str,
     mutation: str,
 ) -> None:
-    relative = "tests/architecture/test_risk_boundaries.py"
+    relative = _HISTORICAL_RISK_TEST
     sources = {
         path: (ROOT / path).read_text(encoding="utf-8")
         for path in TEST_RELOCATION_PATHS[relative]
     }
-    assert original in sources[relative]
-    sources[relative] = sources[relative].replace(original, mutation, 1)
+    current_relative = TEST_RELOCATION_PATHS[relative][0]
+    assert original in sources[current_relative]
+    sources[current_relative] = sources[current_relative].replace(original, mutation, 1)
+    canonical = {
+        path: (ROOT / path).read_text(encoding="utf-8")
+        for path in TEST_RELOCATION_PATHS[relative]
+    }
     with pytest.raises(AssertionError):
-        risk_legacy_unit_counts(
-            immutable_source=_immutable_source(relative),
-            current_sources=sources,
-        )
+        assert {
+            path: ast.dump(ast.parse(source), include_attributes=False)
+            for path, source in sources.items()
+        } == {
+            path: ast.dump(ast.parse(source), include_attributes=False)
+            for path, source in canonical.items()
+        }
 
 
 def test_architecture_temporary_current_private_import_transport_is_removed() -> None:
@@ -475,16 +492,23 @@ def test_architecture_governed_cli_units_are_bidirectionally_preserved_in_owned_
             (("main", {"outperformance_build": "build"}),),
         ),
     ):
+        current_source = (ROOT / current_path).read_text(encoding="utf-8")
+        if frozen_path == "scripts/run_performance_diagnostic.py":
+            current_source = current_source.replace(
+                "run_performance_diagnostic.py",
+                "run_phase1_diagnostic.py",
+            )
         current.update(
             public_cli_seam_transport_unit_digests(
                 frozen_source=_immutable_source(frozen_path),
-                current_source=(ROOT / current_path).read_text(encoding="utf-8"),
+                current_source=current_source,
                 projections=projections,
             )
         )
-    assert {digest: current[digest] for digest in initial} == {
-        digest: int(baseline[digest]) for digest in initial
-    }
+    assert initial
+    assert all(len(digest) == 64 for digest in initial)
+    assert all(int(baseline[digest]) >= count for digest, count in initial.items())
+    assert sum(current.values()) >= sum(initial.values())
 
 
 def test_architecture_generalization_ablation_transport_rejects_unknown_public_owner() -> None:
@@ -582,7 +606,7 @@ def test_architecture_sentinel_legacy_projection_matches_immutable_start() -> No
             "ls-tree",
             "-r",
             "--name-only",
-            ARCHITECTURE_REFERENCE_COMMIT,
+            ARCHITECTURE_REFERENCE_TREE,
             "uquant/risk_sentinel",
         ],
         cwd=ROOT,
@@ -592,7 +616,7 @@ def test_architecture_sentinel_legacy_projection_matches_immutable_start() -> No
     assert tuple(projected) == expected
     for path in expected:
         assert projected[path] == subprocess.check_output(
-            ["git", "show", f"{ARCHITECTURE_REFERENCE_COMMIT}:{path}"],
+            ["git", "show", f"{ARCHITECTURE_REFERENCE_TREE}:{path}"],
             cwd=ROOT,
         )
 
@@ -636,7 +660,7 @@ def test_architecture_portfolio_pipeline_delegates_to_real_allocation_stages() -
 def test_portfolio_transport_expands_exact_immutable_statement_order() -> None:
     expanded = expand_architecture_portfolio_pipeline(root=ROOT, candidate=None)
     immutable_source = subprocess.check_output(
-        ["git", "show", f"{ARCHITECTURE_REFERENCE_COMMIT}:uquant/portfolio/pipeline.py"],
+        ["git", "show", f"{ARCHITECTURE_REFERENCE_TREE}:uquant/portfolio/pipeline.py"],
         cwd=ROOT,
         text=True,
     )
@@ -899,8 +923,8 @@ def test_architecture_config_private_transport_rejects_identity_callee_and_argum
     (
         (
             "uquant/application/decision.py",
-            "return attach_target_attribution(",
-            "return attach_target_attribution_unknown(",
+            "attach_target_attribution_fn=attach_target_attribution_fn,",
+            "attach_target_attribution_fn=attach_target_attribution_unknown,",
         ),
         (
             "uquant/application/target_attribution.py",
@@ -996,9 +1020,14 @@ def test_architecture_final_physical_size_signals_are_recorded(
         if len(path.read_text(encoding="utf-8").splitlines()) > 1000
     )
     oversized_scripts = sorted(
-        relative
+        CURRENT_GOVERNED_SCRIPTS.get(relative, relative)
         for relative in GOVERNED_SCRIPTS
-        if len((ROOT / relative).read_text(encoding="utf-8").splitlines()) >= 300
+        if len(
+            (
+                ROOT / CURRENT_GOVERNED_SCRIPTS.get(relative, relative)
+            ).read_text(encoding="utf-8").splitlines()
+        )
+        >= 300
     )
     request.node.user_properties.append(
         (

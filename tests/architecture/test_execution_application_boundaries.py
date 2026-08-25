@@ -27,6 +27,16 @@ from ._analysis import (
     architecture_snapshot,
     measured_debt,
 )
+from ._execution_application_transport import (
+    ARCHITECTURE_EXECUTION_REVIEWED_DEFINITIONS,
+    architecture_execution_decision_fanout,
+    architecture_execution_historical_debt_projection,
+    reviewed_execution_debt_definition,
+)
+from ._owner_transport import (
+    architecture_resource_surface_projection,
+    architecture_source_surface_projection,
+)
 from ._validation_relocation import (
     GENERALIZATION_OWNERS,
     HOLDOUT_LANES_FACADE,
@@ -34,15 +44,9 @@ from ._validation_relocation import (
     HOLDOUT_RUNTIME_FACADE,
     POLICY_OWNERS,
 )
-from ._owner_transport import architecture_source_surface_projection
-from ._execution_application_transport import (
-    ARCHITECTURE_EXECUTION_REVIEWED_DEFINITIONS,
-    reviewed_execution_debt_definition,
-    architecture_execution_decision_fanout,
-    architecture_execution_historical_debt_projection,
-)
 
 _EXECUTION_REFERENCE_COMMIT = "908399a80f27a028c35f201b9bf5f1688eb412c0"
+_EXECUTION_REFERENCE_TREE = "8fd744507922e3d143923939e7d5e75f9148afc1"
 _INVENTORY = ROOT / "artifacts" / "architecture_refactor" / "task6_cleanup_inventory.json"
 
 _EXECUTION_PACKAGE_PATHS = {
@@ -188,7 +192,7 @@ _DELEGATION_NAME_NORMALIZATION = {
 
 def _git_source(path: str) -> bytes:
     return subprocess.run(
-        ["git", "show", f"{_EXECUTION_REFERENCE_COMMIT}:{path}"],
+        ["git", "show", f"{_EXECUTION_REFERENCE_TREE}:{path}"],
         cwd=ROOT,
         check=True,
         capture_output=True,
@@ -199,7 +203,7 @@ def _immutable_python_sources() -> dict[str, bytes]:
     paths = [
         path
         for path in subprocess.run(
-            ["git", "ls-tree", "-r", "--name-only", _EXECUTION_REFERENCE_COMMIT],
+            ["git", "ls-tree", "-r", "--name-only", _EXECUTION_REFERENCE_TREE],
             cwd=ROOT,
             check=True,
             capture_output=True,
@@ -210,7 +214,7 @@ def _immutable_python_sources() -> dict[str, bytes]:
     batch = subprocess.run(
         ["git", "cat-file", "--batch"],
         cwd=ROOT,
-        input="".join(f"{_EXECUTION_REFERENCE_COMMIT}:{path}\n" for path in paths).encode(),
+        input="".join(f"{_EXECUTION_REFERENCE_TREE}:{path}\n" for path in paths).encode(),
         check=True,
         capture_output=True,
     ).stdout
@@ -380,7 +384,7 @@ def test_execution_inventory_is_bound_to_immutable_blobs_and_reference_sets() ->
             [
                 "git",
                 "show",
-                f"{_EXECUTION_REFERENCE_COMMIT}:benchmarks/source_surface_registry.json",
+                f"{_EXECUTION_REFERENCE_TREE}:benchmarks/source_surface_registry.json",
             ],
             cwd=ROOT,
             check=True,
@@ -402,7 +406,7 @@ def test_execution_inventory_is_bound_to_immutable_blobs_and_reference_sets() ->
         assert len(source) == entry["size_bytes"]
         assert hashlib.sha256(source).hexdigest() == entry["content_sha256"]
         references = subprocess.run(
-            ["git", "grep", "-l", "--fixed-strings", entry["path"], _EXECUTION_REFERENCE_COMMIT, "--", "."],
+            ["git", "grep", "-l", "--fixed-strings", entry["path"], _EXECUTION_REFERENCE_TREE, "--", "."],
             cwd=ROOT,
             check=True,
             capture_output=True,
@@ -489,7 +493,11 @@ def test_execution_source_surface_migration_is_exact_for_all_five_v1_surfaces() 
             expected_sources,
         )
         assert set(candidate[identifier]["source_paths"]) == expected_sources
-        assert candidate[identifier]["resource_paths"] == immutable[identifier]["resource_paths"]
+        assert candidate[identifier]["resource_paths"] == (
+            architecture_resource_surface_projection(
+                immutable[identifier]["resource_paths"]
+            )
+        )
 
     assert (ROOT / "requirements.txt").read_bytes() == _git_source("requirements.txt")
 

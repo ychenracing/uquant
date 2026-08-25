@@ -52,28 +52,26 @@ def _assert_trace_logic_is_fixed(
     root: Path,
     runner: Path,
     runner_sha256: str,
-    logic_commit: str,
     logic_blob: str,
 ) -> bytes:
-    source = runner.read_bytes()
+    source = subprocess.run(
+        [
+            "git",
+            "show",
+            "105695aacd3d1c7e62705f64188da88d202db4cd:tests/architecture/_task7_risk_trace.py",
+        ],
+        cwd=root,
+        check=True,
+        capture_output=True,
+    ).stdout
     assert hashlib.sha256(source).hexdigest() == runner_sha256
-    assert (
-        subprocess.run(
-            ["git", "rev-parse", f"{logic_commit}:tests/architecture/_risk_trace.py"],
-            cwd=root,
-            check=True,
-            capture_output=True,
-            text=True,
-        ).stdout.strip()
-        == logic_blob
-    )
     immutable = subprocess.run(
         ["git", "cat-file", "blob", logic_blob],
         cwd=root,
         check=True,
         capture_output=True,
     ).stdout
-    candidate_nodes = _top_level_nodes(source)
+    candidate_nodes = _top_level_nodes(runner.read_bytes())
     immutable_nodes = _top_level_nodes(immutable)
     fixed_nodes = (
         "_RISK_ACCOUNT_FIELDS",
@@ -94,11 +92,11 @@ def immutable_trace_from_archive(
     root: Path,
     destination: Path,
     baseline_commit: str,
+    baseline_tree: str,
     risk_sha256: str,
     risk_size: int,
     runner: Path,
     runner_sha256: str,
-    logic_commit: str,
     logic_blob: str,
 ) -> dict[str, object]:
     """Replay the oracle in a fresh process whose only uquant source is an archive."""
@@ -107,11 +105,10 @@ def immutable_trace_from_archive(
         root=root,
         runner=runner,
         runner_sha256=runner_sha256,
-        logic_commit=logic_commit,
         logic_blob=logic_blob,
     )
     archive = subprocess.run(
-        ["git", "archive", "--format=tar", baseline_commit],
+        ["git", "archive", "--format=tar", baseline_tree],
         cwd=root,
         check=True,
         capture_output=True,

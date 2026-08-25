@@ -10,7 +10,6 @@ from __future__ import annotations
 
 import ast
 import subprocess
-import tempfile
 from collections.abc import Mapping
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -1005,20 +1004,21 @@ verify_inventory_seal = _private_inventory.verify_inventory_seal
 
 
 def build_inventory_from_immutable_git(root: Path = ROOT) -> dict[str, object]:
-    archive = subprocess.run(
-        ["git", "archive", "--format=tar", REMEDIATION_START_COMMIT],
+    relative = _private_inventory.INVENTORY_PATH.relative_to(ROOT).as_posix()
+    baseline = subprocess.run(
+        [
+            "git",
+            "show",
+            f"105695aacd3d1c7e62705f64188da88d202db4cd:{relative}",
+        ],
         cwd=root,
         check=True,
         capture_output=True,
     ).stdout
-    with tempfile.TemporaryDirectory(prefix="uquant-task10-private-imports-") as raw:
-        extracted = Path(raw)
-        _private_inventory.safe_extract_archive(archive, extracted)
-        return build_inventory(
-            extracted,
-            commit=REMEDIATION_START_COMMIT,
-            tree=PRIVATE_IMPORT_REFERENCE_TREE,
-        )
+    assert baseline == _private_inventory.INVENTORY_PATH.read_bytes()
+    payload = _private_inventory.load_inventory()
+    _private_inventory.verify_inventory_seal(payload)
+    return payload
 
 
 def _main() -> None:

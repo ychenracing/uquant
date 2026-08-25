@@ -29,7 +29,7 @@ ARCHITECTURE_INVENTORY_PATH = (
 )
 
 GOVERNED_SCRIPTS = (
-    "scripts/run_generalization_ablation.py",
+    "scripts/run_phase2_ablation.py",
     "scripts/run_risk_differential.py",
     "scripts/run_current_heads_competitor_matrix.py",
     "scripts/run_window_competitor_adapter.py",
@@ -39,7 +39,7 @@ GOVERNED_SCRIPTS = (
     "scripts/run_five_window_outperformance.py",
     "scripts/run_risk_counterfactual.py",
     "scripts/backfill_tencent_history.py",
-    "scripts/run_performance_diagnostic.py",
+    "scripts/run_phase1_diagnostic.py",
     "scripts/run_window_outperformance.py",
 )
 
@@ -47,18 +47,33 @@ OVERSIZED_TEST_FILES = (
     "tests/test_lifecycle_and_risk.py",
     "tests/architecture/_analysis.py",
     "tests/test_attribution_identity.py",
-    "tests/test_generalization_ablation.py",
+    "tests/test_phase2_ablation.py",
     "tests/test_generalization_matrix.py",
     "tests/test_execution.py",
     "tests/test_future_holdout_runtime.py",
     "tests/test_generalization.py",
     "tests/test_recovery_contracts.py",
-    "tests/architecture/_compatibility_baseline.py",
+    "tests/architecture/_task3_baseline.py",
     "tests/test_engine_contracts.py",
     "tests/test_risk_transitions.py",
     "tests/test_engineering_gate_edges.py",
-    "tests/architecture/test_risk_boundaries.py",
+    "tests/architecture/test_task7_risk_boundaries.py",
 )
+
+CURRENT_GOVERNED_SCRIPTS = {
+    "scripts/run_phase2_ablation.py": "scripts/run_generalization_ablation.py",
+    "scripts/run_phase1_diagnostic.py": "scripts/run_performance_diagnostic.py",
+}
+
+CURRENT_OVERSIZED_TEST_FILES = {
+    "tests/test_phase2_ablation.py": "tests/test_generalization_ablation.py",
+    "tests/architecture/_task3_baseline.py": (
+        "tests/architecture/_compatibility_baseline.py"
+    ),
+    "tests/architecture/test_task7_risk_boundaries.py": (
+        "tests/architecture/test_risk_boundaries.py"
+    ),
+}
 
 EXPECTED_DEBT_COUNTS = {
     "oversized_modules": 1,
@@ -347,7 +362,7 @@ def _safe_extract_archive(archive: bytes, destination: Path) -> None:
 
 def build_inventory_from_immutable_git(root: Path = ROOT) -> dict[str, object]:
     archive = subprocess.run(
-        ["git", "archive", "--format=tar", ARCHITECTURE_REFERENCE_COMMIT],
+        ["git", "archive", "--format=tar", ARCHITECTURE_REFERENCE_TREE],
         cwd=root,
         check=True,
         capture_output=True,

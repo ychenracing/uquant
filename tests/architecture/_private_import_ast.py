@@ -96,7 +96,7 @@ REFLECTIVE_CAPABILITY_SAFE_MEMBERS: Mapping[str, frozenset[str]] = {
     "ctypes.kernel32": frozenset({"LockFileEx", "UnlockFileEx"}),
     "dill": frozenset(),
     "gc": frozenset(),
-    "importlib.metadata": frozenset(),
+    "importlib.metadata": frozenset({"version"}),
     "importlib._bootstrap": frozenset(),
     "importlib._bootstrap_external": frozenset(),
     "inspect": frozenset({"getfile"}),

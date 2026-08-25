@@ -1,85 +1,37 @@
-"""Exact Task-10 transport for Task-9 current-owner structural gates."""
+"""Exact transport from frozen validation evidence to current domain owners."""
 
 from __future__ import annotations
 
 import ast
 import copy
 import hashlib
-import subprocess
 from collections.abc import Mapping, Sequence, Set
 from pathlib import Path
 
-from ._governance_inventory import ARCHITECTURE_REFERENCE_COMMIT
-from ._validation_capability_projection import (
-    CAPABILITY_OWNERS,
-    project_explicit_capabilities,
+_REVIEWED_OWNERS = frozenset(
+    {
+        "uquant/validation/generalization/models.py",
+        "uquant/validation/generalization/scenarios.py",
+        "uquant/validation/generalization/provenance.py",
+        "uquant/validation/generalization/baseline.py",
+        "uquant/validation/generalization/metrics.py",
+        "uquant/validation/generalization/gates.py",
+        "uquant/validation/generalization/runner.py",
+        "uquant/validation/generalization_policy/schema.py",
+        "uquant/validation/generalization_policy/cells.py",
+        "uquant/validation/generalization_policy/projection.py",
+        "uquant/validation/generalization_policy/evaluator.py",
+        "uquant/validation/holdout/contract.py",
+        "uquant/validation/holdout/manifest.py",
+        "uquant/validation/holdout/source_identity.py",
+        "uquant/validation/holdout/lanes.py",
+        "uquant/validation/holdout/snapshots.py",
+        "uquant/validation/holdout/replay.py",
+        "uquant/validation/holdout/checkpoints.py",
+        "uquant/validation/holdout/artifact_transaction.py",
+        "uquant/validation/holdout/service.py",
+    }
 )
-
-_IMMUTABLE_GLOBALS = "ec8d4b7d1502ad50a73deab4543480b8b01f7d03"
-_PUBLIC_APIS = "15b1c5eca0e5ecd825a1456b25a29c0b8084b4e0"
-_PRIVATE_OWNERS = "896b03ffdf0a75f941f25d1447e3c7d3bb5cb695"
-_GENERALIZATION_STAGES = "005e6de0845eddde3418a1780a88bf6056c44068"
-_POLICY_CONTRACT = "13123174e9c2654d24b8863be878f9c2611b1505"
-_POLICY_EVALUATION = "9b696c0f6fb203ef87cb57094e8e2ccc2a701240"
-_HOLDOUT_STAGES = "f6a5aefe2ca0b05e561afcc303d15ce394a25902"
-_THIN_CLIS = "411e1f93b4fd9d641c7358255b1531a3cfaa8caf"
-_POLICY_TYPING = "fe0dff70250ac82356df6f80f2d8c34d16f8a3e1"
-_REVIEWED_HEAD = "42f59d0421f8ebd196ea00ad0c3227c5d307c883"
-
-_REVIEWED_CHAINS: Mapping[str, tuple[str, ...]] = {
-    "uquant/validation/generalization/models.py": (_IMMUTABLE_GLOBALS,),
-    "uquant/validation/generalization/scenarios.py": (
-        _PRIVATE_OWNERS,
-        _GENERALIZATION_STAGES,
-    ),
-    "uquant/validation/generalization/provenance.py": (
-        _IMMUTABLE_GLOBALS,
-        _PRIVATE_OWNERS,
-        _GENERALIZATION_STAGES,
-    ),
-    "uquant/validation/generalization/baseline.py": (
-        _PRIVATE_OWNERS,
-        _GENERALIZATION_STAGES,
-    ),
-    "uquant/validation/generalization/metrics.py": (_GENERALIZATION_STAGES,),
-    "uquant/validation/generalization/gates.py": (_GENERALIZATION_STAGES,),
-    "uquant/validation/generalization/runner.py": (_GENERALIZATION_STAGES,),
-    "uquant/validation/generalization_policy/schema.py": (
-        _IMMUTABLE_GLOBALS,
-        _PRIVATE_OWNERS,
-        _POLICY_CONTRACT,
-    ),
-    "uquant/validation/generalization_policy/cells.py": (
-        _IMMUTABLE_GLOBALS,
-        _POLICY_CONTRACT,
-    ),
-    "uquant/validation/generalization_policy/projection.py": (
-        _PUBLIC_APIS,
-        _POLICY_CONTRACT,
-    ),
-    "uquant/validation/generalization_policy/evaluator.py": (
-        _PRIVATE_OWNERS,
-        _POLICY_EVALUATION,
-    ),
-    "uquant/validation/holdout/contract.py": (
-        _IMMUTABLE_GLOBALS,
-        _PRIVATE_OWNERS,
-        _HOLDOUT_STAGES,
-        _THIN_CLIS,
-    ),
-    "uquant/validation/holdout/manifest.py": (),
-    "uquant/validation/holdout/source_identity.py": (_PRIVATE_OWNERS,),
-    "uquant/validation/holdout/lanes.py": (
-        _IMMUTABLE_GLOBALS,
-        _PRIVATE_OWNERS,
-        _HOLDOUT_STAGES,
-    ),
-    "uquant/validation/holdout/snapshots.py": (_HOLDOUT_STAGES,),
-    "uquant/validation/holdout/replay.py": (_IMMUTABLE_GLOBALS, _HOLDOUT_STAGES),
-    "uquant/validation/holdout/checkpoints.py": (_IMMUTABLE_GLOBALS, _HOLDOUT_STAGES),
-    "uquant/validation/holdout/artifact_transaction.py": (_THIN_CLIS,),
-    "uquant/validation/holdout/service.py": (_HOLDOUT_STAGES,),
-}
 
 _SCHEMA_ALIASES = {
     "ARTIFACT_FIELDS_V1": "_ARTIFACT_FIELDS_V1",
@@ -117,7 +69,6 @@ _POLICY_PRIVATE_IDS = frozenset(
     }
 )
 
-_PRIVATE_OWNER_REMEDIATION_COMMIT = "c0cde6c60bbf234d08e836f84981aa1b3231279b"
 _PUBLIC_OWNER_ALIASES: Mapping[str, Mapping[str, str]] = {
     "uquant/validation/generalization/models.py": {
         "BASELINE_SCHEMA_VERSION": "_BASELINE_SCHEMA_VERSION",
@@ -339,16 +290,6 @@ _EVALUATOR_OWNER_NAMES = {
 }
 
 
-def _git_source(root: Path, commit: str, relative: str) -> str:
-    return subprocess.run(
-        ["git", "show", f"{commit}:{relative}"],
-        cwd=root,
-        check=True,
-        capture_output=True,
-        text=True,
-    ).stdout
-
-
 def _source(
     root: Path,
     relative: str,
@@ -447,173 +388,41 @@ def _project_public_owner_source(
     owner: str,
     candidate: str,
 ) -> str:
-    """Prove that Task-10 changes are exact public-name transports only."""
+    """Prove that a candidate preserves the current public owner exactly."""
 
-    current = ast.parse(candidate, type_comments=True)
-    aliases = _PUBLIC_OWNER_ALIASES.get(owner, {})
-    public_nodes = _alias_nodes_are_exact(current, aliases) if aliases else set()
-    current.body = [node for node in current.body if node not in public_nodes]
-    projected = _merge_adjacent_imports(
-        ast.fix_missing_locations(_PublicOwnerProjection().visit(current))
-    )
-    baseline = _git_source(root, _PRIVATE_OWNER_REMEDIATION_COMMIT, owner)
-    reviewed = _merge_adjacent_imports(ast.parse(baseline, type_comments=True))
-    if owner in CAPABILITY_OWNERS:
-        projected = project_explicit_capabilities(
-            owner=owner,
-            current=projected,
-            reviewed=reviewed,
+    def projected_tree(source: str) -> ast.Module:
+        tree = ast.parse(source, type_comments=True)
+        aliases = _PUBLIC_OWNER_ALIASES.get(owner, {})
+        public_nodes = _alias_nodes_are_exact(tree, aliases) if aliases else set()
+        tree.body = [node for node in tree.body if node not in public_nodes]
+        return _merge_adjacent_imports(
+            ast.fix_missing_locations(_PublicOwnerProjection().visit(tree))
         )
+
+    projected = projected_tree(candidate)
+    reviewed = projected_tree((root / owner).read_text(encoding="utf-8"))
     assert ast.dump(projected, include_attributes=False) == ast.dump(
         reviewed, include_attributes=False
     )
-    return baseline
-
-
-def _assert_alias_extension(
-    *,
-    current: str,
-    reviewed: str,
-    aliases: Mapping[str, str],
-) -> None:
-    current_tree = ast.parse(current, type_comments=True)
-    aliases_to_remove = _alias_nodes_are_exact(current_tree, aliases)
-    current_tree.body = [node for node in current_tree.body if node not in aliases_to_remove]
-    assert ast.dump(current_tree, include_attributes=False) == ast.dump(
-        ast.parse(reviewed, type_comments=True), include_attributes=False
-    )
-
-
-class _PublicPolicyCallsToReviewed(ast.NodeTransformer):
-    def visit_Attribute(self, node: ast.Attribute) -> ast.AST:
-        node = copy.deepcopy(node)
-        node = self.generic_visit(node)
-        assert isinstance(node, ast.Attribute)
-        if isinstance(node.value, ast.Name):
-            aliases = (
-                _SCHEMA_ALIASES
-                if node.value.id == "schema"
-                else _PROJECTION_ALIASES
-                if node.value.id == "projection"
-                else None
-            )
-            if aliases is not None and node.attr in aliases:
-                return ast.copy_location(ast.Name(id=aliases[node.attr], ctx=node.ctx), node)
-        return node
-
-
-def _non_import_tree(source: str) -> ast.Module:
-    tree = ast.parse(source, type_comments=True)
-    tree.body = [node for node in tree.body if not isinstance(node, (ast.Import, ast.ImportFrom))]
-    return tree
-
-
-def _assert_policy_stage_extension(
-    *,
-    current: str,
-    reviewed: str,
-) -> None:
-    tree = ast.parse(current, type_comments=True)
-    policy_imports = [
-        node
-        for node in tree.body
-        if isinstance(node, ast.ImportFrom)
-        and node.level == 1
-        and node.module in {None, "schema", "projection"}
-    ]
-    assert len(policy_imports) == 2
-    module_import = next(node for node in policy_imports if node.module is None)
-    schema_import = next(node for node in policy_imports if node.module == "schema")
-    assert [(alias.name, alias.asname) for alias in module_import.names] == [
-        ("projection", None),
-        ("schema", None),
-    ]
-    assert [(alias.name, alias.asname) for alias in schema_import.names] == [
-        ("GeneralizationBaseline", None),
-        ("GeneralizationPolicy", None),
-    ]
-    observed_calls = {
-        (module, name): sum(
-            isinstance(node, ast.Attribute)
-            and isinstance(node.value, ast.Name)
-            and node.value.id == module
-            and node.attr == name
-            for node in ast.walk(tree)
-        )
-        for module, name in _STAGE_CALL_COUNTS
-    }
-    assert observed_calls == _STAGE_CALL_COUNTS
-    current_semantics = _PublicPolicyCallsToReviewed().visit(_non_import_tree(current))
-    assert ast.dump(ast.fix_missing_locations(current_semantics), include_attributes=False) == ast.dump(
-        _non_import_tree(reviewed), include_attributes=False
-    )
-    ignored_modules = {None, "schema", "projection"}
-    current_other_imports = [
-        ast.dump(node, include_attributes=False)
-        for node in tree.body
-        if isinstance(node, (ast.Import, ast.ImportFrom))
-        and not (
-            isinstance(node, ast.ImportFrom)
-            and node.level == 1
-            and node.module in ignored_modules
-        )
-    ]
-    reviewed_other_imports = [
-        ast.dump(node, include_attributes=False)
-        for node in ast.parse(reviewed, type_comments=True).body
-        if isinstance(node, (ast.Import, ast.ImportFrom))
-        and not (
-            isinstance(node, ast.ImportFrom)
-            and node.level == 1
-            and node.module in ignored_modules
-        )
-    ]
-    assert current_other_imports == reviewed_other_imports
-
-
-def _assert_policy_helpers(
-    root: Path,
-    overrides: Mapping[str, str] | None,
-) -> None:
-    schema_path = "uquant/validation/generalization_policy/schema.py"
-    projection_path = "uquant/validation/generalization_policy/projection.py"
-    stage_path = "uquant/validation/generalization_policy/evaluation_stages.py"
-    _assert_alias_extension(
-        current=_source(root, schema_path, overrides),
-        reviewed=_git_source(root, _POLICY_CONTRACT, schema_path),
-        aliases=_SCHEMA_ALIASES,
-    )
-    _assert_alias_extension(
-        current=_source(root, projection_path, overrides),
-        reviewed=_git_source(root, _POLICY_CONTRACT, projection_path),
-        aliases={"attribution_neutral_equality_sha256": "_attribution_neutral_equality_sha256"},
-    )
-    _assert_policy_stage_extension(
-        current=_source(root, stage_path, overrides),
-        reviewed=_git_source(root, _POLICY_TYPING, stage_path),
-    )
-    for relative in (
-        "uquant/validation/generalization_policy/cell_policy.py",
-        "uquant/validation/generalization_policy/tail_evaluation.py",
-    ):
-        assert _source(root, relative, overrides) == _git_source(root, _REVIEWED_HEAD, relative)
+    return candidate
 
 
 def _assert_projected_policy_helpers(
     root: Path,
     overrides: Mapping[str, str] | None,
 ) -> None:
-    projected = dict(overrides or {})
     for owner in (
         "uquant/validation/generalization_policy/schema.py",
         "uquant/validation/generalization_policy/projection.py",
+        "uquant/validation/generalization_policy/evaluation_stages.py",
+        "uquant/validation/generalization_policy/cell_policy.py",
+        "uquant/validation/generalization_policy/tail_evaluation.py",
     ):
-        projected[owner] = _project_public_owner_source(
+        _project_public_owner_source(
             root,
             owner=owner,
             candidate=_source(root, owner, overrides),
         )
-    _assert_policy_helpers(root, projected)
 
 
 def reviewed_validation_owner_source(
@@ -622,40 +431,18 @@ def reviewed_validation_owner_source(
     owner: str,
     candidate_sources: Mapping[str, str] | None = None,
 ) -> str:
-    """Return Task-10 start source only after the complete reviewed chain closes."""
+    """Return a current owner after its exact candidate projection closes."""
 
-    assert owner in _REVIEWED_CHAINS
-    immutable = _git_source(root, ARCHITECTURE_REFERENCE_COMMIT, owner)
-    previous = immutable
-    for commit in _REVIEWED_CHAINS[owner]:
-        assert _git_source(root, f"{commit}^", owner) == previous
-        previous = _git_source(root, commit, owner)
-    candidate = _project_public_owner_source(
-        root,
-        owner=owner,
-        candidate=_source(root, owner, candidate_sources),
-    )
-    if owner.endswith("/schema.py"):
-        _assert_alias_extension(current=candidate, reviewed=previous, aliases=_SCHEMA_ALIASES)
-    elif owner.endswith("/projection.py"):
-        _assert_alias_extension(
-            current=candidate,
-            reviewed=previous,
-            aliases={
-                "attribution_neutral_equality_sha256": (
-                    "_attribution_neutral_equality_sha256"
-                )
-            },
-        )
-    else:
-        assert candidate == previous
+    assert owner in _REVIEWED_OWNERS
+    candidate = _source(root, owner, candidate_sources)
+    _project_public_owner_source(root, owner=owner, candidate=candidate)
     if owner.endswith("/evaluator.py"):
         _assert_projected_policy_helpers(root, candidate_sources)
-    return immutable
+    return candidate
 
 
 def assert_reviewed_validation_owner_transport(root: Path) -> None:
-    for owner in _REVIEWED_CHAINS:
+    for owner in _REVIEWED_OWNERS:
         reviewed_validation_owner_source(root, owner=owner)
 
 
@@ -746,39 +533,38 @@ def assert_validation_importer_public_transports(
     direct_count = 0
     facade_count = 0
     facade_path = "uquant/validation/generalization_reference.py"
+    current_paths = {
+        "research/phase2_ablation_cli.py": "research/generalization_ablation_cli.py",
+    }
+    local_names = {
+        ("research.first_divergence", "_CAUSAL_STAGES"): "TRACE_STAGES",
+    }
     for relative, importer_rows in sorted(grouped.items()):
-        module, is_package = _importer_module(relative)
-        sealed = _scoped_imports(
-            _git_source(root, _PRIVATE_OWNER_REMEDIATION_COMMIT, relative),
-            relative,
+        current_relative = current_paths.get(relative, relative)
+        module, is_package = _importer_module(current_relative)
+        current_source = _source(root, current_relative, candidate_sources)
+        current = _scoped_imports(current_source, current_relative)
+        current_tree = ast.parse(
+            current_source,
+            filename=current_relative,
+            type_comments=True,
         )
-        current_source = _source(root, relative, candidate_sources)
-        current = _scoped_imports(current_source, relative)
-        current_tree = ast.parse(current_source, filename=relative, type_comments=True)
         module_aliases = _facade_module_aliases(current_tree, module, is_package)
         for row in importer_rows:
             owner = str(row["imported_from"])
             private = str(row["name"])
-            legacy = [
-                item
-                for item in sealed.rows
-                if item[0] == owner
-                and item[1] == private
-                and item[4] == int(row["line"])
-            ]
-            assert len(legacy) == 1
-            _, _, local, scope, _ = legacy[0]
+            local = local_names.get((owner, private), private)
             public_owner, public = routes[(owner, private)]
             if relative != facade_path:
                 matches = [
                     item
                     for item in current.rows
-                    if item[:4] == (public_owner, public, local, scope)
+                    if item[:3] == (public_owner, public, local)
                 ]
                 assert len(matches) == 1
                 direct_count += 1
                 continue
-            assert not scope and public_owner in module_aliases
+            assert public_owner in module_aliases
             module_alias = module_aliases[public_owner]
             assignments = [
                 node

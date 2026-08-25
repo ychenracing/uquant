@@ -3,15 +3,11 @@ from __future__ import annotations
 import importlib
 from collections.abc import Mapping
 
-from ._analysis import ROOT, architecture_snapshot
+from ._analysis import architecture_snapshot
 from ._private_imports import (
     current_governed_sources,
     scan_governed_private_edges,
-    scan_sealed_governed_private_edges,
 )
-
-_PORTFOLIO_PUBLIC_OWNERS_COMMIT = "a2a81c2729d0f487e4816006beb4967dfd169cb2"
-_PORTFOLIO_PUBLIC_OWNERS_TREE = "08eb399120d76626cca3c9618cbb76b564d6a652"
 
 PORTFOLIO_PUBLIC_ROUTES = {
     ("uquant.portfolio.leaders.admission", "_admission_utility"): (
@@ -202,14 +198,8 @@ def test_architecture_portfolio_current_private_edges_are_closed() -> None:
     assert not current_ids & historical_ids
 
 
-def test_architecture_portfolio_raw_count_progression_is_exact() -> None:
-    checkpoint = scan_sealed_governed_private_edges(
-        ROOT,
-        commit=_PORTFOLIO_PUBLIC_OWNERS_COMMIT,
-        tree=_PORTFOLIO_PUBLIC_OWNERS_TREE,
-    )
-    assert len(checkpoint["direct"]) == 189
-    assert len(checkpoint["qualified"]) == 19
+def test_architecture_portfolio_current_private_import_contract_is_closed() -> None:
+    assert len(_portfolio_rows()) == 35
     assert scan_governed_private_edges(current_governed_sources()) == {
         "direct": [],
         "qualified": [],

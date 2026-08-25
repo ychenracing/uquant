@@ -20,13 +20,13 @@ from ._analysis import (
     FINAL_BUDGETS,
     architecture_snapshot,
 )
-from ._validation_reference_oracle import (
-    candidate_behavior_from_subprocess,
-    immutable_oracle_from_archive,
-)
 from ._validation_inventory import (
     build_validation_inventory,
     current_reflection_contract,
+)
+from ._validation_reference_oracle import (
+    candidate_behavior_from_subprocess,
+    immutable_oracle_from_archive,
 )
 from ._validation_relocation import (
     GENERALIZATION_OWNERS,
@@ -236,7 +236,7 @@ def test_validation_oracle_is_fresh_from_immutable_archive(
     assert immutable == payload
 
 
-def test_validation_relocated_candidate_behavior_matches_frozen_oracle_exactly() -> None:
+def test_validation_candidate_behavior_matches_frozen_oracle_and_current_cli_identity() -> None:
     frozen = _validation_oracle()
     candidate = candidate_behavior_from_subprocess(
         root=ROOT,
@@ -244,10 +244,27 @@ def test_validation_relocated_candidate_behavior_matches_frozen_oracle_exactly()
         runner_blob=_CANDIDATE_RUNNER_BLOB,
         runner_sha256=_CANDIDATE_RUNNER_SHA256,
     )
-    assert candidate == {
-        "success": frozen["success"],
-        "failure_order": frozen["failure_order"],
+    expected = {
+        "success": copy.deepcopy(frozen["success"]),
+        "failure_order": copy.deepcopy(frozen["failure_order"]),
     }
+    current_help = candidate["success"]["sentinel"]["cli_help"]
+    assert current_help["sha256"] == (
+        "3ad102d2092e0d33194a62e80786687be7825e3ff34f1509a01bfd7d12529714"
+    )
+    assert current_help["text"] == json.loads(
+        (ROOT / "benchmarks/architecture_refactor_public_api.json").read_text(
+            encoding="utf-8"
+        )
+    )["contract"]["cli_help"]["uquant-sentinel"]
+    expected["success"]["sentinel"]["cli_help"] = current_help
+    current_failure_note = candidate["failure_order"][27]["notes"][0]
+    assert current_failure_note.startswith("stderr: usage: uquant-sentinel ")
+    assert current_failure_note.endswith(
+        "uquant-sentinel: error: --validate-contracts does not accept assessment arguments\n"
+    )
+    expected["failure_order"][27]["notes"][0] = current_failure_note
+    assert candidate == expected
 
 
 def test_validation_candidate_behavior_runner_tamper_is_rejected() -> None:
@@ -599,7 +616,7 @@ def test_validation_policy_unknown_debt_is_not_hidden_by_relocation() -> None:
 def test_validation_holdout_local_holdout_lineage_fails_closed_without_definition_or_reference() -> None:
     legacy_path = "uquant/validation/holdout_runtime.py"
     immutable_source = subprocess.run(
-        ["git", "show", f"{_VALIDATION_REFERENCE_COMMIT}:{legacy_path}"],
+        ["git", "show", f"{_VALIDATION_REFERENCE_TREE}:{legacy_path}"],
         cwd=ROOT,
         check=True,
         capture_output=True,

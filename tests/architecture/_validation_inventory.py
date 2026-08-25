@@ -141,19 +141,19 @@ def _git(root: Path, *arguments: str, text: bool = False) -> bytes | str:
 
 
 def _git_source(root: Path, path: str) -> bytes:
-    value = _git(root, "show", f"{VALIDATION_REFERENCE_COMMIT}:{path}")
+    value = _git(root, "show", f"{VALIDATION_REFERENCE_TREE}:{path}")
     assert isinstance(value, bytes)
     return value
 
 
 def immutable_python_sources(root: Path) -> dict[str, bytes]:
-    listing = _git(root, "ls-tree", "-r", "--name-only", VALIDATION_REFERENCE_COMMIT, text=True)
+    listing = _git(root, "ls-tree", "-r", "--name-only", VALIDATION_REFERENCE_TREE, text=True)
     assert isinstance(listing, str)
     paths = [path for path in listing.splitlines() if path.endswith(".py")]
     batch = subprocess.run(
         ["git", "cat-file", "--batch"],
         cwd=root,
-        input="".join(f"{VALIDATION_REFERENCE_COMMIT}:{path}\n" for path in paths).encode(),
+        input="".join(f"{VALIDATION_REFERENCE_TREE}:{path}\n" for path in paths).encode(),
         check=True,
         capture_output=True,
     ).stdout
@@ -379,7 +379,7 @@ def _fixed_references(root: Path, path: str) -> list[str]:
         "-l",
         "--fixed-strings",
         path,
-        VALIDATION_REFERENCE_COMMIT,
+        VALIDATION_REFERENCE_TREE,
         "--",
         ".",
         text=True,
@@ -426,7 +426,7 @@ def _reference_classification(paths: list[str]) -> dict[str, list[str]]:
 
 
 def _literal_resources(root: Path, source: bytes) -> list[dict[str, Any]]:
-    listing = _git(root, "ls-tree", "-r", "--name-only", VALIDATION_REFERENCE_COMMIT, text=True)
+    listing = _git(root, "ls-tree", "-r", "--name-only", VALIDATION_REFERENCE_TREE, text=True)
     assert isinstance(listing, str)
     tracked = set(listing.splitlines())
     values = sorted(
@@ -592,7 +592,7 @@ def current_reflection_contract(root: Path) -> dict[str, Any]:
 
 
 def _reflection_contract(root: Path) -> dict[str, Any]:
-    archive = _git(root, "archive", "--format=tar", VALIDATION_REFERENCE_COMMIT)
+    archive = _git(root, "archive", "--format=tar", VALIDATION_REFERENCE_TREE)
     assert isinstance(archive, bytes)
     with tempfile.TemporaryDirectory(prefix="uquant-task9-inventory-") as temporary:
         snapshot = Path(temporary) / "snapshot"
@@ -612,7 +612,7 @@ def build_validation_inventory(root: Path) -> dict[str, Any]:
     entries: list[dict[str, Any]] = []
     for path, module, disposition in LEGACY_IMPLEMENTATIONS:
         source = _git_source(root, path)
-        blob = _git(root, "rev-parse", f"{VALIDATION_REFERENCE_COMMIT}:{path}", text=True)
+        blob = _git(root, "rev-parse", f"{VALIDATION_REFERENCE_TREE}:{path}", text=True)
         assert isinstance(blob, str)
         references = _fixed_references(root, path)
         memberships = [
@@ -728,8 +728,8 @@ def build_validation_inventory(root: Path) -> dict[str, Any]:
 
 __all__ = (
     "LEGACY_IMPLEMENTATIONS",
-    "TASK9_START",
-    "TASK9_START_TREE",
+    "VALIDATION_REFERENCE_COMMIT",
+    "VALIDATION_REFERENCE_TREE",
     "build_validation_inventory",
     "current_reflection_contract",
 )

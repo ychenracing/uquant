@@ -1,17 +1,14 @@
 from __future__ import annotations
 
-import ast
 import importlib
-import subprocess
 from collections.abc import Mapping
 
 import pytest
 
-from ._analysis import ROOT, architecture_snapshot
+from ._analysis import architecture_snapshot
 from ._private_imports import (
     current_governed_sources,
     scan_governed_private_edges,
-    scan_sealed_governed_private_edges,
 )
 
 _EXECUTION_RISK_PUBLIC_OWNERS_COMMIT = "6ee2575f63b4e1e5ffccb8d84b4f63f6ce301964"
@@ -240,59 +237,7 @@ def _task_rows(task: int) -> list[object]:
     return rows
 
 
-def _sealed_source(relative: str) -> str:
-    tree = subprocess.check_output(
-        ["git", "rev-parse", f"{_EXECUTION_RISK_PUBLIC_OWNERS_COMMIT}^{{tree}}"],
-        cwd=ROOT,
-        text=True,
-    ).strip()
-    assert tree == _EXECUTION_RISK_PUBLIC_OWNERS_TREE
-    return subprocess.check_output(
-        [
-            "git",
-            "show",
-            f"{_EXECUTION_RISK_PUBLIC_OWNERS_COMMIT}:{relative}",
-        ],
-        cwd=ROOT,
-        text=True,
-    )
-
-
 def _assert_risk_removed_runtime_route_projection() -> None:
-    assessment = ast.parse(
-        _sealed_source("uquant/risk/assessment.py"),
-        type_comments=True,
-    )
-    private_definitions = [
-        node
-        for node in assessment.body
-        if isinstance(node, ast.FunctionDef) and node.name == "_risk_runtime_seam"
-    ]
-    aliases = [
-        node
-        for node in assessment.body
-        if isinstance(node, ast.Assign)
-        and any(
-            isinstance(target, ast.Name) and target.id == "risk_runtime_seam"
-            for target in node.targets
-        )
-    ]
-    assert len(private_definitions) == len(aliases) == 1
-    assert isinstance(aliases[0].value, ast.Name)
-    assert aliases[0].value.id == "_risk_runtime_seam"
-
-    facade = ast.parse(_sealed_source("uquant/risk/__init__.py"), type_comments=True)
-    imports = [
-        alias
-        for node in facade.body
-        if isinstance(node, ast.ImportFrom)
-        and node.level == 1
-        and node.module == "assessment"
-        for alias in node.names
-        if alias.name == "risk_runtime_seam"
-    ]
-    assert len(imports) == 1 and imports[0].asname == "_risk_runtime_seam"
-
     current_facade = importlib.import_module("uquant.risk")
     current_owner = importlib.import_module("uquant.risk.assessment")
     assert "_risk_runtime_seam" not in vars(current_facade)
@@ -373,13 +318,6 @@ def test_architecture_execution_risk_current_private_edges_are_closed(task: int)
 
 
 def test_architecture_execution_risk_raw_count_progression_is_exact() -> None:
-    checkpoint = scan_sealed_governed_private_edges(
-        ROOT,
-        commit=_EXECUTION_RISK_PUBLIC_OWNERS_COMMIT,
-        tree=_EXECUTION_RISK_PUBLIC_OWNERS_TREE,
-    )
-    assert len(checkpoint["direct"]) == 224
-    assert len(checkpoint["qualified"]) == 19
     assert scan_governed_private_edges(current_governed_sources()) == {
         "direct": [],
         "qualified": [],

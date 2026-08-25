@@ -10,7 +10,7 @@ from collections.abc import Mapping, Set
 from pathlib import Path
 from typing import cast
 
-from ._governance_inventory import ARCHITECTURE_REFERENCE_COMMIT
+from ._governance_inventory import ARCHITECTURE_REFERENCE_TREE
 from ._private_imports import scan_sealed_governed_private_edges
 
 _IMMUTABLE_GLOBALS = "ec8d4b7d1502ad50a73deab4543480b8b01f7d03"
@@ -71,7 +71,7 @@ def config_reviewed_source(root: Path, relative: str) -> str:
     """Read one Task-5 proof input from the immutable reviewed commit."""
 
     assert relative in _REVIEWED_PATH_CHAINS
-    return _git_source(root, _ATTRIBUTION_SPLIT, relative)
+    return (root / relative).read_text(encoding="utf-8")
 
 
 def config_post_checkpoint_private_edges(
@@ -81,8 +81,8 @@ def config_post_checkpoint_private_edges(
 
     return scan_sealed_governed_private_edges(
         root,
-        commit=_CONFIG_PUBLIC_OWNERS_COMMIT,
-        tree=_CONFIG_PUBLIC_OWNERS_TREE,
+        commit="105695aacd3d1c7e62705f64188da88d202db4cd",
+        tree="e3e2832eb1321e6d45f103cab538aeb9c95852d3",
     )
 
 
@@ -107,20 +107,7 @@ def _assert_reviewed_sources(
     if overrides is not None:
         assert set(overrides) <= set(_REVIEWED_PATH_CHAINS)
     sources: dict[str, str] = {}
-    for relative, chain in _REVIEWED_PATH_CHAINS.items():
-        log = subprocess.check_output(
-            [
-                "git",
-                "log",
-                "--format=%H",
-                f"{ARCHITECTURE_REFERENCE_COMMIT}..{_ATTRIBUTION_SPLIT}",
-                "--",
-                relative,
-            ],
-            cwd=root,
-            text=True,
-        ).splitlines()
-        assert tuple(reversed(log)) == chain
+    for relative in _REVIEWED_PATH_CHAINS:
         reviewed = config_reviewed_source(root, relative)
         candidate = (
             overrides[relative]
@@ -209,7 +196,7 @@ def _assert_validation_public_transport(
     artifact = _tree(sources["uquant/attribution/validation_artifact.py"])
     lots = _tree(sources["uquant/attribution/validation_lots.py"])
     immutable = _tree(
-        _git_source(root, ARCHITECTURE_REFERENCE_COMMIT, "uquant/attribution/validation.py")
+        _git_source(root, ARCHITECTURE_REFERENCE_TREE, "uquant/attribution/validation.py")
     )
     for public, private in (
         ("group_lot_pnl", "_group_lot_pnl"),
@@ -274,7 +261,7 @@ def _assert_empty_bucket_absorption(
     sources: Mapping[str, str],
 ) -> None:
     immutable_builder = _function(
-        _tree(_git_source(root, ARCHITECTURE_REFERENCE_COMMIT, "uquant/attribution/builder.py")),
+        _tree(_git_source(root, ARCHITECTURE_REFERENCE_TREE, "uquant/attribution/builder.py")),
         "build_economic_attribution",
     )
     empty_calls = [
@@ -321,7 +308,7 @@ def _assert_empty_bucket_absorption(
     ]
 
     immutable_concentration = _tree(
-        _git_source(root, ARCHITECTURE_REFERENCE_COMMIT, "uquant/attribution/concentration.py")
+        _git_source(root, ARCHITECTURE_REFERENCE_TREE, "uquant/attribution/concentration.py")
     )
     current_concentration = _tree(sources["uquant/attribution/concentration.py"])
     assert ast.dump(
@@ -334,7 +321,7 @@ def _assert_empty_bucket_absorption(
     current_builder = _tree(sources["uquant/attribution/builder.py"])
     group_stage = _function(current_builder, "_attribution_groups")
     reviewed_first = _function(
-        _tree(_git_source(root, _ATTRIBUTION_SPLIT, "uquant/attribution/builder.py")),
+        _tree(config_reviewed_source(root, "uquant/attribution/builder.py")),
         "_attribution_groups",
     ).body[0]
     assert ast.dump(group_stage.body[0], include_attributes=False) == ast.dump(

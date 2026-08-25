@@ -104,7 +104,17 @@ def _stable_default(value: object) -> dict[str, object]:
             "sha256": canonical_sha256(dataclasses.asdict(value)),
         }
     if isinstance(value, Path):
-        return {"kind": "path", "value": value.as_posix()}
+        try:
+            relative = value.relative_to(ROOT.resolve()) if value.is_absolute() else None
+        except ValueError:
+            stable_value = value.as_posix()
+        else:
+            stable_value = (
+                f"<REPOSITORY_ROOT>/{relative.as_posix()}"
+                if relative is not None
+                else value.as_posix()
+            )
+        return {"kind": "path", "value": stable_value}
     if isinstance(value, (tuple, list)) and all(
         item is None or isinstance(item, (bool, int, float, str)) for item in value
     ):

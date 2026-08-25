@@ -8,7 +8,7 @@ import subprocess
 from collections.abc import Mapping, Set
 from pathlib import Path
 
-from ._governance_inventory import ARCHITECTURE_REFERENCE_COMMIT
+from ._governance_inventory import ARCHITECTURE_REFERENCE_TREE
 from ._owner_transport import architecture_portfolio_reviewed_sources
 
 
@@ -278,7 +278,7 @@ def expand_portfolio_allocator_method(
     """Expand one exact reviewed checkpoint-1 owner to the Task-10 start AST."""
     overrides = architecture_portfolio_reviewed_sources(root=root, overrides=overrides)
     frozen_source = subprocess.check_output(
-        ["git", "show", f"{ARCHITECTURE_REFERENCE_COMMIT}:{relative}"],
+        ["git", "show", f"{ARCHITECTURE_REFERENCE_TREE}:{relative}"],
         cwd=root,
         text=True,
     )
@@ -310,7 +310,7 @@ def architecture_portfolio_type_ignore_projection(
     """Project three frozen ignores only after exact typed-owner expansion."""
     assert observed == set()
     frozen_source = subprocess.check_output(
-        ["git", "show", f"{ARCHITECTURE_REFERENCE_COMMIT}:uquant/portfolio/risk_reduction.py"],
+        ["git", "show", f"{ARCHITECTURE_REFERENCE_TREE}:uquant/portfolio/risk_reduction.py"],
         cwd=root,
         text=True,
     )

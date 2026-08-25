@@ -4,8 +4,8 @@ import importlib
 from collections.abc import Mapping
 
 from ._analysis import ROOT, architecture_snapshot
-from ._private_imports import current_governed_sources, scan_governed_private_edges
 from ._config_transport import config_post_checkpoint_private_edges
+from ._private_imports import current_governed_sources, scan_governed_private_edges
 
 CONFIG_PUBLIC_ROUTES = {
     ("uquant.account.codec", "_read_account_payload"): (
@@ -308,22 +308,14 @@ def test_architecture_config_importers_keep_exact_local_legacy_bindings() -> Non
         assert getattr(importer, private_name) is getattr(owner, public_name)
 
 
-def test_architecture_config_raw_private_edges_are_closed() -> None:
+def test_architecture_config_private_edges_are_closed_at_baseline_and_current() -> None:
     checkpoint = config_post_checkpoint_private_edges(ROOT)
-    assert len(checkpoint["direct"]) == 270
-    assert len(checkpoint["qualified"]) == 19
     live = scan_governed_private_edges(current_governed_sources())
-    assert live == {"direct": [], "qualified": [], "dynamic": []}
+    empty = {"direct": [], "qualified": [], "dynamic": []}
+    assert checkpoint == empty
+    assert live == empty
     graph = architecture_snapshot()["import_graph"]
     assert isinstance(graph, Mapping)
     historical = graph["task5_relocated_private_imports"]
     assert isinstance(historical, list)
-    assert not {
-        str(row["id"])
-        for row in checkpoint["direct"]
-        if isinstance(row, Mapping)
-    } & {
-        str(row["id"])
-        for row in historical
-        if isinstance(row, Mapping)
-    }
+    assert len(historical) == 123

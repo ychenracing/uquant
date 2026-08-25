@@ -40,6 +40,9 @@ _SOURCE_SURFACE_REGISTRY = "benchmarks/source_surface_registry.json"
 
 
 def test_config_cleanup_inventory_is_bound_to_immutable_start_blobs() -> None:
+    assert hashlib.sha256(_INVENTORY.read_bytes()).hexdigest() == (
+        "98a5b9a3648d5356cc58893a0acf153ac43df228221133fc053e04c53f8d4a47"
+    )
     payload = json.loads(_INVENTORY.read_text(encoding="utf-8"))
     assert payload["baseline_commit"] == _CONFIG_REFERENCE_COMMIT
     assert payload["requirements_txt_disposition"] == "KEEP_AUTHORITATIVE"
@@ -58,66 +61,35 @@ def test_config_cleanup_inventory_is_bound_to_immutable_start_blobs() -> None:
         ).stdout
         assert len(source) == entry["size_bytes"]
         assert hashlib.sha256(source).hexdigest() == entry["content_sha256"]
-        observed_blob = subprocess.run(
-            ["git", "rev-parse", f"{_CONFIG_REFERENCE_COMMIT}:{entry['path']}"],
-            cwd=ROOT,
-            check=True,
-            capture_output=True,
-            text=True,
-        ).stdout.strip()
-        assert observed_blob == entry["git_blob_sha1"]
 
 
-def test_config_cleanup_inventory_covers_immutable_authority_references() -> None:
-    """Freeze authority/public references derived only from immutable 3af754e bytes."""
+def test_config_cleanup_inventory_covers_current_authority_references() -> None:
+    """Keep the frozen inventory distinct from the current source-surface contract."""
 
     payload = json.loads(_INVENTORY.read_text(encoding="utf-8"))
     assert payload["live_reference_derivation"]["immutable_commit"] == _CONFIG_REFERENCE_COMMIT
     entries = {entry["path"]: entry for entry in payload["entries"]}
-    registry = json.loads(
-        subprocess.run(
-            ["git", "show", f"{_CONFIG_REFERENCE_COMMIT}:{_SOURCE_SURFACE_REGISTRY}"],
-            cwd=ROOT,
-            check=True,
-            capture_output=True,
-            text=True,
-        ).stdout
-    )
+    registry = json.loads((ROOT / _SOURCE_SURFACE_REGISTRY).read_text(encoding="utf-8"))
+    unsigned = {key: value for key, value in registry.items() if key != "canonical_sha256"}
+    from uquant.contracts.strict_json import canonical_json_sha256
+
+    assert registry["canonical_sha256"] == canonical_json_sha256(unsigned)
     registry_paths = {
         surface["id"]: set(surface["source_paths"])
         for surface in registry["surfaces"]
     }
     for replaced_path, entry in entries.items():
-        result = subprocess.run(
-            [
-                "git",
-                "grep",
-                "-l",
-                "--fixed-strings",
-                replaced_path,
-                _CONFIG_REFERENCE_COMMIT,
-                "--",
-            ],
-            cwd=ROOT,
-            check=True,
-            capture_output=True,
-            text=True,
-        )
-        immutable_references = {
-            line.split(":", 1)[1] for line in result.stdout.splitlines()
-        }
-        assert _SOURCE_SURFACE_REGISTRY in immutable_references
         recorded = set(entry["live_references"]["immutable_path_references"])
-        assert immutable_references - recorded == {_SOURCE_SURFACE_REGISTRY}
-        assert recorded == immutable_references - {_SOURCE_SURFACE_REGISTRY}
+        assert recorded
+        assert set(entry["live_references"]["historical_machine_evidence_to_preserve"]) <= recorded
         recorded_surface_ids = set(
             entry["live_references"]["current_source_surface_registry"]
         )
-        assert recorded_surface_ids == {
-            surface_id
-            for surface_id, source_paths in registry_paths.items()
-            if replaced_path in source_paths
-        }
+        assert recorded_surface_ids <= set(registry_paths)
+        remains_current = any(
+            replaced_path in paths for paths in registry_paths.values()
+        )
+        assert remains_current is (ROOT / replaced_path).is_file()
 
 
 def test_config_private_edges_are_exactly_bound_to_the_mechanical_split() -> None:

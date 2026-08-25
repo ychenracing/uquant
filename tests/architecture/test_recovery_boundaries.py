@@ -16,12 +16,13 @@ from ._analysis import (
     measured_debt,
 )
 from ._owner_transport import (
-    expand_architecture_portfolio_pipeline,
     architecture_private_relocation_projection,
+    expand_architecture_portfolio_pipeline,
 )
 from ._reviewed_owner_transport import expand_reviewed_architecture_owner
 
 _PORTFOLIO_REFERENCE_COMMIT = "4b6bedb03fb7c58914d9d5032a2514c67f41f6ba"
+_PORTFOLIO_REFERENCE_TREE = "d3824f7c5d89521b8284b5de08cc1e82e3ab7ebd"
 _RECOVERY_PACKAGE_PATHS = (
     "uquant/portfolio/recovery/__init__.py",
     "uquant/portfolio/recovery/admission.py",
@@ -100,7 +101,7 @@ _PIPELINE_ARGUMENTS = (
 
 def _git_source(path: str) -> str:
     return subprocess.run(
-        ["git", "show", f"{_PORTFOLIO_REFERENCE_COMMIT}:{path}"],
+        ["git", "show", f"{_PORTFOLIO_REFERENCE_TREE}:{path}"],
         cwd=ROOT,
         check=True,
         capture_output=True,

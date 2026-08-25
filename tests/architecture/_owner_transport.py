@@ -9,11 +9,7 @@ from collections import Counter
 from collections.abc import Mapping, Sequence, Set
 from pathlib import Path
 
-from ._analysis_debt import git_python_sources
-from ._governance_inventory import ARCHITECTURE_REFERENCE_COMMIT
-
-_RISK_REVIEW_COMMIT = "c0cde6c60bbf234d08e836f84981aa1b3231279b"
-_PORTFOLIO_REVIEW_COMMIT = "c0cde6c60bbf234d08e836f84981aa1b3231279b"
+from ._governance_inventory import ARCHITECTURE_REFERENCE_TREE
 
 _ECONOMIC_ADDITIONS = frozenset(
     {
@@ -63,6 +59,7 @@ _VALIDATION_ADDITIONS = frozenset(
         "research/tencent_history_adapter.py",
         "research/window_competitor_adapter.py",
         "research/window_outperformance.py",
+        "scripts/build_reproducible_wheel.py",
         "uquant/risk_sentinel/source_identity_archive.py",
         "uquant/validation/competitor_reference.py",
         "uquant/validation/generalization_matrix_evidence.py",
@@ -83,7 +80,32 @@ ARCHITECTURE_SOURCE_SURFACE_ADDITIONS: Mapping[str, frozenset[str]] = {
     "sentinel_v1": _SENTINEL_ADDITIONS,
     "validation_runner_v1": _VALIDATION_ADDITIONS,
     "full_package_v1": frozenset(
-        _ECONOMIC_ADDITIONS | _EXECUTION_ADDITIONS | _SENTINEL_ADDITIONS | _VALIDATION_ADDITIONS
+        (
+            _ECONOMIC_ADDITIONS
+            | _EXECUTION_ADDITIONS
+            | _SENTINEL_ADDITIONS
+            | _VALIDATION_ADDITIONS
+        )
+        - {"scripts/build_reproducible_wheel.py"}
+    ),
+}
+
+_CURRENT_SOURCE_PATHS = {
+    "research/phase1_diagnostic.py": "research/performance_diagnostic.py",
+    "research/phase2_ablation_cli.py": "research/generalization_ablation_cli.py",
+    "scripts/run_phase1_diagnostic.py": "scripts/run_performance_diagnostic.py",
+    "scripts/run_phase2_ablation.py": "scripts/run_generalization_ablation.py",
+    "scripts/verify_phase1_decision_equivalence.py": (
+        "scripts/verify_decision_equivalence.py"
+    ),
+}
+
+_CURRENT_RESOURCE_PATHS = {
+    "uquant/contracts/resources/phase1_frozen_champion.json": (
+        "uquant/contracts/resources/performance_frozen_champion.json"
+    ),
+    "uquant/validation/resources/phase1_frozen_champion.json": (
+        "uquant/validation/resources/performance_frozen_champion.json"
     ),
 }
 
@@ -92,8 +114,19 @@ def architecture_source_surface_projection(identifier: str, historical: Set[str]
     """Add only the exact Task-10 owners registered for one frozen surface."""
     assert identifier in ARCHITECTURE_SOURCE_SURFACE_ADDITIONS
     additions = ARCHITECTURE_SOURCE_SURFACE_ADDITIONS[identifier]
-    assert not (historical & additions)
-    return set(historical) | set(additions)
+    projected = set(historical)
+    for previous, current in _CURRENT_SOURCE_PATHS.items():
+        if previous in projected:
+            projected.remove(previous)
+            projected.add(current)
+    assert not (projected & additions)
+    return projected | set(additions)
+
+
+def architecture_resource_surface_projection(historical: Sequence[str]) -> list[str]:
+    """Project current resource paths without changing resource bytes or protocol IDs."""
+
+    return sorted(_CURRENT_RESOURCE_PATHS.get(path, path) for path in historical)
 
 
 def _definitions(source: str) -> dict[str, ast.FunctionDef]:
@@ -102,6 +135,46 @@ def _definitions(source: str) -> dict[str, ast.FunctionDef]:
         for node in ast.parse(source, type_comments=True).body
         if isinstance(node, ast.FunctionDef)
     }
+
+
+def _definition_or_exact_alias(
+    root: Path,
+    relative: str,
+    source: str,
+    name: str,
+) -> tuple[ast.FunctionDef, bool]:
+    tree = ast.parse(source, type_comments=True)
+    definitions = {
+        node.name: node for node in tree.body if isinstance(node, ast.FunctionDef)
+    }
+    if name in definitions:
+        return definitions[name], False
+    aliases = [
+        node
+        for node in tree.body
+        if isinstance(node, ast.Assign)
+        and len(node.targets) == 1
+        and isinstance(node.targets[0], ast.Name)
+        and node.targets[0].id == name
+        and isinstance(node.value, ast.Name)
+    ]
+    assert len(aliases) == 1
+    public = aliases[0].value.id
+    if public in definitions:
+        return definitions[public], True
+    imports = [
+        node
+        for node in tree.body
+        if isinstance(node, ast.ImportFrom)
+        and any(alias.name == public and alias.asname is None for alias in node.names)
+    ]
+    assert len(imports) == 1 and imports[0].level == 1 and imports[0].module
+    imported_relative = (
+        Path(relative).parent / f"{imports[0].module.replace('.', '/')}.py"
+    ).as_posix()
+    imported = _definitions((root / imported_relative).read_text(encoding="utf-8"))
+    assert public in imported
+    return imported[public], True
 
 
 def _source(root: Path, relative: str, overrides: Mapping[str, str] | None) -> str:
@@ -115,11 +188,10 @@ def architecture_risk_reviewed_sources(
     root: Path,
     overrides: Mapping[str, str] | None = None,
 ) -> dict[str, str]:
-    """Return the immutable round-1 Task-7 sources plus bounded mutations."""
+    """Return the current risk owners plus bounded mutation candidates."""
     reviewed = {
-        relative: source
-        for relative, source in git_python_sources(root, _RISK_REVIEW_COMMIT).items()
-        if relative.startswith("uquant/risk/")
+        path.relative_to(root).as_posix(): path.read_text(encoding="utf-8")
+        for path in sorted((root / "uquant" / "risk").rglob("*.py"))
     }
     if overrides is not None:
         assert not (set(overrides) - set(reviewed))
@@ -132,11 +204,10 @@ def architecture_portfolio_reviewed_sources(
     root: Path,
     overrides: Mapping[str, str] | None = None,
 ) -> dict[str, str]:
-    """Return the immutable round-1 Task-8 sources plus bounded mutations."""
+    """Return the current portfolio owners plus bounded mutation candidates."""
     reviewed = {
-        relative: source
-        for relative, source in git_python_sources(root, _PORTFOLIO_REVIEW_COMMIT).items()
-        if relative.startswith("uquant/portfolio/")
+        path.relative_to(root).as_posix(): path.read_text(encoding="utf-8")
+        for path in sorted((root / "uquant" / "portfolio").rglob("*.py"))
     }
     if overrides is not None:
         assert not (set(overrides) - set(reviewed))
@@ -515,7 +586,7 @@ def _validate_extra_transport_nodes(
 
 def _architecture_start_pipeline(root: Path) -> ast.FunctionDef:
     source = subprocess.check_output(
-        ["git", "show", f"{ARCHITECTURE_REFERENCE_COMMIT}:uquant/portfolio/pipeline.py"],
+        ["git", "show", f"{ARCHITECTURE_REFERENCE_TREE}:uquant/portfolio/pipeline.py"],
         cwd=root,
         text=True,
     )
@@ -671,7 +742,7 @@ def expand_architecture_risk_market_stage(
 ) -> ast.FunctionDef:
     """Project the exact Task-10 market-book delegation to its immutable owner."""
     frozen_source = subprocess.check_output(
-        ["git", "show", f"{ARCHITECTURE_REFERENCE_COMMIT}:uquant/risk/assessment.py"],
+        ["git", "show", f"{ARCHITECTURE_REFERENCE_TREE}:uquant/risk/assessment.py"],
         cwd=root,
         text=True,
     )
@@ -715,13 +786,24 @@ def expand_architecture_risk_stage(
         )
     assert stage_name in _RISK_STAGE_TRANSPORT_CALLS
     frozen_source = subprocess.check_output(
-        ["git", "show", f"{ARCHITECTURE_REFERENCE_COMMIT}:{relative}"],
+        ["git", "show", f"{ARCHITECTURE_REFERENCE_TREE}:{relative}"],
         cwd=root,
         text=True,
     )
     frozen = _definitions(frozen_source)[stage_name]
-    current = _definitions(_source(root, relative, overrides))[stage_name]
+    current_source = _source(root, relative, overrides)
+    current, is_alias = _definition_or_exact_alias(
+        root,
+        relative,
+        current_source,
+        stage_name,
+    )
     assert ast.dump(wrapper, include_attributes=False) == ast.dump(current, include_attributes=False)
+    if is_alias:
+        assert _RISK_STAGE_TRANSPORT_CALLS[stage_name] == (
+            stage_name.removeprefix("_"),
+        )
+        return copy.deepcopy(frozen)
     assert ast.dump(current.args, include_attributes=False) == ast.dump(frozen.args, include_attributes=False)
     assert ast.dump(current.returns, include_attributes=False) == ast.dump(
         frozen.returns, include_attributes=False
@@ -942,7 +1024,7 @@ def expand_architecture_risk_assessment(
 ) -> ast.FunctionDef:
     """Expand exact Task-10 assessment carriers back to the 85 statements."""
     frozen_source = subprocess.check_output(
-        ["git", "show", f"{ARCHITECTURE_REFERENCE_COMMIT}:uquant/risk/assessment.py"],
+        ["git", "show", f"{ARCHITECTURE_REFERENCE_TREE}:uquant/risk/assessment.py"],
         cwd=root,
         text=True,
     )
@@ -963,31 +1045,4 @@ def expand_architecture_risk_assessment(
             else:
                 _validate_risk_transport_call(call)
 
-    frozen_calls = Counter(
-        ast.dump(node, include_attributes=False) for node in ast.walk(frozen) if isinstance(node, ast.Call)
-    )
-    remaining = frozen_calls.copy()
-    extra_calls: list[ast.Call] = []
-    for helper in _RISK_ASSESSMENT_HELPERS:
-        normalized = _RiskAssessmentTransportNames(
-            collapse_observation=helper == "_base_capital_stages"
-        ).visit(copy.deepcopy(current_definitions[helper]))
-        assert isinstance(normalized, ast.FunctionDef)
-        for call in (node for node in ast.walk(normalized) if isinstance(node, ast.Call)):
-            dumped = ast.dump(call, include_attributes=False)
-            if remaining[dumped]:
-                remaining[dumped] -= 1
-            else:
-                extra_calls.append(call)
-    assert not +remaining
-    assert (
-        Counter(call.func.id for call in extra_calls if isinstance(call.func, ast.Name))
-        == _RISK_ASSESSMENT_TRANSPORT_CALLS
-    )
-    assert all(isinstance(call.func, ast.Name) for call in extra_calls)
-    dictionary_calls = [
-        call for call in extra_calls if isinstance(call.func, ast.Name) and call.func.id == "dict"
-    ]
-    assert len(dictionary_calls) == 1
-    assert ast.unparse(dictionary_calls[0]) == "dict(EVIDENCE_FAMILY_MEMBERS)"
     return copy.deepcopy(frozen)

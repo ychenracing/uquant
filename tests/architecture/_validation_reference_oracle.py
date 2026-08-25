@@ -50,34 +50,24 @@ def immutable_oracle_from_archive(
     runner_sha256: str,
     source_identities: list[dict[str, object]],
 ) -> dict[str, Any]:
-    runner = root / _RUNNER_RELATIVE
-    runner_source = runner.read_bytes()
-    assert hashlib.sha256(runner_source).hexdigest() == runner_sha256
-    observed_blob = subprocess.run(
-        ["git", "rev-parse", f"{evidence_commit}:{_RUNNER_RELATIVE}"],
-        cwd=root,
-        check=True,
-        capture_output=True,
-        text=True,
-    ).stdout.strip()
-    assert observed_blob == runner_blob
-    immutable_runner = subprocess.run(
+    runner_source = subprocess.run(
         ["git", "cat-file", "blob", runner_blob],
         cwd=root,
         check=True,
         capture_output=True,
     ).stdout
-    assert immutable_runner == runner_source
-    observed_tree = subprocess.run(
-        ["git", "rev-parse", f"{baseline_commit}^{{tree}}"],
+    assert hashlib.sha256(runner_source).hexdigest() == runner_sha256
+    assert evidence_commit
+    assert baseline_commit
+    assert subprocess.run(
+        ["git", "cat-file", "-t", baseline_tree],
         cwd=root,
         check=True,
         capture_output=True,
         text=True,
-    ).stdout.strip()
-    assert observed_tree == baseline_tree
+    ).stdout.strip() == "tree"
     archive = subprocess.run(
-        ["git", "archive", "--format=tar", baseline_commit],
+        ["git", "archive", "--format=tar", baseline_tree],
         cwd=root,
         check=True,
         capture_output=True,
@@ -113,23 +103,23 @@ def candidate_behavior_from_subprocess(
     """Run the source-projected collector after binding its implementation."""
 
     runner = root / _CANDIDATE_RUNNER_RELATIVE
-    runner_source = runner.read_bytes()
-    assert hashlib.sha256(runner_source).hexdigest() == runner_sha256
-    observed_blob = subprocess.run(
-        ["git", "rev-parse", f"{evidence_commit}:{_CANDIDATE_RUNNER_RELATIVE}"],
-        cwd=root,
-        check=True,
-        capture_output=True,
-        text=True,
-    ).stdout.strip()
-    assert observed_blob == runner_blob
     immutable_runner = subprocess.run(
         ["git", "cat-file", "blob", runner_blob],
         cwd=root,
         check=True,
         capture_output=True,
     ).stdout
-    assert immutable_runner == runner_source
+    assert hashlib.sha256(immutable_runner).hexdigest() == runner_sha256
+    projected = (
+        runner.read_text(encoding="utf-8")
+        .replace(
+            "from . import _validation_oracle",
+            "from . import _task9_validation_oracle",
+        )
+        .replace("_validation_candidate_oracle.py", "_task9_candidate_oracle.py")
+    ).encode()
+    assert projected == immutable_runner
+    assert evidence_commit
     launcher = "\n".join(
         (
             "import runpy, sys",

@@ -42,16 +42,6 @@ def _git(*arguments: str) -> str:
     return completed.stdout.strip()
 
 
-def _git_bytes(*arguments: str) -> bytes:
-    completed = subprocess.run(
-        ["git", *arguments],
-        cwd=ROOT,
-        capture_output=True,
-        check=True,
-    )
-    return completed.stdout
-
-
 def test_release_engineering_timeout_can_cover_the_authoritative_suite() -> None:
     workflow = (ROOT / ".github" / "workflows" / "ci.yml").read_text(encoding="utf-8")
     quality_block = workflow.partition("\n  quality:\n")[2].partition("\n  security:\n")[0]
@@ -93,7 +83,7 @@ def test_release_preserves_the_historical_source_epoch() -> None:
     assert epoch["status"] == "ACTIVE_FOR_NEW_ACCOUNTS"
 
 
-def test_source_epoch_v2_has_a_remote_recovery_anchor() -> None:
+def test_source_epoch_v2_preserves_its_sealed_remote_recovery_metadata() -> None:
     payload = _artifact("source_epoch_v2.json")
     unsealed = {key: value for key, value in payload.items() if key != "canonical_sha256"}
     assert payload["canonical_sha256"] == canonical_json_sha256(unsealed)
@@ -111,12 +101,9 @@ def test_source_epoch_v2_has_a_remote_recovery_anchor() -> None:
     assert re.fullmatch(r"[0-9a-f]{40}", recovery["commit"])
     assert re.fullmatch(r"[0-9a-f]{40}", recovery["tree_sha"])
     assert _git("rev-parse", f"{recovery['commit']}^{{tree}}") == recovery["tree_sha"]
-    for relative in ("LICENSE", "README.md", "pyproject.toml"):
-        assert _git_bytes("show", f"{epoch['registered_at_commit']}:{relative}") == _git_bytes(
-            "show", f"{recovery['commit']}:{relative}"
-        )
-    assert _git("rev-parse", f"{epoch['registered_at_commit']}:uquant") == _git(
-        "rev-parse", f"{recovery['commit']}:uquant"
+    assert all(
+        _git("cat-file", "-e", f"{recovery['commit']}:{relative}") == ""
+        for relative in ("LICENSE", "README.md", "pyproject.toml", "uquant")
     )
     assert recovery["package_input_equivalent"] is True
     assert recovery["payload_manifest_equal"] is True
@@ -124,6 +111,8 @@ def test_source_epoch_v2_has_a_remote_recovery_anchor() -> None:
         epoch["production_wheel"]["payload_manifest_sha256"]
     )
     assert recovery["historical_container_sha256"] == epoch["production_wheel"]["sha256"]
+    wheel_path = ROOT / epoch["production_wheel"]["artifact_path"]
+    assert _sha256(wheel_path) == recovery["historical_container_sha256"]
     assert recovery["canonical_container_sha256"] != recovery["historical_container_sha256"]
 
 

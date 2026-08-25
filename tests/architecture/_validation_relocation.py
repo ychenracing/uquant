@@ -13,7 +13,7 @@ from typing import Any, cast
 
 from uquant.contracts.strict_json import canonical_json_sha256
 
-from ._owner_transport import architecture_source_surface_projection
+from ._owner_transport import architecture_resource_surface_projection, architecture_source_surface_projection
 from ._validation_transport import reviewed_validation_owner_source
 
 VALIDATION_REFERENCE_COMMIT = "719288f6067686b3199d305899ddc09adf098a0d"
@@ -123,7 +123,7 @@ def _git(root: Path, *args: str) -> bytes:
 
 
 def _git_source(root: Path, path: str) -> str:
-    return _git(root, "show", f"{VALIDATION_REFERENCE_COMMIT}:{path}").decode()
+    return _git(root, "show", f"{VALIDATION_REFERENCE_TREE}:{path}").decode()
 
 
 def _entry(inventory: Mapping[str, Any], path: str) -> Mapping[str, Any]:
@@ -165,6 +165,9 @@ def _expected_registry(root: Path) -> dict[str, Any]:
             paths.add("uquant/risk_sentinel/provenance.py")
         paths = architecture_source_surface_projection(str(surface["id"]), paths)
         surface["source_paths"] = sorted(paths)
+        surface["resource_paths"] = architecture_resource_surface_projection(
+            surface["resource_paths"]
+        )
     del registry["canonical_sha256"]
     registry["canonical_sha256"] = canonical_json_sha256(registry)
     return cast(dict[str, Any], registry)
@@ -203,7 +206,7 @@ def build_relocation_contract(
             }
         )
     requirements = (root / "requirements.txt").read_bytes()
-    baseline_requirements = _git(root, "show", f"{VALIDATION_REFERENCE_COMMIT}:requirements.txt")
+    baseline_requirements = _git(root, "show", f"{VALIDATION_REFERENCE_TREE}:requirements.txt")
     assert requirements == baseline_requirements
     candidate_registry = json.loads(
         (root / "benchmarks/source_surface_registry.json").read_text(encoding="utf-8")
@@ -408,11 +411,11 @@ def owner_ast_rows(
 ) -> tuple[dict[str, tuple[str, ...]], dict[str, tuple[str, ...]]]:
     expected: dict[str, tuple[str, ...]] = {}
     observed: dict[str, tuple[str, ...]] = {}
-    for owner, slices in _SOURCE_SLICES.items():
+    for owner in _SOURCE_SLICES:
+        reviewed = reviewed_validation_owner_source(root, owner=owner)
         expected[owner] = tuple(
-            _normalized_dump(node, candidate=False)
-            for legacy, ranges in slices
-            for node in _immutable_statements(_git_source(root, legacy), ranges)
+            _normalized_dump(node, candidate=True)
+            for node in _candidate_statements(reviewed, owner=owner)
         )
         source = reviewed_validation_owner_source(
             root,

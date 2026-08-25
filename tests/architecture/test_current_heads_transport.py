@@ -6,14 +6,14 @@ import pytest
 
 from ._analysis import ROOT
 from ._cli_transport import current_heads_adapter_transport_unit_digests
-from ._governance_inventory import ARCHITECTURE_REFERENCE_COMMIT
+from ._governance_inventory import ARCHITECTURE_REFERENCE_TREE
 
 _FROZEN_RELATIVE = "scripts/run_current_heads_competitor_matrix.py"
 
 
 def _frozen_source() -> str:
     return subprocess.check_output(
-        ["git", "show", f"{ARCHITECTURE_REFERENCE_COMMIT}:{_FROZEN_RELATIVE}"],
+        ["git", "show", f"{ARCHITECTURE_REFERENCE_TREE}:{_FROZEN_RELATIVE}"],
         cwd=ROOT,
         text=True,
     )

@@ -12,15 +12,19 @@ from ._analysis import ROOT, architecture_snapshot, measured_debt
 from ._analysis_debt import (
     _CONFIG_RELOCATED_PRIVATE_IMPORTS,
     _EXECUTION_RELOCATED_PRIVATE_IMPORTS,
-    _RISK_RELOCATED_PRIVATE_IMPORTS,
     _PORTFOLIO_RELOCATED_PRIVATE_IMPORTS,
+    _RISK_RELOCATED_PRIVATE_IMPORTS,
     _VALIDATION_RELOCATED_PRIVATE_IMPORTS,
 )
-from ._governance_inventory import GOVERNED_SCRIPTS, ARCHITECTURE_REFERENCE_COMMIT
+from ._governance_inventory import (
+    ARCHITECTURE_REFERENCE_TREE,
+    CURRENT_GOVERNED_SCRIPTS,
+    GOVERNED_SCRIPTS,
+)
 from ._private_imports import (
     GOVERNED_ROOTS,
-    REMEDIATION_START_COMMIT,
     PRIVATE_IMPORT_REFERENCE_TREE,
+    REMEDIATION_START_COMMIT,
     build_inventory_from_immutable_git,
     current_governed_sources,
     load_inventory,
@@ -31,7 +35,7 @@ from ._private_imports import (
 
 def _immutable_public_script_definitions(relative: str) -> tuple[str, ...]:
     source = subprocess.check_output(
-        ["git", "show", f"{ARCHITECTURE_REFERENCE_COMMIT}:{relative}"],
+        ["git", "show", f"{ARCHITECTURE_REFERENCE_TREE}:{relative}"],
         cwd=ROOT,
         text=True,
     )
@@ -712,12 +716,11 @@ def test_architecture_raw_scanner_rejects_unproved_star_exports(
 
 
 def test_architecture_governed_scripts_expose_only_frozen_public_start_surface() -> None:
-    assert {
-        relative: _literal_script_all(relative) for relative in GOVERNED_SCRIPTS
-    } == {
-        relative: _immutable_public_script_definitions(relative)
-        for relative in GOVERNED_SCRIPTS
-    }
+    for historical in GOVERNED_SCRIPTS:
+        current = CURRENT_GOVERNED_SCRIPTS.get(historical, historical)
+        assert _literal_script_all(current) == _immutable_public_script_definitions(
+            historical
+        )
 
 
 def test_architecture_governed_scripts_have_no_dynamic_private_transport() -> None:

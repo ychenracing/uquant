@@ -1,3 +1,5 @@
+# ruff: noqa: E402, F401, I001
+# Late re-exports preserve the immutable pytest collection identity and order.
 from __future__ import annotations
 
 import copy
@@ -5,32 +7,27 @@ import hashlib
 import json
 from pathlib import Path
 
-import pandas as pd
 import pytest
 
 from uquant import engine as engine_module
 from uquant.account import load_account, migrate_account, save_account
 from uquant.config import DEFAULT_CONFIG, config_fingerprint
+from uquant.contracts.strict_json import canonical_json_bytes, canonical_json_sha256
 from uquant.engine import (
     ProductionEngine,
     _decision_config_for_universe,
     code_fingerprint,
 )
 from uquant.leader import REFERENCE_UNIVERSE
-from uquant.report import render_daily_report
 from uquant.risk_sentinel.models import (
-    CoverageHealth,
     RiskEvidenceTimeline,
-    SentinelAssessment,
     SentinelLevel,
-    WarmupStatus,
 )
 from uquant.types import (
     ACCOUNT_SCHEMA_VERSION,
     AccountOrder,
     AccountState,
     AttributionMechanism,
-    Fill,
     OriginSubsystem,
     PendingOrder,
     Position,
@@ -48,18 +45,52 @@ RISK_REGRESSION_POOLS = (
 )
 
 
+def _write_engine_source_surface(
+    root: Path,
+    *,
+    economic_sources: tuple[str, ...] = ("uquant/engine.py",),
+    economic_resources: tuple[str, ...] = (
+        "benchmarks/config_parameter_governance.json",
+    ),
+) -> None:
+    surfaces = [
+        {
+            "id": identifier,
+            "source_paths": list(
+                economic_sources
+                if identifier == "economic_decision_v1"
+                else ("uquant/engine.py",)
+            ),
+            "resource_paths": list(economic_resources if identifier == "economic_decision_v1" else ()),
+        }
+        for identifier in (
+            "economic_decision_v1",
+            "execution_account_v1",
+            "sentinel_v1",
+            "validation_runner_v1",
+            "full_package_v1",
+        )
+    ]
+    unsealed: dict[str, object] = {"registry_version": 2, "surfaces": surfaces}
+    payload = {**unsealed, "canonical_sha256": canonical_json_sha256(unsealed)}
+    registry = root / "benchmarks/source_surface_registry.json"
+    registry.parent.mkdir(parents=True, exist_ok=True)
+    registry.write_bytes(canonical_json_bytes(payload) + b"\n")
+
+
 def test_code_fingerprint_includes_config_parameter_governance(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    governance = tmp_path / "config_parameter_governance.json"
+    package = tmp_path / "uquant"
+    package.mkdir()
+    engine = package / "engine.py"
+    engine.write_text("decision = 1\n", encoding="utf-8")
+    governance = tmp_path / "benchmarks/config_parameter_governance.json"
+    governance.parent.mkdir()
     governance.write_text('{"artifact_sha256":"1"}\n', encoding="utf-8")
-    monkeypatch.setattr(
-        engine_module,
-        "DEFAULT_GOVERNANCE_PATH",
-        governance,
-        raising=False,
-    )
+    _write_engine_source_surface(tmp_path)
+    monkeypatch.setattr(engine_module, "__file__", str(engine))
     first = engine_module.code_fingerprint()
 
     governance.write_text('{"artifact_sha256":"2"}\n', encoding="utf-8")
@@ -67,7 +98,7 @@ def test_code_fingerprint_includes_config_parameter_governance(
     assert engine_module.code_fingerprint() != first
 
 
-def test_code_fingerprint_recursively_includes_production_subpackages(
+def test_code_fingerprint_excludes_unregistered_production_subpackages(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -78,17 +109,20 @@ def test_code_fingerprint_recursively_includes_production_subpackages(
     sentinel.mkdir()
     nested = sentinel / "history.py"
     nested.write_text("timeline = 1\n", encoding="utf-8")
-    registry = tmp_path / "registry.json"
-    governance = tmp_path / "governance.json"
-    registry.write_text("{}\n", encoding="utf-8")
+    governance = tmp_path / "benchmarks/config_parameter_governance.json"
+    governance.parent.mkdir()
     governance.write_text("{}\n", encoding="utf-8")
+    _write_engine_source_surface(tmp_path)
     monkeypatch.setattr(engine_module, "__file__", str(package / "engine.py"))
-    monkeypatch.setattr(engine_module, "DEFAULT_REGISTRY_PATH", registry)
-    monkeypatch.setattr(engine_module, "DEFAULT_GOVERNANCE_PATH", governance)
 
     first = engine_module.code_fingerprint()
     nested.write_text("timeline = 2\n", encoding="utf-8")
 
+    assert engine_module.code_fingerprint() == first
+    _write_engine_source_surface(
+        tmp_path,
+        economic_sources=("uquant/engine.py", "uquant/risk_sentinel/history.py"),
+    )
     assert engine_module.code_fingerprint() != first
 
 
@@ -738,475 +772,27 @@ def test_pending_and_ledger_immutable_order_metadata_must_match(tmp_path):
             load_account(malformed)
 
 
-def test_account_root_must_be_a_json_object(tmp_path):
-    malformed = tmp_path / "array.json"
-    malformed.write_text("[]", encoding="utf-8")
 
-    with pytest.raises(RuntimeError, match="JSON object"):
-        load_account(malformed)
-
-
-def test_account_nested_collections_must_match_the_schema(tmp_path):
-    state = AccountState.empty(2e6)
-    state.data_hash = "data"
-    state.code_hash = "code"
-    payload = state.to_dict()
-    payload["positions"] = []
-    malformed = tmp_path / "invalid-positions.json"
-    malformed.write_text(json.dumps(payload), encoding="utf-8")
-
-    with pytest.raises(RuntimeError, match="violates schema"):
-        load_account(malformed)
-
-
-def test_broker_order_metric_excludes_unfilled_submissions():
-    orders = [
-        AccountOrder(
-            order_id="O000000001",
-            signal_date="2026-01-05",
-            submitted_date="2026-01-05",
-            symbol="sz300308",
-            side="BUY",
-            target_weight=0.5,
-            reason="entry",
-            lifecycle="CORE",
-            requested_shares=100,
-            filled_shares=100,
-            status="FILLED",
-        ),
-        AccountOrder(
-            order_id="O000000002",
-            signal_date="2026-01-06",
-            submitted_date="2026-01-06",
-            symbol="sz300502",
-            side="BUY",
-            target_weight=0.5,
-            reason="entry",
-            lifecycle="CORE",
-            requested_shares=100,
-            status="OPEN",
-        ),
-    ]
-    fills = [
-        Fill(
-            signal_date="2026-01-05",
-            fill_date="2026-01-06",
-            symbol="sz300308",
-            side="BUY",
-            shares=100,
-            price=10.0,
-            gross_value=1000.0,
-            commission=5.0,
-            stamp_duty=0.0,
-            transfer_fee=0.1,
-            slippage_cost=0.0,
-            reason="entry",
-            lifecycle="CORE",
-            order_id="O000000001",
-        )
-    ]
-    from uquant.engine import performance_metrics
-
-    metrics = performance_metrics(
-        equity_rows=[
-            (pd.Timestamp("2026-01-05"), 2e6),
-            (pd.Timestamp("2026-01-06"), 2e6),
-        ],
-        fills=fills,
-        orders=orders,
-        initial_cash=2e6,
-        risk_events=[],
-        benchmark_total_return=0.0,
-    )
-    assert metrics["account_orders"] == 1
-    assert metrics["submitted_account_orders"] == 2
-    assert len(metrics["order_ledger"]) == 1
-    assert len(metrics["submission_ledger"]) == 2
-
-
-def test_backtest_and_daily_share_decision_kernel(data_dir):
-    engine = ProductionEngine(data_dir)
-    account = AccountState.empty(2e6)
-    decision = engine.decide(symbols=SYMBOLS, as_of="2026-06-30", account=account)
-    report = render_daily_report(decision, account)
-    assert decision.decision_digest in report
-    assert config_fingerprint(engine.cfg) in report
-    assert "Opportunity" in report and "Tomorrow" in report
-
-
-def test_structured_sector_guard_counts_as_first_risk_reduction():
-    from uquant.engine import performance_metrics
-
-    reduced = Fill(
-        signal_date="2026-01-05",
-        fill_date="2026-01-06",
-        symbol="sz300308",
-        side="SELL",
-        shares=100,
-        price=10.0,
-        gross_value=1_000.0,
-        commission=5.0,
-        stamp_duty=0.5,
-        transfer_fee=0.1,
-        slippage_cost=0.0,
-        reason="portfolio rebalance",
-        lifecycle="CORE",
-        exit_kind="sector_guard",
-    )
-
-    observed = performance_metrics(
-        equity_rows=[
-            (pd.Timestamp("2026-01-05"), 2e6),
-            (pd.Timestamp("2026-01-06"), 1.99e6),
-        ],
-        fills=[reduced],
-        orders=[],
-        initial_cash=2e6,
-        risk_events=[],
-        benchmark_total_return=0.0,
-    )
-
-    assert observed["first_reduce"] == "2026-01-06"
-
-
-def test_decision_keeps_omitted_durable_symbols_in_strategy_panel(
-    data_dir,
-    monkeypatch: pytest.MonkeyPatch,
-):
-    from uquant.types import Risk, RiskAssessment
-
-    omitted = SYMBOLS[3]
-    account = AccountState(
-        initial_cash=2e6,
-        cash=1_900_000.0,
-        positions={
-            omitted: Position(
-                omitted,
-                shares=1_000,
-                avg_cost=100.0,
-                entry_date="2026-01-05",
-            )
-        },
-        protected_weights={omitted: 0.05},
-        operating_peak=2e6,
-        capital_peak=2e6,
-    )
-    observed: dict[str, set[str]] = {}
-
-    def normal_risk(**kwargs):
-        observed["user_panel"] = set(kwargs["user_panel"])
-        return RiskAssessment(Risk.NORMAL, 1.0, 0, {}, (), "NONE")
-
-    monkeypatch.setattr("uquant.engine.assess_risk", normal_risk)
-    ProductionEngine(data_dir).decide(
-        symbols=SYMBOLS[:3],
-        as_of="2026-06-30",
-        account=account,
-    )
-
-    assert omitted in observed["user_panel"]
-
-
-def test_decision_keeps_sector_guard_cohort_in_risk_panel(
-    data_dir,
-    monkeypatch: pytest.MonkeyPatch,
-):
-    from uquant.types import Risk, RiskAssessment
-
-    omitted = SYMBOLS[3]
-    account = AccountState.empty(2e6)
-    account.sector_guard_active = True
-    account.sector_guard_started = "2026-06-20"
-    account.sector_guard_symbols = [omitted]
-    observed: dict[str, set[str]] = {}
-
-    def normal_risk(**kwargs):
-        observed["user_panel"] = set(kwargs["user_panel"])
-        return RiskAssessment(Risk.NORMAL, 1.0, 0, {}, (), "NONE")
-
-    monkeypatch.setattr("uquant.engine.assess_risk", normal_risk)
-    ProductionEngine(data_dir).decide(
-        symbols=SYMBOLS[:3],
-        as_of="2026-06-30",
-        account=account,
-    )
-
-    assert omitted in observed["user_panel"]
-
-
-def test_decision_evaluates_sentinel_from_canonical_point_in_time_universe(
-    data_dir,
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    from uquant.types import Risk, RiskAssessment
-
-    assessment = SentinelAssessment(
-        date="2026-06-30",
-        level=SentinelLevel.NORMAL,
-        confidence=1.0,
-        suggested_gross_cap=None,
-        freeze_new_risk=False,
-        evidence_families=(),
-        reasons=("no independent risk family triggered",),
-        first_evidence_date=None,
-        coverage=CoverageHealth(
-            status=WarmupStatus.READY,
-            confidence=1.0,
-            component_observation=1.0,
-            subindustry_coverage=1.0,
-            held_industry_mapping=1.0,
-            reference_warmup=1.0,
-            missing_indices=(),
-            new_symbols=(),
-            stale_symbols=(),
-        ),
-        metrics={"evidence_confirmation_days": 0.0},
-    )
-    observed: dict[str, object] = {}
-
-    def sentinel(**kwargs: object) -> SentinelAssessment:
-        observed["sentinel"] = kwargs
-        return assessment
-
-    def normal_risk(**kwargs: object) -> RiskAssessment:
-        observed["risk"] = kwargs
-        return RiskAssessment(Risk.NORMAL, 1.0, 0, {}, (), "NONE")
-
-    monkeypatch.setattr(engine_module, "evaluate_sentinel", sentinel)
-    monkeypatch.setattr(engine_module, "assess_risk", normal_risk)
-    ProductionEngine(
-        data_dir,
-        DEFAULT_CONFIG.override(risk_sentinel_mode="FREEZE_ONLY"),
-    ).decide(
-        symbols=SYMBOLS,
-        as_of="2026-06-30",
-        account=AccountState.empty(2e6),
-    )
-
-    sentinel_args = observed["sentinel"]
-    assert isinstance(sentinel_args, dict)
-    industries = sentinel_args["point_in_time_industries"]
-    assert isinstance(industries, dict)
-    universe = default_ai_universe()
-    assert tuple(sorted(industries)) == universe.symbols_as_of("2026-06-30")
-    assert industries == {
-        symbol: universe.industry_of(symbol, "2026-06-30")
-        for symbol in universe.symbols_as_of("2026-06-30")
-    }
-    risk_args = observed["risk"]
-    assert isinstance(risk_args, dict)
-    assert risk_args["sentinel_assessment"] is assessment
-
-
-def test_shadow_mode_keeps_sentinel_out_of_the_production_decision_path(
-    data_dir,
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    def forbidden(**_: object) -> SentinelAssessment:
-        raise AssertionError("Shadow Sentinel must remain outside production decisions")
-
-    monkeypatch.setattr(engine_module, "evaluate_sentinel", forbidden)
-
-    ProductionEngine(
-        data_dir, DEFAULT_CONFIG.override(risk_sentinel_mode="SHADOW")
-    ).decide(
-        symbols=SYMBOLS,
-        as_of="2026-06-30",
-        account=AccountState.empty(2e6),
-    )
-
-
-def test_decision_routes_sentinel_pending_buy_cancellation_through_execution(
-    data_dir,
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    from uquant.types import Risk, RiskAssessment
-
-    observed: dict[str, object] = {}
-
-    def sentinel_risk(**_: object) -> RiskAssessment:
-        return RiskAssessment(
-            Risk.NORMAL,
-            1.0,
-            0,
-            {
-                "base_freeze_new_risk": False,
-                "sentinel_freeze_new_risk": True,
-                "freeze_new_risk": True,
-            },
-            (),
-            "NONE",
-            freeze_new_risk=True,
-        )
-
-    original = engine_module.reconcile_account_orders
-
-    def reconcile(**kwargs: object):
-        observed.update(kwargs)
-        return original(**kwargs)  # type: ignore[arg-type]
-
-    monkeypatch.setattr(engine_module, "assess_risk", sentinel_risk)
-    monkeypatch.setattr(engine_module, "reconcile_account_orders", reconcile)
-    ProductionEngine(data_dir).decide(
-        symbols=SYMBOLS,
-        as_of="2026-06-30",
-        account=AccountState.empty(2e6),
-    )
-
-    assert observed["removed_buy_reason"] == "sentinel_freeze_new_risk"
-
-
-def test_decision_does_not_route_sentinel_diagnostic_without_formal_flag(
-    data_dir,
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    from uquant.types import Risk, RiskAssessment
-
-    observed: dict[str, object] = {}
-
-    def diagnostic_only(**_: object) -> RiskAssessment:
-        return RiskAssessment(
-            Risk.NORMAL,
-            1.0,
-            0,
-            {
-                "base_freeze_new_risk": False,
-                "sentinel_freeze_new_risk": True,
-                "freeze_new_risk": False,
-            },
-            (),
-            "NONE",
-            freeze_new_risk=False,
-        )
-
-    original = engine_module.reconcile_account_orders
-
-    def reconcile(**kwargs: object):
-        observed.update(kwargs)
-        return original(**kwargs)  # type: ignore[arg-type]
-
-    monkeypatch.setattr(engine_module, "assess_risk", diagnostic_only)
-    monkeypatch.setattr(engine_module, "reconcile_account_orders", reconcile)
-    ProductionEngine(data_dir).decide(
-        symbols=SYMBOLS,
-        as_of="2026-06-30",
-        account=AccountState.empty(2e6),
-    )
-
-    assert observed["removed_buy_reason"] is None
-
-
-def test_future_dated_state_fails_closed(data_dir):
-    engine = ProductionEngine(data_dir)
-    state = AccountState.empty(2e6)
-    state.last_successful_run = "2027-01-01"
-    with pytest.raises(RuntimeError):
-        engine.decide(symbols=SYMBOLS, as_of="2026-06-30", account=state)
-
-
-def test_decision_state_advances_at_most_once_per_session(data_dir):
-    engine = ProductionEngine(data_dir)
-    state = AccountState.empty(2e6)
-    engine.decide(symbols=SYMBOLS, as_of="2026-06-30", account=state)
-    persisted = copy.deepcopy(state.to_dict())
-
-    with pytest.raises(RuntimeError, match="strictly after"):
-        engine.decide(symbols=SYMBOLS, as_of="2026-06-30", account=state)
-    with pytest.raises(RuntimeError, match="strictly after"):
-        engine.decide(symbols=SYMBOLS, as_of="2026-06-29", account=state)
-
-    assert state.to_dict() == persisted
-
-
-def test_decision_cannot_predate_authoritative_broker_snapshot(data_dir):
-    engine = ProductionEngine(data_dir)
-    state = AccountState.empty(2e6)
-    state.broker_as_of = "2026-06-30"
-
-    with pytest.raises(RuntimeError, match="authoritative broker snapshot"):
-        engine.decide(symbols=SYMBOLS, as_of="2026-06-29", account=state)
-
-    decision = engine.decide(symbols=SYMBOLS, as_of="2026-06-30", account=state)
-    assert decision.date == state.broker_as_of
-
-
-def test_daily_decision_marks_position_and_tranche_excursions(data_dir):
-    engine = ProductionEngine(data_dir)
-    date = pd.Timestamp("2026-06-30")
-    symbol = SYMBOLS[0]
-    close = float(engine.data.load(symbol).loc[date, "close"])
-    cheap = Tranche(
-        tranche_id="cheap-core",
-        lifecycle="CORE",
-        shares=100,
-        avg_cost=close / 2.0,
-        entry_date="2026-01-02",
-        sellable_date="2026-01-05",
-        highest_close=close / 2.0,
-        lowest_close=close * 3.0,
-    )
-    expensive = Tranche(
-        tranche_id="expensive-core",
-        lifecycle="CORE",
-        shares=100,
-        avg_cost=close * 2.0,
-        entry_date="2026-01-02",
-        sellable_date="2026-01-05",
-        highest_close=close / 2.0,
-        lowest_close=close * 3.0,
-    )
-    state = AccountState.empty(2e6)
-    state.positions[symbol] = Position(
-        symbol=symbol,
-        shares=200,
-        avg_cost=(cheap.avg_cost + expensive.avg_cost) / 2.0,
-        entry_date="2026-01-02",
-        highest_close=close / 2.0,
-        tranches=[cheap, expensive],
-    )
-
-    engine.decide(symbols=SYMBOLS, as_of=str(date.date()), account=state)
-
-    position = state.positions[symbol]
-    assert position.highest_close == pytest.approx(close)
-    by_id = {item.tranche_id: item for item in position.tranches}
-    assert by_id["cheap-core"].highest_close == pytest.approx(close)
-    assert by_id["cheap-core"].lowest_close == pytest.approx(close)
-    assert by_id["cheap-core"].mfe == pytest.approx(1.0)
-    assert by_id["cheap-core"].mae == pytest.approx(0.0)
-    assert by_id["expensive-core"].highest_close == pytest.approx(close)
-    assert by_id["expensive-core"].lowest_close == pytest.approx(close)
-    assert by_id["expensive-core"].mfe == pytest.approx(0.0)
-    assert by_id["expensive-core"].mae == pytest.approx(-0.5)
-
-
-def test_stale_code_hash_fails_closed(data_dir):
-    engine = ProductionEngine(data_dir)
-    state = AccountState.empty(2e6)
-    state.code_hash = "stale-code-hash"
-    with pytest.raises(RuntimeError, match="code hash"):
-        engine.decide(symbols=SYMBOLS, as_of="2026-06-30", account=state)
-
-
-def test_pre_listing_symbols_are_point_in_time_invisible(data_dir):
-    result = ProductionEngine(data_dir).backtest(
-        symbols=(*SYMBOLS, "sh688146"),
-        start="2023-01-03",
-        end="2023-02-28",
-    )
-    assert result["start"] == "2023-01-03"
-    assert all(fill["symbol"] != "sh688146" for fill in result["final_account"]["fills"])
-    assert all(order["symbol"] != "sh688146" for order in result["order_ledger"])
-
-
-def test_recent_shock_window_preserves_capital_across_pool_sizes(data_dir):
-    engine = ProductionEngine(data_dir)
-    for symbols in RISK_REGRESSION_POOLS:
-        result = engine.backtest(
-            symbols=symbols,
-            start="2026-07-21",
-            end="2026-08-05",
-        )
-        assert result["final_wealth"] > 0.85
-        assert result["max_drawdown"] < 0.15
-        assert result["account_orders"] <= 3
+from _engine_account_and_metrics_cases import (
+    test_account_root_must_be_a_json_object,
+    test_account_nested_collections_must_match_the_schema,
+    test_broker_order_metric_excludes_unfilled_submissions,
+    test_backtest_and_daily_share_decision_kernel,
+    test_structured_sector_guard_counts_as_first_risk_reduction,
+    test_decision_keeps_omitted_durable_symbols_in_strategy_panel,
+    test_decision_keeps_sector_guard_cohort_in_risk_panel,
+    test_decision_evaluates_sentinel_from_canonical_point_in_time_universe,
+    test_shadow_mode_keeps_sentinel_out_of_the_production_decision_path,
+    test_decision_routes_sentinel_pending_buy_cancellation_through_execution,
+)
+
+from _engine_decision_state_cases import (
+    test_decision_does_not_route_sentinel_diagnostic_without_formal_flag,
+    test_future_dated_state_fails_closed,
+    test_decision_state_advances_at_most_once_per_session,
+    test_decision_cannot_predate_authoritative_broker_snapshot,
+    test_daily_decision_marks_position_and_tranche_excursions,
+    test_stale_code_hash_fails_closed,
+    test_pre_listing_symbols_are_point_in_time_invisible,
+    test_recent_shock_window_preserves_capital_across_pool_sizes,
+)

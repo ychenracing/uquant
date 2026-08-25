@@ -22,7 +22,7 @@ from .report import render_daily_report
 from .types import AccountState
 
 
-def _parser() -> argparse.ArgumentParser:
+def _uquant_cli_parser() -> argparse.ArgumentParser:
     """Build the complete production CLI without reading process arguments."""
 
     parser = argparse.ArgumentParser(
@@ -136,54 +136,150 @@ def _parser() -> argparse.ArgumentParser:
     return parser
 
 
+_parser = _uquant_cli_parser
+
+
+def _run_account_init(args: argparse.Namespace) -> int:
+    engine = ProductionEngine(args.data_dir)
+    symbols = set(args.symbols) | set(REFERENCE_UNIVERSE) | {"sh000300", "sh000682"}
+    latest = engine.data.manifest(symbols)
+    snapshot_date = args.date or latest.end
+    manifest = engine.data.manifest(symbols, as_of=snapshot_date)
+    state = AccountState.empty(args.cash)
+    state.data_hash = manifest.digest
+    state.data_hash_as_of = snapshot_date
+    state.data_hash_symbols = list(manifest.symbols)
+    state.code_hash = code_fingerprint()
+    save_account(state, args.output)
+    print(args.output)
+    return 0
+
+
+def _run_daily(args: argparse.Namespace) -> int:
+    exact_inputs: list[str] = [args.account]
+    if args.broker_snapshot:
+        exact_inputs.append(args.broker_snapshot)
+    daily_protected = tuple(Path(path) for path in exact_inputs)
+    if args.output:
+        daily_protected = validate_atomic_output_boundary(
+            args.output,
+            protected_paths=exact_inputs,
+            protected_roots=(args.data_dir,),
+        )
+    engine = ProductionEngine(args.data_dir)
+    account = load_account(args.account)
+    if args.broker_snapshot:
+        snapshot = json.loads(Path(args.broker_snapshot).read_text(encoding="utf-8"))
+        sync_broker_snapshot(account, snapshot)
+    decision = engine.decide(symbols=args.symbols, as_of=args.date, account=account)
+    account.pending_orders = list(decision.pending_orders)
+    save_account(account, args.account)
+    report = render_daily_report(decision, account)
+    if args.output:
+        atomic_write_text(args.output, report, protected_paths=daily_protected)
+    print(report)
+    return 0
+
+
+def _run_account_migration(args: argparse.Namespace, *, code_identity_only: bool) -> int:
+    destination = args.output or args.account
+    if code_identity_only:
+        state = migrate_code_identity(
+            args.account,
+            destination,
+            new_code_hash=code_fingerprint(),
+            acknowledge_code_change=args.acknowledge_code_change,
+        )
+    else:
+        state = migrate_account(
+            args.account,
+            destination,
+            new_code_hash=code_fingerprint(),
+            acknowledge_code_change=args.acknowledge_code_change,
+        )
+    payload = {
+        "account": destination,
+        "schema_version": state.schema_version,
+        "code_hash": state.code_hash,
+    }
+    if code_identity_only:
+        payload["economic_state_sha256"] = economic_state_sha256(state)
+    print(json.dumps(payload, ensure_ascii=False, sort_keys=True))
+    return 0
+
+
+def _run_backtest(args: argparse.Namespace) -> int:
+    backtest_protected: tuple[Path, ...] = ()
+    if args.output:
+        backtest_protected = validate_atomic_output_boundary(
+            args.output,
+            protected_roots=(args.data_dir,),
+        )
+    engine = ProductionEngine(args.data_dir)
+    result = engine.backtest(symbols=args.symbols, start=args.start, end=args.end)
+    payload = json.dumps(result, ensure_ascii=False, indent=2)
+    if args.output:
+        atomic_write_text(args.output, payload, protected_paths=backtest_protected)
+    print(payload)
+    return 0
+
+
+def _run_execution_journal(args: argparse.Namespace) -> int:
+    from .observation.execution_journal import (
+        append_filled,
+        append_planned,
+        append_skipped,
+        read_execution_journal,
+        record_to_dict,
+    )
+
+    if args.journal_action == "planned":
+        record = append_planned(
+            args.journal,
+            plan_id=args.plan_id,
+            recorded_at=args.recorded_at,
+            symbol=args.symbol,
+            side=args.side,
+            planned_price=args.planned_price,
+            planned_shares=args.planned_shares,
+        )
+    elif args.journal_action == "filled":
+        record = append_filled(
+            args.journal,
+            plan_id=args.plan_id,
+            recorded_at=args.recorded_at,
+            next_open=args.next_open,
+            actual_time=args.actual_time,
+            actual_price=args.actual_price,
+            actual_shares=args.actual_shares,
+        )
+    elif args.journal_action == "skipped":
+        record = append_skipped(
+            args.journal,
+            plan_id=args.plan_id,
+            recorded_at=args.recorded_at,
+            next_open=args.next_open,
+            manual_skip=args.manual_skip,
+        )
+    else:
+        from .report import render_execution_journal
+
+        rendered = render_execution_journal(read_execution_journal(args.journal))
+        if args.output:
+            atomic_write_text(args.output, rendered, protected_paths=(args.journal,))
+        print(rendered)
+        return 0
+    print(json.dumps(record_to_dict(record), ensure_ascii=False, sort_keys=True))
+    return 0
+
+
 def main(argv: list[str] | None = None) -> int:
     """Run one CLI command and return a process-compatible exit status."""
     args = _parser().parse_args(argv)
     if args.command == "account-init":
-        engine = ProductionEngine(args.data_dir)
-        symbols = (
-            set(args.symbols)
-            | set(REFERENCE_UNIVERSE)
-            | {
-                "sh000300",
-                "sh000682",
-            }
-        )
-        latest = engine.data.manifest(symbols)
-        snapshot_date = args.date or latest.end
-        manifest = engine.data.manifest(symbols, as_of=snapshot_date)
-        state = AccountState.empty(args.cash)
-        state.data_hash = manifest.digest
-        state.data_hash_as_of = snapshot_date
-        state.data_hash_symbols = list(manifest.symbols)
-        state.code_hash = code_fingerprint()
-        save_account(state, args.output)
-        print(args.output)
-        return 0
+        return _run_account_init(args)
     if args.command == "daily":
-        exact_inputs: list[str] = [args.account]
-        if args.broker_snapshot:
-            exact_inputs.append(args.broker_snapshot)
-        daily_protected = tuple(Path(path) for path in exact_inputs)
-        if args.output:
-            daily_protected = validate_atomic_output_boundary(
-                args.output,
-                protected_paths=exact_inputs,
-                protected_roots=(args.data_dir,),
-            )
-        engine = ProductionEngine(args.data_dir)
-        account = load_account(args.account)
-        if args.broker_snapshot:
-            snapshot = json.loads(Path(args.broker_snapshot).read_text(encoding="utf-8"))
-            sync_broker_snapshot(account, snapshot)
-        decision = engine.decide(symbols=args.symbols, as_of=args.date, account=account)
-        account.pending_orders = list(decision.pending_orders)
-        save_account(account, args.account)
-        report = render_daily_report(decision, account)
-        if args.output:
-            atomic_write_text(args.output, report, protected_paths=daily_protected)
-        print(report)
-        return 0
+        return _run_daily(args)
     if args.command == "account-sync":
         account = load_account(args.account)
         snapshot = json.loads(Path(args.snapshot).read_text(encoding="utf-8"))
@@ -192,60 +288,11 @@ def main(argv: list[str] | None = None) -> int:
         print(json.dumps(summary, ensure_ascii=False, sort_keys=True))
         return 0
     if args.command == "account-migrate":
-        destination = args.output or args.account
-        state = migrate_account(
-            args.account,
-            destination,
-            new_code_hash=code_fingerprint(),
-            acknowledge_code_change=args.acknowledge_code_change,
-        )
-        print(
-            json.dumps(
-                {
-                    "account": destination,
-                    "schema_version": state.schema_version,
-                    "code_hash": state.code_hash,
-                },
-                ensure_ascii=False,
-                sort_keys=True,
-            )
-        )
-        return 0
+        return _run_account_migration(args, code_identity_only=False)
     if args.command == "account-code-migrate":
-        destination = args.output or args.account
-        state = migrate_code_identity(
-            args.account,
-            destination,
-            new_code_hash=code_fingerprint(),
-            acknowledge_code_change=args.acknowledge_code_change,
-        )
-        print(
-            json.dumps(
-                {
-                    "account": destination,
-                    "schema_version": state.schema_version,
-                    "code_hash": state.code_hash,
-                    "economic_state_sha256": economic_state_sha256(state),
-                },
-                ensure_ascii=False,
-                sort_keys=True,
-            )
-        )
-        return 0
+        return _run_account_migration(args, code_identity_only=True)
     if args.command == "backtest":
-        backtest_protected: tuple[Path, ...] = ()
-        if args.output:
-            backtest_protected = validate_atomic_output_boundary(
-                args.output,
-                protected_roots=(args.data_dir,),
-            )
-        engine = ProductionEngine(args.data_dir)
-        result = engine.backtest(symbols=args.symbols, start=args.start, end=args.end)
-        payload = json.dumps(result, ensure_ascii=False, indent=2)
-        if args.output:
-            atomic_write_text(args.output, payload, protected_paths=backtest_protected)
-        print(payload)
-        return 0
+        return _run_backtest(args)
     if args.command == "holdout-manifest":
         from .validation.holdout import generate_future_holdout_manifest
 
@@ -281,54 +328,5 @@ def main(argv: list[str] | None = None) -> int:
         print(json.dumps(replay, ensure_ascii=False, sort_keys=True))
         return 0
     if args.command == "execution-journal":
-        from .execution_journal import (
-            append_filled,
-            append_planned,
-            append_skipped,
-            read_execution_journal,
-            record_to_dict,
-        )
-
-        if args.journal_action == "planned":
-            record = append_planned(
-                args.journal,
-                plan_id=args.plan_id,
-                recorded_at=args.recorded_at,
-                symbol=args.symbol,
-                side=args.side,
-                planned_price=args.planned_price,
-                planned_shares=args.planned_shares,
-            )
-        elif args.journal_action == "filled":
-            record = append_filled(
-                args.journal,
-                plan_id=args.plan_id,
-                recorded_at=args.recorded_at,
-                next_open=args.next_open,
-                actual_time=args.actual_time,
-                actual_price=args.actual_price,
-                actual_shares=args.actual_shares,
-            )
-        elif args.journal_action == "skipped":
-            record = append_skipped(
-                args.journal,
-                plan_id=args.plan_id,
-                recorded_at=args.recorded_at,
-                next_open=args.next_open,
-                manual_skip=args.manual_skip,
-            )
-        else:
-            from .report import render_execution_journal
-
-            rendered = render_execution_journal(read_execution_journal(args.journal))
-            if args.output:
-                atomic_write_text(
-                    args.output,
-                    rendered,
-                    protected_paths=(args.journal,),
-                )
-            print(rendered)
-            return 0
-        print(json.dumps(record_to_dict(record), ensure_ascii=False, sort_keys=True))
-        return 0
+        return _run_execution_journal(args)
     return 2

@@ -108,7 +108,7 @@ def test_engineering_summary_catches_quality_or_security_failure_without_skippin
         workflow,
         job_id="engineering",
         check_name="Engineering",
-        needs={"quality", "security"},
+        needs={"quality", "security", "windows_smoke"},
     )
     quality_steps = _steps(workflow["jobs"]["quality"])
     assert "workflow_dispatch" in workflow["on"]

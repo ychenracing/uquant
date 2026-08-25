@@ -13,6 +13,7 @@ import pandas as pd
 import pytest
 
 import uquant.engine as engine_module
+import uquant.leader as leader_module
 from research.candidate_runner import (
     CandidateRunner,
     CellTrace,
@@ -151,17 +152,22 @@ def test_candidate_runner_loads_only_causally_visible_reference_symbols(tmp_path
     assert missing not in symbols
 
 
-def test_candidate_runner_reference_scope_is_visible_only_and_restored(tmp_path: Path) -> None:
+def test_candidate_runner_builds_explicit_visible_only_replay_universe(tmp_path: Path) -> None:
     visible = REFERENCE_UNIVERSE[0]
     (tmp_path / f"{visible}.csv").write_text("date,close\n2026-08-05,1\n", encoding="utf-8")
-    original = engine_module.REFERENCE_UNIVERSE
     runner = CandidateRunner(tmp_path)
-    with runner._causal_reference_scope():
-        assert (visible,) == engine_module.REFERENCE_UNIVERSE
-    assert original == engine_module.REFERENCE_UNIVERSE
-    with pytest.raises(RuntimeError, match="probe"), runner._causal_reference_scope():
-        raise RuntimeError("probe")
-    assert original == engine_module.REFERENCE_UNIVERSE
+    universe = runner.replay_universe(("sh600000",))
+    assert universe.tradable_symbols == ("sh600000",)
+    assert universe.reference_symbols == (visible,)
+    assert universe.index_symbols == engine_module.INDEX_SYMBOLS
+
+
+def test_candidate_runner_never_rebinds_process_reference_universes(tmp_path: Path) -> None:
+    original_engine = engine_module.REFERENCE_UNIVERSE
+    original_leader = leader_module.REFERENCE_UNIVERSE
+    CandidateRunner(tmp_path).replay_universe(("sh600000",))
+    assert engine_module.REFERENCE_UNIVERSE is original_engine
+    assert leader_module.REFERENCE_UNIVERSE is original_leader
 
 
 def test_causal_replay_manifest_omits_missing_and_future_only_symbols(tmp_path: Path) -> None:
@@ -171,6 +177,26 @@ def test_causal_replay_manifest_omits_missing_and_future_only_symbols(tmp_path: 
         ("sh600000", "sh600001", "sh600002"), as_of="2026-08-05"
     )
     assert manifest.symbols == ("sh600000",)
+
+
+def test_candidate_runner_routes_workspace_manifests_through_causal_store(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    calls: list[tuple[str, ...]] = []
+
+    class InspectingStore(_CausalReplayDataStore):
+        def manifest(self, symbols: object, **kwargs: object):  # type: ignore[no-untyped-def,override]
+            result = super().manifest(symbols, **kwargs)  # type: ignore[arg-type]
+            calls.append(result.symbols)
+            return result
+
+    monkeypatch.setattr("research.candidate_runner._CausalReplayDataStore", InspectingStore)
+    CandidateRunner(ROOT / "data" / "frozen").trace_cell(
+        symbols=("sz300308",),
+        start="2026-07-01",
+        end="2026-07-02",
+    )
+    assert calls
 
 
 def test_real_uquant_engine_prefix_is_byte_identical_after_appending_future_row(

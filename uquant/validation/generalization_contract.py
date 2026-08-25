@@ -87,46 +87,55 @@ class ContractScenario:
             raise ValueError("insufficient sample cannot be an economic replay")
         if self.lookback_sessions < 1:
             raise ValueError("contract scenario lookback must be positive")
-        if self.evidence_scores != tuple(sorted(self.evidence_scores)):
-            raise ValueError("contract scenario evidence scores must be canonical")
-        if any(not math.isfinite(score) for _, score in self.evidence_scores):
-            raise ValueError("contract scenario evidence scores must be finite")
-        if not _SHA256.fullmatch(self.evidence_sha256):
-            raise ValueError("contract scenario evidence identity must be SHA-256")
-        if tuple(symbol for symbol, _ in self.evidence_scores) != self.evidence_eligible_symbols:
-            raise ValueError("contract scenario evidence scores differ from eligible cohort")
-        if (
-            self.evidence_ineligible_symbols != tuple(sorted(self.evidence_ineligible_symbols))
-            or set(self.evidence_eligible_symbols) & set(self.evidence_ineligible_symbols)
-        ):
-            raise ValueError("contract scenario evidence cohorts are not canonical")
-        evidence_payload = {
-            "as_of": self.evidence_as_of,
-            "scores": [[symbol, score] for symbol, score in self.evidence_scores],
-            "eligible_symbols": list(self.evidence_eligible_symbols),
-            "ineligible_symbols": list(self.evidence_ineligible_symbols),
-            "lookback_sessions": self.lookback_sessions,
-        }
-        observed_evidence_sha256 = hashlib.sha256(
-            json.dumps(
-                evidence_payload,
-                allow_nan=False,
-                separators=(",", ":"),
-                sort_keys=True,
-            ).encode()
-        ).hexdigest()
-        if observed_evidence_sha256 != self.evidence_sha256:
-            raise ValueError("contract scenario evidence identity differs from its causal payload")
-        random_fields = (self.pool_size, self.seed_index, self.derived_seed)
-        if self.family == "random" and any(value is None for value in random_fields):
-            raise ValueError("random contract scenario requires complete seed provenance")
-        if self.family != "random" and any(value is not None for value in random_fields):
-            raise ValueError("non-random contract scenario cannot carry seed provenance")
+        _validate_contract_evidence(self)
+        _validate_contract_seed_provenance(self)
 
     @property
     def economic(self) -> bool:
         """Return whether this record must execute an economic replay."""
         return self.status is ScenarioStatus.READY
+
+
+def _validate_contract_evidence(scenario: ContractScenario) -> None:
+    """Bind one scenario to its canonical causal evidence payload."""
+    if scenario.evidence_scores != tuple(sorted(scenario.evidence_scores)):
+        raise ValueError("contract scenario evidence scores must be canonical")
+    if any(not math.isfinite(score) for _, score in scenario.evidence_scores):
+        raise ValueError("contract scenario evidence scores must be finite")
+    if not _SHA256.fullmatch(scenario.evidence_sha256):
+        raise ValueError("contract scenario evidence identity must be SHA-256")
+    if tuple(symbol for symbol, _ in scenario.evidence_scores) != scenario.evidence_eligible_symbols:
+        raise ValueError("contract scenario evidence scores differ from eligible cohort")
+    if scenario.evidence_ineligible_symbols != tuple(sorted(scenario.evidence_ineligible_symbols)) or set(
+        scenario.evidence_eligible_symbols
+    ) & set(scenario.evidence_ineligible_symbols):
+        raise ValueError("contract scenario evidence cohorts are not canonical")
+    evidence_payload = {
+        "as_of": scenario.evidence_as_of,
+        "scores": [[symbol, score] for symbol, score in scenario.evidence_scores],
+        "eligible_symbols": list(scenario.evidence_eligible_symbols),
+        "ineligible_symbols": list(scenario.evidence_ineligible_symbols),
+        "lookback_sessions": scenario.lookback_sessions,
+    }
+    observed_evidence_sha256 = hashlib.sha256(
+        json.dumps(
+            evidence_payload,
+            allow_nan=False,
+            separators=(",", ":"),
+            sort_keys=True,
+        ).encode()
+    ).hexdigest()
+    if observed_evidence_sha256 != scenario.evidence_sha256:
+        raise ValueError("contract scenario evidence identity differs from its causal payload")
+
+
+def _validate_contract_seed_provenance(scenario: ContractScenario) -> None:
+    """Require random seed identity only for random contract cells."""
+    random_fields = (scenario.pool_size, scenario.seed_index, scenario.derived_seed)
+    if scenario.family == "random" and any(value is None for value in random_fields):
+        raise ValueError("random contract scenario requires complete seed provenance")
+    if scenario.family != "random" and any(value is not None for value in random_fields):
+        raise ValueError("non-random contract scenario cannot carry seed provenance")
 
 
 def official_windows(names: tuple[str, ...] | None = None) -> tuple[GeneralizationWindow, ...]:
@@ -247,38 +256,30 @@ def _record(
         pool_size=pool_size,
         seed_index=seed_index,
         derived_seed=(
-            _derived_seed(pool_size, seed_index)
-            if pool_size is not None and seed_index is not None
-            else None
+            _derived_seed(pool_size, seed_index) if pool_size is not None and seed_index is not None else None
         ),
     )
 
 
-def build_official_scenarios(
+def _official_scenario_matrix(
     *,
     window: GeneralizationWindow,
     evidence: PreWindowEvidence,
-    universe: AIUniverse | None = None,
-    lookback_sessions: int = 120,
-) -> tuple[ContractScenario, ...]:
-    """Build the complete fixed matrix for one official window."""
+    universe: AIUniverse | None,
+) -> tuple[AIUniverse, dict[str, str], dict[str, GeneralizationScenario]]:
     if window not in official_windows():
         raise ValueError("scenario construction requires an exact official window")
     canonical = load_ai_universe() if universe is None else universe
     eligible_symbols = canonical.symbols_as_of(evidence.as_of)
     evidence_members = set(evidence.eligible_symbols) | set(evidence.ineligible_symbols)
     if evidence_members != set(eligible_symbols):
-        raise ValueError(
-            "pre-window evidence must exactly partition point-in-time AI membership"
-        )
+        raise ValueError("pre-window evidence must exactly partition point-in-time AI membership")
     if max(RANDOM_POOL_SIZES) > len(eligible_symbols):
         raise ValueError(
             "fixed random pool size exceeds point-in-time eligible universe: "
             f"max_size={max(RANDOM_POOL_SIZES)}, eligible={len(eligible_symbols)}"
         )
-    industries = {
-        symbol: canonical.industry_of(symbol, evidence.as_of) for symbol in eligible_symbols
-    }
+    industries = {symbol: canonical.industry_of(symbol, evidence.as_of) for symbol in eligible_symbols}
     if any(industry == "unknown" for industry in industries.values()):
         raise ValueError("point-in-time industry membership is incomplete")
     complete = build_generalization_scenarios(
@@ -294,7 +295,109 @@ def build_official_scenarios(
         balanced_per_industry=INDUSTRY_MIN_SAMPLE,
         industry_min_members=INDUSTRY_MIN_SAMPLE,
     )
-    by_name = {scenario.name: scenario for scenario in complete}
+    return canonical, industries, {scenario.name: scenario for scenario in complete}
+
+
+def _append_core_removal_records(
+    records: list[ContractScenario],
+    *,
+    window: GeneralizationWindow,
+    universe: AIUniverse,
+    scenarios: dict[str, GeneralizationScenario],
+    evidence: PreWindowEvidence,
+    lookback_sessions: int,
+) -> None:
+    for symbol in CORE_SYMBOLS:
+        source = next(
+            scenario
+            for scenario in scenarios.values()
+            if scenario.family == "remove_one" and scenario.removed_symbols == (symbol,)
+        )
+        records.append(
+            _record(
+                window=window,
+                universe=universe,
+                source=source,
+                name=f"remove-one__{symbol}",
+                family="remove_one",
+                evidence=evidence,
+                lookback_sessions=lookback_sessions,
+            )
+        )
+
+
+def _append_industry_records(
+    records: list[ContractScenario],
+    *,
+    window: GeneralizationWindow,
+    universe: AIUniverse,
+    industries: dict[str, str],
+    scenarios: dict[str, GeneralizationScenario],
+    evidence: PreWindowEvidence,
+    lookback_sessions: int,
+) -> None:
+    for industry in sorted(set(industries.values())):
+        source = scenarios[f"industry_only__{industry}"]
+        status = (
+            ScenarioStatus.READY
+            if len(source.symbols) >= INDUSTRY_MIN_SAMPLE
+            else ScenarioStatus.INSUFFICIENT_SAMPLE
+        )
+        records.append(
+            _record(
+                window=window,
+                universe=universe,
+                source=source,
+                name=f"subindustry__{industry}",
+                family="subindustry",
+                status=status,
+                industry=industry,
+                evidence=evidence,
+                lookback_sessions=lookback_sessions,
+            )
+        )
+
+
+def _append_random_records(
+    records: list[ContractScenario],
+    *,
+    window: GeneralizationWindow,
+    universe: AIUniverse,
+    scenarios: dict[str, GeneralizationScenario],
+    evidence: PreWindowEvidence,
+    lookback_sessions: int,
+) -> None:
+    for size in RANDOM_POOL_SIZES:
+        for seed_index in RANDOM_SEED_INDEXES:
+            source = scenarios[f"random_{size:02d}__{seed_index:04d}"]
+            records.append(
+                _record(
+                    window=window,
+                    universe=universe,
+                    source=source,
+                    name=f"random__{size:02d}__{seed_index:04d}",
+                    family="random",
+                    pool_size=size,
+                    seed_index=seed_index,
+                    evidence=evidence,
+                    lookback_sessions=lookback_sessions,
+                )
+            )
+
+
+def build_official_scenarios(
+    *,
+    window: GeneralizationWindow,
+    evidence: PreWindowEvidence,
+    universe: AIUniverse | None = None,
+    lookback_sessions: int = 120,
+) -> tuple[ContractScenario, ...]:
+    """Build the complete fixed matrix for one official window."""
+    canonical, industries, by_name = _official_scenario_matrix(
+        window=window,
+        evidence=evidence,
+        universe=universe,
+    )
     records: list[ContractScenario] = [
         _record(
             window=window,
@@ -306,29 +409,20 @@ def build_official_scenarios(
             lookback_sessions=lookback_sessions,
         )
     ]
-    for symbol in CORE_SYMBOLS:
-        source = next(
-            scenario
-            for scenario in complete
-            if scenario.family == "remove_one" and scenario.removed_symbols == (symbol,)
-        )
-        records.append(
-            _record(
-                window=window,
-                universe=canonical,
-                source=source,
-                name=f"remove-one__{symbol}",
-                family="remove_one",
-                evidence=evidence,
-                lookback_sessions=lookback_sessions,
-            )
-        )
+    _append_core_removal_records(
+        records,
+        window=window,
+        universe=canonical,
+        scenarios=by_name,
+        evidence=evidence,
+        lookback_sessions=lookback_sessions,
+    )
     records.extend(
         (
             _record(
                 window=window,
                 universe=canonical,
-                source=next(scenario for scenario in complete if scenario.family == "remove_all"),
+                source=next(scenario for scenario in by_name.values() if scenario.family == "remove_all"),
                 name="remove-all-core",
                 family="remove_all_core",
                 evidence=evidence,
@@ -354,42 +448,23 @@ def build_official_scenarios(
             ),
         )
     )
-    for industry in sorted(set(industries.values())):
-        source = by_name[f"industry_only__{industry}"]
-        status = (
-            ScenarioStatus.READY
-            if len(source.symbols) >= INDUSTRY_MIN_SAMPLE
-            else ScenarioStatus.INSUFFICIENT_SAMPLE
-        )
-        records.append(
-            _record(
-                window=window,
-                universe=canonical,
-                source=source,
-                name=f"subindustry__{industry}",
-                family="subindustry",
-                status=status,
-                industry=industry,
-                evidence=evidence,
-                lookback_sessions=lookback_sessions,
-            )
-        )
-    for size in RANDOM_POOL_SIZES:
-        for seed_index in RANDOM_SEED_INDEXES:
-            source = by_name[f"random_{size:02d}__{seed_index:04d}"]
-            records.append(
-                _record(
-                    window=window,
-                    universe=canonical,
-                    source=source,
-                    name=f"random__{size:02d}__{seed_index:04d}",
-                    family="random",
-                    pool_size=size,
-                    seed_index=seed_index,
-                    evidence=evidence,
-                    lookback_sessions=lookback_sessions,
-                )
-            )
+    _append_industry_records(
+        records,
+        window=window,
+        universe=canonical,
+        industries=industries,
+        scenarios=by_name,
+        evidence=evidence,
+        lookback_sessions=lookback_sessions,
+    )
+    _append_random_records(
+        records,
+        window=window,
+        universe=canonical,
+        scenarios=by_name,
+        evidence=evidence,
+        lookback_sessions=lookback_sessions,
+    )
     names = tuple(record.name for record in records)
     if len(names) != len(set(names)):
         raise RuntimeError("official scenario contract produced duplicate cells")

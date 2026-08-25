@@ -9,11 +9,11 @@ from .models import (
 )
 from .service import evaluate_sentinel
 
-__all__ = [
-    "CoverageHealth",
-    "SentinelAssessment",
-    "SentinelLevel",
-    "WarmupStatus",
-    "evaluate_sentinel",
-    "integrate_freeze_only",
-]
+__all__ = (
+        "CoverageHealth",
+        "SentinelAssessment",
+        "SentinelLevel",
+        "WarmupStatus",
+        "evaluate_sentinel",
+        "integrate_freeze_only",
+)

@@ -79,11 +79,7 @@ def observe_deployed_sector(
         daily_returns.append(current / previous - 1.0)
         economic_weights.append(max(0.0, (weights or {}).get(symbol, 1.0)))
         recovery_structure.append(current > float(history.tail(cfg.sector_recovery_ma).mean()))
-    required_symbols = (
-        cfg.sector_guard_min_symbols
-        if minimum_symbols is None
-        else minimum_symbols
-    )
+    required_symbols = cfg.sector_guard_min_symbols if minimum_symbols is None else minimum_symbols
     if required_symbols < 1:
         raise ValueError("sector observation minimum_symbols must be positive")
     if len(daily_returns) < required_symbols:
@@ -101,6 +97,132 @@ def observe_deployed_sector(
         negative_exposure=float(normalized_weights[returns < 0.0].sum()),
         recovery_breadth=float(np.mean(recovery_structure)),
     )
+
+
+def _observe_sector_guard_cohort(
+    *,
+    date: pd.Timestamp,
+    panel: dict[str, pd.DataFrame],
+    account: AccountState,
+    cfg: SystemConfig,
+) -> tuple[set[str], SectorObservation | None]:
+    deployed = {symbol for symbol, position in account.positions.items() if position.shares > 0}
+    if account.sector_guard_active:
+        # Recovery must observe the economic cohort that triggered the guard,
+        # not merely the residual holdings after the guard's own sparse cut.
+        # Otherwise a 3-name shock reduced to one survivor can never satisfy
+        # ``sector_guard_min_symbols`` and the state machine locks forever.
+        deployed.update(account.sector_guard_symbols)
+        deployed.update(account.protected_weights)
+    economic_weights: dict[str, float] = {}
+    for symbol in deployed:
+        position = account.positions.get(symbol)
+        frame = panel.get(symbol)
+        if position is not None and frame is not None and date in frame.index:
+            economic_weights[symbol] = position.shares * scalar(frame.loc[date], "close", 0.0)
+        elif symbol in account.protected_weights:
+            economic_weights[symbol] = max(0.0, account.protected_weights[symbol])
+    observation = observe_deployed_sector(
+        date=date,
+        panel=panel,
+        symbols=deployed,
+        cfg=cfg,
+        weights=economic_weights,
+        # The ordinary guard still needs breadth.  A one-name trigger cohort
+        # can exist only after the acute owner explicitly activated it; allow
+        # that same observed name to prove recovery instead of locking cash.
+        minimum_symbols=(
+            1 if account.sector_guard_active and len(account.sector_guard_symbols) == 1 else None
+        ),
+    )
+    return deployed, observation
+
+
+def _advance_sector_shock_dates(
+    *,
+    date: pd.Timestamp,
+    calendar: pd.DatetimeIndex,
+    account: AccountState,
+    observation: SectorObservation | None,
+    cfg: SystemConfig,
+) -> tuple[bool, str]:
+    account.sector_shock_dates = [
+        value
+        for value in account.sector_shock_dates
+        if pd.Timestamp(value) <= date and _session_distance(calendar, value, date) < cfg.sector_shock_window
+    ]
+    shock = bool(
+        observation is not None
+        and (
+            (
+                observation.equal_return <= cfg.sector_shock_return
+                and observation.positive_breadth <= cfg.sector_shock_breadth
+            )
+            or (
+                observation.weighted_return <= cfg.sector_weighted_shock_return
+                and observation.negative_exposure >= cfg.sector_weighted_negative_exposure
+            )
+        )
+    )
+    date_label = str(date.date())
+    if shock and date_label not in account.sector_shock_dates:
+        account.sector_shock_dates.append(date_label)
+    return shock, date_label
+
+
+def _activate_sector_guard(
+    *,
+    account: AccountState,
+    deployed: set[str],
+    date_label: str,
+    leadership_divergence: float,
+    cfg: SystemConfig,
+) -> bool:
+    triggered = bool(
+        not account.sector_guard_active
+        and len(account.sector_shock_dates) >= cfg.sector_shock_confirmations
+        and leadership_divergence >= cfg.sector_guard_divergence
+    )
+    if triggered:
+        account.sector_guard_active = True
+        account.sector_guard_started = date_label
+        account.sector_guard_symbols = sorted(deployed)
+        account.sector_recovery_streak = 0
+    return triggered
+
+
+def _recover_sector_guard(
+    *,
+    date: pd.Timestamp,
+    calendar: pd.DatetimeIndex,
+    account: AccountState,
+    observation: SectorObservation | None,
+    shock: bool,
+    cfg: SystemConfig,
+) -> tuple[int, bool]:
+    active_sessions = (
+        _session_distance(calendar, account.sector_guard_started, date)
+        if account.sector_guard_active and account.sector_guard_started
+        else 0
+    )
+    recovered = False
+    if account.sector_guard_active:
+        repair = bool(
+            observation is not None
+            and not shock
+            and observation.equal_return > cfg.sector_recovery_return
+            and observation.recovery_breadth >= cfg.sector_recovery_breadth
+            and active_sessions >= cfg.sector_guard_min_sessions
+        )
+        account.sector_recovery_streak = account.sector_recovery_streak + 1 if repair else 0
+        if account.sector_recovery_streak >= cfg.sector_recovery_confirmations:
+            recovered = True
+            account.sector_guard_active = False
+            account.sector_guard_started = ""
+            account.sector_guard_symbols.clear()
+            account.sector_recovery_streak = 0
+            account.sector_shock_dates.clear()
+    return active_sessions, recovered
 
 
 def update_sector_guard(
@@ -128,94 +250,34 @@ def update_sector_guard(
         account.sector_recovery_streak = 0
         return SectorGuardTransition(False, False, False, False, 0, 0, None)
 
-    deployed = {symbol for symbol, position in account.positions.items() if position.shares > 0}
-    if account.sector_guard_active:
-        # Recovery must observe the economic cohort that triggered the guard,
-        # not merely the residual holdings after the guard's own sparse cut.
-        # Otherwise a 3-name shock reduced to one survivor can never satisfy
-        # ``sector_guard_min_symbols`` and the state machine locks forever.
-        deployed.update(account.sector_guard_symbols)
-        deployed.update(account.protected_weights)
-    economic_weights: dict[str, float] = {}
-    for symbol in deployed:
-        position = account.positions.get(symbol)
-        frame = panel.get(symbol)
-        if position is not None and frame is not None and date in frame.index:
-            economic_weights[symbol] = position.shares * scalar(frame.loc[date], "close", 0.0)
-        elif symbol in account.protected_weights:
-            economic_weights[symbol] = max(0.0, account.protected_weights[symbol])
-    observation = observe_deployed_sector(
+    deployed, observation = _observe_sector_guard_cohort(
         date=date,
         panel=panel,
-        symbols=deployed,
+        account=account,
         cfg=cfg,
-        weights=economic_weights,
-        # The ordinary guard still needs breadth.  A one-name trigger cohort
-        # can exist only after the acute owner explicitly activated it; allow
-        # that same observed name to prove recovery instead of locking cash.
-        minimum_symbols=(
-            1
-            if account.sector_guard_active
-            and len(account.sector_guard_symbols) == 1
-            else None
-        ),
     )
-
-    account.sector_shock_dates = [
-        value
-        for value in account.sector_shock_dates
-        if pd.Timestamp(value) <= date and _session_distance(calendar, value, date) < cfg.sector_shock_window
-    ]
-    shock = bool(
-        observation is not None
-        and (
-            (
-                observation.equal_return <= cfg.sector_shock_return
-                and observation.positive_breadth <= cfg.sector_shock_breadth
-            )
-            or (
-                observation.weighted_return <= cfg.sector_weighted_shock_return
-                and observation.negative_exposure >= cfg.sector_weighted_negative_exposure
-            )
-        )
+    shock, date_label = _advance_sector_shock_dates(
+        date=date,
+        calendar=calendar,
+        account=account,
+        observation=observation,
+        cfg=cfg,
     )
-    date_label = str(date.date())
-    if shock and date_label not in account.sector_shock_dates:
-        account.sector_shock_dates.append(date_label)
-
-    triggered = bool(
-        not account.sector_guard_active
-        and len(account.sector_shock_dates) >= cfg.sector_shock_confirmations
-        and leadership_divergence >= cfg.sector_guard_divergence
+    triggered = _activate_sector_guard(
+        account=account,
+        deployed=deployed,
+        date_label=date_label,
+        leadership_divergence=leadership_divergence,
+        cfg=cfg,
     )
-    if triggered:
-        account.sector_guard_active = True
-        account.sector_guard_started = date_label
-        account.sector_guard_symbols = sorted(deployed)
-        account.sector_recovery_streak = 0
-
-    active_sessions = (
-        _session_distance(calendar, account.sector_guard_started, date)
-        if account.sector_guard_active and account.sector_guard_started
-        else 0
+    active_sessions, recovered = _recover_sector_guard(
+        date=date,
+        calendar=calendar,
+        account=account,
+        observation=observation,
+        shock=shock,
+        cfg=cfg,
     )
-    recovered = False
-    if account.sector_guard_active:
-        repair = bool(
-            observation is not None
-            and not shock
-            and observation.equal_return > cfg.sector_recovery_return
-            and observation.recovery_breadth >= cfg.sector_recovery_breadth
-            and active_sessions >= cfg.sector_guard_min_sessions
-        )
-        account.sector_recovery_streak = account.sector_recovery_streak + 1 if repair else 0
-        if account.sector_recovery_streak >= cfg.sector_recovery_confirmations:
-            recovered = True
-            account.sector_guard_active = False
-            account.sector_guard_started = ""
-            account.sector_guard_symbols.clear()
-            account.sector_recovery_streak = 0
-            account.sector_shock_dates.clear()
 
     return SectorGuardTransition(
         active=account.sector_guard_active,

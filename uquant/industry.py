@@ -14,7 +14,7 @@ from types import MappingProxyType
 
 import numpy as np
 
-from .validation.universe import default_ai_universe
+from .contracts.universe import default_ai_universe
 
 _PHASE1_COMPATIBILITY_LABELS = MappingProxyType(
     {

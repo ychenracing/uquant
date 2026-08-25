@@ -1,0 +1,765 @@
+{
+  "candidate_policy": "Only delete/move/externalize/authority-change candidates and high-risk evidence; one inconclusive search means UNRESOLVED_KEEP.",
+  "canonical_sha256": "2e4c0b518d9e9d402d809800aeafef8555d6f7d649ce7564828bf4ad70005690",
+  "contract": "uquant-task11-bounded-cleanup-inventory-v1",
+  "deleted_paths": [],
+  "entries": [
+    {
+      "authority_reason": "Immutable pre-refactor byte inventory and recovery anchor for governed repository evidence.",
+      "classification": "KEEP_AUTHORITATIVE",
+      "content_sha256": "4b3c47dd49fc237b82f1a73568549d30790f50997acad4b7e232d54ad6b095e2",
+      "live_references": [
+        "artifacts/architecture_refactor/task5_cleanup_inventory.json",
+        "artifacts/architecture_refactor/task6_cleanup_inventory.json",
+        "artifacts/architecture_refactor/task7_cleanup_inventory.json",
+        "artifacts/architecture_refactor/task8_cleanup_inventory.json",
+        "artifacts/architecture_refactor/task9_cleanup_inventory.json",
+        "tests/architecture/test_task10_governance.py",
+        "tests/architecture/test_task10_private_import_remediation.py",
+        "tests/architecture/test_task5_modular_boundaries.py",
+        "tests/architecture/test_task6_execution_application_boundaries.py",
+        "tests/architecture/test_task9_validation_boundaries.py"
+      ],
+      "path": "artifacts/architecture_refactor/baseline_inventory.json",
+      "recovery": {
+        "command": "git show HEAD:artifacts/architecture_refactor/baseline_inventory.json",
+        "status": "GIT_OBJECT"
+      },
+      "replacement_path": null,
+      "size_bytes": 603420
+    },
+    {
+      "authority_reason": "Current Task 10 architecture-governance inventory and accepted scanner scope.",
+      "classification": "KEEP_AUTHORITATIVE",
+      "content_sha256": "a42ecaf5ec70ceda0456f16ceb56ef553c790a6adfdc20cf213d933128107da4",
+      "live_references": [],
+      "path": "artifacts/architecture_refactor/task10_governance_inventory.json",
+      "recovery": {
+        "command": "git show HEAD:artifacts/architecture_refactor/task10_governance_inventory.json",
+        "status": "GIT_OBJECT"
+      },
+      "replacement_path": null,
+      "size_bytes": 1997552
+    },
+    {
+      "authority_reason": "One bounded repository reference search found 1 direct path reference(s), or could not prove an authority-equivalent replacement; deletion is therefore unresolved.",
+      "classification": "UNRESOLVED_KEEP",
+      "content_sha256": "af9b76fd10fcd6c9b865e9efb39936419c64b6c309e401a07b54a482f23bd71d",
+      "live_references": [
+        "artifacts/architecture_refactor/baseline_inventory.json"
+      ],
+      "path": "artifacts/current_heads/diagnostics/aquant_process_reuse_first_divergence.json",
+      "recovery": {
+        "command": "git show HEAD:artifacts/current_heads/diagnostics/aquant_process_reuse_first_divergence.json",
+        "status": "GIT_OBJECT"
+      },
+      "replacement_path": null,
+      "size_bytes": 1421
+    },
+    {
+      "authority_reason": "One bounded repository reference search found 2 direct path reference(s), or could not prove an authority-equivalent replacement; deletion is therefore unresolved.",
+      "classification": "UNRESOLVED_KEEP",
+      "content_sha256": "8f61496711eeb97b3a53074f5429cfc2c300c4854edca71ef4d27933009b97e5",
+      "live_references": [
+        "artifacts/architecture_refactor/baseline_inventory.json",
+        "artifacts/current_heads/diagnostics/aquant_process_reuse_first_divergence.json"
+      ],
+      "path": "artifacts/current_heads/diagnostics/aquant_process_reuse_run1.json",
+      "recovery": {
+        "command": "git show HEAD:artifacts/current_heads/diagnostics/aquant_process_reuse_run1.json",
+        "status": "GIT_OBJECT"
+      },
+      "replacement_path": null,
+      "size_bytes": 406772
+    },
+    {
+      "authority_reason": "One bounded repository reference search found 2 direct path reference(s), or could not prove an authority-equivalent replacement; deletion is therefore unresolved.",
+      "classification": "UNRESOLVED_KEEP",
+      "content_sha256": "0916600bc991d54dbe5481570aae61475afcd5ab4dd1abc2881a9fc0aea9785b",
+      "live_references": [
+        "artifacts/architecture_refactor/baseline_inventory.json",
+        "artifacts/current_heads/diagnostics/aquant_process_reuse_first_divergence.json"
+      ],
+      "path": "artifacts/current_heads/diagnostics/aquant_process_reuse_run2.json",
+      "recovery": {
+        "command": "git show HEAD:artifacts/current_heads/diagnostics/aquant_process_reuse_run2.json",
+        "status": "GIT_OBJECT"
+      },
+      "replacement_path": null,
+      "size_bytes": 406809
+    },
+    {
+      "authority_reason": "One bounded repository reference search found 1 direct path reference(s), or could not prove an authority-equivalent replacement; deletion is therefore unresolved.",
+      "classification": "UNRESOLVED_KEEP",
+      "content_sha256": "378aed1e80d2b984d5aee0da07be4bb118b1fedc598f6185ebdbd0c0251ad802",
+      "live_references": [
+        "artifacts/architecture_refactor/baseline_inventory.json"
+      ],
+      "path": "artifacts/current_heads/diagnostics/final_engineering_first_run_failure.json",
+      "recovery": {
+        "command": "git show HEAD:artifacts/current_heads/diagnostics/final_engineering_first_run_failure.json",
+        "status": "GIT_OBJECT"
+      },
+      "replacement_path": null,
+      "size_bytes": 841
+    },
+    {
+      "authority_reason": "One bounded repository reference search found 1 direct path reference(s), or could not prove an authority-equivalent replacement; deletion is therefore unresolved.",
+      "classification": "UNRESOLVED_KEEP",
+      "content_sha256": "71a68aca2be6c2122409223a65859818637205bfdffc4e77d4794c277aeebff5",
+      "live_references": [
+        "artifacts/architecture_refactor/baseline_inventory.json"
+      ],
+      "path": "artifacts/current_heads/diagnostics/matrix_assembly_metric_order_failure.json",
+      "recovery": {
+        "command": "git show HEAD:artifacts/current_heads/diagnostics/matrix_assembly_metric_order_failure.json",
+        "status": "GIT_OBJECT"
+      },
+      "replacement_path": null,
+      "size_bytes": 542
+    },
+    {
+      "authority_reason": "One bounded repository reference search found 1 direct path reference(s), or could not prove an authority-equivalent replacement; deletion is therefore unresolved.",
+      "classification": "UNRESOLVED_KEEP",
+      "content_sha256": "c4a9a350418e63a7c877282e110bd93c709f82c2d71d35e64d89079345377a19",
+      "live_references": [
+        "artifacts/architecture_refactor/baseline_inventory.json"
+      ],
+      "path": "artifacts/current_heads/diagnostics/matrix_runtime_readback_failure.json",
+      "recovery": {
+        "command": "git show HEAD:artifacts/current_heads/diagnostics/matrix_runtime_readback_failure.json",
+        "status": "GIT_OBJECT"
+      },
+      "replacement_path": null,
+      "size_bytes": 587
+    },
+    {
+      "authority_reason": "One bounded repository reference search found 5 direct path reference(s), or could not prove an authority-equivalent replacement; deletion is therefore unresolved.",
+      "classification": "UNRESOLVED_KEEP",
+      "content_sha256": "24c1d66676cc9c35361ff51e5293f252136e545073d7b4cd63bbf97034b063c1",
+      "live_references": [
+        "artifacts/architecture_refactor/baseline_inventory.json",
+        "artifacts/phase1/diagnostics/ablation.json",
+        "artifacts/phase1/diagnostics/first-divergence.json",
+        "docs/PERFORMANCE.md",
+        "docs/superpowers/plans/2026-08-13-phase1-ai-era-validation.md"
+      ],
+      "path": "artifacts/phase1/diagnostics/phase1-history.bundle",
+      "recovery": {
+        "command": "git show HEAD:artifacts/phase1/diagnostics/phase1-history.bundle",
+        "status": "GIT_OBJECT"
+      },
+      "replacement_path": null,
+      "size_bytes": 125857
+    },
+    {
+      "authority_reason": "Frozen champion generalization matrix used by the protected Phase 2 oracle.",
+      "classification": "KEEP_AUTHORITATIVE",
+      "content_sha256": "926ea8419ab8aad7a05577eee56aeefa90c33cc7faa4e1ee1d2bbbaac77439cc",
+      "live_references": [
+        ".superpowers/sdd/2026-08-14-phase2-ai-era-generalization/task-7-report.md",
+        "artifacts/architecture_refactor/baseline_inventory.json",
+        "artifacts/architecture_refactor/task9_cleanup_inventory.json",
+        "artifacts/architecture_refactor/task9_validation_contract_oracle.json",
+        "artifacts/phase2/ablations/registry.json",
+        "docs/superpowers/plans/2026-08-14-phase2-ai-era-generalization.md",
+        "research/ablation_registry.py",
+        "tests/architecture/_task9_candidate_oracle.py",
+        "tests/architecture/_task9_validation_oracle.py"
+      ],
+      "path": "artifacts/phase2/champion-generalization-matrix.json",
+      "recovery": {
+        "command": "git show HEAD:artifacts/phase2/champion-generalization-matrix.json",
+        "status": "GIT_OBJECT"
+      },
+      "replacement_path": null,
+      "size_bytes": 16196017
+    },
+    {
+      "authority_reason": "Accepted Risk Sentinel differential closure evidence and authority boundary.",
+      "classification": "KEEP_AUTHORITATIVE",
+      "content_sha256": "83e08c727f92ddd0b8f84618b187971c9675cd49037ae298153fd8f37395b1af",
+      "live_references": [
+        "artifacts/architecture_refactor/baseline_inventory.json",
+        "tests/test_risk_differential_artifacts.py",
+        "tests/test_risk_differential_holdout.py"
+      ],
+      "path": "artifacts/sentinel/risk_differential/closure.json",
+      "recovery": {
+        "command": "git show HEAD:artifacts/sentinel/risk_differential/closure.json",
+        "status": "GIT_OBJECT"
+      },
+      "replacement_path": null,
+      "size_bytes": 1475
+    },
+    {
+      "authority_reason": "Authoritative Future Holdout lane identities and no-backfill state.",
+      "classification": "KEEP_AUTHORITATIVE",
+      "content_sha256": "e5a62a36054b71a9f60e4cf348c9dabe9735f064c39767d68e331e4fcbc0d638",
+      "live_references": [
+        "artifacts/architecture_refactor/baseline_inventory.json",
+        "artifacts/architecture_refactor/task9_cleanup_inventory.json",
+        "artifacts/architecture_refactor/task9_validation_contract_oracle.json",
+        "benchmarks/source_surface_registry.json",
+        "docs/PERFORMANCE.md",
+        "docs/superpowers/plans/2026-08-18-future-holdout-lanes.md",
+        "docs/superpowers/plans/2026-08-19-risk-sentinel-shadow.md",
+        "research/future_holdout_cli.py",
+        "tests/architecture/_task9_validation_oracle.py",
+        "tests/test_future_holdout_lanes.py",
+        "tests/test_future_holdout_runtime.py",
+        "tests/test_risk_differential_holdout.py",
+        "uquant/validation/holdout/replay.py",
+        "uquant/validation/production_observation.py"
+      ],
+      "path": "benchmarks/future_holdout_lane_registry.json",
+      "recovery": {
+        "command": "git show HEAD:benchmarks/future_holdout_lane_registry.json",
+        "status": "GIT_OBJECT"
+      },
+      "replacement_path": null,
+      "size_bytes": 3248
+    },
+    {
+      "authority_reason": "Authoritative versioned source-surface identities; migration is deferred to Task 12.",
+      "classification": "KEEP_AUTHORITATIVE",
+      "content_sha256": "ba524cae3f8c2203f9f403e271439f63006d02e3eb8abdd525df541f0f93feb1",
+      "live_references": [
+        "artifacts/architecture_refactor/task5_cleanup_inventory.json",
+        "artifacts/architecture_refactor/task6_cleanup_inventory.json",
+        "artifacts/architecture_refactor/task7_cleanup_inventory.json",
+        "artifacts/architecture_refactor/task8_cleanup_inventory.json",
+        "artifacts/architecture_refactor/task9_cleanup_inventory.json",
+        "tests/architecture/_task8_inventory.py",
+        "tests/architecture/_task9_inventory.py",
+        "tests/architecture/_task9_relocation.py",
+        "tests/architecture/test_source_surface_contracts.py",
+        "tests/architecture/test_task5_modular_boundaries.py",
+        "tests/architecture/test_task6_execution_application_boundaries.py",
+        "tests/architecture/test_task7_risk_boundaries.py",
+        "tests/architecture/test_task8_portfolio_boundaries.py",
+        "tests/architecture/test_task9_validation_boundaries.py",
+        "tests/test_engine_contracts.py",
+        "tests/test_source_surface_provenance.py",
+        "uquant/provenance/surfaces.py"
+      ],
+      "path": "benchmarks/source_surface_registry.json",
+      "recovery": {
+        "command": "git show HEAD:benchmarks/source_surface_registry.json",
+        "status": "GIT_OBJECT"
+      },
+      "replacement_path": null,
+      "size_bytes": 30033
+    },
+    {
+      "authority_reason": "Authoritative frozen market-data inventory and content hashes.",
+      "classification": "KEEP_AUTHORITATIVE",
+      "content_sha256": "343009138d22f8d4a20768f706207fe4d4bcd03581b0c5945c5485ecbd28788d",
+      "live_references": [
+        "artifacts/architecture_refactor/baseline_inventory.json"
+      ],
+      "path": "data/frozen/DATA_MANIFEST.json",
+      "recovery": {
+        "command": "git show HEAD:data/frozen/DATA_MANIFEST.json",
+        "status": "GIT_OBJECT"
+      },
+      "replacement_path": null,
+      "size_bytes": 15497
+    },
+    {
+      "authority_reason": "Reviewed historical evidence remains cited context; it does not own current production behavior.",
+      "classification": "KEEP_REFERENCE",
+      "content_sha256": "27a4d090001443c15a0845274bbccb2d770f7e38f9e7dd3106dfbd4a52a988c8",
+      "live_references": [
+        "artifacts/architecture_refactor/baseline_inventory.json",
+        "artifacts/architecture_refactor/task5_cleanup_inventory.json",
+        "artifacts/architecture_refactor/task6_cleanup_inventory.json",
+        "artifacts/architecture_refactor/task7_cleanup_inventory.json",
+        "artifacts/architecture_refactor/task8_cleanup_inventory.json",
+        "docs/superpowers/plans/2026-08-17-balanced-code-and-documentation-review.md"
+      ],
+      "path": "docs/reviews/2026-08-17-balanced-review.md",
+      "recovery": {
+        "command": "git show HEAD:docs/reviews/2026-08-17-balanced-review.md",
+        "status": "GIT_OBJECT"
+      },
+      "replacement_path": null,
+      "size_bytes": 72654
+    },
+    {
+      "authority_reason": "Reviewed historical evidence remains cited context; it does not own current production behavior.",
+      "classification": "KEEP_REFERENCE",
+      "content_sha256": "93406a87c38c6e645a1da3296bf546d29974265b5ffa0e2ff94d2a025978a983",
+      "live_references": [
+        "artifacts/architecture_refactor/baseline_inventory.json",
+        "docs/PERFORMANCE.md",
+        "docs/superpowers/plans/2026-08-18-current-heads-baseline.md"
+      ],
+      "path": "docs/reviews/2026-08-18-current-heads-baseline.md",
+      "recovery": {
+        "command": "git show HEAD:docs/reviews/2026-08-18-current-heads-baseline.md",
+        "status": "GIT_OBJECT"
+      },
+      "replacement_path": null,
+      "size_bytes": 5364
+    },
+    {
+      "authority_reason": "Reviewed historical evidence remains cited context; it does not own current production behavior.",
+      "classification": "KEEP_REFERENCE",
+      "content_sha256": "22984cc78d222cb80aad6ffd00ce3256b148511d82bda99dd57ee988a255001a",
+      "live_references": [
+        "artifacts/architecture_refactor/baseline_inventory.json",
+        "docs/superpowers/plans/2026-08-18-future-holdout-lanes.md"
+      ],
+      "path": "docs/reviews/2026-08-18-future-holdout-operations.md",
+      "recovery": {
+        "command": "git show HEAD:docs/reviews/2026-08-18-future-holdout-operations.md",
+        "status": "GIT_OBJECT"
+      },
+      "replacement_path": null,
+      "size_bytes": 2543
+    },
+    {
+      "authority_reason": "Reviewed historical evidence remains cited context; it does not own current production behavior.",
+      "classification": "KEEP_REFERENCE",
+      "content_sha256": "80de8fdd207151511ddd4392b59acc50d55a30e51093f5bda67bc776d5c8b097",
+      "live_references": [
+        "artifacts/architecture_refactor/baseline_inventory.json"
+      ],
+      "path": "docs/reviews/2026-08-18-sentinel-freeze-only.md",
+      "recovery": {
+        "command": "git show HEAD:docs/reviews/2026-08-18-sentinel-freeze-only.md",
+        "status": "GIT_OBJECT"
+      },
+      "replacement_path": null,
+      "size_bytes": 5510
+    },
+    {
+      "authority_reason": "Reviewed historical evidence remains cited context; it does not own current production behavior.",
+      "classification": "KEEP_REFERENCE",
+      "content_sha256": "a828dcca23d31fc24aa4b548d29d31a5b3804dc0e4de495c63a18c8773de5b27",
+      "live_references": [
+        "artifacts/architecture_refactor/baseline_inventory.json"
+      ],
+      "path": "docs/reviews/2026-08-19-phase5-gross-cap-rejection-archive.md",
+      "recovery": {
+        "command": "git show HEAD:docs/reviews/2026-08-19-phase5-gross-cap-rejection-archive.md",
+        "status": "GIT_OBJECT"
+      },
+      "replacement_path": null,
+      "size_bytes": 909
+    },
+    {
+      "authority_reason": "Reviewed historical evidence remains cited context; it does not own current production behavior.",
+      "classification": "KEEP_REFERENCE",
+      "content_sha256": "9c2fe43d74160f95743d04de6a6fb1763aa699a701bf07dbde7bd90ca5832e0d",
+      "live_references": [
+        "artifacts/architecture_refactor/baseline_inventory.json",
+        "artifacts/sentinel/evidence_closure/economic_equivalence.json",
+        "docs/superpowers/plans/2026-08-20-risk-sentinel-consolidation.md",
+        "tests/test_phase8_consolidation_artifacts.py"
+      ],
+      "path": "docs/reviews/2026-08-20-risk-sentinel-consolidation.md",
+      "recovery": {
+        "command": "git show HEAD:docs/reviews/2026-08-20-risk-sentinel-consolidation.md",
+        "status": "GIT_OBJECT"
+      },
+      "replacement_path": null,
+      "size_bytes": 6552
+    },
+    {
+      "authority_reason": "Reviewed historical evidence remains cited context; it does not own current production behavior.",
+      "classification": "KEEP_REFERENCE",
+      "content_sha256": "11d7f702cc3a631a0a2f54da258ce4161da0fd1480c7441ad9a2f7294f9a07a1",
+      "live_references": [
+        "artifacts/architecture_refactor/baseline_inventory.json",
+        "artifacts/sentinel/risk_differential/README.md"
+      ],
+      "path": "docs/reviews/2026-08-21-risk-differential-closure.md",
+      "recovery": {
+        "command": "git show HEAD:docs/reviews/2026-08-21-risk-differential-closure.md",
+        "status": "GIT_OBJECT"
+      },
+      "replacement_path": null,
+      "size_bytes": 7496
+    },
+    {
+      "authority_reason": "Reviewed historical evidence remains cited context; it does not own current production behavior.",
+      "classification": "KEEP_REFERENCE",
+      "content_sha256": "96e48f3caf00dba1055e363af6351b8a01e1f8ad1343bd6809524170d75296e5",
+      "live_references": [
+        "artifacts/architecture_refactor/baseline_inventory.json",
+        "artifacts/architecture_refactor/task6_cleanup_inventory.json",
+        "artifacts/architecture_refactor/task7_cleanup_inventory.json",
+        "docs/reviews/2026-08-20-risk-sentinel-consolidation.md",
+        "docs/superpowers/plans/2026-08-20-risk-sentinel-consolidation.md"
+      ],
+      "path": "docs/reviews/phase7_artifact_review.md",
+      "recovery": {
+        "command": "git show HEAD:docs/reviews/phase7_artifact_review.md",
+        "status": "GIT_OBJECT"
+      },
+      "replacement_path": null,
+      "size_bytes": 3069
+    },
+    {
+      "authority_reason": "Reviewed historical evidence remains cited context; it does not own current production behavior.",
+      "classification": "KEEP_REFERENCE",
+      "content_sha256": "6d5d6f1687fc69bbe6d4708d25185e49ef5cc8f13643ae638a8b3af0643cbad5",
+      "live_references": [
+        "artifacts/architecture_refactor/baseline_inventory.json",
+        "artifacts/sentinel/evidence_closure/phase7_recovery_inventory.json",
+        "docs/superpowers/plans/2026-08-20-risk-sentinel-consolidation.md"
+      ],
+      "path": "docs/reviews/phase7_rejection_summary.md",
+      "recovery": {
+        "command": "git show HEAD:docs/reviews/phase7_rejection_summary.md",
+        "status": "GIT_OBJECT"
+      },
+      "replacement_path": null,
+      "size_bytes": 1430
+    },
+    {
+      "authority_reason": "One bounded repository reference search found 3 direct path reference(s), or could not prove an authority-equivalent replacement; deletion is therefore unresolved.",
+      "classification": "UNRESOLVED_KEEP",
+      "content_sha256": "105c5ce16348241d3d85359abf529d4d1342eb9c1f5a809d1b53caf8b4caeed9",
+      "live_references": [
+        "artifacts/architecture_refactor/baseline_inventory.json",
+        "artifacts/architecture_refactor/task6_cleanup_inventory.json",
+        "artifacts/architecture_refactor/task7_cleanup_inventory.json"
+      ],
+      "path": "docs/superpowers/plans/2026-08-13-phase1-ai-era-validation.md",
+      "recovery": {
+        "command": "git show HEAD:docs/superpowers/plans/2026-08-13-phase1-ai-era-validation.md",
+        "status": "GIT_OBJECT"
+      },
+      "replacement_path": null,
+      "size_bytes": 16681
+    },
+    {
+      "authority_reason": "One bounded repository reference search found 5 direct path reference(s), or could not prove an authority-equivalent replacement; deletion is therefore unresolved.",
+      "classification": "UNRESOLVED_KEEP",
+      "content_sha256": "ef986a8b94b00134c8d4dd1e542645009fd2ef46f0f61a996c1380f1eb99d20f",
+      "live_references": [
+        "artifacts/architecture_refactor/baseline_inventory.json",
+        "artifacts/architecture_refactor/task5_cleanup_inventory.json",
+        "artifacts/architecture_refactor/task6_cleanup_inventory.json",
+        "artifacts/architecture_refactor/task8_cleanup_inventory.json",
+        "artifacts/architecture_refactor/task9_cleanup_inventory.json"
+      ],
+      "path": "docs/superpowers/plans/2026-08-14-phase2-ai-era-generalization.md",
+      "recovery": {
+        "command": "git show HEAD:docs/superpowers/plans/2026-08-14-phase2-ai-era-generalization.md",
+        "status": "GIT_OBJECT"
+      },
+      "replacement_path": null,
+      "size_bytes": 17988
+    },
+    {
+      "authority_reason": "One bounded repository reference search found 6 direct path reference(s), or could not prove an authority-equivalent replacement; deletion is therefore unresolved.",
+      "classification": "UNRESOLVED_KEEP",
+      "content_sha256": "3b4265450fff7c6f923c44d176e825915793c9b2978f66404af0a3d6eca8d34d",
+      "live_references": [
+        "artifacts/architecture_refactor/baseline_inventory.json",
+        "artifacts/architecture_refactor/task5_cleanup_inventory.json",
+        "artifacts/architecture_refactor/task6_cleanup_inventory.json",
+        "artifacts/architecture_refactor/task7_cleanup_inventory.json",
+        "artifacts/architecture_refactor/task8_cleanup_inventory.json",
+        "artifacts/architecture_refactor/task9_cleanup_inventory.json"
+      ],
+      "path": "docs/superpowers/plans/2026-08-17-balanced-code-and-documentation-review.md",
+      "recovery": {
+        "command": "git show HEAD:docs/superpowers/plans/2026-08-17-balanced-code-and-documentation-review.md",
+        "status": "GIT_OBJECT"
+      },
+      "replacement_path": null,
+      "size_bytes": 30672
+    },
+    {
+      "authority_reason": "One bounded repository reference search found 1 direct path reference(s), or could not prove an authority-equivalent replacement; deletion is therefore unresolved.",
+      "classification": "UNRESOLVED_KEEP",
+      "content_sha256": "5baf24c3fd1d9d687d24626fab0785366283be6e9eaac6b1e8e4f9597fd8aec2",
+      "live_references": [
+        "artifacts/architecture_refactor/baseline_inventory.json"
+      ],
+      "path": "docs/superpowers/plans/2026-08-18-current-heads-baseline.md",
+      "recovery": {
+        "command": "git show HEAD:docs/superpowers/plans/2026-08-18-current-heads-baseline.md",
+        "status": "GIT_OBJECT"
+      },
+      "replacement_path": null,
+      "size_bytes": 12907
+    },
+    {
+      "authority_reason": "One bounded repository reference search found 3 direct path reference(s), or could not prove an authority-equivalent replacement; deletion is therefore unresolved.",
+      "classification": "UNRESOLVED_KEEP",
+      "content_sha256": "1efcabd20e0bde9fd8bb1a227ffab3f87d3032021d71d3d63fb30c77026c3f21",
+      "live_references": [
+        "artifacts/architecture_refactor/baseline_inventory.json",
+        "artifacts/architecture_refactor/task5_cleanup_inventory.json",
+        "artifacts/architecture_refactor/task9_cleanup_inventory.json"
+      ],
+      "path": "docs/superpowers/plans/2026-08-18-future-holdout-lanes.md",
+      "recovery": {
+        "command": "git show HEAD:docs/superpowers/plans/2026-08-18-future-holdout-lanes.md",
+        "status": "GIT_OBJECT"
+      },
+      "replacement_path": null,
+      "size_bytes": 7441
+    },
+    {
+      "authority_reason": "One bounded repository reference search found 4 direct path reference(s), or could not prove an authority-equivalent replacement; deletion is therefore unresolved.",
+      "classification": "UNRESOLVED_KEEP",
+      "content_sha256": "8727d1181638280cb96cba77a364d37f3ee61c4a757f10f5cfbb62b55a3a3427",
+      "live_references": [
+        "artifacts/architecture_refactor/baseline_inventory.json",
+        "artifacts/architecture_refactor/task6_cleanup_inventory.json",
+        "artifacts/architecture_refactor/task7_cleanup_inventory.json",
+        "artifacts/architecture_refactor/task9_cleanup_inventory.json"
+      ],
+      "path": "docs/superpowers/plans/2026-08-19-risk-sentinel-causal-timeline.md",
+      "recovery": {
+        "command": "git show HEAD:docs/superpowers/plans/2026-08-19-risk-sentinel-causal-timeline.md",
+        "status": "GIT_OBJECT"
+      },
+      "replacement_path": null,
+      "size_bytes": 8363
+    },
+    {
+      "authority_reason": "One bounded repository reference search found 2 direct path reference(s), or could not prove an authority-equivalent replacement; deletion is therefore unresolved.",
+      "classification": "UNRESOLVED_KEEP",
+      "content_sha256": "86361299ecb0474da18e4edfceb28e5b20e3ce3747c550048f4cb2c6456b196b",
+      "live_references": [
+        "artifacts/architecture_refactor/baseline_inventory.json",
+        "artifacts/architecture_refactor/task9_cleanup_inventory.json"
+      ],
+      "path": "docs/superpowers/plans/2026-08-19-risk-sentinel-shadow.md",
+      "recovery": {
+        "command": "git show HEAD:docs/superpowers/plans/2026-08-19-risk-sentinel-shadow.md",
+        "status": "GIT_OBJECT"
+      },
+      "replacement_path": null,
+      "size_bytes": 8918
+    },
+    {
+      "authority_reason": "One bounded repository reference search found 1 direct path reference(s), or could not prove an authority-equivalent replacement; deletion is therefore unresolved.",
+      "classification": "UNRESOLVED_KEEP",
+      "content_sha256": "7d6ef030fe843f94b10a9305bad42f9f87d0d6a2a210d2c262b686c77b4c0ad6",
+      "live_references": [
+        "artifacts/architecture_refactor/baseline_inventory.json"
+      ],
+      "path": "docs/superpowers/plans/2026-08-20-risk-sentinel-consolidation.md",
+      "recovery": {
+        "command": "git show HEAD:docs/superpowers/plans/2026-08-20-risk-sentinel-consolidation.md",
+        "status": "GIT_OBJECT"
+      },
+      "replacement_path": null,
+      "size_bytes": 12483
+    },
+    {
+      "authority_reason": "One bounded repository reference search found 1 direct path reference(s), or could not prove an authority-equivalent replacement; deletion is therefore unresolved.",
+      "classification": "UNRESOLVED_KEEP",
+      "content_sha256": "29e71e8a55c8829bbfbc17773b23873571a52848e234541768379604f04880d5",
+      "live_references": [
+        "artifacts/architecture_refactor/baseline_inventory.json"
+      ],
+      "path": "docs/superpowers/specs/2026-08-14-phase2-ai-era-generalization-design.md",
+      "recovery": {
+        "command": "git show HEAD:docs/superpowers/specs/2026-08-14-phase2-ai-era-generalization-design.md",
+        "status": "GIT_OBJECT"
+      },
+      "replacement_path": null,
+      "size_bytes": 8081
+    },
+    {
+      "authority_reason": "One bounded repository reference search found 2 direct path reference(s), or could not prove an authority-equivalent replacement; deletion is therefore unresolved.",
+      "classification": "UNRESOLVED_KEEP",
+      "content_sha256": "9883ebae3d3cacefe4cce35a8d8c8b359a85f66e5d14ad347a400641e3e73abd",
+      "live_references": [
+        "artifacts/architecture_refactor/baseline_inventory.json",
+        "docs/reviews/2026-08-17-balanced-review.md"
+      ],
+      "path": "docs/superpowers/specs/2026-08-17-balanced-code-and-documentation-review-design.md",
+      "recovery": {
+        "command": "git show HEAD:docs/superpowers/specs/2026-08-17-balanced-code-and-documentation-review-design.md",
+        "status": "GIT_OBJECT"
+      },
+      "replacement_path": null,
+      "size_bytes": 7729
+    },
+    {
+      "authority_reason": "One bounded repository reference search found 2 direct path reference(s), or could not prove an authority-equivalent replacement; deletion is therefore unresolved.",
+      "classification": "UNRESOLVED_KEEP",
+      "content_sha256": "f83c5e3b02187d4fd8003f3ecb76f0d3d1a93b63b810796052a0bdaacfe73296",
+      "live_references": [
+        "artifacts/architecture_refactor/baseline_inventory.json",
+        "docs/superpowers/plans/2026-08-19-risk-sentinel-causal-timeline.md"
+      ],
+      "path": "docs/superpowers/specs/2026-08-19-risk-sentinel-causal-timeline-design.md",
+      "recovery": {
+        "command": "git show HEAD:docs/superpowers/specs/2026-08-19-risk-sentinel-causal-timeline-design.md",
+        "status": "GIT_OBJECT"
+      },
+      "replacement_path": null,
+      "size_bytes": 3312
+    },
+    {
+      "authority_reason": "One bounded repository reference search found 6 direct path reference(s), or could not prove an authority-equivalent replacement; deletion is therefore unresolved.",
+      "classification": "UNRESOLVED_KEEP",
+      "content_sha256": "dcda77f76732836b6c3d8f8bce2e16029cbc988210f0f3bf28456d58e8fa433b",
+      "live_references": [
+        "artifacts/architecture_refactor/baseline_inventory.json",
+        "artifacts/architecture_refactor/task5_cleanup_inventory.json",
+        "artifacts/architecture_refactor/task6_cleanup_inventory.json",
+        "artifacts/architecture_refactor/task7_cleanup_inventory.json",
+        "artifacts/architecture_refactor/task8_cleanup_inventory.json",
+        "docs/superpowers/plans/2026-08-19-risk-sentinel-shadow.md"
+      ],
+      "path": "docs/superpowers/specs/2026-08-19-risk-sentinel-shadow-design.md",
+      "recovery": {
+        "command": "git show HEAD:docs/superpowers/specs/2026-08-19-risk-sentinel-shadow-design.md",
+        "status": "GIT_OBJECT"
+      },
+      "replacement_path": null,
+      "size_bytes": 5371
+    },
+    {
+      "authority_reason": "One bounded repository reference search found 2 direct path reference(s), or could not prove an authority-equivalent replacement; deletion is therefore unresolved.",
+      "classification": "UNRESOLVED_KEEP",
+      "content_sha256": "c24cfe22d0972b0ccba2717020f950edc65b9595b43d5b1db85fc4ee9f76ae59",
+      "live_references": [
+        "artifacts/architecture_refactor/baseline_inventory.json",
+        "docs/superpowers/plans/2026-08-20-risk-sentinel-consolidation.md"
+      ],
+      "path": "docs/superpowers/specs/2026-08-20-risk-sentinel-consolidation-design.md",
+      "recovery": {
+        "command": "git show HEAD:docs/superpowers/specs/2026-08-20-risk-sentinel-consolidation-design.md",
+        "status": "GIT_OBJECT"
+      },
+      "replacement_path": null,
+      "size_bytes": 3067
+    },
+    {
+      "authority_reason": "Authoritative build metadata and production-only wheel discovery boundary.",
+      "classification": "KEEP_AUTHORITATIVE",
+      "content_sha256": "61c98c25ec707626ab669bd41cfe5804ce1e6403d1aae459c7ae535c3391d043",
+      "live_references": [
+        "artifacts/architecture_refactor/baseline_inventory.json",
+        "artifacts/architecture_refactor/task9_cleanup_inventory.json",
+        "benchmarks/current_heads_source_registry.json",
+        "benchmarks/risk_differential_source_registry.json",
+        "benchmarks/risk_sentinel_shadow_overlay.json",
+        "benchmarks/source_surface_registry.json",
+        "docs/superpowers/plans/2026-08-13-phase1-ai-era-validation.md",
+        "docs/superpowers/plans/2026-08-17-balanced-code-and-documentation-review.md",
+        "docs/superpowers/plans/2026-08-19-risk-sentinel-shadow.md",
+        "research/ablation_registry.py",
+        "research/phase1_diagnostic.py",
+        "research/risk_differential_cli.py",
+        "tests/architecture/_analysis.py",
+        "tests/architecture/_generate_baselines.py",
+        "tests/architecture/_task9_inventory.py",
+        "tests/architecture/test_public_api_contracts.py",
+        "tests/architecture/test_source_surface_contracts.py",
+        "tests/test_config_contracts.py",
+        "tests/test_future_holdout.py",
+        "tests/test_generalization.py",
+        "tests/test_generalization_matrix.py",
+        "tests/test_phase2_ablation.py",
+        "tests/test_source_surface_contracts.py",
+        "tests/test_source_surface_provenance.py",
+        "tests/test_validation.py",
+        "uquant/validation/generalization/models.py",
+        "uquant/validation/generalization_matrix_evidence.py",
+        "uquant/validation/holdout/artifact_transaction.py",
+        "uquant/validation/holdout/source_identity.py",
+        "uquant/validation/promotion.py"
+      ],
+      "path": "pyproject.toml",
+      "recovery": {
+        "command": "git show HEAD:pyproject.toml",
+        "status": "GIT_OBJECT"
+      },
+      "replacement_path": null,
+      "size_bytes": 1619
+    },
+    {
+      "authority_reason": "Immutable locked production requirement surface; its SHA remains a release identity input.",
+      "classification": "KEEP_AUTHORITATIVE",
+      "content_sha256": "77c1e3d4685e5f55c0b3e7bf23ff101ff957973cc2e80aa4e5cdb4d02f0e2731",
+      "live_references": [
+        ".github/workflows/ci.yml",
+        "artifacts/architecture_refactor/baseline_inventory.json",
+        "artifacts/architecture_refactor/task6_cleanup_inventory.json",
+        "artifacts/architecture_refactor/task8_cleanup_inventory.json",
+        "artifacts/architecture_refactor/task9_cleanup_inventory.json",
+        "artifacts/phase2/final-acceptance.md",
+        "benchmarks/current_heads_source_registry.json",
+        "benchmarks/risk_differential_source_registry.json",
+        "benchmarks/source_surface_registry.json",
+        "docs/DEVELOPMENT.md",
+        "docs/reviews/2026-08-17-balanced-review.md",
+        "docs/superpowers/plans/2026-08-13-phase1-ai-era-validation.md",
+        "docs/superpowers/plans/2026-08-17-balanced-code-and-documentation-review.md",
+        "docs/superpowers/plans/2026-08-20-risk-sentinel-consolidation.md",
+        "research/ablation_registry.py",
+        "research/phase1_diagnostic.py",
+        "research/risk_differential_cli.py",
+        "tests/architecture/_analysis.py",
+        "tests/architecture/_generate_baselines.py",
+        "tests/architecture/_task10_inventory.py",
+        "tests/architecture/_task8_inventory.py",
+        "tests/architecture/_task9_inventory.py",
+        "tests/architecture/_task9_relocation.py",
+        "tests/architecture/_task9_validation_oracle.py",
+        "tests/architecture/test_source_surface_contracts.py",
+        "tests/architecture/test_task6_execution_application_boundaries.py",
+        "tests/architecture/test_task7_risk_boundaries.py",
+        "tests/architecture/test_task8_portfolio_boundaries.py",
+        "tests/test_future_holdout.py",
+        "tests/test_generalization_matrix.py",
+        "tests/test_phase2_ablation.py",
+        "tests/test_risk_replay_runtime.py",
+        "tests/test_source_surface_contracts.py",
+        "tests/test_source_surface_provenance.py",
+        "tests/test_validation.py",
+        "uquant/validation/generalization_matrix_evidence.py",
+        "uquant/validation/holdout/artifact_transaction.py",
+        "uquant/validation/holdout/source_identity.py",
+        "uquant/validation/promotion.py"
+      ],
+      "path": "requirements.txt",
+      "recovery": {
+        "command": "git show HEAD:requirements.txt",
+        "status": "GIT_OBJECT"
+      },
+      "replacement_path": null,
+      "size_bytes": 28
+    },
+    {
+      "authority_reason": "Repository-only offline research API remains useful source context but is excluded from the production wheel.",
+      "classification": "KEEP_REFERENCE",
+      "content_sha256": "fa5d4939077ac42932169ab5d51dc8ccaceca2043ae0dd5159e5c5f2e35266b7",
+      "live_references": [
+        "artifacts/architecture_refactor/baseline_inventory.json",
+        "artifacts/architecture_refactor/task10_private_import_remediation_inventory.json",
+        "benchmarks/source_surface_registry.json",
+        "tests/architecture/test_task10_private_import_reflection.py"
+      ],
+      "path": "research/__init__.py",
+      "recovery": {
+        "command": "git show HEAD:research/__init__.py",
+        "status": "GIT_OBJECT"
+      },
+      "replacement_path": null,
+      "size_bytes": 1755
+    }
+  ],
+  "externalized_paths": [],
+  "reference_scan": {
+    "candidate_count": 39,
+    "method": "one exact-path repository search per frozen candidate before Task 11 implementation",
+    "result_file": "/tmp/uquant-task11-reference-evidence.json"
+  },
+  "schema_version": 1
+}

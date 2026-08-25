@@ -22,38 +22,30 @@ from uquant.validation.ai_era import runtime_environment_provenance
 from uquant.validation.universe import canonical_sha256, load_ai_universe
 
 from .models import RISK_FAMILIES
+from .provenance import legacy_sentinel_source_fingerprint as _legacy_sentinel_source_fingerprint
 from .service import evaluate_sentinel
 
 _BROAD_INDEX: Final = "sh000300"
 _TECH_INDEX: Final = "sh000682"
 
 
-def _canonical_json(value: object) -> str:
-    return json.dumps(
-        value,
-        allow_nan=False,
-        ensure_ascii=False,
-        indent=2,
-        sort_keys=True,
-    ) + "\n"
+def _sentinel_cli_canonical_json(value: object) -> str:
+    return (
+        json.dumps(
+            value,
+            allow_nan=False,
+            ensure_ascii=False,
+            indent=2,
+            sort_keys=True,
+        )
+        + "\n"
+    )
 
 
 def sentinel_source_fingerprint(repository_root: str | Path) -> str:
     """Hash the exact Sentinel Python path names and bytes."""
 
-    root = Path(repository_root)
-    package = root / "uquant" / "risk_sentinel"
-    paths = tuple(sorted(package.glob("*.py")))
-    if not paths:
-        raise RuntimeError("Sentinel source package is missing")
-    digest = hashlib.sha256()
-    for path in paths:
-        relative = path.relative_to(root).as_posix().encode("utf-8")
-        digest.update(relative)
-        digest.update(b"\0")
-        digest.update(path.read_bytes())
-        digest.update(b"\0")
-    return digest.hexdigest()
+    return _legacy_sentinel_source_fingerprint(repository_root)
 
 
 def _repository_commit(root: Path) -> str:
@@ -80,9 +72,7 @@ def _same_day_base_risk(
     sentinel_families: tuple[str, ...],
 ) -> dict[str, object]:
     same_day = tuple(event for event in events if str(event.get("date", "")) == as_of)
-    searchable = " ".join(
-        json.dumps(event, ensure_ascii=False, sort_keys=True).lower() for event in same_day
-    )
+    searchable = " ".join(json.dumps(event, ensure_ascii=False, sort_keys=True).lower() for event in same_day)
     keywords = {
         "market_velocity": ("market", "index", "shock", "velocity"),
         "breadth_structure": ("breadth", "ma20", "structure"),
@@ -92,11 +82,7 @@ def _same_day_base_risk(
         "capital_damage": ("capital", "drawdown", "equity"),
     }
     base_families = tuple(
-        sorted(
-            family
-            for family, terms in keywords.items()
-            if any(term in searchable for term in terms)
-        )
+        sorted(family for family, terms in keywords.items() if any(term in searchable for term in terms))
     )
     return {
         "formal_risk_state": risk_state,
@@ -156,16 +142,14 @@ def _load_panel(
     return panel, tuple(loaded)
 
 
-def run_shadow(
+def _run_shadow_stage_1(
     *,
-    data_dir: str | Path,
-    as_of: str,
-    account_path: str | Path,
-    output_path: str | Path,
-    repository_root: str | Path | None = None,
-) -> dict[str, Any]:
-    """Evaluate and atomically publish an account-read-only Shadow artifact."""
-
+    account_path: Any,
+    as_of: Any,
+    data_dir: Any,
+    output_path: Any,
+    repository_root: Any,
+) -> tuple[Any, Any, Any, Any, Any, Any, Any, Any, Any, Any, Any, Any]:
     root = (
         Path(repository_root).resolve()
         if repository_root is not None
@@ -235,8 +219,52 @@ def run_shadow(
         (_BROAD_INDEX, _TECH_INDEX, *loaded),
         as_of=as_of,
     )
-    base_events = tuple(
-        event for event in account.risk_events if isinstance(event, Mapping)
+    base_events = tuple(event for event in account.risk_events if isinstance(event, Mapping))
+    return (
+        account,
+        account_bytes,
+        account_source,
+        assessment,
+        base_events,
+        latest,
+        manifest,
+        markdown,
+        output,
+        protected,
+        root,
+        universe,
+    )
+
+
+def run_shadow(
+    *,
+    data_dir: str | Path,
+    as_of: str,
+    account_path: str | Path,
+    output_path: str | Path,
+    repository_root: str | Path | None = None,
+) -> dict[str, Any]:
+    """Evaluate and atomically publish an account-read-only Shadow artifact."""
+
+    (
+        account,
+        account_bytes,
+        account_source,
+        assessment,
+        base_events,
+        latest,
+        manifest,
+        markdown,
+        output,
+        protected,
+        root,
+        universe,
+    ) = _run_shadow_stage_1(
+        account_path=account_path,
+        as_of=as_of,
+        data_dir=data_dir,
+        output_path=output_path,
+        repository_root=repository_root,
     )
     payload: dict[str, Any] = {
         "schema_version": 1,
@@ -290,7 +318,7 @@ def run_shadow(
     return payload
 
 
-def _parser() -> argparse.ArgumentParser:
+def _sentinel_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="Independent Risk Sentinel Shadow Mode")
     parser.add_argument("--validate-contracts", action="store_true")
     parser.add_argument("--data-dir", type=Path)
@@ -322,3 +350,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     )
     print(payload["canonical_sha256"])
     return 0
+
+
+_canonical_json = _sentinel_cli_canonical_json
+_parser = _sentinel_parser

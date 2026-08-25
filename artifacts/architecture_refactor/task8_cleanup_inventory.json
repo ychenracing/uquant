@@ -1,0 +1,1487 @@
+{
+  "baseline_commit": "4b6bedb03fb7c58914d9d5032a2514c67f41f6ba",
+  "baseline_tree": "d3824f7c5d89521b8284b5de08cc1e82e3ab7ebd",
+  "canonical_sha256": "c2f91c38a10b6dfc2fa617a7192fef3dd0fb935f64bbe67fbc5d6083df82124b",
+  "captured_while_all_implementations_intact": [
+    "uquant/portfolio.py",
+    "uquant/portfolio_leaders.py",
+    "uquant/portfolio_strategic.py",
+    "uquant/portfolio_recovery.py"
+  ],
+  "contract": "uquant-task8-pre-replacement-portfolio-inventory-v1",
+  "derivation": {
+    "authority": "Only Git objects reachable from immutable Task 7 commit 4b6bedb03fb7c58914d9d5032a2514c67f41f6ba and fresh imports from its git archive are authority inputs.",
+    "checks": [
+      "immutable git blob SHA-1/content SHA-256/byte size and exact restore commands",
+      "git grep fixed-path references with executable/historical/documentation classification",
+      "AST absolute/relative/package import, module attribute, dotted identity, private method and monkeypatch consumers",
+      "immutable generation-2 source-surface memberships",
+      "Task 1 public API plus fresh -I reflection/MRO/descriptor/pickle round trips"
+    ],
+    "preservation_rulings": {
+      "benchmarks/architecture_refactor_public_api.json": "KEEP_AUTHORITATIVE; prove exact same-name facade/class relocation without rewriting the frozen baseline",
+      "benchmarks/source_surface_registry.json": "MIGRATE_CURRENT_EXECUTABLE_IDENTITY only for reviewed economic_decision_v1/full_package_v1 owners and retained facades",
+      "historical_artifacts_and_patches": "KEEP_BYTE_IDENTICAL_AND_VERIFY_AT_RECORDED_SOURCE; never rewrite old path vocabulary as current package authority",
+      "requirements.txt": "KEEP_BYTE_IDENTICAL",
+      "research/ablation_registry.py and scripts/run_risk_differential.py": "KEEP_EXECUTABLE_HISTORICAL_VOCABULARY; their sealed patch/capability carriers resolve recorded commits rather than candidate paths"
+    }
+  },
+  "entries": [
+    {
+      "authority_reason": "Sole production Target allocator and outer RiskAssessment.target_gross_cap, Sentinel FREEZE_ONLY, sparse-reduction, owner-handoff and final-target authority.",
+      "class_name": "PortfolioAllocator",
+      "classification": "CONSOLIDATE_THEN_DELETE",
+      "content_sha256": "264a1a463b60929d6cefcb234eddbb2644cfdd93d1b3e1484a81a0dcde26a2d1",
+      "defined_methods": [
+        "_confirmed_recovery_gross",
+        "_risk_attribution_mechanism",
+        "_risk_retention_score",
+        "_risk_retention_vector",
+        "_risk_lifecycle_rank",
+        "_subset_retention_vector",
+        "_sparse_risk_reduce",
+        "_risk_reduction_metadata",
+        "_turnover_aware_sector_cap",
+        "allocate",
+        "_commit_frozen_exit_state",
+        "_frozen_existing_targets",
+        "_allocate_strategy"
+      ],
+      "disposition": "REPLACE_WITH_SAME_NAME_PACKAGE_AFTER_EXACT_PARITY",
+      "git_blob_sha1": "7b33af2f53e71cf9a64856c53f7ba316e00a334e",
+      "live_references": {
+        "ast_import_consumers": [
+          {
+            "path": "tests/test_attribution_identity.py",
+            "symbols": [
+              "PortfolioAllocator"
+            ]
+          },
+          {
+            "path": "tests/test_conviction_guard.py",
+            "symbols": [
+              "PortfolioAllocator"
+            ]
+          },
+          {
+            "path": "tests/test_industry_rotation.py",
+            "symbols": [
+              "PortfolioAllocator"
+            ]
+          },
+          {
+            "path": "tests/test_lifecycle_and_risk.py",
+            "symbols": [
+              "PortfolioAllocator"
+            ]
+          },
+          {
+            "path": "tests/test_properties.py",
+            "symbols": [
+              "effective_n"
+            ]
+          },
+          {
+            "path": "tests/test_recovery_contracts.py",
+            "symbols": [
+              "PortfolioAllocator"
+            ]
+          },
+          {
+            "path": "tests/test_risk_counterfactual.py",
+            "symbols": [
+              "PortfolioAllocator"
+            ]
+          },
+          {
+            "path": "tests/test_sector_guard.py",
+            "symbols": [
+              "PortfolioAllocator"
+            ]
+          },
+          {
+            "path": "tests/test_sentinel_freeze_new_risk.py",
+            "symbols": [
+              "PortfolioAllocator"
+            ]
+          },
+          {
+            "path": "uquant/application/__init__.py",
+            "symbols": [
+              "PortfolioAllocator"
+            ]
+          },
+          {
+            "path": "uquant/application/decision.py",
+            "symbols": [
+              "PortfolioAllocator",
+              "current_weights"
+            ]
+          }
+        ],
+        "consumed_private_method_attributes": [
+          {
+            "methods": [
+              "_frozen_existing_targets",
+              "_sparse_risk_reduce"
+            ],
+            "path": "scripts/run_risk_counterfactual.py"
+          },
+          {
+            "methods": [
+              "_frozen_existing_targets",
+              "_sparse_risk_reduce"
+            ],
+            "path": "tests/test_lifecycle_and_risk.py"
+          },
+          {
+            "methods": [
+              "_frozen_existing_targets"
+            ],
+            "path": "tests/test_risk_counterfactual.py"
+          },
+          {
+            "methods": [
+              "_sparse_risk_reduce",
+              "_turnover_aware_sector_cap"
+            ],
+            "path": "tests/test_sector_guard.py"
+          },
+          {
+            "methods": [
+              "_allocate_strategy",
+              "_commit_frozen_exit_state",
+              "_confirmed_recovery_gross",
+              "_frozen_existing_targets",
+              "_risk_attribution_mechanism",
+              "_risk_lifecycle_rank",
+              "_risk_reduction_metadata",
+              "_risk_retention_score",
+              "_risk_retention_vector",
+              "_sparse_risk_reduce"
+            ],
+            "path": "uquant/portfolio.py"
+          }
+        ],
+        "current_executable_consumers": [
+          "benchmarks/source_surface_registry.json",
+          "research/ablation_registry.py",
+          "scripts/run_risk_differential.py"
+        ],
+        "documentation_references": [
+          ".superpowers/sdd/2026-08-14-phase2-ai-era-generalization/task-7-report.md",
+          "docs/reviews/2026-08-17-balanced-review.md",
+          "docs/superpowers/plans/2026-08-14-phase2-ai-era-generalization.md",
+          "docs/superpowers/plans/2026-08-17-balanced-code-and-documentation-review.md",
+          "docs/superpowers/specs/2026-08-19-risk-sentinel-shadow-design.md"
+        ],
+        "dotted_runtime_identity_consumers": [
+          {
+            "path": "tests/architecture/_analysis.py",
+            "values": [
+              "uquant.portfolio"
+            ]
+          },
+          {
+            "path": "tests/architecture/_baseline.py",
+            "values": [
+              "uquant.portfolio"
+            ]
+          },
+          {
+            "path": "tests/architecture/test_import_contracts.py",
+            "values": [
+              "uquant.portfolio"
+            ]
+          },
+          {
+            "path": "tests/architecture/test_task7_risk_boundaries.py",
+            "values": [
+              "uquant.portfolio"
+            ]
+          },
+          {
+            "path": "tests/test_execution_journal.py",
+            "values": [
+              "uquant.portfolio"
+            ]
+          },
+          {
+            "path": "uquant/risk_sentinel/validation.py",
+            "values": [
+              "uquant.portfolio"
+            ]
+          }
+        ],
+        "historical_machine_evidence_to_preserve": [
+          "artifacts/architecture_refactor/baseline_inventory.json",
+          "artifacts/current_heads/provenance_report.json",
+          "artifacts/holdout/decision_equivalence.json",
+          "artifacts/phase2/ablations/post_task8_source_contract.json",
+          "artifacts/phase2/ablations/registry.json",
+          "artifacts/sentinel/risk_differential/capability_inventory.json",
+          "artifacts/sentinel/shadow_equivalence.json",
+          "benchmarks/architecture_refactor_public_api.json",
+          "benchmarks/risk_capability_registry.json"
+        ],
+        "immutable_fixed_path_consumers": [
+          ".superpowers/sdd/2026-08-14-phase2-ai-era-generalization/task-7-report.md",
+          "artifacts/architecture_refactor/baseline_inventory.json",
+          "artifacts/current_heads/provenance_report.json",
+          "artifacts/holdout/decision_equivalence.json",
+          "artifacts/phase2/ablations/post_task8_source_contract.json",
+          "artifacts/phase2/ablations/registry.json",
+          "artifacts/sentinel/risk_differential/capability_inventory.json",
+          "artifacts/sentinel/shadow_equivalence.json",
+          "benchmarks/architecture_refactor_public_api.json",
+          "benchmarks/risk_capability_registry.json",
+          "benchmarks/source_surface_registry.json",
+          "docs/reviews/2026-08-17-balanced-review.md",
+          "docs/superpowers/plans/2026-08-14-phase2-ai-era-generalization.md",
+          "docs/superpowers/plans/2026-08-17-balanced-code-and-documentation-review.md",
+          "docs/superpowers/specs/2026-08-19-risk-sentinel-shadow-design.md",
+          "research/ablation_registry.py",
+          "scripts/run_risk_differential.py"
+        ],
+        "other_current_or_contract_consumers": [],
+        "runtime_module_attribute_consumers": [],
+        "runtime_monkeypatch_seams": [
+          {
+            "attribute": "_allocate_strategy",
+            "line": 5509,
+            "path": "tests/test_lifecycle_and_risk.py",
+            "target": "allocator"
+          },
+          {
+            "attribute": "_allocate_strategy",
+            "line": 468,
+            "path": "tests/test_sector_guard.py",
+            "target": "PortfolioAllocator"
+          },
+          {
+            "attribute": "_allocate_strategy",
+            "line": 87,
+            "path": "tests/test_sentinel_freeze_new_risk.py",
+            "target": "allocator"
+          },
+          {
+            "attribute": "_allocate_strategy",
+            "line": 191,
+            "path": "tests/test_sentinel_freeze_new_risk.py",
+            "target": "allocator"
+          },
+          {
+            "attribute": "_allocate_strategy",
+            "line": 214,
+            "path": "tests/test_sentinel_freeze_new_risk.py",
+            "target": "allocator"
+          },
+          {
+            "attribute": "_allocate_strategy",
+            "line": 239,
+            "path": "tests/test_sentinel_freeze_new_risk.py",
+            "target": "allocator"
+          },
+          {
+            "attribute": "_allocate_strategy",
+            "line": 313,
+            "path": "tests/test_sentinel_freeze_new_risk.py",
+            "target": "allocator"
+          }
+        ]
+      },
+      "module": "uquant.portfolio",
+      "path": "uquant/portfolio.py",
+      "public_api_contract": {
+        "classes": {
+          "PortfolioAllocator": {
+            "methods": {
+              "allocate": {
+                "parameters": [
+                  {
+                    "annotation": null,
+                    "default": {
+                      "kind": "required"
+                    },
+                    "kind": "POSITIONAL_OR_KEYWORD",
+                    "name": "self"
+                  },
+                  {
+                    "annotation": "pd.Timestamp",
+                    "default": {
+                      "kind": "required"
+                    },
+                    "kind": "KEYWORD_ONLY",
+                    "name": "date"
+                  },
+                  {
+                    "annotation": "Opportunity",
+                    "default": {
+                      "kind": "required"
+                    },
+                    "kind": "KEYWORD_ONLY",
+                    "name": "opportunity"
+                  },
+                  {
+                    "annotation": "RiskAssessment",
+                    "default": {
+                      "kind": "required"
+                    },
+                    "kind": "KEYWORD_ONLY",
+                    "name": "risk"
+                  },
+                  {
+                    "annotation": "dict[str, pd.DataFrame]",
+                    "default": {
+                      "kind": "required"
+                    },
+                    "kind": "KEYWORD_ONLY",
+                    "name": "user_panel"
+                  },
+                  {
+                    "annotation": "dict[str, LeaderScore]",
+                    "default": {
+                      "kind": "required"
+                    },
+                    "kind": "KEYWORD_ONLY",
+                    "name": "leaders"
+                  },
+                  {
+                    "annotation": "AccountState",
+                    "default": {
+                      "kind": "required"
+                    },
+                    "kind": "KEYWORD_ONLY",
+                    "name": "account"
+                  },
+                  {
+                    "annotation": "dict[str, float]",
+                    "default": {
+                      "kind": "required"
+                    },
+                    "kind": "KEYWORD_ONLY",
+                    "name": "prices"
+                  }
+                ],
+                "return": "tuple[Target, ...]"
+              }
+            },
+            "properties": [],
+            "signature": {
+              "parameters": [
+                {
+                  "annotation": "SystemConfig",
+                  "default": {
+                    "kind": "required"
+                  },
+                  "kind": "POSITIONAL_OR_KEYWORD",
+                  "name": "cfg"
+                }
+              ],
+              "return": "None"
+            }
+          }
+        },
+        "dataclasses": {},
+        "enums": {},
+        "functions": {
+          "current_weights": {
+            "parameters": [
+              {
+                "annotation": "AccountState",
+                "default": {
+                  "kind": "required"
+                },
+                "kind": "POSITIONAL_OR_KEYWORD",
+                "name": "account"
+              },
+              {
+                "annotation": "dict[str, float]",
+                "default": {
+                  "kind": "required"
+                },
+                "kind": "POSITIONAL_OR_KEYWORD",
+                "name": "prices"
+              }
+            ],
+            "return": "tuple[dict[str, float], float]"
+          },
+          "effective_n": {
+            "parameters": [
+              {
+                "annotation": "dict[str, float]",
+                "default": {
+                  "kind": "required"
+                },
+                "kind": "POSITIONAL_OR_KEYWORD",
+                "name": "weights"
+              },
+              {
+                "annotation": "pd.DataFrame | None",
+                "default": {
+                  "kind": "value",
+                  "value": null
+                },
+                "kind": "POSITIONAL_OR_KEYWORD",
+                "name": "correlations"
+              }
+            ],
+            "return": "float"
+          }
+        },
+        "path": "uquant/portfolio.py",
+        "public_names": [
+          "PortfolioAllocator",
+          "current_weights",
+          "effective_n"
+        ]
+      },
+      "reflection_pickle_mro_contract": {
+        "class_pickle_sha256": "f774f76de41142aaf25dc5761e4acac58fa5b24dd40efb7c80ed9237d5300365",
+        "class_pickle_size": 54,
+        "direct_base": "uquant.portfolio_recovery.RecoveryPortfolioPolicy",
+        "inherited_method_lookup": {
+          "_admission_utility": "uquant.portfolio_leaders.LeaderPortfolioPolicy",
+          "_allocate_strategy": "uquant.portfolio.PortfolioAllocator",
+          "_bounded_strategic_restore_risk_open": "uquant.portfolio_strategic.StrategicPortfolioPolicy",
+          "_cap_opportunity_gross": "uquant.portfolio_leaders.LeaderPortfolioPolicy",
+          "_commit_frozen_exit_state": "uquant.portfolio.PortfolioAllocator",
+          "_confirmed_recovery_gross": "uquant.portfolio.PortfolioAllocator",
+          "_conviction_evidence_qualified": "uquant.portfolio_leaders.LeaderPortfolioPolicy",
+          "_conviction_shares": "uquant.portfolio_leaders.LeaderPortfolioPolicy",
+          "_correlations": "uquant.portfolio_leaders.LeaderPortfolioPolicy",
+          "_dynamic_k": "uquant.portfolio_leaders.LeaderPortfolioPolicy",
+          "_frozen_existing_targets": "uquant.portfolio.PortfolioAllocator",
+          "_industry_handoff": "uquant.portfolio_leaders.LeaderPortfolioPolicy",
+          "_initialize_strategic_cohort": "uquant.portfolio_strategic.StrategicPortfolioPolicy",
+          "_leader_lifecycle_exit_confirmed": "uquant.portfolio_leaders.LeaderPortfolioPolicy",
+          "_leader_targets": "uquant.portfolio_leaders.LeaderPortfolioPolicy",
+          "_recovery_anchor_substitution": "uquant.portfolio_recovery.RecoveryPortfolioPolicy",
+          "_retention_score": "uquant.portfolio_leaders.LeaderPortfolioPolicy",
+          "_retire_strategic_member": "uquant.portfolio_strategic.StrategicPortfolioPolicy",
+          "_risk_attribution_mechanism": "uquant.portfolio.PortfolioAllocator",
+          "_risk_lifecycle_rank": "uquant.portfolio.PortfolioAllocator",
+          "_risk_reduction_metadata": "uquant.portfolio.PortfolioAllocator",
+          "_risk_retention_score": "uquant.portfolio.PortfolioAllocator",
+          "_risk_retention_vector": "uquant.portfolio.PortfolioAllocator",
+          "_rotation_allowed": "uquant.portfolio_leaders.LeaderPortfolioPolicy",
+          "_session_clock": "uquant.portfolio_leaders.LeaderPortfolioPolicy",
+          "_session_distance": "uquant.portfolio_leaders.LeaderPortfolioPolicy",
+          "_sparse_risk_reduce": "uquant.portfolio.PortfolioAllocator",
+          "_strategic_cohort_targets": "uquant.portfolio_strategic.StrategicPortfolioPolicy",
+          "_subset_retention_vector": "uquant.portfolio.PortfolioAllocator",
+          "_turnover_aware_sector_cap": "uquant.portfolio.PortfolioAllocator",
+          "_update_leader_cycle_arm": "uquant.portfolio_leaders.LeaderPortfolioPolicy",
+          "allocate": "uquant.portfolio.PortfolioAllocator"
+        },
+        "instance_pickle_sha256": "2e9a1c98000b8d29ce2ff839ff6ff3cff82306f76af458774359f9bda0514a52",
+        "instance_pickle_size": 1945,
+        "methods": {
+          "_allocate_strategy": {
+            "descriptor": "instance",
+            "module": "uquant.portfolio",
+            "qualname": "PortfolioAllocator._allocate_strategy",
+            "raw_docstring": "Select one strategy route and return targets before final hard caps.",
+            "signature": "(self, *, date: 'pd.Timestamp', opportunity: 'Opportunity', risk: 'RiskAssessment', user_panel: 'dict[str, pd.DataFrame]', leaders: 'dict[str, LeaderScore]', account: 'AccountState', prices: 'dict[str, float]') -> 'tuple[Target, ...]'"
+          },
+          "_commit_frozen_exit_state": {
+            "descriptor": "staticmethod",
+            "module": "uquant.portfolio",
+            "qualname": "PortfolioAllocator._commit_frozen_exit_state",
+            "raw_docstring": "Commit only monotonic strategy cleanup for allowed independent exits.",
+            "signature": "(*, account: 'AccountState', planned_account: 'AccountState', allowed_exit_symbols: 'set[str]') -> 'None'"
+          },
+          "_confirmed_recovery_gross": {
+            "descriptor": "instance",
+            "module": "uquant.portfolio",
+            "qualname": "PortfolioAllocator._confirmed_recovery_gross",
+            "raw_docstring": "Return one stable aggregate cap for a locked three-member cohort.",
+            "signature": "(self, *, risk: 'RiskAssessment', account: 'AccountState') -> 'float'"
+          },
+          "_frozen_existing_targets": {
+            "descriptor": "staticmethod",
+            "module": "uquant.portfolio",
+            "qualname": "PortfolioAllocator._frozen_existing_targets",
+            "raw_docstring": "Block additions while preserving every durable reduction intent.\n\n        A risk freeze cancels unfinished BUYs but is not an exit signal.  An\n        existing SELL must retain its exact immutable order intent, and a new\n        strategy-owned reduction (for example a strategic trailing band) must\n        remain executable.  Only proposed increases are replaced by the live\n        marked weight.\n        ",
+            "signature": "(*, strategy_targets: 'tuple[Target, ...] | None', leaders: 'dict[str, LeaderScore]', account: 'AccountState', weights_now: 'dict[str, float]') -> 'tuple[Target, ...]'"
+          },
+          "_risk_attribution_mechanism": {
+            "descriptor": "staticmethod",
+            "module": "uquant.portfolio",
+            "qualname": "PortfolioAllocator._risk_attribution_mechanism",
+            "raw_docstring": "Map the risk engine's closed structured code to one mechanism.",
+            "signature": "(reason_code: 'str') -> 'AttributionMechanism'"
+          },
+          "_risk_lifecycle_rank": {
+            "descriptor": "staticmethod",
+            "module": "uquant.portfolio",
+            "qualname": "PortfolioAllocator._risk_lifecycle_rank",
+            "raw_docstring": "Rank equal-gross plans by the absolute lifecycle sell order.\n\n        Every candidate passed here retains the same total gross.  Maximizing\n        healthy Core first, then damaged Core, Recovery, ADD1, ADD2, and\n        Satellite is therefore exactly equivalent to selling in the reverse\n        order.  Gross equality is essential: otherwise an empty portfolio\n        would look structurally perfect and over-reduce below the risk cap.\n        ",
+            "signature": "(retained: 'tuple[float, float, float, float, float, float]') -> 'tuple[float, float, float, float, float, float]'"
+          },
+          "_risk_reduction_metadata": {
+            "descriptor": "staticmethod",
+            "module": "uquant.portfolio",
+            "qualname": "PortfolioAllocator._risk_reduction_metadata",
+            "raw_docstring": "Return the causal owner of a hard portfolio gross reduction.",
+            "signature": "(risk: 'RiskAssessment') -> 'tuple[str, str, str]'"
+          },
+          "_risk_retention_score": {
+            "descriptor": "instance",
+            "module": "uquant.portfolio",
+            "qualname": "PortfolioAllocator._risk_retention_score",
+            "raw_docstring": "Value healthy winners and Core lots above fragile incremental risk.",
+            "signature": "(self, target: 'Target', account: 'AccountState') -> 'float'"
+          },
+          "_risk_retention_vector": {
+            "descriptor": "staticmethod",
+            "module": "uquant.portfolio",
+            "qualname": "PortfolioAllocator._risk_retention_vector",
+            "raw_docstring": "Return the lifecycle composition left after a risk-priority sale.\n\n        Retaining healthy Core must dominate retaining damaged Core, Recovery,\n        ADD1, ADD2, or Satellite exposure in that order. Sparse symbol changes\n        are a tie-break only after lifecycle composition is equivalent.\n        Execution consumes the selected symbol's lots in the exact reverse\n        order, so a partial target retains the best lots rather than a\n        proportional slice of every tranche.\n        ",
+            "signature": "(target: 'Target', account: 'AccountState', retained_weight: 'float', current_weight: 'float') -> 'tuple[float, float, float, float, float, float]'"
+          },
+          "_sparse_risk_reduce": {
+            "descriptor": "instance",
+            "module": "uquant.portfolio",
+            "qualname": "PortfolioAllocator._sparse_risk_reduce",
+            "raw_docstring": "Meet every risk cap with one deterministic sparse reduction.\n\n        The lexicographic objective is cap compliance, safer normalized\n        lifecycle composition, the fewest changed symbols among lifecycle-\n        equivalent plans, stronger retention utility, and the smallest\n        residual boundary change. At most one symbol receives a partial\n        boundary trim. A guard can only retain or reduce current exposure; it\n        never buys while protection is active.\n        ",
+            "signature": "(self, *, targets: 'tuple[Target, ...]', weights_now: 'dict[str, float]', account: 'AccountState', gross_cap: 'float', risk_reason: 'str' = 'portfolio risk gross cap', risk_reason_code: 'str' = 'risk_gross_cap', risk_exit_kind: 'str' = 'risk', prices: 'dict[str, float] | None' = None) -> 'tuple[Target, ...]'"
+          },
+          "_subset_retention_vector": {
+            "descriptor": "instance",
+            "module": "uquant.portfolio",
+            "qualname": "PortfolioAllocator._subset_retention_vector",
+            "raw_docstring": null,
+            "signature": "(self, targets: 'tuple[Target, ...]', account: 'AccountState', retained_weights: 'dict[str, float]', weights_now: 'dict[str, float]') -> 'tuple[float, float, float, float, float, float]'"
+          },
+          "_turnover_aware_sector_cap": {
+            "descriptor": "instance",
+            "module": "uquant.portfolio",
+            "qualname": "PortfolioAllocator._turnover_aware_sector_cap",
+            "raw_docstring": null,
+            "signature": "(self, *, targets: 'tuple[Target, ...]', weights_now: 'dict[str, float]', account: 'AccountState', gross_cap: 'float') -> 'tuple[Target, ...]'"
+          },
+          "allocate": {
+            "descriptor": "instance",
+            "module": "uquant.portfolio",
+            "qualname": "PortfolioAllocator.allocate",
+            "raw_docstring": "Apply the risk engine's gross cap to every strategy return path.",
+            "signature": "(self, *, date: 'pd.Timestamp', opportunity: 'Opportunity', risk: 'RiskAssessment', user_panel: 'dict[str, pd.DataFrame]', leaders: 'dict[str, LeaderScore]', account: 'AccountState', prices: 'dict[str, float]') -> 'tuple[Target, ...]'"
+          }
+        },
+        "module": "uquant.portfolio",
+        "mro": [
+          "uquant.portfolio.PortfolioAllocator",
+          "uquant.portfolio_recovery.RecoveryPortfolioPolicy",
+          "uquant.portfolio_leaders.LeaderPortfolioPolicy",
+          "uquant.portfolio_strategic.StrategicPortfolioPolicy",
+          "uquant.portfolio_core.PortfolioCore",
+          "builtins.object"
+        ],
+        "qualname": "PortfolioAllocator",
+        "raw_docstring": "Compose strategic, leader, recovery, and hard-constraint policies.\n\n    The allocator remains the sole target-weight owner. The policy layers\n    contain evidence and lifecycle behavior only; none can submit an order.\n    ",
+        "roundtrip_class": "uquant.portfolio.PortfolioAllocator",
+        "roundtrip_config_equal": true,
+        "roundtrip_isinstance": true,
+        "signature": "(cfg: 'SystemConfig') -> 'None'"
+      },
+      "restore_commands": [
+        "git cat-file blob 7b33af2f53e71cf9a64856c53f7ba316e00a334e",
+        "git restore --source=4b6bedb03fb7c58914d9d5032a2514c67f41f6ba --staged --worktree -- uquant/portfolio.py"
+      ],
+      "size_bytes": 128958,
+      "source_surface_memberships": [
+        "economic_decision_v1",
+        "full_package_v1"
+      ],
+      "symbol_owner_mapping": {
+        "PortfolioAllocator public/reflection/pickle facade and allocate": "uquant/portfolio/{__init__.py,allocator.py}",
+        "_allocate_strategy fixed-order orchestration and owner handoff": "uquant/portfolio/pipeline.py",
+        "_allocate_strategy recovery-admission/target continuous slices and _confirmed_recovery_gross": "uquant/portfolio/recovery/{admission.py,targets.py}",
+        "_commit_frozen_exit_state/_frozen_existing_targets": "uquant/portfolio/freeze.py",
+        "_risk_attribution_mechanism/_risk_retention_score/_risk_retention_vector/_risk_lifecycle_rank/_subset_retention_vector/_sparse_risk_reduce/_risk_reduction_metadata/_turnover_aware_sector_cap": "uquant/portfolio/risk_reduction.py",
+        "same-call immutable inputs/carriers only": "uquant/portfolio/context.py"
+      }
+    },
+    {
+      "authority_reason": "Sole ordinary leader admission, dynamic-K, rotation, lifecycle, pyramid, satellite and leader-target policy implementation at the Task 8 boundary.",
+      "class_name": "LeaderPortfolioPolicy",
+      "classification": "CONSOLIDATE_THEN_RETAIN_FACADE",
+      "content_sha256": "64be28bc8fb707372d987eb529f60c9c2792b3c4bf60e3da724fa6bcd92fed77",
+      "defined_methods": [
+        "_cap_opportunity_gross",
+        "_conviction_shares",
+        "_conviction_evidence_qualified",
+        "_session_clock",
+        "_session_distance",
+        "_correlations",
+        "_admission_utility",
+        "_dynamic_k",
+        "_rotation_allowed",
+        "_update_leader_cycle_arm",
+        "_retention_score",
+        "_leader_lifecycle_exit_confirmed",
+        "_industry_handoff",
+        "_leader_targets"
+      ],
+      "disposition": "RETAIN_THIN_COMPATIBILITY_FACADE_AFTER_EXACT_PARITY",
+      "git_blob_sha1": "28a7dcf778e5293f16bfaa7b3bc04bb0787962f3",
+      "live_references": {
+        "ast_import_consumers": [
+          {
+            "path": "tests/test_portfolio_calendar.py",
+            "symbols": [
+              "LeaderPortfolioPolicy"
+            ]
+          },
+          {
+            "path": "uquant/portfolio_recovery.py",
+            "symbols": [
+              "LeaderPortfolioPolicy"
+            ]
+          }
+        ],
+        "consumed_private_method_attributes": [
+          {
+            "methods": [
+              "_conviction_evidence_qualified",
+              "_conviction_shares",
+              "_leader_targets"
+            ],
+            "path": "tests/test_conviction_guard.py"
+          },
+          {
+            "methods": [
+              "_industry_handoff"
+            ],
+            "path": "tests/test_industry_rotation.py"
+          },
+          {
+            "methods": [
+              "_cap_opportunity_gross",
+              "_leader_targets",
+              "_update_leader_cycle_arm"
+            ],
+            "path": "tests/test_lifecycle_and_risk.py"
+          },
+          {
+            "methods": [
+              "_dynamic_k",
+              "_rotation_allowed"
+            ],
+            "path": "tests/test_portfolio_calendar.py"
+          },
+          {
+            "methods": [
+              "_leader_lifecycle_exit_confirmed",
+              "_leader_targets",
+              "_session_clock",
+              "_session_distance",
+              "_update_leader_cycle_arm"
+            ],
+            "path": "uquant/portfolio.py"
+          },
+          {
+            "methods": [
+              "_admission_utility",
+              "_cap_opportunity_gross",
+              "_conviction_evidence_qualified",
+              "_conviction_shares",
+              "_correlations",
+              "_dynamic_k",
+              "_industry_handoff",
+              "_leader_lifecycle_exit_confirmed",
+              "_retention_score",
+              "_rotation_allowed",
+              "_session_clock",
+              "_session_distance"
+            ],
+            "path": "uquant/portfolio_leaders.py"
+          },
+          {
+            "methods": [
+              "_industry_handoff",
+              "_rotation_allowed"
+            ],
+            "path": "uquant/portfolio_recovery.py"
+          }
+        ],
+        "current_executable_consumers": [
+          "benchmarks/source_surface_registry.json",
+          "research/ablation_registry.py"
+        ],
+        "documentation_references": [
+          ".superpowers/sdd/2026-08-14-phase2-ai-era-generalization/task-7-report.md",
+          "docs/reviews/2026-08-17-balanced-review.md",
+          "docs/superpowers/plans/2026-08-14-phase2-ai-era-generalization.md",
+          "docs/superpowers/plans/2026-08-17-balanced-code-and-documentation-review.md"
+        ],
+        "dotted_runtime_identity_consumers": [
+          {
+            "path": "tests/architecture/_analysis.py",
+            "values": [
+              "uquant.portfolio_leaders"
+            ]
+          },
+          {
+            "path": "tests/architecture/_baseline.py",
+            "values": [
+              "uquant.portfolio_leaders"
+            ]
+          }
+        ],
+        "historical_machine_evidence_to_preserve": [
+          "artifacts/architecture_refactor/baseline_inventory.json",
+          "artifacts/phase2/ablations/post_task8_source_contract.json",
+          "artifacts/phase2/ablations/registry.json",
+          "artifacts/sentinel/shadow_equivalence.json",
+          "benchmarks/architecture_refactor_public_api.json"
+        ],
+        "immutable_fixed_path_consumers": [
+          ".superpowers/sdd/2026-08-14-phase2-ai-era-generalization/task-7-report.md",
+          "artifacts/architecture_refactor/baseline_inventory.json",
+          "artifacts/phase2/ablations/post_task8_source_contract.json",
+          "artifacts/phase2/ablations/registry.json",
+          "artifacts/sentinel/shadow_equivalence.json",
+          "benchmarks/architecture_refactor_public_api.json",
+          "benchmarks/source_surface_registry.json",
+          "docs/reviews/2026-08-17-balanced-review.md",
+          "docs/superpowers/plans/2026-08-14-phase2-ai-era-generalization.md",
+          "docs/superpowers/plans/2026-08-17-balanced-code-and-documentation-review.md",
+          "research/ablation_registry.py"
+        ],
+        "other_current_or_contract_consumers": [],
+        "runtime_module_attribute_consumers": [],
+        "runtime_monkeypatch_seams": []
+      },
+      "module": "uquant.portfolio_leaders",
+      "path": "uquant/portfolio_leaders.py",
+      "public_api_contract": {
+        "classes": {
+          "LeaderPortfolioPolicy": {
+            "methods": {},
+            "properties": [],
+            "signature": {
+              "parameters": [
+                {
+                  "annotation": "SystemConfig",
+                  "default": {
+                    "kind": "required"
+                  },
+                  "kind": "POSITIONAL_OR_KEYWORD",
+                  "name": "cfg"
+                }
+              ],
+              "return": "None"
+            }
+          }
+        },
+        "dataclasses": {},
+        "enums": {},
+        "functions": {},
+        "path": "uquant/portfolio_leaders.py",
+        "public_names": [
+          "LeaderPortfolioPolicy"
+        ]
+      },
+      "reflection_pickle_mro_contract": {
+        "class_pickle_sha256": "5ce4446ce005f2f14b631274659fcf79efb5b8519f2504f042932e56e123b1c9",
+        "class_pickle_size": 65,
+        "direct_base": "uquant.portfolio_strategic.StrategicPortfolioPolicy",
+        "inherited_method_lookup": {
+          "_admission_utility": "uquant.portfolio_leaders.LeaderPortfolioPolicy",
+          "_bounded_strategic_restore_risk_open": "uquant.portfolio_strategic.StrategicPortfolioPolicy",
+          "_cap_opportunity_gross": "uquant.portfolio_leaders.LeaderPortfolioPolicy",
+          "_conviction_evidence_qualified": "uquant.portfolio_leaders.LeaderPortfolioPolicy",
+          "_conviction_shares": "uquant.portfolio_leaders.LeaderPortfolioPolicy",
+          "_correlations": "uquant.portfolio_leaders.LeaderPortfolioPolicy",
+          "_dynamic_k": "uquant.portfolio_leaders.LeaderPortfolioPolicy",
+          "_industry_handoff": "uquant.portfolio_leaders.LeaderPortfolioPolicy",
+          "_initialize_strategic_cohort": "uquant.portfolio_strategic.StrategicPortfolioPolicy",
+          "_leader_lifecycle_exit_confirmed": "uquant.portfolio_leaders.LeaderPortfolioPolicy",
+          "_leader_targets": "uquant.portfolio_leaders.LeaderPortfolioPolicy",
+          "_retention_score": "uquant.portfolio_leaders.LeaderPortfolioPolicy",
+          "_retire_strategic_member": "uquant.portfolio_strategic.StrategicPortfolioPolicy",
+          "_rotation_allowed": "uquant.portfolio_leaders.LeaderPortfolioPolicy",
+          "_session_clock": "uquant.portfolio_leaders.LeaderPortfolioPolicy",
+          "_session_distance": "uquant.portfolio_leaders.LeaderPortfolioPolicy",
+          "_strategic_cohort_targets": "uquant.portfolio_strategic.StrategicPortfolioPolicy",
+          "_update_leader_cycle_arm": "uquant.portfolio_leaders.LeaderPortfolioPolicy"
+        },
+        "instance_pickle_sha256": "d12a9ea2327298287d437818fae284265dd11bdeff7740a1946657d72d911fc0",
+        "instance_pickle_size": 1956,
+        "methods": {
+          "_admission_utility": {
+            "descriptor": "instance",
+            "module": "uquant.portfolio_leaders",
+            "qualname": "LeaderPortfolioPolicy._admission_utility",
+            "raw_docstring": "Discount redundant industry/factor exposure without banning it.",
+            "signature": "(self, *, candidate: 'LeaderScore', active: 'list[str]', leaders: 'dict[str, LeaderScore]', user_panel: 'dict[str, pd.DataFrame]', date: 'pd.Timestamp', account: 'AccountState') -> 'float'"
+          },
+          "_cap_opportunity_gross": {
+            "descriptor": "instance",
+            "module": "uquant.portfolio_leaders",
+            "qualname": "LeaderPortfolioPolicy._cap_opportunity_gross",
+            "raw_docstring": "Limit new opportunity risk without manufacturing incumbent sells.\n\n        CHOPPY/WEAK are alpha-budget observations. Confirmed structural risk\n        overlays own forced reductions. This distinction gives the continuous\n        opportunity axis an economic hysteresis band: existing exposure may\n        drift above the entry budget, while only proposed increments are\n        sparsely removed.\n        ",
+            "signature": "(self, *, proposed: 'dict[str, float]', gross_cap: 'float', weights_now: 'dict[str, float]', leaders: 'dict[str, LeaderScore]', reasons: 'dict[str, str]', opportunity: 'Opportunity') -> 'dict[str, float]'"
+          },
+          "_conviction_evidence_qualified": {
+            "descriptor": "instance",
+            "module": "uquant.portfolio_leaders",
+            "qualname": "LeaderPortfolioPolicy._conviction_evidence_qualified",
+            "raw_docstring": "Require independent quality and diversification evidence to concentrate.",
+            "signature": "(self, *, symbols: 'list[str]', leaders: 'dict[str, LeaderScore]', user_panel: 'dict[str, pd.DataFrame]', date: 'pd.Timestamp', high_confidence: 'bool') -> 'bool'"
+          },
+          "_conviction_shares": {
+            "descriptor": "instance",
+            "module": "uquant.portfolio_leaders",
+            "qualname": "LeaderPortfolioPolicy._conviction_shares",
+            "raw_docstring": "Map score dispersion only after the joint evidence gate passes.",
+            "signature": "(self, symbols: 'list[str]', leaders: 'dict[str, LeaderScore]', *, evidence_qualified: 'bool') -> 'NDArray[np.float64]'"
+          },
+          "_correlations": {
+            "descriptor": "instance",
+            "module": "uquant.portfolio_leaders",
+            "qualname": "LeaderPortfolioPolicy._correlations",
+            "raw_docstring": null,
+            "signature": "(self, user_panel: 'dict[str, pd.DataFrame]', symbols: 'list[str]', date: 'pd.Timestamp') -> 'pd.DataFrame'"
+          },
+          "_dynamic_k": {
+            "descriptor": "instance",
+            "module": "uquant.portfolio_leaders",
+            "qualname": "LeaderPortfolioPolicy._dynamic_k",
+            "raw_docstring": "Update the confirmed target holding count under regime and risk limits.",
+            "signature": "(self, *, date: 'pd.Timestamp', opportunity: 'Opportunity', risk: 'RiskAssessment', candidates: 'list[LeaderScore]', user_panel: 'dict[str, pd.DataFrame]', account: 'AccountState') -> 'int'"
+          },
+          "_industry_handoff": {
+            "descriptor": "instance",
+            "module": "uquant.portfolio_leaders",
+            "qualname": "LeaderPortfolioPolicy._industry_handoff",
+            "raw_docstring": "Confirm a cross-industry hand-off from independent breadth evidence.",
+            "signature": "(self, *, challenger: 'LeaderScore', incumbent: 'LeaderScore') -> 'bool'"
+          },
+          "_leader_lifecycle_exit_confirmed": {
+            "descriptor": "instance",
+            "module": "uquant.portfolio_leaders",
+            "qualname": "LeaderPortfolioPolicy._leader_lifecycle_exit_confirmed",
+            "raw_docstring": "Reuse the existing per-symbol damage confirmation across owner gaps.",
+            "signature": "(self, *, symbol: 'str', date: 'pd.Timestamp', user_panel: 'dict[str, pd.DataFrame]', leaders: 'dict[str, LeaderScore]', account: 'AccountState') -> 'bool'"
+          },
+          "_leader_targets": {
+            "descriptor": "instance",
+            "module": "uquant.portfolio_leaders",
+            "qualname": "LeaderPortfolioPolicy._leader_targets",
+            "raw_docstring": "Build ordinary leader targets or decline when no admissible book exists.",
+            "signature": "(self, *, date: 'pd.Timestamp', opportunity: 'Opportunity', risk: 'RiskAssessment', user_panel: 'dict[str, pd.DataFrame]', leaders: 'dict[str, LeaderScore]', account: 'AccountState', weights_now: 'dict[str, float]', prices: 'dict[str, float]') -> 'tuple[Target, ...] | None'"
+          },
+          "_retention_score": {
+            "descriptor": "staticmethod",
+            "module": "uquant.portfolio_leaders",
+            "qualname": "LeaderPortfolioPolicy._retention_score",
+            "raw_docstring": "Protect proven winners when K contracts or a challenger appears.",
+            "signature": "(symbol: 'str', leaders: 'dict[str, LeaderScore]', account: 'AccountState') -> 'float'"
+          },
+          "_rotation_allowed": {
+            "descriptor": "instance",
+            "module": "uquant.portfolio_leaders",
+            "qualname": "LeaderPortfolioPolicy._rotation_allowed",
+            "raw_docstring": null,
+            "signature": "(self, account: 'AccountState', date: 'pd.Timestamp', user_panel: 'dict[str, pd.DataFrame]') -> 'bool'"
+          },
+          "_session_clock": {
+            "descriptor": "staticmethod",
+            "module": "uquant.portfolio_leaders",
+            "qualname": "LeaderPortfolioPolicy._session_clock",
+            "raw_docstring": "Return the deterministic union of all visible user sessions.",
+            "signature": "(user_panel: 'dict[str, pd.DataFrame]', date: 'pd.Timestamp') -> 'pd.DatetimeIndex'"
+          },
+          "_session_distance": {
+            "descriptor": "staticmethod",
+            "module": "uquant.portfolio_leaders",
+            "qualname": "LeaderPortfolioPolicy._session_distance",
+            "raw_docstring": null,
+            "signature": "(clock: 'pd.DatetimeIndex', start: 'str | pd.Timestamp', end: 'pd.Timestamp') -> 'int'"
+          },
+          "_update_leader_cycle_arm": {
+            "descriptor": "instance",
+            "module": "uquant.portfolio_leaders",
+            "qualname": "LeaderPortfolioPolicy._update_leader_cycle_arm",
+            "raw_docstring": "Require broad, persistent leader evidence before generic trend capital.\n\n        Recovery anchors and the bounded tactical rebound have their own causal\n        confirmations.  The ordinary mature-leader route is broader, so it is\n        armed only after several high-confidence mature leaders coexist with a\n        confirmed strong trend.  Account/market risk owns the disarm decision.\n        ",
+            "signature": "(self, *, opportunity: 'Opportunity', risk: 'RiskAssessment', leaders: 'dict[str, LeaderScore]', account: 'AccountState', strategic_handoff_blocked: 'bool' = False, strategic_handoff_ready: 'bool' = False) -> 'bool'"
+          }
+        },
+        "module": "uquant.portfolio_leaders",
+        "mro": [
+          "uquant.portfolio_leaders.LeaderPortfolioPolicy",
+          "uquant.portfolio_strategic.StrategicPortfolioPolicy",
+          "uquant.portfolio_core.PortfolioCore",
+          "builtins.object"
+        ],
+        "qualname": "LeaderPortfolioPolicy",
+        "raw_docstring": "Own dynamic K, admissions, additions, satellites, and leader rotation.",
+        "roundtrip_class": "uquant.portfolio_leaders.LeaderPortfolioPolicy",
+        "roundtrip_config_equal": true,
+        "roundtrip_isinstance": true,
+        "signature": "(cfg: 'SystemConfig') -> 'None'"
+      },
+      "restore_commands": [
+        "git cat-file blob 28a7dcf778e5293f16bfaa7b3bc04bb0787962f3",
+        "git restore --source=4b6bedb03fb7c58914d9d5032a2514c67f41f6ba --staged --worktree -- uquant/portfolio_leaders.py"
+      ],
+      "size_bytes": 57412,
+      "source_surface_memberships": [
+        "economic_decision_v1",
+        "full_package_v1"
+      ],
+      "symbol_owner_mapping": {
+        "LeaderPortfolioPolicy compatibility class": "uquant/portfolio_leaders.py",
+        "_cap_opportunity_gross and _leader_targets construction slices": "uquant/portfolio/leaders/targets.py",
+        "_conviction_shares/_conviction_evidence_qualified/_correlations/_admission_utility/_dynamic_k": "uquant/portfolio/leaders/admission.py",
+        "_session_clock/_session_distance/_rotation_allowed/_update_leader_cycle_arm/_retention_score/_leader_lifecycle_exit_confirmed/_industry_handoff": "uquant/portfolio/leaders/lifecycle.py"
+      }
+    },
+    {
+      "authority_reason": "Sole strategic discovery, qualification, epoch, restore, trailing, retirement and target policy implementation at the Task 8 boundary.",
+      "class_name": "StrategicPortfolioPolicy",
+      "classification": "CONSOLIDATE_THEN_RETAIN_FACADE",
+      "content_sha256": "df416789de3f0ac9d3e88676ca5a00af00203d9578a153ef11011517c45dc1e8",
+      "defined_methods": [
+        "_bounded_strategic_restore_risk_open",
+        "_retire_strategic_member",
+        "_initialize_strategic_cohort",
+        "_strategic_cohort_targets"
+      ],
+      "disposition": "RETAIN_THIN_COMPATIBILITY_FACADE_AFTER_EXACT_PARITY",
+      "git_blob_sha1": "df284814c0ea7712c69b0721792bdf2ff3b22908",
+      "live_references": {
+        "ast_import_consumers": [
+          {
+            "path": "uquant/portfolio_leaders.py",
+            "symbols": [
+              "StrategicPortfolioPolicy"
+            ]
+          }
+        ],
+        "consumed_private_method_attributes": [
+          {
+            "methods": [
+              "_initialize_strategic_cohort",
+              "_strategic_cohort_targets"
+            ],
+            "path": "tests/test_lifecycle_and_risk.py"
+          },
+          {
+            "methods": [
+              "_bounded_strategic_restore_risk_open",
+              "_retire_strategic_member",
+              "_strategic_cohort_targets"
+            ],
+            "path": "uquant/portfolio.py"
+          },
+          {
+            "methods": [
+              "_bounded_strategic_restore_risk_open",
+              "_initialize_strategic_cohort",
+              "_retire_strategic_member"
+            ],
+            "path": "uquant/portfolio_strategic.py"
+          }
+        ],
+        "current_executable_consumers": [
+          "benchmarks/source_surface_registry.json",
+          "research/ablation_registry.py"
+        ],
+        "documentation_references": [
+          ".superpowers/sdd/2026-08-14-phase2-ai-era-generalization/task-7-report.md",
+          "docs/reviews/2026-08-17-balanced-review.md",
+          "docs/superpowers/plans/2026-08-14-phase2-ai-era-generalization.md",
+          "docs/superpowers/plans/2026-08-17-balanced-code-and-documentation-review.md"
+        ],
+        "dotted_runtime_identity_consumers": [
+          {
+            "path": "tests/architecture/_analysis.py",
+            "values": [
+              "uquant.portfolio_strategic"
+            ]
+          },
+          {
+            "path": "tests/architecture/_baseline.py",
+            "values": [
+              "uquant.portfolio_strategic"
+            ]
+          }
+        ],
+        "historical_machine_evidence_to_preserve": [
+          "artifacts/architecture_refactor/baseline_inventory.json",
+          "artifacts/phase1/diagnostics/patches/strict-strategic-restore.patch",
+          "artifacts/phase2/ablations/post_task8_source_contract.json",
+          "artifacts/phase2/ablations/registry.json",
+          "artifacts/sentinel/shadow_equivalence.json",
+          "benchmarks/architecture_refactor_public_api.json"
+        ],
+        "immutable_fixed_path_consumers": [
+          ".superpowers/sdd/2026-08-14-phase2-ai-era-generalization/task-7-report.md",
+          "artifacts/architecture_refactor/baseline_inventory.json",
+          "artifacts/phase1/diagnostics/patches/strict-strategic-restore.patch",
+          "artifacts/phase2/ablations/post_task8_source_contract.json",
+          "artifacts/phase2/ablations/registry.json",
+          "artifacts/sentinel/shadow_equivalence.json",
+          "benchmarks/architecture_refactor_public_api.json",
+          "benchmarks/source_surface_registry.json",
+          "docs/reviews/2026-08-17-balanced-review.md",
+          "docs/superpowers/plans/2026-08-14-phase2-ai-era-generalization.md",
+          "docs/superpowers/plans/2026-08-17-balanced-code-and-documentation-review.md",
+          "research/ablation_registry.py"
+        ],
+        "other_current_or_contract_consumers": [],
+        "runtime_module_attribute_consumers": [],
+        "runtime_monkeypatch_seams": []
+      },
+      "module": "uquant.portfolio_strategic",
+      "path": "uquant/portfolio_strategic.py",
+      "public_api_contract": {
+        "classes": {
+          "StrategicPortfolioPolicy": {
+            "methods": {},
+            "properties": [],
+            "signature": {
+              "parameters": [
+                {
+                  "annotation": "SystemConfig",
+                  "default": {
+                    "kind": "required"
+                  },
+                  "kind": "POSITIONAL_OR_KEYWORD",
+                  "name": "cfg"
+                }
+              ],
+              "return": "None"
+            }
+          }
+        },
+        "dataclasses": {},
+        "enums": {},
+        "functions": {},
+        "path": "uquant/portfolio_strategic.py",
+        "public_names": [
+          "StrategicPortfolioPolicy"
+        ]
+      },
+      "reflection_pickle_mro_contract": {
+        "class_pickle_sha256": "833386eab98ce868ab8115237fa8c8c014669d95ff5cee4f1dceb144add3f8a6",
+        "class_pickle_size": 70,
+        "direct_base": "uquant.portfolio_core.PortfolioCore",
+        "inherited_method_lookup": {
+          "_bounded_strategic_restore_risk_open": "uquant.portfolio_strategic.StrategicPortfolioPolicy",
+          "_initialize_strategic_cohort": "uquant.portfolio_strategic.StrategicPortfolioPolicy",
+          "_retire_strategic_member": "uquant.portfolio_strategic.StrategicPortfolioPolicy",
+          "_strategic_cohort_targets": "uquant.portfolio_strategic.StrategicPortfolioPolicy"
+        },
+        "instance_pickle_sha256": "6604e94532b4f1a460691ea41a67cb0d0cbc2f0337f450a730d9800c975a366d",
+        "instance_pickle_size": 1961,
+        "methods": {
+          "_bounded_strategic_restore_risk_open": {
+            "descriptor": "instance",
+            "module": "uquant.portfolio_strategic",
+            "qualname": "StrategicPortfolioPolicy._bounded_strategic_restore_risk_open",
+            "raw_docstring": "Permit only a saved cohort repair inside the explicit risk cap.",
+            "signature": "(self, *, risk: 'RiskAssessment', account: 'AccountState') -> 'bool'"
+          },
+          "_initialize_strategic_cohort": {
+            "descriptor": "instance",
+            "module": "uquant.portfolio_strategic",
+            "qualname": "StrategicPortfolioPolicy._initialize_strategic_cohort",
+            "raw_docstring": "Discover and activate a persistent long-cycle cohort causally.",
+            "signature": "(self, *, date: 'pd.Timestamp', user_panel: 'dict[str, pd.DataFrame]', leaders: 'dict[str, LeaderScore]', account: 'AccountState', risk: 'RiskAssessment', admission_open: 'bool' = True) -> 'None'"
+          },
+          "_retire_strategic_member": {
+            "descriptor": "staticmethod",
+            "module": "uquant.portfolio_strategic",
+            "qualname": "StrategicPortfolioPolicy._retire_strategic_member",
+            "raw_docstring": "Remove every live intent owned by one completed cohort member.",
+            "signature": "(account: 'AccountState', symbol: 'str') -> 'None'"
+          },
+          "_strategic_cohort_targets": {
+            "descriptor": "instance",
+            "module": "uquant.portfolio_strategic",
+            "qualname": "StrategicPortfolioPolicy._strategic_cohort_targets",
+            "raw_docstring": "Run the active dynamic cohort through its current strategic epoch.\n\n        Five neighboring ATR exit bands share one position and one final target.\n        The bands smooth discrete signal dates without creating sleeves or orders;\n        the execution planner still receives only one target weight per symbol. A\n        completed epoch may re-arm only after the configured cooldown and a\n        materially changed causal cohort signature.\n        ",
+            "signature": "(self, *, date: 'pd.Timestamp', risk: 'RiskAssessment', user_panel: 'dict[str, pd.DataFrame]', leaders: 'dict[str, LeaderScore]', account: 'AccountState', prices: 'dict[str, float]', weights_now: 'dict[str, float]', admission_open: 'bool' = True) -> 'tuple[Target, ...] | None'"
+          }
+        },
+        "module": "uquant.portfolio_strategic",
+        "mro": [
+          "uquant.portfolio_strategic.StrategicPortfolioPolicy",
+          "uquant.portfolio_core.PortfolioCore",
+          "builtins.object"
+        ],
+        "qualname": "StrategicPortfolioPolicy",
+        "raw_docstring": "Discover, protect, trail, and retire a causal strategic cohort.",
+        "roundtrip_class": "uquant.portfolio_strategic.StrategicPortfolioPolicy",
+        "roundtrip_config_equal": true,
+        "roundtrip_isinstance": true,
+        "signature": "(cfg: 'SystemConfig') -> 'None'"
+      },
+      "restore_commands": [
+        "git cat-file blob df284814c0ea7712c69b0721792bdf2ff3b22908",
+        "git restore --source=4b6bedb03fb7c58914d9d5032a2514c67f41f6ba --staged --worktree -- uquant/portfolio_strategic.py"
+      ],
+      "size_bytes": 60050,
+      "source_surface_memberships": [
+        "economic_decision_v1",
+        "full_package_v1"
+      ],
+      "symbol_owner_mapping": {
+        "StrategicPortfolioPolicy compatibility class": "uquant/portfolio_strategic.py",
+        "_bounded_strategic_restore_risk_open/_retire_strategic_member and _strategic_cohort_targets epoch/retirement/restore/exit slices": "uquant/portfolio/strategic/lifecycle.py",
+        "_initialize_strategic_cohort discovery/qualification continuous slices": "uquant/portfolio/strategic/discovery.py",
+        "_strategic_cohort_targets deterministic target-construction slices": "uquant/portfolio/strategic/targets.py"
+      }
+    },
+    {
+      "authority_reason": "Sole recovery-anchor substitution policy implementation at the Task 8 boundary.",
+      "class_name": "RecoveryPortfolioPolicy",
+      "classification": "CONSOLIDATE_THEN_RETAIN_FACADE",
+      "content_sha256": "bb77595cf31fe435d9b42c9abe48918ae891f3dfec56f66cead7365d7d0a62d8",
+      "defined_methods": [
+        "_recovery_anchor_substitution"
+      ],
+      "disposition": "RETAIN_THIN_COMPATIBILITY_FACADE_AFTER_EXACT_PARITY",
+      "git_blob_sha1": "da9a615b766ceaa5e2bc4a3b8432b2322e340b1e",
+      "live_references": {
+        "ast_import_consumers": [
+          {
+            "path": "uquant/portfolio.py",
+            "symbols": [
+              "RecoveryPortfolioPolicy"
+            ]
+          }
+        ],
+        "consumed_private_method_attributes": [
+          {
+            "methods": [
+              "_recovery_anchor_substitution"
+            ],
+            "path": "tests/test_attribution_identity.py"
+          },
+          {
+            "methods": [
+              "_recovery_anchor_substitution"
+            ],
+            "path": "tests/test_lifecycle_and_risk.py"
+          },
+          {
+            "methods": [
+              "_recovery_anchor_substitution"
+            ],
+            "path": "uquant/portfolio.py"
+          }
+        ],
+        "current_executable_consumers": [
+          "benchmarks/source_surface_registry.json"
+        ],
+        "documentation_references": [
+          "docs/reviews/2026-08-17-balanced-review.md",
+          "docs/superpowers/plans/2026-08-14-phase2-ai-era-generalization.md",
+          "docs/superpowers/plans/2026-08-17-balanced-code-and-documentation-review.md"
+        ],
+        "dotted_runtime_identity_consumers": [
+          {
+            "path": "tests/architecture/_analysis.py",
+            "values": [
+              "uquant.portfolio_recovery"
+            ]
+          },
+          {
+            "path": "tests/architecture/_baseline.py",
+            "values": [
+              "uquant.portfolio_recovery"
+            ]
+          }
+        ],
+        "historical_machine_evidence_to_preserve": [
+          "artifacts/architecture_refactor/baseline_inventory.json",
+          "benchmarks/architecture_refactor_public_api.json"
+        ],
+        "immutable_fixed_path_consumers": [
+          "artifacts/architecture_refactor/baseline_inventory.json",
+          "benchmarks/architecture_refactor_public_api.json",
+          "benchmarks/source_surface_registry.json",
+          "docs/reviews/2026-08-17-balanced-review.md",
+          "docs/superpowers/plans/2026-08-14-phase2-ai-era-generalization.md",
+          "docs/superpowers/plans/2026-08-17-balanced-code-and-documentation-review.md"
+        ],
+        "other_current_or_contract_consumers": [],
+        "runtime_module_attribute_consumers": [],
+        "runtime_monkeypatch_seams": []
+      },
+      "module": "uquant.portfolio_recovery",
+      "path": "uquant/portfolio_recovery.py",
+      "public_api_contract": {
+        "classes": {
+          "RecoveryPortfolioPolicy": {
+            "methods": {},
+            "properties": [],
+            "signature": {
+              "parameters": [
+                {
+                  "annotation": "SystemConfig",
+                  "default": {
+                    "kind": "required"
+                  },
+                  "kind": "POSITIONAL_OR_KEYWORD",
+                  "name": "cfg"
+                }
+              ],
+              "return": "None"
+            }
+          }
+        },
+        "dataclasses": {},
+        "enums": {},
+        "functions": {},
+        "path": "uquant/portfolio_recovery.py",
+        "public_names": [
+          "RecoveryPortfolioPolicy"
+        ]
+      },
+      "reflection_pickle_mro_contract": {
+        "class_pickle_sha256": "f841110653c208b798f34e34a91db8b529a8e72602499ebb6a1f5391d0b8f206",
+        "class_pickle_size": 68,
+        "direct_base": "uquant.portfolio_leaders.LeaderPortfolioPolicy",
+        "inherited_method_lookup": {
+          "_admission_utility": "uquant.portfolio_leaders.LeaderPortfolioPolicy",
+          "_bounded_strategic_restore_risk_open": "uquant.portfolio_strategic.StrategicPortfolioPolicy",
+          "_cap_opportunity_gross": "uquant.portfolio_leaders.LeaderPortfolioPolicy",
+          "_conviction_evidence_qualified": "uquant.portfolio_leaders.LeaderPortfolioPolicy",
+          "_conviction_shares": "uquant.portfolio_leaders.LeaderPortfolioPolicy",
+          "_correlations": "uquant.portfolio_leaders.LeaderPortfolioPolicy",
+          "_dynamic_k": "uquant.portfolio_leaders.LeaderPortfolioPolicy",
+          "_industry_handoff": "uquant.portfolio_leaders.LeaderPortfolioPolicy",
+          "_initialize_strategic_cohort": "uquant.portfolio_strategic.StrategicPortfolioPolicy",
+          "_leader_lifecycle_exit_confirmed": "uquant.portfolio_leaders.LeaderPortfolioPolicy",
+          "_leader_targets": "uquant.portfolio_leaders.LeaderPortfolioPolicy",
+          "_recovery_anchor_substitution": "uquant.portfolio_recovery.RecoveryPortfolioPolicy",
+          "_retention_score": "uquant.portfolio_leaders.LeaderPortfolioPolicy",
+          "_retire_strategic_member": "uquant.portfolio_strategic.StrategicPortfolioPolicy",
+          "_rotation_allowed": "uquant.portfolio_leaders.LeaderPortfolioPolicy",
+          "_session_clock": "uquant.portfolio_leaders.LeaderPortfolioPolicy",
+          "_session_distance": "uquant.portfolio_leaders.LeaderPortfolioPolicy",
+          "_strategic_cohort_targets": "uquant.portfolio_strategic.StrategicPortfolioPolicy",
+          "_update_leader_cycle_arm": "uquant.portfolio_leaders.LeaderPortfolioPolicy"
+        },
+        "instance_pickle_sha256": "bf2b9fef6855ed8c11e81e49a2a2ed21c20088364244245843318b5a84d0d67f",
+        "instance_pickle_size": 1959,
+        "methods": {
+          "_recovery_anchor_substitution": {
+            "descriptor": "instance",
+            "module": "uquant.portfolio_recovery",
+            "qualname": "RecoveryPortfolioPolicy._recovery_anchor_substitution",
+            "raw_docstring": "Replace a broken secondary in an incomplete recovery cohort.\n\n        The lead anchor remains sticky.  A secondary can rotate only after its\n        own price structure is broken and a liquid, mature challenger has held\n        a material score edge for the normal replacement confirmation period.\n        ",
+            "signature": "(self, *, date: 'pd.Timestamp', risk: 'RiskAssessment', user_panel: 'dict[str, pd.DataFrame]', leaders: 'dict[str, LeaderScore]', account: 'AccountState', weights_now: 'dict[str, float]', anchor_elapsed: 'int', risk_neutral_only: 'bool' = False) -> 'tuple[Target, ...] | None'"
+          }
+        },
+        "module": "uquant.portfolio_recovery",
+        "mro": [
+          "uquant.portfolio_recovery.RecoveryPortfolioPolicy",
+          "uquant.portfolio_leaders.LeaderPortfolioPolicy",
+          "uquant.portfolio_strategic.StrategicPortfolioPolicy",
+          "uquant.portfolio_core.PortfolioCore",
+          "builtins.object"
+        ],
+        "qualname": "RecoveryPortfolioPolicy",
+        "raw_docstring": "Replace a damaged recovery secondary without creating a second book.",
+        "roundtrip_class": "uquant.portfolio_recovery.RecoveryPortfolioPolicy",
+        "roundtrip_config_equal": true,
+        "roundtrip_isinstance": true,
+        "signature": "(cfg: 'SystemConfig') -> 'None'"
+      },
+      "restore_commands": [
+        "git cat-file blob da9a615b766ceaa5e2bc4a3b8432b2322e340b1e",
+        "git restore --source=4b6bedb03fb7c58914d9d5032a2514c67f41f6ba --staged --worktree -- uquant/portfolio_recovery.py"
+      ],
+      "size_bytes": 14156,
+      "source_surface_memberships": [
+        "economic_decision_v1",
+        "full_package_v1"
+      ],
+      "symbol_owner_mapping": {
+        "RecoveryPortfolioPolicy compatibility class": "uquant/portfolio_recovery.py",
+        "_recovery_anchor_substitution complete continuous method": "uquant/portfolio/recovery/substitution.py"
+      }
+    }
+  ],
+  "portfolio_public_contract": {
+    "module": {
+      "classes": {
+        "PortfolioAllocator": {
+          "methods": {
+            "allocate": {
+              "parameters": [
+                {
+                  "annotation": null,
+                  "default": {
+                    "kind": "required"
+                  },
+                  "kind": "POSITIONAL_OR_KEYWORD",
+                  "name": "self"
+                },
+                {
+                  "annotation": "pd.Timestamp",
+                  "default": {
+                    "kind": "required"
+                  },
+                  "kind": "KEYWORD_ONLY",
+                  "name": "date"
+                },
+                {
+                  "annotation": "Opportunity",
+                  "default": {
+                    "kind": "required"
+                  },
+                  "kind": "KEYWORD_ONLY",
+                  "name": "opportunity"
+                },
+                {
+                  "annotation": "RiskAssessment",
+                  "default": {
+                    "kind": "required"
+                  },
+                  "kind": "KEYWORD_ONLY",
+                  "name": "risk"
+                },
+                {
+                  "annotation": "dict[str, pd.DataFrame]",
+                  "default": {
+                    "kind": "required"
+                  },
+                  "kind": "KEYWORD_ONLY",
+                  "name": "user_panel"
+                },
+                {
+                  "annotation": "dict[str, LeaderScore]",
+                  "default": {
+                    "kind": "required"
+                  },
+                  "kind": "KEYWORD_ONLY",
+                  "name": "leaders"
+                },
+                {
+                  "annotation": "AccountState",
+                  "default": {
+                    "kind": "required"
+                  },
+                  "kind": "KEYWORD_ONLY",
+                  "name": "account"
+                },
+                {
+                  "annotation": "dict[str, float]",
+                  "default": {
+                    "kind": "required"
+                  },
+                  "kind": "KEYWORD_ONLY",
+                  "name": "prices"
+                }
+              ],
+              "return": "tuple[Target, ...]"
+            }
+          },
+          "properties": [],
+          "signature": {
+            "parameters": [
+              {
+                "annotation": "SystemConfig",
+                "default": {
+                  "kind": "required"
+                },
+                "kind": "POSITIONAL_OR_KEYWORD",
+                "name": "cfg"
+              }
+            ],
+            "return": "None"
+          }
+        }
+      },
+      "dataclasses": {},
+      "enums": {},
+      "functions": {
+        "current_weights": {
+          "parameters": [
+            {
+              "annotation": "AccountState",
+              "default": {
+                "kind": "required"
+              },
+              "kind": "POSITIONAL_OR_KEYWORD",
+              "name": "account"
+            },
+            {
+              "annotation": "dict[str, float]",
+              "default": {
+                "kind": "required"
+              },
+              "kind": "POSITIONAL_OR_KEYWORD",
+              "name": "prices"
+            }
+          ],
+          "return": "tuple[dict[str, float], float]"
+        },
+        "effective_n": {
+          "parameters": [
+            {
+              "annotation": "dict[str, float]",
+              "default": {
+                "kind": "required"
+              },
+              "kind": "POSITIONAL_OR_KEYWORD",
+              "name": "weights"
+            },
+            {
+              "annotation": "pd.DataFrame | None",
+              "default": {
+                "kind": "value",
+                "value": null
+              },
+              "kind": "POSITIONAL_OR_KEYWORD",
+              "name": "correlations"
+            }
+          ],
+          "return": "float"
+        }
+      },
+      "path": "uquant/portfolio.py",
+      "public_names": [
+        "PortfolioAllocator",
+        "current_weights",
+        "effective_n"
+      ]
+    },
+    "runtime": {
+      "all": [
+        "PortfolioAllocator",
+        "current_weights",
+        "effective_n"
+      ],
+      "functions": {
+        "current_weights": {
+          "module": "uquant.portfolio_core",
+          "qualname": "current_weights",
+          "raw_docstring": "Mark current positions and return normalized weights plus total equity.",
+          "signature": "(account: 'AccountState', prices: 'dict[str, float]') -> 'tuple[dict[str, float], float]'"
+        },
+        "effective_n": {
+          "module": "uquant.portfolio_core",
+          "qualname": "effective_n",
+          "raw_docstring": "Estimate effective diversification after concentration and correlation.",
+          "signature": "(weights: 'dict[str, float]', correlations: 'pd.DataFrame | None' = None) -> 'float'"
+        }
+      },
+      "import_mode_sha256": {
+        "double_optimized": "eabe258b60809d97e53f99717d30c063045b74c3f44a653e79ab552ef81c16d6",
+        "normal": "e1b2807da39dc7028c51cc2f8778f96750c9152badd6d0c38213409bfe23ed6c",
+        "optimized": "e1b2807da39dc7028c51cc2f8778f96750c9152badd6d0c38213409bfe23ed6c",
+        "windows_no_fcntl": "eabe258b60809d97e53f99717d30c063045b74c3f44a653e79ab552ef81c16d6"
+      }
+    }
+  }
+}

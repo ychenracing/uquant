@@ -9,7 +9,7 @@ from pathlib import Path
 
 import pytest
 
-import uquant.atomic_io as atomic_io
+import uquant.infrastructure.atomic_files as atomic_io
 from uquant.validation.execution_journal import (
     append_planned,
     execution_journal_checkpoint,
@@ -758,3 +758,58 @@ def test_observation_lock_serializes_different_run_ids_for_one_account(
         assert not marker.exists()
     assert child.wait(timeout=5) == 0
     assert marker.read_text(encoding="utf-8") == "acquired"
+
+
+def test_observation_lock_does_not_unlock_after_acquisition_failure(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    module = _load_module()
+    root = tmp_path / "repository"
+    root.mkdir()
+    account = root / "account.json"
+    account.write_text("{}\n", encoding="utf-8")
+    acquisition_error = OSError("simulated acquisition failure")
+
+    def fail_acquisition(*_args: object, **_kwargs: object) -> None:
+        raise acquisition_error
+
+    monkeypatch.setattr(module, "acquire_file_lock", fail_acquisition)
+    monkeypatch.setattr(
+        module,
+        "release_file_lock",
+        lambda *_args, **_kwargs: pytest.fail("an unacquired lock must not be released"),
+    )
+
+    with pytest.raises(OSError) as caught, module._observation_lock(root, account):
+        pytest.fail("the context body must not run after acquisition failure")
+
+    assert caught.value is acquisition_error
+
+
+def test_observation_lock_body_failure_is_not_masked_by_unlock_failure(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    module = _load_module()
+    root = tmp_path / "repository"
+    root.mkdir()
+    account = root / "account.json"
+    account.write_text("{}\n", encoding="utf-8")
+    body_error = RuntimeError("simulated observation body failure")
+
+    monkeypatch.setattr(module, "acquire_file_lock", lambda *_args, **_kwargs: None)
+
+    def fail_release(*_args: object, **_kwargs: object) -> None:
+        raise OSError("simulated unlock failure")
+
+    monkeypatch.setattr(module, "release_file_lock", fail_release)
+
+    with pytest.raises(RuntimeError) as caught, module._observation_lock(root, account):
+        raise body_error
+
+    assert caught.value is body_error
+    assert caught.value.__notes__ == [
+        "production observation lock cleanup also failed: "
+        "OSError: simulated unlock failure"
+    ]

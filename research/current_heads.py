@@ -82,6 +82,17 @@ _CELL_PROVENANCE_FIELDS = {
     "evidence_sha256",
 }
 
+_THIN_ADAPTER_IMPORT = b"from research import current_heads_competitor_matrix as _implementation"
+
+
+def _current_heads_adapter_sha256(adapter_path: Path) -> str:
+    """Project the reviewed thin entry to its byte-exact research owner."""
+
+    entry = adapter_path.read_bytes()
+    owner = adapter_path.parent.parent / "research" / "current_heads_competitor_matrix.py"
+    payload = owner.read_bytes() if _THIN_ADAPTER_IMPORT in entry and owner.is_file() else entry
+    return hashlib.sha256(payload).hexdigest()
+
 
 def canonical_sha256(value: Any) -> str:
     """Hash strict canonical JSON without accepting NaN or lossy values."""
@@ -179,9 +190,7 @@ def load_comparison_contract(path: Path) -> dict[str, Any]:
     if not isinstance(pools, dict) or tuple(pools) != ("a", "b", "c", "d", "e"):
         raise ValueError("current-head official pools mismatch")
     if any(
-        not isinstance(symbols, list)
-        or not symbols
-        or len(symbols) != len(set(symbols))
+        not isinstance(symbols, list) or not symbols or len(symbols) != len(set(symbols))
         for symbols in pools.values()
     ):
         raise ValueError("current-head official pool membership is malformed")
@@ -239,9 +248,7 @@ def load_source_registry(
     repositories = payload.get("repositories")
     if not isinstance(repositories, dict) or tuple(repositories) != REQUIRED_SYSTEMS:
         raise ValueError("current-head source registry repositories mismatch")
-    observed_adapter = (
-        hashlib.sha256(adapter_path.read_bytes()).hexdigest() if adapter_path is not None else None
-    )
+    observed_adapter = _current_heads_adapter_sha256(adapter_path) if adapter_path is not None else None
     expected = dict(expected_heads) if expected_heads is not None else None
     if expected is not None and set(expected) != set(REQUIRED_SYSTEMS):
         raise ValueError("expected remote HEAD set is incomplete")
@@ -251,12 +258,8 @@ def load_source_registry(
             raise ValueError(f"{name} source registry fields are incomplete")
         if entry["repository"] != _REPOSITORIES[name]:
             raise ValueError(f"{name} repository identity mismatch")
-        _require_hash(
-            entry["commit"], field="commit", pattern=_SHA40, label="a 40-character SHA"
-        )
-        _require_hash(
-            entry["tree_sha"], field="tree_sha", pattern=_SHA40, label="a 40-character SHA"
-        )
+        _require_hash(entry["commit"], field="commit", pattern=_SHA40, label="a 40-character SHA")
+        _require_hash(entry["tree_sha"], field="tree_sha", pattern=_SHA40, label="a 40-character SHA")
         for field in ("python_source_sha256", "lock_sha256", "adapter_sha256"):
             _require_hash(entry[field], field=field, pattern=_SHA256, label="SHA-256")
         if not isinstance(entry["python_source_files"], int) or entry["python_source_files"] < 1:
@@ -395,9 +398,7 @@ def validate_matrix_cell(
     if provenance.get("system_commit") != repository.get("commit"):
         raise ValueError("matrix cell commit differs from source registry")
     for field in _CELL_PROVENANCE_FIELDS - {"system_commit"}:
-        _require_hash(
-            provenance.get(field), field=field, pattern=_SHA256, label="SHA-256"
-        )
+        _require_hash(provenance.get(field), field=field, pattern=_SHA256, label="SHA-256")
 
 
 def _matrix_quantile(values: Sequence[float], probability: float) -> float:
@@ -416,11 +417,7 @@ def _matrix_aggregates(cells: Sequence[Mapping[str, Any]]) -> dict[str, Any]:
     for system in REQUIRED_SYSTEMS:
         result[system] = {}
         for axis in ("official_pool", "generalization"):
-            group = [
-                item
-                for item in cells
-                if item["system"] == system and item["axis"] == axis
-            ]
+            group = [item for item in cells if item["system"] == system and item["axis"] == axis]
             success = [item for item in group if item["status"] == "SUCCESS"]
             metric_summary: dict[str, Any] = {}
             for field in REQUIRED_METRICS:
@@ -436,12 +433,8 @@ def _matrix_aggregates(cells: Sequence[Mapping[str, Any]]) -> dict[str, Any]:
             result[system][axis] = {
                 "cells": len(group),
                 "success": len(success),
-                "replay_error": sum(
-                    item["status"] == "REPLAY_ERROR" for item in group
-                ),
-                "insufficient_sample": sum(
-                    item["status"] == "INSUFFICIENT_SAMPLE" for item in group
-                ),
+                "replay_error": sum(item["status"] == "REPLAY_ERROR" for item in group),
+                "insufficient_sample": sum(item["status"] == "INSUFFICIENT_SAMPLE" for item in group),
                 "metrics": metric_summary,
             }
     return result
@@ -479,7 +472,7 @@ def load_current_heads_matrix(
     if payload.get("source_registry_sha256") != registry["payload_sha256"]:
         raise ValueError("matrix source registry identity differs")
     if adapter_path is not None:
-        observed_adapter = hashlib.sha256(adapter_path.read_bytes()).hexdigest()
+        observed_adapter = _current_heads_adapter_sha256(adapter_path)
         if payload.get("adapter_sha256") != observed_adapter:
             raise ValueError("matrix adapter identity differs")
     data = payload.get("data")
@@ -502,10 +495,7 @@ def load_current_heads_matrix(
     if (
         not isinstance(uquant_runtimes, Mapping)
         or set(uquant_runtimes) != {"official", "generalization"}
-        or any(
-            not isinstance(uquant_runtimes[axis], Mapping)
-            for axis in ("official", "generalization")
-        )
+        or any(not isinstance(uquant_runtimes[axis], Mapping) for axis in ("official", "generalization"))
     ):
         raise ValueError("uquant axis-specific runtime provenance is incomplete")
     cells = payload.get("cells")
@@ -541,9 +531,7 @@ def load_current_heads_matrix(
         }
         if {cell["cell_id"] for cell in official} != expected_official:
             raise ValueError(f"{system} official matrix identities differ")
-        if sum(
-            cell["status"] == "INSUFFICIENT_SAMPLE" for cell in generalization
-        ) != 42:
+        if sum(cell["status"] == "INSUFFICIENT_SAMPLE" for cell in generalization) != 42:
             raise ValueError(f"{system} insufficient-sample evidence count differs")
         signatures_by_system[system] = {
             (
@@ -565,13 +553,9 @@ def load_current_heads_matrix(
         "cells": len(cells),
         "success": sum(cell["status"] == "SUCCESS" for cell in cells),
         "replay_error": sum(cell["status"] == "REPLAY_ERROR" for cell in cells),
-        "insufficient_sample": sum(
-            cell["status"] == "INSUFFICIENT_SAMPLE" for cell in cells
-        ),
+        "insufficient_sample": sum(cell["status"] == "INSUFFICIENT_SAMPLE" for cell in cells),
         "official_pool_cells": sum(cell["axis"] == "official_pool" for cell in cells),
-        "generalization_cells": sum(
-            cell["axis"] == "generalization" for cell in cells
-        ),
+        "generalization_cells": sum(cell["axis"] == "generalization" for cell in cells),
     }
     if payload.get("summary") != summary:
         raise ValueError("matrix summary differs from its literal cells")
@@ -584,9 +568,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     """Validate a committed current-HEAD matrix from an independent entry point."""
 
     root = Path(__file__).resolve().parents[1]
-    parser = argparse.ArgumentParser(
-        prog="python -m research.current_heads"
-    )
+    parser = argparse.ArgumentParser(prog="python -m research.current_heads")
     parser.add_argument(
         "--matrix",
         type=Path,

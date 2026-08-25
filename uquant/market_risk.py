@@ -9,18 +9,20 @@ from types import MappingProxyType
 
 from .config import SystemConfig
 
-EVIDENCE_FAMILY_MEMBERS: dict[str, tuple[str, ...]] = {
-    "market_velocity": ("index_velocity",),
-    "breadth_structure": (
-        "sector_breadth_shock",
-        "below_ma20_structure",
-        "multi_industry_sync",
-    ),
-    "covariance_stress": ("correlation_shock", "volatility_shock"),
-    "leadership_damage": ("leader_failure", "anchor_break"),
-    "live_book_damage": ("live_book_damage",),
-    "capital_damage": ("capital_damage",),
-}
+EVIDENCE_FAMILY_MEMBERS: Mapping[str, tuple[str, ...]] = MappingProxyType(
+    {
+        "market_velocity": ("index_velocity",),
+        "breadth_structure": (
+            "sector_breadth_shock",
+            "below_ma20_structure",
+            "multi_industry_sync",
+        ),
+        "covariance_stress": ("correlation_shock", "volatility_shock"),
+        "leadership_damage": ("leader_failure", "anchor_break"),
+        "live_book_damage": ("live_book_damage",),
+        "capital_damage": ("capital_damage",),
+    }
+)
 
 
 def evidence_family_votes(indicators: Mapping[str, bool]) -> dict[str, bool]:
@@ -65,14 +67,12 @@ def build_base_market_family_snapshot(
 
     indicators = {
         "sector_breadth_shock": (
-            average_fast_return <= cfg.risk_fast_return
-            and declining_ratio >= cfg.risk_breadth
+            average_fast_return <= cfg.risk_fast_return and declining_ratio >= cfg.risk_breadth
         ),
         "below_ma20_structure": below_ma20_ratio >= cfg.risk_below_ma20,
         "multi_industry_sync": sector_stress_ratio >= 0.50,
         "correlation_shock": (
-            math.isfinite(median_correlation)
-            and median_correlation >= cfg.risk_correlation
+            math.isfinite(median_correlation) and median_correlation >= cfg.risk_correlation
         ),
         "volatility_shock": volatility_ratio >= cfg.risk_volatility_ratio,
         "index_velocity": tech_speed <= -0.055 or broad_speed <= -0.045,

@@ -346,12 +346,12 @@ def test_first_economic_divergence_rejects_misaligned_trace_dates() -> None:
         )
 
 
-def test_installed_project_exposes_research_package_outside_checkout(tmp_path: Path) -> None:
-    """A clean test invocation must import the installed research API, not this checkout."""
+def test_installed_project_excludes_repository_research_package(tmp_path: Path) -> None:
+    """The production distribution must not install the repository-only research harness."""
     environment = dict(os.environ)
     environment.pop("PYTHONPATH", None)
     process = subprocess.run(
-        [sys.executable, "-c", "from research import trace_backtest; print(trace_backtest.__name__)"],
+        [sys.executable, "-c", "import research"],
         cwd=tmp_path,
         env=environment,
         capture_output=True,
@@ -359,5 +359,5 @@ def test_installed_project_exposes_research_package_outside_checkout(tmp_path: P
         check=False,
     )
 
-    assert process.returncode == 0, process.stderr
-    assert process.stdout.strip() == "trace_backtest"
+    assert process.returncode != 0
+    assert "No module named 'research'" in process.stderr

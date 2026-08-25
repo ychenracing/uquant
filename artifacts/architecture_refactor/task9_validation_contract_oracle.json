@@ -1,0 +1,2056 @@
+{
+  "baseline_commit": "719288f6067686b3199d305899ddc09adf098a0d",
+  "baseline_tree": "459d592cb24c6cfed2082bfd2f7519a9badee67d",
+  "contract": "uquant-task9-validation-contract-oracle-v1",
+  "coverage": {
+    "failure_labels": [
+      "generalization_policy_missing_field",
+      "generalization_policy_unknown_field",
+      "generalization_policy_seal_mismatch",
+      "generalization_policy_resealed_threshold",
+      "generalization_policy_nonfinite_number",
+      "generalization_metric_nonfinite",
+      "holdout_manifest_unknown_field",
+      "holdout_manifest_parameter_change_first",
+      "holdout_manifest_seal_mismatch",
+      "holdout_manifest_stale_identity",
+      "holdout_manifest_cli_identity_mismatch",
+      "holdout_manifest_account_identity_mismatch",
+      "holdout_lane_deleted",
+      "holdout_lane_identity_changed",
+      "holdout_lane_status_regressed",
+      "holdout_lane_backfill",
+      "holdout_observed_sessions_regressive",
+      "holdout_replay_source_identity_mismatch",
+      "holdout_replay_data_identity_mismatch",
+      "holdout_replay_lane_binding_mismatch",
+      "holdout_replay_journal_mismatch",
+      "holdout_replay_duplicate_sessions",
+      "holdout_checkpoint_discontinuity",
+      "holdout_unsafe_output_boundary",
+      "holdout_transaction_recovery_failure",
+      "sentinel_source_package_missing",
+      "sentinel_import_isolation_violation",
+      "sentinel_cli_validation_argument_conflict"
+    ],
+    "success_bundles": [
+      "baseline",
+      "policy",
+      "champion_generalization_artifact",
+      "manifest",
+      "lane_report",
+      "daily_snapshot",
+      "replay",
+      "daily_decision",
+      "checkpoint",
+      "artifact_transaction",
+      "journal_v1",
+      "sentinel_validation",
+      "sentinel_cli_help"
+    ]
+  },
+  "failure_order": [
+    {
+      "label": "generalization_policy_missing_field",
+      "message": "generalization policy schema is malformed",
+      "notes": [],
+      "type": "builtins.ValueError"
+    },
+    {
+      "label": "generalization_policy_unknown_field",
+      "message": "generalization policy schema is malformed",
+      "notes": [],
+      "type": "builtins.ValueError"
+    },
+    {
+      "label": "generalization_policy_seal_mismatch",
+      "message": "generalization policy differs from the compiled reviewed contract",
+      "notes": [],
+      "type": "builtins.ValueError"
+    },
+    {
+      "label": "generalization_policy_resealed_threshold",
+      "message": "generalization policy differs from the compiled reviewed contract",
+      "notes": [],
+      "type": "builtins.ValueError"
+    },
+    {
+      "label": "generalization_policy_nonfinite_number",
+      "message": "generalization contract contains non-standard number: NaN",
+      "notes": [],
+      "type": "builtins.ValueError"
+    },
+    {
+      "label": "generalization_metric_nonfinite",
+      "message": "invalid symbol PnL for concentration",
+      "notes": [],
+      "type": "builtins.ValueError"
+    },
+    {
+      "label": "holdout_manifest_unknown_field",
+      "message": "future holdout manifest schema is malformed",
+      "notes": [],
+      "type": "builtins.ValueError"
+    },
+    {
+      "label": "holdout_manifest_parameter_change_first",
+      "message": "holdout parameter changes from observation are prohibited",
+      "notes": [],
+      "type": "builtins.ValueError"
+    },
+    {
+      "label": "holdout_manifest_seal_mismatch",
+      "message": "future holdout manifest hash is invalid",
+      "notes": [],
+      "type": "builtins.ValueError"
+    },
+    {
+      "label": "holdout_manifest_stale_identity",
+      "message": "future holdout manifest is stale",
+      "notes": [],
+      "type": "builtins.ValueError"
+    },
+    {
+      "label": "holdout_manifest_cli_identity_mismatch",
+      "message": "current strategy decision path or config drifted from the observation anchor",
+      "notes": [],
+      "type": "builtins.ValueError"
+    },
+    {
+      "label": "holdout_manifest_account_identity_mismatch",
+      "message": "holdout account is not the exact prior-close state",
+      "notes": [],
+      "type": "builtins.ValueError"
+    },
+    {
+      "label": "holdout_lane_deleted",
+      "message": "future holdout lane was deleted",
+      "notes": [],
+      "type": "builtins.ValueError"
+    },
+    {
+      "label": "holdout_lane_identity_changed",
+      "message": "observed future holdout lane identity changed",
+      "notes": [],
+      "type": "builtins.ValueError"
+    },
+    {
+      "label": "holdout_lane_status_regressed",
+      "message": "future holdout lane status moved backward",
+      "notes": [],
+      "type": "builtins.ValueError"
+    },
+    {
+      "label": "holdout_lane_backfill",
+      "message": "new future holdout lane would backfill observed sessions",
+      "notes": [],
+      "type": "builtins.ValueError"
+    },
+    {
+      "label": "holdout_observed_sessions_regressive",
+      "message": "future holdout observed sessions are not monotonic",
+      "notes": [],
+      "type": "builtins.ValueError"
+    },
+    {
+      "label": "holdout_replay_source_identity_mismatch",
+      "message": "future holdout replay source binding is stale",
+      "notes": [],
+      "type": "builtins.ValueError"
+    },
+    {
+      "label": "holdout_replay_data_identity_mismatch",
+      "message": "future holdout replay binding is stale",
+      "notes": [],
+      "type": "builtins.ValueError"
+    },
+    {
+      "label": "holdout_replay_lane_binding_mismatch",
+      "message": "future holdout replay lane binding is stale",
+      "notes": [],
+      "type": "builtins.ValueError"
+    },
+    {
+      "label": "holdout_replay_journal_mismatch",
+      "message": "future holdout replay journal checkpoint is malformed",
+      "notes": [],
+      "type": "builtins.ValueError"
+    },
+    {
+      "label": "holdout_replay_duplicate_sessions",
+      "message": "holdout sessions must be unique and increasing",
+      "notes": [],
+      "type": "builtins.ValueError"
+    },
+    {
+      "label": "holdout_checkpoint_discontinuity",
+      "message": "future holdout replay requires exactly one uncheckpointed daily session",
+      "notes": [],
+      "type": "builtins.ValueError"
+    },
+    {
+      "label": "holdout_unsafe_output_boundary",
+      "message": "holdout output is inside a protected data directory: <TMP>/protected-data",
+      "notes": [],
+      "type": "builtins.ValueError"
+    },
+    {
+      "label": "holdout_transaction_recovery_failure",
+      "message": "forced recovery link failure",
+      "notes": [
+        "rollback bytes preserved for recovery at <TMP>/transaction-failure/.carrier.json.rollback-<TOKEN>",
+        "claimed carrier preserved for recovery at <TMP>/transaction-failure/.carrier.json.claimed-<TOKEN>"
+      ],
+      "type": "builtins.OSError"
+    },
+    {
+      "label": "sentinel_source_package_missing",
+      "message": "Sentinel source package is missing",
+      "notes": [],
+      "type": "builtins.RuntimeError"
+    },
+    {
+      "label": "sentinel_import_isolation_violation",
+      "message": "Sentinel import isolation failed: ['uquant/risk_sentinel/evil.py:uquant.engine']",
+      "notes": [],
+      "type": "builtins.RuntimeError"
+    },
+    {
+      "label": "sentinel_cli_validation_argument_conflict",
+      "message": "2",
+      "notes": [
+        "stderr: usage: uquant-risk-sentinel [-h] [--validate-contracts] [--data-dir DATA_DIR]\n                            [--date DATE] [--account ACCOUNT]\n                            [--output OUTPUT]\nuquant-risk-sentinel: error: --validate-contracts does not accept assessment arguments\n"
+      ],
+      "type": "builtins.SystemExit"
+    }
+  ],
+  "failure_order_sha256": "e281c4903ce60a29b2694c8adbabd79d523a0207480dd9d8e262a8656b34e2e0",
+  "payload_sha256": "99518db85bfa741ae5ecc4654c507c5651d8c525ec67b383f60880731e9867ee",
+  "source_identity": {
+    "holdout_source_sha256": "2879721b7aeeee947361bd4d5dbf90851c1256fad11711b5e110f28c6994c894",
+    "legacy_files": [
+      {
+        "path": "uquant/validation/generalization.py",
+        "sha256": "cdc5d3d9b6754ad3961409d432b2d6498bfb14fbb6cd3f62d2ba1b0570b383db",
+        "size_bytes": 82248
+      },
+      {
+        "path": "uquant/validation/generalization_reference.py",
+        "sha256": "79db16cc1db70077c998a232ce724a70193f054225ed18c8077e5120683ee133",
+        "size_bytes": 76143
+      },
+      {
+        "path": "uquant/validation/holdout.py",
+        "sha256": "c9bc11a2ff2d9a3223871813551308453f89d379b205b2c002a5ae98b4c03921",
+        "size_bytes": 51345
+      },
+      {
+        "path": "uquant/validation/holdout_runtime.py",
+        "sha256": "733ce45c60b0e26119fffa2bdde88997c589b797ef894be378cd7e50348ce325",
+        "size_bytes": 60376
+      },
+      {
+        "path": "uquant/validation/holdout_lanes.py",
+        "sha256": "33fb1f87ea6657637af2b09b792b9bd1fb62ef38908cbaa5addd96c4e54c78e9",
+        "size_bytes": 14107
+      },
+      {
+        "path": "uquant/risk_sentinel/cli.py",
+        "sha256": "ac43f14df969008c87332d7df3f74260f26c14e5540b5d193cb2be89bbc2c221",
+        "size_bytes": 11997
+      },
+      {
+        "path": "uquant/risk_sentinel/validation.py",
+        "sha256": "9351925cbf72c1e5e1badedb97b62f1164685f3ac14cda370e3c5699ea7b1efd",
+        "size_bytes": 2310
+      }
+    ],
+    "legacy_frame_sha256": "19436e04f7173e4d501f95bb806eb92363492bb5d56018e4b1618414eb831154",
+    "requirements_sha256": "77c1e3d4685e5f55c0b3e7bf23ff101ff957973cc2e80aa4e5cdb4d02f0e2731",
+    "requirements_size_bytes": 28,
+    "sentinel_source_sha256": "68966dbe39f810fa1c6bf6775b4662a784eab2ad74804413052c9dd749814460"
+  },
+  "success": {
+    "generalization": {
+      "baseline": {
+        "artifact_equality_sha256": "2befb0f59d46684e194425f95014a2647c515cbe4f9df7ad34c9b172ba9aaeaa",
+        "artifact_sha256": "926ea8419ab8aad7a05577eee56aeefa90c33cc7faa4e1ee1d2bbbaac77439cc",
+        "artifact_size_bytes": 16196017,
+        "attribution_neutral_equality_sha256": "e34c60477c78827ffc3d4e6ea723825bc31e54bcbe4ec5f47623c48121ba9331",
+        "cells": 234,
+        "economic_cells": 192,
+        "replay_error_cells": 1,
+        "runner_head": "80ad88ea03952bcb2839e6aab6390bb9541f739e",
+        "runner_source_sha256": "b55ab9f3d3b30ade7a77b0e1fe11bb1baee2e1e788181f4e6f13200616c03242",
+        "sha256": "8603c4572fbf15a3de4f89737ab078d7e61d76f9e197f210a24704b8a4aabd79"
+      },
+      "cell_gate_exact": [],
+      "cell_gate_regressed": [
+        "final_wealth 1.8 is below 95% reference 1.9",
+        "max_drawdown 0.13 exceeds reference-plus-buffer 0.12",
+        "account_orders 13 exceeds reference activity limit 11",
+        "gross_turnover 1.2 exceeds 110% reference 1.1",
+        "annual_turnover 2.3 exceeds 110% reference 2.2"
+      ],
+      "champion_evaluation": {
+        "canonical_sha256": "c0e9a82ae36171c528bfee1aa6c84d028650c772df8e1773230c308ec0f46aae",
+        "canonical_size_bytes": 22826,
+        "payload": {
+          "champion_equality_accepted": true,
+          "config_migration": null,
+          "economic_cells_expected": 192,
+          "economic_cells_valid": 191,
+          "exact_equality_passed": true,
+          "exact_equality_required": true,
+          "failures": [],
+          "intrinsic_results": [
+            {
+              "failures": [],
+              "family": "remove_all_core",
+              "final_wealth": 6.359075268540937,
+              "identifier": "bull_crash_2025_2026/remove-all-core",
+              "max_drawdown": 0.15369362348576276,
+              "passed": true
+            },
+            {
+              "failures": [],
+              "family": "remove_one",
+              "final_wealth": 8.721422998068833,
+              "identifier": "bull_crash_2025_2026/remove-one__sz300308",
+              "max_drawdown": 0.1528917512656689,
+              "passed": true
+            },
+            {
+              "failures": [],
+              "family": "remove_one",
+              "final_wealth": 4.0312065294038435,
+              "identifier": "bull_crash_2025_2026/remove-one__sz300394",
+              "max_drawdown": 0.1913542323779669,
+              "passed": true
+            },
+            {
+              "failures": [],
+              "family": "remove_one",
+              "final_wealth": 9.39953808757944,
+              "identifier": "bull_crash_2025_2026/remove-one__sz300502",
+              "max_drawdown": 0.2749674986487751,
+              "passed": true
+            },
+            {
+              "failures": [],
+              "family": "tradable_no_optical",
+              "final_wealth": 5.660590892519881,
+              "identifier": "bull_crash_2025_2026/tradable-no-optical",
+              "max_drawdown": 0.14567013898500358,
+              "passed": true
+            },
+            {
+              "failures": [],
+              "family": "remove_all_core",
+              "final_wealth": 1.20910580087419,
+              "identifier": "continuous_ai_era/remove-all-core",
+              "max_drawdown": 0.11190929608507261,
+              "passed": true
+            },
+            {
+              "failures": [],
+              "family": "remove_one",
+              "final_wealth": 0.8321334882399101,
+              "identifier": "continuous_ai_era/remove-one__sz300308",
+              "max_drawdown": 0.26295448137956967,
+              "passed": true
+            },
+            {
+              "failures": [],
+              "family": "remove_one",
+              "final_wealth": 3.936609244088344,
+              "identifier": "continuous_ai_era/remove-one__sz300394",
+              "max_drawdown": 0.1989904609640888,
+              "passed": true
+            },
+            {
+              "failures": [],
+              "family": "remove_one",
+              "final_wealth": 0.8568649080496994,
+              "identifier": "continuous_ai_era/remove-one__sz300502",
+              "max_drawdown": 0.20614125700970842,
+              "passed": true
+            },
+            {
+              "failures": [],
+              "family": "tradable_no_optical",
+              "final_wealth": 1.20910580087419,
+              "identifier": "continuous_ai_era/tradable-no-optical",
+              "max_drawdown": 0.11190929608507261,
+              "passed": true
+            },
+            {
+              "failures": [],
+              "family": "remove_all_core",
+              "final_wealth": 1.20910580087419,
+              "identifier": "h1_2023/remove-all-core",
+              "max_drawdown": 0.11190929608507261,
+              "passed": true
+            },
+            {
+              "failures": [],
+              "family": "remove_one",
+              "final_wealth": 0.8515884195723902,
+              "identifier": "h1_2023/remove-one__sz300308",
+              "max_drawdown": 0.2495839322866542,
+              "passed": true
+            },
+            {
+              "failures": [],
+              "family": "remove_one",
+              "final_wealth": 1.01308131569498,
+              "identifier": "h1_2023/remove-one__sz300394",
+              "max_drawdown": 0.10688314401582488,
+              "passed": true
+            },
+            {
+              "failures": [],
+              "family": "remove_one",
+              "final_wealth": 1.03122319014694,
+              "identifier": "h1_2023/remove-one__sz300502",
+              "max_drawdown": 0.13302838698655994,
+              "passed": true
+            },
+            {
+              "failures": [],
+              "family": "tradable_no_optical",
+              "final_wealth": 1.20910580087419,
+              "identifier": "h1_2023/tradable-no-optical",
+              "max_drawdown": 0.11190929608507261,
+              "passed": true
+            },
+            {
+              "failures": [],
+              "family": "remove_all_core",
+              "final_wealth": 1.0011282198850453,
+              "identifier": "h1_2024/remove-all-core",
+              "max_drawdown": 0.18701043951308838,
+              "passed": true
+            },
+            {
+              "failures": [],
+              "family": "remove_one",
+              "final_wealth": 1.1792517397100184,
+              "identifier": "h1_2024/remove-one__sz300308",
+              "max_drawdown": 0.1277385838662295,
+              "passed": true
+            },
+            {
+              "failures": [],
+              "family": "remove_one",
+              "final_wealth": 1.3313011735815616,
+              "identifier": "h1_2024/remove-one__sz300394",
+              "max_drawdown": 0.1359967124439596,
+              "passed": true
+            },
+            {
+              "failures": [],
+              "family": "remove_one",
+              "final_wealth": 1.0693674891733884,
+              "identifier": "h1_2024/remove-one__sz300502",
+              "max_drawdown": 0.1463265931002714,
+              "passed": true
+            },
+            {
+              "failures": [],
+              "family": "tradable_no_optical",
+              "final_wealth": 1.0011282198850453,
+              "identifier": "h1_2024/tradable-no-optical",
+              "max_drawdown": 0.18701043951308838,
+              "passed": true
+            },
+            {
+              "failures": [],
+              "family": "remove_all_core",
+              "final_wealth": 1.0956720592566103,
+              "identifier": "h2_2023/remove-all-core",
+              "max_drawdown": 0.13706899876974332,
+              "passed": true
+            },
+            {
+              "failures": [],
+              "family": "remove_one",
+              "final_wealth": 1.0956720592566103,
+              "identifier": "h2_2023/remove-one__sz300308",
+              "max_drawdown": 0.13706899876974332,
+              "passed": true
+            },
+            {
+              "failures": [],
+              "family": "remove_one",
+              "final_wealth": 1.0956720592566103,
+              "identifier": "h2_2023/remove-one__sz300394",
+              "max_drawdown": 0.13706899876974332,
+              "passed": true
+            },
+            {
+              "failures": [],
+              "family": "remove_one",
+              "final_wealth": 1.0956720592566103,
+              "identifier": "h2_2023/remove-one__sz300502",
+              "max_drawdown": 0.13706899876974332,
+              "passed": true
+            },
+            {
+              "failures": [],
+              "family": "tradable_no_optical",
+              "final_wealth": 1.0956720592566103,
+              "identifier": "h2_2023/tradable-no-optical",
+              "max_drawdown": 0.13706899876974332,
+              "passed": true
+            },
+            {
+              "failures": [],
+              "family": "remove_all_core",
+              "final_wealth": 1.815681014237706,
+              "identifier": "h2_2024/remove-all-core",
+              "max_drawdown": 0.08583048851864583,
+              "passed": true
+            },
+            {
+              "failures": [],
+              "family": "remove_one",
+              "final_wealth": 1.9002164923944647,
+              "identifier": "h2_2024/remove-one__sz300308",
+              "max_drawdown": 0.08592480598703311,
+              "passed": true
+            },
+            {
+              "failures": [],
+              "family": "remove_one",
+              "final_wealth": 1.9002164923944647,
+              "identifier": "h2_2024/remove-one__sz300394",
+              "max_drawdown": 0.08592480598703311,
+              "passed": true
+            },
+            {
+              "failures": [],
+              "family": "remove_one",
+              "final_wealth": 1.815681014237706,
+              "identifier": "h2_2024/remove-one__sz300502",
+              "max_drawdown": 0.08583048851864583,
+              "passed": true
+            },
+            {
+              "failures": [],
+              "family": "tradable_no_optical",
+              "final_wealth": 1.815681014237706,
+              "identifier": "h2_2024/tradable-no-optical",
+              "max_drawdown": 0.08583048851864583,
+              "passed": true
+            }
+          ],
+          "passed": true,
+          "random_tail_results": [
+            {
+              "authenticated_support_cells": 5,
+              "effective_bounds": {
+                "p10_wealth_min": 0.8,
+                "p90_drawdown_max": 0.3,
+                "p90_orders_max": 20.0,
+                "positive_return_fraction_min": 0.6,
+                "replay_error_cells_max": 0
+              },
+              "failures": [],
+              "grandfathered": false,
+              "literal_failures": [],
+              "literal_fallback": false,
+              "literal_passed": true,
+              "non_regression_passed": true,
+              "non_regression_tail": {
+                "p10_wealth": 0.9728391400857042,
+                "p90_drawdown": 0.13420141642853176,
+                "p90_orders": 12.600000000000001,
+                "positive_return_fraction": 0.6,
+                "valid_cells": 5
+              },
+              "p10_wealth": 0.9728391400857042,
+              "p90_drawdown": 0.13420141642853176,
+              "p90_orders": 12.600000000000001,
+              "passed": true,
+              "pool_size": 5,
+              "positive_return_fraction": 0.6,
+              "replay_error_cells": 0,
+              "requested_cells": 5,
+              "valid_cells": 5,
+              "window": "bull_crash_2025_2026"
+            },
+            {
+              "authenticated_support_cells": 5,
+              "effective_bounds": {
+                "p10_wealth_min": 0.8,
+                "p90_drawdown_max": 0.3,
+                "p90_orders_max": 28.400000000000002,
+                "positive_return_fraction_min": 0.6,
+                "replay_error_cells_max": 0
+              },
+              "failures": [],
+              "grandfathered": true,
+              "literal_failures": [
+                "p90 orders 28.400000000000002 exceeds 20"
+              ],
+              "literal_fallback": false,
+              "literal_passed": false,
+              "non_regression_passed": true,
+              "non_regression_tail": {
+                "p10_wealth": 1.0622480872790956,
+                "p90_drawdown": 0.17919239079210614,
+                "p90_orders": 28.400000000000002,
+                "positive_return_fraction": 1.0,
+                "valid_cells": 5
+              },
+              "p10_wealth": 1.0622480872790956,
+              "p90_drawdown": 0.17919239079210614,
+              "p90_orders": 28.400000000000002,
+              "passed": true,
+              "pool_size": 9,
+              "positive_return_fraction": 1.0,
+              "replay_error_cells": 0,
+              "requested_cells": 5,
+              "valid_cells": 5,
+              "window": "bull_crash_2025_2026"
+            },
+            {
+              "authenticated_support_cells": 5,
+              "effective_bounds": {
+                "p10_wealth_min": 0.8,
+                "p90_drawdown_max": 0.3,
+                "p90_orders_max": 41.6,
+                "positive_return_fraction_min": 0.6,
+                "replay_error_cells_max": 0
+              },
+              "failures": [],
+              "grandfathered": true,
+              "literal_failures": [
+                "p90 orders 41.6 exceeds 20"
+              ],
+              "literal_fallback": false,
+              "literal_passed": false,
+              "non_regression_passed": true,
+              "non_regression_tail": {
+                "p10_wealth": 1.591292227237585,
+                "p90_drawdown": 0.20285142356149827,
+                "p90_orders": 41.6,
+                "positive_return_fraction": 1.0,
+                "valid_cells": 5
+              },
+              "p10_wealth": 1.591292227237585,
+              "p90_drawdown": 0.20285142356149827,
+              "p90_orders": 41.6,
+              "passed": true,
+              "pool_size": 15,
+              "positive_return_fraction": 1.0,
+              "replay_error_cells": 0,
+              "requested_cells": 5,
+              "valid_cells": 5,
+              "window": "bull_crash_2025_2026"
+            },
+            {
+              "authenticated_support_cells": 5,
+              "effective_bounds": {
+                "p10_wealth_min": 0.8,
+                "p90_drawdown_max": 0.3,
+                "p90_orders_max": 46.2,
+                "positive_return_fraction_min": 0.6,
+                "replay_error_cells_max": 0
+              },
+              "failures": [],
+              "grandfathered": true,
+              "literal_failures": [
+                "p90 orders 46.2 exceeds 20"
+              ],
+              "literal_fallback": false,
+              "literal_passed": false,
+              "non_regression_passed": true,
+              "non_regression_tail": {
+                "p10_wealth": 2.309422567774183,
+                "p90_drawdown": 0.21628036681339444,
+                "p90_orders": 46.2,
+                "positive_return_fraction": 1.0,
+                "valid_cells": 5
+              },
+              "p10_wealth": 2.309422567774183,
+              "p90_drawdown": 0.21628036681339444,
+              "p90_orders": 46.2,
+              "passed": true,
+              "pool_size": 20,
+              "positive_return_fraction": 1.0,
+              "replay_error_cells": 0,
+              "requested_cells": 5,
+              "valid_cells": 5,
+              "window": "bull_crash_2025_2026"
+            },
+            {
+              "authenticated_support_cells": 5,
+              "effective_bounds": {
+                "p10_wealth_min": 0.8,
+                "p90_drawdown_max": 0.3,
+                "p90_orders_max": 20.0,
+                "positive_return_fraction_min": 0.4,
+                "replay_error_cells_max": 0
+              },
+              "failures": [],
+              "grandfathered": true,
+              "literal_failures": [
+                "positive-return fraction 0.4 is below 0.6"
+              ],
+              "literal_fallback": false,
+              "literal_passed": false,
+              "non_regression_passed": true,
+              "non_regression_tail": {
+                "p10_wealth": 0.8310192035788272,
+                "p90_drawdown": 0.2059597758774645,
+                "p90_orders": 10.200000000000001,
+                "positive_return_fraction": 0.4,
+                "valid_cells": 5
+              },
+              "p10_wealth": 0.8310192035788272,
+              "p90_drawdown": 0.2059597758774645,
+              "p90_orders": 10.200000000000001,
+              "passed": true,
+              "pool_size": 5,
+              "positive_return_fraction": 0.4,
+              "replay_error_cells": 0,
+              "requested_cells": 5,
+              "valid_cells": 5,
+              "window": "continuous_ai_era"
+            },
+            {
+              "authenticated_support_cells": 5,
+              "effective_bounds": {
+                "p10_wealth_min": 0.8,
+                "p90_drawdown_max": 0.3,
+                "p90_orders_max": 28.2,
+                "positive_return_fraction_min": 0.6,
+                "replay_error_cells_max": 0
+              },
+              "failures": [],
+              "grandfathered": true,
+              "literal_failures": [
+                "p90 orders 28.2 exceeds 20"
+              ],
+              "literal_fallback": false,
+              "literal_passed": false,
+              "non_regression_passed": true,
+              "non_regression_tail": {
+                "p10_wealth": 0.8310192035788272,
+                "p90_drawdown": 0.2059597758774645,
+                "p90_orders": 28.2,
+                "positive_return_fraction": 0.6,
+                "valid_cells": 5
+              },
+              "p10_wealth": 0.8310192035788272,
+              "p90_drawdown": 0.2059597758774645,
+              "p90_orders": 28.2,
+              "passed": true,
+              "pool_size": 9,
+              "positive_return_fraction": 0.6,
+              "replay_error_cells": 0,
+              "requested_cells": 5,
+              "valid_cells": 5,
+              "window": "continuous_ai_era"
+            },
+            {
+              "authenticated_support_cells": 5,
+              "effective_bounds": {
+                "p10_wealth_min": 0.8,
+                "p90_drawdown_max": 0.34411972502114335,
+                "p90_orders_max": 32.800000000000004,
+                "positive_return_fraction_min": 0.6,
+                "replay_error_cells_max": 0
+              },
+              "failures": [],
+              "grandfathered": true,
+              "literal_failures": [
+                "p90 drawdown 0.34411972502114335 exceeds 0.3",
+                "p90 orders 32.800000000000004 exceeds 20"
+              ],
+              "literal_fallback": false,
+              "literal_passed": false,
+              "non_regression_passed": true,
+              "non_regression_tail": {
+                "p10_wealth": 0.9945765016521941,
+                "p90_drawdown": 0.34411972502114335,
+                "p90_orders": 32.800000000000004,
+                "positive_return_fraction": 0.8,
+                "valid_cells": 5
+              },
+              "p10_wealth": 0.9945765016521941,
+              "p90_drawdown": 0.34411972502114335,
+              "p90_orders": 32.800000000000004,
+              "passed": true,
+              "pool_size": 15,
+              "positive_return_fraction": 0.8,
+              "replay_error_cells": 0,
+              "requested_cells": 5,
+              "valid_cells": 5,
+              "window": "continuous_ai_era"
+            },
+            {
+              "authenticated_support_cells": 4,
+              "effective_bounds": {
+                "p10_wealth_min": 0.8,
+                "p90_drawdown_max": 0.3592361982913148,
+                "p90_orders_max": 20.0,
+                "positive_return_fraction_min": 0.4,
+                "replay_error_cells_max": 1
+              },
+              "failures": [],
+              "grandfathered": true,
+              "literal_failures": [
+                "1 replay error cells",
+                "positive-return fraction 0.4 is below 0.6",
+                "p90 drawdown 0.3592361982913148 exceeds 0.3"
+              ],
+              "literal_fallback": false,
+              "literal_passed": false,
+              "non_regression_passed": true,
+              "non_regression_tail": {
+                "p10_wealth": 0.9773280380722422,
+                "p90_drawdown": 0.3592361982913148,
+                "p90_orders": 19.700000000000003,
+                "positive_return_fraction": 0.4,
+                "valid_cells": 4
+              },
+              "p10_wealth": 0.9773280380722422,
+              "p90_drawdown": 0.3592361982913148,
+              "p90_orders": 19.700000000000003,
+              "passed": true,
+              "pool_size": 20,
+              "positive_return_fraction": 0.4,
+              "replay_error_cells": 1,
+              "requested_cells": 5,
+              "valid_cells": 4,
+              "window": "continuous_ai_era"
+            },
+            {
+              "authenticated_support_cells": 5,
+              "effective_bounds": {
+                "p10_wealth_min": 0.8,
+                "p90_drawdown_max": 0.3,
+                "p90_orders_max": 20.0,
+                "positive_return_fraction_min": 0.0,
+                "replay_error_cells_max": 0
+              },
+              "failures": [],
+              "grandfathered": true,
+              "literal_failures": [
+                "positive-return fraction 0 is below 0.6"
+              ],
+              "literal_fallback": false,
+              "literal_passed": false,
+              "non_regression_passed": true,
+              "non_regression_tail": {
+                "p10_wealth": 1.0,
+                "p90_drawdown": -0.0,
+                "p90_orders": 0.0,
+                "positive_return_fraction": 0.0,
+                "valid_cells": 5
+              },
+              "p10_wealth": 1.0,
+              "p90_drawdown": -0.0,
+              "p90_orders": 0.0,
+              "passed": true,
+              "pool_size": 5,
+              "positive_return_fraction": 0.0,
+              "replay_error_cells": 0,
+              "requested_cells": 5,
+              "valid_cells": 5,
+              "window": "h1_2023"
+            },
+            {
+              "authenticated_support_cells": 5,
+              "effective_bounds": {
+                "p10_wealth_min": 0.8,
+                "p90_drawdown_max": 0.3,
+                "p90_orders_max": 20.0,
+                "positive_return_fraction_min": 0.2,
+                "replay_error_cells_max": 0
+              },
+              "failures": [],
+              "grandfathered": true,
+              "literal_failures": [
+                "positive-return fraction 0.2 is below 0.6"
+              ],
+              "literal_fallback": false,
+              "literal_passed": false,
+              "non_regression_passed": true,
+              "non_regression_tail": {
+                "p10_wealth": 1.0,
+                "p90_drawdown": 0.06714557765104358,
+                "p90_orders": 3.6000000000000005,
+                "positive_return_fraction": 0.2,
+                "valid_cells": 5
+              },
+              "p10_wealth": 1.0,
+              "p90_drawdown": 0.06714557765104358,
+              "p90_orders": 3.6000000000000005,
+              "passed": true,
+              "pool_size": 9,
+              "positive_return_fraction": 0.2,
+              "replay_error_cells": 0,
+              "requested_cells": 5,
+              "valid_cells": 5,
+              "window": "h1_2023"
+            },
+            {
+              "authenticated_support_cells": 5,
+              "effective_bounds": {
+                "p10_wealth_min": 0.8,
+                "p90_drawdown_max": 0.3,
+                "p90_orders_max": 20.0,
+                "positive_return_fraction_min": 0.6,
+                "replay_error_cells_max": 0
+              },
+              "failures": [],
+              "grandfathered": false,
+              "literal_failures": [],
+              "literal_fallback": false,
+              "literal_passed": true,
+              "non_regression_passed": true,
+              "non_regression_tail": {
+                "p10_wealth": 1.1854461757103558,
+                "p90_drawdown": 0.21732930824625923,
+                "p90_orders": 9.2,
+                "positive_return_fraction": 1.0,
+                "valid_cells": 5
+              },
+              "p10_wealth": 1.1854461757103558,
+              "p90_drawdown": 0.21732930824625923,
+              "p90_orders": 9.2,
+              "passed": true,
+              "pool_size": 15,
+              "positive_return_fraction": 1.0,
+              "replay_error_cells": 0,
+              "requested_cells": 5,
+              "valid_cells": 5,
+              "window": "h1_2023"
+            },
+            {
+              "authenticated_support_cells": 5,
+              "effective_bounds": {
+                "p10_wealth_min": 0.8,
+                "p90_drawdown_max": 0.3,
+                "p90_orders_max": 20.0,
+                "positive_return_fraction_min": 0.6,
+                "replay_error_cells_max": 0
+              },
+              "failures": [],
+              "grandfathered": false,
+              "literal_failures": [],
+              "literal_fallback": false,
+              "literal_passed": true,
+              "non_regression_passed": true,
+              "non_regression_tail": {
+                "p10_wealth": 1.099366030844274,
+                "p90_drawdown": 0.21076320828845932,
+                "p90_orders": 12.2,
+                "positive_return_fraction": 0.8,
+                "valid_cells": 5
+              },
+              "p10_wealth": 1.099366030844274,
+              "p90_drawdown": 0.21076320828845932,
+              "p90_orders": 12.2,
+              "passed": true,
+              "pool_size": 20,
+              "positive_return_fraction": 0.8,
+              "replay_error_cells": 0,
+              "requested_cells": 5,
+              "valid_cells": 5,
+              "window": "h1_2023"
+            },
+            {
+              "authenticated_support_cells": 5,
+              "effective_bounds": {
+                "p10_wealth_min": 0.8,
+                "p90_drawdown_max": 0.3,
+                "p90_orders_max": 20.0,
+                "positive_return_fraction_min": 0.4,
+                "replay_error_cells_max": 0
+              },
+              "failures": [],
+              "grandfathered": true,
+              "literal_failures": [
+                "positive-return fraction 0.4 is below 0.6"
+              ],
+              "literal_fallback": false,
+              "literal_passed": false,
+              "non_regression_passed": true,
+              "non_regression_tail": {
+                "p10_wealth": 1.0,
+                "p90_drawdown": 0.06668484776142725,
+                "p90_orders": 2.0,
+                "positive_return_fraction": 0.4,
+                "valid_cells": 5
+              },
+              "p10_wealth": 1.0,
+              "p90_drawdown": 0.06668484776142725,
+              "p90_orders": 2.0,
+              "passed": true,
+              "pool_size": 5,
+              "positive_return_fraction": 0.4,
+              "replay_error_cells": 0,
+              "requested_cells": 5,
+              "valid_cells": 5,
+              "window": "h1_2024"
+            },
+            {
+              "authenticated_support_cells": 5,
+              "effective_bounds": {
+                "p10_wealth_min": 0.8,
+                "p90_drawdown_max": 0.3,
+                "p90_orders_max": 20.0,
+                "positive_return_fraction_min": 0.0,
+                "replay_error_cells_max": 0
+              },
+              "failures": [],
+              "grandfathered": true,
+              "literal_failures": [
+                "positive-return fraction 0 is below 0.6"
+              ],
+              "literal_fallback": false,
+              "literal_passed": false,
+              "non_regression_passed": true,
+              "non_regression_tail": {
+                "p10_wealth": 0.9490942040706558,
+                "p90_drawdown": 0.15217228081231027,
+                "p90_orders": 9.0,
+                "positive_return_fraction": 0.0,
+                "valid_cells": 5
+              },
+              "p10_wealth": 0.9490942040706558,
+              "p90_drawdown": 0.15217228081231027,
+              "p90_orders": 9.0,
+              "passed": true,
+              "pool_size": 9,
+              "positive_return_fraction": 0.0,
+              "replay_error_cells": 0,
+              "requested_cells": 5,
+              "valid_cells": 5,
+              "window": "h1_2024"
+            },
+            {
+              "authenticated_support_cells": 5,
+              "effective_bounds": {
+                "p10_wealth_min": 0.8,
+                "p90_drawdown_max": 0.3,
+                "p90_orders_max": 20.0,
+                "positive_return_fraction_min": 0.6,
+                "replay_error_cells_max": 0
+              },
+              "failures": [],
+              "grandfathered": false,
+              "literal_failures": [],
+              "literal_fallback": false,
+              "literal_passed": true,
+              "non_regression_passed": true,
+              "non_regression_tail": {
+                "p10_wealth": 1.0404867238126294,
+                "p90_drawdown": 0.1550911563888399,
+                "p90_orders": 13.4,
+                "positive_return_fraction": 1.0,
+                "valid_cells": 5
+              },
+              "p10_wealth": 1.0404867238126294,
+              "p90_drawdown": 0.1550911563888399,
+              "p90_orders": 13.4,
+              "passed": true,
+              "pool_size": 15,
+              "positive_return_fraction": 1.0,
+              "replay_error_cells": 0,
+              "requested_cells": 5,
+              "valid_cells": 5,
+              "window": "h1_2024"
+            },
+            {
+              "authenticated_support_cells": 5,
+              "effective_bounds": {
+                "p10_wealth_min": 0.8,
+                "p90_drawdown_max": 0.3,
+                "p90_orders_max": 20.0,
+                "positive_return_fraction_min": 0.6,
+                "replay_error_cells_max": 0
+              },
+              "failures": [],
+              "grandfathered": false,
+              "literal_failures": [],
+              "literal_fallback": false,
+              "literal_passed": true,
+              "non_regression_passed": true,
+              "non_regression_tail": {
+                "p10_wealth": 1.0131556212015775,
+                "p90_drawdown": 0.19092266608603425,
+                "p90_orders": 11.8,
+                "positive_return_fraction": 0.8,
+                "valid_cells": 5
+              },
+              "p10_wealth": 1.0131556212015775,
+              "p90_drawdown": 0.19092266608603425,
+              "p90_orders": 11.8,
+              "passed": true,
+              "pool_size": 20,
+              "positive_return_fraction": 0.8,
+              "replay_error_cells": 0,
+              "requested_cells": 5,
+              "valid_cells": 5,
+              "window": "h1_2024"
+            },
+            {
+              "authenticated_support_cells": 5,
+              "effective_bounds": {
+                "p10_wealth_min": 0.8,
+                "p90_drawdown_max": 0.3,
+                "p90_orders_max": 20.0,
+                "positive_return_fraction_min": 0.0,
+                "replay_error_cells_max": 0
+              },
+              "failures": [],
+              "grandfathered": true,
+              "literal_failures": [
+                "positive-return fraction 0 is below 0.6"
+              ],
+              "literal_fallback": false,
+              "literal_passed": false,
+              "non_regression_passed": true,
+              "non_regression_tail": {
+                "p10_wealth": 1.0,
+                "p90_drawdown": -0.0,
+                "p90_orders": 0.0,
+                "positive_return_fraction": 0.0,
+                "valid_cells": 5
+              },
+              "p10_wealth": 1.0,
+              "p90_drawdown": -0.0,
+              "p90_orders": 0.0,
+              "passed": true,
+              "pool_size": 5,
+              "positive_return_fraction": 0.0,
+              "replay_error_cells": 0,
+              "requested_cells": 5,
+              "valid_cells": 5,
+              "window": "h2_2023"
+            },
+            {
+              "authenticated_support_cells": 5,
+              "effective_bounds": {
+                "p10_wealth_min": 0.8,
+                "p90_drawdown_max": 0.3,
+                "p90_orders_max": 20.0,
+                "positive_return_fraction_min": 0.2,
+                "replay_error_cells_max": 0
+              },
+              "failures": [],
+              "grandfathered": true,
+              "literal_failures": [
+                "positive-return fraction 0.2 is below 0.6"
+              ],
+              "literal_fallback": false,
+              "literal_passed": false,
+              "non_regression_passed": true,
+              "non_regression_tail": {
+                "p10_wealth": 1.0,
+                "p90_drawdown": 0.07131829598981979,
+                "p90_orders": 2.4000000000000004,
+                "positive_return_fraction": 0.2,
+                "valid_cells": 5
+              },
+              "p10_wealth": 1.0,
+              "p90_drawdown": 0.07131829598981979,
+              "p90_orders": 2.4000000000000004,
+              "passed": true,
+              "pool_size": 9,
+              "positive_return_fraction": 0.2,
+              "replay_error_cells": 0,
+              "requested_cells": 5,
+              "valid_cells": 5,
+              "window": "h2_2023"
+            },
+            {
+              "authenticated_support_cells": 5,
+              "effective_bounds": {
+                "p10_wealth_min": 0.8,
+                "p90_drawdown_max": 0.3,
+                "p90_orders_max": 20.0,
+                "positive_return_fraction_min": 0.4,
+                "replay_error_cells_max": 0
+              },
+              "failures": [],
+              "grandfathered": true,
+              "literal_failures": [
+                "positive-return fraction 0.4 is below 0.6"
+              ],
+              "literal_fallback": false,
+              "literal_passed": false,
+              "non_regression_passed": true,
+              "non_regression_tail": {
+                "p10_wealth": 1.0,
+                "p90_drawdown": 0.11886382664969963,
+                "p90_orders": 4.0,
+                "positive_return_fraction": 0.4,
+                "valid_cells": 5
+              },
+              "p10_wealth": 1.0,
+              "p90_drawdown": 0.11886382664969963,
+              "p90_orders": 4.0,
+              "passed": true,
+              "pool_size": 15,
+              "positive_return_fraction": 0.4,
+              "replay_error_cells": 0,
+              "requested_cells": 5,
+              "valid_cells": 5,
+              "window": "h2_2023"
+            },
+            {
+              "authenticated_support_cells": 5,
+              "effective_bounds": {
+                "p10_wealth_min": 0.8,
+                "p90_drawdown_max": 0.3,
+                "p90_orders_max": 20.0,
+                "positive_return_fraction_min": 0.6,
+                "replay_error_cells_max": 0
+              },
+              "failures": [],
+              "grandfathered": false,
+              "literal_failures": [],
+              "literal_fallback": false,
+              "literal_passed": true,
+              "non_regression_passed": true,
+              "non_regression_tail": {
+                "p10_wealth": 1.016957580344848,
+                "p90_drawdown": 0.11886382664969963,
+                "p90_orders": 4.0,
+                "positive_return_fraction": 0.8,
+                "valid_cells": 5
+              },
+              "p10_wealth": 1.016957580344848,
+              "p90_drawdown": 0.11886382664969963,
+              "p90_orders": 4.0,
+              "passed": true,
+              "pool_size": 20,
+              "positive_return_fraction": 0.8,
+              "replay_error_cells": 0,
+              "requested_cells": 5,
+              "valid_cells": 5,
+              "window": "h2_2023"
+            },
+            {
+              "authenticated_support_cells": 5,
+              "effective_bounds": {
+                "p10_wealth_min": 0.8,
+                "p90_drawdown_max": 0.3,
+                "p90_orders_max": 20.0,
+                "positive_return_fraction_min": 0.6,
+                "replay_error_cells_max": 0
+              },
+              "failures": [],
+              "grandfathered": false,
+              "literal_failures": [],
+              "literal_fallback": false,
+              "literal_passed": true,
+              "non_regression_passed": true,
+              "non_regression_tail": {
+                "p10_wealth": 1.1304930520246472,
+                "p90_drawdown": 0.12038184541250302,
+                "p90_orders": 6.0,
+                "positive_return_fraction": 0.8,
+                "valid_cells": 5
+              },
+              "p10_wealth": 1.1304930520246472,
+              "p90_drawdown": 0.12038184541250302,
+              "p90_orders": 6.0,
+              "passed": true,
+              "pool_size": 5,
+              "positive_return_fraction": 0.8,
+              "replay_error_cells": 0,
+              "requested_cells": 5,
+              "valid_cells": 5,
+              "window": "h2_2024"
+            },
+            {
+              "authenticated_support_cells": 5,
+              "effective_bounds": {
+                "p10_wealth_min": 0.8,
+                "p90_drawdown_max": 0.3,
+                "p90_orders_max": 20.0,
+                "positive_return_fraction_min": 0.4,
+                "replay_error_cells_max": 0
+              },
+              "failures": [],
+              "grandfathered": true,
+              "literal_failures": [
+                "positive-return fraction 0.4 is below 0.6"
+              ],
+              "literal_fallback": false,
+              "literal_passed": false,
+              "non_regression_passed": true,
+              "non_regression_tail": {
+                "p10_wealth": 1.0,
+                "p90_drawdown": 0.07314024734745717,
+                "p90_orders": 6.800000000000001,
+                "positive_return_fraction": 0.4,
+                "valid_cells": 5
+              },
+              "p10_wealth": 1.0,
+              "p90_drawdown": 0.07314024734745717,
+              "p90_orders": 6.800000000000001,
+              "passed": true,
+              "pool_size": 9,
+              "positive_return_fraction": 0.4,
+              "replay_error_cells": 0,
+              "requested_cells": 5,
+              "valid_cells": 5,
+              "window": "h2_2024"
+            },
+            {
+              "authenticated_support_cells": 5,
+              "effective_bounds": {
+                "p10_wealth_min": 0.8,
+                "p90_drawdown_max": 0.3,
+                "p90_orders_max": 20.0,
+                "positive_return_fraction_min": 0.6,
+                "replay_error_cells_max": 0
+              },
+              "failures": [],
+              "grandfathered": false,
+              "literal_failures": [],
+              "literal_fallback": false,
+              "literal_passed": true,
+              "non_regression_passed": true,
+              "non_regression_tail": {
+                "p10_wealth": 1.0645818958363624,
+                "p90_drawdown": 0.11989062766789041,
+                "p90_orders": 9.0,
+                "positive_return_fraction": 0.8,
+                "valid_cells": 5
+              },
+              "p10_wealth": 1.0645818958363624,
+              "p90_drawdown": 0.11989062766789041,
+              "p90_orders": 9.0,
+              "passed": true,
+              "pool_size": 15,
+              "positive_return_fraction": 0.8,
+              "replay_error_cells": 0,
+              "requested_cells": 5,
+              "valid_cells": 5,
+              "window": "h2_2024"
+            },
+            {
+              "authenticated_support_cells": 5,
+              "effective_bounds": {
+                "p10_wealth_min": 0.8,
+                "p90_drawdown_max": 0.3,
+                "p90_orders_max": 20.0,
+                "positive_return_fraction_min": 0.6,
+                "replay_error_cells_max": 0
+              },
+              "failures": [],
+              "grandfathered": false,
+              "literal_failures": [],
+              "literal_fallback": false,
+              "literal_passed": true,
+              "non_regression_passed": true,
+              "non_regression_tail": {
+                "p10_wealth": 1.3376351784740914,
+                "p90_drawdown": 0.08583048851864583,
+                "p90_orders": 10.0,
+                "positive_return_fraction": 1.0,
+                "valid_cells": 5
+              },
+              "p10_wealth": 1.3376351784740914,
+              "p90_drawdown": 0.08583048851864583,
+              "p90_orders": 10.0,
+              "passed": true,
+              "pool_size": 20,
+              "positive_return_fraction": 1.0,
+              "replay_error_cells": 0,
+              "requested_cells": 5,
+              "valid_cells": 5,
+              "window": "h2_2024"
+            }
+          ],
+          "replay_error_cells": 1
+        }
+      },
+      "concentration": {
+        "pnl_hhi": 0.4463667820069204,
+        "top1_concentration": 0.5882352941176471,
+        "top3_concentration": 1.0
+      },
+      "policy": {
+        "baseline_sha256": "8603c4572fbf15a3de4f89737ab078d7e61d76f9e197f210a24704b8a4aabd79",
+        "policy_id": "ai-era-generalization-policy-v2",
+        "random_pool_sizes": [
+          5,
+          9,
+          15,
+          20
+        ],
+        "random_seed_indexes": [
+          0,
+          1,
+          2,
+          3,
+          4
+        ],
+        "schema_version": 2,
+        "sha256": "46cf95d26d04186824f181266da68e5a2d98814b65371c0b358c7cacfa8ef8fc",
+        "windows": [
+          [
+            "h1_2023",
+            "2023-01-03",
+            "2023-06-30"
+          ],
+          [
+            "h2_2023",
+            "2023-07-03",
+            "2023-12-29"
+          ],
+          [
+            "h1_2024",
+            "2024-01-02",
+            "2024-07-01"
+          ],
+          [
+            "h2_2024",
+            "2024-07-01",
+            "2024-12-31"
+          ],
+          [
+            "bull_crash_2025_2026",
+            "2025-01-02",
+            "2026-07-31"
+          ],
+          [
+            "continuous_ai_era",
+            "2023-01-03",
+            "2026-08-05"
+          ]
+        ]
+      },
+      "tracked_inputs": {
+        "artifacts/phase2/champion-generalization-matrix.json": {
+          "sha256": "926ea8419ab8aad7a05577eee56aeefa90c33cc7faa4e1ee1d2bbbaac77439cc",
+          "size_bytes": 16196017
+        },
+        "benchmarks/ai_era_generalization_baseline.json": {
+          "sha256": "2a463f9f7ea63fc01564089af96399f1bdf3ff2023414c9c9a9935e09e2e9c10",
+          "size_bytes": 183386
+        },
+        "benchmarks/ai_era_generalization_policy.json": {
+          "sha256": "4d1c943ab5139cb9526ebd25b41c097356e89380e2b7cd9213f308ecf9afdbe7",
+          "size_bytes": 3020
+        }
+      }
+    },
+    "holdout": {
+      "checkpoint": {
+        "canonical_sha256": "80f23fa7782bb0686cad5a7753d0364a942a0bf59230000411e86edbdec6bf3f",
+        "canonical_size_bytes": 1159,
+        "payload": {
+          "canonical_sha256": "2e6819dfd0f27dad0cc4ef417c77f255e374b1f357486e241873c9072a1fa7a6",
+          "checkpoint_id": "phase2-future-holdout-daily-checkpoint-v2",
+          "contract_sha256": "f1555d2f5527b83899ade8f934f67de8df6050aa2ebc7453d0d4245c618e2aeb",
+          "decision_digests": [
+            "c392c5103d166bbeaf8567ab06b95f71112cc45695ec0281bb9bd00388fb9aea"
+          ],
+          "decision_output_path": "/uquant-task9/decision.json",
+          "decision_output_sha256": "fff5f589954dfc736a9e49a1f014535ac58cda9afe150de36cfae14f4d1379b4",
+          "holdout_data_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "journal_checkpoint": {
+            "record_sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+            "schema_version": 1,
+            "sequence": 0
+          },
+          "prior_close_account_sha256": "251c90cef356821547c633c69595371aa857a704d8ea21e5119be16136ac0fc8",
+          "production_source_sha256": "2879721b7aeeee947361bd4d5dbf90851c1256fad11711b5e110f28c6994c894",
+          "replay_canonical_sha256": "e69f181c015f335abf0d2f70b15b485f75b2b868606de3a71845844fd99c2af7",
+          "replay_output_path": "/uquant-task9/replay.json",
+          "replay_output_sha256": "10b8c5b56cee00491b435382a486ecfb4b2aaa8659ac5c19a3c96ec36c2ab02c",
+          "schema_version": 2,
+          "sessions": [
+            "2026-08-06"
+          ]
+        }
+      },
+      "contract": {
+        "data_directory": "data/holdout/phase2-future-v1",
+        "first_holdout_date": "2026-08-06",
+        "last_in_sample_date": "2026-08-05",
+        "parameter_changes_from_observation": false,
+        "phase1_windows": {
+          "bull_crash_2025_2026": [
+            "2025-01-02",
+            "2026-07-31"
+          ],
+          "continuous_ai_era": [
+            "2023-01-03",
+            "2026-08-05"
+          ],
+          "h1_2023": [
+            "2023-01-03",
+            "2023-06-30"
+          ],
+          "h1_2024": [
+            "2024-01-02",
+            "2024-07-01"
+          ],
+          "h2_2023": [
+            "2023-07-03",
+            "2023-12-29"
+          ],
+          "h2_2024": [
+            "2024-07-01",
+            "2024-12-31"
+          ]
+        },
+        "prior_close_account_sha256": "251c90cef356821547c633c69595371aa857a704d8ea21e5119be16136ac0fc8",
+        "review_milestones": [
+          20,
+          40,
+          60
+        ],
+        "review_sessions": [
+          "2026-08-06",
+          "2026-08-07",
+          "2026-08-10",
+          "2026-08-11",
+          "2026-08-12",
+          "2026-08-13",
+          "2026-08-14",
+          "2026-08-17",
+          "2026-08-18",
+          "2026-08-19",
+          "2026-08-20",
+          "2026-08-21",
+          "2026-08-24",
+          "2026-08-25",
+          "2026-08-26",
+          "2026-08-27",
+          "2026-08-28",
+          "2026-08-31",
+          "2026-09-01",
+          "2026-09-02",
+          "2026-09-03",
+          "2026-09-04",
+          "2026-09-07",
+          "2026-09-08",
+          "2026-09-09",
+          "2026-09-10",
+          "2026-09-11",
+          "2026-09-14",
+          "2026-09-15",
+          "2026-09-16",
+          "2026-09-17",
+          "2026-09-18",
+          "2026-09-21",
+          "2026-09-22",
+          "2026-09-23",
+          "2026-09-24",
+          "2026-09-28",
+          "2026-09-29",
+          "2026-09-30",
+          "2026-10-08",
+          "2026-10-09",
+          "2026-10-12",
+          "2026-10-13",
+          "2026-10-14",
+          "2026-10-15",
+          "2026-10-16",
+          "2026-10-19",
+          "2026-10-20",
+          "2026-10-21",
+          "2026-10-22",
+          "2026-10-23",
+          "2026-10-26",
+          "2026-10-27",
+          "2026-10-28",
+          "2026-10-29",
+          "2026-10-30",
+          "2026-11-02",
+          "2026-11-03",
+          "2026-11-04",
+          "2026-11-05"
+        ],
+        "score_fields": [
+          "final_wealth",
+          "max_drawdown",
+          "account_orders",
+          "gross_turnover",
+          "top1_concentration",
+          "top3_concentration",
+          "pnl_hhi"
+        ],
+        "sha256": "f1555d2f5527b83899ade8f934f67de8df6050aa2ebc7453d0d4245c618e2aeb",
+        "strategy_account_code_sha256": "de361ef93a218449df927f5aab14e5013110cc3141a89f94686156bed37a66fc",
+        "strategy_anchor_commit": "c47367bba64c827fe18f788c9a3650e13ece306f",
+        "strategy_cli_sha256": "fb3da89b7bb8ec745e2249d10173855edc5976a6d1d5f4fd952552d7a2e7e427",
+        "strategy_config_sha256": "ed52da44a359c1506e1d299f7bc341ad01b199d7f96997f7c01f2b8eca7cfc13",
+        "strategy_source_sha256": "f9c78557e38342c5a994f19fde63352f635ac37c5d2d7a187ba410b98caa1aed"
+      },
+      "daily_decision": {
+        "canonical_sha256": "fff5f589954dfc736a9e49a1f014535ac58cda9afe150de36cfae14f4d1379b4",
+        "canonical_size_bytes": 1080,
+        "payload": {
+          "canonical_sha256": "7919df1230a7c72b48bd67c08521f1d5d6156c263501c991262f0e7c23e59dd2",
+          "contract_sha256": "f1555d2f5527b83899ade8f934f67de8df6050aa2ebc7453d0d4245c618e2aeb",
+          "decision": {
+            "date": "2026-08-06",
+            "decision_digest": "c392c5103d166bbeaf8567ab06b95f71112cc45695ec0281bb9bd00388fb9aea",
+            "payload": {
+              "date": "2026-08-06",
+              "schema": "uquant.decision-control-plane.v2"
+            }
+          },
+          "decision_id": "phase2-future-holdout-daily-decision-v1",
+          "holdout_data_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "journal_checkpoint": {
+            "record_sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+            "schema_version": 1,
+            "sequence": 0
+          },
+          "milestones": {
+            "fixed": [
+              20,
+              40,
+              60
+            ],
+            "next": 20,
+            "reached": [],
+            "review_action": "REPORT_ONLY"
+          },
+          "prior_close_account_sha256": "251c90cef356821547c633c69595371aa857a704d8ea21e5119be16136ac0fc8",
+          "production_source_sha256": "2879721b7aeeee947361bd4d5dbf90851c1256fad11711b5e110f28c6994c894",
+          "replay_canonical_sha256": "e69f181c015f335abf0d2f70b15b485f75b2b868606de3a71845844fd99c2af7",
+          "report_only": true,
+          "schema_version": 1,
+          "session": "2026-08-06"
+        }
+      },
+      "journal_v1": {
+        "input_sha256": "eae4b2f3e8b4445464906fcdb1dab94e2d117d01d33f77d39d37c54981b0f7de",
+        "records": [
+          {
+            "actual_price": null,
+            "actual_shares": null,
+            "actual_time": null,
+            "broker_order_id": null,
+            "decision_date": "2026-08-05",
+            "manual_skip": null,
+            "next_open": null,
+            "plan_id": "frozen-plan-1",
+            "planned_price": 947.74,
+            "planned_shares": 100,
+            "planned_weight": null,
+            "previous_sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+            "record_sha256": "625f4800c03588a453b1c137a49bf6f8ecc1f9480eb1e094049e1135ae8a5b40",
+            "recorded_at": "2026-08-05T15:01:00+08:00",
+            "schema_version": 1,
+            "sequence": 1,
+            "side": "BUY",
+            "slippage_bps": null,
+            "slippage_per_share": null,
+            "slippage_value": null,
+            "status": "PLANNED",
+            "symbol": "sz300308"
+          }
+        ]
+      },
+      "lane_report": {
+        "canonical_sha256": "4ae6a67081551c217886edee19c545f0dd06b6bf9c35d1ad890c282fc0e140ab",
+        "canonical_size_bytes": 3894,
+        "payload": {
+          "canonical_sha256": "909bdf0b3c7bcb7435ed6d62de5945d60effc61ea7783c1484fe9d4ff25340b4",
+          "contract_sha256": "f1555d2f5527b83899ade8f934f67de8df6050aa2ebc7453d0d4245c618e2aeb",
+          "holdout_data_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+          "lanes": [
+            {
+              "activation_session": "2026-08-06",
+              "data_contract_sha256": "f1555d2f5527b83899ade8f934f67de8df6050aa2ebc7453d0d4245c618e2aeb",
+              "economic_behavior": "IDENTICAL",
+              "effective_config_sha256": "ed52da44a359c1506e1d299f7bc341ad01b199d7f96997f7c01f2b8eca7cfc13",
+              "first_observed_session": "2026-08-06",
+              "formal_reviewable": false,
+              "holdout_data_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+              "lane_id": "champion_pre_sentinel",
+              "last_observed_session": "2026-08-18",
+              "next_milestone": 20,
+              "observed_sessions": 9,
+              "production_source_sha256": "f9c78557e38342c5a994f19fde63352f635ac37c5d2d7a187ba410b98caa1aed",
+              "runtime": {
+                "numpy_version": "2.5.1",
+                "pandas_version": "3.0.5",
+                "python_full_version": "3.12.13",
+                "uv_lock_sha256": "4accf16535b5ac95b831c9289e0ad2ff21282dc5dfae3f05dd0fb095089d6a61",
+                "uv_version": "0.11.33"
+              },
+              "score_status": "NON_REVIEWABLE",
+              "scores": {
+                "account_orders": null,
+                "final_wealth": null,
+                "gross_turnover": null,
+                "max_drawdown": null,
+                "pnl_hhi": null,
+                "top1_concentration": null,
+                "top3_concentration": null
+              },
+              "sentinel_source_sha256": "f9c78557e38342c5a994f19fde63352f635ac37c5d2d7a187ba410b98caa1aed",
+              "source_commit": "c47367bba64c827fe18f788c9a3650e13ece306f",
+              "status": "OBSERVING"
+            },
+            {
+              "activation_session": "2026-08-19",
+              "data_contract_sha256": "f1555d2f5527b83899ade8f934f67de8df6050aa2ebc7453d0d4245c618e2aeb",
+              "economic_behavior": "IDENTICAL",
+              "effective_config_sha256": "ed52da44a359c1506e1d299f7bc341ad01b199d7f96997f7c01f2b8eca7cfc13",
+              "first_observed_session": null,
+              "formal_reviewable": false,
+              "holdout_data_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+              "lane_id": "sentinel_shadow",
+              "last_observed_session": null,
+              "next_milestone": 20,
+              "observed_sessions": 0,
+              "production_source_sha256": "f9c78557e38342c5a994f19fde63352f635ac37c5d2d7a187ba410b98caa1aed",
+              "runtime": {
+                "numpy_version": "2.5.1",
+                "pandas_version": "3.0.5",
+                "python_full_version": "3.12.13",
+                "uv_lock_sha256": "4accf16535b5ac95b831c9289e0ad2ff21282dc5dfae3f05dd0fb095089d6a61",
+                "uv_version": "0.11.33"
+              },
+              "score_status": "NON_REVIEWABLE",
+              "scores": {
+                "account_orders": null,
+                "final_wealth": null,
+                "gross_turnover": null,
+                "max_drawdown": null,
+                "pnl_hhi": null,
+                "top1_concentration": null,
+                "top3_concentration": null
+              },
+              "sentinel_source_sha256": "0f26fc5be244a985b20cb426b025a909f85939ee7a5ee8905b9367559093b46e",
+              "source_commit": "e02b0ad5c38aa119b2d21cb3142589b1f3f2fae1",
+              "status": "OBSERVING"
+            },
+            {
+              "activation_session": "2026-08-24",
+              "data_contract_sha256": "f1555d2f5527b83899ade8f934f67de8df6050aa2ebc7453d0d4245c618e2aeb",
+              "economic_behavior": "IDENTICAL",
+              "effective_config_sha256": "ed52da44a359c1506e1d299f7bc341ad01b199d7f96997f7c01f2b8eca7cfc13",
+              "first_observed_session": null,
+              "formal_reviewable": false,
+              "holdout_data_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+              "lane_id": "risk_differential_shadow",
+              "last_observed_session": null,
+              "next_milestone": 20,
+              "observed_sessions": 0,
+              "production_source_sha256": "f9c78557e38342c5a994f19fde63352f635ac37c5d2d7a187ba410b98caa1aed",
+              "runtime": {
+                "numpy_version": "2.5.1",
+                "pandas_version": "3.0.5",
+                "python_full_version": "3.12.13",
+                "uv_lock_sha256": "4accf16535b5ac95b831c9289e0ad2ff21282dc5dfae3f05dd0fb095089d6a61",
+                "uv_version": "0.11.33"
+              },
+              "score_status": "NON_REVIEWABLE",
+              "scores": {
+                "account_orders": null,
+                "final_wealth": null,
+                "gross_turnover": null,
+                "max_drawdown": null,
+                "pnl_hhi": null,
+                "top1_concentration": null,
+                "top3_concentration": null
+              },
+              "sentinel_source_sha256": "00be16d693985af0cbf708d1010f74dfa9cfbc3508b5b2a4fa09a49814108f30",
+              "source_commit": "ba314003044a229969270bee6854240dfb7f211e",
+              "status": "OBSERVING"
+            }
+          ],
+          "observed_sessions": 9,
+          "report_id": "phase2-future-holdout-lane-validation-v1",
+          "review_milestones": [
+            20,
+            40,
+            60
+          ],
+          "schema_version": 1
+        }
+      },
+      "lanes": [
+        {
+          "activation_session": "2026-08-06",
+          "data_contract_sha256": "f1555d2f5527b83899ade8f934f67de8df6050aa2ebc7453d0d4245c618e2aeb",
+          "data_directory": "data/holdout/phase2-future-v1",
+          "economic_behavior": "IDENTICAL",
+          "effective_config_sha256": "ed52da44a359c1506e1d299f7bc341ad01b199d7f96997f7c01f2b8eca7cfc13",
+          "lane_id": "champion_pre_sentinel",
+          "numpy_version": "2.5.1",
+          "pandas_version": "3.0.5",
+          "parent_lane": null,
+          "production_source_sha256": "f9c78557e38342c5a994f19fde63352f635ac37c5d2d7a187ba410b98caa1aed",
+          "python_full_version": "3.12.13",
+          "sentinel_source_sha256": "f9c78557e38342c5a994f19fde63352f635ac37c5d2d7a187ba410b98caa1aed",
+          "source_commit": "c47367bba64c827fe18f788c9a3650e13ece306f",
+          "status": "OBSERVING",
+          "uv_lock_sha256": "4accf16535b5ac95b831c9289e0ad2ff21282dc5dfae3f05dd0fb095089d6a61",
+          "uv_version": "0.11.33"
+        },
+        {
+          "activation_session": "2026-08-19",
+          "data_contract_sha256": "f1555d2f5527b83899ade8f934f67de8df6050aa2ebc7453d0d4245c618e2aeb",
+          "data_directory": "data/holdout/phase2-future-v1",
+          "economic_behavior": "IDENTICAL",
+          "effective_config_sha256": "ed52da44a359c1506e1d299f7bc341ad01b199d7f96997f7c01f2b8eca7cfc13",
+          "lane_id": "sentinel_shadow",
+          "numpy_version": "2.5.1",
+          "pandas_version": "3.0.5",
+          "parent_lane": "champion_pre_sentinel",
+          "production_source_sha256": "f9c78557e38342c5a994f19fde63352f635ac37c5d2d7a187ba410b98caa1aed",
+          "python_full_version": "3.12.13",
+          "sentinel_source_sha256": "0f26fc5be244a985b20cb426b025a909f85939ee7a5ee8905b9367559093b46e",
+          "source_commit": "e02b0ad5c38aa119b2d21cb3142589b1f3f2fae1",
+          "status": "OBSERVING",
+          "uv_lock_sha256": "4accf16535b5ac95b831c9289e0ad2ff21282dc5dfae3f05dd0fb095089d6a61",
+          "uv_version": "0.11.33"
+        },
+        {
+          "activation_session": "2026-08-24",
+          "data_contract_sha256": "f1555d2f5527b83899ade8f934f67de8df6050aa2ebc7453d0d4245c618e2aeb",
+          "data_directory": "data/holdout/phase2-future-v1",
+          "economic_behavior": "IDENTICAL",
+          "effective_config_sha256": "ed52da44a359c1506e1d299f7bc341ad01b199d7f96997f7c01f2b8eca7cfc13",
+          "lane_id": "risk_differential_shadow",
+          "numpy_version": "2.5.1",
+          "pandas_version": "3.0.5",
+          "parent_lane": "sentinel_shadow",
+          "production_source_sha256": "f9c78557e38342c5a994f19fde63352f635ac37c5d2d7a187ba410b98caa1aed",
+          "python_full_version": "3.12.13",
+          "sentinel_source_sha256": "00be16d693985af0cbf708d1010f74dfa9cfbc3508b5b2a4fa09a49814108f30",
+          "source_commit": "ba314003044a229969270bee6854240dfb7f211e",
+          "status": "OBSERVING",
+          "uv_lock_sha256": "4accf16535b5ac95b831c9289e0ad2ff21282dc5dfae3f05dd0fb095089d6a61",
+          "uv_version": "0.11.33"
+        }
+      ],
+      "manifest": {
+        "canonical_sha256": "045bd38a04367c2bc47f8c48d49a1db6a35e4a22afded381c92e5a95746c9111",
+        "canonical_size_bytes": 2488,
+        "payload": {
+          "canonical_sha256": "8c027e41ffb7908ed43edc8fafaffbd0a6fd41db31117c9ccb142030da740033",
+          "contract_sha256": "f1555d2f5527b83899ade8f934f67de8df6050aa2ebc7453d0d4245c618e2aeb",
+          "data": {
+            "directory": "data/holdout/phase2-future-v1",
+            "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+          },
+          "dates": {
+            "first_holdout": "2026-08-06",
+            "last_in_sample": "2026-08-05"
+          },
+          "effective_config_sha256": "ed52da44a359c1506e1d299f7bc341ad01b199d7f96997f7c01f2b8eca7cfc13",
+          "environment": {
+            "numpy_version": "2.5.1",
+            "pandas_version": "3.0.5",
+            "python_full_version": "3.12.13",
+            "uv_lock_sha256": "6666666666666666666666666666666666666666666666666666666666666666",
+            "uv_version": "0.11.33"
+          },
+          "industry_sha256": "5555555555555555555555555555555555555555555555555555555555555555",
+          "manifest_id": "phase2-future-holdout-manifest-v2",
+          "observation": {
+            "first_session": "2026-08-06",
+            "last_session": "2026-08-18",
+            "metrics_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+            "parameter_changes_from_observation": false,
+            "session_count": 9
+          },
+          "prior_close_state": {
+            "account_sha256": "063a86c5bbf5a2e3eb439c595a3c1a79b8f286f22c62940faf646f1f310aec2c",
+            "as_of": "2026-08-05",
+            "pending_orders_sha256": "1d3df05cb9b27a6d7649675f5c416aad311deee1d65187ba7b739d37134be02c",
+            "positions_sha256": "dd4ded77835cffa6ebef64ededf630b7da59885072ca2a081b74e776528bc8f6",
+            "strategy_state_sha256": "59476544bfc6280d491df97b51289a2641b6b02928013beafa84d86763b669fa",
+            "tranches_sha256": "30093b28f041789683361bbd1a6cd5320dd4621bfec5bf5b83f62d80b29fdfdc"
+          },
+          "production": {
+            "commit": "1111111111111111111111111111111111111111",
+            "source_sha256": "2879721b7aeeee947361bd4d5dbf90851c1256fad11711b5e110f28c6994c894"
+          },
+          "review_milestones": [
+            20,
+            40,
+            60
+          ],
+          "schema_version": 2,
+          "scores": {
+            "account_orders": null,
+            "final_wealth": null,
+            "gross_turnover": null,
+            "max_drawdown": null,
+            "pnl_hhi": null,
+            "top1_concentration": null,
+            "top3_concentration": null
+          },
+          "strategy_anchor": {
+            "account_code_sha256": "de361ef93a218449df927f5aab14e5013110cc3141a89f94686156bed37a66fc",
+            "candidate_commit": "c47367bba64c827fe18f788c9a3650e13ece306f",
+            "cli_decision_sha256": "fb3da89b7bb8ec745e2249d10173855edc5976a6d1d5f4fd952552d7a2e7e427",
+            "decision_source_sha256": "f9c78557e38342c5a994f19fde63352f635ac37c5d2d7a187ba410b98caa1aed",
+            "effective_config_sha256": "ed52da44a359c1506e1d299f7bc341ad01b199d7f96997f7c01f2b8eca7cfc13",
+            "prior_close_account_sha256": "251c90cef356821547c633c69595371aa857a704d8ea21e5119be16136ac0fc8"
+          },
+          "universe_sha256": "4444444444444444444444444444444444444444444444444444444444444444"
+        }
+      },
+      "replay": {
+        "canonical_sha256": "10b8c5b56cee00491b435382a486ecfb4b2aaa8659ac5c19a3c96ec36c2ab02c",
+        "canonical_size_bytes": 2312,
+        "payload": {
+          "canonical_sha256": "e69f181c015f335abf0d2f70b15b485f75b2b868606de3a71845844fd99c2af7",
+          "contract_sha256": "f1555d2f5527b83899ade8f934f67de8df6050aa2ebc7453d0d4245c618e2aeb",
+          "decision_digests": [
+            "c392c5103d166bbeaf8567ab06b95f71112cc45695ec0281bb9bd00388fb9aea"
+          ],
+          "decisions": [
+            {
+              "date": "2026-08-06",
+              "decision_digest": "c392c5103d166bbeaf8567ab06b95f71112cc45695ec0281bb9bd00388fb9aea",
+              "payload": {
+                "date": "2026-08-06",
+                "schema": "uquant.decision-control-plane.v2"
+              }
+            }
+          ],
+          "final_account_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+          "holdout_data_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "journal_checkpoint": {
+            "record_sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+            "schema_version": 1,
+            "sequence": 0
+          },
+          "lane_binding": {
+            "activation_session": "2026-08-06",
+            "data_contract_sha256": "f1555d2f5527b83899ade8f934f67de8df6050aa2ebc7453d0d4245c618e2aeb",
+            "data_directory": "data/holdout/phase2-future-v1",
+            "economic_behavior": "IDENTICAL",
+            "effective_config_sha256": "ed52da44a359c1506e1d299f7bc341ad01b199d7f96997f7c01f2b8eca7cfc13",
+            "lane_id": "champion_pre_sentinel",
+            "parent_lane": null,
+            "production_source_sha256": "f9c78557e38342c5a994f19fde63352f635ac37c5d2d7a187ba410b98caa1aed",
+            "runtime": {
+              "numpy_version": "2.5.1",
+              "pandas_version": "3.0.5",
+              "python_full_version": "3.12.13",
+              "uv_lock_sha256": "4accf16535b5ac95b831c9289e0ad2ff21282dc5dfae3f05dd0fb095089d6a61",
+              "uv_version": "0.11.33"
+            },
+            "sentinel_source_sha256": "f9c78557e38342c5a994f19fde63352f635ac37c5d2d7a187ba410b98caa1aed",
+            "source_commit": "c47367bba64c827fe18f788c9a3650e13ece306f"
+          },
+          "milestones": {
+            "fixed": [
+              20,
+              40,
+              60
+            ],
+            "next": 20,
+            "reached": [],
+            "review_action": "REPORT_ONLY"
+          },
+          "observed_metrics": {
+            "account_orders": 0,
+            "final_wealth": 1.0,
+            "gross_turnover": 0.0,
+            "max_drawdown": 0.0,
+            "pnl_hhi": 0.0,
+            "top1_concentration": 0.0,
+            "top3_concentration": 0.0
+          },
+          "prior_close_account_sha256": "251c90cef356821547c633c69595371aa857a704d8ea21e5119be16136ac0fc8",
+          "production_source_sha256": "2879721b7aeeee947361bd4d5dbf90851c1256fad11711b5e110f28c6994c894",
+          "replay_id": "phase2-future-holdout-replay-v2",
+          "schema_version": 2,
+          "score_status": "NON_REVIEWABLE",
+          "scores": {
+            "account_orders": null,
+            "final_wealth": null,
+            "gross_turnover": null,
+            "max_drawdown": null,
+            "pnl_hhi": null,
+            "top1_concentration": null,
+            "top3_concentration": null
+          },
+          "sessions": [
+            "2026-08-06"
+          ]
+        }
+      },
+      "snapshot": {
+        "files": [
+          {
+            "relative": "2026-08-06/a.csv",
+            "sha256": "0a70f1e572e4467a109c7740381d9e275b7b359656aadf56a3c9fb4357ff95c1",
+            "size_bytes": 58
+          },
+          {
+            "relative": "2026-08-06/b.csv",
+            "sha256": "ef41144d1fbd9700706a53d57e2c000bd7b984ac5319ec4024000668a0b8f16e",
+            "size_bytes": 59
+          },
+          {
+            "relative": "2026-08-07/a.csv",
+            "sha256": "9092dc8d818b4be5090bbfa7068e18236dcea9761c4d446bb1d39438a780ecc9",
+            "size_bytes": 58
+          },
+          {
+            "relative": "2026-08-07/b.csv",
+            "sha256": "4c0ae2c81cd14cb3ae7363c5fb19aba98400e62aec7bc1812ea9f2c411d9bc78",
+            "size_bytes": 59
+          }
+        ],
+        "prefix_sha256": "25832bce0a0d5f7a80753dad6b74e96b71f441b476c836a05e005c6dd4a2e163",
+        "sessions": [
+          "2026-08-06",
+          "2026-08-07"
+        ],
+        "sha256": "975536ce6b8bbaee99f00b0e64183168ba3da6e20d3a7fea5c2e8d8068695e31"
+      },
+      "tracked_inputs": {
+        "benchmarks/future_holdout_contract.json": {
+          "sha256": "326a4fec36d1b99aca279a5bdd6e1b44c1e6f9a3a064200b992074534169ed9d",
+          "size_bytes": 2968
+        },
+        "benchmarks/future_holdout_lane_registry.json": {
+          "sha256": "e5a62a36054b71a9f60e4cf348c9dabe9735f064c39767d68e331e4fcbc0d638",
+          "size_bytes": 3248
+        }
+      },
+      "transaction": {
+        "link_first": true,
+        "link_second": false,
+        "linked_sha256": "4570a3c59cc8a4c92d949dc33ccec09d6f41932b0e85233dd65c025c584a4290",
+        "restored_sha256": "25718360e05d3c2d0963d1381e9dd4dae5fca789244ee4b9f861adcc0cc96218",
+        "successor_preserved_sha256": "aae67082a68e688de9de572b6738d79192f93797ba860afe07a8dd8c8a4ab3e1"
+      }
+    },
+    "sentinel": {
+      "cli_help": {
+        "sha256": "3109cd13ba9be5d7d6b33755ce8350b1949390eb6459a7a774ece8ba82e4dfb0",
+        "size_bytes": 388,
+        "text": "usage: uquant-risk-sentinel [-h] [--validate-contracts] [--data-dir DATA_DIR]\n                            [--date DATE] [--account ACCOUNT]\n                            [--output OUTPUT]\n\nIndependent Risk Sentinel Shadow Mode\n\noptions:\n  -h, --help            show this help message and exit\n  --validate-contracts\n  --data-dir DATA_DIR\n  --date DATE\n  --account ACCOUNT\n  --output OUTPUT\n"
+      },
+      "source_fingerprint": "68966dbe39f810fa1c6bf6775b4662a784eab2ad74804413052c9dd749814460",
+      "validation": {
+        "calibration_contract_sha256": "ac67aff4d78c10c9e161c6d1c25b1ce120f2529aa4a804301fd1bdc78e254a8d",
+        "import_isolation": "PASS",
+        "sentinel_source_sha256": "68966dbe39f810fa1c6bf6775b4662a784eab2ad74804413052c9dd749814460",
+        "universe_sha256": "03f42c5066fb8e1c7b2f8e1b7dd38d508d8053f548ebb5596317ce587d7cffd0"
+      }
+    }
+  },
+  "success_sha256": "c016fae1e45f5b8070101be20519a6198ca7dba3ef7692a65777f34652bbedbf"
+}

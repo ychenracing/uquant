@@ -111,6 +111,123 @@ def _index_return(frame: pd.DataFrame, point: pd.Timestamp, sessions: int) -> fl
     return float(close.iloc[-1] / close.iloc[-(sessions + 1)] - 1.0)
 
 
+def _snapshot_from_observations_stage_1(
+    *,
+    broad_fast: Any,
+    broad_medium: Any,
+    capital_drawdown: Any,
+    equal_below: Any,
+    equal_downside: Any,
+    equal_fast: Any,
+    held: Any,
+    held_downside: Any,
+    held_fast: Any,
+    leaders: Any,
+    median_correlation: Any,
+    name_fast: Any,
+    point: Any,
+    subindustries: Any,
+    synchronized: Any,
+    tech_fast: Any,
+    tech_medium: Any,
+    volatility_ratio: Any,
+) -> tuple[Any, Any, Any]:
+    leader_fast = float(np.mean([item.fast_return for item in leaders])) if leaders else 0.0
+    leader_below = float(np.mean([item.below_ma20 for item in leaders])) if leaders else 0.0
+    capital = 0.0 if capital_drawdown is None else float(capital_drawdown)
+    if not math.isfinite(capital) or capital < 0.0:
+        raise ValueError("Sentinel capital drawdown must be finite and nonnegative")
+
+    metrics = {
+        "broad_fast_return": broad_fast,
+        "broad_medium_return": broad_medium,
+        "capital_drawdown": capital,
+        "equal_subindustry_below_ma20": equal_below,
+        "equal_subindustry_downside_breadth": equal_downside,
+        "equal_subindustry_fast_return": equal_fast,
+        "held_downside_breadth": held_downside,
+        "held_fast_return": held_fast,
+        "index_relative_speed": tech_fast - broad_fast,
+        "latest_visible_ordinal": float(point.toordinal()),
+        "leader_below_ma20": leader_below,
+        "leader_fast_return": leader_fast,
+        "median_correlation": median_correlation,
+        "name_weighted_fast_return": name_fast,
+        "synchronized_subindustry_damage": synchronized,
+        "tech_fast_return": tech_fast,
+        "tech_medium_return": tech_medium,
+        "volatility_ratio": volatility_ratio,
+    }
+    votes = {
+        "market_velocity": bool(
+            (broad_fast <= -0.025 and tech_fast <= -0.025) or min(broad_fast, tech_fast) <= -0.05
+        ),
+        "breadth_structure": bool(
+            len(subindustries) >= 2
+            and (
+                synchronized >= 0.40
+                or (equal_fast <= -0.025 and equal_downside >= 0.65 and equal_below >= 0.65)
+            )
+        ),
+        "covariance_stress": bool(median_correlation >= 0.70 and volatility_ratio >= 1.50),
+        "leadership_damage": bool(leaders and leader_fast <= -0.03 and leader_below >= 0.67),
+        "live_book_damage": bool(held and held_fast <= -0.03 and held_downside >= 0.67),
+        "capital_damage": bool(capital >= 0.08),
+    }
+    reasons = {
+        "market_velocity": "dual indices show fast causal deterioration",
+        "breadth_structure": "equal-subindustry breadth and MA20 structure deteriorated",
+        "covariance_stress": "cross-member correlation and volatility expanded",
+        "leadership_damage": "existing active leaders deteriorated together",
+        "live_book_damage": "current holdings deteriorated together",
+        "capital_damage": "existing account capital drawdown crossed the Sentinel line",
+    }
+    return metrics, reasons, votes
+
+
+def _snapshot_from_observations_stage_2(
+    *,
+    held_symbols: Any,
+    leader_symbols: Any,
+    subindustries: Any,
+    visible_names: Any,
+) -> tuple[Any, Any, Any, Any, Any, Any, Any, Any]:
+    equal_downside = (
+        float(np.mean([item.downside_breadth for item in subindustries])) if subindustries else 0.0
+    )
+    equal_below = float(np.mean([item.below_ma20 for item in subindustries])) if subindustries else 0.0
+    synchronized = (
+        float(
+            np.mean(
+                [
+                    item.fast_return <= -0.025 and item.downside_breadth >= 0.60 and item.below_ma20 >= 0.60
+                    for item in subindustries
+                ]
+            )
+        )
+        if subindustries
+        else 0.0
+    )
+    volatility_ratio = (
+        float(np.mean([item.volatility_ratio for item in subindustries])) if subindustries else 1.0
+    )
+
+    held = [visible_names[symbol] for symbol in held_symbols if symbol in visible_names]
+    held_fast = float(np.mean([item.fast_return for item in held])) if held else 0.0
+    held_downside = float(np.mean([item.downside for item in held])) if held else 0.0
+    leaders = [visible_names[symbol] for symbol in leader_symbols if symbol in visible_names]
+    return (
+        equal_below,
+        equal_downside,
+        held,
+        held_downside,
+        held_fast,
+        leaders,
+        synchronized,
+        volatility_ratio,
+    )
+
+
 def _snapshot_from_observations(
     *,
     point: pd.Timestamp,
@@ -149,113 +266,38 @@ def _snapshot_from_observations(
         )
         for industry, members in sorted(grouped.items())
     )
-    equal_fast = (
-        float(np.mean([item.fast_return for item in subindustries]))
-        if subindustries
-        else 0.0
-    )
+    equal_fast = float(np.mean([item.fast_return for item in subindustries])) if subindustries else 0.0
     name_fast = (
-        float(np.mean([item.fast_return for item in visible_names.values()]))
-        if visible_names
-        else 0.0
+        float(np.mean([item.fast_return for item in visible_names.values()])) if visible_names else 0.0
     )
-    equal_downside = (
-        float(np.mean([item.downside_breadth for item in subindustries]))
-        if subindustries
-        else 0.0
-    )
-    equal_below = (
-        float(np.mean([item.below_ma20 for item in subindustries]))
-        if subindustries
-        else 0.0
-    )
-    synchronized = (
-        float(
-            np.mean(
-                [
-                    item.fast_return <= -0.025
-                    and item.downside_breadth >= 0.60
-                    and item.below_ma20 >= 0.60
-                    for item in subindustries
-                ]
-            )
+    equal_below, equal_downside, held, held_downside, held_fast, leaders, synchronized, volatility_ratio = (
+        _snapshot_from_observations_stage_2(
+            held_symbols=held_symbols,
+            leader_symbols=leader_symbols,
+            subindustries=subindustries,
+            visible_names=visible_names,
         )
-        if subindustries
-        else 0.0
     )
-    volatility_ratio = (
-        float(np.mean([item.volatility_ratio for item in subindustries]))
-        if subindustries
-        else 1.0
+    metrics, reasons, votes = _snapshot_from_observations_stage_1(
+        broad_fast=broad_fast,
+        broad_medium=broad_medium,
+        capital_drawdown=capital_drawdown,
+        equal_below=equal_below,
+        equal_downside=equal_downside,
+        equal_fast=equal_fast,
+        held=held,
+        held_downside=held_downside,
+        held_fast=held_fast,
+        leaders=leaders,
+        median_correlation=median_correlation,
+        name_fast=name_fast,
+        point=point,
+        subindustries=subindustries,
+        synchronized=synchronized,
+        tech_fast=tech_fast,
+        tech_medium=tech_medium,
+        volatility_ratio=volatility_ratio,
     )
-
-    held = [visible_names[symbol] for symbol in held_symbols if symbol in visible_names]
-    held_fast = float(np.mean([item.fast_return for item in held])) if held else 0.0
-    held_downside = float(np.mean([item.downside for item in held])) if held else 0.0
-    leaders = [
-        visible_names[symbol] for symbol in leader_symbols if symbol in visible_names
-    ]
-    leader_fast = float(np.mean([item.fast_return for item in leaders])) if leaders else 0.0
-    leader_below = float(np.mean([item.below_ma20 for item in leaders])) if leaders else 0.0
-    capital = 0.0 if capital_drawdown is None else float(capital_drawdown)
-    if not math.isfinite(capital) or capital < 0.0:
-        raise ValueError("Sentinel capital drawdown must be finite and nonnegative")
-
-    metrics = {
-        "broad_fast_return": broad_fast,
-        "broad_medium_return": broad_medium,
-        "capital_drawdown": capital,
-        "equal_subindustry_below_ma20": equal_below,
-        "equal_subindustry_downside_breadth": equal_downside,
-        "equal_subindustry_fast_return": equal_fast,
-        "held_downside_breadth": held_downside,
-        "held_fast_return": held_fast,
-        "index_relative_speed": tech_fast - broad_fast,
-        "latest_visible_ordinal": float(point.toordinal()),
-        "leader_below_ma20": leader_below,
-        "leader_fast_return": leader_fast,
-        "median_correlation": median_correlation,
-        "name_weighted_fast_return": name_fast,
-        "synchronized_subindustry_damage": synchronized,
-        "tech_fast_return": tech_fast,
-        "tech_medium_return": tech_medium,
-        "volatility_ratio": volatility_ratio,
-    }
-    votes = {
-        "market_velocity": bool(
-            (broad_fast <= -0.025 and tech_fast <= -0.025)
-            or min(broad_fast, tech_fast) <= -0.05
-        ),
-        "breadth_structure": bool(
-            len(subindustries) >= 2
-            and (
-                synchronized >= 0.40
-                or (
-                    equal_fast <= -0.025
-                    and equal_downside >= 0.65
-                    and equal_below >= 0.65
-                )
-            )
-        ),
-        "covariance_stress": bool(
-            median_correlation >= 0.70 and volatility_ratio >= 1.50
-        ),
-        "leadership_damage": bool(
-            leaders and leader_fast <= -0.03 and leader_below >= 0.67
-        ),
-        "live_book_damage": bool(
-            held and held_fast <= -0.03 and held_downside >= 0.67
-        ),
-        "capital_damage": bool(capital >= 0.08),
-    }
-    reasons = {
-        "market_velocity": "dual indices show fast causal deterioration",
-        "breadth_structure": "equal-subindustry breadth and MA20 structure deteriorated",
-        "covariance_stress": "cross-member correlation and volatility expanded",
-        "leadership_damage": "existing active leaders deteriorated together",
-        "live_book_damage": "current holdings deteriorated together",
-        "capital_damage": "existing account capital drawdown crossed the Sentinel line",
-    }
     return subindustries, metrics, votes, reasons
 
 

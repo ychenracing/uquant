@@ -1,5 +1,5 @@
 [build-system]
-requires = ["setuptools>=68"]
+requires = ["setuptools>=77"]
 build-backend = "setuptools.build_meta"
 
 [project]
@@ -9,6 +9,7 @@ description = "Causal A-share technology-sector daily quantitative decision syst
 readme = "README.md"
 requires-python = ">=3.12,<3.13"
 license = "MIT"
+license-files = ["LICENSE"]
 dependencies = ["numpy==2.5.1", "pandas==3.0.5"]
 
 [project.optional-dependencies]
@@ -30,13 +31,16 @@ uquant = "uquant.cli:main"
 uquant-sentinel = "uquant.risk_sentinel.cli:main"
 
 [tool.setuptools.packages.find]
-include = ["uquant*", "research*"]
+include = ["uquant*"]
+exclude = ["research*", "scripts*", "tests*"]
 
 [tool.setuptools.package-data]
+"uquant.contracts" = ["resources/*.json"]
 "uquant.validation" = ["resources/*.json"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+pythonpath = ["."]
 addopts = "-q --strict-config --strict-markers"
 
 [tool.ruff]

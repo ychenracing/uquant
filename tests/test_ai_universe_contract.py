@@ -114,6 +114,23 @@ def test_package_resources_are_the_single_runtime_manifest_source() -> None:
     assert json.loads(frozen_champion_bytes())["production"]["commit"] == FROZEN_CHAMPION_COMMIT
 
 
+def test_validation_universe_is_a_compatible_view_of_the_production_contract() -> None:
+    """Breaks if production and legacy imports can resolve different identities."""
+    from uquant.contracts import universe as production_contract
+    from uquant.validation import universe as compatibility_contract
+
+    assert compatibility_contract.AIUniverse is production_contract.AIUniverse
+    assert compatibility_contract.UniverseMember is production_contract.UniverseMember
+    assert compatibility_contract.load_ai_universe is production_contract.load_ai_universe
+    assert compatibility_contract.default_ai_universe is production_contract.default_ai_universe
+    assert compatibility_contract.ai_universe_manifest_bytes() == (
+        production_contract.ai_universe_manifest_bytes()
+    )
+    assert compatibility_contract.frozen_champion_bytes() == (
+        production_contract.frozen_champion_bytes()
+    )
+
+
 def test_built_wheel_imports_the_packaged_universe_contract(tmp_path: Path) -> None:
     """Breaks if the installed wheel omits immutable manifest package data."""
     dist = tmp_path / "dist"

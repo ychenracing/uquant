@@ -242,7 +242,7 @@ def run_evidence_closure(
     universe = default_ai_universe()
     symbols = tuple(sorted({*universe.symbols, *INDEX_SYMBOLS}))
     engine = ProductionEngine(data_dir, DEFAULT_CONFIG)
-    engine._load(symbols)
+    engine.workspace.load(symbols)
     timeline = engine._causal_risk_timeline(
         as_of=as_of,
         cfg=DEFAULT_CONFIG,
@@ -254,7 +254,7 @@ def run_evidence_closure(
         sorted(set(sentinel_first.values()))
     )
     forward_returns = _tech_forward_returns(
-        engine._raw["sh000682"]["close"],
+        engine.workspace.raw_frame("sh000682")["close"],
         trigger_dates=trigger_dates,
     )
     result = analyze_evidence_closure(

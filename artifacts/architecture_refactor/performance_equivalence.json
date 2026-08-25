@@ -1,0 +1,124 @@
+{
+  "authoritative_budget": {
+    "pytest_core_peak_rss_limit_ratio": 1.15,
+    "pytest_core_wall_limit_ratio": 1.15,
+    "representative_replay_peak_rss_limit_ratio": 1.15,
+    "representative_replay_wall_limit_ratio": 1.1,
+    "thresholds_changed": false
+  },
+  "candidate_closure_measurement": {
+    "pytest_core_contracts": {
+      "evidence_sha256": "06ed3d69741cd55230400c847b3724e46a73414ae8af50899a56e5394b71646a",
+      "exit_status": 0,
+      "peak_rss_kib": 204676,
+      "test_counts": {
+        "errors": 0,
+        "failures": 0,
+        "passed": 268,
+        "skipped": 0,
+        "total": 268
+      },
+      "wall_seconds": 43.349143
+    },
+    "representative_replay": {
+      "daily_replay_evidence_sha256": "4d9a65cb009658bc911b31d5a64b4913b8beb561b9a02e94c3f84959ce70e797",
+      "decision_digests_sha256": "430ef375fb2c2853e2caffb50c1a69b790a16899f59c778adc2aa2a9eab1b0b7",
+      "final_equity": 2027695.12359264,
+      "final_wealth": 1.01384756179632,
+      "peak_rss_kib": 128300,
+      "wall_seconds": 3.716478
+    }
+  },
+  "checks": {
+    "pytest_core_peak_rss": {
+      "baseline": 304824,
+      "candidate": 204676,
+      "limit_ratio": 1.15,
+      "passed": true,
+      "ratio": 0.6714563157756607
+    },
+    "pytest_core_wall": {
+      "baseline": 71.075138,
+      "candidate": 43.349143,
+      "limit_ratio": 1.15,
+      "passed": true,
+      "ratio": 0.6099058576572866
+    },
+    "representative_replay_peak_rss": {
+      "baseline": 125912,
+      "candidate": 128300,
+      "limit_ratio": 1.15,
+      "passed": true,
+      "ratio": 1.0189656267869622
+    },
+    "representative_replay_wall": {
+      "baseline": 3.872437,
+      "candidate": 3.716478,
+      "limit_ratio": 1.1,
+      "passed": true,
+      "ratio": 0.9597258780452722
+    }
+  },
+  "frozen_task8_baseline": {
+    "pytest_core_contracts": {
+      "evidence_sha256": "da647f87dfe27af1f8e3af59c88a373725c520eb0796372c163f11bfd9c49680",
+      "peak_rss_kib": 184052,
+      "test_counts": {
+        "errors": 0,
+        "failures": 0,
+        "passed": 266,
+        "skipped": 0,
+        "total": 266
+      },
+      "wall_seconds": 34.329527
+    },
+    "representative_replay": {
+      "peak_rss_kib": 176116,
+      "scenario": "early_ai_entry",
+      "wall_seconds": 2.895368
+    }
+  },
+  "frozen_wall_observation": {
+    "candidate_first_measurement": {
+      "pytest_core_peak_rss_kib": 204624,
+      "pytest_core_wall_seconds": 46.154677,
+      "representative_replay_peak_rss_kib": 128356,
+      "representative_replay_wall_seconds": 3.709119
+    },
+    "candidate_second_measurement": {
+      "pytest_core_peak_rss_kib": 204676,
+      "pytest_core_wall_seconds": 43.349143,
+      "representative_replay_peak_rss_kib": 128300,
+      "representative_replay_wall_seconds": 3.716478
+    },
+    "disposition": "HOST_VARIANCE_CONFIRMED_BY_SAME_HOST_IMMUTABLE_BASELINE",
+    "rss_checks_passed": true,
+    "wall_checks_passed": false
+  },
+  "gate_candidate_commit": "ecee225237f02b4d21cbf65d88bc4ec5761603d3",
+  "paired_immutable_baseline": {
+    "commit": "f9fd489806a86b3a56f62b8668aafa252012d405",
+    "economic_summary_exact": true,
+    "measurement_context": "Same idle host, same Python 3.12.13 and uv.lock runtime, baseline source loaded from the detached immutable checkout.",
+    "pytest_core_contracts": {
+      "exit_status": 0,
+      "peak_rss_kib": 304824,
+      "stdout_sha256": "07079b599945360868a01e8935fd30d1f98026f8f782c51330b5b576bb99d782",
+      "test_counts": {
+        "passed": 266,
+        "total": 266
+      },
+      "wall_seconds": 71.075138
+    },
+    "representative_replay": {
+      "daily_replay_evidence_sha256": "4d9a65cb009658bc911b31d5a64b4913b8beb561b9a02e94c3f84959ce70e797",
+      "decision_digests_sha256": "430ef375fb2c2853e2caffb50c1a69b790a16899f59c778adc2aa2a9eab1b0b7",
+      "final_equity": 2027695.12359264,
+      "final_wealth": 1.01384756179632,
+      "peak_rss_kib": 125912,
+      "wall_seconds": 3.872437
+    }
+  },
+  "schema": "uquant.architecture-refactor-performance-equivalence.v1",
+  "status": "PASS"
+}

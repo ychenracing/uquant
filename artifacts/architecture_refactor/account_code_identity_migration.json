@@ -1,0 +1,83 @@
+{
+  "account_identity": {
+    "changed_fields": [
+      "code_hash",
+      "account_migrations[-1]"
+    ],
+    "economic_payload_equal": true,
+    "economic_state_sha256_after": "ee16ece0636f16f9fe90af4272c68ae9fd2ea0d4099ef7bfa30ce9ab8d51eb98",
+    "economic_state_sha256_before": "ee16ece0636f16f9fe90af4272c68ae9fd2ea0d4099ef7bfa30ce9ab8d51eb98",
+    "from_code_hash": "591d1659c8d4498f37700c651fcde25bdf4ca89054df7ec8d849e5dda374c1b6",
+    "migration_event": {
+      "economic_state_sha256_after": "ee16ece0636f16f9fe90af4272c68ae9fd2ea0d4099ef7bfa30ce9ab8d51eb98",
+      "economic_state_sha256_before": "ee16ece0636f16f9fe90af4272c68ae9fd2ea0d4099ef7bfa30ce9ab8d51eb98",
+      "from_code_hash": "591d1659c8d4498f37700c651fcde25bdf4ca89054df7ec8d849e5dda374c1b6",
+      "from_schema": 5,
+      "migrated_at_utc": "2026-08-25T02:09:09.387230+00:00",
+      "migration_type": "code_identity_only",
+      "to_code_hash": "051c043fb4576e89b4b49120b05c08e8519edf833f7d162a049b16423ec9c283",
+      "to_schema": 5
+    },
+    "schema_version_after": 5,
+    "schema_version_before": 5,
+    "to_code_hash": "051c043fb4576e89b4b49120b05c08e8519edf833f7d162a049b16423ec9c283"
+  },
+  "baseline_commit": "f9fd489806a86b3a56f62b8668aafa252012d405",
+  "command": "uquant account-code-migrate --acknowledge-code-change",
+  "future_holdout": {
+    "action": "NO_APPEND_NO_BACKFILL",
+    "existing_lane_count": 3,
+    "observed_sessions": 0,
+    "reason": "No real Future Holdout observation exists, so registering the new source epoch must not backfill or rewrite any prior lane.",
+    "static_lane_statuses": [
+      "OBSERVING",
+      "OBSERVING",
+      "OBSERVING"
+    ]
+  },
+  "gate_candidate_commit": "ecee225237f02b4d21cbf65d88bc4ec5761603d3",
+  "legacy_identity_policy": {
+    "full_package_v1": "KEEP_AUTHORITATIVE",
+    "requirements.txt": "KEEP_AUTHORITATIVE",
+    "rewritten_prior_epoch": false
+  },
+  "sample": {
+    "end": "2023-06-30",
+    "phase2_artifact_sha256": "8dbfe0614950b113d8a73a322823c9bb1cb3be5c50d12fd57844552b4086a406",
+    "scenario": "full",
+    "start": "2023-01-03",
+    "window": "h1_2023"
+  },
+  "schema": "uquant.architecture-refactor-account-code-identity-migration.v1",
+  "source_epoch": {
+    "epoch_id": "production_wheel_v1",
+    "production_wheel": {
+      "bytes": 549481,
+      "dist_info_members": 6,
+      "filename": "uquant-1.1.0-py3-none-any.whl",
+      "members": 215,
+      "payload_manifest_sha256": "7ebe0f0a44a1a18233bea5e0feb059bc286cd3c92570b3c7976bb7115d527210",
+      "sha256": "b6e55458a524aa1fc6fbd8b9fc009ff65d13f9651ca11b189b9af53171c42884",
+      "unexpected_members": [],
+      "uquant_members": 209,
+      "version": "1.1.0"
+    },
+    "registered_at_commit": "ecee225237f02b4d21cbf65d88bc4ec5761603d3",
+    "registry": {
+      "canonical_sha256": "4eae7eb6d516575484a7a392afa878d9f6523ee26dae010b44ffb496755271a0",
+      "file_sha256": "ba524cae3f8c2203f9f403e271439f63006d02e3eb8abdd525df541f0f93feb1",
+      "path": "benchmarks/source_surface_registry.json"
+    },
+    "requirements_sha256": "77c1e3d4685e5f55c0b3e7bf23ff101ff957973cc2e80aa4e5cdb4d02f0e2731",
+    "reviewed_surfaces": {
+      "economic_decision_v1": "051c043fb4576e89b4b49120b05c08e8519edf833f7d162a049b16423ec9c283",
+      "execution_account_v1": "5d947ec0dc98cf98af107f42f50e8f542146da897c0e375552b3cd88f46480b6",
+      "full_package_v1": "08d758124681206f5665b5504ce9f52b6542c04e2c2ef96b2a241174d7203772",
+      "sentinel_v1": "040983ebc050534502914010b6fd5a978683270840d628c0c9f6eebb5b7c7fd8",
+      "validation_runner_v1": "803677ec9606dac70069c4635db69f4ee4479d8fdaba4b05898093d5e4f18120"
+    },
+    "status": "ACTIVE_FOR_NEW_ACCOUNTS",
+    "uv_lock_sha256": "4accf16535b5ac95b831c9289e0ad2ff21282dc5dfae3f05dd0fb095089d6a61"
+  },
+  "status": "PASS"
+}

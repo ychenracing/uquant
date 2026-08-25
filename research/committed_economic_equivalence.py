@@ -14,13 +14,23 @@ from typing import Any, Final
 
 from uquant.validation.equivalence import (
     Phase1Case,
-    _baseline_data_provenance,
-    _git_commit,
-    _immutable_equivalence_data,
-    _isolated_equivalence_tree,
-    _require_clean_equivalence_tree,
     phase1_cases,
     trace_phase1_case,
+)
+from uquant.validation.equivalence import (
+    baseline_data_provenance as _baseline_data_provenance,
+)
+from uquant.validation.equivalence import (
+    git_commit as _git_commit,
+)
+from uquant.validation.equivalence import (
+    immutable_equivalence_data as _immutable_equivalence_data,
+)
+from uquant.validation.equivalence import (
+    isolated_equivalence_tree as _isolated_equivalence_tree,
+)
+from uquant.validation.equivalence import (
+    require_clean_equivalence_tree as _require_clean_equivalence_tree,
 )
 
 _SCHEMA: Final = "uquant.committed-economic-equivalence.v1"

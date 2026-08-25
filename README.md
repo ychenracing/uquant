@@ -35,10 +35,11 @@ uquant 是专门面向 2023 年以来 A 股 AI 产业链的日频量化决策系
 
 ## 验证与演进边界
 
-生产与泛化共用 `uquant/validation/resources/ai_universe_manifest.json` 中经过内容摘要
-保护的 34 只 A 股 AI 产业链证券及其点时行业归属；消费、白酒、新能源或宽基股票
-不进入可交易全集。每天仍由使用者人工运行、核对并辅助下单，研究和 CI 不会改变
-这一定位。2023 年以前的行始终只是 warm-up。
+生产与泛化共用 `uquant/contracts/resources/ai_universe_manifest.json` 中经过内容摘要
+保护的 34 只 A 股 AI 产业链证券及其点时行业归属；旧的 `uquant.validation` 导入与
+资源路径保留为兼容入口。消费、白酒、新能源或宽基股票不进入可交易全集。每天仍
+由使用者人工运行、核对并辅助下单，研究和 CI 不会改变这一定位。2023 年以前的行
+始终只是 warm-up。
 
 Phase 2 Generalization 在六个官方窗口分别保留完整全集、逐一/全部移除三只核心、
 去 optical、行业均衡、有效子行业和固定随机池。随机契约只允许基准种子 `20260810`、
@@ -125,7 +126,7 @@ uv run uquant daily \
 本地 Lane 报告并封存运行后证据：
 
 ```bash
-uv run python scripts/production_observation.py run \
+uv run python -m scripts.production_observation run \
   --date 2026-08-06 \
   --symbols sz300308 sz300502 sz300394 sh688008 sh603986 \
   --account account_state.json \
@@ -175,7 +176,7 @@ date,open,high,low,close,volume
 | `uquant/risk_sentinel/` | 独立点时风险证据、Coverage 与 Freeze-only 映射 |
 | `uquant/portfolio*.py` | 唯一目标组合及各生命周期职责 |
 | `uquant/execution.py` | 次日开盘执行模型与订单生命周期 |
-| `uquant/account.py`、`broker.py` | 账户持久化和券商对账 |
+| `uquant/account/`、`broker.py` | 账户持久化和券商对账 |
 | `uquant/validation/` | 数据完整性、Phase 1 绩效和 Phase 2 泛化门禁 |
 | `research/` | 与生产导入隔离的离线研究工具 |
 | `tests/` | 行为、不变量和失败路径测试 |
@@ -190,6 +191,11 @@ date,open,high,low,close,volume
 - [Risk Sentinel](docs/RISK_SENTINEL.md)
 - [开发指南](docs/DEVELOPMENT.md)
 - [质量契约](docs/QUALITY.md)
+- [经济权限与因果执行决策](docs/decisions/0001-economic-authority-and-causal-execution.md)
+- [源码身份与 holdout epoch 决策](docs/decisions/0002-source-identity-and-holdout-epochs.md)
+
+发布 wheel 只包含生产命名空间 `uquant*`；`research/`、`scripts/`、`tests/`、文档、
+验证工件和冻结数据仍保留在仓库中供复现与治理，但不是可安装的生产 API。
 
 ## 本地质量检查
 

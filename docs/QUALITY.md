@@ -34,6 +34,12 @@
 
 上述门禁均为阻断条件，不能用另一项检查的成功抵消失败。
 
+代码/测试/helper 物理行数、函数长度、branch point 和 CLI 行数作为治理信号记录，
+用于安排后续维护，不因接近某个整数阈值单独阻断发布。经济等价、冻结数据完整性、
+Risk/Portfolio/Sentinel 权限、账户与订单/成交语义、源码身份、Packaging、Windows、CI
+以及明确验收项仍是不可放宽的硬门；一个信号超限不能遮蔽这些真实失败，反过来也不能
+把信号本身升级成与生产安全无关的无限拆分循环。
+
 对每个 PR 和 `main` push，GitHub 必须稳定给出 `Engineering`、
 `Phase 1 Performance`、`Phase 2 Generalization` 三个独立最终结论。Engineering 的
 always-running summary 同时要求 quality 与 security；Phase 1 summary 要求未删减的

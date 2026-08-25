@@ -16,7 +16,7 @@ from .manifest import verify_data_manifest
 from .promotion import run_promotion
 
 
-def _reject_duplicate_keys(pairs: Iterable[tuple[str, Any]]) -> dict[str, Any]:
+def _reject_duplicate_cli_keys(pairs: Iterable[tuple[str, Any]]) -> dict[str, Any]:
     result: dict[str, Any] = {}
     for key, value in pairs:
         if key in result:
@@ -54,7 +54,7 @@ def _require_reviewed_reference(path: str | Path, *, gate: str) -> Path:
     return source
 
 
-def _parser() -> argparse.ArgumentParser:
+def _validation_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="python -m uquant.validation")
     sub = parser.add_subparsers(dest="command", required=True)
     manifest = sub.add_parser("data-manifest")
@@ -150,3 +150,7 @@ def main(argv: list[str] | None = None) -> int:
         output.write_text(payload + "\n", encoding="utf-8")
     print(payload)
     return 0 if report.get("passed", True) else 1
+
+
+_parser = _validation_parser
+_reject_duplicate_keys = _reject_duplicate_cli_keys

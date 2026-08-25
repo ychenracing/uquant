@@ -7,7 +7,8 @@ from typing import Any
 
 import pytest
 
-import uquant.account as account_module
+import uquant.account.store as account_store_module
+import uquant.infrastructure.atomic_files as atomic_files_module
 from uquant.account import load_account, migrate_account, save_account
 from uquant.broker import sync_broker_snapshot
 from uquant.types import (
@@ -411,21 +412,21 @@ def test_save_rejects_nan_state_without_replacing_existing_file(tmp_path):
 def test_save_syncs_parent_directory_after_atomic_replace(tmp_path, monkeypatch):
     destination = tmp_path / "durable.json"
     events: list[tuple[str, object]] = []
-    original_replace = account_module.os.replace
+    original_replace = atomic_files_module.os.replace
 
     def observed_replace(source, target):
         original_replace(source, target)
         events.append(("replace", target))
 
-    monkeypatch.setattr(account_module.os, "replace", observed_replace)
+    monkeypatch.setattr(atomic_files_module.os, "replace", observed_replace)
     monkeypatch.setattr(
-        account_module,
+        atomic_files_module,
         "_fsync_directory",
         lambda directory: events.append(("sync-directory", directory)),
         raising=False,
     )
 
-    save_account(AccountState.empty(2_000_000.0), destination)
+    assert save_account(AccountState.empty(2_000_000.0), destination) is None
 
     assert events == [
         ("replace", destination),
@@ -436,16 +437,72 @@ def test_save_syncs_parent_directory_after_atomic_replace(tmp_path, monkeypatch)
 def test_save_preserves_write_error_when_temporary_cleanup_races(tmp_path, monkeypatch):
     state = AccountState.empty(2_000_000.0)
     state.risk_events = [{"date": "2026-01-01", "unvalidated_metric": float("nan")}]
-    original_unlink = account_module.os.unlink
+    destination = tmp_path / "nested" / "durable.json"
+    cleanup_calls: list[object] = []
+    original_unlink = atomic_files_module.os.unlink
 
     def disappearing_unlink(path):
+        cleanup_calls.append(path)
         original_unlink(path)
         raise FileNotFoundError(path)
 
-    monkeypatch.setattr(account_module.os, "unlink", disappearing_unlink)
+    monkeypatch.setattr(atomic_files_module.os, "unlink", disappearing_unlink)
 
     with pytest.raises(ValueError, match="Out of range float"):
+        save_account(state, destination)
+
+    assert destination.parent.is_dir()
+    assert len(cleanup_calls) == 1
+    assert not destination.exists()
+
+
+def test_save_serializes_inside_the_atomic_writer(tmp_path, monkeypatch):
+    state = AccountState.empty(2_000_000.0)
+    state.risk_events = [{"date": "2026-01-01", "unvalidated_metric": float("nan")}]
+    monkeypatch.setattr(
+        account_store_module,
+        "atomic_write_json_with_mode",
+        lambda *args, **kwargs: pytest.fail("invalid JSON reached the atomic writer"),
+        raising=False,
+    )
+
+    with pytest.raises(pytest.fail.Exception, match="invalid JSON reached"):
         save_account(state, tmp_path / "durable.json")
+
+
+def test_save_allocates_and_cleans_temporary_before_to_dict_descriptor_failure(
+    tmp_path,
+    monkeypatch,
+):
+    events: list[str] = []
+
+    class DescriptorFailureState(AccountState):
+        @property
+        def to_dict(self):
+            events.append("to_dict")
+            raise LookupError("descriptor failure")
+
+    original_mkstemp = atomic_files_module.tempfile.mkstemp
+    original_unlink = atomic_files_module.os.unlink
+
+    def observed_mkstemp(*args, **kwargs):
+        events.append("temporary")
+        return original_mkstemp(*args, **kwargs)
+
+    def observed_unlink(path):
+        events.append("cleanup")
+        return original_unlink(path)
+
+    monkeypatch.setattr(atomic_files_module.tempfile, "mkstemp", observed_mkstemp)
+    monkeypatch.setattr(atomic_files_module.os, "unlink", observed_unlink)
+    destination = tmp_path / "nested" / "durable.json"
+
+    with pytest.raises(LookupError, match="descriptor failure"):
+        save_account(DescriptorFailureState.empty(2_000_000.0), destination)
+
+    assert events == ["temporary", "to_dict", "cleanup"]
+    assert destination.parent.is_dir()
+    assert not destination.exists()
 
 
 @pytest.mark.parametrize(

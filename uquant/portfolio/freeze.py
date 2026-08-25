@@ -1,4 +1,4 @@
-"""Mechanical Task 8 owner extracted from the immutable allocator."""
+"""Freeze-new-risk policy for preserving authorized existing exposure."""
 
 from __future__ import annotations
 

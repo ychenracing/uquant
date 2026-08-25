@@ -1,4 +1,4 @@
-"""Task 6 mechanical owner for decision."""
+"""Production daily-decision orchestration."""
 
 from __future__ import annotations
 

@@ -24,6 +24,9 @@ CI 只验证仓库中跟踪的零观察合同和 Lane 注册表：
 uv run python -m scripts.future_holdout validate-static-lanes
 ```
 
+`validate-lanes` 只保留为旧自动化的兼容别名；新文档、CI 和 operator 命令统一使用
+`validate-static-lanes`。脚本必须通过 `python -m` 执行，避免文件路径入口与包导入行为漂移。
+
 真实观察数据和本地 Lane 报告均被 Git 忽略。查看当前观察数、下一里程碑和 Lane 身份：
 
 ```bash
@@ -66,6 +69,8 @@ uv run python -m scripts.production_observation run \
 
 Journal 是 observational、append-only、broker-independent 的真实执行记录。它保存计划、
 次日开盘、实际成交、人工跳过、实现滑点和券商订单 ID，但不调用决策引擎，也不写账户。
+`decision-date` 是交易所 session；`recorded-at`、`actual-time` 必须是带 UTC offset 的
+ISO-8601 时间，A 股人工执行通常使用 `+08:00`，不得用无时区本地时间补录。
 
 ```bash
 uv run python -m scripts.future_holdout journal planned \

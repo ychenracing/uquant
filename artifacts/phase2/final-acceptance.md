@@ -1,10 +1,9 @@
 # Phase 2 final acceptance
 
-> **Historical snapshot:** This report records the Phase 2 Task 11 acceptance
-> candidate and its evidence at the commits named below. It is retained unchanged as
-> provenance, not as a description of the current `HEAD` or current release status.
-> Use the current [performance contract](../../docs/PERFORMANCE.md) and
-> [operations guide](../../docs/OPERATIONS.md) for operational guidance.
+> **权威级别：历史证据** — This report records the acceptance candidate and evidence at
+> the commits named below. It is provenance, not a description of current `HEAD` or release
+> status. Use the current [performance contract](../../docs/PERFORMANCE.md),
+> [operations guide](../../docs/OPERATIONS.md), and [evidence index](../README.md).
 
 ## Decision
 

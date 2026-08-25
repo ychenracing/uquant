@@ -373,9 +373,9 @@ def config_fingerprint(cfg: SystemConfig = DEFAULT_CONFIG) -> str:
 
     payload = cfg.to_dict()
     if payload["risk_sentinel_causal_confirmation_enabled"] is False:
-        # Phase 6 adds a governed, disabled authority switch. Keeping its
-        # disabled representation out of the canonical payload preserves the
-        # reviewed economic identity; enabling it creates a distinct identity.
+        # The disabled authority switch is excluded from the canonical payload
+        # to preserve the reviewed economic identity; enabling it creates a
+        # distinct configuration identity.
         payload.pop("risk_sentinel_causal_confirmation_enabled")
     encoded = json.dumps(
         payload,

@@ -1,4 +1,4 @@
-"""Task 6 mechanical owner for risk timeline cache."""
+"""Deterministic cache for causal risk-timeline evaluations."""
 
 from __future__ import annotations
 

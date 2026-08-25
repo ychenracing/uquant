@@ -1,4 +1,4 @@
-"""Task 6 mechanical owner for tranches."""
+"""Position-tranche lifecycle and attribution."""
 
 from __future__ import annotations
 

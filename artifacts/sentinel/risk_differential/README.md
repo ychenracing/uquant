@@ -1,5 +1,9 @@
 # Risk Differential Closure
 
+> **权威级别：历史证据** — 本目录保存冻结差分、反事实和拒绝决定，不授予当前生产权限。
+> 当前边界见 [Risk Sentinel](../../../docs/RISK_SENTINEL.md)，证据目录见
+> [历史证据索引](../../README.md)。
+
 Report-enum terminal decision: `NO_PROMOTABLE_INCREMENTAL_RISK`.
 Project conclusion code: `NO_INCREMENTAL_PROMOTABLE_RISK_CAPABILITY`.
 

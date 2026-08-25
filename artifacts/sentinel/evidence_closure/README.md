@@ -1,5 +1,9 @@
 # Sentinel Evidence Closure
 
+> **权威级别：历史证据** — 本目录记录截至 2026-08-05 的冻结增量证据闭合，不授予当前
+> 生产权限。当前边界见 [Risk Sentinel](../../../docs/RISK_SENTINEL.md)，证据目录见
+> [历史证据索引](../../README.md)。
+
 `evidence_closure.json` compares the immutable, account-free Phase 6 market
 timeline through 2026-08-05. It uses only `breadth_structure`,
 `covariance_stress`, and `market_velocity`; current book and capital damage are

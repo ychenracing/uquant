@@ -356,6 +356,153 @@ def test_dominant_owner_respects_symbol_cap_and_hard_crisis(
     )
     assert reduced[0].weight == pytest.approx(0.25)
 
+
+@pytest.mark.parametrize(
+    ("case", "risk_state", "reduction_level", "evidence", "target_weight", "second_weight"),
+    (
+        ("multiple live positions", Risk.CAUTION, 1, {}, 1.0, 0.10),
+        ("crisis", Risk.CRISIS, 1, {}, 1.0, 0.0),
+        ("higher reduction level", Risk.CAUTION, 2, {}, 1.0, 0.0),
+        ("sector guard", Risk.CAUTION, 1, {"sector_guard_active": True}, 1.0, 0.0),
+        (
+            "strategic damage guard",
+            Risk.CAUTION,
+            1,
+            {"strategic_damage_guard": True},
+            1.0,
+            0.0,
+        ),
+        (
+            "acute evacuation",
+            Risk.CAUTION,
+            1,
+            {"acute_sector_evacuation": True},
+            1.0,
+            0.0,
+        ),
+        ("strategy reduction", Risk.CAUTION, 1, {}, 0.90, 0.0),
+    ),
+)
+def test_dominant_level1_retention_requires_every_bounded_predicate(
+    monkeypatch: pytest.MonkeyPatch,
+    case: str,
+    risk_state: Risk,
+    reduction_level: int,
+    evidence: dict[str, bool],
+    target_weight: float,
+    second_weight: float,
+) -> None:
+    del case
+    symbol = "bounded_dominant"
+    positions = {
+        symbol: Position(symbol, shares=90 if second_weight else 100, avg_cost=1.0, highest_close=1.0)
+    }
+    prices = {symbol: 1.0}
+    if second_weight:
+        positions["second_live_position"] = Position(
+            "second_live_position",
+            shares=10,
+            avg_cost=1.0,
+            highest_close=1.0,
+        )
+        prices["second_live_position"] = 1.0
+    account = AccountState(
+        initial_cash=100.0,
+        cash=0.0,
+        positions=positions,
+        strategic_cohort_symbols=[symbol],
+        strategic_cohort_targets={symbol: 1.0},
+        strategic_epoch=1,
+        candidate_tenure={
+            "strategic_cohort_active": 1,
+            "strategic_cohort_started": 1,
+            "strategic_dominant_epoch": 1,
+        },
+        operating_peak=100.0,
+        capital_peak=100.0,
+    )
+    allocator = PortfolioAllocator(DEFAULT_CONFIG)
+    monkeypatch.setattr(
+        allocator,
+        "_allocate_strategy",
+        lambda **_: (
+            Target(symbol, target_weight, "CORE", 0.90, 1.0, "dominant strategic owner"),
+        ),
+    )
+    risk = RiskAssessment(
+        risk_state,
+        0.82,
+        2,
+        evidence,
+        ("bounded retention negative case",),
+        "NONE",
+        freeze_new_risk=True,
+        reduction_level=reduction_level,
+    )
+
+    targets = allocator.allocate(
+        date=pd.Timestamp("2025-01-02"),
+        opportunity=Opportunity.TREND,
+        risk=risk,
+        user_panel={},
+        leaders={},
+        account=account,
+        prices=prices,
+    )
+
+    assert sum(target.weight for target in targets) == pytest.approx(0.82)
+
+
+def test_dominant_level1_retention_never_buys_up_to_the_exception_cap(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    symbol = "bounded_dominant"
+    account = AccountState(
+        initial_cash=100.0,
+        cash=10.0,
+        positions={symbol: Position(symbol, shares=90, avg_cost=1.0, highest_close=1.0)},
+        strategic_cohort_symbols=[symbol],
+        strategic_cohort_targets={symbol: 1.0},
+        strategic_epoch=1,
+        candidate_tenure={
+            "strategic_cohort_active": 1,
+            "strategic_cohort_started": 1,
+            "strategic_dominant_epoch": 1,
+        },
+        operating_peak=100.0,
+        capital_peak=100.0,
+    )
+    allocator = PortfolioAllocator(DEFAULT_CONFIG)
+    monkeypatch.setattr(
+        allocator,
+        "_allocate_strategy",
+        lambda **_: (
+            Target(symbol, 1.0, "CORE", 0.90, 1.0, "dominant strategic owner"),
+        ),
+    )
+    caution = RiskAssessment(
+        Risk.CAUTION,
+        0.82,
+        2,
+        {},
+        ("bounded retention",),
+        "NONE",
+        freeze_new_risk=True,
+        reduction_level=1,
+    )
+
+    targets = allocator.allocate(
+        date=pd.Timestamp("2025-01-02"),
+        opportunity=Opportunity.TREND,
+        risk=caution,
+        user_panel={},
+        leaders={},
+        account=account,
+        prices={symbol: 1.0},
+    )
+
+    assert sum(target.weight for target in targets) == pytest.approx(0.90)
+
 def test_completed_strategic_epoch_clears_zero_exit_band_state():
     date = pd.Timestamp("2025-12-31")
     account = AccountState(

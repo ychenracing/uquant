@@ -1,5 +1,9 @@
 # Phase 2 subsystem ablation conclusions
 
+> **权威级别：历史证据** — 本文记录冻结消融决定，不是当前配置或删除清单。当前策略
+> 边界见[策略与风控](../../../docs/STRATEGY.md)，证据目录见
+> [历史证据索引](../../README.md)。
+
 ## Decision
 
 The authenticated evidence supports one deletion, ten retained subsystems, and two

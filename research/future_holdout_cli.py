@@ -82,7 +82,7 @@ def _reject_duplicate_keys(pairs: Iterable[tuple[str, Any]]) -> dict[str, Any]:
 
 
 def _parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(prog="python scripts/future_holdout.py")
+    parser = argparse.ArgumentParser(prog="python -m scripts.future_holdout")
     sub = parser.add_subparsers(dest="command", required=True)
     for command in ("validate-lanes", "validate-static-lanes"):
         lanes = sub.add_parser(command)

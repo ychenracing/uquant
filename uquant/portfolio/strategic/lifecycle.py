@@ -1,4 +1,4 @@
-"""Mechanical Task 8 strategic owner extracted from the immutable policy."""
+"""Strategic-cohort lifecycle, restoration, and exit policy."""
 
 from __future__ import annotations
 

@@ -1,7 +1,8 @@
 # Risk Differential Closure — 2026-08-21
 
-> **历史证据快照：** 本文解释本目录中的冻结差分与 counterfactual 结果，不授予当前生产
-> 权限。当前权限合同见 [`docs/RISK_SENTINEL.md`](../../../docs/RISK_SENTINEL.md)。
+> **权威级别：历史证据** — 本文解释本目录中的冻结差分与 counterfactual 结果，不授予
+> 当前生产权限。当前权限合同见 [Risk Sentinel](../../../docs/RISK_SENTINEL.md)，
+> 证据目录见[历史证据索引](../../README.md)。
 
 ## 结论
 

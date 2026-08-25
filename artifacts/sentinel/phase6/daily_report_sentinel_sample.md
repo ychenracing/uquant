@@ -1,5 +1,9 @@
 # Daily Report — 2024-07-01 (Risk Sentinel excerpt)
 
+> **权威级别：历史证据** — 这是冻结日报片段，不定义当前 renderer schema，也不是生产
+> 指令。当前字段和权限见 [Risk Sentinel](../../../docs/RISK_SENTINEL.md)，证据目录见
+> [历史证据索引](../../README.md)。
+
 ## Risk Sentinel
 
 - Mode: FREEZE_ONLY

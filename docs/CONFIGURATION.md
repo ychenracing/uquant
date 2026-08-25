@@ -91,7 +91,8 @@ Generalization 六窗口门禁，不能由人工日常运行或研究脚本临�
 | `market_crisis_gross` | 0.50 | 常规危机上限 |
 | `severe_crisis_gross` | 0.20 | 严重冲击上限 |
 
-所有机会仓位最终都取自身目标与 `target_gross_cap` 的较小值。
+所有新风险和常规目标最终都取自身目标与 `target_gross_cap` 的较小值。唯一冻结行为例外是
+单一战略主导者在一级预警下保留已有权重；该例外不新增风险，并受下文边界约束。
 
 ## 领涨、持有与替换
 
@@ -141,6 +142,13 @@ Generalization 六窗口门禁，不能由人工日常运行或研究脚本临�
 `strategic_two_name_confirm_days=3` 和 `strategic_one_name_confirm_days=4` 仍保留在
 `SystemConfig` 和参数治理清单中，以维持配置兼容，但当前路由不会选中它们；
 成员路由也不按证券全集大小切换。
+
+`strategic_dominant_max_weight=0.95` 只约束单一战略主导者特例。账户必须只有该主导者，
+Risk 必须为 `NORMAL/CAUTION`、`reduction_level <= 1`，且不存在 sector guard、strategic
+damage guard 或 acute evacuation；策略目标还必须不低于当前总仓。满足条件时系统只保留
+既有权重，不会买入补足至 95%。`CRISIS`、更高减仓等级和显式 guard 始终严格执行风险 cap。
+机器可核对的完整契约见
+[ADR 0001](decisions/0001-economic-authority-and-causal-execution.md)。
 
 ## 风险与资本预算
 

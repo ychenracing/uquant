@@ -10,7 +10,8 @@ uquant 是专门面向 2023 年以来 A 股 AI 产业链的日频量化决策系
 
 - **同一决策内核**：日报与历史回放都调用 `ProductionEngine.decide()`，避免研究路径与日常路径出现行为差异。
 - **严格因果时点**：信号只读取决策日及以前的数据，成交最早发生在下一可交易日开盘。
-- **双轴判断**：机会状态决定是否值得承担风险，风险状态独立给出最高仓位；强机会不能覆盖风险上限。
+- **双轴判断**：机会状态决定是否值得承担风险，Base Risk 独立给出风险派生上限；强机会
+  不能扩大该上限。唯一有限例外是单一战略主导者在一级预警下保留既有仓位，且不得新增风险。
 - **组合级风控**：同时约束总仓、单票、持仓数、行业集中度、相关性、流动性和资本回撤。
 - **独立风险观察**：Risk Sentinel 以点时市场证据补充基础风险，并在同一日报中说明
   Coverage、Owner 与风险 Family；它不能直接卖出或修改总仓上限。
@@ -32,6 +33,10 @@ uquant 是专门面向 2023 年以来 A 股 AI 产业链的日频量化决策系
 | 最小权重变化 | 5% |
 | 最小交易金额 | 20,000 元 |
 | 最大成交量参与率 | 0.5% |
+
+95% 战略主导者权重不是常规入场上限。它只适用于账户中仅有一个已确认战略主导者、
+`NORMAL/CAUTION` 且 `reduction_level <= 1`、没有行业/战略损伤/急性撤离 guard、策略本身
+也不要求减仓的场景；只能冻结既有敞口，不能新增风险。`CRISIS` 和其他硬风险上限始终生效。
 
 ## 验证与演进边界
 
@@ -64,6 +69,15 @@ uv sync --frozen --extra dev --extra data
 ```
 
 ## 快速开始
+
+操作入口按权限分层，避免把内部构件误当成生产流程：
+
+| 用途 | 权威入口 | 权限 |
+|---|---|---|
+| 日常账户与决策 | `uquant account-init/account-sync/daily/backtest` | 唯一生产账户与决策入口 |
+| Future Holdout 与人工执行证据 | `python -m scripts.production_observation`、`python -m scripts.future_holdout` | 观察、回放与 Journal，不改策略 |
+| 独立 Sentinel 诊断 | `uquant-sentinel` | 离线只读 Shadow，不是日常生产步骤 |
+| `uquant holdout-*`、`execution-journal` | 兼容/低层构件 | 不作为 operator 默认入口 |
 
 ### 1. 初始化账户
 
@@ -165,6 +179,7 @@ date,open,high,low,close,volume
 - [质量契约](docs/QUALITY.md)
 - [经济权限与因果执行决策](docs/decisions/0001-economic-authority-and-causal-execution.md)
 - [源码身份与 holdout epoch 决策](docs/decisions/0002-source-identity-and-holdout-epochs.md)
+- [历史证据索引](artifacts/README.md)
 
 发布 wheel 只包含生产命名空间 `uquant*`；`research/`、`scripts/`、`tests/`、文档、
 验证工件和冻结数据仍保留在仓库中供复现与治理，但不是可安装的生产 API。
@@ -173,26 +188,12 @@ date,open,high,low,close,volume
 
 ```bash
 uv run ruff check .
-uv run mypy uquant scripts research
-uv run pytest --cov=uquant --cov-report=term-missing
+uv run pytest -q
 uv run python -m compileall -q uquant scripts research tests
-uv run python -m uquant.validation data-manifest --data-dir data/frozen
-uv run bandit -q -r uquant research scripts
-uv run python -m uquant.validation promotion \
-  --data-dir data/frozen \
-  --profile full \
-  --output benchmarks/ai_era_performance.json
 ```
 
-该文件是 checkout 后生成并由 CI 上传的运行证据，不纳入 Git；否则文件内的
-`production_commit` 会反过来改变提交 SHA，无法与生成它的 HEAD 精确相等。
-
-GitHub 对每个 PR 和 `main` push 独立给出 `Engineering`、`Phase 1 Performance` 和
-`Phase 2 Generalization` 三个稳定阻断结论。Phase 2 按六个官方窗口分片，但最终结论
-会在所有分片结束后检查精确 HEAD、完整 provenance、234 条记录和冻结政策；任何
-缺失记录，或新增/变化的回放错误，以及政策失败都不会被其他成功分片抵消。
-已认证 baseline 的回放错误若在候选中恢复为有效 cell，则按[性能与证据](docs/PERFORMANCE.md)中的
-共同样本与恢复包络规则验证，不作为“新增/变化的回放错误”处理。
+完整开发、构建、安全和发布命令只在[开发指南](docs/DEVELOPMENT.md)维护；Phase 1/2
+经济门、窗口与证据解释只在[性能与证据](docs/PERFORMANCE.md)维护，避免命令副本漂移。
 
 ## 使用限制
 

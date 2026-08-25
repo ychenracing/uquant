@@ -129,7 +129,7 @@ def _observation_lock(*args: Any, **kwargs: Any) -> Iterator[Any]:
 
 def _parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
-        prog="python scripts/production_observation.py",
+        prog="python -m scripts.production_observation",
         description="Run one evidence-only uquant production observation cycle",
     )
     sub = parser.add_subparsers(dest="command", required=True)

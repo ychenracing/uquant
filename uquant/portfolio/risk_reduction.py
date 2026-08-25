@@ -1,4 +1,4 @@
-"""Mechanical Task 8 owner extracted from the immutable allocator."""
+"""Sparse, risk-priority target reduction."""
 
 from __future__ import annotations
 

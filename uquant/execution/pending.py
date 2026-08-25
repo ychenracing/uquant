@@ -1,4 +1,4 @@
-"""Task 6 mechanical owner for pending."""
+"""Pending-order lifecycle and intent reuse."""
 
 from __future__ import annotations
 

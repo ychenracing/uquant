@@ -1,4 +1,4 @@
-"""Mechanical Task 8 strategic owner extracted from the immutable policy."""
+"""Causal discovery and qualification of strategic cohorts."""
 
 from __future__ import annotations
 

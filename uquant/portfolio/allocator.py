@@ -1,4 +1,4 @@
-"""Mechanical Task 8 owner extracted from the immutable allocator."""
+"""Sole production owner of target-weight allocation."""
 
 from __future__ import annotations
 

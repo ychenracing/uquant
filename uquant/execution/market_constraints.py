@@ -1,4 +1,4 @@
-"""Task 6 mechanical owner for market constraints."""
+"""A-share market, lot, capacity, cash, and T+1 constraints."""
 
 from __future__ import annotations
 

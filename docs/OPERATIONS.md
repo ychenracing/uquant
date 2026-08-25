@@ -17,6 +17,23 @@ uquant 只用于 2023 年以来 A 股 AI 产业链的现金多头日频决策，
 - 券商现金、持仓、当日可卖数量和成交完整；
 - 没有未人工确认的公司行动、停复牌或证券代码变化。
 
+策略中的 `date`/`as_of` 表示交易所 session，不携带时区；人工 Journal 的
+`recorded-at` 与 `actual-time` 必须使用带 offset 的 ISO-8601 时间，A 股操作通常为
+`+08:00`。股票前复权行情不会自动生成分红、送转、配股或代码变更对应的真实现金与股数，
+发生公司行动时必须先和券商事实对账，不能直接沿用旧账户和旧复权前缀。
+
+## 操作入口与权限
+
+| 场景 | 使用入口 | 不应使用 |
+|---|---|---|
+| 日常账户和日报 | `uquant account-*`、`uquant daily` | 研究脚本或独立 Sentinel 代替日报 |
+| 历史回放 | `uquant backtest` | 把回放成交写入真实账户 |
+| 生产观察事务 | `python -m scripts.production_observation` | 分步脚本绕过备份和 receipt |
+| Holdout/Lane/Journal | `python -m scripts.future_holdout` | 兼容别名作为新自动化入口 |
+| Sentinel 故障诊断 | `uquant-sentinel` | 把 Shadow 意见转成卖单或 cap |
+
+`uquant holdout-*` 与 `execution-journal` 是兼容/低层构件，不是 operator 默认工作流。
+
 ## 数据目录
 
 文件名使用规范代码，例如 `sz300308.csv`。必需列为：
@@ -77,6 +94,40 @@ uv run uquant account-sync \
 | `positions` | 持仓、成本和当日可卖数量 |
 | `fills` | 已发生的真实成交 |
 | `orders` | 可选；券商确认已取消订单（`order_id`、`status=CANCELLED`、`remaining_shares=0`） |
+
+最小完整示例：
+
+```json
+{
+  "as_of": "2026-08-06",
+  "cash": 1049000.0,
+  "positions": [
+    {"symbol": "sz300308", "shares": 100, "sellable_shares": 0, "avg_cost": 951.0}
+  ],
+  "fills": [
+    {
+      "fill_id": "broker-fill-20260806-001",
+      "order_id": "O000000001",
+      "fill_date": "2026-08-06",
+      "execution_sequence": 1,
+      "symbol": "sz300308",
+      "side": "BUY",
+      "shares": 100,
+      "price": 951.0,
+      "commission": 5.0,
+      "stamp_duty": 0.0,
+      "transfer_fee": 0.951,
+      "slippage_cost": 0.0,
+      "remaining_shares": 0,
+      "final": true
+    }
+  ],
+  "orders": []
+}
+```
+
+费用字段未提供时按 `0` 读取；若券商能提供，应写入真实值。`gross_value` 可省略并按
+`shares × price` 推导，提供时必须与该乘积在容差内一致。
 
 每笔成交必须包含系统生成的 `order_id`、稳定且唯一的 `fill_id`、证券、方向、股数、价格、费用、成交日期、`remaining_shares` 和 `final`。同日多笔新增成交必须有唯一 `execution_sequence`。
 
@@ -198,6 +249,10 @@ uv run uquant account-code-migrate \
 
 错误发生后先保留账户、快照、日报和日志副本，再调查根因。不要直接编辑持仓、订单或成交数组来绕过校验。
 
+所有外部文件都按不可信输入处理。账户、数据、Journal、checkpoint、输出和备份路径不得
+通过相同路径、符号链接或硬链接互相别名；严格 JSON 拒绝重复键和非有限数值。生产写入
+使用进程锁、临时文件、刷盘和原子替换，但 operator 仍必须把备份放在独立目录。
+
 ## 备份与恢复
 
 建议至少保留：
@@ -241,27 +296,6 @@ source epoch。Future Holdout 遵守 no-backfill：新交易日只能追加到�
 
 ## 发布前检查
 
-```bash
-uv run ruff check .
-uv run mypy uquant scripts research
-uv run python -m uquant.risk_sentinel --validate-contracts
-uv run pytest --cov=uquant --cov-report=term-missing
-uv run python -m compileall -q uquant scripts research tests
-uv run python -m build
-uv run bandit -q -r uquant research scripts
-uv run python -m uquant.validation promotion \
-  --data-dir data/frozen \
-  --profile full \
-  --output benchmarks/ai_era_performance.json
-```
-
-生成的 `benchmarks/ai_era_performance.json` 是 Git 忽略的 post-checkout 证据；
-确认其 provenance 中 `production_commit` 与待发布 HEAD 完全一致，并保留 CI
-上传件。不要把旧 artifact 提交进仓库后当作当前版本证明。
-
-发布分支还必须在 GitHub 得到独立的 `Engineering`、`Phase 1 Performance` 与
-`Phase 2 Generalization` 成功结论。Phase 1 保持上述 full profile；Phase 2 对六个
-固定官方窗口聚合全部 shard，并检查精确 HEAD、完整 provenance、234 条记录、冻结
-policy 与所有失败状态。诊断 artifact 即使失败也要保留，任何一个门都不能由另一个
-成功抵消。纯文档工作运行链接、术语、命令和受影响治理测试；只有可执行输入或行为身份
-发生变化时才重新运行完整经济门。
+发布命令、静态检查和 CI 结论由[开发指南](DEVELOPMENT.md)唯一维护；经济门、窗口和
+证据解释由[性能与证据](PERFORMANCE.md)唯一维护。operator 发布前只需确认使用的是待发布
+HEAD、生成证据没有误提交、账户已备份，并且所需 GitHub 结论均绑定同一提交。

@@ -1,4 +1,4 @@
-"""Read-only CLI for Independent Risk Sentinel Shadow Mode."""
+"""Offline, read-only CLI for the independent Sentinel Shadow diagnostic."""
 
 from __future__ import annotations
 
@@ -319,7 +319,10 @@ def run_shadow(
 
 
 def _sentinel_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(description="Independent Risk Sentinel Shadow Mode")
+    parser = argparse.ArgumentParser(
+        prog="uquant-sentinel",
+        description="Offline, read-only Risk Sentinel Shadow diagnostic",
+    )
     parser.add_argument("--validate-contracts", action="store_true")
     parser.add_argument("--data-dir", type=Path)
     parser.add_argument("--date")

@@ -1,4 +1,4 @@
-"""Task 6 mechanical owner for order planning."""
+"""Deterministic target-to-order planning."""
 
 from __future__ import annotations
 

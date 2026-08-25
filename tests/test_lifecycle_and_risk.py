@@ -848,6 +848,8 @@ from _lifecycle_strategic_guard_cases import (
     test_post_guard_trail_exits_acute_damage_faster_than_gradual_damage,
     test_dominant_strategic_owner_locks_profit_once_without_staged_churn,
     test_dominant_owner_respects_symbol_cap_and_hard_crisis,
+    test_dominant_level1_retention_never_buys_up_to_the_exception_cap,
+    test_dominant_level1_retention_requires_every_bounded_predicate,
     test_completed_strategic_epoch_clears_zero_exit_band_state,
     test_strategic_trail_exempts_a_winner_with_intact_structure,
     test_completed_strategic_label_does_not_bypass_current_market_evidence,

@@ -34,8 +34,8 @@ UV_CACHE_DIR=/tmp/uquant-uv-cache uv sync --frozen --extra dev
 
 构建发布物时，setuptools 只发现 `uquant*`。`research/` 是仓库内离线工具，不是安装后
 可依赖的公共包；脚本、测试、证据、冻结数据和文档也不进入 wheel。`requirements.txt`
-及现有 `full_package_v1` 在 Task 11 保持权威且不改写，Task 12 才把新发布边界登记为
-新的 source epoch，并按 no-backfill 规则验证迁移前后的冻结身份。
+及 `full_package_v1` 保持 `KEEP_AUTHORITATIVE`；当前 `production_wheel_v1` source epoch
+已登记 wheel 边界。后续发布面变化必须创建新 epoch，并按 no-backfill 向前追加身份。
 
 ## 常用检查
 
@@ -67,7 +67,7 @@ Git 忽略；发布证据必须由 checkout 后的命令重建，不能提交一
 
 | 必需结论 | 组成 |
 |---|---|
-| `Engineering` | `quality` 与 `security` 都成功后才成功；summary 总是运行 |
+| `Engineering` | `quality`、`security` 与原生 `Windows smoke` 都成功后才成功；summary 总是运行 |
 | `Phase 1 Performance` | 未删减的 `promotion --profile full`、精确 HEAD 与完整 provenance |
 | `Phase 2 Generalization` | 六个官方窗口分片全部完成后的 234-record policy/evidence 聚合 |
 
@@ -111,9 +111,9 @@ Git 忽略；发布证据必须由 checkout 后的命令重建，不能提交一
 
 1. 明确要改善的指标和不可退化指标；
 2. 写出失败用例或可复现证据；
-3. 做最小改动；
-4. 运行相关单元测试；
-5. 运行静态检查和完整测试；
+3. 做最小改动并运行直接受影响的测试；
+4. 在有意义的 milestone 运行受影响模块、场景或窗口；
+5. 候选字节冻结后运行一次完整 Engineering；
 6. 运行不可拆分的 full AI-era Phase 1 绩效门；
 7. 运行六个固定 2023+ 窗口的 Phase 2 Generalization 门，不改变种子、池或样本失败；
 8. 审查配置、代码、日报、归因和文档是否一致。
@@ -124,12 +124,12 @@ Git 忽略；发布证据必须由 checkout 后的命令重建，不能提交一
 
 对重命名、拆分、注释、文档和工具改动：
 
-1. 保存修改前测试和冻结指标；
-2. 小批量提交；
-3. 使用去除 docstring 的 AST 比较可执行结构；
-4. 运行相关测试和完整质量门；
-5. 比较默认配置、数据摘要和冻结指标；
-6. 审查是否意外触及信号、仓位、订单或统计口径。
+1. 明确受影响文件、链接、命令和治理合同；
+2. 批量完成同一主题修改；
+3. 若触及 Python，使用去除 docstring 的 AST 比较可执行结构；
+4. 运行链接、术语、命令和受影响测试；
+5. 只有共享构建或可执行输入发生变化时才扩大到完整质量门；
+6. 审查是否意外触及默认配置、数据、信号、仓位、订单或统计口径。
 
 无法证明等价时，把它视为策略改动并执行更严格的经济性验证。
 
@@ -170,4 +170,4 @@ git status --short
 - 没有改变 canonical 34-stock AI universe、固定随机池、attribution 或 holdout 合约；
 - 文档和代码使用一致术语；
 - 新公共接口有清晰契约；
-- 完整质量门有本次运行证据。
+- 验证范围与实际影响相称，并有本次运行证据。

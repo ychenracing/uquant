@@ -1,14 +1,14 @@
-# Independent Risk Sentinel — Production FREEZE_ONLY
+# Risk Sentinel：生产 `FREEZE_ONLY` 边界
 
 生产默认模式是 `FREEZE_ONLY`。Independent Risk Sentinel 读取 canonical 34-stock AI
 universe、点时行业、冻结行情、两个指数和已有账户快照，形成独立风险证据；同一份
 摘要进入唯一 `uquant daily` 报告。它不能生成目标、订单或成交，不能直接 SELL，不能
 修改 `target_gross_cap`，也不能写第二账户或第二状态机。
 
-生产映射仍只有 Phase 4 已晋级的窄 Freeze-only 边界：合格意见最多设置现有
-`RiskAssessment.freeze_new_risk`。Phase 6 的完整市场时间线用于因果诊断，但
-`risk_sentinel_causal_confirmation_enabled=false`，所以两日可信确认本身没有新增生产
-权限。Phase 7 尝试仅启用该权限，因没有实际阻止新增风险而 REJECT，未合并 main。
+生产映射只有一条窄边界：合格意见最多设置现有
+`RiskAssessment.freeze_new_risk`。完整市场时间线用于因果诊断，但
+`risk_sentinel_causal_confirmation_enabled=false`；可信确认本身没有新增生产权限。
+历史候选没有证明可推广的增量经济价值，因此不能据离线结果扩大权限。
 
 ## 证据与 Coverage
 
@@ -36,9 +36,9 @@ uquant 正式风险负责生产状态机与经济行为。Sentinel 描述跨市�
 `covariance_stress` 可以进入完整历史时间线；`live_book_damage` 与 `capital_damage`
 只作当日诊断，当前账户不会回填历史。
 
-Phase 8 Evidence Closure 在同一市场序列上比较双方首次 Family 日期。结果是三个可信
+冻结 Evidence Closure 在同一市场序列上比较双方首次 Family 日期。结果是三个可信
 市场 Family 全部为 `DUPLICATE`，`EARLIER=0`、`INCREMENTAL=0`、
-`FALSE_POSITIVE=0`。详细机器证据位于
+`FALSE_POSITIVE=0`。这是历史证据结论，不是永久假设；详细机器证据位于
 `artifacts/sentinel/evidence_closure/evidence_closure.json`。这项分析不改变 confidence、
 确认日、修复日或任何基础风险阈值，也不取得新的 Freeze 权限。
 
@@ -83,7 +83,7 @@ uv run uquant-sentinel \
 - 离线 Calibration 的精度、召回、提前量和机会成本必须与 Future Holdout 正式评分分开。
 - `sentinel_shadow` Holdout Lane 从真实启用日开始，不能回填此前观察。
 
-## Risk Differential Closure 架构
+## Risk Differential 观察边界
 
 Risk Differential Closure 固定了成熟边界：Base Risk 是唯一生产风险权威；Risk
 Sentinel 是独立风险观察器，并只保留既有的窄 `FREEZE_ONLY` 映射；固定提交的
@@ -94,7 +94,8 @@ Risk Sentinel 包含 `trade` 的全部执行政策，也不允许 Sentinel 生�
 
 机器清单、三方逐日 replay、counterfactual 和 terminal promotion decision 位于
 `artifacts/sentinel/risk_differential/`。它们均为 observation/research evidence，不是生产
-指令。
+指令。人类分析见
+[`artifacts/sentinel/risk_differential/analysis.md`](../artifacts/sentinel/risk_differential/analysis.md)。
 
 `risk_differential_shadow` 只接受冻结交易日表中、且 holdout 数据目录确实已出现的 session；
 周末、未来日、无数据日和 activation 前日期都会失败关闭。CLI 不接受调用方编写的风险事实；

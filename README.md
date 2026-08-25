@@ -35,35 +35,18 @@ uquant 是专门面向 2023 年以来 A 股 AI 产业链的日频量化决策系
 
 ## 验证与演进边界
 
-生产与泛化共用 `uquant/contracts/resources/ai_universe_manifest.json` 中经过内容摘要
-保护的 34 只 A 股 AI 产业链证券及其点时行业归属；旧的 `uquant.validation` 导入与
-资源路径保留为兼容入口。消费、白酒、新能源或宽基股票不进入可交易全集。每天仍
-由使用者人工运行、核对并辅助下单，研究和 CI 不会改变这一定位。2023 年以前的行
-始终只是 warm-up。
+生产、绩效门和泛化门共用经过摘要保护的 34 只 A 股 AI 产业链证券及点时行业身份。
+Phase 1 验证六个完整 AI-era 窗口；Phase 2 在固定全集、行业、移除核心与随机池场景中
+检查收益、回撤、订单、换手、集中度和归因一致性。失败场景、样本不足、证券池、seed、
+统计口径和冻结 champion 都不能为了让候选通过而改写。
 
-Phase 2 Generalization 在六个官方窗口分别保留完整全集、逐一/全部移除三只核心、
-去 optical、行业均衡、有效子行业和固定随机池。随机契约只允许基准种子 `20260810`、
-索引 `0..4`、池大小 `5 / 9 / 15 / 20`；失败种子不替换，样本不足也保留为证据。
-报告覆盖 `final_wealth`、`max_drawdown`、`account_orders`、`gross_turnover`、
-`annual_turnover`、`top1_concentration`、`top3_concentration` 和 `pnl_hhi`，并按冻结
-champion 与不可放宽的政策失败关闭。
+经济账本必须满足 `realized_pnl + open_pnl = final_equity - initial_cash`。只有治理为
+`ECONOMIC` 的参数可以进入策略选择；市场规则、安全限制、派生值和兼容字段不得被当作
+优化自由度。完整合同见[性能与证据](docs/PERFORMANCE.md)和[参数参考](docs/CONFIGURATION.md)。
 
-经济归因沿稳定事件身份连接 Target、Order、Tranche 和 Fill；展示用原因文字不是
-归因键。账本满足 `realized_pnl + open_pnl = final_equity - initial_cash`，而 cash drag
-与 risk avoidance 是诊断量，不伪装成会计 PnL。配置字段由 `MARKET_RULE`、`SAFETY`、
-`ECONOMIC`、`DERIVED`、`COMPATIBILITY` 五类完整治理，只有 `ECONOMIC` 可进入候选
-选择。独立消融的当前结论是 `KEEP=10`、`DELETE=1`、`INCONCLUSIVE=2`。
-
-历史样本截至 `2026-08-05`；独立 future holdout 从 `2026-08-06` 开始，固定里程碑为
-`20 / 40 / 60` 个交易日，首次正式评审仍需累计 `40--60` 个交易日。在导入首个
-未来交易日以前，观察和指标必须为 null；holdout
-表现不得反向调参。另有 observational、append-only、broker-independent 的人工执行
-journal 记录计划价、次日开盘、真实成交、人工跳过与滑点，并汇总成交率和真实滑点；
-它不写入决策或账户状态。生产只使用 v2
-`future_holdout_execution_journal.jsonl`；默认 Journal、外部 checkpoint、本地 Lane 报告和
-生产观察备份均被 Git 忽略。
-非空 Journal 必须由外部 checkpoint 锚定；首条计划记录后的显式 bootstrap 和后续 checkpoint
-都应复制到独立存储。
+Future Holdout 从 `2026-08-06` 起只接受真实、按顺序追加的新 session，遵守 no-backfill；
+未观察时正式分数必须为 `null`。人工执行 Journal 独立记录计划、成交、跳过与滑点，不写入
+决策或账户状态。完整操作见[Future Holdout](docs/HOLDOUT.md)。
 
 ## 安装
 
@@ -121,25 +104,9 @@ uv run uquant daily \
 订单意图和决策证据。日常只运行这一次 `uquant daily`，不需要再运行独立 Sentinel CLI；
 生成意图后仍需人工核对券商状态。
 
-真实 Future Holdout 运行时，推荐使用一次性的生产观察入口。它先验证 Journal 并保存运行前
-证据，再导入一个完整 holdout 市场快照、生成确定性重放、调用同一个 `uquant daily`、输出
-本地 Lane 报告并封存运行后证据：
-
-```bash
-uv run python -m scripts.production_observation run \
-  --date 2026-08-06 \
-  --symbols sz300308 sz300502 sz300394 sh688008 sh603986 \
-  --account account_state.json \
-  --data-dir data/live \
-  --broker-snapshot broker_snapshot.json \
-  --holdout-snapshot-dir incoming/2026-08-06 \
-  --holdout-account holdout_prior_close_account.json
-```
-
-该入口仍不会连接券商、自动下单或把观察证据写回决策。完整输入、失败恢复和备份校验见
-[运行手册](docs/OPERATIONS.md)。
-入口会串行化同一仓库/账户的完整事务，在任何市场或账户写入前拒绝输出别名并读回验证运行前
-备份；最终成功或失败 receipt 都由备份 manifest 哈希绑定。
+真实 Future Holdout 使用 `python -m scripts.production_observation run` 一次性完成输入验证、
+运行前备份、session 追加、确定性回放、日报、Lane 报告与 receipt 封存。它仍不连接券商、
+自动下单或把观察结果写回模型；完整命令和恢复流程见[Future Holdout](docs/HOLDOUT.md)。
 
 ### 4. 历史回放
 
@@ -168,17 +135,21 @@ date,open,high,low,close,volume
 
 | 路径 | 职责 |
 |---|---|
-| `uquant/engine.py` | 唯一生产编排、日报决策和回放 |
-| `uquant/config.py` | 参数与约束的唯一来源 |
-| `uquant/data.py`、`features.py` | 点时数据与因果特征 |
-| `uquant/leader.py`、`industry.py` | 领涨与行业证据 |
-| `uquant/opportunity.py`、`risk*.py` | 机会和风险状态 |
-| `uquant/risk_sentinel/` | 独立点时风险证据、Coverage 与 Freeze-only 映射 |
-| `uquant/portfolio*.py` | 唯一目标组合及各生命周期职责 |
-| `uquant/execution.py` | 次日开盘执行模型与订单生命周期 |
-| `uquant/account/`、`broker.py` | 账户持久化和券商对账 |
+| `uquant/application/` | 日报决策、回放、指标、归因和风险时间线编排 |
+| `uquant/config/` | 参数模型、默认值、校验与治理分类 |
+| `uquant/data.py`、`features.py`、`reference*.py` | 点时数据、因果特征和共享参考上下文 |
+| `uquant/industry.py`、`leader.py`、`opportunity.py` | 行业、领涨与机会状态证据 |
+| `uquant/market/`、`uquant/risk/` | replay 工作区、Base Risk 评估与状态转换 |
+| `uquant/portfolio/` | 唯一目标组合、硬约束与持仓生命周期 |
+| `uquant/execution/` | 次日开盘订单、市场约束、费用和成交生命周期 |
+| `uquant/account/` | 账户模型、身份校验、迁移与原子持久化 |
+| `uquant/risk_sentinel/` | 独立风险证据、Coverage 与 `FREEZE_ONLY` 映射 |
+| `uquant/contracts/` | 共享不可变合同、严格 JSON 与资源身份 |
+| `uquant/broker.py`、`report.py` | 券商对账与只读日报渲染 |
 | `uquant/validation/` | 数据完整性、Phase 1 绩效和 Phase 2 泛化门禁 |
+| `uquant/engine.py`、`portfolio_{leaders,strategic,recovery}.py` | 保持旧导入、pickle 与公共 API 的兼容 facade |
 | `research/` | 与生产导入隔离的离线研究工具 |
+| `scripts/` | 仓库内运维、观察与验证入口，不进入 wheel |
 | `tests/` | 行为、不变量和失败路径测试 |
 
 ## 文档导航
@@ -187,6 +158,7 @@ date,open,high,low,close,volume
 - [策略与风控](docs/STRATEGY.md)
 - [参数参考](docs/CONFIGURATION.md)
 - [运行手册](docs/OPERATIONS.md)
+- [Future Holdout](docs/HOLDOUT.md)
 - [性能与证据](docs/PERFORMANCE.md)
 - [Risk Sentinel](docs/RISK_SENTINEL.md)
 - [开发指南](docs/DEVELOPMENT.md)

@@ -28,7 +28,8 @@
 | Bandit | 静态安全检查不得出现未处理问题 |
 | pip-audit | 生产依赖不得包含已知未处理漏洞 |
 | 数据完整性 | 冻结文件、清单和 SHA-256 必须互相一致 |
-| Shadow Sentinel | calibration 合同、canonical universe 和生产导入隔离必须有效；只读重复运行工件必须确定 |
+| Risk Sentinel | `FREEZE_ONLY` 权限、calibration 合同、canonical universe 和生产导入隔离必须有效；只读重复运行工件必须确定 |
+| 文档治理 | 内部链接、示例命令、模块所有权、默认值和权限术语必须与当前仓库一致 |
 | Phase 1 经济性 | `promotion --profile full` 中所有 AI-era 场景的财富、回撤、订单、换手和急跌收益必须通过 |
 | Phase 2 泛化 | 六个固定窗口的完整矩阵必须通过 v2 冻结 policy：保留 literal 诊断，并以已认证 baseline 的逐 cell、intrinsic 与 random-tail 有效边界执行 non-regression |
 
@@ -42,7 +43,7 @@ Risk/Portfolio/Sentinel 权限、账户与订单/成交语义、源码身份、P
 
 对每个 PR 和 `main` push，GitHub 必须稳定给出 `Engineering`、
 `Phase 1 Performance`、`Phase 2 Generalization` 三个独立最终结论。Engineering 的
-always-running summary 同时要求 quality 与 security；Phase 1 summary 要求未删减的
+always-running summary 同时要求 quality、security 与原生 Windows smoke；Phase 1 summary 要求未删减的
 full profile 和精确 provenance；Phase 2 的 `if: always()` aggregator 要求六个 shard
 全部存在且身份、234-record coverage、raw evidence 和 policy 都有效。必需结论不得
 使用 path filter、矩阵 fail-fast、并发取消、`continue-on-error` 或失败转成功。
@@ -65,10 +66,11 @@ README 提供快速开始和文档导航；其余文档各自保持单一职责�
 | `STRATEGY.md` | 信号、组合构建、风险控制、适用范围和局限 |
 | `CONFIGURATION.md` | 参数含义、相互约束和调节风险 |
 | `OPERATIONS.md` | 每日运行、账户维护、故障处理和安全检查 |
+| `HOLDOUT.md` | Future Holdout、Journal、里程碑、no-backfill 与失败恢复 |
 | `PERFORMANCE.md` | 回测口径、指标解释、证据边界和结果复现 |
 | `DEVELOPMENT.md` | 开发环境、测试命令和提交检查清单 |
 | `QUALITY.md` | 本文所列的质量与行为保持契约 |
-| `RISK_SENTINEL.md` | Shadow Sentinel 证据、Coverage、Calibration 和只读运行边界 |
+| `RISK_SENTINEL.md` | 生产 `FREEZE_ONLY` 权限、Coverage、Calibration 和只读诊断边界 |
 
 文档应足以指导使用和维护，但避免重复粘贴完整参数表、源码流程或测试实现。
 
@@ -76,11 +78,11 @@ README 提供快速开始和文档导航；其余文档各自保持单一职责�
 
 质量工作按照以下有界顺序执行：
 
-1. 在修改前保存测试、静态检查和冻结回测/泛化证据。
-2. 小批量修改注释、文档或经验证的健壮性问题。
+1. 明确修改是否触及可执行输入、配置、数据、打包或经济行为。
+2. 批量修改同一主题的注释、文档或经验证的健壮性问题。
 3. 审查修改是否触及策略所有者、参数默认值或交易路径。
 4. 每轮先运行受影响测试和最小必要的静态检查，再审查完整差异；有效问题修复后重复这一有界回路。
-5. 对最终候选生产树完整运行一次 Engineering、Phase 1 和 Phase 2，并对比 full AI-era 与 Generalization 的指标、状态和关键输出摘要。
+5. 行为候选在字节冻结后完整运行一次 Engineering、Phase 1 和 Phase 2；纯文档候选只运行链接、术语、命令与受影响治理测试。
 6. 完整验证后若再有影响结果的修改，重跑受影响门禁并验证新候选树；已证明行为中性的文档、注释或证据元数据变更不重复相同的完整经济回放。
 
 不得通过改写基线、放宽断言、删除失败场景或改变统计口径制造通过结果。无法证明行为等价的改动不属于本质量任务。
@@ -95,4 +97,4 @@ README 提供快速开始和文档导航；其余文档各自保持单一职责�
 - 数据或证据缺失、摘要漂移和账户不一致必须失败关闭。
 - canonical 34-stock AI universe、固定 `20260810` seed contract、归因、参数治理和 future holdout 都是受保护验证输入。
 - 任何平行的研究性或替代实现比较都不能成为发布门，也不能覆盖 Phase 1 或 Phase 2 的失败。
-- Shadow Sentinel 只能输出观察工件；不得写账户、进入生产导入图或改变目标、订单、成交和经济指标。
+- Risk Sentinel 的独立分析只能输出观察工件；生产 `FREEZE_ONLY` 映射至多冻结新增风险，不得写账户、生成卖单、改变总仓上限或建立第二风险状态机。

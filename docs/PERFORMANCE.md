@@ -157,7 +157,7 @@ scenario 和 causal evidence 身份，再调用冻结 policy/evidence validator�
 
 只报告最优股票池、最优区间或平均值会掩盖薄弱场景。参数选择与最终验证应使用不同区间或不同证券子集。
 
-### 四个当前 HEAD 横向基线
+### 四系统冻结横向基线
 
 `benchmarks/current_heads_competitor_matrix.json` 冻结实施开始时 uquant、aquant、
 qwenquant 和 trade 的远程 HEAD，在完全相同的数据、信号时点、next-open、费用滑点、
@@ -167,10 +167,10 @@ T+1 和股票池合同下形成 1,056 个逐 Cell 结果。矩阵固定包含 12
 registry、矩阵顶层和每个 Cell，CI 会通过 `python -m research.current_heads` 独立重算
 行数、身份、状态、摘要与聚合。
 
-该矩阵用于 Risk Sentinel 融合前的当前版本基线和后续归因，不是自动推广门，也不替代
-历史已认证 champion。当前矩阵里某个系统领先或落后都不改变既有生产政策；历史横向
+该矩阵用于 Risk Sentinel 融合前的版本基线和后续归因，不是自动推广门，也不替代
+历史已认证 champion。矩阵里某个系统领先或落后都不改变既有生产政策；历史横向
 结果同样不保证未来。完整审阅、隔离运行说明和已知限制见
-`docs/reviews/2026-08-18-current-heads-baseline.md`。
+[`artifacts/current_heads/analysis.md`](../artifacts/current_heads/analysis.md)。
 
 ## Future holdout 与人工执行证据
 
@@ -189,19 +189,18 @@ holdout。未来 session 未导入时观察与指标必须为 null，不允许�
 `benchmarks/future_holdout_lane_registry.json` 为追加式候选登记簿。每条 Lane 固定
 真实启用日、完整 Git commit、生产与 Sentinel 源码、有效配置、数据合同、Python、
 NumPy、pandas、uv 和锁文件摘要；已开始观察的身份不得修改或删除，新 Lane 不得从已
-观察日期回填。当前仅登记合同原有的 `champion_pre_sentinel`，没有凭空创建 Sentinel
-候选。`artifacts/holdout/lane_validation.json` 明确记录样本量、下一里程碑和七个正式
+观察日期回填。新增 source epoch 或候选必须从真实启用日向前登记，不能凭空创建历史
+观察。`artifacts/holdout/lane_validation.json` 明确记录样本量、下一里程碑和七个正式
 评分；少于 20 日时这些评分全部为 `null`，诊断指标也不得伪装为正式评分。
 
 ## 如何判断改动是否安全
 
-对注释、文档或工程质量改动，应同时满足：
+对注释、文档或工程质量改动，先证明是否影响可执行输入：
 
-1. 去除 docstring 后的 Python AST 与基线相同；
-2. 默认配置摘要相同；
-3. 冻结数据摘要相同；
-4. 完整测试和静态门禁通过；
-5. full profile 中每个 AI-era 场景的财富、回撤、订单、换手和压力区间收益逐项相同。
+1. 纯 Markdown 运行链接、术语、命令和受影响治理测试；
+2. Python 注释/docstring 改动比较去除 docstring 后的 AST，并运行受影响静态检查；
+3. 默认配置、冻结数据、打包或运行时输入发生变化时，验证对应摘要和合同；
+4. 只有行为身份无法证明不变时，才升级为完整 Engineering、Phase 1 和 Phase 2 验证。
 
 对策略改动则不能要求指标完全相同，但必须预先定义允许的收益、回撤和交易成本边界，并使用未参与选择的场景复核。
 
@@ -219,26 +218,6 @@ NumPy、pandas、uv 和锁文件摘要；已开始观察的身份不得修改或
 - 极端停牌、连续涨跌停和流动性枯竭可能使实际仓位偏离目标；
 - 小样本急跌区间的统计不稳定，应与更多压力场景共同使用。
 
-## Phase 4 Freeze-only 验收
-
-修正后的 Freeze-only 在 `a/h1_2024` 没有经济分叉：最终财富 1.9042531401、MDD
-0.1567427757、Acute 0.0639067990、订单 8、gross turnover 2.0503083590，均与显式
-Shadow 精确相同，财富保留 100%，机会成本为 0。
-
-Phase 1 的 30 个官方单元和 15 个保护单元全部通过；显式 Shadow 与 Freeze-only 的
-Generalization 均为 234/234，通过 no-optical、remove-core 和 120 个固定随机池，且所有
-经济/status 字段 0 差异。完整结果与原始矩阵摘要见 `artifacts/sentinel/freeze_only/`。
-
-## Phase 7 REJECT 与 Phase 8 Evidence Closure
-
-Phase 7 只启用可信因果确认候选。三个预锁定小门 Cell 中，`a/h1_2024` 在
-2024-06-25 出现一次非 severe-direct、Coverage READY、confidence 1.0、可信连续两日且
-base 未 Freeze 的 Sentinel 独立 Freeze，但当天实际阻止新增风险数为 0。财富、MDD、
-Acute、账户订单和换手均为零差异；直接 SELL、`RISK_GROSS_CAP`、健康持仓减仓及禁止风险
-字段漂移也均为0。因此候选因没有增量经济价值而 REJECT，未运行昂贵完整矩阵，未合并 main。
-
-Phase 8 只回收长期审计价值。截止 2026-08-05 的点时时间线显示三个可信市场 Family
-均为重复能力：`market_velocity` Base/Sentinel 首日均为 2014-02-25；
-`breadth_structure` 为 2014-02-25 / 2014-02-26；`covariance_stress` 为
-2015-08-18 / 2024-09-30。`EARLIER=0`、`INCREMENTAL=0`、
-`FALSE_POSITIVE=0`。该工件不读账户，生产因果确认开关保持关闭，实际机会成本为0。
+Risk Sentinel 的冻结晋级、拒绝候选与 Evidence Closure 固定结果保存在
+`artifacts/sentinel/`。这些历史数值用于审计，不替代本页的长期绩效合同，也不自动授予
+新的生产权限。

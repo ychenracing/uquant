@@ -4,6 +4,11 @@
 
 uquant 只用于 2023 年以来 A 股 AI 产业链的现金多头日频决策，适合盘后人工触发。建议固定在数据更新完成、券商成交确认后执行。`daily` 生成下一交易日订单意图并保存账户，不会向券商发送订单；使用者必须人工核对并决定是否下单。
 
+首次部署先完成四项检查：使用 Python 3.12 和 `uv sync --frozen` 建立锁定环境；验证
+`data/frozen` 清单；初始化或迁移账户并保存独立备份；确认券商快照能完整提供现金、持仓、
+可卖数量和成交。Future Holdout 还必须单独准备数据目录、回放账户、Journal checkpoint
+和备份目录，见[Future Holdout](HOLDOUT.md)。
+
 每次运行前确认：
 
 - 系统日期、时区和目标交易日正确；
@@ -122,10 +127,10 @@ uv run uquant daily \
 
 ### 外部执行 journal
 
-人工闭环可另写 observational、append-only、broker-independent journal，逐笔记录
-计划价格、下一交易日开盘、实际成交时间/价格/股数、人工跳过和由此计算的滑点。
-该文件不连接券商、不回写 `account_state.json`，也不作为候选排序、风险状态或参数
-输入；系统账户和完整券商快照仍是生产状态的权威来源。
+人工闭环可另写 observational、append-only、broker-independent Journal，逐笔记录计划、
+下一交易日开盘、实际成交和人工跳过。它不连接券商、不回写 `account_state.json`，也不
+作为候选排序、风险状态或参数输入；命令、checkpoint 与恢复规则见
+[Future Holdout](HOLDOUT.md)。
 
 ## 历史回放
 
@@ -140,154 +145,29 @@ uv run uquant backtest \
 
 数据目录可以保留 2023 年以前的行情，但这些行只用于形成指标 warm-up；上市前证券不可见。初始权益、订单、成交、换手和绩效统计都从 2023+ 回放起点开始。回放执行模型和每日决策共用同一引擎。
 
-## Future holdout
+## Future Holdout
 
-历史研究和冻结 benchmark 最后一天是 `2026-08-05`，future holdout 的第一天是
-`2026-08-06`，存放在与 `data/frozen` 隔离的目录。`2026-08-05` 收盘决策若在次日
-执行，整个成交归入 holdout。未导入未来 session 时，观察和指标必须保持 null；
-不能创建占位收益、沿用历史指标或据观察期表现修改参数。固定里程碑是
-`20 / 40 / 60` 个交易日，首次正式评审必须累计 `40--60` 个交易日，并继续保留人工运行、
-完整券商对账与外部 journal。起始账户
-必须逐字节匹配已审阅的 `continuous_ai_era/full` 回放摘要；未来评分只接受可重放、
-可重算的执行证据，独立填写或重新封签的指标 JSON 会被拒绝。
-
-每日先以独立目录导入恰好一个完整市场快照，再生成确定性回放；历史冻结数据、Future
-Holdout 数据和人工 Journal 不得共用目录。远程 CI 只验证仓库跟踪的零观察基线，不读取
-操作者本地数据：
+真实未来数据、Lane、确定性回放、人工执行 Journal、checkpoint、Risk Differential 观察和
+失败恢复采用独立合同，不能与冻结数据或生产账户混用。日常入口为：
 
 ```bash
-uv run python -m scripts.future_holdout validate-static-lanes
+uv run python -m scripts.production_observation run --help
 ```
 
-本地真实观察使用独立、Git 忽略的报告。它按当前 holdout 数据重算观察日、下一里程碑和
-Lane 身份；即使已有非零观察，也不会要求修改仓库内的零观察基线：
-
-```bash
-uv run python -m scripts.future_holdout report-lanes
-```
-
-兼容命令 `validate-lanes` 等同于 `validate-static-lanes`。不要把本地
-`future_holdout_lane_report.json` 提交或复制到跟踪的
-`artifacts/holdout/lane_validation.json`。
-
-### 唯一生产观察命令
-
-准备好恰好一个交易日、且文件清单与 `data/frozen` 完全一致的市场快照后，日常使用：
-
-```bash
-uv run python -m scripts.production_observation run \
-  --run-id 2026-08-06 \
-  --date 2026-08-06 \
-  --symbols sz300308 sz300502 sz300394 sh688008 sh603986 \
-  --account account_state.json \
-  --data-dir data/live \
-  --broker-snapshot broker_snapshot.json \
-  --holdout-snapshot-dir incoming/2026-08-06 \
-  --holdout-account holdout_prior_close_account.json
-```
-
-`holdout_prior_close_account.json` 是合约审阅的 `2026-08-05` 收盘账户，只供确定性 Future
-Holdout 重放；日常 `account_state.json` 仍是唯一生产账户。命令严格依次执行：
-
-1. 获取同一仓库/账户的全事务互斥锁，以现有外部 checkpoint 验证 v2 Journal；非空 Journal
-   缺少 checkpoint 时拒绝运行；
-2. 在 `production_observation_backups/<run-id>/` 保存运行前账户、券商快照、holdout 起始账户、
-   Journal 和 checkpoint，并在任何快照追加或账户写入前立即读回验证；
-3. 不可变追加一个 holdout 市场 session，并生成确定性 replay/decision；
-4. 调用原有 `uquant daily --broker-snapshot`，在同一路径完成账户对账和唯一 Daily Report；
-5. 生成本地非零 Lane 报告，原子更新 Journal checkpoint；
-6. 归档运行后账户、日报、Journal、replay、decision、Lane 报告和 checkpoint，以 SHA-256
-   manifest 绑定最终 `COMPLETED` 或 `FAILED` receipt 后释放互斥锁。
-
-默认日报是 `daily_report_<date>.md`，Lane 报告是
-`future_holdout_lane_report.json`。重复的 `run-id` 会被明确拒绝，避免覆盖原始证据；修复输入后
-重跑应使用例如 `2026-08-06-retry1`。如果在 holdout 追加后失败，已追加 session 保持不可变；
-同一快照可幂等重试，但进入下一 session 前必须先成功生成当前 replay checkpoint。
-所有可写输出必须彼此独立，也不能位于备份树或与其硬链接；任何别名都在创建备份前拒绝。
-
-人工 Journal 使用 v2 hash chain，每行包含决策日、计划证券/方向/权重/参考价、次日
-开盘、实际成交、人工跳过原因、实现滑点、券商订单 ID、记录时间和前后哈希。它只写
-独立 JSONL，不连接券商、不调用 `ProductionEngine`，也不写模型账户：
-
-```bash
-uv run python -m scripts.future_holdout journal planned \
-  --plan-id 20260805-sz300308-buy \
-  --decision-date 2026-08-05 \
-  --recorded-at 2026-08-05T15:01:00+08:00 \
-  --symbol sz300308 --side BUY --planned-weight 0.08 \
-  --planned-price 947.74 --planned-shares 100
-
-# 首条 planned 是唯一显式 bootstrap；追加后立即建立并外存信任锚
-uv run python -m scripts.future_holdout journal checkpoint
-uv run python -m scripts.future_holdout journal verify
-
-uv run python -m scripts.future_holdout journal filled \
-  --plan-id 20260805-sz300308-buy \
-  --recorded-at 2026-08-06T09:32:00+08:00 \
-  --next-open 950.00 --actual-time 2026-08-06T09:31:05+08:00 \
-  --actual-price 951.00 --actual-shares 100 \
-  --broker-order-id manual-broker-001
-
-uv run python -m scripts.future_holdout journal report
-
-# 每次追加后更新、外存并验证 checkpoint
-uv run python -m scripts.future_holdout journal checkpoint
-
-uv run python -m scripts.future_holdout journal verify
-```
-
-跳过时使用 `future_holdout.py journal skipped --manual-skip "原因"`。只能追加事件；不得编辑、
-截断或重封既有行。部分成交可追加多条 `filled`，剩余部分最终用 `skipped` 显式收口。
-`report` 汇总完整、部分、未成交和跳过计划，以及成交率、实现滑点和按次日开盘名义金额
-加权的滑点bps。外部checkpoint应复制到独立存储；`verify` 会检测截断或已保留前缀被重封。
-只有空 Journal 可以没有 checkpoint；非空 Journal 缺少 checkpoint 会失败，不能从当前尾部静默
-重封。首条 `planned` 后运行 `checkpoint` 是单独可审计的 bootstrap，之后每次追加都应立即更新
-并外存信任锚。
-`scripts/future_holdout.py journal` 是唯一生产 v2 Journal 入口；`uquant execution-journal`
-只保留为旧 v1 数据兼容接口，不用于新增真实证据。默认 Journal 及 checkpoint 已被 Git 忽略，
-自定义路径同样不得提交。人工成交仅改变 Journal checkpoint，不能改变模型 Decision Digest、
-回放分数或候选晋级。
+未观察时正式评分必须为 `null`；新 session 只能向前追加并遵守 no-backfill；观察结果不能
+反向调参或扩大生产权限。完整准备清单、命令和恢复步骤见
+[Future Holdout](HOLDOUT.md)。
 
 ## Risk Sentinel 日报融合
 
-Risk Differential / counterfactual 观察不得转换成人工 SELL、gross-cap override 或配置
-变更。日常生产操作仍只有一条 `uquant daily` 路径；`trade` checkout 只在显式
-observation-only challenger 命令中使用，缺失或身份不匹配时该观察必须 fail closed，
-且该 checkout 必须同时匹配注册 Git HEAD、完整 Python source hash、风险源 hash 与四个 lock
-文件 hash。追加命令不接受外部 payload：
+生产默认是 `FREEZE_ONLY`。`uquant daily` 在唯一日报中显示 Mode、Level、Coverage、
+Confidence、Owner、Risk Families、AI Industry Risk 和受限结论；日常不再运行独立
+Sentinel CLI。Sentinel 最多设置现有 `RiskAssessment.freeze_new_risk`，不能直接 SELL、
+降低 `target_gross_cap`、创建第二账户或增加账户字段。
 
-```bash
-uv run python -m scripts.future_holdout append-risk-differential \
-  --trade-root /path/to/pinned/trade-checkout \
-  --date 2026-08-24
-```
-
-命令只从已验证的 holdout session 内部运行两套引擎并派生 observation；调用方不能提交自填
-风险等级、axes 或 actionability。任何失败或身份不匹配的运行不得计入 Differential holdout
-session。
-追加命令还会验证日期同时属于冻结 review calendar 和真实 holdout data sessions，并复核既有
-Journal 的 hash chain、字段类型、互斥 axes 与 source identity。只有真实 session 数达到 20 后
-才产生 formal differential scores；此前固定为 `OBSERVING / NON_REVIEWABLE`。
-
-生产默认是 `FREEZE_ONLY`。`uquant daily` 已在唯一日报中显示 Mode、Level、Coverage、
-Confidence、Owner、Risk Families、AI Industry Risk 和受限结论；日常不再要求额外运行
-Sentinel CLI。Sentinel 不能直接 SELL、降低 `target_gross_cap`、创建第二账户或增加账户字段。
-
-下列命令只用于工程合同验证或离线故障诊断：
-
-```bash
-uv run python -m uquant.risk_sentinel --validate-contracts
-uv run uquant-sentinel \
-  --data-dir data/frozen \
-  --date 2026-08-05 \
-  --account account_state.json \
-  --output artifacts/sentinel/2026-08-05.json
-```
-
-输出不能位于数据目录，也不能覆盖账户；失败运行保留现有最新成功指针。生产映射最多设置
-现有 `RiskAssessment.freeze_new_risk`。Phase 6 可信历史的生产权限开关保持 `false`；
-Phase 7 独立确认候选已经 REJECT。不要把 Sentinel 观察手工转换为卖单、风险动作或总仓
-限制。完整合同见 [RISK_SENTINEL.md](RISK_SENTINEL.md)。
+Risk Differential 与 counterfactual 只作观察，不得转换成人工卖单、gross-cap override 或
+配置变更；命令与里程碑规则见 [Future Holdout](HOLDOUT.md)。工程合同验证和离线故障
+诊断见 [Risk Sentinel](RISK_SENTINEL.md)。
 
 生产源码升级后，先备份账户，再使用显式代码身份迁移：
 
@@ -349,9 +229,9 @@ holdout session。
 
 清理清单只覆盖删除、移动、外置、权限变更候选和高风险证据。一轮引用搜索无法证明
 安全删除时标记 `UNRESOLVED_KEEP`，而不是继续猜测；冻结数据、身份注册表、锁文件和
-当前治理清单标记 `KEEP_AUTHORITATIVE`。Task 11 的可恢复清单位于
+当前治理清单标记 `KEEP_AUTHORITATIVE`。可恢复清单位于
 `artifacts/architecture_refactor/cleanup_inventory.json`，并为每个条目记录内容摘要、
-引用证据、权限理由和 Git 恢复命令。
+引用证据、权限理由、删除或迁移处置和 Git 恢复边界。
 
 三项高风险锚分别是 `artifacts/architecture_refactor/baseline_inventory.json`、
 `benchmarks/source_surface_registry.json` 与 `data/frozen/DATA_MANIFEST.json`。
@@ -383,4 +263,5 @@ uv run python -m uquant.validation promotion \
 `Phase 2 Generalization` 成功结论。Phase 1 保持上述 full profile；Phase 2 对六个
 固定官方窗口聚合全部 shard，并检查精确 HEAD、完整 provenance、234 条记录、冻结
 policy 与所有失败状态。诊断 artifact 即使失败也要保留，任何一个门都不能由另一个
-成功抵消。注释和文档工作仍要证明可执行 AST 与 AI-era 指标保持不变。
+成功抵消。纯文档工作运行链接、术语、命令和受影响治理测试；只有可执行输入或行为身份
+发生变化时才重新运行完整经济门。

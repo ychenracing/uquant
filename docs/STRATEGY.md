@@ -152,25 +152,16 @@ Target、Order、Tranche、Fill 保存稳定的事件、origin subsystem/mechani
 replacement 和 industry-at-entry 身份；人工可读原因文本不承担归因。realized/open-lot
 PnL 必须与最终权益变化对账，cash drag 与 paired risk avoidance 只作诊断。
 
-独立 subsystem ablation 的当前合约结论是 `KEEP=10`、`DELETE=1`、
-`INCONCLUSIVE=2`：无行为 divergence 或证据无效不能证明可以删除；保留机制只需在
-任一受保护 tail/generalization cell 提供独特保护。市场与安全规则从不作为消融候选。
+独立 subsystem ablation 只有在行为确实分叉、证据身份有效且所有受保护维度无回归时
+才能证明可删除。无行为 divergence 或证据无效只能得到 `INCONCLUSIVE`；任一受保护
+tail/generalization cell 存在独特保护就必须保留。市场与安全规则从不作为消融候选。
+冻结结论见[消融证据](../artifacts/phase2/ablations/conclusions.md)。
 
-历史选择截至 `2026-08-05`，future holdout 从 `2026-08-06` 开始并与冻结数据隔离。
-固定里程碑为 `20 / 40 / 60` 个交易日，首次正式评审需 `40--60` 个交易日，结果不能反向调参。人工真实执行由 observational、
-append-only、broker-independent journal 记录，但它不参与生产决策或账户状态。
+Future Holdout 与冻结数据隔离，按真实 session 向前追加并遵守 no-backfill；观察结果不能
+反向调参。人工真实执行由 append-only Journal 记录，但不参与生产决策或账户状态。完整
+边界见[Future Holdout](HOLDOUT.md)。
 
-## 可考虑的发展方向
-
-1. 增加点时基本面、盈利预期和产业景气证据，但保持与价格策略解耦；
-2. 按冻结 future holdout 合约积累预定观察期，而不是扩大单一区间搜索；
-3. 加强成交容量、开盘缺口和极端滑点压力测试；
-4. 扩展行业映射的生效日期和置信度审计；
-5. 为风险状态增加可视化归因，突出最早发生的证据变化；
-6. 在不改动官方窗口、seed 或 pool 的前提下复核集中度与归因稳定性；
-7. 在不增加交易次数的前提下研究更平滑的风险恢复路径。
-
-## Phase 4 Sentinel 冻结边界
+## Risk Sentinel 冻结新增风险边界
 
 当前生产默认是受控的 `FREEZE_ONLY` 路径。只有
 `uquant.assess_risk()` 可以把 Sentinel 的 READY、高置信、至少两个独立家族且具有同日增量
@@ -178,13 +169,10 @@ append-only、broker-independent journal 记录，但它不参与生产决策或
 保持基础 uquant 原值。冻结只阻止新开仓、ADD1/ADD2、SATELLITE、新 RECOVERY、主动轮动
 和未成交增量买单，不能单独卖出或降低健康持仓。
 
-Phase 4 没有可靠的逐家族点时首次日期载体，因此 `sentinel_earlier_supported=false`，更早证据
-只输出为关闭的诊断项，不能取得冻结权限。该路径只有正式 `RiskAssessment.freeze_new_risk`
-为真时才有行为；Sentinel evidence 字段本身不能绕过权限。
+`sentinel_earlier_supported=false` 时，更早证据只输出为关闭的诊断项，不能取得冻结权限。
+该路径只有正式 `RiskAssessment.freeze_new_risk` 为真时才有行为；Sentinel evidence 字段
+本身不能绕过权限。
 同理，今日持仓、领导者、资本回撤或行业映射不会回填历史确认；生产输出
 `confirmation_history_trusted=false`，普通两日确认失败关闭，只有满足完整窄口径的
-severe-direct 当日例外仍可授权。
-
-修正后的 `a/h1_2024` 候选与显式 Shadow 没有经济分叉：财富、回撤、Acute、订单和换手
-逐项相同，财富保留 100%。Phase 1 的 45 个单元和 Generalization 的 234 个单元全部通过，
-因此 `FREEZE_ONLY` 达到晋级门槛。
+severe-direct 当日例外仍可授权。生产权限与历史经济证明见
+[Risk Sentinel](RISK_SENTINEL.md)和相邻冻结 artifacts。

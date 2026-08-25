@@ -1,5 +1,8 @@
 # Risk Differential Closure — 2026-08-21
 
+> **历史证据快照：** 本文解释本目录中的冻结差分与 counterfactual 结果，不授予当前生产
+> 权限。当前权限合同见 [`docs/RISK_SENTINEL.md`](../../../docs/RISK_SENTINEL.md)。
+
 ## 结论
 
 报告闭集判定为 `NO_PROMOTABLE_INCREMENTAL_RISK`；面向项目的结论代码为

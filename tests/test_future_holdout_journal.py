@@ -52,7 +52,7 @@ def _append_complete_plan(path: Path) -> None:
     )
 
 
-def test_phase2_journal_rows_bind_complete_observational_evidence(tmp_path: Path) -> None:
+def test_generalization_journal_rows_bind_complete_observational_evidence(tmp_path: Path) -> None:
     path = tmp_path / "execution.jsonl"
     _append_complete_plan(path)
     append_filled(
@@ -94,21 +94,21 @@ def test_phase2_journal_rows_bind_complete_observational_evidence(tmp_path: Path
     assert read_execution_journal(path)[-1].record_sha256 == rows[1]["record_hash"]
 
 
-def test_phase2_journal_detects_history_edits_and_reads_legacy_rows(tmp_path: Path) -> None:
-    phase2 = tmp_path / "phase2.jsonl"
-    _append_complete_plan(phase2)
-    row = json.loads(phase2.read_text(encoding="utf-8"))
+def test_generalization_journal_detects_history_edits_and_reads_legacy_rows(tmp_path: Path) -> None:
+    generalization = tmp_path / "phase2.jsonl"
+    _append_complete_plan(generalization)
+    row = json.loads(generalization.read_text(encoding="utf-8"))
     row["planned_weight"] = 0.09
-    phase2.write_text(json.dumps(row) + "\n", encoding="utf-8")
+    generalization.write_text(json.dumps(row) + "\n", encoding="utf-8")
     with pytest.raises(ValueError, match="hash"):
-        read_execution_journal(phase2)
+        read_execution_journal(generalization)
 
     legacy = tmp_path / "legacy.jsonl"
     legacy.write_bytes(_V1_PLANNED_BYTES)
     assert read_execution_journal(legacy)[0].schema_version == 1
 
 
-def test_phase2_journal_module_has_no_production_state_dependencies() -> None:
+def test_generalization_journal_module_has_no_production_state_dependencies() -> None:
     source = Path("uquant/validation/execution_journal.py").read_text(encoding="utf-8")
     tree = ast.parse(source)
     imported = {
@@ -127,7 +127,7 @@ def test_phase2_journal_module_has_no_production_state_dependencies() -> None:
     )
 
 
-def test_phase2_journal_cli_requires_and_emits_complete_plan(
+def test_generalization_journal_cli_requires_and_emits_complete_plan(
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,
     capsys: pytest.CaptureFixture[str],
@@ -187,7 +187,7 @@ def test_phase2_journal_cli_requires_and_emits_complete_plan(
     assert "manual-broker-001" in report
 
 
-def test_phase2_journal_cli_records_manual_skip(
+def test_generalization_journal_cli_records_manual_skip(
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,
     capsys: pytest.CaptureFixture[str],

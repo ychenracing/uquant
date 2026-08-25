@@ -191,7 +191,7 @@ date,open,high,low,close,volume
 
 ```bash
 uv run pytest -q tests/test_reproducible_wheel_build.py \
-  tests/architecture/test_task11_repository_governance.py
+  tests/architecture/test_repository_governance.py
 uv run ruff check scripts/build_reproducible_wheel.py \
   tests/test_reproducible_wheel_build.py
 uv run python -m compileall -q uquant scripts research tests

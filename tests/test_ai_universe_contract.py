@@ -25,7 +25,7 @@ from uquant.validation.universe import (
 ROOT = Path(__file__).resolve().parents[1]
 
 
-def test_frozen_champion_preserves_every_reviewed_phase1_identity() -> None:
+def test_frozen_champion_preserves_every_reviewed_performance_identity() -> None:
     """Breaks if a frozen input is replaced by a candidate's own identity."""
     champion = load_phase1_frozen_champion()
 
@@ -109,7 +109,7 @@ def test_manifest_hash_is_canonical_and_rejects_stale_nonreference_symbol(tmp_pa
 def test_package_resources_are_the_single_runtime_manifest_source() -> None:
     """Breaks if source-tree benchmark copies drift from packaged runtime bytes."""
     assert not (ROOT / "benchmarks" / "ai_universe_manifest.json").exists()
-    assert not (ROOT / "benchmarks" / "phase1_frozen_champion.json").exists()
+    assert not (ROOT / "benchmarks" / "performance_frozen_champion.json").exists()
     assert json.loads(ai_universe_manifest_bytes())["canonical_sha256"] == load_ai_universe().sha256
     assert json.loads(frozen_champion_bytes())["production"]["commit"] == FROZEN_CHAMPION_COMMIT
 

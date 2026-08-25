@@ -16,7 +16,7 @@ import numpy as np
 
 from .contracts.universe import default_ai_universe
 
-_PHASE1_COMPATIBILITY_LABELS = MappingProxyType(
+_FROZEN_COMPATIBILITY_LABELS = MappingProxyType(
     {
         "advanced_packaging": "packaging",
         "semicap": "equipment",
@@ -35,7 +35,7 @@ def production_industries() -> Mapping[str, str]:
     universe = default_ai_universe()
     return MappingProxyType(
         {
-            member.symbol: _PHASE1_COMPATIBILITY_LABELS.get(member.industry, member.industry)
+            member.symbol: _FROZEN_COMPATIBILITY_LABELS.get(member.industry, member.industry)
             for member in universe.members
         }
     )

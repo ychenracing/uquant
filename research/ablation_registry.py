@@ -23,7 +23,7 @@ MINIMAL_ABLATION_REGISTRY_PATH: Final = (
     / "ablations"
     / "minimal_registry.json"
 )
-POST_TASK8_SOURCE_CONTRACT_PATH: Final = (
+REFERENCE_SOURCE_CONTRACT_PATH: Final = (
     Path(__file__).resolve().parents[1]
     / "artifacts"
     / "phase2"
@@ -834,7 +834,7 @@ def _strict_json_object(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
     return result
 
 
-def _validate_post_task8_source(
+def _validate_reference_source_contract(
     registry: AblationRegistry,
     *,
     root: Path,
@@ -848,7 +848,7 @@ def _validate_post_task8_source(
         raise ValueError("ablation production source differs from the reviewed source hash")
     try:
         payload = json.loads(
-            POST_TASK8_SOURCE_CONTRACT_PATH.read_text(encoding="utf-8"),
+            REFERENCE_SOURCE_CONTRACT_PATH.read_text(encoding="utf-8"),
             object_pairs_hook=_strict_json_object,
         )
     except (OSError, UnicodeError, json.JSONDecodeError) as exc:
@@ -961,7 +961,7 @@ def validate_ablation_registry(
         raise ValueError("ablation carrier identities must be unique")
     observed_source_sha256 = source_fingerprint(root)
     if observed_source_sha256 != registry.source_sha256:
-        _validate_post_task8_source(
+        _validate_reference_source_contract(
             registry,
             root=root,
             observed_source_sha256=observed_source_sha256,
@@ -1033,7 +1033,7 @@ def _verified_json(
     return _require_mapping(payload, label=f"fixed contract {contract.name}")
 
 
-def _phase1_schedule(
+def _performance_schedule(
     root: Path,
     contract: FixedContract,
     *,
@@ -1169,7 +1169,7 @@ def build_contract_schedule(
     generalization = registry.contract("ai_era_generalization")
     evidence = registry.contract("frozen_generalization_status")
     cells = (
-        *_phase1_schedule(root, phase1, base_commit=registry.base_commit),
+        *_performance_schedule(root, phase1, base_commit=registry.base_commit),
         *_generalization_schedule(
             root,
             generalization,

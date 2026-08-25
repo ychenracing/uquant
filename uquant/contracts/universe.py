@@ -188,7 +188,7 @@ def _resource_bytes(name: str) -> bytes:
 
 def frozen_champion_bytes() -> bytes:
     """Return the immutable champion artifact packaged with production code."""
-    return _resource_bytes("phase1_frozen_champion.json")
+    return _resource_bytes("performance_frozen_champion.json")
 
 
 def ai_universe_manifest_bytes() -> bytes:

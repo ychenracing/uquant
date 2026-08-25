@@ -179,16 +179,16 @@ def test_every_official_control_and_shadow_is_an_actual_engine_replay() -> None:
 
 def test_negative_controls_are_detached_reruns_not_constants() -> None:
     controls = _load("artifacts/sentinel/risk_differential/negative_controls_rerun.json")
-    phase5 = controls["phase5_limited_gross_cap"]
-    phase7 = controls["phase7_exclusive_freeze"]
-    assert phase5["detached_rerun"] is True
-    assert phase5["status"] == "REJECTED"
-    assert phase5["matches_archived_evidence"] is True
-    assert phase7["detached_rerun"] is True
-    assert phase7["status"] == "REJECTED"
-    assert phase7["matches_archived_evidence"] is True
-    assert phase7["actionable_buy_intents"] == 0
-    assert phase7["exact_economic_equivalence"] is True
+    gross_cap = controls["phase5_limited_gross_cap"]
+    evidence_recovery = controls["phase7_exclusive_freeze"]
+    assert gross_cap["detached_rerun"] is True
+    assert gross_cap["status"] == "REJECTED"
+    assert gross_cap["matches_archived_evidence"] is True
+    assert evidence_recovery["detached_rerun"] is True
+    assert evidence_recovery["status"] == "REJECTED"
+    assert evidence_recovery["matches_archived_evidence"] is True
+    assert evidence_recovery["actionable_buy_intents"] == 0
+    assert evidence_recovery["exact_economic_equivalence"] is True
 
 
 def test_negative_control_git_commands_use_an_absolute_executable() -> None:

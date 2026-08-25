@@ -54,7 +54,7 @@ def _object_exists(root: Path, revision: str) -> bool:
     )
 
 
-def _phase5(worktree: Path) -> dict[str, Any]:
+def _gross_cap_rejection_control(worktree: Path) -> dict[str, Any]:
     output = worktree / "phase5-rerun.json"
     _run(
         [
@@ -86,7 +86,7 @@ def _phase5(worktree: Path) -> dict[str, Any]:
     }
 
 
-_PHASE7_HARNESS = r"""
+_SOURCE_AVAILABILITY_HARNESS = r"""
 import json
 from pathlib import Path
 from research.sentinel_exclusive_freeze import run_exclusive_freeze_comparison
@@ -127,8 +127,8 @@ print(json.dumps(rows, sort_keys=True, allow_nan=False))
 """
 
 
-def _phase7(worktree: Path, *, requested_commit_available: bool) -> dict[str, Any]:
-    rows = json.loads(_run([sys.executable, "-c", _PHASE7_HARNESS], cwd=worktree, capture=True))
+def _source_availability_control(worktree: Path, *, requested_commit_available: bool) -> dict[str, Any]:
+    rows = json.loads(_run([sys.executable, "-c", _SOURCE_AVAILABILITY_HARNESS], cwd=worktree, capture=True))
     archived = json.loads(
         (worktree / "artifacts/sentinel/exclusive_freeze/small_gate.json").read_text()
     )
@@ -196,8 +196,8 @@ def main() -> int:
             )
             payload = {
                 "schema_version": 1,
-                "phase5_limited_gross_cap": _phase5(phase5_root),
-                "phase7_exclusive_freeze": _phase7(
+                "phase5_limited_gross_cap": _gross_cap_rejection_control(phase5_root),
+                "phase7_exclusive_freeze": _source_availability_control(
                     phase7_root,
                     requested_commit_available=requested_available,
                 ),

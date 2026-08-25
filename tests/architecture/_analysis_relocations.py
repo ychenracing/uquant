@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from ._analysis_authorities import _CONTRACT_RELOCATIONS
 
-_TASK8_RELOCATED_PRIVATE_IMPORT_GROUPS = (
+_PORTFOLIO_RELOCATED_PRIVATE_IMPORT_GROUPS = (
     (
         "uquant.portfolio",
         "uquant.portfolio.allocator",
@@ -113,13 +113,13 @@ _TASK8_RELOCATED_PRIVATE_IMPORT_GROUPS = (
     ),
 )
 
-_TASK8_RELOCATED_PRIVATE_IMPORTS = frozenset(
+_PORTFOLIO_RELOCATED_PRIVATE_IMPORTS = frozenset(
     f"{importer}:{imported_from}:{name}"
-    for importer, imported_from, names in _TASK8_RELOCATED_PRIVATE_IMPORT_GROUPS
+    for importer, imported_from, names in _PORTFOLIO_RELOCATED_PRIVATE_IMPORT_GROUPS
     for name in names
 )
 
-_TASK9_RELOCATED_PRIVATE_IMPORT_GROUPS = (
+_VALIDATION_RELOCATED_PRIVATE_IMPORT_GROUPS = (
     (
         "uquant.validation.generalization",
         "uquant.validation.generalization.baseline",
@@ -186,13 +186,13 @@ _TASK9_RELOCATED_PRIVATE_IMPORT_GROUPS = (
     ("uquant.validation.holdout_runtime", "uquant.validation.holdout.contract", ("_CHECKPOINT_RELATIVE",)),
 )
 
-_TASK9_RELOCATED_PRIVATE_IMPORTS = frozenset(
+_VALIDATION_RELOCATED_PRIVATE_IMPORTS = frozenset(
     f"{importer}:{imported_from}:{name}"
-    for importer, imported_from, names in _TASK9_RELOCATED_PRIVATE_IMPORT_GROUPS
+    for importer, imported_from, names in _VALIDATION_RELOCATED_PRIVATE_IMPORT_GROUPS
     for name in names
 )
 
-_TASK9_RELOCATED_FUNCTION_DEBT = {
+_VALIDATION_RELOCATED_FUNCTION_DEBT = {
     **{
         f"{owner}:{name}": (f"uquant.validation.generalization:{name}", overhead)
         for owner, names, overhead in (
@@ -241,7 +241,7 @@ _TASK9_RELOCATED_FUNCTION_DEBT = {
     },
 }
 
-_TASK9_RELOCATED_GLOBAL_DEBT = {
+_VALIDATION_RELOCATED_GLOBAL_DEBT = {
     **{
         f"uquant.validation.generalization.models:{name}": (
             f"uquant.validation.generalization:{name}"
@@ -299,11 +299,11 @@ _TASK9_RELOCATED_GLOBAL_DEBT = {
     },
 }
 
-_TASK8_RELOCATED_FUNCTION_NAMES = {
+_PORTFOLIO_RELOCATED_FUNCTION_NAMES = {
     "_leader_session_distance": "_session_distance",
 }
 
-_TASK8_RELOCATED_FUNCTION_DEBT = {
+_PORTFOLIO_RELOCATED_FUNCTION_DEBT = {
     **{
         f"{owner}:{name}": f"uquant.portfolio:PortfolioAllocator.{name}"
         for owner, names in (
@@ -335,7 +335,7 @@ _TASK8_RELOCATED_FUNCTION_DEBT = {
     **{
         f"{owner}:{name}": (
             "uquant.portfolio_leaders:LeaderPortfolioPolicy."
-            f"{_TASK8_RELOCATED_FUNCTION_NAMES.get(name, name)}"
+            f"{_PORTFOLIO_RELOCATED_FUNCTION_NAMES.get(name, name)}"
         )
         for owner, names in (
             (
@@ -425,13 +425,13 @@ _TASK8_RELOCATED_FUNCTION_DEBT = {
     },
 }
 
-_TASK8_ALLOCATE_STRATEGY_DEBT = frozenset(
+_PORTFOLIO_ALLOCATE_STRATEGY_DEBT = frozenset(
     identifier
-    for identifier, legacy in _TASK8_RELOCATED_FUNCTION_DEBT.items()
+    for identifier, legacy in _PORTFOLIO_RELOCATED_FUNCTION_DEBT.items()
     if legacy == "uquant.portfolio:PortfolioAllocator._allocate_strategy"
 )
 
-_TASK8_RELOCATED_TYPE_IGNORES = {
+_PORTFOLIO_RELOCATED_TYPE_IGNORES = {
     f"uquant/portfolio/risk_reduction.py:{suffix}": f"uquant/portfolio.py:{suffix}"
     for suffix in (
         "[arg-type]:self._risk_lifecycle_rank(retained_vector),  # type: ignore[arg-type]:0",
@@ -440,7 +440,7 @@ _TASK8_RELOCATED_TYPE_IGNORES = {
     )
 }
 
-_TASK6_RELOCATED_FUNCTION_DEBT = {
+_EXECUTION_RELOCATED_FUNCTION_DEBT = {
     "uquant.application.backtest:backtest": ("uquant.engine:ProductionEngine.backtest", 0),
     "uquant.application.decision:_attach_target_attribution": (
         "uquant.engine:_attach_target_attribution",
@@ -460,7 +460,7 @@ _TASK6_RELOCATED_FUNCTION_DEBT = {
     ),
 }
 
-_TASK6_RELOCATED_GLOBAL_DEBT = {
+_EXECUTION_RELOCATED_GLOBAL_DEBT = {
     "uquant.execution.tranches:_RISK_LIFECYCLE_PRIORITY": (
         "uquant.execution:_RISK_LIFECYCLE_PRIORITY"
     ),

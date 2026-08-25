@@ -18,7 +18,7 @@ from uquant.leader import REFERENCE_UNIVERSE, STABLE_REFERENCE_UNIVERSE
 from uquant.market import MarketWorkspace, ReplayHarness, ReplayUniverse
 
 ROOT = Path(__file__).parents[1]
-BASELINE_PATH = ROOT / "tests" / "fixtures" / "task4_market_baseline.json"
+BASELINE_PATH = ROOT / "tests" / "fixtures" / "market_contract_baseline.json"
 
 
 def _baseline() -> dict[str, Any]:

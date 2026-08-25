@@ -55,7 +55,7 @@ def test_checkpoint_resume_is_bound_to_commits_data_and_matrix(tmp_path: Path) -
         _load_checkpoint(checkpoint, identity=wrong)
 
 
-def test_report_records_exact_stage8_dimensions() -> None:
+def test_report_records_exact_engineering_dimensions() -> None:
     cases = {
         "a/bull": {"baseline": _trace(), "candidate": _trace()},
         "e/year_2024": {

@@ -64,7 +64,7 @@ def equity(
     )
 
 
-def _backtest_stage_1(
+def _finalize_backtest_metrics(
     *,
     account: Any,
     daily_ledger: Any,
@@ -216,7 +216,7 @@ def backtest(
         / self.workspace.price("sh000682", sessions[0])
         - 1.0,
     )
-    _backtest_stage_1(
+    _finalize_backtest_metrics(
         account=account,
         daily_ledger=daily_ledger,
         daily_replay_evidence=daily_replay_evidence,

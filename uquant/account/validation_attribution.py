@@ -112,7 +112,7 @@ def derive_v4_attribution_event_id(
     return "evt_" + hashlib.sha256(encoded).hexdigest()
 
 
-def _validate_attribution_identity_stage_1(
+def _validate_attribution_industry_and_event_id(
     *,
     event_schema_version: Any,
     item: Any,
@@ -216,7 +216,7 @@ def validate_attribution_identity(
         not isinstance(item.replaces_symbol, str) or not item.replaces_symbol.strip()
     ):
         raise RuntimeError(f"{label} has invalid replaces_symbol")
-    _validate_attribution_identity_stage_1(
+    _validate_attribution_industry_and_event_id(
         event_schema_version=event_schema_version,
         item=item,
         label=label,

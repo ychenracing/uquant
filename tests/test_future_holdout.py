@@ -419,7 +419,7 @@ def test_strategy_anchor_hash_covers_cli_decision_and_account_persistence(
     assert cli_hash(tmp_path) != before
 
 
-def test_phase4_migration_cli_does_not_rewrite_the_reviewed_holdout_anchor() -> None:
+def test_source_identity_migration_cli_does_not_rewrite_the_reviewed_holdout_anchor() -> None:
     repository_root = Path(holdout_module.__file__).resolve().parents[2]
     anchored = holdout_module._strategy_cli_sha256(
         repository_root,
@@ -512,7 +512,7 @@ def test_null_manifest_carries_prior_close_state_and_rejects_metrics() -> None:
         )
 
 
-def test_phase4_code_identity_requires_explicit_account_migration() -> None:
+def test_source_identity_code_identity_requires_explicit_account_migration() -> None:
     repository_root = Path(holdout_module.__file__).resolve().parents[2]
 
     assert (

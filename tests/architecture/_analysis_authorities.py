@@ -168,7 +168,7 @@ MODULE_AUTHORITIES = {
     "uquant.risk_sentinel.history": "production_safe",
     "uquant.risk_sentinel.history_cache": "production_safe",
     "uquant.risk_sentinel.integration": "production_safe",
-    "uquant.risk_sentinel.legacy_surface": "production_safe",
+    "uquant.risk_sentinel.source_identity_archive": "production_safe",
     "uquant.risk_sentinel.models": "production_safe",
     "uquant.risk_sentinel.opinion": "production_safe",
     "uquant.risk_sentinel.provenance": "production_safe",
@@ -342,7 +342,7 @@ _DEBT_RELOCATIONS = {
     },
 }
 
-_TASK5_RELOCATED_PRIVATE_IMPORT_GROUPS = (
+_CONFIG_RELOCATED_PRIVATE_IMPORT_GROUPS = (
     (
         "uquant.account",
         "uquant.account.migrations",
@@ -571,13 +571,13 @@ _TASK5_RELOCATED_PRIVATE_IMPORT_GROUPS = (
     ),
 )
 
-_TASK5_RELOCATED_PRIVATE_IMPORTS = frozenset(
+_CONFIG_RELOCATED_PRIVATE_IMPORTS = frozenset(
     f"{importer}:{imported_from}:{name}"
-    for importer, imported_from, names in _TASK5_RELOCATED_PRIVATE_IMPORT_GROUPS
+    for importer, imported_from, names in _CONFIG_RELOCATED_PRIVATE_IMPORT_GROUPS
     for name in names
 )
 
-_TASK6_RELOCATED_PRIVATE_IMPORT_GROUPS = (
+_EXECUTION_RELOCATED_PRIVATE_IMPORT_GROUPS = (
     (
         "uquant.application",
         "uquant.application.decision",
@@ -613,13 +613,13 @@ _TASK6_RELOCATED_PRIVATE_IMPORT_GROUPS = (
     ),
 )
 
-_TASK6_RELOCATED_PRIVATE_IMPORTS = frozenset(
+_EXECUTION_RELOCATED_PRIVATE_IMPORTS = frozenset(
     f"{importer}:{imported_from}:{name}"
-    for importer, imported_from, names in _TASK6_RELOCATED_PRIVATE_IMPORT_GROUPS
+    for importer, imported_from, names in _EXECUTION_RELOCATED_PRIVATE_IMPORT_GROUPS
     for name in names
 )
 
-_TASK7_RELOCATED_PRIVATE_IMPORT_GROUPS = (
+_RISK_RELOCATED_PRIVATE_IMPORT_GROUPS = (
     ("uquant.risk.assessment", "uquant.risk.anchors", ("_assess_dynamic_anchors",)),
     (
         "uquant.risk.assessment",
@@ -708,13 +708,13 @@ _TASK7_RELOCATED_PRIVATE_IMPORT_GROUPS = (
     ),
 )
 
-_TASK7_RELOCATED_PRIVATE_IMPORTS = frozenset(
+_RISK_RELOCATED_PRIVATE_IMPORTS = frozenset(
     f"{importer}:{imported_from}:{name}"
-    for importer, imported_from, names in _TASK7_RELOCATED_PRIVATE_IMPORT_GROUPS
+    for importer, imported_from, names in _RISK_RELOCATED_PRIVATE_IMPORT_GROUPS
     for name in names
 )
 
-_TASK7_RELOCATED_FUNCTION_DEBT = {
+_RISK_RELOCATED_FUNCTION_DEBT = {
     identifier: "uquant.risk:_assess_base_risk"
     for identifier in (
         "uquant.risk.anchors:_assess_dynamic_anchors",

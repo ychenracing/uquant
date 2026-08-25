@@ -213,7 +213,7 @@ def calibrate_events(
     return tuple(results)
 
 
-def _summarize_calibration_stage_1(
+def _derive_calibration_outcome_metrics(
     *,
     bull_dates: Any,
     complete: Any,
@@ -250,7 +250,7 @@ def _summarize_calibration_stage_1(
     return caution_costs, false_costs, lead_times, missed, missed_depth_values, recall, silent_bulls
 
 
-def _summarize_calibration_stage_2(
+def _match_predictions_to_outcomes(
     *,
     bull_dates: Any,
     contract: Any,
@@ -301,7 +301,7 @@ def summarize_calibration(
 ) -> dict[str, object]:
     """Summarize pre-registered event detection and opportunity costs."""
 
-    complete, detected, precision = _summarize_calibration_stage_2(
+    complete, detected, precision = _match_predictions_to_outcomes(
         bull_dates=bull_dates,
         contract=contract,
         events=events,
@@ -309,7 +309,7 @@ def summarize_calibration(
         shock_dates=shock_dates,
     )
     caution_costs, false_costs, lead_times, missed, missed_depth_values, recall, silent_bulls = (
-        _summarize_calibration_stage_1(
+        _derive_calibration_outcome_metrics(
             bull_dates=bull_dates,
             complete=complete,
             detected=detected,

@@ -39,7 +39,7 @@ def _write_json(path: Path, payload: Mapping[str, Any]) -> None:
     )
 
 
-def _phase1_candidate() -> dict[str, Any]:
+def _performance_candidate() -> dict[str, Any]:
     return {
         "data": {
             "snapshot_id": "snapshot",
@@ -63,7 +63,7 @@ def _phase1_candidate() -> dict[str, Any]:
     }
 
 
-def _phase1_payload(candidate: Mapping[str, Any]) -> dict[str, Any]:
+def _performance_payload(candidate: Mapping[str, Any]) -> dict[str, Any]:
     generated_at = "2026-08-16T00:00:00+00:00"
     return {
         "schema_version": 3,
@@ -84,7 +84,7 @@ def _phase1_payload(candidate: Mapping[str, Any]) -> dict[str, Any]:
     }
 
 
-def _run_phase1(
+def _run_performance(
     tmp_path: Path,
     payload: Mapping[str, Any],
     *,
@@ -98,16 +98,16 @@ def _run_phase1(
         artifact=artifact,
         report_output=report,
         upstream_result=upstream_result,
-        expected_candidate=_phase1_candidate(),
+        expected_candidate=_performance_candidate(),
         checkout_head="a" * 40,
     )
     assert json.loads(report.read_text(encoding="utf-8")) == result
     return result
 
 
-def test_phase1_validator_accepts_exact_full_provenance_and_success(tmp_path: Path) -> None:
+def test_performance_validator_accepts_exact_full_provenance_and_success(tmp_path: Path) -> None:
     """Catches the executable validator rejecting a complete exact-HEAD artifact."""
-    result = _run_phase1(tmp_path, _phase1_payload(_phase1_candidate()))
+    result = _run_performance(tmp_path, _performance_payload(_performance_candidate()))
 
     assert result == {"passed": True, "failures": []}
 
@@ -132,26 +132,26 @@ def test_phase1_validator_accepts_exact_full_provenance_and_success(tmp_path: Pa
     ),
     ids=("incomplete-provenance", "stale-head", "failed-gate"),
 )
-def test_phase1_validator_rejects_incomplete_stale_or_failed_artifact(
+def test_performance_validator_rejects_incomplete_stale_or_failed_artifact(
     tmp_path: Path,
     mutate: Callable[[dict[str, Any]], object],
     message: str,
 ) -> None:
     """Catches incomplete/stale provenance or an advertised failed Phase 1 gate being accepted."""
-    payload = _phase1_payload(_phase1_candidate())
+    payload = _performance_payload(_performance_candidate())
     mutate(payload)
 
-    result = _run_phase1(tmp_path, payload)
+    result = _run_performance(tmp_path, payload)
 
     assert result["passed"] is False
     assert any(message in failure for failure in result["failures"])
 
 
-def test_phase1_validator_rejects_upstream_failure_and_writes_diagnostics(tmp_path: Path) -> None:
+def test_performance_validator_rejects_upstream_failure_and_writes_diagnostics(tmp_path: Path) -> None:
     """Catches a failed gate step being converted to success by provenance readback."""
-    result = _run_phase1(
+    result = _run_performance(
         tmp_path,
-        _phase1_payload(_phase1_candidate()),
+        _performance_payload(_performance_candidate()),
         upstream_result="failure",
     )
 
@@ -159,7 +159,7 @@ def test_phase1_validator_rejects_upstream_failure_and_writes_diagnostics(tmp_pa
     assert "upstream Phase 1 result was failure" in result["failures"]
 
 
-def test_phase1_validator_writes_diagnostic_when_authoritative_provenance_fails(
+def test_performance_validator_writes_diagnostic_when_authoritative_provenance_fails(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -167,7 +167,7 @@ def test_phase1_validator_writes_diagnostic_when_authoritative_provenance_fails(
     module = _ci_module()
     artifact = tmp_path / "phase1.json"
     report = tmp_path / "phase1-diagnostic.json"
-    _write_json(artifact, _phase1_payload(_phase1_candidate()))
+    _write_json(artifact, _performance_payload(_performance_candidate()))
 
     def fail_runtime_provenance(data_dir: str | Path) -> dict[str, Any]:
         raise RuntimeError(f"authoritative provenance unavailable for {data_dir}")
@@ -197,7 +197,7 @@ def test_phase1_validator_writes_diagnostic_when_authoritative_provenance_fails(
     ]
 
 
-def test_phase1_validator_rejects_duplicate_json_keys_and_writes_diagnostics(
+def test_performance_validator_rejects_duplicate_json_keys_and_writes_diagnostics(
     tmp_path: Path,
 ) -> None:
     """Catches ambiguous duplicate-key evidence being silently last-key-wins parsed."""
@@ -213,7 +213,7 @@ def test_phase1_validator_rejects_duplicate_json_keys_and_writes_diagnostics(
         artifact=artifact,
         report_output=report,
         upstream_result="success",
-        expected_candidate=_phase1_candidate(),
+        expected_candidate=_performance_candidate(),
         checkout_head="a" * 40,
     )
 
@@ -234,11 +234,11 @@ def test_phase1_validator_rejects_duplicate_json_keys_and_writes_diagnostics(
         "binding_type",
     ),
 )
-def test_phase1_validator_rejects_every_ambiguous_provenance_shape(
+def test_performance_validator_rejects_every_ambiguous_provenance_shape(
     mutation: str,
     tmp_path: Path,
 ) -> None:
-    payload = _phase1_payload(_phase1_candidate())
+    payload = _performance_payload(_performance_candidate())
     if mutation == "provenance_type":
         payload["provenance"] = []
     elif mutation == "provenance_fields":
@@ -254,7 +254,7 @@ def test_phase1_validator_rejects_every_ambiguous_provenance_shape(
     else:
         payload["provenance"]["binding"] = []
 
-    result = _run_phase1(tmp_path, payload)
+    result = _run_performance(tmp_path, payload)
 
     assert result["passed"] is False
     assert result["failures"]

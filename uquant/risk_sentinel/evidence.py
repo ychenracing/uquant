@@ -111,7 +111,7 @@ def _index_return(frame: pd.DataFrame, point: pd.Timestamp, sessions: int) -> fl
     return float(close.iloc[-1] / close.iloc[-(sessions + 1)] - 1.0)
 
 
-def _snapshot_from_observations_stage_1(
+def _evidence_metrics_votes_and_reasons(
     *,
     broad_fast: Any,
     broad_medium: Any,
@@ -185,7 +185,7 @@ def _snapshot_from_observations_stage_1(
     return metrics, reasons, votes
 
 
-def _snapshot_from_observations_stage_2(
+def _aggregate_book_and_breadth_evidence(
     *,
     held_symbols: Any,
     leader_symbols: Any,
@@ -271,14 +271,14 @@ def _snapshot_from_observations(
         float(np.mean([item.fast_return for item in visible_names.values()])) if visible_names else 0.0
     )
     equal_below, equal_downside, held, held_downside, held_fast, leaders, synchronized, volatility_ratio = (
-        _snapshot_from_observations_stage_2(
+        _aggregate_book_and_breadth_evidence(
             held_symbols=held_symbols,
             leader_symbols=leader_symbols,
             subindustries=subindustries,
             visible_names=visible_names,
         )
     )
-    metrics, reasons, votes = _snapshot_from_observations_stage_1(
+    metrics, reasons, votes = _evidence_metrics_votes_and_reasons(
         broad_fast=broad_fast,
         broad_medium=broad_medium,
         capital_drawdown=capital_drawdown,

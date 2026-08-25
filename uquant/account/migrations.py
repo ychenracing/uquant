@@ -141,7 +141,7 @@ def _legacy_industry(symbol: str, entry_date: str) -> tuple[str, str]:
     return industry, REQUIRED_AI_UNIVERSE_SHA256
 
 
-def _populate_legacy_attribution_stage_1(
+def _index_replacement_events(
     *,
     state: Any,
 ) -> tuple[Any, Any]:
@@ -157,7 +157,7 @@ def _populate_legacy_attribution_stage_1(
     return replacements, unknown_buy_reclassifications
 
 
-def _populate_legacy_attribution_stage_2() -> Any:
+def _attribution_identity_fields() -> Any:
     identity_fields = (
         "event_id",
         "origin_subsystem",
@@ -353,7 +353,7 @@ def _populate_legacy_fill(
 def _populate_legacy_attribution(state: AccountState) -> list[dict[str, str]]:
     """Populate v1-v3 identity from stable structured fields only."""
 
-    replacements, unknown_buy_reclassifications = _populate_legacy_attribution_stage_1(
+    replacements, unknown_buy_reclassifications = _index_replacement_events(
         state=state,
     )
 
@@ -363,7 +363,7 @@ def _populate_legacy_attribution(state: AccountState) -> list[dict[str, str]]:
         unknown_buy_reclassifications=unknown_buy_reclassifications,
     )
     _populate_legacy_positions(state)
-    identity_fields = _populate_legacy_attribution_stage_2()
+    identity_fields = _attribution_identity_fields()
     for fill_index, fill in enumerate(state.fills, start=1):
         _populate_legacy_fill(
             fill,
@@ -377,7 +377,7 @@ def _populate_legacy_attribution(state: AccountState) -> list[dict[str, str]]:
     return [unknown_buy_reclassifications[event_id] for event_id in sorted(unknown_buy_reclassifications)]
 
 
-def _migrate_v4_attribution_event_ids_stage_1() -> tuple[
+def _event_id_migration_accumulators() -> tuple[
     list[tuple[dict[str, Any], str]],
     dict[str, str],
     list[tuple[Any, str]],
@@ -401,7 +401,7 @@ def _migrate_v4_attribution_event_ids_stage_1() -> tuple[
     return allocation_assignments, event_id_map, object_assignments, record_mapping
 
 
-def _migrate_v4_attribution_event_ids_stage_2(
+def _v4_event_id_deriver_and_orders(
     *,
     state: AccountState,
 ) -> tuple[Callable[..., str], list[AccountOrder | PendingOrder]]:
@@ -487,10 +487,10 @@ def _migrate_v4_attribution_event_ids(state: AccountState) -> dict[str, Any]:
     """Map validated schema-v4 events to the machine-only schema-v5 format."""
 
     allocation_assignments, event_id_map, object_assignments, record_mapping = (
-        _migrate_v4_attribution_event_ids_stage_1()
+        _event_id_migration_accumulators()
     )
 
-    current_event_id, durable_orders = _migrate_v4_attribution_event_ids_stage_2(
+    current_event_id, durable_orders = _v4_event_id_deriver_and_orders(
         state=state,
     )
     for order in durable_orders:

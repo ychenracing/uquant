@@ -57,7 +57,7 @@ def _validate_risk_streaks(values: Any) -> None:
         _nonnegative_integer(value, field=f"risk_streaks[{key}]")
 
 
-def _validate_audit_events_stage_1(
+def _validate_reconciliation_events(
     *,
     lifecycles: Any,
     state: Any,
@@ -105,7 +105,7 @@ def _validate_audit_events_stage_1(
                 raise RuntimeError("reconciliation event default_highest_close must be positive")
 
 
-def _validate_audit_events_stage_2(
+def _validate_risk_events(
     *,
     risks: Any,
     state: Any,
@@ -186,18 +186,18 @@ def _validate_audit_events(state: AccountState) -> None:
         )
         _required_text(event.get("reason"), field="lifecycle event reason")
 
-    _validate_audit_events_stage_2(
+    _validate_risk_events(
         risks=risks,
         state=state,
     )
 
-    _validate_audit_events_stage_1(
+    _validate_reconciliation_events(
         lifecycles=lifecycles,
         state=state,
     )
 
 
-def _validate_strategy_risk_state_stage_1(
+def _validate_strategy_controls_and_signals(
     *,
     state: Any,
     total_band_weight: Any,
@@ -270,7 +270,7 @@ def _validate_strategy_risk_state_stage_1(
         _required_iso_date(shock_date, field="sector_shock_dates")
 
 
-def _validate_strategy_risk_state_stage_2(
+def _validate_strategy_identity_and_weights(
     *,
     state: Any,
 ) -> Any:
@@ -328,7 +328,7 @@ def _validate_strategy_risk_state(state: AccountState) -> None:
         raise RuntimeError("account state has invalid opportunity")
     if not isinstance(state.risk, str) or state.risk not in {item.value for item in Risk}:
         raise RuntimeError("account state has invalid risk")
-    total_band_weight = _validate_strategy_risk_state_stage_2(
+    total_band_weight = _validate_strategy_identity_and_weights(
         state=state,
     )
     for symbol, bands in state.strategic_exit_bands.items():
@@ -347,7 +347,7 @@ def _validate_strategy_risk_state(state: AccountState) -> None:
                 minimum=0.0,
                 maximum=1.0,
             )
-    _validate_strategy_risk_state_stage_1(
+    _validate_strategy_controls_and_signals(
         state=state,
         total_band_weight=total_band_weight,
     )

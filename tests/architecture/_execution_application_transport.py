@@ -1,4 +1,4 @@
-"""Exact Task-10 owner transport for the frozen Task-6 decision fan-out."""
+"""Exact owner transport for the frozen execution decision fan-out."""
 
 from __future__ import annotations
 
@@ -81,7 +81,7 @@ ARCHITECTURE_EXECUTION_REVIEWED_DEFINITIONS = frozenset(
 
 
 def execution_reviewed_source(root: Path, relative: str) -> str:
-    """Read one Task-6 proof input from its immutable reviewed commit."""
+    """Read one execution proof input from its immutable reviewed commit."""
 
     assert relative in _REVIEWED_SOURCE_CHAINS
     return (root / relative).read_text(encoding="utf-8")
@@ -183,7 +183,7 @@ def reviewed_execution_debt_definition(
     frozen: ast.FunctionDef | ast.ClassDef,
     source_overrides: Mapping[str, str] | None = None,
 ) -> ast.FunctionDef | ast.ClassDef:
-    """Bind one changed Task-6 definition through its exact reviewed Task-10 owner."""
+    """Bind one changed execution definition through its exact reviewed owner."""
     assert (relative, name) in ARCHITECTURE_EXECUTION_REVIEWED_DEFINITIONS
     if source_overrides is not None:
         assert set(source_overrides) == {relative}
@@ -236,7 +236,7 @@ def architecture_execution_historical_debt_projection(
     function_rows: list[Mapping[str, object]],
     global_rows: list[Mapping[str, object]],
 ) -> tuple[set[str], set[str]]:
-    """Separate live-zero acceptance from exact frozen Task-6 debt identity."""
+    """Separate live-zero acceptance from exact frozen execution-debt identity."""
     assert not current_functions and not current_globals
     function_digest = hashlib.sha256(
         "\n".join(sorted(historical_functions)).encode()

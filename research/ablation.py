@@ -270,8 +270,8 @@ def validate_complete_coverage(
         raise ValueError(f"ablation observed status differs from frozen evidence: {changed}")
 
 
-# Phase 1 compatibility helpers remain repository-local and are not used by
-# the immutable Phase 2 registry.
+# Performance compatibility helpers remain repository-local and are not used by
+# the immutable generalization registry.
 @dataclass(frozen=True, slots=True)
 class AblationCase:
     """One named shared configuration in a capability ablation set."""

@@ -1,4 +1,4 @@
-"""Cross-module object-flow proof for Task 10 private-edge governance."""
+"""Cross-module object-flow proof for private-edge governance."""
 
 from __future__ import annotations
 

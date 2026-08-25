@@ -127,7 +127,7 @@ def test_performance_validator_accepts_exact_full_provenance_and_success(tmp_pat
         ),
         (
             lambda payload: payload.update(passed=False, failures=["economic gate failed"]),
-            "Phase 1 gate did not pass",
+            "performance gate did not pass",
         ),
     ),
     ids=("incomplete-provenance", "stale-head", "failed-gate"),
@@ -137,7 +137,7 @@ def test_performance_validator_rejects_incomplete_stale_or_failed_artifact(
     mutate: Callable[[dict[str, Any]], object],
     message: str,
 ) -> None:
-    """Catches incomplete/stale provenance or an advertised failed Phase 1 gate being accepted."""
+    """Catches incomplete/stale provenance or an advertised failed performance gate."""
     payload = _performance_payload(_performance_candidate())
     mutate(payload)
 
@@ -156,7 +156,7 @@ def test_performance_validator_rejects_upstream_failure_and_writes_diagnostics(t
     )
 
     assert result["passed"] is False
-    assert "upstream Phase 1 result was failure" in result["failures"]
+    assert "upstream performance result was failure" in result["failures"]
 
 
 def test_performance_validator_writes_diagnostic_when_authoritative_provenance_fails(
@@ -192,7 +192,7 @@ def test_performance_validator_writes_diagnostic_when_authoritative_provenance_f
     assert exit_code == 1
     assert result["passed"] is False
     assert result["failures"] == [
-        "cannot construct authoritative Phase 1 provenance: "
+        "cannot construct authoritative performance provenance: "
         "authoritative provenance unavailable for data/frozen"
     ]
 

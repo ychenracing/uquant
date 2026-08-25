@@ -1,4 +1,4 @@
-"""Fail-closed historical debt projection for Task-10 risk owner splits."""
+"""Fail-closed historical debt projection for risk owner splits."""
 
 from __future__ import annotations
 
@@ -41,7 +41,7 @@ def architecture_risk_historical_authorities(
     authorities: Mapping[str, str],
     source_paths: Set[str],
 ) -> dict[str, str]:
-    """Remove only exact Task-10 modules absent from the Task-7 source archive."""
+    """Remove only exact current modules absent from the frozen risk archive."""
     source_modules = {
         path.removesuffix("/__init__.py").removesuffix(".py").replace("/", ".") for path in source_paths
     }
@@ -124,7 +124,7 @@ def architecture_risk_function_debt_projection(
     function_rows: Sequence[Mapping[str, object]],
     overrides: Mapping[str, str] | None = None,
 ) -> set[str]:
-    """Restore historical Task-7 IDs from the immutable reviewed projection."""
+    """Restore historical risk IDs from the immutable reviewed projection."""
     missing = set(expected) - set(observed)
     assert not (set(observed) - set(expected))
     assert missing == set(_RISK_FUNCTION_OWNERS)
@@ -172,7 +172,7 @@ def architecture_risk_historical_base_lines(
     root: Path,
     current_row: Mapping[str, object],
 ) -> int:
-    """Return the immutable pre-Task-10 base span after the live budget check."""
+    """Return the immutable governance-base span after the live budget check."""
     assert current_row["id"] == "uquant.risk.assessment:_assess_base_risk"
     current_lines = current_row["lines"]
     current_branches = current_row["branch_points"]

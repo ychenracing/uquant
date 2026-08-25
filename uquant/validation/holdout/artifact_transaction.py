@@ -425,29 +425,29 @@ def _artifact_bundle_lock(
         primary = exc
         raise
     finally:
-        cleanup_failures: list[OSError] = []
+        release_failures: list[OSError] = []
         for descriptor in reversed(descriptors):
             try:
                 release_file_lock(descriptor)
             except OSError as exc:
-                cleanup_failures.append(exc)
+                release_failures.append(exc)
             try:
                 os.close(descriptor)
             except OSError as exc:
-                cleanup_failures.append(exc)
-        if cleanup_failures:
+                release_failures.append(exc)
+        if release_failures:
             notes = tuple(
-                f"future holdout lock cleanup also failed: {type(exc).__name__}: {exc}"
-                for exc in cleanup_failures
+                f"future holdout lock release also failed: {type(exc).__name__}: {exc}"
+                for exc in release_failures
             )
             if primary is not None:
                 for note in notes:
                     primary.add_note(note)
             else:
-                failure = RuntimeError("future holdout evidence lock cleanup failed")
+                failure = RuntimeError("future holdout evidence lock release failed")
                 for note in notes:
                     failure.add_note(note)
-                raise failure from cleanup_failures[0]
+                raise failure from release_failures[0]
 
 
 def _artifact_bundle_lock_path(repository_root: Path) -> Path:

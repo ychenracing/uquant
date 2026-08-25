@@ -196,7 +196,7 @@ def test_holdout_source_identity_covers_nested_source_contracts_and_lock(tmp_pat
     assert len({before, after_source, after_lock}) == 3
 
 
-def test_layout_isolates_future_rows_and_rejects_expanded_phase1_windows(
+def test_layout_isolates_future_rows_and_rejects_expanded_performance_windows(
     tmp_path: Path,
 ) -> None:
     contract = load_future_holdout_contract()
@@ -216,7 +216,7 @@ def test_layout_isolates_future_rows_and_rejects_expanded_phase1_windows(
         validate_holdout_layout(tmp_path, contract=contract, phase1_windows=windows)
     (tmp_path / "data/holdout/wrong-version/a.csv").unlink()
 
-    with pytest.raises(RuntimeError, match="Phase 1 window expanded"):
+    with pytest.raises(RuntimeError, match="performance window expanded"):
         validate_holdout_layout(
             tmp_path,
             contract=contract,
@@ -247,15 +247,15 @@ def test_layout_requires_frozen_data_and_exact_official_windows(tmp_path: Path) 
     _csv(tmp_path / "data/frozen/a.csv", LAST_IN_SAMPLE_DATE)
     missing = dict(AI_ERA_WINDOWS)
     missing.pop("h1_2023")
-    with pytest.raises(RuntimeError, match="official Phase 1 windows"):
+    with pytest.raises(RuntimeError, match="official performance windows"):
         validate_holdout_layout(tmp_path, contract=contract, phase1_windows=missing)
 
     added = {**AI_ERA_WINDOWS, "new_window": ("2026-08-01", LAST_IN_SAMPLE_DATE)}
-    with pytest.raises(RuntimeError, match="official Phase 1 windows"):
+    with pytest.raises(RuntimeError, match="official performance windows"):
         validate_holdout_layout(tmp_path, contract=contract, phase1_windows=added)
 
     moved_start = {**AI_ERA_WINDOWS, "h1_2023": ("2023-01-04", "2023-06-30")}
-    with pytest.raises(RuntimeError, match="official Phase 1 windows"):
+    with pytest.raises(RuntimeError, match="official performance windows"):
         validate_holdout_layout(tmp_path, contract=contract, phase1_windows=moved_start)
 
 
@@ -266,7 +266,7 @@ def test_layout_requires_frozen_data_and_exact_official_windows(tmp_path: Path) 
         ("h1_2023", ("2023-01-02", "2023-06-30")),
     ),
 )
-def test_layout_rejects_mutated_live_phase1_windows(
+def test_layout_rejects_mutated_live_performance_windows(
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,
     name: str,
@@ -277,7 +277,7 @@ def test_layout_rejects_mutated_live_phase1_windows(
     monkeypatch.setattr(holdout_module, "AI_ERA_WINDOWS", mutated)
     monkeypatch.setattr(ai_era_module, "AI_ERA_WINDOWS", mutated)
 
-    with pytest.raises(RuntimeError, match="sealed Phase 1 windows"):
+    with pytest.raises(RuntimeError, match="sealed performance windows"):
         validate_holdout_layout(
             tmp_path,
             contract=load_future_holdout_contract(),

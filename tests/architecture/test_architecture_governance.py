@@ -315,14 +315,6 @@ def test_architecture_risk_test_transport_rejects_unknown_call_arguments(
         }
 
 
-def test_architecture_temporary_current_private_import_transport_is_removed() -> None:
-    for relative in (
-        "tests/architecture/_analysis_debt.py",
-        "tests/architecture/_analysis_relocations.py",
-    ):
-        assert "_TASK10_PRIVATE_IMPORT" not in (ROOT / relative).read_text(encoding="utf-8")
-
-
 def test_architecture_policy_evaluation_uses_exact_owned_contract_identities() -> None:
     from uquant.validation.generalization_policy import projection, schema
 
@@ -546,18 +538,24 @@ def test_architecture_analyzer_mutations_expose_unknown_debt_instead_of_filterin
         for path in (ROOT / "uquant").rglob("*.py")
     }
     sources["uquant/reference.py"] += (
-        "\n_TASK10_UNKNOWN_MUTABLE = []\n"
-        "def _task10_unknown_long():\n" + "    value = 0\n" * 121 + "    return value\n"
+        "\n_GOVERNANCE_UNKNOWN_MUTABLE = []\n"
+        "def _governance_unknown_long():\n" + "    value = 0\n" * 121 + "    return value\n"
     )
     sources["uquant/report.py"] += (
-        "\ndef _task10_unknown_branchy(value: int) -> int:\n"
+        "\ndef _governance_unknown_branchy(value: int) -> int:\n"
         + "".join(f"    if value == {index}:\n        return {index}\n" for index in range(21))
         + "    return -1\n"
     )
     mutation = measured_debt(architecture_snapshot(source_texts=sources))
-    assert any("_task10_unknown_long" in str(row["id"]) for row in mutation["long_functions"])
-    assert any("_task10_unknown_branchy" in str(row["id"]) for row in mutation["branchy_functions"])
-    assert any("_TASK10_UNKNOWN_MUTABLE" in str(row["id"]) for row in mutation["mutable_module_globals"])
+    assert any("_governance_unknown_long" in str(row["id"]) for row in mutation["long_functions"])
+    assert any(
+        "_governance_unknown_branchy" in str(row["id"])
+        for row in mutation["branchy_functions"]
+    )
+    assert any(
+        "_GOVERNANCE_UNKNOWN_MUTABLE" in str(row["id"])
+        for row in mutation["mutable_module_globals"]
+    )
 
 
 def test_architecture_cross_private_debt_is_zero_without_renamed_exemptions() -> None:
@@ -971,7 +969,7 @@ def test_architecture_execution_debt_transport_rejects_unknown_stage_arguments()
         )
 
 
-def test_architecture_final_live_blockers_match_empty_acceptance_allowlist(
+def test_architecture_current_blockers_match_empty_acceptance_allowlist(
     request: pytest.FixtureRequest,
 ) -> None:
     snapshot = architecture_snapshot()
@@ -993,7 +991,7 @@ def test_architecture_final_live_blockers_match_empty_acceptance_allowlist(
     }
     request.node.user_properties.append(
         (
-            "task10_complexity_signals",
+            "architecture_complexity_signals",
             json.dumps(
                 {category: current[category] for category in sorted(signal_categories)},
                 sort_keys=True,
@@ -1006,7 +1004,7 @@ def test_architecture_final_live_blockers_match_empty_acceptance_allowlist(
     }
 
 
-def test_architecture_final_physical_size_signals_are_recorded(
+def test_architecture_current_physical_size_signals_are_recorded(
     request: pytest.FixtureRequest,
 ) -> None:
     oversized_production = sorted(
@@ -1031,7 +1029,7 @@ def test_architecture_final_physical_size_signals_are_recorded(
     )
     request.node.user_properties.append(
         (
-            "task10_physical_size_signals",
+            "architecture_physical_size_signals",
             json.dumps(
                 {
                     "production_over_800": oversized_production,

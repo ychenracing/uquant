@@ -60,7 +60,7 @@ def _frozen_data_fixture(root: Path) -> dict[str, object]:
 
 
 def test_performance_equivalence_rejects_any_cross_commit_decision_or_account_divergence() -> None:
-    """Breaks if a Phase 2 candidate changes a frozen Phase 1 economic trace."""
+    """Breaks if a generalization candidate changes a frozen performance trace."""
     assert_equivalent_phase1_traces(_trace(), _trace())
 
     with pytest.raises(RuntimeError, match="decision payload"):
@@ -70,7 +70,7 @@ def test_performance_equivalence_rejects_any_cross_commit_decision_or_account_di
 
 
 def test_performance_equivalence_covers_every_official_and_protected_pool_case() -> None:
-    """Breaks if the differential proof silently omits a Phase 1 replay case."""
+    """Breaks if the differential proof silently omits a performance replay case."""
     cases = phase1_cases()
 
     assert len(cases) == 45
@@ -538,7 +538,7 @@ def test_performance_partial_worktree_add_is_cleaned_up(
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,
 ) -> None:
-    """Catches partial worktree materialization bypassing detached-tree cleanup."""
+    """Catches partial worktree materialization bypassing detached-tree removal."""
 
     removals: list[list[str]] = []
 

@@ -140,7 +140,7 @@ def test_performance_summary_catches_path_skips_and_partial_or_stale_performance
     _assert_always_blocking_summary(
         workflow,
         job_id="phase1-performance",
-        check_name="Phase 1 Performance",
+        check_name="Performance Acceptance",
         needs={"ai-era-performance"},
     )
 
@@ -187,7 +187,7 @@ def test_generalization_aggregator_catches_incomplete_stale_or_policy_failing_ev
     """Catches missing/extra shards, stale provenance, fabricated cells, or a weakened policy."""
     workflow = _workflow("strategy-generalization.yml")
     aggregate = workflow["jobs"]["phase2-generalization"]
-    assert aggregate["name"] == "Phase 2 Generalization"
+    assert aggregate["name"] == "Generalization Acceptance"
     assert aggregate["needs"] == "generalization-shard"
     assert aggregate["if"] == "${{ always() }}"
 
@@ -371,15 +371,15 @@ def test_public_document_set_catches_incomplete_generalization_contract_or_fake_
 
 
 def test_configuration_requires_complete_six_window_gate_for_every_default_change() -> None:
-    """Catches configuration guidance allowing only selected Phase 2 cells to rerun."""
+    """Catches guidance allowing only selected generalization cells to rerun."""
     configuration = (ROOT / "docs" / "CONFIGURATION.md").read_text(encoding="utf-8")
 
     assert re.search(
-        r"任何被接受的默认值变化.{0,80}Phase 1.{0,80}(完整.{0,30}Phase 2|Phase 2.{0,30}(完整|六窗口))",
+        r"任何被接受的默认值变化.{0,80}性能验收.{0,80}完整.{0,30}六窗口泛化",
         configuration,
         re.DOTALL,
     )
-    assert "受影响的 Phase 2" not in configuration
+    assert "受影响的泛化" not in configuration
 
 
 def test_public_documents_catch_adjustable_official_contract_and_legacy_smoke_guidance() -> None:

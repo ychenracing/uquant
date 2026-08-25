@@ -88,7 +88,7 @@ def _legacy_sentinel_source_fingerprint(repository_root: str | Path) -> str:
 
 
 def legacy_sentinel_source_fingerprint(repository_root: str | Path) -> str:
-    """Return the sealed pre-refactor Sentinel identity for legacy contracts."""
+    """Return the sealed historical Sentinel identity for compatibility contracts."""
 
     root = Path(repository_root)
     package = root / "uquant" / "risk_sentinel"

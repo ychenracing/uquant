@@ -1,4 +1,4 @@
-"""Exact Task-10 transport for Task-8 portfolio checkpoint owners."""
+"""Exact transport for frozen portfolio owner checkpoints."""
 
 from __future__ import annotations
 
@@ -275,7 +275,7 @@ def expand_portfolio_allocator_method(
     candidate: ast.FunctionDef | None,
     overrides: Mapping[str, str] | None = None,
 ) -> ast.FunctionDef:
-    """Expand one exact reviewed checkpoint-1 owner to the Task-10 start AST."""
+    """Expand one exact reviewed portfolio owner to the governance anchor AST."""
     overrides = architecture_portfolio_reviewed_sources(root=root, overrides=overrides)
     frozen_source = subprocess.check_output(
         ["git", "show", f"{ARCHITECTURE_REFERENCE_TREE}:{relative}"],

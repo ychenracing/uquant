@@ -31,7 +31,7 @@ def test_public_names_signatures_dataclasses_enums_and_runtime_contracts_are_fro
     assert observed == expected
 
 
-def test_public_api_contract_is_bound_to_the_task_1_baseline(
+def test_public_api_contract_is_bound_to_the_frozen_baseline(
     public_api_baseline: dict[str, object], baseline_inventory: dict[str, object]
 ) -> None:
     from ._baseline import BASELINE_COMMIT

@@ -1,4 +1,4 @@
-"""Run the frozen Task 9 behavior collectors across approved source relocation."""
+"""Run frozen validation behavior collectors across approved source relocation."""
 
 from __future__ import annotations
 
@@ -50,7 +50,7 @@ def build_candidate_behavior(root: Path) -> dict[str, object]:
             "_head_and_source",
             return_value=frozen_binding,
         ),
-        tempfile.TemporaryDirectory(prefix="uquant-task9-candidate-oracle-") as raw,
+        tempfile.TemporaryDirectory(prefix="uquant-validation-candidate-oracle-") as raw,
     ):
         temporary = Path(raw)
         failures = [

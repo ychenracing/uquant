@@ -1,4 +1,4 @@
-"""Fail-closed Task-9 projections for explicit Task-10 capability scopes."""
+"""Fail-closed projections for explicit validation capability scopes."""
 
 from __future__ import annotations
 

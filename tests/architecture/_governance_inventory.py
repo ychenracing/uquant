@@ -1,6 +1,6 @@
-"""Immutable Task 10 governance inventory and relocation evidence.
+"""Immutable architecture governance inventory and relocation evidence.
 
-The inventory is derived from an extracted Git archive of the immutable Task 10
+The inventory is derived from an extracted Git archive of the immutable governance
 start tree.  It therefore cannot be refreshed from a later candidate tree to
 authorize deleted tests, weakened CLI seams, or newly hidden architecture debt.
 """
@@ -265,7 +265,7 @@ def _load_frozen_analysis(root: Path) -> tuple[dict[str, object], dict[str, list
     source_path = root / "tests" / "architecture" / "_analysis.py"
     namespace: dict[str, object] = {
         "__file__": str(source_path),
-        "__name__": "task10_frozen_analysis",
+        "__name__": "governance_frozen_analysis",
     }
     exec(compile(source_path.read_bytes(), str(source_path), "exec"), namespace)
     snapshot_fn = namespace["architecture_snapshot"]
@@ -283,7 +283,7 @@ def build_inventory(root: Path, *, start_commit: str, start_tree: str) -> dict[s
     snapshot, debt = _load_frozen_analysis(root)
     counts = {category: len(rows) for category, rows in debt.items()}
     if counts != EXPECTED_DEBT_COUNTS:
-        raise AssertionError(f"unexpected immutable Task 10 debt: {counts}")
+        raise AssertionError(f"unexpected immutable governance debt: {counts}")
 
     production_files = sorted((root / "uquant").rglob("*.py"))
     production_records = [_file_record(path, root) for path in production_files]
@@ -337,7 +337,7 @@ def build_inventory(root: Path, *, start_commit: str, start_tree: str) -> dict[s
 def load_inventory(path: Path = ARCHITECTURE_INVENTORY_PATH) -> dict[str, object]:
     value = json.loads(path.read_text(encoding="utf-8"))
     if not isinstance(value, dict):
-        raise AssertionError("Task 10 inventory must be a JSON object")
+        raise AssertionError("governance inventory must be a JSON object")
     return value
 
 
@@ -345,7 +345,7 @@ def verify_inventory_seal(payload: Mapping[str, object]) -> None:
     unsigned = dict(payload)
     seal = unsigned.pop("artifact_sha256", None)
     if seal != canonical_sha256(unsigned):
-        raise AssertionError("Task 10 inventory seal is stale")
+        raise AssertionError("governance inventory seal is stale")
 
 
 def _safe_extract_archive(archive: bytes, destination: Path) -> None:
@@ -356,7 +356,7 @@ def _safe_extract_archive(archive: bytes, destination: Path) -> None:
             if root not in target.parents and target != root:
                 raise AssertionError(f"unsafe archive member: {member.name}")
             if member.issym() or member.islnk():
-                raise AssertionError(f"Task 10 immutable archive contains link: {member.name}")
+                raise AssertionError(f"immutable governance archive contains link: {member.name}")
         bundle.extractall(destination, filter="data")
 
 
@@ -367,7 +367,7 @@ def build_inventory_from_immutable_git(root: Path = ROOT) -> dict[str, object]:
         check=True,
         capture_output=True,
     ).stdout
-    with tempfile.TemporaryDirectory(prefix="uquant-task10-inventory-") as raw:
+    with tempfile.TemporaryDirectory(prefix="uquant-governance-inventory-") as raw:
         extracted = Path(raw)
         _safe_extract_archive(archive, extracted)
         return build_inventory(

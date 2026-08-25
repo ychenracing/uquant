@@ -1,4 +1,4 @@
-"""Immutable Task 10 start projection for the legacy Sentinel source identity."""
+"""Immutable compatibility projection for the historical Sentinel source identity."""
 
 from __future__ import annotations
 
@@ -285,7 +285,7 @@ _ARCHIVE_BASE85 = (
 
 
 def immutable_source_identity_archive() -> tuple[tuple[str, bytes], ...]:
-    """Return exact Sentinel Python members from the immutable Task 10 start."""
+    """Return exact Sentinel Python members from the immutable compatibility anchor."""
 
     payload = memoryview(zlib.decompress(base64.b85decode(_ARCHIVE_BASE85)))
     member_count = struct.unpack_from(">I", payload, 0)[0]

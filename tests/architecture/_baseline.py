@@ -1,4 +1,4 @@
-"""Independent immutable anchors for the Task 1 architecture contracts."""
+"""Independent immutable anchors for the baseline architecture contracts."""
 
 from __future__ import annotations
 

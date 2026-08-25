@@ -1,4 +1,4 @@
-"""Architecture authority and pre-Task8 relocation declarations."""
+"""Architecture authority and pre-portfolio-relocation declarations."""
 
 from __future__ import annotations
 

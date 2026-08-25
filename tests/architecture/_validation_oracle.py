@@ -898,7 +898,7 @@ def _sentinel_failures(temporary: Path) -> list[dict[str, object]]:
 
 def build_validation_oracle(root: Path) -> dict[str, object]:
     root = root.resolve()
-    with tempfile.TemporaryDirectory(prefix="uquant-task9-oracle-") as raw_temporary:
+    with tempfile.TemporaryDirectory(prefix="uquant-validation-oracle-") as raw_temporary:
         temporary = Path(raw_temporary)
         generalization_success = _generalization_success(root)
         holdout_success = _holdout_success(root, temporary)

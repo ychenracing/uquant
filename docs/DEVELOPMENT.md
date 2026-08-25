@@ -85,11 +85,11 @@ Git 忽略；发布证据必须由 checkout 后的命令重建，不能提交一
 | 必需结论 | 组成 |
 |---|---|
 | `Engineering` | `quality`、`security` 与原生 `Windows smoke` 都成功后才成功；summary 总是运行 |
-| `Phase 1 Performance` | 未删减的 `promotion --profile full`、精确 HEAD 与完整 provenance |
-| `Phase 2 Generalization` | 六个官方窗口分片全部完成后的 234-record policy/evidence 聚合 |
+| `Performance Acceptance` | 未删减的 `promotion --profile full`、精确 HEAD 与完整 provenance |
+| `Generalization Acceptance` | 六个官方窗口分片全部完成后的 234-record policy/evidence 聚合 |
 
 不得为必需结论添加 path filter、`continue-on-error`、失败转成功或可取消矩阵。
-Phase 1/2 的窗口、记录、失败状态和证据解释由[性能与证据](PERFORMANCE.md)维护；
+性能与泛化验收的窗口、记录、失败状态和证据解释由[性能与证据](PERFORMANCE.md)维护；
 Holdout 的静态 Lane、Journal、checkpoint 和事务恢复合同由[Future Holdout](HOLDOUT.md)
 维护。本页只维护开发者实际运行的命令，避免复制第二份业务合同。
 
@@ -118,7 +118,7 @@ Holdout 的静态 Lane、Journal、checkpoint 和事务恢复合同由[Future Ho
 - 修改行为时同步更新 README、主题文档和参数说明；
 - 示例命令必须使用真实 CLI 参数并能在仓库根目录运行。
 - 历史 artifact 必须标明“历史证据”且链接当前 canonical 权威，不能用旧结论描述当前 HEAD。
-- 生产源码中的注释和 docstring 不使用 Task/重构阶段标签；Phase 1/2、source anchor 等
+- 生产源码中的注释和 docstring 不使用实施任务或改造阶段标签；source anchor 等
   已冻结合同名称仅在实际合同与验证模块中保留。
 
 ## 策略改动流程
@@ -128,8 +128,8 @@ Holdout 的静态 Lane、Journal、checkpoint 和事务恢复合同由[Future Ho
 3. 做最小改动并运行直接受影响的测试；
 4. 在有意义的 milestone 运行受影响模块、场景或窗口；
 5. 候选字节冻结后运行一次完整 Engineering；
-6. 运行不可拆分的 full AI-era Phase 1 绩效门；
-7. 运行六个固定 2023+ 窗口的 Phase 2 Generalization 门，不改变种子、池或样本失败；
+6. 运行不可拆分的 full AI-era 性能门；
+7. 运行六个固定 2023+ 窗口的泛化门，不改变种子、池或样本失败；
 8. 审查配置、代码、日报、归因和文档是否一致。
 
 参数搜索只能生成候选，不能自动写入生产默认值。最终选择必须有独立验证证据。

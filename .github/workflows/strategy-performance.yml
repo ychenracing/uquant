@@ -73,16 +73,16 @@ jobs:
         run: uv run python -m research.current_heads
 
   phase1-performance:
-    name: Phase 1 Performance
+    name: Performance Acceptance
     if: ${{ always() }}
     needs: ai-era-performance
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
-      - name: Require full Phase 1 gate
+      - name: Require full performance gate
         run: |
           performance='${{ needs.ai-era-performance.result }}'
           if [ "$performance" != "success" ]; then
-            echo "Phase 1 Performance failed: ai-era-performance=$performance"
+            echo "Performance Acceptance failed: ai-era-performance=$performance"
             exit 1
           fi

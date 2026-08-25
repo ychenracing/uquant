@@ -182,7 +182,7 @@ def risk_trace_replay(
 
 
 def official_risk_trace(root: Path) -> dict[str, Any]:
-    """Build the complete Task 7 oracle from one supplied source snapshot."""
+    """Build the complete risk oracle from one supplied source snapshot."""
 
     scenarios: list[dict[str, Any]] = []
     for spec in _OFFICIAL_TRACE_SPECS:

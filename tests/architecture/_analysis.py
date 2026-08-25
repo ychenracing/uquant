@@ -1,5 +1,5 @@
 # ruff: noqa: I001
-"""Deterministic architecture and public-contract analysis used by Task 1 gates.
+"""Deterministic architecture and public-contract analysis used by baseline gates.
 
 This module deliberately lives under ``tests``: it measures production code but
 is not part of the production strategy surface or its code fingerprint.

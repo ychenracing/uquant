@@ -1,4 +1,4 @@
-"""Pure AST proofs shared by Task 10 private-edge governance."""
+"""Pure AST proofs shared by private-edge governance."""
 
 from __future__ import annotations
 

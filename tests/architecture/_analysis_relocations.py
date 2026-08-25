@@ -1,4 +1,4 @@
-"""Task8 through Task10 architecture relocation declarations."""
+"""Architecture owner-relocation declarations."""
 
 from __future__ import annotations
 
@@ -471,21 +471,21 @@ _PUBLIC_API_IMPLEMENTATIONS = {
 }
 
 _PUBLIC_API_FACADE_PATHS = {
-    # Task 3 converts the stable import path into its only valid package owner.
-    # The immutable Task 1 contract continues to name the historical .py facade.
+    # Compatibility ownership converts the stable import path to its package owner.
+    # The immutable baseline contract continues to name the historical .py facade.
     "uquant.config": "uquant/config.py",
-    # Task 5 performs the same module-to-package transition for these facades.
+    # Configuration ownership performs the same transition for these facades.
     "uquant.account": "uquant/account.py",
     "uquant.attribution": "uquant/attribution.py",
-    # Task 6 preserves the historical module path as a same-name package facade.
+    # Execution ownership preserves the historical path as a same-name package facade.
     "uquant.execution": "uquant/execution.py",
-    # Task 7 preserves the public Base Risk import path through its package facade.
+    # Risk ownership preserves the public Base Risk import path through its package facade.
     "uquant.risk": "uquant/risk.py",
-    # Task 8 preserves the public allocator path through its same-name package facade.
+    # Portfolio ownership preserves the public allocator path through its package facade.
     "uquant.portfolio": "uquant/portfolio.py",
-    # Task 9 preserves generalization's public path through its same-name package facade.
+    # Validation ownership preserves generalization's public path through its package facade.
     "uquant.validation.generalization": "uquant/validation/generalization.py",
-    # Task 9 preserves Holdout's public path through its same-name package facade.
+    # Validation ownership preserves Holdout's public path through its same-name package facade.
     "uquant.validation.holdout": "uquant/validation/holdout.py",
 }
 

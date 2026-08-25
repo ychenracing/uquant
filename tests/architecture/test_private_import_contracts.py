@@ -205,8 +205,8 @@ def test_architecture_live_analyzer_separates_current_debt_from_historical_proje
 @pytest.mark.parametrize(
     "probe_path",
     (
-        "research/task10_direct_private_probe.py",
-        "scripts/task10_direct_private_probe.py",
+        "research/governance_direct_private_probe.py",
+        "scripts/governance_direct_private_probe.py",
     ),
 )
 def test_architecture_live_analyzer_measures_nonproduction_direct_private_edges(
@@ -240,7 +240,7 @@ def test_architecture_live_analyzer_measures_qualified_private_edges(
     governed_root: str,
 ) -> None:
     sources = current_governed_sources()
-    probe_path = f"{governed_root}/task10_qualified_private_probe.py"
+    probe_path = f"{governed_root}/governance_qualified_private_probe.py"
     sources[probe_path] = (
         "import uquant.account.validation_common as common\n"
         "value = common._finite_number\n"
@@ -623,7 +623,7 @@ def test_architecture_raw_scanner_rejects_dynamic_private_transport_evasion(
     kind: str,
 ) -> None:
     mutation = {
-        f"{governed_root}/task10_dynamic_private_probe.py": source,
+        f"{governed_root}/governance_dynamic_private_probe.py": source,
         "uquant/account/validation_common.py": (
             "def _finite_number(value: object) -> float:\n"
             "    return float(value)\n"
@@ -861,7 +861,7 @@ def test_architecture_holdout_facades_expose_only_finite_typed_capabilities(
     assert observed_stars == set()
 
 
-def test_architecture_final_raw_private_debt_matches_canonical_acceptance_allowlist() -> None:
+def test_architecture_current_raw_private_debt_matches_canonical_acceptance_allowlist() -> None:
     expected = _canonical_private_acceptance_allowlist()
     assert expected == []
     observed = scan_governed_private_edges(current_governed_sources())

@@ -107,7 +107,7 @@ def _current_runner_with_reviewed_production_checkout(destination: Path) -> Path
 
 def _runner_module():
     source = ROOT / "scripts" / "run_generalization_ablation.py"
-    spec = importlib.util.spec_from_file_location("phase2_ablation_runner", source)
+    spec = importlib.util.spec_from_file_location("generalization_ablation_runner", source)
     assert spec is not None and spec.loader is not None
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
@@ -205,7 +205,7 @@ def test_results_classify_all_subsystems_from_authenticated_evidence() -> None:
 
 
 def test_post_deletion_registry_is_derived_without_relabeling_historical_evidence() -> None:
-    """Catches mutating Task-7 identity or retaining the deleted carrier in fresh evidence."""
+    """Catches mutating historical identity or retaining a deleted carrier in fresh evidence."""
     historical = load_ablation_registry(DEFAULT_ABLATION_REGISTRY_PATH)
     minimal = load_ablation_registry(MINIMAL_ABLATION_REGISTRY_PATH)
 
@@ -493,7 +493,7 @@ def _single_cell_worker(
 
 
 def test_comparison_emits_every_raw_materiality_dimension_without_classification() -> None:
-    """Catches dropped Task-8 inputs or premature KEEP/DELETE classification."""
+    """Catches dropped materiality inputs or premature KEEP/DELETE classification."""
     baseline = AblationCell(
         contract="phase1_performance",
         cell_id="a/h1_2023",
@@ -715,7 +715,7 @@ def test_trusted_ablation_json_readers_normalize_invalid_utf8(
         "REFERENCE_SOURCE_CONTRACT_PATH",
         invalid,
     )
-    with pytest.raises(ValueError, match="cannot load post-Task8 source contract"):
+    with pytest.raises(ValueError, match="cannot load post-anchor source contract"):
         ablation_registry_module._validate_reference_source_contract(
             minimal,
             root=ROOT,
@@ -769,7 +769,7 @@ from _generalization_carrier_worker_cases import (
 from _generalization_checkpoint_evidence_cases import (
     test_worker_payload_requires_exact_schedule_status_and_trace_coverage,
     test_atomic_checkpoint_is_content_addressed_and_rejects_stale_or_mutated,
-    test_final_evidence_requires_all_13_exact_one_carrier_checkpoints,
+    test_complete_evidence_requires_all_13_exact_one_carrier_checkpoints,
     test_raw_backed_checkpoint_recomputes_real_comparison_after_reseal,
     test_no_divergence_writes_authenticated_invalid_artifact,
 )

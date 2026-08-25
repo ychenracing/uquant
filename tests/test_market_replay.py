@@ -19,7 +19,7 @@ def _trace_at(data_dir: Path, symbols: tuple[str, ...], *, universe: str = "para
         start="2026-07-01",
         end="2026-07-03",
         universe=universe,
-        scenario="task4",
+        scenario="market-contract",
     )
 
 

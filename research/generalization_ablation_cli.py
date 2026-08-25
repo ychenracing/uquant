@@ -1,4 +1,4 @@
-"""Validate and sequentially replay the immutable Phase 2 ablation registry."""
+"""Validate and sequentially replay the immutable generalization ablation registry."""
 
 from __future__ import annotations
 
@@ -1370,7 +1370,7 @@ def _isolated_evidence_checkout(
     git = shutil.which("git")
     if git is None:
         raise RuntimeError("cannot resolve git for ablation evidence checkout")
-    with tempfile.TemporaryDirectory(prefix="uquant-phase2-evidence-parent-") as temporary:
+    with tempfile.TemporaryDirectory(prefix="uquant-generalization-evidence-parent-") as temporary:
         checkout = Path(temporary) / "checkout"
         primary: BaseException | None = None
         add_attempted = False
@@ -1456,7 +1456,7 @@ def _replay_command(
         str(
             checkpoint_dir
             if checkpoint_dir is not None
-            else Path(tempfile.gettempdir()) / "uquant-phase2-ablation-checkpoints"
+            else Path(tempfile.gettempdir()) / "uquant-generalization-ablation-checkpoints"
         ),
         "--output",
         str(
@@ -1649,7 +1649,7 @@ def _compare_worker_payloads(
     *,
     require_divergence: bool = True,
 ) -> dict[str, Any]:
-    """Compare two complete raw runs without making a Task 8 conclusion."""
+    """Compare two complete raw runs without making a source-acceptance conclusion."""
     from research.ablation import (
         AblationCell,
         AblationMetrics,
@@ -2430,7 +2430,7 @@ def _expected_variant_provenance(
     ) = _project_imports()
     with (
         tempfile.TemporaryDirectory(
-            prefix=f"uquant-phase2-{experiment.experiment_id}-readback-"
+            prefix=f"uquant-generalization-{experiment.experiment_id}-readback-"
         ) as temporary,
         isolated_carrier_checkout(
             registry,
@@ -2738,7 +2738,7 @@ def _validate(args: argparse.Namespace) -> dict[str, Any]:
     evidence_commit = _git_output(source_root, "rev-parse", "HEAD")
     registry_relative = registry_path.relative_to(source_root)
     experiments: list[dict[str, Any]] = []
-    with tempfile.TemporaryDirectory(prefix="uquant-phase2-ablation-") as temporary:
+    with tempfile.TemporaryDirectory(prefix="uquant-generalization-ablation-") as temporary:
         temporary_root = Path(temporary)
         for index, experiment in enumerate(registry.experiments):
             destination = temporary_root / f"{index:02d}-{experiment.subsystem}"
@@ -3045,7 +3045,7 @@ def _run(args: argparse.Namespace) -> dict[str, Any]:
                 )
             else:
                 with tempfile.TemporaryDirectory(
-                    prefix=f"uquant-phase2-{experiment.experiment_id}-"
+                    prefix=f"uquant-generalization-{experiment.experiment_id}-"
                 ) as temporary:
                     checkout_destination = Path(temporary) / "checkout"
                     worker_output = Path(temporary) / "worker.json"
@@ -3369,7 +3369,7 @@ def main(argv: list[str] | None = None) -> int:
             print(encoded)
         return 0
     except (RuntimeError, ValueError) as exc:
-        print(f"phase2 ablation failed closed: {exc}", file=sys.stderr)
+        print(f"generalization ablation failed closed: {exc}", file=sys.stderr)
         return 1
 
 

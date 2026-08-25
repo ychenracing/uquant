@@ -268,7 +268,7 @@ class GeneralizationBaseline:
 
 @dataclass(frozen=True, slots=True)
 class GeneralizationPolicy:
-    """Literal immutable Phase 2 non-regression and intrinsic thresholds."""
+    """Literal immutable generalization non-regression and intrinsic thresholds."""
 
     schema_version: int
     policy_id: str

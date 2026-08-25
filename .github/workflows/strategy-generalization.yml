@@ -55,7 +55,7 @@ jobs:
           if-no-files-found: warn
 
   phase2-generalization:
-    name: Phase 2 Generalization
+    name: Generalization Acceptance
     if: ${{ always() }}
     needs: generalization-shard
     runs-on: ubuntu-latest

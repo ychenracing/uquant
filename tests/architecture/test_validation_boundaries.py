@@ -597,16 +597,16 @@ def test_validation_policy_unknown_debt_is_not_hidden_by_relocation() -> None:
     }
     path = "uquant/validation/generalization/baseline.py"
     source_texts[path] += (
-        "\nfrom .models import _TASK9_UNREVIEWED_PRIVATE\n"
-        "_TASK9_UNREVIEWED_MUTABLE = []\n"
+        "\nfrom .models import _UNREVIEWED_VALIDATION_PRIVATE\n"
+        "_UNREVIEWED_VALIDATION_MUTABLE = []\n"
     )
     mutation = architecture_snapshot(source_texts=source_texts)
     graph = mutation["import_graph"]
     assert (
         "uquant.validation.generalization.baseline:"
-        "uquant.validation.generalization.models:_TASK9_UNREVIEWED_PRIVATE"
+        "uquant.validation.generalization.models:_UNREVIEWED_VALIDATION_PRIVATE"
     ) in {str(row["id"]) for row in graph["cross_module_private_imports"]}
-    assert "uquant.validation.generalization.baseline:_TASK9_UNREVIEWED_MUTABLE" in {
+    assert "uquant.validation.generalization.baseline:_UNREVIEWED_VALIDATION_MUTABLE" in {
         str(row["id"])
         for row in mutation["module_globals"]
         if bool(row["mutable_initializer"]) or bool(row["mutation_sites"])
@@ -655,14 +655,14 @@ def test_validation_holdout_unknown_holdout_debt_is_not_hidden_by_relocation() -
     }
     path = "uquant/validation/holdout/service.py"
     source_texts[path] += (
-        "\nfrom .contract import _TASK9_UNREVIEWED_HOLDOUT_PRIVATE\n"
-        "_TASK9_UNREVIEWED_HOLDOUT_MUTABLE = []\n"
+        "\nfrom .contract import _UNREVIEWED_HOLDOUT_PRIVATE\n"
+        "_UNREVIEWED_HOLDOUT_MUTABLE = []\n"
     )
     mutation = architecture_snapshot(source_texts=source_texts)
     graph = mutation["import_graph"]
     private_import = (
         "uquant.validation.holdout.service:"
-        "uquant.validation.holdout.contract:_TASK9_UNREVIEWED_HOLDOUT_PRIVATE"
+        "uquant.validation.holdout.contract:_UNREVIEWED_HOLDOUT_PRIVATE"
     )
     assert private_import in {
         str(row["id"]) for row in graph["cross_module_private_imports"]
@@ -670,7 +670,7 @@ def test_validation_holdout_unknown_holdout_debt_is_not_hidden_by_relocation() -
     assert private_import not in {
         str(row["id"]) for row in graph["task9_relocated_private_imports"]
     }
-    assert "uquant.validation.holdout.service:_TASK9_UNREVIEWED_HOLDOUT_MUTABLE" in {
+    assert "uquant.validation.holdout.service:_UNREVIEWED_HOLDOUT_MUTABLE" in {
         str(row["id"])
         for row in mutation["module_globals"]
         if bool(row["mutable_initializer"]) or bool(row["mutation_sites"])

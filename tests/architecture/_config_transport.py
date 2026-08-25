@@ -1,4 +1,4 @@
-"""Exact Task-10 transport for Task-5 attribution private edges."""
+"""Exact transport for attribution private edges."""
 
 from __future__ import annotations
 
@@ -68,7 +68,7 @@ def _git_source(root: Path, revision: str, relative: str) -> str:
 
 
 def config_reviewed_source(root: Path, relative: str) -> str:
-    """Read one Task-5 proof input from the immutable reviewed commit."""
+    """Read one attribution proof input from the immutable reviewed commit."""
 
     assert relative in _REVIEWED_PATH_CHAINS
     return (root / relative).read_text(encoding="utf-8")
@@ -77,7 +77,7 @@ def config_reviewed_source(root: Path, relative: str) -> str:
 def config_post_checkpoint_private_edges(
     root: Path,
 ) -> dict[str, list[dict[str, object]]]:
-    """Measure the sealed Task-5 post-checkpoint tree, never the live tree."""
+    """Measure the sealed attribution-owner tree, never the live tree."""
 
     return scan_sealed_governed_private_edges(
         root,
@@ -358,7 +358,7 @@ def config_private_relocation_projection(
     observed: Set[str],
     source_overrides: Mapping[str, str] | None = None,
 ) -> frozenset[str]:
-    """Project only the five exact reviewed Task-10 transports onto Task-5 history."""
+    """Project only the five exact reviewed transports onto frozen attribution history."""
     expected_set = frozenset(expected)
     observed_set = frozenset(observed)
     assert observed_set <= expected_set

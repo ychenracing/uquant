@@ -1,6 +1,6 @@
 """Replay an AI-era causal trace from an exact clean or reviewed-patch checkout."""
 
-# ruff: noqa: F401 - finite legacy import-mode aliases
+# ruff: noqa: F401 - finite compatibility import-mode aliases
 
 from __future__ import annotations
 

@@ -1,6 +1,6 @@
-"""Fail-closed Task 10 inventory for governed private module coupling.
+"""Fail-closed inventory for governed private module coupling.
 
-This scanner deliberately does not consult the Task 5-9 relocation sets.  Those
+This scanner deliberately does not consult frozen owner-relocation sets.  Those
 sets describe historical proof routes; they are not an allowance for current
 imports.  Both direct private imports and qualified private module attributes
 are current debt.
@@ -952,7 +952,7 @@ def scan_analysis_governed_private_edges(
         include_runtime_class_recovery = True
     elif production_source_texts is not None:
         sources = dict(production_source_texts)
-        # ``source_texts`` also replays the immutable Task 1 architecture. Keep
+        # ``source_texts`` also replays the immutable baseline architecture. Keep
         # that sealed projection independent of later live scanner extensions;
         # exact governed candidates opt into the current recovery analysis.
         include_runtime_class_recovery = False

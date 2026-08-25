@@ -223,7 +223,7 @@ def test_validation_capture_rejects_malformed_fixture_shapes(malformation: str) 
     elif malformation == "synthetic-marker":
         cases[REACHABLE_WITNESS_START_INDEX]["changes"] = {
             "leader_cycle_min_market_ret120": {
-                "__task3_comparison_probe__": "removed"
+                "__compatibility_comparison_probe__": "removed"
             }
         }
     else:

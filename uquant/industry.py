@@ -26,10 +26,10 @@ _FROZEN_COMPATIBILITY_LABELS = MappingProxyType(
 
 
 def production_industries() -> Mapping[str, str]:
-    """Derive Phase 1's legacy decision buckets from the canonical manifest.
+    """Derive frozen compatibility decision buckets from the canonical manifest.
 
     The manifest is the sole source of production membership and canonical
-    taxonomy.  These labels preserve the accepted Phase 1 economic behavior
+    taxonomy.  These labels preserve the accepted production economic behavior
     while later validation consumes the normalized names directly.
     """
     universe = default_ai_universe()

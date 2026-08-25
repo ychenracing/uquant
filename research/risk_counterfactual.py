@@ -77,13 +77,13 @@ POLICY_SET = (
         "trade_cluster_trim_hybrid_shadow", "HYBRID_DIAGNOSTIC", "cluster_trim", "uquant retention ordering"
     ),
     ShadowPolicy(
-        "phase5_rejected_gross_cap_control", "NEGATIVE_CONTROL", "recommended_gross_cap", "archived Phase 5"
+        "phase5_rejected_gross_cap_control", "NEGATIVE_CONTROL", "recommended_gross_cap", "archived gross-cap rejection"
     ),
     ShadowPolicy(
         "phase7_rejected_exclusive_freeze_control",
         "NEGATIVE_CONTROL",
         "block_new_entries",
-        "archived Phase 7",
+        "archived exclusive-freeze rejection",
     ),
 )
 

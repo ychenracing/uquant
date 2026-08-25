@@ -818,7 +818,7 @@ def immutable_risk_trace(
 ) -> dict[str, object]:
     return immutable_trace_from_archive(
         root=ROOT,
-        destination=tmp_path_factory.mktemp("task7-immutable-trace") / "snapshot",
+        destination=tmp_path_factory.mktemp("risk-immutable-trace") / "snapshot",
         baseline_commit=_RISK_REFERENCE_COMMIT,
         baseline_tree=_RISK_REFERENCE_TREE,
         risk_sha256=_RISK_SHA256,
@@ -1019,19 +1019,21 @@ def test_risk_private_and_complexity_relocations_are_exact_and_fail_closed() -> 
         for path in (ROOT / "uquant").rglob("*.py")
     }
     source_texts["uquant/risk/assessment.py"] += (
-        "\nfrom .capital import _unreviewed_task7_edge\n\n"
-        "def _unreviewed_task7_debt() -> int:\n"
+        "\nfrom .capital import _unreviewed_risk_edge\n\n"
+        "def _unreviewed_risk_debt() -> int:\n"
         + "".join(f"    value = {index}\n" for index in range(121))
         + "    return value\n"
     )
     mutation = architecture_snapshot(source_texts=source_texts)
     mutation_graph = mutation["import_graph"]
     assert isinstance(mutation_graph, dict)
-    assert "uquant.risk.assessment:uquant.risk.capital:_unreviewed_task7_edge" in {
+    assert "uquant.risk.assessment:uquant.risk.capital:_unreviewed_risk_edge" in {
         str(row["id"]) for row in mutation_graph["cross_module_private_imports"]
     }
     mutation_debt = measured_debt(mutation)
-    assert "uquant.risk:_unreviewed_task7_debt" in {str(row["id"]) for row in mutation_debt["long_functions"]}
+    assert "uquant.risk:_unreviewed_risk_debt" in {
+        str(row["id"]) for row in mutation_debt["long_functions"]
+    }
 
 
 from ._risk_import_boundaries import (

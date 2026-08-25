@@ -460,24 +460,24 @@ def _observation_lock(root: Path, account: Path) -> Iterator[None]:
         primary_error = error
         raise
     finally:
-        cleanup_errors: list[tuple[str, BaseException]] = []
+        release_errors: list[tuple[str, BaseException]] = []
         if acquired:
             try:
                 observation_cli_seams().release_file_lock(descriptor)
-            except BaseException as cleanup_error:
-                cleanup_errors.append(("lock cleanup", cleanup_error))
+            except BaseException as release_error:
+                release_errors.append(("lock cleanup", release_error))
         try:
             os.close(descriptor)
-        except BaseException as cleanup_error:
-            cleanup_errors.append(("descriptor cleanup", cleanup_error))
+        except BaseException as release_error:
+            release_errors.append(("descriptor cleanup", release_error))
         if primary_error is not None:
-            for label, failure in cleanup_errors:
+            for label, failure in release_errors:
                 primary_error.add_note(
                     f"production observation {label} also failed: {type(failure).__name__}: {failure}"
                 )
-        elif cleanup_errors:
-            _, first_failure = cleanup_errors[0]
-            for later_label, later_error in cleanup_errors[1:]:
+        elif release_errors:
+            _, first_failure = release_errors[0]
+            for later_label, later_error in release_errors[1:]:
                 first_failure.add_note(
                     f"production observation {later_label} also failed: "
                     f"{type(later_error).__name__}: {later_error}"

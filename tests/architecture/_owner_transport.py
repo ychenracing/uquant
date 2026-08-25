@@ -1,4 +1,4 @@
-"""Fail-closed Task-10 projections for immutable Task-7/8 current-state gates."""
+"""Fail-closed owner projections for immutable risk and portfolio gates."""
 
 from __future__ import annotations
 
@@ -111,7 +111,7 @@ _CURRENT_RESOURCE_PATHS = {
 
 
 def architecture_source_surface_projection(identifier: str, historical: Set[str]) -> set[str]:
-    """Add only the exact Task-10 owners registered for one frozen surface."""
+    """Add only the exact owners registered for one frozen surface."""
     assert identifier in ARCHITECTURE_SOURCE_SURFACE_ADDITIONS
     additions = ARCHITECTURE_SOURCE_SURFACE_ADDITIONS[identifier]
     projected = set(historical)
@@ -599,7 +599,7 @@ def expand_architecture_portfolio_pipeline(
     candidate: ast.FunctionDef | None,
     overrides: Mapping[str, str] | None = None,
 ) -> ast.FunctionDef:
-    """Expand every Task-10 allocation stage back to immutable statement order."""
+    """Expand every allocation owner back to immutable statement order."""
     overrides = architecture_portfolio_reviewed_sources(root=root, overrides=overrides)
     frozen = _architecture_start_pipeline(root)
     pipeline_source = _source(root, "uquant/portfolio/pipeline.py", overrides)
@@ -740,7 +740,7 @@ def expand_architecture_risk_market_stage(
     wrapper: ast.FunctionDef,
     overrides: Mapping[str, str] | None = None,
 ) -> ast.FunctionDef:
-    """Project the exact Task-10 market-book delegation to its immutable owner."""
+    """Project the exact market-book delegation to its immutable owner."""
     frozen_source = subprocess.check_output(
         ["git", "show", f"{ARCHITECTURE_REFERENCE_TREE}:uquant/risk/assessment.py"],
         cwd=root,
@@ -777,7 +777,7 @@ def expand_architecture_risk_stage(
     wrapper: ast.FunctionDef,
     overrides: Mapping[str, str] | None = None,
 ) -> ast.FunctionDef:
-    """Project one exact Task-10 risk owner split to the Task-7 stage surface."""
+    """Project one exact risk owner split to the frozen risk surface."""
     if stage_name == "_assess_market_and_book_evidence":
         return expand_architecture_risk_market_stage(
             root=root,
@@ -1022,7 +1022,7 @@ def expand_architecture_risk_assessment(
     candidate: ast.FunctionDef,
     overrides: Mapping[str, str] | None = None,
 ) -> ast.FunctionDef:
-    """Expand exact Task-10 assessment carriers back to the 85 statements."""
+    """Expand exact assessment carriers back to the 85 frozen statements."""
     frozen_source = subprocess.check_output(
         ["git", "show", f"{ARCHITECTURE_REFERENCE_TREE}:uquant/risk/assessment.py"],
         cwd=root,

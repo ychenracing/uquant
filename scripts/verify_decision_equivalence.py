@@ -1,4 +1,4 @@
-"""Compare canonical Phase 1 decisions and economic state across two committed trees."""
+"""Compare canonical performance decisions and economic state across two committed trees."""
 
 from __future__ import annotations
 
@@ -10,7 +10,7 @@ from uquant.validation.equivalence import compare_phase1_commits
 
 
 def main(argv: list[str] | None = None) -> int:
-    """Run the exact full Phase 1 cross-commit differential proof."""
+    """Run the exact full performance cross-commit differential proof."""
     parser = argparse.ArgumentParser()
     parser.add_argument("--frozen-root", required=True)
     parser.add_argument("--candidate-root", required=True)

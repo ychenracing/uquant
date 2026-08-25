@@ -1,4 +1,4 @@
-"""Runtime fixtures and contract captures for Task 3 compatibility."""
+"""Runtime fixtures and contract captures for compatibility behavior."""
 
 from __future__ import annotations
 
@@ -430,7 +430,7 @@ def _baseline_archive() -> bytes:
 def _run_baseline_package(payload: Mapping[str, object]) -> dict[str, dict[str, object]]:
     """Run pickle behavior in an isolated package materialized from baseline Git bytes."""
 
-    with tempfile.TemporaryDirectory(prefix="uquant-task3-baseline-") as directory:
+    with tempfile.TemporaryDirectory(prefix="uquant-compatibility-baseline-") as directory:
         baseline_root = Path(directory)
         with tarfile.open(fileobj=io.BytesIO(_baseline_archive()), mode="r:") as archive:
             archive.extractall(baseline_root, filter="data")

@@ -1,4 +1,4 @@
-"""Immutable registry and carrier validation for Phase 2 ablations."""
+"""Immutable registry and carrier validation for generalization ablations."""
 
 from __future__ import annotations
 
@@ -234,7 +234,7 @@ def _git_bytes(root: Path, arguments: Sequence[str]) -> bytes:
 
 def _production_paths_at_commit(root: Path, commit: str) -> tuple[str, ...]:
     if not _COMMIT.fullmatch(commit):
-        raise ValueError("post-Task8 source commit is invalid")
+        raise ValueError("post-anchor source commit is invalid")
     names = _git_bytes(root, ("ls-tree", "-r", "--name-only", commit, "--", "uquant"))
     discovered = set(_PRODUCTION_FIXED_PATHS)
     for name in names.decode("utf-8").splitlines():
@@ -250,7 +250,7 @@ def _production_paths_at_commit(root: Path, commit: str) -> tuple[str, ...]:
 def _git_blob(root: Path, commit: str, relative: str) -> bytes:
     path = Path(relative)
     if path.is_absolute() or ".." in path.parts:
-        raise ValueError("post-Task8 source path escapes its root")
+        raise ValueError("post-anchor source path escapes its root")
     return _git_bytes(root, ("show", f"{commit}:{path.as_posix()}"))
 
 
@@ -304,7 +304,7 @@ def _validate_future_holdout_overlay(
     reviewed_commit: str,
     reviewed_paths: Sequence[str],
 ) -> None:
-    """Allow only the sealed non-economic observation overlay after Task 8."""
+    """Allow only the sealed non-economic observation overlay after the source anchor."""
 
     try:
         payload = json.loads(
@@ -522,7 +522,7 @@ class AblationRegistry:
 
 @dataclass(frozen=True, slots=True)
 class ContractCell:
-    """One immutable Phase 1 or Generalization schedule record."""
+    """One immutable performance or generalization schedule record."""
 
     contract: str
     cell_id: str
@@ -840,7 +840,7 @@ def _validate_reference_source_contract(
     root: Path,
     observed_source_sha256: str,
 ) -> None:
-    """Accept only the exact, sealed Git-object delta reviewed after Task 8."""
+    """Accept only the exact, sealed Git-object delta reviewed after the source anchor."""
     if (
         registry.registry_id != "phase2-post-transition-deletion-ablation-v1"
         or registry.base_commit != MINIMAL_BASE_SOURCE_COMMIT
@@ -852,8 +852,8 @@ def _validate_reference_source_contract(
             object_pairs_hook=_strict_json_object,
         )
     except (OSError, UnicodeError, json.JSONDecodeError) as exc:
-        raise ValueError("cannot load post-Task8 source contract") from exc
-    contract = _require_mapping(payload, label="post-Task8 source contract")
+        raise ValueError("cannot load post-anchor source contract") from exc
+    contract = _require_mapping(payload, label="post-anchor source contract")
     if set(contract) != {
         "schema_version",
         "contract_id",
@@ -862,31 +862,31 @@ def _validate_reference_source_contract(
         "reviewed",
         "deltas",
     }:
-        raise ValueError("post-Task8 source contract fields are invalid")
+        raise ValueError("post-anchor source contract fields are invalid")
     if contract.get("schema_version") != 1 or contract.get("contract_id") != (
         "phase2-post-task8-source-v1"
     ):
-        raise ValueError("post-Task8 source contract identity differs")
-    seal = _require_text(contract.get("canonical_sha256"), label="post-Task8 source seal")
+        raise ValueError("post-anchor source contract identity differs")
+    seal = _require_text(contract.get("canonical_sha256"), label="post-anchor source seal")
     unsealed = {key: value for key, value in contract.items() if key != "canonical_sha256"}
     if seal != _POST_TASK8_SOURCE_CONTRACT_SHA256 or canonical_sha256(unsealed) != seal:
-        raise ValueError("post-Task8 source contract seal differs")
+        raise ValueError("post-anchor source contract seal differs")
 
-    base = _require_mapping(contract.get("base"), label="post-Task8 base source")
-    reviewed = _require_mapping(contract.get("reviewed"), label="post-Task8 reviewed source")
+    base = _require_mapping(contract.get("base"), label="post-anchor base source")
+    reviewed = _require_mapping(contract.get("reviewed"), label="post-anchor reviewed source")
     source_fields = {"commit", "production_source_sha256", "path_count"}
     if set(base) != source_fields or set(reviewed) != source_fields:
-        raise ValueError("post-Task8 source endpoint fields are invalid")
-    base_commit = _require_text(base.get("commit"), label="post-Task8 base commit")
+        raise ValueError("post-anchor source endpoint fields are invalid")
+    base_commit = _require_text(base.get("commit"), label="post-anchor base commit")
     reviewed_commit = _require_text(
-        reviewed.get("commit"), label="post-Task8 reviewed commit"
+        reviewed.get("commit"), label="post-anchor reviewed commit"
     )
     if (
         base_commit != registry.base_commit
         or base.get("production_source_sha256") != registry.source_sha256
         or not _COMMIT.fullmatch(reviewed_commit)
     ):
-        raise ValueError("post-Task8 source endpoints differ from the registry")
+        raise ValueError("post-anchor source endpoints differ from the registry")
 
     base_paths = _production_paths_at_commit(root, base_commit)
     reviewed_paths = _production_paths_at_commit(root, reviewed_commit)
@@ -897,7 +897,7 @@ def _validate_reference_source_contract(
         ),
         "path_count": len(base_paths),
     }:
-        raise ValueError("post-Task8 base Git source differs from its reviewed endpoint")
+        raise ValueError("post-anchor base Git source differs from its reviewed endpoint")
     reviewed_source_sha256 = _source_fingerprint_at_commit(
         root, reviewed_commit, reviewed_paths
     )
@@ -906,7 +906,7 @@ def _validate_reference_source_contract(
         "production_source_sha256": reviewed_source_sha256,
         "path_count": len(reviewed_paths),
     }:
-        raise ValueError("post-Task8 reviewed Git source differs from its endpoint")
+        raise ValueError("post-anchor reviewed Git source differs from its endpoint")
     deltas = contract.get("deltas")
     if not isinstance(deltas, list) or deltas != _source_delta(
         root,
@@ -915,7 +915,7 @@ def _validate_reference_source_contract(
         base_paths,
         reviewed_paths,
     ):
-        raise ValueError("post-Task8 exact source delta differs from the reviewed contract")
+        raise ValueError("post-anchor exact source delta differs from the reviewed contract")
     if observed_source_sha256 != source_fingerprint(root):
         raise ValueError("ablation observed source digest differs from the working tree")
     if observed_source_sha256 != reviewed_source_sha256:
@@ -1050,15 +1050,15 @@ def _performance_schedule(
     cells: list[ContractCell] = []
     for pool_name, raw_symbols in pools.items():
         if not isinstance(pool_name, str) or not isinstance(raw_symbols, list) or not raw_symbols:
-            raise ValueError("phase1 pool is malformed")
+            raise ValueError("performance pool is malformed")
         if any(not isinstance(symbol, str) for symbol in raw_symbols):
-            raise ValueError("phase1 pool symbols are malformed")
+            raise ValueError("performance pool symbols are malformed")
         symbols = tuple(sorted(set(cast(list[str], raw_symbols))))
         if len(symbols) != len(raw_symbols):
-            raise ValueError("phase1 pool symbols are not canonical")
+            raise ValueError("performance pool symbols are not canonical")
         for window_name, raw_bounds in windows.items():
             if not isinstance(window_name, str):
-                raise ValueError("phase1 window name is malformed")
+                raise ValueError("performance window name is malformed")
             bounds = _require_mapping(raw_bounds, label="phase1 window")
             acute_bounds = _require_mapping(acute.get(window_name), label="phase1 acute window")
             cells.append(
@@ -1076,7 +1076,7 @@ def _performance_schedule(
             )
         for interval_name, raw_bounds in protected.items():
             if not isinstance(interval_name, str):
-                raise ValueError("phase1 protected interval name is malformed")
+                raise ValueError("performance protected interval name is malformed")
             bounds = _require_mapping(raw_bounds, label="phase1 protected interval")
             cells.append(
                 ContractCell(
@@ -1165,11 +1165,11 @@ def build_contract_schedule(
 ) -> tuple[ContractCell, ...]:
     """Build the complete fixed 45+234 record schedule without resampling."""
     root = Path(source_root).resolve()
-    phase1 = registry.contract("phase1_performance")
+    performance = registry.contract("phase1_performance")
     generalization = registry.contract("ai_era_generalization")
     evidence = registry.contract("frozen_generalization_status")
     cells = (
-        *_performance_schedule(root, phase1, base_commit=registry.base_commit),
+        *_performance_schedule(root, performance, base_commit=registry.base_commit),
         *_generalization_schedule(
             root,
             generalization,
@@ -1181,10 +1181,10 @@ def build_contract_schedule(
     if len(identities) != len(set(identities)):
         raise ValueError("ablation fixed schedule contains duplicate cells")
     by_contract = {
-        phase1.name: tuple(cell for cell in cells if cell.contract == phase1.name),
+        performance.name: tuple(cell for cell in cells if cell.contract == performance.name),
         generalization.name: tuple(cell for cell in cells if cell.contract == generalization.name),
     }
-    for contract in (phase1, generalization):
+    for contract in (performance, generalization):
         selected = by_contract[contract.name]
         if len(selected) != contract.record_count:
             raise ValueError(f"ablation fixed schedule coverage differs: {contract.name}")

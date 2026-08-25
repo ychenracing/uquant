@@ -1,6 +1,6 @@
-"""Validate and sequentially replay the immutable Phase 2 ablation registry."""
+"""Validate and sequentially replay the immutable generalization ablation registry."""
 
-# ruff: noqa: F401 - finite legacy import-mode aliases
+# ruff: noqa: F401 - finite compatibility import-mode aliases
 
 from __future__ import annotations
 
@@ -52,6 +52,7 @@ from research.generalization_ablation_cli import (
 from research.generalization_ablation_cli import (
     frozen_replay_error_anchors as _frozen_replay_error_anchors,
 )
+from research.generalization_ablation_cli import generalization_cli_seams, main
 from research.generalization_ablation_cli import git_output as _git_output
 from research.generalization_ablation_cli import (
     isolated_evidence_checkout as _isolated_evidence_checkout,
@@ -60,7 +61,6 @@ from research.generalization_ablation_cli import load_json_mapping as _load_json
 from research.generalization_ablation_cli import (
     load_trusted_evidence_manifest as _load_trusted_evidence_manifest,
 )
-from research.generalization_ablation_cli import main, generalization_cli_seams
 from research.generalization_ablation_cli import probe_checkout as _probe_checkout
 from research.generalization_ablation_cli import read_baseline_result as _read_baseline_result
 from research.generalization_ablation_cli import read_checkpoint as _read_checkpoint

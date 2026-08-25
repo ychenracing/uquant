@@ -1,4 +1,4 @@
-"""Inventory sealing helpers for Task 10 private-edge governance."""
+"""Inventory sealing helpers for private-edge governance."""
 
 from __future__ import annotations
 
@@ -142,13 +142,13 @@ def verify_inventory_seal(payload: Mapping[str, object]) -> None:
     unsigned = dict(payload)
     expected = unsigned.pop("artifact_sha256", None)
     if expected != canonical_sha256(unsigned):
-        raise AssertionError("Task 10 private-import inventory seal is stale")
+        raise AssertionError("private-import inventory seal is stale")
 
 
 def load_inventory(path: Path = INVENTORY_PATH) -> dict[str, object]:
     payload = json.loads(path.read_text(encoding="utf-8"))
     if not isinstance(payload, dict):
-        raise AssertionError("Task 10 private-import inventory must be an object")
+        raise AssertionError("private-import inventory must be an object")
     return payload
 
 

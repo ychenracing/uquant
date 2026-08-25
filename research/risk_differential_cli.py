@@ -377,7 +377,7 @@ def capability_inventory() -> tuple[CapabilityRecord, ...]:
                 base=("uquant/risk.py",),
                 exact=True,
                 economic=True,
-                rationale="Base owns caps; Sentinel Phase 5 gross-cap authority was rejected",
+                rationale="Base owns caps; Sentinel gross-cap authority was rejected",
             ),
             _cap(
                 "exposure.graded_trim",

@@ -240,7 +240,7 @@ def immutable_portfolio_trace(tmp_path_factory: pytest.TempPathFactory) -> dict[
         dict[str, object],
         immutable_trace_from_archive(
             root=ROOT,
-            destination=tmp_path_factory.mktemp("task8-immutable-trace") / "snapshot",
+            destination=tmp_path_factory.mktemp("portfolio-immutable-trace") / "snapshot",
             baseline_commit=_PORTFOLIO_REFERENCE_COMMIT,
             baseline_tree=_PORTFOLIO_REFERENCE_TREE,
             implementation_identities=_IMPLEMENTATION_IDENTITIES,
@@ -673,19 +673,19 @@ def test_portfolio_allocator_private_and_complexity_relocations_are_exact_and_cl
         for path in (ROOT / "uquant").rglob("*.py")
     }
     source_texts["uquant/portfolio/allocator.py"] += (
-        "\nfrom .freeze import _unreviewed_task8_edge\n\n"
-        "def _unreviewed_task8_debt() -> int:\n"
+        "\nfrom .freeze import _unreviewed_portfolio_edge\n\n"
+        "def _unreviewed_portfolio_debt() -> int:\n"
         + "".join(f"    value = {index}\n" for index in range(121))
         + "    return value\n"
     )
     mutation = architecture_snapshot(source_texts=source_texts)
     mutation_graph = mutation["import_graph"]
     assert isinstance(mutation_graph, dict)
-    assert "uquant.portfolio.allocator:uquant.portfolio.freeze:_unreviewed_task8_edge" in {
+    assert "uquant.portfolio.allocator:uquant.portfolio.freeze:_unreviewed_portfolio_edge" in {
         str(row["id"]) for row in mutation_graph["cross_module_private_imports"]
     }
     mutation_debt = measured_debt(mutation)
-    assert "uquant.portfolio:_unreviewed_task8_debt" in {
+    assert "uquant.portfolio:_unreviewed_portfolio_debt" in {
         str(row["id"]) for row in mutation_debt["long_functions"]
     }
 

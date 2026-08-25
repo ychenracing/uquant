@@ -1,4 +1,4 @@
-"""Immutable source-relocation checks for Task 9 validation owners."""
+"""Immutable source-relocation checks for validation owners."""
 
 from __future__ import annotations
 

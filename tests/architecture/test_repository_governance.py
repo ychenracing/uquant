@@ -114,6 +114,7 @@ _RELOCATED_DOCS = {
 _LOCAL_LINK = re.compile(r"(?<!!)\[[^\]]+\]\(([^)]+)\)")
 _PROJECT_STAGE_PATH = re.compile(r"(?:^|[_-])(?:task|phase)\d+(?:[_-]|$)", re.IGNORECASE)
 _BASE_TREE = "da2149e94d43e224250699ce033cef664d44ec5d"
+_INVENTORY_SNAPSHOT_COMMIT = "105695aacd3d1c7e62705f64188da88d202db4cd"
 
 
 def test_current_engineering_paths_use_domain_responsibilities() -> None:
@@ -150,12 +151,30 @@ def _tracked_contents() -> dict[str, bytes]:
     }
 
 
-def _exact_path_references(relative: str) -> list[str]:
-    needle = relative.encode()
+def _snapshot_blob(relative: str) -> bytes:
+    return subprocess.run(
+        ["git", "show", f"{_INVENTORY_SNAPSHOT_COMMIT}:{relative}"],
+        cwd=ROOT,
+        capture_output=True,
+        check=True,
+    ).stdout
+
+
+def _snapshot_path_references(relative: str) -> list[str]:
+    completed = subprocess.run(
+        ["git", "grep", "-a", "-l", "-F", relative, _INVENTORY_SNAPSHOT_COMMIT, "--"],
+        cwd=ROOT,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    assert completed.returncode in {0, 1}, completed.stderr
+    prefix = f"{_INVENTORY_SNAPSHOT_COMMIT}:"
+    inventory_relative = _INVENTORY.relative_to(ROOT).as_posix()
     return sorted(
-        tracked
-        for tracked, content in _tracked_contents().items()
-        if needle in content
+        line.removeprefix(prefix)
+        for line in completed.stdout.splitlines()
+        if line.startswith(prefix) and line.removeprefix(prefix) != inventory_relative
     )
 
 
@@ -183,8 +202,10 @@ def _inventory() -> dict[str, object]:
     return cast(dict[str, object], json.loads(_INVENTORY.read_text(encoding="utf-8")))
 
 
-def test_documentation_cleanup_inventory_records_current_authority_and_history() -> None:
+def test_documentation_governance_inventory_preserves_frozen_authority_and_history() -> None:
     payload = _inventory()
+    inventory_relative = _INVENTORY.relative_to(ROOT).as_posix()
+    assert _INVENTORY.read_bytes() == _snapshot_blob(inventory_relative)
     assert payload["schema_version"] == 2
     assert payload["contract"] == "uquant-documentation-governance-cleanup-v2"
     assert payload["candidate_policy"] == (
@@ -208,16 +229,26 @@ def test_documentation_cleanup_inventory_records_current_authority_and_history()
     unsealed = {key: value for key, value in payload.items() if key != "canonical_sha256"}
     assert payload["canonical_sha256"] == canonical_json_sha256(unsealed)
     for relative, entry in by_path.items():
-        path = ROOT / relative
-        assert path.is_file() and not path.is_symlink()
-        content = path.read_bytes()
+        content = _snapshot_blob(relative)
         assert entry["size_bytes"] == len(content)
         assert entry["content_sha256"] == hashlib.sha256(content).hexdigest()
         assert entry["classification"] in _CLASSIFICATIONS
         references = cast(list[str], entry["live_references"])
-        assert references == _exact_path_references(relative)
+        assert references == _snapshot_path_references(relative)
         assert isinstance(entry["authority_reason"], str) and entry["authority_reason"]
-        assert entry["replacement_path"] is None or (ROOT / str(entry["replacement_path"])).exists()
+        if entry["replacement_path"] is not None:
+            replacement = subprocess.run(
+                [
+                    "git",
+                    "cat-file",
+                    "-e",
+                    f"{_INVENTORY_SNAPSHOT_COMMIT}:{entry['replacement_path']}",
+                ],
+                cwd=ROOT,
+                capture_output=True,
+                check=False,
+            )
+            assert replacement.returncode == 0, entry["replacement_path"]
         recovery = cast(dict[str, object], entry["recovery"])
         assert recovery["status"] in {"GIT_OBJECT", "IN_REPOSITORY", "NOT_EXTERNALIZED"}
         assert isinstance(recovery["command"], str) and recovery["command"]
@@ -356,7 +387,7 @@ def test_historical_markdown_declares_its_non_authoritative_boundary() -> None:
         assert "> **权威级别\uff1a历史证据**" in text, path.relative_to(ROOT)
 
 
-def test_current_production_narrative_avoids_refactor_timeline_labels() -> None:
+def test_current_production_narrative_avoids_implementation_timeline_labels() -> None:
     stale = re.compile(r"\b(?:Task|Phase) [0-9]+\b")
     for relative in _CURRENT_SOURCE_NARRATIVE:
         text = (ROOT / relative).read_text(encoding="utf-8")

@@ -1,4 +1,4 @@
-"""Fail-closed transport proof for split Task-10 CLI owners."""
+"""Fail-closed transport proof for split CLI owners."""
 
 from __future__ import annotations
 
@@ -26,7 +26,7 @@ def _assert_exact(actual: ast.AST, expected: ast.AST, *, label: str) -> None:
     assert ast.dump(actual, include_attributes=False) == ast.dump(
         expected,
         include_attributes=False,
-    ), f"unexpected Task 10 transport {label}"
+    ), f"unexpected CLI owner transport {label}"
 
 
 def _body_without_exact_return(
@@ -371,7 +371,7 @@ def generalization_ablation_public_owner_transport_unit_digests(
     _assert_exact(
         current_without_imports,
         frozen_without_imports,
-        label="phase2 ablation replay owner",
+        label="generalization ablation replay owner",
     )
     return (_unit_sha256(frozen),)
 

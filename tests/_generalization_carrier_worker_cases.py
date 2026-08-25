@@ -350,7 +350,7 @@ def test_worker_cell_retains_exact_failure_date_and_partial_trace() -> None:
     }
 
 def test_worker_comparison_emits_per_cell_aggregate_and_first_divergence() -> None:
-    """Catches a result schema that loses Task-8 inputs or labels conclusions early."""
+    """Catches a result schema that loses materiality inputs or labels conclusions early."""
     runner = _runner_module()
     baseline_metrics = _metrics(
         wealth=2.0,

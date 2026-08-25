@@ -1,4 +1,4 @@
-"""Cross-commit proof that Phase 1 decisions and economic state are unchanged."""
+"""Cross-commit proof that performance decisions and economic state are unchanged."""
 
 from __future__ import annotations
 
@@ -32,7 +32,7 @@ class Phase1DecisionTrace:
 
 @dataclass(frozen=True, slots=True)
 class Phase1Case:
-    """One mandatory Phase 1 replay interval and its exact reviewed pool."""
+    """One mandatory performance replay interval and its exact reviewed pool."""
 
     name: str
     symbols: tuple[str, ...]
@@ -43,7 +43,7 @@ class Phase1Case:
 def phase1_cases(
     baseline: str | Path = Path("benchmarks") / "promotion_baseline.json",
 ) -> tuple[Phase1Case, ...]:
-    """Expand every reviewed official and protected Phase 1 pool/interval exactly once."""
+    """Expand every reviewed official and protected performance pool/interval exactly once."""
     payload = json.loads(Path(baseline).read_text(encoding="utf-8"))
     pools = payload.get("pools")
     contract = payload.get("contract")
@@ -59,11 +59,11 @@ def phase1_cases(
     for pool in sorted(pools):
         symbols = pools[pool]
         if not isinstance(symbols, list) or not all(isinstance(symbol, str) for symbol in symbols):
-            raise RuntimeError(f"Phase 1 pool is malformed: {pool}")
+            raise RuntimeError(f"performance pool is malformed: {pool}")
         for interval in sorted(intervals):
             window = intervals[interval]
             if not isinstance(window, dict) or set(window) != {"start", "end"}:
-                raise RuntimeError(f"Phase 1 interval is malformed: {interval}")
+                raise RuntimeError(f"performance interval is malformed: {interval}")
             cases.append(
                 Phase1Case(
                     name=f"{pool}/{interval}",
@@ -81,9 +81,9 @@ def assert_equivalent_phase1_traces(
 ) -> None:
     """Reject a candidate if any Phase 1 decision payload or economic state differs."""
     if frozen.production_commit != FROZEN_CHAMPION_COMMIT:
-        raise RuntimeError("reference trace is not bound to the frozen Phase 1 champion")
+        raise RuntimeError("reference trace is not bound to the frozen performance champion")
     if set(frozen.cases) != set(candidate.cases):
-        raise RuntimeError("Phase 1 trace cases differ across commits")
+        raise RuntimeError("performance trace cases differ across commits")
     required: Final = {"decision_payload_sha256", "economic_account_sha256"}
     for case in sorted(frozen.cases):
         reference = frozen.cases[case]
@@ -93,7 +93,7 @@ def assert_equivalent_phase1_traces(
         if reference["decision_payload_sha256"] != observed["decision_payload_sha256"]:
             raise RuntimeError(f"Phase 1 decision payload diverged: {case}")
         if reference["economic_account_sha256"] != observed["economic_account_sha256"]:
-            raise RuntimeError(f"Phase 1 economic account diverged: {case}")
+            raise RuntimeError(f"performance economic account diverged: {case}")
 
 
 _TRACE_PROGRAM: Final = """
@@ -107,7 +107,7 @@ source_root = Path(case.pop("source_root")).resolve()
 dependency_paths = case.pop("dependency_paths")
 sys.path[:0] = [str(source_root), *dependency_paths]
 if any(name == "uquant" or name.startswith("uquant.") for name in sys.modules):
-    raise RuntimeError("Phase 1 trace imported production before source binding")
+    raise RuntimeError("decision-equivalence trace imported production before source binding")
 
 from uquant.config import config_fingerprint
 from uquant.engine import ProductionEngine
@@ -117,7 +117,7 @@ for name, module in tuple(sys.modules.items()):
     if name == "uquant" or name.startswith("uquant."):
         origin = getattr(module, "__file__", None)
         if origin is None or not Path(origin).resolve().is_relative_to(source_root):
-            raise RuntimeError("Phase 1 trace imported production outside its checkout")
+            raise RuntimeError("decision-equivalence trace imported production outside its checkout")
 
 engine = ProductionEngine(case["data_dir"])
 payloads = []
@@ -154,7 +154,7 @@ def _sha256_equivalence_json(value: Any) -> str:
 def _equivalence_git_executable() -> str:
     executable = shutil.which("git")
     if executable is None:
-        raise RuntimeError("cannot resolve git executable for Phase 1 equivalence")
+        raise RuntimeError("cannot resolve git executable for decision equivalence")
     return executable
 
 
@@ -167,7 +167,7 @@ def _git_commit(root: Path) -> str:
             text=True,
         ).stdout.strip()  # nosec B603
     except (OSError, subprocess.CalledProcessError) as exc:
-        raise RuntimeError(f"cannot resolve commit for Phase 1 equivalence: {root}") from exc
+        raise RuntimeError(f"cannot resolve commit for decision equivalence: {root}") from exc
 
 
 def _require_clean_equivalence_tree(root: Path) -> None:
@@ -188,9 +188,9 @@ def _require_clean_equivalence_tree(root: Path) -> None:
             text=True,
         ).stdout
     except (OSError, subprocess.CalledProcessError) as exc:
-        raise RuntimeError(f"cannot inspect Phase 1 equivalence tree: {root}") from exc
+        raise RuntimeError(f"cannot inspect decision-equivalence tree: {root}") from exc
     if status.strip():
-        raise RuntimeError("Phase 1 equivalence requires clean committed inputs")
+        raise RuntimeError("decision equivalence requires clean committed inputs")
 
 
 def _reject_duplicate_equivalence_keys(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
@@ -247,7 +247,7 @@ def _immutable_equivalence_data(
 
     data_root = source.resolve()
     if source.is_symlink():
-        raise RuntimeError("Phase 1 equivalence frozen data is unsafe")
+        raise RuntimeError("decision-equivalence frozen data is unsafe")
     try:
         authenticated_files = (
             data_root / "DATA_MANIFEST.json",
@@ -256,7 +256,7 @@ def _immutable_equivalence_data(
         )
         observed = verify_data_manifest(data_root)
     except (OSError, RuntimeError) as exc:
-        raise RuntimeError("Phase 1 equivalence frozen data is invalid") from exc
+        raise RuntimeError("decision-equivalence frozen data is invalid") from exc
     if observed != dict(expected):
         raise RuntimeError("Phase 1 equivalence frozen data differs from the baseline")
     with tempfile.TemporaryDirectory(prefix="uquant-phase1-equivalence-data-") as temporary:
@@ -267,9 +267,9 @@ def _immutable_equivalence_data(
                 shutil.copy2(path, snapshot / path.name, follow_symlinks=False)
             copied = verify_data_manifest(snapshot)
         except (OSError, RuntimeError) as exc:
-            raise RuntimeError("cannot snapshot Phase 1 equivalence frozen data") from exc
+            raise RuntimeError("cannot snapshot decision-equivalence frozen data") from exc
         if copied != dict(expected):
-            raise RuntimeError("Phase 1 equivalence frozen data changed during snapshot")
+            raise RuntimeError("decision-equivalence frozen data changed during snapshot")
         for path in snapshot.rglob("*"):
             path.chmod(0o500 if path.is_dir() else 0o400)
         snapshot.chmod(0o500)
@@ -279,15 +279,15 @@ def _immutable_equivalence_data(
             try:
                 private = verify_data_manifest(snapshot)
             except (OSError, RuntimeError) as exc:
-                raise RuntimeError("Phase 1 equivalence private data changed during replay") from exc
+                raise RuntimeError("decision-equivalence private data changed during replay") from exc
             if private != dict(expected):
-                raise RuntimeError("Phase 1 equivalence private data changed during replay")
+                raise RuntimeError("decision-equivalence private data changed during replay")
             try:
                 current = verify_data_manifest(data_root)
             except (OSError, RuntimeError) as exc:
-                raise RuntimeError("Phase 1 equivalence frozen data changed during replay") from exc
+                raise RuntimeError("decision-equivalence frozen data changed during replay") from exc
             if current != dict(expected):
-                raise RuntimeError("Phase 1 equivalence frozen data changed during replay")
+                raise RuntimeError("decision-equivalence frozen data changed during replay")
 
 
 @contextmanager
@@ -318,14 +318,14 @@ def _isolated_equivalence_tree(root: Path, commit: str) -> Iterator[Path]:
                     text=True,
                 )
             except (OSError, subprocess.CalledProcessError) as exc:
-                raise RuntimeError("cannot materialize Phase 1 equivalence source") from exc
+                raise RuntimeError("cannot materialize decision-equivalence source") from exc
             if _git_commit(checkout) != commit:
-                raise RuntimeError("Phase 1 equivalence source commit differs")
+                raise RuntimeError("decision-equivalence source commit differs")
             _require_clean_equivalence_tree(checkout)
             yield checkout
             _require_clean_equivalence_tree(checkout)
             if _git_commit(checkout) != commit:
-                raise RuntimeError("Phase 1 equivalence source commit changed during replay")
+                raise RuntimeError("decision-equivalence source commit changed during replay")
         except BaseException as exc:
             primary = exc
             raise
@@ -348,9 +348,9 @@ def _isolated_equivalence_tree(root: Path, commit: str) -> Iterator[Path]:
                     )
                 except (OSError, subprocess.CalledProcessError) as exc:
                     if primary is not None:
-                        primary.add_note(f"Phase 1 worktree cleanup also failed: {exc}")
+                        primary.add_note(f"decision-equivalence worktree removal also failed: {exc}")
                     else:
-                        raise RuntimeError("cannot remove Phase 1 equivalence source") from exc
+                        raise RuntimeError("cannot remove decision-equivalence source") from exc
 
 
 def _trusted_dependency_paths() -> tuple[str, ...]:
@@ -404,11 +404,11 @@ def trace_phase1_case(
         )  # nosec B603
         trace = json.loads(completed.stdout)
     except (OSError, subprocess.CalledProcessError, json.JSONDecodeError) as exc:
-        raise RuntimeError(f"cannot capture Phase 1 decision trace: {case.name}") from exc
+        raise RuntimeError(f"cannot capture performance decision trace: {case.name}") from exc
     if not isinstance(trace, dict) or set(trace) != {"decision_payload_sha256", "economic_account_sha256"}:
-        raise RuntimeError(f"Phase 1 decision trace is malformed: {case.name}")
+        raise RuntimeError(f"performance decision trace is malformed: {case.name}")
     if any(not isinstance(value, str) or len(value) != 64 for value in trace.values()):
-        raise RuntimeError(f"Phase 1 decision trace digest is malformed: {case.name}")
+        raise RuntimeError(f"performance decision trace digest is malformed: {case.name}")
     return trace
 
 
@@ -424,7 +424,7 @@ def compare_phase1_commits(
     candidate_path = Path(candidate_root).resolve()
     frozen_commit = _git_commit(frozen_path)
     if frozen_commit != FROZEN_CHAMPION_COMMIT:
-        raise RuntimeError("frozen equivalence tree does not match the Phase 1 champion commit")
+        raise RuntimeError("frozen equivalence tree does not match the performance champion commit")
     candidate_commit = _git_commit(candidate_path)
     _require_clean_equivalence_tree(frozen_path)
     _require_clean_equivalence_tree(candidate_path)
@@ -458,7 +458,7 @@ def compare_phase1_commits(
     _require_clean_equivalence_tree(frozen_path)
     _require_clean_equivalence_tree(candidate_path)
     if _git_commit(frozen_path) != frozen_commit or _git_commit(candidate_path) != candidate_commit:
-        raise RuntimeError("Phase 1 equivalence commit changed during replay")
+        raise RuntimeError("decision-equivalence commit changed during replay")
     frozen_trace = Phase1DecisionTrace(production_commit=frozen_commit, cases=frozen_cases)
     candidate_trace = Phase1DecisionTrace(production_commit=candidate_commit, cases=candidate_cases)
     assert_equivalent_phase1_traces(frozen_trace, candidate_trace)

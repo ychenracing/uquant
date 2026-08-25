@@ -606,7 +606,7 @@ def validation_historical_debt_projection(
     current_globals: Set[str],
     historical_globals: Set[str],
 ) -> tuple[set[str], set[str]]:
-    """Keep live-zero acceptance distinct from frozen Task-9 debt identity."""
+    """Keep live-zero acceptance distinct from frozen validation-debt identity."""
 
     assert not current_functions and not current_globals
     function_digest = hashlib.sha256("\n".join(sorted(historical_functions)).encode()).hexdigest()

@@ -1,6 +1,6 @@
 # ruff: noqa: E402, I001
 # Late re-exports preserve the immutable pytest collection identity and order.
-"""Behavioral Task 3 capture helpers bound to the immutable Task 1 tree."""
+"""Behavioral compatibility capture helpers bound to the immutable baseline tree."""
 
 from __future__ import annotations
 
@@ -384,7 +384,7 @@ def _normalized_clause_dump(statement: ast.stmt, argument_name: str) -> str:
 
 @lru_cache(maxsize=1)
 def baseline_validation_clause_dumps() -> tuple[str, ...]:
-    """Return the immutable Task 1 validation clauses in exact semantic order."""
+    """Return immutable baseline validation clauses in exact semantic order."""
 
     source = git_blob(BASELINE_CONFIG_PATH).decode("utf-8")
     tree = ast.parse(source, filename=f"{BASELINE_COMMIT}:{BASELINE_CONFIG_PATH}")

@@ -594,7 +594,7 @@ def current_reflection_contract(root: Path) -> dict[str, Any]:
 def _reflection_contract(root: Path) -> dict[str, Any]:
     archive = _git(root, "archive", "--format=tar", VALIDATION_REFERENCE_TREE)
     assert isinstance(archive, bytes)
-    with tempfile.TemporaryDirectory(prefix="uquant-task9-inventory-") as temporary:
+    with tempfile.TemporaryDirectory(prefix="uquant-validation-inventory-") as temporary:
         snapshot = Path(temporary) / "snapshot"
         snapshot.mkdir()
         with tarfile.open(fileobj=io.BytesIO(archive), mode="r:") as stream:

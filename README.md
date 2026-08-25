@@ -41,7 +41,7 @@ uquant 是专门面向 2023 年以来 A 股 AI 产业链的日频量化决策系
 ## 验证与演进边界
 
 生产、绩效门和泛化门共用经过摘要保护的 34 只 A 股 AI 产业链证券及点时行业身份。
-Phase 1 验证六个完整 AI-era 窗口；Phase 2 在固定全集、行业、移除核心与随机池场景中
+性能验收验证六个完整 AI-era 窗口；泛化验收在固定全集、行业、移除核心与随机池场景中
 检查收益、回撤、订单、换手、集中度和归因一致性。失败场景、样本不足、证券池、seed、
 统计口径和冻结 champion 都不能为了让候选通过而改写。
 
@@ -160,7 +160,7 @@ date,open,high,low,close,volume
 | `uquant/risk_sentinel/` | 独立风险证据、Coverage 与 `FREEZE_ONLY` 映射 |
 | `uquant/contracts/` | 共享不可变合同、严格 JSON 与资源身份 |
 | `uquant/broker.py`、`report.py` | 券商对账与只读日报渲染 |
-| `uquant/validation/` | 数据完整性、Phase 1 绩效和 Phase 2 泛化门禁 |
+| `uquant/validation/` | 数据完整性、AI-era 性能和泛化门禁 |
 | `uquant/engine.py`、`portfolio_{leaders,strategic,recovery}.py` | 保持旧导入、pickle 与公共 API 的兼容 facade |
 | `research/` | 与生产导入隔离的离线研究工具 |
 | `scripts/` | 仓库内运维、观察与验证入口，不进入 wheel |
@@ -198,7 +198,7 @@ uv run python -m compileall -q uquant scripts research tests
 ```
 
 其他改动应把路径替换为直接受影响的测试和模块。L1→L4 的升级条件、完整开发、构建、
-安全和发布命令只在[开发指南](docs/DEVELOPMENT.md)维护；Phase 1/2 经济门、窗口与证据解释
+安全和发布命令只在[开发指南](docs/DEVELOPMENT.md)维护；性能与泛化经济门、窗口与证据解释
 只在[性能与证据](docs/PERFORMANCE.md)维护，避免命令副本漂移。
 
 ## 使用限制

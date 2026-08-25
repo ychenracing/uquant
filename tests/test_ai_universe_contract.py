@@ -63,7 +63,7 @@ def test_frozen_champion_rejects_mutated_and_resealed_nested_provenance(
     path = tmp_path / f"{group}.json"
     path.write_text(json.dumps(payload), encoding="utf-8")
 
-    with pytest.raises(ValueError, match="differs from the reviewed Phase 1 contract"):
+    with pytest.raises(ValueError, match="differs from the reviewed performance contract"):
         load_phase1_frozen_champion(path)
 
 
@@ -79,7 +79,7 @@ def test_canonical_manifest_owns_exact_current_reference_coverage() -> None:
 
 
 def test_manifest_exposes_pit_taxonomy_with_legacy_decision_compatibility() -> None:
-    """Breaks if canonical taxonomy changes Phase 1's existing bucket decisions."""
+    """Breaks if canonical taxonomy changes frozen compatibility bucket decisions."""
     universe = load_ai_universe()
 
     assert set(universe.industries) >= CANONICAL_INDUSTRIES

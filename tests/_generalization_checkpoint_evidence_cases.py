@@ -299,7 +299,7 @@ def test_atomic_checkpoint_is_content_addressed_and_rejects_stale_or_mutated(
             kind="baseline",
         )
 
-def test_final_evidence_requires_all_13_exact_one_carrier_checkpoints() -> None:
+def test_complete_evidence_requires_all_13_exact_one_carrier_checkpoints() -> None:
     """Catches partial aggregation and cross-experiment variant reuse."""
     runner = _runner_module()
     registry = load_ablation_registry(DEFAULT_ABLATION_REGISTRY_PATH)

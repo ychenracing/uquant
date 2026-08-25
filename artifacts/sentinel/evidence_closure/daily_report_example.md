@@ -1,5 +1,9 @@
 # Daily Report — 2026-08-05
 
+> **权威级别：历史证据** — 这是冻结输出样例，不定义当前日报 schema，也不是交易指令。
+> 当前字段和权限见 [Risk Sentinel](../../../docs/RISK_SENTINEL.md)，证据目录见
+> [历史证据索引](../../README.md)。
+
 Opportunity: **TREND**  
 Risk: **CAUTION**  
 Target Gross: **70.0%**  

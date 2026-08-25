@@ -1,5 +1,9 @@
 # Historical pre-repair evidence
 
+> **权威级别：历史证据** — 本目录只保存修复前快照，不能证明当前 HEAD 的行为或推广
+> 状态。当前门禁见[性能与证据](../../../docs/PERFORMANCE.md)，证据目录见
+> [历史证据索引](../../README.md)。
+
 Every file in this directory is a frozen observation of commit
 `685c600d0af5d85af87fb6553df81d4e4b10c358`. It is retained only for the
 phase-one before/after comparison and must not be used to prove the behavior or

@@ -12,8 +12,10 @@
 
 任何合法的源码或发布边界变化都创建新的 source epoch。Future Holdout、账户代码身份和
 验证证据只能从该边界向前追加，遵守 no-backfill；不得用新文件、新依赖或后见市场数据
-重写旧 epoch。当前 `production_wheel_v1` 已登记生产 wheel 成员、锁文件和源码摘要，
-状态为 `ACTIVE_FOR_NEW_ACCOUNTS`；既有账户只能通过显式 code-identity migration 前进。
+重写旧 epoch。`production_wheel_v1` 保留原始成员与摘要；当前 `production_wheel_v2` 登记
+由固定 build frontend/backend、固定 `SOURCE_DATE_EPOCH` 和登记 commit 的干净 `git archive`
+生成并保留的 wheel、逐成员 manifest、锁文件和 source-surface 摘要，状态为
+`ACTIVE_FOR_NEW_ACCOUNTS`；既有账户只能通过显式 code-identity migration 前进。
 
 ## 恢复与证据
 

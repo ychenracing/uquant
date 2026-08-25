@@ -1,4 +1,4 @@
-"""Independent, read-only risk observation for Shadow Mode."""
+"""Independent risk evidence with a bounded FREEZE_ONLY production mapping."""
 
 from .integration import integrate_freeze_only
 from .models import (

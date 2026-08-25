@@ -1,5 +1,9 @@
 # Phase 4 Sentinel freeze-only evidence
 
+> **权威级别：历史证据** — 本目录记录候选接受时的冻结经济证据，不描述当前 HEAD，也不
+> 扩大 Sentinel 权限。当前边界见 [Risk Sentinel](../../../docs/RISK_SENTINEL.md)，
+> 证据目录见[历史证据索引](../../README.md)。
+
 Phase 4 is accepted with production default `FREEZE_ONLY`. Sentinel authority is confined to
 the existing `RiskAssessment.freeze_new_risk` returned by `uquant.assess_risk()`; Phase 4 does
 not change `target_gross_cap`, create a SELL or mutate trading state directly.

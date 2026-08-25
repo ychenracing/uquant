@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import ast
 import functools
 import hashlib
 import json
@@ -9,6 +10,7 @@ import tomllib
 from typing import cast
 
 from uquant.config import DEFAULT_CONFIG
+from uquant.contracts.runtime_identity import AI_ERA_ACUTE_WINDOWS, AI_ERA_WINDOWS
 from uquant.contracts.strict_json import canonical_json_sha256
 
 from ._analysis import ROOT
@@ -28,6 +30,8 @@ _HIGH_RISK_ANCHORS = {
     "artifacts/phase2/champion-generalization-matrix.json",
     "artifacts/sentinel/risk_differential/closure.json",
     "benchmarks/future_holdout_lane_registry.json",
+    "artifacts/architecture_refactor/source_epoch_v2.json",
+    "artifacts/architecture_refactor/wheels/uquant-1.1.0-py3-none-any.whl",
     "benchmarks/source_surface_registry.json",
     "data/frozen/DATA_MANIFEST.json",
     "pyproject.toml",
@@ -51,6 +55,30 @@ _REFERENCE_DOCS = {
     "artifacts/current_heads/analysis.md",
     "artifacts/sentinel/risk_differential/analysis.md",
 }
+_CURRENT_SOURCE_NARRATIVE = (
+    "uquant/application/backtest.py",
+    "uquant/application/decision.py",
+    "uquant/application/metrics.py",
+    "uquant/application/risk_timeline_cache.py",
+    "uquant/broker.py",
+    "uquant/config/model.py",
+    "uquant/execution/fees.py",
+    "uquant/execution/market_constraints.py",
+    "uquant/execution/open_execution.py",
+    "uquant/execution/order_planning.py",
+    "uquant/execution/pending.py",
+    "uquant/execution/reconciliation.py",
+    "uquant/execution/tranches.py",
+    "uquant/portfolio/allocator.py",
+    "uquant/portfolio/freeze.py",
+    "uquant/portfolio/leaders/admission.py",
+    "uquant/portfolio/leaders/lifecycle.py",
+    "uquant/portfolio/leaders/targets.py",
+    "uquant/portfolio/risk_reduction.py",
+    "uquant/portfolio/strategic/discovery.py",
+    "uquant/portfolio/strategic/lifecycle.py",
+    "uquant/risk_sentinel/integration.py",
+)
 _DELETED_DOCS = {
     ".superpowers/sdd/2026-08-14-phase2-ai-era-generalization/task-7-report.md",
     ".superpowers/sdd/2026-08-14-phase2-ai-era-generalization/task-8-report.md",
@@ -147,7 +175,7 @@ def test_documentation_cleanup_inventory_records_current_authority_and_history()
     entries = cast(list[dict[str, object]], payload["entries"])
     by_path = {str(entry["path"]): entry for entry in entries}
     assert set(by_path) == _candidate_paths()
-    assert len(by_path) == 19
+    assert len(by_path) == 21
     assert set(by_path) >= _HIGH_RISK_ANCHORS
     assert set(cast(list[str], payload["deleted_paths"])) == _DELETED_DOCS
     assert all(not (ROOT / relative).exists() for relative in _DELETED_DOCS)
@@ -259,6 +287,105 @@ def test_task11_repository_only_cli_examples_use_module_execution() -> None:
             check=False,
         )
         assert completed.returncode == 0, completed.stdout + completed.stderr
+
+
+def test_current_operator_help_names_authoritative_entry_points_and_permissions() -> None:
+    expectations = {
+        "scripts.future_holdout": (
+            "usage: python -m scripts.future_holdout",
+            "validate-static-lanes",
+        ),
+        "scripts.production_observation": (
+            "usage: python -m scripts.production_observation",
+            "evidence-only uquant production observation cycle",
+        ),
+        "uquant.risk_sentinel": (
+            "usage: uquant-sentinel",
+            "Offline, read-only Risk Sentinel Shadow diagnostic",
+        ),
+    }
+    for module, required in expectations.items():
+        completed = subprocess.run(
+            ["uv", "run", "--no-sync", "python", "-m", module, "--help"],
+            cwd=ROOT,
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+        output = completed.stdout + completed.stderr
+        assert completed.returncode == 0, output
+        assert all(fragment in output for fragment in required), output
+
+
+def test_performance_guide_binds_the_exact_runtime_windows() -> None:
+    performance = (ROOT / "docs/PERFORMANCE.md").read_text(encoding="utf-8")
+    for windows in (AI_ERA_WINDOWS, AI_ERA_ACUTE_WINDOWS):
+        for name, (start, end) in windows.items():
+            assert name in performance
+            assert start in performance
+            assert end in performance
+
+
+def test_historical_markdown_declares_its_non_authoritative_boundary() -> None:
+    index = ROOT / "artifacts/README.md"
+    assert index.is_file()
+    for path in sorted((ROOT / "artifacts").rglob("*.md")):
+        if path == index:
+            continue
+        text = path.read_text(encoding="utf-8")
+        assert "> **权威级别\uff1a历史证据**" in text, path.relative_to(ROOT)
+
+
+def test_current_production_narrative_avoids_refactor_timeline_labels() -> None:
+    stale = re.compile(r"\b(?:Task|Phase) [0-9]+\b")
+    for relative in _CURRENT_SOURCE_NARRATIVE:
+        text = (ROOT / relative).read_text(encoding="utf-8")
+        assert stale.search(text) is None, relative
+
+
+def test_canonical_docs_describe_the_bounded_dominant_incumbent_exception() -> None:
+    governed_docs = (
+        "README.md",
+        "docs/ARCHITECTURE.md",
+        "docs/CONFIGURATION.md",
+        "docs/STRATEGY.md",
+    )
+    for relative in governed_docs:
+        text = (ROOT / relative).read_text(encoding="utf-8")
+        assert "0001-economic-authority-and-causal-execution.md" in text, relative
+
+    adr = (
+        ROOT / "docs/decisions/0001-economic-authority-and-causal-execution.md"
+    ).read_text(encoding="utf-8")
+    allocator = ast.parse((ROOT / "uquant/portfolio/allocator.py").read_text(encoding="utf-8"))
+    retention = next(
+        node
+        for node in allocator.body
+        if isinstance(node, ast.FunctionDef) and node.name == "_dominant_level1_retention"
+    )
+    implementation_contract = ast.unparse(retention)
+    for predicate in (
+        "live_symbols == {dominant_symbol}",
+        "risk.state in {Risk.NORMAL, Risk.CAUTION}",
+        "risk.reduction_level <= 1",
+        "sector_guard_active",
+        "strategic_damage_guard",
+        "acute_sector_evacuation",
+        "target_gross >= current_gross - 1e-12",
+    ):
+        assert predicate in implementation_contract
+    for documented_boundary in (
+        "live_symbols == {dominant_symbol}",
+        "NORMAL/CAUTION",
+        "reduction_level <= 1",
+        "sector_guard_active",
+        "strategic_damage_guard",
+        "acute_sector_evacuation",
+        "target_gross >= current_gross",
+        "strategic_dominant_max_weight",
+        "不买入补足",
+    ):
+        assert documented_boundary in adr
 
 
 def test_task11_canonical_docs_have_resolved_internal_links_and_current_authority_terms() -> None:

@@ -24,7 +24,8 @@ UV_CACHE_DIR=/tmp/uquant-uv-cache uv sync --frozen --extra dev
 - `uquant/` 是生产包，不能导入 `research/`；
 - `ProductionEngine.decide()` 是日报和回放的共同决策入口；
 - `PortfolioAllocator` 是目标权重的唯一所有者；
-- `RiskAssessment.target_gross_cap` 是总仓上限的唯一出口；
+- Base Risk 是 `RiskAssessment.target_gross_cap` 的唯一风险派生出口；组合层只保留 ADR 0001
+  已接受的单一战略主导者一级预警既有仓位例外，该例外不新增风险；
 - `report.py` 只渲染，不改变账户或组合；
 - `research/` 接收调用方提供的观测和回调，不写生产配置；
 - `validation/` 失败关闭，不创建占位基线；
@@ -34,8 +35,12 @@ UV_CACHE_DIR=/tmp/uquant-uv-cache uv sync --frozen --extra dev
 
 构建发布物时，setuptools 只发现 `uquant*`。`research/` 是仓库内离线工具，不是安装后
 可依赖的公共包；脚本、测试、证据、冻结数据和文档也不进入 wheel。`requirements.txt`
-及 `full_package_v1` 保持 `KEEP_AUTHORITATIVE`；当前 `production_wheel_v1` source epoch
-已登记 wheel 边界。后续发布面变化必须创建新 epoch，并按 no-backfill 向前追加身份。
+及 `full_package_v1` 保持 `KEEP_AUTHORITATIVE`；`production_wheel_v1` 保留为历史身份，
+当前 `production_wheel_v2` source epoch 已登记并保留可校验 wheel 与 source-surface 摘要。
+构建必须从登记 commit 的 `git archive` 干净导出开始，使用 `setuptools==84.0.0`、
+`build==1.5.0` 和 `SOURCE_DATE_EPOCH=315532800`；禁止从长期 worktree 的陈旧 `build/lib`
+生成身份发布物。后续身份变化
+必须创建新 epoch，并按 no-backfill 向前追加，不能重写 v1/v2。
 
 ## 常用检查
 
@@ -71,16 +76,10 @@ Git 忽略；发布证据必须由 checkout 后的命令重建，不能提交一
 | `Phase 1 Performance` | 未删减的 `promotion --profile full`、精确 HEAD 与完整 provenance |
 | `Phase 2 Generalization` | 六个官方窗口分片全部完成后的 234-record policy/evidence 聚合 |
 
-不得为必需结论添加 path filter、`continue-on-error`、失败转成功或可取消矩阵。失败
-分片也必须上传 JSON；`if: always()` aggregator 下载精确六件 artifact，拒绝缺失、
-额外、旧 HEAD、来源/配置/数据/runtime/universe/industry 身份漂移及任何 policy 失败。
-`Engineering gates` 也支持从 GitHub Actions 手动触发；quality 使用
-`validate-static-lanes` 验证跟踪的零观察基线，并验证默认真实执行 Journal、checkpoint、
-本地 Lane 报告和生产观察备份保持未跟踪，哈希链与单命令入口可加载，然后继续执行完整测试
-和覆盖率门。本地非零观察只由 `report-lanes` 生成，不能反写静态 CI 工件。
-生产观察入口的回归合同还覆盖：输出/备份路径及硬链接别名在副作用前拒绝、非空 Journal
-必须有可信 checkpoint、运行前备份即时读回、最终 receipt 被 manifest 绑定，以及同一
-仓库/账户的完整事务跨进程串行化。
+不得为必需结论添加 path filter、`continue-on-error`、失败转成功或可取消矩阵。
+Phase 1/2 的窗口、记录、失败状态和证据解释由[性能与证据](PERFORMANCE.md)维护；
+Holdout 的静态 Lane、Journal、checkpoint 和事务恢复合同由[Future Holdout](HOLDOUT.md)
+维护。本页只维护开发者实际运行的命令，避免复制第二份业务合同。
 
 ## 测试放置
 
@@ -106,6 +105,9 @@ Git 忽略；发布证据必须由 checkout 后的命令重建，不能提交一
 - 不逐行翻译代码，不在注释中记录开发时间线；
 - 修改行为时同步更新 README、主题文档和参数说明；
 - 示例命令必须使用真实 CLI 参数并能在仓库根目录运行。
+- 历史 artifact 必须标明“历史证据”且链接当前 canonical 权威，不能用旧结论描述当前 HEAD。
+- 生产源码中的注释和 docstring 不使用 Task/重构阶段标签；Phase 1/2、source anchor 等
+  已冻结合同名称仅在实际合同与验证模块中保留。
 
 ## 策略改动流程
 

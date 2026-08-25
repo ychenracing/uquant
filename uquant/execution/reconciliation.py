@@ -1,4 +1,4 @@
-"""Task 6 mechanical owner for reconciliation."""
+"""Execution-state reconciliation and account-order closure."""
 
 from __future__ import annotations
 

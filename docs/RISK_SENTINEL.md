@@ -10,6 +10,17 @@ universe、点时行业、冻结行情、两个指数和已有账户快照，形
 `risk_sentinel_causal_confirmation_enabled=false`；可信确认本身没有新增生产权限。
 历史候选没有证明可推广的增量经济价值，因此不能据离线结果扩大权限。
 
+“Shadow” 与 `FREEZE_ONLY` 指向不同运行边界：
+
+| 入口 | 模式 | 经济权限 |
+|---|---|---|
+| `uquant-sentinel` / `python -m uquant.risk_sentinel` | 离线只读 Shadow 诊断 | 只写独立 evidence，不影响日报、目标或账户 |
+| `uquant daily` 内部集成 | 生产 `FREEZE_ONLY` | 合格时只设置现有 `freeze_new_risk` |
+| calibration / counterfactual / Risk Differential | 离线研究 | 不得转成参数、卖单或 gross-cap override |
+
+因此“独立 Sentinel CLI 是 Shadow”与“生产默认是 `FREEZE_ONLY`”并不矛盾；日常运行只
+使用 `uquant daily`，独立 CLI 仅用于审计和故障诊断。
+
 ## 证据与 Coverage
 
 Sentinel 对每个证券先计算 5 日收益、MA20 状态和短期波动率扩张，再在子行业内部使用
@@ -62,7 +73,7 @@ SHA-256 或版本身份。JSON 使用 canonical seal；同输入同提交重复�
 uv run python -m uquant.risk_sentinel --validate-contracts
 ```
 
-以下独立 CLI 仅用于离线审计或故障诊断，不是日常生产步骤：
+以下独立 Shadow CLI 仅用于离线审计或故障诊断，不是日常生产步骤：
 
 ```bash
 uv run uquant-sentinel \

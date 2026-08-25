@@ -1,6 +1,6 @@
 {
   "candidate_policy": "Keep canonical documents and sealed evidence; relocate durable analyses beside their machine evidence; delete completed plans, task reports, and review transcripts after live links and current authority are replaced.",
-  "canonical_sha256": "e5a0421fa3e9fd95b155de44079d066d1cc822202feb0ac865378f9c7a13413c",
+  "canonical_sha256": "61ae292198b52829759b3ff2f40c8e915aed0d7f865a778110c43aeca1c8cf57",
   "contract": "uquant-documentation-governance-cleanup-v2",
   "deleted_paths": [
     ".superpowers/sdd/2026-08-14-phase2-ai-era-generalization/task-7-report.md",
@@ -61,6 +61,21 @@
       "size_bytes": 603420
     },
     {
+      "authority_reason": "Current forward-only production wheel and reviewed source-surface identity for non-economic documentation and narrative consistency changes.",
+      "classification": "KEEP_AUTHORITATIVE",
+      "content_sha256": "4faa0944a5f86faa915d3fdc040f4c0de6694f37890e8721fe6458766385296f",
+      "live_references": [
+        "tests/architecture/test_task11_repository_governance.py"
+      ],
+      "path": "artifacts/architecture_refactor/source_epoch_v2.json",
+      "recovery": {
+        "command": "git show HEAD:artifacts/architecture_refactor/source_epoch_v2.json",
+        "status": "GIT_OBJECT"
+      },
+      "replacement_path": null,
+      "size_bytes": 3197
+    },
+    {
       "authority_reason": "Current Task 10 architecture-governance inventory and accepted scanner scope.",
       "classification": "KEEP_AUTHORITATIVE",
       "content_sha256": "a42ecaf5ec70ceda0456f16ceb56ef553c790a6adfdc20cf213d933128107da4",
@@ -76,9 +91,25 @@
       "size_bytes": 1997552
     },
     {
+      "authority_reason": "Retained byte-exact reproducible production_wheel_v2 artifact bound to the current forward-only source epoch.",
+      "classification": "KEEP_AUTHORITATIVE",
+      "content_sha256": "a50017833bd0bb7250ff2b7fe7d7a343908c90c0e5cb4b828342616c9190cc15",
+      "live_references": [
+        "artifacts/architecture_refactor/source_epoch_v2.json",
+        "tests/architecture/test_task11_repository_governance.py"
+      ],
+      "path": "artifacts/architecture_refactor/wheels/uquant-1.1.0-py3-none-any.whl",
+      "recovery": {
+        "command": "git show HEAD:artifacts/architecture_refactor/wheels/uquant-1.1.0-py3-none-any.whl",
+        "status": "GIT_OBJECT"
+      },
+      "replacement_path": null,
+      "size_bytes": 548800
+    },
+    {
       "authority_reason": "Human-readable interpretation colocated with the frozen current-heads evidence; it is historical context, not a production authority.",
       "classification": "KEEP_REFERENCE",
-      "content_sha256": "99440856cb3ed7d0c4b1955e6c63d5dc71a9c76c6cad88d7c646b70830567b70",
+      "content_sha256": "456003be15ff2c9e31d7219f0447f4841cd03166d770ecb64bd53ddf803a39b8",
       "live_references": [
         "docs/PERFORMANCE.md",
         "tests/architecture/test_task11_repository_governance.py"
@@ -89,7 +120,7 @@
         "status": "GIT_OBJECT"
       },
       "replacement_path": null,
-      "size_bytes": 5579
+      "size_bytes": 5636
     },
     {
       "authority_reason": "One bounded exact-path scan found 1 current tracked reference(s), or could not prove an authority-equivalent replacement; deletion remains unresolved.",
@@ -227,7 +258,7 @@
     {
       "authority_reason": "Human-readable interpretation colocated with sealed Risk Differential evidence; it cannot grant production authority.",
       "classification": "KEEP_REFERENCE",
-      "content_sha256": "c19d27441dfdcea8954166f4cf492f9686618a035798e0d8ca8f2182b6574ab5",
+      "content_sha256": "c921cd3e76d9dd6662876f4677dc6fc9073350cdb0565a6088c0c8e28c545116",
       "live_references": [
         "docs/RISK_SENTINEL.md",
         "tests/architecture/test_task11_repository_governance.py"
@@ -238,7 +269,7 @@
         "status": "GIT_OBJECT"
       },
       "replacement_path": null,
-      "size_bytes": 7708
+      "size_bytes": 7766
     },
     {
       "authority_reason": "Accepted Risk Sentinel differential closure evidence and authority boundary.",
@@ -291,6 +322,7 @@
       "content_sha256": "ba524cae3f8c2203f9f403e271439f63006d02e3eb8abdd525df541f0f93feb1",
       "live_references": [
         "artifacts/architecture_refactor/account_code_identity_migration.json",
+        "artifacts/architecture_refactor/source_epoch_v2.json",
         "artifacts/architecture_refactor/task5_cleanup_inventory.json",
         "artifacts/architecture_refactor/task6_cleanup_inventory.json",
         "artifacts/architecture_refactor/task7_cleanup_inventory.json",
@@ -344,7 +376,7 @@
     {
       "authority_reason": "Authoritative build metadata and production-only wheel discovery boundary.",
       "classification": "KEEP_AUTHORITATIVE",
-      "content_sha256": "61c98c25ec707626ab669bd41cfe5804ce1e6403d1aae459c7ae535c3391d043",
+      "content_sha256": "36be3c7ac6c4ec5011552acf5456b3e44054ab20e036fff9007788c640c87920",
       "live_references": [
         "artifacts/architecture_refactor/baseline_inventory.json",
         "artifacts/architecture_refactor/task9_cleanup_inventory.json",
@@ -361,6 +393,7 @@
         "tests/architecture/test_public_api_contracts.py",
         "tests/architecture/test_source_surface_contracts.py",
         "tests/architecture/test_task11_repository_governance.py",
+        "tests/architecture/test_task12_final_validation.py",
         "tests/test_config_contracts.py",
         "tests/test_future_holdout.py",
         "tests/test_generalization.py",
@@ -381,7 +414,7 @@
         "status": "GIT_OBJECT"
       },
       "replacement_path": null,
-      "size_bytes": 1619
+      "size_bytes": 1623
     },
     {
       "authority_reason": "Immutable locked production requirement surface; its SHA remains a release identity input.",
@@ -459,10 +492,10 @@
   ],
   "externalized_paths": [],
   "reference_scan": {
-    "current_entry_count": 19,
+    "current_entry_count": 21,
     "deleted_count": 22,
     "method": "Exact-path byte scan of the current tracked tree, excluding this inventory to avoid self-reference.",
-    "original_candidate_count": 39,
+    "original_candidate_count": 41,
     "relocated_count": 2
   },
   "relocated_paths": [

@@ -579,7 +579,7 @@ def _apply_broker_order_updates(state: _BrokerSyncState) -> None:
             raise ValueError(f"broker order references unknown order {order_id!r}")
         status = str(raw.get("status", "")).upper()
         if status != OrderStatus.CANCELLED.value:
-            raise ValueError("Phase 4 broker order updates only confirm cancellation")
+            raise ValueError("broker order updates only confirm cancellation")
         remaining = _broker_integer(raw, "remaining_shares")
         if remaining != 0:
             raise ValueError("broker cancellation must report zero live remaining shares")

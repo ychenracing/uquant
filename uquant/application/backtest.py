@@ -1,4 +1,4 @@
-"""Task 6 mechanical owner for backtest."""
+"""Production backtest orchestration and result assembly."""
 
 from __future__ import annotations
 

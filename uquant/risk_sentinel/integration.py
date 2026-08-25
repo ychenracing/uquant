@@ -92,10 +92,9 @@ def _freeze_only_evidence(
     incremental_families = sorted(
         family for family in RISK_FAMILIES if sentinel_active[family] and not base_active[family]
     )
-    # Phase 4 has no persisted, point-in-time family history for base risk or
-    # Sentinel.  Never infer an earlier vote from today's membership/holdings.
-    # The diagnostic remains explicit and fail-closed until such a carrier is
-    # introduced in a later phase.
+    # Neither base risk nor Sentinel persists point-in-time family history.
+    # Never infer an earlier vote from today's membership or holdings; the
+    # diagnostic remains explicit and fail-closed without a trusted carrier.
     earlier_families: list[str] = []
     incremental = bool(incremental_families or earlier_families)
     eligible, severe_direct, confirmation_days, confirmation_history_trusted = _sentinel_freeze_eligibility(

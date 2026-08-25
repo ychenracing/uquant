@@ -1,4 +1,4 @@
-"""Task 6 mechanical owner for metrics."""
+"""Backtest metrics and economic-accounting result assembly."""
 
 from __future__ import annotations
 

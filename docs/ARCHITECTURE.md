@@ -42,6 +42,32 @@ uquant 把数据、信号、风险、组合、执行和账户放在一条可审�
 上表中被明确列为所有者，仍承担真实职责。新增实现必须进入对应所有者，不能在兼容 facade
 中建立第二套状态机。
 
+### 权限与接口矩阵
+
+| 能力 | 唯一所有者 | 可以做什么 | 明确禁止 |
+|---|---|---|---|
+| 日常决策 | `ProductionEngine.decide()` | 生成同一份 `Decision` | 报告、研究或脚本建立第二决策路径 |
+| 风险派生上限 | Base Risk | 生成 `RiskAssessment.target_gross_cap` | Opportunity、Sentinel 或执行层扩大上限 |
+| 目标权重 | `PortfolioAllocator` | 在风险与硬约束下生成 `Target` | 风险、报告或券商快照直接生成组合 |
+| 订单与成交 | execution / broker reconciliation | 把既有目标转为订单并吸收真实成交 | 推断、伪造或覆盖券商事实 |
+| 生产持久化 | `AccountState` | 保存已校验的经济状态 | Journal、Holdout 或 Sentinel 写第二账户 |
+| Future Holdout | `python -m scripts.*` | 追加观察、回放、Journal 和证据 | 回填、调参或获得生产权限 |
+| Sentinel CLI | `uquant-sentinel` | 离线、只读 Shadow 诊断 | 当作生产 `FREEZE_ONLY` 入口 |
+
+### 术语
+
+| 术语 | 精确定义 |
+|---|---|
+| Opportunity | 市场是否值得承担风险的机会轴，不拥有强制风险上限 |
+| Risk / `target_gross_cap` | Base Risk 状态及其风险派生总仓上限 |
+| Sentinel Level | 独立观察意见；不是第二个 `Risk`，生产最多映射到 `freeze_new_risk` |
+| Target Gross | 目标权重之和；受机会预算、风险 cap、硬约束及已接受窄例外共同决定 |
+| Actual Gross | 按真实现金、持仓和价格计算的当前敞口，可能因未成交暂时偏离 Target Gross |
+| `Target` | 组合层期望权重，不代表订单已提交或成交 |
+| `PendingOrder` / `AccountOrder` | 待执行意图 / 已提交且有稳定生命周期的账户订单 |
+| `Fill` | 券商或回放确认的成交事实，只有它才能推进持仓经济状态 |
+| Lifecycle | `CORE/ADD1/ADD2/SATELLITE/RECOVERY` 的持仓来源和风险减仓优先级 |
+
 ## 决策时点
 
 `DataStore` 按 `as_of` 截断每个证券的数据。所有特征、参考成员、行业统计和候选排序只读取该日期及以前的行。目标组合在收盘后形成，`ExecutionPlanner` 最早在下一可交易日开盘执行，因此同日收盘信号不会获得同日成交价。
@@ -65,7 +91,16 @@ uquant 把数据、信号、风险、组合、执行和账户放在一条可审�
 
 机会轴回答“是否值得承担风险”，风险轴回答“最多允许承担多少风险”。风险模块把速度、广度、协方差、领涨损伤、持仓损伤和资本损伤按证据家族归并，同一家族最多贡献一票。
 
-`RiskAssessment.target_gross_cap` 是总仓位上限的唯一来源。持仓同步冲击、慢性退化和资本预算只向该评估提供证据或更严格上限，不能各自建立独立组合。
+`RiskAssessment.target_gross_cap` 是风险派生总仓上限的唯一来源。持仓同步冲击、慢性退化
+和资本预算只向该评估提供证据或更严格上限，不能各自建立独立组合。
+
+组合层保留一个冻结经济行为中的有限解释：当账户只有单一战略主导者，风险仅为
+`NORMAL/CAUTION` 一级预警、没有 sector/strategic/acute guard，且策略本身不要求减仓时，
+`PortfolioAllocator` 可以把风险 cap 解释为“冻结新增风险”，将该既有持仓保留至
+`strategic_dominant_max_weight`。这不是第二个风险 owner：它不能买入补足权重、不能作用于
+多持仓组合，且 `CRISIS` 或明确风险减仓始终覆盖该例外。
+完整谓词与否定边界由
+[ADR 0001](decisions/0001-economic-authority-and-causal-execution.md)统一定义。
 
 ## 唯一组合所有者
 
@@ -86,7 +121,8 @@ uquant 把数据、信号、风险、组合、执行和账户放在一条可审�
 订单先卖后买，并统一处理 T+1 可卖数量、停牌、涨跌停、手数、容量、现金、费用和滑点。未成交或部分成交的意图保留稳定 `order_id`；同一经济意图不会因为每日重算而重复计数。
 
 生产经济状态只沿 `Decision → Order → Fill → AccountState` 单向推进。Base Risk 汇总
-风险证据并拥有 `target_gross_cap`，`PortfolioAllocator` 在该上限内拥有唯一目标权重，
+风险证据并拥有风险派生 `target_gross_cap`，`PortfolioAllocator` 在该上限和上述单一战略
+主导者一级预警保留例外内拥有唯一目标权重，
 执行层只能把既有目标转成订单和成交，账户层只能持久化已验证结果。Risk Sentinel 的
 `FREEZE_ONLY` 结论至多阻止新增风险，不能建立第二个仓位、卖出或账户权限。
 
@@ -100,18 +136,25 @@ uquant 把数据、信号、风险、组合、执行和账户放在一条可审�
 
 券商快照只覆盖现实世界字段；策略状态不能由券商持仓反向推导。
 
+## 信任边界
+
+CSV、券商 JSON、账户文件、Journal、命令行路径和研究输入都按不可信输入处理。入口必须
+拒绝路径别名、符号链接/硬链接越界、重复 JSON 键、非有限数值、乱序成交和输出覆盖输入；
+账户及证据使用锁、临时文件、刷盘和原子替换。private-import scanner 只约束当前仓库的
+开发期模块边界，不是任意 Python 代码或对象图的安全沙箱。
+
+券商快照只拥有现金、持仓、可卖数量、订单确认和真实成交；公司行动、证券代码变化、
+复权切换和交易所日历异常必须由 operator 核对，不能从策略状态猜测。
+
 ## 验证与失败处理
 
 验证层锁定数据清单、执行口径、六个官方 AI-era 窗口和证据摘要。34 只证券的
 canonical AI universe manifest 同时拥有点时成员与行业身份；Generalization 对每个
 窗口构造同一固定场景契约，不允许研究模块另建证券全集或修改参考上下文。
 
-`Engineering`、`Phase 1 Performance` 和 `Phase 2 Generalization` 是三个独立阻断结论。
-Phase 1 始终运行 `promotion --profile full`；Phase 2 的六个分片全部结束后，aggregator
-检查精确 HEAD、生产源码、配置、冻结数据、运行时、锁文件、universe、行业、窗口、
-场景与前窗证据身份，并用冻结 policy 重算完整 cell 证据。路径过滤、矩阵 fail-fast
-和并发取消都不能让最终结论跳过。缺文件、重复 JSON 键、摘要漂移、未提交生产源码
-或运行中修改证据都会失败关闭。
+`Engineering`、`Phase 1 Performance` 和 `Phase 2 Generalization` 是三个独立阻断结论；
+精确窗口、矩阵、指标与复现命令由[性能与证据](PERFORMANCE.md)唯一维护。缺文件、重复
+JSON 键、摘要漂移、未提交生产源码或运行中修改证据都会失败关闭。
 
 经济归因的稳定身份从 Target 传播到 Order、Tranche 和 Fill；人工可读 reason text
 只用于展示。已实现与未平仓 lot PnL 必须和账户权益变化对账，cash drag 与配对的
@@ -135,6 +178,7 @@ holdout 观察不进入 `ProductionEngine.decide()` 或账户状态。
 `artifacts/architecture_refactor/baseline_inventory.json`、
 `benchmarks/source_surface_registry.json` 和 `data/frozen/DATA_MANIFEST.json` 为高风险
 锚点。`full_package_v1` 与 `requirements.txt` 继续是 `KEEP_AUTHORITATIVE` 的历史身份面；
-当前 `production_wheel_v1` source epoch 已登记生产 wheel 的成员与摘要，只对新账户和新
-观察向前生效。任何后续边界变化都必须创建新 epoch，不能回填旧 epoch、修改冻结 oracle
+`production_wheel_v1` 作为历史 epoch 保留；当前 `production_wheel_v2` 已登记本次文档、
+help 与生产叙事一致性后的可复现 wheel、逐成员 manifest 和 source-surface 摘要，只对新账户和新观察向前
+生效。任何后续身份变化都必须创建新 epoch，不能回填旧 epoch、修改冻结 oracle
 或重写既有 Holdout Lane 来伪造连续性。

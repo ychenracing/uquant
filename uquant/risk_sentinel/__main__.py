@@ -1,4 +1,4 @@
-"""Module entry point for Independent Risk Sentinel Shadow Mode."""
+"""Module entry point for the offline, read-only Sentinel Shadow diagnostic."""
 
 from .cli import main
 

@@ -1,4 +1,4 @@
-"""Task 6 mechanical owner for fees."""
+"""A-share fees and trade-cost accounting."""
 
 from __future__ import annotations
 

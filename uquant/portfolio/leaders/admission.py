@@ -1,4 +1,4 @@
-"""Mechanical Task 8 leader owner extracted from the immutable policy."""
+"""Admission policy for ordinary leader positions."""
 
 from __future__ import annotations
 

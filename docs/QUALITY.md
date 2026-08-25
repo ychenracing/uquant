@@ -42,11 +42,9 @@ Risk/Portfolio/Sentinel 权限、账户与订单/成交语义、源码身份、P
 把信号本身升级成与生产安全无关的无限拆分循环。
 
 对每个 PR 和 `main` push，GitHub 必须稳定给出 `Engineering`、
-`Phase 1 Performance`、`Phase 2 Generalization` 三个独立最终结论。Engineering 的
-always-running summary 同时要求 quality、security 与原生 Windows smoke；Phase 1 summary 要求未删减的
-full profile 和精确 provenance；Phase 2 的 `if: always()` aggregator 要求六个 shard
-全部存在且身份、234-record coverage、raw evidence 和 policy 都有效。必需结论不得
-使用 path filter、矩阵 fail-fast、并发取消、`continue-on-error` 或失败转成功。
+`Phase 1 Performance`、`Phase 2 Generalization` 三个独立最终结论；任何结论都不能由
+另一个成功抵消。实际命令和 CI 构成见[开发指南](DEVELOPMENT.md)，经济 policy 与窗口见
+[性能与证据](PERFORMANCE.md)。
 
 ## 注释标准
 
@@ -73,6 +71,21 @@ README 提供快速开始和文档导航；其余文档各自保持单一职责�
 | `RISK_SENTINEL.md` | 生产 `FREEZE_ONLY` 权限、Coverage、Calibration 和只读诊断边界 |
 
 文档应足以指导使用和维护，但避免重复粘贴完整参数表、源码流程或测试实现。
+
+### 文档即代码
+
+治理检查至少验证：
+
+- Markdown 内部链接和本地路径存在；
+- 推荐 CLI 能真实执行 `--help`，并统一使用 `python -m` 模块入口；
+- 参数表与 `DEFAULT_CONFIG`、窗口表与 `runtime_identity.py`、枚举与账户 schema 一致；
+- README、架构、策略、参数与 ADR 对经济权限和例外使用同一语义；
+- artifact Markdown 有历史证据边界和当前 canonical 链接；
+- 静态日报样例若保留，必须由当前 renderer 生成或有回归测试，不能作为未验证手写副本；
+- 当前生产模块注释不保留 Task/重构阶段叙述，冻结验证合同中的 Phase 名称可保留。
+
+这些检查保护可执行事实与权限，不要求逐字冻结面向人的表达。文案可以精简，但不能改变
+命令、默认值、时间窗口、所有者、风险权限或证据权威级别。
 
 ## 审查与行为保持
 

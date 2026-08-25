@@ -5,7 +5,7 @@
 from __future__ import annotations
 
 import shutil
-import subprocess
+import subprocess  # nosec B404 - compatibility seam; command owner uses fixed argv
 from pathlib import Path
 
 from ..ai_era import AI_ERA_WINDOWS

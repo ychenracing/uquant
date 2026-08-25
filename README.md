@@ -126,7 +126,7 @@ uv run uquant daily \
 本地 Lane 报告并封存运行后证据：
 
 ```bash
-uv run python scripts/production_observation.py run \
+uv run python -m scripts.production_observation run \
   --date 2026-08-06 \
   --symbols sz300308 sz300502 sz300394 sh688008 sh603986 \
   --account account_state.json \

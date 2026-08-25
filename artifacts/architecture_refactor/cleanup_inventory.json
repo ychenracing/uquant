@@ -1,6 +1,6 @@
 {
   "candidate_policy": "Only delete/move/externalize/authority-change candidates and high-risk evidence; one inconclusive search means UNRESOLVED_KEEP.",
-  "canonical_sha256": "538aebdcb4dff7469535644c364e2d9843edacfebdc3931f3a1e676f86af16f2",
+  "canonical_sha256": "2e4c0b518d9e9d402d809800aeafef8555d6f7d649ce7564828bf4ad70005690",
   "contract": "uquant-task11-bounded-cleanup-inventory-v1",
   "deleted_paths": [],
   "entries": [
@@ -642,7 +642,7 @@
     {
       "authority_reason": "Authoritative build metadata and production-only wheel discovery boundary.",
       "classification": "KEEP_AUTHORITATIVE",
-      "content_sha256": "ee246c8040e43afbda56f60254a48ecaf06675cb2a8b3fb1c64207da99560ff0",
+      "content_sha256": "61c98c25ec707626ab669bd41cfe5804ce1e6403d1aae459c7ae535c3391d043",
       "live_references": [
         "artifacts/architecture_refactor/baseline_inventory.json",
         "artifacts/architecture_refactor/task9_cleanup_inventory.json",
@@ -681,7 +681,7 @@
         "status": "GIT_OBJECT"
       },
       "replacement_path": null,
-      "size_bytes": 1600
+      "size_bytes": 1619
     },
     {
       "authority_reason": "Immutable locked production requirement surface; its SHA remains a release identity input.",

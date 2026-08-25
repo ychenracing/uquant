@@ -46,14 +46,26 @@ def test_reviewed_source_registry_uses_exact_physical_paths() -> None:
     assert "requirements.txt" in registry.surface("full_package_v1").resource_paths
 
 
-def test_full_package_surface_matches_declared_distribution_inputs() -> None:
-    """Breaks if release provenance drifts from package discovery or package data."""
+def test_full_package_surface_and_distribution_boundary_are_explicitly_separate() -> None:
+    """Keep repository provenance intact while shipping only production packages."""
     registry = load_source_surface_registry(ROOT)
     configuration = tomllib.loads((ROOT / "pyproject.toml").read_text(encoding="utf-8"))
     setuptools = configuration["tool"]["setuptools"]
-    includes = setuptools["packages"]["find"]["include"]
-    assert includes == ["uquant*", "research*"]
-    package_roots = tuple(ROOT / pattern.removesuffix("*") for pattern in includes)
+    discovery = setuptools["packages"]["find"]
+    assert discovery == {
+        "include": ["uquant*"],
+        "exclude": ["research*", "scripts*", "tests*"],
+    }
+    distribution_roots = tuple(
+        ROOT / pattern.removesuffix("*") for pattern in discovery["include"]
+    )
+    distribution_sources = {
+        path.relative_to(ROOT).as_posix()
+        for package_root in distribution_roots
+        for path in package_root.rglob("*.py")
+        if path.is_file()
+    }
+    package_roots = (ROOT / "uquant", ROOT / "research")
     expected_sources = {
         path.relative_to(ROOT).as_posix()
         for package_root in package_roots
@@ -88,6 +100,8 @@ def test_full_package_surface_matches_declared_distribution_inputs() -> None:
 
     assert set(full_package.source_paths) == expected_sources
     assert set(full_package.resource_paths) == expected_resources
+    assert distribution_sources < set(full_package.source_paths)
+    assert not any(path.startswith("research/") for path in distribution_sources)
     assert script_sources <= set(validation_runner.source_paths)
     assert script_sources.isdisjoint(full_package.source_paths)
 

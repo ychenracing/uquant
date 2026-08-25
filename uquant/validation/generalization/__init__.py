@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import hashlib as hashlib
 import shutil as shutil
-import subprocess as subprocess
+import subprocess as subprocess  # nosec B404 - compatibility seam; owner uses fixed argv
 from collections.abc import Callable, Iterator
 from contextlib import contextmanager
 from functools import wraps

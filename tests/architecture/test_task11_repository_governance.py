@@ -127,6 +127,47 @@ def test_task11_distribution_declares_only_the_production_namespace() -> None:
     assert DEFAULT_CONFIG.risk_sentinel_mode == "FREEZE_ONLY"
 
 
+def test_task11_console_pytest_collects_non_distribution_research_tests() -> None:
+    completed = subprocess.run(
+        [
+            "uv",
+            "run",
+            "--no-sync",
+            "pytest",
+            "--collect-only",
+            "-q",
+            "tests/test_committed_economic_equivalence.py",
+        ],
+        cwd=ROOT,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    output = completed.stdout + completed.stderr
+    assert completed.returncode == 0, output
+    assert "tests/test_committed_economic_equivalence.py: 3" in output
+
+
+def test_task11_repository_only_cli_examples_use_module_execution() -> None:
+    governed_examples = (
+        ROOT / ".github/workflows/ci.yml",
+        ROOT / "README.md",
+        ROOT / "docs/OPERATIONS.md",
+    )
+    for path in governed_examples:
+        assert "uv run python scripts/" not in path.read_text(encoding="utf-8"), path
+
+    for module in ("scripts.future_holdout", "scripts.production_observation"):
+        completed = subprocess.run(
+            ["uv", "run", "--no-sync", "python", "-m", module, "--help"],
+            cwd=ROOT,
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+        assert completed.returncode == 0, completed.stdout + completed.stderr
+
+
 def test_task11_canonical_docs_have_resolved_internal_links_and_current_authority_terms() -> None:
     assert all(path.is_file() for path in _CANONICAL_DOCS)
     corpus: list[str] = []

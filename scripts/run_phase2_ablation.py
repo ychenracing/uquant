@@ -4,7 +4,7 @@
 
 from __future__ import annotations
 
-import subprocess
+import subprocess  # nosec B404 - compatibility seam; command owner uses fixed argv
 import sys
 from functools import wraps
 from pathlib import Path

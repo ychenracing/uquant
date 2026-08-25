@@ -190,8 +190,9 @@ def test_phase8_economic_equivalence_artifact_is_exact_and_complete() -> None:
         "dae4d79fdd813832c6ab152611437c13be1d38227c7280691874d3a9267d93d5"
     )
     assert seal["uv_lock_sha256"] == _sha256("uv.lock")
-    assert seal["equivalence_runner_sha256"] == _sha256(
-        "research/committed_economic_equivalence.py"
+    assert seal["equivalence_runner_sha256"] == _git_blob_sha256(
+        payload["candidate_remote_commit"],
+        "research/committed_economic_equivalence.py",
     )
 
 

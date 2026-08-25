@@ -1,0 +1,148 @@
+{
+  "candidate": {
+    "gate_commit": "ecee225237f02b4d21cbf65d88bc4ec5761603d3",
+    "gate_tree": "995e0b1d379b88937245a3af06e3510a9b8097c4",
+    "production_bytes_changed_after_gate": false,
+    "requirements_sha256": "77c1e3d4685e5f55c0b3e7bf23ff101ff957973cc2e80aa4e5cdb4d02f0e2731",
+    "uv_lock_sha256": "4accf16535b5ac95b831c9289e0ad2ff21282dc5dfae3f05dd0fb095089d6a61"
+  },
+  "evidence": {
+    "account_code_identity_migration": {
+      "bytes": 3777,
+      "path": "artifacts/architecture_refactor/account_code_identity_migration.json",
+      "sha256": "2654816db3ac30f4c3bb9d205d7eb9b184c846d0a4a9333afbc5dac8fedadfe8",
+      "status": "PASS"
+    },
+    "economic_equivalence": {
+      "bytes": 1371,
+      "cases": 45,
+      "path": "artifacts/architecture_refactor/economic_equivalence.json",
+      "sha256": "c7c4203a122fb5da4ca42e9ba216ff3cb6eb71d3196eda34a5bec5ff5855fbe2",
+      "status": "PASS",
+      "trace_sha256": "8dab09e7019c1f0c8ea4e21f1f061260a2c4eb25a87abd8d75da73f86cab57f3"
+    },
+    "performance_equivalence": {
+      "bytes": 4051,
+      "path": "artifacts/architecture_refactor/performance_equivalence.json",
+      "sha256": "dfdea4c6a469f993a05f6961ad8934d042fd7236e3e22a1a61b38352fefbecfa",
+      "status": "PASS"
+    }
+  },
+  "l4": {
+    "affected_closure": {
+      "failed": 0,
+      "passed": 5,
+      "scope": "the four fixed governance/provenance failures plus the added CLI module-invocation regression"
+    },
+    "build": {
+      "status": "PASS",
+      "wheel_bytes": 549481,
+      "wheel_members": 215,
+      "wheel_sha256": "b6e55458a524aa1fc6fbd8b9fc009ff65d13f9651ca11b189b9af53171c42884"
+    },
+    "full_pytest": {
+      "coverage_percent": 87.92,
+      "failed": 4,
+      "failure_classification": "governance/provenance only; no production-economic, authority, data-integrity or runtime failure",
+      "passed": 2454,
+      "peak_rss_kib": 895092,
+      "post_failure_policy": "Only the affected closure cohort was rerun after non-economic fixes; the five-hour full suite was not duplicated.",
+      "wall_seconds": 17963.72
+    },
+    "gates": {
+      "bandit": "PASS",
+      "compileall": "PASS",
+      "frozen_data_manifest": "PASS",
+      "pip_audit": "PASS_NO_KNOWN_VULNERABILITIES",
+      "ruff": "PASS",
+      "sentinel_contracts": "PASS",
+      "static_holdout_lanes": "PASS_3_OBSERVING_0_SESSIONS",
+      "strict_mypy": "PASS"
+    },
+    "status": "PASS_AFTER_TARGETED_CLOSURE"
+  },
+  "local_blockers": [],
+  "phase1": {
+    "artifact_bytes": 18636,
+    "artifact_sha256": "75243aa283573f7b30862d0cbc1cebf54bebd0026828fc018c4ab6f46f6b0bfa",
+    "failures": [],
+    "official_cells": 30,
+    "peak_rss_kib": 412944,
+    "production_source_sha256": "6ade646ec947da4111c2c0e81a3d7e3017c3518fd57cd420bcf9c5295f2445b0",
+    "protected_cells": 15,
+    "provenance_report_sha256": "c0ac47fc7e3c18dd4d322d1af9ed42b84a24b963cf350db3af4d3aaa574175c3",
+    "status": "PASS",
+    "wall_seconds": 1400.985
+  },
+  "phase2": {
+    "aggregate": {
+      "economic_cells_expected": 192,
+      "economic_cells_valid": 192,
+      "failures": [],
+      "merged_bytes": 200401934,
+      "merged_sha256": "f737b298249bd2b0577840434e0cb2e0b3b87d07257bb0dd563e0deafacf0cd5",
+      "policy_report_bytes": 36010,
+      "policy_report_sha256": "6f4fed1a37bf7e6c8e5bc6539ead211e581b6c8933f332621635113e3b0c2cf7",
+      "records": 234,
+      "replay_error_cells": 0,
+      "status": "PASS"
+    },
+    "shards": {
+      "bull_crash_2025_2026": {
+        "bytes": 28802849,
+        "records": 39,
+        "sha256": "a916c4b115efd54380afcf29b27d63b4a974ff9b028cb16cbd6f4d15ad7f2896",
+        "status": "PASS"
+      },
+      "continuous_ai_era": {
+        "bytes": 55849167,
+        "peak_rss_kib": 634120,
+        "records": 39,
+        "sha256": "3fa759a7c97e22d725fbcf6ee6353d2091402dc35ab66be706ea02daaa1a7fbf",
+        "status": "PASS",
+        "wall_seconds": 3333.809500217001
+      },
+      "h1_2023": {
+        "bytes": 7060290,
+        "records": 39,
+        "sha256": "8dbfe0614950b113d8a73a322823c9bb1cb3be5c50d12fd57844552b4086a406",
+        "status": "PASS"
+      },
+      "h1_2024": {
+        "bytes": 10350896,
+        "records": 39,
+        "sha256": "d5ca8b5bddba8e0222606a8f3fe461b8454ff2af209ce2c73910b54622d2c0ef",
+        "status": "PASS"
+      },
+      "h2_2023": {
+        "bytes": 7842455,
+        "records": 39,
+        "sha256": "bd9a53ec7273d86d74c9ebce146441835972180bb5aa370ab4243855de5ab75f",
+        "status": "PASS"
+      },
+      "h2_2024": {
+        "bytes": 8956297,
+        "records": 39,
+        "sha256": "5d6d84e593c9b62eb05dbab52855dc3d68db5b0502b83e8672ca09134d6d652b",
+        "status": "PASS"
+      }
+    },
+    "status": "PASS"
+  },
+  "remote_release_gates": {
+    "required_checks": [
+      "Engineering",
+      "Windows smoke",
+      "Phase 1 Performance",
+      "Phase 2 Generalization"
+    ],
+    "status": "REQUIRED_POST_SNAPSHOT",
+    "windows_local_disposition": "NOT_RUN_NON_NATIVE_BY_CONTRACT"
+  },
+  "review": {
+    "policy": "one focused pre-publish review; material fixes require one directed closure re-review",
+    "status": "REQUIRED_POST_EVIDENCE_COMMIT"
+  },
+  "schema": "uquant.architecture-refactor-final-validation.v1",
+  "status": "PASS_LOCAL_REMOTE_REQUIRED"
+}

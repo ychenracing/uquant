@@ -40,6 +40,7 @@ exclude = ["research*", "scripts*", "tests*"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+pythonpath = ["."]
 addopts = "-q --strict-config --strict-markers"
 
 [tool.ruff]

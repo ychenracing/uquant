@@ -223,6 +223,13 @@ def _normalise_cli_output(value: str, root: Path) -> str:
 def cli_help_seam(path: Path, root: Path) -> dict[str, object]:
     environment = dict(os.environ)
     environment["PYTHONHASHSEED"] = "0"
+    repository_path = str(root.resolve())
+    inherited_path = environment.get("PYTHONPATH")
+    environment["PYTHONPATH"] = (
+        os.pathsep.join((repository_path, inherited_path))
+        if inherited_path
+        else repository_path
+    )
     completed = subprocess.run(
         [sys.executable, str(path), "--help"],
         cwd=root,

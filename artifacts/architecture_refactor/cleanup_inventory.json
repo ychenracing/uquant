@@ -1,6 +1,6 @@
 {
   "candidate_policy": "Keep canonical documents and sealed evidence; relocate durable analyses beside their machine evidence; delete completed plans, task reports, and review transcripts after live links and current authority are replaced.",
-  "canonical_sha256": "61ae292198b52829759b3ff2f40c8e915aed0d7f865a778110c43aeca1c8cf57",
+  "canonical_sha256": "0fb1d617b7d96a1149dc4eec49e60c445a71d92ebd63452d5f828463f8e53dee",
   "contract": "uquant-documentation-governance-cleanup-v2",
   "deleted_paths": [
     ".superpowers/sdd/2026-08-14-phase2-ai-era-generalization/task-7-report.md",
@@ -61,9 +61,9 @@
       "size_bytes": 603420
     },
     {
-      "authority_reason": "Current forward-only production wheel and reviewed source-surface identity for non-economic documentation and narrative consistency changes.",
+      "authority_reason": "Retained historical production_wheel_v2 identity, transparent remote payload-recovery anchor, and original container metadata boundary.",
       "classification": "KEEP_AUTHORITATIVE",
-      "content_sha256": "4faa0944a5f86faa915d3fdc040f4c0de6694f37890e8721fe6458766385296f",
+      "content_sha256": "1d0fe55d1198414fd1178c4e8b57a7077cb69c6f2d9b2cdab9d71b994e24b96f",
       "live_references": [
         "tests/architecture/test_task11_repository_governance.py"
       ],
@@ -73,7 +73,22 @@
         "status": "GIT_OBJECT"
       },
       "replacement_path": null,
-      "size_bytes": 3197
+      "size_bytes": 4222
+    },
+    {
+      "authority_reason": "Current forward-only production wheel and reviewed source-surface identity for non-economic documentation and reproducible-build governance changes.",
+      "classification": "KEEP_AUTHORITATIVE",
+      "content_sha256": "f805fee46f343969553040575198baa28138b8fabd5ebce0e2f47b1ac8151c8e",
+      "live_references": [
+        "tests/architecture/test_task11_repository_governance.py"
+      ],
+      "path": "artifacts/architecture_refactor/source_epoch_v3.json",
+      "recovery": {
+        "command": "git show HEAD:artifacts/architecture_refactor/source_epoch_v3.json",
+        "status": "GIT_OBJECT"
+      },
+      "replacement_path": null,
+      "size_bytes": 3491
     },
     {
       "authority_reason": "Current Task 10 architecture-governance inventory and accepted scanner scope.",
@@ -91,7 +106,23 @@
       "size_bytes": 1997552
     },
     {
-      "authority_reason": "Retained byte-exact reproducible production_wheel_v2 artifact bound to the current forward-only source epoch.",
+      "authority_reason": "Retained byte-exact deterministic production_wheel_v3 artifact bound to the current forward-only source epoch.",
+      "classification": "KEEP_AUTHORITATIVE",
+      "content_sha256": "a5df13991b6696f22e8a1633b0dfb717d1a3647448462141318702844653137c",
+      "live_references": [
+        "artifacts/architecture_refactor/source_epoch_v3.json",
+        "tests/architecture/test_task11_repository_governance.py"
+      ],
+      "path": "artifacts/architecture_refactor/wheels/production_wheel_v3/uquant-1.1.0-py3-none-any.whl",
+      "recovery": {
+        "command": "git show HEAD:artifacts/architecture_refactor/wheels/production_wheel_v3/uquant-1.1.0-py3-none-any.whl",
+        "status": "GIT_OBJECT"
+      },
+      "replacement_path": null,
+      "size_bytes": 2081479
+    },
+    {
+      "authority_reason": "Retained historical production_wheel_v2 container; exact payload recovery and its permission-metadata difference are sealed by source_epoch_v2.",
       "classification": "KEEP_AUTHORITATIVE",
       "content_sha256": "a50017833bd0bb7250ff2b7fe7d7a343908c90c0e5cb4b828342616c9190cc15",
       "live_references": [
@@ -297,6 +328,7 @@
         "artifacts/architecture_refactor/baseline_inventory.json",
         "artifacts/architecture_refactor/task9_cleanup_inventory.json",
         "artifacts/architecture_refactor/task9_validation_contract_oracle.json",
+        "artifacts/architecture_refactor/wheels/production_wheel_v3/uquant-1.1.0-py3-none-any.whl",
         "benchmarks/source_surface_registry.json",
         "docs/PERFORMANCE.md",
         "research/future_holdout_cli.py",
@@ -319,15 +351,17 @@
     {
       "authority_reason": "Authoritative versioned source-surface identities; migration is deferred to Task 12.",
       "classification": "KEEP_AUTHORITATIVE",
-      "content_sha256": "ba524cae3f8c2203f9f403e271439f63006d02e3eb8abdd525df541f0f93feb1",
+      "content_sha256": "cec70f0d45bba4906e2b66a33a035f3447d7ebf6174a28177145ff9ca2e696fc",
       "live_references": [
         "artifacts/architecture_refactor/account_code_identity_migration.json",
         "artifacts/architecture_refactor/source_epoch_v2.json",
+        "artifacts/architecture_refactor/source_epoch_v3.json",
         "artifacts/architecture_refactor/task5_cleanup_inventory.json",
         "artifacts/architecture_refactor/task6_cleanup_inventory.json",
         "artifacts/architecture_refactor/task7_cleanup_inventory.json",
         "artifacts/architecture_refactor/task8_cleanup_inventory.json",
         "artifacts/architecture_refactor/task9_cleanup_inventory.json",
+        "artifacts/architecture_refactor/wheels/production_wheel_v3/uquant-1.1.0-py3-none-any.whl",
         "benchmarks/source_surface_registry.json",
         "docs/ARCHITECTURE.md",
         "docs/OPERATIONS.md",
@@ -352,7 +386,7 @@
         "status": "GIT_OBJECT"
       },
       "replacement_path": null,
-      "size_bytes": 30033
+      "size_bytes": 30080
     },
     {
       "authority_reason": "Authoritative frozen market-data inventory and content hashes.",
@@ -380,6 +414,7 @@
       "live_references": [
         "artifacts/architecture_refactor/baseline_inventory.json",
         "artifacts/architecture_refactor/task9_cleanup_inventory.json",
+        "artifacts/architecture_refactor/wheels/production_wheel_v3/uquant-1.1.0-py3-none-any.whl",
         "benchmarks/current_heads_source_registry.json",
         "benchmarks/risk_differential_source_registry.json",
         "benchmarks/risk_sentinel_shadow_overlay.json",
@@ -427,6 +462,7 @@
         "artifacts/architecture_refactor/task6_cleanup_inventory.json",
         "artifacts/architecture_refactor/task8_cleanup_inventory.json",
         "artifacts/architecture_refactor/task9_cleanup_inventory.json",
+        "artifacts/architecture_refactor/wheels/production_wheel_v3/uquant-1.1.0-py3-none-any.whl",
         "artifacts/phase2/final-acceptance.md",
         "benchmarks/current_heads_source_registry.json",
         "benchmarks/risk_differential_source_registry.json",

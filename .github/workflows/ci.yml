@@ -50,8 +50,11 @@ jobs:
         run: uv run pytest --cov=uquant --cov-report=term-missing --cov-report=xml --cov-fail-under=85
       - name: Bytecode compilation
         run: uv run python -m compileall -q uquant scripts research tests
-      - name: Build wheel and source distribution
-        run: uv run python -m build
+      - name: Build deterministic production wheel from committed source
+        run: >-
+          uv run --no-sync python -m scripts.build_reproducible_wheel
+          --source-ref "${GITHUB_SHA}"
+          --output-dir dist
       - name: Upload coverage
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:

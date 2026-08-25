@@ -35,14 +35,27 @@ UV_CACHE_DIR=/tmp/uquant-uv-cache uv sync --frozen --extra dev
 
 构建发布物时，setuptools 只发现 `uquant*`。`research/` 是仓库内离线工具，不是安装后
 可依赖的公共包；脚本、测试、证据、冻结数据和文档也不进入 wheel。`requirements.txt`
-及 `full_package_v1` 保持 `KEEP_AUTHORITATIVE`；`production_wheel_v1` 保留为历史身份，
-当前 `production_wheel_v2` source epoch 已登记并保留可校验 wheel 与 source-surface 摘要。
-构建必须从登记 commit 的 `git archive` 干净导出开始，使用 `setuptools==84.0.0`、
-`build==1.5.0` 和 `SOURCE_DATE_EPOCH=315532800`；禁止从长期 worktree 的陈旧 `build/lib`
-生成身份发布物。后续身份变化
-必须创建新 epoch，并按 no-backfill 向前追加，不能重写 v1/v2。
+及 `full_package_v1` 保持 `KEEP_AUTHORITATIVE`；`production_wheel_v1/v2` 保留为历史身份，
+当前 `production_wheel_v3` source epoch 登记可校验 wheel、确定性 ZIP 容器与 source-surface
+摘要。v2 原始 gate 只存在于本地历史；其 artifact 已记录远程 main 的 package-input-equivalent
+恢复锚点和精确 payload manifest，同时透明保留历史容器权限元数据不确定这一事实。
 
-## 常用检查
+发布构建只有一个入口。它从登记 commit 的 `git archive` 导出到临时目录，使用锁定环境中的
+`setuptools==84.0.0`、`build==1.5.0`、`SOURCE_DATE_EPOCH=315532800`，再规范化 ZIP 顺序、
+时间、权限和压缩方式；禁止从长期 worktree 的陈旧 `build/lib` 生成身份发布物：
+
+```bash
+uv run --no-sync python -m scripts.build_reproducible_wheel \
+  --source-ref 89cd79a282a6eca0be35e7eeef251a8e6e39ad1d \
+  --output-dir /tmp/uquant-wheel
+```
+
+后续身份变化必须创建新 epoch，并按 no-backfill 向前追加，不能把新结果回填到 v1/v2/v3。
+
+## 渐进式检查
+
+日常修改从 L1 直接受影响测试开始；只有当前层不能证明边界时才升级到 L2/L3。下面的完整
+Engineering 命令用于稳定候选的一次性 L4 验收，不应在每次纯文档或局部修订后重复：
 
 ```bash
 uv run ruff check .
@@ -50,7 +63,6 @@ uv run mypy uquant scripts research
 uv run python -m uquant.validation data-manifest --data-dir data/frozen
 uv run pytest --cov=uquant --cov-report=term-missing --cov-report=xml
 uv run python -m compileall -q uquant scripts research tests
-uv run python -m build
 uv run bandit -q -r uquant research scripts
 uv export --frozen --no-dev --no-emit-project --no-hashes \
   --output-file /tmp/uquant-requirements.txt

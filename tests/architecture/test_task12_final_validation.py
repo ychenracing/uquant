@@ -2,7 +2,9 @@ from __future__ import annotations
 
 import hashlib
 import json
+import os
 import re
+import subprocess
 import tomllib
 import zipfile
 from pathlib import Path
@@ -27,6 +29,27 @@ def _artifact(name: str) -> dict[str, Any]:
 
 def _sha256(path: Path) -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest()
+
+
+def _git(*arguments: str) -> str:
+    completed = subprocess.run(
+        ["git", *arguments],
+        cwd=ROOT,
+        capture_output=True,
+        text=True,
+        check=True,
+    )
+    return completed.stdout.strip()
+
+
+def _git_bytes(*arguments: str) -> bytes:
+    completed = subprocess.run(
+        ["git", *arguments],
+        cwd=ROOT,
+        capture_output=True,
+        check=True,
+    )
+    return completed.stdout
 
 
 def test_task12_engineering_timeout_can_cover_the_authoritative_suite() -> None:
@@ -70,20 +93,72 @@ def test_task12_preserves_the_historical_source_epoch() -> None:
     assert epoch["status"] == "ACTIVE_FOR_NEW_ACCOUNTS"
 
 
-def test_current_source_epoch_binds_current_surfaces_and_production_wheel() -> None:
+def test_source_epoch_v2_has_a_remote_recovery_anchor() -> None:
     payload = _artifact("source_epoch_v2.json")
+    unsealed = {key: value for key, value in payload.items() if key != "canonical_sha256"}
+    assert payload["canonical_sha256"] == canonical_json_sha256(unsealed)
+    assert payload["superseded_by_epoch_id"] == "production_wheel_v3"
+    epoch = payload["source_epoch"]
+    recovery = epoch["remote_recovery"]
+
+    assert epoch["registered_at_commit"] == recovery["original_local_gate_commit"]
+    assert epoch["production_wheel"]["reproducible_build"]["clean_source"] == (
+        f"git archive {epoch['registered_at_commit']}"
+    )
+    assert recovery["original_local_gate_commit"] == (
+        "f6b75aa809294ebabebf7e6e0cf4cea6dea41da6"
+    )
+    assert re.fullmatch(r"[0-9a-f]{40}", recovery["commit"])
+    assert re.fullmatch(r"[0-9a-f]{40}", recovery["tree_sha"])
+    assert _git("rev-parse", f"{recovery['commit']}^{{tree}}") == recovery["tree_sha"]
+    for relative in ("LICENSE", "README.md", "pyproject.toml"):
+        assert _git_bytes("show", f"{epoch['registered_at_commit']}:{relative}") == _git_bytes(
+            "show", f"{recovery['commit']}:{relative}"
+        )
+    assert _git("rev-parse", f"{epoch['registered_at_commit']}:uquant") == _git(
+        "rev-parse", f"{recovery['commit']}:uquant"
+    )
+    assert recovery["package_input_equivalent"] is True
+    assert recovery["payload_manifest_equal"] is True
+    assert recovery["verified_payload_manifest_sha256"] == (
+        epoch["production_wheel"]["payload_manifest_sha256"]
+    )
+    assert recovery["historical_container_sha256"] == epoch["production_wheel"]["sha256"]
+    assert recovery["canonical_container_sha256"] != recovery["historical_container_sha256"]
+
+
+def test_current_source_epoch_binds_current_surfaces_and_production_wheel() -> None:
+    payload = _artifact("source_epoch_v3.json")
     assert payload["schema"] == "uquant.source-epoch.v1"
     unsealed = {key: value for key, value in payload.items() if key != "canonical_sha256"}
     assert payload["canonical_sha256"] == canonical_json_sha256(unsealed)
     assert payload["status"] == "PASS"
-    assert payload["previous_epoch_id"] == "production_wheel_v1"
-    assert payload["change_classification"] == "NON_ECONOMIC_SOURCE_IDENTITY"
+    assert payload["previous_epoch_id"] == "production_wheel_v2"
+    assert payload["change_classification"] == (
+        "NON_ECONOMIC_DOCUMENTATION_AND_BUILD_GOVERNANCE"
+    )
     assert payload["economic_ast_equal"] is True
     assert payload["requirements_changed"] is False
     assert payload["uv_lock_changed"] is False
     epoch = payload["source_epoch"]
-    assert epoch["epoch_id"] == "production_wheel_v2"
+    assert epoch["epoch_id"] == "production_wheel_v3"
     assert re.fullmatch(r"[0-9a-f]{40}", epoch["registered_at_commit"])
+    assert re.fullmatch(r"[0-9a-f]{40}", epoch["registered_tree_sha"])
+    assert _git("cat-file", "-t", epoch["registered_at_commit"]) == "commit"
+    assert _git("rev-parse", f"{epoch['registered_at_commit']}^{{tree}}") == (
+        epoch["registered_tree_sha"]
+    )
+    assert _git("show", "-s", "--format=%P", epoch["registered_at_commit"]) == (
+        payload["baseline_commit"]
+    )
+    if github_sha := os.environ.get("GITHUB_SHA"):
+        ancestry = subprocess.run(
+            ["git", "merge-base", "--is-ancestor", epoch["registered_at_commit"], github_sha],
+            cwd=ROOT,
+            capture_output=True,
+            check=False,
+        )
+        assert ancestry.returncode == 0, ancestry.stderr.decode()
     assert epoch["status"] == "ACTIVE_FOR_NEW_ACCOUNTS"
     expected_surfaces = {
         identifier: source_surface_fingerprint(ROOT, identifier)
@@ -96,7 +171,12 @@ def test_current_source_epoch_binds_current_surfaces_and_production_wheel() -> N
     assert project["build-system"]["requires"] == [build["backend_requirement"]]
     assert build == {
         "backend_requirement": "setuptools==84.0.0",
+        "builder": "python -m scripts.build_reproducible_wheel",
         "clean_source": f"git archive {epoch['registered_at_commit']}",
+        "container_normalization": (
+            "ZIP_STORED; lexicographic member order; 1980-01-01T00:00:00; "
+            "regular files 0644"
+        ),
         "frontend": "build==1.5.0",
         "source_date_epoch": 315532800,
     }

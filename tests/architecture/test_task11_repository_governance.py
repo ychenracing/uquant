@@ -36,6 +36,8 @@ _HIGH_RISK_ANCHORS = {
     "data/frozen/DATA_MANIFEST.json",
     "pyproject.toml",
     "requirements.txt",
+    "artifacts/architecture_refactor/source_epoch_v3.json",
+    "artifacts/architecture_refactor/wheels/production_wheel_v3/uquant-1.1.0-py3-none-any.whl",
 }
 _CANONICAL_DOCS = (
     ROOT / "README.md",
@@ -175,7 +177,7 @@ def test_documentation_cleanup_inventory_records_current_authority_and_history()
     entries = cast(list[dict[str, object]], payload["entries"])
     by_path = {str(entry["path"]): entry for entry in entries}
     assert set(by_path) == _candidate_paths()
-    assert len(by_path) == 21
+    assert len(by_path) == 23
     assert set(by_path) >= _HIGH_RISK_ANCHORS
     assert set(cast(list[str], payload["deleted_paths"])) == _DELETED_DOCS
     assert all(not (ROOT / relative).exists() for relative in _DELETED_DOCS)

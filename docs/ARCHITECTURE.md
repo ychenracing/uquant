@@ -178,7 +178,7 @@ holdout 观察不进入 `ProductionEngine.decide()` 或账户状态。
 `artifacts/architecture_refactor/baseline_inventory.json`、
 `benchmarks/source_surface_registry.json` 和 `data/frozen/DATA_MANIFEST.json` 为高风险
 锚点。`full_package_v1` 与 `requirements.txt` 继续是 `KEEP_AUTHORITATIVE` 的历史身份面；
-`production_wheel_v1` 作为历史 epoch 保留；当前 `production_wheel_v2` 已登记本次文档、
-help 与生产叙事一致性后的可复现 wheel、逐成员 manifest 和 source-surface 摘要，只对新账户和新观察向前
-生效。任何后续身份变化都必须创建新 epoch，不能回填旧 epoch、修改冻结 oracle
+`production_wheel_v1/v2` 作为历史 epoch 保留；当前 `production_wheel_v3` 登记文档、
+构建治理与生产叙事一致性后的确定性 wheel、逐成员 manifest 和 source-surface 摘要，只对新账户和新观察向前
+生效。v2 的远程恢复保证 payload 精确，并明确保留历史 ZIP 权限元数据差异。任何后续身份变化都必须创建新 epoch，不能回填旧 epoch、修改冻结 oracle
 或重写既有 Holdout Lane 来伪造连续性。

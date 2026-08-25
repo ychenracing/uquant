@@ -1,5 +1,5 @@
 {
-  "canonical_sha256": "4eae7eb6d516575484a7a392afa878d9f6523ee26dae010b44ffb496755271a0",
+  "canonical_sha256": "ee314d6b2b259395974f00be9684d71e4ad63df7e6f37557c569dfa51d3cb8f7",
   "registry_version": 2,
   "surfaces": [
     {
@@ -342,6 +342,7 @@
         "research/window_outperformance.py",
         "scripts/analyze_risk_differential.py",
         "scripts/backfill_tencent_history.py",
+        "scripts/build_reproducible_wheel.py",
         "scripts/future_holdout.py",
         "scripts/production_observation.py",
         "scripts/run_current_heads_competitor_matrix.py",

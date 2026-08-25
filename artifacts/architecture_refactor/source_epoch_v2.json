@@ -7,7 +7,11 @@
     "sentinel_v1": "040983ebc050534502914010b6fd5a978683270840d628c0c9f6eebb5b7c7fd8",
     "validation_runner_v1": "803677ec9606dac70069c4635db69f4ee4479d8fdaba4b05898093d5e4f18120"
   },
-  "canonical_sha256": "643321d481e5e14b6bd6d72d1c0366c7306efaa8ce3ce82ef14dc700c644d058",
+  "registration_correction": {
+    "reason": "The original local gate commit was never published. The remote main snapshot has package-input-equivalent bytes; payload recovery is exact, while the historical ZIP container remains preserved because its mixed permission metadata was not deterministic.",
+    "type": "REMOTE_RECOVERY_ANCHOR"
+  },
+  "canonical_sha256": "568f703ee01f81c82cab12cec70c95cbe86ad9796e0fc622adb7118f6dd91f16",
   "change_classification": "NON_ECONOMIC_SOURCE_IDENTITY",
   "economic_ast_equal": true,
   "existing_account_action": {
@@ -40,6 +44,16 @@
       "version": "1.1.0"
     },
     "registered_at_commit": "f6b75aa809294ebabebf7e6e0cf4cea6dea41da6",
+    "remote_recovery": {
+      "canonical_container_sha256": "3c44a35cdf6762916b3f5adc1b6991ae11d3c9bf3432fc1fb22a9647eba2e5a0",
+      "commit": "d91cbf3706d2d36db7cf2391d98cbef1dbb0f0a2",
+      "historical_container_sha256": "a50017833bd0bb7250ff2b7fe7d7a343908c90c0e5cb4b828342616c9190cc15",
+      "original_local_gate_commit": "f6b75aa809294ebabebf7e6e0cf4cea6dea41da6",
+      "package_input_equivalent": true,
+      "payload_manifest_equal": true,
+      "tree_sha": "0c0431a22a6579cc0bdf97796770d6481d50ee10",
+      "verified_payload_manifest_sha256": "6e96a9704c57fa77b8d155f07b25393048feae68a8574a3f973b3afce5bfa06e"
+    },
     "registry": {
       "canonical_sha256": "4eae7eb6d516575484a7a392afa878d9f6523ee26dae010b44ffb496755271a0",
       "file_sha256": "ba524cae3f8c2203f9f403e271439f63006d02e3eb8abdd525df541f0f93feb1",
@@ -57,5 +71,6 @@
     "uv_lock_sha256": "4accf16535b5ac95b831c9289e0ad2ff21282dc5dfae3f05dd0fb095089d6a61"
   },
   "status": "PASS",
+  "superseded_by_epoch_id": "production_wheel_v3",
   "uv_lock_changed": false
 }

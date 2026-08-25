@@ -186,14 +186,20 @@ date,open,high,low,close,volume
 
 ## 本地质量检查
 
+本地验证按影响面从 L1 开始，只有下一级无法证明安全时才升级；完整 L4 是稳定候选的
+一次性验收门，不是每次文档或小修订的内循环。以下是纯文档/构建治理改动的 L1 示例：
+
 ```bash
-uv run ruff check .
-uv run pytest -q
+uv run pytest -q tests/test_reproducible_wheel_build.py \
+  tests/architecture/test_task11_repository_governance.py
+uv run ruff check scripts/build_reproducible_wheel.py \
+  tests/test_reproducible_wheel_build.py
 uv run python -m compileall -q uquant scripts research tests
 ```
 
-完整开发、构建、安全和发布命令只在[开发指南](docs/DEVELOPMENT.md)维护；Phase 1/2
-经济门、窗口与证据解释只在[性能与证据](docs/PERFORMANCE.md)维护，避免命令副本漂移。
+其他改动应把路径替换为直接受影响的测试和模块。L1→L4 的升级条件、完整开发、构建、
+安全和发布命令只在[开发指南](docs/DEVELOPMENT.md)维护；Phase 1/2 经济门、窗口与证据解释
+只在[性能与证据](docs/PERFORMANCE.md)维护，避免命令副本漂移。
 
 ## 使用限制
 

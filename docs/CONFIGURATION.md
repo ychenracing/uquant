@@ -172,10 +172,10 @@ Generalization 六窗口门禁，不能由人工日常运行或研究脚本临�
 | 参数 | 生产默认值 | 边界 |
 |---|---:|---|
 | `risk_sentinel_mode` | `FREEZE_ONLY` | 仅允许 `SHADOW` / `FREEZE_ONLY` |
-| `risk_sentinel_min_confidence` | 0.80 | 不在 Phase 8 搜索或调整 |
+| `risk_sentinel_min_confidence` | 0.80 | 冻结生产阈值；离线分析不得改写 |
 | `risk_sentinel_confirm_days` | 2 | 完整市场历史诊断 |
 | `risk_sentinel_repair_days` | 3 | 完整市场历史诊断 |
-| `risk_sentinel_causal_confirmation_enabled` | false | Phase 7 候选 REJECT，保持关闭 |
+| `risk_sentinel_causal_confirmation_enabled` | false | 无独立经济增量证据，不授予新增生产权限 |
 
 `LIMITED_GROSS_CAP` 会抛出明确拒绝错误；`SENTINEL_EXCLUSIVE_FREEZE` 和其他未知值
 同样无效。Sentinel 不修改基础 Risk state、总仓上限、减仓等级、冲击状态或资本预算，

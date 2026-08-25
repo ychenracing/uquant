@@ -10,4 +10,4 @@ offline outcomes, 636 full execution-semantics counterfactual replays (240 offic
 reruns, promotion gates, and
 Future Holdout status. Production risk authority and all economic production behavior are unchanged.
 
-Human-readable analysis: `docs/reviews/2026-08-21-risk-differential-closure.md`.
+Human-readable analysis: [`analysis.md`](analysis.md).

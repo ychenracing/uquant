@@ -148,6 +148,22 @@ When any test, backtest, benchmark, replay, or validation step fails:
   validation after the stop condition is satisfied unless the user explicitly asks
   for it.
 
+## Documentation Lifecycle
+
+- `README.md`, the topic guides under `docs/`, and accepted ADRs describe the current
+  system. Keep them timeless, concise, and consistent with executable defaults.
+- `artifacts/**/README.md` and adjacent analyses explain frozen machine evidence. Do
+  not rewrite historical results as if they described the current HEAD.
+- Completed implementation plans, task reports, review transcripts, temporary
+  handoffs, and generated diff packages are working material. Keep them outside the
+  tracked production tree; Git history is the recovery mechanism after their durable
+  decisions have been absorbed into canonical documentation or ADRs.
+- When moving or deleting historical material, update live links and the current
+  cleanup inventory. Never rewrite immutable baseline inventories to erase history.
+- Documentation-only changes use link, terminology, command, and affected governance
+  checks. They do not invalidate economic evidence unless they alter executable
+  inputs, generated contracts, packaging, or runtime behavior.
+
 ## Governing Principle
 
 Verification exists to produce new evidence about the correctness of the final

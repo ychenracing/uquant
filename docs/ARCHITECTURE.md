@@ -23,24 +23,24 @@ uquant 把数据、信号、风险、组合、执行和账户放在一条可审�
 
 | 模块 | 单一职责 |
 |---|---|
-| `data.py` | 证券代码、OHLCV 校验、日期截断、前缀摘要和可选数据刷新 |
-| `features.py` | 收益、均线、突破、ATR、波动、量能和趋势特征 |
-| `reference.py`、`reference_registry.py` | 决策日可见的参考成员和共享截面上下文 |
-| `industry.py` | 行业收益、广度、加速度、覆盖率与分层收缩 |
-| `leader.py` | 领涨分数、成熟度、置信度和长期结构证据 |
-| `opportunity.py` | 机会状态及其连续确认 |
-| `risk.py`、`risk_sector.py` | 市场、持仓、资本损伤和唯一仓位上限 |
-| `portfolio.py` | 组合编排和最终目标权重出口 |
-| `portfolio_core.py` | 组合硬约束与共享状态操作 |
-| `portfolio_leaders.py` | 动态持仓数、普通领涨和行业确认 |
-| `portfolio_strategic.py` | 长周期候选、战略组合和恢复权利 |
-| `portfolio_recovery.py` | 冲击修复与锚点替换 |
-| `execution.py` | 订单规划、市场约束、费用、部分成交和挂单合并 |
-| `account.py` | 账户校验、序列化和原子持久化 |
-| `broker.py` | 券商快照、成交幂等和持仓对账 |
-| `report.py` | 只读日报 |
+| `application/` | `decide()`、回放、指标、归因和生产用例编排 |
+| `market/` | 点时市场工作区、交易日对齐与确定性 replay 输入 |
+| `data.py`、`features.py`、`reference*.py` | OHLCV、因果特征、点时成员与共享截面上下文 |
+| `industry.py`、`leader.py`、`opportunity.py` | 行业、领涨和机会状态证据 |
+| `market_risk.py`、`risk_sector.py`、`risk/` | Base Risk 证据、状态转换、资本损伤和唯一仓位上限 |
+| `portfolio_core.py`、`portfolio/` | 唯一目标组合、硬约束、风险缩减及各持仓生命周期 |
+| `execution/` | 订单规划、市场约束、费用、部分成交、挂单和 tranche |
+| `account/` | 账户编码、校验、经济身份、迁移和原子持久化 |
+| `contracts/` | 严格 JSON、universe、运行时和 source-surface 合同 |
+| `risk_sentinel/` | 独立风险证据、Coverage、离线 calibration 与窄映射 |
+| `broker.py`、`report.py` | 券商快照/成交对账与只读日报渲染 |
 | `validation/` | 冻结数据、Phase 1 绩效、Phase 2 泛化和证据完整性门禁 |
 | `research/` | 调用方驱动的离线分析，不参与生产导入 |
+
+`engine.py` 是 application 编排的稳定 facade；`portfolio_leaders.py`、
+`portfolio_strategic.py` 和 `portfolio_recovery.py` 保留旧导入与 pickle 身份。其他顶层模块若在
+上表中被明确列为所有者，仍承担真实职责。新增实现必须进入对应所有者，不能在兼容 facade
+中建立第二套状态机。
 
 ## 决策时点
 
@@ -134,6 +134,7 @@ holdout 观察不进入 `ProductionEngine.decide()` 或账户状态。
 `benchmarks/`、`data/` 和 `docs/` 不进入安装包。仓库证据仍以
 `artifacts/architecture_refactor/baseline_inventory.json`、
 `benchmarks/source_surface_registry.json` 和 `data/frozen/DATA_MANIFEST.json` 为高风险
-锚点。既有 `full_package_v1` 与 `requirements.txt` 身份在 Task 11 保持
-`KEEP_AUTHORITATIVE`；将生产 wheel 边界纳入新的 source epoch 属于 Task 12 的一次性
-身份迁移，不能通过回填旧 epoch 或修改冻结 oracle 来伪造连续性。
+锚点。`full_package_v1` 与 `requirements.txt` 继续是 `KEEP_AUTHORITATIVE` 的历史身份面；
+当前 `production_wheel_v1` source epoch 已登记生产 wheel 的成员与摘要，只对新账户和新
+观察向前生效。任何后续边界变化都必须创建新 epoch，不能回填旧 epoch、修改冻结 oracle
+或重写既有 Holdout Lane 来伪造连续性。

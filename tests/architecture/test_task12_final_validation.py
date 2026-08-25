@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import re
 from pathlib import Path
 from typing import Any
 
@@ -12,6 +13,7 @@ ROOT = Path(__file__).resolve().parents[2]
 ARTIFACT_ROOT = ROOT / "artifacts" / "architecture_refactor"
 GATE_COMMIT = "ecee225237f02b4d21cbf65d88bc4ec5761603d3"
 BASELINE_COMMIT = "f9fd489806a86b3a56f62b8668aafa252012d405"
+GITHUB_JOB_TIMEOUT_MAX_MINUTES = 360
 
 
 def _artifact(name: str) -> dict[str, Any]:
@@ -22,6 +24,15 @@ def _artifact(name: str) -> dict[str, Any]:
 
 def _sha256(path: Path) -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest()
+
+
+def test_task12_engineering_timeout_can_cover_the_authoritative_suite() -> None:
+    workflow = (ROOT / ".github" / "workflows" / "ci.yml").read_text(encoding="utf-8")
+    quality_block = workflow.partition("\n  quality:\n")[2].partition("\n  security:\n")[0]
+    timeout = re.search(r"(?m)^    timeout-minutes: (\d+)$", quality_block)
+
+    assert timeout is not None
+    assert int(timeout.group(1)) == GITHUB_JOB_TIMEOUT_MAX_MINUTES
 
 
 def test_task12_code_identity_migration_preserves_economics_and_old_epochs() -> None:

@@ -16,7 +16,7 @@ import numpy as np
 
 from .contracts.universe import default_ai_universe
 
-_PHASE1_COMPATIBILITY_LABELS = MappingProxyType(
+_FROZEN_COMPATIBILITY_LABELS = MappingProxyType(
     {
         "advanced_packaging": "packaging",
         "semicap": "equipment",
@@ -26,16 +26,16 @@ _PHASE1_COMPATIBILITY_LABELS = MappingProxyType(
 
 
 def production_industries() -> Mapping[str, str]:
-    """Derive Phase 1's legacy decision buckets from the canonical manifest.
+    """Derive frozen compatibility decision buckets from the canonical manifest.
 
     The manifest is the sole source of production membership and canonical
-    taxonomy.  These labels preserve the accepted Phase 1 economic behavior
+    taxonomy.  These labels preserve the accepted production economic behavior
     while later validation consumes the normalized names directly.
     """
     universe = default_ai_universe()
     return MappingProxyType(
         {
-            member.symbol: _PHASE1_COMPATIBILITY_LABELS.get(member.industry, member.industry)
+            member.symbol: _FROZEN_COMPATIBILITY_LABELS.get(member.industry, member.industry)
             for member in universe.members
         }
     )

@@ -35,8 +35,8 @@ PY
 `MARKET_RULE`、`SAFETY`、`ECONOMIC`、`DERIVED` 或 `COMPATIBILITY` 一类，并有唯一
 owner。市场费用、T+1、涨跌停、停牌、手数、现金和组合硬上限不是搜索自由；derived
 字段不能独立覆盖，compatibility 字段只用于确定性等价，只有 `ECONOMIC` 字段可以
-进入候选选择。任何被接受的默认值变化都必须重新通过 Phase 1 和完整的 Phase 2
-Generalization 六窗口门禁，不能由人工日常运行或研究脚本临时注入场景专用参数。
+进入候选选择。任何被接受的默认值变化都必须重新通过性能验收和完整的六窗口泛化
+验收，不能由人工日常运行或研究脚本临时注入场景专用参数。
 
 官方 Generalization 的六个窗口、基准种子 `20260810`、索引 `0..4`、池大小
 `5 / 9 / 15 / 20` 是验证输入，不是 `SystemConfig` 调参项。future holdout 从

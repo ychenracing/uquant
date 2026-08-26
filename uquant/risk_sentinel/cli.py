@@ -142,7 +142,7 @@ def _load_panel(
     return panel, tuple(loaded)
 
 
-def _run_shadow_stage_1(
+def _prepare_shadow_assessment(
     *,
     account_path: Any,
     as_of: Any,
@@ -259,7 +259,7 @@ def run_shadow(
         protected,
         root,
         universe,
-    ) = _run_shadow_stage_1(
+    ) = _prepare_shadow_assessment(
         account_path=account_path,
         as_of=as_of,
         data_dir=data_dir,

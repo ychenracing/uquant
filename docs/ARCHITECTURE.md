@@ -34,7 +34,7 @@ uquant 把数据、信号、风险、组合、执行和账户放在一条可审�
 | `contracts/` | 严格 JSON、universe、运行时和 source-surface 合同 |
 | `risk_sentinel/` | 独立风险证据、Coverage、离线 calibration 与窄映射 |
 | `broker.py`、`report.py` | 券商快照/成交对账与只读日报渲染 |
-| `validation/` | 冻结数据、Phase 1 绩效、Phase 2 泛化和证据完整性门禁 |
+| `validation/` | 冻结数据、AI-era 性能、泛化和证据完整性门禁 |
 | `research/` | 调用方驱动的离线分析，不参与生产导入 |
 
 `engine.py` 是 application 编排的稳定 facade；`portfolio_leaders.py`、
@@ -152,7 +152,7 @@ CSV、券商 JSON、账户文件、Journal、命令行路径和研究输入都�
 canonical AI universe manifest 同时拥有点时成员与行业身份；Generalization 对每个
 窗口构造同一固定场景契约，不允许研究模块另建证券全集或修改参考上下文。
 
-`Engineering`、`Phase 1 Performance` 和 `Phase 2 Generalization` 是三个独立阻断结论；
+`Engineering`、`Performance Acceptance` 和 `Generalization Acceptance` 是三个独立阻断结论；
 精确窗口、矩阵、指标与复现命令由[性能与证据](PERFORMANCE.md)唯一维护。缺文件、重复
 JSON 键、摘要漂移、未提交生产源码或运行中修改证据都会失败关闭。
 
@@ -178,7 +178,7 @@ holdout 观察不进入 `ProductionEngine.decide()` 或账户状态。
 `artifacts/architecture_refactor/baseline_inventory.json`、
 `benchmarks/source_surface_registry.json` 和 `data/frozen/DATA_MANIFEST.json` 为高风险
 锚点。`full_package_v1` 与 `requirements.txt` 继续是 `KEEP_AUTHORITATIVE` 的历史身份面；
-`production_wheel_v1/v2` 作为历史 epoch 保留；当前 `production_wheel_v3` 登记文档、
+`production_wheel_v1/v2/v3` 作为历史 epoch 保留；当前 `production_wheel_v4` 登记文档、
 构建治理与生产叙事一致性后的确定性 wheel、逐成员 manifest 和 source-surface 摘要，只对新账户和新观察向前
 生效。v2 的远程恢复保证 payload 精确，并明确保留历史 ZIP 权限元数据差异。任何后续身份变化都必须创建新 epoch，不能回填旧 epoch、修改冻结 oracle
 或重写既有 Holdout Lane 来伪造连续性。

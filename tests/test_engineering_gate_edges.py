@@ -446,12 +446,12 @@ def test_verified_market_data_rejects_noncausal_and_invalid_lookups() -> None:
         panel.loc[last, "close"] = original
 
 
-def test_phase4_source_requires_a_new_holdout_account_binding() -> None:
+def test_source_identity_source_requires_a_new_holdout_account_binding() -> None:
     with pytest.raises(RuntimeError, match=r"strategy source .* drifted"):
         holdout_module._validated_strategy_source_sha256(ROOT)
 
 
-def test_phase4_sentinel_decision_code_is_strategy_inventory() -> None:
+def test_source_identity_sentinel_decision_code_is_strategy_inventory() -> None:
     assert holdout_module._is_strategy_relative("uquant/risk_sentinel/service.py") is True
     assert holdout_module._is_strategy_relative("uquant/risk_sentinel/integration.py") is True
     assert holdout_module._is_strategy_relative("uquant/risk_sentinel/cli.py") is False
@@ -791,8 +791,8 @@ from _engineering_holdout_observation_cases import (
     test_reviewed_holdout_strategy_anchor_rejects_one_byte_mutation,
     test_holdout_observation_metrics_reject_every_detached_input,
     test_holdout_file_layout_rejects_missing_dates_links_and_stale_state,
-    test_phase1_equivalence_rejects_incomplete_matrix_and_trace_contracts,
-    test_phase1_equivalence_subprocess_boundaries_fail_closed,
+    test_performance_equivalence_rejects_incomplete_matrix_and_trace_contracts,
+    test_performance_equivalence_subprocess_boundaries_fail_closed,
     test_universe_json_and_scalar_helpers_reject_ambiguous_inputs,
 )
 

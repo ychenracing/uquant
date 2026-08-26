@@ -202,7 +202,7 @@ def compare_committed_economics(
     checkpoint: str | Path,
     jobs: int = 2,
 ) -> dict[str, Any]:
-    """Replay the full Phase 1 matrix with resumable exact A/B evidence."""
+    """Replay the full performance matrix with resumable exact A/B evidence."""
     if jobs < 1:
         raise ValueError("jobs must be positive")
     baseline_path = Path(baseline_root).resolve()

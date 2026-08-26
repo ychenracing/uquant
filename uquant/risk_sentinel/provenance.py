@@ -8,7 +8,7 @@ from pathlib import Path
 
 from uquant.provenance.fingerprints import source_surface_fingerprint
 
-from .legacy_surface import immutable_legacy_surface
+from .source_identity_archive import immutable_source_identity_archive
 
 
 def _legacy_cli_source_bytes(*, cli_source: bytes, provenance_source: bytes) -> bytes:
@@ -88,13 +88,13 @@ def _legacy_sentinel_source_fingerprint(repository_root: str | Path) -> str:
 
 
 def legacy_sentinel_source_fingerprint(repository_root: str | Path) -> str:
-    """Return the sealed pre-refactor Sentinel identity for legacy contracts."""
+    """Return the sealed historical Sentinel identity for compatibility contracts."""
 
     root = Path(repository_root)
     package = root / "uquant" / "risk_sentinel"
     if not tuple(package.glob("*.py")):
         raise RuntimeError("Sentinel source package is missing")
-    members = dict(immutable_legacy_surface())
+    members = dict(immutable_source_identity_archive())
     provenance_source = members["uquant/risk_sentinel/provenance.py"]
     digest = hashlib.sha256()
     for relative, source in members.items():

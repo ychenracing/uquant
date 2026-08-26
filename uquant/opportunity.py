@@ -14,7 +14,7 @@ from .reference import ReferenceContext
 from .types import AccountState, LeaderScore, Opportunity, Risk
 
 
-def _classify_opportunity_stage_1(
+def _collect_opportunity_market_evidence(
     *,
     account: Any,
     broad: Any,
@@ -82,7 +82,7 @@ def _classify_opportunity_stage_1(
     )
 
 
-def _classify_opportunity_stage_2(
+def _transition_opportunity_regime(
     *,
     account: Any,
     date: Any,
@@ -114,7 +114,7 @@ def _classify_opportunity_stage_2(
     return mature_count, recent_crash, regime, score_gap, tech_history
 
 
-def _classify_opportunity_stage_3(
+def _evaluate_opportunity_evidence(
     *,
     account: Any,
     bear_trend: Any,
@@ -142,7 +142,7 @@ def _classify_opportunity_stage_3(
     account.risk_streaks["opportunity_evidence"] = evidence
     account.risk_streaks["opportunity_evidence_run"] = run
     ranked = sorted((item.score for item in leaders.values()), reverse=True)
-    mature_count, recent_crash, regime, score_gap, tech_history = _classify_opportunity_stage_2(
+    mature_count, recent_crash, regime, score_gap, tech_history = _transition_opportunity_regime(
         account=account,
         date=date,
         evidence=evidence,
@@ -200,7 +200,7 @@ def classify_opportunity(
         tech_bull,
         tech_ret1,
         tech_row,
-    ) = _classify_opportunity_stage_1(
+    ) = _collect_opportunity_market_evidence(
         account=account,
         broad=broad,
         cfg=cfg,
@@ -212,7 +212,7 @@ def classify_opportunity(
     fast_flip = (
         broad_ret1 >= 0.03 and scalar(broad_row, "close") > scalar(broad_row, f"ma{cfg.trend_fast}")
     ) or (tech_ret1 >= 0.03 and scalar(tech_row, "close") > scalar(tech_row, f"ma{cfg.trend_fast}"))
-    mature_count, recent_crash, recovery_key, regime, score_gap, stable = _classify_opportunity_stage_3(
+    mature_count, recent_crash, recovery_key, regime, score_gap, stable = _evaluate_opportunity_evidence(
         account=account,
         bear_trend=bear_trend,
         breadth20_ratio=breadth20_ratio,

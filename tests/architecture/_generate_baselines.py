@@ -1,4 +1,4 @@
-"""Generate the Task 1 characterization contracts from the frozen baseline."""
+"""Generate characterization contracts from the frozen architecture baseline."""
 
 from __future__ import annotations
 
@@ -104,7 +104,7 @@ def verify_generation_context(
     candidate_root = candidate_root.resolve()
     if baseline_commit != BASELINE_COMMIT:
         raise RuntimeError(
-            f"baseline commit must match the reviewed Task 1 anchor {BASELINE_COMMIT}"
+            f"baseline commit must match the reviewed architecture anchor {BASELINE_COMMIT}"
         )
     resolved = _git(baseline_root, "rev-parse", f"{baseline_commit}^{{commit}}")
     if resolved != BASELINE_COMMIT:
@@ -251,7 +251,7 @@ print(json.dumps({
     "wall_seconds": time.perf_counter() - started,
 }, allow_nan=False, sort_keys=True))
 """
-    with tempfile.TemporaryDirectory(prefix="uquant-task1-pytest-") as directory:
+    with tempfile.TemporaryDirectory(prefix="uquant-baseline-pytest-") as directory:
         junit_path = Path(directory) / "pytest.xml"
         actual_command = [
             sys.executable,
@@ -457,7 +457,7 @@ def generate(
         "architecture_debt": {
             "policy": (
                 "Initial entries are exact measured current debt. The temporary allowlist equals those "
-                "immutable identities and remains the exact Task 1 allowance. Live debt may only be a "
+                "immutable identities and remains the exact baseline allowance. Live debt may only be a "
                 "subset of the initial identities, may not grow in measured severity, and must be empty at "
                 "final acceptance."
             ),

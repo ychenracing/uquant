@@ -30,7 +30,7 @@ def _assert_exact_monotonic_debt(
     initial = _by_id(debt["initial"][category])
     allowlist = set(debt["temporary_allowlist"][category])
     observed = _by_id(current[category])
-    assert allowlist == set(initial), f"{category} Task 1 allowlist drifted from initial debt"
+    assert allowlist == set(initial), f"{category} baseline allowlist drifted from initial debt"
     assert set(observed) <= allowlist, f"{category} introduced non-baseline debt"
     if metric is not None:
         for identifier, row in observed.items():
@@ -96,7 +96,7 @@ def test_global_type_ignore_and_duplicate_helper_debt_is_exact_and_monotonic(
         )
 
 
-def test_live_debt_can_shrink_without_rewriting_the_task_1_baseline(
+def test_live_debt_can_shrink_without_rewriting_the_frozen_baseline(
     baseline_inventory: dict[str, object], current_architecture: dict[str, object]
 ) -> None:
     current = measured_debt(current_architecture)

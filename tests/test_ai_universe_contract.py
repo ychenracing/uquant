@@ -25,7 +25,7 @@ from uquant.validation.universe import (
 ROOT = Path(__file__).resolve().parents[1]
 
 
-def test_frozen_champion_preserves_every_reviewed_phase1_identity() -> None:
+def test_frozen_champion_preserves_every_reviewed_performance_identity() -> None:
     """Breaks if a frozen input is replaced by a candidate's own identity."""
     champion = load_phase1_frozen_champion()
 
@@ -63,7 +63,7 @@ def test_frozen_champion_rejects_mutated_and_resealed_nested_provenance(
     path = tmp_path / f"{group}.json"
     path.write_text(json.dumps(payload), encoding="utf-8")
 
-    with pytest.raises(ValueError, match="differs from the reviewed Phase 1 contract"):
+    with pytest.raises(ValueError, match="differs from the reviewed performance contract"):
         load_phase1_frozen_champion(path)
 
 
@@ -79,7 +79,7 @@ def test_canonical_manifest_owns_exact_current_reference_coverage() -> None:
 
 
 def test_manifest_exposes_pit_taxonomy_with_legacy_decision_compatibility() -> None:
-    """Breaks if canonical taxonomy changes Phase 1's existing bucket decisions."""
+    """Breaks if canonical taxonomy changes frozen compatibility bucket decisions."""
     universe = load_ai_universe()
 
     assert set(universe.industries) >= CANONICAL_INDUSTRIES
@@ -109,7 +109,7 @@ def test_manifest_hash_is_canonical_and_rejects_stale_nonreference_symbol(tmp_pa
 def test_package_resources_are_the_single_runtime_manifest_source() -> None:
     """Breaks if source-tree benchmark copies drift from packaged runtime bytes."""
     assert not (ROOT / "benchmarks" / "ai_universe_manifest.json").exists()
-    assert not (ROOT / "benchmarks" / "phase1_frozen_champion.json").exists()
+    assert not (ROOT / "benchmarks" / "performance_frozen_champion.json").exists()
     assert json.loads(ai_universe_manifest_bytes())["canonical_sha256"] == load_ai_universe().sha256
     assert json.loads(frozen_champion_bytes())["production"]["commit"] == FROZEN_CHAMPION_COMMIT
 

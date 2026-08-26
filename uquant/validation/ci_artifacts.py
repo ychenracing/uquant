@@ -97,7 +97,7 @@ def run_phase1_validation(
     expected_candidate: Mapping[str, Any] | None = None,
     checkout_head: str | None = None,
 ) -> dict[str, Any]:
-    """Validate full Phase 1 provenance and always write a diagnostic report."""
+    """Validate full performance provenance and always write a diagnostic report."""
     failures: list[str] = []
     payload: dict[str, Any] | None = None
     try:
@@ -105,7 +105,7 @@ def run_phase1_validation(
             try:
                 expected = _runtime_provenance(data_dir)
             except (OSError, RuntimeError, TypeError, ValueError) as exc:
-                raise RuntimeError(f"cannot construct authoritative Phase 1 provenance: {exc}") from exc
+                raise RuntimeError(f"cannot construct authoritative performance provenance: {exc}") from exc
         else:
             expected = copy.deepcopy(dict(expected_candidate))
         expected_production = expected.get("production")
@@ -116,34 +116,34 @@ def run_phase1_validation(
         )
         payload = _load_json_object(Path(artifact), label="Phase 1 artifact")
         if payload.get("passed") is not True:
-            failures.append("Phase 1 gate did not pass")
+            failures.append("performance gate did not pass")
         provenance = payload.get("provenance")
         if not isinstance(provenance, Mapping):
-            failures.append("Phase 1 provenance is missing or malformed")
+            failures.append("performance provenance is missing or malformed")
         elif set(provenance) != _PHASE1_PROVENANCE_FIELDS:
-            failures.append("Phase 1 provenance fields are incomplete or unexpected")
+            failures.append("performance provenance fields are incomplete or unexpected")
         else:
             candidate = provenance.get("candidate")
             binding = provenance.get("binding")
             generated_at = provenance.get("generated_at")
             if candidate != expected:
-                failures.append("Phase 1 candidate provenance differs from exact checkout inputs")
+                failures.append("performance candidate provenance differs from exact checkout inputs")
             if not isinstance(generated_at, str) or not generated_at:
-                failures.append("Phase 1 generated_at provenance is malformed")
+                failures.append("performance generated_at provenance is malformed")
             elif binding != _artifact_binding(expected, generated_at=generated_at):
-                failures.append("Phase 1 flattened binding differs from full candidate provenance")
+                failures.append("performance flattened binding differs from full candidate provenance")
             if not isinstance(candidate, Mapping):
-                failures.append("Phase 1 candidate provenance is malformed")
+                failures.append("performance candidate provenance is malformed")
             else:
                 production = candidate.get("production")
                 if not isinstance(production, Mapping) or production.get("commit") != expected_head:
-                    failures.append("Phase 1 candidate does not bind exact checkout HEAD")
+                    failures.append("performance candidate does not bind exact checkout HEAD")
             if not isinstance(binding, Mapping) or binding.get("production_commit") != expected_head:
                 failures.append("Phase 1 artifact binding does not bind exact checkout HEAD")
     except (KeyError, OSError, RuntimeError, TypeError, ValueError) as exc:
         failures.append(str(exc))
     if upstream_result != "success":
-        failures.append(f"upstream Phase 1 result was {upstream_result}")
+        failures.append(f"upstream performance result was {upstream_result}")
     report: dict[str, Any] = {"passed": not failures, "failures": failures}
     _write_json(Path(report_output), report)
     return report

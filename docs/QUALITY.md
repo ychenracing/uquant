@@ -30,8 +30,8 @@
 | 数据完整性 | 冻结文件、清单和 SHA-256 必须互相一致 |
 | Risk Sentinel | `FREEZE_ONLY` 权限、calibration 合同、canonical universe 和生产导入隔离必须有效；只读重复运行工件必须确定 |
 | 文档治理 | 内部链接、示例命令、模块所有权、默认值和权限术语必须与当前仓库一致 |
-| Phase 1 经济性 | `promotion --profile full` 中所有 AI-era 场景的财富、回撤、订单、换手和急跌收益必须通过 |
-| Phase 2 泛化 | 六个固定窗口的完整矩阵必须通过 v2 冻结 policy：保留 literal 诊断，并以已认证 baseline 的逐 cell、intrinsic 与 random-tail 有效边界执行 non-regression |
+| 性能经济性 | `promotion --profile full` 中所有 AI-era 场景的财富、回撤、订单、换手和急跌收益必须通过 |
+| 泛化能力 | 六个固定窗口的完整矩阵必须通过 v2 冻结 policy：保留 literal 诊断，并以已认证 baseline 的逐 cell、intrinsic 与 random-tail 有效边界执行 non-regression |
 
 上述门禁均为阻断条件，不能用另一项检查的成功抵消失败。
 
@@ -42,7 +42,7 @@ Risk/Portfolio/Sentinel 权限、账户与订单/成交语义、源码身份、P
 把信号本身升级成与生产安全无关的无限拆分循环。
 
 对每个 PR 和 `main` push，GitHub 必须稳定给出 `Engineering`、
-`Phase 1 Performance`、`Phase 2 Generalization` 三个独立最终结论；任何结论都不能由
+`Performance Acceptance`、`Generalization Acceptance` 三个独立最终结论；任何结论都不能由
 另一个成功抵消。实际命令和 CI 构成见[开发指南](DEVELOPMENT.md)，经济 policy 与窗口见
 [性能与证据](PERFORMANCE.md)。
 
@@ -82,7 +82,7 @@ README 提供快速开始和文档导航；其余文档各自保持单一职责�
 - README、架构、策略、参数与 ADR 对经济权限和例外使用同一语义；
 - artifact Markdown 有历史证据边界和当前 canonical 链接；
 - 静态日报样例若保留，必须由当前 renderer 生成或有回归测试，不能作为未验证手写副本；
-- 当前生产模块注释不保留 Task/重构阶段叙述，冻结验证合同中的 Phase 名称可保留。
+- 当前生产模块注释不保留实施任务或改造阶段叙述，冻结验证合同中的机器名称可保留。
 
 这些检查保护可执行事实与权限，不要求逐字冻结面向人的表达。文案可以精简，但不能改变
 命令、默认值、时间窗口、所有者、风险权限或证据权威级别。
@@ -95,7 +95,7 @@ README 提供快速开始和文档导航；其余文档各自保持单一职责�
 2. 批量修改同一主题的注释、文档或经验证的健壮性问题。
 3. 审查修改是否触及策略所有者、参数默认值或交易路径。
 4. 每轮先运行受影响测试和最小必要的静态检查，再审查完整差异；有效问题修复后重复这一有界回路。
-5. 行为候选在字节冻结后完整运行一次 Engineering、Phase 1 和 Phase 2；纯文档候选只运行链接、术语、命令与受影响治理测试。
+5. 行为候选在字节冻结后完整运行一次 Engineering、性能和泛化验收；纯文档候选只运行链接、术语、命令与受影响治理测试。
 6. 完整验证后若再有影响结果的修改，重跑受影响门禁并验证新候选树；已证明行为中性的文档、注释或证据元数据变更不重复相同的完整经济回放。
 
 不得通过改写基线、放宽断言、删除失败场景或改变统计口径制造通过结果。无法证明行为等价的改动不属于本质量任务。
@@ -109,5 +109,5 @@ README 提供快速开始和文档导航；其余文档各自保持单一职责�
 - 生产决策必须继续由 `ProductionEngine.decide()` 驱动，目标权重必须继续由唯一组合分配器生成。
 - 数据或证据缺失、摘要漂移和账户不一致必须失败关闭。
 - canonical 34-stock AI universe、固定 `20260810` seed contract、归因、参数治理和 future holdout 都是受保护验证输入。
-- 任何平行的研究性或替代实现比较都不能成为发布门，也不能覆盖 Phase 1 或 Phase 2 的失败。
+- 任何平行的研究性或替代实现比较都不能成为发布门，也不能覆盖性能或泛化验收的失败。
 - Risk Sentinel 的独立分析只能输出观察工件；生产 `FREEZE_ONLY` 映射至多冻结新增风险，不得写账户、生成卖单、改变总仓上限或建立第二风险状态机。

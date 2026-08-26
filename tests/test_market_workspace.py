@@ -18,7 +18,7 @@ from uquant.leader import REFERENCE_UNIVERSE, STABLE_REFERENCE_UNIVERSE
 from uquant.market import MarketWorkspace, ReplayHarness, ReplayUniverse
 
 ROOT = Path(__file__).parents[1]
-BASELINE_PATH = ROOT / "tests" / "fixtures" / "task4_market_baseline.json"
+BASELINE_PATH = ROOT / "tests" / "fixtures" / "market_contract_baseline.json"
 
 
 def _baseline() -> dict[str, Any]:
@@ -53,7 +53,7 @@ def _outcome(call: Any) -> tuple[str, object]:
         return ("exception", (type(exc).__name__, str(exc)))
 
 
-def _immutable_task1_price() -> Any:
+def _immutable_market_reference_price() -> Any:
     metadata = _baseline()["baseline"]
     source = subprocess.run(
         ["git", "show", f"{metadata['commit']}:uquant/engine.py"],
@@ -62,7 +62,7 @@ def _immutable_task1_price() -> Any:
         capture_output=True,
         text=True,
     ).stdout
-    tree = ast.parse(source, filename="immutable-task1:uquant/engine.py")
+    tree = ast.parse(source, filename="immutable-market-reference:uquant/engine.py")
     engine = next(
         node
         for node in tree.body
@@ -74,7 +74,14 @@ def _immutable_task1_price() -> Any:
         if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)) and node.name == "_price"
     )
     namespace: dict[str, object] = {"pd": pd}
-    exec(compile(ast.Module(body=[price], type_ignores=[]), "<immutable-task1-price>", "exec"), namespace)
+    exec(
+        compile(
+            ast.Module(body=[price], type_ignores=[]),
+            "<immutable-market-reference-price>",
+            "exec",
+        ),
+        namespace,
+    )
     return namespace["_price"]
 
 
@@ -86,7 +93,7 @@ def _production_universe(*tradable: str) -> ReplayUniverse:
     )
 
 
-def test_market_fixture_is_anchored_to_immutable_task1_bytes() -> None:
+def test_market_fixture_is_anchored_to_immutable_reference_bytes() -> None:
     fixture = _baseline()
     metadata = fixture["baseline"]
     assert metadata == {
@@ -155,7 +162,7 @@ def test_production_universe_identity_preserves_fixed_reference_contract() -> No
     assert DEFAULT_CONFIG.to_dict().get("reference_universe") is None
 
 
-def test_workspace_load_features_price_sessions_and_manifest_match_task1_baseline() -> None:
+def test_workspace_load_features_price_sessions_and_manifest_match_frozen_baseline() -> None:
     expected = _baseline()
     workspace = MarketWorkspace(ROOT / "data" / "frozen", DEFAULT_CONFIG)
     workspace.prepare(
@@ -220,23 +227,23 @@ def test_workspace_load_features_price_sessions_and_manifest_match_task1_baselin
         ("sz300308", pd.Timestamp("2023-01-07"), "missing"),
     ),
 )
-def test_workspace_price_matches_immutable_task1_symbol_date_field_order(
+def test_workspace_price_matches_immutable_reference_symbol_date_field_order(
     symbol: str,
     date: pd.Timestamp,
     field: str,
 ) -> None:
     raw = DataStore(ROOT / "data" / "frozen").load("sz300308")
     baseline = SimpleNamespace(_raw={"sz300308": raw})
-    task1_price = _immutable_task1_price()
+    reference_price = _immutable_market_reference_price()
     workspace = MarketWorkspace(ROOT / "data" / "frozen", DEFAULT_CONFIG)
     workspace.load(("sz300308",))
 
-    expected = _outcome(lambda: task1_price(baseline, symbol, date, field))
+    expected = _outcome(lambda: reference_price(baseline, symbol, date, field))
     observed = _outcome(lambda: workspace.price(symbol, date, field))
     assert observed == expected
 
 
-def test_workspace_reference_returns_and_manifest_match_task1_baseline() -> None:
+def test_workspace_reference_returns_and_manifest_match_frozen_baseline() -> None:
     expected = _baseline()
     universe = _production_universe("sz300308")
     workspace = MarketWorkspace(ROOT / "data" / "frozen", DEFAULT_CONFIG)

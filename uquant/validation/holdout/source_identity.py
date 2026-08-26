@@ -398,7 +398,7 @@ def _validated_strategy_source_sha256(root: Path) -> str:
     current_relatives = tuple(path.relative_to(root).as_posix() for path in paths)
     anchored_relatives = git_strategy_relatives(root, commit=STRATEGY_ANCHOR_COMMIT)
     if current_relatives != anchored_relatives:
-        raise RuntimeError("strategy source inventory drifted from the Task 8 anchor")
+        raise RuntimeError("strategy source inventory drifted from the frozen strategy anchor")
     anchored_sha256 = source_sha256(
         paths,
         root=root,
@@ -406,7 +406,7 @@ def _validated_strategy_source_sha256(root: Path) -> str:
     )
     current_sha256 = source_sha256(paths, root=root)
     if anchored_sha256 != STRATEGY_SOURCE_SHA256 or current_sha256 != anchored_sha256:
-        raise RuntimeError("strategy source bytes drifted from the Task 8 anchor")
+        raise RuntimeError("strategy source bytes drifted from the frozen strategy anchor")
     return current_sha256
 
 
@@ -418,7 +418,7 @@ def _validated_strategy_cli_sha256(root: Path) -> str:
     anchored = strategy_cli_sha256(root, from_git=STRATEGY_ANCHOR_COMMIT)
     current = strategy_cli_sha256(root)
     if anchored != STRATEGY_CLI_SHA256 or current != anchored:
-        raise RuntimeError("production CLI decision path drifted from the Task 8 anchor")
+        raise RuntimeError("production CLI decision path drifted from the frozen strategy anchor")
     return current
 
 

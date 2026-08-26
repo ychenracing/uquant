@@ -14,10 +14,22 @@ from pathlib import Path
 from typing import cast
 
 from ._analysis_authorities import (
+    _CONFIG_RELOCATED_PRIVATE_IMPORT_GROUPS as _CONFIG_RELOCATED_PRIVATE_IMPORT_GROUPS,
+)
+from ._analysis_authorities import (
+    _CONFIG_RELOCATED_PRIVATE_IMPORTS as _CONFIG_RELOCATED_PRIVATE_IMPORTS,
+)
+from ._analysis_authorities import (
     _CONTRACT_RELOCATIONS as _CONTRACT_RELOCATIONS,
 )
 from ._analysis_authorities import (
     _DEBT_RELOCATIONS as _DEBT_RELOCATIONS,
+)
+from ._analysis_authorities import (
+    _EXECUTION_RELOCATED_PRIVATE_IMPORT_GROUPS as _EXECUTION_RELOCATED_PRIVATE_IMPORT_GROUPS,
+)
+from ._analysis_authorities import (
+    _EXECUTION_RELOCATED_PRIVATE_IMPORTS as _EXECUTION_RELOCATED_PRIVATE_IMPORTS,
 )
 from ._analysis_authorities import (
     _MODULE_AUTHORITY_VALUES as _MODULE_AUTHORITY_VALUES,
@@ -26,28 +38,16 @@ from ._analysis_authorities import (
     _NONPRODUCTION_IMPORT_AUTHORITIES as _NONPRODUCTION_IMPORT_AUTHORITIES,
 )
 from ._analysis_authorities import (
+    _RISK_RELOCATED_FUNCTION_DEBT as _RISK_RELOCATED_FUNCTION_DEBT,
+)
+from ._analysis_authorities import (
+    _RISK_RELOCATED_PRIVATE_IMPORT_GROUPS as _RISK_RELOCATED_PRIVATE_IMPORT_GROUPS,
+)
+from ._analysis_authorities import (
+    _RISK_RELOCATED_PRIVATE_IMPORTS as _RISK_RELOCATED_PRIVATE_IMPORTS,
+)
+from ._analysis_authorities import (
     _RUNNER_AUTHORITIES as _RUNNER_AUTHORITIES,
-)
-from ._analysis_authorities import (
-    _TASK5_RELOCATED_PRIVATE_IMPORT_GROUPS as _TASK5_RELOCATED_PRIVATE_IMPORT_GROUPS,
-)
-from ._analysis_authorities import (
-    _TASK5_RELOCATED_PRIVATE_IMPORTS as _TASK5_RELOCATED_PRIVATE_IMPORTS,
-)
-from ._analysis_authorities import (
-    _TASK6_RELOCATED_PRIVATE_IMPORT_GROUPS as _TASK6_RELOCATED_PRIVATE_IMPORT_GROUPS,
-)
-from ._analysis_authorities import (
-    _TASK6_RELOCATED_PRIVATE_IMPORTS as _TASK6_RELOCATED_PRIVATE_IMPORTS,
-)
-from ._analysis_authorities import (
-    _TASK7_RELOCATED_FUNCTION_DEBT as _TASK7_RELOCATED_FUNCTION_DEBT,
-)
-from ._analysis_authorities import (
-    _TASK7_RELOCATED_PRIVATE_IMPORT_GROUPS as _TASK7_RELOCATED_PRIVATE_IMPORT_GROUPS,
-)
-from ._analysis_authorities import (
-    _TASK7_RELOCATED_PRIVATE_IMPORTS as _TASK7_RELOCATED_PRIVATE_IMPORTS,
 )
 from ._analysis_authorities import (
     FINAL_BUDGETS as FINAL_BUDGETS,
@@ -65,10 +65,34 @@ from ._analysis_authorities import (
     ROOT as ROOT,
 )
 from ._analysis_relocations import (
+    _EXECUTION_RELOCATED_FUNCTION_DEBT as _EXECUTION_RELOCATED_FUNCTION_DEBT,
+)
+from ._analysis_relocations import (
+    _EXECUTION_RELOCATED_GLOBAL_DEBT as _EXECUTION_RELOCATED_GLOBAL_DEBT,
+)
+from ._analysis_relocations import (
     _MUTABLE_CALLS as _MUTABLE_CALLS,
 )
 from ._analysis_relocations import (
     _MUTATING_METHODS as _MUTATING_METHODS,
+)
+from ._analysis_relocations import (
+    _PORTFOLIO_ALLOCATE_STRATEGY_DEBT as _PORTFOLIO_ALLOCATE_STRATEGY_DEBT,
+)
+from ._analysis_relocations import (
+    _PORTFOLIO_RELOCATED_FUNCTION_DEBT as _PORTFOLIO_RELOCATED_FUNCTION_DEBT,
+)
+from ._analysis_relocations import (
+    _PORTFOLIO_RELOCATED_FUNCTION_NAMES as _PORTFOLIO_RELOCATED_FUNCTION_NAMES,
+)
+from ._analysis_relocations import (
+    _PORTFOLIO_RELOCATED_PRIVATE_IMPORT_GROUPS as _PORTFOLIO_RELOCATED_PRIVATE_IMPORT_GROUPS,
+)
+from ._analysis_relocations import (
+    _PORTFOLIO_RELOCATED_PRIVATE_IMPORTS as _PORTFOLIO_RELOCATED_PRIVATE_IMPORTS,
+)
+from ._analysis_relocations import (
+    _PORTFOLIO_RELOCATED_TYPE_IGNORES as _PORTFOLIO_RELOCATED_TYPE_IGNORES,
 )
 from ._analysis_relocations import (
     _PUBLIC_API_FACADE_PATHS as _PUBLIC_API_FACADE_PATHS,
@@ -77,44 +101,20 @@ from ._analysis_relocations import (
     _PUBLIC_API_IMPLEMENTATIONS as _PUBLIC_API_IMPLEMENTATIONS,
 )
 from ._analysis_relocations import (
-    _TASK6_RELOCATED_FUNCTION_DEBT as _TASK6_RELOCATED_FUNCTION_DEBT,
+    _VALIDATION_RELOCATED_FUNCTION_DEBT as _VALIDATION_RELOCATED_FUNCTION_DEBT,
 )
 from ._analysis_relocations import (
-    _TASK6_RELOCATED_GLOBAL_DEBT as _TASK6_RELOCATED_GLOBAL_DEBT,
+    _VALIDATION_RELOCATED_GLOBAL_DEBT as _VALIDATION_RELOCATED_GLOBAL_DEBT,
 )
 from ._analysis_relocations import (
-    _TASK8_ALLOCATE_STRATEGY_DEBT as _TASK8_ALLOCATE_STRATEGY_DEBT,
+    _VALIDATION_RELOCATED_PRIVATE_IMPORT_GROUPS as _VALIDATION_RELOCATED_PRIVATE_IMPORT_GROUPS,
 )
 from ._analysis_relocations import (
-    _TASK8_RELOCATED_FUNCTION_DEBT as _TASK8_RELOCATED_FUNCTION_DEBT,
+    _VALIDATION_RELOCATED_PRIVATE_IMPORTS as _VALIDATION_RELOCATED_PRIVATE_IMPORTS,
 )
-from ._analysis_relocations import (
-    _TASK8_RELOCATED_FUNCTION_NAMES as _TASK8_RELOCATED_FUNCTION_NAMES,
-)
-from ._analysis_relocations import (
-    _TASK8_RELOCATED_PRIVATE_IMPORT_GROUPS as _TASK8_RELOCATED_PRIVATE_IMPORT_GROUPS,
-)
-from ._analysis_relocations import (
-    _TASK8_RELOCATED_PRIVATE_IMPORTS as _TASK8_RELOCATED_PRIVATE_IMPORTS,
-)
-from ._analysis_relocations import (
-    _TASK8_RELOCATED_TYPE_IGNORES as _TASK8_RELOCATED_TYPE_IGNORES,
-)
-from ._analysis_relocations import (
-    _TASK9_RELOCATED_FUNCTION_DEBT as _TASK9_RELOCATED_FUNCTION_DEBT,
-)
-from ._analysis_relocations import (
-    _TASK9_RELOCATED_GLOBAL_DEBT as _TASK9_RELOCATED_GLOBAL_DEBT,
-)
-from ._analysis_relocations import (
-    _TASK9_RELOCATED_PRIVATE_IMPORT_GROUPS as _TASK9_RELOCATED_PRIVATE_IMPORT_GROUPS,
-)
-from ._analysis_relocations import (
-    _TASK9_RELOCATED_PRIVATE_IMPORTS as _TASK9_RELOCATED_PRIVATE_IMPORTS,
-)
-from ._task10_private_imports import scan_analysis_governed_private_edges
+from ._private_imports import scan_analysis_governed_private_edges
 
-_TASK10_REVIEWED_PRIVATE_TRANSPORTS = frozenset(
+_ARCHITECTURE_REVIEWED_PRIVATE_TRANSPORTS = frozenset(
     {
         "uquant.attribution.builder:uquant.attribution.concentration:_empty_pnl_bucket",
         "uquant.attribution.validation:uquant.attribution.concentration:_group_lot_pnl",
@@ -521,7 +521,7 @@ def _historical_private_import_rows(
         for importer, imported_from, names in groups
         for name in names
         if f"{importer}:{imported_from}:{name}"
-        not in _TASK10_REVIEWED_PRIVATE_TRANSPORTS
+        not in _ARCHITECTURE_REVIEWED_PRIVATE_TRANSPORTS
     ]
 
 def architecture_snapshot(
@@ -565,20 +565,20 @@ def architecture_snapshot(
         raise AssertionError(f"unknown module authorities: {invalid}")
     graph: dict[str, set[str]] = {module: set() for module in modules}
     private_module_calls: list[dict[str, object]] = []
-    task5_relocated_private_imports = _historical_private_import_rows(
-        _TASK5_RELOCATED_PRIVATE_IMPORT_GROUPS
+    config_relocated_private_imports = _historical_private_import_rows(
+        _CONFIG_RELOCATED_PRIVATE_IMPORT_GROUPS
     )
-    task6_relocated_private_imports = _historical_private_import_rows(
-        _TASK6_RELOCATED_PRIVATE_IMPORT_GROUPS
+    execution_relocated_private_imports = _historical_private_import_rows(
+        _EXECUTION_RELOCATED_PRIVATE_IMPORT_GROUPS
     )
-    task7_relocated_private_imports = _historical_private_import_rows(
-        _TASK7_RELOCATED_PRIVATE_IMPORT_GROUPS
+    risk_relocated_private_imports = _historical_private_import_rows(
+        _RISK_RELOCATED_PRIVATE_IMPORT_GROUPS
     )
-    task8_relocated_private_imports = _historical_private_import_rows(
-        _TASK8_RELOCATED_PRIVATE_IMPORT_GROUPS
+    portfolio_relocated_private_imports = _historical_private_import_rows(
+        _PORTFOLIO_RELOCATED_PRIVATE_IMPORT_GROUPS
     )
-    task9_relocated_private_imports = _historical_private_import_rows(
-        _TASK9_RELOCATED_PRIVATE_IMPORT_GROUPS
+    validation_relocated_private_imports = _historical_private_import_rows(
+        _VALIDATION_RELOCATED_PRIVATE_IMPORT_GROUPS
     )
     forbidden_imports: list[dict[str, object]] = []
     function_rows: list[dict[str, object]] = []
@@ -787,11 +787,11 @@ def architecture_snapshot(
         key=_row_id,
     )
     sorted_private_module_calls = sorted(private_module_calls, key=_row_id)
-    sorted_task5_private_imports = sorted(task5_relocated_private_imports, key=_row_id)
-    sorted_task6_private_imports = sorted(task6_relocated_private_imports, key=_row_id)
-    sorted_task7_private_imports = sorted(task7_relocated_private_imports, key=_row_id)
-    sorted_task8_private_imports = sorted(task8_relocated_private_imports, key=_row_id)
-    sorted_task9_private_imports = sorted(task9_relocated_private_imports, key=_row_id)
+    sorted_config_private_imports = sorted(config_relocated_private_imports, key=_row_id)
+    sorted_execution_private_imports = sorted(execution_relocated_private_imports, key=_row_id)
+    sorted_risk_private_imports = sorted(risk_relocated_private_imports, key=_row_id)
+    sorted_portfolio_private_imports = sorted(portfolio_relocated_private_imports, key=_row_id)
+    sorted_validation_private_imports = sorted(validation_relocated_private_imports, key=_row_id)
     sorted_forbidden_imports = sorted(forbidden_imports, key=_row_id)
     return {
         "modules": {module: module_rows[module] for module in sorted(module_rows)},
@@ -812,11 +812,11 @@ def architecture_snapshot(
             "cycles": cycles,
             "cross_module_private_imports": sorted_private_imports,
             "cross_module_private_module_calls": sorted_private_module_calls,
-            "task5_relocated_private_imports": sorted_task5_private_imports,
-            "task6_relocated_private_imports": sorted_task6_private_imports,
-            "task7_relocated_private_imports": sorted_task7_private_imports,
-            "task8_relocated_private_imports": sorted_task8_private_imports,
-            "task9_relocated_private_imports": sorted_task9_private_imports,
+            "task5_relocated_private_imports": sorted_config_private_imports,
+            "task6_relocated_private_imports": sorted_execution_private_imports,
+            "task7_relocated_private_imports": sorted_risk_private_imports,
+            "task8_relocated_private_imports": sorted_portfolio_private_imports,
+            "task9_relocated_private_imports": sorted_validation_private_imports,
             "forbidden_imports": sorted_forbidden_imports,
         },
         "module_globals": sorted(global_rows, key=lambda row: str(row["id"])),
@@ -843,35 +843,35 @@ def measured_debt(snapshot: Mapping[str, object]) -> dict[str, list[dict[str, ob
 
     def debt_id(identifier: object) -> str:
         value = str(identifier)
-        relocated_global = _TASK6_RELOCATED_GLOBAL_DEBT.get(value)
+        relocated_global = _EXECUTION_RELOCATED_GLOBAL_DEBT.get(value)
         if relocated_global is not None:
             return relocated_global
-        task9_relocated_global = _TASK9_RELOCATED_GLOBAL_DEBT.get(value)
-        if task9_relocated_global is not None:
-            return task9_relocated_global
-        relocated = _TASK6_RELOCATED_FUNCTION_DEBT.get(value)
+        validation_relocated_global = _VALIDATION_RELOCATED_GLOBAL_DEBT.get(value)
+        if validation_relocated_global is not None:
+            return validation_relocated_global
+        relocated = _EXECUTION_RELOCATED_FUNCTION_DEBT.get(value)
         if relocated is not None:
             return relocated[0]
-        task7_relocated = _TASK7_RELOCATED_FUNCTION_DEBT.get(value)
-        if task7_relocated is not None:
-            return task7_relocated
-        task8_relocated = _TASK8_RELOCATED_FUNCTION_DEBT.get(value)
-        if task8_relocated is not None:
-            return task8_relocated
-        task9_relocated = _TASK9_RELOCATED_FUNCTION_DEBT.get(value)
-        if task9_relocated is not None:
-            return task9_relocated[0]
+        risk_relocated = _RISK_RELOCATED_FUNCTION_DEBT.get(value)
+        if risk_relocated is not None:
+            return risk_relocated
+        portfolio_relocated = _PORTFOLIO_RELOCATED_FUNCTION_DEBT.get(value)
+        if portfolio_relocated is not None:
+            return portfolio_relocated
+        validation_relocated = _VALIDATION_RELOCATED_FUNCTION_DEBT.get(value)
+        if validation_relocated is not None:
+            return validation_relocated[0]
         module, separator, suffix = value.partition(":")
         legacy = _DEBT_RELOCATIONS.get(module, module)
         return f"{legacy}{separator}{suffix}"
 
     def function_lines(row: Mapping[str, object]) -> int:
-        relocated = _TASK6_RELOCATED_FUNCTION_DEBT.get(str(row["id"]))
-        task9_relocated = _TASK9_RELOCATED_FUNCTION_DEBT.get(str(row["id"]))
+        relocated = _EXECUTION_RELOCATED_FUNCTION_DEBT.get(str(row["id"]))
+        validation_relocated = _VALIDATION_RELOCATED_FUNCTION_DEBT.get(str(row["id"]))
         overhead = (
             relocated[1]
             if relocated is not None
-            else (task9_relocated[1] if task9_relocated is not None else 0)
+            else (validation_relocated[1] if validation_relocated is not None else 0)
         )
         return cast(int, row["lines"]) - overhead
 
@@ -889,17 +889,17 @@ def measured_debt(snapshot: Mapping[str, object]) -> dict[str, list[dict[str, ob
         }
         for row in functions
         if int(row["lines"]) > FINAL_BUDGETS["max_function_lines"]
-        and str(row["id"]) not in _TASK7_RELOCATED_FUNCTION_DEBT
-        and str(row["id"]) not in _TASK8_ALLOCATE_STRATEGY_DEBT
+        and str(row["id"]) not in _RISK_RELOCATED_FUNCTION_DEBT
+        and str(row["id"]) not in _PORTFOLIO_ALLOCATE_STRATEGY_DEBT
     ]
-    task7_long = [
+    risk_long = [
         row
         for row in functions
-        if str(row["id"]) in _TASK7_RELOCATED_FUNCTION_DEBT
+        if str(row["id"]) in _RISK_RELOCATED_FUNCTION_DEBT
         and int(row["lines"]) > FINAL_BUDGETS["max_function_lines"]
     ]
-    if task7_long:
-        largest = max(task7_long, key=lambda row: int(row["lines"]))
+    if risk_long:
+        largest = max(risk_long, key=lambda row: int(row["lines"]))
         long_functions.append(
             {
                 "id": "uquant.risk:_assess_base_risk",
@@ -908,14 +908,14 @@ def measured_debt(snapshot: Mapping[str, object]) -> dict[str, list[dict[str, ob
                 "measured_lines": largest["lines"],
             }
         )
-    task8_pipeline_long = [
+    portfolio_pipeline_long = [
         row
         for row in functions
-        if str(row["id"]) in _TASK8_ALLOCATE_STRATEGY_DEBT
+        if str(row["id"]) in _PORTFOLIO_ALLOCATE_STRATEGY_DEBT
         and int(row["lines"]) > FINAL_BUDGETS["max_function_lines"]
     ]
-    if task8_pipeline_long:
-        largest = max(task8_pipeline_long, key=lambda row: int(row["lines"]))
+    if portfolio_pipeline_long:
+        largest = max(portfolio_pipeline_long, key=lambda row: int(row["lines"]))
         long_functions.append(
             {
                 "id": "uquant.portfolio:PortfolioAllocator._allocate_strategy",
@@ -933,17 +933,17 @@ def measured_debt(snapshot: Mapping[str, object]) -> dict[str, list[dict[str, ob
         }
         for row in functions
         if int(row["branch_points"]) > FINAL_BUDGETS["max_function_branch_points"]
-        and str(row["id"]) not in _TASK7_RELOCATED_FUNCTION_DEBT
-        and str(row["id"]) not in _TASK8_ALLOCATE_STRATEGY_DEBT
+        and str(row["id"]) not in _RISK_RELOCATED_FUNCTION_DEBT
+        and str(row["id"]) not in _PORTFOLIO_ALLOCATE_STRATEGY_DEBT
     ]
-    task7_branchy = [
+    risk_branchy = [
         row
         for row in functions
-        if str(row["id"]) in _TASK7_RELOCATED_FUNCTION_DEBT
+        if str(row["id"]) in _RISK_RELOCATED_FUNCTION_DEBT
         and int(row["branch_points"]) > FINAL_BUDGETS["max_function_branch_points"]
     ]
-    if task7_branchy:
-        branchiest = max(task7_branchy, key=lambda row: int(row["branch_points"]))
+    if risk_branchy:
+        branchiest = max(risk_branchy, key=lambda row: int(row["branch_points"]))
         branchy_functions.append(
             {
                 "id": "uquant.risk:_assess_base_risk",
@@ -952,15 +952,15 @@ def measured_debt(snapshot: Mapping[str, object]) -> dict[str, list[dict[str, ob
                 "measured_branch_points": branchiest["branch_points"],
             }
         )
-    task8_pipeline_branchy = [
+    portfolio_pipeline_branchy = [
         row
         for row in functions
-        if str(row["id"]) in _TASK8_ALLOCATE_STRATEGY_DEBT
+        if str(row["id"]) in _PORTFOLIO_ALLOCATE_STRATEGY_DEBT
         and int(row["branch_points"]) > FINAL_BUDGETS["max_function_branch_points"]
     ]
-    if task8_pipeline_branchy:
+    if portfolio_pipeline_branchy:
         branchiest = max(
-            task8_pipeline_branchy,
+            portfolio_pipeline_branchy,
             key=lambda row: int(row["branch_points"]),
         )
         branchy_functions.append(
@@ -991,7 +991,7 @@ def measured_debt(snapshot: Mapping[str, object]) -> dict[str, list[dict[str, ob
         "production_type_ignores": [
             {
                 **row,
-                "id": _TASK8_RELOCATED_TYPE_IGNORES.get(str(row["id"]), row["id"]),
+                "id": _PORTFOLIO_RELOCATED_TYPE_IGNORES.get(str(row["id"]), row["id"]),
             }
             for row in type_ignores
         ],

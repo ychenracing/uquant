@@ -211,7 +211,7 @@ def _load_and_validate_governance_envelope(
     if parsed_counts["before"][0] != 285 or parsed_counts["after"][0] != 278:
         raise RuntimeError("configuration governance total-field change is not the reviewed 285-to-278")
     if parsed_counts["before"][1] != parsed_counts["after"][1]:
-        raise RuntimeError("configuration cleanup must not change ECONOMIC freedom")
+        raise RuntimeError("configuration reduction must not change ECONOMIC freedom")
 
     config_migration = _required_mapping(
         payload["config_migration"],

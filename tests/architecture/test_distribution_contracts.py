@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import hashlib
+import json
 import subprocess
 import sys
 from collections.abc import Mapping
@@ -12,12 +14,10 @@ from ._analysis import (
     ROOT,
     canonical_sha256,
     representative_replay,
-    sha256_file,
     tracked_file_inventory,
 )
 
-TASK_1_HEAD = "cd46d17d7808db6ec04684b0d1d7bd9a9f2d8836"
-
+CURRENT_SURFACE_BASE = "105695aacd3d1c7e62705f64188da88d202db4cd"
 
 def test_same_named_module_and_package_never_compete_for_import_authority() -> None:
     conflicts = sorted(
@@ -66,7 +66,19 @@ def test_baseline_source_surface_and_public_contract_have_closed_integrity_hashe
         and str(entry["path"]).endswith(".py")
         for entry in entries
     )
-    assert public_contract["sha256"] == sha256_file(PUBLIC_API_PATH)
+    frozen_public_api = subprocess.check_output(
+        [
+            "git",
+            "show",
+            f"{CURRENT_SURFACE_BASE}:{PUBLIC_API_PATH.relative_to(ROOT).as_posix()}",
+        ],
+        cwd=ROOT,
+    )
+    assert public_contract["sha256"] == hashlib.sha256(frozen_public_api).hexdigest()
+    current_public_api = json.loads(PUBLIC_API_PATH.read_text(encoding="utf-8"))
+    assert current_public_api["contract_sha256"] == canonical_sha256(
+        current_public_api["contract"]
+    )
     assert source_surface == production_source_surface(
         git_python_sources(ROOT, BASELINE_COMMIT)
     )
@@ -117,19 +129,19 @@ def test_immutable_baseline_recomputation_ignores_future_live_registry_changes(
     test_initial_debt_is_recomputed_from_the_immutable_git_tree(baseline_inventory)
 
 
-def test_generator_accepts_an_explicit_baseline_from_the_task_1_head(
+def test_generator_accepts_an_explicit_reachable_baseline(
     tmp_path: Path,
 ) -> None:
     from ._baseline import BASELINE_COMMIT
     from ._generate_baselines import verify_generation_context
 
-    candidate = tmp_path / "task-1-head"
+    candidate = tmp_path / "reachable-baseline"
     subprocess.run(
         ["git", "clone", "--quiet", "--no-checkout", str(ROOT), str(candidate)],
         check=True,
     )
     subprocess.run(
-        ["git", "checkout", "--quiet", "--detach", TASK_1_HEAD],
+        ["git", "checkout", "--quiet", "--detach", BASELINE_COMMIT],
         cwd=candidate,
         check=True,
     )
@@ -140,7 +152,7 @@ def test_generator_accepts_an_explicit_baseline_from_the_task_1_head(
         capture_output=True,
         text=True,
     ).stdout.strip()
-    assert head == TASK_1_HEAD
+    assert head == BASELINE_COMMIT
     verified = verify_generation_context(
         baseline_root=ROOT,
         baseline_commit=BASELINE_COMMIT,

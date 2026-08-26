@@ -237,7 +237,7 @@
       "uquant holdout-append": "usage: uquant holdout-append [-h] --snapshot-dir SNAPSHOT_DIR\n\noptions:\n  -h, --help            show this help message and exit\n  --snapshot-dir SNAPSHOT_DIR\n",
       "uquant holdout-manifest": "usage: uquant holdout-manifest [-h] --account ACCOUNT [--metrics METRICS]\n                               [--journal JOURNAL] [--output OUTPUT]\n\noptions:\n  -h, --help         show this help message and exit\n  --account ACCOUNT\n  --metrics METRICS  deterministic holdout replay artifact (required after\n                     sessions exist)\n  --journal JOURNAL\n  --output OUTPUT\n",
       "uquant holdout-replay": "usage: uquant holdout-replay [-h] --account ACCOUNT [--journal JOURNAL]\n                             [--output OUTPUT]\n                             [--decision-output DECISION_OUTPUT]\n\noptions:\n  -h, --help            show this help message and exit\n  --account ACCOUNT\n  --journal JOURNAL\n  --output OUTPUT\n  --decision-output DECISION_OUTPUT\n",
-      "uquant-sentinel": "usage: uquant-sentinel [-h] [--validate-contracts] [--data-dir DATA_DIR]\n                       [--date DATE] [--account ACCOUNT] [--output OUTPUT]\n\nIndependent Risk Sentinel Shadow Mode\n\noptions:\n  -h, --help            show this help message and exit\n  --validate-contracts\n  --data-dir DATA_DIR\n  --date DATE\n  --account ACCOUNT\n  --output OUTPUT\n"
+      "uquant-sentinel": "usage: uquant-sentinel [-h] [--validate-contracts] [--data-dir DATA_DIR]\n                       [--date DATE] [--account ACCOUNT] [--output OUTPUT]\n\nOffline, read-only Risk Sentinel Shadow diagnostic\n\noptions:\n  -h, --help            show this help message and exit\n  --validate-contracts\n  --data-dir DATA_DIR\n  --date DATE\n  --account ACCOUNT\n  --output OUTPUT\n"
     },
     "decision_fill_account_trace": {
       "account_after": {
@@ -14456,7 +14456,7 @@
         "path": "uquant/industry.py",
         "public_names": [
           "IndustrySignal",
-          "_PHASE1_COMPATIBILITY_LABELS",
+          "_FROZEN_COMPATIBILITY_LABELS",
           "compute_industry_signals",
           "production_industries"
         ]
@@ -15843,7 +15843,7 @@
                 "annotation": "str | Path",
                 "default": {
                   "kind": "path",
-                  "value": "/workspace/scratch/5353d1b571d9/uquant-base/.worktrees/uquant-modular-governance/benchmarks/reference_registry.json"
+                  "value": "<REPOSITORY_ROOT>/benchmarks/reference_registry.json"
                 },
                 "kind": "POSITIONAL_OR_KEYWORD",
                 "name": "path"
@@ -17158,7 +17158,7 @@
                 "annotation": "str | Path",
                 "default": {
                   "kind": "path",
-                  "value": "/workspace/scratch/5353d1b571d9/uquant-base/.worktrees/uquant-modular-governance/benchmarks/risk_sentinel_calibration_contract.json"
+                  "value": "<REPOSITORY_ROOT>/benchmarks/risk_sentinel_calibration_contract.json"
                 },
                 "kind": "POSITIONAL_OR_KEYWORD",
                 "name": "path"
@@ -31854,7 +31854,7 @@
     }
   },
   "contract_id": "uquant-modular-governance-public-api-v1",
-  "contract_sha256": "54b1701a7ff2f90785c7dc5c16f6e99857a29d6b653d348663084a159820bf66",
+  "contract_sha256": "a082c743b509d2573385d5725c11949769101dc4665fd395108528df6d509547",
   "recorded_on": "2026-08-22",
   "schema_version": 1
 }

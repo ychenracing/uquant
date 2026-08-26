@@ -78,7 +78,7 @@ def validate_pending_order_for_account_write(
     )
 
 
-def _validate_fill_stage_1(
+def _validate_fill_attribution_reconciliation(
     *,
     allocated_fee_totals: Any,
     allocations_with_fee_detail: Any,
@@ -115,7 +115,7 @@ def _validate_fill_stage_1(
         raise RuntimeError("unlinked sell fill sold-lot attribution does not reconcile")
 
 
-def _validate_fill_stage_2(
+def _resolve_fill_order(
     *,
     fill: Any,
     ledger: Any,
@@ -138,7 +138,7 @@ def _validate_fill_stage_2(
     return order
 
 
-def _validate_fill_stage_3(
+def _validate_fill_quantity_and_value(
     *,
     fill: Any,
 ) -> Any:
@@ -219,7 +219,7 @@ def _validate_sold_lot_cost_fields(allocation: dict[str, Any]) -> int:
     return allocated_shares
 
 
-def _validate_sold_lot_evidence_and_fees_stage_1(
+def _validate_sold_lot_attribution_and_fees(
     *,
     allocated_fee_totals: dict[str, float],
     allocation: dict[str, Any],
@@ -309,7 +309,7 @@ def _validate_sold_lot_evidence_and_fees(
             field="fill sold-lot mfe",
             minimum=0.0,
         )
-    has_fee_detail = _validate_sold_lot_evidence_and_fees_stage_1(
+    has_fee_detail = _validate_sold_lot_attribution_and_fees(
         allocated_fee_totals=allocated_fee_totals,
         allocation=allocation,
         validate_attribution=validate_attribution,
@@ -317,7 +317,7 @@ def _validate_sold_lot_evidence_and_fees(
     return has_fee_detail
 
 
-def _validate_fill_stage_4(
+def _validate_fill_order_and_costs(
     *,
     fill: Any,
     fill_date: Any,
@@ -388,7 +388,7 @@ def _validate_fill(
         raise RuntimeError("fill has invalid side")
     if not isinstance(fill.lifecycle, str) or fill.lifecycle not in {item.value for item in Lifecycle}:
         raise RuntimeError("fill has invalid lifecycle")
-    shares = _validate_fill_stage_3(
+    shares = _validate_fill_quantity_and_value(
         fill=fill,
     )
     for name in ("commission", "stamp_duty", "transfer_fee", "slippage_cost"):
@@ -398,18 +398,18 @@ def _validate_fill(
         item.value for item in ReductionPolicy
     }:
         raise RuntimeError("fill has invalid reduction policy")
-    order = _validate_fill_stage_2(
+    order = _resolve_fill_order(
         fill=fill,
         ledger=ledger,
         validate_attribution=validate_attribution,
     )
-    allocated_fee_totals, allocations_with_fee_detail, attributed_shares = _validate_fill_stage_4(
+    allocated_fee_totals, allocations_with_fee_detail, attributed_shares = _validate_fill_order_and_costs(
         fill=fill,
         fill_date=fill_date,
         order=order,
         validate_attribution=validate_attribution,
     )
-    _validate_fill_stage_1(
+    _validate_fill_attribution_reconciliation(
         allocated_fee_totals=allocated_fee_totals,
         allocations_with_fee_detail=allocations_with_fee_detail,
         allow_schema_v2_missing_sell_attribution=allow_schema_v2_missing_sell_attribution,
@@ -430,7 +430,7 @@ def _order_sequence(order_id: str) -> int:
     return sequence
 
 
-def _validate_order_state_stage_1(
+def _validate_pending_order_state(
     *,
     event_schema_version: Any,
     reduction_policies: Any,
@@ -459,7 +459,7 @@ def _validate_order_state_stage_1(
             raise RuntimeError("pending order has invalid exit attribution")
 
 
-def _validate_order_state_stage_2(
+def _normalize_next_order_sequence(
     *,
     event_schema_version: Any,
     sequence_was_explicit: Any,
@@ -721,7 +721,7 @@ def _validate_order_state(
     if len(identifiers) != len(set(identifiers)):
         raise RuntimeError("account state has duplicate order ids")
     sequences = [_order_sequence(order_id) for order_id in identifiers]
-    _validate_order_state_stage_2(
+    _normalize_next_order_sequence(
         event_schema_version=event_schema_version,
         sequence_was_explicit=sequence_was_explicit,
         sequences=sequences,
@@ -739,7 +739,7 @@ def _validate_order_state(
         validate_attribution=validate_attribution,
     )
     _validate_pending_order_links(state, ledger=ledger)
-    _validate_order_state_stage_1(
+    _validate_pending_order_state(
         event_schema_version=event_schema_version,
         reduction_policies=reduction_policies,
         state=state,

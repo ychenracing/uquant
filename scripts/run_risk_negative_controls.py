@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Re-run rejected Phase 5/7 candidates in detached historical worktrees."""
+"""Re-run rejected risk-policy candidates in detached historical worktrees."""
 
 from __future__ import annotations
 
@@ -15,11 +15,11 @@ from typing import Any
 from research.risk_differential_models import canonical_sha256
 from uquant.atomic_io import atomic_write_text
 
-PHASE5_COMMIT = "9a82143a3079bdd846c995962a246a66c834c1d5"
-PHASE7_REPORT_COMMIT = "c559c009db309b3815aa8a3df8b59638504acc1a"
-PHASE7_REACHABLE_TERMINAL = "1441b8f4aa3131bb7c7c0b0e3f0c7fa222a17668"
-PHASE7_ARCHIVE_COMMIT = "239d7957ee2e42c510cdb51802bd99574af8b0b1"
-PHASE5_ARCHIVED_EVIDENCE_SHA256 = "c9f1030f0871663ff1583950b69bcd637fb4196cc20b315f32c98bb7a49b3b59"
+GROSS_CAP_REJECTION_COMMIT = "9a82143a3079bdd846c995962a246a66c834c1d5"
+EXCLUSIVE_FREEZE_REPORT_COMMIT = "c559c009db309b3815aa8a3df8b59638504acc1a"
+EXCLUSIVE_FREEZE_REVIEWED_COMMIT = "1441b8f4aa3131bb7c7c0b0e3f0c7fa222a17668"
+EXCLUSIVE_FREEZE_ARCHIVE_COMMIT = "239d7957ee2e42c510cdb51802bd99574af8b0b1"
+GROSS_CAP_ARCHIVED_EVIDENCE_SHA256 = "c9f1030f0871663ff1583950b69bcd637fb4196cc20b315f32c98bb7a49b3b59"
 
 
 def _git_command(*arguments: str) -> list[str]:
@@ -54,8 +54,8 @@ def _object_exists(root: Path, revision: str) -> bool:
     )
 
 
-def _phase5(worktree: Path) -> dict[str, Any]:
-    output = worktree / "phase5-rerun.json"
+def _gross_cap_rejection_control(worktree: Path) -> dict[str, Any]:
+    output = worktree / "gross-cap-rerun.json"
     _run(
         [
             sys.executable,
@@ -76,17 +76,17 @@ def _phase5(worktree: Path) -> dict[str, Any]:
     rerun_sha256 = hashlib.sha256(output.read_bytes()).hexdigest()
     return {
         "status": "REJECTED",
-        "source_commit": PHASE5_COMMIT,
+        "source_commit": GROSS_CAP_REJECTION_COMMIT,
         "detached_rerun": True,
         "rerun_sha256": rerun_sha256,
-        "archived_evidence_sha256": PHASE5_ARCHIVED_EVIDENCE_SHA256,
-        "matches_archived_evidence": rerun_sha256 == PHASE5_ARCHIVED_EVIDENCE_SHA256,
+        "archived_evidence_sha256": GROSS_CAP_ARCHIVED_EVIDENCE_SHA256,
+        "matches_archived_evidence": rerun_sha256 == GROSS_CAP_ARCHIVED_EVIDENCE_SHA256,
         "metrics": payload["metrics"],
         "gate_diagnostics": payload["gate_diagnostics"],
     }
 
 
-_PHASE7_HARNESS = r"""
+_SOURCE_AVAILABILITY_HARNESS = r"""
 import json
 from pathlib import Path
 from research.sentinel_exclusive_freeze import run_exclusive_freeze_comparison
@@ -127,8 +127,8 @@ print(json.dumps(rows, sort_keys=True, allow_nan=False))
 """
 
 
-def _phase7(worktree: Path, *, requested_commit_available: bool) -> dict[str, Any]:
-    rows = json.loads(_run([sys.executable, "-c", _PHASE7_HARNESS], cwd=worktree, capture=True))
+def _source_availability_control(worktree: Path, *, requested_commit_available: bool) -> dict[str, Any]:
+    rows = json.loads(_run([sys.executable, "-c", _SOURCE_AVAILABILITY_HARNESS], cwd=worktree, capture=True))
     archived = json.loads(
         (worktree / "artifacts/sentinel/exclusive_freeze/small_gate.json").read_text()
     )
@@ -150,10 +150,10 @@ def _phase7(worktree: Path, *, requested_commit_available: bool) -> dict[str, An
     blocked = sum(int(row["blocked_new_risk_count"]) for row in rows)
     return {
         "status": "REJECTED",
-        "requested_source_commit": PHASE7_REPORT_COMMIT,
+        "requested_source_commit": EXCLUSIVE_FREEZE_REPORT_COMMIT,
         "requested_source_commit_available": requested_commit_available,
-        "resolved_reviewed_terminal_commit": PHASE7_REACHABLE_TERMINAL,
-        "archive_commit": PHASE7_ARCHIVE_COMMIT,
+        "resolved_reviewed_terminal_commit": EXCLUSIVE_FREEZE_REVIEWED_COMMIT,
+        "archive_commit": EXCLUSIVE_FREEZE_ARCHIVE_COMMIT,
         "source_resolution": (
             "the report SHA is unreachable; re-ran the reachable reviewed terminal "
             "of the archived candidate branch and bound the archive commit"
@@ -170,18 +170,20 @@ def _phase7(worktree: Path, *, requested_commit_available: bool) -> dict[str, An
 
 def main() -> int:
     root = Path(__file__).resolve().parents[1]
-    if not _object_exists(root, PHASE5_COMMIT):
-        raise RuntimeError("Phase 5 source commit is unavailable")
-    if not _object_exists(root, PHASE7_REACHABLE_TERMINAL):
-        raise RuntimeError("reachable reviewed Phase 7 terminal is unavailable")
-    requested_available = _object_exists(root, PHASE7_REPORT_COMMIT)
+    if not _object_exists(root, GROSS_CAP_REJECTION_COMMIT):
+        raise RuntimeError("gross-cap rejection source commit is unavailable")
+    if not _object_exists(root, EXCLUSIVE_FREEZE_REVIEWED_COMMIT):
+        raise RuntimeError("reachable reviewed exclusive-freeze terminal is unavailable")
+    requested_available = _object_exists(root, EXCLUSIVE_FREEZE_REPORT_COMMIT)
     with tempfile.TemporaryDirectory(prefix="uquant-negative-controls-") as temporary:
         temporary_root = Path(temporary)
-        phase5_root = temporary_root / "phase5"
-        phase7_root = temporary_root / "phase7"
+        gross_cap_root = temporary_root / "gross-cap-rejection"
+        exclusive_freeze_root = temporary_root / "exclusive-freeze-rejection"
         try:
             _run(
-                _git_command("worktree", "add", "--detach", str(phase5_root), PHASE5_COMMIT),
+                _git_command(
+                    "worktree", "add", "--detach", str(gross_cap_root), GROSS_CAP_REJECTION_COMMIT
+                ),
                 cwd=root,
             )
             _run(
@@ -189,21 +191,21 @@ def main() -> int:
                     "worktree",
                     "add",
                     "--detach",
-                    str(phase7_root),
-                    PHASE7_REACHABLE_TERMINAL,
+                    str(exclusive_freeze_root),
+                    EXCLUSIVE_FREEZE_REVIEWED_COMMIT,
                 ),
                 cwd=root,
             )
             payload = {
                 "schema_version": 1,
-                "phase5_limited_gross_cap": _phase5(phase5_root),
-                "phase7_exclusive_freeze": _phase7(
-                    phase7_root,
+                "phase5_limited_gross_cap": _gross_cap_rejection_control(gross_cap_root),
+                "phase7_exclusive_freeze": _source_availability_control(
+                    exclusive_freeze_root,
                     requested_commit_available=requested_available,
                 ),
             }
         finally:
-            for worktree in (phase5_root, phase7_root):
+            for worktree in (gross_cap_root, exclusive_freeze_root):
                 if worktree.exists():
                     _run(
                         _git_command("worktree", "remove", "--force", str(worktree)),

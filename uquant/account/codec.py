@@ -73,7 +73,7 @@ def _read_account_payload(path: str | Path) -> dict[str, Any]:
 read_account_payload = _read_account_payload
 
 
-def _account_from_dict_stage_1(
+def _validate_decoded_account(
     *,
     allow_legacy_schema: Any,
     require_hashes: Any,
@@ -108,7 +108,7 @@ def _account_from_dict_stage_1(
         raise RuntimeError("account state missing validation hashes")
 
 
-def _account_from_dict_stage_2(
+def _resolve_account_schema_context(
     *,
     allow_legacy_schema: Any,
     payload: Any,
@@ -306,7 +306,7 @@ def account_from_dict(
             raise RuntimeError("account state has an invalid schema version") from exc
         if not allow_legacy_schema or schema_version >= _HISTORICAL_ATTRIBUTION_SCHEMA_VERSION:
             raise RuntimeError("native account schema_version must be an integer")
-    capital_peak, native_schema, operating_peak, sequence_was_explicit = _account_from_dict_stage_2(
+    capital_peak, native_schema, operating_peak, sequence_was_explicit = _resolve_account_schema_context(
         allow_legacy_schema=allow_legacy_schema,
         payload=payload,
         schema_version=schema_version,
@@ -334,7 +334,7 @@ def account_from_dict(
         )
     except (AttributeError, KeyError, TypeError, ValueError) as exc:
         raise RuntimeError("account state violates schema") from exc
-    _account_from_dict_stage_1(
+    _validate_decoded_account(
         allow_legacy_schema=allow_legacy_schema,
         require_hashes=require_hashes,
         schema_version=schema_version,

@@ -63,7 +63,7 @@ Examples:
 ### L4 — Complete acceptance and robustness verification
 
 L4 is the complete required engineering and economic acceptance matrix for a final
-candidate. When project acceptance documents define complete Phase 1 and Phase 2
+candidate. When project acceptance documents define complete performance and generalization
 gates, those complete gates are part of L4 unless the documents explicitly classify
 them otherwise.
 
@@ -159,7 +159,7 @@ When any test, backtest, benchmark, replay, or validation step fails:
   tracked production tree; Git history is the recovery mechanism after their durable
   decisions have been absorbed into canonical documentation or ADRs.
 - When moving or deleting historical material, update live links and the current
-  cleanup inventory. Never rewrite immutable baseline inventories to erase history.
+  governance inventory. Never rewrite immutable baseline inventories to erase history.
 - Documentation-only changes use link, terminology, command, and affected governance
   checks. They do not invalidate economic evidence unless they alter executable
   inputs, generated contracts, packaging, or runtime behavior.

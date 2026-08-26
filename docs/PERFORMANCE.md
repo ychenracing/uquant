@@ -75,7 +75,7 @@ uv run pytest --cov=uquant --cov-report=term-missing
 
 测试覆盖特征、状态转换、组合硬约束、T+1、费用、部分成交、账户恢复、数据失败路径和确定性。
 
-### Phase 1 AI-era 阻断绩效门
+### AI-era 阻断性能验收
 
 ```bash
 uv run python -m uquant.validation promotion \
@@ -89,7 +89,7 @@ uv run python -m uquant.validation promotion \
 `promotion_baseline.json` 只保存已经评审的上一任 champion，而不是伪装成当前
 HEAD 的自引用运行结果。
 
-full profile 是 Phase 1 不可拆分的阻断经济性真相，窗口日期直接绑定
+full profile 是性能验收不可拆分的阻断经济性真相，窗口日期直接绑定
 `uquant.contracts.runtime_identity.AI_ERA_WINDOWS`：
 
 | 窗口 | 开始 | 结束 | 急跌观察开始 | 急跌观察结束 |
@@ -106,7 +106,7 @@ full profile 是 Phase 1 不可拆分的阻断经济性真相，窗口日期直�
 
 门禁同时约束财富、最大回撤、账户订单、换手和压力区间收益；缺失或失败的必需窗口必须失败关闭。证券子集、替代实现和其他研究性压力检查可以辅助诊断，但不能替代、分摊或放行这个统一门禁。失败不能通过删除场景、改写统计口径或放宽已评审阈值解决。
 
-### Phase 2 Generalization 阻断门
+### Generalization 阻断验收
 
 本地完整复现命令为：
 
@@ -158,7 +158,7 @@ industry-at-entry 身份连接 Target、Order、Tranche、Fill。原因文本不
 六个窗口在 CI 中独立分片，最终 `if: always()` aggregator 检查精确 shard set、
 234 条记录、HEAD、源码、配置、冻结数据、runtime/lock、universe、industry、window、
 scenario 和 causal evidence 身份，再调用冻结 policy/evidence validator。任何分片或
-聚合失败都会使独立的 `Phase 2 Generalization` 结论失败。
+聚合失败都会使独立的 `Generalization Acceptance` 结论失败。
 
 ## 证据边界
 
@@ -180,7 +180,7 @@ scenario 和 causal evidence 身份，再调用冻结 policy/evidence validator�
 qwenquant 和 trade 的远程 HEAD，在完全相同的数据、信号时点、next-open、费用滑点、
 T+1 和股票池合同下形成 1,056 个逐 Cell 结果。矩阵固定包含 120 个官方池 Cell 和 936
 个泛化 Cell；`REPLAY_ERROR` 与 `INSUFFICIENT_SAMPLE` 都是必须保留的证据状态，不能
-删行、补值或用旧版本数字替代。源码、依赖、适配器、数据、配置和运行时身份分别绑定到
+删行、补值或用不匹配当前身份的数字替代。源码、依赖、适配器、数据、配置和运行时身份分别绑定到
 registry、矩阵顶层和每个 Cell，CI 会通过 `python -m research.current_heads` 独立重算
 行数、身份、状态、摘要与聚合。
 
@@ -217,14 +217,14 @@ NumPy、pandas、uv 和锁文件摘要；已开始观察的身份不得修改或
 1. 纯 Markdown 运行链接、术语、命令和受影响治理测试；
 2. Python 注释/docstring 改动比较去除 docstring 后的 AST，并运行受影响静态检查；
 3. 默认配置、冻结数据、打包或运行时输入发生变化时，验证对应摘要和合同；
-4. 只有行为身份无法证明不变时，才升级为完整 Engineering、Phase 1 和 Phase 2 验证。
+4. 只有行为身份无法证明不变时，才升级为完整 Engineering、性能和泛化验证。
 
 对策略改动则不能要求指标完全相同，但必须预先定义允许的收益、回撤和交易成本边界，并使用未参与选择的场景复核。
 
 ### 模型风险与候选治理
 
 - **候选**只表示值得验证的代码/配置身份，不是生产 champion；搜索结果不得自动写默认值。
-- **Champion** 必须绑定代码、配置、数据、证券全集、运行时和完整 Phase 1/2 证据，并通过
+- **Champion** 必须绑定代码、配置、数据、证券全集、运行时和完整性能/泛化证据，并通过
   独立审查后才能替换当前生产身份。
 - 任何默认参数、风险权限、账户/订单语义或经济分支变化都使旧矩阵身份失效；纯文档与经
   AST 证明等价的注释改动只更新源码身份和受影响工程证据。

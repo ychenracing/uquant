@@ -76,7 +76,7 @@ def _mean(values: list[float], default: float = 0.0) -> float:
     return float(np.mean(finite)) if finite else default
 
 
-def _build_reference_context_stage_1(
+def _aggregate_reference_breadth_inputs(
     *,
     cfg: Any,
     date: Any,
@@ -195,7 +195,7 @@ def build_reference_context(
         raw,
         ret20_values,
         returns,
-    ) = _build_reference_context_stage_1(
+    ) = _aggregate_reference_breadth_inputs(
         cfg=cfg,
         date=date,
         industries=industries,

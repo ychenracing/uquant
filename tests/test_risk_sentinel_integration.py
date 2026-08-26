@@ -140,7 +140,7 @@ def test_untrusted_confirmation_history_cannot_authorize_freeze() -> None:
     assert integrated.evidence["sentinel_confirmation_history_trusted"] is False
 
 
-def test_causal_history_diagnostics_have_no_phase6_authority() -> None:
+def test_causal_history_diagnostics_have_no_timeline_authority() -> None:
     sentinel = replace(
         _sentinel(),
         metrics={

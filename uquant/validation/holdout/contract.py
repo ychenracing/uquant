@@ -320,7 +320,7 @@ def _validate_contract_sections(raw: Mapping[str, Any]) -> tuple[dict[str, Any],
         raise ValueError("future holdout date contract is malformed")
     sealed_windows = {name: list(bounds) for name, bounds in REVIEWED_PHASE1_WINDOWS.items()}
     if not isinstance(phase1_windows, dict) or phase1_windows != sealed_windows:
-        raise ValueError("future holdout Phase 1 windows are malformed")
+        raise ValueError("future holdout performance windows are malformed")
     if not isinstance(policy, dict) or set(policy) != {
         "parameter_changes_from_observation",
         "empty_observation_scores",
@@ -486,7 +486,7 @@ def _validate_live_schedule(contract: FutureHoldoutContract) -> None:
         dict(live_windows) != sealed_windows
         or dict(ai_era_module.AI_ERA_WINDOWS) != sealed_windows
     ):
-        raise RuntimeError("live AI-era schedule differs from the sealed Phase 1 windows")
+        raise RuntimeError("live AI-era schedule differs from the sealed performance windows")
 
 
 def _validate_phase1_windows(
@@ -503,8 +503,8 @@ def _validate_phase1_windows(
         for name, bounds in supplied.items()
     )
     if expanded:
-        raise RuntimeError("Phase 1 window expanded beyond the immutable official bounds")
-    raise RuntimeError("official Phase 1 windows differ from the immutable contract")
+        raise RuntimeError("performance window expanded beyond the immutable official bounds")
+    raise RuntimeError("official performance windows differ from the immutable contract")
 
 
 def _validate_holdout_directory(root: Path, holdout: Path) -> None:

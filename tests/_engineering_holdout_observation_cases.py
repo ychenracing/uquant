@@ -169,7 +169,7 @@ def test_holdout_file_layout_rejects_missing_dates_links_and_stale_state(
     with pytest.raises(RuntimeError, match="in-sample market row"):
         holdout_module.validate_holdout_layout(root)
 
-def test_phase1_equivalence_rejects_incomplete_matrix_and_trace_contracts(
+def test_performance_equivalence_rejects_incomplete_matrix_and_trace_contracts(
     tmp_path: Path,
 ) -> None:
     baseline = json.loads((ROOT / "benchmarks/promotion_baseline.json").read_text(encoding="utf-8"))
@@ -221,7 +221,7 @@ def test_phase1_equivalence_rejects_incomplete_matrix_and_trace_contracts(
             ),
         )
 
-def test_phase1_equivalence_subprocess_boundaries_fail_closed(
+def test_performance_equivalence_subprocess_boundaries_fail_closed(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:

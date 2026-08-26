@@ -145,6 +145,6 @@ def _recovery_admission_targets(
     return None
 
 
-# Stable owned API for the Task-10 allocation-stage caller.  The historical
-# private name remains the exact Task-8 compatibility identity.
+# Stable owned API for the allocation-stage caller. The historical
+# private name remains the exact frozen compatibility identity.
 recovery_admission_targets = _recovery_admission_targets

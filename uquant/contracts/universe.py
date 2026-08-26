@@ -51,7 +51,7 @@ _MEMBER_FIELDS = frozenset(
 
 @dataclass(frozen=True, slots=True)
 class FrozenChampion:
-    """Exact immutable identities accepted for the Phase 1 production champion."""
+    """Exact immutable identities accepted for the performance champion."""
 
     production_commit: str
     production_source_sha256: str
@@ -188,7 +188,7 @@ def _resource_bytes(name: str) -> bytes:
 
 def frozen_champion_bytes() -> bytes:
     """Return the immutable champion artifact packaged with production code."""
-    return _resource_bytes("phase1_frozen_champion.json")
+    return _resource_bytes("performance_frozen_champion.json")
 
 
 def ai_universe_manifest_bytes() -> bytes:
@@ -234,9 +234,9 @@ def _load_and_validate_frozen_champion_payload(
     if not isinstance(production, dict) or set(production) != {"repository", "commit", "source_sha256"}:
         raise ValueError("frozen champion production provenance is malformed")
     if production["repository"] != "ychenracing/uquant" or production["commit"] != FROZEN_CHAMPION_COMMIT:
-        raise ValueError("frozen champion production identity differs from Phase 1")
+        raise ValueError("frozen champion production identity differs from performance acceptance")
     if canonical_sha256(payload) != REQUIRED_FROZEN_CHAMPION_SHA256:
-        raise ValueError("frozen champion differs from the reviewed Phase 1 contract")
+        raise ValueError("frozen champion differs from the reviewed performance contract")
     if not isinstance(data, dict) or set(data) != {
         "snapshot_id",
         "files_verified",
@@ -264,7 +264,7 @@ def _load_and_validate_frozen_champion_payload(
 
 
 def load_phase1_frozen_champion(path: str | Path | None = None) -> FrozenChampion:
-    """Load the reviewed Phase 1 identity without accepting partial provenance."""
+    """Load the reviewed performance identity without accepting partial provenance."""
     payload, production, data, environment, artifact = _load_and_validate_frozen_champion_payload(path)
     if artifact != GITHUB_PHASE1_ARTIFACT_SHA256:
         raise ValueError("frozen champion GitHub artifact differs from Phase 1")

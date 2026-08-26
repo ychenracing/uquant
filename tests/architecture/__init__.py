@@ -1,1 +1,1 @@
-"""Architecture-refactor characterization and monotonic debt gates."""
+"""Architecture characterization and monotonic debt gates."""

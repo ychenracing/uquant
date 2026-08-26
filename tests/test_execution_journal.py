@@ -599,11 +599,11 @@ def test_journal_preserves_write_error_when_descriptor_close_fails(
     assert path.read_bytes() == before
 
 
-def test_journal_reports_each_cleanup_failure_after_a_complete_append(
+def test_journal_reports_each_release_failure_after_a_complete_append(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    """A successful append still reports lock and descriptor cleanup failures."""
+    """A successful append still reports lock-release and descriptor-close failures."""
 
     path = tmp_path / "execution.jsonl"
     original_open = journal_module.os.open

@@ -157,14 +157,14 @@ def run_replay(
 
     try:
         return _run_replay_success(data_dir, request, cfg=cfg, intervention=intervention)
-    except RuntimeError as exc:
+    except (RuntimeError, ValueError) as exc:
         status = "INSUFFICIENT_SAMPLE" if "fewer than two sessions" in str(exc) else "REPLAY_ERROR"
         return ReplayResult(
             request=request,
             metrics={},
             trace=(),
             final_account={},
-            intervention_provenance=None,
+            intervention_provenance=intervention.provenance if intervention is not None else None,
             status=status,
             error=str(exc),
         )

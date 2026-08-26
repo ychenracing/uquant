@@ -8,6 +8,7 @@ from math import isfinite
 from typing import Any
 
 from uquant.account import account_from_dict, economic_state_sha256
+from uquant.contracts.universe import REQUIRED_AI_UNIVERSE_SHA256, default_ai_universe
 from uquant.data import normalize_symbol
 from uquant.types import (
     AccountOrder,
@@ -101,10 +102,17 @@ class StrategicOwnerIntervention:
         self.owner = normalized
         self.target_gross = float(target_gross)
         self._applied = False
+        self._provenance: dict[str, Any] | None = None
 
     @property
     def applied(self) -> bool:
         return self._applied
+
+    @property
+    def provenance(self) -> dict[str, Any] | None:
+        """Return the immutable one-shot audit even if later replay work fails."""
+
+        return None if self._provenance is None else dict(self._provenance)
 
     def apply(self, account: AccountState) -> dict[str, Any]:
         """Rewrite one owner all-or-nothing, then validate the full account codec."""
@@ -149,7 +157,7 @@ class StrategicOwnerIntervention:
         for field in fields(AccountState):
             setattr(account, field.name, getattr(shadow, field.name))
         self._applied = True
-        return {
+        evidence = {
             "applied": True,
             "source_owner": source_owner,
             "forced_owner": self.owner,
@@ -157,6 +165,8 @@ class StrategicOwnerIntervention:
             "before_account_sha256": before,
             "after_account_sha256": economic_state_sha256(account),
         }
+        self._provenance = evidence
+        return evidence
 
     def preserve_activation(self, account: AccountState, decision: Decision) -> Decision:
         """Research-only activation boundary; preserve the forced owner into next-open execution."""
@@ -173,6 +183,9 @@ class StrategicOwnerIntervention:
             return decision
         shadow = deepcopy(account)
         source_owner = original.symbol
+        forced_industry = default_ai_universe().industry_of(self.owner, decision.date)
+        if forced_industry == "unknown":
+            raise ValueError("forced owner has no point-in-time industry membership")
         for name in (
             "strategic_cohort_targets",
             "strategic_exit_bands",
@@ -187,10 +200,34 @@ class StrategicOwnerIntervention:
         shadow.strategic_cohort_targets[self.owner] = self.target_gross
         for order in shadow.order_ledger:
             _rewrite_account_order(order, source_owner, self.owner)
+            if order.symbol == self.owner and order.origin_subsystem == "STRATEGIC":
+                order.industry_at_entry = forced_industry
+                order.industry_manifest_sha256 = REQUIRED_AI_UNIVERSE_SHA256
+                order.event_id = derive_attribution_event_id(
+                    signal_date=order.signal_date,
+                    symbol=order.symbol,
+                    target_weight=order.target_weight,
+                    lifecycle=order.lifecycle,
+                    origin_lifecycle=order.origin_lifecycle,
+                    origin_subsystem=order.origin_subsystem,
+                    mechanism=order.mechanism,
+                    replaces_symbol=order.replaces_symbol,
+                    industry_at_entry=order.industry_at_entry,
+                    industry_manifest_sha256=order.industry_manifest_sha256,
+                    reduction_policy=order.reduction_policy,
+                    reason_code=order.reason_code,
+                    exit_kind=order.exit_kind,
+                )
         account_from_dict(shadow.to_dict(), require_hashes=False)
         for field in fields(AccountState):
             setattr(account, field.name, getattr(shadow, field.name))
-        forced_target = replace(original, symbol=self.owner, weight=self.target_gross)
+        forced_target = replace(
+            original,
+            symbol=self.owner,
+            weight=self.target_gross,
+            industry_at_entry=forced_industry,
+            industry_manifest_sha256=REQUIRED_AI_UNIVERSE_SHA256,
+        )
         forced_target = replace(
             forced_target,
             event_id=derive_attribution_event_id(
@@ -211,7 +248,12 @@ class StrategicOwnerIntervention:
         )
         forced_orders = tuple(
             replace(
-                order, symbol=self.owner, target_weight=self.target_gross, event_id=forced_target.event_id
+                order,
+                symbol=self.owner,
+                target_weight=self.target_gross,
+                event_id=forced_target.event_id,
+                industry_at_entry=forced_industry,
+                industry_manifest_sha256=REQUIRED_AI_UNIVERSE_SHA256,
             )
             if order.symbol == source_owner and order.origin_subsystem == "STRATEGIC"
             else order

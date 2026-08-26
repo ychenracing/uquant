@@ -1040,12 +1040,14 @@ def _performance_schedule(
     base_commit: str,
 ) -> tuple[ContractCell, ...]:
     payload = _verified_json(root, contract, base_commit=base_commit)
-    pools = _require_mapping(payload.get("pools"), label="phase1 pools")
-    contract_payload = _require_mapping(payload.get("contract"), label="phase1 contract")
-    windows = _require_mapping(contract_payload.get("windows"), label="phase1 windows")
-    acute = _require_mapping(contract_payload.get("acute_windows"), label="phase1 acute windows")
+    pools = _require_mapping(payload.get("pools"), label="performance pools")
+    contract_payload = _require_mapping(payload.get("contract"), label="performance contract")
+    windows = _require_mapping(contract_payload.get("windows"), label="performance windows")
+    acute = _require_mapping(
+        contract_payload.get("acute_windows"), label="performance acute windows"
+    )
     protected = _require_mapping(
-        contract_payload.get("protected_intervals"), label="phase1 protected intervals"
+        contract_payload.get("protected_intervals"), label="performance protected intervals"
     )
     cells: list[ContractCell] = []
     for pool_name, raw_symbols in pools.items():
@@ -1059,8 +1061,10 @@ def _performance_schedule(
         for window_name, raw_bounds in windows.items():
             if not isinstance(window_name, str):
                 raise ValueError("performance window name is malformed")
-            bounds = _require_mapping(raw_bounds, label="phase1 window")
-            acute_bounds = _require_mapping(acute.get(window_name), label="phase1 acute window")
+            bounds = _require_mapping(raw_bounds, label="performance window")
+            acute_bounds = _require_mapping(
+                acute.get(window_name), label="performance acute window"
+            )
             cells.append(
                 ContractCell(
                     contract=contract.name,
@@ -1068,16 +1072,20 @@ def _performance_schedule(
                     status="VALID",
                     economic=True,
                     symbols=symbols,
-                    start=_require_text(bounds.get("start"), label="phase1 window start"),
-                    end=_require_text(bounds.get("end"), label="phase1 window end"),
-                    acute_start=_require_text(acute_bounds.get("start"), label="phase1 acute start"),
-                    acute_end=_require_text(acute_bounds.get("end"), label="phase1 acute end"),
+                    start=_require_text(bounds.get("start"), label="performance window start"),
+                    end=_require_text(bounds.get("end"), label="performance window end"),
+                    acute_start=_require_text(
+                        acute_bounds.get("start"), label="performance acute start"
+                    ),
+                    acute_end=_require_text(
+                        acute_bounds.get("end"), label="performance acute end"
+                    ),
                 )
             )
         for interval_name, raw_bounds in protected.items():
             if not isinstance(interval_name, str):
                 raise ValueError("performance protected interval name is malformed")
-            bounds = _require_mapping(raw_bounds, label="phase1 protected interval")
+            bounds = _require_mapping(raw_bounds, label="performance protected interval")
             cells.append(
                 ContractCell(
                     contract=contract.name,
@@ -1085,8 +1093,12 @@ def _performance_schedule(
                     status="VALID",
                     economic=True,
                     symbols=symbols,
-                    start=_require_text(bounds.get("start"), label="phase1 protected start"),
-                    end=_require_text(bounds.get("end"), label="phase1 protected end"),
+                    start=_require_text(
+                        bounds.get("start"), label="performance protected start"
+                    ),
+                    end=_require_text(
+                        bounds.get("end"), label="performance protected end"
+                    ),
                 )
             )
     return tuple(cells)

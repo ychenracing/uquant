@@ -384,7 +384,7 @@ def test_portfolio_historical_machine_evidence_and_requirements_remain_bytes_exa
         "sha256": hashlib.sha256(frozen_public_api).hexdigest(),
     }
     current_public_api = json.loads(
-        (ROOT / "benchmarks/architecture_refactor_public_api.json").read_text(
+        (ROOT / "benchmarks/public_api_contract.json").read_text(
             encoding="utf-8"
         )
     )

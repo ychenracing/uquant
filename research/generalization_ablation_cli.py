@@ -1462,7 +1462,7 @@ def _replay_command(
         str(
             output
             if output is not None
-            else Path(tempfile.gettempdir()) / "uquant-phase2-ablation-progress.json"
+            else Path(tempfile.gettempdir()) / "uquant-generalization-ablation-progress.json"
         ),
         "--experiment",
         experiment_id,
@@ -2396,7 +2396,9 @@ def _expected_baseline_provenance(
         _verify_carrier_checkout,
     ) = _project_imports()
     with (
-        tempfile.TemporaryDirectory(prefix="uquant-phase2-baseline-readback-") as temporary,
+        tempfile.TemporaryDirectory(
+            prefix="uquant-generalization-baseline-readback-"
+        ) as temporary,
         isolated_baseline_checkout(
             registry,
             source_root=source_root,
@@ -2955,7 +2957,7 @@ def _run(args: argparse.Namespace) -> dict[str, Any]:
             frozen_replay_errors=frozen_replay_errors,
         )
     else:
-        with tempfile.TemporaryDirectory(prefix="uquant-phase2-baseline-") as temporary:
+        with tempfile.TemporaryDirectory(prefix="uquant-generalization-baseline-") as temporary:
             checkout_destination = Path(temporary) / "checkout"
             worker_output = Path(temporary) / "worker.json"
             with isolated_baseline_checkout(

@@ -32,7 +32,7 @@ from uquant.types import (
 )
 
 ROOT = Path(__file__).parents[1]
-PUBLIC_API_PATH = ROOT / "benchmarks" / "architecture_refactor_public_api.json"
+PUBLIC_API_PATH = ROOT / "benchmarks" / "public_api_contract.json"
 VALIDATION_PATH = ROOT / "tests" / "fixtures" / "compatibility_config_validation_contract.json"
 
 _ANALYSIS_SPEC = importlib.util.spec_from_file_location(

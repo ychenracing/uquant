@@ -480,7 +480,7 @@ def stable_default(field):
     return {"kind": "required"}
 public_contract = json.loads(
     open(
-        snapshot + "/benchmarks/architecture_refactor_public_api.json",
+        snapshot + "/" + sys.argv[3],
         encoding="utf-8",
     ).read()
 )["contract"]["modules"]
@@ -552,7 +552,11 @@ print(json.dumps(payload, allow_nan=False, sort_keys=True))
 """
 
 
-def _reflection_from_snapshot(snapshot: Path) -> dict[str, Any]:
+def _reflection_from_snapshot(
+    snapshot: Path,
+    *,
+    public_api_relative: str,
+) -> dict[str, Any]:
     modes = {
         "normal": ((), "allow-fcntl"),
         "optimized": (("-O",), "allow-fcntl"),
@@ -570,6 +574,7 @@ def _reflection_from_snapshot(snapshot: Path) -> dict[str, Any]:
                 _REFLECTION_SCRIPT,
                 str(snapshot),
                 fcntl_mode,
+                public_api_relative,
             ],
             cwd=snapshot,
             check=True,
@@ -589,7 +594,10 @@ def _reflection_from_snapshot(snapshot: Path) -> dict[str, Any]:
 
 
 def current_reflection_contract(root: Path) -> dict[str, Any]:
-    return _reflection_from_snapshot(root.resolve())
+    return _reflection_from_snapshot(
+        root.resolve(),
+        public_api_relative="benchmarks/public_api_contract.json",
+    )
 
 
 def _reflection_contract(root: Path) -> dict[str, Any]:
@@ -600,7 +608,10 @@ def _reflection_contract(root: Path) -> dict[str, Any]:
         snapshot.mkdir()
         with tarfile.open(fileobj=io.BytesIO(archive), mode="r:") as stream:
             stream.extractall(snapshot, filter="data")
-        return _reflection_from_snapshot(snapshot)
+        return _reflection_from_snapshot(
+            snapshot,
+            public_api_relative="benchmarks/architecture_refactor_public_api.json",
+        )
 
 
 def build_validation_inventory(root: Path) -> dict[str, Any]:

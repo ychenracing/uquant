@@ -1,5 +1,5 @@
 {
-  "canonical_sha256": "4f371f43542378f33b788d856fdf4d9fb3870fc6615beb1fd37d872553e68b73",
+  "canonical_sha256": "9297376506ddaaa645805f0c06e7570c28f40e4f131d3f8f087f63c2e92ff232",
   "registry_version": 2,
   "surfaces": [
     {
@@ -282,7 +282,6 @@
       "resource_paths": [
         "benchmarks/ai_era_generalization_baseline.json",
         "benchmarks/ai_era_generalization_policy.json",
-        "benchmarks/architecture_refactor_public_api.json",
         "benchmarks/competitor_bull_reference.json",
         "benchmarks/config_parameter_governance.json",
         "benchmarks/current_heads_comparison_contract.json",
@@ -292,6 +291,7 @@
         "benchmarks/future_holdout_lane_registry.json",
         "benchmarks/future_holdout_observation_overlay.json",
         "benchmarks/promotion_baseline.json",
+        "benchmarks/public_api_contract.json",
         "benchmarks/reference_registry.json",
         "benchmarks/risk_capability_registry.json",
         "benchmarks/risk_differential_contract.json",

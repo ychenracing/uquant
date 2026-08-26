@@ -24,7 +24,6 @@ from uquant.validation.universe import default_ai_universe
 from ._analysis import (
     FINAL_BUDGETS,
     INVENTORY_PATH,
-    PUBLIC_API_PATH,
     ROOT,
     architecture_snapshot,
     canonical_sha256,
@@ -37,6 +36,7 @@ from ._analysis import (
     sha256_tree,
     tracked_file_inventory,
 )
+from ._analysis_authorities import HISTORICAL_PUBLIC_API_PATH
 from ._baseline import BASELINE_COMMIT, BASELINE_MODULE_AUTHORITIES
 
 BASELINE_BRANCH = "codex/uquant-modular-governance-20260822"
@@ -320,7 +320,7 @@ def generate(
         candidate_root=ROOT,
     )
     baseline_sources = git_python_sources(baseline_root, baseline_commit)
-    public_api_path = output_root / PUBLIC_API_PATH.relative_to(ROOT)
+    public_api_path = output_root / HISTORICAL_PUBLIC_API_PATH.relative_to(ROOT)
     inventory_path = output_root / INVENTORY_PATH.relative_to(ROOT)
 
     public_contract = public_api_snapshot()
@@ -488,7 +488,7 @@ def generate(
             "pytest_core_contracts": pytest_evidence,
         },
         "public_api_contract": {
-            "path": PUBLIC_API_PATH.relative_to(ROOT).as_posix(),
+            "path": HISTORICAL_PUBLIC_API_PATH.relative_to(ROOT).as_posix(),
             "sha256": sha256_file(public_api_path),
             "contract_sha256": public_payload["contract_sha256"],
         },

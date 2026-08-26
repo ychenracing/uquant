@@ -16,6 +16,7 @@ from ._analysis import (
     representative_replay,
     tracked_file_inventory,
 )
+from ._analysis_authorities import HISTORICAL_PUBLIC_API_PATH
 
 CURRENT_SURFACE_BASE = "105695aacd3d1c7e62705f64188da88d202db4cd"
 
@@ -70,7 +71,7 @@ def test_baseline_source_surface_and_public_contract_have_closed_integrity_hashe
         [
             "git",
             "show",
-            f"{CURRENT_SURFACE_BASE}:{PUBLIC_API_PATH.relative_to(ROOT).as_posix()}",
+            f"{CURRENT_SURFACE_BASE}:{HISTORICAL_PUBLIC_API_PATH.relative_to(ROOT).as_posix()}",
         ],
         cwd=ROOT,
     )

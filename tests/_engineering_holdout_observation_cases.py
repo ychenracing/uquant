@@ -14,7 +14,7 @@ from test_engineering_gate_edges import (
 from uquant.validation import equivalence as equivalence_module
 from uquant.validation import holdout as holdout_module
 from uquant.validation import universe as universe_module
-from uquant.validation.equivalence import PerformanceReplayCase, PerformanceDecisionTrace
+from uquant.validation.equivalence import PerformanceDecisionTrace, PerformanceReplayCase
 
 
 def test_reviewed_holdout_strategy_anchor_rejects_one_byte_mutation(tmp_path: Path) -> None:

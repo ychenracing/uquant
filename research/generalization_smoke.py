@@ -53,7 +53,7 @@ def build_smoke_scenarios(
     window_start: str,
     lookback_sessions: int = 120,
 ) -> tuple[GeneralizationScenario, ...]:
-    """Expose the canonical economic scenarios for legacy research callers."""
+    """Expose the canonical economic scenarios for research callers."""
     _require_canonical_inputs(universe, industries, prior_symbols)
     matches = [window for window in official_windows() if window.start == window_start]
     if not matches:
@@ -88,7 +88,7 @@ def run_generalization_smoke(
     end: str,
     lookback_sessions: int = 120,
 ) -> Mapping[str, Any]:
-    """Delegate a legacy smoke request to one exact canonical matrix shard."""
+    """Delegate a generalization smoke request to one exact canonical matrix shard."""
     window_name = _window_from_bounds(start, end)
     _require_canonical_inputs(universe, industries, prior_symbols)
     return run_generalization_matrix(

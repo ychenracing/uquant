@@ -58,7 +58,7 @@ def test_signed_frozen_champion_rejects_semantic_provenance_changes(
     path = tmp_path / f"champion-{mutation}.json"
     path.write_text(json.dumps(payload), encoding="utf-8")
     with pytest.raises(ValueError):
-        universe_module.load_phase1_frozen_champion(path)
+        universe_module.load_performance_frozen_champion(path)
 
 @pytest.mark.parametrize(
     "mutation",

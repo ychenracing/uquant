@@ -13,9 +13,9 @@ from pathlib import Path
 from typing import Any, Final
 
 from uquant.validation.equivalence import (
-    Phase1Case,
-    phase1_cases,
-    trace_phase1_case,
+    PerformanceReplayCase,
+    performance_replay_cases,
+    trace_performance_replay_case,
 )
 from uquant.validation.equivalence import (
     baseline_data_provenance as _baseline_data_provenance,
@@ -190,7 +190,7 @@ def _report(
     }
 
 
-def _matrix_sha256(cases: tuple[Phase1Case, ...]) -> str:
+def _matrix_sha256(cases: tuple[PerformanceReplayCase, ...]) -> str:
     return _sha256_json([asdict(case) for case in cases])
 
 
@@ -220,7 +220,7 @@ def compare_committed_economics(
         data = _baseline_data_provenance(
             baseline_source / "benchmarks" / "promotion_baseline.json"
         )
-        cases = phase1_cases(
+        cases = performance_replay_cases(
             baseline_source / "benchmarks" / "promotion_baseline.json"
         )
         identity = _checkpoint_identity(
@@ -245,7 +245,7 @@ def compare_committed_economics(
                         if side in case_traces.get(case.name, {}):
                             continue
                         future = executor.submit(
-                            trace_phase1_case,
+                            trace_performance_replay_case,
                             root=source,
                             data_dir=stable_data,
                             case=case,

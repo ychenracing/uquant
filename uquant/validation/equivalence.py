@@ -23,7 +23,7 @@ _SHA256 = re.compile(r"^[0-9a-f]{64}$")
 
 
 @dataclass(frozen=True, slots=True)
-class Phase1DecisionTrace:
+class PerformanceDecisionTrace:
     """Content hashes for canonical decisions and economic account state by case."""
 
     production_commit: str
@@ -31,7 +31,7 @@ class Phase1DecisionTrace:
 
 
 @dataclass(frozen=True, slots=True)
-class Phase1Case:
+class PerformanceReplayCase:
     """One mandatory performance replay interval and its exact reviewed pool."""
 
     name: str
@@ -40,22 +40,22 @@ class Phase1Case:
     end: str
 
 
-def phase1_cases(
+def performance_replay_cases(
     baseline: str | Path = Path("benchmarks") / "promotion_baseline.json",
-) -> tuple[Phase1Case, ...]:
+) -> tuple[PerformanceReplayCase, ...]:
     """Expand every reviewed official and protected performance pool/interval exactly once."""
     payload = json.loads(Path(baseline).read_text(encoding="utf-8"))
     pools = payload.get("pools")
     contract = payload.get("contract")
     if not isinstance(pools, dict) or not isinstance(contract, dict):
-        raise RuntimeError("Phase 1 promotion baseline is malformed")
+        raise RuntimeError("performance promotion baseline is malformed")
     intervals = {
         **contract.get("windows", {}),
         **contract.get("protected_intervals", {}),
     }
     if set(pools) != {"a", "b", "c", "d", "e"} or len(intervals) != 9:
-        raise RuntimeError("Phase 1 promotion baseline does not define the complete replay matrix")
-    cases: list[Phase1Case] = []
+        raise RuntimeError("performance promotion baseline does not define the complete replay matrix")
+    cases: list[PerformanceReplayCase] = []
     for pool in sorted(pools):
         symbols = pools[pool]
         if not isinstance(symbols, list) or not all(isinstance(symbol, str) for symbol in symbols):
@@ -65,7 +65,7 @@ def phase1_cases(
             if not isinstance(window, dict) or set(window) != {"start", "end"}:
                 raise RuntimeError(f"performance interval is malformed: {interval}")
             cases.append(
-                Phase1Case(
+                PerformanceReplayCase(
                     name=f"{pool}/{interval}",
                     symbols=tuple(symbols),
                     start=str(window["start"]),
@@ -75,11 +75,11 @@ def phase1_cases(
     return tuple(cases)
 
 
-def assert_equivalent_phase1_traces(
-    frozen: Phase1DecisionTrace,
-    candidate: Phase1DecisionTrace,
+def assert_equivalent_performance_traces(
+    frozen: PerformanceDecisionTrace,
+    candidate: PerformanceDecisionTrace,
 ) -> None:
-    """Reject a candidate if any Phase 1 decision payload or economic state differs."""
+    """Reject a candidate if any performance decision payload or economic state differs."""
     if frozen.production_commit != FROZEN_CHAMPION_COMMIT:
         raise RuntimeError("reference trace is not bound to the frozen performance champion")
     if set(frozen.cases) != set(candidate.cases):
@@ -89,9 +89,9 @@ def assert_equivalent_phase1_traces(
         reference = frozen.cases[case]
         observed = candidate.cases[case]
         if set(reference) != required or set(observed) != required:
-            raise RuntimeError(f"Phase 1 trace payload is malformed: {case}")
+            raise RuntimeError(f"performance trace payload is malformed: {case}")
         if reference["decision_payload_sha256"] != observed["decision_payload_sha256"]:
-            raise RuntimeError(f"Phase 1 decision payload diverged: {case}")
+            raise RuntimeError(f"performance decision payload diverged: {case}")
         if reference["economic_account_sha256"] != observed["economic_account_sha256"]:
             raise RuntimeError(f"performance economic account diverged: {case}")
 
@@ -197,7 +197,7 @@ def _reject_duplicate_equivalence_keys(pairs: list[tuple[str, Any]]) -> dict[str
     payload: dict[str, Any] = {}
     for key, value in pairs:
         if key in payload:
-            raise RuntimeError(f"Phase 1 baseline contains duplicate key: {key}")
+            raise RuntimeError(f"performance baseline contains duplicate key: {key}")
         payload[key] = value
     return payload
 
@@ -213,7 +213,7 @@ def _baseline_data_provenance(path: Path) -> dict[str, Any]:
     except RuntimeError:
         raise
     except (OSError, UnicodeError, json.JSONDecodeError) as exc:
-        raise RuntimeError("Phase 1 frozen baseline is unreadable") from exc
+        raise RuntimeError("performance frozen baseline is unreadable") from exc
     provenance = payload.get("provenance") if isinstance(payload, Mapping) else None
     data = provenance.get("data") if isinstance(provenance, Mapping) else None
     if not isinstance(data, Mapping) or set(data) != {
@@ -222,7 +222,7 @@ def _baseline_data_provenance(path: Path) -> dict[str, Any]:
         "manifest_sha256",
         "checksums_sha256",
     }:
-        raise RuntimeError("Phase 1 frozen baseline data provenance is malformed")
+        raise RuntimeError("performance frozen baseline data provenance is malformed")
     if (
         not isinstance(data["snapshot_id"], str)
         or not data["snapshot_id"]
@@ -234,7 +234,7 @@ def _baseline_data_provenance(path: Path) -> dict[str, Any]:
             for field in ("manifest_sha256", "checksums_sha256")
         )
     ):
-        raise RuntimeError("Phase 1 frozen baseline data provenance is malformed")
+        raise RuntimeError("performance frozen baseline data provenance is malformed")
     return dict(data)
 
 
@@ -258,8 +258,8 @@ def _immutable_equivalence_data(
     except (OSError, RuntimeError) as exc:
         raise RuntimeError("decision-equivalence frozen data is invalid") from exc
     if observed != dict(expected):
-        raise RuntimeError("Phase 1 equivalence frozen data differs from the baseline")
-    with tempfile.TemporaryDirectory(prefix="uquant-phase1-equivalence-data-") as temporary:
+        raise RuntimeError("performance equivalence frozen data differs from the baseline")
+    with tempfile.TemporaryDirectory(prefix="uquant-performance-equivalence-data-") as temporary:
         snapshot = Path(temporary) / "data"
         try:
             snapshot.mkdir()
@@ -295,7 +295,7 @@ def _isolated_equivalence_tree(root: Path, commit: str) -> Iterator[Path]:
     """Execute only from a private detached worktree at one captured commit."""
 
     git = _git_executable()
-    with tempfile.TemporaryDirectory(prefix="uquant-phase1-equivalence-source-") as temporary:
+    with tempfile.TemporaryDirectory(prefix="uquant-performance-equivalence-source-") as temporary:
         checkout = Path(temporary) / "checkout"
         primary: BaseException | None = None
         add_attempted = False
@@ -368,11 +368,11 @@ def _trusted_dependency_paths() -> tuple[str, ...]:
     return tuple(paths)
 
 
-def trace_phase1_case(
+def trace_performance_replay_case(
     *,
     root: str | Path,
     data_dir: str | Path,
-    case: Phase1Case,
+    case: PerformanceReplayCase,
 ) -> Mapping[str, str]:
     """Replay one case in the selected tree and hash canonical decisions plus economic state."""
     source = Path(root).resolve()
@@ -412,12 +412,12 @@ def trace_phase1_case(
     return trace
 
 
-def compare_phase1_commits(
+def compare_decision_equivalence_commits(
     *,
     frozen_root: str | Path,
     candidate_root: str | Path,
     data_dir: str | Path,
-    cases: tuple[Phase1Case, ...] | None = None,
+    cases: tuple[PerformanceReplayCase, ...] | None = None,
 ) -> dict[str, Any]:
     """Compare every required replay from the frozen commit to the candidate tree."""
     frozen_path = Path(frozen_root).resolve()
@@ -435,12 +435,12 @@ def compare_phase1_commits(
         data_provenance = _baseline_data_provenance(frozen_source / "benchmarks" / "promotion_baseline.json")
         with _immutable_equivalence_data(Path(data_dir), data_provenance) as stable_data:
             replay_cases = (
-                phase1_cases(frozen_source / "benchmarks" / "promotion_baseline.json")
+                performance_replay_cases(frozen_source / "benchmarks" / "promotion_baseline.json")
                 if cases is None
                 else cases
             )
             frozen_cases = {
-                case.name: trace_phase1_case(
+                case.name: trace_performance_replay_case(
                     root=frozen_source,
                     data_dir=stable_data,
                     case=case,
@@ -448,7 +448,7 @@ def compare_phase1_commits(
                 for case in replay_cases
             }
             candidate_cases = {
-                case.name: trace_phase1_case(
+                case.name: trace_performance_replay_case(
                     root=candidate_source,
                     data_dir=stable_data,
                     case=case,
@@ -459,9 +459,9 @@ def compare_phase1_commits(
     _require_clean_equivalence_tree(candidate_path)
     if _git_commit(frozen_path) != frozen_commit or _git_commit(candidate_path) != candidate_commit:
         raise RuntimeError("decision-equivalence commit changed during replay")
-    frozen_trace = Phase1DecisionTrace(production_commit=frozen_commit, cases=frozen_cases)
-    candidate_trace = Phase1DecisionTrace(production_commit=candidate_commit, cases=candidate_cases)
-    assert_equivalent_phase1_traces(frozen_trace, candidate_trace)
+    frozen_trace = PerformanceDecisionTrace(production_commit=frozen_commit, cases=frozen_cases)
+    candidate_trace = PerformanceDecisionTrace(production_commit=candidate_commit, cases=candidate_cases)
+    assert_equivalent_performance_traces(frozen_trace, candidate_trace)
     return {
         "frozen_commit": frozen_commit,
         "candidate_commit": candidate_trace.production_commit,

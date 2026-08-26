@@ -109,7 +109,7 @@ def test_tracked_contract_freezes_date_path_policy_and_null_scores() -> None:
     assert "2026-09-25" not in contract.review_sessions
     assert "2026-10-01" not in contract.review_sessions
     assert contract.parameter_changes_from_observation is False
-    assert dict(contract.phase1_windows) == dict(AI_ERA_WINDOWS)
+    assert dict(contract.performance_windows) == dict(AI_ERA_WINDOWS)
     assert contract.strategy_anchor_commit == "c47367bba64c827fe18f788c9a3650e13ece306f"
     assert (
         contract.strategy_source_sha256
@@ -204,23 +204,23 @@ def test_layout_isolates_future_rows_and_rejects_expanded_performance_windows(
     _csv(tmp_path / HOLDOUT_DATA_DIRECTORY / "a.csv", HOLDOUT_START)
     windows = dict(AI_ERA_WINDOWS)
 
-    validate_holdout_layout(tmp_path, contract=contract, phase1_windows=windows)
+    validate_holdout_layout(tmp_path, contract=contract, performance_windows=windows)
 
     _csv(tmp_path / "data/frozen/leak.csv", "2026-08-07")
     with pytest.raises(RuntimeError, match="holdout data entered data/frozen"):
-        validate_holdout_layout(tmp_path, contract=contract, phase1_windows=windows)
+        validate_holdout_layout(tmp_path, contract=contract, performance_windows=windows)
     (tmp_path / "data/frozen/leak.csv").unlink()
 
     _csv(tmp_path / "data/holdout/wrong-version/a.csv", HOLDOUT_START)
     with pytest.raises(RuntimeError, match="outside the isolated holdout"):
-        validate_holdout_layout(tmp_path, contract=contract, phase1_windows=windows)
+        validate_holdout_layout(tmp_path, contract=contract, performance_windows=windows)
     (tmp_path / "data/holdout/wrong-version/a.csv").unlink()
 
     with pytest.raises(RuntimeError, match="performance window expanded"):
         validate_holdout_layout(
             tmp_path,
             contract=contract,
-            phase1_windows={
+            performance_windows={
                 **AI_ERA_WINDOWS,
                 "continuous_ai_era": ("2023-01-03", "2026-08-06"),
             },
@@ -235,7 +235,7 @@ def test_layout_requires_the_observed_frozen_market_boundary(tmp_path: Path) -> 
         validate_holdout_layout(
             tmp_path,
             contract=contract,
-            phase1_windows=AI_ERA_WINDOWS,
+            performance_windows=AI_ERA_WINDOWS,
         )
 
 
@@ -248,15 +248,15 @@ def test_layout_requires_frozen_data_and_exact_official_windows(tmp_path: Path) 
     missing = dict(AI_ERA_WINDOWS)
     missing.pop("h1_2023")
     with pytest.raises(RuntimeError, match="official performance windows"):
-        validate_holdout_layout(tmp_path, contract=contract, phase1_windows=missing)
+        validate_holdout_layout(tmp_path, contract=contract, performance_windows=missing)
 
     added = {**AI_ERA_WINDOWS, "new_window": ("2026-08-01", LAST_IN_SAMPLE_DATE)}
     with pytest.raises(RuntimeError, match="official performance windows"):
-        validate_holdout_layout(tmp_path, contract=contract, phase1_windows=added)
+        validate_holdout_layout(tmp_path, contract=contract, performance_windows=added)
 
     moved_start = {**AI_ERA_WINDOWS, "h1_2023": ("2023-01-04", "2023-06-30")}
     with pytest.raises(RuntimeError, match="official performance windows"):
-        validate_holdout_layout(tmp_path, contract=contract, phase1_windows=moved_start)
+        validate_holdout_layout(tmp_path, contract=contract, performance_windows=moved_start)
 
 
 @pytest.mark.parametrize(
@@ -281,7 +281,7 @@ def test_layout_rejects_mutated_live_performance_windows(
         validate_holdout_layout(
             tmp_path,
             contract=load_future_holdout_contract(),
-            phase1_windows=mutated,
+            performance_windows=mutated,
         )
 
 

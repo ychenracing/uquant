@@ -51,7 +51,7 @@ _TRACE_LOGIC_COMMIT = "3aadf021dce9ed77c2359065146e38209866789c"
 _TRACE_LOGIC_BLOB = "cce9498d851d4007c57b2ba5eaa2e6f3216c444e"
 _TRACE_RUNNER_SHA256 = "00672c67b31374c50e1e56e236a45609374637b86f9900d47dc550abe5b1f1c3"
 _INVENTORY = ROOT / "artifacts" / "architecture_refactor" / "task8_cleanup_inventory.json"
-_DAILY_TRACE = ROOT / "benchmarks" / "task8_daily_portfolio_trace.json"
+_DAILY_TRACE = ROOT / "benchmarks" / "daily_portfolio_behavior_reference.json"
 _TRACE_RUNNER = ROOT / "tests" / "architecture" / "_portfolio_trace.py"
 _IMPLEMENTATION_IDENTITIES = {
     "uquant/portfolio.py": (

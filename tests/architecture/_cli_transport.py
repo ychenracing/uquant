@@ -199,7 +199,7 @@ def run_replay_task(
         projected_try.body[3],
         _statement(
             '''
-legacy_task = WindowAdapterTask(
+adapter_task = WindowAdapterTask(
     request.system,
     request.name,
     request.window,
@@ -218,7 +218,7 @@ legacy_task = WindowAdapterTask(
         _statement(
             '''
 raw = run_replay_task(
-    legacy_task,
+    adapter_task,
     pools={request.name: execution_symbols},
     windows={request.window: (request.start, request.end)},
     repository_root=Path(paths["repository_root"]),

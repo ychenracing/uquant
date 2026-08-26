@@ -13,14 +13,14 @@ import pytest
 from uquant.validation import equivalence
 from uquant.validation.equivalence import (
     FROZEN_CHAMPION_COMMIT,
-    Phase1DecisionTrace,
-    assert_equivalent_phase1_traces,
-    phase1_cases,
+    PerformanceDecisionTrace,
+    assert_equivalent_performance_traces,
+    performance_replay_cases,
 )
 
 
-def _trace(*, decision: str = "decision", account: str = "account") -> Phase1DecisionTrace:
-    return Phase1DecisionTrace(
+def _trace(*, decision: str = "decision", account: str = "account") -> PerformanceDecisionTrace:
+    return PerformanceDecisionTrace(
         production_commit=FROZEN_CHAMPION_COMMIT,
         cases={
             "a/h1_2023": {
@@ -61,17 +61,17 @@ def _frozen_data_fixture(root: Path) -> dict[str, object]:
 
 def test_performance_equivalence_rejects_any_cross_commit_decision_or_account_divergence() -> None:
     """Breaks if a generalization candidate changes a frozen performance trace."""
-    assert_equivalent_phase1_traces(_trace(), _trace())
+    assert_equivalent_performance_traces(_trace(), _trace())
 
     with pytest.raises(RuntimeError, match="decision payload"):
-        assert_equivalent_phase1_traces(_trace(), _trace(decision="changed"))
+        assert_equivalent_performance_traces(_trace(), _trace(decision="changed"))
     with pytest.raises(RuntimeError, match="economic account"):
-        assert_equivalent_phase1_traces(_trace(), _trace(account="changed"))
+        assert_equivalent_performance_traces(_trace(), _trace(account="changed"))
 
 
 def test_performance_equivalence_covers_every_official_and_protected_pool_case() -> None:
     """Breaks if the differential proof silently omits a performance replay case."""
-    cases = phase1_cases()
+    cases = performance_replay_cases()
 
     assert len(cases) == 45
     assert len({case.name for case in cases}) == len(cases)
@@ -112,13 +112,13 @@ def test_cross_commit_matrix_ignores_a_candidate_baseline_mutation(
     monkeypatch.setattr(equivalence, "_immutable_equivalence_data", _passthrough_data)
     def trace(**kwargs: object) -> dict[str, str]:
         case = kwargs["case"]
-        assert isinstance(case, equivalence.Phase1Case)
+        assert isinstance(case, equivalence.PerformanceReplayCase)
         captured.append(case.name)
         return {"decision_payload_sha256": case.name, "economic_account_sha256": "state"}
 
-    monkeypatch.setattr(equivalence, "trace_phase1_case", trace)
+    monkeypatch.setattr(equivalence, "trace_performance_replay_case", trace)
 
-    report = equivalence.compare_phase1_commits(
+    report = equivalence.compare_decision_equivalence_commits(
         frozen_root=frozen,
         candidate_root=candidate,
         data_dir=tmp_path / "data",
@@ -163,12 +163,12 @@ def test_performance_equivalence_rejects_a_dirty_frozen_checkout_before_replay(
     monkeypatch.setattr(equivalence, "_git_commit", lambda _root: FROZEN_CHAMPION_COMMIT)
     monkeypatch.setattr(
         equivalence,
-        "trace_phase1_case",
+        "trace_performance_replay_case",
         lambda **_kwargs: pytest.fail("dirty checkout must be rejected before replay"),
     )
 
     with pytest.raises(RuntimeError, match="clean committed inputs"):
-        equivalence.compare_phase1_commits(
+        equivalence.compare_decision_equivalence_commits(
             frozen_root=checkout,
             candidate_root=checkout,
             data_dir=tmp_path / "data",
@@ -206,8 +206,8 @@ def test_performance_equivalence_rejects_a_checkout_dirtied_during_replay(
             "economic_account_sha256": "b" * 64,
         }
 
-    monkeypatch.setattr(equivalence, "trace_phase1_case", trace)
-    case = equivalence.Phase1Case(
+    monkeypatch.setattr(equivalence, "trace_performance_replay_case", trace)
+    case = equivalence.PerformanceReplayCase(
         name="a/h1_2023",
         symbols=("sz000001",),
         start="2023-01-01",
@@ -215,7 +215,7 @@ def test_performance_equivalence_rejects_a_checkout_dirtied_during_replay(
     )
 
     with pytest.raises(RuntimeError, match="clean committed inputs"):
-        equivalence.compare_phase1_commits(
+        equivalence.compare_decision_equivalence_commits(
             frozen_root=checkout,
             candidate_root=checkout,
             data_dir=tmp_path / "data",
@@ -236,10 +236,10 @@ def test_performance_equivalence_rejects_an_untracked_runtime_hook(
     monkeypatch.setattr(equivalence, "_git_commit", lambda _root: FROZEN_CHAMPION_COMMIT)
     monkeypatch.setattr(
         equivalence,
-        "trace_phase1_case",
+        "trace_performance_replay_case",
         lambda **_kwargs: pytest.fail("untracked runtime hook must be rejected before replay"),
     )
-    case = equivalence.Phase1Case(
+    case = equivalence.PerformanceReplayCase(
         name="a/h1_2023",
         symbols=("sz000001",),
         start="2023-01-01",
@@ -247,7 +247,7 @@ def test_performance_equivalence_rejects_an_untracked_runtime_hook(
     )
 
     with pytest.raises(RuntimeError, match="clean committed inputs"):
-        equivalence.compare_phase1_commits(
+        equivalence.compare_decision_equivalence_commits(
             frozen_root=checkout,
             candidate_root=checkout,
             data_dir=tmp_path / "data",
@@ -284,13 +284,13 @@ def test_performance_equivalence_rejects_unbound_market_data(
     monkeypatch.setattr(equivalence, "_isolated_equivalence_tree", _passthrough_tree)
     monkeypatch.setattr(
         equivalence,
-        "trace_phase1_case",
+        "trace_performance_replay_case",
         lambda **_kwargs: {
             "decision_payload_sha256": "a" * 64,
             "economic_account_sha256": "b" * 64,
         },
     )
-    case = equivalence.Phase1Case(
+    case = equivalence.PerformanceReplayCase(
         name="a/h1_2023",
         symbols=("sz000001",),
         start="2023-01-01",
@@ -298,7 +298,7 @@ def test_performance_equivalence_rejects_unbound_market_data(
     )
 
     with pytest.raises(RuntimeError, match="frozen data"):
-        equivalence.compare_phase1_commits(
+        equivalence.compare_decision_equivalence_commits(
             frozen_root=checkout,
             candidate_root=checkout,
             data_dir=tmp_path / "substituted-data",
@@ -481,15 +481,15 @@ def test_performance_equivalence_replays_private_source_and_data_snapshots(
             "economic_account_sha256": "b" * 64,
         }
 
-    monkeypatch.setattr(equivalence, "trace_phase1_case", trace)
-    case = equivalence.Phase1Case(
+    monkeypatch.setattr(equivalence, "trace_performance_replay_case", trace)
+    case = equivalence.PerformanceReplayCase(
         name="a/h1_2023",
         symbols=("sz000001",),
         start="2023-01-01",
         end="2023-01-02",
     )
 
-    report = equivalence.compare_phase1_commits(
+    report = equivalence.compare_decision_equivalence_commits(
         frozen_root=checkout,
         candidate_root=checkout,
         data_dir=original_data,
@@ -520,10 +520,10 @@ def test_performance_trace_disables_site_initialization(
         )
 
     monkeypatch.setattr(equivalence.subprocess, "run", run)
-    observed = equivalence.trace_phase1_case(
+    observed = equivalence.trace_performance_replay_case(
         root=tmp_path,
         data_dir=tmp_path / "data",
-        case=equivalence.Phase1Case(
+        case=equivalence.PerformanceReplayCase(
             name="a/h1_2023",
             symbols=("sz000001",),
             start="2023-01-01",

@@ -10,7 +10,7 @@ from uquant.validation.generalization_contract import build_official_scenarios, 
 
 @dataclass(frozen=True, slots=True)
 class UniverseCase:
-    """Legacy research view of one canonical economic scenario."""
+    """Canonical research view of one economic scenario."""
 
     name: str
     symbols: tuple[str, ...]

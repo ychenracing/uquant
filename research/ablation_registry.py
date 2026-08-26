@@ -42,7 +42,7 @@ RISK_SENTINEL_OVERLAY_PATH: Final = (
 )
 BASE_SOURCE_COMMIT: Final = "7f80436373b6da03536e15ff1908c010bfb92eb3"
 MINIMAL_BASE_SOURCE_COMMIT: Final = "e5e0fa903c9a9b26701063ae01f352af3e246a7d"
-_POST_TASK8_SOURCE_CONTRACT_SHA256: Final = (
+_ABLATION_SOURCE_CONTRACT_SHA256: Final = (
     "09b8e9709bb09a31dddc79659faf725afc616956364ec5324e354b6e83fb2b44"
 )
 _FUTURE_HOLDOUT_OVERLAY_SHA256: Final = (
@@ -869,7 +869,7 @@ def _validate_reference_source_contract(
         raise ValueError("post-anchor source contract identity differs")
     seal = _require_text(contract.get("canonical_sha256"), label="post-anchor source seal")
     unsealed = {key: value for key, value in contract.items() if key != "canonical_sha256"}
-    if seal != _POST_TASK8_SOURCE_CONTRACT_SHA256 or canonical_sha256(unsealed) != seal:
+    if seal != _ABLATION_SOURCE_CONTRACT_SHA256 or canonical_sha256(unsealed) != seal:
         raise ValueError("post-anchor source contract seal differs")
 
     base = _require_mapping(contract.get("base"), label="post-anchor base source")

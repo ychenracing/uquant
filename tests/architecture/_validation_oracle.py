@@ -520,7 +520,9 @@ def _holdout_success(root: Path, temporary: Path) -> dict[str, object]:
     contract_payload = {
         field.name: getattr(contract, field.name) for field in fields(contract)
     }
-    contract_payload["phase1_windows"] = dict(contract.phase1_windows)
+    contract_payload["phase1_windows"] = dict(
+        contract_payload.pop("performance_windows")
+    )
     return {
         "tracked_inputs": tracked,
         "contract": contract_payload,

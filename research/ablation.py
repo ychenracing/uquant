@@ -93,7 +93,7 @@ class AblationCell:
 
 @dataclass(frozen=True, slots=True)
 class AblationMetricDelta:
-    """Variant-minus-baseline raw differences; Task 8 owns classification."""
+    """Variant-minus-baseline raw differences; ablation policy owns classification."""
 
     final_wealth: float
     max_drawdown: float
@@ -286,7 +286,7 @@ class AblationCase:
 
 @dataclass(frozen=True, slots=True)
 class AblationDelta:
-    """Candidate-minus-baseline deltas for the legacy research helper."""
+    """Candidate-minus-baseline deltas for the research helper."""
 
     name: str
     score: float

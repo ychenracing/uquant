@@ -5,7 +5,7 @@ from __future__ import annotations
 from uquant.contracts import universe as _universe
 
 FROZEN_CHAMPION_COMMIT = _universe.FROZEN_CHAMPION_COMMIT
-GITHUB_PHASE1_ARTIFACT_SHA256 = _universe.GITHUB_PHASE1_ARTIFACT_SHA256
+GITHUB_PERFORMANCE_ARTIFACT_SHA256 = _universe.GITHUB_PERFORMANCE_ARTIFACT_SHA256
 REQUIRED_FROZEN_CHAMPION_SHA256 = _universe.REQUIRED_FROZEN_CHAMPION_SHA256
 REQUIRED_AI_UNIVERSE_SHA256 = _universe.REQUIRED_AI_UNIVERSE_SHA256
 CANONICAL_INDUSTRIES = _universe.CANONICAL_INDUSTRIES
@@ -15,7 +15,7 @@ AIUniverse = _universe.AIUniverse
 canonical_sha256 = _universe.canonical_sha256
 frozen_champion_bytes = _universe.frozen_champion_bytes
 ai_universe_manifest_bytes = _universe.ai_universe_manifest_bytes
-load_phase1_frozen_champion = _universe.load_phase1_frozen_champion
+load_performance_frozen_champion = _universe.load_performance_frozen_champion
 load_ai_universe = _universe.load_ai_universe
 default_ai_universe = _universe.default_ai_universe
 
@@ -37,7 +37,7 @@ __all__ = (  # noqa: RUF022 - frozen public-name order
     "CANONICAL_INDUSTRIES",
     "FROZEN_CHAMPION_COMMIT",
     "FrozenChampion",
-    "GITHUB_PHASE1_ARTIFACT_SHA256",
+    "GITHUB_PERFORMANCE_ARTIFACT_SHA256",
     "REQUIRED_AI_UNIVERSE_SHA256",
     "REQUIRED_FROZEN_CHAMPION_SHA256",
     "UniverseMember",
@@ -50,5 +50,5 @@ __all__ = (  # noqa: RUF022 - frozen public-name order
     "default_ai_universe",
     "frozen_champion_bytes",
     "load_ai_universe",
-    "load_phase1_frozen_champion",
+    "load_performance_frozen_champion",
 )

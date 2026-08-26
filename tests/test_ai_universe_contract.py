@@ -13,13 +13,13 @@ from uquant.leader import INDUSTRY, REFERENCE_UNIVERSE
 from uquant.validation.universe import (
     CANONICAL_INDUSTRIES,
     FROZEN_CHAMPION_COMMIT,
-    GITHUB_PHASE1_ARTIFACT_SHA256,
+    GITHUB_PERFORMANCE_ARTIFACT_SHA256,
     REQUIRED_FROZEN_CHAMPION_SHA256,
     ai_universe_manifest_bytes,
     canonical_sha256,
     frozen_champion_bytes,
     load_ai_universe,
-    load_phase1_frozen_champion,
+    load_performance_frozen_champion,
 )
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -27,11 +27,11 @@ ROOT = Path(__file__).resolve().parents[1]
 
 def test_frozen_champion_preserves_every_reviewed_performance_identity() -> None:
     """Breaks if a frozen input is replaced by a candidate's own identity."""
-    champion = load_phase1_frozen_champion()
+    champion = load_performance_frozen_champion()
 
     assert champion.production_commit == FROZEN_CHAMPION_COMMIT
     assert champion.production_commit == "cf8fecff76564fd4ed87faa0da336a06d433fd93"
-    assert champion.github_artifact_sha256 == GITHUB_PHASE1_ARTIFACT_SHA256
+    assert champion.github_artifact_sha256 == GITHUB_PERFORMANCE_ARTIFACT_SHA256
     assert champion.github_artifact_sha256 == (
         "86d894f46a22740cb4bc59a279cb2150927f312947859ad2559e3a17b45f5deb"
     )
@@ -64,7 +64,7 @@ def test_frozen_champion_rejects_mutated_and_resealed_nested_provenance(
     path.write_text(json.dumps(payload), encoding="utf-8")
 
     with pytest.raises(ValueError, match="differs from the reviewed performance contract"):
-        load_phase1_frozen_champion(path)
+        load_performance_frozen_champion(path)
 
 
 def test_canonical_manifest_owns_exact_current_reference_coverage() -> None:

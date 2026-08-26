@@ -6,7 +6,7 @@ import argparse
 import json
 from pathlib import Path
 
-from uquant.validation.equivalence import compare_phase1_commits
+from uquant.validation.equivalence import compare_decision_equivalence_commits
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -17,7 +17,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--data-dir", required=True)
     parser.add_argument("--output", required=True)
     args = parser.parse_args(argv)
-    report = compare_phase1_commits(
+    report = compare_decision_equivalence_commits(
         frozen_root=args.frozen_root,
         candidate_root=args.candidate_root,
         data_dir=args.data_dir,

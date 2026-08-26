@@ -139,7 +139,7 @@ def test_performance_summary_catches_path_skips_and_partial_or_stale_performance
     _assert_locked_runtime(workflow)
     _assert_always_blocking_summary(
         workflow,
-        job_id="phase1-performance",
+        job_id="performance-acceptance",
         check_name="Performance Acceptance",
         needs={"ai-era-performance"},
     )
@@ -151,8 +151,8 @@ def test_performance_summary_catches_path_skips_and_partial_or_stale_performance
     assert "--output benchmarks/ai_era_performance.json" in gate
 
     verify = _named_step(run_job, "Verify exact HEAD and full provenance")
-    assert "-m uquant.validation.ci_artifacts phase1" in verify["run"]
-    assert verify["env"]["UPSTREAM_RESULT"] == "${{ steps.phase1-gate.outcome }}"
+    assert "-m uquant.validation.ci_artifacts performance" in verify["run"]
+    assert verify["env"]["UPSTREAM_RESULT"] == "${{ steps.performance-gate.outcome }}"
     upload = _named_step(run_job, "Upload AI-Era performance report")
     assert upload["if"] == "${{ always() }}"
     assert upload["with"]["name"] == (
@@ -186,7 +186,7 @@ def test_generalization_matrix_catches_missing_window_cancelled_shards_and_faile
 def test_generalization_aggregator_catches_incomplete_stale_or_policy_failing_evidence() -> None:
     """Catches missing/extra shards, stale provenance, fabricated cells, or a weakened policy."""
     workflow = _workflow("strategy-generalization.yml")
-    aggregate = workflow["jobs"]["phase2-generalization"]
+    aggregate = workflow["jobs"]["generalization-acceptance"]
     assert aggregate["name"] == "Generalization Acceptance"
     assert aggregate["needs"] == "generalization-shard"
     assert aggregate["if"] == "${{ always() }}"
@@ -264,7 +264,7 @@ def test_artifact_names_bind_each_upload_and_download_to_one_run_attempt() -> No
         generalization["jobs"]["generalization-shard"], "Upload window evidence"
     )["with"]["name"]
     pattern = _named_step(
-        generalization["jobs"]["phase2-generalization"], "Download every shard artifact"
+        generalization["jobs"]["generalization-acceptance"], "Download every shard artifact"
     )["with"]["pattern"]
     prefix = (
         "ai-era-generalization-${{ github.run_id }}-attempt-${{ github.run_attempt }}"

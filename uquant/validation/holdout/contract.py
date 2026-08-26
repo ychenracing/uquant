@@ -92,7 +92,7 @@ REVIEW_SESSIONS: Final = (
     "2026-11-04",
     "2026-11-05",
 )
-REVIEWED_PHASE1_WINDOWS: Final = MappingProxyType(
+REVIEWED_PERFORMANCE_WINDOWS: Final = MappingProxyType(
     {
         "h1_2023": ("2023-01-03", "2023-06-30"),
         "h2_2023": ("2023-07-03", "2023-12-29"),
@@ -212,7 +212,7 @@ class FutureHoldoutContract:
     review_milestones: tuple[int, ...]
     score_fields: tuple[str, ...]
     parameter_changes_from_observation: bool
-    phase1_windows: Mapping[str, tuple[str, str]]
+    performance_windows: Mapping[str, tuple[str, str]]
     strategy_anchor_commit: str
     strategy_source_sha256: str
     strategy_config_sha256: str
@@ -312,14 +312,14 @@ def _validate_contract_identity(raw: Mapping[str, Any]) -> str:
 
 def _validate_contract_sections(raw: Mapping[str, Any]) -> tuple[dict[str, Any], dict[str, Any]]:
     dates = raw["dates"]
-    phase1_windows = raw["phase1_windows"]
+    performance_windows = raw["phase1_windows"]
     policy = raw["observation_policy"]
     review_calendar = raw["review_calendar"]
     strategy_anchor = raw["strategy_anchor"]
     if not isinstance(dates, dict) or set(dates) != {"last_in_sample", "first_holdout"}:
         raise ValueError("future holdout date contract is malformed")
-    sealed_windows = {name: list(bounds) for name, bounds in REVIEWED_PHASE1_WINDOWS.items()}
-    if not isinstance(phase1_windows, dict) or phase1_windows != sealed_windows:
+    sealed_windows = {name: list(bounds) for name, bounds in REVIEWED_PERFORMANCE_WINDOWS.items()}
+    if not isinstance(performance_windows, dict) or performance_windows != sealed_windows:
         raise ValueError("future holdout performance windows are malformed")
     if not isinstance(policy, dict) or set(policy) != {
         "parameter_changes_from_observation",
@@ -380,7 +380,7 @@ def _reviewed_holdout_contract(seal: str) -> FutureHoldoutContract:
         review_milestones=REVIEW_MILESTONES,
         score_fields=SCORE_FIELDS,
         parameter_changes_from_observation=False,
-        phase1_windows=REVIEWED_PHASE1_WINDOWS,
+        performance_windows=REVIEWED_PERFORMANCE_WINDOWS,
         strategy_anchor_commit=STRATEGY_ANCHOR_COMMIT,
         strategy_source_sha256=STRATEGY_SOURCE_SHA256,
         strategy_config_sha256=STRATEGY_CONFIG_SHA256,
@@ -479,7 +479,7 @@ def _validate_frozen_boundary(root: Path, contract: FutureHoldoutContract) -> No
 
 
 def _validate_live_schedule(contract: FutureHoldoutContract) -> None:
-    sealed_windows = dict(contract.phase1_windows)
+    sealed_windows = dict(contract.performance_windows)
     capabilities = holdout_facade_capabilities()
     live_windows = AI_ERA_WINDOWS if capabilities is None else capabilities.ai_era_windows
     if (
@@ -489,12 +489,12 @@ def _validate_live_schedule(contract: FutureHoldoutContract) -> None:
         raise RuntimeError("live AI-era schedule differs from the sealed performance windows")
 
 
-def _validate_phase1_windows(
+def _validate_performance_windows(
     contract: FutureHoldoutContract,
-    phase1_windows: Mapping[str, tuple[str, str]] | None,
+    performance_windows: Mapping[str, tuple[str, str]] | None,
 ) -> None:
-    sealed_windows = dict(contract.phase1_windows)
-    supplied = sealed_windows if phase1_windows is None else dict(phase1_windows)
+    sealed_windows = dict(contract.performance_windows)
+    supplied = sealed_windows if performance_windows is None else dict(performance_windows)
     if supplied == sealed_windows:
         return
     expanded = any(
@@ -546,7 +546,7 @@ def validate_holdout_layout(
     repository_root: str | Path,
     *,
     contract: FutureHoldoutContract | None = None,
-    phase1_windows: Mapping[str, tuple[str, str]] | None = None,
+    performance_windows: Mapping[str, tuple[str, str]] | None = None,
 ) -> tuple[tuple[str, ...], str]:
     """Validate isolation and return the one-read future-data identity."""
 
@@ -559,7 +559,7 @@ def validate_holdout_layout(
         raise ValueError("holdout layout requires the reviewed sealed contract")
     _validate_live_schedule(reviewed)
     _validate_frozen_boundary(root, reviewed)
-    _validate_phase1_windows(reviewed, phase1_windows)
+    _validate_performance_windows(reviewed, performance_windows)
     holdout = root / reviewed.data_directory
     _validate_holdout_directory(root, holdout)
     return _validated_holdout_identity(holdout, reviewed)
@@ -616,7 +616,7 @@ __all__ = (
     "REVIEW_MILESTONES",
     "REVIEW_CALENDAR_SOURCE",
     "REVIEW_SESSIONS",
-    "REVIEWED_PHASE1_WINDOWS",
+    "REVIEWED_PERFORMANCE_WINDOWS",
     "STRATEGY_ANCHOR_COMMIT",
     "STRATEGY_SOURCE_SHA256",
     "STRATEGY_CONFIG_SHA256",

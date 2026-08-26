@@ -13,7 +13,7 @@ from pathlib import Path
 from typing import Any, Final
 
 FROZEN_CHAMPION_COMMIT: Final = "cf8fecff76564fd4ed87faa0da336a06d433fd93"
-GITHUB_PHASE1_ARTIFACT_SHA256: Final = "86d894f46a22740cb4bc59a279cb2150927f312947859ad2559e3a17b45f5deb"
+GITHUB_PERFORMANCE_ARTIFACT_SHA256: Final = "86d894f46a22740cb4bc59a279cb2150927f312947859ad2559e3a17b45f5deb"
 REQUIRED_FROZEN_CHAMPION_SHA256: Final = "8475a5da6f67db8c9ebf1b0aa5949a3484d75897e75ef8b4c4ef73c1c4d22a8f"
 REQUIRED_AI_UNIVERSE_SHA256: Final = "03f42c5066fb8e1c7b2f8e1b7dd38d508d8053f548ebb5596317ce587d7cffd0"
 CANONICAL_INDUSTRIES: Final = frozenset(
@@ -263,11 +263,11 @@ def _load_and_validate_frozen_champion_payload(
     return payload, production, data, environment, artifact
 
 
-def load_phase1_frozen_champion(path: str | Path | None = None) -> FrozenChampion:
+def load_performance_frozen_champion(path: str | Path | None = None) -> FrozenChampion:
     """Load the reviewed performance identity without accepting partial provenance."""
     payload, production, data, environment, artifact = _load_and_validate_frozen_champion_payload(path)
-    if artifact != GITHUB_PHASE1_ARTIFACT_SHA256:
-        raise ValueError("frozen champion GitHub artifact differs from Phase 1")
+    if artifact != GITHUB_PERFORMANCE_ARTIFACT_SHA256:
+        raise ValueError("frozen champion GitHub artifact differs from performance")
     return FrozenChampion(
         production_commit=production["commit"],
         production_source_sha256=_sha256(production["source_sha256"], label="frozen champion source"),

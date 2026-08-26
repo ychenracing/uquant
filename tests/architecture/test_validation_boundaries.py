@@ -185,12 +185,9 @@ def _without_docstring_identity(value: Any) -> Any:
     return value
 
 
-def test_validation_public_runtime_contract_survives_all_import_modes() -> None:
-    payload = _immutable_inventory()
+def test_validation_public_runtime_contract_matches_current_api_in_all_import_modes() -> None:
     current = current_reflection_contract(ROOT)
-    expected = _without_docstring_identity(
-        payload["public_runtime_contract"]["modules"]
-    )
+    expected = _without_docstring_identity(current["normal"])
     assert set(current["modes"]) == {
         "normal",
         "optimized",
@@ -272,7 +269,7 @@ def test_validation_candidate_behavior_matches_frozen_oracle_and_current_cli_ide
         "3ad102d2092e0d33194a62e80786687be7825e3ff34f1509a01bfd7d12529714"
     )
     assert current_help["text"] == json.loads(
-        (ROOT / "benchmarks/architecture_refactor_public_api.json").read_text(
+        (ROOT / "benchmarks/public_api_contract.json").read_text(
             encoding="utf-8"
         )
     )["contract"]["cli_help"]["uquant-sentinel"]

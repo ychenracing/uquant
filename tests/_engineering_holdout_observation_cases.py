@@ -14,7 +14,7 @@ from test_engineering_gate_edges import (
 from uquant.validation import equivalence as equivalence_module
 from uquant.validation import holdout as holdout_module
 from uquant.validation import universe as universe_module
-from uquant.validation.equivalence import Phase1Case, Phase1DecisionTrace
+from uquant.validation.equivalence import PerformanceDecisionTrace, PerformanceReplayCase
 
 
 def test_reviewed_holdout_strategy_anchor_rejects_one_byte_mutation(tmp_path: Path) -> None:
@@ -180,42 +180,42 @@ def test_performance_equivalence_rejects_incomplete_matrix_and_trace_contracts(
         path = tmp_path / f"{name}.json"
         path.write_text(json.dumps({**baseline, **mutation}), encoding="utf-8")
         with pytest.raises(RuntimeError, match=message):
-            equivalence_module.phase1_cases(path)
+            equivalence_module.performance_replay_cases(path)
     malformed_pool = copy.deepcopy(baseline)
     malformed_pool["pools"]["a"] = [1]
     pool_path = tmp_path / "pool.json"
     pool_path.write_text(json.dumps(malformed_pool), encoding="utf-8")
     with pytest.raises(RuntimeError, match="pool is malformed"):
-        equivalence_module.phase1_cases(pool_path)
+        equivalence_module.performance_replay_cases(pool_path)
     malformed_interval = copy.deepcopy(baseline)
     malformed_interval["contract"]["windows"]["h1_2023"] = []
     interval_path = tmp_path / "interval.json"
     interval_path.write_text(json.dumps(malformed_interval), encoding="utf-8")
     with pytest.raises(RuntimeError, match="interval is malformed"):
-        equivalence_module.phase1_cases(interval_path)
+        equivalence_module.performance_replay_cases(interval_path)
 
     required = {
         "decision_payload_sha256": "a" * 64,
         "economic_account_sha256": "b" * 64,
     }
-    candidate = Phase1DecisionTrace(production_commit="f" * 40, cases={"case": required})
+    candidate = PerformanceDecisionTrace(production_commit="f" * 40, cases={"case": required})
     with pytest.raises(RuntimeError, match="not bound"):
-        equivalence_module.assert_equivalent_phase1_traces(
-            Phase1DecisionTrace(production_commit="0" * 40, cases={"case": required}),
+        equivalence_module.assert_equivalent_performance_traces(
+            PerformanceDecisionTrace(production_commit="0" * 40, cases={"case": required}),
             candidate,
         )
-    frozen = Phase1DecisionTrace(
+    frozen = PerformanceDecisionTrace(
         production_commit=equivalence_module.FROZEN_CHAMPION_COMMIT,
         cases={"case": required},
     )
     with pytest.raises(RuntimeError, match="cases differ"):
-        equivalence_module.assert_equivalent_phase1_traces(
-            frozen, Phase1DecisionTrace(production_commit="f" * 40, cases={})
+        equivalence_module.assert_equivalent_performance_traces(
+            frozen, PerformanceDecisionTrace(production_commit="f" * 40, cases={})
         )
     with pytest.raises(RuntimeError, match="payload is malformed"):
-        equivalence_module.assert_equivalent_phase1_traces(
+        equivalence_module.assert_equivalent_performance_traces(
             frozen,
-            Phase1DecisionTrace(
+            PerformanceDecisionTrace(
                 production_commit="f" * 40,
                 cases={"case": {"decision_payload_sha256": "a" * 64}},
             ),
@@ -239,7 +239,7 @@ def test_performance_equivalence_subprocess_boundaries_fail_closed(
     with pytest.raises(RuntimeError, match="cannot resolve commit"):
         equivalence_module._git_commit(tmp_path)
 
-    case = Phase1Case("a/h1_2023", ("sh000300",), "2023-01-03", "2023-01-04")
+    case = PerformanceReplayCase("a/h1_2023", ("sh000300",), "2023-01-03", "2023-01-04")
     outputs = (
         ("not-json", "cannot capture"),
         ("[]", "trace is malformed"),
@@ -261,11 +261,11 @@ def test_performance_equivalence_subprocess_boundaries_fail_closed(
             lambda *_args, _stdout=stdout, **_kwargs: SimpleNamespace(stdout=_stdout),
         )
         with pytest.raises(RuntimeError, match=message):
-            equivalence_module.trace_phase1_case(root=tmp_path, data_dir=tmp_path, case=case)
+            equivalence_module.trace_performance_replay_case(root=tmp_path, data_dir=tmp_path, case=case)
 
     monkeypatch.setattr(equivalence_module, "_git_commit", lambda _: "0" * 40)
     with pytest.raises(RuntimeError, match="does not match"):
-        equivalence_module.compare_phase1_commits(
+        equivalence_module.compare_decision_equivalence_commits(
             frozen_root=tmp_path,
             candidate_root=tmp_path,
             data_dir=tmp_path,

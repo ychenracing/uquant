@@ -343,10 +343,10 @@ def test_performance_workflow_tracks_every_production_identity_input() -> None:
     assert "--output benchmarks/ai_era_performance.json" in workflow
     assert "benchmarks/ai_era_performance.json" in workflow
     assert "Verify exact HEAD and full provenance" in workflow
-    assert "-m uquant.validation.ci_artifacts phase1" in workflow
-    assert "UPSTREAM_RESULT: ${{ steps.phase1-gate.outcome }}" in workflow
+    assert "-m uquant.validation.ci_artifacts performance" in workflow
+    assert "UPSTREAM_RESULT: ${{ steps.performance-gate.outcome }}" in workflow
     assert "--upstream-result \"$UPSTREAM_RESULT\"" in workflow
-    assert "artifacts/phase1/ci/phase1-validation.json" in workflow
+    assert "artifacts/performance/ci/performance-validation.json" in workflow
     assert "ai-era-performance-${{ github.run_id }}-attempt-${{ github.run_attempt }}" in workflow
     assert "/benchmarks/ai_era_performance.json" in (ROOT / ".gitignore").read_text(
         encoding="utf-8"

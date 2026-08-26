@@ -438,20 +438,20 @@ def _write_json(path: Path, payload: Any) -> None:
 
 
 def _scenario_requests(
-    contract: dict[str, Any], phase2: dict[str, Any], *, system: str
+    contract: dict[str, Any], generalization_baseline: dict[str, Any], *, system: str
 ) -> tuple[list[ReplayRequest], list[ReplayRequest]]:
     windows = contract["windows"]
     ready: list[ReplayRequest] = []
     insufficient: list[ReplayRequest] = []
-    cells = phase2.get("cells")
+    cells = generalization_baseline.get("cells")
     if not isinstance(cells, list) or len(cells) != 234:
-        raise ValueError("uquant Phase 2 baseline must contain 234 scenario records")
+        raise ValueError("uquant generalization baseline must contain 234 scenario records")
     for cell in cells:
         if not isinstance(cell, dict):
-            raise ValueError("uquant Phase 2 baseline contains a malformed cell")
+            raise ValueError("uquant generalization baseline contains a malformed cell")
         window = str(cell.get("window"))
         if window not in windows:
-            raise ValueError("uquant Phase 2 baseline contains an unknown window")
+            raise ValueError("uquant generalization baseline contains an unknown window")
         bounds = windows[window]
         request = ReplayRequest(
             system=system,
@@ -470,14 +470,14 @@ def _scenario_requests(
         elif not bool(cell.get("economic")) and cell.get("status") == "INSUFFICIENT_SAMPLE":
             insufficient.append(request)
         else:
-            raise ValueError("uquant Phase 2 scenario status is inconsistent")
+            raise ValueError("uquant generalization scenario status is inconsistent")
     if len(ready) != 192 or len(insufficient) != 42:
-        raise ValueError("uquant Phase 2 scenario dimensions changed")
+        raise ValueError("uquant generalization scenario dimensions changed")
     return ready, insufficient
 
 
 def build_replay_requests(
-    contract: dict[str, Any], phase2: dict[str, Any], *, system: str
+    contract: dict[str, Any], generalization_baseline: dict[str, Any], *, system: str
 ) -> tuple[list[ReplayRequest], list[ReplayRequest]]:
     """Build all 30 official and 234 generalization rows for one system."""
 
@@ -498,7 +498,7 @@ def build_replay_requests(
                     symbols=tuple(symbols),
                 )
             )
-    scenario_ready, insufficient = _scenario_requests(contract, phase2, system=system)
+    scenario_ready, insufficient = _scenario_requests(contract, generalization_baseline, system=system)
     ready.extend(scenario_ready)
     if len(ready) != 222 or len(insufficient) != 42:
         raise RuntimeError("current-head per-system request dimensions changed")
@@ -521,7 +521,7 @@ def prepare_runtime(
     *,
     contract_path: Path,
     registry_path: Path,
-    phase2_path: Path,
+    generalization_baseline_path: Path,
     data_dir: Path,
     runtime_dir: Path,
 ) -> dict[str, Any]:
@@ -529,7 +529,7 @@ def prepare_runtime(
 
     contract = load_comparison_contract(contract_path)
     registry = load_source_registry(registry_path, adapter_path=Path(__file__).resolve())
-    phase2 = json.loads(phase2_path.read_text(encoding="utf-8"))
+    generalization_baseline = json.loads(generalization_baseline_path.read_text(encoding="utf-8"))
     if runtime_dir.exists() and any(runtime_dir.iterdir()):
         raise ValueError("current-head runtime directory must be new or empty")
     runtime_dir.mkdir(parents=True, exist_ok=True)
@@ -547,7 +547,7 @@ def prepare_runtime(
     request_root = runtime_dir / "requests"
     request_root.mkdir()
     for system in contract["systems"]:
-        ready, sample = build_replay_requests(contract, phase2, system=system)
+        ready, sample = build_replay_requests(contract, generalization_baseline, system=system)
         requests[system] = [asdict(item) for item in ready]
         insufficient[system] = [asdict(item) for item in sample]
         _write_json(request_root / f"{system}.json", requests[system])
@@ -555,7 +555,7 @@ def prepare_runtime(
         "schema_version": 1,
         "contract_sha256": contract["payload_sha256"],
         "source_registry_sha256": registry["payload_sha256"],
-        "phase2_sha256": hashlib.sha256(phase2_path.read_bytes()).hexdigest(),
+        "phase2_sha256": hashlib.sha256(generalization_baseline_path.read_bytes()).hexdigest(),
         "data": data,
         "ready_per_system": 222,
         "insufficient_per_system": 42,
@@ -605,7 +605,7 @@ def _execute_competitor_request(task: tuple[dict[str, Any], dict[str, str]]) -> 
         from research.window_competitor_adapter import Task as WindowAdapterTask
         from research.window_competitor_adapter import run_replay_task
 
-        legacy_task = WindowAdapterTask(
+        adapter_task = WindowAdapterTask(
             request.system,
             request.name,
             request.window,
@@ -616,7 +616,7 @@ def _execute_competitor_request(task: tuple[dict[str, Any], dict[str, str]]) -> 
             str(Path(paths["trade_data_root"]) / request.window),
         )
         raw = run_replay_task(
-            legacy_task,
+            adapter_task,
             pools={request.name: execution_symbols},
             windows={request.window: (request.start, request.end)},
             repository_root=Path(paths["repository_root"]),
@@ -896,24 +896,24 @@ def run_uquant_official_batch(
 
 
 def _uquant_generalization_rows(
-    requests: Sequence[ReplayRequest], phase2_raw: dict[str, Any], *, data_root: Path
+    requests: Sequence[ReplayRequest], generalization_matrix: dict[str, Any], *, data_root: Path
 ) -> list[dict[str, Any]]:
     by_id = {
         f"generalization/uquant/{cell['window']}/{cell['scenario']}": cell
-        for cell in phase2_raw.get("cells", [])
+        for cell in generalization_matrix.get("cells", [])
         if isinstance(cell, dict) and bool(cell.get("economic"))
     }
     generalization = [item for item in requests if item.axis == "generalization"]
     if len(generalization) != 192 or len(by_id) != 192:
-        raise ValueError("raw uquant Phase 2 economic matrix must contain 192 cells")
-    runtime_raw = phase2_raw.get("provenance", {}).get("runtime")
+        raise ValueError("raw uquant generalization economic matrix must contain 192 cells")
+    runtime_raw = generalization_matrix.get("provenance", {}).get("runtime")
     if not isinstance(runtime_raw, dict):
-        raise ValueError("raw uquant Phase 2 runtime provenance is missing")
+        raise ValueError("raw uquant generalization runtime provenance is missing")
     rows: list[dict[str, Any]] = []
     for request in generalization:
         cell = by_id.get(request.cell_id)
         if cell is None or not isinstance(cell.get("raw"), dict):
-            raise ValueError(f"raw uquant Phase 2 cell is missing: {request.cell_id}")
+            raise ValueError(f"raw uquant generalization cell is missing: {request.cell_id}")
         raw = cell["raw"]
         effective_symbols = observable_symbols_in_window(
             data_root / request.window,
@@ -986,8 +986,8 @@ def assemble_matrix(
     *,
     contract_path: Path,
     registry_path: Path,
-    phase2_compact_path: Path,
-    phase2_raw_path: Path,
+    generalization_summary_path: Path,
+    generalization_matrix_path: Path,
     runtime_dir: Path,
     output_path: Path,
     uquant_workers: int,
@@ -996,8 +996,8 @@ def assemble_matrix(
 
     contract = load_comparison_contract(contract_path)
     registry = load_source_registry(registry_path, adapter_path=Path(__file__).resolve())
-    compact = json.loads(phase2_compact_path.read_text(encoding="utf-8"))
-    phase2_raw = json.loads(phase2_raw_path.read_text(encoding="utf-8"))
+    compact = json.loads(generalization_summary_path.read_text(encoding="utf-8"))
+    generalization_matrix = json.loads(generalization_matrix_path.read_text(encoding="utf-8"))
     runtime_manifest = json.loads((runtime_dir / "manifest.json").read_text(encoding="utf-8"))
     ready_by_system: dict[str, list[ReplayRequest]] = {}
     insufficient_by_system: dict[str, list[ReplayRequest]] = {}
@@ -1015,18 +1015,18 @@ def assemble_matrix(
             ),
             *_uquant_generalization_rows(
                 ready_by_system["uquant"],
-                phase2_raw,
+                generalization_matrix,
                 data_root=runtime_dir / "data",
             ),
         ]
     }
-    phase2_runtime = phase2_raw.get("provenance", {}).get("runtime")
-    if not isinstance(phase2_runtime, dict):
-        raise ValueError("raw Phase 2 runtime provenance is missing")
+    generalization_runtime = generalization_matrix.get("provenance", {}).get("runtime")
+    if not isinstance(generalization_runtime, dict):
+        raise ValueError("raw generalization runtime provenance is missing")
     runtimes: dict[str, Any] = {
         "uquant": {
             "official": raw_rows["uquant"][0]["runtime"],
-            "generalization": phase2_runtime,
+            "generalization": generalization_runtime,
         },
     }
     for system in ("aquant", "qwenquant", "trade"):
@@ -1039,9 +1039,9 @@ def assemble_matrix(
 
     cells: list[dict[str, Any]] = []
     expected_ids: set[str] = set()
-    data_snapshot = phase2_raw.get("provenance", {}).get("data")
+    data_snapshot = generalization_matrix.get("provenance", {}).get("data")
     if not isinstance(data_snapshot, dict):
-        raise ValueError("raw Phase 2 data provenance is missing")
+        raise ValueError("raw generalization data provenance is missing")
     for system in contract["systems"]:
         source = registry["repositories"][system]
         rows_by_id = {
@@ -1083,7 +1083,7 @@ def assemble_matrix(
                 "message": f"pre-registered scenario has fewer than 2 members: {request.name}",
             }
             config_sha256 = (
-                str(phase2_raw["provenance"]["effective_config_sha256"])
+                str(generalization_matrix["provenance"]["effective_config_sha256"])
                 if system == "uquant"
                 else canonical_sha256(_competitor_config_payload(system))
             )
@@ -1186,7 +1186,7 @@ def main(argv: Sequence[str] | None = None) -> int:
             default=root / "benchmarks/current_heads_source_registry.json",
         )
     prepare.add_argument(
-        "--phase2",
+        "--generalization-baseline",
         type=Path,
         default=root / "artifacts/current_heads/baseline/uquant_phase2.json",
     )
@@ -1202,11 +1202,11 @@ def main(argv: Sequence[str] | None = None) -> int:
     worker.add_argument("--aquant-root", type=Path, default=competitor_root / "aquant")
     worker.add_argument("--trade-root", type=Path, default=competitor_root / "trade")
     assemble.add_argument(
-        "--phase2-compact",
+        "--generalization-summary",
         type=Path,
         default=root / "artifacts/current_heads/baseline/uquant_phase2.json",
     )
-    assemble.add_argument("--phase2-raw", type=Path, required=True)
+    assemble.add_argument("--generalization-matrix", type=Path, required=True)
     assemble.add_argument("--runtime-dir", type=Path, required=True)
     assemble.add_argument(
         "--output",
@@ -1222,7 +1222,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         manifest = prepare_runtime(
             contract_path=args.contract,
             registry_path=args.source_registry,
-            phase2_path=args.phase2,
+            generalization_baseline_path=args.generalization_baseline,
             data_dir=args.data_dir,
             runtime_dir=args.runtime_dir,
         )
@@ -1243,8 +1243,8 @@ def main(argv: Sequence[str] | None = None) -> int:
         payload = assemble_matrix(
             contract_path=args.contract,
             registry_path=args.source_registry,
-            phase2_compact_path=args.phase2_compact,
-            phase2_raw_path=args.phase2_raw,
+            generalization_summary_path=args.generalization_summary,
+            generalization_matrix_path=args.generalization_matrix,
             runtime_dir=args.runtime_dir,
             output_path=args.output,
             uquant_workers=args.uquant_workers,

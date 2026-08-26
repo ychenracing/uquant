@@ -91,10 +91,10 @@ def _run_performance(
     upstream_result: str = "success",
 ) -> dict[str, Any]:
     module = _ci_module()
-    artifact = tmp_path / "phase1.json"
-    report = tmp_path / "phase1-diagnostic.json"
+    artifact = tmp_path / "performance.json"
+    report = tmp_path / "performance-diagnostic.json"
     _write_json(artifact, payload)
-    result = module.run_phase1_validation(
+    result = module.run_performance_validation(
         artifact=artifact,
         report_output=report,
         upstream_result=upstream_result,
@@ -165,8 +165,8 @@ def test_performance_validator_writes_diagnostic_when_authoritative_provenance_f
 ) -> None:
     """Catches production provenance construction escaping before diagnostics exist."""
     module = _ci_module()
-    artifact = tmp_path / "phase1.json"
-    report = tmp_path / "phase1-diagnostic.json"
+    artifact = tmp_path / "performance.json"
+    report = tmp_path / "performance-diagnostic.json"
     _write_json(artifact, _performance_payload(_performance_candidate()))
 
     def fail_runtime_provenance(data_dir: str | Path) -> dict[str, Any]:
@@ -176,7 +176,7 @@ def test_performance_validator_writes_diagnostic_when_authoritative_provenance_f
 
     exit_code = module.main(
         [
-            "phase1",
+            "performance",
             "--artifact",
             str(artifact),
             "--report-output",
@@ -202,14 +202,14 @@ def test_performance_validator_rejects_duplicate_json_keys_and_writes_diagnostic
 ) -> None:
     """Catches ambiguous duplicate-key evidence being silently last-key-wins parsed."""
     module = _ci_module()
-    artifact = tmp_path / "phase1.json"
-    report = tmp_path / "phase1-diagnostic.json"
+    artifact = tmp_path / "performance.json"
+    report = tmp_path / "performance-diagnostic.json"
     artifact.write_text(
         '{"passed":true,"provenance":{},"provenance":{}}\n',
         encoding="utf-8",
     )
 
-    result = module.run_phase1_validation(
+    result = module.run_performance_validation(
         artifact=artifact,
         report_output=report,
         upstream_result="success",

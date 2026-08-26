@@ -8,8 +8,8 @@ from ._analysis import INVENTORY_PATH, PUBLIC_API_PATH, architecture_snapshot, l
 
 
 @pytest.fixture(scope="session")
-def public_api_baseline() -> dict[str, object]:
-    assert PUBLIC_API_PATH.is_file(), f"missing frozen public API contract: {PUBLIC_API_PATH}"
+def public_api_contract() -> dict[str, object]:
+    assert PUBLIC_API_PATH.is_file(), f"missing current public API contract: {PUBLIC_API_PATH}"
     return load_json(PUBLIC_API_PATH)
 
 

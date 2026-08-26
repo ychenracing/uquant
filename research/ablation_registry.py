@@ -42,7 +42,7 @@ RISK_SENTINEL_OVERLAY_PATH: Final = (
 )
 BASE_SOURCE_COMMIT: Final = "7f80436373b6da03536e15ff1908c010bfb92eb3"
 MINIMAL_BASE_SOURCE_COMMIT: Final = "e5e0fa903c9a9b26701063ae01f352af3e246a7d"
-_POST_TASK8_SOURCE_CONTRACT_SHA256: Final = (
+_ABLATION_SOURCE_CONTRACT_SHA256: Final = (
     "09b8e9709bb09a31dddc79659faf725afc616956364ec5324e354b6e83fb2b44"
 )
 _FUTURE_HOLDOUT_OVERLAY_SHA256: Final = (
@@ -869,7 +869,7 @@ def _validate_reference_source_contract(
         raise ValueError("post-anchor source contract identity differs")
     seal = _require_text(contract.get("canonical_sha256"), label="post-anchor source seal")
     unsealed = {key: value for key, value in contract.items() if key != "canonical_sha256"}
-    if seal != _POST_TASK8_SOURCE_CONTRACT_SHA256 or canonical_sha256(unsealed) != seal:
+    if seal != _ABLATION_SOURCE_CONTRACT_SHA256 or canonical_sha256(unsealed) != seal:
         raise ValueError("post-anchor source contract seal differs")
 
     base = _require_mapping(contract.get("base"), label="post-anchor base source")
@@ -1040,12 +1040,14 @@ def _performance_schedule(
     base_commit: str,
 ) -> tuple[ContractCell, ...]:
     payload = _verified_json(root, contract, base_commit=base_commit)
-    pools = _require_mapping(payload.get("pools"), label="phase1 pools")
-    contract_payload = _require_mapping(payload.get("contract"), label="phase1 contract")
-    windows = _require_mapping(contract_payload.get("windows"), label="phase1 windows")
-    acute = _require_mapping(contract_payload.get("acute_windows"), label="phase1 acute windows")
+    pools = _require_mapping(payload.get("pools"), label="performance pools")
+    contract_payload = _require_mapping(payload.get("contract"), label="performance contract")
+    windows = _require_mapping(contract_payload.get("windows"), label="performance windows")
+    acute = _require_mapping(
+        contract_payload.get("acute_windows"), label="performance acute windows"
+    )
     protected = _require_mapping(
-        contract_payload.get("protected_intervals"), label="phase1 protected intervals"
+        contract_payload.get("protected_intervals"), label="performance protected intervals"
     )
     cells: list[ContractCell] = []
     for pool_name, raw_symbols in pools.items():
@@ -1059,8 +1061,10 @@ def _performance_schedule(
         for window_name, raw_bounds in windows.items():
             if not isinstance(window_name, str):
                 raise ValueError("performance window name is malformed")
-            bounds = _require_mapping(raw_bounds, label="phase1 window")
-            acute_bounds = _require_mapping(acute.get(window_name), label="phase1 acute window")
+            bounds = _require_mapping(raw_bounds, label="performance window")
+            acute_bounds = _require_mapping(
+                acute.get(window_name), label="performance acute window"
+            )
             cells.append(
                 ContractCell(
                     contract=contract.name,
@@ -1068,16 +1072,20 @@ def _performance_schedule(
                     status="VALID",
                     economic=True,
                     symbols=symbols,
-                    start=_require_text(bounds.get("start"), label="phase1 window start"),
-                    end=_require_text(bounds.get("end"), label="phase1 window end"),
-                    acute_start=_require_text(acute_bounds.get("start"), label="phase1 acute start"),
-                    acute_end=_require_text(acute_bounds.get("end"), label="phase1 acute end"),
+                    start=_require_text(bounds.get("start"), label="performance window start"),
+                    end=_require_text(bounds.get("end"), label="performance window end"),
+                    acute_start=_require_text(
+                        acute_bounds.get("start"), label="performance acute start"
+                    ),
+                    acute_end=_require_text(
+                        acute_bounds.get("end"), label="performance acute end"
+                    ),
                 )
             )
         for interval_name, raw_bounds in protected.items():
             if not isinstance(interval_name, str):
                 raise ValueError("performance protected interval name is malformed")
-            bounds = _require_mapping(raw_bounds, label="phase1 protected interval")
+            bounds = _require_mapping(raw_bounds, label="performance protected interval")
             cells.append(
                 ContractCell(
                     contract=contract.name,
@@ -1085,8 +1093,12 @@ def _performance_schedule(
                     status="VALID",
                     economic=True,
                     symbols=symbols,
-                    start=_require_text(bounds.get("start"), label="phase1 protected start"),
-                    end=_require_text(bounds.get("end"), label="phase1 protected end"),
+                    start=_require_text(
+                        bounds.get("start"), label="performance protected start"
+                    ),
+                    end=_require_text(
+                        bounds.get("end"), label="performance protected end"
+                    ),
                 )
             )
     return tuple(cells)

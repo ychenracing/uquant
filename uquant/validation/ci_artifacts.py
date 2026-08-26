@@ -39,7 +39,7 @@ from .universe import load_ai_universe
 
 _ROOT = Path(__file__).resolve().parents[2]
 _OFFICIAL_WINDOWS = tuple(AI_ERA_WINDOWS)
-_PHASE1_PROVENANCE_FIELDS = frozenset(
+_PERFORMANCE_PROVENANCE_FIELDS = frozenset(
     {
         "candidate",
         "binding",
@@ -88,7 +88,7 @@ def _write_json(path: Path, payload: Mapping[str, Any]) -> None:
     )
 
 
-def run_phase1_validation(
+def run_performance_validation(
     *,
     artifact: str | Path,
     report_output: str | Path,
@@ -114,13 +114,13 @@ def run_phase1_validation(
             if checkout_head is not None
             else (str(expected_production.get("commit")) if isinstance(expected_production, Mapping) else "")
         )
-        payload = _load_json_object(Path(artifact), label="Phase 1 artifact")
+        payload = _load_json_object(Path(artifact), label="performance validation artifact")
         if payload.get("passed") is not True:
             failures.append("performance gate did not pass")
         provenance = payload.get("provenance")
         if not isinstance(provenance, Mapping):
             failures.append("performance provenance is missing or malformed")
-        elif set(provenance) != _PHASE1_PROVENANCE_FIELDS:
+        elif set(provenance) != _PERFORMANCE_PROVENANCE_FIELDS:
             failures.append("performance provenance fields are incomplete or unexpected")
         else:
             candidate = provenance.get("candidate")
@@ -139,7 +139,7 @@ def run_phase1_validation(
                 if not isinstance(production, Mapping) or production.get("commit") != expected_head:
                     failures.append("performance candidate does not bind exact checkout HEAD")
             if not isinstance(binding, Mapping) or binding.get("production_commit") != expected_head:
-                failures.append("Phase 1 artifact binding does not bind exact checkout HEAD")
+                failures.append("performance validation artifact binding does not bind exact checkout HEAD")
     except (KeyError, OSError, RuntimeError, TypeError, ValueError) as exc:
         failures.append(str(exc))
     if upstream_result != "success":
@@ -596,11 +596,11 @@ def run_generalization_validation(
 def _ci_artifact_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="python -m uquant.validation.ci_artifacts")
     subparsers = parser.add_subparsers(dest="command", required=True)
-    phase1 = subparsers.add_parser("phase1")
-    phase1.add_argument("--artifact", required=True)
-    phase1.add_argument("--report-output", required=True)
-    phase1.add_argument("--upstream-result", required=True)
-    phase1.add_argument("--data-dir", default="data/frozen")
+    performance = subparsers.add_parser("performance")
+    performance.add_argument("--artifact", required=True)
+    performance.add_argument("--report-output", required=True)
+    performance.add_argument("--upstream-result", required=True)
+    performance.add_argument("--data-dir", default="data/frozen")
     generalization = subparsers.add_parser("generalization")
     generalization.add_argument("--shard-root", required=True)
     generalization.add_argument("--artifact-prefix", required=True)
@@ -614,8 +614,8 @@ def _ci_artifact_parser() -> argparse.ArgumentParser:
 def main(argv: list[str] | None = None) -> int:
     """Run one CI artifact validator and return a process-compatible status."""
     args = _parser().parse_args(argv)
-    if args.command == "phase1":
-        report = run_phase1_validation(
+    if args.command == "performance":
+        report = run_performance_validation(
             artifact=args.artifact,
             report_output=args.report_output,
             upstream_result=args.upstream_result,

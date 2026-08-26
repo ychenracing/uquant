@@ -1,0 +1,64 @@
+{
+  "baseline_commit": "c4178fcd1b53d7e9061c6a71a1c6e7f1ddf3428d",
+  "baseline_surfaces": {
+    "economic_decision_v1": "1eb92f5e50bee0c3cabc5951b0fc57717f074b619c878a0dfdb4647228b536bb",
+    "execution_account_v1": "666eff601dd7480635ed3f360c57d01d3c34c5af0c1c708e17d4f3df42541e04",
+    "full_package_v1": "a38e16ec09b623e59f25a85090a6f8e8956a61fc87a848011b119bfc5ba175f6",
+    "sentinel_v1": "a7cb6968701c0f952910e7e7539ca6e8573fb9066a92268744ed0c2c4183777b",
+    "validation_runner_v1": "20d1cd36b3c25369831a453bbdfd9758e7e2716322fb8d0c68409121f22bcc84"
+  },
+  "canonical_sha256": "ab0e5f329728fdfb16879da6358a92bdffe5de261fa400fa6ca515d8253d2ffa",
+  "change_classification": "NON_ECONOMIC_CURRENT_DOMAIN_NAMING",
+  "economic_ast_equal": false,
+  "existing_account_action": {
+    "command": "uv run uquant account-code-migrate --account <account.json> --acknowledge-code-change",
+    "required": true,
+    "scope": "code_hash and code_identity_only audit event; economic state must remain identical"
+  },
+  "previous_epoch_id": "production_wheel_v4",
+  "requirements_changed": false,
+  "schema": "uquant.source-epoch.v1",
+  "source_epoch": {
+    "epoch_id": "production_wheel_v5",
+    "production_wheel": {
+      "artifact_path": "artifacts/architecture_refactor/wheels/production_wheel_v5/uquant-1.1.0-py3-none-any.whl",
+      "bytes": 2082339,
+      "dist_info_members": 6,
+      "filename": "uquant-1.1.0-py3-none-any.whl",
+      "members": 215,
+      "payload_manifest_method": "canonical-json(path,size,sha256) over every ZIP member sorted lexicographically by path",
+      "payload_manifest_sha256": "22793777dd56b14f184f8e8d49b9ec6189fdbb7ffd1fdff029c2f691f775477c",
+      "reproducible_build": {
+        "backend_requirement": "setuptools==84.0.0",
+        "builder": "python -m scripts.build_reproducible_wheel",
+        "clean_source": "git archive b18f034f4d5fcdc38ad97344a5d90792052b7410",
+        "container_normalization": "ZIP_STORED; lexicographic member order; 1980-01-01T00:00:00; regular files 0644",
+        "frontend": "build==1.5.0",
+        "source_date_epoch": 315532800
+      },
+      "sha256": "1e361f2f60b273a0bf72ea4df7b3085e062b149f6306d45e4ac1622ddf3009e6",
+      "unexpected_members": [],
+      "uquant_members": 209,
+      "version": "1.1.0"
+    },
+    "registered_at_commit": "b18f034f4d5fcdc38ad97344a5d90792052b7410",
+    "registered_tree_sha": "c6265cdf1afff28b01294950e1d43f31fb09e5c5",
+    "registry": {
+      "canonical_sha256": "9297376506ddaaa645805f0c06e7570c28f40e4f131d3f8f087f63c2e92ff232",
+      "file_sha256": "e47e19aedab418de060bd106e3abe594f914de5c7bbf98c3e1c658b5d5a78026",
+      "path": "benchmarks/source_surface_registry.json"
+    },
+    "requirements_sha256": "77c1e3d4685e5f55c0b3e7bf23ff101ff957973cc2e80aa4e5cdb4d02f0e2731",
+    "reviewed_surfaces": {
+      "economic_decision_v1": "cc7ef1b30c01d7549f358750b159f183c5a27d22e71c670417ee3971a2d9bbc3",
+      "execution_account_v1": "de0ac59269f10256c64323e4c983994db97c6d507cb47384e2f932761706703b",
+      "full_package_v1": "61df8a5d000afc64d6b88b3fec7640a256edc7a9d2dfc8bcdd1effc194dd1687",
+      "sentinel_v1": "820b34c9dbb535af23fd540a16989b36d41f52d515a6e9383b348c5506053026",
+      "validation_runner_v1": "2c629f361313ed9ece7664f2ddac36af37b4802786752023109b6f4831d3722f"
+    },
+    "status": "ACTIVE_FOR_NEW_ACCOUNTS",
+    "uv_lock_sha256": "4accf16535b5ac95b831c9289e0ad2ff21282dc5dfae3f05dd0fb095089d6a61"
+  },
+  "status": "PASS",
+  "uv_lock_changed": false
+}

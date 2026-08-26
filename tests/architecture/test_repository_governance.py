@@ -134,6 +134,18 @@ def test_current_engineering_paths_use_domain_responsibilities() -> None:
         assert (resources / "performance_frozen_champion.json").is_file()
 
 
+def test_current_generalization_sources_use_domain_diagnostics_and_temp_paths() -> None:
+    registry_source = (ROOT / "research/ablation_registry.py").read_text(
+        encoding="utf-8"
+    )
+    runner_source = (ROOT / "research/generalization_ablation_cli.py").read_text(
+        encoding="utf-8"
+    )
+
+    assert 'label="phase1' not in registry_source
+    assert "uquant-phase2-" not in runner_source
+
+
 @functools.cache
 def _tracked_contents() -> dict[str, bytes]:
     completed = subprocess.run(

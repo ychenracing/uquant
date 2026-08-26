@@ -101,6 +101,9 @@ _CURRENT_SOURCE_PATHS = {
 }
 
 _CURRENT_RESOURCE_PATHS = {
+    "benchmarks/architecture_refactor_public_api.json": (
+        "benchmarks/public_api_contract.json"
+    ),
     "uquant/contracts/resources/phase1_frozen_champion.json": (
         "uquant/contracts/resources/performance_frozen_champion.json"
     ),

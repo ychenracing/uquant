@@ -19,7 +19,7 @@ from ..generalization_contract import (
 from ..universe import (
     REQUIRED_FROZEN_CHAMPION_SHA256,
     load_ai_universe,
-    load_phase1_frozen_champion,
+    load_performance_frozen_champion,
 )
 from .projection import (
     attribution_neutral_equality_sha256 as _attribution_neutral_equality_sha256,
@@ -194,7 +194,7 @@ def _baseline_champion_and_runner(
     runner = payload["matrix_runner"]
     if not isinstance(champion_payload, Mapping) or not isinstance(runner, Mapping):
         raise ValueError("generalization baseline provenance is malformed")
-    champion = load_phase1_frozen_champion()
+    champion = load_performance_frozen_champion()
     expected_champion = {
         "phase1_contract_sha256": REQUIRED_FROZEN_CHAMPION_SHA256,
         "production_commit": champion.production_commit,
@@ -216,7 +216,7 @@ def _baseline_champion_and_runner(
         "github_phase1_artifact_sha256": champion.github_artifact_sha256,
     }
     if dict(champion_payload) != expected_champion:
-        raise ValueError("generalization baseline differs from the accepted Phase 1 champion")
+        raise ValueError("generalization baseline differs from the accepted performance champion")
     return champion, runner, expected_champion
 
 

@@ -6,7 +6,9 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
 
-PUBLIC_API_PATH = ROOT / "benchmarks" / "architecture_refactor_public_api.json"
+PUBLIC_API_PATH = ROOT / "benchmarks" / "public_api_contract.json"
+
+HISTORICAL_PUBLIC_API_PATH = ROOT / "benchmarks" / "architecture_refactor_public_api.json"
 
 INVENTORY_PATH = ROOT / "artifacts" / "architecture_refactor" / "baseline_inventory.json"
 

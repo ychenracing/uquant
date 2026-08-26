@@ -21,6 +21,9 @@ ROOT = Path(__file__).resolve().parents[2]
 ARTIFACT_ROOT = ROOT / "artifacts" / "architecture_refactor"
 GATE_COMMIT = "ecee225237f02b4d21cbf65d88bc4ec5761603d3"
 BASELINE_COMMIT = "f9fd489806a86b3a56f62b8668aafa252012d405"
+DOMAIN_NAMING_BASE_COMMIT = "c4178fcd1b53d7e9061c6a71a1c6e7f1ddf3428d"
+DOMAIN_NAMING_SOURCE_COMMIT = "b18f034f4d5fcdc38ad97344a5d90792052b7410"
+DOMAIN_NAMING_SOURCE_TREE = "c6265cdf1afff28b01294950e1d43f31fb09e5c5"
 GITHUB_JOB_TIMEOUT_MAX_MINUTES = 360
 
 
@@ -212,7 +215,7 @@ def test_source_epoch_v3_preserves_its_registered_surfaces_and_production_wheel(
     assert epoch["uv_lock_sha256"] == _sha256(ROOT / "uv.lock")
 
 
-def test_current_source_epoch_binds_current_surfaces_and_production_wheel() -> None:
+def test_source_epoch_v4_preserves_its_registered_surfaces_and_production_wheel() -> None:
     payload = _artifact("source_epoch_v4.json")
     assert payload["schema"] == "uquant.source-epoch.v1"
     unsealed = {key: value for key, value in payload.items() if key != "canonical_sha256"}
@@ -246,11 +249,139 @@ def test_current_source_epoch_binds_current_surfaces_and_production_wheel() -> N
         assert ancestry.returncode == 0, ancestry.stderr.decode()
     assert epoch["status"] == "ACTIVE_FOR_NEW_ACCOUNTS"
     expected_surfaces = {
-        identifier: source_surface_fingerprint(ROOT, identifier)
+        identifier: git_source_surface_fingerprint(
+            ROOT, epoch["registered_at_commit"], identifier
+        )
         for identifier in SOURCE_SURFACE_IDS
     }
     assert epoch["reviewed_surfaces"] == expected_surfaces
     wheel = epoch["production_wheel"]
+    build = wheel["reproducible_build"]
+    project = tomllib.loads((ROOT / "pyproject.toml").read_text(encoding="utf-8"))
+    assert project["build-system"]["requires"] == [build["backend_requirement"]]
+    assert build == {
+        "backend_requirement": "setuptools==84.0.0",
+        "builder": "python -m scripts.build_reproducible_wheel",
+        "clean_source": f"git archive {epoch['registered_at_commit']}",
+        "container_normalization": (
+            "ZIP_STORED; lexicographic member order; 1980-01-01T00:00:00; "
+            "regular files 0644"
+        ),
+        "frontend": "build==1.5.0",
+        "source_date_epoch": 315532800,
+    }
+    wheel_path = ROOT / wheel["artifact_path"]
+    assert wheel_path.is_file() and not wheel_path.is_symlink()
+    assert wheel["bytes"] == wheel_path.stat().st_size
+    assert wheel["sha256"] == _sha256(wheel_path)
+    with zipfile.ZipFile(wheel_path) as archive:
+        members = []
+        for info in archive.infolist():
+            content = archive.read(info.filename)
+            members.append(
+                {
+                    "path": info.filename,
+                    "sha256": hashlib.sha256(content).hexdigest(),
+                    "size": len(content),
+                }
+            )
+    members.sort(key=lambda member: member["path"])
+    assert wheel["payload_manifest_sha256"] == canonical_json_sha256(members)
+    assert wheel["members"] == len(members)
+    assert wheel["uquant_members"] == sum(
+        str(member["path"]).startswith("uquant/") for member in members
+    )
+    assert wheel["dist_info_members"] == sum(
+        ".dist-info/" in str(member["path"]) for member in members
+    )
+    assert wheel["members"] == wheel["uquant_members"] + wheel["dist_info_members"]
+    assert wheel["uquant_members"] == 209
+    assert wheel["unexpected_members"] == []
+    assert epoch["requirements_sha256"] == _sha256(ROOT / "requirements.txt")
+    assert epoch["uv_lock_sha256"] == _sha256(ROOT / "uv.lock")
+
+
+def test_source_epoch_v5_binds_current_domain_naming_source_and_wheel() -> None:
+    payload = _artifact("source_epoch_v5.json")
+    assert payload["schema"] == "uquant.source-epoch.v1"
+    unsealed = {key: value for key, value in payload.items() if key != "canonical_sha256"}
+    assert payload["canonical_sha256"] == canonical_json_sha256(unsealed)
+    assert payload["status"] == "PASS"
+    assert payload["baseline_commit"] == DOMAIN_NAMING_BASE_COMMIT
+    assert payload["baseline_surfaces"] == {
+        identifier: git_source_surface_fingerprint(
+            ROOT, DOMAIN_NAMING_BASE_COMMIT, identifier
+        )
+        for identifier in SOURCE_SURFACE_IDS
+    }
+    assert payload["previous_epoch_id"] == "production_wheel_v4"
+    assert payload["change_classification"] == "NON_ECONOMIC_CURRENT_DOMAIN_NAMING"
+    assert payload["economic_ast_equal"] is False
+    assert payload["requirements_changed"] is False
+    assert payload["uv_lock_changed"] is False
+    assert payload["existing_account_action"] == {
+        "command": (
+            "uv run uquant account-code-migrate --account <account.json> "
+            "--acknowledge-code-change"
+        ),
+        "required": True,
+        "scope": (
+            "code_hash and code_identity_only audit event; economic state must remain identical"
+        ),
+    }
+    epoch = payload["source_epoch"]
+    assert epoch["epoch_id"] == "production_wheel_v5"
+    assert epoch["registered_at_commit"] == DOMAIN_NAMING_SOURCE_COMMIT
+    assert epoch["registered_tree_sha"] == DOMAIN_NAMING_SOURCE_TREE
+    assert _git("cat-file", "-t", epoch["registered_at_commit"]) == "commit"
+    assert _git("rev-parse", f"{epoch['registered_at_commit']}^{{tree}}") == (
+        epoch["registered_tree_sha"]
+    )
+    ancestry = subprocess.run(
+        [
+            "git",
+            "merge-base",
+            "--is-ancestor",
+            payload["baseline_commit"],
+            epoch["registered_at_commit"],
+        ],
+        cwd=ROOT,
+        capture_output=True,
+        check=False,
+    )
+    assert ancestry.returncode == 0, ancestry.stderr.decode()
+    if github_sha := os.environ.get("GITHUB_SHA"):
+        ancestry = subprocess.run(
+            ["git", "merge-base", "--is-ancestor", epoch["registered_at_commit"], github_sha],
+            cwd=ROOT,
+            capture_output=True,
+            check=False,
+        )
+        assert ancestry.returncode == 0, ancestry.stderr.decode()
+    assert epoch["status"] == "ACTIVE_FOR_NEW_ACCOUNTS"
+    expected_surfaces = {
+        identifier: git_source_surface_fingerprint(
+            ROOT, epoch["registered_at_commit"], identifier
+        )
+        for identifier in SOURCE_SURFACE_IDS
+    }
+    assert epoch["reviewed_surfaces"] == expected_surfaces
+    assert epoch["reviewed_surfaces"] == {
+        identifier: source_surface_fingerprint(ROOT, identifier)
+        for identifier in SOURCE_SURFACE_IDS
+    }
+    registry_path = ROOT / "benchmarks/source_surface_registry.json"
+    registry = json.loads(registry_path.read_text(encoding="utf-8"))
+    assert epoch["registry"] == {
+        "canonical_sha256": registry["canonical_sha256"],
+        "file_sha256": _sha256(registry_path),
+        "path": "benchmarks/source_surface_registry.json",
+    }
+    wheel = epoch["production_wheel"]
+    assert wheel["artifact_path"] == (
+        "artifacts/architecture_refactor/wheels/production_wheel_v5/"
+        "uquant-1.1.0-py3-none-any.whl"
+    )
     build = wheel["reproducible_build"]
     project = tomllib.loads((ROOT / "pyproject.toml").read_text(encoding="utf-8"))
     assert project["build-system"]["requires"] == [build["backend_requirement"]]

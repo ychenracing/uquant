@@ -541,3 +541,23 @@ def test_matrix_readback_keeps_empty_effective_insufficient_sample() -> None:
 
 def test_matrix_validator_cli_reads_committed_matrix() -> None:
     assert current_heads_main([]) == 0
+
+
+def test_competitor_cli_exposes_only_domain_named_generalization_inputs(
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    with pytest.raises(SystemExit) as prepare_exit:
+        runner._implementation.main(["prepare", "--help"])
+    assert prepare_exit.value.code == 0
+    prepare_help = capsys.readouterr().out
+    assert "--generalization-baseline" in prepare_help
+    assert "--phase2" not in prepare_help
+
+    with pytest.raises(SystemExit) as assemble_exit:
+        runner._implementation.main(["assemble", "--help"])
+    assert assemble_exit.value.code == 0
+    assemble_help = capsys.readouterr().out
+    assert "--generalization-summary" in assemble_help
+    assert "--generalization-matrix" in assemble_help
+    assert "--phase2-compact" not in assemble_help
+    assert "--phase2-raw" not in assemble_help

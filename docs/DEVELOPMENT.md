@@ -35,8 +35,8 @@ UV_CACHE_DIR=/tmp/uquant-uv-cache uv sync --frozen --extra dev
 
 构建发布物时，setuptools 只发现 `uquant*`。`research/` 是仓库内离线工具，不是安装后
 可依赖的公共包；脚本、测试、证据、冻结数据和文档也不进入 wheel。`requirements.txt`
-及 `full_package_v1` 保持 `KEEP_AUTHORITATIVE`；`production_wheel_v1/v2` 保留为历史身份，
-当前 `production_wheel_v3` source epoch 登记可校验 wheel、确定性 ZIP 容器与 source-surface
+及 `full_package_v1` 保持 `KEEP_AUTHORITATIVE`；`production_wheel_v1/v2/v3` 保留为历史身份，
+当前 `production_wheel_v4` source epoch 登记可校验 wheel、确定性 ZIP 容器与 source-surface
 摘要。v2 原始 gate 只存在于本地历史；其 artifact 已记录远程 main 的 package-input-equivalent
 恢复锚点和精确 payload manifest，同时透明保留历史容器权限元数据不确定这一事实。
 

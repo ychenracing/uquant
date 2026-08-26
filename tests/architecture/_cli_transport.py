@@ -68,6 +68,38 @@ def _project_name_loads(
     assert all(count > 0 for count in observed.values())
 
 
+def _project_local_identifiers(
+    function: ast.FunctionDef,
+    replacements: dict[str, tuple[str, int]],
+) -> None:
+    """Project reviewed local-only names without relaxing the owner AST proof."""
+
+    observed = dict.fromkeys(replacements, 0)
+
+    class Projector(ast.NodeTransformer):
+        def visit_Name(self, node: ast.Name) -> ast.expr:
+            if node.id in replacements:
+                observed[node.id] += 1
+                return ast.copy_location(
+                    ast.Name(id=replacements[node.id][0], ctx=node.ctx),
+                    node,
+                )
+            return node
+
+        def visit_ExceptHandler(self, node: ast.ExceptHandler) -> ast.ExceptHandler:
+            self.generic_visit(node)
+            if node.name in replacements:
+                observed[node.name] += 1
+                node.name = replacements[node.name][0]
+            return node
+
+    Projector().visit(function)
+    assert observed == {
+        name: expected_count
+        for name, (_, expected_count) in replacements.items()
+    }
+
+
 def public_cli_seam_transport_unit_digests(
     *,
     frozen_source: str,
@@ -448,6 +480,14 @@ def production_observation_transport_unit_digests(
     ):
         projected = copy.deepcopy(current[name])
         _project_production_observation_cli_seams(projected, expected_seams)
+        if name == "_observation_lock":
+            _project_local_identifiers(
+                projected,
+                {
+                    "release_errors": ("cleanup_errors", 7),
+                    "release_error": ("cleanup_error", 4),
+                },
+            )
         _assert_exact(projected, frozen[name], label=f"typed seam owner {name}")
         projected_functions.append(projected)
 

@@ -19,7 +19,8 @@
 | [Sentinel Risk Differential](sentinel/risk_differential/README.md) | 三方差分、反事实与拒绝决定 | `HISTORICAL_EVIDENCE` | [Risk Sentinel](../docs/RISK_SENTINEL.md) |
 | [Risk Differential 人类分析](sentinel/risk_differential/analysis.md) | 冻结差分结果解释 | `HISTORICAL_EVIDENCE` | [Risk Sentinel](../docs/RISK_SENTINEL.md) |
 | [`production_wheel_v2` 身份证据](architecture_refactor/source_epoch_v2.json) | 历史 wheel、远程 payload 恢复锚点与容器差异说明（仅历史身份） | `KEEP_AUTHORITATIVE` | [源码身份 ADR](../docs/decisions/0002-source-identity-and-holdout-epochs.md) |
-| [`production_wheel_v3` 身份证据](architecture_refactor/source_epoch_v3.json) | 当前非经济源码身份、确定性 wheel 与迁移边界 | `KEEP_AUTHORITATIVE` | [源码身份 ADR](../docs/decisions/0002-source-identity-and-holdout-epochs.md) |
+| [`production_wheel_v3` 身份证据](architecture_refactor/source_epoch_v3.json) | 历史非经济源码身份、确定性 wheel 与迁移边界 | `KEEP_AUTHORITATIVE` | [源码身份 ADR](../docs/decisions/0002-source-identity-and-holdout-epochs.md) |
+| [`production_wheel_v4` 身份证据](architecture_refactor/source_epoch_v4.json) | 当前统一源码身份、确定性 wheel 与前向账户迁移边界 | `KEEP_AUTHORITATIVE` | [源码身份 ADR](../docs/decisions/0002-source-identity-and-holdout-epochs.md) |
 
 静态日报 Markdown 只是冻结输出样例，不定义当前 renderer schema：
 [Evidence Closure 样例](sentinel/evidence_closure/daily_report_example.md)和

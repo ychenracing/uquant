@@ -581,6 +581,7 @@ def _reflection_from_snapshot(snapshot: Path) -> dict[str, Any]:
         observed[name] = value
     return {
         "normal": observed["normal"],
+        "modes": observed,
         "mode_sha256": {
             name: canonical_json_sha256(value) for name, value in observed.items()
         },

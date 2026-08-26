@@ -12,7 +12,10 @@ from typing import Any
 
 from uquant.contracts.source_surfaces import SOURCE_SURFACE_IDS
 from uquant.contracts.strict_json import canonical_json_sha256
-from uquant.provenance.fingerprints import source_surface_fingerprint
+from uquant.provenance.fingerprints import (
+    git_source_surface_fingerprint,
+    source_surface_fingerprint,
+)
 
 ROOT = Path(__file__).resolve().parents[2]
 ARTIFACT_ROOT = ROOT / "artifacts" / "architecture_refactor"
@@ -116,7 +119,7 @@ def test_source_epoch_v2_preserves_its_sealed_remote_recovery_metadata() -> None
     assert recovery["canonical_container_sha256"] != recovery["historical_container_sha256"]
 
 
-def test_current_source_epoch_binds_current_surfaces_and_production_wheel() -> None:
+def test_source_epoch_v3_preserves_its_registered_surfaces_and_production_wheel() -> None:
     payload = _artifact("source_epoch_v3.json")
     assert payload["schema"] == "uquant.source-epoch.v1"
     unsealed = {key: value for key, value in payload.items() if key != "canonical_sha256"}
@@ -131,6 +134,99 @@ def test_current_source_epoch_binds_current_surfaces_and_production_wheel() -> N
     assert payload["uv_lock_changed"] is False
     epoch = payload["source_epoch"]
     assert epoch["epoch_id"] == "production_wheel_v3"
+    assert re.fullmatch(r"[0-9a-f]{40}", epoch["registered_at_commit"])
+    assert re.fullmatch(r"[0-9a-f]{40}", epoch["registered_tree_sha"])
+    assert _git("cat-file", "-t", epoch["registered_at_commit"]) == "commit"
+    assert _git("rev-parse", f"{epoch['registered_at_commit']}^{{tree}}") == (
+        epoch["registered_tree_sha"]
+    )
+    assert _git("show", "-s", "--format=%P", epoch["registered_at_commit"]) == (
+        payload["baseline_commit"]
+    )
+    if github_sha := os.environ.get("GITHUB_SHA"):
+        ancestry = subprocess.run(
+            ["git", "merge-base", "--is-ancestor", epoch["registered_at_commit"], github_sha],
+            cwd=ROOT,
+            capture_output=True,
+            check=False,
+        )
+        assert ancestry.returncode == 0, ancestry.stderr.decode()
+    assert epoch["status"] == "ACTIVE_FOR_NEW_ACCOUNTS"
+    expected_surfaces = {
+        identifier: git_source_surface_fingerprint(
+            ROOT, epoch["registered_at_commit"], identifier
+        )
+        for identifier in SOURCE_SURFACE_IDS
+    }
+    assert epoch["reviewed_surfaces"] == expected_surfaces
+    wheel = epoch["production_wheel"]
+    build = wheel["reproducible_build"]
+    project = tomllib.loads((ROOT / "pyproject.toml").read_text(encoding="utf-8"))
+    assert project["build-system"]["requires"] == [build["backend_requirement"]]
+    assert build == {
+        "backend_requirement": "setuptools==84.0.0",
+        "builder": "python -m scripts.build_reproducible_wheel",
+        "clean_source": f"git archive {epoch['registered_at_commit']}",
+        "container_normalization": (
+            "ZIP_STORED; lexicographic member order; 1980-01-01T00:00:00; "
+            "regular files 0644"
+        ),
+        "frontend": "build==1.5.0",
+        "source_date_epoch": 315532800,
+    }
+    wheel_path = ROOT / wheel["artifact_path"]
+    assert wheel_path.is_file() and not wheel_path.is_symlink()
+    assert wheel["bytes"] == wheel_path.stat().st_size
+    assert wheel["sha256"] == _sha256(wheel_path)
+    with zipfile.ZipFile(wheel_path) as archive:
+        members = []
+        for info in archive.infolist():
+            content = archive.read(info.filename)
+            members.append(
+                {
+                    "path": info.filename,
+                    "sha256": hashlib.sha256(content).hexdigest(),
+                    "size": len(content),
+                }
+            )
+    members.sort(key=lambda member: member["path"])
+    assert wheel["payload_manifest_sha256"] == canonical_json_sha256(members)
+    assert wheel["members"] == len(members)
+    assert wheel["uquant_members"] == sum(
+        str(member["path"]).startswith("uquant/") for member in members
+    )
+    assert wheel["dist_info_members"] == sum(
+        ".dist-info/" in str(member["path"]) for member in members
+    )
+    assert wheel["members"] == wheel["uquant_members"] + wheel["dist_info_members"]
+    assert wheel["uquant_members"] == 209
+    assert wheel["unexpected_members"] == [
+        member["path"]
+        for member in members
+        if not (
+            str(member["path"]).startswith("uquant/")
+            or ".dist-info/" in str(member["path"])
+        )
+    ]
+    assert epoch["requirements_sha256"] == _sha256(ROOT / "requirements.txt")
+    assert epoch["uv_lock_sha256"] == _sha256(ROOT / "uv.lock")
+
+
+def test_current_source_epoch_binds_current_surfaces_and_production_wheel() -> None:
+    payload = _artifact("source_epoch_v4.json")
+    assert payload["schema"] == "uquant.source-epoch.v1"
+    unsealed = {key: value for key, value in payload.items() if key != "canonical_sha256"}
+    assert payload["canonical_sha256"] == canonical_json_sha256(unsealed)
+    assert payload["status"] == "PASS"
+    assert payload["previous_epoch_id"] == "production_wheel_v3"
+    assert payload["change_classification"] == (
+        "NON_ECONOMIC_SOURCE_NAMING_AND_COMPATIBILITY"
+    )
+    assert payload["economic_ast_equal"] is False
+    assert payload["requirements_changed"] is False
+    assert payload["uv_lock_changed"] is False
+    epoch = payload["source_epoch"]
+    assert epoch["epoch_id"] == "production_wheel_v4"
     assert re.fullmatch(r"[0-9a-f]{40}", epoch["registered_at_commit"])
     assert re.fullmatch(r"[0-9a-f]{40}", epoch["registered_tree_sha"])
     assert _git("cat-file", "-t", epoch["registered_at_commit"]) == "commit"
@@ -195,14 +291,7 @@ def test_current_source_epoch_binds_current_surfaces_and_production_wheel() -> N
     )
     assert wheel["members"] == wheel["uquant_members"] + wheel["dist_info_members"]
     assert wheel["uquant_members"] == 209
-    assert wheel["unexpected_members"] == [
-        member["path"]
-        for member in members
-        if not (
-            str(member["path"]).startswith("uquant/")
-            or ".dist-info/" in str(member["path"])
-        )
-    ]
+    assert wheel["unexpected_members"] == []
     assert epoch["requirements_sha256"] == _sha256(ROOT / "requirements.txt")
     assert epoch["uv_lock_sha256"] == _sha256(ROOT / "uv.lock")
 

@@ -14,31 +14,28 @@ from pathlib import Path
 from typing import cast
 
 from ._analysis_authorities import (
-    _CONTRACT_RELOCATIONS as _CONTRACT_RELOCATIONS,
-)
-from ._analysis_authorities import (
-    _DEBT_RELOCATIONS as _DEBT_RELOCATIONS,
-)
-from ._analysis_authorities import (
-    _MODULE_AUTHORITY_VALUES as _MODULE_AUTHORITY_VALUES,
-)
-from ._analysis_authorities import (
-    _NONPRODUCTION_IMPORT_AUTHORITIES as _NONPRODUCTION_IMPORT_AUTHORITIES,
-)
-from ._analysis_authorities import (
-    _RUNNER_AUTHORITIES as _RUNNER_AUTHORITIES,
-)
-from ._analysis_authorities import (
     _CONFIG_RELOCATED_PRIVATE_IMPORT_GROUPS as _CONFIG_RELOCATED_PRIVATE_IMPORT_GROUPS,
 )
 from ._analysis_authorities import (
     _CONFIG_RELOCATED_PRIVATE_IMPORTS as _CONFIG_RELOCATED_PRIVATE_IMPORTS,
 )
 from ._analysis_authorities import (
+    _CONTRACT_RELOCATIONS as _CONTRACT_RELOCATIONS,
+)
+from ._analysis_authorities import (
+    _DEBT_RELOCATIONS as _DEBT_RELOCATIONS,
+)
+from ._analysis_authorities import (
     _EXECUTION_RELOCATED_PRIVATE_IMPORT_GROUPS as _EXECUTION_RELOCATED_PRIVATE_IMPORT_GROUPS,
 )
 from ._analysis_authorities import (
     _EXECUTION_RELOCATED_PRIVATE_IMPORTS as _EXECUTION_RELOCATED_PRIVATE_IMPORTS,
+)
+from ._analysis_authorities import (
+    _MODULE_AUTHORITY_VALUES as _MODULE_AUTHORITY_VALUES,
+)
+from ._analysis_authorities import (
+    _NONPRODUCTION_IMPORT_AUTHORITIES as _NONPRODUCTION_IMPORT_AUTHORITIES,
 )
 from ._analysis_authorities import (
     _RISK_RELOCATED_FUNCTION_DEBT as _RISK_RELOCATED_FUNCTION_DEBT,
@@ -48,6 +45,9 @@ from ._analysis_authorities import (
 )
 from ._analysis_authorities import (
     _RISK_RELOCATED_PRIVATE_IMPORTS as _RISK_RELOCATED_PRIVATE_IMPORTS,
+)
+from ._analysis_authorities import (
+    _RUNNER_AUTHORITIES as _RUNNER_AUTHORITIES,
 )
 from ._analysis_authorities import (
     FINAL_BUDGETS as FINAL_BUDGETS,
@@ -65,22 +65,16 @@ from ._analysis_authorities import (
     ROOT as ROOT,
 )
 from ._analysis_relocations import (
-    _MUTABLE_CALLS as _MUTABLE_CALLS,
-)
-from ._analysis_relocations import (
-    _MUTATING_METHODS as _MUTATING_METHODS,
-)
-from ._analysis_relocations import (
-    _PUBLIC_API_FACADE_PATHS as _PUBLIC_API_FACADE_PATHS,
-)
-from ._analysis_relocations import (
-    _PUBLIC_API_IMPLEMENTATIONS as _PUBLIC_API_IMPLEMENTATIONS,
-)
-from ._analysis_relocations import (
     _EXECUTION_RELOCATED_FUNCTION_DEBT as _EXECUTION_RELOCATED_FUNCTION_DEBT,
 )
 from ._analysis_relocations import (
     _EXECUTION_RELOCATED_GLOBAL_DEBT as _EXECUTION_RELOCATED_GLOBAL_DEBT,
+)
+from ._analysis_relocations import (
+    _MUTABLE_CALLS as _MUTABLE_CALLS,
+)
+from ._analysis_relocations import (
+    _MUTATING_METHODS as _MUTATING_METHODS,
 )
 from ._analysis_relocations import (
     _PORTFOLIO_ALLOCATE_STRATEGY_DEBT as _PORTFOLIO_ALLOCATE_STRATEGY_DEBT,
@@ -99,6 +93,12 @@ from ._analysis_relocations import (
 )
 from ._analysis_relocations import (
     _PORTFOLIO_RELOCATED_TYPE_IGNORES as _PORTFOLIO_RELOCATED_TYPE_IGNORES,
+)
+from ._analysis_relocations import (
+    _PUBLIC_API_FACADE_PATHS as _PUBLIC_API_FACADE_PATHS,
+)
+from ._analysis_relocations import (
+    _PUBLIC_API_IMPLEMENTATIONS as _PUBLIC_API_IMPLEMENTATIONS,
 )
 from ._analysis_relocations import (
     _VALIDATION_RELOCATED_FUNCTION_DEBT as _VALIDATION_RELOCATED_FUNCTION_DEBT,

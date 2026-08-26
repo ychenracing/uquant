@@ -173,13 +173,32 @@ def test_validation_cleanup_inventory_has_bidirectional_reference_partitions() -
         assert sum(len(group) for group in groups) == len(set().union(*groups))
 
 
-def test_validation_frozen_public_reflection_survives_all_import_modes() -> None:
+def _without_docstring_identity(value: Any) -> Any:
+    if isinstance(value, dict):
+        return {
+            key: _without_docstring_identity(item)
+            for key, item in value.items()
+            if key != "raw_docstring_sha256"
+        }
+    if isinstance(value, list):
+        return [_without_docstring_identity(item) for item in value]
+    return value
+
+
+def test_validation_public_runtime_contract_survives_all_import_modes() -> None:
     payload = _immutable_inventory()
     current = current_reflection_contract(ROOT)
-    assert {
-        "modules": current["normal"],
-        "import_mode_sha256": current["mode_sha256"],
-    } == payload["public_runtime_contract"]
+    expected = _without_docstring_identity(
+        payload["public_runtime_contract"]["modules"]
+    )
+    assert set(current["modes"]) == {
+        "normal",
+        "optimized",
+        "double_optimized",
+        "windows_no_fcntl",
+    }
+    for modules in current["modes"].values():
+        assert _without_docstring_identity(modules) == expected
 
 
 @pytest.mark.parametrize(

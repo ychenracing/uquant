@@ -113,8 +113,16 @@ def candidate_behavior_from_subprocess(
     projected = (
         runner.read_text(encoding="utf-8")
         .replace(
+            '"""Run frozen validation behavior collectors across approved source relocation."""',
+            '"""Run the frozen Task 9 behavior collectors across approved source relocation."""',
+        )
+        .replace(
             "from . import _validation_oracle",
             "from . import _task9_validation_oracle",
+        )
+        .replace(
+            "uquant-validation-candidate-oracle-",
+            "uquant-task9-candidate-oracle-",
         )
         .replace("_validation_candidate_oracle.py", "_task9_candidate_oracle.py")
     ).encode()

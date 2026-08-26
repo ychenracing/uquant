@@ -132,6 +132,42 @@ def test_engineering_summary_catches_quality_or_security_failure_without_skippin
     assert "--cov-fail-under=85" in pytest_step["run"]
 
 
+def test_security_gate_blocks_only_findings_added_over_the_event_base() -> None:
+    """Catches a candidate-only scan or the wrong Git event base weakening the differential."""
+
+    workflow = _workflow("ci.yml")
+    security = workflow["jobs"]["security"]
+    checkout = next(
+        step for step in _steps(security) if str(step.get("uses", "")).startswith("actions/checkout@")
+    )
+    assert checkout["with"]["fetch-depth"] == "0"
+
+    resolve = _named_step(security, "Resolve Bandit comparison base")
+    assert resolve["id"] == "bandit-base"
+    assert resolve["env"] == {
+        "EVENT_NAME": "${{ github.event_name }}",
+        "PR_BASE_SHA": "${{ github.event.pull_request.base.sha }}",
+        "PUSH_BASE_SHA": "${{ github.event.before }}",
+    }
+    resolve_run = resolve["run"]
+    assert "pull_request" in resolve_run
+    assert "PUSH_BASE_SHA" in resolve_run
+    assert "HEAD^" in resolve_run
+    assert 'echo "sha=$base_sha" >> "$GITHUB_OUTPUT"' in resolve_run
+
+    differential = _named_step(security, "Run differential static security scan")
+    assert differential["env"]["BASE_SHA"] == "${{ steps.bandit-base.outputs.sha }}"
+    run = differential["run"]
+    assert "git worktree add --detach" in run
+    assert run.count("bandit -q -f json") == 2
+    assert ".github/scripts/bandit_differential.py" in run
+    assert "--baseline-root" in run
+    assert "--candidate-root" in run
+
+    names = [str(step.get("name", "")) for step in _steps(security)]
+    assert names.index("Run differential static security scan") < names.index("Audit production dependencies")
+
+
 def test_performance_summary_catches_path_skips_and_partial_or_stale_performance_evidence() -> None:
     """Catches path-filter skips, a weakened profile, or incomplete HEAD/provenance readback."""
     workflow = _workflow("strategy-performance.yml")

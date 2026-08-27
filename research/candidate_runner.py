@@ -58,7 +58,7 @@ class TraceDivergence:
     right: DecisionTrace
 
 
-class _CausalReplayDataStore(DataStore):
+class CausalReplayDataStore(DataStore):
     """Research-only manifest adapter that ignores symbols not yet observable."""
 
     def manifest(
@@ -146,7 +146,7 @@ class CandidateRunner:
         if not normalized:
             raise ValueError("candidate trace requires a non-empty universe")
         engine = ProductionEngine(self.data_dir, self.cfg)
-        engine.data = _CausalReplayDataStore(self.data_dir)
+        engine.data = CausalReplayDataStore(self.data_dir)
         replay_universe = self.replay_universe(normalized)
         harness = ReplayHarness(workspace=engine.workspace, universe=replay_universe)
         sessions = harness.sessions(start=start, end=end)

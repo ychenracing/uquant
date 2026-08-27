@@ -1,0 +1,271 @@
+{
+  "absolute_thresholds": {
+    "canonical_leave_one_out": {
+      "p10_final_wealth": 1.0,
+      "p90_longest_healthy_zero_target_streak": 60,
+      "p90_max_drawdown": 0.3,
+      "positive_return_fraction": 0.9,
+      "worst_longest_healthy_zero_target_streak": 120
+    },
+    "critical_removal": {
+      "longest_healthy_zero_target_streak": 60,
+      "max_drawdown": 0.3,
+      "min_final_wealth": 1.0,
+      "min_positive_targets": 1
+    },
+    "reachability": {
+      "capital_budget_0_healthy_sessions": 20,
+      "capital_budget_1_healthy_sessions": 40,
+      "capital_budget_2_3_healthy_sessions": 60,
+      "failed_grant_retry_healthy_sessions": 20,
+      "terminal_scc_healthy_zero_target_limit": 60,
+      "witness_missing_recovery_fraction": 1.0
+    },
+    "repeated_crowning": {
+      "minimum_distinct_owners": 2,
+      "minimum_strategic_epochs": 2
+    }
+  },
+  "base_commit": "70d66b37edea3cd42ffb19c896b3f318e8bd536e",
+  "causal_rules": {
+    "decision_information_cutoff": "session close at t",
+    "earliest_execution": "next tradable session open",
+    "future_return_selection_forbidden": true,
+    "native_eligibility": {
+      "current_factor_floor": 0.5,
+      "independent_market_confirmation": "production strategic discovery predicate",
+      "leader_confidence_floor": 0.7,
+      "leader_score_floor": 0.9,
+      "liquidity_confirmation": "production strategic discovery predicate",
+      "opportunity": [
+        "TREND",
+        "STRONG_TREND"
+      ],
+      "risk": "NORMAL",
+      "secular_score_floor": 0.8,
+      "trend_persistence_floor": 0.6666666666666666
+    },
+    "synthetic_historical_return_claims_forbidden": true
+  },
+  "failure_semantics": {
+    "insufficient_sample": "PRESERVE_NULL_METRICS_AND_FAIL_ABSOLUTE_GATE",
+    "replay_error": "PRESERVE_AND_FAIL_REQUIRED_CELL",
+    "runner_success_independent_of_capability_pass": true
+  },
+  "forced_owner": {
+    "activation_modes": [
+      "COMMON_ACTIVATION_DATE",
+      "NATIVE_ELIGIBILITY_DATE"
+    ],
+    "common_date_rule": "first baseline decision that increments strategic_epoch or opens a nonempty strategic cohort",
+    "intervention_count_per_cell": 1,
+    "negative_control_rules": [
+      "lowest activation-date leader score among symbols with production liquidity confirmation and at least 241 visible sessions",
+      "lowest symbol with activation-date ret120 below zero and trend persistence below two thirds",
+      "lowest secular confidence symbol that fails absolute owner eligibility"
+    ],
+    "post_intervention_manual_actions": 0,
+    "target_gross_rule": "exact baseline strategic owner target gross at the common activation date"
+  },
+  "future_holdout_boundary": "2026-08-06",
+  "healthy_session": {
+    "candidate": "at least one symbol meets frozen absolute owner eligibility",
+    "data_and_reference_coverage_complete": true,
+    "market_wide_execution_block": false,
+    "opportunity": [
+      "TREND",
+      "STRONG_TREND"
+    ],
+    "risk": "NORMAL",
+    "target_gross_cap_min_exclusive": 0.0
+  },
+  "identities": {
+    "config_sha256": "dae4d79fdd813832c6ab152611437c13be1d38227c7280691874d3a9267d93d5",
+    "data_manifest_sha256": "343009138d22f8d4a20768f706207fe4d4bcd03581b0c5945c5485ecbd28788d",
+    "data_snapshot_id": "20260809T094222Z-causal-tech-index-rebase",
+    "industry_mapping_sha256": "97b0aad2eefbab15e32cbb37358343587d2acc7b2e84246331258bb61ea5dad2",
+    "production_source_sha256": "cc7ef1b30c01d7549f358750b159f183c5a27d22e71c670417ee3971a2d9bbc3",
+    "universe_sha256": "d1af9d7bdcf62103534e6db8e64abf81acbb12155aa7ed4fb903cbf02576d94a",
+    "uv_lock_sha256": "4accf16535b5ac95b831c9289e0ad2ff21282dc5dfae3f05dd0fb095089d6a61",
+    "window_sha256": "c82819690877c28ab4eb17fdeecff46a116ca60c947b931d4e7cd62a1aa77e5f"
+  },
+  "matrix": {
+    "canonical_universe": [
+      "sh600487",
+      "sh601869",
+      "sh603688",
+      "sh603986",
+      "sh688008",
+      "sh688012",
+      "sh688019",
+      "sh688037",
+      "sh688041",
+      "sh688072",
+      "sh688082",
+      "sh688110",
+      "sh688120",
+      "sh688146",
+      "sh688200",
+      "sh688233",
+      "sh688256",
+      "sh688268",
+      "sh688300",
+      "sh688347",
+      "sh688361",
+      "sh688498",
+      "sh688766",
+      "sz000636",
+      "sz002281",
+      "sz002371",
+      "sz002409",
+      "sz300054",
+      "sz300223",
+      "sz300308",
+      "sz300394",
+      "sz300502",
+      "sz300604",
+      "sz300666"
+    ],
+    "critical_symbols": [
+      "sz300308",
+      "sz300502",
+      "sz300394"
+    ],
+    "industry_ablations": [
+      "optical",
+      "compute",
+      "storage",
+      "semicap",
+      "materials",
+      "industry-balanced"
+    ],
+    "initial_state_ids": [
+      "S01",
+      "S02",
+      "S03",
+      "S04",
+      "S05",
+      "S06",
+      "S07",
+      "S08",
+      "S09",
+      "S10",
+      "S11",
+      "S12",
+      "S13",
+      "S14"
+    ],
+    "path_ids": [
+      "P01",
+      "P02",
+      "P03",
+      "P04",
+      "P05",
+      "P06"
+    ],
+    "positive_controls": [
+      "sz300308",
+      "sz300502",
+      "sz300394",
+      "sh688008",
+      "sh603986"
+    ],
+    "report_universe_13": [
+      "sz300308",
+      "sz300502",
+      "sz300394",
+      "sh688008",
+      "sh603986",
+      "sh688256",
+      "sh688072",
+      "sh688300",
+      "sz300054",
+      "sh688361",
+      "sz002409",
+      "sh688498",
+      "sh688120"
+    ],
+    "report_universe_5": [
+      "sz300308",
+      "sz300502",
+      "sz300394",
+      "sh688008",
+      "sh603986"
+    ],
+    "witness_removal_axes": [
+      "TRADABLE_REMOVAL",
+      "EVIDENCE_REMOVAL",
+      "FULL_REMOVAL"
+    ]
+  },
+  "output_contract": {
+    "compression": "deterministic-jsonl-gzip-mtime-0",
+    "large_traces_tracked_in_git": false,
+    "required_cell_statuses": [
+      "SUCCESS",
+      "REPLAY_ERROR",
+      "INSUFFICIENT_SAMPLE"
+    ],
+    "required_identity_fields": [
+      "base_commit",
+      "experiment_commit",
+      "production_source_sha256",
+      "research_source_sha256",
+      "config_sha256",
+      "data_manifest_sha256",
+      "universe_sha256",
+      "industry_mapping_sha256",
+      "window_sha256",
+      "scenario_sha256",
+      "python",
+      "numpy",
+      "pandas",
+      "uv",
+      "uv_lock_sha256",
+      "generated_at",
+      "payload_sha256"
+    ]
+  },
+  "payload_sha256": "491dd6c8f23a4207bd6d472077d0a8eabe018dee827853767c95c80033bfd00c",
+  "random_seed": 20260826,
+  "reachability": {
+    "graph_dimensions": [
+      "risk",
+      "opportunity",
+      "capital_budget_level",
+      "chronic_level",
+      "freeze_new_risk",
+      "strategic_epoch",
+      "strategic_active",
+      "qualification_streak",
+      "long_cycle_open",
+      "recovery_owner",
+      "protected_or_anchor",
+      "positive_target",
+      "positive_position"
+    ],
+    "reach_nodes": [
+      "R1",
+      "R2",
+      "R3",
+      "R4",
+      "R5",
+      "R6",
+      "R7",
+      "R8"
+    ],
+    "synthetic_seed": 20260826
+  },
+  "runtime": {
+    "numpy": "2.5.1",
+    "pandas": "3.0.5",
+    "python": "3.12.13",
+    "python_hash_seed": "0",
+    "uv": "0.11.33"
+  },
+  "schema_version": "uquant.strategic-evidence-closure-contract.v1",
+  "window": {
+    "end": "2026-08-05",
+    "start": "2023-01-03"
+  }
+}

@@ -13,8 +13,10 @@ from datetime import date
 from itertools import combinations
 from typing import Any
 
+from uquant.account import account_from_dict, economic_state_sha256
+
 from .contract import StrategicEvidenceContract
-from .models import canonical_sha256, require_sha256
+from .models import canonical_sha256
 from .replay import ReplayResult
 from .trace import RouteTraceRow
 
@@ -100,6 +102,27 @@ class FirstDivergences:
 
 
 @dataclass(frozen=True, slots=True)
+class DiagnosticProjectionRow:
+    """One explicitly single-layer, non-economic diagnostic observation."""
+
+    date: str
+    layer: str
+    payload: Mapping[str, Any]
+
+    def __post_init__(self) -> None:
+        try:
+            date.fromisoformat(self.date)
+        except ValueError as exc:
+            raise ValueError("witness diagnostic projection date is malformed") from exc
+        expected = {"leaders"} if self.layer == "leaders" else {"symbols"}
+        if self.layer not in {"leaders", "tradable_universe"} or set(self.payload) != expected:
+            raise ValueError("witness diagnostic projection layer/payload differs")
+
+    def compact(self) -> dict[str, Any]:
+        return {"date": self.date, "layer": self.layer, "payload": dict(self.payload)}
+
+
+@dataclass(frozen=True, slots=True)
 class AblationCell:
     """Compact retained outcome; full routes remain in external shards."""
 
@@ -107,9 +130,13 @@ class AblationCell:
     status: str
     metrics: Mapping[str, Any] | None
     metric_null_reasons: Mapping[str, str]
+    final_account: Mapping[str, Any] | None
     final_account_sha256: str | None
+    final_account_payload_sha256: str | None
     trace_sha256: str | None
     partial_trace_row_count: int
+    diagnostic_projection_sha256: str | None
+    diagnostic_projection_row_count: int
     intervention_provenance: Mapping[str, Any] | None
     error: str | None
 
@@ -118,10 +145,36 @@ class AblationCell:
             raise ValueError("witness ablation status is not terminal")
         if self.partial_trace_row_count < 0:
             raise ValueError("witness ablation trace row count is negative")
+        if self.diagnostic_projection_row_count < 0:
+            raise ValueError("witness ablation diagnostic projection count is negative")
         if self.status != "SUCCESS" and self.metrics is not None:
             raise ValueError("failed witness ablation cell carries metrics")
         if self.spec.evidence_class == DIAGNOSTIC_ONLY and self.metrics is not None:
             raise ValueError("diagnostic witness ablation cell carries economic metrics")
+        if (self.final_account is None) != (self.final_account_payload_sha256 is None):
+            raise ValueError("witness ablation final account payload/seal pairing differs")
+        if self.final_account is not None:
+            decoded = account_from_dict(self.final_account, require_hashes=False)
+            if decoded.to_dict() != self.final_account:
+                raise ValueError("witness ablation final account codec round-trip differs")
+            expected_payload_sha = canonical_sha256(dict(self.final_account))
+            if self.final_account_payload_sha256 != expected_payload_sha:
+                raise ValueError("witness ablation final account payload seal differs")
+            if self.final_account_sha256 != economic_state_sha256(decoded):
+                raise ValueError("witness ablation final account economic seal differs")
+        elif self.final_account_sha256 is not None:
+            raise ValueError("witness ablation final account economic seal lacks payload")
+        if self.spec.evidence_class == DIAGNOSTIC_ONLY:
+            if (
+                self.partial_trace_row_count != 0
+                or self.trace_sha256 is not None
+                or self.final_account is not None
+                or self.diagnostic_projection_row_count < 1
+                or self.diagnostic_projection_sha256 is None
+            ):
+                raise ValueError("diagnostic witness ablation must be a single-layer projection")
+        elif self.diagnostic_projection_row_count != 0 or self.diagnostic_projection_sha256 is not None:
+            raise ValueError("economic witness ablation carries a diagnostic projection")
 
     @property
     def cell_id(self) -> str:
@@ -134,9 +187,13 @@ class AblationCell:
             "status": self.status,
             "metrics": None if self.metrics is None else dict(self.metrics),
             "metric_null_reasons": dict(self.metric_null_reasons),
+            "final_account": None if self.final_account is None else dict(self.final_account),
             "final_account_sha256": self.final_account_sha256,
+            "final_account_payload_sha256": self.final_account_payload_sha256,
             "trace_sha256": self.trace_sha256,
             "partial_trace_row_count": self.partial_trace_row_count,
+            "diagnostic_projection_sha256": self.diagnostic_projection_sha256,
+            "diagnostic_projection_row_count": self.diagnostic_projection_row_count,
             "intervention_provenance": (
                 None if self.intervention_provenance is None else dict(self.intervention_provenance)
             ),
@@ -290,6 +347,59 @@ def minimal_witness_sets(removals: Iterable[Sequence[str]]) -> tuple[tuple[str, 
     return tuple(minimal)
 
 
+def is_decisive(outcome: FirstDivergences) -> bool:
+    """Use one state/economic outcome predicate across search, minimality, and roles."""
+
+    return outcome.comparable and (outcome.state is not None or outcome.economic is not None)
+
+
+def _proper_nonempty_subsets(symbols: frozenset[str]) -> tuple[frozenset[str], ...]:
+    ordered = tuple(sorted(symbols))
+    return tuple(
+        frozenset(subset)
+        for size in range(1, len(ordered))
+        for subset in combinations(ordered, size)
+    )
+
+
+def necessary_triple_support(
+    triple: Sequence[str],
+    outcomes: Mapping[frozenset[str], FirstDivergences],
+) -> bool:
+    """Require all six single/pair proper subsets to be observed and non-decisive."""
+
+    candidate = frozenset(triple)
+    if len(candidate) != 3:
+        raise ValueError("witness ablation necessary triple identity differs")
+    for subset in _proper_nonempty_subsets(candidate):
+        outcome = outcomes.get(subset)
+        if outcome is None or not outcome.comparable or is_decisive(outcome):
+            return False
+    return True
+
+
+def minimal_decisive_witness_sets(
+    outcomes: Mapping[frozenset[str], FirstDivergences],
+) -> tuple[tuple[str, ...], ...]:
+    """Return decisive sets only when every strict subset is explicit and non-decisive."""
+
+    result: list[tuple[str, ...]] = []
+    for candidate, outcome in sorted(
+        outcomes.items(), key=lambda item: (len(item[0]), tuple(sorted(item[0])))
+    ):
+        if not candidate or not is_decisive(outcome):
+            continue
+        subsets = _proper_nonempty_subsets(candidate)
+        if all(
+            subset in outcomes
+            and outcomes[subset].comparable
+            and not is_decisive(outcomes[subset])
+            for subset in subsets
+        ):
+            result.append(tuple(sorted(candidate)))
+    return tuple(result)
+
+
 def derive_first_divergences(
     baseline: Sequence[RouteTraceRow],
     variant: Sequence[RouteTraceRow],
@@ -369,7 +479,11 @@ def derive_symbol_roles(
                     observed.add(symbol)
         raw_anchors = row.risk.get("risk_anchor_symbols", ())
         if isinstance(raw_anchors, Sequence) and not isinstance(raw_anchors, (str, bytes)):
-            anchors.update(str(symbol) for symbol in raw_anchors if str(symbol))
+            if any(not isinstance(symbol, str) or not symbol for symbol in raw_anchors):
+                raise ValueError("witness ablation risk anchor symbols are malformed")
+            anchors.update(raw_anchors)
+        elif raw_anchors != ():
+            raise ValueError("witness ablation risk anchor symbols are malformed")
         observed.update(anchors)
     pair_members = {
         symbol for pair in decisive_pairs for symbol in pair if isinstance(symbol, str) and symbol
@@ -401,7 +515,12 @@ def derive_symbol_roles(
     return result
 
 
-def cell_from_replay(spec: AblationSpec, result: ReplayResult) -> AblationCell:
+def cell_from_replay(
+    spec: AblationSpec,
+    result: ReplayResult,
+    *,
+    diagnostic_projection: Sequence[DiagnosticProjectionRow] = (),
+) -> AblationCell:
     """Retain terminal status, interventions, and any partial trace already produced."""
 
     if result.status not in _TERMINAL_STATUSES:
@@ -413,20 +532,43 @@ def cell_from_replay(spec: AblationSpec, result: ReplayResult) -> AblationCell:
     nulls: dict[str, str] = {}
     if metrics is None:
         nulls["all_economic_metrics"] = spec.evidence_class if result.status == "SUCCESS" else result.status
-    final_sha: str | None = None
-    if result.status == "SUCCESS" and result.trace:
-        final_sha = require_sha256(
-            result.trace[-1].account_sha256,
-            field="witness ablation final account sha256",
-        )
+    projections = tuple(diagnostic_projection)
+    if spec.evidence_class == DIAGNOSTIC_ONLY and not projections:
+        raise ValueError("diagnostic witness ablation projection is empty")
+    if spec.evidence_class == ECONOMIC and projections:
+        raise ValueError("economic witness ablation carries a diagnostic projection")
+    account_payload = (
+        dict(result.final_account)
+        if result.final_account and spec.evidence_class == ECONOMIC
+        else None
+    )
+    decoded_account = (
+        None if account_payload is None else account_from_dict(account_payload, require_hashes=False)
+    )
+    if decoded_account is not None and decoded_account.to_dict() != account_payload:
+        raise ValueError("witness ablation replay final account codec round-trip differs")
+    final_sha = None if decoded_account is None else economic_state_sha256(decoded_account)
+    final_payload_sha = (
+        None if account_payload is None else canonical_sha256(dict(account_payload))
+    )
     return AblationCell(
         spec=spec,
         status=result.status,
         metrics=metrics,
         metric_null_reasons=nulls,
+        final_account=account_payload,
         final_account_sha256=final_sha,
+        final_account_payload_sha256=final_payload_sha,
         trace_sha256=trace_sha,
         partial_trace_row_count=len(result.trace),
+        diagnostic_projection_sha256=(
+            None
+            if not projections
+            else canonical_sha256(
+                {"diagnostic_projection": [row.compact() for row in projections]}
+            )
+        ),
+        diagnostic_projection_row_count=len(projections),
         intervention_provenance=(
             None if result.intervention_provenance is None else dict(result.intervention_provenance)
         ),
@@ -462,6 +604,61 @@ def diagnostic_removal_trace(
             for row in rows
         )
     raise ValueError("diagnostic witness removal requires a component-only axis")
+
+
+def diagnostic_projection(
+    rows: Sequence[RouteTraceRow],
+    *,
+    removed_symbols: Sequence[str],
+    source_symbols: Sequence[str],
+    axis: str,
+) -> tuple[DiagnosticProjectionRow, ...]:
+    """Project only the intervened component; never copy stale downstream layers."""
+
+    removed = set(removed_symbols)
+    source = tuple(source_symbols)
+    if not removed or len(source) != len(set(source)) or not removed <= set(source):
+        raise ValueError("witness diagnostic projection universe is malformed")
+    if axis == EVIDENCE_REMOVAL:
+        return tuple(
+            DiagnosticProjectionRow(
+                date=row.date,
+                layer="leaders",
+                payload={
+                    "leaders": [
+                        dict(item) for item in row.leaders if item.get("symbol") not in removed
+                    ]
+                },
+            )
+            for row in rows
+        )
+    if axis == TRADABLE_REMOVAL:
+        effective = [symbol for symbol in source if symbol not in removed]
+        return tuple(
+            DiagnosticProjectionRow(
+                date=row.date,
+                layer="tradable_universe",
+                payload={"symbols": list(effective)},
+            )
+            for row in rows
+        )
+    raise ValueError("witness diagnostic projection requires a component-only axis")
+
+
+def diagnostic_projection_from_compact(value: object) -> DiagnosticProjectionRow:
+    if not isinstance(value, Mapping) or set(value) != {"date", "layer", "payload"}:
+        raise ValueError("witness diagnostic projection compact row differs")
+    payload = value["payload"]
+    if not isinstance(payload, Mapping):
+        raise ValueError("witness diagnostic projection compact payload is malformed")
+    row = DiagnosticProjectionRow(
+        date=str(value["date"]),
+        layer=str(value["layer"]),
+        payload=dict(payload),
+    )
+    if row.compact() != value:
+        raise ValueError("witness diagnostic projection compact round-trip differs")
+    return row
 
 
 def ablation_spec_from_compact(value: object) -> AblationSpec:
@@ -502,9 +699,13 @@ def ablation_cell_from_compact(value: object) -> AblationCell:
         "status",
         "metrics",
         "metric_null_reasons",
+        "final_account",
         "final_account_sha256",
+        "final_account_payload_sha256",
         "trace_sha256",
         "partial_trace_row_count",
+        "diagnostic_projection_sha256",
+        "diagnostic_projection_row_count",
         "intervention_provenance",
         "error",
     }
@@ -513,25 +714,45 @@ def ablation_cell_from_compact(value: object) -> AblationCell:
     metrics = raw["metrics"]
     nulls = raw["metric_null_reasons"]
     intervention = raw["intervention_provenance"]
+    final_account = raw["final_account"]
     if (
         (metrics is not None and not isinstance(metrics, Mapping))
         or not isinstance(nulls, Mapping)
+        or (final_account is not None and not isinstance(final_account, Mapping))
         or (intervention is not None and not isinstance(intervention, Mapping))
     ):
         raise ValueError("witness ablation compact cell shape differs")
     count = raw["partial_trace_row_count"]
-    if isinstance(count, bool) or not isinstance(count, int):
+    projection_count = raw["diagnostic_projection_row_count"]
+    if (
+        isinstance(count, bool)
+        or not isinstance(count, int)
+        or isinstance(projection_count, bool)
+        or not isinstance(projection_count, int)
+    ):
         raise ValueError("witness ablation compact trace count is malformed")
     cell = AblationCell(
         spec=ablation_spec_from_compact(raw["spec"]),
         status=str(raw["status"]),
         metrics=None if metrics is None else dict(metrics),
         metric_null_reasons={str(key): str(item) for key, item in nulls.items()},
+        final_account=None if final_account is None else dict(final_account),
         final_account_sha256=(
             None if raw["final_account_sha256"] is None else str(raw["final_account_sha256"])
         ),
+        final_account_payload_sha256=(
+            None
+            if raw["final_account_payload_sha256"] is None
+            else str(raw["final_account_payload_sha256"])
+        ),
         trace_sha256=None if raw["trace_sha256"] is None else str(raw["trace_sha256"]),
         partial_trace_row_count=count,
+        diagnostic_projection_sha256=(
+            None
+            if raw["diagnostic_projection_sha256"] is None
+            else str(raw["diagnostic_projection_sha256"])
+        ),
+        diagnostic_projection_row_count=projection_count,
         intervention_provenance=None if intervention is None else dict(intervention),
         error=None if raw["error"] is None else str(raw["error"]),
     )
@@ -549,15 +770,21 @@ __all__ = (
     "TRADABLE_REMOVAL",
     "AblationCell",
     "AblationSpec",
+    "DiagnosticProjectionRow",
     "FirstDivergences",
     "ablation_cell_from_compact",
     "ablation_spec_from_compact",
     "cell_from_replay",
     "derive_first_divergences",
     "derive_symbol_roles",
+    "diagnostic_projection",
+    "diagnostic_projection_from_compact",
     "diagnostic_removal_trace",
     "enumerate_initial_specs",
+    "is_decisive",
+    "minimal_decisive_witness_sets",
     "minimal_witness_sets",
+    "necessary_triple_support",
     "rank_critical_symbols",
     "select_bounded_search",
 )

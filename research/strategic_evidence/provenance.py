@@ -78,11 +78,42 @@ def build_provenance(
     research_source_sha256: str,
     scenario: Mapping[str, Any],
     generated_at: str,
+    observed_identities: Mapping[str, str] | None = None,
+    runtime_metadata: Mapping[str, str] | None = None,
 ) -> dict[str, Any]:
     """Build the required compact binding without altering the frozen contract."""
 
     scenario_sha256 = canonical_sha256(dict(scenario))
-    identities = contract.raw["identities"]
+    identities = contract.raw["identities"] if observed_identities is None else observed_identities
+    required_identities = {
+        "production_source_sha256",
+        "research_source_sha256",
+        "config_sha256",
+        "data_manifest_sha256",
+        "universe_sha256",
+        "industry_mapping_sha256",
+        "window_sha256",
+        "uv_lock_sha256",
+    }
+    if observed_identities is not None and set(identities) != required_identities:
+        raise ValueError("observed strategic evidence identity fields differ")
+    if observed_identities is not None and identities["research_source_sha256"] != research_source_sha256:
+        raise ValueError("observed strategic evidence research source differs")
+    runtime = (
+        {
+            "python": sys.version.split()[0],
+            "numpy": np.__version__,
+            "pandas": pd.__version__,
+            "uv": "pinned-by-uv-lock",
+            "generated_at": generated_at,
+        }
+        if runtime_metadata is None
+        else dict(runtime_metadata)
+    )
+    if set(runtime) != {"python", "numpy", "pandas", "uv", "generated_at"}:
+        raise ValueError("strategic evidence runtime metadata fields differ")
+    if runtime["generated_at"] != generated_at:
+        raise ValueError("strategic evidence generated_at differs from runtime metadata")
     return {
         "base_commit": contract.base_commit,
         "experiment_commit": experiment_commit,
@@ -94,12 +125,12 @@ def build_provenance(
         "industry_mapping_sha256": identities["industry_mapping_sha256"],
         "window_sha256": identities["window_sha256"],
         "scenario_sha256": scenario_sha256,
-        "python": sys.version.split()[0],
-        "numpy": np.__version__,
-        "pandas": pd.__version__,
-        "uv": "pinned-by-uv-lock",
+        "python": runtime["python"],
+        "numpy": runtime["numpy"],
+        "pandas": runtime["pandas"],
+        "uv": runtime["uv"],
         "uv_lock_sha256": identities["uv_lock_sha256"],
-        "generated_at": generated_at,
+        "generated_at": runtime["generated_at"],
     }
 
 

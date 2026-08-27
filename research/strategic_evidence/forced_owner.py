@@ -20,7 +20,7 @@ from typing import Any
 
 import pandas as pd
 
-from research.candidate_runner import CandidateRunner, _CausalReplayDataStore
+from research.candidate_runner import CandidateRunner, CausalReplayDataStore
 from uquant.config import DEFAULT_CONFIG, SystemConfig
 from uquant.engine import ProductionEngine
 from uquant.leader import apply_opportunity_alpha, compute_structural_leaders
@@ -397,7 +397,7 @@ def scan_native_eligibilities(
     """Scan all owners in one production daily pass, avoiding selection drift."""
 
     engine = ProductionEngine(data_dir, cfg)
-    engine.data = _CausalReplayDataStore(data_dir)
+    engine.data = CausalReplayDataStore(data_dir)
     harness = ReplayHarness(workspace=engine.workspace, universe=CandidateRunner(data_dir, cfg).replay_universe(symbols))
     sessions = harness.sessions(start=start, end=end)
     if len(sessions) < 2:

@@ -5,7 +5,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
-import subprocess
+import subprocess  # nosec B404
 import sys
 from collections import Counter
 from collections.abc import Iterable, Mapping, Sequence
@@ -61,7 +61,7 @@ def _sha256_file(path: Path) -> str:
 
 
 def _git_commit(root: Path) -> str:
-    commit = subprocess.check_output(
+    commit = subprocess.check_output(  # nosec B603, B607
         ["git", "rev-parse", "HEAD"],
         cwd=root,
         text=True,
@@ -91,7 +91,7 @@ def build_executable_source_manifest(
         files[resolved.relative_to(repository).as_posix()] = _sha256_file(resolved)
     if require_clean:
         relative_paths = tuple(files)
-        status = subprocess.check_output(
+        status = subprocess.check_output(  # nosec B603, B607
             ["git", "status", "--porcelain", "--", *relative_paths],
             cwd=repository,
             text=True,
@@ -100,7 +100,7 @@ def build_executable_source_manifest(
             raise ValueError("Task 5 executable research source is dirty")
         head = _git_commit(repository)
         for relative, digest in files.items():
-            committed = subprocess.check_output(
+            committed = subprocess.check_output(  # nosec B603, B607
                 ["git", "show", f"{head}:{relative}"],
                 cwd=repository,
             )
@@ -228,7 +228,9 @@ def _historical_checkpoints(path: Path | None) -> tuple[HistoricalCheckpoint, ..
 
 
 def _runtime_metadata(*, generated_at: str) -> dict[str, str]:
-    uv = subprocess.check_output(["uv", "--version"], text=True).strip()
+    uv = subprocess.check_output(  # nosec B603, B607
+        ["uv", "--version"], text=True
+    ).strip()
     if not uv:
         raise ValueError("Task 5 uv runtime version is empty")
     return {

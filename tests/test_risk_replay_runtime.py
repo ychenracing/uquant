@@ -16,9 +16,9 @@ import uquant.engine as engine_module
 import uquant.leader as leader_module
 from research.candidate_runner import (
     CandidateRunner,
+    CausalReplayDataStore,
     CellTrace,
     DecisionTrace,
-    _CausalReplayDataStore,
 )
 from research.risk_differential_models import canonical_bytes
 from research.risk_replay_runtime import (
@@ -173,7 +173,7 @@ def test_candidate_runner_never_rebinds_process_reference_universes(tmp_path: Pa
 def test_causal_replay_manifest_omits_missing_and_future_only_symbols(tmp_path: Path) -> None:
     _write_prices(tmp_path / "sh600000.csv", (("2026-08-05", 11.0),))
     _write_prices(tmp_path / "sh600001.csv", (("2026-08-06", 12.0),))
-    manifest = _CausalReplayDataStore(tmp_path).manifest(
+    manifest = CausalReplayDataStore(tmp_path).manifest(
         ("sh600000", "sh600001", "sh600002"), as_of="2026-08-05"
     )
     assert manifest.symbols == ("sh600000",)
@@ -184,13 +184,13 @@ def test_candidate_runner_routes_workspace_manifests_through_causal_store(
 ) -> None:
     calls: list[tuple[str, ...]] = []
 
-    class InspectingStore(_CausalReplayDataStore):
+    class InspectingStore(CausalReplayDataStore):
         def manifest(self, symbols: object, **kwargs: object):  # type: ignore[no-untyped-def,override]
             result = super().manifest(symbols, **kwargs)  # type: ignore[arg-type]
             calls.append(result.symbols)
             return result
 
-    monkeypatch.setattr("research.candidate_runner._CausalReplayDataStore", InspectingStore)
+    monkeypatch.setattr("research.candidate_runner.CausalReplayDataStore", InspectingStore)
     CandidateRunner(ROOT / "data" / "frozen").trace_cell(
         symbols=("sz300308",),
         start="2026-07-01",

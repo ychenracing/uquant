@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import hashlib
 import json
-import subprocess
+import subprocess  # nosec B404
 from dataclasses import asdict
 from pathlib import Path
 from typing import Any
@@ -37,7 +37,9 @@ def _research_source(root: Path) -> str:
 
 
 def _commit(root: Path) -> str:
-    return subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=root, text=True).strip()
+    return subprocess.check_output(  # nosec B603, B607
+        ["git", "rev-parse", "HEAD"], cwd=root, text=True
+    ).strip()
 
 
 def write_checkpoint2_summary(root: str | Path) -> dict[str, Any]:

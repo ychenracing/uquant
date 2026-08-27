@@ -5,7 +5,8 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
-import subprocess
+import subprocess  # nosec B404
+import tempfile
 import time
 from collections import Counter
 from collections.abc import Mapping, Sequence
@@ -54,10 +55,9 @@ from .replay import (
 from .trace import strip_intervention_provenance
 
 _GENERATED_AT = "2026-08-26T00:00:00Z"
-_DEFAULT_TRACE_SHARD = Path(
-    "/tmp/uquant-strategic-evidence/task3/forced_owner_full_routes.jsonl.gz"
-)
-_DEFAULT_RESUME_DIR = Path("/tmp/uquant-strategic-evidence/task3/resume")
+_TASK3_TEMP_ROOT = Path(tempfile.gettempdir()) / "uquant-strategic-evidence" / "task3"
+_DEFAULT_TRACE_SHARD = _TASK3_TEMP_ROOT / "forced_owner_full_routes.jsonl.gz"
+_DEFAULT_RESUME_DIR = _TASK3_TEMP_ROOT / "resume"
 _DEFAULT_SUMMARY = Path(
     "artifacts/strategic_evidence_closure/checkpoint3_forced_owner_full.json"
 )
@@ -72,7 +72,7 @@ def _sha256_file(path: Path) -> str:
 
 
 def _git_commit(root: Path) -> str:
-    commit = subprocess.check_output(
+    commit = subprocess.check_output(  # nosec B603, B607
         ["git", "rev-parse", "HEAD"], cwd=root, text=True
     ).strip()
     if len(commit) != 40:
@@ -154,7 +154,7 @@ def verify_frozen_inputs(
             raise ValueError(f"frozen data file identity differs: {symbol}")
         if raw.get("last_date") != contract.window["end"]:
             raise ValueError(f"frozen data window differs: {symbol}")
-    protected = subprocess.check_output(
+    protected = subprocess.check_output(  # nosec B603, B607
         [
             "git",
             "status",

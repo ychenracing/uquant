@@ -47,7 +47,6 @@ from .witness_ablation import (
 )
 from .witness_ablation_runner import (
     BalancedIndustryUniverse,
-    _divergences_from_compact,
     build_task4_scenario,
     validate_initial_coverage,
     verify_full_route_linkage,
@@ -62,6 +61,41 @@ _ARTIFACT_NAMES = (
 _TASK5_LOGICAL_PATH = (
     "artifacts/strategic_evidence_closure/external/checkpoint5_state_reachability_84.jsonl.gz"
 )
+
+
+def divergences_from_compact(value: object) -> FirstDivergences:
+    """Decode the frozen Task 4 divergence schema without changing its source identity."""
+
+    if not isinstance(value, Mapping) or set(value) != {
+        "route",
+        "state",
+        "economic",
+        "comparable",
+        "uncompared_reason",
+    }:
+        raise ValueError("witness ablation compact divergences are malformed")
+    raw = dict(value)
+    layers: dict[str, Mapping[str, str] | None] = {}
+    for name in ("route", "state", "economic"):
+        item = raw[name]
+        if item is not None and (
+            not isinstance(item, Mapping)
+            or set(item) != {"date", "layer"}
+            or not all(isinstance(field, str) and field for field in item.values())
+        ):
+            raise ValueError("witness ablation compact divergence layer is malformed")
+        layers[name] = None if item is None else {str(key): str(field) for key, field in item.items()}
+    comparable = raw["comparable"]
+    reason = raw["uncompared_reason"]
+    if not isinstance(comparable, bool) or (reason is not None and not isinstance(reason, str)):
+        raise ValueError("witness ablation compact comparability is malformed")
+    return FirstDivergences(
+        route=layers["route"],
+        state=layers["state"],
+        economic=layers["economic"],
+        comparable=comparable,
+        uncompared_reason=reason,
+    )
 
 
 def _sha256_file(path: Path) -> str:
@@ -346,7 +380,7 @@ def _task4_claim_validation(
     if not isinstance(raw_divergences, Mapping):
         raise ValueError("Task 4 divergences are malformed")
     divergences: dict[str, FirstDivergences] = {
-        str(cell_id): _divergences_from_compact(value) for cell_id, value in raw_divergences.items()
+        str(cell_id): divergences_from_compact(value) for cell_id, value in raw_divergences.items()
     }
     scores: dict[str, float] = {}
     for spec in specs:

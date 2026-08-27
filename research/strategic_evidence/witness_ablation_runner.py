@@ -7,7 +7,7 @@ import gzip
 import hashlib
 import json
 import os
-import subprocess
+import subprocess  # nosec B404
 import tempfile
 import time
 from collections import Counter
@@ -81,8 +81,9 @@ _LOGICAL_ROUTE_PATH = (
 )
 _DEFAULT_SUMMARY = Path("artifacts/strategic_evidence_closure/checkpoint4_witness_ablation_full.json")
 _DEFAULT_MANIFEST = Path("artifacts/strategic_evidence_closure/checkpoint4_witness_ablation_manifest.json")
-_DEFAULT_TRACE_SHARD = Path("/tmp/uquant-strategic-evidence/task4/witness_ablation_full_routes.jsonl.gz")
-_DEFAULT_RESUME_DIR = Path("/tmp/uquant-strategic-evidence/task4/resume")
+_TASK4_TEMP_ROOT = Path(tempfile.gettempdir()) / "uquant-strategic-evidence" / "task4"
+_DEFAULT_TRACE_SHARD = _TASK4_TEMP_ROOT / "witness_ablation_full_routes.jsonl.gz"
+_DEFAULT_RESUME_DIR = _TASK4_TEMP_ROOT / "resume"
 _SENTINEL_END = "2023-01-10"
 
 
@@ -114,7 +115,7 @@ def build_executable_source_manifest(
     paths.extend(sorted((repository / "research" / "strategic_evidence").glob("*.py")))
     files = _source_file_manifest(repository, paths)
     if require_clean:
-        status = subprocess.check_output(
+        status = subprocess.check_output(  # nosec B603, B607
             ["git", "status", "--porcelain", "--", *files],
             cwd=repository,
             text=True,
@@ -123,7 +124,7 @@ def build_executable_source_manifest(
             raise ValueError("Task 4 executable research source is dirty")
         head = _git_commit(repository)
         for relative, digest in files.items():
-            committed = subprocess.check_output(
+            committed = subprocess.check_output(  # nosec B603, B607
                 ["git", "show", f"{head}:{relative}"],
                 cwd=repository,
             )
@@ -172,11 +173,13 @@ def capture_runtime_metadata(root: str | Path) -> dict[str, str]:
     import numpy as np
     import pandas as pd
 
-    uv = subprocess.check_output(["uv", "--version"], text=True).strip()
+    uv = subprocess.check_output(  # nosec B603, B607
+        ["uv", "--version"], text=True
+    ).strip()
     if not uv:
         raise ValueError("Task 4 uv runtime version is empty")
     return {
-        "python": subprocess.check_output(
+        "python": subprocess.check_output(  # nosec B603, B607
             ["python", "-c", "import platform; print(platform.python_version())"],
             text=True,
         ).strip(),
@@ -204,7 +207,8 @@ def _checkpoint_provenance(path: Path) -> dict[str, Any]:
         expected_resume_identity=None,
     )
     provenance = header["provenance"]
-    assert isinstance(provenance, Mapping)
+    if not isinstance(provenance, Mapping):
+        raise ValueError("witness ablation checkpoint provenance is malformed")
     return validate_provenance(provenance)
 
 
@@ -1265,7 +1269,9 @@ def validate_initial_coverage(
 
 
 def _git_commit(repository: Path) -> str:
-    commit = subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=repository, text=True).strip()
+    commit = subprocess.check_output(  # nosec B603, B607
+        ["git", "rev-parse", "HEAD"], cwd=repository, text=True
+    ).strip()
     if len(commit) != 40 or any(character not in "0123456789abcdef" for character in commit):
         raise ValueError("Task 4 experiment commit is malformed")
     return commit
@@ -1769,7 +1775,8 @@ def execute_task4_matrix(
         }
     matrix = contract.raw["matrix"]
     critical_raw = matrix["critical_symbols"]
-    assert isinstance(critical_raw, list)
+    if not isinstance(critical_raw, list):
+        raise ValueError("Task 4 critical symbols must be a list")
     ranked = rank_critical_symbols(
         _causal_scores(specs, divergences),
         preregistered=tuple(str(symbol) for symbol in critical_raw),

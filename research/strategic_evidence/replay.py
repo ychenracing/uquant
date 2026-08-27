@@ -11,7 +11,7 @@ from typing import Any
 
 import pandas as pd
 
-from research.candidate_runner import CandidateRunner, _CausalReplayDataStore
+from research.candidate_runner import CandidateRunner, CausalReplayDataStore
 from uquant.config import DEFAULT_CONFIG, SystemConfig
 from uquant.engine import ProductionEngine, performance_metrics
 from uquant.market import ReplayHarness
@@ -185,7 +185,7 @@ def _run_replay_success(
     if (intervention is None) != (request.intervention_date is None):
         raise ValueError("intervention and intervention date must be supplied together")
     engine = ProductionEngine(data_dir, cfg)
-    engine.data = _CausalReplayDataStore(data_dir)
+    engine.data = CausalReplayDataStore(data_dir)
     runner = CandidateRunner(data_dir, cfg)
     harness = ReplayHarness(
         workspace=engine.workspace,
@@ -207,13 +207,15 @@ def _run_replay_success(
             equity_rows.append((session, equity))
             session_date = str(session.date())
             if request.intervention_date == session_date:
-                assert intervention is not None
+                if intervention is None:
+                    raise RuntimeError("intervention disappeared during replay")
                 intervention_provenance = intervention.apply(account)
             new_fills = tuple(account.fills[fill_cursor:])
             fill_cursor = len(account.fills)
             decision = engine.decide(symbols=request.symbols, as_of=session_date, account=account)
             if request.intervention_date == session_date:
-                assert intervention is not None
+                if intervention is None:
+                    raise RuntimeError("intervention disappeared during replay")
                 decision = intervention.preserve_activation(account, decision)
             account.pending_orders = list(decision.pending_orders)
             close_marks = {

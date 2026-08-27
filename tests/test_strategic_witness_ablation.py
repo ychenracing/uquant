@@ -885,7 +885,11 @@ def test_manifest_is_portable_and_readback_is_linked(tmp_path: Path) -> None:
             repository=repository,
             summary_path=repository / relative_summary,
             manifest_path=repository / relative_manifest,
-            summary_payload={"completion_status": "FINAL", "cells": []},
+            summary_payload={
+                "completion_status": "FINAL",
+                "cells": [],
+                "tuple_round_trip_probe": ("a", "b"),
+            },
             route_metadata=route_metadata,
         )
         outputs.append(

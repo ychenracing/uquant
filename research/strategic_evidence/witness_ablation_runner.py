@@ -1151,7 +1151,7 @@ def write_compact_and_manifest(
         json.loads(summary_target.read_text(encoding="utf-8")),
         label="checkpoint4 witness ablation summary",
     )
-    if observed_summary != summary:
+    if canonical_json_bytes(observed_summary) != canonical_json_bytes(summary):
         raise ValueError("checkpoint4 witness ablation summary readback differs")
     manifest = seal_payload(
         {
@@ -1171,7 +1171,7 @@ def write_compact_and_manifest(
         json.loads(manifest_target.read_text(encoding="utf-8")),
         label="checkpoint4 witness ablation manifest",
     )
-    if observed_manifest != manifest:
+    if canonical_json_bytes(observed_manifest) != canonical_json_bytes(manifest):
         raise ValueError("checkpoint4 witness ablation manifest readback differs")
     return summary, manifest
 

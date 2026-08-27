@@ -64,6 +64,10 @@ def _assert_unconditional_pr_and_main(workflow: dict[str, Any]) -> None:
         assert "paths" not in pull_request
 
 
+def _assert_manual_only(workflow: dict[str, Any]) -> None:
+    assert workflow["on"] == {"workflow_dispatch": {}}
+
+
 def _assert_locked_runtime(workflow: dict[str, Any]) -> None:
     assert workflow["permissions"] == {"contents": "read"}
     assert workflow["env"]["UV_VERSION"] == "0.11.33"
@@ -171,7 +175,8 @@ def test_security_gate_blocks_only_findings_added_over_the_event_base() -> None:
 def test_performance_summary_catches_path_skips_and_partial_or_stale_performance_evidence() -> None:
     """Catches path-filter skips, a weakened profile, or incomplete HEAD/provenance readback."""
     workflow = _workflow("strategy-performance.yml")
-    _assert_unconditional_pr_and_main(workflow)
+    assert workflow["name"] == "Extended Performance Matrix"
+    _assert_manual_only(workflow)
     _assert_locked_runtime(workflow)
     _assert_always_blocking_summary(
         workflow,
@@ -199,7 +204,8 @@ def test_performance_summary_catches_path_skips_and_partial_or_stale_performance
 def test_generalization_matrix_catches_missing_window_cancelled_shards_and_failed_artifact_loss() -> None:
     """Catches an incomplete matrix, fail-fast cancellation, or diagnostics lost on failure."""
     workflow = _workflow("strategy-generalization.yml")
-    _assert_unconditional_pr_and_main(workflow)
+    assert workflow["name"] == "Extended Economic Matrix"
+    _assert_manual_only(workflow)
     _assert_locked_runtime(workflow)
 
     shard = workflow["jobs"]["generalization-shard"]

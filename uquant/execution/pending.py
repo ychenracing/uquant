@@ -29,7 +29,7 @@ def _durable_subthreshold_buy(
         cfg is not None
         and target is not None
         and order.side == Side.BUY.value
-        and bool(order.order_id)
+        and bool(order.order_id or order.grant_id)
         and order.remaining_shares > 0
         and target.weight > 1e-12
         and order.lifecycle == target.lifecycle

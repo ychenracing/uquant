@@ -103,6 +103,7 @@ def _consume_sell_tranches(
                 "replaces_symbol": tranche.replaces_symbol,
                 "industry_at_entry": tranche.industry_at_entry,
                 "industry_manifest_sha256": tranche.industry_manifest_sha256,
+                "grant_id": tranche.grant_id,
             }
         )
         tranche.shares -= sold
@@ -158,6 +159,10 @@ def _rebuild_position_from_tranches(position: Position) -> None:
         key=lambda item: (item.entry_date, item.sellable_date, item.tranche_id),
     )
     position.lifecycle = newest.lifecycle
+    grant_ids = {item.grant_id for item in position.tranches if item.grant_id}
+    if len(grant_ids) > 1:
+        raise RuntimeError("position contains multiple strategic grant owners")
+    position.grant_id = next(iter(grant_ids), "")
 
 
 RISK_LIFECYCLE_PRIORITY = _RISK_LIFECYCLE_PRIORITY

@@ -603,7 +603,11 @@ def run_forced_owner_economic_cell(
             intervention_date=date,
         ),
         cfg=cfg,
-        intervention=StrategicOwnerIntervention(owner=owner, target_gross=target_gross),
+        intervention=StrategicOwnerIntervention(
+            owner=owner,
+            target_gross=target_gross,
+            intervention_date=date,
+        ),
     )
     cell = forced_owner_cell_from_result(
         control_id=control_id,

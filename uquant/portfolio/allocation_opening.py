@@ -436,17 +436,6 @@ def _strategic_allocation(
             account.candidate_tenure.get("recovery_cohort_locked", 0) == 1 and bool(account.anchor_weights)
         )
     )
-    strategic_observation_open = bool(
-        opportunity
-        in {
-            Opportunity.CHOPPY,
-            Opportunity.WEAK,
-            Opportunity.TREND,
-            Opportunity.STRONG_TREND,
-        }
-        and risk.state is Risk.NORMAL
-        and not freeze_active
-    )
     # RECOVERY remains owned by the crash-recovery policy. CHOPPY/WEAK are
     # observation-only for ordinary factor cohorts; the strategic policy
     # may admit there only through its separately confirmed persistent or
@@ -463,7 +452,10 @@ def _strategic_allocation(
             weights_now=weights_now,
             admission_open=strategic_discovery_open,
         )
-        if strategic_live or strategic_observation_open
+        # Qualification observation is read-only and therefore runs through
+        # freeze, capital-budget, and risk-off states. Deployment remains
+        # guarded inside the strategic policy and by the allocator's cap.
+        if self.cfg.strategic_dynamic_enabled
         else None
     )
     if strategic is not None:

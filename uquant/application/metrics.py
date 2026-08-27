@@ -142,32 +142,56 @@ def _lead_to_drawdown(
     return int(target_location - action_location)
 
 
-def _order_ledger_rows(orders: list[AccountOrder]) -> list[dict[str, Any]]:
-    return [
-        {
-            "order_id": item.order_id,
-            "signal_date": item.signal_date,
-            "submitted_date": item.submitted_date,
-            "symbol": item.symbol,
-            "side": item.side,
-            "target_weight": item.target_weight,
-            "reason": item.reason,
-            "lifecycle": item.lifecycle,
-            "reduction_policy": item.reduction_policy,
-            "reason_code": item.reason_code,
-            "exit_kind": item.exit_kind,
-            "status": item.status,
-            "requested_shares": item.requested_shares,
-            "filled_shares": item.filled_shares,
-            "remaining_shares": item.remaining_shares,
-            "attempts": item.attempts,
-            "last_update_date": item.last_update_date,
-            "last_event": item.last_event,
-            "replaced_by": item.replaced_by,
-            "cancel_reason": item.cancel_reason,
-        }
-        for item in orders
-    ]
+def _economic_order_groups(orders: list[AccountOrder]) -> list[list[AccountOrder]]:
+    groups: list[list[AccountOrder]] = []
+    indexes: dict[tuple[str, ...], int] = {}
+    for item in orders:
+        key = (
+            ("STRATEGIC_GRANT_EVENT", item.grant_id, item.event_id)
+            if item.grant_id and item.event_id
+            else ("PHYSICAL_ORDER", item.order_id)
+        )
+        index = indexes.get(key)
+        if index is None:
+            indexes[key] = len(groups)
+            groups.append([item])
+        else:
+            groups[index].append(item)
+    return groups
+
+
+def _order_ledger_rows(groups: list[list[AccountOrder]]) -> list[dict[str, Any]]:
+    rows: list[dict[str, Any]] = []
+    for group in groups:
+        first = group[0]
+        last = group[-1]
+        filled_shares = sum(item.filled_shares for item in group)
+        remaining_shares = last.remaining_shares
+        rows.append(
+            {
+                "order_id": first.order_id,
+                "signal_date": first.signal_date,
+                "submitted_date": first.submitted_date,
+                "symbol": first.symbol,
+                "side": first.side,
+                "target_weight": first.target_weight,
+                "reason": first.reason,
+                "lifecycle": first.lifecycle,
+                "reduction_policy": first.reduction_policy,
+                "reason_code": first.reason_code,
+                "exit_kind": first.exit_kind,
+                "status": last.status,
+                "requested_shares": filled_shares + remaining_shares,
+                "filled_shares": filled_shares,
+                "remaining_shares": remaining_shares,
+                "attempts": max(item.attempts for item in group),
+                "last_update_date": last.last_update_date,
+                "last_event": last.last_event,
+                "replaced_by": last.replaced_by,
+                "cancel_reason": last.cancel_reason,
+            }
+        )
+    return rows
 
 
 def performance_metrics(
@@ -180,7 +204,10 @@ def performance_metrics(
     benchmark_total_return: float,
 ) -> dict[str, Any]:
     """Calculate portfolio, drawdown, turnover, order, and attribution metrics."""
-    broker_orders = [item for item in orders if item.filled_shares > 0]
+    order_groups = _economic_order_groups(orders)
+    broker_order_groups = [
+        group for group in order_groups if sum(item.filled_shares for item in group) > 0
+    ]
     equity = pd.Series({date: value for date, value in equity_rows}, dtype=float).sort_index()
     cagr, dd, max_dd, sharpe, total_return, years = _return_and_drawdown_metrics(
         equity=equity,
@@ -219,9 +246,11 @@ def performance_metrics(
         **dd,
         "worst_20d": float(rolling20.min()) if rolling20.notna().any() else 0.0,
         "worst_60d": float(rolling60.min()) if rolling60.notna().any() else 0.0,
-        "account_orders": len(broker_orders),
-        "submitted_account_orders": len(orders),
-        "unfilled_account_submissions": sum(item.filled_shares == 0 for item in orders),
+        "account_orders": len(broker_order_groups),
+        "submitted_account_orders": len(order_groups),
+        "unfilled_account_submissions": sum(
+            sum(item.filled_shares for item in group) == 0 for group in order_groups
+        ),
         "round_trips": round_trips,
         "gross_turnover": gross_turnover,
         "annual_turnover": gross_turnover / years,
@@ -244,8 +273,8 @@ def performance_metrics(
             threshold=0.15,
         ),
         "risk_events": risk_events,
-        "order_ledger": _order_ledger_rows(broker_orders),
-        "submission_ledger": _order_ledger_rows(orders),
+        "order_ledger": _order_ledger_rows(broker_order_groups),
+        "submission_ledger": _order_ledger_rows(order_groups),
         "equity_curve": [{"date": str(date)[:10], "equity": value} for date, value in equity.items()],
     }
 

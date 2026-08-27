@@ -23,6 +23,7 @@ from .contracts.universe import REQUIRED_AI_UNIVERSE_SHA256, default_ai_universe
 from .data import normalize_symbol
 from .execution import allocate_sell_costs as _allocate_sell_costs
 from .execution import risk_priority_tranche_key
+from .models.strategic_grant import record_strategic_grant_fill
 from .types import (
     ORDER_INTENT_IMMUTABLE_FIELDS,
     AccountOrder,
@@ -40,6 +41,16 @@ from .types import (
     derive_attribution_event_id,
     order_intent_metadata,
 )
+
+
+def _late_strategic_fill_allowed(order: AccountOrder) -> bool:
+    return bool(
+        order.status == OrderStatus.CANCELLED.value
+        and order.grant_id
+        and order.cancel_reason == "strategic partial remainder replaced"
+        and order.filled_shares > 0
+        and order.remaining_shares > 0
+    )
 
 
 def _broker_reconciliation_identity(
@@ -82,6 +93,7 @@ def _broker_reconciliation_identity(
         "replaces_symbol": None,
         "industry_at_entry": industry,
         "industry_manifest_sha256": manifest,
+        "grant_id": "",
     }
 
 
@@ -127,6 +139,7 @@ def _allocate_broker_sale(
                 "replaces_symbol": tranche.replaces_symbol,
                 "industry_at_entry": tranche.industry_at_entry,
                 "industry_manifest_sha256": tranche.industry_manifest_sha256,
+                "grant_id": tranche.grant_id,
             }
         )
         tranche.shares -= sold
@@ -185,6 +198,41 @@ class _BrokerSyncState:
     imported_buy_lifecycle: dict[str, str]
     imported: int
     completed_order_ids: set[str]
+
+
+def _validate_late_strategic_fill_capacity(
+    state: _BrokerSyncState,
+    *,
+    order: AccountOrder,
+    shares: int,
+) -> None:
+    if not _late_strategic_fill_allowed(order):
+        return
+    matching_orders = [
+        candidate
+        for candidate in state.ledger.values()
+        if candidate.grant_id == order.grant_id
+        and candidate.event_id == order.event_id
+        and candidate.symbol == order.symbol
+        and candidate.side == order.side
+    ]
+    intended_shares = max(
+        (candidate.requested_shares for candidate in matching_orders),
+        default=0,
+    )
+    confirmed_shares = sum(
+        fill.shares
+        for fill in state.account.fills
+        if fill.grant_id == order.grant_id
+        and fill.event_id == order.event_id
+        and fill.symbol == order.symbol
+        and fill.side == order.side
+    )
+    remaining_shares = max(0, intended_shares - confirmed_shares)
+    if remaining_shares == 0:
+        raise ValueError("strategic economic order is already satisfied")
+    if shares > remaining_shares:
+        raise ValueError("broker late fill exceeds remaining strategic economic order")
 
 
 def _prepare_broker_sync(account: AccountState, payload: dict[str, Any]) -> _BrokerSyncState:
@@ -306,7 +354,7 @@ def _validated_fill_order_progress(
         OrderStatus.FILLED.value,
         OrderStatus.CANCELLED.value,
         OrderStatus.REPLACED.value,
-    }:
+    } and not _late_strategic_fill_allowed(order):
         raise ValueError("broker cannot append a fill to a terminal account order")
     cumulative_filled = order.filled_shares + shares
     reported_request = cumulative_filled + remaining
@@ -382,6 +430,8 @@ def _validated_broker_fill(state: _BrokerSyncState, raw: dict[str, Any]) -> _Bro
         )
         if not identity_matches:
             raise ValueError("broker fill_id was reused with different economics")
+    if existing_fill is None:
+        _validate_late_strategic_fill_capacity(state, order=order, shares=shares)
     cumulative_filled, reported_request = _validated_fill_order_progress(
         order=order,
         existing_fill=existing_fill,
@@ -497,6 +547,7 @@ def _broker_fill_allocations(
             replaces_symbol=values.order.replaces_symbol,
             industry_at_entry=values.order.industry_at_entry,
             industry_manifest_sha256=values.order.industry_manifest_sha256,
+            grant_id=values.order.grant_id,
         )
     )
     state.imported_buy_lifecycle[values.symbol] = values.order.lifecycle
@@ -537,6 +588,7 @@ def _commit_imported_broker_fill(
             replaces_symbol=order.replaces_symbol,
             industry_at_entry=order.industry_at_entry,
             industry_manifest_sha256=order.industry_manifest_sha256,
+            grant_id=order.grant_id,
         )
     )
     state.known_fills[values.fill_id] = state.account.fills[-1]
@@ -554,6 +606,28 @@ def _commit_imported_broker_fill(
     order.last_event = "BROKER_FILL"
     if order.status == OrderStatus.FILLED.value:
         state.completed_order_ids.add(values.order_id)
+    if values.side == Side.BUY.value and order.grant_id:
+        record_strategic_grant_fill(
+            state.account.strategic_grant,
+            grant_id=order.grant_id,
+            shares=values.shares,
+            completed=values.final and values.remaining == 0,
+        )
+        if values.final and values.remaining == 0:
+            for pending in state.account.pending_orders:
+                if pending.grant_id != order.grant_id or pending.order_id == values.order_id:
+                    continue
+                replacement = state.ledger.get(pending.order_id)
+                if replacement is not None and replacement.status not in {
+                    OrderStatus.FILLED.value,
+                    OrderStatus.CANCELLED.value,
+                    OrderStatus.REPLACED.value,
+                }:
+                    replacement.status = OrderStatus.CANCELLED.value
+                    replacement.cancel_reason = "late fill satisfied strategic grant"
+                    replacement.last_update_date = values.fill_date
+                    replacement.last_event = "LATE_FILL_SUPPRESSED_RETRY"
+                state.completed_order_ids.add(pending.order_id)
 
 
 def _import_broker_fills(state: _BrokerSyncState) -> None:
@@ -662,6 +736,7 @@ def _reconciled_broker_position(
         highest_close=derived_highest,
         lifecycle=lifecycle,
         tranches=tranches,
+        grant_id=next(iter({item.grant_id for item in tranches if item.grant_id}), ""),
     )
 
 

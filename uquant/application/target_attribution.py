@@ -39,6 +39,7 @@ def _retained_partial_buy(
         and retained.origin_subsystem == target.origin_subsystem
         and retained.origin_lifecycle == target.origin_lifecycle
         and retained.replaces_symbol == target.replaces_symbol
+        and retained.grant_id == target.grant_id
     )
 
 
@@ -56,6 +57,7 @@ def _retained_target_identity(
         and retained.mechanism == target.mechanism
         and retained.origin_lifecycle == target.origin_lifecycle
         and retained.replaces_symbol == target.replaces_symbol
+        and retained.grant_id == target.grant_id
     )
 
 
@@ -75,6 +77,7 @@ def _reuse_retained_attribution(
             replaces_symbol=retained_identity.replaces_symbol,
             industry_at_entry=retained_identity.industry_at_entry,
             industry_manifest_sha256=retained_identity.industry_manifest_sha256,
+            grant_id=retained_identity.grant_id,
         )
     if _retained_partial_buy(target, retained, cfg):
         retained_identity = cast(PendingOrder, retained)
@@ -87,6 +90,7 @@ def _reuse_retained_attribution(
             replaces_symbol=retained_identity.replaces_symbol,
             industry_at_entry=retained_identity.industry_at_entry,
             industry_manifest_sha256=retained_identity.industry_manifest_sha256,
+            grant_id=retained_identity.grant_id,
         )
     if _retained_target_identity(target, retained, cfg):
         retained_identity = cast(PendingOrder, retained)
@@ -95,6 +99,7 @@ def _reuse_retained_attribution(
             event_id=retained_identity.event_id,
             industry_at_entry=retained_identity.industry_at_entry,
             industry_manifest_sha256=retained_identity.industry_manifest_sha256,
+            grant_id=retained_identity.grant_id,
         )
     return None
 

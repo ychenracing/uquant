@@ -259,15 +259,15 @@ def test_enum_literals_and_representative_model_bytes_are_frozen() -> None:
         "target": dataclasses.asdict(samples["target"]),
     }
     expected = {
-        "account": "545d877994550b667fc6d8db85d3ecf6787c8052cf8332a0e061df7e82d622a4",
-        "decision": "148fccd38401217ce4b6d306881b87d2f0a0d74d74f9e1982c6e576512e8cf40",
+        "account": "5dac972e78b500882481219ff582a74c675a1c89ed457fb945023fdc72599bbe",
+        "decision": "e9195e0d0151bca43497daa26703520b0b066a3143f19d7df4e7da01d8857c32",
         "decision_payload": "e66dd576ae131221e3c7056ff5924939dc2b0121da6c4cc105054ce5f8d1231a",
         "enums": "55848e6711e2b9ce2021f8a8ffb5f07673d3d8cc2b622274f354cadc4f2b45e0",
-        "fill": "94b75920199b124051c134a90d05991155101c0cd0d652a2c8008b190e228070",
-        "order": "1c5a7e5361c897db44f767cacc1c9564afe38257fe320a9ccc7ec9163031ef4e",
-        "pending": "c3d30d78f559cb9d789c525d72db75e51785d1bd55e22c68b44fcdf3db392552",
+        "fill": "cf82c9a10643474d574cb533b6bcdda8df60aaf310c00960af08e51e9e63b647",
+        "order": "45ad9baf1ef555e88d6dd8c3a6ed3e4e811bcd171f2d74595bf827ea95840d87",
+        "pending": "6893bb682e60b55d0626caee6f87c995540fc0babc99090c7d2f7fcfe33346a4",
         "risk": "349973e8efcd6444e1dbbc00e80909ad9cd52e332ceeaedcd3dfb2c682f51fce",
-        "target": "edfe0b2a576fffcb61690154bf8fb4c037040edaf837d24e1c17eadd824c613b",
+        "target": "ffadd0100d4c5c7059deab58b3d9c137a5531cde05f05c12c707b6e74825bd6f",
     }
 
     assert {name: _canonical_sha256(value) for name, value in serialized.items()} == expected
@@ -286,7 +286,7 @@ def test_model_field_order_defaults_factories_and_flat_account_schema_are_frozen
     assert observed_module["dataclasses"] == expected_module["dataclasses"]
     assert observed_module["enums"] == expected_module["enums"]
     assert observed_module["functions"] == expected_module["functions"]
-    assert len(dataclasses.fields(AccountState)) == 70
+    assert len(dataclasses.fields(AccountState)) == 73
     assert [field.name for field in dataclasses.fields(AccountState)] == expected_schema["field_order"]
     assert list(empty.to_dict()) == expected_schema["serialized_key_order"]
     assert empty.to_dict() == expected_schema["empty_state"]
@@ -324,10 +324,10 @@ def test_model_mutability_equality_hash_repr_slots_and_identity_are_frozen() -> 
     order.attempts = 2
     assert order.attempts == 2
     assert hashlib.sha256(repr(order).encode()).hexdigest() == (
-        "8416193f08eec0f33401c50cc2e71c326e548e7730bcee2c6b06180f82e92611"
+        "998e7177953c92ce46a7e42817175f615e9091c97cbd878d7ef6e7d79525cd48"
     )
     assert hashlib.sha256(repr(target).encode()).hexdigest() == (
-        "00fcb1b23d762d55f2c4d8dca534e727b72274b3718a3f0b9c7ecdf07a788dcd"
+        "b4da26cc73e7b5791bdd5379330e7b23f3e7049a2711ae5be4e30aa39798485e"
     )
     assert hashlib.sha256(repr(risk).encode()).hexdigest() == (
         "19dd60d8cb1c0cc9b73d2747f850ced2feacfa636fe527d30d8f731d1c73d852"

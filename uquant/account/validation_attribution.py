@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import re
 from datetime import date as date_type
 from types import SimpleNamespace
 from typing import Any
@@ -47,6 +48,8 @@ from .validation_common import required_text as _required_text
 from .validation_common import (
     unlinked_fill_matches_order as _unlinked_fill_matches_order,
 )
+
+_GRANT_ID = re.compile(r"^grant_[0-9a-f]{64}$")
 
 
 def derive_v4_attribution_event_id(
@@ -182,6 +185,10 @@ def validate_attribution_identity(
     event_schema_version: int = ACCOUNT_SCHEMA_VERSION,
 ) -> None:
     """Validate one canonical identity, including explicit migration defaults."""
+
+    grant_id = getattr(item, "grant_id", "")
+    if not isinstance(grant_id, str) or (grant_id and _GRANT_ID.fullmatch(grant_id) is None):
+        raise RuntimeError(f"{label} has invalid strategic grant_id")
 
     if not isinstance(item.event_id, str) or not _EVENT_ID.fullmatch(item.event_id):
         raise RuntimeError(f"{label} has invalid event_id")

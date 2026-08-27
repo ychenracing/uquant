@@ -371,4 +371,40 @@ def select_strategic_route(
     )
 
 
-__all__ = ("StrategicRoute", "select_strategic_route")
+def _strategic_candidate_meets_route(
+    self: StrategicQualificationPolicy,
+    *,
+    candidate_symbol: str,
+    qualification_route: str,
+    snapshots: dict[str, dict[str, float]],
+    leaders: dict[str, LeaderScore],
+    risk: RiskAssessment,
+) -> bool:
+    """Check one grant candidate against its original route's absolute gates."""
+
+    if candidate_symbol not in snapshots or candidate_symbol not in leaders:
+        return False
+    if qualification_route == "established":
+        candidates = _established_candidates(self, snapshots, leaders)
+    elif qualification_route == "transition":
+        candidates = _transition_candidates(self, snapshots, leaders)
+    elif qualification_route == "transition_impulse":
+        candidates = _impulse_candidates(
+            self,
+            snapshots=snapshots,
+            leaders=leaders,
+            risk=risk,
+        )
+    elif qualification_route == "persistent_industry":
+        candidates = _persistent_candidates(self, snapshots, leaders)
+    elif qualification_route == "reversal_industry":
+        candidates = _reversal_candidates(self, snapshots, leaders)
+    else:
+        return False
+    return candidate_symbol in candidates
+
+
+__all__ = (
+    "StrategicRoute",
+    "select_strategic_route",
+)

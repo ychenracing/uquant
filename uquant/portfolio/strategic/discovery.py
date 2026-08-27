@@ -2,12 +2,21 @@
 
 from __future__ import annotations
 
+import hashlib
+import json
 import math
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
 import pandas as pd
 
+from ...models.strategic_grant import (
+    MAX_STRATEGIC_GRANT_HEALTHY_RETRY_SESSIONS,
+    StrategicGrantIntent,
+    StrategicGrantStatus,
+    StrategicQualificationObservation,
+    derive_strategic_grant_id,
+)
 from ...portfolio_core import PortfolioCore
 from ...types import (
     AccountState,
@@ -15,7 +24,13 @@ from ...types import (
     RiskAssessment,
     Target,
 )
-from .qualification_candidates import StrategicRoute, select_strategic_route
+from .qualification_candidates import (
+    StrategicRoute,
+    select_strategic_route,
+)
+from .qualification_candidates import (
+    _strategic_candidate_meets_route as _grant_candidate_meets_route,
+)
 
 
 class StrategicPortfolioPolicy(PortfolioCore):
@@ -54,6 +69,18 @@ class StrategicPortfolioPolicy(PortfolioCore):
             admission_open: bool = True,
         ) -> tuple[Target, ...] | None: ...
 
+        def _revalidate_strategic_grant(
+            self,
+            *,
+            date: pd.Timestamp,
+            user_panel: dict[str, pd.DataFrame],
+            leaders: dict[str, LeaderScore],
+            account: AccountState,
+            risk: RiskAssessment,
+            admission_open: bool,
+            weights_now: dict[str, float],
+        ) -> bool: ...
+
 
 StrategicPortfolioPolicy.__module__ = "uquant.portfolio_strategic"
 
@@ -72,20 +99,116 @@ def _strategic_discovery_open(
     account: AccountState,
     risk: RiskAssessment,
 ) -> bool:
+    """Record that qualification observation ran for the visible session."""
+
+    del date, user_panel, risk
     qualification_key = "strategic_cohort_qualification"
     long_cycle_open_key = "strategic_long_cycle_open"
     account.candidate_tenure["strategic_long_cycle_initial_check"] = 1
-    unsafe = (
-        risk.freeze_new_risk
-        or bool(risk.evidence.get("freeze_new_risk", False))
-        or risk.state.value in {"RISK_OFF", "CRISIS"}
-        or (risk.state.value == "CAUTION" and risk.votes >= 2)
-    )
-    if unsafe:
-        _reset_qualification_streaks(account)
-        account.candidate_tenure[qualification_key] = 0
-        account.candidate_tenure[long_cycle_open_key] = 0
-        return False
+    account.candidate_tenure.setdefault(qualification_key, 0)
+    account.candidate_tenure.setdefault(long_cycle_open_key, 0)
+    return True
+
+
+def _qualification_evidence_sha256(
+    *,
+    date: pd.Timestamp,
+    route: StrategicRoute,
+    symbols: list[str],
+    signature: str,
+    snapshots: dict[str, dict[str, float]],
+    leaders: dict[str, LeaderScore],
+    risk: RiskAssessment,
+) -> str:
+    def finite_payload(values: dict[str, float]) -> dict[str, str]:
+        return {
+            key: float(value).hex()
+            for key, value in sorted(values.items())
+            if math.isfinite(float(value))
+        }
+
+    payload = {
+        "candidate_snapshots": {
+            symbol: finite_payload(snapshots[symbol]) for symbol in sorted(symbols)
+        },
+        "leaders": {
+            symbol: {
+                "confidence": float(leaders[symbol].confidence).hex(),
+                "industry": leaders[symbol].industry,
+                "score": float(leaders[symbol].score).hex(),
+            }
+            for symbol in sorted(symbols)
+            if symbol in leaders
+        },
+        "market_confirmation": {
+            key: risk.evidence.get(key)
+            for key in (
+                "breadth20",
+                "broad_ret20",
+                "broad_ret120",
+                "risk_anchor_group_count",
+                "tech_ret20",
+                "tech_ret120",
+            )
+        },
+        "route": route.route,
+        "session": str(date.date()),
+        "signature": signature,
+        "symbols": sorted(symbols),
+    }
+    encoded = json.dumps(
+        payload,
+        allow_nan=False,
+        ensure_ascii=False,
+        separators=(",", ":"),
+        sort_keys=True,
+    ).encode("utf-8")
+    return hashlib.sha256(encoded).hexdigest()
+
+
+def _candidate_symbol(
+    *,
+    route: StrategicRoute,
+    symbols: list[str],
+    leaders: dict[str, LeaderScore],
+) -> str:
+    if route.decisive_reversal_symbol in symbols:
+        return str(route.decisive_reversal_symbol)
+    return min(symbols, key=lambda symbol: (-leaders[symbol].score, symbol))
+
+
+def _deployment_block_reason(
+    self: StrategicPortfolioPolicy,
+    *,
+    date: pd.Timestamp,
+    user_panel: dict[str, pd.DataFrame],
+    account: AccountState,
+    risk: RiskAssessment,
+    admission_open: bool,
+    live_general_leaders: set[str],
+) -> str:
+    if risk.state.value == "RISK_OFF":
+        return "risk_off"
+    if risk.state.value == "CRISIS":
+        return "crisis"
+    if risk.freeze_new_risk or bool(risk.evidence.get("freeze_new_risk", False)):
+        return "freeze_new_risk"
+    if risk.state.value == "CAUTION" and risk.votes >= 2:
+        return "risk_caution"
+    if risk.target_gross_cap <= 0.0:
+        return "target_gross_cap"
+    if account.capital_budget_level > 0:
+        return "capital_budget"
+    if account.chronic_level > 0:
+        return "chronic_damage"
+    if live_general_leaders:
+        return "existing_portfolio_owner"
+    if account.candidate_tenure.get("recovery_cohort_locked", 0) == 1 and account.anchor_weights:
+        return "recovery_owner"
+    if account.pending_orders:
+        return "pending_execution"
+    if account.protected_weights:
+        return "protected_owner"
     if account.strategic_last_exit_date:
         last_exit = pd.Timestamp(account.strategic_last_exit_date)
         visible_sessions = sorted(
@@ -97,11 +220,10 @@ def _strategic_discovery_open(
             }
         )
         if len(visible_sessions) < self.cfg.strategic_epoch_cooldown_sessions:
-            _reset_qualification_streaks(account)
-            account.candidate_tenure[qualification_key] = 0
-            account.candidate_tenure[long_cycle_open_key] = 0
-            return False
-    return True
+            return "strategic_cooldown"
+    if not admission_open:
+        return "opportunity_not_deployable"
+    return ""
 
 
 def _strategic_snapshots(
@@ -116,7 +238,11 @@ def _strategic_snapshots(
         if date not in frame.index:
             continue
         history = frame.loc[:date, "close"].dropna()
-        if len(history) < 121 or not self._liquidity_confirmed(frame, date):
+        if (
+            len(history) < 121
+            or "amount" not in frame.columns
+            or not self._liquidity_confirmed(frame, date)
+        ):
             continue
         rolling240 = history / history.shift(240) - 1.0
         persistent = rolling240.dropna().tail(self.cfg.strategic_cohort_confirm_days)
@@ -223,6 +349,7 @@ class _QualifiedRoute:
     admission_state: str
     signature: str
     decisive_reversal_symbol: str | None
+    admission_authorized: bool
 
 
 def _synchronized_before_anchor(
@@ -398,6 +525,7 @@ def _route_admission_open(
 def _qualify_strategic_route(
     self: StrategicPortfolioPolicy,
     *,
+    date: pd.Timestamp,
     route: StrategicRoute,
     snapshots: dict[str, dict[str, float]],
     leaders: dict[str, LeaderScore],
@@ -442,13 +570,41 @@ def _qualify_strategic_route(
         admission_open=admission_open,
         synchronized_before_anchor=synchronized_before_anchor,
     )
-    if (
-        not symbols
-        or not route_admission_open
-        or account.candidate_tenure["strategic_cohort_qualification"] < required_days
-        or account.pending_orders
-        or account.protected_weights
-    ):
+    if not symbols:
+        previous = account.strategic_qualification
+        account.strategic_qualification = StrategicQualificationObservation(
+            candidate_symbol=previous.candidate_symbol,
+            qualification_signature=previous.qualification_signature,
+            qualification_route=previous.qualification_route,
+            qualification_evidence_sha256=previous.qualification_evidence_sha256,
+            qualification_ready=False,
+            deployment_blocked=True,
+            deployment_block_reason="qualification_not_ready",
+            qualification_streak=0,
+            qualification_last_observed_session=str(date.date()),
+            candidate_invalidation_reason="absolute_qualification_failed",
+        )
+        return None
+    streak = account.candidate_tenure["strategic_cohort_qualification"]
+    candidate = _candidate_symbol(route=route, symbols=symbols, leaders=leaders)
+    account.strategic_qualification = StrategicQualificationObservation(
+        candidate_symbol=candidate,
+        qualification_signature=signature,
+        qualification_route=route.route,
+        qualification_evidence_sha256=_qualification_evidence_sha256(
+            date=date,
+            route=route,
+            symbols=symbols,
+            signature=signature,
+            snapshots=snapshots,
+            leaders=leaders,
+            risk=risk,
+        ),
+        qualification_ready=streak >= required_days,
+        qualification_streak=streak,
+        qualification_last_observed_session=str(date.date()),
+    )
+    if streak < required_days:
         return None
     return _QualifiedRoute(
         symbols,
@@ -456,6 +612,7 @@ def _qualify_strategic_route(
         admission_state,
         signature,
         route.decisive_reversal_symbol,
+        route_admission_open,
     )
 
 
@@ -493,6 +650,7 @@ def _activate_strategic_cohort(
     snapshots: dict[str, dict[str, float]],
     leaders: dict[str, LeaderScore],
     account: AccountState,
+    date: pd.Timestamp,
 ) -> None:
     live_anchors = {
         symbol
@@ -554,6 +712,47 @@ def _activate_strategic_cohort(
     )
     account.candidate_tenure["strategic_dominant_profit_lock_epoch"] = 0
     account.strategic_candidate_signature = qualified.signature
+    observation = account.strategic_qualification
+    previous_grant_id = (
+        account.strategic_grant.grant_id
+        if account.strategic_grant is not None and account.strategic_grant.terminal
+        else ""
+    )
+    if not account.account_identity:
+        identity_payload = "|".join(
+            (
+                float(account.initial_cash).hex(),
+                account.code_hash or "unbound-production-source",
+                observation.qualification_last_observed_session,
+            )
+        )
+        account.account_identity = "account_" + hashlib.sha256(identity_payload.encode()).hexdigest()
+    production_source_identity = account.code_hash or "unbound-production-source"
+    candidate_weight = account.strategic_cohort_targets.get(observation.candidate_symbol, 0.0)
+    grant_id = derive_strategic_grant_id(
+        account_identity=account.account_identity,
+        candidate_symbol=observation.candidate_symbol,
+        qualification_signature=observation.qualification_signature,
+        qualification_route=observation.qualification_route,
+        qualification_evidence_sha256=observation.qualification_evidence_sha256,
+        created_session=str(date.date()),
+        previous_grant_id=previous_grant_id,
+        production_source_identity=production_source_identity,
+    )
+    account.strategic_grant = StrategicGrantIntent(
+        grant_id=grant_id,
+        candidate_symbol=observation.candidate_symbol,
+        qualification_signature=observation.qualification_signature,
+        qualification_route=observation.qualification_route,
+        qualification_evidence_sha256=observation.qualification_evidence_sha256,
+        created_session=str(date.date()),
+        last_eligible_session=str(date.date()),
+        target_weight=candidate_weight,
+        status=StrategicGrantStatus.QUALIFIED.value,
+        previous_grant_id=previous_grant_id,
+        account_identity=account.account_identity,
+        production_source_identity=production_source_identity,
+    )
 
 
 def _initialize_strategic_cohort(
@@ -568,18 +767,15 @@ def _initialize_strategic_cohort(
 ) -> None:
     """Discover and activate a persistent long-cycle cohort causally."""
 
-    if (
-        not self.cfg.strategic_dynamic_enabled
-        or account.candidate_tenure.get("strategic_cohort_active", 0) == 1
-    ):
+    if not self.cfg.strategic_dynamic_enabled:
+        return
+    if account.candidate_tenure.get("strategic_cohort_active", 0) == 1:
         return
     live_general_leaders = {
         symbol
         for symbol in account.active_leaders
         if (position := account.positions.get(symbol)) is not None and position.shares > 0
     }
-    if live_general_leaders:
-        return
     if not _strategic_discovery_open(
         self,
         date=date,
@@ -595,9 +791,17 @@ def _initialize_strategic_cohort(
         leaders=leaders,
     )
     if not snapshots:
-        _reset_qualification_streaks(account)
-        account.candidate_tenure["strategic_cohort_qualification"] = 0
-        account.candidate_tenure["strategic_long_cycle_open"] = 0
+        previous = account.strategic_qualification
+        candidate_temporarily_unavailable = bool(
+            previous.candidate_symbol and previous.candidate_symbol in user_panel
+        )
+        if candidate_temporarily_unavailable:
+            previous.deployment_blocked = True
+            previous.deployment_block_reason = "candidate_not_tradable"
+        else:
+            _reset_qualification_streaks(account)
+            account.candidate_tenure["strategic_cohort_qualification"] = 0
+            account.candidate_tenure["strategic_long_cycle_open"] = 0
         return
     route = select_strategic_route(
         self,
@@ -607,6 +811,7 @@ def _initialize_strategic_cohort(
     )
     qualified = _qualify_strategic_route(
         self,
+        date=date,
         route=route,
         snapshots=snapshots,
         leaders=leaders,
@@ -614,14 +819,211 @@ def _initialize_strategic_cohort(
         risk=risk,
         admission_open=admission_open,
     )
+    if account.strategic_qualification.candidate_symbol:
+        block_reason = _deployment_block_reason(
+            self,
+            date=date,
+            user_panel=user_panel,
+            account=account,
+            risk=risk,
+            admission_open=(qualified.admission_authorized if qualified is not None else admission_open),
+            live_general_leaders=live_general_leaders,
+        )
+        account.strategic_qualification.deployment_blocked = bool(block_reason)
+        account.strategic_qualification.deployment_block_reason = block_reason
+        if block_reason == "recovery_owner":
+            account.candidate_tenure["strategic_deferred_to_recovery"] = 1
     if qualified is not None:
+        if account.strategic_qualification.deployment_blocked:
+            return
         _activate_strategic_cohort(
             self,
             qualified=qualified,
             snapshots=snapshots,
             leaders=leaders,
             account=account,
+            date=date,
         )
 
 
+def _expire_strategic_grant(
+    account: AccountState,
+    *,
+    reason: str,
+    weights_now: dict[str, float],
+) -> None:
+    grant = account.strategic_grant
+    if grant is None or grant.terminal:
+        return
+    grant.status = StrategicGrantStatus.EXPIRED.value
+    grant.expiry_reason = reason
+    account.pending_orders = [
+        order for order in account.pending_orders if order.grant_id != grant.grant_id
+    ]
+    held = {
+        symbol: weights_now.get(symbol, 0.0)
+        for symbol, position in account.positions.items()
+        if position.shares > 0 and position.grant_id == grant.grant_id
+    }
+    account.strategic_cohort_symbols = sorted(held)
+    account.strategic_cohort_targets = dict(held)
+    account.candidate_tenure["strategic_cohort_active"] = int(bool(held))
+    account.strategic_restore_weights.clear()
+    _reset_qualification_streaks(account)
+    account.candidate_tenure["strategic_cohort_qualification"] = 0
+    observation = account.strategic_qualification
+    observation.qualification_ready = False
+    observation.deployment_blocked = True
+    observation.deployment_block_reason = "qualification_invalid"
+    observation.qualification_streak = 0
+    observation.candidate_invalidation_reason = reason
+
+
+def _revalidate_strategic_grant(
+    self: StrategicPortfolioPolicy,
+    *,
+    date: pd.Timestamp,
+    user_panel: dict[str, pd.DataFrame],
+    leaders: dict[str, LeaderScore],
+    account: AccountState,
+    risk: RiskAssessment,
+    admission_open: bool,
+    weights_now: dict[str, float],
+) -> bool:
+    """Reconfirm a not-yet-active grant before every capital retry."""
+
+    grant = account.strategic_grant
+    if grant is None or grant.terminal or grant.status == StrategicGrantStatus.ACTIVE.value:
+        return True
+    if grant.candidate_symbol not in user_panel:
+        _expire_strategic_grant(
+            account,
+            reason="candidate_removed_from_allowed_universe",
+            weights_now=weights_now,
+        )
+        return False
+    candidate_frame = user_panel[grant.candidate_symbol]
+    if date not in candidate_frame.index:
+        account.strategic_qualification.deployment_blocked = True
+        account.strategic_qualification.deployment_block_reason = "candidate_not_tradable"
+        return True
+    snapshots = _strategic_snapshots(
+        self,
+        date=date,
+        user_panel=user_panel,
+        leaders=leaders,
+    )
+    route = select_strategic_route(
+        self,
+        snapshots=snapshots,
+        leaders=leaders,
+        risk=risk,
+    )
+    raw, synchronized_before_anchor = _qualification_evidence(
+        self,
+        route=route,
+        snapshots=snapshots,
+        leaders=leaders,
+        risk=risk,
+    )
+    symbols = list(route.symbols) if raw else []
+    _admission_state, signature = _route_signature(
+        route=route,
+        symbols=symbols,
+        leaders=leaders,
+    )
+    candidate_still_qualified = _grant_candidate_meets_route(
+        self,
+        candidate_symbol=grant.candidate_symbol,
+        qualification_route=grant.qualification_route,
+        snapshots=snapshots,
+        leaders=leaders,
+        risk=risk,
+    )
+    if not candidate_still_qualified:
+        _expire_strategic_grant(
+            account,
+            reason="candidate_or_route_no_longer_qualified",
+            weights_now=weights_now,
+        )
+        return False
+    if raw and (
+        grant.candidate_symbol not in symbols or route.route != grant.qualification_route
+    ):
+        _expire_strategic_grant(
+            account,
+            reason="candidate_or_route_no_longer_qualified",
+            weights_now=weights_now,
+        )
+        return False
+    route_admission_open = bool(
+        admission_open
+        if not raw
+        else _route_admission_open(
+            self,
+            route=route,
+            symbols=symbols,
+            snapshots=snapshots,
+            admission_open=admission_open,
+            synchronized_before_anchor=synchronized_before_anchor,
+        )
+    )
+    block_reason = _deployment_block_reason(
+        self,
+        date=date,
+        user_panel=user_panel,
+        account=account,
+        risk=risk,
+        admission_open=route_admission_open,
+        live_general_leaders=set(),
+    )
+    observation = account.strategic_qualification
+    observation.candidate_symbol = grant.candidate_symbol
+    if raw:
+        observation.qualification_signature = signature
+        observation.qualification_route = route.route
+        observation.qualification_evidence_sha256 = _qualification_evidence_sha256(
+            date=date,
+            route=route,
+            symbols=symbols,
+            signature=signature,
+            snapshots=snapshots,
+            leaders=leaders,
+            risk=risk,
+        )
+    observation.qualification_ready = True
+    observation.deployment_blocked = bool(block_reason)
+    observation.deployment_block_reason = block_reason
+    observation.qualification_last_observed_session = str(date.date())
+    observation.candidate_invalidation_reason = ""
+    if raw:
+        grant.last_eligible_session = str(date.date())
+    visible_since_route = sum(
+        1
+        for session in candidate_frame.index
+        if pd.Timestamp(grant.last_eligible_session) < session <= date
+    )
+    if (
+        not raw
+        and (
+            visible_since_route > MAX_STRATEGIC_GRANT_HEALTHY_RETRY_SESSIONS
+            or grant.healthy_retry_sessions
+            >= MAX_STRATEGIC_GRANT_HEALTHY_RETRY_SESSIONS
+        )
+    ):
+        _expire_strategic_grant(
+            account,
+            reason="qualification_observation_window_elapsed",
+            weights_now=weights_now,
+        )
+        return False
+    if not block_reason:
+        grant.healthy_retry_sessions = min(
+            MAX_STRATEGIC_GRANT_HEALTHY_RETRY_SESSIONS,
+            grant.healthy_retry_sessions + 1,
+        )
+    return True
+
+
 initialize_strategic_cohort = _initialize_strategic_cohort
+revalidate_strategic_grant = _revalidate_strategic_grant

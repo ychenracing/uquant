@@ -78,6 +78,16 @@ def broker_date(value: Any, *, field: str) -> date_type:
 type _PreparedBrokerFill = tuple[date_type, int | None, str, str, dict[str, Any]]
 
 
+def _late_strategic_fill_allowed(order: AccountOrder) -> bool:
+    return bool(
+        order.status == OrderStatus.CANCELLED.value
+        and order.grant_id
+        and order.cancel_reason == "strategic partial remainder replaced"
+        and order.filled_shares > 0
+        and order.remaining_shares > 0
+    )
+
+
 def _prepare_broker_fills(raw_fills: list[Any], *, as_of: str) -> list[_PreparedBrokerFill]:
     prepared: list[_PreparedBrokerFill] = []
     seen_fill_ids: set[str] = set()
@@ -179,7 +189,7 @@ def _validate_order_fill_continuations(
             OrderStatus.FILLED.value,
             OrderStatus.CANCELLED.value,
             OrderStatus.REPLACED.value,
-        }:
+        } and not _late_strategic_fill_allowed(order):
             raise ValueError("broker cannot append a fill to a terminal account order")
         if order is not None and order.last_update_date and order.filled_shares:
             last_update = broker_date(order.last_update_date, field="order last_update_date")

@@ -1,11 +1,6 @@
-name: AI-Era generalization
+name: Extended Economic Matrix
 
 on:
-  push:
-    branches: [main]
-  pull_request:
-  schedule:
-    - cron: "41 3 * * 1"
   workflow_dispatch: {}
 
 permissions:

@@ -339,6 +339,7 @@ def _validate_fill_order_and_costs(
             "replaces_symbol",
             "industry_at_entry",
             "industry_manifest_sha256",
+            "grant_id",
         )
         changed = [name for name in fields_that_must_match if getattr(fill, name) != getattr(order, name)]
         if changed:

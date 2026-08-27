@@ -2,6 +2,7 @@
   "contract": {
     "account_state_schema": {
       "empty_state": {
+        "account_identity": "",
         "account_migrations": [],
         "active_leaders": [],
         "anchor_weights": {},
@@ -67,13 +68,26 @@
         "strategic_epoch": 0,
         "strategic_epochs_completed": 0,
         "strategic_exit_bands": {},
+        "strategic_grant": null,
         "strategic_last_exit_date": "",
         "strategic_previous_symbols": [],
+        "strategic_qualification": {
+          "candidate_invalidation_reason": "",
+          "candidate_symbol": "",
+          "deployment_block_reason": "",
+          "deployment_blocked": false,
+          "qualification_evidence_sha256": "",
+          "qualification_last_observed_session": "",
+          "qualification_ready": false,
+          "qualification_route": "",
+          "qualification_signature": "",
+          "qualification_streak": 0
+        },
         "strategic_rearm_date": "",
         "strategic_restore_weights": {},
         "tactical_anchor_symbol": ""
       },
-      "empty_state_sha256": "8956f88f4c57079c8781debc9ddd656968e7dbe7abdedae20a7bb36557673590",
+      "empty_state_sha256": "db84b04c2b04bd8f1f0817a36bf88ee60abda250c7002159f57f6b16a2c734cd",
       "field_order": [
         "initial_cash",
         "cash",
@@ -124,6 +138,9 @@
         "strategic_rearm_date",
         "strategic_candidate_signature",
         "strategic_previous_symbols",
+        "account_identity",
+        "strategic_qualification",
+        "strategic_grant",
         "risk_anchor_symbols",
         "risk_anchor_signature",
         "risk_anchor_candidate_signature",
@@ -197,6 +214,9 @@
         "strategic_rearm_date",
         "strategic_candidate_signature",
         "strategic_previous_symbols",
+        "account_identity",
+        "strategic_qualification",
+        "strategic_grant",
         "risk_anchor_symbols",
         "risk_anchor_signature",
         "risk_anchor_candidate_signature",
@@ -240,6 +260,7 @@
     },
     "decision_fill_account_trace": {
       "account_after": {
+        "account_identity": "account_12285b96bbcf639af123dd9fc9aeb8352d172d0a548b1abd36c10e350257f4cd",
         "account_migrations": [],
         "active_leaders": [],
         "anchor_weights": {},
@@ -280,7 +301,7 @@
         "chronic_level": 0,
         "chronic_repair_streak": 2,
         "chronic_streak": 0,
-        "code_hash": "cc7ef1b30c01d7549f358750b159f183c5a27d22e71c670417ee3971a2d9bbc3",
+        "code_hash": "bb12b13ddadb81d1432d951e03e92f1bc31c90e7f6c053c699350c2141988b7f",
         "cooldown_until": "",
         "data_hash": "3dd01a8adfedd528f36c51fb6af38f628875652ebbaca677350cb827da0c8051",
         "data_hash_as_of": "2023-01-04",
@@ -327,6 +348,7 @@
             "exit_kind": "strategy",
             "fill_date": "2023-01-05",
             "fill_id": "",
+            "grant_id": "grant_80490cc9fd6a96a4dcb589883d438d4014df4b09fb38e943d9ffab4d8feda572",
             "gross_value": 610786.176,
             "industry_at_entry": "optical",
             "industry_manifest_sha256": "03f42c5066fb8e1c7b2f8e1b7dd38d508d8053f548ebb5596317ce587d7cffd0",
@@ -402,7 +424,7 @@
         "order_ledger": [
           {
             "attempts": 1,
-            "cancel_reason": "",
+            "cancel_reason": "strategic partial remainder replaced",
             "entry_confidence": 1.0,
             "entry_industry_strength": 0.6785000000000001,
             "entry_regime": "CHOPPY",
@@ -410,9 +432,10 @@
             "event_id": "evt_47cdde1ff6391abf66174f2ab4bcd79d31f5ffd06bbf5b1b79bb612a55353fa6",
             "exit_kind": "strategy",
             "filled_shares": 33600,
+            "grant_id": "grant_80490cc9fd6a96a4dcb589883d438d4014df4b09fb38e943d9ffab4d8feda572",
             "industry_at_entry": "optical",
             "industry_manifest_sha256": "03f42c5066fb8e1c7b2f8e1b7dd38d508d8053f548ebb5596317ce587d7cffd0",
-            "last_event": "FILL",
+            "last_event": "PARTIAL_REMAINDER_RELEASED",
             "last_update_date": "2023-01-05",
             "lifecycle": "CORE",
             "mechanism": "STRATEGIC_COHORT",
@@ -428,7 +451,7 @@
             "requested_shares": 104500,
             "side": "BUY",
             "signal_date": "2023-01-04",
-            "status": "PARTIALLY_FILLED",
+            "status": "CANCELLED",
             "submitted_date": "2023-01-04",
             "symbol": "sz300308",
             "target_weight": 0.95
@@ -443,11 +466,12 @@
             "entry_score": 0.6034873411532079,
             "event_id": "evt_47cdde1ff6391abf66174f2ab4bcd79d31f5ffd06bbf5b1b79bb612a55353fa6",
             "exit_kind": "strategy",
+            "grant_id": "grant_80490cc9fd6a96a4dcb589883d438d4014df4b09fb38e943d9ffab4d8feda572",
             "industry_at_entry": "optical",
             "industry_manifest_sha256": "03f42c5066fb8e1c7b2f8e1b7dd38d508d8053f548ebb5596317ce587d7cffd0",
             "lifecycle": "CORE",
             "mechanism": "STRATEGIC_COHORT",
-            "order_id": "O000000001",
+            "order_id": "",
             "origin_lifecycle": "CORE",
             "origin_subsystem": "STRATEGIC",
             "reason": "prequalified strategic leader cohort with staged profit protection",
@@ -465,6 +489,7 @@
           "sz300308": {
             "avg_cost": 18.182886321599998,
             "entry_date": "2023-01-05",
+            "grant_id": "grant_80490cc9fd6a96a4dcb589883d438d4014df4b09fb38e943d9ffab4d8feda572",
             "highest_close": 18.24,
             "lifecycle": "CORE",
             "shares": 33600,
@@ -478,6 +503,7 @@
                 "entry_regime": "CHOPPY",
                 "entry_score": 0.6034873411532079,
                 "event_id": "evt_47cdde1ff6391abf66174f2ab4bcd79d31f5ffd06bbf5b1b79bb612a55353fa6",
+                "grant_id": "grant_80490cc9fd6a96a4dcb589883d438d4014df4b09fb38e943d9ffab4d8feda572",
                 "highest_close": 18.24,
                 "industry_at_entry": "optical",
                 "industry_manifest_sha256": "03f42c5066fb8e1c7b2f8e1b7dd38d508d8053f548ebb5596317ce587d7cffd0",
@@ -559,13 +585,50 @@
         "strategic_epoch": 1,
         "strategic_epochs_completed": 0,
         "strategic_exit_bands": {},
+        "strategic_grant": {
+          "account_identity": "account_12285b96bbcf639af123dd9fc9aeb8352d172d0a548b1abd36c10e350257f4cd",
+          "acknowledged_order_ids": [
+            "O000000001"
+          ],
+          "candidate_symbol": "sz300308",
+          "created_session": "2023-01-04",
+          "expiry_reason": "",
+          "filled_shares": 33600,
+          "first_submission_session": "2023-01-04",
+          "grant_id": "grant_80490cc9fd6a96a4dcb589883d438d4014df4b09fb38e943d9ffab4d8feda572",
+          "healthy_retry_sessions": 0,
+          "last_eligible_session": "2023-01-04",
+          "last_submission_session": "2023-01-04",
+          "previous_grant_id": "",
+          "production_source_identity": "bb12b13ddadb81d1432d951e03e92f1bc31c90e7f6c053c699350c2141988b7f",
+          "qualification_evidence_sha256": "db667b08265d3a979f9dd7f0b7032f34d234bd070fe5dec18c477c8a9ec157e5",
+          "qualification_route": "reversal_industry",
+          "qualification_signature": "strategic_qualification:EMERGING_SECULAR:sz300308:optical,sz300394:optical:evidence=reversal_industry",
+          "status": "PARTIALLY_FILLED",
+          "submitted_order_ids": [
+            "O000000001"
+          ],
+          "target_weight": 0.95
+        },
         "strategic_last_exit_date": "",
         "strategic_previous_symbols": [],
+        "strategic_qualification": {
+          "candidate_invalidation_reason": "",
+          "candidate_symbol": "sz300308",
+          "deployment_block_reason": "",
+          "deployment_blocked": false,
+          "qualification_evidence_sha256": "db667b08265d3a979f9dd7f0b7032f34d234bd070fe5dec18c477c8a9ec157e5",
+          "qualification_last_observed_session": "2023-01-04",
+          "qualification_ready": true,
+          "qualification_route": "reversal_industry",
+          "qualification_signature": "strategic_qualification:EMERGING_SECULAR:sz300308:optical,sz300394:optical:evidence=reversal_industry",
+          "qualification_streak": 2
+        },
         "strategic_rearm_date": "",
         "strategic_restore_weights": {},
         "tactical_anchor_symbol": ""
       },
-      "account_after_sha256": "73790f6c6c96bd8f01b2e64af0a7d7e59c2f2e4b5e4bf1c7a355d4a799408e68",
+      "account_after_sha256": "adc91090f5afce5398f4f56954641e11427ac03c99363a291b79c6a063a5bd81",
       "decision": {
         "date": "2023-01-04",
         "effective_config_sha256": "dae4d79fdd813832c6ab152611437c13be1d38227c7280691874d3a9267d93d5",
@@ -624,6 +687,7 @@
           "exit_kind": "strategy",
           "fill_date": "2023-01-05",
           "fill_id": "",
+          "grant_id": "grant_80490cc9fd6a96a4dcb589883d438d4014df4b09fb38e943d9ffab4d8feda572",
           "gross_value": 610786.176,
           "industry_at_entry": "optical",
           "industry_manifest_sha256": "03f42c5066fb8e1c7b2f8e1b7dd38d508d8053f548ebb5596317ce587d7cffd0",
@@ -647,7 +711,7 @@
           "transfer_fee": 6.1078617600000005
         }
       ],
-      "initial_account_sha256": "8956f88f4c57079c8781debc9ddd656968e7dbe7abdedae20a7bb36557673590",
+      "initial_account_sha256": "db84b04c2b04bd8f1f0817a36bf88ee60abda250c7002159f57f6b16a2c734cd",
       "inputs": {
         "fill_date": "2023-01-05",
         "initial_cash": 2000000.0,
@@ -6905,6 +6969,7 @@
         },
         "path": "uquant/account/validation_attribution.py",
         "public_names": [
+          "_GRANT_ID",
           "derive_v4_attribution_event_id",
           "validate_attribution_identity",
           "validate_lot_origin_chains",
@@ -28215,6 +28280,15 @@
                   },
                   "kind": "POSITIONAL_OR_KEYWORD",
                   "name": "industry_manifest_sha256"
+                },
+                {
+                  "annotation": "str",
+                  "default": {
+                    "kind": "value",
+                    "value": ""
+                  },
+                  "kind": "POSITIONAL_OR_KEYWORD",
+                  "name": "grant_id"
                 }
               ],
               "return": "None"
@@ -28723,6 +28797,34 @@
                   },
                   "kind": "POSITIONAL_OR_KEYWORD",
                   "name": "strategic_previous_symbols"
+                },
+                {
+                  "annotation": "str",
+                  "default": {
+                    "kind": "value",
+                    "value": ""
+                  },
+                  "kind": "POSITIONAL_OR_KEYWORD",
+                  "name": "account_identity"
+                },
+                {
+                  "annotation": "StrategicQualificationObservation",
+                  "default": {
+                    "kind": "object",
+                    "repr": "<factory>",
+                    "type": "dataclasses._HAS_DEFAULT_FACTORY_CLASS"
+                  },
+                  "kind": "POSITIONAL_OR_KEYWORD",
+                  "name": "strategic_qualification"
+                },
+                {
+                  "annotation": "StrategicGrantIntent | None",
+                  "default": {
+                    "kind": "value",
+                    "value": null
+                  },
+                  "kind": "POSITIONAL_OR_KEYWORD",
+                  "name": "strategic_grant"
                 },
                 {
                   "annotation": "list[str]",
@@ -29289,6 +29391,15 @@
                   },
                   "kind": "POSITIONAL_OR_KEYWORD",
                   "name": "industry_manifest_sha256"
+                },
+                {
+                  "annotation": "str",
+                  "default": {
+                    "kind": "value",
+                    "value": ""
+                  },
+                  "kind": "POSITIONAL_OR_KEYWORD",
+                  "name": "grant_id"
                 }
               ],
               "return": "None"
@@ -29632,6 +29743,15 @@
                   },
                   "kind": "POSITIONAL_OR_KEYWORD",
                   "name": "industry_manifest_sha256"
+                },
+                {
+                  "annotation": "str",
+                  "default": {
+                    "kind": "value",
+                    "value": ""
+                  },
+                  "kind": "POSITIONAL_OR_KEYWORD",
+                  "name": "grant_id"
                 }
               ],
               "return": "None"
@@ -29726,6 +29846,15 @@
                   },
                   "kind": "POSITIONAL_OR_KEYWORD",
                   "name": "tranches"
+                },
+                {
+                  "annotation": "str",
+                  "default": {
+                    "kind": "value",
+                    "value": ""
+                  },
+                  "kind": "POSITIONAL_OR_KEYWORD",
+                  "name": "grant_id"
                 }
               ],
               "return": "None"
@@ -29864,6 +29993,299 @@
                 }
               ],
               "return": null
+            }
+          },
+          "StrategicGrantIntent": {
+            "methods": {},
+            "properties": [
+              "terminal"
+            ],
+            "signature": {
+              "parameters": [
+                {
+                  "annotation": "str",
+                  "default": {
+                    "kind": "required"
+                  },
+                  "kind": "POSITIONAL_OR_KEYWORD",
+                  "name": "grant_id"
+                },
+                {
+                  "annotation": "str",
+                  "default": {
+                    "kind": "required"
+                  },
+                  "kind": "POSITIONAL_OR_KEYWORD",
+                  "name": "candidate_symbol"
+                },
+                {
+                  "annotation": "str",
+                  "default": {
+                    "kind": "required"
+                  },
+                  "kind": "POSITIONAL_OR_KEYWORD",
+                  "name": "qualification_signature"
+                },
+                {
+                  "annotation": "str",
+                  "default": {
+                    "kind": "required"
+                  },
+                  "kind": "POSITIONAL_OR_KEYWORD",
+                  "name": "qualification_route"
+                },
+                {
+                  "annotation": "str",
+                  "default": {
+                    "kind": "required"
+                  },
+                  "kind": "POSITIONAL_OR_KEYWORD",
+                  "name": "qualification_evidence_sha256"
+                },
+                {
+                  "annotation": "str",
+                  "default": {
+                    "kind": "required"
+                  },
+                  "kind": "POSITIONAL_OR_KEYWORD",
+                  "name": "created_session"
+                },
+                {
+                  "annotation": "str",
+                  "default": {
+                    "kind": "required"
+                  },
+                  "kind": "POSITIONAL_OR_KEYWORD",
+                  "name": "last_eligible_session"
+                },
+                {
+                  "annotation": "str",
+                  "default": {
+                    "kind": "value",
+                    "value": ""
+                  },
+                  "kind": "POSITIONAL_OR_KEYWORD",
+                  "name": "first_submission_session"
+                },
+                {
+                  "annotation": "str",
+                  "default": {
+                    "kind": "value",
+                    "value": ""
+                  },
+                  "kind": "POSITIONAL_OR_KEYWORD",
+                  "name": "last_submission_session"
+                },
+                {
+                  "annotation": "int",
+                  "default": {
+                    "kind": "value",
+                    "value": 0
+                  },
+                  "kind": "POSITIONAL_OR_KEYWORD",
+                  "name": "healthy_retry_sessions"
+                },
+                {
+                  "annotation": "list[str]",
+                  "default": {
+                    "kind": "object",
+                    "repr": "<factory>",
+                    "type": "dataclasses._HAS_DEFAULT_FACTORY_CLASS"
+                  },
+                  "kind": "POSITIONAL_OR_KEYWORD",
+                  "name": "submitted_order_ids"
+                },
+                {
+                  "annotation": "list[str]",
+                  "default": {
+                    "kind": "object",
+                    "repr": "<factory>",
+                    "type": "dataclasses._HAS_DEFAULT_FACTORY_CLASS"
+                  },
+                  "kind": "POSITIONAL_OR_KEYWORD",
+                  "name": "acknowledged_order_ids"
+                },
+                {
+                  "annotation": "int",
+                  "default": {
+                    "kind": "value",
+                    "value": 0
+                  },
+                  "kind": "POSITIONAL_OR_KEYWORD",
+                  "name": "filled_shares"
+                },
+                {
+                  "annotation": "float",
+                  "default": {
+                    "kind": "value",
+                    "value": 0.0
+                  },
+                  "kind": "POSITIONAL_OR_KEYWORD",
+                  "name": "target_weight"
+                },
+                {
+                  "annotation": "str",
+                  "default": {
+                    "kind": "value",
+                    "value": "QUALIFIED"
+                  },
+                  "kind": "POSITIONAL_OR_KEYWORD",
+                  "name": "status"
+                },
+                {
+                  "annotation": "str",
+                  "default": {
+                    "kind": "value",
+                    "value": ""
+                  },
+                  "kind": "POSITIONAL_OR_KEYWORD",
+                  "name": "expiry_reason"
+                },
+                {
+                  "annotation": "str",
+                  "default": {
+                    "kind": "value",
+                    "value": ""
+                  },
+                  "kind": "POSITIONAL_OR_KEYWORD",
+                  "name": "previous_grant_id"
+                },
+                {
+                  "annotation": "str",
+                  "default": {
+                    "kind": "value",
+                    "value": ""
+                  },
+                  "kind": "POSITIONAL_OR_KEYWORD",
+                  "name": "account_identity"
+                },
+                {
+                  "annotation": "str",
+                  "default": {
+                    "kind": "value",
+                    "value": ""
+                  },
+                  "kind": "POSITIONAL_OR_KEYWORD",
+                  "name": "production_source_identity"
+                }
+              ],
+              "return": "None"
+            }
+          },
+          "StrategicGrantStatus": {
+            "methods": {},
+            "properties": [],
+            "signature": {
+              "parameters": [
+                {
+                  "annotation": null,
+                  "default": {
+                    "kind": "required"
+                  },
+                  "kind": "VAR_POSITIONAL",
+                  "name": "values"
+                }
+              ],
+              "return": null
+            }
+          },
+          "StrategicQualificationObservation": {
+            "methods": {},
+            "properties": [],
+            "signature": {
+              "parameters": [
+                {
+                  "annotation": "str",
+                  "default": {
+                    "kind": "value",
+                    "value": ""
+                  },
+                  "kind": "POSITIONAL_OR_KEYWORD",
+                  "name": "candidate_symbol"
+                },
+                {
+                  "annotation": "str",
+                  "default": {
+                    "kind": "value",
+                    "value": ""
+                  },
+                  "kind": "POSITIONAL_OR_KEYWORD",
+                  "name": "qualification_signature"
+                },
+                {
+                  "annotation": "str",
+                  "default": {
+                    "kind": "value",
+                    "value": ""
+                  },
+                  "kind": "POSITIONAL_OR_KEYWORD",
+                  "name": "qualification_route"
+                },
+                {
+                  "annotation": "str",
+                  "default": {
+                    "kind": "value",
+                    "value": ""
+                  },
+                  "kind": "POSITIONAL_OR_KEYWORD",
+                  "name": "qualification_evidence_sha256"
+                },
+                {
+                  "annotation": "bool",
+                  "default": {
+                    "kind": "value",
+                    "value": false
+                  },
+                  "kind": "POSITIONAL_OR_KEYWORD",
+                  "name": "qualification_ready"
+                },
+                {
+                  "annotation": "bool",
+                  "default": {
+                    "kind": "value",
+                    "value": false
+                  },
+                  "kind": "POSITIONAL_OR_KEYWORD",
+                  "name": "deployment_blocked"
+                },
+                {
+                  "annotation": "str",
+                  "default": {
+                    "kind": "value",
+                    "value": ""
+                  },
+                  "kind": "POSITIONAL_OR_KEYWORD",
+                  "name": "deployment_block_reason"
+                },
+                {
+                  "annotation": "int",
+                  "default": {
+                    "kind": "value",
+                    "value": 0
+                  },
+                  "kind": "POSITIONAL_OR_KEYWORD",
+                  "name": "qualification_streak"
+                },
+                {
+                  "annotation": "str",
+                  "default": {
+                    "kind": "value",
+                    "value": ""
+                  },
+                  "kind": "POSITIONAL_OR_KEYWORD",
+                  "name": "qualification_last_observed_session"
+                },
+                {
+                  "annotation": "str",
+                  "default": {
+                    "kind": "value",
+                    "value": ""
+                  },
+                  "kind": "POSITIONAL_OR_KEYWORD",
+                  "name": "candidate_invalidation_reason"
+                }
+              ],
+              "return": "None"
             }
           },
           "Target": {
@@ -30017,6 +30439,15 @@
                   },
                   "kind": "POSITIONAL_OR_KEYWORD",
                   "name": "industry_manifest_sha256"
+                },
+                {
+                  "annotation": "str",
+                  "default": {
+                    "kind": "value",
+                    "value": ""
+                  },
+                  "kind": "POSITIONAL_OR_KEYWORD",
+                  "name": "grant_id"
                 }
               ],
               "return": "None"
@@ -30208,6 +30639,15 @@
                   },
                   "kind": "POSITIONAL_OR_KEYWORD",
                   "name": "industry_manifest_sha256"
+                },
+                {
+                  "annotation": "str",
+                  "default": {
+                    "kind": "value",
+                    "value": ""
+                  },
+                  "kind": "POSITIONAL_OR_KEYWORD",
+                  "name": "grant_id"
                 }
               ],
               "return": "None"
@@ -30455,6 +30895,14 @@
                   "value": ""
                 },
                 "name": "industry_manifest_sha256",
+                "type": "str"
+              },
+              {
+                "default": {
+                  "kind": "value",
+                  "value": ""
+                },
+                "name": "grant_id",
                 "type": "str"
               }
             ]
@@ -30850,6 +31298,30 @@
                 },
                 "name": "strategic_previous_symbols",
                 "type": "list[str]"
+              },
+              {
+                "default": {
+                  "kind": "value",
+                  "value": ""
+                },
+                "name": "account_identity",
+                "type": "str"
+              },
+              {
+                "default": {
+                  "callable": "uquant.types.StrategicQualificationObservation",
+                  "kind": "factory"
+                },
+                "name": "strategic_qualification",
+                "type": "StrategicQualificationObservation"
+              },
+              {
+                "default": {
+                  "kind": "value",
+                  "value": null
+                },
+                "name": "strategic_grant",
+                "type": "StrategicGrantIntent | None"
               },
               {
                 "default": {
@@ -31284,6 +31756,14 @@
                 },
                 "name": "industry_manifest_sha256",
                 "type": "str"
+              },
+              {
+                "default": {
+                  "kind": "value",
+                  "value": ""
+                },
+                "name": "grant_id",
+                "type": "str"
               }
             ]
           },
@@ -31519,6 +31999,14 @@
                 },
                 "name": "industry_manifest_sha256",
                 "type": "str"
+              },
+              {
+                "default": {
+                  "kind": "value",
+                  "value": ""
+                },
+                "name": "grant_id",
+                "type": "str"
               }
             ]
           },
@@ -31578,6 +32066,14 @@
                 },
                 "name": "tranches",
                 "type": "list[Tranche]"
+              },
+              {
+                "default": {
+                  "kind": "value",
+                  "value": ""
+                },
+                "name": "grant_id",
+                "type": "str"
               }
             ]
           },
@@ -31647,6 +32143,239 @@
                   "value": "NORMAL"
                 },
                 "name": "severity",
+                "type": "str"
+              }
+            ]
+          },
+          "StrategicGrantIntent": {
+            "fields": [
+              {
+                "default": {
+                  "kind": "required"
+                },
+                "name": "grant_id",
+                "type": "str"
+              },
+              {
+                "default": {
+                  "kind": "required"
+                },
+                "name": "candidate_symbol",
+                "type": "str"
+              },
+              {
+                "default": {
+                  "kind": "required"
+                },
+                "name": "qualification_signature",
+                "type": "str"
+              },
+              {
+                "default": {
+                  "kind": "required"
+                },
+                "name": "qualification_route",
+                "type": "str"
+              },
+              {
+                "default": {
+                  "kind": "required"
+                },
+                "name": "qualification_evidence_sha256",
+                "type": "str"
+              },
+              {
+                "default": {
+                  "kind": "required"
+                },
+                "name": "created_session",
+                "type": "str"
+              },
+              {
+                "default": {
+                  "kind": "required"
+                },
+                "name": "last_eligible_session",
+                "type": "str"
+              },
+              {
+                "default": {
+                  "kind": "value",
+                  "value": ""
+                },
+                "name": "first_submission_session",
+                "type": "str"
+              },
+              {
+                "default": {
+                  "kind": "value",
+                  "value": ""
+                },
+                "name": "last_submission_session",
+                "type": "str"
+              },
+              {
+                "default": {
+                  "kind": "value",
+                  "value": 0
+                },
+                "name": "healthy_retry_sessions",
+                "type": "int"
+              },
+              {
+                "default": {
+                  "callable": "builtins.list",
+                  "kind": "factory"
+                },
+                "name": "submitted_order_ids",
+                "type": "list[str]"
+              },
+              {
+                "default": {
+                  "callable": "builtins.list",
+                  "kind": "factory"
+                },
+                "name": "acknowledged_order_ids",
+                "type": "list[str]"
+              },
+              {
+                "default": {
+                  "kind": "value",
+                  "value": 0
+                },
+                "name": "filled_shares",
+                "type": "int"
+              },
+              {
+                "default": {
+                  "kind": "value",
+                  "value": 0.0
+                },
+                "name": "target_weight",
+                "type": "float"
+              },
+              {
+                "default": {
+                  "kind": "value",
+                  "value": "QUALIFIED"
+                },
+                "name": "status",
+                "type": "str"
+              },
+              {
+                "default": {
+                  "kind": "value",
+                  "value": ""
+                },
+                "name": "expiry_reason",
+                "type": "str"
+              },
+              {
+                "default": {
+                  "kind": "value",
+                  "value": ""
+                },
+                "name": "previous_grant_id",
+                "type": "str"
+              },
+              {
+                "default": {
+                  "kind": "value",
+                  "value": ""
+                },
+                "name": "account_identity",
+                "type": "str"
+              },
+              {
+                "default": {
+                  "kind": "value",
+                  "value": ""
+                },
+                "name": "production_source_identity",
+                "type": "str"
+              }
+            ]
+          },
+          "StrategicQualificationObservation": {
+            "fields": [
+              {
+                "default": {
+                  "kind": "value",
+                  "value": ""
+                },
+                "name": "candidate_symbol",
+                "type": "str"
+              },
+              {
+                "default": {
+                  "kind": "value",
+                  "value": ""
+                },
+                "name": "qualification_signature",
+                "type": "str"
+              },
+              {
+                "default": {
+                  "kind": "value",
+                  "value": ""
+                },
+                "name": "qualification_route",
+                "type": "str"
+              },
+              {
+                "default": {
+                  "kind": "value",
+                  "value": ""
+                },
+                "name": "qualification_evidence_sha256",
+                "type": "str"
+              },
+              {
+                "default": {
+                  "kind": "value",
+                  "value": false
+                },
+                "name": "qualification_ready",
+                "type": "bool"
+              },
+              {
+                "default": {
+                  "kind": "value",
+                  "value": false
+                },
+                "name": "deployment_blocked",
+                "type": "bool"
+              },
+              {
+                "default": {
+                  "kind": "value",
+                  "value": ""
+                },
+                "name": "deployment_block_reason",
+                "type": "str"
+              },
+              {
+                "default": {
+                  "kind": "value",
+                  "value": 0
+                },
+                "name": "qualification_streak",
+                "type": "int"
+              },
+              {
+                "default": {
+                  "kind": "value",
+                  "value": ""
+                },
+                "name": "qualification_last_observed_session",
+                "type": "str"
+              },
+              {
+                "default": {
+                  "kind": "value",
+                  "value": ""
+                },
+                "name": "candidate_invalidation_reason",
                 "type": "str"
               }
             ]
@@ -31781,6 +32510,14 @@
                   "value": ""
                 },
                 "name": "industry_manifest_sha256",
+                "type": "str"
+              },
+              {
+                "default": {
+                  "kind": "value",
+                  "value": ""
+                },
+                "name": "grant_id",
                 "type": "str"
               }
             ]
@@ -31946,6 +32683,14 @@
                   "value": ""
                 },
                 "name": "industry_manifest_sha256",
+                "type": "str"
+              },
+              {
+                "default": {
+                  "kind": "value",
+                  "value": ""
+                },
+                "name": "grant_id",
                 "type": "str"
               }
             ]
@@ -32199,6 +32944,32 @@
               "name": "SELL",
               "value": "SELL"
             }
+          ],
+          "StrategicGrantStatus": [
+            {
+              "name": "QUALIFIED",
+              "value": "QUALIFIED"
+            },
+            {
+              "name": "PENDING_EXECUTION",
+              "value": "PENDING_EXECUTION"
+            },
+            {
+              "name": "PARTIALLY_FILLED",
+              "value": "PARTIALLY_FILLED"
+            },
+            {
+              "name": "ACTIVE",
+              "value": "ACTIVE"
+            },
+            {
+              "name": "EXPIRED",
+              "value": "EXPIRED"
+            },
+            {
+              "name": "CANCELLED",
+              "value": "CANCELLED"
+            }
           ]
         },
         "functions": {
@@ -32311,6 +33082,75 @@
             ],
             "return": "str"
           },
+          "derive_strategic_grant_id": {
+            "parameters": [
+              {
+                "annotation": "str",
+                "default": {
+                  "kind": "required"
+                },
+                "kind": "KEYWORD_ONLY",
+                "name": "account_identity"
+              },
+              {
+                "annotation": "str",
+                "default": {
+                  "kind": "required"
+                },
+                "kind": "KEYWORD_ONLY",
+                "name": "candidate_symbol"
+              },
+              {
+                "annotation": "str",
+                "default": {
+                  "kind": "required"
+                },
+                "kind": "KEYWORD_ONLY",
+                "name": "qualification_signature"
+              },
+              {
+                "annotation": "str",
+                "default": {
+                  "kind": "required"
+                },
+                "kind": "KEYWORD_ONLY",
+                "name": "qualification_route"
+              },
+              {
+                "annotation": "str",
+                "default": {
+                  "kind": "required"
+                },
+                "kind": "KEYWORD_ONLY",
+                "name": "qualification_evidence_sha256"
+              },
+              {
+                "annotation": "str",
+                "default": {
+                  "kind": "required"
+                },
+                "kind": "KEYWORD_ONLY",
+                "name": "created_session"
+              },
+              {
+                "annotation": "str",
+                "default": {
+                  "kind": "required"
+                },
+                "kind": "KEYWORD_ONLY",
+                "name": "previous_grant_id"
+              },
+              {
+                "annotation": "str",
+                "default": {
+                  "kind": "required"
+                },
+                "kind": "KEYWORD_ONLY",
+                "name": "production_source_identity"
+              }
+            ],
+            "return": "str"
+          },
           "order_intent_metadata": {
             "parameters": [
               {
@@ -32377,9 +33217,13 @@
           "Risk",
           "RiskAssessment",
           "Side",
+          "StrategicGrantIntent",
+          "StrategicGrantStatus",
+          "StrategicQualificationObservation",
           "Target",
           "Tranche",
           "derive_attribution_event_id",
+          "derive_strategic_grant_id",
           "order_intent_metadata",
           "validate_attribution_compatibility"
         ]
@@ -32889,6 +33733,34 @@
                   },
                   "kind": "POSITIONAL_OR_KEYWORD",
                   "name": "strategic_previous_symbols"
+                },
+                {
+                  "annotation": "str",
+                  "default": {
+                    "kind": "value",
+                    "value": ""
+                  },
+                  "kind": "POSITIONAL_OR_KEYWORD",
+                  "name": "account_identity"
+                },
+                {
+                  "annotation": "StrategicQualificationObservation",
+                  "default": {
+                    "kind": "object",
+                    "repr": "<factory>",
+                    "type": "dataclasses._HAS_DEFAULT_FACTORY_CLASS"
+                  },
+                  "kind": "POSITIONAL_OR_KEYWORD",
+                  "name": "strategic_qualification"
+                },
+                {
+                  "annotation": "StrategicGrantIntent | None",
+                  "default": {
+                    "kind": "value",
+                    "value": null
+                  },
+                  "kind": "POSITIONAL_OR_KEYWORD",
+                  "name": "strategic_grant"
                 },
                 {
                   "annotation": "list[str]",
@@ -33480,6 +34352,30 @@
                 },
                 "name": "strategic_previous_symbols",
                 "type": "list[str]"
+              },
+              {
+                "default": {
+                  "kind": "value",
+                  "value": ""
+                },
+                "name": "account_identity",
+                "type": "str"
+              },
+              {
+                "default": {
+                  "callable": "uquant.types.StrategicQualificationObservation",
+                  "kind": "factory"
+                },
+                "name": "strategic_qualification",
+                "type": "StrategicQualificationObservation"
+              },
+              {
+                "default": {
+                  "kind": "value",
+                  "value": null
+                },
+                "name": "strategic_grant",
+                "type": "StrategicGrantIntent | None"
               },
               {
                 "default": {
@@ -34078,6 +34974,15 @@
                   },
                   "kind": "POSITIONAL_OR_KEYWORD",
                   "name": "industry_manifest_sha256"
+                },
+                {
+                  "annotation": "str",
+                  "default": {
+                    "kind": "value",
+                    "value": ""
+                  },
+                  "kind": "POSITIONAL_OR_KEYWORD",
+                  "name": "grant_id"
                 }
               ],
               "return": "None"
@@ -34405,6 +35310,14 @@
                   "value": ""
                 },
                 "name": "industry_manifest_sha256",
+                "type": "str"
+              },
+              {
+                "default": {
+                  "kind": "value",
+                  "value": ""
+                },
+                "name": "grant_id",
                 "type": "str"
               }
             ]
@@ -34823,6 +35736,791 @@
           "Side"
         ]
       },
+      "uquant.models.strategic_grant": {
+        "classes": {
+          "StrategicGrantIntent": {
+            "methods": {},
+            "properties": [
+              "terminal"
+            ],
+            "signature": {
+              "parameters": [
+                {
+                  "annotation": "str",
+                  "default": {
+                    "kind": "required"
+                  },
+                  "kind": "POSITIONAL_OR_KEYWORD",
+                  "name": "grant_id"
+                },
+                {
+                  "annotation": "str",
+                  "default": {
+                    "kind": "required"
+                  },
+                  "kind": "POSITIONAL_OR_KEYWORD",
+                  "name": "candidate_symbol"
+                },
+                {
+                  "annotation": "str",
+                  "default": {
+                    "kind": "required"
+                  },
+                  "kind": "POSITIONAL_OR_KEYWORD",
+                  "name": "qualification_signature"
+                },
+                {
+                  "annotation": "str",
+                  "default": {
+                    "kind": "required"
+                  },
+                  "kind": "POSITIONAL_OR_KEYWORD",
+                  "name": "qualification_route"
+                },
+                {
+                  "annotation": "str",
+                  "default": {
+                    "kind": "required"
+                  },
+                  "kind": "POSITIONAL_OR_KEYWORD",
+                  "name": "qualification_evidence_sha256"
+                },
+                {
+                  "annotation": "str",
+                  "default": {
+                    "kind": "required"
+                  },
+                  "kind": "POSITIONAL_OR_KEYWORD",
+                  "name": "created_session"
+                },
+                {
+                  "annotation": "str",
+                  "default": {
+                    "kind": "required"
+                  },
+                  "kind": "POSITIONAL_OR_KEYWORD",
+                  "name": "last_eligible_session"
+                },
+                {
+                  "annotation": "str",
+                  "default": {
+                    "kind": "value",
+                    "value": ""
+                  },
+                  "kind": "POSITIONAL_OR_KEYWORD",
+                  "name": "first_submission_session"
+                },
+                {
+                  "annotation": "str",
+                  "default": {
+                    "kind": "value",
+                    "value": ""
+                  },
+                  "kind": "POSITIONAL_OR_KEYWORD",
+                  "name": "last_submission_session"
+                },
+                {
+                  "annotation": "int",
+                  "default": {
+                    "kind": "value",
+                    "value": 0
+                  },
+                  "kind": "POSITIONAL_OR_KEYWORD",
+                  "name": "healthy_retry_sessions"
+                },
+                {
+                  "annotation": "list[str]",
+                  "default": {
+                    "kind": "object",
+                    "repr": "<factory>",
+                    "type": "dataclasses._HAS_DEFAULT_FACTORY_CLASS"
+                  },
+                  "kind": "POSITIONAL_OR_KEYWORD",
+                  "name": "submitted_order_ids"
+                },
+                {
+                  "annotation": "list[str]",
+                  "default": {
+                    "kind": "object",
+                    "repr": "<factory>",
+                    "type": "dataclasses._HAS_DEFAULT_FACTORY_CLASS"
+                  },
+                  "kind": "POSITIONAL_OR_KEYWORD",
+                  "name": "acknowledged_order_ids"
+                },
+                {
+                  "annotation": "int",
+                  "default": {
+                    "kind": "value",
+                    "value": 0
+                  },
+                  "kind": "POSITIONAL_OR_KEYWORD",
+                  "name": "filled_shares"
+                },
+                {
+                  "annotation": "float",
+                  "default": {
+                    "kind": "value",
+                    "value": 0.0
+                  },
+                  "kind": "POSITIONAL_OR_KEYWORD",
+                  "name": "target_weight"
+                },
+                {
+                  "annotation": "str",
+                  "default": {
+                    "kind": "value",
+                    "value": "QUALIFIED"
+                  },
+                  "kind": "POSITIONAL_OR_KEYWORD",
+                  "name": "status"
+                },
+                {
+                  "annotation": "str",
+                  "default": {
+                    "kind": "value",
+                    "value": ""
+                  },
+                  "kind": "POSITIONAL_OR_KEYWORD",
+                  "name": "expiry_reason"
+                },
+                {
+                  "annotation": "str",
+                  "default": {
+                    "kind": "value",
+                    "value": ""
+                  },
+                  "kind": "POSITIONAL_OR_KEYWORD",
+                  "name": "previous_grant_id"
+                },
+                {
+                  "annotation": "str",
+                  "default": {
+                    "kind": "value",
+                    "value": ""
+                  },
+                  "kind": "POSITIONAL_OR_KEYWORD",
+                  "name": "account_identity"
+                },
+                {
+                  "annotation": "str",
+                  "default": {
+                    "kind": "value",
+                    "value": ""
+                  },
+                  "kind": "POSITIONAL_OR_KEYWORD",
+                  "name": "production_source_identity"
+                }
+              ],
+              "return": "None"
+            }
+          },
+          "StrategicGrantStatus": {
+            "methods": {},
+            "properties": [],
+            "signature": {
+              "parameters": [
+                {
+                  "annotation": null,
+                  "default": {
+                    "kind": "required"
+                  },
+                  "kind": "VAR_POSITIONAL",
+                  "name": "values"
+                }
+              ],
+              "return": null
+            }
+          },
+          "StrategicQualificationObservation": {
+            "methods": {},
+            "properties": [],
+            "signature": {
+              "parameters": [
+                {
+                  "annotation": "str",
+                  "default": {
+                    "kind": "value",
+                    "value": ""
+                  },
+                  "kind": "POSITIONAL_OR_KEYWORD",
+                  "name": "candidate_symbol"
+                },
+                {
+                  "annotation": "str",
+                  "default": {
+                    "kind": "value",
+                    "value": ""
+                  },
+                  "kind": "POSITIONAL_OR_KEYWORD",
+                  "name": "qualification_signature"
+                },
+                {
+                  "annotation": "str",
+                  "default": {
+                    "kind": "value",
+                    "value": ""
+                  },
+                  "kind": "POSITIONAL_OR_KEYWORD",
+                  "name": "qualification_route"
+                },
+                {
+                  "annotation": "str",
+                  "default": {
+                    "kind": "value",
+                    "value": ""
+                  },
+                  "kind": "POSITIONAL_OR_KEYWORD",
+                  "name": "qualification_evidence_sha256"
+                },
+                {
+                  "annotation": "bool",
+                  "default": {
+                    "kind": "value",
+                    "value": false
+                  },
+                  "kind": "POSITIONAL_OR_KEYWORD",
+                  "name": "qualification_ready"
+                },
+                {
+                  "annotation": "bool",
+                  "default": {
+                    "kind": "value",
+                    "value": false
+                  },
+                  "kind": "POSITIONAL_OR_KEYWORD",
+                  "name": "deployment_blocked"
+                },
+                {
+                  "annotation": "str",
+                  "default": {
+                    "kind": "value",
+                    "value": ""
+                  },
+                  "kind": "POSITIONAL_OR_KEYWORD",
+                  "name": "deployment_block_reason"
+                },
+                {
+                  "annotation": "int",
+                  "default": {
+                    "kind": "value",
+                    "value": 0
+                  },
+                  "kind": "POSITIONAL_OR_KEYWORD",
+                  "name": "qualification_streak"
+                },
+                {
+                  "annotation": "str",
+                  "default": {
+                    "kind": "value",
+                    "value": ""
+                  },
+                  "kind": "POSITIONAL_OR_KEYWORD",
+                  "name": "qualification_last_observed_session"
+                },
+                {
+                  "annotation": "str",
+                  "default": {
+                    "kind": "value",
+                    "value": ""
+                  },
+                  "kind": "POSITIONAL_OR_KEYWORD",
+                  "name": "candidate_invalidation_reason"
+                }
+              ],
+              "return": "None"
+            }
+          }
+        },
+        "dataclasses": {
+          "StrategicGrantIntent": {
+            "fields": [
+              {
+                "default": {
+                  "kind": "required"
+                },
+                "name": "grant_id",
+                "type": "str"
+              },
+              {
+                "default": {
+                  "kind": "required"
+                },
+                "name": "candidate_symbol",
+                "type": "str"
+              },
+              {
+                "default": {
+                  "kind": "required"
+                },
+                "name": "qualification_signature",
+                "type": "str"
+              },
+              {
+                "default": {
+                  "kind": "required"
+                },
+                "name": "qualification_route",
+                "type": "str"
+              },
+              {
+                "default": {
+                  "kind": "required"
+                },
+                "name": "qualification_evidence_sha256",
+                "type": "str"
+              },
+              {
+                "default": {
+                  "kind": "required"
+                },
+                "name": "created_session",
+                "type": "str"
+              },
+              {
+                "default": {
+                  "kind": "required"
+                },
+                "name": "last_eligible_session",
+                "type": "str"
+              },
+              {
+                "default": {
+                  "kind": "value",
+                  "value": ""
+                },
+                "name": "first_submission_session",
+                "type": "str"
+              },
+              {
+                "default": {
+                  "kind": "value",
+                  "value": ""
+                },
+                "name": "last_submission_session",
+                "type": "str"
+              },
+              {
+                "default": {
+                  "kind": "value",
+                  "value": 0
+                },
+                "name": "healthy_retry_sessions",
+                "type": "int"
+              },
+              {
+                "default": {
+                  "callable": "builtins.list",
+                  "kind": "factory"
+                },
+                "name": "submitted_order_ids",
+                "type": "list[str]"
+              },
+              {
+                "default": {
+                  "callable": "builtins.list",
+                  "kind": "factory"
+                },
+                "name": "acknowledged_order_ids",
+                "type": "list[str]"
+              },
+              {
+                "default": {
+                  "kind": "value",
+                  "value": 0
+                },
+                "name": "filled_shares",
+                "type": "int"
+              },
+              {
+                "default": {
+                  "kind": "value",
+                  "value": 0.0
+                },
+                "name": "target_weight",
+                "type": "float"
+              },
+              {
+                "default": {
+                  "kind": "value",
+                  "value": "QUALIFIED"
+                },
+                "name": "status",
+                "type": "str"
+              },
+              {
+                "default": {
+                  "kind": "value",
+                  "value": ""
+                },
+                "name": "expiry_reason",
+                "type": "str"
+              },
+              {
+                "default": {
+                  "kind": "value",
+                  "value": ""
+                },
+                "name": "previous_grant_id",
+                "type": "str"
+              },
+              {
+                "default": {
+                  "kind": "value",
+                  "value": ""
+                },
+                "name": "account_identity",
+                "type": "str"
+              },
+              {
+                "default": {
+                  "kind": "value",
+                  "value": ""
+                },
+                "name": "production_source_identity",
+                "type": "str"
+              }
+            ]
+          },
+          "StrategicQualificationObservation": {
+            "fields": [
+              {
+                "default": {
+                  "kind": "value",
+                  "value": ""
+                },
+                "name": "candidate_symbol",
+                "type": "str"
+              },
+              {
+                "default": {
+                  "kind": "value",
+                  "value": ""
+                },
+                "name": "qualification_signature",
+                "type": "str"
+              },
+              {
+                "default": {
+                  "kind": "value",
+                  "value": ""
+                },
+                "name": "qualification_route",
+                "type": "str"
+              },
+              {
+                "default": {
+                  "kind": "value",
+                  "value": ""
+                },
+                "name": "qualification_evidence_sha256",
+                "type": "str"
+              },
+              {
+                "default": {
+                  "kind": "value",
+                  "value": false
+                },
+                "name": "qualification_ready",
+                "type": "bool"
+              },
+              {
+                "default": {
+                  "kind": "value",
+                  "value": false
+                },
+                "name": "deployment_blocked",
+                "type": "bool"
+              },
+              {
+                "default": {
+                  "kind": "value",
+                  "value": ""
+                },
+                "name": "deployment_block_reason",
+                "type": "str"
+              },
+              {
+                "default": {
+                  "kind": "value",
+                  "value": 0
+                },
+                "name": "qualification_streak",
+                "type": "int"
+              },
+              {
+                "default": {
+                  "kind": "value",
+                  "value": ""
+                },
+                "name": "qualification_last_observed_session",
+                "type": "str"
+              },
+              {
+                "default": {
+                  "kind": "value",
+                  "value": ""
+                },
+                "name": "candidate_invalidation_reason",
+                "type": "str"
+              }
+            ]
+          }
+        },
+        "enums": {
+          "StrategicGrantStatus": [
+            {
+              "name": "QUALIFIED",
+              "value": "QUALIFIED"
+            },
+            {
+              "name": "PENDING_EXECUTION",
+              "value": "PENDING_EXECUTION"
+            },
+            {
+              "name": "PARTIALLY_FILLED",
+              "value": "PARTIALLY_FILLED"
+            },
+            {
+              "name": "ACTIVE",
+              "value": "ACTIVE"
+            },
+            {
+              "name": "EXPIRED",
+              "value": "EXPIRED"
+            },
+            {
+              "name": "CANCELLED",
+              "value": "CANCELLED"
+            }
+          ]
+        },
+        "functions": {
+          "acknowledge_strategic_grant_order": {
+            "parameters": [
+              {
+                "annotation": "StrategicGrantIntent | None",
+                "default": {
+                  "kind": "required"
+                },
+                "kind": "POSITIONAL_OR_KEYWORD",
+                "name": "grant"
+              },
+              {
+                "annotation": "str",
+                "default": {
+                  "kind": "required"
+                },
+                "kind": "KEYWORD_ONLY",
+                "name": "grant_id"
+              },
+              {
+                "annotation": "str",
+                "default": {
+                  "kind": "required"
+                },
+                "kind": "KEYWORD_ONLY",
+                "name": "order_id"
+              }
+            ],
+            "return": "None"
+          },
+          "derive_strategic_grant_id": {
+            "parameters": [
+              {
+                "annotation": "str",
+                "default": {
+                  "kind": "required"
+                },
+                "kind": "KEYWORD_ONLY",
+                "name": "account_identity"
+              },
+              {
+                "annotation": "str",
+                "default": {
+                  "kind": "required"
+                },
+                "kind": "KEYWORD_ONLY",
+                "name": "candidate_symbol"
+              },
+              {
+                "annotation": "str",
+                "default": {
+                  "kind": "required"
+                },
+                "kind": "KEYWORD_ONLY",
+                "name": "qualification_signature"
+              },
+              {
+                "annotation": "str",
+                "default": {
+                  "kind": "required"
+                },
+                "kind": "KEYWORD_ONLY",
+                "name": "qualification_route"
+              },
+              {
+                "annotation": "str",
+                "default": {
+                  "kind": "required"
+                },
+                "kind": "KEYWORD_ONLY",
+                "name": "qualification_evidence_sha256"
+              },
+              {
+                "annotation": "str",
+                "default": {
+                  "kind": "required"
+                },
+                "kind": "KEYWORD_ONLY",
+                "name": "created_session"
+              },
+              {
+                "annotation": "str",
+                "default": {
+                  "kind": "required"
+                },
+                "kind": "KEYWORD_ONLY",
+                "name": "previous_grant_id"
+              },
+              {
+                "annotation": "str",
+                "default": {
+                  "kind": "required"
+                },
+                "kind": "KEYWORD_ONLY",
+                "name": "production_source_identity"
+              }
+            ],
+            "return": "str"
+          },
+          "record_strategic_grant_fill": {
+            "parameters": [
+              {
+                "annotation": "StrategicGrantIntent | None",
+                "default": {
+                  "kind": "required"
+                },
+                "kind": "POSITIONAL_OR_KEYWORD",
+                "name": "grant"
+              },
+              {
+                "annotation": "str",
+                "default": {
+                  "kind": "required"
+                },
+                "kind": "KEYWORD_ONLY",
+                "name": "grant_id"
+              },
+              {
+                "annotation": "int",
+                "default": {
+                  "kind": "required"
+                },
+                "kind": "KEYWORD_ONLY",
+                "name": "shares"
+              },
+              {
+                "annotation": "bool",
+                "default": {
+                  "kind": "required"
+                },
+                "kind": "KEYWORD_ONLY",
+                "name": "completed"
+              }
+            ],
+            "return": "None"
+          },
+          "record_strategic_grant_submissions": {
+            "parameters": [
+              {
+                "annotation": "StrategicGrantIntent | None",
+                "default": {
+                  "kind": "required"
+                },
+                "kind": "POSITIONAL_OR_KEYWORD",
+                "name": "grant"
+              },
+              {
+                "annotation": "list[tuple[str, str]]",
+                "default": {
+                  "kind": "required"
+                },
+                "kind": "KEYWORD_ONLY",
+                "name": "order_ids"
+              }
+            ],
+            "return": "None"
+          },
+          "strategic_grant_from_payload": {
+            "parameters": [
+              {
+                "annotation": "Mapping[str, Any] | None",
+                "default": {
+                  "kind": "required"
+                },
+                "kind": "POSITIONAL_OR_KEYWORD",
+                "name": "value"
+              }
+            ],
+            "return": "StrategicGrantIntent | None"
+          },
+          "strategic_qualification_from_payload": {
+            "parameters": [
+              {
+                "annotation": "Mapping[str, Any] | None",
+                "default": {
+                  "kind": "required"
+                },
+                "kind": "POSITIONAL_OR_KEYWORD",
+                "name": "value"
+              }
+            ],
+            "return": "StrategicQualificationObservation"
+          },
+          "validate_strategic_grant": {
+            "parameters": [
+              {
+                "annotation": "StrategicGrantIntent",
+                "default": {
+                  "kind": "required"
+                },
+                "kind": "POSITIONAL_OR_KEYWORD",
+                "name": "value"
+              }
+            ],
+            "return": "None"
+          },
+          "validate_strategic_qualification": {
+            "parameters": [
+              {
+                "annotation": "StrategicQualificationObservation",
+                "default": {
+                  "kind": "required"
+                },
+                "kind": "POSITIONAL_OR_KEYWORD",
+                "name": "value"
+              }
+            ],
+            "return": "None"
+          }
+        },
+        "path": "uquant/models/strategic_grant.py",
+        "public_names": [
+          "TERMINAL_STRATEGIC_GRANT_STATUSES",
+          "StrategicGrantIntent",
+          "StrategicGrantStatus",
+          "StrategicQualificationObservation",
+          "acknowledge_strategic_grant_order",
+          "derive_strategic_grant_id",
+          "record_strategic_grant_fill",
+          "record_strategic_grant_submissions",
+          "strategic_grant_from_payload",
+          "strategic_qualification_from_payload",
+          "validate_strategic_grant",
+          "validate_strategic_qualification"
+        ]
+      },
       "uquant.models.trading": {
         "classes": {
           "AccountOrder": {
@@ -35100,6 +36798,15 @@
                   },
                   "kind": "POSITIONAL_OR_KEYWORD",
                   "name": "industry_manifest_sha256"
+                },
+                {
+                  "annotation": "str",
+                  "default": {
+                    "kind": "value",
+                    "value": ""
+                  },
+                  "kind": "POSITIONAL_OR_KEYWORD",
+                  "name": "grant_id"
                 }
               ],
               "return": "None"
@@ -35340,6 +37047,15 @@
                   },
                   "kind": "POSITIONAL_OR_KEYWORD",
                   "name": "industry_manifest_sha256"
+                },
+                {
+                  "annotation": "str",
+                  "default": {
+                    "kind": "value",
+                    "value": ""
+                  },
+                  "kind": "POSITIONAL_OR_KEYWORD",
+                  "name": "grant_id"
                 }
               ],
               "return": "None"
@@ -35550,6 +37266,15 @@
                   },
                   "kind": "POSITIONAL_OR_KEYWORD",
                   "name": "industry_manifest_sha256"
+                },
+                {
+                  "annotation": "str",
+                  "default": {
+                    "kind": "value",
+                    "value": ""
+                  },
+                  "kind": "POSITIONAL_OR_KEYWORD",
+                  "name": "grant_id"
                 }
               ],
               "return": "None"
@@ -35644,6 +37369,15 @@
                   },
                   "kind": "POSITIONAL_OR_KEYWORD",
                   "name": "tranches"
+                },
+                {
+                  "annotation": "str",
+                  "default": {
+                    "kind": "value",
+                    "value": ""
+                  },
+                  "kind": "POSITIONAL_OR_KEYWORD",
+                  "name": "grant_id"
                 }
               ],
               "return": "None"
@@ -35835,6 +37569,15 @@
                   },
                   "kind": "POSITIONAL_OR_KEYWORD",
                   "name": "industry_manifest_sha256"
+                },
+                {
+                  "annotation": "str",
+                  "default": {
+                    "kind": "value",
+                    "value": ""
+                  },
+                  "kind": "POSITIONAL_OR_KEYWORD",
+                  "name": "grant_id"
                 }
               ],
               "return": "None"
@@ -36083,6 +37826,14 @@
                 },
                 "name": "industry_manifest_sha256",
                 "type": "str"
+              },
+              {
+                "default": {
+                  "kind": "value",
+                  "value": ""
+                },
+                "name": "grant_id",
+                "type": "str"
               }
             ]
           },
@@ -36282,6 +38033,14 @@
                 },
                 "name": "industry_manifest_sha256",
                 "type": "str"
+              },
+              {
+                "default": {
+                  "kind": "value",
+                  "value": ""
+                },
+                "name": "grant_id",
+                "type": "str"
               }
             ]
           },
@@ -36464,6 +38223,14 @@
                 },
                 "name": "industry_manifest_sha256",
                 "type": "str"
+              },
+              {
+                "default": {
+                  "kind": "value",
+                  "value": ""
+                },
+                "name": "grant_id",
+                "type": "str"
               }
             ]
           },
@@ -36523,6 +38290,14 @@
                 },
                 "name": "tranches",
                 "type": "list[Tranche]"
+              },
+              {
+                "default": {
+                  "kind": "value",
+                  "value": ""
+                },
+                "name": "grant_id",
+                "type": "str"
               }
             ]
           },
@@ -36687,6 +38462,14 @@
                   "value": ""
                 },
                 "name": "industry_manifest_sha256",
+                "type": "str"
+              },
+              {
+                "default": {
+                  "kind": "value",
+                  "value": ""
+                },
+                "name": "grant_id",
                 "type": "str"
               }
             ]
@@ -52358,6 +54141,15 @@
                   },
                   "kind": "POSITIONAL_OR_KEYWORD",
                   "name": "industry_manifest_sha256"
+                },
+                {
+                  "annotation": "str",
+                  "default": {
+                    "kind": "value",
+                    "value": ""
+                  },
+                  "kind": "POSITIONAL_OR_KEYWORD",
+                  "name": "grant_id"
                 }
               ],
               "return": "None"
@@ -52866,6 +54658,34 @@
                   },
                   "kind": "POSITIONAL_OR_KEYWORD",
                   "name": "strategic_previous_symbols"
+                },
+                {
+                  "annotation": "str",
+                  "default": {
+                    "kind": "value",
+                    "value": ""
+                  },
+                  "kind": "POSITIONAL_OR_KEYWORD",
+                  "name": "account_identity"
+                },
+                {
+                  "annotation": "StrategicQualificationObservation",
+                  "default": {
+                    "kind": "object",
+                    "repr": "<factory>",
+                    "type": "dataclasses._HAS_DEFAULT_FACTORY_CLASS"
+                  },
+                  "kind": "POSITIONAL_OR_KEYWORD",
+                  "name": "strategic_qualification"
+                },
+                {
+                  "annotation": "StrategicGrantIntent | None",
+                  "default": {
+                    "kind": "value",
+                    "value": null
+                  },
+                  "kind": "POSITIONAL_OR_KEYWORD",
+                  "name": "strategic_grant"
                 },
                 {
                   "annotation": "list[str]",
@@ -53432,6 +55252,15 @@
                   },
                   "kind": "POSITIONAL_OR_KEYWORD",
                   "name": "industry_manifest_sha256"
+                },
+                {
+                  "annotation": "str",
+                  "default": {
+                    "kind": "value",
+                    "value": ""
+                  },
+                  "kind": "POSITIONAL_OR_KEYWORD",
+                  "name": "grant_id"
                 }
               ],
               "return": "None"
@@ -53775,6 +55604,15 @@
                   },
                   "kind": "POSITIONAL_OR_KEYWORD",
                   "name": "industry_manifest_sha256"
+                },
+                {
+                  "annotation": "str",
+                  "default": {
+                    "kind": "value",
+                    "value": ""
+                  },
+                  "kind": "POSITIONAL_OR_KEYWORD",
+                  "name": "grant_id"
                 }
               ],
               "return": "None"
@@ -53869,6 +55707,15 @@
                   },
                   "kind": "POSITIONAL_OR_KEYWORD",
                   "name": "tranches"
+                },
+                {
+                  "annotation": "str",
+                  "default": {
+                    "kind": "value",
+                    "value": ""
+                  },
+                  "kind": "POSITIONAL_OR_KEYWORD",
+                  "name": "grant_id"
                 }
               ],
               "return": "None"
@@ -54007,6 +55854,299 @@
                 }
               ],
               "return": null
+            }
+          },
+          "StrategicGrantIntent": {
+            "methods": {},
+            "properties": [
+              "terminal"
+            ],
+            "signature": {
+              "parameters": [
+                {
+                  "annotation": "str",
+                  "default": {
+                    "kind": "required"
+                  },
+                  "kind": "POSITIONAL_OR_KEYWORD",
+                  "name": "grant_id"
+                },
+                {
+                  "annotation": "str",
+                  "default": {
+                    "kind": "required"
+                  },
+                  "kind": "POSITIONAL_OR_KEYWORD",
+                  "name": "candidate_symbol"
+                },
+                {
+                  "annotation": "str",
+                  "default": {
+                    "kind": "required"
+                  },
+                  "kind": "POSITIONAL_OR_KEYWORD",
+                  "name": "qualification_signature"
+                },
+                {
+                  "annotation": "str",
+                  "default": {
+                    "kind": "required"
+                  },
+                  "kind": "POSITIONAL_OR_KEYWORD",
+                  "name": "qualification_route"
+                },
+                {
+                  "annotation": "str",
+                  "default": {
+                    "kind": "required"
+                  },
+                  "kind": "POSITIONAL_OR_KEYWORD",
+                  "name": "qualification_evidence_sha256"
+                },
+                {
+                  "annotation": "str",
+                  "default": {
+                    "kind": "required"
+                  },
+                  "kind": "POSITIONAL_OR_KEYWORD",
+                  "name": "created_session"
+                },
+                {
+                  "annotation": "str",
+                  "default": {
+                    "kind": "required"
+                  },
+                  "kind": "POSITIONAL_OR_KEYWORD",
+                  "name": "last_eligible_session"
+                },
+                {
+                  "annotation": "str",
+                  "default": {
+                    "kind": "value",
+                    "value": ""
+                  },
+                  "kind": "POSITIONAL_OR_KEYWORD",
+                  "name": "first_submission_session"
+                },
+                {
+                  "annotation": "str",
+                  "default": {
+                    "kind": "value",
+                    "value": ""
+                  },
+                  "kind": "POSITIONAL_OR_KEYWORD",
+                  "name": "last_submission_session"
+                },
+                {
+                  "annotation": "int",
+                  "default": {
+                    "kind": "value",
+                    "value": 0
+                  },
+                  "kind": "POSITIONAL_OR_KEYWORD",
+                  "name": "healthy_retry_sessions"
+                },
+                {
+                  "annotation": "list[str]",
+                  "default": {
+                    "kind": "object",
+                    "repr": "<factory>",
+                    "type": "dataclasses._HAS_DEFAULT_FACTORY_CLASS"
+                  },
+                  "kind": "POSITIONAL_OR_KEYWORD",
+                  "name": "submitted_order_ids"
+                },
+                {
+                  "annotation": "list[str]",
+                  "default": {
+                    "kind": "object",
+                    "repr": "<factory>",
+                    "type": "dataclasses._HAS_DEFAULT_FACTORY_CLASS"
+                  },
+                  "kind": "POSITIONAL_OR_KEYWORD",
+                  "name": "acknowledged_order_ids"
+                },
+                {
+                  "annotation": "int",
+                  "default": {
+                    "kind": "value",
+                    "value": 0
+                  },
+                  "kind": "POSITIONAL_OR_KEYWORD",
+                  "name": "filled_shares"
+                },
+                {
+                  "annotation": "float",
+                  "default": {
+                    "kind": "value",
+                    "value": 0.0
+                  },
+                  "kind": "POSITIONAL_OR_KEYWORD",
+                  "name": "target_weight"
+                },
+                {
+                  "annotation": "str",
+                  "default": {
+                    "kind": "value",
+                    "value": "QUALIFIED"
+                  },
+                  "kind": "POSITIONAL_OR_KEYWORD",
+                  "name": "status"
+                },
+                {
+                  "annotation": "str",
+                  "default": {
+                    "kind": "value",
+                    "value": ""
+                  },
+                  "kind": "POSITIONAL_OR_KEYWORD",
+                  "name": "expiry_reason"
+                },
+                {
+                  "annotation": "str",
+                  "default": {
+                    "kind": "value",
+                    "value": ""
+                  },
+                  "kind": "POSITIONAL_OR_KEYWORD",
+                  "name": "previous_grant_id"
+                },
+                {
+                  "annotation": "str",
+                  "default": {
+                    "kind": "value",
+                    "value": ""
+                  },
+                  "kind": "POSITIONAL_OR_KEYWORD",
+                  "name": "account_identity"
+                },
+                {
+                  "annotation": "str",
+                  "default": {
+                    "kind": "value",
+                    "value": ""
+                  },
+                  "kind": "POSITIONAL_OR_KEYWORD",
+                  "name": "production_source_identity"
+                }
+              ],
+              "return": "None"
+            }
+          },
+          "StrategicGrantStatus": {
+            "methods": {},
+            "properties": [],
+            "signature": {
+              "parameters": [
+                {
+                  "annotation": null,
+                  "default": {
+                    "kind": "required"
+                  },
+                  "kind": "VAR_POSITIONAL",
+                  "name": "values"
+                }
+              ],
+              "return": null
+            }
+          },
+          "StrategicQualificationObservation": {
+            "methods": {},
+            "properties": [],
+            "signature": {
+              "parameters": [
+                {
+                  "annotation": "str",
+                  "default": {
+                    "kind": "value",
+                    "value": ""
+                  },
+                  "kind": "POSITIONAL_OR_KEYWORD",
+                  "name": "candidate_symbol"
+                },
+                {
+                  "annotation": "str",
+                  "default": {
+                    "kind": "value",
+                    "value": ""
+                  },
+                  "kind": "POSITIONAL_OR_KEYWORD",
+                  "name": "qualification_signature"
+                },
+                {
+                  "annotation": "str",
+                  "default": {
+                    "kind": "value",
+                    "value": ""
+                  },
+                  "kind": "POSITIONAL_OR_KEYWORD",
+                  "name": "qualification_route"
+                },
+                {
+                  "annotation": "str",
+                  "default": {
+                    "kind": "value",
+                    "value": ""
+                  },
+                  "kind": "POSITIONAL_OR_KEYWORD",
+                  "name": "qualification_evidence_sha256"
+                },
+                {
+                  "annotation": "bool",
+                  "default": {
+                    "kind": "value",
+                    "value": false
+                  },
+                  "kind": "POSITIONAL_OR_KEYWORD",
+                  "name": "qualification_ready"
+                },
+                {
+                  "annotation": "bool",
+                  "default": {
+                    "kind": "value",
+                    "value": false
+                  },
+                  "kind": "POSITIONAL_OR_KEYWORD",
+                  "name": "deployment_blocked"
+                },
+                {
+                  "annotation": "str",
+                  "default": {
+                    "kind": "value",
+                    "value": ""
+                  },
+                  "kind": "POSITIONAL_OR_KEYWORD",
+                  "name": "deployment_block_reason"
+                },
+                {
+                  "annotation": "int",
+                  "default": {
+                    "kind": "value",
+                    "value": 0
+                  },
+                  "kind": "POSITIONAL_OR_KEYWORD",
+                  "name": "qualification_streak"
+                },
+                {
+                  "annotation": "str",
+                  "default": {
+                    "kind": "value",
+                    "value": ""
+                  },
+                  "kind": "POSITIONAL_OR_KEYWORD",
+                  "name": "qualification_last_observed_session"
+                },
+                {
+                  "annotation": "str",
+                  "default": {
+                    "kind": "value",
+                    "value": ""
+                  },
+                  "kind": "POSITIONAL_OR_KEYWORD",
+                  "name": "candidate_invalidation_reason"
+                }
+              ],
+              "return": "None"
             }
           },
           "Target": {
@@ -54160,6 +56300,15 @@
                   },
                   "kind": "POSITIONAL_OR_KEYWORD",
                   "name": "industry_manifest_sha256"
+                },
+                {
+                  "annotation": "str",
+                  "default": {
+                    "kind": "value",
+                    "value": ""
+                  },
+                  "kind": "POSITIONAL_OR_KEYWORD",
+                  "name": "grant_id"
                 }
               ],
               "return": "None"
@@ -54351,6 +56500,15 @@
                   },
                   "kind": "POSITIONAL_OR_KEYWORD",
                   "name": "industry_manifest_sha256"
+                },
+                {
+                  "annotation": "str",
+                  "default": {
+                    "kind": "value",
+                    "value": ""
+                  },
+                  "kind": "POSITIONAL_OR_KEYWORD",
+                  "name": "grant_id"
                 }
               ],
               "return": "None"
@@ -54598,6 +56756,14 @@
                   "value": ""
                 },
                 "name": "industry_manifest_sha256",
+                "type": "str"
+              },
+              {
+                "default": {
+                  "kind": "value",
+                  "value": ""
+                },
+                "name": "grant_id",
                 "type": "str"
               }
             ]
@@ -54993,6 +57159,30 @@
                 },
                 "name": "strategic_previous_symbols",
                 "type": "list[str]"
+              },
+              {
+                "default": {
+                  "kind": "value",
+                  "value": ""
+                },
+                "name": "account_identity",
+                "type": "str"
+              },
+              {
+                "default": {
+                  "callable": "uquant.types.StrategicQualificationObservation",
+                  "kind": "factory"
+                },
+                "name": "strategic_qualification",
+                "type": "StrategicQualificationObservation"
+              },
+              {
+                "default": {
+                  "kind": "value",
+                  "value": null
+                },
+                "name": "strategic_grant",
+                "type": "StrategicGrantIntent | None"
               },
               {
                 "default": {
@@ -55427,6 +57617,14 @@
                 },
                 "name": "industry_manifest_sha256",
                 "type": "str"
+              },
+              {
+                "default": {
+                  "kind": "value",
+                  "value": ""
+                },
+                "name": "grant_id",
+                "type": "str"
               }
             ]
           },
@@ -55662,6 +57860,14 @@
                 },
                 "name": "industry_manifest_sha256",
                 "type": "str"
+              },
+              {
+                "default": {
+                  "kind": "value",
+                  "value": ""
+                },
+                "name": "grant_id",
+                "type": "str"
               }
             ]
           },
@@ -55721,6 +57927,14 @@
                 },
                 "name": "tranches",
                 "type": "list[Tranche]"
+              },
+              {
+                "default": {
+                  "kind": "value",
+                  "value": ""
+                },
+                "name": "grant_id",
+                "type": "str"
               }
             ]
           },
@@ -55790,6 +58004,239 @@
                   "value": "NORMAL"
                 },
                 "name": "severity",
+                "type": "str"
+              }
+            ]
+          },
+          "StrategicGrantIntent": {
+            "fields": [
+              {
+                "default": {
+                  "kind": "required"
+                },
+                "name": "grant_id",
+                "type": "str"
+              },
+              {
+                "default": {
+                  "kind": "required"
+                },
+                "name": "candidate_symbol",
+                "type": "str"
+              },
+              {
+                "default": {
+                  "kind": "required"
+                },
+                "name": "qualification_signature",
+                "type": "str"
+              },
+              {
+                "default": {
+                  "kind": "required"
+                },
+                "name": "qualification_route",
+                "type": "str"
+              },
+              {
+                "default": {
+                  "kind": "required"
+                },
+                "name": "qualification_evidence_sha256",
+                "type": "str"
+              },
+              {
+                "default": {
+                  "kind": "required"
+                },
+                "name": "created_session",
+                "type": "str"
+              },
+              {
+                "default": {
+                  "kind": "required"
+                },
+                "name": "last_eligible_session",
+                "type": "str"
+              },
+              {
+                "default": {
+                  "kind": "value",
+                  "value": ""
+                },
+                "name": "first_submission_session",
+                "type": "str"
+              },
+              {
+                "default": {
+                  "kind": "value",
+                  "value": ""
+                },
+                "name": "last_submission_session",
+                "type": "str"
+              },
+              {
+                "default": {
+                  "kind": "value",
+                  "value": 0
+                },
+                "name": "healthy_retry_sessions",
+                "type": "int"
+              },
+              {
+                "default": {
+                  "callable": "builtins.list",
+                  "kind": "factory"
+                },
+                "name": "submitted_order_ids",
+                "type": "list[str]"
+              },
+              {
+                "default": {
+                  "callable": "builtins.list",
+                  "kind": "factory"
+                },
+                "name": "acknowledged_order_ids",
+                "type": "list[str]"
+              },
+              {
+                "default": {
+                  "kind": "value",
+                  "value": 0
+                },
+                "name": "filled_shares",
+                "type": "int"
+              },
+              {
+                "default": {
+                  "kind": "value",
+                  "value": 0.0
+                },
+                "name": "target_weight",
+                "type": "float"
+              },
+              {
+                "default": {
+                  "kind": "value",
+                  "value": "QUALIFIED"
+                },
+                "name": "status",
+                "type": "str"
+              },
+              {
+                "default": {
+                  "kind": "value",
+                  "value": ""
+                },
+                "name": "expiry_reason",
+                "type": "str"
+              },
+              {
+                "default": {
+                  "kind": "value",
+                  "value": ""
+                },
+                "name": "previous_grant_id",
+                "type": "str"
+              },
+              {
+                "default": {
+                  "kind": "value",
+                  "value": ""
+                },
+                "name": "account_identity",
+                "type": "str"
+              },
+              {
+                "default": {
+                  "kind": "value",
+                  "value": ""
+                },
+                "name": "production_source_identity",
+                "type": "str"
+              }
+            ]
+          },
+          "StrategicQualificationObservation": {
+            "fields": [
+              {
+                "default": {
+                  "kind": "value",
+                  "value": ""
+                },
+                "name": "candidate_symbol",
+                "type": "str"
+              },
+              {
+                "default": {
+                  "kind": "value",
+                  "value": ""
+                },
+                "name": "qualification_signature",
+                "type": "str"
+              },
+              {
+                "default": {
+                  "kind": "value",
+                  "value": ""
+                },
+                "name": "qualification_route",
+                "type": "str"
+              },
+              {
+                "default": {
+                  "kind": "value",
+                  "value": ""
+                },
+                "name": "qualification_evidence_sha256",
+                "type": "str"
+              },
+              {
+                "default": {
+                  "kind": "value",
+                  "value": false
+                },
+                "name": "qualification_ready",
+                "type": "bool"
+              },
+              {
+                "default": {
+                  "kind": "value",
+                  "value": false
+                },
+                "name": "deployment_blocked",
+                "type": "bool"
+              },
+              {
+                "default": {
+                  "kind": "value",
+                  "value": ""
+                },
+                "name": "deployment_block_reason",
+                "type": "str"
+              },
+              {
+                "default": {
+                  "kind": "value",
+                  "value": 0
+                },
+                "name": "qualification_streak",
+                "type": "int"
+              },
+              {
+                "default": {
+                  "kind": "value",
+                  "value": ""
+                },
+                "name": "qualification_last_observed_session",
+                "type": "str"
+              },
+              {
+                "default": {
+                  "kind": "value",
+                  "value": ""
+                },
+                "name": "candidate_invalidation_reason",
                 "type": "str"
               }
             ]
@@ -55924,6 +58371,14 @@
                   "value": ""
                 },
                 "name": "industry_manifest_sha256",
+                "type": "str"
+              },
+              {
+                "default": {
+                  "kind": "value",
+                  "value": ""
+                },
+                "name": "grant_id",
                 "type": "str"
               }
             ]
@@ -56089,6 +58544,14 @@
                   "value": ""
                 },
                 "name": "industry_manifest_sha256",
+                "type": "str"
+              },
+              {
+                "default": {
+                  "kind": "value",
+                  "value": ""
+                },
+                "name": "grant_id",
                 "type": "str"
               }
             ]
@@ -56342,6 +58805,32 @@
               "name": "SELL",
               "value": "SELL"
             }
+          ],
+          "StrategicGrantStatus": [
+            {
+              "name": "QUALIFIED",
+              "value": "QUALIFIED"
+            },
+            {
+              "name": "PENDING_EXECUTION",
+              "value": "PENDING_EXECUTION"
+            },
+            {
+              "name": "PARTIALLY_FILLED",
+              "value": "PARTIALLY_FILLED"
+            },
+            {
+              "name": "ACTIVE",
+              "value": "ACTIVE"
+            },
+            {
+              "name": "EXPIRED",
+              "value": "EXPIRED"
+            },
+            {
+              "name": "CANCELLED",
+              "value": "CANCELLED"
+            }
           ]
         },
         "functions": {
@@ -56454,6 +58943,75 @@
             ],
             "return": "str"
           },
+          "derive_strategic_grant_id": {
+            "parameters": [
+              {
+                "annotation": "str",
+                "default": {
+                  "kind": "required"
+                },
+                "kind": "KEYWORD_ONLY",
+                "name": "account_identity"
+              },
+              {
+                "annotation": "str",
+                "default": {
+                  "kind": "required"
+                },
+                "kind": "KEYWORD_ONLY",
+                "name": "candidate_symbol"
+              },
+              {
+                "annotation": "str",
+                "default": {
+                  "kind": "required"
+                },
+                "kind": "KEYWORD_ONLY",
+                "name": "qualification_signature"
+              },
+              {
+                "annotation": "str",
+                "default": {
+                  "kind": "required"
+                },
+                "kind": "KEYWORD_ONLY",
+                "name": "qualification_route"
+              },
+              {
+                "annotation": "str",
+                "default": {
+                  "kind": "required"
+                },
+                "kind": "KEYWORD_ONLY",
+                "name": "qualification_evidence_sha256"
+              },
+              {
+                "annotation": "str",
+                "default": {
+                  "kind": "required"
+                },
+                "kind": "KEYWORD_ONLY",
+                "name": "created_session"
+              },
+              {
+                "annotation": "str",
+                "default": {
+                  "kind": "required"
+                },
+                "kind": "KEYWORD_ONLY",
+                "name": "previous_grant_id"
+              },
+              {
+                "annotation": "str",
+                "default": {
+                  "kind": "required"
+                },
+                "kind": "KEYWORD_ONLY",
+                "name": "production_source_identity"
+              }
+            ],
+            "return": "str"
+          },
           "order_intent_metadata": {
             "parameters": [
               {
@@ -56520,10 +59078,14 @@
           "Risk",
           "RiskAssessment",
           "Side",
+          "StrategicGrantIntent",
+          "StrategicGrantStatus",
+          "StrategicQualificationObservation",
           "Target",
           "Tranche",
           "_ATTRIBUTION_COMPATIBILITY",
           "derive_attribution_event_id",
+          "derive_strategic_grant_id",
           "order_intent_metadata",
           "validate_attribution_compatibility"
         ]
@@ -72265,7 +74827,7 @@
     }
   },
   "contract_id": "uquant-public-api-v1",
-  "contract_sha256": "b03d37b4d87f469331edbf48444fc70a75152b0c0e81329580c363177380def7",
+  "contract_sha256": "90b1bf396660525a88e3623869518788930a44f5690fb1a397d26617449044b6",
   "recorded_on": "2026-08-26",
   "schema_version": 1
 }

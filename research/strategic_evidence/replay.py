@@ -158,16 +158,19 @@ def run_replay(
     try:
         return _run_replay_success(data_dir, request, cfg=cfg, intervention=intervention)
     except (RuntimeError, ValueError) as exc:
-        status = "INSUFFICIENT_SAMPLE" if "fewer than two sessions" in str(exc) else "REPLAY_ERROR"
         return ReplayResult(
             request=request,
             metrics={},
             trace=(),
             final_account={},
             intervention_provenance=intervention.provenance if intervention is not None else None,
-            status=status,
+            status=_terminal_status(exc),
             error=str(exc),
         )
+
+
+def _terminal_status(error: Exception) -> str:
+    return "INSUFFICIENT_SAMPLE" if "fewer than two sessions" in str(error) else "REPLAY_ERROR"
 
 
 def _run_replay_success(
@@ -198,66 +201,96 @@ def _run_replay_success(
     intervention_provenance: Mapping[str, Any] | None = None
     fill_cursor = 0
     for session in sessions:
-        engine.execution.execute_open(date=session, account=account, panel=raw_user_panel)
-        equity = engine.equity(account, session)
-        equity_rows.append((session, equity))
-        session_date = str(session.date())
-        if request.intervention_date == session_date:
-            assert intervention is not None
-            intervention_provenance = intervention.apply(account)
-        new_fills = tuple(account.fills[fill_cursor:])
-        fill_cursor = len(account.fills)
-        decision = engine.decide(symbols=request.symbols, as_of=session_date, account=account)
-        if request.intervention_date == session_date:
-            assert intervention is not None
-            decision = intervention.preserve_activation(account, decision)
-        account.pending_orders = list(decision.pending_orders)
-        close_marks = {
-            symbol: engine._price(symbol, session)
-            for symbol, position in account.positions.items()
-            if position.shares > 0
-        }
-        reconcile_accounting(
-            cash=account.cash,
-            position_shares={
-                symbol: position.shares for symbol, position in account.positions.items() if position.shares
-            },
-            close_marks=close_marks,
-            equity=equity,
-        )
-        trace.append(
-            _route_trace_row(
-                account=account,
-                decision=decision,
-                equity=equity,
-                new_fills=new_fills,
-                intervention_provenance=intervention_provenance
-                if request.intervention_date == session_date
-                else None,
+        try:
+            engine.execution.execute_open(date=session, account=account, panel=raw_user_panel)
+            equity = engine.equity(account, session)
+            equity_rows.append((session, equity))
+            session_date = str(session.date())
+            if request.intervention_date == session_date:
+                assert intervention is not None
+                intervention_provenance = intervention.apply(account)
+            new_fills = tuple(account.fills[fill_cursor:])
+            fill_cursor = len(account.fills)
+            decision = engine.decide(symbols=request.symbols, as_of=session_date, account=account)
+            if request.intervention_date == session_date:
+                assert intervention is not None
+                decision = intervention.preserve_activation(account, decision)
+            account.pending_orders = list(decision.pending_orders)
+            close_marks = {
+                symbol: engine._price(symbol, session)
+                for symbol, position in account.positions.items()
+                if position.shares > 0
+            }
+            reconcile_accounting(
+                cash=account.cash,
+                position_shares={
+                    symbol: position.shares
+                    for symbol, position in account.positions.items()
+                    if position.shares
+                },
                 close_marks=close_marks,
+                equity=equity,
             )
+            trace.append(
+                _route_trace_row(
+                    account=account,
+                    decision=decision,
+                    equity=equity,
+                    new_fills=new_fills,
+                    intervention_provenance=intervention_provenance
+                    if request.intervention_date == session_date
+                    else None,
+                    close_marks=close_marks,
+                )
+            )
+        except (RuntimeError, ValueError) as exc:
+            return ReplayResult(
+                request=request,
+                metrics={},
+                trace=tuple(trace),
+                final_account=account.to_dict(),
+                intervention_provenance=(
+                    intervention.provenance if intervention is not None else intervention_provenance
+                ),
+                status=_terminal_status(exc),
+                error=str(exc),
+            )
+    try:
+        if intervention is not None and not intervention.applied:
+            raise RuntimeError("intervention date is absent from the official replay calendar")
+        final_equity = engine.equity(account, pd.Timestamp(sessions[-1]))
+        metrics = performance_metrics(
+            equity_rows=equity_rows,
+            fills=account.fills,
+            orders=account.order_ledger,
+            initial_cash=account.initial_cash,
+            risk_events=account.risk_events,
+            benchmark_total_return=(
+                engine._price("sh000682", sessions[-1])
+                / engine._price("sh000682", sessions[0])
+                - 1.0
+            ),
         )
-    if intervention is not None and not intervention.applied:
-        raise RuntimeError("intervention date is absent from the official replay calendar")
-    final_equity = engine.equity(account, pd.Timestamp(sessions[-1]))
-    metrics = performance_metrics(
-        equity_rows=equity_rows,
-        fills=account.fills,
-        orders=account.order_ledger,
-        initial_cash=account.initial_cash,
-        risk_events=account.risk_events,
-        benchmark_total_return=(
-            engine._price("sh000682", sessions[-1]) / engine._price("sh000682", sessions[0]) - 1.0
-        ),
-    )
-    metrics["final_equity"] = final_equity
-    return ReplayResult(
-        request=request,
-        metrics=metrics,
-        trace=tuple(trace),
-        final_account=account.to_dict(),
-        intervention_provenance=intervention_provenance,
-    )
+        metrics["final_equity"] = final_equity
+        return ReplayResult(
+            request=request,
+            metrics=metrics,
+            trace=tuple(trace),
+            final_account=account.to_dict(),
+            intervention_provenance=intervention_provenance,
+        )
+    except (RuntimeError, ValueError) as exc:
+        return ReplayResult(
+            request=request,
+            metrics={},
+            trace=tuple(trace),
+            final_account=account.to_dict(),
+            intervention_provenance=(
+                intervention.provenance if intervention is not None else intervention_provenance
+            ),
+            status=_terminal_status(exc),
+            error=str(exc),
+        )
 
 
 def validate_replay_accounting(result: ReplayResult) -> None:

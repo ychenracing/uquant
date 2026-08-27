@@ -220,6 +220,8 @@ def _validated_decision_symbols(
         | set(account.active_leaders)
         | {order.symbol for order in account.pending_orders}
     )
+    if account.strategic_grant is not None and not account.strategic_grant.terminal:
+        durable_symbols.add(account.strategic_grant.candidate_symbol)
     if account.tactical_anchor_symbol:
         durable_symbols.add(account.tactical_anchor_symbol)
     return date, user_symbols, durable_symbols
@@ -440,6 +442,21 @@ def _allocate_decision_orders(
     reconcile_account_orders_fn: Callable[..., tuple[PendingOrder, ...]],
     attach_target_attribution_fn: Callable[..., tuple[Target, ...]],
 ) -> _DecisionAllocation:
+    # Provenance was already fail-closed above. Publishing it before allocation
+    # lets any newly created grant bind the exact production source identity.
+    account.code_hash = inputs.current_code_hash
+    if not account.account_identity:
+        account_identity_payload = "|".join(
+            (
+                float(account.initial_cash).hex(),
+                inputs.current_code_hash,
+                str(inputs.date.date()),
+                ",".join(inputs.current_symbols),
+            )
+        )
+        account.account_identity = "account_" + hashlib.sha256(
+            account_identity_payload.encode("utf-8")
+        ).hexdigest()
     structural_users = {
         symbol: market.structural_leaders[symbol]
         for symbol in inputs.user_symbols
@@ -473,6 +490,7 @@ def _allocate_decision_orders(
         if opportunity is Opportunity.RECOVERY
         else "CHOPPY"
     )
+    previous_orders = list(account.pending_orders)
     targets = self.allocator.allocate(
         date=inputs.date,
         opportunity=opportunity,
@@ -485,7 +503,7 @@ def _allocate_decision_orders(
     targets = attach_target_attribution_fn(
         signal_date=str(inputs.date.date()),
         targets=targets,
-        retained_orders=account.pending_orders,
+        retained_orders=previous_orders,
         cfg=self.cfg,
     )
     if not market.cfg.group_balanced_reference_enabled:
@@ -497,7 +515,6 @@ def _allocate_decision_orders(
         prices=market.prices,
         cfg=self.cfg,
     )
-    previous_orders = list(account.pending_orders)
     orders = merge_pending_orders(
         retained=previous_orders,
         planned=planned_orders,

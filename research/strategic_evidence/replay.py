@@ -210,6 +210,8 @@ def _run_replay_success(
                 if intervention is None:
                     raise RuntimeError("intervention disappeared during replay")
                 intervention_provenance = intervention.apply(account)
+                equity = engine.equity(account, session)
+                equity_rows[-1] = (session, equity)
             new_fills = tuple(account.fills[fill_cursor:])
             fill_cursor = len(account.fills)
             decision = engine.decide(symbols=request.symbols, as_of=session_date, account=account)

@@ -714,7 +714,10 @@ def test_strategic_epoch_respects_risk_gate_and_session_cooldown():
             risk=_normal_risk(),
         )
     assert account.strategic_epoch == 0
-    assert account.candidate_tenure["strategic_cohort_qualification"] == 0
+    assert account.candidate_tenure["strategic_cohort_qualification"] == 3
+    assert account.strategic_qualification.qualification_ready is True
+    assert account.strategic_qualification.deployment_blocked is True
+    assert account.strategic_qualification.deployment_block_reason == "strategic_cooldown"
 
     account.strategic_last_exit_date = str(dates[-50].date())
     for date in dates[-DEFAULT_CONFIG.strategic_cohort_confirm_days :]:

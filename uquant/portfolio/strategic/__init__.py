@@ -12,6 +12,7 @@ from .discovery import (
 from .discovery import (
     initialize_strategic_cohort as _initialize_strategic_cohort,
 )
+from .discovery import revalidate_strategic_grant as _revalidate_strategic_grant
 from .lifecycle import (
     bounded_strategic_restore_risk_open as _bounded_strategic_restore_risk_open,
 )
@@ -60,6 +61,9 @@ _bind_strategic_compatibility_method(
 )
 _bind_strategic_compatibility_method(
     "_initialize_strategic_cohort", _initialize_strategic_cohort
+)
+_bind_strategic_compatibility_method(
+    "_revalidate_strategic_grant", _revalidate_strategic_grant
 )
 _bind_strategic_compatibility_method(
     "_strategic_cohort_targets", _strategic_cohort_targets

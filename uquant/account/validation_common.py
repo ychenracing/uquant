@@ -25,6 +25,7 @@ _HISTORICAL_ATTRIBUTION_SCHEMA_VERSION = 4
 
 
 _UNLINKED_NATIVE_IDENTITY_FIELDS = (
+    "grant_id",
     "signal_date",
     "symbol",
     "side",

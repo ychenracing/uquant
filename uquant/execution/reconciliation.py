@@ -6,6 +6,7 @@ from copy import deepcopy
 from dataclasses import fields
 
 from ..account import validate_pending_order_for_account_write
+from ..models.strategic_grant import record_strategic_grant_submissions
 from ..types import (
     ORDER_INTENT_IMMUTABLE_FIELDS,
     AccountOrder,
@@ -63,6 +64,9 @@ def _register_account_order(
         target_weight=order.target_weight,
         reason=order.reason,
         lifecycle=order.lifecycle,
+        requested_shares=order.remaining_shares,
+        remaining_shares=order.remaining_shares,
+        attempts=order.attempts,
         last_update_date=submitted_date,
         reduction_policy=order.reduction_policy,
         reason_code=order.reason_code,
@@ -78,6 +82,7 @@ def _register_account_order(
         replaces_symbol=order.replaces_symbol,
         industry_at_entry=order.industry_at_entry,
         industry_manifest_sha256=order.industry_manifest_sha256,
+        grant_id=order.grant_id,
     )
     account.order_ledger.append(entry)
     return entry
@@ -279,7 +284,18 @@ def reconcile_account_orders(
     for original, shadow in zip(current, shadow_current, strict=True):
         original.order_id = shadow.order_id
     originals_by_id = {order.order_id: order for order in (*previous, *current) if order.order_id}
-    return tuple(originals_by_id.get(order.order_id, order) for order in shadow_result)
+    result = tuple(originals_by_id.get(order.order_id, order) for order in shadow_result)
+    grant = account.strategic_grant
+    if grant is not None:
+        record_strategic_grant_submissions(
+            grant,
+            order_ids=[
+                (order.order_id, submitted_date)
+                for order in result
+                if order.grant_id == grant.grant_id
+            ],
+        )
+    return result
 
 
 active_order_status = _active_order_status

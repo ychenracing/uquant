@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import hashlib
 from copy import deepcopy
 from dataclasses import fields, replace
 from math import isfinite
@@ -15,7 +16,10 @@ from uquant.types import (
     AccountState,
     Decision,
     PendingOrder,
+    StrategicGrantIntent,
+    StrategicGrantStatus,
     derive_attribution_event_id,
+    derive_strategic_grant_id,
 )
 
 
@@ -81,6 +85,7 @@ def _rewrite_account_order(order: AccountOrder, old: str, new: str) -> None:
         replaces_symbol=order.replaces_symbol,
         industry_at_entry=order.industry_at_entry,
         industry_manifest_sha256=order.industry_manifest_sha256,
+        grant_id=order.grant_id,
     )
     _rewrite_order(pending, old, new)
     order.symbol, order.event_id, order.replaces_symbol = (
@@ -90,10 +95,179 @@ def _rewrite_account_order(order: AccountOrder, old: str, new: str) -> None:
     )
 
 
+def _rewrite_grant(
+    account: AccountState,
+    *,
+    old: str,
+    new: str,
+    target_weight: float,
+    session: str,
+) -> str:
+    prior = account.strategic_grant
+    if prior is None:
+        return ""
+    evidence = hashlib.sha256(
+        "|".join((prior.qualification_evidence_sha256, old, new, session)).encode("utf-8")
+    ).hexdigest()
+    signature = prior.qualification_signature.replace(old, new)
+    previous_grant_id = prior.grant_id
+    grant_id = derive_strategic_grant_id(
+        account_identity=prior.account_identity,
+        candidate_symbol=new,
+        qualification_signature=signature,
+        qualification_route=prior.qualification_route,
+        qualification_evidence_sha256=evidence,
+        created_session=session,
+        previous_grant_id=previous_grant_id,
+        production_source_identity=prior.production_source_identity,
+    )
+    submitted = [order.order_id for order in account.order_ledger if order.symbol == old]
+    acknowledged = [
+        order.order_id
+        for order in account.order_ledger
+        if order.symbol == old and order.status != "SUBMITTED"
+    ]
+    held_position = account.positions.get(old)
+    held_shares = held_position.shares if held_position is not None else 0
+    account.strategic_grant = StrategicGrantIntent(
+        grant_id=grant_id,
+        candidate_symbol=new,
+        qualification_signature=signature,
+        qualification_route=prior.qualification_route,
+        qualification_evidence_sha256=evidence,
+        created_session=session,
+        last_eligible_session=session,
+        first_submission_session=(prior.first_submission_session if submitted else ""),
+        last_submission_session=(prior.last_submission_session if submitted else ""),
+        healthy_retry_sessions=prior.healthy_retry_sessions,
+        submitted_order_ids=submitted,
+        acknowledged_order_ids=acknowledged,
+        filled_shares=max(prior.filled_shares, held_shares),
+        target_weight=target_weight,
+        status=(
+            StrategicGrantStatus.ACTIVE.value
+            if held_shares > 0
+            or account.candidate_tenure.get("strategic_cohort_active", 0) == 1
+            else StrategicGrantStatus.PENDING_EXECUTION.value
+            if submitted
+            else StrategicGrantStatus.QUALIFIED.value
+        ),
+        previous_grant_id=previous_grant_id,
+        account_identity=prior.account_identity,
+        production_source_identity=prior.production_source_identity,
+    )
+    observation = account.strategic_qualification
+    if observation.candidate_symbol == old:
+        observation.candidate_symbol = new
+        observation.qualification_signature = signature
+        observation.qualification_evidence_sha256 = evidence
+        observation.qualification_last_observed_session = session
+    return grant_id
+
+
+def _rewrite_account_identity_chain(
+    account: AccountState,
+    *,
+    old: str,
+    new: str,
+    forced_industry: str,
+    grant_id: str,
+) -> None:
+    event_rewrites: dict[str, str] = {}
+    for pending_order in account.pending_orders:
+        if pending_order.symbol != old:
+            continue
+        prior_event = pending_order.event_id
+        _rewrite_order(pending_order, old, new)
+        pending_order.industry_at_entry = forced_industry
+        pending_order.industry_manifest_sha256 = REQUIRED_AI_UNIVERSE_SHA256
+        pending_order.grant_id = grant_id
+        pending_order.event_id = derive_attribution_event_id(
+            signal_date=pending_order.signal_date,
+            symbol=pending_order.symbol,
+            target_weight=pending_order.target_weight,
+            lifecycle=pending_order.lifecycle,
+            origin_lifecycle=pending_order.origin_lifecycle,
+            origin_subsystem=pending_order.origin_subsystem,
+            mechanism=pending_order.mechanism,
+            replaces_symbol=pending_order.replaces_symbol,
+            industry_at_entry=pending_order.industry_at_entry,
+            industry_manifest_sha256=pending_order.industry_manifest_sha256,
+            reduction_policy=pending_order.reduction_policy,
+            reason_code=pending_order.reason_code,
+            exit_kind=pending_order.exit_kind,
+        )
+        event_rewrites[prior_event] = pending_order.event_id
+    ledger = {order.order_id: order for order in account.order_ledger}
+    for account_order in account.order_ledger:
+        if account_order.symbol != old:
+            continue
+        prior_event = account_order.event_id
+        _rewrite_account_order(account_order, old, new)
+        account_order.industry_at_entry = forced_industry
+        account_order.industry_manifest_sha256 = REQUIRED_AI_UNIVERSE_SHA256
+        account_order.grant_id = grant_id
+        account_order.event_id = derive_attribution_event_id(
+            signal_date=account_order.signal_date,
+            symbol=account_order.symbol,
+            target_weight=account_order.target_weight,
+            lifecycle=account_order.lifecycle,
+            origin_lifecycle=account_order.origin_lifecycle,
+            origin_subsystem=account_order.origin_subsystem,
+            mechanism=account_order.mechanism,
+            replaces_symbol=account_order.replaces_symbol,
+            industry_at_entry=account_order.industry_at_entry,
+            industry_manifest_sha256=account_order.industry_manifest_sha256,
+            reduction_policy=account_order.reduction_policy,
+            reason_code=account_order.reason_code,
+            exit_kind=account_order.exit_kind,
+        )
+        event_rewrites[prior_event] = account_order.event_id
+    for fill in account.fills:
+        if fill.symbol != old:
+            continue
+        ledger_order = ledger.get(fill.order_id)
+        if ledger_order is None:
+            raise ValueError("forced owner cannot rewrite an unlinked historical fill")
+        fill.symbol = new
+        fill.event_id = ledger_order.event_id
+        fill.origin_subsystem = ledger_order.origin_subsystem
+        fill.mechanism = ledger_order.mechanism
+        fill.origin_lifecycle = ledger_order.origin_lifecycle
+        fill.replaces_symbol = ledger_order.replaces_symbol
+        fill.industry_at_entry = ledger_order.industry_at_entry
+        fill.industry_manifest_sha256 = ledger_order.industry_manifest_sha256
+        fill.grant_id = grant_id
+        for allocation in fill.sold_tranches:
+            prior_event = str(allocation.get("event_id", ""))
+            if prior_event in event_rewrites:
+                allocation["event_id"] = event_rewrites[prior_event]
+                allocation["industry_at_entry"] = forced_industry
+                allocation["industry_manifest_sha256"] = REQUIRED_AI_UNIVERSE_SHA256
+                allocation["grant_id"] = grant_id
+    if old in account.positions:
+        _assert_no_collision(account.positions, old, new)
+        position = account.positions.pop(old)
+        position.symbol = new
+        position.grant_id = grant_id
+        for tranche in position.tranches:
+            if tranche.event_id not in event_rewrites:
+                raise ValueError("forced owner tranche lacks a rewritten originating event")
+            tranche.event_id = event_rewrites[tranche.event_id]
+            tranche.industry_at_entry = forced_industry
+            tranche.industry_manifest_sha256 = REQUIRED_AI_UNIVERSE_SHA256
+            tranche.grant_id = grant_id
+        account.positions[new] = position
 class StrategicOwnerIntervention:
     """Replace one active strategic owner at exactly one replay decision point."""
 
-    def __init__(self, *, owner: str, target_gross: float) -> None:
+    def __init__(
+        self,
+        *,
+        owner: str,
+        target_gross: float,
+        intervention_date: str | None = None,
+    ) -> None:
         normalized = normalize_symbol(owner)
         if not isinstance(target_gross, (int, float)) or isinstance(target_gross, bool):
             raise ValueError("strategic owner target gross must be numeric")
@@ -101,6 +275,8 @@ class StrategicOwnerIntervention:
             raise ValueError("strategic owner target gross must be between zero and one")
         self.owner = normalized
         self.target_gross = float(target_gross)
+        self.intervention_date = intervention_date
+        self._source_owner: str | None = None
         self._applied = False
         self._provenance: dict[str, Any] | None = None
 
@@ -124,11 +300,25 @@ class StrategicOwnerIntervention:
         if len(source_owners) > 1:
             raise ValueError("mixed strategic owner intervention is forbidden")
         source_owner = source_owners[0] if source_owners else None
+        self._source_owner = source_owner
         shadow = deepcopy(account)
         if source_owner is None:
             shadow.strategic_cohort_symbols = [self.owner]
             shadow.strategic_cohort_targets = {self.owner: self.target_gross}
+        elif source_owner == self.owner:
+            shadow.strategic_cohort_targets[self.owner] = self.target_gross
         else:
+            session = self.intervention_date or shadow.last_successful_run or "2023-01-04"
+            forced_industry = default_ai_universe().industry_of(self.owner, session)
+            if forced_industry == "unknown":
+                raise ValueError("forced owner has no point-in-time industry membership")
+            grant_id = _rewrite_grant(
+                shadow,
+                old=source_owner,
+                new=self.owner,
+                target_weight=self.target_gross,
+                session=session,
+            )
             shadow.strategic_cohort_symbols = _replace_symbol_list(
                 shadow.strategic_cohort_symbols, source_owner, self.owner
             )
@@ -147,8 +337,13 @@ class StrategicOwnerIntervention:
             shadow.risk_anchor_symbols = _replace_symbol_list(
                 shadow.risk_anchor_symbols, source_owner, self.owner
             )
-            for order in shadow.pending_orders:
-                _rewrite_order(order, source_owner, self.owner)
+            _rewrite_account_identity_chain(
+                shadow,
+                old=source_owner,
+                new=self.owner,
+                forced_industry=forced_industry,
+                grant_id=grant_id,
+            )
             shadow.strategic_cohort_targets[self.owner] = self.target_gross
         try:
             account_from_dict(shadow.to_dict(), require_hashes=False)
@@ -176,6 +371,16 @@ class StrategicOwnerIntervention:
             for target in decision.targets
             if target.origin_subsystem == "STRATEGIC" and target.mechanism == "STRATEGIC_COHORT"
         )
+        source_owners = tuple(dict.fromkeys(account.strategic_cohort_symbols))
+        if source_owners == (self.owner,) and not strategic:
+            grant = account.strategic_grant
+            durable_forced_owner = bool(
+                grant is not None
+                and grant.candidate_symbol == self.owner
+                and grant.status == StrategicGrantStatus.ACTIVE.value
+            )
+            if self._source_owner == self.owner or durable_forced_owner:
+                return decision
         if len(strategic) != 1:
             raise ValueError("forced owner activation requires exactly one production strategic target")
         original = strategic[0]
@@ -186,6 +391,13 @@ class StrategicOwnerIntervention:
         forced_industry = default_ai_universe().industry_of(self.owner, decision.date)
         if forced_industry == "unknown":
             raise ValueError("forced owner has no point-in-time industry membership")
+        grant_id = _rewrite_grant(
+            shadow,
+            old=source_owner,
+            new=self.owner,
+            target_weight=self.target_gross,
+            session=decision.date,
+        )
         for name in (
             "strategic_cohort_targets",
             "strategic_exit_bands",
@@ -198,26 +410,13 @@ class StrategicOwnerIntervention:
             shadow.strategic_cohort_symbols, source_owner, self.owner
         )
         shadow.strategic_cohort_targets[self.owner] = self.target_gross
-        for order in shadow.order_ledger:
-            _rewrite_account_order(order, source_owner, self.owner)
-            if order.symbol == self.owner and order.origin_subsystem == "STRATEGIC":
-                order.industry_at_entry = forced_industry
-                order.industry_manifest_sha256 = REQUIRED_AI_UNIVERSE_SHA256
-                order.event_id = derive_attribution_event_id(
-                    signal_date=order.signal_date,
-                    symbol=order.symbol,
-                    target_weight=order.target_weight,
-                    lifecycle=order.lifecycle,
-                    origin_lifecycle=order.origin_lifecycle,
-                    origin_subsystem=order.origin_subsystem,
-                    mechanism=order.mechanism,
-                    replaces_symbol=order.replaces_symbol,
-                    industry_at_entry=order.industry_at_entry,
-                    industry_manifest_sha256=order.industry_manifest_sha256,
-                    reduction_policy=order.reduction_policy,
-                    reason_code=order.reason_code,
-                    exit_kind=order.exit_kind,
-                )
+        _rewrite_account_identity_chain(
+            shadow,
+            old=source_owner,
+            new=self.owner,
+            forced_industry=forced_industry,
+            grant_id=grant_id,
+        )
         account_from_dict(shadow.to_dict(), require_hashes=False)
         for field in fields(AccountState):
             setattr(account, field.name, getattr(shadow, field.name))
@@ -227,6 +426,7 @@ class StrategicOwnerIntervention:
             weight=self.target_gross,
             industry_at_entry=forced_industry,
             industry_manifest_sha256=REQUIRED_AI_UNIVERSE_SHA256,
+            grant_id=grant_id,
         )
         forced_target = replace(
             forced_target,
@@ -254,6 +454,7 @@ class StrategicOwnerIntervention:
                 event_id=forced_target.event_id,
                 industry_at_entry=forced_industry,
                 industry_manifest_sha256=REQUIRED_AI_UNIVERSE_SHA256,
+                grant_id=grant_id,
             )
             if order.symbol == source_owner and order.origin_subsystem == "STRATEGIC"
             else order

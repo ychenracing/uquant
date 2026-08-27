@@ -134,6 +134,18 @@ def allocate(
         prices=prices,
     )
     if sentinel_only_freeze:
+        account.strategic_qualification = deepcopy(
+            strategy_account.strategic_qualification
+        )
+        if account.strategic_qualification.candidate_symbol:
+            for key, value in strategy_account.replacement_tenure.items():
+                if key.startswith("strategic_qualification:"):
+                    account.replacement_tenure[key] = value
+            for key in ("strategic_cohort_qualification", "strategic_long_cycle_open"):
+                if key in strategy_account.candidate_tenure:
+                    account.candidate_tenure[key] = strategy_account.candidate_tenure[key]
+            account.strategic_qualification.deployment_blocked = True
+            account.strategic_qualification.deployment_block_reason = "freeze_new_risk"
         weights_now, _ = current_weights(account, prices)
         targets = self._frozen_existing_targets(
             strategy_targets=targets,

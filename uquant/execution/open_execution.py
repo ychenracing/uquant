@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import math
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from datetime import date as date_type
 from datetime import timedelta
 from typing import Any, cast
@@ -12,6 +12,10 @@ import pandas as pd
 
 from ..config import SystemConfig
 from ..features import scalar
+from ..models.strategic_grant import (
+    acknowledge_strategic_grant_order,
+    record_strategic_grant_fill,
+)
 from ..portfolio_core import symbol_weight_cap
 from ..types import (
     AccountOrder,
@@ -107,6 +111,11 @@ def _eligible_open_row(
         account_order.last_event = "WAITING_NEXT_OPEN"
         retained.append(order)
         return None
+    acknowledge_strategic_grant_order(
+        account.strategic_grant,
+        grant_id=order.grant_id,
+        order_id=order.order_id,
+    )
     frame = panel.get(order.symbol)
     if frame is None or date not in frame.index:
         order.attempts += 1
@@ -260,6 +269,10 @@ def _apply_buy_fill(
     current.entry_date = current.entry_date or date_str
     current.highest_close = max(current.highest_close, float(request.row["close"]))
     current.lifecycle = order.lifecycle
+    if order.grant_id:
+        if current.shares - request.shares > 0 and current.grant_id != order.grant_id:
+            raise RuntimeError("strategic fill would create a second grant owner for one position")
+        current.grant_id = order.grant_id
     if previous_lifecycle != order.lifecycle:
         account.lifecycle_events.append(
             {
@@ -293,6 +306,7 @@ def _apply_buy_fill(
             replaces_symbol=order.replaces_symbol,
             industry_at_entry=order.industry_at_entry,
             industry_manifest_sha256=order.industry_manifest_sha256,
+            grant_id=order.grant_id,
         )
     )
     account.positions[order.symbol] = current
@@ -389,6 +403,7 @@ def _build_open_fill(
         replaces_symbol=order.replaces_symbol,
         industry_at_entry=order.industry_at_entry,
         industry_manifest_sha256=order.industry_manifest_sha256,
+        grant_id=order.grant_id,
     )
 
 
@@ -413,10 +428,33 @@ def _record_open_fill(
         request.order.remaining_shares = request.target_requested - request.shares
         request.order.attempts += 1
         account_order.attempts = request.order.attempts
-        account_order.status = OrderStatus.PARTIALLY_FILLED.value
-        retained.append(request.order)
+        if request.order.grant_id:
+            # Strategic capacity retries are fresh physical orders while the
+            # economic grant/event remain unchanged. The filled order keeps
+            # its complete audit quantity and a broker-late fill can still be
+            # reconciled against the same grant identity.
+            account_order.status = OrderStatus.CANCELLED.value
+            account_order.cancel_reason = "strategic partial remainder replaced"
+            account_order.last_event = "PARTIAL_REMAINDER_RELEASED"
+            retained.append(
+                replace(
+                    request.order,
+                    order_id="",
+                    remaining_shares=request.target_requested - request.shares,
+                )
+            )
+        else:
+            account_order.status = OrderStatus.PARTIALLY_FILLED.value
+            retained.append(request.order)
     else:
         account_order.status = OrderStatus.FILLED.value
+    if fill.side == Side.BUY.value and fill.grant_id:
+        record_strategic_grant_fill(
+            account.strategic_grant,
+            grant_id=fill.grant_id,
+            shares=fill.shares,
+            completed=request.shares >= request.target_requested,
+        )
 
 
 class ExecutionPlanner:

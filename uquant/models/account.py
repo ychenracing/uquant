@@ -6,6 +6,7 @@ from dataclasses import asdict, dataclass, field
 from typing import Any
 
 from .enums import Opportunity, Risk
+from .strategic_grant import StrategicGrantIntent, StrategicQualificationObservation
 from .trading import AccountOrder, Fill, PendingOrder, Position
 
 ACCOUNT_SCHEMA_VERSION = 5
@@ -64,6 +65,11 @@ class AccountState:
     strategic_rearm_date: str = ""
     strategic_candidate_signature: str = ""
     strategic_previous_symbols: list[str] = field(default_factory=list)
+    account_identity: str = ""
+    strategic_qualification: StrategicQualificationObservation = field(
+        default_factory=StrategicQualificationObservation
+    )
+    strategic_grant: StrategicGrantIntent | None = None
     risk_anchor_symbols: list[str] = field(default_factory=list)
     risk_anchor_signature: str = ""
     risk_anchor_candidate_signature: str = ""

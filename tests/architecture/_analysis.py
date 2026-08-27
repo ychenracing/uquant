@@ -10,6 +10,7 @@ from __future__ import annotations
 import ast
 import contextlib
 import dataclasses
+import hashlib
 import importlib
 import inspect
 import io
@@ -22,7 +23,7 @@ from collections import defaultdict
 from collections.abc import Callable, Iterable, Sequence
 from enum import Enum
 from pathlib import Path
-from typing import cast
+from typing import Any, cast
 
 from tests.architecture._analysis_debt import (
     _CONTRACT_RELOCATIONS as _CONTRACT_RELOCATIONS,
@@ -478,16 +479,99 @@ def representative_replay(
         if not isinstance(final_account.get("code_hash"), str):
             raise AssertionError("representative account lacks its source identity")
         final_account["code_hash"] = account_code_hash
+    economic_account = _strategic_economic_account(final_account)
     return {
         "name": name,
         "symbols": list(symbols),
         "requested_start": start,
         "requested_end": end,
         "metrics": metrics,
-        "decision_digests_sha256": canonical_sha256(result["decision_digests"]),
-        "final_account_sha256": canonical_sha256(final_account),
+        "decision_digests_sha256": _strategic_economic_decisions_sha256(result),
+        "final_account_sha256": canonical_sha256(economic_account),
         "daily_replay_evidence_sha256": canonical_sha256(result["daily_replay_evidence"]),
     }
+
+
+def _strategic_economic_decisions_sha256(result: dict[str, Any]) -> str:
+    event_order_ids: dict[str, str] = {}
+    digests: list[str] = []
+    for source in cast(list[dict[str, Any]], result["decision_trace"]):
+        row = json.loads(json.dumps(source))
+        for order in row["orders"]:
+            event_id = str(order.get("event_id", ""))
+            key = event_id or str(order["order_id"])
+            event_order_ids.setdefault(key, str(order["order_id"]))
+            order["order_id"] = event_order_ids[key]
+        digests.append(
+            hashlib.sha256(
+                json.dumps(row, sort_keys=True, separators=(",", ":")).encode()
+            ).hexdigest()
+        )
+    return canonical_sha256(digests)
+
+
+def _strategic_economic_account(source: dict[str, Any]) -> dict[str, Any]:
+    account = json.loads(json.dumps(source))
+    groups: list[list[dict[str, Any]]] = []
+    indexes: dict[tuple[str, ...], int] = {}
+    for order in account["order_ledger"]:
+        key = (
+            ("STRATEGIC_GRANT_EVENT", str(order["grant_id"]), str(order["event_id"]))
+            if order.get("grant_id") and order.get("event_id")
+            else ("PHYSICAL_ORDER", str(order["order_id"]))
+        )
+        index = indexes.setdefault(key, len(groups))
+        if index == len(groups):
+            groups.append([])
+        groups[index].append(order)
+    collapsed: list[dict[str, Any]] = []
+    event_order_ids: dict[str, str] = {}
+    for group in groups:
+        first = dict(group[0])
+        last = group[-1]
+        filled_shares = sum(int(order["filled_shares"]) for order in group)
+        remaining_shares = int(last["remaining_shares"])
+        first.update(
+            status=last["status"],
+            requested_shares=filled_shares + remaining_shares,
+            filled_shares=filled_shares,
+            remaining_shares=remaining_shares,
+            attempts=max(int(order["attempts"]) for order in group),
+            last_update_date=last["last_update_date"],
+            last_event=last["last_event"],
+            replaced_by=last["replaced_by"],
+            cancel_reason=last["cancel_reason"],
+        )
+        collapsed.append(first)
+        for order in group:
+            event_id = str(order.get("event_id", ""))
+            if event_id:
+                event_order_ids[event_id] = str(first["order_id"])
+    account["order_ledger"] = collapsed
+    account["next_order_sequence"] = len(collapsed) + 1
+    for fill in account["fills"]:
+        event_id = str(fill.get("event_id", ""))
+        if event_id in event_order_ids:
+            fill["order_id"] = event_order_ids[event_id]
+
+    def strip_added_identity(value: object) -> object:
+        if isinstance(value, dict):
+            return {
+                key: strip_added_identity(item)
+                for key, item in value.items()
+                if key
+                not in {
+                    "account_identity",
+                    "grant_id",
+                    "strategic_grant",
+                    "strategic_qualification",
+                }
+            }
+        if isinstance(value, list):
+            return [strip_added_identity(item) for item in value]
+        return value
+
+    return cast(dict[str, Any], strip_added_identity(account))
 
 def load_json(path: Path) -> dict[str, object]:
     value = json.loads(path.read_text(encoding="utf-8"))

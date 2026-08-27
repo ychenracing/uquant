@@ -83,6 +83,7 @@ def _tranche(payload: dict[str, Any], *, schema_version: int) -> Tranche:
         replaces_symbol=payload.get("replaces_symbol"),
         industry_at_entry=convert_text(payload.get("industry_at_entry", "")),
         industry_manifest_sha256=convert_text(payload.get("industry_manifest_sha256", "")),
+        grant_id=convert_text(payload.get("grant_id", "")),
     )
 
 
@@ -101,6 +102,7 @@ def _position(payload: dict[str, Any], *, schema_version: int) -> Position:
         highest_close=convert_float(payload.get("highest_close", 0.0)),
         lifecycle=convert_text(payload.get("lifecycle", "CORE")),
         tranches=[_tranche(item, schema_version=schema_version) for item in payload.get("tranches", [])],
+        grant_id=convert_text(payload.get("grant_id", "")),
     )
     if schema_version < _HISTORICAL_ATTRIBUTION_SCHEMA_VERSION and position.shares > 0:
         known_shares = sum(item.shares for item in position.tranches)
@@ -244,6 +246,8 @@ def _validate_position_state(
                 lifecycles=lifecycles,
                 validate_attribution=validate_attribution,
             )
+            if position.grant_id and tranche.grant_id != position.grant_id:
+                raise RuntimeError("account tranche grant identity differs from its position")
         if position.shares != sum(item.shares for item in position.tranches):
             raise RuntimeError("account position shares do not reconcile to tranches")
 

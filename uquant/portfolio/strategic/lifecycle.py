@@ -559,6 +559,28 @@ def _strategic_cohort_targets(
     materially changed causal cohort signature.
     """
 
+    if not self._revalidate_strategic_grant(
+        date=date,
+        user_panel=user_panel,
+        leaders=leaders,
+        account=account,
+        risk=risk,
+        admission_open=admission_open,
+        weights_now=weights_now,
+    ):
+        if not account.strategic_cohort_targets:
+            # An invalidated grant owns this session's no-deployment decision;
+            # do not fall through and promote a runner through another policy.
+            return ()
+        return _strategic_active_targets(
+            self=self,
+            proposed=dict(account.strategic_cohort_targets),
+            leaders=leaders,
+            account=account,
+            dominant_profit_lock_armed_now=False,
+            dominant_symbol=None,
+            current_selected=dict(account.strategic_cohort_targets),
+        )
     self._initialize_strategic_cohort(
         date=date,
         user_panel=user_panel,
@@ -609,6 +631,13 @@ def _strategic_cohort_targets(
         active_symbols=active_symbols,
         current_selected=current_selected,
     )
+    grant = account.strategic_grant
+    if (
+        grant is not None
+        and grant.status == "QUALIFIED"
+        and any(proposed.get(symbol, 0.0) > weights_now.get(symbol, 0.0) + 1e-12 for symbol in proposed)
+    ):
+        grant.status = "PENDING_EXECUTION"
     return _strategic_active_targets(
         self=self,
         proposed=proposed,

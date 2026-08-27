@@ -165,6 +165,9 @@ class PortfolioCore:
             selected_reason = (reasons or {}).get(symbol)
             if selected_reason is None:
                 selected_reason = reason
+            held_grant_id = (
+                account.positions[symbol].grant_id if symbol in account.positions else ""
+            )
             targets.append(
                 Target(
                     symbol=symbol,
@@ -181,6 +184,17 @@ class PortfolioCore:
                     mechanism=selected_mechanism.value,
                     origin_lifecycle=selected_lifecycle.value,
                     replaces_symbol=(replaces_symbols or {}).get(symbol),
+                    grant_id=(
+                        held_grant_id
+                        or (
+                            account.strategic_grant.grant_id
+                            if origin_subsystem is OriginSubsystem.STRATEGIC
+                            and account.strategic_grant is not None
+                            and not account.strategic_grant.terminal
+                            and symbol == account.strategic_grant.candidate_symbol
+                            else ""
+                        )
+                    ),
                 )
             )
         positive = [item for item in targets if item.weight > 1e-12]

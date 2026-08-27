@@ -59,6 +59,7 @@ class Target:
     replaces_symbol: str | None = None
     industry_at_entry: str = ""
     industry_manifest_sha256: str = ""
+    grant_id: str = ""
 
 
 @dataclass(frozen=True, slots=True)

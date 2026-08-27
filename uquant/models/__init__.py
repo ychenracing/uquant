@@ -14,6 +14,12 @@ from .enums import (
     Risk,
     Side,
 )
+from .strategic_grant import (
+    StrategicGrantIntent,
+    StrategicGrantStatus,
+    StrategicQualificationObservation,
+    derive_strategic_grant_id,
+)
 from .trading import (
     ATTRIBUTION_IDENTITY_FIELDS,
     ORDER_INTENT_IMMUTABLE_FIELDS,
@@ -50,9 +56,13 @@ ReductionPolicy.__module__ = "uquant.types"
 Risk.__module__ = "uquant.types"
 RiskAssessment.__module__ = "uquant.types"
 Side.__module__ = "uquant.types"
+StrategicGrantIntent.__module__ = "uquant.types"
+StrategicGrantStatus.__module__ = "uquant.types"
+StrategicQualificationObservation.__module__ = "uquant.types"
 Target.__module__ = "uquant.types"
 Tranche.__module__ = "uquant.types"
 derive_attribution_event_id.__module__ = "uquant.types"
+derive_strategic_grant_id.__module__ = "uquant.types"
 order_intent_metadata.__module__ = "uquant.types"
 validate_attribution_compatibility.__module__ = "uquant.types"
 
@@ -77,9 +87,13 @@ __all__ = (
     "Risk",
     "RiskAssessment",
     "Side",
+    "StrategicGrantIntent",
+    "StrategicGrantStatus",
+    "StrategicQualificationObservation",
     "Target",
     "Tranche",
     "derive_attribution_event_id",
+    "derive_strategic_grant_id",
     "order_intent_metadata",
     "validate_attribution_compatibility",
 )

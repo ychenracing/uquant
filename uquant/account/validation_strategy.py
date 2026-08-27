@@ -4,6 +4,10 @@ from __future__ import annotations
 
 from typing import Any
 
+from ..models.strategic_grant import (
+    validate_strategic_grant,
+    validate_strategic_qualification,
+)
 from ..types import AccountState, Lifecycle, Opportunity, Risk
 from .validation_common import (
     SHOCK_SEVERITIES as _SHOCK_SEVERITIES,
@@ -280,6 +284,21 @@ def _validate_strategy_identity_and_weights(
         raise RuntimeError("account state has invalid shock_severity")
     if not isinstance(state.data_hash, str) or not isinstance(state.code_hash, str):
         raise RuntimeError("account validation hashes must be text")
+    if not isinstance(state.account_identity, str):
+        raise RuntimeError("account identity must be text")
+    try:
+        validate_strategic_qualification(state.strategic_qualification)
+        if state.strategic_grant is not None:
+            validate_strategic_grant(state.strategic_grant)
+            if state.account_identity and state.strategic_grant.account_identity != state.account_identity:
+                raise ValueError("strategic grant account identity differs from account")
+            pending_grants = {order.grant_id for order in state.pending_orders if order.grant_id}
+            if not state.strategic_grant.terminal and pending_grants - {
+                state.strategic_grant.grant_id
+            }:
+                raise ValueError("another strategic grant has a pending execution owner")
+    except (TypeError, ValueError) as exc:
+        raise RuntimeError(f"account strategic grant state is invalid: {exc}") from exc
 
     _validate_weight_map(state.anchor_weights, field="anchor_weights")
     if not isinstance(state.recovery_conviction_symbol, str):

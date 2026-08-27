@@ -7,6 +7,10 @@ from collections.abc import Mapping
 from pathlib import Path
 from typing import Any
 
+from ..models.strategic_grant import (
+    strategic_grant_from_payload,
+    strategic_qualification_from_payload,
+)
 from ..types import (
     ACCOUNT_SCHEMA_VERSION,
     AccountOrder,
@@ -249,6 +253,11 @@ def _decode_account_strategy_fields(
         if native_schema
         else str(payload.get("strategic_candidate_signature", "")),
         "strategic_previous_symbols": payload.get("strategic_previous_symbols", []),
+        "account_identity": payload.get("account_identity", ""),
+        "strategic_qualification": strategic_qualification_from_payload(
+            payload.get("strategic_qualification")
+        ),
+        "strategic_grant": strategic_grant_from_payload(payload.get("strategic_grant")),
         "risk_anchor_symbols": payload.get("risk_anchor_symbols", []),
         "risk_anchor_signature": payload.get("risk_anchor_signature", "")
         if native_schema

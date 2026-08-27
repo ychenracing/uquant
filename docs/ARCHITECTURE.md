@@ -66,6 +66,7 @@ uquant 把数据、信号、风险、组合、执行和账户放在一条可审�
 | `Target` | 组合层期望权重，不代表订单已提交或成交 |
 | `PendingOrder` / `AccountOrder` | 待执行意图 / 已提交且有稳定生命周期的账户订单 |
 | `Fill` | 券商或回放确认的成交事实，只有它才能推进持仓经济状态 |
+| `StrategicGrantIntent` | 已授权但可能尚未完整成交的单一战略授冠经济意图；跨重试和重启保持同一 `grant_id` |
 | Lifecycle | `CORE/ADD1/ADD2/SATELLITE/RECOVERY` 的持仓来源和风险减仓优先级 |
 
 ## 决策时点
@@ -116,9 +117,24 @@ uquant 把数据、信号、风险、组合、执行和账户放在一条可审�
 
 其他模块只能提供证据、状态或成交结果。
 
+### 战略资格与部署
+
+战略处理先执行只读的 qualification observation，再执行 deployment authorization。观察步骤
+读取当日可见数据，更新候选、路线、资格证据摘要、连续确认、阻塞原因和失效原因；它不生成
+目标或订单，也不改变总仓上限。`freeze_new_risk`、风险状态和资本预算只阻塞部署，不机械清空
+已经观察到的候选证据。
+
+部署授权只在风险、机会、资本预算、执行和账户状态均允许时创建
+`StrategicGrantIntent`。同一账户最多一个未终结授冠；`grant_id` 由账户、候选、路线、资格
+证据和生产源码身份确定性生成。证券不可通过修改旧授冠换人，所有 Target、Order、Fill、
+Tranche 和 Position 必须携带一致的证券、事件和授冠身份。
+
 ## 执行与账户
 
-订单先卖后买，并统一处理 T+1 可卖数量、停牌、涨跌停、手数、容量、现金、费用和滑点。未成交或部分成交的意图保留稳定 `order_id`；同一经济意图不会因为每日重算而重复计数。
+订单先卖后买，并统一处理 T+1 可卖数量、停牌、涨跌停、手数、容量、现金、费用和滑点。
+普通未成交意图继续复用既有订单生命周期；战略授冠部分成交后只按剩余数量生成新的物理订单，
+但保持同一 `grant_id` 和事件身份。迟到成交计入原授冠并取消重叠重试，避免重复经济订单或第二个
+仓位 owner。每次战略重试都重新确认资格，并重新经过 Risk 与 `PortfolioAllocator`。
 
 生产经济状态只沿 `Decision → Order → Fill → AccountState` 单向推进。Base Risk 汇总
 风险证据并拥有风险派生 `target_gross_cap`，`PortfolioAllocator` 在该上限和上述单一战略
@@ -126,7 +142,9 @@ uquant 把数据、信号、风险、组合、执行和账户放在一条可审�
 执行层只能把既有目标转成订单和成交，账户层只能持久化已验证结果。Risk Sentinel 的
 `FREEZE_ONLY` 结论至多阻止新增风险，不能建立第二个仓位、卖出或账户权限。
 
-账户文件使用临时文件、刷盘和原子替换保存。当前数据契约记录现金、持仓 tranche、挂单、成交、机会/风险状态、组合生命周期、资本高水位、数据摘要和代码指纹。加载时会校验：
+账户文件使用临时文件、刷盘和原子替换保存。当前数据契约记录现金、持仓 tranche、挂单、成交、
+战略资格观察、授冠意图、机会/风险状态、组合生命周期、资本高水位、数据摘要和代码指纹。
+旧账户缺少授冠字段时读取为空授冠状态，不改变现金、持仓、订单或成交。加载时会校验：
 
 - 现金、股数、价格和序号范围；
 - 订单、成交和持仓引用；
@@ -152,8 +170,10 @@ CSV、券商 JSON、账户文件、Journal、命令行路径和研究输入都�
 canonical AI universe manifest 同时拥有点时成员与行业身份；Generalization 对每个
 窗口构造同一固定场景契约，不允许研究模块另建证券全集或修改参考上下文。
 
-`Engineering`、`Performance Acceptance` 和 `Generalization Acceptance` 是三个独立阻断结论；
-精确窗口、矩阵、指标与复现命令由[性能与证据](PERFORMANCE.md)唯一维护。缺文件、重复
+`Engineering` 与 `Strategic Grant Acceptance` 是 PR 和 `main` push 的独立阻断结论；
+完整性能和泛化矩阵保留为手动触发的 `Extended Performance Matrix` 与
+`Extended Economic Matrix`。精确窗口、矩阵、指标与复现命令由
+[性能与证据](PERFORMANCE.md)唯一维护。缺文件、重复
 JSON 键、摘要漂移、未提交生产源码或运行中修改证据都会失败关闭。
 
 经济归因的稳定身份从 Target 传播到 Order、Tranche 和 Fill；人工可读 reason text

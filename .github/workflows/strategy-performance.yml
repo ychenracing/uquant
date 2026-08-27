@@ -1,11 +1,6 @@
-name: AI-Era performance
+name: Extended Performance Matrix
 
 on:
-  push:
-    branches: [main]
-  pull_request:
-  schedule:
-    - cron: "17 3 * * 1"
   workflow_dispatch: {}
 
 permissions:

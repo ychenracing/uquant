@@ -30,8 +30,9 @@
 | 数据完整性 | 冻结文件、清单和 SHA-256 必须互相一致 |
 | Risk Sentinel | `FREEZE_ONLY` 权限、calibration 合同、canonical universe 和生产导入隔离必须有效；只读重复运行工件必须确定 |
 | 文档治理 | 内部链接、示例命令、模块所有权、默认值和权限术语必须与当前仓库一致 |
-| 性能经济性 | `promotion --profile full` 中所有 AI-era 场景的财富、回撤、订单、换手和急跌收益必须通过 |
-| 泛化能力 | 六个固定窗口的完整矩阵必须通过 v2 冻结 policy：保留 literal 诊断，并以已认证 baseline 的逐 cell、intrinsic 与 random-tail 有效边界执行 non-regression |
+| 战略授冠 | 自动运行授冠意图、账户兼容、执行恢复、身份一致、固定 champion 基线和三个 native eligibility 回放 |
+| 性能经济性 | 手动 `Extended Performance Matrix` 保留 `promotion --profile full` 的全部财富、回撤、订单、换手和急跌收益门槛 |
+| 泛化能力 | 手动 `Extended Economic Matrix` 保留六个固定窗口完整矩阵的 literal 诊断、逐 cell、intrinsic 与 random-tail 有效边界 |
 
 上述门禁均为阻断条件，不能用另一项检查的成功抵消失败。
 
@@ -41,9 +42,11 @@ Risk/Portfolio/Sentinel 权限、账户与订单/成交语义、源码身份、P
 以及明确验收项仍是不可放宽的硬门；一个信号超限不能遮蔽这些真实失败，反过来也不能
 把信号本身升级成与生产安全无关的无限拆分循环。
 
-对每个 PR 和 `main` push，GitHub 必须稳定给出 `Engineering`、
-`Performance Acceptance`、`Generalization Acceptance` 三个独立最终结论；任何结论都不能由
-另一个成功抵消。实际命令和 CI 构成见[开发指南](DEVELOPMENT.md)，经济 policy 与窗口见
+对每个 PR 和 `main` push，GitHub 必须稳定给出 `Engineering` 与
+`Strategic Grant Acceptance` 两个独立最终结论；任何结论都不能由另一个成功抵消。
+`Extended Performance Matrix` 和 `Extended Economic Matrix` 只接受
+`workflow_dispatch`，保留原命令、场景和经济阈值，不在普通 PR 或 push 上自动运行。
+实际命令和 CI 构成见[开发指南](DEVELOPMENT.md)，经济 policy 与窗口见
 [性能与证据](PERFORMANCE.md)。
 
 ## 注释标准

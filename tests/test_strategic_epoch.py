@@ -17,6 +17,7 @@ from uquant.models.strategic_epoch import (
     StrategicEpoch,
     StrategicEpochStatus,
     activate_strategic_epoch,
+    close_strategic_epoch,
     derive_strategic_epoch_id,
     record_account_strategic_epoch_fill,
     validate_strategic_epoch,
@@ -30,8 +31,10 @@ from uquant.portfolio_core import strategic_dominant_symbol, symbol_weight_cap
 from uquant.types import (
     AccountState,
     AttributionMechanism,
+    Fill,
     Lifecycle,
     OriginSubsystem,
+    PendingOrder,
     Target,
 )
 from uquant.validation.universe import REQUIRED_AI_UNIVERSE_SHA256
@@ -225,6 +228,7 @@ def test_full_cohort_witness_fill_cannot_activate_the_owner_epoch() -> None:
 def test_account_round_trip_preserves_epoch_ledger_and_active_pointer() -> None:
     grant = _grant()
     epoch = _epoch(grant)
+    grant.epoch_id = epoch.epoch_id
     activate_strategic_epoch(
         epoch,
         grant_id=grant.grant_id,
@@ -274,7 +278,12 @@ def test_account_rejects_two_active_epochs() -> None:
         validate_strategy_risk_state(account)
 
 
-def test_epoch_identity_flows_through_target_order_fill_and_position() -> None:
+def _filled_strategic_account() -> tuple[
+    AccountState,
+    tuple[Target, ...],
+    tuple[PendingOrder, ...],
+    list[Fill],
+]:
     grant = _grant()
     epoch = _epoch(grant)
     grant.epoch_id = epoch.epoch_id
@@ -337,8 +346,16 @@ def test_epoch_identity_flows_through_target_order_fill_and_position() -> None:
         account=account,
         panel={grant.candidate_symbol: frame},
     )
+    return account, targets, planned, fills
+
+
+def test_epoch_identity_flows_through_target_order_fill_and_position() -> None:
+    account, targets, planned, fills = _filled_strategic_account()
 
     assert len(fills) == 1
+    grant = account.strategic_grant
+    assert grant is not None
+    epoch = account.strategic_epochs[0]
     position = account.positions[grant.candidate_symbol]
     assert targets[0].epoch_id == epoch.epoch_id
     assert planned[0].epoch_id == epoch.epoch_id
@@ -351,6 +368,94 @@ def test_epoch_identity_flows_through_target_order_fill_and_position() -> None:
     assert account.strategic_epoch == 1
     assert account.strategic_grant is not None
     assert account.strategic_grant.status == StrategicGrantStatus.COMPLETED.value
+
+
+@pytest.mark.parametrize("identity_owner", ("order", "position"))
+def test_account_rejects_unknown_epoch_on_strategic_trading_identity(
+    identity_owner: str,
+) -> None:
+    account, _, _, _ = _filled_strategic_account()
+    payload = account.to_dict()
+    unknown_epoch_id = "epoch_" + "f" * 64
+    unknown_grant_id = "grant_" + "e" * 64
+    if identity_owner == "order":
+        payload["order_ledger"][0]["epoch_id"] = unknown_epoch_id
+        payload["order_ledger"][0]["grant_id"] = unknown_grant_id
+        payload["fills"][0]["epoch_id"] = unknown_epoch_id
+        payload["fills"][0]["grant_id"] = unknown_grant_id
+    else:
+        symbol = account.strategic_epochs[0].owner_symbol
+        payload["positions"][symbol]["epoch_id"] = unknown_epoch_id
+        payload["positions"][symbol]["grant_id"] = unknown_grant_id
+        payload["positions"][symbol]["tranches"][0]["epoch_id"] = unknown_epoch_id
+        payload["positions"][symbol]["tranches"][0]["grant_id"] = unknown_grant_id
+
+    with pytest.raises(RuntimeError, match="unknown strategic epoch"):
+        account_from_dict(payload)
+
+
+def test_account_rejects_grant_that_differs_from_trading_identity_epoch() -> None:
+    account, _, _, _ = _filled_strategic_account()
+    payload = account.to_dict()
+    symbol = account.strategic_epochs[0].owner_symbol
+    mismatched_grant_id = "grant_" + "e" * 64
+    payload["positions"][symbol]["grant_id"] = mismatched_grant_id
+    payload["positions"][symbol]["tranches"][0]["grant_id"] = mismatched_grant_id
+
+    with pytest.raises(RuntimeError, match="grant identity differs from strategic epoch"):
+        account_from_dict(payload)
+
+
+def test_account_rejects_blank_aggregate_position_strategic_identity() -> None:
+    account, _, _, _ = _filled_strategic_account()
+    payload = account.to_dict()
+    symbol = account.strategic_epochs[0].owner_symbol
+    payload["positions"][symbol]["grant_id"] = ""
+    payload["positions"][symbol]["epoch_id"] = ""
+
+    with pytest.raises(RuntimeError, match="position strategic identity differs from tranches"):
+        account_from_dict(payload)
+
+
+def test_account_rejects_nonterminal_epoch_without_current_grant_binding() -> None:
+    account, _, _, _ = _filled_strategic_account()
+    payload = account.to_dict()
+    payload["strategic_grant"] = None
+
+    with pytest.raises(RuntimeError, match="nonterminal strategic epoch requires current grant"):
+        account_from_dict(payload)
+
+
+def test_terminal_epoch_is_only_historical_trading_provenance() -> None:
+    account, _, _, _ = _filled_strategic_account()
+    epoch = account.strategic_epochs[0]
+    close_strategic_epoch(
+        epoch,
+        closed_session="2026-01-07",
+        close_reason="owner exited",
+    )
+    account.active_strategic_epoch_id = ""
+    account.positions.clear()
+
+    restored = account_from_dict(account.to_dict())
+
+    assert restored.strategic_epochs[0].terminal is True
+    assert restored.order_ledger[0].epoch_id == epoch.epoch_id
+    assert restored.fills[0].epoch_id == epoch.epoch_id
+
+
+def test_account_rejects_terminal_epoch_as_live_position_owner() -> None:
+    account, _, _, _ = _filled_strategic_account()
+    epoch = account.strategic_epochs[0]
+    close_strategic_epoch(
+        epoch,
+        closed_session="2026-01-07",
+        close_reason="corrupt retained position",
+    )
+    account.active_strategic_epoch_id = ""
+
+    with pytest.raises(RuntimeError, match="position cannot reference terminal strategic epoch"):
+        account_from_dict(account.to_dict())
 
 
 def test_broker_fill_activates_the_matching_epoch_once() -> None:

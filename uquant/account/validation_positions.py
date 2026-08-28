@@ -248,10 +248,13 @@ def _validate_position_state(
                 lifecycles=lifecycles,
                 validate_attribution=validate_attribution,
             )
-            if position.grant_id and tranche.grant_id != position.grant_id:
-                raise RuntimeError("account tranche grant identity differs from its position")
-            if position.epoch_id and tranche.epoch_id != position.epoch_id:
-                raise RuntimeError("account tranche epoch identity differs from its position")
+        tranche_strategic_identities = {
+            (tranche.grant_id, tranche.epoch_id) for tranche in position.tranches
+        }
+        if tranche_strategic_identities != {(position.grant_id, position.epoch_id)}:
+            raise RuntimeError(
+                "account position strategic identity differs from tranches"
+            )
         if position.shares != sum(item.shares for item in position.tranches):
             raise RuntimeError("account position shares do not reconcile to tranches")
 

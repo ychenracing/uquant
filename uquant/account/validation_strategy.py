@@ -53,6 +53,8 @@ from .validation_common import (
     validate_nonnegative_account_integer_map as _validate_nonnegative_integer_map,
 )
 
+_STRATEGIC_EPOCH_SCHEMA_VERSION = 7
+
 
 def _validate_risk_streaks(values: Any) -> None:
     """Validate streak counters plus the signed opportunity evidence sentinel."""
@@ -287,8 +289,13 @@ def _validate_strategy_identity_and_weights(
 ) -> Any:
     _validate_strategy_identity_fields(state)
     _validate_strategic_intent_state(state)
-    epoch_ids = _validate_strategic_epoch_ledger(state)
-    _validate_strategic_epoch_owners(state, epoch_ids=epoch_ids)
+    epochs_by_id = _validate_strategic_epoch_ledger(state)
+    _validate_strategic_epoch_owners(state, epoch_ids=set(epochs_by_id))
+    if state.schema_version >= _STRATEGIC_EPOCH_SCHEMA_VERSION:
+        _validate_strategic_trading_epoch_bindings(
+            state,
+            epochs_by_id=epochs_by_id,
+        )
     return _validate_strategic_weight_state(state)
 
 
@@ -369,10 +376,10 @@ def _validate_grant_account_binding(state: Any) -> None:
         raise ValueError("another strategic grant has a pending execution owner")
 
 
-def _validate_strategic_epoch_ledger(state: Any) -> set[str]:
+def _validate_strategic_epoch_ledger(state: Any) -> dict[str, Any]:
     if not isinstance(state.strategic_epochs, list):
         raise RuntimeError("strategic epoch ledger must be an array")
-    epoch_ids: set[str] = set()
+    epochs_by_id: dict[str, Any] = {}
     grant_ids: set[str] = set()
     active_epochs = []
     nonterminal_epochs = []
@@ -384,13 +391,13 @@ def _validate_strategic_epoch_ledger(state: Any) -> set[str]:
             raise RuntimeError(
                 f"account strategic epoch state is invalid: {exc}"
             ) from exc
-        if epoch.epoch_id in epoch_ids or epoch.grant_id in grant_ids:
+        if epoch.epoch_id in epochs_by_id or epoch.grant_id in grant_ids:
             raise RuntimeError("strategic epoch and grant identities must be unique")
         if epoch.account_identity != state.account_identity:
             raise RuntimeError("strategic epoch account identity differs from account")
         if epoch.previous_epoch_id != previous_epoch_id:
             raise RuntimeError("strategic epoch chain is discontinuous")
-        epoch_ids.add(epoch.epoch_id)
+        epochs_by_id[epoch.epoch_id] = epoch
         grant_ids.add(epoch.grant_id)
         previous_epoch_id = epoch.epoch_id
         if epoch.realized_status == StrategicEpochStatus.ACTIVE.value:
@@ -402,7 +409,7 @@ def _validate_strategic_epoch_ledger(state: Any) -> set[str]:
         active_epochs=active_epochs,
         nonterminal_epochs=nonterminal_epochs,
     )
-    return epoch_ids
+    return epochs_by_id
 
 
 def _validate_epoch_ledger_pointers(
@@ -421,6 +428,16 @@ def _validate_epoch_ledger_pointers(
             "active strategic epoch pointer differs from realized ledger"
         )
     grant = state.strategic_grant
+    if nonterminal_epochs:
+        current_epoch = nonterminal_epochs[0]
+        if (
+            grant is None
+            or grant.epoch_id != current_epoch.epoch_id
+            or grant.grant_id != current_epoch.grant_id
+        ):
+            raise RuntimeError(
+                "nonterminal strategic epoch requires current grant binding"
+            )
     if grant is None or not grant.epoch_id:
         return
     matching = next(
@@ -433,6 +450,74 @@ def _validate_epoch_ledger_pointers(
     )
     if matching is None or matching.grant_id != grant.grant_id:
         raise RuntimeError("strategic grant epoch binding differs from ledger")
+
+
+def _validate_strategic_trading_identity(
+    *,
+    allow_terminal: bool,
+    epoch_id: Any,
+    epochs_by_id: dict[str, Any],
+    grant_id: Any,
+    label: str,
+) -> None:
+    if not isinstance(grant_id, str) or not isinstance(epoch_id, str):
+        raise RuntimeError(f"{label} strategic identity must be text")
+    if not epoch_id:
+        return
+    epoch = epochs_by_id.get(epoch_id)
+    if epoch is None:
+        raise RuntimeError(f"{label} references an unknown strategic epoch")
+    if epoch.terminal and not allow_terminal:
+        raise RuntimeError(f"{label} cannot reference terminal strategic epoch")
+    if epoch.grant_id != grant_id:
+        raise RuntimeError(
+            f"{label} grant identity differs from strategic epoch"
+        )
+
+
+def _validate_strategic_trading_epoch_bindings(
+    state: Any,
+    *,
+    epochs_by_id: dict[str, Any],
+) -> None:
+    for position in state.positions.values():
+        _validate_strategic_trading_identity(
+            allow_terminal=False,
+            epoch_id=position.epoch_id,
+            epochs_by_id=epochs_by_id,
+            grant_id=position.grant_id,
+            label="account position",
+        )
+        for tranche in position.tranches:
+            _validate_strategic_trading_identity(
+                allow_terminal=False,
+                epoch_id=tranche.epoch_id,
+                epochs_by_id=epochs_by_id,
+                grant_id=tranche.grant_id,
+                label="account tranche",
+            )
+    for allow_terminal, label, items in (
+        (False, "pending order", state.pending_orders),
+        (True, "account order", state.order_ledger),
+        (True, "fill", state.fills),
+    ):
+        for item in items:
+            _validate_strategic_trading_identity(
+                allow_terminal=allow_terminal,
+                epoch_id=item.epoch_id,
+                epochs_by_id=epochs_by_id,
+                grant_id=item.grant_id,
+                label=label,
+            )
+    for fill in state.fills:
+        for sold_tranche in fill.sold_tranches:
+            _validate_strategic_trading_identity(
+                allow_terminal=True,
+                epoch_id=sold_tranche.get("epoch_id", ""),
+                epochs_by_id=epochs_by_id,
+                grant_id=sold_tranche.get("grant_id", ""),
+                label="fill sold-lot attribution",
+            )
 
 
 def _validate_strategic_epoch_owners(

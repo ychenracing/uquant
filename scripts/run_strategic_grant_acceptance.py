@@ -89,7 +89,7 @@ def _baseline_views(result: Mapping[str, Any], ignored: frozenset[str]) -> dict[
     }
 
 
-def _run_baseline(contract: Mapping[str, Any]) -> dict[str, object]:
+def run_baseline(contract: Mapping[str, Any]) -> dict[str, object]:
     baseline = contract["baseline"]
     if not isinstance(baseline, Mapping):
         raise ValueError("strategic grant baseline contract is malformed")
@@ -167,7 +167,7 @@ def run_acceptance(output: Path) -> dict[str, object]:
 
     contract = json.loads(CONTRACT_PATH.read_text(encoding="utf-8"))
     result: dict[str, object] = {
-        "baseline": _run_baseline(contract),
+        "baseline": run_baseline(contract),
         "native_eligibility": _run_native_cells(contract),
         "status": "PASS",
     }

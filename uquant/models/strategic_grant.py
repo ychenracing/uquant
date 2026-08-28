@@ -99,7 +99,7 @@ def _require_session(value: str, *, field_name: str, allow_empty: bool = False) 
         raise ValueError(f"{field_name} must be an ISO date") from exc
 
 
-def _require_sha256(value: str, *, field_name: str) -> None:
+def _require_grant_sha256(value: str, *, field_name: str) -> None:
     if len(value) != 64 or any(character not in "0123456789abcdef" for character in value):
         raise ValueError(f"{field_name} must be SHA-256")
 
@@ -127,7 +127,7 @@ def derive_strategic_grant_id(
     ):
         if not isinstance(value, str) or not value:
             raise ValueError(f"strategic grant {name} must be non-empty text")
-    _require_sha256(
+    _require_grant_sha256(
         qualification_evidence_sha256,
         field_name="strategic grant qualification_evidence_sha256",
     )
@@ -168,6 +168,14 @@ def derive_strategic_grant_id(
 def validate_strategic_qualification(value: StrategicQualificationObservation) -> None:
     """Reject malformed or internally contradictory qualification evidence."""
 
+    _validate_qualification_identity(value)
+    _validate_qualification_deployment(value)
+    _validate_qualification_references(value)
+
+
+def _validate_qualification_identity(
+    value: StrategicQualificationObservation,
+) -> None:
     if not value.candidate_symbol:
         populated = (
             value.qualification_signature,
@@ -182,7 +190,7 @@ def validate_strategic_qualification(value: StrategicQualificationObservation) -
     else:
         if not value.qualification_signature or not value.qualification_route:
             raise ValueError("strategic qualification identity is incomplete")
-        _require_sha256(
+        _require_grant_sha256(
             value.qualification_evidence_sha256,
             field_name="strategic qualification evidence",
         )
@@ -192,12 +200,22 @@ def validate_strategic_qualification(value: StrategicQualificationObservation) -
         )
     if isinstance(value.qualification_streak, bool) or value.qualification_streak < 0:
         raise ValueError("strategic qualification streak must be non-negative")
+
+
+def _validate_qualification_deployment(
+    value: StrategicQualificationObservation,
+) -> None:
     if value.deployment_blocked and not value.deployment_block_reason:
         raise ValueError("blocked strategic deployment requires a reason")
     if not value.deployment_blocked and value.deployment_block_reason:
         raise ValueError("unblocked strategic deployment cannot retain a block reason")
     if not isinstance(value.qualification_quorum, str):
         raise ValueError("strategic qualification quorum must be text")
+
+
+def _validate_qualification_references(
+    value: StrategicQualificationObservation,
+) -> None:
     if (
         not isinstance(value.candidate_symbols, list)
         or any(not isinstance(symbol, str) or not symbol for symbol in value.candidate_symbols)
@@ -227,6 +245,13 @@ def validate_strategic_grant(value: StrategicGrantIntent) -> None:
     """Validate a durable grant and its immutable deterministic identity."""
 
     StrategicGrantStatus(value.status)
+    _validate_grant_identity(value)
+    _validate_grant_progress(value)
+    _validate_grant_orders(value)
+    _validate_grant_terminal_state(value)
+
+
+def _validate_grant_identity(value: StrategicGrantIntent) -> None:
     _require_session(value.created_session, field_name="strategic grant created_session")
     _require_session(value.last_eligible_session, field_name="strategic grant last eligible session")
     _require_session(
@@ -252,6 +277,9 @@ def validate_strategic_grant(value: StrategicGrantIntent) -> None:
     )
     if value.grant_id != expected:
         raise ValueError("strategic grant identity does not match immutable qualification evidence")
+
+
+def _validate_grant_progress(value: StrategicGrantIntent) -> None:
     if isinstance(value.healthy_retry_sessions, bool) or not 0 <= value.healthy_retry_sessions <= 20:
         raise ValueError("strategic grant healthy retry sessions must be between zero and twenty")
     if isinstance(value.filled_shares, bool) or value.filled_shares < 0:
@@ -263,12 +291,18 @@ def validate_strategic_grant(value: StrategicGrantIntent) -> None:
         or not 0.0 <= float(value.target_weight) <= 1.0
     ):
         raise ValueError("strategic grant target weight must be between zero and one")
+
+
+def _validate_grant_orders(value: StrategicGrantIntent) -> None:
     if len(value.submitted_order_ids) != len(set(value.submitted_order_ids)):
         raise ValueError("strategic grant submitted order ids must be unique")
     if len(value.acknowledged_order_ids) != len(set(value.acknowledged_order_ids)):
         raise ValueError("strategic grant acknowledged order ids must be unique")
     if not set(value.acknowledged_order_ids).issubset(value.submitted_order_ids):
         raise ValueError("strategic grant acknowledged orders must have been submitted")
+
+
+def _validate_grant_terminal_state(value: StrategicGrantIntent) -> None:
     if value.status in {
         StrategicGrantStatus.EXPIRED.value,
         StrategicGrantStatus.CANCELLED.value,

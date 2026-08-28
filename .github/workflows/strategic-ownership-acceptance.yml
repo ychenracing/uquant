@@ -73,6 +73,7 @@ jobs:
             'benchmarks/strategic_ownership_acceptance_contract.json',
             'benchmarks/strategic_grant_acceptance_contract.json',
             'uquant/**/*.py', 'research/**/*.py',
+            'scripts/run_strategic_grant_acceptance.py',
             'scripts/run_strategic_ownership_acceptance.py') }}
       - name: Run exact ownership shard
         run: >-

@@ -31,7 +31,7 @@ from research.strategic_evidence.replay import (
     validate_replay_accounting,
 )
 from research.strategic_evidence.trace import RouteTraceRow
-from scripts.run_strategic_grant_acceptance import _run_baseline
+from scripts.run_strategic_grant_acceptance import run_baseline
 from uquant.account import economic_state_sha256
 from uquant.atomic_io import atomic_write_text
 from uquant.config import DEFAULT_CONFIG, config_fingerprint
@@ -74,7 +74,15 @@ def _mapping(value: object, *, label: str) -> Mapping[str, Any]:
 def _sequence(value: object, *, label: str) -> Sequence[Any]:
     if not isinstance(value, Sequence) or isinstance(value, (str, bytes, bytearray)):
         raise ValueError(f"{label} is malformed")
-    return cast(Sequence[Any], value)
+    return value
+
+
+def _date_index(dates: pd.DatetimeIndex, session: str) -> int:
+    requested = pd.DatetimeIndex([pd.Timestamp(session)])
+    index = int(dates.get_indexer(requested)[0])
+    if index < 0:
+        raise ValueError(f"fixture session {session} is outside its date range")
+    return index
 
 
 def load_contract(path: Path = CONTRACT_PATH) -> dict[str, Any]:
@@ -195,7 +203,12 @@ def _matching_trace_session(
     owner_symbol: str,
 ) -> str:
     for row in result.trace:
-        values = getattr(row, collection)
+        if collection == "targets":
+            values = row.targets
+        elif collection == "orders":
+            values = row.orders
+        else:
+            raise ValueError("strategic epoch trace collection differs")
         for raw in values:
             item = _mapping(raw, label=f"strategic epoch {collection}")
             if (
@@ -460,7 +473,7 @@ def _require_economic_thresholds(
 
 def _run_champion(contract: Mapping[str, Any], *, scenario_id: str) -> dict[str, Any]:
     grant_contract = json.loads(GRANT_CONTRACT_PATH.read_text(encoding="utf-8"))
-    baseline = _run_baseline(grant_contract)
+    baseline = run_baseline(grant_contract)
     metrics = _mapping(baseline["metrics"], label="champion metrics")
     champion = _mapping(contract["champion"], label="champion contract")
     final_wealth = float(metrics["final_wealth"])
@@ -518,7 +531,7 @@ def _write_prices(
     highs = [max(open_price, close) * 1.004 for open_price, close in zip(opens, closes, strict=True)]
     lows = [min(open_price, close) * 0.996 for open_price, close in zip(opens, closes, strict=True)]
     if locked_session:
-        index = dates.get_loc(pd.Timestamp(locked_session))
+        index = _date_index(dates, locked_session)
         locked = closes[index - 1] * 1.20
         opens[index] = locked
         highs[index] = locked
@@ -541,7 +554,7 @@ def _write_prices(
 
 def _cross_industry_fixture(root: Path) -> None:
     dates = pd.bdate_range("2022-01-03", "2026-08-05")
-    replay_index = dates.get_loc(pd.Timestamp("2023-01-03"))
+    replay_index = _date_index(dates, "2023-01-03")
     material_rates = {"sh688019": 0.009, "sh688300": 0.006, "sz300666": 0.005}
     for symbol in (*_OPTICAL_SYMBOLS, *_MATERIAL_SYMBOLS, *_INDEX_SYMBOLS):
         changes: list[float] = []
@@ -692,7 +705,7 @@ def _failed_grant_replay(root: Path) -> tuple[ReplayResult, list[dict[str, Any]]
         if account.strategic_grant is not None:
             grants[account.strategic_grant.grant_id] = asdict(account.strategic_grant)
         close_marks = {
-            symbol: engine._price(symbol, session)
+            symbol: engine.workspace.price(symbol, session)
             for symbol, position in account.positions.items()
             if position.shares > 0
         }
@@ -723,8 +736,8 @@ def _failed_grant_replay(root: Path) -> tuple[ReplayResult, list[dict[str, Any]]
         initial_cash=account.initial_cash,
         risk_events=account.risk_events,
         benchmark_total_return=(
-            engine._price("sh000682", sessions[-1])
-            / engine._price("sh000682", sessions[0])
+            engine.workspace.price("sh000682", sessions[-1])
+            / engine.workspace.price("sh000682", sessions[0])
             - 1.0
         ),
     )
@@ -852,6 +865,9 @@ def _cache_identity(contract: Mapping[str, Any], spec: Mapping[str, Any]) -> str
     return _canonical_sha256(
         {
             "acceptance_source_sha256": hashlib.sha256(Path(__file__).read_bytes()).hexdigest(),
+            "grant_acceptance_source_sha256": hashlib.sha256(
+                (ROOT / "scripts" / "run_strategic_grant_acceptance.py").read_bytes()
+            ).hexdigest(),
             "config_identity": config_fingerprint(DEFAULT_CONFIG),
             "contract": contract,
             "frozen_identity": frozen_identity,

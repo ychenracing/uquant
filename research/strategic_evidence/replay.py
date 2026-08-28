@@ -248,7 +248,7 @@ def _run_replay_success(
                 decision = intervention.preserve_activation(account, decision)
             account.pending_orders = list(decision.pending_orders)
             close_marks = {
-                symbol: engine._price(symbol, session)
+                symbol: engine.workspace.price(symbol, session)
                 for symbol, position in account.positions.items()
                 if position.shares > 0
             }
@@ -297,8 +297,8 @@ def _run_replay_success(
             initial_cash=account.initial_cash,
             risk_events=account.risk_events,
             benchmark_total_return=(
-                engine._price("sh000682", sessions[-1])
-                / engine._price("sh000682", sessions[0])
+                engine.workspace.price("sh000682", sessions[-1])
+                / engine.workspace.price("sh000682", sessions[0])
                 - 1.0
             ),
         )

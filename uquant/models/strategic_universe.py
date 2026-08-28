@@ -18,7 +18,7 @@ class ReferenceAvailability(str, Enum):
     ROLE_ABSENT = "ROLE_ABSENT"
 
 
-def _canonical_sha256(payload: object) -> str:
+def _strategic_universe_sha256(payload: object) -> str:
     encoded = json.dumps(
         payload,
         allow_nan=False,
@@ -144,10 +144,10 @@ def build_strategic_universe_roles(
         available_symbols=available,
         unavailable_reference_symbols=unavailable,
         point_in_time_industries=point_in_time_industries,
-        tradable_identity=_canonical_sha256(
+        tradable_identity=_strategic_universe_sha256(
             {**role_payload, "role": "TRADABLE", "symbols": tradable}
         ),
-        qualification_reference_identity=_canonical_sha256(
+        qualification_reference_identity=_strategic_universe_sha256(
             {
                 **role_payload,
                 "role": "QUALIFICATION_REFERENCE",
@@ -158,14 +158,14 @@ def build_strategic_universe_roles(
                 ],
             }
         ),
-        risk_reference_identity=_canonical_sha256(
+        risk_reference_identity=_strategic_universe_sha256(
             {
                 **role_payload,
                 "role": "RISK_REFERENCE",
                 "symbols": risk,
             }
         ),
-        point_in_time_industry_identity=_canonical_sha256(
+        point_in_time_industry_identity=_strategic_universe_sha256(
             {
                 **role_payload,
                 "industries": point_in_time_industries,

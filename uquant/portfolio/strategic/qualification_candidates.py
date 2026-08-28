@@ -9,11 +9,20 @@ from typing import Protocol
 import pandas as pd
 
 from ...config import SystemConfig
-from ...types import LeaderScore, RiskAssessment
+from ...types import AccountState, LeaderScore, RiskAssessment
 
 
 class StrategicQualificationPolicy(Protocol):
-    cfg: SystemConfig
+    @property
+    def cfg(self) -> SystemConfig: ...
+
+
+def reset_strategic_qualification_streaks(account: AccountState) -> None:
+    """Reset every candidate-bound strategic qualification counter."""
+
+    for key in tuple(account.replacement_tenure):
+        if key.startswith("strategic_qualification:"):
+            account.replacement_tenure[key] = 0
 
 
 def _known_industry(
@@ -209,6 +218,21 @@ class StrategicRoute:
     reversal_groups: list[list[str]]
     anchor_state_observed: bool
     anchors_not_yet_armed: bool
+
+
+@dataclass(frozen=True, slots=True)
+class QualifiedStrategicRoute:
+    """One currently qualified production route ready for deployment checks."""
+
+    symbols: list[str]
+    route: str
+    admission_state: str
+    signature: str
+    decisive_reversal_symbol: str | None
+    admission_authorized: bool
+    quorum_route: str
+    restricted_initial_weight: float | None
+    cash_rearm_authorized: bool
 
 
 def _decisive_reversal(

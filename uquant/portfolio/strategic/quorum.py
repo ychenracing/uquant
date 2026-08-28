@@ -41,7 +41,9 @@ class StrategicQuorumResult:
     restricted_initial_weight: float | None
 
 
-def _finite(snapshot: dict[str, float], field: str, default: float = -math.inf) -> float:
+def _finite_quorum_value(
+    snapshot: dict[str, float], field: str, default: float = -math.inf
+) -> float:
     value = snapshot.get(field, default)
     try:
         converted = float(value)
@@ -51,7 +53,7 @@ def _finite(snapshot: dict[str, float], field: str, default: float = -math.inf) 
 
 
 def _liquid(snapshot: dict[str, float]) -> bool:
-    return _finite(snapshot, "liquidity_confirmation", 1.0) >= 0.5
+    return _finite_quorum_value(snapshot, "liquidity_confirmation", 1.0) >= 0.5
 
 
 def _common_absolute_quality(
@@ -68,15 +70,20 @@ def _common_absolute_quality(
     if snapshot is None or leader is None:
         return False
     return bool(
-        _finite(snapshot, "leader_score") >= minimum_score
-        and _finite(snapshot, "leader_confidence") >= cfg.leader_min_confidence
-        and _finite(snapshot, "secular_score") >= minimum_secular_score
-        and _finite(snapshot, "secular_confidence") >= cfg.strategic_secular_min_confidence
-        and _finite(snapshot, "momentum60") >= cfg.strategic_current_factor_floor
-        and _finite(snapshot, "momentum120") >= cfg.strategic_current_factor_floor
-        and _finite(snapshot, "relative_strength") >= cfg.strategic_current_factor_floor
-        and _finite(snapshot, "trend_persistence") >= 2.0 / 3.0
-        and _finite(snapshot, "ret120") >= cfg.strategic_long_cycle_min_ret120
+        _finite_quorum_value(snapshot, "leader_score") >= minimum_score
+        and _finite_quorum_value(snapshot, "leader_confidence") >= cfg.leader_min_confidence
+        and _finite_quorum_value(snapshot, "secular_score") >= minimum_secular_score
+        and _finite_quorum_value(snapshot, "secular_confidence")
+        >= cfg.strategic_secular_min_confidence
+        and _finite_quorum_value(snapshot, "momentum60")
+        >= cfg.strategic_current_factor_floor
+        and _finite_quorum_value(snapshot, "momentum120")
+        >= cfg.strategic_current_factor_floor
+        and _finite_quorum_value(snapshot, "relative_strength")
+        >= cfg.strategic_current_factor_floor
+        and _finite_quorum_value(snapshot, "trend_persistence") >= 2.0 / 3.0
+        and _finite_quorum_value(snapshot, "ret120")
+        >= cfg.strategic_long_cycle_min_ret120
         and _liquid(snapshot)
         and leader.confidence >= cfg.leader_min_confidence
         and leader.industry != "unknown"
@@ -200,8 +207,9 @@ def _industry_confirmation(
     confirming = tuple(
         symbol
         for symbol in available
-        if _finite(snapshots[symbol], "ret20") >= cfg.strategic_long_cycle_min_ret20
-        and _finite(snapshots[symbol], "trend_persistence") >= 0.5
+        if _finite_quorum_value(snapshots[symbol], "ret20")
+        >= cfg.strategic_long_cycle_min_ret20
+        and _finite_quorum_value(snapshots[symbol], "trend_persistence") >= 0.5
         and _liquid(snapshots[symbol])
     )
     return available, bool(confirming)
@@ -225,26 +233,10 @@ def evaluate_strategic_quorum(
     if owner_symbol not in ordered_candidates:
         ordered_candidates = (owner_symbol, *ordered_candidates)
         candidate_count = len(ordered_candidates)
-    if candidate_count >= 3:
-        route = StrategicQuorumRoute.FULL_COHORT
-        minimum_score = cfg.leader_mature_score
-        minimum_secular = cfg.strategic_secular_min_score
-        required_days = cfg.strategic_cohort_confirm_days
-    elif candidate_count == 2:
-        route = StrategicQuorumRoute.STRONG_PAIR
-        minimum_score = cfg.strategic_two_name_min_score
-        minimum_secular = cfg.strategic_secular_min_score
-        required_days = cfg.strategic_two_name_confirm_days
-    elif candidate_count == 1:
-        route = StrategicQuorumRoute.ABSOLUTE_SINGLE
-        minimum_score = cfg.strategic_one_name_min_score
-        minimum_secular = cfg.strategic_one_name_min_secular_score
-        required_days = cfg.strategic_one_name_confirm_days
-    else:
-        route = StrategicQuorumRoute.NONE
-        minimum_score = cfg.strategic_one_name_min_score
-        minimum_secular = cfg.strategic_one_name_min_secular_score
-        required_days = cfg.strategic_one_name_confirm_days
+    route, minimum_score, minimum_secular, required_days = _quorum_route_thresholds(
+        candidate_count=candidate_count,
+        cfg=cfg,
+    )
     owner_quality = _common_absolute_quality(
         symbol=owner_symbol,
         snapshots=snapshots,
@@ -289,6 +281,74 @@ def evaluate_strategic_quorum(
             )
         )
     )
+    reasons = _quorum_rejection_reasons(
+        owner_quality=owner_quality,
+        candidate_quality=candidate_quality,
+        available_industry=available_industry,
+        industry_confirmed=industry_confirmed,
+        market_complete=market_complete,
+        market_confirmed=market_confirmed,
+        robustness_confirmed=robustness_confirmed,
+        full_compatibility=full_compatibility,
+    )
+    unavailable = tuple(
+        symbol
+        for symbol in universe.qualification_reference_symbols
+        if universe.availability(symbol) is ReferenceAvailability.UNAVAILABLE
+    )
+    restricted = _restricted_quorum_weight(route=route, risk=risk, cfg=cfg)
+    return StrategicQuorumResult(
+        route=route if qualified else StrategicQuorumRoute.NONE,
+        qualified=qualified,
+        owner_absolute_quality=owner_quality,
+        industry_confirmation=industry_confirmed,
+        market_confirmation=market_confirmed,
+        robustness_confirmation=robustness_confirmed,
+        available_industry_references=available_industry,
+        unavailable_references=unavailable,
+        reasons=tuple(reasons),
+        required_confirm_days=required_days,
+        restricted_initial_weight=restricted,
+    )
+
+
+def _quorum_route_thresholds(
+    *, candidate_count: int, cfg: SystemConfig
+) -> tuple[StrategicQuorumRoute, float, float, int]:
+    if candidate_count >= 3:
+        route = StrategicQuorumRoute.FULL_COHORT
+        minimum_score = cfg.leader_mature_score
+        minimum_secular = cfg.strategic_secular_min_score
+        required_days = cfg.strategic_cohort_confirm_days
+    elif candidate_count == 2:
+        route = StrategicQuorumRoute.STRONG_PAIR
+        minimum_score = cfg.strategic_two_name_min_score
+        minimum_secular = cfg.strategic_secular_min_score
+        required_days = cfg.strategic_two_name_confirm_days
+    elif candidate_count == 1:
+        route = StrategicQuorumRoute.ABSOLUTE_SINGLE
+        minimum_score = cfg.strategic_one_name_min_score
+        minimum_secular = cfg.strategic_one_name_min_secular_score
+        required_days = cfg.strategic_one_name_confirm_days
+    else:
+        route = StrategicQuorumRoute.NONE
+        minimum_score = cfg.strategic_one_name_min_score
+        minimum_secular = cfg.strategic_one_name_min_secular_score
+        required_days = cfg.strategic_one_name_confirm_days
+    return route, minimum_score, minimum_secular, required_days
+
+
+def _quorum_rejection_reasons(
+    *,
+    owner_quality: bool,
+    candidate_quality: bool,
+    available_industry: tuple[str, ...],
+    industry_confirmed: bool,
+    market_complete: bool,
+    market_confirmed: bool,
+    robustness_confirmed: bool,
+    full_compatibility: bool,
+) -> list[str]:
     reasons: list[str] = []
     if (not owner_quality or not candidate_quality) and not full_compatibility:
         reasons.append("OWNER_ABSOLUTE_QUALITY")
@@ -302,31 +362,19 @@ def evaluate_strategic_quorum(
         reasons.append("MARKET_CONFIRMATION")
     if not robustness_confirmed:
         reasons.append("ROBUSTNESS_CONFIRMATION")
-    unavailable = tuple(
-        symbol
-        for symbol in universe.qualification_reference_symbols
-        if universe.availability(symbol) is ReferenceAvailability.UNAVAILABLE
-    )
-    restricted = (
+    return reasons
+
+
+def _restricted_quorum_weight(
+    *, route: StrategicQuorumRoute, risk: RiskAssessment, cfg: SystemConfig
+) -> float | None:
+    return (
         min(cfg.core_admission_weight, cfg.max_symbol_weight, risk.target_gross_cap)
         if route in {
             StrategicQuorumRoute.STRONG_PAIR,
             StrategicQuorumRoute.ABSOLUTE_SINGLE,
         }
         else None
-    )
-    return StrategicQuorumResult(
-        route=route if qualified else StrategicQuorumRoute.NONE,
-        qualified=qualified,
-        owner_absolute_quality=owner_quality,
-        industry_confirmation=industry_confirmed,
-        market_confirmation=market_confirmed,
-        robustness_confirmation=robustness_confirmed,
-        available_industry_references=available_industry,
-        unavailable_references=unavailable,
-        reasons=tuple(reasons),
-        required_confirm_days=required_days,
-        restricted_initial_weight=restricted,
     )
 
 

@@ -114,6 +114,32 @@ def _unknown_industry_scale(
     return min(1.0, cfg.unknown_industry_weight_cap / unknown_gross) if unknown_gross > 0 else 1.0
 
 
+def _strategic_target_identity(
+    *,
+    account: AccountState,
+    symbol: str,
+    origin_subsystem: OriginSubsystem,
+) -> tuple[str, str]:
+    """Resolve durable grant and epoch attribution for one target symbol."""
+    position = account.positions.get(symbol)
+    held_grant_id = position.grant_id if position is not None else ""
+    held_epoch_id = position.epoch_id if position is not None else ""
+    grant = account.strategic_grant
+    if origin_subsystem is not OriginSubsystem.STRATEGIC or grant is None:
+        return held_grant_id, held_epoch_id
+    strategic_epoch = next(
+        (epoch for epoch in account.strategic_epochs if epoch.epoch_id == grant.epoch_id),
+        None,
+    )
+    epoch_open = strategic_epoch is not None and not strategic_epoch.terminal
+    grant_owned = symbol == grant.candidate_symbol and (not grant.epoch_id or epoch_open)
+    epoch_owned = epoch_open and symbol in account.strategic_cohort_symbols
+    return (
+        held_grant_id or (grant.grant_id if grant_owned else ""),
+        held_epoch_id or (grant.epoch_id if epoch_owned else ""),
+    )
+
+
 class PortfolioCore:
     """Hard constraints and state helpers shared by every portfolio policy."""
 
@@ -193,36 +219,10 @@ class PortfolioCore:
             selected_reason = (reasons or {}).get(symbol)
             if selected_reason is None:
                 selected_reason = reason
-            held_grant_id = (
-                account.positions[symbol].grant_id if symbol in account.positions else ""
-            )
-            held_epoch_id = (
-                account.positions[symbol].epoch_id if symbol in account.positions else ""
-            )
-            grant = account.strategic_grant
-            strategic_epoch = next(
-                (
-                    epoch
-                    for epoch in account.strategic_epochs
-                    if grant is not None and epoch.epoch_id == grant.epoch_id
-                ),
-                None,
-            )
-            strategic_epoch_owned = bool(
-                origin_subsystem is OriginSubsystem.STRATEGIC
-                and grant is not None
-                and strategic_epoch is not None
-                and not strategic_epoch.terminal
-                and symbol in set(account.strategic_cohort_symbols)
-            )
-            strategic_grant_owned = bool(
-                origin_subsystem is OriginSubsystem.STRATEGIC
-                and grant is not None
-                and symbol == grant.candidate_symbol
-                and (
-                    not grant.epoch_id
-                    or strategic_epoch is not None and not strategic_epoch.terminal
-                )
+            grant_id, epoch_id = _strategic_target_identity(
+                account=account,
+                symbol=symbol,
+                origin_subsystem=origin_subsystem,
             )
             targets.append(
                 Target(
@@ -240,22 +240,8 @@ class PortfolioCore:
                     mechanism=selected_mechanism.value,
                     origin_lifecycle=selected_lifecycle.value,
                     replaces_symbol=(replaces_symbols or {}).get(symbol),
-                    grant_id=(
-                        held_grant_id
-                        or (
-                            grant.grant_id
-                            if strategic_grant_owned and grant is not None
-                            else ""
-                        )
-                    ),
-                    epoch_id=(
-                        held_epoch_id
-                        or (
-                            grant.epoch_id
-                            if strategic_epoch_owned and grant is not None
-                            else ""
-                        )
-                    ),
+                    grant_id=grant_id,
+                    epoch_id=epoch_id,
                 )
             )
         positive = [item for item in targets if item.weight > 1e-12]

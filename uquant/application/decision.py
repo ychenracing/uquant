@@ -19,11 +19,6 @@ from ..config import (
 )
 from ..contracts.universe import AIUniverse, default_ai_universe
 from ..data import DataManifest, DataStore, normalize_symbol
-from ..models.strategic_universe import (
-    StrategicUniverseDeclaration,
-    build_strategic_universe_roles,
-)
-from ..models.strategic_epoch import bind_account_strategic_ownership
 from ..execution import merge_pending_orders, plan_orders
 from ..leader import (
     INDUSTRY,
@@ -46,7 +41,11 @@ from ..types import (
     Opportunity,
     PendingOrder,
     RiskAssessment,
+    StrategicUniverseDeclaration,
+    StrategicUniverseRoles,
     Target,
+    bind_account_strategic_ownership,
+    build_strategic_universe_roles,
 )
 from .target_attribution import attach_target_attribution
 
@@ -572,42 +571,9 @@ def _allocate_decision_orders(
             **market.user_panel,
         },
         qualification_leaders=all_leaders,
-        strategic_universe=build_strategic_universe_roles(
-            as_of=str(inputs.date.date()),
-            tradable_symbols=inputs.user_symbols,
-            qualification_reference_symbols=market.qualification_reference_symbols,
-            risk_reference_symbols=(
-                *market.risk_reference_symbols,
-                "sh000300",
-                "sh000682",
-            ),
-            industries={
-                symbol: market.universe.industry_of(symbol, str(inputs.date.date()))
-                for symbol in market.qualification_reference_symbols
-            },
-            available_symbols=(
-                *tuple(
-                    sorted(
-                        symbol
-                        for symbol, frame in {
-                            **market.reference_panel,
-                            **market.qualification_reference_panel,
-                            **market.user_panel,
-                        }.items()
-                        if inputs.date in frame.index
-                    )
-                ),
-                *(
-                    ("sh000300",)
-                    if inputs.date in market.broad.index
-                    else ()
-                ),
-                *(
-                    ("sh000682",)
-                    if inputs.date in market.tech.index
-                    else ()
-                ),
-            ),
+        strategic_universe=_decision_strategic_universe(
+            inputs=inputs,
+            market=market,
         ),
     )
     if not market.cfg.group_balanced_reference_enabled:
@@ -651,6 +617,44 @@ def _allocate_decision_orders(
         targets=targets,
         orders=orders,
         user_leaders=user_leaders,
+    )
+
+
+def _decision_strategic_universe(
+    *,
+    inputs: _DecisionInputs,
+    market: _DecisionMarket,
+) -> StrategicUniverseRoles:
+    panels = {
+        **market.reference_panel,
+        **market.qualification_reference_panel,
+        **market.user_panel,
+    }
+    available = tuple(
+        sorted(
+            symbol
+            for symbol, frame in panels.items()
+            if inputs.date in frame.index
+        )
+    )
+    return build_strategic_universe_roles(
+        as_of=str(inputs.date.date()),
+        tradable_symbols=inputs.user_symbols,
+        qualification_reference_symbols=market.qualification_reference_symbols,
+        risk_reference_symbols=(
+            *market.risk_reference_symbols,
+            "sh000300",
+            "sh000682",
+        ),
+        industries={
+            symbol: market.universe.industry_of(symbol, str(inputs.date.date()))
+            for symbol in market.qualification_reference_symbols
+        },
+        available_symbols=(
+            *available,
+            *(("sh000300",) if inputs.date in market.broad.index else ()),
+            *(("sh000682",) if inputs.date in market.tech.index else ()),
+        ),
     )
 
 

@@ -5,7 +5,6 @@ from typing import Any
 
 import pandas as pd
 import pytest
-
 from test_lifecycle_and_risk import _leader, _strategic_frame
 from test_strategic_cash_rearm import _risk, _roles, _strict_inputs
 
@@ -58,7 +57,7 @@ def _observe_repair(
     session: str,
     risk: Any | None = None,
 ) -> Any:
-    observe = getattr(rearm_policy, "observe_flat_book_capital_repair_state")
+    observe = rearm_policy.observe_flat_book_capital_repair_state
     return observe(
         account=account,
         risk=_risk() if risk is None else risk,
@@ -71,7 +70,7 @@ def _observe_repair(
 def test_flat_book_repair_ladder_maps_current_encoding_to_business_target() -> None:
     """Catches applying the 20-session level-zero bound to every persisted level."""
 
-    requirement = getattr(rearm_policy, "flat_book_capital_repair_requirement")
+    requirement = rearm_policy.flat_book_capital_repair_requirement
 
     assert tuple(requirement(level) for level in (1, 2, 3, 4)) == (
         (0, 20),
@@ -84,7 +83,7 @@ def test_flat_book_repair_ladder_maps_current_encoding_to_business_target() -> N
 def test_flat_book_repair_identity_binds_account_damage_but_has_no_candidate_input() -> None:
     """Catches qualification identity leaking back into the account repair episode."""
 
-    derive = getattr(rearm_model, "derive_flat_book_capital_repair_episode_id")
+    derive = rearm_model.derive_flat_book_capital_repair_episode_id
     inputs = {
         "account_identity": "account:flat-book-repair",
         "capital_budget_level": 3,
@@ -297,7 +296,7 @@ def test_account_round_trip_preserves_repair_episode_and_candidate_authorization
     restored = account_from_dict(account.to_dict())
 
     assert restored == account
-    state_type = getattr(rearm_model, "FlatBookCapitalRepairState")
+    state_type = rearm_model.FlatBookCapitalRepairState
     assert isinstance(restored.flat_book_capital_repair, state_type)
     assert restored.strategic_cash_rearm.repair_episode_id == (
         restored.flat_book_capital_repair.repair_episode_id

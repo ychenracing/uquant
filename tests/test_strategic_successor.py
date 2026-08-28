@@ -7,11 +7,12 @@ from test_lifecycle_and_risk import _leader, _strategic_frame
 from test_strategic_epoch import _epoch, _grant
 from test_strategic_grant_observation import _risk
 
+from uquant.config import DEFAULT_CONFIG
 from uquant.models.strategic_epoch import activate_strategic_epoch
 from uquant.models.strategic_universe import build_strategic_universe_roles
 from uquant.portfolio import PortfolioAllocator
+from uquant.portfolio.strategic.successor import observe_strategic_successor
 from uquant.types import AccountState
-from uquant.config import DEFAULT_CONFIG
 
 
 def test_active_owner_observes_successor_without_capital_authority() -> None:
@@ -52,7 +53,8 @@ def test_active_owner_observes_successor_without_capital_authority() -> None:
     allocator = PortfolioAllocator(DEFAULT_CONFIG)
 
     for session in dates[-DEFAULT_CONFIG.strategic_cohort_confirm_days :]:
-        allocator._observe_strategic_successor(
+        observe_strategic_successor(
+            allocator,
             date=session,
             qualification_panel=panel,
             qualification_leaders=leaders,
@@ -118,7 +120,8 @@ def test_successor_streak_survives_one_unavailable_non_owner_reference() -> None
             industries={symbol: "optical" for symbol in symbols},
             available_symbols=(*available, "sh000300", "sh000682"),
         )
-        allocator._observe_strategic_successor(
+        observe_strategic_successor(
+            allocator,
             date=session,
             qualification_panel=panel,
             qualification_leaders=leaders,

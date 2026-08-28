@@ -327,19 +327,22 @@ def _observations_from_engine(
     """Extract the production factor families visible at this close only."""
 
     references = engine.workspace.filter_reference_symbols(resolve_reference_symbols(session))
-    panel = {symbol: engine._features[symbol] for symbol in references if symbol in engine._features}
-    panel.update(
-        {
-            owner: engine._features[owner]
-            for owner in owners
-            if owner in engine._features and session in engine._features[owner].index
-        }
+    loaded = set(engine.workspace.loaded_symbols)
+    panel = {
+        symbol: engine.workspace.feature_frame(symbol)
+        for symbol in set(references) | set(owners)
+        if symbol in loaded
+    }
+    structural = compute_structural_leaders(
+        panel,
+        as_of=session,
+        tech=engine.workspace.feature_frame("sh000682"),
+        cfg=engine.cfg,
     )
-    structural = compute_structural_leaders(panel, as_of=session, tech=engine._features["sh000682"], cfg=engine.cfg)
     alpha = apply_opportunity_alpha(structural, opportunity=opportunity, cfg=engine.cfg)
     observations: list[EligibilityObservation] = []
     for owner in owners:
-        frame = engine._features.get(owner)
+        frame = panel.get(owner)
         leader = alpha.get(owner)
         if frame is None or leader is None or session not in frame.index:
             continue

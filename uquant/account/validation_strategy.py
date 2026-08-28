@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from ..models.strategic_epoch import StrategicEpochStatus
+from ..models.strategic_epoch import StrategicEpochStatus, validate_strategic_epoch
 from ..models.strategic_grant import (
     validate_strategic_grant,
     validate_strategic_qualification,
@@ -285,6 +285,14 @@ def _validate_strategy_identity_and_weights(
     *,
     state: Any,
 ) -> Any:
+    _validate_strategy_identity_fields(state)
+    _validate_strategic_intent_state(state)
+    epoch_ids = _validate_strategic_epoch_ledger(state)
+    _validate_strategic_epoch_owners(state, epoch_ids=epoch_ids)
+    return _validate_strategic_weight_state(state)
+
+
+def _validate_strategy_identity_fields(state: Any) -> None:
     if not isinstance(state.shock_state, str) or state.shock_state not in _SHOCK_STATES:
         raise RuntimeError("account state has invalid shock_state")
     if not isinstance(state.shock_severity, str) or state.shock_severity not in _SHOCK_SEVERITIES:
@@ -293,6 +301,9 @@ def _validate_strategy_identity_and_weights(
         raise RuntimeError("account validation hashes must be text")
     if not isinstance(state.account_identity, str):
         raise RuntimeError("account identity must be text")
+
+
+def _validate_strategic_intent_state(state: Any) -> None:
     try:
         validate_strategic_qualification(state.strategic_qualification)
         validate_strategic_qualification(state.strategic_successor_qualification)
@@ -304,51 +315,61 @@ def _validate_strategy_identity_and_weights(
             state.strategic_cash_rearm,
             account_identity=state.account_identity,
         )
-        if state.strategic_cash_rearm.status in {
-            StrategicCashRearmStatus.AUTHORIZED.value,
-            StrategicCashRearmStatus.CONSUMED.value,
-        }:
-            if (
-                state.strategic_cash_rearm.repair_episode_id
-                != state.flat_book_capital_repair.repair_episode_id
-                or state.strategic_cash_rearm.capital_budget_level
-                != state.flat_book_capital_repair.capital_budget_level
-                or state.strategic_cash_rearm.risk_reference_universe_identity
-                != state.flat_book_capital_repair.risk_reference_universe_identity
-            ):
-                raise ValueError("strategic rearm repair episode binding is inconsistent")
-            if (
-                state.strategic_cash_rearm.status
-                == StrategicCashRearmStatus.AUTHORIZED.value
-                and state.flat_book_capital_repair.status
-                != FlatBookCapitalRepairStatus.READY.value
-            ):
-                raise ValueError("strategic rearm requires a ready repair episode")
-        if state.strategic_grant is not None:
-            validate_strategic_grant(state.strategic_grant)
-            if state.account_identity and state.strategic_grant.account_identity != state.account_identity:
-                raise ValueError("strategic grant account identity differs from account")
-            if (
-                not state.strategic_grant.terminal
-                and state.strategic_grant.authorization_id
-                and (
-                    state.strategic_cash_rearm.status
-                    != StrategicCashRearmStatus.CONSUMED.value
-                    or state.strategic_cash_rearm.authorization_id
-                    != state.strategic_grant.authorization_id
-                    or state.strategic_cash_rearm.consumed_grant_id
-                    != state.strategic_grant.grant_id
-                )
-            ):
-                raise ValueError("strategic rearm grant binding is inconsistent")
-            pending_grants = {order.grant_id for order in state.pending_orders if order.grant_id}
-            if not state.strategic_grant.terminal and pending_grants - {
-                state.strategic_grant.grant_id
-            }:
-                raise ValueError("another strategic grant has a pending execution owner")
+        _validate_rearm_repair_binding(state)
+        _validate_grant_account_binding(state)
     except (TypeError, ValueError) as exc:
         raise RuntimeError(f"account strategic grant state is invalid: {exc}") from exc
 
+
+def _validate_rearm_repair_binding(state: Any) -> None:
+    rearm = state.strategic_cash_rearm
+    if rearm.status not in {
+        StrategicCashRearmStatus.AUTHORIZED.value,
+        StrategicCashRearmStatus.CONSUMED.value,
+    }:
+        return
+    repair = state.flat_book_capital_repair
+    if (
+        rearm.repair_episode_id != repair.repair_episode_id
+        or rearm.capital_budget_level != repair.capital_budget_level
+        or rearm.risk_reference_universe_identity
+        != repair.risk_reference_universe_identity
+    ):
+        raise ValueError("strategic rearm repair episode binding is inconsistent")
+    if (
+        rearm.status == StrategicCashRearmStatus.AUTHORIZED.value
+        and repair.status != FlatBookCapitalRepairStatus.READY.value
+    ):
+        raise ValueError("strategic rearm requires a ready repair episode")
+
+
+def _validate_grant_account_binding(state: Any) -> None:
+    grant = state.strategic_grant
+    if grant is None:
+        return
+    validate_strategic_grant(grant)
+    if state.account_identity and grant.account_identity != state.account_identity:
+        raise ValueError("strategic grant account identity differs from account")
+    if (
+        not grant.terminal
+        and grant.authorization_id
+        and (
+            state.strategic_cash_rearm.status
+            != StrategicCashRearmStatus.CONSUMED.value
+            or state.strategic_cash_rearm.authorization_id
+            != grant.authorization_id
+            or state.strategic_cash_rearm.consumed_grant_id != grant.grant_id
+        )
+    ):
+        raise ValueError("strategic rearm grant binding is inconsistent")
+    pending_grants = {
+        order.grant_id for order in state.pending_orders if order.grant_id
+    }
+    if not grant.terminal and pending_grants - {grant.grant_id}:
+        raise ValueError("another strategic grant has a pending execution owner")
+
+
+def _validate_strategic_epoch_ledger(state: Any) -> set[str]:
     if not isinstance(state.strategic_epochs, list):
         raise RuntimeError("strategic epoch ledger must be an array")
     epoch_ids: set[str] = set()
@@ -358,9 +379,11 @@ def _validate_strategy_identity_and_weights(
     previous_epoch_id = ""
     for epoch in state.strategic_epochs:
         try:
-            epoch.validate()
+            validate_strategic_epoch(epoch)
         except (TypeError, ValueError) as exc:
-            raise RuntimeError(f"account strategic epoch state is invalid: {exc}") from exc
+            raise RuntimeError(
+                f"account strategic epoch state is invalid: {exc}"
+            ) from exc
         if epoch.epoch_id in epoch_ids or epoch.grant_id in grant_ids:
             raise RuntimeError("strategic epoch and grant identities must be unique")
         if epoch.account_identity != state.account_identity:
@@ -374,24 +397,49 @@ def _validate_strategy_identity_and_weights(
             active_epochs.append(epoch)
         if not epoch.terminal:
             nonterminal_epochs.append(epoch)
+    _validate_epoch_ledger_pointers(
+        state,
+        active_epochs=active_epochs,
+        nonterminal_epochs=nonterminal_epochs,
+    )
+    return epoch_ids
+
+
+def _validate_epoch_ledger_pointers(
+    state: Any,
+    *,
+    active_epochs: list[Any],
+    nonterminal_epochs: list[Any],
+) -> None:
     if len(active_epochs) > 1:
         raise RuntimeError("strategic account permits at most one ACTIVE epoch")
     if len(nonterminal_epochs) > 1:
         raise RuntimeError("strategic account permits at most one nonterminal epoch")
     expected_active_id = active_epochs[0].epoch_id if active_epochs else ""
     if state.active_strategic_epoch_id != expected_active_id:
-        raise RuntimeError("active strategic epoch pointer differs from realized ledger")
-    if state.strategic_grant is not None and state.strategic_grant.epoch_id:
-        matching = next(
-            (
-                epoch
-                for epoch in state.strategic_epochs
-                if epoch.epoch_id == state.strategic_grant.epoch_id
-            ),
-            None,
+        raise RuntimeError(
+            "active strategic epoch pointer differs from realized ledger"
         )
-        if matching is None or matching.grant_id != state.strategic_grant.grant_id:
-            raise RuntimeError("strategic grant epoch binding differs from ledger")
+    grant = state.strategic_grant
+    if grant is None or not grant.epoch_id:
+        return
+    matching = next(
+        (
+            epoch
+            for epoch in state.strategic_epochs
+            if epoch.epoch_id == grant.epoch_id
+        ),
+        None,
+    )
+    if matching is None or matching.grant_id != grant.grant_id:
+        raise RuntimeError("strategic grant epoch binding differs from ledger")
+
+
+def _validate_strategic_epoch_owners(
+    state: Any,
+    *,
+    epoch_ids: set[str],
+) -> None:
     for field_name, mapping in (
         ("protected_weight_epoch_ids", state.protected_weight_epoch_ids),
         ("strategic_restore_epoch_ids", state.strategic_restore_epoch_ids),
@@ -406,8 +454,10 @@ def _validate_strategy_identity_and_weights(
             raise RuntimeError(f"{field_name} contains an unknown epoch owner")
     if (
         not isinstance(state.recovery_owner_epoch_id, str)
-        or state.recovery_owner_epoch_id
-        and state.recovery_owner_epoch_id not in epoch_ids
+        or (
+            state.recovery_owner_epoch_id
+            and state.recovery_owner_epoch_id not in epoch_ids
+        )
     ):
         raise RuntimeError("recovery owner references an unknown strategic epoch")
     for field_name in (
@@ -419,6 +469,8 @@ def _validate_strategy_identity_and_weights(
         if not isinstance(getattr(state, field_name), str):
             raise RuntimeError(f"{field_name} must be text")
 
+
+def _validate_strategic_weight_state(state: Any) -> float:
     _validate_weight_map(state.anchor_weights, field="anchor_weights")
     if not isinstance(state.recovery_conviction_symbol, str):
         raise RuntimeError("account state has invalid recovery_conviction_symbol")
@@ -447,8 +499,7 @@ def _validate_strategy_identity_and_weights(
         raise RuntimeError("strategic exit/active band keys differ")
     if not band_keys <= cohort_keys:
         raise RuntimeError("strategic bands reference symbols outside the cohort")
-    total_band_weight = 0.0
-    return total_band_weight
+    return 0.0
 
 
 def _validate_strategy_risk_state(state: AccountState) -> None:

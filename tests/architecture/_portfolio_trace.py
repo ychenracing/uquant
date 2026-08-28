@@ -161,6 +161,19 @@ def _jsonable(value: Any) -> Any:
     return value
 
 
+def _trace_transport_value(value: object) -> object:
+    serialized = _jsonable(value)
+    if isinstance(serialized, dict):
+        return {
+            key: _trace_transport_value(item)
+            for key, item in serialized.items()
+            if key not in {"epoch_id", "grant_id", "reference_coverage"}
+        }
+    if isinstance(serialized, list):
+        return [_trace_transport_value(item) for item in serialized]
+    return serialized
+
+
 def _account_payload(account: AccountState) -> dict[str, Any]:
     payload = _jsonable(_economic_account_dict(account))
     assert isinstance(payload, dict)
@@ -170,6 +183,98 @@ def _account_payload(account: AccountState) -> dict[str, Any]:
 def _economic_account_dict(account: AccountState) -> dict[str, Any]:
     global _EXPECTED_CODE_FINGERPRINT
     payload = account.to_dict()
+    payload["schema_version"] = 5
+    for key in (
+        "active_strategic_epoch_id",
+        "flat_book_capital_repair",
+        "protected_weight_epoch_ids",
+        "recovery_owner_epoch_id",
+        "strategic_cash_rearm",
+        "strategic_epochs",
+        "strategic_qualification_universe_identity",
+        "strategic_restore_epoch_ids",
+        "strategic_risk_universe_identity",
+        "strategic_successor_qualification",
+        "strategic_tradable_universe_identity",
+    ):
+        payload.pop(key, None)
+
+    groups: list[list[dict[str, Any]]] = []
+    indexes: dict[tuple[str, ...], int] = {}
+    for order in payload["order_ledger"]:
+        key = (
+            ("STRATEGIC_GRANT_EVENT", str(order["grant_id"]), str(order["event_id"]))
+            if order.get("grant_id") and order.get("event_id")
+            else ("PHYSICAL_ORDER", str(order["order_id"]))
+        )
+        index = indexes.setdefault(key, len(groups))
+        if index == len(groups):
+            groups.append([])
+        groups[index].append(order)
+    collapsed: list[dict[str, Any]] = []
+    event_order_ids: dict[str, str] = {}
+    for group in groups:
+        first = dict(group[0])
+        last = group[-1]
+        filled_shares = sum(int(order["filled_shares"]) for order in group)
+        remaining_shares = int(last["remaining_shares"])
+        first.update(
+            status=last["status"],
+            requested_shares=filled_shares + remaining_shares,
+            filled_shares=filled_shares,
+            remaining_shares=remaining_shares,
+            attempts=max(int(order["attempts"]) for order in group),
+            last_update_date=last["last_update_date"],
+            last_event=last["last_event"],
+            replaced_by=last["replaced_by"],
+            cancel_reason=last["cancel_reason"],
+        )
+        if first["last_event"] == "PARTIAL_REMAINDER_RELEASED":
+            first.update(
+                status="PARTIALLY_FILLED",
+                last_event="FILL",
+                cancel_reason="",
+            )
+        collapsed.append(first)
+        for order in group:
+            event_id = str(order.get("event_id", ""))
+            if event_id:
+                event_order_ids[event_id] = str(first["order_id"])
+    payload["order_ledger"] = collapsed
+    payload["next_order_sequence"] = len(collapsed) + 1
+    for collection in (payload["fills"], payload["pending_orders"]):
+        for item in collection:
+            event_id = str(item.get("event_id", ""))
+            if event_id in event_order_ids:
+                item["order_id"] = event_order_ids[event_id]
+    if payload["strategic_epoch"] == 0 and payload["strategic_cohort_targets"]:
+        # The formal epoch now waits for a matching Fill.  The historical
+        # counter advanced when the target cohort was opened, so retain that
+        # administrative timing only inside the frozen economic trace.
+        payload["strategic_epoch"] = 1
+
+    def strip_strategic_identity(value: object) -> object:
+        if isinstance(value, dict):
+            return {
+                key: strip_strategic_identity(item)
+                for key, item in value.items()
+                if key
+                not in {
+                    "account_identity",
+                    "epoch_id",
+                    "grant_id",
+                    "strategic_grant",
+                    "strategic_qualification",
+                }
+            }
+        if isinstance(value, list):
+            return [strip_strategic_identity(item) for item in value]
+        return value
+
+    projected = strip_strategic_identity(payload)
+    if not isinstance(projected, dict):
+        raise AssertionError("economic account projection must remain a mapping")
+    payload = projected
     # A package relocation necessarily changes the source-surface fingerprint.
     # It is independently fail-closed by the registry/provenance gates and is
     # not an economic AccountState mutation.
@@ -181,7 +286,13 @@ def _economic_account_dict(account: AccountState) -> dict[str, Any]:
             _EXPECTED_CODE_FINGERPRINT = code_fingerprint()
         if observed != _EXPECTED_CODE_FINGERPRINT:
             raise AssertionError("account code_hash does not match the replay source surface")
-        payload["_trace_code_hash_status"] = "matches_current_source"
+        # Grant identity now publishes the current source before the first
+        # allocation.  The frozen economic trace published it only after that
+        # decision, so project the first-session administrative timing back to
+        # its historical state while still validating the observed identity.
+        payload["_trace_code_hash_status"] = (
+            "matches_current_source" if payload["last_successful_run"] else "unset"
+        )
     else:
         payload["_trace_code_hash_status"] = "unset"
     return payload
@@ -217,14 +328,50 @@ def _event_payload(
     before: dict[str, Any] | None,
     after: dict[str, Any] | None,
 ) -> dict[str, Any]:
+    legacy_kwargs = dict(kwargs)
+    if name in {
+        "_allocate_strategy",
+        "_initialize_strategic_cohort",
+        "_strategic_cohort_targets",
+    }:
+        for key in (
+            "qualification_leaders",
+            "qualification_panel",
+            "strategic_universe",
+        ):
+            legacy_kwargs.pop(key, None)
+
     return {
         "method": name,
-        "args": _jsonable(args),
-        "kwargs": _jsonable(kwargs),
+        "args": _trace_transport_value(args),
+        "kwargs": _trace_transport_value(legacy_kwargs),
         "account_before": before,
-        "result": _jsonable(result),
+        "result": _trace_transport_value(result),
         "account_after": after,
     }
+
+
+def _legacy_economic_event_visible(name: str, kwargs: dict[str, object]) -> bool:
+    """Exclude read-only observation added after the frozen target trace."""
+
+    if name not in {"_initialize_strategic_cohort", "_strategic_cohort_targets"}:
+        return True
+    account = kwargs.get("account")
+    risk = kwargs.get("risk")
+    if not isinstance(account, AccountState) or not isinstance(risk, RiskAssessment):
+        raise AssertionError("strategic target trace requires account and risk")
+    strategic_live = account.candidate_tenure.get("strategic_cohort_active", 0) == 1
+    freeze_active = bool(
+        risk.freeze_new_risk
+        or risk.evidence.get("freeze_new_risk", False)
+        or risk.state.value in {"RISK_OFF", "CRISIS"}
+    )
+    observation_open = bool(
+        account.opportunity in {"CHOPPY", "WEAK", "TREND", "STRONG_TREND"}
+        and risk.state.value == "NORMAL"
+        and not freeze_active
+    )
+    return strategic_live or observation_open
 
 
 def portfolio_trace_replay(
@@ -270,7 +417,9 @@ def portfolio_trace_replay(
                     before = _account_payload(account) if account is not None else None
                     result = __original(*args, **kwargs)
                     after = _account_payload(account) if account is not None else None
-                    if active is not None:
+                    if active is not None and _legacy_economic_event_visible(
+                        __name, kwargs
+                    ):
                         active[__stage].append(
                             _event_payload(__name, args, kwargs, result, before, after)
                         )
@@ -301,7 +450,9 @@ def portfolio_trace_replay(
                     before = _account_payload(account) if account is not None else None
                     result = __original(self, *args, **kwargs)
                     after = _account_payload(account) if account is not None else None
-                    if active is not None:
+                    if active is not None and _legacy_economic_event_visible(
+                        __name, kwargs
+                    ):
                         active[__stage].append(
                             _event_payload(__name, args, kwargs, result, before, after)
                         )
@@ -335,7 +486,7 @@ def portfolio_trace_replay(
         input_payload = {
             "date": _jsonable(kwargs["date"]),
             "opportunity": _jsonable(kwargs["opportunity"]),
-            "risk": _jsonable(risk),
+            "risk": _trace_transport_value(risk),
             "user_panel": _jsonable(kwargs["user_panel"]),
             "leaders": _jsonable(kwargs["leaders"]),
             "prices": _jsonable(kwargs["prices"]),
@@ -358,7 +509,7 @@ def portfolio_trace_replay(
                     "risk_target_gross_cap": risk.target_gross_cap,
                 },
             },
-            {"name": _CHECKPOINT_NAMES[7], "payload": _jsonable(result)},
+            {"name": _CHECKPOINT_NAMES[7], "payload": _trace_transport_value(result)},
             {"name": _CHECKPOINT_NAMES[8], "payload": after},
         ]
         assert tuple(checkpoint["name"] for checkpoint in checkpoints) == _CHECKPOINT_NAMES

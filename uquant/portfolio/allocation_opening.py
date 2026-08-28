@@ -10,8 +10,8 @@ import pandas as pd
 from ..models.strategic_universe import StrategicUniverseRoles
 from ..portfolio_core import current_weights
 from ..types import AccountState, LeaderScore, Lifecycle, Opportunity, Risk, RiskAssessment, Target
-from .strategic.rearm import strategic_cash_rearm_grant_open
 from .context import AllocationState
+from .strategic.rearm import strategic_cash_rearm_grant_open
 
 if TYPE_CHECKING:
     from .allocator import PortfolioAllocator
@@ -467,12 +467,13 @@ def _strategic_allocation(
         else None
     )
     if strategic is not None:
-        cash_rearm_grant_open = strategic_cash_rearm_grant_open(
+        if strategic_cash_rearm_grant_open(
             account=account,
             risk=risk,
             cfg=self.cfg,
-        )
-        if freeze_active and not bounded_strategic_restore and not cash_rearm_grant_open:
+        ):
+            bounded_strategic_restore = True
+        if freeze_active and not bounded_strategic_restore:
             return self._frozen_existing_targets(
                 strategy_targets=strategic,
                 leaders=leaders,
@@ -486,20 +487,16 @@ def _strategic_allocation(
 def prepare_allocation(
     self: PortfolioAllocator,
     *,
-    date: pd.Timestamp,
-    opportunity: Opportunity,
-    risk: RiskAssessment,
+    date: pd.Timestamp, opportunity: Opportunity, risk: RiskAssessment,
     user_panel: dict[str, pd.DataFrame],
-    leaders: dict[str, LeaderScore],
-    account: AccountState,
+    leaders: dict[str, LeaderScore], account: AccountState,
     prices: dict[str, float],
     qualification_panel: dict[str, pd.DataFrame] | None = None,
     qualification_leaders: dict[str, LeaderScore] | None = None,
     strategic_universe: StrategicUniverseRoles | None = None,
 ) -> tuple[AllocationState, tuple[Target, ...] | None]:
-    weights_now, equity, freeze_active, repair_observation, general_core_symbols = _initialize_allocation(
-        self, risk=risk, account=account, prices=prices
-    )
+    initial = _initialize_allocation(self, risk=risk, account=account, prices=prices)
+    weights_now, equity, freeze_active, repair_observation, general_core_symbols = initial
     risk_neutral_recovery_handoff = _risk_neutral_handoff(
         self,
         opportunity=opportunity,
@@ -603,9 +600,7 @@ def prepare_allocation(
         account=account,
         prices=prices,
         state=state,
-        strategic_live=strategic_live,
-        bounded_strategic_restore=bounded_strategic_restore,
-        qualification_panel=qualification_panel,
-        qualification_leaders=qualification_leaders,
+        strategic_live=strategic_live, bounded_strategic_restore=bounded_strategic_restore,
+        qualification_panel=qualification_panel, qualification_leaders=qualification_leaders,
         strategic_universe=strategic_universe,
     )

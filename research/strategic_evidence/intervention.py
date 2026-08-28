@@ -16,6 +16,7 @@ from uquant.models.strategic_epoch import (
     StrategicEpochStatus,
     close_strategic_epoch,
     derive_strategic_epoch_id,
+    validate_strategic_epoch,
 )
 from uquant.types import (
     AccountOrder,
@@ -248,7 +249,7 @@ def _replace_counterfactual_epoch(
         full_weight=max(previous.full_weight, target_weight),
         account_identity=grant.account_identity,
     )
-    epoch.validate()
+    validate_strategic_epoch(epoch)
     grant.epoch_id = epoch_id
     if realized:
         index = account.strategic_epochs.index(previous)

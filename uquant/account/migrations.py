@@ -5,6 +5,7 @@ from __future__ import annotations
 import hashlib
 import json
 from collections.abc import Callable
+from dataclasses import dataclass
 from datetime import UTC, datetime
 from pathlib import Path
 from types import SimpleNamespace
@@ -16,6 +17,7 @@ from ..models.strategic_epoch import (
     StrategicEpoch,
     StrategicEpochStatus,
     derive_strategic_epoch_id,
+    validate_strategic_epoch,
 )
 from ..models.strategic_grant import (
     StrategicGrantIntent,
@@ -58,7 +60,6 @@ from .validation_common import (
 )
 from .validation_orders import order_sequence as _order_sequence
 
-
 _ORDER_SEQUENCE_SCHEMA_VERSION = 5
 _STRATEGIC_EPOCH_SCHEMA_VERSION = 7
 
@@ -74,6 +75,17 @@ def _migration_sha256(payload: dict[str, Any]) -> str:
     return hashlib.sha256(encoded).hexdigest()
 
 
+@dataclass(frozen=True, slots=True)
+class _LegacyStrategicOwnershipEvidence:
+    owner: str
+    opened_session: str
+    first_fill_session: str
+    source_identity: str
+    evidence_sha256: str
+    qualification_signature: str
+    qualification_route: str
+
+
 def _migrate_strategic_epoch_ownership(
     state: AccountState,
     *,
@@ -84,6 +96,43 @@ def _migrate_strategic_epoch_ownership(
     if previous_schema >= _STRATEGIC_EPOCH_SCHEMA_VERSION or state.strategic_epochs:
         return None
     grant = state.strategic_grant
+    owner = _legacy_strategic_owner(state, grant=grant)
+    if not owner:
+        return None
+    evidence = _legacy_strategic_ownership_evidence(
+        state,
+        owner=owner,
+        grant=grant,
+    )
+    grant = _ensure_legacy_strategic_grant(
+        state,
+        evidence=evidence,
+        grant=grant,
+    )
+    epoch = _build_legacy_strategic_epoch(
+        state,
+        evidence=evidence,
+        grant=grant,
+    )
+    _bind_legacy_strategic_epoch(
+        state,
+        owner=owner,
+        grant=grant,
+        epoch=epoch,
+    )
+    return {
+        "owner_symbol": owner,
+        "epoch_id": epoch.epoch_id,
+        "grant_id": grant.grant_id,
+        "realized_status": epoch.realized_status,
+    }
+
+
+def _legacy_strategic_owner(
+    state: AccountState,
+    *,
+    grant: StrategicGrantIntent | None,
+) -> str:
     candidates = tuple(
         dict.fromkeys(
             [
@@ -98,34 +147,52 @@ def _migrate_strategic_epoch_ownership(
             ]
         )
     )
-    owner = next(
+    return next(
         (
             symbol
             for symbol in candidates
             if symbol in state.positions
             or state.strategic_cohort_targets.get(symbol, 0.0) > 0.0
-            or grant is not None and grant.candidate_symbol == symbol and not grant.terminal
+            or (
+                grant is not None
+                and grant.candidate_symbol == symbol
+                and not grant.terminal
+            )
         ),
         "",
     )
-    if not owner:
-        return None
+
+
+def _legacy_strategic_ownership_evidence(
+    state: AccountState,
+    *,
+    owner: str,
+    grant: StrategicGrantIntent | None,
+) -> _LegacyStrategicOwnershipEvidence:
     position = state.positions.get(owner)
     fill_sessions = sorted(
         {
             fill.fill_date
             for fill in state.fills
-            if fill.symbol == owner and fill.side == Side.BUY.value and fill.shares > 0
+            if fill.symbol == owner
+            and fill.side == Side.BUY.value
+            and fill.shares > 0
         }
     )
     if position is not None and position.entry_date:
         fill_sessions.append(position.entry_date)
         fill_sessions.sort()
-    first_fill_session = fill_sessions[0] if position is not None and position.shares > 0 else ""
+    first_fill_session = (
+        fill_sessions[0]
+        if position is not None and position.shares > 0
+        else ""
+    )
     opened_session = (
         grant.created_session
         if grant is not None
-        else first_fill_session or state.strategic_rearm_date or state.last_successful_run
+        else first_fill_session
+        or state.strategic_rearm_date
+        or state.last_successful_run
     )
     if not opened_session:
         raise RuntimeError("legacy strategic owner lacks a causal opening session")
@@ -153,77 +220,109 @@ def _migrate_strategic_epoch_ownership(
             }
         )
     )
-    qualification_signature = (
-        grant.qualification_signature
-        if grant is not None
-        else f"legacy-qualified:{owner}"
+    return _LegacyStrategicOwnershipEvidence(
+        owner=owner,
+        opened_session=opened_session,
+        first_fill_session=first_fill_session,
+        source_identity=source_identity,
+        evidence_sha256=evidence_sha256,
+        qualification_signature=(
+            grant.qualification_signature
+            if grant is not None
+            else f"legacy-qualified:{owner}"
+        ),
+        qualification_route=(
+            grant.qualification_route if grant is not None else "FULL_COHORT"
+        ),
     )
-    qualification_route = (
-        grant.qualification_route if grant is not None else "FULL_COHORT"
+
+
+def _ensure_legacy_strategic_grant(
+    state: AccountState,
+    *,
+    evidence: _LegacyStrategicOwnershipEvidence,
+    grant: StrategicGrantIntent | None,
+) -> StrategicGrantIntent:
+    if grant is not None:
+        return grant
+    position = state.positions.get(evidence.owner)
+    grant_id = derive_strategic_grant_id(
+        account_identity=state.account_identity,
+        candidate_symbol=evidence.owner,
+        qualification_signature=evidence.qualification_signature,
+        qualification_route=evidence.qualification_route,
+        qualification_evidence_sha256=evidence.evidence_sha256,
+        created_session=evidence.opened_session,
+        previous_grant_id="",
+        production_source_identity=evidence.source_identity,
     )
-    if grant is None:
-        grant_id = derive_strategic_grant_id(
-            account_identity=state.account_identity,
-            candidate_symbol=owner,
-            qualification_signature=qualification_signature,
-            qualification_route=qualification_route,
-            qualification_evidence_sha256=evidence_sha256,
-            created_session=opened_session,
-            previous_grant_id="",
-            production_source_identity=source_identity,
-        )
-        grant = StrategicGrantIntent(
-            grant_id=grant_id,
-            candidate_symbol=owner,
-            qualification_signature=qualification_signature,
-            qualification_route=qualification_route,
-            qualification_evidence_sha256=evidence_sha256,
-            created_session=opened_session,
-            last_eligible_session=opened_session,
-            filled_shares=0 if position is None else position.shares,
-            target_weight=state.strategic_cohort_targets.get(owner, 0.0),
-            status=(
-                StrategicGrantStatus.ACTIVE.value
-                if first_fill_session
-                else StrategicGrantStatus.PENDING_EXECUTION.value
-            ),
-            account_identity=state.account_identity,
-            production_source_identity=source_identity,
-        )
-        state.strategic_grant = grant
+    grant = StrategicGrantIntent(
+        grant_id=grant_id,
+        candidate_symbol=evidence.owner,
+        qualification_signature=evidence.qualification_signature,
+        qualification_route=evidence.qualification_route,
+        qualification_evidence_sha256=evidence.evidence_sha256,
+        created_session=evidence.opened_session,
+        last_eligible_session=evidence.opened_session,
+        filled_shares=0 if position is None else position.shares,
+        target_weight=state.strategic_cohort_targets.get(evidence.owner, 0.0),
+        status=(
+            StrategicGrantStatus.ACTIVE.value
+            if evidence.first_fill_session
+            else StrategicGrantStatus.PENDING_EXECUTION.value
+        ),
+        account_identity=state.account_identity,
+        production_source_identity=evidence.source_identity,
+    )
+    state.strategic_grant = grant
+    return grant
+
+
+def _build_legacy_strategic_epoch(
+    state: AccountState,
+    *,
+    evidence: _LegacyStrategicOwnershipEvidence,
+    grant: StrategicGrantIntent,
+) -> StrategicEpoch:
     config_identity = "config:" + config_fingerprint(DEFAULT_CONFIG)
     epoch_id = derive_strategic_epoch_id(
         account_identity=state.account_identity,
-        owner_symbol=owner,
-        qualification_signature=qualification_signature,
-        qualification_route=qualification_route,
+        owner_symbol=evidence.owner,
+        qualification_signature=evidence.qualification_signature,
+        qualification_route=evidence.qualification_route,
         grant_id=grant.grant_id,
-        opened_session=opened_session,
+        opened_session=evidence.opened_session,
         previous_epoch_id="",
-        source_identity=source_identity,
+        source_identity=evidence.source_identity,
         config_identity=config_identity,
-        evidence_sha256=evidence_sha256,
+        evidence_sha256=evidence.evidence_sha256,
     )
     target_weight = max(
         0.0,
-        min(1.0, state.strategic_cohort_targets.get(owner, grant.target_weight)),
+        min(
+            1.0,
+            state.strategic_cohort_targets.get(evidence.owner, grant.target_weight),
+        ),
     )
-    full_weight = max(target_weight, min(1.0, DEFAULT_CONFIG.max_symbol_weight))
-    active = bool(first_fill_session)
+    full_weight = max(
+        target_weight,
+        min(1.0, DEFAULT_CONFIG.max_symbol_weight),
+    )
+    active = bool(evidence.first_fill_session)
     epoch = StrategicEpoch(
         epoch_id=epoch_id,
-        owner_symbol=owner,
-        qualification_signature=qualification_signature,
-        qualification_route=qualification_route,
-        qualification_quorum=qualification_route,
+        owner_symbol=evidence.owner,
+        qualification_signature=evidence.qualification_signature,
+        qualification_route=evidence.qualification_route,
+        qualification_quorum=evidence.qualification_route,
         grant_id=grant.grant_id,
-        opened_session=opened_session,
-        first_fill_session=first_fill_session,
-        active_session=first_fill_session,
+        opened_session=evidence.opened_session,
+        first_fill_session=evidence.first_fill_session,
+        active_session=evidence.first_fill_session,
         previous_epoch_id="",
-        source_identity=source_identity,
+        source_identity=evidence.source_identity,
         config_identity=config_identity,
-        evidence_sha256=evidence_sha256,
+        evidence_sha256=evidence.evidence_sha256,
         realized_status=(
             StrategicEpochStatus.ACTIVE.value
             if active
@@ -233,13 +332,27 @@ def _migrate_strategic_epoch_ownership(
         full_weight=full_weight,
         account_identity=state.account_identity,
     )
-    epoch.validate()
+    validate_strategic_epoch(epoch)
+    return epoch
+
+
+def _bind_legacy_strategic_epoch(
+    state: AccountState,
+    *,
+    owner: str,
+    grant: StrategicGrantIntent,
+    epoch: StrategicEpoch,
+) -> None:
+    epoch_id = epoch.epoch_id
     state.strategic_epochs = [epoch]
-    state.active_strategic_epoch_id = epoch_id if active else ""
+    state.active_strategic_epoch_id = epoch_id if epoch.active else ""
     grant.epoch_id = epoch_id
-    for order in (*state.pending_orders, *state.order_ledger):
-        if order.grant_id == grant.grant_id:
-            order.epoch_id = epoch_id
+    for pending_order in state.pending_orders:
+        if pending_order.grant_id == grant.grant_id:
+            pending_order.epoch_id = epoch_id
+    for ledger_order in state.order_ledger:
+        if ledger_order.grant_id == grant.grant_id:
+            ledger_order.epoch_id = epoch_id
     for fill in state.fills:
         if fill.grant_id == grant.grant_id:
             fill.epoch_id = epoch_id
@@ -253,19 +366,17 @@ def _migrate_strategic_epoch_ownership(
                 if tranche.grant_id == grant.grant_id or symbol == owner:
                     tranche.epoch_id = epoch_id
     state.protected_weight_epoch_ids = {
-        symbol: epoch_id for symbol in state.protected_weights if symbol == owner
+        symbol: epoch_id
+        for symbol in state.protected_weights
+        if symbol == owner
     }
     state.strategic_restore_epoch_ids = {
-        symbol: epoch_id for symbol in state.strategic_restore_weights if symbol == owner
+        symbol: epoch_id
+        for symbol in state.strategic_restore_weights
+        if symbol == owner
     }
     if state.recovery_conviction_symbol == owner:
         state.recovery_owner_epoch_id = epoch_id
-    return {
-        "owner_symbol": owner,
-        "epoch_id": epoch_id,
-        "grant_id": grant.grant_id,
-        "realized_status": epoch.realized_status,
-    }
 
 
 def _legacy_attribution_owner(
@@ -868,91 +979,81 @@ def migrate_code_identity(
     return persisted
 
 
-def migrate_account(
-    source: str | Path,
-    destination: str | Path,
+def _legacy_v2_sell_attributions(
+    state: AccountState,
     *,
-    new_code_hash: str,
-    acknowledge_code_change: bool,
-) -> AccountState:
-    """Normalize one durable account and bind it to reviewed production code.
-
-    The caller explicitly acknowledges the target code fingerprint. Market-data
-    provenance, broker state, orders, fills, and strategy state remain intact.
-    """
-    if not acknowledge_code_change:
-        raise RuntimeError("account migration requires --acknowledge-code-change")
-    if not new_code_hash:
-        raise RuntimeError("account migration requires a non-empty code hash")
-    source_payload = _read_account_payload(source)
-    source_sequence_was_explicit = "next_order_sequence" in source_payload
-    state = account_from_dict(
-        source_payload,
-        allow_legacy_schema=True,
-    )
-    previous_schema = state.schema_version
-    previous_code_hash = state.code_hash
-    previous_next_order_sequence = state.next_order_sequence
-    degraded_sell_attributions: list[dict[str, Any]] = []
-    if previous_schema == 2:
-        for index, fill in enumerate(state.fills, start=1):
-            if fill.side != Side.SELL.value or not fill.order_id or fill.sold_tranches:
-                continue
-            attribution_id = fill.fill_id or (f"{fill.order_id}:{fill.fill_date}:{index}")
-            fill.sold_tranches = [
-                {
-                    "tranche_id": f"legacy-v2-unattributed:{attribution_id}",
-                    "lifecycle": fill.lifecycle,
-                    "shares": fill.shares,
-                    "attribution_quality": "degraded_schema_v2_missing_sold_tranches",
-                    "source_schema": 2,
-                }
-            ]
-            degraded_sell_attributions.append(
-                {
-                    "fill_id": fill.fill_id,
-                    "order_id": fill.order_id,
-                    "symbol": fill.symbol,
-                    "fill_date": fill.fill_date,
-                    "shares": fill.shares,
-                }
-            )
-    attribution_event_id_migration: dict[str, Any] | None = None
-    legacy_unknown_buy_classifications: list[dict[str, str]] = []
-    if previous_schema < _HISTORICAL_ATTRIBUTION_SCHEMA_VERSION:
-        legacy_unknown_buy_classifications = _populate_legacy_attribution(state)
-    elif previous_schema == _HISTORICAL_ATTRIBUTION_SCHEMA_VERSION:
-        attribution_event_id_migration = _migrate_v4_attribution_event_ids(state)
-    order_sequence_migration: dict[str, Any] | None = None
-    if previous_schema < _ORDER_SEQUENCE_SCHEMA_VERSION:
-        exact_next_order_sequence = (
-            max(
-                (_order_sequence(order.order_id) for order in state.order_ledger),
-                default=0,
-            )
-            + 1
+    previous_schema: int,
+) -> list[dict[str, Any]]:
+    if previous_schema != 2:
+        return []
+    degraded: list[dict[str, Any]] = []
+    for index, fill in enumerate(state.fills, start=1):
+        if fill.side != Side.SELL.value or not fill.order_id or fill.sold_tranches:
+            continue
+        attribution_id = fill.fill_id or (
+            f"{fill.order_id}:{fill.fill_date}:{index}"
         )
-        state.next_order_sequence = exact_next_order_sequence
-        order_sequence_migration = {
-            "policy": "legacy_nonreuse_to_v5_exact_ledger_max_plus_one",
-            "source_was_explicit": source_sequence_was_explicit,
-            "old_next_order_sequence": previous_next_order_sequence,
-            "new_next_order_sequence": exact_next_order_sequence,
-            "reason": "v5_requires_exact_max_durable_order_id_plus_one",
-        }
-    strategic_epoch_migration = _migrate_strategic_epoch_ownership(
-        state,
-        previous_schema=previous_schema,
+        fill.sold_tranches = [
+            {
+                "tranche_id": f"legacy-v2-unattributed:{attribution_id}",
+                "lifecycle": fill.lifecycle,
+                "shares": fill.shares,
+                "attribution_quality": "degraded_schema_v2_missing_sold_tranches",
+                "source_schema": 2,
+            }
+        ]
+        degraded.append(
+            {
+                "fill_id": fill.fill_id,
+                "order_id": fill.order_id,
+                "symbol": fill.symbol,
+                "fill_date": fill.fill_date,
+                "shares": fill.shares,
+            }
+        )
+    return degraded
+
+
+def _legacy_order_sequence_migration(
+    state: AccountState,
+    *,
+    previous_schema: int,
+    source_sequence_was_explicit: bool,
+    previous_next_order_sequence: int,
+) -> dict[str, Any] | None:
+    if previous_schema >= _ORDER_SEQUENCE_SCHEMA_VERSION:
+        return None
+    exact_next_order_sequence = (
+        max(
+            (_order_sequence(order.order_id) for order in state.order_ledger),
+            default=0,
+        )
+        + 1
     )
-    flat_book_capital_repair_normalization: dict[str, Any] | None = None
+    state.next_order_sequence = exact_next_order_sequence
+    return {
+        "policy": "legacy_nonreuse_to_v5_exact_ledger_max_plus_one",
+        "source_was_explicit": source_sequence_was_explicit,
+        "old_next_order_sequence": previous_next_order_sequence,
+        "new_next_order_sequence": exact_next_order_sequence,
+        "reason": "v5_requires_exact_max_durable_order_id_plus_one",
+    }
+
+
+def _normalize_legacy_rearm_state(
+    state: AccountState,
+    *,
+    previous_schema: int,
+) -> tuple[dict[str, Any] | None, tuple[str, ...]]:
+    repair_normalization: dict[str, Any] | None = None
     if previous_schema == _STRATEGIC_EPOCH_SCHEMA_VERSION:
         state.flat_book_capital_repair = FlatBookCapitalRepairState()
         state.strategic_cash_rearm = StrategicCashRearmState()
-        flat_book_capital_repair_normalization = {
+        repair_normalization = {
             "policy": "discard_candidate_owned_repair_evidence",
             "reason": "candidate streaks are not account capital-repair evidence",
         }
-    legacy_rearm_keys = tuple(
+    legacy_keys = tuple(
         key
         for key in (
             "strategic_cash_rearm_budget_level",
@@ -963,8 +1064,93 @@ def migrate_account(
         )
         if key in state.candidate_tenure
     )
-    for key in legacy_rearm_keys:
+    for key in legacy_keys:
         state.candidate_tenure.pop(key, None)
+    return repair_normalization, legacy_keys
+
+
+def _account_schema_migration_details(
+    state: AccountState,
+    *,
+    previous_schema: int,
+    source_sequence_was_explicit: bool,
+    previous_next_order_sequence: int,
+) -> dict[str, Any]:
+    details: dict[str, Any] = {}
+    degraded = _legacy_v2_sell_attributions(
+        state,
+        previous_schema=previous_schema,
+    )
+    if degraded:
+        details["degraded_sell_attribution"] = {
+            "policy": "synthetic_single_lot_exact_share_backfill",
+            "fills": degraded,
+        }
+    if previous_schema < _HISTORICAL_ATTRIBUTION_SCHEMA_VERSION:
+        unknown = _populate_legacy_attribution(state)
+        if unknown:
+            details["legacy_unknown_buy_classification"] = {
+                "policy": "pre_v4_unknown_buy_to_unattributed_legacy",
+                "events": unknown,
+            }
+    elif previous_schema == _HISTORICAL_ATTRIBUTION_SCHEMA_VERSION:
+        details["attribution_event_id_migration"] = (
+            _migrate_v4_attribution_event_ids(state)
+        )
+    order_sequence = _legacy_order_sequence_migration(
+        state,
+        previous_schema=previous_schema,
+        source_sequence_was_explicit=source_sequence_was_explicit,
+        previous_next_order_sequence=previous_next_order_sequence,
+    )
+    if order_sequence is not None:
+        details["order_sequence_migration"] = order_sequence
+    strategic_epoch = _migrate_strategic_epoch_ownership(
+        state,
+        previous_schema=previous_schema,
+    )
+    if strategic_epoch is not None:
+        details["strategic_epoch_migration"] = strategic_epoch
+    repair_normalization, legacy_rearm_keys = _normalize_legacy_rearm_state(
+        state,
+        previous_schema=previous_schema,
+    )
+    if repair_normalization is not None:
+        details["flat_book_capital_repair_normalization"] = repair_normalization
+    if legacy_rearm_keys:
+        details["strategic_cash_rearm_normalization"] = {
+            "policy": "discard_unbound_candidate_tenure_authorization",
+            "discarded_keys": list(legacy_rearm_keys),
+        }
+    return details
+
+
+def migrate_account(
+    source: str | Path,
+    destination: str | Path,
+    *,
+    new_code_hash: str,
+    acknowledge_code_change: bool,
+) -> AccountState:
+    """Normalize one durable account and bind it to reviewed production code."""
+
+    if not acknowledge_code_change:
+        raise RuntimeError("account migration requires --acknowledge-code-change")
+    if not new_code_hash:
+        raise RuntimeError("account migration requires a non-empty code hash")
+    source_payload = _read_account_payload(source)
+    state = account_from_dict(
+        source_payload,
+        allow_legacy_schema=True,
+    )
+    previous_schema = state.schema_version
+    previous_code_hash = state.code_hash
+    details = _account_schema_migration_details(
+        state,
+        previous_schema=previous_schema,
+        source_sequence_was_explicit="next_order_sequence" in source_payload,
+        previous_next_order_sequence=state.next_order_sequence,
+    )
     state.schema_version = ACCOUNT_SCHEMA_VERSION
     state.code_hash = new_code_hash
     migration_event: dict[str, Any] = {
@@ -973,32 +1159,8 @@ def migrate_account(
         "to_schema": ACCOUNT_SCHEMA_VERSION,
         "from_code_hash": previous_code_hash,
         "to_code_hash": new_code_hash,
+        **details,
     }
-    if degraded_sell_attributions:
-        migration_event["degraded_sell_attribution"] = {
-            "policy": "synthetic_single_lot_exact_share_backfill",
-            "fills": degraded_sell_attributions,
-        }
-    if attribution_event_id_migration is not None:
-        migration_event["attribution_event_id_migration"] = attribution_event_id_migration
-    if legacy_unknown_buy_classifications:
-        migration_event["legacy_unknown_buy_classification"] = {
-            "policy": "pre_v4_unknown_buy_to_unattributed_legacy",
-            "events": legacy_unknown_buy_classifications,
-        }
-    if order_sequence_migration is not None:
-        migration_event["order_sequence_migration"] = order_sequence_migration
-    if strategic_epoch_migration is not None:
-        migration_event["strategic_epoch_migration"] = strategic_epoch_migration
-    if flat_book_capital_repair_normalization is not None:
-        migration_event["flat_book_capital_repair_normalization"] = (
-            flat_book_capital_repair_normalization
-        )
-    if legacy_rearm_keys:
-        migration_event["strategic_cash_rearm_normalization"] = {
-            "policy": "discard_unbound_candidate_tenure_authorization",
-            "discarded_keys": list(legacy_rearm_keys),
-        }
     state.account_migrations.append(migration_event)
     save_account(state, destination)
     return state

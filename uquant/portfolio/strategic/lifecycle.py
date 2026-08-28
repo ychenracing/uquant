@@ -23,13 +23,18 @@ from ...types import (
     RiskAssessment,
     Target,
 )
+from .discovery import (
+    resolve_strategic_qualification_inputs,
+)
+from .grant_lifecycle import revalidate_strategic_grant
+from .successor import observe_strategic_successor
 
 if TYPE_CHECKING:
     from .discovery import StrategicPortfolioPolicy
 
+from .rearm import strategic_cash_rearm_grant_open
 from .targets import strategic_active_targets as _strategic_active_targets
 from .targets import strategic_completed_exit_targets as _strategic_completed_exit_targets
-from .rearm import strategic_cash_rearm_grant_open
 
 
 @dataclass(slots=True)
@@ -636,7 +641,8 @@ def _strategic_cohort_targets(
     materially changed causal cohort signature.
     """
 
-    if not self._revalidate_strategic_grant(
+    if not revalidate_strategic_grant(
+        self,
         date=date,
         user_panel=user_panel,
         leaders=leaders,
@@ -672,6 +678,27 @@ def _strategic_cohort_targets(
         qualification_leaders=qualification_leaders,
         strategic_universe=strategic_universe,
     )
+    if account.active_strategic_epoch_id:
+        resolved_panel, resolved_leaders, resolved_universe = (
+            resolve_strategic_qualification_inputs(
+                date=date,
+                user_panel=user_panel,
+                leaders=leaders,
+                qualification_panel=qualification_panel,
+                qualification_leaders=qualification_leaders,
+                strategic_universe=strategic_universe,
+            )
+        )
+        observe_strategic_successor(
+            self,
+            date=date,
+            qualification_panel=resolved_panel,
+            qualification_leaders=resolved_leaders,
+            tradable_symbols=set(user_panel),
+            account=account,
+            risk=risk,
+            strategic_universe=resolved_universe,
+        )
     grant = account.strategic_grant
     epoch = next(
         (

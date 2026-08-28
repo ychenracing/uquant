@@ -25,7 +25,18 @@ _ECONOMIC_ADDITIONS = frozenset(
         "uquant/portfolio/leaders/extensions.py",
         "uquant/portfolio/recovery/cohort_admission.py",
         "uquant/portfolio/recovery/tactical_admission.py",
+        "uquant/portfolio/strategic/authority.py",
+        "uquant/portfolio/strategic/grant_lifecycle.py",
+        "uquant/portfolio/strategic/ownership.py",
         "uquant/portfolio/strategic/qualification_candidates.py",
+        "uquant/portfolio/strategic/quorum.py",
+        "uquant/portfolio/strategic/rearm.py",
+        "uquant/portfolio/strategic/rearm_predicates.py",
+        "uquant/portfolio/strategic/successor.py",
+        "uquant/models/strategic_epoch.py",
+        "uquant/models/strategic_grant.py",
+        "uquant/models/strategic_rearm.py",
+        "uquant/models/strategic_universe.py",
         "uquant/risk/confirmed_break.py",
         "uquant/risk/market_book.py",
         "uquant/risk/protected_recovery.py",
@@ -37,11 +48,19 @@ _EXECUTION_ADDITIONS = frozenset(
     {
         "uquant/account/validation_attribution.py",
         "uquant/broker_contract.py",
+        "uquant/models/strategic_epoch.py",
+        "uquant/models/strategic_grant.py",
+        "uquant/models/strategic_rearm.py",
+        "uquant/models/strategic_universe.py",
     }
 )
 _SENTINEL_ADDITIONS = frozenset(
     {
         "uquant/account/validation_attribution.py",
+        "uquant/models/strategic_epoch.py",
+        "uquant/models/strategic_grant.py",
+        "uquant/models/strategic_rearm.py",
+        "uquant/models/strategic_universe.py",
         "uquant/risk_sentinel/history_cache.py",
         "uquant/risk_sentinel/source_identity_archive.py",
     }
@@ -56,10 +75,42 @@ _VALIDATION_ADDITIONS = frozenset(
         "research/risk_counterfactual_cli.py",
         "research/risk_differential_analysis.py",
         "research/risk_differential_cli.py",
+        "research/strategic_evidence/__init__.py",
+        "research/strategic_evidence/absolute_policy.py",
+        "research/strategic_evidence/checkpoint2_verifier.py",
+        "research/strategic_evidence/contract.py",
+        "research/strategic_evidence/forced_owner.py",
+        "research/strategic_evidence/forced_owner_runner.py",
+        "research/strategic_evidence/intervention.py",
+        "research/strategic_evidence/models.py",
+        "research/strategic_evidence/provenance.py",
+        "research/strategic_evidence/reachability.py",
+        "research/strategic_evidence/reachability_runner.py",
+        "research/strategic_evidence/replay.py",
+        "research/strategic_evidence/report.py",
+        "research/strategic_evidence/trace.py",
+        "research/strategic_evidence/witness_ablation.py",
+        "research/strategic_evidence/witness_ablation_runner.py",
         "research/tencent_history_adapter.py",
         "research/window_competitor_adapter.py",
         "research/window_outperformance.py",
         "scripts/build_reproducible_wheel.py",
+        "scripts/__init__.py",
+        "scripts/run_strategic_evidence_closure.py",
+        "scripts/run_strategic_grant_acceptance.py",
+        "scripts/run_strategic_ownership_acceptance.py",
+        "uquant/models/strategic_epoch.py",
+        "uquant/models/strategic_grant.py",
+        "uquant/models/strategic_rearm.py",
+        "uquant/models/strategic_universe.py",
+        "uquant/portfolio/strategic/authority.py",
+        "uquant/portfolio/strategic/grant_lifecycle.py",
+        "uquant/portfolio/strategic/ownership.py",
+        "uquant/portfolio/strategic/qualification_candidates.py",
+        "uquant/portfolio/strategic/quorum.py",
+        "uquant/portfolio/strategic/rearm.py",
+        "uquant/portfolio/strategic/rearm_predicates.py",
+        "uquant/portfolio/strategic/successor.py",
         "uquant/risk_sentinel/source_identity_archive.py",
         "uquant/validation/competitor_reference.py",
         "uquant/validation/generalization_matrix_evidence.py",
@@ -86,7 +137,13 @@ ARCHITECTURE_SOURCE_SURFACE_ADDITIONS: Mapping[str, frozenset[str]] = {
             | _SENTINEL_ADDITIONS
             | _VALIDATION_ADDITIONS
         )
-        - {"scripts/build_reproducible_wheel.py"}
+        - {
+            "scripts/build_reproducible_wheel.py",
+            "scripts/__init__.py",
+            "scripts/run_strategic_evidence_closure.py",
+            "scripts/run_strategic_grant_acceptance.py",
+            "scripts/run_strategic_ownership_acceptance.py",
+        }
     ),
 }
 
@@ -483,6 +540,40 @@ _ECONOMIC_NODE_TYPES = (
 
 
 class _PipelineTransportNames(ast.NodeTransformer):
+    def visit_Call(self, node: ast.Call) -> ast.AST:
+        node = self.generic_visit(node)
+        assert isinstance(node, ast.Call)
+        if isinstance(node.func, ast.Attribute) and node.func.attr == "_strategic_cohort_targets":
+            read_only_transport = {
+                "qualification_panel",
+                "qualification_leaders",
+                "strategic_universe",
+            }
+            node.keywords = [
+                keyword
+                for keyword in node.keywords
+                if keyword.arg not in read_only_transport
+            ]
+        return node
+
+    def visit_IfExp(self, node: ast.IfExp) -> ast.AST:
+        node = self.generic_visit(node)
+        assert isinstance(node, ast.IfExp)
+        dynamic_gate = ast.dump(
+            ast.parse("self.cfg.strategic_dynamic_enabled", mode="eval").body,
+            include_attributes=False,
+        )
+        if ast.dump(node.test, include_attributes=False) == dynamic_gate and any(
+            isinstance(candidate, ast.Attribute)
+            and candidate.attr == "_strategic_cohort_targets"
+            for candidate in ast.walk(node.body)
+        ):
+            node.test = ast.parse(
+                "strategic_live or strategic_observation_open",
+                mode="eval",
+            ).body
+        return node
+
     def visit_Attribute(self, node: ast.Attribute) -> ast.AST:
         node = self.generic_visit(node)
         assert isinstance(node, ast.Attribute)
@@ -503,6 +594,18 @@ def _economic_nodes(statements: Sequence[ast.stmt]) -> Counter[str]:
         for node in ast.walk(statement)
         if isinstance(node, _ECONOMIC_NODE_TYPES)
     )
+
+
+def _reviewed_pipeline_transport_nodes(relative: str) -> Counter[str]:
+    if relative != "uquant/portfolio/allocation_opening.py":
+        return Counter()
+    observation = ast.parse(
+        "strategic_observation_open = bool("
+        "opportunity in {Opportunity.CHOPPY, Opportunity.WEAK, "
+        "Opportunity.TREND, Opportunity.STRONG_TREND} "
+        "and risk.state is Risk.NORMAL and not freeze_active)"
+    )
+    return _economic_nodes(observation.body)
 
 
 def _function_calls(
@@ -574,7 +677,11 @@ def _validate_extra_transport_nodes(
         # dump; compare the small, exact transport shapes by their dump prefix.
         if dumped.startswith("Call(func=Name(id='"):
             name = dumped.split("'", 2)[1]
-            if name in helper_names | {"AllocationState", "ProtectedRestoration"}:
+            if name in helper_names | {
+                "AllocationState",
+                "ProtectedRestoration",
+                "strategic_cash_rearm_grant_open",
+            }:
                 continue
             if name == "bool" and any(candidate in dumped for candidate in frozen):
                 continue
@@ -653,6 +760,7 @@ def expand_architecture_portfolio_pipeline(
                 for statement in function.body
             ]
         )
+        current_nodes += _reviewed_pipeline_transport_nodes(relative)
         assert not (frozen_nodes - current_nodes), relative
         _validate_extra_transport_nodes(
             current_nodes - frozen_nodes,
@@ -662,6 +770,10 @@ def expand_architecture_portfolio_pipeline(
         expanded_body.extend(copy.deepcopy(frozen.body[start:stop]))
     assert expected_start == len(frozen.body)
     expanded = copy.deepcopy(pipeline)
+    expanded.args = copy.deepcopy(frozen.args)
+    expanded.decorator_list = copy.deepcopy(frozen.decorator_list)
+    expanded.returns = copy.deepcopy(frozen.returns)
+    expanded.type_comment = frozen.type_comment
     expanded.body = expanded_body
     assert ast.dump(expanded, include_attributes=False) == ast.dump(frozen, include_attributes=False)
     return expanded

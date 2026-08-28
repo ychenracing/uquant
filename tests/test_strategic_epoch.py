@@ -19,6 +19,7 @@ from uquant.models.strategic_epoch import (
     activate_strategic_epoch,
     derive_strategic_epoch_id,
     record_account_strategic_epoch_fill,
+    validate_strategic_epoch,
 )
 from uquant.models.strategic_grant import (
     StrategicGrantIntent,
@@ -119,7 +120,7 @@ def test_epoch_owner_cannot_be_mutated_to_simulate_handoff() -> None:
     epoch.owner_symbol = "sz300502"
 
     with pytest.raises(ValueError, match="epoch identity"):
-        epoch.validate()
+        validate_strategic_epoch(epoch)
 
 
 def test_epoch_activates_only_after_a_matching_real_fill() -> None:

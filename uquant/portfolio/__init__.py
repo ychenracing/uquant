@@ -8,6 +8,25 @@ from typing import TYPE_CHECKING, Any, cast
 
 from ..portfolio_core import current_weights, effective_n
 
+if TYPE_CHECKING:
+    import pandas as pd
+
+    from ..types import AccountState, LeaderScore, Opportunity, RiskAssessment, Target
+
+
+def _allocator_public_signature(
+    self: Any,
+    *,
+    date: pd.Timestamp,
+    opportunity: Opportunity,
+    risk: RiskAssessment,
+    user_panel: dict[str, pd.DataFrame],
+    leaders: dict[str, LeaderScore],
+    account: AccountState,
+    prices: dict[str, float],
+) -> tuple[Target, ...]:
+    raise NotImplementedError
+
 
 def _compatibility_method[Function: Callable[..., Any]](function: Function, name: str) -> Function:
     runtime_function = cast(FunctionType, function)
@@ -22,6 +41,11 @@ def _compatibility_method[Function: Callable[..., Any]](function: Function, name
     runtime_function.__annotations__ = annotations
     runtime_function.__module__ = "uquant.portfolio"
     runtime_function.__qualname__ = f"PortfolioAllocator.{name}"
+    if name in {"allocate", "_allocate_strategy"}:
+        public_annotations = dict(_allocator_public_signature.__annotations__)
+        public_annotations.pop("self", None)
+        _allocator_public_signature.__annotations__ = public_annotations
+        cast(Any, runtime_function).__wrapped__ = _allocator_public_signature
     return function
 
 

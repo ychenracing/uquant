@@ -3,7 +3,7 @@ from __future__ import annotations
 import pandas as pd
 from test_lifecycle_and_risk import _leader, _strategic_frame
 
-import uquant.portfolio.strategic.discovery as strategic_discovery
+import uquant.portfolio.strategic.grant_lifecycle as strategic_grant_lifecycle
 from uquant.config import DEFAULT_CONFIG
 from uquant.models.strategic_epoch import (
     StrategicEpochStatus,
@@ -204,13 +204,13 @@ def test_absolute_qualification_loss_expires_partial_grant(monkeypatch) -> None:
     assert account.strategic_grant is not None
     account.strategic_grant.status = StrategicGrantStatus.PARTIALLY_FILLED.value
     monkeypatch.setattr(
-        strategic_discovery,
-        "_qualification_evidence",
+        strategic_grant_lifecycle,
+        "strategic_qualification_evidence",
         lambda *_args, **_kwargs: (False, False),
     )
     monkeypatch.setattr(
-        strategic_discovery,
-        "_grant_candidate_meets_route",
+        strategic_grant_lifecycle,
+        "strategic_candidate_meets_route",
         lambda *_args, **_kwargs: False,
         raising=False,
     )
@@ -279,13 +279,13 @@ def test_absolute_qualification_loss_emits_a_formal_exit_for_a_filled_probe(
         epoch_id=epoch.epoch_id,
     )
     monkeypatch.setattr(
-        strategic_discovery,
-        "_qualification_evidence",
+        strategic_grant_lifecycle,
+        "strategic_qualification_evidence",
         lambda *_args, **_kwargs: (False, False),
     )
     monkeypatch.setattr(
-        strategic_discovery,
-        "_grant_candidate_meets_route",
+        strategic_grant_lifecycle,
+        "strategic_candidate_meets_route",
         lambda *_args, **_kwargs: False,
         raising=False,
     )
@@ -355,8 +355,8 @@ def test_flat_expired_probe_releases_its_deployment_state(monkeypatch) -> None:
         epoch_id=epoch.epoch_id,
     )
     monkeypatch.setattr(
-        strategic_discovery,
-        "_grant_candidate_meets_route",
+        strategic_grant_lifecycle,
+        "strategic_candidate_meets_route",
         lambda *_args, **_kwargs: False,
         raising=False,
     )
@@ -467,18 +467,19 @@ def test_missing_route_observation_preserves_still_qualified_partial_grant(
     assert account.strategic_grant is not None
     account.strategic_grant.status = StrategicGrantStatus.PARTIALLY_FILLED.value
     monkeypatch.setattr(
-        strategic_discovery,
-        "_qualification_evidence",
+        strategic_grant_lifecycle,
+        "strategic_qualification_evidence",
         lambda *_args, **_kwargs: (False, False),
     )
     monkeypatch.setattr(
-        strategic_discovery,
-        "_grant_candidate_meets_route",
+        strategic_grant_lifecycle,
+        "strategic_candidate_meets_route",
         lambda *_args, **_kwargs: True,
         raising=False,
     )
 
-    valid = allocator._revalidate_strategic_grant(
+    valid = strategic_grant_lifecycle.revalidate_strategic_grant(
+        allocator,
         date=dates[-1],
         user_panel=panel,
         leaders=leaders,

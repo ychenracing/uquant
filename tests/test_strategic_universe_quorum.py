@@ -1,25 +1,26 @@
 from __future__ import annotations
 
+import pandas as pd
+from test_lifecycle_and_risk import _leader as _production_leader
+from test_lifecycle_and_risk import _strategic_frame
+
+from uquant.application.target_attribution import attach_target_attribution
 from uquant.config import DEFAULT_CONFIG
+from uquant.execution import ExecutionPlanner, plan_orders, reconcile_account_orders
 from uquant.models.strategic_universe import (
     ReferenceAvailability,
     build_strategic_universe_declaration,
     build_strategic_universe_roles,
 )
+from uquant.portfolio import PortfolioAllocator
 from uquant.portfolio.strategic.quorum import (
     StrategicQuorumRoute,
     evaluate_strategic_quorum,
     route_consistent_owner_quality,
     strict_absolute_owner_quality,
 )
-from uquant.types import LeaderScore, Risk, RiskAssessment
-from uquant.portfolio import PortfolioAllocator
-from uquant.types import AccountState, Opportunity
-from uquant.application.target_attribution import attach_target_attribution
-from uquant.execution import ExecutionPlanner, plan_orders, reconcile_account_orders
+from uquant.types import AccountState, LeaderScore, Opportunity, Risk, RiskAssessment
 from uquant.validation.universe import REQUIRED_AI_UNIVERSE_SHA256
-import pandas as pd
-from test_lifecycle_and_risk import _leader as _production_leader, _strategic_frame
 
 
 def _leader(symbol: str, *, score: float = 0.95, industry: str = "optical") -> LeaderScore:

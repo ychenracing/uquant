@@ -23,11 +23,11 @@ from .contracts.universe import REQUIRED_AI_UNIVERSE_SHA256, default_ai_universe
 from .data import normalize_symbol
 from .execution import allocate_sell_costs as _allocate_sell_costs
 from .execution import risk_priority_tranche_key
-from .models.strategic_grant import record_strategic_grant_fill
 from .models.strategic_epoch import (
     bind_account_strategic_ownership,
     record_account_strategic_epoch_fill,
 )
+from .models.strategic_grant import record_strategic_grant_fill
 from .types import (
     ORDER_INTENT_IMMUTABLE_FIELDS,
     AccountOrder,
@@ -47,7 +47,7 @@ from .types import (
 )
 
 
-def _late_strategic_fill_allowed(order: AccountOrder) -> bool:
+def _broker_late_strategic_fill_allowed(order: AccountOrder) -> bool:
     return bool(
         order.status == OrderStatus.CANCELLED.value
         and order.grant_id
@@ -213,7 +213,7 @@ def _validate_late_strategic_fill_capacity(
     order: AccountOrder,
     shares: int,
 ) -> None:
-    if not _late_strategic_fill_allowed(order):
+    if not _broker_late_strategic_fill_allowed(order):
         return
     matching_orders = [
         candidate
@@ -361,7 +361,7 @@ def _validated_fill_order_progress(
         OrderStatus.FILLED.value,
         OrderStatus.CANCELLED.value,
         OrderStatus.REPLACED.value,
-    } and not _late_strategic_fill_allowed(order):
+    } and not _broker_late_strategic_fill_allowed(order):
         raise ValueError("broker cannot append a fill to a terminal account order")
     cumulative_filled = order.filled_shares + shares
     reported_request = cumulative_filled + remaining
@@ -692,6 +692,49 @@ def _reconciled_broker_position(
     *,
     reconciled_positions: dict[str, Position],
 ) -> tuple[str, Position]:
+    symbol, shares, sellable, avg_cost = _validated_broker_position_fields(
+        raw,
+        reconciled_positions=reconciled_positions,
+    )
+    existing = state.account.positions.get(symbol)
+    tranches = _reconciled_broker_tranches(
+        state,
+        symbol=symbol,
+        shares=shares,
+        sellable=sellable,
+    )
+    lifecycle = state.imported_buy_lifecycle.get(
+        symbol,
+        existing.lifecycle if existing is not None else Lifecycle.CORE.value,
+    )
+    strategy_highest = (
+        existing.highest_close
+        if existing is not None
+        else max((item.highest_close for item in tranches), default=avg_cost)
+    )
+    derived_entry_date = min(
+        (item.entry_date for item in tranches if item.entry_date),
+        default=state.as_of,
+    )
+    derived_highest = max([strategy_highest, *(item.highest_close for item in tranches)])
+    return symbol, Position(
+        symbol=symbol,
+        shares=shares,
+        avg_cost=avg_cost,
+        entry_date=derived_entry_date,
+        highest_close=derived_highest,
+        lifecycle=lifecycle,
+        tranches=tranches,
+        grant_id=next(iter({item.grant_id for item in tranches if item.grant_id}), ""),
+        epoch_id=next(iter({item.epoch_id for item in tranches if item.epoch_id}), ""),
+    )
+
+
+def _validated_broker_position_fields(
+    raw: dict[str, Any],
+    *,
+    reconciled_positions: dict[str, Position],
+) -> tuple[str, int, int, float]:
     symbol = normalize_symbol(str(raw.get("symbol", "")))
     if symbol in reconciled_positions:
         raise ValueError(f"duplicate broker position {symbol}")
@@ -706,18 +749,18 @@ def _reconciled_broker_position(
         _broker_date(raw["entry_date"], field="position entry_date")
     if "highest_close" in raw and _nonnegative(raw, "highest_close") <= 0:
         raise ValueError("broker position highest_close must be finite and positive")
-    existing = state.account.positions.get(symbol)
+    return symbol, shares, sellable, avg_cost
+
+
+def _reconciled_broker_tranches(
+    state: _BrokerSyncState,
+    *,
+    symbol: str,
+    shares: int,
+    sellable: int,
+) -> list[Tranche]:
     tranches = state.economic_tranches.get(symbol, [])
     economic_shares = sum(item.shares for item in tranches)
-    lifecycle = state.imported_buy_lifecycle.get(
-        symbol,
-        existing.lifecycle if existing is not None else Lifecycle.CORE.value,
-    )
-    strategy_highest = (
-        existing.highest_close
-        if existing is not None
-        else max((item.highest_close for item in tranches), default=avg_cost)
-    )
     if economic_shares > shares:
         _allocate_broker_sale(
             tranches,
@@ -743,22 +786,7 @@ def _reconciled_broker_position(
     )
     if sum(item.shares for item in tranches) != shares:
         raise RuntimeError("broker reconciliation lost tranche shares")
-    derived_entry_date = min(
-        (item.entry_date for item in tranches if item.entry_date),
-        default=state.as_of,
-    )
-    derived_highest = max([strategy_highest, *(item.highest_close for item in tranches)])
-    return symbol, Position(
-        symbol=symbol,
-        shares=shares,
-        avg_cost=avg_cost,
-        entry_date=derived_entry_date,
-        highest_close=derived_highest,
-        lifecycle=lifecycle,
-        tranches=tranches,
-        grant_id=next(iter({item.grant_id for item in tranches if item.grant_id}), ""),
-        epoch_id=next(iter({item.epoch_id for item in tranches if item.epoch_id}), ""),
-    )
+    return tranches
 
 
 def _reconcile_broker_positions(

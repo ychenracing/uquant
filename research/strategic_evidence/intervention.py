@@ -172,7 +172,7 @@ def _rewrite_grant(
     return grant_id
 
 
-def _replace_unfilled_epoch(
+def _replace_counterfactual_epoch(
     account: AccountState,
     *,
     old: str,
@@ -181,7 +181,7 @@ def _replace_unfilled_epoch(
     session: str,
     target_weight: float,
 ) -> str:
-    """Terminate an unfilled research owner and append a new immutable ledger row."""
+    """Rewrite the epoch only inside the atomic research counterfactual fork."""
 
     grant = account.strategic_grant
     if grant is None or not grant.previous_grant_id:
@@ -198,22 +198,31 @@ def _replace_unfilled_epoch(
     if len(matches) != 1:
         raise ValueError("forced owner found duplicate nonterminal epochs")
     previous = matches[0]
-    if previous.first_fill_session or previous.realized_status != StrategicEpochStatus.PROBE.value:
-        raise ValueError("forced owner cannot rewrite a realized strategic epoch")
-    close_strategic_epoch(
-        previous,
-        closed_session=session,
-        close_reason="research owner intervention",
-        expired=True,
-    )
+    realized = bool(previous.first_fill_session)
+    if not realized and previous.realized_status != StrategicEpochStatus.PROBE.value:
+        raise ValueError("forced owner found an invalid unfilled strategic epoch")
+    if realized and previous.realized_status not in {
+        StrategicEpochStatus.CORE.value,
+        StrategicEpochStatus.ACTIVE.value,
+    }:
+        raise ValueError("forced owner found an invalid realized strategic epoch")
+    opened_session = previous.opened_session if realized else session
+    previous_epoch_id = previous.previous_epoch_id if realized else previous.epoch_id
+    if not realized:
+        close_strategic_epoch(
+            previous,
+            closed_session=session,
+            close_reason="research owner intervention",
+            expired=True,
+        )
     epoch_id = derive_strategic_epoch_id(
         account_identity=grant.account_identity,
         owner_symbol=new,
         qualification_signature=grant.qualification_signature,
         qualification_route=grant.qualification_route,
         grant_id=grant_id,
-        opened_session=session,
-        previous_epoch_id=previous.epoch_id,
+        opened_session=opened_session,
+        previous_epoch_id=previous_epoch_id,
         source_identity=grant.production_source_identity,
         config_identity=previous.config_identity,
         evidence_sha256=grant.qualification_evidence_sha256,
@@ -225,19 +234,38 @@ def _replace_unfilled_epoch(
         qualification_route=grant.qualification_route,
         qualification_quorum=grant.qualification_quorum,
         grant_id=grant_id,
-        opened_session=session,
-        previous_epoch_id=previous.epoch_id,
+        opened_session=opened_session,
+        first_fill_session=previous.first_fill_session if realized else "",
+        active_session=previous.active_session if realized else "",
+        previous_epoch_id=previous_epoch_id,
         source_identity=grant.production_source_identity,
         config_identity=previous.config_identity,
         evidence_sha256=grant.qualification_evidence_sha256,
-        realized_status=StrategicEpochStatus.PROBE.value,
+        realized_status=(
+            previous.realized_status if realized else StrategicEpochStatus.PROBE.value
+        ),
         target_weight=target_weight,
         full_weight=max(previous.full_weight, target_weight),
         account_identity=grant.account_identity,
     )
     epoch.validate()
     grant.epoch_id = epoch_id
-    account.strategic_epochs.append(epoch)
+    if realized:
+        index = account.strategic_epochs.index(previous)
+        account.strategic_epochs[index] = epoch
+        if account.active_strategic_epoch_id == previous.epoch_id:
+            account.active_strategic_epoch_id = epoch_id
+        for ownership in (
+            account.protected_weight_epoch_ids,
+            account.strategic_restore_epoch_ids,
+        ):
+            for symbol, owner_epoch_id in tuple(ownership.items()):
+                if owner_epoch_id == previous.epoch_id:
+                    ownership[symbol] = epoch_id
+        if account.recovery_owner_epoch_id == previous.epoch_id:
+            account.recovery_owner_epoch_id = epoch_id
+    else:
+        account.strategic_epochs.append(epoch)
     return epoch_id
 
 
@@ -406,7 +434,7 @@ class StrategicOwnerIntervention:
                 target_weight=self.target_gross,
                 session=session,
             )
-            epoch_id = _replace_unfilled_epoch(
+            epoch_id = _replace_counterfactual_epoch(
                 shadow,
                 old=source_owner,
                 new=self.owner,
@@ -494,7 +522,7 @@ class StrategicOwnerIntervention:
             target_weight=self.target_gross,
             session=decision.date,
         )
-        epoch_id = _replace_unfilled_epoch(
+        epoch_id = _replace_counterfactual_epoch(
             shadow,
             old=source_owner,
             new=self.owner,

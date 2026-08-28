@@ -67,6 +67,9 @@ uquant 把数据、信号、风险、组合、执行和账户放在一条可审�
 | `PendingOrder` / `AccountOrder` | 待执行意图 / 已提交且有稳定生命周期的账户订单 |
 | `Fill` | 券商或回放确认的成交事实，只有它才能推进持仓经济状态 |
 | `StrategicGrantIntent` | 已授权但可能尚未完整成交的单一战略授冠经济意图；跨重试和重启保持同一 `grant_id` |
+| `StrategicEpoch` | 一个不可改写的战略 owner 资本周期；只有 matching Fill 才能进入实际所有权状态 |
+| `FlatBookCapitalRepairState` | 绑定账户 damage episode、预算层级和风险参考身份的全现金资本修复时钟，不绑定候选 |
+| `StrategicRearmAuthorization` | 账户修复完成后绑定当前候选资格和 universe 身份的一次性受限 probe 权限 |
 | Lifecycle | `CORE/ADD1/ADD2/SATELLITE/RECOVERY` 的持仓来源和风险减仓优先级 |
 
 ## 决策时点
@@ -129,6 +132,28 @@ uquant 把数据、信号、风险、组合、执行和账户放在一条可审�
 证据和生产源码身份确定性生成。证券不可通过修改旧授冠换人，所有 Target、Order、Fill、
 Tranche 和 Position 必须携带一致的证券、事件和授冠身份。
 
+资格证据从三个互不授予相同权限的 universe 读取：tradable 成员可被组合层交易；
+qualification reference 成员只参与行业同步、breadth 和见证；risk reference 成员只参与
+市场确认和风险锚。角色声明中有意移除的成员是 `ROLE_ABSENT`，不进入该角色 coverage
+分母；仍属该角色但当日因果数据缺失的是 `EXPECTED_BUT_UNAVAILABLE`，必须失败关闭。
+资格证据族把 owner absolute quality、行业确认、市场确认和 robustness confirmation 聚合为
+`FULL_COHORT`、`STRONG_PAIR` 或 `ABSOLUTE_SINGLE`。缺少单个非 owner reference 不机械归零，
+但关键覆盖不足不能伪造 breadth；参考成员永远不能由其参考身份获得 Target。
+
+全现金资本修复由 `FlatBookCapitalRepairState` 按账户 damage episode 计数。它只读取账户、
+执行、真实 capital authority、Risk、Opportunity、risk reference 和 guard 状态，不读取候选排名、
+资格 signature 或 qualification reference evidence。持久化预算层级映射到业务层级
+`0 / 1 / 2 / 3` 的 `20 / 40 / 60 / 60` 健康交易日边界；新的风险损伤或真实资本权限会重置
+episode，候选切换不会。达到 `READY` 后，系统仅为当前独立合格的候选派生一次性
+`StrategicRearmAuthorization`，并把 authorization 绑定到新 grant；Risk 仍是 gross cap 的
+唯一 owner，`PortfolioAllocator` 仍是 Target 的唯一 owner。
+
+每个 grant 对应一个不可改写的 `StrategicEpoch` 账本行。未成交 grant 最多形成非实际
+`PROBE` 记录；只有匹配的正向 Fill 才能写入 `first_fill_session`、激活 epoch 并增加实际授冠
+计数。一个账户最多一个 `ACTIVE` epoch，predecessor 必须先终结，successor 才能获得资本。
+`previous_grant_id` 与 `previous_epoch_id` 保留连续链；执行失败继续复用同一经济 grant，资格
+失效才终结它并允许独立合格的新候选创建新身份。
+
 ## 执行与账户
 
 订单先卖后买，并统一处理 T+1 可卖数量、停牌、涨跌停、手数、容量、现金、费用和滑点。
@@ -143,8 +168,9 @@ Tranche 和 Position 必须携带一致的证券、事件和授冠身份。
 `FREEZE_ONLY` 结论至多阻止新增风险，不能建立第二个仓位、卖出或账户权限。
 
 账户文件使用临时文件、刷盘和原子替换保存。当前数据契约记录现金、持仓 tranche、挂单、成交、
-战略资格观察、授冠意图、机会/风险状态、组合生命周期、资本高水位、数据摘要和代码指纹。
-旧账户缺少授冠字段时读取为空授冠状态，不改变现金、持仓、订单或成交。加载时会校验：
+战略资格观察、授冠意图、所有权 epoch、资本修复 episode、一次性 rearm authorization、
+机会/风险状态、组合生命周期、资本高水位、数据摘要和代码指纹。旧账户缺少这些字段时使用
+确定性兼容解码，不能从同一既有持仓制造两个 epoch，也不改变现金、持仓、订单或成交。加载时会校验：
 
 - 现金、股数、价格和序号范围；
 - 订单、成交和持仓引用；
@@ -170,7 +196,9 @@ CSV、券商 JSON、账户文件、Journal、命令行路径和研究输入都�
 canonical AI universe manifest 同时拥有点时成员与行业身份；Generalization 对每个
 窗口构造同一固定场景契约，不允许研究模块另建证券全集或修改参考上下文。
 
-`Engineering` 与 `Strategic Grant Acceptance` 是 PR 和 `main` push 的独立阻断结论；
+`Engineering`、`Strategic Grant Acceptance` 与 `Strategic Ownership Acceptance` 是 PR 和
+`main` push 的独立阻断结论；Ownership 的五个确定性 shard 只覆盖当前 owner 连续性、
+关键删除、见证者删除和 grant 失败恢复，并上传紧凑事实。
 完整性能和泛化矩阵保留为手动触发的 `Extended Performance Matrix` 与
 `Extended Economic Matrix`。精确窗口、矩阵、指标与复现命令由
 [性能与证据](PERFORMANCE.md)唯一维护。缺文件、重复

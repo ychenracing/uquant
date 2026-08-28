@@ -82,6 +82,25 @@ def _common_absolute_quality(
     )
 
 
+def strict_absolute_owner_quality(
+    *,
+    symbol: str,
+    snapshots: dict[str, dict[str, float]],
+    leaders: dict[str, LeaderScore],
+    cfg: SystemConfig,
+) -> bool:
+    """Apply the existing single-owner floors without route-specific relaxation."""
+
+    return _common_absolute_quality(
+        symbol=symbol,
+        snapshots=snapshots,
+        leaders=leaders,
+        cfg=cfg,
+        minimum_score=cfg.strategic_one_name_min_score,
+        minimum_secular_score=cfg.strategic_one_name_min_secular_score,
+    )
+
+
 def _market_confirmation(risk: RiskAssessment, cfg: SystemConfig) -> tuple[bool, bool]:
     keys = (
         "breadth20",
@@ -272,4 +291,5 @@ __all__ = (
     "StrategicQuorumResult",
     "StrategicQuorumRoute",
     "evaluate_strategic_quorum",
+    "strict_absolute_owner_quality",
 )

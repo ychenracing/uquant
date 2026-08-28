@@ -29,6 +29,7 @@ if TYPE_CHECKING:
 
 from .targets import strategic_active_targets as _strategic_active_targets
 from .targets import strategic_completed_exit_targets as _strategic_completed_exit_targets
+from .rearm import strategic_cash_rearm_grant_open
 
 
 @dataclass(slots=True)
@@ -406,7 +407,18 @@ def _capture_strategic_restore(
 def _strategic_restore_confirmed(ctx: _StrategicLifecycleContext) -> tuple[bool, bool]:
     self = ctx.policy
     risk = ctx.risk
-    buy_risk_open = bool(not risk.freeze_new_risk and not risk.evidence.get("freeze_new_risk", False))
+    cash_rearm_open = strategic_cash_rearm_grant_open(
+        account=ctx.account,
+        risk=risk,
+        cfg=self.cfg,
+    )
+    buy_risk_open = bool(
+        cash_rearm_open
+        or (
+            not risk.freeze_new_risk
+            and not risk.evidence.get("freeze_new_risk", False)
+        )
+    )
     bounded = self._bounded_strategic_restore_risk_open(risk=risk, account=ctx.account)
     guard_repaired = bool(
         not (ctx.damage_guard_active or ctx.damage_trim_active)

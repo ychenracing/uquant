@@ -42,6 +42,14 @@ from .qualification_candidates import (
 from .quorum import (
     StrategicQuorumRoute,
     evaluate_strategic_quorum,
+    strict_absolute_owner_quality,
+)
+from .rearm import (
+    mark_strategic_cash_rearm_grant,
+    observe_strategic_cash_rearm,
+    set_strategic_cash_rearm_strict,
+    strategic_cash_rearm_grant_open,
+    strategic_cash_rearm_weight,
 )
 from .qualification_candidates import (
     _strategic_candidate_meets_route as _grant_candidate_meets_route,
@@ -243,20 +251,32 @@ def _deployment_block_reason(
     risk: RiskAssessment,
     admission_open: bool,
     live_general_leaders: set[str],
+    cash_rearm_authorized: bool = False,
 ) -> str:
+    cash_rearm_open = bool(
+        cash_rearm_authorized
+        or strategic_cash_rearm_grant_open(
+            account=account,
+            risk=risk,
+            cfg=self.cfg,
+        )
+    )
     if risk.state.value == "RISK_OFF":
         return "risk_off"
     if risk.state.value == "CRISIS":
         return "crisis"
-    if risk.freeze_new_risk or bool(risk.evidence.get("freeze_new_risk", False)):
+    if (
+        risk.freeze_new_risk
+        or bool(risk.evidence.get("freeze_new_risk", False))
+    ) and not cash_rearm_open:
         return "freeze_new_risk"
     if risk.state.value == "CAUTION" and risk.votes >= 2:
         return "risk_caution"
     if risk.target_gross_cap <= 0.0:
         return "target_gross_cap"
-    if account.capital_budget_level > 0:
+    if account.capital_budget_level > 0 and not cash_rearm_open:
         return "capital_budget"
-    if account.chronic_level > 0:
+    if account.chronic_level > 0 and not cash_rearm_open:
         return "chronic_damage"
     if live_general_leaders:
         return "existing_portfolio_owner"
@@ -278,7 +298,7 @@ def _deployment_block_reason(
         )
         if len(visible_sessions) < self.cfg.strategic_epoch_cooldown_sessions:
             return "strategic_cooldown"
-    if not admission_open:
+    if not admission_open and not cash_rearm_open:
         return "opportunity_not_deployable"
     return ""
 
@@ -639,6 +659,7 @@ class _QualifiedRoute:
     admission_authorized: bool
     quorum_route: str
     restricted_initial_weight: float | None
+    cash_rearm_authorized: bool
 
 
 def _synchronized_before_anchor(
@@ -824,6 +845,9 @@ def _qualify_strategic_route(
     reference_snapshots: dict[str, dict[str, float]],
     strategic_universe: StrategicUniverseRoles,
 ) -> _QualifiedRoute | None:
+    previous_observed_session = (
+        account.strategic_qualification.qualification_last_observed_session
+    )
     legacy_raw, synchronized_before_anchor = _qualification_evidence(
         self,
         route=route,
@@ -898,6 +922,18 @@ def _qualify_strategic_route(
             qualification_last_observed_session=str(date.date()),
             candidate_invalidation_reason="absolute_qualification_failed",
         )
+        observe_strategic_cash_rearm(
+            account=account,
+            risk=risk,
+            universe=strategic_universe,
+            snapshots=reference_snapshots,
+            leaders=leaders,
+            candidate_symbol=candidate,
+            qualification_ready=False,
+            observed_session=str(date.date()),
+            previous_observed_session=previous_observed_session,
+            cfg=self.cfg,
+        )
         return None
     streak = account.candidate_tenure["strategic_cohort_qualification"]
     candidate = _candidate_symbol(route=route, symbols=symbols, leaders=leaders)
@@ -943,6 +979,18 @@ def _qualify_strategic_route(
             else {}
         ),
     )
+    cash_rearm_authorized = observe_strategic_cash_rearm(
+        account=account,
+        risk=risk,
+        universe=strategic_universe,
+        snapshots=reference_snapshots,
+        leaders=leaders,
+        candidate_symbol=candidate,
+        qualification_ready=streak >= required_days,
+        observed_session=str(date.date()),
+        previous_observed_session=previous_observed_session,
+        cfg=self.cfg,
+    )
     if streak < required_days:
         return None
     return _QualifiedRoute(
@@ -954,6 +1002,7 @@ def _qualify_strategic_route(
         route_admission_open,
         quorum.route.value if quorum is not None else StrategicQuorumRoute.NONE.value,
         None if quorum is None else quorum.restricted_initial_weight,
+        cash_rearm_authorized,
     )
 
 
@@ -1002,6 +1051,7 @@ def _activate_strategic_cohort(
     leaders: dict[str, LeaderScore],
     account: AccountState,
     date: pd.Timestamp,
+    risk: RiskAssessment,
 ) -> None:
     live_anchors = {
         symbol
@@ -1030,7 +1080,7 @@ def _activate_strategic_cohort(
     restricted_owner = qualified.quorum_route in {
         StrategicQuorumRoute.STRONG_PAIR.value,
         StrategicQuorumRoute.ABSOLUTE_SINGLE.value,
-    }
+    } or qualified.cash_rearm_authorized
     account.strategic_cohort_symbols = (
         [account.strategic_qualification.candidate_symbol]
         if restricted_owner
@@ -1047,6 +1097,15 @@ def _activate_strategic_cohort(
         quorum_route=qualified.quorum_route,
         restricted_initial_weight=qualified.restricted_initial_weight,
     )
+    if qualified.cash_rearm_authorized:
+        account.strategic_cohort_targets = {
+            account.strategic_qualification.candidate_symbol: strategic_cash_rearm_weight(
+                account=account,
+                risk=risk,
+                cfg=self.cfg,
+            )
+        }
+        mark_strategic_cash_rearm_grant(account)
     account.strategic_exit_bands.clear()
     account.strategic_active_bands.clear()
     account.strategic_restore_weights.clear()
@@ -1287,6 +1346,9 @@ def _initialize_strategic_cohort(
             risk=risk,
             admission_open=(qualified.admission_authorized if qualified is not None else admission_open),
             live_general_leaders=live_general_leaders,
+            cash_rearm_authorized=(
+                qualified.cash_rearm_authorized if qualified is not None else False
+            ),
         )
         account.strategic_qualification.deployment_blocked = bool(block_reason)
         account.strategic_qualification.deployment_block_reason = block_reason
@@ -1302,6 +1364,7 @@ def _initialize_strategic_cohort(
             leaders=resolved_leaders,
             account=account,
             date=date,
+            risk=risk,
         )
 
 
@@ -1429,6 +1492,24 @@ def _revalidate_strategic_grant(
         for symbol, values in reference_snapshots.items()
         if symbol in user_panel and symbol in resolved_leaders
     }
+    if account.candidate_tenure.get("strategic_cash_rearm_grant", 0) == 1:
+        strict_candidate = strict_absolute_owner_quality(
+            symbol=grant.candidate_symbol,
+            snapshots=reference_snapshots,
+            leaders=resolved_leaders,
+            cfg=self.cfg,
+        )
+        set_strategic_cash_rearm_strict(
+            account,
+            qualified=strict_candidate,
+        )
+        if not strict_candidate:
+            _expire_strategic_grant(
+                account,
+                reason="cash_rearm_absolute_quality_failed",
+                weights_now=weights_now,
+            )
+            return False
     route = select_strategic_route(
         self,
         snapshots=snapshots,

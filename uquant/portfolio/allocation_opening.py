@@ -10,6 +10,7 @@ import pandas as pd
 from ..models.strategic_universe import StrategicUniverseRoles
 from ..portfolio_core import current_weights
 from ..types import AccountState, LeaderScore, Lifecycle, Opportunity, Risk, RiskAssessment, Target
+from .strategic.rearm import strategic_cash_rearm_grant_open
 from .context import AllocationState
 
 if TYPE_CHECKING:
@@ -466,7 +467,12 @@ def _strategic_allocation(
         else None
     )
     if strategic is not None:
-        if freeze_active and not bounded_strategic_restore:
+        cash_rearm_grant_open = strategic_cash_rearm_grant_open(
+            account=account,
+            risk=risk,
+            cfg=self.cfg,
+        )
+        if freeze_active and not bounded_strategic_restore and not cash_rearm_grant_open:
             return self._frozen_existing_targets(
                 strategy_targets=strategic,
                 leaders=leaders,

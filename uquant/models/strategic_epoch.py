@@ -11,6 +11,8 @@ from datetime import date as date_type
 from enum import Enum
 from typing import Any, cast
 
+from .trading import late_strategic_fill_allowed
+
 
 class StrategicEpochStatus(str, Enum):
     """Realized lifecycle of one immutable strategic ownership identity."""
@@ -301,12 +303,7 @@ def _account_epoch_close_blockers(account: Any, *, epoch_id: str) -> tuple[str, 
         order.epoch_id == epoch_id
         and (
             order.status not in terminal_order_statuses
-            or (
-                order.status == "CANCELLED"
-                and order.cancel_reason == "strategic partial remainder replaced"
-                and order.last_event != "BROKER_CANCELLED"
-                and order.remaining_shares > 0
-            )
+            or late_strategic_fill_allowed(order)
         )
         for order in account.order_ledger
     ):

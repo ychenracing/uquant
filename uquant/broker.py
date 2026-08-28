@@ -28,6 +28,7 @@ from .models.strategic_epoch import (
     record_account_strategic_epoch_fill,
 )
 from .models.strategic_grant import record_strategic_grant_fill
+from .models.trading import late_strategic_fill_allowed as _late_strategic_fill_allowed
 from .types import (
     ORDER_INTENT_IMMUTABLE_FIELDS,
     AccountOrder,
@@ -45,17 +46,6 @@ from .types import (
     derive_attribution_event_id,
     order_intent_metadata,
 )
-
-
-def _broker_late_strategic_fill_allowed(order: AccountOrder) -> bool:
-    return bool(
-        order.status == OrderStatus.CANCELLED.value
-        and order.grant_id
-        and order.cancel_reason == "strategic partial remainder replaced"
-        and order.last_event != "BROKER_CANCELLED"
-        and order.filled_shares > 0
-        and order.remaining_shares > 0
-    )
 
 
 def _broker_reconciliation_identity(
@@ -213,7 +203,7 @@ def _validate_late_strategic_fill_capacity(
     order: AccountOrder,
     shares: int,
 ) -> None:
-    if not _broker_late_strategic_fill_allowed(order):
+    if not _late_strategic_fill_allowed(order):
         return
     matching_orders = [
         candidate
@@ -361,7 +351,7 @@ def _validated_fill_order_progress(
         OrderStatus.FILLED.value,
         OrderStatus.CANCELLED.value,
         OrderStatus.REPLACED.value,
-    } and not _broker_late_strategic_fill_allowed(order):
+    } and not _late_strategic_fill_allowed(order):
         raise ValueError("broker cannot append a fill to a terminal account order")
     cumulative_filled = order.filled_shares + shares
     reported_request = cumulative_filled + remaining

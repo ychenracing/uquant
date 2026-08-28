@@ -7,7 +7,7 @@ from uquant.portfolio.strategic.authority import (
     assess_strategic_capital_authority,
     normalize_orphan_strategic_capital_residue,
 )
-from uquant.types import AccountState, PendingOrder, Position
+from uquant.types import AccountOrder, AccountState, OrderStatus, PendingOrder, Position
 
 
 def test_flat_unbacked_strategy_containers_are_orphan_residue_not_live_authority() -> None:
@@ -95,6 +95,35 @@ def test_nonterminal_epoch_and_grant_remain_authority_even_before_fill() -> None
     assert authority.nonterminal_epoch_ids == (epoch.epoch_id,)
     assert authority.nonterminal_grant_id == grant.grant_id
     assert authority.orphan_residue_fields == ()
+
+
+def test_cancelled_daily_order_is_not_late_strategic_fill_authority() -> None:
+    account = AccountState.empty(2_000_000.0)
+    account.order_ledger.append(
+        AccountOrder(
+            order_id="O000000001",
+            signal_date="2026-01-05",
+            submitted_date="2026-01-06",
+            symbol="sz300308",
+            side="BUY",
+            target_weight=0.10,
+            reason="daily target",
+            lifecycle="CORE",
+            status=OrderStatus.CANCELLED.value,
+            requested_shares=1_000,
+            filled_shares=400,
+            remaining_shares=600,
+            last_update_date="2026-01-06",
+            last_event="CANCELLED",
+            cancel_reason="daily target removed",
+        )
+    )
+
+    authority = assess_strategic_capital_authority(account)
+
+    assert authority.unsettled_order_ids == ()
+    assert authority.late_fill_order_ids == ()
+    assert authority.has_live_authority is False
 
 
 def test_unbound_flat_residue_is_preserved_and_fails_closed() -> None:

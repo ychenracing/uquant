@@ -250,6 +250,8 @@ def _repair_episode_transition(
         reset_reason = FlatBookCapitalRepairResetReason.ACCOUNT_IDENTITY_CHANGED.value
     elif capital_budget_level > previous.capital_budget_level:
         reset_reason = FlatBookCapitalRepairResetReason.CAPITAL_BUDGET_WORSENED.value
+    elif capital_budget_level < previous.capital_budget_level:
+        reset_reason = FlatBookCapitalRepairResetReason.CAPITAL_BUDGET_IMPROVED.value
     elif config_identity != previous.config_identity:
         reset_reason = FlatBookCapitalRepairResetReason.CONFIG_IDENTITY_CHANGED.value
     elif risk_reference_identity != previous.risk_reference_universe_identity:

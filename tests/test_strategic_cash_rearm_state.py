@@ -25,6 +25,7 @@ from uquant.models.strategic_rearm import (
 )
 from uquant.models.strategic_universe import build_strategic_universe_roles
 from uquant.portfolio.strategic.rearm import (
+    CASH_REARM_HEALTHY_SESSION_LIMITS,
     consume_strategic_cash_rearm_authorization,
     observe_flat_book_capital_repair_state,
     observe_strategic_cash_rearm_state,
@@ -171,6 +172,60 @@ def test_account_round_trip_preserves_ready_repair_and_authorization() -> None:
     assert restored == account
     assert restored.flat_book_capital_repair.status == "READY"
     assert isinstance(restored.strategic_cash_rearm, StrategicCashRearmState)
+
+
+@pytest.mark.parametrize(("initial_level", "improved_level"), ((3, 2), (2, 1)))
+def test_improving_capital_tier_restarts_a_consistently_bound_repair_episode(
+    initial_level: int,
+    improved_level: int,
+) -> None:
+    account = _flat_account()
+    account.capital_budget_level = initial_level
+    initial = observe_flat_book_capital_repair_state(
+        account=account,
+        risk=_risk(),
+        universe=_roles("2025-01-02"),
+        observed_session="2025-01-02",
+        cfg=DEFAULT_CONFIG,
+    )
+
+    account.capital_budget_level = improved_level
+    transitioned = observe_flat_book_capital_repair_state(
+        account=account,
+        risk=_risk(),
+        universe=_roles("2025-01-03"),
+        observed_session="2025-01-03",
+        cfg=DEFAULT_CONFIG,
+    )
+
+    assert transitioned.repair_episode_id != initial.repair_episode_id
+    assert transitioned.capital_budget_level == improved_level
+    assert transitioned.repair_target_level == improved_level - 1
+    assert transitioned.required_healthy_sessions == CASH_REARM_HEALTHY_SESSION_LIMITS[improved_level]
+    assert transitioned.first_observed_session == "2025-01-03"
+    assert transitioned.healthy_session_count == 1
+    assert transitioned.reset_reason == "CAPITAL_BUDGET_IMPROVED"
+
+    remaining = CASH_REARM_HEALTHY_SESSION_LIMITS[improved_level] - 1
+    sessions = pd.bdate_range("2025-01-06", periods=remaining)
+    for session in sessions:
+        observe_flat_book_capital_repair_state(
+            account=account,
+            risk=_risk(),
+            universe=_roles(str(session.date())),
+            observed_session=str(session.date()),
+            cfg=DEFAULT_CONFIG,
+        )
+    authorization_session = str((sessions[-1] + pd.offsets.BDay()).date())
+    authorization = _authorize(account, session=authorization_session)
+    account.data_hash = "data"
+    account.code_hash = "code"
+
+    restored = account_from_dict(account.to_dict())
+
+    assert authorization.status == StrategicCashRearmStatus.AUTHORIZED.value
+    assert authorization.capital_budget_level == improved_level
+    assert restored == account
 
 
 def test_account_rejects_rearm_authorization_bound_to_other_identity() -> None:

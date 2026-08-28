@@ -301,6 +301,19 @@ class AccountOrder:
     epoch_id: str = ""
 
 
+def late_strategic_fill_allowed(order: AccountOrder) -> bool:
+    """Return whether a released strategic remainder can still fill at the broker."""
+
+    return bool(
+        order.status == OrderStatus.CANCELLED.value
+        and order.grant_id
+        and order.cancel_reason == "strategic partial remainder replaced"
+        and order.last_event != "BROKER_CANCELLED"
+        and order.filled_shares > 0
+        and order.remaining_shares > 0
+    )
+
+
 ATTRIBUTION_IDENTITY_FIELDS: tuple[str, ...] = (
     "grant_id",
     "epoch_id",

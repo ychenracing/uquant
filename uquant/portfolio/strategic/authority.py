@@ -6,6 +6,7 @@ from dataclasses import dataclass
 
 from ...models.strategic_epoch import StrategicEpochStatus
 from ...models.strategic_grant import TERMINAL_STRATEGIC_GRANT_STATUSES
+from ...models.trading import late_strategic_fill_allowed
 from ...types import AccountState, OrderStatus
 
 
@@ -29,14 +30,6 @@ class StrategicCapitalAuthorityAssessment:
         """Return whether any strategic or execution owner still has backing."""
 
         return bool(self.live_authority_fields)
-
-
-def _late_fill_eligible(order: object) -> bool:
-    return bool(
-        getattr(order, "status", "") == OrderStatus.CANCELLED.value
-        and getattr(order, "remaining_shares", 0) > 0
-        and getattr(order, "last_event", "") != "BROKER_CANCELLED"
-    )
 
 
 def assess_strategic_capital_authority(
@@ -116,14 +109,14 @@ def _execution_authority_facts(
         sorted(
             order.order_id or f"unidentified:{index}"
             for index, order in enumerate(account.order_ledger)
-            if order.status not in terminal_orders or _late_fill_eligible(order)
+            if order.status not in terminal_orders or late_strategic_fill_allowed(order)
         )
     )
     late_fill_orders = tuple(
         sorted(
             order.order_id or f"unidentified:{index}"
             for index, order in enumerate(account.order_ledger)
-            if _late_fill_eligible(order)
+            if late_strategic_fill_allowed(order)
         )
     )
     return positions, pending_symbols, unsettled_orders, late_fill_orders
@@ -166,7 +159,7 @@ def _authority_backing_symbols(
     backing_symbols.update(
         order.symbol
         for order in account.order_ledger
-        if order.status not in terminal_orders or _late_fill_eligible(order)
+        if order.status not in terminal_orders or late_strategic_fill_allowed(order)
     )
     if nonterminal_grant_id and grant is not None:
         backing_symbols.add(grant.candidate_symbol)

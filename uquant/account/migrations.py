@@ -22,6 +22,10 @@ from ..models.strategic_grant import (
     StrategicGrantStatus,
     derive_strategic_grant_id,
 )
+from ..models.strategic_rearm import (
+    FlatBookCapitalRepairState,
+    StrategicCashRearmState,
+)
 from ..types import (
     ACCOUNT_SCHEMA_VERSION,
     AccountOrder,
@@ -55,6 +59,10 @@ from .validation_common import (
 from .validation_orders import order_sequence as _order_sequence
 
 
+_ORDER_SEQUENCE_SCHEMA_VERSION = 5
+_STRATEGIC_EPOCH_SCHEMA_VERSION = 7
+
+
 def _migration_sha256(payload: dict[str, Any]) -> str:
     encoded = json.dumps(
         payload,
@@ -73,7 +81,7 @@ def _migrate_strategic_epoch_ownership(
 ) -> dict[str, Any] | None:
     """Map one legacy strategic owner to one immutable realized epoch."""
 
-    if previous_schema >= ACCOUNT_SCHEMA_VERSION or state.strategic_epochs:
+    if previous_schema >= _STRATEGIC_EPOCH_SCHEMA_VERSION or state.strategic_epochs:
         return None
     grant = state.strategic_grant
     candidates = tuple(
@@ -916,7 +924,7 @@ def migrate_account(
     elif previous_schema == _HISTORICAL_ATTRIBUTION_SCHEMA_VERSION:
         attribution_event_id_migration = _migrate_v4_attribution_event_ids(state)
     order_sequence_migration: dict[str, Any] | None = None
-    if previous_schema < ACCOUNT_SCHEMA_VERSION:
+    if previous_schema < _ORDER_SEQUENCE_SCHEMA_VERSION:
         exact_next_order_sequence = (
             max(
                 (_order_sequence(order.order_id) for order in state.order_ledger),
@@ -936,6 +944,14 @@ def migrate_account(
         state,
         previous_schema=previous_schema,
     )
+    flat_book_capital_repair_normalization: dict[str, Any] | None = None
+    if previous_schema == _STRATEGIC_EPOCH_SCHEMA_VERSION:
+        state.flat_book_capital_repair = FlatBookCapitalRepairState()
+        state.strategic_cash_rearm = StrategicCashRearmState()
+        flat_book_capital_repair_normalization = {
+            "policy": "discard_candidate_owned_repair_evidence",
+            "reason": "candidate streaks are not account capital-repair evidence",
+        }
     legacy_rearm_keys = tuple(
         key
         for key in (
@@ -974,6 +990,10 @@ def migrate_account(
         migration_event["order_sequence_migration"] = order_sequence_migration
     if strategic_epoch_migration is not None:
         migration_event["strategic_epoch_migration"] = strategic_epoch_migration
+    if flat_book_capital_repair_normalization is not None:
+        migration_event["flat_book_capital_repair_normalization"] = (
+            flat_book_capital_repair_normalization
+        )
     if legacy_rearm_keys:
         migration_event["strategic_cash_rearm_normalization"] = {
             "policy": "discard_unbound_candidate_tenure_authorization",

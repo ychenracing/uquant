@@ -12,7 +12,10 @@ from ..models.strategic_grant import (
     strategic_grant_from_payload,
     strategic_qualification_from_payload,
 )
-from ..models.strategic_rearm import strategic_cash_rearm_from_payload
+from ..models.strategic_rearm import (
+    flat_book_capital_repair_from_payload,
+    strategic_cash_rearm_from_payload,
+)
 from ..types import (
     ACCOUNT_SCHEMA_VERSION,
     AccountOrder,
@@ -244,8 +247,14 @@ def _decode_account_strategy_fields(
     payload: Mapping[str, Any],
     schema_version: int,
 ) -> dict[str, Any]:
-    if schema_version == ACCOUNT_SCHEMA_VERSION and "strategic_cash_rearm" not in payload:
-        raise RuntimeError("current account schema requires strategic_cash_rearm")
+    if schema_version == ACCOUNT_SCHEMA_VERSION:
+        if "flat_book_capital_repair" not in payload:
+            raise RuntimeError(
+                "current account schema requires flat_book_capital_repair"
+            )
+        if "strategic_cash_rearm" not in payload:
+            raise RuntimeError("current account schema requires strategic_cash_rearm")
+    legacy_candidate_rearm = schema_version < ACCOUNT_SCHEMA_VERSION
     return {
         "strategic_epochs_completed": payload.get(
             "strategic_epochs_completed",
@@ -265,8 +274,11 @@ def _decode_account_strategy_fields(
             payload.get("strategic_successor_qualification")
         ),
         "strategic_grant": strategic_grant_from_payload(payload.get("strategic_grant")),
+        "flat_book_capital_repair": flat_book_capital_repair_from_payload(
+            None if legacy_candidate_rearm else payload.get("flat_book_capital_repair")
+        ),
         "strategic_cash_rearm": strategic_cash_rearm_from_payload(
-            payload.get("strategic_cash_rearm")
+            None if legacy_candidate_rearm else payload.get("strategic_cash_rearm")
         ),
         "strategic_epochs": [
             strategic_epoch_from_payload(dict(item))

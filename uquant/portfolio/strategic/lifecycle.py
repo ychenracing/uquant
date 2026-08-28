@@ -266,9 +266,41 @@ def _arm_dominant_profit_lock(
     ctx.dominant_profit_lock_armed_now = True
 
 
+def _bounded_strategic_exit_scale(
+    ctx: _StrategicLifecycleContext,
+    *,
+    symbol: str,
+) -> float:
+    """Keep a staged owner's exit duration invariant to its bounded weight."""
+
+    grant = ctx.account.strategic_grant
+    if grant is None:
+        return 1.0
+    epoch = next(
+        (
+            item
+            for item in ctx.account.strategic_epochs
+            if item.epoch_id == grant.epoch_id
+            and item.grant_id == grant.grant_id
+            and item.owner_symbol == symbol
+            and not item.terminal
+        ),
+        None,
+    )
+    if epoch is None or not (
+        grant.authorization_id
+        or epoch.qualification_quorum in {"STRONG_PAIR", "ABSOLUTE_SINGLE"}
+    ):
+        return 1.0
+    if epoch.target_weight <= 0.0 or epoch.full_weight <= 0.0:
+        return 1.0
+    return min(1.0, epoch.target_weight / epoch.full_weight)
+
+
 def _strategic_exit_step(
     ctx: _StrategicLifecycleContext,
     *,
+    symbol: str,
     row: pd.Series,
 ) -> float:
     cfg = ctx.policy.cfg
@@ -281,14 +313,18 @@ def _strategic_exit_step(
     repaired_step = (
         cfg.strategic_gradual_post_guard_exit_step if gradual else cfg.strategic_post_guard_exit_step
     )
-    if not (
+    post_guard_repair = bool(
         ctx.account.strategic_epoch > 0
         and ctx.account.candidate_tenure.get("strategic_damage_guard_complete_epoch", -1)
         == ctx.account.strategic_epoch
         and ctx.account.candidate_tenure.get("strategic_guard_level2_epoch", -1)
         != ctx.account.strategic_epoch
-    ):
-        repaired_step = cfg.strategic_cohort_exit_step
+    )
+    if not post_guard_repair:
+        return (
+            cfg.strategic_cohort_exit_step
+            * _bounded_strategic_exit_scale(ctx, symbol=symbol)
+        )
     return max(cfg.strategic_cohort_exit_step, repaired_step)
 
 
@@ -314,7 +350,8 @@ def _advance_strategic_exit(
                 armed[index] = True
                 bands[index] = max(
                     0.0,
-                    bands[index] - _strategic_exit_step(ctx, row=row) / band_count,
+                    bands[index]
+                    - _strategic_exit_step(ctx, symbol=symbol, row=row) / band_count,
                 )
     if sum(bands) <= 1e-12:
         account.strategic_cohort_targets.pop(symbol, None)

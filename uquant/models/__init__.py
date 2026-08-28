@@ -28,11 +28,16 @@ from .strategic_grant import (
     derive_strategic_grant_id,
 )
 from .strategic_rearm import (
+    FlatBookCapitalRepairResetReason,
+    FlatBookCapitalRepairState,
+    FlatBookCapitalRepairStatus,
     StrategicCashRearmPredicate,
     StrategicCashRearmRejectionReason,
     StrategicCashRearmState,
     StrategicCashRearmStatus,
     StrategicCashRearmStreakTransition,
+    StrategicRearmAuthorization,
+    derive_flat_book_capital_repair_episode_id,
     derive_strategic_cash_rearm_authorization_id,
 )
 from .trading import (
@@ -59,6 +64,9 @@ Decision.__module__ = "uquant.types"
 Decision.canonical_payload.__module__ = "uquant.types"
 Decision.legacy_canonical_payload.__module__ = "uquant.types"
 Fill.__module__ = "uquant.types"
+FlatBookCapitalRepairResetReason.__module__ = "uquant.types"
+FlatBookCapitalRepairState.__module__ = "uquant.types"
+FlatBookCapitalRepairStatus.__module__ = "uquant.types"
 LeaderScore.__module__ = "uquant.types"
 Lifecycle.__module__ = "uquant.types"
 Opportunity.__module__ = "uquant.types"
@@ -81,9 +89,11 @@ StrategicCashRearmRejectionReason.__module__ = "uquant.types"
 StrategicCashRearmState.__module__ = "uquant.types"
 StrategicCashRearmStatus.__module__ = "uquant.types"
 StrategicCashRearmStreakTransition.__module__ = "uquant.types"
+StrategicRearmAuthorization.__module__ = "uquant.types"
 Target.__module__ = "uquant.types"
 Tranche.__module__ = "uquant.types"
 derive_attribution_event_id.__module__ = "uquant.types"
+derive_flat_book_capital_repair_episode_id.__module__ = "uquant.types"
 derive_strategic_grant_id.__module__ = "uquant.types"
 derive_strategic_cash_rearm_authorization_id.__module__ = "uquant.types"
 order_intent_metadata.__module__ = "uquant.types"
@@ -99,6 +109,9 @@ __all__ = (
     "AttributionMechanism",
     "Decision",
     "Fill",
+    "FlatBookCapitalRepairResetReason",
+    "FlatBookCapitalRepairState",
+    "FlatBookCapitalRepairStatus",
     "LeaderScore",
     "Lifecycle",
     "Opportunity",
@@ -120,9 +133,11 @@ __all__ = (
     "StrategicCashRearmState",
     "StrategicCashRearmStatus",
     "StrategicCashRearmStreakTransition",
+    "StrategicRearmAuthorization",
     "Target",
     "Tranche",
     "derive_attribution_event_id",
+    "derive_flat_book_capital_repair_episode_id",
     "derive_strategic_grant_id",
     "derive_strategic_cash_rearm_authorization_id",
     "derive_strategic_epoch_id",

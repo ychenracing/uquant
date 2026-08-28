@@ -681,6 +681,25 @@ def _finalize_decision(
             "freeze_new_risk": allocation.risk.freeze_new_risk,
             "strategic_epoch": account.strategic_epoch,
             "strategic_candidate_signature": account.strategic_candidate_signature,
+            "strategic_qualification": asdict(account.strategic_qualification),
+            "strategic_successor_qualification": asdict(
+                account.strategic_successor_qualification
+            ),
+            "strategic_grant": (
+                None
+                if account.strategic_grant is None
+                else asdict(account.strategic_grant)
+            ),
+            "strategic_epochs": [asdict(item) for item in account.strategic_epochs],
+            "active_strategic_epoch_id": account.active_strategic_epoch_id,
+            "strategic_universe_identities": {
+                "tradable": account.strategic_tradable_universe_identity,
+                "qualification_reference": (
+                    account.strategic_qualification_universe_identity
+                ),
+                "risk_reference": account.strategic_risk_universe_identity,
+            },
+            "flat_book_capital_repair": asdict(account.flat_book_capital_repair),
             "strategic_cash_rearm": asdict(account.strategic_cash_rearm),
             "factor_profile": allocation.leader_factor_profile,
             "effective_config_sha256": config_fingerprint(market.cfg),

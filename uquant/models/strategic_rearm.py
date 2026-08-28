@@ -9,7 +9,18 @@ from collections.abc import Mapping
 from dataclasses import dataclass, field
 from datetime import date as date_type
 from enum import Enum
+from types import MappingProxyType
 from typing import Any
+
+
+FLAT_BOOK_CAPITAL_REPAIR_LIMITS = MappingProxyType(
+    {
+        0: 20,
+        1: 40,
+        2: 60,
+        3: 60,
+    }
+)
 
 
 class StrategicCashRearmStatus(str, Enum):
@@ -47,6 +58,7 @@ class StrategicCashRearmRejectionReason(str, Enum):
     ACTIVE_EPOCH = "ACTIVE_EPOCH"
     NONTERMINAL_EPOCH = "NONTERMINAL_EPOCH"
     NONTERMINAL_GRANT = "NONTERMINAL_GRANT"
+    LIVE_CAPITAL_AUTHORITY = "LIVE_CAPITAL_AUTHORITY"
     LIVE_COHORT_AUTHORITY = "LIVE_COHORT_AUTHORITY"
     RECOVERY_OWNER = "RECOVERY_OWNER"
     PROTECTED_OWNER = "PROTECTED_OWNER"
@@ -69,14 +81,79 @@ class StrategicCashRearmRejectionReason(str, Enum):
     QUALIFICATION_REFERENCE_UNAVAILABLE = "QUALIFICATION_REFERENCE_UNAVAILABLE"
     RISK_REFERENCE_UNAVAILABLE = "RISK_REFERENCE_UNAVAILABLE"
     REFERENCE_COVERAGE_INCOMPLETE = "REFERENCE_COVERAGE_INCOMPLETE"
+    FLAT_BOOK_REPAIR_NOT_READY = "FLAT_BOOK_REPAIR_NOT_READY"
     CAPITAL_BUDGET_NOT_REARMABLE = "CAPITAL_BUDGET_NOT_REARMABLE"
     DEPLOYMENT_BLOCK_NOT_REARMABLE = "DEPLOYMENT_BLOCK_NOT_REARMABLE"
     ORPHAN_RESIDUE_NOT_NORMALIZED = "ORPHAN_RESIDUE_NOT_NORMALIZED"
 
 
+class FlatBookCapitalRepairStatus(str, Enum):
+    """Lifecycle of one account-owned capital-damage repair episode."""
+
+    BLOCKED = "BLOCKED"
+    ACCUMULATING = "ACCUMULATING"
+    READY = "READY"
+    CONSUMED = "CONSUMED"
+    RESET = "RESET"
+
+
+class FlatBookCapitalRepairResetReason(str, Enum):
+    """Stable reasons that invalidate accumulated account repair evidence."""
+
+    CAPITAL_BUDGET_WORSENED = "CAPITAL_BUDGET_WORSENED"
+    CAPITAL_BUDGET_CLEARED = "CAPITAL_BUDGET_CLEARED"
+    LIVE_CAPITAL_AUTHORITY = "LIVE_CAPITAL_AUTHORITY"
+    ACCOUNT_IDENTITY_CHANGED = "ACCOUNT_IDENTITY_CHANGED"
+    RISK_REFERENCE_IDENTITY_CHANGED = "RISK_REFERENCE_IDENTITY_CHANGED"
+    CONFIG_IDENTITY_CHANGED = "CONFIG_IDENTITY_CHANGED"
+
+
 _REJECTION_ORDER = {
     reason.value: index for index, reason in enumerate(StrategicCashRearmRejectionReason)
 }
+
+
+def derive_flat_book_capital_repair_episode_id(
+    *,
+    account_identity: str,
+    capital_budget_level: int,
+    first_observed_session: str,
+    risk_reference_universe_identity: str,
+    config_identity: str,
+) -> str:
+    """Derive one account-owned capital-damage repair episode identity."""
+
+    _require_text(account_identity, field_name="repair account_identity")
+    if (
+        isinstance(capital_budget_level, bool)
+        or capital_budget_level not in {1, 2, 3, 4}
+    ):
+        raise ValueError("flat-book capital repair budget level must be between one and four")
+    _require_session(
+        first_observed_session,
+        field_name="repair first_observed_session",
+    )
+    _require_sha256(
+        risk_reference_universe_identity,
+        field_name="repair risk_reference_universe_identity",
+    )
+    _require_sha256(config_identity, field_name="repair config_identity")
+    payload = {
+        "account_identity": account_identity,
+        "capital_budget_level": capital_budget_level,
+        "config_identity": config_identity,
+        "first_observed_session": first_observed_session,
+        "risk_reference_universe_identity": risk_reference_universe_identity,
+        "schema": "uquant.flat-book-capital-repair",
+    }
+    encoded = json.dumps(
+        payload,
+        allow_nan=False,
+        ensure_ascii=False,
+        separators=(",", ":"),
+        sort_keys=True,
+    ).encode("utf-8")
+    return "repair_" + hashlib.sha256(encoded).hexdigest()
 
 
 @dataclass(slots=True)
@@ -91,10 +168,34 @@ class StrategicCashRearmPredicate:
 
 
 @dataclass(slots=True)
-class StrategicCashRearmState:
-    """Persistent candidate-bound bounded reauthorization state."""
+class FlatBookCapitalRepairState:
+    """Persistent account-level repair evidence independent of qualification."""
+
+    repair_episode_id: str = ""
+    account_identity: str = ""
+    capital_budget_level: int = 0
+    repair_target_level: int = 0
+    first_observed_session: str = ""
+    last_observed_session: str = ""
+    last_counted_session: str = ""
+    healthy_session_count: int = 0
+    required_healthy_sessions: int = 0
+    status: str = FlatBookCapitalRepairStatus.BLOCKED.value
+    risk_reference_universe_identity: str = ""
+    config_identity: str = ""
+    predicate_results: list[StrategicCashRearmPredicate] = field(default_factory=list)
+    rejection_reasons: list[str] = field(default_factory=list)
+    reset_reason: str = ""
+    last_reset_session: str = ""
+    last_ready_session: str = ""
+
+
+@dataclass(slots=True)
+class StrategicRearmAuthorization:
+    """One candidate-bound authorization backed by a ready repair episode."""
 
     observed_session: str = ""
+    repair_episode_id: str = ""
     candidate_symbol: str = ""
     qualification_signature: str = ""
     qualification_route: str = ""
@@ -105,8 +206,6 @@ class StrategicCashRearmState:
     qualification_reference_universe_identity: str = ""
     risk_reference_universe_identity: str = ""
     point_in_time_industry_identity: str = ""
-    required_healthy_sessions: int = 0
-    consecutive_healthy_sessions: int = 0
     status: str = StrategicCashRearmStatus.OBSERVING.value
     authorization_id: str = ""
     authorized_session: str = ""
@@ -115,9 +214,10 @@ class StrategicCashRearmState:
     rejection_reasons: list[str] = field(default_factory=list)
     qualification_ready: bool = False
     route_consistent_absolute_quality: bool = False
-    healthy: bool = False
     authorized: bool = False
-    streak_transition: str = StrategicCashRearmStreakTransition.INITIALIZED.value
+
+
+StrategicCashRearmState = StrategicRearmAuthorization
 
 
 def _require_text(value: object, *, field_name: str, allow_empty: bool = False) -> str:
@@ -149,6 +249,7 @@ def _require_sha256(value: object, *, field_name: str, allow_empty: bool = False
 def derive_strategic_cash_rearm_authorization_id(
     *,
     account_identity: str,
+    repair_episode_id: str,
     candidate_symbol: str,
     qualification_signature: str,
     qualification_route: str,
@@ -159,7 +260,7 @@ def derive_strategic_cash_rearm_authorization_id(
     qualification_reference_universe_identity: str,
     risk_reference_universe_identity: str,
     point_in_time_industry_identity: str,
-    required_healthy_sessions: int,
+    authorized_session: str,
 ) -> str:
     """Derive a stable one-shot authorization from causal economic evidence."""
 
@@ -171,6 +272,8 @@ def derive_strategic_cash_rearm_authorization_id(
         ("qualification_quorum", qualification_quorum),
     ):
         _require_text(value, field_name=field_name)
+    if not repair_episode_id.startswith("repair_") or len(repair_episode_id) != 71:
+        raise ValueError("strategic cash rearm repair_episode_id is invalid")
     for field_name, value in (
         ("qualification_evidence_sha256", qualification_evidence_sha256),
         ("tradable_universe_identity", tradable_universe_identity),
@@ -184,14 +287,10 @@ def derive_strategic_cash_rearm_authorization_id(
         _require_sha256(value, field_name=field_name)
     if isinstance(capital_budget_level, bool) or capital_budget_level not in {1, 2, 3, 4}:
         raise ValueError("strategic cash rearm capital_budget_level must be between one and four")
-    if (
-        isinstance(required_healthy_sessions, bool)
-        or not isinstance(required_healthy_sessions, int)
-        or required_healthy_sessions <= 0
-    ):
-        raise ValueError("strategic cash rearm required_healthy_sessions must be positive")
+    _require_session(authorized_session, field_name="authorization_session")
     payload = {
         "account_identity": account_identity,
+        "repair_episode_id": repair_episode_id,
         "candidate_symbol": candidate_symbol,
         "qualification_signature": qualification_signature,
         "qualification_route": qualification_route,
@@ -204,7 +303,7 @@ def derive_strategic_cash_rearm_authorization_id(
         ),
         "risk_reference_universe_identity": risk_reference_universe_identity,
         "point_in_time_industry_identity": point_in_time_industry_identity,
-        "required_healthy_sessions": required_healthy_sessions,
+        "authorized_session": authorized_session,
         "schema": "uquant.strategic-cash-rearm-authorization",
     }
     encoded = json.dumps(
@@ -233,17 +332,138 @@ def _validate_predicate(predicate: StrategicCashRearmPredicate) -> None:
         ) from exc
 
 
+def validate_flat_book_capital_repair_state(
+    state: FlatBookCapitalRepairState,
+) -> None:
+    """Reject malformed or contradictory account-level repair evidence."""
+
+    status = FlatBookCapitalRepairStatus(state.status)
+    empty = not state.repair_episode_id and not state.first_observed_session
+    if empty:
+        if state != FlatBookCapitalRepairState():
+            raise ValueError("empty flat-book capital repair contains durable evidence")
+        return
+    if not state.repair_episode_id.startswith("repair_") or len(state.repair_episode_id) != 71:
+        raise ValueError("flat-book capital repair episode identity is invalid")
+    _require_text(state.account_identity, field_name="repair account_identity")
+    for field_name, value in (
+        ("first_observed_session", state.first_observed_session),
+        ("last_observed_session", state.last_observed_session),
+        ("last_counted_session", state.last_counted_session),
+        ("last_reset_session", state.last_reset_session),
+        ("last_ready_session", state.last_ready_session),
+    ):
+        _require_session(value, field_name=f"repair {field_name}", allow_empty=True)
+    for field_name, value in (
+        ("risk_reference_universe_identity", state.risk_reference_universe_identity),
+        ("config_identity", state.config_identity),
+    ):
+        _require_sha256(value, field_name=f"repair {field_name}")
+    if (
+        isinstance(state.capital_budget_level, bool)
+        or state.capital_budget_level not in {1, 2, 3, 4}
+    ):
+        raise ValueError("flat-book capital repair budget level is invalid")
+    if state.repair_target_level != state.capital_budget_level - 1:
+        raise ValueError("flat-book capital repair target level is off by one")
+    expected_required = FLAT_BOOK_CAPITAL_REPAIR_LIMITS[state.repair_target_level]
+    if state.required_healthy_sessions != expected_required:
+        raise ValueError("flat-book capital repair healthy bound differs from its tier")
+    if (
+        isinstance(state.healthy_session_count, bool)
+        or not 0 <= state.healthy_session_count <= state.required_healthy_sessions
+    ):
+        raise ValueError("flat-book capital repair healthy count is invalid")
+    predicate_codes = [predicate.code for predicate in state.predicate_results]
+    if len(predicate_codes) != len(set(predicate_codes)):
+        raise ValueError("flat-book capital repair predicate codes must be unique")
+    for predicate in state.predicate_results:
+        _validate_predicate(predicate)
+    try:
+        canonical_rejections = [
+            StrategicCashRearmRejectionReason(reason).value
+            for reason in state.rejection_reasons
+        ]
+    except ValueError as exc:
+        raise ValueError("flat-book capital repair rejection reason is invalid") from exc
+    if canonical_rejections != sorted(
+        set(canonical_rejections),
+        key=_REJECTION_ORDER.__getitem__,
+    ):
+        raise ValueError("flat-book capital repair rejection reasons must be unique and ordered")
+    if state.reset_reason:
+        FlatBookCapitalRepairResetReason(state.reset_reason)
+    if status is FlatBookCapitalRepairStatus.READY:
+        if (
+            state.healthy_session_count != state.required_healthy_sessions
+            or not state.last_ready_session
+            or state.rejection_reasons
+            or state.reset_reason
+        ):
+            raise ValueError("ready flat-book capital repair is incomplete")
+    if status is FlatBookCapitalRepairStatus.CONSUMED and (
+        state.healthy_session_count != state.required_healthy_sessions
+        or not state.last_ready_session
+    ):
+        raise ValueError("consumed flat-book capital repair was never ready")
+    if status is FlatBookCapitalRepairStatus.RESET and (
+        state.healthy_session_count != 0
+        or not state.reset_reason
+        or not state.last_reset_session
+    ):
+        raise ValueError("reset flat-book capital repair lacks its reset event")
+
+
+def flat_book_capital_repair_from_payload(
+    value: Mapping[str, Any] | None,
+) -> FlatBookCapitalRepairState:
+    """Decode one durable account-level repair episode."""
+
+    raw = dict(value or {})
+    raw["predicate_results"] = [
+        StrategicCashRearmPredicate(**dict(item))
+        for item in raw.get("predicate_results", [])
+    ]
+    state = FlatBookCapitalRepairState(**raw)
+    validate_flat_book_capital_repair_state(state)
+    return state
+
+
+def validate_flat_book_capital_repair_account_binding(
+    state: FlatBookCapitalRepairState,
+    *,
+    account_identity: str,
+) -> None:
+    """Validate one repair episode against its durable account evidence."""
+
+    validate_flat_book_capital_repair_state(state)
+    if not state.repair_episode_id:
+        return
+    if state.account_identity != account_identity:
+        raise ValueError("flat-book capital repair account identity differs from account")
+    expected = derive_flat_book_capital_repair_episode_id(
+        account_identity=account_identity,
+        capital_budget_level=state.capital_budget_level,
+        first_observed_session=state.first_observed_session,
+        risk_reference_universe_identity=state.risk_reference_universe_identity,
+        config_identity=state.config_identity,
+    )
+    if state.repair_episode_id != expected:
+        raise ValueError("flat-book capital repair episode identity differs from evidence")
+
+
 def validate_strategic_cash_rearm_state(state: StrategicCashRearmState) -> None:
     """Reject malformed, non-deterministic, or contradictory durable rearm state."""
 
     status = StrategicCashRearmStatus(state.status)
-    StrategicCashRearmStreakTransition(state.streak_transition)
     empty = not state.observed_session and not state.candidate_symbol
     if empty:
         if state != StrategicCashRearmState():
             raise ValueError("empty strategic cash rearm state contains durable evidence")
         return
     _require_session(state.observed_session, field_name="observed_session")
+    if not state.repair_episode_id.startswith("repair_") or len(state.repair_episode_id) != 71:
+        raise ValueError("strategic cash rearm repair episode identity is invalid")
     for field_name, value in (
         ("candidate_symbol", state.candidate_symbol),
         ("qualification_signature", state.qualification_signature),
@@ -262,25 +482,19 @@ def validate_strategic_cash_rearm_state(state: StrategicCashRearmState) -> None:
         ("point_in_time_industry_identity", state.point_in_time_industry_identity),
     ):
         _require_sha256(value, field_name=field_name)
-    for field_name, value in (
-        ("capital_budget_level", state.capital_budget_level),
-        ("required_healthy_sessions", state.required_healthy_sessions),
-        ("consecutive_healthy_sessions", state.consecutive_healthy_sessions),
+    if (
+        isinstance(state.capital_budget_level, bool)
+        or state.capital_budget_level not in {1, 2, 3, 4}
     ):
-        if isinstance(value, bool) or not isinstance(value, int) or value < 0:
-            raise ValueError(f"strategic cash rearm {field_name} must be non-negative")
-    if state.capital_budget_level > 4:
-        raise ValueError("strategic cash rearm capital budget exceeds its ladder")
-    if state.required_healthy_sessions <= 0:
-        raise ValueError("strategic cash rearm required healthy sessions must be positive")
-    if state.consecutive_healthy_sessions > state.required_healthy_sessions:
-        raise ValueError("strategic cash rearm healthy streak exceeds its bound")
-    if any(type(value) is not bool for value in (
-        state.qualification_ready,
-        state.route_consistent_absolute_quality,
-        state.healthy,
-        state.authorized,
-    )):
+        raise ValueError("strategic cash rearm capital budget is invalid")
+    if any(
+        type(value) is not bool
+        for value in (
+            state.qualification_ready,
+            state.route_consistent_absolute_quality,
+            state.authorized,
+        )
+    ):
         raise ValueError("strategic cash rearm result flags must be boolean")
     predicate_codes = [predicate.code for predicate in state.predicate_results]
     if len(predicate_codes) != len(set(predicate_codes)):
@@ -308,11 +522,8 @@ def validate_strategic_cash_rearm_state(state: StrategicCashRearmState) -> None:
             raise ValueError("authorized rearm cannot retain rejection reasons")
         if not (
             state.authorized
-            and state.healthy
             and state.qualification_ready
             and state.route_consistent_absolute_quality
-            and state.capital_budget_level in {1, 2, 3, 4}
-            and state.consecutive_healthy_sessions == state.required_healthy_sessions
             and state.authorized_session
         ):
             raise ValueError("authorized strategic cash rearm state is incomplete")
@@ -344,6 +555,7 @@ def validate_strategic_cash_rearm_account_binding(
         return
     expected = derive_strategic_cash_rearm_authorization_id(
         account_identity=account_identity,
+        repair_episode_id=state.repair_episode_id,
         candidate_symbol=state.candidate_symbol,
         qualification_signature=state.qualification_signature,
         qualification_route=state.qualification_route,
@@ -356,7 +568,7 @@ def validate_strategic_cash_rearm_account_binding(
         ),
         risk_reference_universe_identity=state.risk_reference_universe_identity,
         point_in_time_industry_identity=state.point_in_time_industry_identity,
-        required_healthy_sessions=state.required_healthy_sessions,
+        authorized_session=state.authorized_session,
     )
     if state.authorization_id != expected:
         raise ValueError(
@@ -380,13 +592,22 @@ def strategic_cash_rearm_from_payload(
 
 
 __all__ = (
+    "FLAT_BOOK_CAPITAL_REPAIR_LIMITS",
+    "FlatBookCapitalRepairResetReason",
+    "FlatBookCapitalRepairState",
+    "FlatBookCapitalRepairStatus",
     "StrategicCashRearmPredicate",
     "StrategicCashRearmRejectionReason",
     "StrategicCashRearmState",
     "StrategicCashRearmStatus",
     "StrategicCashRearmStreakTransition",
+    "StrategicRearmAuthorization",
+    "derive_flat_book_capital_repair_episode_id",
     "derive_strategic_cash_rearm_authorization_id",
+    "flat_book_capital_repair_from_payload",
     "strategic_cash_rearm_from_payload",
     "validate_strategic_cash_rearm_account_binding",
     "validate_strategic_cash_rearm_state",
+    "validate_flat_book_capital_repair_account_binding",
+    "validate_flat_book_capital_repair_state",
 )

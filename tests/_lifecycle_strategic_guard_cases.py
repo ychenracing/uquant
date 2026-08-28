@@ -10,6 +10,16 @@ from test_lifecycle_and_risk import (
 )
 
 from uquant.config import DEFAULT_CONFIG
+from uquant.models.strategic_epoch import (
+    StrategicEpoch,
+    StrategicEpochStatus,
+    derive_strategic_epoch_id,
+)
+from uquant.models.strategic_grant import (
+    StrategicGrantIntent,
+    StrategicGrantStatus,
+    derive_strategic_grant_id,
+)
 from uquant.portfolio import PortfolioAllocator
 from uquant.types import (
     AccountState,
@@ -20,6 +30,125 @@ from uquant.types import (
     RiskAssessment,
     Target,
 )
+
+
+def test_bounded_probe_trail_preserves_full_epoch_exit_timing() -> None:
+    dates = pd.bdate_range("2025-01-02", periods=150)
+    date = dates[-1]
+    symbol = "bounded_owner"
+    frame = _trend_frame(dates)
+    frame.loc[date, "close"] = 1.0
+    frame.loc[date, "ma20"] = 1.1
+    frame.loc[date, "ret20"] = -0.10
+    frame.loc[date, "atr"] = 0.05
+    account_identity = "account:bounded-owner"
+    evidence_sha256 = "a" * 64
+    authorization_id = "rearm_" + "b" * 64
+    grant_id = derive_strategic_grant_id(
+        account_identity=account_identity,
+        candidate_symbol=symbol,
+        qualification_signature="qualification:bounded-owner",
+        qualification_route="established",
+        qualification_evidence_sha256=evidence_sha256,
+        created_session="2025-07-01",
+        previous_grant_id="",
+        production_source_identity="code:production",
+        authorization_id=authorization_id,
+    )
+    epoch_id = derive_strategic_epoch_id(
+        account_identity=account_identity,
+        owner_symbol=symbol,
+        qualification_signature="qualification:bounded-owner",
+        qualification_route="established",
+        grant_id=grant_id,
+        opened_session="2025-07-01",
+        previous_epoch_id="",
+        source_identity="code:production",
+        config_identity="config:frozen",
+        evidence_sha256=evidence_sha256,
+    )
+    grant = StrategicGrantIntent(
+        grant_id=grant_id,
+        candidate_symbol=symbol,
+        qualification_signature="qualification:bounded-owner",
+        qualification_route="established",
+        qualification_evidence_sha256=evidence_sha256,
+        created_session="2025-07-01",
+        last_eligible_session="2025-07-01",
+        filled_shares=20,
+        target_weight=0.20,
+        status=StrategicGrantStatus.COMPLETED.value,
+        account_identity=account_identity,
+        production_source_identity="code:production",
+        epoch_id=epoch_id,
+        qualification_quorum="FULL_COHORT",
+        authorization_id=authorization_id,
+    )
+    epoch = StrategicEpoch(
+        epoch_id=epoch_id,
+        owner_symbol=symbol,
+        qualification_signature=grant.qualification_signature,
+        qualification_route=grant.qualification_route,
+        qualification_quorum=grant.qualification_quorum,
+        grant_id=grant_id,
+        opened_session=grant.created_session,
+        first_fill_session="2025-07-02",
+        active_session="2025-07-02",
+        source_identity=grant.production_source_identity,
+        config_identity="config:frozen",
+        evidence_sha256=evidence_sha256,
+        realized_status=StrategicEpochStatus.ACTIVE.value,
+        target_weight=0.20,
+        full_weight=0.50,
+        account_identity=account_identity,
+    )
+    account = AccountState(
+        initial_cash=100.0,
+        cash=80.0,
+        positions={
+            symbol: Position(
+                symbol,
+                shares=20,
+                avg_cost=0.50,
+                highest_close=2.0,
+                grant_id=grant_id,
+                epoch_id=epoch_id,
+            )
+        },
+        strategic_grant=grant,
+        strategic_epochs=[epoch],
+        active_strategic_epoch_id=epoch_id,
+        account_identity=account_identity,
+        strategic_cohort_symbols=[symbol],
+        strategic_cohort_targets={symbol: 0.20},
+        strategic_candidate_signature="qualification:bounded-owner",
+        strategic_epoch=1,
+        capital_budget_level=2,
+        candidate_tenure={
+            "strategic_cohort_active": 1,
+            "strategic_cohort_started": 1,
+        },
+        operating_peak=100.0,
+        capital_peak=100.0,
+    )
+
+    targets = PortfolioAllocator(
+        DEFAULT_CONFIG.override(min_trade_value=0.0)
+    )._strategic_cohort_targets(
+        date=date,
+        risk=_normal_risk(),
+        user_panel={symbol: frame},
+        leaders={symbol: _leader(symbol, 0.90)},
+        account=account,
+        prices={symbol: 1.0},
+        weights_now={symbol: 0.20},
+    )
+
+    observed = {target.symbol: target.weight for target in targets or ()}
+    assert observed == pytest.approx({symbol: 0.196}), observed
+    bands = account.strategic_exit_bands[symbol]
+    assert sum(bands) == pytest.approx(0.196)
+    assert bands == pytest.approx([0.0392] * 5)
 
 
 @pytest.mark.parametrize(

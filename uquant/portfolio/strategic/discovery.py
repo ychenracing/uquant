@@ -46,6 +46,7 @@ from .quorum import (
 )
 from .rearm import (
     consume_strategic_cash_rearm_authorization,
+    observe_flat_book_capital_repair_state,
     observe_strategic_cash_rearm,
     strategic_cash_rearm_grant_open,
     strategic_cash_rearm_weight,
@@ -1265,6 +1266,13 @@ def _initialize_strategic_cohort(
         resolved_universe.qualification_reference_identity
     )
     account.strategic_risk_universe_identity = resolved_universe.risk_reference_identity
+    observe_flat_book_capital_repair_state(
+        account=account,
+        risk=risk,
+        universe=resolved_universe,
+        observed_session=str(date.date()),
+        cfg=self.cfg,
+    )
     if account.active_strategic_epoch_id:
         self._observe_strategic_successor(
             date=date,

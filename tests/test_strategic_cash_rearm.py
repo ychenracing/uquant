@@ -12,7 +12,6 @@ from uquant.models.strategic_universe import build_strategic_universe_roles
 from uquant.portfolio import PortfolioAllocator
 from uquant.portfolio.strategic.rearm import (
     CASH_REARM_HEALTHY_SESSION_LIMITS,
-    CASH_REARM_PROBE_HEALTHY_SESSIONS,
     observe_strategic_cash_rearm,
 )
 from uquant.types import (
@@ -122,7 +121,7 @@ def test_cash_rearm_uses_fixed_healthy_boundary_without_resetting_budget() -> No
     account.capital_budget_level = 3
     account.opportunity = Opportunity.TREND.value
     account.strategic_qualification = _qualification()
-    limit = CASH_REARM_PROBE_HEALTHY_SESSIONS
+    limit = CASH_REARM_HEALTHY_SESSION_LIMITS[account.capital_budget_level]
 
     authorized = False
     previous_session = ""
@@ -142,7 +141,8 @@ def test_cash_rearm_uses_fixed_healthy_boundary_without_resetting_budget() -> No
         previous_session = str(session.date())
 
     assert authorized is True
-    assert account.strategic_cash_rearm.consecutive_healthy_sessions == limit
+    assert account.flat_book_capital_repair.healthy_session_count == limit
+    assert account.flat_book_capital_repair.status == "READY"
     assert account.strategic_cash_rearm.status == "AUTHORIZED"
     assert not any(
         key.startswith("strategic_cash_rearm_") for key in account.candidate_tenure
@@ -245,7 +245,10 @@ def test_zero_risk_anchor_count_is_available_evidence_not_missing_coverage() -> 
 
     authorized = False
     previous_session = ""
-    for session in pd.bdate_range("2026-01-05", periods=CASH_REARM_PROBE_HEALTHY_SESSIONS):
+    for session in pd.bdate_range(
+        "2026-01-05",
+        periods=CASH_REARM_HEALTHY_SESSION_LIMITS[account.capital_budget_level],
+    ):
         authorized = observe_strategic_cash_rearm(
             account=account,
             risk=_risk(evidence=evidence),
@@ -279,7 +282,7 @@ def test_level_three_cash_rearm_creates_only_one_formal_bounded_probe() -> None:
     allocator = PortfolioAllocator(DEFAULT_CONFIG)
     targets = ()
 
-    for session in dates[-45:-24]:
+    for session in dates[-85:-24]:
         targets = allocator.allocate(
             date=session,
             opportunity=Opportunity.TREND,

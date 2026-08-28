@@ -10,7 +10,9 @@ from ..models.strategic_grant import (
     validate_strategic_qualification,
 )
 from ..models.strategic_rearm import (
+    FlatBookCapitalRepairStatus,
     StrategicCashRearmStatus,
+    validate_flat_book_capital_repair_account_binding,
     validate_strategic_cash_rearm_account_binding,
 )
 from ..types import AccountState, Lifecycle, Opportunity, Risk
@@ -294,10 +296,34 @@ def _validate_strategy_identity_and_weights(
     try:
         validate_strategic_qualification(state.strategic_qualification)
         validate_strategic_qualification(state.strategic_successor_qualification)
+        validate_flat_book_capital_repair_account_binding(
+            state.flat_book_capital_repair,
+            account_identity=state.account_identity,
+        )
         validate_strategic_cash_rearm_account_binding(
             state.strategic_cash_rearm,
             account_identity=state.account_identity,
         )
+        if state.strategic_cash_rearm.status in {
+            StrategicCashRearmStatus.AUTHORIZED.value,
+            StrategicCashRearmStatus.CONSUMED.value,
+        }:
+            if (
+                state.strategic_cash_rearm.repair_episode_id
+                != state.flat_book_capital_repair.repair_episode_id
+                or state.strategic_cash_rearm.capital_budget_level
+                != state.flat_book_capital_repair.capital_budget_level
+                or state.strategic_cash_rearm.risk_reference_universe_identity
+                != state.flat_book_capital_repair.risk_reference_universe_identity
+            ):
+                raise ValueError("strategic rearm repair episode binding is inconsistent")
+            if (
+                state.strategic_cash_rearm.status
+                == StrategicCashRearmStatus.AUTHORIZED.value
+                and state.flat_book_capital_repair.status
+                != FlatBookCapitalRepairStatus.READY.value
+            ):
+                raise ValueError("strategic rearm requires a ready repair episode")
         if state.strategic_grant is not None:
             validate_strategic_grant(state.strategic_grant)
             if state.account_identity and state.strategic_grant.account_identity != state.account_identity:

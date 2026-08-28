@@ -130,10 +130,11 @@ def build_strategic_universe_roles(
         for symbol in sorted(set(qualification) | set(risk))
         if symbol not in available
     )
-    # ``as_of`` is retained explicitly on the role declaration.  The identity
-    # binds the declared point-in-time membership and availability, so an
-    # unchanged role set can accumulate a consecutive-session qualification
-    # streak instead of being mechanically re-keyed every trading day.
+    # ``as_of`` is retained explicitly on the role declaration. Qualification
+    # identity binds availability because it owns candidate evidence. Risk
+    # identity binds declared membership only: temporary missing risk prints
+    # pause account repair through explicit availability predicates rather
+    # than fabricating a new capital-damage episode.
     role_payload: dict[str, object] = {}
     return StrategicUniverseRoles(
         as_of=as_of,
@@ -162,10 +163,6 @@ def build_strategic_universe_roles(
                 **role_payload,
                 "role": "RISK_REFERENCE",
                 "symbols": risk,
-                "availability": [
-                    (symbol, "AVAILABLE" if symbol in available else "UNAVAILABLE")
-                    for symbol in risk
-                ],
             }
         ),
         point_in_time_industry_identity=_canonical_sha256(

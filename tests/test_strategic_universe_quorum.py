@@ -155,6 +155,23 @@ def test_universe_role_identity_changes_only_when_declared_role_or_availability_
     )
 
 
+def test_risk_role_identity_tracks_membership_while_availability_is_a_pause() -> None:
+    """Catches one missing risk print restarting an account repair episode."""
+
+    first = _roles()
+    temporarily_unavailable = build_strategic_universe_roles(
+        as_of="2026-01-06",
+        tradable_symbols=first.tradable_symbols,
+        qualification_reference_symbols=first.qualification_reference_symbols,
+        risk_reference_symbols=first.risk_reference_symbols,
+        industries=dict(first.point_in_time_industries),
+        available_symbols=set(first.available_symbols) - {"sh000300"},
+    )
+
+    assert temporarily_unavailable.availability("sh000300") is ReferenceAvailability.UNAVAILABLE
+    assert temporarily_unavailable.risk_reference_identity == first.risk_reference_identity
+
+
 def test_full_cohort_keeps_existing_gross_semantics() -> None:
     symbols = ("sz300308", "sz300502", "sz300394")
     result = evaluate_strategic_quorum(

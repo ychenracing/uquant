@@ -168,7 +168,49 @@ def assess_strategic_capital_authority(
     )
 
 
+def normalize_orphan_strategic_capital_residue(
+    account: AccountState,
+) -> tuple[str, ...]:
+    """Release only residue whose recorded owner is provably terminal."""
+
+    assessment = assess_strategic_capital_authority(account)
+    if not assessment.all_cash or assessment.has_live_authority:
+        return ()
+    terminal_epoch_ids = {
+        epoch.epoch_id for epoch in account.strategic_epochs if epoch.terminal
+    }
+    normalized: set[str] = set()
+    for ownership_field, weights_field in (
+        ("protected_weight_epoch_ids", "protected_weights"),
+        ("strategic_restore_epoch_ids", "strategic_restore_weights"),
+    ):
+        ownership = getattr(account, ownership_field)
+        weights = getattr(account, weights_field)
+        for symbol, epoch_id in tuple(ownership.items()):
+            if epoch_id not in terminal_epoch_ids:
+                continue
+            ownership.pop(symbol, None)
+            weights.pop(symbol, None)
+            normalized.update((ownership_field, weights_field))
+    if account.recovery_owner_epoch_id in terminal_epoch_ids:
+        account.recovery_owner_epoch_id = ""
+        account.anchor_weights.clear()
+        account.recovery_anchor_date = ""
+        account.recovery_conviction_symbol = ""
+        account.tactical_anchor_symbol = ""
+        normalized.update(
+            (
+                "anchor_weights",
+                "recovery_conviction_symbol",
+                "recovery_owner_epoch_id",
+                "tactical_anchor_symbol",
+            )
+        )
+    return tuple(sorted(normalized))
+
+
 __all__ = (
     "StrategicCapitalAuthorityAssessment",
     "assess_strategic_capital_authority",
+    "normalize_orphan_strategic_capital_residue",
 )

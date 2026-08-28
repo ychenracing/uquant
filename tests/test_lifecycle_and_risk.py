@@ -843,6 +843,7 @@ from _lifecycle_strategic_restore_cases import (
 )
 
 from _lifecycle_strategic_guard_cases import (
+    test_bounded_probe_trail_preserves_full_epoch_exit_timing,
     test_strategic_damage_guard_preserves_trail_owner_until_restore_completes,
     test_repaired_strategic_damage_guard_uses_a_decisive_next_profit_trail,
     test_post_guard_trail_exits_acute_damage_faster_than_gradual_damage,

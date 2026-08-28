@@ -171,6 +171,31 @@ class PortfolioCore:
             held_epoch_id = (
                 account.positions[symbol].epoch_id if symbol in account.positions else ""
             )
+            grant = account.strategic_grant
+            strategic_epoch = next(
+                (
+                    epoch
+                    for epoch in account.strategic_epochs
+                    if grant is not None and epoch.epoch_id == grant.epoch_id
+                ),
+                None,
+            )
+            strategic_epoch_owned = bool(
+                origin_subsystem is OriginSubsystem.STRATEGIC
+                and grant is not None
+                and strategic_epoch is not None
+                and not strategic_epoch.terminal
+                and symbol in set(account.strategic_cohort_symbols)
+            )
+            strategic_grant_owned = bool(
+                origin_subsystem is OriginSubsystem.STRATEGIC
+                and grant is not None
+                and symbol == grant.candidate_symbol
+                and (
+                    not grant.epoch_id
+                    or strategic_epoch is not None and not strategic_epoch.terminal
+                )
+            )
             targets.append(
                 Target(
                     symbol=symbol,
@@ -190,22 +215,16 @@ class PortfolioCore:
                     grant_id=(
                         held_grant_id
                         or (
-                            account.strategic_grant.grant_id
-                            if origin_subsystem is OriginSubsystem.STRATEGIC
-                            and account.strategic_grant is not None
-                            and not account.strategic_grant.terminal
-                            and symbol == account.strategic_grant.candidate_symbol
+                            grant.grant_id
+                            if strategic_grant_owned and grant is not None
                             else ""
                         )
                     ),
                     epoch_id=(
                         held_epoch_id
                         or (
-                            account.strategic_grant.epoch_id
-                            if origin_subsystem is OriginSubsystem.STRATEGIC
-                            and account.strategic_grant is not None
-                            and not account.strategic_grant.terminal
-                            and symbol == account.strategic_grant.candidate_symbol
+                            grant.epoch_id
+                            if strategic_epoch_owned and grant is not None
                             else ""
                         )
                     ),

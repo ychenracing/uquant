@@ -10,6 +10,7 @@ from uquant.account.codec import account_from_dict
 from uquant.account.migrations import migrate_account
 from uquant.account.validation_strategy import validate_strategy_risk_state
 from uquant.application.target_attribution import attach_target_attribution
+from uquant.broker import sync_broker_snapshot
 from uquant.config import DEFAULT_CONFIG
 from uquant.execution import ExecutionPlanner, plan_orders, reconcile_account_orders
 from uquant.models.strategic_epoch import (
@@ -17,6 +18,7 @@ from uquant.models.strategic_epoch import (
     StrategicEpochStatus,
     activate_strategic_epoch,
     derive_strategic_epoch_id,
+    record_account_strategic_epoch_fill,
 )
 from uquant.models.strategic_grant import (
     StrategicGrantIntent,
@@ -141,6 +143,43 @@ def test_epoch_activates_only_after_a_matching_real_fill() -> None:
 
     assert epoch.first_fill_session == "2026-01-06"
     assert epoch.active_session == "2026-01-06"
+
+
+def test_full_cohort_witness_fill_cannot_activate_the_owner_epoch() -> None:
+    grant = _grant()
+    epoch = _epoch(grant)
+    grant.epoch_id = epoch.epoch_id
+    account = AccountState.empty(2_000_000.0)
+    account.account_identity = grant.account_identity
+    account.strategic_grant = grant
+    account.strategic_epochs = [epoch]
+    account.strategic_cohort_symbols = [grant.candidate_symbol, "sz300502"]
+
+    record_account_strategic_epoch_fill(
+        account,
+        epoch_id=epoch.epoch_id,
+        grant_id=grant.grant_id,
+        symbol="sz300502",
+        fill_session="2026-01-06",
+        filled_shares=100,
+    )
+
+    assert epoch.realized_status == StrategicEpochStatus.PROBE.value
+    assert account.active_strategic_epoch_id == ""
+    assert account.strategic_epoch == 0
+
+    record_account_strategic_epoch_fill(
+        account,
+        epoch_id=epoch.epoch_id,
+        grant_id=grant.grant_id,
+        symbol=grant.candidate_symbol,
+        fill_session="2026-01-06",
+        filled_shares=100,
+    )
+
+    assert epoch.realized_status == StrategicEpochStatus.ACTIVE.value
+    assert account.active_strategic_epoch_id == epoch.epoch_id
+    assert account.strategic_epoch == 1
     assert epoch.realized_status == StrategicEpochStatus.ACTIVE.value
 
     activate_strategic_epoch(
@@ -283,6 +322,87 @@ def test_epoch_identity_flows_through_target_order_fill_and_position() -> None:
     assert account.strategic_epoch == 1
     assert account.strategic_grant is not None
     assert account.strategic_grant.status == StrategicGrantStatus.COMPLETED.value
+
+
+def test_broker_fill_activates_the_matching_epoch_once() -> None:
+    grant = _grant()
+    epoch = _epoch(grant)
+    grant.epoch_id = epoch.epoch_id
+    account = AccountState.empty(2_000_000.0)
+    account.account_identity = grant.account_identity
+    account.data_hash = "data"
+    account.code_hash = grant.production_source_identity
+    account.strategic_grant = grant
+    account.strategic_epochs = [epoch]
+    target = Target(
+        symbol=grant.candidate_symbol,
+        weight=grant.target_weight,
+        lifecycle=Lifecycle.CORE.value,
+        alpha_score=0.9,
+        confidence=0.95,
+        reason="bounded strategic probe",
+        reason_code="strategic_cohort",
+        origin_subsystem=OriginSubsystem.STRATEGIC.value,
+        mechanism=AttributionMechanism.STRATEGIC_COHORT.value,
+        origin_lifecycle=Lifecycle.CORE.value,
+        grant_id=grant.grant_id,
+        epoch_id=epoch.epoch_id,
+    )
+    attributed = attach_target_attribution(
+        "optical",
+        REQUIRED_AI_UNIVERSE_SHA256,
+        signal_date="2026-01-05",
+        targets=(target,),
+    )
+    planned = plan_orders(
+        signal_date="2026-01-05",
+        targets=attributed,
+        account=account,
+        prices={grant.candidate_symbol: 10.0},
+        cfg=DEFAULT_CONFIG,
+    )
+    account.pending_orders = list(
+        reconcile_account_orders(
+            account=account,
+            previous=[],
+            current=planned,
+            submitted_date="2026-01-05",
+        )
+    )
+    order_id = account.pending_orders[0].order_id
+
+    sync_broker_snapshot(
+        account,
+        {
+            "as_of": "2026-01-06",
+            "cash": 1_999_000.0,
+            "fills": [
+                {
+                    "fill_id": "broker-strategic-epoch",
+                    "order_id": order_id,
+                    "fill_date": "2026-01-06",
+                    "symbol": "300308",
+                    "side": "BUY",
+                    "shares": 100,
+                    "price": 10.0,
+                    "final": True,
+                    "remaining_shares": 0,
+                }
+            ],
+            "positions": [
+                {
+                    "symbol": "300308",
+                    "shares": 100,
+                    "sellable_shares": 0,
+                    "avg_cost": 10.0,
+                }
+            ],
+        },
+    )
+
+    assert account.active_strategic_epoch_id == epoch.epoch_id
+    assert account.strategic_epochs[0].realized_status == StrategicEpochStatus.ACTIVE.value
+    assert account.strategic_epoch == 1
 
 
 def test_legacy_active_owner_migrates_to_exactly_one_epoch(tmp_path) -> None:

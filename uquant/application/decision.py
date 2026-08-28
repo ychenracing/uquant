@@ -20,6 +20,7 @@ from ..config import (
 from ..contracts.universe import AIUniverse, default_ai_universe
 from ..data import DataManifest, DataStore, normalize_symbol
 from ..models.strategic_universe import build_strategic_universe_roles
+from ..models.strategic_epoch import bind_account_strategic_ownership
 from ..execution import merge_pending_orders, plan_orders
 from ..leader import (
     INDUSTRY,
@@ -430,6 +431,7 @@ def _assess_decision_risk(
             ),
         }
     )
+    bind_account_strategic_ownership(account)
     return risk
 
 
@@ -522,6 +524,7 @@ def _allocate_decision_orders(
             ),
         ),
     )
+    bind_account_strategic_ownership(account)
     targets = attach_target_attribution_fn(
         signal_date=str(inputs.date.date()),
         targets=targets,

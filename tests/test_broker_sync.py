@@ -174,6 +174,36 @@ def _position_snapshot(fills: list[dict[str, object]]) -> dict[str, object]:
     }
 
 
+def test_authoritative_cancellation_clears_a_released_strategic_remainder() -> None:
+    account = _buy_account()
+    order = account.order_ledger[0]
+    order.status = OrderStatus.CANCELLED.value
+    order.cancel_reason = "strategic partial remainder replaced"
+    order.last_event = "PARTIAL_REMAINDER_RELEASED"
+    account.pending_orders.clear()
+
+    sync_broker_snapshot(
+        account,
+        {
+            "as_of": "2026-01-06",
+            "cash": account.cash,
+            "fills": [],
+            "orders": [
+                {
+                    "order_id": order.order_id,
+                    "status": OrderStatus.CANCELLED.value,
+                    "remaining_shares": 0,
+                }
+            ],
+            "positions": [],
+        },
+    )
+
+    assert account.order_ledger[0].remaining_shares == order.requested_shares
+    assert account.order_ledger[0].last_event == "BROKER_CANCELLED"
+    assert account.pending_orders == []
+
+
 def test_snapshot_cannot_overwrite_engine_owned_position_metadata() -> None:
     symbol = "sz300308"
     account = AccountState.empty(2_000.0)

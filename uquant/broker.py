@@ -24,6 +24,10 @@ from .data import normalize_symbol
 from .execution import allocate_sell_costs as _allocate_sell_costs
 from .execution import risk_priority_tranche_key
 from .models.strategic_grant import record_strategic_grant_fill
+from .models.strategic_epoch import (
+    bind_account_strategic_ownership,
+    record_account_strategic_epoch_fill,
+)
 from .types import (
     ORDER_INTENT_IMMUTABLE_FIELDS,
     AccountOrder,
@@ -48,6 +52,7 @@ def _late_strategic_fill_allowed(order: AccountOrder) -> bool:
         order.status == OrderStatus.CANCELLED.value
         and order.grant_id
         and order.cancel_reason == "strategic partial remainder replaced"
+        and order.last_event != "BROKER_CANCELLED"
         and order.filled_shares > 0
         and order.remaining_shares > 0
     )
@@ -611,11 +616,23 @@ def _commit_imported_broker_fill(
     if order.status == OrderStatus.FILLED.value:
         state.completed_order_ids.add(values.order_id)
     if values.side == Side.BUY.value and order.grant_id:
-        record_strategic_grant_fill(
-            state.account.strategic_grant,
+        if (
+            state.account.strategic_grant is not None
+            and state.account.strategic_grant.candidate_symbol == values.symbol
+        ):
+            record_strategic_grant_fill(
+                state.account.strategic_grant,
+                grant_id=order.grant_id,
+                shares=values.shares,
+                completed=values.final and values.remaining == 0,
+            )
+        record_account_strategic_epoch_fill(
+            state.account,
+            epoch_id=order.epoch_id,
             grant_id=order.grant_id,
-            shares=values.shares,
-            completed=values.final and values.remaining == 0,
+            symbol=values.symbol,
+            fill_session=values.fill_date,
+            filled_shares=values.shares,
         )
         if values.final and values.remaining == 0:
             for pending in state.account.pending_orders:
@@ -663,10 +680,9 @@ def _apply_broker_order_updates(state: _BrokerSyncState) -> None:
             raise ValueError("broker cancellation must report zero live remaining shares")
         if order.status in {OrderStatus.FILLED.value, OrderStatus.REPLACED.value}:
             raise ValueError("broker cannot cancel a filled or replaced order")
-        if order.status != OrderStatus.CANCELLED.value:
-            order.status = OrderStatus.CANCELLED.value
-            order.last_update_date = state.as_of
-            order.last_event = "BROKER_CANCELLED"
+        order.status = OrderStatus.CANCELLED.value
+        order.last_update_date = state.as_of
+        order.last_event = "BROKER_CANCELLED"
         state.completed_order_ids.add(order_id)
 
 
@@ -825,6 +841,7 @@ def _commit_broker_sync(
     account = state.account
     account.cash = state.cash
     account.positions = reconciled_positions
+    bind_account_strategic_ownership(account)
     account.pending_orders = [
         order for order in account.pending_orders if order.order_id not in state.completed_order_ids
     ]

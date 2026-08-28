@@ -456,12 +456,16 @@ def _record_open_fill(
     else:
         account_order.status = OrderStatus.FILLED.value
     if fill.side == Side.BUY.value and fill.grant_id:
-        record_strategic_grant_fill(
-            account.strategic_grant,
-            grant_id=fill.grant_id,
-            shares=fill.shares,
-            completed=request.shares >= request.target_requested,
-        )
+        if (
+            account.strategic_grant is not None
+            and account.strategic_grant.candidate_symbol == fill.symbol
+        ):
+            record_strategic_grant_fill(
+                account.strategic_grant,
+                grant_id=fill.grant_id,
+                shares=fill.shares,
+                completed=request.shares >= request.target_requested,
+            )
         record_account_strategic_epoch_fill(
             account,
             epoch_id=fill.epoch_id,

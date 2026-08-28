@@ -248,6 +248,159 @@ def close_strategic_epoch(
     epoch.validate()
 
 
+def _account_epoch_close_blockers(account: Any, *, epoch_id: str) -> tuple[str, ...]:
+    blockers: list[str] = []
+    if any(
+        position.shares > 0
+        and (
+            position.epoch_id == epoch_id
+            or any(tranche.epoch_id == epoch_id for tranche in position.tranches)
+        )
+        for position in account.positions.values()
+    ):
+        blockers.append("position")
+    if any(order.epoch_id == epoch_id for order in account.pending_orders):
+        blockers.append("pending execution")
+    terminal_order_statuses = {"FILLED", "CANCELLED", "REPLACED"}
+    if any(
+        order.epoch_id == epoch_id
+        and (
+            order.status not in terminal_order_statuses
+            or (
+                order.status == "CANCELLED"
+                and order.cancel_reason == "strategic partial remainder replaced"
+                and order.last_event != "BROKER_CANCELLED"
+                and order.remaining_shares > 0
+            )
+        )
+        for order in account.order_ledger
+    ):
+        blockers.append("unsettled execution")
+    return tuple(blockers)
+
+
+def close_account_strategic_epoch(
+    account: Any,
+    *,
+    epoch_id: str,
+    closed_session: str,
+    close_reason: str,
+    expired: bool = False,
+) -> None:
+    """Terminally settle one flat epoch and release only its owned state."""
+
+    matches = [epoch for epoch in account.strategic_epochs if epoch.epoch_id == epoch_id]
+    if len(matches) != 1:
+        raise RuntimeError("strategic epoch close references an unknown or duplicate epoch")
+    epoch = matches[0]
+    blockers = _account_epoch_close_blockers(account, epoch_id=epoch_id)
+    if blockers:
+        raise RuntimeError(
+            "strategic epoch close blocked by " + ", ".join(blockers)
+        )
+    close_strategic_epoch(
+        epoch,
+        closed_session=closed_session,
+        close_reason=close_reason,
+        expired=expired,
+    )
+    if account.active_strategic_epoch_id == epoch_id:
+        account.active_strategic_epoch_id = ""
+    for ownership_field, weights_field in (
+        ("protected_weight_epoch_ids", "protected_weights"),
+        ("strategic_restore_epoch_ids", "strategic_restore_weights"),
+    ):
+        ownership = getattr(account, ownership_field)
+        weights = getattr(account, weights_field)
+        for symbol in tuple(ownership):
+            if ownership[symbol] != epoch_id:
+                continue
+            ownership.pop(symbol, None)
+            weights.pop(symbol, None)
+    if account.recovery_owner_epoch_id == epoch_id:
+        account.recovery_owner_epoch_id = ""
+        account.anchor_weights.clear()
+        account.recovery_anchor_date = ""
+        account.recovery_conviction_symbol = ""
+        account.tactical_anchor_symbol = ""
+    grant = account.strategic_grant
+    if grant is not None and grant.grant_id == epoch.grant_id:
+        if expired:
+            if grant.status not in {"EXPIRED", "CANCELLED"}:
+                grant.status = "EXPIRED"
+                grant.expiry_reason = close_reason
+        else:
+            grant.status = "COMPLETED"
+            grant.expiry_reason = ""
+
+
+def settle_account_strategic_epoch(
+    account: Any,
+    *,
+    epoch_id: str,
+    closed_session: str,
+    close_reason: str,
+    expired: bool = False,
+) -> bool:
+    """Close an epoch when its capital and execution identities are settled."""
+
+    if _account_epoch_close_blockers(account, epoch_id=epoch_id):
+        return False
+    close_account_strategic_epoch(
+        account,
+        epoch_id=epoch_id,
+        closed_session=closed_session,
+        close_reason=close_reason,
+        expired=expired,
+    )
+    return True
+
+
+def bind_account_strategic_ownership(account: Any) -> None:
+    """Bind recovery and restoration state to its realized strategic epoch."""
+
+    known = {
+        epoch.epoch_id: epoch
+        for epoch in account.strategic_epochs
+        if not epoch.terminal
+    }
+
+    def owner_for_symbol(symbol: str) -> str:
+        position = account.positions.get(symbol)
+        if position is not None and position.shares > 0 and position.epoch_id in known:
+            return position.epoch_id
+        if (
+            account.active_strategic_epoch_id in known
+            and symbol in account.strategic_cohort_symbols
+        ):
+            return account.active_strategic_epoch_id
+        return ""
+
+    for ownership_field, weights_field in (
+        ("protected_weight_epoch_ids", "protected_weights"),
+        ("strategic_restore_epoch_ids", "strategic_restore_weights"),
+    ):
+        ownership = getattr(account, ownership_field)
+        weights = getattr(account, weights_field)
+        for symbol in tuple(ownership):
+            if symbol not in weights or ownership[symbol] not in known:
+                ownership.pop(symbol, None)
+        for symbol in weights:
+            epoch_id = owner_for_symbol(symbol)
+            if epoch_id:
+                ownership[symbol] = epoch_id
+
+    anchor_owners = {
+        owner_for_symbol(symbol)
+        for symbol in account.anchor_weights
+        if owner_for_symbol(symbol)
+    }
+    if account.anchor_weights and len(anchor_owners) == 1:
+        account.recovery_owner_epoch_id = next(iter(anchor_owners))
+    elif not account.anchor_weights or len(anchor_owners) != 1:
+        account.recovery_owner_epoch_id = ""
+
+
 def record_account_strategic_epoch_fill(
     account: Any,
     *,
@@ -266,7 +419,15 @@ def record_account_strategic_epoch_fill(
         raise RuntimeError("strategic fill references an unknown or duplicate epoch")
     epoch = matches[0]
     if epoch.grant_id != grant_id or epoch.owner_symbol != symbol:
-        raise RuntimeError("strategic fill identity differs from its epoch owner")
+        if (
+            epoch.grant_id != grant_id
+            or symbol not in set(account.strategic_cohort_symbols)
+        ):
+            raise RuntimeError("strategic fill identity differs from its epoch owner")
+        if epoch.terminal:
+            raise RuntimeError("terminal strategic epoch accepted a new BUY fill")
+        bind_account_strategic_ownership(account)
+        return
     if filled_shares <= 0:
         raise RuntimeError("strategic epoch fill must have positive shares")
     if account.active_strategic_epoch_id not in {"", epoch_id}:
@@ -314,6 +475,7 @@ def record_account_strategic_epoch_fill(
         grant = account.strategic_grant
         if grant is not None and grant.grant_id == grant_id:
             grant.status = "PARTIALLY_FILLED"
+    bind_account_strategic_ownership(account)
 
 
 __all__ = (
@@ -321,8 +483,11 @@ __all__ = (
     "StrategicEpoch",
     "StrategicEpochStatus",
     "activate_strategic_epoch",
+    "bind_account_strategic_ownership",
+    "close_account_strategic_epoch",
     "close_strategic_epoch",
     "derive_strategic_epoch_id",
     "strategic_epoch_from_payload",
     "record_account_strategic_epoch_fill",
+    "settle_account_strategic_epoch",
 )

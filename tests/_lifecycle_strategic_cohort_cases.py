@@ -12,6 +12,7 @@ from test_lifecycle_and_risk import (
 )
 
 from uquant.config import DEFAULT_CONFIG
+from uquant.models.strategic_epoch import StrategicEpochStatus
 from uquant.portfolio import PortfolioAllocator
 from uquant.types import (
     AccountState,
@@ -23,6 +24,17 @@ from uquant.types import (
     RiskAssessment,
     Target,
 )
+
+
+def _assert_unfilled_strategic_probe(
+    account: AccountState,
+    *,
+    realized_epoch_count: int = 0,
+) -> None:
+    assert account.strategic_epoch == realized_epoch_count
+    assert account.active_strategic_epoch_id == ""
+    assert len(account.strategic_epochs) == 1
+    assert account.strategic_epochs[-1].realized_status == StrategicEpochStatus.PROBE.value
 
 
 def test_persistent_industry_outranks_a_shorter_established_group() -> None:
@@ -195,7 +207,7 @@ def test_synchronized_reversal_is_tagged_as_emerging_secular() -> None:
             risk=risk,
         )
 
-    assert account.strategic_epoch == 1
+    _assert_unfilled_strategic_probe(account)
     assert len(account.strategic_cohort_symbols) == 2
     assert sorted(account.strategic_cohort_targets.values()) == pytest.approx([0.34, 0.51])
     assert account.strategic_candidate_signature.startswith(
@@ -290,7 +302,8 @@ def test_decisive_synchronized_reversal_concentrates_one_dominant_owner(
     assert account.strategic_cohort_targets == {
         "dominant": pytest.approx(DEFAULT_CONFIG.strategic_dominant_max_weight)
     }
-    assert account.candidate_tenure["strategic_dominant_epoch"] == account.strategic_epoch
+    _assert_unfilled_strategic_probe(account)
+    assert account.candidate_tenure["strategic_dominant_epoch"] == 1
 
 def test_ordinary_factor_cohort_still_waits_for_dynamic_anchors_to_arm() -> None:
     dates = pd.bdate_range("2023-01-02", periods=246)
@@ -376,7 +389,7 @@ def test_weak_regime_can_admit_the_dynamic_persistent_industry_route() -> None:
             prices={symbol: float(frame.loc[date, "close"]) for symbol in symbols},
         )
 
-    assert account.strategic_epoch == 1
+    _assert_unfilled_strategic_probe(account)
     assert {target.symbol for target in targets if target.weight > 0} == set(symbols)
     assert account.strategic_candidate_signature.startswith(
         "strategic_qualification:SECULAR:"
@@ -507,7 +520,7 @@ def test_choppy_observation_can_confirm_but_not_admit_a_strategic_cohort() -> No
         account=account,
         prices=prices,
     )
-    assert account.strategic_epoch == 1
+    _assert_unfilled_strategic_probe(account)
     assert {target.symbol for target in targets if target.weight > 0} == set(account.strategic_cohort_symbols)
 
 def test_recovery_regime_is_not_preempted_by_new_trailing_secular_cohort() -> None:
@@ -541,7 +554,7 @@ def test_recovery_regime_is_not_preempted_by_new_trailing_secular_cohort() -> No
             account=account,
             prices=prices,
         )
-    assert account.strategic_epoch == 1
+    _assert_unfilled_strategic_probe(account)
     assert sum(target.weight for target in targets) == pytest.approx(DEFAULT_CONFIG.max_gross)
 
 def test_disjoint_recovery_anchor_hands_off_to_confirmed_secular_cohort() -> None:
@@ -728,7 +741,7 @@ def test_strategic_epoch_respects_risk_gate_and_session_cooldown():
             account=account,
             risk=_normal_risk(),
         )
-    assert account.strategic_epoch == 1
+    _assert_unfilled_strategic_probe(account)
     assert account.candidate_tenure["strategic_cohort_active"] == 1
 
 def test_strategic_epoch_can_requalify_the_same_members_after_a_fresh_cooldown_streak():
@@ -754,7 +767,7 @@ def test_strategic_epoch_can_requalify_the_same_members_after_a_fresh_cooldown_s
             account=account,
             risk=_normal_risk(),
         )
-    assert account.strategic_epoch == 2
+    _assert_unfilled_strategic_probe(account, realized_epoch_count=1)
     assert account.candidate_tenure.get("strategic_cohort_active", 0) == 1
     assert set(account.strategic_cohort_symbols) == set(old_symbols)
     assert account.strategic_candidate_signature == (

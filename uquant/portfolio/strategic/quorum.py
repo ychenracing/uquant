@@ -214,25 +214,27 @@ def evaluate_strategic_quorum(
     full_compatibility = bool(
         route is StrategicQuorumRoute.FULL_COHORT
         and synchronized_full_cohort
-        and candidate_quality
-        and industry_confirmed
-        and market_complete
     )
     qualified = bool(
         route is not StrategicQuorumRoute.NONE
-        and candidate_quality
-        and industry_confirmed
-        and robustness_confirmed
-        and (market_confirmed or full_compatibility)
+        and (
+            full_compatibility
+            or (
+                candidate_quality
+                and industry_confirmed
+                and robustness_confirmed
+                and market_confirmed
+            )
+        )
     )
     reasons: list[str] = []
-    if not owner_quality or not candidate_quality:
+    if (not owner_quality or not candidate_quality) and not full_compatibility:
         reasons.append("OWNER_ABSOLUTE_QUALITY")
-    if not available_industry:
+    if not available_industry and not full_compatibility:
         reasons.append("INDUSTRY_REFERENCE_COVERAGE")
-    elif not industry_confirmed:
+    elif not industry_confirmed and not full_compatibility:
         reasons.append("INDUSTRY_CONFIRMATION")
-    if not market_complete:
+    if not market_complete and not full_compatibility:
         reasons.append("MARKET_REFERENCE_COVERAGE")
     elif not market_confirmed and not full_compatibility:
         reasons.append("MARKET_CONFIRMATION")

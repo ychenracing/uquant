@@ -8,8 +8,13 @@ from typing import TYPE_CHECKING, cast
 
 import pandas as pd
 
-from ...models.strategic_universe import StrategicUniverseRoles
 from ...features import scalar
+from ...models.strategic_epoch import (
+    bind_account_strategic_ownership,
+    settle_account_strategic_epoch,
+)
+from ...models.strategic_grant import StrategicQualificationObservation
+from ...models.strategic_universe import StrategicUniverseRoles
 from ...portfolio_core import strategic_dominant_symbol
 from ...types import (
     AccountState,
@@ -104,6 +109,18 @@ def _complete_empty_strategic_cohort(
 ) -> tuple[Target, ...] | None:
     if held_cohort:
         return _strategic_completed_exit_targets(self=self, leaders=leaders, account=account)
+    grant = account.strategic_grant
+    epoch_id = (
+        account.active_strategic_epoch_id
+        or (grant.epoch_id if grant is not None else "")
+    )
+    if epoch_id and not settle_account_strategic_epoch(
+        account,
+        epoch_id=epoch_id,
+        closed_session=str(date.date()),
+        close_reason="owner_exit",
+    ):
+        return ()
     for symbol in account.strategic_cohort_symbols:
         account.protected_weights.pop(symbol, None)
     account.candidate_tenure["strategic_cohort_active"] = 0
@@ -122,6 +139,13 @@ def _complete_empty_strategic_cohort(
         (date + pd.offsets.BDay(self.cfg.strategic_epoch_cooldown_sessions)).date()
     )
     account.strategic_previous_symbols = list(account.strategic_cohort_symbols)
+    account.strategic_cohort_symbols.clear()
+    account.strategic_candidate_signature = ""
+    account.strategic_qualification = StrategicQualificationObservation()
+    account.strategic_successor_qualification = StrategicQualificationObservation()
+    for key in tuple(account.replacement_tenure):
+        if key.startswith(("strategic_qualification:", "strategic_successor:")):
+            account.replacement_tenure[key] = 0
     return None
 
 
@@ -670,6 +694,7 @@ def _strategic_cohort_targets(
         active_symbols=active_symbols,
         current_selected=current_selected,
     )
+    bind_account_strategic_ownership(account)
     proposed = _final_strategic_proposal(
         ctx,
         active_symbols=active_symbols,

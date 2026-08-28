@@ -28,7 +28,11 @@ MAX_STRATEGIC_GRANT_HEALTHY_RETRY_SESSIONS = 20
 
 
 TERMINAL_STRATEGIC_GRANT_STATUSES = frozenset(
-    {StrategicGrantStatus.EXPIRED.value, StrategicGrantStatus.CANCELLED.value}
+    {
+        StrategicGrantStatus.COMPLETED.value,
+        StrategicGrantStatus.EXPIRED.value,
+        StrategicGrantStatus.CANCELLED.value,
+    }
 )
 
 
@@ -252,9 +256,15 @@ def validate_strategic_grant(value: StrategicGrantIntent) -> None:
         raise ValueError("strategic grant acknowledged order ids must be unique")
     if not set(value.acknowledged_order_ids).issubset(value.submitted_order_ids):
         raise ValueError("strategic grant acknowledged orders must have been submitted")
-    if value.terminal and not value.expiry_reason:
+    if value.status in {
+        StrategicGrantStatus.EXPIRED.value,
+        StrategicGrantStatus.CANCELLED.value,
+    } and not value.expiry_reason:
         raise ValueError("terminal strategic grant requires an expiry reason")
-    if not value.terminal and value.expiry_reason:
+    if value.status not in {
+        StrategicGrantStatus.EXPIRED.value,
+        StrategicGrantStatus.CANCELLED.value,
+    } and value.expiry_reason:
         raise ValueError("active strategic grant cannot have an expiry reason")
     if not isinstance(value.epoch_id, str) or (
         value.epoch_id

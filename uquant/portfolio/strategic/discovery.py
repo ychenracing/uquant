@@ -15,6 +15,7 @@ from ...models.strategic_epoch import (
     StrategicEpoch,
     StrategicEpochStatus,
     derive_strategic_epoch_id,
+    settle_account_strategic_epoch,
 )
 from ...models.strategic_universe import (
     StrategicUniverseRoles,
@@ -113,6 +114,7 @@ class StrategicPortfolioPolicy(PortfolioCore):
             tradable_symbols: set[str],
             account: AccountState,
             risk: RiskAssessment,
+            strategic_universe: StrategicUniverseRoles | None = None,
         ) -> None: ...
 
 
@@ -209,6 +211,27 @@ def _candidate_symbol(
     if route.decisive_reversal_symbol in symbols:
         return str(route.decisive_reversal_symbol)
     return min(symbols, key=lambda symbol: (-leaders[symbol].score, symbol))
+
+
+def _quorum_candidate_symbols(
+    *,
+    route: StrategicRoute,
+    route_symbols: list[str],
+) -> tuple[str, ...]:
+    """Use a synchronized witness group without granting it target authority."""
+
+    route_set = set(route_symbols)
+    witness_groups = [
+        tuple(group)
+        for group in route.reversal_groups
+        if route_set <= set(group)
+    ]
+    if route.synchronized_reversal and witness_groups:
+        return min(
+            witness_groups,
+            key=lambda group: (-len(group), tuple(sorted(group))),
+        )
+    return tuple(route_symbols)
 
 
 def _deployment_block_reason(
@@ -356,6 +379,7 @@ def _observe_strategic_successor(
     tradable_symbols: set[str],
     account: AccountState,
     risk: RiskAssessment,
+    strategic_universe: StrategicUniverseRoles | None = None,
 ) -> None:
     """Persist qualification streaks while an incumbent keeps all capital rights."""
 
@@ -370,7 +394,7 @@ def _observe_strategic_successor(
     if active_epoch is None:
         return
     eligible_symbols = set(tradable_symbols) - {active_epoch.owner_symbol}
-    snapshots = _strategic_snapshots(
+    reference_snapshots = _strategic_snapshots(
         self,
         date=date,
         user_panel=qualification_panel,
@@ -378,7 +402,7 @@ def _observe_strategic_successor(
     )
     candidate_snapshots = {
         symbol: snapshot
-        for symbol, snapshot in snapshots.items()
+        for symbol, snapshot in reference_snapshots.items()
         if symbol in eligible_symbols and symbol in qualification_leaders
     }
     route = select_strategic_route(
@@ -390,35 +414,111 @@ def _observe_strategic_successor(
         },
         risk=risk,
     )
-    raw, _synchronized = _qualification_evidence(
+    legacy_raw, _synchronized = _qualification_evidence(
         self,
         route=route,
         snapshots=candidate_snapshots,
         leaders=qualification_leaders,
         risk=risk,
     )
-    symbols = list(route.symbols) if raw else []
+    route_symbols = list(route.symbols)
+    candidate = (
+        _candidate_symbol(
+            route=route,
+            symbols=route_symbols,
+            leaders=qualification_leaders,
+        )
+        if route_symbols
+        else ""
+    )
+    if strategic_universe is None:
+        strategic_universe = build_strategic_universe_roles(
+            as_of=str(date.date()),
+            tradable_symbols=tradable_symbols,
+            qualification_reference_symbols=qualification_panel,
+            risk_reference_symbols=(),
+            industries={
+                symbol: qualification_leaders[symbol].industry
+                for symbol in qualification_panel
+                if symbol in qualification_leaders
+            },
+            available_symbols=qualification_panel,
+        )
+    quorum = (
+        evaluate_strategic_quorum(
+            owner_symbol=candidate,
+            candidate_symbols=_quorum_candidate_symbols(
+                route=route,
+                route_symbols=route_symbols,
+            ),
+            snapshots=reference_snapshots,
+            leaders=qualification_leaders,
+            risk=risk,
+            universe=strategic_universe,
+            cfg=self.cfg,
+            synchronized_full_cohort=legacy_raw,
+        )
+        if candidate
+        else None
+    )
+    symbols = route_symbols if quorum is not None and quorum.qualified else []
     if not symbols:
         previous = account.strategic_successor_qualification
+        _admission_state, attempted_signature = _route_signature(
+            route=route,
+            symbols=route_symbols,
+            leaders=qualification_leaders,
+        )
+        owner_quality_retained = bool(
+            quorum is not None
+            and quorum.owner_absolute_quality
+            and candidate
+        )
         account.strategic_successor_qualification = StrategicQualificationObservation(
-            candidate_symbol=previous.candidate_symbol,
-            qualification_signature=previous.qualification_signature,
-            qualification_route=previous.qualification_route,
-            qualification_evidence_sha256=previous.qualification_evidence_sha256,
+            candidate_symbol=(candidate if owner_quality_retained else previous.candidate_symbol),
+            qualification_signature=(
+                attempted_signature if owner_quality_retained else previous.qualification_signature
+            ),
+            qualification_route=(route.route if owner_quality_retained else previous.qualification_route),
+            qualification_evidence_sha256=(
+                _qualification_evidence_sha256(
+                    date=date,
+                    route=route,
+                    symbols=route_symbols,
+                    signature=attempted_signature,
+                    snapshots=candidate_snapshots,
+                    leaders=qualification_leaders,
+                    risk=risk,
+                )
+                if owner_quality_retained
+                else previous.qualification_evidence_sha256
+            ),
             qualification_ready=False,
             deployment_blocked=True,
             deployment_block_reason="active_epoch_read_only",
-            qualification_streak=0,
+            qualification_streak=(
+                previous.qualification_streak
+                if owner_quality_retained
+                and previous.candidate_symbol == candidate
+                and previous.qualification_signature == attempted_signature
+                else 0
+            ),
             qualification_last_observed_session=str(date.date()),
-            candidate_invalidation_reason="successor_qualification_not_ready",
+            candidate_invalidation_reason=(
+                "successor_reference_coverage_or_confirmation"
+                if owner_quality_retained
+                else "successor_qualification_not_ready"
+            ),
+            qualification_quorum=(
+                quorum.route.value if quorum is not None else StrategicQuorumRoute.NONE.value
+            ),
+            candidate_symbols=sorted(route_symbols),
+            unavailable_reference_symbols=(
+                list(quorum.unavailable_references) if quorum is not None else []
+            ),
         )
         return
     _admission_state, signature = _route_signature(
-        route=route,
-        symbols=symbols,
-        leaders=qualification_leaders,
-    )
-    candidate = _candidate_symbol(
         route=route,
         symbols=symbols,
         leaders=qualification_leaders,
@@ -429,13 +529,7 @@ def _observe_strategic_successor(
             account.replacement_tenure[key] = 0
     streak = account.replacement_tenure.get(streak_key, 0) + 1
     account.replacement_tenure[streak_key] = streak
-    required_days = (
-        self.cfg.strategic_cohort_confirm_days
-        if len(symbols) >= self.cfg.strategic_cohort_size
-        else self.cfg.strategic_two_name_confirm_days
-        if len(symbols) == 2
-        else self.cfg.strategic_one_name_confirm_days
-    )
+    required_days = quorum.required_confirm_days
     account.strategic_successor_qualification = StrategicQualificationObservation(
         candidate_symbol=candidate,
         qualification_signature=signature,
@@ -454,6 +548,23 @@ def _observe_strategic_successor(
         deployment_block_reason="active_epoch_read_only",
         qualification_streak=streak,
         qualification_last_observed_session=str(date.date()),
+        qualification_quorum=quorum.route.value,
+        candidate_symbols=sorted(symbols),
+        unavailable_reference_symbols=list(quorum.unavailable_references),
+        evidence_family_status={
+            "INDUSTRY_CONFIRMATION": (
+                "CONFIRMED" if quorum.industry_confirmation else "FAILED"
+            ),
+            "MARKET_CONFIRMATION": (
+                "CONFIRMED" if quorum.market_confirmation else "FAILED"
+            ),
+            "OWNER_ABSOLUTE_QUALITY": (
+                "CONFIRMED" if quorum.owner_absolute_quality else "FAILED"
+            ),
+            "ROBUSTNESS_CONFIRMATION": (
+                "CONFIRMED" if quorum.robustness_confirmation else "DEGRADED"
+            ),
+        },
     )
 
 
@@ -728,7 +839,10 @@ def _qualify_strategic_route(
     )
     quorum = evaluate_strategic_quorum(
         owner_symbol=candidate,
-        candidate_symbols=tuple(route_symbols),
+        candidate_symbols=_quorum_candidate_symbols(
+            route=route,
+            route_symbols=route_symbols,
+        ),
         snapshots=reference_snapshots,
         leaders=leaders,
         risk=risk,
@@ -1064,6 +1178,25 @@ def _initialize_strategic_cohort(
 
     if not self.cfg.strategic_dynamic_enabled:
         return
+    grant = account.strategic_grant
+    if (
+        grant is not None
+        and grant.status
+        in {
+            StrategicGrantStatus.EXPIRED.value,
+            StrategicGrantStatus.CANCELLED.value,
+        }
+        and grant.epoch_id
+    ):
+        settled = settle_account_strategic_epoch(
+            account,
+            epoch_id=grant.epoch_id,
+            closed_session=str(date.date()),
+            close_reason=grant.expiry_reason or "strategic_grant_expired",
+            expired=True,
+        )
+        if settled:
+            _release_expired_strategic_deployment(account)
     resolved_panel, resolved_leaders, resolved_universe = _resolve_qualification_inputs(
         date=date,
         user_panel=user_panel,
@@ -1085,6 +1218,7 @@ def _initialize_strategic_cohort(
             tradable_symbols=set(user_panel),
             account=account,
             risk=risk,
+            strategic_universe=resolved_universe,
         )
         return
     if account.candidate_tenure.get("strategic_cohort_active", 0) == 1:
@@ -1171,6 +1305,28 @@ def _initialize_strategic_cohort(
         )
 
 
+def _release_expired_strategic_deployment(account: AccountState) -> None:
+    """Release capital authority after an expired probe is fully settled."""
+
+    account.strategic_cohort_symbols.clear()
+    account.strategic_cohort_targets.clear()
+    account.strategic_exit_bands.clear()
+    account.strategic_active_bands.clear()
+    account.strategic_restore_weights.clear()
+    account.strategic_restore_epoch_ids.clear()
+    account.strategic_candidate_signature = ""
+    for key in (
+        "strategic_cohort_active",
+        "strategic_cohort_completed",
+        "strategic_cohort_started",
+        "strategic_cohort_days",
+        "strategic_profit_armed",
+        "strategic_tail_armed",
+        "strategic_dominant_epoch",
+    ):
+        account.candidate_tenure[key] = 0
+
+
 def _expire_strategic_grant(
     account: AccountState,
     *,
@@ -1182,11 +1338,14 @@ def _expire_strategic_grant(
         return
     grant.status = StrategicGrantStatus.EXPIRED.value
     grant.expiry_reason = reason
+    had_pending_execution = any(
+        order.grant_id == grant.grant_id for order in account.pending_orders
+    )
     account.pending_orders = [
         order for order in account.pending_orders if order.grant_id != grant.grant_id
     ]
     held = {
-        symbol: weights_now.get(symbol, 0.0)
+        symbol: 0.0
         for symbol, position in account.positions.items()
         if position.shares > 0 and position.grant_id == grant.grant_id
     }
@@ -1202,6 +1361,19 @@ def _expire_strategic_grant(
     observation.deployment_block_reason = "qualification_invalid"
     observation.qualification_streak = 0
     observation.candidate_invalidation_reason = reason
+    if not held and not had_pending_execution and grant.epoch_id:
+        settled = settle_account_strategic_epoch(
+            account,
+            epoch_id=grant.epoch_id,
+            closed_session=(
+                observation.qualification_last_observed_session
+                or grant.last_eligible_session
+            ),
+            close_reason=reason,
+            expired=True,
+        )
+        if settled:
+            _release_expired_strategic_deployment(account)
 
 
 def _revalidate_strategic_grant(
@@ -1273,13 +1445,16 @@ def _revalidate_strategic_grant(
     route_symbols = list(route.symbols)
     quorum = evaluate_strategic_quorum(
         owner_symbol=grant.candidate_symbol,
-        candidate_symbols=tuple(route_symbols),
+        candidate_symbols=_quorum_candidate_symbols(
+            route=route,
+            route_symbols=route_symbols,
+        ),
         snapshots=reference_snapshots,
         leaders=resolved_leaders,
         risk=risk,
         universe=_resolved_universe,
         cfg=self.cfg,
-        synchronized_full_cohort=synchronized_before_anchor,
+        synchronized_full_cohort=legacy_raw,
     )
     raw = bool(
         quorum.qualified

@@ -850,25 +850,7 @@ def _initialize_strategic_cohort(
 
     if not self.cfg.strategic_dynamic_enabled:
         return
-    grant = account.strategic_grant
-    if (
-        grant is not None
-        and grant.status
-        in {
-            StrategicGrantStatus.EXPIRED.value,
-            StrategicGrantStatus.CANCELLED.value,
-        }
-        and grant.epoch_id
-    ):
-        settled = settle_account_strategic_epoch(
-            account,
-            epoch_id=grant.epoch_id,
-            closed_session=str(date.date()),
-            close_reason=grant.expiry_reason or "strategic_grant_expired",
-            expired=True,
-        )
-        if settled:
-            release_expired_strategic_deployment(account)
+    _settle_terminal_strategic_grant(account=account, date=date)
     resolved_panel, resolved_leaders, resolved_universe = resolve_strategic_qualification_inputs(
         date=date,
         user_panel=user_panel,
@@ -877,17 +859,12 @@ def _initialize_strategic_cohort(
         qualification_leaders=qualification_leaders,
         strategic_universe=strategic_universe,
     )
-    account.strategic_tradable_universe_identity = resolved_universe.tradable_identity
-    account.strategic_qualification_universe_identity = (
-        resolved_universe.qualification_reference_identity
-    )
-    account.strategic_risk_universe_identity = resolved_universe.risk_reference_identity
-    observe_flat_book_capital_repair_state(
+    _observe_strategic_universe_and_repair(
+        self,
+        date=date,
         account=account,
         risk=risk,
         universe=resolved_universe,
-        observed_session=str(date.date()),
-        cfg=self.cfg,
     )
     if account.active_strategic_epoch_id:
         return
@@ -918,17 +895,7 @@ def _initialize_strategic_cohort(
         if symbol in user_panel and symbol in resolved_leaders
     }
     if not snapshots:
-        previous = account.strategic_qualification
-        candidate_temporarily_unavailable = bool(
-            previous.candidate_symbol and previous.candidate_symbol in user_panel
-        )
-        if candidate_temporarily_unavailable:
-            previous.deployment_blocked = True
-            previous.deployment_block_reason = "candidate_not_tradable"
-        else:
-            _reset_strategic_qualification_streaks(account)
-            account.candidate_tenure["strategic_cohort_qualification"] = 0
-            account.candidate_tenure["strategic_long_cycle_open"] = 0
+        _record_unavailable_strategic_candidate(account=account, user_panel=user_panel)
         return
     route = select_strategic_route(
         self,
@@ -948,6 +915,112 @@ def _initialize_strategic_cohort(
         reference_snapshots=reference_snapshots,
         strategic_universe=resolved_universe,
     )
+    qualified = _observe_strategic_deployment(
+        self,
+        date=date,
+        user_panel=user_panel,
+        leaders=resolved_leaders,
+        account=account,
+        risk=risk,
+        admission_open=admission_open,
+        live_general_leaders=live_general_leaders,
+        reference_snapshots=reference_snapshots,
+        universe=resolved_universe,
+        qualified=qualified,
+    )
+    if qualified is None or account.strategic_qualification.deployment_blocked:
+        return
+    activate_strategic_cohort(
+        self,
+        qualified=qualified,
+        snapshots=snapshots,
+        leaders=resolved_leaders,
+        account=account,
+        date=date,
+        risk=risk,
+    )
+
+
+def _settle_terminal_strategic_grant(
+    *,
+    account: AccountState,
+    date: pd.Timestamp,
+) -> None:
+    grant = account.strategic_grant
+    if (
+        grant is not None
+        and grant.status
+        in {
+            StrategicGrantStatus.EXPIRED.value,
+            StrategicGrantStatus.CANCELLED.value,
+        }
+        and grant.epoch_id
+    ):
+        settled = settle_account_strategic_epoch(
+            account,
+            epoch_id=grant.epoch_id,
+            closed_session=str(date.date()),
+            close_reason=grant.expiry_reason or "strategic_grant_expired",
+            expired=True,
+        )
+        if settled:
+            release_expired_strategic_deployment(account)
+
+
+def _observe_strategic_universe_and_repair(
+    self: StrategicPortfolioPolicy,
+    *,
+    date: pd.Timestamp,
+    account: AccountState,
+    risk: RiskAssessment,
+    universe: StrategicUniverseRoles,
+) -> None:
+    account.strategic_tradable_universe_identity = universe.tradable_identity
+    account.strategic_qualification_universe_identity = (
+        universe.qualification_reference_identity
+    )
+    account.strategic_risk_universe_identity = universe.risk_reference_identity
+    observe_flat_book_capital_repair_state(
+        account=account,
+        risk=risk,
+        universe=universe,
+        observed_session=str(date.date()),
+        cfg=self.cfg,
+    )
+
+
+def _record_unavailable_strategic_candidate(
+    *,
+    account: AccountState,
+    user_panel: dict[str, pd.DataFrame],
+) -> None:
+    previous = account.strategic_qualification
+    candidate_temporarily_unavailable = bool(
+        previous.candidate_symbol and previous.candidate_symbol in user_panel
+    )
+    if candidate_temporarily_unavailable:
+        previous.deployment_blocked = True
+        previous.deployment_block_reason = "candidate_not_tradable"
+        return
+    _reset_strategic_qualification_streaks(account)
+    account.candidate_tenure["strategic_cohort_qualification"] = 0
+    account.candidate_tenure["strategic_long_cycle_open"] = 0
+
+
+def _observe_strategic_deployment(
+    self: StrategicPortfolioPolicy,
+    *,
+    date: pd.Timestamp,
+    user_panel: dict[str, pd.DataFrame],
+    leaders: dict[str, LeaderScore],
+    account: AccountState,
+    risk: RiskAssessment,
+    admission_open: bool,
+    live_general_leaders: set[str],
+    reference_snapshots: dict[str, dict[str, float]],
+    universe: StrategicUniverseRoles,
+    qualified: QualifiedStrategicRoute | None,
+) -> QualifiedStrategicRoute | None:
     if account.strategic_qualification.candidate_symbol:
         block_reason = strategic_deployment_block_reason(
             self,
@@ -964,9 +1037,9 @@ def _initialize_strategic_cohort(
         cash_rearm_authorized = observe_strategic_cash_rearm(
             account=account,
             risk=risk,
-            universe=resolved_universe,
+            universe=universe,
             snapshots=reference_snapshots,
-            leaders=resolved_leaders,
+            leaders=leaders,
             candidate_symbol=account.strategic_qualification.candidate_symbol,
             qualification_ready=account.strategic_qualification.qualification_ready,
             observed_session=str(date.date()),
@@ -989,18 +1062,7 @@ def _initialize_strategic_cohort(
             account.strategic_qualification.deployment_block_reason = block_reason
         if block_reason == "recovery_owner":
             account.candidate_tenure["strategic_deferred_to_recovery"] = 1
-    if qualified is not None:
-        if account.strategic_qualification.deployment_blocked:
-            return
-        activate_strategic_cohort(
-            self,
-            qualified=qualified,
-            snapshots=snapshots,
-            leaders=resolved_leaders,
-            account=account,
-            date=date,
-            risk=risk,
-        )
+    return qualified
 
 
 

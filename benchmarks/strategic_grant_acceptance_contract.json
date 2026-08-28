@@ -30,6 +30,8 @@
     ]
   },
   "ignored_non_economic_fields": [
+    "authorization_id",
+    "epoch_id",
     "grant_id"
   ],
   "native_eligibility": [

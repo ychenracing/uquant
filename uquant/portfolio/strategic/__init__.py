@@ -4,7 +4,12 @@ from __future__ import annotations
 
 from collections.abc import Callable
 from types import FunctionType
-from typing import Any, cast
+from typing import TYPE_CHECKING, Any, cast
+
+if TYPE_CHECKING:
+    import pandas as pd
+
+    from ...types import AccountState, LeaderScore, RiskAssessment, Target
 
 from .discovery import (
     StrategicPortfolioPolicy as StrategicPortfolioPolicy,
@@ -12,7 +17,6 @@ from .discovery import (
 from .discovery import (
     initialize_strategic_cohort as _initialize_strategic_cohort,
 )
-from .discovery import revalidate_strategic_grant as _revalidate_strategic_grant
 from .lifecycle import (
     bounded_strategic_restore_risk_open as _bounded_strategic_restore_risk_open,
 )
@@ -22,6 +26,34 @@ from .lifecycle import (
 from .lifecycle import (
     strategic_cohort_targets as _strategic_cohort_targets,
 )
+
+
+def _strategic_initialize_public_signature(
+    self: Any,
+    *,
+    date: pd.Timestamp,
+    user_panel: dict[str, pd.DataFrame],
+    leaders: dict[str, LeaderScore],
+    account: AccountState,
+    risk: RiskAssessment,
+    admission_open: bool = True,
+) -> None:
+    raise NotImplementedError
+
+
+def _strategic_targets_public_signature(
+    self: Any,
+    *,
+    date: pd.Timestamp,
+    risk: RiskAssessment,
+    user_panel: dict[str, pd.DataFrame],
+    leaders: dict[str, LeaderScore],
+    account: AccountState,
+    prices: dict[str, float],
+    weights_now: dict[str, float],
+    admission_open: bool = True,
+) -> tuple[Target, ...] | None:
+    raise NotImplementedError
 
 
 def _strategic_compatibility_method[Function: Callable[..., Any]](
@@ -39,6 +71,16 @@ def _strategic_compatibility_method[Function: Callable[..., Any]](
     runtime_function.__annotations__ = annotations
     runtime_function.__module__ = "uquant.portfolio_strategic"
     runtime_function.__qualname__ = f"StrategicPortfolioPolicy.{name}"
+    if name == "_initialize_strategic_cohort":
+        public_annotations = dict(_strategic_initialize_public_signature.__annotations__)
+        public_annotations.pop("self", None)
+        _strategic_initialize_public_signature.__annotations__ = public_annotations
+        cast(Any, runtime_function).__wrapped__ = _strategic_initialize_public_signature
+    if name == "_strategic_cohort_targets":
+        public_annotations = dict(_strategic_targets_public_signature.__annotations__)
+        public_annotations.pop("self", None)
+        _strategic_targets_public_signature.__annotations__ = public_annotations
+        cast(Any, runtime_function).__wrapped__ = _strategic_targets_public_signature
     return function
 
 
@@ -61,9 +103,6 @@ _bind_strategic_compatibility_method(
 )
 _bind_strategic_compatibility_method(
     "_initialize_strategic_cohort", _initialize_strategic_cohort
-)
-_bind_strategic_compatibility_method(
-    "_revalidate_strategic_grant", _revalidate_strategic_grant
 )
 _bind_strategic_compatibility_method(
     "_strategic_cohort_targets", _strategic_cohort_targets

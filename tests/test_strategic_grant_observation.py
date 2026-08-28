@@ -3,11 +3,15 @@ from __future__ import annotations
 import pandas as pd
 from test_lifecycle_and_risk import _leader, _strategic_frame
 
-import uquant.portfolio.strategic.discovery as strategic_discovery
+import uquant.portfolio.strategic.grant_lifecycle as strategic_grant_lifecycle
 from uquant.config import DEFAULT_CONFIG
+from uquant.models.strategic_epoch import (
+    StrategicEpochStatus,
+    record_account_strategic_epoch_fill,
+)
 from uquant.models.strategic_grant import StrategicGrantStatus
 from uquant.portfolio import PortfolioAllocator
-from uquant.types import AccountState, Opportunity, Risk, RiskAssessment
+from uquant.types import AccountState, Opportunity, Position, Risk, RiskAssessment
 
 
 def _risk(*, frozen: bool) -> RiskAssessment:
@@ -200,13 +204,13 @@ def test_absolute_qualification_loss_expires_partial_grant(monkeypatch) -> None:
     assert account.strategic_grant is not None
     account.strategic_grant.status = StrategicGrantStatus.PARTIALLY_FILLED.value
     monkeypatch.setattr(
-        strategic_discovery,
-        "_qualification_evidence",
+        strategic_grant_lifecycle,
+        "strategic_qualification_evidence",
         lambda *_args, **_kwargs: (False, False),
     )
     monkeypatch.setattr(
-        strategic_discovery,
-        "_grant_candidate_meets_route",
+        strategic_grant_lifecycle,
+        "strategic_candidate_meets_route",
         lambda *_args, **_kwargs: False,
         raising=False,
     )
@@ -224,6 +228,165 @@ def test_absolute_qualification_loss_expires_partial_grant(monkeypatch) -> None:
     assert account.strategic_grant.status == StrategicGrantStatus.EXPIRED.value
     assert account.strategic_grant.expiry_reason == "candidate_or_route_no_longer_qualified"
     assert targets == ()
+
+
+def test_absolute_qualification_loss_emits_a_formal_exit_for_a_filled_probe(
+    monkeypatch,
+) -> None:
+    dates = pd.bdate_range("2023-01-02", periods=248)
+    symbols = ("sz300308", "sz300502", "sz300394")
+    panel = {symbol: _strategic_frame(dates) for symbol in symbols}
+    leaders = {
+        symbol: _leader(symbol, 0.90 - index * 0.05, industry="optical")
+        for index, symbol in enumerate(symbols)
+    }
+    session = dates[-2]
+    prices = {symbol: float(panel[symbol].loc[session, "close"]) for symbol in symbols}
+    account = AccountState.empty(2_000_000.0)
+    account.account_identity = "account:primary"
+    account.code_hash = "code:production"
+    allocator = PortfolioAllocator(DEFAULT_CONFIG)
+    for observed_session in dates[-3:-1]:
+        allocator.allocate(
+            date=observed_session,
+            opportunity=Opportunity.TREND,
+            risk=_risk(frozen=False),
+            user_panel=panel,
+            leaders=leaders,
+            account=account,
+            prices=prices,
+        )
+
+    grant = account.strategic_grant
+    assert grant is not None
+    epoch = account.strategic_epochs[-1]
+    epoch.qualification_quorum = "STRONG_PAIR"
+    record_account_strategic_epoch_fill(
+        account,
+        epoch_id=epoch.epoch_id,
+        grant_id=grant.grant_id,
+        symbol=grant.candidate_symbol,
+        fill_session=str(session.date()),
+        filled_shares=10_000,
+    )
+    account.positions[grant.candidate_symbol] = Position(
+        symbol=grant.candidate_symbol,
+        shares=10_000,
+        avg_cost=prices[grant.candidate_symbol],
+        entry_date=str(session.date()),
+        highest_close=prices[grant.candidate_symbol],
+        grant_id=grant.grant_id,
+        epoch_id=epoch.epoch_id,
+    )
+    monkeypatch.setattr(
+        strategic_grant_lifecycle,
+        "strategic_qualification_evidence",
+        lambda *_args, **_kwargs: (False, False),
+    )
+    monkeypatch.setattr(
+        strategic_grant_lifecycle,
+        "strategic_candidate_meets_route",
+        lambda *_args, **_kwargs: False,
+        raising=False,
+    )
+
+    targets = allocator.allocate(
+        date=dates[-1],
+        opportunity=Opportunity.TREND,
+        risk=_risk(frozen=False),
+        user_panel=panel,
+        leaders=leaders,
+        account=account,
+        prices=prices,
+    )
+
+    owner_target = next(target for target in targets if target.symbol == grant.candidate_symbol)
+    assert owner_target.weight == 0.0
+    assert owner_target.grant_id == grant.grant_id
+    assert owner_target.epoch_id == epoch.epoch_id
+    assert account.strategic_cohort_targets == {grant.candidate_symbol: 0.0}
+    assert grant.status == StrategicGrantStatus.EXPIRED.value
+    assert epoch.realized_status == StrategicEpochStatus.CORE.value
+
+
+def test_flat_expired_probe_releases_its_deployment_state(monkeypatch) -> None:
+    dates = pd.bdate_range("2023-01-02", periods=249)
+    symbols = ("sz300308", "sz300502", "sz300394")
+    panel = {symbol: _strategic_frame(dates) for symbol in symbols}
+    leaders = {
+        symbol: _leader(symbol, 0.90 - index * 0.05, industry="optical")
+        for index, symbol in enumerate(symbols)
+    }
+    prices = {symbol: float(panel[symbol].loc[dates[-1], "close"]) for symbol in symbols}
+    account = AccountState.empty(2_000_000.0)
+    account.account_identity = "account:primary"
+    account.code_hash = "code:production"
+    allocator = PortfolioAllocator(DEFAULT_CONFIG)
+    for observed_session in dates[-4:-2]:
+        allocator.allocate(
+            date=observed_session,
+            opportunity=Opportunity.TREND,
+            risk=_risk(frozen=False),
+            user_panel=panel,
+            leaders=leaders,
+            account=account,
+            prices=prices,
+        )
+
+    grant = account.strategic_grant
+    assert grant is not None
+    epoch = account.strategic_epochs[-1]
+    epoch.qualification_quorum = "STRONG_PAIR"
+    record_account_strategic_epoch_fill(
+        account,
+        epoch_id=epoch.epoch_id,
+        grant_id=grant.grant_id,
+        symbol=grant.candidate_symbol,
+        fill_session=str(dates[-2].date()),
+        filled_shares=10_000,
+    )
+    account.positions[grant.candidate_symbol] = Position(
+        symbol=grant.candidate_symbol,
+        shares=10_000,
+        avg_cost=prices[grant.candidate_symbol],
+        entry_date=str(dates[-2].date()),
+        highest_close=prices[grant.candidate_symbol],
+        grant_id=grant.grant_id,
+        epoch_id=epoch.epoch_id,
+    )
+    monkeypatch.setattr(
+        strategic_grant_lifecycle,
+        "strategic_candidate_meets_route",
+        lambda *_args, **_kwargs: False,
+        raising=False,
+    )
+    allocator.allocate(
+        date=dates[-2],
+        opportunity=Opportunity.TREND,
+        risk=_risk(frozen=False),
+        user_panel=panel,
+        leaders=leaders,
+        account=account,
+        prices=prices,
+    )
+    account.positions.clear()
+    monkeypatch.undo()
+
+    allocator.allocate(
+        date=dates[-1],
+        opportunity=Opportunity.TREND,
+        risk=_risk(frozen=False),
+        user_panel=panel,
+        leaders=leaders,
+        account=account,
+        prices=prices,
+    )
+
+    assert epoch.realized_status == StrategicEpochStatus.EXPIRED.value
+    assert account.active_strategic_epoch_id == ""
+    assert account.candidate_tenure["strategic_cohort_active"] == 0
+    assert account.strategic_cohort_symbols == []
+    assert account.strategic_cohort_targets == {}
 
 
 def test_sentinel_freeze_observes_qualification_without_zhongji_universe() -> None:
@@ -304,18 +467,19 @@ def test_missing_route_observation_preserves_still_qualified_partial_grant(
     assert account.strategic_grant is not None
     account.strategic_grant.status = StrategicGrantStatus.PARTIALLY_FILLED.value
     monkeypatch.setattr(
-        strategic_discovery,
-        "_qualification_evidence",
+        strategic_grant_lifecycle,
+        "strategic_qualification_evidence",
         lambda *_args, **_kwargs: (False, False),
     )
     monkeypatch.setattr(
-        strategic_discovery,
-        "_grant_candidate_meets_route",
+        strategic_grant_lifecycle,
+        "strategic_candidate_meets_route",
         lambda *_args, **_kwargs: True,
         raising=False,
     )
 
-    valid = allocator._revalidate_strategic_grant(
+    valid = strategic_grant_lifecycle.revalidate_strategic_grant(
+        allocator,
         date=dates[-1],
         user_panel=panel,
         leaders=leaders,

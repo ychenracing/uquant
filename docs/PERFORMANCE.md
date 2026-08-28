@@ -106,6 +106,44 @@ full profile 是性能验收不可拆分的阻断经济性真相，窗口日期�
 
 门禁同时约束财富、最大回撤、账户订单、换手和压力区间收益；缺失或失败的必需窗口必须失败关闭。证券子集、替代实现和其他研究性压力检查可以辅助诊断，但不能替代、分摊或放行这个统一门禁。失败不能通过删除场景、改写统计口径或放宽已评审阈值解决。
 
+### Strategic Ownership Acceptance
+
+当前战略所有权门使用
+`benchmarks/strategic_ownership_acceptance_contract.json` 和
+`scripts/run_strategic_ownership_acceptance.py` 的五个确定性 shard：
+
+| shard | 固定证据 |
+|---|---|
+| `champion` | 5 标的冻结 champion 路径与 13 标的扩展 |
+| `critical` | 完整删除 `sz300308`、`sz300394` |
+| `ghost-a` | 完整删除 `sh603688`、`sh688008`、`sh688082` |
+| `ghost-b` | 完整删除 `sz002409`、`sz300666` |
+| `continuity` | 删除 `sz300502` 的同行业重复授冠、跨行业重复授冠和首 grant 失败恢复 |
+
+每个实际 epoch 必须同时存在生产 qualification、独立 grant、正 Target、Order、下一交易日
+matching Fill 和 Fill 后 activation；未成交 `PROBE`、research intervention 或只出现
+`qualification_ready` 都不计数。重复授冠还要求两个不同 owner、任意时刻最多一个 ACTIVE
+epoch，以及连续的 previous grant/epoch 身份链。
+
+关键删除的固定门要求 `final_wealth > 1.0`、`max_drawdown <= 0.30`、健康零目标最长不超过
+60 个 session、至少一个正战略 Target，并完成 accounting reconciliation。删除 `sz300308`
+还要求预算业务层级 3 的账户修复在 60 个健康 session 内 `READY`，随后由当前独立合格候选
+消费一次性 authorization。5 标的 champion 最终财富冻结为 `24.509661802900865`，候选至少
+保留其 95%，并保持原 owner 生命周期的经济 Target、Order、Fill 和 equity 路径。
+
+本地可单独复现一个 shard：
+
+```bash
+uv run python scripts/run_strategic_ownership_acceptance.py \
+  --shard critical \
+  --output /tmp/strategic-ownership-critical.json \
+  --cache-dir /tmp/strategic-ownership-cache
+```
+
+GitHub 的 `Strategic Ownership Acceptance` 对 PR 和 `main` 自动运行相同五个 shard，缓存
+同时绑定源码、配置、冻结数据和合同身份，只上传紧凑事实。它不调用完整 234-record 矩阵，
+也不替代手动的 Extended Performance 或 Extended Economic 验收。
+
 ### Generalization 阻断验收
 
 本地完整复现命令为：

@@ -1,0 +1,150 @@
+{
+  "canonical_universe": [
+    "sh600487",
+    "sh601869",
+    "sh603688",
+    "sh603986",
+    "sh688008",
+    "sh688012",
+    "sh688019",
+    "sh688037",
+    "sh688041",
+    "sh688072",
+    "sh688082",
+    "sh688110",
+    "sh688120",
+    "sh688146",
+    "sh688200",
+    "sh688233",
+    "sh688256",
+    "sh688268",
+    "sh688300",
+    "sh688347",
+    "sh688361",
+    "sh688498",
+    "sh688766",
+    "sz000636",
+    "sz002281",
+    "sz002371",
+    "sz002409",
+    "sz300054",
+    "sz300223",
+    "sz300308",
+    "sz300394",
+    "sz300502",
+    "sz300604",
+    "sz300666"
+  ],
+  "champion": {
+    "frozen_final_wealth": 24.509661802900865,
+    "minimum_final_wealth": 23.28417871275582,
+    "symbols": [
+      "sz300308",
+      "sz300502",
+      "sz300394",
+      "sh688008",
+      "sh603986"
+    ]
+  },
+  "report_universe_13": [
+    "sz300308",
+    "sz300502",
+    "sz300394",
+    "sh688008",
+    "sh603986",
+    "sh688256",
+    "sh688072",
+    "sh688300",
+    "sz300054",
+    "sh688361",
+    "sz002409",
+    "sh688498",
+    "sh688120"
+  ],
+  "shards": {
+    "champion": [
+      {
+        "kind": "champion",
+        "scenario_id": "champion-5"
+      },
+      {
+        "kind": "report",
+        "scenario_id": "report-13"
+      }
+    ],
+    "continuity": [
+      {
+        "kind": "full_removal",
+        "removed_symbol": "sz300502",
+        "scenario_id": "remove-sz300502"
+      },
+      {
+        "kind": "same_industry_alias",
+        "scenario_id": "same-industry-crowning",
+        "source_scenario_id": "remove-sz300502"
+      },
+      {
+        "kind": "cross_industry",
+        "scenario_id": "cross-industry-crowning"
+      },
+      {
+        "kind": "failed_grant",
+        "scenario_id": "failed-first-grant"
+      }
+    ],
+    "critical": [
+      {
+        "kind": "full_removal",
+        "removed_symbol": "sz300308",
+        "scenario_id": "remove-sz300308"
+      },
+      {
+        "kind": "full_removal",
+        "removed_symbol": "sz300394",
+        "scenario_id": "remove-sz300394"
+      }
+    ],
+    "ghost-a": [
+      {
+        "kind": "full_removal",
+        "removed_symbol": "sh603688",
+        "scenario_id": "remove-sh603688"
+      },
+      {
+        "kind": "full_removal",
+        "removed_symbol": "sh688008",
+        "scenario_id": "remove-sh688008"
+      },
+      {
+        "kind": "full_removal",
+        "removed_symbol": "sh688082",
+        "scenario_id": "remove-sh688082"
+      }
+    ],
+    "ghost-b": [
+      {
+        "kind": "full_removal",
+        "removed_symbol": "sz002409",
+        "scenario_id": "remove-sz002409"
+      },
+      {
+        "kind": "full_removal",
+        "removed_symbol": "sz300666",
+        "scenario_id": "remove-sz300666"
+      }
+    ]
+  },
+  "thresholds": {
+    "failed_grant_retry_healthy_sessions": 20,
+    "maximum_drawdown": 0.3,
+    "maximum_healthy_zero_target_streak": 60,
+    "maximum_level_three_repair_sessions": 60,
+    "minimum_distinct_owners": 2,
+    "minimum_final_wealth": 1.0,
+    "minimum_strategic_epochs": 2
+  },
+  "window": {
+    "end": "2026-08-05",
+    "start": "2023-01-03"
+  }
+}

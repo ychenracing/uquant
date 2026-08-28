@@ -54,14 +54,42 @@ def effective_n(weights: dict[str, float], correlations: pd.DataFrame | None = N
 def strategic_dominant_symbol(account: AccountState) -> str | None:
     """Return the sole owner of a currently evidenced dominant epoch."""
     if (
-        account.strategic_epoch <= 0
-        or account.candidate_tenure.get("strategic_cohort_active", 0) != 1
-        or account.candidate_tenure.get("strategic_dominant_epoch", -1) != account.strategic_epoch
+        account.candidate_tenure.get("strategic_cohort_active", 0) != 1
         or len(account.strategic_cohort_targets) != 1
     ):
         return None
     symbol = next(iter(account.strategic_cohort_targets))
-    return symbol if symbol in account.strategic_cohort_symbols else None
+    if symbol not in account.strategic_cohort_symbols:
+        return None
+    realized_dominant = bool(
+        account.strategic_epoch > 0
+        and account.candidate_tenure.get("strategic_dominant_epoch", -1)
+        == account.strategic_epoch
+    )
+    if realized_dominant:
+        return symbol
+    grant = account.strategic_grant
+    pending_epochs = [
+        epoch
+        for epoch in account.strategic_epochs
+        if not epoch.terminal
+        and epoch.realized_status == "PROBE"
+        and epoch.qualification_quorum == "FULL_COHORT"
+        and epoch.owner_symbol == symbol
+        and grant is not None
+        and epoch.grant_id == grant.grant_id
+    ]
+    pending_full_cohort = bool(
+        len(pending_epochs) == 1
+        and not account.active_strategic_epoch_id
+        and grant is not None
+        and grant.candidate_symbol == symbol
+        and grant.qualification_quorum == "FULL_COHORT"
+        and grant.status not in {"COMPLETED", "EXPIRED", "CANCELLED"}
+        and account.candidate_tenure.get("strategic_dominant_epoch", -1)
+        == account.strategic_epoch + 1
+    )
+    return symbol if pending_full_cohort else None
 
 
 def symbol_weight_cap(cfg: SystemConfig, account: AccountState, symbol: str) -> float:
@@ -84,6 +112,32 @@ def _unknown_industry_scale(
     }
     unknown_gross = sum(max(0.0, proposed.get(symbol, 0.0)) for symbol in low_confidence_unknowns)
     return min(1.0, cfg.unknown_industry_weight_cap / unknown_gross) if unknown_gross > 0 else 1.0
+
+
+def _strategic_target_identity(
+    *,
+    account: AccountState,
+    symbol: str,
+    origin_subsystem: OriginSubsystem,
+) -> tuple[str, str]:
+    """Resolve durable grant and epoch attribution for one target symbol."""
+    position = account.positions.get(symbol)
+    held_grant_id = position.grant_id if position is not None else ""
+    held_epoch_id = position.epoch_id if position is not None else ""
+    grant = account.strategic_grant
+    if origin_subsystem is not OriginSubsystem.STRATEGIC or grant is None:
+        return held_grant_id, held_epoch_id
+    strategic_epoch = next(
+        (epoch for epoch in account.strategic_epochs if epoch.epoch_id == grant.epoch_id),
+        None,
+    )
+    epoch_open = strategic_epoch is not None and not strategic_epoch.terminal
+    grant_owned = symbol == grant.candidate_symbol and (not grant.epoch_id or epoch_open)
+    epoch_owned = epoch_open and symbol in account.strategic_cohort_symbols
+    return (
+        held_grant_id or (grant.grant_id if grant_owned else ""),
+        held_epoch_id or (grant.epoch_id if epoch_owned else ""),
+    )
 
 
 class PortfolioCore:
@@ -165,8 +219,10 @@ class PortfolioCore:
             selected_reason = (reasons or {}).get(symbol)
             if selected_reason is None:
                 selected_reason = reason
-            held_grant_id = (
-                account.positions[symbol].grant_id if symbol in account.positions else ""
+            grant_id, epoch_id = _strategic_target_identity(
+                account=account,
+                symbol=symbol,
+                origin_subsystem=origin_subsystem,
             )
             targets.append(
                 Target(
@@ -184,17 +240,8 @@ class PortfolioCore:
                     mechanism=selected_mechanism.value,
                     origin_lifecycle=selected_lifecycle.value,
                     replaces_symbol=(replaces_symbols or {}).get(symbol),
-                    grant_id=(
-                        held_grant_id
-                        or (
-                            account.strategic_grant.grant_id
-                            if origin_subsystem is OriginSubsystem.STRATEGIC
-                            and account.strategic_grant is not None
-                            and not account.strategic_grant.terminal
-                            and symbol == account.strategic_grant.candidate_symbol
-                            else ""
-                        )
-                    ),
+                    grant_id=grant_id,
+                    epoch_id=epoch_id,
                 )
             )
         positive = [item for item in targets if item.weight > 1e-12]

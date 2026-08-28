@@ -35,6 +35,16 @@ def test_replay_request_rejects_future_holdout_data() -> None:
         )
 
 
+def test_replay_request_requires_reference_roles_to_be_declared_together() -> None:
+    with pytest.raises(ValueError, match="reference roles must be supplied together"):
+        ReplayRequest(
+            symbols=("sz300394",),
+            start="2026-01-05",
+            end="2026-01-06",
+            qualification_reference_symbols=("sz300394",),
+        )
+
+
 def test_first_divergence_uses_causal_layer_order_before_economic_state() -> None:
     """Catches a divergence reporter that sorts changed layers alphabetically."""
 

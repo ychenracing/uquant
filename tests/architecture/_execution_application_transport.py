@@ -5,8 +5,10 @@ from __future__ import annotations
 import ast
 import copy
 import hashlib
+import inspect
 from collections.abc import Mapping, Set
 from pathlib import Path
+from typing import Any
 
 _APPLICATION_STAGES = "7d98ce7ea30faa7871021217948de0cfd526c05c"
 _ATTRIBUTION_STAGES = "b00b89d482b51df38b251db4302c5924cf05e93e"
@@ -67,13 +69,18 @@ ARCHITECTURE_EXECUTION_REVIEWED_DEFINITIONS = frozenset(
     {
         ("uquant/execution/order_planning.py", "plan_orders"),
         ("uquant/execution/pending.py", "merge_pending_orders"),
+        ("uquant/execution/reconciliation.py", "_register_account_order"),
         (
             "uquant/execution/reconciliation.py",
             "_reconcile_account_orders_mutating",
         ),
+        ("uquant/execution/reconciliation.py", "reconcile_account_orders"),
+        ("uquant/execution/tranches.py", "_consume_sell_tranches"),
+        ("uquant/execution/tranches.py", "_rebuild_position_from_tranches"),
         ("uquant/execution/open_execution.py", "ExecutionPlanner"),
         ("uquant/application/decision.py", "_attach_target_attribution"),
         ("uquant/application/decision.py", "decide"),
+        ("uquant/application/decision.py", "deterministic_decision"),
         ("uquant/application/backtest.py", "backtest"),
         ("uquant/application/metrics.py", "performance_metrics"),
     }
@@ -224,6 +231,41 @@ def reviewed_execution_debt_definition(
         )
     assert reviewed_matches[0].name == frozen.name == name
     return copy.deepcopy(frozen)
+
+
+def validate_engine_descriptor_transport(
+    *,
+    name: str,
+    observed: Any,
+    expected: Any,
+) -> None:
+    """Project the exact read-only universe declaration back to the frozen facade."""
+
+    observed_signature = inspect.signature(observed)
+    expected_signature = inspect.signature(expected)
+    observed_annotations = dict(observed.__annotations__)
+    expected_annotations = dict(expected.__annotations__)
+    read_only_parameter = "strategic_universe_declaration"
+    if name not in {"decide", "deterministic_decision"}:
+        assert observed_signature == expected_signature
+        assert observed_annotations == expected_annotations
+        return
+    parameter = observed_signature.parameters[read_only_parameter]
+    assert parameter.kind is inspect.Parameter.KEYWORD_ONLY
+    assert parameter.default is None
+    assert parameter.annotation == "StrategicUniverseDeclaration | None"
+    projected = observed_signature.replace(
+        parameters=[
+            value
+            for key, value in observed_signature.parameters.items()
+            if key != read_only_parameter
+        ]
+    )
+    assert projected == expected_signature
+    assert observed_annotations.pop(read_only_parameter) == (
+        "StrategicUniverseDeclaration | None"
+    )
+    assert observed_annotations == expected_annotations
 
 
 def architecture_execution_historical_debt_projection(

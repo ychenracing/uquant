@@ -15,6 +15,7 @@ from ..execution import reconcile_account_orders as reconcile_account_orders
 from ..leader import REFERENCE_UNIVERSE as REFERENCE_UNIVERSE
 from ..market import MarketWorkspace as MarketWorkspace
 from ..market import ReplayCache as ReplayCache
+from ..models.strategic_universe import StrategicUniverseDeclaration
 from ..portfolio import PortfolioAllocator as PortfolioAllocator
 from ..provenance.fingerprints import source_surface_fingerprint as source_surface_fingerprint
 from ..risk import assess_risk as assess_risk
@@ -162,7 +163,14 @@ def bind_engine_decision(
     code_fingerprint_fn: Callable[[], Any],
     attach_target_attribution_fn: Callable[[], Any],
 ) -> Callable[..., Decision]:
-    def bound(self: Any, *, symbols: Iterable[str], as_of: str, account: AccountState) -> Decision:
+    def bound(
+        self: Any,
+        *,
+        symbols: Iterable[str],
+        as_of: str,
+        account: AccountState,
+        strategic_universe_declaration: StrategicUniverseDeclaration | None = None,
+    ) -> Decision:
         return run_decision(
             self,
             assess_risk_fn(),
@@ -173,6 +181,7 @@ def bind_engine_decision(
             symbols=symbols,
             as_of=as_of,
             account=account,
+            strategic_universe_declaration=strategic_universe_declaration,
         )
 
     bound.__doc__ = run_decision.__doc__

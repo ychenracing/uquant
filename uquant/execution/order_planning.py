@@ -229,6 +229,7 @@ def _plan_target_order(
         industry_at_entry=target.industry_at_entry,
         industry_manifest_sha256=target.industry_manifest_sha256,
         grant_id=target.grant_id,
+        epoch_id=target.epoch_id,
     )
 
 

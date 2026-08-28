@@ -23,7 +23,12 @@ from .contracts.universe import REQUIRED_AI_UNIVERSE_SHA256, default_ai_universe
 from .data import normalize_symbol
 from .execution import allocate_sell_costs as _allocate_sell_costs
 from .execution import risk_priority_tranche_key
+from .models.strategic_epoch import (
+    bind_account_strategic_ownership,
+    record_account_strategic_epoch_fill,
+)
 from .models.strategic_grant import record_strategic_grant_fill
+from .models.trading import late_strategic_fill_allowed as _late_strategic_fill_allowed
 from .types import (
     ORDER_INTENT_IMMUTABLE_FIELDS,
     AccountOrder,
@@ -41,16 +46,6 @@ from .types import (
     derive_attribution_event_id,
     order_intent_metadata,
 )
-
-
-def _late_strategic_fill_allowed(order: AccountOrder) -> bool:
-    return bool(
-        order.status == OrderStatus.CANCELLED.value
-        and order.grant_id
-        and order.cancel_reason == "strategic partial remainder replaced"
-        and order.filled_shares > 0
-        and order.remaining_shares > 0
-    )
 
 
 def _broker_reconciliation_identity(
@@ -94,6 +89,7 @@ def _broker_reconciliation_identity(
         "industry_at_entry": industry,
         "industry_manifest_sha256": manifest,
         "grant_id": "",
+        "epoch_id": "",
     }
 
 
@@ -140,6 +136,7 @@ def _allocate_broker_sale(
                 "industry_at_entry": tranche.industry_at_entry,
                 "industry_manifest_sha256": tranche.industry_manifest_sha256,
                 "grant_id": tranche.grant_id,
+                "epoch_id": tranche.epoch_id,
             }
         )
         tranche.shares -= sold
@@ -548,6 +545,7 @@ def _broker_fill_allocations(
             industry_at_entry=values.order.industry_at_entry,
             industry_manifest_sha256=values.order.industry_manifest_sha256,
             grant_id=values.order.grant_id,
+            epoch_id=values.order.epoch_id,
         )
     )
     state.imported_buy_lifecycle[values.symbol] = values.order.lifecycle
@@ -589,6 +587,7 @@ def _commit_imported_broker_fill(
             industry_at_entry=order.industry_at_entry,
             industry_manifest_sha256=order.industry_manifest_sha256,
             grant_id=order.grant_id,
+            epoch_id=order.epoch_id,
         )
     )
     state.known_fills[values.fill_id] = state.account.fills[-1]
@@ -607,11 +606,23 @@ def _commit_imported_broker_fill(
     if order.status == OrderStatus.FILLED.value:
         state.completed_order_ids.add(values.order_id)
     if values.side == Side.BUY.value and order.grant_id:
-        record_strategic_grant_fill(
-            state.account.strategic_grant,
+        if (
+            state.account.strategic_grant is not None
+            and state.account.strategic_grant.candidate_symbol == values.symbol
+        ):
+            record_strategic_grant_fill(
+                state.account.strategic_grant,
+                grant_id=order.grant_id,
+                shares=values.shares,
+                completed=values.final and values.remaining == 0,
+            )
+        record_account_strategic_epoch_fill(
+            state.account,
+            epoch_id=order.epoch_id,
             grant_id=order.grant_id,
-            shares=values.shares,
-            completed=values.final and values.remaining == 0,
+            symbol=values.symbol,
+            fill_session=values.fill_date,
+            filled_shares=values.shares,
         )
         if values.final and values.remaining == 0:
             for pending in state.account.pending_orders:
@@ -659,10 +670,9 @@ def _apply_broker_order_updates(state: _BrokerSyncState) -> None:
             raise ValueError("broker cancellation must report zero live remaining shares")
         if order.status in {OrderStatus.FILLED.value, OrderStatus.REPLACED.value}:
             raise ValueError("broker cannot cancel a filled or replaced order")
-        if order.status != OrderStatus.CANCELLED.value:
-            order.status = OrderStatus.CANCELLED.value
-            order.last_update_date = state.as_of
-            order.last_event = "BROKER_CANCELLED"
+        order.status = OrderStatus.CANCELLED.value
+        order.last_update_date = state.as_of
+        order.last_event = "BROKER_CANCELLED"
         state.completed_order_ids.add(order_id)
 
 
@@ -672,6 +682,49 @@ def _reconciled_broker_position(
     *,
     reconciled_positions: dict[str, Position],
 ) -> tuple[str, Position]:
+    symbol, shares, sellable, avg_cost = _validated_broker_position_fields(
+        raw,
+        reconciled_positions=reconciled_positions,
+    )
+    existing = state.account.positions.get(symbol)
+    tranches = _reconciled_broker_tranches(
+        state,
+        symbol=symbol,
+        shares=shares,
+        sellable=sellable,
+    )
+    lifecycle = state.imported_buy_lifecycle.get(
+        symbol,
+        existing.lifecycle if existing is not None else Lifecycle.CORE.value,
+    )
+    strategy_highest = (
+        existing.highest_close
+        if existing is not None
+        else max((item.highest_close for item in tranches), default=avg_cost)
+    )
+    derived_entry_date = min(
+        (item.entry_date for item in tranches if item.entry_date),
+        default=state.as_of,
+    )
+    derived_highest = max([strategy_highest, *(item.highest_close for item in tranches)])
+    return symbol, Position(
+        symbol=symbol,
+        shares=shares,
+        avg_cost=avg_cost,
+        entry_date=derived_entry_date,
+        highest_close=derived_highest,
+        lifecycle=lifecycle,
+        tranches=tranches,
+        grant_id=next(iter({item.grant_id for item in tranches if item.grant_id}), ""),
+        epoch_id=next(iter({item.epoch_id for item in tranches if item.epoch_id}), ""),
+    )
+
+
+def _validated_broker_position_fields(
+    raw: dict[str, Any],
+    *,
+    reconciled_positions: dict[str, Position],
+) -> tuple[str, int, int, float]:
     symbol = normalize_symbol(str(raw.get("symbol", "")))
     if symbol in reconciled_positions:
         raise ValueError(f"duplicate broker position {symbol}")
@@ -686,18 +739,18 @@ def _reconciled_broker_position(
         _broker_date(raw["entry_date"], field="position entry_date")
     if "highest_close" in raw and _nonnegative(raw, "highest_close") <= 0:
         raise ValueError("broker position highest_close must be finite and positive")
-    existing = state.account.positions.get(symbol)
+    return symbol, shares, sellable, avg_cost
+
+
+def _reconciled_broker_tranches(
+    state: _BrokerSyncState,
+    *,
+    symbol: str,
+    shares: int,
+    sellable: int,
+) -> list[Tranche]:
     tranches = state.economic_tranches.get(symbol, [])
     economic_shares = sum(item.shares for item in tranches)
-    lifecycle = state.imported_buy_lifecycle.get(
-        symbol,
-        existing.lifecycle if existing is not None else Lifecycle.CORE.value,
-    )
-    strategy_highest = (
-        existing.highest_close
-        if existing is not None
-        else max((item.highest_close for item in tranches), default=avg_cost)
-    )
     if economic_shares > shares:
         _allocate_broker_sale(
             tranches,
@@ -723,21 +776,7 @@ def _reconciled_broker_position(
     )
     if sum(item.shares for item in tranches) != shares:
         raise RuntimeError("broker reconciliation lost tranche shares")
-    derived_entry_date = min(
-        (item.entry_date for item in tranches if item.entry_date),
-        default=state.as_of,
-    )
-    derived_highest = max([strategy_highest, *(item.highest_close for item in tranches)])
-    return symbol, Position(
-        symbol=symbol,
-        shares=shares,
-        avg_cost=avg_cost,
-        entry_date=derived_entry_date,
-        highest_close=derived_highest,
-        lifecycle=lifecycle,
-        tranches=tranches,
-        grant_id=next(iter({item.grant_id for item in tranches if item.grant_id}), ""),
-    )
+    return tranches
 
 
 def _reconcile_broker_positions(
@@ -820,6 +859,7 @@ def _commit_broker_sync(
     account = state.account
     account.cash = state.cash
     account.positions = reconciled_positions
+    bind_account_strategic_ownership(account)
     account.pending_orders = [
         order for order in account.pending_orders if order.order_id not in state.completed_order_ids
     ]

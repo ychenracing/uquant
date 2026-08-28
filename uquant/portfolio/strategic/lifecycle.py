@@ -9,6 +9,12 @@ from typing import TYPE_CHECKING, cast
 import pandas as pd
 
 from ...features import scalar
+from ...models.strategic_epoch import (
+    bind_account_strategic_ownership,
+    settle_account_strategic_epoch,
+)
+from ...models.strategic_grant import StrategicQualificationObservation
+from ...models.strategic_universe import StrategicUniverseRoles
 from ...portfolio_core import strategic_dominant_symbol
 from ...types import (
     AccountState,
@@ -17,10 +23,16 @@ from ...types import (
     RiskAssessment,
     Target,
 )
+from .discovery import (
+    resolve_strategic_qualification_inputs,
+)
+from .grant_lifecycle import revalidate_strategic_grant
+from .successor import observe_strategic_successor
 
 if TYPE_CHECKING:
     from .discovery import StrategicPortfolioPolicy
 
+from .rearm import strategic_cash_rearm_grant_open
 from .targets import strategic_active_targets as _strategic_active_targets
 from .targets import strategic_completed_exit_targets as _strategic_completed_exit_targets
 
@@ -103,6 +115,18 @@ def _complete_empty_strategic_cohort(
 ) -> tuple[Target, ...] | None:
     if held_cohort:
         return _strategic_completed_exit_targets(self=self, leaders=leaders, account=account)
+    grant = account.strategic_grant
+    epoch_id = (
+        account.active_strategic_epoch_id
+        or (grant.epoch_id if grant is not None else "")
+    )
+    if epoch_id and not settle_account_strategic_epoch(
+        account,
+        epoch_id=epoch_id,
+        closed_session=str(date.date()),
+        close_reason="owner_exit",
+    ):
+        return ()
     for symbol in account.strategic_cohort_symbols:
         account.protected_weights.pop(symbol, None)
     account.candidate_tenure["strategic_cohort_active"] = 0
@@ -121,6 +145,13 @@ def _complete_empty_strategic_cohort(
         (date + pd.offsets.BDay(self.cfg.strategic_epoch_cooldown_sessions)).date()
     )
     account.strategic_previous_symbols = list(account.strategic_cohort_symbols)
+    account.strategic_cohort_symbols.clear()
+    account.strategic_candidate_signature = ""
+    account.strategic_qualification = StrategicQualificationObservation()
+    account.strategic_successor_qualification = StrategicQualificationObservation()
+    for key in tuple(account.replacement_tenure):
+        if key.startswith(("strategic_qualification:", "strategic_successor:")):
+            account.replacement_tenure[key] = 0
     return None
 
 
@@ -240,9 +271,41 @@ def _arm_dominant_profit_lock(
     ctx.dominant_profit_lock_armed_now = True
 
 
+def _bounded_strategic_exit_scale(
+    ctx: _StrategicLifecycleContext,
+    *,
+    symbol: str,
+) -> float:
+    """Keep a staged owner's exit duration invariant to its bounded weight."""
+
+    grant = ctx.account.strategic_grant
+    if grant is None:
+        return 1.0
+    epoch = next(
+        (
+            item
+            for item in ctx.account.strategic_epochs
+            if item.epoch_id == grant.epoch_id
+            and item.grant_id == grant.grant_id
+            and item.owner_symbol == symbol
+            and not item.terminal
+        ),
+        None,
+    )
+    if epoch is None or not (
+        grant.authorization_id
+        or epoch.qualification_quorum in {"STRONG_PAIR", "ABSOLUTE_SINGLE"}
+    ):
+        return 1.0
+    if epoch.target_weight <= 0.0 or epoch.full_weight <= 0.0:
+        return 1.0
+    return min(1.0, epoch.target_weight / epoch.full_weight)
+
+
 def _strategic_exit_step(
     ctx: _StrategicLifecycleContext,
     *,
+    symbol: str,
     row: pd.Series,
 ) -> float:
     cfg = ctx.policy.cfg
@@ -255,14 +318,18 @@ def _strategic_exit_step(
     repaired_step = (
         cfg.strategic_gradual_post_guard_exit_step if gradual else cfg.strategic_post_guard_exit_step
     )
-    if not (
+    post_guard_repair = bool(
         ctx.account.strategic_epoch > 0
         and ctx.account.candidate_tenure.get("strategic_damage_guard_complete_epoch", -1)
         == ctx.account.strategic_epoch
         and ctx.account.candidate_tenure.get("strategic_guard_level2_epoch", -1)
         != ctx.account.strategic_epoch
-    ):
-        repaired_step = cfg.strategic_cohort_exit_step
+    )
+    if not post_guard_repair:
+        return (
+            cfg.strategic_cohort_exit_step
+            * _bounded_strategic_exit_scale(ctx, symbol=symbol)
+        )
     return max(cfg.strategic_cohort_exit_step, repaired_step)
 
 
@@ -288,7 +355,8 @@ def _advance_strategic_exit(
                 armed[index] = True
                 bands[index] = max(
                     0.0,
-                    bands[index] - _strategic_exit_step(ctx, row=row) / band_count,
+                    bands[index]
+                    - _strategic_exit_step(ctx, symbol=symbol, row=row) / band_count,
                 )
     if sum(bands) <= 1e-12:
         account.strategic_cohort_targets.pop(symbol, None)
@@ -381,7 +449,18 @@ def _capture_strategic_restore(
 def _strategic_restore_confirmed(ctx: _StrategicLifecycleContext) -> tuple[bool, bool]:
     self = ctx.policy
     risk = ctx.risk
-    buy_risk_open = bool(not risk.freeze_new_risk and not risk.evidence.get("freeze_new_risk", False))
+    cash_rearm_open = strategic_cash_rearm_grant_open(
+        account=ctx.account,
+        risk=risk,
+        cfg=self.cfg,
+    )
+    buy_risk_open = bool(
+        cash_rearm_open
+        or (
+            not risk.freeze_new_risk
+            and not risk.evidence.get("freeze_new_risk", False)
+        )
+    )
     bounded = self._bounded_strategic_restore_risk_open(risk=risk, account=ctx.account)
     guard_repaired = bool(
         not (ctx.damage_guard_active or ctx.damage_trim_active)
@@ -549,6 +628,9 @@ def _strategic_cohort_targets(
     prices: dict[str, float],
     weights_now: dict[str, float],
     admission_open: bool = True,
+    qualification_panel: dict[str, pd.DataFrame] | None = None,
+    qualification_leaders: dict[str, LeaderScore] | None = None,
+    strategic_universe: StrategicUniverseRoles | None = None,
 ) -> tuple[Target, ...] | None:
     """Run the active dynamic cohort through its current strategic epoch.
 
@@ -559,7 +641,8 @@ def _strategic_cohort_targets(
     materially changed causal cohort signature.
     """
 
-    if not self._revalidate_strategic_grant(
+    grant_revalidated, invalidated_targets = _revalidated_strategic_targets(
+        self,
         date=date,
         user_panel=user_panel,
         leaders=leaders,
@@ -567,20 +650,12 @@ def _strategic_cohort_targets(
         risk=risk,
         admission_open=admission_open,
         weights_now=weights_now,
-    ):
-        if not account.strategic_cohort_targets:
-            # An invalidated grant owns this session's no-deployment decision;
-            # do not fall through and promote a runner through another policy.
-            return ()
-        return _strategic_active_targets(
-            self=self,
-            proposed=dict(account.strategic_cohort_targets),
-            leaders=leaders,
-            account=account,
-            dominant_profit_lock_armed_now=False,
-            dominant_symbol=None,
-            current_selected=dict(account.strategic_cohort_targets),
-        )
+        qualification_panel=qualification_panel,
+        qualification_leaders=qualification_leaders,
+        strategic_universe=strategic_universe,
+    )
+    if not grant_revalidated:
+        return invalidated_targets
     self._initialize_strategic_cohort(
         date=date,
         user_panel=user_panel,
@@ -588,7 +663,22 @@ def _strategic_cohort_targets(
         account=account,
         risk=risk,
         admission_open=admission_open,
+        qualification_panel=qualification_panel,
+        qualification_leaders=qualification_leaders,
+        strategic_universe=strategic_universe,
     )
+    _observe_active_strategic_successor(
+        self,
+        date=date,
+        user_panel=user_panel,
+        leaders=leaders,
+        account=account,
+        risk=risk,
+        qualification_panel=qualification_panel,
+        qualification_leaders=qualification_leaders,
+        strategic_universe=strategic_universe,
+    )
+    _promote_filled_strategic_epoch(self, date=date, account=account, risk=risk)
     if account.candidate_tenure.get("strategic_cohort_active", 0) != 1:
         return None
     active_symbols = set(account.strategic_cohort_targets)
@@ -626,18 +716,17 @@ def _strategic_cohort_targets(
         active_symbols=active_symbols,
         current_selected=current_selected,
     )
+    bind_account_strategic_ownership(account)
     proposed = _final_strategic_proposal(
         ctx,
         active_symbols=active_symbols,
         current_selected=current_selected,
     )
-    grant = account.strategic_grant
-    if (
-        grant is not None
-        and grant.status == "QUALIFIED"
-        and any(proposed.get(symbol, 0.0) > weights_now.get(symbol, 0.0) + 1e-12 for symbol in proposed)
-    ):
-        grant.status = "PENDING_EXECUTION"
+    _mark_strategic_grant_pending_execution(
+        account=account,
+        proposed=proposed,
+        weights_now=weights_now,
+    )
     return _strategic_active_targets(
         self=self,
         proposed=proposed,
@@ -647,6 +736,145 @@ def _strategic_cohort_targets(
         dominant_symbol=ctx.dominant_symbol,
         current_selected=current_selected,
     )
+
+
+def _revalidated_strategic_targets(
+    self: StrategicPortfolioPolicy,
+    *,
+    date: pd.Timestamp,
+    user_panel: dict[str, pd.DataFrame],
+    leaders: dict[str, LeaderScore],
+    account: AccountState,
+    risk: RiskAssessment,
+    admission_open: bool,
+    weights_now: dict[str, float],
+    qualification_panel: dict[str, pd.DataFrame] | None,
+    qualification_leaders: dict[str, LeaderScore] | None,
+    strategic_universe: StrategicUniverseRoles | None,
+) -> tuple[bool, tuple[Target, ...] | None]:
+    if revalidate_strategic_grant(
+        self,
+        date=date,
+        user_panel=user_panel,
+        leaders=leaders,
+        account=account,
+        risk=risk,
+        admission_open=admission_open,
+        weights_now=weights_now,
+        qualification_panel=qualification_panel,
+        qualification_leaders=qualification_leaders,
+        strategic_universe=strategic_universe,
+    ):
+        return True, None
+    if not account.strategic_cohort_targets:
+        # An invalidated grant owns this session's no-deployment decision;
+        # do not fall through and promote a runner through another policy.
+        return False, ()
+    targets = _strategic_active_targets(
+        self=self,
+        proposed=dict(account.strategic_cohort_targets),
+        leaders=leaders,
+        account=account,
+        dominant_profit_lock_armed_now=False,
+        dominant_symbol=None,
+        current_selected=dict(account.strategic_cohort_targets),
+    )
+    return False, targets
+
+
+def _observe_active_strategic_successor(
+    self: StrategicPortfolioPolicy,
+    *,
+    date: pd.Timestamp,
+    user_panel: dict[str, pd.DataFrame],
+    leaders: dict[str, LeaderScore],
+    account: AccountState,
+    risk: RiskAssessment,
+    qualification_panel: dict[str, pd.DataFrame] | None,
+    qualification_leaders: dict[str, LeaderScore] | None,
+    strategic_universe: StrategicUniverseRoles | None,
+) -> None:
+    if not account.active_strategic_epoch_id:
+        return
+    resolved_panel, resolved_leaders, resolved_universe = resolve_strategic_qualification_inputs(
+        date=date,
+        user_panel=user_panel,
+        leaders=leaders,
+        qualification_panel=qualification_panel,
+        qualification_leaders=qualification_leaders,
+        strategic_universe=strategic_universe,
+    )
+    observe_strategic_successor(
+        self,
+        date=date,
+        qualification_panel=resolved_panel,
+        qualification_leaders=resolved_leaders,
+        tradable_symbols=set(user_panel),
+        account=account,
+        risk=risk,
+        strategic_universe=resolved_universe,
+    )
+
+
+def _promote_filled_strategic_epoch(
+    self: StrategicPortfolioPolicy,
+    *,
+    date: pd.Timestamp,
+    account: AccountState,
+    risk: RiskAssessment,
+) -> None:
+    grant = account.strategic_grant
+    epoch = next(
+        (
+            item
+            for item in account.strategic_epochs
+            if grant is not None and item.epoch_id == grant.epoch_id
+        ),
+        None,
+    )
+    if not (
+        epoch is not None
+        and epoch.realized_status == "CORE"
+        and epoch.first_fill_session
+        and str(date.date()) > epoch.first_fill_session
+        and account.strategic_qualification.qualification_ready
+        and not account.strategic_qualification.deployment_blocked
+        and risk.state.value == "NORMAL"
+        and not risk.freeze_new_risk
+        and not bool(risk.evidence.get("freeze_new_risk", False))
+        and account.capital_budget_level == 0
+        and account.chronic_level == 0
+    ):
+        return
+    promoted_weight = min(
+        epoch.full_weight,
+        self.cfg.max_symbol_weight,
+        risk.target_gross_cap,
+    )
+    if promoted_weight <= account.strategic_cohort_targets.get(epoch.owner_symbol, 0.0):
+        return
+    account.strategic_cohort_targets = {epoch.owner_symbol: promoted_weight}
+    epoch.target_weight = promoted_weight
+    if grant is not None:
+        grant.target_weight = promoted_weight
+
+
+def _mark_strategic_grant_pending_execution(
+    *,
+    account: AccountState,
+    proposed: dict[str, float],
+    weights_now: dict[str, float],
+) -> None:
+    grant = account.strategic_grant
+    if (
+        grant is not None
+        and grant.status == "QUALIFIED"
+        and any(
+            proposed.get(symbol, 0.0) > weights_now.get(symbol, 0.0) + 1e-12
+            for symbol in proposed
+        )
+    ):
+        grant.status = "PENDING_EXECUTION"
 
 
 bounded_strategic_restore_risk_open = _bounded_strategic_restore_risk_open

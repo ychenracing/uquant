@@ -268,6 +268,103 @@ def test_backtest_reports_the_exact_effective_config_hash(data_dir) -> None:
     )
 
 
+def test_allocator_receives_point_in_time_reference_coverage_before_allocation(
+    data_dir,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    engine = ProductionEngine(data_dir)
+    observed: dict[str, object] = {}
+
+    def capture_allocation(**kwargs: object) -> tuple[()]:
+        risk = kwargs["risk"]
+        observed.update(risk.evidence)  # type: ignore[union-attr]
+        observed["strategic_universe"] = kwargs["strategic_universe"]
+        return ()
+
+    monkeypatch.setattr(engine.allocator, "allocate", capture_allocation)
+
+    decision = engine.decide(
+        symbols=SYMBOLS,
+        as_of="2026-06-30",
+        account=AccountState.empty(DEFAULT_CONFIG.initial_cash),
+    )
+
+    assert observed["reference_coverage"] == decision.risk_summary["reference_coverage"]
+    roles = observed["strategic_universe"]
+    assert set(roles.risk_reference_symbols) == {  # type: ignore[union-attr]
+        *decision.risk_summary["reference_expected_symbols"],
+        "sh000300",
+        "sh000682",
+    }
+
+
+def test_explicit_reference_roles_do_not_leak_a_full_removal_into_allocator(
+    data_dir,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from uquant.models.strategic_universe import (
+        ReferenceAvailability,
+        build_strategic_universe_declaration,
+    )
+
+    engine = ProductionEngine(data_dir)
+    captured: dict[str, object] = {}
+
+    def capture_allocation(**kwargs: object) -> tuple[()]:
+        captured.update(kwargs)
+        return ()
+
+    monkeypatch.setattr(engine.allocator, "allocate", capture_allocation)
+    remaining = tuple(symbol for symbol in REFERENCE_UNIVERSE if symbol != "sz300308")
+    decision = engine.decide(
+        symbols=("sz300394", "sz300502"),
+        as_of="2026-06-30",
+        account=AccountState.empty(DEFAULT_CONFIG.initial_cash),
+        strategic_universe_declaration=build_strategic_universe_declaration(
+            qualification_reference_symbols=remaining,
+            risk_reference_symbols=remaining,
+        ),
+    )
+
+    qualification_panel = captured["qualification_panel"]
+    roles = captured["strategic_universe"]
+    assert "sz300308" not in qualification_panel  # type: ignore[operator]
+    assert "sz300308" not in decision.risk_summary["reference_expected_symbols"]
+    assert roles.availability("sz300308") is ReferenceAvailability.ROLE_ABSENT  # type: ignore[union-attr]
+
+
+def test_expected_reference_without_a_session_is_unavailable_not_role_absent(
+    data_dir,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from uquant.models.strategic_universe import (
+        ReferenceAvailability,
+        build_strategic_universe_declaration,
+    )
+
+    engine = ProductionEngine(data_dir)
+    captured: dict[str, object] = {}
+
+    def capture_allocation(**kwargs: object) -> tuple[()]:
+        captured.update(kwargs)
+        return ()
+
+    monkeypatch.setattr(engine.allocator, "allocate", capture_allocation)
+    declaration = build_strategic_universe_declaration(
+        qualification_reference_symbols=REFERENCE_UNIVERSE,
+        risk_reference_symbols=REFERENCE_UNIVERSE,
+    )
+    engine.decide(
+        symbols=("sz300394", "sz300502"),
+        as_of="2025-08-18",
+        account=AccountState.empty(DEFAULT_CONFIG.initial_cash),
+        strategic_universe_declaration=declaration,
+    )
+
+    roles = captured["strategic_universe"]
+    assert roles.availability("sh688347") is ReferenceAvailability.UNAVAILABLE  # type: ignore[union-attr]
+
+
 def test_sentinel_timeline_cache_depends_only_on_data_universe_and_config(
     data_dir: Path,
     monkeypatch: pytest.MonkeyPatch,

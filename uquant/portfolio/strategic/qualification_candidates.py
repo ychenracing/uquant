@@ -9,11 +9,20 @@ from typing import Protocol
 import pandas as pd
 
 from ...config import SystemConfig
-from ...types import LeaderScore, RiskAssessment
+from ...types import AccountState, LeaderScore, RiskAssessment
 
 
 class StrategicQualificationPolicy(Protocol):
-    cfg: SystemConfig
+    @property
+    def cfg(self) -> SystemConfig: ...
+
+
+def reset_strategic_qualification_streaks(account: AccountState) -> None:
+    """Reset every candidate-bound strategic qualification counter."""
+
+    for key in tuple(account.replacement_tenure):
+        if key.startswith("strategic_qualification:"):
+            account.replacement_tenure[key] = 0
 
 
 def _known_industry(
@@ -211,6 +220,21 @@ class StrategicRoute:
     anchors_not_yet_armed: bool
 
 
+@dataclass(frozen=True, slots=True)
+class QualifiedStrategicRoute:
+    """One currently qualified production route ready for deployment checks."""
+
+    symbols: list[str]
+    route: str
+    admission_state: str
+    signature: str
+    decisive_reversal_symbol: str | None
+    admission_authorized: bool
+    quorum_route: str
+    restricted_initial_weight: float | None
+    cash_rearm_authorized: bool
+
+
 def _decisive_reversal(
     self: StrategicQualificationPolicy,
     *,
@@ -371,6 +395,48 @@ def select_strategic_route(
     )
 
 
+def strategic_candidate_meets_route(
+    *,
+    candidate_symbol: str,
+    qualification_route: str,
+    snapshots: dict[str, dict[str, float]],
+    leaders: dict[str, LeaderScore],
+    risk: RiskAssessment,
+    cfg: SystemConfig,
+) -> bool:
+    """Check one grant candidate against its original route's absolute gates."""
+
+    policy = _QualificationConfig(cfg)
+    if candidate_symbol not in snapshots or candidate_symbol not in leaders:
+        return False
+    try:
+        if qualification_route == "established":
+            candidates = _established_candidates(policy, snapshots, leaders)
+        elif qualification_route == "transition":
+            candidates = _transition_candidates(policy, snapshots, leaders)
+        elif qualification_route == "transition_impulse":
+            candidates = _impulse_candidates(
+                policy,
+                snapshots=snapshots,
+                leaders=leaders,
+                risk=risk,
+            )
+        elif qualification_route == "persistent_industry":
+            candidates = _persistent_candidates(policy, snapshots, leaders)
+        elif qualification_route == "reversal_industry":
+            candidates = _reversal_candidates(policy, snapshots, leaders)
+        else:
+            return False
+    except (KeyError, TypeError, ValueError):
+        return False
+    return candidate_symbol in candidates
+
+
+@dataclass(frozen=True, slots=True)
+class _QualificationConfig:
+    cfg: SystemConfig
+
+
 def _strategic_candidate_meets_route(
     self: StrategicQualificationPolicy,
     *,
@@ -380,31 +446,20 @@ def _strategic_candidate_meets_route(
     leaders: dict[str, LeaderScore],
     risk: RiskAssessment,
 ) -> bool:
-    """Check one grant candidate against its original route's absolute gates."""
+    """Compatibility wrapper for the former policy-bound helper."""
 
-    if candidate_symbol not in snapshots or candidate_symbol not in leaders:
-        return False
-    if qualification_route == "established":
-        candidates = _established_candidates(self, snapshots, leaders)
-    elif qualification_route == "transition":
-        candidates = _transition_candidates(self, snapshots, leaders)
-    elif qualification_route == "transition_impulse":
-        candidates = _impulse_candidates(
-            self,
-            snapshots=snapshots,
-            leaders=leaders,
-            risk=risk,
-        )
-    elif qualification_route == "persistent_industry":
-        candidates = _persistent_candidates(self, snapshots, leaders)
-    elif qualification_route == "reversal_industry":
-        candidates = _reversal_candidates(self, snapshots, leaders)
-    else:
-        return False
-    return candidate_symbol in candidates
+    return strategic_candidate_meets_route(
+        candidate_symbol=candidate_symbol,
+        qualification_route=qualification_route,
+        snapshots=snapshots,
+        leaders=leaders,
+        risk=risk,
+        cfg=self.cfg,
+    )
 
 
 __all__ = (
     "StrategicRoute",
     "select_strategic_route",
+    "strategic_candidate_meets_route",
 )

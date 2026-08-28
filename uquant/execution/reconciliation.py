@@ -83,6 +83,7 @@ def _register_account_order(
         industry_at_entry=order.industry_at_entry,
         industry_manifest_sha256=order.industry_manifest_sha256,
         grant_id=order.grant_id,
+        epoch_id=order.epoch_id,
     )
     account.order_ledger.append(entry)
     return entry

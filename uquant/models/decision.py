@@ -60,6 +60,7 @@ class Target:
     industry_at_entry: str = ""
     industry_manifest_sha256: str = ""
     grant_id: str = ""
+    epoch_id: str = ""
 
 
 @dataclass(frozen=True, slots=True)
@@ -102,6 +103,8 @@ class Decision:
                     "replaces_symbol": item.replaces_symbol,
                     "industry_at_entry": item.industry_at_entry,
                     "industry_manifest_sha256": item.industry_manifest_sha256,
+                    "grant_id": item.grant_id,
+                    "epoch_id": item.epoch_id,
                 }
             )
         return {
@@ -141,6 +144,8 @@ class Decision:
                     "replaces_symbol": item.replaces_symbol,
                     "industry_at_entry": item.industry_at_entry,
                     "industry_manifest_sha256": item.industry_manifest_sha256,
+                    "grant_id": item.grant_id,
+                    "epoch_id": item.epoch_id,
                 }
                 for item in self.pending_orders
             ],

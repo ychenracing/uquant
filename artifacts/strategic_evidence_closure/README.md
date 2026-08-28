@@ -1,5 +1,7 @@
 # Strategic Evidence Closure Artifacts
 
+> **权威级别：历史证据**
+
 This directory contains compact, sealed evidence for Tasks 3-6. Large deterministic route
 and reachability shards remain external; `evidence_manifest.json` binds their logical paths,
 byte sizes, SHA-256 identities, and row counts as the **sealed expected identity**. The separate

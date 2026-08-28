@@ -61,8 +61,30 @@ def _expand_allocator(
     definitions: Mapping[str, ast.FunctionDef],
     frozen: ast.FunctionDef,
 ) -> None:
-    targets = definitions["_allocate_strategy_targets"]
+    current = copy.deepcopy(current)
+    targets = copy.deepcopy(definitions["_allocate_strategy_targets"])
     dominant = definitions["_dominant_level1_retention"]
+    observation_keywords = (
+        "qualification_panel",
+        "qualification_leaders",
+        "strategic_universe",
+    )
+    strategy_calls = [
+        node
+        for node in ast.walk(targets)
+        if isinstance(node, ast.Call)
+        and isinstance(node.func, ast.Attribute)
+        and node.func.attr == "_allocate_strategy"
+    ]
+    assert len(strategy_calls) == 1
+    strategy_call = strategy_calls[0]
+    assert tuple(keyword.arg for keyword in strategy_call.keywords[-3:]) == observation_keywords
+    assert tuple(ast.unparse(keyword.value) for keyword in strategy_call.keywords[-3:]) == (
+        "qualification_panel",
+        "qualification_leaders",
+        "strategic_universe",
+    )
+    del strategy_call.keywords[-3:]
     assert len(targets.body) == 6 and len(dominant.body) == 3
     for observed, expected in zip(targets.body[:-1], frozen.body[1:6], strict=True):
         _same(observed, expected)
@@ -73,9 +95,39 @@ def _expand_allocator(
     target_call = _call(current, "_allocate_strategy_targets")
     _exact_keyword_call(
         target_call,
+        (
+            "date",
+            "opportunity",
+            "risk",
+            "user_panel",
+            "leaders",
+            "account",
+            "prices",
+            *observation_keywords,
+        ),
+        positional=("self",),
+    )
+    del target_call.keywords[-3:]
+    _exact_keyword_call(
+        target_call,
         ("date", "opportunity", "risk", "user_panel", "leaders", "account", "prices"),
         positional=("self",),
     )
+    sentinel_projection = current.body[2]
+    assert isinstance(sentinel_projection, ast.If)
+    assert len(sentinel_projection.body) == 6
+    qualification_copy = sentinel_projection.body[0]
+    assert isinstance(qualification_copy, ast.Assign)
+    assert ast.unparse(qualification_copy.targets[0]) == "account.strategic_qualification"
+    assert ast.unparse(qualification_copy.value) == (
+        "deepcopy(strategy_account.strategic_qualification)"
+    )
+    qualification_observation = sentinel_projection.body[1]
+    assert isinstance(qualification_observation, ast.If)
+    assert ast.unparse(qualification_observation.test) == (
+        "account.strategic_qualification.candidate_symbol"
+    )
+    del sentinel_projection.body[:2]
     _same(current.body[2], frozen.body[6])
     for observed, expected in zip(current.body[3:8], frozen.body[7:12], strict=True):
         _same(observed, expected)

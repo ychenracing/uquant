@@ -1,5 +1,7 @@
 # Strategic Evidence Closure Analysis
 
+> **权威级别：历史证据**
+
 Runner/evidence completion and strategy capability are separate. The assembled evidence
 reports runner success as `true` and the literal
 capability decision as `false`.

@@ -32,6 +32,7 @@ from ._execution_application_transport import (
     architecture_execution_decision_fanout,
     architecture_execution_historical_debt_projection,
     reviewed_execution_debt_definition,
+    validate_engine_descriptor_transport,
 )
 from ._owner_transport import (
     architecture_resource_surface_projection,
@@ -789,8 +790,11 @@ def test_execution_engine_method_reflection_and_descriptors_match_immutable_sour
         assert observed.__name__ == expected.__name__ == name
         assert observed.__module__ == expected.__module__ == "uquant.engine"
         assert observed.__qualname__ == expected.__qualname__ == name
-        assert inspect.signature(observed) == inspect.signature(expected)
-        assert observed.__annotations__ == expected.__annotations__
+        validate_engine_descriptor_transport(
+            name=name,
+            observed=observed,
+            expected=expected,
+        )
         assert observed.__doc__ == expected.__doc__
     assert engine_module.REFERENCE_UNIVERSE is namespace["REFERENCE_UNIVERSE"]
 
@@ -821,8 +825,11 @@ def test_execution_engine_method_reflection_and_descriptors_match_immutable_sour
         assert observed.__name__ == expected.__name__ == name
         assert observed.__module__ == "uquant.engine"
         assert observed.__qualname__ == f"ProductionEngine.{name}"
-        assert inspect.signature(observed) == inspect.signature(expected)
-        assert observed.__annotations__ == expected.__annotations__
+        validate_engine_descriptor_transport(
+            name=name,
+            observed=observed,
+            expected=expected,
+        )
         assert observed.__doc__ == expected.__doc__
 
 

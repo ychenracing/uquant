@@ -6,6 +6,7 @@ from typing import TYPE_CHECKING
 
 import pandas as pd
 
+from ..models.strategic_universe import StrategicUniverseRoles
 from ..types import AccountState, LeaderScore, Opportunity, RiskAssessment, Target
 from .allocation_closure import close_allocation
 from .allocation_opening import prepare_allocation
@@ -27,6 +28,9 @@ def _allocate_strategy(
     leaders: dict[str, LeaderScore],
     account: AccountState,
     prices: dict[str, float],
+    qualification_panel: dict[str, pd.DataFrame] | None = None,
+    qualification_leaders: dict[str, LeaderScore] | None = None,
+    strategic_universe: StrategicUniverseRoles | None = None,
 ) -> tuple[Target, ...]:
     """Select one strategy route and return targets before final hard caps."""
 
@@ -39,6 +43,9 @@ def _allocate_strategy(
         leaders=leaders,
         account=account,
         prices=prices,
+        qualification_panel=qualification_panel,
+        qualification_leaders=qualification_leaders,
+        strategic_universe=strategic_universe,
     )
     if targets is not None:
         return targets

@@ -497,7 +497,12 @@ def _strategic_economic_decisions_sha256(result: dict[str, Any]) -> str:
     digests: list[str] = []
     for source in cast(list[dict[str, Any]], result["decision_trace"]):
         row = json.loads(json.dumps(source))
+        for target in row["targets"]:
+            target.pop("grant_id", None)
+            target.pop("epoch_id", None)
         for order in row["orders"]:
+            order.pop("grant_id", None)
+            order.pop("epoch_id", None)
             event_id = str(order.get("event_id", ""))
             key = event_id or str(order["order_id"])
             event_order_ids.setdefault(key, str(order["order_id"]))
@@ -512,6 +517,21 @@ def _strategic_economic_decisions_sha256(result: dict[str, Any]) -> str:
 
 def _strategic_economic_account(source: dict[str, Any]) -> dict[str, Any]:
     account = json.loads(json.dumps(source))
+    account["schema_version"] = 5
+    for key in (
+        "active_strategic_epoch_id",
+        "flat_book_capital_repair",
+        "protected_weight_epoch_ids",
+        "recovery_owner_epoch_id",
+        "strategic_cash_rearm",
+        "strategic_epochs",
+        "strategic_qualification_universe_identity",
+        "strategic_restore_epoch_ids",
+        "strategic_risk_universe_identity",
+        "strategic_successor_qualification",
+        "strategic_tradable_universe_identity",
+    ):
+        account.pop(key, None)
     groups: list[list[dict[str, Any]]] = []
     indexes: dict[tuple[str, ...], int] = {}
     for order in account["order_ledger"]:
@@ -562,6 +582,7 @@ def _strategic_economic_account(source: dict[str, Any]) -> dict[str, Any]:
                 if key
                 not in {
                     "account_identity",
+                    "epoch_id",
                     "grant_id",
                     "strategic_grant",
                     "strategic_qualification",

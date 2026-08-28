@@ -7,9 +7,14 @@ from collections.abc import Mapping
 from pathlib import Path
 from typing import Any
 
+from ..models.strategic_epoch import strategic_epoch_from_payload
 from ..models.strategic_grant import (
     strategic_grant_from_payload,
     strategic_qualification_from_payload,
+)
+from ..models.strategic_rearm import (
+    flat_book_capital_repair_from_payload,
+    strategic_cash_rearm_from_payload,
 )
 from ..types import (
     ACCOUNT_SCHEMA_VERSION,
@@ -242,6 +247,14 @@ def _decode_account_strategy_fields(
     payload: Mapping[str, Any],
     schema_version: int,
 ) -> dict[str, Any]:
+    if schema_version == ACCOUNT_SCHEMA_VERSION:
+        if "flat_book_capital_repair" not in payload:
+            raise RuntimeError(
+                "current account schema requires flat_book_capital_repair"
+            )
+        if "strategic_cash_rearm" not in payload:
+            raise RuntimeError("current account schema requires strategic_cash_rearm")
+    legacy_candidate_rearm = schema_version < ACCOUNT_SCHEMA_VERSION
     return {
         "strategic_epochs_completed": payload.get(
             "strategic_epochs_completed",
@@ -257,7 +270,37 @@ def _decode_account_strategy_fields(
         "strategic_qualification": strategic_qualification_from_payload(
             payload.get("strategic_qualification")
         ),
+        "strategic_successor_qualification": strategic_qualification_from_payload(
+            payload.get("strategic_successor_qualification")
+        ),
         "strategic_grant": strategic_grant_from_payload(payload.get("strategic_grant")),
+        "flat_book_capital_repair": flat_book_capital_repair_from_payload(
+            None if legacy_candidate_rearm else payload.get("flat_book_capital_repair")
+        ),
+        "strategic_cash_rearm": strategic_cash_rearm_from_payload(
+            None if legacy_candidate_rearm else payload.get("strategic_cash_rearm")
+        ),
+        "strategic_epochs": [
+            strategic_epoch_from_payload(dict(item))
+            for item in payload.get("strategic_epochs", [])
+        ],
+        "active_strategic_epoch_id": payload.get("active_strategic_epoch_id", ""),
+        "protected_weight_epoch_ids": {
+            str(k): str(v) for k, v in payload.get("protected_weight_epoch_ids", {}).items()
+        },
+        "strategic_restore_epoch_ids": {
+            str(k): str(v) for k, v in payload.get("strategic_restore_epoch_ids", {}).items()
+        },
+        "recovery_owner_epoch_id": payload.get("recovery_owner_epoch_id", ""),
+        "strategic_tradable_universe_identity": payload.get(
+            "strategic_tradable_universe_identity", ""
+        ),
+        "strategic_qualification_universe_identity": payload.get(
+            "strategic_qualification_universe_identity", ""
+        ),
+        "strategic_risk_universe_identity": payload.get(
+            "strategic_risk_universe_identity", ""
+        ),
         "risk_anchor_symbols": payload.get("risk_anchor_symbols", []),
         "risk_anchor_signature": payload.get("risk_anchor_signature", "")
         if native_schema

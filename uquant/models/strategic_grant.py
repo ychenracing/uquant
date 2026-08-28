@@ -19,6 +19,7 @@ class StrategicGrantStatus(str, Enum):
     PENDING_EXECUTION = "PENDING_EXECUTION"
     PARTIALLY_FILLED = "PARTIALLY_FILLED"
     ACTIVE = "ACTIVE"
+    COMPLETED = "COMPLETED"
     EXPIRED = "EXPIRED"
     CANCELLED = "CANCELLED"
 
@@ -27,7 +28,11 @@ MAX_STRATEGIC_GRANT_HEALTHY_RETRY_SESSIONS = 20
 
 
 TERMINAL_STRATEGIC_GRANT_STATUSES = frozenset(
-    {StrategicGrantStatus.EXPIRED.value, StrategicGrantStatus.CANCELLED.value}
+    {
+        StrategicGrantStatus.COMPLETED.value,
+        StrategicGrantStatus.EXPIRED.value,
+        StrategicGrantStatus.CANCELLED.value,
+    }
 )
 
 
@@ -45,6 +50,10 @@ class StrategicQualificationObservation:
     qualification_streak: int = 0
     qualification_last_observed_session: str = ""
     candidate_invalidation_reason: str = ""
+    qualification_quorum: str = ""
+    candidate_symbols: list[str] = field(default_factory=list)
+    unavailable_reference_symbols: list[str] = field(default_factory=list)
+    evidence_family_status: dict[str, str] = field(default_factory=dict)
 
 
 @dataclass(slots=True)
@@ -70,6 +79,9 @@ class StrategicGrantIntent:
     previous_grant_id: str = ""
     account_identity: str = ""
     production_source_identity: str = ""
+    epoch_id: str = ""
+    qualification_quorum: str = ""
+    authorization_id: str = ""
 
     @property
     def terminal(self) -> bool:
@@ -87,7 +99,7 @@ def _require_session(value: str, *, field_name: str, allow_empty: bool = False) 
         raise ValueError(f"{field_name} must be an ISO date") from exc
 
 
-def _require_sha256(value: str, *, field_name: str) -> None:
+def _require_grant_sha256(value: str, *, field_name: str) -> None:
     if len(value) != 64 or any(character not in "0123456789abcdef" for character in value):
         raise ValueError(f"{field_name} must be SHA-256")
 
@@ -102,6 +114,7 @@ def derive_strategic_grant_id(
     created_session: str,
     previous_grant_id: str,
     production_source_identity: str,
+    authorization_id: str = "",
 ) -> str:
     """Derive an immutable grant identity from qualification provenance."""
 
@@ -114,13 +127,21 @@ def derive_strategic_grant_id(
     ):
         if not isinstance(value, str) or not value:
             raise ValueError(f"strategic grant {name} must be non-empty text")
-    _require_sha256(
+    _require_grant_sha256(
         qualification_evidence_sha256,
         field_name="strategic grant qualification_evidence_sha256",
     )
     _require_session(created_session, field_name="strategic grant created_session")
     if not isinstance(previous_grant_id, str):
         raise ValueError("strategic grant previous_grant_id must be text")
+    if not isinstance(authorization_id, str) or (
+        authorization_id
+        and (
+            not authorization_id.startswith("rearm_")
+            or len(authorization_id) != 70
+        )
+    ):
+        raise ValueError("strategic grant authorization identity is invalid")
     payload = {
         "account_identity": account_identity,
         "candidate_symbol": candidate_symbol,
@@ -132,6 +153,8 @@ def derive_strategic_grant_id(
         "qualification_signature": qualification_signature,
         "schema": "uquant.strategic-grant-intent",
     }
+    if authorization_id:
+        payload["authorization_id"] = authorization_id
     encoded = json.dumps(
         payload,
         allow_nan=False,
@@ -145,6 +168,14 @@ def derive_strategic_grant_id(
 def validate_strategic_qualification(value: StrategicQualificationObservation) -> None:
     """Reject malformed or internally contradictory qualification evidence."""
 
+    _validate_qualification_identity(value)
+    _validate_qualification_deployment(value)
+    _validate_qualification_references(value)
+
+
+def _validate_qualification_identity(
+    value: StrategicQualificationObservation,
+) -> None:
     if not value.candidate_symbol:
         populated = (
             value.qualification_signature,
@@ -159,7 +190,7 @@ def validate_strategic_qualification(value: StrategicQualificationObservation) -
     else:
         if not value.qualification_signature or not value.qualification_route:
             raise ValueError("strategic qualification identity is incomplete")
-        _require_sha256(
+        _require_grant_sha256(
             value.qualification_evidence_sha256,
             field_name="strategic qualification evidence",
         )
@@ -169,16 +200,58 @@ def validate_strategic_qualification(value: StrategicQualificationObservation) -
         )
     if isinstance(value.qualification_streak, bool) or value.qualification_streak < 0:
         raise ValueError("strategic qualification streak must be non-negative")
+
+
+def _validate_qualification_deployment(
+    value: StrategicQualificationObservation,
+) -> None:
     if value.deployment_blocked and not value.deployment_block_reason:
         raise ValueError("blocked strategic deployment requires a reason")
     if not value.deployment_blocked and value.deployment_block_reason:
         raise ValueError("unblocked strategic deployment cannot retain a block reason")
+    if not isinstance(value.qualification_quorum, str):
+        raise ValueError("strategic qualification quorum must be text")
+
+
+def _validate_qualification_references(
+    value: StrategicQualificationObservation,
+) -> None:
+    if (
+        not isinstance(value.candidate_symbols, list)
+        or any(not isinstance(symbol, str) or not symbol for symbol in value.candidate_symbols)
+        or len(value.candidate_symbols) != len(set(value.candidate_symbols))
+    ):
+        raise ValueError("strategic qualification candidate symbols are invalid")
+    if (
+        not isinstance(value.unavailable_reference_symbols, list)
+        or any(
+            not isinstance(symbol, str) or not symbol
+            for symbol in value.unavailable_reference_symbols
+        )
+        or len(value.unavailable_reference_symbols)
+        != len(set(value.unavailable_reference_symbols))
+    ):
+        raise ValueError("strategic unavailable references are invalid")
+    if not isinstance(value.evidence_family_status, dict) or any(
+        not isinstance(key, str)
+        or not key
+        or value not in {"CONFIRMED", "DEGRADED", "UNAVAILABLE", "FAILED"}
+        for key, value in value.evidence_family_status.items()
+    ):
+        raise ValueError("strategic evidence family status is invalid")
 
 
 def validate_strategic_grant(value: StrategicGrantIntent) -> None:
     """Validate a durable grant and its immutable deterministic identity."""
 
     StrategicGrantStatus(value.status)
+    _validate_grant_identity(value)
+    _validate_grant_progress(value)
+    _validate_grant_orders(value)
+    _validate_grant_terminal_state(value)
+
+
+def _validate_grant_identity(value: StrategicGrantIntent) -> None:
     _require_session(value.created_session, field_name="strategic grant created_session")
     _require_session(value.last_eligible_session, field_name="strategic grant last eligible session")
     _require_session(
@@ -200,9 +273,13 @@ def validate_strategic_grant(value: StrategicGrantIntent) -> None:
         created_session=value.created_session,
         previous_grant_id=value.previous_grant_id,
         production_source_identity=value.production_source_identity,
+        authorization_id=value.authorization_id,
     )
     if value.grant_id != expected:
         raise ValueError("strategic grant identity does not match immutable qualification evidence")
+
+
+def _validate_grant_progress(value: StrategicGrantIntent) -> None:
     if isinstance(value.healthy_retry_sessions, bool) or not 0 <= value.healthy_retry_sessions <= 20:
         raise ValueError("strategic grant healthy retry sessions must be between zero and twenty")
     if isinstance(value.filled_shares, bool) or value.filled_shares < 0:
@@ -214,16 +291,46 @@ def validate_strategic_grant(value: StrategicGrantIntent) -> None:
         or not 0.0 <= float(value.target_weight) <= 1.0
     ):
         raise ValueError("strategic grant target weight must be between zero and one")
+
+
+def _validate_grant_orders(value: StrategicGrantIntent) -> None:
     if len(value.submitted_order_ids) != len(set(value.submitted_order_ids)):
         raise ValueError("strategic grant submitted order ids must be unique")
     if len(value.acknowledged_order_ids) != len(set(value.acknowledged_order_ids)):
         raise ValueError("strategic grant acknowledged order ids must be unique")
     if not set(value.acknowledged_order_ids).issubset(value.submitted_order_ids):
         raise ValueError("strategic grant acknowledged orders must have been submitted")
-    if value.terminal and not value.expiry_reason:
+
+
+def _validate_grant_terminal_state(value: StrategicGrantIntent) -> None:
+    if value.status in {
+        StrategicGrantStatus.EXPIRED.value,
+        StrategicGrantStatus.CANCELLED.value,
+    } and not value.expiry_reason:
         raise ValueError("terminal strategic grant requires an expiry reason")
-    if not value.terminal and value.expiry_reason:
+    if value.status not in {
+        StrategicGrantStatus.EXPIRED.value,
+        StrategicGrantStatus.CANCELLED.value,
+    } and value.expiry_reason:
         raise ValueError("active strategic grant cannot have an expiry reason")
+    if not isinstance(value.epoch_id, str) or (
+        value.epoch_id
+        and (
+            not value.epoch_id.startswith("epoch_")
+            or len(value.epoch_id) != 70
+        )
+    ):
+        raise ValueError("strategic grant epoch identity is invalid")
+    if not isinstance(value.qualification_quorum, str):
+        raise ValueError("strategic grant qualification quorum must be text")
+    if not isinstance(value.authorization_id, str) or (
+        value.authorization_id
+        and (
+            not value.authorization_id.startswith("rearm_")
+            or len(value.authorization_id) != 70
+        )
+    ):
+        raise ValueError("strategic grant authorization identity is invalid")
 
 
 def strategic_qualification_from_payload(

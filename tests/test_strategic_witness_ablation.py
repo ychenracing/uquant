@@ -46,6 +46,7 @@ from research.strategic_evidence.witness_ablation_runner import (
     derive_balanced_industry_universe,
     read_cell_shard,
     recompute_task4_identities,
+    resolve_ablation_reference_roles,
     resolve_ablation_universe,
     resolve_resume_runtime_metadata,
     task4_sentinel_specs,
@@ -582,6 +583,34 @@ def test_report_outer_removal_uses_matching_sealed_report13_baseline() -> None:
     )
 
 
+@pytest.mark.parametrize(
+    ("axis", "qualification_removed", "risk_removed"),
+    (
+        (FULL_REMOVAL, True, True),
+        (EVIDENCE_REMOVAL, True, False),
+        (TRADABLE_REMOVAL, False, False),
+    ),
+)
+def test_ablation_reference_roles_match_the_declared_removal_axis(
+    axis: str,
+    qualification_removed: bool,
+    risk_removed: bool,
+) -> None:
+    contract = load_contract(ROOT / "benchmarks/strategic_evidence_closure_contract.json")
+    spec = AblationSpec(
+        scope="CANONICAL_LEAVE_ONE_OUT",
+        subject="sz300308",
+        removed_symbols=("sz300308",),
+        axis=axis,
+        evidence_class=ECONOMIC if axis == FULL_REMOVAL else DIAGNOSTIC_ONLY,
+    )
+
+    qualification, risk = resolve_ablation_reference_roles(spec, contract=contract)
+
+    assert ("sz300308" not in qualification) is qualification_removed
+    assert ("sz300308" not in risk) is risk_removed
+
+
 def test_partial_replay_error_retains_trace_without_date_alignment() -> None:
     """Catches compact/role derivation aligning a failed prefix to the baseline."""
 
@@ -649,7 +678,14 @@ def test_real_mid_replay_error_retains_completed_prefix_intervention_and_account
     assert tuple(row.date for row in result.trace) == ("2023-01-03", "2023-01-04")
     assert result.intervention_provenance is not None
     assert result.intervention_provenance["applied"] is True
-    assert len(result.final_account["order_ledger"]) == 1
+    orders = result.final_account["order_ledger"]
+    assert len(orders) == 2
+    assert orders[0]["status"] == "CANCELLED"
+    assert orders[0]["filled_shares"] > 0
+    assert orders[1]["status"] == "SUBMITTED"
+    assert orders[0]["grant_id"] == orders[1]["grant_id"]
+    assert orders[0]["order_id"] != orders[1]["order_id"]
+    assert orders[1]["requested_shares"] == orders[0]["remaining_shares"]
     assert len(result.final_account["fills"]) == 1
     spec = AblationSpec(
         scope="CANONICAL_LEAVE_ONE_OUT",

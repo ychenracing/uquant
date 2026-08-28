@@ -46,7 +46,7 @@ def test_public_api_contract_uses_current_governance_identity(
         "schema_version",
     }
     assert public_api_contract["contract_id"] == "uquant-public-api-v1"
-    assert public_api_contract["recorded_on"] == "2026-08-26"
+    assert public_api_contract["recorded_on"] == "2026-08-28"
     assert public_api_contract["schema_version"] == 1
     assert baseline["commit"] == BASELINE_COMMIT
 

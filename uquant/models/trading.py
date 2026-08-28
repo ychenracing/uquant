@@ -97,6 +97,7 @@ class AttributionIdentity(TypedDict):
     industry_at_entry: str
     industry_manifest_sha256: str
     grant_id: str
+    epoch_id: str
 
 
 def derive_attribution_event_id(
@@ -207,6 +208,7 @@ class Tranche:
     industry_at_entry: str = ""
     industry_manifest_sha256: str = ""
     grant_id: str = ""
+    epoch_id: str = ""
 
 
 @dataclass(slots=True)
@@ -221,6 +223,7 @@ class Position:
     lifecycle: str = Lifecycle.CORE.value
     tranches: list[Tranche] = field(default_factory=list)
     grant_id: str = ""
+    epoch_id: str = ""
 
     def sellable_shares(self, date: str) -> int:
         """Return tranche shares whose T+1 sellable date has arrived."""
@@ -256,6 +259,7 @@ class PendingOrder:
     industry_at_entry: str = ""
     industry_manifest_sha256: str = ""
     grant_id: str = ""
+    epoch_id: str = ""
 
 
 @dataclass(slots=True)
@@ -294,10 +298,25 @@ class AccountOrder:
     industry_at_entry: str = ""
     industry_manifest_sha256: str = ""
     grant_id: str = ""
+    epoch_id: str = ""
+
+
+def late_strategic_fill_allowed(order: AccountOrder) -> bool:
+    """Return whether a released strategic remainder can still fill at the broker."""
+
+    return bool(
+        order.status == OrderStatus.CANCELLED.value
+        and order.grant_id
+        and order.cancel_reason == "strategic partial remainder replaced"
+        and order.last_event != "BROKER_CANCELLED"
+        and order.filled_shares > 0
+        and order.remaining_shares > 0
+    )
 
 
 ATTRIBUTION_IDENTITY_FIELDS: tuple[str, ...] = (
     "grant_id",
+    "epoch_id",
     "event_id",
     "origin_subsystem",
     "mechanism",
@@ -362,6 +381,7 @@ class Fill:
     industry_at_entry: str = ""
     industry_manifest_sha256: str = ""
     grant_id: str = ""
+    epoch_id: str = ""
 
 
 __all__ = (

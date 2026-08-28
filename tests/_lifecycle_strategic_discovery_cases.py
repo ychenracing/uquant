@@ -11,6 +11,7 @@ from test_lifecycle_and_risk import (
 )
 
 from uquant.config import DEFAULT_CONFIG
+from uquant.models.strategic_epoch import StrategicEpochStatus
 from uquant.portfolio import PortfolioAllocator
 from uquant.types import (
     AccountState,
@@ -18,6 +19,17 @@ from uquant.types import (
     Risk,
     RiskAssessment,
 )
+
+
+def _assert_unfilled_strategic_probe(
+    account: AccountState,
+    *,
+    realized_epoch_count: int = 0,
+) -> None:
+    assert account.strategic_epoch == realized_epoch_count
+    assert account.active_strategic_epoch_id == ""
+    assert len(account.strategic_epochs) == 1
+    assert account.strategic_epochs[-1].realized_status == StrategicEpochStatus.PROBE.value
 
 
 def test_strategic_cohort_discovers_arbitrary_symbols_without_a_static_prior():
@@ -40,7 +52,7 @@ def test_strategic_cohort_discovers_arbitrary_symbols_without_a_static_prior():
     assert account.candidate_tenure["strategic_cohort_active"] == 1
     assert set(account.strategic_cohort_symbols) == expected
     assert set(account.strategic_cohort_targets) == expected
-    assert account.strategic_epoch == 1
+    _assert_unfilled_strategic_probe(account)
     assert account.strategic_candidate_signature.startswith("strategic_qualification:")
     assert all(symbol in account.strategic_candidate_signature for symbol in expected)
     assert sum(account.strategic_cohort_targets.values()) == pytest.approx(DEFAULT_CONFIG.max_gross)
@@ -141,7 +153,7 @@ def test_strategic_transition_route_needs_no_high_240_day_secular_score():
         )
 
     assert len(dates) < 241
-    assert account.strategic_epoch == 1
+    _assert_unfilled_strategic_probe(account)
     assert tuple(account.strategic_cohort_symbols) == symbols
 
 def test_synchronized_industry_impulse_is_causal_and_signature_order_invariant() -> None:
@@ -470,7 +482,7 @@ def test_absolute_ret240_can_admit_without_a_symbol_specific_prior() -> None:
             risk=risk,
         )
 
-    assert account.strategic_epoch == 1
+    _assert_unfilled_strategic_probe(account)
     assert set(account.strategic_cohort_symbols) == set(symbols)
     assert account.strategic_candidate_signature.startswith(
         "strategic_qualification:SECULAR:"

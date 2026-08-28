@@ -19,6 +19,7 @@ OFFICIAL_WINDOWS = (
     "continuous_ai_era",
 )
 PINNED_ACTIONS = {
+    "actions/cache": "5a3ec84eff668545956fd18022155c47e93e2684",
     "actions/checkout": "11bd71901bbe5b1630ceea73d27597364c9af683",
     "actions/setup-python": "a26af69be951a213d495a4c3e4e4022e16d87065",
     "actions/upload-artifact": "ea165f8d65b6e75b540449e92b4886f43607fa02",
@@ -256,7 +257,12 @@ def test_generalization_aggregator_catches_incomplete_stale_or_policy_failing_ev
 
 def test_workflows_catch_failure_suppression_and_unpinned_action_regressions() -> None:
     """Catches a failed gate being converted to success or an action floating by branch/tag."""
-    for name in ("ci.yml", "strategy-performance.yml", "strategy-generalization.yml"):
+    for name in (
+        "ci.yml",
+        "strategic-ownership-acceptance.yml",
+        "strategy-performance.yml",
+        "strategy-generalization.yml",
+    ):
         workflow = _workflow(name)
         rendered_runs: list[str] = []
         for job in workflow["jobs"].values():
@@ -276,7 +282,12 @@ def test_workflows_catch_failure_suppression_and_unpinned_action_regressions() -
 
 def test_action_pins_keep_readable_verified_version_comments() -> None:
     """Catches a full SHA losing its human-auditable upstream release identity."""
-    for name in ("ci.yml", "strategy-performance.yml", "strategy-generalization.yml"):
+    for name in (
+        "ci.yml",
+        "strategic-ownership-acceptance.yml",
+        "strategy-performance.yml",
+        "strategy-generalization.yml",
+    ):
         source = (WORKFLOWS / name).read_text(encoding="utf-8")
         for repository, sha in PINNED_ACTIONS.items():
             if repository not in source:

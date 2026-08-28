@@ -1340,6 +1340,32 @@ def resolve_ablation_universe(
     return source, tuple(sorted(concrete))
 
 
+def resolve_ablation_reference_roles(
+    spec: AblationSpec,
+    *,
+    contract: StrategicEvidenceContract,
+    resolved_removed: Sequence[str] | None = None,
+) -> tuple[tuple[str, ...], tuple[str, ...]]:
+    """Resolve qualification and risk roles independently for one removal axis."""
+
+    canonical = tuple(contract.canonical_universe)
+    removed = set(
+        resolved_removed
+        if resolved_removed is not None
+        else tuple(
+            symbol
+            for symbol in spec.removed_symbols
+            if not symbol.startswith("industry:")
+        )
+    )
+    qualification_removed = removed if spec.axis in {FULL_REMOVAL, EVIDENCE_REMOVAL} else set()
+    risk_removed = removed if spec.axis == FULL_REMOVAL else set()
+    return (
+        tuple(symbol for symbol in canonical if symbol not in qualification_removed),
+        tuple(symbol for symbol in canonical if symbol not in risk_removed),
+    )
+
+
 def _result_for_spec(
     *,
     data_dir: Path,
@@ -1398,6 +1424,11 @@ def _result_for_spec(
             ),
             (),
         )
+    qualification_references, risk_references = resolve_ablation_reference_roles(
+        spec,
+        contract=contract,
+        resolved_removed=removed,
+    )
     result = run_replay(
         data_dir,
         ReplayRequest(
@@ -1405,6 +1436,8 @@ def _result_for_spec(
             start=replay_window["start"],
             end=replay_window["end"],
             scenario=f"witness-ablation:{spec.cell_id}",
+            qualification_reference_symbols=qualification_references,
+            risk_reference_symbols=risk_references,
         ),
     )
     audit = _intervention_audit(spec, resolved_removed=removed)

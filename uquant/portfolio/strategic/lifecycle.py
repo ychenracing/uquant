@@ -8,6 +8,7 @@ from typing import TYPE_CHECKING, cast
 
 import pandas as pd
 
+from ...models.strategic_universe import StrategicUniverseRoles
 from ...features import scalar
 from ...portfolio_core import strategic_dominant_symbol
 from ...types import (
@@ -549,6 +550,9 @@ def _strategic_cohort_targets(
     prices: dict[str, float],
     weights_now: dict[str, float],
     admission_open: bool = True,
+    qualification_panel: dict[str, pd.DataFrame] | None = None,
+    qualification_leaders: dict[str, LeaderScore] | None = None,
+    strategic_universe: StrategicUniverseRoles | None = None,
 ) -> tuple[Target, ...] | None:
     """Run the active dynamic cohort through its current strategic epoch.
 
@@ -567,6 +571,9 @@ def _strategic_cohort_targets(
         risk=risk,
         admission_open=admission_open,
         weights_now=weights_now,
+        qualification_panel=qualification_panel,
+        qualification_leaders=qualification_leaders,
+        strategic_universe=strategic_universe,
     ):
         if not account.strategic_cohort_targets:
             # An invalidated grant owns this session's no-deployment decision;
@@ -588,7 +595,44 @@ def _strategic_cohort_targets(
         account=account,
         risk=risk,
         admission_open=admission_open,
+        qualification_panel=qualification_panel,
+        qualification_leaders=qualification_leaders,
+        strategic_universe=strategic_universe,
     )
+    grant = account.strategic_grant
+    epoch = next(
+        (
+            item
+            for item in account.strategic_epochs
+            if grant is not None and item.epoch_id == grant.epoch_id
+        ),
+        None,
+    )
+    if (
+        epoch is not None
+        and epoch.realized_status == "CORE"
+        and epoch.first_fill_session
+        and str(date.date()) > epoch.first_fill_session
+        and account.strategic_qualification.qualification_ready
+        and not account.strategic_qualification.deployment_blocked
+        and risk.state.value == "NORMAL"
+        and not risk.freeze_new_risk
+        and not bool(risk.evidence.get("freeze_new_risk", False))
+        and account.capital_budget_level == 0
+        and account.chronic_level == 0
+    ):
+        promoted_weight = min(
+            epoch.full_weight,
+            self.cfg.max_symbol_weight,
+            risk.target_gross_cap,
+        )
+        if promoted_weight > account.strategic_cohort_targets.get(epoch.owner_symbol, 0.0):
+            account.strategic_cohort_targets = {
+                epoch.owner_symbol: promoted_weight,
+            }
+            epoch.target_weight = promoted_weight
+            if grant is not None:
+                grant.target_weight = promoted_weight
     if account.candidate_tenure.get("strategic_cohort_active", 0) != 1:
         return None
     active_symbols = set(account.strategic_cohort_targets)

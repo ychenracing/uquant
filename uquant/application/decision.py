@@ -19,6 +19,7 @@ from ..config import (
 )
 from ..contracts.universe import AIUniverse, default_ai_universe
 from ..data import DataManifest, DataStore, normalize_symbol
+from ..models.strategic_universe import build_strategic_universe_roles
 from ..execution import merge_pending_orders, plan_orders
 from ..leader import (
     INDUSTRY,
@@ -499,6 +500,27 @@ def _allocate_decision_orders(
         leaders=user_leaders,
         account=account,
         prices=market.prices,
+        qualification_panel={**market.reference_panel, **market.user_panel},
+        qualification_leaders=all_leaders,
+        strategic_universe=build_strategic_universe_roles(
+            as_of=str(inputs.date.date()),
+            tradable_symbols=inputs.user_symbols,
+            qualification_reference_symbols=market.canonical_symbols,
+            risk_reference_symbols=(
+                *tuple(sorted(market.reference_panel)),
+                "sh000300",
+                "sh000682",
+            ),
+            industries={
+                symbol: market.universe.industry_of(symbol, str(inputs.date.date()))
+                for symbol in market.canonical_symbols
+            },
+            available_symbols=(
+                *tuple(sorted({*market.reference_panel, *market.user_panel})),
+                "sh000300",
+                "sh000682",
+            ),
+        ),
     )
     targets = attach_target_attribution_fn(
         signal_date=str(inputs.date.date()),

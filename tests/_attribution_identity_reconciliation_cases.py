@@ -45,7 +45,7 @@ def test_schema_v3_identity_migration_is_explicit_deterministic_and_prose_free(t
         acknowledge_code_change=True,
     )
 
-    assert first.schema_version == second.schema_version == domain.ACCOUNT_SCHEMA_VERSION == 5
+    assert first.schema_version == second.schema_version == domain.ACCOUNT_SCHEMA_VERSION
     assert first.initial_cash == second.initial_cash == 2_000_000.0
     assert first.cash == second.cash == 1_998_994.9
     assert first.positions["sz300502"].shares == second.positions["sz300502"].shares == 100

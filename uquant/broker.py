@@ -94,6 +94,7 @@ def _broker_reconciliation_identity(
         "industry_at_entry": industry,
         "industry_manifest_sha256": manifest,
         "grant_id": "",
+        "epoch_id": "",
     }
 
 
@@ -140,6 +141,7 @@ def _allocate_broker_sale(
                 "industry_at_entry": tranche.industry_at_entry,
                 "industry_manifest_sha256": tranche.industry_manifest_sha256,
                 "grant_id": tranche.grant_id,
+                "epoch_id": tranche.epoch_id,
             }
         )
         tranche.shares -= sold
@@ -548,6 +550,7 @@ def _broker_fill_allocations(
             industry_at_entry=values.order.industry_at_entry,
             industry_manifest_sha256=values.order.industry_manifest_sha256,
             grant_id=values.order.grant_id,
+            epoch_id=values.order.epoch_id,
         )
     )
     state.imported_buy_lifecycle[values.symbol] = values.order.lifecycle
@@ -589,6 +592,7 @@ def _commit_imported_broker_fill(
             industry_at_entry=order.industry_at_entry,
             industry_manifest_sha256=order.industry_manifest_sha256,
             grant_id=order.grant_id,
+            epoch_id=order.epoch_id,
         )
     )
     state.known_fills[values.fill_id] = state.account.fills[-1]
@@ -737,6 +741,7 @@ def _reconciled_broker_position(
         lifecycle=lifecycle,
         tranches=tranches,
         grant_id=next(iter({item.grant_id for item in tranches if item.grant_id}), ""),
+        epoch_id=next(iter({item.epoch_id for item in tranches if item.epoch_id}), ""),
     )
 
 

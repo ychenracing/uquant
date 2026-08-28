@@ -50,6 +50,7 @@ from .validation_common import (
 )
 
 _GRANT_ID = re.compile(r"^grant_[0-9a-f]{64}$")
+_EPOCH_ID = re.compile(r"^epoch_[0-9a-f]{64}$")
 
 
 def derive_v4_attribution_event_id(
@@ -149,10 +150,11 @@ def _validate_attribution_industry_and_event_id(
                 if event_schema_version == _HISTORICAL_ATTRIBUTION_SCHEMA_VERSION
                 else derive_attribution_event_id
             )
-            if event_schema_version not in {
-                _HISTORICAL_ATTRIBUTION_SCHEMA_VERSION,
-                ACCOUNT_SCHEMA_VERSION,
-            }:
+            if not (
+                _HISTORICAL_ATTRIBUTION_SCHEMA_VERSION
+                <= event_schema_version
+                <= ACCOUNT_SCHEMA_VERSION
+            ):
                 raise ValueError("unsupported attribution event schema")
             expected = derivation(
                 signal_date=item.signal_date,
@@ -189,6 +191,9 @@ def validate_attribution_identity(
     grant_id = getattr(item, "grant_id", "")
     if not isinstance(grant_id, str) or (grant_id and _GRANT_ID.fullmatch(grant_id) is None):
         raise RuntimeError(f"{label} has invalid strategic grant_id")
+    epoch_id = getattr(item, "epoch_id", "")
+    if not isinstance(epoch_id, str) or (epoch_id and _EPOCH_ID.fullmatch(epoch_id) is None):
+        raise RuntimeError(f"{label} has invalid strategic epoch_id")
 
     if not isinstance(item.event_id, str) or not _EVENT_ID.fullmatch(item.event_id):
         raise RuntimeError(f"{label} has invalid event_id")
@@ -316,7 +321,10 @@ def validate_lot_origin_chains(
             fill
             for fill in candidates
             if fill.fill_date == entry_date
-            and all(getattr(fill, field) == getattr(lot, field) for field in ATTRIBUTION_IDENTITY_FIELDS)
+            and all(
+                getattr(fill, field, "") == getattr(lot, field, "")
+                for field in ATTRIBUTION_IDENTITY_FIELDS
+            )
         ]
         if not matches:
             raise RuntimeError(f"{label} does not chain to an originating BUY")

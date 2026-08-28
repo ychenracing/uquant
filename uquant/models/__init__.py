@@ -14,6 +14,13 @@ from .enums import (
     Risk,
     Side,
 )
+from .strategic_epoch import (
+    StrategicEpoch,
+    StrategicEpochStatus,
+    activate_strategic_epoch,
+    close_strategic_epoch,
+    derive_strategic_epoch_id,
+)
 from .strategic_grant import (
     StrategicGrantIntent,
     StrategicGrantStatus,
@@ -59,6 +66,8 @@ Side.__module__ = "uquant.types"
 StrategicGrantIntent.__module__ = "uquant.types"
 StrategicGrantStatus.__module__ = "uquant.types"
 StrategicQualificationObservation.__module__ = "uquant.types"
+StrategicEpoch.__module__ = "uquant.types"
+StrategicEpochStatus.__module__ = "uquant.types"
 Target.__module__ = "uquant.types"
 Tranche.__module__ = "uquant.types"
 derive_attribution_event_id.__module__ = "uquant.types"
@@ -90,10 +99,15 @@ __all__ = (
     "StrategicGrantIntent",
     "StrategicGrantStatus",
     "StrategicQualificationObservation",
+    "StrategicEpoch",
+    "StrategicEpochStatus",
     "Target",
     "Tranche",
     "derive_attribution_event_id",
     "derive_strategic_grant_id",
+    "derive_strategic_epoch_id",
+    "activate_strategic_epoch",
+    "close_strategic_epoch",
     "order_intent_metadata",
     "validate_attribution_compatibility",
 )

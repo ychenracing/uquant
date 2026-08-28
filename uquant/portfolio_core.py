@@ -168,6 +168,9 @@ class PortfolioCore:
             held_grant_id = (
                 account.positions[symbol].grant_id if symbol in account.positions else ""
             )
+            held_epoch_id = (
+                account.positions[symbol].epoch_id if symbol in account.positions else ""
+            )
             targets.append(
                 Target(
                     symbol=symbol,
@@ -188,6 +191,17 @@ class PortfolioCore:
                         held_grant_id
                         or (
                             account.strategic_grant.grant_id
+                            if origin_subsystem is OriginSubsystem.STRATEGIC
+                            and account.strategic_grant is not None
+                            and not account.strategic_grant.terminal
+                            and symbol == account.strategic_grant.candidate_symbol
+                            else ""
+                        )
+                    ),
+                    epoch_id=(
+                        held_epoch_id
+                        or (
+                            account.strategic_grant.epoch_id
                             if origin_subsystem is OriginSubsystem.STRATEGIC
                             and account.strategic_grant is not None
                             and not account.strategic_grant.terminal

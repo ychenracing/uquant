@@ -7,6 +7,7 @@ from typing import TYPE_CHECKING
 
 import pandas as pd
 
+from ..models.strategic_universe import StrategicUniverseRoles
 from ..portfolio_core import current_weights
 from ..types import AccountState, LeaderScore, Lifecycle, Opportunity, Risk, RiskAssessment, Target
 from .context import AllocationState
@@ -425,6 +426,9 @@ def _strategic_allocation(
     state: AllocationState,
     strategic_live: bool,
     bounded_strategic_restore: bool,
+    qualification_panel: dict[str, pd.DataFrame] | None = None,
+    qualification_leaders: dict[str, LeaderScore] | None = None,
+    strategic_universe: StrategicUniverseRoles | None = None,
 ) -> tuple[Target, ...] | None:
     freeze_active = state.freeze_active
     weights_now = state.weights_now
@@ -451,6 +455,9 @@ def _strategic_allocation(
             prices=prices,
             weights_now=weights_now,
             admission_open=strategic_discovery_open,
+            qualification_panel=qualification_panel,
+            qualification_leaders=qualification_leaders,
+            strategic_universe=strategic_universe,
         )
         # Qualification observation is read-only and therefore runs through
         # freeze, capital-budget, and risk-off states. Deployment remains
@@ -480,6 +487,9 @@ def prepare_allocation(
     leaders: dict[str, LeaderScore],
     account: AccountState,
     prices: dict[str, float],
+    qualification_panel: dict[str, pd.DataFrame] | None = None,
+    qualification_leaders: dict[str, LeaderScore] | None = None,
+    strategic_universe: StrategicUniverseRoles | None = None,
 ) -> tuple[AllocationState, tuple[Target, ...] | None]:
     weights_now, equity, freeze_active, repair_observation, general_core_symbols = _initialize_allocation(
         self, risk=risk, account=account, prices=prices
@@ -589,4 +599,7 @@ def prepare_allocation(
         state=state,
         strategic_live=strategic_live,
         bounded_strategic_restore=bounded_strategic_restore,
+        qualification_panel=qualification_panel,
+        qualification_leaders=qualification_leaders,
+        strategic_universe=strategic_universe,
     )

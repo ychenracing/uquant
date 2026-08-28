@@ -104,6 +104,7 @@ def _consume_sell_tranches(
                 "industry_at_entry": tranche.industry_at_entry,
                 "industry_manifest_sha256": tranche.industry_manifest_sha256,
                 "grant_id": tranche.grant_id,
+                "epoch_id": tranche.epoch_id,
             }
         )
         tranche.shares -= sold
@@ -163,6 +164,10 @@ def _rebuild_position_from_tranches(position: Position) -> None:
     if len(grant_ids) > 1:
         raise RuntimeError("position contains multiple strategic grant owners")
     position.grant_id = next(iter(grant_ids), "")
+    epoch_ids = {item.epoch_id for item in position.tranches if item.epoch_id}
+    if len(epoch_ids) > 1:
+        raise RuntimeError("position contains multiple strategic epoch owners")
+    position.epoch_id = next(iter(epoch_ids), "")
 
 
 RISK_LIFECYCLE_PRIORITY = _RISK_LIFECYCLE_PRIORITY

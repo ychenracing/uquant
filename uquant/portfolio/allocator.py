@@ -8,6 +8,7 @@ from typing import TYPE_CHECKING
 
 import pandas as pd
 
+from ..models.strategic_universe import StrategicUniverseRoles
 from ..portfolio_core import (
     current_weights,
     strategic_dominant_symbol,
@@ -53,6 +54,9 @@ def _allocate_strategy_targets(
     leaders: dict[str, LeaderScore],
     account: AccountState,
     prices: dict[str, float],
+    qualification_panel: dict[str, pd.DataFrame] | None = None,
+    qualification_leaders: dict[str, LeaderScore] | None = None,
+    strategic_universe: StrategicUniverseRoles | None = None,
 ) -> tuple[tuple[Target, ...], AccountState, bool]:
     sentinel_only_freeze = sentinel_freeze_authorized(risk)
     strategy_risk = risk
@@ -77,6 +81,9 @@ def _allocate_strategy_targets(
             leaders=leaders,
             account=strategy_account,
             prices=prices,
+            qualification_panel=qualification_panel,
+            qualification_leaders=qualification_leaders,
+            strategic_universe=strategic_universe,
         )
     except RuntimeError as exc:
         raise RuntimeError(
@@ -121,6 +128,9 @@ def allocate(
     leaders: dict[str, LeaderScore],
     account: AccountState,
     prices: dict[str, float],
+    qualification_panel: dict[str, pd.DataFrame] | None = None,
+    qualification_leaders: dict[str, LeaderScore] | None = None,
+    strategic_universe: StrategicUniverseRoles | None = None,
 ) -> tuple[Target, ...]:
     """Apply the risk engine's gross cap to every strategy return path."""
     targets, strategy_account, sentinel_only_freeze = _allocate_strategy_targets(
@@ -132,6 +142,9 @@ def allocate(
         leaders=leaders,
         account=account,
         prices=prices,
+        qualification_panel=qualification_panel,
+        qualification_leaders=qualification_leaders,
+        strategic_universe=strategic_universe,
     )
     if sentinel_only_freeze:
         account.strategic_qualification = deepcopy(
@@ -299,6 +312,9 @@ class PortfolioAllocator(RecoveryPortfolioPolicy):
             leaders: dict[str, LeaderScore],
             account: AccountState,
             prices: dict[str, float],
+            qualification_panel: dict[str, pd.DataFrame] | None = None,
+            qualification_leaders: dict[str, LeaderScore] | None = None,
+            strategic_universe: StrategicUniverseRoles | None = None,
         ) -> tuple[Target, ...]: ...
 
         @staticmethod
@@ -328,6 +344,9 @@ class PortfolioAllocator(RecoveryPortfolioPolicy):
             leaders: dict[str, LeaderScore],
             account: AccountState,
             prices: dict[str, float],
+            qualification_panel: dict[str, pd.DataFrame] | None = None,
+            qualification_leaders: dict[str, LeaderScore] | None = None,
+            strategic_universe: StrategicUniverseRoles | None = None,
         ) -> tuple[Target, ...]: ...
 
 

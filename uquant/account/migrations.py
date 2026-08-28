@@ -2,13 +2,26 @@
 
 from __future__ import annotations
 
+import hashlib
+import json
 from collections.abc import Callable
 from datetime import UTC, datetime
 from pathlib import Path
 from types import SimpleNamespace
 from typing import Any
 
+from ..config import DEFAULT_CONFIG, config_fingerprint
 from ..contracts.universe import REQUIRED_AI_UNIVERSE_SHA256, default_ai_universe
+from ..models.strategic_epoch import (
+    StrategicEpoch,
+    StrategicEpochStatus,
+    derive_strategic_epoch_id,
+)
+from ..models.strategic_grant import (
+    StrategicGrantIntent,
+    StrategicGrantStatus,
+    derive_strategic_grant_id,
+)
 from ..types import (
     ACCOUNT_SCHEMA_VERSION,
     AccountOrder,
@@ -40,6 +53,211 @@ from .validation_common import (
     unlinked_fill_matches_order as _unlinked_fill_matches_order,
 )
 from .validation_orders import order_sequence as _order_sequence
+
+
+def _migration_sha256(payload: dict[str, Any]) -> str:
+    encoded = json.dumps(
+        payload,
+        allow_nan=False,
+        ensure_ascii=False,
+        separators=(",", ":"),
+        sort_keys=True,
+    ).encode("utf-8")
+    return hashlib.sha256(encoded).hexdigest()
+
+
+def _migrate_strategic_epoch_ownership(
+    state: AccountState,
+    *,
+    previous_schema: int,
+) -> dict[str, Any] | None:
+    """Map one legacy strategic owner to one immutable realized epoch."""
+
+    if previous_schema >= ACCOUNT_SCHEMA_VERSION or state.strategic_epochs:
+        return None
+    grant = state.strategic_grant
+    candidates = tuple(
+        dict.fromkeys(
+            [
+                *([] if grant is None else [grant.candidate_symbol]),
+                *state.strategic_cohort_symbols,
+                *state.strategic_cohort_targets,
+                *(
+                    symbol
+                    for symbol, position in state.positions.items()
+                    if position.grant_id
+                ),
+            ]
+        )
+    )
+    owner = next(
+        (
+            symbol
+            for symbol in candidates
+            if symbol in state.positions
+            or state.strategic_cohort_targets.get(symbol, 0.0) > 0.0
+            or grant is not None and grant.candidate_symbol == symbol and not grant.terminal
+        ),
+        "",
+    )
+    if not owner:
+        return None
+    position = state.positions.get(owner)
+    fill_sessions = sorted(
+        {
+            fill.fill_date
+            for fill in state.fills
+            if fill.symbol == owner and fill.side == Side.BUY.value and fill.shares > 0
+        }
+    )
+    if position is not None and position.entry_date:
+        fill_sessions.append(position.entry_date)
+        fill_sessions.sort()
+    first_fill_session = fill_sessions[0] if position is not None and position.shares > 0 else ""
+    opened_session = (
+        grant.created_session
+        if grant is not None
+        else first_fill_session or state.strategic_rearm_date or state.last_successful_run
+    )
+    if not opened_session:
+        raise RuntimeError("legacy strategic owner lacks a causal opening session")
+    if not state.account_identity:
+        state.account_identity = "account_" + _migration_sha256(
+            {
+                "initial_cash": state.initial_cash,
+                "owner": owner,
+                "opened_session": opened_session,
+            }
+        )
+    source_identity = (
+        grant.production_source_identity
+        if grant is not None
+        else state.code_hash or "legacy:unknown-source"
+    )
+    evidence_sha256 = (
+        grant.qualification_evidence_sha256
+        if grant is not None
+        else _migration_sha256(
+            {
+                "cohort": state.strategic_cohort_symbols,
+                "owner": owner,
+                "targets": state.strategic_cohort_targets,
+            }
+        )
+    )
+    qualification_signature = (
+        grant.qualification_signature
+        if grant is not None
+        else f"legacy-qualified:{owner}"
+    )
+    qualification_route = (
+        grant.qualification_route if grant is not None else "FULL_COHORT"
+    )
+    if grant is None:
+        grant_id = derive_strategic_grant_id(
+            account_identity=state.account_identity,
+            candidate_symbol=owner,
+            qualification_signature=qualification_signature,
+            qualification_route=qualification_route,
+            qualification_evidence_sha256=evidence_sha256,
+            created_session=opened_session,
+            previous_grant_id="",
+            production_source_identity=source_identity,
+        )
+        grant = StrategicGrantIntent(
+            grant_id=grant_id,
+            candidate_symbol=owner,
+            qualification_signature=qualification_signature,
+            qualification_route=qualification_route,
+            qualification_evidence_sha256=evidence_sha256,
+            created_session=opened_session,
+            last_eligible_session=opened_session,
+            filled_shares=0 if position is None else position.shares,
+            target_weight=state.strategic_cohort_targets.get(owner, 0.0),
+            status=(
+                StrategicGrantStatus.ACTIVE.value
+                if first_fill_session
+                else StrategicGrantStatus.PENDING_EXECUTION.value
+            ),
+            account_identity=state.account_identity,
+            production_source_identity=source_identity,
+        )
+        state.strategic_grant = grant
+    config_identity = "config:" + config_fingerprint(DEFAULT_CONFIG)
+    epoch_id = derive_strategic_epoch_id(
+        account_identity=state.account_identity,
+        owner_symbol=owner,
+        qualification_signature=qualification_signature,
+        qualification_route=qualification_route,
+        grant_id=grant.grant_id,
+        opened_session=opened_session,
+        previous_epoch_id="",
+        source_identity=source_identity,
+        config_identity=config_identity,
+        evidence_sha256=evidence_sha256,
+    )
+    target_weight = max(
+        0.0,
+        min(1.0, state.strategic_cohort_targets.get(owner, grant.target_weight)),
+    )
+    full_weight = max(target_weight, min(1.0, DEFAULT_CONFIG.max_symbol_weight))
+    active = bool(first_fill_session)
+    epoch = StrategicEpoch(
+        epoch_id=epoch_id,
+        owner_symbol=owner,
+        qualification_signature=qualification_signature,
+        qualification_route=qualification_route,
+        qualification_quorum=qualification_route,
+        grant_id=grant.grant_id,
+        opened_session=opened_session,
+        first_fill_session=first_fill_session,
+        active_session=first_fill_session,
+        previous_epoch_id="",
+        source_identity=source_identity,
+        config_identity=config_identity,
+        evidence_sha256=evidence_sha256,
+        realized_status=(
+            StrategicEpochStatus.ACTIVE.value
+            if active
+            else StrategicEpochStatus.PROBE.value
+        ),
+        target_weight=target_weight,
+        full_weight=full_weight,
+        account_identity=state.account_identity,
+    )
+    epoch.validate()
+    state.strategic_epochs = [epoch]
+    state.active_strategic_epoch_id = epoch_id if active else ""
+    grant.epoch_id = epoch_id
+    for order in (*state.pending_orders, *state.order_ledger):
+        if order.grant_id == grant.grant_id:
+            order.epoch_id = epoch_id
+    for fill in state.fills:
+        if fill.grant_id == grant.grant_id:
+            fill.epoch_id = epoch_id
+            for sold in fill.sold_tranches:
+                if sold.get("grant_id", "") == grant.grant_id:
+                    sold["epoch_id"] = epoch_id
+    for symbol, held in state.positions.items():
+        if held.grant_id == grant.grant_id or symbol == owner:
+            held.epoch_id = epoch_id
+            for tranche in held.tranches:
+                if tranche.grant_id == grant.grant_id or symbol == owner:
+                    tranche.epoch_id = epoch_id
+    state.protected_weight_epoch_ids = {
+        symbol: epoch_id for symbol in state.protected_weights if symbol == owner
+    }
+    state.strategic_restore_epoch_ids = {
+        symbol: epoch_id for symbol in state.strategic_restore_weights if symbol == owner
+    }
+    if state.recovery_conviction_symbol == owner:
+        state.recovery_owner_epoch_id = epoch_id
+    return {
+        "owner_symbol": owner,
+        "epoch_id": epoch_id,
+        "grant_id": grant.grant_id,
+        "realized_status": epoch.realized_status,
+    }
 
 
 def _legacy_attribution_owner(
@@ -714,6 +932,10 @@ def migrate_account(
             "new_next_order_sequence": exact_next_order_sequence,
             "reason": "v5_requires_exact_max_durable_order_id_plus_one",
         }
+    strategic_epoch_migration = _migrate_strategic_epoch_ownership(
+        state,
+        previous_schema=previous_schema,
+    )
     state.schema_version = ACCOUNT_SCHEMA_VERSION
     state.code_hash = new_code_hash
     migration_event: dict[str, Any] = {
@@ -737,6 +959,8 @@ def migrate_account(
         }
     if order_sequence_migration is not None:
         migration_event["order_sequence_migration"] = order_sequence_migration
+    if strategic_epoch_migration is not None:
+        migration_event["strategic_epoch_migration"] = strategic_epoch_migration
     state.account_migrations.append(migration_event)
     save_account(state, destination)
     return state

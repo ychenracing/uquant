@@ -222,7 +222,7 @@ def test_pre_fix_v4_identity_requires_validated_deterministic_v5_migration(
         acknowledge_code_change=True,
     )
 
-    assert domain.ACCOUNT_SCHEMA_VERSION == first.schema_version == second.schema_version == 5
+    assert domain.ACCOUNT_SCHEMA_VERSION == first.schema_version == second.schema_version
     assert first.cash == second.cash == 1_999_089.39
     assert first.positions["sz300502"].shares == second.positions["sz300502"].shares == 100
     assert first.order_ledger[0].filled_shares == second.order_ledger[0].filled_shares == 200

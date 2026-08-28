@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from typing import Any
 
+from ..models.strategic_epoch import StrategicEpochStatus
 from ..models.strategic_grant import (
     validate_strategic_grant,
     validate_strategic_qualification,
@@ -288,6 +289,7 @@ def _validate_strategy_identity_and_weights(
         raise RuntimeError("account identity must be text")
     try:
         validate_strategic_qualification(state.strategic_qualification)
+        validate_strategic_qualification(state.strategic_successor_qualification)
         if state.strategic_grant is not None:
             validate_strategic_grant(state.strategic_grant)
             if state.account_identity and state.strategic_grant.account_identity != state.account_identity:
@@ -299,6 +301,76 @@ def _validate_strategy_identity_and_weights(
                 raise ValueError("another strategic grant has a pending execution owner")
     except (TypeError, ValueError) as exc:
         raise RuntimeError(f"account strategic grant state is invalid: {exc}") from exc
+
+    if not isinstance(state.strategic_epochs, list):
+        raise RuntimeError("strategic epoch ledger must be an array")
+    epoch_ids: set[str] = set()
+    grant_ids: set[str] = set()
+    active_epochs = []
+    nonterminal_epochs = []
+    previous_epoch_id = ""
+    for epoch in state.strategic_epochs:
+        try:
+            epoch.validate()
+        except (TypeError, ValueError) as exc:
+            raise RuntimeError(f"account strategic epoch state is invalid: {exc}") from exc
+        if epoch.epoch_id in epoch_ids or epoch.grant_id in grant_ids:
+            raise RuntimeError("strategic epoch and grant identities must be unique")
+        if epoch.account_identity != state.account_identity:
+            raise RuntimeError("strategic epoch account identity differs from account")
+        if epoch.previous_epoch_id != previous_epoch_id:
+            raise RuntimeError("strategic epoch chain is discontinuous")
+        epoch_ids.add(epoch.epoch_id)
+        grant_ids.add(epoch.grant_id)
+        previous_epoch_id = epoch.epoch_id
+        if epoch.realized_status == StrategicEpochStatus.ACTIVE.value:
+            active_epochs.append(epoch)
+        if not epoch.terminal:
+            nonterminal_epochs.append(epoch)
+    if len(active_epochs) > 1:
+        raise RuntimeError("strategic account permits at most one ACTIVE epoch")
+    if len(nonterminal_epochs) > 1:
+        raise RuntimeError("strategic account permits at most one nonterminal epoch")
+    expected_active_id = active_epochs[0].epoch_id if active_epochs else ""
+    if state.active_strategic_epoch_id != expected_active_id:
+        raise RuntimeError("active strategic epoch pointer differs from realized ledger")
+    if state.strategic_grant is not None and state.strategic_grant.epoch_id:
+        matching = next(
+            (
+                epoch
+                for epoch in state.strategic_epochs
+                if epoch.epoch_id == state.strategic_grant.epoch_id
+            ),
+            None,
+        )
+        if matching is None or matching.grant_id != state.strategic_grant.grant_id:
+            raise RuntimeError("strategic grant epoch binding differs from ledger")
+    for field_name, mapping in (
+        ("protected_weight_epoch_ids", state.protected_weight_epoch_ids),
+        ("strategic_restore_epoch_ids", state.strategic_restore_epoch_ids),
+    ):
+        if not isinstance(mapping, dict) or any(
+            not isinstance(symbol, str)
+            or not symbol
+            or not isinstance(epoch_id, str)
+            or epoch_id not in epoch_ids
+            for symbol, epoch_id in mapping.items()
+        ):
+            raise RuntimeError(f"{field_name} contains an unknown epoch owner")
+    if (
+        not isinstance(state.recovery_owner_epoch_id, str)
+        or state.recovery_owner_epoch_id
+        and state.recovery_owner_epoch_id not in epoch_ids
+    ):
+        raise RuntimeError("recovery owner references an unknown strategic epoch")
+    for field_name in (
+        "active_strategic_epoch_id",
+        "strategic_tradable_universe_identity",
+        "strategic_qualification_universe_identity",
+        "strategic_risk_universe_identity",
+    ):
+        if not isinstance(getattr(state, field_name), str):
+            raise RuntimeError(f"{field_name} must be text")
 
     _validate_weight_map(state.anchor_weights, field="anchor_weights")
     if not isinstance(state.recovery_conviction_symbol, str):

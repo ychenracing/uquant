@@ -12,6 +12,7 @@ import pandas as pd
 
 from ..config import SystemConfig
 from ..features import scalar
+from ..models.strategic_epoch import record_account_strategic_epoch_fill
 from ..models.strategic_grant import (
     acknowledge_strategic_grant_order,
     record_strategic_grant_fill,
@@ -273,6 +274,10 @@ def _apply_buy_fill(
         if current.shares - request.shares > 0 and current.grant_id != order.grant_id:
             raise RuntimeError("strategic fill would create a second grant owner for one position")
         current.grant_id = order.grant_id
+    if order.epoch_id:
+        if current.shares - request.shares > 0 and current.epoch_id != order.epoch_id:
+            raise RuntimeError("strategic fill would create a second epoch owner for one position")
+        current.epoch_id = order.epoch_id
     if previous_lifecycle != order.lifecycle:
         account.lifecycle_events.append(
             {
@@ -307,6 +312,7 @@ def _apply_buy_fill(
             industry_at_entry=order.industry_at_entry,
             industry_manifest_sha256=order.industry_manifest_sha256,
             grant_id=order.grant_id,
+            epoch_id=order.epoch_id,
         )
     )
     account.positions[order.symbol] = current
@@ -404,6 +410,7 @@ def _build_open_fill(
         industry_at_entry=order.industry_at_entry,
         industry_manifest_sha256=order.industry_manifest_sha256,
         grant_id=order.grant_id,
+        epoch_id=order.epoch_id,
     )
 
 
@@ -454,6 +461,14 @@ def _record_open_fill(
             grant_id=fill.grant_id,
             shares=fill.shares,
             completed=request.shares >= request.target_requested,
+        )
+        record_account_strategic_epoch_fill(
+            account,
+            epoch_id=fill.epoch_id,
+            grant_id=fill.grant_id,
+            symbol=fill.symbol,
+            fill_session=fill.fill_date,
+            filled_shares=fill.shares,
         )
 
 

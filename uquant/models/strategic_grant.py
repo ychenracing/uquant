@@ -19,6 +19,7 @@ class StrategicGrantStatus(str, Enum):
     PENDING_EXECUTION = "PENDING_EXECUTION"
     PARTIALLY_FILLED = "PARTIALLY_FILLED"
     ACTIVE = "ACTIVE"
+    COMPLETED = "COMPLETED"
     EXPIRED = "EXPIRED"
     CANCELLED = "CANCELLED"
 
@@ -45,6 +46,10 @@ class StrategicQualificationObservation:
     qualification_streak: int = 0
     qualification_last_observed_session: str = ""
     candidate_invalidation_reason: str = ""
+    qualification_quorum: str = ""
+    candidate_symbols: list[str] = field(default_factory=list)
+    unavailable_reference_symbols: list[str] = field(default_factory=list)
+    evidence_family_status: dict[str, str] = field(default_factory=dict)
 
 
 @dataclass(slots=True)
@@ -70,6 +75,8 @@ class StrategicGrantIntent:
     previous_grant_id: str = ""
     account_identity: str = ""
     production_source_identity: str = ""
+    epoch_id: str = ""
+    qualification_quorum: str = ""
 
     @property
     def terminal(self) -> bool:
@@ -173,6 +180,31 @@ def validate_strategic_qualification(value: StrategicQualificationObservation) -
         raise ValueError("blocked strategic deployment requires a reason")
     if not value.deployment_blocked and value.deployment_block_reason:
         raise ValueError("unblocked strategic deployment cannot retain a block reason")
+    if not isinstance(value.qualification_quorum, str):
+        raise ValueError("strategic qualification quorum must be text")
+    if (
+        not isinstance(value.candidate_symbols, list)
+        or any(not isinstance(symbol, str) or not symbol for symbol in value.candidate_symbols)
+        or len(value.candidate_symbols) != len(set(value.candidate_symbols))
+    ):
+        raise ValueError("strategic qualification candidate symbols are invalid")
+    if (
+        not isinstance(value.unavailable_reference_symbols, list)
+        or any(
+            not isinstance(symbol, str) or not symbol
+            for symbol in value.unavailable_reference_symbols
+        )
+        or len(value.unavailable_reference_symbols)
+        != len(set(value.unavailable_reference_symbols))
+    ):
+        raise ValueError("strategic unavailable references are invalid")
+    if not isinstance(value.evidence_family_status, dict) or any(
+        not isinstance(key, str)
+        or not key
+        or value not in {"CONFIRMED", "DEGRADED", "UNAVAILABLE", "FAILED"}
+        for key, value in value.evidence_family_status.items()
+    ):
+        raise ValueError("strategic evidence family status is invalid")
 
 
 def validate_strategic_grant(value: StrategicGrantIntent) -> None:
@@ -224,6 +256,16 @@ def validate_strategic_grant(value: StrategicGrantIntent) -> None:
         raise ValueError("terminal strategic grant requires an expiry reason")
     if not value.terminal and value.expiry_reason:
         raise ValueError("active strategic grant cannot have an expiry reason")
+    if not isinstance(value.epoch_id, str) or (
+        value.epoch_id
+        and (
+            not value.epoch_id.startswith("epoch_")
+            or len(value.epoch_id) != 70
+        )
+    ):
+        raise ValueError("strategic grant epoch identity is invalid")
+    if not isinstance(value.qualification_quorum, str):
+        raise ValueError("strategic grant qualification quorum must be text")
 
 
 def strategic_qualification_from_payload(

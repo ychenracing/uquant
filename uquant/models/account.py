@@ -6,10 +6,11 @@ from dataclasses import asdict, dataclass, field
 from typing import Any
 
 from .enums import Opportunity, Risk
+from .strategic_epoch import StrategicEpoch
 from .strategic_grant import StrategicGrantIntent, StrategicQualificationObservation
 from .trading import AccountOrder, Fill, PendingOrder, Position
 
-ACCOUNT_SCHEMA_VERSION = 5
+ACCOUNT_SCHEMA_VERSION = 6
 
 
 @dataclass(slots=True)
@@ -69,7 +70,18 @@ class AccountState:
     strategic_qualification: StrategicQualificationObservation = field(
         default_factory=StrategicQualificationObservation
     )
+    strategic_successor_qualification: StrategicQualificationObservation = field(
+        default_factory=StrategicQualificationObservation
+    )
     strategic_grant: StrategicGrantIntent | None = None
+    strategic_epochs: list[StrategicEpoch] = field(default_factory=list)
+    active_strategic_epoch_id: str = ""
+    protected_weight_epoch_ids: dict[str, str] = field(default_factory=dict)
+    strategic_restore_epoch_ids: dict[str, str] = field(default_factory=dict)
+    recovery_owner_epoch_id: str = ""
+    strategic_tradable_universe_identity: str = ""
+    strategic_qualification_universe_identity: str = ""
+    strategic_risk_universe_identity: str = ""
     risk_anchor_symbols: list[str] = field(default_factory=list)
     risk_anchor_signature: str = ""
     risk_anchor_candidate_signature: str = ""

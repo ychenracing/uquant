@@ -27,6 +27,14 @@ from .strategic_grant import (
     StrategicQualificationObservation,
     derive_strategic_grant_id,
 )
+from .strategic_rearm import (
+    StrategicCashRearmPredicate,
+    StrategicCashRearmRejectionReason,
+    StrategicCashRearmState,
+    StrategicCashRearmStatus,
+    StrategicCashRearmStreakTransition,
+    derive_strategic_cash_rearm_authorization_id,
+)
 from .trading import (
     ATTRIBUTION_IDENTITY_FIELDS,
     ORDER_INTENT_IMMUTABLE_FIELDS,
@@ -68,10 +76,16 @@ StrategicGrantStatus.__module__ = "uquant.types"
 StrategicQualificationObservation.__module__ = "uquant.types"
 StrategicEpoch.__module__ = "uquant.types"
 StrategicEpochStatus.__module__ = "uquant.types"
+StrategicCashRearmPredicate.__module__ = "uquant.types"
+StrategicCashRearmRejectionReason.__module__ = "uquant.types"
+StrategicCashRearmState.__module__ = "uquant.types"
+StrategicCashRearmStatus.__module__ = "uquant.types"
+StrategicCashRearmStreakTransition.__module__ = "uquant.types"
 Target.__module__ = "uquant.types"
 Tranche.__module__ = "uquant.types"
 derive_attribution_event_id.__module__ = "uquant.types"
 derive_strategic_grant_id.__module__ = "uquant.types"
+derive_strategic_cash_rearm_authorization_id.__module__ = "uquant.types"
 order_intent_metadata.__module__ = "uquant.types"
 validate_attribution_compatibility.__module__ = "uquant.types"
 
@@ -101,10 +115,16 @@ __all__ = (
     "StrategicQualificationObservation",
     "StrategicEpoch",
     "StrategicEpochStatus",
+    "StrategicCashRearmPredicate",
+    "StrategicCashRearmRejectionReason",
+    "StrategicCashRearmState",
+    "StrategicCashRearmStatus",
+    "StrategicCashRearmStreakTransition",
     "Target",
     "Tranche",
     "derive_attribution_event_id",
     "derive_strategic_grant_id",
+    "derive_strategic_cash_rearm_authorization_id",
     "derive_strategic_epoch_id",
     "activate_strategic_epoch",
     "close_strategic_epoch",

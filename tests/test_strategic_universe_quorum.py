@@ -8,6 +8,8 @@ from uquant.models.strategic_universe import (
 from uquant.portfolio.strategic.quorum import (
     StrategicQuorumRoute,
     evaluate_strategic_quorum,
+    route_consistent_owner_quality,
+    strict_absolute_owner_quality,
 )
 from uquant.types import LeaderScore, Risk, RiskAssessment
 from uquant.portfolio import PortfolioAllocator
@@ -95,6 +97,41 @@ def test_universe_roles_bind_point_in_time_identity_and_unavailable_references()
     assert roles.tradable_identity != roles.qualification_reference_identity
     assert roles.qualification_reference_identity != roles.risk_reference_identity
     assert len(roles.point_in_time_industry_identity) == 64
+
+
+def test_universe_role_identity_changes_only_when_declared_role_or_availability_changes() -> None:
+    first = _roles()
+    same_roles_next_session = build_strategic_universe_roles(
+        as_of="2026-01-06",
+        tradable_symbols=first.tradable_symbols,
+        qualification_reference_symbols=first.qualification_reference_symbols,
+        risk_reference_symbols=first.risk_reference_symbols,
+        industries=dict(first.point_in_time_industries),
+        available_symbols=first.available_symbols,
+    )
+    missing_expected_reference = build_strategic_universe_roles(
+        as_of="2026-01-06",
+        tradable_symbols=first.tradable_symbols,
+        qualification_reference_symbols=first.qualification_reference_symbols,
+        risk_reference_symbols=first.risk_reference_symbols,
+        industries=dict(first.point_in_time_industries),
+        available_symbols=set(first.available_symbols) - {"sh688008"},
+    )
+
+    assert same_roles_next_session.tradable_identity == first.tradable_identity
+    assert (
+        same_roles_next_session.qualification_reference_identity
+        == first.qualification_reference_identity
+    )
+    assert same_roles_next_session.risk_reference_identity == first.risk_reference_identity
+    assert (
+        same_roles_next_session.point_in_time_industry_identity
+        == first.point_in_time_industry_identity
+    )
+    assert (
+        missing_expected_reference.qualification_reference_identity
+        != first.qualification_reference_identity
+    )
 
 
 def test_full_cohort_keeps_existing_gross_semantics() -> None:
@@ -218,6 +255,33 @@ def test_absolute_single_cannot_bypass_negative_owner_quality() -> None:
     assert result.qualified is False
     assert result.owner_absolute_quality is False
     assert "OWNER_ABSOLUTE_QUALITY" in result.reasons
+
+
+def test_route_consistent_owner_quality_does_not_apply_single_name_floor_to_full_cohort() -> None:
+    snapshot = _snapshot(score=0.80)
+    snapshots = {"sz300394": snapshot}
+    leaders = {"sz300394": _leader("sz300394", score=0.80)}
+
+    assert strict_absolute_owner_quality(
+        symbol="sz300394",
+        snapshots=snapshots,
+        leaders=leaders,
+        cfg=DEFAULT_CONFIG,
+    ) is False
+    assert route_consistent_owner_quality(
+        symbol="sz300394",
+        quorum_route=StrategicQuorumRoute.FULL_COHORT.value,
+        snapshots=snapshots,
+        leaders=leaders,
+        cfg=DEFAULT_CONFIG,
+    ) is True
+    assert route_consistent_owner_quality(
+        symbol="sz300394",
+        quorum_route=StrategicQuorumRoute.ABSOLUTE_SINGLE.value,
+        snapshots=snapshots,
+        leaders=leaders,
+        cfg=DEFAULT_CONFIG,
+    ) is False
 
 
 def test_reference_symbols_confirm_qualification_but_never_receive_targets() -> None:

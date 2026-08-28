@@ -8,9 +8,10 @@ from typing import Any
 from .enums import Opportunity, Risk
 from .strategic_epoch import StrategicEpoch
 from .strategic_grant import StrategicGrantIntent, StrategicQualificationObservation
+from .strategic_rearm import StrategicCashRearmState
 from .trading import AccountOrder, Fill, PendingOrder, Position
 
-ACCOUNT_SCHEMA_VERSION = 6
+ACCOUNT_SCHEMA_VERSION = 7
 
 
 @dataclass(slots=True)
@@ -74,6 +75,9 @@ class AccountState:
         default_factory=StrategicQualificationObservation
     )
     strategic_grant: StrategicGrantIntent | None = None
+    strategic_cash_rearm: StrategicCashRearmState = field(
+        default_factory=StrategicCashRearmState
+    )
     strategic_epochs: list[StrategicEpoch] = field(default_factory=list)
     active_strategic_epoch_id: str = ""
     protected_weight_epoch_ids: dict[str, str] = field(default_factory=dict)

@@ -936,6 +936,19 @@ def migrate_account(
         state,
         previous_schema=previous_schema,
     )
+    legacy_rearm_keys = tuple(
+        key
+        for key in (
+            "strategic_cash_rearm_budget_level",
+            "strategic_cash_rearm_healthy_sessions",
+            "strategic_cash_rearm_authorized",
+            "strategic_cash_rearm_grant",
+            "strategic_cash_rearm_candidate_strict",
+        )
+        if key in state.candidate_tenure
+    )
+    for key in legacy_rearm_keys:
+        state.candidate_tenure.pop(key, None)
     state.schema_version = ACCOUNT_SCHEMA_VERSION
     state.code_hash = new_code_hash
     migration_event: dict[str, Any] = {
@@ -961,6 +974,11 @@ def migrate_account(
         migration_event["order_sequence_migration"] = order_sequence_migration
     if strategic_epoch_migration is not None:
         migration_event["strategic_epoch_migration"] = strategic_epoch_migration
+    if legacy_rearm_keys:
+        migration_event["strategic_cash_rearm_normalization"] = {
+            "policy": "discard_unbound_candidate_tenure_authorization",
+            "discarded_keys": list(legacy_rearm_keys),
+        }
     state.account_migrations.append(migration_event)
     save_account(state, destination)
     return state

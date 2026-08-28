@@ -9,6 +9,7 @@ from ..models.strategic_grant import (
     validate_strategic_grant,
     validate_strategic_qualification,
 )
+from ..models.strategic_rearm import validate_strategic_cash_rearm_account_binding
 from ..types import AccountState, Lifecycle, Opportunity, Risk
 from .validation_common import (
     SHOCK_SEVERITIES as _SHOCK_SEVERITIES,
@@ -290,6 +291,10 @@ def _validate_strategy_identity_and_weights(
     try:
         validate_strategic_qualification(state.strategic_qualification)
         validate_strategic_qualification(state.strategic_successor_qualification)
+        validate_strategic_cash_rearm_account_binding(
+            state.strategic_cash_rearm,
+            account_identity=state.account_identity,
+        )
         if state.strategic_grant is not None:
             validate_strategic_grant(state.strategic_grant)
             if state.account_identity and state.strategic_grant.account_identity != state.account_identity:

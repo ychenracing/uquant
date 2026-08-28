@@ -12,6 +12,7 @@ from ..models.strategic_grant import (
     strategic_grant_from_payload,
     strategic_qualification_from_payload,
 )
+from ..models.strategic_rearm import strategic_cash_rearm_from_payload
 from ..types import (
     ACCOUNT_SCHEMA_VERSION,
     AccountOrder,
@@ -243,6 +244,8 @@ def _decode_account_strategy_fields(
     payload: Mapping[str, Any],
     schema_version: int,
 ) -> dict[str, Any]:
+    if schema_version == ACCOUNT_SCHEMA_VERSION and "strategic_cash_rearm" not in payload:
+        raise RuntimeError("current account schema requires strategic_cash_rearm")
     return {
         "strategic_epochs_completed": payload.get(
             "strategic_epochs_completed",
@@ -262,6 +265,9 @@ def _decode_account_strategy_fields(
             payload.get("strategic_successor_qualification")
         ),
         "strategic_grant": strategic_grant_from_payload(payload.get("strategic_grant")),
+        "strategic_cash_rearm": strategic_cash_rearm_from_payload(
+            payload.get("strategic_cash_rearm")
+        ),
         "strategic_epochs": [
             strategic_epoch_from_payload(dict(item))
             for item in payload.get("strategic_epochs", [])

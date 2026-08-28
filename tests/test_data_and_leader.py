@@ -102,6 +102,19 @@ def test_account_data_provenance_advances_by_verified_prefix(data_dir):
     assert account.data_hash_symbols
 
 
+def test_decision_summary_exposes_typed_strategic_cash_rearm_evidence(data_dir):
+    decision = ProductionEngine(data_dir).decide(
+        symbols=["sz300308", "sz300502", "sz300394"],
+        as_of="2026-06-30",
+        account=AccountState.empty(2e6),
+    )
+
+    rearm = decision.risk_summary["strategic_cash_rearm"]
+    assert rearm["status"] in {"OBSERVING", "AUTHORIZED", "CONSUMED", "INVALIDATED"}
+    assert isinstance(rearm["predicate_results"], list)
+    assert isinstance(rearm["rejection_reasons"], list)
+
+
 def test_historical_manifest_and_checksums_are_reproducible(data_dir):
     manifest = json.loads((data_dir / "DATA_MANIFEST.json").read_text(encoding="utf-8"))
     results = {item["symbol"]: item for item in manifest["results"]}

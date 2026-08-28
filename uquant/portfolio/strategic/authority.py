@@ -1,0 +1,174 @@
+"""Single authoritative view of strategic capital ownership backing."""
+
+from __future__ import annotations
+
+from dataclasses import dataclass
+
+from ...models.strategic_epoch import StrategicEpochStatus
+from ...models.strategic_grant import TERMINAL_STRATEGIC_GRANT_STATUSES
+from ...types import AccountState, OrderStatus
+
+
+@dataclass(frozen=True, slots=True)
+class StrategicCapitalAuthorityAssessment:
+    """Economic backing and harmless residue for one durable account."""
+
+    all_cash: bool
+    positive_position_symbols: tuple[str, ...]
+    pending_execution_symbols: tuple[str, ...]
+    unsettled_order_ids: tuple[str, ...]
+    late_fill_order_ids: tuple[str, ...]
+    active_epoch_ids: tuple[str, ...]
+    nonterminal_epoch_ids: tuple[str, ...]
+    nonterminal_grant_id: str
+    live_authority_fields: tuple[str, ...]
+    orphan_residue_fields: tuple[str, ...]
+
+    @property
+    def has_live_authority(self) -> bool:
+        """Return whether any strategic or execution owner still has backing."""
+
+        return bool(self.live_authority_fields)
+
+
+def _late_fill_eligible(order: object) -> bool:
+    return bool(
+        getattr(order, "status", "") == OrderStatus.CANCELLED.value
+        and getattr(order, "remaining_shares", 0) > 0
+        and getattr(order, "last_event", "") != "BROKER_CANCELLED"
+    )
+
+
+def assess_strategic_capital_authority(
+    account: AccountState,
+) -> StrategicCapitalAuthorityAssessment:
+    """Classify durable containers by real position/execution/owner backing."""
+
+    positions = tuple(
+        sorted(symbol for symbol, position in account.positions.items() if position.shares > 0)
+    )
+    pending_symbols = tuple(sorted({order.symbol for order in account.pending_orders}))
+    terminal_orders = {
+        OrderStatus.FILLED.value,
+        OrderStatus.CANCELLED.value,
+        OrderStatus.REPLACED.value,
+    }
+    unsettled_orders = tuple(
+        sorted(
+            order.order_id or f"unidentified:{index}"
+            for index, order in enumerate(account.order_ledger)
+            if order.status not in terminal_orders or _late_fill_eligible(order)
+        )
+    )
+    late_fill_orders = tuple(
+        sorted(
+            order.order_id or f"unidentified:{index}"
+            for index, order in enumerate(account.order_ledger)
+            if _late_fill_eligible(order)
+        )
+    )
+    active_epochs = tuple(
+        epoch.epoch_id
+        for epoch in account.strategic_epochs
+        if epoch.realized_status == StrategicEpochStatus.ACTIVE.value
+    )
+    nonterminal_epochs = tuple(
+        epoch.epoch_id for epoch in account.strategic_epochs if not epoch.terminal
+    )
+    grant = account.strategic_grant
+    nonterminal_grant_id = (
+        grant.grant_id
+        if grant is not None and grant.status not in TERMINAL_STRATEGIC_GRANT_STATUSES
+        else ""
+    )
+    backing_symbols = set(positions) | set(pending_symbols)
+    backing_symbols.update(
+        order.symbol
+        for order in account.order_ledger
+        if order.status not in terminal_orders or _late_fill_eligible(order)
+    )
+    if nonterminal_grant_id and grant is not None:
+        backing_symbols.add(grant.candidate_symbol)
+    backing_symbols.update(
+        epoch.owner_symbol for epoch in account.strategic_epochs if not epoch.terminal
+    )
+
+    live_fields: set[str] = set()
+    orphan_fields: set[str] = set()
+    if positions:
+        live_fields.add("positions")
+    if pending_symbols:
+        live_fields.add("pending_orders")
+    if unsettled_orders:
+        live_fields.add("unsettled_execution")
+    if late_fill_orders:
+        live_fields.add("late_fill_pending")
+    if active_epochs or account.active_strategic_epoch_id:
+        live_fields.add("active_strategic_epoch_id")
+    if nonterminal_epochs:
+        live_fields.add("strategic_epochs")
+    if nonterminal_grant_id:
+        live_fields.add("strategic_grant")
+
+    weighted_fields = (
+        ("anchor_weights", account.anchor_weights),
+        ("protected_weights", account.protected_weights),
+        ("strategic_cohort_targets", account.strategic_cohort_targets),
+        ("strategic_restore_weights", account.strategic_restore_weights),
+    )
+    for field_name, weights in weighted_fields:
+        if not weights:
+            continue
+        if set(weights) & backing_symbols:
+            live_fields.add(field_name)
+        else:
+            orphan_fields.add(field_name)
+    if account.strategic_cohort_symbols:
+        if set(account.strategic_cohort_symbols) & backing_symbols:
+            live_fields.add("strategic_cohort_symbols")
+        else:
+            orphan_fields.add("strategic_cohort_symbols")
+    for field_name, symbol in (
+        ("recovery_conviction_symbol", account.recovery_conviction_symbol),
+        ("tactical_anchor_symbol", account.tactical_anchor_symbol),
+    ):
+        if not symbol:
+            continue
+        if symbol in backing_symbols:
+            live_fields.add(field_name)
+        else:
+            orphan_fields.add(field_name)
+    if account.recovery_owner_epoch_id:
+        if account.recovery_owner_epoch_id in nonterminal_epochs:
+            live_fields.add("recovery_owner_epoch_id")
+        else:
+            orphan_fields.add("recovery_owner_epoch_id")
+    for field_name, owners in (
+        ("protected_weight_epoch_ids", account.protected_weight_epoch_ids),
+        ("strategic_restore_epoch_ids", account.strategic_restore_epoch_ids),
+    ):
+        if not owners:
+            continue
+        if set(owners.values()) & set(nonterminal_epochs):
+            live_fields.add(field_name)
+        else:
+            orphan_fields.add(field_name)
+
+    return StrategicCapitalAuthorityAssessment(
+        all_cash=not positions,
+        positive_position_symbols=positions,
+        pending_execution_symbols=pending_symbols,
+        unsettled_order_ids=unsettled_orders,
+        late_fill_order_ids=late_fill_orders,
+        active_epoch_ids=active_epochs,
+        nonterminal_epoch_ids=nonterminal_epochs,
+        nonterminal_grant_id=nonterminal_grant_id,
+        live_authority_fields=tuple(sorted(live_fields)),
+        orphan_residue_fields=tuple(sorted(orphan_fields)),
+    )
+
+
+__all__ = (
+    "StrategicCapitalAuthorityAssessment",
+    "assess_strategic_capital_authority",
+)

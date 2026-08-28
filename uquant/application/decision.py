@@ -6,7 +6,7 @@ import copy
 import hashlib
 import json
 from collections.abc import Callable, Iterable
-from dataclasses import dataclass, replace
+from dataclasses import asdict, dataclass, replace
 from typing import Protocol
 
 import pandas as pd
@@ -595,6 +595,7 @@ def _finalize_decision(
             "freeze_new_risk": allocation.risk.freeze_new_risk,
             "strategic_epoch": account.strategic_epoch,
             "strategic_candidate_signature": account.strategic_candidate_signature,
+            "strategic_cash_rearm": asdict(account.strategic_cash_rearm),
             "factor_profile": allocation.leader_factor_profile,
             "effective_config_sha256": config_fingerprint(market.cfg),
             "leader_ranking": [

@@ -101,6 +101,37 @@ def strict_absolute_owner_quality(
     )
 
 
+def route_consistent_owner_quality(
+    *,
+    symbol: str,
+    quorum_route: str,
+    snapshots: dict[str, dict[str, float]],
+    leaders: dict[str, LeaderScore],
+    cfg: SystemConfig,
+) -> bool:
+    """Revalidate the owner with the floors of its qualified quorum route."""
+
+    if quorum_route == StrategicQuorumRoute.FULL_COHORT.value:
+        minimum_score = cfg.leader_mature_score
+        minimum_secular_score = cfg.strategic_secular_min_score
+    elif quorum_route == StrategicQuorumRoute.STRONG_PAIR.value:
+        minimum_score = cfg.strategic_two_name_min_score
+        minimum_secular_score = cfg.strategic_secular_min_score
+    elif quorum_route == StrategicQuorumRoute.ABSOLUTE_SINGLE.value:
+        minimum_score = cfg.strategic_one_name_min_score
+        minimum_secular_score = cfg.strategic_one_name_min_secular_score
+    else:
+        return False
+    return _common_absolute_quality(
+        symbol=symbol,
+        snapshots=snapshots,
+        leaders=leaders,
+        cfg=cfg,
+        minimum_score=minimum_score,
+        minimum_secular_score=minimum_secular_score,
+    )
+
+
 def _market_confirmation(risk: RiskAssessment, cfg: SystemConfig) -> tuple[bool, bool]:
     keys = (
         "breadth20",
@@ -291,5 +322,6 @@ __all__ = (
     "StrategicQuorumResult",
     "StrategicQuorumRoute",
     "evaluate_strategic_quorum",
+    "route_consistent_owner_quality",
     "strict_absolute_owner_quality",
 )

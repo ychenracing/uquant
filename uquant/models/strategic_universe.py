@@ -98,7 +98,11 @@ def build_strategic_universe_roles(
         for symbol in sorted(set(qualification) | set(risk))
         if symbol not in available
     )
-    role_payload = {"as_of": as_of}
+    # ``as_of`` is retained explicitly on the role declaration.  The identity
+    # binds the declared point-in-time membership and availability, so an
+    # unchanged role set can accumulate a consecutive-session qualification
+    # streak instead of being mechanically re-keyed every trading day.
+    role_payload: dict[str, object] = {}
     return StrategicUniverseRoles(
         as_of=as_of,
         tradable_symbols=tradable,

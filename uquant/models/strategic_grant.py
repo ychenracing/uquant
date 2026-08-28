@@ -81,6 +81,7 @@ class StrategicGrantIntent:
     production_source_identity: str = ""
     epoch_id: str = ""
     qualification_quorum: str = ""
+    authorization_id: str = ""
 
     @property
     def terminal(self) -> bool:
@@ -113,6 +114,7 @@ def derive_strategic_grant_id(
     created_session: str,
     previous_grant_id: str,
     production_source_identity: str,
+    authorization_id: str = "",
 ) -> str:
     """Derive an immutable grant identity from qualification provenance."""
 
@@ -132,6 +134,14 @@ def derive_strategic_grant_id(
     _require_session(created_session, field_name="strategic grant created_session")
     if not isinstance(previous_grant_id, str):
         raise ValueError("strategic grant previous_grant_id must be text")
+    if not isinstance(authorization_id, str) or (
+        authorization_id
+        and (
+            not authorization_id.startswith("rearm_")
+            or len(authorization_id) != 70
+        )
+    ):
+        raise ValueError("strategic grant authorization identity is invalid")
     payload = {
         "account_identity": account_identity,
         "candidate_symbol": candidate_symbol,
@@ -143,6 +153,8 @@ def derive_strategic_grant_id(
         "qualification_signature": qualification_signature,
         "schema": "uquant.strategic-grant-intent",
     }
+    if authorization_id:
+        payload["authorization_id"] = authorization_id
     encoded = json.dumps(
         payload,
         allow_nan=False,
@@ -236,6 +248,7 @@ def validate_strategic_grant(value: StrategicGrantIntent) -> None:
         created_session=value.created_session,
         previous_grant_id=value.previous_grant_id,
         production_source_identity=value.production_source_identity,
+        authorization_id=value.authorization_id,
     )
     if value.grant_id != expected:
         raise ValueError("strategic grant identity does not match immutable qualification evidence")
@@ -276,6 +289,14 @@ def validate_strategic_grant(value: StrategicGrantIntent) -> None:
         raise ValueError("strategic grant epoch identity is invalid")
     if not isinstance(value.qualification_quorum, str):
         raise ValueError("strategic grant qualification quorum must be text")
+    if not isinstance(value.authorization_id, str) or (
+        value.authorization_id
+        and (
+            not value.authorization_id.startswith("rearm_")
+            or len(value.authorization_id) != 70
+        )
+    ):
+        raise ValueError("strategic grant authorization identity is invalid")
 
 
 def strategic_qualification_from_payload(

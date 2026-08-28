@@ -5,7 +5,7 @@ from __future__ import annotations
 import hashlib
 import json
 import math
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from typing import TYPE_CHECKING
 
 import pandas as pd
@@ -45,9 +45,8 @@ from .quorum import (
     strict_absolute_owner_quality,
 )
 from .rearm import (
-    mark_strategic_cash_rearm_grant,
+    consume_strategic_cash_rearm_authorization,
     observe_strategic_cash_rearm,
-    set_strategic_cash_rearm_strict,
     strategic_cash_rearm_grant_open,
     strategic_cash_rearm_weight,
 )
@@ -494,6 +493,11 @@ def _observe_strategic_successor(
             and quorum.owner_absolute_quality
             and candidate
         )
+        if not owner_quality_retained and not previous.candidate_symbol:
+            account.strategic_successor_qualification = (
+                StrategicQualificationObservation()
+            )
+            return
         account.strategic_successor_qualification = StrategicQualificationObservation(
             candidate_symbol=(candidate if owner_quality_retained else previous.candidate_symbol),
             qualification_signature=(
@@ -845,9 +849,6 @@ def _qualify_strategic_route(
     reference_snapshots: dict[str, dict[str, float]],
     strategic_universe: StrategicUniverseRoles,
 ) -> _QualifiedRoute | None:
-    previous_observed_session = (
-        account.strategic_qualification.qualification_last_observed_session
-    )
     legacy_raw, synchronized_before_anchor = _qualification_evidence(
         self,
         route=route,
@@ -910,29 +911,25 @@ def _qualify_strategic_route(
     )
     if not symbols:
         previous = account.strategic_qualification
-        account.strategic_qualification = StrategicQualificationObservation(
-            candidate_symbol=previous.candidate_symbol,
-            qualification_signature=previous.qualification_signature,
-            qualification_route=previous.qualification_route,
-            qualification_evidence_sha256=previous.qualification_evidence_sha256,
-            qualification_ready=False,
-            deployment_blocked=True,
-            deployment_block_reason="qualification_not_ready",
-            qualification_streak=0,
-            qualification_last_observed_session=str(date.date()),
-            candidate_invalidation_reason="absolute_qualification_failed",
-        )
-        observe_strategic_cash_rearm(
-            account=account,
-            risk=risk,
-            universe=strategic_universe,
-            snapshots=reference_snapshots,
-            leaders=leaders,
-            candidate_symbol=candidate,
-            qualification_ready=False,
-            observed_session=str(date.date()),
-            previous_observed_session=previous_observed_session,
-            cfg=self.cfg,
+        account.strategic_qualification = (
+            StrategicQualificationObservation(
+                candidate_symbol=previous.candidate_symbol,
+                qualification_signature=previous.qualification_signature,
+                qualification_route=previous.qualification_route,
+                qualification_evidence_sha256=previous.qualification_evidence_sha256,
+                qualification_ready=False,
+                deployment_blocked=True,
+                deployment_block_reason="qualification_not_ready",
+                qualification_streak=0,
+                qualification_last_observed_session=str(date.date()),
+                candidate_invalidation_reason="absolute_qualification_failed",
+            )
+            if previous.candidate_symbol
+            else StrategicQualificationObservation(
+                deployment_blocked=True,
+                deployment_block_reason="qualification_not_ready",
+                candidate_invalidation_reason="absolute_qualification_failed",
+            )
         )
         return None
     streak = account.candidate_tenure["strategic_cohort_qualification"]
@@ -979,18 +976,6 @@ def _qualify_strategic_route(
             else {}
         ),
     )
-    cash_rearm_authorized = observe_strategic_cash_rearm(
-        account=account,
-        risk=risk,
-        universe=strategic_universe,
-        snapshots=reference_snapshots,
-        leaders=leaders,
-        candidate_symbol=candidate,
-        qualification_ready=streak >= required_days,
-        observed_session=str(date.date()),
-        previous_observed_session=previous_observed_session,
-        cfg=self.cfg,
-    )
     if streak < required_days:
         return None
     return _QualifiedRoute(
@@ -1002,7 +987,7 @@ def _qualify_strategic_route(
         route_admission_open,
         quorum.route.value if quorum is not None else StrategicQuorumRoute.NONE.value,
         None if quorum is None else quorum.restricted_initial_weight,
-        cash_rearm_authorized,
+        False,
     )
 
 
@@ -1105,7 +1090,6 @@ def _activate_strategic_cohort(
                 cfg=self.cfg,
             )
         }
-        mark_strategic_cash_rearm_grant(account)
     account.strategic_exit_bands.clear()
     account.strategic_active_bands.clear()
     account.strategic_restore_weights.clear()
@@ -1150,6 +1134,11 @@ def _activate_strategic_cohort(
         account.account_identity = "account_" + hashlib.sha256(identity_payload.encode()).hexdigest()
     production_source_identity = account.code_hash or "unbound-production-source"
     candidate_weight = account.strategic_cohort_targets.get(observation.candidate_symbol, 0.0)
+    authorization_id = (
+        account.strategic_cash_rearm.authorization_id
+        if qualified.cash_rearm_authorized
+        else ""
+    )
     grant_id = derive_strategic_grant_id(
         account_identity=account.account_identity,
         candidate_symbol=observation.candidate_symbol,
@@ -1159,6 +1148,7 @@ def _activate_strategic_cohort(
         created_session=str(date.date()),
         previous_grant_id=previous_grant_id,
         production_source_identity=production_source_identity,
+        authorization_id=authorization_id,
     )
     grant = StrategicGrantIntent(
         grant_id=grant_id,
@@ -1174,6 +1164,7 @@ def _activate_strategic_cohort(
         account_identity=account.account_identity,
         production_source_identity=production_source_identity,
         qualification_quorum=qualified.quorum_route,
+        authorization_id=authorization_id,
     )
     previous_epoch_id = (
         account.strategic_epochs[-1].epoch_id if account.strategic_epochs else ""
@@ -1218,6 +1209,11 @@ def _activate_strategic_cohort(
     grant.epoch_id = epoch_id
     account.strategic_grant = grant
     account.strategic_epochs.append(epoch)
+    if authorization_id:
+        consume_strategic_cash_rearm_authorization(
+            account,
+            grant_id=grant_id,
+        )
 
 
 def _initialize_strategic_cohort(
@@ -1346,12 +1342,36 @@ def _initialize_strategic_cohort(
             risk=risk,
             admission_open=(qualified.admission_authorized if qualified is not None else admission_open),
             live_general_leaders=live_general_leaders,
-            cash_rearm_authorized=(
-                qualified.cash_rearm_authorized if qualified is not None else False
-            ),
+            cash_rearm_authorized=False,
         )
         account.strategic_qualification.deployment_blocked = bool(block_reason)
         account.strategic_qualification.deployment_block_reason = block_reason
+        cash_rearm_authorized = observe_strategic_cash_rearm(
+            account=account,
+            risk=risk,
+            universe=resolved_universe,
+            snapshots=reference_snapshots,
+            leaders=resolved_leaders,
+            candidate_symbol=account.strategic_qualification.candidate_symbol,
+            qualification_ready=account.strategic_qualification.qualification_ready,
+            observed_session=str(date.date()),
+            previous_observed_session="",
+            cfg=self.cfg,
+        )
+        if qualified is not None and cash_rearm_authorized:
+            qualified = replace(qualified, cash_rearm_authorized=True)
+            block_reason = _deployment_block_reason(
+                self,
+                date=date,
+                user_panel=user_panel,
+                account=account,
+                risk=risk,
+                admission_open=qualified.admission_authorized,
+                live_general_leaders=live_general_leaders,
+                cash_rearm_authorized=True,
+            )
+            account.strategic_qualification.deployment_blocked = bool(block_reason)
+            account.strategic_qualification.deployment_block_reason = block_reason
         if block_reason == "recovery_owner":
             account.candidate_tenure["strategic_deferred_to_recovery"] = 1
     if qualified is not None:
@@ -1492,24 +1512,6 @@ def _revalidate_strategic_grant(
         for symbol, values in reference_snapshots.items()
         if symbol in user_panel and symbol in resolved_leaders
     }
-    if account.candidate_tenure.get("strategic_cash_rearm_grant", 0) == 1:
-        strict_candidate = strict_absolute_owner_quality(
-            symbol=grant.candidate_symbol,
-            snapshots=reference_snapshots,
-            leaders=resolved_leaders,
-            cfg=self.cfg,
-        )
-        set_strategic_cash_rearm_strict(
-            account,
-            qualified=strict_candidate,
-        )
-        if not strict_candidate:
-            _expire_strategic_grant(
-                account,
-                reason="cash_rearm_absolute_quality_failed",
-                weights_now=weights_now,
-            )
-            return False
     route = select_strategic_route(
         self,
         snapshots=snapshots,

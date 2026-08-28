@@ -15,6 +15,7 @@ class ReferenceAvailability(str, Enum):
 
     AVAILABLE = "AVAILABLE"
     UNAVAILABLE = "UNAVAILABLE"
+    ROLE_ABSENT = "ROLE_ABSENT"
 
 
 def _canonical_sha256(payload: object) -> str:
@@ -36,6 +37,33 @@ def _symbols(values: Iterable[str], *, label: str) -> tuple[str, ...]:
 
 
 @dataclass(frozen=True, slots=True)
+class StrategicUniverseDeclaration:
+    """Caller-declared read-only reference membership for a decision."""
+
+    qualification_reference_symbols: tuple[str, ...]
+    risk_reference_symbols: tuple[str, ...]
+
+
+def build_strategic_universe_declaration(
+    *,
+    qualification_reference_symbols: Iterable[str],
+    risk_reference_symbols: Iterable[str],
+) -> StrategicUniverseDeclaration:
+    """Normalize independent reference roles without granting capital authority."""
+
+    return StrategicUniverseDeclaration(
+        qualification_reference_symbols=_symbols(
+            qualification_reference_symbols,
+            label="qualification reference declaration",
+        ),
+        risk_reference_symbols=_symbols(
+            risk_reference_symbols,
+            label="risk reference declaration",
+        ),
+    )
+
+
+@dataclass(frozen=True, slots=True)
 class StrategicUniverseRoles:
     """Immutable role sets and identities visible to one close decision."""
 
@@ -52,8 +80,12 @@ class StrategicUniverseRoles:
     point_in_time_industry_identity: str
 
     def availability(self, symbol: str) -> ReferenceAvailability:
-        """Return UNAVAILABLE instead of manufacturing negative evidence."""
+        """Distinguish an undeclared role from missing expected evidence."""
 
+        if symbol not in set(self.qualification_reference_symbols) | set(
+            self.risk_reference_symbols
+        ):
+            return ReferenceAvailability.ROLE_ABSENT
         return (
             ReferenceAvailability.AVAILABLE
             if symbol in self.available_symbols
@@ -147,6 +179,8 @@ def build_strategic_universe_roles(
 
 __all__ = (
     "ReferenceAvailability",
+    "StrategicUniverseDeclaration",
     "StrategicUniverseRoles",
+    "build_strategic_universe_declaration",
     "build_strategic_universe_roles",
 )

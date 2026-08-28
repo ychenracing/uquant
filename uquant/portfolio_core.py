@@ -54,14 +54,42 @@ def effective_n(weights: dict[str, float], correlations: pd.DataFrame | None = N
 def strategic_dominant_symbol(account: AccountState) -> str | None:
     """Return the sole owner of a currently evidenced dominant epoch."""
     if (
-        account.strategic_epoch <= 0
-        or account.candidate_tenure.get("strategic_cohort_active", 0) != 1
-        or account.candidate_tenure.get("strategic_dominant_epoch", -1) != account.strategic_epoch
+        account.candidate_tenure.get("strategic_cohort_active", 0) != 1
         or len(account.strategic_cohort_targets) != 1
     ):
         return None
     symbol = next(iter(account.strategic_cohort_targets))
-    return symbol if symbol in account.strategic_cohort_symbols else None
+    if symbol not in account.strategic_cohort_symbols:
+        return None
+    realized_dominant = bool(
+        account.strategic_epoch > 0
+        and account.candidate_tenure.get("strategic_dominant_epoch", -1)
+        == account.strategic_epoch
+    )
+    if realized_dominant:
+        return symbol
+    grant = account.strategic_grant
+    pending_epochs = [
+        epoch
+        for epoch in account.strategic_epochs
+        if not epoch.terminal
+        and epoch.realized_status == "PROBE"
+        and epoch.qualification_quorum == "FULL_COHORT"
+        and epoch.owner_symbol == symbol
+        and grant is not None
+        and epoch.grant_id == grant.grant_id
+    ]
+    pending_full_cohort = bool(
+        len(pending_epochs) == 1
+        and not account.active_strategic_epoch_id
+        and grant is not None
+        and grant.candidate_symbol == symbol
+        and grant.qualification_quorum == "FULL_COHORT"
+        and grant.status not in {"COMPLETED", "EXPIRED", "CANCELLED"}
+        and account.candidate_tenure.get("strategic_dominant_epoch", -1)
+        == account.strategic_epoch + 1
+    )
+    return symbol if pending_full_cohort else None
 
 
 def symbol_weight_cap(cfg: SystemConfig, account: AccountState, symbol: str) -> float:

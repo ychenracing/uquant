@@ -3,6 +3,7 @@ from __future__ import annotations
 from uquant.config import DEFAULT_CONFIG
 from uquant.models.strategic_universe import (
     ReferenceAvailability,
+    build_strategic_universe_declaration,
     build_strategic_universe_roles,
 )
 from uquant.portfolio.strategic.quorum import (
@@ -33,6 +34,7 @@ def _leader(symbol: str, *, score: float = 0.95, industry: str = "optical") -> L
             "secular_score": 0.90,
             "secular_confidence": 0.90,
             "industry_inference_confidence": 0.95,
+            "unknown_industry": 0.0,
             "momentum60": 0.85,
             "momentum120": 0.85,
             "relative_strength": 0.85,
@@ -54,6 +56,8 @@ def _snapshot(*, score: float = 0.95, ret120: float = 0.30) -> dict[str, float]:
         "ret20": 0.10,
         "ret60": 0.20,
         "ret120": ret120,
+        "persistent_ret240": 0.40,
+        "industry_confidence": 0.95,
         "liquidity_confirmation": 1.0,
     }
 
@@ -97,6 +101,23 @@ def test_universe_roles_bind_point_in_time_identity_and_unavailable_references()
     assert roles.tradable_identity != roles.qualification_reference_identity
     assert roles.qualification_reference_identity != roles.risk_reference_identity
     assert len(roles.point_in_time_industry_identity) == 64
+
+
+def test_role_absent_is_distinct_from_expected_but_unavailable() -> None:
+    roles = _roles(unavailable=("sh688008",))
+
+    assert roles.availability("sh688008") is ReferenceAvailability.UNAVAILABLE
+    assert roles.availability("sh688347") is ReferenceAvailability.ROLE_ABSENT
+
+
+def test_reference_declaration_has_independent_qualification_and_risk_membership() -> None:
+    declaration = build_strategic_universe_declaration(
+        qualification_reference_symbols=("sz300394", "sz300502"),
+        risk_reference_symbols=("sh688008", "sz300394"),
+    )
+
+    assert declaration.qualification_reference_symbols == ("sz300394", "sz300502")
+    assert declaration.risk_reference_symbols == ("sh688008", "sz300394")
 
 
 def test_universe_role_identity_changes_only_when_declared_role_or_availability_changes() -> None:
@@ -270,16 +291,37 @@ def test_route_consistent_owner_quality_does_not_apply_single_name_floor_to_full
     ) is False
     assert route_consistent_owner_quality(
         symbol="sz300394",
+        qualification_route="established",
         quorum_route=StrategicQuorumRoute.FULL_COHORT.value,
         snapshots=snapshots,
         leaders=leaders,
+        risk=_risk(),
         cfg=DEFAULT_CONFIG,
     ) is True
     assert route_consistent_owner_quality(
         symbol="sz300394",
+        qualification_route="established",
         quorum_route=StrategicQuorumRoute.ABSOLUTE_SINGLE.value,
         snapshots=snapshots,
         leaders=leaders,
+        risk=_risk(),
+        cfg=DEFAULT_CONFIG,
+    ) is False
+
+
+def test_route_consistent_owner_quality_reuses_the_original_route_gates() -> None:
+    snapshot = _snapshot(score=0.80)
+    snapshot["ret20"] = DEFAULT_CONFIG.strategic_long_cycle_min_ret20 - 0.01
+    snapshots = {"sz300394": snapshot}
+    leaders = {"sz300394": _leader("sz300394", score=0.80)}
+
+    assert route_consistent_owner_quality(
+        symbol="sz300394",
+        qualification_route="established",
+        quorum_route=StrategicQuorumRoute.FULL_COHORT.value,
+        snapshots=snapshots,
+        leaders=leaders,
+        risk=_risk(),
         cfg=DEFAULT_CONFIG,
     ) is False
 

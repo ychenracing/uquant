@@ -11,6 +11,12 @@ from typing import Any
 from uquant.account import account_from_dict, economic_state_sha256
 from uquant.contracts.universe import REQUIRED_AI_UNIVERSE_SHA256, default_ai_universe
 from uquant.data import normalize_symbol
+from uquant.models.strategic_epoch import (
+    StrategicEpoch,
+    StrategicEpochStatus,
+    close_strategic_epoch,
+    derive_strategic_epoch_id,
+)
 from uquant.types import (
     AccountOrder,
     AccountState,
@@ -155,6 +161,7 @@ def _rewrite_grant(
         previous_grant_id=previous_grant_id,
         account_identity=prior.account_identity,
         production_source_identity=prior.production_source_identity,
+        qualification_quorum=prior.qualification_quorum,
     )
     observation = account.strategic_qualification
     if observation.candidate_symbol == old:
@@ -165,6 +172,75 @@ def _rewrite_grant(
     return grant_id
 
 
+def _replace_unfilled_epoch(
+    account: AccountState,
+    *,
+    old: str,
+    new: str,
+    grant_id: str,
+    session: str,
+    target_weight: float,
+) -> str:
+    """Terminate an unfilled research owner and append a new immutable ledger row."""
+
+    grant = account.strategic_grant
+    if grant is None or not grant.previous_grant_id:
+        return ""
+    matches = [
+        epoch
+        for epoch in account.strategic_epochs
+        if not epoch.terminal
+        and epoch.owner_symbol == old
+        and epoch.grant_id == grant.previous_grant_id
+    ]
+    if not matches:
+        return ""
+    if len(matches) != 1:
+        raise ValueError("forced owner found duplicate nonterminal epochs")
+    previous = matches[0]
+    if previous.first_fill_session or previous.realized_status != StrategicEpochStatus.PROBE.value:
+        raise ValueError("forced owner cannot rewrite a realized strategic epoch")
+    close_strategic_epoch(
+        previous,
+        closed_session=session,
+        close_reason="research owner intervention",
+        expired=True,
+    )
+    epoch_id = derive_strategic_epoch_id(
+        account_identity=grant.account_identity,
+        owner_symbol=new,
+        qualification_signature=grant.qualification_signature,
+        qualification_route=grant.qualification_route,
+        grant_id=grant_id,
+        opened_session=session,
+        previous_epoch_id=previous.epoch_id,
+        source_identity=grant.production_source_identity,
+        config_identity=previous.config_identity,
+        evidence_sha256=grant.qualification_evidence_sha256,
+    )
+    epoch = StrategicEpoch(
+        epoch_id=epoch_id,
+        owner_symbol=new,
+        qualification_signature=grant.qualification_signature,
+        qualification_route=grant.qualification_route,
+        qualification_quorum=grant.qualification_quorum,
+        grant_id=grant_id,
+        opened_session=session,
+        previous_epoch_id=previous.epoch_id,
+        source_identity=grant.production_source_identity,
+        config_identity=previous.config_identity,
+        evidence_sha256=grant.qualification_evidence_sha256,
+        realized_status=StrategicEpochStatus.PROBE.value,
+        target_weight=target_weight,
+        full_weight=max(previous.full_weight, target_weight),
+        account_identity=grant.account_identity,
+    )
+    epoch.validate()
+    grant.epoch_id = epoch_id
+    account.strategic_epochs.append(epoch)
+    return epoch_id
+
+
 def _rewrite_account_identity_chain(
     account: AccountState,
     *,
@@ -172,6 +248,7 @@ def _rewrite_account_identity_chain(
     new: str,
     forced_industry: str,
     grant_id: str,
+    epoch_id: str = "",
 ) -> None:
     event_rewrites: dict[str, str] = {}
     for pending_order in account.pending_orders:
@@ -182,6 +259,7 @@ def _rewrite_account_identity_chain(
         pending_order.industry_at_entry = forced_industry
         pending_order.industry_manifest_sha256 = REQUIRED_AI_UNIVERSE_SHA256
         pending_order.grant_id = grant_id
+        pending_order.epoch_id = epoch_id
         pending_order.event_id = derive_attribution_event_id(
             signal_date=pending_order.signal_date,
             symbol=pending_order.symbol,
@@ -207,6 +285,7 @@ def _rewrite_account_identity_chain(
         account_order.industry_at_entry = forced_industry
         account_order.industry_manifest_sha256 = REQUIRED_AI_UNIVERSE_SHA256
         account_order.grant_id = grant_id
+        account_order.epoch_id = epoch_id
         account_order.event_id = derive_attribution_event_id(
             signal_date=account_order.signal_date,
             symbol=account_order.symbol,
@@ -238,6 +317,7 @@ def _rewrite_account_identity_chain(
         fill.industry_at_entry = ledger_order.industry_at_entry
         fill.industry_manifest_sha256 = ledger_order.industry_manifest_sha256
         fill.grant_id = grant_id
+        fill.epoch_id = epoch_id
         for allocation in fill.sold_tranches:
             prior_event = str(allocation.get("event_id", ""))
             if prior_event in event_rewrites:
@@ -245,11 +325,13 @@ def _rewrite_account_identity_chain(
                 allocation["industry_at_entry"] = forced_industry
                 allocation["industry_manifest_sha256"] = REQUIRED_AI_UNIVERSE_SHA256
                 allocation["grant_id"] = grant_id
+                allocation["epoch_id"] = epoch_id
     if old in account.positions:
         _assert_no_collision(account.positions, old, new)
         position = account.positions.pop(old)
         position.symbol = new
         position.grant_id = grant_id
+        position.epoch_id = epoch_id
         for tranche in position.tranches:
             if tranche.event_id not in event_rewrites:
                 raise ValueError("forced owner tranche lacks a rewritten originating event")
@@ -257,6 +339,7 @@ def _rewrite_account_identity_chain(
             tranche.industry_at_entry = forced_industry
             tranche.industry_manifest_sha256 = REQUIRED_AI_UNIVERSE_SHA256
             tranche.grant_id = grant_id
+            tranche.epoch_id = epoch_id
         account.positions[new] = position
 class StrategicOwnerIntervention:
     """Replace one active strategic owner at exactly one replay decision point."""
@@ -303,8 +386,12 @@ class StrategicOwnerIntervention:
         self._source_owner = source_owner
         shadow = deepcopy(account)
         if source_owner is None:
-            shadow.strategic_cohort_symbols = [self.owner]
-            shadow.strategic_cohort_targets = {self.owner: self.target_gross}
+            # The production decision for this close has not yet created its
+            # grant or epoch.  Pre-seeding capital containers would be orphan
+            # authority and can change risk/qualification state.  The
+            # post-decision hook below rewrites the fully formed production
+            # identity chain atomically when the requested owner differs.
+            pass
         elif source_owner == self.owner:
             shadow.strategic_cohort_targets[self.owner] = self.target_gross
         else:
@@ -318,6 +405,14 @@ class StrategicOwnerIntervention:
                 new=self.owner,
                 target_weight=self.target_gross,
                 session=session,
+            )
+            epoch_id = _replace_unfilled_epoch(
+                shadow,
+                old=source_owner,
+                new=self.owner,
+                grant_id=grant_id,
+                session=session,
+                target_weight=self.target_gross,
             )
             shadow.strategic_cohort_symbols = _replace_symbol_list(
                 shadow.strategic_cohort_symbols, source_owner, self.owner
@@ -343,6 +438,7 @@ class StrategicOwnerIntervention:
                 new=self.owner,
                 forced_industry=forced_industry,
                 grant_id=grant_id,
+                epoch_id=epoch_id,
             )
             shadow.strategic_cohort_targets[self.owner] = self.target_gross
         try:
@@ -398,6 +494,14 @@ class StrategicOwnerIntervention:
             target_weight=self.target_gross,
             session=decision.date,
         )
+        epoch_id = _replace_unfilled_epoch(
+            shadow,
+            old=source_owner,
+            new=self.owner,
+            grant_id=grant_id,
+            session=decision.date,
+            target_weight=self.target_gross,
+        )
         for name in (
             "strategic_cohort_targets",
             "strategic_exit_bands",
@@ -416,6 +520,7 @@ class StrategicOwnerIntervention:
             new=self.owner,
             forced_industry=forced_industry,
             grant_id=grant_id,
+            epoch_id=epoch_id,
         )
         account_from_dict(shadow.to_dict(), require_hashes=False)
         for field in fields(AccountState):
@@ -427,6 +532,7 @@ class StrategicOwnerIntervention:
             industry_at_entry=forced_industry,
             industry_manifest_sha256=REQUIRED_AI_UNIVERSE_SHA256,
             grant_id=grant_id,
+            epoch_id=epoch_id,
         )
         forced_target = replace(
             forced_target,
@@ -455,6 +561,7 @@ class StrategicOwnerIntervention:
                 industry_at_entry=forced_industry,
                 industry_manifest_sha256=REQUIRED_AI_UNIVERSE_SHA256,
                 grant_id=grant_id,
+                epoch_id=epoch_id,
             )
             if order.symbol == source_owner and order.origin_subsystem == "STRATEGIC"
             else order

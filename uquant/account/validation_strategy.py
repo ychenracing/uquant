@@ -9,7 +9,10 @@ from ..models.strategic_grant import (
     validate_strategic_grant,
     validate_strategic_qualification,
 )
-from ..models.strategic_rearm import validate_strategic_cash_rearm_account_binding
+from ..models.strategic_rearm import (
+    StrategicCashRearmStatus,
+    validate_strategic_cash_rearm_account_binding,
+)
 from ..types import AccountState, Lifecycle, Opportunity, Risk
 from .validation_common import (
     SHOCK_SEVERITIES as _SHOCK_SEVERITIES,
@@ -299,6 +302,19 @@ def _validate_strategy_identity_and_weights(
             validate_strategic_grant(state.strategic_grant)
             if state.account_identity and state.strategic_grant.account_identity != state.account_identity:
                 raise ValueError("strategic grant account identity differs from account")
+            if (
+                not state.strategic_grant.terminal
+                and state.strategic_grant.authorization_id
+                and (
+                    state.strategic_cash_rearm.status
+                    != StrategicCashRearmStatus.CONSUMED.value
+                    or state.strategic_cash_rearm.authorization_id
+                    != state.strategic_grant.authorization_id
+                    or state.strategic_cash_rearm.consumed_grant_id
+                    != state.strategic_grant.grant_id
+                )
+            ):
+                raise ValueError("strategic rearm grant binding is inconsistent")
             pending_grants = {order.grant_id for order in state.pending_orders if order.grant_id}
             if not state.strategic_grant.terminal and pending_grants - {
                 state.strategic_grant.grant_id

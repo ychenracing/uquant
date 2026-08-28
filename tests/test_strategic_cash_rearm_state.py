@@ -3,6 +3,7 @@ from __future__ import annotations
 import copy
 import json
 
+import pandas as pd
 import pytest
 from test_strategic_cash_rearm import _risk, _roles, _strict_inputs
 
@@ -18,7 +19,16 @@ from uquant.models.strategic_rearm import (
     derive_strategic_cash_rearm_authorization_id,
     validate_strategic_cash_rearm_state,
 )
-from uquant.portfolio.strategic.rearm import observe_strategic_cash_rearm_state
+from uquant.models.strategic_universe import build_strategic_universe_roles
+from uquant.models.strategic_grant import (
+    StrategicGrantIntent,
+    StrategicGrantStatus,
+    derive_strategic_grant_id,
+)
+from uquant.portfolio.strategic.rearm import (
+    consume_strategic_cash_rearm_authorization,
+    observe_strategic_cash_rearm_state,
+)
 from uquant.types import (
     AccountState,
     Opportunity,
@@ -86,13 +96,18 @@ def _observation(
     candidate: str = "sz300394",
     ready: bool = True,
     evidence: str = "a" * 64,
+    block_reason: str = "freeze_new_risk",
+    invalidation_reason: str = "",
+    signature: str | None = None,
 ) -> StrategicQualificationObservation:
     return StrategicQualificationObservation(
         candidate_symbol=candidate,
-        qualification_signature=f"qualification:{candidate}",
+        qualification_signature=signature or f"qualification:{candidate}",
         qualification_route="established",
         qualification_evidence_sha256=evidence,
         qualification_ready=ready,
+        deployment_blocked=bool(block_reason),
+        deployment_block_reason=block_reason,
         qualification_streak=3 if ready else 0,
         qualification_last_observed_session="2026-01-05",
         qualification_quorum="FULL_COHORT",
@@ -103,6 +118,7 @@ def _observation(
             "MARKET_CONFIRMATION": "CONFIRMED",
             "ROBUSTNESS_CONFIRMATION": "CONFIRMED",
         },
+        candidate_invalidation_reason=invalidation_reason,
     )
 
 
@@ -370,13 +386,15 @@ def test_rearm_counts_each_ready_identity_once_per_session_and_resets_on_identit
         observed_session="2026-01-05",
         cfg=DEFAULT_CONFIG,
     )
+    changed_observation = _observation(evidence="f" * 64)
+    changed_observation.qualification_route = "persistent_industry"
     changed = observe_strategic_cash_rearm_state(
         account=account,
         risk=_risk(),
         universe=_roles(),
         snapshots=snapshots,
         leaders=leaders,
-        observation=_observation(candidate="sz300502", evidence="f" * 64),
+        observation=changed_observation,
         observed_session="2026-01-06",
         cfg=DEFAULT_CONFIG,
     )
@@ -388,3 +406,305 @@ def test_rearm_counts_each_ready_identity_once_per_session_and_resets_on_identit
     )
     assert changed.consecutive_healthy_sessions == 1
     assert changed.streak_transition == StrategicCashRearmStreakTransition.RESET_IDENTITY.value
+
+
+def test_rearm_keeps_one_ready_anchor_until_a_new_formal_identity_or_invalidation() -> None:
+    snapshots, leaders = _strict_inputs()
+    account = _flat_rearm_account()
+    sessions = pd.bdate_range("2026-01-05", periods=20)
+
+    state = observe_strategic_cash_rearm_state(
+        account=account,
+        risk=_risk(),
+        universe=_roles(str(sessions[0].date())),
+        snapshots=snapshots,
+        leaders=leaders,
+        observation=_observation(evidence="a" * 64),
+        observed_session=str(sessions[0].date()),
+        cfg=DEFAULT_CONFIG,
+    )
+    for session in sessions[1:]:
+        state = observe_strategic_cash_rearm_state(
+            account=account,
+            risk=_risk(),
+            universe=_roles(str(session.date())),
+            snapshots=snapshots,
+            leaders=leaders,
+            observation=_observation(ready=False, evidence="b" * 64),
+            observed_session=str(session.date()),
+            cfg=DEFAULT_CONFIG,
+        )
+
+    assert state.status == StrategicCashRearmStatus.AUTHORIZED.value
+    assert state.qualification_ready is True
+    assert state.qualification_evidence_sha256 == "a" * 64
+    assert state.consecutive_healthy_sessions == 20
+
+
+def test_rearm_uses_current_route_quality_instead_of_a_generic_discovery_label() -> None:
+    snapshots, leaders = _strict_inputs()
+    account = _flat_rearm_account()
+    first = observe_strategic_cash_rearm_state(
+        account=account,
+        risk=_risk(),
+        universe=_roles("2026-01-05"),
+        snapshots=snapshots,
+        leaders=leaders,
+        observation=_observation(),
+        observed_session="2026-01-05",
+        cfg=DEFAULT_CONFIG,
+    )
+    retained = observe_strategic_cash_rearm_state(
+        account=account,
+        risk=_risk(),
+        universe=_roles("2026-01-06"),
+        snapshots=snapshots,
+        leaders=leaders,
+        observation=_observation(
+            ready=False,
+            invalidation_reason="absolute_qualification_failed",
+        ),
+        observed_session="2026-01-06",
+        cfg=DEFAULT_CONFIG,
+    )
+    weak = copy.deepcopy(snapshots)
+    weak["sz300394"]["leader_score"] = 0.01
+    invalidated = observe_strategic_cash_rearm_state(
+        account=account,
+        risk=_risk(),
+        universe=_roles("2026-01-07"),
+        snapshots=weak,
+        leaders=leaders,
+        observation=_observation(
+            ready=False,
+            invalidation_reason="absolute_qualification_failed",
+        ),
+        observed_session="2026-01-07",
+        cfg=DEFAULT_CONFIG,
+    )
+
+    assert first.consecutive_healthy_sessions == 1
+    assert retained.consecutive_healthy_sessions == 2
+    assert retained.qualification_ready is True
+    assert invalidated.consecutive_healthy_sessions == 0
+    assert (
+        StrategicCashRearmRejectionReason.ROUTE_ABSOLUTE_QUALITY_FAILED.value
+        in invalidated.rejection_reasons
+    )
+
+
+def test_hard_failure_resets_streak_without_destroying_the_formal_anchor() -> None:
+    snapshots, leaders = _strict_inputs()
+    account = _flat_rearm_account()
+    first = observe_strategic_cash_rearm_state(
+        account=account,
+        risk=_risk(),
+        universe=_roles("2026-01-05"),
+        snapshots=snapshots,
+        leaders=leaders,
+        observation=_observation(),
+        observed_session="2026-01-05",
+        cfg=DEFAULT_CONFIG,
+    )
+    evidence = dict(_risk().evidence)
+    evidence["reference_coverage"] = 0.99
+    failed = observe_strategic_cash_rearm_state(
+        account=account,
+        risk=_risk(evidence=evidence),
+        universe=_roles("2026-01-06"),
+        snapshots=snapshots,
+        leaders=leaders,
+        observation=_observation(ready=False),
+        observed_session="2026-01-06",
+        cfg=DEFAULT_CONFIG,
+    )
+    recovered = observe_strategic_cash_rearm_state(
+        account=account,
+        risk=_risk(),
+        universe=_roles("2026-01-07"),
+        snapshots=snapshots,
+        leaders=leaders,
+        observation=_observation(ready=False),
+        observed_session="2026-01-07",
+        cfg=DEFAULT_CONFIG,
+    )
+
+    assert first.consecutive_healthy_sessions == 1
+    assert failed.status == StrategicCashRearmStatus.INVALIDATED.value
+    assert failed.consecutive_healthy_sessions == 0
+    assert recovered.candidate_symbol == first.candidate_symbol
+    assert recovered.qualification_evidence_sha256 == first.qualification_evidence_sha256
+    assert recovered.status == StrategicCashRearmStatus.OBSERVING.value
+    assert recovered.consecutive_healthy_sessions == 1
+
+
+def test_ready_successor_cannot_take_rearm_streak_until_anchor_quality_fails() -> None:
+    snapshots, leaders = _strict_inputs()
+    account = _flat_rearm_account()
+    signature = "qualification:optical-cohort"
+    first = observe_strategic_cash_rearm_state(
+        account=account,
+        risk=_risk(),
+        universe=_roles("2026-01-05"),
+        snapshots=snapshots,
+        leaders=leaders,
+        observation=_observation(signature=signature),
+        observed_session="2026-01-05",
+        cfg=DEFAULT_CONFIG,
+    )
+    successor_read_only = observe_strategic_cash_rearm_state(
+        account=account,
+        risk=_risk(),
+        universe=_roles("2026-01-06"),
+        snapshots=snapshots,
+        leaders=leaders,
+        observation=_observation(
+            candidate="sz300502",
+            evidence="b" * 64,
+            signature=signature,
+        ),
+        observed_session="2026-01-06",
+        cfg=DEFAULT_CONFIG,
+    )
+    weak = copy.deepcopy(snapshots)
+    weak["sz300394"]["leader_score"] = 0.01
+    replacement = observe_strategic_cash_rearm_state(
+        account=account,
+        risk=_risk(),
+        universe=_roles("2026-01-07"),
+        snapshots=weak,
+        leaders=leaders,
+        observation=_observation(
+            candidate="sz300502",
+            evidence="c" * 64,
+            signature=signature,
+        ),
+        observed_session="2026-01-07",
+        cfg=DEFAULT_CONFIG,
+    )
+
+    assert first.candidate_symbol == "sz300394"
+    assert successor_read_only.candidate_symbol == "sz300394"
+    assert successor_read_only.consecutive_healthy_sessions == 2
+    assert replacement.candidate_symbol == "sz300502"
+    assert replacement.consecutive_healthy_sessions == 1
+    assert replacement.streak_transition == StrategicCashRearmStreakTransition.RESET_IDENTITY.value
+
+
+@pytest.mark.parametrize(
+    ("roles", "observation", "reason"),
+    (
+        (
+            build_strategic_universe_roles(
+                as_of="2026-01-05",
+                tradable_symbols=("sz300308", "sz300502"),
+                qualification_reference_symbols=("sz300308", "sz300394", "sz300502"),
+                risk_reference_symbols=("sh000300", "sh000682"),
+                industries={
+                    "sz300308": "optical",
+                    "sz300394": "optical",
+                    "sz300502": "optical",
+                },
+                available_symbols=(
+                    "sz300308",
+                    "sz300394",
+                    "sz300502",
+                    "sh000300",
+                    "sh000682",
+                ),
+            ),
+            _observation(block_reason="freeze_new_risk"),
+            StrategicCashRearmRejectionReason.CANDIDATE_NOT_TRADABLE.value,
+        ),
+        (
+            _roles(),
+            _observation(block_reason="strategic_cooldown"),
+            StrategicCashRearmRejectionReason.DEPLOYMENT_BLOCK_NOT_REARMABLE.value,
+        ),
+    ),
+)
+def test_rearm_rejects_nontradable_candidate_and_nonrearmable_block(
+    roles,
+    observation: StrategicQualificationObservation,
+    reason: str,
+) -> None:
+    snapshots, leaders = _strict_inputs()
+    state = observe_strategic_cash_rearm_state(
+        account=_flat_rearm_account(),
+        risk=_risk(),
+        universe=roles,
+        snapshots=snapshots,
+        leaders=leaders,
+        observation=observation,
+        observed_session="2026-01-05",
+        cfg=DEFAULT_CONFIG,
+    )
+
+    assert reason in state.rejection_reasons
+    assert state.consecutive_healthy_sessions == 0
+
+
+def test_typed_rearm_authorization_is_consumed_once_by_its_bound_grant() -> None:
+    account = _flat_rearm_account()
+    account.strategic_cash_rearm = _authorized_state()
+
+    consumed = consume_strategic_cash_rearm_authorization(
+        account,
+        grant_id="grant_" + "1" * 64,
+    )
+
+    assert consumed.status == StrategicCashRearmStatus.CONSUMED.value
+    assert consumed.consumed_grant_id == "grant_" + "1" * 64
+    assert consumed.authorized is False
+    assert consumed.streak_transition == StrategicCashRearmStreakTransition.CONSUMED.value
+    assert not any(
+        key.startswith("strategic_cash_rearm_") for key in account.candidate_tenure
+    )
+    with pytest.raises(RuntimeError, match="already consumed"):
+        consume_strategic_cash_rearm_authorization(
+            account,
+            grant_id="grant_" + "2" * 64,
+        )
+
+
+def test_account_round_trip_requires_nonterminal_rearm_grant_binding() -> None:
+    account = _flat_rearm_account()
+    account.data_hash = "data"
+    account.code_hash = "code:production"
+    account.strategic_cash_rearm = _authorized_state()
+    authorization_id = account.strategic_cash_rearm.authorization_id
+    grant_id = derive_strategic_grant_id(
+        account_identity=account.account_identity,
+        candidate_symbol="sz300394",
+        qualification_signature="qualification:optical",
+        qualification_route="established",
+        qualification_evidence_sha256="a" * 64,
+        created_session="2024-03-28",
+        previous_grant_id="",
+        production_source_identity=account.code_hash,
+        authorization_id=authorization_id,
+    )
+    account.strategic_grant = StrategicGrantIntent(
+        grant_id=grant_id,
+        candidate_symbol="sz300394",
+        qualification_signature="qualification:optical",
+        qualification_route="established",
+        qualification_evidence_sha256="a" * 64,
+        created_session="2024-03-28",
+        last_eligible_session="2024-03-28",
+        target_weight=0.20,
+        status=StrategicGrantStatus.QUALIFIED.value,
+        account_identity=account.account_identity,
+        production_source_identity=account.code_hash,
+        qualification_quorum="FULL_COHORT",
+        authorization_id=authorization_id,
+    )
+    consume_strategic_cash_rearm_authorization(account, grant_id=grant_id)
+
+    restored = account_from_dict(account.to_dict())
+    assert restored == account
+
+    payload = account.to_dict()
+    payload["strategic_cash_rearm"]["consumed_grant_id"] = "grant_" + "f" * 64
+    with pytest.raises(RuntimeError, match="rearm grant binding"):
+        account_from_dict(payload)

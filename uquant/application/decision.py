@@ -19,7 +19,10 @@ from ..config import (
 )
 from ..contracts.universe import AIUniverse, default_ai_universe
 from ..data import DataManifest, DataStore, normalize_symbol
-from ..models.strategic_universe import build_strategic_universe_roles
+from ..models.strategic_universe import (
+    StrategicUniverseDeclaration,
+    build_strategic_universe_roles,
+)
 from ..models.strategic_epoch import bind_account_strategic_ownership
 from ..execution import merge_pending_orders, plan_orders
 from ..leader import (
@@ -103,7 +106,14 @@ class DecisionEngineRuntime(Protocol):
 
     def _mark_account_positions(self, account: AccountState, date: pd.Timestamp) -> None: ...
 
-    def decide(self, *, symbols: Iterable[str], as_of: str, account: AccountState) -> Decision: ...
+    def decide(
+        self,
+        *,
+        symbols: Iterable[str],
+        as_of: str,
+        account: AccountState,
+        strategic_universe_declaration: StrategicUniverseDeclaration | None = None,
+    ) -> Decision: ...
 
     def equity(
         self,
@@ -126,6 +136,7 @@ class _DecisionInputs:
 @dataclass(frozen=True, slots=True)
 class _DecisionMarket:
     reference_panel: dict[str, pd.DataFrame]
+    qualification_reference_panel: dict[str, pd.DataFrame]
     user_panel: dict[str, pd.DataFrame]
     broad: pd.DataFrame
     tech: pd.DataFrame
@@ -137,6 +148,8 @@ class _DecisionMarket:
     equity: float
     universe: AIUniverse
     canonical_symbols: tuple[str, ...]
+    qualification_reference_symbols: tuple[str, ...]
+    risk_reference_symbols: tuple[str, ...]
     causal_timeline: RiskEvidenceTimeline
 
 
@@ -163,6 +176,34 @@ def _decision_config_for_universe(
     """
     del configured_universe_size
     return cfg
+
+
+def _declared_reference_roles(
+    *,
+    workspace: _DecisionWorkspaceRuntime,
+    active_reference_symbols: tuple[str, ...],
+    declaration: StrategicUniverseDeclaration | None,
+) -> tuple[tuple[str, ...], tuple[str, ...]]:
+    """Resolve current role membership while keeping deliberate absence explicit."""
+
+    if declaration is None:
+        return active_reference_symbols, active_reference_symbols
+    declared = set(declaration.qualification_reference_symbols) | set(
+        declaration.risk_reference_symbols
+    )
+    allowed = set(workspace.filter_reference_symbols(declared))
+    unknown = tuple(sorted(declared - allowed))
+    if unknown:
+        raise ValueError(f"strategic reference declaration is outside the production registry: {unknown}")
+    active = set(active_reference_symbols)
+    return (
+        tuple(
+            symbol
+            for symbol in declaration.qualification_reference_symbols
+            if symbol in active
+        ),
+        tuple(symbol for symbol in declaration.risk_reference_symbols if symbol in active),
+    )
 
 
 _attach_target_attribution = attach_target_attribution
@@ -280,10 +321,19 @@ def _decision_market_context(
     *,
     inputs: _DecisionInputs,
     account: AccountState,
+    strategic_universe_declaration: StrategicUniverseDeclaration | None,
 ) -> _DecisionMarket:
     date = inputs.date
     active_reference_symbols = self.workspace.filter_reference_symbols(resolve_reference_symbols(date))
-    reference_panel = {symbol: self._features[symbol] for symbol in active_reference_symbols}
+    qualification_reference_symbols, risk_reference_symbols = _declared_reference_roles(
+        workspace=self.workspace,
+        active_reference_symbols=active_reference_symbols,
+        declaration=strategic_universe_declaration,
+    )
+    qualification_reference_panel = {
+        symbol: self._features[symbol] for symbol in qualification_reference_symbols
+    }
+    reference_panel = {symbol: self._features[symbol] for symbol in risk_reference_symbols}
     strategy_symbols = tuple(sorted(set(inputs.user_symbols) | inputs.durable_symbols))
     user_panel = {
         symbol: self._features[symbol]
@@ -291,16 +341,23 @@ def _decision_market_context(
         if not self._raw[symbol].loc[:date].empty
     }
     combined = dict(reference_panel)
+    combined.update(qualification_reference_panel)
     combined.update(user_panel)
     broad = self._features["sh000300"]
     tech = self._features["sh000682"]
     decision_cfg = _decision_config_for_universe(len(inputs.user_symbols), self.cfg)
+    reference_returns = self._reference_returns
+    if reference_returns is not None:
+        reference_returns = reference_returns.loc[
+            :,
+            [symbol for symbol in risk_reference_symbols if symbol in reference_returns],
+        ]
     reference_context = build_reference_context(
         date=date,
         panel=reference_panel,
         industries=INDUSTRY,
         cfg=decision_cfg,
-        reference_returns=self._reference_returns,
+        reference_returns=reference_returns,
     )
     if decision_cfg.same_day_leader_pipeline_enabled:
         structural_leaders = compute_structural_leaders(
@@ -334,17 +391,20 @@ def _decision_market_context(
     )
     return _DecisionMarket(
         reference_panel=reference_panel,
+        qualification_reference_panel=qualification_reference_panel,
         user_panel=user_panel,
         broad=broad,
         tech=tech,
         cfg=decision_cfg,
         reference_context=reference_context,
-        reference_returns=self._reference_returns,
+        reference_returns=reference_returns,
         structural_leaders=structural_leaders,
         prices=prices,
         equity=equity,
         universe=universe,
         canonical_symbols=canonical_symbols,
+        qualification_reference_symbols=qualification_reference_symbols,
+        risk_reference_symbols=risk_reference_symbols,
         causal_timeline=causal_timeline,
     )
 
@@ -366,7 +426,7 @@ def _assess_decision_risk(
             reference_panel=market.reference_panel,
             point_in_time_industries={
                 symbol: market.universe.industry_of(symbol, str(inputs.date.date()))
-                for symbol in market.canonical_symbols
+                for symbol in market.risk_reference_symbols
             },
             held_symbols=tuple(
                 sorted(symbol for symbol, position in account.positions.items() if position.shares > 0)
@@ -390,6 +450,11 @@ def _assess_decision_risk(
         sentinel_assessment=sentinel,
         sentinel_opportunity=account.opportunity,
     )
+    # Bounded rearm needs causal coverage before allocation, while the
+    # established qualification routes must keep reading the frozen risk
+    # evidence surface.  Publishing every reference diagnostic here would
+    # silently turn group-balanced diagnostics into new economic inputs.
+    risk.evidence["reference_coverage"] = market.reference_context.coverage
     risk.evidence["configured_user_universe_size"] = len(inputs.user_symbols)
     risk.evidence["universe_size_is_diagnostic_only"] = True
     latest_causal = market.causal_timeline.sentinel_rows[-1] if market.causal_timeline.sentinel_rows else None
@@ -502,28 +567,51 @@ def _allocate_decision_orders(
         leaders=user_leaders,
         account=account,
         prices=market.prices,
-        qualification_panel={**market.reference_panel, **market.user_panel},
+        qualification_panel={
+            **market.qualification_reference_panel,
+            **market.user_panel,
+        },
         qualification_leaders=all_leaders,
         strategic_universe=build_strategic_universe_roles(
             as_of=str(inputs.date.date()),
             tradable_symbols=inputs.user_symbols,
-            qualification_reference_symbols=market.canonical_symbols,
+            qualification_reference_symbols=market.qualification_reference_symbols,
             risk_reference_symbols=(
-                *tuple(sorted(market.reference_panel)),
+                *market.risk_reference_symbols,
                 "sh000300",
                 "sh000682",
             ),
             industries={
                 symbol: market.universe.industry_of(symbol, str(inputs.date.date()))
-                for symbol in market.canonical_symbols
+                for symbol in market.qualification_reference_symbols
             },
             available_symbols=(
-                *tuple(sorted({*market.reference_panel, *market.user_panel})),
-                "sh000300",
-                "sh000682",
+                *tuple(
+                    sorted(
+                        symbol
+                        for symbol, frame in {
+                            **market.reference_panel,
+                            **market.qualification_reference_panel,
+                            **market.user_panel,
+                        }.items()
+                        if inputs.date in frame.index
+                    )
+                ),
+                *(
+                    ("sh000300",)
+                    if inputs.date in market.broad.index
+                    else ()
+                ),
+                *(
+                    ("sh000682",)
+                    if inputs.date in market.tech.index
+                    else ()
+                ),
             ),
         ),
     )
+    if not market.cfg.group_balanced_reference_enabled:
+        risk.evidence.update(market.reference_context.evidence())
     bind_account_strategic_ownership(account)
     targets = attach_target_attribution_fn(
         signal_date=str(inputs.date.date()),
@@ -531,8 +619,6 @@ def _allocate_decision_orders(
         retained_orders=previous_orders,
         cfg=self.cfg,
     )
-    if not market.cfg.group_balanced_reference_enabled:
-        risk.evidence.update(market.reference_context.evidence())
     planned_orders = plan_orders(
         signal_date=str(inputs.date.date()),
         targets=targets,
@@ -630,6 +716,7 @@ def decide(
     symbols: Iterable[str],
     as_of: str,
     account: AccountState,
+    strategic_universe_declaration: StrategicUniverseDeclaration | None = None,
 ) -> Decision:
     """Produce and persist one causal close-date portfolio decision.
 
@@ -650,7 +737,12 @@ def decide(
         account=account,
         code_fingerprint_fn=code_fingerprint_fn,
     )
-    market = _decision_market_context(self, inputs=inputs, account=account)
+    market = _decision_market_context(
+        self,
+        inputs=inputs,
+        account=account,
+        strategic_universe_declaration=strategic_universe_declaration,
+    )
     risk = _assess_decision_risk(
         inputs=inputs,
         market=market,
@@ -681,10 +773,19 @@ def deterministic_decision(
     symbols: Iterable[str],
     as_of: str,
     account: AccountState,
+    strategic_universe_declaration: StrategicUniverseDeclaration | None = None,
 ) -> tuple[Decision, AccountState]:
     """Evaluate a decision on a deep copy and return both result and copy."""
     cloned = copy.deepcopy(account)
-    return (self.decide(symbols=symbols, as_of=as_of, account=cloned), cloned)
+    return (
+        self.decide(
+            symbols=symbols,
+            as_of=as_of,
+            account=cloned,
+            strategic_universe_declaration=strategic_universe_declaration,
+        ),
+        cloned,
+    )
 
 
 decision_config_for_universe = _decision_config_for_universe

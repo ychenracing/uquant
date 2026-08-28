@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import math
+from copy import deepcopy
 from types import MappingProxyType
 
 from ...config import SystemConfig
@@ -20,12 +21,11 @@ from ...types import (
     AccountState,
     LeaderScore,
     Opportunity,
-    OrderStatus,
     Risk,
     RiskAssessment,
 )
 from .authority import assess_strategic_capital_authority
-from .quorum import route_consistent_owner_quality, strict_absolute_owner_quality
+from .quorum import route_consistent_owner_quality
 
 
 CASH_REARM_HEALTHY_SESSION_LIMITS = MappingProxyType(
@@ -37,13 +37,6 @@ CASH_REARM_HEALTHY_SESSION_LIMITS = MappingProxyType(
     }
 )
 CASH_REARM_PROBE_HEALTHY_SESSIONS = CASH_REARM_HEALTHY_SESSION_LIMITS[1]
-
-_REARM_LEVEL_KEY = "strategic_cash_rearm_budget_level"
-_REARM_HEALTHY_KEY = "strategic_cash_rearm_healthy_sessions"
-_REARM_AUTHORIZED_KEY = "strategic_cash_rearm_authorized"
-_REARM_GRANT_KEY = "strategic_cash_rearm_grant"
-_REARM_STRICT_KEY = "strategic_cash_rearm_candidate_strict"
-
 
 def _predicate(
     code: str,
@@ -109,15 +102,98 @@ def observe_strategic_cash_rearm_state(
     """Persist every bounded-rearm predicate without granting economic authority."""
 
     previous = account.strategic_cash_rearm
-    if not (
+    if (
+        previous.status == StrategicCashRearmStatus.CONSUMED.value
+        and account.strategic_grant is not None
+        and not account.strategic_grant.terminal
+        and previous.consumed_grant_id == account.strategic_grant.grant_id
+    ):
+        return previous
+    incoming_complete = bool(
         observation.candidate_symbol
         and observation.qualification_signature
         and observation.qualification_route
         and observation.qualification_quorum
         and observation.qualification_evidence_sha256
-    ):
+    )
+    incoming_ready = bool(incoming_complete and observation.qualification_ready)
+    previous_anchor = bool(
+        previous.candidate_symbol
+        and previous.qualification_ready
+        and previous.status
+        in {
+            StrategicCashRearmStatus.OBSERVING.value,
+            StrategicCashRearmStatus.AUTHORIZED.value,
+            StrategicCashRearmStatus.INVALIDATED.value,
+        }
+    )
+    previous_route_quality = bool(
+        previous_anchor
+        and route_consistent_owner_quality(
+            symbol=previous.candidate_symbol,
+            qualification_route=previous.qualification_route,
+            quorum_route=previous.qualification_quorum,
+            snapshots=snapshots,
+            leaders=leaders,
+            risk=risk,
+            cfg=cfg,
+        )
+    )
+    successor_read_only = bool(
+        incoming_ready
+        and previous_anchor
+        and observation.candidate_symbol != previous.candidate_symbol
+        and previous_route_quality
+        and previous.candidate_symbol in universe.tradable_symbols
+    )
+    retained_anchor = bool(previous_anchor and (not incoming_ready or successor_read_only))
+    take_incoming = bool(incoming_ready and not successor_read_only)
+    same_formal_identity = bool(
+        take_incoming
+        and previous.candidate_symbol == observation.candidate_symbol
+        and previous.qualification_signature == observation.qualification_signature
+        and previous.qualification_route == observation.qualification_route
+        and previous.qualification_quorum == observation.qualification_quorum
+        and previous.capital_budget_level == account.capital_budget_level
+        and previous.tradable_universe_identity == universe.tradable_identity
+        and previous.qualification_reference_universe_identity
+        == universe.qualification_reference_identity
+        and previous.risk_reference_universe_identity
+        == universe.risk_reference_identity
+        and previous.point_in_time_industry_identity
+        == universe.point_in_time_industry_identity
+        and previous.status
+        in {
+            StrategicCashRearmStatus.OBSERVING.value,
+            StrategicCashRearmStatus.AUTHORIZED.value,
+            StrategicCashRearmStatus.INVALIDATED.value,
+        }
+    )
+    if not take_incoming and not retained_anchor:
         account.strategic_cash_rearm = StrategicCashRearmState()
         return account.strategic_cash_rearm
+
+    candidate_symbol = (
+        observation.candidate_symbol if take_incoming else previous.candidate_symbol
+    )
+    qualification_signature = (
+        observation.qualification_signature
+        if take_incoming
+        else previous.qualification_signature
+    )
+    qualification_route = (
+        observation.qualification_route if take_incoming else previous.qualification_route
+    )
+    qualification_quorum = (
+        observation.qualification_quorum
+        if take_incoming
+        else previous.qualification_quorum
+    )
+    qualification_evidence_sha256 = (
+        previous.qualification_evidence_sha256
+        if retained_anchor or same_formal_identity
+        else observation.qualification_evidence_sha256
+    )
 
     authority = assess_strategic_capital_authority(account)
     qualification_unavailable = tuple(
@@ -151,10 +227,12 @@ def observe_strategic_cash_rearm_state(
         )
     )
     route_quality = route_consistent_owner_quality(
-        symbol=observation.candidate_symbol,
-        quorum_route=observation.qualification_quorum,
+        symbol=candidate_symbol,
+        qualification_route=qualification_route,
+        quorum_route=qualification_quorum,
         snapshots=snapshots,
         leaders=leaders,
+        risk=risk,
         cfg=cfg,
     )
     predicates: list[StrategicCashRearmPredicate] = []
@@ -183,18 +261,49 @@ def observe_strategic_cash_rearm_state(
 
     record(
         "QUALIFICATION_READY",
-        observation.qualification_ready,
-        {"qualification_ready": observation.qualification_ready},
+        take_incoming or retained_anchor,
+        {
+            "current_observation_ready": observation.qualification_ready,
+            "retained_formal_qualification": retained_anchor,
+            "successor_read_only": successor_read_only,
+            "observed_candidate_symbol": observation.candidate_symbol,
+        },
         StrategicCashRearmRejectionReason.QUALIFICATION_NOT_READY,
     )
     record(
         "ROUTE_CONSISTENT_OWNER_QUALITY",
         route_quality,
         {
-            "candidate_symbol": observation.candidate_symbol,
-            "qualification_quorum": observation.qualification_quorum,
+            "candidate_symbol": candidate_symbol,
+            "qualification_quorum": qualification_quorum,
         },
         StrategicCashRearmRejectionReason.ROUTE_ABSOLUTE_QUALITY_FAILED,
+    )
+    record(
+        "CANDIDATE_TRADABLE",
+        candidate_symbol in universe.tradable_symbols,
+        {
+            "candidate_symbol": candidate_symbol,
+            "tradable_symbols": list(universe.tradable_symbols),
+        },
+        StrategicCashRearmRejectionReason.CANDIDATE_NOT_TRADABLE,
+        economic_authority=True,
+    )
+    rearmable_block = bool(
+        observation.deployment_blocked
+        and observation.deployment_block_reason
+        in {"freeze_new_risk", "capital_budget"}
+    )
+    record(
+        "DEPLOYMENT_BLOCK_REARMABLE",
+        rearmable_block,
+        {
+            "deployment_blocked": observation.deployment_blocked,
+            "deployment_block_reason": observation.deployment_block_reason,
+            "allowed_reasons": ["capital_budget", "freeze_new_risk"],
+        },
+        StrategicCashRearmRejectionReason.DEPLOYMENT_BLOCK_NOT_REARMABLE,
+        economic_authority=True,
     )
     record(
         "ALL_CASH",
@@ -439,11 +548,11 @@ def observe_strategic_cash_rearm_state(
     required = CASH_REARM_PROBE_HEALTHY_SESSIONS
     current = StrategicCashRearmState(
         observed_session=observed_session,
-        candidate_symbol=observation.candidate_symbol,
-        qualification_signature=observation.qualification_signature,
-        qualification_route=observation.qualification_route,
-        qualification_quorum=observation.qualification_quorum,
-        qualification_evidence_sha256=observation.qualification_evidence_sha256,
+        candidate_symbol=candidate_symbol,
+        qualification_signature=qualification_signature,
+        qualification_route=qualification_route,
+        qualification_quorum=qualification_quorum,
+        qualification_evidence_sha256=qualification_evidence_sha256,
         capital_budget_level=account.capital_budget_level,
         tradable_universe_identity=universe.tradable_identity,
         qualification_reference_universe_identity=(
@@ -454,7 +563,7 @@ def observe_strategic_cash_rearm_state(
         required_healthy_sessions=required,
         predicate_results=predicates,
         rejection_reasons=rejection_reasons,
-        qualification_ready=observation.qualification_ready,
+        qualification_ready=take_incoming or retained_anchor,
         route_consistent_absolute_quality=route_quality,
         healthy=not rejection_reasons,
     )
@@ -514,6 +623,29 @@ def observe_strategic_cash_rearm_state(
     return current
 
 
+def consume_strategic_cash_rearm_authorization(
+    account: AccountState,
+    *,
+    grant_id: str,
+) -> StrategicCashRearmState:
+    """Consume one authorized candidate identity into exactly one grant."""
+
+    if not isinstance(grant_id, str) or not grant_id.startswith("grant_") or len(grant_id) != 70:
+        raise ValueError("strategic cash rearm consumption requires a grant identity")
+    state = account.strategic_cash_rearm
+    if state.status == StrategicCashRearmStatus.CONSUMED.value:
+        raise RuntimeError("strategic cash rearm authorization is already consumed")
+    if state.status != StrategicCashRearmStatus.AUTHORIZED.value or not state.authorization_id:
+        raise RuntimeError("strategic cash rearm authorization is not available")
+    consumed = deepcopy(state)
+    consumed.status = StrategicCashRearmStatus.CONSUMED.value
+    consumed.authorized = False
+    consumed.consumed_grant_id = grant_id
+    consumed.streak_transition = StrategicCashRearmStreakTransition.CONSUMED.value
+    account.strategic_cash_rearm = consumed
+    return consumed
+
+
 def _finite_at_least(value: object, minimum: float) -> bool:
     if isinstance(value, bool) or not isinstance(value, (int, float)):
         return False
@@ -546,25 +678,6 @@ def _reference_coverage_complete(
     )
 
 
-def _unsettled_execution(account: AccountState) -> bool:
-    if account.pending_orders:
-        return True
-    terminal = {
-        OrderStatus.FILLED.value,
-        OrderStatus.CANCELLED.value,
-        OrderStatus.REPLACED.value,
-    }
-    return any(
-        order.status not in terminal
-        or (
-            order.status == OrderStatus.CANCELLED.value
-            and order.remaining_shares > 0
-            and order.last_event != "BROKER_CANCELLED"
-        )
-        for order in account.order_ledger
-    )
-
-
 def _risk_and_market_healthy(
     *,
     account: AccountState,
@@ -590,45 +703,6 @@ def _risk_and_market_healthy(
     )
 
 
-def _settled_cash_account(account: AccountState) -> bool:
-    grant = account.strategic_grant
-    return bool(
-        not account.positions
-        and account.cash > 0.0
-        and not _unsettled_execution(account)
-        and not account.active_strategic_epoch_id
-        and all(epoch.terminal for epoch in account.strategic_epochs)
-        and (grant is None or grant.terminal)
-        and not account.strategic_cohort_symbols
-        and not account.strategic_cohort_targets
-        and not account.anchor_weights
-        and not account.protected_weights
-        and not account.strategic_restore_weights
-        and not account.recovery_owner_epoch_id
-        and not account.recovery_conviction_symbol
-        and not account.tactical_anchor_symbol
-    )
-
-
-def _strict_candidates(
-    *,
-    universe: StrategicUniverseRoles,
-    snapshots: dict[str, dict[str, float]],
-    leaders: dict[str, LeaderScore],
-    cfg: SystemConfig,
-) -> tuple[str, ...]:
-    return tuple(
-        symbol
-        for symbol in universe.tradable_symbols
-        if strict_absolute_owner_quality(
-            symbol=symbol,
-            snapshots=snapshots,
-            leaders=leaders,
-            cfg=cfg,
-        )
-    )
-
-
 def observe_strategic_cash_rearm(
     *,
     account: AccountState,
@@ -642,9 +716,10 @@ def observe_strategic_cash_rearm(
     previous_observed_session: str,
     cfg: SystemConfig,
 ) -> bool:
-    """Count frozen healthy sessions and authorize one bounded formal probe."""
+    """Observe typed evidence and expose only its one-shot authorization."""
 
-    observe_strategic_cash_rearm_state(
+    del candidate_symbol, qualification_ready, previous_observed_session
+    state = observe_strategic_cash_rearm_state(
         account=account,
         risk=risk,
         universe=universe,
@@ -654,54 +729,7 @@ def observe_strategic_cash_rearm(
         observed_session=observed_session,
         cfg=cfg,
     )
-
-    level = account.capital_budget_level
-    previous_level = account.candidate_tenure.get(_REARM_LEVEL_KEY)
-    if previous_level != level:
-        account.candidate_tenure[_REARM_LEVEL_KEY] = level
-        account.candidate_tenure[_REARM_HEALTHY_KEY] = 0
-    strict_candidates = _strict_candidates(
-        universe=universe,
-        snapshots=snapshots,
-        leaders=leaders,
-        cfg=cfg,
-    )
-    healthy = bool(
-        _settled_cash_account(account)
-        and _risk_and_market_healthy(account=account, risk=risk, cfg=cfg)
-        and _reference_coverage_complete(risk=risk, universe=universe, cfg=cfg)
-        and strict_candidates
-    )
-    if healthy and previous_observed_session != observed_session:
-        account.candidate_tenure[_REARM_HEALTHY_KEY] = (
-            account.candidate_tenure.get(_REARM_HEALTHY_KEY, 0) + 1
-        )
-    candidate_strict = candidate_symbol in strict_candidates
-    authorized = bool(
-        healthy
-        and qualification_ready
-        and candidate_strict
-        and account.candidate_tenure.get(_REARM_HEALTHY_KEY, 0)
-        >= CASH_REARM_PROBE_HEALTHY_SESSIONS
-    )
-    account.candidate_tenure[_REARM_AUTHORIZED_KEY] = int(authorized)
-    account.candidate_tenure[_REARM_STRICT_KEY] = int(candidate_strict)
-    return authorized
-
-
-def mark_strategic_cash_rearm_grant(account: AccountState) -> None:
-    """Consume the one-session authorization into the resulting grant identity."""
-
-    account.candidate_tenure[_REARM_AUTHORIZED_KEY] = 0
-    account.candidate_tenure[_REARM_GRANT_KEY] = 1
-    account.candidate_tenure[_REARM_STRICT_KEY] = 1
-    account.candidate_tenure[_REARM_HEALTHY_KEY] = 0
-
-
-def set_strategic_cash_rearm_strict(account: AccountState, *, qualified: bool) -> None:
-    """Record current strict owner quality for a bounded grant retry."""
-
-    account.candidate_tenure[_REARM_STRICT_KEY] = int(qualified)
+    return state.status == StrategicCashRearmStatus.AUTHORIZED.value
 
 
 def strategic_cash_rearm_grant_open(
@@ -714,10 +742,14 @@ def strategic_cash_rearm_grant_open(
 
     grant = account.strategic_grant
     observation = account.strategic_qualification
+    rearm = account.strategic_cash_rearm
     if (
-        account.candidate_tenure.get(_REARM_GRANT_KEY, 0) != 1
-        or grant is None
+        grant is None
         or grant.terminal
+        or not grant.authorization_id
+        or rearm.status != StrategicCashRearmStatus.CONSUMED.value
+        or rearm.authorization_id != grant.authorization_id
+        or rearm.consumed_grant_id != grant.grant_id
         or not grant.epoch_id
         or observation.candidate_symbol != grant.candidate_symbol
         or not observation.qualification_ready
@@ -725,7 +757,6 @@ def strategic_cash_rearm_grant_open(
             observation.deployment_blocked
             and observation.deployment_block_reason != "pending_execution"
         )
-        or account.candidate_tenure.get(_REARM_STRICT_KEY, 0) != 1
     ):
         return False
     epoch = next(
@@ -776,10 +807,9 @@ def strategic_cash_rearm_weight(
 __all__ = (
     "CASH_REARM_HEALTHY_SESSION_LIMITS",
     "CASH_REARM_PROBE_HEALTHY_SESSIONS",
-    "mark_strategic_cash_rearm_grant",
+    "consume_strategic_cash_rearm_authorization",
     "observe_strategic_cash_rearm",
     "observe_strategic_cash_rearm_state",
-    "set_strategic_cash_rearm_strict",
     "strategic_cash_rearm_grant_open",
     "strategic_cash_rearm_weight",
 )

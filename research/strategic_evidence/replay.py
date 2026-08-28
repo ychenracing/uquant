@@ -15,6 +15,7 @@ from research.candidate_runner import CandidateRunner, CausalReplayDataStore
 from uquant.config import DEFAULT_CONFIG, SystemConfig
 from uquant.engine import ProductionEngine, performance_metrics
 from uquant.market import ReplayHarness
+from uquant.models.strategic_universe import build_strategic_universe_declaration
 from uquant.types import AccountState, Decision
 from uquant.validation.ai_era import AI_ERA_START
 
@@ -36,6 +37,8 @@ class ReplayRequest:
     scenario: str = "baseline"
     initial_cash: float | None = None
     intervention_date: str | None = None
+    qualification_reference_symbols: tuple[str, ...] | None = None
+    risk_reference_symbols: tuple[str, ...] | None = None
 
     def __post_init__(self) -> None:
         if self.future_holdout_boundary != _FUTURE_HOLDOUT_BOUNDARY:
@@ -61,6 +64,16 @@ class ReplayRequest:
             raise ValueError("intervention date lies outside replay window")
         if self.initial_cash is not None and self.initial_cash <= 0:
             raise ValueError("initial cash must be positive")
+        if (self.qualification_reference_symbols is None) != (
+            self.risk_reference_symbols is None
+        ):
+            raise ValueError("replay reference roles must be supplied together")
+        for label, symbols in (
+            ("qualification", self.qualification_reference_symbols),
+            ("risk", self.risk_reference_symbols),
+        ):
+            if symbols is not None and tuple(sorted(set(symbols))) != symbols:
+                raise ValueError(f"replay {label} reference role must be canonical")
 
 
 @dataclass(frozen=True, slots=True)
@@ -196,6 +209,15 @@ def _run_replay_success(
         raise RuntimeError("replay window has fewer than two sessions")
     account = AccountState.empty(request.initial_cash or cfg.initial_cash)
     raw_user_panel = harness.raw_panel(request.symbols)
+    strategic_universe_declaration = (
+        build_strategic_universe_declaration(
+            qualification_reference_symbols=request.qualification_reference_symbols,
+            risk_reference_symbols=request.risk_reference_symbols,
+        )
+        if request.qualification_reference_symbols is not None
+        and request.risk_reference_symbols is not None
+        else None
+    )
     trace: list[RouteTraceRow] = []
     equity_rows: list[tuple[pd.Timestamp, float]] = []
     intervention_provenance: Mapping[str, Any] | None = None
@@ -214,7 +236,12 @@ def _run_replay_success(
                 equity_rows[-1] = (session, equity)
             new_fills = tuple(account.fills[fill_cursor:])
             fill_cursor = len(account.fills)
-            decision = engine.decide(symbols=request.symbols, as_of=session_date, account=account)
+            decision = engine.decide(
+                symbols=request.symbols,
+                as_of=session_date,
+                account=account,
+                strategic_universe_declaration=strategic_universe_declaration,
+            )
             if request.intervention_date == session_date:
                 if intervention is None:
                     raise RuntimeError("intervention disappeared during replay")

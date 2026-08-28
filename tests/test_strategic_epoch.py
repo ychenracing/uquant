@@ -25,6 +25,7 @@ from uquant.models.strategic_grant import (
     StrategicGrantStatus,
     derive_strategic_grant_id,
 )
+from uquant.portfolio_core import strategic_dominant_symbol, symbol_weight_cap
 from uquant.types import (
     AccountState,
     AttributionMechanism,
@@ -60,6 +61,7 @@ def _grant(*, symbol: str = "sz300308", created: str = "2026-01-05") -> Strategi
         status=StrategicGrantStatus.PENDING_EXECUTION.value,
         account_identity=account_identity,
         production_source_identity="code:production",
+        qualification_quorum="FULL_COHORT",
     )
 
 
@@ -143,6 +145,32 @@ def test_epoch_activates_only_after_a_matching_real_fill() -> None:
 
     assert epoch.first_fill_session == "2026-01-06"
     assert epoch.active_session == "2026-01-06"
+
+
+def test_full_cohort_probe_keeps_frozen_dominant_target_before_first_fill() -> None:
+    """A pending ledger is not a realized epoch, but its formal target keeps the old cap."""
+
+    grant = _grant()
+    grant.target_weight = DEFAULT_CONFIG.strategic_dominant_max_weight
+    epoch = _epoch(grant)
+    grant.epoch_id = epoch.epoch_id
+    account = AccountState.empty(2_000_000.0)
+    account.strategic_grant = grant
+    account.strategic_epochs = [epoch]
+    account.strategic_cohort_symbols = [grant.candidate_symbol]
+    account.strategic_cohort_targets = {
+        grant.candidate_symbol: DEFAULT_CONFIG.strategic_dominant_max_weight,
+    }
+    account.candidate_tenure["strategic_cohort_active"] = 1
+    account.candidate_tenure["strategic_dominant_epoch"] = 1
+
+    assert account.strategic_epoch == 0
+    assert account.active_strategic_epoch_id == ""
+    assert epoch.realized_status == StrategicEpochStatus.PROBE.value
+    assert strategic_dominant_symbol(account) == grant.candidate_symbol
+    assert symbol_weight_cap(DEFAULT_CONFIG, account, grant.candidate_symbol) == pytest.approx(
+        DEFAULT_CONFIG.strategic_dominant_max_weight
+    )
 
 
 def test_full_cohort_witness_fill_cannot_activate_the_owner_epoch() -> None:

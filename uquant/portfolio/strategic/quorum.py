@@ -12,6 +12,7 @@ from ...models.strategic_universe import (
     StrategicUniverseRoles,
 )
 from ...types import LeaderScore, Risk, RiskAssessment
+from .qualification_candidates import strategic_candidate_meets_route
 
 
 class StrategicQuorumRoute(str, Enum):
@@ -104,13 +105,24 @@ def strict_absolute_owner_quality(
 def route_consistent_owner_quality(
     *,
     symbol: str,
+    qualification_route: str,
     quorum_route: str,
     snapshots: dict[str, dict[str, float]],
     leaders: dict[str, LeaderScore],
+    risk: RiskAssessment,
     cfg: SystemConfig,
 ) -> bool:
     """Revalidate the owner with the floors of its qualified quorum route."""
 
+    if not strategic_candidate_meets_route(
+        candidate_symbol=symbol,
+        qualification_route=qualification_route,
+        snapshots=snapshots,
+        leaders=leaders,
+        risk=risk,
+        cfg=cfg,
+    ):
+        return False
     if quorum_route == StrategicQuorumRoute.FULL_COHORT.value:
         minimum_score = cfg.leader_mature_score
         minimum_secular_score = cfg.strategic_secular_min_score

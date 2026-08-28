@@ -24,6 +24,7 @@ from uquant.types import (
     PendingOrder,
     Risk,
     RiskAssessment,
+    StrategicQualificationObservation,
 )
 
 
@@ -38,7 +39,10 @@ def _snapshot(*, score: float = 0.95) -> dict[str, float]:
         "relative_strength": 0.90,
         "trend_persistence": 1.0,
         "ret20": 0.20,
+        "ret60": 0.30,
         "ret120": 0.50,
+        "persistent_ret240": 2.00,
+        "industry_confidence": 0.95,
         "liquidity_confirmation": 1.0,
     }
 
@@ -96,11 +100,28 @@ def _strict_inputs() -> tuple[dict[str, dict[str, float]], dict[str, LeaderScore
     )
 
 
+def _qualification(*, ready: bool = True) -> StrategicQualificationObservation:
+    return StrategicQualificationObservation(
+        candidate_symbol="sz300308",
+        qualification_signature="qualification:optical",
+        qualification_route="established",
+        qualification_evidence_sha256="a" * 64,
+        qualification_ready=ready,
+        deployment_blocked=True,
+        deployment_block_reason="freeze_new_risk",
+        qualification_streak=3 if ready else 0,
+        qualification_last_observed_session="2025-01-02",
+        qualification_quorum="FULL_COHORT",
+        candidate_symbols=["sz300308", "sz300394", "sz300502"],
+    )
+
+
 def test_cash_rearm_uses_fixed_healthy_boundary_without_resetting_budget() -> None:
     snapshots, leaders = _strict_inputs()
     account = AccountState.empty(2_000_000.0)
     account.capital_budget_level = 3
     account.opportunity = Opportunity.TREND.value
+    account.strategic_qualification = _qualification()
     limit = CASH_REARM_PROBE_HEALTHY_SESSIONS
 
     authorized = False
@@ -121,7 +142,11 @@ def test_cash_rearm_uses_fixed_healthy_boundary_without_resetting_budget() -> No
         previous_session = str(session.date())
 
     assert authorized is True
-    assert account.candidate_tenure["strategic_cash_rearm_healthy_sessions"] == limit
+    assert account.strategic_cash_rearm.consecutive_healthy_sessions == limit
+    assert account.strategic_cash_rearm.status == "AUTHORIZED"
+    assert not any(
+        key.startswith("strategic_cash_rearm_") for key in account.candidate_tenure
+    )
     assert CASH_REARM_HEALTHY_SESSION_LIMITS[3] == 60
     assert account.capital_budget_level == 3
     assert account.capital_budget_repair_streak == 0
@@ -145,10 +170,7 @@ def test_cash_rearm_fails_closed_for_each_safety_boundary(mutation: str) -> None
     account = AccountState.empty(2_000_000.0)
     account.capital_budget_level = 3
     account.opportunity = Opportunity.TREND.value
-    account.candidate_tenure["strategic_cash_rearm_budget_level"] = 3
-    account.candidate_tenure["strategic_cash_rearm_healthy_sessions"] = (
-        CASH_REARM_PROBE_HEALTHY_SESSIONS - 1
-    )
+    account.strategic_qualification = _qualification()
     risk = _risk()
     universe = _roles()
     qualification_ready = True
@@ -194,6 +216,7 @@ def test_cash_rearm_fails_closed_for_each_safety_boundary(mutation: str) -> None
         snapshots["sz300502"] = _snapshot(score=0.89)
     elif mutation == "candidate_not_ready":
         qualification_ready = False
+        account.strategic_qualification = _qualification(ready=False)
 
     authorized = observe_strategic_cash_rearm(
         account=account,
@@ -216,25 +239,26 @@ def test_zero_risk_anchor_count_is_available_evidence_not_missing_coverage() -> 
     account = AccountState.empty(2_000_000.0)
     account.capital_budget_level = 3
     account.opportunity = Opportunity.TREND.value
-    account.candidate_tenure["strategic_cash_rearm_budget_level"] = 3
-    account.candidate_tenure["strategic_cash_rearm_healthy_sessions"] = (
-        CASH_REARM_PROBE_HEALTHY_SESSIONS - 1
-    )
+    account.strategic_qualification = _qualification()
     evidence = dict(_risk().evidence)
     evidence["risk_anchor_group_count"] = 0
 
-    authorized = observe_strategic_cash_rearm(
-        account=account,
-        risk=_risk(evidence=evidence),
-        universe=_roles(),
-        snapshots=snapshots,
-        leaders=leaders,
-        candidate_symbol="sz300308",
-        qualification_ready=True,
-        observed_session="2026-01-05",
-        previous_observed_session="2026-01-02",
-        cfg=DEFAULT_CONFIG,
-    )
+    authorized = False
+    previous_session = ""
+    for session in pd.bdate_range("2026-01-05", periods=CASH_REARM_PROBE_HEALTHY_SESSIONS):
+        authorized = observe_strategic_cash_rearm(
+            account=account,
+            risk=_risk(evidence=evidence),
+            universe=_roles(str(session.date())),
+            snapshots=snapshots,
+            leaders=leaders,
+            candidate_symbol="sz300308",
+            qualification_ready=True,
+            observed_session=str(session.date()),
+            previous_observed_session=previous_session,
+            cfg=DEFAULT_CONFIG,
+        )
+        previous_session = str(session.date())
 
     assert authorized is True
 
@@ -252,14 +276,10 @@ def test_level_three_cash_rearm_creates_only_one_formal_bounded_probe() -> None:
     account.code_hash = "code:production"
     account.capital_budget_level = 3
     account.opportunity = Opportunity.TREND.value
-    account.candidate_tenure["strategic_cash_rearm_budget_level"] = 3
-    account.candidate_tenure["strategic_cash_rearm_healthy_sessions"] = (
-        CASH_REARM_PROBE_HEALTHY_SESSIONS - 2
-    )
     allocator = PortfolioAllocator(DEFAULT_CONFIG)
     targets = ()
 
-    for session in dates[-DEFAULT_CONFIG.strategic_cohort_confirm_days :]:
+    for session in dates[-45:-24]:
         targets = allocator.allocate(
             date=session,
             opportunity=Opportunity.TREND,
@@ -276,6 +296,7 @@ def test_level_three_cash_rearm_creates_only_one_formal_bounded_probe() -> None:
     assert positive[0].grant_id
     assert positive[0].epoch_id
     assert account.strategic_grant is not None
+    assert account.strategic_grant.authorization_id
     assert account.strategic_grant.candidate_symbol == positive[0].symbol
     assert account.strategic_grant.target_weight == pytest.approx(
         DEFAULT_CONFIG.core_admission_weight
@@ -284,3 +305,8 @@ def test_level_three_cash_rearm_creates_only_one_formal_bounded_probe() -> None:
     assert account.strategic_epochs[0].realized_status == StrategicEpochStatus.PROBE.value
     assert account.active_strategic_epoch_id == ""
     assert account.capital_budget_level == 3
+    assert account.strategic_cash_rearm.status == "CONSUMED"
+    assert account.strategic_cash_rearm.consumed_grant_id == account.strategic_grant.grant_id
+    assert not any(
+        key.startswith("strategic_cash_rearm_") for key in account.candidate_tenure
+    )

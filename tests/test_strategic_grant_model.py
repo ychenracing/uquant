@@ -118,3 +118,32 @@ def test_grant_id_binds_candidate_route_evidence_and_source_identity() -> None:
         changed = dict(base)
         changed[field] = replacement
         assert derive_strategic_grant_id(**changed) != grant.grant_id
+
+
+def test_rearm_grant_identity_binds_one_authorization() -> None:
+    grant = _grant()
+    authorization_id = "rearm_" + "b" * 64
+    bound = derive_strategic_grant_id(
+        account_identity=grant.account_identity,
+        candidate_symbol=grant.candidate_symbol,
+        qualification_signature=grant.qualification_signature,
+        qualification_route=grant.qualification_route,
+        qualification_evidence_sha256=grant.qualification_evidence_sha256,
+        created_session=grant.created_session,
+        previous_grant_id=grant.previous_grant_id,
+        production_source_identity=grant.production_source_identity,
+        authorization_id=authorization_id,
+    )
+
+    assert bound != grant.grant_id
+    assert bound == derive_strategic_grant_id(
+        account_identity=grant.account_identity,
+        candidate_symbol=grant.candidate_symbol,
+        qualification_signature=grant.qualification_signature,
+        qualification_route=grant.qualification_route,
+        qualification_evidence_sha256=grant.qualification_evidence_sha256,
+        created_session=grant.created_session,
+        previous_grant_id=grant.previous_grant_id,
+        production_source_identity=grant.production_source_identity,
+        authorization_id=authorization_id,
+    )

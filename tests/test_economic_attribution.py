@@ -767,8 +767,8 @@ def test_control_plane_accepts_only_the_exact_twelve_decimal_sum_rounding_bound(
     assert not _rounded_sum_matches(rounded_total + 1e-10, weights)
 
 
-def test_control_plane_rejects_self_signed_noncanonical_target_event() -> None:
-    """Catches a trace-only target fabricating an event while re-signing its digest."""
+def test_control_plane_rejects_self_signed_noncanonical_target_identity() -> None:
+    """Catches a trace-only target fabricating identity while re-signing its digest."""
     from uquant.validation.control_plane import validate_engine_control_plane
     from uquant.validation.manifest import verify_data_manifest
     from uquant.validation.replay_evidence import VerifiedMarketData
@@ -782,30 +782,71 @@ def test_control_plane_rejects_self_signed_noncanonical_target_event() -> None:
         "data/frozen",
         expected_manifest=verify_data_manifest("data/frozen"),
     )
-    trace = next(
-            row
-            for row in result["decision_trace"]
-            if any(
-                target["origin_subsystem"] == "STRATEGIC"
-                and target["mechanism"] != "STRATEGIC_RESTORATION"
-                for target in row["targets"]
-            )
+    trace_index = next(
+        index
+        for index, row in enumerate(result["decision_trace"])
+        if any(
+            target["origin_subsystem"] == "STRATEGIC"
+            and target["mechanism"] != "STRATEGIC_RESTORATION"
+            for target in row["targets"]
+        )
     )
+    durable_event_ids = {
+        order["event_id"] for order in result["final_account"]["order_ledger"]
+    }
+    trace_only_index, trace_only_target = next(
+        (index, target)
+        for index, row in enumerate(result["decision_trace"])
+        for target in row["targets"]
+        if target["grant_id"]
+        and target["epoch_id"]
+        and target["event_id"] not in durable_event_ids
+    )
+
+    for field, forged_identity in (
+        ("event_id", "evt_" + "0" * 64),
+        ("grant_id", "grant_" + "0" * 64),
+        ("epoch_id", "epoch_" + "0" * 64),
+    ):
+        changed = json.loads(json.dumps(result))
+        trace = changed["decision_trace"][trace_index]
+        target = next(
+            target
+            for target in trace["targets"]
+            if target["origin_subsystem"] == "STRATEGIC"
+            and target["mechanism"] != "STRATEGIC_RESTORATION"
+        )
+        target[field] = forged_identity
+        changed["decision_digests"][trace_index] = hashlib.sha256(
+            json.dumps(trace, sort_keys=True, separators=(",", ":")).encode()
+        ).hexdigest()
+
+        with pytest.raises(ValueError, match="target event identity"):
+            validate_engine_control_plane(
+                changed,
+                economic_start="2023-01-03",
+                economic_end="2023-03-31",
+                expected_sessions=market.sessions("2023-01-03", "2023-03-31"),
+                expected_config=DEFAULT_CONFIG,
+                expected_code_sha256=code_fingerprint(),
+            )
+
+    changed = json.loads(json.dumps(result))
     target = next(
         target
-        for target in trace["targets"]
-        if target["origin_subsystem"] == "STRATEGIC"
-        and target["mechanism"] != "STRATEGIC_RESTORATION"
+        for target in changed["decision_trace"][trace_only_index]["targets"]
+        if target["event_id"] == trace_only_target["event_id"]
     )
-    target["event_id"] = "evt_" + "0" * 64
-    index = result["decision_trace"].index(trace)
-    result["decision_digests"][index] = hashlib.sha256(
+    target["grant_id"] = "grant_" + "0" * 64
+    target["epoch_id"] = "epoch_" + "0" * 64
+    trace = changed["decision_trace"][trace_only_index]
+    changed["decision_digests"][trace_only_index] = hashlib.sha256(
         json.dumps(trace, sort_keys=True, separators=(",", ":")).encode()
     ).hexdigest()
 
-    with pytest.raises(ValueError, match="target event identity"):
+    with pytest.raises(ValueError, match="target strategic ownership identity"):
         validate_engine_control_plane(
-            result,
+            changed,
             economic_start="2023-01-03",
             economic_end="2023-03-31",
             expected_sessions=market.sessions("2023-01-03", "2023-03-31"),

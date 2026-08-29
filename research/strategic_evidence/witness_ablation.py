@@ -7,16 +7,19 @@ and cannot support return claims.
 
 from __future__ import annotations
 
+import hashlib
+import json
 from collections.abc import Iterable, Mapping, Sequence
-from dataclasses import asdict, dataclass, replace
+from dataclasses import InitVar, asdict, dataclass, replace
 from datetime import date
 from itertools import combinations
 from typing import Any
 
 from uquant.account import account_from_dict, economic_state_sha256
+from uquant.types import ACCOUNT_SCHEMA_VERSION, AccountState
 
 from .contract import StrategicEvidenceContract
-from .models import canonical_sha256
+from .models import canonical_sha256, require_sha256
 from .replay import ReplayResult
 from .trace import RouteTraceRow
 
@@ -44,6 +47,89 @@ _ROUTE_LAYERS = (
     "orders",
     "fills",
 )
+
+
+def _canonical_json_bytes(payload: Mapping[str, Any]) -> bytes:
+    return json.dumps(
+        payload,
+        allow_nan=False,
+        ensure_ascii=False,
+        separators=(",", ":"),
+        sort_keys=True,
+    ).encode("utf-8")
+
+
+def _historical_payload_projection(
+    decoded: object,
+    historical: object,
+) -> object:
+    """Project decoded state onto the exact shape stored by its historical schema."""
+
+    if isinstance(historical, Mapping):
+        if not isinstance(decoded, Mapping) or not set(historical).issubset(decoded):
+            raise ValueError("historical evidence account codec round-trip differs")
+        return {
+            key: _historical_payload_projection(decoded[key], value)
+            for key, value in historical.items()
+        }
+    if isinstance(historical, list):
+        if not isinstance(decoded, list) or len(decoded) != len(historical):
+            raise ValueError("historical evidence account codec round-trip differs")
+        return [
+            _historical_payload_projection(decoded_item, historical_item)
+            for decoded_item, historical_item in zip(decoded, historical, strict=True)
+        ]
+    return decoded
+
+
+def _historical_economic_state_sha256(payload: Mapping[str, Any]) -> str:
+    """Hash one sealed account using the economic projection of its own schema."""
+
+    economic_payload = dict(payload)
+    economic_payload.pop("code_hash", None)
+    economic_payload.pop("account_migrations", None)
+    return hashlib.sha256(_canonical_json_bytes(economic_payload)).hexdigest()
+
+
+def decode_historical_evidence_account(
+    payload: Mapping[str, Any],
+    expected_payload_sha256: str,
+    expected_economic_sha256: str,
+) -> AccountState:
+    """Decode one immutable sealed account without widening production reads."""
+
+    expected_payload = require_sha256(
+        expected_payload_sha256,
+        field="historical evidence account payload seal",
+    )
+    raw = dict(payload)
+    observed_payload = hashlib.sha256(_canonical_json_bytes(raw)).hexdigest()
+    if observed_payload != expected_payload:
+        raise ValueError("historical evidence account payload seal differs")
+    expected_economic = require_sha256(
+        expected_economic_sha256,
+        field="historical evidence account economic seal",
+    )
+    decoded = account_from_dict(
+        raw,
+        require_hashes=False,
+        allow_legacy_schema=True,
+    )
+    decoded_payload = decoded.to_dict()
+    if decoded.schema_version == ACCOUNT_SCHEMA_VERSION:
+        projected: Mapping[str, Any] = decoded_payload
+        observed_economic = economic_state_sha256(decoded)
+    else:
+        historical_projection = _historical_payload_projection(decoded_payload, raw)
+        if not isinstance(historical_projection, Mapping):
+            raise ValueError("historical evidence account codec round-trip differs")
+        projected = historical_projection
+        observed_economic = _historical_economic_state_sha256(projected)
+    if _canonical_json_bytes(projected) != _canonical_json_bytes(raw):
+        raise ValueError("historical evidence account codec round-trip differs")
+    if observed_economic != expected_economic:
+        raise ValueError("historical evidence account economic seal differs")
+    return decoded
 
 
 @dataclass(frozen=True, slots=True)
@@ -139,8 +225,9 @@ class AblationCell:
     diagnostic_projection_row_count: int
     intervention_provenance: Mapping[str, Any] | None
     error: str | None
+    allow_historical_account_schema: InitVar[bool] = False
 
-    def __post_init__(self) -> None:
+    def __post_init__(self, allow_historical_account_schema: bool) -> None:
         if self.status not in _TERMINAL_STATUSES:
             raise ValueError("witness ablation status is not terminal")
         if self.partial_trace_row_count < 0:
@@ -154,14 +241,25 @@ class AblationCell:
         if (self.final_account is None) != (self.final_account_payload_sha256 is None):
             raise ValueError("witness ablation final account payload/seal pairing differs")
         if self.final_account is not None:
-            decoded = account_from_dict(self.final_account, require_hashes=False)
-            if decoded.to_dict() != self.final_account:
-                raise ValueError("witness ablation final account codec round-trip differs")
-            expected_payload_sha = canonical_sha256(dict(self.final_account))
-            if self.final_account_payload_sha256 != expected_payload_sha:
-                raise ValueError("witness ablation final account payload seal differs")
-            if self.final_account_sha256 != economic_state_sha256(decoded):
-                raise ValueError("witness ablation final account economic seal differs")
+            payload_sha256 = self.final_account_payload_sha256
+            economic_sha256 = self.final_account_sha256
+            if payload_sha256 is None or economic_sha256 is None:
+                raise ValueError("witness ablation final account seals are incomplete")
+            if allow_historical_account_schema:
+                decode_historical_evidence_account(
+                    self.final_account,
+                    expected_payload_sha256=payload_sha256,
+                    expected_economic_sha256=economic_sha256,
+                )
+            else:
+                decoded = account_from_dict(self.final_account, require_hashes=False)
+                if decoded.to_dict() != self.final_account:
+                    raise ValueError("witness ablation final account codec round-trip differs")
+                expected_payload_sha = canonical_sha256(dict(self.final_account))
+                if self.final_account_payload_sha256 != expected_payload_sha:
+                    raise ValueError("witness ablation final account payload seal differs")
+                if self.final_account_sha256 != economic_state_sha256(decoded):
+                    raise ValueError("witness ablation final account economic seal differs")
         elif self.final_account_sha256 is not None:
             raise ValueError("witness ablation final account economic seal lacks payload")
         if self.spec.evidence_class == DIAGNOSTIC_ONLY:
@@ -755,6 +853,7 @@ def ablation_cell_from_compact(value: object) -> AblationCell:
         diagnostic_projection_row_count=projection_count,
         intervention_provenance=None if intervention is None else dict(intervention),
         error=None if raw["error"] is None else str(raw["error"]),
+        allow_historical_account_schema=True,
     )
     if raw["cell_id"] != cell.cell_id:
         raise ValueError("witness ablation compact linkage differs")
@@ -775,6 +874,7 @@ __all__ = (
     "ablation_cell_from_compact",
     "ablation_spec_from_compact",
     "cell_from_replay",
+    "decode_historical_evidence_account",
     "derive_first_divergences",
     "derive_symbol_roles",
     "diagnostic_projection",

@@ -7,6 +7,7 @@ from pathlib import Path
 
 import pytest
 
+import research.strategic_evidence.witness_ablation as witness_ablation
 from research.strategic_evidence.models import canonical_sha256
 from research.strategic_evidence.provenance import seal_payload, write_gzip_shard
 from research.strategic_evidence.report import (
@@ -15,8 +16,102 @@ from research.strategic_evidence.report import (
     validate_evidence_artifacts,
 )
 from scripts.run_strategic_evidence_closure import build_phase_commands, main
+from uquant.account import account_from_dict, economic_state_sha256
+from uquant.types import ACCOUNT_SCHEMA_VERSION, AccountState
 
 ROOT = Path(__file__).resolve().parents[1]
+
+
+def _assert_historical_evidence_account_decoder_contract() -> None:
+    artifact = json.loads(
+        (
+            ROOT
+            / "artifacts/strategic_evidence_closure/checkpoint4_witness_ablation_full.json"
+        ).read_text(encoding="utf-8")
+    )
+    cell = artifact["initial_cells"][0]
+    account = cell["final_account"]
+    payload_sha256 = cell["final_account_payload_sha256"]
+    economic_sha256 = cell["final_account_sha256"]
+    assert account["schema_version"] == 5
+    decoder = witness_ablation.decode_historical_evidence_account
+
+    decoded = decoder(
+        account,
+        expected_payload_sha256=payload_sha256,
+        expected_economic_sha256=economic_sha256,
+    )
+    assert decoded.schema_version == 5
+    assert decoded.initial_cash == account["initial_cash"]
+    assert decoded.cash == account["cash"]
+    with pytest.raises(RuntimeError, match="requires explicit migration"):
+        account_from_dict(account, require_hashes=False)
+
+    injected_envelope_seal = {**account, "payload_sha256": "0" * 64}
+    with pytest.MonkeyPatch.context() as monkeypatch:
+        monkeypatch.setattr(
+            witness_ablation,
+            "account_from_dict",
+            lambda *_args, **_kwargs: pytest.fail(
+                "tampered historical payload reached account decoding"
+            ),
+        )
+        with pytest.raises(ValueError, match="payload seal"):
+            decoder(
+                injected_envelope_seal,
+                expected_payload_sha256=payload_sha256,
+                expected_economic_sha256=economic_sha256,
+            )
+
+    future_unsealed = {**account, "schema_version": ACCOUNT_SCHEMA_VERSION + 1}
+    with pytest.raises(ValueError, match="payload seal"):
+        decoder(
+            future_unsealed,
+            expected_payload_sha256="0" * 64,
+            expected_economic_sha256=economic_sha256,
+        )
+    changed_cash = {**account, "cash": float(account["cash"]) + 1.0}
+    with pytest.raises(ValueError, match="payload seal"):
+        decoder(
+            changed_cash,
+            expected_payload_sha256=payload_sha256,
+            expected_economic_sha256=economic_sha256,
+        )
+    with pytest.raises(ValueError, match="economic seal"):
+        decoder(
+            changed_cash,
+            expected_payload_sha256=canonical_sha256(changed_cash),
+            expected_economic_sha256=economic_sha256,
+        )
+    with pytest.raises(ValueError, match="economic seal"):
+        decoder(
+            account,
+            expected_payload_sha256=payload_sha256,
+            expected_economic_sha256="0" * 64,
+        )
+    changed_schema = {**account, "schema_version": 4}
+    with pytest.raises((RuntimeError, ValueError)):
+        decoder(
+            changed_schema,
+            expected_payload_sha256=canonical_sha256(changed_schema),
+            expected_economic_sha256=economic_sha256,
+        )
+
+    current = AccountState.empty(100.0)
+    current_payload = current.to_dict()
+    current_decoded = decoder(
+        current_payload,
+        expected_payload_sha256=canonical_sha256(current_payload),
+        expected_economic_sha256=economic_state_sha256(current),
+    )
+    assert current_decoded.to_dict() == current_payload
+    future = {**current_payload, "schema_version": ACCOUNT_SCHEMA_VERSION + 1}
+    with pytest.raises(RuntimeError, match="unsupported account schema"):
+        decoder(
+            future,
+            expected_payload_sha256=canonical_sha256(future),
+            expected_economic_sha256=economic_state_sha256(current),
+        )
 
 
 def test_orchestrator_builds_resumable_stage_commands_without_economic_shortcuts(
@@ -105,6 +200,7 @@ def test_workflow_is_manual_non_blocking_and_uses_pinned_actions() -> None:
 
 
 def test_artifact_assembly_binds_external_shards_and_validates_readback(tmp_path: Path) -> None:
+    _assert_historical_evidence_account_decoder_contract()
     external = tmp_path / "reachability.jsonl.gz"
     external.write_bytes(b"deterministic-external-evidence")
     sources = {

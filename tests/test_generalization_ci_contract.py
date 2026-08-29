@@ -116,7 +116,7 @@ def test_engineering_summary_catches_quality_or_security_failure_without_skippin
         workflow,
         job_id="engineering",
         check_name="Engineering",
-        needs={"quality", "security", "windows_smoke"},
+        needs={"quality", "test_matrix", "coverage", "security", "windows_smoke"},
     )
     quality_steps = _steps(workflow["jobs"]["quality"])
     assert "workflow_dispatch" in workflow["on"]
@@ -133,8 +133,55 @@ def test_engineering_summary_catches_quality_or_security_failure_without_skippin
     assert "journal verify" in journal_step["run"]
     assert "python -m scripts.production_observation --help" in journal_step["run"]
     assert "git check-ignore" in journal_step["run"]
-    pytest_step = next(step for step in quality_steps if step.get("name") == "Tests and branch coverage")
-    assert "--cov-fail-under=85" in pytest_step["run"]
+    shards = workflow["jobs"]["test_matrix"]
+    assert shards["strategy"]["fail-fast"] == "false"
+    assert shards["strategy"]["matrix"]["shard"] == [
+        "architecture-foundation",
+        "architecture-portfolio",
+        "architecture-remaining",
+        "application-left",
+        "application-right",
+    ]
+    pytest_step = _named_step(shards, "Run deterministic test shard")
+    assert "--cov-fail-under=0" in pytest_step["run"]
+    assert "Unknown test shard" in pytest_step["run"]
+    coverage_step = _named_step(workflow["jobs"]["coverage"], "Require combined branch coverage")
+    assert "coverage combine" in coverage_step["run"]
+    assert "coverage report --show-missing --fail-under=85" in coverage_step["run"]
+
+    path = WORKFLOWS / "release-candidate.yml"
+    assert path.is_file(), "manual release-candidate workflow is missing"
+    workflow = _workflow(path.name)
+
+    assert workflow["name"] == "Release Candidate Source Equality"
+    _assert_manual_only(workflow)
+    _assert_locked_runtime(workflow)
+    assert workflow["permissions"] == {"contents": "read"}
+    assert set(workflow["jobs"]) == {"source_equality"}
+    job = workflow["jobs"]["source_equality"]
+    assert job["env"] == {"UQUANT_RELEASE_CANDIDATE": "1"}
+    checkout = next(
+        step
+        for step in _steps(job)
+        if str(step.get("uses", "")).startswith("actions/checkout@")
+    )
+    assert checkout["with"]["fetch-depth"] == "0"
+    run = _named_step(job, "Run release candidate source equality and contracts")["run"]
+    assert "tests/architecture/test_release_acceptance.py" in run
+    assert "tests/test_generalization_ci_contract.py" in run
+    assert "tag" not in run.lower()
+    assert "release" not in run.lower().replace("release_acceptance", "")
+    assert "build_reproducible_wheel" not in run
+    for forbidden in (
+        "git tag",
+        "gh release",
+        "uv build",
+        "python -m build",
+        "twine",
+        "pyproject.toml",
+        "__version__",
+    ):
+        assert forbidden not in run
 
 
 def test_security_gate_blocks_only_findings_added_over_the_event_base() -> None:
@@ -259,6 +306,7 @@ def test_workflows_catch_failure_suppression_and_unpinned_action_regressions() -
     """Catches a failed gate being converted to success or an action floating by branch/tag."""
     for name in (
         "ci.yml",
+        "release-candidate.yml",
         "strategic-ownership-acceptance.yml",
         "strategy-performance.yml",
         "strategy-generalization.yml",
@@ -284,6 +332,7 @@ def test_action_pins_keep_readable_verified_version_comments() -> None:
     """Catches a full SHA losing its human-auditable upstream release identity."""
     for name in (
         "ci.yml",
+        "release-candidate.yml",
         "strategic-ownership-acceptance.yml",
         "strategy-performance.yml",
         "strategy-generalization.yml",
@@ -301,7 +350,21 @@ def test_action_pins_keep_readable_verified_version_comments() -> None:
 def test_artifact_names_bind_each_upload_and_download_to_one_run_attempt() -> None:
     """Catches immutable-v4 collisions or a retry downloading another attempt's shards."""
     engineering = _workflow("ci.yml")
-    coverage = _named_step(engineering["jobs"]["quality"], "Upload coverage")["with"]["name"]
+    shard_coverage = _named_step(
+        engineering["jobs"]["test_matrix"], "Upload shard coverage"
+    )["with"]["name"]
+    assert shard_coverage == (
+        "engineering-coverage-${{ github.run_id }}-attempt-"
+        "${{ github.run_attempt }}-${{ matrix.shard }}"
+    )
+    download_pattern = _named_step(
+        engineering["jobs"]["coverage"], "Download shard coverage"
+    )["with"]["pattern"]
+    assert download_pattern == (
+        "engineering-coverage-${{ github.run_id }}-attempt-"
+        "${{ github.run_attempt }}-*"
+    )
+    coverage = _named_step(engineering["jobs"]["coverage"], "Upload coverage")["with"]["name"]
     assert coverage == "coverage-${{ github.run_id }}-attempt-${{ github.run_attempt }}"
 
     performance = _workflow("strategy-performance.yml")

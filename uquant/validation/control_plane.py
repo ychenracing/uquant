@@ -24,12 +24,15 @@ from ..types import (
     ReductionPolicy,
     Risk,
     Side,
+    StrategicEpoch,
     derive_attribution_event_id,
     validate_attribution_compatibility,
 )
 
 _SHA256 = re.compile(r"^[0-9a-f]{64}$")
 _EVENT_ID = re.compile(r"^evt_[0-9a-f]{64}$")
+_GRANT_ID = re.compile(r"^grant_[0-9a-f]{64}$")
+_EPOCH_ID = re.compile(r"^epoch_[0-9a-f]{64}$")
 _TRACE_FIELDS = frozenset(
     {
         "schema",
@@ -66,6 +69,8 @@ _TARGET_FIELDS = frozenset(
         "replaces_symbol",
         "industry_at_entry",
         "industry_manifest_sha256",
+        "grant_id",
+        "epoch_id",
     }
 )
 _ORDER_FIELDS = frozenset(
@@ -86,6 +91,8 @@ _ORDER_FIELDS = frozenset(
         "replaces_symbol",
         "industry_at_entry",
         "industry_manifest_sha256",
+        "grant_id",
+        "epoch_id",
     }
 )
 _IDENTITY_FIELDS = frozenset(
@@ -97,6 +104,8 @@ _IDENTITY_FIELDS = frozenset(
         "replaces_symbol",
         "industry_at_entry",
         "industry_manifest_sha256",
+        "grant_id",
+        "epoch_id",
     }
 )
 
@@ -206,6 +215,14 @@ def _validate_identity_fields(value: Mapping[str, Any], *, label: str) -> None:
             raise ValueError(f"{label} event identity is incomplete")
     if not _SHA256.fullmatch(value["industry_manifest_sha256"]):
         raise ValueError(f"{label} industry manifest identity is malformed")
+    grant_id = value["grant_id"]
+    epoch_id = value["epoch_id"]
+    if not isinstance(grant_id, str) or (grant_id and not _GRANT_ID.fullmatch(grant_id)):
+        raise ValueError(f"{label} grant identity is malformed")
+    if not isinstance(epoch_id, str) or (epoch_id and not _EPOCH_ID.fullmatch(epoch_id)):
+        raise ValueError(f"{label} epoch identity is malformed")
+    if epoch_id and not grant_id:
+        raise ValueError(f"{label} epoch identity lacks a grant")
 
 
 @dataclass(slots=True)
@@ -220,6 +237,7 @@ class _ControlContext:
     ledger_rows: list[Any]
     ledger_orders: dict[str, AccountOrder]
     ledger_orders_by_event: dict[str, list[AccountOrder]]
+    strategic_epochs_by_id: dict[str, StrategicEpoch]
     traced_order_sessions: dict[str, list[str]] = field(default_factory=dict)
 
 
@@ -319,6 +337,7 @@ def _control_context(
         ledger_rows=ledger_rows,
         ledger_orders=ledger_orders,
         ledger_orders_by_event=ledger_orders_by_event,
+        strategic_epochs_by_id={epoch.epoch_id: epoch for epoch in account.strategic_epochs},
     )
 
 
@@ -346,6 +365,19 @@ def _validate_target_origin(
         if not matched_durable:
             raise ValueError("decision target event identity differs from its durable origin")
         return
+    epoch_id = str(target["epoch_id"])
+    if epoch_id:
+        epoch = ctx.strategic_epochs_by_id.get(epoch_id)
+        if (
+            epoch is None
+            or epoch.grant_id != target["grant_id"]
+            or epoch.owner_symbol != symbol
+            or session < epoch.opened_session
+            or bool(epoch.closed_session and session > epoch.closed_session)
+        ):
+            raise ValueError(
+                "decision target strategic ownership identity differs from its durable epoch"
+            )
     if event_signal_date != session:
         raise ValueError("decision target event signal date has no durable origin")
     expected_event = derive_attribution_event_id(
@@ -653,8 +685,29 @@ def _validate_durable_order_lifecycles(ctx: _ControlContext) -> None:
     pending_ids = {order.order_id for order in ctx.account.pending_orders}
     if active_ids != pending_ids:
         raise ValueError("durable active order lifecycle differs from final pending-order state")
+    prior_physical_order_by_event: dict[tuple[str, str, str, str, str], AccountOrder] = {}
     for order_id, durable in ctx.ledger_orders.items():
-        origin_index = session_index.get(durable.signal_date)
+        chain_identity = (
+            durable.event_id,
+            durable.symbol,
+            durable.side,
+            durable.grant_id,
+            durable.epoch_id,
+        )
+        prior_physical_order = prior_physical_order_by_event.get(chain_identity)
+        partial_remainder_origin = bool(
+            prior_physical_order is not None
+            and durable.grant_id
+            and prior_physical_order.status == OrderStatus.CANCELLED.value
+            and prior_physical_order.cancel_reason == "strategic partial remainder replaced"
+            and prior_physical_order.last_event == "PARTIAL_REMAINDER_RELEASED"
+        )
+        origin_session = (
+            prior_physical_order.last_update_date
+            if partial_remainder_origin and prior_physical_order is not None
+            else durable.signal_date
+        )
+        origin_index = session_index.get(origin_session)
         if origin_index is None:
             raise ValueError(f"durable account order {order_id} lacks an in-window decision origin")
         end_index = len(ctx.sessions)
@@ -670,6 +723,7 @@ def _validate_durable_order_lifecycles(ctx: _ControlContext) -> None:
                 f"durable account order {order_id} decision snapshot lifecycle differs: "
                 f"expected {expected_occurrences}, observed {observed_occurrences}"
             )
+        prior_physical_order_by_event[chain_identity] = durable
 
 
 def validate_engine_control_plane(

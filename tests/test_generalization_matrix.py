@@ -161,6 +161,8 @@ def _runner_payload(scenario: Any) -> dict[str, Any]:
                 exit_kind="strategy",
                 **values,
             ),
+            "grant_id": "",
+            "epoch_id": "",
             **values,
         }
 

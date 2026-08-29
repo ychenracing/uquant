@@ -149,6 +149,30 @@ def test_engineering_summary_catches_quality_or_security_failure_without_skippin
     assert "coverage combine" in coverage_step["run"]
     assert "coverage report --show-missing --fail-under=85" in coverage_step["run"]
 
+    path = WORKFLOWS / "release-candidate.yml"
+    assert path.is_file(), "manual release-candidate workflow is missing"
+    workflow = _workflow(path.name)
+
+    assert workflow["name"] == "Release Candidate Source Equality"
+    _assert_manual_only(workflow)
+    _assert_locked_runtime(workflow)
+    assert workflow["permissions"] == {"contents": "read"}
+    assert set(workflow["jobs"]) == {"source_equality"}
+    job = workflow["jobs"]["source_equality"]
+    assert job["env"] == {"UQUANT_RELEASE_CANDIDATE": "1"}
+    checkout = next(
+        step
+        for step in _steps(job)
+        if str(step.get("uses", "")).startswith("actions/checkout@")
+    )
+    assert checkout["with"]["fetch-depth"] == "0"
+    run = _named_step(job, "Run release candidate source equality and contracts")["run"]
+    assert "tests/architecture/test_release_acceptance.py" in run
+    assert "tests/test_generalization_ci_contract.py" in run
+    assert "tag" not in run.lower()
+    assert "release" not in run.lower().replace("release_acceptance", "")
+    assert "build_reproducible_wheel" not in run
+
 
 def test_security_gate_blocks_only_findings_added_over_the_event_base() -> None:
     """Catches a candidate-only scan or the wrong Git event base weakening the differential."""

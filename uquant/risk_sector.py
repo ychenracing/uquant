@@ -89,10 +89,23 @@ def observe_deployed_sector(
     if float(raw_weights.sum()) <= 1e-12:
         raw_weights = np.ones_like(returns)
     normalized_weights = raw_weights / raw_weights.sum()
+    # BLAS dot kernels may differ by one ULP across CPU families because some
+    # use fused multiply-add while others round each product first.  Advance a
+    # correctly rounded fused accumulator explicitly so persisted risk evidence
+    # and its canonical identity are independent of the execution host.
+    from fractions import Fraction
+
+    weighted_return = 0.0
+    for daily_return, normalized_weight in zip(returns, normalized_weights, strict=True):
+        weighted_return = float(
+            Fraction.from_float(weighted_return)
+            + Fraction.from_float(float(daily_return))
+            * Fraction.from_float(float(normalized_weight))
+        )
     return SectorObservation(
         symbol_count=len(daily_returns),
         equal_return=float(returns.mean()),
-        weighted_return=float(np.dot(returns, normalized_weights)),
+        weighted_return=weighted_return,
         positive_breadth=float(np.mean(returns > 0.0)),
         negative_exposure=float(normalized_weights[returns < 0.0].sum()),
         recovery_breadth=float(np.mean(recovery_structure)),

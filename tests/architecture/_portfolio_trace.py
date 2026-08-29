@@ -107,7 +107,16 @@ _OFFICIAL_TRACE_SPECS = (
 )
 
 _FRAME_DIGESTS: dict[int, tuple[pd.DataFrame, dict[str, object]]] = {}
+_FRAME_DIAGNOSTIC_SOURCES: dict[str, pd.DataFrame] = {}
 _EXPECTED_CODE_FINGERPRINT: str | None = None
+
+
+def _trace_dataframe_projection(value: pd.DataFrame) -> pd.DataFrame:
+    """Canonicalize the host-sensitive rolling-correlation tail for trace hashing."""
+
+    if "trend_r2_120" not in value.columns:
+        return value
+    return value.assign(trend_r2_120=value["trend_r2_120"].round(10))
 
 
 def _jsonable(value: Any) -> Any:
@@ -121,7 +130,7 @@ def _jsonable(value: Any) -> Any:
         key = id(value)
         cached = _FRAME_DIGESTS.get(key)
         if cached is None or cached[0] is not value:
-            encoded = value.to_json(
+            encoded = _trace_dataframe_projection(value).to_json(
                 orient="split",
                 date_format="iso",
                 date_unit="ns",
@@ -133,6 +142,7 @@ def _jsonable(value: Any) -> Any:
                 "columns": [str(column) for column in value.columns],
                 "sha256": hashlib.sha256(encoded).hexdigest(),
             }
+            _FRAME_DIAGNOSTIC_SOURCES[str(digest["sha256"])] = value
             _FRAME_DIGESTS[key] = (value, digest)
             return digest
         return cached[1]
@@ -172,6 +182,55 @@ def _trace_transport_value(value: object) -> object:
     if isinstance(serialized, list):
         return [_trace_transport_value(item) for item in serialized]
     return serialized
+
+
+def _diagnostic_digest_tree(
+    value: object,
+    *,
+    depth: int,
+    field_name: str = "",
+) -> dict[str, object]:
+    """Return compact child digests for a failed byte-exact trace checkpoint."""
+
+    digest = canonical_json_sha256(value)
+    result: dict[str, object] = {"sha256": digest}
+    if isinstance(value, dict) and value.get("kind") == "DataFrame":
+        source = _FRAME_DIAGNOSTIC_SOURCES.get(str(value.get("sha256", "")))
+        if source is not None:
+            result["dataframe"] = {
+                str(column): {
+                    f"precision_{precision}": hashlib.sha256(
+                        source[column]
+                        .to_json(
+                            date_format="iso",
+                            date_unit="ns",
+                            double_precision=precision,
+                        )
+                        .encode()
+                    ).hexdigest()
+                    for precision in (10, 12, 14, 15)
+                }
+                for column in source.columns
+            }
+    if depth <= 0 or field_name in {"account", "account_before", "account_after"}:
+        return result
+    if isinstance(value, dict):
+        result["children"] = {
+            str(key): _diagnostic_digest_tree(
+                item,
+                depth=depth - 1,
+                field_name=str(key),
+            )
+            for key, item in value.items()
+        }
+    elif isinstance(value, list):
+        result["children"] = [
+            _diagnostic_digest_tree(item, depth=depth - 1)
+            for item in value
+        ]
+    elif isinstance(value, (str, int, float, bool)) or value is None:
+        result["value"] = value
+    return result
 
 
 def _account_payload(account: AccountState) -> dict[str, Any]:
@@ -381,13 +440,18 @@ def portfolio_trace_replay(
     end: str,
     symbols: Sequence[str],
     root: Path,
+    expected_records: Sequence[dict[str, Any]] = (),
+    diagnostics: list[dict[str, object]] | None = None,
 ) -> dict[str, Any]:
     import uquant.engine as engine_module
 
     global _EXPECTED_CODE_FINGERPRINT
     _FRAME_DIGESTS.clear()
+    _FRAME_DIAGNOSTIC_SOURCES.clear()
     _EXPECTED_CODE_FINGERPRINT = None
     active: dict[str, Any] | None = None
+    diagnostic_recorded = False
+    expected_by_date = {str(record["date"]): record for record in expected_records}
     originals: list[tuple[type[object], str, object]] = []
     records: list[dict[str, Any]] = []
 
@@ -466,7 +530,7 @@ def portfolio_trace_replay(
     original_allocate = cast(Any, allocate_descriptor)
 
     def traced_allocate(self: object, *args: object, **kwargs: object) -> object:
-        nonlocal active
+        nonlocal active, diagnostic_recorded
         if active is not None:
             raise AssertionError("portfolio allocation trace cannot nest allocate calls")
         account = kwargs["account"]
@@ -516,16 +580,38 @@ def portfolio_trace_replay(
         date = kwargs["date"]
         if not isinstance(date, pd.Timestamp):
             raise AssertionError("portfolio trace requires a Timestamp date")
+        session = str(date.date())
+        checkpoint_sha256 = [
+            {
+                "name": checkpoint["name"],
+                "sha256": canonical_json_sha256(checkpoint["payload"]),
+            }
+            for checkpoint in checkpoints
+        ]
+        if diagnostics is not None and not diagnostic_recorded and session in expected_by_date:
+            expected = {
+                str(checkpoint["name"]): str(checkpoint["sha256"])
+                for checkpoint in expected_by_date[session]["checkpoint_sha256"]
+            }
+            mismatches = [
+                {
+                    "name": checkpoint["name"],
+                    "expected_sha256": expected[str(checkpoint["name"])],
+                    "observed": _diagnostic_digest_tree(
+                        checkpoint["payload"],
+                        depth=4,
+                    ),
+                }
+                for checkpoint, observed in zip(checkpoints, checkpoint_sha256, strict=True)
+                if expected[str(checkpoint["name"])] != observed["sha256"]
+            ]
+            if mismatches:
+                diagnostics.append({"scenario": name, "date": session, "mismatches": mismatches})
+                diagnostic_recorded = True
         records.append(
             {
-                "date": str(date.date()),
-                "checkpoint_sha256": [
-                    {
-                        "name": checkpoint["name"],
-                        "sha256": canonical_json_sha256(checkpoint["payload"]),
-                    }
-                    for checkpoint in checkpoints
-                ],
+                "date": session,
+                "checkpoint_sha256": checkpoint_sha256,
                 "ordered_checkpoint_sha256": canonical_json_sha256(checkpoints),
             }
         )

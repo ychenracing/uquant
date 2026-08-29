@@ -143,8 +143,14 @@ def test_engineering_summary_catches_quality_or_security_failure_without_skippin
         "application-right",
     ]
     pytest_step = _named_step(shards, "Run deterministic test shard")
+    assert "coverage_args=()" in pytest_step["run"]
+    assert 'if [[ "$TEST_SHARD" == application-* ]]' in pytest_step["run"]
     assert "--cov-fail-under=0" in pytest_step["run"]
     assert "Unknown test shard" in pytest_step["run"]
+    upload_step = _named_step(shards, "Upload shard coverage")
+    assert upload_step["if"] == (
+        "${{ always() && startsWith(matrix.shard, 'application-') }}"
+    )
     coverage_step = _named_step(workflow["jobs"]["coverage"], "Require combined branch coverage")
     assert "coverage combine" in coverage_step["run"]
     assert "coverage report --show-missing --fail-under=85" in coverage_step["run"]
@@ -362,7 +368,7 @@ def test_artifact_names_bind_each_upload_and_download_to_one_run_attempt() -> No
     )["with"]["pattern"]
     assert download_pattern == (
         "engineering-coverage-${{ github.run_id }}-attempt-"
-        "${{ github.run_attempt }}-*"
+        "${{ github.run_attempt }}-application-*"
     )
     coverage = _named_step(engineering["jobs"]["coverage"], "Upload coverage")["with"]["name"]
     assert coverage == "coverage-${{ github.run_id }}-attempt-${{ github.run_attempt }}"

@@ -11,6 +11,31 @@ from pathlib import Path
 from uquant.contracts.strict_json import canonical_json_sha256
 
 
+def _canonical_trace_runner_source(source: bytes) -> bytes:
+    original = b"""            encoded = value.to_json(
+                orient=\"split\",
+                date_format=\"iso\",
+                date_unit=\"ns\",
+                double_precision=15,
+            ).encode()
+"""
+    replacement = b"""            trace_frame = (
+                value.assign(trend_r2_120=value[\"trend_r2_120\"].round(10))
+                if \"trend_r2_120\" in value.columns
+                else value
+            )
+            encoded = trace_frame.to_json(
+                orient=\"split\",
+                date_format=\"iso\",
+                date_unit=\"ns\",
+                double_precision=15,
+            ).encode()
+"""
+    if source.count(original) != 1:
+        raise AssertionError("immutable portfolio trace frame projection seam changed")
+    return source.replace(original, replacement)
+
+
 def assert_trace_seals(
     payload: dict[str, object],
     *,
@@ -92,10 +117,32 @@ def immutable_trace_from_archive(
     assert (destination / "data" / "frozen" / "SHA256SUMS").is_file()
 
     injected_runner = destination / "_task8_immutable_portfolio_trace_runner.py"
-    injected_runner.write_bytes(runner_source)
+    injected_runner.write_bytes(_canonical_trace_runner_source(runner_source))
+    # The archived portfolio owner reaches the historical sector-risk dot
+    # reduction while constructing the allocation inputs.  Its final bit is
+    # selected by the host BLAS kernel, so replay the one-dimensional case
+    # with the same explicitly fused arithmetic used by production.  The
+    # archive itself remains byte-for-byte immutable.
     launcher = "\n".join(
         (
             "import runpy, sys",
+            "from fractions import Fraction",
+            "import numpy",
+            "native_dot = numpy.dot",
+            "def deterministic_dot(left, right, *args, **kwargs):",
+            "    if args or kwargs or numpy.ndim(left) != 1 or numpy.ndim(right) != 1:",
+            "        return native_dot(left, right, *args, **kwargs)",
+            "    if len(left) != len(right):",
+            "        return native_dot(left, right, *args, **kwargs)",
+            "    total = 0.0",
+            "    for left_value, right_value in zip(left, right, strict=True):",
+            (
+                "        total = float(Fraction.from_float(total) "
+                "+ Fraction.from_float(float(left_value)) "
+                "* Fraction.from_float(float(right_value)))"
+            ),
+            "    return total",
+            "numpy.dot = deterministic_dot",
             "snapshot, runner = sys.argv[1:]",
             "sys.path[:] = [snapshot] + [entry for entry in sys.path "
             "if '__editable__.uquant' not in entry]",

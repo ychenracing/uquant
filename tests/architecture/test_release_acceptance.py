@@ -70,7 +70,10 @@ def test_engineering_workflow_shards_the_authoritative_suite_and_combines_covera
     assert int(timeout.group(1)) == GITHUB_JOB_TIMEOUT_MAX_MINUTES
     assert matrix_block.count("          - architecture-") == 3
     assert matrix_block.count("          - application-") == 2
+    assert "coverage_args=()" in matrix_block
+    assert 'if [[ "$TEST_SHARD" == application-* ]]' in matrix_block
     assert "--cov-fail-under=0" in matrix_block
+    assert "always() && startsWith(matrix.shard, 'application-')" in matrix_block
     assert "include-hidden-files: true" in matrix_block
     assert "coverage combine" in coverage_block
     assert "coverage report --show-missing --fail-under=85" in coverage_block

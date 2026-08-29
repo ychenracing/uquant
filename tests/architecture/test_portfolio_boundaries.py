@@ -9,6 +9,7 @@ import subprocess
 from collections import Counter
 from typing import Any, cast
 
+import pandas as pd
 import pytest
 
 from uquant.config import DEFAULT_CONFIG
@@ -252,9 +253,12 @@ def immutable_portfolio_trace(tmp_path_factory: pytest.TempPathFactory) -> dict[
 
 
 @pytest.fixture(scope="module")  # type: ignore[untyped-decorator]
-def candidate_portfolio_traces() -> tuple[list[dict[str, Any]], Counter[str]]:
+def candidate_portfolio_traces() -> tuple[
+    list[dict[str, Any]], Counter[str], list[dict[str, object]]
+]:
     payload = json.loads(_DAILY_TRACE.read_text(encoding="utf-8"))
     counts: Counter[str] = Counter()
+    diagnostics: list[dict[str, object]] = []
     original = trace_module._event_payload
 
     def counted_event(*args: Any, **kwargs: Any) -> dict[str, Any]:
@@ -270,10 +274,12 @@ def candidate_portfolio_traces() -> tuple[list[dict[str, Any]], Counter[str]]:
                 end=expected["requested_end"],
                 symbols=tuple(expected["symbols"]),
                 root=ROOT,
+                expected_records=expected["records"],
+                diagnostics=diagnostics,
             )
             for expected in payload["scenarios"]
         ]
-    return traces, counts
+    return traces, counts, diagnostics
 
 
 def test_portfolio_cleanup_inventory_is_exactly_derived_before_replacement(
@@ -429,18 +435,73 @@ def test_portfolio_resigned_trace_tamper_is_rejected(
 
 @pytest.mark.parametrize("scenario_index", range(3))  # type: ignore[untyped-decorator]
 def test_portfolio_candidate_daily_nine_checkpoint_trace_is_exact(
-    candidate_portfolio_traces: tuple[list[dict[str, Any]], Counter[str]],
+    candidate_portfolio_traces: tuple[
+        list[dict[str, Any]], Counter[str], list[dict[str, object]]
+    ],
     scenario_index: int,
 ) -> None:
     payload = json.loads(_DAILY_TRACE.read_text(encoding="utf-8"))
-    observed, _ = candidate_portfolio_traces
-    assert observed[scenario_index] == payload["scenarios"][scenario_index]
+    observed, _, diagnostics = candidate_portfolio_traces
+    assert observed[scenario_index] == payload["scenarios"][scenario_index], json.dumps(
+        diagnostics,
+        sort_keys=True,
+    )
+
+
+def test_portfolio_trace_dataframe_mismatch_reports_column_precision_digests() -> None:
+    frame = pd.DataFrame(
+        {
+            "close": [1.0, 1.000000000000001],
+            "signal": [0.25, float("nan")],
+        }
+    )
+
+    serialized = trace_module._jsonable(frame)
+    diagnostic = trace_module._diagnostic_digest_tree(serialized, depth=0)
+
+    assert diagnostic["dataframe"] == {
+        "close": {
+            "precision_10": "2551942eb1b59f8ec2803a62b9a24dd3c9e05bfb7e2608f6718ad752943d1946",
+            "precision_12": "2551942eb1b59f8ec2803a62b9a24dd3c9e05bfb7e2608f6718ad752943d1946",
+            "precision_14": "2551942eb1b59f8ec2803a62b9a24dd3c9e05bfb7e2608f6718ad752943d1946",
+            "precision_15": "d17c91dae3e57d7bdbe140d5fba2a8ada4e34f2d73343d69c439da9912f9a91d",
+        },
+        "signal": {
+            "precision_10": "b3855cdcfc0b516491bbee699a86229bdf6aa70e0d81e218a0f3d5ecb0aa2576",
+            "precision_12": "b3855cdcfc0b516491bbee699a86229bdf6aa70e0d81e218a0f3d5ecb0aa2576",
+            "precision_14": "b3855cdcfc0b516491bbee699a86229bdf6aa70e0d81e218a0f3d5ecb0aa2576",
+            "precision_15": "b3855cdcfc0b516491bbee699a86229bdf6aa70e0d81e218a0f3d5ecb0aa2576",
+        },
+    }
+
+
+def test_portfolio_trace_normalizes_only_rolling_trend_r2_backend_drift() -> None:
+    left = pd.DataFrame(
+        {
+            "ret120": [0.25],
+            "trend_r2_120": [0.123456789041],
+        }
+    )
+    right = pd.DataFrame(
+        {
+            "ret120": [0.25],
+            "trend_r2_120": [0.123456789049],
+        }
+    )
+
+    assert trace_module._jsonable(left) == trace_module._jsonable(right)
+
+    changed_feature = right.copy()
+    changed_feature.loc[0, "ret120"] += 0.000000000001
+    assert trace_module._jsonable(left) != trace_module._jsonable(changed_feature)
 
 
 def test_portfolio_oracle_owner_event_coverage_is_nonempty_and_explicit(
-    candidate_portfolio_traces: tuple[list[dict[str, Any]], Counter[str]],
+    candidate_portfolio_traces: tuple[
+        list[dict[str, Any]], Counter[str], list[dict[str, object]]
+    ],
 ) -> None:
-    _, counts = candidate_portfolio_traces
+    _, counts, _ = candidate_portfolio_traces
     assert counts["_allocate_strategy"] == 60
     assert counts["_strategic_cohort_targets"] == 40
     assert counts["_recovery_anchor_substitution"] == 45

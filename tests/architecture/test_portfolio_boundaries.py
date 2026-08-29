@@ -252,9 +252,12 @@ def immutable_portfolio_trace(tmp_path_factory: pytest.TempPathFactory) -> dict[
 
 
 @pytest.fixture(scope="module")  # type: ignore[untyped-decorator]
-def candidate_portfolio_traces() -> tuple[list[dict[str, Any]], Counter[str]]:
+def candidate_portfolio_traces() -> tuple[
+    list[dict[str, Any]], Counter[str], list[dict[str, object]]
+]:
     payload = json.loads(_DAILY_TRACE.read_text(encoding="utf-8"))
     counts: Counter[str] = Counter()
+    diagnostics: list[dict[str, object]] = []
     original = trace_module._event_payload
 
     def counted_event(*args: Any, **kwargs: Any) -> dict[str, Any]:
@@ -270,10 +273,12 @@ def candidate_portfolio_traces() -> tuple[list[dict[str, Any]], Counter[str]]:
                 end=expected["requested_end"],
                 symbols=tuple(expected["symbols"]),
                 root=ROOT,
+                expected_records=expected["records"],
+                diagnostics=diagnostics,
             )
             for expected in payload["scenarios"]
         ]
-    return traces, counts
+    return traces, counts, diagnostics
 
 
 def test_portfolio_cleanup_inventory_is_exactly_derived_before_replacement(
@@ -429,18 +434,25 @@ def test_portfolio_resigned_trace_tamper_is_rejected(
 
 @pytest.mark.parametrize("scenario_index", range(3))  # type: ignore[untyped-decorator]
 def test_portfolio_candidate_daily_nine_checkpoint_trace_is_exact(
-    candidate_portfolio_traces: tuple[list[dict[str, Any]], Counter[str]],
+    candidate_portfolio_traces: tuple[
+        list[dict[str, Any]], Counter[str], list[dict[str, object]]
+    ],
     scenario_index: int,
 ) -> None:
     payload = json.loads(_DAILY_TRACE.read_text(encoding="utf-8"))
-    observed, _ = candidate_portfolio_traces
-    assert observed[scenario_index] == payload["scenarios"][scenario_index]
+    observed, _, diagnostics = candidate_portfolio_traces
+    assert observed[scenario_index] == payload["scenarios"][scenario_index], json.dumps(
+        diagnostics,
+        sort_keys=True,
+    )
 
 
 def test_portfolio_oracle_owner_event_coverage_is_nonempty_and_explicit(
-    candidate_portfolio_traces: tuple[list[dict[str, Any]], Counter[str]],
+    candidate_portfolio_traces: tuple[
+        list[dict[str, Any]], Counter[str], list[dict[str, object]]
+    ],
 ) -> None:
-    _, counts = candidate_portfolio_traces
+    _, counts, _ = candidate_portfolio_traces
     assert counts["_allocate_strategy"] == 60
     assert counts["_strategic_cohort_targets"] == 40
     assert counts["_recovery_anchor_substitution"] == 45

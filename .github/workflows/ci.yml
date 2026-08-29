@@ -138,6 +138,15 @@ jobs:
           if [[ "$TEST_SHARD" == application-* ]]; then
             coverage_args=(--cov=uquant --cov-report= --cov-fail-under=0)
           fi
+          if [[ "$TEST_SHARD" == "architecture-portfolio" ]]; then
+            # The immutable allocation oracle is byte-exact.  Pin its numeric
+            # dispatch to the oldest common x86-64 kernel so GitHub runner
+            # region changes cannot select a different last-bit reduction.
+            export OPENBLAS_CORETYPE=Nehalem
+            export OPENBLAS_NUM_THREADS=1
+            export OMP_NUM_THREADS=1
+            export NPY_DISABLE_CPU_FEATURES=AVX512F,AVX512CD,AVX512_KNL,AVX512_KNM,AVX512_SKX,AVX512_CLX,AVX512_CNL,AVX512_ICL,AVX512_SPR,AVX2,AVX,FMA3,F16C
+          fi
           uv run pytest "${test_paths[@]}" "${ignore_args[@]}" \
             "${coverage_args[@]}"
       - name: Upload shard coverage

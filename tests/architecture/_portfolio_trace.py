@@ -107,6 +107,7 @@ _OFFICIAL_TRACE_SPECS = (
 )
 
 _FRAME_DIGESTS: dict[int, tuple[pd.DataFrame, dict[str, object]]] = {}
+_FRAME_DIAGNOSTIC_SOURCES: dict[str, pd.DataFrame] = {}
 _EXPECTED_CODE_FINGERPRINT: str | None = None
 
 
@@ -133,6 +134,7 @@ def _jsonable(value: Any) -> Any:
                 "columns": [str(column) for column in value.columns],
                 "sha256": hashlib.sha256(encoded).hexdigest(),
             }
+            _FRAME_DIAGNOSTIC_SOURCES[str(digest["sha256"])] = value
             _FRAME_DIGESTS[key] = (value, digest)
             return digest
         return cached[1]
@@ -184,6 +186,24 @@ def _diagnostic_digest_tree(
 
     digest = canonical_json_sha256(value)
     result: dict[str, object] = {"sha256": digest}
+    if isinstance(value, dict) and value.get("kind") == "DataFrame":
+        source = _FRAME_DIAGNOSTIC_SOURCES.get(str(value.get("sha256", "")))
+        if source is not None:
+            result["dataframe"] = {
+                str(column): {
+                    f"precision_{precision}": hashlib.sha256(
+                        source[column]
+                        .to_json(
+                            date_format="iso",
+                            date_unit="ns",
+                            double_precision=precision,
+                        )
+                        .encode()
+                    ).hexdigest()
+                    for precision in (10, 12, 14, 15)
+                }
+                for column in source.columns
+            }
     if depth <= 0 or field_name in {"account", "account_before", "account_after"}:
         return result
     if isinstance(value, dict):
@@ -419,6 +439,7 @@ def portfolio_trace_replay(
 
     global _EXPECTED_CODE_FINGERPRINT
     _FRAME_DIGESTS.clear()
+    _FRAME_DIAGNOSTIC_SOURCES.clear()
     _EXPECTED_CODE_FINGERPRINT = None
     active: dict[str, Any] | None = None
     diagnostic_recorded = False

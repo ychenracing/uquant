@@ -31,8 +31,6 @@ from ..types import (
 
 _SHA256 = re.compile(r"^[0-9a-f]{64}$")
 _EVENT_ID = re.compile(r"^evt_[0-9a-f]{64}$")
-_GRANT_ID = re.compile(r"^grant_[0-9a-f]{64}$")
-_EPOCH_ID = re.compile(r"^epoch_[0-9a-f]{64}$")
 _TRACE_FIELDS = frozenset(
     {
         "schema",
@@ -217,9 +215,13 @@ def _validate_identity_fields(value: Mapping[str, Any], *, label: str) -> None:
         raise ValueError(f"{label} industry manifest identity is malformed")
     grant_id = value["grant_id"]
     epoch_id = value["epoch_id"]
-    if not isinstance(grant_id, str) or (grant_id and not _GRANT_ID.fullmatch(grant_id)):
+    if not isinstance(grant_id, str) or (
+        grant_id and re.fullmatch(r"grant_[0-9a-f]{64}", grant_id) is None
+    ):
         raise ValueError(f"{label} grant identity is malformed")
-    if not isinstance(epoch_id, str) or (epoch_id and not _EPOCH_ID.fullmatch(epoch_id)):
+    if not isinstance(epoch_id, str) or (
+        epoch_id and re.fullmatch(r"epoch_[0-9a-f]{64}", epoch_id) is None
+    ):
         raise ValueError(f"{label} epoch identity is malformed")
     if epoch_id and not grant_id:
         raise ValueError(f"{label} epoch identity lacks a grant")

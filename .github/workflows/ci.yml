@@ -16,7 +16,7 @@ jobs:
   quality:
     name: Python 3.12
     runs-on: ubuntu-latest
-    timeout-minutes: 360
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
@@ -46,8 +46,6 @@ jobs:
           git check-ignore -q --no-index production_observation_backups/example/receipt.json
       - name: Shadow Sentinel contract and import isolation
         run: uv run python -m uquant.risk_sentinel --validate-contracts
-      - name: Tests and branch coverage
-        run: uv run pytest --cov=uquant --cov-report=term-missing --cov-report=xml --cov-fail-under=85
       - name: Bytecode compilation
         run: uv run python -m compileall -q uquant scripts research tests
       - name: Build deterministic production wheel from committed source
@@ -55,6 +53,123 @@ jobs:
           uv run --no-sync python -m scripts.build_reproducible_wheel
           --source-ref "${GITHUB_SHA}"
           --output-dir dist
+
+  test_matrix:
+    name: Tests (${{ matrix.shard }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 360
+    strategy:
+      fail-fast: false
+      matrix:
+        shard:
+          - architecture-foundation
+          - architecture-portfolio
+          - architecture-remaining
+          - application-left
+          - application-right
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
+        with:
+          python-version: "3.12.13"
+      - name: Install uv
+        run: python -m pip install --disable-pip-version-check "uv==${UV_VERSION}"
+      - name: Sync locked development environment
+        run: uv sync --frozen --extra dev
+      - name: Run deterministic test shard
+        env:
+          COVERAGE_FILE: ${{ runner.temp }}/.coverage.${{ matrix.shard }}
+          TEST_SHARD: ${{ matrix.shard }}
+        run: |
+          set -euo pipefail
+          ignore_args=()
+          case "$TEST_SHARD" in
+            architecture-foundation)
+              test_paths=(
+                tests/architecture/test_architecture_governance.py
+                tests/architecture/test_compatibility_contracts.py
+              )
+              ;;
+            architecture-portfolio)
+              test_paths=(
+                tests/architecture/test_complexity_budgets.py
+                tests/architecture/test_config_boundaries.py
+                tests/architecture/test_config_public_owners.py
+                tests/architecture/test_current_heads_transport.py
+                tests/architecture/test_distribution_contracts.py
+                tests/architecture/test_execution_application_boundaries.py
+                tests/architecture/test_execution_risk_public_owners.py
+                tests/architecture/test_import_contracts.py
+                tests/architecture/test_market_boundaries.py
+                tests/architecture/test_portfolio_boundaries.py
+              )
+              ;;
+            architecture-remaining)
+              test_paths=(tests/architecture)
+              ignore_args=(
+                --ignore=tests/architecture/test_architecture_governance.py
+                --ignore=tests/architecture/test_compatibility_contracts.py
+                --ignore=tests/architecture/test_complexity_budgets.py
+                --ignore=tests/architecture/test_config_boundaries.py
+                --ignore=tests/architecture/test_config_public_owners.py
+                --ignore=tests/architecture/test_current_heads_transport.py
+                --ignore=tests/architecture/test_distribution_contracts.py
+                --ignore=tests/architecture/test_execution_application_boundaries.py
+                --ignore=tests/architecture/test_execution_risk_public_owners.py
+                --ignore=tests/architecture/test_import_contracts.py
+                --ignore=tests/architecture/test_market_boundaries.py
+                --ignore=tests/architecture/test_portfolio_boundaries.py
+              )
+              ;;
+            application-left)
+              test_paths=(tests/test_[a-m]*.py)
+              ;;
+            application-right)
+              test_paths=(tests/test_[n-z]*.py)
+              ;;
+            *)
+              echo "Unknown test shard: $TEST_SHARD" >&2
+              exit 2
+              ;;
+          esac
+          uv run pytest "${test_paths[@]}" "${ignore_args[@]}" \
+            --cov=uquant --cov-report= --cov-fail-under=0
+      - name: Upload shard coverage
+        if: ${{ always() }}
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: engineering-coverage-${{ github.run_id }}-attempt-${{ github.run_attempt }}-${{ matrix.shard }}
+          path: ${{ runner.temp }}/.coverage.${{ matrix.shard }}
+          include-hidden-files: true
+          if-no-files-found: error
+
+  coverage:
+    name: Combined branch coverage
+    needs: [test_matrix]
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
+        with:
+          python-version: "3.12.13"
+      - name: Install uv
+        run: python -m pip install --disable-pip-version-check "uv==${UV_VERSION}"
+      - name: Sync locked development environment
+        run: uv sync --frozen --extra dev
+      - name: Download shard coverage
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          pattern: engineering-coverage-${{ github.run_id }}-attempt-${{ github.run_attempt }}-*
+          path: ${{ runner.temp }}/coverage-parts
+          merge-multiple: true
+      - name: Require combined branch coverage
+        run: |
+          uv run coverage combine "$RUNNER_TEMP/coverage-parts"
+          uv run coverage report --show-missing --fail-under=85
+          uv run coverage xml
       - name: Upload coverage
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
@@ -152,16 +267,18 @@ jobs:
   engineering:
     name: Engineering
     if: ${{ always() }}
-    needs: [quality, security, windows_smoke]
+    needs: [quality, test_matrix, coverage, security, windows_smoke]
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
       - name: Require quality, security, and Windows smoke
         run: |
           quality='${{ needs.quality.result }}'
+          test_matrix='${{ needs.test_matrix.result }}'
+          coverage='${{ needs.coverage.result }}'
           security='${{ needs.security.result }}'
           windows_smoke='${{ needs.windows_smoke.result }}'
-          if [ "$quality" != "success" ] || [ "$security" != "success" ] || [ "$windows_smoke" != "success" ]; then
-            echo "Engineering failed: quality=$quality security=$security windows_smoke=$windows_smoke"
+          if [ "$quality" != "success" ] || [ "$test_matrix" != "success" ] || [ "$coverage" != "success" ] || [ "$security" != "success" ] || [ "$windows_smoke" != "success" ]; then
+            echo "Engineering failed: quality=$quality test_matrix=$test_matrix coverage=$coverage security=$security windows_smoke=$windows_smoke"
             exit 1
           fi

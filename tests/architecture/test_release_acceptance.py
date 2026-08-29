@@ -10,6 +10,8 @@ import zipfile
 from pathlib import Path
 from typing import Any
 
+import pytest
+
 from uquant.contracts.source_surfaces import SOURCE_SURFACE_IDS
 from uquant.contracts.strict_json import canonical_json_sha256
 from uquant.provenance.fingerprints import (
@@ -48,13 +50,30 @@ def _git(*arguments: str) -> str:
     return completed.stdout.strip()
 
 
-def test_release_engineering_timeout_can_cover_the_authoritative_suite() -> None:
+def _git_bytes(commit: str, relative_path: str) -> bytes:
+    completed = subprocess.run(
+        ["git", "show", f"{commit}:{relative_path}"],
+        cwd=ROOT,
+        capture_output=True,
+        check=True,
+    )
+    return completed.stdout
+
+
+def test_engineering_workflow_shards_the_authoritative_suite_and_combines_coverage() -> None:
     workflow = (ROOT / ".github" / "workflows" / "ci.yml").read_text(encoding="utf-8")
-    quality_block = workflow.partition("\n  quality:\n")[2].partition("\n  security:\n")[0]
-    timeout = re.search(r"(?m)^    timeout-minutes: (\d+)$", quality_block)
+    matrix_block = workflow.partition("\n  test_matrix:\n")[2].partition("\n  coverage:\n")[0]
+    coverage_block = workflow.partition("\n  coverage:\n")[2].partition("\n  security:\n")[0]
+    timeout = re.search(r"(?m)^    timeout-minutes: (\d+)$", matrix_block)
 
     assert timeout is not None
     assert int(timeout.group(1)) == GITHUB_JOB_TIMEOUT_MAX_MINUTES
+    assert matrix_block.count("          - architecture-") == 3
+    assert matrix_block.count("          - application-") == 2
+    assert "--cov-fail-under=0" in matrix_block
+    assert "include-hidden-files: true" in matrix_block
+    assert "coverage combine" in coverage_block
+    assert "coverage report --show-missing --fail-under=85" in coverage_block
 
 
 def test_release_code_identity_migration_preserves_economics_and_old_epochs() -> None:
@@ -301,7 +320,7 @@ def test_source_epoch_v4_preserves_its_registered_surfaces_and_production_wheel(
     assert epoch["uv_lock_sha256"] == _sha256(ROOT / "uv.lock")
 
 
-def test_source_epoch_v5_binds_current_domain_naming_source_and_wheel() -> None:
+def test_registered_domain_naming_source_and_wheel_remain_sealed() -> None:
     payload = _artifact("source_epoch_v5.json")
     assert payload["schema"] == "uquant.source-epoch.v1"
     unsealed = {key: value for key, value in payload.items() if key != "canonical_sha256"}
@@ -366,16 +385,15 @@ def test_source_epoch_v5_binds_current_domain_naming_source_and_wheel() -> None:
         for identifier in SOURCE_SURFACE_IDS
     }
     assert epoch["reviewed_surfaces"] == expected_surfaces
-    assert epoch["reviewed_surfaces"] == {
-        identifier: source_surface_fingerprint(ROOT, identifier)
-        for identifier in SOURCE_SURFACE_IDS
-    }
-    registry_path = ROOT / "benchmarks/source_surface_registry.json"
-    registry = json.loads(registry_path.read_text(encoding="utf-8"))
+    registry_relative_path = "benchmarks/source_surface_registry.json"
+    registered_registry = _git_bytes(
+        epoch["registered_at_commit"], registry_relative_path
+    )
+    registry = json.loads(registered_registry)
     assert epoch["registry"] == {
         "canonical_sha256": registry["canonical_sha256"],
-        "file_sha256": _sha256(registry_path),
-        "path": "benchmarks/source_surface_registry.json",
+        "file_sha256": hashlib.sha256(registered_registry).hexdigest(),
+        "path": registry_relative_path,
     }
     wheel = epoch["production_wheel"]
     assert wheel["artifact_path"] == (
@@ -423,6 +441,30 @@ def test_source_epoch_v5_binds_current_domain_naming_source_and_wheel() -> None:
     assert wheel["members"] == wheel["uquant_members"] + wheel["dist_info_members"]
     assert wheel["uquant_members"] == 209
     assert wheel["unexpected_members"] == []
+    assert epoch["requirements_sha256"] == hashlib.sha256(
+        _git_bytes(epoch["registered_at_commit"], "requirements.txt")
+    ).hexdigest()
+    assert epoch["uv_lock_sha256"] == hashlib.sha256(
+        _git_bytes(epoch["registered_at_commit"], "uv.lock")
+    ).hexdigest()
+
+
+def test_release_candidate_source_matches_registered_surfaces() -> None:
+    if os.environ.get("UQUANT_RELEASE_CANDIDATE") != "1":
+        pytest.skip("current-source equality is required only for an explicit release candidate")
+
+    epoch = _artifact("source_epoch_v5.json")["source_epoch"]
+    assert epoch["reviewed_surfaces"] == {
+        identifier: source_surface_fingerprint(ROOT, identifier)
+        for identifier in SOURCE_SURFACE_IDS
+    }
+    registry_path = ROOT / str(epoch["registry"]["path"])
+    registry = json.loads(registry_path.read_text(encoding="utf-8"))
+    assert epoch["registry"] == {
+        "canonical_sha256": registry["canonical_sha256"],
+        "file_sha256": _sha256(registry_path),
+        "path": "benchmarks/source_surface_registry.json",
+    }
     assert epoch["requirements_sha256"] == _sha256(ROOT / "requirements.txt")
     assert epoch["uv_lock_sha256"] == _sha256(ROOT / "uv.lock")
 

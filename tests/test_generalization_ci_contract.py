@@ -116,7 +116,7 @@ def test_engineering_summary_catches_quality_or_security_failure_without_skippin
         workflow,
         job_id="engineering",
         check_name="Engineering",
-        needs={"quality", "security", "windows_smoke"},
+        needs={"quality", "test_matrix", "coverage", "security", "windows_smoke"},
     )
     quality_steps = _steps(workflow["jobs"]["quality"])
     assert "workflow_dispatch" in workflow["on"]
@@ -133,8 +133,21 @@ def test_engineering_summary_catches_quality_or_security_failure_without_skippin
     assert "journal verify" in journal_step["run"]
     assert "python -m scripts.production_observation --help" in journal_step["run"]
     assert "git check-ignore" in journal_step["run"]
-    pytest_step = next(step for step in quality_steps if step.get("name") == "Tests and branch coverage")
-    assert "--cov-fail-under=85" in pytest_step["run"]
+    shards = workflow["jobs"]["test_matrix"]
+    assert shards["strategy"]["fail-fast"] == "false"
+    assert shards["strategy"]["matrix"]["shard"] == [
+        "architecture-foundation",
+        "architecture-portfolio",
+        "architecture-remaining",
+        "application-left",
+        "application-right",
+    ]
+    pytest_step = _named_step(shards, "Run deterministic test shard")
+    assert "--cov-fail-under=0" in pytest_step["run"]
+    assert "Unknown test shard" in pytest_step["run"]
+    coverage_step = _named_step(workflow["jobs"]["coverage"], "Require combined branch coverage")
+    assert "coverage combine" in coverage_step["run"]
+    assert "coverage report --show-missing --fail-under=85" in coverage_step["run"]
 
 
 def test_security_gate_blocks_only_findings_added_over_the_event_base() -> None:
@@ -301,7 +314,21 @@ def test_action_pins_keep_readable_verified_version_comments() -> None:
 def test_artifact_names_bind_each_upload_and_download_to_one_run_attempt() -> None:
     """Catches immutable-v4 collisions or a retry downloading another attempt's shards."""
     engineering = _workflow("ci.yml")
-    coverage = _named_step(engineering["jobs"]["quality"], "Upload coverage")["with"]["name"]
+    shard_coverage = _named_step(
+        engineering["jobs"]["test_matrix"], "Upload shard coverage"
+    )["with"]["name"]
+    assert shard_coverage == (
+        "engineering-coverage-${{ github.run_id }}-attempt-"
+        "${{ github.run_attempt }}-${{ matrix.shard }}"
+    )
+    download_pattern = _named_step(
+        engineering["jobs"]["coverage"], "Download shard coverage"
+    )["with"]["pattern"]
+    assert download_pattern == (
+        "engineering-coverage-${{ github.run_id }}-attempt-"
+        "${{ github.run_attempt }}-*"
+    )
+    coverage = _named_step(engineering["jobs"]["coverage"], "Upload coverage")["with"]["name"]
     assert coverage == "coverage-${{ github.run_id }}-attempt-${{ github.run_attempt }}"
 
     performance = _workflow("strategy-performance.yml")

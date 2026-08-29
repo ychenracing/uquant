@@ -172,6 +172,16 @@ def test_engineering_summary_catches_quality_or_security_failure_without_skippin
     assert "tag" not in run.lower()
     assert "release" not in run.lower().replace("release_acceptance", "")
     assert "build_reproducible_wheel" not in run
+    for forbidden in (
+        "git tag",
+        "gh release",
+        "uv build",
+        "python -m build",
+        "twine",
+        "pyproject.toml",
+        "__version__",
+    ):
+        assert forbidden not in run
 
 
 def test_security_gate_blocks_only_findings_added_over_the_event_base() -> None:
@@ -296,6 +306,7 @@ def test_workflows_catch_failure_suppression_and_unpinned_action_regressions() -
     """Catches a failed gate being converted to success or an action floating by branch/tag."""
     for name in (
         "ci.yml",
+        "release-candidate.yml",
         "strategic-ownership-acceptance.yml",
         "strategy-performance.yml",
         "strategy-generalization.yml",
@@ -321,6 +332,7 @@ def test_action_pins_keep_readable_verified_version_comments() -> None:
     """Catches a full SHA losing its human-auditable upstream release identity."""
     for name in (
         "ci.yml",
+        "release-candidate.yml",
         "strategic-ownership-acceptance.yml",
         "strategy-performance.yml",
         "strategy-generalization.yml",

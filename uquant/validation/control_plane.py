@@ -24,6 +24,7 @@ from ..types import (
     ReductionPolicy,
     Risk,
     Side,
+    StrategicEpoch,
     derive_attribution_event_id,
     validate_attribution_compatibility,
 )
@@ -236,6 +237,7 @@ class _ControlContext:
     ledger_rows: list[Any]
     ledger_orders: dict[str, AccountOrder]
     ledger_orders_by_event: dict[str, list[AccountOrder]]
+    strategic_epochs_by_id: dict[str, StrategicEpoch]
     traced_order_sessions: dict[str, list[str]] = field(default_factory=dict)
 
 
@@ -335,6 +337,7 @@ def _control_context(
         ledger_rows=ledger_rows,
         ledger_orders=ledger_orders,
         ledger_orders_by_event=ledger_orders_by_event,
+        strategic_epochs_by_id={epoch.epoch_id: epoch for epoch in account.strategic_epochs},
     )
 
 
@@ -362,6 +365,19 @@ def _validate_target_origin(
         if not matched_durable:
             raise ValueError("decision target event identity differs from its durable origin")
         return
+    epoch_id = str(target["epoch_id"])
+    if epoch_id:
+        epoch = ctx.strategic_epochs_by_id.get(epoch_id)
+        if (
+            epoch is None
+            or epoch.grant_id != target["grant_id"]
+            or epoch.owner_symbol != symbol
+            or session < epoch.opened_session
+            or bool(epoch.closed_session and session > epoch.closed_session)
+        ):
+            raise ValueError(
+                "decision target strategic ownership identity differs from its durable epoch"
+            )
     if event_signal_date != session:
         raise ValueError("decision target event signal date has no durable origin")
     expected_event = derive_attribution_event_id(

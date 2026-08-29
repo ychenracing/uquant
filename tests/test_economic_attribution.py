@@ -791,6 +791,17 @@ def test_control_plane_rejects_self_signed_noncanonical_target_identity() -> Non
             for target in row["targets"]
         )
     )
+    durable_event_ids = {
+        order["event_id"] for order in result["final_account"]["order_ledger"]
+    }
+    trace_only_index, trace_only_target = next(
+        (index, target)
+        for index, row in enumerate(result["decision_trace"])
+        for target in row["targets"]
+        if target["grant_id"]
+        and target["epoch_id"]
+        and target["event_id"] not in durable_event_ids
+    )
 
     for field, forged_identity in (
         ("event_id", "evt_" + "0" * 64),
@@ -819,3 +830,26 @@ def test_control_plane_rejects_self_signed_noncanonical_target_identity() -> Non
                 expected_config=DEFAULT_CONFIG,
                 expected_code_sha256=code_fingerprint(),
             )
+
+    changed = json.loads(json.dumps(result))
+    target = next(
+        target
+        for target in changed["decision_trace"][trace_only_index]["targets"]
+        if target["event_id"] == trace_only_target["event_id"]
+    )
+    target["grant_id"] = "grant_" + "0" * 64
+    target["epoch_id"] = "epoch_" + "0" * 64
+    trace = changed["decision_trace"][trace_only_index]
+    changed["decision_digests"][trace_only_index] = hashlib.sha256(
+        json.dumps(trace, sort_keys=True, separators=(",", ":")).encode()
+    ).hexdigest()
+
+    with pytest.raises(ValueError, match="target strategic ownership identity"):
+        validate_engine_control_plane(
+            changed,
+            economic_start="2023-01-03",
+            economic_end="2023-03-31",
+            expected_sessions=market.sessions("2023-01-03", "2023-03-31"),
+            expected_config=DEFAULT_CONFIG,
+            expected_code_sha256=code_fingerprint(),
+        )

@@ -47,6 +47,22 @@ def _assert_historical_evidence_account_decoder_contract() -> None:
     with pytest.raises(RuntimeError, match="requires explicit migration"):
         account_from_dict(account, require_hashes=False)
 
+    injected_envelope_seal = {**account, "payload_sha256": "0" * 64}
+    with pytest.MonkeyPatch.context() as monkeypatch:
+        monkeypatch.setattr(
+            witness_ablation,
+            "account_from_dict",
+            lambda *_args, **_kwargs: pytest.fail(
+                "tampered historical payload reached account decoding"
+            ),
+        )
+        with pytest.raises(ValueError, match="payload seal"):
+            decoder(
+                injected_envelope_seal,
+                expected_payload_sha256=payload_sha256,
+                expected_economic_sha256=economic_sha256,
+            )
+
     future_unsealed = {**account, "schema_version": ACCOUNT_SCHEMA_VERSION + 1}
     with pytest.raises(ValueError, match="payload seal"):
         decoder(

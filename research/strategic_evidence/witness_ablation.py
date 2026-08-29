@@ -103,7 +103,8 @@ def decode_historical_evidence_account(
         field="historical evidence account payload seal",
     )
     raw = dict(payload)
-    if canonical_sha256(raw) != expected_payload:
+    observed_payload = hashlib.sha256(_canonical_json_bytes(raw)).hexdigest()
+    if observed_payload != expected_payload:
         raise ValueError("historical evidence account payload seal differs")
     expected_economic = require_sha256(
         expected_economic_sha256,

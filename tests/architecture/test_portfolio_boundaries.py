@@ -475,6 +475,27 @@ def test_portfolio_trace_dataframe_mismatch_reports_column_precision_digests() -
     }
 
 
+def test_portfolio_trace_normalizes_only_rolling_trend_r2_backend_drift() -> None:
+    left = pd.DataFrame(
+        {
+            "ret120": [0.25],
+            "trend_r2_120": [0.123456789041],
+        }
+    )
+    right = pd.DataFrame(
+        {
+            "ret120": [0.25],
+            "trend_r2_120": [0.123456789049],
+        }
+    )
+
+    assert trace_module._jsonable(left) == trace_module._jsonable(right)
+
+    changed_feature = right.copy()
+    changed_feature.loc[0, "ret120"] += 0.000000000001
+    assert trace_module._jsonable(left) != trace_module._jsonable(changed_feature)
+
+
 def test_portfolio_oracle_owner_event_coverage_is_nonempty_and_explicit(
     candidate_portfolio_traces: tuple[
         list[dict[str, Any]], Counter[str], list[dict[str, object]]

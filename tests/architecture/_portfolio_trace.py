@@ -111,6 +111,14 @@ _FRAME_DIAGNOSTIC_SOURCES: dict[str, pd.DataFrame] = {}
 _EXPECTED_CODE_FINGERPRINT: str | None = None
 
 
+def _trace_dataframe_projection(value: pd.DataFrame) -> pd.DataFrame:
+    """Canonicalize the host-sensitive rolling-correlation tail for trace hashing."""
+
+    if "trend_r2_120" not in value.columns:
+        return value
+    return value.assign(trend_r2_120=value["trend_r2_120"].round(10))
+
+
 def _jsonable(value: Any) -> Any:
     if isinstance(value, Enum):
         return value.value
@@ -122,7 +130,7 @@ def _jsonable(value: Any) -> Any:
         key = id(value)
         cached = _FRAME_DIGESTS.get(key)
         if cached is None or cached[0] is not value:
-            encoded = value.to_json(
+            encoded = _trace_dataframe_projection(value).to_json(
                 orient="split",
                 date_format="iso",
                 date_unit="ns",

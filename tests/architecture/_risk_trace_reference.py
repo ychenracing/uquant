@@ -124,9 +124,30 @@ def immutable_trace_from_archive(
 
     injected_runner = destination / "_risk_trace_reference_runner.py"
     injected_runner.write_bytes(runner_source)
+    # The archived risk owner used a BLAS dot kernel whose last bit depends on
+    # the host CPU.  Replay that one-dimensional reduction with the same
+    # explicitly fused arithmetic now used by production, without modifying
+    # any source inside the immutable archive.
     launcher = "\n".join(
         (
             "import runpy, sys",
+            "from fractions import Fraction",
+            "import numpy",
+            "native_dot = numpy.dot",
+            "def deterministic_dot(left, right, *args, **kwargs):",
+            "    if args or kwargs or numpy.ndim(left) != 1 or numpy.ndim(right) != 1:",
+            "        return native_dot(left, right, *args, **kwargs)",
+            "    if len(left) != len(right):",
+            "        return native_dot(left, right, *args, **kwargs)",
+            "    total = 0.0",
+            "    for left_value, right_value in zip(left, right, strict=True):",
+            (
+                "        total = float(Fraction.from_float(total) "
+                "+ Fraction.from_float(float(left_value)) "
+                "* Fraction.from_float(float(right_value)))"
+            ),
+            "    return total",
+            "numpy.dot = deterministic_dot",
             "snapshot, runner = sys.argv[1:]",
             "sys.path[:] = [snapshot] + [entry for entry in sys.path if '__editable__.uquant' not in entry]",
             "sys.meta_path[:] = [finder for finder in sys.meta_path "

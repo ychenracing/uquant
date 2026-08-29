@@ -68,6 +68,43 @@ def test_sector_observation_accepts_an_exact_recovery_ma_window() -> None:
     assert observation.symbol_count == 2
 
 
+def test_sector_observation_weighted_return_is_independent_of_blas_dot(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    dates = pd.bdate_range("2026-06-01", periods=3)
+    changes = {
+        "arbitrary_a": -0.06554281089300762,
+        "arbitrary_b": -0.12010526315789471,
+        "arbitrary_c": -0.11564389464174019,
+    }
+    weights = {
+        "arbitrary_a": 0.32032095992036536,
+        "arbitrary_b": 0.3373307595558216,
+        "arbitrary_c": 0.34234828052381305,
+    }
+    panel = {
+        symbol: pd.DataFrame({"close": (1.0, 1.0, 1.0 + change)}, index=dates)
+        for symbol, change in changes.items()
+    }
+
+    monkeypatch.setattr(
+        np,
+        "dot",
+        lambda *_args, **_kwargs: pytest.fail("weighted return delegated to BLAS"),
+    )
+    observation = observe_deployed_sector(
+        date=dates[-1],
+        panel=panel,
+        symbols=set(changes),
+        cfg=DEFAULT_CONFIG.override(sector_recovery_ma=2),
+        weights=weights,
+        minimum_symbols=3,
+    )
+
+    assert observation is not None
+    assert observation.weighted_return.hex() == "-0x1.9e1b7a7b0babdp-4"
+
+
 def test_single_live_holding_is_observable_only_for_existing_acute_owner() -> None:
     dates = pd.bdate_range("2026-06-01", periods=11)
     panel = _panel(dates)

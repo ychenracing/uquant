@@ -176,7 +176,7 @@ final acceptance gate, not a per-edit ritual.
 - The user's current task, explicit acceptance criteria, this file, and any more specific nested `AGENTS.md` form the execution contract. Repository-specific rules take precedence over generic guidance.
 - Accept GitHub tasks in natural language without requiring a fixed prompt, manual template, branch name, PR number, or Issue when facts can be resolved safely.
 - GitHub live state is authoritative for branches, SHAs, commits, PRs, reviews, checks, and merge status; history, memory, plans, summaries, and handoffs are leads only.
-- Search for a matching open PR, branch, or Issue before creating work and continue a unique match in place. Use the PR body as dynamic state for ordinary single-PR work; create an Issue only for genuinely multi-PR, long-lived phased or backlog work, or when requested.
+- Search for a matching open PR, branch, or Issue before creating work and continue a unique match in place. Use the PR body as dynamic state for ordinary single-PR work; create and populate an Issue automatically only for genuinely multi-PR, long-lived phased or backlog work, or when requested.
 - Load the smallest authoritative context first: applicable `AGENTS.md`, `.github/CHATGPT_PROJECT_BRIEF.md` when present, the matching PR and diff, then directly related code, tests, configuration, and workflows. Expand only when evidence is insufficient, contradictory, or impact grows.
 - Do not load whole repositories, conversations, all PRs/Issues/Actions, or large logs by default. Never lossy-compress prohibitions, exceptions, AND/OR logic, thresholds, dates, versions, paths, branches, SHAs, exact results, risks, or unknowns.
 - If no local worktree exists, mark local fields not applicable; never invent them. Use `context-budget-router` and `conversation-continuity-guard` when available.
@@ -194,7 +194,7 @@ These rules create durable remote recovery points and never replace or weaken th
 ## Continuous Execution and Recovery
 
 - Continue complex, multi-step, long-running, GitHub, batch, research, debugging, and multi-tool work while a safe, clear, authorized next step exists. Milestones, checkpoints, commits, pushes, PR creation, partial validation, progress updates, and prepared handoffs are not completion.
-- Progress updates are non-blocking. At meaningful milestones, use the formal checkpoint procedure above, refresh the PR with verified current state and next action, and proceed without asking the user to say “continue”.
+- Progress updates are non-blocking. At meaningful milestones, use the formal checkpoint procedure above, refresh the PR with the current objective, completed and verified work, remaining work, exact verification, risks, unknowns, and next action, and proceed without asking the user to say “continue”.
 - In a batch, checkpoint targets independently and continue past one blocked target. While required checks are pending, do other executable work; long-running non-required checks are not blockers.
 - If state may be stale, re-read authoritative repository and PR state, head/base/default SHAs, commits, diff, reviews, checks, and remaining work; resolve discrepancies read-only and resume rather than restart.
 - Do not stop merely because the conversation is long, many files/tools were used, a phase is large, or a handoff could be prepared. Do not claim remaining context capacity without accurate platform telemetry.

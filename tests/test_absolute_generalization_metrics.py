@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from dataclasses import fields, is_dataclass, replace
+from dataclasses import asdict, fields, is_dataclass, replace
 
 import pytest
 from _absolute_generalization_metrics_fixture import (
@@ -12,6 +12,7 @@ from _absolute_generalization_metrics_fixture import (
     scenario,
 )
 
+from uquant.types import FlatBookCapitalRepairState
 from uquant.validation.absolute_generalization import (
     ABSOLUTE_GENERALIZATION_EXECUTION_CONTRACT_SHA256,
     CellArtifact,
@@ -582,6 +583,26 @@ def test_repair_literal_progression_restarts_after_reset() -> None:
     )
 
     assert facts[0].actual_healthy_sessions_to_ready == 2
+
+
+def test_repair_facts_ignore_only_the_canonical_empty_production_state() -> None:
+    empty = asdict(FlatBookCapitalRepairState())
+
+    assert repair_episode_facts_from_trace(
+        ({"session": "2023-01-03", "risk": {"flat_book_capital_repair": empty}},)
+    ) == ()
+
+    malformed = dict(empty)
+    malformed["status"] = "READY"
+    with pytest.raises(ValueError, match="empty repair state"):
+        repair_episode_facts_from_trace(
+            (
+                {
+                    "session": "2023-01-03",
+                    "risk": {"flat_book_capital_repair": malformed},
+                },
+            )
+        )
 
 
 def test_repair_literal_progression_retains_counted_session_identity() -> None:

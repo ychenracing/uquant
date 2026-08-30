@@ -11,6 +11,7 @@ from itertools import pairwise
 from typing import cast
 
 from uquant.contracts.strict_json import canonical_json_bytes, strict_json_loads
+from uquant.types import FlatBookCapitalRepairState
 
 from ._physical_identity import physical_fill_identity_map
 from .replay import AbsoluteGeneralizationReplayPayload
@@ -494,6 +495,10 @@ def repair_episode_facts_from_trace(
         if not isinstance(raw, Mapping):
             continue
         repair = metric_mapping(raw, label="capital repair")
+        if not repair.get("repair_episode_id"):
+            if dict(repair) == asdict(FlatBookCapitalRepairState()):
+                continue
+            raise ValueError("absolute generalization empty repair state differs")
         episode_id = metric_text(repair.get("repair_episode_id"), label="repair episode")
         grouped.setdefault(episode_id, []).append(
             (metric_iso_session(row.get("session"), label="repair session"), repair)

@@ -23,7 +23,6 @@ from uquant.provenance.fingerprints import (
     git_source_surface_fingerprint,
     source_surface_fingerprint,
 )
-from uquant.provenance.surfaces import load_source_surface_registry
 from uquant.validation.manifest import verify_data_manifest
 
 ABSOLUTE_GENERALIZATION_CONTRACT_SHA256: Final = (
@@ -210,9 +209,6 @@ def _read_ownership_contract(path: Path) -> Mapping[str, object]:
 
 
 def _verify_independent_authorities() -> None:
-    registry = load_source_surface_registry(_ROOT)
-    if registry.canonical_sha256 != _REGISTRY_SHA256:
-        raise ValueError("absolute generalization source registry identity differs")
     if (
         git_source_surface_fingerprint(_ROOT, _BASELINE_COMMIT, "economic_decision_v1")
         != _BASELINE_SOURCE

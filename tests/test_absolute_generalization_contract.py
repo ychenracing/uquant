@@ -31,6 +31,9 @@ CURRENT_CANDIDATE_SOURCE = (
     "d1ef7977ae482e46a920381e6af58791199ec8e1a02586dbe8df451e7d4696c9"
 )
 BASELINE_SOURCE_AT_COMMIT = CURRENT_CANDIDATE_SOURCE
+FROZEN_SOURCE_REGISTRY_SHA256 = (
+    "da0418442020762272b3b5008c17b515794688270b4940313ccfdfd0b13877cb"
+)
 AI_UNIVERSE_SHA256 = (
     "03f42c5066fb8e1c7b2f8e1b7dd38d508d8053f548ebb5596317ce587d7cffd0"
 )
@@ -245,14 +248,13 @@ def test_contract_binds_candidate_and_frozen_inputs_to_independent_authorities()
     module = _contract_module()
     contract = module.load_absolute_generalization_contract(CONTRACT_PATH)
     raw = _raw_contract()
-    registry = load_source_surface_registry(ROOT)
 
     assert raw["candidate"] == {
         "baseline_commit": BASELINE_COMMIT,
         "baseline_source_sha256": BASELINE_SOURCE_AT_COMMIT,
         "production_source_sha256": CURRENT_CANDIDATE_SOURCE,
         "source_surface_id": "economic_decision_v1",
-        "source_surface_registry_sha256": registry.canonical_sha256,
+        "source_surface_registry_sha256": FROZEN_SOURCE_REGISTRY_SHA256,
     }
     assert raw["inputs"] == {
         "ai_universe_sha256": AI_UNIVERSE_SHA256,
@@ -280,6 +282,49 @@ def test_contract_binds_candidate_and_frozen_inputs_to_independent_authorities()
         OWNERSHIP_CONTRACT_SHA256
     )
     assert tuple(ownership["canonical_universe"]) == CANONICAL_UNIVERSE
+
+
+def test_frozen_contract_survives_non_economic_source_registry_evolution() -> None:
+    """Catch coupling the frozen seal to later validation-only registry members."""
+
+    module = _contract_module()
+    raw = _raw_contract()
+    candidate = raw["candidate"]
+    assert isinstance(candidate, dict)
+    registry = load_source_surface_registry(ROOT)
+
+    assert candidate["source_surface_registry_sha256"] == (
+        FROZEN_SOURCE_REGISTRY_SHA256
+    )
+    assert registry.canonical_sha256 != FROZEN_SOURCE_REGISTRY_SHA256
+    assert "uquant/validation/statistics.py" in registry.surface(
+        "validation_runner_v1"
+    ).source_paths
+    assert source_surface_fingerprint(ROOT, "economic_decision_v1") == (
+        candidate["production_source_sha256"]
+    )
+
+    contract = module.load_absolute_generalization_contract(CONTRACT_PATH)
+
+    assert contract.candidate.source_surface_registry_sha256 == (
+        FROZEN_SOURCE_REGISTRY_SHA256
+    )
+
+
+def test_contract_still_rejects_current_economic_source_mismatch(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Catch registry evolution weakening the frozen economic-source binding."""
+
+    module = _contract_module()
+    monkeypatch.setattr(
+        module,
+        "source_surface_fingerprint",
+        lambda *_args: "0" * 64,
+    )
+
+    with pytest.raises(ValueError, match="candidate source identity differs"):
+        module.load_absolute_generalization_contract(CONTRACT_PATH)
 
 
 def test_loader_binds_baseline_and_evolving_candidate_sources_independently(

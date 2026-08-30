@@ -242,6 +242,7 @@ MODULE_AUTHORITIES = {
     "uquant.validation.production_observation": "validation_runner",
     "uquant.validation.production_observation_contract": "validation_runner",
     "uquant.validation.replay_evidence": "validation_runner",
+    "uquant.validation.statistics": "validation_runner",
     "uquant.validation.universe": "production_safe",
 }
 

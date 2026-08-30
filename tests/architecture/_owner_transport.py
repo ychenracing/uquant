@@ -126,6 +126,7 @@ _VALIDATION_ADDITIONS = frozenset(
         "uquant/validation/production_observation.py",
         "uquant/validation/production_observation_contract.py",
         "uquant/validation/promotion_contract.py",
+        "uquant/validation/statistics.py",
     }
 )
 ARCHITECTURE_SOURCE_SURFACE_ADDITIONS: Mapping[str, frozenset[str]] = {

@@ -22,6 +22,7 @@ from .generalization_contract import (
     evidence_contract_payload,
 )
 from .generalization_policy.schema import ImmutableGeneralizationDefinition
+from .statistics import linear_quantile as _linear_quantile
 
 SCHEMA_VERSION: Final = 2
 SHA256_PATTERN: Final = re.compile(r"^[0-9a-f]{64}$")
@@ -264,16 +265,9 @@ def metrics_from_raw(
 
 
 def matrix_quantile(values: Sequence[float], probability: float) -> float:
-    ordered = sorted(values)
-    if not ordered:
-        raise ValueError("matrix aggregate requires economic cells")
-    location = (len(ordered) - 1) * probability
-    lower = math.floor(location)
-    upper = math.ceil(location)
-    if lower == upper:
-        return ordered[lower]
-    fraction = location - lower
-    return ordered[lower] * (1.0 - fraction) + ordered[upper] * fraction
+    """Preserve the matrix API while delegating its quantile authority."""
+
+    return _linear_quantile(values, probability)
 
 
 def aggregate_matrix_observations(

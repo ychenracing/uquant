@@ -485,6 +485,7 @@
         "uquant/validation/promotion.py",
         "uquant/validation/promotion_contract.py",
         "uquant/validation/replay_evidence.py",
+        "uquant/validation/statistics.py",
         "uquant/validation/universe.py"
       ]
     },
@@ -767,9 +768,10 @@
         "uquant/validation/promotion.py",
         "uquant/validation/promotion_contract.py",
         "uquant/validation/replay_evidence.py",
+        "uquant/validation/statistics.py",
         "uquant/validation/universe.py"
       ]
     }
   ],
-  "canonical_sha256": "da0418442020762272b3b5008c17b515794688270b4940313ccfdfd0b13877cb"
+  "canonical_sha256": "5d6e2a30c1a7c20a136d20d2741f1043e752db7ef567d5cff8499d3ed21fa6b1"
 }

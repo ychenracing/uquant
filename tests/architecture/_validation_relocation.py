@@ -166,6 +166,7 @@ def _expected_registry(root: Path) -> dict[str, Any]:
         paths = architecture_source_surface_projection(str(surface["id"]), paths)
         surface["source_paths"] = sorted(paths)
         surface["resource_paths"] = architecture_resource_surface_projection(
+            str(surface["id"]),
             surface["resource_paths"]
         )
     del registry["canonical_sha256"]

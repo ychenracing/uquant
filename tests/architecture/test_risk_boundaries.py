@@ -806,6 +806,7 @@ def test_risk_source_surface_migration_is_exact_and_requirements_stay_bound() ->
         assert set(candidate[identifier]["source_paths"]) == expected
         assert candidate[identifier]["resource_paths"] == (
             architecture_resource_surface_projection(
+                identifier,
                 immutable[identifier]["resource_paths"]
             )
         )

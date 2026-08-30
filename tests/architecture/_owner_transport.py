@@ -113,6 +113,9 @@ _VALIDATION_ADDITIONS = frozenset(
         "uquant/portfolio/strategic/successor.py",
         "uquant/risk_sentinel/source_identity_archive.py",
         "uquant/validation/competitor_reference.py",
+        "uquant/validation/absolute_generalization/__init__.py",
+        "uquant/validation/absolute_generalization/contract.py",
+        "uquant/validation/absolute_generalization/scenarios.py",
         "uquant/validation/generalization_matrix_evidence.py",
         "uquant/validation/generalization_matrix_validation.py",
         "uquant/validation/generalization_policy/cell_policy.py",
@@ -169,6 +172,16 @@ _CURRENT_RESOURCE_PATHS = {
     ),
 }
 
+_RESOURCE_SURFACE_ADDITIONS: Mapping[str, frozenset[str]] = {
+    "economic_decision_v1": frozenset(),
+    "execution_account_v1": frozenset(),
+    "sentinel_v1": frozenset(),
+    "validation_runner_v1": frozenset(
+        {"benchmarks/absolute_generalization_acceptance_contract.json"}
+    ),
+    "full_package_v1": frozenset(),
+}
+
 
 def architecture_source_surface_projection(identifier: str, historical: Set[str]) -> set[str]:
     """Add only the exact owners registered for one frozen surface."""
@@ -183,10 +196,14 @@ def architecture_source_surface_projection(identifier: str, historical: Set[str]
     return projected | set(additions)
 
 
-def architecture_resource_surface_projection(historical: Sequence[str]) -> list[str]:
+def architecture_resource_surface_projection(
+    identifier: str, historical: Sequence[str]
+) -> list[str]:
     """Project current resource paths without changing resource bytes or protocol IDs."""
 
-    return sorted(_CURRENT_RESOURCE_PATHS.get(path, path) for path in historical)
+    assert identifier in _RESOURCE_SURFACE_ADDITIONS
+    projected = {_CURRENT_RESOURCE_PATHS.get(path, path) for path in historical}
+    return sorted(projected | _RESOURCE_SURFACE_ADDITIONS[identifier])
 
 
 def _definitions(source: str) -> dict[str, ast.FunctionDef]:

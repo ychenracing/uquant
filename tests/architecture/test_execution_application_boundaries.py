@@ -496,6 +496,7 @@ def test_execution_source_surface_migration_is_exact_for_all_five_v1_surfaces() 
         assert set(candidate[identifier]["source_paths"]) == expected_sources
         assert candidate[identifier]["resource_paths"] == (
             architecture_resource_surface_projection(
+                identifier,
                 immutable[identifier]["resource_paths"]
             )
         )

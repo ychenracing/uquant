@@ -298,6 +298,7 @@
     {
       "id": "validation_runner_v1",
       "resource_paths": [
+        "benchmarks/absolute_generalization_acceptance_contract.json",
         "benchmarks/ai_era_generalization_baseline.json",
         "benchmarks/ai_era_generalization_policy.json",
         "benchmarks/competitor_bull_reference.json",
@@ -432,6 +433,9 @@
         "uquant/risk_sentinel/validation.py",
         "uquant/validation/__init__.py",
         "uquant/validation/__main__.py",
+        "uquant/validation/absolute_generalization/__init__.py",
+        "uquant/validation/absolute_generalization/contract.py",
+        "uquant/validation/absolute_generalization/scenarios.py",
         "uquant/validation/ai_era.py",
         "uquant/validation/ci_artifacts.py",
         "uquant/validation/cli.py",
@@ -711,6 +715,9 @@
         "uquant/types.py",
         "uquant/validation/__init__.py",
         "uquant/validation/__main__.py",
+        "uquant/validation/absolute_generalization/__init__.py",
+        "uquant/validation/absolute_generalization/contract.py",
+        "uquant/validation/absolute_generalization/scenarios.py",
         "uquant/validation/ai_era.py",
         "uquant/validation/ci_artifacts.py",
         "uquant/validation/cli.py",
@@ -764,5 +771,5 @@
       ]
     }
   ],
-  "canonical_sha256": "767137ebfb3f979a5ee437f597277e08015ea3222c28921396440a100936d325"
+  "canonical_sha256": "da0418442020762272b3b5008c17b515794688270b4940313ccfdfd0b13877cb"
 }

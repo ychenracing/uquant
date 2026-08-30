@@ -443,13 +443,22 @@ def test_contract_public_surface_has_no_writer_or_auto_acceptance_path() -> None
     }
     assert set(package.__all__) == {
         "ABSOLUTE_GENERALIZATION_CONTRACT_SHA256",
+        "ABSOLUTE_GENERALIZATION_EXECUTION_CONTRACT_SHA256",
         "AbsoluteGeneralizationContract",
         "AbsoluteGeneralizationReplay",
         "AbsoluteGeneralizationReplayObservation",
         "AbsoluteGeneralizationScenario",
+        "CellArtifact",
+        "CellMetrics",
+        "EpochFact",
+        "EventFact",
+        "IdentityEnvelope",
+        "RepairEpisodeFact",
         "build_leave_one_out_scenarios",
+        "derive_cell_metrics",
         "load_absolute_generalization_contract",
         "run_absolute_generalization_replay",
+        "validate_cell_artifact",
     }
 
 
@@ -457,7 +466,10 @@ def test_contract_sources_and_resource_are_registered_only_on_validation_surface
     registry = load_source_surface_registry(ROOT)
     expected_sources = {
         "uquant/validation/absolute_generalization/__init__.py",
+        "uquant/validation/absolute_generalization/artifacts.py",
         "uquant/validation/absolute_generalization/contract.py",
+        "uquant/validation/absolute_generalization/metrics.py",
+        "uquant/validation/absolute_generalization/replay.py",
         "uquant/validation/absolute_generalization/scenarios.py",
     }
     contract_resource = "benchmarks/absolute_generalization_acceptance_contract.json"

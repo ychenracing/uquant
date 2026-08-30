@@ -203,6 +203,7 @@ def test_replay_evidence_surface_is_immutable_and_incremental() -> None:
     assert "account" not in observation_fields
     assert "decision" not in observation_fields
     assert "decision_payload" in observation_fields
+    assert "closing_marks" in observation_fields
 
     observation_hints = get_type_hints(AbsoluteGeneralizationReplayObservation)
     replay_hints = get_type_hints(AbsoluteGeneralizationReplay)

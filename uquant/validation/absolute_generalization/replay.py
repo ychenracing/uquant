@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import hashlib
+import math
 from collections.abc import Iterable, Mapping
 from dataclasses import dataclass, fields, is_dataclass
 from enum import Enum
@@ -112,6 +113,7 @@ class AbsoluteGeneralizationReplayObservation:
 
     session: str
     equity: float
+    closing_marks: tuple[tuple[str, float], ...]
     decision_payload: AbsoluteGeneralizationReplayPayload
     new_fills: tuple[AbsoluteGeneralizationReplayPayload, ...]
     post_open_account: AbsoluteGeneralizationReplayAccountSnapshot
@@ -611,6 +613,24 @@ def _roles_match_account(
     )
 
 
+def _closing_marks(
+    *, engine: ProductionEngine, account: AccountState, date: pd.Timestamp, equity: float
+) -> tuple[tuple[str, float], ...]:
+    marks = tuple(
+        sorted(
+            (symbol, engine.workspace.price(symbol, date))
+            for symbol, position in account.positions.items()
+            if position.shares > 0
+        )
+    )
+    marked_equity = account.cash + sum(
+        account.positions[symbol].shares * mark for symbol, mark in marks
+    )
+    if not math.isclose(equity, marked_equity, rel_tol=1e-9, abs_tol=1e-8):
+        raise RuntimeError("absolute replay closing marks do not reconcile")
+    return marks
+
+
 def _session_observation(
     *,
     engine: ProductionEngine,
@@ -646,6 +666,7 @@ def _session_observation(
         panel={symbol: frames[symbol] for symbol in symbols},
     )
     equity = engine.equity(account, date)
+    closing_marks = _closing_marks(engine=engine, account=account, date=date, equity=equity)
     new_fills = tuple(_payload(fill) for fill in account.fills[fill_start:])
     post_open_account = _account_snapshot(
         account,
@@ -714,6 +735,7 @@ def _session_observation(
     return AbsoluteGeneralizationReplayObservation(
         session=session,
         equity=float(equity),
+        closing_marks=closing_marks,
         decision_payload=decision_payload,
         new_fills=new_fills,
         post_open_account=post_open_account,

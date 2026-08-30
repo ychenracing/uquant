@@ -434,7 +434,12 @@
         "uquant/validation/__init__.py",
         "uquant/validation/__main__.py",
         "uquant/validation/absolute_generalization/__init__.py",
+        "uquant/validation/absolute_generalization/_execution_chain_reconciliation.py",
+        "uquant/validation/absolute_generalization/_metrics_reconciliation.py",
+        "uquant/validation/absolute_generalization/_replay_codec.py",
+        "uquant/validation/absolute_generalization/artifacts.py",
         "uquant/validation/absolute_generalization/contract.py",
+        "uquant/validation/absolute_generalization/metrics.py",
         "uquant/validation/absolute_generalization/replay.py",
         "uquant/validation/absolute_generalization/scenarios.py",
         "uquant/validation/ai_era.py",
@@ -718,7 +723,12 @@
         "uquant/validation/__init__.py",
         "uquant/validation/__main__.py",
         "uquant/validation/absolute_generalization/__init__.py",
+        "uquant/validation/absolute_generalization/_execution_chain_reconciliation.py",
+        "uquant/validation/absolute_generalization/_metrics_reconciliation.py",
+        "uquant/validation/absolute_generalization/_replay_codec.py",
+        "uquant/validation/absolute_generalization/artifacts.py",
         "uquant/validation/absolute_generalization/contract.py",
+        "uquant/validation/absolute_generalization/metrics.py",
         "uquant/validation/absolute_generalization/replay.py",
         "uquant/validation/absolute_generalization/scenarios.py",
         "uquant/validation/ai_era.py",
@@ -775,5 +785,5 @@
       ]
     }
   ],
-  "canonical_sha256": "bdd219eceda62d7ca0b04bc26296b8413ca876937e1c8430d7c0abc8f59b7442"
+  "canonical_sha256": "b28ef185a4c1c638456a2e1013db042c5970a2e35475cec9fa26b81c09045920"
 }

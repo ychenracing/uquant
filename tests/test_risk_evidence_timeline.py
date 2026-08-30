@@ -153,6 +153,69 @@ def test_timeline_truncates_future_rows_and_resolves_pit_membership_and_industry
     assert timeline.incremental_families == ("market_velocity",)
 
 
+def test_timeline_projects_role_absence_but_not_unavailable_references() -> None:
+    """ROLE_ABSENT names must not become missing expected risk evidence."""
+
+    dates = pd.bdate_range("2026-01-05", periods=50)
+    universe = _universe(dates)
+    panel = {
+        symbol: _frame(dates)
+        for symbol in ("a", "b", "c", "d", "new")
+    }
+
+    absent = history_module.build_risk_evidence_timeline(
+        as_of=str(dates[-1].date()),
+        broad_frame=_frame(dates),
+        tech_frame=_frame(dates),
+        reference_panel={symbol: frame for symbol, frame in panel.items() if symbol != "new"},
+        reference_returns=None,
+        universe=universe,
+        role_absent_symbols=("new",),
+        cfg=DEFAULT_CONFIG,
+    )
+    unavailable = history_module.build_risk_evidence_timeline(
+        as_of=str(dates[-1].date()),
+        broad_frame=_frame(dates),
+        tech_frame=_frame(dates),
+        reference_panel={
+            symbol: frame.iloc[:25]
+            for symbol, frame in panel.items()
+        },
+        reference_returns=None,
+        universe=universe,
+        role_absent_symbols=(),
+        cfg=DEFAULT_CONFIG,
+    )
+
+    assert absent.sentinel_rows[-1].coverage_status is WarmupStatus.READY
+    assert unavailable.sentinel_rows[-1].coverage_status is WarmupStatus.NOT_READY
+    assert unavailable.confirmation_history_trusted is False
+
+
+def test_empty_role_absence_preserves_the_default_timeline() -> None:
+    dates = pd.bdate_range("2026-01-05", periods=30)
+    universe = _universe(dates)
+    common = {
+        "as_of": str(dates[-1].date()),
+        "broad_frame": _frame(dates),
+        "tech_frame": _frame(dates),
+        "reference_panel": {
+            symbol: _frame(dates)
+            for symbol in ("a", "b", "c", "d", "new")
+        },
+        "reference_returns": None,
+        "universe": universe,
+        "cfg": DEFAULT_CONFIG,
+    }
+
+    assert history_module.build_risk_evidence_timeline(
+        **common,
+    ) == history_module.build_risk_evidence_timeline(
+        **common,
+        role_absent_symbols=(),
+    )
+
+
 def test_timeline_is_deterministic_and_future_crash_cannot_change_history(monkeypatch) -> None:
     dates = pd.bdate_range("2026-01-05", periods=27)
     universe = _universe(dates)

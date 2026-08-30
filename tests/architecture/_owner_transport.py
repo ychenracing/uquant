@@ -115,6 +115,7 @@ _VALIDATION_ADDITIONS = frozenset(
         "uquant/validation/competitor_reference.py",
         "uquant/validation/absolute_generalization/__init__.py",
         "uquant/validation/absolute_generalization/contract.py",
+        "uquant/validation/absolute_generalization/replay.py",
         "uquant/validation/absolute_generalization/scenarios.py",
         "uquant/validation/generalization_matrix_evidence.py",
         "uquant/validation/generalization_matrix_validation.py",

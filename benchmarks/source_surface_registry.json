@@ -435,6 +435,7 @@
         "uquant/validation/__main__.py",
         "uquant/validation/absolute_generalization/__init__.py",
         "uquant/validation/absolute_generalization/contract.py",
+        "uquant/validation/absolute_generalization/replay.py",
         "uquant/validation/absolute_generalization/scenarios.py",
         "uquant/validation/ai_era.py",
         "uquant/validation/ci_artifacts.py",
@@ -718,6 +719,7 @@
         "uquant/validation/__main__.py",
         "uquant/validation/absolute_generalization/__init__.py",
         "uquant/validation/absolute_generalization/contract.py",
+        "uquant/validation/absolute_generalization/replay.py",
         "uquant/validation/absolute_generalization/scenarios.py",
         "uquant/validation/ai_era.py",
         "uquant/validation/ci_artifacts.py",
@@ -773,5 +775,5 @@
       ]
     }
   ],
-  "canonical_sha256": "5d6e2a30c1a7c20a136d20d2741f1043e752db7ef567d5cff8499d3ed21fa6b1"
+  "canonical_sha256": "bdd219eceda62d7ca0b04bc26296b8413ca876937e1c8430d7c0abc8f59b7442"
 }

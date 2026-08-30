@@ -22,6 +22,7 @@ from .history_cache import decode_risk_evidence_timeline, encode_risk_evidence_t
 from .integration import severe_direct as _severe_direct
 from .models import (
     BaseMarketRiskRow,
+    CoverageHealth,
     RiskEvidenceTimeline,
     SentinelCausalState,
     SentinelLevel,
@@ -278,6 +279,7 @@ def _timeline_sessions(
     point: pd.Timestamp,
     reference_panel: Mapping[str, pd.DataFrame],
     universe: AIUniverse,
+    role_absent_symbols: tuple[str, ...],
 ) -> tuple[pd.Timestamp, ...]:
     if not isinstance(broad_frame.index, pd.DatetimeIndex) or not isinstance(
         tech_frame.index,
@@ -297,14 +299,23 @@ def _timeline_sessions(
         }
     )
     first_membership = min(
-        (member.effective_from for member in universe.members if member.tradable),
+        (
+            member.effective_from
+            for member in universe.members
+            if member.tradable and member.symbol not in role_absent_symbols
+        ),
         default=point.date(),
     )
+    absent = frozenset(role_absent_symbols)
     for index, session in enumerate(candidates):
         if session.date() < first_membership:
             continue
         session_text = str(session.date())
-        symbols = universe.symbols_as_of(session_text)
+        symbols = tuple(
+            symbol
+            for symbol in universe.symbols_as_of(session_text)
+            if symbol not in absent
+        )
         industries = {symbol: universe.industry_of(symbol, session_text) for symbol in symbols}
         coverage = assess_coverage(
             as_of=session_text,
@@ -599,6 +610,7 @@ def _prepare_timeline_sources(
     reference_panel: Mapping[str, pd.DataFrame],
     tech_frame: pd.DataFrame,
     universe: AIUniverse,
+    role_absent_symbols: tuple[str, ...],
 ) -> _TimelineSources:
     point = pd.Timestamp(as_of).normalize()
     sessions = _timeline_sessions(
@@ -607,6 +619,7 @@ def _prepare_timeline_sources(
         point,
         reference_panel,
         universe,
+        role_absent_symbols,
     )
     name_observations, name_returns = _prepared_name_observations(reference_panel)
     rolling_correlation, complete_correlation = _rolling_correlation_cache(name_returns)
@@ -632,6 +645,71 @@ def _prepare_timeline_sources(
     )
 
 
+def _timeline_session_view(
+    *,
+    session: pd.Timestamp,
+    broad_frame: pd.DataFrame,
+    tech_frame: pd.DataFrame,
+    reference_panel: Mapping[str, pd.DataFrame],
+    universe: AIUniverse,
+    role_absent_symbols: tuple[str, ...],
+) -> tuple[
+    str,
+    tuple[str, ...],
+    dict[str, pd.DataFrame],
+    dict[str, str],
+    CoverageHealth,
+]:
+    session_text = str(session.date())
+    absent = frozenset(role_absent_symbols)
+    symbols = tuple(
+        symbol
+        for symbol in universe.symbols_as_of(session_text)
+        if symbol not in absent
+    )
+    panel = {
+        symbol: _prefix(reference_panel[symbol], session)
+        for symbol in symbols
+        if symbol in reference_panel
+    }
+    industries = {
+        symbol: universe.industry_of(symbol, session_text) for symbol in symbols
+    }
+    observed = frozenset(
+        symbol
+        for symbol in symbols
+        if symbol in reference_panel and session in reference_panel[symbol].index
+    )
+    counts = {
+        symbol: int(reference_panel[symbol].index.searchsorted(session, side="right"))
+        for symbol in symbols
+        if symbol in reference_panel
+    }
+    warmed = frozenset(symbol for symbol in observed if counts.get(symbol, 0) >= 21)
+    stale = frozenset(
+        symbol
+        for symbol in symbols
+        if symbol not in observed and counts.get(symbol, 0) > 0
+    )
+    missing_indices = tuple(
+        name
+        for name, frame in (("sh000300", broad_frame), ("sh000682", tech_frame))
+        if session not in frame.index
+        or int(frame.index.searchsorted(session, side="right")) < 21
+    )
+    coverage = build_coverage_health(
+        expected_symbols=symbols,
+        observed_symbols=observed,
+        warmed_symbols=warmed,
+        stale_symbols=stale,
+        new_symbols=observed - warmed,
+        point_in_time_industries=industries,
+        held_symbols=(),
+        missing_indices=missing_indices,
+    )
+    return session_text, symbols, panel, industries, coverage
+
+
 def _timeline_session_rows(
     *,
     session: pd.Timestamp,
@@ -641,39 +719,16 @@ def _timeline_session_rows(
     reference_panel: Mapping[str, pd.DataFrame],
     reference_returns: pd.DataFrame | None,
     universe: AIUniverse,
+    role_absent_symbols: tuple[str, ...],
     cfg: SystemConfig,
 ) -> tuple[SentinelMarketRow, BaseMarketRiskRow]:
-    session_text = str(session.date())
-    symbols = universe.symbols_as_of(session_text)
-    panel = {
-        symbol: _prefix(reference_panel[symbol], session) for symbol in symbols if symbol in reference_panel
-    }
-    industries = {symbol: universe.industry_of(symbol, session_text) for symbol in symbols}
-    broad_prefix = _prefix(broad_frame, session)
-    tech_prefix = _prefix(tech_frame, session)
-    observed = frozenset(symbol for symbol in symbols if session in reference_panel[symbol].index)
-    counts = {
-        symbol: int(reference_panel[symbol].index.searchsorted(session, side="right"))
-        for symbol in symbols
-        if symbol in reference_panel
-    }
-    warmed = frozenset(symbol for symbol in observed if counts.get(symbol, 0) >= 21)
-    new = observed - warmed
-    stale = frozenset(symbol for symbol in symbols if symbol not in observed and counts.get(symbol, 0) > 0)
-    missing_indices = tuple(
-        name
-        for name, frame in (("sh000300", broad_frame), ("sh000682", tech_frame))
-        if session not in frame.index or int(frame.index.searchsorted(session, side="right")) < 21
-    )
-    coverage = build_coverage_health(
-        expected_symbols=symbols,
-        observed_symbols=observed,
-        warmed_symbols=warmed,
-        stale_symbols=stale,
-        new_symbols=new,
-        point_in_time_industries=industries,
-        held_symbols=(),
-        missing_indices=missing_indices,
+    session_text, symbols, panel, industries, coverage = _timeline_session_view(
+        session=session,
+        broad_frame=broad_frame,
+        tech_frame=tech_frame,
+        reference_panel=reference_panel,
+        universe=universe,
+        role_absent_symbols=role_absent_symbols,
     )
     names = {
         symbol: sources.name_observations[symbol][session]
@@ -726,8 +781,8 @@ def _timeline_session_rows(
         ),
         _base_row(
             session=session,
-            broad_frame=broad_prefix,
-            tech_frame=tech_prefix,
+            broad_frame=_prefix(broad_frame, session),
+            tech_frame=_prefix(tech_frame, session),
             reference_panel=panel,
             reference_returns=reference_returns,
             industries=industries,
@@ -745,15 +800,46 @@ def build_risk_evidence_timeline(
     reference_returns: pd.DataFrame | None,
     universe: AIUniverse,
     cfg: SystemConfig,
+    role_absent_symbols: tuple[str, ...] = (),
 ) -> RiskEvidenceTimeline:
     """Rebuild complete PIT market history without current account inputs."""
+
+    if (
+        role_absent_symbols != tuple(sorted(set(role_absent_symbols)))
+        or not set(role_absent_symbols).issubset(universe.symbols)
+    ):
+        raise ValueError("risk timeline role absence must be canonical universe members")
+    absent = frozenset(role_absent_symbols)
+    declared = tuple(symbol for symbol in universe.symbols if symbol not in absent)
+    role_panel = (
+        reference_panel
+        if not role_absent_symbols
+        else {
+            symbol: reference_panel[symbol]
+            for symbol in declared
+            if symbol in reference_panel
+        }
+    )
+    role_returns = (
+        reference_returns
+        if not role_absent_symbols
+        else (
+            None
+            if reference_returns is None
+            else reference_returns.loc[
+                :,
+                [symbol for symbol in declared if symbol in reference_returns],
+            ]
+        )
+    )
 
     sources = _prepare_timeline_sources(
         as_of=as_of,
         broad_frame=broad_frame,
-        reference_panel=reference_panel,
+        reference_panel=role_panel,
         tech_frame=tech_frame,
         universe=universe,
+        role_absent_symbols=role_absent_symbols,
     )
     for session in sources.sessions:
         sentinel_row, base_row = _timeline_session_rows(
@@ -761,9 +847,10 @@ def build_risk_evidence_timeline(
             sources=sources,
             broad_frame=broad_frame,
             tech_frame=tech_frame,
-            reference_panel=reference_panel,
-            reference_returns=reference_returns,
+            reference_panel=role_panel,
+            reference_returns=role_returns,
             universe=universe,
+            role_absent_symbols=role_absent_symbols,
             cfg=cfg,
         )
         sources.sentinel_rows.append(sentinel_row)

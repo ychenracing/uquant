@@ -192,6 +192,7 @@ MODULE_AUTHORITIES = {
     "uquant.validation.__main__": "cli_runner",
     "uquant.validation.absolute_generalization": "validation_runner",
     "uquant.validation.absolute_generalization.contract": "validation_runner",
+    "uquant.validation.absolute_generalization.replay": "validation_runner",
     "uquant.validation.absolute_generalization.scenarios": "validation_runner",
     "uquant.validation.ai_era": "production_safe",
     "uquant.validation.ci_artifacts": "cli_runner",

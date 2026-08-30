@@ -101,6 +101,7 @@ class DecisionEngineRuntime(Protocol):
         as_of: str,
         cfg: SystemConfig,
         universe: AIUniverse,
+        role_absent_symbols: tuple[str, ...] = (),
     ) -> RiskEvidenceTimeline: ...
 
     def _mark_account_positions(self, account: AccountState, date: pd.Timestamp) -> None: ...
@@ -323,7 +324,12 @@ def _decision_market_context(
     strategic_universe_declaration: StrategicUniverseDeclaration | None,
 ) -> _DecisionMarket:
     date = inputs.date
-    active_reference_symbols = self.workspace.filter_reference_symbols(resolve_reference_symbols(date))
+    universe = default_ai_universe()
+    canonical_symbols = universe.symbols_as_of(str(date.date()))
+    registry_symbols = resolve_reference_symbols(date)
+    if registry_symbols != canonical_symbols:
+        raise RuntimeError("point-in-time reference registry differs from canonical universe")
+    active_reference_symbols = self.workspace.filter_reference_symbols(registry_symbols)
     qualification_reference_symbols, risk_reference_symbols = _declared_reference_roles(
         workspace=self.workspace,
         active_reference_symbols=active_reference_symbols,
@@ -378,8 +384,6 @@ def _decision_market_context(
     visible_users = set(user_panel)
     prices = {symbol: self._price(symbol, date) for symbol in visible_users | set(account.positions)}
     _, equity = current_weights(account, prices)
-    universe = default_ai_universe()
-    canonical_symbols = universe.symbols_as_of(str(date.date()))
     expected_reference_symbols = self.workspace.filter_reference_symbols(canonical_symbols)
     if active_reference_symbols != expected_reference_symbols:
         raise RuntimeError("point-in-time reference registry differs from canonical universe")
@@ -387,6 +391,11 @@ def _decision_market_context(
         as_of=str(date.date()),
         cfg=decision_cfg,
         universe=universe,
+        role_absent_symbols=tuple(
+            symbol
+            for symbol in canonical_symbols
+            if symbol not in risk_reference_symbols
+        ),
     )
     return _DecisionMarket(
         reference_panel=reference_panel,

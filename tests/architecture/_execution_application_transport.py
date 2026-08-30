@@ -16,6 +16,7 @@ _DECISION_OWNER = "eb6c7321b620fbba2f1abae4af538033fce10a16"
 _ARCHITECTURE_CLOSURE = "c0cde6c60bbf234d08e836f84981aa1b3231279b"
 _DECISION_PATH = "uquant/application/decision.py"
 _EXTRACTED_PATH = "uquant/application/target_attribution.py"
+_RISK_TIMELINE_PATH = "uquant/application/risk_timeline_cache.py"
 _DECISION_CHAIN = (_APPLICATION_STAGES, _ATTRIBUTION_STAGES, _DECISION_OWNER)
 _DECISION_FAN_OUT = frozenset(
     {
@@ -48,6 +49,7 @@ _REVIEWED_SOURCE_CHAINS: Mapping[str, tuple[str, ...]] = {
         _APPLICATION_STAGES,
         _ATTRIBUTION_STAGES,
     ),
+    _RISK_TIMELINE_PATH: (_ARCHITECTURE_CLOSURE,),
     "uquant/execution/open_execution.py": (
         "8e663eea8af0b443344b2bb7044d31b422b0c694",
     ),
@@ -81,6 +83,7 @@ ARCHITECTURE_EXECUTION_REVIEWED_DEFINITIONS = frozenset(
         ("uquant/application/decision.py", "_attach_target_attribution"),
         ("uquant/application/decision.py", "decide"),
         ("uquant/application/decision.py", "deterministic_decision"),
+        (_RISK_TIMELINE_PATH, "_causal_risk_timeline"),
         ("uquant/application/backtest.py", "backtest"),
         ("uquant/application/metrics.py", "performance_metrics"),
     }
@@ -245,6 +248,22 @@ def validate_engine_descriptor_transport(
     expected_signature = inspect.signature(expected)
     observed_annotations = dict(observed.__annotations__)
     expected_annotations = dict(expected.__annotations__)
+    if name == "_causal_risk_timeline":
+        parameter = observed_signature.parameters["role_absent_symbols"]
+        assert parameter.kind is inspect.Parameter.KEYWORD_ONLY
+        assert parameter.default == ()
+        assert parameter.annotation == "tuple[str, ...]"
+        projected = observed_signature.replace(
+            parameters=[
+                value
+                for key, value in observed_signature.parameters.items()
+                if key != "role_absent_symbols"
+            ]
+        )
+        assert projected == expected_signature
+        assert observed_annotations.pop("role_absent_symbols") == "tuple[str, ...]"
+        assert observed_annotations == expected_annotations
+        return
     read_only_parameter = "strategic_universe_declaration"
     if name not in {"decide", "deterministic_decision"}:
         assert observed_signature == expected_signature

@@ -5,8 +5,10 @@ from __future__ import annotations
 import copy
 import hashlib
 import json
+import shutil
 from pathlib import Path
 
+import pandas as pd
 import pytest
 
 from uquant import engine as engine_module
@@ -28,6 +30,7 @@ from uquant.types import (
     AccountOrder,
     AccountState,
     AttributionMechanism,
+    Decision,
     OriginSubsystem,
     PendingOrder,
     Position,
@@ -334,35 +337,99 @@ def test_explicit_reference_roles_do_not_leak_a_full_removal_into_allocator(
 
 
 def test_expected_reference_without_a_session_is_unavailable_not_role_absent(
-    data_dir,
-    monkeypatch: pytest.MonkeyPatch,
+    data_dir: Path,
+    tmp_path: Path,
 ) -> None:
     from uquant.models.strategic_universe import (
         ReferenceAvailability,
         build_strategic_universe_declaration,
+        build_strategic_universe_roles,
     )
 
-    engine = ProductionEngine(data_dir)
-    captured: dict[str, object] = {}
-
-    def capture_allocation(**kwargs: object) -> tuple[()]:
-        captured.update(kwargs)
-        return ()
-
-    monkeypatch.setattr(engine.allocator, "allocate", capture_allocation)
+    missing_symbol = "sz300394"
+    isolated = tmp_path / "frozen"
+    shutil.copytree(data_dir, isolated)
+    missing_path = isolated / f"{missing_symbol}.csv"
+    missing_frame = pd.read_csv(missing_path)
+    missing_frame.loc[missing_frame["date"] != "2023-01-04"].to_csv(
+        missing_path,
+        index=False,
+    )
+    role_symbols = tuple(SYMBOLS)
     declaration = build_strategic_universe_declaration(
-        qualification_reference_symbols=REFERENCE_UNIVERSE,
-        risk_reference_symbols=REFERENCE_UNIVERSE,
-    )
-    engine.decide(
-        symbols=("sz300394", "sz300502"),
-        as_of="2025-08-18",
-        account=AccountState.empty(DEFAULT_CONFIG.initial_cash),
-        strategic_universe_declaration=declaration,
+        qualification_reference_symbols=role_symbols,
+        risk_reference_symbols=role_symbols,
     )
 
-    roles = captured["strategic_universe"]
-    assert roles.availability("sh688347") is ReferenceAvailability.UNAVAILABLE  # type: ignore[union-attr]
+    def opening_decisions(
+        frozen_data: Path,
+    ) -> tuple[ProductionEngine, AccountState, Decision]:
+        engine = ProductionEngine(frozen_data)
+        account = AccountState.empty(DEFAULT_CONFIG.initial_cash)
+        decision = None
+        for session in ("2023-01-03", "2023-01-04"):
+            decision = engine.decide(
+                symbols=role_symbols,
+                as_of=session,
+                account=account,
+                strategic_universe_declaration=declaration,
+            )
+            account.pending_orders = list(decision.pending_orders)
+        assert decision is not None
+        return engine, account, decision
+
+    positive_engine, positive_account, positive = opening_decisions(data_dir)
+    assert positive_account.strategic_qualification.qualification_ready is True
+    assert positive_account.strategic_grant is not None
+    assert positive.targets
+    assert positive.pending_orders
+    assert positive_account.strategic_epochs
+    positive_engine.execution.execute_open(
+        date=pd.Timestamp("2023-01-05"),
+        account=positive_account,
+        panel={
+            symbol: positive_engine.workspace.raw_frame(symbol)
+            for symbol in role_symbols
+        },
+    )
+    assert positive_account.fills
+    assert positive_account.order_ledger
+
+    negative_engine, negative_account, negative = opening_decisions(isolated)
+    roles = build_strategic_universe_roles(
+        as_of="2023-01-04",
+        tradable_symbols=role_symbols,
+        qualification_reference_symbols=role_symbols,
+        risk_reference_symbols=role_symbols,
+        industries={
+            symbol: default_ai_universe().industry_of(symbol, "2023-01-04")
+            for symbol in role_symbols
+        },
+        available_symbols=negative.risk_summary["reference_visible_symbols"],
+    )
+    assert roles.availability(missing_symbol) is ReferenceAvailability.UNAVAILABLE
+    assert missing_symbol in negative.risk_summary["reference_expected_symbols"]
+    assert missing_symbol not in negative.risk_summary["reference_visible_symbols"]
+    qualification = negative_account.strategic_qualification
+    assert qualification.qualification_ready is False
+    assert qualification.deployment_blocked is True
+    assert qualification.candidate_invalidation_reason == "absolute_qualification_failed"
+    assert negative_account.strategic_cash_rearm.authorization_id == ""
+    assert negative_account.strategic_grant is None
+    assert negative.targets == ()
+    assert negative.pending_orders == ()
+    assert negative_account.order_ledger == []
+    assert negative_account.strategic_epochs == []
+    negative_engine.execution.execute_open(
+        date=pd.Timestamp("2023-01-05"),
+        account=negative_account,
+        panel={
+            symbol: negative_engine.workspace.raw_frame(symbol)
+            for symbol in role_symbols
+        },
+    )
+    assert negative_account.fills == []
+    assert negative_account.order_ledger == []
 
 
 def test_sentinel_timeline_cache_depends_only_on_data_universe_and_config(

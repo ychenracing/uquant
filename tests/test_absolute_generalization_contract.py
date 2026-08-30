@@ -28,9 +28,11 @@ OWNERSHIP_CONTRACT_SHA256 = (
     "72e6b510c3bcf44ac77d2c13613f4d72a14ae8dab0d60a19e5947055ae7cbf08"
 )
 CURRENT_CANDIDATE_SOURCE = (
+    "4ac087258e9c5a641a3862f37894b99007d4ad298276df7b76f6d8380c30cde2"
+)
+BASELINE_SOURCE_AT_COMMIT = (
     "d1ef7977ae482e46a920381e6af58791199ec8e1a02586dbe8df451e7d4696c9"
 )
-BASELINE_SOURCE_AT_COMMIT = CURRENT_CANDIDATE_SOURCE
 FROZEN_SOURCE_REGISTRY_SHA256 = (
     "da0418442020762272b3b5008c17b515794688270b4940313ccfdfd0b13877cb"
 )
@@ -442,9 +444,12 @@ def test_contract_public_surface_has_no_writer_or_auto_acceptance_path() -> None
     assert set(package.__all__) == {
         "ABSOLUTE_GENERALIZATION_CONTRACT_SHA256",
         "AbsoluteGeneralizationContract",
+        "AbsoluteGeneralizationReplay",
+        "AbsoluteGeneralizationReplayObservation",
         "AbsoluteGeneralizationScenario",
         "build_leave_one_out_scenarios",
         "load_absolute_generalization_contract",
+        "run_absolute_generalization_replay",
     }
 
 

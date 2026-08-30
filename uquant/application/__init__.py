@@ -138,7 +138,14 @@ def bind_causal_risk_timeline(
     load_disk_cache_fn: Callable[[], Any],
     write_disk_cache_fn: Callable[[], Any],
 ) -> Callable[..., RiskEvidenceTimeline]:
-    def bound(self: Any, *, as_of: str, cfg: SystemConfig, universe: AIUniverse) -> RiskEvidenceTimeline:
+    def bound(
+        self: Any,
+        *,
+        as_of: str,
+        cfg: SystemConfig,
+        universe: AIUniverse,
+        role_absent_symbols: tuple[str, ...] = (),
+    ) -> RiskEvidenceTimeline:
         return causal_risk_timeline(
             self,
             timeline_builder(),
@@ -150,6 +157,7 @@ def bind_causal_risk_timeline(
             as_of=as_of,
             cfg=cfg,
             universe=universe,
+            role_absent_symbols=role_absent_symbols,
         )
 
     bound.__doc__ = causal_risk_timeline.__doc__

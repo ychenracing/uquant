@@ -19,7 +19,10 @@ from uquant.validation.absolute_generalization import (
     derive_cell_metrics,
     load_absolute_generalization_contract,
 )
-from uquant.validation.absolute_generalization.metrics import repair_episode_facts_from_trace
+from uquant.validation.absolute_generalization.metrics import (
+    assert_unique_execution_rows,
+    repair_episode_facts_from_trace,
+)
 
 
 def _identities() -> IdentityEnvelope:
@@ -200,6 +203,31 @@ def test_rejects_cross_ledger_and_accounting_tampering(
 
     with pytest.raises(ValueError, match=message):
         derive_cell_metrics(replay, scenario(), _identities())
+
+
+@pytest.mark.parametrize(  # type: ignore[untyped-decorator]
+    ("collection", "field"),
+    (
+        ("order_ledger", "symbol"),
+        ("fills", "symbol"),
+        ("strategic_epochs", "owner_symbol"),
+    ),
+)
+def test_rejects_reference_only_account_capital_rows(
+    collection: str, field: str
+) -> None:
+    from uquant.contracts.strict_json import strict_json_loads
+
+    account = strict_json_loads(complete_replay().final_account_payload.canonical_json)
+    assert isinstance(account, dict)
+    account[collection][0][field] = scenario().removed_symbol
+
+    with pytest.raises(ValueError, match="reference-only symbol"):
+        assert_unique_execution_rows(
+            final_account=account,
+            trace=(),
+            allowed_symbols=(OWNER,),
+        )
 
 
 def test_rejects_stale_or_tampered_required_identity() -> None:

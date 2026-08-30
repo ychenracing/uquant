@@ -347,7 +347,16 @@ def _validate_ownership_report(
         },
         label="ownership report-13",
     )
-    expected_report, expected_completion = derive_report_runtime_claims(report, contract.canonical_universe)
+    ownership = _ownership_contract()
+    report_symbols = tuple(
+        _evidence_text(item, label="report universe symbol")
+        for item in _evidence_sequence(
+            ownership["report_universe_13"], label="report universe"
+        )
+    )
+    expected_report, expected_completion = derive_report_runtime_claims(
+        report, report_symbols
+    )
     if (
         report["scenario_id"] != "report-13"
         or _evidence_date(report["window_start"], label="report-13 start")

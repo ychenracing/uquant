@@ -306,10 +306,6 @@ def _champion() -> dict[str, object]:
     final_account = project_champion_account(cast(dict[str, object], runtime_raw["final_account"]))
     decision_trace = cast(list[dict[str, object]], runtime_raw["decision_trace"])
     report_trace = copy.deepcopy(decision_trace)
-    for row in report_trace:
-        risk = cast(dict[str, object], row["risk"])
-        risk["target_gross_cap"] = 1.0
-        risk["system_gross_cap"] = 1.0
     champion_order_ledger = cast(list[dict[str, object]], runtime_raw["order_ledger"])
     champion_equity_curve = cast(list[dict[str, object]], runtime_raw["equity_curve"])
     daily_replay_evidence = cast(list[dict[str, object]], runtime_raw["daily_replay_evidence"])

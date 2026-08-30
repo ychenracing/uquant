@@ -170,6 +170,60 @@ def test_report_runtime_binds_decisions_to_daily_observation_sessions() -> None:
         aggregate_acceptance(manifests, load_absolute_generalization_contract())
 
 
+def test_report_capital_authority_uses_contemporaneous_risk_caps() -> None:
+    manifests = successful_manifests()
+    champion_manifest = manifest(manifests, "champion")
+    report = champion_manifest["champion"]["report_13"]
+    assert report["maximum_target_gross"] == 0.95
+    assert report["minimum_risk_target_gross_cap"] == 0.0
+
+    result = aggregate_acceptance(manifests, load_absolute_generalization_contract())
+
+    assert result.components[0].name == "champion_non_regression"
+    assert result.components[0].passed is True
+
+
+def test_report_capital_authority_rejects_same_session_cap_expansion() -> None:
+    manifests = successful_manifests()
+    champion_manifest = manifest(manifests, "champion")
+    champion = copy.deepcopy(champion_manifest["champion"])
+    report = champion["strategic_ownership_acceptance"]["report_13"]
+    trace = report["decision_trace"]
+    positive_target = next(row for row in trace if row["target_gross"] > 0.0)
+    positive_target["risk"]["target_gross_cap"] = positive_target["target_gross"] - 0.01
+    report["trace_sha256"] = canonical_json_sha256(trace)
+    champion["report_13"]["minimum_risk_target_gross_cap"] = min(
+        row["risk"]["target_gross_cap"] for row in trace
+    )
+    champion["evidence_sha256"] = canonical_json_sha256(
+        {key: item for key, item in champion.items() if key != "evidence_sha256"}
+    )
+    champion_manifest["champion"] = champion
+    reseal_manifest(champion_manifest)
+
+    with pytest.raises(ValueError, match="capital authority"):
+        aggregate_acceptance(manifests, load_absolute_generalization_contract())
+
+
+def test_report_rejects_reference_only_capital_authority() -> None:
+    manifests = successful_manifests()
+    champion_manifest = manifest(manifests, "champion")
+    champion = copy.deepcopy(champion_manifest["champion"])
+    report = champion["strategic_ownership_acceptance"]["report_13"]
+    trace = report["decision_trace"]
+    positive_target = next(row for row in trace if row["target_gross"] > 0.0)
+    positive_target["targets"][0]["symbol"] = "sh600487"
+    report["trace_sha256"] = canonical_json_sha256(trace)
+    champion["evidence_sha256"] = canonical_json_sha256(
+        {key: item for key, item in champion.items() if key != "evidence_sha256"}
+    )
+    champion_manifest["champion"] = champion
+    reseal_manifest(champion_manifest)
+
+    with pytest.raises(ValueError, match="reference-only symbol"):
+        aggregate_acceptance(manifests, load_absolute_generalization_contract())
+
+
 @pytest.mark.parametrize(  # type: ignore[untyped-decorator]
     ("path", "value", "failure"),
     (

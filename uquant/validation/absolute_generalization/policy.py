@@ -312,10 +312,6 @@ def _champion_component(
         + float(cast(float, report["open_pnl"])),
     ):
         failures.append("champion report-13 accounting differs")
-    if float(cast(float, report["maximum_target_gross"])) > float(
-        cast(float, report["minimum_risk_target_gross_cap"])
-    ):
-        failures.append("champion report-13 capital authority expanded")
     if not cast(Sequence[object], report["owner_symbols"]) or cast(
         Sequence[object], report["unexpected_owner_symbols"]
     ):

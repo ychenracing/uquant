@@ -252,9 +252,12 @@ def _ownership_champion(result: Mapping[str, object], *, scenario_id: str) -> di
 
 
 def _report_13(
-    result: Mapping[str, object], *, contract: AbsoluteGeneralizationContract
+    result: Mapping[str, object],
+    *,
+    contract: AbsoluteGeneralizationContract,
+    allowed_symbols: Sequence[str],
 ) -> tuple[dict[str, object], dict[str, object]]:
-    report, derived_completion = derive_report_runtime_claims(result, contract.canonical_universe)
+    report, derived_completion = derive_report_runtime_claims(result, allowed_symbols)
     trace = [
         _runtime_mapping(item, label="report decision")
         for item in _runtime_rows(result.get("decision_trace"), label="report trace")
@@ -313,7 +316,11 @@ def _champion_runtime_payload(
             )
         ),
     )
-    report, report_completion = _report_13(report_result, contract=contract)
+    report, report_completion = _report_13(
+        report_result,
+        contract=contract,
+        allowed_symbols=report_symbols,
+    )
     relative_baseline = load_generalization_baseline()
     relative_policy = load_generalization_policy()
     if relative_policy.baseline_sha256 != relative_baseline.sha256:

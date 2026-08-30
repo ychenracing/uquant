@@ -657,6 +657,17 @@ def assert_unique_execution_rows(
         raise ValueError("absolute generalization duplicate strategic grant identity")
     physical_fill_identity_map(fills)
     allowed = set(allowed_symbols)
+    for values, field, label in (
+        (orders, "symbol", "order"),
+        (fills, "symbol", "fill"),
+        (epochs, "owner_symbol", "strategic epoch"),
+    ):
+        for value in values:
+            symbol = metric_text(value.get(field, ""), label=f"{label} symbol", empty=True)
+            if symbol and symbol not in allowed:
+                raise ValueError(
+                    "absolute generalization reference-only symbol received capital authority"
+                )
     for row in trace:
         for collection in ("targets", "orders", "fills"):
             for value in metric_rows(row.get(collection, ()), label=f"trace {collection}"):

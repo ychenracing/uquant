@@ -16,6 +16,8 @@ from uquant.attribution import (
 from uquant.contracts.strict_json import canonical_json_sha256
 from uquant.types import AccountOrder, AccountState, Position
 
+from .metrics import assert_unique_execution_rows
+
 
 def _mapping(value: object, *, label: str) -> Mapping[str, object]:
     if not isinstance(value, Mapping) or any(type(key) is not str for key in value):
@@ -267,6 +269,15 @@ def _rebuild_report_attribution(
         }
         risk = _mapping(decision.get("risk"), label="report risk")
         targets = _rows(decision.get("targets"), label="report targets")
+        target_gross = _finite_runtime_number(
+            decision.get("target_gross"), label="report target gross"
+        )
+        risk_gross_cap = _finite_runtime_number(
+            risk.get("target_gross_cap"), label="report risk cap"
+        )
+        system_gross_cap = _finite_runtime_number(
+            risk.get("system_gross_cap"), label="report system cap"
+        )
         row = build_daily_ledger_row(
             date=session,
             account=pseudo_account,
@@ -279,12 +290,14 @@ def _rebuild_report_attribution(
                 for item in targets
                 for target in (_mapping(item, label="report target"),)
             },
-            target_gross=_finite_runtime_number(decision.get("target_gross"), label="report target gross"),
-            risk_gross_cap=_finite_runtime_number(risk.get("target_gross_cap"), label="report risk cap"),
-            system_gross_cap=_finite_runtime_number(risk.get("system_gross_cap"), label="report system cap"),
+            target_gross=target_gross,
+            risk_gross_cap=risk_gross_cap,
+            system_gross_cap=system_gross_cap,
             risk_state=str(risk.get("state")),
             opportunity=str(decision.get("opportunity")),
         )
+        if row["binding_owner"] == "STRATEGY_RETENTION_OVERRIDE":
+            raise ValueError("champion runtime report capital authority differs")
         ledger.append(row)
         previous_equity = float(row["equity"])
         sessions.append(session)
@@ -328,18 +341,21 @@ def _rebuild_report_attribution(
 
 
 def derive_report_runtime_claims(
-    result: Mapping[str, object], canonical_universe: Sequence[str]
+    result: Mapping[str, object], allowed_symbols: Sequence[str]
 ) -> tuple[dict[str, object], dict[str, object]]:
     """Recompute report-13 accounting and completion claims from raw replay facts."""
 
-    account = account_from_dict(
-        decode_champion_account(_mapping(result.get("final_account"), label="report account")),
-        require_hashes=False,
-    )
+    raw_account = _mapping(result.get("final_account"), label="report account")
+    account = account_from_dict(decode_champion_account(raw_account), require_hashes=False)
     trace = [
         _mapping(item, label="report decision")
         for item in _rows(result.get("decision_trace"), label="report trace")
     ]
+    assert_unique_execution_rows(
+        final_account=raw_account,
+        trace=trace,
+        allowed_symbols=allowed_symbols,
+    )
     equity = _equity_values(result)
     final_equity = _terminal_equity(result, account)
     if equity[-1] != final_equity or not trace:
@@ -365,7 +381,7 @@ def derive_report_runtime_claims(
             for row in trace
         ),
         "owner_symbols": owners,
-        "unexpected_owner_symbols": sorted(set(owners).difference(canonical_universe)),
+        "unexpected_owner_symbols": sorted(set(owners).difference(allowed_symbols)),
     }
     completion = {
         "observed_sessions": len(trace),

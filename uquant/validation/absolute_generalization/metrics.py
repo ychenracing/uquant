@@ -12,6 +12,7 @@ from typing import cast
 
 from uquant.contracts.strict_json import canonical_json_bytes, strict_json_loads
 
+from ._physical_identity import physical_fill_identity_map
 from .replay import AbsoluteGeneralizationReplayPayload
 
 
@@ -654,7 +655,7 @@ def assert_unique_execution_rows(
     grants = [metric_text(epoch.get("grant_id"), label="epoch grant") for epoch in epochs]
     if len(grants) != len(set(grants)):
         raise ValueError("absolute generalization duplicate strategic grant identity")
-    metric_stable_ids(fills, field="fill_id", label="fill")
+    physical_fill_identity_map(fills)
     allowed = set(allowed_symbols)
     for row in trace:
         for collection in ("targets", "orders", "fills"):

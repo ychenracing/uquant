@@ -121,6 +121,31 @@ def test_derives_complete_literal_metrics_and_fill_gated_epoch_facts() -> None:
     _assert_immutable(artifact)
 
 
+def test_simulated_empty_fill_id_reconciles_by_native_physical_identity() -> None:
+    replay = complete_replay()
+    from uquant.contracts.strict_json import strict_json_loads
+
+    raw = strict_json_loads(replay.final_account_payload.canonical_json)
+    assert isinstance(raw, dict)
+    raw["fills"][0]["fill_id"] = ""
+    final = replay.observations[-1]
+    observed = strict_json_loads(final.new_fills[0].canonical_json)
+    assert isinstance(observed, dict)
+    observed["fill_id"] = ""
+    replay = replace(
+        replay,
+        final_account_payload=payload(raw),
+        observations=(
+            *replay.observations[:-1],
+            replace(final, new_fills=(payload(observed),)),
+        ),
+    )
+
+    artifact = derive_cell_metrics(replay, scenario(), _identities())
+
+    assert artifact.target_order_fill_identity_reconciled is True
+
+
 @pytest.mark.parametrize(  # type: ignore[untyped-decorator]
     ("mutation", "message"),
     (

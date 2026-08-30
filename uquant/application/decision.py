@@ -5,9 +5,10 @@ from __future__ import annotations
 import copy
 import hashlib
 import json
-from collections.abc import Callable, Iterable
+from collections.abc import Callable, Iterable, Mapping, Sequence
 from dataclasses import asdict, dataclass, replace
-from typing import Protocol
+from types import MappingProxyType
+from typing import Protocol, cast
 
 import pandas as pd
 
@@ -29,6 +30,7 @@ from ..leader import (
 )
 from ..opportunity import classify_opportunity
 from ..portfolio import PortfolioAllocator, current_weights
+from ..portfolio.strategic.discovery import strategic_qualification_snapshots
 from ..reference import ReferenceContext, build_reference_context
 from ..reference_registry import resolve_reference_symbols
 from ..risk_sentinel.integration import sentinel_freeze_authorized
@@ -161,6 +163,36 @@ class _DecisionAllocation:
     targets: tuple[Target, ...]
     orders: tuple[PendingOrder, ...]
     user_leaders: dict[str, LeaderScore]
+    all_leaders: dict[str, LeaderScore]
+    strategic_universe: StrategicUniverseRoles
+    qualification_snapshots: dict[str, dict[str, float]]
+
+
+@dataclass(frozen=True, slots=True)
+class _ObservedDecisionFacts:
+    effective_config_sha256: str
+    risk_assessment: Mapping[str, object]
+    strategic_universe_roles: StrategicUniverseRoles
+    strategic_qualification: Mapping[str, object]
+    strategic_successor_qualification: Mapping[str, object]
+    leader_scores: tuple[Mapping[str, object], ...]
+    qualification_snapshots: Mapping[str, object]
+
+
+@dataclass(frozen=True, slots=True)
+class _DecisionResult:
+    decision: Decision
+    observation: _ObservedDecisionFacts
+
+
+def _freeze_observed_fact(value: object) -> object:
+    if isinstance(value, Mapping):
+        return MappingProxyType(
+            {str(key): _freeze_observed_fact(item) for key, item in value.items()}
+        )
+    if isinstance(value, Sequence) and not isinstance(value, (str, bytes, bytearray)):
+        return tuple(_freeze_observed_fact(item) for item in value)
+    return value
 
 
 def _decision_config_for_universe(
@@ -520,19 +552,7 @@ def _allocate_decision_orders(
 ) -> _DecisionAllocation:
     # Provenance was already fail-closed above. Publishing it before allocation
     # lets any newly created grant bind the exact production source identity.
-    account.code_hash = inputs.current_code_hash
-    if not account.account_identity:
-        account_identity_payload = "|".join(
-            (
-                float(account.initial_cash).hex(),
-                inputs.current_code_hash,
-                str(inputs.date.date()),
-                ",".join(inputs.current_symbols),
-            )
-        )
-        account.account_identity = "account_" + hashlib.sha256(
-            account_identity_payload.encode("utf-8")
-        ).hexdigest()
+    _bind_decision_account_identity(inputs=inputs, account=account)
     structural_users = {
         symbol: market.structural_leaders[symbol]
         for symbol in inputs.user_symbols
@@ -567,6 +587,17 @@ def _allocate_decision_orders(
         else "CHOPPY"
     )
     previous_orders = list(account.pending_orders)
+    strategic_universe = _decision_strategic_universe(inputs=inputs, market=market)
+    qualification_panel = {
+        **market.qualification_reference_panel,
+        **market.user_panel,
+    }
+    qualification_snapshots = strategic_qualification_snapshots(
+        self.allocator,
+        date=inputs.date,
+        user_panel=qualification_panel,
+        leaders=all_leaders,
+    )
     targets = self.allocator.allocate(
         date=inputs.date,
         opportunity=opportunity,
@@ -575,15 +606,9 @@ def _allocate_decision_orders(
         leaders=user_leaders,
         account=account,
         prices=market.prices,
-        qualification_panel={
-            **market.qualification_reference_panel,
-            **market.user_panel,
-        },
+        qualification_panel=qualification_panel,
         qualification_leaders=all_leaders,
-        strategic_universe=_decision_strategic_universe(
-            inputs=inputs,
-            market=market,
-        ),
+        strategic_universe=strategic_universe,
     )
     if not market.cfg.group_balanced_reference_enabled:
         risk.evidence.update(market.reference_context.evidence())
@@ -626,7 +651,31 @@ def _allocate_decision_orders(
         targets=targets,
         orders=orders,
         user_leaders=user_leaders,
+        all_leaders=all_leaders,
+        strategic_universe=strategic_universe,
+        qualification_snapshots=qualification_snapshots,
     )
+
+
+def _bind_decision_account_identity(
+    *,
+    inputs: _DecisionInputs,
+    account: AccountState,
+) -> None:
+    account.code_hash = inputs.current_code_hash
+    if account.account_identity:
+        return
+    account_identity_payload = "|".join(
+        (
+            float(account.initial_cash).hex(),
+            inputs.current_code_hash,
+            str(inputs.date.date()),
+            ",".join(inputs.current_symbols),
+        )
+    )
+    account.account_identity = "account_" + hashlib.sha256(
+        account_identity_payload.encode("utf-8")
+    ).hexdigest()
 
 
 def _decision_strategic_universe(
@@ -667,13 +716,13 @@ def _decision_strategic_universe(
     )
 
 
-def _finalize_decision(
+def _finalize_decision_result(
     *,
     inputs: _DecisionInputs,
     market: _DecisionMarket,
     allocation: _DecisionAllocation,
     account: AccountState,
-) -> Decision:
+) -> _DecisionResult:
     decision = Decision(
         date=str(inputs.date.date()),
         opportunity=allocation.opportunity,
@@ -734,10 +783,38 @@ def _finalize_decision(
     )
     canonical = decision.canonical_payload(effective_config_sha256=config_fingerprint(market.cfg))
     digest = hashlib.sha256(json.dumps(canonical, sort_keys=True, separators=(",", ":")).encode()).hexdigest()
-    return replace(decision, decision_digest=digest)
+    finalized = replace(decision, decision_digest=digest)
+    leaders = tuple(
+        cast(Mapping[str, object], _freeze_observed_fact(asdict(item)))
+        for item in sorted(
+            allocation.all_leaders.values(),
+            key=lambda candidate: (-candidate.score, candidate.symbol),
+        )
+    )
+    observation = _ObservedDecisionFacts(
+        effective_config_sha256=config_fingerprint(market.cfg),
+        risk_assessment=cast(
+            Mapping[str, object], _freeze_observed_fact(asdict(allocation.risk))
+        ),
+        strategic_universe_roles=allocation.strategic_universe,
+        strategic_qualification=cast(
+            Mapping[str, object],
+            _freeze_observed_fact(asdict(account.strategic_qualification)),
+        ),
+        strategic_successor_qualification=cast(
+            Mapping[str, object],
+            _freeze_observed_fact(asdict(account.strategic_successor_qualification)),
+        ),
+        leader_scores=leaders,
+        qualification_snapshots=cast(
+            Mapping[str, object],
+            _freeze_observed_fact(allocation.qualification_snapshots),
+        ),
+    )
+    return _DecisionResult(decision=finalized, observation=observation)
 
 
-def decide(
+def _decide_result(
     self: DecisionEngineRuntime,
     assess_risk_fn: Callable[..., RiskAssessment],
     evaluate_sentinel_fn: Callable[..., SentinelAssessment],
@@ -749,8 +826,8 @@ def decide(
     as_of: str,
     account: AccountState,
     strategic_universe_declaration: StrategicUniverseDeclaration | None = None,
-) -> Decision:
-    """Produce and persist one causal close-date portfolio decision.
+) -> _DecisionResult:
+    """Produce one decision and its private lossless production observation.
 
     The account is advanced in place after all data, code, state, and
     chronology checks succeed. Returned orders are next-open intentions;
@@ -791,12 +868,44 @@ def decide(
         reconcile_account_orders_fn=reconcile_account_orders_fn,
         attach_target_attribution_fn=attach_target_attribution_fn,
     )
-    return _finalize_decision(
+    return _finalize_decision_result(
         inputs=inputs,
         market=market,
         allocation=allocation,
         account=account,
     )
+
+
+def decide(
+    self: DecisionEngineRuntime,
+    assess_risk_fn: Callable[..., RiskAssessment],
+    evaluate_sentinel_fn: Callable[..., SentinelAssessment],
+    reconcile_account_orders_fn: Callable[..., tuple[PendingOrder, ...]],
+    code_fingerprint_fn: Callable[[], str],
+    attach_target_attribution_fn: Callable[..., tuple[Target, ...]],
+    *,
+    symbols: Iterable[str],
+    as_of: str,
+    account: AccountState,
+    strategic_universe_declaration: StrategicUniverseDeclaration | None = None,
+) -> Decision:
+    """Produce and persist one causal close-date portfolio decision."""
+
+    return _decide_result(
+        self,
+        assess_risk_fn,
+        evaluate_sentinel_fn,
+        reconcile_account_orders_fn,
+        code_fingerprint_fn,
+        attach_target_attribution_fn,
+        symbols=symbols,
+        as_of=as_of,
+        account=account,
+        strategic_universe_declaration=strategic_universe_declaration,
+    ).decision
+
+
+observed_decision = _decide_result
 
 
 def deterministic_decision(

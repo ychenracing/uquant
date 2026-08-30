@@ -115,5 +115,12 @@ class ProductionEngine:
         lambda: code_fingerprint,
         lambda: _attach_target_attribution,
     )
+    _observe_decision = _application.bind_engine_observed_decision(
+        lambda: assess_risk,
+        lambda: evaluate_sentinel,
+        lambda: reconcile_account_orders,
+        lambda: code_fingerprint,
+        lambda: _attach_target_attribution,
+    )
     deterministic_decision = _application.deterministic_decision
     backtest = _application.bind_engine_backtest(lambda: performance_metrics)

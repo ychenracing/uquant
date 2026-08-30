@@ -129,6 +129,7 @@ def test_qualification_projection_does_not_require_a_repairable_block() -> None:
 def _probe_chain(
     *,
     candidate: str = "sz300308",
+    qualification_signature: str = "qualification:optical",
     previous_grant_id: str = "",
     previous_epoch_id: str = "",
     authorization_id: str = "rearm_" + "d" * 64,
@@ -156,7 +157,7 @@ def _probe_chain(
     grant_id = derive_strategic_grant_id(
         account_identity=account_identity,
         candidate_symbol=candidate,
-        qualification_signature="qualification:optical",
+        qualification_signature=qualification_signature,
         qualification_route="established",
         qualification_evidence_sha256=evidence_sha256,
         created_session=created_session,
@@ -167,7 +168,7 @@ def _probe_chain(
     epoch_id = derive_strategic_epoch_id(
         account_identity=account_identity,
         owner_symbol=candidate,
-        qualification_signature="qualification:optical",
+        qualification_signature=qualification_signature,
         qualification_route="established",
         grant_id=grant_id,
         opened_session=created_session,
@@ -191,7 +192,7 @@ def _probe_chain(
     grant = StrategicGrantIntent(
         grant_id=grant_id,
         candidate_symbol=candidate,
-        qualification_signature="qualification:optical",
+        qualification_signature=qualification_signature,
         qualification_route="established",
         qualification_evidence_sha256=evidence_sha256,
         created_session=created_session,
@@ -208,7 +209,7 @@ def _probe_chain(
     epoch = StrategicEpoch(
         epoch_id=epoch_id,
         owner_symbol=candidate,
-        qualification_signature="qualification:optical",
+        qualification_signature=qualification_signature,
         qualification_route="established",
         qualification_quorum="FULL_COHORT",
         grant_id=grant_id,
@@ -256,6 +257,7 @@ def test_ordinary_target_and_unfilled_probe_are_not_strategic_outlets() -> None:
 def _filled_chain(
     *,
     candidate: str = "sz300308",
+    qualification_signature: str = "qualification:optical",
     previous_grant_id: str = "",
     previous_epoch_id: str = "",
     authorization_id: str = "rearm_" + "d" * 64,
@@ -270,6 +272,7 @@ def _filled_chain(
 ]:
     target, grant, epoch = _probe_chain(
         candidate=candidate,
+        qualification_signature=qualification_signature,
         previous_grant_id=previous_grant_id,
         previous_epoch_id=previous_epoch_id,
         authorization_id=authorization_id,

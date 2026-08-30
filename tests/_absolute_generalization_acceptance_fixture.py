@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import copy
+import gzip
 import hashlib
 import json
 import subprocess
@@ -10,19 +11,59 @@ from functools import lru_cache
 from pathlib import Path
 from typing import cast
 
-from _absolute_generalization_metrics_fixture import OWNER, complete_replay
+from _absolute_generalization_metrics_fixture import (
+    OWNER,
+    complete_replay,
+    completed_crowning_replay,
+)
 from _absolute_generalization_metrics_fixture import replay_error as fixture_replay_error
 from _absolute_generalization_metrics_fixture import scenario as fixture_scenario
+from _absolute_generalization_reachability_fixture import (
+    _account_with_successor_chain,
+    failed_recovery_trace,
+    failed_successor_chain,
+)
+from test_absolute_generalization_reachability import (
+    _cash_account,
+    _filled_chain,
+    _reachability_state,
+    _rearm_evidence,
+)
+from test_absolute_generalization_reachability import (
+    _roles as _reachability_roles,
+)
 
-from uquant.contracts.strict_json import canonical_json_bytes, canonical_json_sha256
+from uquant.account import account_from_dict, economic_state_sha256
+from uquant.config import DEFAULT_CONFIG, config_fingerprint
+from uquant.contracts.strict_json import (
+    canonical_json_bytes,
+    canonical_json_sha256,
+    strict_json_loads,
+)
 from uquant.market import ReplayUniverse
+from uquant.models.strategic_rearm import (
+    FlatBookCapitalRepairState,
+    derive_flat_book_capital_repair_episode_id,
+    derive_strategic_cash_rearm_authorization_id,
+)
 from uquant.models.strategic_universe import build_strategic_universe_roles
+from uquant.models.trading import derive_attribution_event_id
 from uquant.validation.absolute_generalization import (
     ABSOLUTE_GENERALIZATION_EXECUTION_CONTRACT_SHA256,
     IdentityEnvelope,
     build_leave_one_out_scenarios,
     derive_cell_metrics,
     load_absolute_generalization_contract,
+)
+from uquant.validation.absolute_generalization._champion_runtime_reconciliation import (
+    decode_champion_account,
+    project_champion_account,
+)
+from uquant.validation.absolute_generalization._physical_identity import (
+    physical_fill_identity_sha256,
+)
+from uquant.validation.absolute_generalization._reachability_codec import (
+    reachability_state_to_raw,
 )
 from uquant.validation.absolute_generalization._replay_codec import (
     replay_from_raw,
@@ -38,6 +79,7 @@ from uquant.validation.absolute_generalization.scenarios import (
 
 ROOT = Path(__file__).resolve().parents[1]
 ALTERNATE_OWNER = "sh601869"
+_CHAMPION_RAW_SHA256 = "abeea6e0d19e440dc0ad53971ea02e4ef8743e1f601b222963b0e7e2dcdafaaa"
 
 
 def checkout_identity() -> tuple[str, str]:
@@ -63,14 +105,9 @@ def _mapped(value: object, replacements: dict[str, str]) -> object:
         return [_mapped(item, replacements) for item in cast(list[object], value)]
     if type(value) is dict:
         raw = cast(dict[str, object], value)
-        mapped = {
-            replacements.get(key, key): _mapped(item, replacements)
-            for key, item in raw.items()
-        }
+        mapped = {replacements.get(key, key): _mapped(item, replacements) for key, item in raw.items()}
         if set(mapped) == {"sha256", "value"}:
-            mapped["sha256"] = hashlib.sha256(
-                canonical_json_bytes(mapped["value"])
-            ).hexdigest()
+            mapped["sha256"] = hashlib.sha256(canonical_json_bytes(mapped["value"])).hexdigest()
         return mapped
     return value
 
@@ -118,10 +155,53 @@ def _alternate_owner_replay() -> AbsoluteGeneralizationReplay:
     return replay_from_raw(raw)
 
 
+@lru_cache(maxsize=1)
+def _historical_replay() -> AbsoluteGeneralizationReplay:
+    first = _filled_chain(
+        candidate="sz300308",
+        qualification_signature="qualification:optical",
+        created_session="2026-01-05",
+        fill_session="2026-01-06",
+    )
+    first[2].realized_status = "CLOSED"
+    first[2].closed_session = "2026-01-07"
+    first[2].close_reason = "strategic rotation"
+    first[4].commission = 0.0
+    first[4].fill_id = ""
+    second = _filled_chain(
+        candidate=ALTERNATE_OWNER,
+        qualification_signature="qualification:optical:successor",
+        previous_grant_id=first[1].grant_id,
+        previous_epoch_id=first[2].epoch_id,
+        authorization_id="rearm_" + "e" * 64,
+        created_session="2026-01-09",
+        fill_session="2026-01-10",
+    )
+    second[3].order_id = "O000000003"
+    second[4].order_id = second[3].order_id
+    second[1].submitted_order_ids = [second[3].order_id]
+    second[1].acknowledged_order_ids = [second[3].order_id]
+    second[2].realized_status = "CLOSED"
+    second[2].closed_session = "2026-01-11"
+    second[2].close_reason = "strategic rotation"
+    second[4].commission = 0.0
+    second[4].fill_id = ""
+    return completed_crowning_replay(
+        first=first,
+        second=second,
+        removed_symbol="sz300502",
+    )
+
+
 def _replay_for_scenario(
     scenario: AbsoluteGeneralizationScenario,
 ) -> AbsoluteGeneralizationReplay:
-    replay = _alternate_owner_replay() if scenario.removed_symbol == OWNER else complete_replay()
+    if scenario.removed_symbol == OWNER:
+        replay = _alternate_owner_replay()
+    elif scenario.removed_symbol == "sz300502":
+        replay = _historical_replay()
+    else:
+        replay = complete_replay()
     observations = tuple(
         replace(
             observation,
@@ -217,17 +297,29 @@ def _envelope(shard: str, cells: list[dict[str, object]]) -> dict[str, object]:
 
 def _champion() -> dict[str, object]:
     grant_contract = json.loads(
-        (ROOT / "benchmarks/strategic_grant_acceptance_contract.json").read_text(
-            encoding="utf-8"
-        )
+        (ROOT / "benchmarks/strategic_grant_acceptance_contract.json").read_text(encoding="utf-8")
     )
-    relative = json.loads(
-        (ROOT / "artifacts/phase2/champion-generalization-matrix.json").read_text(
-            encoding="utf-8"
-        )
-    )
-    relative.pop("passed")
-    relative.pop("failures")
+    encoded = gzip.decompress((ROOT / "tests/fixtures/absolute_champion_runtime_raw.json.gz").read_bytes())
+    if hashlib.sha256(encoded).hexdigest() != _CHAMPION_RAW_SHA256:
+        raise ValueError("champion raw fixture identity differs")
+    runtime_raw = cast(dict[str, object], strict_json_loads(encoded))
+    final_account = project_champion_account(cast(dict[str, object], runtime_raw["final_account"]))
+    decision_trace = cast(list[dict[str, object]], runtime_raw["decision_trace"])
+    report_trace = copy.deepcopy(decision_trace)
+    for row in report_trace:
+        risk = cast(dict[str, object], row["risk"])
+        risk["target_gross_cap"] = 1.0
+        risk["system_gross_cap"] = 1.0
+    champion_order_ledger = cast(list[dict[str, object]], runtime_raw["order_ledger"])
+    champion_equity_curve = cast(list[dict[str, object]], runtime_raw["equity_curve"])
+    daily_replay_evidence = cast(list[dict[str, object]], runtime_raw["daily_replay_evidence"])
+    epochs = [item for item in final_account["strategic_epochs"] if item["first_fill_session"]]
+    targets = [
+        target
+        for row in decision_trace
+        for target in row["targets"]
+        if target["origin_subsystem"] == "STRATEGIC" and target["weight"] > 0.0
+    ]
     champion: dict[str, object] = {
         "metrics": {
             "account_orders": 12,
@@ -249,15 +341,17 @@ def _champion() -> dict[str, object]:
         "incumbent_epoch_count": 1,
         "successor_capital_before_incumbent_exit_count": 0,
         "report_13": {
-            "initial_cash": 2_000_000.0,
-            "cash": 1_000_000.0,
-            "position_market_value": 1_250_000.0,
-            "realized_pnl": 100_000.0,
-            "open_pnl": 150_000.0,
-            "final_equity": 2_250_000.0,
-            "maximum_target_gross": 0.8,
-            "minimum_risk_target_gross_cap": 0.8,
-            "owner_symbols": ["sz300308"],
+            "initial_cash": final_account["initial_cash"],
+            "cash": final_account["cash"],
+            "position_market_value": 0.0,
+            "realized_pnl": 47_019_323.60580174,
+            "open_pnl": 0.0,
+            "final_equity": champion_equity_curve[-1]["equity"],
+            "maximum_target_gross": max(cast(float, row["target_gross"]) for row in report_trace),
+            "minimum_risk_target_gross_cap": min(
+                cast(float, cast(dict[str, object], row["risk"])["target_gross_cap"]) for row in report_trace
+            ),
+            "owner_symbols": sorted(item["owner_symbol"] for item in epochs),
             "unexpected_owner_symbols": [],
         },
         "strategic_grant_acceptance": {
@@ -268,199 +362,236 @@ def _champion() -> dict[str, object]:
                 "metrics": grant_contract["baseline"]["expected_metrics"],
                 "sha256": grant_contract["baseline"]["expected_sha256"],
             },
-            "native_eligibility": [
-                {
-                    "owner": item["owner"],
-                    "date": item["date"],
-                    "final_account_sha256": "1" * 64,
-                    "trace_sha256": "2" * 64,
-                }
-                for item in grant_contract["native_eligibility"]
-            ],
         },
         "strategic_ownership_acceptance": {
             "contract_sha256": "72e6b510c3bcf44ac77d2c13613f4d72a14ae8dab0d60a19e5947055ae7cbf08",
             "production_source_identity": load_absolute_generalization_contract().candidate.production_source_sha256,
             "champion": {
                 "scenario_id": "champion-5",
-                "owner_symbols": ["sz300308"],
-                "grant_ids": ["grant_" + "a" * 64],
-                "epoch_ids": ["epoch_" + "b" * 64],
-                "target_ids": ["target_" + "c" * 64],
-                "order_ids": ["order_" + "d" * 64],
-                "fill_ids": ["fill_" + "e" * 64],
-                "trace_sha256": "f" * 64,
+                "owner_symbols": sorted(item["owner_symbol"] for item in epochs),
+                "grant_ids": sorted(item["grant_id"] for item in epochs),
+                "epoch_ids": sorted(item["epoch_id"] for item in epochs),
+                "target_event_ids": sorted({item["event_id"] for item in targets}),
+                "order_ids": sorted(item["order_id"] for item in final_account["order_ledger"]),
+                "fill_identity_sha256s": sorted(
+                    physical_fill_identity_sha256(item) for item in final_account["fills"]
+                ),
+                "final_account": final_account,
+                "decision_trace": decision_trace,
+                "order_ledger": champion_order_ledger,
+                "equity_curve": champion_equity_curve,
+                "daily_replay_evidence": daily_replay_evidence,
+                "trace_sha256": canonical_json_sha256(decision_trace),
             },
             "report_13": {
                 "scenario_id": "report-13",
                 "window_start": "2023-01-03",
                 "window_end": "2026-08-05",
-                "observed_sessions": 870,
+                "observed_sessions": len(report_trace),
                 "account_orders": 12,
-                "final_equity": 2_250_000.0,
-                "final_account_sha256": "a" * 64,
-                "trace_sha256": "b" * 64,
+                "final_equity": champion_equity_curve[-1]["equity"],
+                "final_account_sha256": economic_state_sha256(
+                    account_from_dict(decode_champion_account(final_account), require_hashes=False)
+                ),
+                "trace_sha256": canonical_json_sha256(report_trace),
+                "final_account": final_account,
+                "decision_trace": report_trace,
+                "order_ledger": champion_order_ledger,
+                "equity_curve": champion_equity_curve,
+                "daily_replay_evidence": daily_replay_evidence,
             },
         },
-        "relative_generalization": relative,
+        "relative_policy_reference": {
+            "baseline_canonical_sha256": "8603c4572fbf15a3de4f89737ab078d7e61d76f9e197f210a24704b8a4aabd79",
+            "policy_canonical_sha256": "46cf95d26d04186824f181266da68e5a2d98814b65371c0b358c7cacfa8ef8fc",
+            "frozen_artifact_sha256": "926ea8419ab8aad7a05577eee56aeefa90c33cc7faa4e1ee1d2bbbaac77439cc",
+            "frozen_artifact_size_bytes": 16_196_017,
+        },
     }
     champion["evidence_sha256"] = canonical_json_sha256(champion)
     return champion
 
 
 def _failed_recovery() -> dict[str, object]:
-    observations = []
-    for day in range(11, 31):
-        session = f"2023-01-{day:02d}"
-        predicates = [
-            {"code": "FLAT_ALL_CASH", "satisfied": True},
-            {"code": "REFERENCE_AVAILABLE", "satisfied": True},
-            {"code": "QUALIFICATION_OPPORTUNITY", "satisfied": True},
-        ]
-        observations.append(
+    first, first_epoch, target, second, second_epoch, order, fill = failed_successor_chain(retry_sessions=20)
+    fill.fill_id = ""
+    trace = failed_recovery_trace(20, (target, second, second_epoch, order, fill))
+    return {
+        "first_grant": asdict(first),
+        "first_epoch": asdict(first_epoch),
+        "second_grant": asdict(second),
+        "second_epoch": asdict(second_epoch),
+        "target": asdict(target),
+        "order": asdict(order),
+        "fill": asdict(fill),
+        "fill_identity_sha256": physical_fill_identity_sha256(fill),
+        "transitions": [
             {
-                "session": session,
-                "phase": "POST_DECISION",
-                "edge_kind": "OBSERVED",
-                "state_sha256": canonical_json_sha256(
-                    {
-                        "session": session,
-                        "phase": "POST_DECISION",
-                        "predicate_results": predicates,
-                    }
-                ),
-                "predicate_results": predicates,
+                "session": row["session"],
+                "phase": row["phase"],
+                "edge_kind": row["edge_kind"],
+                "runtime_state": reachability_state_to_raw(row["state"]),
             }
-        )
-    return {
-        "first_grant": {
-            "grant_id": "grant_" + "1" * 64,
-            "candidate_symbol": "sh600487",
-            "status": "EXPIRED",
-            "filled_shares": 0,
-            "expiry_reason": "broker_rejection",
-            "authorization_id": "rearm_" + "1" * 64,
-        },
-        "first_epoch": {
-            "epoch_id": "epoch_" + "1" * 64,
-            "grant_id": "grant_" + "1" * 64,
-            "owner_symbol": "sh600487",
-            "realized_status": "EXPIRED",
-            "first_fill_session": "",
-            "active_session": "",
-            "closed_session": "2023-01-10",
-            "close_reason": "broker_rejection",
-        },
-        "second_grant": {
-            "grant_id": "grant_" + "2" * 64,
-            "candidate_symbol": "sh601869",
-            "previous_grant_id": "grant_" + "1" * 64,
-            "authorization_id": "rearm_" + "2" * 64,
-        },
-        "second_epoch": {
-            "epoch_id": "epoch_" + "2" * 64,
-            "grant_id": "grant_" + "2" * 64,
-            "owner_symbol": "sh601869",
-            "previous_epoch_id": "epoch_" + "1" * 64,
-            "first_fill_session": "2023-02-01",
-            "active_session": "2023-02-01",
-            "realized_status": "ACTIVE",
-        },
-        "target": {
-            "target_id": "target_" + "3" * 64,
-            "symbol": "sh601869",
-            "weight": 0.2,
-            "origin_subsystem": "STRATEGIC",
-            "grant_id": "grant_" + "2" * 64,
-            "epoch_id": "epoch_" + "2" * 64,
-        },
-        "order": {
-            "order_id": "order_" + "4" * 64,
-            "symbol": "sh601869",
-            "side": "BUY",
-            "target_weight": 0.2,
-            "origin_subsystem": "STRATEGIC",
-            "grant_id": "grant_" + "2" * 64,
-            "epoch_id": "epoch_" + "2" * 64,
-            "submitted_date": "2023-01-31",
-        },
-        "fill": {
-            "fill_id": "fill_" + "5" * 64,
-            "order_id": "order_" + "4" * 64,
-            "symbol": "sh601869",
-            "side": "BUY",
-            "shares": 100,
-            "origin_subsystem": "STRATEGIC",
-            "grant_id": "grant_" + "2" * 64,
-            "epoch_id": "epoch_" + "2" * 64,
-            "fill_date": "2023-02-01",
-        },
-        "observations": observations,
-    }
-
-
-def _historical_crowning() -> dict[str, object]:
-    return {
-        "source_cell_id": "remove-sz300502",
-        "epochs": [
-            {
-                "owner_symbol": "sh600487",
-                "epoch_id": "epoch_" + "6" * 64,
-                "grant_id": "grant_" + "6" * 64,
-                "previous_epoch_id": "",
-                "previous_grant_id": "",
-                "qualification_signature": "qualification-1",
-                "qualification_session": "2024-01-02",
-                "grant_session": "2024-01-03",
-                "fill_id": "fill_" + "6" * 64,
-                "order_id": "order_" + "6" * 64,
-                "fill_session": "2024-01-04",
-                "fill_shares": 100,
-                "exit_session": "2024-01-10",
-            },
-            {
-                "owner_symbol": "sh601869",
-                "epoch_id": "epoch_" + "7" * 64,
-                "grant_id": "grant_" + "7" * 64,
-                "previous_epoch_id": "epoch_" + "6" * 64,
-                "previous_grant_id": "grant_" + "6" * 64,
-                "qualification_signature": "qualification-2",
-                "qualification_session": "2024-01-11",
-                "grant_session": "2024-01-11",
-                "fill_id": "fill_" + "7" * 64,
-                "order_id": "order_" + "7" * 64,
-                "fill_session": "2024-01-12",
-                "fill_shares": 100,
-                "exit_session": "2024-02-01",
-            },
+            for row in trace
         ],
     }
 
 
-def _terminal_scc() -> dict[str, object]:
-    rows = []
-    for offset in range(60):
-        session = (date(2023, 3, 1) + timedelta(days=offset)).isoformat()
-        predicates = [
-            {"code": "QUALIFICATION_OPPORTUNITY", "satisfied": True},
-            {"code": "REFERENCE_AVAILABLE", "satisfied": True},
-        ]
-        state = {
-            "phase": "POST_DECISION",
-            "predicate_results": predicates,
-            "positive_strategic_target_weight": 0.0,
+def _crowning(*, cross: bool) -> dict[str, object]:
+    target1, grant1, epoch1, order1, fill1 = _filled_chain()
+    epoch1.realized_status = "CLOSED"
+    epoch1.closed_session = "2026-01-07"
+    epoch1.close_reason = "strategic rotation"
+    candidate = "sh688019" if cross else "sz300502"
+    qualification_signature = "qualification:materials" if cross else "qualification:optical:successor"
+    rearm = _rearm_evidence(candidate, "2026-01-09")
+    rearm["qualification_signature"] = qualification_signature
+    rearm["authorization_id"] = derive_strategic_cash_rearm_authorization_id(
+        account_identity=str(rearm["account_identity"]),
+        repair_episode_id=str(rearm["repair_episode_id"]),
+        candidate_symbol=str(rearm["candidate_symbol"]),
+        qualification_signature=qualification_signature,
+        qualification_route=str(rearm["qualification_route"]),
+        qualification_quorum=str(rearm["qualification_quorum"]),
+        qualification_evidence_sha256=str(rearm["qualification_evidence_sha256"]),
+        capital_budget_level=int(rearm["capital_budget_level"]),
+        tradable_universe_identity=str(rearm["tradable_universe_identity"]),
+        qualification_reference_universe_identity=str(rearm["qualification_reference_universe_identity"]),
+        risk_reference_universe_identity=str(rearm["risk_reference_universe_identity"]),
+        point_in_time_industry_identity=str(rearm["point_in_time_industry_identity"]),
+        authorized_session=str(rearm["authorized_session"]),
+    )
+    target2, grant2, epoch2, order2, fill2 = _filled_chain(
+        candidate=candidate,
+        qualification_signature=qualification_signature,
+        previous_grant_id=grant1.grant_id,
+        previous_epoch_id=epoch1.epoch_id,
+        authorization_id=str(rearm["authorization_id"]),
+        created_session="2026-01-09",
+        fill_session="2026-01-10",
+    )
+    order2.order_id = "O000000002"
+    if cross:
+        order2.industry_at_entry = "materials"
+        fill2.industry_at_entry = "materials"
+        event_id = derive_attribution_event_id(
+            signal_date=order2.signal_date,
+            symbol=order2.symbol,
+            target_weight=order2.target_weight,
+            lifecycle=order2.lifecycle,
+            origin_lifecycle=order2.origin_lifecycle,
+            origin_subsystem=order2.origin_subsystem,
+            mechanism=order2.mechanism,
+            replaces_symbol=order2.replaces_symbol,
+            industry_at_entry=order2.industry_at_entry,
+            industry_manifest_sha256=order2.industry_manifest_sha256,
+            reduction_policy=order2.reduction_policy,
+            reason_code=order2.reason_code,
+            exit_kind=order2.exit_kind,
+        )
+        target2 = replace(target2, event_id=event_id)
+        order2.event_id = event_id
+        fill2.event_id = event_id
+    fill2.order_id = order2.order_id
+    grant2.submitted_order_ids = [order2.order_id]
+    grant2.acknowledged_order_ids = [order2.order_id]
+    epoch2.realized_status = "CLOSED"
+    epoch2.closed_session = "2026-01-11"
+    epoch2.close_reason = "strategic rotation"
+    fill1.fill_id = ""
+    fill2.fill_id = ""
+    account = _account_with_successor_chain((target2, grant2, epoch2, order2, fill2), filled=True)
+    account.strategic_epochs = [epoch1, epoch2]
+    account.active_strategic_epoch_id = ""
+    account.strategic_grant = None
+    account.order_ledger = [order1, order2]
+    account.fills = [fill1, fill2]
+    account.next_order_sequence = 3
+    chains = [
+        {
+            "qualification_session": grant.created_session,
+            "target_session": target.event_id and grant.created_session,
+            "order_session": order.signal_date,
+            "authorization_session": grant.created_session,
+            "exit_session": epoch.closed_session,
+            "target": asdict(target),
+            "grant": asdict(grant),
+            "epoch": asdict(epoch),
+            "order": asdict(order),
+            "fill": asdict(fill),
+            "fill_identity_sha256": physical_fill_identity_sha256(fill),
         }
-        rows.append(
+        for target, grant, epoch, order, fill in (
+            (target1, grant1, epoch1, order1, fill1),
+            (target2, grant2, epoch2, order2, fill2),
+        )
+    ]
+    key = "source_scenario_id" if cross else "source_cell_id"
+    return {
+        key: "cross-industry-production-semantic-v1" if cross else "remove-sz300502",
+        "final_account": account.to_dict(),
+        "chains": chains,
+    }
+
+
+def _historical_crowning() -> dict[str, object]:
+    replay = _historical_replay()
+    account = strict_json_loads(replay.final_account_payload.canonical_json)
+    if not isinstance(account, dict):
+        raise AssertionError("historical fixture account differs")
+    epochs = {
+        cast(str, row["epoch_id"]): cast(dict[str, object], row)
+        for row in cast(list[dict[str, object]], account["strategic_epochs"])
+    }
+    fills = cast(list[dict[str, object]], account["fills"])
+    chains: list[dict[str, object]] = []
+    for observation in replay.observations:
+        decision = strict_json_loads(observation.decision_payload.canonical_json)
+        if not isinstance(decision, dict):
+            raise AssertionError("historical fixture decision differs")
+        targets = cast(list[dict[str, object]], decision["targets"])
+        orders = cast(list[dict[str, object]], decision["pending_orders"])
+        risk = cast(dict[str, object], decision["risk_summary"])
+        if not targets:
+            continue
+        if len(targets) != 1 or len(orders) != 1:
+            raise AssertionError("historical fixture execution differs")
+        target = targets[0]
+        order = orders[0]
+        epoch = epochs[cast(str, target["epoch_id"])]
+        matching_fills = [
+            fill
+            for fill in fills
+            if fill["order_id"] == order["order_id"] and fill["epoch_id"] == epoch["epoch_id"]
+        ]
+        if len(matching_fills) != 1:
+            raise AssertionError("historical fixture fill differs")
+        grant = cast(dict[str, object], risk["strategic_grant"])
+        rearm = cast(dict[str, object], risk["strategic_cash_rearm"])
+        chains.append(
             {
-                "session": session,
-                "phase": "POST_DECISION",
-                "edge_kind": "OBSERVED",
-                "state_sha256": canonical_json_sha256(state),
-                "predicate_results": predicates,
-                "positive_strategic_target_weight": 0.0,
+                "qualification_session": observation.session,
+                "target_session": observation.session,
+                "order_session": observation.session,
+                "authorization_session": rearm["authorized_session"],
+                "exit_session": epoch["closed_session"],
+                "target": target,
+                "grant": grant,
+                "epoch": epoch,
+                "order": order,
+                "fill": matching_fills[0],
+                "fill_identity_sha256": physical_fill_identity_sha256(matching_fills[0]),
             }
         )
-    return {"transitions": rows}
+    return {
+        "source_cell_id": "remove-sz300502",
+        "final_account": account,
+        "chains": chains,
+    }
+
+
+def _terminal_scc() -> dict[str, object]:
+    return {"transitions": _failed_recovery()["transitions"]}
 
 
 def _repair_bounds() -> list[dict[str, object]]:
@@ -471,29 +602,42 @@ def _repair_bounds() -> list[dict[str, object]]:
         (3, 2, 60),
         (4, 3, 60),
     ):
-        observations = []
+        observations: list[dict[str, object]] = []
         start = date(2023, persisted * 2, 1)
+        risk_identity = _reachability_roles().risk_reference_identity
+        config_identity = config_fingerprint(DEFAULT_CONFIG)
+        episode_id = derive_flat_book_capital_repair_episode_id(
+            account_identity="account:reachability",
+            capital_budget_level=persisted,
+            first_observed_session=start.isoformat(),
+            risk_reference_universe_identity=risk_identity,
+            config_identity=config_identity,
+        )
         for offset in range(required):
             session = (start + timedelta(days=offset)).isoformat()
-            predicates = [
-                {"code": "FLAT_ALL_CASH", "satisfied": True},
-                {"code": "NO_PENDING_EXECUTION", "satisfied": True},
-            ]
             status = "READY" if offset == required - 1 else "ACCUMULATING"
+            account = _cash_account(budget_level=persisted)
+            account.flat_book_capital_repair = FlatBookCapitalRepairState(
+                repair_episode_id=episode_id,
+                account_identity=account.account_identity,
+                capital_budget_level=persisted,
+                repair_target_level=target,
+                first_observed_session=start.isoformat(),
+                last_observed_session=session,
+                last_counted_session=session,
+                healthy_session_count=offset + 1,
+                required_healthy_sessions=required,
+                status=status,
+                risk_reference_universe_identity=risk_identity,
+                config_identity=config_identity,
+                last_ready_session=session if status == "READY" else "",
+            )
             observations.append(
                 {
                     "session": session,
-                    "repair_status": status,
-                    "predicate_results": predicates,
-                    "state_sha256": canonical_json_sha256(
-                        {
-                            "session": session,
-                            "repair_status": status,
-                            "predicate_results": predicates,
-                            "persisted_damage_level": persisted,
-                            "target_budget_level": target,
-                        }
-                    ),
+                    "phase": "POST_DECISION",
+                    "edge_kind": "OBSERVED",
+                    "runtime_state": reachability_state_to_raw(_reachability_state(account=account)),
                 }
             )
         result.append(
@@ -507,41 +651,7 @@ def _repair_bounds() -> list[dict[str, object]]:
 
 
 def _cross_industry() -> dict[str, object]:
-    return {
-        "source_scenario_id": "cross-industry-production-semantic",
-        "epochs": [
-            {
-                "owner_symbol": "sh600487",
-                "epoch_id": "epoch_" + "8" * 64,
-                "grant_id": "grant_" + "8" * 64,
-                "previous_epoch_id": "",
-                "previous_grant_id": "",
-                "qualification_signature": "qualification-8",
-                "qualification_session": "2024-03-01",
-                "grant_session": "2024-03-01",
-                "fill_id": "fill_" + "8" * 64,
-                "order_id": "order_" + "8" * 64,
-                "fill_session": "2024-03-02",
-                "fill_shares": 100,
-                "exit_session": "2024-03-10",
-            },
-            {
-                "owner_symbol": "sh603688",
-                "epoch_id": "epoch_" + "9" * 64,
-                "grant_id": "grant_" + "9" * 64,
-                "previous_epoch_id": "epoch_" + "8" * 64,
-                "previous_grant_id": "grant_" + "8" * 64,
-                "qualification_signature": "qualification-9",
-                "qualification_session": "2024-03-11",
-                "grant_session": "2024-03-11",
-                "fill_id": "fill_" + "9" * 64,
-                "order_id": "order_" + "9" * 64,
-                "fill_session": "2024-03-12",
-                "fill_shares": 100,
-                "exit_session": "2024-03-20",
-            },
-        ],
-    }
+    return _crowning(cross=True)
 
 
 @lru_cache(maxsize=1)

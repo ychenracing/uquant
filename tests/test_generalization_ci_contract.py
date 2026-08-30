@@ -283,7 +283,7 @@ def test_generalization_aggregator_catches_incomplete_stale_or_policy_failing_ev
     """Catches missing/extra shards, stale provenance, fabricated cells, or a weakened policy."""
     workflow = _workflow("strategy-generalization.yml")
     aggregate = workflow["jobs"]["generalization-acceptance"]
-    assert aggregate["name"] == "Generalization Acceptance"
+    assert aggregate["name"] == "Extended Economic Matrix Diagnostics"
     assert aggregate["needs"] == "generalization-shard"
     assert aggregate["if"] == "${{ always() }}"
 

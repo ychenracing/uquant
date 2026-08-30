@@ -5,6 +5,10 @@ from __future__ import annotations
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 
+from ._physical_identity import (
+    physical_fill_identity_map,
+    physical_fill_identity_sha256,
+)
 from .metrics import (
     EpochFact,
     metric_iso_session,
@@ -261,7 +265,7 @@ def _validate_epoch_edge(fact: EpochFact, indexes: _ChainIndexes) -> None:
         matching,
         key=lambda fill: (
             metric_iso_session(fill.get("fill_date"), label="fill session"),
-            metric_text(fill.get("fill_id"), label="fill identity"),
+            physical_fill_identity_sha256(fill),
         ),
     )
     traced = indexes.trace_orders.get(metric_text(first_fill.get("order_id"), label="fill order"))
@@ -295,7 +299,7 @@ def validate_exact_execution_chain(
         label="order",
     )
     fills = metric_rows(final_account.get("fills", ()), label="fill ledger")
-    metric_stable_ids(fills, field="fill_id", label="fill")
+    physical_fill_identity_map(fills)
     trace_orders = _trace_order_index(trace, final_orders=final_orders)
     _validate_strategic_orders(
         final_orders=final_orders, trace_orders=trace_orders, trace=trace

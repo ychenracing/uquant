@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import hashlib
 import math
-from collections.abc import Iterable, Mapping
+from collections.abc import Callable, Iterable, Mapping
 from dataclasses import dataclass, fields, is_dataclass
 from enum import Enum
 from pathlib import Path
@@ -124,6 +124,7 @@ class AbsoluteGeneralizationReplayObservation:
     replay_universe_identity: str
     data_manifest: AbsoluteGeneralizationReplayManifestSnapshot
     loaded_symbols: tuple[str, ...]
+    decision_runtime_payload: AbsoluteGeneralizationReplayPayload | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -646,6 +647,32 @@ def _session_observation(
         scenario=scenario,
         session=session,
     )
+    return _session_observation_for_symbols(
+        engine=engine,
+        account=account,
+        date=date,
+        frames=frames,
+        order_tracker=order_tracker,
+        epoch_tracker=epoch_tracker,
+        symbols=symbols,
+        intentional_absence=intentional_absence,
+    )
+
+
+def _session_observation_for_symbols(
+    *,
+    engine: ProductionEngine,
+    account: AccountState,
+    date: pd.Timestamp,
+    frames: dict[str, pd.DataFrame],
+    order_tracker: _EntityTracker,
+    epoch_tracker: _EntityTracker,
+    symbols: tuple[str, ...],
+    intentional_absence: tuple[str, ...],
+) -> AbsoluteGeneralizationReplayObservation:
+    """Run the sole production open/decide observation path for fixed roles."""
+
+    session = str(date.date())
     replay_universe = ReplayUniverse.from_symbols(
         tradable_symbols=symbols,
         reference_symbols=symbols,
@@ -684,7 +711,7 @@ def _session_observation(
     decision_epoch_ids = _epoch_change_ids(account, orders=previous_orders)
     decision_order_ledger_start = len(account.order_ledger)
     decision_epoch_ledger_start = len(account.strategic_epochs)
-    decision = engine.decide(
+    observed = engine._observe_decision(
         symbols=symbols,
         as_of=session,
         account=account,
@@ -693,6 +720,7 @@ def _session_observation(
             risk_reference_symbols=symbols,
         ),
     )
+    decision = observed.decision
     account.pending_orders = list(decision.pending_orders)
     post_decision_account = _account_snapshot(
         account,
@@ -715,12 +743,7 @@ def _session_observation(
             post_decision_account.epoch_ledger_chain_sha256
         ),
     )
-    roles = _production_roles(
-        engine=engine,
-        symbols=symbols,
-        session=session,
-        frames=frames,
-    )
+    roles = observed.observation.strategic_universe_roles
     if not _roles_match_account(roles, account):
         raise RuntimeError("absolute replay role identities differ from production")
     manifest = engine.workspace.manifest(
@@ -746,6 +769,75 @@ def _session_observation(
         replay_universe_identity=replay_universe.identity_sha256,
         data_manifest=_manifest_snapshot(manifest),
         loaded_symbols=engine.workspace.loaded_symbols,
+        decision_runtime_payload=_payload(observed.observation),
+    )
+
+
+def run_absolute_generalization_replay_sessions(
+    scenario: AbsoluteGeneralizationScenario,
+    *,
+    data_dir: str | Path,
+    start: str,
+    end: str,
+    strategic_symbols: tuple[str, ...],
+    symbols_for_session: Callable[[pd.Timestamp], tuple[str, ...]],
+    initial_budget_level: int = 0,
+) -> AbsoluteGeneralizationReplay:
+    """Run a deterministic session schedule through the production replay seam."""
+
+    if (
+        isinstance(initial_budget_level, bool)
+        or not isinstance(initial_budget_level, int)
+        or initial_budget_level not in {0, 1, 2, 3, 4}
+    ):
+        raise ValueError("absolute replay initial budget level differs")
+    data = Path(data_dir)
+    engine = ProductionEngine(data)
+    engine.workspace.prepare(
+        ReplayUniverse.from_symbols(
+            tradable_symbols=(),
+            reference_symbols=(),
+            index_symbols=INDEX_SYMBOLS,
+        )
+    )
+    sessions = engine.workspace.common_sessions(*INDEX_SYMBOLS)
+    sessions = sessions[
+        (sessions >= pd.Timestamp(start)) & (sessions <= pd.Timestamp(end))
+    ]
+    if len(sessions) < 2:
+        raise RuntimeError("absolute replay fixture has fewer than two sessions")
+    account = AccountState.empty(DEFAULT_CONFIG.initial_cash)
+    account.capital_budget_level = initial_budget_level
+    observations: list[AbsoluteGeneralizationReplayObservation] = []
+    frames = {
+        symbol: engine.workspace.raw_frame(symbol) for symbol in INDEX_SYMBOLS
+    }
+    order_tracker = _EntityTracker()
+    epoch_tracker = _EntityTracker()
+    for session in sessions:
+        symbols = symbols_for_session(session)
+        observations.append(
+            _session_observation_for_symbols(
+                engine=engine,
+                account=account,
+                date=session,
+                frames=frames,
+                order_tracker=order_tracker,
+                epoch_tracker=epoch_tracker,
+                symbols=symbols,
+                intentional_absence=tuple(
+                    sorted(set(strategic_symbols).difference(symbols))
+                ),
+            )
+        )
+    return AbsoluteGeneralizationReplay(
+        scenario=scenario,
+        status="COMPLETE",
+        replay_error="",
+        initial_cash=account.initial_cash,
+        final_equity=observations[-1].equity,
+        observations=tuple(observations),
+        final_account_payload=_payload(account.to_dict()),
     )
 
 
@@ -849,4 +941,5 @@ __all__ = (
     "AbsoluteGeneralizationReplay",
     "AbsoluteGeneralizationReplayObservation",
     "run_absolute_generalization_replay",
+    "run_absolute_generalization_replay_sessions",
 )

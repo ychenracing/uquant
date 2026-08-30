@@ -357,38 +357,7 @@ def _validate_champion_facts(
 
 
 def _validate_recovery(raw: object) -> Mapping[str, object]:
-    value = validate_failed_grant_evidence(raw)
-    expected = {
-        "first_grant", "first_epoch", "second_grant", "second_epoch", "target", "order",
-        "fill", "observations",
-    }
-    _fields(value, expected, label="failed-grant facts")
-    nested = {
-        "first_grant": {"grant_id", "candidate_symbol", "status", "filled_shares", "expiry_reason", "authorization_id"},
-        "first_epoch": {"epoch_id", "grant_id", "owner_symbol", "realized_status", "first_fill_session", "active_session", "closed_session", "close_reason"},
-        "second_grant": {"grant_id", "candidate_symbol", "previous_grant_id", "authorization_id"},
-        "second_epoch": {"epoch_id", "grant_id", "owner_symbol", "previous_epoch_id", "first_fill_session", "active_session", "realized_status"},
-        "target": {"target_id", "symbol", "weight", "origin_subsystem", "grant_id", "epoch_id"},
-        "order": {"order_id", "symbol", "side", "target_weight", "origin_subsystem", "grant_id", "epoch_id", "submitted_date"},
-        "fill": {"fill_id", "order_id", "symbol", "side", "shares", "origin_subsystem", "grant_id", "epoch_id", "fill_date"},
-    }
-    rows: dict[str, Mapping[str, object]] = {}
-    for name, fields in nested.items():
-        rows[name] = _manifest_mapping(value[name], label=name)
-        _fields(rows[name], fields, label=name)
-    _integer(rows["first_grant"]["filled_shares"], label="first grant filled shares")
-    _manifest_number(rows["target"]["weight"], label="successor target weight")
-    _manifest_number(rows["order"]["target_weight"], label="successor order weight")
-    _integer(rows["fill"]["shares"], label="successor fill shares")
-    for row in rows.values():
-        for key, item in row.items():
-            if key not in {"filled_shares", "weight", "target_weight", "shares"}:
-                _manifest_text(
-                    item,
-                    label=f"failed-grant {key}",
-                    empty=key in {"first_fill_session", "active_session"},
-                )
-    return value
+    return validate_failed_grant_evidence(raw)
 
 
 def _validate_crowning(

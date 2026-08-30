@@ -6,26 +6,41 @@ import json
 import math
 import re
 from collections.abc import Mapping, Sequence, Set
-from dataclasses import dataclass
+from dataclasses import asdict, dataclass, is_dataclass
 from datetime import date
 from functools import lru_cache
-from itertools import pairwise
 from pathlib import Path
-from typing import cast
+from typing import Any, cast
 
-from uquant.contracts.strict_json import (
-    canonical_json_bytes,
-    canonical_json_sha256,
-    strict_json_loads,
-)
+from uquant.account import account_from_dict
+from uquant.config import SystemConfig
+from uquant.contracts.strict_json import canonical_json_sha256, strict_json_loads
 from uquant.contracts.universe import default_ai_universe
+from uquant.models.decision import RiskAssessment, Target
+from uquant.models.strategic_epoch import StrategicEpoch
+from uquant.models.strategic_grant import StrategicGrantIntent
+from uquant.models.strategic_universe import StrategicUniverseRoles
+from uquant.models.trading import AccountOrder, Fill
 from uquant.validation.generalization_reference import (
-    evaluate_generalization_policy_artifact,
     load_generalization_baseline,
     load_generalization_policy,
 )
 
+from ._champion_runtime_reconciliation import (
+    decode_champion_account,
+    derive_champion_runtime_claims,
+    derive_report_runtime_claims,
+)
+from ._physical_identity import physical_fill_identity_sha256
+from ._reachability_codec import reachability_state_from_raw
 from .contract import AbsoluteGeneralizationContract
+from .reachability import (
+    analyze_failed_grant_recovery,
+    analyze_terminal_scc,
+    is_positive_strategic_outlet,
+    project_flat_book_repair_health,
+)
+from .replay import AbsoluteGeneralizationReplayPayload
 
 _ROOT = Path(__file__).resolve().parents[3]
 _SHA256 = re.compile(r"^[0-9a-f]{64}$")
@@ -44,7 +59,7 @@ _CHAMPION_FIELDS = frozenset(
         "report_13",
         "strategic_grant_acceptance",
         "strategic_ownership_acceptance",
-        "relative_generalization",
+        "relative_policy_reference",
         "evidence_sha256",
     }
 )
@@ -67,6 +82,8 @@ def _evidence_mapping(value: object, *, label: str) -> Mapping[str, object]:
 
 
 def _evidence_json_value(value: object) -> object:
+    if is_dataclass(value) and not isinstance(value, type):
+        return _evidence_json_value(asdict(value))
     if isinstance(value, Mapping):
         return {str(key): _evidence_json_value(item) for key, item in value.items()}
     if isinstance(value, Sequence) and not isinstance(value, (str, bytes, bytearray)):
@@ -80,9 +97,7 @@ def _evidence_sequence(value: object, *, label: str) -> Sequence[object]:
     return cast(Sequence[object], value)
 
 
-def _evidence_fields(
-    raw: Mapping[str, object], expected: Set[str], *, label: str
-) -> None:
+def _evidence_fields(raw: Mapping[str, object], expected: Set[str], *, label: str) -> None:
     if set(raw) != expected:
         raise ValueError(f"absolute generalization {label} evidence fields differ")
 
@@ -159,9 +174,7 @@ def _strict_sessions(values: Sequence[str], *, label: str) -> None:
 @lru_cache(maxsize=1)
 def _grant_contract() -> Mapping[str, object]:
     raw = json.loads(
-        (_ROOT / "benchmarks/strategic_grant_acceptance_contract.json").read_text(
-            encoding="utf-8"
-        )
+        (_ROOT / "benchmarks/strategic_grant_acceptance_contract.json").read_text(encoding="utf-8")
     )
     return _evidence_mapping(raw, label="strategic grant contract")
 
@@ -169,50 +182,181 @@ def _grant_contract() -> Mapping[str, object]:
 @lru_cache(maxsize=1)
 def _ownership_contract() -> Mapping[str, object]:
     raw = json.loads(
-        (_ROOT / "benchmarks/strategic_ownership_acceptance_contract.json").read_text(
-            encoding="utf-8"
-        )
+        (_ROOT / "benchmarks/strategic_ownership_acceptance_contract.json").read_text(encoding="utf-8")
     )
     return _evidence_mapping(raw, label="strategic ownership contract")
 
 
 def _validate_grant_acceptance(raw: object) -> None:
     evidence = _evidence_mapping(raw, label="strategic grant acceptance")
-    _evidence_fields(
-        evidence, {"baseline", "native_eligibility"}, label="strategic grant acceptance"
-    )
+    _evidence_fields(evidence, {"baseline"}, label="strategic grant acceptance")
     contract = _grant_contract()
     baseline_contract = _evidence_mapping(contract["baseline"], label="grant baseline")
     expected_baseline = {
-        "first_positive_target_session": baseline_contract[
-            "expected_first_positive_target_session"
-        ],
+        "first_positive_target_session": baseline_contract["expected_first_positive_target_session"],
         "metrics": baseline_contract["expected_metrics"],
         "sha256": baseline_contract["expected_sha256"],
     }
     if evidence["baseline"] != expected_baseline:
         raise ValueError("absolute generalization strategic grant baseline evidence differs")
-    expected_native = {
-        (str(item["owner"]), str(item["date"]))
-        for item in cast(Sequence[Mapping[str, object]], contract["native_eligibility"])
-    }
-    observed: set[tuple[str, str]] = set()
-    for item in _evidence_sequence(
-        evidence["native_eligibility"], label="native eligibility"
+
+
+def _validate_ownership_identity(
+    evidence: Mapping[str, object], contract: AbsoluteGeneralizationContract
+) -> None:
+    ownership = _ownership_contract()
+    if (
+        evidence["contract_sha256"] != canonical_json_sha256(ownership)
+        or evidence["contract_sha256"] != contract.frozen_baseline.strategic_ownership_contract_sha256
+        or evidence["production_source_identity"] != contract.candidate.production_source_sha256
     ):
-        row = _evidence_mapping(item, label="native eligibility")
-        _evidence_fields(
-            row,
-            {"owner", "date", "final_account_sha256", "trace_sha256"},
-            label="native eligibility",
+        raise ValueError("absolute generalization strategic ownership identity differs")
+
+
+def _ownership_champion_run(raw: object) -> Mapping[str, object]:
+    champion_run = _evidence_mapping(raw, label="ownership champion")
+    _evidence_fields(
+        champion_run,
+        {
+            "scenario_id",
+            "owner_symbols",
+            "grant_ids",
+            "epoch_ids",
+            "target_event_ids",
+            "order_ids",
+            "fill_identity_sha256s",
+            "final_account",
+            "decision_trace",
+            "order_ledger",
+            "equity_curve",
+            "daily_replay_evidence",
+            "trace_sha256",
+        },
+        label="ownership champion",
+    )
+    if champion_run["scenario_id"] != "champion-5":
+        raise ValueError("absolute generalization ownership champion scenario differs")
+    for name in (
+        "owner_symbols",
+        "grant_ids",
+        "epoch_ids",
+        "target_event_ids",
+        "order_ids",
+        "fill_identity_sha256s",
+    ):
+        values = tuple(
+            _evidence_text(item, label=f"ownership champion {name}")
+            for item in _evidence_sequence(champion_run[name], label=name)
         )
-        owner = _evidence_text(row["owner"], label="native eligibility owner")
-        session = _evidence_date(row["date"], label="native eligibility")
-        _evidence_sha(row["final_account_sha256"], label="native final account")
-        _evidence_sha(row["trace_sha256"], label="native trace")
-        observed.add((owner, session))
-    if observed != expected_native or len(observed) != len(expected_native):
-        raise ValueError("absolute generalization native eligibility evidence differs")
+        if not values or len(values) != len(set(values)):
+            raise ValueError("absolute generalization ownership champion lifecycle differs")
+    _evidence_sha(champion_run["trace_sha256"], label="ownership champion trace")
+    return champion_run
+
+
+def _validate_champion_runtime(champion: Mapping[str, object]) -> None:
+    ownership = _evidence_mapping(
+        champion["strategic_ownership_acceptance"], label="strategic ownership acceptance"
+    )
+    run = _evidence_mapping(ownership["champion"], label="ownership champion")
+    grant = _evidence_mapping(champion["strategic_grant_acceptance"], label="strategic grant acceptance")
+    grant_contract = _grant_contract()
+    expected = derive_champion_runtime_claims(
+        run,
+        frozenset(
+            str(item)
+            for item in _evidence_sequence(
+                grant_contract["ignored_non_economic_fields"],
+                label="grant ignored fields",
+            )
+        ),
+    )
+    if (
+        any(champion[name] != value for name, value in expected.items())
+        or champion["path_sha256"] != _evidence_mapping(grant["baseline"], label="grant baseline")["sha256"]
+    ):
+        raise ValueError("absolute generalization champion runtime evidence differs")
+
+
+def _ownership_expected_lifecycle(
+    champion_run: Mapping[str, object],
+) -> dict[str, list[str]]:
+    account_raw = _evidence_mapping(champion_run["final_account"], label="ownership champion account")
+    account = account_from_dict(decode_champion_account(account_raw), require_hashes=False)
+    trace = tuple(
+        _evidence_mapping(item, label="ownership champion decision")
+        for item in _evidence_sequence(champion_run["decision_trace"], label="ownership champion trace")
+    )
+    if canonical_json_sha256(list(trace)) != champion_run["trace_sha256"]:
+        raise ValueError("absolute generalization ownership champion trace differs")
+    target_event_ids = sorted(
+        {
+            _evidence_text(target["event_id"], label="ownership target event")
+            for row in trace
+            for raw_target in _evidence_sequence(row.get("targets"), label="ownership targets")
+            for target in (_evidence_mapping(raw_target, label="ownership target"),)
+            if target.get("origin_subsystem") == "STRATEGIC"
+            and _evidence_number(target.get("weight"), label="ownership target weight") > 0.0
+        }
+    )
+    return {
+        "owner_symbols": sorted(
+            {epoch.owner_symbol for epoch in account.strategic_epochs if epoch.first_fill_session}
+        ),
+        "grant_ids": sorted(
+            {epoch.grant_id for epoch in account.strategic_epochs if epoch.first_fill_session}
+        ),
+        "epoch_ids": sorted(
+            {epoch.epoch_id for epoch in account.strategic_epochs if epoch.first_fill_session}
+        ),
+        "target_event_ids": target_event_ids,
+        "order_ids": sorted({order.order_id for order in account.order_ledger}),
+        "fill_identity_sha256s": sorted({physical_fill_identity_sha256(fill) for fill in account.fills}),
+    }
+
+
+def _validate_ownership_lifecycle(champion_run: Mapping[str, object]) -> None:
+    for name, expected_values in _ownership_expected_lifecycle(champion_run).items():
+        if list(_evidence_sequence(champion_run[name], label=name)) != expected_values:
+            raise ValueError("absolute generalization ownership champion lifecycle differs")
+
+
+def _validate_ownership_report(
+    raw: object,
+    contract: AbsoluteGeneralizationContract,
+    champion: Mapping[str, object],
+) -> None:
+    report = _evidence_mapping(raw, label="ownership report-13")
+    champion_report = _evidence_mapping(champion["report_13"], label="champion report-13")
+    _evidence_fields(
+        report,
+        {
+            "scenario_id",
+            "window_start",
+            "window_end",
+            "observed_sessions",
+            "account_orders",
+            "final_equity",
+            "final_account_sha256",
+            "trace_sha256",
+            "final_account",
+            "decision_trace",
+            "order_ledger",
+            "equity_curve",
+            "daily_replay_evidence",
+        },
+        label="ownership report-13",
+    )
+    expected_report, expected_completion = derive_report_runtime_claims(report, contract.canonical_universe)
+    if (
+        report["scenario_id"] != "report-13"
+        or _evidence_date(report["window_start"], label="report-13 start")
+        != contract.window_start.isoformat()
+        or _evidence_date(report["window_end"], label="report-13 end") != contract.window_end.isoformat()
+        or dict(champion_report) != expected_report
+        or any(report[name] != value for name, value in expected_completion.items())
+    ):
+        raise ValueError("absolute generalization report-13 runtime evidence differs")
 
 
 def _validate_ownership_acceptance(
@@ -226,133 +370,63 @@ def _validate_ownership_acceptance(
         {"contract_sha256", "production_source_identity", "champion", "report_13"},
         label="strategic ownership acceptance",
     )
-    ownership = _ownership_contract()
-    if (
-        evidence["contract_sha256"] != canonical_json_sha256(ownership)
-        or evidence["contract_sha256"]
-        != contract.frozen_baseline.strategic_ownership_contract_sha256
-        or evidence["production_source_identity"]
-        != contract.candidate.production_source_sha256
-    ):
-        raise ValueError("absolute generalization strategic ownership identity differs")
-    champion_run = _evidence_mapping(evidence["champion"], label="ownership champion")
-    _evidence_fields(
-        champion_run,
-        {
-            "scenario_id",
-            "owner_symbols",
-            "grant_ids",
-            "epoch_ids",
-            "target_ids",
-            "order_ids",
-            "fill_ids",
-            "trace_sha256",
-        },
-        label="ownership champion",
-    )
-    if champion_run["scenario_id"] != "champion-5":
-        raise ValueError("absolute generalization ownership champion scenario differs")
-    for name in (
-        "owner_symbols",
-        "grant_ids",
-        "epoch_ids",
-        "target_ids",
-        "order_ids",
-        "fill_ids",
-    ):
-        values = tuple(
-            _evidence_text(item, label=f"ownership champion {name}")
-            for item in _evidence_sequence(champion_run[name], label=name)
-        )
-        if not values or len(values) != len(set(values)):
-            raise ValueError("absolute generalization ownership champion lifecycle differs")
-    _evidence_sha(champion_run["trace_sha256"], label="ownership champion trace")
-    report = _evidence_mapping(evidence["report_13"], label="ownership report-13")
-    champion_metrics = _evidence_mapping(champion["metrics"], label="champion metrics")
-    champion_report = _evidence_mapping(
-        champion["report_13"], label="champion report-13"
-    )
-    _evidence_fields(
-        report,
-        {
-            "scenario_id",
-            "window_start",
-            "window_end",
-            "observed_sessions",
-            "account_orders",
-            "final_equity",
-            "final_account_sha256",
-            "trace_sha256",
-        },
-        label="ownership report-13",
-    )
-    if (
-        report["scenario_id"] != "report-13"
-        or _evidence_date(report["window_start"], label="report-13 start")
-        != contract.window_start.isoformat()
-        or _evidence_date(report["window_end"], label="report-13 end")
-        != contract.window_end.isoformat()
-        or _evidence_integer(
-            report["observed_sessions"], label="report-13 sessions", minimum=1
-        )
-        < 1
-        or _evidence_integer(report["account_orders"], label="report-13 orders")
-        != champion_metrics["account_orders"]
-        or _evidence_number(report["final_equity"], label="report-13 final equity")
-        != champion_report["final_equity"]
-    ):
-        raise ValueError("absolute generalization report-13 completion evidence differs")
-    _evidence_sha(report["final_account_sha256"], label="report-13 final account")
-    _evidence_sha(report["trace_sha256"], label="report-13 trace")
+    _validate_ownership_identity(evidence, contract)
+    champion_run = _ownership_champion_run(evidence["champion"])
+    _validate_ownership_lifecycle(champion_run)
+    _validate_champion_runtime(champion)
+    _validate_ownership_report(evidence["report_13"], contract, champion)
 
 
-@lru_cache(maxsize=2)
-def _relative_report(payload: bytes) -> Mapping[str, object]:
-    raw = strict_json_loads(payload)
-    artifact = dict(_evidence_mapping(raw, label="relative generalization"))
-    artifact["passed"] = False
-    artifact["failures"] = []
-    report = evaluate_generalization_policy_artifact(
-        artifact,
-        baseline=load_generalization_baseline(),
-        policy=load_generalization_policy(),
-    )
-    return cast(Mapping[str, object], report)
-
-
-def _validate_relative_generalization(raw: object) -> None:
-    artifact = _evidence_mapping(raw, label="relative generalization")
-    expected = {
-        "schema_version",
-        "gate",
-        "provenance",
-        "concentration_definition",
-        "aggregates",
-        "cells",
+@lru_cache(maxsize=1)
+def _compile_anchored_relative_policy_reference() -> Mapping[str, object]:
+    baseline = load_generalization_baseline()
+    policy = load_generalization_policy()
+    if policy.baseline_sha256 != baseline.sha256:
+        raise ValueError("absolute generalization relative policy reference differs")
+    return {
+        "baseline_canonical_sha256": baseline.sha256,
+        "policy_canonical_sha256": policy.sha256,
+        "frozen_artifact_sha256": baseline.artifact_sha256,
+        "frozen_artifact_size_bytes": baseline.artifact_size_bytes,
     }
-    if artifact.get("schema_version") == 2:
-        expected.add("attribution_definition")
-    _evidence_fields(artifact, expected, label="relative generalization")
-    report = _relative_report(canonical_json_bytes(artifact))
-    if report["passed"] is not True or report["failures"] != []:
-        raise ValueError("absolute generalization relative policy evidence failed")
 
 
-def validate_champion_evidence(
-    raw: object, contract: AbsoluteGeneralizationContract
-) -> Mapping[str, object]:
+def _validate_relative_policy_reference(raw: object) -> None:
+    reference = _evidence_mapping(raw, label="relative policy reference")
+    _evidence_fields(
+        reference,
+        {
+            "baseline_canonical_sha256",
+            "policy_canonical_sha256",
+            "frozen_artifact_sha256",
+            "frozen_artifact_size_bytes",
+        },
+        label="relative policy reference",
+    )
+    for name in (
+        "baseline_canonical_sha256",
+        "policy_canonical_sha256",
+        "frozen_artifact_sha256",
+    ):
+        _evidence_sha(reference[name], label="relative policy reference")
+    _evidence_integer(
+        reference["frozen_artifact_size_bytes"],
+        label="relative policy reference size",
+        minimum=1,
+    )
+    if dict(reference) != _compile_anchored_relative_policy_reference():
+        raise ValueError("absolute generalization relative policy reference differs")
+
+
+def validate_champion_evidence(raw: object, contract: AbsoluteGeneralizationContract) -> Mapping[str, object]:
     """Validate raw champion adjuncts through their existing public authorities."""
 
     champion = _evidence_mapping(raw, label="champion")
     _evidence_fields(champion, _CHAMPION_FIELDS, label="champion")
     _validate_grant_acceptance(champion["strategic_grant_acceptance"])
-    _validate_ownership_acceptance(
-        champion["strategic_ownership_acceptance"], contract, champion
-    )
-    _validate_relative_generalization(champion["relative_generalization"])
-    evidence_sha256 = _evidence_sha(
-        champion["evidence_sha256"], label="champion evidence"
-    )
+    _validate_ownership_acceptance(champion["strategic_ownership_acceptance"], contract, champion)
+    _validate_relative_policy_reference(champion["relative_policy_reference"])
+    evidence_sha256 = _evidence_sha(champion["evidence_sha256"], label="champion evidence")
     if evidence_sha256 != canonical_json_sha256(
         {key: value for key, value in champion.items() if key != "evidence_sha256"}
     ):
@@ -360,8 +434,32 @@ def validate_champion_evidence(
     return champion
 
 
+def _runtime_transitions(raw: object, *, label: str) -> tuple[dict[str, object], ...]:
+    rows = _evidence_sequence(raw, label=label)
+    if not rows or len(rows) > 20_000:
+        raise ValueError(f"absolute generalization {label} evidence is unbounded")
+    result: list[dict[str, object]] = []
+    for item in rows:
+        row = _evidence_mapping(item, label=label)
+        _evidence_fields(row, {"session", "phase", "edge_kind", "runtime_state"}, label=label)
+        session = _evidence_date(row["session"], label=label)
+        phase = _evidence_text(row["phase"], label=label)
+        edge_kind = _evidence_text(row["edge_kind"], label=label)
+        if phase not in _PHASES or edge_kind != "OBSERVED":
+            raise ValueError(f"absolute generalization {label} transition differs")
+        result.append(
+            {
+                "session": session,
+                "phase": phase,
+                "edge_kind": edge_kind,
+                "state": reachability_state_from_raw(row["runtime_state"]),
+            }
+        )
+    return tuple(result)
+
+
 def validate_failed_grant_evidence(raw: object) -> Mapping[str, object]:
-    """Validate a literal successor chain and observed health-predicate rows."""
+    """Rebuild Task 6 inputs and validate one realized successor chain."""
 
     evidence = _evidence_mapping(raw, label="failed-grant")
     expected = {
@@ -372,63 +470,243 @@ def validate_failed_grant_evidence(raw: object) -> Mapping[str, object]:
         "target",
         "order",
         "fill",
-        "observations",
+        "fill_identity_sha256",
+        "transitions",
     }
     _evidence_fields(evidence, expected, label="failed-grant")
-    observations = _evidence_sequence(evidence["observations"], label="failed-grant observations")
-    sessions: list[str] = []
-    for item in observations:
-        row = _evidence_mapping(item, label="failed-grant observation")
-        _evidence_fields(
-            row,
-            {"session", "phase", "edge_kind", "state_sha256", "predicate_results"},
-            label="failed-grant observation",
+    transitions = _runtime_transitions(evidence["transitions"], label="failed-grant transitions")
+    first_grant = StrategicGrantIntent(
+        **cast(
+            dict[str, Any],
+            dict(_evidence_mapping(evidence["first_grant"], label="first grant")),
         )
-        session = _evidence_date(row["session"], label="failed-grant")
-        sessions.append(session)
-        if row["phase"] not in _PHASES or row["edge_kind"] != "OBSERVED":
-            raise ValueError("absolute generalization failed-grant transition differs")
-        predicates = _predicate_rows(
-            row["predicate_results"], label="failed-grant health"
+    )
+    first_epoch = StrategicEpoch(
+        **cast(
+            dict[str, Any],
+            dict(_evidence_mapping(evidence["first_epoch"], label="first epoch")),
         )
-        state_sha256 = _evidence_sha(
-            row["state_sha256"], label="failed-grant state"
-        )
-        if state_sha256 != canonical_json_sha256(
-            {
-                "session": session,
-                "phase": row["phase"],
-                "predicate_results": [
-                    {"code": code, "satisfied": satisfied}
-                    for code, satisfied in predicates
-                ],
-            }
-        ):
-            raise ValueError("absolute generalization failed-grant state evidence differs")
-    _strict_sessions(sessions, label="failed-grant")
-    first_epoch = _evidence_mapping(evidence["first_epoch"], label="first epoch")
-    fill = _evidence_mapping(evidence["fill"], label="successor fill")
-    closed = _evidence_date(first_epoch["closed_session"], label="failed-grant close")
-    filled = _evidence_date(fill["fill_date"], label="failed-grant fill")
-    if not all(closed < session < filled for session in sessions):
-        raise ValueError("absolute generalization failed-grant sessions are not causal")
+    )
+    result = analyze_failed_grant_recovery(
+        first_grant=first_grant,
+        first_epoch=first_epoch,
+        transitions=transitions,
+    )
+    if not result.passed:
+        raise ValueError("absolute generalization failed-grant recovery exceeds bound")
+    final_state = cast(Mapping[str, object], transitions[-1]["state"])
+    outlet = cast(Mapping[str, object], final_state["outlet_evidence"])
+    for name in ("target", "grant", "epoch"):
+        raw_name = {"grant": "second_grant", "epoch": "second_epoch"}.get(name, name)
+        if _evidence_json_value(evidence[raw_name]) != _evidence_json_value(outlet[name]):
+            raise ValueError("absolute generalization failed-grant successor differs")
+    fill_raw = _evidence_mapping(evidence["fill"], label="successor fill")
+    digest = _evidence_sha(evidence["fill_identity_sha256"], label="successor physical fill")
+    if digest != physical_fill_identity_sha256(fill_raw):
+        raise ValueError("absolute generalization successor physical fill differs")
+    orders = cast(Sequence[object], outlet["orders"])
+    fills = cast(Sequence[object], outlet["fills"])
+    if not any(_evidence_json_value(evidence["order"]) == _evidence_json_value(item) for item in orders):
+        raise ValueError("absolute generalization failed-grant order differs")
+    if not any(_evidence_json_value(fill_raw) == _evidence_json_value(item) for item in fills):
+        raise ValueError("absolute generalization failed-grant fill differs")
     return evidence
 
 
 def healthy_retry_sessions(raw: Mapping[str, object]) -> int:
     """Recompute the number of distinct all-predicate healthy sessions."""
+    transitions = _runtime_transitions(raw["transitions"], label="failed-grant transitions")
+    first_grant = StrategicGrantIntent(
+        **cast(dict[str, Any], dict(cast(Mapping[str, object], raw["first_grant"])))
+    )
+    first_epoch = StrategicEpoch(**cast(dict[str, Any], dict(cast(Mapping[str, object], raw["first_epoch"]))))
+    return analyze_failed_grant_recovery(
+        first_grant=first_grant, first_epoch=first_epoch, transitions=transitions
+    ).healthy_retry_sessions
 
-    healthy = {
-        cast(str, row["session"])
-        for row in cast(Sequence[Mapping[str, object]], raw["observations"])
-        if all(
-            cast(bool, predicate["satisfied"])
-            for predicate in cast(
-                Sequence[Mapping[str, object]], row["predicate_results"]
-            )
+
+@dataclass(frozen=True, slots=True)
+class _CrowningChain:
+    raw: Mapping[str, object]
+    target: Target
+    grant: StrategicGrantIntent
+    epoch: StrategicEpoch
+    order: AccountOrder
+    fill: Fill
+    fill_identity_sha256: str
+
+
+def _crowning_chain(raw: object) -> _CrowningChain:
+    row = _evidence_mapping(raw, label="crowning chain")
+    _evidence_fields(
+        row,
+        {
+            "qualification_session",
+            "target_session",
+            "order_session",
+            "authorization_session",
+            "exit_session",
+            "target",
+            "grant",
+            "epoch",
+            "order",
+            "fill",
+            "fill_identity_sha256",
+        },
+        label="crowning chain",
+    )
+    target = Target(
+        **cast(
+            dict[str, Any],
+            dict(_evidence_mapping(row["target"], label="crowning target")),
         )
-    }
-    return len(healthy)
+    )
+    grant = StrategicGrantIntent(
+        **cast(
+            dict[str, Any],
+            dict(_evidence_mapping(row["grant"], label="crowning grant")),
+        )
+    )
+    epoch = StrategicEpoch(
+        **cast(
+            dict[str, Any],
+            dict(_evidence_mapping(row["epoch"], label="crowning epoch")),
+        )
+    )
+    order = AccountOrder(
+        **cast(
+            dict[str, Any],
+            dict(_evidence_mapping(row["order"], label="crowning order")),
+        )
+    )
+    fill_raw = _evidence_mapping(row["fill"], label="crowning fill")
+    return _CrowningChain(
+        raw=row,
+        target=target,
+        grant=grant,
+        epoch=epoch,
+        order=order,
+        fill=Fill(**cast(dict[str, Any], dict(fill_raw))),
+        fill_identity_sha256=_evidence_sha(row["fill_identity_sha256"], label="crowning physical fill"),
+    )
+
+
+def _crowning_account_indexes(
+    raw: object,
+) -> tuple[
+    dict[str, StrategicEpoch],
+    dict[str, AccountOrder],
+    dict[str, Fill],
+]:
+    account_raw = _evidence_mapping(raw, label="crowning account")
+    account = account_from_dict(account_raw, require_hashes=False)
+    account_fills = {physical_fill_identity_sha256(item): item for item in account.fills}
+    if len(account_fills) != len(account.fills):
+        raise ValueError("absolute generalization crowning physical fill is duplicated")
+    return (
+        {item.epoch_id: item for item in account.strategic_epochs},
+        {item.order_id: item for item in account.order_ledger},
+        account_fills,
+    )
+
+
+def _crowning_execution_matches(
+    chain: _CrowningChain,
+    *,
+    qualification: str,
+    target_session: str,
+    order_session: str,
+    authorization_session: str,
+    exited: str,
+    account_epochs: Mapping[str, StrategicEpoch],
+    account_orders: Mapping[str, AccountOrder],
+    account_fills: Mapping[str, Fill],
+) -> bool:
+    target, grant, epoch = chain.target, chain.grant, chain.epoch
+    order, fill, digest = chain.order, chain.fill, chain.fill_identity_sha256
+    return (
+        qualification
+        <= authorization_session
+        <= grant.created_session
+        == epoch.opened_session
+        <= target_session
+        == order_session
+        == order.signal_date
+        < fill.fill_date
+        <= exited
+        == epoch.closed_session
+        and fill.shares >= 1
+        and target.event_id == order.event_id
+        and order.event_id == fill.event_id
+        and target.grant_id == grant.grant_id
+        and target.epoch_id == epoch.epoch_id
+        and order.order_id == fill.order_id
+        and physical_fill_identity_sha256(fill) == digest
+        and account_epochs.get(epoch.epoch_id) == epoch
+        and account_orders.get(order.order_id) == order
+        and account_fills.get(digest) == fill
+        and is_positive_strategic_outlet(
+            target=target,
+            grant=grant,
+            epoch=epoch,
+            orders=(order,),
+            fills=(fill,),
+        )
+        and epoch.first_fill_session == fill.fill_date
+        and epoch.active_session == fill.fill_date
+    )
+
+
+def _validate_crowning_execution(
+    chain: _CrowningChain,
+    *,
+    contract: AbsoluteGeneralizationContract,
+    account_epochs: Mapping[str, StrategicEpoch],
+    account_orders: Mapping[str, AccountOrder],
+    account_fills: Mapping[str, Fill],
+) -> str:
+    if chain.epoch.owner_symbol not in contract.canonical_universe:
+        raise ValueError("absolute generalization crowning owner differs")
+    qualification = _evidence_date(chain.raw["qualification_session"], label="crowning qualification")
+    target_session = _evidence_date(chain.raw["target_session"], label="crowning target")
+    order_session = _evidence_date(chain.raw["order_session"], label="crowning order")
+    authorization_session = _evidence_date(chain.raw["authorization_session"], label="crowning authorization")
+    exited = _evidence_date(chain.raw["exit_session"], label="crowning exit")
+    if not chain.grant.authorization_id:
+        raise ValueError("absolute generalization crowning authorization differs")
+    if not _crowning_execution_matches(
+        chain,
+        qualification=qualification,
+        target_session=target_session,
+        order_session=order_session,
+        authorization_session=authorization_session,
+        exited=exited,
+        account_epochs=account_epochs,
+        account_orders=account_orders,
+        account_fills=account_fills,
+    ):
+        raise ValueError("absolute generalization crowning chain differs")
+    return exited
+
+
+def _validate_crowning_predecessor(
+    chain: _CrowningChain,
+    *,
+    previous_epoch: StrategicEpoch | None,
+    previous_grant: StrategicGrantIntent | None,
+    previous_exit: str,
+) -> None:
+    if previous_epoch is None:
+        if chain.epoch.previous_epoch_id or chain.grant.previous_grant_id:
+            raise ValueError("absolute generalization first crowning predecessor differs")
+        return
+    if (
+        chain.epoch.previous_epoch_id != previous_epoch.epoch_id
+        or previous_grant is None
+        or chain.grant.previous_grant_id != previous_grant.grant_id
+        or previous_exit >= chain.grant.created_session
+    ):
+        raise ValueError("absolute generalization crowning identity chain differs")
 
 
 def validate_crowning_evidence(
@@ -440,77 +718,43 @@ def validate_crowning_evidence(
     """Validate Fill-gated epoch rows and their predecessor identity chain."""
 
     evidence = _evidence_mapping(raw, label="crowning")
-    expected = {"source_scenario_id", "epochs"} if cross else {"source_cell_id", "epochs"}
+    expected = (
+        {"source_scenario_id", "final_account", "chains"}
+        if cross
+        else {"source_cell_id", "final_account", "chains"}
+    )
     _evidence_fields(evidence, expected, label="crowning")
     source_name = "source_scenario_id" if cross else "source_cell_id"
     source = _evidence_text(evidence[source_name], label="crowning source")
-    if not cross and source not in {
-        f"remove-{symbol}" for symbol in contract.canonical_universe
-    }:
+    if not cross and source not in {f"remove-{symbol}" for symbol in contract.canonical_universe}:
         raise ValueError("absolute generalization crowning source cell differs")
-    epochs = _evidence_sequence(evidence["epochs"], label="crowning epochs")
-    if len(epochs) < 2:
+    chains = _evidence_sequence(evidence["chains"], label="crowning chains")
+    if len(chains) < 2:
         raise ValueError("absolute generalization crowning evidence is incomplete")
-    previous: Mapping[str, object] | None = None
+    account_epochs, account_orders, account_fills = _crowning_account_indexes(evidence["final_account"])
+    previous_epoch: StrategicEpoch | None = None
+    previous_grant: StrategicGrantIntent | None = None
+    previous_exit = ""
     universe = default_ai_universe()
-    for item in epochs:
-        row = _evidence_mapping(item, label="crowning epoch")
-        _evidence_fields(
-            row,
-            {
-                "owner_symbol",
-                "epoch_id",
-                "grant_id",
-                "previous_epoch_id",
-                "previous_grant_id",
-                "qualification_signature",
-                "qualification_session",
-                "grant_session",
-                "fill_id",
-                "order_id",
-                "fill_session",
-                "fill_shares",
-                "exit_session",
-            },
-            label="crowning epoch",
+    for item in chains:
+        chain = _crowning_chain(item)
+        exited = _validate_crowning_execution(
+            chain,
+            contract=contract,
+            account_epochs=account_epochs,
+            account_orders=account_orders,
+            account_fills=account_fills,
         )
-        owner = _evidence_text(row["owner_symbol"], label="crowning owner")
-        if owner not in contract.canonical_universe:
-            raise ValueError("absolute generalization crowning owner differs")
-        for name in ("epoch_id", "grant_id", "fill_id", "order_id"):
-            _entity(row[name], label=f"crowning {name}")
-        previous_epoch = _entity(
-            row["previous_epoch_id"], label="crowning previous epoch", empty=True
+        universe.industry_of(chain.epoch.owner_symbol, chain.grant.created_session)
+        _validate_crowning_predecessor(
+            chain,
+            previous_epoch=previous_epoch,
+            previous_grant=previous_grant,
+            previous_exit=previous_exit,
         )
-        previous_grant = _entity(
-            row["previous_grant_id"], label="crowning previous grant", empty=True
-        )
-        qualification = _evidence_date(
-            row["qualification_session"], label="crowning qualification"
-        )
-        grant = _evidence_date(row["grant_session"], label="crowning grant")
-        filled = _evidence_date(row["fill_session"], label="crowning fill")
-        exited = _evidence_date(row["exit_session"], label="crowning exit")
-        if (
-            not qualification <= grant <= filled <= exited
-            or _evidence_integer(row["fill_shares"], label="crowning fill", minimum=1)
-            < 1
-            or not _evidence_text(
-                row["qualification_signature"], label="crowning qualification"
-            )
-        ):
-            raise ValueError("absolute generalization crowning chronology differs")
-        universe.industry_of(owner, grant)
-        if previous is None:
-            if previous_epoch or previous_grant:
-                raise ValueError("absolute generalization first crowning predecessor differs")
-        elif (
-            previous_epoch != previous["epoch_id"]
-            or previous_grant != previous["grant_id"]
-            or cast(str, previous["exit_session"]) >= grant
-        ):
-            raise ValueError("absolute generalization crowning identity chain differs")
-        previous = row
+        previous_epoch = chain.epoch
+        previous_grant = chain.grant
+        previous_exit = exited
     return evidence
 
 
@@ -518,14 +762,15 @@ def crown_industries(raw: Mapping[str, object]) -> tuple[str, ...]:
     universe = default_ai_universe()
     return tuple(
         universe.industry_of(
-            cast(str, row["owner_symbol"]), cast(str, row["grant_session"])
+            cast(str, cast(Mapping[str, object], row["epoch"])["owner_symbol"]),
+            cast(str, cast(Mapping[str, object], row["grant"])["created_session"]),
         )
-        for row in cast(Sequence[Mapping[str, object]], raw["epochs"])
+        for row in cast(Sequence[Mapping[str, object]], raw["chains"])
     )
 
 
 def validate_repair_evidence(raw: object) -> tuple[Mapping[str, object], ...]:
-    """Validate repair rows while leaving literal bounds to policy.py."""
+    """Rebuild exact production repair predicates for every observed state."""
 
     result: list[Mapping[str, object]] = []
     for item in _evidence_sequence(raw, label="repair"):
@@ -540,105 +785,77 @@ def validate_repair_evidence(raw: object) -> tuple[Mapping[str, object], ...]:
         observations = _evidence_sequence(row["observations"], label="repair observations")
         if not observations:
             raise ValueError("absolute generalization repair observations are empty")
+        transitions = _runtime_transitions(observations, label="repair observations")
         sessions: list[str] = []
-        states: list[str] = []
-        for value in observations:
-            observation = _evidence_mapping(value, label="repair observation")
-            _evidence_fields(
-                observation,
-                {"session", "repair_status", "predicate_results", "state_sha256"},
-                label="repair observation",
+        statuses: list[str] = []
+        episode_id = ""
+        first_session = ""
+        counts: list[int] = []
+        required = 0
+        for transition in transitions:
+            state = cast(Mapping[str, object], transition["state"])
+            payload = cast(AbsoluteGeneralizationReplayPayload, state["account_payload"])
+            account = account_from_dict(
+                cast(Mapping[str, object], strict_json_loads(payload.canonical_json)),
+                require_hashes=False,
             )
-            sessions.append(_evidence_date(observation["session"], label="repair"))
-            status = _evidence_text(observation["repair_status"], label="repair status")
-            if status not in _REPAIR_STATES:
-                raise ValueError("absolute generalization repair status differs")
-            states.append(status)
-            state_sha256 = _evidence_sha(
-                observation["state_sha256"], label="repair state"
+            projection = project_flat_book_repair_health(
+                account=account,
+                risk=cast(RiskAssessment, state["risk"]),
+                universe=cast(StrategicUniverseRoles, state["universe"]),
+                cfg=cast(SystemConfig, state["cfg"]),
             )
-            _predicate_rows(observation["predicate_results"], label="repair health")
-            if state_sha256 != canonical_json_sha256(
-                {
-                    "session": sessions[-1],
-                    "repair_status": status,
-                    "predicate_results": observation["predicate_results"],
-                    "persisted_damage_level": row["persisted_damage_level"],
-                    "target_budget_level": row["target_budget_level"],
-                }
+            if (
+                not projection.healthy
+                or projection.persisted_damage_level != row["persisted_damage_level"]
+                or projection.repair_target_level != row["target_budget_level"]
             ):
-                raise ValueError("absolute generalization repair state evidence differs")
-        _strict_sessions(sessions, label="repair")
-        if states[-1] != "READY" or any(state == "READY" for state in states[:-1]):
+                raise ValueError("absolute generalization repair projection differs")
+            sessions.append(cast(str, transition["session"]))
+            repair = account.flat_book_capital_repair
+            statuses.append(repair.status)
+            counts.append(repair.healthy_session_count)
+            required = repair.required_healthy_sessions
+            if not episode_id:
+                episode_id = repair.repair_episode_id
+                first_session = repair.first_observed_session
+            if (
+                repair.repair_episode_id != episode_id
+                or repair.first_observed_session != first_session
+                or repair.last_observed_session != transition["session"]
+                or repair.last_counted_session != transition["session"]
+            ):
+                raise ValueError("absolute generalization repair episode differs")
+        if len(set(sessions)) != len(sessions):
+            raise ValueError("absolute generalization repair sessions are duplicated")
+        if (
+            counts != list(range(1, required + 1))
+            or len(sessions) != required
+            or statuses[-1] != "READY"
+            or any(state != "ACCUMULATING" for state in statuses[:-1])
+        ):
             raise ValueError("absolute generalization repair READY transition differs")
         result.append(row)
     return tuple(result)
 
 
 def repair_healthy_sessions(raw: Mapping[str, object]) -> int:
-    return sum(
-        all(
-            cast(bool, predicate["satisfied"])
-            for predicate in cast(
-                Sequence[Mapping[str, object]], observation["predicate_results"]
-            )
-        )
-        for observation in cast(
-            Sequence[Mapping[str, object]], raw["observations"]
-        )
+    return len(
+        {cast(str, row["session"]) for row in cast(Sequence[Mapping[str, object]], raw["observations"])}
     )
 
 
 def validate_terminal_evidence(raw: object) -> Mapping[str, object]:
-    """Validate a finite sequence of literal observed graph rows."""
+    """Rebuild states and invoke the Task 6 SCC analyzer."""
 
     evidence = _evidence_mapping(raw, label="terminal SCC")
     _evidence_fields(evidence, {"transitions"}, label="terminal SCC")
-    rows = _evidence_sequence(evidence["transitions"], label="terminal SCC transitions")
-    if not rows:
-        raise ValueError("absolute generalization terminal SCC evidence is empty")
-    sessions: list[str] = []
-    for item in rows:
-        row = _evidence_mapping(item, label="terminal SCC transition")
-        _evidence_fields(
-            row,
-            {
-                "session",
-                "phase",
-                "edge_kind",
-                "state_sha256",
-                "predicate_results",
-                "positive_strategic_target_weight",
-            },
-            label="terminal SCC transition",
-        )
-        sessions.append(_evidence_date(row["session"], label="terminal SCC"))
-        if row["phase"] not in _PHASES or row["edge_kind"] != "OBSERVED":
-            raise ValueError("absolute generalization terminal SCC transition differs")
-        state_sha256 = _evidence_sha(
-            row["state_sha256"], label="terminal SCC state"
-        )
-        _predicate_rows(row["predicate_results"], label="terminal SCC health")
-        target = _evidence_number(
-            row["positive_strategic_target_weight"], label="terminal SCC target"
-        )
-        if target < 0.0:
-            raise ValueError("absolute generalization terminal SCC target differs")
-        if state_sha256 != canonical_json_sha256(
-            {
-                "phase": row["phase"],
-                "predicate_results": row["predicate_results"],
-                "positive_strategic_target_weight": target,
-            }
-        ):
-            raise ValueError("absolute generalization terminal SCC state evidence differs")
-    _strict_sessions(sessions, label="terminal SCC")
+    transitions = _runtime_transitions(evidence["transitions"], label="terminal SCC transitions")
+    analyze_terminal_scc(transitions)
     return evidence
 
 
-def _evidence_components(
-    nodes: set[str], edges: set[tuple[str, str]]
-) -> tuple[frozenset[str], ...]:
+def _evidence_components(nodes: set[str], edges: set[tuple[str, str]]) -> tuple[frozenset[str], ...]:
     graph: dict[str, set[str]] = {node: set() for node in nodes}
     reverse: dict[str, set[str]] = {node: set() for node in nodes}
     for source, target in edges:
@@ -678,45 +895,15 @@ def _evidence_components(
 
 
 def terminal_projection(raw: Mapping[str, object]) -> TerminalProjection:
-    """Recompute terminal no-outlet runs and graph counts from observed rows."""
+    """Return the Task 6 projection from strictly rebuilt runtime states."""
 
-    rows = cast(Sequence[Mapping[str, object]], raw["transitions"])
-    states = tuple(cast(str, row["state_sha256"]) for row in rows)
-    edges = set(pairwise(states))
-    components = _evidence_components(set(states), edges)
-    terminal_states = set().union(
-        *(
-            component
-            for component in components
-            if not any(
-                source in component and target not in component
-                for source, target in edges
-            )
-        )
-    )
-    durations: list[int] = []
-    current = 0
-    for row in rows:
-        healthy = all(
-            cast(bool, predicate["satisfied"])
-            for predicate in cast(
-                Sequence[Mapping[str, object]], row["predicate_results"]
-            )
-        )
-        terminal = cast(str, row["state_sha256"]) in terminal_states
-        no_target = float(cast(float, row["positive_strategic_target_weight"])) <= 0.0
-        if healthy and terminal and no_target:
-            current += 1
-        elif current:
-            durations.append(current)
-            current = 0
-    if current:
-        durations.append(current)
+    transitions = _runtime_transitions(raw["transitions"], label="terminal SCC transitions")
+    result = analyze_terminal_scc(transitions)
     return TerminalProjection(
-        durations=tuple(durations),
-        state_count=len(set(states)),
-        edge_count=len(edges),
-        transition_sha256=canonical_json_sha256(_evidence_json_value(rows)),
+        durations=(result.maximum_terminal_zero_strategic_target_scc_sessions,),
+        state_count=result.state_count,
+        edge_count=result.edge_count,
+        transition_sha256=result.state_transition_digest,
     )
 
 

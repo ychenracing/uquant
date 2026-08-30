@@ -34,6 +34,7 @@
 | 战略所有权 | 自动运行多 epoch、只读 successor、universe 角色、见证者 quorum、账户资本修复、关键删除、重复授冠与失败 grant 恢复 |
 | 性能经济性 | 手动 `Extended Performance Matrix` 保留 `promotion --profile full` 的全部财富、回撤、订单、换手和急跌收益门槛 |
 | 泛化能力 | 手动 `Extended Economic Matrix` 保留六个固定窗口完整矩阵的 literal 诊断、逐 cell、intrinsic 与 random-tail 有效边界 |
+| 绝对泛化 | 自动 `Absolute Generalization Acceptance` 固定八 shard/34 场景；champion 与 recovery special producer 只用 ProductionEngine、AccountState、allocator 和 execution 原始生命周期，final 重新计算七组件且拒绝 targeted/旧摘要 |
 
 上述门禁均为阻断条件，不能用另一项检查的成功抵消失败。
 
@@ -44,7 +45,8 @@ Risk/Portfolio/Sentinel 权限、账户与订单/成交语义、源码身份、P
 把信号本身升级成与生产安全无关的无限拆分循环。
 
 对每个 PR 和 `main` push，GitHub 必须稳定给出 `Engineering`、
-`Strategic Grant Acceptance` 与 `Strategic Ownership Acceptance` 三个独立最终结论；
+`Strategic Grant Acceptance`、`Strategic Ownership Acceptance` 与
+`Absolute Generalization Acceptance` 独立最终结论；
 任何结论都不能由另一个成功抵消。Ownership 只运行合同列明的五个确定性 shard，并以
 源码、配置、冻结数据和合同身份封闭缓存；未成交 probe 不得计为实际 epoch。
 `Extended Performance Matrix` 和 `Extended Economic Matrix` 只接受

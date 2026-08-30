@@ -42,6 +42,7 @@ from uquant.portfolio.strategic.rearm import flat_book_capital_repair_requiremen
 from uquant.portfolio.strategic.rearm_predicates import flat_book_repair_predicates
 from uquant.types import AccountState
 
+from ._physical_identity import validate_physical_execution_identities
 from ._reachability_graph import (
     StateKey as _StateKey,
 )
@@ -361,39 +362,7 @@ def _valid_outlet_identity(
 def _validate_physical_ids(
     *, orders: Sequence[AccountOrder], fills: Sequence[Fill]
 ) -> None:
-    if any(type(order) is not AccountOrder for order in orders) or any(
-        type(fill) is not Fill for fill in fills
-    ):
-        raise ValueError("strategic outlet physical rows have invalid runtime types")
-    order_ids = [order.order_id for order in orders]
-    fill_ids = [
-        (
-            ("BROKER", fill.fill_id)
-            if fill.fill_id
-            else (
-                "SIMULATED",
-                fill.order_id,
-                fill.signal_date,
-                fill.fill_date,
-                fill.symbol,
-                fill.side,
-                fill.shares,
-                fill.price,
-                fill.gross_value,
-                fill.event_id,
-                fill.grant_id,
-                fill.epoch_id,
-            )
-        )
-        for fill in fills
-    ]
-    if any(not value for value in order_ids) or len(order_ids) != len(set(order_ids)):
-        raise ValueError("strategic outlet has duplicate or empty order identity")
-    if any(
-        not fill.fill_id and (not fill.order_id or not fill.event_id or not fill.fill_date)
-        for fill in fills
-    ) or len(fill_ids) != len(set(fill_ids)):
-        raise ValueError("strategic outlet has duplicate or empty fill identity")
+    validate_physical_execution_identities(orders=orders, fills=fills)
 
 
 def _matching_strategic_orders(
@@ -720,6 +689,39 @@ def _derived_state(
     }
 
 
+def project_observed_reachability_state(
+    *,
+    account_payload: AbsoluteGeneralizationReplayPayload,
+    cfg: SystemConfig,
+    risk: RiskAssessment,
+    universe: StrategicUniverseRoles,
+    snapshots: dict[str, dict[str, float]],
+    leaders: dict[str, LeaderScore],
+    outlet_evidence: object = None,
+) -> dict[str, object]:
+    """Project all state claims from exact runtime objects for Task 6 analysis."""
+
+    account = _validate_account_payload(account_payload)
+    market = {
+        "cfg": cfg,
+        "risk": risk,
+        "universe": universe,
+        "snapshots": snapshots,
+        "leaders": leaders,
+    }
+    _validated_market_evidence(market)
+    return {
+        "account_payload": account_payload,
+        "cfg": cfg,
+        "risk": risk,
+        "universe": universe,
+        "snapshots": snapshots,
+        "leaders": leaders,
+        **_derived_state(account=account, risk=risk, universe=universe),
+        "outlet_evidence": outlet_evidence,
+    }
+
+
 def _reconcile_state_claims(
     state: Mapping[str, object],
     derived: Mapping[str, object],
@@ -952,5 +954,6 @@ __all__ = (
     "analyze_terminal_scc",
     "is_positive_strategic_outlet",
     "project_flat_book_repair_health",
+    "project_observed_reachability_state",
     "project_qualification_opportunity_health",
 )

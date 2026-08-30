@@ -115,7 +115,10 @@ Pull Request 和默认分支自动化包括：
 - Strategic Grant Acceptance：授冠意图、账户兼容、恢复与资格路径。
 - Strategic Ownership Acceptance：多 epoch、successor、universe 角色、资本修复、重复授冠和失败恢复。
 - Performance Acceptance：完整生产性能、精确源码身份与 provenance。
-- Generalization Acceptance：官方窗口分片和聚合的政策与证据合同。
+- Absolute Generalization Acceptance：固定八 shard、34 个 canonical LOO 场景与 production
+  recovery/reachability raw evidence 的自动阻断聚合；最终通过是 runner 与七组件能力的合取。
+- Extended Economic Matrix Diagnostics：原六窗口 234-cell 相对泛化矩阵，仅手动诊断；
+  compile anchor 只证明冻结策略/参考身份，不能冒充当前能力结果。
 - 扩展经济矩阵保留为手动 workflow，不得以删减场景替代完整验收。
 
 Definition of Done：适用工程与经济门通过；分支覆盖率满足仓库合同；证据绑定待验收源码、配置、数据和运行时；未运行项明确标记；没有未解决的正确性、安全、数据完整性、经济回归或阻断审查问题。

@@ -12,6 +12,7 @@ from uquant.market import ReplayUniverse
 from uquant.models.strategic_universe import StrategicUniverseRoles, build_strategic_universe_roles
 
 from ._execution_chain_reconciliation import validate_exact_execution_chain
+from ._physical_identity import physical_fill_identity_map
 from .metrics import (
     CellMetrics,
     EpochFact,
@@ -26,7 +27,6 @@ from .metrics import (
     metric_payload_mapping,
     metric_positive_number,
     metric_rows,
-    metric_stable_ids,
     metric_text,
     metric_trace_row,
     repair_episode_facts_from_trace,
@@ -749,12 +749,8 @@ def _ledger_evidence(
     account = metric_payload_mapping(replay.final_account_payload, label="final account")
     orders = metric_rows(account.get("order_ledger", ()), label="order ledger")
     fills = metric_rows(account.get("fills", ()), label="fill ledger")
-    final_fills_by_id = metric_stable_ids(fills, field="fill_id", label="fill")
-    observed_fills_by_id = metric_stable_ids(
-        observed_fills,
-        field="fill_id",
-        label="incremental fill",
-    )
+    final_fills_by_id = physical_fill_identity_map(fills)
+    observed_fills_by_id = physical_fill_identity_map(observed_fills)
     if observed_fills_by_id != final_fills_by_id:
         raise ValueError("absolute generalization incremental fill ledger differs")
     if any(

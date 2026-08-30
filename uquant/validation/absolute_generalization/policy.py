@@ -20,6 +20,7 @@ from ._acceptance_evidence import (
 )
 from .artifacts import CellArtifact
 from .contract import AbsoluteGeneralizationContract
+from .metrics import EpochFact
 
 _SHA256 = re.compile(r"^[0-9a-f]{64}$")
 _CHAMPION_PATHS: Mapping[str, str] = MappingProxyType(
@@ -328,7 +329,7 @@ def _champion_component(
             "paths": dict(paths),
             "strategic_grant_acceptance": True,
             "strategic_ownership_acceptance": True,
-            "relative_generalization_non_regression": True,
+            "relative_policy_reference": True,
             "report_13_runner_success": True,
         },
     )
@@ -392,6 +393,8 @@ def _failed_outlet_is_valid(
         or fill["side"] != "BUY"
         or int(cast(int, fill["shares"])) <= 0
         or fill["order_id"] != order["order_id"]
+        or target["event_id"] != order["event_id"]
+        or order["event_id"] != fill["event_id"]
         or not cast(str, order["submitted_date"]) < cast(str, fill["fill_date"])
         or second_epoch["first_fill_session"] != fill["fill_date"]
         or second_epoch["active_session"] != fill["fill_date"]
@@ -417,7 +420,9 @@ def _failed_grant_component(
         failures.append("failed grant successor identity chain differs")
     if not _failed_outlet_is_valid(second_grant, second_epoch, target, order, fill):
         failures.append("failed grant successor Target/Order/Fill/epoch outlet differs")
-    retry = healthy_retry_sessions(raw)
+    retry = healthy_retry_sessions(
+        cast(Mapping[str, object], _policy_thaw(raw))
+    )
     if retry > contract.thresholds.maximum_failed_grant_retry_healthy_sessions:
         failures.append("failed grant retry exceeds 20 distinct healthy sessions")
     return _component(
@@ -430,25 +435,85 @@ def _failed_grant_component(
             "second_epoch_id": second_epoch["epoch_id"],
             "healthy_retry_sessions": retry,
             "state_transition_digest": canonical_json_sha256(
-                _policy_thaw(raw["observations"])
+                _policy_thaw(raw["transitions"])
             ),
         },
     )
 
 
 def _cross_crowning_incomplete(
-    epochs: Sequence[Mapping[str, object]], industries: Sequence[str]
+    chains: Sequence[Mapping[str, object]], industries: Sequence[str]
 ) -> bool:
     return any(
         len(values) < 2
         for values in (
-            {cast(str, item["owner_symbol"]) for item in epochs},
+            {
+                cast(str, cast(Mapping[str, object], item["epoch"])["owner_symbol"])
+                for item in chains
+            },
             set(industries),
-            {cast(str, item["epoch_id"]) for item in epochs},
-            {cast(str, item["grant_id"]) for item in epochs},
-            {cast(str, item["fill_id"]) for item in epochs},
+            {
+                cast(str, cast(Mapping[str, object], item["epoch"])["epoch_id"])
+                for item in chains
+            },
+            {
+                cast(str, cast(Mapping[str, object], item["grant"])["grant_id"])
+                for item in chains
+            },
+            {cast(str, item["fill_identity_sha256"]) for item in chains},
         )
     )
+
+
+def _historical_epoch_fact(chain: Mapping[str, object]) -> EpochFact:
+    grant = cast(Mapping[str, object], chain["grant"])
+    epoch = cast(Mapping[str, object], chain["epoch"])
+    fill = cast(Mapping[str, object], chain["fill"])
+    return EpochFact(
+        epoch_id=cast(str, epoch["epoch_id"]),
+        grant_id=cast(str, epoch["grant_id"]),
+        owner_symbol=cast(str, epoch["owner_symbol"]),
+        qualification_signature=cast(str, epoch["qualification_signature"]),
+        qualification_route=cast(str, epoch["qualification_route"]),
+        qualification_quorum=cast(str, epoch["qualification_quorum"]),
+        qualification_session=cast(str, chain["qualification_session"]),
+        grant_session=cast(str, grant["created_session"]),
+        target_session=cast(str, chain["target_session"]),
+        order_session=cast(str, chain["order_session"]),
+        fill_session=cast(str, fill["fill_date"]),
+        active_session=cast(str, epoch["active_session"]),
+        closed_session=cast(str, epoch["closed_session"]),
+        close_reason=cast(str, epoch["close_reason"]),
+        realized_status=cast(str, epoch["realized_status"]),
+        previous_epoch_id=cast(str, epoch["previous_epoch_id"]),
+        previous_grant_id=cast(str, grant["previous_grant_id"]),
+        authorization_id=cast(str, grant["authorization_id"]),
+        authorization_session=cast(str, chain["authorization_session"]),
+    )
+
+
+def _historical_source_epochs_match(
+    cells: Sequence[CellArtifact], historical: Mapping[str, object]
+) -> bool:
+    source_id = cast(str, historical["source_cell_id"])
+    sources = [
+        cell
+        for cell in cells
+        if cell.cell_id == source_id
+        and cell.status == "COMPLETE"
+        and cell.metrics is not None
+    ]
+    if len(sources) != 1:
+        return False
+    metrics = sources[0].metrics
+    if metrics is None:
+        return False
+    source_epochs = {fact.epoch_id: fact for fact in metrics.epochs}
+    chains = cast(Sequence[Mapping[str, object]], historical["chains"])
+    facts = tuple(_historical_epoch_fact(chain) for chain in chains)
+    if len({fact.epoch_id for fact in facts}) != len(facts):
+        return False
+    return all(source_epochs.get(fact.epoch_id) == fact for fact in facts)
 
 
 def _repeated_component(
@@ -457,16 +522,32 @@ def _repeated_component(
     cross: Mapping[str, object],
     contract: AbsoluteGeneralizationContract,
 ) -> ComponentResult:
-    historical_epochs = cast(Sequence[Mapping[str, object]], historical["epochs"])
-    cross_epochs = cast(Sequence[Mapping[str, object]], cross["epochs"])
-    owners = [cast(str, item["owner_symbol"]) for item in historical_epochs]
-    epochs = [cast(str, item["epoch_id"]) for item in historical_epochs]
-    grants = [cast(str, item["grant_id"]) for item in historical_epochs]
-    fills = [cast(str, item["fill_id"]) for item in historical_epochs]
-    qualifications = [
-        cast(str, item["qualification_signature"]) for item in historical_epochs
+    historical_epochs = cast(Sequence[Mapping[str, object]], historical["chains"])
+    cross_epochs = cast(Sequence[Mapping[str, object]], cross["chains"])
+    owners = [
+        cast(str, cast(Mapping[str, object], item["epoch"])["owner_symbol"])
+        for item in historical_epochs
     ]
-    cross_owners = [cast(str, item["owner_symbol"]) for item in cross_epochs]
+    epochs = [
+        cast(str, cast(Mapping[str, object], item["epoch"])["epoch_id"])
+        for item in historical_epochs
+    ]
+    grants = [
+        cast(str, cast(Mapping[str, object], item["grant"])["grant_id"])
+        for item in historical_epochs
+    ]
+    fills = [cast(str, item["fill_identity_sha256"]) for item in historical_epochs]
+    qualifications = [
+        cast(
+            str,
+            cast(Mapping[str, object], item["grant"])["qualification_signature"],
+        )
+        for item in historical_epochs
+    ]
+    cross_owners = [
+        cast(str, cast(Mapping[str, object], item["epoch"])["owner_symbol"])
+        for item in cross_epochs
+    ]
     industries = crown_industries(cross)
     failures: list[str] = []
     minimum_epochs = contract.thresholds.minimum_repeated_crowning_actual_epochs
@@ -481,8 +562,13 @@ def _repeated_component(
     ):
         failures.append("historical crowning lacks independent grant/fill/qualification facts")
     source = cast(str, historical["source_cell_id"])
-    if not any(cell.cell_id == source and cell.status == "COMPLETE" for cell in cells):
+    source_complete = any(
+        cell.cell_id == source and cell.status == "COMPLETE" for cell in cells
+    )
+    if not source_complete:
         failures.append("historical crowning source cell is not complete")
+    elif not _historical_source_epochs_match(cells, historical):
+        failures.append("historical crowning source epochs differ")
     if _cross_crowning_incomplete(cross_epochs, industries):
         failures.append("cross-industry production-semantic crowning is incomplete")
     return _component(
@@ -530,7 +616,9 @@ def _bounded_component(
         actual = repair_healthy_sessions(repair)
         if actual > maximum:
             failures.append(f"repair {key[0]}->{key[1]}/{maximum} exceeded its literal bound")
-    scc_projection = terminal_projection(scc)
+    scc_projection = terminal_projection(
+        cast(Mapping[str, object], _policy_thaw(scc))
+    )
     durations = list(scc_projection.durations)
     maximum_scc = max(durations, default=0)
     if maximum_scc > contract.thresholds.maximum_terminal_zero_strategic_target_scc_sessions:

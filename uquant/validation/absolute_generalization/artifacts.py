@@ -4,8 +4,11 @@ from __future__ import annotations
 
 import math
 import re
+import shutil
+import subprocess
 from collections.abc import Mapping, Sequence
 from dataclasses import asdict, dataclass, replace
+from pathlib import Path
 from typing import Final, cast
 
 from uquant.contracts.strict_json import canonical_json_sha256
@@ -42,6 +45,25 @@ ABSOLUTE_GENERALIZATION_EXECUTION_CONTRACT_SHA256: Final = canonical_json_sha256
         "prelisting": "invisible_until_first_observable_row",
     }
 )
+
+
+def _artifact_git_object(root: Path, revision: str) -> str:
+    executable = shutil.which("git")
+    if executable is None:
+        raise RuntimeError("cannot resolve current checkout identity")
+    try:
+        result = subprocess.run(
+            [executable, "-C", str(root), "rev-parse", revision],
+            check=True,
+            capture_output=True,
+            text=True,
+        )  # nosec B603
+    except (OSError, subprocess.CalledProcessError) as exc:
+        raise RuntimeError("cannot resolve current checkout identity") from exc
+    value = result.stdout.strip()
+    if not _COMMIT.fullmatch(value):
+        raise RuntimeError("cannot resolve current checkout identity")
+    return value
 
 
 @dataclass(frozen=True, slots=True)
@@ -632,6 +654,41 @@ def validate_cell_artifact(
     return artifact
 
 
+def derive_runtime_cell_artifact(
+    replay: AbsoluteGeneralizationReplay,
+    contract: AbsoluteGeneralizationContract,
+    *,
+    root: str | Path | None = None,
+) -> CellArtifact:
+    """Derive one sealed cell from raw production replay observations."""
+
+    if not replay.observations:
+        raise ValueError("absolute runtime replay has no observed role identity")
+    repository = (
+        Path(__file__).resolve().parents[3]
+        if root is None
+        else Path(root).resolve()
+    )
+    roles = replay.observations[-1].roles
+    identities = IdentityEnvelope(
+        head=_artifact_git_object(repository, "HEAD"),
+        tree=_artifact_git_object(repository, "HEAD^{tree}"),
+        scenario_contract_sha256=contract.canonical_sha256,
+        production_source_sha256=contract.candidate.production_source_sha256,
+        effective_config_sha256=contract.inputs.effective_config_sha256,
+        uv_lock_sha256=contract.inputs.uv_lock_sha256,
+        frozen_data_manifest_sha256=contract.inputs.frozen_data.manifest_sha256,
+        universe_sha256=contract.inputs.ai_universe_sha256,
+        industry_mapping_sha256=roles.point_in_time_industry_identity,
+        tradable_role_identity=roles.tradable_identity,
+        qualification_reference_role_identity=roles.qualification_reference_identity,
+        risk_reference_role_identity=roles.risk_reference_identity,
+        execution_contract_identity=ABSOLUTE_GENERALIZATION_EXECUTION_CONTRACT_SHA256,
+    )
+    artifact = derive_cell_metrics(replay, replay.scenario, identities)
+    return validate_cell_artifact(artifact.to_dict(), contract)
+
+
 def replay_error_event_facts() -> tuple[tuple[str, EventFact], ...]:
     """Return the one canonical non-applicable error fact set."""
 
@@ -644,6 +701,7 @@ __all__ = (
     "EventFact",
     "IdentityEnvelope",
     "derive_cell_metrics",
+    "derive_runtime_cell_artifact",
     "replay_error_event_facts",
     "seal_cell_artifact",
     "validate_cell_artifact",

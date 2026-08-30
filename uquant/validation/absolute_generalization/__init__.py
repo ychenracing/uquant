@@ -31,12 +31,21 @@ from .reachability import (
     analyze_terminal_scc,
     is_positive_strategic_outlet,
     project_flat_book_repair_health,
+    project_observed_reachability_state,
     project_qualification_opportunity_health,
 )
 from .replay import (
     AbsoluteGeneralizationReplay,
     AbsoluteGeneralizationReplayObservation,
     run_absolute_generalization_replay,
+)
+from .runtime import (
+    ChampionRuntimeEvidence,
+    RecoveryReachabilityRuntimeEvidence,
+    derive_runtime_cell_artifact,
+    run_champion_runtime_evidence,
+    run_recovery_and_reachability_runtime_evidence,
+    run_runtime_cell_artifact,
 )
 from .scenarios import AbsoluteGeneralizationScenario, build_leave_one_out_scenarios
 
@@ -50,12 +59,14 @@ __all__ = (
     "AcceptanceReport",
     "CellArtifact",
     "CellMetrics",
+    "ChampionRuntimeEvidence",
     "ComponentResult",
     "EpochFact",
     "EventFact",
     "FailedGrantRecoveryAnalysis",
     "HealthProjection",
     "IdentityEnvelope",
+    "RecoveryReachabilityRuntimeEvidence",
     "RepairEpisodeFact",
     "ShardManifest",
     "TerminalSccAnalysis",
@@ -65,11 +76,16 @@ __all__ = (
     "build_error_shard_manifest",
     "build_leave_one_out_scenarios",
     "derive_cell_metrics",
+    "derive_runtime_cell_artifact",
     "is_positive_strategic_outlet",
     "load_absolute_generalization_contract",
     "project_flat_book_repair_health",
+    "project_observed_reachability_state",
     "project_qualification_opportunity_health",
     "run_absolute_generalization_replay",
+    "run_champion_runtime_evidence",
+    "run_recovery_and_reachability_runtime_evidence",
+    "run_runtime_cell_artifact",
     "seal_shard_manifest",
     "validate_cell_artifact",
     "validate_shard_manifest",

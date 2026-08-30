@@ -50,7 +50,7 @@ jobs:
           if-no-files-found: warn
 
   generalization-acceptance:
-    name: Generalization Acceptance
+    name: Extended Economic Matrix Diagnostics
     if: ${{ always() }}
     needs: generalization-shard
     runs-on: ubuntu-latest

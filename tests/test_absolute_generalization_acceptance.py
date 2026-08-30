@@ -321,9 +321,11 @@ def test_special_shard_recomputes_strict_raw_literal_facts(mutation: str) -> Non
     manifests = successful_manifests()
     recovery = manifest(manifests, "recovery-and-reachability")
     if mutation == "failed_grant_session":
-        recovery["failed_grant_recovery"]["observations"][0]["session"] = "not-a-session"
+        recovery["failed_grant_recovery"]["transitions"][0]["session"] = "not-a-session"
     elif mutation == "failed_grant_digest":
-        recovery["failed_grant_recovery"]["observations"][0]["state_sha256"] = "0" * 64
+        recovery["failed_grant_recovery"]["transitions"][0]["runtime_state"][
+            "capital_budget_level"
+        ] = 4
     elif mutation == "empty_scc":
         recovery["terminal_scc"]["transitions"] = []
     elif mutation == "crowning_source":
@@ -336,7 +338,10 @@ def test_special_shard_recomputes_strict_raw_literal_facts(mutation: str) -> Non
         recovery["repair_bounds"][0]["observations"][-1]["session"] = "not-a-session"
     reseal_manifest(recovery)
 
-    with pytest.raises(ValueError, match=r"evidence|session|transition|SCC|crowning|repair"):
+    with pytest.raises(
+        ValueError,
+        match=r"evidence|session|transition|state|SCC|crowning|repair",
+    ):
         aggregate_acceptance(manifests, load_absolute_generalization_contract())
 
 

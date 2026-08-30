@@ -28,7 +28,7 @@ OWNERSHIP_CONTRACT_SHA256 = (
     "72e6b510c3bcf44ac77d2c13613f4d72a14ae8dab0d60a19e5947055ae7cbf08"
 )
 CURRENT_CANDIDATE_SOURCE = (
-    "4ac087258e9c5a641a3862f37894b99007d4ad298276df7b76f6d8380c30cde2"
+    "717978a22794a2938a948e03f646522e0dae053d5d234d71bca86e54ef72be7a"
 )
 BASELINE_SOURCE_AT_COMMIT = (
     "d1ef7977ae482e46a920381e6af58791199ec8e1a02586dbe8df451e7d4696c9"
@@ -286,8 +286,8 @@ def test_contract_binds_candidate_and_frozen_inputs_to_independent_authorities()
     assert tuple(ownership["canonical_universe"]) == CANONICAL_UNIVERSE
 
 
-def test_frozen_contract_survives_non_economic_source_registry_evolution() -> None:
-    """Catch coupling the frozen seal to later validation-only registry members."""
+def test_candidate_contract_preserves_historic_source_registry_identity() -> None:
+    """Keep validation-only registry evolution outside the frozen contract."""
 
     module = _contract_module()
     raw = _raw_contract()
@@ -432,7 +432,7 @@ def test_contract_rejects_tampering_even_when_candidate_reseals_it(tmp_path: Pat
         )
 
 
-def test_contract_public_surface_has_no_writer_or_auto_acceptance_path() -> None:
+def test_contract_public_surface_has_only_reviewed_runtime_acceptance_paths() -> None:
     package = importlib.import_module("uquant.validation.absolute_generalization")
     contract_module = _contract_module()
 
@@ -451,12 +451,14 @@ def test_contract_public_surface_has_no_writer_or_auto_acceptance_path() -> None
         "AcceptanceReport",
         "CellArtifact",
         "CellMetrics",
+        "ChampionRuntimeEvidence",
         "ComponentResult",
         "EpochFact",
         "EventFact",
         "FailedGrantRecoveryAnalysis",
         "HealthProjection",
         "IdentityEnvelope",
+        "RecoveryReachabilityRuntimeEvidence",
         "RepairEpisodeFact",
         "ShardManifest",
         "TerminalSccAnalysis",
@@ -466,11 +468,16 @@ def test_contract_public_surface_has_no_writer_or_auto_acceptance_path() -> None
         "build_error_shard_manifest",
         "build_leave_one_out_scenarios",
         "derive_cell_metrics",
+        "derive_runtime_cell_artifact",
         "is_positive_strategic_outlet",
         "load_absolute_generalization_contract",
         "project_flat_book_repair_health",
+        "project_observed_reachability_state",
         "project_qualification_opportunity_health",
         "run_absolute_generalization_replay",
+        "run_champion_runtime_evidence",
+        "run_recovery_and_reachability_runtime_evidence",
+        "run_runtime_cell_artifact",
         "seal_shard_manifest",
         "validate_cell_artifact",
         "validate_shard_manifest",
@@ -482,6 +489,7 @@ def test_contract_sources_and_resource_are_registered_only_on_validation_surface
     expected_sources = {
         "uquant/validation/absolute_generalization/__init__.py",
         "uquant/validation/absolute_generalization/_acceptance_evidence.py",
+        "uquant/validation/absolute_generalization/_champion_runtime_reconciliation.py",
         "uquant/validation/absolute_generalization/aggregation.py",
         "uquant/validation/absolute_generalization/artifacts.py",
         "uquant/validation/absolute_generalization/contract.py",

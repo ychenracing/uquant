@@ -83,6 +83,15 @@ def decode_champion_account(raw: Mapping[str, object]) -> dict[str, object]:
     repair = _mapping(decoded.get("flat_book_capital_repair"), label="capital repair")
     for item in _rows(repair.get("predicate_results"), label="repair predicates"):
         predicate = cast(dict[str, object], _mapping(item, label="repair predicate"))
+        raw_fields = {
+            "authoritative_state",
+            "code",
+            "economic_authority",
+            "orphan_residue",
+            "passed",
+        }
+        if set(predicate) == raw_fields and type(predicate["passed"]) is bool:
+            continue
         if (
             set(predicate)
             != {

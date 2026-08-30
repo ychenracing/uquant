@@ -27,10 +27,35 @@ from uquant.validation.absolute_generalization import (
     run_champion_runtime_evidence,
     run_recovery_and_reachability_runtime_evidence,
 )
+from uquant.validation.absolute_generalization._champion_runtime_reconciliation import (
+    decode_champion_account,
+    project_champion_account,
+)
 from uquant.validation.absolute_generalization.replay import (
     AbsoluteGeneralizationReplayObservation,
 )
 from uquant.validation.absolute_generalization.runtime import _project_baseline_views
+
+
+def test_champion_account_codec_accepts_raw_producer_and_transport_round_trip() -> None:
+    raw = {
+        "flat_book_capital_repair": {
+            "predicate_results": [
+                {
+                    "authoritative_state": "READY",
+                    "code": "flat_book",
+                    "economic_authority": "ACCOUNT",
+                    "orphan_residue": False,
+                    "passed": True,
+                }
+            ]
+        }
+    }
+
+    assert decode_champion_account(raw) == raw
+    projected = project_champion_account(raw)
+    assert projected["flat_book_capital_repair"]["predicate_results"][0]["satisfied"] is True
+    assert decode_champion_account(projected) == raw
 
 
 def test_special_runtime_public_api_has_no_evidence_or_authority_injection() -> None:

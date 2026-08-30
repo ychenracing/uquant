@@ -40,6 +40,39 @@ def _payload_dict(value: Any) -> dict[str, Any]:
     return decoded
 
 
+def test_runtime_payload_projects_nonfinite_diagnostics_to_explicit_strings() -> None:
+    """Unavailable diagnostic sentinels must remain strict, lossless JSON facts."""
+
+    payload = replay_module._payload(
+        {
+            "finite": 0.25,
+            "nested": {
+                "missing": float("nan"),
+                "negative_unavailable": float("-inf"),
+                "positive_unavailable": float("inf"),
+            },
+        },
+        project_nonfinite_diagnostics=True,
+    )
+
+    assert _payload_dict(payload) == {
+        "finite": 0.25,
+        "nested": {
+            "missing": "NaN",
+            "negative_unavailable": "-Infinity",
+            "positive_unavailable": "Infinity",
+        },
+    }
+
+
+@pytest.mark.parametrize("value", (float("nan"), float("-inf"), float("inf")))
+def test_economic_payload_rejects_nonfinite_values(value: float) -> None:
+    """Only the typed diagnostic observation projection may encode sentinels."""
+
+    with pytest.raises(ValueError, match="Out of range float values"):
+        replay_module._payload({"economic_value": value})
+
+
 def _assert_deeply_immutable(value: object) -> None:
     mutable_economic_types = (
         AccountState,

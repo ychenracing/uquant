@@ -140,29 +140,63 @@ class AbsoluteGeneralizationReplay:
     final_account_payload: AbsoluteGeneralizationReplayPayload
 
 
-def _jsonable(value: object) -> object:
+def _jsonable(
+    value: object,
+    *,
+    project_nonfinite_diagnostics: bool = False,
+) -> object:
     """Project repository dataclasses and enums into strict JSON values."""
 
     if isinstance(value, Enum):
         return value.value
     if is_dataclass(value) and not isinstance(value, type):
         return {
-            field.name: _jsonable(getattr(value, field.name))
+            field.name: _jsonable(
+                getattr(value, field.name),
+                project_nonfinite_diagnostics=project_nonfinite_diagnostics,
+            )
             for field in fields(value)
         }
     if isinstance(value, Mapping):
         if any(not isinstance(key, str) for key in value):
             raise TypeError("absolute replay JSON mapping keys must be strings")
-        return {str(key): _jsonable(item) for key, item in value.items()}
+        return {
+            str(key): _jsonable(
+                item,
+                project_nonfinite_diagnostics=project_nonfinite_diagnostics,
+            )
+            for key, item in value.items()
+        }
     if isinstance(value, (list, tuple)):
-        return [_jsonable(item) for item in value]
+        return [
+            _jsonable(
+                item,
+                project_nonfinite_diagnostics=project_nonfinite_diagnostics,
+            )
+            for item in value
+        ]
+    if (
+        project_nonfinite_diagnostics
+        and isinstance(value, float)
+        and not math.isfinite(value)
+    ):
+        return "NaN" if math.isnan(value) else "Infinity" if value > 0 else "-Infinity"
     if value is None or isinstance(value, (str, int, float, bool)):
         return value
     raise TypeError(f"absolute replay cannot encode {type(value).__name__}")
 
 
-def _payload(value: object) -> AbsoluteGeneralizationReplayPayload:
-    encoded = canonical_json_bytes(_jsonable(value))
+def _payload(
+    value: object,
+    *,
+    project_nonfinite_diagnostics: bool = False,
+) -> AbsoluteGeneralizationReplayPayload:
+    encoded = canonical_json_bytes(
+        _jsonable(
+            value,
+            project_nonfinite_diagnostics=project_nonfinite_diagnostics,
+        )
+    )
     return AbsoluteGeneralizationReplayPayload(
         canonical_json=encoded,
         sha256=hashlib.sha256(encoded).hexdigest(),
@@ -769,7 +803,10 @@ def _session_observation_for_symbols(
         replay_universe_identity=replay_universe.identity_sha256,
         data_manifest=_manifest_snapshot(manifest),
         loaded_symbols=engine.workspace.loaded_symbols,
-        decision_runtime_payload=_payload(observed.observation),
+        decision_runtime_payload=_payload(
+            observed.observation,
+            project_nonfinite_diagnostics=True,
+        ),
     )
 
 

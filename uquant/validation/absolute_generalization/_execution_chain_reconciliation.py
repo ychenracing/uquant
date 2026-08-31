@@ -45,15 +45,26 @@ def _trace_order_index(
     final_orders: Mapping[str, Mapping[str, object]],
 ) -> dict[str, tuple[str, Mapping[str, object]]]:
     trace_orders: dict[str, tuple[str, Mapping[str, object]]] = {}
+    last_order_sessions: dict[str, str] = {}
     for row in trace:
         session = metric_iso_session(row.get("session"), label="trace session")
+        session_order_ids: set[str] = set()
         for order in metric_rows(row.get("orders", ()), label="trace orders"):
             if order.get("origin_subsystem") != "STRATEGIC":
                 continue
             order_id = metric_text(order.get("order_id"), label="trace order identity")
-            if order_id in trace_orders:
+            if order_id in session_order_ids:
                 raise ValueError("absolute generalization duplicate trace order identity")
+            session_order_ids.add(order_id)
+            prior = trace_orders.get(order_id)
+            if prior is not None:
+                if session <= last_order_sessions[order_id]:
+                    raise ValueError("absolute generalization duplicate trace order identity")
+                _validate_order_immutable_intent(prior[1], order)
+                last_order_sessions[order_id] = session
+                continue
             trace_orders[order_id] = (session, order)
+            last_order_sessions[order_id] = session
     if set(trace_orders) - set(final_orders):
         raise ValueError("absolute generalization orphan trace order identity")
     if any(

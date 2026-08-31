@@ -628,6 +628,53 @@ def test_reconciles_strategic_sell_order_to_its_exact_target(
     validate_exact_execution_chain(final_account=account, trace=trace, epochs=())
 
 
+def test_reconciles_immutable_cross_session_strategic_order_snapshots() -> None:
+    """A retained pending order remains one physical order across sessions."""
+
+    from uquant.validation.absolute_generalization._execution_chain_reconciliation import (
+        validate_exact_execution_chain,
+    )
+
+    account, trace = _strategic_order_chain(side="BUY", order_weight=0.2)
+    origin = trace[0]
+    carried = {
+        **origin,
+        "session": "2023-01-04",
+        "targets": [],
+        "orders": [dict(origin["orders"][0])],  # type: ignore[index]
+    }
+
+    validate_exact_execution_chain(
+        final_account=account,
+        trace=(*trace, carried),
+        epochs=(),
+    )
+
+
+def test_rejects_cross_session_strategic_order_intent_divergence() -> None:
+    from uquant.validation.absolute_generalization._execution_chain_reconciliation import (
+        validate_exact_execution_chain,
+    )
+
+    account, trace = _strategic_order_chain(side="BUY", order_weight=0.2)
+    origin = trace[0]
+    carried_order = dict(origin["orders"][0])  # type: ignore[index]
+    carried_order["target_weight"] = 0.9
+    carried = {
+        **origin,
+        "session": "2023-01-04",
+        "targets": [],
+        "orders": [carried_order],
+    }
+
+    with pytest.raises(ValueError, match="strategic order target_weight differs"):
+        validate_exact_execution_chain(
+            final_account=account,
+            trace=(*trace, carried),
+            epochs=(),
+        )
+
+
 @pytest.mark.parametrize(  # type: ignore[untyped-decorator]
     ("side", "order_weight", "target_weight", "message"),
     (

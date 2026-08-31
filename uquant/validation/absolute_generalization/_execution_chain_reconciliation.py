@@ -5,18 +5,23 @@ from __future__ import annotations
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 
+from uquant.types import ORDER_INTENT_IMMUTABLE_FIELDS
+
+from ._metric_primitives import (
+    metric_iso_session,
+    metric_mapping,
+    metric_number,
+    metric_positive_number,
+    metric_rows,
+    metric_stable_ids,
+    metric_text,
+)
 from ._physical_identity import (
     physical_fill_identity_map,
     physical_fill_identity_sha256,
 )
 from .metrics import (
     EpochFact,
-    metric_iso_session,
-    metric_mapping,
-    metric_positive_number,
-    metric_rows,
-    metric_stable_ids,
-    metric_text,
 )
 
 _IDENTITY_FIELDS = ("event_id", "epoch_id", "grant_id", "symbol", "side")
@@ -59,6 +64,21 @@ def _trace_order_index(
     return trace_orders
 
 
+def _validate_order_immutable_intent(
+    final_order: Mapping[str, object], trace_order: Mapping[str, object]
+) -> None:
+    for field in ORDER_INTENT_IMMUTABLE_FIELDS:
+        final_value = final_order.get(field)
+        trace_value = trace_order.get(field)
+        if (
+            field not in final_order
+            or field not in trace_order
+            or type(final_value) is not type(trace_value)
+            or final_value != trace_value
+        ):
+            raise ValueError(f"absolute generalization strategic order {field} differs")
+
+
 def _validate_strategic_orders(
     *,
     final_orders: Mapping[str, Mapping[str, object]],
@@ -72,20 +92,19 @@ def _validate_strategic_orders(
         if traced is None:
             raise ValueError("absolute generalization strategic order identity differs")
         session, trace_order = traced
-        for field in _IDENTITY_FIELDS:
-            final_value = metric_text(
-                final_order.get(field, ""), label=f"final order {field}", empty=True
-            )
-            trace_value = metric_text(
-                trace_order.get(field, ""), label=f"trace order {field}", empty=True
-            )
-            if final_value != trace_value:
-                raise ValueError(f"absolute generalization strategic order {field} differs")
+        _validate_order_immutable_intent(final_order, trace_order)
+        side = metric_text(trace_order.get("side"), label="trace order side")
+        order_target_weight = metric_number(
+            trace_order.get("target_weight"),
+            label="trace order target weight",
+            minimum=0.0,
+        )
         if (
-            metric_iso_session(final_order.get("signal_date"), label="order signal session")
+            metric_iso_session(trace_order.get("signal_date"), label="order signal session")
             != session
-            or trace_order.get("side") != "BUY"
-            or metric_positive_number(trace_order.get("target_weight")) <= 0.0
+            or side not in {"BUY", "SELL"}
+            or order_target_weight > 1.0
+            or (side == "BUY" and order_target_weight <= 0.0)
         ):
             raise ValueError("absolute generalization strategic order session differs")
         targets = [
@@ -94,11 +113,16 @@ def _validate_strategic_orders(
             if row.get("session") == session
             for target in metric_rows(row.get("targets", ()), label="trace targets")
             if target.get("origin_subsystem") == "STRATEGIC"
-            and metric_positive_number(target.get("weight")) > 0.0
             and all(
                 target.get(field, "") == trace_order.get(field, "")
                 for field in _IDENTITY_FIELDS[:-1]
             )
+            and metric_number(
+                target.get("weight"),
+                label="trace target weight",
+                minimum=0.0,
+            )
+            == order_target_weight
         ]
         if not targets:
             raise ValueError("absolute generalization order target identity differs")

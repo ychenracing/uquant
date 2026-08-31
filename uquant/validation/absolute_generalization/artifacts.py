@@ -176,16 +176,90 @@ def artifact_sequence(value: object, *, label: str) -> Sequence[object]:
     return cast(Sequence[object], value)
 
 
-def _reject_self_assertion(value: object) -> None:
+def _is_production_predicate_fact(value: Mapping[object, object]) -> bool:
+    """Recognize the strict production predicate DTO, whose fact is named passed."""
+
+    return (
+        set(value)
+        == {
+            "authoritative_state",
+            "code",
+            "economic_authority",
+            "orphan_residue",
+            "passed",
+        }
+        and isinstance(value.get("authoritative_state"), Mapping)
+        and isinstance(value.get("code"), str)
+        and bool(value.get("code"))
+        and type(value.get("economic_authority")) is bool
+        and type(value.get("orphan_residue")) is bool
+        and type(value.get("passed")) is bool
+    )
+
+
+def _is_production_predicate_path(path: tuple[str | int, ...]) -> bool:
+    owners = {"flat_book_capital_repair", "strategic_cash_rearm"}
+    for index, component in enumerate(path):
+        if component != "replay_evidence":
+            continue
+        prefix = path[:index]
+        if prefix and not (
+            len(prefix) == 2
+            and prefix[0] == "cells"
+            and isinstance(prefix[1], int)
+        ):
+            continue
+        tail = path[index:]
+        if (
+            len(tail) == 6
+            and tail[:3] == ("replay_evidence", "final_account_payload", "value")
+            and tail[3] in owners
+            and tail[4] == "predicate_results"
+            and isinstance(tail[5], int)
+        ):
+            return True
+        if len(tail) != 9 or tail[:2] != ("replay_evidence", "observations"):
+            continue
+        if not isinstance(tail[2], int) or tail[6] not in owners:
+            continue
+        if tail[7] != "predicate_results" or not isinstance(tail[8], int):
+            continue
+        if tail[3:6] == ("decision_payload", "value", "risk_summary") or (
+            tail[3] in {"post_open_account", "post_decision_account"}
+            and tail[4:6] == ("account_payload", "value")
+        ):
+            return True
+    return False
+
+
+def reject_self_assertion_claims(
+    value: object,
+    *,
+    label: str = "artifact",
+    path: tuple[str | int, ...] = (),
+) -> None:
     if isinstance(value, Mapping):
-        forbidden = {"passed", "runner_success", "capability_pass"} & set(value)
-        if forbidden:
-            raise ValueError("absolute generalization artifact contains a self-asserted pass")
-        for item in value.values():
-            _reject_self_assertion(item)
+        forbidden = {
+            key
+            for key in value
+            if isinstance(key, str)
+            and (
+                key in {"passed", "runner_success", "capability_pass"}
+                or key.endswith("_passed")
+            )
+        }
+        if forbidden and not (
+            forbidden == {"passed"} and _is_production_predicate_fact(value)
+            and _is_production_predicate_path(path)
+        ):
+            raise ValueError(
+                f"absolute generalization {label} contains a self-asserted pass"
+            )
+        for key, item in value.items():
+            reject_self_assertion_claims(item, label=label, path=(*path, key))
     elif isinstance(value, Sequence) and not isinstance(value, (str, bytes, bytearray)):
-        for item in value:
-            _reject_self_assertion(item)
+        for index, item in enumerate(value):
+            reject_self_assertion_claims(item, label=label, path=(*path, index))
 
 
 def artifact_finite_json(value: object) -> None:
@@ -466,7 +540,7 @@ def _absolute_generalization_artifact_header(
     raw: Mapping[str, object], contract: AbsoluteGeneralizationContract
 ) -> _ArtifactHeader:
     document = artifact_mapping(raw, label="cell artifact")
-    _reject_self_assertion(document)
+    reject_self_assertion_claims(document)
     artifact_finite_json(document)
     expected_fields = {
         "schema_version",

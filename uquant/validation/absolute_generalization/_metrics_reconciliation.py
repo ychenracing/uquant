@@ -12,6 +12,16 @@ from uquant.market import ReplayUniverse
 from uquant.models.strategic_universe import StrategicUniverseRoles, build_strategic_universe_roles
 
 from ._execution_chain_reconciliation import validate_exact_execution_chain
+from ._metric_primitives import (
+    metric_iso_session,
+    metric_mapping,
+    metric_number,
+    metric_payload_mapping,
+    metric_positive_number,
+    metric_rows,
+    metric_text,
+    metric_trace_row,
+)
 from ._physical_identity import physical_fill_identity_map
 from .metrics import (
     CellMetrics,
@@ -21,14 +31,6 @@ from .metrics import (
     assert_unique_execution_rows,
     longest_healthy_zero_target_streak,
     metric_healthy_trace_row,
-    metric_iso_session,
-    metric_mapping,
-    metric_number,
-    metric_payload_mapping,
-    metric_positive_number,
-    metric_rows,
-    metric_text,
-    metric_trace_row,
     repair_episode_facts_from_trace,
 )
 from .replay import AbsoluteGeneralizationReplay, AbsoluteGeneralizationReplayObservation
@@ -48,9 +50,7 @@ def _role_coverage(symbols: Sequence[str], available: Sequence[str]) -> float:
     return sum(symbol in available_set for symbol in symbols) / len(symbols)
 
 
-def _validated_roles(
-    observation: AbsoluteGeneralizationReplayObservation,
-) -> StrategicUniverseRoles:
+def _validated_roles(observation: AbsoluteGeneralizationReplayObservation) -> StrategicUniverseRoles:
     roles = observation.roles
     if roles.as_of != observation.session:
         raise ValueError("absolute generalization role session differs")

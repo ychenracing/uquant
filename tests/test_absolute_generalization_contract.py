@@ -490,6 +490,7 @@ def test_contract_sources_and_resource_are_registered_only_on_validation_surface
         "uquant/validation/absolute_generalization/__init__.py",
         "uquant/validation/absolute_generalization/_acceptance_evidence.py",
         "uquant/validation/absolute_generalization/_champion_runtime_reconciliation.py",
+        "uquant/validation/absolute_generalization/_metric_primitives.py",
         "uquant/validation/absolute_generalization/aggregation.py",
         "uquant/validation/absolute_generalization/artifacts.py",
         "uquant/validation/absolute_generalization/contract.py",

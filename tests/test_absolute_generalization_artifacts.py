@@ -1,8 +1,11 @@
 from __future__ import annotations
 
+from dataclasses import replace
+
 import pytest
 from _absolute_generalization_metrics_fixture import (
     complete_replay,
+    payload,
     replay_error,
     scenario,
 )
@@ -41,6 +44,110 @@ def test_strict_round_trip_rejects_extra_self_asserted_or_tampered_fields() -> N
     )
     with pytest.raises(ValueError, match="metric identity"):
         validate_cell_artifact(resealed, contract)
+
+
+def test_strict_round_trip_accepts_production_predicate_passed_fact() -> None:
+    """A predicate observation named passed is evidence, not an acceptance claim."""
+
+    from uquant.contracts.strict_json import strict_json_loads
+
+    replay = complete_replay()
+    first = replay.observations[0]
+    decision = strict_json_loads(first.decision_payload.canonical_json)
+    assert isinstance(decision, dict)
+    repair = decision["risk_summary"]["flat_book_capital_repair"]
+    repair["predicate_results"] = [
+        {
+            "authoritative_state": {"positive_position_symbols": []},
+            "code": "ALL_CASH",
+            "economic_authority": False,
+            "orphan_residue": False,
+            "passed": True,
+        }
+    ]
+    replay = replace(
+        replay,
+        observations=(
+            replace(first, decision_payload=payload(decision)),
+            *replay.observations[1:],
+        ),
+    )
+    contract = load_absolute_generalization_contract()
+    artifact = derive_cell_metrics(replay, scenario(), _identities())
+
+    assert validate_cell_artifact(artifact.to_dict(), contract) == artifact
+
+
+def test_strict_round_trip_rejects_predicate_shaped_pass_at_untrusted_path() -> None:
+    """The production DTO shape is trusted only at its owned ledger path."""
+
+    from uquant.contracts.strict_json import strict_json_loads
+
+    replay = complete_replay()
+    first = replay.observations[0]
+    decision = strict_json_loads(first.decision_payload.canonical_json)
+    assert isinstance(decision, dict)
+    decision["risk_summary"]["untrusted_acceptance_claim"] = {
+        "authoritative_state": {},
+        "code": "CAPABILITY_PASS",
+        "economic_authority": False,
+        "orphan_residue": False,
+        "passed": True,
+    }
+    replay = replace(
+        replay,
+        observations=(
+            replace(first, decision_payload=payload(decision)),
+            *replay.observations[1:],
+        ),
+    )
+    contract = load_absolute_generalization_contract()
+    artifact = derive_cell_metrics(replay, scenario(), _identities())
+
+    with pytest.raises(ValueError, match="self-asserted pass"):
+        validate_cell_artifact(artifact.to_dict(), contract)
+
+
+def test_strict_round_trip_rejects_nested_fake_replay_predicate_path() -> None:
+    """A nested replay-shaped suffix cannot manufacture an owned predicate path."""
+
+    from uquant.contracts.strict_json import strict_json_loads
+
+    replay = complete_replay()
+    first = replay.observations[0]
+    decision = strict_json_loads(first.decision_payload.canonical_json)
+    assert isinstance(decision, dict)
+    decision["risk_summary"]["untrusted"] = {
+        "replay_evidence": {
+            "final_account_payload": {
+                "value": {
+                    "flat_book_capital_repair": {
+                        "predicate_results": [
+                            {
+                                "authoritative_state": {},
+                                "code": "CAPABILITY_PASS",
+                                "economic_authority": False,
+                                "orphan_residue": False,
+                                "passed": True,
+                            }
+                        ]
+                    }
+                }
+            }
+        }
+    }
+    replay = replace(
+        replay,
+        observations=(
+            replace(first, decision_payload=payload(decision)),
+            *replay.observations[1:],
+        ),
+    )
+    contract = load_absolute_generalization_contract()
+    artifact = derive_cell_metrics(replay, scenario(), _identities())
+
+    with pytest.raises(ValueError, match="self-asserted pass"):
+        validate_cell_artifact(artifact.to_dict(), contract)
 
 
 def test_replay_error_artifact_is_explicit_non_applicable_and_metric_free() -> None:

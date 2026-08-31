@@ -5,6 +5,7 @@ import inspect
 import json
 import subprocess
 import sys
+from dataclasses import replace
 from pathlib import Path
 
 import pytest
@@ -13,7 +14,7 @@ from _absolute_generalization_acceptance_fixture import (
     reseal_manifest,
     successful_manifests,
 )
-from _absolute_generalization_metrics_fixture import complete_replay
+from _absolute_generalization_metrics_fixture import complete_replay, payload
 
 import scripts.run_absolute_generalization_acceptance as runner_module
 from scripts.run_absolute_generalization_acceptance import (
@@ -369,6 +370,45 @@ def test_validation_runtime_derives_a_cell_from_raw_replay_without_pass_claims()
         replay.observations[-1].roles.tradable_identity
     )
     assert "passed" not in json.dumps(artifact.to_dict(), sort_keys=True)
+
+
+def test_loo_manifest_accepts_owned_production_predicate_facts() -> None:
+    """The outer transport delegates a cell's owned evidence to cell validation."""
+
+    from uquant.contracts.strict_json import strict_json_loads
+
+    contract = load_absolute_generalization_contract()
+    replay = complete_replay()
+    first = replay.observations[0]
+    decision = strict_json_loads(first.decision_payload.canonical_json)
+    assert isinstance(decision, dict)
+    decision["risk_summary"]["flat_book_capital_repair"]["predicate_results"] = [
+        {
+            "authoritative_state": {"positive_position_symbols": []},
+            "code": "ALL_CASH",
+            "economic_authority": False,
+            "orphan_residue": False,
+            "passed": True,
+        }
+    ]
+    replay = replace(
+        replay,
+        observations=(
+            replace(first, decision_payload=payload(decision)),
+            *replay.observations[1:],
+        ),
+    )
+    artifact = derive_runtime_cell_artifact(replay, contract)
+    options = parse_cli(
+        _execution_args(
+            "--symbol", replay.scenario.removed_symbol, shard=replay.scenario.shard
+        )
+    )
+
+    raw = build_loo_shard_manifest(options, (artifact,), contract)
+
+    assert raw["status"] == "COMPLETE"
+    assert validate_cell_artifact(raw["cells"][0], contract) == artifact  # type: ignore[index]
 
 
 def test_validation_runtime_rejects_a_replay_without_observed_role_identity() -> None:

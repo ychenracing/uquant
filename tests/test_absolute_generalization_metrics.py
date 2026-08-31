@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import asdict, fields, is_dataclass, replace
+from datetime import date, timedelta
 
 import pytest
 from _absolute_generalization_metrics_fixture import (
@@ -111,7 +112,7 @@ def test_derives_complete_literal_metrics_and_fill_gated_epoch_facts() -> None:
     assert epoch.fill_session == "2023-01-04"
     assert epoch.active_session == "2023-01-04"
     assert metrics.repair_episode_count == 1
-    assert metrics.repairs[0].actual_healthy_sessions_to_ready == 1
+    assert metrics.repairs[0].actual_healthy_sessions_to_ready == 0
     assert metrics.intentional_role_absent_symbols == (scenario().removed_symbol,)
     assert metrics.expected_but_unavailable_symbols == ()
     assert metrics.qualification_coverage == 1.0
@@ -574,6 +575,113 @@ def test_rejects_non_exact_strategic_physical_chain(mutation: str, message: str)
         derive_cell_metrics(tampered, scenario(), _identities())
 
 
+def _strategic_order_chain(
+    *,
+    side: str,
+    order_weight: float,
+    target_weight: float | None = None,
+) -> tuple[dict[str, object], tuple[dict[str, object], ...]]:
+    """Return one exact physical order/Target pair without economic success facts."""
+
+    from uquant.contracts.strict_json import strict_json_loads
+
+    replay = complete_replay()
+    account = strict_json_loads(replay.final_account_payload.canonical_json)
+    decision = strict_json_loads(replay.observations[0].decision_payload.canonical_json)
+    assert isinstance(account, dict)
+    assert isinstance(decision, dict)
+    order = dict(account["order_ledger"][0])
+    target = dict(decision["targets"][0])
+    order.update({"side": side, "target_weight": order_weight})
+    target["weight"] = order_weight if target_weight is None else target_weight
+    return (
+        {"order_ledger": [order], "fills": []},
+        (
+            {
+                "session": order["signal_date"],
+                "orders": [{**order, "status": None}],
+                "targets": [target],
+            },
+        ),
+    )
+
+
+@pytest.mark.parametrize("target_weight", (0.1, 0.0))  # type: ignore[untyped-decorator]
+def test_reconciles_strategic_sell_order_to_its_exact_target(
+    target_weight: float,
+) -> None:
+    """A reduction or full exit is reconciled but never promoted to a BUY success."""
+
+    from uquant.validation.absolute_generalization._execution_chain_reconciliation import (
+        validate_exact_execution_chain,
+    )
+
+    account, trace = _strategic_order_chain(
+        side="SELL",
+        order_weight=target_weight,
+    )
+
+    validate_exact_execution_chain(final_account=account, trace=trace, epochs=())
+
+
+@pytest.mark.parametrize(  # type: ignore[untyped-decorator]
+    ("side", "order_weight", "target_weight", "message"),
+    (
+        ("HOLD", 0.1, 0.1, "order session"),
+        ("BUY", 0.0, 0.0, "order session"),
+        ("SELL", 0.1, 0.2, "order target identity"),
+    ),
+)
+def test_rejects_strategic_order_without_exact_directional_target(
+    side: str,
+    order_weight: float,
+    target_weight: float,
+    message: str,
+) -> None:
+    """SELL support cannot weaken side, BUY, or exact Target reconciliation."""
+
+    from uquant.validation.absolute_generalization._execution_chain_reconciliation import (
+        validate_exact_execution_chain,
+    )
+
+    account, trace = _strategic_order_chain(
+        side=side,
+        order_weight=order_weight,
+        target_weight=target_weight,
+    )
+
+    with pytest.raises(ValueError, match=message):
+        validate_exact_execution_chain(final_account=account, trace=trace, epochs=())
+
+
+@pytest.mark.parametrize(  # type: ignore[untyped-decorator]
+    ("ledger", "field", "value"),
+    (
+        ("final", "target_weight", 0.9),
+        ("trace", "signal_date", "2023-01-04"),
+    ),
+)
+def test_rejects_strategic_order_immutable_intent_divergence(
+    ledger: str,
+    field: str,
+    value: object,
+) -> None:
+    """Final and trace Orders share the production immutable intent identity."""
+
+    from uquant.validation.absolute_generalization._execution_chain_reconciliation import (
+        validate_exact_execution_chain,
+    )
+
+    account, trace = _strategic_order_chain(side="BUY", order_weight=0.2)
+    if ledger == "final":
+        account["order_ledger"][0][field] = value  # type: ignore[index]
+    else:
+        trace[0]["orders"][0][field] = value  # type: ignore[index]
+
+    with pytest.raises(ValueError, match=rf"strategic order {field} differs"):
+        validate_exact_execution_chain(final_account=account, trace=trace, epochs=())
+
+
 def test_rejects_rearm_identity_tamper_on_repeated_grant_observation() -> None:
     """Every repeated grant row remains bound to the same rearm identity."""
 
@@ -709,35 +817,269 @@ def test_rejects_reported_repair_count_not_observed_in_session_progression() -> 
         derive_cell_metrics(tampered, scenario(), _identities())
 
 
-def test_repair_literal_progression_restarts_after_reset() -> None:
-    """Observed counter increments before a reset do not count toward later readiness."""
+def _repair_trace_row(
+    session: str,
+    *,
+    episode_id: str,
+    count: int,
+    status: str,
+    last_counted_session: str,
+    last_ready_session: str,
+    first_observed_session: str = "2023-01-03",
+    reset_reason: str = "",
+    last_reset_session: str = "",
+) -> dict[str, object]:
+    return {
+        "session": session,
+        "risk": {
+            "flat_book_capital_repair": {
+                "repair_episode_id": episode_id,
+                "capital_budget_level": 1,
+                "repair_target_level": 0,
+                "required_healthy_sessions": 20,
+                "healthy_session_count": count,
+                "first_observed_session": first_observed_session,
+                "last_counted_session": last_counted_session,
+                "last_ready_session": last_ready_session,
+                "last_reset_session": last_reset_session,
+                "reset_reason": reset_reason,
+                "status": status,
+            }
+        },
+    }
 
-    def row(session: str, *, count: int, status: str, reset_reason: str = "") -> dict[str, object]:
-        repair: dict[str, object] = {
-            "repair_episode_id": "repair-reset",
-            "capital_budget_level": 1,
-            "repair_target_level": 0,
-            "required_healthy_sessions": 2,
-            "healthy_session_count": count,
-            "first_observed_session": "2023-01-03",
-            "last_ready_session": "2023-01-06" if status == "READY" else "",
-            "reset_reason": reset_reason,
-            "status": status,
-        }
-        if status == "RESET":
-            repair["last_reset_session"] = session
-        return {"session": session, "risk": {"flat_book_capital_repair": repair}}
 
+def _ready_repair_rows(episode_id: str) -> list[dict[str, object]]:
+    rows = []
+    first = date(2023, 1, 3)
+    for offset in range(20):
+        session = (first + timedelta(days=offset)).isoformat()
+        count = offset + 1
+        rows.append(
+            _repair_trace_row(
+                session,
+                episode_id=episode_id,
+                count=count,
+                status="READY" if count == 20 else "ACCUMULATING",
+                last_counted_session=session,
+                last_ready_session=session if count == 20 else "",
+            )
+        )
+    return rows
+
+
+def test_repair_ready_fact_survives_live_authority_reset() -> None:
+    """A mutable authority reset cannot erase the episode's historical READY fact."""
+
+    rows = _ready_repair_rows("repair-reset")
+    rows.append(
+        _repair_trace_row(
+            "2023-01-23",
+            episode_id="repair-reset",
+            count=0,
+            status="RESET",
+            last_counted_session="",
+            last_ready_session="",
+            reset_reason="LIVE_CAPITAL_AUTHORITY",
+            last_reset_session="2023-01-23",
+        )
+    )
+    facts = repair_episode_facts_from_trace(tuple(rows))
+
+    assert facts[0].actual_healthy_sessions_to_ready == 20
+    assert facts[0].reported_healthy_sessions == 20
+    assert facts[0].last_ready_session == "2023-01-22"
+    assert facts[0].status == "RESET"
+
+
+def test_capital_budget_clear_retains_repair_state_provenance() -> None:
+    """The production clear path resets count while retaining its prior provenance."""
+
+    rows = _ready_repair_rows("repair-budget-clear")
+    rows.append(
+        _repair_trace_row(
+            "2023-01-23",
+            episode_id="repair-budget-clear",
+            count=0,
+            status="RESET",
+            last_counted_session="2023-01-22",
+            last_ready_session="2023-01-22",
+            reset_reason="CAPITAL_BUDGET_CLEARED",
+            last_reset_session="2023-01-23",
+        )
+    )
+    facts = repair_episode_facts_from_trace(tuple(rows))
+
+    assert facts[0].actual_healthy_sessions_to_ready == 20
+    assert facts[0].reported_healthy_sessions == 20
+    assert facts[0].last_ready_session == "2023-01-22"
+
+
+def test_repair_episode_bootstraps_transition_reset_before_health_evaluation() -> None:
+    """A new transition episode retains its reset even when the first row is blocked."""
+
+    reset_reason = "RISK_REFERENCE_IDENTITY_CHANGED"
+    base = {
+        "repair_episode_id": "repair-transition-reset",
+        "capital_budget_level": 2,
+        "repair_target_level": 1,
+        "required_healthy_sessions": 40,
+        "first_observed_session": "2024-01-02",
+        "last_ready_session": "",
+        "last_reset_session": "2024-01-02",
+        "reset_reason": reset_reason,
+    }
     facts = repair_episode_facts_from_trace(
         (
-            row("2023-01-03", count=1, status="COUNTING"),
-            row("2023-01-04", count=0, status="RESET", reset_reason="OBSERVED_RESET"),
-            row("2023-01-05", count=1, status="COUNTING"),
-            row("2023-01-06", count=2, status="READY"),
+            {
+                "session": "2024-01-02",
+                "risk": {
+                    "flat_book_capital_repair": {
+                        **base,
+                        "healthy_session_count": 0,
+                        "last_counted_session": "",
+                        "status": "BLOCKED",
+                    }
+                },
+            },
+            {
+                "session": "2024-01-03",
+                "risk": {
+                    "flat_book_capital_repair": {
+                        **base,
+                        "healthy_session_count": 1,
+                        "last_counted_session": "2024-01-03",
+                        "status": "ACCUMULATING",
+                    }
+                },
+            },
         )
     )
 
-    assert facts[0].actual_healthy_sessions_to_ready == 2
+    assert facts[0].first_observed_session == "2024-01-02"
+    assert facts[0].reported_healthy_sessions == 1
+    assert facts[0].reset_reason == reset_reason
+
+
+def test_rejects_repair_reset_reason_mutation_inside_one_episode() -> None:
+    """Transition reset provenance stays fixed until the episode reaches READY."""
+
+    def row(session: str, reset_reason: str) -> dict[str, object]:
+        return {
+            "session": session,
+            "risk": {
+                "flat_book_capital_repair": {
+                    "repair_episode_id": "repair-reset-mutation",
+                    "capital_budget_level": 2,
+                    "repair_target_level": 1,
+                    "required_healthy_sessions": 40,
+                    "healthy_session_count": 0,
+                    "first_observed_session": "2024-01-02",
+                    "last_counted_session": "",
+                    "last_ready_session": "",
+                    "last_reset_session": "2024-01-02",
+                    "reset_reason": reset_reason,
+                    "status": "BLOCKED",
+                }
+            },
+        }
+
+    with pytest.raises(ValueError, match="repair reset reason"):
+        repair_episode_facts_from_trace(
+            (
+                row("2024-01-02", "RISK_REFERENCE_IDENTITY_CHANGED"),
+                row("2024-01-03", "CONFIG_IDENTITY_CHANGED"),
+            )
+        )
+
+
+@pytest.mark.parametrize(  # type: ignore[untyped-decorator]
+    "reset_reason",
+    ("LIVE_CAPITAL_AUTHORITY", "CAPITAL_BUDGET_CLEARED"),
+)
+def test_rejects_reset_only_reason_on_nonreset_repair_row(reset_reason: str) -> None:
+    row = _repair_trace_row(
+        "2023-01-03",
+        episode_id="repair-reset-only-reason",
+        count=0,
+        status="BLOCKED",
+        last_counted_session="",
+        last_ready_session="",
+        reset_reason=reset_reason,
+        last_reset_session="2023-01-03",
+    )
+
+    with pytest.raises(ValueError, match="repair reset reason"):
+        repair_episode_facts_from_trace((row,))
+
+
+@pytest.mark.parametrize(  # type: ignore[untyped-decorator]
+    ("level", "target", "required"),
+    ((4, 0, 1), (99, 98, 1)),
+)
+def test_rejects_repair_tier_outside_frozen_production_mapping(
+    level: int,
+    target: int,
+    required: int,
+) -> None:
+    row = {
+        "session": "2024-01-02",
+        "risk": {
+            "flat_book_capital_repair": {
+                "repair_episode_id": "repair-forged-tier",
+                "capital_budget_level": level,
+                "repair_target_level": target,
+                "required_healthy_sessions": required,
+                "healthy_session_count": required,
+                "first_observed_session": "2024-01-02",
+                "last_counted_session": "2024-01-02",
+                "last_ready_session": "2024-01-02",
+                "last_reset_session": "",
+                "reset_reason": "",
+                "status": "READY",
+            }
+        },
+    }
+
+    with pytest.raises(ValueError, match="repair tier/bound"):
+        repair_episode_facts_from_trace((row,))
+
+
+@pytest.mark.parametrize(  # type: ignore[untyped-decorator]
+    ("reset_reason", "last_reset_session"),
+    (
+        ("RISK_REFERENCE_IDENTITY_CHANGED", ""),
+        ("", "2024-01-02"),
+        ("RISK_REFERENCE_IDENTITY_CHANGED", "2024-01-01"),
+    ),
+)
+def test_rejects_incomplete_repair_transition_reset_bootstrap(
+    reset_reason: str,
+    last_reset_session: str,
+) -> None:
+    """Transition-reset provenance is complete and bound to the episode's first row."""
+
+    row = {
+        "session": "2024-01-02",
+        "risk": {
+            "flat_book_capital_repair": {
+                "repair_episode_id": "repair-transition-reset",
+                "capital_budget_level": 2,
+                "repair_target_level": 1,
+                "required_healthy_sessions": 40,
+                "healthy_session_count": 0,
+                "first_observed_session": "2024-01-02",
+                "last_counted_session": "",
+                "last_ready_session": "",
+                "last_reset_session": last_reset_session,
+                "reset_reason": reset_reason,
+                "status": "BLOCKED",
+            }
+        },
+    }
+
+    with pytest.raises(ValueError, match="repair reset bootstrap"):
+        repair_episode_facts_from_trace((row,))
 
 
 def test_repair_facts_ignore_only_the_canonical_empty_production_state() -> None:
@@ -771,14 +1113,14 @@ def test_repair_literal_progression_retains_counted_session_identity() -> None:
                     "repair_episode_id": "repair-counted-session",
                     "capital_budget_level": 1,
                     "repair_target_level": 0,
-                    "required_healthy_sessions": 2,
+                    "required_healthy_sessions": 20,
                     "healthy_session_count": 1,
                     "first_observed_session": "2023-01-03",
                     "last_counted_session": last_counted_session,
                     "last_ready_session": "",
                     "last_reset_session": "",
                     "reset_reason": "",
-                    "status": "COUNTING",
+                    "status": "ACCUMULATING",
                 }
             },
         }
@@ -792,16 +1134,156 @@ def test_repair_literal_progression_retains_counted_session_identity() -> None:
         )
 
 
+def test_repair_ready_provenance_survives_blocking_and_saturated_health() -> None:
+    """READY provenance persists while later healthy rows refresh their count date."""
+
+    rows = _ready_repair_rows("repair-ready-persistence")
+    rows.extend(
+        (
+            _repair_trace_row(
+                "2023-01-23", episode_id="repair-ready-persistence", count=20,
+                status="BLOCKED", last_counted_session="2023-01-22",
+                last_ready_session="2023-01-22",
+            ),
+            _repair_trace_row(
+                "2023-01-24", episode_id="repair-ready-persistence", count=20,
+                status="READY", last_counted_session="2023-01-24",
+                last_ready_session="2023-01-22",
+            ),
+            _repair_trace_row(
+                "2023-01-25", episode_id="repair-ready-persistence", count=20,
+                status="CONSUMED", last_counted_session="2023-01-25",
+                last_ready_session="2023-01-22",
+            ),
+        )
+    )
+    facts = repair_episode_facts_from_trace(tuple(rows))
+
+    assert facts[0].actual_healthy_sessions_to_ready == 20
+    assert facts[0].last_ready_session == "2023-01-22"
+    assert facts[0].reported_healthy_sessions == 20
+    assert facts[0].status == "CONSUMED"
+
+
+def test_rejects_saturated_ready_without_current_counted_session() -> None:
+    """Every newly observed healthy READY row refreshes its counted-session fact."""
+
+    rows = _ready_repair_rows("repair-stale-saturated-session")
+    rows.append(
+        _repair_trace_row(
+            "2023-01-23", episode_id="repair-stale-saturated-session", count=20,
+            status="READY", last_counted_session="2023-01-22",
+            last_ready_session="2023-01-22",
+        )
+    )
+
+    with pytest.raises(ValueError, match="repair counted session"):
+        repair_episode_facts_from_trace(tuple(rows))
+
+
+@pytest.mark.parametrize(  # type: ignore[untyped-decorator]
+    ("reset_reason", "last_counted_session", "last_ready_session"),
+    (
+        ("LIVE_CAPITAL_AUTHORITY", "", "2023-01-22"),
+        ("CAPITAL_BUDGET_CLEARED", "", "2023-01-22"),
+    ),
+)
+def test_rejects_reset_repair_provenance_mismatch(
+    reset_reason: str,
+    last_counted_session: str,
+    last_ready_session: str,
+) -> None:
+    """Each production reset reason has an exact clear-or-retain provenance rule."""
+
+    rows = _ready_repair_rows("repair-reset-provenance")
+    rows.append(
+        _repair_trace_row(
+            "2023-01-23", episode_id="repair-reset-provenance", count=0,
+            status="RESET", last_counted_session=last_counted_session,
+            last_ready_session=last_ready_session, reset_reason=reset_reason,
+            last_reset_session="2023-01-23",
+        )
+    )
+
+    with pytest.raises(ValueError, match=r"repair .* session"):
+        repair_episode_facts_from_trace(tuple(rows))
+
+
+@pytest.mark.parametrize(  # type: ignore[untyped-decorator]
+    ("status", "reset_reason", "message"),
+    (
+        ("COUNTING", "", "repair status"),
+        ("RESET", "OBSERVED_RESET", "repair reset reason"),
+    ),
+)
+def test_rejects_nonproduction_repair_status_or_reset_reason(
+    status: str,
+    reset_reason: str,
+    message: str,
+) -> None:
+    """Literal repair facts accept only the production lifecycle vocabulary."""
+
+    row = {
+        "session": "2023-01-03",
+        "risk": {
+            "flat_book_capital_repair": {
+                    "repair_episode_id": "repair-invalid-vocabulary",
+                    "capital_budget_level": 1,
+                    "repair_target_level": 0,
+                    "required_healthy_sessions": 20,
+                "healthy_session_count": 0 if status == "RESET" else 1,
+                "first_observed_session": "2023-01-03",
+                "last_counted_session": "" if status == "RESET" else "2023-01-03",
+                "last_ready_session": "",
+                "last_reset_session": "2023-01-03" if status == "RESET" else "",
+                "reset_reason": reset_reason,
+                "status": status,
+            }
+        },
+    }
+
+    with pytest.raises(ValueError, match=message):
+        repair_episode_facts_from_trace((row,))
+
+
+@pytest.mark.parametrize(  # type: ignore[untyped-decorator]
+    ("blocked_ready_session", "blocked_counted_session", "message"),
+    (
+        ("2023-01-23", "2023-01-22", "repair ready session"),
+        ("2023-01-22", "2023-01-23", "repair counted session"),
+    ),
+)
+def test_rejects_blocked_repair_provenance_mutation(
+    blocked_ready_session: str,
+    blocked_counted_session: str,
+    message: str,
+) -> None:
+    """A blocked row may retain, but cannot rewrite, prior repair provenance."""
+
+    rows = _ready_repair_rows("repair-blocked-provenance")
+    rows.append(
+        _repair_trace_row(
+            "2023-01-23", episode_id="repair-blocked-provenance", count=20,
+            status="BLOCKED", last_counted_session=blocked_counted_session,
+            last_ready_session=blocked_ready_session,
+        )
+    )
+
+    with pytest.raises(ValueError, match=message):
+        repair_episode_facts_from_trace(tuple(rows))
+
+
 def test_repair_literal_progression_retains_reset_session_identity() -> None:
-    """Rows after RESET must retain the actual last reset session."""
+    """Rows before READY retain the episode's transition reset session."""
 
     base = {
         "repair_episode_id": "repair-reset-session",
-        "capital_budget_level": 1,
-        "repair_target_level": 0,
-        "required_healthy_sessions": 2,
+        "capital_budget_level": 2,
+        "repair_target_level": 1,
+        "required_healthy_sessions": 40,
         "first_observed_session": "2023-01-03",
         "last_ready_session": "",
+        "reset_reason": "RISK_REFERENCE_IDENTITY_CHANGED",
     }
     rows = (
         {
@@ -809,11 +1291,10 @@ def test_repair_literal_progression_retains_reset_session_identity() -> None:
             "risk": {
                 "flat_book_capital_repair": {
                     **base,
-                    "healthy_session_count": 1,
-                    "last_counted_session": "2023-01-03",
-                    "last_reset_session": "",
-                    "reset_reason": "",
-                    "status": "COUNTING",
+                    "healthy_session_count": 0,
+                    "last_counted_session": "",
+                    "last_reset_session": "2023-01-03",
+                    "status": "BLOCKED",
                 }
             },
         },
@@ -822,24 +1303,10 @@ def test_repair_literal_progression_retains_reset_session_identity() -> None:
             "risk": {
                 "flat_book_capital_repair": {
                     **base,
-                    "healthy_session_count": 0,
-                    "last_counted_session": "",
-                    "last_reset_session": "2023-01-04",
-                    "reset_reason": "OBSERVED_RESET",
-                    "status": "RESET",
-                }
-            },
-        },
-        {
-            "session": "2023-01-05",
-            "risk": {
-                "flat_book_capital_repair": {
-                    **base,
                     "healthy_session_count": 1,
-                    "last_counted_session": "2023-01-05",
-                    "last_reset_session": "2023-01-03",
-                    "reset_reason": "",
-                    "status": "COUNTING",
+                    "last_counted_session": "2023-01-04",
+                    "last_reset_session": "2023-01-02",
+                    "status": "ACCUMULATING",
                 }
             },
         },

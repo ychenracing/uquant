@@ -118,6 +118,7 @@ _VALIDATION_ADDITIONS = frozenset(
         "uquant/validation/absolute_generalization/_acceptance_evidence.py",
         "uquant/validation/absolute_generalization/_champion_runtime_reconciliation.py",
         "uquant/validation/absolute_generalization/_execution_chain_reconciliation.py",
+        "uquant/validation/absolute_generalization/_metric_primitives.py",
         "uquant/validation/absolute_generalization/_metrics_reconciliation.py",
         "uquant/validation/absolute_generalization/_physical_identity.py",
         "uquant/validation/absolute_generalization/_reachability_codec.py",

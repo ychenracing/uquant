@@ -2,19 +2,30 @@
 
 from __future__ import annotations
 
-import hashlib
-import math
 from collections.abc import Mapping, Sequence
 from dataclasses import asdict, dataclass
-from datetime import date
 from itertools import pairwise
 from typing import cast
 
-from uquant.contracts.strict_json import canonical_json_bytes, strict_json_loads
-from uquant.types import FlatBookCapitalRepairState
+from uquant.portfolio.strategic.rearm import flat_book_capital_repair_requirement
+from uquant.types import (
+    FlatBookCapitalRepairResetReason,
+    FlatBookCapitalRepairState,
+    FlatBookCapitalRepairStatus,
+)
 
+from ._metric_primitives import (
+    metric_integer,
+    metric_iso_session,
+    metric_mapping,
+    metric_number,
+    metric_positive_number,
+    metric_rows,
+    metric_sequence,
+    metric_stable_ids,
+    metric_text,
+)
 from ._physical_identity import physical_fill_identity_map
-from .replay import AbsoluteGeneralizationReplayPayload
 
 
 @dataclass(frozen=True, slots=True)
@@ -133,110 +144,6 @@ class CellMetrics:
         raw["intentional_role_absent_symbols"] = list(self.intentional_role_absent_symbols)
         raw["expected_but_unavailable_symbols"] = list(self.expected_but_unavailable_symbols)
         return raw
-
-
-def metric_mapping(value: object, *, label: str) -> Mapping[str, object]:
-    if not isinstance(value, Mapping) or any(not isinstance(key, str) for key in value):
-        raise ValueError(f"absolute generalization {label} is malformed")
-    return cast(Mapping[str, object], value)
-
-
-def metric_sequence(value: object, *, label: str) -> Sequence[object]:
-    if not isinstance(value, Sequence) or isinstance(value, (str, bytes, bytearray)):
-        raise ValueError(f"absolute generalization {label} is malformed")
-    return cast(Sequence[object], value)
-
-
-def metric_text(value: object, *, label: str, empty: bool = False) -> str:
-    if not isinstance(value, str) or (not empty and not value):
-        raise ValueError(f"absolute generalization {label} is malformed")
-    return value
-
-
-def metric_integer(value: object, *, label: str, minimum: int = 0) -> int:
-    if type(value) is not int:
-        raise ValueError(f"absolute generalization {label} is malformed")
-    if value < minimum:
-        raise ValueError(f"absolute generalization {label} is malformed")
-    return value
-
-
-def metric_number(value: object, *, label: str, minimum: float | None = None) -> float:
-    if isinstance(value, bool) or not isinstance(value, (int, float)):
-        raise ValueError(f"absolute generalization {label} is malformed")
-    number = float(value)
-    if not math.isfinite(number) or (minimum is not None and number < minimum):
-        raise ValueError(f"absolute generalization {label} is malformed")
-    return number
-
-
-def metric_iso_session(value: object, *, label: str, empty: bool = False) -> str:
-    text = metric_text(value, label=label, empty=empty)
-    if not text and empty:
-        return text
-    try:
-        date.fromisoformat(text)
-    except ValueError as exc:
-        raise ValueError(f"absolute generalization {label} is malformed") from exc
-    return text
-
-
-def metric_rows(value: object, *, label: str) -> tuple[Mapping[str, object], ...]:
-    return tuple(metric_mapping(item, label=label) for item in metric_sequence(value, label=label))
-
-
-def metric_payload_mapping(
-    payload: AbsoluteGeneralizationReplayPayload,
-    *,
-    label: str,
-) -> Mapping[str, object]:
-    if type(payload) is not AbsoluteGeneralizationReplayPayload:
-        raise ValueError(f"absolute generalization {label} payload type differs")
-    if hashlib.sha256(payload.canonical_json).hexdigest() != payload.sha256:
-        raise ValueError(f"absolute generalization {label} payload digest differs")
-    raw = strict_json_loads(payload.canonical_json)
-    if canonical_json_bytes(raw) != payload.canonical_json:
-        raise ValueError(f"absolute generalization {label} payload is not canonical")
-    return metric_mapping(raw, label=label)
-
-
-def metric_positive_number(value: object) -> float:
-    if isinstance(value, bool) or not isinstance(value, (int, float)):
-        return 0.0
-    number = float(value)
-    return number if math.isfinite(number) and number > 0.0 else 0.0
-
-
-def metric_stable_ids(
-    rows: Sequence[Mapping[str, object]],
-    *,
-    field: str,
-    label: str,
-) -> dict[str, Mapping[str, object]]:
-    result: dict[str, Mapping[str, object]] = {}
-    for row in rows:
-        stable_id = metric_text(row.get(field), label=f"{label} {field}")
-        if stable_id in result:
-            raise ValueError(f"absolute generalization duplicate {label} identity")
-        result[stable_id] = row
-    return result
-
-
-def metric_trace_row(
-    *,
-    session: str,
-    decision: Mapping[str, object],
-    qualification_coverage: float,
-) -> Mapping[str, object]:
-    return {
-        "session": session,
-        "opportunity": metric_text(decision.get("opportunity"), label="opportunity"),
-        "risk": metric_mapping(decision.get("risk_summary", {}), label="decision risk summary"),
-        "target_gross": metric_number(decision.get("target_gross"), label="target gross"),
-        "targets": metric_rows(decision.get("targets", ()), label="decision targets"),
-        "orders": metric_rows(decision.get("pending_orders", ()), label="decision orders"),
-        "qualification_coverage": qualification_coverage,
-    }
 
 
 def actual_epoch_facts_from_rows(
@@ -510,7 +417,162 @@ def repair_episode_facts_from_trace(
     return tuple(facts)
 
 
-def _repair_episode_fact(episode_id: str, rows: Sequence[tuple[str, Mapping[str, object]]]) -> RepairEpisodeFact:
+def _repair_bootstrap_reset(
+    first_session: str,
+    first: Mapping[str, object],
+) -> tuple[str, str]:
+    reset_reason = metric_text(first.get("reset_reason", ""), label="repair reset reason", empty=True)
+    reset_session = metric_iso_session(first.get("last_reset_session", ""), label="repair reset session", empty=True)
+    if bool(reset_reason) != bool(reset_session) or (
+        reset_session and reset_session != first_session
+    ):
+        raise ValueError("absolute generalization repair reset bootstrap differs")
+    return reset_reason, reset_session
+
+
+@dataclass(slots=True)
+class _RepairLiteralState:
+    previous_count: int = 0
+    counted_since_reset: int = 0
+    last_counted_session: str = ""
+    current_ready_session: str = ""
+    last_reset_session: str = ""
+    historical_ready_session: str = ""
+    historical_sessions_to_ready: int = 0
+    current_reset_reason: str = ""
+
+
+def _repair_status_and_reason(row: Mapping[str, object]) -> tuple[str, str]:
+    status = metric_text(row.get("status"), label="repair status")
+    try:
+        FlatBookCapitalRepairStatus(status)
+    except ValueError as exc:
+        raise ValueError("absolute generalization repair status differs") from exc
+    reset_reason = metric_text(
+        row.get("reset_reason", ""), label="repair reset reason", empty=True
+    )
+    if reset_reason:
+        try:
+            FlatBookCapitalRepairResetReason(reset_reason)
+        except ValueError as exc:
+            raise ValueError(
+                "absolute generalization repair reset reason differs"
+            ) from exc
+    return status, reset_reason
+
+
+def _repair_ready_session(row: Mapping[str, object], expected: str) -> str:
+    return metric_iso_session(row.get("last_ready_session", expected), label="repair ready session", empty=True)
+
+
+def _apply_repair_reset(
+    state: _RepairLiteralState,
+    *,
+    row: Mapping[str, object],
+    session: str,
+    count: int,
+    reset_reason: str,
+) -> None:
+    if count != 0 or not reset_reason:
+        raise ValueError("absolute generalization repair reset progression differs")
+    if reset_reason == FlatBookCapitalRepairResetReason.LIVE_CAPITAL_AUTHORITY.value:
+        expected_counted = ""
+        expected_ready = ""
+    elif reset_reason == FlatBookCapitalRepairResetReason.CAPITAL_BUDGET_CLEARED.value:
+        expected_counted = state.last_counted_session
+        expected_ready = state.current_ready_session
+    else:
+        raise ValueError("absolute generalization repair reset reason differs")
+    if "last_reset_session" in row and metric_iso_session(
+        row.get("last_reset_session"), label="repair reset session"
+    ) != session:
+        raise ValueError("absolute generalization repair reset session differs")
+    state.previous_count = 0
+    state.counted_since_reset = 0
+    state.last_counted_session = expected_counted
+    state.current_ready_session = expected_ready
+    state.last_reset_session = session
+    state.current_reset_reason = reset_reason
+    _validate_repair_progress_sessions(
+        row=row,
+        last_counted_session=expected_counted,
+        last_reset_session=session,
+    )
+    if _repair_ready_session(row, expected_ready) != expected_ready:
+        raise ValueError("absolute generalization repair ready session differs")
+
+
+def _validate_repair_nonreset_status(
+    state: _RepairLiteralState, status: str, reset_reason: str, count: int, required: int
+) -> bool:
+    ready = status in (FlatBookCapitalRepairStatus.READY.value, FlatBookCapitalRepairStatus.CONSUMED.value)
+    expected_reason = "" if ready or state.current_ready_session else state.current_reset_reason
+    if reset_reason in (FlatBookCapitalRepairResetReason.LIVE_CAPITAL_AUTHORITY.value, FlatBookCapitalRepairResetReason.CAPITAL_BUDGET_CLEARED.value) or reset_reason != expected_reason:
+        raise ValueError("absolute generalization repair reset reason differs")
+    if ready and count != required:
+        raise ValueError("absolute generalization repair became ready too early")
+    return ready
+
+
+def _apply_repair_nonreset(
+    state: _RepairLiteralState,
+    *,
+    row: Mapping[str, object],
+    session: str,
+    status: str,
+    reset_reason: str,
+    count: int,
+    required: int,
+) -> None:
+    next_count = min(state.previous_count + 1, required)
+    if count > required or count not in {state.previous_count, next_count}:
+        raise ValueError("absolute generalization repair healthy session progression differs")
+    if status == FlatBookCapitalRepairStatus.BLOCKED.value and count != state.previous_count:
+        raise ValueError("absolute generalization repair healthy session progression differs")
+    ready_status = _validate_repair_nonreset_status(
+        state, status, reset_reason, count, required
+    )
+    if count > state.previous_count:
+        state.counted_since_reset += 1
+        state.last_counted_session = session
+    elif status == FlatBookCapitalRepairStatus.READY.value:
+        state.last_counted_session = session
+    elif status == FlatBookCapitalRepairStatus.CONSUMED.value:
+        reported_counted = metric_iso_session(
+            row.get("last_counted_session", state.last_counted_session),
+            label="repair counted session",
+            empty=True,
+        )
+        if reported_counted == session:
+            state.last_counted_session = session
+    _validate_repair_progress_sessions(
+        row=row,
+        last_counted_session=state.last_counted_session,
+        last_reset_session=state.last_reset_session,
+    )
+    if status == FlatBookCapitalRepairStatus.ACCUMULATING.value and (
+        count != next_count or count >= required
+    ):
+        raise ValueError("absolute generalization repair healthy session progression differs")
+    reported_ready = _repair_ready_session(row, state.current_ready_session)
+    if ready_status and not state.current_ready_session:
+        if reported_ready != session:
+            raise ValueError("absolute generalization repair ready session differs")
+        state.current_ready_session = session
+        if not state.historical_ready_session:
+            state.historical_ready_session = session
+            state.historical_sessions_to_ready = state.counted_since_reset
+    if ready_status:
+        state.current_reset_reason = ""
+    if reported_ready != state.current_ready_session:
+        raise ValueError("absolute generalization repair ready session differs")
+    state.previous_count = count
+
+
+def _repair_episode_fact(
+    episode_id: str,
+    rows: Sequence[tuple[str, Mapping[str, object]]],
+) -> RepairEpisodeFact:
     sessions = [session for session, _ in rows]
     if len(sessions) != len(set(sessions)):
         raise ValueError("absolute generalization repair session duplicates")
@@ -520,76 +582,60 @@ def _repair_episode_fact(episode_id: str, rows: Sequence[tuple[str, Mapping[str,
     required = metric_integer(
         first.get("required_healthy_sessions"), label="repair required sessions", minimum=1
     )
+    try:
+        expected_target, expected_required = flat_book_capital_repair_requirement(capital_level)
+    except ValueError as exc:
+        raise ValueError("absolute generalization repair tier/bound differs") from exc
+    if (target_level, required) != (expected_target, expected_required):
+        raise ValueError("absolute generalization repair tier/bound differs")
     first_observed = metric_iso_session(
         first.get("first_observed_session", first_session), label="repair first session"
     )
     if first_observed != first_session:
         raise ValueError("absolute generalization repair first session differs")
     stable_optional = ("account_identity", "risk_reference_universe_identity", "config_identity")
-    previous_count = 0
-    counted_sessions = 0
-    first_ready = ""
-    last_counted_session = ""
-    last_reset_session = ""
+    reset_reason, reset_session = _repair_bootstrap_reset(first_session, first)
+    state = _RepairLiteralState(
+        last_reset_session=reset_session,
+        current_reset_reason=reset_reason,
+    )
     for session, row in rows:
         _validate_repair_row_identity(
             row=row, session=session, first=first, first_session=first_session,
             expected=(capital_level, target_level, required), stable_optional=stable_optional,
         )
-        status = metric_text(row.get("status"), label="repair status")
+        status, reset_reason = _repair_status_and_reason(row)
         count = metric_integer(row.get("healthy_session_count"), label="repair healthy sessions")
-        if status == "RESET":
-            if count != 0 or not metric_text(
-                row.get("reset_reason", ""), label="repair reset reason", empty=True
-            ):
-                raise ValueError("absolute generalization repair reset progression differs")
-            if "last_reset_session" in row and metric_iso_session(
-                row.get("last_reset_session"), label="repair reset session"
-            ) != session:
-                raise ValueError("absolute generalization repair reset session differs")
-            previous_count = 0
-            counted_sessions = 0
-            first_ready = ""
-            last_counted_session = ""
-            last_reset_session = session
-            _validate_repair_progress_sessions(
+        if status == FlatBookCapitalRepairStatus.RESET.value:
+            _apply_repair_reset(
+                state,
                 row=row,
-                last_counted_session=last_counted_session,
-                last_reset_session=last_reset_session,
+                session=session,
+                count=count,
+                reset_reason=reset_reason,
             )
-            continue
-        if count > required or count not in {previous_count, min(previous_count + 1, required)}:
-            raise ValueError("absolute generalization repair healthy session progression differs")
-        if count > previous_count:
-            counted_sessions += 1
-            last_counted_session = session
-        _validate_repair_progress_sessions(
-            row=row,
-            last_counted_session=last_counted_session,
-            last_reset_session=last_reset_session,
-        )
-        if status in {"READY", "CONSUMED"}:
-            if count != required:
-                raise ValueError("absolute generalization repair became ready too early")
-            first_ready = first_ready or session
-            ready_session = metric_iso_session(
-                row.get("last_ready_session", first_ready), label="repair ready session"
+        else:
+            _apply_repair_nonreset(
+                state,
+                row=row,
+                session=session,
+                status=status,
+                reset_reason=reset_reason,
+                count=count,
+                required=required,
             )
-            if ready_session != first_ready:
-                raise ValueError("absolute generalization repair ready session differs")
-        elif row.get("last_ready_session", ""):
-            raise ValueError("absolute generalization repair ready session differs")
-        previous_count = count
     _, final = rows[-1]
     return RepairEpisodeFact(
         repair_episode_id=episode_id,
         capital_budget_level=capital_level,
         repair_target_level=target_level,
         required_healthy_sessions=required,
-        reported_healthy_sessions=previous_count,
-        actual_healthy_sessions_to_ready=counted_sessions if first_ready else 0,
+        reported_healthy_sessions=(
+            required if state.historical_ready_session else state.previous_count
+        ),
+        actual_healthy_sessions_to_ready=state.historical_sessions_to_ready,
         first_observed_session=first_observed,
-        last_ready_session=first_ready,
+        last_ready_session=state.historical_ready_session,
         status=metric_text(final.get("status"), label="repair status"),
         reset_reason=metric_text(
             final.get("reset_reason", ""), label="repair reset reason", empty=True

@@ -21,7 +21,7 @@ from ._acceptance_evidence import (
     validate_repair_evidence,
     validate_terminal_evidence,
 )
-from .artifacts import CellArtifact, validate_cell_artifact
+from .artifacts import CellArtifact, reject_self_assertion_claims, validate_cell_artifact
 from .contract import AbsoluteGeneralizationContract
 from .policy import ComponentResult, evaluate_literal_components
 
@@ -144,16 +144,7 @@ def _validate_finite_manifest(value: object) -> None:
 
 
 def _reject_pass_claims(value: object) -> None:
-    if isinstance(value, Mapping):
-        for key, item in value.items():
-            if key in {"passed", "runner_success", "capability_pass"} or key.endswith(
-                "_passed"
-            ):
-                raise ValueError("absolute generalization manifest contains a self-asserted pass")
-            _reject_pass_claims(item)
-    elif isinstance(value, Sequence) and not isinstance(value, (str, bytes, bytearray)):
-        for item in value:
-            _reject_pass_claims(item)
+    reject_self_assertion_claims(value, label="manifest")
 
 
 def _git_output(*arguments: str) -> str:

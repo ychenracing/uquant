@@ -9,7 +9,7 @@ from collections.abc import Mapping
 from dataclasses import dataclass, field
 from datetime import date as date_type
 from types import MappingProxyType
-from typing import Any, TypedDict
+from typing import Any, Protocol, TypedDict
 
 from .enums import (
     AttributionMechanism,
@@ -299,6 +299,72 @@ class AccountOrder:
     industry_manifest_sha256: str = ""
     grant_id: str = ""
     epoch_id: str = ""
+
+
+class _AccountOrderDecisionOrigin(Protocol):
+    @property
+    def signal_date(self) -> str: ...
+
+    @property
+    def last_update_date(self) -> str: ...
+
+    @property
+    def status(self) -> str: ...
+
+    @property
+    def cancel_reason(self) -> str: ...
+
+    @property
+    def last_event(self) -> str: ...
+
+    @property
+    def event_id(self) -> str: ...
+
+    @property
+    def symbol(self) -> str: ...
+
+    @property
+    def side(self) -> str: ...
+
+    @property
+    def grant_id(self) -> str: ...
+
+    @property
+    def epoch_id(self) -> str: ...
+
+
+def account_order_physical_chain_identity(
+    order: _AccountOrderDecisionOrigin,
+) -> tuple[str, str, str, str, str]:
+    """Return the exact identity shared by remainder-successor physical orders."""
+
+    return (
+        order.event_id,
+        order.symbol,
+        order.side,
+        order.grant_id,
+        order.epoch_id,
+    )
+
+
+def account_order_decision_origin_session(
+    order: _AccountOrderDecisionOrigin,
+    prior_physical_order: _AccountOrderDecisionOrigin | None,
+) -> str:
+    """Return the decision origin for one durable physical order."""
+
+    partial_remainder_origin = bool(
+        prior_physical_order is not None
+        and order.grant_id
+        and account_order_physical_chain_identity(prior_physical_order)
+        == account_order_physical_chain_identity(order)
+        and prior_physical_order.status == OrderStatus.CANCELLED.value
+        and prior_physical_order.cancel_reason == "strategic partial remainder replaced"
+        and prior_physical_order.last_event == "PARTIAL_REMAINDER_RELEASED"
+    )
+    if partial_remainder_origin and prior_physical_order is not None:
+        return prior_physical_order.last_update_date
+    return order.signal_date
 
 
 def late_strategic_fill_allowed(order: AccountOrder) -> bool:

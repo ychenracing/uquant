@@ -5,6 +5,10 @@ from __future__ import annotations
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 
+from uquant.models.trading import (
+    account_order_decision_origin_session,
+    account_order_physical_chain_identity,
+)
 from uquant.types import ORDER_INTENT_IMMUTABLE_FIELDS
 
 from ._metric_primitives import (
@@ -37,6 +41,47 @@ class _ChainIndexes:
     final_orders: Mapping[str, Mapping[str, object]]
     trace_orders: Mapping[str, tuple[str, Mapping[str, object]]]
     fills: tuple[Mapping[str, object], ...]
+
+
+@dataclass(frozen=True, slots=True)
+class _OrderDecisionOrigin:
+    signal_date: str
+    last_update_date: str
+    status: str
+    cancel_reason: str
+    last_event: str
+    event_id: str
+    symbol: str
+    side: str
+    target_weight: float
+    grant_id: str
+    epoch_id: str
+
+
+def _order_decision_origin(raw: Mapping[str, object]) -> _OrderDecisionOrigin:
+    return _OrderDecisionOrigin(
+        signal_date=metric_iso_session(raw.get("signal_date"), label="order signal session"),
+        last_update_date=metric_iso_session(
+            raw.get("last_update_date", ""),
+            label="order last update session",
+            empty=True,
+        ),
+        status=metric_text(raw.get("status", ""), label="order status", empty=True),
+        cancel_reason=metric_text(
+            raw.get("cancel_reason", ""), label="order cancel reason", empty=True
+        ),
+        last_event=metric_text(
+            raw.get("last_event", ""), label="order last event", empty=True
+        ),
+        event_id=metric_text(raw.get("event_id", ""), label="order event", empty=True),
+        symbol=metric_text(raw.get("symbol"), label="order symbol"),
+        side=metric_text(raw.get("side"), label="order side"),
+        target_weight=metric_number(
+            raw.get("target_weight"), label="order target weight", minimum=0.0
+        ),
+        grant_id=metric_text(raw.get("grant_id", ""), label="order grant", empty=True),
+        epoch_id=metric_text(raw.get("epoch_id", ""), label="order epoch", empty=True),
+    )
 
 
 def _trace_order_index(
@@ -90,12 +135,36 @@ def _validate_order_immutable_intent(
             raise ValueError(f"absolute generalization strategic order {field} differs")
 
 
+def _target_matches_order(
+    target: Mapping[str, object],
+    trace_order: Mapping[str, object],
+    origin_order: _OrderDecisionOrigin,
+    *,
+    current_weight_may_differ: bool,
+) -> bool:
+    if target.get("origin_subsystem") != "STRATEGIC" or any(
+        target.get(field, "") != trace_order.get(field, "")
+        for field in _IDENTITY_FIELDS[:-1]
+    ):
+        return False
+    target_weight = metric_number(
+        target.get("weight"), label="trace target weight", minimum=0.0
+    )
+    return (
+        target_weight <= 1.0
+        and (current_weight_may_differ or target_weight == origin_order.target_weight)
+    )
+
+
 def _validate_strategic_orders(
     *,
     final_orders: Mapping[str, Mapping[str, object]],
     trace_orders: Mapping[str, tuple[str, Mapping[str, object]]],
     trace: Sequence[Mapping[str, object]],
 ) -> None:
+    prior_physical_orders: dict[
+        tuple[str, str, str, str, str], _OrderDecisionOrigin
+    ] = {}
     for order_id, final_order in final_orders.items():
         if final_order.get("origin_subsystem") != "STRATEGIC":
             continue
@@ -110,9 +179,14 @@ def _validate_strategic_orders(
             label="trace order target weight",
             minimum=0.0,
         )
+        origin_order = _order_decision_origin(final_order)
+        chain_identity = account_order_physical_chain_identity(origin_order)
+        origin_session = account_order_decision_origin_session(
+            origin_order,
+            prior_physical_orders.get(chain_identity),
+        )
         if (
-            metric_iso_session(trace_order.get("signal_date"), label="order signal session")
-            != session
+            origin_session != session
             or side not in {"BUY", "SELL"}
             or order_target_weight > 1.0
             or (side == "BUY" and order_target_weight <= 0.0)
@@ -123,22 +197,18 @@ def _validate_strategic_orders(
             for row in trace
             if row.get("session") == session
             for target in metric_rows(row.get("targets", ()), label="trace targets")
-            if target.get("origin_subsystem") == "STRATEGIC"
-            and all(
-                target.get(field, "") == trace_order.get(field, "")
-                for field in _IDENTITY_FIELDS[:-1]
+            if _target_matches_order(
+                target,
+                trace_order,
+                origin_order,
+                current_weight_may_differ=(origin_session != origin_order.signal_date),
             )
-            and metric_number(
-                target.get("weight"),
-                label="trace target weight",
-                minimum=0.0,
-            )
-            == order_target_weight
         ]
         if not targets:
             raise ValueError("absolute generalization order target identity differs")
         if len(targets) != 1:
             raise ValueError("absolute generalization duplicate trace target identity")
+        prior_physical_orders[chain_identity] = origin_order
 
 
 def _validate_fill_order_links(indexes: _ChainIndexes) -> None:

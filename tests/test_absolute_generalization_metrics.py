@@ -6,6 +6,7 @@ from datetime import date, timedelta
 import pytest
 from _absolute_generalization_metrics_fixture import (
     EPOCH_ID,
+    GRANT_ID,
     OWNER,
     complete_replay,
     completed_sale_replay,
@@ -20,6 +21,9 @@ from uquant.validation.absolute_generalization import (
     IdentityEnvelope,
     derive_cell_metrics,
     load_absolute_generalization_contract,
+)
+from uquant.validation.absolute_generalization._metrics_reconciliation import (
+    _upstream_chain_flags,
 )
 from uquant.validation.absolute_generalization.metrics import (
     assert_unique_execution_rows,
@@ -1327,6 +1331,62 @@ def test_terminal_zero_target_fact_does_not_claim_scc_analysis() -> None:
     events = dict(artifact.event_facts)
     assert "terminal_zero_strategic_target_state" in events
     assert "terminal_zero_strategic_target_scc" not in events
+
+
+def test_grant_chain_ignores_positive_strategic_target_without_grant_identity() -> None:
+    """A retained strategic target is not itself evidence of a new grant chain."""
+
+    from uquant.contracts.strict_json import strict_json_loads
+
+    replay = complete_replay()
+    first = replay.observations[0]
+    decision = strict_json_loads(first.decision_payload.canonical_json)
+    assert isinstance(decision, dict)
+    retained = dict(decision["targets"][0])
+    retained.update({"grant_id": "", "epoch_id": "", "event_id": ""})
+    decision["targets"].insert(0, retained)
+    replay = replace(
+        replay,
+        observations=(
+            replace(first, decision_payload=payload(decision)),
+            *replay.observations[1:],
+        ),
+    )
+
+    artifact = derive_cell_metrics(replay, scenario(), _identities())
+
+    grant_to_target = dict(artifact.event_facts)["grant_to_target"]
+    assert grant_to_target.applicable is True
+    assert grant_to_target.observed is True
+
+
+def test_empty_grant_target_does_not_create_grant_chain_evidence() -> None:
+    flags = _upstream_chain_flags(
+        (
+            (("2023-01-03", OWNER),),
+            ((GRANT_ID, "2023-01-03", OWNER),),
+            (("2023-01-03", {"symbol": OWNER, "grant_id": ""}),),
+            (),
+        )
+    )
+
+    assert flags == (True, False, False)
+
+
+@pytest.mark.parametrize("grant_fields", ({}, {"grant_id": None}, {"grant_id": 0}))
+def test_grant_chain_rejects_malformed_target_grant_identity(
+    grant_fields: dict[str, object],
+) -> None:
+    target = {"symbol": OWNER, **grant_fields}
+    with pytest.raises(ValueError, match="target grant"):
+        _upstream_chain_flags(
+            (
+                (("2023-01-03", OWNER),),
+                ((GRANT_ID, "2023-01-03", OWNER),),
+                (("2023-01-03", target),),
+                (),
+            )
+        )
 
 
 def test_reconstructs_fee_bearing_realized_pnl_from_attributed_sale_lot() -> None:

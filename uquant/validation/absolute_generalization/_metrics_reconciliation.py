@@ -540,8 +540,8 @@ def _upstream_chain_flags(rows: _ChainRows) -> tuple[bool, bool, bool]:
         for grant_session, grant_candidate in grant_by_id.values()
     )
     grant_to_target = any(
-        (matched_grant := grant_by_id.get(metric_text(target.get("grant_id"), label="target grant")))
-        is not None
+        (grant_id := metric_text(target.get("grant_id"), label="target grant", empty=True))
+        and (matched_grant := grant_by_id.get(grant_id)) is not None
         and matched_grant[1] == target.get("symbol")
         and matched_grant[0] <= session
         for session, target in targets

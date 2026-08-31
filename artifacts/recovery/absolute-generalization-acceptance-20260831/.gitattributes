@@ -1,0 +1,2 @@
+# Preserve archived historical WIP byte-for-byte while suppressing its original whitespace diagnostics.
+preserved/migration-ignored/** whitespace=-blank-at-eol,-blank-at-eof

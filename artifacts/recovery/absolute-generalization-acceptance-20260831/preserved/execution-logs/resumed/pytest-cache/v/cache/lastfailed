@@ -1,0 +1,7 @@
+{
+  "tests/test_absolute_generalization_metrics.py::test_rejects_role_membership_tamper_with_stale_snapshot_identity": true,
+  "tests/test_absolute_generalization_metrics.py::test_rejects_reset_repair_provenance_mismatch[LIVE_CAPITAL_AUTHORITY--2023-01-04]": true,
+  "tests/test_absolute_generalization_metrics.py::test_rejects_reset_repair_provenance_mismatch[CAPITAL_BUDGET_CLEARED--2023-01-04]": true,
+  "tests/test_absolute_generalization_metrics.py::test_rejects_blocked_repair_provenance_mutation[2023-01-05-2023-01-04-repair ready session]": true,
+  "tests/test_absolute_generalization_metrics.py::test_rejects_blocked_repair_provenance_mutation[2023-01-04-2023-01-05-repair counted session]": true
+}

@@ -1,0 +1,6 @@
+0000000000000000000000000000000000000000 d76d0af730247e9d9909ce501a716bc73b39b26e Codex <codex@openai.com> 1788143717 +1000	branch: Created from origin/codex/absolute-generalization-acceptance
+d76d0af730247e9d9909ce501a716bc73b39b26e 4cd2e4eef8fe368583dd97b2075f6e19d9ab9f46 Codex <codex@openai.com> 1788147081 +1000	commit: Accept disjoint causal data prefixes
+4cd2e4eef8fe368583dd97b2075f6e19d9ab9f46 670ea6d170ee431e353f6f82857b9f87692f30c3 Codex <codex@openai.com> 1788147901 +1000	commit: Bind causal manifests to observed roles
+670ea6d170ee431e353f6f82857b9f87692f30c3 ccd88cc0f551d36255343d46673f552d2e02d82e Codex <codex@openai.com> 1788152495 +1000	commit: Reconcile literal metrics with production traces
+ccd88cc0f551d36255343d46673f552d2e02d82e 5c82a37d434ded0485ff0c451b758450bbd283d9 Codex <codex@openai.com> 1788155653 +1000	commit: Close literal reconciliation review findings
+5c82a37d434ded0485ff0c451b758450bbd283d9 7581322bcdce3e0e42f00d2fd7cc95584749315d Codex <codex@openai.com> 1788159399 +1000	commit: Handle retained targets in grant evidence

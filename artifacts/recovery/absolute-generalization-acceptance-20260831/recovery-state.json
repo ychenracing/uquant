@@ -1,0 +1,280 @@
+{
+  "counts": {
+    "file_inventory_records": 1514,
+    "loo_artifacts": 6,
+    "loo_source_bytes_present": 0,
+    "migration_staged": 0,
+    "migration_tracked": 715,
+    "migration_unstaged": 0,
+    "migration_untracked_nonignored": 0,
+    "resumed_staged": 0,
+    "resumed_tracked": 751,
+    "resumed_unstaged": 0,
+    "resumed_untracked": 1
+  },
+  "generated_at_utc": "2026-08-31T22:48:19.583780Z",
+  "git": {
+    "migration-snapshot": {
+      "branch": {
+        "argv": [
+          "git",
+          "branch",
+          "--show-current"
+        ],
+        "cwd": "/workspace/scratch/1a8f428176e6/uquant-base/.worktrees/absolute-generalization-acceptance",
+        "exit_code": 0,
+        "output": "codex/absolute-generalization-acceptance-migration-snapshot-20260831\n"
+      },
+      "cached_diff_check": {
+        "argv": [
+          "git",
+          "diff",
+          "--cached",
+          "--check"
+        ],
+        "cwd": "/workspace/scratch/1a8f428176e6/uquant-base/.worktrees/absolute-generalization-acceptance",
+        "exit_code": 0,
+        "output": ""
+      },
+      "cached_diff_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "diff_check": {
+        "argv": [
+          "git",
+          "diff",
+          "--check"
+        ],
+        "cwd": "/workspace/scratch/1a8f428176e6/uquant-base/.worktrees/absolute-generalization-acceptance",
+        "exit_code": 0,
+        "output": ""
+      },
+      "head_and_tree": {
+        "argv": [
+          "git",
+          "rev-parse",
+          "HEAD",
+          "HEAD^{tree}"
+        ],
+        "cwd": "/workspace/scratch/1a8f428176e6/uquant-base/.worktrees/absolute-generalization-acceptance",
+        "exit_code": 0,
+        "output": "e4beded79ae6f88d04f08539ad587e380130202a\n429093603a38fa75719e8796f866a7e3f6cacd4c\n"
+      },
+      "status": {
+        "argv": [
+          "git",
+          "status",
+          "--porcelain=v2",
+          "--branch"
+        ],
+        "cwd": "/workspace/scratch/1a8f428176e6/uquant-base/.worktrees/absolute-generalization-acceptance",
+        "exit_code": 0,
+        "output": "# branch.oid e4beded79ae6f88d04f08539ad587e380130202a\n# branch.head codex/absolute-generalization-acceptance-migration-snapshot-20260831\n"
+      },
+      "working_diff_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "resumed": {
+      "branch": {
+        "argv": [
+          "git",
+          "branch",
+          "--show-current"
+        ],
+        "cwd": "/workspace/scratch/1a8f428176e6/uquant-base/.worktrees/absolute-generalization-acceptance-resumed",
+        "exit_code": 0,
+        "output": "codex/absolute-generalization-acceptance\n"
+      },
+      "cached_diff_check": {
+        "argv": [
+          "git",
+          "diff",
+          "--cached",
+          "--check"
+        ],
+        "cwd": "/workspace/scratch/1a8f428176e6/uquant-base/.worktrees/absolute-generalization-acceptance-resumed",
+        "exit_code": 0,
+        "output": ""
+      },
+      "cached_diff_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "diff_check": {
+        "argv": [
+          "git",
+          "diff",
+          "--check"
+        ],
+        "cwd": "/workspace/scratch/1a8f428176e6/uquant-base/.worktrees/absolute-generalization-acceptance-resumed",
+        "exit_code": 0,
+        "output": ""
+      },
+      "head_and_tree": {
+        "argv": [
+          "git",
+          "rev-parse",
+          "HEAD",
+          "HEAD^{tree}"
+        ],
+        "cwd": "/workspace/scratch/1a8f428176e6/uquant-base/.worktrees/absolute-generalization-acceptance-resumed",
+        "exit_code": 0,
+        "output": "7581322bcdce3e0e42f00d2fd7cc95584749315d\nb4e8402d9ea23c963b62e4b0fe5ad0f3cd271726\n"
+      },
+      "status": {
+        "argv": [
+          "git",
+          "status",
+          "--porcelain=v2",
+          "--branch"
+        ],
+        "cwd": "/workspace/scratch/1a8f428176e6/uquant-base/.worktrees/absolute-generalization-acceptance-resumed",
+        "exit_code": 0,
+        "output": "# branch.oid 7581322bcdce3e0e42f00d2fd7cc95584749315d\n# branch.head codex/absolute-generalization-acceptance\n# branch.upstream origin/codex/absolute-generalization-acceptance\n# branch.ab +5 -3\n? .superpowers/sdd/absolute-generalization-acceptance-plan/\n"
+      },
+      "working_diff_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  },
+  "ignored_inventory": [
+    {
+      "classification": {
+        "execution-cache:.pytest_cache": {
+          "file_count": 5,
+          "total_size_bytes": 93925
+        },
+        "regenerable:.mypy_cache": {
+          "file_count": 3,
+          "total_size_bytes": 25768160
+        },
+        "regenerable:.ruff_cache": {
+          "file_count": 8,
+          "total_size_bytes": 37262
+        },
+        "regenerable:.venv": {
+          "file_count": 7634,
+          "total_size_bytes": 244268816
+        },
+        "regenerable:__pycache__": {
+          "file_count": 956,
+          "total_size_bytes": 15387174
+        },
+        "regenerable:uquant.egg-info": {
+          "file_count": 6,
+          "total_size_bytes": 28202
+        }
+      },
+      "file_count": 8612,
+      "note": "Only protected WIP and execution-state cache files are content-hashed and copied; regenerable environments, bytecode, build, lint, and type-check caches are classified but deliberately not copied.",
+      "path_size_mtime_manifest_sha256": "81ad2269d910ff77caad43e8c1f9ef3570c447f03857c0972e28e40791e76bde",
+      "worktree": "resumed"
+    },
+    {
+      "classification": {
+        "execution-cache:.pytest_cache": {
+          "file_count": 5,
+          "total_size_bytes": 82751
+        },
+        "protected-wip:.superpowers/sdd": {
+          "file_count": 16,
+          "total_size_bytes": 389090
+        },
+        "regenerable:.mypy_cache": {
+          "file_count": 3,
+          "total_size_bytes": 23265504
+        },
+        "regenerable:.ruff_cache": {
+          "file_count": 8,
+          "total_size_bytes": 34014
+        },
+        "regenerable:.venv": {
+          "file_count": 7957,
+          "total_size_bytes": 248257863
+        },
+        "regenerable:__pycache__": {
+          "file_count": 943,
+          "total_size_bytes": 15419492
+        },
+        "regenerable:build": {
+          "file_count": 223,
+          "total_size_bytes": 2298283
+        },
+        "regenerable:uquant.egg-info": {
+          "file_count": 6,
+          "total_size_bytes": 26350
+        }
+      },
+      "file_count": 9161,
+      "note": "Only protected WIP and execution-state cache files are content-hashed and copied; regenerable environments, bytecode, build, lint, and type-check caches are classified but deliberately not copied.",
+      "path_size_mtime_manifest_sha256": "7bb70bffcb8ef945dd04ae9768d02e4b498c32dbe7443a8ab950b50d93565fdd",
+      "worktree": "migration-snapshot"
+    }
+  ],
+  "intended_recovery_branch": "codex/absolute-generalization-acceptance-wip-recovery-20260831",
+  "live_remote_refs": {
+    "argv": [
+      "git",
+      "ls-remote",
+      "--heads",
+      "origin",
+      "refs/heads/main",
+      "refs/heads/codex/absolute-generalization-acceptance",
+      "refs/heads/codex/absolute-generalization-acceptance-wip-recovery-20260831"
+    ],
+    "cwd": "/workspace/scratch/1a8f428176e6/uquant-base/.worktrees/absolute-generalization-acceptance-resumed",
+    "exit_code": 0,
+    "output": "74b1bbe10af14123ce7ca51b85572d1cb9647e11\trefs/heads/codex/absolute-generalization-acceptance\na17322f6330953a27c77f70d463a713c9a48ebc9\trefs/heads/main\n"
+  },
+  "local_recovery_branch_check": {
+    "argv": [
+      "git",
+      "show-ref",
+      "--verify",
+      "--quiet",
+      "refs/heads/codex/absolute-generalization-acceptance-wip-recovery-20260831"
+    ],
+    "cwd": "/workspace/scratch/1a8f428176e6/uquant-base/.worktrees/absolute-generalization-acceptance-resumed",
+    "exit_code": 1,
+    "output": ""
+  },
+  "loo_search": {
+    "exact_historical_size_matches": [],
+    "github_commit_associated_workflow_runs": {
+      "74b1bbe10af14123ce7ca51b85572d1cb9647e11": 0,
+      "7581322bcdce3e0e42f00d2fd7cc95584749315d": 0,
+      "d7cf8e453e4ee0719cb64d56ea03bed47245bf5c": 0
+    },
+    "library_title_search_matches": 0,
+    "old_run_root": "/tmp/uquant-absolute-task9-74b1bbe.NDrTDx",
+    "old_run_root_exists": false
+  },
+  "migration_snapshot_worktree": "/workspace/scratch/1a8f428176e6/uquant-base/.worktrees/absolute-generalization-acceptance",
+  "objective": "Disaster recovery only; no implementation, acceptance, cleanup, or full LOO rerun.",
+  "process_scan": {
+    "argv": [
+      "pgrep",
+      "-af",
+      "[p]ytest|[u]v run|[r]un_absolute_generalization_acceptance|[r]un_strategic_ownership_acceptance|python.*[a]bsolute_generalization"
+    ],
+    "cwd": "/workspace/scratch/1a8f428176e6/uquant-base/.worktrees/absolute-generalization-acceptance-resumed",
+    "exit_code": 1,
+    "output": ""
+  },
+  "prohibitions_observed": [
+    "no git reset",
+    "no git clean",
+    "no git rebase",
+    "no git restore",
+    "no force push",
+    "no full 34 LOO rerun",
+    "no implementation changes",
+    "no acceptance tests",
+    "no directory cleanup"
+  ],
+  "schema": "uquant.absolute-generalization.wip-recovery.v1",
+  "target_worktree": "/workspace/scratch/1a8f428176e6/uquant-base/.worktrees/absolute-generalization-acceptance-resumed",
+  "worktree_list": {
+    "argv": [
+      "git",
+      "worktree",
+      "list",
+      "--porcelain"
+    ],
+    "cwd": "/workspace/scratch/1a8f428176e6/uquant-base",
+    "exit_code": 0,
+    "output": "worktree /workspace/scratch/1a8f428176e6/uquant-base\nHEAD d7fd3bf8f23ae9c66eb27f5046dedb9f7f980be5\nbranch refs/heads/main\n\nworktree /workspace/scratch/1a8f428176e6/uquant-base/.worktrees/absolute-generalization-acceptance\nHEAD e4beded79ae6f88d04f08539ad587e380130202a\nbranch refs/heads/codex/absolute-generalization-acceptance-migration-snapshot-20260831\n\nworktree /workspace/scratch/1a8f428176e6/uquant-base/.worktrees/absolute-generalization-acceptance-resumed\nHEAD 7581322bcdce3e0e42f00d2fd7cc95584749315d\nbranch refs/heads/codex/absolute-generalization-acceptance\n\n"
+  }
+}

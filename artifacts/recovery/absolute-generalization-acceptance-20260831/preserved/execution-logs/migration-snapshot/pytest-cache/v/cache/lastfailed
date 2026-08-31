@@ -1,0 +1,10 @@
+{
+  "tests/architecture/test_validation_boundaries.py::test_validation_architecture_public_policy_transport_rejects_unknown_identity_or_callee[uquant/validation/generalization_policy/schema.py-schema_failures = _schema_failures-schema_failures = _replay_error]": true,
+  "tests/architecture/test_validation_boundaries.py::test_validation_architecture_public_policy_transport_rejects_unknown_identity_or_callee[uquant/validation/generalization_policy/evaluation_stages.py-schema.schema_failures(-schema.replay_error(]": true,
+  "tests/architecture/test_validation_boundaries.py::test_validation_holdout_unknown_holdout_debt_is_not_hidden_by_relocation": true,
+  "tests/test_risk_evidence_timeline.py::test_timeline_uses_only_the_declared_risk_role_membership": true,
+  "tests/test_absolute_generalization_replay.py": true,
+  "tests/test_absolute_generalization_replay.py::test_full_removal_replay_is_causal_and_preserves_raw_production_evidence": true,
+  "tests/test_absolute_generalization_contract.py::test_contract_public_surface_has_no_writer_or_auto_acceptance_path": true,
+  "tests/test_absolute_generalization_replay.py::test_replay_evidence_surface_is_immutable_and_incremental": true
+}

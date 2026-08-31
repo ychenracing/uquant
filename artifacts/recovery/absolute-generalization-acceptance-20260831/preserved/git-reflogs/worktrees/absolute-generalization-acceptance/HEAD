@@ -1,0 +1,7 @@
+0000000000000000000000000000000000000000 d7fd3bf8f23ae9c66eb27f5046dedb9f7f980be5 Codex <codex@openai.com> 1788052911 +0900
+d7fd3bf8f23ae9c66eb27f5046dedb9f7f980be5 d7fd3bf8f23ae9c66eb27f5046dedb9f7f980be5 Codex <codex@openai.com> 1788052911 +0900	reset: moving to HEAD
+d7fd3bf8f23ae9c66eb27f5046dedb9f7f980be5 85e03f83612892e7efdfa8ee38eb73d3513dc291 Codex <codex@openai.com> 1788060067 +0900
+85e03f83612892e7efdfa8ee38eb73d3513dc291 5d2fc07e8d69878b78f2e482a7026a62abd126e5 Codex <codex@openai.com> 1788063181 +0900
+5d2fc07e8d69878b78f2e482a7026a62abd126e5 e4beded79ae6f88d04f08539ad587e380130202a Codex <codex@openai.com> 1788143680 +1000	commit: Preserve migrated Task 4 worktree snapshot
+e4beded79ae6f88d04f08539ad587e380130202a 0000000000000000000000000000000000000000 Codex <codex@openai.com> 1788143680 +1000	Branch: renamed refs/heads/codex/absolute-generalization-acceptance to refs/heads/codex/absolute-generalization-acceptance-migration-snapshot-20260831
+0000000000000000000000000000000000000000 e4beded79ae6f88d04f08539ad587e380130202a Codex <codex@openai.com> 1788143680 +1000	Branch: renamed refs/heads/codex/absolute-generalization-acceptance to refs/heads/codex/absolute-generalization-acceptance-migration-snapshot-20260831

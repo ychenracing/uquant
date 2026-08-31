@@ -1,0 +1,688 @@
+# Review package: HEAD..3271cce28fd37cdfb255205a7f6907cb39a93594
+
+## Commits
+3271cce Task 3 fix round 1 review snapshot
+
+## Files changed
+ benchmarks/source_surface_registry.json            |   4 +-
+ tests/architecture/_analysis_authorities.py        |   1 +
+ tests/architecture/_owner_transport.py             |   1 +
+ tests/test_absolute_generalization_contract.py     |  49 ++++++-
+ tests/test_validation_statistics.py                | 161 +++++++++++++++++++++
+ .../validation/absolute_generalization/contract.py |   4 -
+ uquant/validation/generalization/metrics.py        |  14 +-
+ .../validation/generalization_matrix_evidence.py   |  14 +-
+ .../generalization_policy/cell_policy.py           |  16 +-
+ uquant/validation/statistics.py                    |  46 ++++++
+ 10 files changed, 269 insertions(+), 41 deletions(-)
+
+## Diff
+diff --git a/benchmarks/source_surface_registry.json b/benchmarks/source_surface_registry.json
+index 181c284..3ba3c1c 100644
+--- a/benchmarks/source_surface_registry.json
++++ b/benchmarks/source_surface_registry.json
+@@ -478,20 +478,21 @@
+         "uquant/validation/holdout/snapshots.py",
+         "uquant/validation/holdout/source_identity.py",
+         "uquant/validation/holdout_lanes.py",
+         "uquant/validation/holdout_runtime.py",
+         "uquant/validation/manifest.py",
+         "uquant/validation/production_observation.py",
+         "uquant/validation/production_observation_contract.py",
+         "uquant/validation/promotion.py",
+         "uquant/validation/promotion_contract.py",
+         "uquant/validation/replay_evidence.py",
++        "uquant/validation/statistics.py",
+         "uquant/validation/universe.py"
+       ]
+     },
+     {
+       "id": "full_package_v1",
+       "resource_paths": [
+         "LICENSE",
+         "README.md",
+         "benchmarks/source_surface_registry.json",
+         "pyproject.toml",
+@@ -760,16 +761,17 @@
+         "uquant/validation/holdout/snapshots.py",
+         "uquant/validation/holdout/source_identity.py",
+         "uquant/validation/holdout_lanes.py",
+         "uquant/validation/holdout_runtime.py",
+         "uquant/validation/manifest.py",
+         "uquant/validation/production_observation.py",
+         "uquant/validation/production_observation_contract.py",
+         "uquant/validation/promotion.py",
+         "uquant/validation/promotion_contract.py",
+         "uquant/validation/replay_evidence.py",
++        "uquant/validation/statistics.py",
+         "uquant/validation/universe.py"
+       ]
+     }
+   ],
+-  "canonical_sha256": "da0418442020762272b3b5008c17b515794688270b4940313ccfdfd0b13877cb"
++  "canonical_sha256": "5d6e2a30c1a7c20a136d20d2741f1043e752db7ef567d5cff8499d3ed21fa6b1"
+ }
+diff --git a/tests/architecture/_analysis_authorities.py b/tests/architecture/_analysis_authorities.py
+index d53f443..88fbb01 100644
+--- a/tests/architecture/_analysis_authorities.py
++++ b/tests/architecture/_analysis_authorities.py
+@@ -235,20 +235,21 @@ MODULE_AUTHORITIES = {
+     "uquant.validation.holdout.snapshots": "validation_runner",
+     "uquant.validation.holdout.source_identity": "validation_runner",
+     "uquant.validation.holdout_lanes": "validation_runner",
+     "uquant.validation.holdout_runtime": "validation_runner",
+     "uquant.validation.manifest": "validation_runner",
+     "uquant.validation.promotion": "validation_runner",
+     "uquant.validation.promotion_contract": "validation_runner",
+     "uquant.validation.production_observation": "validation_runner",
+     "uquant.validation.production_observation_contract": "validation_runner",
+     "uquant.validation.replay_evidence": "validation_runner",
++    "uquant.validation.statistics": "validation_runner",
+     "uquant.validation.universe": "production_safe",
+ }
+ 
+ _MODULE_AUTHORITY_VALUES = {"production_safe", "validation_runner", "cli_runner"}
+ 
+ _NONPRODUCTION_IMPORT_AUTHORITIES = {"operator_script", "research", "test"}
+ 
+ _RUNNER_AUTHORITIES = {"cli_runner", "validation_runner"}
+ 
+ _CONTRACT_RELOCATIONS = {
+diff --git a/tests/architecture/_owner_transport.py b/tests/architecture/_owner_transport.py
+index 1e87a25..d608fe5 100644
+--- a/tests/architecture/_owner_transport.py
++++ b/tests/architecture/_owner_transport.py
+@@ -119,20 +119,21 @@ _VALIDATION_ADDITIONS = frozenset(
+         "uquant/validation/generalization_matrix_evidence.py",
+         "uquant/validation/generalization_matrix_validation.py",
+         "uquant/validation/generalization_policy/cell_policy.py",
+         "uquant/validation/generalization_policy/evaluation_stages.py",
+         "uquant/validation/generalization_policy/tail_evaluation.py",
+         "uquant/validation/holdout/capabilities.py",
+         "uquant/validation/holdout/cli_operations.py",
+         "uquant/validation/production_observation.py",
+         "uquant/validation/production_observation_contract.py",
+         "uquant/validation/promotion_contract.py",
++        "uquant/validation/statistics.py",
+     }
+ )
+ ARCHITECTURE_SOURCE_SURFACE_ADDITIONS: Mapping[str, frozenset[str]] = {
+     "economic_decision_v1": _ECONOMIC_ADDITIONS,
+     "execution_account_v1": _EXECUTION_ADDITIONS,
+     "sentinel_v1": _SENTINEL_ADDITIONS,
+     "validation_runner_v1": _VALIDATION_ADDITIONS,
+     "full_package_v1": frozenset(
+         (
+             _ECONOMIC_ADDITIONS
+diff --git a/tests/test_absolute_generalization_contract.py b/tests/test_absolute_generalization_contract.py
+index e6ce5da..afb8ea0 100644
+--- a/tests/test_absolute_generalization_contract.py
++++ b/tests/test_absolute_generalization_contract.py
+@@ -24,20 +24,23 @@ BASELINE_COMMIT = "d7fd3bf8f23ae9c66eb27f5046dedb9f7f980be5"
+ HISTORICAL_BASELINE_SOURCE = (
+     "cacef64c25053a84e1aad073feec252d8cb9d2decb19576460642a3b6ec6573f"
+ )
+ OWNERSHIP_CONTRACT_SHA256 = (
+     "72e6b510c3bcf44ac77d2c13613f4d72a14ae8dab0d60a19e5947055ae7cbf08"
+ )
+ CURRENT_CANDIDATE_SOURCE = (
+     "d1ef7977ae482e46a920381e6af58791199ec8e1a02586dbe8df451e7d4696c9"
+ )
+ BASELINE_SOURCE_AT_COMMIT = CURRENT_CANDIDATE_SOURCE
++FROZEN_SOURCE_REGISTRY_SHA256 = (
++    "da0418442020762272b3b5008c17b515794688270b4940313ccfdfd0b13877cb"
++)
+ AI_UNIVERSE_SHA256 = (
+     "03f42c5066fb8e1c7b2f8e1b7dd38d508d8053f548ebb5596317ce587d7cffd0"
+ )
+ 
+ CANONICAL_UNIVERSE = (
+     "sh600487",
+     "sh601869",
+     "sh603688",
+     "sh603986",
+     "sh688008",
+@@ -238,28 +241,27 @@ def test_contract_freezes_exact_absolute_policy_and_historical_baseline() -> Non
+         ],
+     }
+     with pytest.raises(FrozenInstanceError):
+         contract.baseline_can_relax_absolute_limits = True
+ 
+ 
+ def test_contract_binds_candidate_and_frozen_inputs_to_independent_authorities() -> None:
+     module = _contract_module()
+     contract = module.load_absolute_generalization_contract(CONTRACT_PATH)
+     raw = _raw_contract()
+-    registry = load_source_surface_registry(ROOT)
+ 
+     assert raw["candidate"] == {
+         "baseline_commit": BASELINE_COMMIT,
+         "baseline_source_sha256": BASELINE_SOURCE_AT_COMMIT,
+         "production_source_sha256": CURRENT_CANDIDATE_SOURCE,
+         "source_surface_id": "economic_decision_v1",
+-        "source_surface_registry_sha256": registry.canonical_sha256,
++        "source_surface_registry_sha256": FROZEN_SOURCE_REGISTRY_SHA256,
+     }
+     assert raw["inputs"] == {
+         "ai_universe_sha256": AI_UNIVERSE_SHA256,
+         "effective_config_sha256": "dae4d79fdd813832c6ab152611437c13be1d38227c7280691874d3a9267d93d5",
+         "frozen_data": {
+             "checksums_sha256": "ba460d65f791f238d8a4a16ac62e2225c1832caa6f4da5003166a894edf80e29",
+             "files_verified": 36,
+             "manifest_sha256": "343009138d22f8d4a20768f706207fe4d4bcd03581b0c5945c5485ecbd28788d",
+             "snapshot_id": "20260809T094222Z-causal-tech-index-rebase",
+         },
+@@ -275,20 +277,63 @@ def test_contract_binds_candidate_and_frozen_inputs_to_independent_authorities()
+         ROOT, BASELINE_COMMIT, "economic_decision_v1"
+     ) == BASELINE_SOURCE_AT_COMMIT
+     assert source_surface_fingerprint(ROOT, "economic_decision_v1") == CURRENT_CANDIDATE_SOURCE
+     ownership = json.loads(OWNERSHIP_PATH.read_bytes())
+     assert hashlib.sha256(canonical_json_bytes(ownership)).hexdigest() == (
+         OWNERSHIP_CONTRACT_SHA256
+     )
+     assert tuple(ownership["canonical_universe"]) == CANONICAL_UNIVERSE
+ 
+ 
++def test_frozen_contract_survives_non_economic_source_registry_evolution() -> None:
++    """Catch coupling the frozen seal to later validation-only registry members."""
++
++    module = _contract_module()
++    raw = _raw_contract()
++    candidate = raw["candidate"]
++    assert isinstance(candidate, dict)
++    registry = load_source_surface_registry(ROOT)
++
++    assert candidate["source_surface_registry_sha256"] == (
++        FROZEN_SOURCE_REGISTRY_SHA256
++    )
++    assert registry.canonical_sha256 != FROZEN_SOURCE_REGISTRY_SHA256
++    assert "uquant/validation/statistics.py" in registry.surface(
++        "validation_runner_v1"
++    ).source_paths
++    assert source_surface_fingerprint(ROOT, "economic_decision_v1") == (
++        candidate["production_source_sha256"]
++    )
++
++    contract = module.load_absolute_generalization_contract(CONTRACT_PATH)
++
++    assert contract.candidate.source_surface_registry_sha256 == (
++        FROZEN_SOURCE_REGISTRY_SHA256
++    )
++
++
++def test_contract_still_rejects_current_economic_source_mismatch(
++    monkeypatch: pytest.MonkeyPatch,
++) -> None:
++    """Catch registry evolution weakening the frozen economic-source binding."""
++
++    module = _contract_module()
++    monkeypatch.setattr(
++        module,
++        "source_surface_fingerprint",
++        lambda *_args: "0" * 64,
++    )
++
++    with pytest.raises(ValueError, match="candidate source identity differs"):
++        module.load_absolute_generalization_contract(CONTRACT_PATH)
++
++
+ def test_loader_binds_baseline_and_evolving_candidate_sources_independently(
+     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+ ) -> None:
+     module = _contract_module()
+     raw = _raw_contract()
+     baseline_source = "1" * 64
+     candidate_source = "2" * 64
+     candidate = raw["candidate"]
+     assert isinstance(candidate, dict)
+     candidate["baseline_source_sha256"] = baseline_source
+diff --git a/tests/test_validation_statistics.py b/tests/test_validation_statistics.py
+new file mode 100644
+index 0000000..cd25e36
+--- /dev/null
++++ b/tests/test_validation_statistics.py
+@@ -0,0 +1,161 @@
++from __future__ import annotations
++
++import importlib
++import math
++import pickle
++from collections.abc import Iterator, Sequence
++from typing import Never
++
++import pytest
++
++
++def _linear_quantile():
++    module = importlib.import_module("uquant.validation.statistics")
++    return module.linear_quantile
++
++
++class _ValuesWereRead(RuntimeError):
++    pass
++
++
++class _ExplodingValues(Sequence[float]):
++    def __init__(self) -> None:
++        self.calls: list[str] = []
++
++    def __len__(self) -> Never:
++        self.calls.append("len")
++        raise _ValuesWereRead
++
++    def __getitem__(self, index: int | slice) -> Never:
++        self.calls.append(f"getitem:{index!r}")
++        raise _ValuesWereRead
++
++    def __iter__(self) -> Iterator[float]:
++        self.calls.append("iter")
++        raise _ValuesWereRead
++
++
++@pytest.mark.parametrize(
++    ("values", "probability", "expected"),
++    (
++        ([7.0], 0.10, 7.0),
++        ([7.0], 0.90, 7.0),
++        ([0.0, 10.0], 0.10, 1.0),
++        ([0.0, 10.0], 0.90, 9.0),
++        ([1.0, 2.0, 10.0], 0.25, 1.5),
++        ([1.0, 2.0, 3.0, 4.0], 0.10, 1.3),
++        ([1.0, 2.0, 3.0, 4.0], 0.90, 3.7),
++        ([4.0, 1.0, 3.0, 2.0], 0, 1.0),
++        ([4.0, 1.0, 3.0, 2.0], 1, 4.0),
++    ),
++)
++def test_linear_quantile_uses_n_minus_one_interpolation(
++    values: list[float],
++    probability: float,
++    expected: float,
++) -> None:
++    """Catch nearest-rank, midpoint, lower, higher, and boundary mistakes."""
++
++    assert _linear_quantile()(values, probability) == pytest.approx(expected)
++
++
++def test_linear_quantile_is_independent_of_input_order() -> None:
++    """Catch interpolation against caller order instead of sorted values."""
++
++    quantile = _linear_quantile()
++
++    assert quantile([8.0, 1.0, 5.0, 3.0], 0.25) == pytest.approx(2.5)
++    assert quantile([1.0, 3.0, 5.0, 8.0], 0.25) == pytest.approx(2.5)
++
++
++@pytest.mark.parametrize(
++    "values",
++    (
++        [],
++        [True],
++        [False, 1.0],
++        ["1.0"],
++        [math.nan],
++        [math.inf],
++        [-math.inf],
++    ),
++)
++def test_linear_quantile_rejects_non_finite_or_non_numeric_values(
++    values: list[object],
++) -> None:
++    """Catch sorting or coercing malformed metric cells into a percentile."""
++
++    with pytest.raises(ValueError):
++        _linear_quantile()(values, 0.5)
++
++
++@pytest.mark.parametrize(
++    "probability",
++    (-0.01, 1.01, True, False, "0.5", math.nan, math.inf, -math.inf),
++)
++def test_linear_quantile_rejects_invalid_probability(probability: object) -> None:
++    """Catch out-of-domain or non-finite percentile selectors."""
++
++    with pytest.raises(ValueError):
++        _linear_quantile()([1.0, 2.0], probability)
++
++
++def test_linear_quantile_rejects_non_numeric_value_before_sorting() -> None:
++    """Catch leaking a heterogeneous-sort TypeError for malformed cells."""
++
++    with pytest.raises(ValueError, match="quantile value must be numeric"):
++        _linear_quantile()([1.0, "bad"], 0.5)
++
++
++def test_linear_quantile_rejects_probability_before_reading_values() -> None:
++    """Catch consuming an expensive or failing sequence before selector validation."""
++
++    values = _ExplodingValues()
++
++    with pytest.raises(ValueError, match="quantile probability must be in"):
++        _linear_quantile()(values, -0.01)
++
++    assert values.calls == []
++
++
++def test_generalization_facade_preserves_central_quantile_owner_metadata() -> None:
++    """Catch a compatibility alias rewriting the central owner's pickle identity."""
++
++    statistics = importlib.import_module("uquant.validation.statistics")
++    linear_quantile = statistics.linear_quantile
++    assert linear_quantile.__module__ == "uquant.validation.statistics"
++
++    importlib.import_module("uquant.validation.generalization")
++
++    assert linear_quantile.__module__ == "uquant.validation.statistics"
++    restored = pickle.loads(pickle.dumps(linear_quantile))
++    assert restored is linear_quantile
++    assert restored.__module__ == "uquant.validation.statistics"
++
++
++def test_existing_generalization_paths_share_the_linear_quantile_owner() -> None:
++    """Catch copied interpolation owners reappearing in legacy validation paths."""
++
++    linear_quantile = _linear_quantile()
++    matrix_evidence = importlib.import_module(
++        "uquant.validation.generalization_matrix_evidence"
++    )
++    generalization_metrics = importlib.import_module(
++        "uquant.validation.generalization.metrics"
++    )
++    cell_policy = importlib.import_module(
++        "uquant.validation.generalization_policy.cell_policy"
++    )
++
++    for module, compatibility_name in (
++        (generalization_metrics, "quantile"),
++        (matrix_evidence, "matrix_quantile"),
++        (cell_policy, "policy_quantile"),
++    ):
++        compatibility = getattr(module, compatibility_name)
++        assert module._linear_quantile is linear_quantile
++        assert compatibility is not linear_quantile
++        assert compatibility.__code__.co_names == ("_linear_quantile",)
++        assert compatibility([0.0, 10.0], 0.90) == pytest.approx(9.0)
++        with pytest.raises(ValueError):
++            compatibility([True, 10.0], 0.90)
+diff --git a/uquant/validation/absolute_generalization/contract.py b/uquant/validation/absolute_generalization/contract.py
+index edb07fd..f0a7952 100644
+--- a/uquant/validation/absolute_generalization/contract.py
++++ b/uquant/validation/absolute_generalization/contract.py
+@@ -16,21 +16,20 @@ from uquant.config import DEFAULT_CONFIG, config_fingerprint
+ from uquant.contracts.strict_json import (
+     canonical_json_bytes,
+     canonical_json_sha256,
+     strict_json_loads,
+ )
+ from uquant.contracts.universe import default_ai_universe
+ from uquant.provenance.fingerprints import (
+     git_source_surface_fingerprint,
+     source_surface_fingerprint,
+ )
+-from uquant.provenance.surfaces import load_source_surface_registry
+ from uquant.validation.manifest import verify_data_manifest
+ 
+ ABSOLUTE_GENERALIZATION_CONTRACT_SHA256: Final = (
+     "af3882c594372ae0f5d4665990f5ead6bea99faaf0916f803239256c8ec6baf6"
+ )
+ 
+ _ROOT = Path(__file__).resolve().parents[3]
+ _DEFAULT_CONTRACT_PATH = _ROOT / "benchmarks/absolute_generalization_acceptance_contract.json"
+ _OWNERSHIP_CONTRACT_PATH = _ROOT / "benchmarks/strategic_ownership_acceptance_contract.json"
+ _BASELINE_COMMIT = "d7fd3bf8f23ae9c66eb27f5046dedb9f7f980be5"
+@@ -203,23 +202,20 @@ def _read_ownership_contract(path: Path) -> Mapping[str, object]:
+     document = _read_physical_regular_file(
+         path, label="absolute generalization ownership contract"
+     )
+     decoded = strict_json_loads(document)
+     if not isinstance(decoded, Mapping):
+         raise ValueError("absolute generalization ownership contract must be an object")
+     return cast(Mapping[str, object], decoded)
+ 
+ 
+ def _verify_independent_authorities() -> None:
+-    registry = load_source_surface_registry(_ROOT)
+-    if registry.canonical_sha256 != _REGISTRY_SHA256:
+-        raise ValueError("absolute generalization source registry identity differs")
+     if (
+         git_source_surface_fingerprint(_ROOT, _BASELINE_COMMIT, "economic_decision_v1")
+         != _BASELINE_SOURCE
+         or source_surface_fingerprint(_ROOT, "economic_decision_v1") != _CANDIDATE_SOURCE
+     ):
+         raise ValueError("absolute generalization candidate source identity differs")
+     if config_fingerprint(DEFAULT_CONFIG) != "dae4d79fdd813832c6ab152611437c13be1d38227c7280691874d3a9267d93d5":
+         raise ValueError("absolute generalization effective config identity differs")
+     if hashlib.sha256((_ROOT / "uv.lock").read_bytes()).hexdigest() != "4accf16535b5ac95b831c9289e0ad2ff21282dc5dfae3f05dd0fb095089d6a61":
+         raise ValueError("absolute generalization uv.lock identity differs")
+diff --git a/uquant/validation/generalization/metrics.py b/uquant/validation/generalization/metrics.py
+index 01a323d..5e58b94 100644
+--- a/uquant/validation/generalization/metrics.py
++++ b/uquant/validation/generalization/metrics.py
+@@ -7,20 +7,21 @@ writes a baseline file: reference updates must remain an explicit, reviewed
+ repository change.
+ """
+ 
+ from __future__ import annotations
+ 
+ import math
+ from collections.abc import Mapping, Sequence
+ from statistics import median
+ from typing import Any
+ 
++from ..statistics import linear_quantile as _linear_quantile
+ from .models import GeneralizationObservation, GeneralizationScenario
+ 
+ 
+ def _accumulate_symbol_profit(
+     *,
+     final_prices: Mapping[str, float],
+     result: Mapping[str, Any],
+ ) -> tuple[Mapping[Any, Any], dict[str, float]]:
+     account = result.get("final_account")
+     if not isinstance(account, Mapping):
+@@ -183,32 +184,21 @@ def observation_from_result(
+         family=case.family,
+         final_wealth=wealth,
+         max_drawdown=drawdown,
+         account_orders=raw_orders,
+         symbol_pnl=pnl_items,
+         deployed_exposure=deployed,
+     )
+ 
+ 
+ def _quantile(values: Sequence[float], probability: float) -> float:
+-    if not values:
+-        raise ValueError("cannot aggregate an empty metric sequence")
+-    if not 0 <= probability <= 1:
+-        raise ValueError("quantile probability must be in [0, 1]")
+-    ordered = sorted(float(value) for value in values)
+-    location = (len(ordered) - 1) * probability
+-    lower = math.floor(location)
+-    upper = math.ceil(location)
+-    if lower == upper:
+-        return ordered[lower]
+-    fraction = location - lower
+-    return ordered[lower] * (1.0 - fraction) + ordered[upper] * fraction
++    return _linear_quantile(values, probability)
+ 
+ 
+ def aggregate_metrics(
+     observations: Sequence[GeneralizationObservation],
+ ) -> dict[str, float]:
+     """Aggregate robust lower-tail wealth, upper-tail risk, and order burden."""
+     if not observations:
+         raise ValueError("generalization aggregation requires observations")
+     wealth = [item.final_wealth for item in observations]
+     drawdown = [item.max_drawdown for item in observations]
+diff --git a/uquant/validation/generalization_matrix_evidence.py b/uquant/validation/generalization_matrix_evidence.py
+index 1b96578..0f18a68 100644
+--- a/uquant/validation/generalization_matrix_evidence.py
++++ b/uquant/validation/generalization_matrix_evidence.py
+@@ -15,20 +15,21 @@ from .generalization import (
+     GeneralizationObservation,
+     aggregate_metrics,
+     observation_from_result,
+     symbol_pnl_concentration,
+ )
+ from .generalization_contract import (
+     ContractScenario,
+     evidence_contract_payload,
+ )
+ from .generalization_policy.schema import ImmutableGeneralizationDefinition
++from .statistics import linear_quantile as _linear_quantile
+ 
+ SCHEMA_VERSION: Final = 2
+ SHA256_PATTERN: Final = re.compile(r"^[0-9a-f]{64}$")
+ COMMIT_PATTERN: Final = re.compile(r"^[0-9a-f]{40,64}$")
+ PROVENANCE_FIELDS: Final = frozenset(
+     {
+         "head",
+         "source_sha256",
+         "effective_config_sha256",
+         "data",
+@@ -257,30 +258,23 @@ def metrics_from_raw(
+             "account_orders": observation.account_orders,
+             "gross_turnover": gross_turnover,
+             "annual_turnover": annual_turnover,
+             **symbol_pnl_concentration(observation.pnl_map()),
+         },
+         observation,
+     )
+ 
+ 
+ def matrix_quantile(values: Sequence[float], probability: float) -> float:
+-    ordered = sorted(values)
+-    if not ordered:
+-        raise ValueError("matrix aggregate requires economic cells")
+-    location = (len(ordered) - 1) * probability
+-    lower = math.floor(location)
+-    upper = math.ceil(location)
+-    if lower == upper:
+-        return ordered[lower]
+-    fraction = location - lower
+-    return ordered[lower] * (1.0 - fraction) + ordered[upper] * fraction
++    """Preserve the matrix API while delegating its quantile authority."""
++
++    return _linear_quantile(values, probability)
+ 
+ 
+ def aggregate_matrix_observations(
+     metrics: Sequence[Mapping[str, float | int]],
+     observations: Sequence[GeneralizationObservation],
+     *,
+     expected_cells: int | None = None,
+     replay_error_cells: int = 0,
+ ) -> dict[str, float | int]:
+     if not metrics or not observations or len(metrics) != len(observations):
+diff --git a/uquant/validation/generalization_policy/cell_policy.py b/uquant/validation/generalization_policy/cell_policy.py
+index c6e1f74..17363ad 100644
+--- a/uquant/validation/generalization_policy/cell_policy.py
++++ b/uquant/validation/generalization_policy/cell_policy.py
+@@ -1,19 +1,20 @@
+ """Relative cell and authenticated random-tail policy calculations."""
+ 
+ from __future__ import annotations
+ 
+ import math
+ from collections.abc import Mapping, Sequence
+ from dataclasses import dataclass
+ from typing import Any
+ 
++from ..statistics import linear_quantile as _linear_quantile
+ from .schema import GeneralizationPolicy
+ 
+ 
+ def evaluate_relative_cell_non_regression(
+     candidate: Mapping[str, Any],
+     reference: Mapping[str, Any],
+     *,
+     policy: GeneralizationPolicy,
+ ) -> tuple[str, ...]:
+     """Apply the frozen relative per-cell wealth, risk, order, and turnover gates."""
+@@ -71,32 +72,23 @@ def evaluate_recovered_against_group_envelope(
+         "final_wealth": min(float(item["final_wealth"]) for item in authenticated_valid_group),
+         "max_drawdown": max(float(item["max_drawdown"]) for item in authenticated_valid_group),
+         "account_orders": max(int(item["account_orders"]) for item in authenticated_valid_group),
+         "gross_turnover": max(float(item["gross_turnover"]) for item in authenticated_valid_group),
+         "annual_turnover": max(float(item["annual_turnover"]) for item in authenticated_valid_group),
+     }
+     return evaluate_relative_cell_non_regression(candidate, envelope, policy=policy)
+ 
+ 
+ def policy_quantile(values: Sequence[float], probability: float) -> float:
+-    """Interpolate one deterministic policy quantile from ordered values."""
+-
+-    ordered = sorted(values)
+-    if not ordered:
+-        raise ValueError("generalization tail quantile requires valid economic cells")
+-    location = (len(ordered) - 1) * probability
+-    lower = math.floor(location)
+-    upper = math.ceil(location)
+-    if lower == upper:
+-        return ordered[lower]
+-    fraction = location - lower
+-    return ordered[lower] * (1.0 - fraction) + ordered[upper] * fraction
++    """Preserve the policy API while delegating its quantile authority."""
++
++    return _linear_quantile(values, probability)
+ 
+ 
+ @dataclass(frozen=True, slots=True)
+ class RandomTailStatistics:
+     """Authenticated tail statistics for one fixed window/pool-size group."""
+ 
+     valid_cells: int
+     replay_error_cells: int
+     positive_return_fraction: float
+     p10_wealth: float | None
+diff --git a/uquant/validation/statistics.py b/uquant/validation/statistics.py
+new file mode 100644
+index 0000000..4af01db
+--- /dev/null
++++ b/uquant/validation/statistics.py
+@@ -0,0 +1,46 @@
++"""Finite deterministic statistics shared by validation policies."""
++
++from __future__ import annotations
++
++import math
++from collections.abc import Sequence
++from typing import Any
++
++
++def _finite_quantile_number(value: Any, *, label: str) -> float:
++    if isinstance(value, bool) or not isinstance(value, (int, float)):
++        raise ValueError(f"{label} must be numeric")
++    try:
++        numeric = float(value)
++    except OverflowError as exc:
++        raise ValueError(f"{label} must be finite") from exc
++    if not math.isfinite(numeric):
++        raise ValueError(f"{label} must be finite")
++    return numeric
++
++
++def linear_quantile(values: Sequence[float], probability: float) -> float:
++    """Return the sorted ``(n - 1) * probability`` linear interpolation."""
++
++    selected_probability = _finite_quantile_number(
++        probability, label="quantile probability"
++    )
++    if not 0.0 <= selected_probability <= 1.0:
++        raise ValueError("quantile probability must be in [0, 1]")
++    finite_values = tuple(
++        _finite_quantile_number(value, label="quantile value") for value in values
++    )
++    if not finite_values:
++        raise ValueError("quantile requires a non-empty metric sequence")
++
++    ordered = sorted(finite_values)
++    location = (len(ordered) - 1) * selected_probability
++    lower = math.floor(location)
++    upper = math.ceil(location)
++    if lower == upper:
++        return ordered[lower]
++    fraction = location - lower
++    return ordered[lower] * (1.0 - fraction) + ordered[upper] * fraction
++
++
++__all__ = ("linear_quantile",)

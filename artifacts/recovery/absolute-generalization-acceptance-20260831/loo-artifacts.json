@@ -1,0 +1,62 @@
+[
+  {
+    "current_readback_verified": false,
+    "expected_original_path": "/tmp/uquant-absolute-task9-74b1bbe.NDrTDx/shards/absolute-generalization-task9-74b1bbe10af1-attempt-1-loo-a/manifest.json",
+    "historical_sha256": "06486a27adf23c31e9eb5a48bc937376ac637000fac11cbdb67fa190e69c67ac",
+    "historical_size_bytes": 758857364,
+    "persistent_upload_status": "blocked_source_bytes_absent",
+    "shard": "loo-a",
+    "source_bytes_present_now": false,
+    "verification_source": "historical_captured_tool_output"
+  },
+  {
+    "current_readback_verified": false,
+    "expected_original_path": "/tmp/uquant-absolute-task9-74b1bbe.NDrTDx/shards/absolute-generalization-task9-74b1bbe10af1-attempt-1-loo-b/manifest.json",
+    "historical_sha256": "196c88d68ce84a9dc1f1cbb7d228408a26c980cc4104633b2bd20f4b030ea8f9",
+    "historical_size_bytes": 760263602,
+    "persistent_upload_status": "blocked_source_bytes_absent",
+    "shard": "loo-b",
+    "source_bytes_present_now": false,
+    "verification_source": "historical_captured_tool_output"
+  },
+  {
+    "current_readback_verified": false,
+    "expected_original_path": "/tmp/uquant-absolute-task9-74b1bbe.NDrTDx/shards/absolute-generalization-task9-74b1bbe10af1-attempt-1-loo-c/manifest.json",
+    "historical_sha256": "e34f5ff5e29e03d07e90f7669b7ea898cb00e9789a9ee8e318548f7bff0a7b10",
+    "historical_size_bytes": 761535134,
+    "persistent_upload_status": "blocked_source_bytes_absent",
+    "shard": "loo-c",
+    "source_bytes_present_now": false,
+    "verification_source": "historical_captured_tool_output"
+  },
+  {
+    "current_readback_verified": false,
+    "expected_original_path": "/tmp/uquant-absolute-task9-74b1bbe.NDrTDx/shards/absolute-generalization-task9-74b1bbe10af1-attempt-1-loo-d/manifest.json",
+    "historical_sha256": "5d5ebee860633ea16f23f3238fcd18eddcbc05f6676186303db115526890b8a3",
+    "historical_size_bytes": 762099479,
+    "persistent_upload_status": "blocked_source_bytes_absent",
+    "shard": "loo-d",
+    "source_bytes_present_now": false,
+    "verification_source": "historical_captured_tool_output"
+  },
+  {
+    "current_readback_verified": false,
+    "expected_original_path": "/tmp/uquant-absolute-task9-74b1bbe.NDrTDx/shards/absolute-generalization-task9-74b1bbe10af1-attempt-1-loo-e/manifest.json",
+    "historical_sha256": "2306c143966789e477a595f5519fd7a528075c26103171e306ab48ef0701a694",
+    "historical_size_bytes": 631785633,
+    "persistent_upload_status": "blocked_source_bytes_absent",
+    "shard": "loo-e",
+    "source_bytes_present_now": false,
+    "verification_source": "historical_captured_tool_output"
+  },
+  {
+    "current_readback_verified": false,
+    "expected_original_path": "/tmp/uquant-absolute-task9-74b1bbe.NDrTDx/shards/absolute-generalization-task9-74b1bbe10af1-attempt-1-loo-f/manifest.json",
+    "historical_sha256": "5993b0091c9960f514263daa43cca077fbbcb5e04f6eb19af18babe57629a16a",
+    "historical_size_bytes": 626425214,
+    "persistent_upload_status": "blocked_source_bytes_absent",
+    "shard": "loo-f",
+    "source_bytes_present_now": false,
+    "verification_source": "historical_captured_tool_output"
+  }
+]

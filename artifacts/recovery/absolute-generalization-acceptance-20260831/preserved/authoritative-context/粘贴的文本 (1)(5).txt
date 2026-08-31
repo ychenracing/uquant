@@ -1,0 +1,1636 @@
+@Superpowers @GitHub
+
+请完成 GitHub 仓库 ychenracing/uquant 的最终生产改造：
+
+“Absolute Generalization Acceptance、完整 34 标的 leave-one-out、有界健康现金空窗与绝对战略稳健性闭环”。
+
+这是此前三项生产改造中的最后一项。
+
+本任务不是重新设计策略，也不是单纯增加研究报告。最终目标是让绿色 Generalization Acceptance 同时、真实、阻断式地证明：
+
+Champion Non-Regression
+AND
+Absolute Strategic Robustness
+AND
+Failed Grant Recovery
+AND
+Witness Resilience
+AND
+Repeated Crowning
+AND
+Bounded Healthy Cash Vacancy
+AND
+Complete Literal Metrics
+
+只有七个部分全部通过，Generalization Acceptance 才能为绿色。
+
+不得再让以下情况获得绿色：
+
+- 仅与旧 champion 一样差；
+- runner 成功但 capability 失败；
+- 仅 qualification-ready；
+- 仅 synthetic state reachability；
+- 仅有未成交 PROBE epoch；
+- 普通通道交易掩盖战略授冠不可达；
+- 指标缺失、为 null 或被排除出百分位；
+- replay error 与旧 baseline 相同；
+- 通过 baseline grandfathering 降低绝对门；
+- 只验证数据结构存在；
+- 只验证单元测试路径存在。
+
+本 Prompt 授权：
+
+- 创建新的独立 worktree 和功能分支；
+- 在根因证据确实证明生产语义有缺口时，修改必要的生产状态机；
+- 创建正常非 Draft PR；
+- 全部验收及正常 CI 通过后直接 squash merge 到 main；
+- 不等待第二次合并批准；
+- 合并后核验 main 并清理本任务分支和 worktree。
+
+==================================================
+一、权威现场
+==================================================
+
+仓库：
+
+ychenracing/uquant
+
+本 Prompt 生成时已核验 main：
+
+0ad52adcf59290e4f2b69523e3d51faa1455446b
+
+该 main 已包含：
+
+- PR #28：三组决定性研究实验；
+- PR #29：StrategicGrantIntent 与执行失败恢复；
+- PR #30：StrategicEpoch、多 owner 重复授冠、universe 分离、quorum 与 flat-book capital repair；
+- PR #31：权威 Engineering 测试分片、历史证据 schema 兼容和工程闭环。
+
+开始执行时必须首先：
+
+1. fetch 最新 origin/main；
+2. 核验最新 main SHA、tree、最近合并 PR 和工作区状态；
+3. 确认 PR #29、#30、#31 的核心能力仍在；
+4. 如果 main 已前进，以最新 main 为基线，并说明与上述 SHA 的差异；
+5. 从最新 main 新建独立分支：
+
+   codex/absolute-generalization-acceptance
+
+6. 使用独立 worktree；
+7. 记录：
+   - worktree 绝对路径；
+   - 分支；
+   - HEAD；
+   - origin/main；
+   - merge-base；
+   - git status --short；
+8. 禁止复用或复活旧的 strategic-owner-continuity 分支；
+9. 禁止 reset、clean、rebase、force push、丢弃工作区文件或覆盖未提交改动。
+
+==================================================
+二、必须保护的既有生产能力
+==================================================
+
+不得回退、复制或削弱：
+
+- ProductionEngine.decide() 唯一生产决策入口；
+- Risk 唯一 target_gross_cap owner；
+- PortfolioAllocator 唯一目标组合 owner；
+- AccountState 唯一经济账户状态；
+- 盘后决定、下一可交易日执行；
+- T+1；
+- 停牌；
+- 涨跌停；
+- 手数；
+- 费用；
+- 滑点；
+- 成交容量；
+- 部分成交；
+- 迟到成交；
+- broker rejection；
+- pending acknowledgement；
+- restart recovery；
+- StrategicGrantIntent；
+- 确定性 grant identity；
+- StrategicEpoch；
+- Fill 后才激活实际 epoch；
+- 任意时刻最多一个 ACTIVE strategic owner；
+- incumbent 活跃时 successor 只读观察；
+- tradable、qualification-reference、risk-reference universe 分离；
+- ROLE_ABSENT 与 EXPECTED_BUT_UNAVAILABLE 分离；
+- FULL_COHORT；
+- STRONG_PAIR；
+- ABSOLUTE_SINGLE；
+- staged probe；
+- flat-book capital repair；
+- candidate qualification 与 account repair 时钟分离；
+- Target、Order、Fill、Position、Tranche、grant、epoch 身份链；
+- Strategic Grant Acceptance；
+- Strategic Ownership Acceptance；
+- PR #30 的 champion 经济保护；
+- PR #31 的完整 Engineering 分片与历史证据兼容。
+
+生产修复不得创建：
+
+- 第二套 Risk；
+- 第二套 PortfolioAllocator；
+- 第二套 capital budget；
+- 第二套 owner 状态机；
+- 独立于 AccountState 的经济账户；
+- 绕开 Target/Order/Fill 的直接持仓通道。
+
+==================================================
+三、先冻结最终验收合同
+==================================================
+
+在第一次执行完整 34-cell leave-one-out 之前，先提交并冻结最终验收合同。
+
+推荐路径：
+
+benchmarks/absolute_generalization_acceptance_contract.json
+
+合同名称使用当前系统语义，不使用：
+
+- phase；
+- stage；
+- v3；
+- final-v1；
+- migration-history；
+- release-history；
+- legacy/new；
+- 改造轮次。
+
+合同必须：
+
+1. 使用 canonical JSON；
+2. 拒绝 duplicate key、NaN 和 Infinity；
+3. 包含 canonical_sha256；
+4. 由代码中的编译常量绑定其 SHA；
+5. 在 reference registry 或现有权威治理面中登记；
+6. 不提供自动覆盖或自动接受当前结果的 writer；
+7. 阈值在第一次完整矩阵执行前冻结；
+8. 后续不得根据结果调整阈值；
+9. 绑定：
+   - 基线 main SHA；
+   - production source hash；
+   - effective config hash；
+   - uv.lock hash；
+   - data/frozen manifest；
+   - canonical AI universe identity；
+   - strategic ownership contract identity；
+   - replay window；
+   - percentile method；
+   - 完整场景集合；
+   - 七个最终能力组件；
+10. 明确声明：
+
+   baseline_can_relax_absolute_limits = false
+
+新合同不要复制出第二个 universe owner。
+
+canonical 34-symbol universe 继续由当前生产 AI universe 和：
+
+benchmarks/strategic_ownership_acceptance_contract.json
+
+共同约束。新合同引用并验证其 identity、数量和成员完全一致。
+
+==================================================
+四、最终绿色语义
+==================================================
+
+最终报告必须分别保留：
+
+runner_success
+
+和：
+
+capability_pass
+
+定义：
+
+runner_success =
+- 所有预注册经济 cell 均实际完成；
+- 无 REPLAY_ERROR；
+- 无缺失 cell；
+- 无重复 cell；
+- 无 malformed evidence；
+- provenance、数据、配置、源码和 universe 一致；
+- 所有账户与执行证据可重算。
+
+capability_pass =
+- 七项能力组件全部通过。
+
+最终：
+
+passed = runner_success AND capability_pass
+
+Generalization Acceptance 只有 passed=true 才能绿色。
+
+不得：
+
+- 把 runner_success 当 capability_pass；
+- 把旧 champion exact equality 当全部 capability pass；
+- 对失败 component 标记 warning 后整体通过；
+- 用 baseline 值降低绝对门；
+- 从百分位统计中排除失败或亏损 cell；
+- 为 replay error 伪造经济指标；
+- 让 null 指标绕过比较。
+
+最终组件必须固定为：
+
+1. champion_non_regression；
+2. absolute_strategic_robustness；
+3. failed_grant_recovery；
+4. witness_resilience；
+5. repeated_crowning；
+6. bounded_healthy_cash_vacancy；
+7. complete_literal_metrics。
+
+==================================================
+五、现有 Generalization 的保留和修正
+==================================================
+
+当前已有两套相关能力：
+
+A. 旧的相对 generalization policy
+
+它继续保留，用于：
+
+- champion non-regression；
+- 相对 per-cell non-regression；
+- turnover、orders 和 drawdown 相对约束；
+- 历史 baseline 完整性。
+
+B. 六窗口 Extended Economic Matrix
+
+它继续：
+
+- workflow_dispatch only；
+- manual-only；
+- 不在本任务运行；
+- 不恢复为每个 PR 自动执行。
+
+不得修改旧 baseline 来让当前候选通过：
+
+- 不得重写 ai_era_generalization_baseline.json；
+- 不得把当前结果注册成新的 champion；
+- 不得降低其相对门；
+- 不得删除旧失败证据。
+
+旧 policy 中：
+
+effective = min(literal, baseline)
+
+一类 baseline grandfathering 只能影响 champion-relative non-regression。
+
+它绝不能应用于新的绝对门。
+
+新绝对验收必须直接比较 literal threshold，例如：
+
+- final_wealth > 1.0；
+- max_drawdown <= 0.30；
+- p10 final wealth >= 1.0。
+
+不得使用：
+
+min(literal, baseline)
+max(literal, baseline)
+baseline is worse so candidate passes
+
+来改变绝对门。
+
+旧 Extended Economic Matrix 当前如仍产生名为：
+
+Generalization Acceptance
+
+的绿色终态，应将其终态 check 重命名为清晰的诊断名称，例如：
+
+Extended Economic Matrix Diagnostics
+
+避免旧相对门和新最终门同时显示为同名绿色。
+
+新的最终阻断 check 名称必须是：
+
+Generalization Acceptance
+
+==================================================
+六、独立的 34-cell canonical leave-one-out
+==================================================
+
+不要改写或扩张现有六窗口 32-economic-cell contract。
+
+创建独立的最终 absolute-generalization 场景合同和 runner。
+
+窗口固定为：
+
+2023-01-03
+至
+2026-08-05
+
+canonical universe 共 34 个 symbol。
+
+必须生成恰好 34 个完整 leave-one-out 经济场景：
+
+- 每次删除一个 canonical symbol；
+- 每个 symbol 恰好一个 cell；
+- 无重复；
+- 无遗漏；
+- 不额外选择“表现较好”的子集。
+
+每个 cell 都是 FULL REMOVAL：
+
+被删除 symbol 必须从当前 point-in-time 的：
+
+- tradable role；
+- qualification-reference role；
+- risk-reference role；
+- replay panel；
+- point-in-time role declaration
+
+中移除。
+
+但必须保持时间因果：
+
+- 未上市前本来不可见；
+- effective membership 之前不制造假删除；
+- 不回填未来 membership；
+- 不用完整期末 universe 污染早期日期。
+
+FULL REMOVAL 的被删除 symbol 应是 ROLE_ABSENT：
+
+- 不属于相应 role 的 coverage 分母；
+- 不得被标为 EXPECTED_BUT_UNAVAILABLE；
+- 不得产生伪负证据；
+- 不得因为 canonical superset 中有它而永久阻断。
+
+另行保留负控制：
+
+EXPECTED_BUT_UNAVAILABLE
+
+其语义是：
+
+- symbol 仍属于当前 role；
+- 但所需数据缺失；
+- 必须 fail closed；
+- 不得计算为 witness recovery 成功；
+- 不得生成 Target、Order、Fill 或 epoch。
+
+每个经济 cell 必须通过真实生产链：
+
+ProductionEngine
+→ qualification observation
+→ StrategicGrantIntent
+→ PortfolioAllocator Target
+→ Order
+→ execution-aware Fill
+→ StrategicEpoch activation
+
+不得使用：
+
+- buy-and-hold；
+- forced owner；
+- research intervention；
+- 直接注入 grant；
+- 直接注入 Target；
+- 直接注入 Order；
+- 直接注入 Fill；
+- 直接注入 StrategicEpoch；
+- future data；
+- 同日不因果成交；
+- synthetic return；
+- symbol-specific fallback。
+
+==================================================
+七、每个 leave-one-out cell 的完整证据
+==================================================
+
+每个 cell 必须保存足以独立重算的完整、有限、非 null 证据。
+
+至少包括：
+
+身份与 provenance：
+
+- cell_id；
+- removed_symbol；
+- window；
+- scenario contract SHA；
+- HEAD；
+- tree；
+- production source SHA；
+- effective config SHA；
+- uv.lock SHA；
+- frozen data manifest SHA；
+- universe SHA；
+- industry mapping SHA；
+- tradable role identity；
+- qualification-reference role identity；
+- risk-reference role identity；
+- execution contract identity。
+
+runner 状态：
+
+- status；
+- replay_error；
+- intervention_provenance；
+- accounting_reconciled；
+- target_order_fill_identity_reconciled；
+- duplicate_grant_count；
+- duplicate_order_count；
+- duplicate_epoch_count。
+
+经济指标：
+
+- initial_cash；
+- final_equity；
+- final_wealth；
+- total_return；
+- max_drawdown；
+- account_orders；
+- fill_count；
+- gross_turnover；
+- annual_turnover；
+- realized_pnl；
+- open_pnl；
+- cash_drag；
+- top1_concentration；
+- top3_concentration；
+- pnl_hhi。
+
+Target 与空窗：
+
+- positive_total_target_sessions；
+- positive_strategic_target_sessions；
+- first_positive_total_target_session；
+- first_positive_strategic_target_session；
+- longest_healthy_zero_total_target_streak；
+- longest_healthy_zero_strategic_target_streak。
+
+战略状态：
+
+- qualification_ready_sessions；
+- first_qualification_session；
+- strategic_grant_count；
+- terminal_grant_count；
+- failed_or_expired_grant_count；
+- first_grant_session；
+- first_positive_strategic_target_session；
+- first_strategic_order_session；
+- first_strategic_fill_session；
+- first_epoch_activation_session；
+- actual_strategic_epoch_count；
+- distinct_owner_count；
+- owner_symbols；
+- 每个实际 epoch 的：
+  - epoch_id；
+  - grant_id；
+  - owner_symbol；
+  - qualification signature；
+  - route；
+  - quorum；
+  - qualification session；
+  - authorization_id；
+  - authorization session；
+  - grant session；
+  - target session；
+  - order session；
+  - fill session；
+  - active session；
+  - closed session；
+  - previous_grant_id；
+  - previous_epoch_id；
+  - close reason。
+
+资本修复：
+
+- repair episode count；
+- 每个 repair episode 的：
+  - repair_episode_id；
+  - persisted damage level；
+  - repair target level；
+  - required healthy sessions；
+  - actual healthy sessions to READY；
+  - first observed session；
+  - ready session；
+  - consumed session；
+  - reset reason；
+- maximum healthy sessions to READY；
+- repair deadline violations。
+
+见证者和 role：
+
+- intentional role-absent symbols；
+- expected-but-unavailable symbols；
+- qualification coverage；
+- risk coverage；
+- quorum route；
+- witness recovery required；
+- witness recovery succeeded。
+
+状态可达性：
+
+- first divergence；
+- qualified-to-grant sessions；
+- grant-to-target sessions；
+- target-to-order sessions；
+- order-to-fill sessions；
+- fill-to-active-epoch sessions；
+- failed-grant retry healthy sessions；
+- terminal zero-strategic-target state duration；
+- state transition digest。
+
+不得用 null 表示 policy-required metric。
+
+对于不适用的事件，使用显式结构，例如：
+
+{
+  "applicable": false,
+  "observed": false,
+  "healthy_sessions": 0,
+  "reason": "NO_FAILED_GRANT"
+}
+
+而不是：
+
+null
+
+所有 JSON 数字必须有限。
+
+==================================================
+八、统一并冻结 Healthy Session 定义
+==================================================
+
+不得在：
+
+- acceptance script；
+- generalization runner；
+- ownership runner；
+- reachability test；
+- workflow shell
+
+中各自维护一套不同的 healthy-session 定义。
+
+将现有生产谓词抽取成一个可复用、权威的 validation projection。
+
+必须区分三种概念：
+
+A. Flat-book repair healthy session
+
+这是账户级、candidate-independent 时钟。
+
+由当前生产 flat-book repair 的权威谓词决定：
+
+- 全现金；
+- 无正持仓；
+- 无 pending execution；
+- 无 UNKNOWN/unsettled execution；
+- 无迟到成交待处理；
+- 无 ACTIVE/nonterminal epoch；
+- 无 nonterminal grant；
+- 无真实 capital authority；
+- orphan residue 已确定性归一化；
+- Risk.NORMAL；
+- risk votes = 0；
+- target_gross_cap > 0；
+- shock state = NONE；
+- transition damage 已修复；
+- 无 sector guard；
+- 无 strategic damage guard；
+- 无 acute evacuation；
+- 无 sentinel freeze；
+- chronic level 已清除；
+- opportunity 为 TREND 或 STRONG_TREND；
+- risk references 完整且可用；
+- 当前 deployment block 仅属于可修复的 freeze_new_risk/capital_budget。
+
+它不得绑定：
+
+- candidate；
+- leader score；
+- qualification signature；
+- qualification route；
+- qualification evidence hash。
+
+B. Qualification-ready healthy opportunity session
+
+用于衡量“有安全、真实候选但没有 Target”的机会空窗。
+
+它应复用 A 的账户、风险和 reference 安全谓词，但：
+
+- 不把“当前存在 repairable block”本身作为必要条件；
+- 增加：
+  - qualification_ready；
+  - route-consistent owner quality；
+  - candidate tradable；
+  - qualification references 完整；
+  - 无 incumbent capital authority；
+  - 无 pending/UNKNOWN execution；
+- 候选可以尚在 repair accumulation；
+- 因此它可以测量从资格出现到合法正 Target 的等待时间。
+
+C. Positive strategic Target outlet
+
+只有满足以下条件才算战略出口：
+
+- 正权重；
+- origin_subsystem/identity 属于 STRATEGIC；
+- 绑定当前 grant；
+- 绑定当前 epoch candidate；
+- 由 PortfolioAllocator 产生。
+
+普通通道 Target：
+
+- 可以计入 positive_total_target_sessions；
+- 不能替代 StrategicGrantIntent；
+- 不能关闭 failed-grant recovery；
+- 不能激活 StrategicEpoch；
+- 不能作为 repeated crowning；
+- 不能作为 witness strategic recovery；
+- 不能作为 terminal strategic SCC 的出口。
+
+冻结的：
+
+longest_healthy_zero_target_streak
+
+继续保留其现有“总目标仓位”字面定义，用于绝对阈值。
+
+同时新增：
+
+longest_healthy_zero_strategic_target_streak
+
+用于战略状态可达性和 terminal SCC 分析。
+
+不要无声改变已有 metric 的历史语义。
+
+==================================================
+九、资本修复的绝对有界验收
+==================================================
+
+当前生产 persisted damage level 到 repair target level 的权威映射为：
+
+- persisted level 1 → target budget 0：最多 20 healthy sessions；
+- persisted level 2 → target budget 1：最多 40 healthy sessions；
+- persisted level 3 → target budget 2：最多 60 healthy sessions；
+- persisted level 4 → target budget 3：最多 60 healthy sessions。
+
+必须明确区分：
+
+- persisted damaged level；
+- repair target business budget level。
+
+不得出现 off-by-one 或把所有 level 固定为 20 的错误。
+
+分别为四个 level 建立确定性生产语义验收：
+
+- 使用真实 AccountState；
+- 使用生产 repair predicates；
+- 同一 session 不重复计数；
+- candidate 切换不重置 account repair；
+- 新 shock、预算恶化、重新持仓、未决执行、真实 authority 出现时正确重置；
+- READY 后无 candidate 时保持 READY；
+- candidate 后续独立 qualification 后获得一次性 authorization；
+- authorization 只绑定当前 candidate；
+- 不跨 candidate 转移 qualification streak；
+- 不清零 capital budget；
+- 不伪造 repair streak；
+- 只允许 staged probe；
+- 真实 Fill 后激活 epoch。
+
+每个 level 必须满足：
+
+actual_healthy_sessions_to_ready
+<=
+required_healthy_sessions
+
+任何超时都使：
+
+bounded_healthy_cash_vacancy = false
+
+==================================================
+十、Critical removal 绝对门
+==================================================
+
+以下三个 FULL REMOVAL 必须逐个通过：
+
+- sz300308；
+- sz300502；
+- sz300394。
+
+每个场景必须：
+
+- runner success；
+- 无 REPLAY_ERROR；
+- final_wealth > 1.0；
+- max_drawdown <= 0.30；
+- longest_healthy_zero_total_target_streak <= 60；
+- positive_strategic_target_sessions >= 1；
+- actual_strategic_epoch_count >= 1；
+- owner 不含 removed symbol；
+- owner 不是 intervention；
+- qualification → grant → Target → Order → Fill → epoch 全链存在；
+- accounting reconciliation 通过；
+- 无重复 grant/order/epoch；
+- 无未来信息；
+- 无同日不因果成交。
+
+这些门不得被 baseline 值降低。
+
+==================================================
+十一、Canonical 34 leave-one-out 聚合门
+==================================================
+
+34 个 FULL REMOVAL 全部完成后，对全部 34 个 cell 直接聚合。
+
+必须满足：
+
+- expected cells = 34；
+- valid cells = 34；
+- replay error cells = 0；
+- missing cells = 0；
+- duplicate cells = 0；
+- complete metric cells = 34；
+- accounting reconciliation fraction = 1.0；
+- intervention-free fraction = 1.0；
+- positive strategic target cells = 34；
+- actual StrategicEpoch cells = 34。
+
+收益和风险：
+
+- positive return fraction >= 0.90；
+- positive return 定义严格为 final_wealth > 1.0；
+- p10 final wealth >= 1.0；
+- p90 max drawdown <= 0.30；
+- p90 longest healthy zero-total-target streak <= 60；
+- worst longest healthy zero-total-target streak <= 120。
+
+百分位方法固定为：
+
+linear interpolation at (n - 1) * probability
+
+不得：
+
+- nearest rank；
+- midpoint；
+- lower；
+- higher；
+- 排除亏损 cell；
+- 排除 replay error 后继续计算并通过；
+- 根据样本数量改变方法。
+
+仓库当前已有该线性插值实现。
+
+将其收敛为一个唯一权威函数，让：
+
+- generalization matrix；
+- old policy tails；
+- absolute acceptance
+
+共同调用。
+
+删除重复实现，并添加：
+
+- n=1；
+- n=2；
+- 奇数样本；
+- 偶数样本；
+- p=0.10；
+- p=0.90；
+- 边界值；
+- 非有限值拒绝
+
+测试。
+
+==================================================
+十二、Witness Resilience
+==================================================
+
+冻结的五个 ghost witness 为：
+
+- sh603688；
+- sh688008；
+- sh688082；
+- sz002409；
+- sz300666。
+
+它们已经包含在 34-cell FULL REMOVAL 中。
+
+此外，新合同必须明确将上述五个 cell 注册为：
+
+witness_recovery_required = true
+
+每个场景必须：
+
+- removed witness 为 ROLE_ABSENT；
+- remaining role denominator 正确；
+- 不制造 EXPECTED_BUT_UNAVAILABLE；
+- qualification/reference coverage 可审计；
+- 剩余候选通过生产 qualification；
+- 创建正式 grant；
+- 产生正 Strategic Target；
+- 产生 Order；
+- 产生真实 Fill；
+- 激活实际 StrategicEpoch；
+- final_wealth > 1.0；
+- max_drawdown <= 0.30；
+- longest healthy zero-total-target streak <= 60；
+- 无 intervention。
+
+计算：
+
+witness_missing_recovery_fraction =
+successful_required_witness_recoveries
+/
+all_pre_registered_required_witness_recoveries
+
+必须：
+
+witness_missing_recovery_fraction = 1.0
+
+分母固定为合同预注册场景。
+
+不得根据执行结果缩小分母。
+
+另加负控制：
+
+- symbol 仍在 role 中；
+- 但 reference data 真正 unavailable。
+
+该负控制必须：
+
+- fail closed；
+- 不产生 authorization；
+- 不产生 grant；
+- 不产生 Target、Order、Fill 或 epoch；
+- 不计入成功 recovery 分子；
+- 不伪装为 ROLE_ABSENT。
+
+==================================================
+十三、Failed Grant Recovery
+==================================================
+
+保留 PR #29、#30 的执行恢复语义，并将其纳入最终 Generalization Acceptance。
+
+至少包含：
+
+1. 第一 grant 已正式创建；
+2. 第一 grant 因涨停、停牌、broker rejection、超时或预注册的可恢复未成交原因未 Fill；
+3. 第一 grant 正确终结或过期；
+4. 第一 grant 没有 orphan capital authority；
+5. 第一 grant 的未激活 epoch 正确终结；
+6. 不重复提交已完成数量；
+7. 另一 production-qualified candidate 出现；
+8. 第二 candidate 不是 intervention；
+9. 创建新的 grant_id；
+10. previous_grant_id 正确；
+11. 创建新的 authorization_id；
+12. 产生正 Strategic Target；
+13. 产生 Order；
+14. 产生真实 Fill；
+15. Fill 后激活新 StrategicEpoch。
+
+健康条件重新满足后：
+
+failed_grant_retry_healthy_sessions <= 20
+
+普通通道 Target 不得满足该门。
+
+最终组件：
+
+failed_grant_recovery
+
+必须包含：
+
+- 第一、第二 candidate；
+- 第一、第二 grant identity；
+- 第一 grant 终结原因；
+- 第二 grant Target/Order/Fill/epoch identity；
+- healthy-session retry count；
+- duplicate submission count；
+- pass/fail。
+
+==================================================
+十四、Repeated Crowning
+==================================================
+
+必须同时保留两类证明：
+
+A. 冻结市场历史证明
+
+使用真实 data/frozen、连续 replay，证明：
+
+- strategic_epoch_count >= 2；
+- distinct_owner_count >= 2；
+- 两个 owner 均经过独立 qualification；
+- 两个 owner 均经过独立 grant；
+- 两个 owner 均产生 Target、Order、Fill；
+- 两个 epoch 均在 Fill 后激活；
+- previous grant/epoch chain 完整；
+- predecessor 完整退出后 successor 才获得资本；
+- 第二 owner 不是 intervention。
+
+优先复用已有 remove-sz300502 场景的实际双 owner 证据，但必须从当前 HEAD 重新验证，不能只读取 PR 描述。
+
+B. 跨行业生产语义证明
+
+使用 deterministic production-semantic fixture：
+
+- 至少两个不同行业 owner；
+- 仍通过 ProductionEngine 和真实执行模拟；
+- 不直接注入 owner/grant/Target/Fill；
+- 该 fixture 只证明生产状态语义；
+- 不将 synthetic price return 纳入 canonical 34 的历史经济聚合。
+
+最终：
+
+repeated_crowning = true
+
+只有在同一 replay 中存在至少两个实际 Fill-gated epoch 和至少两个 owner 时成立。
+
+==================================================
+十五、Terminal SCC 与状态可达性
+==================================================
+
+不得重新把 PR #28 的 84 个 synthetic diagnostic 当作生产能力结论。
+
+建立一个有限、明确、可审计的生产状态抽象，至少包含：
+
+- flat/all-cash；
+- capital budget level；
+- repair status；
+- Risk state；
+- opportunity state；
+- qualification readiness；
+- route/quorum；
+- grant state；
+- active epoch state；
+- pending/UNKNOWN execution；
+- reference role/availability；
+- protected/recovery/restore authority；
+- positive strategic Target outlet。
+
+状态边必须来自：
+
+- ProductionEngine；
+- AccountState；
+- 生产 transition function；
+- 生产 predicate evaluation；
+- 确定性 fixture 驱动的真实决策结果。
+
+不得手工写一条“理论上可达”边来满足验收。
+
+允许使用状态图做形式化诊断，但：
+
+- 不得用它伪造历史经济指标；
+- 它不能单独满足 capability pass；
+- 每种关键转换类别必须至少有一个 production-semantic trace；
+- grant/Target/Order/Fill/epoch 的最终能力必须有 execution-aware replay。
+
+对每个预注册的健康全现金状态，必须验证：
+
+- 如果 qualification-ready candidate 存在；
+- 并且安全谓词持续满足；
+
+则存在通向：
+
+positive Strategic Target
+
+的路径。
+
+要求：
+
+- 不存在超过 60 healthy sessions 且没有 positive Strategic Target 出口的 terminal SCC；
+- maximum terminal zero-strategic-target SCC duration <= 60；
+- 所有失败状态均能给出稳定 rejection reason；
+- 不允许 UNKNOWN 边静默视为成功。
+
+==================================================
+十六、Champion Non-Regression
+==================================================
+
+使用当前权威 champion 合同和 PR #30 能力保护。
+
+5-symbol champion：
+
+冻结 final wealth：
+
+24.509661802900865
+
+最低允许：
+
+23.28417871275582
+
+要求：
+
+- final_wealth >= 23.28417871275582；
+- max_drawdown <= 0.30；
+- incumbent 正常 lifecycle 不被 successor 提前抢权；
+- Target/Order/Fill/Position/Equity path 不出现无法解释的漂移；
+- no duplicate grant/order/epoch；
+- Strategic Grant Acceptance 通过；
+- Strategic Ownership Acceptance 通过。
+
+13-symbol report replay也必须：
+
+- runner success；
+- accounting reconciled；
+- 不因 reference universe 扩大而扩大资本权限；
+- champion owner 正常；
+- 无无依据换手。
+
+现有旧相对 generalization policy 继续作为附加 non-regression 约束，但不得降低任何新绝对门。
+
+==================================================
+十七、Complete Literal Metrics
+==================================================
+
+该组件必须独立阻断。
+
+只有以下条件全部满足，才通过：
+
+- 所有 34 cell 均存在；
+- 所有 required numeric metric 均有限；
+- 无 required null；
+- 无 missing metric；
+- 无 duplicate metric；
+- metric 可从 raw evidence 重算；
+- accounting identity 成立；
+- attribution identity 成立；
+- Strategic epoch 可从 Target/Order/Fill ledger 重构；
+- percentile 输入恰好覆盖全部 34 cell；
+- scenario aggregate 可从 cell 重新计算；
+- shard summary 不能自我声明通过；
+- aggregator 独立复算；
+- source/config/data/universe/contract provenance 完整；
+- partial artifacts 不能通过；
+- replay-error cell 不能携带 fabricated metrics；
+- insufficient/negative control 不能混入经济百分位。
+
+将 scripts/run_strategic_ownership_acceptance.py 中可复用的：
+
+- actual epoch facts；
+- qualification/grant/target/order/fill dates；
+- healthy zero-target streak；
+- repair-ready evidence；
+- identity uniqueness；
+- accounting checks
+
+抽取到正式的 uquant.validation 库。
+
+Acceptance script 只负责 orchestration，不再拥有一套独立定义。
+
+不得从生产包反向 import scripts。
+
+==================================================
+十八、建议代码结构
+==================================================
+
+可以按现有架构调整具体名称，但建议建立：
+
+uquant/validation/absolute_generalization/
+    contract.py
+    scenarios.py
+    metrics.py
+    replay.py
+    reachability.py
+    policy.py
+    artifacts.py
+    aggregation.py
+
+scripts/run_absolute_generalization_acceptance.py
+
+tests/
+    test_absolute_generalization_contract.py
+    test_absolute_generalization_scenarios.py
+    test_absolute_generalization_metrics.py
+    test_absolute_generalization_policy.py
+    test_absolute_generalization_artifacts.py
+    test_absolute_generalization_reachability.py
+    test_absolute_generalization_acceptance.py
+
+.github/workflows/absolute-generalization-acceptance.yml
+
+不得创建：
+
+- phase3；
+- stage3；
+- v3；
+- final_report；
+- handoff；
+- changelog；
+- migration_history；
+- release_note；
+- implementation_journal。
+
+生成的完整 replay trace、矩阵 JSON 和报告：
+
+- 不提交进仓库；
+- 放在 runner temp 或 CI artifact；
+- 使用 run_id、run_attempt、shard identity；
+- full trace 可以使用确定性 gzip JSONL；
+- compact manifest 必须绑定：
+  - row count；
+  - byte size；
+  - SHA；
+  - source identity；
+  - contract identity。
+
+仓库只提交：
+
+- 当前生产代码；
+- 当前 validation 代码；
+- 当前合同；
+- 当前测试；
+- 当前 workflow；
+- 描述当前唯一系统的必要文档。
+
+==================================================
+十九、阻断 Workflow
+==================================================
+
+新增：
+
+Absolute Generalization Acceptance
+
+触发：
+
+- pull_request；
+- push main；
+- workflow_dispatch。
+
+最终 job/check 名称：
+
+Generalization Acceptance
+
+建议 deterministic shard：
+
+1. champion；
+2. leave-one-out shard A；
+3. leave-one-out shard B；
+4. leave-one-out shard C；
+5. leave-one-out shard D；
+6. leave-one-out shard E；
+7. leave-one-out shard F；
+8. recovery-and-reachability；
+9. final aggregation。
+
+34 个 removal 必须由合同静态分配到固定 shard：
+
+- 每个 symbol 恰好一次；
+- shard membership 有测试；
+- 不依赖运行时随机分配；
+- 不允许遗漏或重叠。
+
+Workflow 要求：
+
+- fail-fast=false；
+- 上游失败时仍上传 error manifest；
+- aggregator 使用 if: always；
+- upstream failure 必须使最终 check 失败；
+- artifact 名称包含 run_id、run_attempt、shard；
+- cache key 绑定：
+  - uv.lock；
+  - data/frozen/SHA256SUMS；
+  - contract SHA；
+  - production source；
+  - config；
+  - universe；
+  - shard；
+- cache hit 必须重新验证 identity；
+- 不缓存一个未经重算的 passed=true；
+- aggregator 独立验证所有 shard；
+- 最终聚合生成七个组件的明确结果；
+- 任一组件失败则 exit nonzero。
+
+同时保留并运行正常：
+
+- Engineering gates；
+- Strategic Grant Acceptance；
+- Strategic Ownership Acceptance。
+
+不要运行：
+
+- Extended Performance Matrix；
+- Extended Economic Matrix。
+
+两者继续 manual-only。
+
+==================================================
+二十、实施和调试纪律
+==================================================
+
+先建立 Acceptance，再决定是否修改生产行为。
+
+执行顺序：
+
+1. 在不修改生产经济行为的情况下：
+   - 冻结合同；
+   - 实现 scenario builder；
+   - 实现完整 metrics；
+   - 实现 artifact validation；
+   - 实现七组件 aggregator；
+2. 先运行：
+   - champion；
+   - 三个 critical removal；
+   - 五个 ghost witness removal；
+3. 上述通过后，运行一次完整 34 leave-one-out；
+4. 如果当前 PR #30 生产逻辑已经通过全部绝对门：
+   - 不进行额外生产优化；
+   - 只完成 Acceptance 和治理闭环；
+5. 如果出现失败：
+   - 对每个失败 cell 找到最早 first divergence；
+   - 路径固定为：
+
+     OBSERVING
+     → QUALIFIED
+     → GRANT_PENDING
+     → POSITIVE_STRATEGIC_TARGET
+     → ORDER
+     → FILL
+     → ACTIVE_EPOCH
+     → EXIT/REGRANT
+
+   - 同时检查：
+     - flat-book repair；
+     - reference role；
+     - Risk；
+     - capital authority；
+     - grant expiry；
+     - probe graduation；
+     - epoch lifecycle；
+     - successor eligibility；
+6. 只修复 trace 已证明的生产语义根因；
+7. 同一根因影响多个场景时批量修复；
+8. 每次修改后只先运行：
+   - 直接相关单元测试；
+   - 失败 cell；
+   - champion；
+9. 失败 cell 通过后才重跑受影响 shard；
+10. 所有受影响 shard 通过后才再次跑完整 34；
+11. 不重复运行没有新增信息价值的完整矩阵。
+
+不得：
+
+- 参数网格搜索；
+- leader threshold 搜索；
+- 按最终收益选择 owner；
+- 为某个 symbol 写 fallback；
+- 调低 0.72 等冻结资格门；
+- 缩短既有 qualification confirm days；
+- 跨 candidate 转移 qualification streak；
+- 清零 capital budget；
+- 伪造 repair count；
+- 绕过 Risk；
+- 直接满仓；
+- 使用 intervention；
+- 删除亏损 cell；
+- 重新定义百分位；
+- 放宽 final wealth；
+- 放宽 drawdown；
+- 放宽 cash vacancy；
+- 把普通 Target 当战略 recovery；
+- 把 synthetic fixture 收益混入历史经济矩阵。
+
+只允许在以下事实均被证据证明时停止而不合并：
+
+- 冻结数据中不存在满足原资格门的任何替代候选；
+- 通过门槛必须使用未来数据；
+- 通过门槛必须绕过 Risk 或 PortfolioAllocator；
+- 通过门槛必须按已实现收益选择 owner；
+- 通过门槛必须降低冻结绝对门；
+- 数据或权威 contract 已损坏且无法在不改写历史的情况下验证。
+
+不得因为任务困难、测试数量多或出现第一次失败就停止。
+
+==================================================
+二十一、负控制
+==================================================
+
+必须覆盖：
+
+- qualification_not_ready；
+- weak ABSOLUTE_SINGLE；
+- EXPECTED_BUT_UNAVAILABLE；
+- incomplete risk reference coverage；
+- pending execution；
+- UNKNOWN execution；
+- late fill pending；
+- active epoch；
+- nonterminal grant；
+- protected owner；
+- recovery owner；
+- restore owner；
+- tactical owner；
+- Risk.CAUTION；
+- Risk.RISK_OFF；
+- Risk.CRISIS；
+- shock active；
+- transition damage unrepaired；
+- sector guard；
+- strategic damage guard；
+- acute evacuation；
+- sentinel freeze；
+- chronic damage；
+- CHOPPY；
+- WEAK；
+- target_gross_cap = 0；
+- candidate/route/evidence identity changed；
+- duplicate session；
+- duplicate shard；
+- missing shard；
+- corrupted trace；
+- tampered metric；
+- stale source/config/data/universe identity；
+- baseline grandfathering attempt；
+- NaN/Infinity；
+- null required metric。
+
+这些负控制必须 fail closed。
+
+不得产生：
+
+- false authorization；
+- false grant；
+- false Target；
+- false Order；
+- false Fill；
+- false StrategicEpoch；
+- false green Generalization Acceptance。
+
+==================================================
+二十二、测试与验证顺序
+==================================================
+
+使用 TDD、系统化调试和渐进式验证。
+
+先运行：
+
+1. contract schema、seal、duplicate-key 和 tamper tests；
+2. canonical 34 scenario coverage tests；
+3. full-removal role semantics tests；
+4. ROLE_ABSENT / EXPECTED_BUT_UNAVAILABLE tests；
+5. unified healthy-session projection tests；
+6. percentile tests；
+7. metric recomputation tests；
+8. raw evidence/accounting/identity tests；
+9. shard coverage tests；
+10. aggregator fail-closed tests；
+11. four-level capital repair bound tests；
+12. terminal SCC tests；
+13. failed-grant recovery tests；
+14. repeated crowning tests；
+15. witness fraction tests；
+16. baseline-does-not-relax-absolute-limit tests。
+
+再运行：
+
+17. champion replay；
+18. critical removals；
+19. ghost witness removals；
+20. one representative non-critical LOO shard；
+21. 全部 34 LOO；
+22. recovery/reachability；
+23. 最终 Generalization Acceptance；
+24. Strategic Grant Acceptance；
+25. Strategic Ownership Acceptance；
+26. 当前权威 Engineering suite；
+27. Ruff；
+28. strict MyPy；
+29. compileall；
+30. frozen-data integrity；
+31. Future Holdout static lane integrity；
+32. Shadow Sentinel contracts；
+33. security/dependency audit；
+34. Windows smoke；
+35. git diff --check；
+36. protected-diff/source-surface/public-API/repository-governance gates。
+
+不得运行：
+
+- Extended Performance Matrix；
+- Extended Economic Matrix。
+
+==================================================
+二十三、Checkpoint
+==================================================
+
+创建少量有意义的 checkpoint commit 并 push。
+
+至少在以下状态保存：
+
+Checkpoint A：
+
+- 最终合同冻结；
+- scenario/metric/policy/artifact 单元测试通过；
+- 尚未修改生产经济行为。
+
+Checkpoint B：
+
+- critical、ghost 和完整 34 LOO 全部通过；
+- 必要的生产根因修复已完成；
+- champion 未回归。
+
+Checkpoint C：
+
+- 七组件 Generalization Acceptance 通过；
+- Strategic Acceptances 通过；
+- 正常 CI 和 Engineering 通过；
+- PR 可合并。
+
+Checkpoint 是 Git commit，不得在仓库新增 checkpoint 报告或阶段文档。
+
+==================================================
+二十四、PR 和合并
+==================================================
+
+全部本地阻断验收通过后：
+
+1. 确认 worktree 干净；
+2. push 功能分支；
+3. 创建正常非 Draft PR；
+4. PR 标题描述当前能力，不包含 phase、stage 或版本号；
+5. PR 描述必须列出：
+   - 七个最终组件；
+   - 34 LOO 聚合结果；
+   - critical removal；
+   - ghost witness recovery；
+   - repeated crowning；
+   - failed grant recovery；
+   - capital repair 20/40/60；
+   - terminal SCC；
+   - champion protection；
+   - 未运行两个 Extended workflow；
+6. 等待并处理：
+   - Generalization Acceptance；
+   - Strategic Grant Acceptance；
+   - Strategic Ownership Acceptance；
+   - Engineering gates；
+7. 失败时读取具体失败并修复；
+8. 不因超时或耗时长而跳过必须的最终阻断门；
+9. 两个 Extended workflow 不等待、不触发；
+10. 所有正常阻断门通过后 squash merge；
+11. 核验远端 main SHA 和 tree；
+12. 核验 main push 上的：
+    - Generalization Acceptance；
+    - Strategic Grant Acceptance；
+    - Strategic Ownership Acceptance；
+    - Engineering gates；
+13. 删除远端功能分支；
+14. 删除本地功能分支和 worktree；
+15. 不创建 tag；
+16. 不创建 Release；
+17. 不升级 package version；
+18. 不写 changelog、handoff、release note 或 migration history。
+
+==================================================
+二十五、最终完成标准
+==================================================
+
+只有以下全部成立，才能报告整个五项目标完成：
+
+1. PR 已 squash merge 到 main；
+2. final main 已核验；
+3. runner_success = true；
+4. capability_pass = true；
+5. champion_non_regression = true；
+6. absolute_strategic_robustness = true；
+7. failed_grant_recovery = true；
+8. witness_resilience = true；
+9. repeated_crowning = true；
+10. bounded_healthy_cash_vacancy = true；
+11. complete_literal_metrics = true；
+12. 34/34 leave-one-out cell 有效；
+13. REPLAY_ERROR = 0；
+14. critical removals 全部通过；
+15. witness missing recovery fraction = 1.0；
+16. failed grant retry <= 20 healthy sessions；
+17. budget target 0/1/2/3 分别满足 20/40/60/60；
+18. 无超过 60 healthy sessions 的 terminal zero-strategic-target SCC；
+19. positive return fraction >= 0.90；
+20. p10 final wealth >= 1.0；
+21. p90 max drawdown <= 0.30；
+22. p90 longest healthy zero-total-target streak <= 60；
+23. worst longest healthy zero-total-target streak <= 120；
+24. repeated crowning 至少两个实际 owner 和两个实际 epoch；
+25. champion final wealth >= 23.28417871275582；
+26. champion max drawdown <= 0.30；
+27. Generalization Acceptance 绿色；
+28. Strategic Grant Acceptance 绿色；
+29. Strategic Ownership Acceptance 绿色；
+30. Engineering gates 绿色；
+31. worktree 和分支清理完成；
+32. 两个 Extended workflow 未运行且仍为 manual-only。
+
+不得把以下情况称为完成：
+
+- 只实现 runner；
+- 只增加合同；
+- 只生成诊断；
+- 只让 critical removals 通过；
+- 34 cell 不完整；
+- replay error 被排除；
+- metric 为 null；
+- baseline grandfathering 仍可降低绝对门；
+- repeated crowning 只在单元测试中存在；
+- failed grant 没有第二个真实 Fill；
+- witness fraction 小于 1；
+- terminal SCC 未关闭；
+- PR 未合并；
+- main 未核验。
+
+==================================================
+二十六、最终汇报
+==================================================
+
+最终汇报必须给出：
+
+Git：
+
+- PR 编号；
+- squash merge SHA；
+- 最终 main SHA；
+- final tree SHA；
+- 功能分支删除状态；
+- worktree 清理状态。
+
+七个组件：
+
+- 每个组件 passed；
+- 每个组件 evidence SHA；
+- 每个组件失败数为 0。
+
+Champion：
+
+- final wealth；
+- 95% floor；
+- max drawdown；
+- path/hash non-regression；
+- owner lifecycle。
+
+34 LOO：
+
+- expected/valid/error/missing/duplicate cells；
+- positive return fraction；
+- p10 final wealth；
+- p90 max drawdown；
+- p90 healthy zero-target；
+- worst healthy zero-target；
+- worst final wealth cell；
+- worst drawdown cell；
+- worst cash-vacancy cell；
+- 每个 critical removal 的 owner、wealth、drawdown、Target/Order/Fill/epoch。
+
+Witness：
+
+- 五个 ghost witness 的结果；
+- numerator；
+- denominator；
+- recovery fraction。
+
+Recovery：
+
+- 第一和第二 grant identity；
+- retry healthy sessions；
+- 第二 owner；
+- Target、Order、Fill 和 epoch。
+
+Repeated crowning：
+
+- 历史 replay 的两个 owner；
+- 两个 epoch；
+- 两个 grant；
+- 两个 Fill；
+- cross-industry semantic owners。
+
+Capital repair：
+
+- target budget 0/1/2/3；
+- persisted level；
+- required sessions；
+- actual sessions；
+- READY session；
+- violations = 0。
+
+Reachability：
+
+- maximum terminal SCC duration；
+- terminal SCC violation count；
+- no-positive-strategic-target exit count。
+
+CI：
+
+- Generalization Acceptance；
+- Strategic Grant Acceptance；
+- Strategic Ownership Acceptance；
+- Engineering；
+- Ruff；
+- MyPy；
+- compileall；
+- frozen data；
+- security；
+- Windows smoke。
+
+最后明确写出：
+
+- Extended Performance Matrix 未运行；
+- Extended Economic Matrix 未运行；
+- 两者仍为 manual-only；
+- 绿色 Generalization Acceptance 现在表示绝对泛化能力，而不只是旧 champion non-regression。

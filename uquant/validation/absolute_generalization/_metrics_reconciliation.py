@@ -630,10 +630,16 @@ def _validate_data_manifest(observation: AbsoluteGeneralizationReplayObservation
         raise ValueError("absolute generalization data manifest symbols are malformed")
     if not set(manifest.symbols) <= set(observation.loaded_symbols):
         raise ValueError("absolute generalization data manifest symbols were not loaded")
+    role_symbols = set(observation.roles.tradable_symbols)
+    role_symbols.update(observation.roles.qualification_reference_symbols)
+    role_symbols.update(observation.roles.risk_reference_symbols)
+    if set(manifest.symbols) != role_symbols:
+        raise ValueError("absolute generalization data manifest role symbols differ")
     start = metric_iso_session(manifest.start, label="data manifest start")
     end = metric_iso_session(manifest.end, label="data manifest end")
     session = metric_iso_session(observation.session, label="data manifest session")
-    if not start <= end <= session:
+    unavailable = set(observation.expected_but_unavailable_symbols).intersection(manifest.symbols)
+    if start > session or end > session or (start > end and not unavailable):
         raise ValueError("absolute generalization data manifest interval differs")
 
 
@@ -961,9 +967,7 @@ def derive_complete_cell_metrics_impl(
     ) = _session_role_values(replay)
     ledger = _ledger_evidence(replay, trace, observations.fills)
     account, fills = ledger.account, ledger.fills
-    accounting = _accounting(
-        replay=replay, account=account, fills=fills
-    )
+    accounting = _accounting(replay=replay, account=account, fills=fills)
     if not math.isclose(
         metric_number(
             metric_payload_mapping(

@@ -240,7 +240,7 @@ def test_rejects_stale_or_tampered_required_identity() -> None:
         )
 
 
-def test_rejects_role_membership_tamper_with_stale_snapshot_identity() -> None:
+def test_rejects_role_membership_tamper_against_data_manifest() -> None:
     replay = complete_replay()
     final = replay.observations[-1]
     tampered_roles = replace(
@@ -250,6 +250,24 @@ def test_rejects_role_membership_tamper_with_stale_snapshot_identity() -> None:
     tampered = replace(
         replay,
         observations=(*replay.observations[:-1], replace(final, roles=tampered_roles)),
+    )
+
+    with pytest.raises(ValueError, match="data manifest role symbols"):
+        derive_cell_metrics(tampered, scenario(), _identities())
+
+
+def test_rejects_stale_role_snapshot_identity() -> None:
+    replay = complete_replay()
+    final = replay.observations[-1]
+    tampered = replace(
+        replay,
+        observations=(
+            *replay.observations[:-1],
+            replace(
+                final,
+                roles=replace(final.roles, tradable_identity="f" * 64),
+            ),
+        ),
     )
 
     with pytest.raises(ValueError, match="tradable role identity"):
@@ -268,6 +286,143 @@ def test_rejects_tampered_replay_manifest_digest() -> None:
     )
 
     with pytest.raises(ValueError, match="data manifest digest"):
+        derive_cell_metrics(tampered, scenario(), _identities())
+
+
+def test_accepts_causal_manifest_prefixes_without_a_shared_trading_interval() -> None:
+    replay = complete_replay()
+    first = replay.observations[0]
+    unavailable = "sh000682"
+    roles = replace(
+        first.roles,
+        available_symbols=tuple(
+            symbol
+            for symbol in first.roles.available_symbols
+            if symbol != unavailable
+        ),
+        unavailable_reference_symbols=(unavailable,),
+    )
+    disjoint_prefixes = replace(
+        first.data_manifest,
+        start="2022-12-21",
+        end="2021-12-31",
+    )
+    observed = replace(
+        replay,
+        observations=(
+            replace(
+                first,
+                roles=roles,
+                expected_but_unavailable_symbols=(unavailable,),
+                data_manifest=disjoint_prefixes,
+            ),
+            *replay.observations[1:],
+        ),
+    )
+
+    artifact = derive_cell_metrics(observed, scenario(), _identities())
+
+    assert artifact.status == "COMPLETE"
+
+
+def test_rejects_disjoint_manifest_prefixes_without_unavailable_roles() -> None:
+    replay = complete_replay()
+    final = replay.observations[-1]
+    disjoint_prefixes = replace(
+        final.data_manifest,
+        start="2022-12-21",
+        end="2021-12-31",
+    )
+    tampered = replace(
+        replay,
+        observations=(
+            *replay.observations[:-1],
+            replace(final, data_manifest=disjoint_prefixes),
+        ),
+    )
+
+    with pytest.raises(ValueError, match="data manifest interval"):
+        derive_cell_metrics(tampered, scenario(), _identities())
+
+
+def test_rejects_disjoint_manifest_prefixes_with_only_extra_loaded_symbol() -> None:
+    replay = complete_replay()
+    final = replay.observations[-1]
+    extra = "sh688019"
+    disjoint_prefixes = replace(
+        final.data_manifest,
+        symbols=tuple(sorted((*final.data_manifest.symbols, extra))),
+        start="2022-12-21",
+        end="2021-12-31",
+    )
+    tampered = replace(
+        replay,
+        observations=(
+            *replay.observations[:-1],
+            replace(
+                final,
+                data_manifest=disjoint_prefixes,
+                loaded_symbols=tuple(sorted((*final.loaded_symbols, extra))),
+            ),
+        ),
+    )
+
+    with pytest.raises(ValueError, match="data manifest role symbols"):
+        derive_cell_metrics(tampered, scenario(), _identities())
+
+
+def test_rejects_extra_loaded_symbol_mixed_with_valid_unavailable_role() -> None:
+    replay = complete_replay()
+    first = replay.observations[0]
+    unavailable = "sh000682"
+    extra = "sh688019"
+    roles = replace(
+        first.roles,
+        available_symbols=tuple(
+            symbol
+            for symbol in first.roles.available_symbols
+            if symbol != unavailable
+        ),
+        unavailable_reference_symbols=(unavailable,),
+    )
+    mixed_manifest = replace(
+        first.data_manifest,
+        symbols=tuple(sorted((*first.data_manifest.symbols, extra))),
+        start="2022-12-21",
+        end="2021-12-31",
+    )
+    tampered = replace(
+        replay,
+        observations=(
+            replace(
+                first,
+                roles=roles,
+                expected_but_unavailable_symbols=(unavailable,),
+                data_manifest=mixed_manifest,
+                loaded_symbols=tuple(sorted((*first.loaded_symbols, extra))),
+            ),
+            *replay.observations[1:],
+        ),
+    )
+
+    with pytest.raises(ValueError, match="data manifest role symbols"):
+        derive_cell_metrics(tampered, scenario(), _identities())
+
+
+@pytest.mark.parametrize("field", ("start", "end"))
+def test_rejects_data_manifest_prefix_after_observation_session(field: str) -> None:
+    replay = complete_replay()
+    final = replay.observations[-1]
+    future_prefix = replace(final.data_manifest, **{field: "2023-01-05"})
+    tampered = replace(
+        replay,
+        observations=(
+            *replay.observations[:-1],
+            replace(final, data_manifest=future_prefix),
+        ),
+    )
+
+    with pytest.raises(ValueError, match="data manifest interval"):
         derive_cell_metrics(tampered, scenario(), _identities())
 
 

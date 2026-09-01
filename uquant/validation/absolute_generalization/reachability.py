@@ -490,8 +490,8 @@ def _strict_mapping(value: object, *, label: str) -> Mapping[str, object]:
     return cast(Mapping[str, object], value)
 
 
-def _strict_text(value: object, *, label: str) -> str:
-    if type(value) is not str or not value:
+def _strict_text(value: object, *, label: str, allow_empty: bool = False) -> str:
+    if type(value) is not str or (not allow_empty and not value):
         raise ValueError(f"absolute reachability {label} is malformed")
     return value
 
@@ -555,6 +555,72 @@ def _validate_account_runtime(account: AccountState) -> None:
             raise ValueError("absolute reachability order status/event pair is impossible")
 
 
+def _normalize_epoch_only_cohort_attribution(
+    account_raw: Mapping[str, object],
+) -> None:
+    epochs_value = account_raw.get("strategic_epochs")
+    if type(epochs_value) is not list:
+        return
+    epochs = {
+        item.get("epoch_id"): item
+        for item in epochs_value
+        if type(item) is dict and type(item.get("epoch_id")) is str
+    }
+
+    def normalize(value: object, *, symbol: object = None) -> None:
+        if type(value) is not dict or value.get("grant_id") != "":
+            return
+        epoch = epochs.get(value.get("epoch_id"))
+        observed_symbol = value.get("symbol", symbol)
+        if (
+            type(epoch) is dict
+            and value.get("origin_subsystem") in {"RISK", "STRATEGIC"}
+            and type(observed_symbol) is str
+            and observed_symbol
+            and observed_symbol != epoch.get("owner_symbol")
+            and type(epoch.get("grant_id")) is str
+            and epoch.get("grant_id")
+        ):
+            value["grant_id"] = epoch["grant_id"]
+
+    for name in ("pending_orders", "order_ledger", "fills"):
+        values = account_raw.get(name)
+        if type(values) is not list:
+            continue
+        for item in values:
+            normalize(item)
+            if name == "fills" and type(item) is dict:
+                sold = item.get("sold_tranches")
+                if type(sold) is list:
+                    for tranche in sold:
+                        normalize(tranche, symbol=item.get("symbol"))
+    positions = account_raw.get("positions")
+    if type(positions) is not dict:
+        return
+    for symbol, position in positions.items():
+        if type(position) is not dict:
+            continue
+        tranches = position.get("tranches")
+        if type(tranches) is list:
+            for tranche in tranches:
+                normalize(tranche, symbol=symbol)
+        epoch = epochs.get(position.get("epoch_id"))
+        if (
+            position.get("grant_id") == ""
+            and type(epoch) is dict
+            and symbol != epoch.get("owner_symbol")
+            and type(tranches) is list
+            and tranches
+            and all(
+                type(tranche) is dict
+                and tranche.get("epoch_id") == position.get("epoch_id")
+                and tranche.get("grant_id") == epoch.get("grant_id")
+                for tranche in tranches
+            )
+        ):
+            position["grant_id"] = epoch["grant_id"]
+
+
 def _validate_account_payload(value: object) -> AccountState:
     if type(value) is not AbsoluteGeneralizationReplayPayload:
         raise ValueError("absolute reachability account payload type differs")
@@ -575,6 +641,7 @@ def _validate_account_payload(value: object) -> AccountState:
     }
     if any(type(account_raw.get(field)) is not expected for field, expected in required_containers.items()):
         raise ValueError("absolute reachability account payload is invalid")
+    _normalize_epoch_only_cohort_attribution(account_raw)
     try:
         account = account_from_dict(account_raw, require_hashes=False)
     except (RuntimeError, TypeError, ValueError) as exc:
@@ -764,8 +831,16 @@ def _validated_state(raw: object) -> tuple[_StateKey, bool, bool, AccountState]:
     for field, allowed in enums:
         if _strict_text(state[field], label=field) not in allowed:
             raise ValueError(f"absolute reachability {field} is UNKNOWN")
-    route = _strict_text(state["qualification_route"], label="qualification route")
-    quorum = _strict_text(state["qualification_quorum"], label="qualification quorum")
+    route = _strict_text(
+        state["qualification_route"],
+        label="qualification route",
+        allow_empty=True,
+    )
+    quorum = _strict_text(
+        state["qualification_quorum"],
+        label="qualification quorum",
+        allow_empty=True,
+    )
     derived = _derived_state(account=account, risk=risk, universe=universe)
     _reconcile_state_claims(state, derived)
     projection = project_qualification_opportunity_health(

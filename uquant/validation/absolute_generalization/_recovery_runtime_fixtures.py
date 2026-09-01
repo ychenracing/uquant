@@ -22,6 +22,10 @@ _MATERIALS = ("sh688019", "sh688300", "sz300666")
 _STRATEGIC = (*_OPTICAL, *_MATERIALS)
 
 
+def _fixture_symbols(contract: AbsoluteGeneralizationContract) -> tuple[str, ...]:
+    return tuple(dict.fromkeys((*contract.canonical_universe, *INDEX_SYMBOLS)))
+
+
 def _write_prices(
     root: Path,
     *,
@@ -67,6 +71,7 @@ def _run_fixture(
     end: str,
     symbols_for_session: Callable[[pd.Timestamp], tuple[str, ...]],
     initial_budget_level: int = 0,
+    initial_peak_drawdown: float = 0.0,
 ) -> AbsoluteGeneralizationReplay:
     scenario = build_leave_one_out_scenarios(contract)[0]
     return run_absolute_generalization_replay_sessions(
@@ -77,6 +82,7 @@ def _run_fixture(
         strategic_symbols=_STRATEGIC,
         symbols_for_session=symbols_for_session,
         initial_budget_level=initial_budget_level,
+        initial_peak_drawdown=initial_peak_drawdown,
     )
 
 
@@ -89,23 +95,37 @@ def run_failed_grant_fixture(
         data = Path(temporary)
         dates = pd.bdate_range("2022-01-03", "2023-02-28")
         material_rates = {"sh688019": 0.007, "sh688300": 0.0055, "sz300666": 0.005}
-        for symbol in (*_STRATEGIC, *INDEX_SYMBOLS):
-            rate = 0.001 if symbol in INDEX_SYMBOLS else 0.0045 if symbol in _OPTICAL else material_rates[symbol]
+        for symbol in _fixture_symbols(contract):
+            rate = (
+                0.001
+                if symbol in INDEX_SYMBOLS
+                else 0.0045
+                if symbol in _OPTICAL
+                else material_rates.get(symbol, 0.001)
+            )
+            changes = [rate] * len(dates)
+            if symbol == "sh688019":
+                locked_index = dates.get_loc(pd.Timestamp("2023-02-02"))
+                if type(locked_index) is not int:
+                    raise ValueError("absolute recovery locked session is ambiguous")
+                changes[locked_index + 1 :] = [-0.009] * (
+                    len(changes) - locked_index - 1
+                )
             _write_prices(
                 data,
                 symbol=symbol,
                 dates=dates,
-                daily_returns=[rate] * len(dates),
-                locked_session="2023-01-05" if symbol in _MATERIALS else "",
+                daily_returns=changes,
+                locked_session="2023-02-02" if symbol == "sh688019" else "",
             )
         return _run_fixture(
             data=data,
             contract=contract,
             start="2023-01-03",
             end="2023-02-28",
-            symbols_for_session=lambda session: (
-                _STRATEGIC if session < pd.Timestamp("2023-01-05") else _OPTICAL
-            ),
+            symbols_for_session=lambda _session: _STRATEGIC,
+            initial_budget_level=1,
+            initial_peak_drawdown=0.09,
         )
 
 
@@ -116,13 +136,13 @@ def run_cross_industry_fixture(
 
     with tempfile.TemporaryDirectory(prefix="uquant-absolute-cross-") as temporary:
         data = Path(temporary)
-        dates = pd.bdate_range("2022-01-03", "2026-08-05")
+        dates = pd.bdate_range("2022-01-03", "2026-04-30")
         location = dates.get_loc(pd.Timestamp("2023-01-03"))
         if type(location) is not int:
             raise ValueError("absolute recovery replay session is ambiguous")
         replay_index = location
         material_rates = {"sh688019": 0.009, "sh688300": 0.006, "sz300666": 0.005}
-        for symbol in (*_STRATEGIC, *INDEX_SYMBOLS):
+        for symbol in _fixture_symbols(contract):
             changes: list[float] = []
             for index in range(len(dates)):
                 offset = index - replay_index
@@ -130,15 +150,25 @@ def run_cross_industry_fixture(
                     change = 0.0012
                 elif symbol in _OPTICAL:
                     change = 0.0045 if offset < 210 else -0.009 if offset < 285 else 0.0005
+                elif symbol in material_rates:
+                    change = (
+                        -0.0001
+                        if offset < 360
+                        else material_rates[symbol]
+                        if offset < 800
+                        else 0.001
+                        if offset < 840
+                        else -0.009
+                    )
                 else:
-                    change = -0.0001 if offset < 360 else material_rates[symbol] if offset < 800 else 0.001
+                    change = 0.001
                 changes.append(change)
             _write_prices(data, symbol=symbol, dates=dates, daily_returns=changes)
         return _run_fixture(
             data=data,
             contract=contract,
             start="2023-01-03",
-            end="2026-08-05",
+            end="2026-04-30",
             symbols_for_session=lambda _session: _STRATEGIC,
         )
 
@@ -153,8 +183,9 @@ def run_repair_fixture(
     with tempfile.TemporaryDirectory(prefix=f"uquant-absolute-repair-{level}-") as temporary:
         data = Path(temporary)
         dates = pd.bdate_range("2025-01-02", periods=sessions + 260)
-        for symbol in (*_STRATEGIC, *INDEX_SYMBOLS):
-            _write_prices(data, symbol=symbol, dates=dates, daily_returns=[0.0] * len(dates))
+        for index, symbol in enumerate(_fixture_symbols(contract)):
+            rate = 0.001 + (index % 5) * 0.00005
+            _write_prices(data, symbol=symbol, dates=dates, daily_returns=[rate] * len(dates))
         replay_dates = dates[-(sessions + 2) :]
         return _run_fixture(
             data=data,
@@ -163,6 +194,7 @@ def run_repair_fixture(
             end=str(replay_dates[-1].date()),
             symbols_for_session=lambda _session: _STRATEGIC,
             initial_budget_level=level,
+            initial_peak_drawdown={1: 0.09, 2: 0.13, 3: 0.17, 4: 0.21}[level],
         )
 
 
@@ -174,7 +206,7 @@ def run_terminal_fixture(
     with tempfile.TemporaryDirectory(prefix="uquant-absolute-terminal-") as temporary:
         data = Path(temporary)
         dates = pd.bdate_range("2024-01-02", periods=320)
-        for symbol in (*_STRATEGIC, *INDEX_SYMBOLS):
+        for symbol in _fixture_symbols(contract):
             _write_prices(data, symbol=symbol, dates=dates, daily_returns=[0.0] * len(dates))
         replay_dates = dates[-62:]
         return _run_fixture(

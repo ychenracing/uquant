@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from copy import deepcopy
 from dataclasses import asdict
+from pathlib import Path
 
 import pytest
 from _absolute_generalization_reachability_fixture import (
@@ -19,12 +20,23 @@ from test_absolute_generalization_reachability import (
     _reachability_state,
     _replace_account_payload,
 )
+from test_strategic_cash_rearm import _qualification
 
+import uquant.validation.absolute_generalization.replay as replay_module
+from uquant.config import DEFAULT_CONFIG, config_fingerprint
+from uquant.contracts.strict_json import strict_json_loads
+from uquant.models.strategic_grant import StrategicQualificationObservation
 from uquant.validation.absolute_generalization import (
+    AbsoluteGeneralizationScenario,
     analyze_terminal_scc,
     is_positive_strategic_outlet,
+    load_absolute_generalization_contract,
     project_observed_reachability_state,
 )
+from uquant.validation.absolute_generalization import (
+    _recovery_runtime_fixtures as fixture_module,
+)
+from uquant.validation.absolute_generalization import recovery_runtime as runtime_module
 from uquant.validation.absolute_generalization._acceptance_evidence import (
     validate_failed_grant_evidence,
     validate_terminal_evidence,
@@ -35,6 +47,7 @@ from uquant.validation.absolute_generalization._physical_identity import (
     physical_fill_identity_sha256,
 )
 from uquant.validation.absolute_generalization._reachability_codec import (
+    decision_runtime_inputs_from_raw,
     reachability_state_from_raw,
     reachability_state_to_raw,
 )
@@ -171,6 +184,161 @@ def test_reachability_runtime_state_strict_json_round_trip_preserves_task6() -> 
     )
     with pytest.raises(ValueError, match="leader"):
         reachability_state_from_raw(nonfinite)
+
+
+def test_decision_runtime_codec_omits_explicit_unavailable_diagnostics() -> None:
+    state = _reachability_state()
+    leader = asdict(next(iter(state["leaders"].values())))
+    leader["components"].update(
+        {
+            "missing": float("nan"),
+            "negative_unavailable": float("-inf"),
+            "positive_unavailable": float("inf"),
+        }
+    )
+    snapshots = deepcopy(state["snapshots"])
+    next(iter(snapshots.values())).update(
+        {
+            "missing": float("nan"),
+            "negative_unavailable": float("-inf"),
+            "positive_unavailable": float("inf"),
+        }
+    )
+    qualification = _qualification()
+    payload = replay_module._payload(
+        {
+            "effective_config_sha256": config_fingerprint(DEFAULT_CONFIG),
+            "risk_assessment": state["risk"],
+            "strategic_universe_roles": state["universe"],
+            "strategic_qualification": qualification,
+            "strategic_successor_qualification": qualification,
+            "leader_scores": [leader],
+            "qualification_snapshots": snapshots,
+        },
+        project_nonfinite_diagnostics=True,
+    )
+
+    decoded = decision_runtime_inputs_from_raw(payload)
+    observed = next(iter(decoded["leaders"].values()))
+    snapshot = next(iter(decoded["snapshots"].values()))
+
+    assert observed.components["secular_score"] == 0.95
+    assert not {
+        "missing",
+        "negative_unavailable",
+        "positive_unavailable",
+    }.intersection(observed.components)
+    assert snapshot["ret20"] == 0.2
+    assert not {
+        "missing",
+        "negative_unavailable",
+        "positive_unavailable",
+    }.intersection(snapshot)
+
+
+def test_recovery_fixture_data_covers_the_production_reference_universe() -> None:
+    contract = load_absolute_generalization_contract()
+
+    assert set(fixture_module._fixture_symbols(contract)) == {
+        *contract.canonical_universe,
+        *fixture_module.INDEX_SYMBOLS,
+    }
+
+
+def test_incremental_replay_account_is_materialized_for_reachability() -> None:
+    _target, grant, epoch, order, fill = _filled_chain()
+    account = _cash_account(budget_level=1)
+    account.strategic_grant = grant
+    account.strategic_epochs = [epoch]
+    account.active_strategic_epoch_id = epoch.epoch_id
+    account.order_ledger = [order]
+    account.fills = [fill]
+    account.next_order_sequence = 2
+    snapshot = replay_module._account_snapshot(
+        account,
+        order_tracker=replay_module._EntityTracker(),
+        epoch_tracker=replay_module._EntityTracker(),
+        appended_orders=(order,),
+        appended_epochs=(epoch,),
+    )
+
+    payload = runtime_module._ReplayAccountMaterializer().materialize(
+        snapshot,
+        new_fills=(replay_module._payload(fill),),
+    )
+    raw = strict_json_loads(payload.canonical_json)
+
+    assert [item["order_id"] for item in raw["order_ledger"]] == [order.order_id]
+    assert [item["epoch_id"] for item in raw["strategic_epochs"]] == [epoch.epoch_id]
+    assert raw["fills"] == [strict_json_loads(replay_module._payload(fill).canonical_json)]
+
+
+def test_inactive_empty_qualification_identity_is_a_legal_runtime_state() -> None:
+    trace = _observed_trace(2)
+    for index, row in enumerate(trace):
+        state = row["state"]
+        assert isinstance(state, dict)
+        state["qualification_ready"] = False
+        state["qualification_route"] = ""
+        state["qualification_quorum"] = ""
+
+        def clear(raw: dict[str, object]) -> None:
+            raw["strategic_qualification"] = asdict(
+                StrategicQualificationObservation()
+            )
+
+        _replace_account_payload(trace, index=index, mutate=clear)
+
+    assert analyze_terminal_scc(trace).passed is True
+
+
+def test_recovery_loads_only_the_preregistered_historical_replay(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    contract = load_absolute_generalization_contract()
+    calls: list[str] = []
+    expected = object()
+
+    def replay(scenario: AbsoluteGeneralizationScenario, **_kwargs: object) -> object:
+        calls.append(scenario.removed_symbol)
+        return expected
+
+    monkeypatch.setattr(runtime_module, "run_absolute_generalization_replay", replay)
+
+    observed = runtime_module._historical_recovery_replay(
+        root=tmp_path,
+        data_dir=tmp_path,
+        cache_dir=tmp_path,
+        contract=contract,
+    )
+
+    assert observed is expected
+    assert calls == ["sz300502"]
+
+
+def test_failed_recovery_fixture_rotates_authorization_and_candidate() -> None:
+    contract = load_absolute_generalization_contract()
+    replay = fixture_module.run_failed_grant_fixture(contract)
+    transitions = runtime_module.replay_reachability_transitions(replay)
+
+    payload = runtime_module._failed_recovery_payload(transitions, contract)
+
+    first = payload["first_grant"]
+    second = payload["second_grant"]
+    assert first["authorization_id"]
+    assert second["authorization_id"]
+    assert first["authorization_id"] != second["authorization_id"]
+    assert first["candidate_symbol"] != second["candidate_symbol"]
+
+
+def test_initial_crowning_preserves_empty_authorization_session() -> None:
+    _target, grant, _epoch, _order, _fill = _filled_chain()
+    grant.authorization_id = ""
+
+    assert runtime_module._crowning_authorization_session(
+        {"strategic_grant": asdict(grant)}, grant
+    ) == ""
 
 
 def test_task6_projects_state_claims_from_runtime_objects() -> None:

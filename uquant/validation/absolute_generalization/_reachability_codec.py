@@ -181,7 +181,7 @@ def _leaders_from_raw(value: object) -> dict[str, LeaderScore]:
             raise ValueError("absolute reachability leader raw fields differ")
         values = dict(row)
         components = _reachability_mapping(values["components"], label="leader components")
-        numeric = (values["score"], values["confidence"], *components.values())
+        numeric = (values["score"], values["confidence"])
         if any(
             isinstance(number, bool)
             or not isinstance(number, (int, float))
@@ -189,9 +189,20 @@ def _leaders_from_raw(value: object) -> dict[str, LeaderScore]:
             for number in numeric
         ):
             raise ValueError("absolute reachability leader raw evidence is malformed")
-        if any(type(name) is not str for name in components):
-            raise ValueError("absolute reachability leader raw evidence is malformed")
-        values["components"] = dict(components)
+        finite_components: dict[str, int | float] = {}
+        for name, number in components.items():
+            if type(name) is not str:
+                raise ValueError("absolute reachability leader raw evidence is malformed")
+            if type(number) is str and number in {"NaN", "Infinity", "-Infinity"}:
+                continue
+            if (
+                isinstance(number, bool)
+                or not isinstance(number, (int, float))
+                or not math.isfinite(float(number))
+            ):
+                raise ValueError("absolute reachability leader raw evidence is malformed")
+            finite_components[name] = number
+        values["components"] = finite_components
         result[symbol] = LeaderScore(**cast(dict[str, Any], values))
     return result
 
@@ -203,15 +214,20 @@ def _snapshots_from_raw(value: object) -> dict[str, dict[str, float]]:
     result: dict[str, dict[str, float]] = {}
     for symbol, item in raw.items():
         values = _reachability_mapping(item, label="snapshot")
-        if any(
-            type(name) is not str
-            or isinstance(number, bool)
-            or not isinstance(number, (int, float))
-            or not math.isfinite(float(number))
-            for name, number in values.items()
-        ):
-            raise ValueError("absolute reachability snapshot raw evidence is malformed")
-        result[symbol] = {name: float(cast(float, number)) for name, number in values.items()}
+        finite_values: dict[str, float] = {}
+        for name, number in values.items():
+            if type(name) is not str:
+                raise ValueError("absolute reachability snapshot raw evidence is malformed")
+            if type(number) is str and number in {"NaN", "Infinity", "-Infinity"}:
+                continue
+            if (
+                isinstance(number, bool)
+                or not isinstance(number, (int, float))
+                or not math.isfinite(float(number))
+            ):
+                raise ValueError("absolute reachability snapshot raw evidence is malformed")
+            finite_values[name] = float(number)
+        result[symbol] = finite_values
     return result
 
 

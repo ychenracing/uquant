@@ -378,6 +378,32 @@ def test_daily_decision_projection_is_independent_of_cumulative_epoch_count() ->
     }
 
 
+def test_daily_decision_projection_encodes_unavailable_diagnostics() -> None:
+    """Undefined diagnostics must not make an otherwise valid fixture unreplayable."""
+
+    decision = Decision(
+        date="2026-01-05",
+        opportunity=Opportunity.CHOPPY,
+        risk=Risk.NORMAL,
+        target_gross=0.0,
+        target_k=0,
+        targets=(),
+        pending_orders=(),
+        risk_summary={
+            "median_correlation": float("nan"),
+            "strategic_epochs": [],
+        },
+        decision_digest="0" * 64,
+    )
+
+    payload = replay_module._decision_evidence_payload(
+        decision,
+        epoch_ledger_chain_sha256="1" * 64,
+    )
+
+    assert _payload_dict(payload)["risk_summary"]["median_correlation"] == "NaN"
+
+
 def test_final_equity_failure_returns_bounded_fallback_evidence() -> None:
     """An operational final mark failure must not escape replay finalization."""
 

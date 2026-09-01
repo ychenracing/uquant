@@ -8,9 +8,8 @@ from dataclasses import asdict
 from pathlib import Path
 from typing import Any, cast
 
-from uquant.account import account_from_dict
 from uquant.config import DEFAULT_CONFIG
-from uquant.contracts.strict_json import strict_json_loads
+from uquant.contracts.strict_json import canonical_json_bytes, strict_json_loads
 from uquant.models.decision import LeaderScore, RiskAssessment, Target
 from uquant.models.strategic_epoch import StrategicEpoch
 from uquant.models.strategic_grant import StrategicGrantIntent, StrategicQualificationObservation
@@ -33,6 +32,7 @@ from ._recovery_runtime_fixtures import (
 from .artifacts import derive_runtime_cell_artifact
 from .contract import AbsoluteGeneralizationContract
 from .reachability import (
+    _validate_account_payload,
     analyze_failed_grant_recovery,
     analyze_terminal_scc,
     is_positive_strategic_outlet,
@@ -65,11 +65,116 @@ def _payload_mapping(
     return _recovery_mapping(strict_json_loads(payload.canonical_json), label=label)
 
 
-def _account(snapshot: AbsoluteGeneralizationReplayAccountSnapshot) -> AccountState:
-    return account_from_dict(
-        _payload_mapping(snapshot.account_payload, label="account"),
-        require_hashes=False,
-    )
+class _ReplayEntityLedger:
+    def __init__(self, identity_field: str) -> None:
+        self._identity_field = identity_field
+        self._entities: dict[str, Mapping[str, object]] = {}
+        self._chain_sha256 = hashlib.sha256(
+            canonical_json_bytes({"kind": "empty_entity_ledger"})
+        ).hexdigest()
+
+    def apply(
+        self,
+        payloads: Sequence[AbsoluteGeneralizationReplayPayload],
+        removed_ids: Sequence[str],
+        expected_chain_sha256: str,
+    ) -> list[dict[str, object]]:
+        if tuple(removed_ids) != tuple(sorted(set(removed_ids))):
+            raise ValueError("absolute recovery entity removals differ")
+        changed: list[tuple[str, Mapping[str, object], str]] = []
+        for payload in payloads:
+            raw = _payload_mapping(payload, label="account entity delta")
+            stable_id = raw.get(self._identity_field)
+            if type(stable_id) is not str or not stable_id:
+                raise ValueError("absolute recovery entity identity differs")
+            changed.append((stable_id, raw, payload.sha256))
+        if [item[0] for item in changed] != sorted({item[0] for item in changed}):
+            raise ValueError("absolute recovery entity deltas differ")
+        removed = set(removed_ids)
+        if removed.intersection(item[0] for item in changed) or not removed.issubset(
+            self._entities
+        ):
+            raise ValueError("absolute recovery entity transition differs")
+        chain_sha256 = self._chain_sha256
+        if changed or removed_ids:
+            transition = canonical_json_bytes(
+                {
+                    "changed": [
+                        {"sha256": digest, "stable_id": stable_id}
+                        for stable_id, _raw, digest in changed
+                    ],
+                    "previous_sha256": chain_sha256,
+                    "removed": list(removed_ids),
+                }
+            )
+            chain_sha256 = hashlib.sha256(transition).hexdigest()
+        if chain_sha256 != expected_chain_sha256:
+            raise ValueError("absolute recovery entity chain differs")
+        for stable_id in removed_ids:
+            del self._entities[stable_id]
+        for stable_id, raw, _digest in changed:
+            self._entities[stable_id] = raw
+        self._chain_sha256 = chain_sha256
+        return [dict(item) for item in self._entities.values()]
+
+
+class _ReplayAccountMaterializer:
+    def __init__(self) -> None:
+        self._orders = _ReplayEntityLedger("order_id")
+        self._epochs = _ReplayEntityLedger("epoch_id")
+        self._fills: list[dict[str, object]] = []
+
+    def materialize(
+        self,
+        snapshot: AbsoluteGeneralizationReplayAccountSnapshot,
+        *,
+        new_fills: Sequence[AbsoluteGeneralizationReplayPayload] = (),
+    ) -> AbsoluteGeneralizationReplayPayload:
+        if type(snapshot) is not AbsoluteGeneralizationReplayAccountSnapshot:
+            raise ValueError("absolute recovery account snapshot type differs")
+        orders = self._orders.apply(
+            snapshot.changed_order_payloads,
+            snapshot.removed_order_keys,
+            snapshot.order_ledger_chain_sha256,
+        )
+        epochs = self._epochs.apply(
+            snapshot.changed_epoch_payloads,
+            snapshot.removed_epoch_keys,
+            snapshot.epoch_ledger_chain_sha256,
+        )
+        self._fills.extend(
+            dict(_payload_mapping(payload, label="fill delta"))
+            for payload in new_fills
+        )
+        raw = dict(_payload_mapping(snapshot.account_payload, label="account"))
+        if any(name in raw for name in ("fills", "order_ledger", "strategic_epochs")):
+            raise ValueError("absolute recovery account snapshot is not incremental")
+        raw.update(
+            {
+                "fills": list(self._fills),
+                "order_ledger": orders,
+                "strategic_epochs": epochs,
+            }
+        )
+        encoded = canonical_json_bytes(raw)
+        return AbsoluteGeneralizationReplayPayload(
+            canonical_json=encoded,
+            sha256=hashlib.sha256(encoded).hexdigest(),
+        )
+
+    def validate_final(self, payload: AbsoluteGeneralizationReplayPayload) -> None:
+        raw = _payload_mapping(payload, label="final account")
+        expected = {
+            "fills": self._fills,
+            "order_ledger": [dict(item) for item in self._orders._entities.values()],
+            "strategic_epochs": [dict(item) for item in self._epochs._entities.values()],
+        }
+        if any(raw.get(name) != value for name, value in expected.items()):
+            raise ValueError("absolute recovery reconstructed account differs")
+
+
+def _account(payload: AbsoluteGeneralizationReplayPayload) -> AccountState:
+    return _validate_account_payload(payload)
 
 
 def _targets(payload: AbsoluteGeneralizationReplayPayload) -> tuple[Target, ...]:
@@ -162,11 +267,11 @@ def _activation_order_and_fill(
 
 def _state(
     *,
-    account_snapshot: AbsoluteGeneralizationReplayAccountSnapshot,
+    account_payload: AbsoluteGeneralizationReplayPayload,
     market_payload: AbsoluteGeneralizationReplayPayload,
     decision_payload: AbsoluteGeneralizationReplayPayload,
 ) -> dict[str, object]:
-    account = _account(account_snapshot)
+    account = _account(account_payload)
     market = decision_runtime_inputs_from_raw(market_payload)
     if (
         asdict(account.strategic_qualification)
@@ -186,7 +291,7 @@ def _state(
     ):
         raise ValueError("absolute recovery qualification snapshot differs")
     return project_observed_reachability_state(
-        account_payload=account_snapshot.account_payload,
+        account_payload=account_payload,
         cfg=DEFAULT_CONFIG,
         risk=cast(RiskAssessment, market["risk"]),
         universe=cast(StrategicUniverseRoles, market["universe"]),
@@ -203,10 +308,15 @@ def replay_reachability_transitions(
 
     rows: list[dict[str, object]] = []
     previous: AbsoluteGeneralizationReplayObservation | None = None
+    accounts = _ReplayAccountMaterializer()
     for observation in replay.observations:
         current_market = observation.decision_runtime_payload
         if current_market is None:
             raise ValueError("absolute recovery decision runtime evidence is missing")
+        post_open_account = accounts.materialize(
+            observation.post_open_account,
+            new_fills=observation.new_fills,
+        )
         if previous is not None:
             previous_market = previous.decision_runtime_payload
             if previous_market is None:
@@ -217,25 +327,27 @@ def replay_reachability_transitions(
                     "phase": "POST_OPEN",
                     "edge_kind": "OBSERVED",
                     "state": _state(
-                        account_snapshot=observation.post_open_account,
+                        account_payload=post_open_account,
                         market_payload=previous_market,
                         decision_payload=previous.decision_payload,
                     ),
                 }
             )
+        post_decision_account = accounts.materialize(observation.post_decision_account)
         rows.append(
             {
                 "session": observation.session,
                 "phase": "POST_DECISION",
                 "edge_kind": "OBSERVED",
                 "state": _state(
-                    account_snapshot=observation.post_decision_account,
+                    account_payload=post_decision_account,
                     market_payload=current_market,
                     decision_payload=observation.decision_payload,
                 ),
             }
         )
         previous = observation
+    accounts.validate_final(replay.final_account_payload)
     if not rows or len(rows) > _TRANSITION_LIMIT:
         raise ValueError("absolute recovery transition count differs")
     analyze_terminal_scc(rows)
@@ -311,6 +423,8 @@ def _crowning_authorization_session(
     observed_grant = _recovery_mapping(raw_grant, label="crowning grant")
     if observed_grant.get("grant_id") != grant.grant_id:
         return None
+    if not grant.authorization_id:
+        return ""
     raw_rearm = _recovery_mapping(
         risk.get("strategic_cash_rearm"), label="crowning authorization"
     )
@@ -386,12 +500,8 @@ def _failed_recovery_payload(
     first_index = -1
     for index, row in enumerate(transitions):
         state = cast(Mapping[str, object], row["state"])
-        account = account_from_dict(
-            _payload_mapping(
-                cast(AbsoluteGeneralizationReplayPayload, state["account_payload"]),
-                label="failed account",
-            ),
-            require_hashes=False,
+        account = _account(
+            cast(AbsoluteGeneralizationReplayPayload, state["account_payload"])
         )
         grant = account.strategic_grant
         if grant is None or not grant.terminal or grant.filled_shares != 0:
@@ -445,10 +555,7 @@ def _crowning_payload(
     source_name: str,
     cross: bool,
 ) -> dict[str, object]:
-    final_account = account_from_dict(
-        _payload_mapping(replay.final_account_payload, label="crowning account"),
-        require_hashes=False,
-    )
+    final_account = _account(replay.final_account_payload)
     final_epochs = {item.epoch_id: item for item in final_account.strategic_epochs}
     qualifications: dict[tuple[str, str], str] = {}
     for observation in replay.observations:
@@ -543,12 +650,8 @@ def _repair_payloads(
             if row["phase"] != "POST_DECISION":
                 continue
             state = cast(Mapping[str, object], row["state"])
-            account = account_from_dict(
-                _payload_mapping(
-                    cast(AbsoluteGeneralizationReplayPayload, state["account_payload"]),
-                    label="repair account",
-                ),
-                require_hashes=False,
+            account = _account(
+                cast(AbsoluteGeneralizationReplayPayload, state["account_payload"])
             )
             projection = project_flat_book_repair_health(
                 account=account,
@@ -584,6 +687,27 @@ def _repair_payloads(
     return result
 
 
+def _historical_recovery_replay(
+    *,
+    root: Path,
+    data_dir: Path,
+    cache_dir: Path,
+    contract: AbsoluteGeneralizationContract,
+) -> AbsoluteGeneralizationReplay:
+    historical_symbol = "sz300502"
+    scenario = next(
+        item
+        for item in build_leave_one_out_scenarios(contract)
+        if item.removed_symbol == historical_symbol
+    )
+    return run_absolute_generalization_replay(
+        scenario,
+        root=root,
+        data_dir=data_dir,
+        cache_dir=cache_dir,
+    )
+
+
 def run_recovery_runtime_payload(
     *,
     root: Path,
@@ -593,28 +717,20 @@ def run_recovery_runtime_payload(
 ) -> dict[str, object]:
     """Run isolated preregistered production traces and derive strict raw facts."""
 
-    scenarios = {
-        item.removed_symbol: item
-        for item in build_leave_one_out_scenarios(contract)
-        if item.removed_symbol in set(contract.critical_removals)
-    }
-    replays = {
-        symbol: run_absolute_generalization_replay(
-            scenarios[symbol], root=root, data_dir=data_dir, cache_dir=cache_dir
-        )
-        for symbol in contract.critical_removals
-    }
-    historical_symbol = "sz300502"
-    historical_transitions = replay_reachability_transitions(
-        replays[historical_symbol]
+    historical_replay = _historical_recovery_replay(
+        root=root,
+        data_dir=data_dir,
+        cache_dir=cache_dir,
+        contract=contract,
     )
+    historical_transitions = replay_reachability_transitions(historical_replay)
     historical_artifact = derive_runtime_cell_artifact(
-        replays[historical_symbol], contract, root=root
+        historical_replay, contract, root=root
     )
     if historical_artifact.status != "COMPLETE" or historical_artifact.metrics is None:
         raise RuntimeError("absolute recovery historical source cell is incomplete")
     historical_payload = _crowning_payload(
-        replays[historical_symbol],
+        historical_replay,
         historical_transitions,
         source_name="remove-sz300502",
         cross=False,

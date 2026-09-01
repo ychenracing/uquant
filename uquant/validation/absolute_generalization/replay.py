@@ -485,7 +485,7 @@ def _decision_evidence_payload(
         if field.name != "risk_summary"
     }
     projected["risk_summary"] = risk_summary
-    return _payload(projected)
+    return _payload(projected, project_nonfinite_diagnostics=True)
 
 
 def _order_change_ids(orders: Iterable[object]) -> tuple[str, ...]:
@@ -820,6 +820,7 @@ def run_absolute_generalization_replay_sessions(
     strategic_symbols: tuple[str, ...],
     symbols_for_session: Callable[[pd.Timestamp], tuple[str, ...]],
     initial_budget_level: int = 0,
+    initial_peak_drawdown: float = 0.0,
 ) -> AbsoluteGeneralizationReplay:
     """Run a deterministic session schedule through the production replay seam."""
 
@@ -829,6 +830,13 @@ def run_absolute_generalization_replay_sessions(
         or initial_budget_level not in {0, 1, 2, 3, 4}
     ):
         raise ValueError("absolute replay initial budget level differs")
+    if (
+        isinstance(initial_peak_drawdown, bool)
+        or not isinstance(initial_peak_drawdown, (int, float))
+        or not math.isfinite(float(initial_peak_drawdown))
+        or not 0.0 <= float(initial_peak_drawdown) < 1.0
+    ):
+        raise ValueError("absolute replay initial peak drawdown differs")
     data = Path(data_dir)
     engine = ProductionEngine(data)
     engine.workspace.prepare(
@@ -846,6 +854,10 @@ def run_absolute_generalization_replay_sessions(
         raise RuntimeError("absolute replay fixture has fewer than two sessions")
     account = AccountState.empty(DEFAULT_CONFIG.initial_cash)
     account.capital_budget_level = initial_budget_level
+    if initial_peak_drawdown:
+        peak = account.initial_cash / (1.0 - float(initial_peak_drawdown))
+        account.capital_peak = peak
+        account.operating_peak = peak
     observations: list[AbsoluteGeneralizationReplayObservation] = []
     frames = {
         symbol: engine.workspace.raw_frame(symbol) for symbol in INDEX_SYMBOLS

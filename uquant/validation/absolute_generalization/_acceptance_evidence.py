@@ -6,6 +6,7 @@ import json
 import math
 import re
 from collections.abc import Mapping, Sequence, Set
+from copy import deepcopy
 from dataclasses import asdict, dataclass, is_dataclass
 from datetime import date
 from functools import lru_cache
@@ -35,6 +36,7 @@ from ._physical_identity import physical_fill_identity_sha256
 from ._reachability_codec import reachability_state_from_raw
 from .contract import AbsoluteGeneralizationContract
 from .reachability import (
+    _normalize_epoch_only_cohort_attribution,
     analyze_failed_grant_recovery,
     analyze_terminal_scc,
     is_positive_strategic_outlet,
@@ -607,7 +609,8 @@ def _crowning_account_indexes(
     dict[str, AccountOrder],
     dict[str, Fill],
 ]:
-    account_raw = _evidence_mapping(raw, label="crowning account")
+    account_raw = deepcopy(dict(_evidence_mapping(raw, label="crowning account")))
+    _normalize_epoch_only_cohort_attribution(account_raw)
     account = account_from_dict(account_raw, require_hashes=False)
     account_fills = {physical_fill_identity_sha256(item): item for item in account.fills}
     if len(account_fills) != len(account.fills):
@@ -617,6 +620,15 @@ def _crowning_account_indexes(
         {item.order_id: item for item in account.order_ledger},
         account_fills,
     )
+
+
+def _crowning_authorization_session(chain: _CrowningChain) -> str:
+    raw = chain.raw["authorization_session"]
+    if not chain.grant.authorization_id:
+        if raw != "":
+            raise ValueError("absolute generalization crowning authorization differs")
+        return ""
+    return _evidence_date(raw, label="crowning authorization")
 
 
 def _crowning_execution_matches(
@@ -633,10 +645,14 @@ def _crowning_execution_matches(
 ) -> bool:
     target, grant, epoch = chain.target, chain.grant, chain.epoch
     order, fill, digest = chain.order, chain.fill, chain.fill_identity_sha256
+    authorized = (not grant.authorization_id and authorization_session == "") or (
+        bool(grant.authorization_id)
+        and qualification <= authorization_session <= grant.created_session
+    )
     return (
-        qualification
-        <= authorization_session
-        <= grant.created_session
+        qualification <= grant.created_session
+        and authorized
+        and grant.created_session
         == epoch.opened_session
         <= target_session
         == order_session
@@ -679,10 +695,8 @@ def _validate_crowning_execution(
     qualification = _evidence_date(chain.raw["qualification_session"], label="crowning qualification")
     target_session = _evidence_date(chain.raw["target_session"], label="crowning target")
     order_session = _evidence_date(chain.raw["order_session"], label="crowning order")
-    authorization_session = _evidence_date(chain.raw["authorization_session"], label="crowning authorization")
+    authorization_session = _crowning_authorization_session(chain)
     exited = _evidence_date(chain.raw["exit_session"], label="crowning exit")
-    if not chain.grant.authorization_id:
-        raise ValueError("absolute generalization crowning authorization differs")
     if not _crowning_execution_matches(
         chain,
         qualification=qualification,

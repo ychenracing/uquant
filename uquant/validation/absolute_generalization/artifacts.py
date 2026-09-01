@@ -199,6 +199,37 @@ def _is_production_predicate_fact(value: Mapping[object, object]) -> bool:
 
 def _is_production_predicate_path(path: tuple[str | int, ...]) -> bool:
     owners = {"flat_book_capital_repair", "strategic_cash_rearm"}
+    if (
+        len(path) == 5
+        and path[0] in {"historical_crowning", "cross_industry_crowning"}
+        and path[1] == "final_account"
+        and path[2] in owners
+        and path[3] == "predicate_results"
+        and isinstance(path[4], int)
+    ):
+        return True
+    if (
+        len(path) == 8
+        and path[:2] == ("failed_grant_recovery", "transitions")
+        and isinstance(path[2], int)
+        and path[3:5] == ("runtime_state", "account_payload")
+        and path[5] in owners
+        and path[6] == "predicate_results"
+        and isinstance(path[7], int)
+    ):
+        return True
+    if (
+        len(path) == 9
+        and path[0] == "repair_bounds"
+        and isinstance(path[1], int)
+        and path[2] == "observations"
+        and isinstance(path[3], int)
+        and path[4:6] == ("runtime_state", "account_payload")
+        and path[6] in owners
+        and path[7] == "predicate_results"
+        and isinstance(path[8], int)
+    ):
+        return True
     for index, component in enumerate(path):
         if component != "replay_evidence":
             continue

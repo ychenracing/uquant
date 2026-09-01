@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import replace
+from types import SimpleNamespace
 
 import pytest
 from _absolute_generalization_metrics_fixture import (
@@ -11,10 +12,14 @@ from _absolute_generalization_metrics_fixture import (
 )
 from test_absolute_generalization_metrics import _identities
 
+import uquant.validation.absolute_generalization._acceptance_evidence as acceptance_evidence
 from uquant.validation.absolute_generalization import (
     derive_cell_metrics,
     load_absolute_generalization_contract,
     validate_cell_artifact,
+)
+from uquant.validation.absolute_generalization.artifacts import (
+    reject_self_assertion_claims,
 )
 
 
@@ -76,6 +81,75 @@ def test_strict_round_trip_accepts_production_predicate_passed_fact() -> None:
     artifact = derive_cell_metrics(replay, scenario(), _identities())
 
     assert validate_cell_artifact(artifact.to_dict(), contract) == artifact
+
+
+@pytest.mark.parametrize(
+    ("kind", "owner"),
+    (
+        ("historical_crowning", "flat_book_capital_repair"),
+        ("cross_industry_crowning", "strategic_cash_rearm"),
+        ("failed_grant_recovery", "flat_book_capital_repair"),
+        ("repair_bounds", "flat_book_capital_repair"),
+    ),
+)
+def test_recovery_manifest_accepts_owned_production_predicate_paths(
+    kind: str,
+    owner: str,
+) -> None:
+    predicate = {
+        "authoritative_state": {"positive_position_symbols": []},
+        "code": "ALL_CASH",
+        "economic_authority": True,
+        "orphan_residue": False,
+        "passed": True,
+    }
+    account = {owner: {"predicate_results": [predicate]}}
+    if kind in {"historical_crowning", "cross_industry_crowning"}:
+        raw: dict[str, object] = {kind: {"final_account": account}}
+    elif kind == "failed_grant_recovery":
+        raw = {kind: {"transitions": [{"runtime_state": {"account_payload": account}}]}}
+    else:
+        raw = {kind: [{"observations": [{"runtime_state": {"account_payload": account}}]}]}
+    reject_self_assertion_claims(raw, label="manifest")
+
+
+def test_crowning_account_decode_normalizes_epoch_only_cohort_attribution(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    raw = {
+        "strategic_epochs": [{"epoch_id": "epoch-a", "grant_id": "grant-a", "owner_symbol": "owner"}],
+        "order_ledger": [
+            {
+                "epoch_id": "epoch-a",
+                "grant_id": "",
+                "symbol": "cohort",
+                "origin_subsystem": "STRATEGIC",
+            }
+        ],
+    }
+
+    def decode(value: object, *, require_hashes: bool) -> SimpleNamespace:
+        assert require_hashes is False
+        assert isinstance(value, dict)
+        assert value["order_ledger"][0]["grant_id"] == "grant-a"  # type: ignore[index]
+        return SimpleNamespace(fills=(), strategic_epochs=(), order_ledger=())
+
+    monkeypatch.setattr(acceptance_evidence, "account_from_dict", decode)
+
+    assert acceptance_evidence._crowning_account_indexes(raw) == ({}, {}, {})
+    assert raw["order_ledger"][0]["grant_id"] == ""  # type: ignore[index]
+
+
+def test_initial_crowning_requires_no_rearm_authorization_session() -> None:
+    chain = SimpleNamespace(
+        grant=SimpleNamespace(authorization_id=""),
+        raw={"authorization_session": ""},
+    )
+
+    assert acceptance_evidence._crowning_authorization_session(chain) == ""
+    chain.raw["authorization_session"] = "2026-01-05"
+    with pytest.raises(ValueError, match="authorization"):
+        acceptance_evidence._crowning_authorization_session(chain)
 
 
 def test_strict_round_trip_rejects_predicate_shaped_pass_at_untrusted_path() -> None:

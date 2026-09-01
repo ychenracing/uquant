@@ -30,6 +30,7 @@ from .decision import decide as run_decision
 from .decision import decision_config_for_universe as decision_config_for_universe
 from .decision import deterministic_decision
 from .decision import mark_account_positions as mark_account_positions
+from .decision import observed_decision as run_observed_decision
 from .metrics import equity_drawdown_stats as drawdown_stats
 from .metrics import performance_metrics as calculate_performance_metrics
 from .risk_timeline_cache import canonical_risk_timeline_json as canonical_risk_json
@@ -138,7 +139,14 @@ def bind_causal_risk_timeline(
     load_disk_cache_fn: Callable[[], Any],
     write_disk_cache_fn: Callable[[], Any],
 ) -> Callable[..., RiskEvidenceTimeline]:
-    def bound(self: Any, *, as_of: str, cfg: SystemConfig, universe: AIUniverse) -> RiskEvidenceTimeline:
+    def bound(
+        self: Any,
+        *,
+        as_of: str,
+        cfg: SystemConfig,
+        universe: AIUniverse,
+        role_absent_symbols: tuple[str, ...] = (),
+    ) -> RiskEvidenceTimeline:
         return causal_risk_timeline(
             self,
             timeline_builder(),
@@ -150,6 +158,7 @@ def bind_causal_risk_timeline(
             as_of=as_of,
             cfg=cfg,
             universe=universe,
+            role_absent_symbols=role_absent_symbols,
         )
 
     bound.__doc__ = causal_risk_timeline.__doc__
@@ -186,6 +195,40 @@ def bind_engine_decision(
 
     bound.__doc__ = run_decision.__doc__
     return _engine_function(bound, "ProductionEngine.decide")
+
+
+def bind_engine_observed_decision(
+    assess_risk_fn: Callable[[], Any],
+    evaluate_sentinel_fn: Callable[[], Any],
+    reconcile_account_orders_fn: Callable[[], Any],
+    code_fingerprint_fn: Callable[[], Any],
+    attach_target_attribution_fn: Callable[[], Any],
+) -> Callable[..., Any]:
+    """Bind the private lossless observation to the same decision authority."""
+
+    def bound(
+        self: Any,
+        *,
+        symbols: Iterable[str],
+        as_of: str,
+        account: AccountState,
+        strategic_universe_declaration: StrategicUniverseDeclaration | None = None,
+    ) -> Any:
+        return run_observed_decision(
+            self,
+            assess_risk_fn(),
+            evaluate_sentinel_fn(),
+            reconcile_account_orders_fn(),
+            code_fingerprint_fn(),
+            attach_target_attribution_fn(),
+            symbols=symbols,
+            as_of=as_of,
+            account=account,
+            strategic_universe_declaration=strategic_universe_declaration,
+        )
+
+    bound.__doc__ = run_observed_decision.__doc__
+    return _engine_function(bound, "ProductionEngine._observe_decision")
 
 
 def bind_engine_backtest(

@@ -7,6 +7,7 @@ from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from typing import Any
 
+from ..statistics import linear_quantile as _linear_quantile
 from .schema import GeneralizationPolicy
 
 
@@ -78,18 +79,9 @@ def evaluate_recovered_against_group_envelope(
 
 
 def policy_quantile(values: Sequence[float], probability: float) -> float:
-    """Interpolate one deterministic policy quantile from ordered values."""
+    """Preserve the policy API while delegating its quantile authority."""
 
-    ordered = sorted(values)
-    if not ordered:
-        raise ValueError("generalization tail quantile requires valid economic cells")
-    location = (len(ordered) - 1) * probability
-    lower = math.floor(location)
-    upper = math.ceil(location)
-    if lower == upper:
-        return ordered[lower]
-    fraction = location - lower
-    return ordered[lower] * (1.0 - fraction) + ordered[upper] * fraction
+    return _linear_quantile(values, probability)
 
 
 @dataclass(frozen=True, slots=True)

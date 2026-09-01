@@ -12,11 +12,16 @@ from typing import Any
 
 from ..account import account_from_dict
 from ..config import SystemConfig, canonical_control_float, config_fingerprint
+from ..models.trading import (
+    account_order_decision_origin_session,
+    account_order_physical_chain_identity,
+)
 from ..types import (
     ACCOUNT_SCHEMA_VERSION,
     AccountOrder,
     AccountState,
     AttributionMechanism,
+    Fill,
     Lifecycle,
     Opportunity,
     OrderStatus,
@@ -688,26 +693,20 @@ def _validate_durable_order_lifecycles(ctx: _ControlContext) -> None:
     if active_ids != pending_ids:
         raise ValueError("durable active order lifecycle differs from final pending-order state")
     prior_physical_order_by_event: dict[tuple[str, str, str, str, str], AccountOrder] = {}
+    fills_by_order: dict[str, list[Fill]] = {}
+    for fill in ctx.account.fills:
+        fills_by_order.setdefault(fill.order_id, []).append(fill)
     for order_id, durable in ctx.ledger_orders.items():
-        chain_identity = (
-            durable.event_id,
-            durable.symbol,
-            durable.side,
-            durable.grant_id,
-            durable.epoch_id,
-        )
+        chain_identity = account_order_physical_chain_identity(durable)
         prior_physical_order = prior_physical_order_by_event.get(chain_identity)
-        partial_remainder_origin = bool(
-            prior_physical_order is not None
-            and durable.grant_id
-            and prior_physical_order.status == OrderStatus.CANCELLED.value
-            and prior_physical_order.cancel_reason == "strategic partial remainder replaced"
-            and prior_physical_order.last_event == "PARTIAL_REMAINDER_RELEASED"
-        )
-        origin_session = (
-            prior_physical_order.last_update_date
-            if partial_remainder_origin and prior_physical_order is not None
-            else durable.signal_date
+        origin_session = account_order_decision_origin_session(
+            durable,
+            prior_physical_order,
+            prior_physical_fills=(
+                ()
+                if prior_physical_order is None
+                else fills_by_order.get(prior_physical_order.order_id, ())
+            ),
         )
         origin_index = session_index.get(origin_session)
         if origin_index is None:

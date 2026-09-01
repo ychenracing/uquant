@@ -80,13 +80,17 @@ Git 忽略；发布证据必须由 checkout 后的命令重建，不能提交一
 
 ### 独立 CI 结论
 
-每个 PR 和 `main` push 必须得到以下三个稳定结果：
+每个 PR 和 `main` push 必须得到以下稳定结果：
 
 | 必需结论 | 组成 |
 |---|---|
 | `Engineering` | `quality`、`security` 与原生 `Windows smoke` 都成功后才成功；summary 总是运行 |
 | `Performance Acceptance` | 未删减的 `promotion --profile full`、精确 HEAD 与完整 provenance |
-| `Generalization Acceptance` | 六个官方窗口分片全部完成后的 234-record policy/evidence 聚合 |
+| `Absolute Generalization Acceptance` | 固定八 shard、34 个 leave-one-out 场景及 production recovery/reachability 原始证据的阻断聚合；最终 `passed` 是 runner 与 capability 的合取 |
+
+旧六窗口 234-cell 矩阵只保留为手动 `Extended Economic Matrix Diagnostics`，不是
+自动 Absolute 结论的输入。Targeted 单场景只用于诊断，不能进入 final 聚合；缓存只保存
+严格身份绑定的原始 cell，special shard 和 final report 写盘后必须重新校验 seal。
 
 不得为必需结论添加 path filter、`continue-on-error`、失败转成功或可取消矩阵。
 性能与泛化验收的窗口、记录、失败状态和证据解释由[性能与证据](PERFORMANCE.md)维护；

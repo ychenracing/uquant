@@ -14,6 +14,7 @@ from collections.abc import Mapping, Sequence
 from statistics import median
 from typing import Any
 
+from ..statistics import linear_quantile as _linear_quantile
 from .models import GeneralizationObservation, GeneralizationScenario
 
 
@@ -190,18 +191,7 @@ def observation_from_result(
 
 
 def _quantile(values: Sequence[float], probability: float) -> float:
-    if not values:
-        raise ValueError("cannot aggregate an empty metric sequence")
-    if not 0 <= probability <= 1:
-        raise ValueError("quantile probability must be in [0, 1]")
-    ordered = sorted(float(value) for value in values)
-    location = (len(ordered) - 1) * probability
-    lower = math.floor(location)
-    upper = math.ceil(location)
-    if lower == upper:
-        return ordered[lower]
-    fraction = location - lower
-    return ordered[lower] * (1.0 - fraction) + ordered[upper] * fraction
+    return _linear_quantile(values, probability)
 
 
 def aggregate_metrics(

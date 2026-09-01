@@ -96,6 +96,7 @@ _VALIDATION_ADDITIONS = frozenset(
         "research/window_outperformance.py",
         "scripts/build_reproducible_wheel.py",
         "scripts/__init__.py",
+        "scripts/run_absolute_generalization_acceptance.py",
         "scripts/run_strategic_evidence_closure.py",
         "scripts/run_strategic_grant_acceptance.py",
         "scripts/run_strategic_ownership_acceptance.py",
@@ -113,6 +114,28 @@ _VALIDATION_ADDITIONS = frozenset(
         "uquant/portfolio/strategic/successor.py",
         "uquant/risk_sentinel/source_identity_archive.py",
         "uquant/validation/competitor_reference.py",
+        "uquant/validation/absolute_generalization/__init__.py",
+        "uquant/validation/absolute_generalization/_acceptance_evidence.py",
+        "uquant/validation/absolute_generalization/_champion_runtime_reconciliation.py",
+        "uquant/validation/absolute_generalization/_execution_chain_reconciliation.py",
+        "uquant/validation/absolute_generalization/_metric_primitives.py",
+        "uquant/validation/absolute_generalization/_metrics_reconciliation.py",
+        "uquant/validation/absolute_generalization/_physical_identity.py",
+        "uquant/validation/absolute_generalization/_reachability_codec.py",
+        "uquant/validation/absolute_generalization/_reachability_graph.py",
+        "uquant/validation/absolute_generalization/_reachability_recovery.py",
+        "uquant/validation/absolute_generalization/_recovery_runtime_fixtures.py",
+        "uquant/validation/absolute_generalization/_replay_codec.py",
+        "uquant/validation/absolute_generalization/aggregation.py",
+        "uquant/validation/absolute_generalization/artifacts.py",
+        "uquant/validation/absolute_generalization/contract.py",
+        "uquant/validation/absolute_generalization/metrics.py",
+        "uquant/validation/absolute_generalization/policy.py",
+        "uquant/validation/absolute_generalization/reachability.py",
+        "uquant/validation/absolute_generalization/recovery_runtime.py",
+        "uquant/validation/absolute_generalization/replay.py",
+        "uquant/validation/absolute_generalization/runtime.py",
+        "uquant/validation/absolute_generalization/scenarios.py",
         "uquant/validation/generalization_matrix_evidence.py",
         "uquant/validation/generalization_matrix_validation.py",
         "uquant/validation/generalization_policy/cell_policy.py",
@@ -123,6 +146,7 @@ _VALIDATION_ADDITIONS = frozenset(
         "uquant/validation/production_observation.py",
         "uquant/validation/production_observation_contract.py",
         "uquant/validation/promotion_contract.py",
+        "uquant/validation/statistics.py",
     }
 )
 ARCHITECTURE_SOURCE_SURFACE_ADDITIONS: Mapping[str, frozenset[str]] = {
@@ -140,6 +164,7 @@ ARCHITECTURE_SOURCE_SURFACE_ADDITIONS: Mapping[str, frozenset[str]] = {
         - {
             "scripts/build_reproducible_wheel.py",
             "scripts/__init__.py",
+            "scripts/run_absolute_generalization_acceptance.py",
             "scripts/run_strategic_evidence_closure.py",
             "scripts/run_strategic_grant_acceptance.py",
             "scripts/run_strategic_ownership_acceptance.py",
@@ -169,6 +194,16 @@ _CURRENT_RESOURCE_PATHS = {
     ),
 }
 
+_RESOURCE_SURFACE_ADDITIONS: Mapping[str, frozenset[str]] = {
+    "economic_decision_v1": frozenset(),
+    "execution_account_v1": frozenset(),
+    "sentinel_v1": frozenset(),
+    "validation_runner_v1": frozenset(
+        {"benchmarks/absolute_generalization_acceptance_contract.json"}
+    ),
+    "full_package_v1": frozenset(),
+}
+
 
 def architecture_source_surface_projection(identifier: str, historical: Set[str]) -> set[str]:
     """Add only the exact owners registered for one frozen surface."""
@@ -183,10 +218,14 @@ def architecture_source_surface_projection(identifier: str, historical: Set[str]
     return projected | set(additions)
 
 
-def architecture_resource_surface_projection(historical: Sequence[str]) -> list[str]:
+def architecture_resource_surface_projection(
+    identifier: str, historical: Sequence[str]
+) -> list[str]:
     """Project current resource paths without changing resource bytes or protocol IDs."""
 
-    return sorted(_CURRENT_RESOURCE_PATHS.get(path, path) for path in historical)
+    assert identifier in _RESOURCE_SURFACE_ADDITIONS
+    projected = {_CURRENT_RESOURCE_PATHS.get(path, path) for path in historical}
+    return sorted(projected | _RESOURCE_SURFACE_ADDITIONS[identifier])
 
 
 def _definitions(source: str) -> dict[str, ast.FunctionDef]:

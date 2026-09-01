@@ -199,6 +199,10 @@ canonical AI universe manifest 同时拥有点时成员与行业身份；General
 `Engineering`、`Strategic Grant Acceptance` 与 `Strategic Ownership Acceptance` 是 PR 和
 `main` push 的独立阻断结论；Ownership 的五个确定性 shard 只覆盖当前 owner 连续性、
 关键删除、见证者删除和 grant 失败恢复，并上传紧凑事实。
+`Absolute Generalization Acceptance` 另以六个固定 LOO shard、champion shard 和
+recovery/reachability shard封闭当前 checkout；special evidence 携可严格重建的账户、
+风险、角色、leader、qualification 与物理执行事实，Task 6/7 validator 重算结论而不信任
+producer 自报的 pass、健康 predicate 或 legacy summary。
 完整性能和泛化矩阵保留为手动触发的 `Extended Performance Matrix` 与
 `Extended Economic Matrix`。精确窗口、矩阵、指标与复现命令由
 [性能与证据](PERFORMANCE.md)唯一维护。缺文件、重复

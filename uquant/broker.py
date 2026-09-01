@@ -232,6 +232,16 @@ def _validate_late_strategic_fill_capacity(
         raise ValueError("broker late fill exceeds remaining strategic economic order")
 
 
+def _validate_released_predecessor_fill_shape(
+    *,
+    order: AccountOrder,
+    existing_fill: Fill | None,
+    final: bool,
+) -> None:
+    if existing_fill is None and _late_strategic_fill_allowed(order) and not final:
+        raise ValueError("released strategic remainder late fill must be final")
+
+
 def _prepare_broker_sync(account: AccountState, payload: dict[str, Any]) -> _BrokerSyncState:
     as_of_value = payload.get("as_of", "")
     snapshot_date = _broker_date(as_of_value, field="snapshot as_of")
@@ -427,6 +437,11 @@ def _validated_broker_fill(state: _BrokerSyncState, raw: dict[str, Any]) -> _Bro
         )
         if not identity_matches:
             raise ValueError("broker fill_id was reused with different economics")
+    _validate_released_predecessor_fill_shape(
+        order=order,
+        existing_fill=existing_fill,
+        final=final,
+    )
     if existing_fill is None:
         _validate_late_strategic_fill_capacity(state, order=order, shares=shares)
     cumulative_filled, reported_request = _validated_fill_order_progress(

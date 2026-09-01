@@ -114,6 +114,7 @@ def _causal_risk_timeline(
     as_of: str,
     cfg: SystemConfig,
     universe: AIUniverse,
+    role_absent_symbols: tuple[str, ...] = (),
 ) -> RiskEvidenceTimeline:
     """Return one immutable data/config cache prefix without account inputs."""
     broad = self._features["sh000300"]
@@ -122,14 +123,40 @@ def _causal_risk_timeline(
     if common.empty:
         raise RuntimeError("Sentinel timeline has no common index session")
     full_as_of = str(pd.Timestamp(common[-1]).date())
-    timeline_symbols = tuple(sorted({*universe.symbols, *self.workspace.universe.index_symbols}))
+    if role_absent_symbols != tuple(sorted(set(role_absent_symbols))) or not set(
+        role_absent_symbols
+    ).issubset(universe.symbols_as_of(as_of)):
+        raise ValueError("risk timeline requires canonical point-in-time role absence")
+    projected_symbols = tuple(
+        symbol for symbol in universe.symbols if symbol not in role_absent_symbols
+    )
+    timeline_symbols = tuple(
+        sorted(
+            {
+                *projected_symbols,
+                *self.workspace.universe.index_symbols,
+            }
+        )
+    )
     full_data_digest = self.workspace.manifest(timeline_symbols, as_of=pd.Timestamp(full_as_of)).digest
     config_identity = config_fingerprint(cfg)
     source_identity = self._code_hash or code_fingerprint_fn()
+    semantic_role_identity = (
+        str(universe.sha256)
+        if not role_absent_symbols
+        else hashlib.sha256(
+            _canonical_json(
+                {
+                    "ai_universe_sha256": universe.sha256,
+                    "role_absent_symbols": list(role_absent_symbols),
+                }
+            )
+        ).hexdigest()
+    )
     key, disk_key = self.workspace.universe.cache_keys(
         data_identity=full_data_digest,
         config_identity=config_identity,
-        semantic_universe_identity=str(universe.sha256),
+        semantic_universe_identity=semantic_role_identity,
         source_identity=source_identity,
         builder_identity=timeline_builder,
     )
@@ -148,11 +175,27 @@ def _causal_risk_timeline(
                 tech_frame=tech,
                 reference_panel={
                     symbol: self._features[symbol]
-                    for symbol in sorted(universe.symbols)
+                    for symbol in projected_symbols
                     if symbol in self._features
                 },
-                reference_returns=self._reference_returns,
+                reference_returns=(
+                    self._reference_returns
+                    if not role_absent_symbols
+                    else (
+                        None
+                        if self._reference_returns is None
+                        else self._reference_returns.loc[
+                            :,
+                            [
+                                symbol
+                                for symbol in projected_symbols
+                                if symbol in self._reference_returns
+                            ],
+                        ]
+                    )
+                ),
                 universe=universe,
+                role_absent_symbols=role_absent_symbols,
                 cfg=cfg,
             )
             if timeline_builder is native_timeline_builder:

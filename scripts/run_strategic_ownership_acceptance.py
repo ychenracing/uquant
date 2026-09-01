@@ -7,7 +7,6 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
-import math
 import re
 import sys
 import tempfile
@@ -40,12 +39,17 @@ from uquant.engine import ProductionEngine, code_fingerprint, performance_metric
 from uquant.market import ReplayHarness
 from uquant.models.strategic_universe import build_strategic_universe_declaration
 from uquant.types import AccountState
+from uquant.validation.absolute_generalization.metrics import (
+    actual_epoch_facts_from_rows,
+    assert_unique_execution_rows,
+    first_repair_ready_fact,
+    longest_healthy_zero_target_streak,
+)
 
 CONTRACT_PATH = ROOT / "benchmarks" / "strategic_ownership_acceptance_contract.json"
 GRANT_CONTRACT_PATH = ROOT / "benchmarks" / "strategic_grant_acceptance_contract.json"
 SHARD_NAMES = ("champion", "critical", "ghost-a", "ghost-b", "continuity")
 _SCENARIO_ID = re.compile(r"[a-z0-9]+(?:-[a-z0-9]+)*")
-_ACTUAL_EPOCH_STATUSES = frozenset({"ACTIVE", "CLOSED"})
 _OPTICAL_SYMBOLS = ("sz300308", "sz300502", "sz300394")
 _MATERIAL_SYMBOLS = ("sh688019", "sh688300", "sz300666")
 _INDEX_SYMBOLS = ("sh000300", "sh000682")
@@ -106,18 +110,16 @@ def validate_contract(contract: Mapping[str, Any]) -> None:
         "window",
     }:
         raise ValueError("strategic ownership contract fields differ")
-    canonical = tuple(str(item) for item in _sequence(
-        contract["canonical_universe"], label="canonical universe"
-    ))
+    canonical = tuple(
+        str(item) for item in _sequence(contract["canonical_universe"], label="canonical universe")
+    )
     if len(canonical) != 34 or canonical != tuple(sorted(set(canonical))):
         raise ValueError("strategic ownership canonical universe differs")
-    report = tuple(str(item) for item in _sequence(
-        contract["report_universe_13"], label="report universe"
-    ))
+    report = tuple(str(item) for item in _sequence(contract["report_universe_13"], label="report universe"))
     champion = _mapping(contract["champion"], label="champion contract")
-    champion_symbols = tuple(str(item) for item in _sequence(
-        champion.get("symbols"), label="champion symbols"
-    ))
+    champion_symbols = tuple(
+        str(item) for item in _sequence(champion.get("symbols"), label="champion symbols")
+    )
     if len(report) != 13 or len(set(report)) != 13 or not set(report) <= set(canonical):
         raise ValueError("strategic ownership report universe differs")
     if len(champion_symbols) != 5 or not set(champion_symbols) <= set(canonical):
@@ -187,236 +189,34 @@ def validate_contract(contract: Mapping[str, Any]) -> None:
         raise ValueError("strategic ownership window differs")
 
 
-def _positive_number(value: object) -> float:
-    if isinstance(value, bool) or not isinstance(value, (int, float)):
-        return 0.0
-    converted = float(value)
-    return converted if math.isfinite(converted) and converted > 0.0 else 0.0
+def _trace_rows(result: ReplayResult) -> tuple[Mapping[str, object], ...]:
+    """Project the ownership trace onto the validation-owned helper boundary."""
 
-
-def _matching_trace_session(
-    result: ReplayResult,
-    *,
-    collection: str,
-    epoch_id: str,
-    grant_id: str,
-    owner_symbol: str,
-) -> str:
-    for row in result.trace:
-        if collection == "targets":
-            values = row.targets
-        elif collection == "orders":
-            values = row.orders
-        else:
-            raise ValueError("strategic epoch trace collection differs")
-        for raw in values:
-            item = _mapping(raw, label=f"strategic epoch {collection}")
-            if (
-                str(item.get("epoch_id", "")) == epoch_id
-                and str(item.get("symbol", "")) == owner_symbol
-                and (
-                    not grant_id
-                    or str(item.get("grant_id", "")) == grant_id
-                )
-            ):
-                if collection == "targets" and _positive_number(item.get("weight")) <= 0.0:
-                    continue
-                if collection == "orders" and (
-                    str(item.get("side", "")) != "BUY"
-                    or _positive_number(item.get("target_weight")) <= 0.0
-                ):
-                    continue
-                return row.date
-    return ""
-
-
-def _qualification_session(result: ReplayResult, epoch: Mapping[str, Any]) -> str:
-    for row in result.trace:
-        raw = row.risk.get("strategic_qualification")
-        if not isinstance(raw, Mapping):
-            continue
-        if (
-            raw.get("qualification_ready") is True
-            and str(raw.get("candidate_symbol", "")) == str(epoch.get("owner_symbol", ""))
-            and str(raw.get("qualification_signature", ""))
-            == str(epoch.get("qualification_signature", ""))
-        ):
-            return row.date
-    return ""
-
-
-def _grant_provenance(result: ReplayResult, grant_id: str) -> tuple[str, str, str]:
-    for row in result.trace:
-        raw_grant = row.risk.get("strategic_grant")
-        if isinstance(raw_grant, Mapping) and str(raw_grant.get("grant_id", "")) == grant_id:
-            identity = str(raw_grant.get("authorization_id", ""))
-            raw_rearm = row.risk.get("strategic_cash_rearm")
-            session = (
-                str(raw_rearm.get("authorized_session", ""))
-                if identity and isinstance(raw_rearm, Mapping)
-                else ""
-            )
-            return identity, session, str(raw_grant.get("previous_grant_id", ""))
-    raise ValueError("strategic epoch grant is absent from the production trace")
+    return tuple(
+        {
+            "session": row.date,
+            "risk": row.risk,
+            "opportunity": row.opportunity,
+            "target_gross": row.target_gross,
+            "targets": row.targets,
+            "orders": row.orders,
+            "fills": row.fills,
+            "qualification_coverage": row.reference_context.get("reference_coverage", 0.0),
+        }
+        for row in result.trace
+    )
 
 
 def actual_epoch_facts(result: ReplayResult) -> list[dict[str, Any]]:
-    """Return only epochs activated by a matching positive production fill."""
+    """Return validation-owned fill-gated facts in the legacy report shape."""
 
-    epochs = _sequence(
-        result.final_account.get("strategic_epochs", []),
-        label="strategic epoch ledger",
-    )
-    epoch_ids = [str(_mapping(item, label="strategic epoch").get("epoch_id", "")) for item in epochs]
-    if len(epoch_ids) != len(set(epoch_ids)):
-        raise ValueError("duplicate strategic epoch identity")
-    fills = tuple(
-        _mapping(item, label="strategic fill")
-        for item in _sequence(result.final_account.get("fills", []), label="strategic fills")
-    )
-    facts: list[dict[str, Any]] = []
-    for raw_epoch in epochs:
-        epoch = _mapping(raw_epoch, label="strategic epoch")
-        status = str(epoch.get("realized_status", ""))
-        first_fill_session = str(epoch.get("first_fill_session", ""))
-        if not first_fill_session:
-            if status in _ACTUAL_EPOCH_STATUSES:
-                raise ValueError("active strategic epoch has no first fill")
-            continue
-        if status not in _ACTUAL_EPOCH_STATUSES:
-            raise ValueError("filled strategic epoch has a non-realized status")
-        epoch_id = str(epoch.get("epoch_id", ""))
-        grant_id = str(epoch.get("grant_id", ""))
-        owner = str(epoch.get("owner_symbol", ""))
-        matching = [
-            fill
-            for fill in fills
-            if str(fill.get("epoch_id", "")) == epoch_id
-            and str(fill.get("grant_id", "")) == grant_id
-            and str(fill.get("symbol", "")) == owner
-            and str(fill.get("side", "")) == "BUY"
-            and _positive_number(fill.get("shares")) > 0.0
-        ]
-        if not matching:
-            raise ValueError("strategic epoch has no matching real fill")
-        fill_session = min(str(item.get("fill_date", "")) for item in matching)
-        if fill_session != first_fill_session:
-            raise ValueError("strategic epoch first fill differs from execution ledger")
-        target_session = _matching_trace_session(
-            result,
-            collection="targets",
-            epoch_id=epoch_id,
-            grant_id=grant_id,
-            owner_symbol=owner,
+    return [
+        fact.to_dict()
+        for fact in actual_epoch_facts_from_rows(
+            final_account=result.final_account,
+            trace=_trace_rows(result),
         )
-        order_session = _matching_trace_session(
-            result,
-            collection="orders",
-            epoch_id=epoch_id,
-            grant_id=grant_id,
-            owner_symbol=owner,
-        )
-        if not target_session or not order_session:
-            raise ValueError("strategic epoch lacks a formal target or order")
-        active_session = str(epoch.get("active_session", ""))
-        if not (target_session <= order_session < fill_session == active_session):
-            raise ValueError("strategic epoch target/order/fill causality differs")
-        qualification_session = _qualification_session(result, epoch)
-        if not qualification_session:
-            raise ValueError("strategic epoch lacks a matching production qualification")
-        authorization_id, authorization_session, previous_grant_id = _grant_provenance(
-            result,
-            grant_id,
-        )
-        facts.append(
-            {
-                "active_session": active_session,
-                "authorization_id": authorization_id,
-                "authorization_session": authorization_session,
-                "closed_session": str(epoch.get("closed_session", "")),
-                "close_reason": str(epoch.get("close_reason", "")),
-                "epoch_id": epoch_id,
-                "fill_session": fill_session,
-                "grant_id": grant_id,
-                "grant_session": str(epoch.get("opened_session", "")),
-                "order_session": order_session,
-                "owner_symbol": owner,
-                "previous_epoch_id": str(epoch.get("previous_epoch_id", "")),
-                "previous_grant_id": previous_grant_id,
-                "qualification_quorum": str(epoch.get("qualification_quorum", "")),
-                "qualification_route": str(epoch.get("qualification_route", "")),
-                "qualification_session": qualification_session,
-                "realized_status": status,
-                "target_session": target_session,
-            }
-        )
-    facts.sort(key=lambda item: (str(item["active_session"]), str(item["epoch_id"])))
-    for left, right in pairwise(facts):
-        left_closed = str(left["closed_session"])
-        if not left_closed or left_closed >= str(right["active_session"]):
-            raise ValueError("strategic epochs overlap active ownership")
-    return facts
-
-
-def _longest_healthy_zero_target_streak(result: ReplayResult) -> int:
-    longest = 0
-    current = 0
-    for row in result.trace:
-        qualification = row.risk.get("strategic_qualification")
-        coverage = row.reference_context.get("reference_coverage")
-        unavailable = (
-            qualification.get("unavailable_reference_symbols", [])
-            if isinstance(qualification, Mapping)
-            else ["qualification unavailable"]
-        )
-        healthy = bool(
-            row.risk.get("state") == "NORMAL"
-            and row.opportunity in {"TREND", "STRONG_TREND"}
-            and isinstance(qualification, Mapping)
-            and qualification.get("qualification_ready") is True
-            and _positive_number(coverage) >= 1.0
-            and not unavailable
-            and _positive_number(row.risk.get("target_gross_cap")) > 0.0
-            and not bool(row.risk.get("market_wide_execution_block", False))
-        )
-        if healthy and row.target_gross <= 0.0:
-            current += 1
-            longest = max(longest, current)
-        else:
-            current = 0
-    return longest
-
-
-def _repair_ready_fact(result: ReplayResult) -> dict[str, Any] | None:
-    for row in result.trace:
-        raw = row.risk.get("flat_book_capital_repair")
-        if isinstance(raw, Mapping) and raw.get("status") == "READY":
-            return {
-                "capital_budget_level": raw.get("capital_budget_level"),
-                "healthy_session_count": raw.get("healthy_session_count"),
-                "ready_session": row.date,
-                "repair_episode_id": raw.get("repair_episode_id"),
-                "required_healthy_sessions": raw.get("required_healthy_sessions"),
-            }
-    return None
-
-
-def _assert_unique_execution(result: ReplayResult) -> None:
-    orders = _sequence(result.final_account.get("order_ledger", []), label="order ledger")
-    order_ids = [str(_mapping(item, label="order").get("order_id", "")) for item in orders]
-    if not all(order_ids) or len(order_ids) != len(set(order_ids)):
-        raise ValueError("duplicate or empty strategic order identity")
-    epochs = _sequence(result.final_account.get("strategic_epochs", []), label="epoch ledger")
-    grant_ids = [str(_mapping(item, label="epoch").get("grant_id", "")) for item in epochs]
-    if not all(grant_ids) or len(grant_ids) != len(set(grant_ids)):
-        raise ValueError("duplicate or empty strategic grant identity")
-    allowed = set(result.request.symbols)
-    for row in result.trace:
-        for collection in (row.targets, row.orders, row.fills):
-            for value in collection:
-                symbol = str(_mapping(value, label="economic row").get("symbol", ""))
-                if symbol and symbol not in allowed:
-                    raise ValueError("reference-only symbol received capital authority")
+    ]
 
 
 def _summarize_replay(result: ReplayResult, *, scenario_id: str) -> dict[str, Any]:
@@ -425,7 +225,12 @@ def _summarize_replay(result: ReplayResult, *, scenario_id: str) -> dict[str, An
     if result.intervention_provenance is not None:
         raise RuntimeError(f"{scenario_id} used a research intervention")
     validate_replay_accounting(result)
-    _assert_unique_execution(result)
+    trace = _trace_rows(result)
+    assert_unique_execution_rows(
+        final_account=result.final_account,
+        trace=trace,
+        allowed_symbols=result.request.symbols,
+    )
     initial_cash = float(result.final_account.get("initial_cash", 0.0))
     final_equity = float(result.metrics.get("final_equity", 0.0))
     if initial_cash <= 0.0 or final_equity <= 0.0:
@@ -434,21 +239,34 @@ def _summarize_replay(result: ReplayResult, *, scenario_id: str) -> dict[str, An
     positive_sessions = sum(
         any(
             str(item.get("origin_subsystem", "")) == "STRATEGIC"
-            and _positive_number(item.get("weight")) > 0.0
+            and isinstance(item.get("weight"), (int, float))
+            and not isinstance(item.get("weight"), bool)
+            and float(cast(float, item["weight"])) > 0.0
             for item in row.targets
         )
         for row in result.trace
     )
+    repair = first_repair_ready_fact(trace)
     return {
         "accounting_reconciled": True,
         "actual_strategic_epoch_count": len(epochs),
         "distinct_owners": sorted({str(item["owner_symbol"]) for item in epochs}),
         "epochs": epochs,
         "final_wealth": final_equity / initial_cash,
-        "longest_healthy_zero_target_streak": _longest_healthy_zero_target_streak(result),
+        "longest_healthy_zero_target_streak": longest_healthy_zero_target_streak(trace, strategic_only=False),
         "max_drawdown": float(result.metrics["max_drawdown"]),
         "positive_target_sessions": positive_sessions,
-        "repair_ready": _repair_ready_fact(result),
+        "repair_ready": (
+            None
+            if repair is None
+            else {
+                "capital_budget_level": repair.capital_budget_level,
+                "healthy_session_count": repair.reported_healthy_sessions,
+                "ready_session": repair.last_ready_session,
+                "repair_episode_id": repair.repair_episode_id,
+                "required_healthy_sessions": repair.required_healthy_sessions,
+            }
+        ),
         "scenario_id": scenario_id,
         "status": "PASS",
     }
@@ -527,7 +345,9 @@ def _write_prices(
         price *= 1.0 + float(change)
         closes.append(price)
     previous = [closes[0] / (1.0 + float(daily_returns[0])), *closes[:-1]]
-    opens = [prior * (1.0 + float(change) * 0.45) for prior, change in zip(previous, daily_returns, strict=True)]
+    opens = [
+        prior * (1.0 + float(change) * 0.45) for prior, change in zip(previous, daily_returns, strict=True)
+    ]
     highs = [max(open_price, close) * 1.004 for open_price, close in zip(opens, closes, strict=True)]
     lows = [min(open_price, close) * 0.996 for open_price, close in zip(opens, closes, strict=True)]
     if locked_session:
@@ -565,13 +385,7 @@ def _cross_industry_fixture(root: Path) -> None:
             elif symbol in _OPTICAL_SYMBOLS:
                 change = 0.0045 if offset < 210 else -0.009 if offset < 285 else 0.0005
             else:
-                change = (
-                    -0.0001
-                    if offset < 360
-                    else material_rates[symbol]
-                    if offset < 800
-                    else 0.001
-                )
+                change = -0.0001 if offset < 360 else material_rates[symbol] if offset < 800 else 0.001
             changes.append(change)
         _write_prices(root, symbol=symbol, dates=dates, daily_returns=changes)
 
@@ -712,9 +526,7 @@ def _failed_grant_replay(root: Path) -> tuple[ReplayResult, list[dict[str, Any]]
         reconcile_accounting(
             cash=account.cash,
             position_shares={
-                symbol: position.shares
-                for symbol, position in account.positions.items()
-                if position.shares
+                symbol: position.shares for symbol, position in account.positions.items() if position.shares
             },
             close_marks=close_marks,
             equity=equity,
@@ -736,8 +548,7 @@ def _failed_grant_replay(root: Path) -> tuple[ReplayResult, list[dict[str, Any]]
         initial_cash=account.initial_cash,
         risk_events=account.risk_events,
         benchmark_total_return=(
-            engine.workspace.price("sh000682", sessions[-1])
-            / engine.workspace.price("sh000682", sessions[0])
+            engine.workspace.price("sh000682", sessions[-1]) / engine.workspace.price("sh000682", sessions[0])
             - 1.0
         ),
     )
@@ -789,15 +600,16 @@ def _run_failed_grant(contract: Mapping[str, Any], *, scenario_id: str) -> dict[
         ),
         None,
     )
-    if expired_epoch is None or _mapping(expired_epoch, label="expired epoch").get("realized_status") != "EXPIRED":
+    if (
+        expired_epoch is None
+        or _mapping(expired_epoch, label="expired epoch").get("realized_status") != "EXPIRED"
+    ):
         raise RuntimeError("failed grant left an orphan epoch")
     trace_dates = [row.date for row in result.trace]
     retry_start = str(_mapping(expired_epoch, label="expired epoch")["closed_session"])
     retry_end = str(second["created_session"])
     retry_sessions = sum(retry_start < session <= retry_end for session in trace_dates)
-    maximum = int(_mapping(contract["thresholds"], label="thresholds")[
-        "failed_grant_retry_healthy_sessions"
-    ])
+    maximum = int(_mapping(contract["thresholds"], label="thresholds")["failed_grant_retry_healthy_sessions"])
     if retry_sessions > maximum:
         raise RuntimeError("failed-grant retry exceeded the bounded session contract")
     summary["first_grant"] = first
@@ -859,9 +671,7 @@ def _validate_repeated(
 
 
 def _cache_identity(contract: Mapping[str, Any], spec: Mapping[str, Any]) -> str:
-    frozen_identity = hashlib.sha256(
-        (ROOT / "data" / "frozen" / "SHA256SUMS").read_bytes()
-    ).hexdigest()
+    frozen_identity = hashlib.sha256((ROOT / "data" / "frozen" / "SHA256SUMS").read_bytes()).hexdigest()
     return _canonical_sha256(
         {
             "acceptance_source_sha256": hashlib.sha256(Path(__file__).read_bytes()).hexdigest(),
@@ -915,12 +725,12 @@ def _execute_scenario(
     if kind == "champion":
         return _run_champion(contract, scenario_id=scenario_id)
     if kind == "report":
-        symbols = tuple(str(item) for item in _sequence(
-            contract["report_universe_13"], label="report universe"
-        ))
-        references = tuple(str(item) for item in _sequence(
-            contract["canonical_universe"], label="canonical universe"
-        ))
+        symbols = tuple(
+            str(item) for item in _sequence(contract["report_universe_13"], label="report universe")
+        )
+        references = tuple(
+            str(item) for item in _sequence(contract["canonical_universe"], label="canonical universe")
+        )
         summary = _summarize_replay(
             _frozen_replay(
                 contract,

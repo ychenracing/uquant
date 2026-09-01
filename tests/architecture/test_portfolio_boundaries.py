@@ -622,7 +622,9 @@ def test_portfolio_allocator_source_surface_migration_is_exact() -> None:
         expected = architecture_source_surface_projection(identifier, expected)
         assert set(candidate_surfaces[identifier]["source_paths"]) == expected
         assert candidate_surfaces[identifier]["resource_paths"] == (
-            architecture_resource_surface_projection(baseline["resource_paths"])
+            architecture_resource_surface_projection(
+                identifier, baseline["resource_paths"]
+            )
         )
         assert {
             key: value

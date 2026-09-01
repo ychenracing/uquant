@@ -94,6 +94,20 @@ class StrategicPortfolioPolicy(PortfolioCore):
             strategic_universe: StrategicUniverseRoles | None = None,
         ) -> tuple[Target, ...] | None: ...
 
+    def _strategic_qualification_snapshots(
+        self,
+        *,
+        date: pd.Timestamp,
+        user_panel: dict[str, pd.DataFrame],
+        leaders: dict[str, LeaderScore],
+    ) -> dict[str, dict[str, float]]:
+        return strategic_qualification_snapshots(
+            self,
+            date=date,
+            user_panel=user_panel,
+            leaders=leaders,
+        )
+
 
 StrategicPortfolioPolicy.__module__ = "uquant.portfolio_strategic"
 

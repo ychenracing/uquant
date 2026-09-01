@@ -144,6 +144,18 @@ GitHub 的 `Strategic Ownership Acceptance` 对 PR 和 `main` 自动运行相同
 同时绑定源码、配置、冻结数据和合同身份，只上传紧凑事实。它不调用完整 234-record 矩阵，
 也不替代手动的 Extended Performance 或 Extended Economic 验收。
 
+### Absolute Generalization 自动阻断
+
+`Absolute Generalization Acceptance` 在 PR 与 `main` 固定运行八个 shard：六个 LOO shard
+覆盖精确 34 个 canonical removal，另有 champion 与 recovery/reachability。它只接受当前
+checkout 的 ProductionEngine/AccountState/allocator/execution 原始生命周期证据；模拟成交
+以完整 native physical identity 绑定，不伪造 fill ID。final 必须重新校验 manifest 与
+Task 6/7 投影，并以 `runner_success AND capability_pass` 形成唯一通过结论。
+
+历史 234-record relative policy 仅通过 compile anchor 保持参考身份；实时六窗口矩阵继续由
+手动 `Extended Economic Matrix Diagnostics` 执行，不进入自动 Absolute shard，也不能用旧
+artifact、targeted run 或 PASS summary 替代。
+
 ### Generalization 阻断验收
 
 本地完整复现命令为：

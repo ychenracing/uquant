@@ -21,6 +21,7 @@ from ..types import (
     AccountOrder,
     AccountState,
     AttributionMechanism,
+    Fill,
     Lifecycle,
     Opportunity,
     OrderStatus,
@@ -692,12 +693,20 @@ def _validate_durable_order_lifecycles(ctx: _ControlContext) -> None:
     if active_ids != pending_ids:
         raise ValueError("durable active order lifecycle differs from final pending-order state")
     prior_physical_order_by_event: dict[tuple[str, str, str, str, str], AccountOrder] = {}
+    fills_by_order: dict[str, list[Fill]] = {}
+    for fill in ctx.account.fills:
+        fills_by_order.setdefault(fill.order_id, []).append(fill)
     for order_id, durable in ctx.ledger_orders.items():
         chain_identity = account_order_physical_chain_identity(durable)
         prior_physical_order = prior_physical_order_by_event.get(chain_identity)
         origin_session = account_order_decision_origin_session(
             durable,
             prior_physical_order,
+            prior_physical_fills=(
+                ()
+                if prior_physical_order is None
+                else fills_by_order.get(prior_physical_order.order_id, ())
+            ),
         )
         origin_index = session_index.get(origin_session)
         if origin_index is None:

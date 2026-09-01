@@ -685,6 +685,7 @@ def test_real_mid_replay_error_retains_completed_prefix_intervention_and_account
     assert orders[1]["status"] == "SUBMITTED"
     assert orders[0]["grant_id"] == orders[1]["grant_id"]
     assert orders[0]["order_id"] != orders[1]["order_id"]
+    assert orders[0]["replaced_by"] == orders[1]["order_id"]
     assert orders[1]["requested_shares"] == orders[0]["remaining_shares"]
     assert len(result.final_account["fills"]) == 1
     spec = AblationSpec(

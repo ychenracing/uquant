@@ -30,7 +30,6 @@ from ..leader import (
 )
 from ..opportunity import classify_opportunity
 from ..portfolio import PortfolioAllocator, current_weights
-from ..portfolio.strategic.discovery import strategic_qualification_snapshots
 from ..reference import ReferenceContext, build_reference_context
 from ..reference_registry import resolve_reference_symbols
 from ..risk_sentinel.integration import sentinel_freeze_authorized
@@ -592,8 +591,7 @@ def _allocate_decision_orders(
         **market.qualification_reference_panel,
         **market.user_panel,
     }
-    qualification_snapshots = strategic_qualification_snapshots(
-        self.allocator,
+    qualification_snapshots = self.allocator._strategic_qualification_snapshots(
         date=inputs.date,
         user_panel=qualification_panel,
         leaders=all_leaders,
@@ -889,7 +887,12 @@ def decide(
     account: AccountState,
     strategic_universe_declaration: StrategicUniverseDeclaration | None = None,
 ) -> Decision:
-    """Produce and persist one causal close-date portfolio decision."""
+    """Produce and persist one causal close-date portfolio decision.
+
+    The account is advanced in place after all data, code, state, and
+    chronology checks succeed. Returned orders are next-open intentions;
+    this method never fills them on the signal date.
+    """
 
     return _decide_result(
         self,

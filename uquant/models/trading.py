@@ -5,7 +5,7 @@ from __future__ import annotations
 import hashlib
 import json
 import math
-from collections.abc import Mapping
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass, field
 from datetime import date as date_type
 from types import MappingProxyType
@@ -282,6 +282,8 @@ class AccountOrder:
     last_update_date: str = ""
     last_event: str = "SUBMITTED"
     replaced_by: str = ""
+    remainder_release_session: str = ""
+    remainder_release_shares: int = 0
     cancel_reason: str = ""
     reduction_policy: str = ReductionPolicy.FIFO.value
     reason_code: str = "strategy_target"
@@ -303,6 +305,9 @@ class AccountOrder:
 
 class _AccountOrderDecisionOrigin(Protocol):
     @property
+    def order_id(self) -> str: ...
+
+    @property
     def signal_date(self) -> str: ...
 
     @property
@@ -318,6 +323,18 @@ class _AccountOrderDecisionOrigin(Protocol):
     def last_event(self) -> str: ...
 
     @property
+    def replaced_by(self) -> str: ...
+
+    @property
+    def remainder_release_session(self) -> str: ...
+
+    @property
+    def remainder_release_shares(self) -> int: ...
+
+    @property
+    def requested_shares(self) -> int: ...
+
+    @property
     def event_id(self) -> str: ...
 
     @property
@@ -331,6 +348,17 @@ class _AccountOrderDecisionOrigin(Protocol):
 
     @property
     def epoch_id(self) -> str: ...
+
+
+class _AccountOrderFillOrigin(Protocol):
+    @property
+    def order_id(self) -> str: ...
+
+    @property
+    def fill_date(self) -> str: ...
+
+    @property
+    def shares(self) -> int: ...
 
 
 def account_order_physical_chain_identity(
@@ -350,21 +378,59 @@ def account_order_physical_chain_identity(
 def account_order_decision_origin_session(
     order: _AccountOrderDecisionOrigin,
     prior_physical_order: _AccountOrderDecisionOrigin | None,
+    *,
+    prior_physical_fills: Sequence[_AccountOrderFillOrigin] = (),
 ) -> str:
     """Return the decision origin for one durable physical order."""
 
-    partial_remainder_origin = bool(
-        prior_physical_order is not None
-        and order.grant_id
-        and account_order_physical_chain_identity(prior_physical_order)
-        == account_order_physical_chain_identity(order)
-        and prior_physical_order.status == OrderStatus.CANCELLED.value
-        and prior_physical_order.cancel_reason == "strategic partial remainder replaced"
-        and prior_physical_order.last_event == "PARTIAL_REMAINDER_RELEASED"
+    if prior_physical_order is None or (
+        account_order_physical_chain_identity(prior_physical_order)
+        != account_order_physical_chain_identity(order)
+    ):
+        return order.signal_date
+    if (
+        not order.grant_id
+        or prior_physical_order.cancel_reason
+        != "strategic partial remainder replaced"
+        or not prior_physical_order.remainder_release_session
+        or prior_physical_order.remainder_release_shares <= 0
+    ):
+        raise ValueError("account order remainder successor release evidence differs")
+    if prior_physical_order.replaced_by != order.order_id:
+        raise ValueError("account order remainder successor identity differs")
+    shares_by_session: dict[str, int] = {}
+    for fill in prior_physical_fills:
+        if (
+            fill.order_id != prior_physical_order.order_id
+            or type(fill.fill_date) is not str
+            or type(fill.shares) is not int
+            or fill.shares <= 0
+        ):
+            raise ValueError("account order remainder successor release evidence differs")
+        try:
+            date_type.fromisoformat(fill.fill_date)
+        except ValueError as exc:
+            raise ValueError(
+                "account order remainder successor release evidence differs"
+            ) from exc
+        shares_by_session[fill.fill_date] = (
+            shares_by_session.get(fill.fill_date, 0) + fill.shares
+        )
+    if not shares_by_session:
+        raise ValueError("account order remainder successor release evidence differs")
+    release_session = min(shares_by_session)
+    if prior_physical_order.remainder_release_session != release_session:
+        raise ValueError("account order remainder successor release evidence differs")
+    released_shares = (
+        prior_physical_order.requested_shares - shares_by_session[release_session]
     )
-    if partial_remainder_origin and prior_physical_order is not None:
-        return prior_physical_order.last_update_date
-    return order.signal_date
+    if (
+        released_shares <= 0
+        or prior_physical_order.remainder_release_shares != released_shares
+        or order.requested_shares != released_shares
+    ):
+        raise ValueError("account order remainder successor quantity differs")
+    return release_session
 
 
 def late_strategic_fill_allowed(order: AccountOrder) -> bool:

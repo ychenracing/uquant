@@ -443,6 +443,8 @@ def _record_open_fill(
             account_order.status = OrderStatus.CANCELLED.value
             account_order.cancel_reason = "strategic partial remainder replaced"
             account_order.last_event = "PARTIAL_REMAINDER_RELEASED"
+            account_order.remainder_release_session = date_str
+            account_order.remainder_release_shares = account_order.remaining_shares
             retained.append(
                 replace(
                     request.order,

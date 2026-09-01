@@ -18,12 +18,8 @@ from uquant.application import (
     RiskEvidenceTimeline,
     SystemConfig,
 )
-from uquant.application import (
-    MarketWorkspace as _MarketWorkspace,
-)
-from uquant.application import (
-    ReplayCache as _ReplayCache,
-)
+from uquant.application import MarketWorkspace as _MarketWorkspace
+from uquant.application import ReplayCache as _ReplayCache
 
 INDEX_SYMBOLS = ("sh000300", "sh000682")
 REFERENCE_UNIVERSE = _application.REFERENCE_UNIVERSE
@@ -109,18 +105,12 @@ class ProductionEngine:
     equity = _application.mark_equity
     _mark_account_positions = _application.mark_account_positions
     decide = _application.bind_engine_decision(
-        lambda: assess_risk,
-        lambda: evaluate_sentinel,
-        lambda: reconcile_account_orders,
-        lambda: code_fingerprint,
-        lambda: _attach_target_attribution,
+        lambda: assess_risk, lambda: evaluate_sentinel, lambda: reconcile_account_orders,
+        lambda: code_fingerprint, lambda: _attach_target_attribution,
     )
     _observe_decision = _application.bind_engine_observed_decision(
-        lambda: assess_risk,
-        lambda: evaluate_sentinel,
-        lambda: reconcile_account_orders,
-        lambda: code_fingerprint,
-        lambda: _attach_target_attribution,
+        lambda: assess_risk, lambda: evaluate_sentinel, lambda: reconcile_account_orders,
+        lambda: code_fingerprint, lambda: _attach_target_attribution,
     )
     deterministic_decision = _application.deterministic_decision
     backtest = _application.bind_engine_backtest(lambda: performance_metrics)

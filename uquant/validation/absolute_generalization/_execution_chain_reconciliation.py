@@ -12,6 +12,7 @@ from uquant.models.trading import (
 from uquant.types import ORDER_INTENT_IMMUTABLE_FIELDS
 
 from ._metric_primitives import (
+    metric_integer,
     metric_iso_session,
     metric_mapping,
     metric_number,
@@ -45,11 +46,16 @@ class _ChainIndexes:
 
 @dataclass(frozen=True, slots=True)
 class _OrderDecisionOrigin:
+    order_id: str
     signal_date: str
     last_update_date: str
     status: str
     cancel_reason: str
     last_event: str
+    replaced_by: str
+    remainder_release_session: str
+    remainder_release_shares: int
+    requested_shares: int
     event_id: str
     symbol: str
     side: str
@@ -60,6 +66,7 @@ class _OrderDecisionOrigin:
 
 def _order_decision_origin(raw: Mapping[str, object]) -> _OrderDecisionOrigin:
     return _OrderDecisionOrigin(
+        order_id=metric_text(raw.get("order_id"), label="order identity"),
         signal_date=metric_iso_session(raw.get("signal_date"), label="order signal session"),
         last_update_date=metric_iso_session(
             raw.get("last_update_date", ""),
@@ -73,6 +80,21 @@ def _order_decision_origin(raw: Mapping[str, object]) -> _OrderDecisionOrigin:
         last_event=metric_text(
             raw.get("last_event", ""), label="order last event", empty=True
         ),
+        replaced_by=metric_text(
+            raw.get("replaced_by", ""), label="order replacement", empty=True
+        ),
+        remainder_release_session=metric_iso_session(
+            raw.get("remainder_release_session", ""),
+            label="order remainder release session",
+            empty=True,
+        ),
+        remainder_release_shares=metric_integer(
+            raw.get("remainder_release_shares", 0),
+            label="order remainder release shares",
+        ),
+        requested_shares=metric_integer(
+            raw.get("requested_shares"), label="order requested shares"
+        ),
         event_id=metric_text(raw.get("event_id", ""), label="order event", empty=True),
         symbol=metric_text(raw.get("symbol"), label="order symbol"),
         side=metric_text(raw.get("side"), label="order side"),
@@ -81,6 +103,21 @@ def _order_decision_origin(raw: Mapping[str, object]) -> _OrderDecisionOrigin:
         ),
         grant_id=metric_text(raw.get("grant_id", ""), label="order grant", empty=True),
         epoch_id=metric_text(raw.get("epoch_id", ""), label="order epoch", empty=True),
+    )
+
+
+@dataclass(frozen=True, slots=True)
+class _OrderFillOrigin:
+    order_id: str
+    fill_date: str
+    shares: int
+
+
+def _order_fill_origin(raw: Mapping[str, object]) -> _OrderFillOrigin:
+    return _OrderFillOrigin(
+        order_id=metric_text(raw.get("order_id"), label="fill order"),
+        fill_date=metric_iso_session(raw.get("fill_date"), label="fill session"),
+        shares=metric_integer(raw.get("shares"), label="fill shares", minimum=1),
     )
 
 
@@ -118,6 +155,27 @@ def _trace_order_index(
     ):
         raise ValueError("absolute generalization strategic order origin differs")
     return trace_orders
+
+
+def _validate_order_replacement_topology(
+    final_orders: Mapping[str, Mapping[str, object]],
+) -> None:
+    positions = {order_id: index for index, order_id in enumerate(final_orders)}
+    claimed_successors: set[str] = set()
+    for order_id, order in final_orders.items():
+        successor = metric_text(
+            order.get("replaced_by", ""), label="order replacement", empty=True
+        )
+        if not successor:
+            continue
+        successor_position = positions.get(successor)
+        if (
+            successor_position is None
+            or successor_position <= positions[order_id]
+            or successor in claimed_successors
+        ):
+            raise ValueError("absolute generalization order replacement topology differs")
+        claimed_successors.add(successor)
 
 
 def _validate_order_immutable_intent(
@@ -161,6 +219,7 @@ def _validate_strategic_orders(
     final_orders: Mapping[str, Mapping[str, object]],
     trace_orders: Mapping[str, tuple[str, Mapping[str, object]]],
     trace: Sequence[Mapping[str, object]],
+    fills: Sequence[Mapping[str, object]],
 ) -> None:
     prior_physical_orders: dict[
         tuple[str, str, str, str, str], _OrderDecisionOrigin
@@ -181,9 +240,18 @@ def _validate_strategic_orders(
         )
         origin_order = _order_decision_origin(final_order)
         chain_identity = account_order_physical_chain_identity(origin_order)
+        prior_physical_order = prior_physical_orders.get(chain_identity)
         origin_session = account_order_decision_origin_session(
             origin_order,
-            prior_physical_orders.get(chain_identity),
+            prior_physical_order,
+            prior_physical_fills=(
+                tuple(
+                    _order_fill_origin(fill)
+                    for fill in fills
+                    if prior_physical_order is not None
+                    and fill.get("order_id") == prior_physical_order.order_id
+                )
+            ),
         )
         if (
             origin_session != session
@@ -407,8 +475,12 @@ def validate_exact_execution_chain(
     physical_fill_identity_map(fills)
     trace_orders = _trace_order_index(trace, final_orders=final_orders)
     _validate_strategic_orders(
-        final_orders=final_orders, trace_orders=trace_orders, trace=trace
+        final_orders=final_orders,
+        trace_orders=trace_orders,
+        trace=trace,
+        fills=fills,
     )
+    _validate_order_replacement_topology(final_orders)
     indexes = _ChainIndexes(final_orders=final_orders, trace_orders=trace_orders, fills=fills)
     _validate_fill_order_links(indexes)
     for fact in epochs:

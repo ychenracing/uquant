@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import math
+from datetime import date
 from types import SimpleNamespace
 from typing import Any
 
@@ -483,6 +484,38 @@ def _normalize_next_order_sequence(
         raise RuntimeError("account state has invalid next order sequence")
 
 
+def _validate_remainder_release_evidence(
+    ledger_item: AccountOrder,
+    *,
+    submitted_date: date,
+    last_update: date | None,
+    requested: int,
+) -> None:
+    release_session = ledger_item.remainder_release_session
+    if not isinstance(release_session, str):
+        raise RuntimeError("account order remainder release evidence differs")
+    release_shares = _nonnegative_integer(
+        ledger_item.remainder_release_shares,
+        field="account order remainder release shares",
+    )
+    if bool(release_session) != bool(release_shares):
+        raise RuntimeError("account order remainder release evidence differs")
+    if not release_session:
+        return
+    release_date = _required_iso_date(
+        release_session,
+        field="account order remainder release session",
+    )
+    if (
+        release_date < submitted_date
+        or (last_update is not None and release_date > last_update)
+        or release_shares >= requested
+        or not ledger_item.grant_id
+        or ledger_item.cancel_reason != "strategic partial remainder replaced"
+    ):
+        raise RuntimeError("account order remainder release evidence differs")
+
+
 def _validate_account_order_ledger(
     state: AccountState,
     *,
@@ -504,6 +537,7 @@ def _validate_account_order_ledger(
         )
         if submitted_date < signal_date:
             raise RuntimeError("account order submission predates its signal")
+        last_update = None
         if ledger_item.last_update_date:
             last_update = _required_iso_date(
                 ledger_item.last_update_date,
@@ -533,6 +567,12 @@ def _validate_account_order_ledger(
         remaining = _nonnegative_integer(
             ledger_item.remaining_shares,
             field="account order remaining_shares",
+        )
+        _validate_remainder_release_evidence(
+            ledger_item,
+            submitted_date=submitted_date,
+            last_update=last_update,
+            requested=requested,
         )
         _nonnegative_integer(ledger_item.attempts, field="account order attempts")
         if filled + remaining != requested:

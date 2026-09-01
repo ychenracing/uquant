@@ -763,6 +763,7 @@ def _session_observation_for_symbols(
         appended_orders=account.order_ledger[decision_order_ledger_start:],
         appended_epochs=account.strategic_epochs[decision_epoch_ledger_start:],
         changed_order_ids=(
+            *_order_change_ids(opening_orders),
             *_order_change_ids(previous_orders),
             *_order_change_ids(decision.pending_orders),
         ),

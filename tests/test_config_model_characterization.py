@@ -259,12 +259,12 @@ def test_enum_literals_and_representative_model_bytes_are_frozen() -> None:
         "target": dataclasses.asdict(samples["target"]),
     }
     expected = {
-        "account": "c215d63e0d1968c9250fd7a8d0f7de895a21cfa8fbba542521129dcb1166c975",
+        "account": "21b08f5925b4029d06065484030c9d229dfadf6837227c1c5ab878ce1f1c5e22",
         "decision": "75ce8bd276a9fc876c6e1055c887e09e778f518f6ebe4a60b5410eaf675bdb3b",
         "decision_payload": "4b04a403e9463d1cf94d1b64398555048270b52096f8fd4c9e056b17c19267f0",
         "enums": "55848e6711e2b9ce2021f8a8ffb5f07673d3d8cc2b622274f354cadc4f2b45e0",
         "fill": "cd1a8a954049594018ee18abaa2b2b49988748b7a3df646bbfd4b49688175399",
-        "order": "2cb8d696502a0c57559c129d4c047e1f1b5faf17b277d164a5b3bf40640c1c83",
+        "order": "c9a8428396c9e321bc4323a76b2f0c3b99bf028d36d78edbd347d372e8db925c",
         "pending": "12f47a83e1d70f7ff614a5ac21c6a52a173f37ea28a3acbd7891b16f64bbc3d2",
         "risk": "349973e8efcd6444e1dbbc00e80909ad9cd52e332ceeaedcd3dfb2c682f51fce",
         "target": "40deb0e6450d7bdb5eaf7da4ff263501ac70c4a970aa1a56695bfe1b104b982d",
@@ -324,7 +324,7 @@ def test_model_mutability_equality_hash_repr_slots_and_identity_are_frozen() -> 
     order.attempts = 2
     assert order.attempts == 2
     assert hashlib.sha256(repr(order).encode()).hexdigest() == (
-        "d9849a32ad25d6f88a06f1daef9aa874f0dc7806e60b2e65a13143a3f1f862f6"
+        "b8b1038a4fc35be9c574254989552a55d3543df4a496801bd9787d576fa26806"
     )
     assert hashlib.sha256(repr(target).encode()).hexdigest() == (
         "84193350af5a31235610c50c51cdf69c3b692daa02f1ba0c04aaba9a1b72b977"

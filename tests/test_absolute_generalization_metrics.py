@@ -621,19 +621,49 @@ def _partial_remainder_successor_chain(
     account, trace = _strategic_order_chain(side="BUY", order_weight=0.2)
     prior = account["order_ledger"][0]  # type: ignore[index]
     assert isinstance(prior, dict)
+    successor_id = "order_" + "4" * 64
     prior.update(
         {
             "status": prior_status,
             "cancel_reason": prior_cancel_reason,
             "last_event": prior_last_event,
             "last_update_date": "2023-01-04",
+            "requested_shares": 10,
+            "filled_shares": 4,
+            "remaining_shares": 6,
+            "replaced_by": successor_id,
+            "remainder_release_session": "2023-01-04",
+            "remainder_release_shares": 6,
         }
     )
+    fills = account["fills"]
+    assert isinstance(fills, list)
+    from uquant.contracts.strict_json import strict_json_loads
+
+    source_account = strict_json_loads(
+        complete_replay().final_account_payload.canonical_json
+    )
+    assert isinstance(source_account, dict)
+    source_fills = source_account["fills"]
+    assert isinstance(source_fills, list)
+    predecessor_fill = dict(source_fills[0])
+    assert isinstance(predecessor_fill, dict)
+    predecessor_fill.update(
+        {
+            "shares": 4,
+            "gross_value": 40.0,
+        }
+    )
+    fills.append(predecessor_fill)
     successor = {
         **prior,
-        "order_id": "order_" + "4" * 64,
+        "order_id": successor_id,
         "submitted_date": "2023-01-04",
         "status": "FILLED",
+        "requested_shares": 6,
+        "filled_shares": 6,
+        "remaining_shares": 0,
+        "replaced_by": "",
         "cancel_reason": "",
         "last_event": "FILL",
         "last_update_date": "2023-01-05",
@@ -705,19 +735,159 @@ def test_reconciles_partial_remainder_successor_at_prior_release_session() -> No
     validate_exact_execution_chain(final_account=account, trace=trace, epochs=())
 
 
-@pytest.mark.parametrize(  # type: ignore[untyped-decorator]
-    ("prior_status", "prior_cancel_reason", "prior_last_event"),
-    (
-        ("FILLED", "strategic partial remainder replaced", "PARTIAL_REMAINDER_RELEASED"),
-        ("CANCELLED", "broker cancelled", "PARTIAL_REMAINDER_RELEASED"),
-        ("CANCELLED", "strategic partial remainder replaced", "BROKER_CANCELLED"),
-    ),
-)
-def test_rejects_inherited_signal_successor_without_exact_partial_release(
-    prior_status: str,
-    prior_cancel_reason: str,
-    prior_last_event: str,
-) -> None:
+def test_reconciles_partial_remainder_successor_after_late_predecessor_fill() -> None:
+    """Late broker state changes cannot erase the durable release origin."""
+
+    from uquant.validation.absolute_generalization._execution_chain_reconciliation import (
+        validate_exact_execution_chain,
+    )
+
+    account, trace = _partial_remainder_successor_chain()
+    predecessor = account["order_ledger"][0]  # type: ignore[index]
+    successor = account["order_ledger"][1]  # type: ignore[index]
+    assert isinstance(predecessor, dict)
+    assert isinstance(successor, dict)
+    predecessor.update(
+        {
+            "status": "FILLED",
+            "filled_shares": 10,
+            "remaining_shares": 0,
+            "last_event": "BROKER_FILL",
+            "last_update_date": "2023-01-05",
+        }
+    )
+    fills = account["fills"]
+    assert isinstance(fills, list)
+    late_fill = dict(fills[0])
+    late_fill.update(
+        {
+            "fill_id": "fill_" + "6" * 64,
+            "fill_date": "2023-01-05",
+            "shares": 6,
+            "gross_value": 60.0,
+        }
+    )
+    fills.append(late_fill)
+    successor.update(
+        {
+            "status": "CANCELLED",
+            "filled_shares": 0,
+            "remaining_shares": 6,
+            "last_event": "LATE_FILL_SUPPRESSED_RETRY",
+            "last_update_date": "2023-01-05",
+            "cancel_reason": "late fill satisfied strategic grant",
+        }
+    )
+
+    validate_exact_execution_chain(final_account=account, trace=trace, epochs=())
+
+
+def test_rejects_partial_remainder_successor_without_release_evidence() -> None:
+    """A linked physical order cannot self-report an inherited origin."""
+
+    from uquant.validation.absolute_generalization._execution_chain_reconciliation import (
+        validate_exact_execution_chain,
+    )
+
+    account, trace = _partial_remainder_successor_chain()
+    predecessor = account["order_ledger"][0]  # type: ignore[index]
+    assert isinstance(predecessor, dict)
+    predecessor.pop("remainder_release_session")
+    predecessor.pop("remainder_release_shares")
+
+    with pytest.raises(ValueError, match="remainder successor release evidence"):
+        validate_exact_execution_chain(final_account=account, trace=trace, epochs=())
+
+
+def test_rejects_partial_remainder_successor_without_exact_predecessor_link() -> None:
+    """A same-identity order cannot inherit a release without the durable edge."""
+
+    from uquant.validation.absolute_generalization._execution_chain_reconciliation import (
+        validate_exact_execution_chain,
+    )
+
+    account, trace = _partial_remainder_successor_chain()
+    predecessor = account["order_ledger"][0]  # type: ignore[index]
+    assert isinstance(predecessor, dict)
+    predecessor["replaced_by"] = "order_" + "5" * 64
+
+    with pytest.raises(ValueError, match="remainder successor identity"):
+        validate_exact_execution_chain(final_account=account, trace=trace, epochs=())
+
+
+def test_rejects_partial_remainder_successor_replacement_cycle() -> None:
+    """A replacement edge must point strictly forward through the physical ledger."""
+
+    from uquant.validation.absolute_generalization._execution_chain_reconciliation import (
+        validate_exact_execution_chain,
+    )
+
+    account, trace = _partial_remainder_successor_chain()
+    predecessor = account["order_ledger"][0]  # type: ignore[index]
+    successor = account["order_ledger"][1]  # type: ignore[index]
+    assert isinstance(predecessor, dict)
+    assert isinstance(successor, dict)
+    successor["replaced_by"] = predecessor["order_id"]
+
+    with pytest.raises(ValueError, match="order replacement topology"):
+        validate_exact_execution_chain(final_account=account, trace=trace, epochs=())
+
+
+def test_rejects_partial_remainder_successor_quantity_divergence() -> None:
+    """A successor cannot claim a quantity other than the released remainder."""
+
+    from uquant.validation.absolute_generalization._execution_chain_reconciliation import (
+        validate_exact_execution_chain,
+    )
+
+    account, trace = _partial_remainder_successor_chain()
+    predecessor = account["order_ledger"][0]  # type: ignore[index]
+    assert isinstance(predecessor, dict)
+    predecessor["remainder_release_shares"] = 5
+
+    with pytest.raises(ValueError, match="remainder successor quantity"):
+        validate_exact_execution_chain(final_account=account, trace=trace, epochs=())
+
+
+def test_rejects_partial_remainder_successor_requested_quantity_divergence() -> None:
+    """A successor must consume the exact quantity released by its predecessor."""
+
+    from uquant.validation.absolute_generalization._execution_chain_reconciliation import (
+        validate_exact_execution_chain,
+    )
+
+    account, trace = _partial_remainder_successor_chain()
+    successor = account["order_ledger"][1]  # type: ignore[index]
+    assert isinstance(successor, dict)
+    successor.update(
+        {
+            "requested_shares": 5,
+            "filled_shares": 5,
+            "remaining_shares": 0,
+        }
+    )
+
+    with pytest.raises(ValueError, match="remainder successor quantity"):
+        validate_exact_execution_chain(final_account=account, trace=trace, epochs=())
+
+
+def test_rejects_partial_remainder_successor_release_session_divergence() -> None:
+    """A later broker fill cannot be relabeled as the original release."""
+
+    from uquant.validation.absolute_generalization._execution_chain_reconciliation import (
+        validate_exact_execution_chain,
+    )
+
+    account, trace = _partial_remainder_successor_chain()
+    predecessor = account["order_ledger"][0]  # type: ignore[index]
+    assert isinstance(predecessor, dict)
+    predecessor["remainder_release_session"] = "2023-01-05"
+
+    with pytest.raises(ValueError, match="remainder successor release evidence"):
+        validate_exact_execution_chain(final_account=account, trace=trace, epochs=())
+
+
+def test_rejects_inherited_signal_successor_without_partial_release_marker() -> None:
     """Inherited signal dates cannot admit an unrelated delayed strategic order."""
 
     from uquant.validation.absolute_generalization._execution_chain_reconciliation import (
@@ -725,12 +895,10 @@ def test_rejects_inherited_signal_successor_without_exact_partial_release(
     )
 
     account, trace = _partial_remainder_successor_chain(
-        prior_status=prior_status,
-        prior_cancel_reason=prior_cancel_reason,
-        prior_last_event=prior_last_event,
+        prior_cancel_reason="broker cancelled",
     )
 
-    with pytest.raises(ValueError, match="strategic order session differs"):
+    with pytest.raises(ValueError, match="remainder successor release evidence"):
         validate_exact_execution_chain(final_account=account, trace=trace, epochs=())
 
 

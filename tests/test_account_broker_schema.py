@@ -184,6 +184,32 @@ def test_account_loader_rejects_impossible_account_order_lifecycle(
         load_account(_write_account(tmp_path, payload))
 
 
+@pytest.mark.parametrize(
+    ("release_session", "release_shares"),
+    (
+        (123, 1),
+        ("2026-01-07", 0),
+        ("", 1),
+        ("2026-01-04", 1),
+        ("2026-01-07", -1),
+    ),
+)
+def test_account_loader_rejects_malformed_remainder_release_evidence(
+    tmp_path,
+    release_session: object,
+    release_shares: int,
+) -> None:
+    state = _state_with_open_order()
+    payload = state.to_dict()
+    payload["order_ledger"][0].update(
+        remainder_release_session=release_session,
+        remainder_release_shares=release_shares,
+    )
+
+    with pytest.raises(RuntimeError, match="account order remainder release"):
+        load_account(_write_account(tmp_path, payload))
+
+
 def _state_with_fill() -> AccountState:
     state = _state_with_open_order()
     state.pending_orders = []

@@ -7,6 +7,7 @@ from dataclasses import fields
 
 from ..account import validate_pending_order_for_account_write
 from ..models.strategic_grant import record_strategic_grant_submissions
+from ..models.trading import account_order_physical_chain_identity
 from ..types import (
     ORDER_INTENT_IMMUTABLE_FIELDS,
     AccountOrder,
@@ -53,10 +54,9 @@ def _register_account_order(
                 )
             return existing
         raise RuntimeError(f"pending order references unknown account order {order.order_id}")
-    order.order_id = f"O{account.next_order_sequence:09d}"
-    account.next_order_sequence += 1
+    new_order_id = f"O{account.next_order_sequence:09d}"
     entry = AccountOrder(
-        order_id=order.order_id,
+        order_id=new_order_id,
         signal_date=order.signal_date,
         submitted_date=submitted_date,
         symbol=order.symbol,
@@ -85,6 +85,26 @@ def _register_account_order(
         grant_id=order.grant_id,
         epoch_id=order.epoch_id,
     )
+    predecessor_candidates = [
+        prior
+        for prior in account.order_ledger
+        if prior.cancel_reason == "strategic partial remainder replaced"
+        and prior.remainder_release_session
+        and prior.remainder_release_shares > 0
+        and not prior.replaced_by
+        and account_order_physical_chain_identity(prior)
+        == account_order_physical_chain_identity(entry)
+    ]
+    if len(predecessor_candidates) > 1:
+        raise RuntimeError("strategic partial remainder predecessor is ambiguous")
+    if predecessor_candidates:
+        predecessor = predecessor_candidates[0]
+        if entry.requested_shares != predecessor.remainder_release_shares:
+            raise RuntimeError("strategic partial remainder successor quantity differs")
+    order.order_id = new_order_id
+    account.next_order_sequence += 1
+    if predecessor_candidates:
+        predecessor_candidates[0].replaced_by = new_order_id
     account.order_ledger.append(entry)
     return entry
 

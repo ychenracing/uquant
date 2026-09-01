@@ -6,7 +6,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import shutil
-import subprocess
+import subprocess  # nosec B404
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from pathlib import Path

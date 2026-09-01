@@ -5,7 +5,7 @@ from __future__ import annotations
 import math
 import re
 import shutil
-import subprocess
+import subprocess  # nosec B404
 from collections.abc import Mapping, Sequence
 from dataclasses import asdict, dataclass, replace
 from pathlib import Path

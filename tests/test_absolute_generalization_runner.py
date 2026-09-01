@@ -3,6 +3,7 @@ from __future__ import annotations
 import copy
 import inspect
 import json
+import shutil
 import subprocess
 import sys
 from dataclasses import replace
@@ -27,7 +28,7 @@ from scripts.run_absolute_generalization_acceptance import (
     selected_scenarios,
     write_cached_cell,
 )
-from uquant.contracts.strict_json import canonical_json_bytes
+from uquant.contracts.strict_json import canonical_json_bytes, canonical_json_sha256
 from uquant.validation.absolute_generalization import (
     build_leave_one_out_scenarios,
     load_absolute_generalization_contract,
@@ -455,6 +456,8 @@ def test_execution_loo_uses_exact_raw_cache_and_writes_sealed_manifest(
 ) -> None:
     contract = load_absolute_generalization_contract()
     cache = tmp_path / "cache"
+    data = tmp_path / "equivalent-frozen-data"
+    shutil.copytree(ROOT / "data/frozen", data)
     output = tmp_path / "manifest.json"
     options = parse_cli(
         [
@@ -468,7 +471,7 @@ def test_execution_loo_uses_exact_raw_cache_and_writes_sealed_manifest(
         run_attempt=options.run_attempt,
         output=output,
         cache_dir=cache,
-        data_dir=tmp_path / "unused-data",
+        data_dir=data,
         shard_root=options.shard_root,
         artifact_prefix=options.artifact_prefix,
         upstream_result=options.upstream_result,
@@ -487,6 +490,49 @@ def test_execution_loo_uses_exact_raw_cache_and_writes_sealed_manifest(
     assert raw["status"] == "COMPLETE"
     assert raw["canonical_sha256"]
     assert len(raw["cells"]) == 6
+
+
+def test_execution_loo_rejects_cache_when_selected_frozen_identity_differs(
+    tmp_path: Path,
+) -> None:
+    contract = load_absolute_generalization_contract()
+    cache = tmp_path / "cache"
+    data = tmp_path / "different-frozen-data"
+    shutil.copytree(ROOT / "data/frozen", data)
+    manifest_path = data / "DATA_MANIFEST.json"
+    data_manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    data_manifest["snapshot_id"] = "different-snapshot"
+    manifest_path.write_text(
+        json.dumps(data_manifest, indent=2, sort_keys=True) + "\n",
+        encoding="utf-8",
+    )
+    output = tmp_path / "manifest.json"
+    parsed = parse_cli([*_execution_args(shard="loo-a")])
+    options = type(parsed)(
+        shard=parsed.shard,
+        symbol=parsed.symbol,
+        run_id=parsed.run_id,
+        run_attempt=parsed.run_attempt,
+        output=output,
+        cache_dir=cache,
+        data_dir=data,
+        shard_root=parsed.shard_root,
+        artifact_prefix=parsed.artifact_prefix,
+        upstream_result=parsed.upstream_result,
+    )
+    for scenario in selected_scenarios(options, contract):
+        write_cached_cell(
+            cache,
+            validate_cell_artifact(_cell_raw(scenario), contract),
+            scenario,
+            contract,
+        )
+
+    assert run(options) == 1
+    raw = json.loads(output.read_text(encoding="utf-8"))
+    assert raw["status"] == "ERROR"
+    assert raw["error"] == "execution failed: ValueError"
+    assert raw["cells"] == []
 
 
 def test_runner_has_a_real_cli_entrypoint() -> None:
@@ -524,6 +570,57 @@ def test_final_cli_reads_exact_eight_manifests_and_returns_report_conjunction(
     assert report["capability_pass"] is True
     assert report["passed"] is True
     assert report["canonical_sha256"]
+    manifests = {
+        shard: json.loads(
+            (
+                root
+                / f"absolute-generalization-transport-run-attempt-3-{shard}"
+                / "manifest.json"
+            ).read_text(encoding="utf-8")
+        )
+        for shard in CANONICAL_SHARDS
+    }
+    first = manifests[CANONICAL_SHARDS[0]]
+    assert report["provenance"] == {
+        "run_id": "transport-run",
+        "run_attempt": 3,
+        "head": first["head"],
+        "tree": first["tree"],
+        "scenario_contract_sha256": first["scenario_contract_sha256"],
+        "production_source_sha256": first["production_source_sha256"],
+        "effective_config_sha256": first["effective_config_sha256"],
+        "uv_lock_sha256": first["uv_lock_sha256"],
+        "frozen_data_manifest_sha256": first["frozen_data_manifest_sha256"],
+        "universe_sha256": first["universe_sha256"],
+        "shard_manifest_sha256": {
+            shard: raw["canonical_sha256"] for shard, raw in manifests.items()
+        },
+    }
+    assert report["canonical_sha256"] == canonical_json_sha256(
+        {key: value for key, value in report.items() if key != "canonical_sha256"}
+    )
+
+
+def test_final_cli_rejects_final_report_write_readback_mismatch(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    root = tmp_path / "shards"
+    root.mkdir()
+    _write_final_manifests(root)
+    output = tmp_path / "report.json"
+
+    def corrupt_report(path: Path, payload: bytes) -> None:
+        raw = json.loads(payload)
+        raw["runner_success"] = 1
+        raw["canonical_sha256"] = canonical_json_sha256(
+            {key: value for key, value in raw.items() if key != "canonical_sha256"}
+        )
+        path.write_bytes(canonical_json_bytes(raw))
+
+    monkeypatch.setattr(runner_module, "atomic_write_bytes", corrupt_report)
+
+    with pytest.raises(ValueError, match="final report readback"):
+        run(parse_cli(_final_args(root, output)))
 
 
 def test_non_success_upstream_result_is_downgrade_only_and_exits_nonzero(

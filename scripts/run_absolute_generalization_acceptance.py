@@ -39,6 +39,7 @@ from uquant.validation.absolute_generalization import (
     validate_cell_artifact,
     validate_shard_manifest,
 )
+from uquant.validation.manifest import verify_data_manifest
 
 CANONICAL_SHARDS = (
     "champion",
@@ -436,6 +437,15 @@ def _run_execution(
     root = Path(__file__).resolve().parents[1]
     cache_dir = cast(Path, options.cache_dir)
     data_dir = cast(Path, options.data_dir)
+    frozen = contract.inputs.frozen_data
+    expected_data_identity = {
+        "snapshot_id": frozen.snapshot_id,
+        "files_verified": frozen.files_verified,
+        "manifest_sha256": frozen.manifest_sha256,
+        "checksums_sha256": frozen.checksums_sha256,
+    }
+    if verify_data_manifest(data_dir) != expected_data_identity:
+        raise ValueError("absolute generalization selected frozen data identity differs")
     if options.shard in _LOO_SHARDS:
         artifacts: list[CellArtifact] = []
         for scenario in selected_scenarios(options, contract):
@@ -538,6 +548,22 @@ def _write_final_report(
     atomic_write_bytes(options.output, canonical_json_bytes(report.to_dict()))
 
 
+def _readback_final_report(
+    options: RunnerOptions, expected: AcceptanceReport
+) -> Mapping[str, object]:
+    raw = _read_manifest(options.output)
+    seal = raw.get("canonical_sha256")
+    unsealed = {key: value for key, value in raw.items() if key != "canonical_sha256"}
+    if (
+        type(seal) is not str
+        or len(seal) != 64
+        or canonical_json_sha256(unsealed) != seal
+        or raw != expected.to_dict()
+    ):
+        raise ValueError("absolute generalization final report readback differs")
+    return raw
+
+
 def run(options: RunnerOptions) -> int:
     """Run one validated transport selection and return its blocking exit status."""
 
@@ -572,7 +598,8 @@ def run(options: RunnerOptions) -> int:
         upstream_failure_codes=(() if upstream_success else (f"matrix-result={result}",)),
     )
     _write_final_report(options, report)
-    return 0 if report.passed else 1
+    trusted = _readback_final_report(options, report)
+    return 0 if trusted.get("passed") is True else 1
 
 
 def main(argv: Sequence[str] | None = None) -> int:

@@ -38,6 +38,21 @@ _COMPONENTS = (
     "complete_literal_metrics",
 )
 _SPECIAL_SHARDS = ("champion", "recovery-and-reachability")
+_REPORT_PROVENANCE_FIELDS = frozenset(
+    {
+        "run_id",
+        "run_attempt",
+        "head",
+        "tree",
+        "scenario_contract_sha256",
+        "production_source_sha256",
+        "effective_config_sha256",
+        "uv_lock_sha256",
+        "frozen_data_manifest_sha256",
+        "universe_sha256",
+        "shard_manifest_sha256",
+    }
+)
 _MANIFEST_FIELDS = frozenset(
     {
     "schema_version",
@@ -212,9 +227,17 @@ class AcceptanceReport:
     duplicate_cells: int
     complete_metric_cells: int
     statistics: tuple[tuple[str, float], ...]
+    provenance: Mapping[str, object]
     canonical_sha256: str
 
     def __post_init__(self) -> None:
+        try:
+            provenance = _validated_report_provenance(self.provenance)
+        except ValueError as exc:
+            raise ValueError(
+                "absolute generalization acceptance conjunction differs"
+            ) from exc
+        object.__setattr__(self, "provenance", provenance)
         if not self._shape_is_valid() or not self._state_is_valid():
             raise ValueError("absolute generalization acceptance conjunction differs")
         expected_seal = canonical_json_sha256(self._unsealed())
@@ -281,12 +304,57 @@ class AcceptanceReport:
             "duplicate_cells": self.duplicate_cells,
             "complete_metric_cells": self.complete_metric_cells,
             "statistics": {name: value for name, value in self.statistics},
+            "provenance": _thaw(self.provenance),
         }
 
     def to_dict(self) -> dict[str, object]:
         raw = self._unsealed()
         raw["canonical_sha256"] = self.canonical_sha256
         return raw
+
+
+def _validated_report_provenance(value: object) -> Mapping[str, object]:
+    raw = _manifest_mapping(_thaw(value), label="report provenance")
+    _fields(raw, _REPORT_PROVENANCE_FIELDS, label="report provenance")
+    run_id = _manifest_text(raw["run_id"], label="report run identity")
+    if any(
+        character
+        not in "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789._-"
+        for character in run_id
+    ):
+        raise ValueError("absolute generalization report run identity is malformed")
+    _integer(raw["run_attempt"], label="report run attempt", minimum=1)
+    for name in ("head", "tree"):
+        if not _GIT_OBJECT.fullmatch(
+            _manifest_text(raw[name], label=f"report {name}")
+        ):
+            raise ValueError(f"absolute generalization report {name} is malformed")
+    for name in (
+        "scenario_contract_sha256",
+        "production_source_sha256",
+        "effective_config_sha256",
+        "uv_lock_sha256",
+        "frozen_data_manifest_sha256",
+        "universe_sha256",
+    ):
+        if not _SHA256.fullmatch(
+            _manifest_text(raw[name], label=f"report {name}")
+        ):
+            raise ValueError(f"absolute generalization report {name} is malformed")
+    seals = _manifest_mapping(
+        raw["shard_manifest_sha256"], label="report shard seals"
+    )
+    expected_shards = {
+        *_SPECIAL_SHARDS,
+        *(f"loo-{suffix}" for suffix in "abcdef"),
+    }
+    _fields(seals, expected_shards, label="report shard seals")
+    if any(
+        not _SHA256.fullmatch(_manifest_text(seal, label="report shard seal"))
+        for seal in seals.values()
+    ):
+        raise ValueError("absolute generalization report shard seal is malformed")
+    return cast(Mapping[str, object], _freeze_manifest(raw))
 
 
 def _validate_summary(raw: object, cells: Sequence[Mapping[str, object]]) -> None:
@@ -657,6 +725,28 @@ def _runner_failures(
     return tuple(failures)
 
 
+def _report_provenance(
+    manifests: Sequence[ShardManifest],
+) -> dict[str, object]:
+    first = manifests[0].document
+    return {
+        "run_id": first["run_id"],
+        "run_attempt": first["run_attempt"],
+        "head": first["head"],
+        "tree": first["tree"],
+        "scenario_contract_sha256": first["scenario_contract_sha256"],
+        "production_source_sha256": first["production_source_sha256"],
+        "effective_config_sha256": first["effective_config_sha256"],
+        "uv_lock_sha256": first["uv_lock_sha256"],
+        "frozen_data_manifest_sha256": first["frozen_data_manifest_sha256"],
+        "universe_sha256": first["universe_sha256"],
+        "shard_manifest_sha256": {
+            item.shard: item.document["canonical_sha256"]
+            for item in sorted(manifests, key=lambda manifest: manifest.shard)
+        },
+    }
+
+
 def aggregate_acceptance(
     shard_manifests: Sequence[Mapping[str, object]],
     contract: AbsoluteGeneralizationContract,
@@ -729,6 +819,7 @@ def aggregate_acceptance(
         duplicate_cells=0,
         complete_metric_cells=complete_metrics,
         statistics=_statistics(components) if runner_success else (),
+        provenance=_report_provenance(manifests),
         canonical_sha256="",
     )
     return report

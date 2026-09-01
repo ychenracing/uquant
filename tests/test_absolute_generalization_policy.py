@@ -71,6 +71,7 @@ def test_public_acceptance_report_cannot_exist_unsealed() -> None:
         duplicate_cells=report.duplicate_cells,
         complete_metric_cells=report.complete_metric_cells,
         statistics=report.statistics,
+        provenance=report.provenance,
         canonical_sha256="",
     )
 

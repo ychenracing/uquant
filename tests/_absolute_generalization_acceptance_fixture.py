@@ -79,7 +79,7 @@ from uquant.validation.absolute_generalization.scenarios import (
 
 ROOT = Path(__file__).resolve().parents[1]
 ALTERNATE_OWNER = "sh601869"
-_CHAMPION_RAW_SHA256 = "abeea6e0d19e440dc0ad53971ea02e4ef8743e1f601b222963b0e7e2dcdafaaa"
+_CHAMPION_RAW_SHA256 = "1f48879fa365c8a0688665e177fcaa722f899e1381b00f645a1c357413934aa2"
 
 
 def checkout_identity() -> tuple[str, str]:
@@ -327,7 +327,7 @@ def _champion() -> dict[str, object]:
         "path_sha256": {
             "equity": "654142a4a217d243c53104ac6636a1778314c2e04497cfd0456a6385ea3aab39",
             "fills": "e4927cfbce9202e488dfc3c0cbadf412c527a68314b499eab4e9d916d5037fd1",
-            "orders": "85f9a3cabd7964a1c8a1315fa7732ce5ddd593480f34619d925c92c5b4c2fa75",
+            "orders": "24befbce7f2a2eb46b82d2dcd9ef1351d628616ba848a167deff4dc36c857a00",
             "positions": "8819f3e2c32e9076bf6007040510c93ae02cbef8d6c41159bf12ffccec9782d0",
             "targets": "7f33eca7246df9af6895865b526e7e754f9a3a78ffc5dd9b7a293d78cd8c0f95",
         },

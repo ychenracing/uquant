@@ -215,6 +215,140 @@ def test_partial_fill_replaces_only_the_unfilled_quantity_with_a_new_order() -> 
     assert account.strategic_grant.submitted_order_ids == [first_order_id, second_order_id]
 
 
+@pytest.mark.parametrize("next_open", (20.0, 5.0))  # type: ignore[untyped-decorator]
+def test_remainder_successor_keeps_registered_quantity_across_next_open_drift(
+    next_open: float,
+) -> None:
+    """Price drift cannot rewrite the fixed physical remainder successor."""
+
+    from uquant.validation.absolute_generalization._execution_chain_reconciliation import (
+        validate_exact_execution_chain,
+    )
+
+    account = _account_with_grant()
+    first_order_id = _submit(account)
+    cfg = DEFAULT_CONFIG.override(max_volume_participation=0.002)
+    planner = ExecutionPlanner(cfg)
+    first_panel = {
+        "sz300308": _tradable_rows(
+            "2026-01-05", "2026-01-06", volume=100_000.0
+        )
+    }
+    first_fills = planner.execute_open(
+        date=pd.Timestamp("2026-01-06"), account=account, panel=first_panel
+    )
+    assert len(first_fills) == 1
+    predecessor = account.order_ledger[0]
+    released_shares = predecessor.remainder_release_shares
+    assert released_shares == predecessor.remaining_shares > 0
+
+    account.pending_orders = list(
+        reconcile_account_orders(
+            account=account,
+            previous=list(account.pending_orders),
+            current=tuple(account.pending_orders),
+            submitted_date="2026-01-06",
+        )
+    )
+    successor = account.order_ledger[1]
+    assert predecessor.order_id == first_order_id
+    assert predecessor.replaced_by == successor.order_id
+    assert successor.requested_shares == released_shares
+
+    drift_panel = {
+        "sz300308": _frame(
+            [
+                {
+                    "date": "2026-01-05",
+                    "open": 10.0,
+                    "high": 10.2,
+                    "low": 9.8,
+                    "close": 10.0,
+                    "volume": 10_000_000.0,
+                    "amount": 100_000_000.0,
+                },
+                {
+                    "date": "2026-01-06",
+                    "open": 10.0,
+                    "high": max(10.2, next_open),
+                    "low": min(9.8, next_open),
+                    "close": next_open,
+                    "volume": 100_000.0,
+                    "amount": 1_000_000.0,
+                },
+                {
+                    "date": "2026-01-07",
+                    "open": next_open,
+                    "high": next_open * 1.02,
+                    "low": next_open * 0.98,
+                    "close": next_open,
+                    "volume": 10_000_000.0,
+                    "amount": 10_000_000.0 * next_open,
+                },
+            ]
+        )
+    }
+    final_fills = planner.execute_open(
+        date=pd.Timestamp("2026-01-07"), account=account, panel=drift_panel
+    )
+    assert len(final_fills) == 1
+
+    assert successor.requested_shares == released_shares
+    assert successor.filled_shares + successor.remaining_shares == released_shares
+    assert account.pending_orders == []
+    assert account.strategic_grant is not None
+    if next_open > 10.0:
+        assert successor.status == "CANCELLED"
+        assert successor.cancel_reason == "target already satisfied"
+        assert account.strategic_grant.status == StrategicGrantStatus.ACTIVE.value
+    else:
+        assert successor.status == "FILLED"
+        assert successor.cancel_reason == ""
+        assert (
+            account.strategic_grant.status
+            == StrategicGrantStatus.PARTIALLY_FILLED.value
+        )
+    assert (
+        account_order_decision_origin_session(
+            successor,
+            predecessor,
+            prior_physical_fills=tuple(
+                fill
+                for fill in account.fills
+                if fill.order_id == predecessor.order_id
+            ),
+        )
+        == predecessor.remainder_release_session
+    )
+
+    def trace_target(order) -> dict[str, object]:
+        return {
+            "origin_subsystem": order.origin_subsystem,
+            "event_id": order.event_id,
+            "epoch_id": order.epoch_id,
+            "grant_id": order.grant_id,
+            "symbol": order.symbol,
+            "weight": order.target_weight,
+        }
+
+    validate_exact_execution_chain(
+        final_account=account.to_dict(),
+        trace=(
+            {
+                "session": predecessor.signal_date,
+                "orders": [asdict(predecessor)],
+                "targets": [trace_target(predecessor)],
+            },
+            {
+                "session": predecessor.remainder_release_session,
+                "orders": [asdict(successor)],
+                "targets": [trace_target(successor)],
+            },
+        ),
+        epochs=(),
+    )
+
+
 @pytest.mark.parametrize("failure", ("quantity", "ambiguity"))
 def test_partial_remainder_registration_rejection_is_atomic(failure: str) -> None:
     """A rejected fresh physical retry leaves caller and durable state untouched."""

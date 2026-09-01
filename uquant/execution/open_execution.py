@@ -17,6 +17,7 @@ from ..models.strategic_grant import (
     acknowledge_strategic_grant_order,
     record_strategic_grant_fill,
 )
+from ..models.trading import account_order_decision_origin_session
 from ..portfolio_core import symbol_weight_cap
 from ..types import (
     AccountOrder,
@@ -52,7 +53,44 @@ class _OpenOrderRequest:
     open_price: float
     execution_price: float
     target_requested: int
+    economic_target_requested: int
     shares: int
+
+
+def _registered_remainder_request(
+    account: AccountState,
+    account_order: AccountOrder,
+) -> int | None:
+    """Return one linked successor's immutable remaining physical quantity."""
+
+    predecessors = tuple(
+        item
+        for item in account.order_ledger
+        if item.replaced_by == account_order.order_id
+    )
+    if not predecessors:
+        return None
+    if len(predecessors) != 1:
+        raise RuntimeError("strategic remainder successor predecessor differs")
+    predecessor = predecessors[0]
+    if predecessor.cancel_reason != "strategic partial remainder replaced":
+        return None
+    try:
+        account_order_decision_origin_session(
+            account_order,
+            predecessor,
+            prior_physical_fills=tuple(
+                fill
+                for fill in account.fills
+                if fill.order_id == predecessor.order_id
+            ),
+        )
+    except ValueError as exc:
+        raise RuntimeError("strategic remainder successor evidence differs") from exc
+    remaining = account_order.requested_shares - account_order.filled_shares
+    if remaining <= 0 or account_order.remaining_shares != remaining:
+        raise RuntimeError("strategic remainder successor remaining quantity differs")
+    return remaining
 
 
 def _register_open_orders(
@@ -187,6 +225,11 @@ def _size_open_order(
     else:
         requested = max(0, requested)
         target_requested = requested
+    economic_target_requested = target_requested
+    registered_remainder = _registered_remainder_request(account, account_order)
+    if registered_remainder is not None:
+        requested = min(requested, registered_remainder)
+        target_requested = registered_remainder
     volume_shares = float(row.get("volume", 0.0))
     # Some data sources report hands; amount/close detects that case without future data.
     implied = float(row.get("amount", 0.0)) / max(float(row["close"]), 1e-12)
@@ -223,7 +266,7 @@ def _size_open_order(
                 break
             shares -= 100
     if shares <= 0:
-        if target_requested > 0:
+        if economic_target_requested > 0:
             order.attempts += 1
             account_order.requested_shares = account_order.filled_shares + target_requested
             account_order.remaining_shares = target_requested
@@ -247,6 +290,7 @@ def _size_open_order(
         open_price=open_price,
         execution_price=execution_price,
         target_requested=target_requested,
+        economic_target_requested=economic_target_requested,
         shares=shares,
     )
 
@@ -435,7 +479,13 @@ def _record_open_fill(
         request.order.remaining_shares = request.target_requested - request.shares
         request.order.attempts += 1
         account_order.attempts = request.order.attempts
-        if request.order.grant_id:
+        if (
+            request.order.grant_id
+            and request.shares >= request.economic_target_requested
+        ):
+            account_order.status = OrderStatus.CANCELLED.value
+            account_order.cancel_reason = "target already satisfied"
+        elif request.order.grant_id:
             # Strategic capacity retries are fresh physical orders while the
             # economic grant/event remain unchanged. The filled order keeps
             # its complete audit quantity and a broker-late fill can still be
@@ -466,7 +516,7 @@ def _record_open_fill(
                 account.strategic_grant,
                 grant_id=fill.grant_id,
                 shares=fill.shares,
-                completed=request.shares >= request.target_requested,
+                completed=request.shares >= request.economic_target_requested,
             )
         record_account_strategic_epoch_fill(
             account,

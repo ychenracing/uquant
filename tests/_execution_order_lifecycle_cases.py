@@ -358,6 +358,36 @@ def test_broker_order_ledger_counts_submission_and_replacement_not_fills():
     assert len(account.order_ledger) == 2
     assert account.order_ledger[0].status == "REPLACED"
     assert account.order_ledger[0].replaced_by == account.order_ledger[1].order_id
+    account.pending_orders = list(replaced)
+
+    panel = {
+        "sh603986": _frame(
+            [
+                {
+                    "date": "2026-01-07",
+                    "open": 10,
+                    "high": 10.2,
+                    "low": 9.8,
+                    "close": 10,
+                    "volume": 1e8,
+                    "amount": 1e9,
+                },
+                {
+                    "date": "2026-01-08",
+                    "open": 10,
+                    "high": 10.2,
+                    "low": 9.8,
+                    "close": 10,
+                    "volume": 1e8,
+                    "amount": 1e9,
+                },
+            ]
+        )
+    }
+    assert ExecutionPlanner(DEFAULT_CONFIG).execute_open(
+        date=pd.Timestamp("2026-01-08"), account=account, panel=panel
+    ) == []
+    assert account.order_ledger[1].cancel_reason == "target already satisfied"
 
 def test_blocked_then_filled_instruction_remains_one_broker_order():
     panel = {

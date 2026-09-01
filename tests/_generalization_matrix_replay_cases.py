@@ -20,6 +20,7 @@ from uquant.config import (
     canonical_control_float,
     config_fingerprint,
 )
+from uquant.models.trading import derive_attribution_event_id
 from uquant.validation import generalization_reference as reference_module
 from uquant.validation.control_plane import legacy_decision_payload
 from uquant.validation.generalization_matrix import (
@@ -99,6 +100,7 @@ def test_matrix_rejects_account_ledger_order_without_decision_origin(
     injected = copy.deepcopy(account["order_ledger"][0])
     injected.update(
         order_id="O000000003",
+        target_weight=0.2,
         status="CANCELLED",
         requested_shares=0,
         filled_shares=0,
@@ -106,6 +108,21 @@ def test_matrix_rejects_account_ledger_order_without_decision_origin(
         attempts=0,
         last_event="CANCELLED",
         cancel_reason="fabricated no-decision order",
+    )
+    injected["event_id"] = derive_attribution_event_id(
+        signal_date=injected["signal_date"],
+        symbol=injected["symbol"],
+        target_weight=injected["target_weight"],
+        lifecycle=injected["lifecycle"],
+        origin_lifecycle=injected["origin_lifecycle"],
+        origin_subsystem=injected["origin_subsystem"],
+        mechanism=injected["mechanism"],
+        replaces_symbol=injected["replaces_symbol"],
+        industry_at_entry=injected["industry_at_entry"],
+        industry_manifest_sha256=injected["industry_manifest_sha256"],
+        reduction_policy=injected["reduction_policy"],
+        reason_code=injected["reason_code"],
+        exit_kind=injected["exit_kind"],
     )
     account["order_ledger"].append(injected)
     account["next_order_sequence"] = 4
@@ -118,7 +135,11 @@ def test_matrix_rejects_account_ledger_order_without_decision_origin(
     )
 
     assert failures
-    assert any("decision" in failure and "order" in failure for failure in failures)
+    assert any(
+        "durable account order O000000003 decision snapshot lifecycle differs"
+        in failure
+        for failure in failures
+    )
 
 def test_matrix_rejects_order_replayed_on_its_terminal_session(
     matrix_data_dir: Path,

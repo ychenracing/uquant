@@ -37,6 +37,7 @@ from ._risk_ownership import (
 )
 from ._risk_trace import _RISK_ACCOUNT_FIELDS, risk_trace_replay
 from ._owner_transport import (
+    ARCHITECTURE_SOURCE_SURFACE_ADDITIONS,
     architecture_resource_surface_projection,
     expand_architecture_risk_assessment,
     expand_architecture_risk_stage,
@@ -97,6 +98,39 @@ _PORTFOLIO_PORTFOLIO_PACKAGE_PATHS = {
     "uquant/portfolio/strategic/lifecycle.py",
     "uquant/portfolio/strategic/targets.py",
 }
+_REGISTERED_ABSOLUTE_GENERALIZATION_OWNER_MODULES = frozenset(
+    path.removesuffix("/__init__.py").removesuffix(".py").replace("/", ".")
+    for path in ARCHITECTURE_SOURCE_SURFACE_ADDITIONS["validation_runner_v1"]
+    if path.startswith("uquant/validation/absolute_generalization/")
+    or path == "uquant/validation/statistics.py"
+)
+_ABSOLUTE_GENERALIZATION_OWNER_MODULES = frozenset(
+    {
+        "uquant.validation.absolute_generalization",
+        "uquant.validation.absolute_generalization._acceptance_evidence",
+        "uquant.validation.absolute_generalization._champion_runtime_reconciliation",
+        "uquant.validation.absolute_generalization._execution_chain_reconciliation",
+        "uquant.validation.absolute_generalization._metric_primitives",
+        "uquant.validation.absolute_generalization._metrics_reconciliation",
+        "uquant.validation.absolute_generalization._physical_identity",
+        "uquant.validation.absolute_generalization._reachability_codec",
+        "uquant.validation.absolute_generalization._reachability_graph",
+        "uquant.validation.absolute_generalization._reachability_recovery",
+        "uquant.validation.absolute_generalization._recovery_runtime_fixtures",
+        "uquant.validation.absolute_generalization._replay_codec",
+        "uquant.validation.absolute_generalization.aggregation",
+        "uquant.validation.absolute_generalization.artifacts",
+        "uquant.validation.absolute_generalization.contract",
+        "uquant.validation.absolute_generalization.metrics",
+        "uquant.validation.absolute_generalization.policy",
+        "uquant.validation.absolute_generalization.reachability",
+        "uquant.validation.absolute_generalization.recovery_runtime",
+        "uquant.validation.absolute_generalization.replay",
+        "uquant.validation.absolute_generalization.runtime",
+        "uquant.validation.absolute_generalization.scenarios",
+        "uquant.validation.statistics",
+    }
+)
 _VALIDATION_NEW_OWNER_MODULES = frozenset(
     path.removesuffix("/__init__.py").removesuffix(".py").replace("/", ".")
     for path in (*GENERALIZATION_OWNERS, *POLICY_OWNERS, *HOLDOUT_OWNERS)
@@ -104,7 +138,7 @@ _VALIDATION_NEW_OWNER_MODULES = frozenset(
     "uquant.validation.generalization",
     "uquant.validation.generalization_reference",
     "uquant.validation.holdout",
-} | {"uquant.risk_sentinel.provenance"}
+} | _ABSOLUTE_GENERALIZATION_OWNER_MODULES | {"uquant.risk_sentinel.provenance"}
 _MOVED_HELPER_OWNERS = {
     "_acute_sector_evacuation_required": "uquant/risk/transitions.py",
     "_reset_recovery_owner_rearm": "uquant/risk/recovery_state.py",
@@ -917,6 +951,10 @@ def test_risk_ownership_slice_gate_rejects_economic_mutation(kind: str) -> None:
 
 
 def test_risk_private_and_complexity_relocations_are_exact_and_fail_closed() -> None:
+    assert (
+        _REGISTERED_ABSOLUTE_GENERALIZATION_OWNER_MODULES
+        == _ABSOLUTE_GENERALIZATION_OWNER_MODULES
+    )
     assert {
         "uquant.validation.generalization.baseline",
         "uquant.validation.generalization.gates",
@@ -940,7 +978,10 @@ def test_risk_private_and_complexity_relocations_are_exact_and_fail_closed() -> 
         "uquant.validation.holdout.snapshots",
         "uquant.validation.holdout.source_identity",
         "uquant.risk_sentinel.provenance",
-    } == _VALIDATION_NEW_OWNER_MODULES
+    } | _ABSOLUTE_GENERALIZATION_OWNER_MODULES == _VALIDATION_NEW_OWNER_MODULES
+    assert "uquant.validation.absolute_generalization.unreviewed" not in (
+        _VALIDATION_NEW_OWNER_MODULES
+    )
     assert "uquant.validation.generalization.unreviewed" not in _VALIDATION_NEW_OWNER_MODULES
     assert "uquant.validation.holdout.unreviewed" not in _VALIDATION_NEW_OWNER_MODULES
     candidate = architecture_snapshot()

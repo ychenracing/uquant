@@ -32,12 +32,12 @@ from ._recovery_runtime_fixtures import (
 from .artifacts import derive_runtime_cell_artifact
 from .contract import AbsoluteGeneralizationContract
 from .reachability import (
-    _validate_account_payload,
     analyze_failed_grant_recovery,
     analyze_terminal_scc,
     is_positive_strategic_outlet,
     project_flat_book_repair_health,
     project_observed_reachability_state,
+    validate_account_payload,
 )
 from .replay import (
     AbsoluteGeneralizationReplay,
@@ -174,7 +174,7 @@ class _ReplayAccountMaterializer:
 
 
 def _account(payload: AbsoluteGeneralizationReplayPayload) -> AccountState:
-    return _validate_account_payload(payload)
+    return validate_account_payload(payload)
 
 
 def _targets(payload: AbsoluteGeneralizationReplayPayload) -> tuple[Target, ...]:
@@ -414,7 +414,7 @@ def _matching_crowning_order(
     )
 
 
-def _crowning_authorization_session(
+def _observed_crowning_authorization_session(
     risk: Mapping[str, object], grant: StrategicGrantIntent
 ) -> str | None:
     raw_grant = risk.get("strategic_grant")
@@ -474,7 +474,7 @@ def _crowning_decision_sessions(
         risk = _recovery_mapping(
             decision.get("risk_summary"), label="crowning decision risk"
         )
-        authorized = _crowning_authorization_session(risk, grant)
+        authorized = _observed_crowning_authorization_session(risk, grant)
         if authorized is not None:
             authorization_sessions.add(authorized)
     if (

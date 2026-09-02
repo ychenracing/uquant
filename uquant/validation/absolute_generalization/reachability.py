@@ -555,7 +555,7 @@ def _validate_account_runtime(account: AccountState) -> None:
             raise ValueError("absolute reachability order status/event pair is impossible")
 
 
-def _normalize_epoch_only_cohort_attribution(
+def normalize_epoch_only_cohort_attribution(
     account_raw: Mapping[str, object],
 ) -> None:
     epochs_value = account_raw.get("strategic_epochs")
@@ -621,7 +621,7 @@ def _normalize_epoch_only_cohort_attribution(
             position["grant_id"] = epoch["grant_id"]
 
 
-def _validate_account_payload(value: object) -> AccountState:
+def validate_account_payload(value: object) -> AccountState:
     if type(value) is not AbsoluteGeneralizationReplayPayload:
         raise ValueError("absolute reachability account payload type differs")
     payload = value
@@ -641,7 +641,7 @@ def _validate_account_payload(value: object) -> AccountState:
     }
     if any(type(account_raw.get(field)) is not expected for field, expected in required_containers.items()):
         raise ValueError("absolute reachability account payload is invalid")
-    _normalize_epoch_only_cohort_attribution(account_raw)
+    normalize_epoch_only_cohort_attribution(account_raw)
     try:
         account = account_from_dict(account_raw, require_hashes=False)
     except (RuntimeError, TypeError, ValueError) as exc:
@@ -768,7 +768,7 @@ def project_observed_reachability_state(
 ) -> dict[str, object]:
     """Project all state claims from exact runtime objects for Task 6 analysis."""
 
-    account = _validate_account_payload(account_payload)
+    account = validate_account_payload(account_payload)
     market = {
         "cfg": cfg,
         "risk": risk,
@@ -804,7 +804,7 @@ def _validated_state(raw: object) -> tuple[_StateKey, bool, bool, AccountState]:
     state = _strict_mapping(raw, label="state")
     if set(state) != _STATE_FIELDS:
         raise ValueError("absolute reachability state fields differ")
-    account = _validate_account_payload(state["account_payload"])
+    account = validate_account_payload(state["account_payload"])
     cfg, risk, universe, snapshots, leaders = _validated_market_evidence(state)
     booleans = (
         "flat_all_cash",

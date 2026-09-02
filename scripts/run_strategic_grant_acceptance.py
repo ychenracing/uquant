@@ -20,11 +20,21 @@ from research.strategic_evidence.forced_owner import (
     run_forced_owner_economic_cell,
 )
 from uquant.atomic_io import atomic_write_text
-from uquant.config import DEFAULT_CONFIG
-from uquant.engine import ProductionEngine
+from uquant.config import DEFAULT_CONFIG, config_fingerprint
+from uquant.contracts.runtime_identity import runtime_environment_provenance
+from uquant.engine import ProductionEngine, code_fingerprint
+from uquant.provenance.fingerprints import source_surface_fingerprint
+from uquant.provenance.surfaces import load_source_surface_registry
+from uquant.validation.manifest import verify_data_manifest
 
 CONTRACT_PATH = ROOT / "benchmarks" / "strategic_grant_acceptance_contract.json"
 CLOSURE_CONTRACT_PATH = ROOT / "benchmarks" / "strategic_evidence_closure_contract.json"
+GRANT_CASE_IDS = (
+    "baseline",
+    "native-sz300308",
+    "native-sz300502",
+    "native-sz300394",
+)
 
 
 def _canonical_sha256(value: object) -> str:
@@ -124,42 +134,183 @@ def run_baseline(contract: Mapping[str, Any]) -> dict[str, object]:
     }
 
 
-def _run_native_cells(contract: Mapping[str, Any]) -> list[dict[str, object]]:
+def _grant_case_specs(contract: Mapping[str, Any]) -> tuple[dict[str, str], ...]:
+    return (
+        {"case_id": "baseline", "kind": "baseline"},
+        *(
+            {
+                "case_id": f"native-{spec['owner']}",
+                "date": str(spec["date"]),
+                "kind": "native_eligibility",
+                "owner": str(spec["owner"]),
+            }
+            for spec in contract["native_eligibility"]
+        ),
+    )
+
+
+def _run_native_cell(
+    contract: Mapping[str, Any],
+    spec: Mapping[str, str],
+) -> dict[str, object]:
     closure = json.loads(CLOSURE_CONTRACT_PATH.read_text(encoding="utf-8"))
     symbols = tuple(str(item) for item in closure["matrix"]["canonical_universe"])
     baseline = contract["baseline"]
     if not isinstance(baseline, Mapping):
         raise ValueError("strategic grant baseline contract is malformed")
-    rows: list[dict[str, object]] = []
-    for spec in contract["native_eligibility"]:
-        owner = str(spec["owner"])
-        session = str(spec["date"])
-        cell, _ = run_forced_owner_economic_cell(
-            ROOT / "data" / "frozen",
-            control_id=f"STRATEGIC_GRANT:{owner}",
-            symbols=symbols,
-            owner=owner,
-            mode=NATIVE_ELIGIBILITY_DATE,
-            date=session,
-            target_gross=0.95,
-            selection_evidence={"qualification_date": session},
-            start=str(baseline["start"]),
-            end=str(baseline["end"]),
-            cfg=DEFAULT_CONFIG,
-        )
-        if cell.status != "SUCCESS":
-            detail = cell.error or str(cell.selection_evidence)
-            raise RuntimeError(f"native eligibility {owner} ended as {cell.status}: {detail}")
-        rows.append(
-            {
-                "date": session,
-                "final_account_sha256": cell.final_account_sha256,
-                "owner": owner,
-                "status": cell.status,
-                "trace_sha256": cell.trace_sha256,
-            }
-        )
-    return rows
+    owner = spec["owner"]
+    session = spec["date"]
+    cell, _ = run_forced_owner_economic_cell(
+        ROOT / "data" / "frozen",
+        control_id=f"STRATEGIC_GRANT:{owner}",
+        symbols=symbols,
+        owner=owner,
+        mode=NATIVE_ELIGIBILITY_DATE,
+        date=session,
+        target_gross=0.95,
+        selection_evidence={"qualification_date": session},
+        start=str(baseline["start"]),
+        end=str(baseline["end"]),
+        cfg=DEFAULT_CONFIG,
+    )
+    if cell.status != "SUCCESS":
+        detail = cell.error or str(cell.selection_evidence)
+        raise RuntimeError(f"native eligibility {owner} ended as {cell.status}: {detail}")
+    return {
+        "date": session,
+        "final_account_sha256": cell.final_account_sha256,
+        "owner": owner,
+        "status": cell.status,
+        "trace_sha256": cell.trace_sha256,
+    }
+
+
+def _run_native_cells(contract: Mapping[str, Any]) -> list[dict[str, object]]:
+    return [
+        _run_native_cell(contract, spec)
+        for spec in _grant_case_specs(contract)
+        if spec["kind"] == "native_eligibility"
+    ]
+
+
+def _execute_case(
+    contract: Mapping[str, Any],
+    *,
+    case_id: str,
+) -> dict[str, object]:
+    specs = {spec["case_id"]: spec for spec in _grant_case_specs(contract)}
+    spec = specs.get(case_id)
+    if spec is None:
+        raise ValueError("unknown strategic grant case")
+    if spec["kind"] == "baseline":
+        return run_baseline(contract)
+    return _run_native_cell(contract, spec)
+
+
+def _sha256_file(path: Path) -> str:
+    return hashlib.sha256(path.read_bytes()).hexdigest()
+
+
+def _cache_identity_payload(
+    contract: Mapping[str, Any],
+    spec: Mapping[str, str],
+) -> dict[str, object]:
+    closure = json.loads(CLOSURE_CONTRACT_PATH.read_text(encoding="utf-8"))
+    registry = load_source_surface_registry(ROOT)
+    return {
+        "case": dict(spec),
+        "closure_contract_sha256": _canonical_sha256(closure),
+        "config_sha256": config_fingerprint(DEFAULT_CONFIG),
+        "frozen_data": verify_data_manifest(ROOT / "data" / "frozen"),
+        "full_package_source_sha256": source_surface_fingerprint(
+            ROOT, "full_package_v1"
+        ),
+        "grant_contract_sha256": _canonical_sha256(contract),
+        "production_source_sha256": code_fingerprint(),
+        "runner_source_sha256": _sha256_file(Path(__file__)),
+        "runtime": runtime_environment_provenance(ROOT),
+        "schema_version": 1,
+        "source_surface_registry_sha256": registry.canonical_sha256,
+        "validation_runner_source_sha256": source_surface_fingerprint(
+            ROOT, "validation_runner_v1"
+        ),
+    }
+
+
+def _read_cache(path: Path, *, identity: str) -> dict[str, object] | None:
+    if path.is_symlink() or not path.is_file():
+        return None
+    try:
+        envelope = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return None
+    if not isinstance(envelope, Mapping) or set(envelope) != {
+        "identity",
+        "payload",
+        "sha256",
+    }:
+        return None
+    payload = envelope.get("payload")
+    if (
+        envelope.get("identity") != identity
+        or not isinstance(payload, Mapping)
+        or envelope.get("sha256") != _canonical_sha256(payload)
+    ):
+        return None
+    return {str(key): value for key, value in payload.items()}
+
+
+def _write_cache(
+    path: Path,
+    *,
+    identity: str,
+    payload: Mapping[str, object],
+) -> None:
+    envelope = {
+        "identity": identity,
+        "payload": dict(payload),
+        "sha256": _canonical_sha256(payload),
+    }
+    atomic_write_text(path, json.dumps(envelope, indent=2, sort_keys=True) + "\n")
+
+
+def run_diagnostic_case(
+    *,
+    case_id: str,
+    output: Path,
+    cache_dir: Path,
+) -> dict[str, object]:
+    """Run one non-authoritative grant diagnostic bound to complete inputs."""
+
+    contract = json.loads(CONTRACT_PATH.read_text(encoding="utf-8"))
+    specs = {spec["case_id"]: spec for spec in _grant_case_specs(contract)}
+    if case_id not in GRANT_CASE_IDS or case_id not in specs:
+        raise ValueError("unknown strategic grant case")
+    spec = specs[case_id]
+    identity_payload = _cache_identity_payload(contract, spec)
+    identity = _canonical_sha256(identity_payload)
+    cache_dir.mkdir(parents=True, exist_ok=True)
+    cache_path = cache_dir / f"{case_id}-{identity}.json"
+    cached = _read_cache(cache_path, identity=identity)
+    if cached is None:
+        case = _execute_case(contract, case_id=case_id)
+        _write_cache(cache_path, identity=identity, payload=case)
+        cache_hit = False
+    else:
+        case = cached
+        cache_hit = True
+    result: dict[str, object] = {
+        "authoritative_acceptance": False,
+        "cache_hit": cache_hit,
+        "cache_identity": identity,
+        "cache_identity_payload": identity_payload,
+        "case": case,
+        "diagnostic_only": True,
+        "selected_case": case_id,
+        "status": "PASS",
+    }
+    atomic_write_text(output, json.dumps(result, indent=2, sort_keys=True) + "\n")
+    return result
 
 
 def run_acceptance(output: Path) -> dict[str, object]:
@@ -175,11 +326,24 @@ def run_acceptance(output: Path) -> dict[str, object]:
     return result
 
 
-def main() -> int:
+def main(argv: Sequence[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--output", type=Path, required=True)
-    args = parser.parse_args()
-    run_acceptance(args.output)
+    parser.add_argument("--case", dest="case_id", choices=GRANT_CASE_IDS)
+    parser.add_argument("--cache-dir", type=Path)
+    args = parser.parse_args(argv)
+    if args.case_id is None:
+        if args.cache_dir is not None:
+            parser.error("--cache-dir requires --case")
+        run_acceptance(args.output)
+    else:
+        if args.cache_dir is None:
+            parser.error("--case requires --cache-dir")
+        run_diagnostic_case(
+            case_id=args.case_id,
+            output=args.output,
+            cache_dir=args.cache_dir,
+        )
     return 0
 
 

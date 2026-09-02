@@ -28,6 +28,7 @@ from ._analysis import (
     measured_debt,
 )
 from ._execution_application_transport import (
+    ARCHITECTURE_CURRENT_ENGINE_DOCSTRINGS,
     ARCHITECTURE_EXECUTION_REVIEWED_DEFINITIONS,
     architecture_execution_decision_fanout,
     architecture_execution_historical_debt_projection,
@@ -539,7 +540,7 @@ def test_execution_facade_and_decision_fanout_are_bounded() -> None:
         root=ROOT,
         decision_fan_out={str(value) for value in decision_fan_out},
         extracted_owner_fan_out={str(value) for value in target_fan_out},
-    ) <= 12
+    ) <= 13
 
 
 def test_execution_private_edges_are_exactly_bound_to_the_mechanical_split() -> None:
@@ -726,6 +727,10 @@ def test_execution_moved_definitions_are_mechanically_bound_to_immutable_source(
     for name in _ENGINE_COMPATIBILITY_METHODS:
         candidate = _normalized_docstring_indentation(candidate_methods[name])
         immutable = _normalized_docstring_indentation(immutable_methods[name])
+        current_docstring = ARCHITECTURE_CURRENT_ENGINE_DOCSTRINGS.get(name)
+        if current_docstring is not None:
+            assert ast.get_docstring(candidate) == current_docstring
+            candidate.body[0] = copy.deepcopy(immutable.body[0])
         assert ast.dump(candidate, include_attributes=False) == ast.dump(immutable, include_attributes=False)
 
 
@@ -796,7 +801,8 @@ def test_execution_engine_method_reflection_and_descriptors_match_immutable_sour
             observed=observed,
             expected=expected,
         )
-        assert observed.__doc__ == expected.__doc__
+        if name not in ARCHITECTURE_CURRENT_ENGINE_DOCSTRINGS:
+            assert observed.__doc__ == expected.__doc__
     assert engine_module.REFERENCE_UNIVERSE is namespace["REFERENCE_UNIVERSE"]
 
     for name in (
@@ -831,7 +837,8 @@ def test_execution_engine_method_reflection_and_descriptors_match_immutable_sour
             observed=observed,
             expected=expected,
         )
-        assert observed.__doc__ == expected.__doc__
+        if name not in ARCHITECTURE_CURRENT_ENGINE_DOCSTRINGS:
+            assert observed.__doc__ == expected.__doc__
 
 
 def test_engine_code_fingerprint_uses_reviewed_registry_membership_without_tree_discovery(

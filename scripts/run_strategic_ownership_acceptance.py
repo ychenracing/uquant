@@ -34,10 +34,13 @@ from scripts.run_strategic_grant_acceptance import run_baseline
 from uquant.account import economic_state_sha256
 from uquant.atomic_io import atomic_write_text
 from uquant.config import DEFAULT_CONFIG, config_fingerprint
+from uquant.contracts.runtime_identity import runtime_environment_provenance
 from uquant.contracts.universe import default_ai_universe
 from uquant.engine import ProductionEngine, code_fingerprint, performance_metrics
 from uquant.market import ReplayHarness
 from uquant.models.strategic_universe import build_strategic_universe_declaration
+from uquant.provenance.fingerprints import source_surface_fingerprint
+from uquant.provenance.surfaces import load_source_surface_registry
 from uquant.types import AccountState
 from uquant.validation.absolute_generalization.metrics import (
     actual_epoch_facts_from_rows,
@@ -45,10 +48,26 @@ from uquant.validation.absolute_generalization.metrics import (
     first_repair_ready_fact,
     longest_healthy_zero_target_streak,
 )
+from uquant.validation.manifest import verify_data_manifest
 
 CONTRACT_PATH = ROOT / "benchmarks" / "strategic_ownership_acceptance_contract.json"
 GRANT_CONTRACT_PATH = ROOT / "benchmarks" / "strategic_grant_acceptance_contract.json"
 SHARD_NAMES = ("champion", "critical", "ghost-a", "ghost-b", "continuity")
+SCENARIO_NAMES = (
+    "champion-5",
+    "report-13",
+    "remove-sz300308",
+    "remove-sz300394",
+    "remove-sh603688",
+    "remove-sh688008",
+    "remove-sh688082",
+    "remove-sz002409",
+    "remove-sz300666",
+    "remove-sz300502",
+    "same-industry-crowning",
+    "cross-industry-crowning",
+    "failed-first-grant",
+)
 _SCENARIO_ID = re.compile(r"[a-z0-9]+(?:-[a-z0-9]+)*")
 _OPTICAL_SYMBOLS = ("sz300308", "sz300502", "sz300394")
 _MATERIAL_SYMBOLS = ("sh688019", "sh688300", "sz300666")
@@ -670,21 +689,44 @@ def _validate_repeated(
             raise RuntimeError("repeated-crowning grant identity chain differs")
 
 
-def _cache_identity(contract: Mapping[str, Any], spec: Mapping[str, Any]) -> str:
-    frozen_identity = hashlib.sha256((ROOT / "data" / "frozen" / "SHA256SUMS").read_bytes()).hexdigest()
-    return _canonical_sha256(
-        {
-            "acceptance_source_sha256": hashlib.sha256(Path(__file__).read_bytes()).hexdigest(),
-            "grant_acceptance_source_sha256": hashlib.sha256(
-                (ROOT / "scripts" / "run_strategic_grant_acceptance.py").read_bytes()
-            ).hexdigest(),
-            "config_identity": config_fingerprint(DEFAULT_CONFIG),
-            "contract": contract,
-            "frozen_identity": frozen_identity,
-            "production_source_identity": code_fingerprint(),
-            "scenario": dict(spec),
-        }
-    )
+def _sha256_file(path: Path) -> str:
+    return hashlib.sha256(path.read_bytes()).hexdigest()
+
+
+def _cache_identity_context(contract: Mapping[str, Any]) -> dict[str, object]:
+    grant_contract = json.loads(GRANT_CONTRACT_PATH.read_text(encoding="utf-8"))
+    registry = load_source_surface_registry(ROOT)
+    return {
+        "config_sha256": config_fingerprint(DEFAULT_CONFIG),
+        "frozen_data": verify_data_manifest(ROOT / "data" / "frozen"),
+        "full_package_source_sha256": source_surface_fingerprint(
+            ROOT, "full_package_v1"
+        ),
+        "grant_contract_sha256": _canonical_sha256(grant_contract),
+        "grant_runner_source_sha256": _sha256_file(
+            ROOT / "scripts" / "run_strategic_grant_acceptance.py"
+        ),
+        "ownership_contract_sha256": _canonical_sha256(contract),
+        "production_source_sha256": code_fingerprint(),
+        "runner_source_sha256": _sha256_file(Path(__file__)),
+        "runtime": runtime_environment_provenance(ROOT),
+        "schema_version": 1,
+        "source_surface_registry_sha256": registry.canonical_sha256,
+        "validation_runner_source_sha256": source_surface_fingerprint(
+            ROOT, "validation_runner_v1"
+        ),
+    }
+
+
+def _cache_identity_payload(
+    contract: Mapping[str, Any],
+    spec: Mapping[str, Any],
+    *,
+    context: Mapping[str, object] | None = None,
+) -> dict[str, object]:
+    payload = dict(context or _cache_identity_context(contract))
+    payload["scenario"] = dict(spec)
+    return payload
 
 
 def _read_cache(path: Path, *, identity: str) -> dict[str, Any] | None:
@@ -777,10 +819,11 @@ def _execute_scenario(
 def run_acceptance_shard(
     *,
     shard: str,
+    scenario: str | None = None,
     output: Path,
     cache_dir: Path,
 ) -> dict[str, Any]:
-    """Run one deterministic finite shard and persist only compact facts."""
+    """Run one finite shard or one diagnostic scenario and persist compact facts."""
 
     contract = load_contract()
     validate_contract(contract)
@@ -788,11 +831,30 @@ def run_acceptance_shard(
         raise ValueError("unknown strategic ownership shard")
     cache_dir.mkdir(parents=True, exist_ok=True)
     shards = _mapping(contract["shards"], label="ownership shards")
-    specs = _sequence(shards[shard], label="ownership shard")
+    shard_specs = tuple(
+        _mapping(value, label="ownership scenario")
+        for value in _sequence(shards[shard], label="ownership shard")
+    )
+    specs_by_id = {str(spec["scenario_id"]): spec for spec in shard_specs}
+    if scenario is None:
+        execution_specs = shard_specs
+    else:
+        if scenario not in SCENARIO_NAMES:
+            raise ValueError("unknown strategic ownership scenario")
+        selected = specs_by_id.get(scenario)
+        if selected is None:
+            raise ValueError("strategic ownership scenario does not belong to shard")
+        if selected["kind"] == "same_industry_alias":
+            source_id = str(selected["source_scenario_id"])
+            execution_specs = (specs_by_id[source_id], selected)
+        else:
+            execution_specs = (selected,)
+
+    identity_context = _cache_identity_context(contract)
     by_id: dict[str, dict[str, Any]] = {}
     rows: list[dict[str, Any]] = []
-    for value in specs:
-        spec = _mapping(value, label="ownership scenario")
+    cache_metadata: dict[str, dict[str, object]] = {}
+    for spec in execution_specs:
         scenario_id = str(spec["scenario_id"])
         if spec["kind"] == "same_industry_alias":
             source_id = str(spec["source_scenario_id"])
@@ -801,8 +863,21 @@ def run_acceptance_shard(
             source["source_scenario_id"] = source_id
             _validate_repeated(contract, summary=source, same_industry=True)
             row = source
+            identity_payload = _cache_identity_payload(
+                contract, spec, context=identity_context
+            )
+            source_metadata = cache_metadata[source_id]
+            cache_metadata[scenario_id] = {
+                "cache_dependencies": {source_id: source_metadata},
+                "cache_hit": bool(source_metadata["cache_hit"]),
+                "cache_identity": _canonical_sha256(identity_payload),
+                "cache_identity_payload": identity_payload,
+            }
         else:
-            identity = _cache_identity(contract, spec)
+            identity_payload = _cache_identity_payload(
+                contract, spec, context=identity_context
+            )
+            identity = _canonical_sha256(identity_payload)
             cache_path = cache_dir / f"{scenario_id}-{identity}.json"
             cached = _read_cache(cache_path, identity=identity)
             if cached is None:
@@ -814,26 +889,54 @@ def run_acceptance_shard(
                 row["cache_hit"] = True
             if spec["kind"] == "full_removal" and scenario_id == "remove-sz300502":
                 _validate_repeated(contract, summary=row, same_industry=True)
+            cache_metadata[scenario_id] = {
+                "cache_dependencies": {},
+                "cache_hit": bool(row["cache_hit"]),
+                "cache_identity": identity,
+                "cache_identity_payload": identity_payload,
+            }
         by_id[scenario_id] = row
-        rows.append(row)
-    result = {
+        if scenario is None or scenario_id == scenario:
+            rows.append(row)
+    result: dict[str, Any] = {
         "contract_sha256": _canonical_sha256(contract),
         "production_source_identity": code_fingerprint(),
         "scenarios": rows,
         "shard": shard,
         "status": "PASS",
     }
+    if scenario is not None:
+        selected_metadata = cache_metadata[scenario]
+        result.update(
+            {
+                "authoritative_acceptance": False,
+                "cache_dependencies": selected_metadata["cache_dependencies"],
+                "cache_hit": selected_metadata["cache_hit"],
+                "cache_identity": selected_metadata["cache_identity"],
+                "cache_identity_payload": selected_metadata[
+                    "cache_identity_payload"
+                ],
+                "diagnostic_only": True,
+                "selected_scenario": scenario,
+            }
+        )
     atomic_write_text(output, json.dumps(result, indent=2, sort_keys=True) + "\n")
     return result
 
 
-def main() -> int:
+def main(argv: Sequence[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--shard", choices=SHARD_NAMES, required=True)
+    parser.add_argument("--scenario", choices=SCENARIO_NAMES)
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--cache-dir", type=Path, required=True)
-    args = parser.parse_args()
-    run_acceptance_shard(shard=args.shard, output=args.output, cache_dir=args.cache_dir)
+    args = parser.parse_args(argv)
+    run_acceptance_shard(
+        shard=args.shard,
+        scenario=args.scenario,
+        output=args.output,
+        cache_dir=args.cache_dir,
+    )
     return 0
 
 
@@ -842,6 +945,7 @@ if __name__ == "__main__":
 
 
 __all__ = (
+    "SCENARIO_NAMES",
     "SHARD_NAMES",
     "actual_epoch_facts",
     "load_contract",

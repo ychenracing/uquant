@@ -140,9 +140,32 @@ uv run python scripts/run_strategic_ownership_acceptance.py \
   --cache-dir /tmp/strategic-ownership-cache
 ```
 
+单项失败可用显式 selector 定位，不必重跑整个 shard 或全部 grant case：
+
+```bash
+uv run python scripts/run_strategic_ownership_acceptance.py \
+  --shard critical \
+  --scenario remove-sz300394 \
+  --output /tmp/strategic-ownership-remove-sz300394.json \
+  --cache-dir /tmp/strategic-ownership-cache
+
+uv run python scripts/run_strategic_grant_acceptance.py \
+  --case native-sz300502 \
+  --output /tmp/strategic-grant-native-sz300502.json \
+  --cache-dir /tmp/strategic-grant-cache
+```
+
+Ownership 的 `--scenario` 必须属于所选 shard；alias 只执行合同声明的源场景依赖。Grant 的
+`--case` 只接受 `baseline` 或三个 `native-<owner>` case。两种 selector 产物都固定写入
+`diagnostic_only: true` 和 `authoritative_acceptance: false`。其缓存身份绑定所选 spec、验收
+合同、runner 源码、完整 package/validation source surface、source registry seal、生产源码、
+配置、已校验冻结数据清单以及 Python/NumPy/pandas/uv/`uv.lock` 运行环境；任一身份变化都会
+形成 cache miss。
+
 GitHub 的 `Strategic Ownership Acceptance` 对 PR 和 `main` 自动运行相同五个 shard，缓存
 同时绑定源码、配置、冻结数据和合同身份，只上传紧凑事实。它不调用完整 234-record 矩阵，
-也不替代手动的 Extended Performance 或 Extended Economic 验收。
+也不使用单项 selector。selector 产物不能替代完整 Strategic Ownership/Strategic Grant、
+手动 Extended Performance 或 Extended Economic 验收。
 
 ### Absolute Generalization 自动阻断
 

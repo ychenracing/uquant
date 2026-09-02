@@ -72,47 +72,53 @@ def _validate_account_runtime(account: AccountState) -> None:
             raise ValueError("absolute reachability order status/event pair is impossible")
 
 
-def normalize_epoch_only_cohort_attribution(
-    account_raw: Mapping[str, object],
+def _normalize_attribution_item(
+    value: object,
+    *,
+    epochs: Mapping[object, object],
+    symbol: object = None,
 ) -> None:
-    """Restore cohort attribution accepted by the current account codec."""
-
-    epochs_value = account_raw.get("strategic_epochs")
-    if type(epochs_value) is not list:
+    if type(value) is not dict or value.get("grant_id") != "":
         return
-    epochs = {
-        item.get("epoch_id"): item
-        for item in epochs_value
-        if type(item) is dict and type(item.get("epoch_id")) is str
-    }
+    epoch = epochs.get(value.get("epoch_id"))
+    observed_symbol = value.get("symbol", symbol)
+    if (
+        type(epoch) is dict
+        and value.get("origin_subsystem") in {"RISK", "STRATEGIC"}
+        and type(observed_symbol) is str
+        and observed_symbol
+        and observed_symbol != epoch.get("owner_symbol")
+        and type(epoch.get("grant_id")) is str
+        and epoch.get("grant_id")
+    ):
+        value["grant_id"] = epoch["grant_id"]
 
-    def normalize(value: object, *, symbol: object = None) -> None:
-        if type(value) is not dict or value.get("grant_id") != "":
-            return
-        epoch = epochs.get(value.get("epoch_id"))
-        observed_symbol = value.get("symbol", symbol)
-        if (
-            type(epoch) is dict
-            and value.get("origin_subsystem") in {"RISK", "STRATEGIC"}
-            and type(observed_symbol) is str
-            and observed_symbol
-            and observed_symbol != epoch.get("owner_symbol")
-            and type(epoch.get("grant_id")) is str
-            and epoch.get("grant_id")
-        ):
-            value["grant_id"] = epoch["grant_id"]
 
+def _normalize_execution_attribution(
+    account_raw: Mapping[str, object],
+    epochs: Mapping[object, object],
+) -> None:
     for name in ("pending_orders", "order_ledger", "fills"):
         values = account_raw.get(name)
         if type(values) is not list:
             continue
         for item in values:
-            normalize(item)
+            _normalize_attribution_item(item, epochs=epochs)
             if name == "fills" and type(item) is dict:
                 sold = item.get("sold_tranches")
                 if type(sold) is list:
                     for tranche in sold:
-                        normalize(tranche, symbol=item.get("symbol"))
+                        _normalize_attribution_item(
+                            tranche,
+                            epochs=epochs,
+                            symbol=item.get("symbol"),
+                        )
+
+
+def _normalize_position_attribution(
+    account_raw: Mapping[str, object],
+    epochs: Mapping[object, object],
+) -> None:
     positions = account_raw.get("positions")
     if type(positions) is not dict:
         return
@@ -122,7 +128,11 @@ def normalize_epoch_only_cohort_attribution(
         tranches = position.get("tranches")
         if type(tranches) is list:
             for tranche in tranches:
-                normalize(tranche, symbol=symbol)
+                _normalize_attribution_item(
+                    tranche,
+                    epochs=epochs,
+                    symbol=symbol,
+                )
         epoch = epochs.get(position.get("epoch_id"))
         if (
             position.get("grant_id") == ""
@@ -138,6 +148,23 @@ def normalize_epoch_only_cohort_attribution(
             )
         ):
             position["grant_id"] = epoch["grant_id"]
+
+
+def normalize_epoch_only_cohort_attribution(
+    account_raw: Mapping[str, object],
+) -> None:
+    """Restore cohort attribution accepted by the current account codec."""
+
+    epochs_value = account_raw.get("strategic_epochs")
+    if type(epochs_value) is not list:
+        return
+    epochs = {
+        item.get("epoch_id"): item
+        for item in epochs_value
+        if type(item) is dict and type(item.get("epoch_id")) is str
+    }
+    _normalize_execution_attribution(account_raw, epochs)
+    _normalize_position_attribution(account_raw, epochs)
 
 
 def validate_account_payload(value: object) -> AccountState:

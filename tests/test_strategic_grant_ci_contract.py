@@ -6,9 +6,16 @@ from pathlib import Path
 from typing import Any, cast
 
 import pandas as pd
+import pytest
 import yaml
 
-from scripts.run_strategic_grant_acceptance import _baseline_views, _canonical_sha256
+import scripts.run_strategic_grant_acceptance as grant_runner
+from scripts.run_strategic_grant_acceptance import (
+    GRANT_CASE_IDS,
+    _baseline_views,
+    _canonical_sha256,
+    run_diagnostic_case,
+)
 from uquant.contracts.strict_json import strict_json_loads
 from uquant.engine import performance_metrics
 from uquant.types import AccountOrder
@@ -48,6 +55,7 @@ def test_strategic_grant_acceptance_is_bounded_and_automatic() -> None:
     }
     rendered = str(workflow)
     assert "scripts/run_strategic_grant_acceptance.py" in rendered
+    assert "--case" not in rendered
     assert "tests/test_strategic_grant_recovery.py" in rendered
     assert "tests/test_account_schema_v3_integrity.py" in rendered
     assert "tests/test_broker_sync.py" in rendered
@@ -180,4 +188,105 @@ def test_performance_metrics_preserves_terminal_strategic_remainder() -> None:
         "remaining_shares": 200,
         "status": "CANCELLED",
         "cancel_reason": "target already satisfied",
+    }
+
+
+def test_single_grant_case_is_diagnostic_and_reuses_only_complete_identity_cache(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    assert GRANT_CASE_IDS == (
+        "baseline",
+        "native-sz300308",
+        "native-sz300502",
+        "native-sz300394",
+    )
+    calls: list[str] = []
+
+    def execute(
+        _contract: object,
+        *,
+        case_id: str,
+    ) -> dict[str, object]:
+        calls.append(case_id)
+        return {"case_id": case_id, "status": "PASS"}
+
+    monkeypatch.setattr(grant_runner, "_execute_case", execute)
+    output = tmp_path / "case.json"
+    cache = tmp_path / "cache"
+    result = run_diagnostic_case(
+        case_id="native-sz300502",
+        output=output,
+        cache_dir=cache,
+    )
+
+    assert calls == ["native-sz300502"]
+    assert result["authoritative_acceptance"] is False
+    assert result["diagnostic_only"] is True
+    assert result["selected_case"] == "native-sz300502"
+    assert result["cache_hit"] is False
+    assert result["case"] == {"case_id": "native-sz300502", "status": "PASS"}
+    identity = result["cache_identity_payload"]
+    assert isinstance(identity, dict)
+    assert set(identity) == {
+        "case",
+        "closure_contract_sha256",
+        "config_sha256",
+        "frozen_data",
+        "full_package_source_sha256",
+        "grant_contract_sha256",
+        "production_source_sha256",
+        "runner_source_sha256",
+        "runtime",
+        "schema_version",
+        "source_surface_registry_sha256",
+        "validation_runner_source_sha256",
+    }
+    assert identity["case"] == {
+        "case_id": "native-sz300502",
+        "date": "2024-03-04",
+        "kind": "native_eligibility",
+        "owner": "sz300502",
+    }
+
+    monkeypatch.setattr(
+        grant_runner,
+        "_execute_case",
+        lambda *_args, **_kwargs: pytest.fail("complete-identity cache was not reused"),
+    )
+    cached = run_diagnostic_case(
+        case_id="native-sz300502",
+        output=output,
+        cache_dir=cache,
+    )
+    assert cached["cache_hit"] is True
+
+
+def test_grant_cli_dispatches_one_diagnostic_case(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    observed: dict[str, object] = {}
+    monkeypatch.setattr(
+        grant_runner,
+        "run_diagnostic_case",
+        lambda **options: observed.update(options),
+    )
+    output = tmp_path / "grant.json"
+    cache = tmp_path / "cache"
+
+    assert grant_runner.main(
+        [
+            "--case",
+            "native-sz300502",
+            "--output",
+            str(output),
+            "--cache-dir",
+            str(cache),
+        ]
+    ) == 0
+    assert observed == {
+        "cache_dir": cache,
+        "case_id": "native-sz300502",
+        "output": output,
     }

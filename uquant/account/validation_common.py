@@ -21,9 +21,6 @@ _LEGACY_INDUSTRY = "legacy_unmapped"
 _LEGACY_MANIFEST_SHA256 = "0" * 64
 
 
-_HISTORICAL_ATTRIBUTION_SCHEMA_VERSION = 4
-
-
 _UNLINKED_NATIVE_IDENTITY_FIELDS = (
     "grant_id",
     "epoch_id",
@@ -40,17 +37,6 @@ _UNLINKED_NATIVE_IDENTITY_FIELDS = (
     "replaces_symbol",
     "industry_at_entry",
     "industry_manifest_sha256",
-)
-
-
-_UNLINKED_LEGACY_IDENTITY_FIELDS = (
-    "signal_date",
-    "symbol",
-    "side",
-    "lifecycle",
-    "reduction_policy",
-    "reason_code",
-    "exit_kind",
 )
 
 
@@ -76,7 +62,7 @@ _SHOCK_SEVERITIES = frozenset(
         "MARKET",
         "CONCENTRATED",
         "SEVERE",
-        "ANCHOR_BREAK",  # Accepted when normalizing compatible durable accounts.
+        "ANCHOR_BREAK",
         "COHORT_BREAK",
         "INCOMPLETE_UNIVERSE",
         "INCOMPLETE_UNIVERSE_UNBACKED",
@@ -87,13 +73,13 @@ _SHOCK_SEVERITIES = frozenset(
 def _unlinked_fill_matches_order(
     fill: Fill,
     order: AccountOrder,
-    *,
-    native: bool,
 ) -> bool:
     """Match only stable structured fields; prose is never a join key."""
 
-    fields = _UNLINKED_NATIVE_IDENTITY_FIELDS if native else _UNLINKED_LEGACY_IDENTITY_FIELDS
-    return all(getattr(fill, field) == getattr(order, field) for field in fields)
+    return all(
+        getattr(fill, field) == getattr(order, field)
+        for field in _UNLINKED_NATIVE_IDENTITY_FIELDS
+    )
 
 
 def _reject_nonstandard_json_constant(value: str) -> None:
@@ -212,7 +198,6 @@ def _optional_finite_event_number(
 # Stable owned validation vocabulary used by domain-specific account validators.
 EVENT_ID_PATTERN = _EVENT_ID
 finite_number = _finite_number
-HISTORICAL_ATTRIBUTION_SCHEMA_VERSION = _HISTORICAL_ATTRIBUTION_SCHEMA_VERSION
 LEGACY_INDUSTRY = _LEGACY_INDUSTRY
 LEGACY_MANIFEST_SHA256 = _LEGACY_MANIFEST_SHA256
 nonnegative_integer = _nonnegative_integer
@@ -225,8 +210,6 @@ required_text = _required_text
 SHOCK_SEVERITIES = _SHOCK_SEVERITIES
 SHOCK_STATES = _SHOCK_STATES
 unlinked_fill_matches_order = _unlinked_fill_matches_order
-UNLINKED_LEGACY_IDENTITY_FIELDS = _UNLINKED_LEGACY_IDENTITY_FIELDS
-UNLINKED_NATIVE_IDENTITY_FIELDS = _UNLINKED_NATIVE_IDENTITY_FIELDS
 validate_account_event_array = _validate_event_array
 validate_account_symbol_list = _validate_symbol_list
 validate_account_weight_map = _validate_weight_map

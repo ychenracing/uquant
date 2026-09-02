@@ -478,7 +478,7 @@ def test_public_document_set_catches_incomplete_generalization_contract_or_fake_
         "SAFETY",
         "ECONOMIC",
         "DERIVED",
-        "COMPATIBILITY",
+        "UnsupportedAccountSchemaError",
         "2026-08-05",
         "2026-08-06",
         "40--60",

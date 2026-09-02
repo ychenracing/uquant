@@ -54,6 +54,30 @@ _TRACE_RUNNER_SHA256 = "00672c67b31374c50e1e56e236a45609374637b86f9900d47dc550ab
 _INVENTORY = ROOT / "artifacts" / "architecture_refactor" / "task8_cleanup_inventory.json"
 _DAILY_TRACE = ROOT / "benchmarks" / "daily_portfolio_behavior_reference.json"
 _TRACE_RUNNER = ROOT / "tests" / "architecture" / "_portfolio_trace.py"
+_CURRENT_PORTFOLIO_INSTANCE_PICKLES = {
+    "LeaderPortfolioPolicy": (
+        "4812f2a564ab2d31e3217d92167f07f9ce413c49100e34b20ffbc439ecd0080a",
+        1952,
+    ),
+    "PortfolioAllocator": (
+        "7ddcb2acc85ccdef80aaf9d8aab2dba55a16b4deb95a8832b2649cdaf0d6f2fb",
+        1941,
+    ),
+    "RecoveryPortfolioPolicy": (
+        "0cad9c4675af0c480b96f3001c9d2aa41d23be270241f3dd6671340acf53904d",
+        1955,
+    ),
+    "StrategicPortfolioPolicy": (
+        "2fd72c9319d6e86bf7608fbc271fe6bb8bd4ed9de9296c71d15db981d0650e71",
+        1957,
+    ),
+}
+_CURRENT_PORTFOLIO_MODE_SHA256 = {
+    "double_optimized": "060533c8583e1ef6f7a671281a2ac625926896b87cc96d7d0f4fd3dad399e04d",
+    "normal": "2e074f82828205989cd307297aa7f79408f5149cbdba6763fe6d055c618f2495",
+    "optimized": "2e074f82828205989cd307297aa7f79408f5149cbdba6763fe6d055c618f2495",
+    "windows_no_fcntl": "060533c8583e1ef6f7a671281a2ac625926896b87cc96d7d0f4fd3dad399e04d",
+}
 _IMPLEMENTATION_IDENTITIES = {
     "uquant/portfolio.py": (
         "264a1a463b60929d6cefcb234eddbb2644cfdd93d1b3e1484a81a0dcde26a2d1",
@@ -337,6 +361,28 @@ def test_portfolio_public_mro_pickle_reflection_and_import_modes_are_exact() -> 
         },
         "mode_sha256": payload["portfolio_public_contract"]["runtime"]["import_mode_sha256"],
     }
+    classes = expected["normal"]["classes"]
+    snapshot_method = {
+        "descriptor": "instance",
+        "module": "uquant.portfolio.strategic.discovery",
+        "qualname": "StrategicPortfolioPolicy._strategic_qualification_snapshots",
+        "raw_docstring": None,
+        "signature": (
+            "(self, *, date: 'pd.Timestamp', user_panel: 'dict[str, pd.DataFrame]', "
+            "leaders: 'dict[str, LeaderScore]') -> 'dict[str, dict[str, float]]'"
+        ),
+    }
+    classes["StrategicPortfolioPolicy"]["methods"][
+        "_strategic_qualification_snapshots"
+    ] = snapshot_method
+    for class_name, (pickle_sha256, pickle_size) in _CURRENT_PORTFOLIO_INSTANCE_PICKLES.items():
+        contract = classes[class_name]
+        contract["inherited_method_lookup"]["_strategic_qualification_snapshots"] = (
+            "uquant.portfolio_strategic.StrategicPortfolioPolicy"
+        )
+        contract["instance_pickle_sha256"] = pickle_sha256
+        contract["instance_pickle_size"] = pickle_size
+    expected["mode_sha256"] = _CURRENT_PORTFOLIO_MODE_SHA256
     assert current_reflection_contract(ROOT) == expected
     assert expected["normal"]["classes"]["PortfolioAllocator"]["mro"] == [
         "uquant.portfolio.PortfolioAllocator",

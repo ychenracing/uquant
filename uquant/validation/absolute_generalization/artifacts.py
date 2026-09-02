@@ -197,39 +197,74 @@ def _is_production_predicate_fact(value: Mapping[object, object]) -> bool:
     )
 
 
-def _is_production_predicate_path(path: tuple[str | int, ...]) -> bool:
-    owners = {"flat_book_capital_repair", "strategic_cash_rearm"}
-    if (
+def _is_crowning_predicate_path(path: tuple[str | int, ...]) -> bool:
+    return (
         len(path) == 5
         and path[0] in {"historical_crowning", "cross_industry_crowning"}
         and path[1] == "final_account"
-        and path[2] in owners
+        and path[2] in {"flat_book_capital_repair", "strategic_cash_rearm"}
         and path[3] == "predicate_results"
         and isinstance(path[4], int)
-    ):
-        return True
-    if (
+    )
+
+
+def _is_failed_grant_predicate_path(path: tuple[str | int, ...]) -> bool:
+    return (
         len(path) == 8
         and path[:2] == ("failed_grant_recovery", "transitions")
         and isinstance(path[2], int)
         and path[3:5] == ("runtime_state", "account_payload")
-        and path[5] in owners
+        and path[5] in {"flat_book_capital_repair", "strategic_cash_rearm"}
         and path[6] == "predicate_results"
         and isinstance(path[7], int)
-    ):
-        return True
-    if (
+    )
+
+
+def _is_repair_bound_predicate_path(path: tuple[str | int, ...]) -> bool:
+    return (
         len(path) == 9
         and path[0] == "repair_bounds"
         and isinstance(path[1], int)
         and path[2] == "observations"
         and isinstance(path[3], int)
         and path[4:6] == ("runtime_state", "account_payload")
-        and path[6] in owners
+        and path[6] in {"flat_book_capital_repair", "strategic_cash_rearm"}
         and path[7] == "predicate_results"
         and isinstance(path[8], int)
-    ):
-        return True
+    )
+
+
+def _is_replay_final_account_predicate_path(
+    tail: tuple[str | int, ...],
+) -> bool:
+    return (
+        len(tail) == 6
+        and tail[:3] == ("replay_evidence", "final_account_payload", "value")
+        and tail[3] in {"flat_book_capital_repair", "strategic_cash_rearm"}
+        and tail[4] == "predicate_results"
+        and isinstance(tail[5], int)
+    )
+
+
+def _is_replay_observation_predicate_path(
+    tail: tuple[str | int, ...],
+) -> bool:
+    if len(tail) != 9 or tail[:2] != ("replay_evidence", "observations"):
+        return False
+    if not isinstance(tail[2], int) or tail[6] not in {
+        "flat_book_capital_repair",
+        "strategic_cash_rearm",
+    }:
+        return False
+    if tail[7] != "predicate_results" or not isinstance(tail[8], int):
+        return False
+    return tail[3:6] == ("decision_payload", "value", "risk_summary") or (
+        tail[3] in {"post_open_account", "post_decision_account"}
+        and tail[4:6] == ("account_payload", "value")
+    )
+
+
+def _is_replay_predicate_path(path: tuple[str | int, ...]) -> bool:
     for index, component in enumerate(path):
         if component != "replay_evidence":
             continue
@@ -241,26 +276,20 @@ def _is_production_predicate_path(path: tuple[str | int, ...]) -> bool:
         ):
             continue
         tail = path[index:]
-        if (
-            len(tail) == 6
-            and tail[:3] == ("replay_evidence", "final_account_payload", "value")
-            and tail[3] in owners
-            and tail[4] == "predicate_results"
-            and isinstance(tail[5], int)
-        ):
-            return True
-        if len(tail) != 9 or tail[:2] != ("replay_evidence", "observations"):
-            continue
-        if not isinstance(tail[2], int) or tail[6] not in owners:
-            continue
-        if tail[7] != "predicate_results" or not isinstance(tail[8], int):
-            continue
-        if tail[3:6] == ("decision_payload", "value", "risk_summary") or (
-            tail[3] in {"post_open_account", "post_decision_account"}
-            and tail[4:6] == ("account_payload", "value")
-        ):
+        if _is_replay_final_account_predicate_path(
+            tail
+        ) or _is_replay_observation_predicate_path(tail):
             return True
     return False
+
+
+def _is_production_predicate_path(path: tuple[str | int, ...]) -> bool:
+    return (
+        _is_crowning_predicate_path(path)
+        or _is_failed_grant_predicate_path(path)
+        or _is_repair_bound_predicate_path(path)
+        or _is_replay_predicate_path(path)
+    )
 
 
 def reject_self_assertion_claims(

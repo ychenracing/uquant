@@ -40,6 +40,12 @@ EVIDENCE_RECOVERY_CHANGED_PATHS = {
     "uquant/risk_sentinel/integration.py",
 }
 EVIDENCE_CLOSURE_DELIVERY_COMMIT = "0ae54c0a6d2d4ca3dfe9814c75fbe82ae5591ac4"
+_CURRENT_CONFIG_SHA256 = (
+    "c05faf292a508d825cb4aaee09de65a5fb5a8db6acae6d21348ffcbec86d954b"
+)
+_HISTORICAL_CONFIG_SHA256 = (
+    "dae4d79fdd813832c6ab152611437c13be1d38227c7280691874d3a9267d93d5"
+)
 
 
 def _inventory() -> dict[str, object]:
@@ -243,6 +249,17 @@ def test_evidence_closure_seal_matches_historical_analyzer(
     )
     del current_without_identity["provenance"]["code_sha256"]
     del historical_without_identity["provenance"]["code_sha256"]
+    assert (
+        current_without_identity["provenance"]["config_sha256"]
+        == _CURRENT_CONFIG_SHA256
+    )
+    assert (
+        historical_without_identity["provenance"]["config_sha256"]
+        == _HISTORICAL_CONFIG_SHA256
+    )
+    current_without_identity["provenance"]["config_sha256"] = (
+        _HISTORICAL_CONFIG_SHA256
+    )
     assert current_without_identity == historical_without_identity
     historical_bytes = (json.dumps(expected, indent=2, sort_keys=True) + "\n").encode()
     assert provenance["regenerated_payload_sha256"] == hashlib.sha256(

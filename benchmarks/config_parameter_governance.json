@@ -5,11 +5,11 @@
   "counts": {
     "before": {"total_fields": 285, "economic_fields": 164},
     "after": {"total_fields": 278, "economic_fields": 164},
-    "current": {"total_fields": 281, "economic_fields": 164}
+    "current": {"total_fields": 277, "economic_fields": 164}
   },
   "config_migration": {
     "champion_config_sha256": "023d709731196a325d9cd03e95ece92e4baf63d2c5c66bb9f7d0e7a190e7bf20",
-    "candidate_config_sha256": "dae4d79fdd813832c6ab152611437c13be1d38227c7280691874d3a9267d93d5"
+    "candidate_config_sha256": "c05faf292a508d825cb4aaee09de65a5fb5a8db6acae6d21348ffcbec86d954b"
   },
   "categories": {
     "MARKET_RULE": [
@@ -366,18 +366,7 @@
       }
     ],
     "DERIVED": [],
-    "COMPATIBILITY": [
-      {
-        "owner": "CONTROL_PLANE",
-        "rationale": "Retains an explicitly gated alternative production path for backward comparison; it is not eligible for candidate optimization without separate causal equivalence and review.",
-        "fields": [
-          "hierarchical_industry_shrinkage_enabled",
-          "group_balanced_reference_enabled",
-          "same_day_leader_pipeline_enabled",
-          "evidence_family_voting_enabled"
-        ]
-      }
-    ]
+    "COMPATIBILITY": []
   },
   "removal_plan": [
     {
@@ -424,5 +413,5 @@
     }
   ],
   "removed_fields": ["strategic_cohort_symbols", "strategic_partial_universe_max_size", "adaptive_broad_universe_min_size", "adaptive_broad_universe_compatibility_enabled", "strategic_expansive_universe_min_size", "strategic_persistent_confirm_days", "strategic_reversal_confirm_days"],
-  "artifact_sha256": "90d8fe643ec35428a236d4de1d394e36c12c840c945a2bf6353db62fa5767d6e"
+  "artifact_sha256": "89fbc546e7969d02df9f1f4b16616962d0c23a502d5ee3d340f68c23b5f5a19a"
 }

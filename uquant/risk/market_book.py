@@ -158,10 +158,6 @@ def _collect_reference_observations(
         if (
             symbol in leaders
             and leaders[symbol].mature
-            and (
-                not cfg.same_day_leader_pipeline_enabled
-                or account.leader_tenure.get(symbol, 0) >= cfg.leader_tenure_days
-            )
         ):
             result.leader_failures.append(ret5 < -0.06 or (math.isfinite(close) and close < ma20))
     return result
@@ -392,7 +388,7 @@ def _market_voting_state(
     indicators = snapshot.with_leadership(leader_failure=metrics.leader_failure >= 0.50)
     reasons = [_REASON_BY_INDICATOR[indicator] for indicator, active in indicators.items() if active]
     families = evidence_family_votes(indicators)
-    votes = sum(families.values()) if cfg.evidence_family_voting_enabled else sum(indicators.values())
+    votes = sum(indicators.values())
     return _VotingState(reasons, indicators, families, votes)
 
 
@@ -504,20 +500,16 @@ def _apply_live_book_votes(
         if state.indicators[indicator]
     )
     state.family_votes = evidence_family_votes(state.indicators)
-    state.votes = (
-        sum(state.family_votes.values())
-        if cfg.evidence_family_voting_enabled
-        else sum(
-            state.indicators[name]
-            for name in (
-                "sector_breadth_shock",
-                "below_ma20_structure",
-                "multi_industry_sync",
-                "correlation_shock",
-                "volatility_shock",
-                "leader_failure",
-                "index_velocity",
-            )
+    state.votes = sum(
+        state.indicators[name]
+        for name in (
+            "sector_breadth_shock",
+            "below_ma20_structure",
+            "multi_industry_sync",
+            "correlation_shock",
+            "volatility_shock",
+            "leader_failure",
+            "index_velocity",
         )
     )
 

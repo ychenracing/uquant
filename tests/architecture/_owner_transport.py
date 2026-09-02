@@ -72,6 +72,9 @@ _VALIDATION_ADDITIONS = frozenset(
         "research/future_holdout_cli.py",
         "research/performance_diagnostic.py",
         "research/generalization_ablation_cli.py",
+        "research/post_generalization_trust_closure_checkpoint_b.py",
+        "research/post_generalization_trust_closure_checkpoint_c.py",
+        "research/post_generalization_trust_closure_checkpoint_c_adjudication.py",
         "research/risk_counterfactual_cli.py",
         "research/risk_differential_analysis.py",
         "research/risk_differential_cli.py",
@@ -115,6 +118,7 @@ _VALIDATION_ADDITIONS = frozenset(
         "uquant/risk_sentinel/source_identity_archive.py",
         "uquant/validation/competitor_reference.py",
         "uquant/validation/absolute_generalization/__init__.py",
+        "uquant/validation/absolute_generalization/_account_payload.py",
         "uquant/validation/absolute_generalization/_acceptance_evidence.py",
         "uquant/validation/absolute_generalization/_champion_runtime_reconciliation.py",
         "uquant/validation/absolute_generalization/_execution_chain_reconciliation.py",
@@ -180,6 +184,7 @@ _CURRENT_SOURCE_PATHS = {
     "scripts/verify_phase1_decision_equivalence.py": (
         "scripts/verify_decision_equivalence.py"
     ),
+    "uquant/account/migrations.py": "uquant/account/code_identity.py",
 }
 
 _CURRENT_RESOURCE_PATHS = {

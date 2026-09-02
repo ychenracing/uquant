@@ -44,7 +44,7 @@ def _assert_historical_evidence_account_decoder_contract() -> None:
     assert decoded.schema_version == 5
     assert decoded.initial_cash == account["initial_cash"]
     assert decoded.cash == account["cash"]
-    with pytest.raises(RuntimeError, match="requires explicit migration"):
+    with pytest.raises(RuntimeError, match="unsupported account schema 5; expected 8"):
         account_from_dict(account, require_hashes=False)
 
     injected_envelope_seal = {**account, "payload_sha256": "0" * 64}
@@ -90,7 +90,10 @@ def _assert_historical_evidence_account_decoder_contract() -> None:
             expected_economic_sha256="0" * 64,
         )
     changed_schema = {**account, "schema_version": 4}
-    with pytest.raises((RuntimeError, ValueError)):
+    with pytest.raises(
+        ValueError,
+        match="historical evidence account schema 4; expected 5 or 8",
+    ):
         decoder(
             changed_schema,
             expected_payload_sha256=canonical_sha256(changed_schema),
@@ -106,7 +109,10 @@ def _assert_historical_evidence_account_decoder_contract() -> None:
     )
     assert current_decoded.to_dict() == current_payload
     future = {**current_payload, "schema_version": ACCOUNT_SCHEMA_VERSION + 1}
-    with pytest.raises(RuntimeError, match="unsupported account schema"):
+    with pytest.raises(
+        ValueError,
+        match="historical evidence account schema 9; expected 5 or 8",
+    ):
         decoder(
             future,
             expected_payload_sha256=canonical_sha256(future),

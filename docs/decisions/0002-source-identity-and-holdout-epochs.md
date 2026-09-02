@@ -15,12 +15,13 @@
 重写旧 epoch。`production_wheel_v1/v2/v3/v4` 保留原始成员与摘要；当前 `production_wheel_v5` 登记
 由固定 build frontend/backend、固定 `SOURCE_DATE_EPOCH`、登记 commit 的干净 `git archive`
 和确定性 ZIP 规范化生成的 wheel、逐成员 manifest、锁文件和 source-surface 摘要，状态为
-`ACTIVE_FOR_NEW_ACCOUNTS`；既有账户只能通过显式 code-identity migration 前进。
+`ACTIVE_FOR_NEW_ACCOUNTS`；schema 8 账户切换到已评审源码时必须显式执行
+`account-code-migrate`，并保持 `economic_state_sha256` 不变。
 
 v2 的原始 gate commit 未发布到远程，因此其登记文件保留原始 commit 作为修正来源，同时把
 remote main 的 package-input-equivalent commit 设为恢复锚点。该锚点可精确恢复每个 payload
 成员，但历史 wheel 混合了偶然的 ZIP 权限位，不能诚实宣称容器 byte-exact；v3 引入固定成员
-顺序、时间、权限和 `ZIP_STORED`；v4 沿用同一构建合同登记兼容性命名源码，v5 登记当前领域命名源码。
+顺序、时间、权限和 `ZIP_STORED`；v4 登记当时的源码命名，v5 登记当前领域命名源码。
 
 ## 恢复与证据
 

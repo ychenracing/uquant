@@ -20,21 +20,14 @@ PY
 
 配置只面向 2023 年以来的 A 股 AI 产业链现金多头组合，运行频率为日频，收盘后决策、下一交易日执行，并保留人工核对环节。经济性验收不得早于 `2023-01-01`；更早数据只允许作为特征 warm-up，不得用于收益、回撤、订单或换手门槛。唯一支持的运行时是 Python 3.12。
 
-以下生产路径开关由 `DEFAULT_CONFIG` 直接定义；`_decision_config_for_universe()` 对所有股票池大小都返回同一个传入配置：
-
-| 参数 | 生产默认值 |
-|---|---:|
-| `same_day_leader_pipeline_enabled` | false |
-| `group_balanced_reference_enabled` | false |
-| `hierarchical_industry_shrinkage_enabled` | false |
-| `evidence_family_voting_enabled` | false |
+`_decision_config_for_universe()` 对所有股票池大小都返回同一个传入配置。生产决策使用持久化 leader tenure，行业稀疏度按 `industry_signal_min_members` 收缩到中性值，group-balanced reference 只写诊断证据，风险票数按基础因果指标累计。
 
 ## 参数治理
 
 `benchmarks/config_parameter_governance.json` 要求每个 `SystemConfig` 字段恰好属于
-`MARKET_RULE`、`SAFETY`、`ECONOMIC`、`DERIVED` 或 `COMPATIBILITY` 一类，并有唯一
+`MARKET_RULE`、`SAFETY`、`ECONOMIC` 或 `DERIVED` 一类，并有唯一
 owner。市场费用、T+1、涨跌停、停牌、手数、现金和组合硬上限不是搜索自由；derived
-字段不能独立覆盖，compatibility 字段只用于确定性等价，只有 `ECONOMIC` 字段可以
+字段不能独立覆盖，只有 `ECONOMIC` 字段可以
 进入候选选择。任何被接受的默认值变化都必须重新通过性能验收和完整的六窗口泛化
 验收，不能由人工日常运行或研究脚本临时注入场景专用参数。
 
@@ -128,20 +121,19 @@ owner。市场费用、T+1、涨跌停、停牌、手数、现金和组合硬上
 | `strategic_dominant_max_weight` | 0.95 | 独立证据确认的战略主导者特例上限 |
 | `strategic_damage_guard_gross` | 0.89 | 战略组合受损时的仓位上限 |
 | `strategic_two_name_gross` | 0.85 | 双成员总仓 |
-| `strategic_two_name_confirm_days` | 3 | 为配置兼容和治理清单保留；当前路由不选择 |
+| `strategic_two_name_confirm_days` | 3 | `STRONG_PAIR` 资格连续确认期 |
 | `strategic_one_name_gross` | 0.50 | 单成员总仓 |
-| `strategic_one_name_confirm_days` | 4 | 为配置兼容和治理清单保留；当前路由不选择 |
+| `strategic_one_name_confirm_days` | 4 | `ABSOLUTE_SINGLE` 资格连续确认期 |
 | `strategic_epoch_cooldown_sessions` | 30 | 完整退出后的冷却 |
 | `strategic_cohort_profit_arm` | 0.10 | ATR 保护启动 MFE |
 | `strategic_cohort_trail_atr` | 3.55 | ATR 保护距离 |
 | `strategic_cohort_disaster_stop` | -0.20 | 灾难退出线 |
 
 `strategic_cohort_symbols` 是账户状态字段，不是 `SystemConfig` 参数；新账户初始为空，
-成员只能从调用方给出的固定全集中按因果证据动态产生。单/双成员只在同步反转证据下
-可入场；该条件会先选择 `strategic_cohort_confirm_days=2`，因此两者当前都要求连续两日确认。
-`strategic_two_name_confirm_days=3` 和 `strategic_one_name_confirm_days=4` 仍保留在
-`SystemConfig` 和参数治理清单中，以维持配置兼容，但当前路由不会选中它们；
-成员路由也不按证券全集大小切换。
+成员只能从调用方给出的固定全集中按因果证据动态产生。至少三名候选的 `FULL_COHORT`
+使用 `strategic_cohort_confirm_days=2`；两名候选的 `STRONG_PAIR` 使用 3 日；单名候选的
+`ABSOLUTE_SINGLE` 使用 4 日并满足更高分数门槛。成员路由由当日合格候选数和证据决定，
+不按调用方证券全集大小切换。
 
 `strategic_dominant_max_weight=0.95` 只约束单一战略主导者特例。账户必须只有该主导者，
 Risk 必须为 `NORMAL/CAUTION`、`reduction_level <= 1`，且不存在 sector guard、strategic
@@ -173,7 +165,7 @@ damage guard 或 acute evacuation；策略目标还必须不低于当前总仓�
 | `chronic_moderate_cap` | 0.45 |
 | `chronic_severe_cap` | 0.30 |
 
-资本预算阶梯默认开启；`evidence_family_voting_enabled` 明确默认为 `false`。风险状态仍消费同一份因果证据，但生产不会在引擎内部按股票池大小偷偷打开证据家族投票或另一个策略配置。改变这些开关会显著影响回撤和恢复速度，必须重新运行完整 AI-era 门禁。
+资本预算阶梯默认开启；风险状态消费同一份因果证据，并按基础指标累计票数。改变风险阈值会显著影响回撤和恢复速度，必须重新运行完整 AI-era 门禁。
 
 ### Risk Sentinel 生产边界
 

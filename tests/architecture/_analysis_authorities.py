@@ -27,9 +27,9 @@ MODULE_AUTHORITIES = {
     "uquant": "production_safe",
     "uquant.__main__": "cli_runner",
     "uquant.account": "production_safe",
+    "uquant.account.code_identity": "production_safe",
     "uquant.account.codec": "production_safe",
     "uquant.account.economic_identity": "production_safe",
-    "uquant.account.migrations": "production_safe",
     "uquant.account.store": "production_safe",
     "uquant.account.validation_attribution": "production_safe",
     "uquant.account.validation_common": "production_safe",
@@ -191,6 +191,7 @@ MODULE_AUTHORITIES = {
     "uquant.validation": "validation_runner",
     "uquant.validation.__main__": "cli_runner",
     "uquant.validation.absolute_generalization": "validation_runner",
+    "uquant.validation.absolute_generalization._account_payload": "validation_runner",
     "uquant.validation.absolute_generalization._acceptance_evidence": "validation_runner",
     "uquant.validation.absolute_generalization._champion_runtime_reconciliation": "validation_runner",
     "uquant.validation.absolute_generalization._execution_chain_reconciliation": "validation_runner",
@@ -286,9 +287,9 @@ _DEBT_RELOCATIONS = {
     **{
         module: "uquant.account"
         for module in (
+            "uquant.account.code_identity",
             "uquant.account.codec",
             "uquant.account.economic_identity",
-            "uquant.account.migrations",
             "uquant.account.store",
             "uquant.account.validation_attribution",
             "uquant.account.validation_common",

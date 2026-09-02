@@ -5,7 +5,7 @@ from __future__ import annotations
 from copy import deepcopy
 from dataclasses import fields
 
-from ..account import validate_pending_order_for_account_write
+from ..account.validation_orders import validate_pending_order_for_account_write
 from ..models.strategic_grant import record_strategic_grant_submissions
 from ..models.trading import account_order_physical_chain_identity
 from ..types import (

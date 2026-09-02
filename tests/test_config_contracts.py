@@ -223,9 +223,9 @@ def test_configuration_serialization_is_complete_and_detached() -> None:
     assert DEFAULT_CONFIG.max_gross == 1.0
 
 
-def test_disabled_causal_confirmation_preserves_frozen_config_identity() -> None:
+def test_causal_confirmation_toggle_changes_current_config_identity() -> None:
     assert config_fingerprint(DEFAULT_CONFIG) == (
-        "dae4d79fdd813832c6ab152611437c13be1d38227c7280691874d3a9267d93d5"
+        "c05faf292a508d825cb4aaee09de65a5fb5a8db6acae6d21348ffcbec86d954b"
     )
     assert config_fingerprint(
         DEFAULT_CONFIG.override(risk_sentinel_causal_confirmation_enabled=True)

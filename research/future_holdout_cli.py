@@ -84,11 +84,10 @@ def _reject_duplicate_keys(pairs: Iterable[tuple[str, Any]]) -> dict[str, Any]:
 def _parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="python -m scripts.future_holdout")
     sub = parser.add_subparsers(dest="command", required=True)
-    for command in ("validate-lanes", "validate-static-lanes"):
-        lanes = sub.add_parser(command)
-        lanes.add_argument("--repository-root", default=".")
-        lanes.add_argument("--registry", default="benchmarks/future_holdout_lane_registry.json")
-        lanes.add_argument("--evidence", default="artifacts/holdout/lane_validation.json")
+    lanes = sub.add_parser("validate-static-lanes")
+    lanes.add_argument("--repository-root", default=".")
+    lanes.add_argument("--registry", default="benchmarks/future_holdout_lane_registry.json")
+    lanes.add_argument("--evidence", default="artifacts/holdout/lane_validation.json")
     local = sub.add_parser("report-lanes")
     local.add_argument("--repository-root", default=".")
     local.add_argument("--registry", default="benchmarks/future_holdout_lane_registry.json")
@@ -444,7 +443,7 @@ def _differential_formal_scores(rows: list[dict[str, Any]]) -> dict[str, Any] | 
 
 def main(argv: list[str] | None = None) -> int:
     args = _parser().parse_args(argv)
-    if args.command in {"validate-lanes", "validate-static-lanes"}:
+    if args.command == "validate-static-lanes":
         print(json.dumps(_validate_static_lanes(args), ensure_ascii=False, indent=2, sort_keys=True))
         return 0
     if args.command == "report-lanes":

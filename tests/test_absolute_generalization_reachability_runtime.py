@@ -336,7 +336,7 @@ def test_initial_crowning_preserves_empty_authorization_session() -> None:
     _target, grant, _epoch, _order, _fill = _filled_chain()
     grant.authorization_id = ""
 
-    assert runtime_module._crowning_authorization_session(
+    assert runtime_module._observed_crowning_authorization_session(
         {"strategic_grant": asdict(grant)}, grant
     ) == ""
 

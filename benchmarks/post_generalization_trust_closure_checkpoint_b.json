@@ -1,0 +1,2416 @@
+{
+  "schema_version": 1,
+  "evidence_id": "post-generalization-trust-closure-checkpoint-b",
+  "authoritative_acceptance": false,
+  "future_holdout_used": false,
+  "scope": "HISTORICAL_DIAGNOSTIC_ONLY",
+  "production_defaults_changed": false,
+  "parameter_sensitivity": {
+    "budget": {
+      "baseline_replays": 1,
+      "one_factor_variants": 16,
+      "historical_production_engine_replays": 17,
+      "grid_search": false,
+      "selection": false
+    },
+    "window": {
+      "start": "2023-01-03",
+      "end": "2026-08-05",
+      "future_holdout_boundary": "2026-08-06"
+    },
+    "symbols": [
+      "sz300308",
+      "sz300502",
+      "sz300394",
+      "sh688008",
+      "sh603986"
+    ],
+    "classification_bounds": {
+      "stable_final_wealth_absolute": 0.05,
+      "stable_mdd_absolute": 0.03,
+      "stable_account_orders_absolute": 2,
+      "stable_target_changed_fraction": 0.05,
+      "knife_edge_final_wealth_absolute": 0.25,
+      "knife_edge_mdd_absolute": 0.1,
+      "knife_edge_account_orders_absolute": 4,
+      "knife_edge_target_changed_fraction": 0.2
+    },
+    "cases": [
+      {
+        "case_id": "BASELINE",
+        "parameter": {
+          "field": null,
+          "value": null
+        },
+        "identity": {
+          "canonical_sha256": "f9a2e3e6b0a7dfa0a31403c31150b03edab302a2d1b56e1455f0c8d26f9a57ca",
+          "case_id": "BASELINE",
+          "effective_config_sha256": "dae4d79fdd813832c6ab152611437c13be1d38227c7280691874d3a9267d93d5",
+          "frozen_data": {
+            "checksums_sha256": "ba460d65f791f238d8a4a16ac62e2225c1832caa6f4da5003166a894edf80e29",
+            "files_verified": 36,
+            "manifest_sha256": "343009138d22f8d4a20768f706207fe4d4bcd03581b0c5945c5485ecbd28788d",
+            "snapshot_id": "20260809T094222Z-causal-tech-index-rebase"
+          },
+          "parameter": {
+            "field": null,
+            "value": null
+          },
+          "production_source_sha256": "e0331925a7d199d60464c69080ade0abf831e106dcb1bef0afd6b74baaccc10f",
+          "runner_source_sha256": "cd49dec3bc467328b6e7fe5ec8d07f6a04b6d01a202da94f5639c50c3e38b040",
+          "runtime": {
+            "canonical_sha256": "a5e8a0aa7a2bd744b928a1403248374f0107d14e2a9d5202eb50f2284b323bbb",
+            "numpy": "2.5.1",
+            "pandas": "3.0.5",
+            "python": "3.12.13",
+            "python_full": "3.12.13 (main, Aug  7 2026, 02:25:39) [Clang 22.1.3 ]",
+            "uv_lock_sha256": "4accf16535b5ac95b831c9289e0ad2ff21282dc5dfae3f05dd0fb095089d6a61"
+          },
+          "symbols": [
+            "sz300308",
+            "sz300502",
+            "sz300394",
+            "sh688008",
+            "sh603986"
+          ],
+          "window": {
+            "end": "2026-08-05",
+            "start": "2023-01-03"
+          }
+        },
+        "status": "SUCCESS",
+        "cache_canonical_sha256": "c77b297fd93aa7a039f80b3d5ce0b992d6c43d0de3f59b6840e382a83eb99f8e",
+        "metrics": {
+          "account_orders": 12,
+          "annual_turnover": 8.617420330729114,
+          "concentration_status": "DEFINED",
+          "fills": 15,
+          "final_equity": 49019323.60580173,
+          "final_wealth": 24.509661802900865,
+          "gross_turnover": 30.944373005800003,
+          "max_drawdown": 0.27146973146234554,
+          "pending_orders": 0,
+          "pnl_hhi": 1.0,
+          "top1_concentration": 1.0,
+          "top3_concentration": 1.0
+        },
+        "differences_vs_baseline": {
+          "final_wealth": 0.0,
+          "max_drawdown": 0.0,
+          "account_orders": 0,
+          "gross_turnover": 0.0,
+          "top1_concentration": 0.0,
+          "top3_concentration": 0.0,
+          "pnl_hhi": 0.0,
+          "target_changed_sessions": 0,
+          "owner_changed_sessions": 0,
+          "risk_state_changed_sessions": 0,
+          "strategic_epoch_differences": 0,
+          "cash_streak_sessions": 0
+        },
+        "longest_cash_streak": {
+          "end": "2026-08-05",
+          "sessions": 31,
+          "start": "2026-06-24"
+        },
+        "invariants": {
+          "accounting_reconciled": true,
+          "no_duplicate_fill": true,
+          "no_duplicate_order": true,
+          "no_future_data": true,
+          "no_leverage": true,
+          "no_negative_cash": true,
+          "no_short": true
+        },
+        "acceptance_result": "PASS"
+      },
+      {
+        "case_id": "P1_LOWER",
+        "parameter": {
+          "field": "strategic_reversal_max_ret240",
+          "value": -0.18
+        },
+        "identity": {
+          "canonical_sha256": "532a7053e5115d7b2729ba30578784a450788f8937e283179981616a12b018ca",
+          "case_id": "P1_LOWER",
+          "effective_config_sha256": "221a64bc9149148876a0fbb5dc6d1d5fec74b6df7736afb69c0445182364d694",
+          "frozen_data": {
+            "checksums_sha256": "ba460d65f791f238d8a4a16ac62e2225c1832caa6f4da5003166a894edf80e29",
+            "files_verified": 36,
+            "manifest_sha256": "343009138d22f8d4a20768f706207fe4d4bcd03581b0c5945c5485ecbd28788d",
+            "snapshot_id": "20260809T094222Z-causal-tech-index-rebase"
+          },
+          "parameter": {
+            "field": "strategic_reversal_max_ret240",
+            "value": -0.18
+          },
+          "production_source_sha256": "e0331925a7d199d60464c69080ade0abf831e106dcb1bef0afd6b74baaccc10f",
+          "runner_source_sha256": "cd49dec3bc467328b6e7fe5ec8d07f6a04b6d01a202da94f5639c50c3e38b040",
+          "runtime": {
+            "canonical_sha256": "a5e8a0aa7a2bd744b928a1403248374f0107d14e2a9d5202eb50f2284b323bbb",
+            "numpy": "2.5.1",
+            "pandas": "3.0.5",
+            "python": "3.12.13",
+            "python_full": "3.12.13 (main, Aug  7 2026, 02:25:39) [Clang 22.1.3 ]",
+            "uv_lock_sha256": "4accf16535b5ac95b831c9289e0ad2ff21282dc5dfae3f05dd0fb095089d6a61"
+          },
+          "symbols": [
+            "sz300308",
+            "sz300502",
+            "sz300394",
+            "sh688008",
+            "sh603986"
+          ],
+          "window": {
+            "end": "2026-08-05",
+            "start": "2023-01-03"
+          }
+        },
+        "status": "SUCCESS",
+        "cache_canonical_sha256": "debd3e3d767d85e27e3bdc683daec3a3c80f85315aee6ebf697ab4109b6a87b8",
+        "metrics": {
+          "account_orders": 12,
+          "annual_turnover": 8.617420330729114,
+          "concentration_status": "DEFINED",
+          "fills": 15,
+          "final_equity": 49019323.60580173,
+          "final_wealth": 24.509661802900865,
+          "gross_turnover": 30.944373005800003,
+          "max_drawdown": 0.27146973146234554,
+          "pending_orders": 0,
+          "pnl_hhi": 1.0,
+          "top1_concentration": 1.0,
+          "top3_concentration": 1.0
+        },
+        "differences_vs_baseline": {
+          "final_wealth": 0.0,
+          "max_drawdown": 0.0,
+          "account_orders": 0,
+          "gross_turnover": 0.0,
+          "top1_concentration": 0.0,
+          "top3_concentration": 0.0,
+          "pnl_hhi": 0.0,
+          "target_changed_sessions": 0,
+          "owner_changed_sessions": 0,
+          "risk_state_changed_sessions": 0,
+          "strategic_epoch_differences": 0,
+          "cash_streak_sessions": 0
+        },
+        "longest_cash_streak": {
+          "end": "2026-08-05",
+          "sessions": 31,
+          "start": "2026-06-24"
+        },
+        "invariants": {
+          "accounting_reconciled": true,
+          "no_duplicate_fill": true,
+          "no_duplicate_order": true,
+          "no_future_data": true,
+          "no_leverage": true,
+          "no_negative_cash": true,
+          "no_short": true
+        },
+        "acceptance_result": "PASS"
+      },
+      {
+        "case_id": "P1_UPPER",
+        "parameter": {
+          "field": "strategic_reversal_max_ret240",
+          "value": -0.12
+        },
+        "identity": {
+          "canonical_sha256": "12dd1b64fa405a333a28cc897bab2ad34935007516e7218ab81a0edd95594488",
+          "case_id": "P1_UPPER",
+          "effective_config_sha256": "d6408b5608c9d1ecdd943d577190269612ec016fe8291ecf0472109a14fcce9a",
+          "frozen_data": {
+            "checksums_sha256": "ba460d65f791f238d8a4a16ac62e2225c1832caa6f4da5003166a894edf80e29",
+            "files_verified": 36,
+            "manifest_sha256": "343009138d22f8d4a20768f706207fe4d4bcd03581b0c5945c5485ecbd28788d",
+            "snapshot_id": "20260809T094222Z-causal-tech-index-rebase"
+          },
+          "parameter": {
+            "field": "strategic_reversal_max_ret240",
+            "value": -0.12
+          },
+          "production_source_sha256": "e0331925a7d199d60464c69080ade0abf831e106dcb1bef0afd6b74baaccc10f",
+          "runner_source_sha256": "cd49dec3bc467328b6e7fe5ec8d07f6a04b6d01a202da94f5639c50c3e38b040",
+          "runtime": {
+            "canonical_sha256": "a5e8a0aa7a2bd744b928a1403248374f0107d14e2a9d5202eb50f2284b323bbb",
+            "numpy": "2.5.1",
+            "pandas": "3.0.5",
+            "python": "3.12.13",
+            "python_full": "3.12.13 (main, Aug  7 2026, 02:25:39) [Clang 22.1.3 ]",
+            "uv_lock_sha256": "4accf16535b5ac95b831c9289e0ad2ff21282dc5dfae3f05dd0fb095089d6a61"
+          },
+          "symbols": [
+            "sz300308",
+            "sz300502",
+            "sz300394",
+            "sh688008",
+            "sh603986"
+          ],
+          "window": {
+            "end": "2026-08-05",
+            "start": "2023-01-03"
+          }
+        },
+        "status": "SUCCESS",
+        "cache_canonical_sha256": "4647453598adaeae5c31bc3b5f83313b33d1f3a4bef35d90071cd66baf921d25",
+        "metrics": {
+          "account_orders": 12,
+          "annual_turnover": 8.617420330729114,
+          "concentration_status": "DEFINED",
+          "fills": 15,
+          "final_equity": 49019323.60580173,
+          "final_wealth": 24.509661802900865,
+          "gross_turnover": 30.944373005800003,
+          "max_drawdown": 0.27146973146234554,
+          "pending_orders": 0,
+          "pnl_hhi": 1.0,
+          "top1_concentration": 1.0,
+          "top3_concentration": 1.0
+        },
+        "differences_vs_baseline": {
+          "final_wealth": 0.0,
+          "max_drawdown": 0.0,
+          "account_orders": 0,
+          "gross_turnover": 0.0,
+          "top1_concentration": 0.0,
+          "top3_concentration": 0.0,
+          "pnl_hhi": 0.0,
+          "target_changed_sessions": 0,
+          "owner_changed_sessions": 0,
+          "risk_state_changed_sessions": 0,
+          "strategic_epoch_differences": 0,
+          "cash_streak_sessions": 0
+        },
+        "longest_cash_streak": {
+          "end": "2026-08-05",
+          "sessions": 31,
+          "start": "2026-06-24"
+        },
+        "invariants": {
+          "accounting_reconciled": true,
+          "no_duplicate_fill": true,
+          "no_duplicate_order": true,
+          "no_future_data": true,
+          "no_leverage": true,
+          "no_negative_cash": true,
+          "no_short": true
+        },
+        "acceptance_result": "PASS"
+      },
+      {
+        "case_id": "P2_LOWER",
+        "parameter": {
+          "field": "strategic_reversal_min_ret5",
+          "value": 0.04
+        },
+        "identity": {
+          "canonical_sha256": "8654ee0ae0b1fc93ba36344fd0d18f671d77bd842556bd202a8ffd08eca6bca2",
+          "case_id": "P2_LOWER",
+          "effective_config_sha256": "de7bd0e9a11461b09d0eeb9e5b3aedc7177dccfe9579ed08a5fe6b3e3801ee3d",
+          "frozen_data": {
+            "checksums_sha256": "ba460d65f791f238d8a4a16ac62e2225c1832caa6f4da5003166a894edf80e29",
+            "files_verified": 36,
+            "manifest_sha256": "343009138d22f8d4a20768f706207fe4d4bcd03581b0c5945c5485ecbd28788d",
+            "snapshot_id": "20260809T094222Z-causal-tech-index-rebase"
+          },
+          "parameter": {
+            "field": "strategic_reversal_min_ret5",
+            "value": 0.04
+          },
+          "production_source_sha256": "e0331925a7d199d60464c69080ade0abf831e106dcb1bef0afd6b74baaccc10f",
+          "runner_source_sha256": "cd49dec3bc467328b6e7fe5ec8d07f6a04b6d01a202da94f5639c50c3e38b040",
+          "runtime": {
+            "canonical_sha256": "a5e8a0aa7a2bd744b928a1403248374f0107d14e2a9d5202eb50f2284b323bbb",
+            "numpy": "2.5.1",
+            "pandas": "3.0.5",
+            "python": "3.12.13",
+            "python_full": "3.12.13 (main, Aug  7 2026, 02:25:39) [Clang 22.1.3 ]",
+            "uv_lock_sha256": "4accf16535b5ac95b831c9289e0ad2ff21282dc5dfae3f05dd0fb095089d6a61"
+          },
+          "symbols": [
+            "sz300308",
+            "sz300502",
+            "sz300394",
+            "sh688008",
+            "sh603986"
+          ],
+          "window": {
+            "end": "2026-08-05",
+            "start": "2023-01-03"
+          }
+        },
+        "status": "SUCCESS",
+        "cache_canonical_sha256": "68abb696ad7c0bdcd66bfc2123dff5692cb9311dd192499a32624a615693da63",
+        "metrics": {
+          "account_orders": 12,
+          "annual_turnover": 8.617420330729114,
+          "concentration_status": "DEFINED",
+          "fills": 15,
+          "final_equity": 49019323.60580173,
+          "final_wealth": 24.509661802900865,
+          "gross_turnover": 30.944373005800003,
+          "max_drawdown": 0.27146973146234554,
+          "pending_orders": 0,
+          "pnl_hhi": 1.0,
+          "top1_concentration": 1.0,
+          "top3_concentration": 1.0
+        },
+        "differences_vs_baseline": {
+          "final_wealth": 0.0,
+          "max_drawdown": 0.0,
+          "account_orders": 0,
+          "gross_turnover": 0.0,
+          "top1_concentration": 0.0,
+          "top3_concentration": 0.0,
+          "pnl_hhi": 0.0,
+          "target_changed_sessions": 0,
+          "owner_changed_sessions": 0,
+          "risk_state_changed_sessions": 0,
+          "strategic_epoch_differences": 0,
+          "cash_streak_sessions": 0
+        },
+        "longest_cash_streak": {
+          "end": "2026-08-05",
+          "sessions": 31,
+          "start": "2026-06-24"
+        },
+        "invariants": {
+          "accounting_reconciled": true,
+          "no_duplicate_fill": true,
+          "no_duplicate_order": true,
+          "no_future_data": true,
+          "no_leverage": true,
+          "no_negative_cash": true,
+          "no_short": true
+        },
+        "acceptance_result": "PASS"
+      },
+      {
+        "case_id": "P2_UPPER",
+        "parameter": {
+          "field": "strategic_reversal_min_ret5",
+          "value": 0.06
+        },
+        "identity": {
+          "canonical_sha256": "a3e90613935e518437d4f8bc62d50928fbec201f3883b8f8d82c5cc095fd4048",
+          "case_id": "P2_UPPER",
+          "effective_config_sha256": "1ec7d2184b38437943e1bed2e338f0d63bc286e0e00b3912d409a0b214a7679b",
+          "frozen_data": {
+            "checksums_sha256": "ba460d65f791f238d8a4a16ac62e2225c1832caa6f4da5003166a894edf80e29",
+            "files_verified": 36,
+            "manifest_sha256": "343009138d22f8d4a20768f706207fe4d4bcd03581b0c5945c5485ecbd28788d",
+            "snapshot_id": "20260809T094222Z-causal-tech-index-rebase"
+          },
+          "parameter": {
+            "field": "strategic_reversal_min_ret5",
+            "value": 0.06
+          },
+          "production_source_sha256": "e0331925a7d199d60464c69080ade0abf831e106dcb1bef0afd6b74baaccc10f",
+          "runner_source_sha256": "cd49dec3bc467328b6e7fe5ec8d07f6a04b6d01a202da94f5639c50c3e38b040",
+          "runtime": {
+            "canonical_sha256": "a5e8a0aa7a2bd744b928a1403248374f0107d14e2a9d5202eb50f2284b323bbb",
+            "numpy": "2.5.1",
+            "pandas": "3.0.5",
+            "python": "3.12.13",
+            "python_full": "3.12.13 (main, Aug  7 2026, 02:25:39) [Clang 22.1.3 ]",
+            "uv_lock_sha256": "4accf16535b5ac95b831c9289e0ad2ff21282dc5dfae3f05dd0fb095089d6a61"
+          },
+          "symbols": [
+            "sz300308",
+            "sz300502",
+            "sz300394",
+            "sh688008",
+            "sh603986"
+          ],
+          "window": {
+            "end": "2026-08-05",
+            "start": "2023-01-03"
+          }
+        },
+        "status": "SUCCESS",
+        "cache_canonical_sha256": "d7492c87dc498325416a74cd131ff7db8252aa6f08aedb57002b606f7eb8f5c0",
+        "metrics": {
+          "account_orders": 12,
+          "annual_turnover": 1.158432536813924,
+          "concentration_status": "DEFINED",
+          "fills": 12,
+          "final_equity": 3039419.992454822,
+          "final_wealth": 1.519709996227411,
+          "gross_turnover": 4.15982592765,
+          "max_drawdown": 0.36843133703734265,
+          "pending_orders": 0,
+          "pnl_hhi": 0.534868354521379,
+          "top1_concentration": 0.6320385446022847,
+          "top3_concentration": 1.0
+        },
+        "differences_vs_baseline": {
+          "final_wealth": -22.989951806673453,
+          "max_drawdown": 0.09696160557499711,
+          "account_orders": 0,
+          "gross_turnover": -26.784547078150002,
+          "top1_concentration": -0.3679614553977153,
+          "top3_concentration": 0.0,
+          "pnl_hhi": -0.46513164547862096,
+          "target_changed_sessions": 837,
+          "owner_changed_sessions": 227,
+          "risk_state_changed_sessions": 298,
+          "strategic_epoch_differences": 1,
+          "cash_streak_sessions": 229
+        },
+        "longest_cash_streak": {
+          "end": "2026-04-22",
+          "sessions": 260,
+          "start": "2025-03-27"
+        },
+        "invariants": {
+          "accounting_reconciled": true,
+          "no_duplicate_fill": true,
+          "no_duplicate_order": true,
+          "no_future_data": true,
+          "no_leverage": true,
+          "no_negative_cash": true,
+          "no_short": true
+        },
+        "acceptance_result": "PASS"
+      },
+      {
+        "case_id": "P3_LOWER",
+        "parameter": {
+          "field": "strategic_reversal_min_median_ret20",
+          "value": -0.06
+        },
+        "identity": {
+          "canonical_sha256": "ba5c61a528d54237d2c24b522509138d8d632699fb096fdc4a86533c2afa1293",
+          "case_id": "P3_LOWER",
+          "effective_config_sha256": "3f75cef52f2047ef7e472dd1b80eb6b97a0951dce1af2204dc3232df06b35de0",
+          "frozen_data": {
+            "checksums_sha256": "ba460d65f791f238d8a4a16ac62e2225c1832caa6f4da5003166a894edf80e29",
+            "files_verified": 36,
+            "manifest_sha256": "343009138d22f8d4a20768f706207fe4d4bcd03581b0c5945c5485ecbd28788d",
+            "snapshot_id": "20260809T094222Z-causal-tech-index-rebase"
+          },
+          "parameter": {
+            "field": "strategic_reversal_min_median_ret20",
+            "value": -0.06
+          },
+          "production_source_sha256": "e0331925a7d199d60464c69080ade0abf831e106dcb1bef0afd6b74baaccc10f",
+          "runner_source_sha256": "cd49dec3bc467328b6e7fe5ec8d07f6a04b6d01a202da94f5639c50c3e38b040",
+          "runtime": {
+            "canonical_sha256": "a5e8a0aa7a2bd744b928a1403248374f0107d14e2a9d5202eb50f2284b323bbb",
+            "numpy": "2.5.1",
+            "pandas": "3.0.5",
+            "python": "3.12.13",
+            "python_full": "3.12.13 (main, Aug  7 2026, 02:25:39) [Clang 22.1.3 ]",
+            "uv_lock_sha256": "4accf16535b5ac95b831c9289e0ad2ff21282dc5dfae3f05dd0fb095089d6a61"
+          },
+          "symbols": [
+            "sz300308",
+            "sz300502",
+            "sz300394",
+            "sh688008",
+            "sh603986"
+          ],
+          "window": {
+            "end": "2026-08-05",
+            "start": "2023-01-03"
+          }
+        },
+        "status": "SUCCESS",
+        "cache_canonical_sha256": "51af9783fa6f0997c82b3c82b3a80d774f26eaffd2346b8fd777707730be32b7",
+        "metrics": {
+          "account_orders": 12,
+          "annual_turnover": 8.617420330729114,
+          "concentration_status": "DEFINED",
+          "fills": 15,
+          "final_equity": 49019323.60580173,
+          "final_wealth": 24.509661802900865,
+          "gross_turnover": 30.944373005800003,
+          "max_drawdown": 0.27146973146234554,
+          "pending_orders": 0,
+          "pnl_hhi": 1.0,
+          "top1_concentration": 1.0,
+          "top3_concentration": 1.0
+        },
+        "differences_vs_baseline": {
+          "final_wealth": 0.0,
+          "max_drawdown": 0.0,
+          "account_orders": 0,
+          "gross_turnover": 0.0,
+          "top1_concentration": 0.0,
+          "top3_concentration": 0.0,
+          "pnl_hhi": 0.0,
+          "target_changed_sessions": 0,
+          "owner_changed_sessions": 0,
+          "risk_state_changed_sessions": 0,
+          "strategic_epoch_differences": 0,
+          "cash_streak_sessions": 0
+        },
+        "longest_cash_streak": {
+          "end": "2026-08-05",
+          "sessions": 31,
+          "start": "2026-06-24"
+        },
+        "invariants": {
+          "accounting_reconciled": true,
+          "no_duplicate_fill": true,
+          "no_duplicate_order": true,
+          "no_future_data": true,
+          "no_leverage": true,
+          "no_negative_cash": true,
+          "no_short": true
+        },
+        "acceptance_result": "PASS"
+      },
+      {
+        "case_id": "P3_UPPER",
+        "parameter": {
+          "field": "strategic_reversal_min_median_ret20",
+          "value": -0.04
+        },
+        "identity": {
+          "canonical_sha256": "4fc32ce9be94f0f47a4f2988f24519e3a89326fca539463005b5f0cb036669b0",
+          "case_id": "P3_UPPER",
+          "effective_config_sha256": "72964e58acef0cc7624238319c0dbee2fd03f9a49363d8bdbd73d0630e1a1998",
+          "frozen_data": {
+            "checksums_sha256": "ba460d65f791f238d8a4a16ac62e2225c1832caa6f4da5003166a894edf80e29",
+            "files_verified": 36,
+            "manifest_sha256": "343009138d22f8d4a20768f706207fe4d4bcd03581b0c5945c5485ecbd28788d",
+            "snapshot_id": "20260809T094222Z-causal-tech-index-rebase"
+          },
+          "parameter": {
+            "field": "strategic_reversal_min_median_ret20",
+            "value": -0.04
+          },
+          "production_source_sha256": "e0331925a7d199d60464c69080ade0abf831e106dcb1bef0afd6b74baaccc10f",
+          "runner_source_sha256": "cd49dec3bc467328b6e7fe5ec8d07f6a04b6d01a202da94f5639c50c3e38b040",
+          "runtime": {
+            "canonical_sha256": "a5e8a0aa7a2bd744b928a1403248374f0107d14e2a9d5202eb50f2284b323bbb",
+            "numpy": "2.5.1",
+            "pandas": "3.0.5",
+            "python": "3.12.13",
+            "python_full": "3.12.13 (main, Aug  7 2026, 02:25:39) [Clang 22.1.3 ]",
+            "uv_lock_sha256": "4accf16535b5ac95b831c9289e0ad2ff21282dc5dfae3f05dd0fb095089d6a61"
+          },
+          "symbols": [
+            "sz300308",
+            "sz300502",
+            "sz300394",
+            "sh688008",
+            "sh603986"
+          ],
+          "window": {
+            "end": "2026-08-05",
+            "start": "2023-01-03"
+          }
+        },
+        "status": "SUCCESS",
+        "cache_canonical_sha256": "5ffdf02a16c801b93d327f8e9d8c9d20373a1c87de5d17882af1f9f126433f92",
+        "metrics": {
+          "account_orders": 12,
+          "annual_turnover": 8.617420330729114,
+          "concentration_status": "DEFINED",
+          "fills": 15,
+          "final_equity": 49019323.60580173,
+          "final_wealth": 24.509661802900865,
+          "gross_turnover": 30.944373005800003,
+          "max_drawdown": 0.27146973146234554,
+          "pending_orders": 0,
+          "pnl_hhi": 1.0,
+          "top1_concentration": 1.0,
+          "top3_concentration": 1.0
+        },
+        "differences_vs_baseline": {
+          "final_wealth": 0.0,
+          "max_drawdown": 0.0,
+          "account_orders": 0,
+          "gross_turnover": 0.0,
+          "top1_concentration": 0.0,
+          "top3_concentration": 0.0,
+          "pnl_hhi": 0.0,
+          "target_changed_sessions": 0,
+          "owner_changed_sessions": 0,
+          "risk_state_changed_sessions": 0,
+          "strategic_epoch_differences": 0,
+          "cash_streak_sessions": 0
+        },
+        "longest_cash_streak": {
+          "end": "2026-08-05",
+          "sessions": 31,
+          "start": "2026-06-24"
+        },
+        "invariants": {
+          "accounting_reconciled": true,
+          "no_duplicate_fill": true,
+          "no_duplicate_order": true,
+          "no_future_data": true,
+          "no_leverage": true,
+          "no_negative_cash": true,
+          "no_short": true
+        },
+        "acceptance_result": "PASS"
+      },
+      {
+        "case_id": "P4_LOWER",
+        "parameter": {
+          "field": "strategic_reversal_max_tech_ret120",
+          "value": -0.02
+        },
+        "identity": {
+          "canonical_sha256": "0f7c5ff95ba40d2d1e580b4531c23c91642458349c091ae179770d5670020f14",
+          "case_id": "P4_LOWER",
+          "effective_config_sha256": "026cc4aebe21a77134bbcc012ee8bc63fb58c48526f823ee109c5d56a2e13725",
+          "frozen_data": {
+            "checksums_sha256": "ba460d65f791f238d8a4a16ac62e2225c1832caa6f4da5003166a894edf80e29",
+            "files_verified": 36,
+            "manifest_sha256": "343009138d22f8d4a20768f706207fe4d4bcd03581b0c5945c5485ecbd28788d",
+            "snapshot_id": "20260809T094222Z-causal-tech-index-rebase"
+          },
+          "parameter": {
+            "field": "strategic_reversal_max_tech_ret120",
+            "value": -0.02
+          },
+          "production_source_sha256": "e0331925a7d199d60464c69080ade0abf831e106dcb1bef0afd6b74baaccc10f",
+          "runner_source_sha256": "cd49dec3bc467328b6e7fe5ec8d07f6a04b6d01a202da94f5639c50c3e38b040",
+          "runtime": {
+            "canonical_sha256": "a5e8a0aa7a2bd744b928a1403248374f0107d14e2a9d5202eb50f2284b323bbb",
+            "numpy": "2.5.1",
+            "pandas": "3.0.5",
+            "python": "3.12.13",
+            "python_full": "3.12.13 (main, Aug  7 2026, 02:25:39) [Clang 22.1.3 ]",
+            "uv_lock_sha256": "4accf16535b5ac95b831c9289e0ad2ff21282dc5dfae3f05dd0fb095089d6a61"
+          },
+          "symbols": [
+            "sz300308",
+            "sz300502",
+            "sz300394",
+            "sh688008",
+            "sh603986"
+          ],
+          "window": {
+            "end": "2026-08-05",
+            "start": "2023-01-03"
+          }
+        },
+        "status": "SUCCESS",
+        "cache_canonical_sha256": "a1a3b22ad8feb38603314f41c24f443405910e3672816280ba6234c1e3f97487",
+        "metrics": {
+          "account_orders": 12,
+          "annual_turnover": 1.158432536813924,
+          "concentration_status": "DEFINED",
+          "fills": 12,
+          "final_equity": 3039419.992454822,
+          "final_wealth": 1.519709996227411,
+          "gross_turnover": 4.15982592765,
+          "max_drawdown": 0.36843133703734265,
+          "pending_orders": 0,
+          "pnl_hhi": 0.534868354521379,
+          "top1_concentration": 0.6320385446022847,
+          "top3_concentration": 1.0
+        },
+        "differences_vs_baseline": {
+          "final_wealth": -22.989951806673453,
+          "max_drawdown": 0.09696160557499711,
+          "account_orders": 0,
+          "gross_turnover": -26.784547078150002,
+          "top1_concentration": -0.3679614553977153,
+          "top3_concentration": 0.0,
+          "pnl_hhi": -0.46513164547862096,
+          "target_changed_sessions": 837,
+          "owner_changed_sessions": 227,
+          "risk_state_changed_sessions": 298,
+          "strategic_epoch_differences": 1,
+          "cash_streak_sessions": 229
+        },
+        "longest_cash_streak": {
+          "end": "2026-04-22",
+          "sessions": 260,
+          "start": "2025-03-27"
+        },
+        "invariants": {
+          "accounting_reconciled": true,
+          "no_duplicate_fill": true,
+          "no_duplicate_order": true,
+          "no_future_data": true,
+          "no_leverage": true,
+          "no_negative_cash": true,
+          "no_short": true
+        },
+        "acceptance_result": "PASS"
+      },
+      {
+        "case_id": "P4_UPPER",
+        "parameter": {
+          "field": "strategic_reversal_max_tech_ret120",
+          "value": 0.0
+        },
+        "identity": {
+          "canonical_sha256": "268c1cd45c98c37ab5154e28c20f073b19cdffd5ab42478b2e38968cde3e6303",
+          "case_id": "P4_UPPER",
+          "effective_config_sha256": "e527cb653a13c4350b4a3bafbd6ee5220ba012ab3f487fad93c24ace4e85e240",
+          "frozen_data": {
+            "checksums_sha256": "ba460d65f791f238d8a4a16ac62e2225c1832caa6f4da5003166a894edf80e29",
+            "files_verified": 36,
+            "manifest_sha256": "343009138d22f8d4a20768f706207fe4d4bcd03581b0c5945c5485ecbd28788d",
+            "snapshot_id": "20260809T094222Z-causal-tech-index-rebase"
+          },
+          "parameter": {
+            "field": "strategic_reversal_max_tech_ret120",
+            "value": 0.0
+          },
+          "production_source_sha256": "e0331925a7d199d60464c69080ade0abf831e106dcb1bef0afd6b74baaccc10f",
+          "runner_source_sha256": "cd49dec3bc467328b6e7fe5ec8d07f6a04b6d01a202da94f5639c50c3e38b040",
+          "runtime": {
+            "canonical_sha256": "a5e8a0aa7a2bd744b928a1403248374f0107d14e2a9d5202eb50f2284b323bbb",
+            "numpy": "2.5.1",
+            "pandas": "3.0.5",
+            "python": "3.12.13",
+            "python_full": "3.12.13 (main, Aug  7 2026, 02:25:39) [Clang 22.1.3 ]",
+            "uv_lock_sha256": "4accf16535b5ac95b831c9289e0ad2ff21282dc5dfae3f05dd0fb095089d6a61"
+          },
+          "symbols": [
+            "sz300308",
+            "sz300502",
+            "sz300394",
+            "sh688008",
+            "sh603986"
+          ],
+          "window": {
+            "end": "2026-08-05",
+            "start": "2023-01-03"
+          }
+        },
+        "status": "SUCCESS",
+        "cache_canonical_sha256": "92aa38153b78db3125449073d8f55f93330bb4cab0a470fb2198285c5ad9e8d1",
+        "metrics": {
+          "account_orders": 12,
+          "annual_turnover": 8.617420330729114,
+          "concentration_status": "DEFINED",
+          "fills": 15,
+          "final_equity": 49019323.60580173,
+          "final_wealth": 24.509661802900865,
+          "gross_turnover": 30.944373005800003,
+          "max_drawdown": 0.27146973146234554,
+          "pending_orders": 0,
+          "pnl_hhi": 1.0,
+          "top1_concentration": 1.0,
+          "top3_concentration": 1.0
+        },
+        "differences_vs_baseline": {
+          "final_wealth": 0.0,
+          "max_drawdown": 0.0,
+          "account_orders": 0,
+          "gross_turnover": 0.0,
+          "top1_concentration": 0.0,
+          "top3_concentration": 0.0,
+          "pnl_hhi": 0.0,
+          "target_changed_sessions": 0,
+          "owner_changed_sessions": 0,
+          "risk_state_changed_sessions": 0,
+          "strategic_epoch_differences": 0,
+          "cash_streak_sessions": 0
+        },
+        "longest_cash_streak": {
+          "end": "2026-08-05",
+          "sessions": 31,
+          "start": "2026-06-24"
+        },
+        "invariants": {
+          "accounting_reconciled": true,
+          "no_duplicate_fill": true,
+          "no_duplicate_order": true,
+          "no_future_data": true,
+          "no_leverage": true,
+          "no_negative_cash": true,
+          "no_short": true
+        },
+        "acceptance_result": "PASS"
+      },
+      {
+        "case_id": "P5_LOWER",
+        "parameter": {
+          "field": "strategic_dominant_min_leader_gap",
+          "value": 0.04
+        },
+        "identity": {
+          "canonical_sha256": "30b93a259ef764e491e3ea9f7041fde00e57d8b6a1534aac77ca1999c6c9e13b",
+          "case_id": "P5_LOWER",
+          "effective_config_sha256": "c7396a578bc545610e753143b6fa35fe3ae6ac6209af4a9459f4bfd757b4bf79",
+          "frozen_data": {
+            "checksums_sha256": "ba460d65f791f238d8a4a16ac62e2225c1832caa6f4da5003166a894edf80e29",
+            "files_verified": 36,
+            "manifest_sha256": "343009138d22f8d4a20768f706207fe4d4bcd03581b0c5945c5485ecbd28788d",
+            "snapshot_id": "20260809T094222Z-causal-tech-index-rebase"
+          },
+          "parameter": {
+            "field": "strategic_dominant_min_leader_gap",
+            "value": 0.04
+          },
+          "production_source_sha256": "e0331925a7d199d60464c69080ade0abf831e106dcb1bef0afd6b74baaccc10f",
+          "runner_source_sha256": "cd49dec3bc467328b6e7fe5ec8d07f6a04b6d01a202da94f5639c50c3e38b040",
+          "runtime": {
+            "canonical_sha256": "a5e8a0aa7a2bd744b928a1403248374f0107d14e2a9d5202eb50f2284b323bbb",
+            "numpy": "2.5.1",
+            "pandas": "3.0.5",
+            "python": "3.12.13",
+            "python_full": "3.12.13 (main, Aug  7 2026, 02:25:39) [Clang 22.1.3 ]",
+            "uv_lock_sha256": "4accf16535b5ac95b831c9289e0ad2ff21282dc5dfae3f05dd0fb095089d6a61"
+          },
+          "symbols": [
+            "sz300308",
+            "sz300502",
+            "sz300394",
+            "sh688008",
+            "sh603986"
+          ],
+          "window": {
+            "end": "2026-08-05",
+            "start": "2023-01-03"
+          }
+        },
+        "status": "SUCCESS",
+        "cache_canonical_sha256": "2004e1bac9e95277942e8bed0bd691379c27781c8bc41986de408e3849dd08c1",
+        "metrics": {
+          "account_orders": 12,
+          "annual_turnover": 8.617420330729114,
+          "concentration_status": "DEFINED",
+          "fills": 15,
+          "final_equity": 49019323.60580173,
+          "final_wealth": 24.509661802900865,
+          "gross_turnover": 30.944373005800003,
+          "max_drawdown": 0.27146973146234554,
+          "pending_orders": 0,
+          "pnl_hhi": 1.0,
+          "top1_concentration": 1.0,
+          "top3_concentration": 1.0
+        },
+        "differences_vs_baseline": {
+          "final_wealth": 0.0,
+          "max_drawdown": 0.0,
+          "account_orders": 0,
+          "gross_turnover": 0.0,
+          "top1_concentration": 0.0,
+          "top3_concentration": 0.0,
+          "pnl_hhi": 0.0,
+          "target_changed_sessions": 0,
+          "owner_changed_sessions": 0,
+          "risk_state_changed_sessions": 0,
+          "strategic_epoch_differences": 0,
+          "cash_streak_sessions": 0
+        },
+        "longest_cash_streak": {
+          "end": "2026-08-05",
+          "sessions": 31,
+          "start": "2026-06-24"
+        },
+        "invariants": {
+          "accounting_reconciled": true,
+          "no_duplicate_fill": true,
+          "no_duplicate_order": true,
+          "no_future_data": true,
+          "no_leverage": true,
+          "no_negative_cash": true,
+          "no_short": true
+        },
+        "acceptance_result": "PASS"
+      },
+      {
+        "case_id": "P5_UPPER",
+        "parameter": {
+          "field": "strategic_dominant_min_leader_gap",
+          "value": 0.06
+        },
+        "identity": {
+          "canonical_sha256": "e83dbb25cecaf70c42756ca33e999b69632ed9bfc3b3f4aa9a8dc23c6cb8b70d",
+          "case_id": "P5_UPPER",
+          "effective_config_sha256": "3a3da9e737b7277cd247e11f3bc3254829053462e344a0da4bcce0b05122f96e",
+          "frozen_data": {
+            "checksums_sha256": "ba460d65f791f238d8a4a16ac62e2225c1832caa6f4da5003166a894edf80e29",
+            "files_verified": 36,
+            "manifest_sha256": "343009138d22f8d4a20768f706207fe4d4bcd03581b0c5945c5485ecbd28788d",
+            "snapshot_id": "20260809T094222Z-causal-tech-index-rebase"
+          },
+          "parameter": {
+            "field": "strategic_dominant_min_leader_gap",
+            "value": 0.06
+          },
+          "production_source_sha256": "e0331925a7d199d60464c69080ade0abf831e106dcb1bef0afd6b74baaccc10f",
+          "runner_source_sha256": "cd49dec3bc467328b6e7fe5ec8d07f6a04b6d01a202da94f5639c50c3e38b040",
+          "runtime": {
+            "canonical_sha256": "a5e8a0aa7a2bd744b928a1403248374f0107d14e2a9d5202eb50f2284b323bbb",
+            "numpy": "2.5.1",
+            "pandas": "3.0.5",
+            "python": "3.12.13",
+            "python_full": "3.12.13 (main, Aug  7 2026, 02:25:39) [Clang 22.1.3 ]",
+            "uv_lock_sha256": "4accf16535b5ac95b831c9289e0ad2ff21282dc5dfae3f05dd0fb095089d6a61"
+          },
+          "symbols": [
+            "sz300308",
+            "sz300502",
+            "sz300394",
+            "sh688008",
+            "sh603986"
+          ],
+          "window": {
+            "end": "2026-08-05",
+            "start": "2023-01-03"
+          }
+        },
+        "status": "SUCCESS",
+        "cache_canonical_sha256": "c9964fe5923f1450d17ac9e6caf37f152ae32b0723b1ee3d50ede0a9a1ef6f9d",
+        "metrics": {
+          "account_orders": 12,
+          "annual_turnover": 8.617420330729114,
+          "concentration_status": "DEFINED",
+          "fills": 15,
+          "final_equity": 49019323.60580173,
+          "final_wealth": 24.509661802900865,
+          "gross_turnover": 30.944373005800003,
+          "max_drawdown": 0.27146973146234554,
+          "pending_orders": 0,
+          "pnl_hhi": 1.0,
+          "top1_concentration": 1.0,
+          "top3_concentration": 1.0
+        },
+        "differences_vs_baseline": {
+          "final_wealth": 0.0,
+          "max_drawdown": 0.0,
+          "account_orders": 0,
+          "gross_turnover": 0.0,
+          "top1_concentration": 0.0,
+          "top3_concentration": 0.0,
+          "pnl_hhi": 0.0,
+          "target_changed_sessions": 0,
+          "owner_changed_sessions": 0,
+          "risk_state_changed_sessions": 0,
+          "strategic_epoch_differences": 0,
+          "cash_streak_sessions": 0
+        },
+        "longest_cash_streak": {
+          "end": "2026-08-05",
+          "sessions": 31,
+          "start": "2026-06-24"
+        },
+        "invariants": {
+          "accounting_reconciled": true,
+          "no_duplicate_fill": true,
+          "no_duplicate_order": true,
+          "no_future_data": true,
+          "no_leverage": true,
+          "no_negative_cash": true,
+          "no_short": true
+        },
+        "acceptance_result": "PASS"
+      },
+      {
+        "case_id": "P6_LOWER",
+        "parameter": {
+          "field": "strategic_transition_min_component",
+          "value": 0.65
+        },
+        "identity": {
+          "canonical_sha256": "229274ef33ace2aa4b0e0d42ff3186e9857007099e9fb0fd04ade1b6d5e294a7",
+          "case_id": "P6_LOWER",
+          "effective_config_sha256": "3d3e027b69f5c1bfa5a98db34754549bd42e666fd90b356c23ca6ed881feaebd",
+          "frozen_data": {
+            "checksums_sha256": "ba460d65f791f238d8a4a16ac62e2225c1832caa6f4da5003166a894edf80e29",
+            "files_verified": 36,
+            "manifest_sha256": "343009138d22f8d4a20768f706207fe4d4bcd03581b0c5945c5485ecbd28788d",
+            "snapshot_id": "20260809T094222Z-causal-tech-index-rebase"
+          },
+          "parameter": {
+            "field": "strategic_transition_min_component",
+            "value": 0.65
+          },
+          "production_source_sha256": "e0331925a7d199d60464c69080ade0abf831e106dcb1bef0afd6b74baaccc10f",
+          "runner_source_sha256": "cd49dec3bc467328b6e7fe5ec8d07f6a04b6d01a202da94f5639c50c3e38b040",
+          "runtime": {
+            "canonical_sha256": "a5e8a0aa7a2bd744b928a1403248374f0107d14e2a9d5202eb50f2284b323bbb",
+            "numpy": "2.5.1",
+            "pandas": "3.0.5",
+            "python": "3.12.13",
+            "python_full": "3.12.13 (main, Aug  7 2026, 02:25:39) [Clang 22.1.3 ]",
+            "uv_lock_sha256": "4accf16535b5ac95b831c9289e0ad2ff21282dc5dfae3f05dd0fb095089d6a61"
+          },
+          "symbols": [
+            "sz300308",
+            "sz300502",
+            "sz300394",
+            "sh688008",
+            "sh603986"
+          ],
+          "window": {
+            "end": "2026-08-05",
+            "start": "2023-01-03"
+          }
+        },
+        "status": "SUCCESS",
+        "cache_canonical_sha256": "95f6155387b29bc271926ed4560bbcfe5a0e3f8e61eb3f519b230ef8ec1fb77d",
+        "metrics": {
+          "account_orders": 12,
+          "annual_turnover": 8.617420330729114,
+          "concentration_status": "DEFINED",
+          "fills": 15,
+          "final_equity": 49019323.60580173,
+          "final_wealth": 24.509661802900865,
+          "gross_turnover": 30.944373005800003,
+          "max_drawdown": 0.27146973146234554,
+          "pending_orders": 0,
+          "pnl_hhi": 1.0,
+          "top1_concentration": 1.0,
+          "top3_concentration": 1.0
+        },
+        "differences_vs_baseline": {
+          "final_wealth": 0.0,
+          "max_drawdown": 0.0,
+          "account_orders": 0,
+          "gross_turnover": 0.0,
+          "top1_concentration": 0.0,
+          "top3_concentration": 0.0,
+          "pnl_hhi": 0.0,
+          "target_changed_sessions": 0,
+          "owner_changed_sessions": 0,
+          "risk_state_changed_sessions": 0,
+          "strategic_epoch_differences": 0,
+          "cash_streak_sessions": 0
+        },
+        "longest_cash_streak": {
+          "end": "2026-08-05",
+          "sessions": 31,
+          "start": "2026-06-24"
+        },
+        "invariants": {
+          "accounting_reconciled": true,
+          "no_duplicate_fill": true,
+          "no_duplicate_order": true,
+          "no_future_data": true,
+          "no_leverage": true,
+          "no_negative_cash": true,
+          "no_short": true
+        },
+        "acceptance_result": "PASS"
+      },
+      {
+        "case_id": "P6_UPPER",
+        "parameter": {
+          "field": "strategic_transition_min_component",
+          "value": 0.75
+        },
+        "identity": {
+          "canonical_sha256": "ee043bdbdf21804796ef8b8e1a48f0c8f3233e701dd85b8de2769b292d7578c4",
+          "case_id": "P6_UPPER",
+          "effective_config_sha256": "32f26e0122fd38f66d57c0d5e603fdaba2970b8762f899974b65685b31713311",
+          "frozen_data": {
+            "checksums_sha256": "ba460d65f791f238d8a4a16ac62e2225c1832caa6f4da5003166a894edf80e29",
+            "files_verified": 36,
+            "manifest_sha256": "343009138d22f8d4a20768f706207fe4d4bcd03581b0c5945c5485ecbd28788d",
+            "snapshot_id": "20260809T094222Z-causal-tech-index-rebase"
+          },
+          "parameter": {
+            "field": "strategic_transition_min_component",
+            "value": 0.75
+          },
+          "production_source_sha256": "e0331925a7d199d60464c69080ade0abf831e106dcb1bef0afd6b74baaccc10f",
+          "runner_source_sha256": "cd49dec3bc467328b6e7fe5ec8d07f6a04b6d01a202da94f5639c50c3e38b040",
+          "runtime": {
+            "canonical_sha256": "a5e8a0aa7a2bd744b928a1403248374f0107d14e2a9d5202eb50f2284b323bbb",
+            "numpy": "2.5.1",
+            "pandas": "3.0.5",
+            "python": "3.12.13",
+            "python_full": "3.12.13 (main, Aug  7 2026, 02:25:39) [Clang 22.1.3 ]",
+            "uv_lock_sha256": "4accf16535b5ac95b831c9289e0ad2ff21282dc5dfae3f05dd0fb095089d6a61"
+          },
+          "symbols": [
+            "sz300308",
+            "sz300502",
+            "sz300394",
+            "sh688008",
+            "sh603986"
+          ],
+          "window": {
+            "end": "2026-08-05",
+            "start": "2023-01-03"
+          }
+        },
+        "status": "SUCCESS",
+        "cache_canonical_sha256": "fdbc1b978a52f2144fa2c5b3657237759f6d2dcd2ebbee59164fc096c7480c6f",
+        "metrics": {
+          "account_orders": 12,
+          "annual_turnover": 8.617420330729114,
+          "concentration_status": "DEFINED",
+          "fills": 15,
+          "final_equity": 49019323.60580173,
+          "final_wealth": 24.509661802900865,
+          "gross_turnover": 30.944373005800003,
+          "max_drawdown": 0.27146973146234554,
+          "pending_orders": 0,
+          "pnl_hhi": 1.0,
+          "top1_concentration": 1.0,
+          "top3_concentration": 1.0
+        },
+        "differences_vs_baseline": {
+          "final_wealth": 0.0,
+          "max_drawdown": 0.0,
+          "account_orders": 0,
+          "gross_turnover": 0.0,
+          "top1_concentration": 0.0,
+          "top3_concentration": 0.0,
+          "pnl_hhi": 0.0,
+          "target_changed_sessions": 0,
+          "owner_changed_sessions": 0,
+          "risk_state_changed_sessions": 0,
+          "strategic_epoch_differences": 0,
+          "cash_streak_sessions": 0
+        },
+        "longest_cash_streak": {
+          "end": "2026-08-05",
+          "sessions": 31,
+          "start": "2026-06-24"
+        },
+        "invariants": {
+          "accounting_reconciled": true,
+          "no_duplicate_fill": true,
+          "no_duplicate_order": true,
+          "no_future_data": true,
+          "no_leverage": true,
+          "no_negative_cash": true,
+          "no_short": true
+        },
+        "acceptance_result": "PASS"
+      },
+      {
+        "case_id": "P7_LOWER",
+        "parameter": {
+          "field": "strategic_dominant_profit_lock_mfe",
+          "value": 1.98
+        },
+        "identity": {
+          "canonical_sha256": "058e24e81924ef17d75bdb79ac641d70f91963839dd390929820848cd61c2d21",
+          "case_id": "P7_LOWER",
+          "effective_config_sha256": "8dcfbf5f20e5f0158e4ef468c2ee6a9c5a3fa669245588127527af9ed885e980",
+          "frozen_data": {
+            "checksums_sha256": "ba460d65f791f238d8a4a16ac62e2225c1832caa6f4da5003166a894edf80e29",
+            "files_verified": 36,
+            "manifest_sha256": "343009138d22f8d4a20768f706207fe4d4bcd03581b0c5945c5485ecbd28788d",
+            "snapshot_id": "20260809T094222Z-causal-tech-index-rebase"
+          },
+          "parameter": {
+            "field": "strategic_dominant_profit_lock_mfe",
+            "value": 1.98
+          },
+          "production_source_sha256": "e0331925a7d199d60464c69080ade0abf831e106dcb1bef0afd6b74baaccc10f",
+          "runner_source_sha256": "cd49dec3bc467328b6e7fe5ec8d07f6a04b6d01a202da94f5639c50c3e38b040",
+          "runtime": {
+            "canonical_sha256": "a5e8a0aa7a2bd744b928a1403248374f0107d14e2a9d5202eb50f2284b323bbb",
+            "numpy": "2.5.1",
+            "pandas": "3.0.5",
+            "python": "3.12.13",
+            "python_full": "3.12.13 (main, Aug  7 2026, 02:25:39) [Clang 22.1.3 ]",
+            "uv_lock_sha256": "4accf16535b5ac95b831c9289e0ad2ff21282dc5dfae3f05dd0fb095089d6a61"
+          },
+          "symbols": [
+            "sz300308",
+            "sz300502",
+            "sz300394",
+            "sh688008",
+            "sh603986"
+          ],
+          "window": {
+            "end": "2026-08-05",
+            "start": "2023-01-03"
+          }
+        },
+        "status": "SUCCESS",
+        "cache_canonical_sha256": "9d47d9f30b19f7e0ea0eb838bdeec5eeb46aa99dab25da8ccc66c9983622f7f2",
+        "metrics": {
+          "account_orders": 7,
+          "annual_turnover": 9.646895163734177,
+          "concentration_status": "DEFINED",
+          "fills": 10,
+          "final_equity": 48787543.2565244,
+          "final_wealth": 24.3937716282622,
+          "gross_turnover": 34.6411235425,
+          "max_drawdown": 0.2804557115007774,
+          "pending_orders": 0,
+          "pnl_hhi": 1.0,
+          "top1_concentration": 1.0,
+          "top3_concentration": 1.0
+        },
+        "differences_vs_baseline": {
+          "final_wealth": -0.11589017463866469,
+          "max_drawdown": 0.008985980038431873,
+          "account_orders": -5,
+          "gross_turnover": 3.6967505366999944,
+          "top1_concentration": 0.0,
+          "top3_concentration": 0.0,
+          "pnl_hhi": 0.0,
+          "target_changed_sessions": 766,
+          "owner_changed_sessions": 29,
+          "risk_state_changed_sessions": 171,
+          "strategic_epoch_differences": 0,
+          "cash_streak_sessions": 0
+        },
+        "longest_cash_streak": {
+          "end": "2026-08-05",
+          "sessions": 31,
+          "start": "2026-06-24"
+        },
+        "invariants": {
+          "accounting_reconciled": true,
+          "no_duplicate_fill": true,
+          "no_duplicate_order": true,
+          "no_future_data": true,
+          "no_leverage": true,
+          "no_negative_cash": true,
+          "no_short": true
+        },
+        "acceptance_result": "PASS"
+      },
+      {
+        "case_id": "P7_UPPER",
+        "parameter": {
+          "field": "strategic_dominant_profit_lock_mfe",
+          "value": 2.42
+        },
+        "identity": {
+          "canonical_sha256": "f0576312fff1461dccb1615ae3a1cb5d5ae4019aa2343d2ba25c7181255d4b5b",
+          "case_id": "P7_UPPER",
+          "effective_config_sha256": "c68e4dd6b353c00dbe5e8f81addffece9e041cc649758b5708f63b53b0a67f5c",
+          "frozen_data": {
+            "checksums_sha256": "ba460d65f791f238d8a4a16ac62e2225c1832caa6f4da5003166a894edf80e29",
+            "files_verified": 36,
+            "manifest_sha256": "343009138d22f8d4a20768f706207fe4d4bcd03581b0c5945c5485ecbd28788d",
+            "snapshot_id": "20260809T094222Z-causal-tech-index-rebase"
+          },
+          "parameter": {
+            "field": "strategic_dominant_profit_lock_mfe",
+            "value": 2.42
+          },
+          "production_source_sha256": "e0331925a7d199d60464c69080ade0abf831e106dcb1bef0afd6b74baaccc10f",
+          "runner_source_sha256": "cd49dec3bc467328b6e7fe5ec8d07f6a04b6d01a202da94f5639c50c3e38b040",
+          "runtime": {
+            "canonical_sha256": "a5e8a0aa7a2bd744b928a1403248374f0107d14e2a9d5202eb50f2284b323bbb",
+            "numpy": "2.5.1",
+            "pandas": "3.0.5",
+            "python": "3.12.13",
+            "python_full": "3.12.13 (main, Aug  7 2026, 02:25:39) [Clang 22.1.3 ]",
+            "uv_lock_sha256": "4accf16535b5ac95b831c9289e0ad2ff21282dc5dfae3f05dd0fb095089d6a61"
+          },
+          "symbols": [
+            "sz300308",
+            "sz300502",
+            "sz300394",
+            "sh688008",
+            "sh603986"
+          ],
+          "window": {
+            "end": "2026-08-05",
+            "start": "2023-01-03"
+          }
+        },
+        "status": "SUCCESS",
+        "cache_canonical_sha256": "73289641133b06bb75bbb14818d392bc8efca45cca55963f564dd5b5d8e0f350",
+        "metrics": {
+          "account_orders": 12,
+          "annual_turnover": 8.692753074110126,
+          "concentration_status": "DEFINED",
+          "fills": 15,
+          "final_equity": 49447433.004296795,
+          "final_wealth": 24.7237165021484,
+          "gross_turnover": 31.214886038849997,
+          "max_drawdown": 0.2701525146405157,
+          "pending_orders": 0,
+          "pnl_hhi": 1.0,
+          "top1_concentration": 1.0,
+          "top3_concentration": 1.0
+        },
+        "differences_vs_baseline": {
+          "final_wealth": 0.21405469924753362,
+          "max_drawdown": -0.0013172168218298363,
+          "account_orders": 0,
+          "gross_turnover": 0.2705130330499941,
+          "top1_concentration": 0.0,
+          "top3_concentration": 0.0,
+          "pnl_hhi": 0.0,
+          "target_changed_sessions": 709,
+          "owner_changed_sessions": 15,
+          "risk_state_changed_sessions": 3,
+          "strategic_epoch_differences": 0,
+          "cash_streak_sessions": 0
+        },
+        "longest_cash_streak": {
+          "end": "2026-08-05",
+          "sessions": 31,
+          "start": "2026-06-24"
+        },
+        "invariants": {
+          "accounting_reconciled": true,
+          "no_duplicate_fill": true,
+          "no_duplicate_order": true,
+          "no_future_data": true,
+          "no_leverage": true,
+          "no_negative_cash": true,
+          "no_short": true
+        },
+        "acceptance_result": "PASS"
+      },
+      {
+        "case_id": "P8_LOWER",
+        "parameter": {
+          "field": "strategic_dominant_retained_gross",
+          "value": 0.65
+        },
+        "identity": {
+          "canonical_sha256": "05d57c9f1f5c09cbed7c9b70e30b143eccc037764e313959ab016a9b3f6cca41",
+          "case_id": "P8_LOWER",
+          "effective_config_sha256": "e23506864fb54a219308eb142c5dca28661ec559e9f24e77d9a9ad202d74033d",
+          "frozen_data": {
+            "checksums_sha256": "ba460d65f791f238d8a4a16ac62e2225c1832caa6f4da5003166a894edf80e29",
+            "files_verified": 36,
+            "manifest_sha256": "343009138d22f8d4a20768f706207fe4d4bcd03581b0c5945c5485ecbd28788d",
+            "snapshot_id": "20260809T094222Z-causal-tech-index-rebase"
+          },
+          "parameter": {
+            "field": "strategic_dominant_retained_gross",
+            "value": 0.65
+          },
+          "production_source_sha256": "e0331925a7d199d60464c69080ade0abf831e106dcb1bef0afd6b74baaccc10f",
+          "runner_source_sha256": "cd49dec3bc467328b6e7fe5ec8d07f6a04b6d01a202da94f5639c50c3e38b040",
+          "runtime": {
+            "canonical_sha256": "a5e8a0aa7a2bd744b928a1403248374f0107d14e2a9d5202eb50f2284b323bbb",
+            "numpy": "2.5.1",
+            "pandas": "3.0.5",
+            "python": "3.12.13",
+            "python_full": "3.12.13 (main, Aug  7 2026, 02:25:39) [Clang 22.1.3 ]",
+            "uv_lock_sha256": "4accf16535b5ac95b831c9289e0ad2ff21282dc5dfae3f05dd0fb095089d6a61"
+          },
+          "symbols": [
+            "sz300308",
+            "sz300502",
+            "sz300394",
+            "sh688008",
+            "sh603986"
+          ],
+          "window": {
+            "end": "2026-08-05",
+            "start": "2023-01-03"
+          }
+        },
+        "status": "SUCCESS",
+        "cache_canonical_sha256": "eae27cead6803ad5ac2e659de640fb04f6452da770c028d74531ab6b205ebe60",
+        "metrics": {
+          "account_orders": 10,
+          "annual_turnover": 8.800916846087341,
+          "concentration_status": "DEFINED",
+          "fills": 13,
+          "final_equity": 50654612.63925455,
+          "final_wealth": 25.327306319627272,
+          "gross_turnover": 31.603292310949996,
+          "max_drawdown": 0.2638704176860023,
+          "pending_orders": 0,
+          "pnl_hhi": 1.0,
+          "top1_concentration": 1.0,
+          "top3_concentration": 1.0
+        },
+        "differences_vs_baseline": {
+          "final_wealth": 0.817644516726407,
+          "max_drawdown": -0.007599313776343264,
+          "account_orders": -2,
+          "gross_turnover": 0.6589193051499933,
+          "top1_concentration": 0.0,
+          "top3_concentration": 0.0,
+          "pnl_hhi": 0.0,
+          "target_changed_sessions": 715,
+          "owner_changed_sessions": 5,
+          "risk_state_changed_sessions": 0,
+          "strategic_epoch_differences": 0,
+          "cash_streak_sessions": 0
+        },
+        "longest_cash_streak": {
+          "end": "2026-08-05",
+          "sessions": 31,
+          "start": "2026-06-24"
+        },
+        "invariants": {
+          "accounting_reconciled": true,
+          "no_duplicate_fill": true,
+          "no_duplicate_order": true,
+          "no_future_data": true,
+          "no_leverage": true,
+          "no_negative_cash": true,
+          "no_short": true
+        },
+        "acceptance_result": "PASS"
+      },
+      {
+        "case_id": "P8_UPPER",
+        "parameter": {
+          "field": "strategic_dominant_retained_gross",
+          "value": 0.75
+        },
+        "identity": {
+          "canonical_sha256": "281c6ec514c0e1e2531edd7e1d563182a890142f327ed47f61aa297adb01997d",
+          "case_id": "P8_UPPER",
+          "effective_config_sha256": "b835274e975495bf0d3b33ba1266794e21134b6d05f339011aac5f9de8de8dfa",
+          "frozen_data": {
+            "checksums_sha256": "ba460d65f791f238d8a4a16ac62e2225c1832caa6f4da5003166a894edf80e29",
+            "files_verified": 36,
+            "manifest_sha256": "343009138d22f8d4a20768f706207fe4d4bcd03581b0c5945c5485ecbd28788d",
+            "snapshot_id": "20260809T094222Z-causal-tech-index-rebase"
+          },
+          "parameter": {
+            "field": "strategic_dominant_retained_gross",
+            "value": 0.75
+          },
+          "production_source_sha256": "e0331925a7d199d60464c69080ade0abf831e106dcb1bef0afd6b74baaccc10f",
+          "runner_source_sha256": "cd49dec3bc467328b6e7fe5ec8d07f6a04b6d01a202da94f5639c50c3e38b040",
+          "runtime": {
+            "canonical_sha256": "a5e8a0aa7a2bd744b928a1403248374f0107d14e2a9d5202eb50f2284b323bbb",
+            "numpy": "2.5.1",
+            "pandas": "3.0.5",
+            "python": "3.12.13",
+            "python_full": "3.12.13 (main, Aug  7 2026, 02:25:39) [Clang 22.1.3 ]",
+            "uv_lock_sha256": "4accf16535b5ac95b831c9289e0ad2ff21282dc5dfae3f05dd0fb095089d6a61"
+          },
+          "symbols": [
+            "sz300308",
+            "sz300502",
+            "sz300394",
+            "sh688008",
+            "sh603986"
+          ],
+          "window": {
+            "end": "2026-08-05",
+            "start": "2023-01-03"
+          }
+        },
+        "status": "SUCCESS",
+        "cache_canonical_sha256": "6fd8185f633b2cc59d243688ce9f46dd1669ac2c854bcc5ca2f29a9698d7f07b",
+        "metrics": {
+          "account_orders": 13,
+          "annual_turnover": 8.51561861215443,
+          "concentration_status": "DEFINED",
+          "fills": 16,
+          "final_equity": 48433608.14485567,
+          "final_wealth": 24.216804072427834,
+          "gross_turnover": 30.5788122891,
+          "max_drawdown": 0.2701293169149128,
+          "pending_orders": 0,
+          "pnl_hhi": 1.0,
+          "top1_concentration": 1.0,
+          "top3_concentration": 1.0
+        },
+        "differences_vs_baseline": {
+          "final_wealth": -0.2928577304730311,
+          "max_drawdown": -0.0013404145474327223,
+          "account_orders": 1,
+          "gross_turnover": -0.3655607167000028,
+          "top1_concentration": 0.0,
+          "top3_concentration": 0.0,
+          "pnl_hhi": 0.0,
+          "target_changed_sessions": 708,
+          "owner_changed_sessions": 13,
+          "risk_state_changed_sessions": 3,
+          "strategic_epoch_differences": 0,
+          "cash_streak_sessions": 0
+        },
+        "longest_cash_streak": {
+          "end": "2026-08-05",
+          "sessions": 31,
+          "start": "2026-06-24"
+        },
+        "invariants": {
+          "accounting_reconciled": true,
+          "no_duplicate_fill": true,
+          "no_duplicate_order": true,
+          "no_future_data": true,
+          "no_leverage": true,
+          "no_negative_cash": true,
+          "no_short": true
+        },
+        "acceptance_result": "PASS"
+      }
+    ],
+    "pairs": [
+      {
+        "field": "strategic_reversal_max_ret240",
+        "default_value": -0.15,
+        "lower_case_id": "P1_LOWER",
+        "upper_case_id": "P1_UPPER",
+        "classification": "INACTIVE",
+        "rationale": "both bounded perturbations are economically identical to baseline",
+        "default_is_best": true,
+        "default_is_best_positive_evidence": false
+      },
+      {
+        "field": "strategic_reversal_min_ret5",
+        "default_value": 0.05,
+        "lower_case_id": "P2_LOWER",
+        "upper_case_id": "P2_UPPER",
+        "classification": "KNIFE_EDGE",
+        "rationale": "at least one bounded perturbation crosses a preregistered discontinuity bound",
+        "default_is_best": true,
+        "default_is_best_positive_evidence": false
+      },
+      {
+        "field": "strategic_reversal_min_median_ret20",
+        "default_value": -0.05,
+        "lower_case_id": "P3_LOWER",
+        "upper_case_id": "P3_UPPER",
+        "classification": "INACTIVE",
+        "rationale": "both bounded perturbations are economically identical to baseline",
+        "default_is_best": true,
+        "default_is_best_positive_evidence": false
+      },
+      {
+        "field": "strategic_reversal_max_tech_ret120",
+        "default_value": -0.01,
+        "lower_case_id": "P4_LOWER",
+        "upper_case_id": "P4_UPPER",
+        "classification": "KNIFE_EDGE",
+        "rationale": "at least one bounded perturbation crosses a preregistered discontinuity bound",
+        "default_is_best": true,
+        "default_is_best_positive_evidence": false
+      },
+      {
+        "field": "strategic_dominant_min_leader_gap",
+        "default_value": 0.05,
+        "lower_case_id": "P5_LOWER",
+        "upper_case_id": "P5_UPPER",
+        "classification": "INACTIVE",
+        "rationale": "both bounded perturbations are economically identical to baseline",
+        "default_is_best": true,
+        "default_is_best_positive_evidence": false
+      },
+      {
+        "field": "strategic_transition_min_component",
+        "default_value": 0.7,
+        "lower_case_id": "P6_LOWER",
+        "upper_case_id": "P6_UPPER",
+        "classification": "INACTIVE",
+        "rationale": "both bounded perturbations are economically identical to baseline",
+        "default_is_best": true,
+        "default_is_best_positive_evidence": false
+      },
+      {
+        "field": "strategic_dominant_profit_lock_mfe",
+        "default_value": 2.2,
+        "lower_case_id": "P7_LOWER",
+        "upper_case_id": "P7_UPPER",
+        "classification": "KNIFE_EDGE",
+        "rationale": "at least one bounded perturbation crosses a preregistered discontinuity bound",
+        "default_is_best": false,
+        "default_is_best_positive_evidence": false
+      },
+      {
+        "field": "strategic_dominant_retained_gross",
+        "default_value": 0.7,
+        "lower_case_id": "P8_LOWER",
+        "upper_case_id": "P8_UPPER",
+        "classification": "KNIFE_EDGE",
+        "rationale": "at least one bounded perturbation crosses a preregistered discontinuity bound",
+        "default_is_best": false,
+        "default_is_best_positive_evidence": false
+      }
+    ],
+    "holdout_used_for_selection": false,
+    "parameters_optimized": false
+  },
+  "state_guard_config_utility": {
+    "allowed_classifications": [
+      "ACTIVE_USEFUL",
+      "ACTIVE_REDUNDANT",
+      "INACTIVE_REACHABLE",
+      "UNREACHABLE",
+      "COMPAT_ONLY",
+      "DEAD"
+    ],
+    "audit_window": {
+      "start": "2023-01-03",
+      "end": "2026-08-05"
+    },
+    "active_state_deletion_performed": false,
+    "causal_deletion_counterfactual_performed": false,
+    "states_and_guards": [
+      {
+        "name": "ordinary_leader",
+        "classification": "INACTIVE_REACHABLE",
+        "current_reachable": true,
+        "historical_trigger_sessions": 0,
+        "changed_target_sessions": null,
+        "model_orders": 0,
+        "model_fills": 0,
+        "changes_order_or_fill": false,
+        "independent_risk_reduction": "NOT_ISOLATED",
+        "independent_return_change": "NOT_ISOLATED",
+        "overlap_with_other_state": "NOT_ISOLATED",
+        "deletion_changes_current_behavior": null,
+        "compatibility_only": false,
+        "production_callers": true,
+        "test_only": false,
+        "legacy_schema_or_api_only": false,
+        "removal_disposition": "REPORT_ONLY_NO_ACTIVE_ECONOMIC_DELETION",
+        "evidence_note": "structured LEADER Target/Order/Fill counts from baseline"
+      },
+      {
+        "name": "strategic",
+        "classification": "ACTIVE_USEFUL",
+        "current_reachable": true,
+        "historical_trigger_sessions": 227,
+        "changed_target_sessions": 227,
+        "model_orders": 8,
+        "model_fills": 8,
+        "changes_order_or_fill": true,
+        "independent_risk_reduction": "NOT_ISOLATED",
+        "independent_return_change": "NOT_ISOLATED",
+        "overlap_with_other_state": "NOT_ISOLATED",
+        "deletion_changes_current_behavior": true,
+        "compatibility_only": false,
+        "production_callers": true,
+        "test_only": false,
+        "legacy_schema_or_api_only": false,
+        "removal_disposition": "REPORT_ONLY_NO_ACTIVE_ECONOMIC_DELETION",
+        "evidence_note": "structured STRATEGIC Target/Order/Fill counts from baseline"
+      },
+      {
+        "name": "recovery",
+        "classification": "INACTIVE_REACHABLE",
+        "current_reachable": true,
+        "historical_trigger_sessions": 0,
+        "changed_target_sessions": null,
+        "model_orders": 0,
+        "model_fills": 0,
+        "changes_order_or_fill": false,
+        "independent_risk_reduction": "NOT_ISOLATED",
+        "independent_return_change": "NOT_ISOLATED",
+        "overlap_with_other_state": "NOT_ISOLATED",
+        "deletion_changes_current_behavior": null,
+        "compatibility_only": false,
+        "production_callers": true,
+        "test_only": false,
+        "legacy_schema_or_api_only": false,
+        "removal_disposition": "REPORT_ONLY_NO_ACTIVE_ECONOMIC_DELETION",
+        "evidence_note": "structured RECOVERY Target/Order/Fill counts from baseline"
+      },
+      {
+        "name": "tactical",
+        "classification": "INACTIVE_REACHABLE",
+        "current_reachable": true,
+        "historical_trigger_sessions": 0,
+        "changed_target_sessions": null,
+        "model_orders": 0,
+        "model_fills": 0,
+        "changes_order_or_fill": false,
+        "independent_risk_reduction": "NOT_ISOLATED",
+        "independent_return_change": "NOT_ISOLATED",
+        "overlap_with_other_state": "NOT_ISOLATED",
+        "deletion_changes_current_behavior": null,
+        "compatibility_only": false,
+        "production_callers": true,
+        "test_only": false,
+        "legacy_schema_or_api_only": false,
+        "removal_disposition": "REPORT_ONLY_NO_ACTIVE_ECONOMIC_DELETION",
+        "evidence_note": "TACTICAL_REBOUND mechanism counts from baseline"
+      },
+      {
+        "name": "sector_guard",
+        "classification": "ACTIVE_USEFUL",
+        "current_reachable": true,
+        "historical_trigger_sessions": 1,
+        "changed_target_sessions": 1,
+        "model_orders": 1,
+        "model_fills": 1,
+        "changes_order_or_fill": true,
+        "independent_risk_reduction": "NOT_ISOLATED",
+        "independent_return_change": "NOT_ISOLATED",
+        "overlap_with_other_state": "NOT_ISOLATED",
+        "deletion_changes_current_behavior": true,
+        "compatibility_only": false,
+        "production_callers": true,
+        "test_only": false,
+        "legacy_schema_or_api_only": false,
+        "removal_disposition": "REPORT_ONLY_NO_ACTIVE_ECONOMIC_DELETION",
+        "evidence_note": "SECTOR_GUARD mechanism counts from baseline"
+      },
+      {
+        "name": "chronic_overlay",
+        "classification": "INACTIVE_REACHABLE",
+        "current_reachable": true,
+        "historical_trigger_sessions": 0,
+        "changed_target_sessions": null,
+        "model_orders": 0,
+        "model_fills": 0,
+        "changes_order_or_fill": false,
+        "independent_risk_reduction": "NOT_ISOLATED",
+        "independent_return_change": "NOT_ISOLATED",
+        "overlap_with_other_state": "NOT_ISOLATED",
+        "deletion_changes_current_behavior": null,
+        "compatibility_only": false,
+        "production_callers": true,
+        "test_only": false,
+        "legacy_schema_or_api_only": false,
+        "removal_disposition": "REPORT_ONLY_NO_ACTIVE_ECONOMIC_DELETION",
+        "evidence_note": "chronic risk-event token count; no deletion counterfactual was run"
+      },
+      {
+        "name": "capital_budget",
+        "classification": "ACTIVE_USEFUL",
+        "current_reachable": true,
+        "historical_trigger_sessions": 24,
+        "changed_target_sessions": 24,
+        "model_orders": 4,
+        "model_fills": 4,
+        "changes_order_or_fill": true,
+        "independent_risk_reduction": "NOT_ISOLATED",
+        "independent_return_change": "NOT_ISOLATED",
+        "overlap_with_other_state": "NOT_ISOLATED",
+        "deletion_changes_current_behavior": true,
+        "compatibility_only": false,
+        "production_callers": true,
+        "test_only": false,
+        "legacy_schema_or_api_only": false,
+        "removal_disposition": "REPORT_ONLY_NO_ACTIVE_ECONOMIC_DELETION",
+        "evidence_note": "CAPITAL_BUDGET mechanism counts from baseline"
+      },
+      {
+        "name": "concentrated_break",
+        "classification": "ACTIVE_USEFUL",
+        "current_reachable": true,
+        "historical_trigger_sessions": 34,
+        "changed_target_sessions": null,
+        "model_orders": 0,
+        "model_fills": 0,
+        "changes_order_or_fill": false,
+        "independent_risk_reduction": "NOT_ISOLATED",
+        "independent_return_change": "NOT_ISOLATED",
+        "overlap_with_other_state": "NOT_ISOLATED",
+        "deletion_changes_current_behavior": null,
+        "compatibility_only": false,
+        "production_callers": true,
+        "test_only": false,
+        "legacy_schema_or_api_only": false,
+        "removal_disposition": "REPORT_ONLY_NO_ACTIVE_ECONOMIC_DELETION",
+        "evidence_note": "concentrated risk-event token count; no deletion counterfactual was run"
+      },
+      {
+        "name": "rearm",
+        "classification": "ACTIVE_USEFUL",
+        "current_reachable": true,
+        "historical_trigger_sessions": 2,
+        "changed_target_sessions": 2,
+        "model_orders": 2,
+        "model_fills": 2,
+        "changes_order_or_fill": true,
+        "independent_risk_reduction": "NOT_ISOLATED",
+        "independent_return_change": "NOT_ISOLATED",
+        "overlap_with_other_state": "NOT_ISOLATED",
+        "deletion_changes_current_behavior": true,
+        "compatibility_only": false,
+        "production_callers": true,
+        "test_only": false,
+        "legacy_schema_or_api_only": false,
+        "removal_disposition": "REPORT_ONLY_NO_ACTIVE_ECONOMIC_DELETION",
+        "evidence_note": "restoration/rearm mechanism counts from baseline"
+      },
+      {
+        "name": "freeze",
+        "classification": "ACTIVE_USEFUL",
+        "current_reachable": true,
+        "historical_trigger_sessions": 23,
+        "changed_target_sessions": null,
+        "model_orders": 0,
+        "model_fills": 0,
+        "changes_order_or_fill": false,
+        "independent_risk_reduction": "NOT_ISOLATED",
+        "independent_return_change": "NOT_ISOLATED",
+        "overlap_with_other_state": "NOT_ISOLATED",
+        "deletion_changes_current_behavior": null,
+        "compatibility_only": false,
+        "production_callers": true,
+        "test_only": false,
+        "legacy_schema_or_api_only": false,
+        "removal_disposition": "REPORT_ONLY_NO_ACTIVE_ECONOMIC_DELETION",
+        "evidence_note": "causal sentinel freeze session count from baseline"
+      },
+      {
+        "name": "strategic_damage_guard",
+        "classification": "INACTIVE_REACHABLE",
+        "current_reachable": true,
+        "historical_trigger_sessions": 0,
+        "changed_target_sessions": null,
+        "model_orders": 0,
+        "model_fills": 0,
+        "changes_order_or_fill": false,
+        "independent_risk_reduction": "NOT_ISOLATED",
+        "independent_return_change": "NOT_ISOLATED",
+        "overlap_with_other_state": "NOT_ISOLATED",
+        "deletion_changes_current_behavior": null,
+        "compatibility_only": false,
+        "production_callers": true,
+        "test_only": false,
+        "legacy_schema_or_api_only": false,
+        "removal_disposition": "REPORT_ONLY_NO_ACTIVE_ECONOMIC_DELETION",
+        "evidence_note": "STRATEGIC_DAMAGE_GUARD mechanism counts from baseline"
+      },
+      {
+        "name": "dominant_owner_exception",
+        "classification": "ACTIVE_USEFUL",
+        "current_reachable": true,
+        "historical_trigger_sessions": 216,
+        "changed_target_sessions": 216,
+        "model_orders": 0,
+        "model_fills": 0,
+        "changes_order_or_fill": false,
+        "independent_risk_reduction": "NOT_ISOLATED",
+        "independent_return_change": "NOT_ISOLATED",
+        "overlap_with_other_state": "NOT_ISOLATED",
+        "deletion_changes_current_behavior": true,
+        "compatibility_only": false,
+        "production_callers": true,
+        "test_only": false,
+        "legacy_schema_or_api_only": false,
+        "removal_disposition": "REPORT_ONLY_NO_ACTIVE_ECONOMIC_DELETION",
+        "evidence_note": "strategic target weight exceeded ordinary symbol cap in observed sessions"
+      },
+      {
+        "name": "active_compatibility_paths",
+        "classification": "COMPAT_ONLY",
+        "current_reachable": true,
+        "historical_trigger_sessions": 0,
+        "changed_target_sessions": null,
+        "model_orders": 0,
+        "model_fills": 0,
+        "changes_order_or_fill": false,
+        "independent_risk_reduction": "NOT_ISOLATED",
+        "independent_return_change": "NOT_ISOLATED",
+        "overlap_with_other_state": "NOT_ISOLATED",
+        "deletion_changes_current_behavior": false,
+        "compatibility_only": true,
+        "production_callers": true,
+        "test_only": false,
+        "legacy_schema_or_api_only": false,
+        "removal_disposition": "CHECKPOINT_C_DELETE_AFTER_EQUIVALENCE",
+        "evidence_note": "all four compatibility switches are false on the current default path"
+      }
+    ],
+    "config_fields": [
+      {
+        "name": "hierarchical_industry_shrinkage_enabled",
+        "classification": "COMPAT_ONLY",
+        "current_default_value": false,
+        "current_default_active": false,
+        "historical_production_path_active": false,
+        "deletion_checkpoint": "C"
+      },
+      {
+        "name": "group_balanced_reference_enabled",
+        "classification": "COMPAT_ONLY",
+        "current_default_value": false,
+        "current_default_active": false,
+        "historical_production_path_active": false,
+        "deletion_checkpoint": "C"
+      },
+      {
+        "name": "same_day_leader_pipeline_enabled",
+        "classification": "COMPAT_ONLY",
+        "current_default_value": false,
+        "current_default_active": false,
+        "historical_production_path_active": false,
+        "deletion_checkpoint": "C"
+      },
+      {
+        "name": "evidence_family_voting_enabled",
+        "classification": "COMPAT_ONLY",
+        "current_default_value": false,
+        "current_default_active": false,
+        "historical_production_path_active": false,
+        "deletion_checkpoint": "C"
+      },
+      {
+        "name": "strategic_reversal_max_ret240",
+        "classification": "INACTIVE_REACHABLE",
+        "current_default_value": -0.15,
+        "sensitivity_classification": "INACTIVE",
+        "deletion_checkpoint": null
+      },
+      {
+        "name": "strategic_reversal_min_ret5",
+        "classification": "ACTIVE_USEFUL",
+        "current_default_value": 0.05,
+        "sensitivity_classification": "KNIFE_EDGE",
+        "deletion_checkpoint": null
+      },
+      {
+        "name": "strategic_reversal_min_median_ret20",
+        "classification": "INACTIVE_REACHABLE",
+        "current_default_value": -0.05,
+        "sensitivity_classification": "INACTIVE",
+        "deletion_checkpoint": null
+      },
+      {
+        "name": "strategic_reversal_max_tech_ret120",
+        "classification": "ACTIVE_USEFUL",
+        "current_default_value": -0.01,
+        "sensitivity_classification": "KNIFE_EDGE",
+        "deletion_checkpoint": null
+      },
+      {
+        "name": "strategic_dominant_min_leader_gap",
+        "classification": "INACTIVE_REACHABLE",
+        "current_default_value": 0.05,
+        "sensitivity_classification": "INACTIVE",
+        "deletion_checkpoint": null
+      },
+      {
+        "name": "strategic_transition_min_component",
+        "classification": "INACTIVE_REACHABLE",
+        "current_default_value": 0.7,
+        "sensitivity_classification": "INACTIVE",
+        "deletion_checkpoint": null
+      },
+      {
+        "name": "strategic_dominant_profit_lock_mfe",
+        "classification": "ACTIVE_USEFUL",
+        "current_default_value": 2.2,
+        "sensitivity_classification": "KNIFE_EDGE",
+        "deletion_checkpoint": null
+      },
+      {
+        "name": "strategic_dominant_retained_gross",
+        "classification": "ACTIVE_USEFUL",
+        "current_default_value": 0.7,
+        "sensitivity_classification": "KNIFE_EDGE",
+        "deletion_checkpoint": null
+      }
+    ],
+    "current_config_field_count": 281,
+    "compatibility_fields_scheduled_for_checkpoint_c": [
+      "hierarchical_industry_shrinkage_enabled",
+      "group_balanced_reference_enabled",
+      "same_day_leader_pipeline_enabled",
+      "evidence_family_voting_enabled"
+    ],
+    "limits": "activity proves reachability and behavior changes only; independent risk, return, redundancy, and safe deletion require a separate counterfactual"
+  },
+  "execution_stress": {
+    "scope": "DETERMINISTIC_ORDER_LEVEL_NATIVE_EXECUTION_STRESS",
+    "authoritative_acceptance": false,
+    "actual_broker_facts": false,
+    "full_strategy_pnl": false,
+    "cases": [
+      {
+        "case_id": "S25",
+        "kind": "ADVERSE_SLIPPAGE_BPS",
+        "stress_value": 25.0,
+        "baseline_slippage_bps": 10.0,
+        "effective_slippage_bps": 35.0,
+        "same_signal_fill_count": 0,
+        "requested_shares": 9900,
+        "filled_shares": 9900,
+        "order_completion_ratio": 1.0,
+        "fill_price": 100.35000000000001,
+        "order_level_incremental_cash_cost_vs_default_next_open": 2475.0000000001405,
+        "blocked_sessions": 0,
+        "fill_delay_sessions": 0,
+        "pending_preserved_after_block": false,
+        "final_pending_orders": 0,
+        "model_order_count": 1,
+        "model_fill_count": 1,
+        "invariants": {
+          "no_negative_cash": true,
+          "no_leverage": true,
+          "no_short": true,
+          "no_duplicate_order": true,
+          "no_duplicate_fill": true,
+          "no_same_signal_fill": true,
+          "no_fabricated_broker_fact": true
+        }
+      },
+      {
+        "case_id": "S50",
+        "kind": "ADVERSE_SLIPPAGE_BPS",
+        "stress_value": 50.0,
+        "baseline_slippage_bps": 10.0,
+        "effective_slippage_bps": 60.0,
+        "same_signal_fill_count": 0,
+        "requested_shares": 9900,
+        "filled_shares": 9900,
+        "order_completion_ratio": 1.0,
+        "fill_price": 100.6,
+        "order_level_incremental_cash_cost_vs_default_next_open": 4950.0,
+        "blocked_sessions": 0,
+        "fill_delay_sessions": 0,
+        "pending_preserved_after_block": false,
+        "final_pending_orders": 0,
+        "model_order_count": 1,
+        "model_fill_count": 1,
+        "invariants": {
+          "no_negative_cash": true,
+          "no_leverage": true,
+          "no_short": true,
+          "no_duplicate_order": true,
+          "no_duplicate_fill": true,
+          "no_same_signal_fill": true,
+          "no_fabricated_broker_fact": true
+        }
+      },
+      {
+        "case_id": "S100",
+        "kind": "ADVERSE_SLIPPAGE_BPS",
+        "stress_value": 100.0,
+        "baseline_slippage_bps": 10.0,
+        "effective_slippage_bps": 110.0,
+        "same_signal_fill_count": 0,
+        "requested_shares": 9900,
+        "filled_shares": 9900,
+        "order_completion_ratio": 1.0,
+        "fill_price": 101.1,
+        "order_level_incremental_cash_cost_vs_default_next_open": 9900.0,
+        "blocked_sessions": 0,
+        "fill_delay_sessions": 0,
+        "pending_preserved_after_block": false,
+        "final_pending_orders": 0,
+        "model_order_count": 1,
+        "model_fill_count": 1,
+        "invariants": {
+          "no_negative_cash": true,
+          "no_leverage": true,
+          "no_short": true,
+          "no_duplicate_order": true,
+          "no_duplicate_fill": true,
+          "no_same_signal_fill": true,
+          "no_fabricated_broker_fact": true
+        }
+      },
+      {
+        "case_id": "S200",
+        "kind": "ADVERSE_SLIPPAGE_BPS",
+        "stress_value": 200.0,
+        "baseline_slippage_bps": 10.0,
+        "effective_slippage_bps": 210.0,
+        "same_signal_fill_count": 0,
+        "requested_shares": 9800,
+        "filled_shares": 9800,
+        "order_completion_ratio": 1.0,
+        "fill_price": 102.1,
+        "order_level_incremental_cash_cost_vs_default_next_open": 19600.0,
+        "blocked_sessions": 0,
+        "fill_delay_sessions": 0,
+        "pending_preserved_after_block": false,
+        "final_pending_orders": 0,
+        "model_order_count": 1,
+        "model_fill_count": 1,
+        "invariants": {
+          "no_negative_cash": true,
+          "no_leverage": true,
+          "no_short": true,
+          "no_duplicate_order": true,
+          "no_duplicate_fill": true,
+          "no_same_signal_fill": true,
+          "no_fabricated_broker_fact": true
+        }
+      },
+      {
+        "case_id": "P75",
+        "kind": "PARTIAL_FILL_RATIO",
+        "stress_value": 0.75,
+        "baseline_slippage_bps": 10.0,
+        "effective_slippage_bps": 10.0,
+        "same_signal_fill_count": 0,
+        "requested_shares": 10000,
+        "filled_shares": 7500,
+        "order_completion_ratio": 0.75,
+        "fill_price": 100.1,
+        "order_level_incremental_cash_cost_vs_default_next_open": 0.0,
+        "blocked_sessions": 0,
+        "fill_delay_sessions": 0,
+        "pending_preserved_after_block": false,
+        "final_pending_orders": 1,
+        "model_order_count": 1,
+        "model_fill_count": 1,
+        "invariants": {
+          "no_negative_cash": true,
+          "no_leverage": true,
+          "no_short": true,
+          "no_duplicate_order": true,
+          "no_duplicate_fill": true,
+          "no_same_signal_fill": true,
+          "no_fabricated_broker_fact": true
+        }
+      },
+      {
+        "case_id": "P50",
+        "kind": "PARTIAL_FILL_RATIO",
+        "stress_value": 0.5,
+        "baseline_slippage_bps": 10.0,
+        "effective_slippage_bps": 10.0,
+        "same_signal_fill_count": 0,
+        "requested_shares": 10000,
+        "filled_shares": 5000,
+        "order_completion_ratio": 0.5,
+        "fill_price": 100.1,
+        "order_level_incremental_cash_cost_vs_default_next_open": 0.0,
+        "blocked_sessions": 0,
+        "fill_delay_sessions": 0,
+        "pending_preserved_after_block": false,
+        "final_pending_orders": 1,
+        "model_order_count": 1,
+        "model_fill_count": 1,
+        "invariants": {
+          "no_negative_cash": true,
+          "no_leverage": true,
+          "no_short": true,
+          "no_duplicate_order": true,
+          "no_duplicate_fill": true,
+          "no_same_signal_fill": true,
+          "no_fabricated_broker_fact": true
+        }
+      },
+      {
+        "case_id": "P25",
+        "kind": "PARTIAL_FILL_RATIO",
+        "stress_value": 0.25,
+        "baseline_slippage_bps": 10.0,
+        "effective_slippage_bps": 10.0,
+        "same_signal_fill_count": 0,
+        "requested_shares": 10000,
+        "filled_shares": 2500,
+        "order_completion_ratio": 0.25,
+        "fill_price": 100.1,
+        "order_level_incremental_cash_cost_vs_default_next_open": 0.0,
+        "blocked_sessions": 0,
+        "fill_delay_sessions": 0,
+        "pending_preserved_after_block": false,
+        "final_pending_orders": 1,
+        "model_order_count": 1,
+        "model_fill_count": 1,
+        "invariants": {
+          "no_negative_cash": true,
+          "no_leverage": true,
+          "no_short": true,
+          "no_duplicate_order": true,
+          "no_duplicate_fill": true,
+          "no_same_signal_fill": true,
+          "no_fabricated_broker_fact": true
+        }
+      },
+      {
+        "case_id": "B-UP",
+        "kind": "LIMIT_BLOCKED_BUY",
+        "stress_value": null,
+        "baseline_slippage_bps": 10.0,
+        "effective_slippage_bps": 10.0,
+        "same_signal_fill_count": 0,
+        "requested_shares": 9100,
+        "filled_shares": 9100,
+        "order_completion_ratio": 1.0,
+        "fill_price": 109.109,
+        "order_level_incremental_cash_cost_vs_default_next_open": -9109.099999999915,
+        "blocked_sessions": 1,
+        "fill_delay_sessions": 1,
+        "pending_preserved_after_block": true,
+        "final_pending_orders": 0,
+        "model_order_count": 1,
+        "model_fill_count": 1,
+        "invariants": {
+          "no_negative_cash": true,
+          "no_leverage": true,
+          "no_short": true,
+          "no_duplicate_order": true,
+          "no_duplicate_fill": true,
+          "no_same_signal_fill": true,
+          "no_fabricated_broker_fact": true
+        }
+      },
+      {
+        "case_id": "B-DOWN",
+        "kind": "LIMIT_BLOCKED_SELL",
+        "stress_value": null,
+        "baseline_slippage_bps": 10.0,
+        "effective_slippage_bps": 10.0,
+        "same_signal_fill_count": 0,
+        "requested_shares": 10000,
+        "filled_shares": 10000,
+        "order_completion_ratio": 1.0,
+        "fill_price": 90.909,
+        "order_level_incremental_cash_cost_vs_default_next_open": -9990.000000000095,
+        "blocked_sessions": 1,
+        "fill_delay_sessions": 1,
+        "pending_preserved_after_block": true,
+        "final_pending_orders": 0,
+        "model_order_count": 1,
+        "model_fill_count": 1,
+        "invariants": {
+          "no_negative_cash": true,
+          "no_leverage": true,
+          "no_short": true,
+          "no_duplicate_order": true,
+          "no_duplicate_fill": true,
+          "no_same_signal_fill": true,
+          "no_fabricated_broker_fact": true
+        }
+      },
+      {
+        "case_id": "B-SUSP",
+        "kind": "SUSPENDED",
+        "stress_value": null,
+        "baseline_slippage_bps": 10.0,
+        "effective_slippage_bps": 10.0,
+        "same_signal_fill_count": 0,
+        "requested_shares": 10000,
+        "filled_shares": 10000,
+        "order_completion_ratio": 1.0,
+        "fill_price": 100.1,
+        "order_level_incremental_cash_cost_vs_default_next_open": null,
+        "blocked_sessions": 1,
+        "fill_delay_sessions": 1,
+        "pending_preserved_after_block": true,
+        "final_pending_orders": 0,
+        "model_order_count": 1,
+        "model_fill_count": 1,
+        "invariants": {
+          "no_negative_cash": true,
+          "no_leverage": true,
+          "no_short": true,
+          "no_duplicate_order": true,
+          "no_duplicate_fill": true,
+          "no_same_signal_fill": true,
+          "no_fabricated_broker_fact": true
+        }
+      },
+      {
+        "case_id": "B-CAP0",
+        "kind": "CAPACITY_UNAVAILABLE",
+        "stress_value": null,
+        "baseline_slippage_bps": 10.0,
+        "effective_slippage_bps": 10.0,
+        "same_signal_fill_count": 0,
+        "requested_shares": 10000,
+        "filled_shares": 10000,
+        "order_completion_ratio": 1.0,
+        "fill_price": 100.1,
+        "order_level_incremental_cash_cost_vs_default_next_open": 0.0,
+        "blocked_sessions": 1,
+        "fill_delay_sessions": 1,
+        "pending_preserved_after_block": true,
+        "final_pending_orders": 0,
+        "model_order_count": 1,
+        "model_fill_count": 1,
+        "invariants": {
+          "no_negative_cash": true,
+          "no_leverage": true,
+          "no_short": true,
+          "no_duplicate_order": true,
+          "no_duplicate_fill": true,
+          "no_same_signal_fill": true,
+          "no_fabricated_broker_fact": true
+        }
+      }
+    ],
+    "worst_order_level_case": {
+      "case_id": "S200",
+      "incremental_cash_cost_vs_default_next_open": 19600.0
+    },
+    "portfolio_level_outputs": {
+      "stressed_wealth": null,
+      "stressed_max_drawdown": null,
+      "portfolio_turnover": null,
+      "portfolio_opportunity_cost": null,
+      "worst_key_trade": null,
+      "degradation_vs_baseline": null,
+      "status": "EVIDENCE GAP — ORDER_LEVEL SCOPE DOES NOT ESTABLISH PORTFOLIO PNL"
+    }
+  },
+  "regime_evidence": {
+    "scope": "OBSERVED_FROZEN_HISTORY_ONLY",
+    "random_synthetic_paths": false,
+    "observed_frozen_windows": {
+      "ai_worst_5d": {
+        "start": "2026-07-13",
+        "end": "2026-07-17",
+        "sessions": 5,
+        "equal_weight_compound_return": -0.21503631177431437,
+        "maximum_members": 34,
+        "minimum_available_members": 33,
+        "method": "AVAILABLE_MEMBER_DAILY_EQUAL_WEIGHT_RETURN_THEN_COMPOUND_NO_IMPUTATION"
+      },
+      "ai_worst_20d": {
+        "start": "2026-07-01",
+        "end": "2026-07-28",
+        "sessions": 20,
+        "equal_weight_compound_return": -0.3429678794278589,
+        "maximum_members": 34,
+        "minimum_available_members": 33,
+        "method": "AVAILABLE_MEMBER_DAILY_EQUAL_WEIGHT_RETURN_THEN_COMPOUND_NO_IMPUTATION"
+      },
+      "ai_highest_correlation_selloff": {
+        "start": "2024-09-11",
+        "end": "2024-10-17",
+        "correlation_sessions": 20,
+        "mean_pairwise_correlation": 0.864166190756926,
+        "ending_five_session_equal_weight_return": -0.07449104752015634,
+        "members": 34
+      },
+      "optical_worst_5d": {
+        "start": "2025-04-01",
+        "end": "2025-04-08",
+        "sessions": 5,
+        "equal_weight_compound_return": -0.2773886644736555,
+        "maximum_members": 3,
+        "minimum_available_members": 3,
+        "method": "AVAILABLE_MEMBER_DAILY_EQUAL_WEIGHT_RETURN_THEN_COMPOUND_NO_IMPUTATION"
+      },
+      "optical_worst_20d": {
+        "start": "2026-07-01",
+        "end": "2026-07-28",
+        "sessions": 20,
+        "equal_weight_compound_return": -0.3378261431305808,
+        "maximum_members": 3,
+        "minimum_available_members": 3,
+        "method": "AVAILABLE_MEMBER_DAILY_EQUAL_WEIGHT_RETURN_THEN_COMPOUND_NO_IMPUTATION"
+      }
+    },
+    "prolonged_weak_ai": {
+      "end": "2026-08-05",
+      "sessions": 31,
+      "start": "2026-06-24",
+      "opportunity_states": [
+        "WEAK"
+      ],
+      "risk_states": [
+        "RISK_OFF"
+      ],
+      "all_targets_zero": true,
+      "source": "BASELINE_PRODUCTION_REPLAY"
+    },
+    "checkpoint_a_no_optical_latency": {
+      "observed_optical_failure": false,
+      "scenario": "PERMANENT_EX_ANTE_OPTICAL_REMOVAL",
+      "first_positive_target_session": "2023-02-14",
+      "first_positive_strategic_target_session": "2023-02-14",
+      "final_wealth": 1.01039464268425,
+      "interpretation": "capability diagnostic only; permanent removal cannot measure an observed failure, discovery latency, or transition latency"
+    },
+    "leadership_rotation": {
+      "status": "EVIDENCE GAP"
+    },
+    "whipsaw": {
+      "status": "EVIDENCE GAP"
+    },
+    "evidence_gaps": [
+      "archived_state_trajectories",
+      "formal_optical_failure_latencies",
+      "real_rotation_events",
+      "whipsaw"
+    ]
+  },
+  "observation_policy": {
+    "future_holdout_used_for_tuning": false,
+    "parameter_search": false,
+    "production_authority_granted": false,
+    "actual_broker_facts_present": false
+  },
+  "canonical_sha256": "d5d602479a3eeb9b1ba57ed9f5fab584495ba52a7bb9411a4d013365cf0fc794"
+}

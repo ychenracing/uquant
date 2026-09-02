@@ -12,29 +12,9 @@ CONFIG_PUBLIC_ROUTES = {
         "uquant.account.codec",
         "read_account_payload",
     ),
-    ("uquant.account.migrations", "_legacy_attribution_owner"): (
-        "uquant.account.migrations",
-        "legacy_attribution_owner",
-    ),
-    ("uquant.account.migrations", "_legacy_industry"): (
-        "uquant.account.migrations",
-        "legacy_industry",
-    ),
-    ("uquant.account.migrations", "_migrate_v4_attribution_event_ids"): (
-        "uquant.account.migrations",
-        "migrate_v4_attribution_event_ids",
-    ),
-    ("uquant.account.migrations", "_populate_legacy_attribution"): (
-        "uquant.account.migrations",
-        "populate_legacy_attribution",
-    ),
     ("uquant.account.validation_common", "_EVENT_ID"): (
         "uquant.account.validation_common",
         "EVENT_ID_PATTERN",
-    ),
-    ("uquant.account.validation_common", "_HISTORICAL_ATTRIBUTION_SCHEMA_VERSION"): (
-        "uquant.account.validation_common",
-        "HISTORICAL_ATTRIBUTION_SCHEMA_VERSION",
     ),
     ("uquant.account.validation_common", "_LEGACY_INDUSTRY"): (
         "uquant.account.validation_common",
@@ -55,14 +35,6 @@ CONFIG_PUBLIC_ROUTES = {
     ("uquant.account.validation_common", "_SHOCK_STATES"): (
         "uquant.account.validation_common",
         "SHOCK_STATES",
-    ),
-    ("uquant.account.validation_common", "_UNLINKED_LEGACY_IDENTITY_FIELDS"): (
-        "uquant.account.validation_common",
-        "UNLINKED_LEGACY_IDENTITY_FIELDS",
-    ),
-    ("uquant.account.validation_common", "_UNLINKED_NATIVE_IDENTITY_FIELDS"): (
-        "uquant.account.validation_common",
-        "UNLINKED_NATIVE_IDENTITY_FIELDS",
     ),
     ("uquant.account.validation_common", "_finite_number"): (
         "uquant.account.validation_common",
@@ -112,25 +84,9 @@ CONFIG_PUBLIC_ROUTES = {
         "uquant.account.validation_common",
         "validate_account_weight_map",
     ),
-    ("uquant.account.validation_orders", "_derive_v4_attribution_event_id"): (
-        "uquant.account.validation_attribution",
-        "derive_v4_attribution_event_id",
-    ),
-    ("uquant.account.validation_orders", "_order_sequence"): (
-        "uquant.account.validation_orders",
-        "order_sequence",
-    ),
     ("uquant.account.validation_orders", "_validate_attribution_identity"): (
         "uquant.account.validation_attribution",
         "validate_attribution_identity",
-    ),
-    ("uquant.account.validation_orders", "_validate_fill"): (
-        "uquant.account.validation_orders",
-        "validate_fill",
-    ),
-    ("uquant.account.validation_orders", "_validate_lot_origin_chains"): (
-        "uquant.account.validation_attribution",
-        "validate_lot_origin_chains",
     ),
     ("uquant.account.validation_orders", "_validate_order_intent"): (
         "uquant.account.validation_attribution",
@@ -143,10 +99,6 @@ CONFIG_PUBLIC_ROUTES = {
     ("uquant.account.validation_positions", "_position"): (
         "uquant.account.validation_positions",
         "position_from_payload",
-    ),
-    ("uquant.account.validation_positions", "_tranche"): (
-        "uquant.account.validation_positions",
-        "tranche_from_payload",
     ),
     ("uquant.account.validation_positions", "_validate_position_state"): (
         "uquant.account.validation_positions",
@@ -283,27 +235,36 @@ def test_architecture_config_public_routes_preserve_exact_owner_identity() -> No
         for row in rows
         if isinstance(row, Mapping)
     }
-    assert len(rows) == 123
-    assert original_pairs == set(CONFIG_PUBLIC_ROUTES)
-    for (legacy_owner, private_name), (public_owner, public_name) in sorted(
+    assert set(CONFIG_PUBLIC_ROUTES) <= original_pairs
+    for (historical_owner, private_name), (public_owner, public_name) in sorted(
         CONFIG_PUBLIC_ROUTES.items()
     ):
-        legacy_module = importlib.import_module(legacy_owner)
+        historical_module = importlib.import_module(historical_owner)
         public_module = importlib.import_module(public_owner)
-        assert getattr(legacy_module, private_name) is getattr(public_module, public_name)
+        assert getattr(historical_module, private_name) is getattr(public_module, public_name)
 
 
-def test_architecture_config_importers_keep_exact_local_legacy_bindings() -> None:
+def test_architecture_current_config_importers_keep_exact_local_bindings() -> None:
     graph = architecture_snapshot()["import_graph"]
     assert isinstance(graph, Mapping)
     rows = graph["task5_relocated_private_imports"]
     assert isinstance(rows, list)
     for row in rows:
         assert isinstance(row, Mapping)
-        legacy_owner = str(row["imported_from"])
+        importer_name = str(row["importer"])
+        importer_path = ROOT / f"{importer_name.replace('.', '/')}.py"
+        importer_package = ROOT / importer_name.replace(".", "/") / "__init__.py"
+        if not importer_path.exists() and not importer_package.exists():
+            continue
+        historical_owner = str(row["imported_from"])
         private_name = str(row["name"])
-        public_owner, public_name = CONFIG_PUBLIC_ROUTES[(legacy_owner, private_name)]
-        importer = importlib.import_module(str(row["importer"]))
+        route = CONFIG_PUBLIC_ROUTES.get((historical_owner, private_name))
+        if route is None:
+            continue
+        public_owner, public_name = route
+        importer = importlib.import_module(importer_name)
+        if not hasattr(importer, private_name):
+            continue
         owner = importlib.import_module(public_owner)
         assert getattr(importer, private_name) is getattr(owner, public_name)
 

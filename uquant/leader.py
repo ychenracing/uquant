@@ -276,7 +276,6 @@ def _leader_reference_context(
         reference_symbols=references,
         industries={symbol: effective_industries.get(symbol, ("unknown", 0.0))[0] for symbol in panel},
         minimum_members=cfg.industry_signal_min_members,
-        hierarchical=cfg.hierarchical_industry_shrinkage_enabled,
     )
     industry_returns: dict[str, list[float]] = {}
     for symbol in references:
@@ -514,8 +513,8 @@ def compute_structural_leaders(
     extra_symbols = tuple(sorted(set(panel) - set(REFERENCE_UNIVERSE)))
     # Structural components include configuration-dependent industry evidence.
     # A ProductionEngine is intentionally reused across promotion cells, so a
-    # key that omits cfg can leak small-pool hierarchical scores into the broad
-    # compatibility path (or the reverse) and make replay order affect returns.
+    # key that omits cfg can leak scores between configurations and make replay
+    # order affect returns.
     cache_key = (as_of, extra_symbols, cfg, "STRUCTURAL")
     cached = score_cache.get(cache_key) if score_cache is not None else None
     if cached is not None:
@@ -649,7 +648,7 @@ def compute_leaders(
     cfg: SystemConfig,
     score_cache: dict[tuple[object, ...], dict[str, LeaderScore]] | None = None,
 ) -> dict[str, LeaderScore]:
-    """Compatibility wrapper for structural, current-alpha, then tenure scoring."""
+    """Run structural, current-alpha, and tenure scoring in production order."""
     structural = compute_structural_leaders(
         panel,
         as_of=as_of,

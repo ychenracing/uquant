@@ -6,7 +6,7 @@ from typing import Any
 
 import pytest
 
-from uquant.account import load_account, migrate_account
+from uquant.account import load_account
 from uquant.types import (
     AccountOrder,
     AccountState,
@@ -284,7 +284,7 @@ def test_recovery_conviction_owner_round_trips_in_native_schema(tmp_path) -> Non
         ("mae", 0.01, "tranche mae"),
     ],
 )
-def test_native_v3_rejects_invalid_tranche_economic_metadata(
+def test_current_schema_rejects_invalid_tranche_economic_metadata(
     tmp_path,
     field: str,
     value: Any,
@@ -406,7 +406,7 @@ def _sell_fill_state() -> AccountState:
         ),
     ],
 )
-def test_native_v3_rejects_inconsistent_sell_lot_attribution(
+def test_current_schema_rejects_inconsistent_sell_lot_attribution(
     tmp_path,
     mutate: Callable[[dict[str, Any]], Any],
     match: str,
@@ -428,7 +428,7 @@ def test_native_v3_rejects_inconsistent_sell_lot_attribution(
         lambda payload: payload.update(schema_version="3"),
     ],
 )
-def test_native_v3_rejects_numeric_strings(tmp_path, mutate):
+def test_current_schema_rejects_numeric_strings(tmp_path, mutate):
     payload = _position_state().to_dict()
     mutate(payload)
 
@@ -436,34 +436,11 @@ def test_native_v3_rejects_numeric_strings(tmp_path, mutate):
         load_account(_write_payload(tmp_path, payload))
 
 
-def test_explicit_schema_v2_migration_can_coerce_legacy_numeric_fields(tmp_path):
-    payload = _position_state().to_dict()
-    payload["schema_version"] = "2"
-    payload["initial_cash"] = "2000000"
-    payload["cash"] = "2000000"
-    payload["positions"][SYMBOL]["shares"] = "100"
-    payload["positions"][SYMBOL]["tranches"][0]["avg_cost"] = "10.0"
-    path = _write_payload(tmp_path, payload, "legacy-v2.json")
-
-    legacy = load_account(path, allow_legacy_schema=True)
-    assert legacy.initial_cash == 2_000_000.0
-    assert legacy.positions[SYMBOL].shares == 100
-    assert legacy.positions[SYMBOL].tranches[0].avg_cost == 10.0
-
-    migrated = migrate_account(
-        path,
-        path,
-        new_code_hash="new-code",
-        acknowledge_code_change=True,
-    )
-    assert load_account(path).to_dict() == migrated.to_dict()
-
-
 @pytest.mark.parametrize(
     "field",
     ["active_leaders", "data_hash_symbols"],
 )
-def test_native_v3_symbol_lists_reject_values_that_were_previously_coerced(
+def test_current_schema_symbol_lists_reject_non_text_values(
     tmp_path,
     field: str,
 ):
@@ -518,7 +495,7 @@ def test_native_v3_symbol_lists_reject_values_that_were_previously_coerced(
         ),
     ],
 )
-def test_native_v3_strictly_validates_audit_event_shapes_and_enums(
+def test_current_schema_strictly_validates_audit_event_shapes_and_enums(
     tmp_path,
     field: str,
     value: Any,
@@ -531,7 +508,7 @@ def test_native_v3_strictly_validates_audit_event_shapes_and_enums(
         load_account(_write_payload(tmp_path, payload))
 
 
-def test_native_v3_accepts_all_current_audit_event_variants(tmp_path):
+def test_current_schema_accepts_all_audit_event_variants(tmp_path):
     payload = _position_state().to_dict()
     payload["replacement_events"] = [
         {

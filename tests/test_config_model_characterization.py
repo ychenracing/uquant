@@ -165,7 +165,7 @@ def _sample_models() -> dict[str, object]:
     }
 
 
-def test_all_281_system_config_fields_match_the_frozen_flat_contract() -> None:
+def test_all_277_system_config_fields_match_the_current_flat_contract() -> None:
     expected_flat = PUBLIC_API["flat_config_serialization"]
     expected_module = PUBLIC_API["modules"]["uquant.config"]
     assert isinstance(expected_flat, Mapping)
@@ -174,7 +174,7 @@ def test_all_281_system_config_fields_match_the_frozen_flat_contract() -> None:
     fields = dataclasses.fields(SystemConfig)
     payload = DEFAULT_CONFIG.to_dict()
 
-    assert len(fields) == 281
+    assert len(fields) == 277
     assert [field.name for field in fields] == expected_flat["field_order"]
     assert list(payload) == expected_flat["field_order"]
     assert payload == expected_flat["values"]

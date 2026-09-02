@@ -110,11 +110,22 @@ def decode_historical_evidence_account(
         expected_economic_sha256,
         field="historical evidence account economic seal",
     )
-    decoded = account_from_dict(
-        raw,
-        require_hashes=False,
-        allow_legacy_schema=True,
-    )
+    schema_version = raw.get("schema_version")
+    if schema_version == 5:
+        current_payload = {
+            **AccountState.empty(1.0).to_dict(),
+            **raw,
+            "schema_version": ACCOUNT_SCHEMA_VERSION,
+        }
+        decoded = account_from_dict(current_payload, require_hashes=False)
+        decoded.schema_version = 5
+    elif schema_version == ACCOUNT_SCHEMA_VERSION:
+        decoded = account_from_dict(raw, require_hashes=False)
+    else:
+        raise ValueError(
+            f"historical evidence account schema {schema_version}; "
+            f"expected 5 or {ACCOUNT_SCHEMA_VERSION}"
+        )
     decoded_payload = decoded.to_dict()
     if decoded.schema_version == ACCOUNT_SCHEMA_VERSION:
         projected: Mapping[str, Any] = decoded_payload

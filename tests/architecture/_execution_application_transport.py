@@ -20,6 +20,7 @@ _RISK_TIMELINE_PATH = "uquant/application/risk_timeline_cache.py"
 _DECISION_CHAIN = (_APPLICATION_STAGES, _ATTRIBUTION_STAGES, _DECISION_OWNER)
 _DECISION_FAN_OUT = frozenset(
     {
+        "uquant.account.codec",
         "uquant.application.target_attribution",
         "uquant.config",
         "uquant.contracts.universe",
@@ -42,6 +43,16 @@ _EXTRACTED_FAN_OUT = frozenset(
         "uquant.types",
     }
 )
+ARCHITECTURE_CURRENT_ENGINE_DOCSTRINGS = {
+    "_decision_config_for_universe": (
+        "Return one production policy regardless of unrelated universe members.\n\n"
+        "Universe size is retained only as diagnostic provenance. It must never select\n"
+        "a different strategy configuration: an otherwise irrelevant symbol cannot\n"
+        "change the decision path merely by crossing a pool-size threshold."
+    ),
+    "_load": "Load symbols through the market workspace owner.",
+    "_price": "Read one point-in-time price through the market workspace owner.",
+}
 _REVIEWED_SOURCE_CHAINS: Mapping[str, tuple[str, ...]] = {
     "uquant/application/backtest.py": (_APPLICATION_STAGES,),
     _DECISION_PATH: _DECISION_CHAIN,
@@ -81,6 +92,7 @@ ARCHITECTURE_EXECUTION_REVIEWED_DEFINITIONS = frozenset(
         ("uquant/execution/tranches.py", "_rebuild_position_from_tranches"),
         ("uquant/execution/open_execution.py", "ExecutionPlanner"),
         ("uquant/application/decision.py", "_attach_target_attribution"),
+        ("uquant/application/decision.py", "_decision_config_for_universe"),
         ("uquant/application/decision.py", "decide"),
         ("uquant/application/decision.py", "deterministic_decision"),
         (_RISK_TIMELINE_PATH, "_causal_risk_timeline"),
@@ -248,6 +260,13 @@ def validate_engine_descriptor_transport(
     expected_signature = inspect.signature(expected)
     observed_annotations = dict(observed.__annotations__)
     expected_annotations = dict(expected.__annotations__)
+    current_docstring = ARCHITECTURE_CURRENT_ENGINE_DOCSTRINGS.get(name)
+    if current_docstring is not None:
+        assert inspect.cleandoc(observed.__doc__ or "") == current_docstring
+    if name == "_decision_config_for_universe":
+        assert observed_signature == expected_signature
+        assert observed_annotations == expected_annotations
+        return
     if name == "_causal_risk_timeline":
         parameter = observed_signature.parameters["role_absent_symbols"]
         assert parameter.kind is inspect.Parameter.KEYWORD_ONLY

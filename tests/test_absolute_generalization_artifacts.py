@@ -146,10 +146,10 @@ def test_initial_crowning_requires_no_rearm_authorization_session() -> None:
         raw={"authorization_session": ""},
     )
 
-    assert acceptance_evidence._crowning_authorization_session(chain) == ""
+    assert acceptance_evidence._evidence_crowning_authorization_session(chain) == ""
     chain.raw["authorization_session"] = "2026-01-05"
     with pytest.raises(ValueError, match="authorization"):
-        acceptance_evidence._crowning_authorization_session(chain)
+        acceptance_evidence._evidence_crowning_authorization_session(chain)
 
 
 def test_strict_round_trip_rejects_predicate_shaped_pass_at_untrusted_path() -> None:

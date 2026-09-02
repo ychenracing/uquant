@@ -2,15 +2,11 @@
 
 from __future__ import annotations
 
-import math
 from typing import Any
 
 from ..types import AccountState, Lifecycle, Opportunity, Position, Tranche
 from .validation_attribution import (
     validate_attribution_identity as _validate_attribution_identity,
-)
-from .validation_common import (
-    HISTORICAL_ATTRIBUTION_SCHEMA_VERSION as _HISTORICAL_ATTRIBUTION_SCHEMA_VERSION,
 )
 from .validation_common import (
     finite_number as _finite_number,
@@ -29,112 +25,64 @@ from .validation_common import (
 )
 
 
-def _tranche(payload: dict[str, Any], *, schema_version: int) -> Tranche:
-    """Load a tranche while deriving safe current-schema economic metadata."""
-    native_schema = schema_version >= _HISTORICAL_ATTRIBUTION_SCHEMA_VERSION
-    if native_schema:
-        avg_cost = payload.get("avg_cost", 0.0)
-        highest = payload.get("highest_close", avg_cost)
-        lowest = payload.get("lowest_close", avg_cost)
-    else:
-        avg_cost = float(payload.get("avg_cost", 0.0))
-        highest = float(payload.get("highest_close", avg_cost))
-        lowest = float(payload.get("lowest_close", avg_cost))
-        if lowest <= 0:
-            lowest = avg_cost
-    convert_text = (lambda value: value) if native_schema else str
-    convert_int = (lambda value: value) if native_schema else int
-    convert_float = (lambda value: value) if native_schema else float
+def _tranche(payload: dict[str, Any]) -> Tranche:
+    """Load one tranche from the current account schema."""
+    avg_cost = payload.get("avg_cost", 0.0)
+    highest = payload.get("highest_close", avg_cost)
+    lowest = payload.get("lowest_close", avg_cost)
     return Tranche(
-        tranche_id=convert_text(payload["tranche_id"]),
-        lifecycle=convert_text(payload.get("lifecycle", "CORE")),
-        shares=convert_int(payload.get("shares", 0)),
+        tranche_id=payload["tranche_id"],
+        lifecycle=payload.get("lifecycle", "CORE"),
+        shares=payload.get("shares", 0),
         avg_cost=avg_cost,
-        entry_date=convert_text(payload.get("entry_date", "")),
-        sellable_date=convert_text(payload.get("sellable_date", "")),
+        entry_date=payload.get("entry_date", ""),
+        sellable_date=payload.get("sellable_date", ""),
         highest_close=highest,
         lowest_close=lowest,
-        mfe=convert_float(
-            payload.get(
-                "mfe",
-                max(
-                    0.0,
-                    float(highest) / max(float(avg_cost), 1e-12) - 1.0,
-                ),
-            )
+        mfe=payload.get(
+            "mfe",
+            max(
+                0.0,
+                float(highest) / max(float(avg_cost), 1e-12) - 1.0,
+            ),
         ),
-        mae=convert_float(
-            payload.get(
-                "mae",
-                min(
-                    0.0,
-                    float(lowest) / max(float(avg_cost), 1e-12) - 1.0,
-                ),
-            )
+        mae=payload.get(
+            "mae",
+            min(
+                0.0,
+                float(lowest) / max(float(avg_cost), 1e-12) - 1.0,
+            ),
         ),
-        entry_score=convert_float(payload.get("entry_score", 0.0)),
-        entry_confidence=convert_float(payload.get("entry_confidence", 0.0)),
-        entry_regime=convert_text(payload.get("entry_regime", "CHOPPY")),
-        entry_industry_strength=convert_float(payload.get("entry_industry_strength", 0.0)),
-        event_id=convert_text(payload.get("event_id", "")),
-        origin_subsystem=convert_text(payload.get("origin_subsystem", "")),
-        mechanism=convert_text(payload.get("mechanism", "")),
-        origin_lifecycle=convert_text(payload.get("origin_lifecycle", "")),
+        entry_score=payload.get("entry_score", 0.0),
+        entry_confidence=payload.get("entry_confidence", 0.0),
+        entry_regime=payload.get("entry_regime", "CHOPPY"),
+        entry_industry_strength=payload.get("entry_industry_strength", 0.0),
+        event_id=payload.get("event_id", ""),
+        origin_subsystem=payload.get("origin_subsystem", ""),
+        mechanism=payload.get("mechanism", ""),
+        origin_lifecycle=payload.get("origin_lifecycle", ""),
         replaces_symbol=payload.get("replaces_symbol"),
-        industry_at_entry=convert_text(payload.get("industry_at_entry", "")),
-        industry_manifest_sha256=convert_text(payload.get("industry_manifest_sha256", "")),
-        grant_id=convert_text(payload.get("grant_id", "")),
-        epoch_id=convert_text(payload.get("epoch_id", "")),
+        industry_at_entry=payload.get("industry_at_entry", ""),
+        industry_manifest_sha256=payload.get("industry_manifest_sha256", ""),
+        grant_id=payload.get("grant_id", ""),
+        epoch_id=payload.get("epoch_id", ""),
     )
 
 
-def _position(payload: dict[str, Any], *, schema_version: int) -> Position:
+def _position(payload: dict[str, Any]) -> Position:
     """Decode a position and reconcile aggregate shares with its tranche lots."""
 
-    native_schema = schema_version >= _HISTORICAL_ATTRIBUTION_SCHEMA_VERSION
-    convert_text = (lambda value: value) if native_schema else str
-    convert_int = (lambda value: value) if native_schema else int
-    convert_float = (lambda value: value) if native_schema else float
-    position = Position(
-        symbol=convert_text(payload["symbol"]),
-        shares=convert_int(payload.get("shares", 0)),
-        avg_cost=convert_float(payload.get("avg_cost", 0.0)),
-        entry_date=convert_text(payload.get("entry_date", "")),
-        highest_close=convert_float(payload.get("highest_close", 0.0)),
-        lifecycle=convert_text(payload.get("lifecycle", "CORE")),
-        tranches=[_tranche(item, schema_version=schema_version) for item in payload.get("tranches", [])],
-        grant_id=convert_text(payload.get("grant_id", "")),
-        epoch_id=convert_text(payload.get("epoch_id", "")),
+    return Position(
+        symbol=payload["symbol"],
+        shares=payload.get("shares", 0),
+        avg_cost=payload.get("avg_cost", 0.0),
+        entry_date=payload.get("entry_date", ""),
+        highest_close=payload.get("highest_close", 0.0),
+        lifecycle=payload.get("lifecycle", "CORE"),
+        tranches=[_tranche(item) for item in payload.get("tranches", [])],
+        grant_id=payload.get("grant_id", ""),
+        epoch_id=payload.get("epoch_id", ""),
     )
-    if schema_version < _HISTORICAL_ATTRIBUTION_SCHEMA_VERSION and position.shares > 0:
-        known_shares = sum(item.shares for item in position.tranches)
-        if known_shares > position.shares:
-            raise ValueError("compatible position tranches exceed aggregate shares")
-        residual = position.shares - known_shares
-        if residual:
-            entry_date = position.entry_date or "0001-01-01"
-            highest_close = (
-                position.highest_close
-                if math.isfinite(position.highest_close) and position.highest_close > 0
-                else position.avg_cost
-            )
-            position.entry_date = entry_date
-            position.highest_close = highest_close
-            position.tranches.append(
-                Tranche(
-                    tranche_id=f"legacy:{position.symbol}:{len(position.tranches) + 1}",
-                    lifecycle=position.lifecycle,
-                    shares=residual,
-                    avg_cost=position.avg_cost,
-                    entry_date=entry_date,
-                    # Equality preserves "already sellable" semantics while
-                    # keeping the current causal date invariant.
-                    sellable_date=entry_date,
-                    highest_close=highest_close,
-                    lowest_close=position.avg_cost,
-                )
-            )
-    return position
 
 
 def _validate_position_tranche(
@@ -260,5 +208,4 @@ def _validate_position_state(
 
 
 position_from_payload = _position
-tranche_from_payload = _tranche
 validate_position_state = _validate_position_state

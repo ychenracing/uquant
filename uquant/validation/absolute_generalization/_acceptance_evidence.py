@@ -27,6 +27,7 @@ from uquant.validation.generalization_reference import (
     load_generalization_policy,
 )
 
+from ._account_payload import normalize_epoch_only_cohort_attribution
 from ._champion_runtime_reconciliation import (
     decode_champion_account,
     derive_champion_runtime_claims,
@@ -36,7 +37,6 @@ from ._physical_identity import physical_fill_identity_sha256
 from ._reachability_codec import reachability_state_from_raw
 from .contract import AbsoluteGeneralizationContract
 from .reachability import (
-    _normalize_epoch_only_cohort_attribution,
     analyze_failed_grant_recovery,
     analyze_terminal_scc,
     is_positive_strategic_outlet,
@@ -610,7 +610,7 @@ def _crowning_account_indexes(
     dict[str, Fill],
 ]:
     account_raw = deepcopy(dict(_evidence_mapping(raw, label="crowning account")))
-    _normalize_epoch_only_cohort_attribution(account_raw)
+    normalize_epoch_only_cohort_attribution(account_raw)
     account = account_from_dict(account_raw, require_hashes=False)
     account_fills = {physical_fill_identity_sha256(item): item for item in account.fills}
     if len(account_fills) != len(account.fills):
@@ -622,7 +622,7 @@ def _crowning_account_indexes(
     )
 
 
-def _crowning_authorization_session(chain: _CrowningChain) -> str:
+def _evidence_crowning_authorization_session(chain: _CrowningChain) -> str:
     raw = chain.raw["authorization_session"]
     if not chain.grant.authorization_id:
         if raw != "":
@@ -695,7 +695,7 @@ def _validate_crowning_execution(
     qualification = _evidence_date(chain.raw["qualification_session"], label="crowning qualification")
     target_session = _evidence_date(chain.raw["target_session"], label="crowning target")
     order_session = _evidence_date(chain.raw["order_session"], label="crowning order")
-    authorization_session = _crowning_authorization_session(chain)
+    authorization_session = _evidence_crowning_authorization_session(chain)
     exited = _evidence_date(chain.raw["exit_session"], label="crowning exit")
     if not _crowning_execution_matches(
         chain,

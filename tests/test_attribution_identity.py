@@ -757,100 +757,6 @@ def test_changed_causal_identity_supersedes_same_weight_retained_order() -> None
 
 
 
-def _schema_v3_payload(*, reason: str) -> dict[str, object]:
-    order = domain.AccountOrder(
-        order_id="O000000001",
-        signal_date="2026-01-05",
-        submitted_date="2026-01-05",
-        symbol="sz300502",
-        side=domain.Side.BUY.value,
-        target_weight=0.05,
-        reason=reason,
-        lifecycle=domain.Lifecycle.CORE.value,
-        status=domain.OrderStatus.FILLED.value,
-        requested_shares=100,
-        filled_shares=100,
-        last_update_date="2026-01-06",
-        last_event="FILL",
-    )
-    fill = domain.Fill(
-        signal_date=order.signal_date,
-        fill_date="2026-01-06",
-        symbol=order.symbol,
-        side=order.side,
-        shares=100,
-        price=10.0,
-        gross_value=1_000.0,
-        commission=5.0,
-        stamp_duty=0.0,
-        transfer_fee=0.1,
-        slippage_cost=0.2,
-        reason=reason,
-        lifecycle=order.lifecycle,
-        order_id=order.order_id,
-    )
-    tranche = domain.Tranche(
-        tranche_id="legacy-lot-1",
-        lifecycle=domain.Lifecycle.CORE.value,
-        shares=100,
-        avg_cost=10.051,
-        entry_date="2026-01-06",
-        sellable_date="2026-01-07",
-        highest_close=10.0,
-        lowest_close=10.0,
-    )
-    state = domain.AccountState(
-        initial_cash=2_000_000.0,
-        cash=1_998_994.9,
-        positions={
-            "sz300502": domain.Position(
-                symbol="sz300502",
-                shares=100,
-                avg_cost=10.051,
-                entry_date="2026-01-06",
-                highest_close=10.0,
-                lifecycle=domain.Lifecycle.CORE.value,
-                tranches=[tranche],
-            )
-        },
-        order_ledger=[order],
-        next_order_sequence=2,
-        fills=[fill],
-        operating_peak=2_000_000.0,
-        capital_peak=2_000_000.0,
-        data_hash="data",
-        code_hash="old-code",
-    )
-    payload = state.to_dict()
-    payload["schema_version"] = 3
-    identity_fields = {
-        "event_id",
-        "origin_subsystem",
-        "mechanism",
-        "origin_lifecycle",
-        "replaces_symbol",
-        "industry_at_entry",
-        "industry_manifest_sha256",
-    }
-    for order_payload in payload["order_ledger"]:
-        for field in identity_fields:
-            order_payload.pop(field)
-    for fill_payload in payload["fills"]:
-        for field in identity_fields:
-            fill_payload.pop(field)
-    for position_payload in payload["positions"].values():
-        for tranche_payload in position_payload["tranches"]:
-            for field in identity_fields:
-                tranche_payload.pop(field)
-    return payload
-
-
-
-
-
-
-
-
 def _assert_reconcile_rejection_is_byte_atomic(
     *,
     account: domain.AccountState,
@@ -930,14 +836,11 @@ from _attribution_identity_retention_cases import (
     test_risk_off_identity_cannot_fabricate_a_native_buy_at_any_boundary,
     test_native_schema_legacy_identity_cannot_fabricate_a_new_buy,
     test_broker_rejects_a_planned_buy_without_canonical_attribution,
-    test_legacy_schema_cannot_bypass_migration_through_save,
-    test_sell_of_migrated_unmapped_lot_preserves_explicit_legacy_industry,
+    test_save_rejects_non_current_schema,
     test_unmatched_broker_inventory_fails_closed_without_a_planned_buy,
 )
 
 from _attribution_identity_reconciliation_cases import (
-    test_schema_v3_identity_migration_is_explicit_deterministic_and_prose_free,
-    test_schema_v3_unknown_buy_code_remains_explicitly_unattributed_and_not_a_leader,
     test_reconcile_account_orders_batch_is_atomic_when_a_later_buy_is_invalid,
     test_reconcile_rejects_same_side_duplicate_current_symbol_atomically,
     test_reconcile_rejects_opposing_current_sides_for_one_symbol_atomically,
@@ -947,11 +850,6 @@ from _attribution_identity_reconciliation_cases import (
 )
 
 from _attribution_identity_schema_cases import (
-    test_pre_fix_v4_identity_requires_validated_deterministic_v5_migration,
-    test_real_v4_and_v5_event_mapping_cannot_split_on_display_fields,
-    test_v4_to_v5_rejects_reverse_event_id_collision_before_writing,
-    test_schema_v3_unlinked_fill_migration_uses_structured_identity_not_prose,
-    test_schema_v3_unlinked_fill_migration_fails_closed_on_structured_ambiguity,
     test_native_schema_rejects_unknown_or_malformed_identity,
     test_repeated_production_decisions_include_byte_identical_causal_metadata,
 )

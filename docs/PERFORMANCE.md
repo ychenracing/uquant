@@ -140,9 +140,32 @@ uv run python scripts/run_strategic_ownership_acceptance.py \
   --cache-dir /tmp/strategic-ownership-cache
 ```
 
+单项失败可用显式 selector 定位，不必重跑整个 shard 或全部 grant case：
+
+```bash
+uv run python scripts/run_strategic_ownership_acceptance.py \
+  --shard critical \
+  --scenario remove-sz300394 \
+  --output /tmp/strategic-ownership-remove-sz300394.json \
+  --cache-dir /tmp/strategic-ownership-cache
+
+uv run python scripts/run_strategic_grant_acceptance.py \
+  --case native-sz300502 \
+  --output /tmp/strategic-grant-native-sz300502.json \
+  --cache-dir /tmp/strategic-grant-cache
+```
+
+Ownership 的 `--scenario` 必须属于所选 shard；alias 只执行合同声明的源场景依赖。Grant 的
+`--case` 只接受 `baseline` 或三个 `native-<owner>` case。两种 selector 产物都固定写入
+`diagnostic_only: true` 和 `authoritative_acceptance: false`。其缓存身份绑定所选 spec、验收
+合同、runner 源码、完整 package/validation source surface、source registry seal、生产源码、
+配置、已校验冻结数据清单以及 Python/NumPy/pandas/uv/`uv.lock` 运行环境；任一身份变化都会
+形成 cache miss。
+
 GitHub 的 `Strategic Ownership Acceptance` 对 PR 和 `main` 自动运行相同五个 shard，缓存
 同时绑定源码、配置、冻结数据和合同身份，只上传紧凑事实。它不调用完整 234-record 矩阵，
-也不替代手动的 Extended Performance 或 Extended Economic 验收。
+也不使用单项 selector。selector 产物不能替代完整 Strategic Ownership/Strategic Grant、
+手动 Extended Performance 或 Extended Economic 验收。
 
 ### Absolute Generalization 自动阻断
 
@@ -259,6 +282,156 @@ NumPy、pandas、uv 和锁文件摘要；已开始观察的身份不得修改或
 观察日期回填。新增 source epoch 或候选必须从真实启用日向前登记，不能凭空创建历史
 观察。`artifacts/holdout/lane_validation.json` 明确记录样本量、下一里程碑和七个正式
 评分；少于 20 日时这些评分全部为 `null`，诊断指标也不得伪装为正式评分。
+
+### Checkpoint A：当前身份、holdout 与 alpha 来源
+
+截至 `2026-09-02 09:29:01+08:00`，冻结候选而非当前 `main` 拥有已经完成的 prospective
+观察。冻结身份在 `2026-08-06..2026-09-01` 的 19 个 session 中期初与期末权益均为
+`49019323.60580173`，累计收益、最大回撤、换手、集中度、已实现和未实现 PnL 均为零；
+模型订单和 fill 均为零。全部 19 日的常量时间线为日收益 `0`、现金率 `1`、gross exposure
+`0`、opportunity `WEAK`、risk `RISK_OFF`、target gross `0`，不保存逐日原始行。没有实际
+券商执行 Journal，故券商 fill 为未知，
+不能用模型 fill 或零值冒充。当前 `main` 对同一 19 日的结果仅是
+`RETROSPECTIVE_BRIDGE_NOT_FUTURE_HOLDOUT`，其 completed prospective session 为 0。
+紧凑、封签且不含逐日原始数据的证据见
+[`post_generalization_trust_closure_checkpoint_a.json`](../benchmarks/post_generalization_trust_closure_checkpoint_a.json)。
+
+`2023-01-03..2026-08-05` 的既有精确账本从 `2000000.0` 增至
+`49019323.60580173`。总 PnL 为 `47019323.60580174`，权益差为
+`47019323.60580173`，浮点残差 `7.450580596923828e-09`，在 `1e-06` 容差内精确对账。
+`sz300308`、optical、`STRATEGIC` route 和 `CORE` lifecycle 各承担 100% 的绝对 PnL；
+`sz300502`、`sz300394` 和全部 non-optical PnL 为零，Top-1、Top-3 与 HHI 均为 1。
+compute、pcb、semicap、materials、storage、datacenter 和其他行业均为零；ordinary leader、
+recovery、tactical、satellite、replacement route 以及 `ADD1 / ADD2 / SATELLITE / RECOVERY`
+lifecycle 也均为零。`sz300308` 的 14 个已实现 lot 从 `2023-01-05` 首次买入至
+`2026-06-24` 最后卖出，open PnL 为零。
+alpha 来源机制分解为 `STRATEGIC_COHORT = 30942369.902220484` 与
+`STRATEGIC_RESTORATION = 16076953.703581253`。风险退出标签是非加总诊断，只解释退出路径，
+不能重复计作 alpha 来源。唯一观测到的 epoch owner 是 `sz300308`，qualification route 为
+`reversal_industry`、quorum 为 `FULL_COHORT`，无关闭、终止或 successor；直接部署买入 gross
+为 `7413046.741099999`，峰值暴露为 `0.9838117253210967`。总 PnL 是 owner-lot 投影，部分
+risk-exit fill 没有保留 epoch ID，不能把该投影误读成每笔退出都由 epoch ID 直接归因。该
+epoch 投影缺少完整 runtime/HEAD envelope，因此只解释当前经济账本，不构成新的验收证据。
+
+GitHub workflow run `33539562132` 已提供三个与 baseline main-tree reference
+`b03021c55d5c7ad6803b33b777e9db38a46a1789` 精确匹配的 Absolute LOO cell；该 OID 指向
+生产 baseline，不表示持续变化的 feature-tree 身份。源码、配置、
+冻结数据 manifest 和 lock 身份也一致。移除 `sz300308` 后最终财富为
+`1.2632209078168604x`、MDD `0.23851539613956552`；观测到的 `sh601869` successor epoch
+曾在 `2025-08-05` 激活，并于 `2026-05-28` 关闭，但它仍属于 optical。移除 `sz300502`
+后最终财富为 `3.0084207762708095x`、MDD
+`0.2607049333556357`，形成 `sz300394 -> sz300308` 两个连续 epoch；移除 `sz300394` 后
+最终财富为 `7.809998638641716x`、MDD `0.1985706825003003`；观测到的 `sz300502` owner
+epoch 曾在 `2025-07-01` 激活，并于 `2026-06-25` 关闭。
+三个 cell 均无重复 epoch/grant/order，账本与 target-order-fill 身份均对账。这些是当前身份的
+bounded capability/continuity 证据，不是基线已实现 PnL 分散证明。个别 LOO 来源 cell 在
+HHI 非零时仍报告 Top-1/Top-3 为零；这些原始字段被原样保留但内部不一致，结论不依赖它们。
+
+同一 current tree/source/config/data/lock 身份下的三个 869-session bounded 诊断现已封签。
+three-core 最终财富为 `3.40939236400687x`，总 PnL `4818784.72801374`：`sz300308`
+贡献 `3666521.1619040393`（`76.08808794858424%`），`sz300394` 贡献
+`1152263.5661097001`（`23.91191205141576%`），`sz300502` 为零；PnL 全部来自 optical，
+Top-1/Top-3/HHI 分别为 `0.7608808794858424`、`1.0000000000000002`、
+`0.6361176665626133`。remove-all-three 与 no-optical 的经济结果相同：最终财富仅
+`1.01039464268425x`，PnL `20789.285368500307`，全部来自 semicap；`sh688200`、
+`sz300054`、`sz300223` 分别贡献 `-75852.1348041599`、`38732.23916298`、
+`57909.18100968021`，owner 为 `sh688200`，Top-1/Top-3/HHI 为
+`0.4397389503297848 / 1 / 0.3564964878650526`。被移除的三只 core 均显式记零。
+三项均无负现金、负持仓、重复 order ID 或重复 native physical fill identity，账本精确对账。
+
+这三个历史诊断的 raw account codec 都报 `account order grant identity differs from strategic epoch`；
+three-core 有 16 个 identity mismatch，另两项各 9 个。这不是交易结果冲突：当前
+`FULL_COHORT` 语义有意允许非 owner cohort row 共用 epoch 且 grant 留空。既有 Absolute
+helper 仅归一化证据 deep copy，归一化 codec 均为 `VALID`；Checkpoint C 的完整 current-path
+schema 8 账户已能直接 strict roundtrip。这些结果仍是 non-authoritative bounded
+diagnostic，不能冒充 Future Holdout。核心结论不变：已实现 baseline alpha 仍是 100%
+`sz300308 / optical`；单项 LOO 证明系统可以存活但仍停留在 optical；no-optical 证明能够找到
+技术 successor，却只有 `+1.039464268425%`。能力分散已经存在，已实现 PnL 分散仍不存在。
+
+另有的历史 continuous-AI-era core/no-optical 矩阵与冻结候选、当前 `main` 均不匹配，只能
+作为历史身份描述：full `24.509661802900865x`，移除 `sz300308` 为
+`0.8321334882399101x`，移除 `sz300502` 为 `0.8568649080496994x`，移除
+`sz300394` 为 `3.936609244088344x`，移除三只核心与 no-optical 均为
+`1.20910580087419x`。这些数值说明旧身份下能力存活，不证明已实现 PnL 分散，也不证明当前
+身份已经发生主动 alpha 迁移；不得用于当前 acceptance。
+
+### Checkpoint B：参数、状态、执行尾部与历史 regime
+
+Checkpoint B 只使用 `2023-01-03..2026-08-05`，没有读取 Future Holdout、搜索参数或修改
+生产默认值。1 个 baseline 与 16 个预注册 one-factor replay 全部绑定生产源码、有效配置、
+冻结数据、Python/NumPy/pandas/lock 和完整 runner 源码身份；17/17 replay 均完成精确账本对账，
+且没有负现金、杠杆、空头、重复 order、重复 native physical fill 或未来数据。封签证据见
+[`post_generalization_trust_closure_checkpoint_b.json`](../benchmarks/post_generalization_trust_closure_checkpoint_b.json)。
+
+| 参数 | 扰动 | 分类 | 关键结果 |
+|---|---|---|---|
+| `strategic_reversal_max_ret240` | `-0.18 / -0.12` | INACTIVE | 两侧与 baseline 的 Target、owner、risk、epoch、wealth、MDD、orders 和 turnover 完全相同 |
+| `strategic_reversal_min_ret5` | `0.04 / 0.06` | KNIFE_EDGE | 下侧不变；上侧从 `24.5096618029x` 降至 `1.51970999623x`，837 个 Target、227 个 owner、298 个 risk session 改变 |
+| `strategic_reversal_min_median_ret20` | `-0.06 / -0.04` | INACTIVE | 两侧经济行为完全相同 |
+| `strategic_reversal_max_tech_ret120` | `-0.02 / 0.00` | KNIFE_EDGE | 下侧为 `1.51970999623x`，上侧不变；变化与上一临界组合相同 |
+| `strategic_dominant_min_leader_gap` | `0.04 / 0.06` | INACTIVE | 两侧经济行为完全相同 |
+| `strategic_transition_min_component` | `0.65 / 0.75` | INACTIVE | 两侧经济行为完全相同 |
+| `strategic_dominant_profit_lock_mfe` | `1.98 / 2.42` | KNIFE_EDGE | wealth 为 `24.3937716283x / 24.7237165021x`，但分别改变 766 / 709 个 Target session，不能因终值接近而判稳定 |
+| `strategic_dominant_retained_gross` | `0.65 / 0.75` | KNIFE_EDGE | wealth 为 `25.3273063196x / 24.2168040724x`，分别改变 715 / 708 个 Target session |
+
+默认值恰好优于扰动不构成正面证据。四个 INACTIVE 只表示在该冻结历史路径没有进入生产
+决策，不表示字段永远无效；四个 KNIFE_EDGE 表示当前默认值不处于已证明的宽稳定区域，且
+本任务没有据此优化参数。
+
+历史活动审计观察到 strategic 227 个 Target session、sector guard 1 个、capital budget 24
+个、rearm 2 个、dominant-owner exception 216 个；concentrated-break 与 freeze 状态证据分别
+出现 34 / 23 个 session。ordinary leader、recovery、tactical、chronic overlay 和 strategic
+damage guard 在该 baseline 未触发，分类为 `INACTIVE_REACHABLE`，不能据此删除。四个默认
+为 false 的开关在本阶段分类为 `COMPAT_ONLY`；Checkpoint C 已在 current-path 等价门下删除
+`hierarchical_industry_shrinkage_enabled`、`group_balanced_reference_enabled`、
+`same_day_leader_pipeline_enabled` 与 `evidence_family_voting_enabled`。活动计数只能证明可达性与行为变化；本阶段没有运行 active-state 删除
+counterfactual，因此没有声称独立收益、独立风控或冗余，也没有删除 active economic state。
+
+11 个 execution case 直接调用生产 `ExecutionPlanner.execute_open`。额外 `25 / 50 / 100 /
+200` bps 的订单级增量现金成本分别为 `2475 / 4950 / 9900 / 19600`，其中 `S200` 最差；
+10,000 股请求在 `P75 / P50 / P25` 中分别成交 `7500 / 5000 / 2500` 股并保留余单。涨停买、
+跌停卖、停牌和零容量均阻塞 1 个 session、保留同一订单，并在下一可执行 open 成交。所有
+case 均保持非负现金、无杠杆、无空头、无重复 order/fill、无同信号日 fill，也没有伪造 broker
+事实。这是确定性订单级 stress，不是 11 次全策略 replay；stressed wealth、MDD、组合 turnover、
+组合机会成本和 worst portfolio trade 均为 `EVIDENCE GAP`，不能用订单级成本替代。
+
+真实冻结历史中，34-name AI 可观测成员等权因子的最差 5 日为
+`2026-07-13..2026-07-17`（`-21.5036311774%`），最差 20 日为
+`2026-07-01..2026-07-28`（`-34.2967879428%`）；最高相关同步下跌窗为
+`2024-09-11..2024-10-17`，平均 pairwise correlation `0.864166190757`，末 5 日
+`-7.44910475202%`。三核心 optical 的最差 5 / 20 日分别为
+`2025-04-01..2025-04-08`（`-27.7388664474%`）和
+`2026-07-01..2026-07-28`（`-33.7826143131%`）。baseline 的最长全现金弱势段为
+`2026-06-24..2026-08-05` 共 31 个 session，全程 `WEAK / RISK_OFF / zero target`。
+no-optical 是永久 ex-ante 移除，不是历史中真实 optical failure，不能产生 discovery/grant/fill
+latency；缺少 archived state trajectory、正式 optical-failure latency、真实 rotation event 和
+whipsaw 证据均显式记为 `EVIDENCE GAP`，没有用随机价格路径补齐矩阵。
+
+### Checkpoint C：当前输入表面与确定性经济等价
+
+Checkpoint C 只运行了一次 `2023-01-03..2026-08-05` 的 34-name candidate replay，并与
+pre-cleanup sealed reference 比较；没有读取 Future Holdout。原始 compare report seal 为
+`3aab551b05cd8630a9a7458a2b4b9e6a280f1a33502907420f2d828bf51a7eb8`，离线裁决 seal 为
+`b8ef34b9672fe79998ac4f1f3063296dc86bf4e0f8c54cad9386bc928795e9c1`。证据分别见
+[`post_generalization_trust_closure_checkpoint_c.json`](../benchmarks/post_generalization_trust_closure_checkpoint_c.json)
+和
+[`post_generalization_trust_closure_checkpoint_c_adjudication.json`](../benchmarks/post_generalization_trust_closure_checkpoint_c_adjudication.json)。
+
+Decision、ledger、逐日账户事实、Order、Fill、财富、权益、回撤、turnover、accounting、配置语义
+和空 schema 8 roundtrip 均逐项精确相同。两侧都是 869 个 session、15 个 Order、15 个 Fill、
+1 个 epoch；最终财富 `24.509661802900865x`、权益 `49019323.60580173`、MDD
+`0.27146973146234554`、账户订单 12、gross turnover `30.944373005800003`、pending 0，
+accounting residual 为 `7.450580596923828e-09`。完整账户在两侧均通过 schema 8 strict codec。
+
+原始 final-account、epoch 与 grant hash 不做 byte-exact 宣称：源码从 `e0331925...` 变为
+`3f605ca6...`，raw config 从 `dae4d79...` 变为 `c05faf2...`，因此
+`strategic_epochs[0].source_identity`、`strategic_epochs[0].config_identity` 和
+`strategic_grant.production_source_identity` 必然重绑定。离线裁决重新计算原 report 的每个
+dimension、验证这三个路径精确绑定各自 source/config hash，并在删除这三个 provenance identity
+后证明 epoch/grant 经济字段相同；semantic config 仍精确为
+`373132f702a15176d97822b4ef43868f50dd38823ab60daf5b45dad425ae07fd`。因此结论是
+`DETERMINISTICALLY_EQUIVALENT`，不是 byte-identical。两份证据均为 non-authoritative，
+不授予生产推广权限。
 
 ## 如何判断改动是否安全
 

@@ -73,8 +73,7 @@ class ProductionEngine:
         self.data = self.workspace.data
         self.execution = ExecutionPlanner(cfg)
         self.allocator = PortfolioAllocator(cfg)
-        # Branch-free compatibility aliases for frozen test seams. Production,
-        # validation, research, and scripts use the owned workspace API.
+        # Shared application views owned and invalidated by the market workspace.
         self._raw = self.workspace._raw
         self._features = self.workspace._features
         self._code_hash: str | None = None
@@ -83,11 +82,11 @@ class ProductionEngine:
         self._risk_timeline_cache: RiskEvidenceTimeline | None = None
 
     def _load(self, symbols: Iterable[str]) -> None:
-        """Compatibility forwarder; market ownership lives in ``workspace``."""
+        """Load symbols through the market workspace owner."""
         self.workspace.load(symbols)
 
     def _price(self, symbol: str, date: pd.Timestamp, field: str = "close") -> float:
-        """Compatibility forwarder; market ownership lives in ``workspace``."""
+        """Read one point-in-time price through the market workspace owner."""
         return self.workspace.price(symbol, date, field)
 
     @property

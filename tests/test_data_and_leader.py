@@ -288,7 +288,7 @@ def test_structural_leader_cache_isolated_by_scoring_config(data_dir) -> None:
         panel,
         as_of=date,
         tech=tech,
-        cfg=engine.cfg.override(hierarchical_industry_shrinkage_enabled=False),
+        cfg=engine.cfg.override(leader_mature_score=0.73),
         score_cache=cache,
     )
     actual = compute_structural_leaders(

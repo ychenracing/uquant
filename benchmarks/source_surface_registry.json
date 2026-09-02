@@ -14,9 +14,9 @@
       "source_paths": [
         "uquant/__init__.py",
         "uquant/account/__init__.py",
+        "uquant/account/code_identity.py",
         "uquant/account/codec.py",
         "uquant/account/economic_identity.py",
-        "uquant/account/migrations.py",
         "uquant/account/store.py",
         "uquant/account/validation_attribution.py",
         "uquant/account/validation_common.py",
@@ -163,9 +163,9 @@
       "source_paths": [
         "uquant/__init__.py",
         "uquant/account/__init__.py",
+        "uquant/account/code_identity.py",
         "uquant/account/codec.py",
         "uquant/account/economic_identity.py",
-        "uquant/account/migrations.py",
         "uquant/account/store.py",
         "uquant/account/validation_attribution.py",
         "uquant/account/validation_common.py",
@@ -236,9 +236,9 @@
       ],
       "source_paths": [
         "uquant/account/__init__.py",
+        "uquant/account/code_identity.py",
         "uquant/account/codec.py",
         "uquant/account/economic_identity.py",
-        "uquant/account/migrations.py",
         "uquant/account/store.py",
         "uquant/account/validation_attribution.py",
         "uquant/account/validation_common.py",
@@ -344,6 +344,9 @@
         "research/generalization_smoke.py",
         "research/parameter_stress.py",
         "research/performance_diagnostic.py",
+        "research/post_generalization_trust_closure_checkpoint_b.py",
+        "research/post_generalization_trust_closure_checkpoint_c.py",
+        "research/post_generalization_trust_closure_checkpoint_c_adjudication.py",
         "research/risk_counterfactual.py",
         "research/risk_counterfactual_cli.py",
         "research/risk_differential.py",
@@ -436,6 +439,7 @@
         "uquant/validation/__main__.py",
         "uquant/validation/absolute_generalization/__init__.py",
         "uquant/validation/absolute_generalization/_acceptance_evidence.py",
+        "uquant/validation/absolute_generalization/_account_payload.py",
         "uquant/validation/absolute_generalization/_champion_runtime_reconciliation.py",
         "uquant/validation/absolute_generalization/_execution_chain_reconciliation.py",
         "uquant/validation/absolute_generalization/_metric_primitives.py",
@@ -539,6 +543,9 @@
         "research/generalization_smoke.py",
         "research/parameter_stress.py",
         "research/performance_diagnostic.py",
+        "research/post_generalization_trust_closure_checkpoint_b.py",
+        "research/post_generalization_trust_closure_checkpoint_c.py",
+        "research/post_generalization_trust_closure_checkpoint_c_adjudication.py",
         "research/risk_counterfactual.py",
         "research/risk_counterfactual_cli.py",
         "research/risk_differential.py",
@@ -573,9 +580,9 @@
         "uquant/__init__.py",
         "uquant/__main__.py",
         "uquant/account/__init__.py",
+        "uquant/account/code_identity.py",
         "uquant/account/codec.py",
         "uquant/account/economic_identity.py",
-        "uquant/account/migrations.py",
         "uquant/account/store.py",
         "uquant/account/validation_attribution.py",
         "uquant/account/validation_common.py",
@@ -738,6 +745,7 @@
         "uquant/validation/__main__.py",
         "uquant/validation/absolute_generalization/__init__.py",
         "uquant/validation/absolute_generalization/_acceptance_evidence.py",
+        "uquant/validation/absolute_generalization/_account_payload.py",
         "uquant/validation/absolute_generalization/_champion_runtime_reconciliation.py",
         "uquant/validation/absolute_generalization/_execution_chain_reconciliation.py",
         "uquant/validation/absolute_generalization/_metric_primitives.py",
@@ -812,5 +820,5 @@
       ]
     }
   ],
-  "canonical_sha256": "0c1402ec6333fbd313ca3eb0b0865f0a777c30690ed0ba3ee497a35c43536e38"
+  "canonical_sha256": "18f3777fffc4e5a1d60dabf7399387500607447488eb16a44626c4238af8d33d"
 }

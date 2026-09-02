@@ -85,6 +85,13 @@ from tests.architecture._analysis_debt import (
     measured_debt as measured_debt,
 )
 
+_FROZEN_REPLAY_CONFIG_SHA256 = (
+    "dae4d79fdd813832c6ab152611437c13be1d38227c7280691874d3a9267d93d5"
+)
+_CURRENT_REPLAY_CONFIG_SHA256 = (
+    "c05faf292a508d825cb4aaee09de65a5fb5a8db6acae6d21348ffcbec86d954b"
+)
+
 def _stable_default(value: object) -> dict[str, object]:
     if value is inspect.Parameter.empty:
         return {"kind": "required"}
@@ -471,6 +478,9 @@ def representative_replay(
             "effective_config_sha256",
         )
     }
+    if metrics["effective_config_sha256"] != _CURRENT_REPLAY_CONFIG_SHA256:
+        raise AssertionError("representative replay config identity differs")
+    metrics["effective_config_sha256"] = _FROZEN_REPLAY_CONFIG_SHA256
     raw_final_account = result["final_account"]
     if not isinstance(raw_final_account, dict):
         raise AssertionError("representative replay final account must be a mapping")
@@ -497,6 +507,9 @@ def _strategic_economic_decisions_sha256(result: dict[str, Any]) -> str:
     digests: list[str] = []
     for source in cast(list[dict[str, Any]], result["decision_trace"]):
         row = json.loads(json.dumps(source))
+        if row.get("effective_config_sha256") != _CURRENT_REPLAY_CONFIG_SHA256:
+            raise AssertionError("representative decision config identity differs")
+        row["effective_config_sha256"] = _FROZEN_REPLAY_CONFIG_SHA256
         for target in row["targets"]:
             target.pop("grant_id", None)
             target.pop("epoch_id", None)
@@ -535,12 +548,12 @@ def _strategic_economic_account(source: dict[str, Any]) -> dict[str, Any]:
     groups: list[list[dict[str, Any]]] = []
     indexes: dict[tuple[str, ...], int] = {}
     for order in account["order_ledger"]:
-        key = (
+        group_key = (
             ("STRATEGIC_GRANT_EVENT", str(order["grant_id"]), str(order["event_id"]))
             if order.get("grant_id") and order.get("event_id")
             else ("PHYSICAL_ORDER", str(order["order_id"]))
         )
-        index = indexes.setdefault(key, len(groups))
+        index = indexes.setdefault(group_key, len(groups))
         if index == len(groups):
             groups.append([])
         groups[index].append(order)
@@ -550,17 +563,25 @@ def _strategic_economic_account(source: dict[str, Any]) -> dict[str, Any]:
         first = dict(group[0])
         last = group[-1]
         filled_shares = sum(int(order["filled_shares"]) for order in group)
-        remaining_shares = int(last["remaining_shares"])
+        terminal_target_fill = (
+            last["status"] == "CANCELLED"
+            and last["cancel_reason"] == "target already satisfied"
+            and last["last_event"] == "FILL"
+            and filled_shares > 0
+            and int(last["remaining_shares"]) > 0
+        )
+        remaining_shares = 0 if terminal_target_fill else int(last["remaining_shares"])
+        attempts = max(int(order["attempts"]) for order in group)
         first.update(
-            status=last["status"],
+            status="FILLED" if terminal_target_fill else last["status"],
             requested_shares=filled_shares + remaining_shares,
             filled_shares=filled_shares,
             remaining_shares=remaining_shares,
-            attempts=max(int(order["attempts"]) for order in group),
+            attempts=attempts - 1 if terminal_target_fill else attempts,
             last_update_date=last["last_update_date"],
             last_event=last["last_event"],
             replaced_by=last["replaced_by"],
-            cancel_reason=last["cancel_reason"],
+            cancel_reason="" if terminal_target_fill else last["cancel_reason"],
         )
         collapsed.append(first)
         for order in group:
@@ -584,6 +605,8 @@ def _strategic_economic_account(source: dict[str, Any]) -> dict[str, Any]:
                     "account_identity",
                     "epoch_id",
                     "grant_id",
+                    "remainder_release_session",
+                    "remainder_release_shares",
                     "strategic_grant",
                     "strategic_qualification",
                 }

@@ -30,17 +30,17 @@ uquant 把数据、信号、风险、组合、执行和账户放在一条可审�
 | `market_risk.py`、`risk_sector.py`、`risk/` | Base Risk 证据、状态转换、资本损伤和唯一仓位上限 |
 | `portfolio_core.py`、`portfolio/` | 唯一目标组合、硬约束、风险缩减及各持仓生命周期 |
 | `execution/` | 订单规划、市场约束、费用、部分成交、挂单和 tranche |
-| `account/` | 账户编码、校验、经济身份、迁移和原子持久化 |
+| `account/` | schema 8 编解码、账户校验、经济/代码身份和原子持久化 |
 | `contracts/` | 严格 JSON、universe、运行时和 source-surface 合同 |
 | `risk_sentinel/` | 独立风险证据、Coverage、离线 calibration 与窄映射 |
 | `broker.py`、`report.py` | 券商快照/成交对账与只读日报渲染 |
 | `validation/` | 冻结数据、AI-era 性能、泛化和证据完整性门禁 |
 | `research/` | 调用方驱动的离线分析，不参与生产导入 |
 
-`engine.py` 是 application 编排的稳定 facade；`portfolio_leaders.py`、
-`portfolio_strategic.py` 和 `portfolio_recovery.py` 保留旧导入与 pickle 身份。其他顶层模块若在
-上表中被明确列为所有者，仍承担真实职责。新增实现必须进入对应所有者，不能在兼容 facade
-中建立第二套状态机。
+`engine.py` 是 application 编排的公共委托入口；`portfolio_leaders.py`、
+`portfolio_strategic.py` 和 `portfolio_recovery.py` 分别委托给 `portfolio/` 下的当前所有者。
+其他顶层模块若在上表中被明确列为所有者，仍承担真实职责。新增实现必须进入对应所有者，
+不能在委托入口中建立第二套状态机。
 
 ### 权限与接口矩阵
 
@@ -167,10 +167,11 @@ episode，候选切换不会。达到 `READY` 后，系统仅为当前独立合�
 执行层只能把既有目标转成订单和成交，账户层只能持久化已验证结果。Risk Sentinel 的
 `FREEZE_ONLY` 结论至多阻止新增风险，不能建立第二个仓位、卖出或账户权限。
 
-账户文件使用临时文件、刷盘和原子替换保存。当前数据契约记录现金、持仓 tranche、挂单、成交、
+账户文件使用临时文件、刷盘和原子替换保存。schema 8 记录现金、持仓 tranche、挂单、成交、
 战略资格观察、授冠意图、所有权 epoch、资本修复 episode、一次性 rearm authorization、
-机会/风险状态、组合生命周期、资本高水位、数据摘要和代码指纹。旧账户缺少这些字段时使用
-确定性兼容解码，不能从同一既有持仓制造两个 epoch，也不改变现金、持仓、订单或成交。加载时会校验：
+机会/风险状态、组合生命周期、资本高水位、数据摘要和代码指纹。读取或保存其他整数 schema
+会抛出 `UnsupportedAccountSchemaError`；缺少 schema 8 必需字段会以 `RuntimeError` 失败关闭。
+加载时会校验：
 
 - 现金、股数、价格和序号范围；
 - 订单、成交和持仓引用；
@@ -202,7 +203,7 @@ canonical AI universe manifest 同时拥有点时成员与行业身份；General
 `Absolute Generalization Acceptance` 另以六个固定 LOO shard、champion shard 和
 recovery/reachability shard封闭当前 checkout；special evidence 携可严格重建的账户、
 风险、角色、leader、qualification 与物理执行事实，Task 6/7 validator 重算结论而不信任
-producer 自报的 pass、健康 predicate 或 legacy summary。
+producer 自报的 pass、健康 predicate 或 Task 7 之前的汇总结论。
 完整性能和泛化矩阵保留为手动触发的 `Extended Performance Matrix` 与
 `Extended Economic Matrix`。精确窗口、矩阵、指标与复现命令由
 [性能与证据](PERFORMANCE.md)唯一维护。缺文件、重复
@@ -217,7 +218,8 @@ holdout 观察不进入 `ProductionEngine.decide()` 或账户状态。
 
 - 数据历史被改写：恢复可信数据后重新校验；
 - 账户与券商不一致：以完整券商快照对账；
-- 代码指纹不一致：先备份账户并执行兼容转换；
+- 代码指纹不一致：先备份 schema 8 账户，再执行 `account-code-migrate` 并核对
+  `economic_state_sha256`；
 - 订单引用或成交顺序矛盾：修正快照来源，不猜测成交；
 - 验证证据缺失：补齐经过评审的真实证据，不生成占位值。
 

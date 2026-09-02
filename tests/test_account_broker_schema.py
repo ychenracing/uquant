@@ -9,10 +9,9 @@ import pytest
 
 import uquant.account.store as account_store_module
 import uquant.infrastructure.atomic_files as atomic_files_module
-from uquant.account import load_account, migrate_account, save_account
+from uquant.account import load_account, save_account
 from uquant.broker import sync_broker_snapshot
 from uquant.types import (
-    ACCOUNT_SCHEMA_VERSION,
     AccountOrder,
     AccountState,
     AttributionMechanism,
@@ -267,7 +266,7 @@ def test_account_loader_strictly_validates_fill_economics(tmp_path, field, value
         load_account(_write_account(tmp_path, payload))
 
 
-def test_schema_v3_linked_sell_fill_requires_exact_lot_attribution(tmp_path):
+def test_current_schema_linked_sell_fill_requires_exact_lot_attribution(tmp_path):
     payload = _state_with_fill().to_dict()
     payload["order_ledger"][0]["side"] = "SELL"
     payload["fills"][0]["side"] = "SELL"
@@ -592,121 +591,3 @@ def test_broker_sync_reuses_strategy_risk_state_validation():
             },
         )
     assert account.to_dict() == before
-
-
-def test_schema_v2_order_and_fill_metadata_remain_migratable(tmp_path):
-    state = _state_with_fill()
-    state.schema_version = 2
-    state.next_order_sequence = 2
-    payload = state.to_dict()
-    for order in payload["order_ledger"]:
-        for field in (
-            "reduction_policy",
-            "reason_code",
-            "exit_kind",
-            "entry_score",
-            "entry_confidence",
-            "entry_regime",
-            "entry_industry_strength",
-        ):
-            order.pop(field)
-    for fill in payload["fills"]:
-        for field in ("reduction_policy", "reason_code", "exit_kind", "sold_tranches"):
-            fill.pop(field)
-        # Old simulated fills legitimately predate broker-visible order IDs.
-        fill["order_id"] = ""
-    path = _write_account(tmp_path, payload, "legacy-v2.json")
-
-    migrated = migrate_account(
-        path,
-        path,
-        new_code_hash="new-code",
-        acknowledge_code_change=True,
-    )
-
-    assert migrated.schema_version == ACCOUNT_SCHEMA_VERSION
-    assert load_account(path).fills[0].order_id == ""
-
-
-@pytest.fixture
-def schema_v2_linked_sell_payload() -> dict[str, Any]:
-    """Match compatible execution output: linked SELL without lot attribution."""
-    state = _state_with_fill()
-    state.schema_version = 2
-    state.order_ledger[0].side = "SELL"
-    state.fills[0].side = "SELL"
-    state.fills[0].fill_id = ""
-    state.fills[0].stamp_duty = 1.0
-    payload = state.to_dict()
-    for order in payload["order_ledger"]:
-        for field in (
-            "reduction_policy",
-            "reason_code",
-            "exit_kind",
-            "entry_score",
-            "entry_confidence",
-            "entry_regime",
-            "entry_industry_strength",
-        ):
-            order.pop(field)
-    for fill in payload["fills"]:
-        for field in ("reduction_policy", "reason_code", "exit_kind", "sold_tranches"):
-            fill.pop(field)
-        assert fill["order_id"]
-    return payload
-
-
-def test_schema_v2_linked_sell_gets_auditable_degraded_attribution(
-    tmp_path,
-    schema_v2_linked_sell_payload,
-):
-    path = _write_account(tmp_path, schema_v2_linked_sell_payload, "linked-sell-v2.json")
-
-    with pytest.raises(RuntimeError, match="requires explicit migration"):
-        load_account(path)
-
-    legacy = load_account(path, allow_legacy_schema=True)
-    assert legacy.fills[0].sold_tranches == []
-
-    migrated = migrate_account(
-        path,
-        path,
-        new_code_hash="schema-v3-code",
-        acknowledge_code_change=True,
-    )
-
-    assert migrated.schema_version == ACCOUNT_SCHEMA_VERSION
-    sold_lot = migrated.fills[0].sold_tranches[0]
-    assert {
-        key: sold_lot[key]
-        for key in (
-            "tranche_id",
-            "lifecycle",
-            "shares",
-            "attribution_quality",
-            "source_schema",
-        )
-    } == {
-        "tranche_id": "legacy-v2-unattributed:O000000001:2026-01-07:1",
-        "lifecycle": "CORE",
-        "shares": 100,
-        "attribution_quality": "degraded_schema_v2_missing_sold_tranches",
-        "source_schema": 2,
-    }
-    assert sold_lot["origin_subsystem"] == OriginSubsystem.LEGACY_MIGRATION.value
-    assert sold_lot["mechanism"] == AttributionMechanism.LEGACY_MIGRATION.value
-    audit = migrated.account_migrations[-1]["degraded_sell_attribution"]
-    assert audit["policy"] == "synthetic_single_lot_exact_share_backfill"
-    assert audit["fills"] == [
-        {
-            "fill_id": "",
-            "order_id": "O000000001",
-            "symbol": "sz300308",
-            "fill_date": "2026-01-07",
-            "shares": 100,
-        }
-    ]
-
-    reloaded = load_account(path)
-    assert reloaded.schema_version == ACCOUNT_SCHEMA_VERSION
-    assert reloaded.fills[0].sold_tranches == migrated.fills[0].sold_tranches

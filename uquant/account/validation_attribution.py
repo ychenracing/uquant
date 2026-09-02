@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-import hashlib
-import json
 import re
 from datetime import date as date_type
 from types import SimpleNamespace
@@ -15,7 +13,6 @@ from ..contracts.universe import (
     default_ai_universe,
 )
 from ..types import (
-    ACCOUNT_SCHEMA_VERSION,
     ATTRIBUTION_IDENTITY_FIELDS,
     AccountOrder,
     AccountState,
@@ -34,9 +31,6 @@ from .validation_common import (
     EVENT_ID_PATTERN as _EVENT_ID,
 )
 from .validation_common import (
-    HISTORICAL_ATTRIBUTION_SCHEMA_VERSION as _HISTORICAL_ATTRIBUTION_SCHEMA_VERSION,
-)
-from .validation_common import (
     LEGACY_INDUSTRY as _LEGACY_INDUSTRY,
 )
 from .validation_common import (
@@ -53,72 +47,8 @@ _GRANT_ID = re.compile(r"^grant_[0-9a-f]{64}$")
 _EPOCH_ID = re.compile(r"^epoch_[0-9a-f]{64}$")
 
 
-def derive_v4_attribution_event_id(
-    *,
-    signal_date: str,
-    symbol: str,
-    target_weight: float,
-    lifecycle: str,
-    origin_lifecycle: str,
-    origin_subsystem: str,
-    mechanism: str,
-    replaces_symbol: str | None,
-    industry_at_entry: str,
-    industry_manifest_sha256: str,
-    reduction_policy: str,
-    reason_code: str,
-    exit_kind: str,
-) -> str:
-    """Read only the exact machine-only event format written by schema v4."""
-
-    # Current derivation performs the shared closed-vocabulary and scalar
-    # validation. Its result is intentionally discarded at this migration-only
-    # boundary before reconstructing the exact historical payload.
-    derive_attribution_event_id(
-        signal_date=signal_date,
-        symbol=symbol,
-        target_weight=target_weight,
-        lifecycle=lifecycle,
-        origin_lifecycle=origin_lifecycle,
-        origin_subsystem=origin_subsystem,
-        mechanism=mechanism,
-        replaces_symbol=replaces_symbol,
-        industry_at_entry=industry_at_entry,
-        industry_manifest_sha256=industry_manifest_sha256,
-        reduction_policy=reduction_policy,
-        reason_code=reason_code,
-        exit_kind=exit_kind,
-    )
-    # Schema-v4's v1 payload already excluded both display fields. They remain
-    # function arguments only because persisted order objects carry them.
-    del reason_code, exit_kind
-    payload = {
-        "schema": "uquant.attribution-event.v1",
-        "signal_date": signal_date,
-        "symbol": symbol,
-        "target_weight": float(target_weight).hex(),
-        "lifecycle": lifecycle,
-        "origin_lifecycle": origin_lifecycle,
-        "origin_subsystem": origin_subsystem,
-        "mechanism": mechanism,
-        "replaces_symbol": replaces_symbol,
-        "industry_at_entry": industry_at_entry,
-        "industry_manifest_sha256": industry_manifest_sha256,
-        "reduction_policy": reduction_policy,
-    }
-    encoded = json.dumps(
-        payload,
-        allow_nan=False,
-        ensure_ascii=False,
-        separators=(",", ":"),
-        sort_keys=True,
-    ).encode("utf-8")
-    return "evt_" + hashlib.sha256(encoded).hexdigest()
-
-
 def _validate_attribution_industry_and_event_id(
     *,
-    event_schema_version: Any,
     item: Any,
     label: Any,
     mechanism: Any,
@@ -145,18 +75,7 @@ def _validate_attribution_industry_and_event_id(
         raise RuntimeError(f"{label} has invalid industry_at_entry")
     if verify_event_derivation:
         try:
-            derivation = (
-                derive_v4_attribution_event_id
-                if event_schema_version == _HISTORICAL_ATTRIBUTION_SCHEMA_VERSION
-                else derive_attribution_event_id
-            )
-            if not (
-                _HISTORICAL_ATTRIBUTION_SCHEMA_VERSION
-                <= event_schema_version
-                <= ACCOUNT_SCHEMA_VERSION
-            ):
-                raise ValueError("unsupported attribution event schema")
-            expected = derivation(
+            expected = derive_attribution_event_id(
                 signal_date=item.signal_date,
                 symbol=item.symbol,
                 target_weight=item.target_weight,
@@ -174,8 +93,6 @@ def _validate_attribution_industry_and_event_id(
         except (TypeError, ValueError) as exc:
             raise RuntimeError(f"{label} has malformed attribution identity") from exc
         if item.event_id != expected:
-            if event_schema_version == _HISTORICAL_ATTRIBUTION_SCHEMA_VERSION:
-                raise RuntimeError(f"{label} v4 event_id differs from canonical derivation")
             raise RuntimeError(f"{label} event_id differs from canonical derivation")
 
 
@@ -184,9 +101,8 @@ def validate_attribution_identity(
     *,
     label: str,
     verify_event_derivation: bool = False,
-    event_schema_version: int = ACCOUNT_SCHEMA_VERSION,
 ) -> None:
-    """Validate one canonical identity, including explicit migration defaults."""
+    """Validate one canonical attribution identity."""
 
     grant_id = getattr(item, "grant_id", "")
     if not isinstance(grant_id, str) or (grant_id and _GRANT_ID.fullmatch(grant_id) is None):
@@ -229,7 +145,6 @@ def validate_attribution_identity(
     ):
         raise RuntimeError(f"{label} has invalid replaces_symbol")
     _validate_attribution_industry_and_event_id(
-        event_schema_version=event_schema_version,
         item=item,
         label=label,
         mechanism=mechanism,
@@ -238,18 +153,14 @@ def validate_attribution_identity(
     )
 
 
-def validate_lot_origin_chains(
-    state: AccountState,
-    *,
-    schema_version: int = ACCOUNT_SCHEMA_VERSION,
-) -> None:
+def validate_lot_origin_chains(state: AccountState) -> None:
     """Bind every native live/sold lot to a validated originating BUY."""
 
     legacy_migration_boundary = any(
         isinstance(event.get("from_schema"), int)
         and not isinstance(event.get("from_schema"), bool)
-        and int(event["from_schema"]) < schema_version
-        and event.get("to_schema") == schema_version
+        and int(event["from_schema"]) < state.schema_version
+        and event.get("to_schema") == state.schema_version
         and isinstance(event.get("migrated_at_utc"), str)
         and bool(str(event["migrated_at_utc"]).strip())
         and isinstance(event.get("from_code_hash"), str)
@@ -269,7 +180,7 @@ def validate_lot_origin_chains(
         candidates = [
             order
             for order in state.order_ledger
-            if order.side == Side.BUY.value and _unlinked_fill_matches_order(fill, order, native=True)
+            if order.side == Side.BUY.value and _unlinked_fill_matches_order(fill, order)
         ]
         return candidates[0] if len(candidates) == 1 else None
 
@@ -360,7 +271,6 @@ def validate_order_intent(
     *,
     label: str,
     validate_attribution: bool = False,
-    event_schema_version: int = ACCOUNT_SCHEMA_VERSION,
 ) -> date_type:
     """Validate the immutable economic identity shared by durable orders."""
     signal_date = _required_iso_date(order.signal_date, field=f"{label} signal_date")
@@ -402,7 +312,6 @@ def validate_order_intent(
             order,
             label=label,
             verify_event_derivation=True,
-            event_schema_version=event_schema_version,
         )
         if order.side == Side.BUY.value:
             expected_industry = default_ai_universe().industry_of(order.symbol, signal_date)

@@ -23,7 +23,7 @@
 
 # Non-Negotiable Constraints
 
-<!-- 本 PR 不得违反的业务、架构、安全、兼容性或数据完整性约束。 -->
+<!-- 本 PR 不得违反的业务、架构、安全、输入合同或数据完整性约束。 -->
 
 -
 
@@ -80,12 +80,12 @@
 
 - None known
 
-# Behavior and Compatibility Impact
+# Behavior and Contract Impact
 
 - [ ] Production behavior impact has been assessed and documented
 - [ ] Configuration semantic impact has been assessed and documented
 - [ ] Dependency impact has been assessed and documented
-- [ ] Data, schema, migration, or backward-compatibility impact has been assessed and documented
+- [ ] Data, schema, or persistence-contract impact has been assessed and documented
 
 # Next Action
 

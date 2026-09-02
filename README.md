@@ -46,7 +46,7 @@ uquant 是专门面向 2023 年以来 A 股 AI 产业链的日频量化决策系
 统计口径和冻结 champion 都不能为了让候选通过而改写。
 
 经济账本必须满足 `realized_pnl + open_pnl = final_equity - initial_cash`。只有治理为
-`ECONOMIC` 的参数可以进入策略选择；市场规则、安全限制、派生值和兼容字段不得被当作
+`ECONOMIC` 参数可以进入策略选择；`MARKET_RULE`、`SAFETY` 和 `DERIVED` 字段不得被当作
 优化自由度。完整合同见[性能与证据](docs/PERFORMANCE.md)和[参数参考](docs/CONFIGURATION.md)。
 
 Future Holdout 从 `2026-08-06` 起只接受真实、按顺序追加的新 session，遵守 no-backfill；
@@ -77,7 +77,7 @@ uv sync --frozen --extra dev --extra data
 | 日常账户与决策 | `uquant account-init/account-sync/daily/backtest` | 唯一生产账户与决策入口 |
 | Future Holdout 与人工执行证据 | `python -m scripts.production_observation`、`python -m scripts.future_holdout` | 观察、回放与 Journal，不改策略 |
 | 独立 Sentinel 诊断 | `uquant-sentinel` | 离线只读 Shadow，不是日常生产步骤 |
-| `uquant holdout-*`、`execution-journal` | 兼容/低层构件 | 不作为 operator 默认入口 |
+| `uquant holdout-*`、`execution-journal` | 单步 Holdout 与 Journal 操作 | 不作为 operator 默认工作流 |
 
 ### 1. 初始化账户
 
@@ -90,7 +90,8 @@ uv run uquant account-init \
   --output account_state.json
 ```
 
-账户会绑定当前数据前缀和生产代码指纹。
+账户会绑定当前数据前缀和生产代码指纹。账户文件必须使用 schema 8；其他整数版本由
+`UnsupportedAccountSchemaError` 拒绝，恢复方式见[运行手册](docs/OPERATIONS.md)。
 
 ### 2. 同步券商快照
 
@@ -186,12 +187,12 @@ date,open,high,low,close,volume
 | `uquant/market/`、`uquant/risk/` | replay 工作区、Base Risk 评估与状态转换 |
 | `uquant/portfolio/` | 唯一目标组合、硬约束与持仓生命周期 |
 | `uquant/execution/` | 次日开盘订单、市场约束、费用和成交生命周期 |
-| `uquant/account/` | 账户模型、身份校验、迁移与原子持久化 |
+| `uquant/account/` | schema 8 编解码、账户校验、经济/代码身份与原子持久化 |
 | `uquant/risk_sentinel/` | 独立风险证据、Coverage 与 `FREEZE_ONLY` 映射 |
 | `uquant/contracts/` | 共享不可变合同、严格 JSON 与资源身份 |
 | `uquant/broker.py`、`report.py` | 券商对账与只读日报渲染 |
 | `uquant/validation/` | 数据完整性、AI-era 性能和泛化门禁 |
-| `uquant/engine.py`、`portfolio_{leaders,strategic,recovery}.py` | 保持旧导入、pickle 与公共 API 的兼容 facade |
+| `uquant/engine.py`、`portfolio_{leaders,strategic,recovery}.py` | 委托到 `application/` 与 `portfolio/` 所有者的公共入口 |
 | `research/` | 与生产导入隔离的离线研究工具 |
 | `scripts/` | 仓库内运维、观察与验证入口，不进入 wheel |
 | `tests/` | 行为、不变量和失败路径测试 |

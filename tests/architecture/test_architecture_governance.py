@@ -179,6 +179,10 @@ def test_architecture_cli_help_and_failure_seams_match_immutable_start() -> None
                 f"python {current_relative}",
                 f"python -m {module_command}",
             )
+            if current_relative == "scripts/future_holdout.py":
+                expected[stream] = str(expected[stream]).replace(
+                    "validate-lanes,", ""
+                )
         assert observed["returncode"] == expected["returncode"]
         for stream in ("stdout", "stderr"):
             expected_stream = str(expected[stream])

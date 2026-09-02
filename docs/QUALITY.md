@@ -30,7 +30,7 @@
 | 数据完整性 | 冻结文件、清单和 SHA-256 必须互相一致 |
 | Risk Sentinel | `FREEZE_ONLY` 权限、calibration 合同、canonical universe 和生产导入隔离必须有效；只读重复运行工件必须确定 |
 | 文档治理 | 内部链接、示例命令、模块所有权、默认值和权限术语必须与当前仓库一致 |
-| 战略授冠 | 自动运行授冠意图、账户兼容、执行恢复、身份一致、固定 champion 基线和三个 native eligibility 回放 |
+| 战略授冠 | 自动运行授冠意图、schema 8 账户校验、执行恢复、身份一致、固定 champion 基线和三个 native eligibility 回放 |
 | 战略所有权 | 自动运行多 epoch、只读 successor、universe 角色、见证者 quorum、账户资本修复、关键删除、重复授冠与失败 grant 恢复 |
 | 性能经济性 | 手动 `Extended Performance Matrix` 保留 `promotion --profile full` 的全部财富、回撤、订单、换手和急跌收益门槛 |
 | 泛化能力 | 手动 `Extended Economic Matrix` 保留六个固定窗口完整矩阵的 literal 诊断、逐 cell、intrinsic 与 random-tail 有效边界 |

@@ -1,13 +1,11 @@
 from __future__ import annotations
 
 import copy
-import json
 
 import pandas as pd
 import pytest
 
 from uquant.account.codec import account_from_dict
-from uquant.account.migrations import migrate_account
 from uquant.account.validation_strategy import validate_strategy_risk_state
 from uquant.application.target_attribution import attach_target_attribution
 from uquant.broker import sync_broker_snapshot
@@ -537,110 +535,3 @@ def test_broker_fill_activates_the_matching_epoch_once() -> None:
     assert account.active_strategic_epoch_id == epoch.epoch_id
     assert account.strategic_epochs[0].realized_status == StrategicEpochStatus.ACTIVE.value
     assert account.strategic_epoch == 1
-
-
-def test_legacy_active_owner_migrates_to_exactly_one_epoch(tmp_path) -> None:
-    grant = _grant()
-    account = AccountState.empty(2_000_000.0)
-    account.account_identity = grant.account_identity
-    account.data_hash = "data"
-    account.code_hash = grant.production_source_identity
-    account.strategic_grant = grant
-    target = Target(
-        symbol=grant.candidate_symbol,
-        weight=grant.target_weight,
-        lifecycle=Lifecycle.CORE.value,
-        alpha_score=0.9,
-        confidence=0.95,
-        reason="prequalified strategic leader cohort",
-        reason_code="strategic_cohort",
-        origin_subsystem=OriginSubsystem.STRATEGIC.value,
-        mechanism=AttributionMechanism.STRATEGIC_COHORT.value,
-        origin_lifecycle=Lifecycle.CORE.value,
-        grant_id=grant.grant_id,
-    )
-    targets = attach_target_attribution(
-        "optical",
-        REQUIRED_AI_UNIVERSE_SHA256,
-        signal_date="2026-01-05",
-        targets=(target,),
-    )
-    planned = plan_orders(
-        signal_date="2026-01-05",
-        targets=targets,
-        account=account,
-        prices={grant.candidate_symbol: 10.0},
-        cfg=DEFAULT_CONFIG,
-    )
-    account.pending_orders = list(
-        reconcile_account_orders(
-            account=account,
-            previous=[],
-            current=planned,
-            submitted_date="2026-01-05",
-        )
-    )
-    dates = pd.to_datetime(["2026-01-05", "2026-01-06"])
-    frame = pd.DataFrame(
-        {
-            "open": [10.0, 10.0],
-            "high": [10.2, 10.2],
-            "low": [9.8, 9.8],
-            "close": [10.0, 10.0],
-            "volume": [10_000_000.0, 10_000_000.0],
-            "amount": [100_000_000.0, 100_000_000.0],
-        },
-        index=dates,
-    )
-    ExecutionPlanner(DEFAULT_CONFIG).execute_open(
-        date=dates[-1],
-        account=account,
-        panel={grant.candidate_symbol: frame},
-    )
-    account.strategic_cohort_symbols = [grant.candidate_symbol]
-    account.strategic_cohort_targets = {grant.candidate_symbol: grant.target_weight}
-    account.strategic_epoch = 1
-    payload = account.to_dict()
-    payload["schema_version"] = 5
-    for field_name in (
-        "strategic_successor_qualification",
-        "strategic_epochs",
-        "active_strategic_epoch_id",
-        "protected_weight_epoch_ids",
-        "strategic_restore_epoch_ids",
-        "recovery_owner_epoch_id",
-        "strategic_tradable_universe_identity",
-        "strategic_qualification_universe_identity",
-        "strategic_risk_universe_identity",
-    ):
-        payload.pop(field_name)
-    payload["strategic_grant"].pop("epoch_id")
-    for collection in ("pending_orders", "order_ledger", "fills"):
-        for item in payload[collection]:
-            item.pop("epoch_id")
-    for position in payload["positions"].values():
-        position.pop("epoch_id")
-        for tranche in position["tranches"]:
-            tranche.pop("epoch_id")
-    source = tmp_path / "legacy-account.json"
-    destination = tmp_path / "migrated-account.json"
-    source.write_text(json.dumps(payload), encoding="utf-8")
-
-    migrated = migrate_account(
-        source,
-        destination,
-        new_code_hash="code:ownership",
-        acknowledge_code_change=True,
-    )
-
-    assert len(migrated.strategic_epochs) == 1
-    epoch = migrated.strategic_epochs[0]
-    assert epoch.owner_symbol == "sz300308"
-    assert epoch.realized_status == StrategicEpochStatus.ACTIVE.value
-    assert migrated.active_strategic_epoch_id == epoch.epoch_id
-    assert migrated.strategic_grant is not None
-    assert migrated.strategic_grant.epoch_id == epoch.epoch_id
-    assert migrated.positions["sz300308"].epoch_id == epoch.epoch_id
-    assert {item.epoch_id for item in migrated.positions["sz300308"].tranches} == {
-        epoch.epoch_id
-    }

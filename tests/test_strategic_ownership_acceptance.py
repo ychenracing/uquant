@@ -7,12 +7,15 @@ from pathlib import Path
 import pytest
 import yaml
 
+import scripts.run_strategic_ownership_acceptance as ownership_runner
 from research.strategic_evidence.replay import ReplayRequest, ReplayResult
 from research.strategic_evidence.trace import RouteTraceRow
 from scripts.run_strategic_ownership_acceptance import (
+    SCENARIO_NAMES,
     SHARD_NAMES,
     actual_epoch_facts,
     load_contract,
+    run_acceptance_shard,
     validate_contract,
 )
 
@@ -161,6 +164,7 @@ def test_ownership_contract_is_the_exact_bounded_shard_set() -> None:
         for items in contract["shards"].values()
         for item in items
     }
+    assert set(SCENARIO_NAMES) == scenario_ids
     assert scenario_ids == {
         "champion-5",
         "report-13",
@@ -201,6 +205,7 @@ def test_ownership_workflow_is_bounded_cached_and_blocking() -> None:
     rendered = str(workflow).lower()
     assert "actions/cache@" in rendered
     assert "scripts/run_strategic_ownership_acceptance.py" in rendered
+    assert "--scenario" not in rendered
     assert "strategic ownership acceptance" in rendered
     assert "234" not in rendered
     assert "extended performance" not in rendered
@@ -238,3 +243,156 @@ def test_actual_epoch_facts_reject_duplicate_epoch_identity() -> None:
 
     with pytest.raises(ValueError, match="duplicate strategic epoch"):
         actual_epoch_facts(broken)
+
+
+def test_single_scenario_is_diagnostic_and_reuses_only_complete_identity_cache(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    calls: list[str] = []
+
+    def execute(
+        _contract: object,
+        *,
+        spec: object,
+    ) -> dict[str, object]:
+        assert isinstance(spec, dict)
+        scenario_id = str(spec["scenario_id"])
+        calls.append(scenario_id)
+        return {"scenario_id": scenario_id, "status": "PASS"}
+
+    monkeypatch.setattr(ownership_runner, "_execute_scenario", execute)
+    output = tmp_path / "scenario.json"
+    cache = tmp_path / "cache"
+
+    result = run_acceptance_shard(
+        shard="critical",
+        scenario="remove-sz300394",
+        output=output,
+        cache_dir=cache,
+    )
+
+    assert calls == ["remove-sz300394"]
+    assert result["authoritative_acceptance"] is False
+    assert result["diagnostic_only"] is True
+    assert result["selected_scenario"] == "remove-sz300394"
+    assert result["cache_hit"] is False
+    assert result["cache_dependencies"] == {}
+    assert [row["scenario_id"] for row in result["scenarios"]] == [
+        "remove-sz300394"
+    ]
+    identity = result["cache_identity_payload"]
+    assert isinstance(identity, dict)
+    assert set(identity) == {
+        "config_sha256",
+        "frozen_data",
+        "full_package_source_sha256",
+        "grant_contract_sha256",
+        "grant_runner_source_sha256",
+        "ownership_contract_sha256",
+        "production_source_sha256",
+        "runner_source_sha256",
+        "runtime",
+        "scenario",
+        "schema_version",
+        "source_surface_registry_sha256",
+        "validation_runner_source_sha256",
+    }
+    assert identity["scenario"]["scenario_id"] == "remove-sz300394"
+
+    monkeypatch.setattr(
+        ownership_runner,
+        "_execute_scenario",
+        lambda *_args, **_kwargs: pytest.fail("complete-identity cache was not reused"),
+    )
+    cached = run_acceptance_shard(
+        shard="critical",
+        scenario="remove-sz300394",
+        output=output,
+        cache_dir=cache,
+    )
+    assert cached["cache_hit"] is True
+
+
+def test_single_alias_scenario_runs_only_its_contract_dependency(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    assert "same-industry-crowning" in SCENARIO_NAMES
+    calls: list[str] = []
+
+    def execute(
+        _contract: object,
+        *,
+        spec: object,
+    ) -> dict[str, object]:
+        assert isinstance(spec, dict)
+        scenario_id = str(spec["scenario_id"])
+        calls.append(scenario_id)
+        return {
+            "epochs": [
+                {
+                    "epoch_id": "epoch-1",
+                    "grant_id": "grant-1",
+                    "owner_symbol": "sz300502",
+                    "previous_epoch_id": "",
+                    "previous_grant_id": "",
+                },
+                {
+                    "epoch_id": "epoch-2",
+                    "grant_id": "grant-2",
+                    "owner_symbol": "sz300308",
+                    "previous_epoch_id": "epoch-1",
+                    "previous_grant_id": "grant-1",
+                },
+            ],
+            "scenario_id": scenario_id,
+            "status": "PASS",
+        }
+
+    monkeypatch.setattr(ownership_runner, "_execute_scenario", execute)
+    result = run_acceptance_shard(
+        shard="continuity",
+        scenario="same-industry-crowning",
+        output=tmp_path / "alias.json",
+        cache_dir=tmp_path / "cache",
+    )
+
+    assert calls == ["remove-sz300502"]
+    assert [row["scenario_id"] for row in result["scenarios"]] == [
+        "same-industry-crowning"
+    ]
+    assert set(result["cache_dependencies"]) == {"remove-sz300502"}
+
+
+def test_ownership_cli_dispatches_one_diagnostic_scenario(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    observed: dict[str, object] = {}
+    monkeypatch.setattr(
+        ownership_runner,
+        "run_acceptance_shard",
+        lambda **options: observed.update(options),
+    )
+    output = tmp_path / "ownership.json"
+    cache = tmp_path / "cache"
+
+    assert ownership_runner.main(
+        [
+            "--shard",
+            "critical",
+            "--scenario",
+            "remove-sz300394",
+            "--output",
+            str(output),
+            "--cache-dir",
+            str(cache),
+        ]
+    ) == 0
+    assert observed == {
+        "cache_dir": cache,
+        "output": output,
+        "scenario": "remove-sz300394",
+        "shard": "critical",
+    }

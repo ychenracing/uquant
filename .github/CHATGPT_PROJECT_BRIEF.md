@@ -33,12 +33,12 @@ uquant 使用同一生产决策内核完成历史回放和日报决策，提供�
 - `uquant/risk/` 与相关风险模块：Base Risk 状态、资本损伤和唯一风险派生总仓上限。
 - `uquant/portfolio/`：`PortfolioAllocator`、唯一目标组合、硬约束和持仓生命周期。
 - `uquant/execution/`：订单规划、交易约束、费用、部分成交和挂单生命周期。
-- `uquant/account/`：唯一生产账户状态、身份校验、迁移和原子持久化。
+- `uquant/account/`：唯一生产账户状态、schema 8 编解码、身份校验、代码身份重绑定和原子持久化。
 - `uquant/risk_sentinel/`：独立风险证据与窄 `FREEZE_ONLY` 映射，不是第二个风险 owner。
 - `uquant/contracts/`、`uquant/validation/`：不可变合同、严格 JSON、数据与验收门。
 - `research/`：调用方驱动的离线研究，不进入生产导入。
 - `scripts/`：仓库内运维、观察和验证入口，不进入 wheel。
-- `engine.py` 与兼容 facade：保留旧导入、pickle 与公共 API 身份，不承载第二套实现。
+- `engine.py` 与公共委托入口：调用当前所有者，不承载第二套实现。
 
 ## 4. Non-Negotiable Constraints
 
@@ -112,7 +112,7 @@ uv run bandit -q -r uquant research scripts
 Pull Request 和默认分支自动化包括：
 
 - Engineering：质量、安全、测试分片、Windows smoke 与汇总结论。
-- Strategic Grant Acceptance：授冠意图、账户兼容、恢复与资格路径。
+- Strategic Grant Acceptance：授冠意图、schema 8 账户、恢复与资格路径。
 - Strategic Ownership Acceptance：多 epoch、successor、universe 角色、资本修复、重复授冠和失败恢复。
 - Performance Acceptance：完整生产性能、精确源码身份与 provenance。
 - Absolute Generalization Acceptance：固定八 shard、34 个 canonical LOO 场景与 production

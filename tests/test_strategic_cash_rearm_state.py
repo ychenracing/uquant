@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import copy
-import json
 from typing import Any
 
 import pandas as pd
@@ -9,7 +8,6 @@ import pytest
 from test_strategic_cash_rearm import _risk, _roles, _strict_inputs
 
 from uquant.account.codec import account_from_dict
-from uquant.account.migrations import migrate_account
 from uquant.config import DEFAULT_CONFIG
 from uquant.models.strategic_grant import (
     StrategicGrantIntent,
@@ -249,43 +247,6 @@ def test_current_schema_requires_explicit_candidate_authorization_state() -> Non
 
     with pytest.raises(RuntimeError, match="current account schema requires strategic_cash_rearm"):
         account_from_dict(payload)
-
-
-def test_schema_six_migration_discards_unbound_rearm_magic_flags_fail_closed(
-    tmp_path: Any,
-) -> None:
-    account = AccountState.empty(2_000_000.0)
-    account.data_hash = "data"
-    account.code_hash = "code:old"
-    payload = account.to_dict()
-    payload["schema_version"] = 6
-    payload.pop("flat_book_capital_repair")
-    payload.pop("strategic_cash_rearm")
-    payload["candidate_tenure"].update(
-        {
-            "strategic_cash_rearm_budget_level": 3,
-            "strategic_cash_rearm_healthy_sessions": 19,
-            "strategic_cash_rearm_authorized": 1,
-            "strategic_cash_rearm_grant": 1,
-            "strategic_cash_rearm_candidate_strict": 1,
-        }
-    )
-    source = tmp_path / "schema-six.json"
-    destination = tmp_path / "current.json"
-    source.write_text(json.dumps(payload), encoding="utf-8")
-
-    migrated = migrate_account(
-        source,
-        destination,
-        new_code_hash="code:new",
-        acknowledge_code_change=True,
-    )
-
-    assert migrated.schema_version == 8
-    assert migrated.strategic_cash_rearm == StrategicCashRearmState()
-    assert not any(
-        key.startswith("strategic_cash_rearm_") for key in migrated.candidate_tenure
-    )
 
 
 def test_rearm_state_rejects_contradictory_authorization() -> None:

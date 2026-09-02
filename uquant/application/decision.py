@@ -12,6 +12,7 @@ from typing import Protocol, cast
 
 import pandas as pd
 
+from ..account.codec import UnsupportedAccountSchemaError
 from ..config import (
     DEFAULT_CONFIG,
     SystemConfig,
@@ -23,10 +24,7 @@ from ..data import DataManifest, DataStore, normalize_symbol
 from ..execution import merge_pending_orders, plan_orders
 from ..leader import (
     INDUSTRY,
-    apply_leader_tenure,
-    apply_opportunity_alpha,
     compute_leaders,
-    compute_structural_leaders,
 )
 from ..opportunity import classify_opportunity
 from ..portfolio import PortfolioAllocator, current_weights
@@ -200,10 +198,9 @@ def _decision_config_for_universe(
 ) -> SystemConfig:
     """Return one production policy regardless of unrelated universe members.
 
-    The positional argument remains for state/API compatibility and diagnostic
-    provenance.  It must never select a different strategy configuration: an
-    otherwise irrelevant symbol cannot change the decision path merely by
-    crossing a pool-size threshold.
+    Universe size is retained only as diagnostic provenance. It must never select
+    a different strategy configuration: an otherwise irrelevant symbol cannot
+    change the decision path merely by crossing a pool-size threshold.
     """
     del configured_universe_size
     return cfg
@@ -273,7 +270,9 @@ def _validated_decision_symbols(
     account: AccountState,
 ) -> tuple[pd.Timestamp, tuple[str, ...], set[str]]:
     if account.schema_version != ACCOUNT_SCHEMA_VERSION:
-        raise RuntimeError(f"account schema {account.schema_version} requires explicit migration")
+        raise UnsupportedAccountSchemaError(
+            f"unsupported account schema {account.schema_version}; expected {ACCOUNT_SCHEMA_VERSION}"
+        )
     date = pd.Timestamp(as_of).normalize()
     if account.last_successful_run and pd.Timestamp(account.last_successful_run) >= date:
         raise RuntimeError("decision date must be strictly after the last successful run")
@@ -395,23 +394,14 @@ def _decision_market_context(
         cfg=decision_cfg,
         reference_returns=reference_returns,
     )
-    if decision_cfg.same_day_leader_pipeline_enabled:
-        structural_leaders = compute_structural_leaders(
-            combined,
-            as_of=date,
-            tech=tech,
-            cfg=decision_cfg,
-            score_cache=self._leader_score_cache,
-        )
-    else:
-        structural_leaders = compute_leaders(
-            combined,
-            as_of=date,
-            tech=tech,
-            account=account,
-            cfg=decision_cfg,
-            score_cache=self._leader_score_cache,
-        )
+    structural_leaders = compute_leaders(
+        combined,
+        as_of=date,
+        tech=tech,
+        account=account,
+        cfg=decision_cfg,
+        score_cache=self._leader_score_cache,
+    )
     visible_users = set(user_panel)
     prices = {symbol: self._price(symbol, date) for symbol in visible_users | set(account.positions)}
     _, equity = current_weights(account, prices)
@@ -484,7 +474,7 @@ def _assess_decision_risk(
         account=account,
         equity=market.equity,
         cfg=market.cfg,
-        reference_context=(market.reference_context if market.cfg.group_balanced_reference_enabled else None),
+        reference_context=None,
         configured_universe_size=len(inputs.user_symbols),
         sentinel_assessment=sentinel,
         sentinel_opportunity=account.opportunity,
@@ -566,17 +556,9 @@ def _allocate_decision_orders(
         risk=risk.state,
         account=account,
         cfg=market.cfg,
-        reference_context=(market.reference_context if market.cfg.group_balanced_reference_enabled else None),
+        reference_context=None,
     )
-    if market.cfg.same_day_leader_pipeline_enabled:
-        alpha_leaders = apply_opportunity_alpha(
-            market.structural_leaders,
-            opportunity=opportunity,
-            cfg=market.cfg,
-        )
-        all_leaders = apply_leader_tenure(alpha_leaders, account=account, cfg=market.cfg)
-    else:
-        all_leaders = market.structural_leaders
+    all_leaders = market.structural_leaders
     user_leaders = {symbol: all_leaders[symbol] for symbol in inputs.user_symbols if symbol in all_leaders}
     leader_factor_profile = (
         "TREND"
@@ -608,8 +590,7 @@ def _allocate_decision_orders(
         qualification_leaders=all_leaders,
         strategic_universe=strategic_universe,
     )
-    if not market.cfg.group_balanced_reference_enabled:
-        risk.evidence.update(market.reference_context.evidence())
+    risk.evidence.update(market.reference_context.evidence())
     bind_account_strategic_ownership(account)
     targets = attach_target_attribution_fn(
         signal_date=str(inputs.date.date()),

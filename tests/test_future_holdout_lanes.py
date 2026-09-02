@@ -314,11 +314,14 @@ def test_tracked_validation_is_exact_empty_observation_report() -> None:
 
 
 def test_validation_cli_recomputes_tracked_lane_evidence(capsys: pytest.CaptureFixture[str]) -> None:
-    assert future_holdout_main(["validate-lanes"]) == 0
+    assert future_holdout_main(["validate-static-lanes"]) == 0
     output = json.loads(capsys.readouterr().out)
     assert output["observed_sessions"] == 0
     assert output["lanes"][0]["next_milestone"] == 20
     assert all(value is None for lane in output["lanes"] for value in lane["scores"].values())
+
+    with pytest.raises(SystemExit):
+        future_holdout_main(["validate-lanes"])
 
 
 def test_static_lane_validation_is_independent_from_local_observation_report(

@@ -316,17 +316,17 @@ Top-1/Top-3/HHI 分别为 `0.7608808794858424`、`1.0000000000000002`、
 `0.4397389503297848 / 1 / 0.3564964878650526`。被移除的三只 core 均显式记零。
 三项均无负现金、负持仓、重复 order ID 或重复 native physical fill identity，账本精确对账。
 
-三个 raw account codec 都报 `account order grant identity differs from strategic epoch`；
+这三个历史诊断的 raw account codec 都报 `account order grant identity differs from strategic epoch`；
 three-core 有 16 个 identity mismatch，另两项各 9 个。这不是交易结果冲突：当前
 `FULL_COHORT` 语义有意允许非 owner cohort row 共用 epoch 且 grant 留空。既有 Absolute
-helper 仅归一化证据 deep copy，归一化 codec 均为 `VALID`；未来增加 current-only 原生 codec
-支持或移除 shim 是清理工作，不是策略变化。这些结果仍是 non-authoritative bounded
+helper 仅归一化证据 deep copy，归一化 codec 均为 `VALID`；Checkpoint C 的完整 current-path
+schema 8 账户已能直接 strict roundtrip。这些结果仍是 non-authoritative bounded
 diagnostic，不能冒充 Future Holdout。核心结论不变：已实现 baseline alpha 仍是 100%
 `sz300308 / optical`；单项 LOO 证明系统可以存活但仍停留在 optical；no-optical 证明能够找到
 技术 successor，却只有 `+1.039464268425%`。能力分散已经存在，已实现 PnL 分散仍不存在。
 
 另有的历史 continuous-AI-era core/no-optical 矩阵与冻结候选、当前 `main` 均不匹配，只能
-作为 legacy 描述：full `24.509661802900865x`，移除 `sz300308` 为
+作为历史身份描述：full `24.509661802900865x`，移除 `sz300308` 为
 `0.8321334882399101x`，移除 `sz300502` 为 `0.8568649080496994x`，移除
 `sz300394` 为 `3.936609244088344x`，移除三只核心与 no-optical 均为
 `1.20910580087419x`。这些数值说明旧身份下能力存活，不证明已实现 PnL 分散，也不证明当前
@@ -359,8 +359,9 @@ Checkpoint B 只使用 `2023-01-03..2026-08-05`，没有读取 Future Holdout、
 个、rearm 2 个、dominant-owner exception 216 个；concentrated-break 与 freeze 状态证据分别
 出现 34 / 23 个 session。ordinary leader、recovery、tactical、chronic overlay 和 strategic
 damage guard 在该 baseline 未触发，分类为 `INACTIVE_REACHABLE`，不能据此删除。四个默认
-为 false 的 compatibility 开关分类为 `COMPAT_ONLY`，留待 Checkpoint C 在 current-path
-等价门下删除。活动计数只能证明可达性与行为变化；本阶段没有运行 active-state 删除
+为 false 的开关在本阶段分类为 `COMPAT_ONLY`；Checkpoint C 已在 current-path 等价门下删除
+`hierarchical_industry_shrinkage_enabled`、`group_balanced_reference_enabled`、
+`same_day_leader_pipeline_enabled` 与 `evidence_family_voting_enabled`。活动计数只能证明可达性与行为变化；本阶段没有运行 active-state 删除
 counterfactual，因此没有声称独立收益、独立风控或冗余，也没有删除 active economic state。
 
 11 个 execution case 直接调用生产 `ExecutionPlanner.execute_open`。额外 `25 / 50 / 100 /
@@ -382,6 +383,32 @@ case 均保持非负现金、无杠杆、无空头、无重复 order/fill、无�
 no-optical 是永久 ex-ante 移除，不是历史中真实 optical failure，不能产生 discovery/grant/fill
 latency；缺少 archived state trajectory、正式 optical-failure latency、真实 rotation event 和
 whipsaw 证据均显式记为 `EVIDENCE GAP`，没有用随机价格路径补齐矩阵。
+
+### Checkpoint C：当前输入表面与确定性经济等价
+
+Checkpoint C 只运行了一次 `2023-01-03..2026-08-05` 的 34-name candidate replay，并与
+pre-cleanup sealed reference 比较；没有读取 Future Holdout。原始 compare report seal 为
+`3aab551b05cd8630a9a7458a2b4b9e6a280f1a33502907420f2d828bf51a7eb8`，离线裁决 seal 为
+`b8ef34b9672fe79998ac4f1f3063296dc86bf4e0f8c54cad9386bc928795e9c1`。证据分别见
+[`post_generalization_trust_closure_checkpoint_c.json`](../benchmarks/post_generalization_trust_closure_checkpoint_c.json)
+和
+[`post_generalization_trust_closure_checkpoint_c_adjudication.json`](../benchmarks/post_generalization_trust_closure_checkpoint_c_adjudication.json)。
+
+Decision、ledger、逐日账户事实、Order、Fill、财富、权益、回撤、turnover、accounting、配置语义
+和空 schema 8 roundtrip 均逐项精确相同。两侧都是 869 个 session、15 个 Order、15 个 Fill、
+1 个 epoch；最终财富 `24.509661802900865x`、权益 `49019323.60580173`、MDD
+`0.27146973146234554`、账户订单 12、gross turnover `30.944373005800003`、pending 0，
+accounting residual 为 `7.450580596923828e-09`。完整账户在两侧均通过 schema 8 strict codec。
+
+原始 final-account、epoch 与 grant hash 不做 byte-exact 宣称：源码从 `e0331925...` 变为
+`3f605ca6...`，raw config 从 `dae4d79...` 变为 `c05faf2...`，因此
+`strategic_epochs[0].source_identity`、`strategic_epochs[0].config_identity` 和
+`strategic_grant.production_source_identity` 必然重绑定。离线裁决重新计算原 report 的每个
+dimension、验证这三个路径精确绑定各自 source/config hash，并在删除这三个 provenance identity
+后证明 epoch/grant 经济字段相同；semantic config 仍精确为
+`373132f702a15176d97822b4ef43868f50dd38823ab60daf5b45dad425ae07fd`。因此结论是
+`DETERMINISTICALLY_EQUIVALENT`，不是 byte-identical。两份证据均为 non-authoritative，
+不授予生产推广权限。
 
 ## 如何判断改动是否安全
 

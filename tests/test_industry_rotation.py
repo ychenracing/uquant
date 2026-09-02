@@ -90,7 +90,7 @@ def test_sparse_industry_strength_is_shrunk_toward_neutral() -> None:
         minimum_members=2,
     )
 
-    assert signals["sparse"].confidence == pytest.approx(1 / 3)
+    assert signals["sparse"].confidence == pytest.approx(0.5)
     assert signals["sparse"].score < 1.0
     assert signals["sparse"].score < signals["sparse"].raw_score
 

@@ -231,7 +231,7 @@ def test_governed_config_migration_binds_both_exact_config_identities() -> None:
         "023d709731196a325d9cd03e95ece92e4baf63d2c5c66bb9f7d0e7a190e7bf20"
     )
     assert migration.candidate_config_sha256 == (
-        "dae4d79fdd813832c6ab152611437c13be1d38227c7280691874d3a9267d93d5"
+        "c05faf292a508d825cb4aaee09de65a5fb5a8db6acae6d21348ffcbec86d954b"
     )
     assert migration.removed_fields == (
         "strategic_cohort_symbols",
@@ -257,7 +257,6 @@ def test_governed_config_migration_rejects_any_remaining_field_change() -> None:
     [
         {"commission_rate": 0.0002},
         {"max_gross": 0.99},
-        {"same_day_leader_pipeline_enabled": True},
         {"not_a_system_config_field": 1},
     ],
 )
@@ -434,6 +433,6 @@ def test_parameter_stress_normalizes_integral_ints_and_preserves_bools() -> None
 
 
 @pytest.mark.parametrize("changes", REMOVED_COMPATIBILITY_OVERRIDES)
-def test_removed_compatibility_overrides_fail_closed(changes: dict[str, object]) -> None:
+def test_removed_config_overrides_fail_closed(changes: dict[str, object]) -> None:
     with pytest.raises(TypeError, match="unexpected keyword"):
         SystemConfig().override(**changes)

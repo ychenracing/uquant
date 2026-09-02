@@ -121,8 +121,7 @@ def _recovery_cohort_targets(
     )
 
 
-# Stable owned APIs for recovery admission stages. Historical private names
-# remain exact frozen compatibility identities for immutable expansion.
+# Recovery admission entry points owned by this module.
 overextended_pullback_targets = _overextended_pullback_targets
 controlled_oversold_rebound_targets = _controlled_oversold_rebound_targets
 locked_recovery_cohort_targets = _locked_recovery_cohort_targets

@@ -218,7 +218,6 @@ def build_reference_context(
         reference_symbols=visible,
         industries=industries,
         minimum_members=cfg.industry_signal_min_members,
-        hierarchical=cfg.hierarchical_industry_shrinkage_enabled,
     )
     industry_strength = tuple(sorted((name, signal.score) for name, signal in signals.items()))
     global_strength = float(0.45 * breadth20 + 0.35 * breadth60 + 0.20 * (1.0 - declining_ratio))

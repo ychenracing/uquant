@@ -14,9 +14,9 @@
       "source_paths": [
         "uquant/__init__.py",
         "uquant/account/__init__.py",
+        "uquant/account/code_identity.py",
         "uquant/account/codec.py",
         "uquant/account/economic_identity.py",
-        "uquant/account/migrations.py",
         "uquant/account/store.py",
         "uquant/account/validation_attribution.py",
         "uquant/account/validation_common.py",
@@ -163,9 +163,9 @@
       "source_paths": [
         "uquant/__init__.py",
         "uquant/account/__init__.py",
+        "uquant/account/code_identity.py",
         "uquant/account/codec.py",
         "uquant/account/economic_identity.py",
-        "uquant/account/migrations.py",
         "uquant/account/store.py",
         "uquant/account/validation_attribution.py",
         "uquant/account/validation_common.py",
@@ -236,9 +236,9 @@
       ],
       "source_paths": [
         "uquant/account/__init__.py",
+        "uquant/account/code_identity.py",
         "uquant/account/codec.py",
         "uquant/account/economic_identity.py",
-        "uquant/account/migrations.py",
         "uquant/account/store.py",
         "uquant/account/validation_attribution.py",
         "uquant/account/validation_common.py",
@@ -345,6 +345,8 @@
         "research/parameter_stress.py",
         "research/performance_diagnostic.py",
         "research/post_generalization_trust_closure_checkpoint_b.py",
+        "research/post_generalization_trust_closure_checkpoint_c.py",
+        "research/post_generalization_trust_closure_checkpoint_c_adjudication.py",
         "research/risk_counterfactual.py",
         "research/risk_counterfactual_cli.py",
         "research/risk_differential.py",
@@ -542,6 +544,8 @@
         "research/parameter_stress.py",
         "research/performance_diagnostic.py",
         "research/post_generalization_trust_closure_checkpoint_b.py",
+        "research/post_generalization_trust_closure_checkpoint_c.py",
+        "research/post_generalization_trust_closure_checkpoint_c_adjudication.py",
         "research/risk_counterfactual.py",
         "research/risk_counterfactual_cli.py",
         "research/risk_differential.py",
@@ -576,9 +580,9 @@
         "uquant/__init__.py",
         "uquant/__main__.py",
         "uquant/account/__init__.py",
+        "uquant/account/code_identity.py",
         "uquant/account/codec.py",
         "uquant/account/economic_identity.py",
-        "uquant/account/migrations.py",
         "uquant/account/store.py",
         "uquant/account/validation_attribution.py",
         "uquant/account/validation_common.py",
@@ -816,5 +820,5 @@
       ]
     }
   ],
-  "canonical_sha256": "8ff0cf71f00459efd5f9387e032751a9d9d90610804518818a836711cc19ac17"
+  "canonical_sha256": "18f3777fffc4e5a1d60dabf7399387500607447488eb16a44626c4238af8d33d"
 }

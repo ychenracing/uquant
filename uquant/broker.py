@@ -9,10 +9,10 @@ from datetime import date as date_type
 from datetime import timedelta
 from typing import Any
 
-from .account import validate_lot_origin_chains as _validate_lot_origin_chains
-from .account import validate_order_state as _validate_order_state
-from .account import validate_position_state as _validate_position_state
-from .account import validate_strategy_risk_state as _validate_strategy_risk_state
+from .account.validation_attribution import validate_lot_origin_chains as _validate_lot_origin_chains
+from .account.validation_orders import validate_order_state as _validate_order_state
+from .account.validation_positions import validate_position_state as _validate_position_state
+from .account.validation_strategy import validate_strategy_risk_state as _validate_strategy_risk_state
 from .broker_contract import BrokerFillValues as _BrokerFillValues
 from .broker_contract import broker_date as _broker_date
 from .broker_contract import broker_integer as _broker_integer
@@ -266,7 +266,6 @@ def _prepare_broker_sync(account: AccountState, payload: dict[str, Any]) -> _Bro
     _validate_order_state(
         working,
         sequence_was_explicit=False,
-        validate_attribution=True,
     )
     _validate_strategy_risk_state(working)
     ledger = {order.order_id: order for order in working.order_ledger}
@@ -888,7 +887,6 @@ def _commit_broker_sync(
     _validate_order_state(
         account,
         sequence_was_explicit=False,
-        validate_attribution=True,
     )
     _validate_strategy_risk_state(account)
     _validate_lot_origin_chains(account)

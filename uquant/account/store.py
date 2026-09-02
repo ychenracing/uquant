@@ -6,6 +6,7 @@ from pathlib import Path
 
 from ..infrastructure.atomic_files import atomic_write_json_with_mode
 from ..types import ACCOUNT_SCHEMA_VERSION, AccountState
+from .codec import UnsupportedAccountSchemaError
 from .validation_attribution import validate_lot_origin_chains as _validate_lot_origin_chains
 from .validation_orders import validate_order_state as _validate_order_state
 from .validation_positions import validate_position_state as _validate_position_state
@@ -15,12 +16,13 @@ from .validation_strategy import validate_strategy_risk_state as _validate_strat
 def save_account(state: AccountState, path: str | Path) -> None:
     """Atomically persist an account state after flushing it to stable storage."""
     if state.schema_version != ACCOUNT_SCHEMA_VERSION:
-        raise RuntimeError(f"account schema {state.schema_version} requires explicit migration before save")
+        raise UnsupportedAccountSchemaError(
+            f"unsupported account schema {state.schema_version}; expected {ACCOUNT_SCHEMA_VERSION}"
+        )
     _validate_position_state(state, validate_attribution=True)
     _validate_order_state(
         state,
         sequence_was_explicit=True,
-        validate_attribution=True,
     )
     _validate_strategy_risk_state(state)
     _validate_lot_origin_chains(state)

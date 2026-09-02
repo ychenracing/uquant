@@ -359,18 +359,11 @@ def _base_breadth_inputs(
             sector_below20.setdefault(industry, []).append(below)
     declining_name = float(np.mean(np.asarray(visible_returns) < 0.0)) if visible_returns else 0.0
     below_name = float(np.mean(below_ma20)) if below_ma20 else 0.0
-    if cfg.group_balanced_reference_enabled:
-        declining_group = (
-            float(np.mean([float(np.mean(np.asarray(values) < 0.0)) for values in sector_returns.values()]))
-            if sector_returns
-            else declining_name
-        )
-    else:
-        declining_group = (
-            float(np.mean([float(np.mean(values)) < 0.0 for values in sector_returns.values()]))
-            if sector_returns
-            else declining_name
-        )
+    declining_group = (
+        float(np.mean([float(np.mean(values)) < 0.0 for values in sector_returns.values()]))
+        if sector_returns
+        else declining_name
+    )
     below_group = (
         float(np.mean([float(np.mean(values)) for values in sector_below20.values()]))
         if sector_below20

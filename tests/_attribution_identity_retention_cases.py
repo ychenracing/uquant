@@ -9,7 +9,11 @@ from test_attribution_identity import (
 )
 
 from uquant import types as domain
-from uquant.account import load_account, migrate_account, save_account
+from uquant.account import (
+    UnsupportedAccountSchemaError,
+    load_account,
+    save_account,
+)
 from uquant.broker import sync_broker_snapshot
 from uquant.config import DEFAULT_CONFIG
 from uquant.engine import _attach_target_attribution
@@ -680,100 +684,19 @@ def test_broker_rejects_a_planned_buy_without_canonical_attribution() -> None:
 
     assert account.to_dict() == before
 
-def test_legacy_schema_cannot_bypass_migration_through_save(tmp_path) -> None:
-    legacy = domain.AccountState.empty(2_000_000.0)
-    legacy.schema_version = 3
+def test_save_rejects_non_current_schema(tmp_path) -> None:
+    account = domain.AccountState.empty(2_000_000.0)
+    account.schema_version = domain.ACCOUNT_SCHEMA_VERSION - 1
 
-    with pytest.raises(RuntimeError, match="explicit migration"):
-        save_account(legacy, tmp_path / "legacy-write.json")
+    with pytest.raises(
+        UnsupportedAccountSchemaError,
+        match=(
+            rf"unsupported account schema {domain.ACCOUNT_SCHEMA_VERSION - 1}; "
+            rf"expected {domain.ACCOUNT_SCHEMA_VERSION}"
+        ),
+    ):
+        save_account(account, tmp_path / "account.json")
 
-def test_sell_of_migrated_unmapped_lot_preserves_explicit_legacy_industry(
-    tmp_path,
-) -> None:
-    symbol = "sz000001"
-    legacy = domain.AccountState.empty(2_000_000.0)
-    legacy.schema_version = 3
-    legacy.data_hash = "data"
-    legacy.code_hash = "old-code"
-    legacy.positions[symbol] = domain.Position(
-        symbol=symbol,
-        shares=100,
-        avg_cost=10.0,
-        entry_date="2025-12-01",
-        highest_close=10.0,
-        tranches=[
-            domain.Tranche(
-                tranche_id="legacy-unmapped-lot",
-                lifecycle=domain.Lifecycle.CORE.value,
-                shares=100,
-                avg_cost=10.0,
-                entry_date="2025-12-01",
-                sellable_date="2025-12-02",
-                highest_close=10.0,
-            )
-        ],
-    )
-    legacy_path = tmp_path / "legacy-unmapped.json"
-    legacy_path.write_text(json.dumps(legacy.to_dict()), encoding="utf-8")
-    account = migrate_account(
-        legacy_path,
-        legacy_path,
-        new_code_hash="new-code",
-        acknowledge_code_change=True,
-    )
-    event_id = domain.derive_attribution_event_id(
-        signal_date="2026-01-05",
-        symbol=symbol,
-        target_weight=0.0,
-        lifecycle=domain.Lifecycle.CORE.value,
-        origin_lifecycle=domain.Lifecycle.CORE.value,
-        origin_subsystem=domain.OriginSubsystem.RISK.value,
-        mechanism=domain.AttributionMechanism.RISK_OFF.value,
-        replaces_symbol=None,
-        industry_at_entry="legacy_unmapped",
-        industry_manifest_sha256="0" * 64,
-        reduction_policy=domain.ReductionPolicy.FIFO.value,
-        reason_code="risk_off",
-        exit_kind="risk_off",
-    )
-    target = domain.Target(
-        symbol=symbol,
-        weight=0.0,
-        lifecycle=domain.Lifecycle.CORE.value,
-        alpha_score=0.0,
-        confidence=0.0,
-        reason="sell migrated holding",
-        reason_code="risk_off",
-        exit_kind="risk_off",
-        event_id=event_id,
-        origin_subsystem=domain.OriginSubsystem.RISK.value,
-        mechanism=domain.AttributionMechanism.RISK_OFF.value,
-        origin_lifecycle=domain.Lifecycle.CORE.value,
-        industry_at_entry="legacy_unmapped",
-        industry_manifest_sha256="0" * 64,
-    )
-    pending = plan_orders(
-        signal_date="2026-01-05",
-        targets=(target,),
-        account=account,
-        prices={symbol: 10.0},
-        cfg=DEFAULT_CONFIG,
-    )
-    pending = reconcile_account_orders(
-        account=account,
-        previous=[],
-        current=pending,
-        submitted_date="2026-01-05",
-    )
-    account.pending_orders = list(pending)
-
-    destination = tmp_path / "unmapped-sell.json"
-    save_account(account, destination)
-    restored = load_account(destination)
-    assert restored.pending_orders[0].industry_at_entry == "legacy_unmapped"
-    assert restored.positions[symbol].tranches[0].origin_subsystem == (
-        domain.OriginSubsystem.LEGACY_MIGRATION.value
-    )
 
 def test_unmatched_broker_inventory_fails_closed_without_a_planned_buy() -> None:
     account = domain.AccountState.empty(2_000_000.0)

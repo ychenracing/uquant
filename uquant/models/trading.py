@@ -155,8 +155,7 @@ def derive_attribution_event_id(
         or any(character not in "0123456789abcdef" for character in industry_manifest_sha256)
     ):
         raise ValueError("attribution industry manifest must be SHA-256")
-    # Kept as compatibility/display arguments for persisted domain objects.
-    # Neither display/backward field participates in attribution identity.
+    # These display fields are persisted but do not participate in attribution identity.
     del reason_code, exit_kind
     payload = {
         "schema": "uquant.attribution-event.v2",

@@ -1,0 +1,45 @@
+{
+  "schema_version": 1,
+  "evidence_id": "post-generalization-trust-closure-checkpoint-c-adjudication",
+  "scope": "CURRENT_SUPPORTED_PATH_DETERMINISTIC_EQUIVALENCE_ADJUDICATION",
+  "authoritative_acceptance": false,
+  "future_holdout_used": false,
+  "reference_canonical_sha256": "bb4e91982484dfe63ed95a430b63eba647a33fb87a6ae7bb23b7280df56e64d1",
+  "candidate_report_canonical_sha256": "3aab551b05cd8630a9a7458a2b4b9e6a280f1a33502907420f2d828bf51a7eb8",
+  "exact_economic_equivalence": false,
+  "deterministic_economic_equivalence": true,
+  "identity_only_difference_paths": [
+    "strategic_epochs[0].config_identity",
+    "strategic_epochs[0].source_identity",
+    "strategic_grant.production_source_identity"
+  ],
+  "dimensions": {
+    "account_sessions": true,
+    "attribution_accounting": true,
+    "config_semantic_sha256": true,
+    "current_account_codec": true,
+    "decision_sessions": true,
+    "empty_current_account_roundtrip_sha256": true,
+    "fills": true,
+    "final_account_observed_economics": true,
+    "ledger_sessions": true,
+    "metrics": true,
+    "orders": true,
+    "strategic_epochs_economic": true,
+    "strategic_grant_economic": true,
+    "window": true
+  },
+  "identity_bound_full_account_hashes": {
+    "reference": "4b36667806b35bc006b52345e58cdbab43195a3b949014d534c26189ea5664ab",
+    "candidate": "4e86a2fc61ba4d8b55ea80ab7967a959c94d418e07a69b475fb03c188999f5a6",
+    "equal": false
+  },
+  "identity_rebinding": {
+    "reference_production_source_sha256": "e0331925a7d199d60464c69080ade0abf831e106dcb1bef0afd6b74baaccc10f",
+    "candidate_production_source_sha256": "3f605ca6e2cb7d0f72e508a7f3e789333511b8aa107fa08c98d00a31b30b59c0",
+    "reference_raw_config_sha256": "dae4d79fdd813832c6ab152611437c13be1d38227c7280691874d3a9267d93d5",
+    "candidate_raw_config_sha256": "c05faf292a508d825cb4aaee09de65a5fb5a8db6acae6d21348ffcbec86d954b",
+    "semantic_config_sha256": "373132f702a15176d97822b4ef43868f50dd38823ab60daf5b45dad425ae07fd"
+  },
+  "canonical_sha256": "b8ef34b9672fe79998ac4f1f3063296dc86bf4e0f8c54cad9386bc928795e9c1"
+}

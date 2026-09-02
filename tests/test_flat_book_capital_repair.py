@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import json
 from typing import Any
 
 import pandas as pd
@@ -9,7 +8,6 @@ from test_lifecycle_and_risk import _leader, _strategic_frame
 from test_strategic_cash_rearm import _risk, _roles, _strict_inputs
 
 from uquant.account.codec import account_from_dict
-from uquant.account.migrations import migrate_account
 from uquant.config import DEFAULT_CONFIG, config_fingerprint
 from uquant.models import strategic_rearm as rearm_model
 from uquant.portfolio import PortfolioAllocator
@@ -385,60 +383,6 @@ def test_current_schema_requires_explicit_flat_book_repair_state() -> None:
         match="current account schema requires flat_book_capital_repair",
     ):
         account_from_dict(payload)
-
-
-def test_schema_seven_migration_discards_candidate_owned_repair_evidence(
-    tmp_path: Any,
-) -> None:
-    """Catches treating a checkpoint candidate streak as account repair history."""
-
-    account = AccountState.empty(2_000_000.0)
-    account.data_hash = "data"
-    account.code_hash = "code:old"
-    payload = account.to_dict()
-    payload["schema_version"] = 7
-    payload.pop("flat_book_capital_repair")
-    payload["strategic_cash_rearm"] = {
-        "observed_session": "2025-01-31",
-        "candidate_symbol": "sz300394",
-        "qualification_signature": "qualification:sz300394",
-        "qualification_route": "established",
-        "qualification_quorum": "FULL_COHORT",
-        "qualification_evidence_sha256": "a" * 64,
-        "capital_budget_level": 3,
-        "tradable_universe_identity": "b" * 64,
-        "qualification_reference_universe_identity": "c" * 64,
-        "risk_reference_universe_identity": "d" * 64,
-        "point_in_time_industry_identity": "e" * 64,
-        "required_healthy_sessions": 20,
-        "consecutive_healthy_sessions": 19,
-        "status": "OBSERVING",
-        "predicate_results": [],
-        "rejection_reasons": [],
-        "qualification_ready": True,
-        "route_consistent_absolute_quality": True,
-        "healthy": True,
-        "authorized": False,
-        "streak_transition": "INCREMENTED",
-    }
-    source = tmp_path / "schema-seven.json"
-    destination = tmp_path / "current.json"
-    source.write_text(json.dumps(payload), encoding="utf-8")
-
-    migrated = migrate_account(
-        source,
-        destination,
-        new_code_hash="code:new",
-        acknowledge_code_change=True,
-    )
-
-    assert migrated.schema_version == 8
-    assert migrated.flat_book_capital_repair == rearm_model.FlatBookCapitalRepairState()
-    assert migrated.strategic_cash_rearm == rearm_model.StrategicCashRearmState()
-    normalization = migrated.account_migrations[-1][
-        "flat_book_capital_repair_normalization"
-    ]
-    assert normalization["policy"] == "discard_candidate_owned_repair_evidence"
 
 
 def test_live_execution_resets_progress_without_clearing_the_order() -> None:

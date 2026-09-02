@@ -253,7 +253,7 @@ def test_config_public_objects_keep_legacy_module_and_pickle_identities() -> Non
         ("uquant.account.validation_positions", ("_position", "_validate_position_state")),
         ("uquant.account.validation_strategy", ("_validate_audit_events",)),
         ("uquant.account.codec", ("account_from_dict", "load_account")),
-        ("uquant.account.migrations", ("migrate_account", "migrate_code_identity")),
+        ("uquant.account.code_identity", ("migrate_code_identity",)),
         ("uquant.account.economic_identity", ("economic_state_sha256",)),
         ("uquant.account.store", ("save_account",)),
         ("uquant.attribution.concentration", ("contribution_concentration",)),

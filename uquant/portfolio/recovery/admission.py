@@ -145,6 +145,5 @@ def _recovery_admission_targets(
     return None
 
 
-# Stable owned API for the allocation-stage caller. The historical
-# private name remains the exact frozen compatibility identity.
+# Allocation-stage entry point owned by this module.
 recovery_admission_targets = _recovery_admission_targets

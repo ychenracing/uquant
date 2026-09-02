@@ -65,8 +65,8 @@ CI 只验证仓库中跟踪的零观察合同和 Lane 注册表：
 uv run python -m scripts.future_holdout validate-static-lanes
 ```
 
-`validate-lanes` 只保留为旧自动化的兼容别名；新文档、CI 和 operator 命令统一使用
-`validate-static-lanes`。脚本必须通过 `python -m` 执行，避免文件路径入口与包导入行为漂移。
+静态 Lane 校验命令是 `validate-static-lanes`。脚本必须通过 `python -m` 执行，避免文件路径
+入口与包导入行为漂移。
 
 真实观察数据和本地 Lane 报告均被 Git 忽略。查看当前观察数、下一里程碑和 Lane 身份：
 

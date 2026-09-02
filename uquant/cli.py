@@ -9,7 +9,6 @@ from pathlib import Path
 from .account import (
     economic_state_sha256,
     load_account,
-    migrate_account,
     migrate_code_identity,
     save_account,
 )
@@ -54,29 +53,17 @@ def _uquant_cli_parser() -> argparse.ArgumentParser:
     sync = sub.add_parser("account-sync")
     sync.add_argument("--account", required=True)
     sync.add_argument("--snapshot", required=True)
-    migrate = sub.add_parser("account-migrate")
-    migrate.add_argument("--account", required=True)
-    migrate.add_argument(
-        "--output",
-        default=None,
-        help="destination account file (defaults to atomic in-place normalization)",
-    )
-    migrate.add_argument(
-        "--acknowledge-code-change",
-        action="store_true",
-        help="confirm that the reviewed production code fingerprint becomes authoritative",
-    )
     code_migrate = sub.add_parser("account-code-migrate")
     code_migrate.add_argument("--account", required=True)
     code_migrate.add_argument(
         "--output",
         default=None,
-        help="destination account file (defaults to atomic in-place migration)",
+        help="destination account file (defaults to atomic in-place rebinding)",
     )
     code_migrate.add_argument(
         "--acknowledge-code-change",
         action="store_true",
-        help="confirm a code-identity-only migration with no economic-state changes",
+        help="confirm code-identity rebinding with no economic-state changes",
     )
     backtest = sub.add_parser("backtest")
     backtest.add_argument("--symbols", nargs="+", required=True)
@@ -181,29 +168,20 @@ def _run_daily(args: argparse.Namespace) -> int:
     return 0
 
 
-def _run_account_migration(args: argparse.Namespace, *, code_identity_only: bool) -> int:
+def _run_account_code_migration(args: argparse.Namespace) -> int:
     destination = args.output or args.account
-    if code_identity_only:
-        state = migrate_code_identity(
-            args.account,
-            destination,
-            new_code_hash=code_fingerprint(),
-            acknowledge_code_change=args.acknowledge_code_change,
-        )
-    else:
-        state = migrate_account(
-            args.account,
-            destination,
-            new_code_hash=code_fingerprint(),
-            acknowledge_code_change=args.acknowledge_code_change,
-        )
+    state = migrate_code_identity(
+        args.account,
+        destination,
+        new_code_hash=code_fingerprint(),
+        acknowledge_code_change=args.acknowledge_code_change,
+    )
     payload = {
         "account": destination,
         "schema_version": state.schema_version,
         "code_hash": state.code_hash,
     }
-    if code_identity_only:
-        payload["economic_state_sha256"] = economic_state_sha256(state)
+    payload["economic_state_sha256"] = economic_state_sha256(state)
     print(json.dumps(payload, ensure_ascii=False, sort_keys=True))
     return 0
 
@@ -287,10 +265,8 @@ def main(argv: list[str] | None = None) -> int:
         save_account(account, args.account)
         print(json.dumps(summary, ensure_ascii=False, sort_keys=True))
         return 0
-    if args.command == "account-migrate":
-        return _run_account_migration(args, code_identity_only=False)
     if args.command == "account-code-migrate":
-        return _run_account_migration(args, code_identity_only=True)
+        return _run_account_code_migration(args)
     if args.command == "backtest":
         return _run_backtest(args)
     if args.command == "holdout-manifest":

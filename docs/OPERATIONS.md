@@ -5,7 +5,7 @@
 uquant 只用于 2023 年以来 A 股 AI 产业链的现金多头日频决策，适合盘后人工触发。建议固定在数据更新完成、券商成交确认后执行。`daily` 生成下一交易日订单意图并保存账户，不会向券商发送订单；使用者必须人工核对并决定是否下单。
 
 首次部署先完成四项检查：使用 Python 3.12 和 `uv sync --frozen` 建立锁定环境；验证
-`data/frozen` 清单；初始化或迁移账户并保存独立备份；确认券商快照能完整提供现金、持仓、
+`data/frozen` 清单；初始化 schema 8 账户并保存独立备份；确认券商快照能完整提供现金、持仓、
 可卖数量和成交。Future Holdout 还必须单独准备数据目录、回放账户、Journal checkpoint
 和备份目录，见[Future Holdout](HOLDOUT.md)。
 
@@ -29,10 +29,10 @@ uquant 只用于 2023 年以来 A 股 AI 产业链的现金多头日频决策，
 | 日常账户和日报 | `uquant account-*`、`uquant daily` | 研究脚本或独立 Sentinel 代替日报 |
 | 历史回放 | `uquant backtest` | 把回放成交写入真实账户 |
 | 生产观察事务 | `python -m scripts.production_observation` | 分步脚本绕过备份和 receipt |
-| Holdout/Lane/Journal | `python -m scripts.future_holdout` | 兼容别名作为新自动化入口 |
+| Holdout/Lane/Journal | `python -m scripts.future_holdout` | 绕过事务入口拼接日常自动化 |
 | Sentinel 故障诊断 | `uquant-sentinel` | 把 Shadow 意见转成卖单或 cap |
 
-`uquant holdout-*` 与 `execution-journal` 是兼容/低层构件，不是 operator 默认工作流。
+`uquant holdout-*` 与 `execution-journal` 提供单步操作；operator 日常流程使用上表中的事务入口。
 
 ## 数据目录
 
@@ -63,17 +63,10 @@ uv run uquant account-init \
 
 未提供 `--date` 时使用所有必需证券的最新共同日期。账户同时记录数据摘要和当前生产代码指纹。
 
-账户文件必须符合 `ACCOUNT_SCHEMA_VERSION` 定义的当前数据契约。需要规范化不符合当前字段约束的账户时，先备份，然后显式确认代码指纹：
-
-```bash
-cp account_state.json account_state.before-conversion.json
-uv run uquant account-migrate \
-  --account account_state.json \
-  --output account_state.normalized.json \
-  --acknowledge-code-change
-```
-
-转换后必须核对现金、股数、成本、可卖数量、挂单、成交、数据日期和策略状态，再使用新文件。不要手工只改 `schema_version` 或 `code_hash`。
+账户文件必须是 schema 8，并包含当前 `AccountState` 的必需字段。整数
+`schema_version` 不是 8 时，读取和保存都会抛出 `UnsupportedAccountSchemaError`，错误消息给出
+收到的版本和期望版本。应恢复已核验的 schema 8 备份或用 `account-init` 新建账户；不要手工
+修改 `schema_version` 或 `code_hash`。
 
 ## 券商快照
 
@@ -224,7 +217,7 @@ Risk Differential 与 counterfactual 只作观察，不得转换成人工卖单�
 配置变更；命令与里程碑规则见 [Future Holdout](HOLDOUT.md)。工程合同验证和离线故障
 诊断见 [Risk Sentinel](RISK_SENTINEL.md)。
 
-生产源码升级后，先备份账户，再使用显式代码身份迁移：
+生产源码升级后，先备份 schema 8 账户，再显式重绑定代码身份：
 
 ```bash
 uv run uquant account-code-migrate \
@@ -233,16 +226,16 @@ uv run uquant account-code-migrate \
 ```
 
 命令只更新 `code_hash` 并追加 `code_identity_only` 审计事件；输出
-`economic_state_sha256`。迁移前、落盘后和严格重载后的该摘要必须一致。若摘要变化或未显式
-确认，迁移失败关闭。通用 schema 转换仍使用单独的 `account-migrate`，不能把两种操作混用。
+`economic_state_sha256`。执行前、落盘后和严格重载后的该摘要必须一致。未提供
+`--acknowledge-code-change`、目标代码指纹为空或经济状态摘要变化时，命令停止且不接受结果。
 
 ## 常见故障
 
 | 现象 | 含义 | 处理 |
 |---|---|---|
 | `data hash differs` | 已使用历史数据发生变化 | 恢复可信文件并重新验证 |
-| `production code hash differs` | 账户绑定的代码与当前运行代码不同 | 备份账户，执行兼容转换并核对 |
-| 账户 schema 不符合当前契约 | 账户结构或字段不完整 | 使用 `account-migrate` 明确转换 |
+| `production code hash differs` | 账户绑定的代码与当前运行代码不同 | 备份 schema 8 账户，执行 `account-code-migrate` 并核对经济状态摘要 |
+| `UnsupportedAccountSchemaError` | 账户的整数 `schema_version` 不是 8 | 恢复已核验的 schema 8 备份，或用 `account-init` 新建账户 |
 | `unknown order_id` | 券商成交无法对应系统订单 | 修正快照或人工调查 |
 | `duplicate fill_id` | 重复成交经济字段不一致 | 修正导出来源，禁止覆盖 |
 | `insufficient common history` | 必需证券共同历史不足 | 补齐数据或调整开始日期 |

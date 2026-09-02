@@ -53,8 +53,6 @@ from .validation_common import (
     validate_nonnegative_account_integer_map as _validate_nonnegative_integer_map,
 )
 
-_strategic_epoch_schema_version = 7
-
 
 def _validate_risk_streaks(values: Any) -> None:
     """Validate streak counters plus the signed opportunity evidence sentinel."""
@@ -291,11 +289,10 @@ def _validate_strategy_identity_and_weights(
     _validate_strategic_intent_state(state)
     epochs_by_id = _validate_strategic_epoch_ledger(state)
     _validate_strategic_epoch_owners(state, epoch_ids=set(epochs_by_id))
-    if state.schema_version >= _strategic_epoch_schema_version:
-        _validate_strategic_trading_epoch_bindings(
-            state,
-            epochs_by_id=epochs_by_id,
-        )
+    _validate_strategic_trading_epoch_bindings(
+        state,
+        epochs_by_id=epochs_by_id,
+    )
     return _validate_strategic_weight_state(state)
 
 

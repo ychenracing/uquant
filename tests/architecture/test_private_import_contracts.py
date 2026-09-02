@@ -155,15 +155,15 @@ def test_architecture_raw_scanner_treats_a_relocated_id_as_current_live_debt() -
 
 def test_architecture_live_analyzer_separates_current_debt_from_historical_projection() -> None:
     known_relocated_id = (
-        "uquant.account.migrations:uquant.account.codec:_read_account_payload"
+        "uquant.account.codec:uquant.account.validation_common:_finite_number"
     )
     assert known_relocated_id in _CONFIG_RELOCATED_PRIVATE_IMPORTS
     sources = {
         path.relative_to(ROOT).as_posix(): path.read_text(encoding="utf-8")
         for path in (ROOT / "uquant").rglob("*.py")
     }
-    sources["uquant/account/migrations.py"] += (
-        "\nfrom .codec import _read_account_payload\n"
+    sources["uquant/account/codec.py"] += (
+        "\nfrom .validation_common import _finite_number\n"
     )
     snapshot = architecture_snapshot(source_texts=sources)
     graph = snapshot["import_graph"]

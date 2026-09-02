@@ -22,23 +22,9 @@ from ..types import (
     order_intent_metadata,
 )
 from .validation_attribution import (
-    derive_v4_attribution_event_id,
-    validate_attribution_identity,
-    validate_lot_origin_chains,
-    validate_order_intent,
+    validate_attribution_identity as _validate_attribution_identity,
 )
-from .validation_common import (  # noqa: F401 - historical importer binding
-    EVENT_ID_PATTERN as _EVENT_ID,
-)
-from .validation_common import (  # noqa: F401 - historical importer binding
-    HISTORICAL_ATTRIBUTION_SCHEMA_VERSION as _HISTORICAL_ATTRIBUTION_SCHEMA_VERSION,
-)
-from .validation_common import (  # noqa: F401 - historical importer binding
-    LEGACY_INDUSTRY as _LEGACY_INDUSTRY,
-)
-from .validation_common import (  # noqa: F401 - historical importer binding
-    LEGACY_MANIFEST_SHA256 as _LEGACY_MANIFEST_SHA256,
-)
+from .validation_attribution import validate_order_intent as _validate_order_intent
 from .validation_common import (
     ORDER_ID_PATTERN as _ORDER_ID,
 )
@@ -57,11 +43,6 @@ from .validation_common import (
 from .validation_common import (
     unlinked_fill_matches_order as _unlinked_fill_matches_order,
 )
-
-_derive_v4_attribution_event_id = derive_v4_attribution_event_id
-_validate_attribution_identity = validate_attribution_identity
-_validate_lot_origin_chains = validate_lot_origin_chains
-_validate_order_intent = validate_order_intent
 
 
 def validate_pending_order_for_account_write(
@@ -83,7 +64,6 @@ def _validate_fill_attribution_reconciliation(
     *,
     allocated_fee_totals: Any,
     allocations_with_fee_detail: Any,
-    allow_schema_v2_missing_sell_attribution: Any,
     attributed_shares: Any,
     fill: Any,
     shares: Any,
@@ -99,17 +79,10 @@ def _validate_fill_attribution_reconciliation(
                 abs_tol=1e-8,
             ):
                 raise RuntimeError(f"fill sold-lot {name} does not reconcile to fill")
-    schema_v2_missing_sell_attribution = bool(
-        allow_schema_v2_missing_sell_attribution
-        and fill.side == Side.SELL.value
-        and fill.order_id
-        and not fill.sold_tranches
-    )
     if (
         fill.side == Side.SELL.value
         and fill.order_id
         and attributed_shares != shares
-        and not schema_v2_missing_sell_attribution
     ):
         raise RuntimeError("linked sell fill sold-lot attribution does not reconcile")
     if fill.side == Side.SELL.value and not fill.order_id and attributed_shares not in {0, shares}:
@@ -120,7 +93,6 @@ def _resolve_fill_order(
     *,
     fill: Any,
     ledger: Any,
-    validate_attribution: Any,
 ) -> Any:
     _required_text(fill.reason_code, field="fill reason_code")
     _required_text(fill.exit_kind, field="fill exit_kind")
@@ -130,8 +102,7 @@ def _resolve_fill_order(
         _order_sequence(fill.order_id)
     if fill.fill_id and not fill.fill_id.strip():
         raise RuntimeError("fill_id cannot contain only whitespace")
-    if validate_attribution:
-        _validate_attribution_identity(fill, label="fill")
+    _validate_attribution_identity(fill, label="fill")
 
     order = ledger.get(fill.order_id) if fill.order_id else None
     if fill.order_id and order is None:
@@ -224,7 +195,6 @@ def _validate_sold_lot_attribution_and_fees(
     *,
     allocated_fee_totals: dict[str, float],
     allocation: dict[str, Any],
-    validate_attribution: bool,
 ) -> bool:
     if "mae" in allocation:
         _finite_number(
@@ -253,12 +223,11 @@ def _validate_sold_lot_attribution_and_fees(
             allocation["entry_industry_strength"],
             field="fill sold-lot entry_industry_strength",
         )
-    if validate_attribution:
-        allocation_identity = SimpleNamespace(**allocation)
-        _validate_attribution_identity(
-            allocation_identity,
-            label="fill sold-lot attribution",
-        )
+    allocation_identity = SimpleNamespace(**allocation)
+    _validate_attribution_identity(
+        allocation_identity,
+        label="fill sold-lot attribution",
+    )
 
     fee_components = tuple(allocated_fee_totals)
     has_fee_detail = any(name in allocation for name in (*fee_components, "fees", "transaction_costs"))
@@ -302,7 +271,6 @@ def _validate_sold_lot_evidence_and_fees(
     allocation: dict[str, Any],
     *,
     allocated_fee_totals: dict[str, float],
-    validate_attribution: bool,
 ) -> bool:
     if "mfe" in allocation:
         _finite_number(
@@ -313,7 +281,6 @@ def _validate_sold_lot_evidence_and_fees(
     has_fee_detail = _validate_sold_lot_attribution_and_fees(
         allocated_fee_totals=allocated_fee_totals,
         allocation=allocation,
-        validate_attribution=validate_attribution,
     )
     return has_fee_detail
 
@@ -323,7 +290,6 @@ def _validate_fill_order_and_costs(
     fill: Any,
     fill_date: Any,
     order: Any,
-    validate_attribution: Any,
 ) -> tuple[Any, Any, Any]:
     if order is not None:
         fields_that_must_match = (
@@ -367,7 +333,6 @@ def _validate_fill_order_and_costs(
         if _validate_sold_lot_evidence_and_fees(
             allocation,
             allocated_fee_totals=allocated_fee_totals,
-            validate_attribution=validate_attribution,
         ):
             allocations_with_fee_detail += 1
     return allocated_fee_totals, allocations_with_fee_detail, attributed_shares
@@ -377,8 +342,6 @@ def _validate_fill(
     fill: Fill,
     *,
     ledger: dict[str, AccountOrder],
-    allow_schema_v2_missing_sell_attribution: bool = False,
-    validate_attribution: bool = False,
 ) -> None:
     """Validate one fill and reconcile its immutable order attribution."""
 
@@ -404,18 +367,15 @@ def _validate_fill(
     order = _resolve_fill_order(
         fill=fill,
         ledger=ledger,
-        validate_attribution=validate_attribution,
     )
     allocated_fee_totals, allocations_with_fee_detail, attributed_shares = _validate_fill_order_and_costs(
         fill=fill,
         fill_date=fill_date,
         order=order,
-        validate_attribution=validate_attribution,
     )
     _validate_fill_attribution_reconciliation(
         allocated_fee_totals=allocated_fee_totals,
         allocations_with_fee_detail=allocations_with_fee_detail,
-        allow_schema_v2_missing_sell_attribution=allow_schema_v2_missing_sell_attribution,
         attributed_shares=attributed_shares,
         fill=fill,
         shares=shares,
@@ -435,17 +395,14 @@ def _order_sequence(order_id: str) -> int:
 
 def _validate_pending_order_state(
     *,
-    event_schema_version: Any,
     reduction_policies: Any,
     state: Any,
-    validate_attribution: Any,
 ) -> None:
     for pending_item in state.pending_orders:
         _validate_order_intent(
             pending_item,
             label="pending order",
-            validate_attribution=validate_attribution,
-            event_schema_version=event_schema_version,
+            validate_attribution=True,
         )
         _nonnegative_integer(
             pending_item.remaining_shares,
@@ -464,7 +421,6 @@ def _validate_pending_order_state(
 
 def _normalize_next_order_sequence(
     *,
-    event_schema_version: Any,
     sequence_was_explicit: Any,
     sequences: Any,
     state: Any,
@@ -472,13 +428,11 @@ def _normalize_next_order_sequence(
     required_next = max(sequences, default=0) + 1
     if state.next_order_sequence > 999_999_999:
         raise RuntimeError("account state next order sequence exceeds the canonical ID space")
-    if sequence_was_explicit and event_schema_version == ACCOUNT_SCHEMA_VERSION:
+    if sequence_was_explicit:
         if state.next_order_sequence < required_next:
             raise RuntimeError("account state next order sequence would reuse an order id")
         if state.next_order_sequence > required_next:
             raise RuntimeError("account state next order sequence does not exactly follow the durable ledger")
-    elif sequence_was_explicit and state.next_order_sequence < required_next:
-        raise RuntimeError("account state next order sequence would reuse an order id")
     state.next_order_sequence = max(state.next_order_sequence, required_next)
     if state.next_order_sequence <= 0:
         raise RuntimeError("account state has invalid next order sequence")
@@ -519,17 +473,14 @@ def _validate_remainder_release_evidence(
 def _validate_account_order_ledger(
     state: AccountState,
     *,
-    event_schema_version: int,
     reduction_policies: set[str],
     statuses: set[str],
-    validate_attribution: bool,
 ) -> None:
     for ledger_item in state.order_ledger:
         signal_date = _validate_order_intent(
             ledger_item,
             label="account order",
-            validate_attribution=validate_attribution,
-            event_schema_version=event_schema_version,
+            validate_attribution=True,
         )
         submitted_date = _required_iso_date(
             ledger_item.submitted_date,
@@ -634,9 +585,7 @@ def _validate_pending_order_links(
 def _validated_fill_links(
     state: AccountState,
     *,
-    allow_schema_v2_missing_sell_attribution: bool,
     ledger: dict[str, AccountOrder],
-    validate_attribution: bool,
 ) -> tuple[dict[str, list[Fill]], list[Fill]]:
     for ledger_item in state.order_ledger:
         if ledger_item.replaced_by and ledger_item.replaced_by not in ledger:
@@ -645,8 +594,6 @@ def _validated_fill_links(
         _validate_fill(
             fill,
             ledger=ledger,
-            allow_schema_v2_missing_sell_attribution=(allow_schema_v2_missing_sell_attribution),
-            validate_attribution=validate_attribution,
         )
     fill_ids = [fill.fill_id for fill in state.fills if fill.fill_id]
     if len(fill_ids) != len(set(fill_ids)):
@@ -656,13 +603,11 @@ def _validated_fill_links(
     unlinked_fills = [fill for fill in state.fills if not fill.order_id]
     for fill in unlinked_fills:
         structured_matches = sum(
-            _unlinked_fill_matches_order(fill, candidate, native=validate_attribution)
+            _unlinked_fill_matches_order(fill, candidate)
             for candidate in state.order_ledger
         )
-        if validate_attribution and structured_matches != 1:
-            raise RuntimeError("native unlinked fill must match exactly one structured account order")
-        if not validate_attribution and structured_matches > 1:
-            raise RuntimeError("unlinked fill has ambiguous structured order identity")
+        if structured_matches != 1:
+            raise RuntimeError("unlinked fill must match exactly one structured account order")
     for fill in state.fills:
         if fill.order_id:
             linked_fills[fill.order_id].append(fill)
@@ -675,7 +620,6 @@ def _unlinked_order_fill_is_exempt(
     *,
     ledger_item: AccountOrder,
     state: AccountState,
-    validate_attribution: bool,
 ) -> bool:
     unlinked_match_shares = sum(fill.shares for fill in unlinked_matches)
     return bool(
@@ -684,7 +628,7 @@ def _unlinked_order_fill_is_exempt(
         and unlinked_match_shares == ledger_item.filled_shares
         and all(
             sum(
-                _unlinked_fill_matches_order(fill, candidate, native=validate_attribution)
+                _unlinked_fill_matches_order(fill, candidate)
                 for candidate in state.order_ledger
             )
             == 1
@@ -698,7 +642,6 @@ def _validate_order_fill_reconciliation(
     *,
     linked_fills: dict[str, list[Fill]],
     unlinked_fills: list[Fill],
-    validate_attribution: bool,
 ) -> None:
     for ledger_item in state.order_ledger:
         order_fills = linked_fills[ledger_item.order_id]
@@ -708,14 +651,13 @@ def _validate_order_fill_reconciliation(
         unlinked_matches = [
             fill
             for fill in unlinked_fills
-            if _unlinked_fill_matches_order(fill, ledger_item, native=validate_attribution)
+            if _unlinked_fill_matches_order(fill, ledger_item)
         ]
         unlinked_exempt = _unlinked_order_fill_is_exempt(
             order_fills,
             unlinked_matches,
             ledger_item=ledger_item,
             state=state,
-            validate_attribution=validate_attribution,
         )
         if accounted_fill_shares != ledger_item.filled_shares and not unlinked_exempt:
             raise RuntimeError("account order filled shares do not reconcile to fills")
@@ -748,9 +690,6 @@ def _validate_order_state(
     state: AccountState,
     *,
     sequence_was_explicit: bool,
-    allow_schema_v2_missing_sell_attribution: bool = False,
-    validate_attribution: bool = False,
-    event_schema_version: int = ACCOUNT_SCHEMA_VERSION,
 ) -> None:
     """Validate order identifiers, lifecycle transitions, fills, and references."""
 
@@ -764,7 +703,6 @@ def _validate_order_state(
         raise RuntimeError("account state has duplicate order ids")
     sequences = [_order_sequence(order_id) for order_id in identifiers]
     _normalize_next_order_sequence(
-        event_schema_version=event_schema_version,
         sequence_was_explicit=sequence_was_explicit,
         sequences=sequences,
         state=state,
@@ -775,32 +713,23 @@ def _validate_order_state(
     ledger = {ledger_item.order_id: ledger_item for ledger_item in state.order_ledger}
     _validate_account_order_ledger(
         state,
-        event_schema_version=event_schema_version,
         reduction_policies=reduction_policies,
         statuses=statuses,
-        validate_attribution=validate_attribution,
     )
     _validate_pending_order_links(state, ledger=ledger)
     _validate_pending_order_state(
-        event_schema_version=event_schema_version,
         reduction_policies=reduction_policies,
         state=state,
-        validate_attribution=validate_attribution,
     )
     linked_fills, unlinked_fills = _validated_fill_links(
         state,
-        allow_schema_v2_missing_sell_attribution=allow_schema_v2_missing_sell_attribution,
         ledger=ledger,
-        validate_attribution=validate_attribution,
     )
     _validate_order_fill_reconciliation(
         state,
         linked_fills=linked_fills,
         unlinked_fills=unlinked_fills,
-        validate_attribution=validate_attribution,
     )
 
 
-order_sequence = _order_sequence
-validate_fill = _validate_fill
 validate_order_state = _validate_order_state

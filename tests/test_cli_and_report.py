@@ -231,31 +231,6 @@ def test_daily_report_preflights_and_consumes_a_broker_snapshot(
     )
 
 
-def test_cli_explicit_account_migration(tmp_path: Path, capsys: Any) -> None:
-    account_path = tmp_path / "legacy.json"
-    state = _state(account_path)
-    payload = state.to_dict()
-    payload.pop("schema_version")
-    payload.pop("account_migrations")
-    account_path.write_text(json.dumps(payload), encoding="utf-8")
-
-    with pytest.raises(RuntimeError, match="acknowledge"):
-        main(["account-migrate", "--account", str(account_path)])
-    assert (
-        main(
-            [
-                "account-migrate",
-                "--account",
-                str(account_path),
-                "--acknowledge-code-change",
-            ]
-        )
-        == 0
-    )
-    assert load_account(account_path).account_migrations
-    assert "schema_version" in capsys.readouterr().out
-
-
 def test_cli_explicit_code_identity_only_migration(
     tmp_path: Path,
     capsys: Any,

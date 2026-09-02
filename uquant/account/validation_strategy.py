@@ -456,8 +456,13 @@ def _validate_strategic_trading_identity(
     epochs_by_id: dict[str, Any],
     grant_id: Any,
     label: str,
+    symbol: Any,
 ) -> None:
-    if not isinstance(grant_id, str) or not isinstance(epoch_id, str):
+    if (
+        not isinstance(grant_id, str)
+        or not isinstance(epoch_id, str)
+        or not isinstance(symbol, str)
+    ):
         raise RuntimeError(f"{label} strategic identity must be text")
     if not epoch_id:
         return
@@ -466,6 +471,8 @@ def _validate_strategic_trading_identity(
         raise RuntimeError(f"{label} references an unknown strategic epoch")
     if epoch.terminal and not allow_terminal:
         raise RuntimeError(f"{label} cannot reference terminal strategic epoch")
+    if not grant_id and symbol != epoch.owner_symbol:
+        return
     if epoch.grant_id != grant_id:
         raise RuntimeError(
             f"{label} grant identity differs from strategic epoch"
@@ -484,6 +491,7 @@ def _validate_strategic_trading_epoch_bindings(
             epochs_by_id=epochs_by_id,
             grant_id=position.grant_id,
             label="account position",
+            symbol=position.symbol,
         )
         for tranche in position.tranches:
             _validate_strategic_trading_identity(
@@ -492,6 +500,7 @@ def _validate_strategic_trading_epoch_bindings(
                 epochs_by_id=epochs_by_id,
                 grant_id=tranche.grant_id,
                 label="account tranche",
+                symbol=position.symbol,
             )
     for allow_terminal, label, items in (
         (False, "pending order", state.pending_orders),
@@ -505,6 +514,7 @@ def _validate_strategic_trading_epoch_bindings(
                 epochs_by_id=epochs_by_id,
                 grant_id=item.grant_id,
                 label=label,
+                symbol=item.symbol,
             )
     for fill in state.fills:
         for sold_tranche in fill.sold_tranches:
@@ -514,6 +524,7 @@ def _validate_strategic_trading_epoch_bindings(
                 epochs_by_id=epochs_by_id,
                 grant_id=sold_tranche.get("grant_id", ""),
                 label="fill sold-lot attribution",
+                symbol=fill.symbol,
             )
 
 

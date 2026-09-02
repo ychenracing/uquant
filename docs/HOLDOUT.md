@@ -16,6 +16,47 @@ Future Holdout 用真实、未参与选择的新交易日验证候选是否继�
 起始 holdout 账户必须匹配已审阅的连续回放摘要；正式评分只能由确定性回放重算，调用方
 提供的独立分数文件即使重新封签也不能进入验收。
 
+## 2026-09-02 身份与观察边界
+
+当前紧凑证据合同为
+[`post_generalization_trust_closure_checkpoint_a.json`](../benchmarks/post_generalization_trust_closure_checkpoint_a.json)。
+冻结候选 `c47367bba64c827fe18f788c9a3650e13ece306f` 的决策源码摘要为
+`f9c78557e38342c5a994f19fde63352f635ac37c5d2d7a187ba410b98caa1aed`；
+`42f6cbdfcf3c3e396200758f80485b49b9e245bf` 首次把它绑定到 holdout 合同，
+`4be0ad2e8b2f44bad03042c05ddded0bc1c7a3aa` 是最新直接验证该绑定并重建精确期初账户的提交。
+
+该冻结身份拥有 `2026-08-06..2026-09-01` 的 19 个完整 session。数据覆盖为
+`19 x 36 = 684` 条，缺失和额外 session 均为零；holdout 数据摘要为
+`b7abda36c77a90397c9947aaa8130c3bd7525ca574c193e0898ad6ab505b6d0b`，来源清单的
+canonical 摘要为 `a60a6e2c7f17fa216d31105fe292a5a4b8534c0679a9b3795abec92d632d737c`。
+采集时点、交易日历、覆盖、点时延续和冻结数据无污染均已核对。期初账户为 schema 5，
+canonical 摘要 `251c90cef356821547c633c69595371aa857a704d8ea21e5119be16136ac0fc8`，
+现金与权益均为 `49019323.60580173`，无持仓或挂单；其 12 个订单和 15 个 fill 是历史模型
+账户记录，不是券商事实。
+
+当前 `main` 身份 `886a72179a7bfdef9a3e3165548df59e9d92aa89` 的决策源码摘要为
+`e0331925a7d199d60464c69080ade0abf831e106dcb1bef0afd6b74baaccc10f`，配置摘要为
+`dae4d79fdd813832c6ab152611437c13be1d38227c7280691874d3a9267d93d5`。它在
+`2026-09-02` 当日收盘前发布，因此截至证据截点拥有 0 个完整 prospective session；对前述
+19 日的运行只能标记为 `RETROSPECTIVE_BRIDGE_NOT_FUTURE_HOLDOUT`，不得作为当前身份的
+Future Holdout。首个经济等价候选 session 是 `2026-09-02`，只有收盘完整后按序追加才算观察。
+
+当前身份的三个 869-session bounded replay（three-core、remove-all-three、no-optical）仅是
+`2023-01-03..2026-08-05` 的诊断证据，均非 authoritative acceptance，也不是 Future
+Holdout。其原始 account codec 报错是因为当前 `FULL_COHORT` 语义允许非 owner cohort row
+共用 epoch 且 grant 留空；既有 Absolute helper 只在证据 deep copy 上归一化，归一化副本为
+`VALID`。后续若增加当前身份原生 codec 支持或移除该 shim，属于证据管线清理，不是策略变更。
+
+冻结 19 日结果为全现金：期末权益不变、收益和回撤为零、无模型订单或 fill，且每天均为
+日收益 `0`、现金率 `1`、gross exposure `0`、`WEAK / RISK_OFF`、target gross `0`，并冻结
+新风险、启用 sector guard；这些是覆盖全部 19 个 session 的常量时间线，不保存逐日原始行。
+没有实际券商执行 Journal，
+因此不能填造券商 fill 数；里程碑状态严格为 `INTERIM — MILESTONE NOT YET REACHED`。
+年化换手、挂单、执行阻断、owner switch 和新 grant/epoch 均为零，行业暴露为空；期初与
+期末 owner 均为 `sz300308`。冻结 schema 不含正式 grant/epoch 语义，观察期也没有 failed
+grant retry、recovery 或 rearm 事件，不能从新版字段反向补造。
+这份聚合证据不保存逐日原始数据，不允许 backfill、反向调参或取得生产权限。
+
 ## 仓库基线与本地观察
 
 CI 只验证仓库中跟踪的零观察合同和 Lane 注册表：

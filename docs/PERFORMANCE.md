@@ -260,6 +260,78 @@ NumPy、pandas、uv 和锁文件摘要；已开始观察的身份不得修改或
 观察。`artifacts/holdout/lane_validation.json` 明确记录样本量、下一里程碑和七个正式
 评分；少于 20 日时这些评分全部为 `null`，诊断指标也不得伪装为正式评分。
 
+### Checkpoint A：当前身份、holdout 与 alpha 来源
+
+截至 `2026-09-02 09:29:01+08:00`，冻结候选而非当前 `main` 拥有已经完成的 prospective
+观察。冻结身份在 `2026-08-06..2026-09-01` 的 19 个 session 中期初与期末权益均为
+`49019323.60580173`，累计收益、最大回撤、换手、集中度、已实现和未实现 PnL 均为零；
+模型订单和 fill 均为零。全部 19 日的常量时间线为日收益 `0`、现金率 `1`、gross exposure
+`0`、opportunity `WEAK`、risk `RISK_OFF`、target gross `0`，不保存逐日原始行。没有实际
+券商执行 Journal，故券商 fill 为未知，
+不能用模型 fill 或零值冒充。当前 `main` 对同一 19 日的结果仅是
+`RETROSPECTIVE_BRIDGE_NOT_FUTURE_HOLDOUT`，其 completed prospective session 为 0。
+紧凑、封签且不含逐日原始数据的证据见
+[`post_generalization_trust_closure_checkpoint_a.json`](../benchmarks/post_generalization_trust_closure_checkpoint_a.json)。
+
+`2023-01-03..2026-08-05` 的既有精确账本从 `2000000.0` 增至
+`49019323.60580173`。总 PnL 为 `47019323.60580174`，权益差为
+`47019323.60580173`，浮点残差 `7.450580596923828e-09`，在 `1e-06` 容差内精确对账。
+`sz300308`、optical、`STRATEGIC` route 和 `CORE` lifecycle 各承担 100% 的绝对 PnL；
+`sz300502`、`sz300394` 和全部 non-optical PnL 为零，Top-1、Top-3 与 HHI 均为 1。
+compute、pcb、semicap、materials、storage、datacenter 和其他行业均为零；ordinary leader、
+recovery、tactical、satellite、replacement route 以及 `ADD1 / ADD2 / SATELLITE / RECOVERY`
+lifecycle 也均为零。`sz300308` 的 14 个已实现 lot 从 `2023-01-05` 首次买入至
+`2026-06-24` 最后卖出，open PnL 为零。
+alpha 来源机制分解为 `STRATEGIC_COHORT = 30942369.902220484` 与
+`STRATEGIC_RESTORATION = 16076953.703581253`。风险退出标签是非加总诊断，只解释退出路径，
+不能重复计作 alpha 来源。唯一观测到的 epoch owner 是 `sz300308`，qualification route 为
+`reversal_industry`、quorum 为 `FULL_COHORT`，无关闭、终止或 successor；直接部署买入 gross
+为 `7413046.741099999`，峰值暴露为 `0.9838117253210967`。总 PnL 是 owner-lot 投影，部分
+risk-exit fill 没有保留 epoch ID，不能把该投影误读成每笔退出都由 epoch ID 直接归因。该
+epoch 投影缺少完整 runtime/HEAD envelope，因此只解释当前经济账本，不构成新的验收证据。
+
+GitHub workflow run `33539562132` 已提供三个与 baseline main-tree reference
+`b03021c55d5c7ad6803b33b777e9db38a46a1789` 精确匹配的 Absolute LOO cell；该 OID 指向
+生产 baseline，不表示持续变化的 feature-tree 身份。源码、配置、
+冻结数据 manifest 和 lock 身份也一致。移除 `sz300308` 后最终财富为
+`1.2632209078168604x`、MDD `0.23851539613956552`；观测到的 `sh601869` successor epoch
+曾在 `2025-08-05` 激活，并于 `2026-05-28` 关闭，但它仍属于 optical。移除 `sz300502`
+后最终财富为 `3.0084207762708095x`、MDD
+`0.2607049333556357`，形成 `sz300394 -> sz300308` 两个连续 epoch；移除 `sz300394` 后
+最终财富为 `7.809998638641716x`、MDD `0.1985706825003003`；观测到的 `sz300502` owner
+epoch 曾在 `2025-07-01` 激活，并于 `2026-06-25` 关闭。
+三个 cell 均无重复 epoch/grant/order，账本与 target-order-fill 身份均对账。这些是当前身份的
+bounded capability/continuity 证据，不是基线已实现 PnL 分散证明。个别 LOO 来源 cell 在
+HHI 非零时仍报告 Top-1/Top-3 为零；这些原始字段被原样保留但内部不一致，结论不依赖它们。
+
+同一 current tree/source/config/data/lock 身份下的三个 869-session bounded 诊断现已封签。
+three-core 最终财富为 `3.40939236400687x`，总 PnL `4818784.72801374`：`sz300308`
+贡献 `3666521.1619040393`（`76.08808794858424%`），`sz300394` 贡献
+`1152263.5661097001`（`23.91191205141576%`），`sz300502` 为零；PnL 全部来自 optical，
+Top-1/Top-3/HHI 分别为 `0.7608808794858424`、`1.0000000000000002`、
+`0.6361176665626133`。remove-all-three 与 no-optical 的经济结果相同：最终财富仅
+`1.01039464268425x`，PnL `20789.285368500307`，全部来自 semicap；`sh688200`、
+`sz300054`、`sz300223` 分别贡献 `-75852.1348041599`、`38732.23916298`、
+`57909.18100968021`，owner 为 `sh688200`，Top-1/Top-3/HHI 为
+`0.4397389503297848 / 1 / 0.3564964878650526`。被移除的三只 core 均显式记零。
+三项均无负现金、负持仓、重复 order ID 或重复 native physical fill identity，账本精确对账。
+
+三个 raw account codec 都报 `account order grant identity differs from strategic epoch`；
+three-core 有 16 个 identity mismatch，另两项各 9 个。这不是交易结果冲突：当前
+`FULL_COHORT` 语义有意允许非 owner cohort row 共用 epoch 且 grant 留空。既有 Absolute
+helper 仅归一化证据 deep copy，归一化 codec 均为 `VALID`；未来增加 current-only 原生 codec
+支持或移除 shim 是清理工作，不是策略变化。这些结果仍是 non-authoritative bounded
+diagnostic，不能冒充 Future Holdout。核心结论不变：已实现 baseline alpha 仍是 100%
+`sz300308 / optical`；单项 LOO 证明系统可以存活但仍停留在 optical；no-optical 证明能够找到
+技术 successor，却只有 `+1.039464268425%`。能力分散已经存在，已实现 PnL 分散仍不存在。
+
+另有的历史 continuous-AI-era core/no-optical 矩阵与冻结候选、当前 `main` 均不匹配，只能
+作为 legacy 描述：full `24.509661802900865x`，移除 `sz300308` 为
+`0.8321334882399101x`，移除 `sz300502` 为 `0.8568649080496994x`，移除
+`sz300394` 为 `3.936609244088344x`，移除三只核心与 no-optical 均为
+`1.20910580087419x`。这些数值说明旧身份下能力存活，不证明已实现 PnL 分散，也不证明当前
+身份已经发生主动 alpha 迁移；不得用于当前 acceptance。
+
 ## 如何判断改动是否安全
 
 对注释、文档或工程质量改动，先证明是否影响可执行输入：

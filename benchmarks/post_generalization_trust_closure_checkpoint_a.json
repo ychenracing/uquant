@@ -1,0 +1,835 @@
+{
+  "schema_version": 1,
+  "evidence_id": "post-generalization-trust-closure-checkpoint-a-v1",
+  "canonical_sha256": "ea0b20b698cfd5733ef9c133b25d25f454849e78d2263f54697dded944a7ea5e",
+  "identity_split": {
+    "relationship": "MISMATCHED_ECONOMIC_IDENTITIES",
+    "frozen_strategy_candidate_commit": "c47367bba64c827fe18f788c9a3650e13ece306f",
+    "first_contract_binding_commit": "42f6cbdfcf3c3e396200758f80485b49b9e245bf",
+    "latest_verified_binding_commit": "4be0ad2e8b2f44bad03042c05ddded0bc1c7a3aa",
+    "frozen_decision_source_sha256": "f9c78557e38342c5a994f19fde63352f635ac37c5d2d7a187ba410b98caa1aed",
+    "frozen_effective_config_sha256": "ed52da44a359c1506e1d299f7bc341ad01b199d7f96997f7c01f2b8eca7cfc13",
+    "current_main_commit": "886a72179a7bfdef9a3e3165548df59e9d92aa89",
+    "current_decision_source_sha256": "e0331925a7d199d60464c69080ade0abf831e106dcb1bef0afd6b74baaccc10f",
+    "current_effective_config_sha256": "dae4d79fdd813832c6ab152611437c13be1d38227c7280691874d3a9267d93d5",
+    "current_main_publication_session": "2026-09-02",
+    "first_economically_equivalent_current_session": "2026-09-02"
+  },
+  "data_provenance": {
+    "first_session": "2026-08-06",
+    "last_completed_session": "2026-09-01",
+    "completed_sessions": 19,
+    "required_symbols": 36,
+    "observations": 684,
+    "missing_sessions": 0,
+    "extra_sessions": 0,
+    "calendar_validated": true,
+    "coverage_validated": true,
+    "point_in_time_validated": true,
+    "provider": "Tencent Finance",
+    "retrieved_at_utc": "2026-09-02T01:30:28.463884+00:00",
+    "cutoff_clock_asia_shanghai": "2026-09-02T09:29:01.150865+08:00",
+    "same_day_completion_cutoff_asia_shanghai": "15:30:00",
+    "holdout_data_sha256": "b7abda36c77a90397c9947aaa8130c3bd7525ca574c193e0898ad6ab505b6d0b",
+    "source_manifest_canonical_sha256": "a60a6e2c7f17fa216d31105fe292a5a4b8534c0679a9b3795abec92d632d737c",
+    "frozen_data": {
+      "snapshot_id": "20260809T094222Z-causal-tech-index-rebase",
+      "checksums_sha256": "ba460d65f791f238d8a4a16ac62e2225c1832caa6f4da5003166a894edf80e29",
+      "manifest_sha256": "343009138d22f8d4a20768f706207fe4d4bcd03581b0c5945c5485ecbd28788d",
+      "contamination_detected": false
+    }
+  },
+  "account_boundary": {
+    "as_of": "2026-08-05",
+    "canonical_sha256": "251c90cef356821547c633c69595371aa857a704d8ea21e5119be16136ac0fc8",
+    "schema_version": 5,
+    "cash": 49019323.60580173,
+    "equity": 49019323.60580173,
+    "positions": 0,
+    "pending_orders": 0,
+    "historical_model_account_orders": 12,
+    "historical_model_fills": 15,
+    "broker_journal_source": false
+  },
+  "frozen_holdout": {
+    "classification": "FROZEN_ANCHOR_FUTURE_HOLDOUT",
+    "strategy_candidate_commit": "c47367bba64c827fe18f788c9a3650e13ece306f",
+    "verified_replay_commit": "42f6cbdfcf3c3e396200758f80485b49b9e245bf",
+    "replay_source_sha256": "75d823a628e25caae994a04b68db2455d3f29e1f1f441c2361c9da1b9acafdb4",
+    "replay_canonical_sha256": "62ff46f7e0a19a7010ca6cc8e86bff930842343d8008df47ad425af52323e4af",
+    "detail_canonical_sha256": "f288f7654958e7dbdce5a46b6448f4ccb35ce2ffdf33756e3a1dea577cd4c8e7",
+    "session_start": "2026-08-06",
+    "session_end": "2026-09-01",
+    "completed_sessions": 19,
+    "initial_equity": 49019323.60580173,
+    "final_equity": 49019323.60580173,
+    "cumulative_return": 0.0,
+    "max_drawdown": 0.0,
+    "model_account_orders": 0,
+    "model_fills": 0,
+    "gross_turnover": 0.0,
+    "annualized_turnover": 0.0,
+    "top1_concentration": 0.0,
+    "top3_concentration": 0.0,
+    "pnl_hhi": 0.0,
+    "mean_cash_ratio": 1.0,
+    "longest_cash_streak": 19,
+    "gross_exposure": 0.0,
+    "realized_pnl": 0.0,
+    "unrealized_pnl": 0.0,
+    "reconciliation_residual": 0.0,
+    "initial_owner_symbols": [
+      "sz300308"
+    ],
+    "final_owner_symbols": [
+      "sz300308"
+    ],
+    "owner_switches": 0,
+    "formal_grant_epoch_semantics": "NOT_PRESENT_IN_FROZEN_ANCHOR_SCHEMA",
+    "new_grants": 0,
+    "new_epochs": 0,
+    "pending_orders": 0,
+    "execution_blockages": 0,
+    "failed_grant_retry_events": 0,
+    "recovery_events": [],
+    "rearm_events": [],
+    "industry_exposure": {},
+    "daily_regime": {
+      "sessions": 19,
+      "opportunity": "WEAK",
+      "risk": "RISK_OFF",
+      "zero_target": true,
+      "freeze_new_risk": true,
+      "sector_guard_active": true
+    },
+    "constant_daily_timeline": {
+      "start": "2026-08-06",
+      "end": "2026-09-01",
+      "sessions": 19,
+      "daily_return": 0.0,
+      "cash_ratio": 1.0,
+      "gross_exposure": 0.0,
+      "opportunity": "WEAK",
+      "risk": "RISK_OFF",
+      "target_gross": 0.0
+    },
+    "actual_broker_execution_journal_present": false,
+    "actual_broker_fills": null,
+    "milestone": {
+      "status": "INTERIM — MILESTONE NOT YET REACHED",
+      "observed_sessions": 19,
+      "next_milestone_session": 20,
+      "formal_review_minimum_sessions": 40
+    }
+  },
+  "current_main_retrospective_bridge": {
+    "classification": "RETROSPECTIVE_BRIDGE_NOT_FUTURE_HOLDOUT",
+    "canonical_sha256": "6b36a678c1ba1727789e0a4ddb2270ee02f8bc5d23e9c66ab24a4e96e8bfd91e",
+    "authoritative_future_holdout": false,
+    "retrospective_sessions": 19,
+    "prospective_completed_sessions": 0,
+    "first_prospective_session": "2026-09-02",
+    "initial_equity": 49019323.60580173,
+    "final_equity": 49019323.60580173,
+    "cumulative_return": 0.0,
+    "model_account_orders": 0,
+    "model_fills": 0,
+    "actual_broker_execution_journal_present": false,
+    "actual_broker_fills": null
+  },
+  "historical_exact_accounting": {
+    "window": {
+      "start": "2023-01-03",
+      "end": "2026-08-05"
+    },
+    "source_fixture_sha256": "1f48879fa365c8a0688665e177fcaa722f899e1381b00f645a1c357413934aa2",
+    "identity_status": "EXPLANATORY_CURRENT_ECONOMICS_WITHOUT_RUNTIME_HEAD_ENVELOPE",
+    "authoritative_acceptance_evidence": false,
+    "initial_equity": 2000000.0,
+    "final_equity": 49019323.60580173,
+    "reconciliation": {
+      "total_pnl": 47019323.60580174,
+      "expected_pnl": 47019323.60580173,
+      "residual": 7.450580596923828e-09,
+      "tolerance": 1e-06,
+      "reconciled": true
+    },
+    "by_symbol": {
+      "sz300308": {
+        "realized_pnl": 47019323.60580173,
+        "total_pnl": 47019323.60580173,
+        "open_pnl": 0.0,
+        "absolute_pnl_share": 1.0,
+        "realized_lots": 14,
+        "buy_shares": 142600,
+        "sell_shares": 142600,
+        "buy_fills": 7,
+        "sell_fills": 8,
+        "first_buy": "2023-01-05",
+        "last_buy": "2025-07-16",
+        "first_sell": "2023-04-25",
+        "last_sell": "2026-06-24",
+        "weighted_holding_sessions": 231.7615708274895,
+        "maximum_holding_sessions": 834,
+        "mean_exposure": 0.5208137410402792,
+        "maximum_exposure": 0.9838117253210967,
+        "strategic_epoch_count": 1
+      },
+      "sz300502": {
+        "realized_pnl": 0.0,
+        "open_pnl": 0.0,
+        "total_pnl": 0.0,
+        "absolute_pnl_share": 0.0,
+        "realized_lots": 0,
+        "buy_shares": 0,
+        "sell_shares": 0,
+        "buy_fills": 0,
+        "sell_fills": 0,
+        "weighted_holding_sessions": 0.0,
+        "maximum_holding_sessions": 0,
+        "mean_exposure": 0.0,
+        "maximum_exposure": 0.0,
+        "strategic_epoch_count": 0
+      },
+      "sz300394": {
+        "realized_pnl": 0.0,
+        "open_pnl": 0.0,
+        "total_pnl": 0.0,
+        "absolute_pnl_share": 0.0,
+        "realized_lots": 0,
+        "buy_shares": 0,
+        "sell_shares": 0,
+        "buy_fills": 0,
+        "sell_fills": 0,
+        "weighted_holding_sessions": 0.0,
+        "maximum_holding_sessions": 0,
+        "mean_exposure": 0.0,
+        "maximum_exposure": 0.0,
+        "strategic_epoch_count": 0
+      }
+    },
+    "combined_three_core_absolute_pnl_share": 1.0,
+    "by_industry": {
+      "optical": {
+        "total_pnl": 47019323.60580173,
+        "absolute_pnl_share": 1.0,
+        "mean_exposure": 0.5208137410402792,
+        "maximum_exposure": 0.9838117253210967,
+        "positive_target_sessions": 836
+      },
+      "all_non_optical": {
+        "total_pnl": 0.0,
+        "absolute_pnl_share": 0.0
+      },
+      "compute": {
+        "total_pnl": 0.0,
+        "absolute_pnl_share": 0.0
+      },
+      "pcb": {
+        "total_pnl": 0.0,
+        "absolute_pnl_share": 0.0
+      },
+      "semicap": {
+        "total_pnl": 0.0,
+        "absolute_pnl_share": 0.0
+      },
+      "materials": {
+        "total_pnl": 0.0,
+        "absolute_pnl_share": 0.0
+      },
+      "storage": {
+        "total_pnl": 0.0,
+        "absolute_pnl_share": 0.0
+      },
+      "datacenter": {
+        "total_pnl": 0.0,
+        "absolute_pnl_share": 0.0
+      },
+      "others": {
+        "total_pnl": 0.0,
+        "absolute_pnl_share": 0.0
+      }
+    },
+    "by_origin_route": {
+      "STRATEGIC": {
+        "total_pnl": 47019323.60580173,
+        "absolute_pnl_share": 1.0
+      },
+      "ORDINARY_LEADER": {
+        "total_pnl": 0.0,
+        "absolute_pnl_share": 0.0
+      },
+      "RECOVERY": {
+        "total_pnl": 0.0,
+        "absolute_pnl_share": 0.0
+      },
+      "TACTICAL": {
+        "total_pnl": 0.0,
+        "absolute_pnl_share": 0.0
+      },
+      "SATELLITE": {
+        "total_pnl": 0.0,
+        "absolute_pnl_share": 0.0
+      },
+      "REPLACEMENT": {
+        "total_pnl": 0.0,
+        "absolute_pnl_share": 0.0
+      }
+    },
+    "by_origin_lifecycle": {
+      "CORE": {
+        "total_pnl": 47019323.60580173,
+        "absolute_pnl_share": 1.0
+      },
+      "ADD1": {
+        "total_pnl": 0.0,
+        "absolute_pnl_share": 0.0
+      },
+      "ADD2": {
+        "total_pnl": 0.0,
+        "absolute_pnl_share": 0.0
+      },
+      "SATELLITE": {
+        "total_pnl": 0.0,
+        "absolute_pnl_share": 0.0
+      },
+      "RECOVERY": {
+        "total_pnl": 0.0,
+        "absolute_pnl_share": 0.0
+      }
+    },
+    "by_origin_mechanism": {
+      "STRATEGIC_COHORT": 30942369.902220484,
+      "STRATEGIC_RESTORATION": 16076953.703581253
+    },
+    "risk_exit_diagnostics": {
+      "classification": "NON_ADDITIVE_DIAGNOSTIC_NOT_ALPHA_SOURCE_ATTRIBUTION",
+      "CAPITAL_BUDGET": 2251812.3769759866,
+      "CRISIS": 2115869.7759142676,
+      "SECTOR_GUARD": 41477857.98161149,
+      "STRATEGIC_PROFIT_LOCK": 1173783.4713
+    },
+    "concentration": {
+      "top1": 1.0,
+      "top3": 1.0,
+      "hhi": 1.0
+    },
+    "strategic_epoch": {
+      "actual_epochs": 1,
+      "epoch_id": "epoch_c89d17ec906ee53a38c2977771acd7eff17ee0bfa439a4e630f203ae9b4038f7",
+      "grant_id": "grant_ca4c1acfa397f2a7f1a77f10241df92cdf190647736b910ef87e91b328ed4822",
+      "owner": "sz300308",
+      "qualification_route": "reversal_industry",
+      "qualification_quorum": "FULL_COHORT",
+      "opened": "2023-01-04",
+      "first_fill": "2023-01-05",
+      "activated": "2023-01-05",
+      "status": "ACTIVE",
+      "closed": null,
+      "termination_reason": null,
+      "successor": null,
+      "total_pnl": 47019323.60580174,
+      "total_pnl_share": 1.0,
+      "max_drawdown": 0.27146973146234554,
+      "peak_exposure": 0.9838117253210967,
+      "direct_deployed_buy_gross": 7413046.741099999,
+      "pnl_projection_limit": "OWNER_LOT_PROJECTED_TOTAL_PNL_NOT_ALL_RISK_EXIT_FILLS_RETAIN_EPOCH_ID"
+    }
+  },
+  "current_identity_counterfactual": {
+    "classification": "IDENTITY_MATCHING_BOUNDED_ABSOLUTE_LOO",
+    "provenance": {
+      "artifact_source": "GITHUB_WORKFLOW_RUN_ARTIFACTS",
+      "github_workflow_run_id": 33539562132,
+      "workflow_head": "add0920ecb37788a864ab488aacd7f0f0c70c3b7",
+      "workflow_tree": "b03021c55d5c7ad6803b33b777e9db38a46a1789",
+      "current_main_commit": "886a72179a7bfdef9a3e3165548df59e9d92aa89",
+      "current_main_tree": "b03021c55d5c7ad6803b33b777e9db38a46a1789",
+      "tree_matches_current_main": true,
+      "production_source_sha256": "e0331925a7d199d60464c69080ade0abf831e106dcb1bef0afd6b74baaccc10f",
+      "effective_config_sha256": "dae4d79fdd813832c6ab152611437c13be1d38227c7280691874d3a9267d93d5",
+      "frozen_data_manifest_sha256": "343009138d22f8d4a20768f706207fe4d4bcd03581b0c5945c5485ecbd28788d",
+      "uv_lock_sha256": "4accf16535b5ac95b831c9289e0ad2ff21282dc5dfae3f05dd0fb095089d6a61",
+      "absolute_contract_sha256": "15b150b2e4789c8dd03a34bc04e8f5fe1b2d8b458bf469476e423764b27da955",
+      "identity_match_scope": "TREE_SOURCE_CONFIG_DATA_LOCK"
+    },
+    "window": {
+      "start": "2023-01-03",
+      "end": "2026-08-05"
+    },
+    "evidence_role": "BOUNDED_CAPABILITY_AND_CONTINUITY_NOT_REALIZED_BASELINE_PNL_DIVERSIFICATION",
+    "complete_absolute_acceptance": false,
+    "cells": {
+      "remove_sz300308": {
+        "removed_symbol": "sz300308",
+        "status": "COMPLETE",
+        "canonical_cell_sha256": "89bfaf5d21a00fb6d19dd5951209c0faca0a546687a1d3d7eb644ef7f433b0fa",
+        "final_wealth": 1.2632209078168604,
+        "max_drawdown": 0.23851539613956552,
+        "account_orders": 16,
+        "fills": 16,
+        "gross_turnover": 3.5816788765,
+        "annual_turnover": 0.9974295605443038,
+        "concentration": {
+          "top1": 1.0,
+          "top3": 1.0,
+          "pnl_hhi": 0.5547606669301667
+        },
+        "first_events": {
+          "qualification": "2024-02-23",
+          "strategic_target": "2025-08-04",
+          "strategic_order": "2025-08-04",
+          "strategic_fill": "2025-08-05",
+          "actual_epoch": "2025-08-05"
+        },
+        "actual_epoch_count": 1,
+        "distinct_owner_count": 1,
+        "owner_sequence": [
+          "sh601869"
+        ],
+        "epochs": [
+          {
+            "epoch_id": "epoch_173a4a3bd6b6193006c8471898698c570ca0b642e83feb8745362a1b9e57d6db",
+            "grant_id": "grant_67099789c64ec792e10aed9205955c321c79037865ebf442b511b127548ead1e",
+            "owner": "sh601869",
+            "industry": "optical",
+            "qualification_route": "established",
+            "qualification_quorum": "FULL_COHORT",
+            "qualification": "2025-08-04",
+            "target": "2025-08-04",
+            "order": "2025-08-04",
+            "fill": "2025-08-05",
+            "active": "2025-08-05",
+            "closed": "2026-05-28",
+            "realized_status": "CLOSED"
+          }
+        ],
+        "strategic_counts": {
+          "grants": 1,
+          "orders": 6,
+          "fills": 6
+        },
+        "duplicate_counts": {
+          "epoch": 0,
+          "grant": 0,
+          "order": 0
+        },
+        "accounting_reconciled": true,
+        "target_order_fill_identity_reconciled": true,
+        "capability_conclusion": "OBSERVED_HISTORICALLY_ACTIVATED_SUCCESSOR_EPOCH_SH601869_STILL_OPTICAL"
+      },
+      "remove_sz300502": {
+        "removed_symbol": "sz300502",
+        "status": "COMPLETE",
+        "canonical_cell_sha256": "f8a03e9d93a9cd23d1caba373b71c65bcb20c21d3458387242eb1af5ab5100ac",
+        "final_wealth": 3.0084207762708095,
+        "max_drawdown": 0.2607049333556357,
+        "account_orders": 17,
+        "fills": 17,
+        "gross_turnover": 4.639328068999999,
+        "annual_turnover": 1.2919647787088606,
+        "concentration": {
+          "top1": 0.0,
+          "top3": 0.0,
+          "pnl_hhi": 0.5344293259871356,
+          "interpretation": "RAW_SOURCE_FIELDS_INCONSISTENT_UNRELIED_UPON"
+        },
+        "first_events": {
+          "qualification": "2023-02-13",
+          "strategic_target": "2023-02-13",
+          "strategic_order": "2023-02-13",
+          "strategic_fill": "2023-02-14",
+          "actual_epoch": "2023-02-14"
+        },
+        "actual_epoch_count": 2,
+        "distinct_owner_count": 2,
+        "owner_sequence": [
+          "sz300394",
+          "sz300308"
+        ],
+        "epochs": [
+          {
+            "epoch_id": "epoch_1deae51263f76f7329fa9dfcf7583947ef846576fd7adc6b0a49d55d9e7f91d1",
+            "grant_id": "grant_35274a05ea0031860137b742b5d5e06858c052b6a67b6434cd137dd49c79f8b6",
+            "owner": "sz300394",
+            "industry": "optical",
+            "qualification_route": "established",
+            "qualification_quorum": "FULL_COHORT",
+            "qualification": "2023-02-13",
+            "target": "2023-02-13",
+            "order": "2023-02-13",
+            "fill": "2023-02-14",
+            "active": "2023-02-14",
+            "closed": "2023-08-02",
+            "realized_status": "CLOSED"
+          },
+          {
+            "epoch_id": "epoch_d24b947351efdbc8163029b2beabacbe9bbd3271fedf85a5748250ceb6b892d0",
+            "grant_id": "grant_6325f22640ea1141f0a2b781cce0f4294580aa25510a3ee5f1981854a3898515",
+            "owner": "sz300308",
+            "industry": "optical",
+            "qualification_route": "transition",
+            "qualification_quorum": "FULL_COHORT",
+            "qualification": "2025-07-31",
+            "target": "2025-07-31",
+            "order": "2025-07-31",
+            "fill": "2025-08-01",
+            "active": "2025-08-01",
+            "closed": "2026-06-25",
+            "realized_status": "CLOSED"
+          }
+        ],
+        "strategic_counts": {
+          "grants": 2,
+          "orders": 13,
+          "fills": 13
+        },
+        "duplicate_counts": {
+          "epoch": 0,
+          "grant": 0,
+          "order": 0
+        },
+        "accounting_reconciled": true,
+        "target_order_fill_identity_reconciled": true,
+        "capability_conclusion": "TWO_EPOCH_CONTINUITY_SZ300394_TO_SZ300308"
+      },
+      "remove_sz300394": {
+        "removed_symbol": "sz300394",
+        "status": "COMPLETE",
+        "canonical_cell_sha256": "9f4306dca741026bc08cae02b4e968b916bc42b101f86659eeaa01a95ea72ce3",
+        "final_wealth": 7.809998638641716,
+        "max_drawdown": 0.1985706825003003,
+        "account_orders": 54,
+        "fills": 55,
+        "gross_turnover": 15.095977644749999,
+        "annual_turnover": 4.203943141575949,
+        "concentration": {
+          "top1": 0.0,
+          "top3": 0.0,
+          "pnl_hhi": 0.42149751470508035,
+          "interpretation": "RAW_SOURCE_FIELDS_INCONSISTENT_UNRELIED_UPON"
+        },
+        "first_events": {
+          "qualification": "2024-02-23",
+          "strategic_target": "2025-06-30",
+          "strategic_order": "2025-06-30",
+          "strategic_fill": "2025-07-01",
+          "actual_epoch": "2025-07-01"
+        },
+        "actual_epoch_count": 1,
+        "distinct_owner_count": 1,
+        "owner_sequence": [
+          "sz300502"
+        ],
+        "epochs": [
+          {
+            "epoch_id": "epoch_00dd99a4707b5f633e1476fec9fdaad40cf957beda8d593c3ca1cdda07623fdd",
+            "grant_id": "grant_23f0b71105fdb8127effe86a686c6b4ed7981cec87e6438878828ab6b2fe15a4",
+            "owner": "sz300502",
+            "industry": "optical",
+            "qualification_route": "transition",
+            "qualification_quorum": "FULL_COHORT",
+            "qualification": "2025-06-30",
+            "target": "2025-06-30",
+            "order": "2025-06-30",
+            "fill": "2025-07-01",
+            "active": "2025-07-01",
+            "closed": "2026-06-25",
+            "realized_status": "CLOSED"
+          }
+        ],
+        "strategic_counts": {
+          "grants": 1,
+          "orders": 14,
+          "fills": 15
+        },
+        "duplicate_counts": {
+          "epoch": 0,
+          "grant": 0,
+          "order": 0
+        },
+        "accounting_reconciled": true,
+        "target_order_fill_identity_reconciled": true,
+        "capability_conclusion": "OBSERVED_HISTORICALLY_ACTIVATED_OWNER_EPOCH_SZ300502"
+      }
+    },
+    "bounded_current_diagnostics": {
+      "classification": "BOUNDED_CURRENT_IDENTITY_DIAGNOSTIC",
+      "authoritative_acceptance": false,
+      "future_holdout": false,
+      "codec_interpretation": {
+        "raw_conflict": "CURRENT_FULL_COHORT_ALLOWS_NON_OWNER_COHORT_ROWS_WITH_BLANK_GRANT_AND_SHARED_EPOCH",
+        "normalization_scope": "EXISTING_ABSOLUTE_HELPER_NORMALIZES_EVIDENCE_DEEP_COPY_ONLY",
+        "later_cleanup": "DURABLE_CURRENT_ONLY_NATIVE_CODEC_SUPPORT_OR_SHIM_REMOVAL",
+        "strategy_change": false
+      },
+      "cases": {
+        "original_three_core": {
+          "source_result_canonical_sha256": "93a7308f6788c9ea5459cd20be9ddd81e6ea0c6de0d5ddbe3fcf4ab38990d663",
+          "classification": "BOUNDED_CURRENT_IDENTITY_COUNTERFACTUAL",
+          "authoritative_acceptance": false,
+          "future_holdout": false,
+          "window": {
+            "start": "2023-01-03",
+            "end": "2026-08-05",
+            "sessions": 869
+          },
+          "identities": {
+            "baseline_current_main_tree_oid": "b03021c55d5c7ad6803b33b777e9db38a46a1789",
+            "production_source_sha256": "e0331925a7d199d60464c69080ade0abf831e106dcb1bef0afd6b74baaccc10f",
+            "effective_config_sha256": "dae4d79fdd813832c6ab152611437c13be1d38227c7280691874d3a9267d93d5",
+            "frozen_data_manifest_sha256": "343009138d22f8d4a20768f706207fe4d4bcd03581b0c5945c5485ecbd28788d",
+            "uv_lock_sha256": "4accf16535b5ac95b831c9289e0ad2ff21282dc5dfae3f05dd0fb095089d6a61",
+            "symbols_sha256": "9d70376dada78692f1aad4651b6fba11505d7e880b129b88eb775fa0ff60bcf2",
+            "symbols": ["sz300308", "sz300394", "sz300502"]
+          },
+          "metrics": {
+            "final_equity": 6818784.72801374,
+            "final_wealth": 3.40939236400687,
+            "max_drawdown": 0.2297509504572678,
+            "account_orders": 12,
+            "fills": 19,
+            "gross_turnover": 4.1070843004999995,
+            "annual_turnover": 1.1437449950759493,
+            "top1_concentration": 0.7608808794858424,
+            "top3_concentration": 1.0000000000000002,
+            "pnl_hhi": 0.6361176665626133,
+            "first_positive_target_session": "2023-01-04",
+            "first_positive_strategic_target_session": "2023-01-04",
+            "cash": 6818784.72801374,
+            "pending_orders": 0
+          },
+          "accounting": {
+            "realized_pnl": 4818784.72801374,
+            "open_pnl": 0.0,
+            "total_pnl": 4818784.72801374,
+            "expected_pnl": 4818784.72801374,
+            "reconciliation_error": 0.0,
+            "tolerance": 0.000001,
+            "reconciled": true
+          },
+          "by_symbol": {
+            "sz300308": {
+              "realized_pnl": 3666521.1619040393,
+              "open_pnl": 0.0,
+              "total_pnl": 3666521.1619040393,
+              "cash_fees": 3826.1320959600002,
+              "slippage": 5706.705999999784,
+              "all_in_costs": 9532.838095959782,
+              "gross_transaction_value": 5703029.9459999995,
+              "absolute_pnl_share": 0.7608808794858424
+            },
+            "sz300394": {
+              "realized_pnl": 1152263.5661097001,
+              "open_pnl": 0.0,
+              "total_pnl": 1152263.5661097001,
+              "cash_fees": 1569.1388903000002,
+              "slippage": 2512.294999999938,
+              "all_in_costs": 4081.433890299939,
+              "gross_transaction_value": 2511138.6550000003,
+              "absolute_pnl_share": 0.2391191205141576
+            },
+            "sz300502": {
+              "realized_pnl": 0.0,
+              "open_pnl": 0.0,
+              "total_pnl": 0.0,
+              "cash_fees": 0.0,
+              "slippage": 0.0,
+              "all_in_costs": 0.0,
+              "gross_transaction_value": 0.0,
+              "absolute_pnl_share": 0.0
+            }
+          },
+          "by_industry": {
+            "optical": {
+              "realized_pnl": 4818784.72801374,
+              "open_pnl": 0.0,
+              "total_pnl": 4818784.72801374,
+              "cash_fees": 5395.270986260001,
+              "slippage": 8219.000999999722,
+              "all_in_costs": 13614.271986259722,
+              "gross_transaction_value": 8214168.600999999,
+              "absolute_pnl_share": 1.0
+            }
+          },
+          "epochs": [{
+            "epoch_id": "epoch_4d93beae1e36c3b043146cb29d4bf904262732e4ec20187850fce55b46ea1048",
+            "grant_id": "grant_dc40c345db96a656516f88d6b69e3fa69e6a6ff6dd52063e79f2dfdba8d51b60",
+            "owner": "sz300308",
+            "qualification_route": "reversal_industry",
+            "qualification_quorum": "FULL_COHORT",
+            "opened_session": "2023-01-04",
+            "first_fill_session": "2023-01-05",
+            "active_session": "2023-01-05",
+            "closed_session": "",
+            "status": "ACTIVE",
+            "termination_reason": "",
+            "previous_epoch_id": ""
+          }],
+          "invariants": {
+            "negative_cash": false,
+            "negative_position": false,
+            "duplicate_order_ids": 0,
+            "duplicate_physical_fill_identities": 0
+          },
+          "account_codec": {
+            "raw_status": "ERROR",
+            "raw_error": "RuntimeError: account order grant identity differs from strategic epoch",
+            "identity_mismatch_count": 16,
+            "existing_absolute_normalization_applied": true,
+            "normalization_applied_to_deep_copy": true,
+            "normalized_status": "VALID",
+            "normalized_error": null
+          }
+        },
+        "remove_all_three_core": {
+          "source_result_canonical_sha256": "b906bbdf6748a18b1ca9b120d385ac4569d669733150cc8b6de547657816138c",
+          "classification": "BOUNDED_CURRENT_IDENTITY_COUNTERFACTUAL",
+          "authoritative_acceptance": false,
+          "future_holdout": false,
+          "window": {
+            "start": "2023-01-03",
+            "end": "2026-08-05",
+            "sessions": 869
+          },
+          "identities": {
+            "baseline_current_main_tree_oid": "b03021c55d5c7ad6803b33b777e9db38a46a1789",
+            "production_source_sha256": "e0331925a7d199d60464c69080ade0abf831e106dcb1bef0afd6b74baaccc10f",
+            "effective_config_sha256": "dae4d79fdd813832c6ab152611437c13be1d38227c7280691874d3a9267d93d5",
+            "frozen_data_manifest_sha256": "343009138d22f8d4a20768f706207fe4d4bcd03581b0c5945c5485ecbd28788d",
+            "uv_lock_sha256": "4accf16535b5ac95b831c9289e0ad2ff21282dc5dfae3f05dd0fb095089d6a61",
+            "symbols_sha256": "2ced988fe147902c976873ef617530d325f8e42bfb6bd8fd01ca40bd5f446279",
+            "symbols": [
+              "sh600487", "sh601869", "sh603688", "sh603986", "sh688008",
+              "sh688012", "sh688019", "sh688037", "sh688041", "sh688072",
+              "sh688082", "sh688110", "sh688120", "sh688146", "sh688200",
+              "sh688233", "sh688256", "sh688268", "sh688300", "sh688347",
+              "sh688361", "sh688498", "sh688766", "sz000636", "sz002281",
+              "sz002371", "sz002409", "sz300054", "sz300223", "sz300604",
+              "sz300666"
+            ]
+          },
+          "metrics": {
+            "final_equity": 2020789.2853685003,
+            "final_wealth": 1.01039464268425,
+            "max_drawdown": 0.18205429957130803,
+            "account_orders": 7,
+            "fills": 9,
+            "gross_turnover": 1.9966820875,
+            "annual_turnover": 0.5560380496835443,
+            "top1_concentration": 0.4397389503297848,
+            "top3_concentration": 1.0,
+            "pnl_hhi": 0.3564964878650526,
+            "first_positive_target_session": "2023-02-14",
+            "first_positive_strategic_target_session": "2023-02-14",
+            "cash": 2020789.2853685003,
+            "pending_orders": 0
+          },
+          "accounting": {
+            "realized_pnl": 20789.285368500307,
+            "open_pnl": 0.0,
+            "total_pnl": 20789.285368500307,
+            "expected_pnl": 20789.285368500277,
+            "reconciliation_error": 2.9103830456733704e-11,
+            "tolerance": 0.000001,
+            "reconciled": true
+          },
+          "by_symbol": {
+            "sh688200": {"realized_pnl": -75852.1348041599, "open_pnl": 0.0, "total_pnl": -75852.1348041599, "cash_fees": 607.7188041600001, "slippage": 1228.4159999999474, "all_in_costs": 1836.1348041599476, "gross_transaction_value": 1228490.016},
+            "sz300054": {"realized_pnl": 38732.23916298, "open_pnl": 0.0, "total_pnl": 38732.23916298, "cash_fees": 712.6678370199999, "slippage": 1378.092999999943, "all_in_costs": 2090.7608370199428, "gross_transaction_value": 1378052.1769999997},
+            "sz300223": {"realized_pnl": 57909.18100968021, "open_pnl": 0.0, "total_pnl": 57909.18100968021, "cash_fees": 721.93699032, "slippage": 1386.8819999998948, "all_in_costs": 2108.8189903198945, "gross_transaction_value": 1386821.982},
+            "sz300308": {"realized_pnl": 0.0, "open_pnl": 0.0, "total_pnl": 0.0, "absolute_pnl_share": 0.0},
+            "sz300394": {"realized_pnl": 0.0, "open_pnl": 0.0, "total_pnl": 0.0, "absolute_pnl_share": 0.0},
+            "sz300502": {"realized_pnl": 0.0, "open_pnl": 0.0, "total_pnl": 0.0, "absolute_pnl_share": 0.0}
+          },
+          "by_industry": {
+            "semicap": {"realized_pnl": 20789.285368500307, "open_pnl": 0.0, "total_pnl": 20789.285368500307, "cash_fees": 2042.3236315, "slippage": 3993.3909999997854, "all_in_costs": 6035.714631499785, "gross_transaction_value": 3993364.175, "absolute_pnl_share": 1.0}
+          },
+          "epochs": [{
+            "epoch_id": "epoch_b2ac595e6a22964b2bdbe3ebaadfc21b304f9fc96548dc28edf0778a5ab584e4",
+            "grant_id": "grant_3f67f643743d955c6199780ead61b0fb5dc4c3c799a5c31cfb91b77fe7f0b5d1",
+            "owner": "sh688200",
+            "qualification_route": "transition_impulse",
+            "qualification_quorum": "FULL_COHORT",
+            "opened_session": "2023-02-14",
+            "first_fill_session": "2023-02-15",
+            "active_session": "2023-02-15",
+            "closed_session": "",
+            "status": "ACTIVE",
+            "termination_reason": "",
+            "previous_epoch_id": ""
+          }],
+          "invariants": {"negative_cash": false, "negative_position": false, "duplicate_order_ids": 0, "duplicate_physical_fill_identities": 0},
+          "account_codec": {"raw_status": "ERROR", "raw_error": "RuntimeError: account order grant identity differs from strategic epoch", "identity_mismatch_count": 9, "existing_absolute_normalization_applied": true, "normalization_applied_to_deep_copy": true, "normalized_status": "VALID", "normalized_error": null}
+        },
+        "no_optical": {
+          "source_result_canonical_sha256": "2eca50a5418ec4011ec25042020e9ece6d52fa45ab9f60bdd249dfb637cfaff6",
+          "classification": "BOUNDED_CURRENT_IDENTITY_COUNTERFACTUAL",
+          "authoritative_acceptance": false,
+          "future_holdout": false,
+          "window": {"start": "2023-01-03", "end": "2026-08-05", "sessions": 869},
+          "identities": {
+            "baseline_current_main_tree_oid": "b03021c55d5c7ad6803b33b777e9db38a46a1789",
+            "production_source_sha256": "e0331925a7d199d60464c69080ade0abf831e106dcb1bef0afd6b74baaccc10f",
+            "effective_config_sha256": "dae4d79fdd813832c6ab152611437c13be1d38227c7280691874d3a9267d93d5",
+            "frozen_data_manifest_sha256": "343009138d22f8d4a20768f706207fe4d4bcd03581b0c5945c5485ecbd28788d",
+            "uv_lock_sha256": "4accf16535b5ac95b831c9289e0ad2ff21282dc5dfae3f05dd0fb095089d6a61",
+            "symbols_sha256": "8c2a1db48f65e128628a382cf9fd91694abeac90d807d29ce0467f8b06f83710",
+            "symbols": [
+              "sh603688", "sh603986", "sh688008", "sh688012", "sh688019",
+              "sh688037", "sh688041", "sh688072", "sh688082", "sh688110",
+              "sh688120", "sh688146", "sh688200", "sh688233", "sh688256",
+              "sh688268", "sh688300", "sh688347", "sh688361", "sh688498",
+              "sh688766", "sz000636", "sz002281", "sz002371", "sz002409",
+              "sz300054", "sz300223", "sz300604", "sz300666"
+            ]
+          },
+          "metrics": {"final_equity": 2020789.2853685003, "final_wealth": 1.01039464268425, "max_drawdown": 0.18205429957130803, "account_orders": 7, "fills": 9, "gross_turnover": 1.9966820875, "annual_turnover": 0.5560380496835443, "top1_concentration": 0.4397389503297848, "top3_concentration": 1.0, "pnl_hhi": 0.3564964878650526, "first_positive_target_session": "2023-02-14", "first_positive_strategic_target_session": "2023-02-14", "cash": 2020789.2853685003, "pending_orders": 0},
+          "accounting": {"realized_pnl": 20789.285368500307, "open_pnl": 0.0, "total_pnl": 20789.285368500307, "expected_pnl": 20789.285368500277, "reconciliation_error": 2.9103830456733704e-11, "tolerance": 0.000001, "reconciled": true},
+          "by_symbol": {
+            "sh688200": {"realized_pnl": -75852.1348041599, "open_pnl": 0.0, "total_pnl": -75852.1348041599, "cash_fees": 607.7188041600001, "slippage": 1228.4159999999474, "all_in_costs": 1836.1348041599476, "gross_transaction_value": 1228490.016},
+            "sz300054": {"realized_pnl": 38732.23916298, "open_pnl": 0.0, "total_pnl": 38732.23916298, "cash_fees": 712.6678370199999, "slippage": 1378.092999999943, "all_in_costs": 2090.7608370199428, "gross_transaction_value": 1378052.1769999997},
+            "sz300223": {"realized_pnl": 57909.18100968021, "open_pnl": 0.0, "total_pnl": 57909.18100968021, "cash_fees": 721.93699032, "slippage": 1386.8819999998948, "all_in_costs": 2108.8189903198945, "gross_transaction_value": 1386821.982},
+            "sz300308": {"realized_pnl": 0.0, "open_pnl": 0.0, "total_pnl": 0.0, "absolute_pnl_share": 0.0},
+            "sz300394": {"realized_pnl": 0.0, "open_pnl": 0.0, "total_pnl": 0.0, "absolute_pnl_share": 0.0},
+            "sz300502": {"realized_pnl": 0.0, "open_pnl": 0.0, "total_pnl": 0.0, "absolute_pnl_share": 0.0}
+          },
+          "by_industry": {"semicap": {"realized_pnl": 20789.285368500307, "open_pnl": 0.0, "total_pnl": 20789.285368500307, "cash_fees": 2042.3236315, "slippage": 3993.3909999997854, "all_in_costs": 6035.714631499785, "gross_transaction_value": 3993364.175, "absolute_pnl_share": 1.0}},
+          "epochs": [{"epoch_id": "epoch_a871ae73d78892f67b6c808876b99659a0b9df43441c59284cfbe087bc2e1673", "grant_id": "grant_243766fb928214bd4c6199ab9518a0604322c591a23646e33d1e53456bc9067b", "owner": "sh688200", "qualification_route": "transition_impulse", "qualification_quorum": "FULL_COHORT", "opened_session": "2023-02-14", "first_fill_session": "2023-02-15", "active_session": "2023-02-15", "closed_session": "", "status": "ACTIVE", "termination_reason": "", "previous_epoch_id": ""}],
+          "invariants": {"negative_cash": false, "negative_position": false, "duplicate_order_ids": 0, "duplicate_physical_fill_identities": 0},
+          "account_codec": {"raw_status": "ERROR", "raw_error": "RuntimeError: account order grant identity differs from strategic epoch", "identity_mismatch_count": 9, "existing_absolute_normalization_applied": true, "normalization_applied_to_deep_copy": true, "normalized_status": "VALID", "normalized_error": null}
+        }
+      },
+      "core_conclusion": {
+        "realized_baseline_alpha": "100_PERCENT_SZ300308_OPTICAL",
+        "individual_loo": "CAPABILITY_SURVIVES_BUT_REMAINS_OPTICAL",
+        "no_optical": "TECHNICAL_SUCCESSOR_DISCOVERY_AT_1_01039464268425X",
+        "bottom_line": "CAPABILITY_DIVERSIFICATION_EXISTS_REALIZED_PNL_DIVERSIFICATION_DOES_NOT"
+      }
+    }
+  },
+  "legacy_counterfactual": {
+    "classification": "DESCRIPTIVE_LEGACY_IDENTITY_MISMATCHED",
+    "source_artifact": "benchmarks/ai_era_generalization_baseline.json",
+    "source_artifact_canonical_sha256": "8603c4572fbf15a3de4f89737ab078d7e61d76f9e197f210a24704b8a4aabd79",
+    "production_source_sha256": "1ba818600877ee07558d14589df8054100368706b88455e05bd33f9adaf05199",
+    "matrix_source_sha256": "b55ab9f3d3b30ade7a77b0e1fe11bb1baee2e1e788181f4e6f13200616c03242",
+    "effective_config_sha256": "023d709731196a325d9cd03e95ece92e4baf63d2c5c66bb9f7d0e7a190e7bf20",
+    "identity_matching_current_acceptance": false,
+    "interpretation": "CAPABILITY_SURVIVAL_ONLY_NOT_REALIZED_PNL_DIVERSIFICATION_OR_PROVEN_ACTIVE_ALPHA_MIGRATION",
+    "continuous_ai_era_final_wealth": {
+      "full": 24.509661802900865,
+      "remove_sz300308": 0.8321334882399101,
+      "remove_sz300502": 0.8568649080496994,
+      "remove_sz300394": 3.936609244088344,
+      "remove_all_three": 1.20910580087419,
+      "no_optical": 1.20910580087419
+    }
+  },
+  "observation_policy": {
+    "raw_daily_data_persisted": false,
+    "backfill_allowed": false,
+    "parameter_changes_from_observation": false,
+    "production_authority_granted": false
+  }
+}

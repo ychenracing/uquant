@@ -123,23 +123,20 @@ def _pending(*, side: str, target_weight: float) -> PendingOrder:
     origin = OriginSubsystem.LEADER if side == "BUY" else OriginSubsystem.RISK
     mechanism = AttributionMechanism.LEADER_SELECTION if side == "BUY" else AttributionMechanism.RISK_OFF
     industry = default_ai_universe().industry_of(_SYMBOL, _SIGNAL_DATE)
-    identity = {
-        "origin_subsystem": origin.value,
-        "mechanism": mechanism.value,
-        "origin_lifecycle": lifecycle,
-        "replaces_symbol": None,
-        "industry_at_entry": industry,
-        "industry_manifest_sha256": REQUIRED_AI_UNIVERSE_SHA256,
-    }
     event_id = derive_attribution_event_id(
         signal_date=_SIGNAL_DATE,
         symbol=_SYMBOL,
         target_weight=target_weight,
         lifecycle=lifecycle,
+        origin_subsystem=origin.value,
+        mechanism=mechanism.value,
+        origin_lifecycle=lifecycle,
+        replaces_symbol=None,
+        industry_at_entry=industry,
+        industry_manifest_sha256=REQUIRED_AI_UNIVERSE_SHA256,
         reduction_policy=ReductionPolicy.FIFO.value,
         reason_code="execution_stress",
         exit_kind="stress",
-        **identity,
     )
     return PendingOrder(
         signal_date=_SIGNAL_DATE,
@@ -151,7 +148,12 @@ def _pending(*, side: str, target_weight: float) -> PendingOrder:
         reason_code="execution_stress",
         exit_kind="stress",
         event_id=event_id,
-        **identity,
+        origin_subsystem=origin.value,
+        mechanism=mechanism.value,
+        origin_lifecycle=lifecycle,
+        replaces_symbol=None,
+        industry_at_entry=industry,
+        industry_manifest_sha256=REQUIRED_AI_UNIVERSE_SHA256,
     )
 
 
@@ -216,10 +218,12 @@ def _run_one_execution_stress(spec: ExecutionStressSpec) -> dict[str, Any]:
     pending_preserved = False
 
     if spec.kind == "ADVERSE_SLIPPAGE_BPS":
-        assert spec.value is not None
+        if spec.value is None:
+            raise ValueError("ADVERSE_SLIPPAGE_BPS requires a value")
         config = config.override(slippage=DEFAULT_CONFIG.slippage + spec.value / 10_000.0)
     elif spec.kind == "PARTIAL_FILL_RATIO":
-        assert spec.value is not None
+        if spec.value is None:
+            raise ValueError("PARTIAL_FILL_RATIO requires a value")
         requested_capacity = int(10_000 * spec.value)
         rows[-1] = _row(_NEXT_OPEN, 100.0, requested_capacity / config.max_volume_participation)
     elif spec.kind == "LIMIT_BLOCKED_BUY":
@@ -701,7 +705,7 @@ def _changed_count(left: list[Any], right: list[Any]) -> int:
 
 
 def _epoch_difference_count(left: list[Any], right: list[Any]) -> int:
-    shared = sum(a != b for a, b in zip(left, right, strict=False))
+    shared = int(sum(a != b for a, b in zip(left, right, strict=False)))
     return shared + abs(len(left) - len(right))
 
 
@@ -868,7 +872,7 @@ def _equal_weight_returns(store: DataStore, symbols: tuple[str, ...]) -> pd.Data
         axis=1,
         join="outer",
         sort=True,
-    ).loc[_REPLAY_START:_REPLAY_END]
+    ).loc[pd.Timestamp(_REPLAY_START) : pd.Timestamp(_REPLAY_END)]
     returns = closes.pct_change(fill_method=None).dropna(how="all")
     if len(returns) < 20:
         raise RuntimeError("regime evidence has fewer than 20 complete sessions")
@@ -879,7 +883,9 @@ def _worst_compound_window(returns: pd.DataFrame, sessions: int) -> dict[str, An
     equal_weight = returns.mean(axis=1)
     compounded = (1.0 + equal_weight).rolling(sessions).apply(np.prod, raw=True) - 1.0
     end = pd.Timestamp(compounded.idxmin())
-    location = returns.index.get_loc(end)
+    location = int(returns.index.get_indexer(pd.Index([end]))[0])
+    if location < 0:
+        raise RuntimeError("regime window end is absent from the return index")
     start = pd.Timestamp(returns.index[location - sessions + 1])
     return {
         "start": str(start.date()),
@@ -903,20 +909,22 @@ def _highest_correlation_selloff(returns: pd.DataFrame) -> dict[str, Any]:
         selloff = float(five_day.loc[end])
         if not np.isfinite(selloff) or selloff >= 0:
             continue
-        correlation = returns.iloc[location - 19 : location + 1].corr().to_numpy()
-        upper = correlation[np.triu_indices_from(correlation, k=1)]
+        correlation_matrix = returns.iloc[location - 19 : location + 1].corr().to_numpy()
+        upper = correlation_matrix[np.triu_indices_from(correlation_matrix, k=1)]
         mean_correlation = float(np.nanmean(upper))
         if best is None or mean_correlation > best[0]:
             best = (mean_correlation, end, selloff)
     if best is None:  # pragma: no cover - frozen data has many selloffs
         raise RuntimeError("no synchronized negative AI window found")
-    correlation, end, selloff = best
-    location = returns.index.get_loc(end)
+    mean_correlation, end, selloff = best
+    location = int(returns.index.get_indexer(pd.Index([end]))[0])
+    if location < 0:
+        raise RuntimeError("selloff window end is absent from the return index")
     return {
         "start": str(pd.Timestamp(returns.index[location - 19]).date()),
         "end": str(end.date()),
         "correlation_sessions": 20,
-        "mean_pairwise_correlation": correlation,
+        "mean_pairwise_correlation": mean_correlation,
         "ending_five_session_equal_weight_return": selloff,
         "members": int(returns.shape[1]),
     }

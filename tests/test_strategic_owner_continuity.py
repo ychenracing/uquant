@@ -6,7 +6,10 @@ from test_lifecycle_and_risk import _leader, _strategic_frame
 from test_strategic_epoch import _epoch, _grant
 from test_strategic_grant_observation import _risk
 
+from uquant.account import save_account
+from uquant.application.target_attribution import attach_target_attribution
 from uquant.config import DEFAULT_CONFIG
+from uquant.execution import ExecutionPlanner, plan_orders, reconcile_account_orders
 from uquant.models.strategic_epoch import (
     StrategicEpochStatus,
     bind_account_strategic_ownership,
@@ -22,6 +25,7 @@ from uquant.types import (
     OrderStatus,
     Position,
 )
+from uquant.validation.universe import REQUIRED_AI_UNIVERSE_SHA256
 
 
 def _active_account() -> tuple[AccountState, str, str]:
@@ -295,8 +299,8 @@ def test_completed_epoch_can_regrant_the_same_owner_only_with_new_ids() -> None:
     assert account.strategic_epochs[-1].previous_epoch_id == first_epoch_id
 
 
-def test_full_cohort_targets_share_one_grant_and_epoch_owner() -> None:
-    dates = pd.bdate_range("2023-01-02", periods=250)
+def test_full_cohort_epoch_only_peers_persist_before_and_after_fill(tmp_path) -> None:
+    dates = pd.bdate_range("2023-01-02", periods=251)
     symbols = ("sz300308", "sz300502", "sz300394")
     panel = {symbol: _strategic_frame(dates) for symbol in symbols}
     leaders = {
@@ -309,7 +313,7 @@ def test_full_cohort_targets_share_one_grant_and_epoch_owner() -> None:
     allocator = PortfolioAllocator(DEFAULT_CONFIG)
 
     targets = ()
-    for session in dates[-2:]:
+    for session in dates[-3:-1]:
         targets = allocator.allocate(
             date=session,
             opportunity=Opportunity.TREND,
@@ -336,6 +340,60 @@ def test_full_cohort_targets_share_one_grant_and_epoch_owner() -> None:
     assert {target.epoch_id for target in targets if target.weight > 0} == {
         account.strategic_grant.epoch_id
     }
+
+    signal_date = str(dates[-2].date())
+    attributed = attach_target_attribution(
+        "optical",
+        REQUIRED_AI_UNIVERSE_SHA256,
+        signal_date=signal_date,
+        targets=targets,
+    )
+    planned = plan_orders(
+        signal_date=signal_date,
+        targets=attributed,
+        account=account,
+        prices={
+            symbol: float(panel[symbol].loc[dates[-2], "close"])
+            for symbol in symbols
+        },
+        cfg=DEFAULT_CONFIG,
+    )
+    account.pending_orders = list(
+        reconcile_account_orders(
+            account=account,
+            previous=[],
+            current=planned,
+            submitted_date=signal_date,
+        )
+    )
+
+    save_account(account, tmp_path / "pending.json")
+
+    execution_panel = {
+        symbol: pd.DataFrame(
+            {
+                "open": [3.0, 3.0],
+                "high": [3.1, 3.1],
+                "low": [2.9, 2.9],
+                "close": [3.0, 3.0],
+                "volume": [10_000_000.0, 10_000_000.0],
+                "amount": [30_000_000.0, 30_000_000.0],
+            },
+            index=dates[-2:],
+        )
+        for symbol in symbols
+    }
+    fills = ExecutionPlanner(DEFAULT_CONFIG).execute_open(
+        date=dates[-1],
+        account=account,
+        panel=execution_panel,
+    )
+    peer_symbols = set(symbols) - {account.strategic_grant.candidate_symbol}
+    assert {fill.symbol for fill in fills if not fill.grant_id} == peer_symbols
+    assert {
+        symbol for symbol, position in account.positions.items() if not position.grant_id
+    } == peer_symbols
+    save_account(account, tmp_path / "filled.json")
 
 
 def test_strategic_protection_restore_and_recovery_bind_to_active_epoch() -> None:

@@ -404,6 +404,17 @@ def test_account_rejects_grant_that_differs_from_trading_identity_epoch() -> Non
         account_from_dict(payload)
 
 
+def test_account_rejects_blank_grant_on_epoch_owner() -> None:
+    account, _, _, _ = _filled_strategic_account()
+    payload = account.to_dict()
+    symbol = account.strategic_epochs[0].owner_symbol
+    payload["positions"][symbol]["grant_id"] = ""
+    payload["positions"][symbol]["tranches"][0]["grant_id"] = ""
+
+    with pytest.raises(RuntimeError, match="grant identity differs from strategic epoch"):
+        account_from_dict(payload)
+
+
 def test_account_rejects_blank_aggregate_position_strategic_identity() -> None:
     account, _, _, _ = _filled_strategic_account()
     payload = account.to_dict()

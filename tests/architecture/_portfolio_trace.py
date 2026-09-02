@@ -109,6 +109,7 @@ _OFFICIAL_TRACE_SPECS = (
 _FRAME_DIGESTS: dict[int, tuple[pd.DataFrame, dict[str, object]]] = {}
 _FRAME_DIAGNOSTIC_SOURCES: dict[str, pd.DataFrame] = {}
 _EXPECTED_CODE_FINGERPRINT: str | None = None
+_ECONOMIC_GRANT_FILLS: dict[tuple[str, str, str], tuple[int, int]] = {}
 
 
 def _trace_dataframe_projection(value: pd.DataFrame) -> pd.DataFrame:
@@ -261,32 +262,61 @@ def _economic_account_dict(account: AccountState) -> dict[str, Any]:
     groups: list[list[dict[str, Any]]] = []
     indexes: dict[tuple[str, ...], int] = {}
     for order in payload["order_ledger"]:
-        key = (
+        group_key = (
             ("STRATEGIC_GRANT_EVENT", str(order["grant_id"]), str(order["event_id"]))
             if order.get("grant_id") and order.get("event_id")
             else ("PHYSICAL_ORDER", str(order["order_id"]))
         )
-        index = indexes.setdefault(key, len(groups))
+        index = indexes.setdefault(group_key, len(groups))
         if index == len(groups):
             groups.append([])
         groups[index].append(order)
     collapsed: list[dict[str, Any]] = []
     event_order_ids: dict[str, str] = {}
+    projected_remainders: dict[tuple[str, str, str], int] = {}
     for group in groups:
         first = dict(group[0])
         last = group[-1]
         filled_shares = sum(int(order["filled_shares"]) for order in group)
-        remaining_shares = int(last["remaining_shares"])
+        grant_key = (
+            (str(first["grant_id"]), str(first["event_id"]), str(first["symbol"]))
+            if first.get("grant_id") and first.get("event_id")
+            else None
+        )
+        economic_fill = (
+            _ECONOMIC_GRANT_FILLS.get(grant_key) if grant_key is not None else None
+        )
+        terminal_target_fill = (
+            last["status"] == "CANCELLED"
+            and last["cancel_reason"] == "target already satisfied"
+            and last["last_event"] == "FILL"
+            and filled_shares > 0
+            and int(last["remaining_shares"]) > 0
+        )
+        if economic_fill is None:
+            remaining_shares = (
+                0 if terminal_target_fill else int(last["remaining_shares"])
+            )
+            requested_shares = filled_shares + remaining_shares
+        else:
+            economic_target_requested, latest_fill_shares = economic_fill
+            remaining_shares = max(0, economic_target_requested - latest_fill_shares)
+            requested_shares = (
+                filled_shares - latest_fill_shares + economic_target_requested
+            )
+            assert grant_key is not None
+            projected_remainders[grant_key] = remaining_shares
+        attempts = max(int(order["attempts"]) for order in group)
         first.update(
-            status=last["status"],
-            requested_shares=filled_shares + remaining_shares,
+            status="FILLED" if terminal_target_fill else last["status"],
+            requested_shares=requested_shares,
             filled_shares=filled_shares,
             remaining_shares=remaining_shares,
-            attempts=max(int(order["attempts"]) for order in group),
+            attempts=attempts - 1 if terminal_target_fill else attempts,
             last_update_date=last["last_update_date"],
             last_event=last["last_event"],
             replaced_by=last["replaced_by"],
-            cancel_reason=last["cancel_reason"],
+            cancel_reason="" if terminal_target_fill else last["cancel_reason"],
         )
         if first["last_event"] == "PARTIAL_REMAINDER_RELEASED":
             first.update(
@@ -306,6 +336,13 @@ def _economic_account_dict(account: AccountState) -> dict[str, Any]:
             event_id = str(item.get("event_id", ""))
             if event_id in event_order_ids:
                 item["order_id"] = event_order_ids[event_id]
+            grant_key = (
+                (str(item["grant_id"]), event_id, str(item["symbol"]))
+                if item.get("grant_id") and event_id
+                else None
+            )
+            if collection is payload["pending_orders"] and grant_key in projected_remainders:
+                item["remaining_shares"] = projected_remainders[grant_key]
     if payload["strategic_epoch"] == 0 and payload["strategic_cohort_targets"]:
         # The formal epoch now waits for a matching Fill.  The historical
         # counter advanced when the target cohort was opened, so retain that
@@ -322,6 +359,8 @@ def _economic_account_dict(account: AccountState) -> dict[str, Any]:
                     "account_identity",
                     "epoch_id",
                     "grant_id",
+                    "remainder_release_session",
+                    "remainder_release_shares",
                     "strategic_grant",
                     "strategic_qualification",
                 }
@@ -444,10 +483,12 @@ def portfolio_trace_replay(
     diagnostics: list[dict[str, object]] | None = None,
 ) -> dict[str, Any]:
     import uquant.engine as engine_module
+    import uquant.execution.open_execution as open_execution_module
 
     global _EXPECTED_CODE_FINGERPRINT
     _FRAME_DIGESTS.clear()
     _FRAME_DIAGNOSTIC_SOURCES.clear()
+    _ECONOMIC_GRANT_FILLS.clear()
     _EXPECTED_CODE_FINGERPRINT = None
     active: dict[str, Any] | None = None
     diagnostic_recorded = False
@@ -528,6 +569,17 @@ def portfolio_trace_replay(
     allocate_descriptor = allocate_owner.__dict__["allocate"]
     originals.append((allocate_owner, "allocate", allocate_descriptor))
     original_allocate = cast(Any, allocate_descriptor)
+    execution_hooks = cast(Any, open_execution_module)
+    original_record_open_fill = execution_hooks._record_open_fill
+
+    def traced_record_open_fill(*args: object, **kwargs: object) -> object:
+        request = cast(Any, kwargs["request"])
+        order = request.order
+        if order.grant_id and order.event_id:
+            _ECONOMIC_GRANT_FILLS[
+                (str(order.grant_id), str(order.event_id), str(order.symbol))
+            ] = (int(request.economic_target_requested), int(request.shares))
+        return original_record_open_fill(*args, **kwargs)
 
     def traced_allocate(self: object, *args: object, **kwargs: object) -> object:
         nonlocal active, diagnostic_recorded
@@ -617,6 +669,7 @@ def portfolio_trace_replay(
         )
         return result
 
+    execution_hooks._record_open_fill = traced_record_open_fill
     type.__setattr__(allocate_owner, "allocate", traced_allocate)
     try:
         engine_module.ProductionEngine(root / "data" / "frozen").backtest(
@@ -625,6 +678,8 @@ def portfolio_trace_replay(
             end=end,
         )
     finally:
+        execution_hooks._record_open_fill = original_record_open_fill
+        _ECONOMIC_GRANT_FILLS.clear()
         for owner, method_name, descriptor in reversed(originals):
             setattr(owner, method_name, descriptor)
 

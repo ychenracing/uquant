@@ -28,7 +28,7 @@ OWNERSHIP_CONTRACT_SHA256 = (
     "72e6b510c3bcf44ac77d2c13613f4d72a14ae8dab0d60a19e5947055ae7cbf08"
 )
 CURRENT_CANDIDATE_SOURCE = (
-    "e0331925a7d199d60464c69080ade0abf831e106dcb1bef0afd6b74baaccc10f"
+    "3f605ca6e2cb7d0f72e508a7f3e789333511b8aa107fa08c98d00a31b30b59c0"
 )
 BASELINE_SOURCE_AT_COMMIT = (
     "d1ef7977ae482e46a920381e6af58791199ec8e1a02586dbe8df451e7d4696c9"
@@ -260,7 +260,7 @@ def test_contract_binds_candidate_and_frozen_inputs_to_independent_authorities()
     }
     assert raw["inputs"] == {
         "ai_universe_sha256": AI_UNIVERSE_SHA256,
-        "effective_config_sha256": "dae4d79fdd813832c6ab152611437c13be1d38227c7280691874d3a9267d93d5",
+        "effective_config_sha256": "c05faf292a508d825cb4aaee09de65a5fb5a8db6acae6d21348ffcbec86d954b",
         "frozen_data": {
             "checksums_sha256": "ba460d65f791f238d8a4a16ac62e2225c1832caa6f4da5003166a894edf80e29",
             "files_verified": 36,

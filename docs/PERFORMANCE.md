@@ -332,6 +332,57 @@ diagnostic，不能冒充 Future Holdout。核心结论不变：已实现 baseli
 `1.20910580087419x`。这些数值说明旧身份下能力存活，不证明已实现 PnL 分散，也不证明当前
 身份已经发生主动 alpha 迁移；不得用于当前 acceptance。
 
+### Checkpoint B：参数、状态、执行尾部与历史 regime
+
+Checkpoint B 只使用 `2023-01-03..2026-08-05`，没有读取 Future Holdout、搜索参数或修改
+生产默认值。1 个 baseline 与 16 个预注册 one-factor replay 全部绑定生产源码、有效配置、
+冻结数据、Python/NumPy/pandas/lock 和完整 runner 源码身份；17/17 replay 均完成精确账本对账，
+且没有负现金、杠杆、空头、重复 order、重复 native physical fill 或未来数据。封签证据见
+[`post_generalization_trust_closure_checkpoint_b.json`](../benchmarks/post_generalization_trust_closure_checkpoint_b.json)。
+
+| 参数 | 扰动 | 分类 | 关键结果 |
+|---|---|---|---|
+| `strategic_reversal_max_ret240` | `-0.18 / -0.12` | INACTIVE | 两侧与 baseline 的 Target、owner、risk、epoch、wealth、MDD、orders 和 turnover 完全相同 |
+| `strategic_reversal_min_ret5` | `0.04 / 0.06` | KNIFE_EDGE | 下侧不变；上侧从 `24.5096618029x` 降至 `1.51970999623x`，837 个 Target、227 个 owner、298 个 risk session 改变 |
+| `strategic_reversal_min_median_ret20` | `-0.06 / -0.04` | INACTIVE | 两侧经济行为完全相同 |
+| `strategic_reversal_max_tech_ret120` | `-0.02 / 0.00` | KNIFE_EDGE | 下侧为 `1.51970999623x`，上侧不变；变化与上一临界组合相同 |
+| `strategic_dominant_min_leader_gap` | `0.04 / 0.06` | INACTIVE | 两侧经济行为完全相同 |
+| `strategic_transition_min_component` | `0.65 / 0.75` | INACTIVE | 两侧经济行为完全相同 |
+| `strategic_dominant_profit_lock_mfe` | `1.98 / 2.42` | KNIFE_EDGE | wealth 为 `24.3937716283x / 24.7237165021x`，但分别改变 766 / 709 个 Target session，不能因终值接近而判稳定 |
+| `strategic_dominant_retained_gross` | `0.65 / 0.75` | KNIFE_EDGE | wealth 为 `25.3273063196x / 24.2168040724x`，分别改变 715 / 708 个 Target session |
+
+默认值恰好优于扰动不构成正面证据。四个 INACTIVE 只表示在该冻结历史路径没有进入生产
+决策，不表示字段永远无效；四个 KNIFE_EDGE 表示当前默认值不处于已证明的宽稳定区域，且
+本任务没有据此优化参数。
+
+历史活动审计观察到 strategic 227 个 Target session、sector guard 1 个、capital budget 24
+个、rearm 2 个、dominant-owner exception 216 个；concentrated-break 与 freeze 状态证据分别
+出现 34 / 23 个 session。ordinary leader、recovery、tactical、chronic overlay 和 strategic
+damage guard 在该 baseline 未触发，分类为 `INACTIVE_REACHABLE`，不能据此删除。四个默认
+为 false 的 compatibility 开关分类为 `COMPAT_ONLY`，留待 Checkpoint C 在 current-path
+等价门下删除。活动计数只能证明可达性与行为变化；本阶段没有运行 active-state 删除
+counterfactual，因此没有声称独立收益、独立风控或冗余，也没有删除 active economic state。
+
+11 个 execution case 直接调用生产 `ExecutionPlanner.execute_open`。额外 `25 / 50 / 100 /
+200` bps 的订单级增量现金成本分别为 `2475 / 4950 / 9900 / 19600`，其中 `S200` 最差；
+10,000 股请求在 `P75 / P50 / P25` 中分别成交 `7500 / 5000 / 2500` 股并保留余单。涨停买、
+跌停卖、停牌和零容量均阻塞 1 个 session、保留同一订单，并在下一可执行 open 成交。所有
+case 均保持非负现金、无杠杆、无空头、无重复 order/fill、无同信号日 fill，也没有伪造 broker
+事实。这是确定性订单级 stress，不是 11 次全策略 replay；stressed wealth、MDD、组合 turnover、
+组合机会成本和 worst portfolio trade 均为 `EVIDENCE GAP`，不能用订单级成本替代。
+
+真实冻结历史中，34-name AI 可观测成员等权因子的最差 5 日为
+`2026-07-13..2026-07-17`（`-21.5036311774%`），最差 20 日为
+`2026-07-01..2026-07-28`（`-34.2967879428%`）；最高相关同步下跌窗为
+`2024-09-11..2024-10-17`，平均 pairwise correlation `0.864166190757`，末 5 日
+`-7.44910475202%`。三核心 optical 的最差 5 / 20 日分别为
+`2025-04-01..2025-04-08`（`-27.7388664474%`）和
+`2026-07-01..2026-07-28`（`-33.7826143131%`）。baseline 的最长全现金弱势段为
+`2026-06-24..2026-08-05` 共 31 个 session，全程 `WEAK / RISK_OFF / zero target`。
+no-optical 是永久 ex-ante 移除，不是历史中真实 optical failure，不能产生 discovery/grant/fill
+latency；缺少 archived state trajectory、正式 optical-failure latency、真实 rotation event 和
+whipsaw 证据均显式记为 `EVIDENCE GAP`，没有用随机价格路径补齐矩阵。
+
 ## 如何判断改动是否安全
 
 对注释、文档或工程质量改动，先证明是否影响可执行输入：

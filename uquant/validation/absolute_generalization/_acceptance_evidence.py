@@ -27,6 +27,7 @@ from uquant.validation.generalization_reference import (
     load_generalization_policy,
 )
 
+from ._account_payload import normalize_epoch_only_cohort_attribution
 from ._champion_runtime_reconciliation import (
     decode_champion_account,
     derive_champion_runtime_claims,
@@ -39,7 +40,6 @@ from .reachability import (
     analyze_failed_grant_recovery,
     analyze_terminal_scc,
     is_positive_strategic_outlet,
-    normalize_epoch_only_cohort_attribution,
     project_flat_book_repair_health,
 )
 from .replay import AbsoluteGeneralizationReplayPayload

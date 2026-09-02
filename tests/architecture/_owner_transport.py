@@ -115,6 +115,7 @@ _VALIDATION_ADDITIONS = frozenset(
         "uquant/risk_sentinel/source_identity_archive.py",
         "uquant/validation/competitor_reference.py",
         "uquant/validation/absolute_generalization/__init__.py",
+        "uquant/validation/absolute_generalization/_account_payload.py",
         "uquant/validation/absolute_generalization/_acceptance_evidence.py",
         "uquant/validation/absolute_generalization/_champion_runtime_reconciliation.py",
         "uquant/validation/absolute_generalization/_execution_chain_reconciliation.py",

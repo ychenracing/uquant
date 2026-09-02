@@ -18,11 +18,9 @@ from uquant.models.trading import AccountOrder, Fill
 from uquant.types import AccountState
 from uquant.validation.universe import default_ai_universe
 
+from ._account_payload import validate_account_payload
 from ._physical_identity import physical_fill_identity_sha256
-from ._reachability_codec import (
-    decision_runtime_inputs_from_raw,
-    reachability_state_to_raw,
-)
+from ._reachability_codec import decision_runtime_inputs_from_raw, reachability_state_to_raw
 from ._recovery_runtime_fixtures import (
     run_cross_industry_fixture,
     run_failed_grant_fixture,
@@ -37,7 +35,6 @@ from .reachability import (
     is_positive_strategic_outlet,
     project_flat_book_repair_health,
     project_observed_reachability_state,
-    validate_account_payload,
 )
 from .replay import (
     AbsoluteGeneralizationReplay,

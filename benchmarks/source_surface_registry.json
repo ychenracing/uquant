@@ -344,6 +344,7 @@
         "research/generalization_smoke.py",
         "research/parameter_stress.py",
         "research/performance_diagnostic.py",
+        "research/post_generalization_trust_closure_checkpoint_b.py",
         "research/risk_counterfactual.py",
         "research/risk_counterfactual_cli.py",
         "research/risk_differential.py",
@@ -436,6 +437,7 @@
         "uquant/validation/__main__.py",
         "uquant/validation/absolute_generalization/__init__.py",
         "uquant/validation/absolute_generalization/_acceptance_evidence.py",
+        "uquant/validation/absolute_generalization/_account_payload.py",
         "uquant/validation/absolute_generalization/_champion_runtime_reconciliation.py",
         "uquant/validation/absolute_generalization/_execution_chain_reconciliation.py",
         "uquant/validation/absolute_generalization/_metric_primitives.py",
@@ -539,6 +541,7 @@
         "research/generalization_smoke.py",
         "research/parameter_stress.py",
         "research/performance_diagnostic.py",
+        "research/post_generalization_trust_closure_checkpoint_b.py",
         "research/risk_counterfactual.py",
         "research/risk_counterfactual_cli.py",
         "research/risk_differential.py",
@@ -738,6 +741,7 @@
         "uquant/validation/__main__.py",
         "uquant/validation/absolute_generalization/__init__.py",
         "uquant/validation/absolute_generalization/_acceptance_evidence.py",
+        "uquant/validation/absolute_generalization/_account_payload.py",
         "uquant/validation/absolute_generalization/_champion_runtime_reconciliation.py",
         "uquant/validation/absolute_generalization/_execution_chain_reconciliation.py",
         "uquant/validation/absolute_generalization/_metric_primitives.py",
@@ -812,5 +816,5 @@
       ]
     }
   ],
-  "canonical_sha256": "0c1402ec6333fbd313ca3eb0b0865f0a777c30690ed0ba3ee497a35c43536e38"
+  "canonical_sha256": "8ff0cf71f00459efd5f9387e032751a9d9d90610804518818a836711cc19ac17"
 }

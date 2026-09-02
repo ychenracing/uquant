@@ -15,6 +15,7 @@ from ._owner_transport import (
 
 _RISK_ARCHITECTURE_AUTHORITY_STALE = frozenset(
     {
+        "uquant.account.code_identity",
         "uquant.account.validation_attribution",
         "uquant.application.target_attribution",
         "uquant.attribution.validation_artifact",
@@ -39,23 +40,32 @@ _RISK_ARCHITECTURE_AUTHORITY_STALE = frozenset(
         "uquant.validation.promotion_contract",
     }
 )
+_RISK_ARCHITECTURE_AUTHORITY_REBINDINGS = {
+    "uquant.account.code_identity": "uquant.account.migrations",
+}
 
 
 def architecture_risk_historical_authorities(
     authorities: Mapping[str, str],
     source_paths: Set[str],
 ) -> dict[str, str]:
-    """Remove only exact current modules absent from the frozen risk archive."""
+    """Project exact current authorities onto the frozen risk archive."""
     source_modules = {
         path.removesuffix("/__init__.py").removesuffix(".py").replace("/", ".") for path in source_paths
     }
     stale = set(authorities) - source_modules
     assert stale == _RISK_ARCHITECTURE_AUTHORITY_STALE
-    return {
+    archived = source_modules - set(authorities)
+    assert archived == set(_RISK_ARCHITECTURE_AUTHORITY_REBINDINGS.values())
+    projected = {
         module: authority
         for module, authority in authorities.items()
         if module not in _RISK_ARCHITECTURE_AUTHORITY_STALE
     }
+    for current, historical in _RISK_ARCHITECTURE_AUTHORITY_REBINDINGS.items():
+        assert current in stale
+        projected[historical] = authorities[current]
+    return projected
 
 
 _RISK_FUNCTION_OWNERS: Mapping[str, tuple[str, str]] = {

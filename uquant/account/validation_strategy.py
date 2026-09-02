@@ -471,7 +471,11 @@ def _validate_strategic_trading_identity(
         raise RuntimeError(f"{label} references an unknown strategic epoch")
     if epoch.terminal and not allow_terminal:
         raise RuntimeError(f"{label} cannot reference terminal strategic epoch")
-    if not grant_id and symbol != epoch.owner_symbol:
+    if symbol != epoch.owner_symbol:
+        if grant_id:
+            raise RuntimeError(
+                f"{label} grant identity belongs only to strategic epoch owner"
+            )
         return
     if epoch.grant_id != grant_id:
         raise RuntimeError(

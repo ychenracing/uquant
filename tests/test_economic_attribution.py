@@ -9,7 +9,7 @@ import pytest
 
 from uquant.config import DEFAULT_CONFIG
 from uquant.engine import ProductionEngine, code_fingerprint
-from uquant.types import AccountState, Fill, Position, Tranche
+from uquant.types import AccountOrder, AccountState, Fill, Position, Tranche, derive_attribution_event_id
 
 
 def _identity(
@@ -765,6 +765,108 @@ def test_control_plane_accepts_only_the_exact_twelve_decimal_sum_rounding_bound(
 
     assert _rounded_sum_matches(rounded_total, weights)
     assert not _rounded_sum_matches(rounded_total + 1e-10, weights)
+
+
+def test_control_plane_accepts_trace_only_epoch_peer_with_durable_membership() -> None:
+    from test_strategic_epoch import _epoch, _grant
+
+    from uquant.validation.control_plane import _ControlContext, _validated_target
+
+    grant = _grant()
+    epoch = _epoch(grant)
+    grant.epoch_id = epoch.epoch_id
+    peer_symbol = "sz300502"
+    industry_manifest = "a" * 64
+
+    def event_id(signal_date: str, target_weight: float) -> str:
+        return derive_attribution_event_id(
+            signal_date=signal_date,
+            symbol=peer_symbol,
+            target_weight=target_weight,
+            lifecycle="CORE",
+            origin_lifecycle="CORE",
+            origin_subsystem="STRATEGIC",
+            mechanism="STRATEGIC_COHORT",
+            replaces_symbol=None,
+            industry_at_entry="optical",
+            industry_manifest_sha256=industry_manifest,
+            reduction_policy="FIFO",
+            reason_code="strategy_target",
+            exit_kind="strategy",
+        )
+
+    prior_event = event_id("2026-01-06", 0.20)
+    prior_order = AccountOrder(
+        order_id="O000000001",
+        signal_date="2026-01-06",
+        submitted_date="2026-01-06",
+        symbol=peer_symbol,
+        side="BUY",
+        target_weight=0.20,
+        reason="strategic peer",
+        lifecycle="CORE",
+        event_id=prior_event,
+        origin_subsystem="STRATEGIC",
+        mechanism="STRATEGIC_COHORT",
+        origin_lifecycle="CORE",
+        industry_at_entry="optical",
+        industry_manifest_sha256=industry_manifest,
+        epoch_id=epoch.epoch_id,
+    )
+    account = AccountState.empty(2_000_000.0)
+    account.strategic_grant = grant
+    account.strategic_epochs = [epoch]
+    account.order_ledger = [prior_order]
+    ctx = _ControlContext(
+        expected_config=DEFAULT_CONFIG,
+        expected_config_sha256="",
+        account=account,
+        sessions=("2026-01-06", "2026-01-07"),
+        trace_rows=[],
+        current_digests=[],
+        advertised_legacy=[],
+        ledger_rows=[],
+        ledger_orders={prior_order.order_id: prior_order},
+        ledger_orders_by_event={prior_event: [prior_order]},
+        strategic_epochs_by_id={epoch.epoch_id: epoch},
+    )
+    target_weight = 0.20
+    target = {
+        "symbol": peer_symbol,
+        "weight": target_weight,
+        "lifecycle": "CORE",
+        "reduction_policy": "FIFO",
+        "reason_code": "strategy_target",
+        "exit_kind": "strategy",
+        "event_id": event_id("2026-01-07", target_weight),
+        "event_signal_date": "2026-01-07",
+        "event_target_weight_hex": target_weight.hex(),
+        "origin_subsystem": "STRATEGIC",
+        "mechanism": "STRATEGIC_COHORT",
+        "origin_lifecycle": "CORE",
+        "replaces_symbol": None,
+        "industry_at_entry": "optical",
+        "industry_manifest_sha256": industry_manifest,
+        "grant_id": "",
+        "epoch_id": epoch.epoch_id,
+    }
+
+    assert _validated_target(
+        ctx,
+        raw_target=target,
+        target_weights={},
+        session="2026-01-07",
+    ) == (peer_symbol, target_weight)
+
+    forged = dict(target)
+    forged["symbol"] = "sz300394"
+    with pytest.raises(ValueError, match="strategic ownership identity"):
+        _validated_target(
+            ctx,
+            raw_target=forged,
+            target_weights={},
+            session="2026-01-07",
+        )
 
 
 def test_control_plane_rejects_self_signed_noncanonical_target_identity() -> None:

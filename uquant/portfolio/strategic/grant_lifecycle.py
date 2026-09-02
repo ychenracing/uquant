@@ -64,16 +64,22 @@ def _expire_strategic_grant(
         return
     grant.status = StrategicGrantStatus.EXPIRED.value
     grant.expiry_reason = reason
+
+    def belongs_to_expired_epoch(item: object) -> bool:
+        return bool(grant.epoch_id and getattr(item, "epoch_id", "") == grant.epoch_id) or (
+            getattr(item, "grant_id", "") == grant.grant_id
+        )
+
     had_pending_execution = any(
-        order.grant_id == grant.grant_id for order in account.pending_orders
+        belongs_to_expired_epoch(order) for order in account.pending_orders
     )
     account.pending_orders = [
-        order for order in account.pending_orders if order.grant_id != grant.grant_id
+        order for order in account.pending_orders if not belongs_to_expired_epoch(order)
     ]
     held = {
         symbol: 0.0
         for symbol, position in account.positions.items()
-        if position.shares > 0 and position.grant_id == grant.grant_id
+        if position.shares > 0 and belongs_to_expired_epoch(position)
     }
     account.strategic_cohort_symbols = sorted(held)
     account.strategic_cohort_targets = dict(held)

@@ -228,8 +228,6 @@ def _validate_identity_fields(value: Mapping[str, Any], *, label: str) -> None:
         epoch_id and re.fullmatch(r"epoch_[0-9a-f]{64}", epoch_id) is None
     ):
         raise ValueError(f"{label} epoch identity is malformed")
-    if epoch_id and not grant_id:
-        raise ValueError(f"{label} epoch identity lacks a grant")
 
 
 @dataclass(slots=True)
@@ -375,13 +373,32 @@ def _validate_target_origin(
     epoch_id = str(target["epoch_id"])
     if epoch_id:
         epoch = ctx.strategic_epochs_by_id.get(epoch_id)
-        if (
-            epoch is None
-            or epoch.grant_id != target["grant_id"]
-            or epoch.owner_symbol != symbol
-            or session < epoch.opened_session
-            or bool(epoch.closed_session and session > epoch.closed_session)
-        ):
+        within_epoch = bool(
+            epoch is not None
+            and session >= epoch.opened_session
+            and not (epoch.closed_session and session > epoch.closed_session)
+        )
+        owner_identity = bool(
+            epoch is not None
+            and symbol == epoch.owner_symbol
+            and target["grant_id"] == epoch.grant_id
+        )
+        peer_identity = bool(
+            epoch is not None
+            and symbol != epoch.owner_symbol
+            and not target["grant_id"]
+            and any(
+                order.symbol == symbol
+                and order.side == Side.BUY.value
+                and order.signal_date <= session
+                and order.epoch_id == epoch_id
+                and not order.grant_id
+                and order.origin_subsystem == OriginSubsystem.STRATEGIC.value
+                and order.mechanism == AttributionMechanism.STRATEGIC_COHORT.value
+                for order in ctx.ledger_orders.values()
+            )
+        )
+        if not within_epoch or not (owner_identity or peer_identity):
             raise ValueError(
                 "decision target strategic ownership identity differs from its durable epoch"
             )

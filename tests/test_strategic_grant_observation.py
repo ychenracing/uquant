@@ -11,7 +11,7 @@ from uquant.models.strategic_epoch import (
 )
 from uquant.models.strategic_grant import StrategicGrantStatus
 from uquant.portfolio import PortfolioAllocator
-from uquant.types import AccountState, Opportunity, Position, Risk, RiskAssessment
+from uquant.types import AccountState, Opportunity, PendingOrder, Position, Risk, RiskAssessment
 
 
 def _risk(*, frozen: bool) -> RiskAssessment:
@@ -155,6 +155,28 @@ def test_candidate_removal_expires_the_grant_without_promoting_a_runner() -> Non
         )
     assert account.strategic_grant is not None
     original_grant_id = account.strategic_grant.grant_id
+    original_epoch_id = account.strategic_grant.epoch_id
+    account.pending_orders = [
+        PendingOrder(
+            signal_date=str(dates[-2].date()),
+            symbol="sz300308",
+            side="BUY",
+            target_weight=0.20,
+            reason="strategic owner",
+            lifecycle="CORE",
+            grant_id=original_grant_id,
+            epoch_id=original_epoch_id,
+        ),
+        PendingOrder(
+            signal_date=str(dates[-2].date()),
+            symbol="sz300502",
+            side="BUY",
+            target_weight=0.20,
+            reason="strategic peer",
+            lifecycle="CORE",
+            epoch_id=original_epoch_id,
+        ),
+    ]
 
     reduced_panel = {symbol: panel[symbol] for symbol in symbols if symbol != "sz300308"}
     reduced_leaders = {symbol: leaders[symbol] for symbol in reduced_panel}
@@ -175,6 +197,7 @@ def test_candidate_removal_expires_the_grant_without_promoting_a_runner() -> Non
     assert account.strategic_qualification.candidate_invalidation_reason == (
         "candidate_removed_from_allowed_universe"
     )
+    assert account.pending_orders == []
     assert account.strategic_cohort_targets == {}
 
 
@@ -278,6 +301,15 @@ def test_absolute_qualification_loss_emits_a_formal_exit_for_a_filled_probe(
         grant_id=grant.grant_id,
         epoch_id=epoch.epoch_id,
     )
+    peer_symbol = next(symbol for symbol in symbols if symbol != grant.candidate_symbol)
+    account.positions[peer_symbol] = Position(
+        symbol=peer_symbol,
+        shares=10_000,
+        avg_cost=prices[peer_symbol],
+        entry_date=str(session.date()),
+        highest_close=prices[peer_symbol],
+        epoch_id=epoch.epoch_id,
+    )
     monkeypatch.setattr(
         strategic_grant_lifecycle,
         "strategic_qualification_evidence",
@@ -301,10 +333,17 @@ def test_absolute_qualification_loss_emits_a_formal_exit_for_a_filled_probe(
     )
 
     owner_target = next(target for target in targets if target.symbol == grant.candidate_symbol)
+    peer_target = next(target for target in targets if target.symbol == peer_symbol)
     assert owner_target.weight == 0.0
     assert owner_target.grant_id == grant.grant_id
     assert owner_target.epoch_id == epoch.epoch_id
-    assert account.strategic_cohort_targets == {grant.candidate_symbol: 0.0}
+    assert peer_target.weight == 0.0
+    assert peer_target.grant_id == ""
+    assert peer_target.epoch_id == epoch.epoch_id
+    assert account.strategic_cohort_targets == {
+        grant.candidate_symbol: 0.0,
+        peer_symbol: 0.0,
+    }
     assert grant.status == StrategicGrantStatus.EXPIRED.value
     assert epoch.realized_status == StrategicEpochStatus.CORE.value
 

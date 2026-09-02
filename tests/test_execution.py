@@ -124,6 +124,53 @@ def _frame(rows):
     return frame.set_index("date")
 
 
+def test_strategic_buy_identity_conflict_is_atomic() -> None:
+    symbol = "sz300308"
+    pending = _canonical_pending(
+        "2026-01-05",
+        symbol,
+        "BUY",
+        0.20,
+        "strategic add",
+        grant_id="grant_" + "2" * 64,
+        epoch_id="epoch_" + "2" * 64,
+    )
+    position = Position(
+        symbol=symbol,
+        shares=10_000,
+        avg_cost=10.0,
+        entry_date="2026-01-02",
+        highest_close=10.0,
+        grant_id="grant_" + "1" * 64,
+        epoch_id="epoch_" + "1" * 64,
+    )
+    account = AccountState.empty(2_000_000.0)
+    account.positions[symbol] = position
+    account.pending_orders = [pending]
+    before_cash = account.cash
+    before_position = copy.deepcopy(position)
+    before_events = copy.deepcopy(account.lifecycle_events)
+    panel = {
+        symbol: _frame(
+            [
+                {"date": "2026-01-05", "open": 10.0, "high": 10.1, "low": 9.9, "close": 10.0, "volume": 1_000_000, "amount": 10_000_000},
+                {"date": "2026-01-06", "open": 10.0, "high": 10.1, "low": 9.9, "close": 10.0, "volume": 1_000_000, "amount": 10_000_000},
+            ]
+        )
+    }
+
+    with pytest.raises(RuntimeError, match="second grant owner"):
+        ExecutionPlanner(DEFAULT_CONFIG).execute_open(
+            date=pd.Timestamp("2026-01-06"),
+            account=account,
+            panel=panel,
+        )
+
+    assert account.cash == before_cash
+    assert account.positions[symbol] == before_position
+    assert account.lifecycle_events == before_events
+
+
 def test_broker_snapshot_reconciles_real_fills_idempotently():
     identity = _attribution_identity(
         signal_date="2026-01-05",

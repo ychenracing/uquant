@@ -141,7 +141,13 @@ def _prepare_strategic_owner_targets(
         live_anchors
         and account.candidate_tenure.get("recovery_cohort_locked", 0) == 1
     )
-    if locked_recovery or live_anchors & set(qualified.symbols):
+    live_qualified_positions = {
+        symbol
+        for symbol in qualified.symbols
+        if account.positions.get(symbol) is not None
+        and account.positions[symbol].shares > 0
+    }
+    if locked_recovery or live_anchors & set(qualified.symbols) or live_qualified_positions:
         account.candidate_tenure["strategic_deferred_to_recovery"] = 1
         return False, None
     self._release_recovery_anchor(account)

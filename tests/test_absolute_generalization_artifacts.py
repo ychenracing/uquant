@@ -113,7 +113,7 @@ def test_recovery_manifest_accepts_owned_production_predicate_paths(
     reject_self_assertion_claims(raw, label="manifest")
 
 
-def test_crowning_account_decode_normalizes_epoch_only_cohort_attribution(
+def test_crowning_account_decode_preserves_epoch_only_cohort_attribution(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     raw = {
@@ -131,7 +131,7 @@ def test_crowning_account_decode_normalizes_epoch_only_cohort_attribution(
     def decode(value: object, *, require_hashes: bool) -> SimpleNamespace:
         assert require_hashes is False
         assert isinstance(value, dict)
-        assert value["order_ledger"][0]["grant_id"] == "grant-a"  # type: ignore[index]
+        assert value["order_ledger"][0]["grant_id"] == ""  # type: ignore[index]
         return SimpleNamespace(fills=(), strategic_epochs=(), order_ledger=())
 
     monkeypatch.setattr(acceptance_evidence, "account_from_dict", decode)

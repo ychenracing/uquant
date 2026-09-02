@@ -346,6 +346,38 @@ def _control_context(
     )
 
 
+def _target_matches_strategic_epoch(
+    ctx: _ControlContext,
+    *,
+    target: Mapping[str, Any],
+    symbol: str,
+    session: str,
+    epoch_id: str,
+) -> bool:
+    epoch = ctx.strategic_epochs_by_id.get(epoch_id)
+    if epoch is None:
+        return False
+    within_epoch = session >= epoch.opened_session and not (
+        epoch.closed_session and session > epoch.closed_session
+    )
+    owner_identity = symbol == epoch.owner_symbol and target["grant_id"] == epoch.grant_id
+    peer_identity = (
+        symbol != epoch.owner_symbol
+        and not target["grant_id"]
+        and any(
+            order.symbol == symbol
+            and order.side == Side.BUY.value
+            and order.signal_date <= session
+            and order.epoch_id == epoch_id
+            and not order.grant_id
+            and order.origin_subsystem == OriginSubsystem.STRATEGIC.value
+            and order.mechanism == AttributionMechanism.STRATEGIC_COHORT.value
+            for order in ctx.ledger_orders.values()
+        )
+    )
+    return within_epoch and (owner_identity or peer_identity)
+
+
 def _validate_target_origin(
     ctx: _ControlContext,
     *,
@@ -371,37 +403,16 @@ def _validate_target_origin(
             raise ValueError("decision target event identity differs from its durable origin")
         return
     epoch_id = str(target["epoch_id"])
-    if epoch_id:
-        epoch = ctx.strategic_epochs_by_id.get(epoch_id)
-        within_epoch = bool(
-            epoch is not None
-            and session >= epoch.opened_session
-            and not (epoch.closed_session and session > epoch.closed_session)
+    if epoch_id and not _target_matches_strategic_epoch(
+        ctx,
+        target=target,
+        symbol=symbol,
+        session=session,
+        epoch_id=epoch_id,
+    ):
+        raise ValueError(
+            "decision target strategic ownership identity differs from its durable epoch"
         )
-        owner_identity = bool(
-            epoch is not None
-            and symbol == epoch.owner_symbol
-            and target["grant_id"] == epoch.grant_id
-        )
-        peer_identity = bool(
-            epoch is not None
-            and symbol != epoch.owner_symbol
-            and not target["grant_id"]
-            and any(
-                order.symbol == symbol
-                and order.side == Side.BUY.value
-                and order.signal_date <= session
-                and order.epoch_id == epoch_id
-                and not order.grant_id
-                and order.origin_subsystem == OriginSubsystem.STRATEGIC.value
-                and order.mechanism == AttributionMechanism.STRATEGIC_COHORT.value
-                for order in ctx.ledger_orders.values()
-            )
-        )
-        if not within_epoch or not (owner_identity or peer_identity):
-            raise ValueError(
-                "decision target strategic ownership identity differs from its durable epoch"
-            )
     if event_signal_date != session:
         raise ValueError("decision target event signal date has no durable origin")
     expected_event = derive_attribution_event_id(

@@ -306,6 +306,11 @@ def _apply_buy_fill(
 ) -> None:
     order = request.order
     current = request.current
+    has_position = current.shares > 0
+    if order.grant_id and has_position and current.grant_id != order.grant_id:
+        raise RuntimeError("strategic fill would create a second grant owner for one position")
+    if order.epoch_id and has_position and current.epoch_id != order.epoch_id:
+        raise RuntimeError("strategic fill would create a second epoch owner for one position")
     previous_lifecycle = current.lifecycle if current.shares > 0 else "NONE"
     account.cash -= gross + commission + transfer
     old_value = current.shares * current.avg_cost
@@ -315,12 +320,8 @@ def _apply_buy_fill(
     current.highest_close = max(current.highest_close, float(request.row["close"]))
     current.lifecycle = order.lifecycle
     if order.grant_id:
-        if current.shares - request.shares > 0 and current.grant_id != order.grant_id:
-            raise RuntimeError("strategic fill would create a second grant owner for one position")
         current.grant_id = order.grant_id
     if order.epoch_id:
-        if current.shares - request.shares > 0 and current.epoch_id != order.epoch_id:
-            raise RuntimeError("strategic fill would create a second epoch owner for one position")
         current.epoch_id = order.epoch_id
     if previous_lifecycle != order.lifecycle:
         account.lifecycle_events.append(

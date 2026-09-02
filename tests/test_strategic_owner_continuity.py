@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import copy
+
 import pandas as pd
 import pytest
 from test_lifecycle_and_risk import _leader, _strategic_frame
@@ -369,6 +371,15 @@ def test_full_cohort_epoch_only_peers_persist_before_and_after_fill(tmp_path) ->
 
     save_account(account, tmp_path / "pending.json")
 
+    tampered = copy.deepcopy(account)
+    peer_order = next(order for order in tampered.pending_orders if not order.grant_id)
+    peer_order.grant_id = tampered.strategic_grant.grant_id
+    next(
+        order for order in tampered.order_ledger if order.order_id == peer_order.order_id
+    ).grant_id = tampered.strategic_grant.grant_id
+    with pytest.raises(RuntimeError, match="grant identity belongs only to strategic epoch owner"):
+        save_account(tampered, tmp_path / "peer-with-owner-grant.json")
+
     execution_panel = {
         symbol: pd.DataFrame(
             {
@@ -394,6 +405,43 @@ def test_full_cohort_epoch_only_peers_persist_before_and_after_fill(tmp_path) ->
         symbol for symbol, position in account.positions.items() if not position.grant_id
     } == peer_symbols
     save_account(account, tmp_path / "filled.json")
+
+
+def test_existing_ordinary_cohort_position_defers_strategic_activation() -> None:
+    dates = pd.bdate_range("2023-01-02", periods=251)
+    symbols = ("sz300308", "sz300502", "sz300394")
+    panel = {symbol: _strategic_frame(dates) for symbol in symbols}
+    leaders = {
+        symbol: _leader(symbol, 0.96 - index * 0.02, industry="optical")
+        for index, symbol in enumerate(symbols)
+    }
+    account = AccountState.empty(2_000_000.0)
+    account.account_identity = "account:primary"
+    account.code_hash = "code:production"
+    ordinary_symbol = symbols[-1]
+    account.positions[ordinary_symbol] = Position(
+        symbol=ordinary_symbol,
+        shares=10_000,
+        avg_cost=3.0,
+        entry_date=str(dates[-10].date()),
+        highest_close=3.0,
+    )
+    allocator = PortfolioAllocator(DEFAULT_CONFIG)
+
+    for session in dates[-2:]:
+        allocator.allocate(
+            date=session,
+            opportunity=Opportunity.TREND,
+            risk=_risk(frozen=False),
+            user_panel=panel,
+            leaders=leaders,
+            account=account,
+            prices={symbol: float(panel[symbol].loc[session, "close"]) for symbol in symbols},
+        )
+
+    assert account.strategic_grant is None
+    assert account.strategic_epochs == []
+    assert account.candidate_tenure["strategic_deferred_to_recovery"] == 1
 
 
 def test_strategic_protection_restore_and_recovery_bind_to_active_epoch() -> None:

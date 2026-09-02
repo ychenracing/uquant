@@ -27,7 +27,6 @@ from uquant.validation.generalization_reference import (
     load_generalization_policy,
 )
 
-from ._account_payload import normalize_epoch_only_cohort_attribution
 from ._champion_runtime_reconciliation import (
     decode_champion_account,
     derive_champion_runtime_claims,
@@ -610,7 +609,6 @@ def _crowning_account_indexes(
     dict[str, Fill],
 ]:
     account_raw = deepcopy(dict(_evidence_mapping(raw, label="crowning account")))
-    normalize_epoch_only_cohort_attribution(account_raw)
     account = account_from_dict(account_raw, require_hashes=False)
     account_fills = {physical_fill_identity_sha256(item): item for item in account.fills}
     if len(account_fills) != len(account.fills):

@@ -73363,23 +73363,9 @@
       "uquant.validation.absolute_generalization._account_payload": {
         "path": "uquant/validation/absolute_generalization/_account_payload.py",
         "public_names": [
-          "normalize_epoch_only_cohort_attribution",
           "validate_account_payload"
         ],
         "functions": {
-          "normalize_epoch_only_cohort_attribution": {
-            "parameters": [
-              {
-                "name": "account_raw",
-                "kind": "POSITIONAL_OR_KEYWORD",
-                "annotation": "Mapping[str, object]",
-                "default": {
-                  "kind": "required"
-                }
-              }
-            ],
-            "return": "None"
-          },
           "validate_account_payload": {
             "parameters": [
               {
@@ -95282,8 +95268,8 @@
             "replaces_symbol": null,
             "industry_at_entry": "optical",
             "industry_manifest_sha256": "03f42c5066fb8e1c7b2f8e1b7dd38d508d8053f548ebb5596317ce587d7cffd0",
-            "grant_id": "grant_33bd69bda1fb8e17f673c51f45a52d5a3a8e567d1fe455dcb0c4130ab3cbc10c",
-            "epoch_id": "epoch_7bb082a9362c30a3e8a4f160de1f133ca7304a3d5b7640d7aeff0517884dbeb9"
+            "grant_id": "grant_d5e5d422f8fd62ff025427b51c94da2595870e48b8d836c27371f0ed7d91dff8",
+            "epoch_id": "epoch_d2813bb20ba59e251f484229891341b4205f8cef6e01df7957609d5662b7f863"
           }
         ],
         "orders": [
@@ -95304,8 +95290,8 @@
             "replaces_symbol": null,
             "industry_at_entry": "optical",
             "industry_manifest_sha256": "03f42c5066fb8e1c7b2f8e1b7dd38d508d8053f548ebb5596317ce587d7cffd0",
-            "grant_id": "grant_33bd69bda1fb8e17f673c51f45a52d5a3a8e567d1fe455dcb0c4130ab3cbc10c",
-            "epoch_id": "epoch_7bb082a9362c30a3e8a4f160de1f133ca7304a3d5b7640d7aeff0517884dbeb9"
+            "grant_id": "grant_d5e5d422f8fd62ff025427b51c94da2595870e48b8d836c27371f0ed7d91dff8",
+            "epoch_id": "epoch_d2813bb20ba59e251f484229891341b4205f8cef6e01df7957609d5662b7f863"
           }
         ],
         "effective_config_sha256": "c05faf292a508d825cb4aaee09de65a5fb5a8db6acae6d21348ffcbec86d954b"
@@ -95338,8 +95324,8 @@
           "replaces_symbol": null,
           "industry_at_entry": "optical",
           "industry_manifest_sha256": "03f42c5066fb8e1c7b2f8e1b7dd38d508d8053f548ebb5596317ce587d7cffd0",
-          "grant_id": "grant_33bd69bda1fb8e17f673c51f45a52d5a3a8e567d1fe455dcb0c4130ab3cbc10c",
-          "epoch_id": "epoch_7bb082a9362c30a3e8a4f160de1f133ca7304a3d5b7640d7aeff0517884dbeb9"
+          "grant_id": "grant_d5e5d422f8fd62ff025427b51c94da2595870e48b8d836c27371f0ed7d91dff8",
+          "epoch_id": "epoch_d2813bb20ba59e251f484229891341b4205f8cef6e01df7957609d5662b7f863"
         }
       ],
       "account_after": {
@@ -95377,12 +95363,12 @@
                 "replaces_symbol": null,
                 "industry_at_entry": "optical",
                 "industry_manifest_sha256": "03f42c5066fb8e1c7b2f8e1b7dd38d508d8053f548ebb5596317ce587d7cffd0",
-                "grant_id": "grant_33bd69bda1fb8e17f673c51f45a52d5a3a8e567d1fe455dcb0c4130ab3cbc10c",
-                "epoch_id": "epoch_7bb082a9362c30a3e8a4f160de1f133ca7304a3d5b7640d7aeff0517884dbeb9"
+                "grant_id": "grant_d5e5d422f8fd62ff025427b51c94da2595870e48b8d836c27371f0ed7d91dff8",
+                "epoch_id": "epoch_d2813bb20ba59e251f484229891341b4205f8cef6e01df7957609d5662b7f863"
               }
             ],
-            "grant_id": "grant_33bd69bda1fb8e17f673c51f45a52d5a3a8e567d1fe455dcb0c4130ab3cbc10c",
-            "epoch_id": "epoch_7bb082a9362c30a3e8a4f160de1f133ca7304a3d5b7640d7aeff0517884dbeb9"
+            "grant_id": "grant_d5e5d422f8fd62ff025427b51c94da2595870e48b8d836c27371f0ed7d91dff8",
+            "epoch_id": "epoch_d2813bb20ba59e251f484229891341b4205f8cef6e01df7957609d5662b7f863"
           }
         },
         "pending_orders": [
@@ -95410,8 +95396,8 @@
             "replaces_symbol": null,
             "industry_at_entry": "optical",
             "industry_manifest_sha256": "03f42c5066fb8e1c7b2f8e1b7dd38d508d8053f548ebb5596317ce587d7cffd0",
-            "grant_id": "grant_33bd69bda1fb8e17f673c51f45a52d5a3a8e567d1fe455dcb0c4130ab3cbc10c",
-            "epoch_id": "epoch_7bb082a9362c30a3e8a4f160de1f133ca7304a3d5b7640d7aeff0517884dbeb9"
+            "grant_id": "grant_d5e5d422f8fd62ff025427b51c94da2595870e48b8d836c27371f0ed7d91dff8",
+            "epoch_id": "epoch_d2813bb20ba59e251f484229891341b4205f8cef6e01df7957609d5662b7f863"
           }
         ],
         "order_ledger": [
@@ -95449,8 +95435,8 @@
             "replaces_symbol": null,
             "industry_at_entry": "optical",
             "industry_manifest_sha256": "03f42c5066fb8e1c7b2f8e1b7dd38d508d8053f548ebb5596317ce587d7cffd0",
-            "grant_id": "grant_33bd69bda1fb8e17f673c51f45a52d5a3a8e567d1fe455dcb0c4130ab3cbc10c",
-            "epoch_id": "epoch_7bb082a9362c30a3e8a4f160de1f133ca7304a3d5b7640d7aeff0517884dbeb9"
+            "grant_id": "grant_d5e5d422f8fd62ff025427b51c94da2595870e48b8d836c27371f0ed7d91dff8",
+            "epoch_id": "epoch_d2813bb20ba59e251f484229891341b4205f8cef6e01df7957609d5662b7f863"
           }
         ],
         "next_order_sequence": 2,
@@ -95482,8 +95468,8 @@
             "replaces_symbol": null,
             "industry_at_entry": "optical",
             "industry_manifest_sha256": "03f42c5066fb8e1c7b2f8e1b7dd38d508d8053f548ebb5596317ce587d7cffd0",
-            "grant_id": "grant_33bd69bda1fb8e17f673c51f45a52d5a3a8e567d1fe455dcb0c4130ab3cbc10c",
-            "epoch_id": "epoch_7bb082a9362c30a3e8a4f160de1f133ca7304a3d5b7640d7aeff0517884dbeb9"
+            "grant_id": "grant_d5e5d422f8fd62ff025427b51c94da2595870e48b8d836c27371f0ed7d91dff8",
+            "epoch_id": "epoch_d2813bb20ba59e251f484229891341b4205f8cef6e01df7957609d5662b7f863"
           }
         ],
         "broker_as_of": "",
@@ -95614,7 +95600,7 @@
         "strategic_rearm_date": "",
         "strategic_candidate_signature": "strategic_qualification:EMERGING_SECULAR:sz300308:optical,sz300394:optical:evidence=reversal_industry",
         "strategic_previous_symbols": [],
-        "account_identity": "account_f6dfe6c429db0dbcc24f61f2c88fc1b9d76b9ca4c1adc9684a45deca51ea9fb0",
+        "account_identity": "account_118fc68a3efb36414a55ad945bdd0e639fa59412dc874d50edabd779733e9a04",
         "strategic_qualification": {
           "candidate_symbol": "sz300308",
           "qualification_signature": "strategic_qualification:EMERGING_SECULAR:sz300308:optical,sz300394:optical:evidence=reversal_industry",
@@ -95658,7 +95644,7 @@
           "evidence_family_status": {}
         },
         "strategic_grant": {
-          "grant_id": "grant_33bd69bda1fb8e17f673c51f45a52d5a3a8e567d1fe455dcb0c4130ab3cbc10c",
+          "grant_id": "grant_d5e5d422f8fd62ff025427b51c94da2595870e48b8d836c27371f0ed7d91dff8",
           "candidate_symbol": "sz300308",
           "qualification_signature": "strategic_qualification:EMERGING_SECULAR:sz300308:optical,sz300394:optical:evidence=reversal_industry",
           "qualification_route": "reversal_industry",
@@ -95679,9 +95665,9 @@
           "status": "COMPLETED",
           "expiry_reason": "",
           "previous_grant_id": "",
-          "account_identity": "account_f6dfe6c429db0dbcc24f61f2c88fc1b9d76b9ca4c1adc9684a45deca51ea9fb0",
-          "production_source_identity": "3f605ca6e2cb7d0f72e508a7f3e789333511b8aa107fa08c98d00a31b30b59c0",
-          "epoch_id": "epoch_7bb082a9362c30a3e8a4f160de1f133ca7304a3d5b7640d7aeff0517884dbeb9",
+          "account_identity": "account_118fc68a3efb36414a55ad945bdd0e639fa59412dc874d50edabd779733e9a04",
+          "production_source_identity": "1b1b9e2a60a9899e14bb910bb0a836136912aaa5c2bcfe3b2e142d2c40cf819d",
+          "epoch_id": "epoch_d2813bb20ba59e251f484229891341b4205f8cef6e01df7957609d5662b7f863",
           "qualification_quorum": "FULL_COHORT",
           "authorization_id": ""
         },
@@ -95729,28 +95715,28 @@
         },
         "strategic_epochs": [
           {
-            "epoch_id": "epoch_7bb082a9362c30a3e8a4f160de1f133ca7304a3d5b7640d7aeff0517884dbeb9",
+            "epoch_id": "epoch_d2813bb20ba59e251f484229891341b4205f8cef6e01df7957609d5662b7f863",
             "owner_symbol": "sz300308",
             "qualification_signature": "strategic_qualification:EMERGING_SECULAR:sz300308:optical,sz300394:optical:evidence=reversal_industry",
             "qualification_route": "reversal_industry",
             "qualification_quorum": "FULL_COHORT",
-            "grant_id": "grant_33bd69bda1fb8e17f673c51f45a52d5a3a8e567d1fe455dcb0c4130ab3cbc10c",
+            "grant_id": "grant_d5e5d422f8fd62ff025427b51c94da2595870e48b8d836c27371f0ed7d91dff8",
             "opened_session": "2023-01-04",
             "first_fill_session": "2023-01-05",
             "active_session": "2023-01-05",
             "closed_session": "",
             "close_reason": "",
             "previous_epoch_id": "",
-            "source_identity": "3f605ca6e2cb7d0f72e508a7f3e789333511b8aa107fa08c98d00a31b30b59c0",
+            "source_identity": "1b1b9e2a60a9899e14bb910bb0a836136912aaa5c2bcfe3b2e142d2c40cf819d",
             "config_identity": "config:c05faf292a508d825cb4aaee09de65a5fb5a8db6acae6d21348ffcbec86d954b",
             "evidence_sha256": "0c5c989c3ba83eabd120e4d774c43905ec76763398331820d75a7dcadde7e290",
             "realized_status": "ACTIVE",
             "target_weight": 0.95,
             "full_weight": 0.95,
-            "account_identity": "account_f6dfe6c429db0dbcc24f61f2c88fc1b9d76b9ca4c1adc9684a45deca51ea9fb0"
+            "account_identity": "account_118fc68a3efb36414a55ad945bdd0e639fa59412dc874d50edabd779733e9a04"
           }
         ],
-        "active_strategic_epoch_id": "epoch_7bb082a9362c30a3e8a4f160de1f133ca7304a3d5b7640d7aeff0517884dbeb9",
+        "active_strategic_epoch_id": "epoch_d2813bb20ba59e251f484229891341b4205f8cef6e01df7957609d5662b7f863",
         "protected_weight_epoch_ids": {},
         "strategic_restore_epoch_ids": {},
         "recovery_owner_epoch_id": "",
@@ -95821,13 +95807,13 @@
           "sz300604",
           "sz300666"
         ],
-        "code_hash": "3f605ca6e2cb7d0f72e508a7f3e789333511b8aa107fa08c98d00a31b30b59c0"
+        "code_hash": "1b1b9e2a60a9899e14bb910bb0a836136912aaa5c2bcfe3b2e142d2c40cf819d"
       },
-      "account_after_sha256": "b58f43dbad982897eed1e8e6d7707f19e96aa49776fb31b46822cf29ec8dcd57"
+      "account_after_sha256": "1131205b9837e3198efff79fe0c345e0db2ce3a2008ceaa5a1c0a358a6c9d5b0"
     }
   },
   "contract_id": "uquant-public-api-v1",
-  "contract_sha256": "782a46e16c6d36da8b844b444a4062089841158a7d492e094633efee26820c28",
+  "contract_sha256": "42160335cbc326744af698dee187d1683a623bec35108b0958bb41377ef0f0f3",
   "recorded_on": "2026-08-28",
   "schema_version": 1
 }

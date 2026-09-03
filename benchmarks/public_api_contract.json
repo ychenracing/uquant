@@ -68955,7 +68955,7 @@
               {
                 "name": "shard_manifests",
                 "kind": "POSITIONAL_OR_KEYWORD",
-                "annotation": "Sequence[Mapping[str, object]]",
+                "annotation": "Iterable[Mapping[str, object]]",
                 "default": {
                   "kind": "required"
                 }
@@ -74034,7 +74034,7 @@
               {
                 "name": "shard_manifests",
                 "kind": "POSITIONAL_OR_KEYWORD",
-                "annotation": "Sequence[Mapping[str, object]]",
+                "annotation": "Iterable[Mapping[str, object]]",
                 "default": {
                   "kind": "required"
                 }
@@ -95813,7 +95813,7 @@
     }
   },
   "contract_id": "uquant-public-api-v1",
-  "contract_sha256": "42160335cbc326744af698dee187d1683a623bec35108b0958bb41377ef0f0f3",
+  "contract_sha256": "c7eb22cbed0f82306bb371f3888f16ce98efbcf27922964fa30c3ac0fcd8e220",
   "recorded_on": "2026-08-28",
   "schema_version": 1
 }

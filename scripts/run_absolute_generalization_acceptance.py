@@ -7,7 +7,7 @@ import argparse
 import hashlib
 import shutil
 import subprocess  # nosec B404
-from collections.abc import Mapping, Sequence
+from collections.abc import Iterator, Mapping, Sequence
 from dataclasses import dataclass
 from pathlib import Path
 from typing import cast
@@ -508,23 +508,46 @@ def _read_manifest(path: Path) -> Mapping[str, object]:
 def _discover_final_manifests(
     options: RunnerOptions,
     contract: AbsoluteGeneralizationContract,
-) -> tuple[Mapping[str, object], ...]:
+) -> Iterator[Mapping[str, object]]:
     root = cast(Path, options.shard_root)
     validate_atomic_output_path(root)
     if root.is_symlink() or not root.is_dir():
         raise ValueError("absolute generalization shard root is missing or a symlink")
     prefix = _safe_segment(cast(str, options.artifact_prefix), label="artifact prefix")
     run_id = _safe_segment(options.run_id, label="run identity")
-    expected_names = tuple(
-        f"{prefix}-{run_id}-attempt-{options.run_attempt}-{shard}"
-        for shard in CANONICAL_SHARDS
+    name_prefix = f"{prefix}-{run_id}-attempt-"
+    artifacts: dict[tuple[int, str], Path] = {}
+    for directory in root.iterdir():
+        if not directory.name.startswith(name_prefix):
+            raise ValueError("absolute generalization final artifact directory set differs")
+        attempt_text, separator, shard = directory.name[len(name_prefix) :].partition("-")
+        if (
+            not separator
+            or not attempt_text.isascii()
+            or not attempt_text.isdecimal()
+            or shard not in CANONICAL_SHARDS
+        ):
+            raise ValueError("absolute generalization final artifact directory set differs")
+        attempt = int(attempt_text)
+        key = (attempt, shard)
+        if (
+            attempt_text != str(attempt)
+            or attempt < 1
+            or attempt > options.run_attempt
+            or key in artifacts
+        ):
+            raise ValueError("absolute generalization final artifact directory set differs")
+        artifacts[key] = directory
+    complete_attempts = tuple(
+        attempt
+        for attempt in range(1, options.run_attempt + 1)
+        if all((attempt, shard) in artifacts for shard in CANONICAL_SHARDS)
     )
-    observed_names = tuple(sorted(item.name for item in root.iterdir()))
-    if set(observed_names) != set(expected_names) or len(observed_names) != len(expected_names):
+    if not complete_attempts:
         raise ValueError("absolute generalization final artifact directory set differs")
-    manifests: list[Mapping[str, object]] = []
-    for shard, directory_name in zip(CANONICAL_SHARDS, expected_names, strict=True):
-        directory = root / directory_name
+    selected_attempt = complete_attempts[-1]
+    for shard in CANONICAL_SHARDS:
+        directory = artifacts[(selected_attempt, shard)]
         if directory.is_symlink() or not directory.is_dir():
             raise ValueError("absolute generalization artifact directory is unsafe")
         entries = tuple(item.name for item in directory.iterdir())
@@ -533,10 +556,13 @@ def _discover_final_manifests(
         raw = _read_manifest(directory / "manifest.json")
         if raw.get("shard") != shard:
             raise ValueError("absolute generalization artifact shard differs")
-        if raw.get("run_id") != options.run_id or raw.get("run_attempt") != options.run_attempt:
+        if (
+            raw.get("run_id") != options.run_id
+            or raw.get("run_attempt") != selected_attempt
+        ):
             raise ValueError("absolute generalization artifact run identity differs")
-        manifests.append(raw)
-    return tuple(manifests)
+        yield raw
+        del raw
 
 
 def _write_final_report(

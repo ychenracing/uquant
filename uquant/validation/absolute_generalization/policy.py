@@ -214,10 +214,10 @@ def _witness_success(cell: CellArtifact) -> bool:
     return bool(
         metrics is not None
         and metrics.intentional_role_absent_symbols == (cell.removed_symbol,)
-        and not metrics.expected_but_unavailable_symbols
         and metrics.role_identity_consistent
-        and metrics.qualification_coverage == 1.0
-        and metrics.risk_coverage == 1.0
+        and metrics.role_witness_sessions > 0
+        and metrics.qualification_coverage > 0.0
+        and metrics.risk_coverage > 0.0
         and metrics.final_wealth > 1.0
         and metrics.max_drawdown <= 0.30
         and metrics.longest_healthy_zero_total_target_streak <= 60

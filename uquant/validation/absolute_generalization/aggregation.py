@@ -6,8 +6,8 @@ import math
 import re
 import shutil
 import subprocess  # nosec B404 - fixed Git executable and argument vectors
-from collections.abc import Mapping, Sequence, Set
-from dataclasses import dataclass
+from collections.abc import Iterable, Mapping, Sequence, Set
+from dataclasses import dataclass, replace
 from pathlib import Path
 from types import MappingProxyType
 from typing import cast
@@ -200,6 +200,29 @@ class ShardManifest:
 
     def to_dict(self) -> dict[str, object]:
         return cast(dict[str, object], _thaw(self.document))
+
+    @property
+    def shard(self) -> str:
+        return cast(str, self.document["shard"])
+
+    @property
+    def status(self) -> str:
+        return cast(str, self.document["status"])
+
+
+@dataclass(frozen=True, slots=True)
+class _AggregationManifest:
+    """Validated shard facts without retaining raw replay payloads."""
+
+    document: Mapping[str, object]
+    cells: tuple[CellArtifact, ...]
+
+    def __post_init__(self) -> None:
+        object.__setattr__(
+            self,
+            "document",
+            cast(Mapping[str, object], _freeze_manifest(self.document)),
+        )
 
     @property
     def shard(self) -> str:
@@ -589,22 +612,52 @@ def build_error_shard_manifest(
     return seal_shard_manifest(raw, contract)
 
 
+def _aggregation_manifest(
+    raw: Mapping[str, object], contract: AbsoluteGeneralizationContract
+) -> _AggregationManifest:
+    document = _manifest_document(raw, contract)
+    if (document["head"], document["tree"]) != _checkout_identity():
+        raise ValueError("absolute generalization manifest differs from current checkout")
+    cells: list[CellArtifact] = []
+    for item in cast(Sequence[Mapping[str, object]], document["cells"]):
+        artifact = validate_cell_artifact(item, contract)
+        if (
+            artifact.identities.head != document["head"]
+            or artifact.identities.tree != document["tree"]
+        ):
+            raise ValueError("absolute generalization cell differs from manifest checkout")
+        cells.append(replace(artifact, replay_evidence=None))
+        del artifact
+    compact = {key: value for key, value in document.items() if key != "cells"}
+    return _AggregationManifest(compact, tuple(cells))
+
+
 def _manifest_set(
-    shard_manifests: Sequence[Mapping[str, object]],
+    shard_manifests: Iterable[Mapping[str, object]],
     contract: AbsoluteGeneralizationContract,
-) -> tuple[ShardManifest, ...]:
+) -> tuple[_AggregationManifest, ...]:
     expected = {*_SPECIAL_SHARDS, *(name for name, _symbols in contract.shards)}
-    raw_names = [item.get("shard") if isinstance(item, Mapping) else None for item in shard_manifests]
-    duplicates = {name for name in raw_names if raw_names.count(name) > 1}
-    if duplicates:
-        raise ValueError("absolute generalization duplicate shard")
-    unexpected = set(raw_names) - expected
-    if unexpected:
-        raise ValueError("absolute generalization unexpected shard")
-    missing = expected - set(raw_names)
+    names: set[object] = set()
+    manifests: list[_AggregationManifest] = []
+    iterator = iter(shard_manifests)
+    while True:
+        try:
+            raw = next(iterator)
+        except StopIteration:
+            break
+        name = raw.get("shard") if isinstance(raw, Mapping) else None
+        if type(name) is not str:
+            raise ValueError("absolute generalization unexpected shard")
+        if name in names:
+            raise ValueError("absolute generalization duplicate shard")
+        if name not in expected:
+            raise ValueError("absolute generalization unexpected shard")
+        names.add(name)
+        manifests.append(_aggregation_manifest(raw, contract))
+        del raw
+    missing = expected - names
     if missing:
         raise ValueError("absolute generalization missing shard")
-    manifests = tuple(validate_shard_manifest(raw, contract) for raw in shard_manifests)
     if any(item.document["mode"] != "canonical" for item in manifests):
         raise ValueError("absolute generalization final aggregation requires canonical mode")
     run_identities = {
@@ -613,11 +666,11 @@ def _manifest_set(
     }
     if len(run_identities) != 1:
         raise ValueError("absolute generalization manifest run identity differs")
-    return manifests
+    return tuple(manifests)
 
 
 def _validated_cells(
-    manifests: Sequence[ShardManifest], contract: AbsoluteGeneralizationContract
+    manifests: Sequence[_AggregationManifest], contract: AbsoluteGeneralizationContract
 ) -> tuple[CellArtifact, ...]:
     expected_by_shard = {name: set(symbols) for name, symbols in contract.shards}
     observed_ids: list[str] = []
@@ -625,12 +678,8 @@ def _validated_cells(
     for manifest in manifests:
         if manifest.shard not in expected_by_shard:
             continue
-        raw_cells = tuple(
-            cast(Mapping[str, object], _thaw(item))
-            for item in cast(Sequence[Mapping[str, object]], manifest.document["cells"])
-        )
-        ids = [cast(str, item.get("cell_id")) for item in raw_cells]
-        removed = [cast(str, item.get("removed_symbol")) for item in raw_cells]
+        ids = [item.cell_id for item in manifest.cells]
+        removed = [item.removed_symbol for item in manifest.cells]
         if len(ids) != len(set(ids)) or any(cell_id in observed_ids for cell_id in ids):
             raise ValueError("absolute generalization duplicate cell")
         observed_ids.extend(ids)
@@ -639,9 +688,9 @@ def _validated_cells(
             or set(ids) != {f"remove-{symbol}" for symbol in expected_by_shard[manifest.shard]}
         ):
             raise ValueError("absolute generalization canonical cell coverage differs")
-        if manifest.status == "ERROR" and raw_cells:
+        if manifest.status == "ERROR" and manifest.cells:
             raise ValueError("absolute generalization ERROR manifest contains cells")
-        artifacts.extend(validate_cell_artifact(item, contract) for item in raw_cells)
+        artifacts.extend(manifest.cells)
     if len(set(observed_ids)) != len(observed_ids):
         raise ValueError("absolute generalization duplicate cell")
     expected_ids = {f"remove-{symbol}" for symbol in contract.canonical_universe}
@@ -651,7 +700,7 @@ def _validated_cells(
 
 
 def _absolute_payload(
-    manifests: Sequence[ShardManifest], shard: str, name: str
+    manifests: Sequence[_AggregationManifest], shard: str, name: str
 ) -> object:
     selected = next(item for item in manifests if item.shard == shard)
     return selected.document[name] if selected.status == "COMPLETE" else None
@@ -704,7 +753,7 @@ def _upstream_codes(
 
 
 def _runner_failures(
-    manifests: Sequence[ShardManifest],
+    manifests: Sequence[_AggregationManifest],
     errors: Sequence[CellArtifact],
     missing: int,
     complete_metrics: int,
@@ -726,7 +775,7 @@ def _runner_failures(
 
 
 def _report_provenance(
-    manifests: Sequence[ShardManifest],
+    manifests: Sequence[_AggregationManifest],
 ) -> dict[str, object]:
     first = manifests[0].document
     return {
@@ -748,7 +797,7 @@ def _report_provenance(
 
 
 def aggregate_acceptance(
-    shard_manifests: Sequence[Mapping[str, object]],
+    shard_manifests: Iterable[Mapping[str, object]],
     contract: AbsoluteGeneralizationContract,
     *,
     upstream_success: bool = True,

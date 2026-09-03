@@ -72,7 +72,7 @@ def test_aggregation_accepts_a_single_pass_manifest_iterable() -> None:
     assert report.passed is True
 
 
-def test_witness_resilience_accepts_causal_unavailable_reference_sessions() -> None:
+def test_witness_policy_accepts_derived_unavailable_reference_facts() -> None:
     contract = load_absolute_generalization_contract()
     scenario = next(
         item

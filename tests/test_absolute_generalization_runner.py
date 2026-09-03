@@ -623,6 +623,41 @@ def test_final_cli_reuses_a_complete_prior_attempt_after_failed_job_rerun(
     assert report["provenance"]["run_attempt"] == 3
 
 
+@pytest.mark.parametrize("alias", ("03", "\u0663"))
+def test_final_cli_rejects_noncanonical_attempt_directory_names(
+    tmp_path: Path,
+    alias: str,
+) -> None:
+    root = tmp_path / "shards"
+    root.mkdir()
+    _write_final_manifests(root)
+    for shard in CANONICAL_SHARDS:
+        canonical = root / f"absolute-generalization-transport-run-attempt-3-{shard}"
+        canonical.rename(
+            root / f"absolute-generalization-transport-run-attempt-{alias}-{shard}"
+        )
+
+    with pytest.raises(ValueError, match="artifact directory set"):
+        run(parse_cli(_final_args(root, tmp_path / "report.json")))
+
+
+def test_final_cli_rejects_duplicate_numeric_attempt_directory_aliases(
+    tmp_path: Path,
+) -> None:
+    root = tmp_path / "shards"
+    root.mkdir()
+    _write_final_manifests(root)
+    for shard in CANONICAL_SHARDS:
+        canonical = root / f"absolute-generalization-transport-run-attempt-3-{shard}"
+        shutil.copytree(
+            canonical,
+            root / f"absolute-generalization-transport-run-attempt-03-{shard}",
+        )
+
+    with pytest.raises(ValueError, match="artifact directory set"):
+        run(parse_cli(_final_args(root, tmp_path / "report.json")))
+
+
 def test_final_cli_rejects_final_report_write_readback_mismatch(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:

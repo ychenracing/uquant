@@ -523,13 +523,21 @@ def _discover_final_manifests(
         attempt_text, separator, shard = directory.name[len(name_prefix) :].partition("-")
         if (
             not separator
+            or not attempt_text.isascii()
             or not attempt_text.isdecimal()
-            or int(attempt_text) < 1
-            or int(attempt_text) > options.run_attempt
             or shard not in CANONICAL_SHARDS
         ):
             raise ValueError("absolute generalization final artifact directory set differs")
-        artifacts[(int(attempt_text), shard)] = directory
+        attempt = int(attempt_text)
+        key = (attempt, shard)
+        if (
+            attempt_text != str(attempt)
+            or attempt < 1
+            or attempt > options.run_attempt
+            or key in artifacts
+        ):
+            raise ValueError("absolute generalization final artifact directory set differs")
+        artifacts[key] = directory
     complete_attempts = tuple(
         attempt
         for attempt in range(1, options.run_attempt + 1)

@@ -59,14 +59,20 @@ def _execution_args(*extra: str, shard: str = "loo-a") -> list[str]:
     ]
 
 
-def _final_args(root: Path, output: Path, upstream: str = "success") -> list[str]:
+def _final_args(
+    root: Path,
+    output: Path,
+    upstream: str = "success",
+    *,
+    run_attempt: int = 3,
+) -> list[str]:
     return [
         "--shard",
         "final",
         "--run-id",
         "transport-run",
         "--run-attempt",
-        "3",
+        str(run_attempt),
         "--output",
         str(output),
         "--shard-root",
@@ -599,6 +605,22 @@ def test_final_cli_reads_exact_eight_manifests_and_returns_report_conjunction(
     assert report["canonical_sha256"] == canonical_json_sha256(
         {key: value for key, value in report.items() if key != "canonical_sha256"}
     )
+
+
+def test_final_cli_reuses_a_complete_prior_attempt_after_failed_job_rerun(
+    tmp_path: Path,
+) -> None:
+    root = tmp_path / "shards"
+    root.mkdir()
+    _write_final_manifests(root)
+    output = tmp_path / "report.json"
+
+    code = run(parse_cli(_final_args(root, output, run_attempt=4)))
+    report = json.loads(output.read_text(encoding="utf-8"))
+
+    assert code == 0
+    assert report["passed"] is True
+    assert report["provenance"]["run_attempt"] == 3
 
 
 def test_final_cli_rejects_final_report_write_readback_mismatch(

@@ -4,6 +4,7 @@ from dataclasses import FrozenInstanceError, replace
 
 import pytest
 from _absolute_generalization_acceptance_fixture import (
+    _cell_raw,
     cell,
     checkout_identity,
     manifest,
@@ -17,10 +18,13 @@ from uquant.validation.absolute_generalization import (
     AcceptanceReport,
     aggregate_acceptance,
     build_error_shard_manifest,
+    build_leave_one_out_scenarios,
     load_absolute_generalization_contract,
     seal_shard_manifest,
+    validate_cell_artifact,
     validate_shard_manifest,
 )
+from uquant.validation.absolute_generalization.policy import evaluate_witness_resilience
 
 
 def test_complete_static_manifests_recompute_one_exact_green_conjunction() -> None:
@@ -56,6 +60,48 @@ def test_complete_static_manifests_recompute_one_exact_green_conjunction() -> No
         report.passed = False  # type: ignore[misc]
     with pytest.raises(ValueError, match="conjunction"):
         replace(report, passed=False)
+
+
+def test_aggregation_accepts_a_single_pass_manifest_iterable() -> None:
+    contract = load_absolute_generalization_contract()
+
+    report = aggregate_acceptance(iter(successful_manifests()), contract)
+
+    assert report.runner_success is True
+    assert report.capability_pass is True
+    assert report.passed is True
+
+
+def test_witness_resilience_accepts_causal_unavailable_reference_sessions() -> None:
+    contract = load_absolute_generalization_contract()
+    scenario = next(
+        item
+        for item in build_leave_one_out_scenarios(contract)
+        if item.removed_symbol == contract.required_witnesses[0]
+    )
+    base = validate_cell_artifact(_cell_raw(scenario), contract)
+    assert base.metrics is not None
+    cells = tuple(
+        replace(
+            base,
+            cell_id=f"remove-{symbol}",
+            removed_symbol=symbol,
+            metrics=replace(
+                base.metrics,
+                intentional_role_absent_symbols=(symbol,),
+                expected_but_unavailable_symbols=("prelisting-reference",),
+                qualification_coverage=0.98,
+                risk_coverage=0.98,
+            ),
+        )
+        for symbol in contract.required_witnesses
+    )
+
+    result = evaluate_witness_resilience(cells, contract)
+
+    assert result.passed is True
+    assert result.failures == ()
+    assert result.evidence["fraction"] == 1.0
 
 
 def test_strict_error_manifest_encodes_upstream_failure_in_the_report() -> None:

@@ -112,6 +112,9 @@ def test_absolute_final_job_always_aggregates_and_blocks_on_one_conjunction() ->
     download = _step(final, "Download every sealed shard manifest")
     assert download["if"] == "${{ always() }}"
     assert download["with"]["merge-multiple"] == "false"
+    assert download["with"]["pattern"] == (
+        "absolute-generalization-${{ github.run_id }}-attempt-*"
+    )
     aggregate = _step(final, "Aggregate exact eight shard manifests")
     assert aggregate["if"] == "${{ always() }}"
     assert aggregate["env"] == {

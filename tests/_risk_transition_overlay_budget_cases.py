@@ -85,6 +85,7 @@ def test_acute_overlay_preserves_existing_zero_gross_crisis_owner() -> None:
                 symbol,
                 shares=100,
                 avg_cost=100.0,
+                entry_date=str(dates[-30].date()),
                 lifecycle="RECOVERY",
             )
             for symbol in symbols
@@ -145,6 +146,10 @@ def test_protected_restore_cannot_use_overweight_members_to_hide_a_missing_membe
         for symbol in symbols[:2]
     }
     account.protected_weights = {symbol: 0.30 for symbol in symbols}
+    # The flat member retains an explicit strategic restoration right.
+    account.strategic_epoch = 1
+    account.strategic_cohort_symbols = list(symbols)
+    account.strategic_cohort_targets = dict(account.protected_weights)
     cfg = _isolated_risk_config()
 
     _assess(

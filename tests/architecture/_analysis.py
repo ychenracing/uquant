@@ -385,7 +385,6 @@ def public_api_snapshot(
         },
         "cli_help": cli_help_snapshot(),
         "typical_exceptions": typical_exception_snapshot(),
-        "decision_fill_account_trace": decision_fill_account_trace(root),
     }
 
 def _authority(path: str) -> str:

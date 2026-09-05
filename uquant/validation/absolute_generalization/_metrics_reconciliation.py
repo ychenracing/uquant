@@ -567,8 +567,9 @@ def _downstream_chain_flags(*, orders: Sequence[tuple[str, Mapping[str, object]]
         fill.get("epoch_id") == epoch.epoch_id
         and fill.get("grant_id") == epoch.grant_id
         and fill.get("symbol") == epoch.owner_symbol
-        and metric_iso_session(fill.get("fill_date"), label="fill session") == epoch.fill_session
-        and epoch.fill_session == epoch.active_session
+        and fill.get("side") == "BUY"
+        and metric_positive_number(fill.get("shares")) > 0.0
+        and metric_iso_session(fill.get("fill_date"), label="fill session") == epoch.active_session
         for fill in fills
         for epoch in epochs
     )

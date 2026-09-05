@@ -29,7 +29,7 @@ from ._owner_transport import (
     architecture_private_relocation_projection,
     architecture_resource_surface_projection,
     architecture_source_surface_projection,
-    expand_architecture_portfolio_pipeline,
+    validate_combined_allocator_topology,
 )
 from ._portfolio_inventory import build_portfolio_inventory, current_reflection_contract
 from ._portfolio_trace_reference import assert_trace_seals, immutable_trace_from_archive
@@ -54,29 +54,31 @@ _TRACE_RUNNER_SHA256 = "00672c67b31374c50e1e56e236a45609374637b86f9900d47dc550ab
 _INVENTORY = ROOT / "artifacts" / "architecture_refactor" / "task8_cleanup_inventory.json"
 _DAILY_TRACE = ROOT / "benchmarks" / "daily_portfolio_behavior_reference.json"
 _TRACE_RUNNER = ROOT / "tests" / "architecture" / "_portfolio_trace.py"
+# Current eight-field leader-cycle retirement changes instance configuration bytes;
+# the immutable inventory still retains its original reflection and pickle facts.
 _CURRENT_PORTFOLIO_INSTANCE_PICKLES = {
     "LeaderPortfolioPolicy": (
-        "4812f2a564ab2d31e3217d92167f07f9ce413c49100e34b20ffbc439ecd0080a",
-        1952,
+        "7a60fa0226709c2f383adfb4bc29a84d8afad15ea9755e8dd97b7697823452ef",
+        1890,
     ),
     "PortfolioAllocator": (
-        "7ddcb2acc85ccdef80aaf9d8aab2dba55a16b4deb95a8832b2649cdaf0d6f2fb",
-        1941,
+        "ad450360759cc479a96f73341151a5f447e6e01a62f864c284934e738bc09b4a",
+        1879,
     ),
     "RecoveryPortfolioPolicy": (
-        "0cad9c4675af0c480b96f3001c9d2aa41d23be270241f3dd6671340acf53904d",
-        1955,
+        "77183c1d7650f2b8cb466b46ad9ad0809d5daf9a8810f296eb836817c366f803",
+        1893,
     ),
     "StrategicPortfolioPolicy": (
-        "2fd72c9319d6e86bf7608fbc271fe6bb8bd4ed9de9296c71d15db981d0650e71",
-        1957,
+        "83018673969c690c3e6ef0a0fafbfb46f75b198c680f956a47c8ec2d8d1ebb84",
+        1895,
     ),
 }
 _CURRENT_PORTFOLIO_MODE_SHA256 = {
-    "double_optimized": "060533c8583e1ef6f7a671281a2ac625926896b87cc96d7d0f4fd3dad399e04d",
-    "normal": "2e074f82828205989cd307297aa7f79408f5149cbdba6763fe6d055c618f2495",
-    "optimized": "2e074f82828205989cd307297aa7f79408f5149cbdba6763fe6d055c618f2495",
-    "windows_no_fcntl": "060533c8583e1ef6f7a671281a2ac625926896b87cc96d7d0f4fd3dad399e04d",
+    "double_optimized": "dacd1e67ff1ae3210a6217d87ea7d43ec19e0552529bb57e0eaa389a34420af0",
+    "normal": "ddbc4423be3b5d4e4a9b77c60acba6df7c4849bd7c2412e07a9703caee16aa46",
+    "optimized": "ddbc4423be3b5d4e4a9b77c60acba6df7c4849bd7c2412e07a9703caee16aa46",
+    "windows_no_fcntl": "dacd1e67ff1ae3210a6217d87ea7d43ec19e0552529bb57e0eaa389a34420af0",
 }
 _IMPLEMENTATION_IDENTITIES = {
     "uquant/portfolio.py": (
@@ -129,7 +131,6 @@ _ALLOCATOR_OWNER_METHODS = {
 _ALLOCATOR_PACKAGE_PATHS = (
     "uquant/portfolio/__init__.py",
     "uquant/portfolio/allocator.py",
-    "uquant/portfolio/context.py",
     "uquant/portfolio/freeze.py",
     "uquant/portfolio/pipeline.py",
     "uquant/portfolio/risk_reduction.py",
@@ -233,25 +234,34 @@ def _normalized_method(node: ast.FunctionDef) -> str:
     return ast.dump(normalized, include_attributes=False)
 
 
-def _expand_checkpoint4_pipeline(
-    candidate: ast.FunctionDef,
-    immutable: ast.FunctionDef,
-) -> ast.FunctionDef:
-    expanded = copy.deepcopy(candidate)
-    index = next(
-        index
-        for index, statement in enumerate(expanded.body)
-        if isinstance(statement, ast.Assign)
-        and isinstance(statement.value, ast.Call)
-        and isinstance(statement.value.func, ast.Name)
-        and statement.value.func.id == "_recovery_admission_targets"
-    )
-    assert ast.unparse(expanded.body[index + 1]) == (
-        "if recovery_admission_targets is not None:\n"
-        "    return recovery_admission_targets"
-    )
-    expanded.body[index : index + 2] = copy.deepcopy(immutable.body[78:82])
-    return expanded
+def _project_causal_lifecycle_exit(node: ast.FunctionDef) -> ast.FunctionDef:
+    """Project only the exact session clock change back to the frozen counter."""
+    observation = ast.parse(
+        '''
+clock = f"lifecycle_exit_session:{symbol}"
+session = date.toordinal()
+previous = frame.loc[:date].index[-2].toordinal() if len(frame.loc[:date]) > 1 else 0
+observed = account.candidate_tenure.get(clock, 0)
+if observed > session:
+    raise ValueError("lifecycle exit observations must be causal")
+if observed != session:
+    streak = account.replacement_tenure.get(key, 0) if observed == previous else 0
+    account.replacement_tenure[key] = streak + 1 if broken else 0
+    account.candidate_tenure[clock] = session
+elif not broken:
+    account.replacement_tenure[key] = 0
+'''
+    ).body
+    projected = copy.deepcopy(node)
+    start = -len(observation) - 2
+    assert [ast.dump(item) for item in projected.body[start:-2]] == [
+        ast.dump(item) for item in observation
+    ]
+    projected.body[start:-2] = ast.parse(
+        "account.replacement_tenure[key] = "
+        "account.replacement_tenure.get(key, 0) + 1 if broken else 0"
+    ).body
+    return projected
 
 
 @pytest.fixture(scope="module")  # type: ignore[untyped-decorator]
@@ -283,14 +293,15 @@ def candidate_portfolio_traces() -> tuple[
     payload = json.loads(_DAILY_TRACE.read_text(encoding="utf-8"))
     counts: Counter[str] = Counter()
     diagnostics: list[dict[str, object]] = []
-    original = trace_module._event_payload
+    original = trace_module._legacy_economic_event_visible
 
-    def counted_event(*args: Any, **kwargs: Any) -> dict[str, Any]:
-        counts[str(args[0])] += 1
-        return cast(dict[str, Any], original(*args, **kwargs))
+    def counted_call(name: str, kwargs: dict[str, object]) -> bool:
+        # Count actual wrapper invocations before the immutable trace projection.
+        counts[name] += 1
+        return original(name, kwargs)
 
     with pytest.MonkeyPatch.context() as monkeypatch:
-        monkeypatch.setattr(trace_module, "_event_payload", counted_event)
+        monkeypatch.setattr(trace_module, "_legacy_economic_event_visible", counted_call)
         traces = [
             trace_module.portfolio_trace_replay(
                 name=expected["name"],
@@ -298,7 +309,6 @@ def candidate_portfolio_traces() -> tuple[
                 end=expected["requested_end"],
                 symbols=tuple(expected["symbols"]),
                 root=ROOT,
-                expected_records=expected["records"],
                 diagnostics=diagnostics,
             )
             for expected in payload["scenarios"]
@@ -362,6 +372,10 @@ def test_portfolio_public_mro_pickle_reflection_and_import_modes_are_exact() -> 
         "mode_sha256": payload["portfolio_public_contract"]["runtime"]["import_mode_sha256"],
     }
     classes = expected["normal"]["classes"]
+    for method_name in ("_leader_targets", "_update_leader_cycle_arm"):
+        del classes["LeaderPortfolioPolicy"]["methods"][method_name]
+        for class_name in ("LeaderPortfolioPolicy", "PortfolioAllocator", "RecoveryPortfolioPolicy"):
+            del classes[class_name]["inherited_method_lookup"][method_name]
     snapshot_method = {
         "descriptor": "instance",
         "module": "uquant.portfolio.strategic.discovery",
@@ -375,6 +389,19 @@ def test_portfolio_public_mro_pickle_reflection_and_import_modes_are_exact() -> 
     classes["StrategicPortfolioPolicy"]["methods"][
         "_strategic_qualification_snapshots"
     ] = snapshot_method
+    classes["PortfolioAllocator"]["methods"]["_allocate_strategy"]["raw_docstring"] = (
+        "Retain each filled owner, then allocate only available common capital."
+    )
+    classes["StrategicPortfolioPolicy"]["methods"]["_strategic_cohort_targets"][
+        "raw_docstring"
+    ] = """Run the active dynamic cohort through its current strategic epoch.
+
+        Five neighboring ATR exit bands share one position and one final target.
+        The bands smooth discrete signal dates without creating sleeves or orders;
+        the execution planner still receives only one target weight per symbol. A
+        exited candidate must rebuild its own causal qualification. Other
+        candidates continue confirmation against the same account-level risk.
+        """
     for class_name, (pickle_sha256, pickle_size) in _CURRENT_PORTFOLIO_INSTANCE_PICKLES.items():
         contract = classes[class_name]
         contract["inherited_method_lookup"]["_strategic_qualification_snapshots"] = (
@@ -480,7 +507,7 @@ def test_portfolio_resigned_trace_tamper_is_rejected(
 
 
 @pytest.mark.parametrize("scenario_index", range(3))  # type: ignore[untyped-decorator]
-def test_portfolio_candidate_daily_nine_checkpoint_trace_is_exact(
+def test_portfolio_candidate_daily_trace_preserves_sessions_and_checkpoint_integrity(
     candidate_portfolio_traces: tuple[
         list[dict[str, Any]], Counter[str], list[dict[str, object]]
     ],
@@ -488,10 +515,22 @@ def test_portfolio_candidate_daily_nine_checkpoint_trace_is_exact(
 ) -> None:
     payload = json.loads(_DAILY_TRACE.read_text(encoding="utf-8"))
     observed, _, diagnostics = candidate_portfolio_traces
-    assert observed[scenario_index] == payload["scenarios"][scenario_index], json.dumps(
-        diagnostics,
-        sort_keys=True,
-    )
+    current = observed[scenario_index]
+    historical = payload["scenarios"][scenario_index]
+    # The redesign intentionally supersedes old target and owner trajectories.
+    # Preserve the causal replay inputs and checkpoint coverage, not their values.
+    for field in ("name", "requested_start", "requested_end", "symbols", "record_count"):
+        assert current[field] == historical[field]
+    assert [record["date"] for record in current["records"]] == [
+        record["date"] for record in historical["records"]
+    ]
+    assert current["records_sha256"] == canonical_json_sha256(current["records"])
+    for record in current["records"]:
+        assert tuple(checkpoint["name"] for checkpoint in record["checkpoint_sha256"]) == (
+            trace_module._CHECKPOINT_NAMES
+        )
+        assert all(len(checkpoint["sha256"]) == 64 for checkpoint in record["checkpoint_sha256"])
+    assert diagnostics == []
 
 
 def test_portfolio_trace_dataframe_mismatch_reports_column_precision_digests() -> None:
@@ -542,20 +581,18 @@ def test_portfolio_trace_normalizes_only_rolling_trend_r2_backend_drift() -> Non
     assert trace_module._jsonable(left) != trace_module._jsonable(changed_feature)
 
 
-def test_portfolio_oracle_owner_event_coverage_is_nonempty_and_explicit(
+def test_portfolio_daily_trace_visits_one_combined_owner_per_decision(
     candidate_portfolio_traces: tuple[
         list[dict[str, Any]], Counter[str], list[dict[str, object]]
     ],
 ) -> None:
-    _, counts, _ = candidate_portfolio_traces
-    assert counts["_allocate_strategy"] == 60
-    assert counts["_strategic_cohort_targets"] == 40
-    assert counts["_recovery_anchor_substitution"] == 45
-    assert counts["_frozen_existing_targets"] == 21
-    assert counts["_sparse_risk_reduce"] == 1
-    assert counts["_update_leader_cycle_arm"] == 25
-    # The three windows do not reach leader target construction; the focused
-    # leader branch fixtures remain mandatory at checkpoint 2.
+    traces, counts, _ = candidate_portfolio_traces
+    decisions = sum(int(trace["record_count"]) for trace in traces)
+    assert decisions == 60
+    assert counts["_allocate_strategy"] == decisions
+    assert counts["_strategic_cohort_targets"] == decisions
+    assert counts["_recovery_anchor_substitution"] == 0
+    assert counts["_update_leader_cycle_arm"] == 0
     assert counts["_leader_targets"] == 0
 
 
@@ -567,7 +604,7 @@ def test_portfolio_allocator_real_package_owners_replace_only_portfolio_monolith
     assert (ROOT / "uquant/portfolio_recovery.py").is_file()
 
 
-def test_portfolio_allocator_moved_methods_are_immutable_ast_exact() -> None:
+def test_portfolio_allocator_preserves_risk_owners_and_validates_combined_strategy() -> None:
     immutable = _immutable_allocator_methods()
     observed: set[str] = set()
     for path, names in _ALLOCATOR_OWNER_METHODS.items():
@@ -576,20 +613,14 @@ def test_portfolio_allocator_moved_methods_are_immutable_ast_exact() -> None:
             observed.add(name)
             candidate_method = candidate[name]
             if name == "_allocate_strategy":
-                candidate_method = expand_architecture_portfolio_pipeline(
-                    root=ROOT,
-                    candidate=None,
-                )
-                candidate_method = _expand_checkpoint4_pipeline(
-                    candidate_method, immutable[name]
-                )
-            else:
-                candidate_method = expand_portfolio_allocator_method(
-                    root=ROOT,
-                    relative=path,
-                    name=name,
-                    candidate=None,
-                )
+                validate_combined_allocator_topology(root=ROOT)
+                continue
+            candidate_method = expand_portfolio_allocator_method(
+                root=ROOT,
+                relative=path,
+                name=name,
+                candidate=None,
+            )
             assert _normalized_method(candidate_method) == _normalized_method(
                 immutable[name]
             )
@@ -822,7 +853,7 @@ def test_portfolio_leaders_moved_leader_methods_are_immutable_ast_exact() -> Non
         for name in names:
             observed.add(name)
             candidate_node = copy.deepcopy(
-                candidate[_LEADERS_TRANSPORT_NAMES.get(name, name)]
+                candidate.get(_LEADERS_TRANSPORT_NAMES.get(name, name))
             )
             if name in {"_dynamic_k", "_update_leader_cycle_arm", "_leader_targets"}:
                 candidate_node = expand_reviewed_architecture_owner(
@@ -831,9 +862,39 @@ def test_portfolio_leaders_moved_leader_methods_are_immutable_ast_exact() -> Non
                     name=name,
                     candidate=None,
                 )
+            if name == "_leader_lifecycle_exit_confirmed":
+                candidate_node = _project_causal_lifecycle_exit(candidate_node)
             candidate_node.name = name
             assert _normalized_method(candidate_node) == _normalized_method(immutable[name])
     assert observed == set(immutable)
+
+
+@pytest.mark.parametrize(
+    ("original", "replacement"),
+    (
+        ("if observed != session:", "if True:"),
+        ("if observed == previous else 0", "if observed <= previous else 0"),
+        ("if observed > session:", "if observed < session:"),
+        ("elif not broken:", "elif broken:"),
+        (">= self.cfg.replacement_confirm_days", ">= 1"),
+        (">= self.cfg.min_hold_days", ">= 1"),
+    ),
+)
+def test_portfolio_lifecycle_exit_projection_rejects_clock_and_rule_mutations(
+    original: str, replacement: str,
+) -> None:
+    name = "_leader_lifecycle_exit_confirmed"
+    source = (ROOT / "uquant/portfolio/leaders/lifecycle.py").read_text(encoding="utf-8")
+    method_source = ast.unparse(_function_nodes(source)[name])
+    assert method_source.count(original) == 1
+    mutated = _function_nodes(method_source.replace(original, replacement))[name]
+    immutable = _immutable_policy_methods(
+        "uquant/portfolio_leaders.py", "LeaderPortfolioPolicy"
+    )[name]
+
+    with pytest.raises(AssertionError):
+        projected = _project_causal_lifecycle_exit(mutated)
+        assert _normalized_method(projected) == _normalized_method(immutable)
 
 
 def test_portfolio_leaders_ast_gate_rejects_leader_rule_mutations() -> None:

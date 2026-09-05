@@ -262,15 +262,22 @@ def test_single_grant_case_is_diagnostic_and_reuses_only_complete_identity_cache
     assert cached["cache_hit"] is True
 
 
+@pytest.mark.parametrize(("status", "exit_code"), (("PASS", 0), ("FAIL", 1)))
 def test_grant_cli_dispatches_one_diagnostic_case(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
+    status: str,
+    exit_code: int,
 ) -> None:
     observed: dict[str, object] = {}
+    def run_case(**options: object) -> dict[str, str]:
+        observed.update(options)
+        return {"status": status}
+
     monkeypatch.setattr(
         grant_runner,
         "run_diagnostic_case",
-        lambda **options: observed.update(options),
+        run_case,
     )
     output = tmp_path / "grant.json"
     cache = tmp_path / "cache"
@@ -284,7 +291,7 @@ def test_grant_cli_dispatches_one_diagnostic_case(
             "--cache-dir",
             str(cache),
         ]
-    ) == 0
+    ) == exit_code
     assert observed == {
         "cache_dir": cache,
         "case_id": "native-sz300502",

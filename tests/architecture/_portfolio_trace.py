@@ -17,6 +17,8 @@ from uquant.models.account import AccountState
 from uquant.models.decision import RiskAssessment
 from uquant.portfolio import PortfolioAllocator
 
+from ._reviewed_owner_transport import RETIRED_LEADER_METHODS
+
 _PORTFOLIO_REFERENCE_COMMIT = "4b6bedb03fb7c58914d9d5032a2514c67f41f6ba"
 _PORTFOLIO_REFERENCE_TREE = "d3824f7c5d89521b8284b5de08cc1e82e3ab7ebd"
 
@@ -498,6 +500,9 @@ def portfolio_trace_replay(
 
     for stage, names in _STAGE_METHODS.items():
         for method_name in names:
+            if method_name in RETIRED_LEADER_METHODS:
+                assert not hasattr(PortfolioAllocator, method_name)
+                continue
             owner = _method_owner(method_name)
             descriptor = owner.__dict__[method_name]
             originals.append((owner, method_name, descriptor))

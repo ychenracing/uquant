@@ -18,11 +18,65 @@ class StrategicQualificationPolicy(Protocol):
 
 
 def reset_strategic_qualification_streaks(account: AccountState) -> None:
-    """Reset every candidate-bound strategic qualification counter."""
+    """Invalidate the grant candidate while retaining unrelated absolute evidence."""
+
+    if account.strategic_grant is not None:
+        reset_strategic_candidate_eligibility(account=account, symbol=account.strategic_grant.candidate_symbol)
 
     for key in tuple(account.replacement_tenure):
         if key.startswith("strategic_qualification:"):
             account.replacement_tenure[key] = 0
+
+
+def reset_strategic_candidate_eligibility(*, account: AccountState, symbol: str) -> None:
+    """Require fresh local confirmation after an invalidated grant or completed exit."""
+    for key in tuple(account.replacement_tenure):
+        if key.startswith("strategic_eligibility:") and key.endswith(f":{symbol}"):
+            account.replacement_tenure[key] = 0
+
+
+
+def strategic_candidate_confirmation(*, account: AccountState, symbol: str, route: str) -> int:
+    """Current absolute eligibility streak, never cohort or rank confirmation."""
+    return account.replacement_tenure.get(f"strategic_eligibility:{route}:{symbol}", 0)
+
+
+def observe_strategic_candidate_eligibility(
+    *, date: pd.Timestamp, snapshots: dict[str, dict[str, float]],
+    leaders: dict[str, LeaderScore], risk: RiskAssessment, account: AccountState,
+    cfg: SystemConfig,
+    independent_core_symbols: frozenset[str] = frozenset(),
+) -> dict[str, dict[str, int]]:
+    """Observe every absolute route predicate once per session, including during freezes."""
+    session = date.toordinal()
+    previous = account.candidate_tenure.get("strategic_eligibility_session", 0)
+    if session < previous:
+        raise ValueError("strategic eligibility observations must be causal")
+    routes = ("established", "transition", "transition_impulse", "persistent_industry", "reversal_industry")
+    current: dict[str, dict[str, int]] = {}
+    eligible_keys: set[str] = set()
+    for symbol in sorted(snapshots):
+        for route in routes:
+            if not strategic_candidate_meets_route(candidate_symbol=symbol, qualification_route=route,
+                                                   snapshots={symbol: snapshots[symbol]}, leaders=leaders,
+                                                   risk=risk, cfg=cfg):
+                continue
+            key = f"strategic_eligibility:{route}:{symbol}"
+            eligible_keys.add(key)
+            if session != previous:
+                account.replacement_tenure[key] = account.replacement_tenure.get(key, 0) + 1
+            current.setdefault(symbol, {})[route] = account.replacement_tenure.get(key, 0)
+        if symbol in independent_core_symbols and symbol in current:
+            key = f"strategic_eligibility:independent_core:{symbol}"
+            eligible_keys.add(key)
+            if session != previous:
+                account.replacement_tenure[key] = account.replacement_tenure.get(key, 0) + 1
+            current[symbol]["independent_core"] = account.replacement_tenure.get(key, 0)
+    for key in tuple(account.replacement_tenure):
+        if key.startswith("strategic_eligibility:") and key not in eligible_keys:
+            account.replacement_tenure[key] = 0
+    account.candidate_tenure["strategic_eligibility_session"] = session
+    return current
 
 
 def _known_industry(
@@ -183,32 +237,6 @@ def _reversal_candidates(
     )
 
 
-def _synchronized_groups(
-    self: StrategicQualificationPolicy,
-    *,
-    candidates: list[str],
-    primary_component: str,
-    snapshots: dict[str, dict[str, float]],
-    leaders: dict[str, LeaderScore],
-) -> list[list[str]]:
-    by_industry: dict[str, list[str]] = {}
-    for symbol in candidates:
-        by_industry.setdefault(leaders[symbol].industry, []).append(symbol)
-    groups = [
-        symbols[: self.cfg.strategic_cohort_size]
-        for symbols in by_industry.values()
-        if len(symbols) >= self.cfg.strategic_cohort_min_size
-    ]
-    groups.sort(
-        key=lambda symbols: (
-            -float(pd.Series([snapshots[s][primary_component] for s in symbols]).median()),
-            -float(pd.Series([snapshots[s]["leader_score"] for s in symbols]).median()),
-            leaders[symbols[0]].industry,
-        )
-    )
-    return groups
-
-
 @dataclass(frozen=True, slots=True)
 class StrategicRoute:
     symbols: list[str]
@@ -218,6 +246,7 @@ class StrategicRoute:
     reversal_groups: list[list[str]]
     anchor_state_observed: bool
     anchors_not_yet_armed: bool
+    owner_symbol: str = ""
 
 
 @dataclass(frozen=True, slots=True)
@@ -235,7 +264,7 @@ class QualifiedStrategicRoute:
     cash_rearm_authorized: bool
 
 
-def _decisive_reversal(
+def decisive_reversal(
     self: StrategicQualificationPolicy,
     *,
     synchronized: bool,
@@ -270,7 +299,7 @@ def _decisive_reversal(
     return decisive, pair
 
 
-def _established_route_durable(
+def established_route_durable(
     self: StrategicQualificationPolicy,
     *,
     symbols: list[str],
@@ -285,60 +314,38 @@ def _established_route_durable(
     )
 
 
-def select_strategic_route(
-    self: StrategicQualificationPolicy,
-    *,
-    snapshots: dict[str, dict[str, float]],
+def _canonical_route_witnesses(
+    self: StrategicQualificationPolicy, *, route: str, candidates: list[str],
     leaders: dict[str, LeaderScore],
-    risk: RiskAssessment,
-) -> StrategicRoute:
-    established = _established_candidates(self, snapshots, leaders)
-    transition = _transition_candidates(self, snapshots, leaders)
-    impulse = _impulse_candidates(self, snapshots=snapshots, leaders=leaders, risk=risk)
-    persistent = _persistent_candidates(self, snapshots, leaders)
-    reversal = _reversal_candidates(self, snapshots, leaders)
-    high_quality_groups = _synchronized_groups(
-        self,
-        candidates=transition,
-        primary_component="transition_score",
-        snapshots=snapshots,
-        leaders=leaders,
-    )
-    established_groups = _synchronized_groups(
-        self,
-        candidates=established,
-        primary_component="secular_score",
-        snapshots=snapshots,
-        leaders=leaders,
-    )
-    impulse_groups = _synchronized_groups(
-        self,
-        candidates=impulse,
-        primary_component="transition_score",
-        snapshots=snapshots,
-        leaders=leaders,
-    )
-    persistent_groups = _synchronized_groups(
-        self,
-        candidates=persistent,
-        primary_component="persistent_ret240",
-        snapshots=snapshots,
-        leaders=leaders,
-    )
-    reversal_groups = _synchronized_groups(
-        self,
-        candidates=reversal,
-        primary_component="ret20",
-        snapshots=snapshots,
-        leaders=leaders,
-    )
-    impulse_groups.sort(
-        key=lambda symbols: (
-            -float(pd.Series([snapshots[s]["ret20"] for s in symbols]).median()),
-            -float(pd.Series([snapshots[s]["leader_score"] for s in symbols]).median()),
-            leaders[symbols[0]].industry,
-        )
-    )
+) -> tuple[list[list[str]], list[list[str]]]:
+    """Build evidence groups before considering who will own their capital."""
+    industries: dict[str, list[str]] = {}
+    for symbol in candidates:
+        industries.setdefault(leaders[symbol].industry, []).append(symbol)
+    local_groups = [
+        symbols[:self.cfg.strategic_cohort_size] for symbols in industries.values()
+        if len(symbols) >= self.cfg.strategic_cohort_min_size
+    ]
+    witnesses = [[symbol] for symbol in candidates] + local_groups
+    if route in {"established", "transition"} and len(candidates) >= 2:
+        witnesses.append(candidates[:2])
+    if route == "established" and len(candidates) >= self.cfg.strategic_cohort_min_size:
+        witnesses.append(candidates[:self.cfg.strategic_cohort_size])
+    return witnesses, local_groups
+
+
+def _witness_owner_routes(
+    self: StrategicQualificationPolicy, *, route: str, symbols: list[str],
+    local_groups: list[list[str]], snapshots: dict[str, dict[str, float]],
+    leaders: dict[str, LeaderScore], risk: RiskAssessment,
+) -> list[StrategicRoute]:
+    """Only actual members can own one independently constructed proof."""
+    if route == "established" and not established_route_durable(
+        self, symbols=symbols, snapshots=snapshots, leaders=leaders,
+    ):
+        return []
+    reversal_groups = [group for group in local_groups if set(symbols) <= set(group)] if (
+        route == "reversal_industry" and len(symbols) >= 2) else []
     synchronized = bool(
         reversal_groups
         and float(pd.Series([snapshots[s]["ret20"] for s in reversal_groups[0][:2]]).median())
@@ -347,52 +354,51 @@ def select_strategic_route(
     )
     anchor_observed = "risk_anchor_symbols" in risk.evidence
     anchors_not_armed = bool(anchor_observed and not risk.evidence.get("risk_anchor_symbols", []))
-    decisive, decisive_pair = _decisive_reversal(
-        self,
-        synchronized=synchronized,
-        reversal_groups=reversal_groups,
-        snapshots=snapshots,
-        leaders=leaders,
-        anchor_state_observed=anchor_observed,
+    decisive, pair = decisive_reversal(
+        self, synchronized=synchronized, reversal_groups=reversal_groups,
+        snapshots=snapshots, leaders=leaders, anchor_state_observed=anchor_observed,
     )
-    if decisive is not None:
-        symbols, route = decisive_pair, "reversal_industry"
-    elif persistent_groups:
-        symbols, route = persistent_groups[0], "persistent_industry"
-    elif high_quality_groups:
-        symbols, route = high_quality_groups[0], "transition"
-    elif established_groups:
-        symbols, route = established_groups[0], "established"
-    elif len(established) >= self.cfg.strategic_cohort_min_size:
-        symbols, route = established[: self.cfg.strategic_cohort_size], "established"
-    elif impulse_groups:
-        symbols, route = impulse_groups[0], "transition_impulse"
-    elif anchor_observed and synchronized:
-        symbols, route = reversal_groups[0][:2], "reversal_industry"
-    elif len(established) >= 2:
-        symbols, route = established[:2], "established"
-    elif established:
-        symbols, route = established[:1], "established"
-    elif len(transition) >= 2:
-        symbols, route = transition[:2], "transition"
-    else:
-        symbols, route = [], "none"
-    if route == "established" and not _established_route_durable(
-        self,
-        symbols=symbols,
-        snapshots=snapshots,
-        leaders=leaders,
-    ):
-        symbols, route = [], "none"
-    return StrategicRoute(
-        symbols,
-        route,
-        decisive,
-        synchronized,
-        reversal_groups,
-        anchor_observed,
-        anchors_not_armed,
-    )
+    decisive_owner = decisive if decisive in symbols and set(pair) <= set(symbols) else None
+    choices = [StrategicRoute(
+        list(symbols), route, None, synchronized,
+        reversal_groups, anchor_observed, anchors_not_armed, owner,
+    ) for owner in symbols if owner != decisive_owner]
+    if decisive_owner is not None:
+        choices.append(StrategicRoute(
+            pair, route, decisive_owner, synchronized, reversal_groups,
+            anchor_observed, anchors_not_armed, decisive_owner,
+        ))
+    return choices
+
+
+def strategic_route_candidates(
+    self: StrategicQualificationPolicy,
+    *,
+    snapshots: dict[str, dict[str, float]],
+    leaders: dict[str, LeaderScore],
+    risk: RiskAssessment,
+) -> tuple[StrategicRoute, ...]:
+    """Enumerate independent witnesses and their owners without family precedence."""
+    families = {
+        "established": _established_candidates(self, snapshots, leaders),
+        "transition": _transition_candidates(self, snapshots, leaders),
+        "transition_impulse": _impulse_candidates(
+            self, snapshots=snapshots, leaders=leaders, risk=risk),
+        "persistent_industry": _persistent_candidates(self, snapshots, leaders),
+        "reversal_industry": _reversal_candidates(self, snapshots, leaders),
+    }
+    choices: dict[tuple[str, str, tuple[str, ...]], StrategicRoute] = {}
+    for route, candidates in families.items():
+        witnesses, local_groups = _canonical_route_witnesses(
+            self, route=route, candidates=candidates, leaders=leaders)
+        for symbols in witnesses:
+            for choice in _witness_owner_routes(
+                self, route=route, symbols=symbols, local_groups=local_groups,
+                snapshots=snapshots, leaders=leaders, risk=risk,
+            ):
+                key = (choice.owner_symbol, route, tuple(sorted(choice.symbols)))
+                choices[key] = choice
+    return tuple(choices[key] for key in sorted(choices))
 
 
 def strategic_candidate_meets_route(
@@ -458,8 +464,11 @@ def _strategic_candidate_meets_route(
     )
 
 
+reversal_candidates = _reversal_candidates
+
 __all__ = (
     "StrategicRoute",
-    "select_strategic_route",
+    "reversal_candidates",
     "strategic_candidate_meets_route",
+    "strategic_route_candidates",
 )

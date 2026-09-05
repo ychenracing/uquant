@@ -23,6 +23,37 @@ _REVIEWED_OWNER_FUNCTIONS = frozenset(
 )
 
 
+RETIRED_LEADER_METHODS = frozenset({"_update_leader_cycle_arm", "_leader_targets"})
+
+
+def assert_retired_leader_owners_absent(
+    root: Path, overrides: Mapping[str, str] | None = None,
+) -> None:
+    """Keep frozen owners as history while forbidding their production revival."""
+    retired = RETIRED_LEADER_METHODS | {name.removeprefix("_") for name in RETIRED_LEADER_METHODS}
+    sources = {
+        path.relative_to(root).as_posix(): path.read_text(encoding="utf-8")
+        for path in (root / "uquant").rglob("*.py")
+    }
+    if overrides:
+        sources.update(overrides)
+    assert "uquant/portfolio/leaders/extensions.py" not in sources
+    for relative, source in sources.items():
+        for node in ast.walk(ast.parse(source)):
+            value = None
+            if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
+                value = node.name
+            elif isinstance(node, ast.Name):
+                value = node.id
+            elif isinstance(node, ast.Attribute):
+                value = node.attr
+            elif isinstance(node, ast.alias):
+                value = node.name
+            elif isinstance(node, ast.Constant) and isinstance(node.value, str):
+                value = node.value
+            assert value not in retired, (relative, value)
+
+
 def _git_source(root: Path, revision: str, relative: str) -> str:
     return subprocess.check_output(
         ["git", "show", f"{revision}:{relative}"],
@@ -75,6 +106,10 @@ def expand_reviewed_architecture_owner(
     assert ast.dump(ast.parse(candidate_source, type_comments=True), include_attributes=False) == ast.dump(
         ast.parse(reviewed_source, type_comments=True), include_attributes=False
     )
+    if name in RETIRED_LEADER_METHODS:
+        assert candidate is None
+        assert_retired_leader_owners_absent(root, overrides)
+        return copy.deepcopy(frozen)
     reviewed = _function(candidate_source, name)
     if candidate is not None:
         assert ast.dump(candidate, include_attributes=False) == ast.dump(

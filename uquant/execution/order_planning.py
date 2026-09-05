@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from ..config import SystemConfig
 from ..contracts.universe import REQUIRED_AI_UNIVERSE_SHA256, default_ai_universe
+from ..portfolio_core import restoration_trade_weight
 from ..types import (
     ATTRIBUTION_IDENTITY_FIELDS,
     AccountState,
@@ -45,24 +46,9 @@ def _restoration_buy_below_completion(
     equity: float,
     cfg: SystemConfig,
 ) -> bool:
-    full_recovery_seat = bool(
-        target.symbol in account.protected_weights
-        and target.weight >= cfg.recovery_target_gross / cfg.max_positions
-    )
-    restoration_weight_threshold = (
-        min(
-            cfg.protected_restore_min_trade_weight,
-            # A confirmed full-size recovery seat cannot be declared
-            # restored while less than 80% funded merely because its
-            # absolute portfolio gap sits just inside the no-trade band.
-            0.20 * target.weight,
-        )
-        if full_recovery_seat
-        else cfg.restoration_min_trade_weight
-    )
     restoration_threshold = max(
         cfg.min_trade_value,
-        restoration_weight_threshold * equity,
+        restoration_trade_weight(cfg, account, target.symbol, target.weight) * equity,
     )
     return bool(
         difference > 0
@@ -90,6 +76,7 @@ def _find_retained_buy_identity(
             if order.side == Side.BUY.value
             and order.symbol == target.symbol
             and abs(order.target_weight - target.weight) < cfg.min_trade_weight
+            and target.weight + 1e-12 >= order.target_weight
             and order.lifecycle == target.lifecycle
             and order.reduction_policy == target.reduction_policy
             and all(getattr(order, field) == getattr(target, field) for field in ATTRIBUTION_IDENTITY_FIELDS)
@@ -159,10 +146,13 @@ def _plan_target_order(
     cfg: SystemConfig,
     equity: float,
     cancel_pending_buy_symbols: set[str],
+    diagnostic: dict[str, object] | None = None,
 ) -> PendingOrder | None:
+    detail = diagnostic if diagnostic is not None else {}
     if _is_sticky_strategic_hold(target, account):
         # Sticky strategic holdings express a hold decision, not a request
         # to rebalance price drift back to yesterday's close weight.
+        detail["block"] = "STICKY_HOLD"
         return None
     current = account.positions.get(target.symbol)
     current_value = (current.shares if current else 0) * prices.get(target.symbol, 0.0)
@@ -176,12 +166,15 @@ def _plan_target_order(
         equity=equity,
         cfg=cfg,
     )
+    detail.update(difference_value=difference, standard_trade_threshold=threshold,
+                  restoration_exception=restoration_buy_below_completion)
     buy_will_be_planned = bool(
         difference > 0
         and not (target.weight != 0 and abs(difference) < threshold and not restoration_buy_below_completion)
     )
     if buy_will_be_planned:
         if target.symbol in cancel_pending_buy_symbols:
+            detail["block"] = "CANCELLATION_AWAITING_CONFIRMATION"
             return None
         retained_identity = _validate_new_buy_identity(
             target=target,
@@ -193,10 +186,12 @@ def _plan_target_order(
             # Count today's still-live intent while carrying the exact
             # canonical order object. Merge retains it without fabricating
             # a new signal date, target weight, event, or broker order.
+            detail.update(block="NONE", planned_side="BUY", retained_order_id=retained_identity.order_id)
             return retained_identity
     if target.weight == 0 and current_value > 0:
         difference = -current_value
     elif abs(difference) < threshold and not restoration_buy_below_completion:
+        detail["block"] = "NO_TRADE_BAND"
         return None
     side = Side.BUY.value if difference > 0 else Side.SELL.value
     try:
@@ -207,6 +202,7 @@ def _plan_target_order(
         )
     except (TypeError, ValueError) as exc:
         raise RuntimeError(f"new {side} for {target.symbol} has incompatible attribution: {exc}") from exc
+    detail.update(block="NONE", planned_side=side)
     return PendingOrder(
         signal_date=signal_date,
         symbol=target.symbol,
@@ -240,6 +236,7 @@ def plan_orders(
     account: AccountState,
     prices: dict[str, float],
     cfg: SystemConfig,
+    diagnostics: dict[str, dict[str, object]] | None = None,
 ) -> tuple[PendingOrder, ...]:
     """Translate final target weights into one next-open intent per symbol.
 
@@ -271,6 +268,7 @@ def plan_orders(
             cfg=cfg,
             equity=equity,
             cancel_pending_buy_symbols=cancel_pending_buy_symbols,
+            diagnostic=diagnostics.setdefault(target.symbol, {}) if diagnostics is not None else None,
         )
         if order is not None:
             planned.append(order)

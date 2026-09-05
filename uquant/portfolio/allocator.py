@@ -90,6 +90,11 @@ def _allocate_strategy_targets(
             f"portfolio allocation failed on {date.date()} "
             f"for opportunity={opportunity.value}, risk={risk.state.value}: {exc}"
         ) from exc
+    if sentinel_only_freeze and "core_allocation" in strategy_risk.evidence:
+        risk.evidence["core_allocation"] = {
+            **strategy_risk.evidence["core_allocation"],
+            "scope": "SENTINEL_PLANNING_ONLY",
+        }
     return targets, strategy_account, sentinel_only_freeze
 
 
@@ -147,16 +152,23 @@ def allocate(
         strategic_universe=strategic_universe,
     )
     if sentinel_only_freeze:
-        account.strategic_qualification = deepcopy(
-            strategy_account.strategic_qualification
-        )
+        account.strategic_qualification = deepcopy(strategy_account.strategic_qualification)
+        account.flat_book_capital_repair = deepcopy(strategy_account.flat_book_capital_repair)
+        for key, value in strategy_account.replacement_tenure.items():
+            if key.startswith(("strategic_qualification:", "strategic_eligibility:", "lifecycle_exit:")):
+                account.replacement_tenure[key] = value
+        for key, value in strategy_account.candidate_tenure.items():
+            if key.startswith("lifecycle_exit_session:"):
+                account.candidate_tenure[key] = value
+        for key in (
+            "strategic_cohort_qualification",
+            "strategic_long_cycle_open",
+            "strategic_eligibility_session",
+            "strategic_repair_observed_session",
+        ):
+            if key in strategy_account.candidate_tenure:
+                account.candidate_tenure[key] = strategy_account.candidate_tenure[key]
         if account.strategic_qualification.candidate_symbol:
-            for key, value in strategy_account.replacement_tenure.items():
-                if key.startswith("strategic_qualification:"):
-                    account.replacement_tenure[key] = value
-            for key in ("strategic_cohort_qualification", "strategic_long_cycle_open"):
-                if key in strategy_account.candidate_tenure:
-                    account.candidate_tenure[key] = strategy_account.candidate_tenure[key]
             account.strategic_qualification.deployment_blocked = True
             account.strategic_qualification.deployment_block_reason = "freeze_new_risk"
         weights_now, _ = current_weights(account, prices)

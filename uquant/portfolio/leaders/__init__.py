@@ -42,11 +42,7 @@ from .lifecycle import (
 from .lifecycle import (
     leader_session_distance as _leader_session_distance,
 )
-from .lifecycle import (
-    update_leader_cycle_arm as _update_leader_cycle_arm,
-)
 from .targets import cap_opportunity_gross as _cap_opportunity_gross
-from .targets import leader_targets as _leader_targets
 
 
 def _leader_compatibility_method[Function: Callable[..., Any]](
@@ -91,10 +87,8 @@ _bind_leader_compatibility_method("_correlations", _correlations)
 _bind_leader_compatibility_method("_admission_utility", _admission_utility)
 _bind_leader_compatibility_method("_dynamic_k", _dynamic_k)
 _bind_leader_compatibility_method("_rotation_allowed", _rotation_allowed)
-_bind_leader_compatibility_method("_update_leader_cycle_arm", _update_leader_cycle_arm)
 _bind_leader_compatibility_method("_retention_score", _retention_score, static=True)
 _bind_leader_compatibility_method(
     "_leader_lifecycle_exit_confirmed", _leader_lifecycle_exit_confirmed
 )
 _bind_leader_compatibility_method("_industry_handoff", _industry_handoff)
-_bind_leader_compatibility_method("_leader_targets", _leader_targets)

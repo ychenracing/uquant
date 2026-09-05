@@ -20,7 +20,7 @@ from uquant.types import (
 )
 
 
-def test_confirmed_hard_risk_can_only_exit_an_armed_recovery_winner() -> None:
+def test_hard_risk_preserves_confirmed_structural_exits_and_physical_accounting() -> None:
     dates = pd.bdate_range("2025-01-02", periods=150)
     date = dates[-1]
     symbols = ("trail_me", "drift_exit", "keep_a", "keep_b")
@@ -28,6 +28,9 @@ def test_confirmed_hard_risk_can_only_exit_an_armed_recovery_winner() -> None:
         symbol: _trend_frame(dates, close=np.linspace(0.80, price, len(dates)))
         for symbol, price in zip(symbols, (0.88, 0.88, 0.95, 0.95), strict=True)
     }
+    for symbol in ("trail_me", "drift_exit"):
+        frames[symbol]["ma60"] = 1.0
+        frames[symbol]["ret20"] = -0.20
     account = AccountState(
         initial_cash=100.0,
         cash=50.0,
@@ -76,7 +79,7 @@ def test_confirmed_hard_risk_can_only_exit_an_armed_recovery_winner() -> None:
 
     allocator = PortfolioAllocator(DEFAULT_CONFIG)
     first_observation = allocator.allocate(
-        date=date,
+        date=dates[-3],
         opportunity=Opportunity.WEAK,
         risk=hard_risk,
         user_panel=frames,
@@ -84,12 +87,13 @@ def test_confirmed_hard_risk_can_only_exit_an_armed_recovery_winner() -> None:
             symbol: _leader(
                 symbol,
                 0.90,
+                mature=symbol not in {"trail_me", "drift_exit"},
                 industry="equipment" if symbol == "keep_b" else "optical",
             )
             for symbol in symbols
         },
         account=account,
-        prices={symbol: float(frames[symbol].loc[date, "close"]) for symbol in symbols},
+        prices={symbol: float(frames[symbol].loc[dates[-3], "close"]) for symbol in symbols},
     )
     first_weights = {target.symbol: target.weight for target in first_observation}
     assert first_weights["trail_me"] > 0.0
@@ -113,22 +117,24 @@ def test_confirmed_hard_risk_can_only_exit_an_armed_recovery_winner() -> None:
     # observed trail break while the same hard portfolio risk persists.
     frames["trail_me"].loc[date, "close"] = 0.95
     frames["drift_exit"].loc[date, "close"] = 0.95
-    targets = allocator.allocate(
-        date=date,
-        opportunity=Opportunity.WEAK,
-        risk=continuing_hard_risk,
-        user_panel=frames,
-        leaders={
-            symbol: _leader(
-                symbol,
-                0.90,
-                industry="equipment" if symbol == "keep_b" else "optical",
-            )
-            for symbol in symbols
-        },
-        account=account,
-        prices={symbol: float(frames[symbol].loc[date, "close"]) for symbol in symbols},
-    )
+    for observed in dates[-2:]:
+        targets = allocator.allocate(
+            date=observed,
+            opportunity=Opportunity.WEAK,
+            risk=continuing_hard_risk,
+            user_panel=frames,
+            leaders={
+                symbol: _leader(
+                    symbol,
+                    0.90,
+                    mature=symbol not in {"trail_me", "drift_exit"},
+                    industry="equipment" if symbol == "keep_b" else "optical",
+                )
+                for symbol in symbols
+            },
+            account=account,
+            prices={symbol: float(frames[symbol].loc[observed, "close"]) for symbol in symbols},
+        )
 
     weights = {target.symbol: target.weight for target in targets}
     assert weights["trail_me"] == 0.0
@@ -138,10 +144,12 @@ def test_confirmed_hard_risk_can_only_exit_an_armed_recovery_winner() -> None:
     assert sum(weights.values()) <= hard_risk.target_gross_cap
     assert "trail_me" not in account.anchor_weights
     assert "trail_me" not in account.protected_weights
+    assert account.positions["trail_me"].shares == account.positions["drift_exit"].shares == 30
+    assert account.cash == 50.0
     assert "drift_exit" not in account.anchor_weights
     assert "drift_exit" not in account.protected_weights
 
-def test_confirmed_level1_repair_reaches_the_bounded_empty_book_probe() -> None:
+def test_level1_repair_metadata_cannot_open_a_frozen_empty_book() -> None:
     dates = pd.bdate_range("2025-01-02", periods=150)
     symbol = "deep_repair_candidate"
     close = np.ones(len(dates), dtype=float)
@@ -190,11 +198,12 @@ def test_confirmed_level1_repair_reaches_the_bounded_empty_book_probe() -> None:
         prices={symbol: 0.94},
     )
 
-    assert {target.symbol: target.weight for target in targets} == pytest.approx(
-        {symbol: DEFAULT_CONFIG.tactical_probe_weight}
-    )
-    assert targets[0].lifecycle == Lifecycle.RECOVERY.value
-    assert account.candidate_tenure["tactical_active"] == 1
+    assert targets == ()
+    assert account.cash == 100.0
+    assert account.positions == {}
+    assert account.pending_orders == []
+    assert account.capital_budget_level == 1
+    assert account.capital_budget_repair_streak == 2
 
     generic_account = AccountState.empty(100.0)
     generic_account.capital_budget_level = 1
@@ -209,8 +218,10 @@ def test_confirmed_level1_repair_reaches_the_bounded_empty_book_probe() -> None:
         prices={symbol: 0.94},
     )
     assert generic_targets == ()
+    assert generic_account.cash == 100.0
+    assert generic_account.positions == {}
 
-def test_caution_frozen_empty_book_deep_recovery_new_high_is_independently_confirmed() -> None:
+def test_deep_recovery_new_high_cannot_open_a_frozen_empty_book() -> None:
     dates = pd.bdate_range("2025-01-02", periods=150)
     symbol = "deep_new_high"
     close = np.full(len(dates), 0.80)
@@ -238,12 +249,11 @@ def test_caution_frozen_empty_book_deep_recovery_new_high_is_independently_confi
         prices={symbol: 1.00},
     )
 
-    assert {target.symbol: target.weight for target in targets} == pytest.approx(
-        {symbol: DEFAULT_CONFIG.tactical_rebound_weight}
-    )
-    assert account.anchor_weights == pytest.approx(
-        {symbol: DEFAULT_CONFIG.tactical_rebound_weight}
-    )
+    assert targets == ()
+    assert account.anchor_weights == {}
+    assert account.cash == 100.0
+    assert account.positions == {}
+    assert account.pending_orders == []
 
 def test_level1_repair_without_candidate_retains_existing_generic_core() -> None:
     dates = pd.bdate_range("2025-01-02", periods=150)
@@ -294,7 +304,7 @@ def test_level1_repair_without_candidate_retains_existing_generic_core() -> None
     assert targets[0].lifecycle == Lifecycle.CORE.value
     assert targets[0].reason_code == "risk_freeze_hold"
 
-def test_first_level1_repair_step_reopens_only_explicit_protected_intent() -> None:
+def test_protected_intent_survives_freeze_until_account_buy_gate_reopens() -> None:
     dates = pd.bdate_range("2025-01-02", periods=150)
     symbol = "saved_restore"
     frame = _trend_frame(dates)
@@ -310,12 +320,18 @@ def test_first_level1_repair_step_reopens_only_explicit_protected_intent() -> No
     )
     allocator = PortfolioAllocator(DEFAULT_CONFIG)
     protected = AccountState.empty(100.0)
+    protected.cash = 80.0
+    protected.positions[symbol] = Position(
+        symbol, shares=20, avg_cost=1.0, entry_date=str(dates[0].date()),
+        lifecycle=Lifecycle.CORE.value,
+    )
     protected.protected_weights = {symbol: 0.60}
+    protected.last_shock_date = str(dates[-3].date())
     protected.capital_budget_level = 1
     protected.capital_budget_repair_streak = 1
 
-    restored = allocator.allocate(
-        date=dates[-1],
+    frozen = allocator.allocate(
+        date=dates[-2],
         opportunity=Opportunity.RECOVERY,
         risk=frozen_repair,
         user_panel={symbol: frame},
@@ -324,8 +340,26 @@ def test_first_level1_repair_step_reopens_only_explicit_protected_intent() -> No
         prices={symbol: 1.0},
     )
 
+    assert {target.symbol: target.weight for target in frozen} == pytest.approx({symbol: 0.20})
+    assert protected.protected_weights == {symbol: 0.60}
+    assert protected.cash == 80.0
+    assert protected.positions[symbol].shares == 20
+    assert protected.capital_budget_level == 1
+
+    restored = allocator.allocate(
+        date=dates[-1],
+        opportunity=Opportunity.RECOVERY,
+        risk=RiskAssessment(Risk.NORMAL, 1.0, 0, {}, (), "NONE"),
+        user_panel={symbol: frame},
+        leaders={symbol: _leader(symbol, 0.90)},
+        account=protected,
+        prices={symbol: 1.0},
+    )
     assert {target.symbol: target.weight for target in restored} == pytest.approx({symbol: 0.60})
-    assert restored[0].reason == "confirmed post-shock restoration"
+    assert protected.protected_weights == {symbol: 0.60}
+    assert protected.cash == 80.0
+    assert protected.positions[symbol].shares == 20
+    assert protected.pending_orders == []
 
     no_intent = AccountState.empty(100.0)
     no_intent.capital_budget_level = 1
@@ -343,7 +377,7 @@ def test_first_level1_repair_step_reopens_only_explicit_protected_intent() -> No
         == ()
     )
 
-def test_synchronized_crisis_repair_reopens_only_protected_weights() -> None:
+def test_synchronized_repair_metadata_cannot_expand_frozen_protected_holdings() -> None:
     dates = pd.bdate_range("2025-01-02", periods=150)
     symbols = ("lead", "reserve_a", "reserve_b")
     frame = _trend_frame(dates)
@@ -385,11 +419,11 @@ def test_synchronized_crisis_repair_reopens_only_protected_weights() -> None:
     )
 
     weights = {target.symbol: target.weight for target in targets}
-    assert sum(weights.values()) == pytest.approx(confirmed_repair.target_gross_cap)
-    assert set(weights) == set(symbols)
-    assert weights["lead"] > 0.25
-    assert all(target.reason == "confirmed post-shock restoration" for target in targets)
-    assert account.candidate_tenure.get("post_shock_restore_submitted", 0) == 1
+    assert weights == pytest.approx({"lead": 0.25})
+    # A synchronized repair description does not authorize ordinary frozen buys.
+    assert account.protected_weights == {"lead": 0.60, "reserve_a": 0.16, "reserve_b": 0.16}
+    assert account.cash == 75.0
+    assert account.positions["lead"].shares == 25
 
     account.positions = {
         "lead": Position("lead", shares=59, avg_cost=1.0, lifecycle=Lifecycle.CORE.value),
@@ -413,21 +447,31 @@ def test_synchronized_crisis_repair_reopens_only_protected_weights() -> None:
         prices={symbol: 1.0 for symbol in symbols},
     )
 
-    assert account.candidate_tenure["post_shock_restore_complete"] == 1
     assert {target.symbol: target.weight for target in settled} == pytest.approx(
         {"lead": 0.59, "reserve_a": 0.15, "reserve_b": 0.15}
     )
-    assert {target.reason for target in settled} == {
-        "completed post-shock restoration; retain price drift"
+    assert account.protected_weights == {"lead": 0.60, "reserve_a": 0.16, "reserve_b": 0.16}
+    assert account.cash == 11.0
+    assert {symbol: position.shares for symbol, position in account.positions.items()} == {
+        "lead": 59, "reserve_a": 15, "reserve_b": 15
     }
 
-def test_generic_protected_restore_waits_for_existing_confirmation_before_expansion() -> None:
+def test_protected_restore_uses_real_capacity_before_and_after_fills() -> None:
     dates = pd.bdate_range("2025-01-02", periods=150)
     date = dates[-1]
     symbols = ("restore_a", "restore_b")
     frame = _trend_frame(dates)
     protected = AccountState.empty(100.0)
+    protected.cash = 60.0
+    protected.positions = {
+        symbol: Position(
+            symbol, shares=20, avg_cost=1.0, entry_date=str(dates[0].date()),
+            lifecycle=Lifecycle.CORE.value,
+        )
+        for symbol in symbols
+    }
     protected.protected_weights = {symbol: 0.40 for symbol in symbols}
+    protected.last_shock_date = str(dates[-3].date())
     protected.capital_budget_level = 1
     protected.capital_budget_repair_streak = 1
     first_repair = RiskAssessment(
@@ -453,23 +497,13 @@ def test_generic_protected_restore_waits_for_existing_confirmation_before_expans
     )
 
     assert {target.symbol: target.weight for target in first_targets} == pytest.approx(
-        {symbol: 0.25 for symbol in symbols}
+        {symbol: 0.20 for symbol in symbols}
     )
-    assert protected.candidate_tenure["post_shock_restore_submitted"] == 1
-    assert protected.candidate_tenure["post_shock_restore_deferred_expansion"] == 1
+    assert protected.protected_weights == {symbol: 0.40 for symbol in symbols}
+    assert protected.cash == 60.0
+    assert {symbol: position.shares for symbol, position in protected.positions.items()} == dict.fromkeys(symbols, 20)
 
-    protected.positions = {
-        symbol: Position(
-            symbol,
-            shares=25,
-            avg_cost=1.0,
-            lifecycle=Lifecycle.RECOVERY.value,
-        )
-        for symbol in symbols
-    }
-    protected.cash = 50.0
-    protected.capital_budget_level = 0
-    protected.capital_budget_repair_streak = 0
+    # An open risk gate can restore saved rights within the combined industry cap.
     deferred = allocator.allocate(
         date=date,
         opportunity=Opportunity.RECOVERY,
@@ -480,10 +514,12 @@ def test_generic_protected_restore_waits_for_existing_confirmation_before_expans
         prices={symbol: 1.0 for symbol in symbols},
     )
 
-    assert protected.candidate_tenure.get("post_shock_restore_complete", 0) == 0
     assert {target.symbol: target.weight for target in deferred} == pytest.approx(
-        {symbol: 0.25 for symbol in symbols}
+        {"restore_a": 0.40, "restore_b": 0.35}
     )
+    assert protected.cash == 60.0
+    assert {symbol: position.shares for symbol, position in protected.positions.items()} == dict.fromkeys(symbols, 20)
+    assert protected.capital_budget_level == 1
 
     protected.risk_streaks["protected_structure_normalization"] = (
         DEFAULT_CONFIG.recovery_risk_confirm_days
@@ -499,20 +535,22 @@ def test_generic_protected_restore_waits_for_existing_confirmation_before_expans
     )
 
     assert {target.symbol: target.weight for target in expanded} == pytest.approx(
-        {symbol: 0.40 for symbol in symbols}
+        {"restore_a": 0.40, "restore_b": 0.35}
     )
-    assert protected.candidate_tenure["post_shock_restore_deferred_expansion"] == 0
+    assert protected.protected_weights == {symbol: 0.40 for symbol in symbols}
 
+    # Only the actual fill changes physical funding; the remaining right survives.
     protected.positions = {
         symbol: Position(
             symbol,
-            shares=40,
+            shares=shares,
             avg_cost=1.0,
+            entry_date=str(dates[0].date()),
             lifecycle=Lifecycle.RECOVERY.value,
         )
-        for symbol in symbols
+        for symbol, shares in zip(symbols, (40, 35), strict=True)
     }
-    protected.cash = 20.0
+    protected.cash = 25.0
     settled = allocator.allocate(
         date=date,
         opportunity=Opportunity.RECOVERY,
@@ -523,7 +561,11 @@ def test_generic_protected_restore_waits_for_existing_confirmation_before_expans
         prices={symbol: 1.0 for symbol in symbols},
     )
 
-    assert protected.candidate_tenure["post_shock_restore_complete"] == 1
     assert {target.symbol: target.weight for target in settled} == pytest.approx(
-        {symbol: 0.40 for symbol in symbols}
+        {"restore_a": 0.40, "restore_b": 0.35}
     )
+    assert protected.protected_weights == {symbol: 0.40 for symbol in symbols}
+    assert protected.cash == 25.0
+    assert {symbol: position.shares for symbol, position in protected.positions.items()} == {
+        "restore_a": 40, "restore_b": 35
+    }

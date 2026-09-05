@@ -271,7 +271,7 @@ def test_coincident_independent_exit_is_not_suppressed_by_replacement_buy(monkey
     assert [(target.symbol, target.weight) for target in actual] == [("old", 0.30)]
 
 
-def test_real_allocator_sentinel_freeze_is_hold_only_and_state_pure() -> None:
+def test_real_allocator_sentinel_freeze_holds_capital_and_advances_only_observation_clocks() -> None:
     allocator = PortfolioAllocator(DEFAULT_CONFIG)
     account = _account()
     before = account.to_dict()
@@ -287,7 +287,17 @@ def test_real_allocator_sentinel_freeze_is_hold_only_and_state_pure() -> None:
     )
 
     assert all(target.symbol == "old" and target.weight <= 0.50 for target in actual)
-    assert account.to_dict() == before
+    after = account.to_dict()
+    assert after["candidate_tenure"] == {
+        "strategic_cohort_qualification": 0,
+        "strategic_long_cycle_open": 0,
+        "strategic_eligibility_session": pd.Timestamp("2026-08-19").toordinal(),
+        "strategic_repair_observed_session": pd.Timestamp("2026-08-19").toordinal(),
+    }
+    after["candidate_tenure"] = before["candidate_tenure"]
+    assert after["replacement_tenure"] == {"lifecycle_exit:old": 0}
+    after["replacement_tenure"] = before["replacement_tenure"]
+    assert after == before
 
 
 def test_strategy_owned_exit_cleanup_commits_without_entry_state(monkeypatch) -> None:

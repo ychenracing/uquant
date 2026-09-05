@@ -35,6 +35,7 @@ from .generalization_reference import (
 from .manifest import verify_data_manifest
 from .promotion import artifact_binding as _artifact_binding
 from .promotion import runtime_provenance as _runtime_provenance
+from .promotion import validate_promotion_artifact
 from .universe import load_ai_universe
 
 _ROOT = Path(__file__).resolve().parents[2]
@@ -115,8 +116,7 @@ def run_performance_validation(
             else (str(expected_production.get("commit")) if isinstance(expected_production, Mapping) else "")
         )
         payload = _load_json_object(Path(artifact), label="performance validation artifact")
-        if payload.get("passed") is not True:
-            failures.append("performance gate did not pass")
+        failures.extend(validate_promotion_artifact(payload))
         provenance = payload.get("provenance")
         if not isinstance(provenance, Mapping):
             failures.append("performance provenance is missing or malformed")

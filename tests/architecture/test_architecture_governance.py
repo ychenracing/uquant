@@ -40,9 +40,9 @@ from ._governance_inventory import (
 )
 from ._owner_transport import (
     architecture_portfolio_reviewed_sources,
-    expand_architecture_portfolio_pipeline,
     expand_architecture_risk_assessment,
     expand_architecture_risk_market_stage,
+    validate_combined_allocator_topology,
 )
 from ._portfolio_transport import expand_portfolio_allocator_method
 from ._reviewed_owner_transport import (
@@ -235,8 +235,8 @@ def test_architecture_test_relocation_inventory_rejects_unknown_missing_and_dupl
     (
         (
             "tests/architecture/_analysis_authorities.py",
-            '"uquant.portfolio.allocation_closure": "production_safe",',
-            '"uquant.portfolio.allocation_closure": "validation_runner",',
+            '"uquant.portfolio.pipeline": "production_safe",',
+            '"uquant.portfolio.pipeline": "validation_runner",',
         ),
         (
             "tests/architecture/_analysis_authorities.py",
@@ -623,98 +623,73 @@ def test_architecture_sentinel_legacy_projection_matches_immutable_start() -> No
         )
 
 
-def test_architecture_portfolio_pipeline_delegates_to_real_allocation_stages() -> None:
-    owners = {
-        "uquant/portfolio/allocation_opening.py": "prepare_allocation",
-        "uquant/portfolio/allocation_tactical.py": "allocate_tactical",
-        "uquant/portfolio/allocation_protected.py": "restore_protected_allocation",
-        "uquant/portfolio/allocation_recovery.py": "allocate_recovery",
-        "uquant/portfolio/allocation_closure.py": "close_allocation",
-        "uquant/portfolio/recovery/tactical_admission.py": "tactical_admission_targets",
-        "uquant/portfolio/recovery/cohort_admission.py": "cohort_admission_targets",
-    }
-    for relative, function_name in owners.items():
-        tree = ast.parse((ROOT / relative).read_text(encoding="utf-8"))
-        assert any(isinstance(node, ast.FunctionDef) and node.name == function_name for node in tree.body)
-    pipeline = ast.parse((ROOT / "uquant/portfolio/pipeline.py").read_text(encoding="utf-8"))
-    owner = next(
-        node
-        for node in pipeline.body
-        if isinstance(node, ast.FunctionDef) and node.name == "_allocate_strategy"
-    )
-    observed = [
-        node.func.id
-        for node in ast.walk(owner)
-        if isinstance(node, ast.Call) and isinstance(node.func, ast.Name)
-    ]
-    expected = list(owners.values())[:5]
-    assert [name for name in observed if name in expected] == expected
-    admission = ast.parse((ROOT / "uquant/portfolio/recovery/admission.py").read_text(encoding="utf-8"))
-    admission_calls = [
-        node.func.id
-        for node in ast.walk(admission)
-        if isinstance(node, ast.Call) and isinstance(node.func, ast.Name)
-    ]
-    expected_admission = list(owners.values())[5:]
-    assert [name for name in admission_calls if name in expected_admission] == expected_admission
+def test_architecture_portfolio_pipeline_has_one_combined_capital_owner() -> None:
+    pipeline = validate_combined_allocator_topology(root=ROOT)
+    assert pipeline.name == "_allocate_strategy"
+    from uquant.portfolio import PortfolioAllocator
+    from uquant.portfolio.pipeline import allocate_strategy
 
-
-def test_portfolio_transport_expands_exact_immutable_statement_order() -> None:
-    expanded = expand_architecture_portfolio_pipeline(root=ROOT, candidate=None)
-    immutable_source = subprocess.check_output(
-        ["git", "show", f"{ARCHITECTURE_REFERENCE_TREE}:uquant/portfolio/pipeline.py"],
-        cwd=ROOT,
-        text=True,
-    )
-    immutable = next(
-        node
-        for node in ast.parse(immutable_source).body
-        if isinstance(node, ast.FunctionDef) and node.name == "_allocate_strategy"
-    )
-    assert ast.dump(expanded, include_attributes=False) == ast.dump(
-        immutable, include_attributes=False
-    )
+    assert PortfolioAllocator._allocate_strategy is allocate_strategy
 
 
 @pytest.mark.parametrize(
     ("relative", "original", "mutation"),
     (
-        (
-            "uquant/portfolio/pipeline.py",
-            "risk=risk,\n        user_panel=user_panel,",
-            "risk=account,\n        user_panel=user_panel,",
-        ),
-        (
-            "uquant/portfolio/allocation_opening.py",
-            "and risk.votes <= 1",
-            "and risk.votes <= 2",
-        ),
+        ("uquant/portfolio/pipeline.py", "date=date, risk=risk, user_panel=user_panel", "date=date, risk=account, user_panel=user_panel"),
+        ("uquant/portfolio/pipeline.py", "proposed=book.proposed, leaders=book.leaders", "proposed=book.weights_now, leaders=book.leaders"),
+        ("uquant/portfolio/pipeline.py", "committed=self.committed, cash_room=self.cash_room", "committed=self.proposed, cash_room=self.cash_room"),
+        ("uquant/portfolio/pipeline.py", "committed_capital(account=account,", "committed_capital(account=None,"),
+        ("uquant/portfolio/pipeline.py", "from .capital import committed_capital, funded_increment", "from ..capital import committed_capital, funded_increment"),
+        ("uquant/portfolio/capital.py", "{**committed, symbol: current}", "{symbol: current}"),
+        ("uquant/portfolio/pipeline.py", "assess_strategic_capital_authority(account)", "assess_strategic_capital_authority(None)"),
+        ("uquant/portfolio/pipeline.py", "owned, strategic_targets, proposed, committed, cash_room)", "owned, strategic_targets, dict(proposed), committed, cash_room)"),
+        ("uquant/portfolio/pipeline.py", "gross_cap=self.gross_cap,", "gross_cap=self.policy.cfg.max_gross,"),
+        ("uquant/portfolio/pipeline.py", "return min(self.policy.cfg.max_gross, self.risk.target_gross_cap)", "return self.policy.cfg.max_gross"),
+        ("uquant/portfolio/pipeline.py", "return accepted", "self.account.cash = 0.0\n        return accepted"),
+        ("uquant/portfolio/pipeline.py", "return targets", "return strategic"),
+        ("uquant/portfolio/pipeline.py", "return targets", "account.cash = 0.0\n    return targets"),
+        ("uquant/portfolio/pipeline.py", "return targets", "account.positions.clear()\n    return targets"),
+        ("uquant/portfolio/pipeline.py", "return targets", "account.pending_orders.append(None)\n    return targets"),
     ),
 )
-def test_portfolio_transport_rejects_argument_and_body_mutations(
+def test_combined_allocator_contract_rejects_authority_and_split_book_mutations(
     relative: str,
     original: str,
     mutation: str,
 ) -> None:
-    reviewed_sources = architecture_portfolio_reviewed_sources(root=ROOT)
-    source = reviewed_sources[relative]
+    source = architecture_portfolio_reviewed_sources(root=ROOT)[relative]
     assert original in source
-    mutated = source.replace(original, mutation, 1)
-    pipeline_source = (
-        mutated
-        if relative == "uquant/portfolio/pipeline.py"
-        else reviewed_sources["uquant/portfolio/pipeline.py"]
-    )
-    candidate = next(
-        node
-        for node in ast.parse(pipeline_source).body
-        if isinstance(node, ast.FunctionDef) and node.name == "_allocate_strategy"
-    )
     with pytest.raises(AssertionError):
-        expand_architecture_portfolio_pipeline(
+        validate_combined_allocator_topology(
             root=ROOT,
-            candidate=candidate,
-            overrides={relative: mutated},
+            overrides={relative: source.replace(original, mutation, 1)},
+        )
+
+
+@pytest.mark.parametrize("original, mutation", (
+    ("cash_room=cash_room + released", "cash_room=cash_room + released + 1.0"),
+    ("committed={**committed, weakest: remaining}", "committed={weakest: remaining}"),
+    ("date=date, gross_cap=gross_cap,", "date=date, gross_cap=self.cfg.max_gross,"),
+    ("if feasible + 1e-12 < self.cfg.core_admission_weight:", "if False:"),
+    ("if released + 1e-12 < self.cfg.min_trade_weight:", "if False:"),
+    ("proposed[weakest] = remaining", "proposed[challenger] = feasible"),
+    ("released = weights_now[weakest] - remaining", "committed.clear()\n    released = weights_now[weakest] - remaining"),
+    ("committed=book.committed, cash_room=book.cash_room", "committed=book.proposed, cash_room=book.cash_room"),
+    ('book.record(symbol)["entry_gate"] = "AWAIT_REDUCTION_SETTLEMENT"',
+     'book.record(symbol)["entry_gate"] = "AWAIT_REDUCTION_SETTLEMENT"\n            book.cash_room += 1.0'),
+    ("committed=self.committed, cash_room=self.cash_room", "committed=self.committed, cash_room=self.cash_room + 0.25"),
+    ("committed=self.committed, cash_room=self.cash_room", "committed={}, cash_room=self.cash_room"),
+    ("feasible = funded_increment(", "feasible = float("),
+))
+def test_combined_allocator_feasibility_rejects_unsettled_budget_mutations(
+    original: str, mutation: str,
+) -> None:
+    relative = "uquant/portfolio/pipeline.py"
+    source = (ROOT / relative).read_text(encoding="utf-8")
+    assert source.count(original) == 1
+    with pytest.raises(AssertionError):
+        validate_combined_allocator_topology(
+            root=ROOT, overrides={relative: source.replace(original, mutation, 1)},
         )
 
 
@@ -817,18 +792,6 @@ def test_architecture_owner_transport_rejects_owner_mutations(
             "_dynamic_k",
             "Opportunity.STRONG_TREND: 4",
             "Opportunity.STRONG_TREND: 5",
-        ),
-        (
-            "uquant/portfolio/leaders/lifecycle.py",
-            "_update_leader_cycle_arm",
-            "impulse = _leader_cycle_impulse(",
-            "impulse = _leader_cycle_impulse_unknown(",
-        ),
-        (
-            "uquant/portfolio/leaders/targets.py",
-            "_leader_targets",
-            "ctx = _leader_target_context(",
-            "ctx = _leader_target_context_unknown(",
         ),
         (
             "uquant/portfolio/strategic/discovery.py",
@@ -1044,3 +1007,20 @@ def test_architecture_current_physical_size_signals_are_recorded(
             ),
         )
     )
+
+
+@pytest.mark.parametrize("injection", (
+    "def _leader_targets(): pass\n",
+    "def _update_leader_cycle_arm(): pass\n",
+    "leader_targets = allocate_strategy\n",
+    "setattr(PortfolioAllocator, '_leader_targets', allocate_strategy)\n",
+    "def resurrect(policy): return policy._leader_targets()\n",
+    "from .leaders.targets import leader_targets\n",
+))
+def test_retired_leader_transport_rejects_reintroduced_owner_or_binding(injection: str) -> None:
+    from ._reviewed_owner_transport import assert_retired_leader_owners_absent
+
+    relative = "uquant/portfolio/pipeline.py"
+    source = (ROOT / relative).read_text(encoding="utf-8")
+    with pytest.raises(AssertionError):
+        assert_retired_leader_owners_absent(ROOT, {relative: source + "\n" + injection})

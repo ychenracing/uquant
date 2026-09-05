@@ -327,6 +327,10 @@ def test_full_promotion_runs_every_official_and_protected_cell(
         promotion_module.PROTECTED_INTERVALS
     )
     assert report["passed"]
+    assert report["acceptance_basis"]["contract_id"] == "cross-ai-core-strategy-20260905-v1"
+    assert report["acceptance_basis"]["contract_sha256"] == (
+        "9ec5992df69d4466cb2b26cea0e67bbe93f4c6317ba5b8a500ca7b89a75d78b4"
+    )
     assert report["provenance"]["candidate"] == runtime
     binding = report["provenance"]["binding"]
     assert binding == {
@@ -341,6 +345,41 @@ def test_full_promotion_runs_every_official_and_protected_cell(
         "uv_version": "0.11.33",
         "uv_lock_sha256": "2" * 64,
         "generated_at": report["provenance"]["generated_at"],
+    }
+
+
+def test_current_promotion_uses_frozen_continuous_floor_and_absolute_activity_caps() -> None:
+    champion = _valid_spec()["champion"]["cells"]["b/continuous_ai_era"]
+    candidate = {**champion, "final_wealth": 23.28417871275582,
+                 "account_orders": 15, "annual_turnover": 10.0}
+    assert promotion_module._champion_violations(
+        name="b/continuous_ai_era", metrics=candidate, champion=champion,
+    ) == []
+    assert promotion_module._hard_violations(
+        name="b/continuous_ai_era", metrics=candidate,
+        gate=promotion_module.AI_ERA_POLICY["official"]["continuous_ai_era"],
+    ) == []
+    candidate["account_orders"] = 16
+    assert any("account_orders" in failure for failure in promotion_module._hard_violations(
+        name="b/continuous_ai_era", metrics=candidate,
+        gate=promotion_module.AI_ERA_POLICY["official"]["continuous_ai_era"],
+    ))
+    candidate["final_wealth"] = 23.28417871275582 - 1e-8
+    assert any("final_wealth" in failure for failure in promotion_module._champion_violations(
+        name="b/continuous_ai_era", metrics=candidate, champion=champion,
+    ))
+
+
+def test_current_promotion_preserves_other_wealth_risk_and_acute_comparisons() -> None:
+    champion = _valid_spec()["champion"]["cells"]["b/h1_2023"]
+    candidate = {**champion, "final_wealth": champion["final_wealth"] * 0.98,
+                 "max_drawdown": champion["max_drawdown"] + 0.006,
+                 "acute_return": champion["acute_return"] - 0.001}
+    failures = promotion_module._champion_violations(
+        name="b/h1_2023", metrics=candidate, champion=champion,
+    )
+    assert {failure.split(": ")[1].split()[0] for failure in failures} == {
+        "final_wealth", "max_drawdown", "acute_return",
     }
 
 

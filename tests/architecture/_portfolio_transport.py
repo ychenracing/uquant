@@ -85,6 +85,15 @@ def _expand_allocator(
         "strategic_universe",
     )
     del strategy_call.keywords[-3:]
+    diagnostic_projection = ast.parse('''
+if sentinel_only_freeze and "core_allocation" in strategy_risk.evidence:
+    risk.evidence["core_allocation"] = {
+        **strategy_risk.evidence["core_allocation"],
+        "scope": "SENTINEL_PLANNING_ONLY",
+    }
+''').body[0]
+    _same(targets.body[-2], diagnostic_projection)
+    del targets.body[-2]
     assert len(targets.body) == 6 and len(dominant.body) == 3
     for observed, expected in zip(targets.body[:-1], frozen.body[1:6], strict=True):
         _same(observed, expected)
@@ -115,19 +124,33 @@ def _expand_allocator(
     )
     sentinel_projection = current.body[2]
     assert isinstance(sentinel_projection, ast.If)
-    assert len(sentinel_projection.body) == 6
-    qualification_copy = sentinel_projection.body[0]
-    assert isinstance(qualification_copy, ast.Assign)
-    assert ast.unparse(qualification_copy.targets[0]) == "account.strategic_qualification"
-    assert ast.unparse(qualification_copy.value) == (
-        "deepcopy(strategy_account.strategic_qualification)"
-    )
-    qualification_observation = sentinel_projection.body[1]
-    assert isinstance(qualification_observation, ast.If)
-    assert ast.unparse(qualification_observation.test) == (
-        "account.strategic_qualification.candidate_symbol"
-    )
-    del sentinel_projection.body[:2]
+    observation_projection = ast.parse(
+        """
+account.strategic_qualification = deepcopy(strategy_account.strategic_qualification)
+account.flat_book_capital_repair = deepcopy(strategy_account.flat_book_capital_repair)
+for key, value in strategy_account.replacement_tenure.items():
+    if key.startswith(("strategic_qualification:", "strategic_eligibility:", "lifecycle_exit:")):
+        account.replacement_tenure[key] = value
+for key, value in strategy_account.candidate_tenure.items():
+    if key.startswith("lifecycle_exit_session:"):
+        account.candidate_tenure[key] = value
+for key in (
+    "strategic_cohort_qualification",
+    "strategic_long_cycle_open",
+    "strategic_eligibility_session",
+    "strategic_repair_observed_session",
+):
+    if key in strategy_account.candidate_tenure:
+        account.candidate_tenure[key] = strategy_account.candidate_tenure[key]
+if account.strategic_qualification.candidate_symbol:
+    account.strategic_qualification.deployment_blocked = True
+    account.strategic_qualification.deployment_block_reason = "freeze_new_risk"
+"""
+    ).body
+    assert len(sentinel_projection.body) == len(observation_projection) + 4
+    for observed, expected in zip(sentinel_projection.body, observation_projection, strict=False):
+        _same(observed, expected)
+    del sentinel_projection.body[: len(observation_projection)]
     _same(current.body[2], frozen.body[6])
     for observed, expected in zip(current.body[3:8], frozen.body[7:12], strict=True):
         _same(observed, expected)

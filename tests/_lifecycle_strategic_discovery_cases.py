@@ -59,6 +59,7 @@ def test_strategic_cohort_discovers_arbitrary_symbols_without_a_static_prior():
     assert all(weight == pytest.approx(1.0 / 3.0) for weight in account.strategic_cohort_targets.values())
 
 def test_strategic_rank_prefers_a_confirmed_industry_cluster_over_one_high_scoring_outsider():
+    """Current owner ranking supersedes the historical industry-cluster preference."""
     dates = pd.bdate_range("2023-01-02", periods=246)
     frame = _strategic_frame(dates)
     strong = ("optical_a", "optical_b", "optical_c")
@@ -84,8 +85,16 @@ def test_strategic_rank_prefers_a_confirmed_industry_cluster_over_one_high_scori
             risk=_normal_risk(),
         )
 
-    assert tuple(account.strategic_cohort_symbols) == strong
-    assert "isolated_compute" not in account.strategic_cohort_targets
+    selected = ("isolated_compute", "optical_a", "optical_b")
+    assert tuple(account.strategic_cohort_symbols) == selected
+    assert set(account.strategic_cohort_targets) == set(selected)
+    assert "optical_c" not in account.strategic_cohort_targets
+    assert all(weight == pytest.approx(1.0 / 3.0) for weight in account.strategic_cohort_targets.values())
+    assert account.strategic_qualification.candidate_symbol == "isolated_compute"
+    assert account.strategic_qualification.qualification_route == "established"
+    assert account.strategic_qualification.qualification_quorum == "FULL_COHORT"
+    _assert_unfilled_strategic_probe(account)
+    assert not account.fills
 
 def test_strategic_established_route_rejects_broken_medium_term_structure():
     dates = pd.bdate_range("2023-01-02", periods=246)

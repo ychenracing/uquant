@@ -41,37 +41,6 @@ class RecoveryPortfolioPolicy(LeaderPortfolioPolicy):
 RecoveryPortfolioPolicy.__module__ = "uquant.portfolio_recovery"
 
 
-def _general_core_recovery_targets(
-    self: RecoveryPortfolioPolicy,
-    *,
-    date: pd.Timestamp,
-    opportunity: Opportunity,
-    risk: RiskAssessment,
-    user_panel: dict[str, pd.DataFrame],
-    leaders: dict[str, LeaderScore],
-    account: AccountState,
-    prices: dict[str, float],
-    weights_now: dict[str, float],
-    general_core_symbols: set[str],
-    risk_neutral_recovery_handoff: bool,
-) -> tuple[Target, ...] | None:
-    has_general_core = not account.anchor_weights and bool(general_core_symbols)
-    if opportunity is Opportunity.RECOVERY and has_general_core and not risk_neutral_recovery_handoff:
-        recovery_hold = self._leader_targets(
-            date=date,
-            opportunity=opportunity,
-            risk=risk,
-            user_panel=user_panel,
-            leaders=leaders,
-            account=account,
-            weights_now=weights_now,
-            prices=prices,
-        )
-        if recovery_hold is not None:
-            return recovery_hold
-    return None
-
-
 def _recovery_admission_targets(
     self: RecoveryPortfolioPolicy,
     *,
@@ -94,21 +63,6 @@ def _recovery_admission_targets(
     transitional_recovery_market: bool,
     weak_secular_market: bool,
 ) -> tuple[Target, ...] | None:
-    targets = _general_core_recovery_targets(
-        self,
-        date=date,
-        opportunity=opportunity,
-        risk=risk,
-        user_panel=user_panel,
-        leaders=leaders,
-        account=account,
-        prices=prices,
-        weights_now=weights_now,
-        general_core_symbols=general_core_symbols,
-        risk_neutral_recovery_handoff=risk_neutral_recovery_handoff,
-    )
-    if targets is not None:
-        return targets
     targets = tactical_admission_targets(
         self,
         opportunity=opportunity,

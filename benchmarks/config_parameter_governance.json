@@ -3,9 +3,18 @@
   "contract_id": "uquant-config-governance-v1",
   "baseline_commit": "e71c3f6cf42244f71e59458ec15375b92ed4da1f",
   "counts": {
-    "before": {"total_fields": 285, "economic_fields": 164},
-    "after": {"total_fields": 278, "economic_fields": 164},
-    "current": {"total_fields": 277, "economic_fields": 164}
+    "before": {
+      "total_fields": 285,
+      "economic_fields": 164
+    },
+    "after": {
+      "total_fields": 278,
+      "economic_fields": 164
+    },
+    "current": {
+      "total_fields": 275,
+      "economic_fields": 162
+    }
   },
   "config_migration": {
     "champion_config_sha256": "023d709731196a325d9cd03e95ece92e4baf63d2c5c66bb9f7d0e7a190e7bf20",
@@ -16,7 +25,9 @@
       {
         "owner": "ACCOUNTING",
         "rationale": "Fixes the capital basis used by live accounting and every comparable replay; changing it would change market-lot economics rather than strategy selection.",
-        "fields": ["initial_cash"]
+        "fields": [
+          "initial_cash"
+        ]
       },
       {
         "owner": "EXECUTION",
@@ -331,8 +342,6 @@
           "strategic_reversal_min_ret5",
           "strategic_reversal_min_median_ret20",
           "strategic_reversal_max_tech_ret120",
-          "strategic_epoch_cooldown_sessions",
-          "strategic_epoch_min_symbol_change",
           "strategic_long_cycle_min_ret20",
           "strategic_long_cycle_min_ret60",
           "strategic_long_cycle_min_ret120",
@@ -412,6 +421,21 @@
       "rationale": "The reversal-route confirmation slot is validated but never read by the production route or durable state."
     }
   ],
-  "removed_fields": ["strategic_cohort_symbols", "strategic_partial_universe_max_size", "adaptive_broad_universe_min_size", "adaptive_broad_universe_compatibility_enabled", "strategic_expansive_universe_min_size", "strategic_persistent_confirm_days", "strategic_reversal_confirm_days"],
-  "artifact_sha256": "89fbc546e7969d02df9f1f4b16616962d0c23a502d5ee3d340f68c23b5f5a19a"
+  "removed_fields": [
+    "strategic_cohort_symbols",
+    "strategic_partial_universe_max_size",
+    "adaptive_broad_universe_min_size",
+    "adaptive_broad_universe_compatibility_enabled",
+    "strategic_expansive_universe_min_size",
+    "strategic_persistent_confirm_days",
+    "strategic_reversal_confirm_days"
+  ],
+  "artifact_sha256": "7677c1e1666ae0f003df0ae0950b60b1ec5adad1d154476b99bc59044798450d",
+  "strategy_rule_removals": {
+    "contract_sha256": "9ec5992df69d4466cb2b26cea0e67bbe93f4c6317ba5b8a500ca7b89a75d78b4",
+    "fields": [
+      "strategic_epoch_cooldown_sessions",
+      "strategic_epoch_min_symbol_change"
+    ]
+  }
 }

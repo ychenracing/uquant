@@ -610,7 +610,10 @@ def test_execution_complexity_debt_relocations_are_exact_and_do_not_create_an_ex
         str(row["id"]) for category in ("long_functions", "branchy_functions") for row in normalized[category]
     }
     assert not observed & normalized_ids
-    assert not normalized_ids
+    assert not {
+        identifier for identifier in normalized_ids
+        if identifier.startswith(("uquant.application", "uquant.execution", "uquant.engine:"))
+    }
 
     globals_ = snapshot["module_globals"]
     assert isinstance(globals_, list)

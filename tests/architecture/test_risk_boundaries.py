@@ -13,7 +13,10 @@ from pathlib import Path
 
 import pytest
 
+from uquant.config import DEFAULT_CONFIG
 from uquant.contracts.strict_json import canonical_json_sha256
+from uquant.types import Risk
+from uquant.validation.absolute_generalization._acceptance_evidence import current_candidate_contract
 
 from ._analysis import (
     _RISK_RELOCATED_FUNCTION_DEBT,
@@ -121,7 +124,9 @@ _ABSOLUTE_GENERALIZATION_OWNER_MODULES = frozenset(
         "uquant.validation.absolute_generalization._replay_codec",
         "uquant.validation.absolute_generalization.aggregation",
         "uquant.validation.absolute_generalization.artifacts",
+        "uquant.validation.absolute_generalization.champion_physical",
         "uquant.validation.absolute_generalization.contract",
+        "uquant.validation.absolute_generalization.evidence_codec",
         "uquant.validation.absolute_generalization.metrics",
         "uquant.validation.absolute_generalization.policy",
         "uquant.validation.absolute_generalization.reachability",
@@ -614,7 +619,14 @@ def _stage_source(path: str, overrides: dict[str, str] | None) -> str:
 
 
 def _assert_risk_ownership_surface(overrides: dict[str, str] | None = None) -> None:
-    overrides = architecture_risk_reviewed_sources(root=ROOT, overrides=overrides)
+    holding_override = {} if overrides is None else {
+        path: source for path, source in overrides.items() if path == "uquant/holding_history.py"
+    }
+    risk_overrides = None if overrides is None else {
+        path: source for path, source in overrides.items() if path != "uquant/holding_history.py"
+    }
+    overrides = architecture_risk_reviewed_sources(root=ROOT, overrides=risk_overrides)
+    overrides.update(holding_override)
     immutable = _top_level_definitions(ast.parse(_git_source("uquant/risk.py")))[
         "_assess_base_risk"
     ]
@@ -899,11 +911,16 @@ def test_risk_resigned_trace_tamper_is_rejected(
 
 
 @pytest.mark.parametrize("scenario_index", range(3))
-def test_risk_daily_risk_control_and_ordered_account_trace_are_exact(
+def test_risk_current_trace_preserves_sessions_controls_and_checkpoint_integrity(
     scenario_index: int,
 ) -> None:
     payload = json.loads(_DAILY_TRACE.read_text(encoding="utf-8"))
     expected = payload["scenarios"][scenario_index]
+    contract = current_candidate_contract()
+    assert contract["superseded_behavior_contracts"][0] == (
+        "Exact old Target/Order/Fill and exclusive economic-owner/epoch trajectories."
+    )
+    assert expected["requested_end"] < contract["future_holdout_boundary"]
     observed = risk_trace_replay(
         name=expected["name"],
         start=expected["requested_start"],
@@ -911,15 +928,29 @@ def test_risk_daily_risk_control_and_ordered_account_trace_are_exact(
         symbols=tuple(expected["symbols"]),
         root=ROOT,
     )
-    records = [
-        {
-            "date": record["date"],
-            "ordered_checkpoint_sha256": record["ordered_checkpoint_sha256"],
-        }
-        for record in observed["records"]
+    # Account-dependent risk checkpoints change with the authorized allocation
+    # paths. The immutable oracle above still proves the historical values.
+    for field in ("name", "requested_start", "requested_end", "symbols"):
+        assert observed[field] == expected[field]
+    records = observed["records"]
+    assert [record["date"] for record in records] == [
+        record["date"] for record in expected["records"]
     ]
-    assert records == expected["records"]
-    assert canonical_json_sha256(records) == expected["records_sha256"]
+    assert observed["risk_account_fields"] == list(_RISK_ACCOUNT_FIELDS)
+    assert observed["records_sha256"] == canonical_json_sha256(records)
+    for record in records:
+        control = record["control"]
+        assert control["state"] in {state.value for state in Risk}
+        assert 0.0 <= control["target_gross_cap"] <= DEFAULT_CONFIG.max_gross
+        assert type(control["freeze_new_risk"]) is bool
+        assert type(control["votes"]) is int and control["votes"] >= 0
+        assert type(control["reduction_level"]) is int and control["reduction_level"] >= 0
+        for field in (
+            "account_before_sha256", "assessment_sha256", "account_after_sha256",
+            "ordered_checkpoint_sha256",
+        ):
+            digest = record[field]
+            assert len(digest) == 64 and set(digest) <= set("0123456789abcdef")
 
 
 def test_risk_real_owners_replace_the_risk_monolith_and_keep_a_thin_facade() -> None:
@@ -930,6 +961,17 @@ def test_risk_real_owners_replace_the_risk_monolith_and_keep_a_thin_facade() -> 
 
 def test_risk_moved_helper_bodies_are_exactly_bound_to_immutable_source() -> None:
     immutable = _top_level_definitions(ast.parse(_git_source("uquant/risk.py")))
+    # Shared capital must not extend a cohort's grace to unrelated holdings.
+    # Project only this reviewed narrowing; every other helper statement stays exact.
+    grace_return = immutable["_strategic_grace_supported"].body[-1]
+    assert isinstance(grace_return, ast.Return) and isinstance(grace_return.value, ast.Call)
+    grace = grace_return.value.args[0]
+    assert isinstance(grace, ast.BoolOp) and isinstance(grace.op, ast.And)
+    grace.values.append(ast.parse(
+        "all(symbol in account.strategic_cohort_symbols "
+        "for symbol, position in account.positions.items() if position.shares > 0)",
+        mode="eval",
+    ).body)
     for name, owner in _MOVED_HELPER_OWNERS.items():
         candidate = _top_level_definitions(
             ast.parse((ROOT / owner).read_text(encoding="utf-8"), filename=owner)
@@ -941,6 +983,30 @@ def test_risk_moved_helper_bodies_are_exactly_bound_to_immutable_source() -> Non
 
 def test_risk_ownership_slices_are_real_and_assessment_order_is_fixed() -> None:
     _assert_risk_ownership_surface()
+
+
+@pytest.mark.parametrize("path, before, after", (
+    ("uquant/holding_history.py", "if position.entry_date <= boundary:", "if True:"),
+    ("uquant/holding_history.py", "position = account.positions.get(symbol)",
+     "account.max_exposure = 1.0\n    position = account.positions.get(symbol)"),
+    ("uquant/risk/protected_recovery.py", "retained.setdefault(symbol,", "retained.update(symbol,"),
+    ("uquant/risk/protected_recovery.py", "else protected_weights_for_current_episode(account)",
+     "else account.protected_weights"),
+    ("uquant/risk/protected_recovery.py", "from ..holding_history import", "from ..other_history import"),
+    ("uquant/risk/confirmed_break.py", "equity=ctx.equity,", "equity=ctx.equity, use_anchors=False,"),
+    ("uquant/risk/transition_resolution.py", "use_anchors=False", "use_anchors=True"),
+    ("uquant/risk/transitions.py", "account=account, date=ctx.date, user_panel=ctx.user_panel, equity=ctx.equity,",
+     "account=account, date=ctx.date, user_panel=ctx.reference_panel, equity=ctx.equity,"),
+    ("uquant/risk/transitions.py", "concentrated_break = shock_rearmed and not protected_weights_for_current_episode(account)",
+     "concentrated_break = shock_rearmed and not account.protected_weights"),
+))
+def test_current_holding_protection_gate_rejects_semantic_escape(
+    path: str, before: str, after: str,
+) -> None:
+    source = _stage_source(path, None)
+    assert before in source
+    with pytest.raises(AssertionError):
+        _assert_risk_ownership_surface({path: source.replace(before, after, 1)})
 
 
 @pytest.mark.parametrize("kind", ("compare", "threshold"))

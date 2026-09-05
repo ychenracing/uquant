@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import copy
 
+import numpy as np
 import pandas as pd
 import pytest
 from test_lifecycle_and_risk import (
@@ -43,16 +44,20 @@ def test_persistent_single_name_v_repair_is_a_fallback_not_a_fast_path_shortcut(
 
     def crisis_account() -> AccountState:
         return AccountState(
-            initial_cash=100.0,
-            cash=100.0,
+            initial_cash=200.0,
+            cash=80.0,
+            positions={
+                "protected": Position("protected", 1, 120.0, str(dates[0].date()), 120.0),
+            },
             protected_weights={"protected": 0.60},
+            last_shock_date=str(dates[-20].date()),
             risk=Risk.CRISIS.value,
             shock_state="PERSISTENT_STRESS",
             shock_severity="SEVERE",
             shock_start_date=str(dates[-20].date()),
             risk_streaks={"persistent_v_market_repair": (DEFAULT_CONFIG.fast_v_recovery_confirm_days - 1)},
-            operating_peak=150.0,
-            capital_peak=100.0,
+            operating_peak=300.0,
+            capital_peak=200.0,
         )
 
     def assess(frame: pd.DataFrame, account: AccountState):
@@ -65,7 +70,7 @@ def test_persistent_single_name_v_repair_is_a_fallback_not_a_fast_path_shortcut(
             user_panel={"protected": frame},
             leaders=reference_leaders,
             account=account,
-            equity=100.0,
+            equity=account.cash + account.positions["protected"].shares * frame.loc[date, "close"],
             cfg=DEFAULT_CONFIG,
         )
 
@@ -73,7 +78,7 @@ def test_persistent_single_name_v_repair_is_a_fallback_not_a_fast_path_shortcut(
     fallback = assess(protected, fallback_account)
     assert fallback.state is Risk.CAUTION
     assert fallback.reasons == ("confirmed persistent V-recovery after extended single-name protection",)
-    assert fallback_account.operating_peak == pytest.approx(100.0)
+    assert fallback_account.operating_peak == pytest.approx(200.0)
 
     # A positive one-day move is already advancing the ordinary fast-V streak;
     # the fallback must not use its own tenure to complete that route early.
@@ -106,6 +111,7 @@ def test_failed_restoration_triggers_capital_cooldown_and_retires_anchors():
         },
         anchor_weights={symbol: 1.0 / 3.0 for symbol in symbols},
         protected_weights={symbol: 1.0 / 3.0 for symbol in symbols},
+        last_shock_date=str(dates[-25].date()),
         risk=Risk.CAUTION.value,
         operating_peak=80.0,
         capital_peak=100.0,
@@ -174,6 +180,7 @@ def test_profitable_restore_drawdown_is_not_a_capital_failure() -> None:
         },
         anchor_weights={symbol: 1.0 / 3.0 for symbol in symbols},
         protected_weights={symbol: 1.0 / 3.0 for symbol in symbols},
+        last_shock_date=str(dates[-25].date()),
         risk=Risk.CAUTION.value,
         operating_peak=400.0,
         capital_peak=400.0,
@@ -219,12 +226,13 @@ def test_profitable_restore_with_confirmed_market_damage_uses_ordinary_repair() 
                 symbol,
                 shares=1,
                 avg_cost=100.0,
-                entry_date=str(dates[-30].date()),
+                entry_date=str(dates[-130].date()),
                 highest_close=100.0,
             )
             for symbol in symbols
         },
         protected_weights={symbol: 1.0 / 3.0 for symbol in symbols},
+        last_shock_date=str(dates[-100].date()),
         risk=Risk.CAUTION.value,
         operating_peak=330.0,
         capital_peak=400.0,
@@ -633,11 +641,11 @@ def test_confirmed_caution_freezes_new_risk_without_creating_a_sell_order():
     healthy = _trend_frame(dates)
     invested = AccountState(
         initial_cash=100.0,
-        cash=15.0,
+        cash=45.0,
         positions={
             "held": Position(
                 "held",
-                shares=85,
+                shares=55,
                 avg_cost=0.80,
                 entry_date=str(dates[0].date()),
                 highest_close=1.0,
@@ -658,7 +666,7 @@ def test_confirmed_caution_freezes_new_risk_without_creating_a_sell_order():
         account=invested,
         prices={"held": 1.0},
     )
-    assert {target.symbol: target.weight for target in targets} == pytest.approx({"held": 0.85})
+    assert {target.symbol: target.weight for target in targets} == pytest.approx({"held": 0.55})
     assert (
         plan_orders(
             signal_date=str(date.date()),
@@ -670,10 +678,12 @@ def test_confirmed_caution_freezes_new_risk_without_creating_a_sell_order():
         == ()
     )
 
-def test_tactical_expiry_remains_executable_through_a_caution_freeze() -> None:
+def test_confirmed_structural_exit_remains_executable_through_a_caution_freeze() -> None:
     dates = pd.bdate_range("2025-10-01", periods=40)
-    date = dates[-1]
-    frame = _trend_frame(dates)
+    frame = _trend_frame(
+        dates, close=np.linspace(1.0, 0.80, len(dates)), ma20=1.0, ma60=1.05,
+        ret20=-0.20, ret60=-0.20,
+    )
     symbol = "rebound"
     account = AccountState(
         initial_cash=100.0,
@@ -704,19 +714,24 @@ def test_tactical_expiry_remains_executable_through_a_caution_freeze() -> None:
         reduction_level=1,
     )
 
-    targets = PortfolioAllocator(DEFAULT_CONFIG).allocate(
-        date=date,
-        opportunity=Opportunity.CHOPPY,
-        risk=caution,
-        user_panel={symbol: frame},
-        leaders={symbol: _leader(symbol, 0.80)},
-        account=account,
-        prices={symbol: 1.35},
-    )
+    allocator = PortfolioAllocator(DEFAULT_CONFIG)
+    for observed in dates[-DEFAULT_CONFIG.replacement_confirm_days :]:
+        targets = allocator.allocate(
+            date=observed,
+            opportunity=Opportunity.CHOPPY,
+            risk=caution,
+            user_panel={symbol: frame},
+            leaders={symbol: _leader(symbol, 0.80, mature=False)},
+            account=account,
+            prices={symbol: float(frame.loc[observed, "close"])},
+        )
 
     assert next(target for target in targets if target.symbol == symbol).weight == 0.0
     assert account.candidate_tenure["tactical_active"] == 0
-    assert account.candidate_tenure["recovery_cycle_rearm_pending"] == 1
+    # Confirmed structural exit remains available through a buy freeze;
+    # the target itself does not settle shares or credit expected sale proceeds.
+    assert account.positions[symbol].shares == 60
+    assert account.cash == 40.0
 
 def test_unprofitable_tactical_time_expiry_waits_for_a_caution_freeze_to_clear() -> None:
     dates = pd.bdate_range("2025-10-01", periods=40)

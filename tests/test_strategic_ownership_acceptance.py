@@ -218,7 +218,9 @@ def test_ownership_workflow_is_bounded_cached_and_blocking() -> None:
 
 
 def test_actual_epoch_facts_require_target_order_and_matching_real_fill() -> None:
-    facts = actual_epoch_facts(_result())
+    from test_cross_ai_ownership_continuity import continuity_replay
+
+    facts = actual_epoch_facts(continuity_replay(owners=("sz300308",)))
 
     assert len(facts) == 1
     assert facts[0]["owner_symbol"] == "sz300308"
@@ -318,6 +320,8 @@ def test_single_alias_scenario_runs_only_its_contract_dependency(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
+    from test_cross_ai_ownership_continuity import continuity_replay
+
     assert "same-industry-crowning" in SCENARIO_NAMES
     calls: list[str] = []
 
@@ -329,26 +333,7 @@ def test_single_alias_scenario_runs_only_its_contract_dependency(
         assert isinstance(spec, dict)
         scenario_id = str(spec["scenario_id"])
         calls.append(scenario_id)
-        return {
-            "epochs": [
-                {
-                    "epoch_id": "epoch-1",
-                    "grant_id": "grant-1",
-                    "owner_symbol": "sz300502",
-                    "previous_epoch_id": "",
-                    "previous_grant_id": "",
-                },
-                {
-                    "epoch_id": "epoch-2",
-                    "grant_id": "grant-2",
-                    "owner_symbol": "sz300308",
-                    "previous_epoch_id": "epoch-1",
-                    "previous_grant_id": "grant-1",
-                },
-            ],
-            "scenario_id": scenario_id,
-            "status": "PASS",
-        }
+        return ownership_runner._continuity_summary(load_contract(), continuity_replay())
 
     monkeypatch.setattr(ownership_runner, "_execute_scenario", execute)
     result = run_acceptance_shard(
@@ -365,7 +350,47 @@ def test_single_alias_scenario_runs_only_its_contract_dependency(
     assert set(result["cache_dependencies"]) == {"remove-sz300502"}
 
 
+@pytest.mark.parametrize("scenario", ("remove-sz300502", "same-industry-crowning"))
+@pytest.mark.parametrize("status", ("REPLAY_ERROR", "INSUFFICIENT_SAMPLE"))
+def test_failed_ownership_replay_preserves_raw_without_cache_or_pass(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, scenario: str, status: str,
+) -> None:
+    from dataclasses import asdict, replace
+
+    from test_cross_ai_ownership_continuity import continuity_replay
+
+    replay = replace(
+        continuity_replay(), status=status,
+        error="pending order event_id differs from canonical derivation",
+    )
+    monkeypatch.setattr(ownership_runner, "_frozen_replay", lambda *args, **kwargs: replay)
+    monkeypatch.setattr(ownership_runner, "_cache_identity_context", lambda contract: {"test": "failed raw"})
+    output = tmp_path / "evidence" / "failed.json"
+    cache = tmp_path / "cache"
+
+    with pytest.raises(RuntimeError, match="pending order event_id differs from canonical derivation"):
+        run_acceptance_shard(shard="continuity", scenario=scenario, output=output, cache_dir=cache)
+
+    evidence = json.loads(output.read_text(encoding="utf-8"))
+    assert evidence["status"] == "FAIL"
+    assert evidence["authoritative_acceptance"] is False
+    assert evidence["cache_hit"] is False
+    assert evidence["selected_scenario"] == scenario
+    assert len(evidence["scenarios"]) == 1
+    failure = evidence["scenarios"][0]
+    assert failure["scenario_id"] == "remove-sz300502"
+    assert failure["status"] == "FAIL"
+    assert failure["replay_status"] == status
+    assert failure["error"] == replay.error
+    assert ownership_runner._canonical_sha256(failure["raw_replay"]) == ownership_runner._canonical_sha256(asdict(replay))
+    assert failure["raw_replay_sha256"] == ownership_runner._canonical_sha256(asdict(replay))
+    assert "same_industry_witness" not in failure
+    assert list(cache.iterdir()) == []
+
+
+@pytest.mark.parametrize("status, exit_code", [("PASS", 0), ("FAIL", 1)])
 def test_ownership_cli_dispatches_one_diagnostic_scenario(
+    status: str, exit_code: int,
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -373,7 +398,7 @@ def test_ownership_cli_dispatches_one_diagnostic_scenario(
     monkeypatch.setattr(
         ownership_runner,
         "run_acceptance_shard",
-        lambda **options: observed.update(options),
+        lambda **options: (observed.update(options), {"status": status})[1],
     )
     output = tmp_path / "ownership.json"
     cache = tmp_path / "cache"
@@ -389,10 +414,199 @@ def test_ownership_cli_dispatches_one_diagnostic_scenario(
             "--cache-dir",
             str(cache),
         ]
-    ) == 0
+    ) == exit_code
     assert observed == {
         "cache_dir": cache,
         "output": output,
         "scenario": "remove-sz300394",
         "shard": "critical",
     }
+
+
+def _historical_champion_raw():
+    """Immutable historical raw tests adapters, never current candidate economics."""
+    import gzip
+
+    return json.loads(gzip.decompress((ROOT / 'tests/fixtures/absolute_champion_runtime_raw.json.gz').read_bytes()))
+
+
+def test_champion_adapter_reconstructs_raw_and_records_actual_source() -> None:
+    raw = _historical_champion_raw()
+    result = ownership_runner._champion_evidence(
+        load_contract(), raw=raw, scenario_id='champion-5',
+        expected_source=raw['final_account']['code_hash'],
+    )
+    assert result['status'] == 'PASS'
+    assert result['acceptance_basis']['mode'] == 'current_candidate'
+    assert result['acceptance_basis']['production_source_sha256'] == raw['final_account']['code_hash']
+    assert result['metrics']['final_wealth'] == 24.509661802900865
+    assert result['raw_replay'] == raw
+    assert result['violations'] == []
+
+
+@pytest.mark.parametrize('mutation', ['source', 'duplicate_fill', 'no_fill', 'missing_raw'])
+def test_champion_adapter_retains_rejected_raw(mutation: str) -> None:
+    raw = _historical_champion_raw()
+    source = raw['final_account']['code_hash']
+    if mutation == 'source':
+        source = 'f' * 64
+    elif mutation == 'duplicate_fill':
+        raw['final_account']['fills'].append(raw['final_account']['fills'][0].copy())
+    elif mutation == 'no_fill':
+        raw['final_account']['fills'] = []
+    else:
+        raw = {}
+    result = ownership_runner._champion_evidence(
+        load_contract(), raw=raw, scenario_id='champion-5', expected_source=source,
+    )
+    assert result['status'] == 'FAIL'
+    assert result['violations']
+    assert result['raw_replay'] == raw
+
+
+def test_champion_adapter_preserves_ownership_absolute_limits() -> None:
+    raw = _historical_champion_raw()
+    contract = load_contract()
+    contract['champion']['minimum_final_wealth'] = 25.0
+    contract['thresholds']['maximum_drawdown'] = 0.25
+    result = ownership_runner._champion_evidence(
+        contract, raw=raw, scenario_id='champion-5',
+        expected_source=raw['final_account']['code_hash'],
+    )
+    assert result['status'] == 'FAIL'
+    assert result['violations'] == [
+        'champion preservation wealth differs', 'champion preservation drawdown differs',
+    ]
+    assert result['raw_replay'] == raw
+
+
+def test_champion_cache_cannot_accept_summary_without_raw(tmp_path: Path) -> None:
+    path = tmp_path / 'champion.json'
+    ownership_runner._write_cache(path, identity='test-only', payload={
+        'scenario_id': 'champion-5', 'status': 'PASS',
+        'acceptance_basis': {'mode': 'current_candidate'},
+        'metrics': {'final_wealth': 25.0},
+    })
+    assert ownership_runner._read_cache(path, identity='test-only') is None
+
+
+@pytest.mark.parametrize("scenario", ("remove-sz300308", "remove-sz300502"))
+@pytest.mark.parametrize("stage", ("actual_epoch_facts", "_validate_full_removal"))
+def test_successful_replay_strict_rejection_preserves_raw_and_original_error(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, scenario: str, stage: str,
+) -> None:
+    from dataclasses import asdict
+
+    from test_cross_ai_ownership_continuity import continuity_replay
+
+    replay = continuity_replay()
+    error = ValueError("filled epoch has non-realized status")
+
+    def reject(*_args, **_kwargs):
+        raise error
+
+    monkeypatch.setattr(ownership_runner, "_frozen_replay", lambda *args, **kwargs: replay)
+    monkeypatch.setattr(ownership_runner, stage, reject)
+    monkeypatch.setattr(ownership_runner, "_cache_identity_context", lambda contract: {"test": "strict raw"})
+    output, cache = tmp_path / "failed.json", tmp_path / "cache"
+    with pytest.raises(ValueError) as observed:
+        run_acceptance_shard(
+            shard="critical" if scenario == "remove-sz300308" else "continuity",
+            scenario=scenario, output=output, cache_dir=cache,
+        )
+    assert observed.value is error
+    evidence = json.loads(output.read_text())
+    assert evidence["status"] == "FAIL"
+    assert evidence["authoritative_acceptance"] is False
+    assert evidence["cache_hit"] is False
+    failure = evidence["scenarios"][-1]
+    assert failure["scenario_id"] == scenario
+    assert failure["status"] == "FAIL"
+    assert failure["replay_status"] == "SUCCESS"
+    assert failure["replay_error"] is None
+    assert failure["error_type"] == "ValueError"
+    assert failure["error"] == str(error)
+    assert failure["raw_replay_sha256"] == ownership_runner._canonical_sha256(asdict(replay))
+    assert ownership_runner._canonical_sha256(failure["raw_replay"]) == failure["raw_replay_sha256"]
+    assert list(cache.iterdir()) == []
+
+
+@pytest.mark.parametrize("cached_source", (False, True))
+def test_missing_same_industry_witness_persists_source_raw_without_alias_cache(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, cached_source: bool,
+) -> None:
+    from dataclasses import asdict
+
+    from test_cross_ai_ownership_continuity import continuity_replay
+
+    replay = continuity_replay(owners=("sz300308", "sh688008"))
+    monkeypatch.setattr(ownership_runner, "_frozen_replay", lambda *args, **kwargs: replay)
+    monkeypatch.setattr(ownership_runner, "_cache_identity_context", lambda contract: {"test": "alias raw"})
+    output, cache = tmp_path / "failed.json", tmp_path / "cache"
+    if cached_source:
+        run_acceptance_shard(
+            shard="continuity", scenario="remove-sz300502", output=output, cache_dir=cache,
+        )
+        monkeypatch.setattr(ownership_runner, "_frozen_replay", lambda *args, **kwargs: pytest.fail("source replayed"))
+    with pytest.raises(RuntimeError, match="no adjacent real same-industry successor"):
+        run_acceptance_shard(
+            shard="continuity", scenario="same-industry-crowning", output=output, cache_dir=cache,
+        )
+    evidence = json.loads(output.read_text())
+    assert evidence["status"] == "FAIL"
+    assert evidence["authoritative_acceptance"] is False
+    failure = evidence["scenarios"][-1]
+    assert failure["scenario_id"] == "same-industry-crowning"
+    assert failure["status"] == "FAIL"
+    assert failure["replay_status"] == "SUCCESS"
+    assert failure["error_type"] == "RuntimeError"
+    assert failure["raw_replay_sha256"] == ownership_runner._canonical_sha256(asdict(replay))
+    assert ownership_runner._canonical_sha256(failure["raw_replay"]) == failure["raw_replay_sha256"]
+    assert "same_industry_witness" not in failure
+    entries = list(cache.iterdir())
+    assert len(entries) == 1
+    assert entries[0].name.startswith("remove-sz300502-")
+    assert not list(cache.glob("same-industry-crowning-*"))
+
+
+@pytest.mark.parametrize("scenario", ("report-13", "cross-industry-crowning", "failed-first-grant"))
+def test_fixture_and_report_post_replay_failures_retain_raw(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, scenario: str,
+) -> None:
+    from dataclasses import asdict
+
+    from test_cross_ai_ownership_continuity import continuity_replay
+
+    replay = continuity_replay()
+    error = RuntimeError("strict post-replay rejection")
+
+    def reject(*_args, **_kwargs):
+        raise error
+
+    monkeypatch.setattr(ownership_runner, "_cache_identity_context", lambda contract: {"test": "fixture raw"})
+    monkeypatch.setattr(ownership_runner, "_frozen_replay", lambda *args, **kwargs: replay)
+    monkeypatch.setattr(ownership_runner, "run_replay", lambda *args, **kwargs: replay)
+    monkeypatch.setattr(ownership_runner, "_cross_industry_fixture", lambda root: None)
+    monkeypatch.setattr(ownership_runner, "_failed_grant_fixture", lambda root: None)
+    monkeypatch.setattr(ownership_runner, "_failed_grant_replay", lambda root: (replay, []))
+    monkeypatch.setattr(ownership_runner, "_require_economic_thresholds", reject)
+    output, cache = tmp_path / "failed.json", tmp_path / "cache"
+    with pytest.raises(RuntimeError) as observed:
+        run_acceptance_shard(
+            shard="champion" if scenario == "report-13" else "continuity",
+            scenario=scenario, output=output, cache_dir=cache,
+        )
+    if scenario == "failed-first-grant":
+        assert "exactly two economic grants" in str(observed.value)
+    else:
+        assert observed.value is error
+    evidence = json.loads(output.read_text())
+    assert evidence["status"] == "FAIL"
+    assert evidence["authoritative_acceptance"] is False
+    failure = evidence["scenarios"][-1]
+    assert failure["scenario_id"] == scenario
+    assert failure["replay_status"] == "SUCCESS"
+    assert failure["error"] == str(observed.value)
+    assert failure["raw_replay_sha256"] == ownership_runner._canonical_sha256(asdict(replay))
+    assert ownership_runner._canonical_sha256(failure["raw_replay"]) == failure["raw_replay_sha256"]
+    assert list(cache.iterdir()) == []

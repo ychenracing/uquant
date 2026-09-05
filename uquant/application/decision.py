@@ -263,7 +263,7 @@ def _mark_account_positions(
             tranche.mae = min(tranche.mae, excursion)
 
 
-def _validated_decision_symbols(
+def validated_decision_symbols(
     *,
     symbols: Iterable[str],
     as_of: str,
@@ -300,7 +300,7 @@ def _validated_decision_symbols(
     return date, user_symbols, durable_symbols
 
 
-def _verify_decision_provenance(
+def verify_decision_provenance(
     self: DecisionEngineRuntime,
     *,
     date: pd.Timestamp,
@@ -346,7 +346,7 @@ def _verify_decision_provenance(
     )
 
 
-def _decision_market_context(
+def decision_market_context(
     self: DecisionEngineRuntime,
     *,
     inputs: _DecisionInputs,
@@ -438,7 +438,7 @@ def _decision_market_context(
     )
 
 
-def _assess_decision_risk(
+def assess_decision_risk(
     *,
     inputs: _DecisionInputs,
     market: _DecisionMarket,
@@ -529,6 +529,38 @@ def _assess_decision_risk(
     return risk
 
 
+def _record_final_allocation_trace(
+    *, risk: RiskAssessment, targets: tuple[Target, ...], orders: tuple[PendingOrder, ...],
+    planning: dict[str, dict[str, object]],
+) -> None:
+    """Bind allocator observations to the final risk-capped targets and reconciled intents."""
+    trace = risk.evidence.get("core_allocation")
+    if not isinstance(trace, dict):
+        return
+    trace["planning_scope"] = trace["scope"]
+    trace["scope"] = "FINAL_DECISION"
+    trace["final_freeze_new_risk"] = risk.freeze_new_risk or bool(risk.evidence.get("freeze_new_risk", False))
+    trace["final_gross_cap"] = risk.target_gross_cap
+    by_symbol = {target.symbol: target for target in targets}
+    for symbol, row in trace["symbols"].items():
+        target = by_symbol.get(symbol)
+        row["final_target_weight"] = target.weight if target is not None else 0.0
+        row["final_target_reason"] = target.reason if target is not None else "NO_TARGET"
+        row["order_planning"] = planning.get(symbol, {"block": "NO_TARGET"})
+        row["orders"] = [{"side": order.side, "order_id": order.order_id, "event_id": order.event_id,
+                          "remaining_shares": order.remaining_shares}
+                         for order in orders if order.symbol == symbol]
+
+
+def _retained_allocation_orders(
+    *, previous_orders: list[PendingOrder], risk: RiskAssessment,
+) -> list[PendingOrder]:
+    """Carry allocator rejections through identity reuse and pending-order merge."""
+    rows = risk.evidence.get("core_allocation", {}).get("symbols", {})
+    return [order for order in previous_orders
+            if order.side != "BUY" or rows.get(order.symbol, {}).get("pending_buy_rejected") is not True]
+
+
 def _allocate_decision_orders(
     self: DecisionEngineRuntime,
     *,
@@ -541,7 +573,7 @@ def _allocate_decision_orders(
 ) -> _DecisionAllocation:
     # Provenance was already fail-closed above. Publishing it before allocation
     # lets any newly created grant bind the exact production source identity.
-    _bind_decision_account_identity(inputs=inputs, account=account)
+    bind_decision_account_identity(inputs=inputs, account=account)
     structural_users = {
         symbol: market.structural_leaders[symbol]
         for symbol in inputs.user_symbols
@@ -592,21 +624,24 @@ def _allocate_decision_orders(
     )
     risk.evidence.update(market.reference_context.evidence())
     bind_account_strategic_ownership(account)
+    retained_orders = _retained_allocation_orders(previous_orders=previous_orders, risk=risk)
     targets = attach_target_attribution_fn(
         signal_date=str(inputs.date.date()),
         targets=targets,
-        retained_orders=previous_orders,
+        retained_orders=retained_orders,
         cfg=self.cfg,
     )
+    planning_diagnostics: dict[str, dict[str, object]] = {}
     planned_orders = plan_orders(
         signal_date=str(inputs.date.date()),
         targets=targets,
         account=account,
         prices=market.prices,
         cfg=self.cfg,
+        diagnostics=planning_diagnostics,
     )
     orders = merge_pending_orders(
-        retained=previous_orders,
+        retained=retained_orders,
         planned=planned_orders,
         targets=targets,
         cfg=self.cfg,
@@ -618,6 +653,8 @@ def _allocate_decision_orders(
         submitted_date=str(inputs.date.date()),
         removed_buy_reason="sentinel_freeze_new_risk" if sentinel_freeze_authorized(risk) else None,
     )
+    _record_final_allocation_trace(risk=risk, targets=targets, orders=orders,
+                                   planning=planning_diagnostics)
     account.last_successful_run = str(inputs.date.date())
     account.data_hash = inputs.data_digest
     account.data_hash_as_of = str(inputs.date.date())
@@ -636,7 +673,7 @@ def _allocate_decision_orders(
     )
 
 
-def _bind_decision_account_identity(
+def bind_decision_account_identity(
     *,
     inputs: _DecisionInputs,
     account: AccountState,
@@ -812,12 +849,12 @@ def _decide_result(
     chronology checks succeed. Returned orders are next-open intentions;
     this method never fills them on the signal date.
     """
-    date, user_symbols, durable_symbols = _validated_decision_symbols(
+    date, user_symbols, durable_symbols = validated_decision_symbols(
         symbols=symbols,
         as_of=as_of,
         account=account,
     )
-    inputs = _verify_decision_provenance(
+    inputs = verify_decision_provenance(
         self,
         date=date,
         user_symbols=user_symbols,
@@ -825,13 +862,13 @@ def _decide_result(
         account=account,
         code_fingerprint_fn=code_fingerprint_fn,
     )
-    market = _decision_market_context(
+    market = decision_market_context(
         self,
         inputs=inputs,
         account=account,
         strategic_universe_declaration=strategic_universe_declaration,
     )
-    risk = _assess_decision_risk(
+    risk = assess_decision_risk(
         inputs=inputs,
         market=market,
         account=account,

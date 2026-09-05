@@ -558,12 +558,12 @@ def _record_account_epoch_fill_status(
             account.strategic_epoch += 1
         account.candidate_tenure["strategic_cohort_active"] = 1
         grant = account.strategic_grant
-        if grant is not None and grant.grant_id == grant_id:
+        if grant is not None and grant.grant_id == grant_id and grant.status not in {"EXPIRED", "CANCELLED"}:
             grant.status = "COMPLETED"
             grant.expiry_reason = ""
     elif epoch.realized_status == StrategicEpochStatus.CORE.value:
         grant = account.strategic_grant
-        if grant is not None and grant.grant_id == grant_id:
+        if grant is not None and grant.grant_id == grant_id and grant.status not in {"EXPIRED", "CANCELLED"}:
             grant.status = "PARTIALLY_FILLED"
 
 

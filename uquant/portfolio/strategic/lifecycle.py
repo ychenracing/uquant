@@ -15,7 +15,7 @@ from ...models.strategic_epoch import (
 )
 from ...models.strategic_grant import StrategicQualificationObservation
 from ...models.strategic_universe import StrategicUniverseRoles
-from ...portfolio_core import strategic_dominant_symbol
+from ...portfolio_core import restoration_trade_weight, strategic_dominant_symbol
 from ...types import (
     AccountState,
     LeaderScore,
@@ -24,10 +24,10 @@ from ...types import (
     Target,
 )
 from .discovery import (
-    resolve_strategic_qualification_inputs,
+    observe_strategic_candidates,
 )
-from .grant_lifecycle import revalidate_strategic_grant
-from .successor import observe_strategic_successor
+from .grant_lifecycle import completed_strategic_core_entry, revalidate_strategic_grant
+from .qualification_candidates import reset_strategic_candidate_eligibility
 
 if TYPE_CHECKING:
     from .discovery import StrategicPortfolioPolicy
@@ -70,7 +70,7 @@ def _bounded_strategic_restore_risk_open(
         account.candidate_tenure.get("strategic_cohort_started", 0) == 1
         and bool(account.strategic_restore_weights)
     )
-    if not restoration_owned:
+    if not restoration_owned or bool(risk.evidence.get("sentinel_freeze_new_risk", False)):
         return False
     reason_clean_level2 = bool(
         risk.state.value == "NORMAL"
@@ -98,6 +98,7 @@ def _bounded_strategic_restore_risk_open(
 
 def _retire_strategic_member(account: AccountState, symbol: str) -> None:
     """Remove every live intent owned by one completed cohort member."""
+    reset_strategic_candidate_eligibility(account=account, symbol=symbol)
     account.strategic_cohort_targets.pop(symbol, None)
     account.strategic_exit_bands.pop(symbol, None)
     account.strategic_active_bands.pop(symbol, None)
@@ -141,9 +142,7 @@ def _complete_empty_strategic_cohort(
     account.strategic_restore_weights.clear()
     account.strategic_epochs_completed += 1
     account.strategic_last_exit_date = str(date.date())
-    account.strategic_rearm_date = str(
-        (date + pd.offsets.BDay(self.cfg.strategic_epoch_cooldown_sessions)).date()
-    )
+    account.strategic_rearm_date = ""
     account.strategic_previous_symbols = list(account.strategic_cohort_symbols)
     account.strategic_cohort_symbols.clear()
     account.strategic_candidate_signature = ""
@@ -359,6 +358,7 @@ def _advance_strategic_exit(
                     - _strategic_exit_step(ctx, symbol=symbol, row=row) / band_count,
                 )
     if sum(bands) <= 1e-12:
+        reset_strategic_candidate_eligibility(account=account, symbol=symbol)
         account.strategic_cohort_targets.pop(symbol, None)
 
 
@@ -419,6 +419,9 @@ def _capture_strategic_restore(
     current_selected: dict[str, float],
 ) -> None:
     self = ctx.policy
+    if ctx.account.strategic_grant is not None and ctx.account.strategic_grant.status in {"EXPIRED", "CANCELLED"}:
+        ctx.account.strategic_restore_weights.clear()
+        return
     current_gross = sum(current_selected.values())
     if ctx.risk.target_gross_cap + 0.02 >= current_gross:
         return
@@ -505,10 +508,7 @@ def _strategic_restore_complete(
     equity = account.cash + sum(
         position.shares * ctx.prices.get(symbol, 0.0) for symbol, position in account.positions.items()
     )
-    trade_threshold = max(
-        self.cfg.restoration_min_trade_weight,
-        self.cfg.min_trade_value / equity if equity > 1e-12 else math.inf,
-    )
+    minimum_value_weight = self.cfg.min_trade_value / equity if equity > 1e-12 else math.inf
     completion_tolerance = max(
         self.cfg.min_trade_weight,
         self.cfg.min_trade_value / equity if equity > 1e-12 else math.inf,
@@ -518,14 +518,16 @@ def _strategic_restore_complete(
         for order in account.pending_orders
         if order.side == "BUY"
         and order.symbol in proposed
-        and ctx.weights_now.get(order.symbol, 0.0) < 0.95 * proposed[order.symbol]
-        and proposed[order.symbol] - ctx.weights_now.get(order.symbol, 0.0) >= trade_threshold
+        and order.remaining_shares > 0
+        and ctx.weights_now.get(order.symbol, 0.0) + 1e-12 < proposed[order.symbol]
     }
     return bool(
         ctx.risk.target_gross_cap >= sum(saved_restore.values()) - 1e-12
         and not material_pending
         and all(
-            desired - ctx.weights_now.get(symbol, 0.0) + 1e-12 < trade_threshold
+            desired - ctx.weights_now.get(symbol, 0.0) + 1e-12 < max(
+                restoration_trade_weight(self.cfg, account, symbol, desired), minimum_value_weight,
+            )
             or (
                 ctx.weights_now.get(symbol, 0.0) >= 0.95 * desired
                 and desired - ctx.weights_now.get(symbol, 0.0) < completion_tolerance
@@ -581,11 +583,27 @@ def _apply_strategic_restore(
     return proposed
 
 
+def _limit_revoked_strategic_proposal(
+    account: AccountState, proposed: dict[str, float], current_selected: dict[str, float],
+) -> dict[str, float]:
+    grant = account.strategic_grant
+    if grant is None or grant.status not in {"EXPIRED", "CANCELLED"}:
+        return proposed
+    proposed = {symbol: min(weight, current_selected.get(symbol, 0.0),
+                            account.strategic_cohort_targets.get(symbol, 0.0))
+                for symbol, weight in proposed.items()}
+    for order in account.pending_orders:
+        if order.side == "SELL" and order.symbol in proposed:
+            proposed[order.symbol] = min(proposed[order.symbol], order.target_weight)
+    return proposed
+
+
 def _final_strategic_proposal(
     ctx: _StrategicLifecycleContext,
     *,
     active_symbols: set[str],
     current_selected: dict[str, float],
+    promoting: bool = False,
 ) -> dict[str, float]:
     buy_risk_open, restore_confirmed = _strategic_restore_confirmed(ctx)
     proposed = _apply_strategic_restore(
@@ -602,8 +620,17 @@ def _final_strategic_proposal(
         and not ctx.risk.reasons
     ):
         _settle_strategic_guard(ctx)
-    if account.candidate_tenure.get("strategic_cohort_started", 0) == 0 and buy_risk_open:
+    if (promoting or account.candidate_tenure.get("strategic_cohort_started", 0) == 0) and buy_risk_open:
         proposed = dict(account.strategic_cohort_targets)
+    if buy_risk_open:
+        # Near-target holding completion does not cancel a registered buy's
+        # unfilled quantity. Actual reductions and the shared budget still apply.
+        for order in account.pending_orders:
+            if order.side == "BUY" and order.symbol in active_symbols:
+                proposed[order.symbol] = max(
+                    proposed.get(order.symbol, 0.0),
+                    min(order.target_weight, account.strategic_cohort_targets[order.symbol]),
+                )
     if ctx.dominant_profit_lock_armed_now and ctx.dominant_symbol is not None:
         proposed[ctx.dominant_symbol] = min(
             proposed.get(ctx.dominant_symbol, 0.0),
@@ -614,7 +641,7 @@ def _final_strategic_proposal(
             proposed.get(symbol, 0.0),
             sum(account.strategic_exit_bands[symbol]),
         )
-    return proposed
+    return _limit_revoked_strategic_proposal(account, proposed, current_selected)
 
 
 def _strategic_cohort_targets(
@@ -637,10 +664,15 @@ def _strategic_cohort_targets(
     Five neighboring ATR exit bands share one position and one final target.
     The bands smooth discrete signal dates without creating sleeves or orders;
     the execution planner still receives only one target weight per symbol. A
-    completed epoch may re-arm only after the configured cooldown and a
-    materially changed causal cohort signature.
+    exited candidate must rebuild its own causal qualification. Other
+    candidates continue confirmation against the same account-level risk.
     """
 
+    observe_strategic_candidates(
+        self, date=date, user_panel=user_panel, leaders=leaders, account=account, risk=risk,
+        qualification_panel=qualification_panel, qualification_leaders=qualification_leaders,
+        strategic_universe=strategic_universe,
+    )
     grant_revalidated, invalidated_targets = _revalidated_strategic_targets(
         self,
         date=date,
@@ -667,18 +699,7 @@ def _strategic_cohort_targets(
         qualification_leaders=qualification_leaders,
         strategic_universe=strategic_universe,
     )
-    _observe_active_strategic_successor(
-        self,
-        date=date,
-        user_panel=user_panel,
-        leaders=leaders,
-        account=account,
-        risk=risk,
-        qualification_panel=qualification_panel,
-        qualification_leaders=qualification_leaders,
-        strategic_universe=strategic_universe,
-    )
-    _promote_filled_strategic_epoch(self, date=date, account=account, risk=risk)
+    promoting = _promote_filled_strategic_epoch(self, date=date, account=account, risk=risk)
     if account.candidate_tenure.get("strategic_cohort_active", 0) != 1:
         return None
     active_symbols = set(account.strategic_cohort_targets)
@@ -721,6 +742,7 @@ def _strategic_cohort_targets(
         ctx,
         active_symbols=active_symbols,
         current_selected=current_selected,
+        promoting=promoting,
     )
     _mark_strategic_grant_pending_execution(
         account=account,
@@ -770,50 +792,8 @@ def _revalidated_strategic_targets(
         # An invalidated grant owns this session's no-deployment decision;
         # do not fall through and promote a runner through another policy.
         return False, ()
-    targets = _strategic_active_targets(
-        self=self,
-        proposed=dict(account.strategic_cohort_targets),
-        leaders=leaders,
-        account=account,
-        dominant_profit_lock_armed_now=False,
-        dominant_symbol=None,
-        current_selected=dict(account.strategic_cohort_targets),
-    )
-    return False, targets
-
-
-def _observe_active_strategic_successor(
-    self: StrategicPortfolioPolicy,
-    *,
-    date: pd.Timestamp,
-    user_panel: dict[str, pd.DataFrame],
-    leaders: dict[str, LeaderScore],
-    account: AccountState,
-    risk: RiskAssessment,
-    qualification_panel: dict[str, pd.DataFrame] | None,
-    qualification_leaders: dict[str, LeaderScore] | None,
-    strategic_universe: StrategicUniverseRoles | None,
-) -> None:
-    if not account.active_strategic_epoch_id:
-        return
-    resolved_panel, resolved_leaders, resolved_universe = resolve_strategic_qualification_inputs(
-        date=date,
-        user_panel=user_panel,
-        leaders=leaders,
-        qualification_panel=qualification_panel,
-        qualification_leaders=qualification_leaders,
-        strategic_universe=strategic_universe,
-    )
-    observe_strategic_successor(
-        self,
-        date=date,
-        qualification_panel=resolved_panel,
-        qualification_leaders=resolved_leaders,
-        tradable_symbols=set(user_panel),
-        account=account,
-        risk=risk,
-        strategic_universe=resolved_universe,
-    )
+    # Revocation blocks new capital; actual held shares still use holding exits.
+    return True, None
 
 
 def _promote_filled_strategic_epoch(
@@ -822,7 +802,7 @@ def _promote_filled_strategic_epoch(
     date: pd.Timestamp,
     account: AccountState,
     risk: RiskAssessment,
-) -> None:
+) -> bool:
     grant = account.strategic_grant
     epoch = next(
         (
@@ -833,9 +813,9 @@ def _promote_filled_strategic_epoch(
         None,
     )
     if not (
-        epoch is not None
-        and epoch.realized_status == "CORE"
-        and epoch.first_fill_session
+        grant is not None and grant.status not in {"EXPIRED", "CANCELLED"}
+        and epoch is not None
+        and completed_strategic_core_entry(account, grant)
         and str(date.date()) > epoch.first_fill_session
         and account.strategic_qualification.qualification_ready
         and not account.strategic_qualification.deployment_blocked
@@ -845,18 +825,19 @@ def _promote_filled_strategic_epoch(
         and account.capital_budget_level == 0
         and account.chronic_level == 0
     ):
-        return
+        return False
     promoted_weight = min(
         epoch.full_weight,
         self.cfg.max_symbol_weight,
         risk.target_gross_cap,
     )
     if promoted_weight <= account.strategic_cohort_targets.get(epoch.owner_symbol, 0.0):
-        return
+        return False
     account.strategic_cohort_targets = {epoch.owner_symbol: promoted_weight}
     epoch.target_weight = promoted_weight
     if grant is not None:
         grant.target_weight = promoted_weight
+    return True
 
 
 def _mark_strategic_grant_pending_execution(

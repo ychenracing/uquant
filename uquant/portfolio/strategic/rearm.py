@@ -116,6 +116,7 @@ def _unfilled_authorized_grant_attempt(
     allowed_fields = {
         "late_fill_pending",
         "pending_orders",
+        "protected_weights",
         "strategic_cohort_symbols",
         "strategic_cohort_targets",
         "strategic_epochs",
@@ -749,7 +750,7 @@ def _rearm_capital_context_clear(
         and _reference_coverage_complete(risk=risk, universe=None, cfg=cfg)
         and not observation.unavailable_reference_symbols
         and not account.anchor_weights
-        and not account.protected_weights
+        and not assess_strategic_capital_authority(account).orphan_residue_fields
         and not account.strategic_restore_weights
         and not account.recovery_owner_epoch_id
     )

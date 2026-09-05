@@ -172,7 +172,6 @@ def _market_confirmation(risk: RiskAssessment, cfg: SystemConfig) -> tuple[bool,
     complete = True
     confirmed = bool(
         risk.state is Risk.NORMAL
-        and not risk.freeze_new_risk
         and values["risk_anchor_group_count"] >= cfg.strategic_cohort_min_size
         and values["breadth20"] >= cfg.high_confidence_entry_breadth
         and values["broad_ret20"] >= cfg.strategic_transition_impulse_min_market_ret20

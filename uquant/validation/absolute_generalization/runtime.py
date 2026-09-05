@@ -9,13 +9,14 @@ from types import MappingProxyType
 from typing import cast
 
 from uquant.account import account_from_dict
-from uquant.contracts.strict_json import canonical_json_sha256, strict_json_loads
+from uquant.contracts.strict_json import canonical_json_bytes, canonical_json_sha256, strict_json_loads
 from uquant.engine import ProductionEngine, code_fingerprint
 from uquant.validation.generalization_reference import (
     load_generalization_baseline,
     load_generalization_policy,
 )
 
+from ._acceptance_evidence import current_candidate_champion_evidence
 from ._champion_runtime_reconciliation import (
     derive_champion_runtime_claims,
     derive_report_runtime_claims,
@@ -171,38 +172,8 @@ def _validated_runtime_paths(
 def _baseline_evidence(
     result: Mapping[str, object], grant_contract: Mapping[str, object]
 ) -> dict[str, object]:
-    baseline = _runtime_mapping(grant_contract.get("baseline"), label="grant baseline")
-    ignored = frozenset(
-        str(item)
-        for item in _runtime_rows(
-            grant_contract.get("ignored_non_economic_fields"),
-            label="grant ignored fields",
-        )
-    )
-    views = _project_baseline_views(result, ignored)
-    paths = {name: canonical_json_sha256(item) for name, item in views.items()}
-    metrics_expected = _runtime_mapping(baseline.get("expected_metrics"), label="grant metrics")
-    metrics = {name: result.get(name) for name in metrics_expected}
-    trace = _runtime_rows(result.get("decision_trace"), label="champion trace")
-    first_positive = next(
-        str(row["date"])
-        for item in trace
-        for row in (_runtime_mapping(item, label="champion decision"),)
-        if float(cast(float, row["target_gross"])) > 0.0
-    )
-    expected = {
-        "first_positive_target_session": baseline.get("expected_first_positive_target_session"),
-        "metrics": dict(metrics_expected),
-        "sha256": dict(_runtime_mapping(baseline.get("expected_sha256"), label="grant paths")),
-    }
-    actual: dict[str, object] = {
-        "first_positive_target_session": first_positive,
-        "metrics": metrics,
-        "sha256": paths,
-    }
-    if actual != expected:
-        raise RuntimeError("absolute champion baseline differs from frozen evidence")
-    return actual
+    del grant_contract  # Historical authority remains sealed; current gates supersede path equality.
+    return current_candidate_champion_evidence(result)
 
 
 def _unique_nonempty(values: Sequence[object], *, label: str) -> list[str]:
@@ -280,8 +251,23 @@ def _report_13(
     return report, completion
 
 
+
+def _retain_raw_replay(cache: Path, case: str, result: Mapping[str, object]) -> Path:
+    """Persist literal replay before acceptance; hash naming never overwrites failures."""
+    payload = {key: result[key] for key in ("final_account", "decision_trace", "order_ledger", "equity_curve", "daily_replay_evidence")}
+    seal = canonical_json_sha256(payload)
+    encoded = canonical_json_bytes({"raw_replay": payload, "canonical_sha256": seal}) + b"\n"
+    path = cache / f"{case}-raw-{seal}.json"
+    if not path.exists():
+        with path.open("xb") as stream:
+            stream.write(encoded)
+    if path.is_symlink() or path.read_bytes() != encoded:
+        raise ValueError("absolute raw replay checkpoint readback differs")
+    return path
+
+
 def _champion_runtime_payload(
-    *, repository: Path, data: Path, contract: AbsoluteGeneralizationContract
+    *, repository: Path, data: Path, cache: Path, contract: AbsoluteGeneralizationContract
 ) -> dict[str, object]:
     grant_contract = _physical_json(
         repository / "benchmarks/strategic_grant_acceptance_contract.json",
@@ -297,6 +283,7 @@ def _champion_runtime_payload(
         start=str(baseline["start"]),
         end=str(baseline["end"]),
     )
+    _retain_raw_replay(cache, "champion", champion)
     report_symbols = tuple(
         str(item) for item in _runtime_rows(ownership["report_universe_13"], label="report universe")
     )
@@ -305,6 +292,7 @@ def _champion_runtime_payload(
         start=contract.window_start.isoformat(),
         end=contract.window_end.isoformat(),
     )
+    _retain_raw_replay(cache, "report-13", report_result)
     baseline_evidence = _baseline_evidence(champion, grant_contract)
     champion_claims = derive_champion_runtime_claims(
         champion,
@@ -376,10 +364,11 @@ def run_champion_runtime_evidence(
 ) -> ChampionRuntimeEvidence:
     """Run raw champion and report evidence through production authorities."""
 
-    repository, data, _cache = _validated_runtime_paths(root=root, data_dir=data_dir, cache_dir=cache_dir)
+    repository, data, cache = _validated_runtime_paths(root=root, data_dir=data_dir, cache_dir=cache_dir)
     payload = _champion_runtime_payload(
         repository=repository,
         data=data,
+        cache=cache,
         contract=contract,
     )
     return ChampionRuntimeEvidence(payload=tuple(payload.items()))

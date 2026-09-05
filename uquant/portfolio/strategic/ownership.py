@@ -8,6 +8,7 @@ from typing import Protocol
 import pandas as pd
 
 from ...config import SystemConfig, config_fingerprint
+from ...features import scalar
 from ...models.strategic_epoch import (
     StrategicEpoch,
     StrategicEpochStatus,
@@ -19,7 +20,10 @@ from ...models.strategic_grant import (
     StrategicGrantStatus,
     derive_strategic_grant_id,
 )
+from ...portfolio_core import current_weights
 from ...types import AccountState, LeaderScore, RiskAssessment
+from ..capital import admission_room, committed_capital
+from .authority import assess_strategic_capital_authority
 from .qualification_candidates import QualifiedStrategicRoute
 from .quorum import StrategicQuorumRoute
 from .rearm import (
@@ -82,6 +86,7 @@ def activate_strategic_cohort(
     account: AccountState,
     date: pd.Timestamp,
     risk: RiskAssessment,
+    user_panel: dict[str, pd.DataFrame],
 ) -> None:
     """Create one immutable grant and unfilled epoch after qualification."""
 
@@ -91,6 +96,8 @@ def activate_strategic_cohort(
         leaders=leaders,
         account=account,
         risk=risk,
+        user_panel=user_panel,
+        date=date,
     )
     if not prepared:
         return
@@ -123,6 +130,44 @@ def activate_strategic_cohort(
         )
 
 
+def _fund_owner_targets(self: StrategicOwnershipPolicy, *, qualified: QualifiedStrategicRoute,
+                        owner: str, held: set[str], reserved: set[str],
+                        dominant_symbol: str | None, desired: dict[str, float],
+                        committed: dict[str, float], cash: float, leaders: dict[str, LeaderScore],
+                        user_panel: dict[str, pd.DataFrame], date: pd.Timestamp,
+                        risk: RiskAssessment) -> dict[str, float]:
+    targets: dict[str, float] = {}
+    # Retain the existing independently qualified founding-cohort allowance.
+    # Subsequent admissions share the ordinary whole-book concentration limit.
+    founding_cap = (
+        self.cfg.max_gross
+        if qualified.quorum_route == StrategicQuorumRoute.FULL_COHORT.value and not held and not reserved
+        else None
+    )
+    for symbol in sorted(desired, key=lambda s: (s != owner, -leaders[s].score, s)):
+        if symbol in held | reserved:
+            continue
+        dominant_cap = self.cfg.strategic_dominant_max_weight if symbol == dominant_symbol else None
+        room = admission_room(
+            cfg=self.cfg,
+            symbol=symbol,
+            committed=committed,
+            leaders=leaders,
+            user_panel=user_panel,
+            date=date,
+            gross_cap=min(self.cfg.max_gross, risk.target_gross_cap),
+            symbol_cap=dominant_cap,
+            concentration_cap=founding_cap,
+        )
+        weight = min(desired[symbol], cash, room)
+        if weight < self.cfg.min_trade_weight:
+            continue
+        targets[symbol] = weight
+        committed[symbol] = weight
+        cash -= weight
+    return targets
+
+
 def _prepare_strategic_owner_targets(
     self: StrategicOwnershipPolicy,
     *,
@@ -130,32 +175,16 @@ def _prepare_strategic_owner_targets(
     leaders: dict[str, LeaderScore],
     account: AccountState,
     risk: RiskAssessment,
+    user_panel: dict[str, pd.DataFrame],
+    date: pd.Timestamp,
 ) -> tuple[bool, str | None]:
-    live_anchors = {
-        symbol
-        for symbol in account.anchor_weights
-        if account.positions.get(symbol) is not None
-        and account.positions[symbol].shares > 0
-    }
-    locked_recovery = bool(
-        live_anchors
-        and account.candidate_tenure.get("recovery_cohort_locked", 0) == 1
-    )
-    live_qualified_positions = {
-        symbol
-        for symbol in qualified.symbols
-        if account.positions.get(symbol) is not None
-        and account.positions[symbol].shares > 0
-    }
-    if locked_recovery or live_anchors & set(qualified.symbols) or live_qualified_positions:
-        account.candidate_tenure["strategic_deferred_to_recovery"] = 1
+    owner = account.strategic_qualification.candidate_symbol
+    held = {s for s, p in account.positions.items() if p.shares > 0}
+    reserved = {order.symbol for order in account.pending_orders}
+    if owner in held | reserved:
+        account.strategic_qualification.deployment_blocked = True
+        account.strategic_qualification.deployment_block_reason = "candidate_identity_already_bound"
         return False, None
-    self._release_recovery_anchor(account)
-    account.tactical_anchor_symbol = ""
-    account.candidate_tenure["tactical_active"] = 0
-    account.candidate_tenure["tactical_promotable"] = 0
-    account.candidate_tenure["strategic_deferred_to_recovery"] = 0
-    account.candidate_tenure["strategic_cohort_evaluated"] = 1
     weighted_symbols = sorted(
         qualified.symbols,
         key=lambda symbol: (-leaders[symbol].score, symbol),
@@ -165,18 +194,22 @@ def _prepare_strategic_owner_targets(
         if qualified.route == "reversal_industry" and len(weighted_symbols) == 2
         else None
     )
-    restricted_owner = qualified.quorum_route in {
-        StrategicQuorumRoute.STRONG_PAIR.value,
-        StrategicQuorumRoute.ABSOLUTE_SINGLE.value,
-    } or qualified.cash_rearm_authorized
-    account.strategic_cohort_symbols = (
+    restricted_owner = (
+        qualified.quorum_route
+        in {
+            StrategicQuorumRoute.STRONG_PAIR.value,
+            StrategicQuorumRoute.ABSOLUTE_SINGLE.value,
+        }
+        or qualified.cash_rearm_authorized
+    )
+    symbols = (
         [account.strategic_qualification.candidate_symbol]
         if restricted_owner
         else [dominant_symbol]
         if dominant_symbol is not None
         else list(weighted_symbols)
     )
-    account.strategic_cohort_targets = _strategic_target_weights(
+    desired = _strategic_target_weights(
         self,
         symbols=qualified.symbols,
         weighted_symbols=weighted_symbols,
@@ -186,13 +219,30 @@ def _prepare_strategic_owner_targets(
         restricted_initial_weight=qualified.restricted_initial_weight,
     )
     if qualified.cash_rearm_authorized:
-        account.strategic_cohort_targets = {
+        desired = {
             account.strategic_qualification.candidate_symbol: strategic_cash_rearm_weight(
                 account=account,
                 risk=risk,
                 cfg=self.cfg,
             )
         }
+    prices = {s: scalar(frame.loc[date], "close") for s, frame in user_panel.items() if date in frame.index}
+    if held - set(prices) or assess_strategic_capital_authority(account).late_fill_order_ids:
+        account.strategic_qualification.deployment_blocked = True
+        account.strategic_qualification.deployment_block_reason = "unresolved_execution_capacity"
+        return False, None
+    weights, _ = current_weights(account, prices)
+    committed, cash = committed_capital(account=account, prices=prices, proposed=weights)
+    targets = _fund_owner_targets(
+        self, qualified=qualified, owner=owner, held=held, reserved=reserved,
+        dominant_symbol=dominant_symbol, desired=desired, committed=committed, cash=cash,
+        leaders=leaders, user_panel=user_panel, date=date, risk=risk)
+    if targets.get(owner, 0.0) < min(desired.get(owner, 0.0), self.cfg.core_admission_weight):
+        account.strategic_qualification.deployment_blocked = True
+        account.strategic_qualification.deployment_block_reason = "insufficient_executable_capital"
+        return False, None
+    account.strategic_cohort_symbols = [s for s in symbols if s in targets]
+    account.strategic_cohort_targets = targets
     return True, dominant_symbol
 
 
@@ -220,8 +270,7 @@ def _initialize_strategic_owner_lifecycle(
         pending_epoch_number
         if qualified.symbols
         and all(
-            snapshots[symbol]["persistent_ret240"]
-            >= self.cfg.strategic_cohort_min_ret240
+            snapshots[symbol]["persistent_ret240"] >= self.cfg.strategic_cohort_min_ret240
             and snapshots[symbol]["ret120"] < 0.0
             for symbol in qualified.symbols
         )
@@ -254,17 +303,11 @@ def _create_strategic_owner_grant(
                 observation.qualification_last_observed_session,
             )
         )
-        account.account_identity = (
-            "account_" + hashlib.sha256(identity_payload.encode()).hexdigest()
-        )
+        account.account_identity = "account_" + hashlib.sha256(identity_payload.encode()).hexdigest()
     production_source_identity = account.code_hash or "unbound-production-source"
-    candidate_weight = account.strategic_cohort_targets.get(
-        observation.candidate_symbol, 0.0
-    )
+    candidate_weight = account.strategic_cohort_targets.get(observation.candidate_symbol, 0.0)
     authorization_id = (
-        account.strategic_cash_rearm.authorization_id
-        if qualified.cash_rearm_authorized
-        else ""
+        account.strategic_cash_rearm.authorization_id if qualified.cash_rearm_authorized else ""
     )
     grant_id = derive_strategic_grant_id(
         account_identity=account.account_identity,
@@ -303,9 +346,7 @@ def _create_strategic_owner_epoch(
     grant: StrategicGrantIntent,
     date: pd.Timestamp,
 ) -> StrategicEpoch:
-    previous_epoch_id = (
-        account.strategic_epochs[-1].epoch_id if account.strategic_epochs else ""
-    )
+    previous_epoch_id = account.strategic_epochs[-1].epoch_id if account.strategic_epochs else ""
     if account.strategic_epochs and not account.strategic_epochs[-1].terminal:
         raise RuntimeError("new strategic grant requires the prior epoch to be terminal")
     observation = account.strategic_qualification

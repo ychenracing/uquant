@@ -456,6 +456,7 @@ def test_recorded_economic_restore_clears_protection_after_price_drift() -> None
             "b": Position("b", shares=2, avg_cost=100.0, entry_date="2026-01-01"),
         },
         protected_weights={"a": 0.60, "b": 0.30},
+        last_shock_date=str(dates[-20].date()),
         candidate_tenure={"post_shock_restore_complete": 1},
         shock_state="RECOVERY",
         shock_severity="SEVERE",

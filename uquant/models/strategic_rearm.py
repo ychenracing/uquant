@@ -522,9 +522,17 @@ def _canonical_rearm_rejections(
 
 
 def _validate_strategic_rearm_evidence(state: StrategicCashRearmState) -> None:
+    rejected_observation = (
+        state.status == StrategicCashRearmStatus.OBSERVING.value
+        and state.authorized is False
+        and not state.authorization_id
+        and not state.authorized_session
+        and not state.consumed_grant_id
+        and bool(state.rejection_reasons)
+    )
     if (
         isinstance(state.capital_budget_level, bool)
-        or state.capital_budget_level not in {1, 2, 3, 4}
+        or state.capital_budget_level not in ({0, 1, 2, 3, 4} if rejected_observation else {1, 2, 3, 4})
     ):
         raise ValueError("strategic cash rearm capital budget is invalid")
     if any(

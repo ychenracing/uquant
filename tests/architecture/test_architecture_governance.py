@@ -666,6 +666,33 @@ def test_combined_allocator_contract_rejects_authority_and_split_book_mutations(
         )
 
 
+@pytest.mark.parametrize("original, mutation", (
+    ("cash_room=cash_room + released", "cash_room=cash_room + released + 1.0"),
+    ("committed={**committed, weakest: remaining}", "committed={weakest: remaining}"),
+    ("date=date, gross_cap=gross_cap,", "date=date, gross_cap=self.cfg.max_gross,"),
+    ("if feasible + 1e-12 < self.cfg.core_admission_weight:", "if False:"),
+    ("if released + 1e-12 < self.cfg.min_trade_weight:", "if False:"),
+    ("proposed[weakest] = remaining", "proposed[challenger] = feasible"),
+    ("released = weights_now[weakest] - remaining", "committed.clear()\n    released = weights_now[weakest] - remaining"),
+    ("committed=book.committed, cash_room=book.cash_room", "committed=book.proposed, cash_room=book.cash_room"),
+    ('book.record(symbol)["entry_gate"] = "AWAIT_REDUCTION_SETTLEMENT"',
+     'book.record(symbol)["entry_gate"] = "AWAIT_REDUCTION_SETTLEMENT"\n            book.cash_room += 1.0'),
+    ("committed=self.committed, cash_room=self.cash_room", "committed=self.committed, cash_room=self.cash_room + 0.25"),
+    ("committed=self.committed, cash_room=self.cash_room", "committed={}, cash_room=self.cash_room"),
+    ("feasible = funded_increment(", "feasible = float("),
+))
+def test_combined_allocator_feasibility_rejects_unsettled_budget_mutations(
+    original: str, mutation: str,
+) -> None:
+    relative = "uquant/portfolio/pipeline.py"
+    source = (ROOT / relative).read_text(encoding="utf-8")
+    assert source.count(original) == 1
+    with pytest.raises(AssertionError):
+        validate_combined_allocator_topology(
+            root=ROOT, overrides={relative: source.replace(original, mutation, 1)},
+        )
+
+
 def test_architecture_risk_market_transport_rejects_delegation_argument_mutation() -> None:
     relative = "uquant/risk/assessment.py"
     source = (ROOT / relative).read_text(encoding="utf-8")

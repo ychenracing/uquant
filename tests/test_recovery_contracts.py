@@ -357,7 +357,8 @@ def test_confirmed_fast_recovery_hands_reduced_core_to_new_owner_without_raising
                        prices={"old_core": 1.0, "new_owner": recovery_close[-1]}, cfg=DEFAULT_CONFIG) == ()
 
 
-def test_ordinary_level1_restore_uses_the_risk_assessment_cap_directly() -> None:
+@pytest.mark.parametrize("continuous_holdings", (True, False), ids=("held", "exited"))
+def test_ordinary_level1_restore_uses_the_risk_assessment_cap_directly(continuous_holdings: bool) -> None:
     dates = pd.bdate_range("2025-01-02", periods=130)
     frame = pd.DataFrame(
         {
@@ -374,13 +375,15 @@ def test_ordinary_level1_restore_uses_the_risk_assessment_cap_directly() -> None
         index=dates,
     )
     owner = {"lead": 0.60, "member_1": 0.16, "member_2": 0.16}
+    held = {"lead": 34, "member_1": 8, "member_2": 24} if continuous_holdings else {"member_2": 24}
     account = AccountState(
         initial_cash=100.0,
-        cash=76.0,
+        cash=100.0 - sum(held.values()),
         positions={
-            "member_2": Position(
-                "member_2", shares=24, avg_cost=1.0, lifecycle=Lifecycle.RECOVERY.value
-            )
+            symbol: Position(
+                symbol, shares=shares, avg_cost=1.0, lifecycle=Lifecycle.RECOVERY.value,
+                entry_date=str(dates[0].date()),
+            ) for symbol, shares in held.items()
         },
         anchor_weights=dict(owner),
         protected_weights=dict(owner),
@@ -415,7 +418,9 @@ def test_ordinary_level1_restore_uses_the_risk_assessment_cap_directly() -> None
         prices={symbol: 1.0 for symbol in owner},
     )
 
-    assert {target.symbol: target.weight for target in targets} == pytest.approx({"member_2": .24})
+    assert {target.symbol: target.weight for target in targets} == pytest.approx(
+        {symbol: shares / 100.0 for symbol, shares in held.items()}
+    )
     assert account.protected_weights == pytest.approx(owner)
     thawed = replace(risk, freeze_new_risk=False, evidence={"freeze_new_risk": False})
     targets = PortfolioAllocator(DEFAULT_CONFIG).allocate(
@@ -424,9 +429,17 @@ def test_ordinary_level1_restore_uses_the_risk_assessment_cap_directly() -> None
         account=account, prices={symbol: 1.0 for symbol in owner},
     )
     assert {target.symbol: target.weight for target in targets} == pytest.approx(
-        {"lead": .60, "member_1": .08, "member_2": .24}
+        {"lead": .60, "member_1": .08, "member_2": .24} if continuous_holdings else {"member_2": .24}
     )
-    assert sum(target.weight for target in targets) == pytest.approx(risk.target_gross_cap)
+    if continuous_holdings:
+        assert sum(target.weight for target in targets) == pytest.approx(risk.target_gross_cap)
+    else:
+        # Full exits end ordinary restoration rights; a new position still
+        # needs qualification even after the account risk freeze is lifted.
+        assert all(target.symbol not in {"lead", "member_1"} for target in targets)
+        assert sum(target.weight for target in targets) < risk.target_gross_cap
+    assert {symbol: position.shares for symbol, position in account.positions.items()} == held
+    assert account.cash == 100.0 - sum(held.values())
     assert account.capital_budget_level == 1
     assert account.protected_weights == pytest.approx(owner)
 
@@ -581,6 +594,7 @@ def test_confirming_recovery_alternative_prevents_secondary_restore_churn() -> N
         operating_peak=100.0,
         capital_peak=100.0,
         protected_weights={"lead": 0.60, "secondary": 0.16},
+        last_shock_date="2026-01-02",
         shock_severity="CONCENTRATED",
         replacement_tenure={"recovery_admission:alternative,lead": 2},
     )
@@ -610,7 +624,8 @@ def test_confirming_recovery_alternative_prevents_secondary_restore_churn() -> N
     assert account.replacement_tenure["recovery_admission:alternative,lead"] == 2
 
 
-def test_caution_restore_can_buy_up_to_the_risk_owned_cap() -> None:
+@pytest.mark.parametrize("shock", ("2026-01-02", "", "2025-12-31"), ids=("linked", "missing", "pre-entry"))
+def test_caution_restore_can_buy_up_to_the_risk_owned_cap(shock: str) -> None:
     cfg = DEFAULT_CONFIG
     first_symbol = "sz300308"
     second_symbol = "sz300502"
@@ -624,6 +639,7 @@ def test_caution_restore_can_buy_up_to_the_risk_owned_cap() -> None:
         operating_peak=1_000_000.0,
         capital_peak=1_000_000.0,
         protected_weights={first_symbol: 0.60, second_symbol: 0.30},
+        last_shock_date=shock,
         shock_severity="SEVERE",
     )
     leaders = {symbol: LeaderScore(symbol, 0.8, 1.0, True, False, symbol, {"unknown_industry": 0.0}) for symbol in account.positions}
@@ -646,12 +662,23 @@ def test_caution_restore_can_buy_up_to_the_risk_owned_cap() -> None:
         cfg=cfg,
     )
 
-    assert {target.symbol: target.weight for target in targets} == pytest.approx(
-        {first_symbol: 0.22, second_symbol: 0.03}
-    )
-    assert sum(target.weight for target in targets) == pytest.approx(0.25)
-    assert {order.side for order in planned} == {"BUY"}
-    assert {order.symbol for order in planned} == {first_symbol}
+    if shock == "2026-01-02":
+        assert {target.symbol: target.weight for target in targets} == pytest.approx(
+            {first_symbol: 0.22, second_symbol: 0.03}
+        )
+        assert sum(target.weight for target in targets) == pytest.approx(0.25)
+        assert {order.side for order in planned} == {"BUY"}
+        assert {order.symbol for order in planned} == {first_symbol}
+    else:
+        assert {target.symbol: target.weight for target in targets} == pytest.approx(
+            {first_symbol: 0.06, second_symbol: 0.03}
+        )
+        assert planned == ()
+    assert account.protected_weights == {first_symbol: 0.60, second_symbol: 0.30}
+    assert account.cash == 910_000.0
+    assert {symbol: position.shares for symbol, position in account.positions.items()} == {
+        first_symbol: 60_000, second_symbol: 30_000,
+    }
 
 
 

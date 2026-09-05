@@ -62,6 +62,7 @@ def test_post_shock_restore_is_buy_only_when_members_drift_apart():
     winner = "sz300308"
     laggard = "sz300502"
     account = AccountState(
+        last_shock_date="2026-01-02",
         initial_cash=1_000_000.0,
         cash=200_000.0,
         positions={
@@ -178,6 +179,7 @@ def test_small_restore_gap_remains_executable_instead_of_hanging_forever():
     first_symbol = "sz300308"
     second_symbol = "sz300502"
     account = AccountState(
+        last_shock_date="2026-01-02",
         initial_cash=1_000_000.0,
         cash=140_000.0,
         positions={
@@ -232,5 +234,5 @@ def test_small_restore_gap_remains_executable_instead_of_hanging_forever():
     assert restored.origin_subsystem == "RECOVERY"
     assert restored.mechanism == "POST_SHOCK_RESTORATION"
     assert account.candidate_tenure.get(f"core_restored:{first_symbol}", -1) == -1
-    assert account.candidate_tenure[f"core_restored:{second_symbol}"] == 0
+    assert account.candidate_tenure[f"core_restored:{second_symbol}"] == pd.Timestamp(account.last_shock_date).toordinal()
     assert [(order.side, order.symbol) for order in planned] == [("BUY", first_symbol)]

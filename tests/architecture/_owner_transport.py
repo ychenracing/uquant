@@ -572,6 +572,76 @@ def _validate_bound_call(
     assert required <= set(provided)
 
 
+def _assert_transfer_feasibility_order(definitions: Mapping[str, ast.FunctionDef]) -> None:
+    """A prospective release may authorize only a reduction, never funded entry."""
+    transfer = definitions["_degraded_transfer"]
+    expected = ast.parse('''
+remaining = max(0.0, proposed.get(weakest, 0.0) - self.cfg.replacement_transfer_cap)
+released = weights_now[weakest] - remaining
+detail = diagnostics if diagnostics is not None else {}
+detail.update(released_weight=released, required_weight=self.cfg.core_admission_weight)
+if released + 1e-12 < self.cfg.min_trade_weight:
+    detail["block"] = "TRANSFER_BELOW_TRADE_MINIMUM"
+    return None
+feasible = funded_increment(
+    cfg=self.cfg, symbol=challenger, desired=self.cfg.core_admission_weight,
+    current=weights_now.get(challenger, 0.0),
+    committed={**committed, weakest: remaining}, cash_room=cash_room + released,
+    leaders=leaders, user_panel=user_panel, date=date, gross_cap=gross_cap,
+    diagnostics=detail,
+)
+if feasible + 1e-12 < self.cfg.core_admission_weight:
+    detail["block"] = "TRANSFER_CANNOT_FUND_ADMISSION"
+    return None
+detail["block"] = "FEASIBLE_AFTER_SETTLEMENT"
+proposed[weakest] = remaining
+''').body
+    starts = [index for index, statement in enumerate(transfer.body)
+              if isinstance(statement, ast.Assign)
+              and [ast.unparse(target) for target in statement.targets] == ["remaining"]]
+    assert len(starts) == 1
+    observed = transfer.body[starts[0]:starts[0] + len(expected)]
+    assert [ast.dump(statement) for statement in observed] == [ast.dump(statement) for statement in expected]
+    writes = [ast.unparse(node) for node in ast.walk(transfer)
+              if isinstance(node, ast.Subscript) and isinstance(node.ctx, (ast.Store, ast.Del))
+              and ast.unparse(node.value) in {"proposed", "committed"}]
+    assert writes == ["proposed[weakest]"]
+    assert not any(isinstance(node, ast.Name) and isinstance(node.ctx, ast.Store)
+                   and node.id in {"committed", "cash_room", "gross_cap"} for node in ast.walk(transfer))
+    mutators = {"clear", "pop", "popitem", "setdefault", "update", "__setitem__", "__delitem__"}
+    assert not any(
+        isinstance(node, ast.Call) and isinstance(node.func, ast.Attribute)
+        and ast.unparse(node.func.value) in {"committed", "proposed"} and node.func.attr in mutators
+        for node in ast.walk(transfer)
+    )
+    admission = definitions["_admit_new_cores"]
+    expected_admission = ast.parse('''
+weak = _degraded_transfer(
+    book.policy, challenger=symbol, proposed=book.proposed, weights_now=book.weights_now,
+    leaders=book.leaders, user_panel=book.user_panel, date=book.date, account=book.account,
+    committed=book.committed, cash_room=book.cash_room, gross_cap=book.gross_cap,
+    diagnostics=book.record(symbol).setdefault("transfer_budget", {}),
+)
+if weak is not None:
+    book.reasons[weak] = "leader rotation: bounded transfer after confirmed deterioration"
+    book.mechanisms[weak] = AttributionMechanism.LEADER_ROTATION
+    book.record(weak)["allocation_reason"] = "CONFIRMED_BOUNDED_TRANSFER"
+    book.record(symbol)["entry_gate"] = "AWAIT_REDUCTION_SETTLEMENT"
+    break
+''').body
+    loops = [statement for statement in admission.body if isinstance(statement, ast.For)]
+    assert len(loops) == 1
+    assert [ast.dump(statement) for statement in loops[0].body[-2:]] == [
+        ast.dump(statement) for statement in expected_admission
+    ]
+    for node in ast.walk(admission):
+        if isinstance(node, (ast.Attribute, ast.Subscript)) and isinstance(node.ctx, (ast.Store, ast.Del)):
+            assert not ast.unparse(node).startswith(("book.cash_room", "book.committed", "book.proposed"))
+        if (isinstance(node, ast.Call) and isinstance(node.func, ast.Attribute)
+                and ast.unparse(node.func.value) in {"book.committed", "book.proposed"}):
+            assert node.func.attr not in mutators
+
+
 def validate_combined_allocator_topology(
     *,
     root: Path,
@@ -593,6 +663,7 @@ def validate_combined_allocator_topology(
     source = reviewed["uquant/portfolio/pipeline.py"]
     _alias_is_exact(source, "allocate_strategy", "_allocate_strategy")
     definitions = _definitions(source)
+    _assert_transfer_feasibility_order(definitions)
     pipeline = definitions["_allocate_strategy"]
     calls = [node for node in ast.walk(pipeline) if isinstance(node, ast.Call)]
     for owner, receiver, method, arguments in (
@@ -634,6 +705,7 @@ def validate_combined_allocator_topology(
                 "committed": "self.committed", "cash_room": "self.cash_room", "leaders": "self.leaders",
                 "user_panel": "self.user_panel", "date": "self.date", "gross_cap": "self.gross_cap",
                 "symbol_cap": "symbol_cap", "concentration_cap": "concentration_cap",
+                "diagnostics": "diagnostic",
             },
         }),
         ("uquant/portfolio/strategic/ownership.py", 2, {
@@ -658,9 +730,33 @@ def validate_combined_allocator_topology(
                 if isinstance(call, ast.Call) and ast.unparse(call.func) == helper
             ]
             assert helper_calls
+            if helper == "funded_increment":
+                transfer = next(node for node in tree.body if isinstance(node, ast.FunctionDef)
+                                and node.name == "_degraded_transfer")
+                book_type = next(node for node in tree.body if isinstance(node, ast.ClassDef)
+                                 and node.name == "_AllocationBook")
+                fund = next(node for node in book_type.body if isinstance(node, ast.FunctionDef)
+                            and node.name == "fund")
+                # Match calls by their actual owning AST, not just argument shape.
+                actual_funding = [call for call in ast.walk(fund) if call in helper_calls]
+                transfer_funding = [call for call in ast.walk(transfer) if call in helper_calls]
+                assert len(actual_funding) == len(transfer_funding) == 1
+                assert set(helper_calls) == {*actual_funding, *transfer_funding}
             for call in helper_calls:
                 keywords = {keyword.arg: ast.unparse(keyword.value) for keyword in call.keywords}
-                assert all(keywords.get(name) == value for name, value in arguments.items()), helper
+                if helper == "funded_increment" and call in transfer_funding:
+                    expected = {
+                        "cfg": "self.cfg", "symbol": "challenger", "desired": "self.cfg.core_admission_weight",
+                        "current": "weights_now.get(challenger, 0.0)",
+                        "committed": "{**committed, weakest: remaining}", "cash_room": "cash_room + released",
+                        **{name: name for name in ("leaders", "user_panel", "date", "gross_cap")},
+                        "diagnostics": "detail",
+                    }
+                    assert not call.args and keywords == expected
+                elif helper == "funded_increment":
+                    assert not call.args and keywords == arguments
+                else:
+                    assert all(keywords.get(name) == value for name, value in arguments.items()), helper
     funding_calls = [call for call in ast.walk(capital["funded_increment"])
                      if isinstance(call, ast.Call) and ast.unparse(call.func) == "admission_room"]
     assert len(funding_calls) == 1

@@ -107,6 +107,7 @@ def test_incomplete_protected_sell_keeps_global_lifecycle_priority_on_recovery_c
 
 def test_full_normal_restore_reaches_original_targets_before_completion() -> None:
     account = AccountState(
+        last_shock_date="2026-01-02",
         initial_cash=100.0,
         cash=10.0,
         positions={
@@ -139,6 +140,7 @@ def test_full_normal_restore_reaches_original_targets_before_completion() -> Non
 
 def test_completed_post_shock_restore_becomes_a_sticky_hold():
     account = AccountState(
+        last_shock_date="2026-01-02",
         initial_cash=100.0,
         cash=10.0,
         positions={
@@ -171,8 +173,8 @@ def test_completed_post_shock_restore_becomes_a_sticky_hold():
         prices={"a": 1.0, "b": 1.0},
     )
 
-    assert account.candidate_tenure["core_restored:a"] == 0
-    assert account.candidate_tenure["core_restored:b"] == 0
+    assert account.candidate_tenure["core_restored:a"] == pd.Timestamp(account.last_shock_date).toordinal()
+    assert account.candidate_tenure["core_restored:b"] == pd.Timestamp(account.last_shock_date).toordinal()
     assert account.protected_weights == {"a": 0.60, "b": 0.30}
     assert {target.reason for target in restored} == {"retained core holding"}
 
@@ -200,6 +202,7 @@ def test_completed_post_shock_restore_becomes_a_sticky_hold():
 @pytest.mark.parametrize("restriction", ("none", "risk_cap", "industry", "correlation", "freeze"))
 def test_capacity_limited_restore_keeps_one_durable_target_until_filled(restriction):
     account = AccountState(
+        last_shock_date="2026-01-02",
         initial_cash=1_000_000.0, cash=700_000.0,
         positions={symbol: Position(symbol, shares, 1.0, "2025-01-02")
                    for symbol, shares in (("a", 200_000), ("b", 100_000))},

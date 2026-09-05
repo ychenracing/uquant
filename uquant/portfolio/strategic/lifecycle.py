@@ -15,7 +15,7 @@ from ...models.strategic_epoch import (
 )
 from ...models.strategic_grant import StrategicQualificationObservation
 from ...models.strategic_universe import StrategicUniverseRoles
-from ...portfolio_core import strategic_dominant_symbol
+from ...portfolio_core import restoration_trade_weight, strategic_dominant_symbol
 from ...types import (
     AccountState,
     LeaderScore,
@@ -70,7 +70,7 @@ def _bounded_strategic_restore_risk_open(
         account.candidate_tenure.get("strategic_cohort_started", 0) == 1
         and bool(account.strategic_restore_weights)
     )
-    if not restoration_owned:
+    if not restoration_owned or bool(risk.evidence.get("sentinel_freeze_new_risk", False)):
         return False
     reason_clean_level2 = bool(
         risk.state.value == "NORMAL"
@@ -505,10 +505,7 @@ def _strategic_restore_complete(
     equity = account.cash + sum(
         position.shares * ctx.prices.get(symbol, 0.0) for symbol, position in account.positions.items()
     )
-    trade_threshold = max(
-        self.cfg.restoration_min_trade_weight,
-        self.cfg.min_trade_value / equity if equity > 1e-12 else math.inf,
-    )
+    minimum_value_weight = self.cfg.min_trade_value / equity if equity > 1e-12 else math.inf
     completion_tolerance = max(
         self.cfg.min_trade_weight,
         self.cfg.min_trade_value / equity if equity > 1e-12 else math.inf,
@@ -518,14 +515,16 @@ def _strategic_restore_complete(
         for order in account.pending_orders
         if order.side == "BUY"
         and order.symbol in proposed
-        and ctx.weights_now.get(order.symbol, 0.0) < 0.95 * proposed[order.symbol]
-        and proposed[order.symbol] - ctx.weights_now.get(order.symbol, 0.0) >= trade_threshold
+        and order.remaining_shares > 0
+        and ctx.weights_now.get(order.symbol, 0.0) + 1e-12 < proposed[order.symbol]
     }
     return bool(
         ctx.risk.target_gross_cap >= sum(saved_restore.values()) - 1e-12
         and not material_pending
         and all(
-            desired - ctx.weights_now.get(symbol, 0.0) + 1e-12 < trade_threshold
+            desired - ctx.weights_now.get(symbol, 0.0) + 1e-12 < max(
+                restoration_trade_weight(self.cfg, account, symbol, desired), minimum_value_weight,
+            )
             or (
                 ctx.weights_now.get(symbol, 0.0) >= 0.95 * desired
                 and desired - ctx.weights_now.get(symbol, 0.0) < completion_tolerance

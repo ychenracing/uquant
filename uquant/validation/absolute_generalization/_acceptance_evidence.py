@@ -34,6 +34,7 @@ from ._champion_runtime_reconciliation import (
 from ._physical_identity import physical_fill_identity_sha256
 from ._reachability_codec import reachability_state_from_raw
 from .champion_physical import validate_champion_physical_links as _validate_champion_physical_links
+from .champion_physical import validate_champion_session_streams as _validate_champion_session_streams
 from .contract import AbsoluteGeneralizationContract
 from .evidence_codec import (
     evidence_date as _evidence_date,
@@ -166,6 +167,8 @@ def _candidate_metric_violations(*, contract: Mapping[str, Any], claims: Mapping
 def current_candidate_champion_evidence(result: Mapping[str, object]) -> dict[str, object]:
     """Measure a current path from raw accounting; preserve old paths only as comparisons."""
     contract = current_candidate_contract()
+    start, end = contract["windows"]["continuous_ai_era"]
+    _validate_champion_session_streams(result, start=start, end=end)
     baseline = cast(Mapping[str, Any], _grant_contract()["baseline"])
     ignored = frozenset(str(item) for item in cast(Sequence[object], _grant_contract()["ignored_non_economic_fields"]))
     claims = derive_champion_runtime_claims(result, ignored)
@@ -373,6 +376,9 @@ def _validate_ownership_report(
     )
     expected_report, expected_completion = derive_report_runtime_claims(
         report, report_symbols
+    )
+    _validate_champion_session_streams(
+        report, start=contract.window_start.isoformat(), end=contract.window_end.isoformat(),
     )
     if (
         report["scenario_id"] != "report-13"

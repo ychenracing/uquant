@@ -85,6 +85,15 @@ def _expand_allocator(
         "strategic_universe",
     )
     del strategy_call.keywords[-3:]
+    diagnostic_projection = ast.parse('''
+if sentinel_only_freeze and "core_allocation" in strategy_risk.evidence:
+    risk.evidence["core_allocation"] = {
+        **strategy_risk.evidence["core_allocation"],
+        "scope": "SENTINEL_PLANNING_ONLY",
+    }
+''').body[0]
+    _same(targets.body[-2], diagnostic_projection)
+    del targets.body[-2]
     assert len(targets.body) == 6 and len(dominant.body) == 3
     for observed, expected in zip(targets.body[:-1], frozen.body[1:6], strict=True):
         _same(observed, expected)
@@ -120,8 +129,11 @@ def _expand_allocator(
 account.strategic_qualification = deepcopy(strategy_account.strategic_qualification)
 account.flat_book_capital_repair = deepcopy(strategy_account.flat_book_capital_repair)
 for key, value in strategy_account.replacement_tenure.items():
-    if key.startswith(("strategic_qualification:", "strategic_eligibility:")):
+    if key.startswith(("strategic_qualification:", "strategic_eligibility:", "lifecycle_exit:")):
         account.replacement_tenure[key] = value
+for key, value in strategy_account.candidate_tenure.items():
+    if key.startswith("lifecycle_exit_session:"):
+        account.candidate_tenure[key] = value
 for key in (
     "strategic_cohort_qualification",
     "strategic_long_cycle_open",

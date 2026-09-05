@@ -668,6 +668,70 @@ def current_promotion_acceptance_basis() -> dict[str, Any]:
     }
 
 
+def _promotion_artifact_metric_failures(
+    payload: Mapping[str, Any], champion: Mapping[str, Any],
+) -> list[str]:
+    failures: list[str] = []
+    for section, intervals in (("cells", AI_ERA_WINDOWS), ("protected", PROTECTED_INTERVALS)):
+        rows = payload.get(section)
+        expected = {f"{pool}/{interval}" for pool in REQUIRED_POOLS for interval in intervals}
+        if not isinstance(rows, Mapping) or set(rows) != expected:
+            failures.append(f"performance {section} do not cover the complete required matrix")
+        if not isinstance(rows, Mapping):
+            continue
+        for pool in REQUIRED_POOLS:
+            for interval in intervals:
+                name = f"{pool}/{interval}"
+                metrics = rows.get(name)
+                try:
+                    _validate_metric_payload(metrics, label=name)
+                    metrics = cast(Mapping[str, Any], metrics)
+                    _compact(metrics, acute=None)
+                    if section == "protected" and metrics["acute_return"] is not None:
+                        raise RuntimeError(f"promotion protected acute_return must be absent: {name}")
+                except (RuntimeError, TypeError, ValueError) as exc:
+                    failures.append(f"{name}: {exc}")
+                    continue
+                gate = AI_ERA_POLICY["official"][interval] if section == "cells" else _protected_gate(interval, pool)
+                failures.extend(_hard_violations(name=name, metrics=metrics, gate=gate))
+                failures.extend(_champion_violations(name=name, metrics=metrics, champion=champion[section][name]))
+    return failures
+
+
+def validate_promotion_artifact(payload: Mapping[str, Any]) -> list[str]:
+    """Re-evaluate compact evidence against the same sealed authorities as its producer."""
+    baseline_bytes, spec = _load_spec(Path(__file__).resolve().parents[2] / "benchmarks/promotion_baseline.json")
+    economic_failures = _promotion_artifact_metric_failures(payload, spec["champion"])
+    failures = list(economic_failures)
+    if payload.get("schema_version") != SCHEMA_VERSION:
+        failures.append("performance artifact schema differs")
+    if payload.get("profile") != "full":
+        failures.append("performance requires the full profile")
+    if payload.get("acceptance_basis") != current_promotion_acceptance_basis():
+        failures.append("performance current acceptance basis differs from the frozen contract")
+    if payload.get("passed") is not True:
+        failures.append("performance gate did not pass")
+    reported = payload.get("failures")
+    if (not isinstance(reported, list) or any(not isinstance(item, str) for item in reported)
+            or sorted(reported) != sorted(economic_failures)):
+        failures.append("performance failure claims differ from re-evaluated metrics")
+    provenance = payload.get("provenance")
+    if not isinstance(provenance, Mapping):
+        failures.append("performance provenance is missing or malformed")
+        return failures
+    for field, expected in {
+        "baseline_sha256": hashlib.sha256(baseline_bytes).hexdigest(),
+        "validation_fingerprint": spec["validation_fingerprint"],
+        "champion_commit": spec["champion"]["production_commit"],
+    }.items():
+        if provenance.get(field) != expected:
+            failures.append(f"performance {field} differs from the frozen authority")
+    candidate = provenance.get("candidate")
+    if not isinstance(candidate, Mapping) or candidate.get("data") != spec["provenance"]["data"]:
+        failures.append("performance candidate data differs from the frozen baseline")
+    return failures
+
+
 def run_promotion(
     *,
     data_dir: str | Path,

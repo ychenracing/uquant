@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import copy
+import hashlib
 import importlib
 import json
 from collections.abc import Callable, Mapping
@@ -41,12 +42,7 @@ def _write_json(path: Path, payload: Mapping[str, Any]) -> None:
 
 def _performance_candidate() -> dict[str, Any]:
     return {
-        "data": {
-            "snapshot_id": "snapshot",
-            "files_verified": 36,
-            "manifest_sha256": "1" * 64,
-            "checksums_sha256": "2" * 64,
-        },
+        "data": json.loads((ROOT / "benchmarks/promotion_baseline.json").read_text())["provenance"]["data"],
         "production": {
             "repository": "ychenracing/uquant",
             "commit": "a" * 40,
@@ -65,7 +61,9 @@ def _performance_candidate() -> dict[str, Any]:
 
 def _performance_payload(candidate: Mapping[str, Any]) -> dict[str, Any]:
     generated_at = "2026-08-16T00:00:00+00:00"
-    champion = json.loads((ROOT / "benchmarks/promotion_baseline.json").read_text())["champion"]
+    baseline_bytes = (ROOT / "benchmarks/promotion_baseline.json").read_bytes()
+    baseline = json.loads(baseline_bytes)
+    champion = baseline["champion"]
     return {
         "schema_version": 4,
         "profile": "full",
@@ -78,9 +76,9 @@ def _performance_payload(candidate: Mapping[str, Any]) -> dict[str, Any]:
         "provenance": {
             "candidate": copy.deepcopy(candidate),
             "binding": _artifact_binding(candidate, generated_at=generated_at),
-            "baseline_sha256": "6" * 64,
-            "validation_fingerprint": "7" * 64,
-            "champion_commit": "b" * 40,
+            "baseline_sha256": hashlib.sha256(baseline_bytes).hexdigest(),
+            "validation_fingerprint": baseline["validation_fingerprint"],
+            "champion_commit": champion["production_commit"],
             "generated_at": generated_at,
         },
     }
@@ -127,6 +125,54 @@ def test_performance_validator_rejects_incomplete_current_contract(tmp_path: Pat
         payload["profile"] = "partial"
     result = _run_performance(tmp_path, payload)
     assert not result["passed"]
+
+
+@pytest.mark.parametrize("mutation", (
+    "continuous_wealth", "absolute_drawdown", "negative_drawdown", "boolean_orders",
+    "missing_acute", "empty_protected", "schema", "contradictory_failure",
+))
+def test_performance_readback_rederives_claimed_pass(
+    tmp_path: Path, mutation: str,
+) -> None:
+    payload = _performance_payload(_performance_candidate())
+    if mutation == "continuous_wealth":
+        payload["cells"]["a/continuous_ai_era"]["final_wealth"] = 23.284178712755819
+    elif mutation in {"absolute_drawdown", "negative_drawdown"}:
+        payload["cells"]["a/h1_2023"]["max_drawdown"] = 0.9 if mutation == "absolute_drawdown" else -0.1
+    elif mutation == "boolean_orders":
+        payload["cells"]["a/h1_2023"]["account_orders"] = True
+    elif mutation == "missing_acute":
+        payload["cells"]["a/h2_2023"]["acute_return"] = None
+    elif mutation == "empty_protected":
+        payload["protected"]["a/year_2023"] = {}
+    elif mutation == "schema":
+        payload["schema_version"] = 3
+    else:
+        payload["failures"] = ["literal upstream economic failure"]
+    original = copy.deepcopy(payload)
+    result = _run_performance(tmp_path, payload)
+    assert not result["passed"]
+    assert json.loads((tmp_path / "performance.json").read_text()) == original
+
+
+@pytest.mark.parametrize("field", ("baseline_sha256", "validation_fingerprint", "champion_commit"))
+def test_performance_readback_binds_independent_frozen_authorities(
+    tmp_path: Path, field: str,
+) -> None:
+    payload = _performance_payload(_performance_candidate())
+    payload["provenance"][field] = "0" * len(payload["provenance"][field])
+    result = _run_performance(tmp_path, payload)
+    assert not result["passed"]
+    assert any(field in failure for failure in result["failures"])
+
+
+def test_performance_readback_requires_frozen_data_even_with_matching_claims(tmp_path: Path) -> None:
+    candidate = _performance_candidate()
+    candidate["data"]["snapshot_id"] = "different-self-consistent-snapshot"
+    payload = _performance_payload(candidate)
+    result = _run_performance(tmp_path, payload)
+    assert not result["passed"]
+    assert any("candidate data differs from the frozen baseline" in failure for failure in result["failures"])
 
 
 @pytest.mark.parametrize(

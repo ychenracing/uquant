@@ -127,6 +127,75 @@ def _evaluate(monkeypatch, *, cash=400.0, frozen=False, pending=False, strategic
     return policy, account, {t.symbol: t for t in result}
 
 
+@pytest.mark.parametrize("guard", ("none", "sentinel", "crisis"))
+def test_saved_strategic_restoration_permission_survives_same_decision_completion(guard):
+    date, panel, leaders, risk = _inputs()
+    symbol = "sh600001"
+    date = panel[symbol].index[-2]
+    account = AccountState.empty(1_000_000.0)
+    account.cash = 445_000.0
+    account.positions[symbol] = Position(symbol, 55_500, 10.0, "2025-01-02", 10.0)
+    account.strategic_cohort_symbols = [symbol]
+    account.strategic_cohort_targets = {symbol: 0.6}
+    account.strategic_restore_weights = {symbol: 0.6}
+    account.protected_weights = {symbol: 0.6}
+    account.candidate_tenure.update(strategic_cohort_active=1, strategic_cohort_started=1)
+    account.capital_budget_level = 2
+    guarded = replace(
+        risk, state=Risk.CRISIS if guard == "crisis" else Risk.NORMAL,
+        target_gross_cap=0.6, freeze_new_risk=True,
+        evidence={"sentinel_freeze_new_risk": guard == "sentinel"},
+    )
+    targets = PortfolioAllocator(DEFAULT_CONFIG).allocate(
+        date=date, opportunity=Opportunity.TREND, risk=guarded,
+        user_panel=panel, leaders=leaders, account=account,
+        prices={s: 10.0 for s in panel},
+    )
+    observed = {target.symbol: target.weight for target in targets}
+    assert observed[symbol] == pytest.approx(0.6 if guard == "none" else 0.555)
+    assert account.cash == 445_000.0 and account.positions[symbol].shares == 55_500
+    assert account.capital_budget_level == 2
+    if guard == "none":
+        assert account.strategic_restore_weights == {symbol: 0.6}
+        account.cash = 430_000.0
+        account.positions[symbol].shares = 57_000
+        remainder = PendingOrder(str(date.date()), symbol, "BUY", 0.6, "saved restoration", "CORE", remaining_shares=3000)
+        account.pending_orders = [remainder]
+        retried = PortfolioAllocator(DEFAULT_CONFIG).allocate(
+            date=panel[symbol].index[-1], opportunity=Opportunity.TREND, risk=guarded,
+            user_panel=panel, leaders=leaders, account=account, prices={s: 10.0 for s in panel},
+        )
+        assert {target.symbol: target.weight for target in retried}[symbol] == pytest.approx(0.6)
+        assert account.strategic_restore_weights == {symbol: 0.6}
+        assert account.pending_orders == [remainder] and remainder.remaining_shares == 3000
+
+
+@pytest.mark.parametrize("evidence", ("ready", "missing_leader", "missing_panel", "missing_session"))
+def test_retained_partial_core_intent_does_not_requalify_as_a_new_entry(evidence):
+    date, panel, leaders, risk = _inputs()
+    symbol = "sh600001"
+    account = AccountState.empty(1_000_000.0)
+    account.cash = 900_000.0
+    account.positions[symbol] = Position(symbol, 10_000, 10.0, "2025-01-02", 10.0)
+    account.pending_orders = [PendingOrder(
+        str(date.date()), symbol, "BUY", 0.2, "confirmed core admitted from available account capital", "CORE",
+    )]
+    if evidence == "missing_leader":
+        leaders.pop(symbol)
+    elif evidence == "missing_panel":
+        panel.pop(symbol)
+    elif evidence == "missing_session":
+        panel[symbol] = panel[symbol].drop(index=date)
+    targets = PortfolioAllocator(DEFAULT_CONFIG).allocate(
+        date=date, opportunity=Opportunity.TREND, risk=risk,
+        user_panel=panel, leaders=leaders, account=account,
+        prices={**dict.fromkeys(panel, 10.0), symbol: 10.0},
+    )
+    assert account.replacement_tenure.get(f"strategic_eligibility:established:{symbol}", 0) < DEFAULT_CONFIG.leader_tenure_days
+    assert {target.symbol: target.weight for target in targets}[symbol] == pytest.approx(0.2 if evidence == "ready" else 0.1)
+    assert account.cash == 900_000.0 and account.positions[symbol].shares == 10_000
+
+
 def test_confirmed_new_core_uses_spare_capital_without_trimming_incumbent(monkeypatch):
     _, _, targets = _evaluate(monkeypatch)
     assert targets["sh600001"].weight == 0.6

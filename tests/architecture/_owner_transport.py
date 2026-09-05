@@ -137,6 +137,8 @@ _VALIDATION_ADDITIONS = frozenset(
         "uquant/validation/absolute_generalization/_account_payload.py",
         "uquant/validation/absolute_generalization/_acceptance_evidence.py",
         "uquant/validation/absolute_generalization/_champion_runtime_reconciliation.py",
+        "uquant/validation/absolute_generalization/champion_physical.py",
+        "uquant/validation/absolute_generalization/evidence_codec.py",
         "uquant/validation/absolute_generalization/_execution_chain_reconciliation.py",
         "uquant/validation/absolute_generalization/_metric_primitives.py",
         "uquant/validation/absolute_generalization/_metrics_reconciliation.py",
@@ -587,42 +589,60 @@ def validate_combined_allocator_topology(
 
     source = reviewed["uquant/portfolio/pipeline.py"]
     _alias_is_exact(source, "allocate_strategy", "_allocate_strategy")
-    pipeline = _definitions(source)["_allocate_strategy"]
+    definitions = _definitions(source)
+    pipeline = definitions["_allocate_strategy"]
     calls = [node for node in ast.walk(pipeline) if isinstance(node, ast.Call)]
-    for method, arguments in {
-        "_strategic_cohort_targets": ("risk", "account", "prices", "weights_now"),
-        "_targets": ("proposed", "leaders", "account"),
-        "_frozen_existing_targets": ("leaders", "account", "weights_now"),
-    }.items():
+    for owner, receiver, method, arguments in (
+        (pipeline, "self", "_strategic_cohort_targets", {name: name for name in ("risk", "account", "prices", "weights_now")}),
+        (definitions["_book_targets"], "book.policy", "_targets", {name: f"book.{name}" for name in ("proposed", "leaders", "account")}),
+        (pipeline, "self", "_frozen_existing_targets", {name: name for name in ("strategy_targets", "leaders", "account", "weights_now")}
+         | {"strategy_targets": "targets"}),
+    ):
         selected = [
             call
-            for call in calls
-            if isinstance(call.func, ast.Attribute)
-            and ast.unparse(call.func.value) == "self"
+            for call in ast.walk(owner)
+            if isinstance(call, ast.Call) and isinstance(call.func, ast.Attribute)
+            and ast.unparse(call.func.value) == receiver
             and call.func.attr == method
         ]
         assert len(selected) == 1, method
         keywords = {keyword.arg: ast.unparse(keyword.value) for keyword in selected[0].keywords}
-        assert all(keywords[argument] == argument for argument in arguments), method
+        assert all(keywords.get(argument) == value for argument, value in arguments.items()), method
+    books = [call for call in calls if ast.unparse(call.func) == "_AllocationBook"]
+    assert len(books) == 1 and not books[0].keywords
+    assert tuple(ast.unparse(argument) for argument in books[0].args) == (
+        "self", "date", "risk", "user_panel", "leaders", "account", "prices", "weights_now",
+        "owned", "strategic_targets", "proposed", "committed", "cash_room",
+    )
+    for helper in ("_fund_strategic_owners", "_ordinary_exits", "_pending_intents",
+                   "_restore_ordinary_holdings", "_admit_new_cores", "_book_targets"):
+        selected = [call for call in calls if ast.unparse(call.func) == helper]
+        assert len(selected) == 1
+        assert [ast.unparse(argument) for argument in selected[0].args] == ["book"]
     returns = [node for node in ast.walk(pipeline) if isinstance(node, ast.Return)]
     assert len(returns) == 1 and returns[0].value is not None
     assert ast.unparse(returns[0].value) == "targets"
     capital = _definitions(reviewed["uquant/portfolio/capital.py"])
-    for relative, level, proposed, gross_cap in (
-        ("uquant/portfolio/pipeline.py", 1, "proposed", "gross_cap"),
-        (
-            "uquant/portfolio/strategic/ownership.py", 2, "weights",
-            "min(self.cfg.max_gross, risk.target_gross_cap)",
-        ),
+    for relative, level, helpers in (
+        ("uquant/portfolio/pipeline.py", 1, {
+            "committed_capital": {"account": "account", "prices": "prices", "proposed": "proposed"},
+            "funded_increment": {
+                "cfg": "self.policy.cfg", "symbol": "symbol", "desired": "desired", "current": "current",
+                "committed": "self.committed", "cash_room": "self.cash_room", "leaders": "self.leaders",
+                "user_panel": "self.user_panel", "date": "self.date", "gross_cap": "self.gross_cap",
+                "symbol_cap": "symbol_cap", "concentration_cap": "concentration_cap",
+            },
+        }),
+        ("uquant/portfolio/strategic/ownership.py", 2, {
+            "committed_capital": {"account": "account", "prices": "prices", "proposed": "weights"},
+            "admission_room": {
+                "cfg": "self.cfg", "symbol": "symbol", "committed": "committed", "leaders": "leaders",
+                "user_panel": "user_panel", "date": "date", "gross_cap": "min(self.cfg.max_gross, risk.target_gross_cap)",
+            },
+        }),
     ):
         tree = ast.parse(reviewed[relative])
-        for helper, arguments in {
-            "committed_capital": {"account": "account", "prices": "prices", "proposed": proposed},
-            "admission_room": {
-                "cfg": "self.cfg", "symbol": "symbol", "committed": "committed",
-                "leaders": "leaders", "user_panel": "user_panel", "date": "date", "gross_cap": gross_cap,
-            },
-        }.items():
+        for helper, arguments in helpers.items():
             assert helper in capital and helper not in _definitions(reviewed[relative])
             imports = [
                 (node.level, node.module, alias.asname)
@@ -637,32 +657,26 @@ def validate_combined_allocator_topology(
             assert helper_calls
             for call in helper_calls:
                 keywords = {keyword.arg: ast.unparse(keyword.value) for keyword in call.keywords}
-                expected = dict(arguments)
-                if relative == "uquant/portfolio/pipeline.py" and keywords.get("committed") == "other_commitments":
-                    assert helper == "admission_room"
-                    expected.update(
-                        committed="other_commitments",
-                        gross_cap="min(self.cfg.max_gross, risk.target_gross_cap)",
-                        symbol_cap="symbol_weight_cap(self.cfg, account, symbol)",
-                        concentration_cap="founding_cap",
-                    )
-                    for name, expression in {
-                        "other_commitments": "{**committed, symbol: current}",
-                        "current": "weights_now.get(symbol, 0.0)",
-                    }.items():
-                        values = [
-                            ast.unparse(node.value)
-                            for node in ast.walk(tree) if isinstance(node, ast.Assign)
-                            for target in node.targets if isinstance(target, ast.Name) and target.id == name
-                        ]
-                        assert values and set(values) == {expression}
-                assert all(keywords.get(name) == value for name, value in expected.items()), helper
+                assert all(keywords.get(name) == value for name, value in arguments.items()), helper
+    funding_calls = [call for call in ast.walk(capital["funded_increment"])
+                     if isinstance(call, ast.Call) and ast.unparse(call.func) == "admission_room"]
+    assert len(funding_calls) == 1
+    funding_arguments = {keyword.arg: ast.unparse(keyword.value) for keyword in funding_calls[0].keywords}
+    assert funding_arguments == {
+        **{name: name for name in ("cfg", "symbol", "leaders", "user_panel", "date", "gross_cap", "symbol_cap", "concentration_cap")},
+        "committed": "{**committed, symbol: current}", "diagnostics": "detail",
+    }
+    book = next(node for node in ast.parse(source).body if isinstance(node, ast.ClassDef) and node.name == "_AllocationBook")
+    gross_cap = next(node for node in book.body if isinstance(node, ast.FunctionDef) and node.name == "gross_cap")
+    assert len(gross_cap.body) == 1 and isinstance(gross_cap.body[0], ast.Return)
+    assert ast.unparse(gross_cap.body[0].value) == "min(self.policy.cfg.max_gross, self.risk.target_gross_cap)"
     authority_calls = [
         call for call in calls if ast.unparse(call.func) == "assess_strategic_capital_authority"
     ]
     assert authority_calls
     assert all([ast.unparse(argument) for argument in call.args] == ["account"] for call in authority_calls)
-    settled_fields = ("account.cash", "account.positions", "account.pending_orders")
+    settled_fields = tuple(f"{owner}.{field}" for owner in ("account", "book.account", "self.account")
+                           for field in ("cash", "positions", "pending_orders"))
     mutation_methods = {"append", "clear", "extend", "insert", "pop", "remove", "setdefault", "update"}
     capital_sources = (
         source,

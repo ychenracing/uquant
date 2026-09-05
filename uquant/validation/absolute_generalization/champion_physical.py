@@ -3,11 +3,42 @@
 from __future__ import annotations
 
 from collections.abc import Mapping, Sequence
+from pathlib import Path
 from typing import cast
 
+from uquant.contracts.universe import load_performance_frozen_champion
+from uquant.data import DataStore
+from uquant.engine import INDEX_SYMBOLS
 from uquant.types import AccountOrder, AccountState
+from uquant.validation.manifest import verify_data_manifest
 
-from .evidence_codec import evidence_mapping, evidence_number, evidence_sequence, evidence_text
+from .evidence_codec import evidence_date, evidence_mapping, evidence_number, evidence_sequence, evidence_text
+
+
+def validate_champion_session_streams(
+    result: Mapping[str, object], *, start: str, end: str,
+) -> None:
+    """Require every raw stream to cover the independently verified frozen calendar."""
+    data_root = Path(__file__).resolve().parents[3] / "data/frozen"
+    frozen = load_performance_frozen_champion()
+    if verify_data_manifest(data_root) != {
+        "snapshot_id": frozen.data_snapshot_id,
+        "files_verified": frozen.data_files_verified,
+        "manifest_sha256": frozen.data_manifest_sha256,
+        "checksums_sha256": frozen.data_checksums_sha256,
+    }:
+        raise ValueError("champion frozen data identity differs")
+    expected = tuple(
+        session.strftime("%Y-%m-%d")
+        for session in DataStore(data_root).common_sessions(INDEX_SYMBOLS, start, end)
+    )
+    for name in ("decision_trace", "daily_replay_evidence", "equity_curve"):
+        observed = tuple(
+            evidence_date(evidence_mapping(row, label=name).get("date"), label=name)
+            for row in evidence_sequence(result.get(name), label=name)
+        )
+        if observed != expected:
+            raise ValueError(f"champion frozen {name} sessions differ")
 
 
 def _validate_order_target(
@@ -63,4 +94,3 @@ def validate_champion_physical_links(account: AccountState, trace: Sequence[Mapp
                 or not filled_order.signal_date < fill.fill_date
                 or fill.shares <= 0):
             raise ValueError("champion runtime fill lacks a causal matching physical order")
-

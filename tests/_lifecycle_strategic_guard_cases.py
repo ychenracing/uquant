@@ -1,11 +1,11 @@
 from __future__ import annotations
 
+import numpy as np
 import pandas as pd
 import pytest
 from test_lifecycle_and_risk import (
     _leader,
     _normal_risk,
-    _risk_frame,
     _trend_frame,
 )
 
@@ -866,7 +866,7 @@ def test_confirmed_live_core_waits_in_place_while_leader_owner_rearms() -> None:
     )
     assert account.candidate_tenure.get("leader_cycle_armed", 0) == 0
 
-def test_partially_unconfirmed_core_does_not_bypass_leader_owner_rearm() -> None:
+def test_unconfirmed_entry_maturity_does_not_force_healthy_core_exits() -> None:
     dates = pd.bdate_range("2025-01-02", periods=150)
     date = dates[-1]
     symbols = (
@@ -924,11 +924,16 @@ def test_partially_unconfirmed_core_does_not_bypass_leader_owner_rearm() -> None
     )
 
     assert {target.symbol: target.weight for target in targets} == pytest.approx(
-        {symbol: 0.0 for symbol in symbols}
+        {symbol: 0.30 for symbol in symbols}
     )
-    assert f"lifecycle_exit:{symbols[2]}" not in account.replacement_tenure
+    # Entry maturity is not an exit signal for a physically held healthy name.
+    assert account.replacement_tenure[f"lifecycle_exit:{symbols[2]}"] == 0
+    assert account.cash == 10.0
+    assert {symbol: position.shares for symbol, position in account.positions.items()} == {
+        symbol: 30 for symbol in symbols
+    }
 
-def test_slow_market_owner_cohort_reuses_existing_lifecycle_exit_confirmation() -> None:
+def test_only_confirmed_structural_damage_exits_through_market_recovery() -> None:
     dates = pd.bdate_range("2025-01-02", periods=150)
     date = dates[-1]
     symbols = ("healthy_core", "temporarily_unconfirmed_core")
@@ -973,7 +978,7 @@ def test_slow_market_owner_cohort_reuses_existing_lifecycle_exit_confirmation() 
     allocator = PortfolioAllocator(DEFAULT_CONFIG)
 
     retained = allocator.allocate(
-        date=date,
+        date=dates[-4],
         opportunity=Opportunity.STRONG_TREND,
         risk=slow_market,
         user_panel={symbol: healthy for symbol in symbols},
@@ -986,7 +991,7 @@ def test_slow_market_owner_cohort_reuses_existing_lifecycle_exit_confirmation() 
         {symbol: 0.30 for symbol in symbols}
     )
     assert all(
-        account.replacement_tenure[f"slow_market_owner_cohort:{symbol}"] == 1
+        account.replacement_tenure[f"lifecycle_exit:{symbol}"] == 0
         for symbol in symbols
     )
 
@@ -998,10 +1003,13 @@ def test_slow_market_owner_cohort_reuses_existing_lifecycle_exit_confirmation() 
         (),
         "NONE",
     )
-    broken = _risk_frame(dates, close=0.70, ma20=1.0, ret5=-0.16)
-    for _ in range(DEFAULT_CONFIG.replacement_confirm_days):
+    broken = _trend_frame(
+        dates, close=np.linspace(1.0, 0.70, len(dates)), ma20=1.0, ma60=1.05,
+        ret20=-0.16, ret60=-0.16,
+    )
+    for observed in dates[-DEFAULT_CONFIG.replacement_confirm_days :]:
         retained = allocator.allocate(
-            date=date,
+            date=observed,
             opportunity=Opportunity.STRONG_TREND,
             risk=aligned_market,
             user_panel={symbols[0]: healthy, symbols[1]: broken},

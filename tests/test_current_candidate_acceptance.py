@@ -72,6 +72,43 @@ def test_date_session_conflict_is_rejected() -> None:
         evidence.current_candidate_champion_evidence(raw)
 
 
+@pytest.mark.parametrize('streams', [
+    ('decision_trace', 'daily_replay_evidence', 'equity_curve'),
+    ('decision_trace',), ('daily_replay_evidence',), ('equity_curve',),
+])
+def test_current_candidate_rejects_missing_frozen_session(streams: tuple[str, ...]) -> None:
+    raw = _raw()
+    for stream in streams:
+        raw[stream] = [row for row in raw[stream] if row['date'] != '2023-11-02']
+    with pytest.raises(ValueError, match=r'frozen.*sessions'):
+        evidence.current_candidate_champion_evidence(raw)
+
+
+def test_current_candidate_rejects_same_length_nontrading_session_substitution() -> None:
+    raw = _raw()
+    for stream in ('decision_trace', 'daily_replay_evidence', 'equity_curve'):
+        row = next(row for row in raw[stream] if row['date'] == '2023-11-03')
+        row['date'] = '2023-11-04'
+    with pytest.raises(ValueError, match=r'frozen.*sessions'):
+        evidence.current_candidate_champion_evidence(raw)
+
+
+def test_report_rejects_incomplete_sessions_even_with_recomputed_claims() -> None:
+    from datetime import date
+    from types import SimpleNamespace
+
+    raw = _raw()
+    for stream in ('decision_trace', 'daily_replay_evidence', 'equity_curve'):
+        raw[stream] = [row for row in raw[stream] if row['date'] != '2023-11-02']
+    symbols = evidence._ownership_contract()['report_universe_13']
+    accounting, completion = evidence.derive_report_runtime_claims(raw, symbols)
+    report = {**raw, **completion, 'scenario_id': 'report-13',
+              'window_start': '2023-01-03', 'window_end': '2026-08-05'}
+    contract = SimpleNamespace(window_start=date(2023, 1, 3), window_end=date(2026, 8, 5))
+    with pytest.raises(ValueError, match=r'frozen.*sessions'):
+        evidence._validate_ownership_report(report, contract, {'report_13': accounting})
+
+
 def test_current_component_allows_new_paths_and_overlap_but_preserves_numeric_limits() -> None:
     from types import SimpleNamespace
 

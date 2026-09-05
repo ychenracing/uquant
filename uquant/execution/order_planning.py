@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from ..config import SystemConfig
 from ..contracts.universe import REQUIRED_AI_UNIVERSE_SHA256, default_ai_universe
+from ..portfolio_core import restoration_trade_weight
 from ..types import (
     ATTRIBUTION_IDENTITY_FIELDS,
     AccountState,
@@ -45,24 +46,9 @@ def _restoration_buy_below_completion(
     equity: float,
     cfg: SystemConfig,
 ) -> bool:
-    full_recovery_seat = bool(
-        target.symbol in account.protected_weights
-        and target.weight >= cfg.recovery_target_gross / cfg.max_positions
-    )
-    restoration_weight_threshold = (
-        min(
-            cfg.protected_restore_min_trade_weight,
-            # A confirmed full-size recovery seat cannot be declared
-            # restored while less than 80% funded merely because its
-            # absolute portfolio gap sits just inside the no-trade band.
-            0.20 * target.weight,
-        )
-        if full_recovery_seat
-        else cfg.restoration_min_trade_weight
-    )
     restoration_threshold = max(
         cfg.min_trade_value,
-        restoration_weight_threshold * equity,
+        restoration_trade_weight(cfg, account, target.symbol, target.weight) * equity,
     )
     return bool(
         difference > 0

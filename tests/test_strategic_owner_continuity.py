@@ -427,7 +427,8 @@ def test_new_grant_shares_capital_with_ordinary_holding_across_restart(tmp_path)
         frame["open"] = frame["close"]
         frame["high"] = frame["close"] * 1.01
         frame["low"] = frame["close"] * 0.99
-        frame["volume"] = 10_000_000.0
+        frame["volume"] = 100_000_000.0
+        frame["amount"] = 100_000_000.0
         execution_panel[symbol] = frame
     initial_date = str(dates[-5].date())
     initial_targets = attach_target_attribution(
@@ -453,6 +454,7 @@ def test_new_grant_shares_capital_with_ordinary_holding_across_restart(tmp_path)
         date=dates[-4], account=account, panel=execution_panel
     )
     assert len(initial_fills) == 1
+    assert not account.pending_orders
     ordinary_shares = account.positions[ordinary_symbol].shares
     remaining_cash = account.cash
     allocator = PortfolioAllocator(DEFAULT_CONFIG)

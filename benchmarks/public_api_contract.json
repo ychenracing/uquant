@@ -49060,6 +49060,7 @@
           "PortfolioCore",
           "current_weights",
           "effective_n",
+          "restoration_trade_weight",
           "strategic_dominant_symbol",
           "symbol_weight_cap"
         ],
@@ -49102,6 +49103,43 @@
                 "default": {
                   "kind": "value",
                   "value": null
+                }
+              }
+            ],
+            "return": "float"
+          },
+          "restoration_trade_weight": {
+            "parameters": [
+              {
+                "name": "cfg",
+                "kind": "POSITIONAL_OR_KEYWORD",
+                "annotation": "SystemConfig",
+                "default": {
+                  "kind": "required"
+                }
+              },
+              {
+                "name": "account",
+                "kind": "POSITIONAL_OR_KEYWORD",
+                "annotation": "AccountState",
+                "default": {
+                  "kind": "required"
+                }
+              },
+              {
+                "name": "symbol",
+                "kind": "POSITIONAL_OR_KEYWORD",
+                "annotation": "str",
+                "default": {
+                  "kind": "required"
+                }
+              },
+              {
+                "name": "target_weight",
+                "kind": "POSITIONAL_OR_KEYWORD",
+                "annotation": "float",
+                "default": {
+                  "kind": "required"
                 }
               }
             ],
@@ -74750,7 +74788,8 @@
       "uquant.validation.absolute_generalization.champion_physical": {
         "path": "uquant/validation/absolute_generalization/champion_physical.py",
         "public_names": [
-          "validate_champion_physical_links"
+          "validate_champion_physical_links",
+          "validate_champion_session_streams"
         ],
         "functions": {
           "validate_champion_physical_links": {
@@ -74767,6 +74806,35 @@
                 "name": "trace",
                 "kind": "POSITIONAL_OR_KEYWORD",
                 "annotation": "Sequence[Mapping[str, object]]",
+                "default": {
+                  "kind": "required"
+                }
+              }
+            ],
+            "return": "None"
+          },
+          "validate_champion_session_streams": {
+            "parameters": [
+              {
+                "name": "result",
+                "kind": "POSITIONAL_OR_KEYWORD",
+                "annotation": "Mapping[str, object]",
+                "default": {
+                  "kind": "required"
+                }
+              },
+              {
+                "name": "start",
+                "kind": "KEYWORD_ONLY",
+                "annotation": "str",
+                "default": {
+                  "kind": "required"
+                }
+              },
+              {
+                "name": "end",
+                "kind": "KEYWORD_ONLY",
+                "annotation": "str",
                 "default": {
                   "kind": "required"
                 }
@@ -93443,7 +93511,8 @@
           "_SHA256",
           "_TOP_LEVEL_FIELDS",
           "current_promotion_acceptance_basis",
-          "run_promotion"
+          "run_promotion",
+          "validate_promotion_artifact"
         ],
         "functions": {
           "current_promotion_acceptance_basis": {
@@ -93480,6 +93549,19 @@
               }
             ],
             "return": "dict[str, Any]"
+          },
+          "validate_promotion_artifact": {
+            "parameters": [
+              {
+                "name": "payload",
+                "kind": "POSITIONAL_OR_KEYWORD",
+                "annotation": "Mapping[str, Any]",
+                "default": {
+                  "kind": "required"
+                }
+              }
+            ],
+            "return": "list[str]"
           }
         },
         "classes": {},
@@ -95112,7 +95194,7 @@
     }
   },
   "contract_id": "uquant-public-api-v1",
-  "contract_sha256": "6294993b8a8173d516ecd5dbad00095821c998193051fab5ef7232a1c5962d52",
+  "contract_sha256": "db1e400bad9ad48b6d82e2c667e7f78583a0a3bfa29bb0b5924a10df6f5a7956",
   "recorded_on": "2026-09-05",
   "schema_version": 1
 }

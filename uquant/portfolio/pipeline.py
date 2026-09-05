@@ -295,7 +295,13 @@ def _pending_intents(book: _AllocationBook, *, candidates: list[str], buy_open: 
         if order.side == "SELL":
             book.proposed[order.symbol] = min(book.proposed.get(order.symbol, 0.0), order.target_weight)
             book.record(order.symbol)["allocation_reason"] = "PENDING_REDUCTION"
-        elif buy_open and order.symbol not in book.owned and order.symbol in candidates:
+        elif (buy_open and order.symbol not in book.owned
+              and order.symbol in book.leaders and order.symbol in book.user_panel
+              and book.date in book.user_panel[order.symbol].index) and (
+            order.symbol in candidates
+            or (book.weights_now.get(order.symbol, 0.0) > 0
+                and book.proposed.get(order.symbol, 0.0) >= book.weights_now[order.symbol])
+        ):
             book.fund(order.symbol, order.target_weight, phase="PENDING_CORE_BUY")
 
 

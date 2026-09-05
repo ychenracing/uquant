@@ -633,26 +633,30 @@ def test_architecture_portfolio_pipeline_has_one_combined_capital_owner() -> Non
 
 
 @pytest.mark.parametrize(
-    ("original", "mutation"),
+    ("relative", "original", "mutation"),
     (
-        ("risk=risk,\n        user_panel=user_panel,", "risk=account,\n        user_panel=user_panel,"),
-        ("proposed=proposed,\n        leaders=leaders,", "proposed=weights_now,\n        leaders=leaders,"),
-        ("committed=committed,", "committed=proposed,"),
-        ("committed_capital(account=account,", "committed_capital(account=None,"),
-        ("from .capital import admission_room, committed_capital", "from ..capital import admission_room, committed_capital"),
-        ("{**committed, symbol: current}", "{symbol: current}"),
-        ("assess_strategic_capital_authority(account)", "assess_strategic_capital_authority(None)"),
-        ("return targets", "return strategic"),
-        ("return targets", "account.cash = 0.0\n    return targets"),
-        ("return targets", "account.positions.clear()\n    return targets"),
-        ("return targets", "account.pending_orders.append(None)\n    return targets"),
+        ("uquant/portfolio/pipeline.py", "date=date, risk=risk, user_panel=user_panel", "date=date, risk=account, user_panel=user_panel"),
+        ("uquant/portfolio/pipeline.py", "proposed=book.proposed, leaders=book.leaders", "proposed=book.weights_now, leaders=book.leaders"),
+        ("uquant/portfolio/pipeline.py", "committed=self.committed, cash_room=self.cash_room", "committed=self.proposed, cash_room=self.cash_room"),
+        ("uquant/portfolio/pipeline.py", "committed_capital(account=account,", "committed_capital(account=None,"),
+        ("uquant/portfolio/pipeline.py", "from .capital import committed_capital, funded_increment", "from ..capital import committed_capital, funded_increment"),
+        ("uquant/portfolio/capital.py", "{**committed, symbol: current}", "{symbol: current}"),
+        ("uquant/portfolio/pipeline.py", "assess_strategic_capital_authority(account)", "assess_strategic_capital_authority(None)"),
+        ("uquant/portfolio/pipeline.py", "owned, strategic_targets, proposed, committed, cash_room)", "owned, strategic_targets, dict(proposed), committed, cash_room)"),
+        ("uquant/portfolio/pipeline.py", "gross_cap=self.gross_cap,", "gross_cap=self.policy.cfg.max_gross,"),
+        ("uquant/portfolio/pipeline.py", "return min(self.policy.cfg.max_gross, self.risk.target_gross_cap)", "return self.policy.cfg.max_gross"),
+        ("uquant/portfolio/pipeline.py", "return accepted", "self.account.cash = 0.0\n        return accepted"),
+        ("uquant/portfolio/pipeline.py", "return targets", "return strategic"),
+        ("uquant/portfolio/pipeline.py", "return targets", "account.cash = 0.0\n    return targets"),
+        ("uquant/portfolio/pipeline.py", "return targets", "account.positions.clear()\n    return targets"),
+        ("uquant/portfolio/pipeline.py", "return targets", "account.pending_orders.append(None)\n    return targets"),
     ),
 )
 def test_combined_allocator_contract_rejects_authority_and_split_book_mutations(
+    relative: str,
     original: str,
     mutation: str,
 ) -> None:
-    relative = "uquant/portfolio/pipeline.py"
     source = architecture_portfolio_reviewed_sources(root=ROOT)[relative]
     assert original in source
     with pytest.raises(AssertionError):

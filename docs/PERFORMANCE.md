@@ -18,6 +18,16 @@
 
 不同数据快照、复权方式、证券全集、起止日或执行口径的结果不能直接比较。
 
+统一核心候选使用 `benchmarks/cross_ai_core_strategy_contract.json` 的事前冻结经济门：
+5 标的冠军和完整池期末财富至少 `23.28417871275582`，最大回撤不超过 `0.30`；
+去三巨头和去 optical 同时要求财富至少 `1.50`、比有效旧基线提高至少 `0.25`，并满足
+同池固定趋势基准、跨窗口、交易成本、参数邻近扰动与初始条件门。去除证券同时退出
+tradable、qualification reference 和显式股票 risk reference，市场指数口径保留。
+
+该合同替代旧策略逐笔路径相等和整个账户的经济 owner 排他要求，保留实际路径、失败结果
+以及账户、执行、回撤和尾部约束。诊断与候选筛选用过的历史不是独立样本外；
+`2026-08-06` 起的受保护 Future Holdout 不用于这些比较，也不回填新候选。
+
 ## 核心指标
 
 | 指标 | 定义 | 解读 |
@@ -114,7 +124,7 @@ full profile 是性能验收不可拆分的阻断经济性真相，窗口日期�
 
 | shard | 固定证据 |
 |---|---|
-| `champion` | 5 标的冻结 champion 路径与 13 标的扩展 |
+| `champion` | 5 标的当前候选与 13 标的扩展，保留冻结 champion 比较 |
 | `critical` | 完整删除 `sz300308`、`sz300394` |
 | `ghost-a` | 完整删除 `sh603688`、`sh688008`、`sh688082` |
 | `ghost-b` | 完整删除 `sz002409`、`sz300666` |
@@ -128,8 +138,9 @@ epoch，以及连续的 previous grant/epoch 身份链。
 关键删除的固定门要求 `final_wealth > 1.0`、`max_drawdown <= 0.30`、健康零目标最长不超过
 60 个 session、至少一个正战略 Target，并完成 accounting reconciliation。删除 `sz300308`
 还要求预算业务层级 3 的账户修复在 60 个健康 session 内 `READY`，随后由当前独立合格候选
-消费一次性 authorization。5 标的 champion 最终财富冻结为 `24.509661802900865`，候选至少
-保留其 95%，并保持原 owner 生命周期的经济 Target、Order、Fill 和 equity 路径。
+消费一次性 authorization。旧 5 标的 champion 最终财富为 `24.509661802900865`，候选至少
+保留其 95%。当前 Target、Order、Fill 与 equity 路径从完整原始证据重新核算，不要求等于
+旧 owner 路径；每次真实入场的 grant/event/epoch 归因、单次成交计账和账户对账仍须一致。
 
 本地可单独复现一个 shard：
 

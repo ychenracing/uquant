@@ -107,5 +107,3 @@ def predicate_rows(value: object, *, label: str) -> tuple[tuple[str, bool], ...]
 def strict_sessions(values: Sequence[str], *, label: str) -> None:
     if not values or tuple(values) != tuple(sorted(set(values))):
         raise ValueError(f"absolute generalization {label} sessions are not observed order")
-
-

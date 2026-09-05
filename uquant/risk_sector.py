@@ -9,6 +9,7 @@ import pandas as pd
 
 from .config import SystemConfig
 from .features import scalar
+from .holding_history import protected_weights_for_current_episode
 from .types import AccountState
 
 
@@ -119,6 +120,7 @@ def _observe_sector_guard_cohort(
     account: AccountState,
     cfg: SystemConfig,
 ) -> tuple[set[str], SectorObservation | None]:
+    protected = protected_weights_for_current_episode(account)
     deployed = {symbol for symbol, position in account.positions.items() if position.shares > 0}
     if account.sector_guard_active:
         # Recovery must observe the economic cohort that triggered the guard,
@@ -126,15 +128,15 @@ def _observe_sector_guard_cohort(
         # Otherwise a 3-name shock reduced to one survivor can never satisfy
         # ``sector_guard_min_symbols`` and the state machine locks forever.
         deployed.update(account.sector_guard_symbols)
-        deployed.update(account.protected_weights)
+        deployed.update(protected)
     economic_weights: dict[str, float] = {}
     for symbol in deployed:
         position = account.positions.get(symbol)
         frame = panel.get(symbol)
         if position is not None and frame is not None and date in frame.index:
             economic_weights[symbol] = position.shares * scalar(frame.loc[date], "close", 0.0)
-        elif symbol in account.protected_weights:
-            economic_weights[symbol] = max(0.0, account.protected_weights[symbol])
+        elif symbol in protected:
+            economic_weights[symbol] = max(0.0, protected[symbol])
     observation = observe_deployed_sector(
         date=date,
         panel=panel,

@@ -28,6 +28,7 @@ uquant 把数据、信号、风险、组合、执行和账户放在一条可审�
 | `data.py`、`features.py`、`reference*.py` | OHLCV、因果特征、点时成员与共享截面上下文 |
 | `industry.py`、`leader.py`、`opportunity.py` | 行业、领涨和机会状态证据 |
 | `market_risk.py`、`risk_sector.py`、`risk/` | Base Risk 证据、状态转换、资本损伤和唯一仓位上限 |
+| [holding_history.py](../uquant/holding_history.py) | 从持仓与真实成交读取连续持有事实，提供当前事件的只读有效恢复权视图 |
 | `portfolio_core.py`、`portfolio/` | 唯一目标组合、硬约束、风险缩减及各持仓生命周期 |
 | `execution/` | 订单规划、市场约束、费用、部分成交、挂单和 tranche |
 | `account/` | schema 8 编解码、账户校验、经济/代码身份和原子持久化 |
@@ -98,6 +99,14 @@ uquant 把数据、信号、风险、组合、执行和账户放在一条可审�
 `RiskAssessment.target_gross_cap` 是风险派生总仓上限的唯一来源。持仓同步冲击、慢性退化
 和资本预算只向该评估提供证据或更严格上限，不能各自建立独立组合。
 
+风险、行业保护和组合恢复共用 [holding_history.py](../uquant/holding_history.py) 的连续
+持仓事实。`protected_weights_for_current_episode()` 排除未跨越当前冲击的普通旧权利，
+读取不修改持久账户；战略权利保留原有身份和授权。恢复后再次受损的判断还要求真实正股数
+连续持仓，战略空仓权利本身不能满足该条件。
+[risk/protected_recovery.py](../uquant/risk/protected_recovery.py) 的 `capture_protected_holdings()`
+统一新冲击快照：先按旧 `last_shock_date` 读取有效权利，再合并实际持仓；调用方随后更新
+冲击日期。持仓事实辅助模块不拥有风险上限、目标或新的持久状态。
+
 组合层保留一个冻结经济行为中的有限解释：当账户只有单一战略主导者，风险仅为
 `NORMAL/CAUTION` 一级预警、没有 sector/strategic/acute guard，且策略本身不要求减仓时，
 `PortfolioAllocator` 可以把风险 cap 解释为“冻结新增风险”，将该既有持仓保留至
@@ -114,12 +123,17 @@ uquant 把数据、信号、风险、组合、执行和账户放在一条可审�
 2. 处理已有持仓生命周期、失败恢复和确认退出；
 3. 保留健康持仓，并计入实际现金与全部未完成买入承诺；
 4. 用 `portfolio/capital.py` 的共同预算约束战略增量、恢复和新核心；
-5. 仅在持续退化与优势确认成立时提出一笔有上限的资本转出；
+5. 持续退化与优势确认成立，且转出量和卖出后预算投影均可行时，提出一笔有上限的资本转出；
 6. 在 Base Risk 上限内输出唯一、确定性排序的目标，交给执行层处理交易门槛。
 
-`portfolio/pipeline.py` 组合一次完整目标，不再按战略、普通、受保护、修复和战术包装的
+[portfolio/pipeline.py](../uquant/portfolio/pipeline.py) 组合一次完整目标，不再按战略、普通、受保护、修复和战术包装的
 首次返回结果决定整本账户。分配不能把未成交卖单当作现金，也不能为了新增而机械缩减
 健康持仓。新入场、晋级与恢复共同检查总仓、单票、行业、相关风险簇和挂单占用。
+
+换仓预检复用 [portfolio/capital.py](../uquant/portfolio/capital.py) 的 `funded_increment()`，
+将拟卖出后的预算投影记录到 `core_allocation.symbols[symbol].transfer_budget`。投影只检查
+卖出能否解除入场阻塞，不写入可用现金；拒绝时不缩减目标、恢复权或轮动额度。
+[report.py](../uquant/report.py) 只显示这些记录及最终约束，不重算换仓可行性。
 
 其他模块只能提供证据、状态或成交结果。
 

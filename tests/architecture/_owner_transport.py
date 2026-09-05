@@ -4,6 +4,8 @@ from __future__ import annotations
 
 import ast
 import copy
+import hashlib
+import json
 import subprocess
 from collections import Counter
 from collections.abc import Mapping, Sequence, Set
@@ -35,6 +37,7 @@ _ECONOMIC_ADDITIONS = frozenset(
         "uquant/application/target_attribution.py",
         "uquant/attribution/validation_artifact.py",
         "uquant/attribution/validation_lots.py",
+        "uquant/holding_history.py",
         "uquant/portfolio/capital.py",
         "uquant/portfolio/leaders/extensions.py",
         "uquant/portfolio/recovery/cohort_admission.py",
@@ -802,6 +805,151 @@ def expand_architecture_risk_market_stage(
     return copy.deepcopy(frozen)
 
 
+def _assert_current_holding_protection_surface(
+    *, root: Path, overrides: Mapping[str, str] | None,
+) -> None:
+    """Assert the current protection semantics before projecting historical topology."""
+    contract_path = root / "benchmarks/cross_ai_core_strategy_contract.json"
+    contract_bytes = contract_path.read_bytes()
+    assert hashlib.sha256(contract_bytes).hexdigest() == (
+        "9ec5992df69d4466cb2b26cea0e67bbe93f4c6317ba5b8a500ca7b89a75d78b4"
+    )
+    assert json.loads(contract_bytes)["contract_id"] == "cross-ai-core-strategy-20260905-v1"
+    # These are current executable expectations, not a replacement historical blob.
+    # Matching the whole facts module also prevents new imports, account writes,
+    # risk caps or target construction from acquiring authority in this helper.
+    expected_history = ast.parse('''
+from __future__ import annotations
+from typing import TYPE_CHECKING
+if TYPE_CHECKING:
+    from .types import AccountState
+
+def holding_spans_date(account: AccountState, symbol: str, boundary: str) -> bool:
+    position = account.positions.get(symbol)
+    if position is None or position.shares <= 0 or not boundary or not position.entry_date:
+        return False
+    if position.entry_date <= boundary:
+        return True
+    shares = position.shares
+    for fill in reversed(account.fills):
+        if fill.symbol != symbol:
+            continue
+        shares += fill.shares if fill.side == "SELL" else -fill.shares
+        if shares == 0:
+            return fill.fill_date <= boundary
+        if shares < 0:
+            return False
+    return False
+
+def protected_weights_for_current_episode(account: AccountState) -> dict[str, float]:
+    strategic = (
+        set(account.protected_weight_epoch_ids)
+        | set(account.strategic_cohort_symbols)
+        | set(account.strategic_cohort_targets)
+        | {s for s, p in account.positions.items() if p.grant_id or p.epoch_id}
+        | {o.symbol for o in account.pending_orders if o.grant_id or o.epoch_id}
+    )
+    return {
+        symbol: weight for symbol, weight in account.protected_weights.items()
+        if weight > 0 and (symbol in strategic or holding_spans_date(account, symbol, account.last_shock_date))
+    }
+''')
+    history = ast.parse(_source(root, "uquant/holding_history.py", overrides))
+    for node in (history, *[node for node in history.body if isinstance(node, ast.FunctionDef)]):
+        if ast.get_docstring(node) is not None:
+            node.body.pop(0)
+    assert ast.dump(history) == ast.dump(expected_history)
+    expected_capture = _definitions('''
+def capture_protected_holdings(
+    *, account: AccountState, date: pd.Timestamp, user_panel: dict[str, pd.DataFrame],
+    equity: float, use_anchors: bool = True,
+) -> None:
+    retained = (
+        {} if account.candidate_tenure.get("post_shock_restore_complete", 0) == 1
+        else protected_weights_for_current_episode(account)
+    )
+    if use_anchors and not retained:
+        retained = dict(account.anchor_weights)
+    for symbol, position in account.positions.items():
+        if symbol in user_panel and date in user_panel[symbol].index and position.shares > 0:
+            retained.setdefault(symbol, position.shares * scalar(user_panel[symbol].loc[date], "close") / equity)
+    account.protected_weights = retained
+    account.candidate_tenure["post_shock_restore_complete"] = 0
+''')["capture_protected_holdings"]
+    capture = _definitions(
+        _source(root, "uquant/risk/protected_recovery.py", overrides)
+    )["capture_protected_holdings"]
+    if ast.get_docstring(capture) is not None:
+        capture.body.pop(0)
+    assert ast.dump(capture) == ast.dump(expected_capture)
+    for path in ("uquant/risk/protected_recovery.py", "uquant/risk/transitions.py"):
+        tree = ast.parse(_source(root, path, overrides))
+        imported = [node for node in ast.walk(tree) if isinstance(node, ast.ImportFrom)
+                    and any((alias.asname or alias.name) == "protected_weights_for_current_episode"
+                            for alias in node.names)]
+        assert len(imported) == 1
+        assert imported[0].level == 2 and imported[0].module == "holding_history"
+        assert any(alias.name == "protected_weights_for_current_episode" and alias.asname is None
+                   for alias in imported[0].names)
+        assert not any(
+            (isinstance(node, ast.Name) and isinstance(node.ctx, ast.Store)
+             and node.id == "protected_weights_for_current_episode")
+            or (isinstance(node, ast.FunctionDef) and node.name == "protected_weights_for_current_episode")
+            for node in ast.walk(tree)
+        )
+
+    # Expand the same asserted capture into all three callers with their exact
+    # context bindings. Anchor fallback intentionally differs for a new crisis.
+    for path, function_name, reset, use_anchors in (
+        ("uquant/risk/confirmed_break.py", "_prepare_confirmed_break", "reset_recovery_owner_rearm", True),
+        ("uquant/risk/transitions.py", "_acute_evacuation_assessment", "_reset_recovery_owner_rearm", True),
+        ("uquant/risk/transition_resolution.py", "_prepare_new_crisis", "reset_recovery_owner_rearm", False),
+    ):
+        tree = ast.parse(_source(root, path, overrides))
+        imported = [node for node in tree.body if isinstance(node, ast.ImportFrom)
+                    and any(alias.name == "capture_protected_holdings" for alias in node.names)]
+        assert len(imported) == 1
+        assert imported[0].level == 1 and imported[0].module == "protected_recovery"
+        assert any(alias.name == "capture_protected_holdings" and alias.asname is None
+                   for alias in imported[0].names)
+        calls = [node for node in ast.walk(tree) if isinstance(node, ast.Call)
+                 and isinstance(node.func, ast.Name) and node.func.id == "capture_protected_holdings"]
+        assert len(calls) == 1
+        expected_call = ast.parse(
+            "capture_protected_holdings(account=account, date=ctx.date, "
+            "user_panel=ctx.user_panel, equity=ctx.equity"
+            + (")" if use_anchors else ", use_anchors=False)"), mode="eval",
+        ).body
+        assert ast.dump(calls[0]) == ast.dump(expected_call)
+        function = {node.name: node for node in tree.body if isinstance(node, ast.FunctionDef)}[function_name]
+        call_index = next(index for index, statement in enumerate(function.body)
+                          if isinstance(statement, ast.Expr) and statement.value is calls[0])
+        assert ast.unparse(function.body[call_index - 1]) == f"{reset}(account)"
+        assert [ast.unparse(statement) for statement in function.body[call_index + 1:call_index + 3]] == [
+            "account.shock_start_date = str(ctx.date.date())",
+            "account.last_shock_date = str(ctx.date.date())",
+        ]
+
+
+def _current_holding_predicate_projection(stage: ast.FunctionDef) -> ast.FunctionDef:
+    """Project only the two explicitly reviewed predicates onto historical topology."""
+    current = copy.deepcopy(stage)
+    predicates = [node for node in ast.walk(current) if isinstance(node, ast.Call)
+                  and isinstance(node.func, ast.Name) and node.func.id == "protected_weights_for_current_episode"]
+    assert len(predicates) == 2
+    expected = ast.parse("protected_weights_for_current_episode(account)", mode="eval").body
+    assert all(ast.dump(predicate) == ast.dump(expected) for predicate in predicates)
+
+    class HistoricalPredicate(ast.NodeTransformer):
+        def visit_Call(self, node: ast.Call) -> ast.expr:
+            if node in predicates:
+                return ast.parse("account.protected_weights", mode="eval").body
+            return self.generic_visit(node)
+
+    HistoricalPredicate().visit(current)
+    return current
+
+
 def expand_architecture_risk_stage(
     *,
     root: Path,
@@ -832,6 +980,9 @@ def expand_architecture_risk_stage(
         stage_name,
     )
     assert ast.dump(wrapper, include_attributes=False) == ast.dump(current, include_attributes=False)
+    if stage_name == "_assess_break_conditions":
+        _assert_current_holding_protection_surface(root=root, overrides=overrides)
+        current = _current_holding_predicate_projection(current)
     if is_alias:
         assert _RISK_STAGE_TRANSPORT_CALLS[stage_name] == (
             stage_name.removeprefix("_"),

@@ -147,6 +147,19 @@ def _recorded_budget_limits(row: Mapping[str, Any]) -> list[str]:
             parts.append(str(latest.get("block") or latest["correlation_block"]))
     else:
         parts.append("capital room not evaluated on this branch")
+    transfer = row.get("transfer_budget")
+    if isinstance(transfer, Mapping) and transfer.get("block"):
+        estimate = [str(transfer["block"])]
+        estimate.extend(f"{label} {float(transfer[key]):.1%}" for label, key in (
+            ("released weight", "released_weight"), ("required admission", "required_weight"),
+            ("fundable increment", "funded_increment"), ("cash room", "cash_room"),
+            ("gross room", "gross_room"), ("name room", "symbol_room"),
+            ("industry room", "industry_room"), ("correlation room", "correlation_room"),
+        ) if key in transfer)
+        if transfer.get("correlation_block"):
+            estimate.append(str(transfer["correlation_block"]))
+        parts.append("transfer feasibility after settlement (estimate; not cash or a fill): "
+                     + ", ".join(estimate))
     return parts
 
 

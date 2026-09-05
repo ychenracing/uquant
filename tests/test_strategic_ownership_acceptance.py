@@ -318,6 +318,8 @@ def test_single_alias_scenario_runs_only_its_contract_dependency(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
+    from test_cross_ai_ownership_continuity import continuity_replay
+
     assert "same-industry-crowning" in SCENARIO_NAMES
     calls: list[str] = []
 
@@ -329,26 +331,7 @@ def test_single_alias_scenario_runs_only_its_contract_dependency(
         assert isinstance(spec, dict)
         scenario_id = str(spec["scenario_id"])
         calls.append(scenario_id)
-        return {
-            "epochs": [
-                {
-                    "epoch_id": "epoch-1",
-                    "grant_id": "grant-1",
-                    "owner_symbol": "sz300502",
-                    "previous_epoch_id": "",
-                    "previous_grant_id": "",
-                },
-                {
-                    "epoch_id": "epoch-2",
-                    "grant_id": "grant-2",
-                    "owner_symbol": "sz300308",
-                    "previous_epoch_id": "epoch-1",
-                    "previous_grant_id": "grant-1",
-                },
-            ],
-            "scenario_id": scenario_id,
-            "status": "PASS",
-        }
+        return ownership_runner._continuity_summary(load_contract(), continuity_replay())
 
     monkeypatch.setattr(ownership_runner, "_execute_scenario", execute)
     result = run_acceptance_shard(

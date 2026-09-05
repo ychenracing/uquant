@@ -450,7 +450,8 @@ def test_confirmed_transfer_reduces_saved_rights_without_creating_cash():
     account.strategic_cohort_targets = {"sh600001": 1.0}
     account.strategic_restore_weights = {"sh600001": 0.9}
     account.protected_weights = {"sh600001": 1.0}
-    panel["sh600001"].loc[:, ["close", "ma20", "ret20"]] = [8.0, 10.0, -0.2]
+    panel["sh600001"].loc[:, "ma20"] = panel["sh600001"]["close"] * 1.25
+    panel["sh600001"].loc[:, "ret20"] = -0.2
     leaders["sh600001"] = replace(leaders["sh600001"], score=0.2, mature=False)
     proposed = {"sh600001": 1.0}
     for day in panel["sh600001"].index[-3:]:
@@ -463,6 +464,7 @@ def test_confirmed_transfer_reduces_saved_rights_without_creating_cash():
             user_panel=panel,
             date=day,
             account=account,
+            committed={"sh600001": 1.0}, cash_room=0.0, gross_cap=1.0,
         )
     assert owner == "sh600001"
     assert proposed["sh600001"] == pytest.approx(0.7)
@@ -473,6 +475,7 @@ def test_confirmed_transfer_reduces_saved_rights_without_creating_cash():
     assert _degraded_transfer(
         policy, challenger="sh600002", proposed=proposed, weights_now={"sh600001": 1.0},
         leaders=leaders, user_panel=panel, date=date, account=account,
+        committed={"sh600001": 1.0}, cash_room=0.0, gross_cap=1.0,
     ) is None
     assert proposed["sh600001"] == pytest.approx(0.7)
     assert len(account.rotation_dates) == 1
@@ -487,6 +490,7 @@ def test_confirmed_transfer_reduces_saved_rights_without_creating_cash():
             user_panel=panel,
             date=date,
             account=account,
+            committed={"sh600001": 1.0}, cash_room=0.0, gross_cap=1.0,
         )
         is None
     )
@@ -518,6 +522,7 @@ def test_transfer_requires_consecutive_sessions_and_same_day_is_idempotent():
         assert _degraded_transfer(
             policy, challenger="sh600002", proposed=proposed, weights_now={"sh600001": 1.0},
             leaders=leaders, user_panel=panel, date=observed, account=account,
+            committed={"sh600001": 1.0}, cash_room=0.0, gross_cap=1.0,
         ) is None
     assert proposed["sh600001"] == 1.0
     assert account.replacement_tenure["core_transfer:sh600001->sh600002"] == 1

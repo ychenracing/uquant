@@ -32,18 +32,37 @@ from research.strategic_evidence.replay import (
 from research.strategic_evidence.trace import RouteTraceRow
 from scripts.run_strategic_grant_acceptance import run_baseline
 from uquant.account import economic_state_sha256
+from uquant.account.validation_attribution import validate_lot_origin_chains, validate_order_intent
+from uquant.account.validation_positions import position_from_payload, validate_position_state
 from uquant.atomic_io import atomic_write_text
 from uquant.config import DEFAULT_CONFIG, config_fingerprint
 from uquant.contracts.runtime_identity import runtime_environment_provenance
 from uquant.contracts.universe import default_ai_universe
 from uquant.engine import ProductionEngine, code_fingerprint, performance_metrics
 from uquant.market import ReplayHarness
-from uquant.models.strategic_universe import build_strategic_universe_declaration
+from uquant.models.strategic_universe import (
+    build_strategic_universe_declaration,
+    build_strategic_universe_roles,
+)
 from uquant.provenance.fingerprints import source_surface_fingerprint
 from uquant.provenance.surfaces import load_source_surface_registry
-from uquant.types import AccountState
+from uquant.types import (
+    ATTRIBUTION_IDENTITY_FIELDS,
+    ORDER_INTENT_IMMUTABLE_FIELDS,
+    AccountOrder,
+    AccountState,
+    Fill,
+    PendingOrder,
+)
 from uquant.validation.absolute_generalization._acceptance_evidence import (
     current_candidate_champion_evidence,
+)
+from uquant.validation.absolute_generalization._execution_chain_reconciliation import (
+    validate_exact_execution_chain,
+)
+from uquant.validation.absolute_generalization._physical_identity import (
+    physical_fill_identity_map,
+    physical_fill_identity_sha256,
 )
 from uquant.validation.absolute_generalization.metrics import (
     actual_epoch_facts_from_rows,
@@ -75,6 +94,9 @@ _SCENARIO_ID = re.compile(r"[a-z0-9]+(?:-[a-z0-9]+)*")
 _OPTICAL_SYMBOLS = ("sz300308", "sz300502", "sz300394")
 _MATERIAL_SYMBOLS = ("sh688019", "sh688300", "sz300666")
 _INDEX_SYMBOLS = ("sh000300", "sh000682")
+_CONTINUITY_SOURCE = "remove-sz300502"
+_CURRENT_CONTINUITY_CONTRACT = ROOT / "benchmarks" / "cross_ai_core_strategy_contract.json"
+_CURRENT_CONTINUITY_CONTRACT_SHA256 = "9ec5992df69d4466cb2b26cea0e67bbe93f4c6317ba5b8a500ca7b89a75d78b4"
 
 
 def _canonical_json(value: object) -> bytes:
@@ -686,12 +708,164 @@ def _validate_full_removal(
             raise RuntimeError("owner-removal grant lacks its rearm authorization")
 
 
+def _continuity_basis() -> dict[str, str]:
+    """Bind the current interpretation without rewriting the historical contract."""
+    raw = _CURRENT_CONTINUITY_CONTRACT.read_bytes()
+    contract_id = "cross-ai-core-strategy-20260905-v1"
+    if (
+        hashlib.sha256(raw).hexdigest() != _CURRENT_CONTINUITY_CONTRACT_SHA256
+        or json.loads(raw).get("contract_id") != contract_id
+    ):
+        raise ValueError("current continuity contract identity differs")
+    return {
+        "contract_id": contract_id,
+        "contract_sha256": _CURRENT_CONTINUITY_CONTRACT_SHA256,
+        "source_mode": "complete_linked_epochs_may_cross_industries",
+        "alias_mode": "adjacent_distinct_owners_same_admission_industry_real_fills",
+        "config_sha256": config_fingerprint(DEFAULT_CONFIG),
+        "production_source_sha256": code_fingerprint(),
+    }
+
+
+def _continuity_result(raw: Mapping[str, Any]) -> ReplayResult:
+    request = dict(_mapping(raw["request"], label="continuity request"))
+    for field in ("symbols", "qualification_reference_symbols", "risk_reference_symbols"):
+        request[field] = tuple(_sequence(request[field], label=f"continuity {field}"))
+    return ReplayResult(
+        **{
+            **raw, "request": ReplayRequest(**request),
+            "trace": tuple(RouteTraceRow(**row) for row in _sequence(raw["trace"], label="continuity trace")),
+        }
+    )
+
+
+def _continuity_summary(contract: Mapping[str, Any], result: ReplayResult) -> dict[str, Any]:
+    """Retain the complete raw source and derive immutable, fill-backed admissions."""
+    summary = _summarize_replay(result, scenario_id=_CONTINUITY_SOURCE)
+    _validate_full_removal(contract, removed_symbol="sz300502", summary=summary)
+    symbols = tuple(symbol for symbol in contract["canonical_universe"] if symbol != "sz300502")
+    window = _mapping(contract["window"], label="continuity window")
+    expected_request = ReplayRequest(
+        symbols=symbols, start=window["start"], end=window["end"],
+        scenario=f"strategic-ownership:{_CONTINUITY_SOURCE}",
+        qualification_reference_symbols=symbols, risk_reference_symbols=symbols,
+    )
+    if result.request != expected_request:
+        raise ValueError("continuity source request or removal roles differ")
+    dates = [row.date for row in result.trace]
+    if dates != sorted(set(dates)) or dates[0] != window["start"] or dates[-1] != window["end"]:
+        raise ValueError("continuity full trace sessions differ")
+    universe = default_ai_universe()
+    for row in result.trace:
+        references = tuple(symbol for symbol in symbols if symbol in universe.symbols_as_of(row.date))
+        roles = build_strategic_universe_roles(
+            as_of=row.date, tradable_symbols=symbols,
+            qualification_reference_symbols=references,
+            risk_reference_symbols=(*references, *_INDEX_SYMBOLS),
+            industries={symbol: universe.industry_of(symbol, row.date) for symbol in references},
+            available_symbols=(),
+        )
+        observed = _mapping(row.risk.get("strategic_universe_identities"), label="continuity daily roles")
+        # Qualification identity also binds availability, which this research
+        # trace does not expose separately. Preserve it literally; do not invent
+        # an all-available daily role observation from the request.
+        if (
+            observed.get("tradable") != roles.tradable_identity
+            or observed.get("risk_reference") != roles.risk_reference_identity
+            or re.fullmatch(r"[0-9a-f]{64}", str(observed.get("qualification_reference", ""))) is None
+        ):
+            raise ValueError("continuity daily role identity differs")
+        if row.intervention_provenance is not None or set(row.position_shares) - set(symbols):
+            raise ValueError("continuity trace intervention or removed position differs")
+        if any(fill.get("fill_date") != row.date for fill in row.fills):
+            raise ValueError("continuity physical fill trace session differs")
+    raw_account = result.final_account
+    positions = _mapping(raw_account.get("positions"), label="continuity positions")
+    if set(positions) - set(symbols) or raw_account.get("code_hash") != code_fingerprint():
+        raise ValueError("continuity account removal or production source differs")
+    orders = {}
+    for item in _sequence(raw_account.get("order_ledger"), label="continuity orders"):
+        order = AccountOrder(**_mapping(item, label="continuity order"))
+        orders[order.order_id] = order
+    for order in orders.values():
+        validate_order_intent(order, label="continuity order", validate_attribution=True)
+    for item in _sequence(raw_account.get("pending_orders", []), label="continuity pending orders"):
+        pending = PendingOrder(**_mapping(item, label="continuity pending order"))
+        if pending.symbol not in symbols or pending.order_id not in orders or any(
+            getattr(pending, field) != getattr(orders[pending.order_id], field)
+            for field in ORDER_INTENT_IMMUTABLE_FIELDS
+        ):
+            raise ValueError("continuity pending order attribution differs")
+    fills = tuple(_mapping(item, label="continuity fill") for item in raw_account["fills"])
+    traced_fills = physical_fill_identity_map(tuple(fill for row in result.trace for fill in row.fills))
+    if _canonical_json(list(traced_fills.values())) != _canonical_json(list(physical_fill_identity_map(fills).values())):
+        raise ValueError("continuity trace and ledger fills differ")
+    for fill in fills:
+        fill_order = orders.get(str(fill["order_id"]))
+        if fill_order is None or any(
+            fill.get(field) != getattr(fill_order, field)
+            for field in (*ATTRIBUTION_IDENTITY_FIELDS, "symbol", "signal_date", "side")
+        ):
+            raise ValueError("continuity fill attribution differs")
+    state = AccountState(
+        initial_cash=float(raw_account["initial_cash"]), cash=float(raw_account["cash"]),
+        order_ledger=list(orders.values()), fills=[Fill(**item) for item in fills],
+        positions={symbol: position_from_payload(dict(value)) for symbol, value in positions.items()},
+    )
+    validate_position_state(state, validate_attribution=True)
+    validate_lot_origin_chains(state)
+    trace = _trace_rows(result)
+    facts = actual_epoch_facts_from_rows(final_account=raw_account, trace=trace)
+    validate_exact_execution_chain(final_account=raw_account, trace=trace, epochs=facts)
+    admissions = []
+    for fact in facts:
+        first_fill = min(
+            (fill for fill in fills if fill["epoch_id"] == fact.epoch_id
+             and fill["grant_id"] == fact.grant_id and fill["symbol"] == fact.owner_symbol
+             and fill["side"] == "BUY"),
+            key=lambda fill: (fill["fill_date"], physical_fill_identity_sha256(fill)),
+        )
+        order = orders[str(first_fill["order_id"])]
+        targets = [target for row in result.trace if row.date == order.signal_date
+                   for target in row.targets if target.get("event_id") == order.event_id
+                   and target.get("symbol") == order.symbol]
+        if len(targets) != 1 or any(
+            targets[0].get(field) != getattr(order, field) for field in ATTRIBUTION_IDENTITY_FIELDS
+        ):
+            raise ValueError("continuity admission target attribution differs")
+        admissions.append({
+            **fact.to_dict(), "admission_session": order.signal_date,
+            "order_id": order.order_id, "event_id": order.event_id,
+            "industry_at_entry": order.industry_at_entry,
+            "industry_manifest_sha256": order.industry_manifest_sha256,
+            "physical_fill_sha256": physical_fill_identity_sha256(first_fill),
+        })
+    raw = asdict(result)
+    summary["raw_replay"] = raw
+    summary["continuity"] = {
+        "basis": _continuity_basis(), "raw_sha256": _canonical_sha256(raw), "admissions": admissions,
+    }
+    return summary
+
+
 def _validate_repeated(
     contract: Mapping[str, Any],
     *,
     summary: Mapping[str, Any],
     same_industry: bool,
-) -> None:
+) -> dict[str, Any] | None:
+    raw = _mapping(summary.get("raw_replay"), label="continuity raw replay")
+    expected = _continuity_summary(contract, _continuity_result(raw))
+    scenario_id = summary.get("scenario_id")
+    if scenario_id not in {_CONTINUITY_SOURCE, "same-industry-crowning"}:
+        raise ValueError("continuity scenario identity differs")
+    if scenario_id == "same-industry-crowning" and summary.get("source_scenario_id") != _CONTINUITY_SOURCE:
+        raise ValueError("continuity alias source differs")
+    expected["scenario_id"] = scenario_id
+    actual = {key: value for key, value in summary.items()
+              if key not in {"cache_hit", "source_scenario_id", "same_industry_witness"}}
+    if _canonical_json(actual) != _canonical_json(expected):
+        raise ValueError("continuity summary differs from raw replay")
     thresholds = _mapping(contract["thresholds"], label="thresholds")
     epochs = _sequence(summary["epochs"], label="repeated-crowning epochs")
     owners = [str(_mapping(item, label="repeated epoch")["owner_symbol"]) for item in epochs]
@@ -699,10 +873,6 @@ def _validate_repeated(
         raise RuntimeError("repeated-crowning replay has fewer than two actual epochs")
     if len(set(owners)) < int(thresholds["minimum_distinct_owners"]):
         raise RuntimeError("repeated-crowning replay has fewer than two owners")
-    universe = default_ai_universe()
-    industries = {universe.industry_of(owner, "2026-08-05") for owner in owners}
-    if same_industry and len(industries) != 1:
-        raise RuntimeError("same-industry replay crossed an industry boundary")
     for previous, successor in pairwise(epochs):
         previous_epoch = _mapping(previous, label="previous repeated epoch")
         successor_epoch = _mapping(successor, label="successor repeated epoch")
@@ -710,6 +880,25 @@ def _validate_repeated(
             raise RuntimeError("repeated-crowning epoch identity chain differs")
         if successor_epoch.get("previous_grant_id") != previous_epoch.get("grant_id"):
             raise RuntimeError("repeated-crowning grant identity chain differs")
+    witness = None
+    if same_industry:
+        for previous, successor in pairwise(expected["continuity"]["admissions"]):
+            if (
+                previous["owner_symbol"] != successor["owner_symbol"]
+                and previous["industry_at_entry"] == successor["industry_at_entry"]
+            ):
+                witness = {
+                    "source_scenario_id": _CONTINUITY_SOURCE,
+                    "raw_sha256": expected["continuity"]["raw_sha256"],
+                    "industry_at_entry": previous["industry_at_entry"],
+                    "admissions": [previous, successor],
+                }
+                break
+        if witness is None:
+            raise RuntimeError("same-industry replay has no adjacent real same-industry successor")
+    if "same_industry_witness" in summary and summary["same_industry_witness"] != witness:
+        raise ValueError("continuity supplied witness differs from raw replay")
+    return witness
 
 
 def _sha256_file(path: Path) -> str:
@@ -749,6 +938,8 @@ def _cache_identity_payload(
 ) -> dict[str, object]:
     payload = dict(context or _cache_identity_context(contract))
     payload["scenario"] = dict(spec)
+    if spec.get("scenario_id") in {_CONTINUITY_SOURCE, "same-industry-crowning"}:
+        payload["continuity_basis"] = _continuity_basis()
     return payload
 
 
@@ -776,6 +967,14 @@ def _read_cache(path: Path, *, identity: str) -> dict[str, Any] | None:
             load_contract(), raw=raw, scenario_id="champion-5", expected_source=code_fingerprint(),
         )
         if dict(payload) != expected or expected["status"] != "PASS":
+            return None
+    if payload.get("scenario_id") in {_CONTINUITY_SOURCE, "same-industry-crowning"}:
+        try:
+            _validate_repeated(
+                load_contract(), summary=payload,
+                same_industry=payload["scenario_id"] == "same-industry-crowning",
+            )
+        except (ValueError, RuntimeError, KeyError, TypeError):
             return None
     return dict(payload)
 
@@ -826,15 +1025,14 @@ def _execute_scenario(
             for item in _sequence(contract["canonical_universe"], label="canonical universe")
             if str(item) != removed_symbol
         )
-        summary = _summarize_replay(
-            _frozen_replay(
-                contract,
-                scenario_id=scenario_id,
-                symbols=symbols,
-                references=symbols,
-            ),
-            scenario_id=scenario_id,
+        replay = _frozen_replay(
+            contract, scenario_id=scenario_id, symbols=symbols, references=symbols,
         )
+        if scenario_id == _CONTINUITY_SOURCE:
+            summary = _continuity_summary(contract, replay)
+            _validate_repeated(contract, summary=summary, same_industry=False)
+            return summary
+        summary = _summarize_replay(replay, scenario_id=scenario_id)
         _validate_full_removal(
             contract,
             removed_symbol=removed_symbol,
@@ -893,7 +1091,7 @@ def run_acceptance_shard(
             source = dict(by_id[source_id])
             source["scenario_id"] = scenario_id
             source["source_scenario_id"] = source_id
-            _validate_repeated(contract, summary=source, same_industry=True)
+            source["same_industry_witness"] = _validate_repeated(contract, summary=source, same_industry=True)
             row = source
             identity_payload = _cache_identity_payload(
                 contract, spec, context=identity_context
@@ -920,7 +1118,7 @@ def run_acceptance_shard(
                 row = cached
                 row["cache_hit"] = True
             if spec["kind"] == "full_removal" and scenario_id == "remove-sz300502":
-                _validate_repeated(contract, summary=row, same_industry=True)
+                _validate_repeated(contract, summary=row, same_industry=False)
             cache_metadata[scenario_id] = {
                 "cache_dependencies": {},
                 "cache_hit": bool(row["cache_hit"]),

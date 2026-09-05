@@ -8,6 +8,7 @@ from typing import TYPE_CHECKING, Any
 import pandas as pd
 
 from ..features import scalar
+from ..holding_history import holding_spans_date
 from ..models.strategic_universe import StrategicUniverseRoles
 from ..portfolio_core import current_weights, symbol_weight_cap
 from ..types import (
@@ -114,9 +115,14 @@ def _degraded_transfer(
     user_panel: dict[str, pd.DataFrame],
     date: pd.Timestamp,
     account: AccountState,
+    committed: dict[str, float],
+    cash_room: float,
+    gross_cap: float,
+    diagnostics: dict[str, Any] | None = None,
 ) -> str | None:
     """A confirmed weak incumbent can release one bounded slice after prior fills."""
-    if account.pending_orders or str(date.date()) in account.rotation_dates or not self._rotation_allowed(account, date, user_panel):
+    if (account.pending_orders or any(proposed.get(s, 0.0) < weight for s, weight in weights_now.items())
+            or str(date.date()) in account.rotation_dates or not self._rotation_allowed(account, date, user_panel)):
         return None
     held = [s for s, weight in weights_now.items() if weight > 0 and s in leaders and s in user_panel]
     if not held or len(held) >= self.cfg.max_positions:
@@ -148,6 +154,25 @@ def _degraded_transfer(
     ):
         return None
     remaining = max(0.0, proposed.get(weakest, 0.0) - self.cfg.replacement_transfer_cap)
+    released = weights_now[weakest] - remaining
+    detail = diagnostics if diagnostics is not None else {}
+    detail.update(released_weight=released, required_weight=self.cfg.core_admission_weight)
+    if released + 1e-12 < self.cfg.min_trade_weight:
+        detail["block"] = "TRANSFER_BELOW_TRADE_MINIMUM"
+        return None
+    # This is an optimistic feasibility check, not spendable proceeds. Even
+    # a complete fill must resolve the cash, risk and concentration shortfall.
+    feasible = funded_increment(
+        cfg=self.cfg, symbol=challenger, desired=self.cfg.core_admission_weight,
+        current=weights_now.get(challenger, 0.0),
+        committed={**committed, weakest: remaining}, cash_room=cash_room + released,
+        leaders=leaders, user_panel=user_panel, date=date, gross_cap=gross_cap,
+        diagnostics=detail,
+    )
+    if feasible + 1e-12 < self.cfg.core_admission_weight:
+        detail["block"] = "TRANSFER_CANNOT_FUND_ADMISSION"
+        return None
+    detail["block"] = "FEASIBLE_AFTER_SETTLEMENT"
     proposed[weakest] = remaining
     for rights in (
         account.strategic_cohort_targets,
@@ -316,27 +341,6 @@ def _pending_intents(book: _AllocationBook, *, candidates: list[str], buy_open: 
             book.fund(order.symbol, order.target_weight, phase="PENDING_CORE_BUY")
 
 
-def _holding_spans_restoration_episode(account: AccountState, symbol: str) -> bool:
-    position = account.positions[symbol]
-    shock = account.last_shock_date
-    if not shock or not position.entry_date:
-        return False
-    if position.entry_date <= shock:
-        return True
-    # FIFO can retire every original lot without closing the holding. Recover
-    # that boundary from literal quantities instead of the surviving-lot date.
-    shares = position.shares
-    for fill in reversed(account.fills):
-        if fill.symbol != symbol:
-            continue
-        shares += fill.shares if fill.side == "SELL" else -fill.shares
-        if shares == 0:
-            return fill.fill_date <= shock
-        if shares < 0:
-            return False
-    return False
-
-
 def _restore_ordinary_holdings(book: _AllocationBook) -> None:
     account, cfg = book.account, book.policy.cfg
     episode = pd.Timestamp(account.last_shock_date).toordinal() if account.last_shock_date else 0
@@ -347,7 +351,7 @@ def _restore_ordinary_holdings(book: _AllocationBook) -> None:
         if book.weights_now.get(symbol, 0.0) <= 0:
             row["restore_block"] = "NEW_ENTRY_REQUIRES_QUALIFICATION"
             continue
-        if not _holding_spans_restoration_episode(account, symbol):
+        if not holding_spans_date(account, symbol, account.last_shock_date):
             row["restore_block"] = "RESTORATION_EPISODE_NOT_LINKED_TO_HOLDING"
             continue
         pending_buy = next((order for order in account.pending_orders
@@ -411,6 +415,8 @@ def _admit_new_cores(book: _AllocationBook, *, candidates: list[str], opportunit
         weak = _degraded_transfer(
             book.policy, challenger=symbol, proposed=book.proposed, weights_now=book.weights_now,
             leaders=book.leaders, user_panel=book.user_panel, date=book.date, account=book.account,
+            committed=book.committed, cash_room=book.cash_room, gross_cap=book.gross_cap,
+            diagnostics=book.record(symbol).setdefault("transfer_budget", {}),
         )
         if weak is not None:
             book.reasons[weak] = "leader rotation: bounded transfer after confirmed deterioration"

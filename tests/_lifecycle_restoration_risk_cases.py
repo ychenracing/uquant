@@ -44,16 +44,20 @@ def test_persistent_single_name_v_repair_is_a_fallback_not_a_fast_path_shortcut(
 
     def crisis_account() -> AccountState:
         return AccountState(
-            initial_cash=100.0,
-            cash=100.0,
+            initial_cash=200.0,
+            cash=80.0,
+            positions={
+                "protected": Position("protected", 1, 120.0, str(dates[0].date()), 120.0),
+            },
             protected_weights={"protected": 0.60},
+            last_shock_date=str(dates[-20].date()),
             risk=Risk.CRISIS.value,
             shock_state="PERSISTENT_STRESS",
             shock_severity="SEVERE",
             shock_start_date=str(dates[-20].date()),
             risk_streaks={"persistent_v_market_repair": (DEFAULT_CONFIG.fast_v_recovery_confirm_days - 1)},
-            operating_peak=150.0,
-            capital_peak=100.0,
+            operating_peak=300.0,
+            capital_peak=200.0,
         )
 
     def assess(frame: pd.DataFrame, account: AccountState):
@@ -66,7 +70,7 @@ def test_persistent_single_name_v_repair_is_a_fallback_not_a_fast_path_shortcut(
             user_panel={"protected": frame},
             leaders=reference_leaders,
             account=account,
-            equity=100.0,
+            equity=account.cash + account.positions["protected"].shares * frame.loc[date, "close"],
             cfg=DEFAULT_CONFIG,
         )
 
@@ -74,7 +78,7 @@ def test_persistent_single_name_v_repair_is_a_fallback_not_a_fast_path_shortcut(
     fallback = assess(protected, fallback_account)
     assert fallback.state is Risk.CAUTION
     assert fallback.reasons == ("confirmed persistent V-recovery after extended single-name protection",)
-    assert fallback_account.operating_peak == pytest.approx(100.0)
+    assert fallback_account.operating_peak == pytest.approx(200.0)
 
     # A positive one-day move is already advancing the ordinary fast-V streak;
     # the fallback must not use its own tenure to complete that route early.
@@ -107,6 +111,7 @@ def test_failed_restoration_triggers_capital_cooldown_and_retires_anchors():
         },
         anchor_weights={symbol: 1.0 / 3.0 for symbol in symbols},
         protected_weights={symbol: 1.0 / 3.0 for symbol in symbols},
+        last_shock_date=str(dates[-25].date()),
         risk=Risk.CAUTION.value,
         operating_peak=80.0,
         capital_peak=100.0,
@@ -175,6 +180,7 @@ def test_profitable_restore_drawdown_is_not_a_capital_failure() -> None:
         },
         anchor_weights={symbol: 1.0 / 3.0 for symbol in symbols},
         protected_weights={symbol: 1.0 / 3.0 for symbol in symbols},
+        last_shock_date=str(dates[-25].date()),
         risk=Risk.CAUTION.value,
         operating_peak=400.0,
         capital_peak=400.0,
@@ -220,12 +226,13 @@ def test_profitable_restore_with_confirmed_market_damage_uses_ordinary_repair() 
                 symbol,
                 shares=1,
                 avg_cost=100.0,
-                entry_date=str(dates[-30].date()),
+                entry_date=str(dates[-130].date()),
                 highest_close=100.0,
             )
             for symbol in symbols
         },
         protected_weights={symbol: 1.0 / 3.0 for symbol in symbols},
+        last_shock_date=str(dates[-100].date()),
         risk=Risk.CAUTION.value,
         operating_peak=330.0,
         capital_peak=400.0,

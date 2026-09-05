@@ -85,6 +85,7 @@ MODULE_AUTHORITIES = {
     "uquant.execution.tranches": "production_safe",
     "uquant.execution_journal": "production_safe",
     "uquant.features": "production_safe",
+    "uquant.holding_history": "production_safe",
     "uquant.industry": "production_safe",
     "uquant.infrastructure": "production_safe",
     "uquant.infrastructure.atomic_files": "production_safe",

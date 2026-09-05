@@ -259,3 +259,63 @@ def test_report_explains_missing_link_between_restoration_episode_and_current_ho
     assert "uninterrupted holding must span the recorded risk episode" in row
     assert "verify actual fills" in row
     assert (decision, account) == before
+
+
+@pytest.mark.parametrize(("transfer", "expected"), [
+    ({"block": "TRANSFER_BELOW_TRADE_MINIMUM", "released_weight": .04, "required_weight": .2},
+     "TRANSFER_BELOW_TRADE_MINIMUM, released weight 4.0%, required admission 20.0%"),
+    ({"block": "TRANSFER_CANNOT_FUND_ADMISSION", "released_weight": .3, "required_weight": .2,
+      "funded_increment": .0, "cash_room": .4, "gross_room": .4, "symbol_room": .6,
+      "industry_room": .45, "correlation_block": "INSUFFICIENT_CORRELATION_HISTORY"},
+     "TRANSFER_CANNOT_FUND_ADMISSION, released weight 30.0%, required admission 20.0%, "
+     "fundable increment 0.0%, cash room 40.0%, gross room 40.0%, name room 60.0%, "
+     "industry room 45.0%, INSUFFICIENT_CORRELATION_HISTORY"),
+    ({"block": "FEASIBLE_AFTER_SETTLEMENT", "released_weight": .3, "required_weight": .2,
+      "funded_increment": .2, "cash_room": .4, "gross_room": .4, "symbol_room": .6,
+      "industry_room": .45, "correlation_room": .45},
+     "FEASIBLE_AFTER_SETTLEMENT, released weight 30.0%, required admission 20.0%, "
+     "fundable increment 20.0%, cash room 40.0%, gross room 40.0%, name room 60.0%, "
+     "industry room 45.0%, correlation room 45.0%"),
+], ids=["below_trade_minimum", "unfundable", "feasible"])
+@pytest.mark.parametrize("frozen", [False, True])
+def test_report_labels_recorded_transfer_projection_without_overriding_final_constraints(
+    transfer: dict[str, object], expected: str, frozen: bool,
+) -> None:
+    decision = _core_allocation_decision({
+        "held_weight": .0, "final_target_weight": .0, "final_target_reason": "NO_TARGET",
+        "entry": {"block": "READY", "confirmations": {"established": 5}, "required_confirmation": 5},
+        "allocation_reason": "CAPITAL_LIMIT", "transfer_budget": transfer,
+        "budget_checks": [{"cash_room": .1, "funded_increment": .1, "minimum_increment": .2}],
+    }, frozen=frozen)
+    account = AccountState.empty(100_000.0)
+    before = deepcopy((decision, account))
+
+    report = render_daily_report(decision, account)
+    row = report.split("| partial |", 1)[1].split("\n", 1)[0]
+
+    block = "NEW_RISK_FROZEN" if frozen else "CAPITAL_LIMIT"
+    assert f"0.0% → 0.0% | NO ORDER; NO_TARGET | {block};" in row
+    assert "room: cash 10.0%; funded increment 10.0%; minimum 20.0%" in row
+    assert "transfer feasibility after settlement (estimate; not cash or a fill): " + expected in row
+    if "funded_increment" not in transfer:
+        assert "fundable increment" not in row
+        assert "correlation room" not in row
+    if frozen:
+        assert "The recorded risk freeze must clear" in row
+    else:
+        assert "Available settled capital or a binding cap must change" in row
+    assert (decision, account) == before
+
+
+def test_report_does_not_infer_transfer_feasibility_from_an_empty_record() -> None:
+    decision = _core_allocation_decision({"allocation_reason": "CAPITAL_LIMIT", "transfer_budget": {}})
+    account = AccountState.empty(100_000.0)
+    before = deepcopy((decision, account))
+
+    report = render_daily_report(decision, account)
+    row = report.split("| partial |", 1)[1].split("\n", 1)[0]
+
+    assert "CAPITAL_LIMIT" in row
+    assert "transfer feasibility" not in row
+    assert "released weight" not in row
+    assert (decision, account) == before

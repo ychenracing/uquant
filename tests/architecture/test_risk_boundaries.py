@@ -619,7 +619,14 @@ def _stage_source(path: str, overrides: dict[str, str] | None) -> str:
 
 
 def _assert_risk_ownership_surface(overrides: dict[str, str] | None = None) -> None:
-    overrides = architecture_risk_reviewed_sources(root=ROOT, overrides=overrides)
+    holding_override = {} if overrides is None else {
+        path: source for path, source in overrides.items() if path == "uquant/holding_history.py"
+    }
+    risk_overrides = None if overrides is None else {
+        path: source for path, source in overrides.items() if path != "uquant/holding_history.py"
+    }
+    overrides = architecture_risk_reviewed_sources(root=ROOT, overrides=risk_overrides)
+    overrides.update(holding_override)
     immutable = _top_level_definitions(ast.parse(_git_source("uquant/risk.py")))[
         "_assess_base_risk"
     ]
@@ -976,6 +983,30 @@ def test_risk_moved_helper_bodies_are_exactly_bound_to_immutable_source() -> Non
 
 def test_risk_ownership_slices_are_real_and_assessment_order_is_fixed() -> None:
     _assert_risk_ownership_surface()
+
+
+@pytest.mark.parametrize("path, before, after", (
+    ("uquant/holding_history.py", "if position.entry_date <= boundary:", "if True:"),
+    ("uquant/holding_history.py", "position = account.positions.get(symbol)",
+     "account.max_exposure = 1.0\n    position = account.positions.get(symbol)"),
+    ("uquant/risk/protected_recovery.py", "retained.setdefault(symbol,", "retained.update(symbol,"),
+    ("uquant/risk/protected_recovery.py", "else protected_weights_for_current_episode(account)",
+     "else account.protected_weights"),
+    ("uquant/risk/protected_recovery.py", "from ..holding_history import", "from ..other_history import"),
+    ("uquant/risk/confirmed_break.py", "equity=ctx.equity,", "equity=ctx.equity, use_anchors=False,"),
+    ("uquant/risk/transition_resolution.py", "use_anchors=False", "use_anchors=True"),
+    ("uquant/risk/transitions.py", "account=account, date=ctx.date, user_panel=ctx.user_panel, equity=ctx.equity,",
+     "account=account, date=ctx.date, user_panel=ctx.reference_panel, equity=ctx.equity,"),
+    ("uquant/risk/transitions.py", "concentrated_break = shock_rearmed and not protected_weights_for_current_episode(account)",
+     "concentrated_break = shock_rearmed and not account.protected_weights"),
+))
+def test_current_holding_protection_gate_rejects_semantic_escape(
+    path: str, before: str, after: str,
+) -> None:
+    source = _stage_source(path, None)
+    assert before in source
+    with pytest.raises(AssertionError):
+        _assert_risk_ownership_surface({path: source.replace(before, after, 1)})
 
 
 @pytest.mark.parametrize("kind", ("compare", "threshold"))

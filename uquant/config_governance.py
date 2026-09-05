@@ -32,6 +32,18 @@ STRATEGY_RULE_REMOVALS: Final = (
     "strategic_epoch_cooldown_sessions",
     "strategic_epoch_min_symbol_change",
 )
+# Current-only retirement after the leader-cycle execution owner was removed.
+# The sealed historical governance inventory and migration identity remain intact.
+RETIRED_LEADER_CYCLE_FIELDS: Final = (
+    "leader_cycle_confirm_days",
+    "leader_cycle_min_mature",
+    "leader_cycle_min_score",
+    "leader_cycle_impulse_return",
+    "leader_cycle_impulse_index_return",
+    "leader_cycle_impulse_breadth",
+    "leader_cycle_min_market_ret120",
+    "leader_cycle_impulse_min_market_ret120",
+)
 STRATEGY_RULE_CONTRACT_SHA256: Final = "9ec5992df69d4466cb2b26cea0e67bbe93f4c6317ba5b8a500ca7b89a75d78b4"
 _SHA256 = re.compile(r"^[0-9a-f]{64}$")
 
@@ -289,9 +301,18 @@ def _validate_governed_fields_and_removals(
     if len(entry_names) != len(set(entry_names)):
         raise RuntimeError("configuration governance classifies a field more than once")
     actual_names = {field.name for field in fields(SystemConfig)}
-    if set(entry_names) != actual_names:
-        missing = sorted(actual_names - set(entry_names))
-        unknown = sorted(set(entry_names) - actual_names)
+    retired = set(RETIRED_LEADER_CYCLE_FIELDS)
+    if actual_names.intersection(retired):
+        raise RuntimeError("retired leader-cycle configuration field reintroduced")
+    for item in entries:
+        if item.field in retired and (
+            item.category is not ParameterCategory.ECONOMIC
+            or item.owner is not SubsystemOwner.STRATEGIC
+        ):
+            raise RuntimeError("retired leader-cycle field authority changed")
+    if set(entry_names) != actual_names | retired:
+        missing = sorted((actual_names | retired) - set(entry_names))
+        unknown = sorted(set(entry_names) - (actual_names | retired))
         raise RuntimeError(
             f"configuration governance does not match SystemConfig: missing={missing}, unknown={unknown}"
         )
@@ -365,14 +386,17 @@ def load_config_governance(path: str | Path | None = None) -> ConfigGovernance:
     if parsed_counts["after"] != (278, historical_economic_count):
         raise RuntimeError("configuration governance after counts are stale")
 
+    entries = [item for item in entries if item.field not in RETIRED_LEADER_CYCLE_FIELDS]
+    current_economic_count = sum(item.category is ParameterCategory.ECONOMIC for item in entries)
+
     return ConfigGovernance(
         entries=tuple(entries),
         before_total_fields=parsed_counts["before"][0],
         before_economic_fields=parsed_counts["before"][1],
         after_total_fields=parsed_counts["after"][0],
         after_economic_fields=parsed_counts["after"][1],
-        current_total_fields=parsed_counts["current"][0],
-        current_economic_fields=parsed_counts["current"][1],
+        current_total_fields=len(entries),
+        current_economic_fields=current_economic_count,
         removed_fields=removed_fields,
         strategy_rule_removals=STRATEGY_RULE_REMOVALS,
         champion_config_sha256=champion_config_sha256,

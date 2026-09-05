@@ -46,11 +46,14 @@ def test_small_champion_replay_uses_real_next_open_and_sealed_evidence(tmp_path:
     assert account.fills
     assert account.fills[0].fill_date == "2023-01-05"
     assert any(fill.fill_date == "2023-01-10" for fill in account.fills)
-    assert len(account.order_ledger) == 1
-    assert {fill.order_id for fill in account.fills} == {account.order_ledger[0].order_id}
-    assert account.order_ledger[0].requested_shares == (
-        account.order_ledger[0].filled_shares + account.order_ledger[0].remaining_shares
-    )
+    # A qualified group can fund several names; each partial BUY still has
+    # one original economic order, never a replacement for its remainder.
+    assert len(account.order_ledger) == len({order.symbol for order in account.order_ledger})
+    assert {fill.order_id for fill in account.fills} == {order.order_id for order in account.order_ledger}
+    assert len(account.fills) > len(account.order_ledger)
+    for order in account.order_ledger:
+        assert order.requested_shares == order.filled_shares + order.remaining_shares
+        assert order.filled_shares == sum(fill.shares for fill in account.fills if fill.order_id == order.order_id)
     assert all(fill.signal_date < fill.fill_date for fill in account.fills)
     assert result["identity"]["runtime"]["numpy_version"] == "2.5.1"
     with pytest.raises(FileExistsError):

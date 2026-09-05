@@ -53,14 +53,13 @@ def test_opportunity_budget_caps_new_risk_without_selling_existing_core(
         symbols[2]: _leader(symbols[2], 0.70, industry="equipment"),
     }
 
-    targets = PortfolioAllocator(DEFAULT_CONFIG)._leader_targets(
+    targets = PortfolioAllocator(DEFAULT_CONFIG).allocate(
         date=dates[-1],
         opportunity=opportunity,
         risk=_normal_risk(),
         user_panel={symbol: _trend_frame(dates) for symbol in symbols},
         leaders=leaders,
         account=account,
-        weights_now={symbols[0]: 0.40, symbols[1]: 0.30, symbols[2]: 0.25},
         prices={symbol: 1.0 for symbol in symbols},
     )
 

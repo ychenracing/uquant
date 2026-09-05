@@ -50,6 +50,8 @@ def _tactical_targets(
     ret120: float,
     broad_ret120: float,
     tech_ret120: float,
+    leader_score: float = 0.90,
+    secular_score: float = 0.80,
 ) -> tuple[tuple[Target, ...], AccountState]:
     symbol = "deep_candidate"
     panel = _restore_panel([symbol])
@@ -69,14 +71,16 @@ def _tactical_targets(
         "relative_strength", "short_relative_strength", "trend_persistence", "breakout_quality",
         "acceleration", "industry_rotation_strength",
     )}
-    components.update(unknown_industry=0.0, secular_score=.75)
-    leaders = {symbol: LeaderScore(symbol, .85, .95, True, False, "independent", components)}
+    components.update(unknown_industry=0.0, secular_score=secular_score)
+    leaders = {symbol: LeaderScore(symbol, leader_score, .95, True, False, "independent", components)}
     allocator = PortfolioAllocator(DEFAULT_CONFIG)
     for observed in frame.index[-DEFAULT_CONFIG.leader_tenure_days:]:
         targets = allocator.allocate(
             date=observed, opportunity=Opportunity.TREND, risk=risk, user_panel=panel,
             leaders=leaders, account=account, prices={symbol: float(frame.loc[observed, "close"])},
         )
+        if observed != frame.index[-1]:
+            assert targets == ()
     return targets, account
 
 
@@ -107,6 +111,27 @@ def test_transitional_recovery_rejects_ordinary_rebound_candidate():
     assert targets == ()
     assert account.candidate_tenure.get("tactical_active", 0) == 0
     assert account.tactical_anchor_symbol == ""
+
+
+@pytest.mark.parametrize("leader_score, secular_score", ((0.85, 0.80), (0.90, 0.75)))
+def test_independent_recovery_candidate_requires_each_strict_quality_floor(
+    leader_score: float, secular_score: float,
+) -> None:
+    targets, account = _tactical_targets(
+        ret20=0.10, ret120=0.50, broad_ret120=-0.10, tech_ret120=0.04,
+        leader_score=leader_score, secular_score=secular_score,
+    )
+
+    assert targets == ()
+    assert account.strategic_grant is None
+    assert account.tactical_anchor_symbol == ""
+    assert account.replacement_tenure.get("strategic_eligibility:independent_core:deep_candidate", 0) == 0
+    assert any(
+        value >= DEFAULT_CONFIG.leader_tenure_days
+        for key, value in account.replacement_tenure.items()
+        if key.startswith("strategic_eligibility:") and ":independent_core:" not in key
+    )
+    assert account.cash == 2_000_000.0 and account.positions == {}
 
 
 def _confirmed_legacy_exit(*, frozen: bool):

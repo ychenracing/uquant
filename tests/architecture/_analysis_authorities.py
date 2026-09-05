@@ -122,7 +122,6 @@ MODULE_AUTHORITIES = {
     "uquant.portfolio.freeze": "production_safe",
     "uquant.portfolio.leaders": "production_safe",
     "uquant.portfolio.leaders.admission": "production_safe",
-    "uquant.portfolio.leaders.extensions": "production_safe",
     "uquant.portfolio.leaders.lifecycle": "production_safe",
     "uquant.portfolio.leaders.targets": "production_safe",
     "uquant.portfolio.pipeline": "production_safe",
@@ -350,7 +349,6 @@ _DEBT_RELOCATIONS = {
         for module in (
             "uquant.portfolio.leaders",
             "uquant.portfolio.leaders.admission",
-            "uquant.portfolio.leaders.extensions",
             "uquant.portfolio.leaders.lifecycle",
             "uquant.portfolio.leaders.targets",
         )

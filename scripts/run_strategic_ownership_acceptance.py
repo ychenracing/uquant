@@ -263,9 +263,17 @@ def actual_epoch_facts(result: ReplayResult) -> list[dict[str, Any]]:
     ]
 
 
+class _ReplayFailure(RuntimeError):
+    """Carry failed production evidence to the shard's normal output boundary."""
+
+    def __init__(self, result: ReplayResult, *, scenario_id: str) -> None:
+        super().__init__(f"{scenario_id} ended as {result.status}: {result.error}")
+        self.result = result
+
+
 def _summarize_replay(result: ReplayResult, *, scenario_id: str) -> dict[str, Any]:
     if result.status != "SUCCESS":
-        raise RuntimeError(f"{scenario_id} ended as {result.status}: {result.error}")
+        raise _ReplayFailure(result, scenario_id=scenario_id)
     if result.intervention_provenance is not None:
         raise RuntimeError(f"{scenario_id} used a research intervention")
     validate_replay_accounting(result)
@@ -1111,7 +1119,26 @@ def run_acceptance_shard(
             cache_path = cache_dir / f"{scenario_id}-{identity}.json"
             cached = _read_cache(cache_path, identity=identity)
             if cached is None:
-                row = _execute_scenario(contract, spec=spec)
+                try:
+                    row = _execute_scenario(contract, spec=spec)
+                except _ReplayFailure as exc:
+                    raw = asdict(exc.result)
+                    failure = {
+                        "contract_sha256": _canonical_sha256(contract),
+                        "production_source_identity": code_fingerprint(),
+                        "shard": shard, "selected_scenario": scenario,
+                        "status": "FAIL", "authoritative_acceptance": False,
+                        "diagnostic_only": True, "cache_hit": False,
+                        "cache_identity": identity, "cache_identity_payload": identity_payload,
+                        "scenarios": [*rows, {
+                            "scenario_id": scenario_id, "status": "FAIL",
+                            "replay_status": exc.result.status, "error": exc.result.error,
+                            "raw_replay": raw, "raw_replay_sha256": _canonical_sha256(raw),
+                        }],
+                    }
+                    output.parent.mkdir(parents=True, exist_ok=True)
+                    atomic_write_text(output, json.dumps(failure, indent=2, sort_keys=True) + "\n")
+                    raise
                 _write_cache(cache_path, identity=identity, payload=row)
                 row["cache_hit"] = False
             else:

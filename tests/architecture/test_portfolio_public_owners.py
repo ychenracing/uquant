@@ -3,11 +3,12 @@ from __future__ import annotations
 import importlib
 from collections.abc import Mapping
 
-from ._analysis import architecture_snapshot
+from ._analysis import ROOT, architecture_snapshot
 from ._private_imports import (
     current_governed_sources,
     scan_governed_private_edges,
 )
+from ._reviewed_owner_transport import RETIRED_LEADER_METHODS, assert_retired_leader_owners_absent
 
 PORTFOLIO_PUBLIC_ROUTES = {
     ("uquant.portfolio.leaders.admission", "_admission_utility"): (
@@ -170,6 +171,9 @@ def test_architecture_portfolio_public_routes_preserve_exact_owner_identity() ->
     for (legacy_owner, private_name), (public_owner, public_name) in sorted(
         PORTFOLIO_PUBLIC_ROUTES.items()
     ):
+        if private_name in RETIRED_LEADER_METHODS:
+            assert_retired_leader_owners_absent(ROOT)
+            continue
         legacy_module = importlib.import_module(legacy_owner)
         public_module = importlib.import_module(public_owner)
         assert getattr(legacy_module, private_name) is getattr(public_module, public_name)
@@ -180,6 +184,9 @@ def test_architecture_portfolio_importers_keep_exact_local_legacy_bindings() -> 
         legacy_owner = str(row["imported_from"])
         private_name = str(row["name"])
         public_owner, public_name = PORTFOLIO_PUBLIC_ROUTES[(legacy_owner, private_name)]
+        if private_name in RETIRED_LEADER_METHODS:
+            assert_retired_leader_owners_absent(ROOT)
+            continue
         importer_name = str(row["importer"])
         importer = importlib.import_module(importer_name)
         binding_owner = importer.PortfolioAllocator if importer_name == "uquant.portfolio" else importer

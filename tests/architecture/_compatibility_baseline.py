@@ -42,10 +42,22 @@ VALIDATION_CLAUSE_COUNT = 159
 # Candidate-only retirement; the frozen baseline and stimulus manifest stay intact.
 RETIRED_VALIDATION_CLAUSES: Mapping[int, str] = types.MappingProxyType(
     {
+        57: "leader_cycle_confirm_days",
+        58: "leader_cycle_min_mature",
+        59: "leader_cycle_min_score",
+        60: "leader_cycle_impulse_breadth",
+        61: "leader_cycle_min_market_ret120",
+        62: "leader_cycle_impulse_min_market_ret120",
         79: "strategic_epoch_cooldown_sessions",
         80: "strategic_epoch_min_symbol_change",
     }
 )
+
+RETIRED_CONFIG_FIELDS = frozenset((
+    *RETIRED_VALIDATION_CLAUSES.values(),
+    "leader_cycle_impulse_return",
+    "leader_cycle_impulse_index_return",
+))
 
 PAIR_CASE_COUNT = 17_571
 
@@ -408,7 +420,7 @@ def baseline_validation_clause_dumps() -> tuple[str, ...]:
     return clauses
 
 def projected_baseline_validation_clause_dumps() -> tuple[str, ...]:
-    """Omit only the two explicitly retired epoch controls from candidate checks."""
+    """Project only the eight reviewed clauses for retired epoch and leader-cycle controls."""
 
     return tuple(
         clause
@@ -792,7 +804,7 @@ def candidate_validation_clause_dumps(
                 if (
                     isinstance(statement, ast.AnnAssign)
                     and isinstance(statement.target, ast.Name)
-                    and statement.target.id in RETIRED_VALIDATION_CLAUSES.values()
+                    and statement.target.id in RETIRED_CONFIG_FIELDS
                 ):
                     raise AssertionError(
                         f"retired config field reintroduced: {statement.target.id}"

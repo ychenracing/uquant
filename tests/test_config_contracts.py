@@ -9,7 +9,7 @@ from typing import Any
 import pytest
 
 import uquant
-from uquant.config import DEFAULT_CONFIG, config_fingerprint
+from uquant.config import DEFAULT_CONFIG, SystemConfig, config_fingerprint
 
 INVALID_OVERRIDES: tuple[tuple[dict[str, Any], str], ...] = (
     ({"risk_sentinel_mode": "INVALID"}, "risk_sentinel_mode"),
@@ -77,15 +77,6 @@ INVALID_OVERRIDES: tuple[tuple[dict[str, Any], str], ...] = (
     ({"tactical_rebound_oversold_min_ret60": 0.05}, "ret60 thresholds"),
     ({"tactical_rebound_max_ret120": 0.0}, "tactical_rebound_max_ret120"),
     ({"tactical_overheat_cooldown_days": 0}, "overheat_cooldown_days"),
-    ({"leader_cycle_confirm_days": 0}, "leader_cycle_confirm_days"),
-    ({"leader_cycle_min_mature": 7}, "leader_cycle_min_mature"),
-    ({"leader_cycle_min_score": 1.1}, "leader_cycle_min_score"),
-    ({"leader_cycle_impulse_breadth": 1.1}, "impulse_breadth"),
-    ({"leader_cycle_min_market_ret120": 1.0}, "min_market_ret120"),
-    (
-        {"leader_cycle_impulse_min_market_ret120": 0.02},
-        "impulse_min_market_ret120",
-    ),
     ({"strategic_long_cycle_max_tech_ret120": 0.0}, "long_cycle_max_tech_ret120"),
     ({"strategic_persistent_max_ret120": 0.0}, "persistent_max_ret120"),
     ({"strategic_long_cycle_min_ret60": -1.0}, "long_cycle_min_ret60"),
@@ -213,7 +204,6 @@ def test_configuration_serialization_is_complete_and_detached() -> None:
     assert payload["tactical_rebound_oversold_min_ret60"] == pytest.approx(0.20)
     assert payload["tactical_rebound_max_ret120"] == pytest.approx(0.90)
     assert payload["tactical_overheat_cooldown_days"] == 10
-    assert payload["leader_cycle_impulse_min_market_ret120"] == pytest.approx(-0.01)
     assert payload["recovery_substitution_max_ret20"] == pytest.approx(0.30)
     assert payload["strategic_gradual_post_guard_exit_step"] == pytest.approx(0.17)
     assert payload["strategic_post_guard_exit_step"] == pytest.approx(0.20)
@@ -224,7 +214,7 @@ def test_configuration_serialization_is_complete_and_detached() -> None:
 
 def test_causal_confirmation_toggle_changes_current_config_identity() -> None:
     assert config_fingerprint(DEFAULT_CONFIG) == (
-        "5326bfbb4b307f09b61c86fd4853f9fd616210df28af2a8f98385f1f6ea97379"
+        "ff491f722c3f84211eda9953cce1309392f7a89bb86bcc1e2cb33232580d4a26"
     )
     assert config_fingerprint(
         DEFAULT_CONFIG.override(risk_sentinel_causal_confirmation_enabled=True)
@@ -259,3 +249,24 @@ def test_production_runtime_is_exactly_python_312_with_locked_numeric_stack() ->
     assert project["project"]["requires-python"] == ">=3.12,<3.13"
     assert project["project"]["dependencies"] == ["numpy==2.5.1", "pandas==3.0.5"]
     assert project["tool"]["ruff"]["target-version"] == "py312"
+
+
+RETIRED_LEADER_CYCLE_FIELDS = (
+    "leader_cycle_confirm_days",
+    "leader_cycle_min_mature",
+    "leader_cycle_min_score",
+    "leader_cycle_impulse_return",
+    "leader_cycle_impulse_index_return",
+    "leader_cycle_impulse_breadth",
+    "leader_cycle_min_market_ret120",
+    "leader_cycle_impulse_min_market_ret120",
+)
+
+
+@pytest.mark.parametrize("field", RETIRED_LEADER_CYCLE_FIELDS)
+def test_retired_leader_cycle_knobs_are_absent_and_rejected(field: str) -> None:
+    assert field not in DEFAULT_CONFIG.to_dict()
+    assert not hasattr(DEFAULT_CONFIG, field)
+    for constructor in (SystemConfig, DEFAULT_CONFIG.override):
+        with pytest.raises(TypeError, match=f"unexpected keyword argument '{field}'"):
+            constructor(**{field: 1})

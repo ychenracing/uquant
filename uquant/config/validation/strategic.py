@@ -6,20 +6,8 @@ from typing import Any
 
 
 def _validate_strategic_admission(config: Any) -> None:
-    """Validate cycle evidence, cohort sizes, and admission scores."""
+    """Validate cohort sizes and admission scores."""
 
-    if config.leader_cycle_confirm_days < 1:
-        raise ValueError("leader_cycle_confirm_days must be positive")
-    if not 1 <= config.leader_cycle_min_mature <= config.max_positions:
-        raise ValueError("leader_cycle_min_mature must be in [1, max_positions]")
-    if not 0 <= config.leader_cycle_min_score <= 1:
-        raise ValueError("leader_cycle_min_score must be in [0, 1]")
-    if not 0 <= config.leader_cycle_impulse_breadth <= 1:
-        raise ValueError("leader_cycle_impulse_breadth must be in [0, 1]")
-    if not -1 < config.leader_cycle_min_market_ret120 < 1:
-        raise ValueError("leader_cycle_min_market_ret120 must be in (-1, 1)")
-    if not (-1 < config.leader_cycle_impulse_min_market_ret120 <= config.leader_cycle_min_market_ret120):
-        raise ValueError("leader_cycle_impulse_min_market_ret120 must not exceed the ordinary market floor")
     if not 1 <= config.strategic_cohort_size <= min(3, config.max_positions):
         raise ValueError("strategic_cohort_size must be in [1, min(3, max_positions)]")
     if not 1 <= config.strategic_cohort_min_size <= config.strategic_cohort_size:

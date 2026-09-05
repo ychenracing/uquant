@@ -23,6 +23,7 @@ from ._compatibility_baseline import (
     METHOD_IDS,
     REACHABLE_WITNESS_CASE_COUNT,
     REACHABLE_WITNESS_START_INDEX,
+    RETIRED_CONFIG_FIELDS,
     RETIRED_VALIDATION_CLAUSES,
     TOTAL_VALIDATION_CASE_COUNT,
     UNKNOWN_KEYWORD_CASE_INDEX,
@@ -42,13 +43,6 @@ from ._compatibility_baseline import (
 VALIDATION_FIXTURE_PATH = ROOT / "tests" / "fixtures" / "compatibility_config_validation_contract.json"
 
 REACHABLE_ADJACENT_SWAPS = (
-    (
-        "leader-cycle-market-range-before-impulse-relation",
-        "uquant/config/validation/strategic.py",
-        "_validate_strategic_admission",
-        4,
-        "uquant.config.validation.strategic",
-    ),
     (
         "strategic-transition-max-range-before-inverted-range",
         "uquant/config/validation/strategic.py",
@@ -276,14 +270,20 @@ def test_split_validators_preserve_retained_baseline_clauses_in_exact_ast_order(
 
     assert len(baseline) == 159
     assert dict(RETIRED_VALIDATION_CLAUSES) == {
+        57: "leader_cycle_confirm_days",
+        58: "leader_cycle_min_mature",
+        59: "leader_cycle_min_score",
+        60: "leader_cycle_impulse_breadth",
+        61: "leader_cycle_min_market_ret120",
+        62: "leader_cycle_impulse_min_market_ret120",
         79: "strategic_epoch_cooldown_sessions",
         80: "strategic_epoch_min_symbol_change",
     }
     for index, field in RETIRED_VALIDATION_CLAUSES.items():
         assert f"attr='{field}'" in baseline[index]
-    assert len(candidate) == 157
+    assert len(candidate) == 151
     assert candidate == projected_baseline_validation_clause_dumps()
-    assert candidate == baseline[:79] + baseline[81:]
+    assert candidate == baseline[:57] + baseline[63:79] + baseline[81:]
     assert all(left != right for left, right in pairwise(candidate))
 
 
@@ -309,7 +309,7 @@ def test_retired_epoch_fields_are_rejected_by_constructor_and_override(
         assert str(exc.value) == expected_message
 
 
-def test_semantic_gate_rejects_a_third_validation_clause_deletion() -> None:
+def test_semantic_gate_rejects_an_additional_validation_clause_deletion() -> None:
     relative_path = "uquant/config/validation/strategic.py"
     tree = ast.parse((ROOT / relative_path).read_text(encoding="utf-8"))
     function = next(
@@ -319,11 +319,11 @@ def test_semantic_gate_rejects_a_third_validation_clause_deletion() -> None:
     )
     del function.body[-1]
 
-    with pytest.raises(AssertionError, match="candidate validation clause count changed: 156"):
+    with pytest.raises(AssertionError, match="candidate validation clause count changed: 150"):
         candidate_validation_clause_dumps({relative_path: ast.unparse(tree)})
 
 
-@pytest.mark.parametrize("field", RETIRED_VALIDATION_CLAUSES.values())
+@pytest.mark.parametrize("field", sorted(RETIRED_CONFIG_FIELDS))
 def test_semantic_gate_rejects_retired_field_and_clause_reintroduction(field: str) -> None:
     relative_path = "uquant/config/model.py"
     source = (ROOT / relative_path).read_text(encoding="utf-8")
@@ -347,10 +347,10 @@ def test_semantic_gate_rejects_retired_field_and_clause_reintroduction(field: st
     function.body.append(
         ast.parse(f"if config.{field} < 1:\n    raise ValueError('reintroduced')").body[0]
     )
-    with pytest.raises(AssertionError, match="candidate validation clause count changed: 158"):
+    with pytest.raises(AssertionError, match="candidate validation clause count changed: 152"):
         candidate_validation_clause_dumps({relative_path: ast.unparse(tree)})
 
-    # A compensating deletion must not hide reintroduction behind the 157 count.
+    # A compensating deletion must not hide reintroduction behind the 151 count.
     del function.body[-2]
     assert candidate_validation_clause_dumps({relative_path: ast.unparse(tree)}) != (
         projected_baseline_validation_clause_dumps()
@@ -560,12 +560,12 @@ def test_semantic_ast_gate_detects_every_adjacent_validator_block_swap(
     ("original", "replacement"),
     (
         (
-            "config.leader_cycle_confirm_days < 1",
-            "config.leader_cycle_confirm_days < 2",
+            "config.strategic_cohort_guard_days < 1",
+            "config.strategic_cohort_guard_days < 2",
         ),
         (
-            '"leader_cycle_confirm_days must be positive"',
-            '"leader_cycle_confirm_days changed"',
+            '"strategic_cohort_guard_days must be positive"',
+            '"strategic_cohort_guard_days changed"',
         ),
     ),
 )
@@ -703,7 +703,7 @@ def test_every_pair_of_isolated_invalid_stimuli_preserves_first_failure_order() 
             # Removed keywords fail at construction, before any retained validator.
             # Preserve insertion order when both retired fields occur in one pair.
             retired = next(
-                (field for field in changes if field in RETIRED_VALIDATION_CLAUSES.values()),
+                (field for field in changes if field in RETIRED_CONFIG_FIELDS),
                 None,
             )
             if retired is not None:
@@ -817,3 +817,20 @@ def test_authored_public_method_pickles_load_in_both_directions() -> None:
         cast(bool, result["ok"])
         for result in baseline_load_method_pickles(current_pickles).values()
     )
+
+
+
+def test_retired_leader_cycle_order_witness_preserves_history_and_fails_closed_today() -> None:
+    fixture = _validation_fixture()
+    cases = cast(Sequence[Mapping[str, object]], fixture["cases"])
+    witness = cases[REACHABLE_WITNESS_START_INDEX]
+    assert witness["witness_id"] == "leader-cycle-market-range-before-impulse-relation"
+    changes = cast(Mapping[str, object], witness["changes"])
+    assert exception_observation(baseline_config_module().DEFAULT_CONFIG, changes) == {
+        "exception_type": witness["exception_type"], "message": witness["message"],
+    }
+    first = next(field for field in changes if field in RETIRED_CONFIG_FIELDS)
+    assert exception_observation(DEFAULT_CONFIG, changes) == {
+        "exception_type": "TypeError",
+        "message": f"SystemConfig.__init__() got an unexpected keyword argument '{first}'",
+    }

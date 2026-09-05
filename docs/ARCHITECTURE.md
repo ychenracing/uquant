@@ -144,10 +144,18 @@ uquant 把数据、信号、风险、组合、执行和账户放在一条可审�
 
 ### 战略资格与部署
 
-战略处理先执行只读的 qualification observation，再执行 deployment authorization。观察步骤
-读取当日可见数据，更新候选、路线、资格证据摘要、连续确认、阻塞原因和失效原因；它不生成
-目标或订单，也不改变总仓上限。`freeze_new_risk`、风险状态和资本预算只阻塞部署，不机械清空
-已经观察到的候选证据。
+资格观察层按当日可见数据维护各证券、各路线的连续计数。
+[qualification_candidates.py](../uquant/portfolio/strategic/qualification_candidates.py) 枚举
+`established`、`transition`、`transition_impulse`、`persistent_industry` 与 `reversal_industry`
+五类路线中每个 owner 的组合和单名证据；反转同步与 decisive 证据只读取该 owner 的本地
+行业见证组。[discovery.py](../uquant/portfolio/strategic/discovery.py)
+只读评估每个候选的 quorum 和确认天数，再按确认已完成、领涨分数、真实见证成员数降序，
+以证券、路线和成员排序打破平局。选定一次后才写入战略资格观察并尝试部署。
+`ABSOLUTE_SINGLE` 的有效确认是原路线与 `independent_core` 连续计数的较小值，须达到
+原有 4 日要求；缺失严格观察从零建立，不借用旧路线计数。
+
+资格评估不生成目标或订单，也不改变总仓上限。quorum 的市场确认保留风险状态和原有市场
+质量条件，但不包含部署开关 `freeze_new_risk`；Risk、资本预算及既有 repair 授权仍约束买入。
 
 部署授权只在风险、机会、资本预算、执行和账户状态均允许时创建
 `StrategicGrantIntent`。同一账户最多一个未终结授冠；`grant_id` 由账户、候选、路线、资格

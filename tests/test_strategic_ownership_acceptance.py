@@ -348,6 +348,44 @@ def test_single_alias_scenario_runs_only_its_contract_dependency(
     assert set(result["cache_dependencies"]) == {"remove-sz300502"}
 
 
+@pytest.mark.parametrize("scenario", ("remove-sz300502", "same-industry-crowning"))
+@pytest.mark.parametrize("status", ("REPLAY_ERROR", "INSUFFICIENT_SAMPLE"))
+def test_failed_ownership_replay_preserves_raw_without_cache_or_pass(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, scenario: str, status: str,
+) -> None:
+    from dataclasses import asdict, replace
+
+    from test_cross_ai_ownership_continuity import continuity_replay
+
+    replay = replace(
+        continuity_replay(), status=status,
+        error="pending order event_id differs from canonical derivation",
+    )
+    monkeypatch.setattr(ownership_runner, "_frozen_replay", lambda *args, **kwargs: replay)
+    monkeypatch.setattr(ownership_runner, "_cache_identity_context", lambda contract: {"test": "failed raw"})
+    output = tmp_path / "evidence" / "failed.json"
+    cache = tmp_path / "cache"
+
+    with pytest.raises(RuntimeError, match="pending order event_id differs from canonical derivation"):
+        run_acceptance_shard(shard="continuity", scenario=scenario, output=output, cache_dir=cache)
+
+    evidence = json.loads(output.read_text(encoding="utf-8"))
+    assert evidence["status"] == "FAIL"
+    assert evidence["authoritative_acceptance"] is False
+    assert evidence["cache_hit"] is False
+    assert evidence["selected_scenario"] == scenario
+    assert len(evidence["scenarios"]) == 1
+    failure = evidence["scenarios"][0]
+    assert failure["scenario_id"] == "remove-sz300502"
+    assert failure["status"] == "FAIL"
+    assert failure["replay_status"] == status
+    assert failure["error"] == replay.error
+    assert ownership_runner._canonical_sha256(failure["raw_replay"]) == ownership_runner._canonical_sha256(asdict(replay))
+    assert failure["raw_replay_sha256"] == ownership_runner._canonical_sha256(asdict(replay))
+    assert "same_industry_witness" not in failure
+    assert list(cache.iterdir()) == []
+
+
 @pytest.mark.parametrize("status, exit_code", [("PASS", 0), ("FAIL", 1)])
 def test_ownership_cli_dispatches_one_diagnostic_scenario(
     status: str, exit_code: int,

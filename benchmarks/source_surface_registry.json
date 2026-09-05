@@ -92,7 +92,6 @@
         "uquant/portfolio/freeze.py",
         "uquant/portfolio/leaders/__init__.py",
         "uquant/portfolio/leaders/admission.py",
-        "uquant/portfolio/leaders/extensions.py",
         "uquant/portfolio/leaders/lifecycle.py",
         "uquant/portfolio/leaders/targets.py",
         "uquant/portfolio/pipeline.py",
@@ -677,7 +676,6 @@
         "uquant/portfolio/freeze.py",
         "uquant/portfolio/leaders/__init__.py",
         "uquant/portfolio/leaders/admission.py",
-        "uquant/portfolio/leaders/extensions.py",
         "uquant/portfolio/leaders/lifecycle.py",
         "uquant/portfolio/leaders/targets.py",
         "uquant/portfolio/pipeline.py",
@@ -819,5 +817,5 @@
       ]
     }
   ],
-  "canonical_sha256": "efe9edbe5e1c01dad95e175aac621840acab4538eab683cefa8bd4f30424c234"
+  "canonical_sha256": "448940b16d434796dd30f068a85681f1525ed6b0b576a312d77a31efcc0c58e3"
 }

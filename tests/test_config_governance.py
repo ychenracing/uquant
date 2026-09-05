@@ -247,7 +247,7 @@ def test_strategy_rule_changes_cannot_use_the_historical_identity_only_migration
     assert migration.strategy_rule_removals == (
         "strategic_epoch_cooldown_sessions", "strategic_epoch_min_symbol_change",
     )
-    assert (migration.current_total_fields, migration.current_economic_fields) == (275, 162)
+    assert (migration.current_total_fields, migration.current_economic_fields) == (267, 154)
     assert migration.before_economic_fields == migration.after_economic_fields == 164
 
 
@@ -359,7 +359,7 @@ def _search_observation(pool: str, window: str) -> ReplayObservation:
     ("grid", "message"),
     [
         ({"leader_mature_score": [True]}, "leader_mature_score requires float"),
-        ({"leader_cycle_confirm_days": [3.5]}, "leader_cycle_confirm_days requires int"),
+        ({"replacement_confirm_days": [3.5]}, "replacement_confirm_days requires int"),
         ({"conviction_weighting_enabled": [1]}, "conviction_weighting_enabled requires bool"),
         ({"conviction_weighting_enabled": [0.0]}, "conviction_weighting_enabled requires bool"),
     ],
@@ -408,7 +408,7 @@ def test_candidate_search_normalizes_valid_float_boundaries() -> None:
     ("base", "message"),
     [
         ({"leader_mature_score": True}, "leader_mature_score requires float"),
-        ({"leader_cycle_confirm_days": 3.5}, "leader_cycle_confirm_days requires int"),
+        ({"replacement_confirm_days": 3.5}, "replacement_confirm_days requires int"),
     ],
 )
 def test_one_at_a_time_stress_rejects_type_confused_values(
@@ -429,11 +429,11 @@ def test_factorial_stress_requires_real_boolean_values() -> None:
 
 def test_parameter_stress_normalizes_integral_ints_and_preserves_bools() -> None:
     integer_cases = one_at_a_time_perturbations(
-        {"leader_cycle_confirm_days": 3.0},
+        {"replacement_confirm_days": 3.0},
         relative_deltas=(0.0,),
     )
-    assert integer_cases[0].config()["leader_cycle_confirm_days"] == 3
-    assert type(integer_cases[0].config()["leader_cycle_confirm_days"]) is int
+    assert integer_cases[0].config()["replacement_confirm_days"] == 3
+    assert type(integer_cases[0].config()["replacement_confirm_days"]) is int
 
     boolean_cases = factorial_perturbations(
         {"leader_mature_score": 0.72},
@@ -453,3 +453,59 @@ def test_parameter_stress_normalizes_integral_ints_and_preserves_bools() -> None
 def test_removed_config_overrides_fail_closed(changes: dict[str, object]) -> None:
     with pytest.raises(TypeError, match="unexpected keyword"):
         SystemConfig().override(**changes)
+
+
+@pytest.mark.parametrize("mutation", ("extra-removal", "reintroduced", "missing-retired", "wrong-owner"))
+def test_current_retirement_projection_rejects_unreviewed_schema_changes(
+    mutation: str, monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    payload = json.loads(GOVERNANCE_PATH.read_text())
+    entries = list(load_config_governance().entries)
+    entries.extend(
+        governance_module.ParameterGovernance(
+            field, ParameterCategory.ECONOMIC,
+            governance_module.SubsystemOwner.STRATEGIC, "sealed historical strategic field",
+        )
+        for field in governance_module.RETIRED_LEADER_CYCLE_FIELDS
+    )
+    live_fields = list(fields(SystemConfig))
+    if mutation == "extra-removal":
+        live_fields = [field for field in live_fields if field.name != "leader_mature_score"]
+    elif mutation == "reintroduced":
+        field = dataclasses.make_dataclass("Reintroduced", [("leader_cycle_confirm_days", int)])
+        live_fields.extend(fields(field))
+    elif mutation == "missing-retired":
+        entries = [item for item in entries if item.field != "leader_cycle_confirm_days"]
+    else:
+        entries[-1] = dataclasses.replace(entries[-1], owner=governance_module.SubsystemOwner.RISK)
+    monkeypatch.setattr(governance_module, "fields", lambda _type: live_fields)
+    with pytest.raises(RuntimeError):
+        governance_module._validate_governed_fields_and_removals(entries, payload)
+
+
+def test_frozen_sensitivity_parameters_remain_governed_and_serialized() -> None:
+    names = {
+        "leader_tenure_days", "strategic_reversal_min_ret5", "strategic_reversal_max_tech_ret120",
+        "strategic_dominant_profit_lock_mfe", "strategic_dominant_retained_gross",
+    }
+    assert names <= SystemConfig().to_dict().keys()
+    assert names <= governance_module.economic_parameter_names()
+    assert not names.intersection(governance_module.RETIRED_LEADER_CYCLE_FIELDS)
+
+
+@pytest.mark.parametrize("field", governance_module.RETIRED_LEADER_CYCLE_FIELDS)
+def test_retired_leader_cycle_knobs_cannot_reach_candidate_runner(field: str) -> None:
+    calls = 0
+
+    def runner(_config: dict[str, object], pool: str, window: str) -> ReplayObservation:
+        nonlocal calls
+        calls += 1
+        return _search_observation(pool, window)
+
+    assert field not in {entry.field for entry in load_config_governance().entries}
+    with pytest.raises(ValueError, match="declared ECONOMIC SystemConfig fields"):
+        search_candidates(
+            parameter_grid={field: [1]}, pools=("a",), windows=("h1_2023",),
+            runner=runner,  # type: ignore[arg-type]
+        )
+    assert calls == 0

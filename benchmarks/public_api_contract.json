@@ -29,7 +29,7 @@
                   "default": {
                     "kind": "dataclass",
                     "type": "uquant.config.SystemConfig",
-                    "sha256": "b112e9a3d5cf7dc51aef84a4ed5d937bfc38c95b736713528929fac5537134b7"
+                    "sha256": "1fa1fabe6d61a335083667a02b32cfa1e88099cc77fdc43d4f96a8255e375ad0"
                   }
                 }
               ],
@@ -864,78 +864,6 @@
                   "default": {
                     "kind": "value",
                     "value": 20
-                  }
-                },
-                {
-                  "name": "leader_cycle_confirm_days",
-                  "kind": "POSITIONAL_OR_KEYWORD",
-                  "annotation": "int",
-                  "default": {
-                    "kind": "value",
-                    "value": 3
-                  }
-                },
-                {
-                  "name": "leader_cycle_min_mature",
-                  "kind": "POSITIONAL_OR_KEYWORD",
-                  "annotation": "int",
-                  "default": {
-                    "kind": "value",
-                    "value": 2
-                  }
-                },
-                {
-                  "name": "leader_cycle_min_score",
-                  "kind": "POSITIONAL_OR_KEYWORD",
-                  "annotation": "float",
-                  "default": {
-                    "kind": "value",
-                    "value": 0.82
-                  }
-                },
-                {
-                  "name": "leader_cycle_impulse_return",
-                  "kind": "POSITIONAL_OR_KEYWORD",
-                  "annotation": "float",
-                  "default": {
-                    "kind": "value",
-                    "value": 0.15
-                  }
-                },
-                {
-                  "name": "leader_cycle_impulse_index_return",
-                  "kind": "POSITIONAL_OR_KEYWORD",
-                  "annotation": "float",
-                  "default": {
-                    "kind": "value",
-                    "value": 0.15
-                  }
-                },
-                {
-                  "name": "leader_cycle_impulse_breadth",
-                  "kind": "POSITIONAL_OR_KEYWORD",
-                  "annotation": "float",
-                  "default": {
-                    "kind": "value",
-                    "value": 0.1
-                  }
-                },
-                {
-                  "name": "leader_cycle_min_market_ret120",
-                  "kind": "POSITIONAL_OR_KEYWORD",
-                  "annotation": "float",
-                  "default": {
-                    "kind": "value",
-                    "value": 0.01
-                  }
-                },
-                {
-                  "name": "leader_cycle_impulse_min_market_ret120",
-                  "kind": "POSITIONAL_OR_KEYWORD",
-                  "annotation": "float",
-                  "default": {
-                    "kind": "value",
-                    "value": -0.01
                   }
                 },
                 {
@@ -3312,70 +3240,6 @@
                 "default": {
                   "kind": "value",
                   "value": 20
-                }
-              },
-              {
-                "name": "leader_cycle_confirm_days",
-                "type": "int",
-                "default": {
-                  "kind": "value",
-                  "value": 3
-                }
-              },
-              {
-                "name": "leader_cycle_min_mature",
-                "type": "int",
-                "default": {
-                  "kind": "value",
-                  "value": 2
-                }
-              },
-              {
-                "name": "leader_cycle_min_score",
-                "type": "float",
-                "default": {
-                  "kind": "value",
-                  "value": 0.82
-                }
-              },
-              {
-                "name": "leader_cycle_impulse_return",
-                "type": "float",
-                "default": {
-                  "kind": "value",
-                  "value": 0.15
-                }
-              },
-              {
-                "name": "leader_cycle_impulse_index_return",
-                "type": "float",
-                "default": {
-                  "kind": "value",
-                  "value": 0.15
-                }
-              },
-              {
-                "name": "leader_cycle_impulse_breadth",
-                "type": "float",
-                "default": {
-                  "kind": "value",
-                  "value": 0.1
-                }
-              },
-              {
-                "name": "leader_cycle_min_market_ret120",
-                "type": "float",
-                "default": {
-                  "kind": "value",
-                  "value": 0.01
-                }
-              },
-              {
-                "name": "leader_cycle_impulse_min_market_ret120",
-                "type": "float",
-                "default": {
-                  "kind": "value",
-                  "value": -0.01
                 }
               },
               {
@@ -5509,7 +5373,7 @@
                 "default": {
                   "kind": "dataclass",
                   "type": "uquant.config.SystemConfig",
-                  "sha256": "b112e9a3d5cf7dc51aef84a4ed5d937bfc38c95b736713528929fac5537134b7"
+                  "sha256": "1fa1fabe6d61a335083667a02b32cfa1e88099cc77fdc43d4f96a8255e375ad0"
                 }
               }
             ],
@@ -6505,7 +6369,7 @@
                 "default": {
                   "kind": "dataclass",
                   "type": "uquant.config.SystemConfig",
-                  "sha256": "b112e9a3d5cf7dc51aef84a4ed5d937bfc38c95b736713528929fac5537134b7"
+                  "sha256": "1fa1fabe6d61a335083667a02b32cfa1e88099cc77fdc43d4f96a8255e375ad0"
                 }
               }
             ],
@@ -7893,7 +7757,7 @@
                 "default": {
                   "kind": "dataclass",
                   "type": "uquant.config.SystemConfig",
-                  "sha256": "b112e9a3d5cf7dc51aef84a4ed5d937bfc38c95b736713528929fac5537134b7"
+                  "sha256": "1fa1fabe6d61a335083667a02b32cfa1e88099cc77fdc43d4f96a8255e375ad0"
                 }
               }
             ],
@@ -8387,7 +8251,7 @@
                 "default": {
                   "kind": "dataclass",
                   "type": "uquant.config.SystemConfig",
-                  "sha256": "b112e9a3d5cf7dc51aef84a4ed5d937bfc38c95b736713528929fac5537134b7"
+                  "sha256": "1fa1fabe6d61a335083667a02b32cfa1e88099cc77fdc43d4f96a8255e375ad0"
                 }
               }
             ],
@@ -9044,78 +8908,6 @@
                   "default": {
                     "kind": "value",
                     "value": 20
-                  }
-                },
-                {
-                  "name": "leader_cycle_confirm_days",
-                  "kind": "POSITIONAL_OR_KEYWORD",
-                  "annotation": "int",
-                  "default": {
-                    "kind": "value",
-                    "value": 3
-                  }
-                },
-                {
-                  "name": "leader_cycle_min_mature",
-                  "kind": "POSITIONAL_OR_KEYWORD",
-                  "annotation": "int",
-                  "default": {
-                    "kind": "value",
-                    "value": 2
-                  }
-                },
-                {
-                  "name": "leader_cycle_min_score",
-                  "kind": "POSITIONAL_OR_KEYWORD",
-                  "annotation": "float",
-                  "default": {
-                    "kind": "value",
-                    "value": 0.82
-                  }
-                },
-                {
-                  "name": "leader_cycle_impulse_return",
-                  "kind": "POSITIONAL_OR_KEYWORD",
-                  "annotation": "float",
-                  "default": {
-                    "kind": "value",
-                    "value": 0.15
-                  }
-                },
-                {
-                  "name": "leader_cycle_impulse_index_return",
-                  "kind": "POSITIONAL_OR_KEYWORD",
-                  "annotation": "float",
-                  "default": {
-                    "kind": "value",
-                    "value": 0.15
-                  }
-                },
-                {
-                  "name": "leader_cycle_impulse_breadth",
-                  "kind": "POSITIONAL_OR_KEYWORD",
-                  "annotation": "float",
-                  "default": {
-                    "kind": "value",
-                    "value": 0.1
-                  }
-                },
-                {
-                  "name": "leader_cycle_min_market_ret120",
-                  "kind": "POSITIONAL_OR_KEYWORD",
-                  "annotation": "float",
-                  "default": {
-                    "kind": "value",
-                    "value": 0.01
-                  }
-                },
-                {
-                  "name": "leader_cycle_impulse_min_market_ret120",
-                  "kind": "POSITIONAL_OR_KEYWORD",
-                  "annotation": "float",
-                  "default": {
-                    "kind": "value",
-                    "value": -0.01
                   }
                 },
                 {
@@ -11492,70 +11284,6 @@
                 "default": {
                   "kind": "value",
                   "value": 20
-                }
-              },
-              {
-                "name": "leader_cycle_confirm_days",
-                "type": "int",
-                "default": {
-                  "kind": "value",
-                  "value": 3
-                }
-              },
-              {
-                "name": "leader_cycle_min_mature",
-                "type": "int",
-                "default": {
-                  "kind": "value",
-                  "value": 2
-                }
-              },
-              {
-                "name": "leader_cycle_min_score",
-                "type": "float",
-                "default": {
-                  "kind": "value",
-                  "value": 0.82
-                }
-              },
-              {
-                "name": "leader_cycle_impulse_return",
-                "type": "float",
-                "default": {
-                  "kind": "value",
-                  "value": 0.15
-                }
-              },
-              {
-                "name": "leader_cycle_impulse_index_return",
-                "type": "float",
-                "default": {
-                  "kind": "value",
-                  "value": 0.15
-                }
-              },
-              {
-                "name": "leader_cycle_impulse_breadth",
-                "type": "float",
-                "default": {
-                  "kind": "value",
-                  "value": 0.1
-                }
-              },
-              {
-                "name": "leader_cycle_min_market_ret120",
-                "type": "float",
-                "default": {
-                  "kind": "value",
-                  "value": 0.01
-                }
-              },
-              {
-                "name": "leader_cycle_impulse_min_market_ret120",
-                "type": "float",
-                "default": {
-                  "kind": "value",
-                  "value": -0.01
                 }
               },
               {
@@ -13154,7 +12882,7 @@
                 "default": {
                   "kind": "dataclass",
                   "type": "uquant.config.SystemConfig",
-                  "sha256": "b112e9a3d5cf7dc51aef84a4ed5d937bfc38c95b736713528929fac5537134b7"
+                  "sha256": "1fa1fabe6d61a335083667a02b32cfa1e88099cc77fdc43d4f96a8255e375ad0"
                 }
               }
             ],
@@ -13811,78 +13539,6 @@
                   "default": {
                     "kind": "value",
                     "value": 20
-                  }
-                },
-                {
-                  "name": "leader_cycle_confirm_days",
-                  "kind": "POSITIONAL_OR_KEYWORD",
-                  "annotation": "int",
-                  "default": {
-                    "kind": "value",
-                    "value": 3
-                  }
-                },
-                {
-                  "name": "leader_cycle_min_mature",
-                  "kind": "POSITIONAL_OR_KEYWORD",
-                  "annotation": "int",
-                  "default": {
-                    "kind": "value",
-                    "value": 2
-                  }
-                },
-                {
-                  "name": "leader_cycle_min_score",
-                  "kind": "POSITIONAL_OR_KEYWORD",
-                  "annotation": "float",
-                  "default": {
-                    "kind": "value",
-                    "value": 0.82
-                  }
-                },
-                {
-                  "name": "leader_cycle_impulse_return",
-                  "kind": "POSITIONAL_OR_KEYWORD",
-                  "annotation": "float",
-                  "default": {
-                    "kind": "value",
-                    "value": 0.15
-                  }
-                },
-                {
-                  "name": "leader_cycle_impulse_index_return",
-                  "kind": "POSITIONAL_OR_KEYWORD",
-                  "annotation": "float",
-                  "default": {
-                    "kind": "value",
-                    "value": 0.15
-                  }
-                },
-                {
-                  "name": "leader_cycle_impulse_breadth",
-                  "kind": "POSITIONAL_OR_KEYWORD",
-                  "annotation": "float",
-                  "default": {
-                    "kind": "value",
-                    "value": 0.1
-                  }
-                },
-                {
-                  "name": "leader_cycle_min_market_ret120",
-                  "kind": "POSITIONAL_OR_KEYWORD",
-                  "annotation": "float",
-                  "default": {
-                    "kind": "value",
-                    "value": 0.01
-                  }
-                },
-                {
-                  "name": "leader_cycle_impulse_min_market_ret120",
-                  "kind": "POSITIONAL_OR_KEYWORD",
-                  "annotation": "float",
-                  "default": {
-                    "kind": "value",
-                    "value": -0.01
                   }
                 },
                 {
@@ -16259,70 +15915,6 @@
                 "default": {
                   "kind": "value",
                   "value": 20
-                }
-              },
-              {
-                "name": "leader_cycle_confirm_days",
-                "type": "int",
-                "default": {
-                  "kind": "value",
-                  "value": 3
-                }
-              },
-              {
-                "name": "leader_cycle_min_mature",
-                "type": "int",
-                "default": {
-                  "kind": "value",
-                  "value": 2
-                }
-              },
-              {
-                "name": "leader_cycle_min_score",
-                "type": "float",
-                "default": {
-                  "kind": "value",
-                  "value": 0.82
-                }
-              },
-              {
-                "name": "leader_cycle_impulse_return",
-                "type": "float",
-                "default": {
-                  "kind": "value",
-                  "value": 0.15
-                }
-              },
-              {
-                "name": "leader_cycle_impulse_index_return",
-                "type": "float",
-                "default": {
-                  "kind": "value",
-                  "value": 0.15
-                }
-              },
-              {
-                "name": "leader_cycle_impulse_breadth",
-                "type": "float",
-                "default": {
-                  "kind": "value",
-                  "value": 0.1
-                }
-              },
-              {
-                "name": "leader_cycle_min_market_ret120",
-                "type": "float",
-                "default": {
-                  "kind": "value",
-                  "value": 0.01
-                }
-              },
-              {
-                "name": "leader_cycle_impulse_min_market_ret120",
-                "type": "float",
-                "default": {
-                  "kind": "value",
-                  "value": -0.01
                 }
               },
               {
@@ -20341,6 +19933,7 @@
           "ParameterGovernance",
           "REMOVAL_ORDER",
           "REQUIRED_CONFIG_PARAMETER_GOVERNANCE_SHA256",
+          "RETIRED_LEADER_CYCLE_FIELDS",
           "STRATEGY_RULE_CONTRACT_SHA256",
           "STRATEGY_RULE_REMOVALS",
           "SubsystemOwner",
@@ -22224,7 +21817,7 @@
                   "default": {
                     "kind": "dataclass",
                     "type": "uquant.config.SystemConfig",
-                    "sha256": "b112e9a3d5cf7dc51aef84a4ed5d937bfc38c95b736713528929fac5537134b7"
+                    "sha256": "1fa1fabe6d61a335083667a02b32cfa1e88099cc77fdc43d4f96a8255e375ad0"
                   }
                 }
               ],
@@ -23686,6 +23279,60 @@
               }
             ],
             "return": "float"
+          }
+        },
+        "classes": {},
+        "dataclasses": {},
+        "enums": {}
+      },
+      "uquant.holding_history": {
+        "path": "uquant/holding_history.py",
+        "public_names": [
+          "holding_spans_date",
+          "protected_weights_for_current_episode"
+        ],
+        "functions": {
+          "holding_spans_date": {
+            "parameters": [
+              {
+                "name": "account",
+                "kind": "POSITIONAL_OR_KEYWORD",
+                "annotation": "AccountState",
+                "default": {
+                  "kind": "required"
+                }
+              },
+              {
+                "name": "symbol",
+                "kind": "POSITIONAL_OR_KEYWORD",
+                "annotation": "str",
+                "default": {
+                  "kind": "required"
+                }
+              },
+              {
+                "name": "boundary",
+                "kind": "POSITIONAL_OR_KEYWORD",
+                "annotation": "str",
+                "default": {
+                  "kind": "required"
+                }
+              }
+            ],
+            "return": "bool"
+          },
+          "protected_weights_for_current_episode": {
+            "parameters": [
+              {
+                "name": "account",
+                "kind": "POSITIONAL_OR_KEYWORD",
+                "annotation": "AccountState",
+                "default": {
+                  "kind": "required"
+                }
+              }
+            ],
+            "return": "dict[str, float]"
           }
         },
         "classes": {},
@@ -46535,57 +46182,6 @@
         "dataclasses": {},
         "enums": {}
       },
-      "uquant.portfolio.leaders.extensions": {
-        "path": "uquant/portfolio/leaders/extensions.py",
-        "public_names": [
-          "LeaderExtensionContext",
-          "apply_leader_extensions"
-        ],
-        "functions": {
-          "apply_leader_extensions": {
-            "parameters": [
-              {
-                "name": "ctx",
-                "kind": "POSITIONAL_OR_KEYWORD",
-                "annotation": "LeaderExtensionContext",
-                "default": {
-                  "kind": "required"
-                }
-              }
-            ],
-            "return": "None"
-          }
-        },
-        "classes": {
-          "LeaderExtensionContext": {
-            "signature": {
-              "parameters": [
-                {
-                  "name": "args",
-                  "kind": "VAR_POSITIONAL",
-                  "annotation": null,
-                  "default": {
-                    "kind": "required"
-                  }
-                },
-                {
-                  "name": "kwargs",
-                  "kind": "VAR_KEYWORD",
-                  "annotation": null,
-                  "default": {
-                    "kind": "required"
-                  }
-                }
-              ],
-              "return": null
-            },
-            "methods": {},
-            "properties": []
-          }
-        },
-        "dataclasses": {},
-        "enums": {}
-      },
       "uquant.portfolio.leaders.lifecycle": {
         "path": "uquant/portfolio/leaders/lifecycle.py",
         "public_names": [],
@@ -48009,47 +47605,10 @@
         "path": "uquant/portfolio/strategic/qualification_candidates.py",
         "public_names": [
           "StrategicRoute",
-          "select_strategic_route",
-          "strategic_candidate_meets_route"
+          "strategic_candidate_meets_route",
+          "strategic_route_candidates"
         ],
         "functions": {
-          "select_strategic_route": {
-            "parameters": [
-              {
-                "name": "self",
-                "kind": "POSITIONAL_OR_KEYWORD",
-                "annotation": "StrategicQualificationPolicy",
-                "default": {
-                  "kind": "required"
-                }
-              },
-              {
-                "name": "snapshots",
-                "kind": "KEYWORD_ONLY",
-                "annotation": "dict[str, dict[str, float]]",
-                "default": {
-                  "kind": "required"
-                }
-              },
-              {
-                "name": "leaders",
-                "kind": "KEYWORD_ONLY",
-                "annotation": "dict[str, LeaderScore]",
-                "default": {
-                  "kind": "required"
-                }
-              },
-              {
-                "name": "risk",
-                "kind": "KEYWORD_ONLY",
-                "annotation": "RiskAssessment",
-                "default": {
-                  "kind": "required"
-                }
-              }
-            ],
-            "return": "StrategicRoute"
-          },
           "strategic_candidate_meets_route": {
             "parameters": [
               {
@@ -48102,6 +47661,43 @@
               }
             ],
             "return": "bool"
+          },
+          "strategic_route_candidates": {
+            "parameters": [
+              {
+                "name": "self",
+                "kind": "POSITIONAL_OR_KEYWORD",
+                "annotation": "StrategicQualificationPolicy",
+                "default": {
+                  "kind": "required"
+                }
+              },
+              {
+                "name": "snapshots",
+                "kind": "KEYWORD_ONLY",
+                "annotation": "dict[str, dict[str, float]]",
+                "default": {
+                  "kind": "required"
+                }
+              },
+              {
+                "name": "leaders",
+                "kind": "KEYWORD_ONLY",
+                "annotation": "dict[str, LeaderScore]",
+                "default": {
+                  "kind": "required"
+                }
+              },
+              {
+                "name": "risk",
+                "kind": "KEYWORD_ONLY",
+                "annotation": "RiskAssessment",
+                "default": {
+                  "kind": "required"
+                }
+              }
+            ],
+            "return": "tuple[StrategicRoute, ...]"
           }
         },
         "classes": {
@@ -48163,6 +47759,15 @@
                   "default": {
                     "kind": "required"
                   }
+                },
+                {
+                  "name": "owner_symbol",
+                  "kind": "POSITIONAL_OR_KEYWORD",
+                  "annotation": "str",
+                  "default": {
+                    "kind": "value",
+                    "value": ""
+                  }
                 }
               ],
               "return": "None"
@@ -48221,6 +47826,14 @@
                 "type": "bool",
                 "default": {
                   "kind": "required"
+                }
+              },
+              {
+                "name": "owner_symbol",
+                "type": "str",
+                "default": {
+                  "kind": "value",
+                  "value": ""
                 }
               }
             ]
@@ -53287,6 +52900,7 @@
         "path": "uquant/risk/protected_recovery.py",
         "public_names": [
           "assess_protected_recovery",
+          "capture_protected_holdings",
           "persistent_crisis_cap"
         ],
         "functions": {
@@ -53550,6 +53164,52 @@
               }
             ],
             "return": "RiskAssessment | None"
+          },
+          "capture_protected_holdings": {
+            "parameters": [
+              {
+                "name": "account",
+                "kind": "KEYWORD_ONLY",
+                "annotation": "AccountState",
+                "default": {
+                  "kind": "required"
+                }
+              },
+              {
+                "name": "date",
+                "kind": "KEYWORD_ONLY",
+                "annotation": "pd.Timestamp",
+                "default": {
+                  "kind": "required"
+                }
+              },
+              {
+                "name": "user_panel",
+                "kind": "KEYWORD_ONLY",
+                "annotation": "dict[str, pd.DataFrame]",
+                "default": {
+                  "kind": "required"
+                }
+              },
+              {
+                "name": "equity",
+                "kind": "KEYWORD_ONLY",
+                "annotation": "float",
+                "default": {
+                  "kind": "required"
+                }
+              },
+              {
+                "name": "use_anchors",
+                "kind": "KEYWORD_ONLY",
+                "annotation": "bool",
+                "default": {
+                  "kind": "value",
+                  "value": true
+                }
+              }
+            ],
+            "return": "None"
           },
           "persistent_crisis_cap": {
             "parameters": [
@@ -68408,7 +68068,7 @@
                 "default": {
                   "kind": "dataclass",
                   "type": "uquant.config.SystemConfig",
-                  "sha256": "b112e9a3d5cf7dc51aef84a4ed5d937bfc38c95b736713528929fac5537134b7"
+                  "sha256": "1fa1fabe6d61a335083667a02b32cfa1e88099cc77fdc43d4f96a8255e375ad0"
                 }
               },
               {
@@ -84959,7 +84619,7 @@
                 "default": {
                   "kind": "dataclass",
                   "type": "uquant.config.SystemConfig",
-                  "sha256": "b112e9a3d5cf7dc51aef84a4ed5d937bfc38c95b736713528929fac5537134b7"
+                  "sha256": "1fa1fabe6d61a335083667a02b32cfa1e88099cc77fdc43d4f96a8255e375ad0"
                 }
               }
             ],
@@ -85019,7 +84679,7 @@
                 "default": {
                   "kind": "dataclass",
                   "type": "uquant.config.SystemConfig",
-                  "sha256": "b112e9a3d5cf7dc51aef84a4ed5d937bfc38c95b736713528929fac5537134b7"
+                  "sha256": "1fa1fabe6d61a335083667a02b32cfa1e88099cc77fdc43d4f96a8255e375ad0"
                 }
               },
               {
@@ -85078,7 +84738,7 @@
                 "default": {
                   "kind": "dataclass",
                   "type": "uquant.config.SystemConfig",
-                  "sha256": "b112e9a3d5cf7dc51aef84a4ed5d937bfc38c95b736713528929fac5537134b7"
+                  "sha256": "1fa1fabe6d61a335083667a02b32cfa1e88099cc77fdc43d4f96a8255e375ad0"
                 }
               },
               {
@@ -85152,7 +84812,7 @@
                 "default": {
                   "kind": "dataclass",
                   "type": "uquant.config.SystemConfig",
-                  "sha256": "b112e9a3d5cf7dc51aef84a4ed5d937bfc38c95b736713528929fac5537134b7"
+                  "sha256": "1fa1fabe6d61a335083667a02b32cfa1e88099cc77fdc43d4f96a8255e375ad0"
                 }
               },
               {
@@ -85463,7 +85123,7 @@
                 "default": {
                   "kind": "dataclass",
                   "type": "uquant.config.SystemConfig",
-                  "sha256": "b112e9a3d5cf7dc51aef84a4ed5d937bfc38c95b736713528929fac5537134b7"
+                  "sha256": "1fa1fabe6d61a335083667a02b32cfa1e88099cc77fdc43d4f96a8255e375ad0"
                 }
               },
               {
@@ -85883,7 +85543,7 @@
                 "default": {
                   "kind": "dataclass",
                   "type": "uquant.config.SystemConfig",
-                  "sha256": "b112e9a3d5cf7dc51aef84a4ed5d937bfc38c95b736713528929fac5537134b7"
+                  "sha256": "1fa1fabe6d61a335083667a02b32cfa1e88099cc77fdc43d4f96a8255e375ad0"
                 }
               },
               {
@@ -85991,7 +85651,7 @@
                 "default": {
                   "kind": "dataclass",
                   "type": "uquant.config.SystemConfig",
-                  "sha256": "b112e9a3d5cf7dc51aef84a4ed5d937bfc38c95b736713528929fac5537134b7"
+                  "sha256": "1fa1fabe6d61a335083667a02b32cfa1e88099cc77fdc43d4f96a8255e375ad0"
                 }
               }
             ],
@@ -87269,7 +86929,7 @@
                 "default": {
                   "kind": "dataclass",
                   "type": "uquant.config.SystemConfig",
-                  "sha256": "b112e9a3d5cf7dc51aef84a4ed5d937bfc38c95b736713528929fac5537134b7"
+                  "sha256": "1fa1fabe6d61a335083667a02b32cfa1e88099cc77fdc43d4f96a8255e375ad0"
                 }
               }
             ],
@@ -94342,14 +94002,6 @@
         "recovery_substitution_edge",
         "recovery_substitution_max_ret20",
         "recovery_substitution_shock_window",
-        "leader_cycle_confirm_days",
-        "leader_cycle_min_mature",
-        "leader_cycle_min_score",
-        "leader_cycle_impulse_return",
-        "leader_cycle_impulse_index_return",
-        "leader_cycle_impulse_breadth",
-        "leader_cycle_min_market_ret120",
-        "leader_cycle_impulse_min_market_ret120",
         "strategic_dynamic_enabled",
         "strategic_cohort_size",
         "strategic_cohort_min_size",
@@ -94619,14 +94271,6 @@
         "recovery_substitution_edge": 0.35,
         "recovery_substitution_max_ret20": 0.3,
         "recovery_substitution_shock_window": 20,
-        "leader_cycle_confirm_days": 3,
-        "leader_cycle_min_mature": 2,
-        "leader_cycle_min_score": 0.82,
-        "leader_cycle_impulse_return": 0.15,
-        "leader_cycle_impulse_index_return": 0.15,
-        "leader_cycle_impulse_breadth": 0.1,
-        "leader_cycle_min_market_ret120": 0.01,
-        "leader_cycle_impulse_min_market_ret120": -0.01,
         "strategic_dynamic_enabled": true,
         "strategic_cohort_size": 3,
         "strategic_cohort_min_size": 3,
@@ -94823,7 +94467,7 @@
         "risk_overlay_enabled": true,
         "fail_closed": true
       },
-      "sha256": "5326bfbb4b307f09b61c86fd4853f9fd616210df28af2a8f98385f1f6ea97379"
+      "sha256": "ff491f722c3f84211eda9953cce1309392f7a89bb86bcc1e2cb33232580d4a26"
     },
     "account_state_schema": {
       "schema_version": 8,
@@ -95194,7 +94838,7 @@
     }
   },
   "contract_id": "uquant-public-api-v1",
-  "contract_sha256": "db1e400bad9ad48b6d82e2c667e7f78583a0a3bfa29bb0b5924a10df6f5a7956",
+  "contract_sha256": "dffb84bb7ced7fb98966ebda2b17bd3fe3c15cbb7d399ab3c640d74d9c6225ef",
   "recorded_on": "2026-09-05",
   "schema_version": 1
 }

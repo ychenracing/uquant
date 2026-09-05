@@ -794,18 +794,6 @@ def test_architecture_owner_transport_rejects_owner_mutations(
             "Opportunity.STRONG_TREND: 5",
         ),
         (
-            "uquant/portfolio/leaders/lifecycle.py",
-            "_update_leader_cycle_arm",
-            "impulse = _leader_cycle_impulse(",
-            "impulse = _leader_cycle_impulse_unknown(",
-        ),
-        (
-            "uquant/portfolio/leaders/targets.py",
-            "_leader_targets",
-            "ctx = _leader_target_context(",
-            "ctx = _leader_target_context_unknown(",
-        ),
-        (
             "uquant/portfolio/strategic/discovery.py",
             "_initialize_strategic_cohort",
             "if not _strategic_discovery_open(",
@@ -1019,3 +1007,20 @@ def test_architecture_current_physical_size_signals_are_recorded(
             ),
         )
     )
+
+
+@pytest.mark.parametrize("injection", (
+    "def _leader_targets(): pass\n",
+    "def _update_leader_cycle_arm(): pass\n",
+    "leader_targets = allocate_strategy\n",
+    "setattr(PortfolioAllocator, '_leader_targets', allocate_strategy)\n",
+    "def resurrect(policy): return policy._leader_targets()\n",
+    "from .leaders.targets import leader_targets\n",
+))
+def test_retired_leader_transport_rejects_reintroduced_owner_or_binding(injection: str) -> None:
+    from ._reviewed_owner_transport import assert_retired_leader_owners_absent
+
+    relative = "uquant/portfolio/pipeline.py"
+    source = (ROOT / relative).read_text(encoding="utf-8")
+    with pytest.raises(AssertionError):
+        assert_retired_leader_owners_absent(ROOT, {relative: source + "\n" + injection})

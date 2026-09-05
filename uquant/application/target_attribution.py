@@ -127,11 +127,16 @@ def _attribute_target(
         and target.event_id == retained.event_id
     ):
         target = replace(target, event_id="")
+    if not target.event_id or (retained is not None and target.event_id == retained.event_id):
+        if target.event_id and retained is not None:
+            for name in ("grant_id", "epoch_id"):
+                if getattr(target, name) and getattr(target, name) != getattr(retained, name):
+                    raise RuntimeError(f"retained event has conflicting {name}")
+        reused = _reuse_retained_attribution(target, retained, cfg)
+        if reused is not None:
+            return reused
     if target.event_id:
         return target
-    reused = _reuse_retained_attribution(target, retained, cfg)
-    if reused is not None:
-        return reused
     industry = universe.industry_of(target.symbol, signal_date)
     manifest = REQUIRED_AI_UNIVERSE_SHA256
     if industry == "unknown":

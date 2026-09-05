@@ -847,7 +847,7 @@ def test_portfolio_leaders_moved_leader_methods_are_immutable_ast_exact() -> Non
         for name in names:
             observed.add(name)
             candidate_node = copy.deepcopy(
-                candidate[_LEADERS_TRANSPORT_NAMES.get(name, name)]
+                candidate.get(_LEADERS_TRANSPORT_NAMES.get(name, name))
             )
             if name in {"_dynamic_k", "_update_leader_cycle_arm", "_leader_targets"}:
                 candidate_node = expand_reviewed_architecture_owner(

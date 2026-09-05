@@ -807,7 +807,6 @@ def test_completed_strategic_owner_blocks_generic_handoff_before_rearm_date():
     account.active_leaders = [symbols[1], symbols[2]]
     account.dynamic_k = 2
     account.candidate_tenure["strategic_cohort_completed"] = 1
-    account.candidate_tenure["leader_cycle_evidence"] = DEFAULT_CONFIG.leader_cycle_confirm_days - 1
 
     targets = PortfolioAllocator(DEFAULT_CONFIG).allocate(
         date=dates[-2],

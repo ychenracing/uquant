@@ -711,108 +711,77 @@ def test_strategic_trail_exempts_a_winner_with_intact_structure():
     assert next(target for target in targets if target.symbol == "winner").weight > 0
 
 def test_completed_strategic_label_does_not_bypass_current_market_evidence():
-    leaders = {
-        "one": _leader("one", 0.90),
-        "two": _leader("two", 0.88, industry="equipment"),
-    }
+    dates = pd.bdate_range("2025-01-02", periods=150)
+    leaders = {"one": _leader("one", 0.95)}
+    panel = {"one": _trend_frame(dates)}
     risk = RiskAssessment(
-        Risk.NORMAL,
-        1.0,
-        0,
-        {"broad_ret120": -0.10, "tech_ret120": -0.10},
-        (),
-        "NONE",
+        Risk.NORMAL, 1.0, 0,
+        {"broad_ret120": -0.10, "tech_ret120": -0.10}, (), "NONE",
     )
-    account = AccountState.empty(100.0)
     allocator = PortfolioAllocator(DEFAULT_CONFIG)
-    for _ in range(DEFAULT_CONFIG.leader_cycle_confirm_days):
-        assert not allocator._update_leader_cycle_arm(
-            opportunity=Opportunity.STRONG_TREND,
-            risk=risk,
-            leaders=leaders,
-            account=account,
+    for completed in (0, 1):
+        account = AccountState.empty(1_000_000.0)
+        account.candidate_tenure["strategic_cohort_completed"] = completed
+        # An old coordination label cannot replace the current entry clock.
+        account.candidate_tenure["leader_cycle_armed"] = 1
+        targets = allocator.allocate(
+            date=dates[-1], opportunity=Opportunity.STRONG_TREND, risk=risk,
+            leaders=leaders, user_panel=panel, account=account, prices={"one": 1.0},
         )
-
-    account.candidate_tenure["strategic_cohort_completed"] = 1
-    for _ in range(DEFAULT_CONFIG.leader_cycle_confirm_days):
-        assert not allocator._update_leader_cycle_arm(
-            opportunity=Opportunity.STRONG_TREND,
-            risk=risk,
-            leaders=leaders,
-            account=account,
-        )
-    assert account.candidate_tenure.get("leader_cycle_armed", 0) == 0
+        assert not any(target.weight > 0 for target in targets)
+        assert account.positions == {}
 
 def test_normal_level1_freeze_preserves_a_live_leader_owner() -> None:
-    symbol = "live_leader"
+    dates = pd.bdate_range("2025-01-02", periods=150)
+    symbol = "live_core"
     account = AccountState(
-        initial_cash=100.0,
-        cash=40.0,
-        positions={symbol: Position(symbol, shares=60, avg_cost=1.0)},
-        active_leaders=[symbol],
+        initial_cash=100.0, cash=40.0,
+        positions={symbol: Position(symbol, shares=60, avg_cost=1.0,
+                                    lifecycle=Lifecycle.ADD2.value)},
+        active_leaders=['live_core'],
         candidate_tenure={"leader_cycle_armed": 1},
-        operating_peak=100.0,
-        capital_peak=100.0,
+        operating_peak=100.0, capital_peak=100.0,
     )
     freeze = RiskAssessment(
-        Risk.NORMAL,
-        1.0,
-        1,
-        {"freeze_new_risk": True},
-        ("temporary level-1 capital freeze",),
-        "NONE",
-        freeze_new_risk=True,
-        reduction_level=1,
+        Risk.NORMAL, 1.0, 1, {"freeze_new_risk": True},
+        ("temporary level-1 capital freeze",), "NONE",
+        freeze_new_risk=True, reduction_level=1,
     )
-
-    armed = PortfolioAllocator(DEFAULT_CONFIG)._update_leader_cycle_arm(
-        opportunity=Opportunity.TREND,
-        risk=freeze,
-        leaders={symbol: _leader(symbol, 0.90)},
-        account=account,
+    targets = PortfolioAllocator(DEFAULT_CONFIG).allocate(
+        date=dates[-1], opportunity=Opportunity.TREND, risk=freeze,
+        leaders={symbol: _leader(symbol, 0.95)},
+        user_panel={symbol: _trend_frame(dates)},
+        account=account, prices={symbol: 1.0},
     )
-
-    assert armed
-    assert account.candidate_tenure["leader_cycle_armed"] == 1
+    assert {target.symbol: target.weight for target in targets} == {symbol: pytest.approx(0.60)}
+    assert account.positions[symbol].shares == 60
+    assert account.pending_orders == []
 
 def test_normal_level1_freeze_preserves_armed_core_when_label_is_transiently_absent() -> None:
-    symbol = "unlabeled_live_core"
+    dates = pd.bdate_range("2025-01-02", periods=150)
+    symbol = "live_core"
     account = AccountState(
-        initial_cash=100.0,
-        cash=40.0,
-        positions={
-            symbol: Position(
-                symbol,
-                shares=60,
-                avg_cost=1.0,
-                lifecycle=Lifecycle.ADD2.value,
-            )
-        },
+        initial_cash=100.0, cash=40.0,
+        positions={symbol: Position(symbol, shares=60, avg_cost=1.0,
+                                    lifecycle=Lifecycle.ADD2.value)},
         active_leaders=[],
         candidate_tenure={"leader_cycle_armed": 1},
-        operating_peak=100.0,
-        capital_peak=100.0,
+        operating_peak=100.0, capital_peak=100.0,
     )
     freeze = RiskAssessment(
-        Risk.NORMAL,
-        1.0,
-        1,
-        {"freeze_new_risk": True},
-        ("temporary level-1 capital freeze",),
-        "NONE",
-        freeze_new_risk=True,
-        reduction_level=1,
+        Risk.NORMAL, 1.0, 1, {"freeze_new_risk": True},
+        ("temporary level-1 capital freeze",), "NONE",
+        freeze_new_risk=True, reduction_level=1,
     )
-
-    armed = PortfolioAllocator(DEFAULT_CONFIG)._update_leader_cycle_arm(
-        opportunity=Opportunity.TREND,
-        risk=freeze,
-        leaders={symbol: _leader(symbol, 0.90)},
-        account=account,
+    targets = PortfolioAllocator(DEFAULT_CONFIG).allocate(
+        date=dates[-1], opportunity=Opportunity.TREND, risk=freeze,
+        leaders={symbol: _leader(symbol, 0.95)},
+        user_panel={symbol: _trend_frame(dates)},
+        account=account, prices={symbol: 1.0},
     )
-
-    assert armed
-    assert account.candidate_tenure["leader_cycle_armed"] == 1
+    assert {target.symbol: target.weight for target in targets} == {symbol: pytest.approx(0.60)}
+    assert account.positions[symbol].shares == 60
+    assert account.pending_orders == []
 
 def test_confirmed_live_core_waits_in_place_while_leader_owner_rearms() -> None:
     dates = pd.bdate_range("2025-01-02", periods=150)
@@ -1022,76 +991,45 @@ def test_only_confirmed_structural_damage_exits_through_market_recovery() -> Non
         {symbols[0]: 0.30, symbols[1]: 0.0}
     )
 
-def test_synchronized_impulse_tolerates_only_a_near_zero_slow_index_leg() -> None:
-    leaders = {"impulse": _leader("impulse", 0.83)}
-
-    def risk(weak_leg: float) -> RiskAssessment:
-        return RiskAssessment(
-            Risk.NORMAL,
-            1.0,
-            0,
-            {
-                "broad_ret120": 0.034,
-                "tech_ret120": weak_leg,
-                "ai_fast_return": 0.161,
-                "declining_ratio": 0.0,
-                "below_ma20_ratio": 0.0,
-                "tech_speed": 0.114,
-                "broad_speed": 0.157,
-            },
-            (),
-            "NONE",
+def test_synchronized_impulse_does_not_bypass_current_independent_confirmation() -> None:
+    dates = pd.bdate_range("2025-01-02", periods=150)
+    symbol = "impulse"
+    for weak_leg in (-0.001, -0.02):
+        account = AccountState.empty(1_000_000.0)
+        risk = RiskAssessment(
+            Risk.NORMAL, 1.0, 0,
+            {"broad_ret120": 0.034, "tech_ret120": weak_leg,
+             "ai_fast_return": 0.161, "declining_ratio": 0.0,
+             "below_ma20_ratio": 0.0, "tech_speed": 0.114, "broad_speed": 0.157},
+            (), "NONE",
         )
+        targets = PortfolioAllocator(DEFAULT_CONFIG).allocate(
+            date=dates[-1], opportunity=Opportunity.TREND, risk=risk,
+            user_panel={symbol: _trend_frame(dates)},
+            leaders={symbol: _leader(symbol, 0.83)}, account=account,
+            prices={symbol: 1.0},
+        )
+        assert not any(target.weight > 0 for target in targets)
+        assert account.positions == {}
 
-    allocator = PortfolioAllocator(DEFAULT_CONFIG)
-    near_zero = AccountState.empty(100.0)
-    still_weak = AccountState.empty(100.0)
-
-    assert allocator._update_leader_cycle_arm(
-        opportunity=Opportunity.TREND,
-        risk=risk(-0.001),
-        leaders=leaders,
-        account=near_zero,
-    )
-    assert not allocator._update_leader_cycle_arm(
-        opportunity=Opportunity.TREND,
-        risk=risk(-0.02),
-        leaders=leaders,
-        account=still_weak,
-    )
-
-def test_completed_recovery_cycle_rearms_on_exceptional_current_leaders() -> None:
-    leaders = {
-        "one": _leader("one", 0.93, industry="optical"),
-        "two": _leader("two", 0.91, industry="equipment"),
-    }
+def test_completed_recovery_cycle_does_not_bypass_current_confirmation() -> None:
+    dates = pd.bdate_range("2025-01-02", periods=150)
+    symbol = "current_leader"
+    account = AccountState.empty(1_000_000.0)
+    account.candidate_tenure.update({
+        "recovery_cycle_rearm_pending": 1, "tactical_cooldown": 0,
+        "leader_cycle_armed": 1,
+    })
     risk = RiskAssessment(
-        Risk.NORMAL,
-        1.0,
-        0,
-        {
-            "broad_ret120": 0.10,
-            "tech_ret120": 0.12,
-            "trend_health": 0.84,
-        },
-        (),
-        "NONE",
+        Risk.NORMAL, 1.0, 0,
+        {"broad_ret120": 0.10, "tech_ret120": 0.12, "trend_health": 0.84},
+        (), "NONE",
     )
-    account = AccountState.empty(100.0)
-    account.candidate_tenure.update(
-        {
-            "recovery_cycle_rearm_pending": 1,
-            "tactical_cooldown": 0,
-        }
+    targets = PortfolioAllocator(DEFAULT_CONFIG).allocate(
+        date=dates[-1], opportunity=Opportunity.STRONG_TREND, risk=risk,
+        leaders={symbol: _leader(symbol, 0.95)},
+        user_panel={symbol: _trend_frame(dates)}, account=account, prices={symbol: 1.0},
     )
-
-    armed = PortfolioAllocator(DEFAULT_CONFIG)._update_leader_cycle_arm(
-        opportunity=Opportunity.STRONG_TREND,
-        risk=risk,
-        leaders=leaders,
-        account=account,
-    )
-
-    assert armed
-    assert account.candidate_tenure["leader_cycle_armed"] == 1
-    assert account.candidate_tenure["recovery_cycle_rearm_pending"] == 0
+    assert not any(target.weight > 0 for target in targets)
+    assert account.positions == {}
+    assert account.candidate_tenure["recovery_cycle_rearm_pending"] == 1

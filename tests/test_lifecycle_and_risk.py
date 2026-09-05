@@ -859,8 +859,8 @@ from _lifecycle_strategic_guard_cases import (
     test_confirmed_live_core_waits_in_place_while_leader_owner_rearms,
     test_unconfirmed_entry_maturity_does_not_force_healthy_core_exits,
     test_only_confirmed_structural_damage_exits_through_market_recovery,
-    test_synchronized_impulse_tolerates_only_a_near_zero_slow_index_leg,
-    test_completed_recovery_cycle_rearms_on_exceptional_current_leaders,
+    test_synchronized_impulse_does_not_bypass_current_independent_confirmation,
+    test_completed_recovery_cycle_does_not_bypass_current_confirmation,
 )
 
 from _lifecycle_leader_recovery_cases import (

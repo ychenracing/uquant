@@ -23,6 +23,7 @@ RETIRED_ALLOCATION_SOURCES = frozenset(
         "uquant/portfolio/allocation_recovery.py",
         "uquant/portfolio/allocation_tactical.py",
         "uquant/portfolio/context.py",
+        "uquant/portfolio/leaders/extensions.py",
     }
 )
 _RETIRED_PORTFOLIO_PRIVATE_EDGES = frozenset(

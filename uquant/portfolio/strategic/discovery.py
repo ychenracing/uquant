@@ -36,8 +36,8 @@ from .qualification_candidates import (
     QualifiedStrategicRoute,
     StrategicRoute,
     observe_strategic_candidate_eligibility,
-    select_strategic_route,
     strategic_candidate_confirmation,
+    strategic_route_candidates,
 )
 from .qualification_candidates import (
     reset_strategic_qualification_streaks as _reset_strategic_qualification_streaks,
@@ -196,6 +196,10 @@ def strategic_candidate_symbol(
     symbols: list[str],
     leaders: dict[str, LeaderScore],
 ) -> str:
+    if route.owner_symbol:
+        if route.owner_symbol not in symbols:
+            raise ValueError("strategic route owner is outside its witness set")
+        return route.owner_symbol
     if route.decisive_reversal_symbol in symbols:
         return str(route.decisive_reversal_symbol)
     return min(symbols, key=lambda symbol: (-leaders[symbol].score, symbol))
@@ -438,7 +442,7 @@ def _synchronized_before_anchor(
 ) -> bool:
     return bool(
         route.anchors_not_yet_armed
-        and (hard_persistent or route.route == "reversal_industry")
+        and (hard_persistent or (route.route == "reversal_industry" and route.synchronized_reversal))
         and len(industries) == 1
         and (
             len(symbols) >= self.cfg.strategic_cohort_min_size
@@ -517,6 +521,7 @@ def strategic_qualification_evidence(
     raw = bool(
         quality
         and negative_backed
+        and (route.route != "reversal_industry" or route.synchronized_reversal)
         and (
             synchronized_before_anchor
             or (independent_risk_coverage and _independent_market_confirmation(self, risk))
@@ -572,19 +577,13 @@ def strategic_route_admission_open(
     )
 
 
-def _qualify_strategic_route(
-    self: StrategicPortfolioPolicy,
-    *,
-    date: pd.Timestamp,
-    route: StrategicRoute,
-    snapshots: dict[str, dict[str, float]],
-    leaders: dict[str, LeaderScore],
-    account: AccountState,
-    risk: RiskAssessment,
-    admission_open: bool,
-    reference_snapshots: dict[str, dict[str, float]],
+def _strategic_route_quorum(
+    self: StrategicPortfolioPolicy, *, route: StrategicRoute,
+    snapshots: dict[str, dict[str, float]], leaders: dict[str, LeaderScore],
+    risk: RiskAssessment, reference_snapshots: dict[str, dict[str, float]],
     strategic_universe: StrategicUniverseRoles,
-) -> QualifiedStrategicRoute | None:
+) -> tuple[StrategicQuorumResult | None, bool]:
+    """Assess one witness set without changing confirmation or deployment state."""
     legacy_raw, synchronized_before_anchor = strategic_qualification_evidence(
         self,
         route=route,
@@ -611,14 +610,68 @@ def _qualify_strategic_route(
         cfg=self.cfg,
         synchronized_full_cohort=legacy_raw,
     ) if candidate else None
-    raw = bool(
-        quorum is not None
-        and quorum.qualified
-        and (
-            quorum.route is not StrategicQuorumRoute.FULL_COHORT
-            or legacy_raw
+    if quorum is not None and (
+        not quorum.qualified
+        or (quorum.route is StrategicQuorumRoute.FULL_COHORT and not legacy_raw)
+    ):
+        quorum = None
+    return quorum, synchronized_before_anchor
+
+
+def _route_confirmation(
+    *, account: AccountState, candidate: str, route: str, quorum: StrategicQuorumResult,
+) -> int:
+    streak = strategic_candidate_confirmation(account=account, symbol=candidate, route=route)
+    if quorum.route is StrategicQuorumRoute.ABSOLUTE_SINGLE:
+        streak = min(streak, strategic_candidate_confirmation(
+            account=account, symbol=candidate, route="independent_core"))
+    return streak
+
+
+def _select_qualified_strategic_route(
+    self: StrategicPortfolioPolicy, *, snapshots: dict[str, dict[str, float]],
+    leaders: dict[str, LeaderScore], risk: RiskAssessment, account: AccountState,
+    reference_snapshots: dict[str, dict[str, float]], strategic_universe: StrategicUniverseRoles,
+) -> StrategicRoute:
+    """Rank current candidates, never route precedence or cohort-signature tenure."""
+    evaluated: list[tuple[tuple[int, float, int, str, str, tuple[str, ...]], StrategicRoute]] = []
+    for route in strategic_route_candidates(self, snapshots=snapshots, leaders=leaders, risk=risk):
+        quorum, _ = _strategic_route_quorum(
+            self, route=route, snapshots=snapshots, leaders=leaders, risk=risk,
+            reference_snapshots=reference_snapshots, strategic_universe=strategic_universe,
         )
+        if quorum is None:
+            continue
+        candidate = strategic_candidate_symbol(route=route, symbols=route.symbols, leaders=leaders)
+        streak = _route_confirmation(account=account, candidate=candidate, route=route.route, quorum=quorum)
+        witnesses = strategic_quorum_candidate_symbols(route=route, route_symbols=route.symbols)
+        key = (-int(streak >= quorum.required_confirm_days), -leaders[candidate].score,
+               -len(witnesses), candidate, route.route, tuple(sorted(route.symbols)))
+        evaluated.append((key, route))
+    return min(evaluated, key=lambda item: item[0])[1] if evaluated else StrategicRoute(
+        [], "none", None, False, [], "risk_anchor_symbols" in risk.evidence, False)
+
+
+def _qualify_strategic_route(
+    self: StrategicPortfolioPolicy,
+    *,
+    date: pd.Timestamp,
+    route: StrategicRoute,
+    snapshots: dict[str, dict[str, float]],
+    leaders: dict[str, LeaderScore],
+    account: AccountState,
+    risk: RiskAssessment,
+    admission_open: bool,
+    reference_snapshots: dict[str, dict[str, float]],
+    strategic_universe: StrategicUniverseRoles,
+) -> QualifiedStrategicRoute | None:
+    quorum, synchronized_before_anchor = _strategic_route_quorum(
+        self, route=route, snapshots=snapshots, leaders=leaders, risk=risk,
+        reference_snapshots=reference_snapshots, strategic_universe=strategic_universe,
     )
+    route_symbols = list(route.symbols)
+    candidate = strategic_candidate_symbol(route=route, symbols=route_symbols, leaders=leaders) if route_symbols else ""
+    raw = quorum is not None
     symbols = route_symbols if raw else []
     account.candidate_tenure["strategic_long_cycle_open"] = int(raw)
     admission_state, signature = strategic_route_signature(
@@ -627,8 +680,8 @@ def _qualify_strategic_route(
         leaders=leaders,
     )
     account.candidate_tenure["strategic_cohort_qualification"] = (
-        strategic_candidate_confirmation(account=account, symbol=candidate, route=route.route)
-        if symbols else 0
+        _route_confirmation(account=account, candidate=candidate, route=route.route, quorum=quorum)
+        if symbols and quorum is not None else 0
     )
     required_days = (
         quorum.required_confirm_days
@@ -865,11 +918,9 @@ def _initialize_strategic_cohort(
     if not snapshots:
         _record_unavailable_strategic_candidate(account=account, user_panel=user_panel)
         return
-    route = select_strategic_route(
-        self,
-        snapshots=snapshots,
-        leaders=resolved_leaders,
-        risk=risk,
+    route = _select_qualified_strategic_route(
+        self, snapshots=snapshots, leaders=resolved_leaders, risk=risk, account=account,
+        reference_snapshots=reference_snapshots, strategic_universe=resolved_universe,
     )
     qualified = _qualify_strategic_route(
         self,

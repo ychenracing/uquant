@@ -257,6 +257,13 @@ Risk Differential 与 counterfactual 只作观察，不得转换成人工卖单�
    `cutover_review/account.before.json`，保留只读原件；副本、报告、数据和快照不能互相别名。
 2. 用经核验的同一发布提交和 `uv sync --frozen` 建立环境。严格读取副本，核对 schema 8 和
    原股票池/数据身份；不能把 `account-init` 的空账户代替已有真实账户。
+   自定义配置须移除已无执行路径的八个字段：`leader_cycle_confirm_days`、
+   `leader_cycle_min_mature`、`leader_cycle_min_score`、`leader_cycle_impulse_return`、
+   `leader_cycle_impulse_index_return`、`leader_cycle_impulse_breadth`、
+   `leader_cycle_min_market_ret120`、`leader_cycle_impulse_min_market_ret120`。
+   它们作为未知配置项明确拒绝，不能依赖静默忽略。冻结敏感性合同中的五个字段继续保留：
+   `leader_tenure_days`、`strategic_reversal_min_ret5`、`strategic_reversal_max_tech_ret120`、
+   `strategic_dominant_profit_lock_mfe`、`strategic_dominant_retained_gross`；切换时保留其配置值。
 3. 只对副本执行代码身份重绑定：
 
 ```bash
@@ -271,11 +278,14 @@ uv run uquant account-code-migrate \
 此命令不转换策略语义，也不证明新版本经济验收通过；已经绑定同一代码时不要重复迁移。
 
 4. 核对原 `account_identity`、订单/成交/event/grant/epoch 身份、订单序号和归因引用全部保留；
-   现金、股数、成本、费用、可卖批次和在途订单全部保留。历史 grant/epoch 仍用于真实成交
+   现金、股数、成本、费用、可卖批次和在途订单全部保留，原始 grant 事件不得改写为新候选。
+   历史 grant/epoch 仍用于真实成交
    归因与幂等，不再代表对整个账户资本的永久经济独占。
 5. 账户高水位、资本损伤与修复 streak、风险事件、保护/恢复权重及授权证据全部保留。
-   `independent_core` 计数由新观察逐日建立，不从旧路线计数或当前持仓猜补。保留真实账户
-   账本；新确认的冷启动不改变持续持有和合法风险恢复的管理条件。其他新增资格/交接确认
+   缺失的 `independent_core` 计数从零开始，由新观察逐日建立，不从旧路线计数或当前持仓猜补。
+   单名战略授冠须同时取得原路线与严格观察各 4 日确认；普通独立核心首次入场按
+   `leader_tenure_days`（默认 5 日）确认。保留真实账户账本和已有可信观察记录；新确认的
+   冷启动不改变持续持有和合法风险恢复的管理条件。其他新增资格/交接确认
    同样不得补造，也不能通过换候选、清空旧字段、重设最高权益跳过修复。
    若原始状态缺失、身份冲突或新语义无法可靠恢复，先恢复可信完整备份并定位缺口；
    `account-code-migrate` 不能补造这些事实。

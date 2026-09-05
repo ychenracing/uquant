@@ -170,8 +170,13 @@ def test_saved_strategic_restoration_permission_survives_same_decision_completio
         assert account.pending_orders == [remainder] and remainder.remaining_shares == 3000
 
 
-@pytest.mark.parametrize("evidence", ("ready", "missing_leader", "missing_panel", "missing_session"))
-def test_retained_partial_core_intent_does_not_requalify_as_a_new_entry(evidence):
+@pytest.mark.parametrize("protected", (False, True))
+@pytest.mark.parametrize("evidence", (
+    "ready", "routes_lost", "not_mature", "missing_leader", "missing_panel", "missing_session",
+))
+def test_retained_partial_core_intent_uses_current_quality_without_repeating_confirmation(
+    monkeypatch, evidence, protected,
+):
     date, panel, leaders, risk = _inputs()
     symbol = "sh600001"
     account = AccountState.empty(1_000_000.0)
@@ -180,13 +185,21 @@ def test_retained_partial_core_intent_does_not_requalify_as_a_new_entry(evidence
     account.pending_orders = [PendingOrder(
         str(date.date()), symbol, "BUY", 0.2, "confirmed core admitted from available account capital", "CORE",
     )]
+    account.replacement_tenure[f"strategic_eligibility:established:{symbol}"] = 0 if evidence == "routes_lost" else 1
+    account.candidate_tenure["strategic_eligibility_session"] = date.toordinal()
+    if protected:
+        account.protected_weights[symbol] = 0.4
     if evidence == "missing_leader":
         leaders.pop(symbol)
+    elif evidence == "not_mature":
+        leaders[symbol] = replace(leaders[symbol], mature=False)
     elif evidence == "missing_panel":
         panel.pop(symbol)
     elif evidence == "missing_session":
         panel[symbol] = panel[symbol].drop(index=date)
-    targets = PortfolioAllocator(DEFAULT_CONFIG).allocate(
+    policy = PortfolioAllocator(DEFAULT_CONFIG)
+    monkeypatch.setattr(policy, "_strategic_cohort_targets", lambda **kwargs: None)
+    targets = policy.allocate(
         date=date, opportunity=Opportunity.TREND, risk=risk,
         user_panel=panel, leaders=leaders, account=account,
         prices={**dict.fromkeys(panel, 10.0), symbol: 10.0},
@@ -194,6 +207,99 @@ def test_retained_partial_core_intent_does_not_requalify_as_a_new_entry(evidence
     assert account.replacement_tenure.get(f"strategic_eligibility:established:{symbol}", 0) < DEFAULT_CONFIG.leader_tenure_days
     assert {target.symbol: target.weight for target in targets}[symbol] == pytest.approx(0.2 if evidence == "ready" else 0.1)
     assert account.cash == 900_000.0 and account.positions[symbol].shares == 10_000
+
+
+@pytest.mark.parametrize("confirmed", (False, True))
+def test_fully_exited_ordinary_restore_rights_require_a_new_core_admission(monkeypatch, confirmed):
+    date, panel, leaders, risk = _inputs()
+    symbol = "sh600001"
+    account = AccountState.empty(1_000_000.0)
+    account.protected_weights[symbol] = 0.4
+    account.last_shock_date = "2023-04-27"
+    account.replacement_tenure[f"strategic_eligibility:established:{symbol}"] = 5 if confirmed else 1
+    account.candidate_tenure["strategic_eligibility_session"] = date.toordinal()
+    policy = PortfolioAllocator(DEFAULT_CONFIG)
+    monkeypatch.setattr(policy, "_strategic_cohort_targets", lambda **kwargs: None)
+
+    targets = policy.allocate(
+        date=date, opportunity=Opportunity.TREND, risk=risk,
+        user_panel=panel, leaders=leaders, account=account, prices=dict.fromkeys(panel, 10.0),
+    )
+
+    if confirmed:
+        assert {target.symbol: target.weight for target in targets} == pytest.approx({symbol: 0.2})
+        assert targets[0].mechanism == "LEADER_SELECTION"
+        assert symbol not in account.protected_weights
+    else:
+        assert targets == ()
+        assert account.protected_weights == {symbol: 0.4}
+    assert account.cash == 1_000_000.0 and account.positions == {}
+
+
+def test_rejected_new_entry_cannot_reopen_old_restoration_after_restart(tmp_path):
+    date, panel, leaders, risk = _inputs()
+    symbol = "sh688008"
+    panel = {symbol: panel["sh600001"]}
+    leaders = {symbol: replace(leaders["sh600001"], symbol=symbol, mature=False)}
+    dates = panel[symbol].index
+    signal = str(dates[-3].date())
+    account = AccountState.empty(DEFAULT_CONFIG.initial_cash)
+    account.code_hash, account.data_hash = "code:fixture", "data:fixture"
+    account.protected_weights[symbol] = 0.4
+    account.last_shock_date = "2023-04-27"
+    entry = attach_target_attribution(
+        "semiconductor", REQUIRED_AI_UNIVERSE_SHA256, signal_date=signal,
+        targets=(Target(symbol, 0.2, "CORE", 0.9, 0.9, "prior core admission",
+                        origin_subsystem="LEADER", mechanism="LEADER_SELECTION",
+                        origin_lifecycle="CORE"),),
+    )
+    planned = plan_orders(signal_date=signal, targets=entry, account=account,
+                          prices={symbol: 10.0}, cfg=DEFAULT_CONFIG)
+    account.pending_orders = list(reconcile_account_orders(
+        account=account, previous=[], current=planned, submitted_date=signal,
+    ))
+    execution_panel = {symbol: pd.DataFrame(
+        {"open": 10.0, "high": 10.1, "low": 9.9, "close": 10.0,
+         "volume": 1_000_000.0, "amount": 100_000_000.0}, index=dates[-3:],
+    )}
+    planner = ExecutionPlanner(DEFAULT_CONFIG)
+    fills = planner.execute_open(date=dates[-2], account=account, panel=execution_panel)
+    assert len(fills) == 1 and fills[0].shares == 5_000
+    assert len(account.pending_orders) == 1
+    cash_after_fill = account.cash
+    held_weight = 50_000.0 / (cash_after_fill + 50_000.0)
+    policy = PortfolioAllocator(DEFAULT_CONFIG)
+    targets = policy.allocate(
+        date=dates[-2], opportunity=Opportunity.TREND, risk=risk,
+        user_panel=panel, leaders=leaders, account=account, prices={symbol: 10.0},
+    )
+    assert {target.symbol: target.weight for target in targets} == pytest.approx({symbol: held_weight})
+    next_signal = str(dates[-2].date())
+    planned = plan_orders(signal_date=next_signal, targets=targets, account=account,
+                          prices={symbol: 10.0}, cfg=DEFAULT_CONFIG)
+    assert planned == ()
+    account.pending_orders = list(reconcile_account_orders(
+        account=account, previous=account.pending_orders, current=planned,
+        submitted_date=next_signal,
+    ))
+    assert not account.pending_orders
+    assert account.order_ledger[0].status == "CANCELLED"
+    path = tmp_path / "rejected-new-entry.json"
+    save_account(account, path)
+    resumed = load_account(path)
+
+    targets = policy.allocate(
+        date=date, opportunity=Opportunity.TREND, risk=risk,
+        user_panel=panel, leaders=leaders, account=resumed, prices={symbol: 10.0},
+    )
+    assert {target.symbol: target.weight for target in targets} == pytest.approx({symbol: held_weight})
+    assert plan_orders(signal_date=str(date.date()), targets=targets, account=resumed,
+                       prices={symbol: 10.0}, cfg=DEFAULT_CONFIG) == ()
+    assert planner.execute_open(date=date, account=resumed, panel=execution_panel) == []
+    assert resumed.protected_weights == {symbol: 0.4}
+    assert resumed.cash == account.cash == cash_after_fill
+    assert resumed.positions[symbol].shares == account.positions[symbol].shares == 5_000
+    assert len(resumed.order_ledger) == len(resumed.fills) == 1
 
 
 def test_confirmed_new_core_uses_spare_capital_without_trimming_incumbent(monkeypatch):
@@ -465,6 +571,7 @@ def test_partial_ordinary_restore_survives_restart_without_new_entry_qualificati
     assert planner.execute_open(date=dates[-4], account=account, panel=initial_panel)
     assert not account.pending_orders
     account.protected_weights[symbol] = 0.6
+    account.last_shock_date = signal
     policy = PortfolioAllocator(DEFAULT_CONFIG)
 
     def allocate(day, state):
@@ -520,11 +627,87 @@ def test_partial_ordinary_restore_survives_restart_without_new_entry_qualificati
     assert len(restore_fills) == 2
     assert sum(fill.shares for fill in restore_fills) == original_quantity
     completed = allocate(date, resumed)
-    assert resumed.candidate_tenure[f"core_restored:{symbol}"] == 0
+    assert resumed.candidate_tenure[f"core_restored:{symbol}"] == pd.Timestamp(signal).toordinal()
     assert plan_orders(signal_date=str(date.date()), targets=completed, account=resumed,
                        prices={symbol: 10.0}, cfg=DEFAULT_CONFIG) == ()
     save_account(resumed, path)
     assert load_account(path).to_dict() == resumed.to_dict()
+
+
+def test_ordinary_restore_keeps_continuous_holding_after_fifo_retires_original_lots():
+    date, panel, leaders, normal = _inputs()
+    symbol = "sh688008"
+    panel = {symbol: panel["sh600001"]}
+    leaders = {symbol: replace(leaders["sh600001"], symbol=symbol, mature=False)}
+    dates = panel[symbol].index
+    account = AccountState.empty(DEFAULT_CONFIG.initial_cash)
+    account.code_hash, account.data_hash = "code:fixture", "data:fixture"
+    prices = {symbol: 10.0}
+    execution_panel = {symbol: pd.DataFrame(
+        {"open": 10.0, "high": 10.1, "low": 9.9, "close": 10.0,
+         "volume": 100_000_000.0, "amount": 1_000_000_000.0}, index=dates[-6:],
+    )}
+    planner = ExecutionPlanner(DEFAULT_CONFIG)
+    policy = PortfolioAllocator(DEFAULT_CONFIG)
+
+    def submit(day, targets):
+        signal = str(day.date())
+        attributed = attach_target_attribution(
+            "semiconductor", REQUIRED_AI_UNIVERSE_SHA256,
+            signal_date=signal, targets=targets, retained_orders=account.pending_orders,
+        )
+        planned = plan_orders(signal_date=signal, targets=attributed, account=account,
+                              prices=prices, cfg=DEFAULT_CONFIG)
+        account.pending_orders = list(reconcile_account_orders(
+            account=account, previous=account.pending_orders, current=planned, submitted_date=signal,
+        ))
+
+    submit(dates[-6], (Target(
+        symbol, 0.2, "CORE", 0.9, 0.9, "prior core entry",
+        origin_subsystem="LEADER", mechanism="LEADER_SELECTION", origin_lifecycle="CORE",
+    ),))
+    initial = planner.execute_open(date=dates[-5], account=account, panel=execution_panel)
+    assert len(initial) == 1 and initial[0].shares == 39_900
+    assert account.positions[symbol].entry_date == "2025-07-24"
+    assert not account.pending_orders
+    account.protected_weights[symbol] = 0.6
+    account.last_shock_date = str(dates[-4].date())
+    restored = policy.allocate(
+        date=dates[-4], opportunity=Opportunity.RECOVERY, risk=normal,
+        user_panel=panel, leaders=leaders, account=account, prices=prices,
+    )
+    assert restored[0].weight == pytest.approx(0.6)
+    submit(dates[-4], restored)
+    restoration = planner.execute_open(date=dates[-3], account=account, panel=execution_panel)
+    assert len(restoration) == 1 and restoration[0].shares == 79_900
+    assert account.positions[symbol].shares == 119_800
+    assert not account.pending_orders
+
+    reduced = policy.allocate(
+        date=dates[-3], opportunity=Opportunity.WEAK,
+        risk=RiskAssessment(Risk.RISK_OFF, 0.3, 3, {}, (), "NONE", freeze_new_risk=True),
+        user_panel=panel, leaders=leaders, account=account, prices=prices,
+    )
+    assert reduced[0].weight == pytest.approx(0.3)
+    submit(dates[-3], reduced)
+    sold = planner.execute_open(date=dates[-2], account=account, panel=execution_panel)
+    assert len(sold) == 1 and sold[0].side == "SELL" and sold[0].shares == 59_800
+    assert not account.pending_orders
+    assert account.positions[symbol].shares == 60_000
+    assert account.positions[symbol].entry_date == "2025-07-28"
+    assert {lot.entry_date for lot in account.positions[symbol].tranches} == {"2025-07-28"}
+    assert [(fill.side, fill.shares) for fill in account.fills] == [
+        ("BUY", 39_900), ("BUY", 79_900), ("SELL", 59_800),
+    ]
+    cash_before_allocation = account.cash
+
+    resumed = policy.allocate(
+        date=date, opportunity=Opportunity.RECOVERY, risk=normal,
+        user_panel=panel, leaders=leaders, account=account, prices=prices,
+    )
+    assert resumed[0].weight == pytest.approx(0.6)
+    assert resumed[0].mechanism == "POST_SHOCK_RESTORATION"
+    assert account.cash == cash_before_allocation and account.positions[symbol].shares == 60_000
 
 
 def test_order_planning_explains_a_real_no_trade_band_without_changing_intents():

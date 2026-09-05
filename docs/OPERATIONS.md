@@ -167,6 +167,15 @@ uv run uquant daily \
 `insufficient_executable_capital` 表示部署记录的可执行资本不足；`unresolved_execution_capacity`
 表示执行责任尚未结清。每个原因只适用于记录中点名的候选，不扩展到其他股票。
 
+`pending current quality` 展示普通部分成交挂单本次记录的继续买入资格：仍须成熟、当前
+至少一路有效并满足市场质量条件，确认要求为 1 日；首次入场仍要求连续 5 日。
+`PENDING_CORE_BUY_ALREADY_EVALUATED` 仅表示普通挂单已由原分支评估，不能遮住实际的
+`NOT_MATURE`、`CONFIRMATION_INCOMPLETE` 等拒绝原因。最终 Sentinel 冻结和
+`CAPITAL_LIMIT` 仍优先解释为何未增加目标；当前资格通过本身不代表可执行。
+`RESTORATION_EPISODE_NOT_LINKED_TO_HOLDING` 表示当前连续持仓未能关联记录的风险事件，
+应核对真实成交与风险事件；不能补写历史来启用旧恢复权。连续持有的健康风险缩减仓位则按
+恢复条件管理，不因新入场的成熟度不足而自动失去恢复资格。
+
 分配器在实际判断分支中记录资格拒绝原因，以及本次意图计算时现金、总仓、单名、行业和
 相关性预算的剩余空间。它们使用同一顺序资金账本，各行数值不能相加当作另一份预算。
 未进入资金检查的候选明确显示“未评估”。最终目标和订单在 Risk 限制及订单对账后写入
@@ -234,8 +243,8 @@ Risk Differential 与 counterfactual 只作观察，不得转换成人工卖单�
 ## 统一核心版本的一次性切换
 
 先确认待切换提交完成[开发指南](DEVELOPMENT.md)与[性能与证据](PERFORMANCE.md)要求的验收。
-诊断 checkpoint 不是正式验收通过或激活记录。以下命令仅供 operator 在独立副本上预演，
-本次开发不运行真实账户切换，也不激活正式观察 Lane。
+诊断 checkpoint 不是正式验收通过或激活记录。先在独立副本上完成以下预演，再由 operator
+选择正式切换的 session 边界。
 
 1. 暂停新增人工下单，记录在途订单；在旧版本正常对账后，保存完整账户、券商快照、使用的
    数据摘要、源代码提交和配置摘要。将账户复制为独立目录中的
@@ -263,6 +272,9 @@ uv run uquant account-code-migrate \
    当前持仓反推确认次数，或通过换候选、清空旧字段、重设最高权益跳过修复。
    若原始状态缺失、身份冲突或新语义无法可靠恢复，先恢复可信完整备份并定位缺口；
    `account-code-migrate` 不能补造这些事实。
+   普通恢复权还须关联 `last_shock_date` 所在的连续持仓。FIFO 耗尽旧批次时使用完整真实
+   成交核对，不修改存续批次日期来制造关联。已清仓证券重新通过首次资格并取得入场预算后，
+   分配器才清除该证券陈旧的普通保护权重；切换时不手工批量清空恢复状态。
 6. 将完整券商快照复制到 `cutover_review/broker_snapshot.json`，只在候选副本对账：
 
 ```bash

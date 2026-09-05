@@ -320,7 +320,13 @@ def test_protected_intent_survives_freeze_until_account_buy_gate_reopens() -> No
     )
     allocator = PortfolioAllocator(DEFAULT_CONFIG)
     protected = AccountState.empty(100.0)
+    protected.cash = 80.0
+    protected.positions[symbol] = Position(
+        symbol, shares=20, avg_cost=1.0, entry_date=str(dates[0].date()),
+        lifecycle=Lifecycle.CORE.value,
+    )
     protected.protected_weights = {symbol: 0.60}
+    protected.last_shock_date = str(dates[-3].date())
     protected.capital_budget_level = 1
     protected.capital_budget_repair_streak = 1
 
@@ -334,10 +340,10 @@ def test_protected_intent_survives_freeze_until_account_buy_gate_reopens() -> No
         prices={symbol: 1.0},
     )
 
-    assert frozen == ()
+    assert {target.symbol: target.weight for target in frozen} == pytest.approx({symbol: 0.20})
     assert protected.protected_weights == {symbol: 0.60}
-    assert protected.cash == 100.0
-    assert protected.positions == {}
+    assert protected.cash == 80.0
+    assert protected.positions[symbol].shares == 20
     assert protected.capital_budget_level == 1
 
     restored = allocator.allocate(
@@ -351,8 +357,8 @@ def test_protected_intent_survives_freeze_until_account_buy_gate_reopens() -> No
     )
     assert {target.symbol: target.weight for target in restored} == pytest.approx({symbol: 0.60})
     assert protected.protected_weights == {symbol: 0.60}
-    assert protected.cash == 100.0
-    assert protected.positions == {}
+    assert protected.cash == 80.0
+    assert protected.positions[symbol].shares == 20
     assert protected.pending_orders == []
 
     no_intent = AccountState.empty(100.0)
@@ -456,7 +462,16 @@ def test_protected_restore_uses_real_capacity_before_and_after_fills() -> None:
     symbols = ("restore_a", "restore_b")
     frame = _trend_frame(dates)
     protected = AccountState.empty(100.0)
+    protected.cash = 60.0
+    protected.positions = {
+        symbol: Position(
+            symbol, shares=20, avg_cost=1.0, entry_date=str(dates[0].date()),
+            lifecycle=Lifecycle.CORE.value,
+        )
+        for symbol in symbols
+    }
     protected.protected_weights = {symbol: 0.40 for symbol in symbols}
+    protected.last_shock_date = str(dates[-3].date())
     protected.capital_budget_level = 1
     protected.capital_budget_repair_streak = 1
     first_repair = RiskAssessment(
@@ -481,10 +496,12 @@ def test_protected_restore_uses_real_capacity_before_and_after_fills() -> None:
         prices={symbol: 1.0 for symbol in symbols},
     )
 
-    assert first_targets == ()
+    assert {target.symbol: target.weight for target in first_targets} == pytest.approx(
+        {symbol: 0.20 for symbol in symbols}
+    )
     assert protected.protected_weights == {symbol: 0.40 for symbol in symbols}
-    assert protected.cash == 100.0
-    assert protected.positions == {}
+    assert protected.cash == 60.0
+    assert {symbol: position.shares for symbol, position in protected.positions.items()} == dict.fromkeys(symbols, 20)
 
     # An open risk gate can restore saved rights within the combined industry cap.
     deferred = allocator.allocate(
@@ -500,8 +517,8 @@ def test_protected_restore_uses_real_capacity_before_and_after_fills() -> None:
     assert {target.symbol: target.weight for target in deferred} == pytest.approx(
         {"restore_a": 0.40, "restore_b": 0.35}
     )
-    assert protected.cash == 100.0
-    assert protected.positions == {}
+    assert protected.cash == 60.0
+    assert {symbol: position.shares for symbol, position in protected.positions.items()} == dict.fromkeys(symbols, 20)
     assert protected.capital_budget_level == 1
 
     protected.risk_streaks["protected_structure_normalization"] = (
@@ -528,6 +545,7 @@ def test_protected_restore_uses_real_capacity_before_and_after_fills() -> None:
             symbol,
             shares=shares,
             avg_cost=1.0,
+            entry_date=str(dates[0].date()),
             lifecycle=Lifecycle.RECOVERY.value,
         )
         for symbol, shares in zip(symbols, (40, 35), strict=True)

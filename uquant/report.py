@@ -123,6 +123,7 @@ _CORE_REVIEW_CHANGES = _MappingProxyType({
     "CAPITAL_LIMIT": "Available settled capital or a binding cap must change; a sale intent supplies no cash.",
     "RESTORATION_COMPLETED_RETAIN_DRIFT": "Retain price drift until independent deterioration or a risk reduction.",
     "RESTORATION_EVIDENCE_UNAVAILABLE": "Restore the holding's market and leadership evidence.",
+    "RESTORATION_EPISODE_NOT_LINKED_TO_HOLDING": "The current uninterrupted holding must span the recorded risk episode; verify actual fills.",
     "OWNER_EVIDENCE_UNAVAILABLE": "Restore the current owner's market evidence.",
     "OWNER_DEPLOYMENT_BLOCK": "The current owner's recorded deployment block must clear.",
     "CANCELLATION_AWAITING_CONFIRMATION": "Obtain the pending cancellation's acknowledgement.",
@@ -150,9 +151,12 @@ def _recorded_budget_limits(row: Mapping[str, Any]) -> list[str]:
 
 
 def _recorded_core_constraint(row: Mapping[str, Any], trace: Mapping[str, Any]) -> str:
-    entry = row.get("entry", {})
+    entry = row.get("pending_entry", row.get("entry", {}))
     entry_block = entry.get("block", "") if isinstance(entry, Mapping) else ""
-    block = row.get("increase_block") or row.get("restore_block") or row.get("entry_gate")
+    restore_block = row.get("restore_block")
+    if restore_block == "PENDING_CORE_BUY_ALREADY_EVALUATED":
+        restore_block = None
+    block = row.get("increase_block") or restore_block or row.get("entry_gate")
     if not block and entry_block != "READY":
         block = entry_block
     if row.get("allocation_reason") == "CAPITAL_LIMIT":
@@ -160,6 +164,8 @@ def _recorded_core_constraint(row: Mapping[str, Any], trace: Mapping[str, Any]) 
     if trace.get("planning_scope") == "SENTINEL_PLANNING_ONLY" and trace.get("final_freeze_new_risk"):
         block = "NEW_RISK_FROZEN"
     parts = [str(block)] if block else []
+    if isinstance(row.get("pending_entry"), Mapping):
+        parts.append("pending current quality " + str(entry_block))
     confirmations = entry.get("confirmations") if isinstance(entry, Mapping) else None
     if isinstance(confirmations, Mapping):
         parts.append("confirmation " + ", ".join(f"{route} {streak}/{entry['required_confirmation']}"

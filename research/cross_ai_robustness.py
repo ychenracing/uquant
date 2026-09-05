@@ -16,7 +16,7 @@ from pathlib import Path
 from typing import Any
 
 from research.cross_ai_acceptance import CONTRACT_PATH, config_payload_sha256, number, read_case
-from research.cross_ai_strategy import ROOT, _write_json, run_production_case
+from research.cross_ai_strategy import ROOT, run_production_case, write_json
 from uquant.config import DEFAULT_CONFIG
 from uquant.contracts.strict_json import canonical_json_bytes
 from uquant.engine import code_fingerprint
@@ -197,7 +197,7 @@ def run_shard(root: Path, plan: dict[str, Any], shard: str) -> dict[str, Any]:
                 outcome['reused'] = True
             else:
                 directory.mkdir()
-                _write_json(directory / 'deletion.json', _seal(proof))
+                write_json(directory / 'deletion.json', _seal(proof))
             outcome.update(status='CONTROL_DELETED', fields=spec['deleted_fields'])
         else:
             if (root / shard).exists():
@@ -215,13 +215,13 @@ def run_shard(root: Path, plan: dict[str, Any], shard: str) -> dict[str, Any]:
                 report = read_shard(root, plan, spec)
             outcome.update(status='COMPLETE', result_seal=report['canonical_sha256'])
     except (OSError, ValueError, KeyError, TypeError, RuntimeError, EOFError) as exc:
-        outcome.update(error=f'{type(exc).__name__}: {exc}', traceback=traceback.format_exc())
+        outcome.update(error=f'{type(exc).__name__}: {exc}', traceback="".join(traceback.format_exception(exc)))
     # Each attempt gets its own checkpoint; neither failed raw cases nor prior attempts are overwritten.
     suffix = 1
     while checkpoint.exists():
         checkpoint = root / f'{shard}.checkpoint-{suffix}.json'
         suffix += 1
-    _write_json(checkpoint, _seal(outcome))
+    write_json(checkpoint, _seal(outcome))
     return outcome
 
 

@@ -61,10 +61,6 @@ def _validate_strategic_routes(config: Any) -> None:
         raise ValueError("strategic_reversal_min_median_ret20 must be in (-1, 0]")
     if not -1 < config.strategic_reversal_max_tech_ret120 <= 0:
         raise ValueError("strategic_reversal_max_tech_ret120 must be in (-1, 0]")
-    if not 20 <= config.strategic_epoch_cooldown_sessions <= 40:
-        raise ValueError("strategic epoch cooldown must be in [20, 40]")
-    if not 1 <= config.strategic_epoch_min_symbol_change <= 3:
-        raise ValueError("strategic epoch symbol change must be in [1, 3]")
 
 
 def validate_strategic_discovery(config: Any) -> None:

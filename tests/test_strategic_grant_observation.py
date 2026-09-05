@@ -408,6 +408,8 @@ def test_flat_expired_probe_releases_its_deployment_state(monkeypatch) -> None:
         account=account,
         prices=prices,
     )
+    assert account.candidate_tenure['strategic_repair_observed_session'] == dates[-2].toordinal()
+    assert account.replacement_tenure['strategic_eligibility:persistent_industry:sz300502'] == 3
     account.positions.clear()
     monkeypatch.undo()
 
@@ -426,6 +428,11 @@ def test_flat_expired_probe_releases_its_deployment_state(monkeypatch) -> None:
     assert account.candidate_tenure["strategic_cohort_active"] == 0
     assert account.strategic_cohort_symbols == []
     assert account.strategic_cohort_targets == {}
+    assert grant.expiry_reason == "candidate_or_route_no_longer_qualified"
+    assert account.strategic_grant is grant
+    assert account.replacement_tenure['strategic_eligibility:persistent_industry:sz300308'] == 1
+    assert account.replacement_tenure['strategic_eligibility:persistent_industry:sz300502'] == 4
+    assert account.candidate_tenure['strategic_repair_observed_session'] == dates[-1].toordinal()
 
 
 def test_sentinel_freeze_observes_qualification_without_zhongji_universe() -> None:

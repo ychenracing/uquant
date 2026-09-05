@@ -17,14 +17,21 @@ from typing import Any, cast
 
 import pandas as pd
 
-from research.cross_ai_strategy import CASE_IDS, ROOT, _diagnostic_json, _identity, _write_json, case_symbols
+from research.cross_ai_strategy import (
+    CASE_IDS,
+    ROOT,
+    case_identity,
+    case_symbols,
+    diagnostic_json,
+    write_json,
+)
 from uquant.account import account_from_dict
 from uquant.application.decision import (
-    _assess_decision_risk,
-    _bind_decision_account_identity,
-    _decision_market_context,
-    _validated_decision_symbols,
-    _verify_decision_provenance,
+    assess_decision_risk,
+    bind_decision_account_identity,
+    decision_market_context,
+    validated_decision_symbols,
+    verify_decision_provenance,
 )
 from uquant.attribution import build_daily_ledger_row, build_economic_attribution
 from uquant.config import DEFAULT_CONFIG, SystemConfig
@@ -42,7 +49,7 @@ from uquant.types import AccountState, Risk, RiskAssessment, Target
 
 
 def benchmark_identity(case_id: str, start: str, end: str) -> dict[str, Any]:
-    identity = _identity(case_id, start, end)
+    identity = case_identity(case_id, start, end)
     identity['benchmark_sha256'] = hashlib.sha256(Path(__file__).read_bytes()).hexdigest()
     identity['research_account_code_sha256'] = hashlib.sha256(canonical_json_bytes({
         key: identity[key] for key in ('source_sha256', 'runner_sha256', 'benchmark_sha256')
@@ -225,21 +232,21 @@ def benchmark_decision(
     engine: ProductionEngine, account: AccountState, date: pd.Timestamp, roles: dict[str, tuple[str, ...]],
     state: dict[str, Any], code_hash: str,
 ) -> dict[str, Any]:
-    date, symbols, durable = _validated_decision_symbols(
+    date, symbols, durable = validated_decision_symbols(
         symbols=roles['tradable'], as_of=str(date.date()), account=account)
-    inputs = _verify_decision_provenance(engine, date=date, user_symbols=symbols,
+    inputs = verify_decision_provenance(engine, date=date, user_symbols=symbols,
                                          durable_symbols=durable, account=account,
                                          code_fingerprint_fn=lambda: code_hash)
-    market = _decision_market_context(
+    market = decision_market_context(
         engine, inputs=inputs, account=account,
         strategic_universe_declaration=build_strategic_universe_declaration(
             qualification_reference_symbols=roles['qualification'], risk_reference_symbols=roles['risk']))
     if (market.qualification_reference_symbols != roles['qualification']
             or market.risk_reference_symbols != roles['risk']):
         raise RuntimeError('benchmark stock roles differ from declared scenario')
-    risk = _assess_decision_risk(inputs=inputs, market=market, account=account,
+    risk = assess_decision_risk(inputs=inputs, market=market, account=account,
                                  assess_risk_fn=assess_risk, evaluate_sentinel_fn=evaluate_sentinel)
-    _bind_decision_account_identity(inputs=inputs, account=account)
+    bind_decision_account_identity(inputs=inputs, account=account)
     opportunity = classify_opportunity(date=date, broad=market.broad, tech=market.tech,
                                         reference_panel=market.reference_panel,
                                         leaders={s: market.structural_leaders[s] for s in symbols
@@ -267,7 +274,7 @@ def run_benchmark_case(*, case_id: str, start: str, end: str, output_dir: Path) 
     output_dir.mkdir(parents=True, exist_ok=False)
     started = time.monotonic()
     identity = benchmark_identity(case_id, start, end)
-    _write_json(output_dir / 'identity.json', identity)
+    write_json(output_dir / 'identity.json', identity)
     engine = ProductionEngine(ROOT / 'data/frozen')
     account = AccountState.empty(DEFAULT_CONFIG.initial_cash)
     state: dict[str, Any] = {}
@@ -308,7 +315,7 @@ def run_benchmark_case(*, case_id: str, start: str, end: str, output_dir: Path) 
                     target_weights={t.symbol: t.weight for t in targets}, target_gross=sum(t.weight for t in targets),
                     risk_gross_cap=risk.target_gross_cap, system_gross_cap=min(0.90, engine.cfg.max_gross),
                     risk_state=risk.state.value, opportunity=observation['opportunity'].value)
-                stream.write(canonical_json_bytes(_diagnostic_json({
+                stream.write(canonical_json_bytes(diagnostic_json({
                     'date': str(date.date()), 'roles': roles, **observation, 'ledger': row,
                     'state': state, 'new_fills': account.fills[before_fills:],
                     'pending_orders': account.pending_orders, 'account_risk': {
@@ -323,13 +330,13 @@ def run_benchmark_case(*, case_id: str, start: str, end: str, output_dir: Path) 
                           f"{date.date()}, {time.monotonic() - started:.1f}s", flush=True)
     except Exception as exc:
         status, error = 'REPLAY_ERROR', f'{type(exc).__name__}: {exc}'
-        (output_dir / 'error.txt').write_text(traceback.format_exc(), encoding='utf-8')
+        (output_dir / 'error.txt').write_text("".join(traceback.format_exception(exc)), encoding='utf-8')
     # Persist failed state before validation: codec errors must not erase the evidence.
     payload = account.to_dict()
-    _write_json(output_dir / 'final_account.json', _diagnostic_json(payload))
-    _write_json(output_dir / 'benchmark_state.json', _diagnostic_json(state))
-    _write_json(output_dir / 'orders.json', _diagnostic_json(account.order_ledger))
-    _write_json(output_dir / 'fills.json', _diagnostic_json(account.fills))
+    write_json(output_dir / 'final_account.json', diagnostic_json(payload))
+    write_json(output_dir / 'benchmark_state.json', diagnostic_json(state))
+    write_json(output_dir / 'orders.json', diagnostic_json(account.order_ledger))
+    write_json(output_dir / 'fills.json', diagnostic_json(account.fills))
     try:
         account_from_dict(payload)
         if rows:
@@ -352,7 +359,7 @@ def run_benchmark_case(*, case_id: str, start: str, end: str, output_dir: Path) 
             raise RuntimeError('benchmark identity changed during replay')
     except Exception as exc:
         status, error = 'REPLAY_ERROR', f'{error}; finalization: {type(exc).__name__}: {exc}'
-        (output_dir / 'finalization-error.txt').write_text(traceback.format_exc(), encoding='utf-8')
+        (output_dir / 'finalization-error.txt').write_text("".join(traceback.format_exception(exc)), encoding='utf-8')
     result = {'schema_version': 1, 'status': status, 'error': error, 'diagnostic_only': True,
               'authoritative_acceptance': False, 'future_holdout_used': False, 'identity': identity,
               'sessions': len(rows), 'expected_sessions': expected, 'metrics': metrics,
@@ -362,7 +369,7 @@ def run_benchmark_case(*, case_id: str, start: str, end: str, output_dir: Path) 
               'final_account_sha256': hashlib.sha256((output_dir / 'final_account.json').read_bytes()).hexdigest(),
               'benchmark_state_sha256': hashlib.sha256((output_dir / 'benchmark_state.json').read_bytes()).hexdigest()}
     result['canonical_sha256'] = hashlib.sha256(canonical_json_bytes(result)).hexdigest()
-    _write_json(output_dir / 'result.json', result)
+    write_json(output_dir / 'result.json', result)
     return result
 
 

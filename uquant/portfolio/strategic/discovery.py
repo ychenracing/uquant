@@ -35,7 +35,9 @@ from .ownership import (
 from .qualification_candidates import (
     QualifiedStrategicRoute,
     StrategicRoute,
+    observe_strategic_candidate_eligibility,
     select_strategic_route,
+    strategic_candidate_confirmation,
 )
 from .qualification_candidates import (
     reset_strategic_qualification_streaks as _reset_strategic_qualification_streaks,
@@ -227,7 +229,6 @@ def strategic_deployment_block_reason(
     account: AccountState,
     risk: RiskAssessment,
     admission_open: bool,
-    live_general_leaders: set[str],
     cash_rearm_authorized: bool = False,
 ) -> str:
     cash_rearm_open = bool(
@@ -245,19 +246,6 @@ def strategic_deployment_block_reason(
     )
     if risk_block:
         return risk_block
-    authority_block = _strategic_account_deployment_block(
-        account=account,
-        live_general_leaders=live_general_leaders,
-    )
-    if authority_block:
-        return authority_block
-    if _strategic_cooldown_active(
-        self,
-        date=date,
-        user_panel=user_panel,
-        account=account,
-    ):
-        return "strategic_cooldown"
     if not admission_open and not cash_rearm_open:
         return "opportunity_not_deployable"
     return ""
@@ -287,41 +275,6 @@ def _strategic_risk_deployment_block(
     if account.chronic_level > 0 and not cash_rearm_open:
         return "chronic_damage"
     return ""
-
-
-def _strategic_account_deployment_block(
-    *,
-    account: AccountState,
-    live_general_leaders: set[str],
-) -> str:
-    if live_general_leaders:
-        return "existing_portfolio_owner"
-    if account.candidate_tenure.get("recovery_cohort_locked", 0) == 1 and account.anchor_weights:
-        return "recovery_owner"
-    if account.pending_orders:
-        return "pending_execution"
-    if account.protected_weights:
-        return "protected_owner"
-    return ""
-
-
-def _strategic_cooldown_active(
-    self: StrategicPortfolioPolicy,
-    *,
-    date: pd.Timestamp,
-    user_panel: dict[str, pd.DataFrame],
-    account: AccountState,
-) -> bool:
-    if not account.strategic_last_exit_date:
-        return False
-    last_exit = pd.Timestamp(account.strategic_last_exit_date)
-    visible_sessions = {
-        session
-        for frame in user_panel.values()
-        for session in frame.index
-        if last_exit < session <= date
-    }
-    return len(visible_sessions) < self.cfg.strategic_epoch_cooldown_sessions
 
 
 def strategic_qualification_snapshots(
@@ -591,31 +544,6 @@ def strategic_route_signature(
     return admission_state, f"strategic_qualification:{admission_state}:{body}:evidence={route.route}"
 
 
-def _update_route_qualification(
-    self: StrategicPortfolioPolicy,
-    *,
-    symbols: list[str],
-    signature: str,
-    account: AccountState,
-) -> list[str]:
-    previous = set(account.strategic_previous_symbols)
-    same_members = bool(previous) and set(symbols) == previous
-    new_members = len(set(symbols) - previous)
-    if previous and not same_members and new_members < self.cfg.strategic_epoch_min_symbol_change:
-        symbols = []
-        account.candidate_tenure["strategic_cohort_qualification"] = 0
-    if symbols:
-        for key in tuple(account.replacement_tenure):
-            if key.startswith("strategic_qualification:") and key != signature:
-                account.replacement_tenure[key] = 0
-        account.replacement_tenure[signature] = account.replacement_tenure.get(signature, 0) + 1
-        account.candidate_tenure["strategic_cohort_qualification"] = account.replacement_tenure[signature]
-    else:
-        _reset_strategic_qualification_streaks(account)
-        account.candidate_tenure["strategic_cohort_qualification"] = 0
-    return symbols
-
-
 def strategic_route_admission_open(
     self: StrategicPortfolioPolicy,
     *,
@@ -697,11 +625,9 @@ def _qualify_strategic_route(
         symbols=symbols,
         leaders=leaders,
     )
-    symbols = _update_route_qualification(
-        self,
-        symbols=symbols,
-        signature=signature,
-        account=account,
+    account.candidate_tenure["strategic_cohort_qualification"] = (
+        strategic_candidate_confirmation(account=account, symbol=candidate, route=route.route)
+        if symbols else 0
     )
     required_days = (
         quorum.required_confirm_days
@@ -847,6 +773,41 @@ def _record_ready_strategic_qualification(
 
 
 
+
+def _observe_resolved_strategic_candidates(
+    self: StrategicPortfolioPolicy, *, date: pd.Timestamp, account: AccountState,
+    risk: RiskAssessment, panel: dict[str, pd.DataFrame], leaders: dict[str, LeaderScore],
+    universe: StrategicUniverseRoles,
+) -> dict[str, dict[str, float]]:
+    if account.candidate_tenure.get("strategic_repair_observed_session", 0) != date.toordinal():
+        _observe_strategic_universe_and_repair(self, date=date, account=account, risk=risk, universe=universe)
+        account.candidate_tenure["strategic_repair_observed_session"] = date.toordinal()
+    panel = {symbol: frame for symbol, frame in panel.items() if symbol in universe.available_symbols}
+    snapshots = strategic_qualification_snapshots(self, date=date, user_panel=panel, leaders=leaders)
+    observe_strategic_candidate_eligibility(date=date, snapshots=snapshots, leaders=leaders,
+                                           risk=risk, account=account, cfg=self.cfg)
+    return snapshots
+
+
+def observe_strategic_candidates(
+    self: StrategicPortfolioPolicy, *, date: pd.Timestamp, user_panel: dict[str, pd.DataFrame],
+    leaders: dict[str, LeaderScore], account: AccountState, risk: RiskAssessment,
+    qualification_panel: dict[str, pd.DataFrame] | None = None,
+    qualification_leaders: dict[str, LeaderScore] | None = None,
+    strategic_universe: StrategicUniverseRoles | None = None,
+) -> dict[str, dict[str, int]]:
+    """Observe account repair and all candidates before any grant/owner early return."""
+    panel, scores, universe = resolve_strategic_qualification_inputs(
+        date=date, user_panel=user_panel, leaders=leaders, qualification_panel=qualification_panel,
+        qualification_leaders=qualification_leaders, strategic_universe=strategic_universe,
+    )
+    snapshots = _observe_resolved_strategic_candidates(
+        self, date=date, account=account, risk=risk, panel=panel, leaders=scores, universe=universe,
+    )
+    return observe_strategic_candidate_eligibility(date=date, snapshots=snapshots, leaders=scores,
+                                                  risk=risk, account=account, cfg=self.cfg)
+
+
 def _initialize_strategic_cohort(
     self: StrategicPortfolioPolicy,
     *,
@@ -873,22 +834,14 @@ def _initialize_strategic_cohort(
         qualification_leaders=qualification_leaders,
         strategic_universe=strategic_universe,
     )
-    _observe_strategic_universe_and_repair(
-        self,
-        date=date,
-        account=account,
-        risk=risk,
-        universe=resolved_universe,
+    reference_snapshots = _observe_resolved_strategic_candidates(
+        self, date=date, account=account, risk=risk, panel=resolved_panel,
+        leaders=resolved_leaders, universe=resolved_universe,
     )
     if account.active_strategic_epoch_id:
         return
     if account.candidate_tenure.get("strategic_cohort_active", 0) == 1:
         return
-    live_general_leaders = {
-        symbol
-        for symbol in account.active_leaders
-        if (position := account.positions.get(symbol)) is not None and position.shares > 0
-    }
     if not _strategic_discovery_open(
         self,
         date=date,
@@ -897,12 +850,6 @@ def _initialize_strategic_cohort(
         risk=risk,
     ):
         return
-    reference_snapshots = strategic_qualification_snapshots(
-        self,
-        date=date,
-        user_panel=resolved_panel,
-        leaders=resolved_leaders,
-    )
     snapshots = {
         symbol: values
         for symbol, values in reference_snapshots.items()
@@ -937,7 +884,6 @@ def _initialize_strategic_cohort(
         account=account,
         risk=risk,
         admission_open=admission_open,
-        live_general_leaders=live_general_leaders,
         reference_snapshots=reference_snapshots,
         universe=resolved_universe,
         qualified=qualified,
@@ -952,6 +898,7 @@ def _initialize_strategic_cohort(
         account=account,
         date=date,
         risk=risk,
+        user_panel=user_panel,
     )
 
 
@@ -1030,7 +977,6 @@ def _observe_strategic_deployment(
     account: AccountState,
     risk: RiskAssessment,
     admission_open: bool,
-    live_general_leaders: set[str],
     reference_snapshots: dict[str, dict[str, float]],
     universe: StrategicUniverseRoles,
     qualified: QualifiedStrategicRoute | None,
@@ -1043,8 +989,7 @@ def _observe_strategic_deployment(
             account=account,
             risk=risk,
             admission_open=(qualified.admission_authorized if qualified is not None else admission_open),
-            live_general_leaders=live_general_leaders,
-            cash_rearm_authorized=False,
+                cash_rearm_authorized=False,
         )
         account.strategic_qualification.deployment_blocked = bool(block_reason)
         account.strategic_qualification.deployment_block_reason = block_reason
@@ -1069,8 +1014,7 @@ def _observe_strategic_deployment(
                 account=account,
                 risk=risk,
                 admission_open=qualified.admission_authorized,
-                live_general_leaders=live_general_leaders,
-                cash_rearm_authorized=True,
+                        cash_rearm_authorized=True,
             )
             account.strategic_qualification.deployment_blocked = bool(block_reason)
             account.strategic_qualification.deployment_block_reason = block_reason

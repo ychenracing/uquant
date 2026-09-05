@@ -18,11 +18,58 @@ class StrategicQualificationPolicy(Protocol):
 
 
 def reset_strategic_qualification_streaks(account: AccountState) -> None:
-    """Reset every candidate-bound strategic qualification counter."""
+    """Invalidate the grant candidate while retaining unrelated absolute evidence."""
+
+    if account.strategic_grant is not None:
+        reset_strategic_candidate_eligibility(account=account, symbol=account.strategic_grant.candidate_symbol)
 
     for key in tuple(account.replacement_tenure):
         if key.startswith("strategic_qualification:"):
             account.replacement_tenure[key] = 0
+
+
+def reset_strategic_candidate_eligibility(*, account: AccountState, symbol: str) -> None:
+    """Require fresh local confirmation after an invalidated grant or completed exit."""
+    for key in tuple(account.replacement_tenure):
+        if key.startswith("strategic_eligibility:") and key.endswith(f":{symbol}"):
+            account.replacement_tenure[key] = 0
+
+
+
+def strategic_candidate_confirmation(*, account: AccountState, symbol: str, route: str) -> int:
+    """Current absolute eligibility streak, never cohort or rank confirmation."""
+    return account.replacement_tenure.get(f"strategic_eligibility:{route}:{symbol}", 0)
+
+
+def observe_strategic_candidate_eligibility(
+    *, date: pd.Timestamp, snapshots: dict[str, dict[str, float]],
+    leaders: dict[str, LeaderScore], risk: RiskAssessment, account: AccountState,
+    cfg: SystemConfig,
+) -> dict[str, dict[str, int]]:
+    """Observe every absolute route predicate once per session, including during freezes."""
+    session = date.toordinal()
+    previous = account.candidate_tenure.get("strategic_eligibility_session", 0)
+    if session < previous:
+        raise ValueError("strategic eligibility observations must be causal")
+    routes = ("established", "transition", "transition_impulse", "persistent_industry", "reversal_industry")
+    current: dict[str, dict[str, int]] = {}
+    eligible_keys: set[str] = set()
+    for symbol in sorted(snapshots):
+        for route in routes:
+            if not strategic_candidate_meets_route(candidate_symbol=symbol, qualification_route=route,
+                                                   snapshots={symbol: snapshots[symbol]}, leaders=leaders,
+                                                   risk=risk, cfg=cfg):
+                continue
+            key = f"strategic_eligibility:{route}:{symbol}"
+            eligible_keys.add(key)
+            if session != previous:
+                account.replacement_tenure[key] = account.replacement_tenure.get(key, 0) + 1
+            current.setdefault(symbol, {})[route] = account.replacement_tenure.get(key, 0)
+    for key in tuple(account.replacement_tenure):
+        if key.startswith("strategic_eligibility:") and key not in eligible_keys:
+            account.replacement_tenure[key] = 0
+    account.candidate_tenure["strategic_eligibility_session"] = session
+    return current
 
 
 def _known_industry(
@@ -235,7 +282,7 @@ class QualifiedStrategicRoute:
     cash_rearm_authorized: bool
 
 
-def _decisive_reversal(
+def decisive_reversal(
     self: StrategicQualificationPolicy,
     *,
     synchronized: bool,
@@ -270,7 +317,7 @@ def _decisive_reversal(
     return decisive, pair
 
 
-def _established_route_durable(
+def established_route_durable(
     self: StrategicQualificationPolicy,
     *,
     symbols: list[str],
@@ -347,7 +394,7 @@ def select_strategic_route(
     )
     anchor_observed = "risk_anchor_symbols" in risk.evidence
     anchors_not_armed = bool(anchor_observed and not risk.evidence.get("risk_anchor_symbols", []))
-    decisive, decisive_pair = _decisive_reversal(
+    decisive, decisive_pair = decisive_reversal(
         self,
         synchronized=synchronized,
         reversal_groups=reversal_groups,
@@ -377,7 +424,7 @@ def select_strategic_route(
         symbols, route = transition[:2], "transition"
     else:
         symbols, route = [], "none"
-    if route == "established" and not _established_route_durable(
+    if route == "established" and not established_route_durable(
         self,
         symbols=symbols,
         snapshots=snapshots,

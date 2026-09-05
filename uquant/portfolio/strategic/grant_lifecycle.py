@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import math
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
@@ -23,13 +24,13 @@ from .discovery import (
     strategic_qualification_snapshots,
     strategic_quorum_candidate_symbols,
     strategic_route_admission_open,
-    strategic_route_signature,
 )
 from .ownership import release_expired_strategic_deployment
 from .qualification_candidates import (
     StrategicRoute,
+    decisive_reversal,
+    established_route_durable,
     reset_strategic_qualification_streaks,
-    select_strategic_route,
     strategic_candidate_meets_route,
 )
 from .quorum import (
@@ -179,23 +180,11 @@ def revalidate_strategic_grant(
             weights_now=weights_now,
         )
         return False
-    if _retain_reference_blocked_grant(
-        account,
-        grant=grant,
-        evidence=evidence,
-        date=date,
-    ):
-        return True
-    if evidence.raw and (
-        grant.candidate_symbol not in evidence.symbols
-        or evidence.route.route != grant.qualification_route
-    ):
-        _expire_strategic_grant(
-            account,
-            reason="candidate_or_route_no_longer_qualified",
-            weights_now=weights_now,
-        )
+    if _grant_retry_window_elapsed(grant=grant, evidence=evidence, candidate_frame=candidate_frame, date=date):
+        _expire_strategic_grant(account, reason="qualification_observation_window_elapsed", weights_now=weights_now)
         return False
+    if _retain_reference_blocked_grant(account, grant=grant, evidence=evidence, date=date):
+        return True
     block_reason = _update_revalidated_grant(
         self,
         date=date,
@@ -207,24 +196,62 @@ def revalidate_strategic_grant(
         evidence=evidence,
         leaders=resolved_leaders,
     )
-    if _grant_retry_window_elapsed(
-        grant=grant,
-        evidence=evidence,
-        candidate_frame=candidate_frame,
-        date=date,
-    ):
-        _expire_strategic_grant(
-            account,
-            reason="qualification_observation_window_elapsed",
-            weights_now=weights_now,
-        )
-        return False
-    if not block_reason:
-        grant.healthy_retry_sessions = min(
-            MAX_STRATEGIC_GRANT_HEALTHY_RETRY_SESSIONS,
-            grant.healthy_retry_sessions + 1,
-        )
+    if not block_reason and account.candidate_tenure.get("strategic_grant_healthy_retry_session", 0) != date.toordinal():
+        grant.healthy_retry_sessions += 1
+        account.candidate_tenure["strategic_grant_healthy_retry_session"] = date.toordinal()
     return True
+
+
+
+def _original_grant_route(
+    self: StrategicPortfolioPolicy, *, grant: StrategicGrantIntent,
+    snapshots: dict[str, dict[str, float]], leaders: dict[str, LeaderScore], risk: RiskAssessment,
+    available_symbols: tuple[str, ...],
+) -> tuple[StrategicRoute, bool]:
+    """Read admitted membership from immutable identity; live competitors cannot rewrite it."""
+    prefix, _, body = grant.qualification_signature.partition(":")
+    _state, _, body = body.partition(":")
+    members, separator, route_name = body.rpartition(":evidence=")
+    symbols = [item.partition(":")[0] for item in members.split(",") if ":" in item]
+    identity_valid = bool(prefix == "strategic_qualification" and separator
+                          and route_name == grant.qualification_route and grant.candidate_symbol in symbols)
+    complete = identity_valid and set(symbols) <= set(available_symbols) and all(
+        strategic_candidate_meets_route(candidate_symbol=symbol, qualification_route=grant.qualification_route,
+                                        snapshots=snapshots, leaders=leaders, risk=risk, cfg=self.cfg)
+        for symbol in symbols
+    )
+    observed = "risk_anchor_symbols" in risk.evidence
+    synchronized = False
+    groups: list[list[str]] = []
+    decisive = None
+    if grant.qualification_route == "reversal_industry" and complete:
+        # A concentrated reversal was admitted with its original pair plus a
+        # synchronized witness group. Revalidate that pair, never a new winner.
+        witnesses = list(symbols)
+        owner_industry = leaders[grant.candidate_symbol].industry
+        witnesses.extend(symbol for symbol in sorted(snapshots)
+                         if symbol not in witnesses and symbol in leaders and symbol in available_symbols
+                         and leaders[symbol].industry == owner_industry
+                         and strategic_candidate_meets_route(candidate_symbol=symbol,
+                             qualification_route=grant.qualification_route, snapshots=snapshots,
+                             leaders=leaders, risk=risk, cfg=self.cfg))
+        witnesses = witnesses[:self.cfg.strategic_cohort_size]
+        synchronized = bool(len(witnesses) >= self.cfg.strategic_cohort_min_size
+                            and all(leaders[symbol].industry == owner_industry for symbol in witnesses)
+                            and float(pd.Series([snapshots[symbol]["ret20"] for symbol in witnesses[:2]]).median())
+                            >= self.cfg.strategic_reversal_min_median_ret20
+                            and float(risk.evidence.get("tech_ret120", math.inf)) <= self.cfg.strategic_reversal_max_tech_ret120)
+        groups = [witnesses] if synchronized else []
+        if len(symbols) == 2 and grant.qualification_quorum == StrategicQuorumRoute.FULL_COHORT.value:
+            decisive, _pair = decisive_reversal(self, synchronized=synchronized, reversal_groups=groups,
+                                                snapshots=snapshots, leaders=leaders, anchor_state_observed=observed)
+            complete = decisive == grant.candidate_symbol
+        else:
+            complete = synchronized
+    if grant.qualification_route == "established" and complete:
+        complete = established_route_durable(self, symbols=symbols, snapshots=snapshots, leaders=leaders)
+    return StrategicRoute(symbols, grant.qualification_route, decisive, synchronized, groups,
+                          observed, bool(observed and not risk.evidence.get("risk_anchor_symbols", []))), complete
 
 
 def _grant_route_evidence(
@@ -249,18 +276,11 @@ def _grant_route_evidence(
         for symbol, values in reference_snapshots.items()
         if symbol in user_panel and symbol in leaders
     }
-    route = select_strategic_route(
-        self,
-        snapshots=snapshots,
-        leaders=leaders,
-        risk=risk,
-    )
-    legacy_raw, synchronized_before_anchor = strategic_qualification_evidence(
-        self,
-        route=route,
-        snapshots=snapshots,
-        leaders=leaders,
-        risk=risk,
+    route, original_complete = _original_grant_route(self, grant=grant, snapshots=snapshots, leaders=leaders,
+                                                   risk=risk, available_symbols=universe.available_symbols)
+    legacy_raw, synchronized_before_anchor = (
+        strategic_qualification_evidence(self, route=route, snapshots=snapshots, leaders=leaders, risk=risk)
+        if original_complete else (False, False)
     )
     route_symbols = list(route.symbols)
     quorum = evaluate_strategic_quorum(
@@ -277,25 +297,22 @@ def _grant_route_evidence(
         synchronized_full_cohort=legacy_raw,
     )
     raw = bool(
-        quorum.qualified
+        original_complete
+        and quorum.qualified
+        and quorum.route.value == grant.qualification_quorum
         and (
             quorum.route is not StrategicQuorumRoute.FULL_COHORT
             or legacy_raw
         )
     )
     symbols = route_symbols if raw else []
-    _admission_state, signature = strategic_route_signature(
-        route=route,
-        symbols=symbols,
-        leaders=leaders,
-    )
     return _GrantRouteEvidence(
         snapshots=snapshots,
         route=route,
         quorum=quorum,
         raw=raw,
         symbols=symbols,
-        signature=signature,
+        signature=grant.qualification_signature,
         synchronized_before_anchor=synchronized_before_anchor,
     )
 
@@ -307,7 +324,7 @@ def _retain_reference_blocked_grant(
     evidence: _GrantRouteEvidence,
     date: pd.Timestamp,
 ) -> bool:
-    if evidence.raw or not evidence.quorum.owner_absolute_quality:
+    if evidence.raw:
         return False
     observation = account.strategic_qualification
     observation.qualification_ready = True
@@ -352,18 +369,18 @@ def _update_revalidated_grant(
         account=account,
         risk=risk,
         admission_open=route_admission_open,
-        live_general_leaders=set(),
     )
     observation = account.strategic_qualification
     observation.candidate_symbol = grant.candidate_symbol
     if evidence.raw:
+        witnesses = list(strategic_quorum_candidate_symbols(route=evidence.route, route_symbols=evidence.symbols))
         observation.qualification_signature = evidence.signature
         observation.qualification_route = evidence.route.route
         observation.qualification_evidence_sha256 = (
             strategic_qualification_evidence_sha256(
                 date=date,
                 route=evidence.route,
-                symbols=evidence.symbols,
+                symbols=witnesses,
                 signature=evidence.signature,
                 snapshots=evidence.snapshots,
                 leaders=leaders,
@@ -371,7 +388,7 @@ def _update_revalidated_grant(
             )
         )
         observation.qualification_quorum = evidence.quorum.route.value
-        observation.candidate_symbols = sorted(evidence.symbols)
+        observation.candidate_symbols = sorted(witnesses)
         observation.unavailable_reference_symbols = list(
             evidence.quorum.unavailable_references
         )
@@ -391,6 +408,8 @@ def _grant_retry_window_elapsed(
     candidate_frame: pd.DataFrame,
     date: pd.Timestamp,
 ) -> bool:
+    if grant.healthy_retry_sessions >= MAX_STRATEGIC_GRANT_HEALTHY_RETRY_SESSIONS:
+        return True
     if evidence.raw:
         return False
     visible_since_route = sum(

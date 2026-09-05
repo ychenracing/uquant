@@ -29,7 +29,7 @@
                   "default": {
                     "kind": "dataclass",
                     "type": "uquant.config.SystemConfig",
-                    "sha256": "373132f702a15176d97822b4ef43868f50dd38823ab60daf5b45dad425ae07fd"
+                    "sha256": "b112e9a3d5cf7dc51aef84a4ed5d937bfc38c95b736713528929fac5537134b7"
                   }
                 }
               ],
@@ -1107,24 +1107,6 @@
                   "default": {
                     "kind": "value",
                     "value": -0.01
-                  }
-                },
-                {
-                  "name": "strategic_epoch_cooldown_sessions",
-                  "kind": "POSITIONAL_OR_KEYWORD",
-                  "annotation": "int",
-                  "default": {
-                    "kind": "value",
-                    "value": 30
-                  }
-                },
-                {
-                  "name": "strategic_epoch_min_symbol_change",
-                  "kind": "POSITIONAL_OR_KEYWORD",
-                  "annotation": "int",
-                  "default": {
-                    "kind": "value",
-                    "value": 1
                   }
                 },
                 {
@@ -3546,22 +3528,6 @@
                 "default": {
                   "kind": "value",
                   "value": -0.01
-                }
-              },
-              {
-                "name": "strategic_epoch_cooldown_sessions",
-                "type": "int",
-                "default": {
-                  "kind": "value",
-                  "value": 30
-                }
-              },
-              {
-                "name": "strategic_epoch_min_symbol_change",
-                "type": "int",
-                "default": {
-                  "kind": "value",
-                  "value": 1
                 }
               },
               {
@@ -5543,7 +5509,7 @@
                 "default": {
                   "kind": "dataclass",
                   "type": "uquant.config.SystemConfig",
-                  "sha256": "373132f702a15176d97822b4ef43868f50dd38823ab60daf5b45dad425ae07fd"
+                  "sha256": "b112e9a3d5cf7dc51aef84a4ed5d937bfc38c95b736713528929fac5537134b7"
                 }
               }
             ],
@@ -5934,10 +5900,81 @@
         "path": "uquant/application/decision.py",
         "public_names": [
           "DecisionEngineRuntime",
+          "assess_decision_risk",
+          "bind_decision_account_identity",
           "decide",
-          "deterministic_decision"
+          "decision_market_context",
+          "deterministic_decision",
+          "validated_decision_symbols",
+          "verify_decision_provenance"
         ],
         "functions": {
+          "assess_decision_risk": {
+            "parameters": [
+              {
+                "name": "inputs",
+                "kind": "KEYWORD_ONLY",
+                "annotation": "_DecisionInputs",
+                "default": {
+                  "kind": "required"
+                }
+              },
+              {
+                "name": "market",
+                "kind": "KEYWORD_ONLY",
+                "annotation": "_DecisionMarket",
+                "default": {
+                  "kind": "required"
+                }
+              },
+              {
+                "name": "account",
+                "kind": "KEYWORD_ONLY",
+                "annotation": "AccountState",
+                "default": {
+                  "kind": "required"
+                }
+              },
+              {
+                "name": "assess_risk_fn",
+                "kind": "KEYWORD_ONLY",
+                "annotation": "Callable[..., RiskAssessment]",
+                "default": {
+                  "kind": "required"
+                }
+              },
+              {
+                "name": "evaluate_sentinel_fn",
+                "kind": "KEYWORD_ONLY",
+                "annotation": "Callable[..., SentinelAssessment]",
+                "default": {
+                  "kind": "required"
+                }
+              }
+            ],
+            "return": "RiskAssessment"
+          },
+          "bind_decision_account_identity": {
+            "parameters": [
+              {
+                "name": "inputs",
+                "kind": "KEYWORD_ONLY",
+                "annotation": "_DecisionInputs",
+                "default": {
+                  "kind": "required"
+                }
+              },
+              {
+                "name": "account",
+                "kind": "KEYWORD_ONLY",
+                "annotation": "AccountState",
+                "default": {
+                  "kind": "required"
+                }
+              }
+            ],
+            "return": "None"
+          },
           "decide": {
             "parameters": [
               {
@@ -6024,6 +6061,43 @@
             ],
             "return": "Decision"
           },
+          "decision_market_context": {
+            "parameters": [
+              {
+                "name": "self",
+                "kind": "POSITIONAL_OR_KEYWORD",
+                "annotation": "DecisionEngineRuntime",
+                "default": {
+                  "kind": "required"
+                }
+              },
+              {
+                "name": "inputs",
+                "kind": "KEYWORD_ONLY",
+                "annotation": "_DecisionInputs",
+                "default": {
+                  "kind": "required"
+                }
+              },
+              {
+                "name": "account",
+                "kind": "KEYWORD_ONLY",
+                "annotation": "AccountState",
+                "default": {
+                  "kind": "required"
+                }
+              },
+              {
+                "name": "strategic_universe_declaration",
+                "kind": "KEYWORD_ONLY",
+                "annotation": "StrategicUniverseDeclaration | None",
+                "default": {
+                  "kind": "required"
+                }
+              }
+            ],
+            "return": "_DecisionMarket"
+          },
           "deterministic_decision": {
             "parameters": [
               {
@@ -6069,6 +6143,88 @@
               }
             ],
             "return": "tuple[Decision, AccountState]"
+          },
+          "validated_decision_symbols": {
+            "parameters": [
+              {
+                "name": "symbols",
+                "kind": "KEYWORD_ONLY",
+                "annotation": "Iterable[str]",
+                "default": {
+                  "kind": "required"
+                }
+              },
+              {
+                "name": "as_of",
+                "kind": "KEYWORD_ONLY",
+                "annotation": "str",
+                "default": {
+                  "kind": "required"
+                }
+              },
+              {
+                "name": "account",
+                "kind": "KEYWORD_ONLY",
+                "annotation": "AccountState",
+                "default": {
+                  "kind": "required"
+                }
+              }
+            ],
+            "return": "tuple[pd.Timestamp, tuple[str, ...], set[str]]"
+          },
+          "verify_decision_provenance": {
+            "parameters": [
+              {
+                "name": "self",
+                "kind": "POSITIONAL_OR_KEYWORD",
+                "annotation": "DecisionEngineRuntime",
+                "default": {
+                  "kind": "required"
+                }
+              },
+              {
+                "name": "date",
+                "kind": "KEYWORD_ONLY",
+                "annotation": "pd.Timestamp",
+                "default": {
+                  "kind": "required"
+                }
+              },
+              {
+                "name": "user_symbols",
+                "kind": "KEYWORD_ONLY",
+                "annotation": "tuple[str, ...]",
+                "default": {
+                  "kind": "required"
+                }
+              },
+              {
+                "name": "durable_symbols",
+                "kind": "KEYWORD_ONLY",
+                "annotation": "set[str]",
+                "default": {
+                  "kind": "required"
+                }
+              },
+              {
+                "name": "account",
+                "kind": "KEYWORD_ONLY",
+                "annotation": "AccountState",
+                "default": {
+                  "kind": "required"
+                }
+              },
+              {
+                "name": "code_fingerprint_fn",
+                "kind": "KEYWORD_ONLY",
+                "annotation": "Callable[[], str]",
+                "default": {
+                  "kind": "required"
+                }
+              }
+            ],
+            "return": "_DecisionInputs"
           }
         },
         "classes": {
@@ -6349,7 +6505,7 @@
                 "default": {
                   "kind": "dataclass",
                   "type": "uquant.config.SystemConfig",
-                  "sha256": "373132f702a15176d97822b4ef43868f50dd38823ab60daf5b45dad425ae07fd"
+                  "sha256": "b112e9a3d5cf7dc51aef84a4ed5d937bfc38c95b736713528929fac5537134b7"
                 }
               }
             ],
@@ -7737,7 +7893,7 @@
                 "default": {
                   "kind": "dataclass",
                   "type": "uquant.config.SystemConfig",
-                  "sha256": "373132f702a15176d97822b4ef43868f50dd38823ab60daf5b45dad425ae07fd"
+                  "sha256": "b112e9a3d5cf7dc51aef84a4ed5d937bfc38c95b736713528929fac5537134b7"
                 }
               }
             ],
@@ -8231,7 +8387,7 @@
                 "default": {
                   "kind": "dataclass",
                   "type": "uquant.config.SystemConfig",
-                  "sha256": "373132f702a15176d97822b4ef43868f50dd38823ab60daf5b45dad425ae07fd"
+                  "sha256": "b112e9a3d5cf7dc51aef84a4ed5d937bfc38c95b736713528929fac5537134b7"
                 }
               }
             ],
@@ -9131,24 +9287,6 @@
                   "default": {
                     "kind": "value",
                     "value": -0.01
-                  }
-                },
-                {
-                  "name": "strategic_epoch_cooldown_sessions",
-                  "kind": "POSITIONAL_OR_KEYWORD",
-                  "annotation": "int",
-                  "default": {
-                    "kind": "value",
-                    "value": 30
-                  }
-                },
-                {
-                  "name": "strategic_epoch_min_symbol_change",
-                  "kind": "POSITIONAL_OR_KEYWORD",
-                  "annotation": "int",
-                  "default": {
-                    "kind": "value",
-                    "value": 1
                   }
                 },
                 {
@@ -11570,22 +11708,6 @@
                 "default": {
                   "kind": "value",
                   "value": -0.01
-                }
-              },
-              {
-                "name": "strategic_epoch_cooldown_sessions",
-                "type": "int",
-                "default": {
-                  "kind": "value",
-                  "value": 30
-                }
-              },
-              {
-                "name": "strategic_epoch_min_symbol_change",
-                "type": "int",
-                "default": {
-                  "kind": "value",
-                  "value": 1
                 }
               },
               {
@@ -13032,7 +13154,7 @@
                 "default": {
                   "kind": "dataclass",
                   "type": "uquant.config.SystemConfig",
-                  "sha256": "373132f702a15176d97822b4ef43868f50dd38823ab60daf5b45dad425ae07fd"
+                  "sha256": "b112e9a3d5cf7dc51aef84a4ed5d937bfc38c95b736713528929fac5537134b7"
                 }
               }
             ],
@@ -13932,24 +14054,6 @@
                   "default": {
                     "kind": "value",
                     "value": -0.01
-                  }
-                },
-                {
-                  "name": "strategic_epoch_cooldown_sessions",
-                  "kind": "POSITIONAL_OR_KEYWORD",
-                  "annotation": "int",
-                  "default": {
-                    "kind": "value",
-                    "value": 30
-                  }
-                },
-                {
-                  "name": "strategic_epoch_min_symbol_change",
-                  "kind": "POSITIONAL_OR_KEYWORD",
-                  "annotation": "int",
-                  "default": {
-                    "kind": "value",
-                    "value": 1
                   }
                 },
                 {
@@ -16371,22 +16475,6 @@
                 "default": {
                   "kind": "value",
                   "value": -0.01
-                }
-              },
-              {
-                "name": "strategic_epoch_cooldown_sessions",
-                "type": "int",
-                "default": {
-                  "kind": "value",
-                  "value": 30
-                }
-              },
-              {
-                "name": "strategic_epoch_min_symbol_change",
-                "type": "int",
-                "default": {
-                  "kind": "value",
-                  "value": 1
                 }
               },
               {
@@ -22119,7 +22207,7 @@
                   "default": {
                     "kind": "dataclass",
                     "type": "uquant.config.SystemConfig",
-                    "sha256": "373132f702a15176d97822b4ef43868f50dd38823ab60daf5b45dad425ae07fd"
+                    "sha256": "b112e9a3d5cf7dc51aef84a4ed5d937bfc38c95b736713528929fac5537134b7"
                   }
                 }
               ],
@@ -45957,457 +46045,6 @@
         "dataclasses": {},
         "enums": {}
       },
-      "uquant.portfolio.allocation_closure": {
-        "path": "uquant/portfolio/allocation_closure.py",
-        "public_names": [
-          "close_allocation"
-        ],
-        "functions": {
-          "close_allocation": {
-            "parameters": [
-              {
-                "name": "self",
-                "kind": "POSITIONAL_OR_KEYWORD",
-                "annotation": "PortfolioAllocator",
-                "default": {
-                  "kind": "required"
-                }
-              },
-              {
-                "name": "date",
-                "kind": "KEYWORD_ONLY",
-                "annotation": "pd.Timestamp",
-                "default": {
-                  "kind": "required"
-                }
-              },
-              {
-                "name": "opportunity",
-                "kind": "KEYWORD_ONLY",
-                "annotation": "Opportunity",
-                "default": {
-                  "kind": "required"
-                }
-              },
-              {
-                "name": "risk",
-                "kind": "KEYWORD_ONLY",
-                "annotation": "RiskAssessment",
-                "default": {
-                  "kind": "required"
-                }
-              },
-              {
-                "name": "user_panel",
-                "kind": "KEYWORD_ONLY",
-                "annotation": "dict[str, pd.DataFrame]",
-                "default": {
-                  "kind": "required"
-                }
-              },
-              {
-                "name": "leaders",
-                "kind": "KEYWORD_ONLY",
-                "annotation": "dict[str, LeaderScore]",
-                "default": {
-                  "kind": "required"
-                }
-              },
-              {
-                "name": "account",
-                "kind": "KEYWORD_ONLY",
-                "annotation": "AccountState",
-                "default": {
-                  "kind": "required"
-                }
-              },
-              {
-                "name": "prices",
-                "kind": "KEYWORD_ONLY",
-                "annotation": "dict[str, float]",
-                "default": {
-                  "kind": "required"
-                }
-              },
-              {
-                "name": "state",
-                "kind": "KEYWORD_ONLY",
-                "annotation": "AllocationState",
-                "default": {
-                  "kind": "required"
-                }
-              },
-              {
-                "name": "leader_cycle_armed",
-                "kind": "KEYWORD_ONLY",
-                "annotation": "bool",
-                "default": {
-                  "kind": "required"
-                }
-              }
-            ],
-            "return": "tuple[Target, ...]"
-          }
-        },
-        "classes": {},
-        "dataclasses": {},
-        "enums": {}
-      },
-      "uquant.portfolio.allocation_opening": {
-        "path": "uquant/portfolio/allocation_opening.py",
-        "public_names": [
-          "prepare_allocation"
-        ],
-        "functions": {
-          "prepare_allocation": {
-            "parameters": [
-              {
-                "name": "self",
-                "kind": "POSITIONAL_OR_KEYWORD",
-                "annotation": "PortfolioAllocator",
-                "default": {
-                  "kind": "required"
-                }
-              },
-              {
-                "name": "date",
-                "kind": "KEYWORD_ONLY",
-                "annotation": "pd.Timestamp",
-                "default": {
-                  "kind": "required"
-                }
-              },
-              {
-                "name": "opportunity",
-                "kind": "KEYWORD_ONLY",
-                "annotation": "Opportunity",
-                "default": {
-                  "kind": "required"
-                }
-              },
-              {
-                "name": "risk",
-                "kind": "KEYWORD_ONLY",
-                "annotation": "RiskAssessment",
-                "default": {
-                  "kind": "required"
-                }
-              },
-              {
-                "name": "user_panel",
-                "kind": "KEYWORD_ONLY",
-                "annotation": "dict[str, pd.DataFrame]",
-                "default": {
-                  "kind": "required"
-                }
-              },
-              {
-                "name": "leaders",
-                "kind": "KEYWORD_ONLY",
-                "annotation": "dict[str, LeaderScore]",
-                "default": {
-                  "kind": "required"
-                }
-              },
-              {
-                "name": "account",
-                "kind": "KEYWORD_ONLY",
-                "annotation": "AccountState",
-                "default": {
-                  "kind": "required"
-                }
-              },
-              {
-                "name": "prices",
-                "kind": "KEYWORD_ONLY",
-                "annotation": "dict[str, float]",
-                "default": {
-                  "kind": "required"
-                }
-              },
-              {
-                "name": "qualification_panel",
-                "kind": "KEYWORD_ONLY",
-                "annotation": "dict[str, pd.DataFrame] | None",
-                "default": {
-                  "kind": "value",
-                  "value": null
-                }
-              },
-              {
-                "name": "qualification_leaders",
-                "kind": "KEYWORD_ONLY",
-                "annotation": "dict[str, LeaderScore] | None",
-                "default": {
-                  "kind": "value",
-                  "value": null
-                }
-              },
-              {
-                "name": "strategic_universe",
-                "kind": "KEYWORD_ONLY",
-                "annotation": "StrategicUniverseRoles | None",
-                "default": {
-                  "kind": "value",
-                  "value": null
-                }
-              }
-            ],
-            "return": "tuple[AllocationState, tuple[Target, ...] | None]"
-          }
-        },
-        "classes": {},
-        "dataclasses": {},
-        "enums": {}
-      },
-      "uquant.portfolio.allocation_protected": {
-        "path": "uquant/portfolio/allocation_protected.py",
-        "public_names": [
-          "restore_protected_allocation"
-        ],
-        "functions": {
-          "restore_protected_allocation": {
-            "parameters": [
-              {
-                "name": "self",
-                "kind": "POSITIONAL_OR_KEYWORD",
-                "annotation": "PortfolioAllocator",
-                "default": {
-                  "kind": "required"
-                }
-              },
-              {
-                "name": "risk",
-                "kind": "KEYWORD_ONLY",
-                "annotation": "RiskAssessment",
-                "default": {
-                  "kind": "required"
-                }
-              },
-              {
-                "name": "user_panel",
-                "kind": "KEYWORD_ONLY",
-                "annotation": "dict[str, pd.DataFrame]",
-                "default": {
-                  "kind": "required"
-                }
-              },
-              {
-                "name": "leaders",
-                "kind": "KEYWORD_ONLY",
-                "annotation": "dict[str, LeaderScore]",
-                "default": {
-                  "kind": "required"
-                }
-              },
-              {
-                "name": "account",
-                "kind": "KEYWORD_ONLY",
-                "annotation": "AccountState",
-                "default": {
-                  "kind": "required"
-                }
-              },
-              {
-                "name": "state",
-                "kind": "KEYWORD_ONLY",
-                "annotation": "AllocationState",
-                "default": {
-                  "kind": "required"
-                }
-              }
-            ],
-            "return": "tuple[Target, ...] | None"
-          }
-        },
-        "classes": {},
-        "dataclasses": {},
-        "enums": {}
-      },
-      "uquant.portfolio.allocation_recovery": {
-        "path": "uquant/portfolio/allocation_recovery.py",
-        "public_names": [
-          "allocate_recovery"
-        ],
-        "functions": {
-          "allocate_recovery": {
-            "parameters": [
-              {
-                "name": "self",
-                "kind": "POSITIONAL_OR_KEYWORD",
-                "annotation": "PortfolioAllocator",
-                "default": {
-                  "kind": "required"
-                }
-              },
-              {
-                "name": "date",
-                "kind": "KEYWORD_ONLY",
-                "annotation": "pd.Timestamp",
-                "default": {
-                  "kind": "required"
-                }
-              },
-              {
-                "name": "opportunity",
-                "kind": "KEYWORD_ONLY",
-                "annotation": "Opportunity",
-                "default": {
-                  "kind": "required"
-                }
-              },
-              {
-                "name": "risk",
-                "kind": "KEYWORD_ONLY",
-                "annotation": "RiskAssessment",
-                "default": {
-                  "kind": "required"
-                }
-              },
-              {
-                "name": "user_panel",
-                "kind": "KEYWORD_ONLY",
-                "annotation": "dict[str, pd.DataFrame]",
-                "default": {
-                  "kind": "required"
-                }
-              },
-              {
-                "name": "leaders",
-                "kind": "KEYWORD_ONLY",
-                "annotation": "dict[str, LeaderScore]",
-                "default": {
-                  "kind": "required"
-                }
-              },
-              {
-                "name": "account",
-                "kind": "KEYWORD_ONLY",
-                "annotation": "AccountState",
-                "default": {
-                  "kind": "required"
-                }
-              },
-              {
-                "name": "prices",
-                "kind": "KEYWORD_ONLY",
-                "annotation": "dict[str, float]",
-                "default": {
-                  "kind": "required"
-                }
-              },
-              {
-                "name": "state",
-                "kind": "KEYWORD_ONLY",
-                "annotation": "AllocationState",
-                "default": {
-                  "kind": "required"
-                }
-              },
-              {
-                "name": "leader_cycle_armed",
-                "kind": "KEYWORD_ONLY",
-                "annotation": "bool",
-                "default": {
-                  "kind": "required"
-                }
-              }
-            ],
-            "return": "tuple[Target, ...] | None"
-          }
-        },
-        "classes": {},
-        "dataclasses": {},
-        "enums": {}
-      },
-      "uquant.portfolio.allocation_tactical": {
-        "path": "uquant/portfolio/allocation_tactical.py",
-        "public_names": [
-          "allocate_tactical"
-        ],
-        "functions": {
-          "allocate_tactical": {
-            "parameters": [
-              {
-                "name": "self",
-                "kind": "POSITIONAL_OR_KEYWORD",
-                "annotation": "PortfolioAllocator",
-                "default": {
-                  "kind": "required"
-                }
-              },
-              {
-                "name": "date",
-                "kind": "KEYWORD_ONLY",
-                "annotation": "pd.Timestamp",
-                "default": {
-                  "kind": "required"
-                }
-              },
-              {
-                "name": "opportunity",
-                "kind": "KEYWORD_ONLY",
-                "annotation": "Opportunity",
-                "default": {
-                  "kind": "required"
-                }
-              },
-              {
-                "name": "risk",
-                "kind": "KEYWORD_ONLY",
-                "annotation": "RiskAssessment",
-                "default": {
-                  "kind": "required"
-                }
-              },
-              {
-                "name": "user_panel",
-                "kind": "KEYWORD_ONLY",
-                "annotation": "dict[str, pd.DataFrame]",
-                "default": {
-                  "kind": "required"
-                }
-              },
-              {
-                "name": "leaders",
-                "kind": "KEYWORD_ONLY",
-                "annotation": "dict[str, LeaderScore]",
-                "default": {
-                  "kind": "required"
-                }
-              },
-              {
-                "name": "account",
-                "kind": "KEYWORD_ONLY",
-                "annotation": "AccountState",
-                "default": {
-                  "kind": "required"
-                }
-              },
-              {
-                "name": "prices",
-                "kind": "KEYWORD_ONLY",
-                "annotation": "dict[str, float]",
-                "default": {
-                  "kind": "required"
-                }
-              },
-              {
-                "name": "state",
-                "kind": "KEYWORD_ONLY",
-                "annotation": "AllocationState",
-                "default": {
-                  "kind": "required"
-                }
-              }
-            ],
-            "return": "tuple[tuple[Target, ...] | None, bool]"
-          }
-        },
-        "classes": {},
-        "dataclasses": {},
-        "enums": {}
-      },
       "uquant.portfolio.allocator": {
         "path": "uquant/portfolio/allocator.py",
         "public_names": [
@@ -46577,388 +46214,124 @@
         "dataclasses": {},
         "enums": {}
       },
-      "uquant.portfolio.context": {
-        "path": "uquant/portfolio/context.py",
+      "uquant.portfolio.capital": {
+        "path": "uquant/portfolio/capital.py",
         "public_names": [
-          "AllocationState",
-          "ProtectedRestoration"
+          "admission_room",
+          "committed_capital"
         ],
-        "functions": {},
-        "classes": {
-          "AllocationState": {
-            "signature": {
-              "parameters": [
-                {
-                  "name": "weights_now",
-                  "kind": "POSITIONAL_OR_KEYWORD",
-                  "annotation": "dict[str, float]",
-                  "default": {
-                    "kind": "required"
-                  }
-                },
-                {
-                  "name": "equity",
-                  "kind": "POSITIONAL_OR_KEYWORD",
-                  "annotation": "float",
-                  "default": {
-                    "kind": "required"
-                  }
-                },
-                {
-                  "name": "freeze_active",
-                  "kind": "POSITIONAL_OR_KEYWORD",
-                  "annotation": "bool",
-                  "default": {
-                    "kind": "required"
-                  }
-                },
-                {
-                  "name": "general_core_symbols",
-                  "kind": "POSITIONAL_OR_KEYWORD",
-                  "annotation": "set[str]",
-                  "default": {
-                    "kind": "required"
-                  }
-                },
-                {
-                  "name": "risk_neutral_recovery_handoff",
-                  "kind": "POSITIONAL_OR_KEYWORD",
-                  "annotation": "bool",
-                  "default": {
-                    "kind": "required"
-                  }
-                },
-                {
-                  "name": "risk_neutral_recovery_transfer",
-                  "kind": "POSITIONAL_OR_KEYWORD",
-                  "annotation": "bool",
-                  "default": {
-                    "kind": "required"
-                  }
-                },
-                {
-                  "name": "level1_recovery_repair",
-                  "kind": "POSITIONAL_OR_KEYWORD",
-                  "annotation": "bool",
-                  "default": {
-                    "kind": "required"
-                  }
-                },
-                {
-                  "name": "synchronized_protected_restore",
-                  "kind": "POSITIONAL_OR_KEYWORD",
-                  "annotation": "bool",
-                  "default": {
-                    "kind": "required"
-                  }
-                },
-                {
-                  "name": "bounded_recovery_repair",
-                  "kind": "POSITIONAL_OR_KEYWORD",
-                  "annotation": "bool",
-                  "default": {
-                    "kind": "required"
-                  }
-                },
-                {
-                  "name": "confirmed_recovery_trail",
-                  "kind": "POSITIONAL_OR_KEYWORD",
-                  "annotation": "bool",
-                  "default": {
-                    "kind": "required"
-                  }
-                },
-                {
-                  "name": "confirmed_hard_risk_trail",
-                  "kind": "POSITIONAL_OR_KEYWORD",
-                  "annotation": "bool",
-                  "default": {
-                    "kind": "required"
-                  }
-                },
-                {
-                  "name": "reason_clean_caution_anchor_cap",
-                  "kind": "POSITIONAL_OR_KEYWORD",
-                  "annotation": "bool",
-                  "default": {
-                    "kind": "required"
-                  }
-                }
-              ],
-              "return": "None"
-            },
-            "methods": {},
-            "properties": []
-          },
-          "ProtectedRestoration": {
-            "signature": {
-              "parameters": [
-                {
-                  "name": "proposed",
-                  "kind": "POSITIONAL_OR_KEYWORD",
-                  "annotation": "dict[str, float]",
-                  "default": {
-                    "kind": "required"
-                  }
-                },
-                {
-                  "name": "pending_replacement_members",
-                  "kind": "POSITIONAL_OR_KEYWORD",
-                  "annotation": "set[str]",
-                  "default": {
-                    "kind": "required"
-                  }
-                },
-                {
-                  "name": "fully_repaired",
-                  "kind": "POSITIONAL_OR_KEYWORD",
-                  "annotation": "bool",
-                  "default": {
-                    "kind": "required"
-                  }
-                },
-                {
-                  "name": "restore_complete_key",
-                  "kind": "POSITIONAL_OR_KEYWORD",
-                  "annotation": "str",
-                  "default": {
-                    "kind": "required"
-                  }
-                },
-                {
-                  "name": "restore_submitted_key",
-                  "kind": "POSITIONAL_OR_KEYWORD",
-                  "annotation": "str",
-                  "default": {
-                    "kind": "required"
-                  }
-                },
-                {
-                  "name": "restore_deferred_key",
-                  "kind": "POSITIONAL_OR_KEYWORD",
-                  "annotation": "str",
-                  "default": {
-                    "kind": "required"
-                  }
-                },
-                {
-                  "name": "pending_restore_buys",
-                  "kind": "POSITIONAL_OR_KEYWORD",
-                  "annotation": "set[str]",
-                  "default": {
-                    "kind": "required"
-                  }
-                },
-                {
-                  "name": "restore_confirmation_ready",
-                  "kind": "POSITIONAL_OR_KEYWORD",
-                  "annotation": "bool",
-                  "default": {
-                    "kind": "required"
-                  }
-                },
-                {
-                  "name": "restore_expansion_deferred",
-                  "kind": "POSITIONAL_OR_KEYWORD",
-                  "annotation": "bool",
-                  "default": {
-                    "kind": "required"
-                  }
-                },
-                {
-                  "name": "economic_restore_complete",
-                  "kind": "POSITIONAL_OR_KEYWORD",
-                  "annotation": "bool",
-                  "default": {
-                    "kind": "required"
-                  }
-                },
-                {
-                  "name": "restore_submission_has_buy",
-                  "kind": "POSITIONAL_OR_KEYWORD",
-                  "annotation": "bool",
-                  "default": {
-                    "kind": "required"
-                  }
-                }
-              ],
-              "return": "None"
-            },
-            "methods": {},
-            "properties": []
-          }
-        },
-        "dataclasses": {
-          "AllocationState": {
-            "fields": [
+        "functions": {
+          "admission_room": {
+            "parameters": [
               {
-                "name": "weights_now",
-                "type": "dict[str, float]",
+                "name": "cfg",
+                "kind": "KEYWORD_ONLY",
+                "annotation": "SystemConfig",
                 "default": {
                   "kind": "required"
                 }
               },
               {
-                "name": "equity",
-                "type": "float",
+                "name": "symbol",
+                "kind": "KEYWORD_ONLY",
+                "annotation": "str",
                 "default": {
                   "kind": "required"
                 }
               },
               {
-                "name": "freeze_active",
-                "type": "bool",
+                "name": "committed",
+                "kind": "KEYWORD_ONLY",
+                "annotation": "dict[str, float]",
                 "default": {
                   "kind": "required"
                 }
               },
               {
-                "name": "general_core_symbols",
-                "type": "set[str]",
+                "name": "leaders",
+                "kind": "KEYWORD_ONLY",
+                "annotation": "dict[str, LeaderScore]",
                 "default": {
                   "kind": "required"
                 }
               },
               {
-                "name": "risk_neutral_recovery_handoff",
-                "type": "bool",
+                "name": "user_panel",
+                "kind": "KEYWORD_ONLY",
+                "annotation": "dict[str, pd.DataFrame]",
                 "default": {
                   "kind": "required"
                 }
               },
               {
-                "name": "risk_neutral_recovery_transfer",
-                "type": "bool",
+                "name": "date",
+                "kind": "KEYWORD_ONLY",
+                "annotation": "pd.Timestamp",
                 "default": {
                   "kind": "required"
                 }
               },
               {
-                "name": "level1_recovery_repair",
-                "type": "bool",
+                "name": "gross_cap",
+                "kind": "KEYWORD_ONLY",
+                "annotation": "float",
                 "default": {
                   "kind": "required"
                 }
               },
               {
-                "name": "synchronized_protected_restore",
-                "type": "bool",
+                "name": "symbol_cap",
+                "kind": "KEYWORD_ONLY",
+                "annotation": "float | None",
                 "default": {
-                  "kind": "required"
+                  "kind": "value",
+                  "value": null
                 }
               },
               {
-                "name": "bounded_recovery_repair",
-                "type": "bool",
+                "name": "concentration_cap",
+                "kind": "KEYWORD_ONLY",
+                "annotation": "float | None",
                 "default": {
-                  "kind": "required"
-                }
-              },
-              {
-                "name": "confirmed_recovery_trail",
-                "type": "bool",
-                "default": {
-                  "kind": "required"
-                }
-              },
-              {
-                "name": "confirmed_hard_risk_trail",
-                "type": "bool",
-                "default": {
-                  "kind": "required"
-                }
-              },
-              {
-                "name": "reason_clean_caution_anchor_cap",
-                "type": "bool",
-                "default": {
-                  "kind": "required"
+                  "kind": "value",
+                  "value": null
                 }
               }
-            ]
+            ],
+            "return": "float"
           },
-          "ProtectedRestoration": {
-            "fields": [
+          "committed_capital": {
+            "parameters": [
+              {
+                "name": "account",
+                "kind": "KEYWORD_ONLY",
+                "annotation": "AccountState",
+                "default": {
+                  "kind": "required"
+                }
+              },
+              {
+                "name": "prices",
+                "kind": "KEYWORD_ONLY",
+                "annotation": "dict[str, float]",
+                "default": {
+                  "kind": "required"
+                }
+              },
               {
                 "name": "proposed",
-                "type": "dict[str, float]",
-                "default": {
-                  "kind": "required"
-                }
-              },
-              {
-                "name": "pending_replacement_members",
-                "type": "set[str]",
-                "default": {
-                  "kind": "required"
-                }
-              },
-              {
-                "name": "fully_repaired",
-                "type": "bool",
-                "default": {
-                  "kind": "required"
-                }
-              },
-              {
-                "name": "restore_complete_key",
-                "type": "str",
-                "default": {
-                  "kind": "required"
-                }
-              },
-              {
-                "name": "restore_submitted_key",
-                "type": "str",
-                "default": {
-                  "kind": "required"
-                }
-              },
-              {
-                "name": "restore_deferred_key",
-                "type": "str",
-                "default": {
-                  "kind": "required"
-                }
-              },
-              {
-                "name": "pending_restore_buys",
-                "type": "set[str]",
-                "default": {
-                  "kind": "required"
-                }
-              },
-              {
-                "name": "restore_confirmation_ready",
-                "type": "bool",
-                "default": {
-                  "kind": "required"
-                }
-              },
-              {
-                "name": "restore_expansion_deferred",
-                "type": "bool",
-                "default": {
-                  "kind": "required"
-                }
-              },
-              {
-                "name": "economic_restore_complete",
-                "type": "bool",
-                "default": {
-                  "kind": "required"
-                }
-              },
-              {
-                "name": "restore_submission_has_buy",
-                "type": "bool",
+                "kind": "KEYWORD_ONLY",
+                "annotation": "dict[str, float]",
                 "default": {
                   "kind": "required"
                 }
               }
-            ]
+            ],
+            "return": "tuple[dict[str, float], float]"
           }
         },
+        "classes": {},
+        "dataclasses": {},
         "enums": {}
       },
       "uquant.portfolio.freeze": {
@@ -47589,6 +46962,14 @@
                   }
                 },
                 {
+                  "name": "late_fill_remaining_shares",
+                  "kind": "POSITIONAL_OR_KEYWORD",
+                  "annotation": "tuple[tuple[str, int], ...]",
+                  "default": {
+                    "kind": "required"
+                  }
+                },
+                {
                   "name": "active_epoch_ids",
                   "kind": "POSITIONAL_OR_KEYWORD",
                   "annotation": "tuple[str, ...]",
@@ -47676,6 +47057,13 @@
                 }
               },
               {
+                "name": "late_fill_remaining_shares",
+                "type": "tuple[tuple[str, int], ...]",
+                "default": {
+                  "kind": "required"
+                }
+              },
+              {
                 "name": "active_epoch_ids",
                 "type": "tuple[str, ...]",
                 "default": {
@@ -47719,6 +47107,7 @@
         "path": "uquant/portfolio/strategic/discovery.py",
         "public_names": [
           "StrategicPortfolioPolicy",
+          "observe_strategic_candidates",
           "resolve_strategic_qualification_inputs",
           "strategic_candidate_symbol",
           "strategic_deployment_block_reason",
@@ -47730,6 +47119,86 @@
           "strategic_route_signature"
         ],
         "functions": {
+          "observe_strategic_candidates": {
+            "parameters": [
+              {
+                "name": "self",
+                "kind": "POSITIONAL_OR_KEYWORD",
+                "annotation": "StrategicPortfolioPolicy",
+                "default": {
+                  "kind": "required"
+                }
+              },
+              {
+                "name": "date",
+                "kind": "KEYWORD_ONLY",
+                "annotation": "pd.Timestamp",
+                "default": {
+                  "kind": "required"
+                }
+              },
+              {
+                "name": "user_panel",
+                "kind": "KEYWORD_ONLY",
+                "annotation": "dict[str, pd.DataFrame]",
+                "default": {
+                  "kind": "required"
+                }
+              },
+              {
+                "name": "leaders",
+                "kind": "KEYWORD_ONLY",
+                "annotation": "dict[str, LeaderScore]",
+                "default": {
+                  "kind": "required"
+                }
+              },
+              {
+                "name": "account",
+                "kind": "KEYWORD_ONLY",
+                "annotation": "AccountState",
+                "default": {
+                  "kind": "required"
+                }
+              },
+              {
+                "name": "risk",
+                "kind": "KEYWORD_ONLY",
+                "annotation": "RiskAssessment",
+                "default": {
+                  "kind": "required"
+                }
+              },
+              {
+                "name": "qualification_panel",
+                "kind": "KEYWORD_ONLY",
+                "annotation": "dict[str, pd.DataFrame] | None",
+                "default": {
+                  "kind": "value",
+                  "value": null
+                }
+              },
+              {
+                "name": "qualification_leaders",
+                "kind": "KEYWORD_ONLY",
+                "annotation": "dict[str, LeaderScore] | None",
+                "default": {
+                  "kind": "value",
+                  "value": null
+                }
+              },
+              {
+                "name": "strategic_universe",
+                "kind": "KEYWORD_ONLY",
+                "annotation": "StrategicUniverseRoles | None",
+                "default": {
+                  "kind": "value",
+                  "value": null
+                }
+              }
+            ],
+            "return": "dict[str, dict[str, int]]"
+          },
           "resolve_strategic_qualification_inputs": {
             "parameters": [
               {
@@ -47858,14 +47327,6 @@
                 "name": "admission_open",
                 "kind": "KEYWORD_ONLY",
                 "annotation": "bool",
-                "default": {
-                  "kind": "required"
-                }
-              },
-              {
-                "name": "live_general_leaders",
-                "kind": "KEYWORD_ONLY",
-                "annotation": "set[str]",
                 "default": {
                   "kind": "required"
                 }
@@ -48328,6 +47789,14 @@
                 "name": "risk",
                 "kind": "KEYWORD_ONLY",
                 "annotation": "RiskAssessment",
+                "default": {
+                  "kind": "required"
+                }
+              },
+              {
+                "name": "user_panel",
+                "kind": "KEYWORD_ONLY",
+                "annotation": "dict[str, pd.DataFrame]",
                 "default": {
                   "kind": "required"
                 }
@@ -49414,87 +48883,6 @@
               }
             ],
             "return": "tuple[list[StrategicCashRearmPredicate], list[str]]"
-          }
-        },
-        "classes": {},
-        "dataclasses": {},
-        "enums": {}
-      },
-      "uquant.portfolio.strategic.successor": {
-        "path": "uquant/portfolio/strategic/successor.py",
-        "public_names": [
-          "observe_strategic_successor"
-        ],
-        "functions": {
-          "observe_strategic_successor": {
-            "parameters": [
-              {
-                "name": "self",
-                "kind": "POSITIONAL_OR_KEYWORD",
-                "annotation": "StrategicPortfolioPolicy",
-                "default": {
-                  "kind": "required"
-                }
-              },
-              {
-                "name": "date",
-                "kind": "KEYWORD_ONLY",
-                "annotation": "pd.Timestamp",
-                "default": {
-                  "kind": "required"
-                }
-              },
-              {
-                "name": "qualification_panel",
-                "kind": "KEYWORD_ONLY",
-                "annotation": "dict[str, pd.DataFrame]",
-                "default": {
-                  "kind": "required"
-                }
-              },
-              {
-                "name": "qualification_leaders",
-                "kind": "KEYWORD_ONLY",
-                "annotation": "dict[str, LeaderScore]",
-                "default": {
-                  "kind": "required"
-                }
-              },
-              {
-                "name": "tradable_symbols",
-                "kind": "KEYWORD_ONLY",
-                "annotation": "set[str]",
-                "default": {
-                  "kind": "required"
-                }
-              },
-              {
-                "name": "account",
-                "kind": "KEYWORD_ONLY",
-                "annotation": "AccountState",
-                "default": {
-                  "kind": "required"
-                }
-              },
-              {
-                "name": "risk",
-                "kind": "KEYWORD_ONLY",
-                "annotation": "RiskAssessment",
-                "default": {
-                  "kind": "required"
-                }
-              },
-              {
-                "name": "strategic_universe",
-                "kind": "KEYWORD_ONLY",
-                "annotation": "StrategicUniverseRoles | None",
-                "default": {
-                  "kind": "value",
-                  "value": null
-                }
-              }
-            ],
-            "return": "None"
           }
         },
         "classes": {},
@@ -68824,7 +68212,7 @@
                 "default": {
                   "kind": "dataclass",
                   "type": "uquant.config.SystemConfig",
-                  "sha256": "373132f702a15176d97822b4ef43868f50dd38823ab60daf5b45dad425ae07fd"
+                  "sha256": "b112e9a3d5cf7dc51aef84a4ed5d937bfc38c95b736713528929fac5537134b7"
                 }
               },
               {
@@ -85010,7 +84398,7 @@
                 "default": {
                   "kind": "dataclass",
                   "type": "uquant.config.SystemConfig",
-                  "sha256": "373132f702a15176d97822b4ef43868f50dd38823ab60daf5b45dad425ae07fd"
+                  "sha256": "b112e9a3d5cf7dc51aef84a4ed5d937bfc38c95b736713528929fac5537134b7"
                 }
               }
             ],
@@ -85070,7 +84458,7 @@
                 "default": {
                   "kind": "dataclass",
                   "type": "uquant.config.SystemConfig",
-                  "sha256": "373132f702a15176d97822b4ef43868f50dd38823ab60daf5b45dad425ae07fd"
+                  "sha256": "b112e9a3d5cf7dc51aef84a4ed5d937bfc38c95b736713528929fac5537134b7"
                 }
               },
               {
@@ -85129,7 +84517,7 @@
                 "default": {
                   "kind": "dataclass",
                   "type": "uquant.config.SystemConfig",
-                  "sha256": "373132f702a15176d97822b4ef43868f50dd38823ab60daf5b45dad425ae07fd"
+                  "sha256": "b112e9a3d5cf7dc51aef84a4ed5d937bfc38c95b736713528929fac5537134b7"
                 }
               },
               {
@@ -85203,7 +84591,7 @@
                 "default": {
                   "kind": "dataclass",
                   "type": "uquant.config.SystemConfig",
-                  "sha256": "373132f702a15176d97822b4ef43868f50dd38823ab60daf5b45dad425ae07fd"
+                  "sha256": "b112e9a3d5cf7dc51aef84a4ed5d937bfc38c95b736713528929fac5537134b7"
                 }
               },
               {
@@ -85514,7 +84902,7 @@
                 "default": {
                   "kind": "dataclass",
                   "type": "uquant.config.SystemConfig",
-                  "sha256": "373132f702a15176d97822b4ef43868f50dd38823ab60daf5b45dad425ae07fd"
+                  "sha256": "b112e9a3d5cf7dc51aef84a4ed5d937bfc38c95b736713528929fac5537134b7"
                 }
               },
               {
@@ -85934,7 +85322,7 @@
                 "default": {
                   "kind": "dataclass",
                   "type": "uquant.config.SystemConfig",
-                  "sha256": "373132f702a15176d97822b4ef43868f50dd38823ab60daf5b45dad425ae07fd"
+                  "sha256": "b112e9a3d5cf7dc51aef84a4ed5d937bfc38c95b736713528929fac5537134b7"
                 }
               },
               {
@@ -86042,7 +85430,7 @@
                 "default": {
                   "kind": "dataclass",
                   "type": "uquant.config.SystemConfig",
-                  "sha256": "373132f702a15176d97822b4ef43868f50dd38823ab60daf5b45dad425ae07fd"
+                  "sha256": "b112e9a3d5cf7dc51aef84a4ed5d937bfc38c95b736713528929fac5537134b7"
                 }
               }
             ],
@@ -87320,7 +86708,7 @@
                 "default": {
                   "kind": "dataclass",
                   "type": "uquant.config.SystemConfig",
-                  "sha256": "373132f702a15176d97822b4ef43868f50dd38823ab60daf5b45dad425ae07fd"
+                  "sha256": "b112e9a3d5cf7dc51aef84a4ed5d937bfc38c95b736713528929fac5537134b7"
                 }
               }
             ],
@@ -94401,8 +93789,6 @@
         "strategic_reversal_min_ret5",
         "strategic_reversal_min_median_ret20",
         "strategic_reversal_max_tech_ret120",
-        "strategic_epoch_cooldown_sessions",
-        "strategic_epoch_min_symbol_change",
         "strategic_long_cycle_min_ret20",
         "strategic_long_cycle_min_ret60",
         "strategic_long_cycle_min_ret120",
@@ -94680,8 +94066,6 @@
         "strategic_reversal_min_ret5": 0.05,
         "strategic_reversal_min_median_ret20": -0.05,
         "strategic_reversal_max_tech_ret120": -0.01,
-        "strategic_epoch_cooldown_sessions": 30,
-        "strategic_epoch_min_symbol_change": 1,
         "strategic_long_cycle_min_ret20": -0.05,
         "strategic_long_cycle_min_ret60": 0.0,
         "strategic_long_cycle_min_ret120": 0.0,
@@ -94859,7 +94243,7 @@
         "risk_overlay_enabled": true,
         "fail_closed": true
       },
-      "sha256": "c05faf292a508d825cb4aaee09de65a5fb5a8db6acae6d21348ffcbec86d954b"
+      "sha256": "5326bfbb4b307f09b61c86fd4853f9fd616210df28af2a8f98385f1f6ea97379"
     },
     "account_state_schema": {
       "schema_version": 8,
@@ -95227,593 +94611,10 @@
         "type": "RuntimeError",
         "message": "economic validation cannot start before 2023-01-01"
       }
-    },
-    "decision_fill_account_trace": {
-      "inputs": {
-        "symbols": [
-          "sz300308",
-          "sz300502",
-          "sz300394"
-        ],
-        "warmup_decision_date": "2023-01-03",
-        "signal_date": "2023-01-04",
-        "fill_date": "2023-01-05",
-        "initial_cash": 2000000.0
-      },
-      "initial_account_sha256": "94582775e008dc4c57a962c3573f7446b1c74d95e4dca075a2655cbcddbfe540",
-      "decision": {
-        "schema": "uquant.decision-control-plane.v2",
-        "date": "2023-01-04",
-        "opportunity": "CHOPPY",
-        "risk": {
-          "state": "NORMAL",
-          "target_gross_cap": 1.0,
-          "system_gross_cap": 1.0
-        },
-        "target_gross": 0.95,
-        "targets": [
-          {
-            "symbol": "sz300308",
-            "weight": 0.95,
-            "lifecycle": "CORE",
-            "reduction_policy": "FIFO",
-            "reason_code": "strategic_cohort",
-            "exit_kind": "strategy",
-            "event_id": "evt_47cdde1ff6391abf66174f2ab4bcd79d31f5ffd06bbf5b1b79bb612a55353fa6",
-            "event_signal_date": "2023-01-04",
-            "event_target_weight_hex": "0x1.e666666666666p-1",
-            "origin_subsystem": "STRATEGIC",
-            "mechanism": "STRATEGIC_COHORT",
-            "origin_lifecycle": "CORE",
-            "replaces_symbol": null,
-            "industry_at_entry": "optical",
-            "industry_manifest_sha256": "03f42c5066fb8e1c7b2f8e1b7dd38d508d8053f548ebb5596317ce587d7cffd0",
-            "grant_id": "grant_d5e5d422f8fd62ff025427b51c94da2595870e48b8d836c27371f0ed7d91dff8",
-            "epoch_id": "epoch_d2813bb20ba59e251f484229891341b4205f8cef6e01df7957609d5662b7f863"
-          }
-        ],
-        "orders": [
-          {
-            "order_id": "O000000001",
-            "signal_date": "2023-01-04",
-            "snapshot_kind": "ORIGIN",
-            "symbol": "sz300308",
-            "side": "BUY",
-            "target_weight": 0.95,
-            "reduction_policy": "FIFO",
-            "reason_code": "strategic_cohort",
-            "exit_kind": "strategy",
-            "event_id": "evt_47cdde1ff6391abf66174f2ab4bcd79d31f5ffd06bbf5b1b79bb612a55353fa6",
-            "origin_subsystem": "STRATEGIC",
-            "mechanism": "STRATEGIC_COHORT",
-            "origin_lifecycle": "CORE",
-            "replaces_symbol": null,
-            "industry_at_entry": "optical",
-            "industry_manifest_sha256": "03f42c5066fb8e1c7b2f8e1b7dd38d508d8053f548ebb5596317ce587d7cffd0",
-            "grant_id": "grant_d5e5d422f8fd62ff025427b51c94da2595870e48b8d836c27371f0ed7d91dff8",
-            "epoch_id": "epoch_d2813bb20ba59e251f484229891341b4205f8cef6e01df7957609d5662b7f863"
-          }
-        ],
-        "effective_config_sha256": "c05faf292a508d825cb4aaee09de65a5fb5a8db6acae6d21348ffcbec86d954b"
-      },
-      "fills": [
-        {
-          "signal_date": "2023-01-04",
-          "fill_date": "2023-01-05",
-          "symbol": "sz300308",
-          "side": "BUY",
-          "shares": 33600,
-          "price": 18.17816,
-          "gross_value": 610786.176,
-          "commission": 152.696544,
-          "stamp_duty": 0.0,
-          "transfer_fee": 6.1078617600000005,
-          "slippage_cost": 610.1759999999388,
-          "reason": "prequalified strategic leader cohort with staged profit protection",
-          "lifecycle": "CORE",
-          "order_id": "O000000001",
-          "fill_id": "",
-          "reduction_policy": "FIFO",
-          "reason_code": "strategic_cohort",
-          "exit_kind": "strategy",
-          "sold_tranches": [],
-          "event_id": "evt_47cdde1ff6391abf66174f2ab4bcd79d31f5ffd06bbf5b1b79bb612a55353fa6",
-          "origin_subsystem": "STRATEGIC",
-          "mechanism": "STRATEGIC_COHORT",
-          "origin_lifecycle": "CORE",
-          "replaces_symbol": null,
-          "industry_at_entry": "optical",
-          "industry_manifest_sha256": "03f42c5066fb8e1c7b2f8e1b7dd38d508d8053f548ebb5596317ce587d7cffd0",
-          "grant_id": "grant_d5e5d422f8fd62ff025427b51c94da2595870e48b8d836c27371f0ed7d91dff8",
-          "epoch_id": "epoch_d2813bb20ba59e251f484229891341b4205f8cef6e01df7957609d5662b7f863"
-        }
-      ],
-      "account_after": {
-        "initial_cash": 2000000.0,
-        "cash": 1389055.01959424,
-        "schema_version": 8,
-        "positions": {
-          "sz300308": {
-            "symbol": "sz300308",
-            "shares": 33600,
-            "avg_cost": 18.182886321599998,
-            "entry_date": "2023-01-05",
-            "highest_close": 18.24,
-            "lifecycle": "CORE",
-            "tranches": [
-              {
-                "tranche_id": "2023-01-05:sz300308:1",
-                "lifecycle": "CORE",
-                "shares": 33600,
-                "avg_cost": 18.182886321599998,
-                "entry_date": "2023-01-05",
-                "sellable_date": "2023-01-06",
-                "highest_close": 18.24,
-                "lowest_close": 18.24,
-                "mfe": 0.0,
-                "mae": 0.0,
-                "entry_score": 0.6034873411532079,
-                "entry_confidence": 1.0,
-                "entry_regime": "CHOPPY",
-                "entry_industry_strength": 0.6785000000000001,
-                "event_id": "evt_47cdde1ff6391abf66174f2ab4bcd79d31f5ffd06bbf5b1b79bb612a55353fa6",
-                "origin_subsystem": "STRATEGIC",
-                "mechanism": "STRATEGIC_COHORT",
-                "origin_lifecycle": "CORE",
-                "replaces_symbol": null,
-                "industry_at_entry": "optical",
-                "industry_manifest_sha256": "03f42c5066fb8e1c7b2f8e1b7dd38d508d8053f548ebb5596317ce587d7cffd0",
-                "grant_id": "grant_d5e5d422f8fd62ff025427b51c94da2595870e48b8d836c27371f0ed7d91dff8",
-                "epoch_id": "epoch_d2813bb20ba59e251f484229891341b4205f8cef6e01df7957609d5662b7f863"
-              }
-            ],
-            "grant_id": "grant_d5e5d422f8fd62ff025427b51c94da2595870e48b8d836c27371f0ed7d91dff8",
-            "epoch_id": "epoch_d2813bb20ba59e251f484229891341b4205f8cef6e01df7957609d5662b7f863"
-          }
-        },
-        "pending_orders": [
-          {
-            "signal_date": "2023-01-04",
-            "symbol": "sz300308",
-            "side": "BUY",
-            "target_weight": 0.95,
-            "reason": "prequalified strategic leader cohort with staged profit protection",
-            "lifecycle": "CORE",
-            "remaining_shares": 70900,
-            "attempts": 1,
-            "order_id": "",
-            "reduction_policy": "FIFO",
-            "reason_code": "strategic_cohort",
-            "exit_kind": "strategy",
-            "entry_score": 0.6034873411532079,
-            "entry_confidence": 1.0,
-            "entry_regime": "CHOPPY",
-            "entry_industry_strength": 0.6785000000000001,
-            "event_id": "evt_47cdde1ff6391abf66174f2ab4bcd79d31f5ffd06bbf5b1b79bb612a55353fa6",
-            "origin_subsystem": "STRATEGIC",
-            "mechanism": "STRATEGIC_COHORT",
-            "origin_lifecycle": "CORE",
-            "replaces_symbol": null,
-            "industry_at_entry": "optical",
-            "industry_manifest_sha256": "03f42c5066fb8e1c7b2f8e1b7dd38d508d8053f548ebb5596317ce587d7cffd0",
-            "grant_id": "grant_d5e5d422f8fd62ff025427b51c94da2595870e48b8d836c27371f0ed7d91dff8",
-            "epoch_id": "epoch_d2813bb20ba59e251f484229891341b4205f8cef6e01df7957609d5662b7f863"
-          }
-        ],
-        "order_ledger": [
-          {
-            "order_id": "O000000001",
-            "signal_date": "2023-01-04",
-            "submitted_date": "2023-01-04",
-            "symbol": "sz300308",
-            "side": "BUY",
-            "target_weight": 0.95,
-            "reason": "prequalified strategic leader cohort with staged profit protection",
-            "lifecycle": "CORE",
-            "status": "CANCELLED",
-            "requested_shares": 104500,
-            "filled_shares": 33600,
-            "remaining_shares": 70900,
-            "attempts": 1,
-            "last_update_date": "2023-01-05",
-            "last_event": "PARTIAL_REMAINDER_RELEASED",
-            "replaced_by": "",
-            "remainder_release_session": "2023-01-05",
-            "remainder_release_shares": 70900,
-            "cancel_reason": "strategic partial remainder replaced",
-            "reduction_policy": "FIFO",
-            "reason_code": "strategic_cohort",
-            "exit_kind": "strategy",
-            "entry_score": 0.6034873411532079,
-            "entry_confidence": 1.0,
-            "entry_regime": "CHOPPY",
-            "entry_industry_strength": 0.6785000000000001,
-            "event_id": "evt_47cdde1ff6391abf66174f2ab4bcd79d31f5ffd06bbf5b1b79bb612a55353fa6",
-            "origin_subsystem": "STRATEGIC",
-            "mechanism": "STRATEGIC_COHORT",
-            "origin_lifecycle": "CORE",
-            "replaces_symbol": null,
-            "industry_at_entry": "optical",
-            "industry_manifest_sha256": "03f42c5066fb8e1c7b2f8e1b7dd38d508d8053f548ebb5596317ce587d7cffd0",
-            "grant_id": "grant_d5e5d422f8fd62ff025427b51c94da2595870e48b8d836c27371f0ed7d91dff8",
-            "epoch_id": "epoch_d2813bb20ba59e251f484229891341b4205f8cef6e01df7957609d5662b7f863"
-          }
-        ],
-        "next_order_sequence": 2,
-        "fills": [
-          {
-            "signal_date": "2023-01-04",
-            "fill_date": "2023-01-05",
-            "symbol": "sz300308",
-            "side": "BUY",
-            "shares": 33600,
-            "price": 18.17816,
-            "gross_value": 610786.176,
-            "commission": 152.696544,
-            "stamp_duty": 0.0,
-            "transfer_fee": 6.1078617600000005,
-            "slippage_cost": 610.1759999999388,
-            "reason": "prequalified strategic leader cohort with staged profit protection",
-            "lifecycle": "CORE",
-            "order_id": "O000000001",
-            "fill_id": "",
-            "reduction_policy": "FIFO",
-            "reason_code": "strategic_cohort",
-            "exit_kind": "strategy",
-            "sold_tranches": [],
-            "event_id": "evt_47cdde1ff6391abf66174f2ab4bcd79d31f5ffd06bbf5b1b79bb612a55353fa6",
-            "origin_subsystem": "STRATEGIC",
-            "mechanism": "STRATEGIC_COHORT",
-            "origin_lifecycle": "CORE",
-            "replaces_symbol": null,
-            "industry_at_entry": "optical",
-            "industry_manifest_sha256": "03f42c5066fb8e1c7b2f8e1b7dd38d508d8053f548ebb5596317ce587d7cffd0",
-            "grant_id": "grant_d5e5d422f8fd62ff025427b51c94da2595870e48b8d836c27371f0ed7d91dff8",
-            "epoch_id": "epoch_d2813bb20ba59e251f484229891341b4205f8cef6e01df7957609d5662b7f863"
-          }
-        ],
-        "broker_as_of": "",
-        "opportunity": "CHOPPY",
-        "risk": "NORMAL",
-        "shock_state": "NONE",
-        "sector_shock_dates": [],
-        "sector_guard_active": false,
-        "sector_guard_started": "",
-        "sector_guard_symbols": [],
-        "sector_recovery_streak": 0,
-        "cooldown_until": "",
-        "operating_peak": 2000000.0,
-        "capital_peak": 2000000.0,
-        "leader_tenure": {
-          "sh600487": 0,
-          "sh601869": 0,
-          "sh603688": 0,
-          "sh603986": 0,
-          "sh688008": 2,
-          "sh688012": 0,
-          "sh688019": 0,
-          "sh688037": 0,
-          "sh688041": 0,
-          "sh688072": 0,
-          "sh688082": 0,
-          "sh688110": 0,
-          "sh688120": 0,
-          "sh688200": 2,
-          "sh688233": 0,
-          "sh688256": 0,
-          "sh688268": 0,
-          "sh688300": 0,
-          "sh688498": 0,
-          "sh688766": 2,
-          "sz002281": 0,
-          "sz002371": 0,
-          "sz002409": 0,
-          "sz300054": 0,
-          "sz300223": 0,
-          "sz300308": 0,
-          "sz300394": 0,
-          "sz300502": 1,
-          "sz300604": 0,
-          "sz300666": 0
-        },
-        "candidate_tenure": {
-          "strategic_long_cycle_initial_check": 1,
-          "strategic_cohort_qualification": 2,
-          "strategic_long_cycle_open": 1,
-          "leader_cycle_evidence": 0,
-          "recovery_cohort_locked": 0,
-          "recovery_cohort_graduated": 1,
-          "diversification_capped": 0,
-          "confirmed_anchor_pair": 0,
-          "confirmed_pair_balanced": 0,
-          "recovery_substitution_pending": 0,
-          "recovery_substitution_completed": 0,
-          "cross_industry_hard_risk_trail": 0,
-          "tactical_active": 0,
-          "tactical_promotable": 0,
-          "strategic_deferred_to_recovery": 0,
-          "strategic_cohort_evaluated": 1,
-          "strategic_damage_guard_active_epoch": 0,
-          "strategic_external_risk_epoch": 0,
-          "strategic_cohort_active": 1,
-          "strategic_cohort_completed": 0,
-          "strategic_cohort_started": 0,
-          "strategic_cohort_days": 1,
-          "strategic_profit_armed": 0,
-          "strategic_tail_armed": 1,
-          "strategic_early_cycle_epoch": 0,
-          "strategic_dominant_epoch": 1,
-          "strategic_dominant_profit_lock_epoch": 0
-        },
-        "replacement_tenure": {
-          "strategic_qualification:EMERGING_SECULAR:sz300308:optical,sz300394:optical:evidence=reversal_industry": 2
-        },
-        "active_leaders": [],
-        "dynamic_k": 0,
-        "last_k_change_date": "",
-        "satellite_entry_dates": {},
-        "risk_streaks": {
-          "reference_anchor_break": 0,
-          "concentrated_break": 0,
-          "market_backed_recovery_break": 0,
-          "strategic_tail_break": 0,
-          "protected_structure_normalization": 0,
-          "risk_normal": 2,
-          "risk_caution": 0,
-          "risk_risk_off": 0,
-          "risk_crisis": 0,
-          "opportunity_evidence": 0,
-          "opportunity_evidence_run": 2,
-          "recovery_stable": 0
-        },
-        "rotation_dates": [],
-        "replacement_events": [],
-        "lifecycle_events": [
-          {
-            "date": "2023-01-05",
-            "symbol": "sz300308",
-            "from": "NONE",
-            "to": "CORE",
-            "shares": 33600,
-            "reason": "prequalified strategic leader cohort with staged profit protection"
-          }
-        ],
-        "risk_events": [],
-        "account_migrations": [],
-        "anchor_weights": {},
-        "recovery_anchor_date": "",
-        "recovery_conviction_symbol": "",
-        "tactical_anchor_symbol": "",
-        "protected_weights": {},
-        "strategic_cohort_symbols": [
-          "sz300308"
-        ],
-        "strategic_cohort_targets": {
-          "sz300308": 0.95
-        },
-        "strategic_exit_bands": {},
-        "strategic_active_bands": {},
-        "strategic_restore_weights": {},
-        "strategic_epoch": 1,
-        "strategic_epochs_completed": 0,
-        "strategic_last_exit_date": "",
-        "strategic_rearm_date": "",
-        "strategic_candidate_signature": "strategic_qualification:EMERGING_SECULAR:sz300308:optical,sz300394:optical:evidence=reversal_industry",
-        "strategic_previous_symbols": [],
-        "account_identity": "account_118fc68a3efb36414a55ad945bdd0e639fa59412dc874d50edabd779733e9a04",
-        "strategic_qualification": {
-          "candidate_symbol": "sz300308",
-          "qualification_signature": "strategic_qualification:EMERGING_SECULAR:sz300308:optical,sz300394:optical:evidence=reversal_industry",
-          "qualification_route": "reversal_industry",
-          "qualification_evidence_sha256": "0c5c989c3ba83eabd120e4d774c43905ec76763398331820d75a7dcadde7e290",
-          "qualification_ready": true,
-          "deployment_blocked": false,
-          "deployment_block_reason": "",
-          "qualification_streak": 2,
-          "qualification_last_observed_session": "2023-01-04",
-          "candidate_invalidation_reason": "",
-          "qualification_quorum": "FULL_COHORT",
-          "candidate_symbols": [
-            "sz300308",
-            "sz300394"
-          ],
-          "unavailable_reference_symbols": [
-            "sz000636"
-          ],
-          "evidence_family_status": {
-            "INDUSTRY_CONFIRMATION": "CONFIRMED",
-            "MARKET_CONFIRMATION": "FAILED",
-            "OWNER_ABSOLUTE_QUALITY": "FAILED",
-            "ROBUSTNESS_CONFIRMATION": "CONFIRMED"
-          }
-        },
-        "strategic_successor_qualification": {
-          "candidate_symbol": "",
-          "qualification_signature": "",
-          "qualification_route": "",
-          "qualification_evidence_sha256": "",
-          "qualification_ready": false,
-          "deployment_blocked": false,
-          "deployment_block_reason": "",
-          "qualification_streak": 0,
-          "qualification_last_observed_session": "",
-          "candidate_invalidation_reason": "",
-          "qualification_quorum": "",
-          "candidate_symbols": [],
-          "unavailable_reference_symbols": [],
-          "evidence_family_status": {}
-        },
-        "strategic_grant": {
-          "grant_id": "grant_d5e5d422f8fd62ff025427b51c94da2595870e48b8d836c27371f0ed7d91dff8",
-          "candidate_symbol": "sz300308",
-          "qualification_signature": "strategic_qualification:EMERGING_SECULAR:sz300308:optical,sz300394:optical:evidence=reversal_industry",
-          "qualification_route": "reversal_industry",
-          "qualification_evidence_sha256": "0c5c989c3ba83eabd120e4d774c43905ec76763398331820d75a7dcadde7e290",
-          "created_session": "2023-01-04",
-          "last_eligible_session": "2023-01-04",
-          "first_submission_session": "2023-01-04",
-          "last_submission_session": "2023-01-04",
-          "healthy_retry_sessions": 0,
-          "submitted_order_ids": [
-            "O000000001"
-          ],
-          "acknowledged_order_ids": [
-            "O000000001"
-          ],
-          "filled_shares": 33600,
-          "target_weight": 0.95,
-          "status": "COMPLETED",
-          "expiry_reason": "",
-          "previous_grant_id": "",
-          "account_identity": "account_118fc68a3efb36414a55ad945bdd0e639fa59412dc874d50edabd779733e9a04",
-          "production_source_identity": "1b1b9e2a60a9899e14bb910bb0a836136912aaa5c2bcfe3b2e142d2c40cf819d",
-          "epoch_id": "epoch_d2813bb20ba59e251f484229891341b4205f8cef6e01df7957609d5662b7f863",
-          "qualification_quorum": "FULL_COHORT",
-          "authorization_id": ""
-        },
-        "flat_book_capital_repair": {
-          "repair_episode_id": "",
-          "account_identity": "",
-          "capital_budget_level": 0,
-          "repair_target_level": 0,
-          "first_observed_session": "",
-          "last_observed_session": "",
-          "last_counted_session": "",
-          "healthy_session_count": 0,
-          "required_healthy_sessions": 0,
-          "status": "BLOCKED",
-          "risk_reference_universe_identity": "",
-          "config_identity": "",
-          "predicate_results": [],
-          "rejection_reasons": [],
-          "reset_reason": "",
-          "last_reset_session": "",
-          "last_ready_session": ""
-        },
-        "strategic_cash_rearm": {
-          "observed_session": "",
-          "repair_episode_id": "",
-          "candidate_symbol": "",
-          "qualification_signature": "",
-          "qualification_route": "",
-          "qualification_quorum": "",
-          "qualification_evidence_sha256": "",
-          "capital_budget_level": 0,
-          "tradable_universe_identity": "",
-          "qualification_reference_universe_identity": "",
-          "risk_reference_universe_identity": "",
-          "point_in_time_industry_identity": "",
-          "status": "OBSERVING",
-          "authorization_id": "",
-          "authorized_session": "",
-          "consumed_grant_id": "",
-          "predicate_results": [],
-          "rejection_reasons": [],
-          "qualification_ready": false,
-          "route_consistent_absolute_quality": false,
-          "authorized": false
-        },
-        "strategic_epochs": [
-          {
-            "epoch_id": "epoch_d2813bb20ba59e251f484229891341b4205f8cef6e01df7957609d5662b7f863",
-            "owner_symbol": "sz300308",
-            "qualification_signature": "strategic_qualification:EMERGING_SECULAR:sz300308:optical,sz300394:optical:evidence=reversal_industry",
-            "qualification_route": "reversal_industry",
-            "qualification_quorum": "FULL_COHORT",
-            "grant_id": "grant_d5e5d422f8fd62ff025427b51c94da2595870e48b8d836c27371f0ed7d91dff8",
-            "opened_session": "2023-01-04",
-            "first_fill_session": "2023-01-05",
-            "active_session": "2023-01-05",
-            "closed_session": "",
-            "close_reason": "",
-            "previous_epoch_id": "",
-            "source_identity": "1b1b9e2a60a9899e14bb910bb0a836136912aaa5c2bcfe3b2e142d2c40cf819d",
-            "config_identity": "config:c05faf292a508d825cb4aaee09de65a5fb5a8db6acae6d21348ffcbec86d954b",
-            "evidence_sha256": "0c5c989c3ba83eabd120e4d774c43905ec76763398331820d75a7dcadde7e290",
-            "realized_status": "ACTIVE",
-            "target_weight": 0.95,
-            "full_weight": 0.95,
-            "account_identity": "account_118fc68a3efb36414a55ad945bdd0e639fa59412dc874d50edabd779733e9a04"
-          }
-        ],
-        "active_strategic_epoch_id": "epoch_d2813bb20ba59e251f484229891341b4205f8cef6e01df7957609d5662b7f863",
-        "protected_weight_epoch_ids": {},
-        "strategic_restore_epoch_ids": {},
-        "recovery_owner_epoch_id": "",
-        "strategic_tradable_universe_identity": "8a49d5bcb95603025e25ee45867a204285eb90a8e565eb5e8f7feef118567acf",
-        "strategic_qualification_universe_identity": "2270232b3abfb04ce8f8bd83c25cacf1e015e25a7c6220900f8ca492daa62f71",
-        "strategic_risk_universe_identity": "60cd5f2cac1c1ce31b11273f6deaf576e5474837e922d4ce63b654969c6088bc",
-        "risk_anchor_symbols": [],
-        "risk_anchor_signature": "",
-        "risk_anchor_candidate_signature": "sh688008,sh688200,sz300666",
-        "risk_anchor_candidate_streak": 1,
-        "risk_signal_state": {
-          "breadth20": 0.3746551724137931,
-          "breadth60": 0.3189224137931035,
-          "leader_failure": 0.0,
-          "correlation": 0.48836381627626513,
-          "volatility_ratio": 0.812460834469175,
-          "transition_damage": 0.3001883892152219,
-          "trend_health": 0.5960346225969062,
-          "opportunity_breadth20": 0.3793103448275862,
-          "opportunity_breadth60": 0.3103448275862069
-        },
-        "capital_budget_level": 0,
-        "capital_budget_repair_streak": 0,
-        "chronic_level": 0,
-        "chronic_streak": 0,
-        "chronic_repair_streak": 2,
-        "scout_signature": "",
-        "scout_entry_date": "",
-        "reconciliation_events": [],
-        "shock_start_date": "",
-        "shock_severity": "NORMAL",
-        "last_shock_date": "",
-        "last_successful_run": "2023-01-04",
-        "data_hash": "3dd01a8adfedd528f36c51fb6af38f628875652ebbaca677350cb827da0c8051",
-        "data_hash_as_of": "2023-01-04",
-        "data_hash_symbols": [
-          "sh000300",
-          "sh000682",
-          "sh600487",
-          "sh601869",
-          "sh603688",
-          "sh603986",
-          "sh688008",
-          "sh688012",
-          "sh688019",
-          "sh688037",
-          "sh688041",
-          "sh688072",
-          "sh688082",
-          "sh688110",
-          "sh688120",
-          "sh688200",
-          "sh688233",
-          "sh688256",
-          "sh688268",
-          "sh688300",
-          "sh688498",
-          "sh688766",
-          "sz000636",
-          "sz002281",
-          "sz002371",
-          "sz002409",
-          "sz300054",
-          "sz300223",
-          "sz300308",
-          "sz300394",
-          "sz300502",
-          "sz300604",
-          "sz300666"
-        ],
-        "code_hash": "1b1b9e2a60a9899e14bb910bb0a836136912aaa5c2bcfe3b2e142d2c40cf819d"
-      },
-      "account_after_sha256": "1131205b9837e3198efff79fe0c345e0db2ce3a2008ceaa5a1c0a358a6c9d5b0"
     }
   },
   "contract_id": "uquant-public-api-v1",
-  "contract_sha256": "c7eb22cbed0f82306bb371f3888f16ce98efbcf27922964fa30c3ac0fcd8e220",
-  "recorded_on": "2026-08-28",
+  "contract_sha256": "7e74857ada30f3a6f92317a51ed1c929957619bf18f58e9618687e9532847b84",
+  "recorded_on": "2026-09-05",
   "schema_version": 1
 }

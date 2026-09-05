@@ -3,7 +3,13 @@ from __future__ import annotations
 import tomllib
 from collections.abc import Mapping
 
-from ._analysis import ROOT, canonical_sha256, cli_help_snapshot, public_api_snapshot
+from ._analysis import (
+    ROOT,
+    canonical_sha256,
+    cli_help_snapshot,
+    public_api_snapshot,
+    public_module_names,
+)
 
 
 def test_public_names_signatures_dataclasses_enums_and_runtime_contracts_match_current_contract(
@@ -14,20 +20,11 @@ def test_public_names_signatures_dataclasses_enums_and_runtime_contracts_match_c
     assert public_api_contract["contract_sha256"] == canonical_sha256(expected)
     modules = expected["modules"]
     assert isinstance(modules, Mapping)
+    assert set(modules) == set(public_module_names())
     observed = public_api_snapshot(modules=modules)
-    observed_trace = observed["decision_fill_account_trace"]
-    expected_trace = expected["decision_fill_account_trace"]
-    assert isinstance(observed_trace, dict)
-    assert isinstance(expected_trace, Mapping)
-    observed_account = observed_trace["account_after"]
-    expected_account = expected_trace["account_after"]
-    assert isinstance(observed_account, dict)
-    assert isinstance(expected_account, Mapping)
-    from uquant.engine import code_fingerprint
-
-    assert observed_account["code_hash"] == code_fingerprint()
-    observed_account["code_hash"] = expected_account["code_hash"]
-    observed_trace["account_after_sha256"] = canonical_sha256(observed_account)
+    # Runtime targets and fills belong to strategy acceptance, not API identity.
+    # The sealed historical trace remains evidence of the superseded strategy.
+    assert "decision_fill_account_trace" not in expected
     assert observed == expected
 
 
@@ -46,7 +43,7 @@ def test_public_api_contract_uses_current_governance_identity(
         "schema_version",
     }
     assert public_api_contract["contract_id"] == "uquant-public-api-v1"
-    assert public_api_contract["recorded_on"] == "2026-08-28"
+    assert public_api_contract["recorded_on"] == "2026-09-05"
     assert public_api_contract["schema_version"] == 1
     assert baseline["commit"] == BASELINE_COMMIT
 

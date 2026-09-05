@@ -263,7 +263,7 @@ def _mark_account_positions(
             tranche.mae = min(tranche.mae, excursion)
 
 
-def _validated_decision_symbols(
+def validated_decision_symbols(
     *,
     symbols: Iterable[str],
     as_of: str,
@@ -300,7 +300,7 @@ def _validated_decision_symbols(
     return date, user_symbols, durable_symbols
 
 
-def _verify_decision_provenance(
+def verify_decision_provenance(
     self: DecisionEngineRuntime,
     *,
     date: pd.Timestamp,
@@ -346,7 +346,7 @@ def _verify_decision_provenance(
     )
 
 
-def _decision_market_context(
+def decision_market_context(
     self: DecisionEngineRuntime,
     *,
     inputs: _DecisionInputs,
@@ -438,7 +438,7 @@ def _decision_market_context(
     )
 
 
-def _assess_decision_risk(
+def assess_decision_risk(
     *,
     inputs: _DecisionInputs,
     market: _DecisionMarket,
@@ -541,7 +541,7 @@ def _allocate_decision_orders(
 ) -> _DecisionAllocation:
     # Provenance was already fail-closed above. Publishing it before allocation
     # lets any newly created grant bind the exact production source identity.
-    _bind_decision_account_identity(inputs=inputs, account=account)
+    bind_decision_account_identity(inputs=inputs, account=account)
     structural_users = {
         symbol: market.structural_leaders[symbol]
         for symbol in inputs.user_symbols
@@ -636,7 +636,7 @@ def _allocate_decision_orders(
     )
 
 
-def _bind_decision_account_identity(
+def bind_decision_account_identity(
     *,
     inputs: _DecisionInputs,
     account: AccountState,
@@ -812,12 +812,12 @@ def _decide_result(
     chronology checks succeed. Returned orders are next-open intentions;
     this method never fills them on the signal date.
     """
-    date, user_symbols, durable_symbols = _validated_decision_symbols(
+    date, user_symbols, durable_symbols = validated_decision_symbols(
         symbols=symbols,
         as_of=as_of,
         account=account,
     )
-    inputs = _verify_decision_provenance(
+    inputs = verify_decision_provenance(
         self,
         date=date,
         user_symbols=user_symbols,
@@ -825,13 +825,13 @@ def _decide_result(
         account=account,
         code_fingerprint_fn=code_fingerprint_fn,
     )
-    market = _decision_market_context(
+    market = decision_market_context(
         self,
         inputs=inputs,
         account=account,
         strategic_universe_declaration=strategic_universe_declaration,
     )
-    risk = _assess_decision_risk(
+    risk = assess_decision_risk(
         inputs=inputs,
         market=market,
         account=account,

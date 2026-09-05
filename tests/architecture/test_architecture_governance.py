@@ -40,9 +40,9 @@ from ._governance_inventory import (
 )
 from ._owner_transport import (
     architecture_portfolio_reviewed_sources,
-    expand_architecture_portfolio_pipeline,
     expand_architecture_risk_assessment,
     expand_architecture_risk_market_stage,
+    validate_combined_allocator_topology,
 )
 from ._portfolio_transport import expand_portfolio_allocator_method
 from ._reviewed_owner_transport import (
@@ -235,8 +235,8 @@ def test_architecture_test_relocation_inventory_rejects_unknown_missing_and_dupl
     (
         (
             "tests/architecture/_analysis_authorities.py",
-            '"uquant.portfolio.allocation_closure": "production_safe",',
-            '"uquant.portfolio.allocation_closure": "validation_runner",',
+            '"uquant.portfolio.pipeline": "production_safe",',
+            '"uquant.portfolio.pipeline": "validation_runner",',
         ),
         (
             "tests/architecture/_analysis_authorities.py",
@@ -623,98 +623,42 @@ def test_architecture_sentinel_legacy_projection_matches_immutable_start() -> No
         )
 
 
-def test_architecture_portfolio_pipeline_delegates_to_real_allocation_stages() -> None:
-    owners = {
-        "uquant/portfolio/allocation_opening.py": "prepare_allocation",
-        "uquant/portfolio/allocation_tactical.py": "allocate_tactical",
-        "uquant/portfolio/allocation_protected.py": "restore_protected_allocation",
-        "uquant/portfolio/allocation_recovery.py": "allocate_recovery",
-        "uquant/portfolio/allocation_closure.py": "close_allocation",
-        "uquant/portfolio/recovery/tactical_admission.py": "tactical_admission_targets",
-        "uquant/portfolio/recovery/cohort_admission.py": "cohort_admission_targets",
-    }
-    for relative, function_name in owners.items():
-        tree = ast.parse((ROOT / relative).read_text(encoding="utf-8"))
-        assert any(isinstance(node, ast.FunctionDef) and node.name == function_name for node in tree.body)
-    pipeline = ast.parse((ROOT / "uquant/portfolio/pipeline.py").read_text(encoding="utf-8"))
-    owner = next(
-        node
-        for node in pipeline.body
-        if isinstance(node, ast.FunctionDef) and node.name == "_allocate_strategy"
-    )
-    observed = [
-        node.func.id
-        for node in ast.walk(owner)
-        if isinstance(node, ast.Call) and isinstance(node.func, ast.Name)
-    ]
-    expected = list(owners.values())[:5]
-    assert [name for name in observed if name in expected] == expected
-    admission = ast.parse((ROOT / "uquant/portfolio/recovery/admission.py").read_text(encoding="utf-8"))
-    admission_calls = [
-        node.func.id
-        for node in ast.walk(admission)
-        if isinstance(node, ast.Call) and isinstance(node.func, ast.Name)
-    ]
-    expected_admission = list(owners.values())[5:]
-    assert [name for name in admission_calls if name in expected_admission] == expected_admission
+def test_architecture_portfolio_pipeline_has_one_combined_capital_owner() -> None:
+    pipeline = validate_combined_allocator_topology(root=ROOT)
+    assert pipeline.name == "_allocate_strategy"
+    from uquant.portfolio import PortfolioAllocator
+    from uquant.portfolio.pipeline import allocate_strategy
 
-
-def test_portfolio_transport_expands_exact_immutable_statement_order() -> None:
-    expanded = expand_architecture_portfolio_pipeline(root=ROOT, candidate=None)
-    immutable_source = subprocess.check_output(
-        ["git", "show", f"{ARCHITECTURE_REFERENCE_TREE}:uquant/portfolio/pipeline.py"],
-        cwd=ROOT,
-        text=True,
-    )
-    immutable = next(
-        node
-        for node in ast.parse(immutable_source).body
-        if isinstance(node, ast.FunctionDef) and node.name == "_allocate_strategy"
-    )
-    assert ast.dump(expanded, include_attributes=False) == ast.dump(
-        immutable, include_attributes=False
-    )
+    assert PortfolioAllocator._allocate_strategy is allocate_strategy
 
 
 @pytest.mark.parametrize(
-    ("relative", "original", "mutation"),
+    ("original", "mutation"),
     (
-        (
-            "uquant/portfolio/pipeline.py",
-            "risk=risk,\n        user_panel=user_panel,",
-            "risk=account,\n        user_panel=user_panel,",
-        ),
-        (
-            "uquant/portfolio/allocation_opening.py",
-            "and risk.votes <= 1",
-            "and risk.votes <= 2",
-        ),
+        ("risk=risk,\n        user_panel=user_panel,", "risk=account,\n        user_panel=user_panel,"),
+        ("proposed=proposed,\n        leaders=leaders,", "proposed=weights_now,\n        leaders=leaders,"),
+        ("committed=committed,", "committed=proposed,"),
+        ("committed_capital(account=account,", "committed_capital(account=None,"),
+        ("from .capital import admission_room, committed_capital", "from ..capital import admission_room, committed_capital"),
+        ("{**committed, symbol: current}", "{symbol: current}"),
+        ("assess_strategic_capital_authority(account)", "assess_strategic_capital_authority(None)"),
+        ("return targets", "return strategic"),
+        ("return targets", "account.cash = 0.0\n    return targets"),
+        ("return targets", "account.positions.clear()\n    return targets"),
+        ("return targets", "account.pending_orders.append(None)\n    return targets"),
     ),
 )
-def test_portfolio_transport_rejects_argument_and_body_mutations(
-    relative: str,
+def test_combined_allocator_contract_rejects_authority_and_split_book_mutations(
     original: str,
     mutation: str,
 ) -> None:
-    reviewed_sources = architecture_portfolio_reviewed_sources(root=ROOT)
-    source = reviewed_sources[relative]
+    relative = "uquant/portfolio/pipeline.py"
+    source = architecture_portfolio_reviewed_sources(root=ROOT)[relative]
     assert original in source
-    mutated = source.replace(original, mutation, 1)
-    pipeline_source = (
-        mutated
-        if relative == "uquant/portfolio/pipeline.py"
-        else reviewed_sources["uquant/portfolio/pipeline.py"]
-    )
-    candidate = next(
-        node
-        for node in ast.parse(pipeline_source).body
-        if isinstance(node, ast.FunctionDef) and node.name == "_allocate_strategy"
-    )
     with pytest.raises(AssertionError):
-        expand_architecture_portfolio_pipeline(
+        validate_combined_allocator_topology(
             root=ROOT,
-            candidate=candidate,
-            overrides={relative: mutated},
+            overrides={relative: source.replace(original, mutation, 1)},
         )
 
 

@@ -375,7 +375,7 @@ def test_blocked_recovery_replacement_retains_event_and_link_next_session() -> N
     assert merged_replacement is retained
     assert merged_replacement.replaces_symbol == "sh688008"
 
-def test_no_trade_band_equivalent_target_drift_inherits_the_active_event() -> None:
+def test_reduced_buy_target_supersedes_larger_intent_inside_no_trade_band() -> None:
     retained_identity = _identity(target_weight=0.95)
     retained = domain.PendingOrder(
         signal_date="2026-01-05",
@@ -422,10 +422,11 @@ def test_no_trade_band_equivalent_target_drift_inherits_the_active_event() -> No
         cfg=DEFAULT_CONFIG,
     )
 
-    assert target.event_id == retained.event_id
+    assert target.event_id != retained.event_id
     assert len(planned) == 1
-    assert planned[0].event_id == retained.event_id
-    assert merged == (retained,)
+    assert planned[0].target_weight == target.weight
+    assert planned[0].event_id == target.event_id
+    assert len(merged) == 1 and merged[0] is not retained
 
 def test_new_buy_without_pit_universe_membership_fails_closed() -> None:
     symbol = "sz000001"

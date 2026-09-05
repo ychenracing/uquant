@@ -86,8 +86,6 @@ INVALID_OVERRIDES: tuple[tuple[dict[str, Any], str], ...] = (
         {"leader_cycle_impulse_min_market_ret120": 0.02},
         "impulse_min_market_ret120",
     ),
-    ({"strategic_epoch_cooldown_sessions": 19}, "epoch cooldown"),
-    ({"strategic_epoch_min_symbol_change": 0}, "epoch symbol change"),
     ({"strategic_long_cycle_max_tech_ret120": 0.0}, "long_cycle_max_tech_ret120"),
     ({"strategic_persistent_max_ret120": 0.0}, "persistent_max_ret120"),
     ({"strategic_long_cycle_min_ret60": -1.0}, "long_cycle_min_ret60"),
@@ -191,7 +189,8 @@ def test_configuration_serialization_is_complete_and_detached() -> None:
     assert payload["industry_rotation_enabled"] is True
     assert payload["strategic_dynamic_enabled"] is True
     assert payload["dynamic_risk_anchors_enabled"] is True
-    assert payload["strategic_epoch_cooldown_sessions"] == 30
+    assert "strategic_epoch_cooldown_sessions" not in payload
+    assert "strategic_epoch_min_symbol_change" not in payload
     assert payload["strategic_dominant_max_weight"] == pytest.approx(0.95)
     assert payload["strategic_dominant_profit_lock_mfe"] == pytest.approx(2.20)
     assert payload["strategic_dominant_retained_gross"] == pytest.approx(0.70)
@@ -225,7 +224,7 @@ def test_configuration_serialization_is_complete_and_detached() -> None:
 
 def test_causal_confirmation_toggle_changes_current_config_identity() -> None:
     assert config_fingerprint(DEFAULT_CONFIG) == (
-        "c05faf292a508d825cb4aaee09de65a5fb5a8db6acae6d21348ffcbec86d954b"
+        "5326bfbb4b307f09b61c86fd4853f9fd616210df28af2a8f98385f1f6ea97379"
     )
     assert config_fingerprint(
         DEFAULT_CONFIG.override(risk_sentinel_causal_confirmation_enabled=True)

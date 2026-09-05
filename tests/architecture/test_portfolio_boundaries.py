@@ -29,7 +29,7 @@ from ._owner_transport import (
     architecture_private_relocation_projection,
     architecture_resource_surface_projection,
     architecture_source_surface_projection,
-    expand_architecture_portfolio_pipeline,
+    validate_combined_allocator_topology,
 )
 from ._portfolio_inventory import build_portfolio_inventory, current_reflection_contract
 from ._portfolio_trace_reference import assert_trace_seals, immutable_trace_from_archive
@@ -129,7 +129,6 @@ _ALLOCATOR_OWNER_METHODS = {
 _ALLOCATOR_PACKAGE_PATHS = (
     "uquant/portfolio/__init__.py",
     "uquant/portfolio/allocator.py",
-    "uquant/portfolio/context.py",
     "uquant/portfolio/freeze.py",
     "uquant/portfolio/pipeline.py",
     "uquant/portfolio/risk_reduction.py",
@@ -233,27 +232,6 @@ def _normalized_method(node: ast.FunctionDef) -> str:
     return ast.dump(normalized, include_attributes=False)
 
 
-def _expand_checkpoint4_pipeline(
-    candidate: ast.FunctionDef,
-    immutable: ast.FunctionDef,
-) -> ast.FunctionDef:
-    expanded = copy.deepcopy(candidate)
-    index = next(
-        index
-        for index, statement in enumerate(expanded.body)
-        if isinstance(statement, ast.Assign)
-        and isinstance(statement.value, ast.Call)
-        and isinstance(statement.value.func, ast.Name)
-        and statement.value.func.id == "_recovery_admission_targets"
-    )
-    assert ast.unparse(expanded.body[index + 1]) == (
-        "if recovery_admission_targets is not None:\n"
-        "    return recovery_admission_targets"
-    )
-    expanded.body[index : index + 2] = copy.deepcopy(immutable.body[78:82])
-    return expanded
-
-
 @pytest.fixture(scope="module")  # type: ignore[untyped-decorator]
 def immutable_portfolio_inventory() -> dict[str, Any]:
     return cast(dict[str, Any], build_portfolio_inventory(ROOT))
@@ -298,7 +276,6 @@ def candidate_portfolio_traces() -> tuple[
                 end=expected["requested_end"],
                 symbols=tuple(expected["symbols"]),
                 root=ROOT,
-                expected_records=expected["records"],
                 diagnostics=diagnostics,
             )
             for expected in payload["scenarios"]
@@ -480,7 +457,7 @@ def test_portfolio_resigned_trace_tamper_is_rejected(
 
 
 @pytest.mark.parametrize("scenario_index", range(3))  # type: ignore[untyped-decorator]
-def test_portfolio_candidate_daily_nine_checkpoint_trace_is_exact(
+def test_portfolio_candidate_daily_trace_preserves_sessions_and_checkpoint_integrity(
     candidate_portfolio_traces: tuple[
         list[dict[str, Any]], Counter[str], list[dict[str, object]]
     ],
@@ -488,10 +465,22 @@ def test_portfolio_candidate_daily_nine_checkpoint_trace_is_exact(
 ) -> None:
     payload = json.loads(_DAILY_TRACE.read_text(encoding="utf-8"))
     observed, _, diagnostics = candidate_portfolio_traces
-    assert observed[scenario_index] == payload["scenarios"][scenario_index], json.dumps(
-        diagnostics,
-        sort_keys=True,
-    )
+    current = observed[scenario_index]
+    historical = payload["scenarios"][scenario_index]
+    # The redesign intentionally supersedes old target and owner trajectories.
+    # Preserve the causal replay inputs and checkpoint coverage, not their values.
+    for field in ("name", "requested_start", "requested_end", "symbols", "record_count"):
+        assert current[field] == historical[field]
+    assert [record["date"] for record in current["records"]] == [
+        record["date"] for record in historical["records"]
+    ]
+    assert current["records_sha256"] == canonical_json_sha256(current["records"])
+    for record in current["records"]:
+        assert tuple(checkpoint["name"] for checkpoint in record["checkpoint_sha256"]) == (
+            trace_module._CHECKPOINT_NAMES
+        )
+        assert all(len(checkpoint["sha256"]) == 64 for checkpoint in record["checkpoint_sha256"])
+    assert diagnostics == []
 
 
 def test_portfolio_trace_dataframe_mismatch_reports_column_precision_digests() -> None:
@@ -542,20 +531,18 @@ def test_portfolio_trace_normalizes_only_rolling_trend_r2_backend_drift() -> Non
     assert trace_module._jsonable(left) != trace_module._jsonable(changed_feature)
 
 
-def test_portfolio_oracle_owner_event_coverage_is_nonempty_and_explicit(
+def test_portfolio_daily_trace_visits_one_combined_owner_per_decision(
     candidate_portfolio_traces: tuple[
         list[dict[str, Any]], Counter[str], list[dict[str, object]]
     ],
 ) -> None:
-    _, counts, _ = candidate_portfolio_traces
-    assert counts["_allocate_strategy"] == 60
-    assert counts["_strategic_cohort_targets"] == 40
-    assert counts["_recovery_anchor_substitution"] == 45
-    assert counts["_frozen_existing_targets"] == 21
-    assert counts["_sparse_risk_reduce"] == 1
-    assert counts["_update_leader_cycle_arm"] == 25
-    # The three windows do not reach leader target construction; the focused
-    # leader branch fixtures remain mandatory at checkpoint 2.
+    traces, counts, _ = candidate_portfolio_traces
+    decisions = sum(int(trace["record_count"]) for trace in traces)
+    assert decisions == 60
+    assert counts["_allocate_strategy"] == decisions
+    assert counts["_strategic_cohort_targets"] == decisions
+    assert counts["_recovery_anchor_substitution"] == 0
+    assert counts["_update_leader_cycle_arm"] == 0
     assert counts["_leader_targets"] == 0
 
 
@@ -567,7 +554,7 @@ def test_portfolio_allocator_real_package_owners_replace_only_portfolio_monolith
     assert (ROOT / "uquant/portfolio_recovery.py").is_file()
 
 
-def test_portfolio_allocator_moved_methods_are_immutable_ast_exact() -> None:
+def test_portfolio_allocator_preserves_risk_owners_and_validates_combined_strategy() -> None:
     immutable = _immutable_allocator_methods()
     observed: set[str] = set()
     for path, names in _ALLOCATOR_OWNER_METHODS.items():
@@ -576,20 +563,14 @@ def test_portfolio_allocator_moved_methods_are_immutable_ast_exact() -> None:
             observed.add(name)
             candidate_method = candidate[name]
             if name == "_allocate_strategy":
-                candidate_method = expand_architecture_portfolio_pipeline(
-                    root=ROOT,
-                    candidate=None,
-                )
-                candidate_method = _expand_checkpoint4_pipeline(
-                    candidate_method, immutable[name]
-                )
-            else:
-                candidate_method = expand_portfolio_allocator_method(
-                    root=ROOT,
-                    relative=path,
-                    name=name,
-                    candidate=None,
-                )
+                validate_combined_allocator_topology(root=ROOT)
+                continue
+            candidate_method = expand_portfolio_allocator_method(
+                root=ROOT,
+                relative=path,
+                name=name,
+                candidate=None,
+            )
             assert _normalized_method(candidate_method) == _normalized_method(
                 immutable[name]
             )

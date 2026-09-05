@@ -68,24 +68,24 @@ def case_symbols(
     return {"tradable": tradable, "qualification": references, "risk": references, "indexes": INDEX_SYMBOLS}
 
 
-def _diagnostic_json(value: Any) -> Any:
+def diagnostic_json(value: Any) -> Any:
     """Thaw immutable observations; preserve explicit unavailable diagnostics."""
     if is_dataclass(value) and not isinstance(value, type):
-        return {field.name: _diagnostic_json(getattr(value, field.name)) for field in fields(value)}
+        return {field.name: diagnostic_json(getattr(value, field.name)) for field in fields(value)}
     if isinstance(value, Mapping):
-        return {str(key): _diagnostic_json(item) for key, item in value.items()}
+        return {str(key): diagnostic_json(item) for key, item in value.items()}
     if isinstance(value, (list, tuple)):
-        return [_diagnostic_json(item) for item in value]
+        return [diagnostic_json(item) for item in value]
     if isinstance(value, float) and not math.isfinite(value):
         return "NaN" if math.isnan(value) else "Infinity" if value > 0 else "-Infinity"
     return value
 
 
-def _write_json(path: Path, value: Any) -> None:
+def write_json(path: Path, value: Any) -> None:
     path.write_bytes(canonical_json_bytes(value) + b"\n")
 
 
-def _identity(
+def case_identity(
     case_id: str, start: str, end: str, cfg: SystemConfig = DEFAULT_CONFIG,
 ) -> dict[str, Any]:
     return {
@@ -128,10 +128,10 @@ def run_production_case(
     case_symbols(case_id, start, extra_excluded_symbols=exclusions)
     output_dir.mkdir(parents=True, exist_ok=False)
     started = time.monotonic()
-    identity = _identity(case_id, start, end, cfg)
+    identity = case_identity(case_id, start, end, cfg)
     identity.update(effective_config=cfg.to_dict(), initial_cash=cfg.initial_cash,
                     start_session_offset=start_session_offset, extra_excluded_symbols=list(exclusions))
-    _write_json(output_dir / "identity.json", identity)
+    write_json(output_dir / "identity.json", identity)
     engine = ProductionEngine(ROOT / "data/frozen", cfg=cfg)
     engine.workspace.prepare(ReplayUniverse.from_symbols(
         tradable_symbols=(), reference_symbols=(), index_symbols=INDEX_SYMBOLS,
@@ -140,7 +140,7 @@ def run_production_case(
     sessions = sessions[(sessions >= pd.Timestamp(start)) & (sessions <= pd.Timestamp(end))][start_session_offset:]
     identity["session_dates"] = [str(date.date()) for date in sessions]
     identity["effective_start"] = identity["session_dates"][0] if len(sessions) else ""
-    _write_json(output_dir / "identity.json", identity)
+    write_json(output_dir / "identity.json", identity)
     account = AccountState.empty(cfg.initial_cash)
     equity_rows: list[tuple[pd.Timestamp, float]] = []
     daily_ledger: list[dict[str, Any]] = []
@@ -206,7 +206,7 @@ def run_production_case(
                         "flat_book_capital_repair", "active_strategic_epoch_id", "positions", "cash",
                     }
                 }
-                stream.write(canonical_json_bytes(_diagnostic_json({
+                stream.write(canonical_json_bytes(diagnostic_json({
                     "date": session, "equity": equity, "observation": observed.observation,
                     "decision": decision.canonical_payload(effective_config_sha256=identity["config_sha256"]),
                     "state": state, "new_fills": account.fills[fill_start:], "ledger": ledger_row,
@@ -220,13 +220,13 @@ def run_production_case(
                           f"{time.monotonic() - started:.1f}s", flush=True)
     except Exception as exc:  # preserve the actual failed prefix instead of dropping a case
         status, error = "REPLAY_ERROR", f"{type(exc).__name__}: {exc}"
-        (output_dir / "error.txt").write_text(traceback.format_exc(), encoding="utf-8")
+        (output_dir / "error.txt").write_text("".join(traceback.format_exception(exc)), encoding="utf-8")
     metrics: dict[str, Any] = {}
     accounting: dict[str, Any] = {"reconciled": False}
     attribution: dict[str, Any] = {}
     try:
         account_payload = account.to_dict()
-        _write_json(output_dir / "final_account.json", account_payload)
+        write_json(output_dir / "final_account.json", account_payload)
         account_from_dict(account_payload)
         if equity_rows:
             last_date = equity_rows[-1][0]
@@ -251,7 +251,7 @@ def run_production_case(
             accounting = attribution["accounting"]
             if not accounting["reconciled"]:
                 raise RuntimeError("production accounting does not reconcile")
-        latest_identity = _identity(case_id, start, end, cfg)
+        latest_identity = case_identity(case_id, start, end, cfg)
         if any(identity[key] != value for key, value in latest_identity.items()):
             raise RuntimeError("historical replay input or source identity changed during execution")
         if raw_path.exists():
@@ -262,7 +262,7 @@ def run_production_case(
     except Exception as exc:
         status = "REPLAY_ERROR"
         error = f"{error}; finalization: {type(exc).__name__}: {exc}"
-        (output_dir / "finalization-error.txt").write_text(traceback.format_exc(), encoding="utf-8")
+        (output_dir / "finalization-error.txt").write_text("".join(traceback.format_exception(exc)), encoding="utf-8")
     result = {
         "schema_version": 1, "status": status, "error": error,
         "diagnostic_only": True, "authoritative_acceptance": False, "future_holdout_used": False,
@@ -275,7 +275,7 @@ def run_production_case(
         ).hexdigest() if (output_dir / "final_account.json").exists() else "",
     }
     result["canonical_sha256"] = hashlib.sha256(canonical_json_bytes(result)).hexdigest()
-    _write_json(output_dir / "result.json", result)
+    write_json(output_dir / "result.json", result)
     print(f"{case_id}: {status}, {len(equity_rows)} sessions, {result['elapsed_seconds']:.1f}s, {error}", flush=True)
     return result
 

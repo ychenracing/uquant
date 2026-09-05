@@ -11,17 +11,31 @@ from pathlib import Path
 
 from ._governance_inventory import ARCHITECTURE_REFERENCE_TREE
 
+# The combined allocator supersedes these internal coordination owners. Historical
+# artifacts remain sealed; only the current production surface drops their paths.
+RETIRED_ALLOCATION_SOURCES = frozenset(
+    {
+        "uquant/portfolio/allocation_closure.py",
+        "uquant/portfolio/allocation_opening.py",
+        "uquant/portfolio/allocation_protected.py",
+        "uquant/portfolio/allocation_recovery.py",
+        "uquant/portfolio/allocation_tactical.py",
+        "uquant/portfolio/context.py",
+    }
+)
+_RETIRED_PORTFOLIO_PRIVATE_EDGES = frozenset(
+    {
+        "uquant.portfolio.pipeline:uquant.portfolio.recovery.admission:_recovery_admission_targets",
+    }
+)
+
 _ECONOMIC_ADDITIONS = frozenset(
     {
         "uquant/account/validation_attribution.py",
         "uquant/application/target_attribution.py",
         "uquant/attribution/validation_artifact.py",
         "uquant/attribution/validation_lots.py",
-        "uquant/portfolio/allocation_closure.py",
-        "uquant/portfolio/allocation_opening.py",
-        "uquant/portfolio/allocation_protected.py",
-        "uquant/portfolio/allocation_recovery.py",
-        "uquant/portfolio/allocation_tactical.py",
+        "uquant/portfolio/capital.py",
         "uquant/portfolio/leaders/extensions.py",
         "uquant/portfolio/recovery/cohort_admission.py",
         "uquant/portfolio/recovery/tactical_admission.py",
@@ -32,7 +46,6 @@ _ECONOMIC_ADDITIONS = frozenset(
         "uquant/portfolio/strategic/quorum.py",
         "uquant/portfolio/strategic/rearm.py",
         "uquant/portfolio/strategic/rearm_predicates.py",
-        "uquant/portfolio/strategic/successor.py",
         "uquant/models/strategic_epoch.py",
         "uquant/models/strategic_grant.py",
         "uquant/models/strategic_rearm.py",
@@ -67,6 +80,10 @@ _SENTINEL_ADDITIONS = frozenset(
 )
 _VALIDATION_ADDITIONS = frozenset(
     {
+        "research/cross_ai_acceptance.py",
+        "research/cross_ai_benchmark.py",
+        "research/cross_ai_robustness.py",
+        "research/cross_ai_strategy.py",
         "research/current_heads_competitor_matrix.py",
         "research/five_window_outperformance.py",
         "research/future_holdout_cli.py",
@@ -114,7 +131,6 @@ _VALIDATION_ADDITIONS = frozenset(
         "uquant/portfolio/strategic/quorum.py",
         "uquant/portfolio/strategic/rearm.py",
         "uquant/portfolio/strategic/rearm_predicates.py",
-        "uquant/portfolio/strategic/successor.py",
         "uquant/risk_sentinel/source_identity_archive.py",
         "uquant/validation/competitor_reference.py",
         "uquant/validation/absolute_generalization/__init__.py",
@@ -220,7 +236,7 @@ def architecture_source_surface_projection(identifier: str, historical: Set[str]
             projected.remove(previous)
             projected.add(current)
     assert not (projected & additions)
-    return projected | set(additions)
+    return (projected | set(additions)) - RETIRED_ALLOCATION_SOURCES
 
 
 def architecture_resource_surface_projection(
@@ -399,13 +415,6 @@ _RISK_RENAMED_MOVE = (
 )
 
 _PORTFOLIO_PRIVATE_MOVES = {
-    "uquant.portfolio.pipeline:uquant.portfolio.recovery.admission:_recovery_admission_targets": (
-        "uquant/portfolio/recovery/admission.py",
-        "recovery_admission_targets",
-        "_recovery_admission_targets",
-        "uquant/portfolio/allocation_recovery.py",
-        "recovery.admission",
-    ),
     "uquant.portfolio.recovery.admission:uquant.portfolio.recovery.targets:_awaiting_recovery_cohort_targets": (
         "uquant/portfolio/recovery/targets.py",
         "awaiting_recovery_cohort_targets",
@@ -452,7 +461,7 @@ def architecture_private_relocation_projection(
     expected: Set[str],
     overrides: Mapping[str, str] | None = None,
 ) -> set[str]:
-    """Project only exact public-owner moves back to their historical edge IDs."""
+    """Prove retained public-owner moves and explicitly retired pipeline edges."""
     moves = _RISK_PRIVATE_MOVES if task == 7 else _PORTFOLIO_PRIVATE_MOVES
     assert task in {7, 8}
     if task == 7:
@@ -463,6 +472,9 @@ def architecture_private_relocation_projection(
     expected_missing = set(moves)
     if task == 7:
         expected_missing.add(_RISK_RENAMED_MOVE[0])
+    else:
+        validate_combined_allocator_topology(root=root, overrides=overrides)
+        expected_missing.update(_RETIRED_PORTFOLIO_PRIVATE_EDGES)
     assert not (set(observed) - set(expected)) and missing == expected_missing
     for legacy, (owner, public, private, importer, imported_module) in moves.items():
         _alias_is_exact(_source(root, owner, overrides), public, private)
@@ -470,7 +482,6 @@ def architecture_private_relocation_projection(
             _source(root, importer, overrides),
             imported_module=imported_module,
             public=public,
-            asname=("run_recovery_admission" if public == "recovery_admission_targets" else None),
         )
         assert legacy in missing
     if task == 7:
@@ -496,160 +507,6 @@ def architecture_private_relocation_projection(
         )
         assert legacy in missing
     return set(observed) | missing
-
-
-_PIPELINE_STAGES = (
-    ("uquant/portfolio/allocation_opening.py", "prepare_allocation", 1, 38),
-    ("uquant/portfolio/allocation_tactical.py", "allocate_tactical", 38, 51),
-    (
-        "uquant/portfolio/allocation_protected.py",
-        "restore_protected_allocation",
-        51,
-        52,
-    ),
-    ("uquant/portfolio/allocation_recovery.py", "allocate_recovery", 52, 83),
-    ("uquant/portfolio/allocation_closure.py", "close_allocation", 83, 95),
-)
-_PIPELINE_CALL_GRAPH: Mapping[str, tuple[str, ...]] = {
-    "_allocate_strategy": tuple(stage[1] for stage in _PIPELINE_STAGES),
-    "prepare_allocation": (
-        "_initialize_allocation",
-        "_risk_neutral_handoff",
-        "_risk_neutral_expansion",
-        "_recovery_transfer_conditions",
-        "_repair_locked_cohort",
-        "_caution_recovery_trail",
-        "_hard_recovery_trail",
-        "_tactical_expiry_due",
-        "_bounded_recovery_conditions",
-        "_strategic_allocation",
-    ),
-    "_allocate_tactical_book": (
-        "_advance_tactical_cooldown",
-        "_active_tactical_positions",
-        "_promote_tactical_recovery",
-        "_graduate_tactical_leader",
-        "_allocate_tactical_position",
-        "_allocate_crisis",
-    ),
-    "allocate_tactical": (
-        "_allocate_frozen",
-        "_arm_leader_cycle",
-        "_allocate_tactical_book",
-    ),
-    "_protected_proposal": ("_protected_restoration_is_open",),
-    "restore_protected_allocation": (
-        "_protected_proposal",
-        "_restoration_status",
-        "_deferred_restoration_targets",
-        "_commit_restoration",
-        "_final_restoration_targets",
-    ),
-    "_trail_recovery_anchors": (
-        "_trailed_recovery_winners",
-        "_winner_trail_targets",
-    ),
-    "_allocate_owner_rearm": ("_owner_rearm_is_open",),
-    "_admit_recovery": ("run_recovery_admission",),
-    "_allocate_recovery_route": (
-        "_recovery_market",
-        "_graduate_recovery",
-        "_mature_recovery_anchor",
-        "_admit_recovery",
-        "_bounded_recovery_fallback",
-    ),
-    "allocate_recovery": (
-        "_trail_recovery_anchors",
-        "_allocate_owner_rearm",
-        "_allocate_recovery_route",
-    ),
-    "_close_live_core": ("_slow_market_owner_is_active",),
-    "close_allocation": (
-        "_allocate_armed_leader",
-        "_retain_confirmed_live_core",
-        "_close_live_core",
-    ),
-}
-_ECONOMIC_NODE_TYPES = (
-    ast.Compare,
-    ast.BoolOp,
-    ast.BinOp,
-    ast.IfExp,
-    ast.DictComp,
-    ast.SetComp,
-    ast.ListComp,
-    ast.GeneratorExp,
-    ast.Call,
-)
-
-
-class _PipelineTransportNames(ast.NodeTransformer):
-    def visit_Call(self, node: ast.Call) -> ast.AST:
-        node = self.generic_visit(node)
-        assert isinstance(node, ast.Call)
-        if isinstance(node.func, ast.Attribute) and node.func.attr == "_strategic_cohort_targets":
-            read_only_transport = {
-                "qualification_panel",
-                "qualification_leaders",
-                "strategic_universe",
-            }
-            node.keywords = [
-                keyword
-                for keyword in node.keywords
-                if keyword.arg not in read_only_transport
-            ]
-        return node
-
-    def visit_IfExp(self, node: ast.IfExp) -> ast.AST:
-        node = self.generic_visit(node)
-        assert isinstance(node, ast.IfExp)
-        dynamic_gate = ast.dump(
-            ast.parse("self.cfg.strategic_dynamic_enabled", mode="eval").body,
-            include_attributes=False,
-        )
-        if ast.dump(node.test, include_attributes=False) == dynamic_gate and any(
-            isinstance(candidate, ast.Attribute)
-            and candidate.attr == "_strategic_cohort_targets"
-            for candidate in ast.walk(node.body)
-        ):
-            node.test = ast.parse(
-                "strategic_live or strategic_observation_open",
-                mode="eval",
-            ).body
-        return node
-
-    def visit_Attribute(self, node: ast.Attribute) -> ast.AST:
-        node = self.generic_visit(node)
-        assert isinstance(node, ast.Attribute)
-        if isinstance(node.value, ast.Name) and node.value.id == "state":
-            return ast.copy_location(ast.Name(id=node.attr, ctx=node.ctx), node)
-        return node
-
-    def visit_Name(self, node: ast.Name) -> ast.AST:
-        if node.id == "run_recovery_admission":
-            return ast.copy_location(ast.Name(id="_recovery_admission_targets", ctx=node.ctx), node)
-        return node
-
-
-def _economic_nodes(statements: Sequence[ast.stmt]) -> Counter[str]:
-    return Counter(
-        ast.dump(node, include_attributes=False)
-        for statement in statements
-        for node in ast.walk(statement)
-        if isinstance(node, _ECONOMIC_NODE_TYPES)
-    )
-
-
-def _reviewed_pipeline_transport_nodes(relative: str) -> Counter[str]:
-    if relative != "uquant/portfolio/allocation_opening.py":
-        return Counter()
-    observation = ast.parse(
-        "strategic_observation_open = bool("
-        "opportunity in {Opportunity.CHOPPY, Opportunity.WEAK, "
-        "Opportunity.TREND, Opportunity.STRONG_TREND} "
-        "and risk.state is Risk.NORMAL and not freeze_active)"
-    )
-    return _economic_nodes(observation.body)
 
 
 def _function_calls(
@@ -710,117 +567,120 @@ def _validate_bound_call(
     assert required <= set(provided)
 
 
-def _validate_extra_transport_nodes(
-    extras: Counter[str],
-    *,
-    frozen: Counter[str],
-    helper_names: Set[str],
-) -> None:
-    for dumped, count in extras.items():
-        # Re-parse through a one-expression module is not possible for an AST
-        # dump; compare the small, exact transport shapes by their dump prefix.
-        if dumped.startswith("Call(func=Name(id='"):
-            name = dumped.split("'", 2)[1]
-            if name in helper_names | {
-                "AllocationState",
-                "ProtectedRestoration",
-                "strategic_cash_rearm_grant_open",
-            }:
-                continue
-            if name == "bool" and any(candidate in dumped for candidate in frozen):
-                continue
-        if (
-            dumped.startswith("Compare(left=Name(id='")
-            and ("ops=[Is()]" in dumped or "ops=[IsNot()]" in dumped)
-            and "comparators=[Constant(value=None)]" in dumped
-        ):
-            continue
-        raise AssertionError((dumped, count))
-
-
-def _architecture_start_pipeline(root: Path) -> ast.FunctionDef:
-    source = subprocess.check_output(
-        ["git", "show", f"{ARCHITECTURE_REFERENCE_TREE}:uquant/portfolio/pipeline.py"],
-        cwd=root,
-        text=True,
-    )
-    return _definitions(source)["_allocate_strategy"]
-
-
-def expand_architecture_portfolio_pipeline(
+def validate_combined_allocator_topology(
     *,
     root: Path,
-    candidate: ast.FunctionDef | None,
     overrides: Mapping[str, str] | None = None,
 ) -> ast.FunctionDef:
-    """Expand every allocation owner back to immutable statement order."""
-    overrides = architecture_portfolio_reviewed_sources(root=root, overrides=overrides)
-    frozen = _architecture_start_pipeline(root)
-    pipeline_source = _source(root, "uquant/portfolio/pipeline.py", overrides)
-    pipeline = _definitions(pipeline_source)["_allocate_strategy"]
-    if candidate is not None:
-        assert ast.dump(candidate, include_attributes=False) == ast.dump(
-            pipeline, include_attributes=False
-        )
-    sources = {
-        relative: _source(root, relative, overrides) for relative, _entry, _start, _stop in _PIPELINE_STAGES
-    }
-    definitions = {
-        name: definition for source in sources.values() for name, definition in _definitions(source).items()
-    }
-    definitions.update({stage[1]: _definitions(sources[stage[0]])[stage[1]] for stage in _PIPELINE_STAGES})
-    admission = _definitions(_source(root, "uquant/portfolio/recovery/admission.py", overrides))[
-        "_recovery_admission_targets"
-    ]
-    definitions["run_recovery_admission"] = admission
-    known = set(definitions) | {stage[1] for stage in _PIPELINE_STAGES}
-    pipeline_definitions = {"_allocate_strategy": pipeline}
-    for function_name, expected_calls in _PIPELINE_CALL_GRAPH.items():
-        function = pipeline_definitions.get(function_name, definitions.get(function_name))
-        assert function is not None
-        calls = _function_calls(function, known)
-        assert tuple(call.func.id for call in calls if isinstance(call.func, ast.Name)) == expected_calls
-        for call in calls:
-            assert isinstance(call.func, ast.Name)
-            _validate_bound_call(call, definitions[call.func.id])
+    """Validate current ownership without claiming the retired strategy is AST-exact.
 
-    normalized_sources = {
-        relative: _PipelineTransportNames().visit(copy.deepcopy(ast.parse(source, type_comments=True)))
-        for relative, source in sources.items()
-    }
-    expanded_body = [copy.deepcopy(frozen.body[0])]
-    expected_start = 1
-    for relative, _entry, start, stop in _PIPELINE_STAGES:
-        assert start == expected_start and stop > start
-        expected_start = stop
-        frozen_nodes = _economic_nodes(frozen.body[start:stop])
-        tree = normalized_sources[relative]
-        assert isinstance(tree, ast.Module)
-        current_nodes = _economic_nodes(
-            [
-                statement
-                for function in tree.body
-                if isinstance(function, ast.FunctionDef)
-                for statement in function.body
+    Runtime capital, risk and next-open fill invariants are exercised separately;
+    this gate prevents split books, misrouted authority and settlement side effects.
+    """
+    reviewed = architecture_portfolio_reviewed_sources(root=root, overrides=overrides)
+    assert RETIRED_ALLOCATION_SOURCES.isdisjoint(reviewed)
+    retired_modules = {Path(path).stem for path in RETIRED_ALLOCATION_SOURCES}
+    for source in reviewed.values():
+        for node in ast.walk(ast.parse(source)):
+            if isinstance(node, ast.ImportFrom) and node.module:
+                assert node.module.split(".")[-1] not in retired_modules
+
+    source = reviewed["uquant/portfolio/pipeline.py"]
+    _alias_is_exact(source, "allocate_strategy", "_allocate_strategy")
+    pipeline = _definitions(source)["_allocate_strategy"]
+    calls = [node for node in ast.walk(pipeline) if isinstance(node, ast.Call)]
+    for method, arguments in {
+        "_strategic_cohort_targets": ("risk", "account", "prices", "weights_now"),
+        "_targets": ("proposed", "leaders", "account"),
+        "_frozen_existing_targets": ("leaders", "account", "weights_now"),
+    }.items():
+        selected = [
+            call
+            for call in calls
+            if isinstance(call.func, ast.Attribute)
+            and ast.unparse(call.func.value) == "self"
+            and call.func.attr == method
+        ]
+        assert len(selected) == 1, method
+        keywords = {keyword.arg: ast.unparse(keyword.value) for keyword in selected[0].keywords}
+        assert all(keywords[argument] == argument for argument in arguments), method
+    returns = [node for node in ast.walk(pipeline) if isinstance(node, ast.Return)]
+    assert len(returns) == 1 and returns[0].value is not None
+    assert ast.unparse(returns[0].value) == "targets"
+    capital = _definitions(reviewed["uquant/portfolio/capital.py"])
+    for relative, level, proposed, gross_cap in (
+        ("uquant/portfolio/pipeline.py", 1, "proposed", "gross_cap"),
+        (
+            "uquant/portfolio/strategic/ownership.py", 2, "weights",
+            "min(self.cfg.max_gross, risk.target_gross_cap)",
+        ),
+    ):
+        tree = ast.parse(reviewed[relative])
+        for helper, arguments in {
+            "committed_capital": {"account": "account", "prices": "prices", "proposed": proposed},
+            "admission_room": {
+                "cfg": "self.cfg", "symbol": "symbol", "committed": "committed",
+                "leaders": "leaders", "user_panel": "user_panel", "date": "date", "gross_cap": gross_cap,
+            },
+        }.items():
+            assert helper in capital and helper not in _definitions(reviewed[relative])
+            imports = [
+                (node.level, node.module, alias.asname)
+                for node in tree.body if isinstance(node, ast.ImportFrom)
+                for alias in node.names if alias.name == helper
             ]
-        )
-        current_nodes += _reviewed_pipeline_transport_nodes(relative)
-        assert not (frozen_nodes - current_nodes), relative
-        _validate_extra_transport_nodes(
-            current_nodes - frozen_nodes,
-            frozen=frozen_nodes,
-            helper_names=set(_definitions(sources[relative])) | {"_recovery_admission_targets"},
-        )
-        expanded_body.extend(copy.deepcopy(frozen.body[start:stop]))
-    assert expected_start == len(frozen.body)
-    expanded = copy.deepcopy(pipeline)
-    expanded.args = copy.deepcopy(frozen.args)
-    expanded.decorator_list = copy.deepcopy(frozen.decorator_list)
-    expanded.returns = copy.deepcopy(frozen.returns)
-    expanded.type_comment = frozen.type_comment
-    expanded.body = expanded_body
-    assert ast.dump(expanded, include_attributes=False) == ast.dump(frozen, include_attributes=False)
-    return expanded
+            assert imports == [(level, "capital", None)]
+            helper_calls = [
+                call for call in ast.walk(tree)
+                if isinstance(call, ast.Call) and ast.unparse(call.func) == helper
+            ]
+            assert helper_calls
+            for call in helper_calls:
+                keywords = {keyword.arg: ast.unparse(keyword.value) for keyword in call.keywords}
+                expected = dict(arguments)
+                if relative == "uquant/portfolio/pipeline.py" and keywords.get("committed") == "other_commitments":
+                    assert helper == "admission_room"
+                    expected.update(
+                        committed="other_commitments",
+                        gross_cap="min(self.cfg.max_gross, risk.target_gross_cap)",
+                        symbol_cap="symbol_weight_cap(self.cfg, account, symbol)",
+                        concentration_cap="founding_cap",
+                    )
+                    for name, expression in {
+                        "other_commitments": "{**committed, symbol: current}",
+                        "current": "weights_now.get(symbol, 0.0)",
+                    }.items():
+                        values = [
+                            ast.unparse(node.value)
+                            for node in ast.walk(tree) if isinstance(node, ast.Assign)
+                            for target in node.targets if isinstance(target, ast.Name) and target.id == name
+                        ]
+                        assert values and set(values) == {expression}
+                assert all(keywords.get(name) == value for name, value in expected.items()), helper
+    authority_calls = [
+        call for call in calls if ast.unparse(call.func) == "assess_strategic_capital_authority"
+    ]
+    assert authority_calls
+    assert all([ast.unparse(argument) for argument in call.args] == ["account"] for call in authority_calls)
+    settled_fields = ("account.cash", "account.positions", "account.pending_orders")
+    mutation_methods = {"append", "clear", "extend", "insert", "pop", "remove", "setdefault", "update"}
+    capital_sources = (
+        source,
+        reviewed["uquant/portfolio/capital.py"],
+        reviewed["uquant/portfolio/strategic/ownership.py"],
+    )
+    for node in (node for text in capital_sources for node in ast.walk(ast.parse(text))):
+        if isinstance(node, (ast.Attribute, ast.Subscript)) and isinstance(node.ctx, (ast.Store, ast.Del)):
+            target = ast.unparse(node)
+            assert not target.startswith(settled_fields)
+            assert target not in {"position.shares", "position.avg_cost"}
+        if (
+            isinstance(node, ast.Call)
+            and isinstance(node.func, ast.Attribute)
+            and ast.unparse(node.func.value).startswith(settled_fields)
+        ):
+            assert node.func.attr not in mutation_methods
+    return copy.deepcopy(pipeline)
 
 
 _RISK_MARKET_CALL_GRAPH: Mapping[str, tuple[str, ...]] = {

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import hashlib
 import json
 import math
 import re
@@ -22,6 +23,7 @@ from uquant.models.strategic_epoch import StrategicEpoch
 from uquant.models.strategic_grant import StrategicGrantIntent
 from uquant.models.strategic_universe import StrategicUniverseRoles
 from uquant.models.trading import AccountOrder, Fill
+from uquant.types import AccountState
 from uquant.validation.generalization_reference import (
     load_generalization_baseline,
     load_generalization_policy,
@@ -188,18 +190,138 @@ def _ownership_contract() -> Mapping[str, object]:
     return _evidence_mapping(raw, label="strategic ownership contract")
 
 
-def _validate_grant_acceptance(raw: object) -> None:
+_CROSS_AI_CONTRACT_SHA256 = "9ec5992df69d4466cb2b26cea0e67bbe93f4c6317ba5b8a500ca7b89a75d78b4"
+
+
+def current_candidate_contract() -> Mapping[str, Any]:
+    """The frozen user acceptance authority; never a candidate binding refresh."""
+    payload = (_ROOT / "benchmarks/cross_ai_core_strategy_contract.json").read_bytes()
+    if hashlib.sha256(payload).hexdigest() != _CROSS_AI_CONTRACT_SHA256:
+        raise ValueError("current candidate cross-AI contract identity differs")
+    return cast(Mapping[str, Any], _evidence_mapping(strict_json_loads(payload), label="cross-AI contract"))
+
+
+
+def _validate_champion_physical_links(account: AccountState, trace: Sequence[Mapping[str, object]]) -> None:
+    orders = {order.order_id: order for order in account.order_ledger}
+    for row in trace:
+        if "session" in row and row["session"] != row.get("date"):
+            raise ValueError("champion runtime date/session conflict")
+        symbols = [item["symbol"] for item in cast(Sequence[Mapping[str, object]], row["targets"])]
+        if len(symbols) != len(set(symbols)):
+            raise ValueError("champion runtime duplicate symbol target")
+    targets = [(str(row["date"]), _evidence_mapping(target, label="champion target"))
+               for row in trace for target in _evidence_sequence(row.get("targets"), label="targets")]
+    event_owners: dict[str, tuple[object, object, object]] = {}
+    for _session, target in targets:
+        event = _evidence_text(target.get("event_id", ""), label="target event", empty=True)
+        if event:
+            owner = (target.get("symbol"), target.get("grant_id", ""), target.get("epoch_id", ""))
+            if event_owners.setdefault(event, owner) != owner:
+                raise ValueError("champion runtime event aliases distinct economic owners")
+    traced_orders = [(str(row["date"]), _evidence_mapping(order, label="champion order"))
+                     for row in trace for order in _evidence_sequence(row.get("orders"), label="orders")]
+    for order in account.order_ledger:
+        matching = [(session, item) for session, item in traced_orders if item.get("order_id") == order.order_id]
+        if not matching or not any(
+            (item.get("symbol"), item.get("side"), item.get("event_id"), item.get("grant_id"),
+             item.get("epoch_id"), item.get("signal_date"), item.get("target_weight"))
+            == (order.symbol, order.side, order.event_id, order.grant_id, order.epoch_id,
+                order.signal_date, round(order.target_weight, 12)) for _session, item in matching
+        ):
+            raise ValueError("champion runtime physical order lacks its traced economic identity")
+        if not any(session <= min(date for date, _item in matching)
+                   and (target.get("symbol"), target.get("event_id", ""), target.get("grant_id", ""), target.get("epoch_id", ""))
+                   == (order.symbol, order.event_id, order.grant_id, order.epoch_id)
+                   and (order.side != "BUY" or _evidence_number(target.get("weight"), label="target weight") > 0)
+                   for session, target in targets):
+            raise ValueError("champion runtime physical order lacks its causal target")
+        if sum(fill.shares for fill in account.fills if fill.order_id == order.order_id) != order.filled_shares:
+            raise ValueError("champion runtime physical filled quantity differs")
+    for fill in account.fills:
+        filled_order = orders.get(fill.order_id)
+        if (filled_order is None or
+                (fill.symbol, fill.side, fill.event_id, fill.grant_id, fill.epoch_id, fill.signal_date)
+                != (filled_order.symbol, filled_order.side, filled_order.event_id, filled_order.grant_id,
+                    filled_order.epoch_id, filled_order.signal_date)
+                or not filled_order.signal_date < fill.fill_date
+                or fill.shares <= 0):
+            raise ValueError("champion runtime fill lacks a causal matching physical order")
+
+
+def current_candidate_champion_evidence(result: Mapping[str, object]) -> dict[str, object]:
+    """Measure a current path from raw accounting; preserve old paths only as comparisons."""
+    contract = current_candidate_contract()
+    baseline = cast(Mapping[str, Any], _grant_contract()["baseline"])
+    ignored = frozenset(str(item) for item in cast(Sequence[object], _grant_contract()["ignored_non_economic_fields"]))
+    claims = derive_champion_runtime_claims(result, ignored)
+    report, completion = derive_report_runtime_claims(result, baseline["symbols"])
+    account_raw = decode_champion_account(_evidence_mapping(result.get("final_account"), label="champion account"))
+    account = account_from_dict(account_raw, require_hashes=False)
+    trace = tuple(_evidence_mapping(item, label="champion decision")
+                  for item in _evidence_sequence(result.get("decision_trace"), label="champion decisions"))
+    sessions = tuple(_evidence_date(row.get("date"), label="champion session") for row in trace)
+    _strict_sessions(sessions, label="champion")
+    if [sessions[0], sessions[-1]] != contract["windows"]["continuous_ai_era"]:
+        raise ValueError("current candidate champion interval differs")
+    _validate_champion_physical_links(account, trace)
+    if not account.fills:
+        raise ValueError("current candidate champion has no real fills")
+    for epoch in account.strategic_epochs:
+        if not epoch.first_fill_session:
+            continue
+        fills = [fill for fill in account.fills if fill.epoch_id == epoch.epoch_id
+                 and fill.grant_id == epoch.grant_id and fill.symbol == epoch.owner_symbol
+                 and fill.side == "BUY" and fill.shares > 0]
+        if not fills or min(fill.fill_date for fill in fills) != epoch.first_fill_session:
+            raise ValueError("current candidate epoch has no matching real first fill")
+        if epoch.active_session and epoch.active_session < epoch.first_fill_session:
+            raise ValueError("current candidate epoch activation precedes real fill")
+    metrics = dict(cast(Mapping[str, object], claims["metrics"]))
+    metrics.update(fees=sum(fill.commission + fill.stamp_duty + fill.transfer_fee for fill in account.fills),
+                   slippage_cost=sum(fill.slippage_cost for fill in account.fills),
+                   gross_turnover=sum(fill.gross_value for fill in account.fills) / account.initial_cash)
+    t = contract["thresholds"]
+    violations = []
+    for key, limit, upper in (("final_wealth", t["champion_minimum_final_wealth"], False),
+                              ("max_drawdown", t["champion_maximum_drawdown"], True),
+                              ("account_orders", t["champion_maximum_orders"], True)):
+        value = _evidence_number(metrics[key], label=key)
+        if (value > limit) if upper else (value < limit):
+            violations.append(f"current candidate champion {key} violates frozen limit")
+    if _evidence_integer(claims["incumbent_epoch_count"], label="filled epochs") < 1:
+        violations.append("current candidate champion has no real strategic participation")
+    violations.extend(f"current candidate champion duplicate {label}"
+                      for label in ("grant", "order", "epoch") if claims[f"duplicate_{label}_count"] != 0)
+    first_positive = next((str(row["date"]) for row in trace
+                           if _evidence_number(row.get("target_gross"), label="target gross") > 0), "")
+    if not first_positive:
+        violations.append("current candidate champion has no positive target")
+    return {
+        "acceptance_basis": {"mode": "current_candidate", "contract_id": contract["contract_id"],
+                             "contract_sha256": _CROSS_AI_CONTRACT_SHA256,
+                             "production_source_sha256": account.code_hash},
+        "first_positive_target_session": first_positive, "metrics": metrics,
+        "sha256": claims["path_sha256"], "physical_fills": len(account.fills),
+        "incumbent_epoch_count": claims["incumbent_epoch_count"],
+        "successor_capital_before_incumbent_exit_count": claims["successor_capital_before_incumbent_exit_count"],
+        "duplicate_grant_count": claims["duplicate_grant_count"],
+        "duplicate_order_count": claims["duplicate_order_count"],
+        "duplicate_epoch_count": claims["duplicate_epoch_count"],
+        "accounting": report, "completion": completion, "violations": violations,
+        "historical_comparison": {"path_matches": claims["path_sha256"] == baseline["expected_sha256"],
+                                  "first_positive_matches": first_positive == baseline["expected_first_positive_target_session"]},
+    }
+
+
+def _validate_grant_acceptance(raw: object, champion_run: Mapping[str, object], *, expected_source: str) -> None:
     evidence = _evidence_mapping(raw, label="strategic grant acceptance")
     _evidence_fields(evidence, {"baseline"}, label="strategic grant acceptance")
-    contract = _grant_contract()
-    baseline_contract = _evidence_mapping(contract["baseline"], label="grant baseline")
-    expected_baseline = {
-        "first_positive_target_session": baseline_contract["expected_first_positive_target_session"],
-        "metrics": baseline_contract["expected_metrics"],
-        "sha256": baseline_contract["expected_sha256"],
-    }
-    if evidence["baseline"] != expected_baseline:
-        raise ValueError("absolute generalization strategic grant baseline evidence differs")
+    expected = current_candidate_champion_evidence(champion_run)
+    if cast(Mapping[str, object], expected["acceptance_basis"])["production_source_sha256"] != expected_source:
+        raise ValueError("absolute generalization champion raw account source differs")
+    if evidence["baseline"] != expected:
+        raise ValueError("absolute generalization strategic grant current candidate evidence differs")
 
 
 def _validate_ownership_identity(
@@ -433,7 +555,10 @@ def validate_champion_evidence(raw: object, contract: AbsoluteGeneralizationCont
 
     champion = _evidence_mapping(raw, label="champion")
     _evidence_fields(champion, _CHAMPION_FIELDS, label="champion")
-    _validate_grant_acceptance(champion["strategic_grant_acceptance"])
+    ownership = _evidence_mapping(champion["strategic_ownership_acceptance"], label="ownership acceptance")
+    _validate_grant_acceptance(champion["strategic_grant_acceptance"],
+                               _evidence_mapping(ownership["champion"], label="ownership champion"),
+                               expected_source=contract.candidate.production_source_sha256)
     _validate_ownership_acceptance(champion["strategic_ownership_acceptance"], contract, champion)
     _validate_relative_policy_reference(champion["relative_policy_reference"])
     evidence_sha256 = _evidence_sha(champion["evidence_sha256"], label="champion evidence")

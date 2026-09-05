@@ -24,10 +24,10 @@ from ...types import (
     Target,
 )
 from .discovery import (
-    resolve_strategic_qualification_inputs,
+    observe_strategic_candidates,
 )
 from .grant_lifecycle import revalidate_strategic_grant
-from .successor import observe_strategic_successor
+from .qualification_candidates import reset_strategic_candidate_eligibility
 
 if TYPE_CHECKING:
     from .discovery import StrategicPortfolioPolicy
@@ -98,6 +98,7 @@ def _bounded_strategic_restore_risk_open(
 
 def _retire_strategic_member(account: AccountState, symbol: str) -> None:
     """Remove every live intent owned by one completed cohort member."""
+    reset_strategic_candidate_eligibility(account=account, symbol=symbol)
     account.strategic_cohort_targets.pop(symbol, None)
     account.strategic_exit_bands.pop(symbol, None)
     account.strategic_active_bands.pop(symbol, None)
@@ -141,9 +142,7 @@ def _complete_empty_strategic_cohort(
     account.strategic_restore_weights.clear()
     account.strategic_epochs_completed += 1
     account.strategic_last_exit_date = str(date.date())
-    account.strategic_rearm_date = str(
-        (date + pd.offsets.BDay(self.cfg.strategic_epoch_cooldown_sessions)).date()
-    )
+    account.strategic_rearm_date = ""
     account.strategic_previous_symbols = list(account.strategic_cohort_symbols)
     account.strategic_cohort_symbols.clear()
     account.strategic_candidate_signature = ""
@@ -359,6 +358,7 @@ def _advance_strategic_exit(
                     - _strategic_exit_step(ctx, symbol=symbol, row=row) / band_count,
                 )
     if sum(bands) <= 1e-12:
+        reset_strategic_candidate_eligibility(account=account, symbol=symbol)
         account.strategic_cohort_targets.pop(symbol, None)
 
 
@@ -637,10 +637,15 @@ def _strategic_cohort_targets(
     Five neighboring ATR exit bands share one position and one final target.
     The bands smooth discrete signal dates without creating sleeves or orders;
     the execution planner still receives only one target weight per symbol. A
-    completed epoch may re-arm only after the configured cooldown and a
-    materially changed causal cohort signature.
+    exited candidate must rebuild its own causal qualification. Other
+    candidates continue confirmation against the same account-level risk.
     """
 
+    observe_strategic_candidates(
+        self, date=date, user_panel=user_panel, leaders=leaders, account=account, risk=risk,
+        qualification_panel=qualification_panel, qualification_leaders=qualification_leaders,
+        strategic_universe=strategic_universe,
+    )
     grant_revalidated, invalidated_targets = _revalidated_strategic_targets(
         self,
         date=date,
@@ -663,17 +668,6 @@ def _strategic_cohort_targets(
         account=account,
         risk=risk,
         admission_open=admission_open,
-        qualification_panel=qualification_panel,
-        qualification_leaders=qualification_leaders,
-        strategic_universe=strategic_universe,
-    )
-    _observe_active_strategic_successor(
-        self,
-        date=date,
-        user_panel=user_panel,
-        leaders=leaders,
-        account=account,
-        risk=risk,
         qualification_panel=qualification_panel,
         qualification_leaders=qualification_leaders,
         strategic_universe=strategic_universe,
@@ -780,40 +774,6 @@ def _revalidated_strategic_targets(
         current_selected=dict(account.strategic_cohort_targets),
     )
     return False, targets
-
-
-def _observe_active_strategic_successor(
-    self: StrategicPortfolioPolicy,
-    *,
-    date: pd.Timestamp,
-    user_panel: dict[str, pd.DataFrame],
-    leaders: dict[str, LeaderScore],
-    account: AccountState,
-    risk: RiskAssessment,
-    qualification_panel: dict[str, pd.DataFrame] | None,
-    qualification_leaders: dict[str, LeaderScore] | None,
-    strategic_universe: StrategicUniverseRoles | None,
-) -> None:
-    if not account.active_strategic_epoch_id:
-        return
-    resolved_panel, resolved_leaders, resolved_universe = resolve_strategic_qualification_inputs(
-        date=date,
-        user_panel=user_panel,
-        leaders=leaders,
-        qualification_panel=qualification_panel,
-        qualification_leaders=qualification_leaders,
-        strategic_universe=strategic_universe,
-    )
-    observe_strategic_successor(
-        self,
-        date=date,
-        qualification_panel=resolved_panel,
-        qualification_leaders=resolved_leaders,
-        tradable_symbols=set(user_panel),
-        account=account,
-        risk=risk,
-        strategic_universe=resolved_universe,
-    )
 
 
 def _promote_filled_strategic_epoch(

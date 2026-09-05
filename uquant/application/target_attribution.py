@@ -31,6 +31,7 @@ def _retained_partial_buy(
         retained is not None
         and retained.side == Side.BUY.value
         and target.weight > 1e-12
+        and target.weight + 1e-12 >= retained.target_weight
         and abs(retained.target_weight - target.weight) < cfg.min_trade_weight
         and retained.lifecycle == target.lifecycle
         and retained.reduction_policy == target.reduction_policy
@@ -52,6 +53,7 @@ def _retained_target_identity(
     return bool(
         retained is not None
         and abs(retained.target_weight - target.weight) < cfg.min_trade_weight
+        and (retained.side != Side.BUY.value or target.weight + 1e-12 >= retained.target_weight)
         and retained.lifecycle == target.lifecycle
         and retained.reduction_policy == target.reduction_policy
         and retained.origin_subsystem == target.origin_subsystem
@@ -119,6 +121,12 @@ def _attribute_target(
     universe: AIUniverse,
     cfg: SystemConfig,
 ) -> Target:
+    if (
+        retained is not None and retained.side == Side.BUY.value
+        and target.weight + 1e-12 < retained.target_weight
+        and target.event_id == retained.event_id
+    ):
+        target = replace(target, event_id="")
     if target.event_id:
         return target
     reused = _reuse_retained_attribution(target, retained, cfg)

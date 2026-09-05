@@ -147,16 +147,20 @@ def allocate(
         strategic_universe=strategic_universe,
     )
     if sentinel_only_freeze:
-        account.strategic_qualification = deepcopy(
-            strategy_account.strategic_qualification
-        )
+        account.strategic_qualification = deepcopy(strategy_account.strategic_qualification)
+        account.flat_book_capital_repair = deepcopy(strategy_account.flat_book_capital_repair)
+        for key, value in strategy_account.replacement_tenure.items():
+            if key.startswith(("strategic_qualification:", "strategic_eligibility:")):
+                account.replacement_tenure[key] = value
+        for key in (
+            "strategic_cohort_qualification",
+            "strategic_long_cycle_open",
+            "strategic_eligibility_session",
+            "strategic_repair_observed_session",
+        ):
+            if key in strategy_account.candidate_tenure:
+                account.candidate_tenure[key] = strategy_account.candidate_tenure[key]
         if account.strategic_qualification.candidate_symbol:
-            for key, value in strategy_account.replacement_tenure.items():
-                if key.startswith("strategic_qualification:"):
-                    account.replacement_tenure[key] = value
-            for key in ("strategic_cohort_qualification", "strategic_long_cycle_open"):
-                if key in strategy_account.candidate_tenure:
-                    account.candidate_tenure[key] = strategy_account.candidate_tenure[key]
             account.strategic_qualification.deployment_blocked = True
             account.strategic_qualification.deployment_block_reason = "freeze_new_risk"
         weights_now, _ = current_weights(account, prices)

@@ -90,6 +90,7 @@ def _find_retained_buy_identity(
             if order.side == Side.BUY.value
             and order.symbol == target.symbol
             and abs(order.target_weight - target.weight) < cfg.min_trade_weight
+            and target.weight + 1e-12 >= order.target_weight
             and order.lifecycle == target.lifecycle
             and order.reduction_policy == target.reduction_policy
             and all(getattr(order, field) == getattr(target, field) for field in ATTRIBUTION_IDENTITY_FIELDS)

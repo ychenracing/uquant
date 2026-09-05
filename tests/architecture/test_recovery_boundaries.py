@@ -17,7 +17,7 @@ from ._analysis import (
 )
 from ._owner_transport import (
     architecture_private_relocation_projection,
-    expand_architecture_portfolio_pipeline,
+    validate_combined_allocator_topology,
 )
 from ._reviewed_owner_transport import expand_reviewed_architecture_owner
 
@@ -76,27 +76,6 @@ _SUBSTITUTION_TARGET_HELPERS = {
         "challenger",
     ),
 }
-_PIPELINE_ARGUMENTS = (
-    "self",
-    "date",
-    "opportunity",
-    "risk",
-    "user_panel",
-    "leaders",
-    "account",
-    "prices",
-    "weights_now",
-    "anchored_held",
-    "bounded_recovery_repair",
-    "freeze_active",
-    "general_core_symbols",
-    "level1_recovery_repair",
-    "risk_neutral_recovery_handoff",
-    "risk_neutral_recovery_transfer",
-    "tactical_recovery_market",
-    "transitional_recovery_market",
-    "weak_secular_market",
-)
 
 
 def _git_source(path: str) -> str:
@@ -215,35 +194,6 @@ def _assert_delegation_arguments(
 def _statements_dump(nodes: list[ast.stmt]) -> str:
     return ast.dump(
         ast.Module(body=nodes, type_ignores=[]), include_attributes=False
-    )
-
-
-def _assert_pipeline_handoff(pipeline: ast.FunctionDef) -> None:
-    index = next(
-        index
-        for index, statement in enumerate(pipeline.body)
-        if isinstance(statement, ast.Assign)
-        and isinstance(statement.value, ast.Call)
-        and isinstance(statement.value.func, ast.Name)
-        and statement.value.func.id == "_recovery_admission_targets"
-    )
-    assignment = pipeline.body[index]
-    assert isinstance(assignment, ast.Assign)
-    assert [ast.unparse(target) for target in assignment.targets] == [
-        "recovery_admission_targets"
-    ]
-    call = assignment.value
-    assert isinstance(call, ast.Call)
-    assert not call.args
-    assert tuple(keyword.arg for keyword in call.keywords) == _PIPELINE_ARGUMENTS
-    assert all(
-        isinstance(keyword.value, ast.Name) and keyword.value.id == keyword.arg
-        for keyword in call.keywords
-    )
-    short_circuit = pipeline.body[index + 1]
-    assert ast.unparse(short_circuit) == (
-        "if recovery_admission_targets is not None:\n"
-        "    return recovery_admission_targets"
     )
 
 
@@ -372,9 +322,12 @@ def test_portfolio_recovery_admission_slice_and_target_builders_are_ast_exact() 
     )
 
 
-def test_portfolio_recovery_pipeline_pins_admission_args_unpack_and_return() -> None:
-    pipeline = expand_architecture_portfolio_pipeline(root=ROOT, candidate=None)
-    _assert_pipeline_handoff(pipeline)
+def test_portfolio_recovery_cannot_short_circuit_the_combined_book() -> None:
+    pipeline = validate_combined_allocator_topology(root=ROOT)
+    assert not any(
+        isinstance(node, ast.Name) and node.id == "_recovery_admission_targets"
+        for node in ast.walk(pipeline)
+    )
 
 
 def test_portfolio_recovery_ast_gate_rejects_recovery_rule_mutations() -> None:
@@ -462,21 +415,13 @@ def test_portfolio_recovery_ast_gate_rejects_recovery_rule_mutations() -> None:
             mutated_admission.body, _ADMISSION_TARGET_HELPERS
         )
 
-    pipeline = expand_architecture_portfolio_pipeline(root=ROOT, candidate=None)
-    mutated_pipeline = copy.deepcopy(pipeline)
-    stage_call = next(
-        node
-        for node in ast.walk(mutated_pipeline)
-        if isinstance(node, ast.Call)
-        and isinstance(node.func, ast.Name)
-        and node.func.id == "_recovery_admission_targets"
-    )
-    stage_call.keywords[0], stage_call.keywords[1] = (
-        stage_call.keywords[1],
-        stage_call.keywords[0],
-    )
+    relative = "uquant/portfolio/pipeline.py"
+    source = (ROOT / relative).read_text(encoding="utf-8")
     with pytest.raises(AssertionError):
-        _assert_pipeline_handoff(mutated_pipeline)
+        validate_combined_allocator_topology(
+            root=ROOT,
+            overrides={relative: source.replace("return targets", "return recovery_admission_targets", 1)},
+        )
 
 
 def test_portfolio_recovery_private_and_complexity_relocations_are_closed() -> None:

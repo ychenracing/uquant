@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import math
-from dataclasses import dataclass, replace
+from dataclasses import dataclass
 from datetime import date as date_type
 from datetime import timedelta
 from typing import Any, cast
@@ -61,7 +61,7 @@ def _registered_remainder_request(
     account: AccountState,
     account_order: AccountOrder,
 ) -> int | None:
-    """Return one linked successor's immutable remaining physical quantity."""
+    """Preserve registered strategic partial quantities, including legacy chains."""
 
     predecessors = tuple(
         item
@@ -69,6 +69,11 @@ def _registered_remainder_request(
         if item.replaced_by == account_order.order_id
     )
     if not predecessors:
+        if account_order.grant_id and account_order.filled_shares > 0:
+            remaining = account_order.requested_shares - account_order.filled_shares
+            if remaining <= 0 or account_order.remaining_shares != remaining:
+                raise RuntimeError("strategic partial order remaining quantity differs")
+            return remaining
         return None
     if len(predecessors) != 1:
         raise RuntimeError("strategic remainder successor predecessor differs")
@@ -486,23 +491,6 @@ def _record_open_fill(
         ):
             account_order.status = OrderStatus.CANCELLED.value
             account_order.cancel_reason = "target already satisfied"
-        elif request.order.grant_id:
-            # Strategic capacity retries are fresh physical orders while the
-            # economic grant/event remain unchanged. The filled order keeps
-            # its complete audit quantity and a broker-late fill can still be
-            # reconciled against the same grant identity.
-            account_order.status = OrderStatus.CANCELLED.value
-            account_order.cancel_reason = "strategic partial remainder replaced"
-            account_order.last_event = "PARTIAL_REMAINDER_RELEASED"
-            account_order.remainder_release_session = date_str
-            account_order.remainder_release_shares = account_order.remaining_shares
-            retained.append(
-                replace(
-                    request.order,
-                    order_id="",
-                    remaining_shares=request.target_requested - request.shares,
-                )
-            )
         else:
             account_order.status = OrderStatus.PARTIALLY_FILLED.value
             retained.append(request.order)

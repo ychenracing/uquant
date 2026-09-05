@@ -6,7 +6,7 @@ from dataclasses import dataclass
 
 from ...models.strategic_epoch import StrategicEpochStatus
 from ...models.strategic_grant import TERMINAL_STRATEGIC_GRANT_STATUSES
-from ...models.trading import late_strategic_fill_allowed
+from ...models.trading import late_strategic_fill_allowed, strategic_economic_remaining_shares
 from ...types import AccountState, OrderStatus
 
 
@@ -19,6 +19,7 @@ class StrategicCapitalAuthorityAssessment:
     pending_execution_symbols: tuple[str, ...]
     unsettled_order_ids: tuple[str, ...]
     late_fill_order_ids: tuple[str, ...]
+    late_fill_remaining_shares: tuple[tuple[str, int], ...]
     active_epoch_ids: tuple[str, ...]
     nonterminal_epoch_ids: tuple[str, ...]
     nonterminal_grant_id: str
@@ -85,6 +86,14 @@ def assess_strategic_capital_authority(
         pending_execution_symbols=pending_symbols,
         unsettled_order_ids=unsettled_orders,
         late_fill_order_ids=late_fill_orders,
+        # Zero economic capacity is not an external cancellation acknowledgment.
+        # Keep legacy physical uncertainty live, but expose its distinct budget.
+        late_fill_remaining_shares=tuple(
+            (order.order_id, strategic_economic_remaining_shares(
+                order=order, orders=account.order_ledger, fills=account.fills,
+            ))
+            for order in account.order_ledger if late_strategic_fill_allowed(order)
+        ),
         active_epoch_ids=active_epochs,
         nonterminal_epoch_ids=nonterminal_epochs,
         nonterminal_grant_id=nonterminal_grant_id,

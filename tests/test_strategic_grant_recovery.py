@@ -18,7 +18,8 @@ from uquant.execution import (
 )
 from uquant.execution.reconciliation import register_account_order
 from uquant.models.strategic_grant import StrategicGrantStatus
-from uquant.models.trading import account_order_decision_origin_session
+from uquant.models.trading import account_order_decision_origin_session, strategic_economic_remaining_shares
+from uquant.portfolio.strategic.authority import assess_strategic_capital_authority
 from uquant.validation.universe import REQUIRED_AI_UNIVERSE_SHA256
 
 
@@ -72,6 +73,21 @@ def _tradable_rows(*dates: str, volume: float = 10_000_000.0) -> pd.DataFrame:
             for session in dates
         ]
     )
+
+
+def _legacy_released_remainder(account) -> None:
+    """Fixture for persisted external cancel/replace records, not executor output.
+
+    The new production executor never creates this ambiguous physical state;
+    imported historical rows must still retain their broker safety contracts.
+    """
+    predecessor = account.order_ledger[0]
+    predecessor.status = "CANCELLED"
+    predecessor.cancel_reason = "strategic partial remainder replaced"
+    predecessor.last_event = "PARTIAL_REMAINDER_RELEASED"
+    predecessor.remainder_release_session = "2026-01-06"
+    predecessor.remainder_release_shares = predecessor.remaining_shares
+    account.pending_orders = [replace(account.pending_orders[0], order_id="")]
 
 
 def test_suspension_retains_grant_and_retries_when_trading_resumes() -> None:
@@ -149,70 +165,32 @@ def test_limit_up_retains_grant_until_the_market_opens() -> None:
     assert fills[0].grant_id == account.strategic_grant.grant_id  # type: ignore[union-attr]
 
 
-def test_partial_fill_replaces_only_the_unfilled_quantity_with_a_new_order() -> None:
+def test_partial_fill_retains_only_the_unfilled_quantity_on_the_same_order() -> None:
+    """The frozen cross-AI contract supersedes fresh simulated physical retries."""
     account = _account_with_grant()
     first_order_id = _submit(account)
-    cfg = DEFAULT_CONFIG.override(max_volume_participation=0.002)
-    planner = ExecutionPlanner(cfg)
-    partial_panel = {
-        "sz300308": _tradable_rows("2026-01-05", "2026-01-06", volume=100_000.0)
-    }
-
-    first_fills = planner.execute_open(
-        date=pd.Timestamp("2026-01-06"), account=account, panel=partial_panel
+    planner = ExecutionPlanner(DEFAULT_CONFIG.override(max_volume_participation=0.002))
+    planner.execute_open(
+        date=pd.Timestamp("2026-01-06"), account=account,
+        panel={"sz300308": _tradable_rows("2026-01-05", "2026-01-06", volume=100_000.0)},
     )
-
-    assert len(first_fills) == 1
-    first_order = account.order_ledger[0]
-    first_remaining = first_order.remaining_shares
-    assert first_remaining > 0
-    assert account.pending_orders[0].order_id == ""
-    assert account.pending_orders[0].remaining_shares == first_remaining
-    assert account.strategic_grant is not None
-    assert account.strategic_grant.status == StrategicGrantStatus.PARTIALLY_FILLED.value
-
-    retry = tuple(account.pending_orders)
-    account.pending_orders = list(
-        reconcile_account_orders(
-            account=account,
-            previous=list(account.pending_orders),
-            current=retry,
-            submitted_date="2026-01-06",
-        )
+    order = account.order_ledger[0]
+    remaining = order.remaining_shares
+    assert remaining > 0 and order.status == "PARTIALLY_FILLED"
+    assert account.pending_orders[0].order_id == first_order_id
+    assert not order.replaced_by and not order.remainder_release_session
+    account.pending_orders = list(reconcile_account_orders(
+        account=account, previous=list(account.pending_orders),
+        current=tuple(account.pending_orders), submitted_date="2026-01-06",
+    ))
+    fills = planner.execute_open(
+        date=pd.Timestamp("2026-01-07"), account=account,
+        panel={"sz300308": _tradable_rows("2026-01-05", "2026-01-06", "2026-01-07")},
     )
-    second_order_id = account.pending_orders[0].order_id
-    assert second_order_id and second_order_id != first_order_id
-    second_order = next(
-        order for order in account.order_ledger if order.order_id == second_order_id
-    )
-    assert first_order.replaced_by == second_order_id
-    assert first_order.remainder_release_session == "2026-01-06"
-    assert first_order.remainder_release_shares == first_remaining
-    assert (
-        account_order_decision_origin_session(
-            second_order,
-            first_order,
-            prior_physical_fills=tuple(
-                fill for fill in account.fills if fill.order_id == first_order.order_id
-            ),
-        )
-        == "2026-01-06"
-    )
-
-    final_panel = {
-        "sz300308": _tradable_rows(
-            "2026-01-05", "2026-01-06", "2026-01-07", volume=10_000_000.0
-        )
-    }
-    final_fills = planner.execute_open(
-        date=pd.Timestamp("2026-01-07"), account=account, panel=final_panel
-    )
-
-    assert len(final_fills) == 1
-    assert final_fills[0].shares == first_remaining
-    assert sum(fill.shares for fill in account.fills) == first_order.requested_shares
-    assert account.strategic_grant.status == StrategicGrantStatus.ACTIVE.value
-    assert account.strategic_grant.submitted_order_ids == [first_order_id, second_order_id]
+    assert len(fills) == 1 and fills[0].shares == remaining
+    assert len(account.order_ledger) == 1
+    assert order.filled_shares == order.requested_shares
+    assert account.strategic_grant.submitted_order_ids == [first_order_id]
 
 
 @pytest.mark.parametrize("next_open", (20.0, 5.0))  # type: ignore[untyped-decorator]
@@ -238,6 +216,7 @@ def test_remainder_successor_keeps_registered_quantity_across_next_open_drift(
         date=pd.Timestamp("2026-01-06"), account=account, panel=first_panel
     )
     assert len(first_fills) == 1
+    _legacy_released_remainder(account)
     predecessor = account.order_ledger[0]
     released_shares = predecessor.remainder_release_shares
     assert released_shares == predecessor.remaining_shares > 0
@@ -361,6 +340,7 @@ def test_partial_remainder_registration_rejection_is_atomic(failure: str) -> Non
         account=account,
         panel={"sz300308": _tradable_rows("2026-01-05", "2026-01-06", volume=100_000.0)},
     )
+    _legacy_released_remainder(account)
     successor = account.pending_orders[0]
     if failure == "quantity":
         successor.remaining_shares += 1
@@ -418,7 +398,7 @@ def test_strategic_partial_remainder_survives_the_no_trade_band() -> None:
     )
 
     assert len(retained) == 1
-    assert retained[0].order_id == ""
+    assert retained[0].order_id == account.order_ledger[0].order_id
     assert retained[0].remaining_shares > 0
     assert retained[0].grant_id == grant.grant_id
 
@@ -453,6 +433,7 @@ def test_late_fill_credits_the_original_grant_and_suppresses_the_retry() -> None
         account=account,
         panel={"sz300308": _tradable_rows("2026-01-05", "2026-01-06", volume=100_000.0)},
     )
+    _legacy_released_remainder(account)
     first_order = account.order_ledger[0]
     late_shares = first_order.remaining_shares
     retry = tuple(account.pending_orders)
@@ -553,6 +534,7 @@ def test_nonfinal_late_fill_cannot_reopen_a_released_predecessor() -> None:
         account=account,
         panel={"sz300308": _tradable_rows("2026-01-05", "2026-01-06", volume=100_000.0)},
     )
+    _legacy_released_remainder(account)
     first_order = account.order_ledger[0]
     late_shares = first_order.remaining_shares
     account.pending_orders = list(
@@ -611,6 +593,7 @@ def test_late_fill_is_rejected_after_the_retry_completed_the_economic_order() ->
         account=account,
         panel={"sz300308": _tradable_rows("2026-01-05", "2026-01-06", volume=100_000.0)},
     )
+    _legacy_released_remainder(account)
     first_order = account.order_ledger[0]
     late_shares = first_order.remaining_shares
     account.pending_orders = list(
@@ -631,6 +614,14 @@ def test_late_fill_is_rejected_after_the_retry_completed_the_economic_order() ->
         },
     )
     position = account.positions["sz300308"]
+
+    assert strategic_economic_remaining_shares(
+        order=first_order, orders=account.order_ledger, fills=account.fills,
+    ) == 0
+    authority = assess_strategic_capital_authority(account)
+    assert authority.late_fill_remaining_shares == ((first_order_id, 0),)
+    # An internally satisfied request is not proof of external cancellation.
+    assert authority.late_fill_order_ids == (first_order_id,)
 
     with pytest.raises(ValueError, match="strategic economic order is already satisfied"):
         sync_broker_snapshot(

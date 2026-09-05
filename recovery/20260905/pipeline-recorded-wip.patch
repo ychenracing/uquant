@@ -1,0 +1,115 @@
+--- a/uquant/portfolio/pipeline.py
++++ b/uquant/portfolio/pipeline.py
+@@ -52,15 +52,15 @@
+ 
+ def _candidate_entry(self: PortfolioAllocator, *, symbol: str, score: LeaderScore,
+                      date: pd.Timestamp, user_panel: dict[str, pd.DataFrame],
+-                     account: AccountState) -> dict[str, Any]:
+-    evidence: dict[str, Any] = {"required_confirmation": self.cfg.leader_tenure_days}
++                     account: AccountState, confirmation_days: int) -> dict[str, Any]:
++    evidence: dict[str, Any] = {"required_confirmation": confirmation_days}
+     if not score.mature:
+         return {**evidence, "block": "NOT_MATURE"}
+     observed = {}
+     for route in ("established", "transition", "transition_impulse", "persistent_industry", "reversal_industry"):
+         streak = strategic_candidate_confirmation(account=account, symbol=symbol, route=route)
+         observed[route] = streak
+-        if streak >= self.cfg.leader_tenure_days:
++        if streak >= confirmation_days:
+             break
+     else:
+         return {**evidence, "confirmations": observed, "block": "CONFIRMATION_INCOMPLETE"}
+@@ -78,7 +78,8 @@
+     candidates = []
+     for symbol, score in leaders.items():
+         entry = _candidate_entry(self, symbol=symbol, score=score, date=date,
+-                                 user_panel=user_panel, account=account)
++                                 user_panel=user_panel, account=account,
++                                 confirmation_days=self.cfg.leader_tenure_days)
+         if trace is not None:
+             trace.setdefault(symbol, {}).update(entry=entry, rank_score=score.score)
+         if entry["block"] == "READY":
+@@ -296,13 +297,42 @@
+             book.proposed[order.symbol] = min(book.proposed.get(order.symbol, 0.0), order.target_weight)
+             book.record(order.symbol)["allocation_reason"] = "PENDING_REDUCTION"
+         elif (buy_open and order.symbol not in book.owned
+-              and order.symbol in book.leaders and order.symbol in book.user_panel
+-              and book.date in book.user_panel[order.symbol].index) and (
+-            order.symbol in candidates
+-            or (book.weights_now.get(order.symbol, 0.0) > 0
+-                and book.proposed.get(order.symbol, 0.0) >= book.weights_now[order.symbol])
+-        ):
++              and order.mechanism != AttributionMechanism.POST_SHOCK_RESTORATION.value):
++            if order.symbol not in candidates:
++                current = book.weights_now.get(order.symbol, 0.0)
++                if (current <= 0 or book.proposed.get(order.symbol, 0.0) < current
++                        or order.symbol not in book.leaders):
++                    continue
++                evidence = _candidate_entry(
++                    book.policy, symbol=order.symbol, score=book.leaders[order.symbol],
++                    date=book.date, user_panel=book.user_panel, account=book.account,
++                    confirmation_days=1,
++                )
++                book.record(order.symbol)["pending_entry"] = evidence
++                if evidence["block"] != "READY":
++                    continue
+             book.fund(order.symbol, order.target_weight, phase="PENDING_CORE_BUY")
++
++
++def _holding_spans_restoration_episode(account: AccountState, symbol: str) -> bool:
++    position = account.positions[symbol]
++    shock = account.last_shock_date
++    if not shock or not position.entry_date:
++        return False
++    if position.entry_date <= shock:
++        return True
++    # FIFO can retire every original lot without closing the holding. Recover
++    # that boundary from literal quantities instead of the surviving-lot date.
++    shares = position.shares
++    for fill in reversed(account.fills):
++        if fill.symbol != symbol:
++            continue
++        shares += fill.shares if fill.side == "SELL" else -fill.shares
++        if shares == 0:
++            return fill.fill_date <= shock
++        if shares < 0:
++            return False
++    return False
+ 
+ 
+ def _restore_ordinary_holdings(book: _AllocationBook) -> None:
+@@ -312,6 +342,17 @@
+         if symbol in book.owned:
+             continue
+         row = book.record(symbol)
++        if book.weights_now.get(symbol, 0.0) <= 0:
++            row["restore_block"] = "NEW_ENTRY_REQUIRES_QUALIFICATION"
++            continue
++        if not _holding_spans_restoration_episode(account, symbol):
++            row["restore_block"] = "RESTORATION_EPISODE_NOT_LINKED_TO_HOLDING"
++            continue
++        pending_buy = next((order for order in account.pending_orders
++                            if order.symbol == symbol and order.side == "BUY"), None)
++        if pending_buy is not None and pending_buy.mechanism != AttributionMechanism.POST_SHOCK_RESTORATION.value:
++            row["restore_block"] = "PENDING_CORE_BUY_ALREADY_EVALUATED"
++            continue
+         marker = f"core_restored:{symbol}"
+         if symbol not in book.user_panel or symbol not in book.leaders:
+             row["restore_block"] = "RESTORATION_EVIDENCE_UNAVAILABLE"
+@@ -326,7 +367,7 @@
+             continue
+         current = book.weights_now.get(symbol, 0.0)
+         wanted = min(cfg.max_symbol_weight, desired)
+-        pending = any(order.symbol == symbol and order.side == "BUY" for order in account.pending_orders)
++        pending = pending_buy is not None
+         if not pending and wanted - current + 1e-12 < cfg.protected_restore_min_trade_weight:
+             account.candidate_tenure[marker] = episode
+             row["restore_block"] = "RESTORATION_COMPLETED_RETAIN_DRIFT"
+@@ -361,6 +402,7 @@
+             continue
+         weight = book.policy.cfg.core_admission_weight
+         if book.fund(symbol, weight, phase="CORE_ADMISSION", minimum=weight):
++            book.account.protected_weights.pop(symbol, None)
+             book.reasons[symbol] = "confirmed core admitted from available account capital"
+             _record_completed_transfer(book, symbol)
+             continue

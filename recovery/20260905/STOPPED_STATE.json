@@ -1,0 +1,168 @@
+{
+  "schema_version": 1,
+  "status": "STOPPED_BY_USER_HANDOFF_ONLY",
+  "date_utc": "2026-09-05",
+  "repository": "ychenracing/uquant",
+  "pr": 48,
+  "feature_branch": "codex/cross-ai-core-strategy-20260905",
+  "feature_sha": "58d06fe2f4d0ed8339c7df0e1a98d45c2182c9ac",
+  "feature_tree": "f7bc870b3a56c0f2acf1964e27ff9ea2faac1e1f",
+  "main_sha": "5cbea791a6aefaf541de72a9d1aa56ea95d8f5e9",
+  "recovery_branch": "codex/cross-ai-handoff-recovery-20260905",
+  "preservation": {
+    "complete_remote_checkpoint": true,
+    "original_task_recovered": true,
+    "uncommitted_raw_state_complete": false,
+    "reason": "The original workspace and child agents disappeared after environment maintenance before the user stop/handoff action could snapshot them.",
+    "recorded_pipeline_patch_reconstructed": true,
+    "reconstructed_is_original_byte_proof": false,
+    "source_modified_or_tests_run_after_stop": false
+  },
+  "stopped_scope": {
+    "current_agent_tree": "Only root exists; former children are no longer listed.",
+    "current_runtime": "No actual research.cross_ai_strategy or pytest Python/uv processes found in argv-based /proc scan.",
+    "external_work_sessions": "No management interface; cannot verify or cancel other Work conversations.",
+    "ci": "All four observed PR-triggered runs at the feature SHA completed. No test/replay/rerun started by this stop/handoff task."
+  },
+  "stages": {
+    "stage1": "complete",
+    "stage2": "in_progress_economics_not_accepted",
+    "stage3": "not_complete"
+  },
+  "economic_source_sha256": "86071028c7a38e044fe152af09b233c9cc9c2e77cbbc18556f637e448766e826",
+  "config_sha256": "5326bfbb4b307f09b61c86fd4853f9fd616210df28af2a8f98385f1f6ea97379",
+  "contract_sha256": "9ec5992df69d4466cb2b26cea0e67bbe93f4c6317ba5b8a500ca7b89a75d78b4",
+  "raw_results_unified_d": [
+    {
+      "case": "champion",
+      "wealth": 24.037540134618094,
+      "mdd": 0.28896596970150346,
+      "orders": 12,
+      "principal": "PASS"
+    },
+    {
+      "case": "full",
+      "wealth": 13.172208194201078,
+      "mdd": 0.2681428744523583,
+      "orders": 21,
+      "principal": "FAIL_WEALTH_ORDERS"
+    },
+    {
+      "case": "remove_all_three",
+      "wealth": 4.580813199722582,
+      "mdd": 0.1595025329108205,
+      "orders": 51,
+      "annual_turnover": 6.303818888246836,
+      "commission_and_other_fees": 24886.98765484,
+      "slippage": 45280.11289999812,
+      "principal": "FAIL_ORDERS_TURNOVER_COST"
+    },
+    {
+      "case": "no_optical",
+      "wealth": 3.2863725581008927,
+      "mdd": 0.15990641515149862,
+      "orders": 31,
+      "annual_turnover": 2.6769959618683545,
+      "commission_and_other_fees": 10952.982598216,
+      "slippage": 19230.301199999463,
+      "principal": "FAIL_ORDERS"
+    }
+  ],
+  "unified_d_status": "All four raw 869-session readbacks/account/ledger checks passed; economic acceptance failed.",
+  "unified_e_status": "Prepared/planned before stop. No immutable snapshot SHA, launched PID, complete result or persistent archive was reported. Unknown, never accepted.",
+  "ci": [
+    {
+      "name": "Engineering gates",
+      "run_id": 33960151292,
+      "status": "completed",
+      "conclusion": "failure"
+    },
+    {
+      "name": "Strategic Ownership Acceptance",
+      "run_id": 33960151303,
+      "status": "completed",
+      "conclusion": "failure"
+    },
+    {
+      "name": "Strategic Grant Acceptance",
+      "run_id": 33960151306,
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "name": "Absolute Generalization Acceptance",
+      "run_id": 33960151317,
+      "status": "completed",
+      "conclusion": "failure"
+    }
+  ],
+  "patch": {
+    "path": "recovery/20260905/pipeline-recorded-wip.patch",
+    "base_file_git_blob": "3534cc6cf9687266f5312ab20ddb9abfe2e46332",
+    "sha256": "7420a845dd3ccbbcbb08f2888c2e88554d8b3ec36fb208c85e0f46c8e3447af4",
+    "bytes": 5983,
+    "reconstructed_file_sha256": "6120a633ff9a97fd872f9b536f4b994c3ac1919e9b9652e66707547012934249",
+    "applied_to_production": false,
+    "validated_after_stop": false
+  },
+  "missing_raw_files": [
+    "tests/test_unified_core_book.py (post-checkpoint edits)",
+    "uquant/report.py",
+    "tests/test_daily_report_explanation.py",
+    "docs/STRATEGY.md",
+    "docs/OPERATIONS.md",
+    "tests/_lifecycle_protected_repair_cases.py",
+    "tests/architecture/test_portfolio_boundaries.py",
+    "cross-ai-simplification-inventory.json",
+    "full-regression.json",
+    "any unified-e snapshot/output"
+  ],
+  "potential_unfinished_agent_paths": [
+    "tests/test_config_contracts.py",
+    "tests/test_config_governance.py",
+    "tests/test_config_model_characterization.py",
+    "tests/test_modular_config_models.py",
+    "tests/architecture/test_compatibility_contracts.py",
+    "tests/architecture/_config_transport.py",
+    "tests/architecture/test_config_boundaries.py",
+    "tests/architecture/test_config_public_owners.py"
+  ],
+  "archive_inventory": [
+    {
+      "file_name": "uquant-stage2-unified-d-evidence.zip",
+      "bytes": 65565507,
+      "sha256": "811ab450cb3cf4e651d55215a1839befcbd56ea0bf1a06fa6bbc2f9dace111e2",
+      "verification": "Existence and metadata rechecked at stop. Listed archive SHA256 values were verified by independent download before workspace loss; raw archives were not downloaded again at stop."
+    },
+    {
+      "file_name": "uquant-stage2-unified-c-evidence.zip",
+      "bytes": 64404040,
+      "sha256": "6cee9062f71f56983c05e266a17d1032a88dc447d1c5e8065e032d7adf30753a",
+      "verification": "Existence and metadata rechecked at stop. Listed archive SHA256 values were verified by independent download before workspace loss; raw archives were not downloaded again at stop."
+    },
+    {
+      "file_name": "uquant-stage2-unified-b-evidence.zip",
+      "bytes": 58768484,
+      "sha256": null,
+      "verification": "Existence and metadata rechecked at stop. Listed archive SHA256 values were verified by independent download before workspace loss; raw archives were not downloaded again at stop."
+    },
+    {
+      "file_name": "uquant-stage2-integrity-evidence.zip",
+      "bytes": 58378653,
+      "sha256": "6cb4e93fa2e210e0715aff87c94926d924180b9f64982dc12939fa99e026c968",
+      "verification": "Existence and metadata rechecked at stop. Listed archive SHA256 values were verified by independent download before workspace loss; raw archives were not downloaded again at stop."
+    },
+    {
+      "file_name": "uquant-stage1-window-evidence.zip",
+      "bytes": 28347037,
+      "sha256": "aa5cd13a367f4c54b2199c3dbd8a5cf048f7e0572af433ab0089a148e5f7bf41",
+      "verification": "Existence and metadata rechecked at stop. Listed archive SHA256 values were verified by independent download before workspace loss; raw archives were not downloaded again at stop."
+    },
+    {
+      "file_name": "uquant-stage1-baseline-evidence.zip",
+      "bytes": 60614699,
+      "sha256": "1690ba1a39adb057ab1d14f25ed797cb6f9ba04f855cc51d773eba9aac677785",
+      "verification": "Existence and metadata rechecked at stop. Listed archive SHA256 values were verified by independent download before workspace loss; raw archives were not downloaded again at stop."
+    }
+  ]
+}

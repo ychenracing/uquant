@@ -10,7 +10,9 @@ from __future__ import annotations
 import argparse
 import gzip
 import hashlib
+import json
 import math
+import re
 import subprocess
 import time
 import traceback
@@ -39,20 +41,28 @@ CORE_SYMBOLS = frozenset({"sz300308", "sz300394", "sz300502"})
 ROOT = Path(__file__).resolve().parents[1]
 
 
-def case_symbols(case_id: str, as_of: str) -> dict[str, tuple[str, ...]]:
+def case_symbols(
+    case_id: str, as_of: str, *, extra_excluded_symbols: tuple[str, ...] = (),
+) -> dict[str, tuple[str, ...]]:
     """Bind every stock role to the same causal removal, preserving indices."""
     if case_id not in CASE_IDS:
         raise ValueError(f"unknown cross-AI case: {case_id}")
+    if any(not isinstance(symbol, str) or not re.fullmatch(r"(?:sh|sz)[0-9]{6}", symbol)
+           or symbol in INDEX_SYMBOLS for symbol in extra_excluded_symbols):
+        raise ValueError("extra exclusions must be canonical stock symbols, never market indexes")
     universe = default_ai_universe()
+    if set(extra_excluded_symbols) - {member.symbol for member in universe.members}:
+        raise ValueError("extra exclusions must belong to the frozen stock universe")
     available = universe.symbols_as_of(as_of)
     removed = (
         CORE_SYMBOLS if case_id == "remove_all_three" else
         frozenset(symbol for symbol in available if universe.industry_of(symbol, as_of) == "optical")
         if case_id == "no_optical" else frozenset()
     )
+    removed = removed | frozenset(extra_excluded_symbols)
     references = tuple(symbol for symbol in available if symbol not in removed)
     tradable = (
-        tuple(symbol for symbol in CHAMPION_SYMBOLS if symbol in available)
+        tuple(symbol for symbol in CHAMPION_SYMBOLS if symbol in available and symbol not in removed)
         if case_id == "champion" else references
     )
     return {"tradable": tradable, "qualification": references, "risk": references, "indexes": INDEX_SYMBOLS}
@@ -99,23 +109,38 @@ def _identity(
 def run_production_case(
     *, case_id: str, start: str, end: str, output_dir: Path,
     cfg: SystemConfig = DEFAULT_CONFIG,
+    initial_cash: float | None = None,
+    start_session_offset: int = 0,
+    extra_excluded_symbols: tuple[str, ...] = (),
 ) -> dict[str, Any]:
     """Replay one frozen historical case with exact daily observations and fills."""
     if not "2023-01-03" <= start <= end <= "2026-08-05":
         raise ValueError("cross-AI diagnostics require the frozen historical interval")
     pd.Timestamp(start)
     pd.Timestamp(end)
-    case_symbols(case_id, start)
+    if type(start_session_offset) is not int or start_session_offset < 0:
+        raise ValueError("start_session_offset must be a nonnegative integer")
+    if initial_cash is not None:
+        if isinstance(initial_cash, bool) or not math.isfinite(initial_cash) or initial_cash <= 0:
+            raise ValueError("initial_cash must be finite and positive")
+        cfg = cfg.override(initial_cash=float(initial_cash))
+    exclusions = tuple(sorted(set(extra_excluded_symbols)))
+    case_symbols(case_id, start, extra_excluded_symbols=exclusions)
     output_dir.mkdir(parents=True, exist_ok=False)
     started = time.monotonic()
     identity = _identity(case_id, start, end, cfg)
+    identity.update(effective_config=cfg.to_dict(), initial_cash=cfg.initial_cash,
+                    start_session_offset=start_session_offset, extra_excluded_symbols=list(exclusions))
     _write_json(output_dir / "identity.json", identity)
     engine = ProductionEngine(ROOT / "data/frozen", cfg=cfg)
     engine.workspace.prepare(ReplayUniverse.from_symbols(
         tradable_symbols=(), reference_symbols=(), index_symbols=INDEX_SYMBOLS,
     ))
     sessions = engine.workspace.common_sessions(*INDEX_SYMBOLS)
-    sessions = sessions[(sessions >= pd.Timestamp(start)) & (sessions <= pd.Timestamp(end))]
+    sessions = sessions[(sessions >= pd.Timestamp(start)) & (sessions <= pd.Timestamp(end))][start_session_offset:]
+    identity["session_dates"] = [str(date.date()) for date in sessions]
+    identity["effective_start"] = identity["session_dates"][0] if len(sessions) else ""
+    _write_json(output_dir / "identity.json", identity)
     account = AccountState.empty(cfg.initial_cash)
     equity_rows: list[tuple[pd.Timestamp, float]] = []
     daily_ledger: list[dict[str, Any]] = []
@@ -128,7 +153,7 @@ def run_production_case(
         with gzip.open(raw_path, "wb") as stream:
             for date in sessions:
                 session = str(date.date())
-                roles = case_symbols(case_id, session)
+                roles = case_symbols(case_id, session, extra_excluded_symbols=exclusions)
                 engine.workspace.prepare(ReplayUniverse.from_symbols(
                     tradable_symbols=roles["tradable"],
                     reference_symbols=roles["risk"], index_symbols=roles["indexes"],
@@ -219,15 +244,21 @@ def run_production_case(
                     for symbol, position in account.positions.items() if position.shares > 0
                 },
                 sessions=tuple(str(date.date()) for date, _ in equity_rows),
-                economic_start=start, economic_end=str(last_date.date()), final_equity=equity_rows[-1][1],
+                economic_start=str(equity_rows[0][0].date()), economic_end=str(last_date.date()), final_equity=equity_rows[-1][1],
                 daily_ledger=daily_ledger,
                 benchmark_close={str(date.date()): engine.workspace.price("sh000682", date) for date, _ in equity_rows},
             )
             accounting = attribution["accounting"]
             if not accounting["reconciled"]:
                 raise RuntimeError("production accounting does not reconcile")
-        if identity != _identity(case_id, start, end, cfg):
+        latest_identity = _identity(case_id, start, end, cfg)
+        if any(identity[key] != value for key, value in latest_identity.items()):
             raise RuntimeError("historical replay input or source identity changed during execution")
+        if raw_path.exists():
+            with gzip.open(raw_path, "rt", encoding="utf-8") as stream:
+                raw_dates = [json.loads(line)["date"] for line in stream]
+            if raw_dates != identity["session_dates"][:len(equity_rows)]:
+                raise RuntimeError("raw observation readback differs from executed sessions")
     except Exception as exc:
         status = "REPLAY_ERROR"
         error = f"{error}; finalization: {type(exc).__name__}: {exc}"
@@ -255,9 +286,16 @@ def main() -> int:
     parser.add_argument("--start", default="2023-01-03")
     parser.add_argument("--end", default="2026-08-05")
     parser.add_argument("--output-dir", type=Path, required=True)
+    parser.add_argument("--initial-cash", type=float)
+    parser.add_argument("--start-session-offset", type=int, default=0)
+    parser.add_argument("--exclude-symbol", action="append", default=[])
+    parser.add_argument("--config-overrides", type=Path, help="JSON mapping of explicit configuration changes")
     args = parser.parse_args()
     result = run_production_case(
         case_id=args.case, start=args.start, end=args.end, output_dir=args.output_dir,
+        cfg=DEFAULT_CONFIG.override(**json.loads(args.config_overrides.read_text())) if args.config_overrides else DEFAULT_CONFIG,
+        initial_cash=args.initial_cash, start_session_offset=args.start_session_offset,
+        extra_excluded_symbols=tuple(args.exclude_symbol),
     )
     return 0 if result["status"] == "COMPLETE" else 1
 

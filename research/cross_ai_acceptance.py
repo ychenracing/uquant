@@ -17,7 +17,8 @@ import pandas as pd
 
 from research.cross_ai_strategy import ROOT, case_symbols
 from uquant.account import load_account
-from uquant.config import DEFAULT_CONFIG, config_fingerprint
+from uquant.attribution import build_economic_attribution
+from uquant.config import DEFAULT_CONFIG
 from uquant.contracts.strict_json import canonical_json_bytes
 from uquant.engine import code_fingerprint, performance_metrics
 
@@ -34,7 +35,19 @@ def number(metrics: dict[str, Any], key: str) -> float:
     return float(value)
 
 
-def read_case(directory: Path, *, case: str, interval: list[str], source: str) -> dict[str, Any]:
+def config_payload_sha256(payload: dict[str, Any]) -> str:
+    """Canonical config identity, including old-source fields removed in a candidate."""
+    canonical = dict(payload)
+    if canonical.get('risk_sentinel_causal_confirmation_enabled') is False:
+        canonical.pop('risk_sentinel_causal_confirmation_enabled')
+    return hashlib.sha256(json.dumps(canonical, allow_nan=False, separators=(',', ':'), sort_keys=True).encode()).hexdigest()
+
+
+def read_case(
+    directory: Path, *, case: str, interval: list[str], source: str,
+    effective_config: dict[str, Any] | None = None, start_session_offset: int = 0,
+    extra_excluded_symbols: tuple[str, ...] = (), runner_sha256: str | None = None,
+) -> dict[str, Any]:
     result: dict[str, Any] = json.loads((directory / 'result.json').read_text())
     seal = result.pop('canonical_sha256')
     if seal != hashlib.sha256(canonical_json_bytes(result)).hexdigest():
@@ -44,11 +57,18 @@ def read_case(directory: Path, *, case: str, interval: list[str], source: str) -
     if result['future_holdout_used'] or not result['accounting']['reconciled']:
         raise ValueError('protected data or unreconciled account')
     identity = result['identity']
+    expected_config = DEFAULT_CONFIG.to_dict() if effective_config is None else effective_config
+    expected_config_sha = config_payload_sha256(expected_config)
+    expected_runner = runner_sha256 or hashlib.sha256((ROOT / 'research/cross_ai_strategy.py').read_bytes()).hexdigest()
     if (identity['case_id'] != case or [identity['start'], identity['end']] != interval
             or identity['source_sha256'] != source
-            or identity['config_sha256'] != config_fingerprint(DEFAULT_CONFIG)
-            or identity['runner_sha256'] != hashlib.sha256((ROOT / 'research/cross_ai_strategy.py').read_bytes()).hexdigest()):
+            or identity['config_sha256'] != expected_config_sha
+            or identity['runner_sha256'] != expected_runner):
         raise ValueError('case/source/config/interval identity mismatch')
+    if (identity.get('start_session_offset', 0) != start_session_offset
+            or tuple(identity.get('extra_excluded_symbols', ())) != tuple(sorted(extra_excluded_symbols))
+            or ('effective_config' in identity and identity['effective_config'] != expected_config)):
+        raise ValueError('case scenario/configuration identity mismatch')
     raw = directory / 'observations.jsonl.gz'
     account_path = directory / 'final_account.json'
     if hashlib.sha256(raw.read_bytes()).hexdigest() != result['raw_sha256']:
@@ -56,17 +76,18 @@ def read_case(directory: Path, *, case: str, interval: list[str], source: str) -
     if hashlib.sha256(account_path.read_bytes()).hexdigest() != result['final_account_sha256']:
         raise ValueError('raw account seal mismatch')
     account = load_account(account_path)
-    if account.code_hash != source or account.initial_cash != DEFAULT_CONFIG.initial_cash:
+    if account.code_hash != source or account.initial_cash != expected_config['initial_cash']:
         raise ValueError('account source/initial-capital mismatch')
     previous, rows = '', 0
     equity_rows: list[tuple[pd.Timestamp, float]] = []
+    ledger_rows: list[dict[str, Any]] = []
     with gzip.open(raw, 'rt', encoding='utf-8') as stream:
         for line in stream:
             row = json.loads(line)
             date = row['date']
             if not interval[0] <= date <= interval[1] or date <= previous:
                 raise ValueError('noncausal or out-of-interval observation')
-            roles = case_symbols(case, date)
+            roles = case_symbols(case, date, extra_excluded_symbols=extra_excluded_symbols)
             observed = row['observation']['strategic_universe_roles']
             for field, expected in (
                 ('tradable_symbols', roles['tradable']),
@@ -80,8 +101,14 @@ def read_case(directory: Path, *, case: str, interval: list[str], source: str) -
             rows += 1
             previous = date
             equity_rows.append((pd.Timestamp(date), number(row, 'equity')))
-    if rows != result['sessions']:
+            ledger_rows.append(row['ledger'])
+    if rows < 2 or rows != result['sessions']:
         raise ValueError('raw observation row count mismatch')
+    dates = [str(date.date()) for date, _ in equity_rows]
+    if 'session_dates' in identity and dates != identity['session_dates']:
+        raise ValueError('raw session schedule differs from sealed run identity')
+    if start_session_offset and (not identity.get('effective_start') or dates[0] != identity['effective_start']):
+        raise ValueError('offset run lacks verified effective start')
     for field in ('final_wealth', 'max_drawdown', 'account_orders', 'annual_turnover', 'fees', 'slippage_cost'):
         number(result['metrics'], field)
     recomputed = performance_metrics(
@@ -92,7 +119,26 @@ def read_case(directory: Path, *, case: str, interval: list[str], source: str) -
     for field in ('final_wealth', 'max_drawdown', 'account_orders', 'annual_turnover', 'fees', 'slippage_cost'):
         if not math.isclose(number(result['metrics'], field), number(recomputed, field), rel_tol=1e-12, abs_tol=1e-9):
             raise ValueError(f'literal metric differs from raw equity/orders/fills: {field}')
+    if not math.isclose(sum(number(row, 'daily_pnl') for row in ledger_rows),
+                        equity_rows[-1][1] - account.initial_cash, rel_tol=1e-12, abs_tol=1e-6):
+        raise ValueError('raw daily ledger PnL does not reconcile')
+    # Symbol accounting uses literal fills and terminal marks; cash-drag diagnostics
+    # require benchmark prices and are not needed to select a contributor.
+    attribution = build_economic_attribution(
+        account=account,
+        final_prices={symbol: number(ledger_rows[-1]['position_weights'], symbol) * equity_rows[-1][1]
+                      / position.shares for symbol, position in account.positions.items() if position.shares > 0},
+        sessions=dates, economic_start=dates[0], economic_end=dates[-1], final_equity=equity_rows[-1][1],
+    )
+    verified_pnl = {symbol: number(bucket, 'total_pnl') for symbol, bucket in attribution['by_symbol'].items()}
+    recorded_pnl = {symbol: number(bucket, 'total_pnl') for symbol, bucket in result['attribution']['by_symbol'].items()}
+    if set(verified_pnl) != set(recorded_pnl) or any(
+        not math.isclose(pnl, recorded_pnl[symbol], rel_tol=1e-12, abs_tol=1e-6)
+        for symbol, pnl in verified_pnl.items()
+    ):
+        raise ValueError('symbol attribution differs from raw economic ledger')
     result['canonical_sha256'] = seal
+    result['verified_symbol_pnl'] = verified_pnl
     return result
 
 

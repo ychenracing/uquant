@@ -63,6 +63,8 @@ def _scenario(monkeypatch, obstruction):
     account.strategic_exit_bands = {WEAK: [weak_weight / 2, weak_weight / 2]}
     account.replacement_tenure.update({
         f"strategic_eligibility:established:{CHALLENGER}": 5,
+        # Discovery is isolated here; the challenger has observed both predicates.
+        f"strategic_eligibility:independent_core:{CHALLENGER}": 5,
         f"core_transfer:{WEAK}->{CHALLENGER}": 2,
     })
     account.candidate_tenure.update({
@@ -155,6 +157,7 @@ def test_feasible_transfer_funds_challenger_only_after_actual_sell_settlement(mo
     account.protected_weights = {WEAK: 0.4}
     account.replacement_tenure.update({
         f"strategic_eligibility:established:{CHALLENGER}": 5,
+        f"strategic_eligibility:independent_core:{CHALLENGER}": 5,
         f"core_transfer:{WEAK}->{CHALLENGER}": 2,
     })
     account.candidate_tenure.update({

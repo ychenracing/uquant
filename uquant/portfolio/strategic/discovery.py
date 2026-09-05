@@ -46,6 +46,7 @@ from .quorum import (
     StrategicQuorumResult,
     StrategicQuorumRoute,
     evaluate_strategic_quorum,
+    strict_absolute_owner_quality,
 )
 from .rearm import (
     observe_flat_book_capital_repair_state,
@@ -785,7 +786,10 @@ def _observe_resolved_strategic_candidates(
     panel = {symbol: frame for symbol, frame in panel.items() if symbol in universe.available_symbols}
     snapshots = strategic_qualification_snapshots(self, date=date, user_panel=panel, leaders=leaders)
     observe_strategic_candidate_eligibility(date=date, snapshots=snapshots, leaders=leaders,
-                                           risk=risk, account=account, cfg=self.cfg)
+                                           risk=risk, account=account, cfg=self.cfg,
+                                           independent_core_symbols=frozenset(
+                                               symbol for symbol in snapshots if strict_absolute_owner_quality(
+                                                   symbol=symbol, snapshots=snapshots, leaders=leaders, cfg=self.cfg)))
     return snapshots
 
 
@@ -805,7 +809,10 @@ def observe_strategic_candidates(
         self, date=date, account=account, risk=risk, panel=panel, leaders=scores, universe=universe,
     )
     return observe_strategic_candidate_eligibility(date=date, snapshots=snapshots, leaders=scores,
-                                                  risk=risk, account=account, cfg=self.cfg)
+                                                  risk=risk, account=account, cfg=self.cfg,
+                                                  independent_core_symbols=frozenset(
+                                                      symbol for symbol in snapshots if strict_absolute_owner_quality(
+                                                          symbol=symbol, snapshots=snapshots, leaders=scores, cfg=self.cfg)))
 
 
 def _initialize_strategic_cohort(
@@ -1018,8 +1025,6 @@ def _observe_strategic_deployment(
             )
             account.strategic_qualification.deployment_blocked = bool(block_reason)
             account.strategic_qualification.deployment_block_reason = block_reason
-        if block_reason == "recovery_owner":
-            account.candidate_tenure["strategic_deferred_to_recovery"] = 1
     return qualified
 
 

@@ -100,6 +100,10 @@ def _evaluate(monkeypatch, *, cash=400.0, frozen=False, pending=False, strategic
     account.replacement_tenure.update(
         {f"strategic_eligibility:established:{s}": policy.cfg.leader_tenure_days for s in leaders}
     )
+    # The isolated allocation book consumes previously observed strict quality.
+    account.replacement_tenure.update(
+        {f"strategic_eligibility:independent_core:{s}": policy.cfg.leader_tenure_days for s in leaders}
+    )
     if pending:
         account.pending_orders = [
             PendingOrder(str(date.date()), "sh600003", "BUY", 0.35, "existing commitment", "CORE")
@@ -187,6 +191,7 @@ def test_retained_partial_core_intent_uses_current_quality_without_repeating_con
         str(date.date()), symbol, "BUY", 0.2, "confirmed core admitted from available account capital", "CORE",
     )]
     account.replacement_tenure[f"strategic_eligibility:established:{symbol}"] = 0 if evidence == "routes_lost" else 1
+    account.replacement_tenure[f"strategic_eligibility:independent_core:{symbol}"] = 0 if evidence == "routes_lost" else 1
     account.candidate_tenure["strategic_eligibility_session"] = date.toordinal()
     if protected:
         account.protected_weights[symbol] = 0.4
@@ -206,6 +211,7 @@ def test_retained_partial_core_intent_uses_current_quality_without_repeating_con
         prices={**dict.fromkeys(panel, 10.0), symbol: 10.0},
     )
     assert account.replacement_tenure.get(f"strategic_eligibility:established:{symbol}", 0) < DEFAULT_CONFIG.leader_tenure_days
+    assert account.replacement_tenure.get(f"strategic_eligibility:independent_core:{symbol}", 0) < DEFAULT_CONFIG.leader_tenure_days
     assert {target.symbol: target.weight for target in targets}[symbol] == pytest.approx(0.2 if evidence == "ready" else 0.1)
     assert account.cash == 900_000.0 and account.positions[symbol].shares == 10_000
 
@@ -218,6 +224,7 @@ def test_fully_exited_ordinary_restore_rights_require_a_new_core_admission(monke
     account.protected_weights[symbol] = 0.4
     account.last_shock_date = "2023-04-27"
     account.replacement_tenure[f"strategic_eligibility:established:{symbol}"] = 5 if confirmed else 1
+    account.replacement_tenure[f"strategic_eligibility:independent_core:{symbol}"] = 5 if confirmed else 1
     account.candidate_tenure["strategic_eligibility_session"] = date.toordinal()
     policy = PortfolioAllocator(DEFAULT_CONFIG)
     monkeypatch.setattr(policy, "_strategic_cohort_targets", lambda **kwargs: None)
@@ -240,6 +247,7 @@ def test_fully_exited_ordinary_restore_rights_require_a_new_core_admission(monke
 @pytest.mark.parametrize("quality, volume, filled_shares, decision_price, next_fill_shares", (
     pytest.param("not_mature", 1_000_000.0, 5_000, 10.0, 0, id="rejected_below_target"),
     pytest.param("not_mature", 7_800_000.0, 39_000, 10.5, 0, id="rejected_after_price_drift"),
+    pytest.param("strict_quality_lost", 7_800_000.0, 39_000, 10.5, 0, id="strict_quality_lost"),
     pytest.param("ready", 7_800_000.0, 39_000, 10.5, 900, id="ready_after_price_drift"),
 ))
 def test_partial_core_quality_controls_pending_orders_after_restart(
@@ -254,7 +262,8 @@ def test_partial_core_quality_controls_pending_orders_after_restart(
     frame.loc[date, "close"] = 10.0
     panel = {symbol: frame}
     leaders = {symbol: replace(
-        leaders["sh600001"], symbol=symbol, industry="semiconductor", mature=quality == "ready",
+        leaders["sh600001"], symbol=symbol, industry="semiconductor", mature=quality != "not_mature",
+        score=DEFAULT_CONFIG.strategic_one_name_min_score - 0.01 if quality == "strict_quality_lost" else 0.9,
         components={"unknown_industry": 0.0, **dict.fromkeys((
             "secular_score", "secular_confidence", "industry_inference_confidence",
             "momentum60", "momentum120", "relative_strength", "trend_persistence",
@@ -298,9 +307,15 @@ def test_partial_core_quality_controls_pending_orders_after_restart(
     )
     assert {target.symbol: target.weight for target in targets} == pytest.approx({symbol: held_weight})
     observed = risk.evidence["core_allocation"]["symbols"][symbol]
-    assert observed["pending_entry"]["block"] == ("READY" if quality == "ready" else "NOT_MATURE")
+    assert observed["pending_entry"]["block"] == {
+        "ready": "READY", "not_mature": "NOT_MATURE", "strict_quality_lost": "CONFIRMATION_INCOMPLETE",
+    }[quality]
     if quality == "ready":
-        assert observed["pending_entry"]["confirmations"]["established"] == 1
+        assert observed["pending_entry"]["confirmations"]["independent_core"] == 1
+    elif quality == "strict_quality_lost":
+        assert leaders[symbol].mature
+        assert account.replacement_tenure[f"strategic_eligibility:established:{symbol}"] == 1
+        assert observed["pending_entry"]["confirmations"]["independent_core"] == 0
     assert account.cash == cash_after_fill and account.positions[symbol].shares == filled_shares
     next_signal = str(dates[-2].date())
     previous = list(account.pending_orders)
@@ -528,7 +543,7 @@ def test_transfer_requires_consecutive_sessions_and_same_day_is_idempotent():
     assert account.replacement_tenure["core_transfer:sh600001->sh600002"] == 1
 
 
-def test_partial_rotation_retry_keeps_one_order_and_event_after_restart(monkeypatch, tmp_path):
+def test_partial_core_retry_keeps_one_order_and_event_after_restart(monkeypatch, tmp_path):
     date, panel, leaders, risk = _inputs()
     names = dict(zip(panel, ("sh688008", "sh688012", "sh688200"), strict=True))
     panel = {names[s]: frame for s, frame in panel.items()}
@@ -540,9 +555,8 @@ def test_partial_rotation_retry_keeps_one_order_and_event_after_restart(monkeypa
     initial_targets = attach_target_attribution(
         "optical", REQUIRED_AI_UNIVERSE_SHA256, signal_date=signal,
         targets=(Target(
-            "sh688008", 0.2, "CORE", 0.9, 0.9, "leader rotation after prior reduction filled",
-            origin_subsystem="LEADER", mechanism="LEADER_ROTATION", origin_lifecycle="CORE",
-            replaces_symbol="sh688012",
+            "sh688008", 0.2, "CORE", 0.9, 0.9, "confirmed core admitted from available account capital",
+            origin_subsystem="LEADER", mechanism="LEADER_SELECTION", origin_lifecycle="CORE",
         ),),
     )
     prices = {s: 10.0 for s in panel}
@@ -564,13 +578,14 @@ def test_partial_rotation_retry_keeps_one_order_and_event_after_restart(monkeypa
     original_identity = (original_order.order_id, original_order.event_id)
     original_quantity = account.order_ledger[0].requested_shares
     account.replacement_tenure["strategic_eligibility:established:sh688008"] = DEFAULT_CONFIG.leader_tenure_days
+    account.replacement_tenure["strategic_eligibility:independent_core:sh688008"] = 1
     policy = PortfolioAllocator(DEFAULT_CONFIG)
     monkeypatch.setattr(policy, "_strategic_cohort_targets", lambda **kwargs: None)
     targets = policy.allocate(date=dates[-2], opportunity=Opportunity.TREND, risk=risk,
                               user_panel=panel, leaders=leaders, account=account, prices=prices)
     resumed_target = next(t for t in targets if t.symbol == "sh688008")
-    assert resumed_target.mechanism == "LEADER_ROTATION"
-    assert resumed_target.replaces_symbol == "sh688012"
+    assert resumed_target.mechanism == original_order.mechanism == "LEADER_SELECTION"
+    assert resumed_target.replaces_symbol == original_order.replaces_symbol is None
     assert resumed_target.event_id == original_identity[1]
     next_signal = str(dates[-2].date())
     planned = plan_orders(signal_date=next_signal, targets=targets, account=account,
@@ -580,7 +595,7 @@ def test_partial_rotation_retry_keeps_one_order_and_event_after_restart(monkeypa
     ))
     assert len(account.order_ledger) == 1
     assert (account.pending_orders[0].order_id, account.pending_orders[0].event_id) == original_identity
-    state_path = tmp_path / "partial-rotation.json"
+    state_path = tmp_path / "partial-core.json"
     save_account(account, state_path)
     resumed = load_account(state_path)
     final_fills = ExecutionPlanner(DEFAULT_CONFIG).execute_open(

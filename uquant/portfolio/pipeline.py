@@ -57,13 +57,9 @@ def _candidate_entry(self: PortfolioAllocator, *, symbol: str, score: LeaderScor
     evidence: dict[str, Any] = {"required_confirmation": confirmation_days}
     if not score.mature:
         return {**evidence, "block": "NOT_MATURE"}
-    observed = {}
-    for route in ("established", "transition", "transition_impulse", "persistent_industry", "reversal_industry"):
-        streak = strategic_candidate_confirmation(account=account, symbol=symbol, route=route)
-        observed[route] = streak
-        if streak >= confirmation_days:
-            break
-    else:
+    streak = strategic_candidate_confirmation(account=account, symbol=symbol, route="independent_core")
+    observed = {"independent_core": streak}
+    if streak < confirmation_days:
         return {**evidence, "confirmations": observed, "block": "CONFIRMATION_INCOMPLETE"}
     evidence.update(confirmations=observed, block=_candidate_market_block(
         self, symbol=symbol, score=score, date=date, user_panel=user_panel))
@@ -88,6 +84,19 @@ def _core_candidates(
     return sorted(candidates, key=lambda symbol: (-leaders[symbol].score, symbol))
 
 
+def _transfer_sell_filled(account: AccountState, key: str, date: pd.Timestamp) -> bool:
+    """A recorded observation becomes a transfer only through its real sell."""
+    symbol = key.split(":", 1)[1].split("->", 1)[0]
+    signal = account.candidate_tenure.get(key.replace("core_transfer:", "core_transfer_session:", 1))
+    return any(
+        fill.side == "SELL" and fill.shares > 0 and fill.symbol == symbol
+        and fill.mechanism == AttributionMechanism.LEADER_ROTATION.value
+        and pd.Timestamp(fill.signal_date).toordinal() == signal
+        and fill.fill_date <= str(date.date())
+        for fill in account.fills
+    )
+
+
 def _observe_transfer(self: PortfolioAllocator, *, weakest: str, challenger: str,
                       frame: pd.DataFrame, date: pd.Timestamp, account: AccountState,
                       broken: bool, edge: float) -> str:
@@ -98,6 +107,9 @@ def _observe_transfer(self: PortfolioAllocator, *, weakest: str, challenger: str
     last_observed = account.candidate_tenure.get(clock, 0)
     if last_observed > observed:
         raise RuntimeError("transfer observation session moved backwards")
+    if (account.replacement_tenure.get(key, 0) >= self.cfg.replacement_confirm_days
+            and _transfer_sell_filled(account, key, date)):
+        return key
     if last_observed != observed:
         streak = account.replacement_tenure.get(key, 0) if last_observed == previous else 0
         account.replacement_tenure[key] = streak + 1 if broken and edge >= self.cfg.replacement_edge else 0
@@ -147,6 +159,10 @@ def _degraded_transfer(
     )
     key = _observe_transfer(self, weakest=weakest, challenger=challenger, frame=frame,
                             date=date, account=account, broken=broken, edge=edge)
+    if _transfer_sell_filled(account, key, date):
+        if diagnostics is not None:
+            diagnostics["block"] = "TRANSFER_SETTLED_AWAIT_ADMISSION"
+        return None
     held_sessions = len(frame.loc[pd.Timestamp(position.entry_date) : date]) if position.entry_date else 0
     if (
         account.replacement_tenure[key] < self.cfg.replacement_confirm_days
@@ -186,6 +202,10 @@ def _degraded_transfer(
         scale = min(1.0, remaining / max(sum(bands), 1e-12))
         account.strategic_exit_bands[weakest] = [weight * scale for weight in bands]
     account.rotation_dates.append(str(date.date()))
+    account.candidate_tenure[key.replace("core_transfer:", "core_transfer_session:", 1)] = date.toordinal()
+    for observed in account.replacement_tenure:
+        if observed.startswith("core_transfer:") and observed != key:
+            account.replacement_tenure[observed] = 0
     return weakest
 
 
@@ -387,7 +407,8 @@ def _restore_ordinary_holdings(book: _AllocationBook) -> None:
 def _record_completed_transfer(book: _AllocationBook, symbol: str) -> None:
     transfers = [key for key, tenure in book.account.replacement_tenure.items()
                  if key.startswith("core_transfer:") and key.endswith("->" + symbol)
-                 and tenure >= book.policy.cfg.replacement_confirm_days]
+                 and tenure >= book.policy.cfg.replacement_confirm_days
+                 and _transfer_sell_filled(book.account, key, book.date)]
     if transfers:
         transfer = sorted(transfers)[0]
         book.replacements[symbol] = transfer.split(":", 1)[1].split("->", 1)[0]

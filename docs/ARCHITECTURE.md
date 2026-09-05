@@ -130,6 +130,11 @@ uquant 把数据、信号、风险、组合、执行和账户放在一条可审�
 首次返回结果决定整本账户。分配不能把未成交卖单当作现金，也不能为了新增而机械缩减
 健康持仓。新入场、晋级与恢复共同检查总仓、单票、行业、相关风险簇和挂单占用。
 
+普通独立核心由资格观察层复用 `strict_absolute_owner_quality()`，与当天任一既有路线
+共同形成 `strategic_eligibility:independent_core:{symbol}` 计数。分配层读取该连续计数，
+不从其他路线推导或回填；持有与合法风险恢复继续使用各自条件。轮动买入的归因须匹配
+转出证券的真实 SELL 成交、`LEADER_ROTATION` 机制和原转出观察的 `signal_date`。
+
 换仓预检复用 [portfolio/capital.py](../uquant/portfolio/capital.py) 的 `funded_increment()`，
 将拟卖出后的预算投影记录到 `core_allocation.symbols[symbol].transfer_budget`。投影只检查
 卖出能否解除入场阻塞，不写入可用现金；拒绝时不缩减目标、恢复权或轮动额度。

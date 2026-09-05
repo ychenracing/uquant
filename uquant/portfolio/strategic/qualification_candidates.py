@@ -45,6 +45,7 @@ def observe_strategic_candidate_eligibility(
     *, date: pd.Timestamp, snapshots: dict[str, dict[str, float]],
     leaders: dict[str, LeaderScore], risk: RiskAssessment, account: AccountState,
     cfg: SystemConfig,
+    independent_core_symbols: frozenset[str] = frozenset(),
 ) -> dict[str, dict[str, int]]:
     """Observe every absolute route predicate once per session, including during freezes."""
     session = date.toordinal()
@@ -65,6 +66,12 @@ def observe_strategic_candidate_eligibility(
             if session != previous:
                 account.replacement_tenure[key] = account.replacement_tenure.get(key, 0) + 1
             current.setdefault(symbol, {})[route] = account.replacement_tenure.get(key, 0)
+        if symbol in independent_core_symbols and symbol in current:
+            key = f"strategic_eligibility:independent_core:{symbol}"
+            eligible_keys.add(key)
+            if session != previous:
+                account.replacement_tenure[key] = account.replacement_tenure.get(key, 0) + 1
+            current[symbol]["independent_core"] = account.replacement_tenure.get(key, 0)
     for key in tuple(account.replacement_tenure):
         if key.startswith("strategic_eligibility:") and key not in eligible_keys:
             account.replacement_tenure[key] = 0

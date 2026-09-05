@@ -26,7 +26,7 @@ from ...types import (
 from .discovery import (
     observe_strategic_candidates,
 )
-from .grant_lifecycle import _completed_core_entry, revalidate_strategic_grant
+from .grant_lifecycle import completed_strategic_core_entry, revalidate_strategic_grant
 from .qualification_candidates import reset_strategic_candidate_eligibility
 
 if TYPE_CHECKING:
@@ -603,7 +603,7 @@ def _final_strategic_proposal(
     *,
     active_symbols: set[str],
     current_selected: dict[str, float],
-    promoting: bool,
+    promoting: bool = False,
 ) -> dict[str, float]:
     buy_risk_open, restore_confirmed = _strategic_restore_confirmed(ctx)
     proposed = _apply_strategic_restore(
@@ -815,7 +815,7 @@ def _promote_filled_strategic_epoch(
     if not (
         grant is not None and grant.status not in {"EXPIRED", "CANCELLED"}
         and epoch is not None
-        and _completed_core_entry(account, grant)
+        and completed_strategic_core_entry(account, grant)
         and str(date.date()) > epoch.first_fill_session
         and account.strategic_qualification.qualification_ready
         and not account.strategic_qualification.deployment_blocked

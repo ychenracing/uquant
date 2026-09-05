@@ -464,8 +464,11 @@ def _strategic_candidate_meets_route(
     )
 
 
+reversal_candidates = _reversal_candidates
+
 __all__ = (
     "StrategicRoute",
+    "reversal_candidates",
     "strategic_candidate_meets_route",
     "strategic_route_candidates",
 )

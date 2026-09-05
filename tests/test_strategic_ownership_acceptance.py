@@ -218,7 +218,9 @@ def test_ownership_workflow_is_bounded_cached_and_blocking() -> None:
 
 
 def test_actual_epoch_facts_require_target_order_and_matching_real_fill() -> None:
-    facts = actual_epoch_facts(_result())
+    from test_cross_ai_ownership_continuity import continuity_replay
+
+    facts = actual_epoch_facts(continuity_replay(owners=("sz300308",)))
 
     assert len(facts) == 1
     assert facts[0]["owner_symbol"] == "sz300308"

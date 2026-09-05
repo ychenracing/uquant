@@ -299,10 +299,11 @@ def _grant_qualification_observation(
     *,
     trace: Sequence[Mapping[str, object]],
     fact: EpochFact,
+    session: str | None = None,
 ) -> Mapping[str, object]:
     matches: list[Mapping[str, object]] = []
     for row in trace:
-        if row.get("session") != fact.qualification_session:
+        if row.get("session") != (session or fact.qualification_session):
             continue
         risk = metric_mapping(row.get("risk", {}), label="trace risk")
         raw = risk.get("strategic_qualification")
@@ -325,23 +326,26 @@ def _validate_grant_qualification_provenance(
     fact: EpochFact,
     grant: Mapping[str, object],
 ) -> None:
-    qualification = _grant_qualification_observation(trace=trace, fact=fact)
+    observations = [_grant_qualification_observation(trace=trace, fact=fact, session=session)
+                    for session in dict.fromkeys((fact.qualification_session, fact.grant_session))]
     expected = {
         "qualification_signature": fact.qualification_signature,
         "qualification_route": fact.qualification_route,
         "qualification_quorum": fact.qualification_quorum,
     }
-    for field in _GRANT_QUALIFICATION_FIELDS:
-        if grant.get(field, "") != expected[field] or qualification.get(
-            field, ""
-        ) != expected[field]:
-            raise ValueError(f"absolute generalization grant {field.replace('_', ' ')} differs")
+    for qualification in observations:
+        for field in _GRANT_QUALIFICATION_FIELDS:
+            if grant.get(field, "") != expected[field] or qualification.get(field, "") != expected[field]:
+                raise ValueError(f"absolute generalization grant {field.replace('_', ' ')} differs")
+        evidence = metric_text(qualification.get("qualification_evidence_sha256"), label="qualification evidence")
+        if len(evidence) != 64 or any(character not in "0123456789abcdef" for character in evidence):
+            raise ValueError("absolute generalization grant qualification evidence differs")
     grant_evidence = metric_text(
         grant.get("qualification_evidence_sha256"),
         label="grant qualification evidence",
     )
     qualification_evidence = metric_text(
-        qualification.get("qualification_evidence_sha256"),
+        observations[-1].get("qualification_evidence_sha256"),
         label="qualification evidence",
     )
     if (
@@ -392,7 +396,9 @@ def _grant_creation(
     if len(identities) != 1:
         raise ValueError("absolute generalization grant identity changed across trace")
     _validate_grant_qualification_provenance(trace=trace, fact=fact, grant=grant)
-    return grant, tuple(risk for _, _, risk in matches)
+    # Historical authority must be witnessed at creation, never supplied by a
+    # later generation of the account's mutable rearm observation slot.
+    return grant, (created[0][2], *(risk for session, _, risk in matches if session != fact.grant_session))
 
 
 def _validate_authorization(
@@ -410,8 +416,12 @@ def _validate_authorization(
         if fact.authorization_session:
             raise ValueError("absolute generalization authorization session differs")
         return
-    for risk in risks:
+    for index, risk in enumerate(risks):
         rearm = metric_mapping(risk.get("strategic_cash_rearm"), label="strategic cash rearm")
+        if index and rearm.get("authorization_id") != authorization_id:
+            observed_grant = metric_mapping(risk.get("strategic_grant"), label="strategic grant")
+            if observed_grant.get("status") in {"EXPIRED", "CANCELLED", "COMPLETED"}:
+                continue
         authorized = metric_iso_session(
             rearm.get("authorized_session"), label="authorization session"
         )

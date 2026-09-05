@@ -24,6 +24,7 @@ from ..types import (
 )
 from .capital import committed_capital, funded_increment
 from .strategic.authority import assess_strategic_capital_authority
+from .strategic.discovery import current_core_qualification
 from .strategic.qualification_candidates import (
     reset_strategic_candidate_eligibility,
     strategic_candidate_confirmation,
@@ -53,8 +54,12 @@ def _candidate_market_block(self: PortfolioAllocator, *, symbol: str, score: Lea
 
 def _candidate_entry(self: PortfolioAllocator, *, symbol: str, score: LeaderScore,
                      date: pd.Timestamp, user_panel: dict[str, pd.DataFrame],
-                     account: AccountState, confirmation_days: int) -> dict[str, Any]:
+                     account: AccountState, confirmation_days: int,
+                     certificate: dict[str, Any] | None = None) -> dict[str, Any]:
     evidence: dict[str, Any] = {"required_confirmation": confirmation_days}
+    if certificate is not None:
+        return {**certificate, "block": _candidate_market_block(
+            self, symbol=symbol, score=score, date=date, user_panel=user_panel)}
     if not score.mature:
         return {**evidence, "block": "NOT_MATURE"}
     streak = strategic_candidate_confirmation(account=account, symbol=symbol, route="independent_core")
@@ -70,13 +75,15 @@ def _core_candidates(
     self: PortfolioAllocator, *, date: pd.Timestamp, user_panel: dict[str, pd.DataFrame],
     leaders: dict[str, LeaderScore], account: AccountState,
     trace: dict[str, dict[str, Any]] | None = None,
+    certificates: dict[str, dict[str, Any]] | None = None,
 ) -> list[str]:
     """Record the same short-circuit predicates that decide core entry eligibility."""
     candidates = []
     for symbol, score in leaders.items():
         entry = _candidate_entry(self, symbol=symbol, score=score, date=date,
                                  user_panel=user_panel, account=account,
-                                 confirmation_days=self.cfg.leader_tenure_days)
+                                 confirmation_days=self.cfg.leader_tenure_days,
+                                 certificate=(certificates or {}).get(symbol))
         if trace is not None:
             trace.setdefault(symbol, {}).update(entry=entry, rank_score=score.score)
         if entry["block"] == "READY":
@@ -350,7 +357,8 @@ def _ordinary_exits(book: _AllocationBook) -> None:
         book.record(symbol)["allocation_reason"] = "CONFIRMED_STRUCTURAL_EXIT"
 
 
-def _pending_intents(book: _AllocationBook, *, candidates: list[str], buy_open: bool) -> None:
+def _pending_intents(book: _AllocationBook, *, candidates: list[str], buy_open: bool,
+                     certificates: dict[str, dict[str, Any]] | None = None) -> None:
     for order in book.account.pending_orders:
         if order.side == "SELL":
             book.proposed[order.symbol] = min(book.proposed.get(order.symbol, 0.0), order.target_weight)
@@ -367,6 +375,7 @@ def _pending_intents(book: _AllocationBook, *, candidates: list[str], buy_open: 
                     book.policy, symbol=order.symbol, score=book.leaders[order.symbol],
                     date=book.date, user_panel=book.user_panel, account=book.account,
                     confirmation_days=1,
+                    certificate=(certificates or {}).get(order.symbol),
                 )
                 book.record(order.symbol)["pending_entry"] = evidence
                 if evidence["block"] != "READY":
@@ -541,10 +550,15 @@ def _allocate_strategy(
         account=account, risk=risk, cfg=self.cfg)
     liabilities = assess_strategic_capital_authority(account).late_fill_order_ids
     _fund_strategic_owners(book, frozen=frozen, bounded_restore=bounded_restore, unresolved=bool(liabilities))
+    certificates = current_core_qualification(
+        self, date=date, user_panel=user_panel, leaders=leaders, account=account, risk=risk,
+        qualification_panel=qualification_panel, qualification_leaders=qualification_leaders,
+        strategic_universe=strategic_universe,
+    )
     candidates = _core_candidates(self, date=date, user_panel=user_panel, leaders=leaders, account=account,
-                                  trace=book.trace)
+                                  trace=book.trace, certificates=certificates)
     _ordinary_exits(book)
-    _pending_intents(book, candidates=candidates, buy_open=not frozen and not liabilities)
+    _pending_intents(book, candidates=candidates, buy_open=not frozen and not liabilities, certificates=certificates)
     if not frozen and not liabilities:
         book.committed, book.cash_room = committed_capital(account=account, prices=prices, proposed=proposed)
         _restore_ordinary_holdings(book)

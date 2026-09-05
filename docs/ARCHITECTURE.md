@@ -135,6 +135,13 @@ uquant 把数据、信号、风险、组合、执行和账户放在一条可审�
 不从其他路线推导或回填；持有与合法风险恢复继续使用各自条件。轮动买入的归因须匹配
 转出证券的真实 SELL 成交、`LEADER_ROTATION` 机制和原转出观察的 `signal_date`。
 
+`discovery.current_core_qualification()` 只读复用战略证书枚举，为每个 owner 提供当前已通过
+原 quorum 和连续确认的一个证书；原见证、路线、确认数与证据摘要进入分配诊断。pipeline
+将它作为普通 CORE 的另一种资格来源，与 `independent_core` 共用当前市场检查、候选排序和
+唯一预算；普通部分成交续买也重验该证书。资格共享不创建或改写 grant/epoch，获资新仓仍是
+普通 LEADER 来源、`LEADER_SELECTION` 机制、`CORE` 生命周期，grant/epoch 引用为空。
+旧战略 owner 不阻断其他证券使用已确认资格，但 Risk、冻结、未结算责任和集中度仍限制新增。
+
 换仓预检复用 [portfolio/capital.py](../uquant/portfolio/capital.py) 的 `funded_increment()`，
 将拟卖出后的预算投影记录到 `core_allocation.symbols[symbol].transfer_budget`。投影只检查
 卖出能否解除入场阻塞，不写入可用现金；拒绝时不缩减目标、恢复权或轮动额度。
@@ -180,11 +187,21 @@ episode，候选切换不会。达到 `READY` 后，系统仅为当前独立合�
 唯一 owner，`PortfolioAllocator` 仍是 Target 的唯一 owner。
 
 每个 grant 对应一个不可改写的 `StrategicEpoch` 账本行。未成交 grant 最多形成非实际
-`PROBE` 记录；只有匹配的正向 Fill 才能写入 `first_fill_session`、激活 epoch 并增加实际授冠
-计数。战略身份账本仍最多一个 `ACTIVE` epoch；普通核心可与该 epoch 并存并获得剩余资本。
+`PROBE` 记录；只有匹配的正向 Fill 才能写入 `first_fill_session`。FULL_COHORT 首次实际
+成交可激活 epoch；Pair/Single 首次成交进入 `CORE`，后续匹配成交才可激活。授冠、目标和
+实际成交状态分别记录，grant 的 `PARTIALLY_FILLED` 标签本身不能证明仍有经济余量。
+战略身份账本仍最多一个 `ACTIVE` epoch；普通核心可与该 epoch 并存并获得剩余资本。
 新战略 grant 仍需前一战略身份结清，以保护引用完整性；这不再构成其他证券参与的经济阻断。
 `previous_grant_id` 与 `previous_epoch_id` 保留连续链；执行失败继续复用同一经济 grant，资格
-失效才终结它并允许独立合格的新候选创建新身份。
+失效后的未部署权限与已成交持仓分别处理。
+
+[grant_lifecycle.py](../uquant/portfolio/strategic/grant_lifecycle.py) 从真实 owner/grant/epoch、
+正持仓、首笔 BUY 和关联订单证明 CORE 入场是否完成：须有事件身份，无本地 BUY 挂单、
+无迟到成交责任且全部关联 BUY 的经济余量为零。完成后，入场质量下降只关闭新增部署，
+入场重试时钟不再使持仓过期；持仓仍接受战略灾难、已武装 ATR 和原 Risk 退出。
+CORE 推广重验不可变授权中的成员、原路线和 quorum，以当前证据恢复反转见证顺序，
+并要求当前连续确认、正常 Risk、无新增冻结和原资本限制；不能把当前新赢家替换进旧授权。
+推广目标仍经过唯一 pipeline 与共同资本预算，实际激活仍由 Fill 推进。
 
 ## 执行与账户
 
@@ -196,6 +213,10 @@ episode，候选切换不会。达到 `READY` 后，系统仅为当前独立合�
 预算收紧会重新生成较小的意图，不能利用最小交易差容差继续执行更大的旧订单。
 迟到成交计入原授冠并取消重叠重试，避免重复经济订单或第二个
 仓位 owner。每次战略重试都重新确认资格，并重新经过 Risk 与 `PortfolioAllocator`。
+
+战略未部署授权失效时仅移除所属 BUY 挂单，已成交目标不超过当前实仓与原目标的较小值，
+继续接受持有退出；原独立风险 SELL 的订单、事件、信号日期、机制和归因身份全部保留。
+券商取消确认和迟到成交责任仍由原物理订单承接，撤销买入权限不构成新增资本授权。
 
 生产经济状态只沿 `Decision → Order → Fill → AccountState` 单向推进。Base Risk 汇总
 风险证据并拥有风险派生 `target_gross_cap`，`PortfolioAllocator` 在该上限和上述单一战略

@@ -46860,8 +46860,10 @@
         "path": "uquant/portfolio/strategic/discovery.py",
         "public_names": [
           "StrategicPortfolioPolicy",
+          "current_core_qualification",
           "observe_strategic_candidates",
           "resolve_strategic_qualification_inputs",
+          "strategic_candidate_certificates",
           "strategic_candidate_symbol",
           "strategic_deployment_block_reason",
           "strategic_qualification_evidence",
@@ -46872,6 +46874,86 @@
           "strategic_route_signature"
         ],
         "functions": {
+          "current_core_qualification": {
+            "parameters": [
+              {
+                "name": "self",
+                "kind": "POSITIONAL_OR_KEYWORD",
+                "annotation": "StrategicPortfolioPolicy",
+                "default": {
+                  "kind": "required"
+                }
+              },
+              {
+                "name": "date",
+                "kind": "KEYWORD_ONLY",
+                "annotation": "pd.Timestamp",
+                "default": {
+                  "kind": "required"
+                }
+              },
+              {
+                "name": "user_panel",
+                "kind": "KEYWORD_ONLY",
+                "annotation": "dict[str, pd.DataFrame]",
+                "default": {
+                  "kind": "required"
+                }
+              },
+              {
+                "name": "leaders",
+                "kind": "KEYWORD_ONLY",
+                "annotation": "dict[str, LeaderScore]",
+                "default": {
+                  "kind": "required"
+                }
+              },
+              {
+                "name": "account",
+                "kind": "KEYWORD_ONLY",
+                "annotation": "AccountState",
+                "default": {
+                  "kind": "required"
+                }
+              },
+              {
+                "name": "risk",
+                "kind": "KEYWORD_ONLY",
+                "annotation": "RiskAssessment",
+                "default": {
+                  "kind": "required"
+                }
+              },
+              {
+                "name": "qualification_panel",
+                "kind": "KEYWORD_ONLY",
+                "annotation": "dict[str, pd.DataFrame] | None",
+                "default": {
+                  "kind": "value",
+                  "value": null
+                }
+              },
+              {
+                "name": "qualification_leaders",
+                "kind": "KEYWORD_ONLY",
+                "annotation": "dict[str, LeaderScore] | None",
+                "default": {
+                  "kind": "value",
+                  "value": null
+                }
+              },
+              {
+                "name": "strategic_universe",
+                "kind": "KEYWORD_ONLY",
+                "annotation": "StrategicUniverseRoles | None",
+                "default": {
+                  "kind": "value",
+                  "value": null
+                }
+              }
+            ],
+            "return": "dict[str, dict[str, Any]]"
+          },
           "observe_strategic_candidates": {
             "parameters": [
               {
@@ -47004,6 +47086,67 @@
               }
             ],
             "return": "tuple[dict[str, pd.DataFrame], dict[str, LeaderScore], StrategicUniverseRoles]"
+          },
+          "strategic_candidate_certificates": {
+            "parameters": [
+              {
+                "name": "self",
+                "kind": "POSITIONAL_OR_KEYWORD",
+                "annotation": "StrategicPortfolioPolicy",
+                "default": {
+                  "kind": "required"
+                }
+              },
+              {
+                "name": "snapshots",
+                "kind": "KEYWORD_ONLY",
+                "annotation": "dict[str, dict[str, float]]",
+                "default": {
+                  "kind": "required"
+                }
+              },
+              {
+                "name": "leaders",
+                "kind": "KEYWORD_ONLY",
+                "annotation": "dict[str, LeaderScore]",
+                "default": {
+                  "kind": "required"
+                }
+              },
+              {
+                "name": "risk",
+                "kind": "KEYWORD_ONLY",
+                "annotation": "RiskAssessment",
+                "default": {
+                  "kind": "required"
+                }
+              },
+              {
+                "name": "account",
+                "kind": "KEYWORD_ONLY",
+                "annotation": "AccountState",
+                "default": {
+                  "kind": "required"
+                }
+              },
+              {
+                "name": "reference_snapshots",
+                "kind": "KEYWORD_ONLY",
+                "annotation": "dict[str, dict[str, float]]",
+                "default": {
+                  "kind": "required"
+                }
+              },
+              {
+                "name": "strategic_universe",
+                "kind": "KEYWORD_ONLY",
+                "annotation": "StrategicUniverseRoles",
+                "default": {
+                  "kind": "required"
+                }
+              }
+            ],
+            "return": "list[tuple[StrategicRoute, StrategicQuorumResult, int]]"
           },
           "strategic_candidate_symbol": {
             "parameters": [
@@ -47368,9 +47511,31 @@
       "uquant.portfolio.strategic.grant_lifecycle": {
         "path": "uquant/portfolio/strategic/grant_lifecycle.py",
         "public_names": [
+          "completed_strategic_core_entry",
           "revalidate_strategic_grant"
         ],
         "functions": {
+          "completed_strategic_core_entry": {
+            "parameters": [
+              {
+                "name": "account",
+                "kind": "POSITIONAL_OR_KEYWORD",
+                "annotation": "AccountState",
+                "default": {
+                  "kind": "required"
+                }
+              },
+              {
+                "name": "grant",
+                "kind": "POSITIONAL_OR_KEYWORD",
+                "annotation": "StrategicGrantIntent",
+                "default": {
+                  "kind": "required"
+                }
+              }
+            ],
+            "return": "bool"
+          },
           "revalidate_strategic_grant": {
             "parameters": [
               {
@@ -47605,10 +47770,40 @@
         "path": "uquant/portfolio/strategic/qualification_candidates.py",
         "public_names": [
           "StrategicRoute",
+          "reversal_candidates",
           "strategic_candidate_meets_route",
           "strategic_route_candidates"
         ],
         "functions": {
+          "reversal_candidates": {
+            "parameters": [
+              {
+                "name": "self",
+                "kind": "POSITIONAL_OR_KEYWORD",
+                "annotation": "StrategicQualificationPolicy",
+                "default": {
+                  "kind": "required"
+                }
+              },
+              {
+                "name": "snapshots",
+                "kind": "POSITIONAL_OR_KEYWORD",
+                "annotation": "dict[str, dict[str, float]]",
+                "default": {
+                  "kind": "required"
+                }
+              },
+              {
+                "name": "leaders",
+                "kind": "POSITIONAL_OR_KEYWORD",
+                "annotation": "dict[str, LeaderScore]",
+                "default": {
+                  "kind": "required"
+                }
+              }
+            ],
+            "return": "list[str]"
+          },
           "strategic_candidate_meets_route": {
             "parameters": [
               {
@@ -94900,7 +95095,7 @@
     }
   },
   "contract_id": "uquant-public-api-v1",
-  "contract_sha256": "d08cc76118ad81a7fa01761a991155e060da5bac11409c7812bec4e108333b53",
+  "contract_sha256": "d69904ebc3d3a95cc3533b23c39e6c0c1a26ceb94dfdb5e41ae99cc160c86365",
   "recorded_on": "2026-09-05",
   "schema_version": 1
 }

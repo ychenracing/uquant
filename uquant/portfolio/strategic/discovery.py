@@ -6,7 +6,7 @@ import hashlib
 import json
 import math
 from dataclasses import replace
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 import pandas as pd
 
@@ -628,13 +628,14 @@ def _route_confirmation(
     return streak
 
 
-def _select_qualified_strategic_route(
+def strategic_candidate_certificates(
     self: StrategicPortfolioPolicy, *, snapshots: dict[str, dict[str, float]],
     leaders: dict[str, LeaderScore], risk: RiskAssessment, account: AccountState,
     reference_snapshots: dict[str, dict[str, float]], strategic_universe: StrategicUniverseRoles,
-) -> StrategicRoute:
-    """Rank current candidates, never route precedence or cohort-signature tenure."""
-    evaluated: list[tuple[tuple[int, int, float, int, str, str, tuple[str, ...]], StrategicRoute]] = []
+) -> list[tuple[StrategicRoute, StrategicQuorumResult, int]]:
+    """Read all current certificates without allocating or replacing an owner."""
+    evaluated: list[tuple[tuple[int, int, float, int, str, str, tuple[str, ...]],
+                          tuple[StrategicRoute, StrategicQuorumResult, int]]] = []
     for route in strategic_route_candidates(self, snapshots=snapshots, leaders=leaders, risk=risk):
         quorum, _ = _strategic_route_quorum(
             self, route=route, snapshots=snapshots, leaders=leaders, risk=risk,
@@ -648,9 +649,62 @@ def _select_qualified_strategic_route(
         key = (-int(streak >= quorum.required_confirm_days),
                -int(route.decisive_reversal_symbol == candidate), -leaders[candidate].score,
                -len(witnesses), candidate, route.route, tuple(sorted(route.symbols)))
-        evaluated.append((key, route))
-    return min(evaluated, key=lambda item: item[0])[1] if evaluated else StrategicRoute(
+        evaluated.append((key, (route, quorum, streak)))
+    return [certificate for _, certificate in sorted(evaluated, key=lambda item: item[0])]
+
+
+def _select_qualified_strategic_route(
+    self: StrategicPortfolioPolicy, *, snapshots: dict[str, dict[str, float]],
+    leaders: dict[str, LeaderScore], risk: RiskAssessment, account: AccountState,
+    reference_snapshots: dict[str, dict[str, float]], strategic_universe: StrategicUniverseRoles,
+) -> StrategicRoute:
+    evaluated = strategic_candidate_certificates(
+        self, snapshots=snapshots, leaders=leaders, risk=risk, account=account,
+        reference_snapshots=reference_snapshots, strategic_universe=strategic_universe,
+    )
+    return evaluated[0][0] if evaluated else StrategicRoute(
         [], "none", None, False, [], "risk_anchor_symbols" in risk.evidence, False)
+
+
+def current_core_qualification(
+    self: StrategicPortfolioPolicy, *, date: pd.Timestamp, user_panel: dict[str, pd.DataFrame],
+    leaders: dict[str, LeaderScore], account: AccountState, risk: RiskAssessment,
+    qualification_panel: dict[str, pd.DataFrame] | None = None,
+    qualification_leaders: dict[str, LeaderScore] | None = None,
+    strategic_universe: StrategicUniverseRoles | None = None,
+) -> dict[str, dict[str, Any]]:
+    """Expose confirmed evidence to the same cash book, never grant authority."""
+    if not self.cfg.strategic_dynamic_enabled:
+        return {}
+    panel, scores, universe = resolve_strategic_qualification_inputs(
+        date=date, user_panel=user_panel, leaders=leaders, qualification_panel=qualification_panel,
+        qualification_leaders=qualification_leaders, strategic_universe=strategic_universe,
+    )
+    references = strategic_qualification_snapshots(
+        self, date=date, user_panel={symbol: frame for symbol, frame in panel.items()
+                                    if symbol in universe.available_symbols}, leaders=scores,
+    )
+    snapshots = {symbol: values for symbol, values in references.items() if symbol in user_panel and symbol in leaders}
+    evidence: dict[str, dict[str, Any]] = {}
+    for route, quorum, streak in strategic_candidate_certificates(
+        self, snapshots=snapshots, leaders=scores, risk=risk, account=account,
+        reference_snapshots=references, strategic_universe=universe,
+    ):
+        owner = strategic_candidate_symbol(route=route, symbols=route.symbols, leaders=scores)
+        if streak < quorum.required_confirm_days or owner in evidence:
+            continue
+        _, signature = strategic_route_signature(route=route, symbols=route.symbols, leaders=scores)
+        witnesses = strategic_quorum_candidate_symbols(route=route, route_symbols=route.symbols)
+        evidence[owner] = {
+            "block": "READY", "qualification_route": route.route, "qualification_quorum": quorum.route.value,
+            "required_confirmation": quorum.required_confirm_days, "confirmations": {route.route: streak},
+            "qualification_signature": signature, "witnesses": sorted(witnesses), "as_of": str(date.date()),
+            "qualification_evidence_sha256": strategic_qualification_evidence_sha256(
+                date=date, route=route, symbols=list(witnesses), signature=signature,
+                snapshots=references, leaders=scores, risk=risk,
+            ),
+        }
+    return evidence
 
 
 def _qualify_strategic_route(
@@ -1082,3 +1136,4 @@ def _observe_strategic_deployment(
 
 
 initialize_strategic_cohort = _initialize_strategic_cohort
+strategic_route_confirmation = _route_confirmation

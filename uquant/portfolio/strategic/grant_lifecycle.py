@@ -18,7 +18,6 @@ from ...models.strategic_universe import StrategicUniverseRoles
 from ...models.trading import late_strategic_fill_allowed, strategic_economic_remaining_shares
 from ...types import AccountState, LeaderScore, RiskAssessment
 from .discovery import (
-    _route_confirmation,
     resolve_strategic_qualification_inputs,
     strategic_deployment_block_reason,
     strategic_qualification_evidence,
@@ -26,14 +25,15 @@ from .discovery import (
     strategic_qualification_snapshots,
     strategic_quorum_candidate_symbols,
     strategic_route_admission_open,
+    strategic_route_confirmation,
 )
 from .ownership import release_expired_strategic_deployment
 from .qualification_candidates import (
     StrategicRoute,
-    _reversal_candidates,
     decisive_reversal,
     established_route_durable,
     reset_strategic_qualification_streaks,
+    reversal_candidates,
     strategic_candidate_meets_route,
 )
 from .quorum import (
@@ -248,7 +248,7 @@ def _original_reversal_witnesses(self: StrategicPortfolioPolicy, *, symbols: lis
                                  grant: StrategicGrantIntent, snapshots: dict[str, dict[str, float]],
                                  leaders: dict[str, LeaderScore], risk: RiskAssessment,
                                  available_symbols: tuple[str, ...]) -> tuple[list[str], bool]:
-    ranked = _reversal_candidates(self, snapshots, leaders)
+    ranked = reversal_candidates(self, snapshots, leaders)
     owner_industry = leaders[grant.candidate_symbol].industry
     # Identity preserves the admitted members; evidence ordering follows the
     # same current route facts as discovery, never the signature spelling.
@@ -445,7 +445,7 @@ def _update_revalidated_grant(
             evidence.quorum.unavailable_references
         )
         grant.last_eligible_session = str(date.date())
-    observation.qualification_ready = not require_confirmation or _route_confirmation(
+    observation.qualification_ready = not require_confirmation or strategic_route_confirmation(
         account=account, candidate=grant.candidate_symbol, route=grant.qualification_route,
         quorum=evidence.quorum,
     ) >= evidence.quorum.required_confirm_days
@@ -481,4 +481,6 @@ def _grant_retry_window_elapsed(
     )
 
 
-__all__ = ("revalidate_strategic_grant",)
+completed_strategic_core_entry = _completed_core_entry
+
+__all__ = ("completed_strategic_core_entry", "revalidate_strategic_grant")

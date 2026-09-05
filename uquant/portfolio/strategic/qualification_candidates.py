@@ -314,6 +314,62 @@ def established_route_durable(
     )
 
 
+def _canonical_route_witnesses(
+    self: StrategicQualificationPolicy, *, route: str, candidates: list[str],
+    leaders: dict[str, LeaderScore],
+) -> tuple[list[list[str]], list[list[str]]]:
+    """Build evidence groups before considering who will own their capital."""
+    industries: dict[str, list[str]] = {}
+    for symbol in candidates:
+        industries.setdefault(leaders[symbol].industry, []).append(symbol)
+    local_groups = [
+        symbols[:self.cfg.strategic_cohort_size] for symbols in industries.values()
+        if len(symbols) >= self.cfg.strategic_cohort_min_size
+    ]
+    witnesses = [[symbol] for symbol in candidates] + local_groups
+    if route in {"established", "transition"} and len(candidates) >= 2:
+        witnesses.append(candidates[:2])
+    if route == "established" and len(candidates) >= self.cfg.strategic_cohort_min_size:
+        witnesses.append(candidates[:self.cfg.strategic_cohort_size])
+    return witnesses, local_groups
+
+
+def _witness_owner_routes(
+    self: StrategicQualificationPolicy, *, route: str, symbols: list[str],
+    local_groups: list[list[str]], snapshots: dict[str, dict[str, float]],
+    leaders: dict[str, LeaderScore], risk: RiskAssessment,
+) -> list[StrategicRoute]:
+    """Only actual members can own one independently constructed proof."""
+    if route == "established" and not established_route_durable(
+        self, symbols=symbols, snapshots=snapshots, leaders=leaders,
+    ):
+        return []
+    reversal_groups = [group for group in local_groups if set(symbols) <= set(group)] if (
+        route == "reversal_industry" and len(symbols) >= 2) else []
+    synchronized = bool(
+        reversal_groups
+        and float(pd.Series([snapshots[s]["ret20"] for s in reversal_groups[0][:2]]).median())
+        >= self.cfg.strategic_reversal_min_median_ret20
+        and float(risk.evidence.get("tech_ret120", math.inf)) <= self.cfg.strategic_reversal_max_tech_ret120
+    )
+    anchor_observed = "risk_anchor_symbols" in risk.evidence
+    anchors_not_armed = bool(anchor_observed and not risk.evidence.get("risk_anchor_symbols", []))
+    decisive, pair = decisive_reversal(
+        self, synchronized=synchronized, reversal_groups=reversal_groups,
+        snapshots=snapshots, leaders=leaders, anchor_state_observed=anchor_observed,
+    )
+    choices = [StrategicRoute(
+        list(symbols), route, decisive if decisive == owner else None, synchronized,
+        reversal_groups, anchor_observed, anchors_not_armed, owner,
+    ) for owner in symbols]
+    if decisive and decisive in symbols and set(pair) <= set(symbols):
+        choices.append(StrategicRoute(
+            pair, route, decisive, synchronized, reversal_groups,
+            anchor_observed, anchors_not_armed, decisive,
+        ))
+    return choices
+
+
 def strategic_route_candidates(
     self: StrategicQualificationPolicy,
     *,
@@ -321,7 +377,7 @@ def strategic_route_candidates(
     leaders: dict[str, LeaderScore],
     risk: RiskAssessment,
 ) -> tuple[StrategicRoute, ...]:
-    """Enumerate absolute evidence without giving any route capital priority."""
+    """Enumerate independent witnesses and their owners without family precedence."""
     families = {
         "established": _established_candidates(self, snapshots, leaders),
         "transition": _transition_candidates(self, snapshots, leaders),
@@ -330,47 +386,17 @@ def strategic_route_candidates(
         "persistent_industry": _persistent_candidates(self, snapshots, leaders),
         "reversal_industry": _reversal_candidates(self, snapshots, leaders),
     }
-    anchor_observed = "risk_anchor_symbols" in risk.evidence
-    anchors_not_armed = bool(anchor_observed and not risk.evidence.get("risk_anchor_symbols", []))
     choices: dict[tuple[str, str, tuple[str, ...]], StrategicRoute] = {}
     for route, candidates in families.items():
-        for owner in candidates:
-            peers = [symbol for symbol in candidates if leaders[symbol].industry == leaders[owner].industry]
-            selected = {owner, *[symbol for symbol in peers if symbol != owner][:
-                self.cfg.strategic_cohort_size - 1]}
-            local_group = ([symbol for symbol in peers if symbol in selected]
-                           if len(peers) >= self.cfg.strategic_cohort_min_size else [])
-            synchronized = bool(
-                route == "reversal_industry" and local_group
-                and float(pd.Series([snapshots[s]["ret20"] for s in local_group[:2]]).median())
-                >= self.cfg.strategic_reversal_min_median_ret20
-                and float(risk.evidence.get("tech_ret120", math.inf)) <= self.cfg.strategic_reversal_max_tech_ret120
-            )
-            reversal_groups = [local_group] if route == "reversal_industry" and local_group else []
-            decisive, decisive_pair = decisive_reversal(
-                self, synchronized=synchronized, reversal_groups=reversal_groups,
-                snapshots=snapshots, leaders=leaders, anchor_state_observed=anchor_observed,
-            )
-            witnesses = [[owner]]
-            if local_group:
-                witnesses.append(local_group)
-            others = [symbol for symbol in candidates if symbol != owner]
-            if route in {"established", "transition"} and others:
-                witnesses.append([owner, others[0]])
-            if route == "established" and len(candidates) >= self.cfg.strategic_cohort_min_size:
-                witnesses.append([owner, *others[:self.cfg.strategic_cohort_size - 1]])
-            if route == "reversal_industry" and anchor_observed and synchronized and decisive == owner:
-                witnesses.append(decisive_pair)
-            for symbols in witnesses:
-                if route == "established" and not established_route_durable(
-                    self, symbols=symbols, snapshots=snapshots, leaders=leaders,
-                ):
-                    continue
-                key = (owner, route, tuple(sorted(symbols)))
-                choices[key] = StrategicRoute(
-                    list(symbols), route, decisive if decisive == owner else None, synchronized,
-                    reversal_groups, anchor_observed, anchors_not_armed, owner,
-                )
+        witnesses, local_groups = _canonical_route_witnesses(
+            self, route=route, candidates=candidates, leaders=leaders)
+        for symbols in witnesses:
+            for choice in _witness_owner_routes(
+                self, route=route, symbols=symbols, local_groups=local_groups,
+                snapshots=snapshots, leaders=leaders, risk=risk,
+            ):
+                key = (choice.owner_symbol, route, tuple(sorted(choice.symbols)))
+                choices[key] = choice
     return tuple(choices[key] for key in sorted(choices))
 
 

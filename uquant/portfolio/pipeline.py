@@ -117,6 +117,21 @@ def _observe_transfer(self: PortfolioAllocator, *, weakest: str, challenger: str
     return key
 
 
+def _available_transfer_incumbent(
+    self: PortfolioAllocator, *, account: AccountState, proposed: dict[str, float],
+    weights_now: dict[str, float], leaders: dict[str, LeaderScore],
+    user_panel: dict[str, pd.DataFrame], date: pd.Timestamp,
+) -> str | None:
+    """Select an incumbent only while settlement, rotation and position limits permit."""
+    if (account.pending_orders or any(proposed.get(s, 0.0) < weight for s, weight in weights_now.items())
+            or str(date.date()) in account.rotation_dates or not self._rotation_allowed(account, date, user_panel)):
+        return None
+    held = [s for s, weight in weights_now.items() if weight > 0 and s in leaders and s in user_panel]
+    if not held or len(held) >= self.cfg.max_positions:
+        return None
+    return min(held, key=lambda s: (self._retention_score(s, leaders, account), s))
+
+
 def _degraded_transfer(
     self: PortfolioAllocator,
     *,
@@ -133,13 +148,12 @@ def _degraded_transfer(
     diagnostics: dict[str, Any] | None = None,
 ) -> str | None:
     """A confirmed weak incumbent can release one bounded slice after prior fills."""
-    if (account.pending_orders or any(proposed.get(s, 0.0) < weight for s, weight in weights_now.items())
-            or str(date.date()) in account.rotation_dates or not self._rotation_allowed(account, date, user_panel)):
+    weakest = _available_transfer_incumbent(
+        self, account=account, proposed=proposed, weights_now=weights_now,
+        leaders=leaders, user_panel=user_panel, date=date,
+    )
+    if weakest is None:
         return None
-    held = [s for s, weight in weights_now.items() if weight > 0 and s in leaders and s in user_panel]
-    if not held or len(held) >= self.cfg.max_positions:
-        return None
-    weakest = min(held, key=lambda s: (self._retention_score(s, leaders, account), s))
     position, frame = account.positions[weakest], user_panel[weakest]
     row = frame.loc[date]
     broken = (

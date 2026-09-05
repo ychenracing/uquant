@@ -10,7 +10,8 @@ import json
 import re
 import sys
 import tempfile
-from collections.abc import Mapping, Sequence
+from collections.abc import Iterator, Mapping, Sequence
+from contextlib import contextmanager
 from dataclasses import asdict
 from itertools import pairwise
 from pathlib import Path
@@ -271,6 +272,16 @@ class _ReplayFailure(RuntimeError):
         self.result = result
 
 
+@contextmanager
+def _retain_failed_replay(result: ReplayResult) -> Iterator[None]:
+    """Carry diagnostic raw through a strict rejection without changing its exception."""
+    try:
+        yield
+    except Exception as exc:
+        cast(Any, exc)._ownership_failed_replay = result
+        raise
+
+
 def _summarize_replay(result: ReplayResult, *, scenario_id: str) -> dict[str, Any]:
     if result.status != "SUCCESS":
         raise _ReplayFailure(result, scenario_id=scenario_id)
@@ -478,21 +489,22 @@ def _run_cross_industry(contract: Mapping[str, Any], *, scenario_id: str) -> dic
                 risk_reference_symbols=tuple(sorted(symbols)),
             ),
         )
-    summary = _summarize_replay(result, scenario_id=scenario_id)
-    thresholds = _mapping(contract["thresholds"], label="thresholds")
-    _require_economic_thresholds(summary, thresholds=thresholds)
-    epochs = _sequence(summary["epochs"], label="cross-industry epochs")
-    owners = [str(_mapping(item, label="cross-industry epoch")["owner_symbol"]) for item in epochs]
-    universe = default_ai_universe()
-    industries = [universe.industry_of(owner, "2026-08-05") for owner in owners]
-    if len(epochs) < int(thresholds["minimum_strategic_epochs"]):
-        raise RuntimeError("cross-industry replay has fewer than two actual epochs")
-    if len(set(owners)) < int(thresholds["minimum_distinct_owners"]):
-        raise RuntimeError("cross-industry replay has fewer than two owners")
-    if len(set(industries)) < 2:
-        raise RuntimeError("cross-industry replay did not cross an industry boundary")
-    summary["industries"] = industries
-    return summary
+    with _retain_failed_replay(result):
+        summary = _summarize_replay(result, scenario_id=scenario_id)
+        thresholds = _mapping(contract["thresholds"], label="thresholds")
+        _require_economic_thresholds(summary, thresholds=thresholds)
+        epochs = _sequence(summary["epochs"], label="cross-industry epochs")
+        owners = [str(_mapping(item, label="cross-industry epoch")["owner_symbol"]) for item in epochs]
+        universe = default_ai_universe()
+        industries = [universe.industry_of(owner, "2026-08-05") for owner in owners]
+        if len(epochs) < int(thresholds["minimum_strategic_epochs"]):
+            raise RuntimeError("cross-industry replay has fewer than two actual epochs")
+        if len(set(owners)) < int(thresholds["minimum_distinct_owners"]):
+            raise RuntimeError("cross-industry replay has fewer than two owners")
+        if len(set(industries)) < 2:
+            raise RuntimeError("cross-industry replay did not cross an industry boundary")
+        summary["industries"] = industries
+        return summary
 
 
 def _failed_grant_fixture(root: Path) -> None:
@@ -645,49 +657,50 @@ def _run_failed_grant(contract: Mapping[str, Any], *, scenario_id: str) -> dict[
         root = Path(temporary)
         _failed_grant_fixture(root)
         result, grants = _failed_grant_replay(root)
-    summary = _summarize_replay(result, scenario_id=scenario_id)
-    if len(grants) != 2:
-        raise RuntimeError("failed-grant replay did not create exactly two economic grants")
-    first, second = grants
-    if (
-        first.get("status") != "EXPIRED"
-        or int(first.get("filled_shares", -1)) != 0
-        or not first.get("expiry_reason")
-    ):
-        raise RuntimeError("failed-grant replay did not terminally expire the unfilled grant")
-    if (
-        second.get("previous_grant_id") != first.get("grant_id")
-        or second.get("grant_id") == first.get("grant_id")
-        or int(second.get("filled_shares", 0)) <= 0
-    ):
-        raise RuntimeError("failed-grant replay identity chain differs")
-    actual = _sequence(summary["epochs"], label="failed-grant actual epochs")
-    if len(actual) != 1 or _mapping(actual[0], label="failed-grant epoch")["grant_id"] != second["grant_id"]:
-        raise RuntimeError("failed-grant replay did not activate only the second grant")
-    expired_epoch = next(
-        (
-            item
-            for item in _sequence(result.final_account.get("strategic_epochs", []), label="epochs")
-            if _mapping(item, label="epoch").get("grant_id") == first["grant_id"]
-        ),
-        None,
-    )
-    if (
-        expired_epoch is None
-        or _mapping(expired_epoch, label="expired epoch").get("realized_status") != "EXPIRED"
-    ):
-        raise RuntimeError("failed grant left an orphan epoch")
-    trace_dates = [row.date for row in result.trace]
-    retry_start = str(_mapping(expired_epoch, label="expired epoch")["closed_session"])
-    retry_end = str(second["created_session"])
-    retry_sessions = sum(retry_start < session <= retry_end for session in trace_dates)
-    maximum = int(_mapping(contract["thresholds"], label="thresholds")["failed_grant_retry_healthy_sessions"])
-    if retry_sessions > maximum:
-        raise RuntimeError("failed-grant retry exceeded the bounded session contract")
-    summary["first_grant"] = first
-    summary["retry_sessions"] = retry_sessions
-    summary["second_grant"] = second
-    return summary
+    with _retain_failed_replay(result):
+        summary = _summarize_replay(result, scenario_id=scenario_id)
+        if len(grants) != 2:
+            raise RuntimeError("failed-grant replay did not create exactly two economic grants")
+        first, second = grants
+        if (
+            first.get("status") != "EXPIRED"
+            or int(first.get("filled_shares", -1)) != 0
+            or not first.get("expiry_reason")
+        ):
+            raise RuntimeError("failed-grant replay did not terminally expire the unfilled grant")
+        if (
+            second.get("previous_grant_id") != first.get("grant_id")
+            or second.get("grant_id") == first.get("grant_id")
+            or int(second.get("filled_shares", 0)) <= 0
+        ):
+            raise RuntimeError("failed-grant replay identity chain differs")
+        actual = _sequence(summary["epochs"], label="failed-grant actual epochs")
+        if len(actual) != 1 or _mapping(actual[0], label="failed-grant epoch")["grant_id"] != second["grant_id"]:
+            raise RuntimeError("failed-grant replay did not activate only the second grant")
+        expired_epoch = next(
+            (
+                item
+                for item in _sequence(result.final_account.get("strategic_epochs", []), label="epochs")
+                if _mapping(item, label="epoch").get("grant_id") == first["grant_id"]
+            ),
+            None,
+        )
+        if (
+            expired_epoch is None
+            or _mapping(expired_epoch, label="expired epoch").get("realized_status") != "EXPIRED"
+        ):
+            raise RuntimeError("failed grant left an orphan epoch")
+        trace_dates = [row.date for row in result.trace]
+        retry_start = str(_mapping(expired_epoch, label="expired epoch")["closed_session"])
+        retry_end = str(second["created_session"])
+        retry_sessions = sum(retry_start < session <= retry_end for session in trace_dates)
+        maximum = int(_mapping(contract["thresholds"], label="thresholds")["failed_grant_retry_healthy_sessions"])
+        if retry_sessions > maximum:
+            raise RuntimeError("failed-grant retry exceeded the bounded session contract")
+        summary["first_grant"] = first
+        summary["retry_sessions"] = retry_sessions
+        summary["second_grant"] = second
+        return summary
 
 
 def _validate_full_removal(
@@ -1012,20 +1025,13 @@ def _execute_scenario(
         references = tuple(
             str(item) for item in _sequence(contract["canonical_universe"], label="canonical universe")
         )
-        summary = _summarize_replay(
-            _frozen_replay(
-                contract,
-                scenario_id=scenario_id,
-                symbols=symbols,
-                references=references,
-            ),
-            scenario_id=scenario_id,
-        )
-        _require_economic_thresholds(
-            summary,
-            thresholds=_mapping(contract["thresholds"], label="thresholds"),
-        )
-        return summary
+        replay = _frozen_replay(contract, scenario_id=scenario_id, symbols=symbols, references=references)
+        with _retain_failed_replay(replay):
+            summary = _summarize_replay(replay, scenario_id=scenario_id)
+            _require_economic_thresholds(
+                summary, thresholds=_mapping(contract["thresholds"], label="thresholds"),
+            )
+            return summary
     if kind == "full_removal":
         removed_symbol = str(spec["removed_symbol"])
         symbols = tuple(
@@ -1036,17 +1042,14 @@ def _execute_scenario(
         replay = _frozen_replay(
             contract, scenario_id=scenario_id, symbols=symbols, references=symbols,
         )
-        if scenario_id == _CONTINUITY_SOURCE:
-            summary = _continuity_summary(contract, replay)
-            _validate_repeated(contract, summary=summary, same_industry=False)
+        with _retain_failed_replay(replay):
+            if scenario_id == _CONTINUITY_SOURCE:
+                summary = _continuity_summary(contract, replay)
+                _validate_repeated(contract, summary=summary, same_industry=False)
+                return summary
+            summary = _summarize_replay(replay, scenario_id=scenario_id)
+            _validate_full_removal(contract, removed_symbol=removed_symbol, summary=summary)
             return summary
-        summary = _summarize_replay(replay, scenario_id=scenario_id)
-        _validate_full_removal(
-            contract,
-            removed_symbol=removed_symbol,
-            summary=summary,
-        )
-        return summary
     if kind == "cross_industry":
         return _run_cross_industry(contract, scenario_id=scenario_id)
     if kind == "failed_grant":
@@ -1094,67 +1097,70 @@ def run_acceptance_shard(
     cache_metadata: dict[str, dict[str, object]] = {}
     for spec in execution_specs:
         scenario_id = str(spec["scenario_id"])
-        if spec["kind"] == "same_industry_alias":
-            source_id = str(spec["source_scenario_id"])
-            source = dict(by_id[source_id])
-            source["scenario_id"] = scenario_id
-            source["source_scenario_id"] = source_id
-            source["same_industry_witness"] = _validate_repeated(contract, summary=source, same_industry=True)
-            row = source
-            identity_payload = _cache_identity_payload(
-                contract, spec, context=identity_context
-            )
-            source_metadata = cache_metadata[source_id]
-            cache_metadata[scenario_id] = {
-                "cache_dependencies": {source_id: source_metadata},
-                "cache_hit": bool(source_metadata["cache_hit"]),
-                "cache_identity": _canonical_sha256(identity_payload),
-                "cache_identity_payload": identity_payload,
-            }
-        else:
-            identity_payload = _cache_identity_payload(
-                contract, spec, context=identity_context
-            )
-            identity = _canonical_sha256(identity_payload)
-            cache_path = cache_dir / f"{scenario_id}-{identity}.json"
-            cached = _read_cache(cache_path, identity=identity)
-            if cached is None:
-                try:
-                    row = _execute_scenario(contract, spec=spec)
-                except _ReplayFailure as exc:
-                    raw = asdict(exc.result)
-                    failure = {
-                        "contract_sha256": _canonical_sha256(contract),
-                        "production_source_identity": code_fingerprint(),
-                        "shard": shard, "selected_scenario": scenario,
-                        "status": "FAIL", "authoritative_acceptance": False,
-                        "diagnostic_only": True, "cache_hit": False,
-                        "cache_identity": identity, "cache_identity_payload": identity_payload,
-                        "scenarios": [*rows, {
-                            "scenario_id": scenario_id, "status": "FAIL",
-                            "replay_status": exc.result.status, "error": exc.result.error,
-                            "raw_replay": raw, "raw_replay_sha256": _canonical_sha256(raw),
-                        }],
-                    }
-                    output.parent.mkdir(parents=True, exist_ok=True)
-                    atomic_write_text(output, json.dumps(failure, indent=2, sort_keys=True) + "\n")
-                    raise
-                _write_cache(cache_path, identity=identity, payload=row)
-                row["cache_hit"] = False
+        identity_payload = _cache_identity_payload(contract, spec, context=identity_context)
+        identity = _canonical_sha256(identity_payload)
+        try:
+            if spec["kind"] == "same_industry_alias":
+                source_id = str(spec["source_scenario_id"])
+                source = dict(by_id[source_id])
+                source["scenario_id"] = scenario_id
+                source["source_scenario_id"] = source_id
+                with _retain_failed_replay(_continuity_result(source["raw_replay"])):
+                    source["same_industry_witness"] = _validate_repeated(contract, summary=source, same_industry=True)
+                row = source
+                source_metadata = cache_metadata[source_id]
+                cache_metadata[scenario_id] = {
+                    "cache_dependencies": {source_id: source_metadata},
+                    "cache_hit": bool(source_metadata["cache_hit"]),
+                    "cache_identity": _canonical_sha256(identity_payload),
+                    "cache_identity_payload": identity_payload,
+                }
             else:
-                row = cached
-                row["cache_hit"] = True
-            if spec["kind"] == "full_removal" and scenario_id == "remove-sz300502":
-                _validate_repeated(contract, summary=row, same_industry=False)
-            cache_metadata[scenario_id] = {
-                "cache_dependencies": {},
-                "cache_hit": bool(row["cache_hit"]),
-                "cache_identity": identity,
-                "cache_identity_payload": identity_payload,
+                cache_path = cache_dir / f"{scenario_id}-{identity}.json"
+                cached = _read_cache(cache_path, identity=identity)
+                if cached is None:
+                    row = _execute_scenario(contract, spec=spec)
+                    if row.get("status") == "PASS":
+                        _write_cache(cache_path, identity=identity, payload=row)
+                    row["cache_hit"] = False
+                else:
+                    row = cached
+                    row["cache_hit"] = True
+                if spec["kind"] == "full_removal" and scenario_id == "remove-sz300502":
+                    with _retain_failed_replay(_continuity_result(row["raw_replay"])):
+                        _validate_repeated(contract, summary=row, same_industry=False)
+                cache_metadata[scenario_id] = {
+                    "cache_dependencies": {},
+                    "cache_hit": bool(row["cache_hit"]),
+                    "cache_identity": identity,
+                    "cache_identity_payload": identity_payload,
+                }
+            by_id[scenario_id] = row
+            if scenario is None or scenario_id == scenario:
+                rows.append(row)
+        except Exception as exc:
+            replay = getattr(exc, "_ownership_failed_replay", None)
+            if not isinstance(replay, ReplayResult):
+                raise
+            raw = asdict(replay)
+            failure = {
+                "contract_sha256": _canonical_sha256(contract),
+                "production_source_identity": code_fingerprint(),
+                "shard": shard, "selected_scenario": scenario,
+                "status": "FAIL", "authoritative_acceptance": False,
+                "diagnostic_only": True, "cache_hit": False,
+                "cache_identity": identity, "cache_identity_payload": identity_payload,
+                "scenarios": [*rows, {
+                    "scenario_id": scenario_id, "status": "FAIL",
+                    "replay_status": replay.status, "replay_error": replay.error,
+                    "error": replay.error if isinstance(exc, _ReplayFailure) else str(exc),
+                    "error_type": type(exc).__name__,
+                    "raw_replay": raw, "raw_replay_sha256": _canonical_sha256(raw),
+                }],
             }
-        by_id[scenario_id] = row
-        if scenario is None or scenario_id == scenario:
-            rows.append(row)
+            output.parent.mkdir(parents=True, exist_ok=True)
+            atomic_write_text(output, json.dumps(failure, indent=2, sort_keys=True) + "\n")
+            raise
     result: dict[str, Any] = {
         "contract_sha256": _canonical_sha256(contract),
         "production_source_identity": code_fingerprint(),

@@ -634,7 +634,7 @@ def _select_qualified_strategic_route(
     reference_snapshots: dict[str, dict[str, float]], strategic_universe: StrategicUniverseRoles,
 ) -> StrategicRoute:
     """Rank current candidates, never route precedence or cohort-signature tenure."""
-    evaluated: list[tuple[tuple[int, float, int, str, str, tuple[str, ...]], StrategicRoute]] = []
+    evaluated: list[tuple[tuple[int, int, float, int, str, str, tuple[str, ...]], StrategicRoute]] = []
     for route in strategic_route_candidates(self, snapshots=snapshots, leaders=leaders, risk=risk):
         quorum, _ = _strategic_route_quorum(
             self, route=route, snapshots=snapshots, leaders=leaders, risk=risk,
@@ -645,7 +645,8 @@ def _select_qualified_strategic_route(
         candidate = strategic_candidate_symbol(route=route, symbols=route.symbols, leaders=leaders)
         streak = _route_confirmation(account=account, candidate=candidate, route=route.route, quorum=quorum)
         witnesses = strategic_quorum_candidate_symbols(route=route, route_symbols=route.symbols)
-        key = (-int(streak >= quorum.required_confirm_days), -leaders[candidate].score,
+        key = (-int(streak >= quorum.required_confirm_days),
+               -int(route.decisive_reversal_symbol == candidate), -leaders[candidate].score,
                -len(witnesses), candidate, route.route, tuple(sorted(route.symbols)))
         evaluated.append((key, route))
     return min(evaluated, key=lambda item: item[0])[1] if evaluated else StrategicRoute(

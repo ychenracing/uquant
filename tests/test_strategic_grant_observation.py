@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import pandas as pd
+import pytest
 from test_lifecycle_and_risk import _leader, _strategic_frame
 
 import uquant.portfolio.strategic.grant_lifecycle as strategic_grant_lifecycle
@@ -348,7 +349,10 @@ def test_absolute_qualification_loss_emits_a_formal_exit_for_a_filled_probe(
     assert epoch.realized_status == StrategicEpochStatus.CORE.value
 
 
-def test_flat_expired_probe_releases_its_deployment_state(monkeypatch) -> None:
+@pytest.mark.parametrize("successor_qualified", (True, False))
+def test_flat_expired_probe_releases_its_deployment_state(
+    monkeypatch, successor_qualified: bool,
+) -> None:
     dates = pd.bdate_range("2023-01-02", periods=249)
     symbols = ("sz300308", "sz300502", "sz300394")
     panel = {symbol: _strategic_frame(dates) for symbol in symbols}
@@ -397,7 +401,6 @@ def test_flat_expired_probe_releases_its_deployment_state(monkeypatch) -> None:
         strategic_grant_lifecycle,
         "strategic_candidate_meets_route",
         lambda *_args, **_kwargs: False,
-        raising=False,
     )
     allocator.allocate(
         date=dates[-2],
@@ -412,8 +415,14 @@ def test_flat_expired_probe_releases_its_deployment_state(monkeypatch) -> None:
     assert account.replacement_tenure['strategic_eligibility:persistent_industry:sz300502'] == 3
     account.positions.clear()
     monkeypatch.undo()
+    if not successor_qualified:
+        leaders = {symbol: _leader(symbol, 0.0, mature=False) for symbol in symbols}
+        for symbol, frame in panel.items():
+            # Current price damage also invalidates the persistent/reversal routes.
+            frame.loc[dates[-1], ["close", "ret20", "ret60"]] = [1.0, -0.20, -0.20]
+            prices[symbol] = 1.0
 
-    allocator.allocate(
+    targets = allocator.allocate(
         date=dates[-1],
         opportunity=Opportunity.TREND,
         risk=_risk(frozen=False),
@@ -424,15 +433,42 @@ def test_flat_expired_probe_releases_its_deployment_state(monkeypatch) -> None:
     )
 
     assert epoch.realized_status == StrategicEpochStatus.EXPIRED.value
-    assert account.active_strategic_epoch_id == ""
-    assert account.candidate_tenure["strategic_cohort_active"] == 0
-    assert account.strategic_cohort_symbols == []
-    assert account.strategic_cohort_targets == {}
+    assert epoch.close_reason == "candidate_or_route_no_longer_qualified"
+    assert grant.status == StrategicGrantStatus.EXPIRED.value
     assert grant.expiry_reason == "candidate_or_route_no_longer_qualified"
-    assert account.strategic_grant is grant
-    assert account.replacement_tenure['strategic_eligibility:persistent_industry:sz300308'] == 1
-    assert account.replacement_tenure['strategic_eligibility:persistent_industry:sz300502'] == 4
-    assert account.candidate_tenure['strategic_repair_observed_session'] == dates[-1].toordinal()
+    assert account.active_strategic_epoch_id == ""
+    assert account.positions == {}
+    assert account.candidate_tenure["strategic_repair_observed_session"] == dates[-1].toordinal()
+    if not successor_qualified:
+        assert account.strategic_grant is grant
+        assert account.strategic_epochs == [epoch]
+        assert account.candidate_tenure["strategic_cohort_active"] == 0
+        assert account.strategic_cohort_symbols == []
+        assert account.strategic_cohort_targets == {}
+        assert targets == ()
+        return
+
+    successor = account.strategic_grant
+    assert successor is not None and successor is not grant
+    assert successor.candidate_symbol == "sz300502" != grant.candidate_symbol
+    assert successor.previous_grant_id == grant.grant_id
+    assert successor.grant_id != grant.grant_id
+    assert successor.status == StrategicGrantStatus.PENDING_EXECUTION.value
+    assert successor.filled_shares == 0
+    assert successor.submitted_order_ids == []
+    assert len(account.strategic_epochs) == 2
+    successor_epoch = account.strategic_epochs[-1]
+    assert successor_epoch.previous_epoch_id == epoch.epoch_id
+    assert successor_epoch.owner_symbol == successor.candidate_symbol
+    assert successor_epoch.grant_id == successor.grant_id
+    assert successor_epoch.epoch_id == successor.epoch_id != epoch.epoch_id
+    assert successor_epoch.realized_status == StrategicEpochStatus.PROBE.value
+    assert successor_epoch.first_fill_session == successor_epoch.active_session == ""
+    assert account.candidate_tenure["strategic_cohort_active"] == 1
+    assert {target.symbol for target in targets} == set(account.strategic_cohort_symbols)
+    assert all(target.epoch_id == successor.epoch_id for target in targets)
+    assert account.replacement_tenure["strategic_eligibility:persistent_industry:sz300308"] == 1
+    assert account.replacement_tenure["strategic_eligibility:persistent_industry:sz300502"] == 4
 
 
 def test_sentinel_freeze_observes_qualification_without_zhongji_universe() -> None:

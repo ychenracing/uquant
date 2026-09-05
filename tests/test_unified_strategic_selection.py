@@ -291,7 +291,7 @@ def test_ready_repair_cannot_bypass_current_execution_or_sentinel_hazard(monkeyp
     assert account.capital_peak == 3_000_000.0
 
 
-def _observe_group_candidates(monkeypatch, *, snapshots, leaders, counts, risk):
+def _observe_group_candidates(monkeypatch, *, snapshots, leaders, counts, risk, strict_counts=None):
     dates = pd.bdate_range("2024-01-02", periods=250)
     panel = {symbol: _strategic_frame(dates) for symbol in snapshots}
     roles = build_strategic_universe_roles(
@@ -308,6 +308,8 @@ def _observe_group_candidates(monkeypatch, *, snapshots, leaders, counts, risk):
     for symbol, count in counts.items():
         for route in ROUTES:
             account.replacement_tenure[f"strategic_eligibility:{route}:{symbol}"] = count
+    for symbol, count in (strict_counts or {}).items():
+        account.replacement_tenure[f"strategic_eligibility:independent_core:{symbol}"] = count
     PortfolioAllocator(DEFAULT_CONFIG)._initialize_strategic_cohort(
         date=dates[-1], user_panel=panel, leaders=leaders, account=account,
         risk=risk, strategic_universe=roles,

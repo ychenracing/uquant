@@ -147,9 +147,10 @@ uquant 把数据、信号、风险、组合、执行和账户放在一条可审�
 资格观察层按当日可见数据维护各证券、各路线的连续计数。
 [qualification_candidates.py](../uquant/portfolio/strategic/qualification_candidates.py) 枚举
 `established`、`transition`、`transition_impulse`、`persistent_industry` 与 `reversal_industry`
-五类路线中每个 owner 的组合和单名证据；反转同步与 decisive 证据只读取该 owner 的本地
-行业见证组。[discovery.py](../uquant/portfolio/strategic/discovery.py)
-只读评估每个候选的 quorum 和确认天数，再按确认已完成、领涨分数、真实见证成员数降序，
+五类路线的固定证据组与每个 owner 的单名证据。证据组按既有路线排序独立构造，
+组员可各自担任 owner，组外候选不能通过插入替换来改变组质量。反转同步与 decisive
+证据只读取候选所属的本地行业见证组。[discovery.py](../uquant/portfolio/strategic/discovery.py)
+只读评估每个候选的 quorum 和确认天数，再按确认已完成、真实主导证据、领涨分数、真实见证成员数降序，
 以证券、路线和成员排序打破平局。选定一次后才写入战略资格观察并尝试部署。
 `ABSOLUTE_SINGLE` 的有效确认是原路线与 `independent_core` 连续计数的较小值，须达到
 原有 4 日要求；缺失严格观察从零建立，不借用旧路线计数。

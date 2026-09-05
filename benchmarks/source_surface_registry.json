@@ -67,6 +67,7 @@
         "uquant/execution/reconciliation.py",
         "uquant/execution/tranches.py",
         "uquant/features.py",
+        "uquant/holding_history.py",
         "uquant/industry.py",
         "uquant/infrastructure/__init__.py",
         "uquant/infrastructure/atomic_files.py",
@@ -640,6 +641,7 @@
         "uquant/execution/tranches.py",
         "uquant/execution_journal.py",
         "uquant/features.py",
+        "uquant/holding_history.py",
         "uquant/industry.py",
         "uquant/infrastructure/__init__.py",
         "uquant/infrastructure/atomic_files.py",
@@ -817,5 +819,5 @@
       ]
     }
   ],
-  "canonical_sha256": "448940b16d434796dd30f068a85681f1525ed6b0b576a312d77a31efcc0c58e3"
+  "canonical_sha256": "768ba880cc5da60f332127de7516fad4e178460cc41bb7c9a12762e50888c594"
 }

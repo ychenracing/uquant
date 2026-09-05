@@ -486,3 +486,125 @@ def test_champion_cache_cannot_accept_summary_without_raw(tmp_path: Path) -> Non
         'metrics': {'final_wealth': 25.0},
     })
     assert ownership_runner._read_cache(path, identity='test-only') is None
+
+
+@pytest.mark.parametrize("scenario", ("remove-sz300308", "remove-sz300502"))
+@pytest.mark.parametrize("stage", ("actual_epoch_facts", "_validate_full_removal"))
+def test_successful_replay_strict_rejection_preserves_raw_and_original_error(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, scenario: str, stage: str,
+) -> None:
+    from dataclasses import asdict
+
+    from test_cross_ai_ownership_continuity import continuity_replay
+
+    replay = continuity_replay()
+    error = ValueError("filled epoch has non-realized status")
+
+    def reject(*_args, **_kwargs):
+        raise error
+
+    monkeypatch.setattr(ownership_runner, "_frozen_replay", lambda *args, **kwargs: replay)
+    monkeypatch.setattr(ownership_runner, stage, reject)
+    monkeypatch.setattr(ownership_runner, "_cache_identity_context", lambda contract: {"test": "strict raw"})
+    output, cache = tmp_path / "failed.json", tmp_path / "cache"
+    with pytest.raises(ValueError) as observed:
+        run_acceptance_shard(
+            shard="critical" if scenario == "remove-sz300308" else "continuity",
+            scenario=scenario, output=output, cache_dir=cache,
+        )
+    assert observed.value is error
+    evidence = json.loads(output.read_text())
+    assert evidence["status"] == "FAIL"
+    assert evidence["authoritative_acceptance"] is False
+    assert evidence["cache_hit"] is False
+    failure = evidence["scenarios"][-1]
+    assert failure["scenario_id"] == scenario
+    assert failure["status"] == "FAIL"
+    assert failure["replay_status"] == "SUCCESS"
+    assert failure["replay_error"] is None
+    assert failure["error_type"] == "ValueError"
+    assert failure["error"] == str(error)
+    assert failure["raw_replay_sha256"] == ownership_runner._canonical_sha256(asdict(replay))
+    assert ownership_runner._canonical_sha256(failure["raw_replay"]) == failure["raw_replay_sha256"]
+    assert list(cache.iterdir()) == []
+
+
+@pytest.mark.parametrize("cached_source", (False, True))
+def test_missing_same_industry_witness_persists_source_raw_without_alias_cache(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, cached_source: bool,
+) -> None:
+    from dataclasses import asdict
+
+    from test_cross_ai_ownership_continuity import continuity_replay
+
+    replay = continuity_replay(owners=("sz300308", "sh688008"))
+    monkeypatch.setattr(ownership_runner, "_frozen_replay", lambda *args, **kwargs: replay)
+    monkeypatch.setattr(ownership_runner, "_cache_identity_context", lambda contract: {"test": "alias raw"})
+    output, cache = tmp_path / "failed.json", tmp_path / "cache"
+    if cached_source:
+        run_acceptance_shard(
+            shard="continuity", scenario="remove-sz300502", output=output, cache_dir=cache,
+        )
+        monkeypatch.setattr(ownership_runner, "_frozen_replay", lambda *args, **kwargs: pytest.fail("source replayed"))
+    with pytest.raises(RuntimeError, match="no adjacent real same-industry successor"):
+        run_acceptance_shard(
+            shard="continuity", scenario="same-industry-crowning", output=output, cache_dir=cache,
+        )
+    evidence = json.loads(output.read_text())
+    assert evidence["status"] == "FAIL"
+    assert evidence["authoritative_acceptance"] is False
+    failure = evidence["scenarios"][-1]
+    assert failure["scenario_id"] == "same-industry-crowning"
+    assert failure["status"] == "FAIL"
+    assert failure["replay_status"] == "SUCCESS"
+    assert failure["error_type"] == "RuntimeError"
+    assert failure["raw_replay_sha256"] == ownership_runner._canonical_sha256(asdict(replay))
+    assert ownership_runner._canonical_sha256(failure["raw_replay"]) == failure["raw_replay_sha256"]
+    assert "same_industry_witness" not in failure
+    entries = list(cache.iterdir())
+    assert len(entries) == 1
+    assert entries[0].name.startswith("remove-sz300502-")
+    assert not list(cache.glob("same-industry-crowning-*"))
+
+
+@pytest.mark.parametrize("scenario", ("report-13", "cross-industry-crowning", "failed-first-grant"))
+def test_fixture_and_report_post_replay_failures_retain_raw(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, scenario: str,
+) -> None:
+    from dataclasses import asdict
+
+    from test_cross_ai_ownership_continuity import continuity_replay
+
+    replay = continuity_replay()
+    error = RuntimeError("strict post-replay rejection")
+
+    def reject(*_args, **_kwargs):
+        raise error
+
+    monkeypatch.setattr(ownership_runner, "_cache_identity_context", lambda contract: {"test": "fixture raw"})
+    monkeypatch.setattr(ownership_runner, "_frozen_replay", lambda *args, **kwargs: replay)
+    monkeypatch.setattr(ownership_runner, "run_replay", lambda *args, **kwargs: replay)
+    monkeypatch.setattr(ownership_runner, "_cross_industry_fixture", lambda root: None)
+    monkeypatch.setattr(ownership_runner, "_failed_grant_fixture", lambda root: None)
+    monkeypatch.setattr(ownership_runner, "_failed_grant_replay", lambda root: (replay, []))
+    monkeypatch.setattr(ownership_runner, "_require_economic_thresholds", reject)
+    output, cache = tmp_path / "failed.json", tmp_path / "cache"
+    with pytest.raises(RuntimeError) as observed:
+        run_acceptance_shard(
+            shard="champion" if scenario == "report-13" else "continuity",
+            scenario=scenario, output=output, cache_dir=cache,
+        )
+    if scenario == "failed-first-grant":
+        assert "exactly two economic grants" in str(observed.value)
+    else:
+        assert observed.value is error
+    evidence = json.loads(output.read_text())
+    assert evidence["status"] == "FAIL"
+    assert evidence["authoritative_acceptance"] is False
+    failure = evidence["scenarios"][-1]
+    assert failure["scenario_id"] == scenario
+    assert failure["replay_status"] == "SUCCESS"
+    assert failure["error"] == str(observed.value)
+    assert failure["raw_replay_sha256"] == ownership_runner._canonical_sha256(asdict(replay))
+    assert ownership_runner._canonical_sha256(failure["raw_replay"]) == failure["raw_replay_sha256"]
+    assert list(cache.iterdir()) == []

@@ -9,9 +9,10 @@ import pandas as pd
 import pytest
 
 from uquant.account import load_account, save_account
+from uquant.application.decision import _retained_allocation_orders
 from uquant.application.target_attribution import attach_target_attribution
 from uquant.config import DEFAULT_CONFIG
-from uquant.execution import ExecutionPlanner, plan_orders, reconcile_account_orders
+from uquant.execution import ExecutionPlanner, merge_pending_orders, plan_orders, reconcile_account_orders
 from uquant.portfolio import PortfolioAllocator
 from uquant.portfolio.capital import admission_room
 from uquant.portfolio.pipeline import _degraded_transfer, allocate_strategy
@@ -236,12 +237,29 @@ def test_fully_exited_ordinary_restore_rights_require_a_new_core_admission(monke
     assert account.cash == 1_000_000.0 and account.positions == {}
 
 
-def test_rejected_new_entry_cannot_reopen_old_restoration_after_restart(tmp_path):
+@pytest.mark.parametrize("quality, volume, filled_shares, decision_price, next_fill_shares", (
+    pytest.param("not_mature", 1_000_000.0, 5_000, 10.0, 0, id="rejected_below_target"),
+    pytest.param("not_mature", 7_800_000.0, 39_000, 10.5, 0, id="rejected_after_price_drift"),
+    pytest.param("ready", 7_800_000.0, 39_000, 10.5, 900, id="ready_after_price_drift"),
+))
+def test_partial_core_quality_controls_pending_orders_after_restart(
+    tmp_path, quality, volume, filled_shares, decision_price, next_fill_shares,
+):
     date, panel, leaders, risk = _inputs()
     symbol = "sh688008"
-    panel = {symbol: panel["sh600001"]}
-    leaders = {symbol: replace(leaders["sh600001"], symbol=symbol, mature=False)}
-    dates = panel[symbol].index
+    frame = panel["sh600001"]
+    dates = frame.index
+    frame[["close", "ma20", "ma60", "ma120"]] *= 10.0 / frame.loc[dates[-3], "close"]
+    frame.loc[dates[-2], "close"] = decision_price
+    frame.loc[date, "close"] = 10.0
+    panel = {symbol: frame}
+    leaders = {symbol: replace(
+        leaders["sh600001"], symbol=symbol, industry="semiconductor", mature=quality == "ready",
+        components={"unknown_industry": 0.0, **dict.fromkeys((
+            "secular_score", "secular_confidence", "industry_inference_confidence",
+            "momentum60", "momentum120", "relative_strength", "trend_persistence",
+        ), 1.0)},
+    )}
     signal = str(dates[-3].date())
     account = AccountState.empty(DEFAULT_CONFIG.initial_cash)
     account.code_hash, account.data_hash = "code:fixture", "data:fixture"
@@ -259,35 +277,65 @@ def test_rejected_new_entry_cannot_reopen_old_restoration_after_restart(tmp_path
         account=account, previous=[], current=planned, submitted_date=signal,
     ))
     execution_panel = {symbol: pd.DataFrame(
-        {"open": 10.0, "high": 10.1, "low": 9.9, "close": 10.0,
-         "volume": 1_000_000.0, "amount": 100_000_000.0}, index=dates[-3:],
+        {"open": 10.0, "high": max(10.1, decision_price), "low": 9.9,
+         "close": [10.0, decision_price, 10.0],
+         "volume": volume, "amount": 100_000_000.0}, index=dates[-3:],
     )}
     planner = ExecutionPlanner(DEFAULT_CONFIG)
     fills = planner.execute_open(date=dates[-2], account=account, panel=execution_panel)
-    assert len(fills) == 1 and fills[0].shares == 5_000
+    assert len(fills) == 1 and fills[0].shares == filled_shares
     assert len(account.pending_orders) == 1
+    original = account.pending_orders[0]
+    if decision_price == 10.5:
+        assert original.remaining_shares == 900
     cash_after_fill = account.cash
-    held_weight = 50_000.0 / (cash_after_fill + 50_000.0)
+    held_value = filled_shares * decision_price
+    held_weight = held_value / (cash_after_fill + held_value)
     policy = PortfolioAllocator(DEFAULT_CONFIG)
     targets = policy.allocate(
         date=dates[-2], opportunity=Opportunity.TREND, risk=risk,
-        user_panel=panel, leaders=leaders, account=account, prices={symbol: 10.0},
+        user_panel=panel, leaders=leaders, account=account, prices={symbol: decision_price},
     )
     assert {target.symbol: target.weight for target in targets} == pytest.approx({symbol: held_weight})
+    observed = risk.evidence["core_allocation"]["symbols"][symbol]
+    assert observed["pending_entry"]["block"] == ("READY" if quality == "ready" else "NOT_MATURE")
+    if quality == "ready":
+        assert observed["pending_entry"]["confirmations"]["established"] == 1
+    assert account.cash == cash_after_fill and account.positions[symbol].shares == filled_shares
     next_signal = str(dates[-2].date())
+    previous = list(account.pending_orders)
+    retained = _retained_allocation_orders(previous_orders=previous, risk=risk)
+    targets = attach_target_attribution(
+        "semiconductor", REQUIRED_AI_UNIVERSE_SHA256, signal_date=next_signal,
+        targets=targets, retained_orders=retained,
+    )
     planned = plan_orders(signal_date=next_signal, targets=targets, account=account,
-                          prices={symbol: 10.0}, cfg=DEFAULT_CONFIG)
+                          prices={symbol: decision_price}, cfg=DEFAULT_CONFIG)
     assert planned == ()
+    merged = merge_pending_orders(retained=retained, planned=planned, targets=targets, cfg=DEFAULT_CONFIG)
     account.pending_orders = list(reconcile_account_orders(
-        account=account, previous=account.pending_orders, current=planned,
+        account=account, previous=previous, current=merged,
         submitted_date=next_signal,
     ))
-    assert not account.pending_orders
-    assert account.order_ledger[0].status == "CANCELLED"
-    path = tmp_path / "rejected-new-entry.json"
+    path = tmp_path / "partial-core-entry.json"
     save_account(account, path)
     resumed = load_account(path)
+    next_fills = planner.execute_open(date=date, account=resumed, panel=execution_panel)
+    assert [(fill.side, fill.shares) for fill in next_fills] == (
+        [("BUY", next_fill_shares)] if next_fill_shares else []
+    )
+    assert resumed.positions[symbol].shares == filled_shares + next_fill_shares
+    assert len(resumed.order_ledger) == 1
+    if quality == "ready":
+        assert next_fills[0].order_id == original.order_id
+        assert next_fills[0].event_id == original.event_id
+        assert not resumed.pending_orders
+        return
 
+    assert not resumed.pending_orders
+    assert resumed.order_ledger[0].status == "CANCELLED"
+    held_value = filled_shares * 10.0
+    held_weight = held_value / (cash_after_fill + held_value)
     targets = policy.allocate(
         date=date, opportunity=Opportunity.TREND, risk=risk,
         user_panel=panel, leaders=leaders, account=resumed, prices={symbol: 10.0},
@@ -295,10 +343,9 @@ def test_rejected_new_entry_cannot_reopen_old_restoration_after_restart(tmp_path
     assert {target.symbol: target.weight for target in targets} == pytest.approx({symbol: held_weight})
     assert plan_orders(signal_date=str(date.date()), targets=targets, account=resumed,
                        prices={symbol: 10.0}, cfg=DEFAULT_CONFIG) == ()
-    assert planner.execute_open(date=date, account=resumed, panel=execution_panel) == []
     assert resumed.protected_weights == {symbol: 0.4}
     assert resumed.cash == account.cash == cash_after_fill
-    assert resumed.positions[symbol].shares == account.positions[symbol].shares == 5_000
+    assert resumed.positions[symbol].shares == account.positions[symbol].shares == filled_shares
     assert len(resumed.order_ledger) == len(resumed.fills) == 1
 
 
@@ -611,10 +658,17 @@ def test_partial_ordinary_restore_survives_restart_without_new_entry_qualificati
     assert observed["budget_checks"][-1]["reserved_for_intent"] > 0
     assert account.candidate_tenure.get(f"core_restored:{symbol}", -1) == -1
     next_signal = str(dates[-2].date())
+    previous = list(account.pending_orders)
+    retained = _retained_allocation_orders(previous_orders=previous, risk=risk)
+    remaining = attach_target_attribution(
+        "semiconductor", REQUIRED_AI_UNIVERSE_SHA256, signal_date=next_signal,
+        targets=remaining, retained_orders=retained,
+    )
     planned = plan_orders(signal_date=next_signal, targets=remaining, account=account,
                           prices={symbol: 10.0}, cfg=DEFAULT_CONFIG)
+    merged = merge_pending_orders(retained=retained, planned=planned, targets=remaining, cfg=DEFAULT_CONFIG)
     account.pending_orders = list(reconcile_account_orders(
-        account=account, previous=account.pending_orders, current=planned,
+        account=account, previous=previous, current=merged,
         submitted_date=next_signal,
     ))
     path = tmp_path / "partial-ordinary-restore.json"

@@ -5,6 +5,12 @@ import copy
 import inspect
 import subprocess
 
+import pytest
+
+from uquant.config import DEFAULT_CONFIG
+from uquant.portfolio import PortfolioAllocator
+from uquant.types import AccountState, Risk, RiskAssessment
+
 from ._analysis import (
     _PORTFOLIO_RELOCATED_FUNCTION_DEBT,
     _PORTFOLIO_RELOCATED_PRIVATE_IMPORTS,
@@ -149,7 +155,25 @@ def test_portfolio_strategic_strategic_methods_and_target_slices_are_ast_exact()
                 name=name,
                 candidate=None,
             )
-        assert _normalized_method(candidate) == _normalized_method(immutable[name])
+        expected = copy.deepcopy(immutable[name])
+        if name == "_bounded_strategic_restore_risk_open":
+            # A saved repair cannot override Sentinel's freeze of new risk.
+            guard = expected.body[2]
+            assert isinstance(guard, ast.If)
+            assert ast.unparse(guard.test) == "not restoration_owned"
+            guard.test = ast.BoolOp(op=ast.Or(), values=[
+                guard.test,
+                ast.parse(
+                    "bool(risk.evidence.get('sentinel_freeze_new_risk', False))",
+                    mode="eval",
+                ).body,
+            ])
+        elif name == "_retire_strategic_member":
+            # Admission-scoped requalification resets only the exiting symbol.
+            expected.body.insert(1, ast.parse(
+                "reset_strategic_candidate_eligibility(account=account, symbol=symbol)"
+            ).body[0])
+        assert _normalized_method(candidate) == _normalized_method(expected)
 
     candidate_main = copy.deepcopy(lifecycle["_strategic_cohort_targets"])
     candidate_main = expand_reviewed_architecture_owner(
@@ -257,6 +281,25 @@ def test_portfolio_strategic_ast_gate_rejects_strategic_rule_mutations() -> None
         mutation_order.body[body_index],
     )
     assert _normalized_method(mutation_order) != _normalized_method(main)
+
+
+@pytest.mark.parametrize("sentinel_frozen", (False, True))
+def test_saved_strategic_repair_obeys_sentinel_freeze(sentinel_frozen: bool) -> None:
+    account = AccountState.empty(DEFAULT_CONFIG.initial_cash)
+    account.candidate_tenure["strategic_cohort_started"] = 1
+    account.strategic_restore_weights = {"sz300308": 0.2}
+    account.capital_budget_level = 2
+    risk = RiskAssessment(
+        state=Risk.NORMAL,
+        target_gross_cap=0.2,
+        votes=0,
+        evidence={"sentinel_freeze_new_risk": sentinel_frozen},
+        reasons=(),
+        shock_state="NONE",
+    )
+    assert PortfolioAllocator(DEFAULT_CONFIG)._bounded_strategic_restore_risk_open(
+        risk=risk, account=account,
+    ) is (not sentinel_frozen)
 
 
 def test_portfolio_strategic_private_and_complexity_relocations_are_closed() -> None:

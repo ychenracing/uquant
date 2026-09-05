@@ -302,6 +302,7 @@ def _pending_intents(book: _AllocationBook, *, candidates: list[str], buy_open: 
                 current = book.weights_now.get(order.symbol, 0.0)
                 if (current <= 0 or book.proposed.get(order.symbol, 0.0) < current
                         or order.symbol not in book.leaders):
+                    book.record(order.symbol)["pending_buy_rejected"] = True
                     continue
                 evidence = _candidate_entry(
                     book.policy, symbol=order.symbol, score=book.leaders[order.symbol],
@@ -310,6 +311,7 @@ def _pending_intents(book: _AllocationBook, *, candidates: list[str], buy_open: 
                 )
                 book.record(order.symbol)["pending_entry"] = evidence
                 if evidence["block"] != "READY":
+                    book.record(order.symbol)["pending_buy_rejected"] = True
                     continue
             book.fund(order.symbol, order.target_weight, phase="PENDING_CORE_BUY")
 

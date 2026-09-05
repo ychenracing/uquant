@@ -56,27 +56,27 @@ _DAILY_TRACE = ROOT / "benchmarks" / "daily_portfolio_behavior_reference.json"
 _TRACE_RUNNER = ROOT / "tests" / "architecture" / "_portfolio_trace.py"
 _CURRENT_PORTFOLIO_INSTANCE_PICKLES = {
     "LeaderPortfolioPolicy": (
-        "4812f2a564ab2d31e3217d92167f07f9ce413c49100e34b20ffbc439ecd0080a",
-        1952,
+        "a86c5a6d327fdb2c77b9cc499808e56c6a3966ecd73c10beff98a2bddbb20ace",
+        1948,
     ),
     "PortfolioAllocator": (
-        "7ddcb2acc85ccdef80aaf9d8aab2dba55a16b4deb95a8832b2649cdaf0d6f2fb",
-        1941,
+        "89fbb3879368a2136235886037e6da6e0daf32461f0f9b87297fcbd2f79f0481",
+        1937,
     ),
     "RecoveryPortfolioPolicy": (
-        "0cad9c4675af0c480b96f3001c9d2aa41d23be270241f3dd6671340acf53904d",
-        1955,
+        "889623f4a45f02d31dcebe7b269310d363f875e50541f6397016f952c1ee8b48",
+        1951,
     ),
     "StrategicPortfolioPolicy": (
-        "2fd72c9319d6e86bf7608fbc271fe6bb8bd4ed9de9296c71d15db981d0650e71",
-        1957,
+        "2c84c3a160fb6b3f3faed8dc58498aed971848cdf9cab010a0b907251b9639f1",
+        1953,
     ),
 }
 _CURRENT_PORTFOLIO_MODE_SHA256 = {
-    "double_optimized": "060533c8583e1ef6f7a671281a2ac625926896b87cc96d7d0f4fd3dad399e04d",
-    "normal": "2e074f82828205989cd307297aa7f79408f5149cbdba6763fe6d055c618f2495",
-    "optimized": "2e074f82828205989cd307297aa7f79408f5149cbdba6763fe6d055c618f2495",
-    "windows_no_fcntl": "060533c8583e1ef6f7a671281a2ac625926896b87cc96d7d0f4fd3dad399e04d",
+    "double_optimized": "c0b34710c634ca4eb4c2e4d6c6687290f9530f06a9ae425a79e860b72b75f9b0",
+    "normal": "89c0ef25c2e838c4ec8ec231310a4b2caa5e023b50697c2f6619ccea2a124fb3",
+    "optimized": "89c0ef25c2e838c4ec8ec231310a4b2caa5e023b50697c2f6619ccea2a124fb3",
+    "windows_no_fcntl": "c0b34710c634ca4eb4c2e4d6c6687290f9530f06a9ae425a79e860b72b75f9b0",
 }
 _IMPLEMENTATION_IDENTITIES = {
     "uquant/portfolio.py": (
@@ -232,6 +232,36 @@ def _normalized_method(node: ast.FunctionDef) -> str:
     return ast.dump(normalized, include_attributes=False)
 
 
+def _project_causal_lifecycle_exit(node: ast.FunctionDef) -> ast.FunctionDef:
+    """Project only the exact session clock change back to the frozen counter."""
+    observation = ast.parse(
+        '''
+clock = f"lifecycle_exit_session:{symbol}"
+session = date.toordinal()
+previous = frame.loc[:date].index[-2].toordinal() if len(frame.loc[:date]) > 1 else 0
+observed = account.candidate_tenure.get(clock, 0)
+if observed > session:
+    raise ValueError("lifecycle exit observations must be causal")
+if observed != session:
+    streak = account.replacement_tenure.get(key, 0) if observed == previous else 0
+    account.replacement_tenure[key] = streak + 1 if broken else 0
+    account.candidate_tenure[clock] = session
+elif not broken:
+    account.replacement_tenure[key] = 0
+'''
+    ).body
+    projected = copy.deepcopy(node)
+    start = -len(observation) - 2
+    assert [ast.dump(item) for item in projected.body[start:-2]] == [
+        ast.dump(item) for item in observation
+    ]
+    projected.body[start:-2] = ast.parse(
+        "account.replacement_tenure[key] = "
+        "account.replacement_tenure.get(key, 0) + 1 if broken else 0"
+    ).body
+    return projected
+
+
 @pytest.fixture(scope="module")  # type: ignore[untyped-decorator]
 def immutable_portfolio_inventory() -> dict[str, Any]:
     return cast(dict[str, Any], build_portfolio_inventory(ROOT))
@@ -353,6 +383,19 @@ def test_portfolio_public_mro_pickle_reflection_and_import_modes_are_exact() -> 
     classes["StrategicPortfolioPolicy"]["methods"][
         "_strategic_qualification_snapshots"
     ] = snapshot_method
+    classes["PortfolioAllocator"]["methods"]["_allocate_strategy"]["raw_docstring"] = (
+        "Retain each filled owner, then allocate only available common capital."
+    )
+    classes["StrategicPortfolioPolicy"]["methods"]["_strategic_cohort_targets"][
+        "raw_docstring"
+    ] = """Run the active dynamic cohort through its current strategic epoch.
+
+        Five neighboring ATR exit bands share one position and one final target.
+        The bands smooth discrete signal dates without creating sleeves or orders;
+        the execution planner still receives only one target weight per symbol. A
+        exited candidate must rebuild its own causal qualification. Other
+        candidates continue confirmation against the same account-level risk.
+        """
     for class_name, (pickle_sha256, pickle_size) in _CURRENT_PORTFOLIO_INSTANCE_PICKLES.items():
         contract = classes[class_name]
         contract["inherited_method_lookup"]["_strategic_qualification_snapshots"] = (
@@ -813,9 +856,39 @@ def test_portfolio_leaders_moved_leader_methods_are_immutable_ast_exact() -> Non
                     name=name,
                     candidate=None,
                 )
+            if name == "_leader_lifecycle_exit_confirmed":
+                candidate_node = _project_causal_lifecycle_exit(candidate_node)
             candidate_node.name = name
             assert _normalized_method(candidate_node) == _normalized_method(immutable[name])
     assert observed == set(immutable)
+
+
+@pytest.mark.parametrize(
+    ("original", "replacement"),
+    (
+        ("if observed != session:", "if True:"),
+        ("if observed == previous else 0", "if observed <= previous else 0"),
+        ("if observed > session:", "if observed < session:"),
+        ("elif not broken:", "elif broken:"),
+        (">= self.cfg.replacement_confirm_days", ">= 1"),
+        (">= self.cfg.min_hold_days", ">= 1"),
+    ),
+)
+def test_portfolio_lifecycle_exit_projection_rejects_clock_and_rule_mutations(
+    original: str, replacement: str,
+) -> None:
+    name = "_leader_lifecycle_exit_confirmed"
+    source = (ROOT / "uquant/portfolio/leaders/lifecycle.py").read_text(encoding="utf-8")
+    method_source = ast.unparse(_function_nodes(source)[name])
+    assert method_source.count(original) == 1
+    mutated = _function_nodes(method_source.replace(original, replacement))[name]
+    immutable = _immutable_policy_methods(
+        "uquant/portfolio_leaders.py", "LeaderPortfolioPolicy"
+    )[name]
+
+    with pytest.raises(AssertionError):
+        projected = _project_causal_lifecycle_exit(mutated)
+        assert _normalized_method(projected) == _normalized_method(immutable)
 
 
 def test_portfolio_leaders_ast_gate_rejects_leader_rule_mutations() -> None:

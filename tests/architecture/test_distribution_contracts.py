@@ -7,13 +7,25 @@ import sys
 from collections.abc import Mapping
 from pathlib import Path
 
+import pandas as pd
 import pytest
+
+from uquant.account import account_from_dict
+from uquant.attribution import validate_attribution_against_engine_result
+from uquant.engine import ProductionEngine, code_fingerprint
+from uquant.validation.absolute_generalization._acceptance_evidence import current_candidate_contract
+from uquant.validation.absolute_generalization.champion_physical import (
+    validate_champion_physical_links,
+    validate_champion_session_streams,
+)
+from uquant.validation.absolute_generalization.metrics import assert_unique_execution_rows
+from uquant.validation.control_plane import validate_engine_control_plane
+from uquant.validation.generalization.metrics import symbol_pnl_from_result
 
 from ._analysis import (
     PUBLIC_API_PATH,
     ROOT,
     canonical_sha256,
-    representative_replay,
     tracked_file_inventory,
 )
 from ._analysis_authorities import HISTORICAL_PUBLIC_API_PATH
@@ -177,7 +189,7 @@ def test_generator_cli_requires_portable_baseline_arguments_and_no_caller_metric
 
 
 @pytest.mark.parametrize("scenario_index", range(3))
-def test_three_representative_replays_match_the_frozen_baseline(
+def test_three_current_replays_preserve_frozen_inputs_and_execution_integrity(
     baseline_inventory: dict[str, object], scenario_index: int
 ) -> None:
     scenarios = baseline_inventory["representative_replays"]
@@ -185,16 +197,54 @@ def test_three_representative_replays_match_the_frozen_baseline(
     assert len(scenarios) == 3
     expected = scenarios[scenario_index]
     assert isinstance(expected, Mapping)
-    baseline = baseline_inventory["baseline"]
-    assert isinstance(baseline, Mapping)
-    observed = representative_replay(
-        name=str(expected["name"]),
+    contract = current_candidate_contract()
+    assert contract["superseded_behavior_contracts"][0] == (
+        "Exact old Target/Order/Fill and exclusive economic-owner/epoch trajectories."
+    )
+    assert str(expected["requested_end"]) < contract["future_holdout_boundary"]
+    symbols = tuple(str(symbol) for symbol in expected["symbols"])
+    engine = ProductionEngine(ROOT / "data" / "frozen")
+    # Keep the archived literal outcomes unchanged. The current contract instead
+    # requires real causal execution, reconciled economics, and current identities.
+    observed = engine.backtest(
         start=str(expected["requested_start"]),
         end=str(expected["requested_end"]),
-        symbols=tuple(str(symbol) for symbol in expected["symbols"]),
-        account_code_hash=str(baseline["code_fingerprint"]),
+        symbols=symbols,
     )
-    assert observed == expected
+    validate_champion_session_streams(
+        observed, start=str(expected["requested_start"]), end=str(expected["requested_end"]),
+    )
+    # Match the existing generalization runner's enrichment of a raw backtest.
+    observed["symbol_pnl"] = symbol_pnl_from_result(observed, {
+        symbol: engine.workspace.price(symbol, pd.Timestamp(observed["end"]))
+        for symbol in observed["final_account"]["positions"]
+    })
+    sessions = tuple(row["date"] for row in observed["equity_curve"])
+    attribution = validate_attribution_against_engine_result(
+        observed, economic_start=observed["start"], economic_end=observed["end"],
+        trusted_sessions=sessions,
+        trusted_close=lambda symbol, session: engine.workspace.price(symbol, pd.Timestamp(session)),
+        require_daily_replay_evidence=True,
+    )
+    validate_engine_control_plane(
+        observed,
+        economic_start=observed["start"],
+        economic_end=observed["end"],
+        expected_sessions=sessions,
+        expected_config=engine.cfg,
+        expected_code_sha256=code_fingerprint(),
+        attribution=attribution,
+    )
+    assert_unique_execution_rows(
+        final_account=observed["final_account"],
+        trace=observed["decision_trace"],
+        allowed_symbols=symbols,
+    )
+    validate_champion_physical_links(
+        account_from_dict(observed["final_account"]), observed["decision_trace"],
+    )
+    for event in observed["sentinel_events"]:
+        assert 0.0 <= event["target_gross_cap"] <= event["base_target_gross_cap"] <= engine.cfg.max_gross
 
 
 def test_performance_baseline_records_wall_rss_and_pytest_time(

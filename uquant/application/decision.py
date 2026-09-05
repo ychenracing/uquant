@@ -552,6 +552,15 @@ def _record_final_allocation_trace(
                          for order in orders if order.symbol == symbol]
 
 
+def _retained_allocation_orders(
+    *, previous_orders: list[PendingOrder], risk: RiskAssessment,
+) -> list[PendingOrder]:
+    """Carry allocator rejections through identity reuse and pending-order merge."""
+    rows = risk.evidence.get("core_allocation", {}).get("symbols", {})
+    return [order for order in previous_orders
+            if order.side != "BUY" or rows.get(order.symbol, {}).get("pending_buy_rejected") is not True]
+
+
 def _allocate_decision_orders(
     self: DecisionEngineRuntime,
     *,
@@ -615,10 +624,11 @@ def _allocate_decision_orders(
     )
     risk.evidence.update(market.reference_context.evidence())
     bind_account_strategic_ownership(account)
+    retained_orders = _retained_allocation_orders(previous_orders=previous_orders, risk=risk)
     targets = attach_target_attribution_fn(
         signal_date=str(inputs.date.date()),
         targets=targets,
-        retained_orders=previous_orders,
+        retained_orders=retained_orders,
         cfg=self.cfg,
     )
     planning_diagnostics: dict[str, dict[str, object]] = {}
@@ -631,7 +641,7 @@ def _allocate_decision_orders(
         diagnostics=planning_diagnostics,
     )
     orders = merge_pending_orders(
-        retained=previous_orders,
+        retained=retained_orders,
         planned=planned_orders,
         targets=targets,
         cfg=self.cfg,

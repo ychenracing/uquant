@@ -1,0 +1,192 @@
+{
+  "schema_version": 1,
+  "contract_id": "cross-ai-core-strategy-20260905-v1",
+  "production_candidate_evaluated_at_freeze": false,
+  "historical_only": true,
+  "future_holdout_boundary": "2026-08-06",
+  "windows": {
+    "h1_2023": [
+      "2023-01-03",
+      "2023-06-30"
+    ],
+    "h2_2023": [
+      "2023-07-03",
+      "2023-12-29"
+    ],
+    "h1_2024": [
+      "2024-01-02",
+      "2024-07-01"
+    ],
+    "h2_2024": [
+      "2024-07-01",
+      "2024-12-31"
+    ],
+    "bull_crash_2025_2026": [
+      "2025-01-02",
+      "2026-07-31"
+    ],
+    "continuous_ai_era": [
+      "2023-01-03",
+      "2026-08-05"
+    ]
+  },
+  "cases": [
+    "champion",
+    "full",
+    "remove_all_three",
+    "no_optical"
+  ],
+  "scenario_binding": "research.cross_ai_strategy.case_symbols: PIT canonical stock roles; removals apply to tradable, qualification and explicit stock risk; retain sh000300/sh000682. Registry optical is sh600487/sh601869/sz300308/sz300394/sz300502; no claim to remove indirect optical exposure.",
+  "thresholds": {
+    "champion_minimum_final_wealth": 23.28417871275582,
+    "champion_maximum_drawdown": 0.3,
+    "champion_maximum_orders": 15,
+    "full_minimum_final_wealth": 23.28417871275582,
+    "full_maximum_drawdown": 0.3,
+    "full_maximum_orders": 20,
+    "removal_minimum_final_wealth": 1.5,
+    "removal_minimum_wealth_delta": 0.25,
+    "removal_benchmark_wealth_ratio": 1,
+    "removal_maximum_drawdown": 0.3,
+    "removal_maximum_orders": 20,
+    "removal_maximum_annual_turnover": 6,
+    "removal_maximum_all_in_cost_initial_cash_fraction": 0.02,
+    "half_year_minimum_wealth_ratio_to_valid_baseline": 0.95,
+    "half_year_maximum_drawdown_buffer": 0.02,
+    "half_year_maximum_orders": 12,
+    "improved_pre2025_windows_minimum": 1,
+    "improved_pre2025_wealth_delta_minimum": 0.05,
+    "improved_window_final_wealth_minimum": 1.05,
+    "post2025_minimum_final_wealth": 1.5,
+    "post2025_benchmark_wealth_ratio": 0.95,
+    "post2025_maximum_orders": 25,
+    "cost_stress_minimum_wealth_ratio": 0.95,
+    "cost_stress_removal_minimum_wealth": 1.35,
+    "sensitivity_minimum_wealth_ratio": 0.8,
+    "sensitivity_median_wealth_ratio": 0.9,
+    "sensitivity_removal_minimum_wealth": 1.2,
+    "initial_conditions_minimum_wealth_ratio_to_paired_baseline": 0.95,
+    "new_best_contributor_removal_minimum_wealth": 1.05,
+    "maximum_p90_drawdown": 0.3,
+    "minimum_p10_wealth": 1,
+    "minimum_positive_return_fraction": 0.9,
+    "maximum_p90_orders": 20
+  },
+  "cross_window_rule": "Each removal case improves at least one valid pre-2025 half-year by >=0.05 net wealth, reaches >=1.05 there and beats its fixed same-window comparator. Every valid half-year retains >=95% baseline wealth and MDD <=min(0.30,baseline+0.02). Separately, 2025-2026 must have a valid account and wealth >=max(1.50,0.95*fixed comparator). The disjoint later interval cannot be replaced by the overlapping continuous run. Existing later-window schema failures must be repaired and cannot be used as zero-return baselines.",
+  "basis": {
+    "baseline_file": "benchmarks/cross_ai_stage1_baselines.json",
+    "continuous_removal_production_wealth": 1.01039464268425,
+    "continuous_removal_benchmark_wealth": 0.8843966427651402,
+    "post2025_benchmark_wealth": {
+      "remove_all_three": 1.8134611982703912,
+      "no_optical": 1.8542807603079314
+    },
+    "rationale": "The required 50% continuous net gain is materially above the 1.04% baseline and below the 80.64% gain already achieved by the old policy in 2024 H2. The fixed comparator achieves 81-85% in the disjoint 2025-2026 interval. These executable historical opportunities do not guarantee their gains compound in one account. The full-pool 95% floor conservatively protects its currently identical champion economics. No new production candidate performance was available when these limits were selected.",
+    "baseline_schema_failures": "Two 382-session production runs complete daily execution but fail final account codec: OBSERVING cash-rearm evidence contains capital_budget_level=0.",
+    "baseline_file_sha256": "6c6d3167d2f18a8477b63f75261fad2c65497df1778d6d2ad55674216a097218"
+  },
+  "profiles": {
+    "p2_lower": {
+      "strategic_reversal_min_ret5": 0.0475
+    },
+    "p2_upper": {
+      "strategic_reversal_min_ret5": 0.0525
+    },
+    "p4_lower": {
+      "strategic_reversal_max_tech_ret120": -0.015
+    },
+    "p4_upper": {
+      "strategic_reversal_max_tech_ret120": -0.005
+    },
+    "p7_lower": {
+      "strategic_dominant_profit_lock_mfe": 2.09
+    },
+    "p7_upper": {
+      "strategic_dominant_profit_lock_mfe": 2.31
+    },
+    "p8_lower": {
+      "strategic_dominant_retained_gross": 0.68
+    },
+    "p8_upper": {
+      "strategic_dominant_retained_gross": 0.72
+    },
+    "confirmation_lower": {
+      "leader_tenure_days": 4
+    },
+    "confirmation_upper": {
+      "leader_tenure_days": 6
+    },
+    "cost_stress": {
+      "commission_rate": 0.0005,
+      "min_commission": 10,
+      "stamp_duty": 0.001,
+      "transfer_fee": 2e-05,
+      "slippage": 0.002
+    }
+  },
+  "profile_rule": "Perturb one field at a time for champion and both removals. Deleted controls require proof that the config field and all executable reads were removed; an inactive override is not robustness evidence. Nominal champion floor is fixed; neighbor minimum80% and median90% of nominal detect unexplained collapse without requiring identical entry dates. Cost stress doubles actual execution costs and recomputes each account's risk.",
+  "initial_conditions": {
+    "start_session_offsets": [
+      5,
+      20
+    ],
+    "initial_cash_multipliers": [
+      0.5,
+      2
+    ],
+    "cases": [
+      "champion",
+      "remove_all_three",
+      "no_optical"
+    ],
+    "paired_old_source_required": true
+  },
+  "contributor_robustness": {
+    "cases": [
+      "remove_all_three",
+      "no_optical"
+    ],
+    "rule": "Precommitted algorithm removes the largest positive-PnL symbol from every explicit stock role after nominal replay; rerun old and new under that identical removal. New wealth must remain >=1.05. Report all symbol/industry PnL and concentration; do not enforce industry profit shares or count identical paths as independent evidence."
+  },
+  "participation": {
+    "required_behaviors": [
+      "Healthy incumbents retain capital absent structural damage or persistent cost-covering challenger advantage.",
+      "Independent qualified entrants can receive executable residual budget; historical owner/epoch identity alone cannot veto them.",
+      "Combined name/industry/correlation concentration includes outstanding execution reservations.",
+      "Account highwater/capital/chronic repair survive candidate changes.",
+      "One target per symbol, one allocator/account, immutable admission/fill attribution and idempotent partial/late/restarted execution."
+    ],
+    "proof": "Actual production observation -> target -> next-open real fill. No injected target or forced account state as economic proof."
+  },
+  "simplification_targets": [
+    "Remove strategic-only simulated partial-remainder CANCELLED/blank-ID replacement; retain one economic order and actual retry.",
+    "Align row-local authority and broker remaining economic-capacity checks while preserving genuine broker uncertainty.",
+    "Replace first-match strategic routes and cohort-signature streak resets with per-candidate evidence/confirmation.",
+    "Replace exclusive existing/recovery/protected/active_epoch_read_only capital vetoes with shared risk/cash/reservation/concentration budgets.",
+    "Replace global economic owner/cooldown with admission-scoped lifecycle and cause-aware symbol requalification; preserve immutable identities.",
+    "Delete duplicate successor confirmation and replaced coordination flags/branches; no permanent legacy strategy switch."
+  ],
+  "superseded_behavior_contracts": [
+    "Exact old Target/Order/Fill and exclusive economic-owner/epoch trajectories.",
+    "Relative order/turnover trajectory comparisons for changed participation; explicit absolute order/cost/tail caps replace them. Preserve and report old literal results."
+  ],
+  "retained_correctness_contracts": [
+    "Causality/PIT roles, frozen data, finite inputs, literal failures.",
+    "Daily decide/backtest equivalence, T+1/next-open/lot/limit/suspension/capacity and original nominal fees/slippage.",
+    "Cash/positions/tranches/fees/PnL reconciliation; unknown/conflicting identities fail closed; fills activate economic state.",
+    "Base Risk authority, no leverage/shorts; all applicable L4 absolute risk, acute-return, tail and cost gates.",
+    "Champion wealth95% floor cannot be weakened after candidate selection."
+  ],
+  "final_required_evidence": [
+    "nominal",
+    "cost_stress",
+    "parameter_neighbors",
+    "paired_initial_conditions",
+    "best_contributor_removal",
+    "complete_L4",
+    "focused_review",
+    "simplification_inventory",
+    "operator_cutover_instructions"
+  ],
+  "non_independence": "All diagnosis/design/selection history is historical comparison, never independent out-of-sample. Protected Future Holdout is never read or backfilled."
+}

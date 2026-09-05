@@ -23,7 +23,7 @@ import pandas as pd
 
 from uquant.account import account_from_dict
 from uquant.attribution import build_daily_ledger_row, build_economic_attribution
-from uquant.config import DEFAULT_CONFIG, config_fingerprint
+from uquant.config import DEFAULT_CONFIG, SystemConfig, config_fingerprint
 from uquant.contracts.runtime_identity import runtime_environment_provenance
 from uquant.contracts.strict_json import canonical_json_bytes
 from uquant.contracts.universe import default_ai_universe
@@ -75,13 +75,15 @@ def _write_json(path: Path, value: Any) -> None:
     path.write_bytes(canonical_json_bytes(value) + b"\n")
 
 
-def _identity(case_id: str, start: str, end: str) -> dict[str, Any]:
+def _identity(
+    case_id: str, start: str, end: str, cfg: SystemConfig = DEFAULT_CONFIG,
+) -> dict[str, Any]:
     return {
         "case_id": case_id,
         "start": start,
         "end": end,
         "source_sha256": code_fingerprint(),
-        "config_sha256": config_fingerprint(DEFAULT_CONFIG),
+        "config_sha256": config_fingerprint(cfg),
         "runtime": runtime_environment_provenance(ROOT),
         "data": verify_data_manifest(ROOT / "data/frozen"),
         "universe_sha256": hashlib.sha256(
@@ -96,6 +98,7 @@ def _identity(case_id: str, start: str, end: str) -> dict[str, Any]:
 
 def run_production_case(
     *, case_id: str, start: str, end: str, output_dir: Path,
+    cfg: SystemConfig = DEFAULT_CONFIG,
 ) -> dict[str, Any]:
     """Replay one frozen historical case with exact daily observations and fills."""
     if not "2023-01-03" <= start <= end <= "2026-08-05":
@@ -105,15 +108,15 @@ def run_production_case(
     case_symbols(case_id, start)
     output_dir.mkdir(parents=True, exist_ok=False)
     started = time.monotonic()
-    identity = _identity(case_id, start, end)
+    identity = _identity(case_id, start, end, cfg)
     _write_json(output_dir / "identity.json", identity)
-    engine = ProductionEngine(ROOT / "data/frozen")
+    engine = ProductionEngine(ROOT / "data/frozen", cfg=cfg)
     engine.workspace.prepare(ReplayUniverse.from_symbols(
         tradable_symbols=(), reference_symbols=(), index_symbols=INDEX_SYMBOLS,
     ))
     sessions = engine.workspace.common_sessions(*INDEX_SYMBOLS)
     sessions = sessions[(sessions >= pd.Timestamp(start)) & (sessions <= pd.Timestamp(end))]
-    account = AccountState.empty(DEFAULT_CONFIG.initial_cash)
+    account = AccountState.empty(cfg.initial_cash)
     equity_rows: list[tuple[pd.Timestamp, float]] = []
     daily_ledger: list[dict[str, Any]] = []
     previous_equity = account.initial_cash
@@ -223,7 +226,7 @@ def run_production_case(
             accounting = attribution["accounting"]
             if not accounting["reconciled"]:
                 raise RuntimeError("production accounting does not reconcile")
-        if identity != _identity(case_id, start, end):
+        if identity != _identity(case_id, start, end, cfg):
             raise RuntimeError("historical replay input or source identity changed during execution")
     except Exception as exc:
         status = "REPLAY_ERROR"

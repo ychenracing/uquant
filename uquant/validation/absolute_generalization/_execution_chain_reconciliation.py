@@ -27,6 +27,7 @@ from ._physical_identity import (
 )
 from .metrics import (
     EpochFact,
+    filled_epoch_facts_from_rows,
 )
 
 _IDENTITY_FIELDS = ("event_id", "epoch_id", "grant_id", "symbol", "side")
@@ -453,9 +454,16 @@ def _validate_epoch_edge(fact: EpochFact, indexes: _ChainIndexes) -> None:
         or session != fact.order_session
         or metric_iso_session(first_fill.get("fill_date"), label="fill session")
         != fact.fill_session
-        or fact.fill_session != fact.active_session
     ):
         raise ValueError("absolute generalization epoch target/order/fill causality differs")
+    if fact.active_session:
+        activating = [fill for fill in matching if fill.get("fill_date") == fact.active_session]
+        if not activating:
+            raise ValueError("absolute generalization activation lacks a matching positive BUY")
+        for fill in activating:
+            activation_order = indexes.trace_orders.get(metric_text(fill.get("order_id"), label="activation order"))
+            if activation_order is None or activation_order[0] >= fact.active_session:
+                raise ValueError("absolute generalization activation order is absent or noncausal")
 
 
 def validate_exact_execution_chain(
@@ -483,7 +491,11 @@ def validate_exact_execution_chain(
     _validate_order_replacement_topology(final_orders)
     indexes = _ChainIndexes(final_orders=final_orders, trace_orders=trace_orders, fills=fills)
     _validate_fill_order_links(indexes)
-    for fact in epochs:
+    filled = filled_epoch_facts_from_rows(final_account=final_account, trace=trace)
+    by_id = {fact.epoch_id: fact for fact in filled}
+    if any(by_id.get(fact.epoch_id) != fact for fact in epochs):
+        raise ValueError("absolute generalization reported epoch differs from its fill ledger")
+    for fact in filled:
         grant, risks = _grant_creation(trace=trace, fact=fact)
         _validate_authorization(fact=fact, grant=grant, risks=risks)
         _validate_epoch_edge(fact, indexes)

@@ -358,14 +358,15 @@ def _witness_owner_routes(
         self, synchronized=synchronized, reversal_groups=reversal_groups,
         snapshots=snapshots, leaders=leaders, anchor_state_observed=anchor_observed,
     )
+    decisive_owner = decisive if decisive in symbols and set(pair) <= set(symbols) else None
     choices = [StrategicRoute(
-        list(symbols), route, decisive if decisive == owner else None, synchronized,
+        list(symbols), route, None, synchronized,
         reversal_groups, anchor_observed, anchors_not_armed, owner,
-    ) for owner in symbols]
-    if decisive and decisive in symbols and set(pair) <= set(symbols):
+    ) for owner in symbols if owner != decisive_owner]
+    if decisive_owner is not None:
         choices.append(StrategicRoute(
-            pair, route, decisive, synchronized, reversal_groups,
-            anchor_observed, anchors_not_armed, decisive,
+            pair, route, decisive_owner, synchronized, reversal_groups,
+            anchor_observed, anchors_not_armed, decisive_owner,
         ))
     return choices
 

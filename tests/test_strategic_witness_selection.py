@@ -2,18 +2,23 @@
 
 from __future__ import annotations
 
+from copy import deepcopy
 from dataclasses import replace
 
+import pandas as pd
 import pytest
 from test_unified_strategic_selection import (
     _leader,
     _observe_group_candidates,
     _risk,
     _snapshot,
+    _strategic_frame,
 )
 
 from uquant.config import DEFAULT_CONFIG
+from uquant.models.strategic_universe import build_strategic_universe_roles
 from uquant.portfolio import PortfolioAllocator
+from uquant.portfolio.strategic import grant_lifecycle
 from uquant.portfolio.strategic.qualification_candidates import strategic_route_candidates
 
 
@@ -145,8 +150,7 @@ def test_fixed_witnesses_preserve_independent_single_and_other_industry_group(mo
         }
 
 
-def _strong_decisive_inputs():
-    symbols = ("A_LEAD", "B_RUNNER", "C_RESERVE")
+def _strong_decisive_inputs(symbols=("A_LEAD", "B_RUNNER", "C_RESERVE")):
     snapshots = {}
     leaders = {}
     for index, symbol in enumerate(symbols):
@@ -178,19 +182,75 @@ def test_singleton_never_carries_full_reversal_context_or_decisive_authority():
     assert all(route.decisive_reversal_symbol is None for route in singletons)
 
 
-def test_stronger_decisive_owner_keeps_real_pair_capital_semantics(monkeypatch):
-    snapshots, leaders, risk = _strong_decisive_inputs()
+@pytest.mark.parametrize("symbols", (
+    pytest.param(("A_LEAD", "B_RUNNER", "C_RESERVE"), id="runner-before-reserve"),
+    pytest.param(("dominant", "runner", "reserve"), id="reserve-before-runner"),
+))
+def test_stronger_decisive_owner_keeps_real_pair_capital_semantics(monkeypatch, symbols):
+    owner, runner, _reserve = symbols
+    snapshots, leaders, risk = _strong_decisive_inputs(symbols)
     account = _observe_group_candidates(
         monkeypatch, snapshots=snapshots, leaders=leaders,
         counts={symbol: 8 for symbol in snapshots}, risk=risk,
-        strict_counts={"A_LEAD": 8},
+        strict_counts={owner: 8},
     )
 
-    assert account.strategic_qualification.candidate_symbol == "A_LEAD"
+    assert account.strategic_qualification.candidate_symbol == owner
     assert account.strategic_qualification.qualification_ready
     assert account.strategic_qualification.qualification_quorum == "FULL_COHORT"
-    assert set(account.strategic_qualification.candidate_symbols) == {"A_LEAD", "B_RUNNER"}
+    assert set(account.strategic_qualification.candidate_symbols) == {owner, runner}
     assert account.strategic_grant is not None
     assert account.strategic_cohort_targets == {
-        "A_LEAD": pytest.approx(DEFAULT_CONFIG.strategic_dominant_max_weight),
+        owner: pytest.approx(DEFAULT_CONFIG.strategic_dominant_max_weight),
     }
+
+
+@pytest.mark.parametrize("symbols", (
+    pytest.param(("A_LEAD", "B_RUNNER", "C_RESERVE"), id="strong-witnesses-first"),
+    pytest.param(("B_LEAD", "C_RUNNER", "A_RESERVE"), id="weak-reserve-first"),
+))
+def test_original_reversal_witness_order_uses_evidence_not_signature_names(monkeypatch, symbols):
+    snapshots = {}
+    leaders = {}
+    for index, symbol in enumerate(symbols):
+        score = (0.85, 0.80, 0.75)[index]
+        snapshots[symbol] = {
+            **_absolute(score), "ret240": -0.20, "persistent_ret240": -0.20,
+            "ret5": 0.06, "ret20": (0.10, 0.06, -0.30)[index],
+            "ret60": -0.10, "ret120": -0.10, "trend_persistence": 0.90,
+        }
+        leaders[symbol] = _leader(symbol, score=score, industry="compute")
+    risk = replace(_risk(), evidence={
+        **_risk().evidence, "risk_anchor_symbols": [],
+        "tech_ret120": -0.05, "broad_ret120": -0.05,
+    })
+    account = _observe_group_candidates(
+        monkeypatch, snapshots=snapshots, leaders=leaders,
+        counts={symbol: 8 for symbol in symbols}, risk=risk,
+    )
+    grant = account.strategic_grant
+    assert grant is not None and grant.qualification_quorum == "FULL_COHORT"
+    original = (grant.grant_id, grant.epoch_id, grant.qualification_signature, grant.candidate_symbol)
+    dates = pd.bdate_range("2024-01-02", periods=251)
+    panel = {symbol: _strategic_frame(dates) for symbol in symbols}
+    universe = build_strategic_universe_roles(
+        as_of=str(dates[-1].date()), tradable_symbols=symbols,
+        qualification_reference_symbols=symbols, risk_reference_symbols=(),
+        industries={symbol: "compute" for symbol in symbols}, available_symbols=symbols,
+    )
+    monkeypatch.setattr(grant_lifecycle, "strategic_qualification_snapshots",
+                        lambda self, **kwargs: deepcopy(snapshots))
+    policy = PortfolioAllocator(DEFAULT_CONFIG)
+    evidence = grant_lifecycle._grant_route_evidence(
+        policy, grant=grant, date=dates[-1], user_panel=panel, resolved_panel=panel,
+        leaders=leaders, risk=risk, universe=universe,
+    )
+    assert evidence.raw
+    assert set(evidence.symbols) == set(symbols)
+    assert grant_lifecycle.revalidate_strategic_grant(
+        policy, date=dates[-1], user_panel=panel, leaders=leaders, account=account,
+        risk=risk, admission_open=True, weights_now={}, strategic_universe=universe,
+    )
+    assert not account.strategic_qualification.deployment_blocked
+    assert account.strategic_grant is grant
+    assert (grant.grant_id, grant.epoch_id, grant.qualification_signature, grant.candidate_symbol) == original

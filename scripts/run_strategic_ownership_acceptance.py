@@ -255,13 +255,10 @@ def _trace_rows(result: ReplayResult) -> tuple[Mapping[str, object], ...]:
 def actual_epoch_facts(result: ReplayResult) -> list[dict[str, Any]]:
     """Return validation-owned fill-gated facts in the legacy report shape."""
 
-    return [
-        fact.to_dict()
-        for fact in actual_epoch_facts_from_rows(
-            final_account=result.final_account,
-            trace=_trace_rows(result),
-        )
-    ]
+    trace = _trace_rows(result)
+    facts = actual_epoch_facts_from_rows(final_account=result.final_account, trace=trace)
+    validate_exact_execution_chain(final_account=result.final_account, trace=trace, epochs=facts)
+    return [fact.to_dict() for fact in facts]
 
 
 class _ReplayFailure(RuntimeError):

@@ -299,8 +299,8 @@ def _prepare_account(self: PortfolioAllocator, *, risk: RiskAssessment,
 def _fund_strategic_owners(book: _AllocationBook, *, frozen: bool,
                            bounded_restore: bool, unresolved: bool) -> None:
     grant = book.account.strategic_grant
-    blocked = bool(grant is not None and grant.status != "ACTIVE"
-                   and book.account.strategic_qualification.deployment_blocked)
+    blocked = bool(grant is not None and (grant.status in {"EXPIRED", "CANCELLED"}
+                   or (grant.status != "ACTIVE" and book.account.strategic_qualification.deployment_blocked)))
     founding_cap = (
         book.policy.cfg.max_gross
         if grant is not None and grant.qualification_quorum == "FULL_COHORT"
@@ -461,14 +461,20 @@ def _admit_new_cores(book: _AllocationBook, *, candidates: list[str], opportunit
             break
 
 
-def _retained_buy_identity(book: _AllocationBook, target: Target) -> Target:
+def _retained_order_identity(book: _AllocationBook, target: Target) -> Target:
+    current = book.weights_now.get(target.symbol, 0.0)
+    side = "BUY" if target.weight > current + 1e-12 else "SELL"
     retained = next((order for order in book.account.pending_orders
-                     if order.side == "BUY" and order.symbol == target.symbol), None)
-    if not (
-        retained is not None and target.weight > book.weights_now.get(target.symbol, 0.0) + 1e-12
-        and target.weight + 1e-12 >= retained.target_weight
+                     if order.side == side and order.symbol == target.symbol), None)
+    if retained is None:
+        return target
+    continued = (
+        target.weight + 1e-12 >= retained.target_weight
         and abs(target.weight - retained.target_weight) < book.policy.cfg.min_trade_weight
-    ):
+    ) if side == "BUY" else (
+        target.weight < current - 1e-12 and abs(target.weight - retained.target_weight) <= 1e-12
+    )
+    if not continued:
         return target
     return replace(target, **{name: getattr(retained, name) for name in (
         "lifecycle", "reason", "reduction_policy", "reason_code", "exit_kind", "event_id",
@@ -495,7 +501,7 @@ def _book_targets(book: _AllocationBook) -> tuple[Target, ...]:
                              if target.symbol in book.mechanisms else strategic.mechanism)
         if target.mechanism == AttributionMechanism.POST_SHOCK_RESTORATION.value:
             target = replace(target, origin_subsystem=OriginSubsystem.RECOVERY.value)
-        merged.append(_retained_buy_identity(book, target))
+        merged.append(_retained_order_identity(book, target))
     return tuple(merged)
 
 

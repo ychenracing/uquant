@@ -208,8 +208,11 @@ def test_synchronized_reversal_is_tagged_as_emerging_secular() -> None:
         )
 
     _assert_unfilled_strategic_probe(account)
-    assert len(account.strategic_cohort_symbols) == 2
-    assert sorted(account.strategic_cohort_targets.values()) == pytest.approx([0.34, 0.51])
+    assert tuple(account.strategic_cohort_symbols) == symbols
+    assert set(account.strategic_cohort_targets) == set(symbols)
+    assert sorted(account.strategic_cohort_targets.values()) == pytest.approx([1.0 / 3.0] * 3)
+    assert account.strategic_qualification.qualification_quorum == "FULL_COHORT"
+    assert not account.fills
     assert account.strategic_candidate_signature.startswith(
         "strategic_qualification:EMERGING_SECULAR:"
     )

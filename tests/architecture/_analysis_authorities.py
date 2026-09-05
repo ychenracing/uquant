@@ -191,6 +191,7 @@ MODULE_AUTHORITIES = {
     "uquant.validation.absolute_generalization.evidence_codec": "validation_runner",
     "uquant.validation.absolute_generalization._champion_runtime_reconciliation": "validation_runner",
     "uquant.validation.absolute_generalization._execution_chain_reconciliation": "validation_runner",
+    "uquant.validation.absolute_generalization._epoch_realization": "validation_runner",
     "uquant.validation.absolute_generalization._metric_primitives": "validation_runner",
     "uquant.validation.absolute_generalization._metrics_reconciliation": "validation_runner",
     "uquant.validation.absolute_generalization._physical_identity": "validation_runner",

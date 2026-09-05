@@ -54,29 +54,31 @@ _TRACE_RUNNER_SHA256 = "00672c67b31374c50e1e56e236a45609374637b86f9900d47dc550ab
 _INVENTORY = ROOT / "artifacts" / "architecture_refactor" / "task8_cleanup_inventory.json"
 _DAILY_TRACE = ROOT / "benchmarks" / "daily_portfolio_behavior_reference.json"
 _TRACE_RUNNER = ROOT / "tests" / "architecture" / "_portfolio_trace.py"
+# Current eight-field leader-cycle retirement changes instance configuration bytes;
+# the immutable inventory still retains its original reflection and pickle facts.
 _CURRENT_PORTFOLIO_INSTANCE_PICKLES = {
     "LeaderPortfolioPolicy": (
-        "a86c5a6d327fdb2c77b9cc499808e56c6a3966ecd73c10beff98a2bddbb20ace",
-        1948,
+        "7a60fa0226709c2f383adfb4bc29a84d8afad15ea9755e8dd97b7697823452ef",
+        1890,
     ),
     "PortfolioAllocator": (
-        "89fbb3879368a2136235886037e6da6e0daf32461f0f9b87297fcbd2f79f0481",
-        1937,
+        "ad450360759cc479a96f73341151a5f447e6e01a62f864c284934e738bc09b4a",
+        1879,
     ),
     "RecoveryPortfolioPolicy": (
-        "889623f4a45f02d31dcebe7b269310d363f875e50541f6397016f952c1ee8b48",
-        1951,
+        "77183c1d7650f2b8cb466b46ad9ad0809d5daf9a8810f296eb836817c366f803",
+        1893,
     ),
     "StrategicPortfolioPolicy": (
-        "2c84c3a160fb6b3f3faed8dc58498aed971848cdf9cab010a0b907251b9639f1",
-        1953,
+        "83018673969c690c3e6ef0a0fafbfb46f75b198c680f956a47c8ec2d8d1ebb84",
+        1895,
     ),
 }
 _CURRENT_PORTFOLIO_MODE_SHA256 = {
-    "double_optimized": "c0b34710c634ca4eb4c2e4d6c6687290f9530f06a9ae425a79e860b72b75f9b0",
-    "normal": "89c0ef25c2e838c4ec8ec231310a4b2caa5e023b50697c2f6619ccea2a124fb3",
-    "optimized": "89c0ef25c2e838c4ec8ec231310a4b2caa5e023b50697c2f6619ccea2a124fb3",
-    "windows_no_fcntl": "c0b34710c634ca4eb4c2e4d6c6687290f9530f06a9ae425a79e860b72b75f9b0",
+    "double_optimized": "dacd1e67ff1ae3210a6217d87ea7d43ec19e0552529bb57e0eaa389a34420af0",
+    "normal": "ddbc4423be3b5d4e4a9b77c60acba6df7c4849bd7c2412e07a9703caee16aa46",
+    "optimized": "ddbc4423be3b5d4e4a9b77c60acba6df7c4849bd7c2412e07a9703caee16aa46",
+    "windows_no_fcntl": "dacd1e67ff1ae3210a6217d87ea7d43ec19e0552529bb57e0eaa389a34420af0",
 }
 _IMPLEMENTATION_IDENTITIES = {
     "uquant/portfolio.py": (
@@ -370,6 +372,10 @@ def test_portfolio_public_mro_pickle_reflection_and_import_modes_are_exact() -> 
         "mode_sha256": payload["portfolio_public_contract"]["runtime"]["import_mode_sha256"],
     }
     classes = expected["normal"]["classes"]
+    for method_name in ("_leader_targets", "_update_leader_cycle_arm"):
+        del classes["LeaderPortfolioPolicy"]["methods"][method_name]
+        for class_name in ("LeaderPortfolioPolicy", "PortfolioAllocator", "RecoveryPortfolioPolicy"):
+            del classes[class_name]["inherited_method_lookup"][method_name]
     snapshot_method = {
         "descriptor": "instance",
         "module": "uquant.portfolio.strategic.discovery",

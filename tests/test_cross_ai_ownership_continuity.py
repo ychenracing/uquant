@@ -120,6 +120,7 @@ def continuity_replay(
             "epoch_id": epoch_id, "grant_id": grant_id, "owner_symbol": owner,
             "opened_session": signal, "first_fill_session": filled, "active_session": filled,
             "closed_session": sold if index < len(owners) - 1 else "",
+            "close_reason": "owner_exit" if index < len(owners) - 1 else "",
             "realized_status": "CLOSED" if index < len(owners) - 1 else "ACTIVE",
             "previous_epoch_id": f"epoch_{index:064x}" if index else "",
             "qualification_signature": qualification["qualification_signature"],
@@ -227,6 +228,7 @@ def test_cross_industry_source_passes_but_alias_requires_adjacent_same_industry(
     ("raw_source", "production source differs"),
     ("fill_trace_session", "physical fill trace session differs"),
     ("missing_live_lot", "tranche"),
+    ("missing_close_reason", "terminal epoch lacks close evidence"),
 ])
 def test_complete_raw_chain_fails_closed(mutation: str, reason: str) -> None:
     contract = runner.load_contract()
@@ -282,6 +284,8 @@ def test_complete_raw_chain_fails_closed(mutation: str, reason: str) -> None:
             raw["trace"][2]["fills"] = ()
         case "missing_live_lot":
             account["positions"]["sh688008"]["tranches"] = []
+        case "missing_close_reason":
+            del account["strategic_epochs"][0]["close_reason"]
         case _:
             raise AssertionError(mutation)
 

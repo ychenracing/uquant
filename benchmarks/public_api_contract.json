@@ -72636,6 +72636,68 @@
         "dataclasses": {},
         "enums": {}
       },
+      "uquant.validation.absolute_generalization._epoch_realization": {
+        "path": "uquant/validation/absolute_generalization/_epoch_realization.py",
+        "public_names": [
+          "epoch_owner_buy_fills",
+          "epoch_realization_sessions"
+        ],
+        "functions": {
+          "epoch_owner_buy_fills": {
+            "parameters": [
+              {
+                "name": "epoch_id",
+                "kind": "KEYWORD_ONLY",
+                "annotation": "str",
+                "default": {
+                  "kind": "required"
+                }
+              },
+              {
+                "name": "epoch",
+                "kind": "KEYWORD_ONLY",
+                "annotation": "Mapping[str, object]",
+                "default": {
+                  "kind": "required"
+                }
+              },
+              {
+                "name": "fills",
+                "kind": "KEYWORD_ONLY",
+                "annotation": "Sequence[Mapping[str, object]]",
+                "default": {
+                  "kind": "required"
+                }
+              }
+            ],
+            "return": "tuple[Mapping[str, object], ...]"
+          },
+          "epoch_realization_sessions": {
+            "parameters": [
+              {
+                "name": "epoch",
+                "kind": "KEYWORD_ONLY",
+                "annotation": "Mapping[str, object]",
+                "default": {
+                  "kind": "required"
+                }
+              },
+              {
+                "name": "matching",
+                "kind": "KEYWORD_ONLY",
+                "annotation": "Sequence[Mapping[str, object]]",
+                "default": {
+                  "kind": "required"
+                }
+              }
+            ],
+            "return": "tuple[str, str]"
+          }
+        },
+        "classes": {},
+        "dataclasses": {},
+        "enums": {}
+      },
       "uquant.validation.absolute_generalization._execution_chain_reconciliation": {
         "path": "uquant/validation/absolute_generalization/_execution_chain_reconciliation.py",
         "public_names": [
@@ -94838,7 +94900,7 @@
     }
   },
   "contract_id": "uquant-public-api-v1",
-  "contract_sha256": "dffb84bb7ced7fb98966ebda2b17bd3fe3c15cbb7d399ab3c640d74d9c6225ef",
+  "contract_sha256": "d08cc76118ad81a7fa01761a991155e060da5bac11409c7812bec4e108333b53",
   "recorded_on": "2026-09-05",
   "schema_version": 1
 }

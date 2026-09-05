@@ -254,7 +254,7 @@ def test_absolute_qualification_loss_expires_partial_grant(monkeypatch) -> None:
     assert targets == ()
 
 
-def test_absolute_qualification_loss_emits_a_formal_exit_for_a_filled_probe(
+def test_absolute_qualification_loss_revokes_capital_but_retains_a_healthy_filled_probe(
     monkeypatch,
 ) -> None:
     dates = pd.bdate_range("2023-01-02", periods=248)
@@ -335,15 +335,16 @@ def test_absolute_qualification_loss_emits_a_formal_exit_for_a_filled_probe(
 
     owner_target = next(target for target in targets if target.symbol == grant.candidate_symbol)
     peer_target = next(target for target in targets if target.symbol == peer_symbol)
-    assert owner_target.weight == 0.0
+    equity = account.cash + sum(position.shares * prices[symbol] for symbol, position in account.positions.items())
+    assert owner_target.weight == pytest.approx(account.positions[grant.candidate_symbol].shares * prices[grant.candidate_symbol] / equity)
     assert owner_target.grant_id == grant.grant_id
     assert owner_target.epoch_id == epoch.epoch_id
-    assert peer_target.weight == 0.0
+    assert peer_target.weight == pytest.approx(account.positions[peer_symbol].shares * prices[peer_symbol] / equity)
     assert peer_target.grant_id == ""
     assert peer_target.epoch_id == epoch.epoch_id
     assert account.strategic_cohort_targets == {
-        grant.candidate_symbol: 0.0,
-        peer_symbol: 0.0,
+        grant.candidate_symbol: owner_target.weight,
+        peer_symbol: peer_target.weight,
     }
     assert grant.status == StrategicGrantStatus.EXPIRED.value
     assert epoch.realized_status == StrategicEpochStatus.CORE.value

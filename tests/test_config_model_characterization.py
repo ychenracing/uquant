@@ -165,7 +165,7 @@ def _sample_models() -> dict[str, object]:
     }
 
 
-def test_all_275_system_config_fields_match_the_current_flat_contract() -> None:
+def test_all_267_system_config_fields_match_the_current_flat_contract() -> None:
     expected_flat = PUBLIC_API["flat_config_serialization"]
     expected_module = PUBLIC_API["modules"]["uquant.config"]
     assert isinstance(expected_flat, Mapping)
@@ -174,7 +174,7 @@ def test_all_275_system_config_fields_match_the_current_flat_contract() -> None:
     fields = dataclasses.fields(SystemConfig)
     payload = DEFAULT_CONFIG.to_dict()
 
-    assert len(fields) == 275
+    assert len(fields) == 267
     assert [field.name for field in fields] == expected_flat["field_order"]
     assert list(payload) == expected_flat["field_order"]
     assert payload == expected_flat["values"]
@@ -223,7 +223,20 @@ def test_all_frozen_config_validation_types_messages_and_order_are_exact(
 ) -> None:
     changes = case["changes"]
     assert isinstance(changes, dict)
-    removed_strategy_fields = {"strategic_epoch_cooldown_sessions", "strategic_epoch_min_symbol_change"}
+    # The frozen invalid-value cases remain intact; current constructors reject
+    # exactly these retired fields before any former value validation runs.
+    removed_strategy_fields = {
+        "strategic_epoch_cooldown_sessions",
+        "strategic_epoch_min_symbol_change",
+        "leader_cycle_confirm_days",
+        "leader_cycle_min_mature",
+        "leader_cycle_min_score",
+        "leader_cycle_impulse_return",
+        "leader_cycle_impulse_index_return",
+        "leader_cycle_impulse_breadth",
+        "leader_cycle_min_market_ret120",
+        "leader_cycle_impulse_min_market_ret120",
+    }
     if set(changes) & removed_strategy_fields:
         assert len(changes) == 1
         with pytest.raises(TypeError) as retired:

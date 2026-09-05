@@ -144,6 +144,7 @@ _VALIDATION_ADDITIONS = frozenset(
         "uquant/validation/absolute_generalization/champion_physical.py",
         "uquant/validation/absolute_generalization/evidence_codec.py",
         "uquant/validation/absolute_generalization/_execution_chain_reconciliation.py",
+        "uquant/validation/absolute_generalization/_epoch_realization.py",
         "uquant/validation/absolute_generalization/_metric_primitives.py",
         "uquant/validation/absolute_generalization/_metrics_reconciliation.py",
         "uquant/validation/absolute_generalization/_physical_identity.py",

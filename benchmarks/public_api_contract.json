@@ -20341,6 +20341,8 @@
           "ParameterGovernance",
           "REMOVAL_ORDER",
           "REQUIRED_CONFIG_PARAMETER_GOVERNANCE_SHA256",
+          "STRATEGY_RULE_CONTRACT_SHA256",
+          "STRATEGY_RULE_REMOVALS",
           "SubsystemOwner",
           "_SHA256",
           "economic_parameter_names",
@@ -20442,6 +20444,14 @@
                 },
                 {
                   "name": "removed_fields",
+                  "kind": "POSITIONAL_OR_KEYWORD",
+                  "annotation": "tuple[str, ...]",
+                  "default": {
+                    "kind": "required"
+                  }
+                },
+                {
+                  "name": "strategy_rule_removals",
                   "kind": "POSITIONAL_OR_KEYWORD",
                   "annotation": "tuple[str, ...]",
                   "default": {
@@ -20679,6 +20689,13 @@
               },
               {
                 "name": "removed_fields",
+                "type": "tuple[str, ...]",
+                "default": {
+                  "kind": "required"
+                }
+              },
+              {
+                "name": "strategy_rule_removals",
                 "type": "tuple[str, ...]",
                 "default": {
                   "kind": "required"
@@ -22517,6 +22534,15 @@
                 "default": {
                   "kind": "required"
                 }
+              },
+              {
+                "name": "diagnostics",
+                "kind": "KEYWORD_ONLY",
+                "annotation": "dict[str, dict[str, object]] | None",
+                "default": {
+                  "kind": "value",
+                  "value": null
+                }
               }
             ],
             "return": "tuple[PendingOrder, ...]"
@@ -22802,6 +22828,15 @@
                 "annotation": "SystemConfig",
                 "default": {
                   "kind": "required"
+                }
+              },
+              {
+                "name": "diagnostics",
+                "kind": "KEYWORD_ONLY",
+                "annotation": "dict[str, dict[str, object]] | None",
+                "default": {
+                  "kind": "value",
+                  "value": null
                 }
               }
             ],
@@ -46218,7 +46253,8 @@
         "path": "uquant/portfolio/capital.py",
         "public_names": [
           "admission_room",
-          "committed_capital"
+          "committed_capital",
+          "funded_increment"
         ],
         "functions": {
           "admission_room": {
@@ -46296,6 +46332,15 @@
                   "kind": "value",
                   "value": null
                 }
+              },
+              {
+                "name": "diagnostics",
+                "kind": "KEYWORD_ONLY",
+                "annotation": "dict[str, Any] | None",
+                "default": {
+                  "kind": "value",
+                  "value": null
+                }
               }
             ],
             "return": "float"
@@ -46328,6 +46373,118 @@
               }
             ],
             "return": "tuple[dict[str, float], float]"
+          },
+          "funded_increment": {
+            "parameters": [
+              {
+                "name": "cfg",
+                "kind": "KEYWORD_ONLY",
+                "annotation": "SystemConfig",
+                "default": {
+                  "kind": "required"
+                }
+              },
+              {
+                "name": "symbol",
+                "kind": "KEYWORD_ONLY",
+                "annotation": "str",
+                "default": {
+                  "kind": "required"
+                }
+              },
+              {
+                "name": "desired",
+                "kind": "KEYWORD_ONLY",
+                "annotation": "float",
+                "default": {
+                  "kind": "required"
+                }
+              },
+              {
+                "name": "current",
+                "kind": "KEYWORD_ONLY",
+                "annotation": "float",
+                "default": {
+                  "kind": "required"
+                }
+              },
+              {
+                "name": "committed",
+                "kind": "KEYWORD_ONLY",
+                "annotation": "dict[str, float]",
+                "default": {
+                  "kind": "required"
+                }
+              },
+              {
+                "name": "cash_room",
+                "kind": "KEYWORD_ONLY",
+                "annotation": "float",
+                "default": {
+                  "kind": "required"
+                }
+              },
+              {
+                "name": "leaders",
+                "kind": "KEYWORD_ONLY",
+                "annotation": "dict[str, LeaderScore]",
+                "default": {
+                  "kind": "required"
+                }
+              },
+              {
+                "name": "user_panel",
+                "kind": "KEYWORD_ONLY",
+                "annotation": "dict[str, pd.DataFrame]",
+                "default": {
+                  "kind": "required"
+                }
+              },
+              {
+                "name": "date",
+                "kind": "KEYWORD_ONLY",
+                "annotation": "pd.Timestamp",
+                "default": {
+                  "kind": "required"
+                }
+              },
+              {
+                "name": "gross_cap",
+                "kind": "KEYWORD_ONLY",
+                "annotation": "float",
+                "default": {
+                  "kind": "required"
+                }
+              },
+              {
+                "name": "symbol_cap",
+                "kind": "KEYWORD_ONLY",
+                "annotation": "float | None",
+                "default": {
+                  "kind": "value",
+                  "value": null
+                }
+              },
+              {
+                "name": "concentration_cap",
+                "kind": "KEYWORD_ONLY",
+                "annotation": "float | None",
+                "default": {
+                  "kind": "value",
+                  "value": null
+                }
+              },
+              {
+                "name": "diagnostics",
+                "kind": "KEYWORD_ONLY",
+                "annotation": "dict[str, Any] | None",
+                "default": {
+                  "kind": "value",
+                  "value": null
+                }
+              }
+            ],
+            "return": "float"
           }
         },
         "classes": {},
@@ -50262,6 +50419,7 @@
       "uquant.report": {
         "path": "uquant/report.py",
         "public_names": [
+          "_CORE_REVIEW_CHANGES",
           "render_daily_report",
           "render_economic_attribution_report",
           "render_execution_journal"
@@ -74589,6 +74747,38 @@
         },
         "enums": {}
       },
+      "uquant.validation.absolute_generalization.champion_physical": {
+        "path": "uquant/validation/absolute_generalization/champion_physical.py",
+        "public_names": [
+          "validate_champion_physical_links"
+        ],
+        "functions": {
+          "validate_champion_physical_links": {
+            "parameters": [
+              {
+                "name": "account",
+                "kind": "POSITIONAL_OR_KEYWORD",
+                "annotation": "AccountState",
+                "default": {
+                  "kind": "required"
+                }
+              },
+              {
+                "name": "trace",
+                "kind": "POSITIONAL_OR_KEYWORD",
+                "annotation": "Sequence[Mapping[str, object]]",
+                "default": {
+                  "kind": "required"
+                }
+              }
+            ],
+            "return": "None"
+          }
+        },
+        "classes": {},
+        "dataclasses": {},
+        "enums": {}
+      },
       "uquant.validation.absolute_generalization.contract": {
         "path": "uquant/validation/absolute_generalization/contract.py",
         "public_names": [
@@ -74869,6 +75059,309 @@
             ]
           }
         },
+        "enums": {}
+      },
+      "uquant.validation.absolute_generalization.evidence_codec": {
+        "path": "uquant/validation/absolute_generalization/evidence_codec.py",
+        "public_names": [
+          "_ENTITY_ID",
+          "_SHA256",
+          "entity",
+          "evidence_date",
+          "evidence_fields",
+          "evidence_integer",
+          "evidence_json_value",
+          "evidence_mapping",
+          "evidence_number",
+          "evidence_sequence",
+          "evidence_sha",
+          "evidence_text",
+          "predicate_rows",
+          "strict_sessions"
+        ],
+        "functions": {
+          "entity": {
+            "parameters": [
+              {
+                "name": "value",
+                "kind": "POSITIONAL_OR_KEYWORD",
+                "annotation": "object",
+                "default": {
+                  "kind": "required"
+                }
+              },
+              {
+                "name": "label",
+                "kind": "KEYWORD_ONLY",
+                "annotation": "str",
+                "default": {
+                  "kind": "required"
+                }
+              },
+              {
+                "name": "empty",
+                "kind": "KEYWORD_ONLY",
+                "annotation": "bool",
+                "default": {
+                  "kind": "value",
+                  "value": false
+                }
+              }
+            ],
+            "return": "str"
+          },
+          "evidence_date": {
+            "parameters": [
+              {
+                "name": "value",
+                "kind": "POSITIONAL_OR_KEYWORD",
+                "annotation": "object",
+                "default": {
+                  "kind": "required"
+                }
+              },
+              {
+                "name": "label",
+                "kind": "KEYWORD_ONLY",
+                "annotation": "str",
+                "default": {
+                  "kind": "required"
+                }
+              }
+            ],
+            "return": "str"
+          },
+          "evidence_fields": {
+            "parameters": [
+              {
+                "name": "raw",
+                "kind": "POSITIONAL_OR_KEYWORD",
+                "annotation": "Mapping[str, object]",
+                "default": {
+                  "kind": "required"
+                }
+              },
+              {
+                "name": "expected",
+                "kind": "POSITIONAL_OR_KEYWORD",
+                "annotation": "Set[str]",
+                "default": {
+                  "kind": "required"
+                }
+              },
+              {
+                "name": "label",
+                "kind": "KEYWORD_ONLY",
+                "annotation": "str",
+                "default": {
+                  "kind": "required"
+                }
+              }
+            ],
+            "return": "None"
+          },
+          "evidence_integer": {
+            "parameters": [
+              {
+                "name": "value",
+                "kind": "POSITIONAL_OR_KEYWORD",
+                "annotation": "object",
+                "default": {
+                  "kind": "required"
+                }
+              },
+              {
+                "name": "label",
+                "kind": "KEYWORD_ONLY",
+                "annotation": "str",
+                "default": {
+                  "kind": "required"
+                }
+              },
+              {
+                "name": "minimum",
+                "kind": "KEYWORD_ONLY",
+                "annotation": "int",
+                "default": {
+                  "kind": "value",
+                  "value": 0
+                }
+              }
+            ],
+            "return": "int"
+          },
+          "evidence_json_value": {
+            "parameters": [
+              {
+                "name": "value",
+                "kind": "POSITIONAL_OR_KEYWORD",
+                "annotation": "object",
+                "default": {
+                  "kind": "required"
+                }
+              }
+            ],
+            "return": "object"
+          },
+          "evidence_mapping": {
+            "parameters": [
+              {
+                "name": "value",
+                "kind": "POSITIONAL_OR_KEYWORD",
+                "annotation": "object",
+                "default": {
+                  "kind": "required"
+                }
+              },
+              {
+                "name": "label",
+                "kind": "KEYWORD_ONLY",
+                "annotation": "str",
+                "default": {
+                  "kind": "required"
+                }
+              }
+            ],
+            "return": "Mapping[str, object]"
+          },
+          "evidence_number": {
+            "parameters": [
+              {
+                "name": "value",
+                "kind": "POSITIONAL_OR_KEYWORD",
+                "annotation": "object",
+                "default": {
+                  "kind": "required"
+                }
+              },
+              {
+                "name": "label",
+                "kind": "KEYWORD_ONLY",
+                "annotation": "str",
+                "default": {
+                  "kind": "required"
+                }
+              }
+            ],
+            "return": "float"
+          },
+          "evidence_sequence": {
+            "parameters": [
+              {
+                "name": "value",
+                "kind": "POSITIONAL_OR_KEYWORD",
+                "annotation": "object",
+                "default": {
+                  "kind": "required"
+                }
+              },
+              {
+                "name": "label",
+                "kind": "KEYWORD_ONLY",
+                "annotation": "str",
+                "default": {
+                  "kind": "required"
+                }
+              }
+            ],
+            "return": "Sequence[object]"
+          },
+          "evidence_sha": {
+            "parameters": [
+              {
+                "name": "value",
+                "kind": "POSITIONAL_OR_KEYWORD",
+                "annotation": "object",
+                "default": {
+                  "kind": "required"
+                }
+              },
+              {
+                "name": "label",
+                "kind": "KEYWORD_ONLY",
+                "annotation": "str",
+                "default": {
+                  "kind": "required"
+                }
+              }
+            ],
+            "return": "str"
+          },
+          "evidence_text": {
+            "parameters": [
+              {
+                "name": "value",
+                "kind": "POSITIONAL_OR_KEYWORD",
+                "annotation": "object",
+                "default": {
+                  "kind": "required"
+                }
+              },
+              {
+                "name": "label",
+                "kind": "KEYWORD_ONLY",
+                "annotation": "str",
+                "default": {
+                  "kind": "required"
+                }
+              },
+              {
+                "name": "empty",
+                "kind": "KEYWORD_ONLY",
+                "annotation": "bool",
+                "default": {
+                  "kind": "value",
+                  "value": false
+                }
+              }
+            ],
+            "return": "str"
+          },
+          "predicate_rows": {
+            "parameters": [
+              {
+                "name": "value",
+                "kind": "POSITIONAL_OR_KEYWORD",
+                "annotation": "object",
+                "default": {
+                  "kind": "required"
+                }
+              },
+              {
+                "name": "label",
+                "kind": "KEYWORD_ONLY",
+                "annotation": "str",
+                "default": {
+                  "kind": "required"
+                }
+              }
+            ],
+            "return": "tuple[tuple[str, bool], ...]"
+          },
+          "strict_sessions": {
+            "parameters": [
+              {
+                "name": "values",
+                "kind": "POSITIONAL_OR_KEYWORD",
+                "annotation": "Sequence[str]",
+                "default": {
+                  "kind": "required"
+                }
+              },
+              {
+                "name": "label",
+                "kind": "KEYWORD_ONLY",
+                "annotation": "str",
+                "default": {
+                  "kind": "required"
+                }
+              }
+            ],
+            "return": "None"
+          }
+        },
+        "classes": {},
+        "dataclasses": {},
         "enums": {}
       },
       "uquant.validation.absolute_generalization.metrics": {
@@ -92949,9 +93442,14 @@
           "_METRIC_FIELDS",
           "_SHA256",
           "_TOP_LEVEL_FIELDS",
+          "current_promotion_acceptance_basis",
           "run_promotion"
         ],
         "functions": {
+          "current_promotion_acceptance_basis": {
+            "parameters": [],
+            "return": "dict[str, Any]"
+          },
           "run_promotion": {
             "parameters": [
               {
@@ -94614,7 +95112,7 @@
     }
   },
   "contract_id": "uquant-public-api-v1",
-  "contract_sha256": "7e74857ada30f3a6f92317a51ed1c929957619bf18f58e9618687e9532847b84",
+  "contract_sha256": "6294993b8a8173d516ecd5dbad00095821c998193051fab5ef7232a1c5962d52",
   "recorded_on": "2026-09-05",
   "schema_version": 1
 }

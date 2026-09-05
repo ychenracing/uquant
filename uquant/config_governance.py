@@ -16,7 +16,7 @@ GOVERNANCE_PATH: Final = Path("benchmarks") / "config_parameter_governance.json"
 DEFAULT_GOVERNANCE_PATH: Final = Path(__file__).resolve().parents[1] / GOVERNANCE_PATH
 GOVERNANCE_BASE_COMMIT: Final = "e71c3f6cf42244f71e59458ec15375b92ed4da1f"
 REQUIRED_CONFIG_PARAMETER_GOVERNANCE_SHA256: Final = (
-    "89fbc546e7969d02df9f1f4b16616962d0c23a502d5ee3d340f68c23b5f5a19a"
+    "7677c1e1666ae0f003df0ae0950b60b1ec5adad1d154476b99bc59044798450d"
 )
 FROZEN_CHAMPION_CONFIG_SHA256: Final = "023d709731196a325d9cd03e95ece92e4baf63d2c5c66bb9f7d0e7a190e7bf20"
 REMOVAL_ORDER: Final = (
@@ -28,6 +28,11 @@ REMOVAL_ORDER: Final = (
     "strategic_persistent_confirm_days",
     "strategic_reversal_confirm_days",
 )
+STRATEGY_RULE_REMOVALS: Final = (
+    "strategic_epoch_cooldown_sessions",
+    "strategic_epoch_min_symbol_change",
+)
+STRATEGY_RULE_CONTRACT_SHA256: Final = "9ec5992df69d4466cb2b26cea0e67bbe93f4c6317ba5b8a500ca7b89a75d78b4"
 _SHA256 = re.compile(r"^[0-9a-f]{64}$")
 
 
@@ -79,6 +84,7 @@ class ConfigGovernance:
     current_total_fields: int
     current_economic_fields: int
     removed_fields: tuple[str, ...]
+    strategy_rule_removals: tuple[str, ...]
     champion_config_sha256: str
     candidate_config_sha256: str
     artifact_sha256: str
@@ -148,6 +154,18 @@ def _required_count(value: Any, *, label: str) -> int:
     return cast(int, value)
 
 
+def _validate_strategy_rule_removals(payload: dict[str, Any]) -> None:
+    rule_removals = payload["strategy_rule_removals"]
+    if rule_removals != {
+        "contract_sha256": STRATEGY_RULE_CONTRACT_SHA256,
+        "fields": list(STRATEGY_RULE_REMOVALS),
+    }:
+        raise RuntimeError("configuration governance strategy rule removals differ")
+    rule_contract = DEFAULT_GOVERNANCE_PATH.parent / "cross_ai_core_strategy_contract.json"
+    if hashlib.sha256(rule_contract.read_bytes()).hexdigest() != STRATEGY_RULE_CONTRACT_SHA256:
+        raise RuntimeError("configuration governance strategy rule authority differs")
+
+
 def _load_and_validate_governance_envelope(
     path: str | Path | None,
 ) -> tuple[dict[str, Any], dict[str, tuple[int, int]], str, str, str]:
@@ -176,6 +194,7 @@ def _load_and_validate_governance_envelope(
             "categories",
             "removal_plan",
             "removed_fields",
+            "strategy_rule_removals",
             "artifact_sha256",
         },
     )
@@ -191,6 +210,7 @@ def _load_and_validate_governance_envelope(
         raise RuntimeError("configuration governance self-seal is stale")
     if artifact_sha256 != REQUIRED_CONFIG_PARAMETER_GOVERNANCE_SHA256:
         raise RuntimeError("configuration governance differs from compiled reviewed governance")
+    _validate_strategy_rule_removals(payload)
 
     counts = _required_mapping(
         payload["counts"],
@@ -233,21 +253,7 @@ def _load_and_validate_governance_envelope(
     )
 
 
-def _validate_governed_fields_and_removals(
-    entries: list[ParameterGovernance],
-    payload: dict[str, Any],
-) -> tuple[int, tuple[str, ...]]:
-    entry_names = tuple(item.field for item in entries)
-    if len(entry_names) != len(set(entry_names)):
-        raise RuntimeError("configuration governance classifies a field more than once")
-    actual_names = {field.name for field in fields(SystemConfig)}
-    if set(entry_names) != actual_names:
-        missing = sorted(actual_names - set(entry_names))
-        unknown = sorted(set(entry_names) - actual_names)
-        raise RuntimeError(
-            f"configuration governance does not match SystemConfig: missing={missing}, unknown={unknown}"
-        )
-
+def _validate_compatibility_removal_plan(payload: dict[str, Any]) -> None:
     removal_plan = payload["removal_plan"]
     if not isinstance(removal_plan, list) or len(removal_plan) != len(REMOVAL_ORDER):
         raise RuntimeError("configuration governance removal plan is malformed")
@@ -273,6 +279,24 @@ def _validate_governed_fields_and_removals(
         planned_names.append(raw["field"])
     if tuple(planned_names) != REMOVAL_ORDER:
         raise RuntimeError("configuration governance removal plan changed")
+
+
+def _validate_governed_fields_and_removals(
+    entries: list[ParameterGovernance],
+    payload: dict[str, Any],
+) -> tuple[int, tuple[str, ...]]:
+    entry_names = tuple(item.field for item in entries)
+    if len(entry_names) != len(set(entry_names)):
+        raise RuntimeError("configuration governance classifies a field more than once")
+    actual_names = {field.name for field in fields(SystemConfig)}
+    if set(entry_names) != actual_names:
+        missing = sorted(actual_names - set(entry_names))
+        unknown = sorted(set(entry_names) - actual_names)
+        raise RuntimeError(
+            f"configuration governance does not match SystemConfig: missing={missing}, unknown={unknown}"
+        )
+
+    _validate_compatibility_removal_plan(payload)
     removed = payload["removed_fields"]
     if not isinstance(removed, list) or any(not isinstance(field, str) for field in removed):
         raise RuntimeError("configuration governance removed-fields ledger is malformed")
@@ -281,6 +305,8 @@ def _validate_governed_fields_and_removals(
         raise RuntimeError("configuration fields were not removed in the reviewed order")
     if actual_names.intersection(removed_fields):
         raise RuntimeError("configuration governance marks a live field as removed")
+    if actual_names.intersection(STRATEGY_RULE_REMOVALS):
+        raise RuntimeError("configuration governance marks a live strategy rule as removed")
     if set(REMOVAL_ORDER[len(removed_fields) :]) - actual_names:
         raise RuntimeError("configuration field disappeared without removal-ledger evidence")
 
@@ -333,9 +359,10 @@ def load_config_governance(path: str | Path | None = None) -> ConfigGovernance:
     economic_count, removed_fields = _validate_governed_fields_and_removals(entries, payload)
     if parsed_counts["current"] != (len(entries), economic_count):
         raise RuntimeError("configuration governance current counts are stale")
-    if parsed_counts["before"] != (285, economic_count):
+    historical_economic_count = economic_count + len(STRATEGY_RULE_REMOVALS)
+    if parsed_counts["before"] != (285, historical_economic_count):
         raise RuntimeError("configuration governance before counts are stale")
-    if parsed_counts["after"] != (278, economic_count):
+    if parsed_counts["after"] != (278, historical_economic_count):
         raise RuntimeError("configuration governance after counts are stale")
 
     return ConfigGovernance(
@@ -347,6 +374,7 @@ def load_config_governance(path: str | Path | None = None) -> ConfigGovernance:
         current_total_fields=parsed_counts["current"][0],
         current_economic_fields=parsed_counts["current"][1],
         removed_fields=removed_fields,
+        strategy_rule_removals=STRATEGY_RULE_REMOVALS,
         champion_config_sha256=champion_config_sha256,
         candidate_config_sha256=candidate_config_sha256,
         artifact_sha256=artifact_sha256,
@@ -359,11 +387,11 @@ def validate_governed_config_migration(config: SystemConfig) -> GovernedConfigMi
     if not isinstance(config, SystemConfig):
         raise ValueError("governed config migration requires a trusted SystemConfig")
     governance = load_config_governance()
+    if not governance.removed_fields:
+        raise ValueError("governed config migration requires an authorized field deletion")
     candidate_config_sha256 = config_fingerprint(config)
     if candidate_config_sha256 != governance.candidate_config_sha256:
         raise ValueError("trusted config differs from reviewed post-removal config")
-    if not governance.removed_fields:
-        raise ValueError("governed config migration requires an authorized field deletion")
     carrier = {
         "champion_config_sha256": governance.champion_config_sha256,
         "candidate_config_sha256": candidate_config_sha256,

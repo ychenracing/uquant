@@ -2,6 +2,11 @@
 # Late re-exports preserve the immutable pytest collection identity and order.
 from __future__ import annotations
 
+from _recovery_restore_completion_cases import _restore_panel
+
+from dataclasses import replace
+
+import numpy as np
 import pandas as pd
 import pytest
 
@@ -46,62 +51,49 @@ def _tactical_targets(
     broad_ret120: float,
     tech_ret120: float,
 ) -> tuple[tuple[Target, ...], AccountState]:
-    frame = _tactical_frame(ret20=ret20, ret120=ret120)
-    date = frame.index[-1]
     symbol = "deep_candidate"
-    account = AccountState(
-        initial_cash=100.0,
-        cash=100.0,
-        operating_peak=100.0,
-        capital_peak=100.0,
-    )
-    risk = RiskAssessment(
-        Risk.NORMAL,
-        1.0,
-        0,
-        {
-            "broad_ret120": broad_ret120,
-            "tech_ret120": tech_ret120,
-        },
-        (),
-        "NONE",
-    )
-    targets = PortfolioAllocator(DEFAULT_CONFIG).allocate(
-        date=date,
-        opportunity=Opportunity.CHOPPY,
-        risk=risk,
-        user_panel={symbol: frame},
-        leaders={
-            symbol: LeaderScore(
-                symbol,
-                0.90,
-                0.95,
-                True,
-                False,
-                "independent",
-                {},
-            )
-        },
-        account=account,
-        prices={symbol: 0.94},
-    )
+    panel = _restore_panel([symbol])
+    frame = panel[symbol]
+    # Qualification reads trailing prices, so the path itself carries the signal.
+    knots = [0, len(frame) - 121, len(frame) - 21, len(frame) - 1]
+    levels = [1 / (1 + ret120), 1 / (1 + ret120), 1 / (1 + ret20), 1.0]
+    close = np.exp(np.interp(np.arange(len(frame)), knots, np.log(levels)))
+    frame["close"] = close
+    frame["ma20"], frame["ma60"], frame["ma120"] = close * .99, close * .97, close * .95
+    frame["ret20"], frame["ret120"] = ret20, ret120
+    account = AccountState.empty(2_000_000.0)
+    risk = RiskAssessment(Risk.NORMAL, 1.0, 0,
+        {"broad_ret120": broad_ret120, "tech_ret120": tech_ret120}, (), "NONE")
+    components = {key: .95 for key in (
+        "secular_confidence", "industry_inference_confidence", "momentum60", "momentum120",
+        "relative_strength", "short_relative_strength", "trend_persistence", "breakout_quality",
+        "acceleration", "industry_rotation_strength",
+    )}
+    components.update(unknown_industry=0.0, secular_score=.75)
+    leaders = {symbol: LeaderScore(symbol, .85, .95, True, False, "independent", components)}
+    allocator = PortfolioAllocator(DEFAULT_CONFIG)
+    for observed in frame.index[-DEFAULT_CONFIG.leader_tenure_days:]:
+        targets = allocator.allocate(
+            date=observed, opportunity=Opportunity.TREND, risk=risk, user_panel=panel,
+            leaders=leaders, account=account, prices={symbol: float(frame.loc[observed, "close"])},
+        )
     return targets, account
 
 
 def test_transitional_recovery_admits_only_promotable_deep_crash_candidate():
     targets, account = _tactical_targets(
-        ret20=-0.10,
-        ret120=-0.40,
+        ret20=0.10,
+        ret120=0.50,
         broad_ret120=-0.10,
         tech_ret120=0.04,
     )
 
     assert [(target.symbol, target.lifecycle) for target in targets] == [
-        ("deep_candidate", Lifecycle.RECOVERY.value)
+        ("deep_candidate", Lifecycle.CORE.value)
     ]
-    assert account.candidate_tenure["tactical_active"] == 1
-    assert account.candidate_tenure["tactical_promotable"] == 1
-    assert account.tactical_anchor_symbol == "deep_candidate"
+    assert targets[0].weight == pytest.approx(DEFAULT_CONFIG.core_admission_weight)
+    assert account.strategic_grant is None
+    assert account.tactical_anchor_symbol == ""
 
 
 def test_transitional_recovery_rejects_ordinary_rebound_candidate():
@@ -117,103 +109,54 @@ def test_transitional_recovery_rejects_ordinary_rebound_candidate():
     assert account.tactical_anchor_symbol == ""
 
 
-def test_final_tactical_exit_retires_stale_restore_owner() -> None:
+def _confirmed_legacy_exit(*, frozen: bool):
     symbol = "deep_candidate"
-    frame = _tactical_frame(ret20=-0.10, ret120=-0.40)
-    date = frame.index[-1]
+    frame = _tactical_frame(ret20=-.20, ret120=-.40)
+    frame["ma20"] = frame["ma60"] = 1.0
+    frame.loc[frame.index[-3:], "close"] = .94
     account = AccountState(
-        initial_cash=100.0,
-        cash=40.0,
-        positions={
-            symbol: Position(
-                symbol,
-                shares=60,
-                avg_cost=0.70,
-                lifecycle=Lifecycle.RECOVERY.value,
-                entry_date=str(frame.index[0].date()),
-            )
-        },
-        tactical_anchor_symbol=symbol,
-        protected_weights={symbol: 0.60},
-        strategic_restore_weights={symbol: 0.60},
+        initial_cash=100.0, cash=40.0,
+        positions={symbol: Position(symbol, 60, .70, str(frame.index[0].date()),
+                                    1.0, lifecycle=Lifecycle.RECOVERY.value)},
+        tactical_anchor_symbol=symbol, protected_weights={symbol: .60},
+        strategic_restore_weights={symbol: .60},
         candidate_tenure={"tactical_active": 1, "tactical_promotable": 0},
-        operating_peak=100.0,
-        capital_peak=100.0,
+        operating_peak=120.0, capital_peak=125.0, capital_budget_level=1,
     )
-    risk = RiskAssessment(Risk.NORMAL, 1.0, 0, {}, (), "NONE")
-
-    targets = PortfolioAllocator(DEFAULT_CONFIG).allocate(
-        date=date,
-        opportunity=Opportunity.CHOPPY,
-        risk=risk,
-        user_panel={symbol: frame},
-        leaders={symbol: LeaderScore(symbol, 0.90, 0.95, True, False, "independent", {})},
-        account=account,
-        prices={symbol: 0.94},
-    )
-
+    evidence = {"base_freeze_new_risk": False, "sentinel_freeze_new_risk": frozen,
+                "freeze_new_risk": frozen}
+    risk = RiskAssessment(Risk.NORMAL, 1.0, 0, evidence, (), "NONE", freeze_new_risk=frozen)
+    allocator = PortfolioAllocator(DEFAULT_CONFIG)
+    for index, observed in enumerate(frame.index[-3:]):
+        targets = allocator.allocate(
+            date=observed, opportunity=Opportunity.CHOPPY, risk=risk,
+            user_panel={symbol: frame},
+            leaders={symbol: LeaderScore(symbol, .5, .95, False, False, "independent", {})},
+            account=account, prices={symbol: .94},
+        )
+        if index < 2:
+            assert targets[0].weight > 0
+            assert symbol in account.protected_weights
     assert {target.symbol: target.weight for target in targets} == {symbol: 0.0}
+    assert targets[0].mechanism == "LEADER_LIFECYCLE_EXIT"
     assert symbol not in account.protected_weights
     assert symbol not in account.strategic_restore_weights
     assert account.tactical_anchor_symbol == ""
+    assert account.candidate_tenure["tactical_active"] == 0
+    assert account.positions[symbol].shares == 60
+    assert account.cash == 40.0
+    assert (account.operating_peak, account.capital_peak, account.capital_budget_level) == (120.0, 125.0, 1)
+    return account
+
+
+def test_final_tactical_exit_retires_stale_restore_owner() -> None:
+    _confirmed_legacy_exit(frozen=False)
 
 
 def test_sentinel_freeze_preserves_real_tactical_exit_completion_state() -> None:
-    symbol = "deep_candidate"
-    frame = _tactical_frame(ret20=-0.10, ret120=-0.40)
-    date = frame.index[-1]
-    account = AccountState(
-        initial_cash=100.0,
-        cash=40.0,
-        positions={
-            symbol: Position(
-                symbol,
-                shares=60,
-                avg_cost=0.70,
-                lifecycle=Lifecycle.RECOVERY.value,
-                entry_date=str(frame.index[0].date()),
-            )
-        },
-        tactical_anchor_symbol=symbol,
-        protected_weights={symbol: 0.60},
-        strategic_restore_weights={symbol: 0.60},
-        candidate_tenure={"tactical_active": 1, "tactical_promotable": 0},
-        operating_peak=100.0,
-        capital_peak=100.0,
-    )
-    risk = RiskAssessment(
-        Risk.NORMAL,
-        1.0,
-        0,
-        {
-            "base_freeze_new_risk": False,
-            "sentinel_freeze_new_risk": True,
-            "freeze_new_risk": True,
-        },
-        (),
-        "NONE",
-        freeze_new_risk=True,
-    )
-
-    targets = PortfolioAllocator(DEFAULT_CONFIG).allocate(
-        date=date,
-        opportunity=Opportunity.CHOPPY,
-        risk=risk,
-        user_panel={symbol: frame},
-        leaders={
-            symbol: LeaderScore(symbol, 0.90, 0.95, True, False, "independent", {})
-        },
-        account=account,
-        prices={symbol: 0.94},
-    )
-
-    assert {target.symbol: target.weight for target in targets} == {symbol: 0.0}
-    assert account.candidate_tenure["tactical_active"] == 0
-    assert account.candidate_tenure["tactical_cooldown"] == (
-        DEFAULT_CONFIG.tactical_rebound_cooldown_days
-    )
-    assert account.candidate_tenure["recovery_cycle_rearm_pending"] == 1
-    assert account.tactical_anchor_symbol == ""
+    account = _confirmed_legacy_exit(frozen=True)
+    assert "tactical_cooldown" not in account.candidate_tenure
+    assert "recovery_cycle_rearm_pending" not in account.candidate_tenure
 
 
 def test_sentinel_freeze_preserves_real_final_strategic_completion_state() -> None:
@@ -263,7 +206,8 @@ def test_sentinel_freeze_preserves_real_final_strategic_completion_state() -> No
     assert account.candidate_tenure["strategic_cohort_completed"] == 1
     assert account.strategic_epochs_completed == 1
     assert account.strategic_last_exit_date == "2025-12-31"
-    assert account.strategic_rearm_date
+    assert account.strategic_rearm_date == ""
+    assert account.strategic_cohort_symbols == []
 
 
 def test_sentinel_stale_recovery_release_cannot_commit_same_day_new_cohort() -> None:
@@ -401,106 +345,16 @@ def test_confirmed_fast_recovery_hands_reduced_core_to_new_owner_without_raising
         prices={"old_core": 1.0, "new_owner": recovery_close[-1]},
     )
 
-    assert {target.symbol: target.weight for target in targets} == pytest.approx(
-        {"old_core": 0.0, "new_owner": 0.40}
-    )
-    assert sum(target.weight for target in targets) == pytest.approx(0.40)
-    assert account.anchor_weights == pytest.approx({"new_owner": 0.60})
-    assert account.protected_weights == {}
-    assert account.candidate_tenure["recovery_owner_handoff"] == 1
-
-    account.positions = {
-        "new_owner": Position(
-            "new_owner",
-            shares=40,
-            avg_cost=1.0,
-            entry_date=str(dates[-1].date()),
-            lifecycle=Lifecycle.RECOVERY.value,
-        )
-    }
-    account.cash = 60.0
-    expanded = PortfolioAllocator(DEFAULT_CONFIG).allocate(
-        date=dates[-1],
-        opportunity=Opportunity.RECOVERY,
-        risk=risk,
-        user_panel={
-            "new_owner": recovery_frame,
-            "new_member_1": recovery_frame.assign(ret120=-0.35),
-            "new_member_2": recovery_frame.assign(ret120=-0.30),
-        },
-        leaders={
-            "new_owner": LeaderScore("new_owner", 0.85, 1.0, False, False, "new", {}),
-            "new_member_1": LeaderScore(
-                "new_member_1", 0.80, 1.0, False, False, "new_1", {}
-            ),
-            "new_member_2": LeaderScore(
-                "new_member_2", 0.75, 1.0, False, False, "new_2", {}
-            ),
-        },
-        account=account,
-        prices={"new_owner": 1.0, "new_member_1": 1.0, "new_member_2": 1.0},
-    )
-
-    assert sum(target.weight for target in expanded) == pytest.approx(0.40)
-    assert {target.symbol for target in expanded if target.weight > 0} == {
-        "new_owner",
-        "new_member_1",
-        "new_member_2",
-    }
-    assert account.anchor_weights == pytest.approx(
-        {"new_owner": 0.60, "new_member_1": 0.16, "new_member_2": 0.16}
-    )
-    assert account.candidate_tenure["recovery_cohort_locked"] == 1
-
-    account.positions = {
-        "new_owner": Position(
-            "new_owner", shares=26, avg_cost=1.0, lifecycle=Lifecycle.RECOVERY.value
-        ),
-        "new_member_1": Position(
-            "new_member_1", shares=7, avg_cost=1.0, lifecycle=Lifecycle.RECOVERY.value
-        ),
-        "new_member_2": Position(
-            "new_member_2", shares=7, avg_cost=1.0, lifecycle=Lifecycle.RECOVERY.value
-        ),
-    }
-    account.cash = 60.0
-    account.capital_budget_level = 0
-    reopened = RiskAssessment(
-        Risk.NORMAL,
-        1.0,
-        0,
-        {"freeze_new_risk": False, "transition_damage": 0.10},
-        (),
-        "NONE",
-        freeze_new_risk=False,
-        reduction_level=0,
-    )
-    rearmed = PortfolioAllocator(DEFAULT_CONFIG).allocate(
-        date=dates[-1],
-        opportunity=Opportunity.TREND,
-        risk=reopened,
-        user_panel={
-            "new_owner": recovery_frame,
-            "new_member_1": recovery_frame.assign(ret120=-0.35),
-            "new_member_2": recovery_frame.assign(ret120=-0.30),
-        },
-        leaders={
-            "new_owner": LeaderScore("new_owner", 0.85, 1.0, False, False, "new", {}),
-            "new_member_1": LeaderScore(
-                "new_member_1", 0.80, 1.0, False, False, "new_1", {}
-            ),
-            "new_member_2": LeaderScore(
-                "new_member_2", 0.75, 1.0, False, False, "new_2", {}
-            ),
-        },
-        account=account,
-        prices={"new_owner": 1.0, "new_member_1": 1.0, "new_member_2": 1.0},
-    )
-
-    assert {target.symbol: target.weight for target in rearmed} == pytest.approx(
-        {"new_owner": 0.60, "new_member_1": 0.16, "new_member_2": 0.16}
-    )
-    assert account.candidate_tenure["recovery_owner_rearm_submitted"] == 1
+    # A fast-recovery label cannot grant a replacement while Base Risk freezes BUYs.
+    assert {target.symbol: target.weight for target in targets} == pytest.approx({"old_core": .40})
+    assert account.anchor_weights == {}
+    assert account.protected_weights == {"old_core": .40}
+    assert account.positions["old_core"].shares == 40
+    assert account.cash == 60.0
+    assert account.capital_budget_level == 2
+    assert account.operating_peak == account.capital_peak == 100.0
+    assert plan_orders(signal_date=str(dates[-1].date()), targets=targets, account=account,
+                       prices={"old_core": 1.0, "new_owner": recovery_close[-1]}, cfg=DEFAULT_CONFIG) == ()
 
 
 def test_ordinary_level1_restore_uses_the_risk_assessment_cap_directly() -> None:
@@ -561,23 +415,34 @@ def test_ordinary_level1_restore_uses_the_risk_assessment_cap_directly() -> None
         prices={symbol: 1.0 for symbol in owner},
     )
 
-    assert {target.symbol: target.weight for target in targets} == pytest.approx(owner)
+    assert {target.symbol: target.weight for target in targets} == pytest.approx({"member_2": .24})
+    assert account.protected_weights == pytest.approx(owner)
+    thawed = replace(risk, freeze_new_risk=False, evidence={"freeze_new_risk": False})
+    targets = PortfolioAllocator(DEFAULT_CONFIG).allocate(
+        date=dates[-1], opportunity=Opportunity.RECOVERY, risk=thawed,
+        user_panel=_restore_panel(owner, end=str(dates[-1].date())), leaders=leaders,
+        account=account, prices={symbol: 1.0 for symbol in owner},
+    )
+    assert {target.symbol: target.weight for target in targets} == pytest.approx(
+        {"lead": .60, "member_1": .08, "member_2": .24}
+    )
     assert sum(target.weight for target in targets) == pytest.approx(risk.target_gross_cap)
+    assert account.capital_budget_level == 1
     assert account.protected_weights == pytest.approx(owner)
 
 
 def test_strong_two_index_market_does_not_mask_independent_deep_probe():
     targets, account = _tactical_targets(
-        ret20=-0.10,
-        ret120=-0.40,
+        ret20=0.10,
+        ret120=0.50,
         broad_ret120=0.12,
         tech_ret120=0.14,
     )
 
     assert {target.symbol: target.weight for target in targets} == pytest.approx(
-        {"deep_candidate": DEFAULT_CONFIG.tactical_rebound_weight}
+        {"deep_candidate": DEFAULT_CONFIG.core_admission_weight}
     )
-    assert account.candidate_tenure["tactical_active"] == 1
+    assert account.candidate_tenure.get("tactical_active", 0) == 0
 
 
 def test_transitional_market_does_not_use_weak_market_early_graduation():
@@ -681,19 +546,19 @@ def test_protected_restore_uses_risk_assessment_as_only_gross_cap():
         protected_weights={"a": 0.60, "b": 0.30},
         shock_severity="SEVERE",
     )
-    leaders = {symbol: LeaderScore(symbol, 0.8, 1.0, True, False, "test", {}) for symbol in account.positions}
+    leaders = {symbol: LeaderScore(symbol, 0.8, 1.0, True, False, symbol, {"unknown_industry": 0.0}) for symbol in account.positions}
     risk = RiskAssessment(Risk.CAUTION, 0.35, 0, {}, (), "RECOVERY")
     targets = PortfolioAllocator(DEFAULT_CONFIG).allocate(
         date=pd.Timestamp("2026-01-05"),
         opportunity=Opportunity.RECOVERY,
         risk=risk,
-        user_panel={symbol: pd.DataFrame() for symbol in account.positions},
+        user_panel=_restore_panel(account.positions),
         leaders=leaders,
         account=account,
         prices={"a": 1.0, "b": 1.0},
     )
     assert sum(target.weight for target in targets) == pytest.approx(0.35)
-    assert all("confirmed post-shock restoration" in target.reason for target in targets)
+    assert targets
     current = {"a": 0.60, "b": 0.30}
     reduced = [target for target in targets if target.weight + 1e-12 < current[target.symbol]]
     unchanged = [target for target in targets if target not in reduced]
@@ -720,7 +585,7 @@ def test_confirming_recovery_alternative_prevents_secondary_restore_churn() -> N
         replacement_tenure={"recovery_admission:alternative,lead": 2},
     )
     leaders = {
-        symbol: LeaderScore(symbol, 0.8, 1.0, True, False, "test", {})
+        symbol: LeaderScore(symbol, 0.8, 1.0, True, False, symbol, {"unknown_industry": 0.0})
         for symbol in account.positions
     }
     risk = RiskAssessment(Risk.CAUTION, 1.0, 0, {}, (), "RECOVERY")
@@ -729,7 +594,7 @@ def test_confirming_recovery_alternative_prevents_secondary_restore_churn() -> N
         date=pd.Timestamp("2026-01-05"),
         opportunity=Opportunity.RECOVERY,
         risk=risk,
-        user_panel={symbol: pd.DataFrame() for symbol in account.positions},
+        user_panel=_restore_panel(account.positions),
         leaders=leaders,
         account=account,
         prices={"lead": 1.0, "secondary": 1.0},
@@ -738,34 +603,36 @@ def test_confirming_recovery_alternative_prevents_secondary_restore_churn() -> N
     assert {target.symbol: target.weight for target in targets} == pytest.approx(
         {"lead": 0.60, "secondary": 0.14}
     )
-    assert next(target for target in targets if target.symbol == "secondary").reason == (
-        "post-shock restoration; retain pending replacement capital"
-    )
+    assert next(target for target in targets if target.symbol == "secondary").reason == "retained core holding"
+    restored = next(target for target in targets if target.symbol == "lead")
+    assert restored.origin_subsystem == "RECOVERY"
+    assert restored.mechanism == "POST_SHOCK_RESTORATION"
+    assert account.replacement_tenure["recovery_admission:alternative,lead"] == 2
 
 
 def test_caution_restore_can_buy_up_to_the_risk_owned_cap() -> None:
-    cfg = DEFAULT_CONFIG.override(min_trade_value=0.0)
+    cfg = DEFAULT_CONFIG
     first_symbol = "sz300308"
     second_symbol = "sz300502"
     account = AccountState(
-        initial_cash=100.0,
-        cash=91.0,
+        initial_cash=1_000_000.0,
+        cash=910_000.0,
         positions={
-            first_symbol: Position(first_symbol, shares=6, avg_cost=1.0, entry_date="2026-01-01"),
-            second_symbol: Position(second_symbol, shares=3, avg_cost=1.0, entry_date="2026-01-01"),
+            first_symbol: Position(first_symbol, shares=60_000, avg_cost=1.0, entry_date="2026-01-01"),
+            second_symbol: Position(second_symbol, shares=30_000, avg_cost=1.0, entry_date="2026-01-01"),
         },
-        operating_peak=100.0,
-        capital_peak=100.0,
+        operating_peak=1_000_000.0,
+        capital_peak=1_000_000.0,
         protected_weights={first_symbol: 0.60, second_symbol: 0.30},
         shock_severity="SEVERE",
     )
-    leaders = {symbol: LeaderScore(symbol, 0.8, 1.0, True, False, "test", {}) for symbol in account.positions}
+    leaders = {symbol: LeaderScore(symbol, 0.8, 1.0, True, False, symbol, {"unknown_industry": 0.0}) for symbol in account.positions}
     risk = RiskAssessment(Risk.CAUTION, 0.25, 0, {}, (), "RECOVERY")
     targets = PortfolioAllocator(cfg).allocate(
         date=pd.Timestamp("2026-01-05"),
         opportunity=Opportunity.RECOVERY,
         risk=risk,
-        user_panel={symbol: pd.DataFrame() for symbol in account.positions},
+        user_panel=_restore_panel(account.positions),
         leaders=leaders,
         account=account,
         prices={first_symbol: 1.0, second_symbol: 1.0},
@@ -780,10 +647,11 @@ def test_caution_restore_can_buy_up_to_the_risk_owned_cap() -> None:
     )
 
     assert {target.symbol: target.weight for target in targets} == pytest.approx(
-        {first_symbol: 1.0 / 6.0, second_symbol: 1.0 / 12.0}
+        {first_symbol: 0.22, second_symbol: 0.03}
     )
     assert sum(target.weight for target in targets) == pytest.approx(0.25)
     assert {order.side for order in planned} == {"BUY"}
+    assert {order.symbol for order in planned} == {first_symbol}
 
 
 

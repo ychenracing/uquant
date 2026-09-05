@@ -165,7 +165,7 @@ def _sample_models() -> dict[str, object]:
     }
 
 
-def test_all_277_system_config_fields_match_the_current_flat_contract() -> None:
+def test_all_275_system_config_fields_match_the_current_flat_contract() -> None:
     expected_flat = PUBLIC_API["flat_config_serialization"]
     expected_module = PUBLIC_API["modules"]["uquant.config"]
     assert isinstance(expected_flat, Mapping)
@@ -174,7 +174,7 @@ def test_all_277_system_config_fields_match_the_current_flat_contract() -> None:
     fields = dataclasses.fields(SystemConfig)
     payload = DEFAULT_CONFIG.to_dict()
 
-    assert len(fields) == 277
+    assert len(fields) == 275
     assert [field.name for field in fields] == expected_flat["field_order"]
     assert list(payload) == expected_flat["field_order"]
     assert payload == expected_flat["values"]
@@ -223,6 +223,15 @@ def test_all_frozen_config_validation_types_messages_and_order_are_exact(
 ) -> None:
     changes = case["changes"]
     assert isinstance(changes, dict)
+    removed_strategy_fields = {"strategic_epoch_cooldown_sessions", "strategic_epoch_min_symbol_change"}
+    if set(changes) & removed_strategy_fields:
+        assert len(changes) == 1
+        with pytest.raises(TypeError) as retired:
+            DEFAULT_CONFIG.override(**changes)
+        assert str(retired.value) == (
+            f"SystemConfig.__init__() got an unexpected keyword argument '{next(iter(changes))}'"
+        )
+        return
     with pytest.raises(Exception) as captured:
         DEFAULT_CONFIG.override(**changes)
 

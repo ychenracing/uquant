@@ -13,7 +13,9 @@ import hashlib
 import json
 import math
 import re
-import subprocess
+
+# Only a fixed read-only git identity command is executed, without a shell.
+import subprocess  # nosec B404
 import time
 import traceback
 from collections.abc import Mapping
@@ -88,6 +90,7 @@ def write_json(path: Path, value: Any) -> None:
 def case_identity(
     case_id: str, start: str, end: str, cfg: SystemConfig = DEFAULT_CONFIG,
 ) -> dict[str, Any]:
+    commit = subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=ROOT, text=True).strip()  # nosec B603, B607
     return {
         "case_id": case_id,
         "start": start,
@@ -100,9 +103,7 @@ def case_identity(
             (ROOT / "uquant/contracts/resources/ai_universe_manifest.json").read_bytes()
         ).hexdigest(),
         "runner_sha256": hashlib.sha256(Path(__file__).read_bytes()).hexdigest(),
-        "commit": subprocess.check_output(
-            ["git", "rev-parse", "HEAD"], cwd=ROOT, text=True
-        ).strip(),  # nosec B603,B607 - fixed read-only repository identity command
+        "commit": commit,
     }
 
 

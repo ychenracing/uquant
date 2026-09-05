@@ -33,6 +33,7 @@ from .generalization_reference import (
     candidate_contract_sha256 as _candidate_contract_sha256,
 )
 from .manifest import verify_data_manifest
+from .promotion import PROTECTED_INTERVALS, REQUIRED_POOLS, current_promotion_acceptance_basis
 from .promotion import artifact_binding as _artifact_binding
 from .promotion import runtime_provenance as _runtime_provenance
 from .universe import load_ai_universe
@@ -88,6 +89,20 @@ def _write_json(path: Path, payload: Mapping[str, Any]) -> None:
     )
 
 
+def _performance_coverage_failures(payload: Mapping[str, Any]) -> list[str]:
+    failures: list[str] = []
+    if payload.get("profile") != "full":
+        failures.append("performance requires the full profile")
+    if payload.get("acceptance_basis") != current_promotion_acceptance_basis():
+        failures.append("performance current acceptance basis differs from the frozen contract")
+    for section, intervals in (("cells", AI_ERA_WINDOWS), ("protected", PROTECTED_INTERVALS)):
+        values = payload.get(section)
+        expected_cells = {f"{pool}/{interval}" for pool in REQUIRED_POOLS for interval in intervals}
+        if not isinstance(values, Mapping) or set(values) != expected_cells:
+            failures.append(f"performance {section} do not cover the complete required matrix")
+    return failures
+
+
 def run_performance_validation(
     *,
     artifact: str | Path,
@@ -117,6 +132,7 @@ def run_performance_validation(
         payload = _load_json_object(Path(artifact), label="performance validation artifact")
         if payload.get("passed") is not True:
             failures.append("performance gate did not pass")
+        failures.extend(_performance_coverage_failures(payload))
         provenance = payload.get("provenance")
         if not isinstance(provenance, Mapping):
             failures.append("performance provenance is missing or malformed")

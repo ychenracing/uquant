@@ -187,6 +187,8 @@ MODULE_AUTHORITIES = {
     "uquant.validation.absolute_generalization": "validation_runner",
     "uquant.validation.absolute_generalization._account_payload": "validation_runner",
     "uquant.validation.absolute_generalization._acceptance_evidence": "validation_runner",
+    "uquant.validation.absolute_generalization.champion_physical": "validation_runner",
+    "uquant.validation.absolute_generalization.evidence_codec": "validation_runner",
     "uquant.validation.absolute_generalization._champion_runtime_reconciliation": "validation_runner",
     "uquant.validation.absolute_generalization._execution_chain_reconciliation": "validation_runner",
     "uquant.validation.absolute_generalization._metric_primitives": "validation_runner",

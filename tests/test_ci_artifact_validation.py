@@ -10,7 +10,7 @@ from typing import Any
 import pytest
 
 from uquant.validation.generalization_matrix import _hash_json
-from uquant.validation.promotion import _artifact_binding
+from uquant.validation.promotion import _artifact_binding, current_promotion_acceptance_basis
 
 ROOT = Path(__file__).resolve().parents[1]
 OFFICIAL_WINDOWS = (
@@ -65,13 +65,15 @@ def _performance_candidate() -> dict[str, Any]:
 
 def _performance_payload(candidate: Mapping[str, Any]) -> dict[str, Any]:
     generated_at = "2026-08-16T00:00:00+00:00"
+    champion = json.loads((ROOT / "benchmarks/promotion_baseline.json").read_text())["champion"]
     return {
-        "schema_version": 3,
+        "schema_version": 4,
         "profile": "full",
+        "acceptance_basis": current_promotion_acceptance_basis(),
         "passed": True,
         "failures": [],
-        "cells": {},
-        "protected": {},
+        "cells": copy.deepcopy(champion["cells"]),
+        "protected": copy.deepcopy(champion["protected"]),
         "summary": {},
         "provenance": {
             "candidate": copy.deepcopy(candidate),
@@ -110,6 +112,21 @@ def test_performance_validator_accepts_exact_full_provenance_and_success(tmp_pat
     result = _run_performance(tmp_path, _performance_payload(_performance_candidate()))
 
     assert result == {"passed": True, "failures": []}
+
+
+@pytest.mark.parametrize("mutation", ("missing_cell", "missing_basis", "changed_basis", "partial_profile"))
+def test_performance_validator_rejects_incomplete_current_contract(tmp_path: Path, mutation: str) -> None:
+    payload = _performance_payload(_performance_candidate())
+    if mutation == "missing_cell":
+        payload["cells"].pop("a/h1_2023")
+    elif mutation == "missing_basis":
+        payload.pop("acceptance_basis")
+    elif mutation == "changed_basis":
+        payload["acceptance_basis"]["continuous_minimum_final_wealth"] = 1.0
+    else:
+        payload["profile"] = "partial"
+    result = _run_performance(tmp_path, payload)
+    assert not result["passed"]
 
 
 @pytest.mark.parametrize(

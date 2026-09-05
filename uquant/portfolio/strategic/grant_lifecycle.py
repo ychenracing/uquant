@@ -203,6 +203,27 @@ def revalidate_strategic_grant(
 
 
 
+def _original_reversal_witnesses(self: StrategicPortfolioPolicy, *, symbols: list[str],
+                                 grant: StrategicGrantIntent, snapshots: dict[str, dict[str, float]],
+                                 leaders: dict[str, LeaderScore], risk: RiskAssessment,
+                                 available_symbols: tuple[str, ...]) -> tuple[list[str], bool]:
+    witnesses = list(symbols)
+    owner_industry = leaders[grant.candidate_symbol].industry
+    witnesses.extend(symbol for symbol in sorted(snapshots)
+                     if symbol not in witnesses and symbol in leaders and symbol in available_symbols
+                     and leaders[symbol].industry == owner_industry
+                     and strategic_candidate_meets_route(candidate_symbol=symbol,
+                         qualification_route=grant.qualification_route, snapshots=snapshots,
+                         leaders=leaders, risk=risk, cfg=self.cfg))
+    witnesses = witnesses[:self.cfg.strategic_cohort_size]
+    synchronized = bool(len(witnesses) >= self.cfg.strategic_cohort_min_size
+                        and all(leaders[symbol].industry == owner_industry for symbol in witnesses)
+                        and float(pd.Series([snapshots[symbol]["ret20"] for symbol in witnesses[:2]]).median())
+                        >= self.cfg.strategic_reversal_min_median_ret20
+                        and float(risk.evidence.get("tech_ret120", math.inf)) <= self.cfg.strategic_reversal_max_tech_ret120)
+    return witnesses, synchronized
+
+
 def _original_grant_route(
     self: StrategicPortfolioPolicy, *, grant: StrategicGrantIntent,
     snapshots: dict[str, dict[str, float]], leaders: dict[str, LeaderScore], risk: RiskAssessment,
@@ -227,20 +248,9 @@ def _original_grant_route(
     if grant.qualification_route == "reversal_industry" and complete:
         # A concentrated reversal was admitted with its original pair plus a
         # synchronized witness group. Revalidate that pair, never a new winner.
-        witnesses = list(symbols)
-        owner_industry = leaders[grant.candidate_symbol].industry
-        witnesses.extend(symbol for symbol in sorted(snapshots)
-                         if symbol not in witnesses and symbol in leaders and symbol in available_symbols
-                         and leaders[symbol].industry == owner_industry
-                         and strategic_candidate_meets_route(candidate_symbol=symbol,
-                             qualification_route=grant.qualification_route, snapshots=snapshots,
-                             leaders=leaders, risk=risk, cfg=self.cfg))
-        witnesses = witnesses[:self.cfg.strategic_cohort_size]
-        synchronized = bool(len(witnesses) >= self.cfg.strategic_cohort_min_size
-                            and all(leaders[symbol].industry == owner_industry for symbol in witnesses)
-                            and float(pd.Series([snapshots[symbol]["ret20"] for symbol in witnesses[:2]]).median())
-                            >= self.cfg.strategic_reversal_min_median_ret20
-                            and float(risk.evidence.get("tech_ret120", math.inf)) <= self.cfg.strategic_reversal_max_tech_ret120)
+        witnesses, synchronized = _original_reversal_witnesses(
+            self, symbols=symbols, grant=grant, snapshots=snapshots, leaders=leaders,
+            risk=risk, available_symbols=available_symbols)
         groups = [witnesses] if synchronized else []
         if len(symbols) == 2 and grant.qualification_quorum == StrategicQuorumRoute.FULL_COHORT.value:
             decisive, _pair = decisive_reversal(self, synchronized=synchronized, reversal_groups=groups,

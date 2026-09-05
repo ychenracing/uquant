@@ -130,6 +130,44 @@ def activate_strategic_cohort(
         )
 
 
+def _fund_owner_targets(self: StrategicOwnershipPolicy, *, qualified: QualifiedStrategicRoute,
+                        owner: str, held: set[str], reserved: set[str],
+                        dominant_symbol: str | None, desired: dict[str, float],
+                        committed: dict[str, float], cash: float, leaders: dict[str, LeaderScore],
+                        user_panel: dict[str, pd.DataFrame], date: pd.Timestamp,
+                        risk: RiskAssessment) -> dict[str, float]:
+    targets: dict[str, float] = {}
+    # Retain the existing independently qualified founding-cohort allowance.
+    # Subsequent admissions share the ordinary whole-book concentration limit.
+    founding_cap = (
+        self.cfg.max_gross
+        if qualified.quorum_route == StrategicQuorumRoute.FULL_COHORT.value and not held and not reserved
+        else None
+    )
+    for symbol in sorted(desired, key=lambda s: (s != owner, -leaders[s].score, s)):
+        if symbol in held | reserved:
+            continue
+        dominant_cap = self.cfg.strategic_dominant_max_weight if symbol == dominant_symbol else None
+        room = admission_room(
+            cfg=self.cfg,
+            symbol=symbol,
+            committed=committed,
+            leaders=leaders,
+            user_panel=user_panel,
+            date=date,
+            gross_cap=min(self.cfg.max_gross, risk.target_gross_cap),
+            symbol_cap=dominant_cap,
+            concentration_cap=founding_cap,
+        )
+        weight = min(desired[symbol], cash, room)
+        if weight < self.cfg.min_trade_weight:
+            continue
+        targets[symbol] = weight
+        committed[symbol] = weight
+        cash -= weight
+    return targets
+
+
 def _prepare_strategic_owner_targets(
     self: StrategicOwnershipPolicy,
     *,
@@ -195,35 +233,10 @@ def _prepare_strategic_owner_targets(
         return False, None
     weights, _ = current_weights(account, prices)
     committed, cash = committed_capital(account=account, prices=prices, proposed=weights)
-    targets: dict[str, float] = {}
-    # Retain the existing independently qualified founding-cohort allowance.
-    # Subsequent admissions share the ordinary whole-book concentration limit.
-    founding_cap = (
-        self.cfg.max_gross
-        if qualified.quorum_route == StrategicQuorumRoute.FULL_COHORT.value and not held and not reserved
-        else None
-    )
-    for symbol in sorted(desired, key=lambda s: (s != owner, -leaders[s].score, s)):
-        if symbol in held | reserved:
-            continue
-        dominant_cap = self.cfg.strategic_dominant_max_weight if symbol == dominant_symbol else None
-        room = admission_room(
-            cfg=self.cfg,
-            symbol=symbol,
-            committed=committed,
-            leaders=leaders,
-            user_panel=user_panel,
-            date=date,
-            gross_cap=min(self.cfg.max_gross, risk.target_gross_cap),
-            symbol_cap=dominant_cap,
-            concentration_cap=founding_cap,
-        )
-        weight = min(desired[symbol], cash, room)
-        if weight < self.cfg.min_trade_weight:
-            continue
-        targets[symbol] = weight
-        committed[symbol] = weight
-        cash -= weight
+    targets = _fund_owner_targets(
+        self, qualified=qualified, owner=owner, held=held, reserved=reserved,
+        dominant_symbol=dominant_symbol, desired=desired, committed=committed, cash=cash,
+        leaders=leaders, user_panel=user_panel, date=date, risk=risk)
     if targets.get(owner, 0.0) < min(desired.get(owner, 0.0), self.cfg.core_admission_weight):
         account.strategic_qualification.deployment_blocked = True
         account.strategic_qualification.deployment_block_reason = "insufficient_executable_capital"

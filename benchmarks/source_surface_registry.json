@@ -449,7 +449,9 @@
         "uquant/validation/absolute_generalization/_replay_codec.py",
         "uquant/validation/absolute_generalization/aggregation.py",
         "uquant/validation/absolute_generalization/artifacts.py",
+        "uquant/validation/absolute_generalization/champion_physical.py",
         "uquant/validation/absolute_generalization/contract.py",
+        "uquant/validation/absolute_generalization/evidence_codec.py",
         "uquant/validation/absolute_generalization/metrics.py",
         "uquant/validation/absolute_generalization/policy.py",
         "uquant/validation/absolute_generalization/reachability.py",
@@ -753,7 +755,9 @@
         "uquant/validation/absolute_generalization/_replay_codec.py",
         "uquant/validation/absolute_generalization/aggregation.py",
         "uquant/validation/absolute_generalization/artifacts.py",
+        "uquant/validation/absolute_generalization/champion_physical.py",
         "uquant/validation/absolute_generalization/contract.py",
+        "uquant/validation/absolute_generalization/evidence_codec.py",
         "uquant/validation/absolute_generalization/metrics.py",
         "uquant/validation/absolute_generalization/policy.py",
         "uquant/validation/absolute_generalization/reachability.py",
@@ -815,5 +819,5 @@
       ]
     }
   ],
-  "canonical_sha256": "ee46b132452560167ca48866e6461bc1743ca6cb05e8af344c3dd0be074c0955"
+  "canonical_sha256": "efe9edbe5e1c01dad95e175aac621840acab4538eab683cefa8bd4f30424c234"
 }

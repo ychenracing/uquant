@@ -224,8 +224,10 @@ def test_governance_json_and_deletion_helpers_fail_closed(
         validate_governed_config_migration(SystemConfig())
 
 
-def test_governed_config_migration_binds_both_exact_config_identities() -> None:
-    migration = validate_governed_config_migration(SystemConfig())
+def test_strategy_rule_changes_cannot_use_the_historical_identity_only_migration() -> None:
+    migration = load_config_governance()
+    with pytest.raises(ValueError, match="reviewed post-removal config"):
+        validate_governed_config_migration(SystemConfig())
 
     assert migration.champion_config_sha256 == (
         "023d709731196a325d9cd03e95ece92e4baf63d2c5c66bb9f7d0e7a190e7bf20"
@@ -242,7 +244,22 @@ def test_governed_config_migration_binds_both_exact_config_identities() -> None:
         "strategic_persistent_confirm_days",
         "strategic_reversal_confirm_days",
     )
-    assert len(migration.carrier_sha256) == 64
+    assert migration.strategy_rule_removals == (
+        "strategic_epoch_cooldown_sessions", "strategic_epoch_min_symbol_change",
+    )
+    assert (migration.current_total_fields, migration.current_economic_fields) == (275, 162)
+    assert migration.before_economic_fields == migration.after_economic_fields == 164
+
+
+def test_resealed_rule_removal_cannot_change_its_frozen_authority(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    payload = json.loads(GOVERNANCE_PATH.read_text())
+    payload["strategy_rule_removals"]["fields"].append("leader_mature_score")
+    payload["artifact_sha256"] = _canonical_sha256(payload)
+    monkeypatch.setattr(governance_module, "REQUIRED_CONFIG_PARAMETER_GOVERNANCE_SHA256", payload["artifact_sha256"])
+    path = tmp_path / "extra-rule.json"
+    path.write_text(json.dumps(payload))
+    with pytest.raises(RuntimeError, match="strategy rule removals differ"):
+        load_config_governance(path)
 
 
 def test_governed_config_migration_rejects_any_remaining_field_change() -> None:

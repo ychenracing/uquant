@@ -604,6 +604,15 @@ def _final_strategic_proposal(
         _settle_strategic_guard(ctx)
     if account.candidate_tenure.get("strategic_cohort_started", 0) == 0 and buy_risk_open:
         proposed = dict(account.strategic_cohort_targets)
+    if buy_risk_open:
+        # Near-target holding completion does not cancel a registered buy's
+        # unfilled quantity. Actual reductions and the shared budget still apply.
+        for order in account.pending_orders:
+            if order.side == "BUY" and order.symbol in active_symbols:
+                proposed[order.symbol] = max(
+                    proposed.get(order.symbol, 0.0),
+                    min(order.target_weight, account.strategic_cohort_targets[order.symbol]),
+                )
     if ctx.dominant_profit_lock_armed_now and ctx.dominant_symbol is not None:
         proposed[ctx.dominant_symbol] = min(
             proposed.get(ctx.dominant_symbol, 0.0),

@@ -160,10 +160,13 @@ def _plan_target_order(
     cfg: SystemConfig,
     equity: float,
     cancel_pending_buy_symbols: set[str],
+    diagnostic: dict[str, object] | None = None,
 ) -> PendingOrder | None:
+    detail = diagnostic if diagnostic is not None else {}
     if _is_sticky_strategic_hold(target, account):
         # Sticky strategic holdings express a hold decision, not a request
         # to rebalance price drift back to yesterday's close weight.
+        detail["block"] = "STICKY_HOLD"
         return None
     current = account.positions.get(target.symbol)
     current_value = (current.shares if current else 0) * prices.get(target.symbol, 0.0)
@@ -177,12 +180,15 @@ def _plan_target_order(
         equity=equity,
         cfg=cfg,
     )
+    detail.update(difference_value=difference, standard_trade_threshold=threshold,
+                  restoration_exception=restoration_buy_below_completion)
     buy_will_be_planned = bool(
         difference > 0
         and not (target.weight != 0 and abs(difference) < threshold and not restoration_buy_below_completion)
     )
     if buy_will_be_planned:
         if target.symbol in cancel_pending_buy_symbols:
+            detail["block"] = "CANCELLATION_AWAITING_CONFIRMATION"
             return None
         retained_identity = _validate_new_buy_identity(
             target=target,
@@ -194,10 +200,12 @@ def _plan_target_order(
             # Count today's still-live intent while carrying the exact
             # canonical order object. Merge retains it without fabricating
             # a new signal date, target weight, event, or broker order.
+            detail.update(block="NONE", planned_side="BUY", retained_order_id=retained_identity.order_id)
             return retained_identity
     if target.weight == 0 and current_value > 0:
         difference = -current_value
     elif abs(difference) < threshold and not restoration_buy_below_completion:
+        detail["block"] = "NO_TRADE_BAND"
         return None
     side = Side.BUY.value if difference > 0 else Side.SELL.value
     try:
@@ -208,6 +216,7 @@ def _plan_target_order(
         )
     except (TypeError, ValueError) as exc:
         raise RuntimeError(f"new {side} for {target.symbol} has incompatible attribution: {exc}") from exc
+    detail.update(block="NONE", planned_side=side)
     return PendingOrder(
         signal_date=signal_date,
         symbol=target.symbol,
@@ -241,6 +250,7 @@ def plan_orders(
     account: AccountState,
     prices: dict[str, float],
     cfg: SystemConfig,
+    diagnostics: dict[str, dict[str, object]] | None = None,
 ) -> tuple[PendingOrder, ...]:
     """Translate final target weights into one next-open intent per symbol.
 
@@ -272,6 +282,7 @@ def plan_orders(
             cfg=cfg,
             equity=equity,
             cancel_pending_buy_symbols=cancel_pending_buy_symbols,
+            diagnostic=diagnostics.setdefault(target.symbol, {}) if diagnostics is not None else None,
         )
         if order is not None:
             planned.append(order)

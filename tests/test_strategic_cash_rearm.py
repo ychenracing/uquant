@@ -202,6 +202,8 @@ def test_cash_rearm_fails_closed_for_each_safety_boundary(mutation: str) -> None
         )
     elif mutation == "protected_owner":
         account.protected_weights = {"sz300308": 0.10}
+        # An unresolved recorded strategic owner is still a blocking residue.
+        account.protected_weight_epoch_ids = {"sz300308": "epoch_" + "f" * 64}
     elif mutation == "recovery_owner":
         account.anchor_weights = {"sz300308": 0.10}
     elif mutation == "reference_gap":

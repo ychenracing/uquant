@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import pandas as pd
 import pytest
+from _recovery_restore_completion_cases import _restore_panel
 
 from uquant.config import DEFAULT_CONFIG
 from uquant.engine import _attach_target_attribution
@@ -62,11 +63,11 @@ def test_post_shock_restore_is_buy_only_when_members_drift_apart():
     laggard = "sz300502"
     account = AccountState(
         initial_cash=1_000_000.0,
-        cash=100_000.0,
+        cash=200_000.0,
         positions={
             winner: Position(
                 winner,
-                shares=6_600,
+                shares=5_600,
                 avg_cost=100.0,
                 entry_date="2026-01-01",
             ),
@@ -79,10 +80,10 @@ def test_post_shock_restore_is_buy_only_when_members_drift_apart():
         },
         operating_peak=1_000_000.0,
         capital_peak=1_000_000.0,
-        protected_weights={winner: 0.60, laggard: 0.30},
+        protected_weights={winner: 0.50, laggard: 0.30},
         shock_severity="SEVERE",
     )
-    leaders = {symbol: LeaderScore(symbol, 0.8, 1.0, True, False, "test", {}) for symbol in account.positions}
+    leaders = {symbol: LeaderScore(symbol, 0.8, 1.0, True, False, symbol, {"unknown_industry": 0.0}) for symbol in account.positions}
     risk = RiskAssessment(
         state=Risk.NORMAL,
         target_gross_cap=1.0,
@@ -96,7 +97,7 @@ def test_post_shock_restore_is_buy_only_when_members_drift_apart():
         date=pd.Timestamp("2026-01-05"),
         opportunity=Opportunity.RECOVERY,
         risk=risk,
-        user_panel={symbol: pd.DataFrame() for symbol in account.positions},
+        user_panel=_restore_panel(account.positions),
         leaders=leaders,
         account=account,
         prices={winner: 100.0, laggard: 100.0},
@@ -111,12 +112,12 @@ def test_post_shock_restore_is_buy_only_when_members_drift_apart():
     )
 
     assert {target.symbol: target.weight for target in targets} == pytest.approx(
-        {winner: 0.60, laggard: 0.30}
+        {winner: 0.56, laggard: 0.30}
     )
     assert [(order.side, order.symbol) for order in planned] == [("BUY", laggard)]
 
 def test_post_shock_restore_labels_required_sells_as_recovery_cohort() -> None:
-    """Exercise the real unioned-position path behind a restoration SELL."""
+    """A frozen account reduction belongs to Risk; restoration can only BUY."""
     restored = "sh688233"
     added = "sh688361"
     reduced = "sz300604"
@@ -134,12 +135,12 @@ def test_post_shock_restore_labels_required_sells_as_recovery_cohort() -> None:
         capital_budget_repair_streak=2,
     )
     leaders = {
-        symbol: LeaderScore(symbol, 0.8, 1.0, True, False, "test", {})
+        symbol: LeaderScore(symbol, 0.8, 1.0, True, False, symbol, {"unknown_industry": 0.0})
         for symbol in account.protected_weights
     }
     risk = RiskAssessment(
         state=Risk.NORMAL,
-        target_gross_cap=1.0,
+        target_gross_cap=.25,
         votes=0,
         evidence={"freeze_new_risk": True, "transition_damage": 0.14},
         reasons=(),
@@ -152,7 +153,7 @@ def test_post_shock_restore_labels_required_sells_as_recovery_cohort() -> None:
         date=pd.Timestamp("2026-01-05"),
         opportunity=Opportunity.RECOVERY,
         risk=risk,
-        user_panel={symbol: pd.DataFrame() for symbol in account.protected_weights},
+        user_panel=_restore_panel(account.protected_weights),
         leaders=leaders,
         account=account,
         prices={symbol: 100.0 for symbol in account.protected_weights},
@@ -166,14 +167,12 @@ def test_post_shock_restore_labels_required_sells_as_recovery_cohort() -> None:
         cfg=DEFAULT_CONFIG,
     )
 
-    assert {order.symbol for order in planned if order.side == "BUY"} == {
-        restored,
-        added,
-    }
-    sell = next(order for order in planned if order.side == "SELL")
-    assert sell.symbol == reduced
-    assert sell.origin_subsystem == OriginSubsystem.RECOVERY.value
-    assert sell.mechanism == AttributionMechanism.RECOVERY_COHORT.value
+    assert [(order.side, order.symbol) for order in planned] == [("SELL", reduced)]
+    sell = planned[0]
+    assert sell.origin_subsystem == OriginSubsystem.RISK.value
+    assert sell.mechanism == AttributionMechanism.RISK_GROSS_CAP.value
+    assert sell.target_weight == pytest.approx(.25)
+    assert account.protected_weights == {restored: .34, added: .23, reduced: .266}
 
 def test_small_restore_gap_remains_executable_instead_of_hanging_forever():
     first_symbol = "sz300308"
@@ -200,7 +199,7 @@ def test_small_restore_gap_remains_executable_instead_of_hanging_forever():
         protected_weights={first_symbol: 0.60, second_symbol: 0.30},
         shock_severity="SEVERE",
     )
-    leaders = {symbol: LeaderScore(symbol, 0.8, 1.0, True, False, "test", {}) for symbol in account.positions}
+    leaders = {symbol: LeaderScore(symbol, 0.8, 1.0, True, False, symbol, {"unknown_industry": 0.0}) for symbol in account.positions}
     risk = RiskAssessment(
         state=Risk.NORMAL,
         target_gross_cap=1.0,
@@ -214,7 +213,7 @@ def test_small_restore_gap_remains_executable_instead_of_hanging_forever():
         date=pd.Timestamp("2026-01-05"),
         opportunity=Opportunity.RECOVERY,
         risk=risk,
-        user_panel={symbol: pd.DataFrame() for symbol in account.positions},
+        user_panel=_restore_panel(account.positions),
         leaders=leaders,
         account=account,
         prices={first_symbol: 100.0, second_symbol: 100.0},
@@ -229,8 +228,9 @@ def test_small_restore_gap_remains_executable_instead_of_hanging_forever():
     )
 
     assert account.candidate_tenure.get("post_shock_restore_complete", 0) == 0
-    assert {target.reason for target in targets} == {
-        "confirmed post-shock restoration",
-        "post-shock restoration; retain winner drift",
-    }
+    restored = next(target for target in targets if target.symbol == first_symbol)
+    assert restored.origin_subsystem == "RECOVERY"
+    assert restored.mechanism == "POST_SHOCK_RESTORATION"
+    assert account.candidate_tenure.get(f"core_restored:{first_symbol}", -1) == -1
+    assert account.candidate_tenure[f"core_restored:{second_symbol}"] == 0
     assert [(order.side, order.symbol) for order in planned] == [("BUY", first_symbol)]

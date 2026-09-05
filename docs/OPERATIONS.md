@@ -138,8 +138,8 @@ uv run uquant account-sync \
   不得创建同证券替代 BUY；同证券独立 SELL 仍可执行。
 - 战略订单和成交必须与账户订单保持相同的 `symbol`、`event_id` 和 `grant_id`；不一致时整次
   对账失败关闭，不得忽略或猜测。
-- 战略部分成交只为实际剩余股数创建新的物理订单；原订单的迟到成交仍计入同一授冠，并停止
-  与之重叠的重试订单。
+- 部分成交保留原物理订单、事件标识和已登记数量，继续执行实际剩余股数。只有真实的终态
+  或目标约束变化才进入取消、替换流程；迟到成交仍归属原订单，不能伪造取消确认释放资金。
 
 ## 生成日报
 
@@ -155,12 +155,26 @@ uv run uquant daily \
 
 建议按以下顺序阅读：
 
-1. 数据日期与账户摘要；
-2. 机会状态、风险状态和总仓上限；
-3. 当前持仓与目标权重；
-4. 买卖意图、原因码和风险优先级；
-5. 被迟滞、T+1、停牌、涨跌停、容量或现金阻塞的意图；
-6. 风险证据、恢复状态和决策警告。
+1. 决策日期、`Holdings and capital` 中的实有股数、成本、现金和券商快照日期；
+2. Risk 总仓上限、系统总仓上限与 `Target Gross`；目标仓位不是实际持仓；
+3. `Targets` 的既有原因，以及 `Tomorrow` 的真实订单意图、`order_id` 和原因码；
+4. `Candidate explanation` 中每个候选的确认、最终目标、真实订单、分支阻塞和资金限制；
+5. Risk/Sentinel 的证据、冻结权限和账户资本修复状态。
+
+日报只展示本次 `Decision` 与传入 `AccountState`，不重新排序、授予资格或分配资金。
+候选资格为 YES 或阻塞清除都不是下单授权，必须存在本次 Decision 的 BUY 意图。
+已记录的 `reference_coverage_or_confirmation` 表示参考覆盖或确认尚未满足；
+`insufficient_executable_capital` 表示部署记录的可执行资本不足；`unresolved_execution_capacity`
+表示执行责任尚未结清。每个原因只适用于记录中点名的候选，不扩展到其他股票。
+
+分配器在实际判断分支中记录资格拒绝原因，以及本次意图计算时现金、总仓、单名、行业和
+相关性预算的剩余空间。它们使用同一顺序资金账本，各行数值不能相加当作另一份预算。
+未进入资金检查的候选明确显示“未评估”。最终目标和订单在 Risk 限制及订单对账后写入
+Decision；Sentinel 冻结期间的临时规划不会被展示为买入授权。订单规划器同时记录真实的
+不交易区间或取消待确认原因，报告层不另算规则。历史 Decision 缺少这些记录时，日报仍
+明确标记未知；涨跌停、停牌、容量和成交障碍以实际执行记录为准。
+风险/上限变化、资格与参考覆盖变化、真实成交/取消确认和现金变化都需要下一次正常 `daily`
+重新评估；日报不预测某一价格或分数将触发买入。未成交卖单的预期收入不作为可用现金。
 
 ## 人工执行闭环
 
@@ -217,17 +231,61 @@ Risk Differential 与 counterfactual 只作观察，不得转换成人工卖单�
 配置变更；命令与里程碑规则见 [Future Holdout](HOLDOUT.md)。工程合同验证和离线故障
 诊断见 [Risk Sentinel](RISK_SENTINEL.md)。
 
-生产源码升级后，先备份 schema 8 账户，再显式重绑定代码身份：
+## 统一核心版本的一次性切换
+
+先确认待切换提交完成[开发指南](DEVELOPMENT.md)与[性能与证据](PERFORMANCE.md)要求的验收。
+诊断 checkpoint 不是正式验收通过或激活记录。以下命令仅供 operator 在独立副本上预演，
+本次开发不运行真实账户切换，也不激活正式观察 Lane。
+
+1. 暂停新增人工下单，记录在途订单；在旧版本正常对账后，保存完整账户、券商快照、使用的
+   数据摘要、源代码提交和配置摘要。将账户复制为独立目录中的
+   `cutover_review/account.before.json`，保留只读原件；副本、报告、数据和快照不能互相别名。
+2. 用经核验的同一发布提交和 `uv sync --frozen` 建立环境。严格读取副本，核对 schema 8 和
+   原股票池/数据身份；不能把 `account-init` 的空账户代替已有真实账户。
+3. 只对副本执行代码身份重绑定：
 
 ```bash
 uv run uquant account-code-migrate \
-  --account account_state.json \
+  --account cutover_review/account.before.json \
+  --output cutover_review/account.candidate.json \
   --acknowledge-code-change
 ```
 
 命令只更新 `code_hash` 并追加 `code_identity_only` 审计事件；输出
-`economic_state_sha256`。执行前、落盘后和严格重载后的该摘要必须一致。未提供
-`--acknowledge-code-change`、目标代码指纹为空或经济状态摘要变化时，命令停止且不接受结果。
+`economic_state_sha256`。迁移审计中执行前、落盘后和严格重载后的经济摘要必须一致。
+此命令不转换策略语义，也不证明新版本经济验收通过；已经绑定同一代码时不要重复迁移。
+
+4. 核对原 `account_identity`、订单/成交/event/grant/epoch 身份、订单序号和归因引用全部保留；
+   现金、股数、成本、费用、可卖批次和在途订单全部保留。历史 grant/epoch 仍用于真实成交
+   归因与幂等，不再代表对整个账户资本的永久经济独占。
+5. 账户高水位、资本损伤与修复 streak、风险事件、保护/恢复权重及授权证据全部保留。
+   新增的逐候选资格/交接确认若没有真实历史观察，只能由后续因果交易日逐次建立；不得从
+   当前持仓反推确认次数，或通过换候选、清空旧字段、重设最高权益跳过修复。
+   若原始状态缺失、身份冲突或新语义无法可靠恢复，先恢复可信完整备份并定位缺口；
+   `account-code-migrate` 不能补造这些事实。
+6. 将完整券商快照复制到 `cutover_review/broker_snapshot.json`，只在候选副本对账：
+
+```bash
+uv run uquant account-sync \
+  --account cutover_review/account.candidate.json \
+  --snapshot cutover_review/broker_snapshot.json
+```
+
+再按上文 `daily` 命令运行：账户改为 `cutover_review/account.candidate.json`，输出改为
+`cutover_review/daily.md`，使用原完整股票池和经核验的数据目录；决策日必须晚于该副本的
+`last_successful_run`，且不能早于已对账事实。离线策略验收只使用截至 2026-08-05 的授权窗口；
+2026-08-06 起的受保护数据不用于本次改版预演、调参或补历史证明。
+
+7. 人工核对副本账本与真实券商事实、目标/订单原因、风险上限和部分成交剩余责任；未取得
+   取消确认的 BUY 不得因切换清空或复制。只有 operator 明确接受该发布版本与逐笔执行责任
+   后，才在选定 session 边界切换正式运行路径；保留原账户和完整切换前后副本，不自动覆盖。
+   正式 Future Holdout 的旧 source epoch、账户与 Journal 继续封存；新版本如需激活，按
+   [Future Holdout](HOLDOUT.md)建立有明确生效日的新绑定，禁止回填或重写旧观察记录。
+
+Base Risk 继续负责账户风险状态、总仓压缩、资本损伤修复和硬风险退出；Sentinel 只有现有
+`FREEZE_ONLY` 的新增风险冻结权限。唯一 PortfolioAllocator 在这些边界内生成目标，订单
+仍由真实成交结算。operator 负责券商下单、价格/可卖数量核对和完整成交回传，不能把日报、
+候选资格或人工判断当作绕过 Risk 的授权。
 
 ## 常见故障
 
@@ -244,7 +302,7 @@ uv run uquant account-code-migrate \
 | `T+1 blocked` | 当日买入不可卖 | 以券商可卖数量为准 |
 | `capacity blocked` | 参与率或手数不足 | 降低计划规模或等待流动性 |
 | `strategic deployment blocked` | 候选资格仍在，但风险、机会、资金或执行状态不允许部署 | 保留账户和观察状态，解除阻塞后重新运行 `daily` |
-| `strategic grant expired` | 候选、路线、数据身份、允许证券池或唯一 owner 约束失效 | 核对 `expiry_reason` 和陈旧订单已终结；不得手工扶正第二名 |
+| `strategic grant expired` | 候选、路线、数据身份、允许证券池或物理归因身份约束失效 | 核对 `expiry_reason` 和陈旧订单已终结；不得手工扶正第二名 |
 
 停牌、涨停、容量、手数、暂时现金不足、订单待确认和下一交易日不可交易属于可恢复执行阻塞，
 不会重置候选资格或改变 `grant_id`。阻塞解除后的每次重试仍必须由正常 `daily` 路径重新通过
@@ -267,6 +325,15 @@ Risk 和 `PortfolioAllocator`；不要手工复制订单、修改候选证券或
 - 当前 Git 提交和生产源码摘要。
 
 账户保存使用原子替换，但仍应把备份写到独立目录。恢复时先在副本上运行 `account-sync` 和 `daily`，确认输出一致后再切换。
+
+重启前先检查持久账户的 `last_successful_run`、已接受成交和在途订单。若该 session 的
+`daily` 已成功保存账户，即使报告输出失败，也不能在已推进账户上再次运行同一日；引擎会
+拒绝重复或倒退 session。需要重建报告时，在独立副本中从原运行前账户、同一代码/配置、
+同一行情前缀和同一券商快照重现，再与已保存账户及订单身份比较，不重复下单。
+下一次正常运行沿用成功保存的账户，先对账真实后续成交，再进入下一允许 session。
+部分成交和迟到成交始终沿用原 `order_id`/`fill_id`/grant/event/epoch 引用；不得重置序号或
+重新初始化账户来消除挂单。如果失败边界不明确，先保留所有载体，不能选择较空的副本当作
+“干净重启”。
 
 单命令生成的 checkpoint 可随时做只读校验：
 

@@ -261,14 +261,15 @@ def candidate_portfolio_traces() -> tuple[
     payload = json.loads(_DAILY_TRACE.read_text(encoding="utf-8"))
     counts: Counter[str] = Counter()
     diagnostics: list[dict[str, object]] = []
-    original = trace_module._event_payload
+    original = trace_module._legacy_economic_event_visible
 
-    def counted_event(*args: Any, **kwargs: Any) -> dict[str, Any]:
-        counts[str(args[0])] += 1
-        return cast(dict[str, Any], original(*args, **kwargs))
+    def counted_call(name: str, kwargs: dict[str, object]) -> bool:
+        # Count actual wrapper invocations before the immutable trace projection.
+        counts[name] += 1
+        return original(name, kwargs)
 
     with pytest.MonkeyPatch.context() as monkeypatch:
-        monkeypatch.setattr(trace_module, "_event_payload", counted_event)
+        monkeypatch.setattr(trace_module, "_legacy_economic_event_visible", counted_call)
         traces = [
             trace_module.portfolio_trace_replay(
                 name=expected["name"],

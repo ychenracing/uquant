@@ -202,3 +202,59 @@ def test_live_backed_state_cannot_be_normalized_as_orphan_residue() -> None:
 
     assert normalized == ()
     assert account.protected_weights == {"sz300394": 0.10}
+
+
+def test_unbound_ordinary_restoration_right_is_preserved_without_strategic_orphan_veto() -> None:
+    account = AccountState.empty(2_000_000.0)
+    account.protected_weights = {"sh688072": 0.19}
+    account.capital_budget_level = 3
+    account.capital_peak = 3_000_000.0
+    assert assess_strategic_capital_authority(account).orphan_residue_fields == ()
+    assert normalize_orphan_strategic_capital_residue(account) == ()
+    assert account.protected_weights == {"sh688072": 0.19}
+    assert account.capital_budget_level == 3
+    assert account.capital_peak == 3_000_000.0
+
+
+def test_ordinary_restoration_right_allows_only_observed_account_repair() -> None:
+    from datetime import date, timedelta
+
+    from test_strategic_cash_rearm import _risk, _roles
+
+    from uquant.config import DEFAULT_CONFIG
+    from uquant.portfolio.strategic.rearm import observe_flat_book_capital_repair_state
+
+    account = AccountState.empty(2_000_000.0)
+    account.protected_weights = {"sh688072": 0.19}
+    account.capital_budget_level = 3
+    account.capital_peak = 3_000_000.0
+    account.opportunity = "TREND"
+    for offset in range(60):
+        session = (date(2025, 1, 1) + timedelta(days=offset)).isoformat()
+        state = observe_flat_book_capital_repair_state(
+            account=account, risk=_risk(), universe=_roles(session), observed_session=session,
+            cfg=DEFAULT_CONFIG,
+        )
+        assert state.healthy_session_count == offset + 1
+    assert state.status == "READY"
+    assert account.capital_budget_level == 3
+    assert account.capital_peak == 3_000_000.0
+    assert account.protected_weights == {"sh688072": 0.19}
+
+
+def test_exited_strategic_peer_keeps_unbound_restoration_ambiguity_conservative() -> None:
+    grant = _grant()
+    peer = "sh688072"
+    account = AccountState.empty(2_000_000.0)
+    account.protected_weights = {peer: 0.19}
+    account.order_ledger = [AccountOrder(
+        order_id="O000000001", signal_date="2025-01-02", submitted_date="2025-01-02",
+        symbol=peer, side="BUY", target_weight=0.19, reason="historical strategic peer",
+        lifecycle="CORE", status=OrderStatus.FILLED.value,
+        grant_id=grant.grant_id, epoch_id=grant.epoch_id,
+    )]
+    authority = assess_strategic_capital_authority(account)
+    assert not authority.has_live_authority
+    assert authority.orphan_residue_fields == ("protected_weights",)
+    assert normalize_orphan_strategic_capital_residue(account) == ()
+    assert account.protected_weights == {peer: 0.19}

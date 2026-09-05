@@ -29,27 +29,33 @@ def test_small_champion_replay_uses_real_next_open_and_sealed_evidence(tmp_path:
     from uquant.account import load_account
 
     result = run_production_case(
-        case_id="champion", start="2023-01-03", end="2023-01-06", output_dir=tmp_path / "champion"
+        case_id="champion", start="2023-01-03", end="2023-01-10", output_dir=tmp_path / "champion"
     )
     assert result["status"] == "COMPLETE", result.get("error")
-    assert result["sessions"] == 4
+    assert result["sessions"] == 6
     assert result["accounting"]["reconciled"]
     raw = tmp_path / "champion" / "observations.jsonl.gz"
     assert hashlib.sha256(raw.read_bytes()).hexdigest() == result["raw_sha256"]
     with gzip.open(raw, "rt", encoding="utf-8") as stream:
         observations = [json.loads(line) for line in stream]
-    assert len(observations) == 4
+    assert len(observations) == 6
     assert observations[0]["date"] == "2023-01-03"
     account_path = tmp_path / "champion" / "final_account.json"
     assert hashlib.sha256(account_path.read_bytes()).hexdigest() == result["final_account_sha256"]
     account = load_account(account_path)
     assert account.fills
     assert account.fills[0].fill_date == "2023-01-05"
+    assert any(fill.fill_date == "2023-01-10" for fill in account.fills)
+    assert len(account.order_ledger) == 1
+    assert {fill.order_id for fill in account.fills} == {account.order_ledger[0].order_id}
+    assert account.order_ledger[0].requested_shares == (
+        account.order_ledger[0].filled_shares + account.order_ledger[0].remaining_shares
+    )
     assert all(fill.signal_date < fill.fill_date for fill in account.fills)
     assert result["identity"]["runtime"]["numpy_version"] == "2.5.1"
     with pytest.raises(FileExistsError):
         run_production_case(
-            case_id="champion", start="2023-01-03", end="2023-01-06", output_dir=tmp_path / "champion"
+            case_id="champion", start="2023-01-03", end="2023-01-10", output_dir=tmp_path / "champion"
         )
 
 

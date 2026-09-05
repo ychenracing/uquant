@@ -365,7 +365,9 @@ def test_single_alias_scenario_runs_only_its_contract_dependency(
     assert set(result["cache_dependencies"]) == {"remove-sz300502"}
 
 
+@pytest.mark.parametrize("status, exit_code", [("PASS", 0), ("FAIL", 1)])
 def test_ownership_cli_dispatches_one_diagnostic_scenario(
+    status: str, exit_code: int,
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -373,7 +375,7 @@ def test_ownership_cli_dispatches_one_diagnostic_scenario(
     monkeypatch.setattr(
         ownership_runner,
         "run_acceptance_shard",
-        lambda **options: observed.update(options),
+        lambda **options: (observed.update(options), {"status": status})[1],
     )
     output = tmp_path / "ownership.json"
     cache = tmp_path / "cache"
@@ -389,10 +391,77 @@ def test_ownership_cli_dispatches_one_diagnostic_scenario(
             "--cache-dir",
             str(cache),
         ]
-    ) == 0
+    ) == exit_code
     assert observed == {
         "cache_dir": cache,
         "output": output,
         "scenario": "remove-sz300394",
         "shard": "critical",
     }
+
+
+def _historical_champion_raw():
+    """Immutable historical raw tests adapters, never current candidate economics."""
+    import gzip
+
+    return json.loads(gzip.decompress((ROOT / 'tests/fixtures/absolute_champion_runtime_raw.json.gz').read_bytes()))
+
+
+def test_champion_adapter_reconstructs_raw_and_records_actual_source() -> None:
+    raw = _historical_champion_raw()
+    result = ownership_runner._champion_evidence(
+        load_contract(), raw=raw, scenario_id='champion-5',
+        expected_source=raw['final_account']['code_hash'],
+    )
+    assert result['status'] == 'PASS'
+    assert result['acceptance_basis']['mode'] == 'current_candidate'
+    assert result['acceptance_basis']['production_source_sha256'] == raw['final_account']['code_hash']
+    assert result['metrics']['final_wealth'] == 24.509661802900865
+    assert result['raw_replay'] == raw
+    assert result['violations'] == []
+
+
+@pytest.mark.parametrize('mutation', ['source', 'duplicate_fill', 'no_fill', 'missing_raw'])
+def test_champion_adapter_retains_rejected_raw(mutation: str) -> None:
+    raw = _historical_champion_raw()
+    source = raw['final_account']['code_hash']
+    if mutation == 'source':
+        source = 'f' * 64
+    elif mutation == 'duplicate_fill':
+        raw['final_account']['fills'].append(raw['final_account']['fills'][0].copy())
+    elif mutation == 'no_fill':
+        raw['final_account']['fills'] = []
+    else:
+        raw = {}
+    result = ownership_runner._champion_evidence(
+        load_contract(), raw=raw, scenario_id='champion-5', expected_source=source,
+    )
+    assert result['status'] == 'FAIL'
+    assert result['violations']
+    assert result['raw_replay'] == raw
+
+
+def test_champion_adapter_preserves_ownership_absolute_limits() -> None:
+    raw = _historical_champion_raw()
+    contract = load_contract()
+    contract['champion']['minimum_final_wealth'] = 25.0
+    contract['thresholds']['maximum_drawdown'] = 0.25
+    result = ownership_runner._champion_evidence(
+        contract, raw=raw, scenario_id='champion-5',
+        expected_source=raw['final_account']['code_hash'],
+    )
+    assert result['status'] == 'FAIL'
+    assert result['violations'] == [
+        'champion preservation wealth differs', 'champion preservation drawdown differs',
+    ]
+    assert result['raw_replay'] == raw
+
+
+def test_champion_cache_cannot_accept_summary_without_raw(tmp_path: Path) -> None:
+    path = tmp_path / 'champion.json'
+    ownership_runner._write_cache(path, identity='test-only', payload={
+        'scenario_id': 'champion-5', 'status': 'PASS',
+        'acceptance_basis': {'mode': 'current_candidate'},
+        'metrics': {'final_wealth': 25.0},
+    })
+    assert ownership_runner._read_cache(path, identity='test-only') is None

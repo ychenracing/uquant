@@ -4,12 +4,9 @@ from __future__ import annotations
 
 import hashlib
 import json
-import math
-import re
-from collections.abc import Mapping, Sequence, Set
+from collections.abc import Mapping, Sequence
 from copy import deepcopy
-from dataclasses import asdict, dataclass, is_dataclass
-from datetime import date
+from dataclasses import dataclass
 from functools import lru_cache
 from pathlib import Path
 from typing import Any, cast
@@ -36,7 +33,38 @@ from ._champion_runtime_reconciliation import (
 )
 from ._physical_identity import physical_fill_identity_sha256
 from ._reachability_codec import reachability_state_from_raw
+from .champion_physical import validate_champion_physical_links as _validate_champion_physical_links
 from .contract import AbsoluteGeneralizationContract
+from .evidence_codec import (
+    evidence_date as _evidence_date,
+)
+from .evidence_codec import (
+    evidence_fields as _evidence_fields,
+)
+from .evidence_codec import (
+    evidence_integer as _evidence_integer,
+)
+from .evidence_codec import (
+    evidence_json_value as _evidence_json_value,
+)
+from .evidence_codec import (
+    evidence_mapping as _evidence_mapping,
+)
+from .evidence_codec import (
+    evidence_number as _evidence_number,
+)
+from .evidence_codec import (
+    evidence_sequence as _evidence_sequence,
+)
+from .evidence_codec import (
+    evidence_sha as _evidence_sha,
+)
+from .evidence_codec import (
+    evidence_text as _evidence_text,
+)
+from .evidence_codec import (
+    strict_sessions as _strict_sessions,
+)
 from .reachability import (
     analyze_failed_grant_recovery,
     analyze_terminal_scc,
@@ -46,8 +74,6 @@ from .reachability import (
 from .replay import AbsoluteGeneralizationReplayPayload
 
 _ROOT = Path(__file__).resolve().parents[3]
-_SHA256 = re.compile(r"^[0-9a-f]{64}$")
-_ENTITY_ID = re.compile(r"^(?:epoch|fill|grant|order|target|rearm)_[0-9a-f]{64}$")
 _PHASES = frozenset({"POST_DECISION", "POST_OPEN"})
 _REPAIR_STATES = frozenset({"ACCUMULATING", "READY"})
 _CHAMPION_FIELDS = frozenset(
@@ -78,102 +104,6 @@ class TerminalProjection:
     transition_sha256: str
 
 
-def _evidence_mapping(value: object, *, label: str) -> Mapping[str, object]:
-    if type(value) is not dict or any(type(key) is not str for key in value):
-        raise ValueError(f"absolute generalization {label} evidence is malformed")
-    return cast(Mapping[str, object], value)
-
-
-def _evidence_json_value(value: object) -> object:
-    if is_dataclass(value) and not isinstance(value, type):
-        return _evidence_json_value(asdict(value))
-    if isinstance(value, Mapping):
-        return {str(key): _evidence_json_value(item) for key, item in value.items()}
-    if isinstance(value, Sequence) and not isinstance(value, (str, bytes, bytearray)):
-        return [_evidence_json_value(item) for item in value]
-    return value
-
-
-def _evidence_sequence(value: object, *, label: str) -> Sequence[object]:
-    if type(value) not in {list, tuple}:
-        raise ValueError(f"absolute generalization {label} evidence is malformed")
-    return cast(Sequence[object], value)
-
-
-def _evidence_fields(raw: Mapping[str, object], expected: Set[str], *, label: str) -> None:
-    if set(raw) != expected:
-        raise ValueError(f"absolute generalization {label} evidence fields differ")
-
-
-def _evidence_text(value: object, *, label: str, empty: bool = False) -> str:
-    if type(value) is not str or (not empty and not value):
-        raise ValueError(f"absolute generalization {label} evidence is malformed")
-    return value
-
-
-def _evidence_integer(value: object, *, label: str, minimum: int = 0) -> int:
-    if type(value) is not int or value < minimum:
-        raise ValueError(f"absolute generalization {label} evidence is malformed")
-    return value
-
-
-def _evidence_number(value: object, *, label: str) -> float:
-    if isinstance(value, bool) or not isinstance(value, (int, float)):
-        raise ValueError(f"absolute generalization {label} evidence is malformed")
-    number = float(value)
-    if not math.isfinite(number):
-        raise ValueError(f"absolute generalization {label} evidence is malformed")
-    return number
-
-
-def _evidence_date(value: object, *, label: str) -> str:
-    text = _evidence_text(value, label=label)
-    try:
-        parsed = date.fromisoformat(text)
-    except ValueError as exc:
-        raise ValueError(f"absolute generalization {label} session is malformed") from exc
-    if parsed.isoformat() != text:
-        raise ValueError(f"absolute generalization {label} session is malformed")
-    return text
-
-
-def _evidence_sha(value: object, *, label: str) -> str:
-    text = _evidence_text(value, label=label)
-    if not _SHA256.fullmatch(text):
-        raise ValueError(f"absolute generalization {label} evidence is malformed")
-    return text
-
-
-def _entity(value: object, *, label: str, empty: bool = False) -> str:
-    text = _evidence_text(value, label=label, empty=empty)
-    if text and not _ENTITY_ID.fullmatch(text):
-        raise ValueError(f"absolute generalization {label} evidence is malformed")
-    return text
-
-
-def _predicate_rows(value: object, *, label: str) -> tuple[tuple[str, bool], ...]:
-    rows = _evidence_sequence(value, label=label)
-    if not rows:
-        raise ValueError(f"absolute generalization {label} evidence is empty")
-    result: list[tuple[str, bool]] = []
-    for item in rows:
-        row = _evidence_mapping(item, label=label)
-        _evidence_fields(row, {"code", "satisfied"}, label=label)
-        code = _evidence_text(row["code"], label=f"{label} predicate")
-        satisfied = row["satisfied"]
-        if type(satisfied) is not bool:
-            raise ValueError(f"absolute generalization {label} predicate is malformed")
-        result.append((code, satisfied))
-    if len({code for code, _passed in result}) != len(result):
-        raise ValueError(f"absolute generalization {label} predicate is duplicated")
-    return tuple(result)
-
-
-def _strict_sessions(values: Sequence[str], *, label: str) -> None:
-    if not values or tuple(values) != tuple(sorted(set(values))):
-        raise ValueError(f"absolute generalization {label} sessions are not observed order")
-
-
 @lru_cache(maxsize=1)
 def _grant_contract() -> Mapping[str, object]:
     raw = json.loads(
@@ -202,51 +132,35 @@ def current_candidate_contract() -> Mapping[str, Any]:
 
 
 
-def _validate_champion_physical_links(account: AccountState, trace: Sequence[Mapping[str, object]]) -> None:
-    orders = {order.order_id: order for order in account.order_ledger}
-    for row in trace:
-        if "session" in row and row["session"] != row.get("date"):
-            raise ValueError("champion runtime date/session conflict")
-        symbols = [item["symbol"] for item in cast(Sequence[Mapping[str, object]], row["targets"])]
-        if len(symbols) != len(set(symbols)):
-            raise ValueError("champion runtime duplicate symbol target")
-    targets = [(str(row["date"]), _evidence_mapping(target, label="champion target"))
-               for row in trace for target in _evidence_sequence(row.get("targets"), label="targets")]
-    event_owners: dict[str, tuple[object, object, object]] = {}
-    for _session, target in targets:
-        event = _evidence_text(target.get("event_id", ""), label="target event", empty=True)
-        if event:
-            owner = (target.get("symbol"), target.get("grant_id", ""), target.get("epoch_id", ""))
-            if event_owners.setdefault(event, owner) != owner:
-                raise ValueError("champion runtime event aliases distinct economic owners")
-    traced_orders = [(str(row["date"]), _evidence_mapping(order, label="champion order"))
-                     for row in trace for order in _evidence_sequence(row.get("orders"), label="orders")]
-    for order in account.order_ledger:
-        matching = [(session, item) for session, item in traced_orders if item.get("order_id") == order.order_id]
-        if not matching or not any(
-            (item.get("symbol"), item.get("side"), item.get("event_id"), item.get("grant_id"),
-             item.get("epoch_id"), item.get("signal_date"), item.get("target_weight"))
-            == (order.symbol, order.side, order.event_id, order.grant_id, order.epoch_id,
-                order.signal_date, round(order.target_weight, 12)) for _session, item in matching
-        ):
-            raise ValueError("champion runtime physical order lacks its traced economic identity")
-        if not any(session <= min(date for date, _item in matching)
-                   and (target.get("symbol"), target.get("event_id", ""), target.get("grant_id", ""), target.get("epoch_id", ""))
-                   == (order.symbol, order.event_id, order.grant_id, order.epoch_id)
-                   and (order.side != "BUY" or _evidence_number(target.get("weight"), label="target weight") > 0)
-                   for session, target in targets):
-            raise ValueError("champion runtime physical order lacks its causal target")
-        if sum(fill.shares for fill in account.fills if fill.order_id == order.order_id) != order.filled_shares:
-            raise ValueError("champion runtime physical filled quantity differs")
-    for fill in account.fills:
-        filled_order = orders.get(fill.order_id)
-        if (filled_order is None or
-                (fill.symbol, fill.side, fill.event_id, fill.grant_id, fill.epoch_id, fill.signal_date)
-                != (filled_order.symbol, filled_order.side, filled_order.event_id, filled_order.grant_id,
-                    filled_order.epoch_id, filled_order.signal_date)
-                or not filled_order.signal_date < fill.fill_date
-                or fill.shares <= 0):
-            raise ValueError("champion runtime fill lacks a causal matching physical order")
+
+def _validate_filled_epochs(account: AccountState) -> None:
+    for epoch in account.strategic_epochs:
+        if not epoch.first_fill_session:
+            continue
+        fills = [fill for fill in account.fills if fill.epoch_id == epoch.epoch_id
+                 and fill.grant_id == epoch.grant_id and fill.symbol == epoch.owner_symbol
+                 and fill.side == "BUY" and fill.shares > 0]
+        if not fills or min(fill.fill_date for fill in fills) != epoch.first_fill_session:
+            raise ValueError("current candidate epoch has no matching real first fill")
+        if epoch.active_session and epoch.active_session < epoch.first_fill_session:
+            raise ValueError("current candidate epoch activation precedes real fill")
+
+
+def _candidate_metric_violations(*, contract: Mapping[str, Any], claims: Mapping[str, object],
+                                 metrics: Mapping[str, object]) -> list[str]:
+    t = contract["thresholds"]
+    violations = []
+    for key, limit, upper in (("final_wealth", t["champion_minimum_final_wealth"], False),
+                              ("max_drawdown", t["champion_maximum_drawdown"], True),
+                              ("account_orders", t["champion_maximum_orders"], True)):
+        value = _evidence_number(metrics[key], label=key)
+        if (value > limit) if upper else (value < limit):
+            violations.append(f"current candidate champion {key} violates frozen limit")
+    if _evidence_integer(claims["incumbent_epoch_count"], label="filled epochs") < 1:
+        violations.append("current candidate champion has no real strategic participation")
+    violations.extend(f"current candidate champion duplicate {label}"
+                      for label in ("grant", "order", "epoch") if claims[f"duplicate_{label}_count"] != 0)
+    return violations
 
 
 def current_candidate_champion_evidence(result: Mapping[str, object]) -> dict[str, object]:
@@ -267,32 +181,12 @@ def current_candidate_champion_evidence(result: Mapping[str, object]) -> dict[st
     _validate_champion_physical_links(account, trace)
     if not account.fills:
         raise ValueError("current candidate champion has no real fills")
-    for epoch in account.strategic_epochs:
-        if not epoch.first_fill_session:
-            continue
-        fills = [fill for fill in account.fills if fill.epoch_id == epoch.epoch_id
-                 and fill.grant_id == epoch.grant_id and fill.symbol == epoch.owner_symbol
-                 and fill.side == "BUY" and fill.shares > 0]
-        if not fills or min(fill.fill_date for fill in fills) != epoch.first_fill_session:
-            raise ValueError("current candidate epoch has no matching real first fill")
-        if epoch.active_session and epoch.active_session < epoch.first_fill_session:
-            raise ValueError("current candidate epoch activation precedes real fill")
+    _validate_filled_epochs(account)
     metrics = dict(cast(Mapping[str, object], claims["metrics"]))
     metrics.update(fees=sum(fill.commission + fill.stamp_duty + fill.transfer_fee for fill in account.fills),
                    slippage_cost=sum(fill.slippage_cost for fill in account.fills),
                    gross_turnover=sum(fill.gross_value for fill in account.fills) / account.initial_cash)
-    t = contract["thresholds"]
-    violations = []
-    for key, limit, upper in (("final_wealth", t["champion_minimum_final_wealth"], False),
-                              ("max_drawdown", t["champion_maximum_drawdown"], True),
-                              ("account_orders", t["champion_maximum_orders"], True)):
-        value = _evidence_number(metrics[key], label=key)
-        if (value > limit) if upper else (value < limit):
-            violations.append(f"current candidate champion {key} violates frozen limit")
-    if _evidence_integer(claims["incumbent_epoch_count"], label="filled epochs") < 1:
-        violations.append("current candidate champion has no real strategic participation")
-    violations.extend(f"current candidate champion duplicate {label}"
-                      for label in ("grant", "order", "epoch") if claims[f"duplicate_{label}_count"] != 0)
+    violations = _candidate_metric_violations(contract=contract, claims=claims, metrics=metrics)
     first_positive = next((str(row["date"]) for row in trace
                            if _evidence_number(row.get("target_gross"), label="target gross") > 0), "")
     if not first_positive:

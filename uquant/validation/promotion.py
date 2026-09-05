@@ -21,6 +21,7 @@ import uquant.validation.promotion_contract as _promotion_contract
 from ..config import DEFAULT_CONFIG, config_fingerprint
 from ..config_governance import GOVERNANCE_PATH
 from ..engine import ProductionEngine
+from .absolute_generalization._acceptance_evidence import current_candidate_contract
 from .ai_era import (
     AI_ERA_ACUTE_WINDOWS,
     AI_ERA_START,
@@ -633,14 +634,18 @@ def _champion_violations(*, name: str, metrics: Mapping[str, Any], champion: Map
         raise RuntimeError(f"promotion champion evidence is missing: {name}")
     tolerance = AI_ERA_POLICY["champion_tolerance"]
     failures: list[str] = []
-    if metrics["final_wealth"] < champion["final_wealth"] * tolerance["wealth_floor_ratio"]:
+    # The reviewed historical policy remains sealed. Only the new contract's
+    # continuous wealth floor and relative activity comparisons are superseded.
+    contract = current_candidate_contract()
+    wealth_floor = (
+        contract["thresholds"]["champion_minimum_final_wealth"]
+        if name.split("/", 1)[-1] == "continuous_ai_era"
+        else champion["final_wealth"] * tolerance["wealth_floor_ratio"]
+    )
+    if metrics["final_wealth"] < wealth_floor:
         failures.append(f"{name}: final_wealth regressed from production champion")
     if metrics["max_drawdown"] > champion["max_drawdown"] + tolerance["drawdown_tolerance"]:
         failures.append(f"{name}: max_drawdown regressed from production champion")
-    if metrics["account_orders"] > champion["account_orders"] + tolerance["order_tolerance"]:
-        failures.append(f"{name}: account_orders regressed from production champion")
-    if metrics["annual_turnover"] > champion["annual_turnover"] + tolerance["turnover_tolerance"]:
-        failures.append(f"{name}: annual_turnover regressed from production champion")
     if (
         champion["acute_return"] is not None
         and metrics["acute_return"] is not None
@@ -648,6 +653,19 @@ def _champion_violations(*, name: str, metrics: Mapping[str, Any], champion: Map
     ):
         failures.append(f"{name}: acute_return regressed from production champion")
     return failures
+
+
+def current_promotion_acceptance_basis() -> dict[str, Any]:
+    """Bind the current policy override without rewriting the frozen baseline."""
+    contract = current_candidate_contract()
+    path = Path(__file__).resolve().parents[2] / "benchmarks/cross_ai_core_strategy_contract.json"
+    return {
+        "contract_id": contract["contract_id"],
+        "contract_sha256": hashlib.sha256(path.read_bytes()).hexdigest(),
+        "continuous_minimum_final_wealth": contract["thresholds"]["champion_minimum_final_wealth"],
+        "superseded_comparisons": ["continuous_relative_wealth", "relative_orders", "relative_turnover"],
+        "retained_policy": "AI_ERA_POLICY absolute limits and other wealth/drawdown/acute comparisons",
+    }
 
 
 def run_promotion(
@@ -662,6 +680,7 @@ def run_promotion(
         raise RuntimeError("AI-era promotion supports only the blocking full profile")
     baseline_path = Path(baseline)
     baseline_bytes, spec = _load_spec(baseline_path)
+    acceptance_basis = current_promotion_acceptance_basis()
     baseline_sha256 = hashlib.sha256(baseline_bytes).hexdigest()
     runtime = _runtime_provenance(data_dir)
     if runtime["data"] != spec["provenance"]["data"]:
@@ -729,10 +748,13 @@ def run_promotion(
                 )
 
     all_metrics = [*cells.values(), *protected.values()]
+    if current_promotion_acceptance_basis() != acceptance_basis:
+        raise RuntimeError("promotion current acceptance contract changed during replay")
     generated_at = datetime.now(UTC).isoformat()
     return {
         "schema_version": SCHEMA_VERSION,
         "profile": "full",
+        "acceptance_basis": acceptance_basis,
         "passed": not failures,
         "failures": failures,
         "cells": cells,

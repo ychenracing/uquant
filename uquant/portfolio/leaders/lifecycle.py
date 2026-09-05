@@ -320,7 +320,18 @@ def _leader_lifecycle_exit_confirmed(
         )
         and scalar(row, f"ret{self.cfg.trend_fast}", 0.0) <= (-0.15 if protected_winner else -0.08)
     )
-    account.replacement_tenure[key] = account.replacement_tenure.get(key, 0) + 1 if broken else 0
+    clock = f"lifecycle_exit_session:{symbol}"
+    session = date.toordinal()
+    previous = frame.loc[:date].index[-2].toordinal() if len(frame.loc[:date]) > 1 else 0
+    observed = account.candidate_tenure.get(clock, 0)
+    if observed > session:
+        raise ValueError("lifecycle exit observations must be causal")
+    if observed != session:
+        streak = account.replacement_tenure.get(key, 0) if observed == previous else 0
+        account.replacement_tenure[key] = streak + 1 if broken else 0
+        account.candidate_tenure[clock] = session
+    elif not broken:
+        account.replacement_tenure[key] = 0
     held_sessions = len(frame.loc[pd.Timestamp(position.entry_date) : date]) if position.entry_date else 0
     return bool(
         account.replacement_tenure[key] >= self.cfg.replacement_confirm_days

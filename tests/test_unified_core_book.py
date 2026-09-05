@@ -15,6 +15,10 @@ from uquant.execution import ExecutionPlanner, plan_orders, reconcile_account_or
 from uquant.portfolio import PortfolioAllocator
 from uquant.portfolio.capital import admission_room
 from uquant.portfolio.pipeline import _degraded_transfer, allocate_strategy
+from uquant.portfolio.strategic.lifecycle import (
+    _final_strategic_proposal,
+    _strategic_lifecycle_context,
+)
 from uquant.risk.strategic_guard import strategic_grace_supported
 from uquant.types import (
     AccountState,
@@ -54,6 +58,33 @@ def _inputs():
     }
     risk = RiskAssessment(Risk.NORMAL, 1.0, 0, {}, (), "NORMAL")
     return dates[-1], panel, leaders, risk
+
+
+@pytest.mark.parametrize("restriction", ("none", "freeze", "profit_lock", "trailing_exit"))
+def test_nearly_funded_cohort_keeps_registered_buy_remainder_until_a_real_reduction(restriction):
+    date, panel, leaders, risk = _inputs()
+    policy = PortfolioAllocator(DEFAULT_CONFIG)
+    account = AccountState.empty(2_000_000.0)
+    account.strategic_cohort_targets = {"sh600001": 0.95}
+    account.strategic_cohort_symbols = ["sh600001"]
+    account.pending_orders = [PendingOrder(
+        "2025-07-28", "sh600001", "BUY", 0.95, "registered founding intent", "CORE",
+    )]
+    current = {"sh600001": 0.931}
+    ctx = _strategic_lifecycle_context(
+        policy, date=date, risk=replace(risk, freeze_new_risk=restriction == "freeze"),
+        user_panel=panel, leaders=leaders, account=account, prices={"sh600001": 10.0},
+        weights_now=current,
+    )
+    assert account.candidate_tenure["strategic_cohort_started"] == 1
+    if restriction == "profit_lock":
+        ctx.dominant_profit_lock_armed_now = True
+        ctx.dominant_symbol = "sh600001"
+    elif restriction == "trailing_exit":
+        account.strategic_exit_bands["sh600001"] = [0.20, 0.20, 0.20]
+    proposed = _final_strategic_proposal(ctx, active_symbols=set(current), current_selected=current)
+    expected = {"none": 0.95, "freeze": 0.931, "profit_lock": 0.70, "trailing_exit": 0.60}
+    assert proposed["sh600001"] == pytest.approx(expected[restriction])
 
 
 def _evaluate(monkeypatch, *, cash=400.0, frozen=False, pending=False, strategic_exit=False):
@@ -334,6 +365,115 @@ def test_partial_rotation_retry_keeps_one_order_and_event_after_restart(monkeypa
     assert sum(f.shares for f in resumed.fills) == original_quantity
     save_account(resumed, state_path)
     assert load_account(state_path).to_dict() == resumed.to_dict()
+
+
+def test_partial_ordinary_restore_survives_restart_without_new_entry_qualification(tmp_path):
+    date, panel, leaders, risk = _inputs()
+    symbol = "sh688008"
+    panel = {symbol: panel["sh600001"]}
+    leaders = {symbol: replace(leaders["sh600001"], symbol=symbol, mature=False)}
+    dates = panel[symbol].index
+    signal = str(dates[-3].date())
+    account = AccountState.empty(DEFAULT_CONFIG.initial_cash)
+    account.code_hash, account.data_hash = "code:fixture", "data:fixture"
+    entry_signal = str(dates[-5].date())
+    entry = attach_target_attribution(
+        "semiconductor", REQUIRED_AI_UNIVERSE_SHA256, signal_date=entry_signal,
+        targets=(Target(symbol, 0.2, "CORE", 0.9, 0.9, "prior core entry",
+                        origin_subsystem="LEADER", mechanism="LEADER_SELECTION",
+                        origin_lifecycle="CORE"),),
+    )
+    entry_orders = plan_orders(signal_date=entry_signal, targets=entry, account=account,
+                               prices={symbol: 10.0}, cfg=DEFAULT_CONFIG)
+    account.pending_orders = list(reconcile_account_orders(
+        account=account, previous=[], current=entry_orders, submitted_date=entry_signal,
+    ))
+    planner = ExecutionPlanner(DEFAULT_CONFIG)
+    initial_panel = {symbol: pd.DataFrame(
+        {"open": 10.0, "high": 10.1, "low": 9.9, "close": 10.0,
+         "volume": 100_000_000.0, "amount": 1_000_000_000.0}, index=dates[-5:-2],
+    )}
+    assert planner.execute_open(date=dates[-4], account=account, panel=initial_panel)
+    assert not account.pending_orders
+    account.protected_weights[symbol] = 0.6
+    policy = PortfolioAllocator(DEFAULT_CONFIG)
+
+    def allocate(day, state):
+        return policy.allocate(
+            date=day, opportunity=Opportunity.RECOVERY, risk=risk,
+            user_panel=panel, leaders=leaders, account=state, prices={symbol: 10.0},
+        )
+
+    targets = attach_target_attribution(
+        "semiconductor", REQUIRED_AI_UNIVERSE_SHA256, signal_date=signal,
+        targets=allocate(dates[-3], account),
+    )
+    assert targets[0].weight == pytest.approx(0.6)
+    assert targets[0].origin_subsystem == "RECOVERY"
+    assert targets[0].mechanism == "POST_SHOCK_RESTORATION"
+    planned = plan_orders(signal_date=signal, targets=targets, account=account,
+                          prices={symbol: 10.0}, cfg=DEFAULT_CONFIG)
+    account.pending_orders = list(reconcile_account_orders(
+        account=account, previous=[], current=planned, submitted_date=signal,
+    ))
+    execution_panel = {symbol: pd.DataFrame(
+        {"open": 10.0, "high": 10.1, "low": 9.9, "close": 10.0,
+         "volume": [1_000_000.0, 1_000_000.0, 100_000_000.0],
+         "amount": [100_000_000.0, 100_000_000.0, 1_000_000_000.0]},
+        index=dates[-3:],
+    )}
+    assert planner.execute_open(date=dates[-2], account=account, panel=execution_panel)
+    assert len(account.pending_orders) == 1
+    original = account.pending_orders[0]
+    original_quantity = account.order_ledger[-1].requested_shares
+    remaining = allocate(dates[-2], account)
+    assert remaining[0].weight == pytest.approx(0.6)
+    assert remaining[0].event_id == original.event_id
+    observed = risk.evidence["core_allocation"]["symbols"][symbol]
+    assert observed["entry"]["block"] == "NOT_MATURE"
+    assert observed["allocation_reason"] == "POST_SHOCK_RESTORATION"
+    assert observed["budget_checks"][-1]["reserved_for_intent"] > 0
+    assert account.candidate_tenure.get(f"core_restored:{symbol}", -1) == -1
+    next_signal = str(dates[-2].date())
+    planned = plan_orders(signal_date=next_signal, targets=remaining, account=account,
+                          prices={symbol: 10.0}, cfg=DEFAULT_CONFIG)
+    account.pending_orders = list(reconcile_account_orders(
+        account=account, previous=account.pending_orders, current=planned,
+        submitted_date=next_signal,
+    ))
+    path = tmp_path / "partial-ordinary-restore.json"
+    save_account(account, path)
+    resumed = load_account(path)
+    assert planner.execute_open(date=date, account=resumed, panel=execution_panel)
+    assert not resumed.pending_orders
+    assert len(resumed.order_ledger) == 2
+    restore_fills = [fill for fill in resumed.fills if fill.order_id == original.order_id]
+    assert len(restore_fills) == 2
+    assert sum(fill.shares for fill in restore_fills) == original_quantity
+    completed = allocate(date, resumed)
+    assert resumed.candidate_tenure[f"core_restored:{symbol}"] == 0
+    assert plan_orders(signal_date=str(date.date()), targets=completed, account=resumed,
+                       prices={symbol: 10.0}, cfg=DEFAULT_CONFIG) == ()
+    save_account(resumed, path)
+    assert load_account(path).to_dict() == resumed.to_dict()
+
+
+def test_order_planning_explains_a_real_no_trade_band_without_changing_intents():
+    account = AccountState.empty(1_000_000.0)
+    account.positions["sh688008"] = Position("sh688008", 20_000, 10.0)
+    account.cash = 800_000.0
+    target = Target("sh688008", .21, "CORE", .9, .9, "small change")
+    diagnostics = {}
+    before = account.to_dict()
+    arguments = dict(signal_date="2025-01-06", targets=(target,), account=account,
+                     prices={"sh688008": 10.0}, cfg=DEFAULT_CONFIG)
+    assert plan_orders(**arguments) == plan_orders(**arguments, diagnostics=diagnostics) == ()
+    assert diagnostics["sh688008"] == {
+        "block": "NO_TRADE_BAND", "difference_value": 10_000.0,
+        "standard_trade_threshold": DEFAULT_CONFIG.min_trade_weight * 1_000_000.0,
+        "restoration_exception": False,
+    }
+    assert account.to_dict() == before
 
 
 @pytest.mark.parametrize("carried_event", (False, True))

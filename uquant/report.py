@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from collections.abc import Mapping
+from types import MappingProxyType as _MappingProxyType
 from typing import Any
 
 from .attribution import validate_economic_attribution
@@ -65,6 +66,188 @@ def render_execution_journal(records: tuple[JournalRecord, ...]) -> str:
     """Render observational execution events without deriving strategy intent."""
 
     return render_compact_execution_journal(records)
+
+
+def _account_report_section(account: AccountState, summary: Mapping[str, Any]) -> list[str]:
+    """Display settled account facts without estimating executable capital."""
+    risk_cap = summary.get("target_gross_cap")
+    system_cap = summary.get("system_gross_cap")
+    risk_cap_text = "UNAVAILABLE" if risk_cap is None else f"{float(risk_cap):.1%}"
+    system_cap_text = "UNAVAILABLE" if system_cap is None else f"{float(system_cap):.1%}"
+    cancellations = [
+        f"{order.order_id} ({order.symbol})"
+        for order in account.order_ledger
+        if order.side == "BUY" and order.status == "CANCEL_REQUESTED"
+    ]
+    reasons = summary.get("reasons")
+    reasons_text = "; ".join(str(reason) for reason in reasons) if isinstance(reasons, (list, tuple)) else ""
+    lines = [
+        "## Holdings and capital",
+        "",
+        f"- Recorded cash: {account.cash:,.2f}; Broker snapshot: {account.broker_as_of or 'UNAVAILABLE'}.",
+        f"- Risk gross cap: {risk_cap_text}; system gross cap: {system_cap_text}.",
+        f"- Recorded risk reasons: {reasons_text or 'NONE RECORDED'}.",
+        "- Cash is not unreserved buying power; pending BUY commitments reserve budget, "
+        "and unfilled SELL proceeds are not cash.",
+        "- BUY cancellations awaiting broker confirmation: " + (", ".join(cancellations) or "NONE") + ".",
+        "",
+        "| Symbol | Held shares | Average cost | Lifecycle |",
+        "|---|---:|---:|---|",
+    ]
+    held = [position for _, position in sorted(account.positions.items()) if position.shares > 0]
+    lines.extend(
+        f"| {position.symbol} | {position.shares} | {position.avg_cost:.2f} | {position.lifecycle} |"
+        for position in held
+    )
+    if not held:
+        lines.extend(["", "No held shares recorded."])
+    lines.extend(["", "Holdings are account facts; target weights below are intentions.", ""])
+    return lines
+
+
+_CORE_REVIEW_CHANGES = _MappingProxyType({
+    "NOT_MATURE": "Leadership must become mature.",
+    "CONFIRMATION_INCOMPLETE": "Complete the recorded consecutive-session confirmation.",
+    "CONFIDENCE_BELOW_MINIMUM": "Leadership confidence must meet its threshold.",
+    "INDUSTRY_NOT_VERIFIED": "Verify industry evidence.",
+    "CURRENT_MARKET_DATA_UNAVAILABLE": "Restore current market data.",
+    "INSUFFICIENT_HISTORY": "Accumulate the required causal history.",
+    "STRUCTURE_NOT_REPAIRED": "Price structure must recover.",
+    "LIQUIDITY_NOT_CONFIRMED": "Liquidity must meet its existing threshold.",
+    "NEW_RISK_FROZEN": "The recorded risk freeze must clear.",
+    "UNRESOLVED_LIABILITY": "Reconcile outstanding physical orders and fills.",
+    "OPPORTUNITY_NOT_OPEN": "The opportunity state must permit core entry.",
+    "RISK_NOT_NORMAL": "Base Risk must return to NORMAL for new core entry.",
+    "EXISTING_HOLDING_OR_COMMITMENT": "Manage the existing holding or order through its own lifecycle.",
+    "AWAIT_REDUCTION_SETTLEMENT": "The prior reduction must actually settle.",
+    "CAPITAL_LIMIT": "Available settled capital or a binding cap must change; a sale intent supplies no cash.",
+    "RESTORATION_COMPLETED_RETAIN_DRIFT": "Retain price drift until independent deterioration or a risk reduction.",
+    "RESTORATION_EVIDENCE_UNAVAILABLE": "Restore the holding's market and leadership evidence.",
+    "OWNER_EVIDENCE_UNAVAILABLE": "Restore the current owner's market evidence.",
+    "OWNER_DEPLOYMENT_BLOCK": "The current owner's recorded deployment block must clear.",
+    "CANCELLATION_AWAITING_CONFIRMATION": "Obtain the pending cancellation's acknowledgement.",
+    "NO_TRADE_BAND": "The executable difference must cross the recorded trade threshold.",
+})
+
+
+def _recorded_budget_limits(row: Mapping[str, Any]) -> list[str]:
+    parts = []
+    budgets = row.get("budget_checks")
+    if isinstance(budgets, list) and budgets:
+        latest = budgets[-1]
+        limits = [(label, latest[key]) for label, key in (
+            ("cash", "cash_room"), ("gross", "gross_room"), ("name", "symbol_room"),
+            ("industry", "industry_room"), ("correlation", "correlation_room"),
+        ) if key in latest]
+        parts.append("room: " + ", ".join(f"{label} {float(value):.1%}" for label, value in limits))
+        parts.append(f"funded increment {float(latest.get('funded_increment', 0.0)):.1%}; "
+                     f"minimum {float(latest.get('minimum_increment', 0.0)):.1%}")
+        if latest.get("block") or latest.get("correlation_block"):
+            parts.append(str(latest.get("block") or latest["correlation_block"]))
+    else:
+        parts.append("capital room not evaluated on this branch")
+    return parts
+
+
+def _recorded_core_constraint(row: Mapping[str, Any], trace: Mapping[str, Any]) -> str:
+    entry = row.get("entry", {})
+    entry_block = entry.get("block", "") if isinstance(entry, Mapping) else ""
+    block = row.get("increase_block") or row.get("restore_block") or row.get("entry_gate")
+    if not block and entry_block != "READY":
+        block = entry_block
+    if row.get("allocation_reason") == "CAPITAL_LIMIT":
+        block = "CAPITAL_LIMIT"
+    if trace.get("planning_scope") == "SENTINEL_PLANNING_ONLY" and trace.get("final_freeze_new_risk"):
+        block = "NEW_RISK_FROZEN"
+    parts = [str(block)] if block else []
+    confirmations = entry.get("confirmations") if isinstance(entry, Mapping) else None
+    if isinstance(confirmations, Mapping):
+        parts.append("confirmation " + ", ".join(f"{route} {streak}/{entry['required_confirmation']}"
+                                                 for route, streak in confirmations.items()))
+    parts.extend(_recorded_budget_limits(row))
+    planning = row.get("order_planning", {})
+    if isinstance(planning, Mapping) and planning.get("block") not in {None, "NONE", "NO_TARGET"}:
+        parts.append("order: " + str(planning["block"]))
+        if "difference_value" in planning:
+            parts.append(f"difference {float(planning['difference_value']):,.2f}; "
+                         f"standard threshold {float(planning['standard_trade_threshold']):,.2f}")
+        if not block:
+            block = str(planning["block"])
+    parts.append(_CORE_REVIEW_CHANGES.get(str(block),
+        "Reassess after independent deterioration, changed risk, qualification, or settled capital."))
+    return "; ".join(parts)
+
+
+def _core_allocation_report(trace: Mapping[str, Any]) -> list[str]:
+    rows = trace["symbols"]
+    lines = [
+        f"- Allocation observed: {trace['as_of']}; final risk freeze: {bool(trace['final_freeze_new_risk'])}.",
+        "- Each room value is recorded where that intent was evaluated; rows share one sequential budget.",
+        "", "| Symbol | Held → final target | Recorded orders / final reason | Constraint / next review |",
+        "|---|---:|---|---|",
+    ]
+    for symbol, row in sorted(rows.items(), key=lambda item: (-item[1].get("rank_score", -1.0), item[0])):
+        orders = ", ".join(f"{order['side']} {order['order_id']}" for order in row.get("orders", ())) or "NO ORDER"
+        reason = str(row.get("final_target_reason", "UNAVAILABLE")).replace("|", "/")
+        constraint = _recorded_core_constraint(row, trace).replace("|", "/")
+        lines.append(f"| {symbol} | {float(row['held_weight']):.1%} → {float(row['final_target_weight']):.1%} "
+                     f"| {orders}; {reason} | {constraint} |")
+    return [*lines, ""]
+
+
+def _recorded_qualification_report(observation: object) -> list[str]:
+    lines: list[str] = []
+    if isinstance(observation, Mapping) and observation:
+        symbol = observation.get("candidate_symbol") or "UNASSIGNED"
+        ready = observation.get("qualification_ready")
+        ready_text = "UNAVAILABLE" if ready is None else ("YES" if ready else "NO")
+        block = observation.get("deployment_block_reason") or "NONE RECORDED"
+        lines.extend([
+            f"- Candidate observation: {symbol}; route: {observation.get('qualification_route') or 'UNAVAILABLE'}; "
+            f"ready: {ready_text}.",
+            "- Observed session: "
+            f"{observation.get('qualification_last_observed_session') or 'UNAVAILABLE'}; "
+            f"confirmation streak: {observation.get('qualification_streak', 'UNAVAILABLE')}.",
+            f"- Deployment block for {symbol}: {block}.",
+        ])
+        if observation.get("candidate_invalidation_reason"):
+            lines.append(f"- Recorded invalidation: {observation['candidate_invalidation_reason']}.")
+        references = observation.get("unavailable_reference_symbols")
+        if isinstance(references, (list, tuple)) and references:
+            lines.append("- Unavailable references: " + ", ".join(str(item) for item in references) + ".")
+    else:
+        lines.append("- Candidate qualification evidence: NOT RECORDED.")
+    return lines
+
+
+def _candidate_report_section(decision: Decision) -> list[str]:
+    """Show recorded qualification evidence, never reconstruct admission rules."""
+    lines = ["## Candidate explanation", ""]
+    lines.extend(_recorded_qualification_report(decision.risk_summary.get("strategic_qualification")))
+    ranking = decision.risk_summary.get("leader_ranking")
+    if isinstance(ranking, (list, tuple)):
+        buying = {order.symbol for order in decision.pending_orders if order.side == "BUY"}
+        waiting = [
+            str(item["symbol"])
+            for item in ranking
+            if isinstance(item, Mapping) and item.get("symbol") and item["symbol"] not in buying
+        ]
+        lines.append("- Ranked symbols without a BUY intent: " + (", ".join(waiting) or "NONE") + ".")
+    else:
+        lines.append("- Candidate ranking: NOT RECORDED.")
+    trace = decision.risk_summary.get("core_allocation")
+    if isinstance(trace, Mapping) and trace.get("scope") == "FINAL_DECISION":
+        lines.extend(_core_allocation_report(trace))
+    else:
+        lines.append("- Per-candidate admission reasons and remaining capital limits are not recorded for every ranked "
+                     "symbol. Ranking alone does not establish qualification.")
+    lines.extend([
+        "- Next review: changes in recorded risk/freeze/caps, qualification/reference coverage, or reconciled "
+        "fills, cancellations and cash. Only a new daily Decision can change targets; "
+        "a cleared block alone does not authorize a BUY.",
+        "",
+    ])
+    return lines
 
 
 def _economic_attribution_report_lines(
@@ -258,6 +441,7 @@ def render_daily_report(decision: Decision, account: AccountState) -> str:
         f"Factor Profile: **{decision.risk_summary.get('factor_profile', 'CHOPPY')}**  ",
         f"Strategic Epoch: **{decision.risk_summary.get('strategic_epoch', 0)}**",
         "",
+        *_account_report_section(account, decision.risk_summary),
         *_risk_sentinel_section(decision.risk_summary),
         "## Targets",
         "",
@@ -278,6 +462,7 @@ def render_daily_report(decision: Decision, account: AccountState) -> str:
     lines.extend(
         [
             "",
+            *_candidate_report_section(decision),
             "## Risk",
             "",
             f"- Shock: {decision.risk_summary.get('shock_state', 'NONE')}",
@@ -311,12 +496,12 @@ def render_daily_report(decision: Decision, account: AccountState) -> str:
         ]
     )
     if not decision.pending_orders:
-        lines.append("1. No executable account order; remain inside no-trade bands.")
+        lines.append("1. No executable account order was recorded; no execution cause is inferred.")
     for index, order in enumerate(decision.pending_orders, start=1):
         lines.append(
             f"{index}. {order.side} {order.symbol} toward {order.target_weight:.1%} "
             f"at the next tradable open; {order.reason} "
-            f"[{order.reason_code}/{order.exit_kind}/{order.reduction_policy}]."
+            f"[{order.reason_code}/{order.exit_kind}/{order.reduction_policy}]; order_id={order.order_id or 'UNAVAILABLE'}."
         )
     lines.extend(
         [

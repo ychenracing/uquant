@@ -39,6 +39,14 @@ TOTAL_VALIDATION_CASE_COUNT = UNKNOWN_KEYWORD_CASE_INDEX + 1
 
 VALIDATION_CLAUSE_COUNT = 159
 
+# Candidate-only retirement; the frozen baseline and stimulus manifest stay intact.
+RETIRED_VALIDATION_CLAUSES: Mapping[int, str] = types.MappingProxyType(
+    {
+        79: "strategic_epoch_cooldown_sessions",
+        80: "strategic_epoch_min_symbol_change",
+    }
+)
+
 PAIR_CASE_COUNT = 17_571
 
 VALIDATION_STIMULUS_MANIFEST_SHA256 = (
@@ -398,6 +406,15 @@ def baseline_validation_clause_dumps() -> tuple[str, ...]:
             f"baseline validation clause count changed: {len(clauses)}"
         )
     return clauses
+
+def projected_baseline_validation_clause_dumps() -> tuple[str, ...]:
+    """Omit only the two explicitly retired epoch controls from candidate checks."""
+
+    return tuple(
+        clause
+        for index, clause in enumerate(baseline_validation_clause_dumps())
+        if index not in RETIRED_VALIDATION_CLAUSES
+    )
 
 def _top_level_helper_call(statement: ast.stmt) -> ast.Call | None:
     if not isinstance(statement, ast.Expr) or not isinstance(statement.value, ast.Call):
@@ -769,6 +786,17 @@ def candidate_validation_clause_dumps(
         model_source,
         filename=CANDIDATE_CONFIG_MODEL_PATH,
     )
+    for node in model_tree.body:
+        if isinstance(node, ast.ClassDef) and node.name == "SystemConfig":
+            for statement in node.body:
+                if (
+                    isinstance(statement, ast.AnnAssign)
+                    and isinstance(statement.target, ast.Name)
+                    and statement.target.id in RETIRED_VALIDATION_CLAUSES.values()
+                ):
+                    raise AssertionError(
+                        f"retired config field reintroduced: {statement.target.id}"
+                    )
     _assert_system_config_source_dispatch(model_tree)
     root = _system_config_post_init(model_tree)
     if root.decorator_list:
@@ -851,7 +879,7 @@ def candidate_validation_clause_dumps(
         return clauses
 
     clauses = tuple(flatten(CANDIDATE_CONFIG_MODEL_PATH, root, ()))
-    if len(clauses) != VALIDATION_CLAUSE_COUNT:
+    if len(clauses) != VALIDATION_CLAUSE_COUNT - len(RETIRED_VALIDATION_CLAUSES):
         raise AssertionError(
             f"candidate validation clause count changed: {len(clauses)}"
         )

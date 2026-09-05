@@ -42,6 +42,9 @@ from uquant.models.strategic_universe import build_strategic_universe_declaratio
 from uquant.provenance.fingerprints import source_surface_fingerprint
 from uquant.provenance.surfaces import load_source_surface_registry
 from uquant.types import AccountState
+from uquant.validation.absolute_generalization._acceptance_evidence import (
+    current_candidate_champion_evidence,
+)
 from uquant.validation.absolute_generalization.metrics import (
     actual_epoch_facts_from_rows,
     assert_unique_execution_rows,
@@ -308,25 +311,45 @@ def _require_economic_thresholds(
         raise RuntimeError(f"{summary['scenario_id']} has no positive strategic target")
 
 
+def _champion_evidence(
+    contract: Mapping[str, Any], *, raw: Mapping[str, object],
+    scenario_id: str, expected_source: str,
+) -> dict[str, Any]:
+    """Reconstruct current acceptance, retaining rejected raw for literal audit."""
+    champion = _mapping(contract["champion"], label="champion contract")
+    row: dict[str, Any] = {
+        "scenario_id": scenario_id, "raw_replay": dict(raw),
+        "frozen_final_wealth": champion["frozen_final_wealth"],
+        "status": "FAIL", "violations": [],
+        "acceptance_basis": {"mode": "current_candidate_rejected"},
+    }
+    try:
+        summary = current_candidate_champion_evidence(raw)
+        row.update(summary)
+        row["path_sha256"] = summary["sha256"]
+        basis = _mapping(summary["acceptance_basis"], label="champion acceptance basis")
+        if basis["production_source_sha256"] != expected_source:
+            raise ValueError("ownership champion raw account source differs")
+        metrics = _mapping(summary["metrics"], label="champion metrics")
+        if float(metrics["final_wealth"]) < float(champion["minimum_final_wealth"]):
+            row["violations"].append("champion preservation wealth differs")
+        limit = float(_mapping(contract["thresholds"], label="thresholds")["maximum_drawdown"])
+        if float(metrics["max_drawdown"]) > limit:
+            row["violations"].append("champion preservation drawdown differs")
+    except (ValueError, RuntimeError, KeyError, TypeError) as exc:
+        row["violations"].append(f"{type(exc).__name__}: {exc}")
+    if not row["violations"]:
+        row["status"] = "PASS"
+    return row
+
+
 def _run_champion(contract: Mapping[str, Any], *, scenario_id: str) -> dict[str, Any]:
     grant_contract = json.loads(GRANT_CONTRACT_PATH.read_text(encoding="utf-8"))
     baseline = run_baseline(grant_contract)
-    metrics = _mapping(baseline["metrics"], label="champion metrics")
-    champion = _mapping(contract["champion"], label="champion contract")
-    final_wealth = float(metrics["final_wealth"])
-    max_drawdown = float(metrics["max_drawdown"])
-    if final_wealth < float(champion["minimum_final_wealth"]):
-        raise RuntimeError("champion preservation wealth differs")
-    if max_drawdown > float(_mapping(contract["thresholds"], label="thresholds")["maximum_drawdown"]):
-        raise RuntimeError("champion preservation drawdown differs")
-    return {
-        "first_positive_target_session": baseline["first_positive_target_session"],
-        "frozen_final_wealth": champion["frozen_final_wealth"],
-        "metrics": dict(metrics),
-        "path_sha256": baseline["sha256"],
-        "scenario_id": scenario_id,
-        "status": "PASS",
-    }
+    raw = _mapping(baseline.get("raw_replay", {}), label="champion raw replay")
+    return _champion_evidence(
+        contract, raw=raw, scenario_id=scenario_id, expected_source=code_fingerprint(),
+    )
 
 
 def _frozen_replay(
@@ -745,6 +768,15 @@ def _read_cache(path: Path, *, identity: str) -> dict[str, Any] | None:
         or envelope.get("sha256") != _canonical_sha256(payload)
     ):
         return None
+    if payload.get("scenario_id") == "champion-5" and payload.get("status") == "PASS":
+        raw = payload.get("raw_replay")
+        if not isinstance(raw, Mapping):
+            return None
+        expected = _champion_evidence(
+            load_contract(), raw=raw, scenario_id="champion-5", expected_source=code_fingerprint(),
+        )
+        if dict(payload) != expected or expected["status"] != "PASS":
+            return None
     return dict(payload)
 
 
@@ -903,7 +935,7 @@ def run_acceptance_shard(
         "production_source_identity": code_fingerprint(),
         "scenarios": rows,
         "shard": shard,
-        "status": "PASS",
+        "status": "PASS" if all(row.get("status") == "PASS" for row in rows) else "FAIL",
     }
     if scenario is not None:
         selected_metadata = cache_metadata[scenario]
@@ -931,13 +963,13 @@ def main(argv: Sequence[str] | None = None) -> int:
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--cache-dir", type=Path, required=True)
     args = parser.parse_args(argv)
-    run_acceptance_shard(
+    result = run_acceptance_shard(
         shard=args.shard,
         scenario=args.scenario,
         output=args.output,
         cache_dir=args.cache_dir,
     )
-    return 0
+    return 0 if result["status"] == "PASS" else 1
 
 
 if __name__ == "__main__":

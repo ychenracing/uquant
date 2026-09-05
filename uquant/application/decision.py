@@ -529,6 +529,29 @@ def assess_decision_risk(
     return risk
 
 
+def _record_final_allocation_trace(
+    *, risk: RiskAssessment, targets: tuple[Target, ...], orders: tuple[PendingOrder, ...],
+    planning: dict[str, dict[str, object]],
+) -> None:
+    """Bind allocator observations to the final risk-capped targets and reconciled intents."""
+    trace = risk.evidence.get("core_allocation")
+    if not isinstance(trace, dict):
+        return
+    trace["planning_scope"] = trace["scope"]
+    trace["scope"] = "FINAL_DECISION"
+    trace["final_freeze_new_risk"] = risk.freeze_new_risk or bool(risk.evidence.get("freeze_new_risk", False))
+    trace["final_gross_cap"] = risk.target_gross_cap
+    by_symbol = {target.symbol: target for target in targets}
+    for symbol, row in trace["symbols"].items():
+        target = by_symbol.get(symbol)
+        row["final_target_weight"] = target.weight if target is not None else 0.0
+        row["final_target_reason"] = target.reason if target is not None else "NO_TARGET"
+        row["order_planning"] = planning.get(symbol, {"block": "NO_TARGET"})
+        row["orders"] = [{"side": order.side, "order_id": order.order_id, "event_id": order.event_id,
+                          "remaining_shares": order.remaining_shares}
+                         for order in orders if order.symbol == symbol]
+
+
 def _allocate_decision_orders(
     self: DecisionEngineRuntime,
     *,
@@ -598,12 +621,14 @@ def _allocate_decision_orders(
         retained_orders=previous_orders,
         cfg=self.cfg,
     )
+    planning_diagnostics: dict[str, dict[str, object]] = {}
     planned_orders = plan_orders(
         signal_date=str(inputs.date.date()),
         targets=targets,
         account=account,
         prices=market.prices,
         cfg=self.cfg,
+        diagnostics=planning_diagnostics,
     )
     orders = merge_pending_orders(
         retained=previous_orders,
@@ -618,6 +643,8 @@ def _allocate_decision_orders(
         submitted_date=str(inputs.date.date()),
         removed_buy_reason="sentinel_freeze_new_risk" if sentinel_freeze_authorized(risk) else None,
     )
+    _record_final_allocation_trace(risk=risk, targets=targets, orders=orders,
+                                   planning=planning_diagnostics)
     account.last_successful_run = str(inputs.date.date())
     account.data_hash = inputs.data_digest
     account.data_hash_as_of = str(inputs.date.date())

@@ -23,6 +23,7 @@ from ._compatibility_baseline import (
     METHOD_IDS,
     REACHABLE_WITNESS_CASE_COUNT,
     REACHABLE_WITNESS_START_INDEX,
+    RETIRED_VALIDATION_CLAUSES,
     TOTAL_VALIDATION_CASE_COUNT,
     UNKNOWN_KEYWORD_CASE_INDEX,
     baseline_config_module,
@@ -34,6 +35,7 @@ from ._compatibility_baseline import (
     current_load_method_pickles,
     current_method_contract,
     exception_observation,
+    projected_baseline_validation_clause_dumps,
     validation_fixture_metadata,
 )
 
@@ -268,14 +270,91 @@ def test_validation_capture_rejects_replaced_stimulus_with_regenerated_metadata(
         capture_validation_contract(fixture)
 
 
-def test_split_validators_preserve_all_159_baseline_clauses_in_exact_ast_order() -> None:
+def test_split_validators_preserve_retained_baseline_clauses_in_exact_ast_order() -> None:
     baseline = baseline_validation_clause_dumps()
     candidate = candidate_validation_clause_dumps()
 
     assert len(baseline) == 159
-    assert len(candidate) == 159
-    assert candidate == baseline
+    assert dict(RETIRED_VALIDATION_CLAUSES) == {
+        79: "strategic_epoch_cooldown_sessions",
+        80: "strategic_epoch_min_symbol_change",
+    }
+    for index, field in RETIRED_VALIDATION_CLAUSES.items():
+        assert f"attr='{field}'" in baseline[index]
+    assert len(candidate) == 157
+    assert candidate == projected_baseline_validation_clause_dumps()
+    assert candidate == baseline[:79] + baseline[81:]
     assert all(left != right for left, right in pairwise(candidate))
+
+
+@pytest.mark.parametrize(
+    ("field", "value"),
+    (
+        ("strategic_epoch_cooldown_sessions", 19),
+        ("strategic_epoch_cooldown_sessions", 30),
+        ("strategic_epoch_min_symbol_change", 0),
+        ("strategic_epoch_min_symbol_change", 1),
+    ),
+)
+def test_retired_epoch_fields_are_rejected_by_constructor_and_override(
+    field: str,
+    value: int,
+) -> None:
+    expected_message = (
+        f"SystemConfig.__init__() got an unexpected keyword argument '{field}'"
+    )
+    for constructor in (config_model.SystemConfig, DEFAULT_CONFIG.override):
+        with pytest.raises(TypeError) as exc:
+            constructor(**{field: value})
+        assert str(exc.value) == expected_message
+
+
+def test_semantic_gate_rejects_a_third_validation_clause_deletion() -> None:
+    relative_path = "uquant/config/validation/strategic.py"
+    tree = ast.parse((ROOT / relative_path).read_text(encoding="utf-8"))
+    function = next(
+        node
+        for node in tree.body
+        if isinstance(node, ast.FunctionDef) and node.name == "_validate_strategic_routes"
+    )
+    del function.body[-1]
+
+    with pytest.raises(AssertionError, match="candidate validation clause count changed: 156"):
+        candidate_validation_clause_dumps({relative_path: ast.unparse(tree)})
+
+
+@pytest.mark.parametrize("field", RETIRED_VALIDATION_CLAUSES.values())
+def test_semantic_gate_rejects_retired_field_and_clause_reintroduction(field: str) -> None:
+    relative_path = "uquant/config/model.py"
+    source = (ROOT / relative_path).read_text(encoding="utf-8")
+    tree = ast.parse(source)
+    config_class = next(
+        node
+        for node in tree.body
+        if isinstance(node, ast.ClassDef) and node.name == "SystemConfig"
+    )
+    config_class.body.append(ast.parse(f"{field}: int = 1").body[0])
+    with pytest.raises(AssertionError, match=f"retired config field reintroduced: {field}"):
+        candidate_validation_clause_dumps({relative_path: ast.unparse(tree)})
+
+    relative_path = "uquant/config/validation/strategic.py"
+    tree = ast.parse((ROOT / relative_path).read_text(encoding="utf-8"))
+    function = next(
+        node
+        for node in tree.body
+        if isinstance(node, ast.FunctionDef) and node.name == "_validate_strategic_routes"
+    )
+    function.body.append(
+        ast.parse(f"if config.{field} < 1:\n    raise ValueError('reintroduced')").body[0]
+    )
+    with pytest.raises(AssertionError, match="candidate validation clause count changed: 158"):
+        candidate_validation_clause_dumps({relative_path: ast.unparse(tree)})
+
+    # A compensating deletion must not hide reintroduction behind the 157 count.
+    del function.body[-2]
+    assert candidate_validation_clause_dumps({relative_path: ast.unparse(tree)}) != (
+        projected_baseline_validation_clause_dumps()
+    )
 
 
 def test_semantic_gate_rejects_wrapper_and_runtime_rebinding_bypass() -> None:
@@ -473,7 +552,7 @@ def test_semantic_ast_gate_detects_every_adjacent_validator_block_swap(
     )
 
     assert candidate_validation_clause_dumps({relative_path: mutated_source}) != (
-        baseline_validation_clause_dumps()
+        projected_baseline_validation_clause_dumps()
     )
 
 
@@ -500,7 +579,7 @@ def test_semantic_ast_gate_detects_predicate_and_raise_changes(
     mutated_source = source.replace(original, replacement, 1)
 
     assert candidate_validation_clause_dumps({relative_path: mutated_source}) != (
-        baseline_validation_clause_dumps()
+        projected_baseline_validation_clause_dumps()
     )
 
 
@@ -522,7 +601,7 @@ def test_semantic_ast_gate_detects_every_audited_adjacent_swap(
     )
 
     assert candidate_validation_clause_dumps({relative_path: mutated_source}) != (
-        baseline_validation_clause_dumps()
+        projected_baseline_validation_clause_dumps()
     )
 
 
@@ -621,6 +700,20 @@ def test_every_pair_of_isolated_invalid_stimuli_preserves_first_failure_order() 
             changes = {**left_changes, **right_changes}
             comparisons += 1
             expected = exception_observation(baseline_default, changes)
+            # Removed keywords fail at construction, before any retained validator.
+            # Preserve insertion order when both retired fields occur in one pair.
+            retired = next(
+                (field for field in changes if field in RETIRED_VALIDATION_CLAUSES.values()),
+                None,
+            )
+            if retired is not None:
+                expected = {
+                    "exception_type": "TypeError",
+                    "message": (
+                        "SystemConfig.__init__() got an unexpected keyword argument "
+                        f"'{retired}'"
+                    ),
+                }
             observed = exception_observation(DEFAULT_CONFIG, changes)
             if observed != expected and len(mismatches) < 20:
                 mismatches.append(

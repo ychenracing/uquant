@@ -58,7 +58,7 @@ uquant 使用同一生产决策内核完成历史回放和日报决策，提供�
 ## 5. Authoritative Sources
 
 - 项目定位、操作入口、结构与文档导航：`README.md`
-- 仓库级渐进式验证约定：`AGENTS.md`
+- 仓库执行、授权、恢复与渐进式验证约定：`AGENTS.md`
 - 权限、数据流、状态与模块所有权：`docs/ARCHITECTURE.md`
 - 策略、机会、风险和组合语义：`docs/STRATEGY.md`
 - 参数事实与治理分类：`docs/CONFIGURATION.md`
@@ -139,7 +139,7 @@ Definition of Done：适用工程与经济门通过；分支覆盖率满足仓�
 ## 10. Context Loading Protocol
 
 1. 新开发任务可以直接使用自然语言提出，不要求预先填写固定 Prompt。
-2. 开始任务时先读取本文件。
+2. 涉及仓库判断或实施时，先读取根目录及适用的 `AGENTS.md`，再按任务需要读取本文件与相关权威文档。
 3. 搜索与任务相关的开放 PR、分支和 Issue。
 4. 如果存在匹配工作，从现有现场原地继续。
 5. 当前动态任务状态默认维护在 Pull Request 正文。
@@ -147,7 +147,7 @@ Definition of Done：适用工程与经济门通过；分支覆盖率满足仓�
 7. 优先读取目标代码、直接调用者、相关测试和直接相关配置。
 8. 只有证据不足、状态冲突或影响范围扩大时才扩大读取。
 9. 不默认加载完整仓库、完整聊天、完整日志或全部 GitHub Actions 历史。
-10. 长对话交接使用 `conversation-continuity-guard`，但 GitHub 当前现场仍是状态权威来源。
+10. 长对话交接按需使用可用的 `conversation-continuity-guard`；技能不可用时按 `AGENTS.md` 保存进展和交接，不因此阻断可继续的工作。GitHub 当前现场仍是远端状态权威来源。
 
 ## 11. References
 

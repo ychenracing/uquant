@@ -293,6 +293,7 @@
       "id": "validation_runner_v1",
       "resource_paths": [
         "benchmarks/absolute_generalization_acceptance_contract.json",
+        "benchmarks/absolute_generalization_acceptance_contract_frozen_17ce.json",
         "benchmarks/ai_era_generalization_baseline.json",
         "benchmarks/ai_era_generalization_policy.json",
         "benchmarks/competitor_bull_reference.json",
@@ -821,5 +822,5 @@
       ]
     }
   ],
-  "canonical_sha256": "624494d6cbca22f13418ad1a900071c7ea5889f76c82980bbba9dec34ef14a07"
+  "canonical_sha256": "917cd19731b98f93cb96a8bb5581bf184536a6be2e72b938c2ad9c5709696f8a"
 }

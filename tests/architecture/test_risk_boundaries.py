@@ -113,6 +113,7 @@ _ABSOLUTE_GENERALIZATION_OWNER_MODULES = frozenset(
         "uquant.validation.absolute_generalization._account_payload",
         "uquant.validation.absolute_generalization._acceptance_evidence",
         "uquant.validation.absolute_generalization._champion_runtime_reconciliation",
+        "uquant.validation.absolute_generalization._epoch_realization",
         "uquant.validation.absolute_generalization._execution_chain_reconciliation",
         "uquant.validation.absolute_generalization._metric_primitives",
         "uquant.validation.absolute_generalization._metrics_reconciliation",

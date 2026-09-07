@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import math
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, cast
+from typing import TYPE_CHECKING, Any, cast
 
 import pandas as pd
 
@@ -15,6 +15,7 @@ from ...models.strategic_epoch import (
 )
 from ...models.strategic_grant import StrategicQualificationObservation
 from ...models.strategic_universe import StrategicUniverseRoles
+from ...models.trading import AccountOrder, Fill, late_strategic_fill_allowed
 from ...portfolio_core import restoration_trade_weight, strategic_dominant_symbol
 from ...types import (
     AccountState,
@@ -598,6 +599,105 @@ def _limit_revoked_strategic_proposal(
     return proposed
 
 
+def _strategic_exit_order_matches(order: AccountOrder, account: AccountState,
+                                  symbol: str, target: float) -> bool:
+    position = account.positions[symbol]
+    return bool(
+        (order.symbol, order.side, order.status, order.epoch_id, order.grant_id,
+         order.mechanism, order.reduction_policy)
+        == (symbol, "SELL", "FILLED", position.epoch_id, position.grant_id,
+            "STRATEGIC_TRAILING_EXIT", "FIFO")
+        and order.event_id and abs(order.target_weight - target) <= 1e-12
+        and order.requested_shares > 0 and order.remaining_shares == 0
+        and order.filled_shares == order.requested_shares
+    )
+
+
+def _native_buy_lot_id(tranche_id: object, buy: Fill) -> bool:
+    if not isinstance(tranche_id, str):
+        return False
+    # Broker availability reconciliation can split either native lot format.
+    prefix = f"{buy.fill_date}:{buy.symbol}:"
+    while True:
+        if buy.fill_id and tranche_id == f"broker-fill:{buy.fill_id}":
+            return True
+        if tranche_id.startswith(prefix):
+            suffix = tranche_id[len(prefix):]
+            if suffix.isdecimal() and int(suffix) > 0:
+                return True
+        if not tranche_id.endswith((":sellable", ":t1")):
+            return False
+        tranche_id = tranche_id.rsplit(":", 1)[0]
+
+
+def _strategic_sold_lot_origin(lot: dict[str, Any], fill: Fill,
+                              earlier: list[Fill]) -> bool:
+    shares = lot.get("shares")
+    if type(shares) is not int or shares <= 0:
+        return False
+    if (lot.get("epoch_id"), lot.get("grant_id")) != (fill.epoch_id, fill.grant_id):
+        return False
+    return any(
+        buy.shares >= shares
+        and _native_buy_lot_id(lot.get("tranche_id"), buy)
+        and (buy.side, buy.symbol, buy.fill_date, buy.epoch_id, buy.grant_id,
+             buy.event_id, buy.mechanism)
+        == ("BUY", fill.symbol, lot.get("entry_date"), fill.epoch_id, fill.grant_id,
+            lot.get("event_id"), lot.get("mechanism"))
+        for buy in earlier
+    )
+
+
+def _strategic_exit_fill_matches(fill: Fill, order: AccountOrder,
+                                 earlier: list[Fill]) -> bool:
+    if (fill.symbol, fill.side, fill.epoch_id, fill.grant_id, fill.event_id,
+        fill.mechanism, fill.reduction_policy) != (
+        order.symbol, "SELL", order.epoch_id, order.grant_id, order.event_id,
+        order.mechanism, "FIFO",
+    ):
+        return False
+    return bool(
+        fill.shares > 0 and fill.sold_tranches
+        and all(_strategic_sold_lot_origin(lot, fill, earlier) for lot in fill.sold_tranches)
+        and sum(lot["shares"] for lot in fill.sold_tranches) == fill.shares
+    )
+
+
+def _strategic_exit_order_settled(account: AccountState, order: AccountOrder) -> bool:
+    matched = [(index, fill) for index, fill in enumerate(account.fills)
+               if fill.order_id == order.order_id]
+    if not matched or sum(fill.shares for _, fill in matched) != order.filled_shares:
+        return False
+    if not all(_strategic_exit_fill_matches(fill, order, account.fills[:index])
+               for index, fill in matched):
+        return False
+    return not any(fill.symbol == order.symbol and fill.side == "BUY" and fill.shares > 0
+                   for fill in account.fills[matched[0][0] + 1:])
+
+
+def _settled_strategic_exit_target(account: AccountState, symbol: str, target: float) -> bool:
+    """Read a completed reduction from the native ledger, never from price drift.
+
+    A changed band target remains a new instruction. Any later BUY or unsettled
+    execution prevents reuse of an old sale; surviving FIFO lots alone do not
+    establish this holding's continuity.
+    """
+    position = account.positions.get(symbol)
+    if position is None or position.shares <= 0 or not position.epoch_id:
+        return False
+    if any(order.symbol == symbol for order in account.pending_orders):
+        return False
+    if any(order.symbol == symbol and (late_strategic_fill_allowed(order)
+           or order.status in {"SUBMITTED", "OPEN", "PARTIALLY_FILLED"})
+           for order in account.order_ledger):
+        return False
+    for order in reversed(account.order_ledger):
+        if not _strategic_exit_order_matches(order, account, symbol, target):
+            continue
+        return _strategic_exit_order_settled(account, order)
+    return False
+
+
 def _final_strategic_proposal(
     ctx: _StrategicLifecycleContext,
     *,
@@ -637,9 +737,11 @@ def _final_strategic_proposal(
             ctx.policy.cfg.strategic_dominant_retained_gross,
         )
     for symbol in active_symbols & set(account.strategic_exit_bands):
+        band_target = sum(account.strategic_exit_bands[symbol])
         proposed[symbol] = min(
             proposed.get(symbol, 0.0),
-            sum(account.strategic_exit_bands[symbol]),
+            current_selected.get(symbol, 0.0)
+            if _settled_strategic_exit_target(account, symbol, band_target) else band_target,
         )
     return _limit_revoked_strategic_proposal(account, proposed, current_selected)
 

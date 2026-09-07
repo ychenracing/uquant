@@ -227,7 +227,10 @@ _RESOURCE_SURFACE_ADDITIONS: Mapping[str, frozenset[str]] = {
     "execution_account_v1": frozenset(),
     "sentinel_v1": frozenset(),
     "validation_runner_v1": frozenset(
-        {"benchmarks/absolute_generalization_acceptance_contract.json"}
+        {
+            "benchmarks/absolute_generalization_acceptance_contract.json",
+            "benchmarks/absolute_generalization_acceptance_contract_frozen_17ce.json",
+        }
     ),
     "full_package_v1": frozenset(),
 }

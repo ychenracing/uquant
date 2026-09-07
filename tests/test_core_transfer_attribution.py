@@ -10,7 +10,7 @@ from test_core_transfer_feasibility import CHALLENGER, INCUMBENT, WEAK, _scenari
 
 from uquant.application.target_attribution import attach_target_attribution
 from uquant.config import DEFAULT_CONFIG
-from uquant.execution import ExecutionPlanner, plan_orders, reconcile_account_orders
+from uquant.execution import ExecutionPlanner, merge_pending_orders, plan_orders, reconcile_account_orders
 from uquant.types import AccountState, Target
 from uquant.validation.universe import REQUIRED_AI_UNIVERSE_SHA256
 
@@ -34,17 +34,22 @@ def _execution_scenario(monkeypatch, obstruction):
 
     def submit(day, targets, *, retain=()):
         signal = str(day.date())
+        previous = list(account.pending_orders)
         attributed = attach_target_attribution(
             "semiconductor", REQUIRED_AI_UNIVERSE_SHA256, signal_date=signal,
-            targets=targets, retained_orders=account.pending_orders,
+            targets=targets, retained_orders=previous,
         )
         orders = plan_orders(
             signal_date=signal, targets=attributed, account=account,
             prices=arguments["prices"], cfg=DEFAULT_CONFIG,
         )
+        merged = merge_pending_orders(
+            retained=previous, planned=orders, targets=attributed, cfg=DEFAULT_CONFIG,
+        )
+        retained_only = tuple(order for order in retain if order.symbol not in {item.symbol for item in merged})
         account.pending_orders = list(reconcile_account_orders(
-            account=account, previous=account.pending_orders,
-            current=(*retain, *orders), submitted_date=signal,
+            account=account, previous=previous,
+            current=(*retained_only, *merged), submitted_date=signal,
         ))
         return orders
 

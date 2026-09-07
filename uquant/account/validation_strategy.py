@@ -332,6 +332,7 @@ def _validate_rearm_repair_binding(state: Any) -> None:
         StrategicCashRearmStatus.CONSUMED.value,
     }:
         return
+    _validate_ordinary_repair_order_binding(state)
     repair = state.flat_book_capital_repair
     if (
         rearm.repair_episode_id != repair.repair_episode_id
@@ -345,6 +346,28 @@ def _validate_rearm_repair_binding(state: Any) -> None:
         and repair.status != FlatBookCapitalRepairStatus.READY.value
     ):
         raise ValueError("strategic rearm requires a ready repair episode")
+
+
+def _validate_ordinary_repair_order_binding(state: Any) -> None:
+    rearm = state.strategic_cash_rearm
+    reference = rearm.consumed_order
+    if reference is not None:
+        matching = [order for order in state.order_ledger if order.order_id == reference.order_id]
+        if len(matching) != 1:
+            raise ValueError("ordinary repair requires one native ledger order")
+        order = matching[0]
+        if (order.event_id != reference.event_id or order.symbol != rearm.candidate_symbol
+                or order.side != "BUY" or order.requested_shares < 0
+                or order.signal_date != rearm.authorized_session
+                or order.lifecycle != "CORE" or order.origin_subsystem != "LEADER"
+                or order.mechanism != "LEADER_SELECTION" or order.grant_id or order.epoch_id):
+            raise ValueError("ordinary repair order binding is inconsistent")
+        proof = next(item.authoritative_state for item in rearm.predicate_results
+                     if item.code == "current_independent_core")
+        if not 0 < order.target_weight <= proof["max_target_weight"] + 1e-12:
+            raise ValueError("ordinary repair order exceeds its authorized capital")
+        if state.flat_book_capital_repair.status != FlatBookCapitalRepairStatus.CONSUMED.value:
+            raise ValueError("ordinary consumed order requires spent account repair")
 
 
 def _validate_grant_account_binding(state: Any) -> None:

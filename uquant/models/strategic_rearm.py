@@ -193,6 +193,14 @@ class FlatBookCapitalRepairState:
 
 
 @dataclass(slots=True)
+class RepairOrderReference:
+    """The native ordinary order that spent an account repair episode."""
+
+    order_id: str
+    event_id: str
+
+
+@dataclass(slots=True)
 class StrategicRearmAuthorization:
     """One candidate-bound authorization backed by a ready repair episode."""
 
@@ -212,6 +220,7 @@ class StrategicRearmAuthorization:
     authorization_id: str = ""
     authorized_session: str = ""
     consumed_grant_id: str = ""
+    consumed_order: RepairOrderReference | None = None
     predicate_results: list[StrategicCashRearmPredicate] = field(default_factory=list)
     rejection_reasons: list[str] = field(default_factory=list)
     qualification_ready: bool = False
@@ -484,6 +493,22 @@ def validate_strategic_cash_rearm_state(state: StrategicCashRearmState) -> None:
     _validate_strategic_rearm_identity(state)
     _validate_strategic_rearm_evidence(state)
     _validate_strategic_rearm_lifecycle(state, status=status)
+    if state.qualification_quorum == "INDEPENDENT_CORE":
+        proofs = [item.authoritative_state for item in state.predicate_results
+                  if item.code == "current_independent_core" and item.passed]
+        if len(proofs) != 1:
+            raise ValueError("ordinary repair requires its original admission evidence")
+        proof = proofs[0]
+        digest = hashlib.sha256(json.dumps(proof, sort_keys=True, separators=(",", ":"),
+                                           allow_nan=False).encode()).hexdigest()
+        inputs = proof.get("decision_input_identity", {})
+        if (not isinstance(inputs, dict) or inputs.get("as_of") != state.authorized_session
+                or inputs.get("code_hash") != proof.get("code_hash") or not inputs.get("data_hash")
+                or digest != state.qualification_evidence_sha256
+                or proof.get("candidate") != state.candidate_symbol
+                or proof.get("as_of") != state.authorized_session
+                or not 0 < proof.get("max_target_weight", 0) <= 1):
+            raise ValueError("ordinary repair admission evidence binding is inconsistent")
 
 
 def _validate_strategic_rearm_identity(state: StrategicCashRearmState) -> None:
@@ -585,15 +610,23 @@ def _validate_strategic_rearm_lifecycle(
             raise ValueError("authorized strategic cash rearm state is incomplete")
         if not state.authorization_id.startswith("rearm_") or len(state.authorization_id) != 70:
             raise ValueError("strategic cash rearm authorization identity is invalid")
-        if state.consumed_grant_id:
+        if state.consumed_grant_id or state.consumed_order is not None:
             raise ValueError("authorized strategic cash rearm cannot already be consumed")
     elif state.authorized:
         raise ValueError("only AUTHORIZED strategic cash rearm can deploy capital")
     if status is StrategicCashRearmStatus.CONSUMED:
-        if not state.authorization_id or not state.authorized_session or not state.consumed_grant_id:
-            raise ValueError("consumed strategic cash rearm requires authorization and grant identity")
-    elif state.consumed_grant_id:
-        raise ValueError("unconsumed strategic cash rearm cannot retain a grant identity")
+        if (not state.authorization_id or not state.authorized_session
+                or bool(state.consumed_grant_id) == (state.consumed_order is not None)):
+            raise ValueError("consumed repair requires exactly one grant or native order")
+        if state.consumed_order is not None:
+            if not isinstance(state.consumed_order, RepairOrderReference):
+                raise ValueError("repair order reference must be typed")
+            _require_rearm_text(state.consumed_order.order_id, field_name="consumed order_id")
+            _require_rearm_text(state.consumed_order.event_id, field_name="consumed event_id")
+            if state.qualification_quorum != "INDEPENDENT_CORE":
+                raise ValueError("ordinary repair requires independent CORE evidence")
+    elif state.consumed_grant_id or state.consumed_order is not None:
+        raise ValueError("unconsumed repair cannot retain a consumer identity")
 
 
 def validate_strategic_cash_rearm_account_binding(
@@ -642,6 +675,8 @@ def strategic_cash_rearm_from_payload(
         StrategicCashRearmPredicate(**dict(item))
         for item in raw.get("predicate_results", [])
     ]
+    if raw.get("consumed_order") is not None:
+        raw["consumed_order"] = RepairOrderReference(**dict(raw["consumed_order"]))
     state = StrategicCashRearmState(**raw)
     validate_strategic_cash_rearm_state(state)
     return state

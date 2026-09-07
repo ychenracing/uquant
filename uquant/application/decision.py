@@ -28,6 +28,7 @@ from ..leader import (
 )
 from ..opportunity import classify_opportunity
 from ..portfolio import PortfolioAllocator, current_weights
+from ..portfolio.strategic.rearm import consume_ordinary_cash_rearm_authorization
 from ..reference import ReferenceContext, build_reference_context
 from ..reference_registry import resolve_reference_symbols
 from ..risk_sentinel.integration import sentinel_freeze_authorized
@@ -574,6 +575,10 @@ def _allocate_decision_orders(
     # Provenance was already fail-closed above. Publishing it before allocation
     # lets any newly created grant bind the exact production source identity.
     bind_decision_account_identity(inputs=inputs, account=account)
+    risk.evidence["decision_input_identity"] = {
+        "as_of": str(inputs.date.date()), "code_hash": inputs.current_code_hash,
+        "data_hash": inputs.data_digest,
+    }
     structural_users = {
         symbol: market.structural_leaders[symbol]
         for symbol in inputs.user_symbols
@@ -652,6 +657,9 @@ def _allocate_decision_orders(
         current=orders,
         submitted_date=str(inputs.date.date()),
         removed_buy_reason="sentinel_freeze_new_risk" if sentinel_freeze_authorized(risk) else None,
+    )
+    consume_ordinary_cash_rearm_authorization(
+        account=account, orders=orders, observed_session=str(inputs.date.date()),
     )
     _record_final_allocation_trace(risk=risk, targets=targets, orders=orders,
                                    planning=planning_diagnostics)

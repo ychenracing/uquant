@@ -30,7 +30,12 @@ from .strategic.qualification_candidates import (
     reset_strategic_candidate_eligibility,
     strategic_candidate_confirmation,
 )
-from .strategic.rearm import strategic_cash_rearm_grant_open
+from .strategic.rearm import (
+    authorize_ordinary_cash_rearm,
+    ordinary_cash_rearm_order_open,
+    strategic_cash_rearm_grant_open,
+    strategic_cash_rearm_weight,
+)
 
 if TYPE_CHECKING:
     from .allocator import PortfolioAllocator
@@ -391,7 +396,9 @@ def _pending_intents(book: _AllocationBook, *, candidates: list[str], buy_open: 
                     book.record(order.symbol)["pending_buy_rejected"] = True
                     book.account.protected_weights.pop(order.symbol, None)
                     continue
-            if buy_open:
+            if buy_open or ordinary_cash_rearm_order_open(
+                account=book.account, risk=book.risk, cfg=book.policy.cfg, order=order,
+            ):
                 book.fund(order.symbol, order.target_weight, phase="PENDING_CORE_BUY")
 
 
@@ -607,6 +614,27 @@ def _allocate_strategy(
     else:
         for symbol in candidates:
             book.record(symbol)["entry_gate"] = "NEW_RISK_FROZEN" if frozen else "UNRESOLVED_LIABILITY"
+    repair_symbol = ""
+    if frozen and not liabilities and strategic_universe is not None:
+        for symbol in candidates:
+            independent = _candidate_entry(
+                self, symbol=symbol, score=leaders[symbol], date=date,
+                user_panel=user_panel, account=account, confirmation_days=self.cfg.leader_tenure_days,
+            )
+            independent.update(as_of=str(date.date()), score=leaders[symbol].score,
+                               confidence=leaders[symbol].confidence, industry=leaders[symbol].industry)
+            if not authorize_ordinary_cash_rearm(
+                account=account, risk=risk, universe=strategic_universe, symbol=symbol,
+                certificate=independent, observed_session=str(date.date()), cfg=self.cfg,
+            ):
+                continue
+            weight = strategic_cash_rearm_weight(account=account, risk=risk, cfg=self.cfg)
+            if book.fund(symbol, weight, phase="ACCOUNT_REPAIR_CORE", minimum=weight):
+                repair_symbol = symbol
+                book.record(symbol)["repair_entry"] = independent
+                book.record(symbol)["entry_gate"] = "ACCOUNT_REPAIR_AUTHORIZED"
+                book.reasons[symbol] = "confirmed core admitted through bounded account repair"
+                break
     targets = _book_targets(book)
     if frozen:
         frozen_targets = self._frozen_existing_targets(
@@ -616,6 +644,10 @@ def _allocate_strategy(
             permitted.update({t.symbol: t for t in targets
                               if t.symbol not in owned
                               and t.mechanism == AttributionMechanism.POST_SHOCK_RESTORATION.value})
+        permitted.update({t.symbol: t for t in targets if t.symbol == repair_symbol
+                          or any(order.symbol == t.symbol and ordinary_cash_rearm_order_open(
+                              account=account, risk=risk, cfg=self.cfg, order=order)
+                              for order in account.pending_orders)})
         frozen_book = {t.symbol: t for t in frozen_targets}
         frozen_book.update(permitted)
         targets = tuple(frozen_book[symbol] for symbol in sorted(frozen_book))

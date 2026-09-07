@@ -29366,6 +29366,15 @@
                   }
                 },
                 {
+                  "name": "consumed_order",
+                  "kind": "POSITIONAL_OR_KEYWORD",
+                  "annotation": "RepairOrderReference | None",
+                  "default": {
+                    "kind": "value",
+                    "value": null
+                  }
+                },
+                {
                   "name": "predicate_results",
                   "kind": "POSITIONAL_OR_KEYWORD",
                   "annotation": "list[StrategicCashRearmPredicate]",
@@ -30149,6 +30158,15 @@
                   "default": {
                     "kind": "value",
                     "value": ""
+                  }
+                },
+                {
+                  "name": "consumed_order",
+                  "kind": "POSITIONAL_OR_KEYWORD",
+                  "annotation": "RepairOrderReference | None",
+                  "default": {
+                    "kind": "value",
+                    "value": null
                   }
                 },
                 {
@@ -32695,6 +32713,14 @@
                 }
               },
               {
+                "name": "consumed_order",
+                "type": "RepairOrderReference | None",
+                "default": {
+                  "kind": "value",
+                  "value": null
+                }
+              },
+              {
                 "name": "predicate_results",
                 "type": "list[StrategicCashRearmPredicate]",
                 "default": {
@@ -33302,6 +33328,14 @@
                 "default": {
                   "kind": "value",
                   "value": ""
+                }
+              },
+              {
+                "name": "consumed_order",
+                "type": "RepairOrderReference | None",
+                "default": {
+                  "kind": "value",
+                  "value": null
                 }
               },
               {
@@ -39424,6 +39458,15 @@
                   }
                 },
                 {
+                  "name": "consumed_order",
+                  "kind": "POSITIONAL_OR_KEYWORD",
+                  "annotation": "RepairOrderReference | None",
+                  "default": {
+                    "kind": "value",
+                    "value": null
+                  }
+                },
+                {
                   "name": "predicate_results",
                   "kind": "POSITIONAL_OR_KEYWORD",
                   "annotation": "list[StrategicCashRearmPredicate]",
@@ -39655,6 +39698,15 @@
                   "default": {
                     "kind": "value",
                     "value": ""
+                  }
+                },
+                {
+                  "name": "consumed_order",
+                  "kind": "POSITIONAL_OR_KEYWORD",
+                  "annotation": "RepairOrderReference | None",
+                  "default": {
+                    "kind": "value",
+                    "value": null
                   }
                 },
                 {
@@ -40025,6 +40077,14 @@
                 }
               },
               {
+                "name": "consumed_order",
+                "type": "RepairOrderReference | None",
+                "default": {
+                  "kind": "value",
+                  "value": null
+                }
+              },
+              {
                 "name": "predicate_results",
                 "type": "list[StrategicCashRearmPredicate]",
                 "default": {
@@ -40194,6 +40254,14 @@
                 "default": {
                   "kind": "value",
                   "value": ""
+                }
+              },
+              {
+                "name": "consumed_order",
+                "type": "RepairOrderReference | None",
+                "default": {
+                  "kind": "value",
+                  "value": null
                 }
               },
               {
@@ -47636,37 +47704,37 @@
           "settled_strategic_reduction": {
             "parameters": [
               {
+                "name": "account",
+                "kind": "POSITIONAL_OR_KEYWORD",
                 "annotation": "AccountState",
                 "default": {
                   "kind": "required"
-                },
-                "kind": "POSITIONAL_OR_KEYWORD",
-                "name": "account"
+                }
               },
               {
+                "name": "symbol",
+                "kind": "POSITIONAL_OR_KEYWORD",
                 "annotation": "str",
                 "default": {
                   "kind": "required"
-                },
-                "kind": "POSITIONAL_OR_KEYWORD",
-                "name": "symbol"
+                }
               },
               {
+                "name": "target",
+                "kind": "POSITIONAL_OR_KEYWORD",
                 "annotation": "float",
                 "default": {
                   "kind": "required"
-                },
-                "kind": "POSITIONAL_OR_KEYWORD",
-                "name": "target"
+                }
               },
               {
+                "name": "mechanism",
+                "kind": "KEYWORD_ONLY",
                 "annotation": "str",
                 "default": {
                   "kind": "value",
                   "value": "STRATEGIC_TRAILING_EXIT"
-                },
-                "kind": "KEYWORD_ONLY",
-                "name": "mechanism"
+                }
               }
             ],
             "return": "bool"
@@ -63071,6 +63139,15 @@
                   }
                 },
                 {
+                  "name": "consumed_order",
+                  "kind": "POSITIONAL_OR_KEYWORD",
+                  "annotation": "RepairOrderReference | None",
+                  "default": {
+                    "kind": "value",
+                    "value": null
+                  }
+                },
+                {
                   "name": "predicate_results",
                   "kind": "POSITIONAL_OR_KEYWORD",
                   "annotation": "list[StrategicCashRearmPredicate]",
@@ -63854,6 +63931,15 @@
                   "default": {
                     "kind": "value",
                     "value": ""
+                  }
+                },
+                {
+                  "name": "consumed_order",
+                  "kind": "POSITIONAL_OR_KEYWORD",
+                  "annotation": "RepairOrderReference | None",
+                  "default": {
+                    "kind": "value",
+                    "value": null
                   }
                 },
                 {
@@ -66400,6 +66486,14 @@
                 }
               },
               {
+                "name": "consumed_order",
+                "type": "RepairOrderReference | None",
+                "default": {
+                  "kind": "value",
+                  "value": null
+                }
+              },
+              {
                 "name": "predicate_results",
                 "type": "list[StrategicCashRearmPredicate]",
                 "default": {
@@ -67007,6 +67101,14 @@
                 "default": {
                   "kind": "value",
                   "value": ""
+                }
+              },
+              {
+                "name": "consumed_order",
+                "type": "RepairOrderReference | None",
+                "default": {
+                  "kind": "value",
+                  "value": null
                 }
               },
               {
@@ -95059,6 +95161,7 @@
           "authorization_id": "",
           "authorized_session": "",
           "consumed_grant_id": "",
+          "consumed_order": null,
           "predicate_results": [],
           "rejection_reasons": [],
           "qualification_ready": false,
@@ -95095,7 +95198,7 @@
         "data_hash_symbols": [],
         "code_hash": ""
       },
-      "empty_state_sha256": "94582775e008dc4c57a962c3573f7446b1c74d95e4dca075a2655cbcddbfe540"
+      "empty_state_sha256": "a80c193d1b1fdde41dba24b8e001dd82112a8eed405e8c9bfbccf7e1033b4e0a"
     },
     "cli_help": {
       "uquant": "usage: uquant [-h]\n              {account-init,daily,account-sync,account-code-migrate,backtest,holdout-manifest,holdout-append,holdout-replay,execution-journal}\n              ...\n\nCausal A-share daily portfolio decisions and replay\n\npositional arguments:\n  {account-init,daily,account-sync,account-code-migrate,backtest,holdout-manifest,holdout-append,holdout-replay,execution-journal}\n\noptions:\n  -h, --help            show this help message and exit\n",
@@ -95134,7 +95237,7 @@
     }
   },
   "contract_id": "uquant-public-api-v1",
-  "contract_sha256": "3d8fb00a061a0b5beb360426f9dbc09c05a734fb360e94f60607f1c66d1cf285",
+  "contract_sha256": "ee59f81f14c1682a4c48fdfc98fc7f057e85a28527038a54a392007632d7adb7",
   "recorded_on": "2026-09-05",
   "schema_version": 1
 }

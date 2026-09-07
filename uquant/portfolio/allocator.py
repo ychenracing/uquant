@@ -24,6 +24,8 @@ from ..types import (
     RiskAssessment,
     Target,
 )
+from .strategic.discovery import resolve_strategic_qualification_inputs as _resolve_qualification_inputs
+from .strategic.rearm import observe_flat_book_capital_repair_state as _observe_account_repair
 
 
 def _confirmed_recovery_gross(
@@ -61,6 +63,13 @@ def _allocate_strategy_targets(
     sentinel_only_freeze = sentinel_freeze_authorized(risk)
     strategy_risk = risk
     if sentinel_only_freeze:
+        _, _, repair_universe = _resolve_qualification_inputs(
+            date=date, user_panel=user_panel, leaders=leaders,
+            qualification_panel=qualification_panel, qualification_leaders=qualification_leaders,
+            strategic_universe=strategic_universe,
+        )
+        _observe_account_repair(account=account, risk=risk, universe=repair_universe,
+                                observed_session=str(date.date()), cfg=self.cfg)
         strategy_evidence = {
             **risk.evidence,
             "sentinel_freeze_new_risk": False,
@@ -123,6 +132,16 @@ def _dominant_level1_retention(
     )
 
 
+def _commit_frozen_ordinary_denials(account: AccountState, planned: AccountState) -> None:
+    # Preserve only monotonic revocation for existing ordinary BUYs;
+    # never copy hypothetical restoration grants from the planning book.
+    for order in account.pending_orders:
+        if (order.side == "BUY" and not order.grant_id and not order.epoch_id
+                and order.mechanism != AttributionMechanism.POST_SHOCK_RESTORATION.value
+                and order.symbol not in planned.protected_weights):
+            account.protected_weights.pop(order.symbol, None)
+
+
 def allocate(
     self: PortfolioAllocator,
     *,
@@ -152,15 +171,8 @@ def allocate(
         strategic_universe=strategic_universe,
     )
     if sentinel_only_freeze:
-        # Preserve only monotonic revocation for existing ordinary BUYs;
-        # never copy hypothetical restoration grants from the planning book.
-        for order in account.pending_orders:
-            if (order.side == "BUY" and not order.grant_id and not order.epoch_id
-                    and order.mechanism != AttributionMechanism.POST_SHOCK_RESTORATION.value
-                    and order.symbol not in strategy_account.protected_weights):
-                account.protected_weights.pop(order.symbol, None)
+        _commit_frozen_ordinary_denials(account, strategy_account)
         account.strategic_qualification = deepcopy(strategy_account.strategic_qualification)
-        account.flat_book_capital_repair = deepcopy(strategy_account.flat_book_capital_repair)
         for key, value in strategy_account.replacement_tenure.items():
             if key.startswith(("strategic_qualification:", "strategic_eligibility:", "lifecycle_exit:")):
                 account.replacement_tenure[key] = value

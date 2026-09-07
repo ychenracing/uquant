@@ -8,7 +8,7 @@ from typing import cast
 
 from ..config import DEFAULT_CONFIG, SystemConfig
 from ..contracts.universe import REQUIRED_AI_UNIVERSE_SHA256, AIUniverse, default_ai_universe
-from ..types import PendingOrder, Side, Target, derive_attribution_event_id
+from ..types import PendingOrder, ReductionPolicy, Side, Target, derive_attribution_event_id
 
 
 def _retained_full_exit(target: Target, retained: PendingOrder | None) -> bool:
@@ -53,6 +53,16 @@ def _retained_target_identity(
     return bool(
         retained is not None
         and abs(retained.target_weight - target.weight) < cfg.min_trade_weight
+        and (
+            retained.side == Side.BUY.value
+            or abs(retained.target_weight - target.weight) <= 1e-12
+            or (
+                retained.order_id
+                and retained.remaining_shares > 0
+                and retained.reduction_policy == ReductionPolicy.RISK_PRIORITY.value
+                and 1e-12 < target.weight < retained.target_weight
+            )
+        )
         and (retained.side != Side.BUY.value or target.weight + 1e-12 >= retained.target_weight)
         and retained.lifecycle == target.lifecycle
         and retained.reduction_policy == target.reduction_policy
@@ -135,6 +145,10 @@ def _attribute_target(
         reused = _reuse_retained_attribution(target, retained, cfg)
         if reused is not None:
             return reused
+        if retained is not None and target.event_id == retained.event_id:
+            # An event may survive only with the original executable intent.
+            # A changed FIFO target creates a new order and therefore a new ID.
+            target = replace(target, event_id="")
     if target.event_id:
         return target
     industry = universe.industry_of(target.symbol, signal_date)

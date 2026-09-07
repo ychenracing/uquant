@@ -56,6 +56,7 @@ from .models import (
     validate_attribution_compatibility,
 )
 from .models import trading as _trading
+from .models.strategic_rearm import RepairOrderReference as RepairOrderReference
 
 _ATTRIBUTION_COMPATIBILITY = _trading.ATTRIBUTION_COMPATIBILITY
 del _trading

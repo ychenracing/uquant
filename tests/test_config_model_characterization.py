@@ -292,7 +292,19 @@ def test_enum_literals_and_representative_model_bytes_are_frozen() -> None:
         "target": "40deb0e6450d7bdb5eaf7da4ff263501ac70c4a970aa1a56695bfe1b104b982d",
     }
 
-    assert {name: _canonical_sha256(value) for name, value in serialized.items()} == expected
+    # The optional native ordinary-order receipt is the sole authorized additive
+    # serialization change; preserve every historical model digest below.
+    account_payload = serialized["account"]
+    assert isinstance(account_payload, dict)
+    assert account_payload["schema_version"] == 8
+    rearm_payload = dict(account_payload["strategic_cash_rearm"])
+    assert rearm_payload.pop("consumed_order") is None
+    historical_account = {**account_payload, "strategic_cash_rearm": rearm_payload}
+    assert _canonical_sha256(account_payload) == (
+        "c4f0c04de39c776a3b5244eb79b5e11c8a75aad83f9bcae4726edc4045b751ca"
+    )
+    historical_serialized = {**serialized, "account": historical_account}
+    assert {name: _canonical_sha256(value) for name, value in historical_serialized.items()} == expected
 
 
 def test_model_field_order_defaults_factories_and_flat_account_schema_are_frozen() -> None:

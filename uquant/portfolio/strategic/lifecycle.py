@@ -29,6 +29,7 @@ from .discovery import (
 )
 from .grant_lifecycle import (
     completed_core_admission_budget,
+    completed_strategic_cohort_entry,
     completed_strategic_core_entry,
     revalidate_strategic_grant,
 )
@@ -199,10 +200,10 @@ def _strategic_lifecycle_context(
         == account.strategic_epoch
     )
     active_symbols = set(account.strategic_cohort_targets)
-    if active_symbols and all(
+    if active_symbols and (completed_strategic_cohort_entry(account, active_symbols) or all(
         weights_now.get(symbol, 0.0) >= 0.95 * account.strategic_cohort_targets.get(symbol, 0.0)
         for symbol in active_symbols
-    ):
+    )):
         account.candidate_tenure["strategic_cohort_started"] = 1
     band_count = self.cfg.strategic_cohort_trail_bands
     thresholds = tuple(

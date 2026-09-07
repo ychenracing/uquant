@@ -146,6 +146,48 @@ def _completed_core_entry(account: AccountState, grant: StrategicGrantIntent) ->
                for order in orders)
 
 
+def completed_strategic_cohort_entry(account: AccountState, symbols: set[str]) -> bool:
+    """Observe settled native deployment even when closing weights drift below target."""
+    grant = account.strategic_grant
+    if grant is None or not grant.epoch_id or not symbols:
+        return False
+    orders = [order for order in account.order_ledger
+              if order.side == "BUY" and order.symbol in symbols]
+    if any(order.side == "BUY" and order.symbol in symbols for order in account.pending_orders):
+        return False
+    if any(order.status in {"SUBMITTED", "OPEN", "PARTIALLY_FILLED"}
+           or late_strategic_fill_allowed(order) for order in orders):
+        return False
+    return all(_cohort_member_entry_filled(account, grant, symbol, orders) for symbol in symbols)
+
+
+def _cohort_member_entry_filled(
+    account: AccountState, grant: StrategicGrantIntent, symbol: str, orders: list[AccountOrder],
+) -> bool:
+    position = account.positions.get(symbol)
+    return bool(
+        position is not None and position.shares > 0 and position.epoch_id == grant.epoch_id
+        and position.grant_id == (grant.grant_id if symbol == grant.candidate_symbol else "")
+        and any(order.symbol == symbol and order.epoch_id == position.epoch_id
+                and order.grant_id == position.grant_id and _native_entry_order_filled(account, order)
+                for order in orders)
+    )
+
+
+def _native_entry_order_filled(account: AccountState, order: AccountOrder) -> bool:
+    if not ((order.mechanism, order.origin_subsystem, order.origin_lifecycle)
+            == ("STRATEGIC_COHORT", "STRATEGIC", "CORE")
+            and order.status == "FILLED" and order.event_id and order.requested_shares > 0
+            and order.filled_shares == order.requested_shares and order.remaining_shares == 0):
+        return False
+    fills = [fill for fill in account.fills if fill.order_id == order.order_id]
+    return bool(fills and sum(fill.shares for fill in fills) == order.filled_shares and all(
+        fill.shares > 0 and (fill.event_id, fill.symbol, fill.side, fill.grant_id, fill.epoch_id)
+        == (order.event_id, order.symbol, "BUY", order.grant_id, order.epoch_id)
+        for fill in fills
+    ))
+
+
 def completed_core_admission_budget(account: AccountState) -> float | None:
     """Read the immutable first executed budget, not a later expanded grant target."""
     grant = account.strategic_grant

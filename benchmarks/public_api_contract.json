@@ -47512,7 +47512,8 @@
         "path": "uquant/portfolio/strategic/grant_lifecycle.py",
         "public_names": [
           "completed_strategic_core_entry",
-          "revalidate_strategic_grant"
+          "revalidate_strategic_grant",
+          "settled_strategic_reduction"
         ],
         "functions": {
           "completed_strategic_core_entry": {
@@ -47628,6 +47629,44 @@
                   "kind": "value",
                   "value": null
                 }
+              }
+            ],
+            "return": "bool"
+          },
+          "settled_strategic_reduction": {
+            "parameters": [
+              {
+                "annotation": "AccountState",
+                "default": {
+                  "kind": "required"
+                },
+                "kind": "POSITIONAL_OR_KEYWORD",
+                "name": "account"
+              },
+              {
+                "annotation": "str",
+                "default": {
+                  "kind": "required"
+                },
+                "kind": "POSITIONAL_OR_KEYWORD",
+                "name": "symbol"
+              },
+              {
+                "annotation": "float",
+                "default": {
+                  "kind": "required"
+                },
+                "kind": "POSITIONAL_OR_KEYWORD",
+                "name": "target"
+              },
+              {
+                "annotation": "str",
+                "default": {
+                  "kind": "value",
+                  "value": "STRATEGIC_TRAILING_EXIT"
+                },
+                "kind": "KEYWORD_ONLY",
+                "name": "mechanism"
               }
             ],
             "return": "bool"
@@ -95095,7 +95134,7 @@
     }
   },
   "contract_id": "uquant-public-api-v1",
-  "contract_sha256": "d69904ebc3d3a95cc3533b23c39e6c0c1a26ceb94dfdb5e41ae99cc160c86365",
+  "contract_sha256": "3d8fb00a061a0b5beb360426f9dbc09c05a734fb360e94f60607f1c66d1cf285",
   "recorded_on": "2026-09-05",
   "schema_version": 1
 }

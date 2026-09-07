@@ -53,7 +53,7 @@ def _strategic_active_targets(
         mechanism=AttributionMechanism.STRATEGIC_COHORT,
         reasons=(
             {
-                dominant_symbol: "strategic dominant one-shot profit lock",
+                dominant_symbol: "strategic one-shot profit lock",
             }
             if dominant_profit_lock_armed_now and dominant_symbol is not None
             else None

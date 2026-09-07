@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import math
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Any, cast
+from typing import TYPE_CHECKING, cast
 
 import pandas as pd
 
@@ -15,7 +15,7 @@ from ...models.strategic_epoch import (
 )
 from ...models.strategic_grant import StrategicQualificationObservation
 from ...models.strategic_universe import StrategicUniverseRoles
-from ...models.trading import AccountOrder, Fill, late_strategic_fill_allowed
+from ...models.trading import late_strategic_fill_allowed
 from ...portfolio_core import restoration_trade_weight, strategic_dominant_symbol
 from ...types import (
     AccountState,
@@ -28,6 +28,7 @@ from .discovery import (
     observe_strategic_candidates,
 )
 from .grant_lifecycle import completed_strategic_core_entry, revalidate_strategic_grant
+from .grant_lifecycle import settled_strategic_reduction as _settled_strategic_exit_target
 from .qualification_candidates import reset_strategic_candidate_eligibility
 
 if TYPE_CHECKING:
@@ -57,6 +58,7 @@ class _StrategicLifecycleContext:
     dominant_profit_locked: bool
     thresholds: tuple[float, ...]
     dominant_profit_lock_armed_now: bool = False
+    core_profit_lock_symbol: str | None = None
 
 
 def _bounded_strategic_restore_risk_open(
@@ -253,6 +255,9 @@ def _arm_dominant_profit_lock(
     symbol: str,
     peak_mfe: float,
 ) -> None:
+    if symbol != ctx.dominant_symbol:
+        _arm_completed_core_profit_lock(ctx, symbol=symbol, peak_mfe=peak_mfe)
+        return
     if not (
         symbol == ctx.dominant_symbol
         and not ctx.dominant_profit_locked
@@ -269,6 +274,30 @@ def _arm_dominant_profit_lock(
     account.protected_weights.pop(symbol, None)
     ctx.dominant_profit_locked = True
     ctx.dominant_profit_lock_armed_now = True
+
+
+def _arm_completed_core_profit_lock(
+    ctx: _StrategicLifecycleContext, *, symbol: str, peak_mfe: float,
+) -> None:
+    account, cfg = ctx.account, ctx.policy.cfg
+    grant = account.strategic_grant
+    if (grant is None or grant.candidate_symbol != symbol
+            or set(account.strategic_cohort_targets) != {symbol}
+            or peak_mfe < cfg.strategic_dominant_profit_lock_mfe):
+        return
+    if not completed_strategic_core_entry(account, grant):
+        return
+    if any(order.symbol == symbol and order.side == "BUY"
+           and (order.status in {"SUBMITTED", "OPEN", "PARTIALLY_FILLED"}
+                or late_strategic_fill_allowed(order)) for order in account.order_ledger):
+        return
+    cap = cfg.strategic_dominant_retained_gross * _bounded_strategic_exit_scale(ctx, symbol=symbol)
+    if ctx.weights_now.get(symbol, 0.0) <= cap + 1e-12:
+        return
+    if not _settled_strategic_exit_target(
+        account, symbol, cap, mechanism="STRATEGIC_PROFIT_LOCK",
+    ):
+        ctx.core_profit_lock_symbol = symbol
 
 
 def _bounded_strategic_exit_scale(
@@ -599,103 +628,25 @@ def _limit_revoked_strategic_proposal(
     return proposed
 
 
-def _strategic_exit_order_matches(order: AccountOrder, account: AccountState,
-                                  symbol: str, target: float) -> bool:
-    position = account.positions[symbol]
-    return bool(
-        (order.symbol, order.side, order.status, order.epoch_id, order.grant_id,
-         order.mechanism, order.reduction_policy)
-        == (symbol, "SELL", "FILLED", position.epoch_id, position.grant_id,
-            "STRATEGIC_TRAILING_EXIT", "FIFO")
-        and order.event_id and abs(order.target_weight - target) <= 1e-12
-        and order.requested_shares > 0 and order.remaining_shares == 0
-        and order.filled_shares == order.requested_shares
-    )
-
-
-def _native_buy_lot_id(tranche_id: object, buy: Fill) -> bool:
-    if not isinstance(tranche_id, str):
-        return False
-    # Broker availability reconciliation can split either native lot format.
-    prefix = f"{buy.fill_date}:{buy.symbol}:"
-    while True:
-        if buy.fill_id and tranche_id == f"broker-fill:{buy.fill_id}":
-            return True
-        if tranche_id.startswith(prefix):
-            suffix = tranche_id[len(prefix):]
-            if suffix.isdecimal() and int(suffix) > 0:
-                return True
-        if not tranche_id.endswith((":sellable", ":t1")):
-            return False
-        tranche_id = tranche_id.rsplit(":", 1)[0]
-
-
-def _strategic_sold_lot_origin(lot: dict[str, Any], fill: Fill,
-                              earlier: list[Fill]) -> bool:
-    shares = lot.get("shares")
-    if type(shares) is not int or shares <= 0:
-        return False
-    if (lot.get("epoch_id"), lot.get("grant_id")) != (fill.epoch_id, fill.grant_id):
-        return False
-    return any(
-        buy.shares >= shares
-        and _native_buy_lot_id(lot.get("tranche_id"), buy)
-        and (buy.side, buy.symbol, buy.fill_date, buy.epoch_id, buy.grant_id,
-             buy.event_id, buy.mechanism)
-        == ("BUY", fill.symbol, lot.get("entry_date"), fill.epoch_id, fill.grant_id,
-            lot.get("event_id"), lot.get("mechanism"))
-        for buy in earlier
-    )
-
-
-def _strategic_exit_fill_matches(fill: Fill, order: AccountOrder,
-                                 earlier: list[Fill]) -> bool:
-    if (fill.symbol, fill.side, fill.epoch_id, fill.grant_id, fill.event_id,
-        fill.mechanism, fill.reduction_policy) != (
-        order.symbol, "SELL", order.epoch_id, order.grant_id, order.event_id,
-        order.mechanism, "FIFO",
-    ):
-        return False
-    return bool(
-        fill.shares > 0 and fill.sold_tranches
-        and all(_strategic_sold_lot_origin(lot, fill, earlier) for lot in fill.sold_tranches)
-        and sum(lot["shares"] for lot in fill.sold_tranches) == fill.shares
-    )
-
-
-def _strategic_exit_order_settled(account: AccountState, order: AccountOrder) -> bool:
-    matched = [(index, fill) for index, fill in enumerate(account.fills)
-               if fill.order_id == order.order_id]
-    if not matched or sum(fill.shares for _, fill in matched) != order.filled_shares:
-        return False
-    if not all(_strategic_exit_fill_matches(fill, order, account.fills[:index])
-               for index, fill in matched):
-        return False
-    return not any(fill.symbol == order.symbol and fill.side == "BUY" and fill.shares > 0
-                   for fill in account.fills[matched[0][0] + 1:])
-
-
-def _settled_strategic_exit_target(account: AccountState, symbol: str, target: float) -> bool:
-    """Read a completed reduction from the native ledger, never from price drift.
-
-    A changed band target remains a new instruction. Any later BUY or unsettled
-    execution prevents reuse of an old sale; surviving FIFO lots alone do not
-    establish this holding's continuity.
-    """
-    position = account.positions.get(symbol)
-    if position is None or position.shares <= 0 or not position.epoch_id:
-        return False
-    if any(order.symbol == symbol for order in account.pending_orders):
-        return False
-    if any(order.symbol == symbol and (late_strategic_fill_allowed(order)
-           or order.status in {"SUBMITTED", "OPEN", "PARTIALLY_FILLED"})
-           for order in account.order_ledger):
-        return False
-    for order in reversed(account.order_ledger):
-        if not _strategic_exit_order_matches(order, account, symbol, target):
-            continue
-        return _strategic_exit_order_settled(account, order)
-    return False
+def _apply_strategic_exit_bands(
+    ctx: _StrategicLifecycleContext, *, active_symbols: set[str],
+    proposed: dict[str, float], current_selected: dict[str, float],
+) -> None:
+    account = ctx.account
+    for symbol in active_symbols & set(account.strategic_exit_bands):
+        band_target = sum(account.strategic_exit_bands[symbol])
+        settled = _settled_strategic_exit_target(account, symbol, band_target)
+        proposed[symbol] = min(
+            proposed.get(symbol, 0.0),
+            current_selected.get(symbol, 0.0) if settled else band_target,
+        )
+        if ctx.core_profit_lock_symbol == symbol and not settled:
+            profit_cap = (ctx.policy.cfg.strategic_dominant_retained_gross
+                          * _bounded_strategic_exit_scale(ctx, symbol=symbol))
+            if band_target <= profit_cap + 1e-12:
+                # The tighter ATR instruction owns this sale and its receipt.
+                # No profit-lock order has been executed or consumed here.
+                ctx.core_profit_lock_symbol = None
 
 
 def _final_strategic_proposal(
@@ -736,13 +687,15 @@ def _final_strategic_proposal(
             proposed.get(ctx.dominant_symbol, 0.0),
             ctx.policy.cfg.strategic_dominant_retained_gross,
         )
-    for symbol in active_symbols & set(account.strategic_exit_bands):
-        band_target = sum(account.strategic_exit_bands[symbol])
+    if ctx.core_profit_lock_symbol is not None:
+        symbol = ctx.core_profit_lock_symbol
         proposed[symbol] = min(
             proposed.get(symbol, 0.0),
-            current_selected.get(symbol, 0.0)
-            if _settled_strategic_exit_target(account, symbol, band_target) else band_target,
+            ctx.policy.cfg.strategic_dominant_retained_gross
+            * _bounded_strategic_exit_scale(ctx, symbol=symbol),
         )
+    _apply_strategic_exit_bands(ctx, active_symbols=active_symbols,
+                               proposed=proposed, current_selected=current_selected)
     return _limit_revoked_strategic_proposal(account, proposed, current_selected)
 
 
@@ -856,8 +809,10 @@ def _strategic_cohort_targets(
         proposed=proposed,
         leaders=leaders,
         account=account,
-        dominant_profit_lock_armed_now=ctx.dominant_profit_lock_armed_now,
-        dominant_symbol=ctx.dominant_symbol,
+        dominant_profit_lock_armed_now=(
+            ctx.dominant_profit_lock_armed_now or ctx.core_profit_lock_symbol is not None
+        ),
+        dominant_symbol=ctx.core_profit_lock_symbol or ctx.dominant_symbol,
         current_selected=current_selected,
     )
 

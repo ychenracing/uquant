@@ -340,7 +340,15 @@ def test_protected_intent_survives_freeze_until_account_buy_gate_reopens() -> No
         prices={symbol: 1.0},
     )
 
-    assert {target.symbol: target.weight for target in frozen} == pytest.approx({symbol: 0.20})
+    # Existing protected level-1 repair permits this continuous holding to
+    # regain its saved intent inside Base Risk's explicit allowance. The freeze
+    # still denies the separate empty-book admission asserted below.
+    assert {target.symbol: target.weight for target in frozen} == pytest.approx({symbol: frozen_repair.target_gross_cap})
+    assert frozen[0].mechanism == "POST_SHOCK_RESTORATION"
+    assert frozen[0].origin_subsystem == "RECOVERY"
+    assert sum(target.weight for target in frozen) <= frozen_repair.target_gross_cap
+    assert frozen[0].weight <= protected.protected_weights[symbol]
+    assert (frozen[0].weight - .20) * 100.0 <= protected.cash
     assert protected.protected_weights == {symbol: 0.60}
     assert protected.cash == 80.0
     assert protected.positions[symbol].shares == 20
@@ -496,9 +504,14 @@ def test_protected_restore_uses_real_capacity_before_and_after_fills() -> None:
         prices={symbol: 1.0 for symbol in symbols},
     )
 
-    assert {target.symbol: target.weight for target in first_targets} == pytest.approx(
-        {symbol: 0.20 for symbol in symbols}
-    )
+    # Shared funding spends only the .10 available under the explicit .50
+    # repair cap. It cannot independently restore both protected .40 intents.
+    first_weights = {target.symbol: target.weight for target in first_targets}
+    assert first_weights == pytest.approx({"restore_a": .30, "restore_b": .20})
+    assert sum(first_weights.values()) == pytest.approx(first_repair.target_gross_cap)
+    assert all(first_weights[symbol] <= protected.protected_weights[symbol] for symbol in symbols)
+    assert sum(max(0.0, weight - .20) for weight in first_weights.values()) * 100 <= protected.cash
+    assert next(target for target in first_targets if target.symbol == "restore_a").mechanism == "POST_SHOCK_RESTORATION"
     assert protected.protected_weights == {symbol: 0.40 for symbol in symbols}
     assert protected.cash == 60.0
     assert {symbol: position.shares for symbol, position in protected.positions.items()} == dict.fromkeys(symbols, 20)

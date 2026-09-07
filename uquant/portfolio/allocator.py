@@ -152,6 +152,13 @@ def allocate(
         strategic_universe=strategic_universe,
     )
     if sentinel_only_freeze:
+        # Preserve only monotonic revocation for existing ordinary BUYs;
+        # never copy hypothetical restoration grants from the planning book.
+        for order in account.pending_orders:
+            if (order.side == "BUY" and not order.grant_id and not order.epoch_id
+                    and order.mechanism != AttributionMechanism.POST_SHOCK_RESTORATION.value
+                    and order.symbol not in strategy_account.protected_weights):
+                account.protected_weights.pop(order.symbol, None)
         account.strategic_qualification = deepcopy(strategy_account.strategic_qualification)
         account.flat_book_capital_repair = deepcopy(strategy_account.flat_book_capital_repair)
         for key, value in strategy_account.replacement_tenure.items():

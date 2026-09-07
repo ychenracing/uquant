@@ -25,6 +25,7 @@ from ..types import (
 from .capital import committed_capital, funded_increment
 from .strategic.authority import assess_strategic_capital_authority
 from .strategic.discovery import current_core_qualification
+from .strategic.grant_lifecycle import completed_strategic_core_entry as _completed_strategic_core_entry
 from .strategic.qualification_candidates import (
     reset_strategic_candidate_eligibility,
     strategic_candidate_confirmation,
@@ -332,9 +333,16 @@ def _fund_strategic_owners(book: _AllocationBook, *, frozen: bool,
 
 
 def _ordinary_exits(book: _AllocationBook) -> None:
+    """Use the same confirmed structural exit for completed, non-ACTIVE CORE."""
     account = book.account
     for symbol, position in account.positions.items():
-        if symbol in book.owned or position.shares <= 0:
+        if position.shares <= 0:
+            continue
+        grant = account.strategic_grant
+        if symbol in book.owned and not (
+            grant is not None and grant.candidate_symbol == symbol
+            and _completed_strategic_core_entry(account, grant)
+        ):
             continue
         book.record(symbol)["allocation_reason"] = "RETAINED_HOLDING"
         if not book.policy._leader_lifecycle_exit_confirmed(
@@ -363,13 +371,14 @@ def _pending_intents(book: _AllocationBook, *, candidates: list[str], buy_open: 
         if order.side == "SELL":
             book.proposed[order.symbol] = min(book.proposed.get(order.symbol, 0.0), order.target_weight)
             book.record(order.symbol)["allocation_reason"] = "PENDING_REDUCTION"
-        elif (buy_open and order.symbol not in book.owned
+        elif (order.symbol not in book.owned
               and order.mechanism != AttributionMechanism.POST_SHOCK_RESTORATION.value):
             if order.symbol not in candidates:
                 current = book.weights_now.get(order.symbol, 0.0)
                 if (current <= 0 or book.proposed.get(order.symbol, 0.0) < current
                         or order.symbol not in book.leaders):
                     book.record(order.symbol)["pending_buy_rejected"] = True
+                    book.account.protected_weights.pop(order.symbol, None)
                     continue
                 evidence = _candidate_entry(
                     book.policy, symbol=order.symbol, score=book.leaders[order.symbol],
@@ -380,8 +389,10 @@ def _pending_intents(book: _AllocationBook, *, candidates: list[str], buy_open: 
                 book.record(order.symbol)["pending_entry"] = evidence
                 if evidence["block"] != "READY":
                     book.record(order.symbol)["pending_buy_rejected"] = True
+                    book.account.protected_weights.pop(order.symbol, None)
                     continue
-            book.fund(order.symbol, order.target_weight, phase="PENDING_CORE_BUY")
+            if buy_open:
+                book.fund(order.symbol, order.target_weight, phase="PENDING_CORE_BUY")
 
 
 def _restore_ordinary_holdings(book: _AllocationBook) -> None:
@@ -425,6 +436,32 @@ def _restore_ordinary_holdings(book: _AllocationBook) -> None:
                      minimum=0.0 if pending else cfg.protected_restore_min_trade_weight):
             book.mechanisms[symbol] = AttributionMechanism.POST_SHOCK_RESTORATION
             book.reasons[symbol] = "core restoration after account risk repair"
+
+
+def _bounded_ordinary_restore_risk_open(book: _AllocationBook) -> bool:
+    """Preserve existing protected-book repair permissions inside Base Risk's cap."""
+    risk, account = book.risk, book.account
+    if (not account.protected_weights or risk.state not in {Risk.NORMAL, Risk.CAUTION}
+            or risk.evidence.get("sentinel_freeze_new_risk", False)):
+        return False
+    repair = (risk.reduction_level <= 1 and risk.votes <= 1
+              and float(risk.evidence.get("transition_damage", float("inf")))
+              <= book.policy.cfg.transition_damage_repair)
+    level1 = account.capital_budget_level == 1
+    synchronized = (risk.state is Risk.CAUTION and risk.shock_state == "RECOVERY"
+                    and "two-day synchronized leader repair" in risk.reasons
+                    and account.capital_budget_level <= 1 and account.chronic_level <= 1)
+    return bool(
+        (repair and (
+            (level1 and account.capital_budget_repair_streak >= 2)
+            or (level1 and account.capital_budget_repair_streak >= 1
+            and risk.state is Risk.CAUTION
+            and risk.shock_state in {"RECOVERY", "ROTATION_RECOVERY", "FAST_V_RECOVERY"})
+            or (account.capital_budget_level <= 1 and account.chronic_level >= 1
+            and account.chronic_repair_streak >= 2)
+        ))
+        or synchronized
+    )
 
 
 def _record_completed_transfer(book: _AllocationBook, symbol: str) -> None:
@@ -504,10 +541,12 @@ def _book_targets(book: _AllocationBook) -> tuple[Target, ...]:
     for target in targets:
         if target.symbol in book.strategic_targets:
             strategic = book.strategic_targets[target.symbol]
+            mechanism = book.mechanisms.get(target.symbol)
+            if mechanism is AttributionMechanism.LEADER_LIFECYCLE_EXIT:
+                mechanism = AttributionMechanism.STRATEGIC_TRAILING_EXIT
             target = replace(strategic, weight=target.weight,
                              reason=book.reasons.get(target.symbol, strategic.reason),
-                             mechanism=book.mechanisms[target.symbol].value
-                             if target.symbol in book.mechanisms else strategic.mechanism)
+                             mechanism=mechanism.value if mechanism is not None else strategic.mechanism)
         if target.mechanism == AttributionMechanism.POST_SHOCK_RESTORATION.value:
             target = replace(target, origin_subsystem=OriginSubsystem.RECOVERY.value)
         merged.append(_retained_order_identity(book, target))
@@ -559,9 +598,11 @@ def _allocate_strategy(
                                   trace=book.trace, certificates=certificates)
     _ordinary_exits(book)
     _pending_intents(book, candidates=candidates, buy_open=not frozen and not liabilities, certificates=certificates)
-    if not frozen and not liabilities:
+    ordinary_restore = _bounded_ordinary_restore_risk_open(book)
+    if not liabilities and (not frozen or ordinary_restore):
         book.committed, book.cash_room = committed_capital(account=account, prices=prices, proposed=proposed)
         _restore_ordinary_holdings(book)
+    if not frozen and not liabilities:
         _admit_new_cores(book, candidates=candidates, opportunity=opportunity)
     else:
         for symbol in candidates:
@@ -571,6 +612,10 @@ def _allocate_strategy(
         frozen_targets = self._frozen_existing_targets(
             strategy_targets=targets, leaders=leaders, account=account, weights_now=weights_now)
         permitted = {t.symbol: t for t in targets if t.symbol in owned} if bounded_restore else {}
+        if ordinary_restore and not liabilities:
+            permitted.update({t.symbol: t for t in targets
+                              if t.symbol not in owned
+                              and t.mechanism == AttributionMechanism.POST_SHOCK_RESTORATION.value})
         frozen_book = {t.symbol: t for t in frozen_targets}
         frozen_book.update(permitted)
         targets = tuple(frozen_book[symbol] for symbol in sorted(frozen_book))

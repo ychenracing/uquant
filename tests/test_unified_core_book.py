@@ -358,7 +358,9 @@ def test_partial_core_quality_controls_pending_orders_after_restart(
     assert {target.symbol: target.weight for target in targets} == pytest.approx({symbol: held_weight})
     assert plan_orders(signal_date=str(date.date()), targets=targets, account=resumed,
                        prices={symbol: 10.0}, cfg=DEFAULT_CONFIG) == ()
-    assert resumed.protected_weights == {symbol: 0.4}
+    # A rejected ordinary admission revokes its saved restoration right too;
+    # otherwise a later repair session can recast the cancelled BUY as a restore.
+    assert resumed.protected_weights == {}
     assert resumed.cash == account.cash == cash_after_fill
     assert resumed.positions[symbol].shares == account.positions[symbol].shares == filled_shares
     assert len(resumed.order_ledger) == len(resumed.fills) == 1

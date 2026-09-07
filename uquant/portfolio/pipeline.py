@@ -484,9 +484,14 @@ def _record_completed_transfer(book: _AllocationBook, symbol: str) -> None:
         book.account.replacement_tenure[transfer] = 0
 
 
+def _core_opportunity_open(opportunity: Opportunity) -> bool:
+    """Current qualified CORE entries may participate in confirmed market recovery."""
+    return opportunity in {Opportunity.RECOVERY, Opportunity.TREND, Opportunity.STRONG_TREND}
+
+
 def _admit_new_cores(book: _AllocationBook, *, candidates: list[str], opportunity: Opportunity) -> None:
-    if opportunity not in {Opportunity.TREND, Opportunity.STRONG_TREND} or book.risk.state is not Risk.NORMAL:
-        block = "OPPORTUNITY_NOT_OPEN" if opportunity not in {Opportunity.TREND, Opportunity.STRONG_TREND} else "RISK_NOT_NORMAL"
+    if not _core_opportunity_open(opportunity) or book.risk.state is not Risk.NORMAL:
+        block = "OPPORTUNITY_NOT_OPEN" if not _core_opportunity_open(opportunity) else "RISK_NOT_NORMAL"
         for symbol in candidates:
             book.record(symbol)["entry_gate"] = block
         return
@@ -581,7 +586,7 @@ def _allocate_strategy(
         date=date, risk=risk, user_panel=user_panel, leaders=leaders, account=account,
         prices=prices, weights_now=weights_now,
         admission_open=not frozen and risk.state is Risk.NORMAL
-        and opportunity in {Opportunity.TREND, Opportunity.STRONG_TREND},
+        and _core_opportunity_open(opportunity),
         qualification_panel=qualification_panel, qualification_leaders=qualification_leaders,
         strategic_universe=strategic_universe,
     )

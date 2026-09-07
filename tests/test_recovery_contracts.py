@@ -52,6 +52,7 @@ def _tactical_targets(
     tech_ret120: float,
     leader_score: float = 0.90,
     secular_score: float = 0.80,
+    missing_market_field: str | None = None,
 ) -> tuple[tuple[Target, ...], AccountState]:
     symbol = "deep_candidate"
     panel = _restore_panel([symbol])
@@ -64,8 +65,11 @@ def _tactical_targets(
     frame["ma20"], frame["ma60"], frame["ma120"] = close * .99, close * .97, close * .95
     frame["ret20"], frame["ret120"] = ret20, ret120
     account = AccountState.empty(2_000_000.0)
-    risk = RiskAssessment(Risk.NORMAL, 1.0, 0,
-        {"broad_ret120": broad_ret120, "tech_ret120": tech_ret120}, (), "NONE")
+    market = {"broad_ret120": broad_ret120, "tech_ret120": tech_ret120,
+              "breadth20": 0.70, "broad_ret20": 0.02, "tech_ret20": 0.02}
+    if missing_market_field is not None:
+        market.pop(missing_market_field)
+    risk = RiskAssessment(Risk.NORMAL, 1.0, 0, market, (), "NONE")
     components = {key: .95 for key in (
         "secular_confidence", "industry_inference_confidence", "momentum60", "momentum120",
         "relative_strength", "short_relative_strength", "trend_persistence", "breakout_quality",
@@ -111,6 +115,17 @@ def test_transitional_recovery_rejects_ordinary_rebound_candidate():
     assert targets == ()
     assert account.candidate_tenure.get("tactical_active", 0) == 0
     assert account.tactical_anchor_symbol == ""
+
+
+@pytest.mark.parametrize("field", ("breadth20", "broad_ret20", "tech_ret20", "broad_ret120", "tech_ret120"))
+def test_independent_recovery_rejects_incomplete_current_market_evidence(field):
+    targets, account = _tactical_targets(
+        ret20=0.10, ret120=0.50, broad_ret120=-0.10, tech_ret120=0.04,
+        missing_market_field=field,
+    )
+    assert targets == ()
+    assert account.replacement_tenure.get("strategic_eligibility:independent_core:deep_candidate", 0) == 0
+    assert account.cash == 2_000_000.0 and account.positions == {}
 
 
 @pytest.mark.parametrize("leader_score, secular_score", ((0.85, 0.80), (0.90, 0.75)))

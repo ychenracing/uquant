@@ -254,6 +254,8 @@ def test_partial_core_quality_controls_pending_orders_after_restart(
     tmp_path, quality, volume, filled_shares, decision_price, next_fill_shares,
 ):
     date, panel, leaders, risk = _inputs()
+    risk.evidence.update(breadth20=0.70, broad_ret20=0.02, tech_ret20=0.02,
+                         broad_ret120=0.04, tech_ret120=0.04)
     symbol = "sh688008"
     frame = panel["sh600001"]
     dates = frame.index

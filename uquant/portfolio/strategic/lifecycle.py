@@ -634,6 +634,13 @@ def _limit_revoked_strategic_proposal(
     return proposed
 
 
+def _completed_core_profit_cap(ctx: _StrategicLifecycleContext) -> float:
+    budget = completed_core_admission_budget(ctx.account)
+    if budget is None:
+        raise RuntimeError("completed CORE profit lock requires its native admission budget")
+    return min(ctx.policy.cfg.strategic_dominant_retained_gross, budget)
+
+
 def _apply_strategic_exit_bands(
     ctx: _StrategicLifecycleContext, *, active_symbols: set[str],
     proposed: dict[str, float], current_selected: dict[str, float],
@@ -647,9 +654,7 @@ def _apply_strategic_exit_bands(
             current_selected.get(symbol, 0.0) if settled else band_target,
         )
         if ctx.core_profit_lock_symbol == symbol and not settled:
-            budget = completed_core_admission_budget(account)
-            assert budget is not None  # The current completed entry armed this instruction.
-            profit_cap = min(ctx.policy.cfg.strategic_dominant_retained_gross, budget)
+            profit_cap = _completed_core_profit_cap(ctx)
             if band_target <= profit_cap + 1e-12:
                 # The tighter ATR instruction owns this sale and its receipt.
                 # No profit-lock order has been executed or consumed here.
@@ -696,12 +701,7 @@ def _final_strategic_proposal(
         )
     if ctx.core_profit_lock_symbol is not None:
         symbol = ctx.core_profit_lock_symbol
-        budget = completed_core_admission_budget(account)
-        assert budget is not None  # The current completed entry armed this instruction.
-        proposed[symbol] = min(
-            proposed.get(symbol, 0.0),
-            ctx.policy.cfg.strategic_dominant_retained_gross, budget,
-        )
+        proposed[symbol] = min(proposed.get(symbol, 0.0), _completed_core_profit_cap(ctx))
     _apply_strategic_exit_bands(ctx, active_symbols=active_symbols,
                                proposed=proposed, current_selected=current_selected)
     return _limit_revoked_strategic_proposal(account, proposed, current_selected)

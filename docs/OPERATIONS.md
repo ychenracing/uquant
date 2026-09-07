@@ -171,6 +171,14 @@ uv run uquant daily \
 `current_core_qualification` 只共享原路线、quorum、真实见证及连续确认已经成立的证据，
 仍须通过当前市场质量、Risk/冻结、实际现金、总仓、单名、行业与相关簇限制。此类新买入
 仍为普通 `LEADER_SELECTION` / `CORE`，不绑定或复制旧战略 grant/epoch；证书不是新授冠。
+普通 CORE 新入场在机会为 `RECOVERY`、`TREND` 或 `STRONG_TREND` 时可进入资金
+检查，仍要求 `Risk.NORMAL`、无新增风险冻结和当前有效资格；`WEAK`/`CHOPPY` 继续
+关闭这条路径。适用对象包括独立合格和共享证书合格的 CORE；账户已有持仓时也可检查
+剩余现金与全部总仓、行业、相关簇和挂单占用，不只限全现金账户或 FULL 证书。修复期
+开放较早入场也可能带来更早失败和资金占用，不能仅凭机会标签判断可买。
+这不放宽全现金修复授权的健康市场条件：其冻结期间的一次性重新进入仍须满足原有
+`TREND/STRONG_TREND` 条件及修复证明，不能仅凭 `RECOVERY` 获得额外授权。
+
 `pending current quality` 展示普通部分成交挂单本次记录的继续买入资格：可沿用当前仍成立的
 已确认战略证书；否则须成熟、当前 `independent_core` 观察有效且满足市场质量条件，确认
 要求为 1 日。独立观察须同时取得当天五项有限市场值：`breadth20`、`broad_ret20`、

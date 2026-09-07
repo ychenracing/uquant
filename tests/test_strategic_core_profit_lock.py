@@ -339,3 +339,37 @@ def test_budget_helper_does_not_read_full_weight_even_outside_deployable_configu
     cap = min(DEFAULT_CONFIG.strategic_dominant_retained_gross, completed_core_admission_budget(account))
     assert cap == pytest.approx(original)
     assert cap > DEFAULT_CONFIG.strategic_dominant_retained_gross * original / .95
+
+
+def test_profit_cap_missing_native_budget_fails_closed_even_with_python_optimization():
+    import subprocess
+    import sys
+    from pathlib import Path
+    from textwrap import dedent
+
+    # Exercise the actual runtime check under -O, where an assert guard would
+    # disappear. The positive budget first comes from a real native CORE fill.
+    script = dedent("""
+        import sys
+        from types import SimpleNamespace
+        sys.path.insert(0, sys.argv[1])
+        from test_strategic_core_profit_lock import _marked_core, _bounded_cap
+        from uquant.portfolio.strategic.lifecycle import _completed_core_profit_cap
+
+        if __debug__:
+            raise RuntimeError("optimization was not enabled")
+        policy, account, *_ = _marked_core()
+        context = SimpleNamespace(policy=policy, account=account)
+        if _completed_core_profit_cap(context) != _bounded_cap(account):
+            raise RuntimeError("valid native budget unexpectedly changed")
+        account.fills.clear()
+        try:
+            _completed_core_profit_cap(context)
+        except RuntimeError:
+            pass
+        else:
+            raise RuntimeError("missing native budget gained profit-lock authority")
+    """)
+    tests = Path(__file__).resolve().parent
+    subprocess.run([sys.executable, "-O", "-c", script, str(tests)],
+                   cwd=tests.parent, check=True, capture_output=True, text=True)

@@ -399,6 +399,7 @@ def test_strategic_exit_does_not_close_an_unrelated_ordinary_holding(monkeypatch
     account = AccountState.empty(1000.0)
     account.cash = 0.0
     account.positions = {s: Position(s, 50, 8.0, "2025-01-02", 10.0) for s in list(panel)[:2]}
+    account.positions["sh600001"].epoch_id = "fixture-strategic-epoch"
     account.strategic_cohort_symbols = ["sh600001"]
     monkeypatch.setattr(
         policy,
@@ -445,6 +446,7 @@ def test_strategic_increase_cannot_take_an_ordinary_incumbents_capital(monkeypat
         "sh600001": Position("sh600001", 30, 8.0, "2025-01-02", 10.0),
         "sh600002": Position("sh600002", int(ordinary_weight * 100), 8.0, "2025-01-02", 10.0),
     }
+    account.positions["sh600001"].epoch_id = "fixture-strategic-epoch"
     account.strategic_cohort_symbols = ["sh600001"]
     leaders["sh600002"] = replace(leaders["sh600002"], industry=leaders["sh600001"].industry)
     monkeypatch.setattr(policy, "_strategic_cohort_targets", lambda **kwargs: (

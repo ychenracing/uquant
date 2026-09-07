@@ -1,3 +1,5 @@
+"""Synthetic allocator state fixtures; these are not economic replay evidence."""
+
 from __future__ import annotations
 
 import pandas as pd
@@ -125,19 +127,19 @@ def test_risk_liquidated_strategic_exit_band_is_settled_without_reentry():
 def test_strategic_restore_waits_for_every_member_but_settles_a_satisfied_pending_buy():
     dates = pd.bdate_range("2025-01-02", periods=150)
     frame = _trend_frame(dates)
-    symbols = ("restored_a", "restored_b", "missing_c")
+    symbols = ("restored_a", "restored_b", "compressed_c")
     account = AccountState(
         initial_cash=100.0,
-        cash=40.0,
+        cash=30.0,
         positions={
             symbol: Position(
                 symbol,
-                shares=30,
+                shares=10 if symbol == symbols[2] else 30,
                 avg_cost=1.0,
                 entry_date=str(dates[-20].date()),
                 highest_close=1.0,
             )
-            for symbol in symbols[:2]
+            for symbol in symbols
         },
         strategic_cohort_symbols=list(symbols),
         strategic_cohort_targets={symbol: 0.30 for symbol in symbols},
@@ -161,7 +163,7 @@ def test_strategic_restore_waits_for_every_member_but_settles_a_satisfied_pendin
         leaders={symbol: _leader(symbol, 0.90) for symbol in symbols},
         account=account,
         prices={symbol: 1.0 for symbol in symbols},
-        weights_now={symbols[0]: 0.30, symbols[1]: 0.30},
+        weights_now={symbols[0]: 0.30, symbols[1]: 0.30, symbols[2]: 0.10},
     )
 
     observed = {target.symbol: target.weight for target in targets or ()}
@@ -169,13 +171,11 @@ def test_strategic_restore_waits_for_every_member_but_settles_a_satisfied_pendin
     assert observed == pytest.approx({symbol: 0.30 for symbol in symbols})
     assert account.strategic_restore_weights == {symbol: 0.30 for symbol in symbols}
 
-    account.positions[symbols[2]] = Position(
-        symbols[2],
-        shares=30,
-        avg_cost=1.0,
-        entry_date=str(dates[-20].date()),
-        highest_close=1.0,
-    )
+    assert account.cash == 30.0
+    assert account.positions[symbols[2]].shares == 10
+
+    # Independent satisfied-account snapshot, not a simulated fill or receipt.
+    account.positions[symbols[2]].shares = 30
     account.cash = 10.0
     account.pending_orders = [
         PendingOrder(
@@ -379,7 +379,10 @@ def test_strategic_restore_waits_for_fills_and_respects_shared_caps():
         initial_cash=100.0,
         cash=40.0,
         positions={
-            symbol: Position(symbol, shares=30, avg_cost=1.0, highest_close=1.0) for symbol in symbols[:2]
+            symbol: Position(
+                symbol, shares=shares, avg_cost=1.0, highest_close=1.0,
+            )
+            for symbol, shares in zip(symbols, (30, 29, 1), strict=True)
         },
         strategic_cohort_symbols=list(symbols),
         strategic_cohort_targets={symbol: 0.30 for symbol in symbols},
@@ -421,13 +424,13 @@ def test_strategic_restore_waits_for_fills_and_respects_shared_caps():
         **common,
     )
     assert {target.symbol: target.weight for target in partial or ()} == pytest.approx(
-        {"restore_a": 0.20, "restore_b": 0.20, "restore_c": 0.0}
+        {"restore_a": 0.20, "restore_b": 0.20, "restore_c": 0.01}
     )
     # The proposed sells have not released the physically occupied 60% budget.
     assert account.strategic_restore_weights == {symbol: 0.30 for symbol in symbols}
     assert account.cash == 40.0
     assert {symbol: position.shares for symbol, position in account.positions.items()} == {
-        symbol: 30 for symbol in symbols[:2]
+        symbol: shares for symbol, shares in zip(symbols, (30, 29, 1), strict=True)
     }
 
     full = allocator.allocate(
@@ -440,23 +443,26 @@ def test_strategic_restore_waits_for_fills_and_respects_shared_caps():
     )
     assert account.strategic_restore_weights == {symbol: 0.30 for symbol in symbols}
     assert account.cash == 40.0
-    assert set(account.positions) == set(symbols[:2])
+    assert set(account.positions) == set(symbols)
 
 def test_level2_strategic_restore_funds_missing_members_only_after_sell_fills():
+    """The shortfall belongs to a continuously held, compressed member."""
     dates = pd.bdate_range("2025-01-02", periods=150)
     frame = _trend_frame(dates)
-    symbols = ("held_a", "held_b", "missing_c")
+    symbols = ("held_a", "held_b", "compressed_c")
     account = AccountState(
         initial_cash=100.0,
         cash=40.0,
         positions={
-            symbol: Position(symbol, shares=30, avg_cost=1.0, highest_close=1.0)
-            for symbol in symbols[:2]
+            symbol: Position(
+                symbol, shares=shares, avg_cost=1.0, highest_close=1.0,
+            )
+            for symbol, shares in zip(symbols, (30, 29, 1), strict=True)
         },
         strategic_cohort_symbols=list(symbols),
         strategic_cohort_targets={symbol: 0.30 for symbol in symbols},
         strategic_restore_weights={symbol: 0.30 for symbol in symbols},
-        strategic_candidate_signature="strategic_qualification:reversal_industry:held_a,held_b,missing_c",
+        strategic_candidate_signature="strategic_qualification:reversal_industry:held_a,held_b,compressed_c",
         candidate_tenure={"strategic_cohort_active": 1, "strategic_cohort_started": 1},
         capital_budget_level=2,
         operating_peak=100.0,
@@ -485,19 +491,20 @@ def test_level2_strategic_restore_funds_missing_members_only_after_sell_fills():
     )
 
     assert {target.symbol: target.weight for target in targets or ()} == pytest.approx(
-        {"held_a": 0.20, "held_b": 0.20, "missing_c": 0.0}
+        {"held_a": 0.20, "held_b": 0.20, "compressed_c": 0.01}
     )
     assert account.strategic_restore_weights == {symbol: 0.30 for symbol in symbols}
     assert account.cash == 40.0
     assert {symbol: position.shares for symbol, position in account.positions.items()} == {
-        symbol: 30 for symbol in symbols[:2]
+        symbol: shares for symbol, shares in zip(symbols, (30, 29, 1), strict=True)
     }
     assert account.capital_budget_level == 2
 
-    # Filling the reductions releases real capacity for the saved missing member.
-    for position in account.positions.values():
-        position.shares = 20
-    account.cash = 60.0
+    # Independent post-reduction state: 20 + 20 + 1 shares, 59 cash.
+    # The compressed member never reaches zero; no fill evidence is fabricated.
+    for symbol in symbols[:2]:
+        account.positions[symbol].shares = 20
+    account.cash = 59.0
     funded = allocator.allocate(
         date=dates[-1],
         opportunity=Opportunity.TREND,
@@ -511,8 +518,8 @@ def test_level2_strategic_restore_funds_missing_members_only_after_sell_fills():
         {symbol: 0.20 for symbol in symbols}
     )
     assert account.strategic_restore_weights == {symbol: 0.30 for symbol in symbols}
-    assert account.cash == 60.0
-    assert set(account.positions) == set(symbols[:2])
+    assert account.cash == 59.0
+    assert set(account.positions) == set(symbols)
 
 def test_frozen_recovery_keeps_saved_rights_without_industry_quorum_clearing() -> None:
     dates = pd.bdate_range("2025-01-02", periods=150)
@@ -742,15 +749,17 @@ def test_incomplete_strategic_sell_keeps_global_lifecycle_priority_on_recovery_c
     assert {target.symbol: target.weight for target in targets} == pytest.approx({mixed: 0.20, add2: 0.20})
 
 def test_strategic_risk_capture_merges_members_without_losing_a_missing_restore():
+    """Preserve an underfilled held member's saved weight while merging risk caps."""
     dates = pd.bdate_range("2025-01-02", periods=150)
     frame = _trend_frame(dates)
-    symbols = ("capture_a", "capture_b", "already_missing")
+    symbols = ("capture_a", "capture_b", "already_compressed")
     account = AccountState(
         initial_cash=100.0,
-        cash=20.0,
+        cash=10.0,
         positions={
             symbols[0]: Position(symbols[0], shares=50, avg_cost=1.0, highest_close=1.0),
             symbols[1]: Position(symbols[1], shares=30, avg_cost=1.0, highest_close=1.0),
+            symbols[2]: Position(symbols[2], shares=10, avg_cost=1.0, highest_close=1.0),
         },
         strategic_cohort_symbols=list(symbols),
         strategic_cohort_targets={symbol: 0.30 for symbol in symbols},
@@ -776,7 +785,7 @@ def test_strategic_risk_capture_merges_members_without_losing_a_missing_restore(
         leaders={symbol: _leader(symbol, 0.90) for symbol in symbols},
         account=account,
         prices={symbol: 1.0 for symbol in symbols},
-        weights_now={symbols[0]: 0.50, symbols[1]: 0.30},
+        weights_now={symbols[0]: 0.50, symbols[1]: 0.30, symbols[2]: 0.10},
     )
 
     assert account.strategic_restore_weights == pytest.approx(

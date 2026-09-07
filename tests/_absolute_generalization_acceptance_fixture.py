@@ -33,7 +33,6 @@ from test_absolute_generalization_reachability import (
     _roles as _reachability_roles,
 )
 
-from uquant.account import account_from_dict, economic_state_sha256
 from uquant.config import DEFAULT_CONFIG, config_fingerprint
 from uquant.contracts.strict_json import (
     canonical_json_bytes,
@@ -55,8 +54,10 @@ from uquant.validation.absolute_generalization import (
     derive_cell_metrics,
     load_absolute_generalization_contract,
 )
+from uquant.validation.absolute_generalization._acceptance_evidence import current_candidate_champion_evidence
 from uquant.validation.absolute_generalization._champion_runtime_reconciliation import (
-    decode_champion_account,
+    derive_champion_runtime_claims,
+    derive_report_runtime_claims,
     project_champion_account,
 )
 from uquant.validation.absolute_generalization._physical_identity import (
@@ -79,7 +80,7 @@ from uquant.validation.absolute_generalization.scenarios import (
 
 ROOT = Path(__file__).resolve().parents[1]
 ALTERNATE_OWNER = "sh601869"
-_CHAMPION_RAW_SHA256 = "1f48879fa365c8a0688665e177fcaa722f899e1381b00f645a1c357413934aa2"
+_CHAMPION_RAW_SHA256 = "45596a5bf419927dcacea8fef3db49cb5172263372a549858ea3d8a6298c520f"
 
 
 def checkout_identity() -> tuple[str, str]:
@@ -296,13 +297,31 @@ def _envelope(shard: str, cells: list[dict[str, object]]) -> dict[str, object]:
 
 
 def _champion() -> dict[str, object]:
-    grant_contract = json.loads(
-        (ROOT / "benchmarks/strategic_grant_acceptance_contract.json").read_text(encoding="utf-8")
-    )
     encoded = gzip.decompress((ROOT / "tests/fixtures/absolute_champion_runtime_raw.json.gz").read_bytes())
     if hashlib.sha256(encoded).hexdigest() != _CHAMPION_RAW_SHA256:
         raise ValueError("champion raw fixture identity differs")
     runtime_raw = cast(dict[str, object], strict_json_loads(encoded))
+    return _champion_from_raw(
+        runtime_raw,
+        expected_source=load_absolute_generalization_contract().candidate.production_source_sha256,
+    )
+
+
+def _champion_from_raw(runtime_raw: dict[str, object], *, expected_source: str) -> dict[str, object]:
+    """Derive fixture claims without relabelling the native replay's source identity."""
+    native_account = cast(dict[str, object], runtime_raw["final_account"])
+    if native_account["code_hash"] != expected_source:
+        raise ValueError("champion raw fixture source differs from its explicit test binding")
+    grant_contract = json.loads(
+        (ROOT / "benchmarks/strategic_grant_acceptance_contract.json").read_text(encoding="utf-8")
+    )
+    ownership_contract = json.loads(
+        (ROOT / "benchmarks/strategic_ownership_acceptance_contract.json").read_text(encoding="utf-8")
+    )
+    claims = derive_champion_runtime_claims(
+        runtime_raw, frozenset(grant_contract["ignored_non_economic_fields"]),
+    )
+    report, completion = derive_report_runtime_claims(runtime_raw, ownership_contract["report_universe_13"])
     final_account = project_champion_account(cast(dict[str, object], runtime_raw["final_account"]))
     decision_trace = cast(list[dict[str, object]], runtime_raw["decision_trace"])
     report_trace = copy.deepcopy(decision_trace)
@@ -317,51 +336,12 @@ def _champion() -> dict[str, object]:
         if target["origin_subsystem"] == "STRATEGIC" and target["weight"] > 0.0
     ]
     champion: dict[str, object] = {
-        "metrics": {
-            "account_orders": 12,
-            "final_equity": 49_019_323.60580173,
-            "final_wealth": 24.509661802900865,
-            "max_drawdown": 0.27146973146234554,
-            "total_return": 23.509661802900865,
-        },
-        "path_sha256": {
-            "equity": "654142a4a217d243c53104ac6636a1778314c2e04497cfd0456a6385ea3aab39",
-            "fills": "e4927cfbce9202e488dfc3c0cbadf412c527a68314b499eab4e9d916d5037fd1",
-            "orders": "24befbce7f2a2eb46b82d2dcd9ef1351d628616ba848a167deff4dc36c857a00",
-            "positions": "8819f3e2c32e9076bf6007040510c93ae02cbef8d6c41159bf12ffccec9782d0",
-            "targets": "7f33eca7246df9af6895865b526e7e754f9a3a78ffc5dd9b7a293d78cd8c0f95",
-        },
-        "duplicate_grant_count": 0,
-        "duplicate_order_count": 0,
-        "duplicate_epoch_count": 0,
-        "incumbent_epoch_count": 1,
-        "successor_capital_before_incumbent_exit_count": 0,
-        "report_13": {
-            "initial_cash": final_account["initial_cash"],
-            "cash": final_account["cash"],
-            "position_market_value": 0.0,
-            "realized_pnl": 47_019_323.60580174,
-            "open_pnl": 0.0,
-            "final_equity": champion_equity_curve[-1]["equity"],
-            "maximum_target_gross": max(cast(float, row["target_gross"]) for row in report_trace),
-            "minimum_risk_target_gross_cap": min(
-                cast(float, cast(dict[str, object], row["risk"])["target_gross_cap"]) for row in report_trace
-            ),
-            "owner_symbols": sorted(item["owner_symbol"] for item in epochs),
-            "unexpected_owner_symbols": [],
-        },
-        "strategic_grant_acceptance": {
-            "baseline": {
-                "first_positive_target_session": grant_contract["baseline"][
-                    "expected_first_positive_target_session"
-                ],
-                "metrics": grant_contract["baseline"]["expected_metrics"],
-                "sha256": grant_contract["baseline"]["expected_sha256"],
-            },
-        },
+        **claims,
+        "report_13": report,
+        "strategic_grant_acceptance": {"baseline": current_candidate_champion_evidence(runtime_raw)},
         "strategic_ownership_acceptance": {
             "contract_sha256": "72e6b510c3bcf44ac77d2c13613f4d72a14ae8dab0d60a19e5947055ae7cbf08",
-            "production_source_identity": load_absolute_generalization_contract().candidate.production_source_sha256,
+            "production_source_identity": expected_source,
             "champion": {
                 "scenario_id": "champion-5",
                 "owner_symbols": sorted(item["owner_symbol"] for item in epochs),
@@ -383,13 +363,7 @@ def _champion() -> dict[str, object]:
                 "scenario_id": "report-13",
                 "window_start": "2023-01-03",
                 "window_end": "2026-08-05",
-                "observed_sessions": len(report_trace),
-                "account_orders": 12,
-                "final_equity": champion_equity_curve[-1]["equity"],
-                "final_account_sha256": economic_state_sha256(
-                    account_from_dict(decode_champion_account(final_account), require_hashes=False)
-                ),
-                "trace_sha256": canonical_json_sha256(report_trace),
+                **completion,
                 "final_account": final_account,
                 "decision_trace": report_trace,
                 "order_ledger": champion_order_ledger,

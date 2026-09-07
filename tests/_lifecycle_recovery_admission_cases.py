@@ -389,7 +389,8 @@ def test_ambiguous_recovery_metadata_cannot_authorize_unqualified_deployment() -
     assert account.positions == {}
     assert account.pending_orders == []
 
-def test_unfinished_held_buy_retains_only_shared_concentration_capacity() -> None:
+def test_unqualified_held_buy_cannot_use_shared_spare_capacity() -> None:
+    """Current entry checks supersede spare-capacity funding of a failed route."""
     dates = pd.bdate_range("2025-01-02", periods=150)
     symbols = ("lead", "second", "third")
     panel: dict[str, pd.DataFrame] = {}
@@ -454,9 +455,9 @@ def test_unfinished_held_buy_retains_only_shared_concentration_capacity() -> Non
     )
 
     assert {target.symbol: target.weight for target in targets} == pytest.approx(
-        {"lead": 0.43, "second": 0.16, "third": 0.16}
+        {"lead": 0.30, "second": 0.16, "third": 0.16}
     )
-    # The unfinished buy keeps available funding, bounded by the shared 75% cap.
+    assert risk.evidence["core_allocation"]["symbols"]["lead"]["pending_buy_rejected"] is True
     assert account.anchor_weights == {"lead": 0.60, "second": 0.16, "third": 0.16}
     assert account.cash == 38.0
     assert {symbol: position.shares for symbol, position in account.positions.items()} == {

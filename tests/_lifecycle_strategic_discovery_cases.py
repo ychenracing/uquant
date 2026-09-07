@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from dataclasses import replace
+
 import numpy as np
 import pandas as pd
 import pytest
@@ -235,7 +237,7 @@ def test_synchronized_industry_impulse_is_causal_and_signature_order_invariant()
         Risk.NORMAL,
         1.0,
         0,
-        {"tech_ret120": 0.0, "broad_ret20": -0.01, "tech_ret20": 0.02},
+        {**_normal_risk().evidence, "broad_ret20": -0.01, "tech_ret20": 0.02},
         (),
         "NONE",
     )
@@ -305,6 +307,7 @@ def test_established_cohort_rejects_a_broadly_negative_market_rebound() -> None:
         1.0,
         0,
         {
+            **_normal_risk().evidence,
             "broad_ret20": -0.04,
             "tech_ret20": -0.06,
             "tech_ret120": -0.20,
@@ -336,6 +339,7 @@ def test_strategic_cohort_defers_while_both_market_legs_remain_in_recovery() -> 
         1.0,
         0,
         {
+            **_normal_risk().evidence,
             "broad_ret20": 0.08,
             "tech_ret20": 0.20,
             "broad_ret120": -0.15,
@@ -533,3 +537,24 @@ def test_persistent_startup_exception_defers_an_overextended_cohort() -> None:
     assert close[-1] / close[-121] - 1.0 > DEFAULT_CONFIG.strategic_persistent_max_ret120
     assert account.strategic_epoch == 0
     assert account.candidate_tenure["strategic_long_cycle_open"] == 0
+
+
+@pytest.mark.parametrize("missing", ("breadth20", "broad_ret20", "tech_ret20", "broad_ret120", "tech_ret120"))
+def test_strategic_discovery_requires_each_current_market_observation(missing: str) -> None:
+    dates = pd.bdate_range("2023-01-02", periods=246)
+    panel, leaders = _dynamic_cohort_inputs(dates)
+    account = AccountState.empty(100.0)
+    risk = _normal_risk()
+    evidence = dict(risk.evidence)
+    del evidence[missing]
+    incomplete = replace(risk, evidence=evidence)
+    allocator = PortfolioAllocator(DEFAULT_CONFIG)
+
+    for date in dates[-DEFAULT_CONFIG.strategic_cohort_confirm_days :]:
+        allocator._initialize_strategic_cohort(
+            date=date, user_panel=panel, leaders=leaders, account=account, risk=incomplete,
+        )
+
+    assert account.strategic_epochs == []
+    assert account.strategic_cohort_targets == {}
+    assert account.candidate_tenure["strategic_cohort_qualification"] == 0

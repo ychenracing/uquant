@@ -458,6 +458,7 @@ def test_failed_restoration_retires_strategic_restore_before_early_return(
                 avg_cost=1.0,
                 entry_date=str(dates[-20].date()),
                 highest_close=1.0,
+                epoch_id="fixture-failed-strategic-epoch",
             )
             for symbol in symbols
         },

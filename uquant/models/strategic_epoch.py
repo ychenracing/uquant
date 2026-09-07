@@ -399,11 +399,11 @@ def bind_account_strategic_ownership(account: Any) -> None:
 
     def owner_for_symbol(symbol: str) -> str:
         position = account.positions.get(symbol)
-        if position is not None and position.shares > 0 and position.epoch_id in known:
-            return str(position.epoch_id)
+        if position is not None and position.shares > 0:
+            return str(position.epoch_id) if position.epoch_id in known else ""
         if (
             account.active_strategic_epoch_id in known
-            and symbol in account.strategic_cohort_symbols
+            and symbol in account.strategic_cohort_targets
         ):
             return str(account.active_strategic_epoch_id)
         return ""

@@ -579,9 +579,6 @@ def _allocate_strategy(
     _prepare_account(self, risk=risk, account=account, weights_now=weights_now)
     frozen = (risk.freeze_new_risk or bool(risk.evidence.get("freeze_new_risk", False))
               or risk.state in {Risk.RISK_OFF, Risk.CRISIS})
-    owned = (set(account.strategic_cohort_symbols)
-             | {s for s, position in account.positions.items() if position.grant_id or position.epoch_id}
-             | {order.symbol for order in account.pending_orders if order.grant_id or order.epoch_id})
     strategic = self._strategic_cohort_targets(
         date=date, risk=risk, user_panel=user_panel, leaders=leaders, account=account,
         prices=prices, weights_now=weights_now,
@@ -590,7 +587,10 @@ def _allocate_strategy(
         qualification_panel=qualification_panel, qualification_leaders=qualification_leaders,
         strategic_universe=strategic_universe,
     )
-    owned.update(account.strategic_cohort_symbols)
+    owned = (set(account.strategic_cohort_targets)
+             | {s for s, position in account.positions.items()
+                if position.shares > 0 and (position.grant_id or position.epoch_id)}
+             | {order.symbol for order in account.pending_orders if order.grant_id or order.epoch_id})
     strategic_targets = {target.symbol: target for target in strategic or () if target.symbol in owned}
     proposed = dict(weights_now)
     proposed.update({s: min(weights_now.get(s, 0.0), target.weight) for s, target in strategic_targets.items()})

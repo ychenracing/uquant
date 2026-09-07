@@ -124,7 +124,20 @@ def _leader(
 
 
 def _normal_risk() -> RiskAssessment:
-    return RiskAssessment(Risk.NORMAL, 1.0, 0, {"tech_ret120": 0.0}, (), "NONE")
+    return RiskAssessment(
+        Risk.NORMAL,
+        1.0,
+        0,
+        {
+            "breadth20": 0.80,
+            "broad_ret20": 0.08,
+            "tech_ret20": 0.10,
+            "broad_ret120": 0.0,
+            "tech_ret120": 0.0,
+        },
+        (),
+        "NONE",
+    )
 
 
 def _frozen_caution() -> RiskAssessment:
@@ -736,6 +749,7 @@ def _risk_frame(
 
 from _lifecycle_strategic_discovery_cases import (
     test_strategic_cohort_discovers_arbitrary_symbols_without_a_static_prior,
+    test_strategic_discovery_requires_each_current_market_observation,
     test_strategic_rank_prefers_a_confirmed_industry_cluster_over_one_high_scoring_outsider,
     test_strategic_established_route_rejects_broken_medium_term_structure,
     test_strategic_transition_route_needs_no_high_240_day_secular_score,
@@ -761,7 +775,7 @@ from _lifecycle_strategic_cohort_cases import (
     test_single_name_strategic_cohort_rejects_a_nonexceptional_weak_leg,
     test_unqualified_universe_padding_cannot_authorize_a_partial_cohort,
     test_choppy_observation_can_confirm_but_not_admit_a_strategic_cohort,
-    test_recovery_regime_is_not_preempted_by_new_trailing_secular_cohort,
+    test_qualified_recovery_regime_admits_without_waiting_for_strong_trend,
     test_recovery_holding_evidence_precedes_shared_strategic_funding,
     test_recovery_lock_cannot_veto_funded_strategic_participation,
     test_locked_recovery_cohort_cannot_be_preempted_by_strategic_discovery,
@@ -800,7 +814,7 @@ from _lifecycle_recovery_admission_cases import (
     test_unconfirmed_recovery_candidates_cannot_create_a_hidden_target_book,
     test_reported_universe_size_cannot_authorize_unqualified_recovery_entry,
     test_ambiguous_recovery_metadata_cannot_authorize_unqualified_deployment,
-    test_unfinished_held_buy_retains_only_shared_concentration_capacity,
+    test_unqualified_held_buy_cannot_use_shared_spare_capacity,
     test_structural_recovery_exit_survives_freeze_and_prior_shock,
 )
 

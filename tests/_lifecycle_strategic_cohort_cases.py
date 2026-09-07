@@ -526,7 +526,8 @@ def test_choppy_observation_can_confirm_but_not_admit_a_strategic_cohort() -> No
     _assert_unfilled_strategic_probe(account)
     assert {target.symbol for target in targets if target.weight > 0} == set(account.strategic_cohort_symbols)
 
-def test_recovery_regime_is_not_preempted_by_new_trailing_secular_cohort() -> None:
+def test_qualified_recovery_regime_admits_without_waiting_for_strong_trend() -> None:
+    """Qualified RECOVERY admission supersedes the historical regime-wide veto."""
     dates = pd.bdate_range("2023-01-02", periods=246)
     panel, leaders = _dynamic_cohort_inputs(dates)
     account = AccountState.empty(100.0)
@@ -534,7 +535,9 @@ def test_recovery_regime_is_not_preempted_by_new_trailing_secular_cohort() -> No
     date = dates[-1]
     prices = {symbol: float(frame.loc[date, "close"]) for symbol, frame in panel.items()}
 
-    for observed in dates[-DEFAULT_CONFIG.strategic_cohort_confirm_days - 1 : -1]:
+    for count, observed in enumerate(
+        dates[-DEFAULT_CONFIG.strategic_cohort_confirm_days - 1 : -1], start=1,
+    ):
         targets = allocator.allocate(
             date=observed,
             opportunity=Opportunity.RECOVERY,
@@ -544,8 +547,12 @@ def test_recovery_regime_is_not_preempted_by_new_trailing_secular_cohort() -> No
             account=account,
             prices={symbol: float(frame.loc[observed, "close"]) for symbol, frame in panel.items()},
         )
-    assert targets == ()
-    assert account.strategic_epoch == 0
+        if count < DEFAULT_CONFIG.strategic_cohort_confirm_days:
+            assert targets == ()
+            assert account.strategic_epochs == []
+    _assert_unfilled_strategic_probe(account)
+    assert sum(target.weight for target in targets) == pytest.approx(DEFAULT_CONFIG.max_gross)
+    probe_id = account.strategic_epochs[-1].epoch_id
 
     for _ in range(DEFAULT_CONFIG.strategic_cohort_confirm_days):
         targets = allocator.allocate(
@@ -558,6 +565,7 @@ def test_recovery_regime_is_not_preempted_by_new_trailing_secular_cohort() -> No
             prices=prices,
         )
     _assert_unfilled_strategic_probe(account)
+    assert account.strategic_epochs[-1].epoch_id == probe_id
     assert sum(target.weight for target in targets) == pytest.approx(DEFAULT_CONFIG.max_gross)
 
 def test_recovery_holding_evidence_precedes_shared_strategic_funding() -> None:

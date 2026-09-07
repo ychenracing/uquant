@@ -120,15 +120,22 @@ def _complete_empty_strategic_cohort(
     date: pd.Timestamp,
     leaders: dict[str, LeaderScore],
     account: AccountState,
-    held_cohort: set[str],
 ) -> tuple[Target, ...] | None:
-    if held_cohort:
-        return _strategic_completed_exit_targets(self=self, leaders=leaders, account=account)
     grant = account.strategic_grant
     epoch_id = (
         account.active_strategic_epoch_id
         or (grant.epoch_id if grant is not None else "")
     )
+    if any(
+        position.shares > 0
+        and (
+            position.epoch_id == epoch_id
+            or any(tranche.shares > 0 and tranche.epoch_id == epoch_id for tranche in position.tranches)
+            if epoch_id else symbol in account.strategic_cohort_symbols
+        )
+        for symbol, position in account.positions.items()
+    ):
+        return _strategic_completed_exit_targets(self=self, leaders=leaders, account=account)
     if epoch_id and not settle_account_strategic_epoch(
         account,
         epoch_id=epoch_id,
@@ -136,8 +143,9 @@ def _complete_empty_strategic_cohort(
         close_reason="owner_exit",
     ):
         return ()
-    for symbol in account.strategic_cohort_symbols:
-        account.protected_weights.pop(symbol, None)
+    if not epoch_id:
+        for symbol in account.strategic_cohort_symbols:
+            account.protected_weights.pop(symbol, None)
     account.candidate_tenure["strategic_cohort_active"] = 0
     account.candidate_tenure["strategic_cohort_completed"] = 1
     account.candidate_tenure["strategic_cohort_started"] = 0
@@ -237,18 +245,8 @@ def _missing_strategic_member(ctx: _StrategicLifecycleContext, symbol: str) -> b
     if position is not None and position.shares > 0:
         return False
     if (
-        (
-            ctx.transition_impulse_epoch
-            and account.candidate_tenure.get("strategic_cohort_started", 0) == 1
-            and (symbol in account.strategic_restore_weights or symbol in account.protected_weights)
-        )
-        or symbol in account.strategic_exit_bands
-        or (
-            account.candidate_tenure.get("strategic_cohort_started", 0) == 1
-            and symbol not in account.strategic_restore_weights
-            and symbol not in account.protected_weights
-            and not any(order.symbol == symbol and order.side == "BUY" for order in account.pending_orders)
-        )
+        symbol in account.strategic_exit_bands
+        or account.candidate_tenure.get("strategic_cohort_started", 0) == 1
     ):
         ctx.policy._retire_strategic_member(account, symbol)
     return True
@@ -766,18 +764,12 @@ def _strategic_cohort_targets(
     if account.candidate_tenure.get("strategic_cohort_active", 0) != 1:
         return None
     active_symbols = set(account.strategic_cohort_targets)
-    held_cohort = {
-        symbol
-        for symbol in account.strategic_cohort_symbols
-        if (position := account.positions.get(symbol)) is not None and position.shares > 0
-    }
     if not active_symbols:
         return _complete_empty_strategic_cohort(
             self,
             date=date,
             leaders=leaders,
             account=account,
-            held_cohort=held_cohort,
         )
     ctx = _strategic_lifecycle_context(
         self,

@@ -418,16 +418,12 @@ def _synchronized_before_anchor(
     symbols: list[str],
     industries: set[str],
     hard_persistent: bool,
-    admission_state: str,
 ) -> bool:
     return bool(
         route.anchors_not_yet_armed
-        and (hard_persistent or (route.route == "reversal_industry" and route.synchronized_reversal))
+        and hard_persistent
         and len(industries) == 1
-        and (
-            len(symbols) >= self.cfg.strategic_cohort_min_size
-            or (admission_state == "EMERGING_SECULAR" and bool(route.reversal_groups))
-        )
+        and len(symbols) >= self.cfg.strategic_cohort_min_size
     )
 
 
@@ -454,13 +450,6 @@ def strategic_qualification_evidence(
     risk: RiskAssessment,
 ) -> tuple[bool, bool]:
     symbols = route.symbols
-    admission_state = (
-        "SECULAR"
-        if route.route in {"established", "persistent_industry"}
-        else "EMERGING_SECULAR"
-        if route.route in {"transition", "transition_impulse", "reversal_industry"}
-        else "NONE"
-    )
     hard_persistent = bool(
         route.route == "persistent_industry"
         and symbols
@@ -484,7 +473,6 @@ def strategic_qualification_evidence(
         symbols=symbols,
         industries=industries,
         hard_persistent=hard_persistent,
-        admission_state=admission_state,
     )
     negative_backed = _negative_long_cycle_backed(
         route=route,
@@ -550,7 +538,7 @@ def strategic_route_admission_open(
     return bool(
         admission_open
         or (
-            (hard_persistent or route.synchronized_reversal)
+            hard_persistent
             and route.anchors_not_yet_armed
             and synchronized_before_anchor
         )

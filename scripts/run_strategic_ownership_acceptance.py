@@ -7,6 +7,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import math
 import re
 import sys
 import tempfile
@@ -919,6 +920,231 @@ def _validate_repeated(
     return witness
 
 
+_PARTICIPATION_OVERLAY = ROOT / "benchmarks/cross_ai_ownership_participation_overlay.json"
+_PARTICIPATION_SEAL = "dd2ce7a98862d9161b5b573260c0f9d184a3efa724cc31d425ac6114e49ca4e3"
+
+
+def _participation_overlay() -> dict[str, Any]:
+    raw = json.loads(_PARTICIPATION_OVERLAY.read_text(encoding="utf-8"))
+    if raw.get("canonical_sha256") != _PARTICIPATION_SEAL or _canonical_sha256(
+        {key: value for key, value in raw.items() if key != "canonical_sha256"}
+    ) != _PARTICIPATION_SEAL:
+        raise ValueError("CORE participation overlay identity differs")
+    if _sha256_file(CONTRACT_PATH) != raw["authority"]["legacy_ownership_file_sha256"]:
+        raise ValueError("CORE participation legacy ownership contract differs")
+    _continuity_basis()
+    return cast(dict[str, Any], raw)
+
+
+def _participation_number(value: object) -> float:
+    if isinstance(value, bool) or not isinstance(value, (int, float)) or not math.isfinite(value):
+        raise ValueError("CORE participation has missing or nonfinite numeric evidence")
+    return float(value)
+
+
+def _participation_entry(row: RouteTraceRow, order: AccountOrder, target: Mapping[str, Any]) -> dict[str, Any]:
+    book = _mapping(row.risk.get("core_allocation"), label="CORE participation capital book")
+    owner = _mapping(_mapping(book.get("symbols"), label="CORE capital symbols").get(order.symbol), label="CORE owner")
+    entry = _mapping(owner.get("entry"), label="CORE qualification")
+    required = entry.get("required_confirmation")
+    confirmations = _mapping(entry.get("confirmations"), label="CORE confirmations")
+    floors = {"FULL_COHORT": DEFAULT_CONFIG.strategic_cohort_confirm_days,
+              "STRONG_PAIR": DEFAULT_CONFIG.strategic_two_name_confirm_days,
+              "ABSOLUTE_SINGLE": DEFAULT_CONFIG.strategic_one_name_confirm_days}
+    route = entry.get("qualification_route", "independent_core")
+    quorum = entry.get("qualification_quorum")
+    if route == "independent_core" and quorum is None:
+        floor = DEFAULT_CONFIG.leader_tenure_days
+    elif route in {"established", "transition", "transition_impulse", "persistent_industry", "reversal_industry"} and quorum in floors:
+        floor = floors[quorum]
+        if entry.get("as_of") != row.date:
+            raise ValueError("CORE participation certificate is not current")
+    else:
+        raise ValueError("CORE participation qualification route or quorum is unknown")
+    streak = confirmations.get(route)
+    if (entry.get("block") != "READY" or type(required) is not int or required != floor
+            or set(confirmations) != {route} or type(streak) is not int or streak < required):
+        raise ValueError("CORE participation lacks confirmed current qualification")
+    if (book.get("as_of") != row.date or book.get("scope") != "ALLOCATOR_PROPOSAL"
+            or book.get("freeze_new_risk") is not False or book.get("late_fill_order_ids")):
+        raise ValueError("CORE participation lacks current unfrozen capital authority")
+    if (row.risk.get("freeze_new_risk") is not False
+            or row.risk.get("state") not in {"NORMAL", "CAUTION"}
+            or row.risk.get("base_freeze_new_risk", False)
+            or row.risk.get("sentinel_freeze_new_risk", False)):
+        raise ValueError("CORE participation is blocked by contemporaneous Base Risk or Sentinel")
+    reconcile_accounting(cash=row.cash, position_shares=row.position_shares, close_marks=row.close_marks, equity=row.equity)
+    weights = {symbol: shares * row.close_marks[symbol] / row.equity for symbol, shares in row.position_shares.items()}
+    universe = default_ai_universe()
+    industry_weight = sum(weight for symbol, weight in weights.items()
+                          if universe.industry_of(symbol, row.date) == order.industry_at_entry)
+    cap = _participation_number(book.get("gross_cap"))
+    if cap > min(DEFAULT_CONFIG.max_gross, _participation_number(row.risk.get("target_gross_cap"))) + 1e-12:
+        raise ValueError("CORE participation exceeds Base Risk authority")
+    checks = [_mapping(check, label="CORE budget check") for check in _sequence(owner.get("budget_checks"), label="CORE budgets")]
+    accepted = [check for check in checks if check.get("accepted") is True]
+    if not accepted:
+        raise ValueError("CORE participation lacks an accepted common capital budget")
+    check = accepted[-1]
+    if (_participation_number(check.get("gross_room")) > cap - sum(weights.values()) + 1e-12
+            or _participation_number(check.get("industry_room")) > DEFAULT_CONFIG.industry_weight_cap - industry_weight + 1e-12
+            or _participation_number(check.get("position_slots")) > DEFAULT_CONFIG.max_positions - len(weights) + 1e-12):
+        raise ValueError("CORE participation ignores already occupied capital")
+    increment = _participation_number(check.get("funded_increment"))
+    if (
+        _participation_number(check.get("symbol_room")) > DEFAULT_CONFIG.max_symbol_weight + 1e-12
+        or _participation_number(check.get("industry_room")) > DEFAULT_CONFIG.industry_weight_cap + 1e-12
+        or _participation_number(check.get("correlation_room")) > DEFAULT_CONFIG.industry_weight_cap + 1e-12
+        or _participation_number(check.get("gross_room")) > cap + 1e-12
+        or abs(_participation_number(check.get("cash_room"))
+               - _participation_number(check.get("unreserved_cash"))
+               - _participation_number(check.get("reserved_for_intent"))) > 1e-12
+    ):
+        raise ValueError("CORE participation budget exceeds configured authority")
+    rooms = tuple(_participation_number(check.get(key)) for key in (
+        "cash_room", "symbol_room", "gross_room", "industry_room", "correlation_room", "effective_increment_room",
+    ))
+    if (increment <= 0 or increment > min(rooms) + 1e-12
+            or _participation_number(check.get("position_slots")) < 1
+            or _participation_number(check.get("cash_room")) > row.cash / row.equity + 1e-12
+            or _participation_number(owner.get("held_weight")) != 0
+            or _participation_number(target.get("weight")) > increment + 1e-12):
+        raise ValueError("CORE participation capital reservation or concentration differs")
+    return {"qualification": dict(entry), "capital_budget": dict(check), "gross_cap": cap}
+
+
+def _participation_admission(result: ReplayResult, fill: Mapping[str, Any]) -> dict[str, Any] | None:
+    orders = [AccountOrder(**item) for item in result.final_account["order_ledger"] if item["order_id"] == fill["order_id"]]
+    if len(orders) != 1:
+        raise ValueError("CORE participation requires one registered economic order")
+    order = orders[0]
+    validate_order_intent(order, label="CORE admission order", validate_attribution=True)
+    filled_quantity = sum(item["shares"] for item in result.final_account["fills"] if item["order_id"] == order.order_id)
+    if (order.side != "BUY" or not 0 < order.filled_shares <= order.requested_shares
+            or filled_quantity != order.filled_shares or any(
+        fill.get(field) != getattr(order, field) for field in (*ATTRIBUTION_IDENTITY_FIELDS, "symbol", "signal_date", "side")
+    )):
+        raise ValueError("CORE participation order and positive fill attribution differ")
+    rows = [row for row in result.trace if row.date == order.signal_date]
+    if len(rows) != 1 or order.signal_date >= fill["fill_date"]:
+        raise ValueError("CORE participation target must precede its real fill")
+    row = rows[0]
+    traced_orders = [item for item in row.orders if item.get("order_id") == order.order_id]
+    if len(traced_orders) != 1 or any(
+        traced_orders[0].get(field) != getattr(order, field) for field in ORDER_INTENT_IMMUTABLE_FIELDS
+    ):
+        raise ValueError("CORE participation registered order lacks its immutable decision trace")
+    targets = [target for target in row.targets if target.get("event_id") == order.event_id and target.get("symbol") == order.symbol]
+    if len(targets) != 1 or any(targets[0].get(field) != getattr(order, field) for field in ATTRIBUTION_IDENTITY_FIELDS):
+        raise ValueError("CORE participation admission target identity differs")
+    target = targets[0]
+    if _participation_number(target.get("weight")) <= 0 or target["weight"] != order.target_weight:
+        raise ValueError("CORE participation target weight differs from registered order")
+    if target.get("lifecycle") != "CORE":
+        return None
+    universe = default_ai_universe()
+    if order.industry_at_entry != universe.industry_of(order.symbol, row.date) or order.industry_manifest_sha256 != universe.sha256:
+        raise ValueError("CORE participation admission PIT industry differs")
+    origin = order.origin_subsystem
+    proof = None
+    if origin == "LEADER":
+        if order.grant_id or order.epoch_id:
+            raise ValueError("ordinary CORE must not acquire strategic epoch identity")
+        proof = _participation_entry(row, order, target)
+    elif origin == "STRATEGIC":
+        # A co-founding allocation without its own authority is real inventory,
+        # but is not an independently attributable strategic admission witness.
+        if not order.grant_id or not order.epoch_id:
+            return None
+    else:
+        return None
+    return {"owner_symbol": order.symbol, "industry_at_entry": order.industry_at_entry,
+            "admission_session": row.date, "first_fill_session": fill["fill_date"],
+            "order_id": order.order_id, "event_id": order.event_id,
+            "grant_id": order.grant_id, "epoch_id": order.epoch_id, "origin_subsystem": origin,
+            "physical_fill_sha256": physical_fill_identity_sha256(fill), "independent_entry": proof,
+            "closed_session": ""}
+
+
+def _core_participation_facts(result: ReplayResult) -> list[dict[str, Any]]:
+    """Audit every cash/share transition; ordinary episodes never enter epoch facts."""
+    cash = _participation_number(result.final_account["initial_cash"])
+    shares: dict[str, int] = {}
+    live: dict[str, dict[str, Any]] = {}
+    admissions = []
+    for row in result.trace:
+        if row.intervention_provenance is not None:
+            raise ValueError("CORE participation contains research intervention")
+        for fill in row.fills:
+            quantity = fill.get("shares")
+            if type(quantity) is not int or quantity <= 0 or fill.get("fill_date") != row.date:
+                raise ValueError("CORE participation requires positive dated real fills")
+            symbol, side = str(fill["symbol"]), fill["side"]
+            old = shares.get(symbol, 0)
+            fee = sum(_participation_number(fill.get(key)) for key in ("commission", "stamp_duty", "transfer_fee"))
+            gross = _participation_number(fill.get("gross_value"))
+            if gross <= 0 or fee < 0 or side not in {"BUY", "SELL"}:
+                raise ValueError("CORE participation fill cash terms differ")
+            cash += (-gross if side == "BUY" else gross) - fee
+            shares[symbol] = old + (quantity if side == "BUY" else -quantity)
+            if cash < -1e-6 or shares[symbol] < 0:
+                raise ValueError("CORE participation spent unsettled cash or unheld shares")
+            if side == "BUY" and old == 0:
+                admission = _participation_admission(result, fill)
+                if admission is not None:
+                    live[symbol] = admission
+                    admissions.append(admission)
+            if shares[symbol] == 0:
+                shares.pop(symbol)
+                if symbol in live:
+                    live.pop(symbol)["closed_session"] = row.date
+        if shares != dict(row.position_shares) or abs(cash - row.cash) > max(1e-6, abs(cash) * 1e-10):
+            raise ValueError("CORE participation daily cash or continuous position differs")
+        reconcile_accounting(cash=row.cash, position_shares=row.position_shares, close_marks=row.close_marks, equity=row.equity)
+    final_positions = _mapping(result.final_account.get("positions"), label="CORE final positions")
+    if (shares != {symbol: item["shares"] for symbol, item in final_positions.items()}
+            or abs(cash - _participation_number(result.final_account.get("cash"))) > max(1e-6, abs(cash) * 1e-10)):
+        raise ValueError("CORE participation terminal account differs from real fill history")
+    return sorted(admissions, key=lambda item: (item["admission_session"], item["first_fill_session"], item["order_id"]))
+
+
+def _participation_witness(admissions: list[dict[str, Any]]) -> dict[str, Any] | None:
+    return next(({"previous": previous, "successor": successor,
+                     "relationship": "continued_holding" if not previous["closed_session"] or previous["closed_session"] > successor["admission_session"] else "settled_exit"}
+                    for previous in admissions for successor in admissions
+                    if previous["owner_symbol"] != successor["owner_symbol"]
+                    and previous["industry_at_entry"] == successor["industry_at_entry"]
+                    and previous["first_fill_session"] < successor["admission_session"]
+                    and successor["independent_entry"] is not None), None)
+
+
+def _participation_alias(contract: Mapping[str, Any], source: dict[str, Any]) -> dict[str, Any]:
+    overlay = _participation_overlay()
+    _validate_repeated(contract, summary=source, same_industry=False)
+    legacy = {"status": "PASS", "reason": "", "disposition": "superseded by the new contract"}
+    legacy_witness = None
+    try:
+        legacy_witness = _validate_repeated(contract, summary=source, same_industry=True)
+    except RuntimeError as exc:
+        if str(exc) != "same-industry replay has no adjacent real same-industry successor":
+            raise
+        legacy.update(status="FAIL", reason=str(exc))
+    result = _continuity_result(source["raw_replay"])
+    error = ""
+    try:
+        admissions = _core_participation_facts(result)
+    except (ValueError, TypeError, KeyError) as exc:
+        admissions = []
+        error = str(exc)
+    witness = _participation_witness(admissions)
+    replacement = {"status": "PASS" if witness else "FAIL", "overlay_sha256": overlay["canonical_sha256"],
+                   "raw_sha256": source["continuity"]["raw_sha256"], "admissions": admissions, "witness": witness,
+                   "error": error if error else ("" if witness else "no independently qualified same-industry participation pair")}
+    return {**source, "status": replacement["status"], "same_industry_witness": legacy_witness,
+            "legacy_same_industry_crowning": legacy,
+            "same_industry_core_participation": replacement}
+
+
 def _sha256_file(path: Path) -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest()
 
@@ -958,6 +1184,7 @@ def _cache_identity_payload(
     payload["scenario"] = dict(spec)
     if spec.get("scenario_id") in {_CONTINUITY_SOURCE, "same-industry-crowning"}:
         payload["continuity_basis"] = _continuity_basis()
+        payload["core_participation_overlay_sha256"] = _participation_overlay()["canonical_sha256"]
     return payload
 
 
@@ -1103,8 +1330,7 @@ def run_acceptance_shard(
                 source["scenario_id"] = scenario_id
                 source["source_scenario_id"] = source_id
                 with _retain_failed_replay(_continuity_result(source["raw_replay"])):
-                    source["same_industry_witness"] = _validate_repeated(contract, summary=source, same_industry=True)
-                row = source
+                    row = _participation_alias(contract, source)
                 source_metadata = cache_metadata[source_id]
                 cache_metadata[scenario_id] = {
                     "cache_dependencies": {source_id: source_metadata},

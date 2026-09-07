@@ -298,6 +298,7 @@
         "benchmarks/ai_era_generalization_policy.json",
         "benchmarks/competitor_bull_reference.json",
         "benchmarks/config_parameter_governance.json",
+        "benchmarks/cross_ai_ownership_participation_overlay.json",
         "benchmarks/current_heads_comparison_contract.json",
         "benchmarks/current_heads_competitor_matrix.json",
         "benchmarks/current_heads_source_registry.json",
@@ -822,5 +823,5 @@
       ]
     }
   ],
-  "canonical_sha256": "917cd19731b98f93cb96a8bb5581bf184536a6be2e72b938c2ad9c5709696f8a"
+  "canonical_sha256": "56a1106561a279e9493eee9462086976e582585b6d9aa227fbade4f2e6dd333b"
 }

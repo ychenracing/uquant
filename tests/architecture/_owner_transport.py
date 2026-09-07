@@ -230,6 +230,7 @@ _RESOURCE_SURFACE_ADDITIONS: Mapping[str, frozenset[str]] = {
         {
             "benchmarks/absolute_generalization_acceptance_contract.json",
             "benchmarks/absolute_generalization_acceptance_contract_frozen_17ce.json",
+            "benchmarks/cross_ai_ownership_participation_overlay.json",
         }
     ),
     "full_package_v1": frozenset(),

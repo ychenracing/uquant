@@ -27,7 +27,11 @@ from ...types import (
 from .discovery import (
     observe_strategic_candidates,
 )
-from .grant_lifecycle import completed_strategic_core_entry, revalidate_strategic_grant
+from .grant_lifecycle import (
+    completed_core_admission_budget,
+    completed_strategic_core_entry,
+    revalidate_strategic_grant,
+)
 from .grant_lifecycle import settled_strategic_reduction as _settled_strategic_exit_target
 from .qualification_candidates import reset_strategic_candidate_eligibility
 
@@ -285,13 +289,14 @@ def _arm_completed_core_profit_lock(
             or set(account.strategic_cohort_targets) != {symbol}
             or peak_mfe < cfg.strategic_dominant_profit_lock_mfe):
         return
-    if not completed_strategic_core_entry(account, grant):
+    budget = completed_core_admission_budget(account)
+    if budget is None:
         return
     if any(order.symbol == symbol and order.side == "BUY"
            and (order.status in {"SUBMITTED", "OPEN", "PARTIALLY_FILLED"}
                 or late_strategic_fill_allowed(order)) for order in account.order_ledger):
         return
-    cap = cfg.strategic_dominant_retained_gross * _bounded_strategic_exit_scale(ctx, symbol=symbol)
+    cap = min(cfg.strategic_dominant_retained_gross, budget)
     if ctx.weights_now.get(symbol, 0.0) <= cap + 1e-12:
         return
     if not _settled_strategic_exit_target(
@@ -641,8 +646,9 @@ def _apply_strategic_exit_bands(
             current_selected.get(symbol, 0.0) if settled else band_target,
         )
         if ctx.core_profit_lock_symbol == symbol and not settled:
-            profit_cap = (ctx.policy.cfg.strategic_dominant_retained_gross
-                          * _bounded_strategic_exit_scale(ctx, symbol=symbol))
+            budget = completed_core_admission_budget(account)
+            assert budget is not None  # The current completed entry armed this instruction.
+            profit_cap = min(ctx.policy.cfg.strategic_dominant_retained_gross, budget)
             if band_target <= profit_cap + 1e-12:
                 # The tighter ATR instruction owns this sale and its receipt.
                 # No profit-lock order has been executed or consumed here.
@@ -689,10 +695,11 @@ def _final_strategic_proposal(
         )
     if ctx.core_profit_lock_symbol is not None:
         symbol = ctx.core_profit_lock_symbol
+        budget = completed_core_admission_budget(account)
+        assert budget is not None  # The current completed entry armed this instruction.
         proposed[symbol] = min(
             proposed.get(symbol, 0.0),
-            ctx.policy.cfg.strategic_dominant_retained_gross
-            * _bounded_strategic_exit_scale(ctx, symbol=symbol),
+            ctx.policy.cfg.strategic_dominant_retained_gross, budget,
         )
     _apply_strategic_exit_bands(ctx, active_symbols=active_symbols,
                                proposed=proposed, current_selected=current_selected)

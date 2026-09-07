@@ -146,6 +146,42 @@ def _completed_core_entry(account: AccountState, grant: StrategicGrantIntent) ->
                for order in orders)
 
 
+def completed_core_admission_budget(account: AccountState) -> float | None:
+    """Read the immutable first executed budget, not a later expanded grant target."""
+    grant = account.strategic_grant
+    if grant is None or not _completed_core_entry(account, grant):
+        return None
+    epoch = next(item for item in account.strategic_epochs if item.epoch_id == grant.epoch_id)
+    buys = [fill for fill in account.fills if fill.side == "BUY" and fill.shares > 0
+            and (fill.grant_id == grant.grant_id or fill.epoch_id == grant.epoch_id)]
+    if any((fill.symbol, fill.grant_id, fill.epoch_id)
+           != (grant.candidate_symbol, grant.grant_id, grant.epoch_id) for fill in buys):
+        return None
+    if not buys or min(fill.fill_date for fill in buys) != epoch.first_fill_session:
+        return None
+    return _first_fill_order_budget(account, [
+        fill for fill in buys if fill.fill_date == epoch.first_fill_session
+    ])
+
+
+def _first_fill_order_budget(account: AccountState, fills: list[Fill]) -> float | None:
+    """Resolve every first-session receipt to one consistent native order budget."""
+    budgets: set[float] = set()
+    for fill in fills:
+        orders = [order for order in account.order_ledger if order.order_id == fill.order_id]
+        if len(orders) != 1:
+            return None
+        order = orders[0]
+        if (not order.event_id or (order.event_id, order.symbol, order.side,
+                                  order.grant_id, order.epoch_id, order.mechanism)
+                != (fill.event_id, fill.symbol, "BUY", fill.grant_id,
+                    fill.epoch_id, "STRATEGIC_COHORT")
+                or not math.isfinite(order.target_weight) or not 0 < order.target_weight <= 1):
+            return None
+        budgets.add(order.target_weight)
+    return next(iter(budgets)) if len(budgets) == 1 else None
+
+
 def revalidate_strategic_grant(
     self: StrategicPortfolioPolicy,
     *,

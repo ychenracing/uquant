@@ -33,12 +33,15 @@ def _marked_core(*, partial=False, crosses=True):
 
 
 def _bounded_cap(account):
-    epoch = account.strategic_epochs[0]
-    assert 0 < epoch.target_weight < epoch.full_weight
-    return DEFAULT_CONFIG.strategic_dominant_retained_gross * epoch.target_weight / epoch.full_weight
+    first = next(fill for fill in account.fills if fill.side == "BUY" and fill.shares > 0)
+    admission = next(order for order in account.order_ledger if order.order_id == first.order_id)
+    assert admission.event_id == first.event_id
+    assert admission.grant_id == first.grant_id == account.strategic_grant.grant_id
+    assert admission.epoch_id == first.epoch_id == account.strategic_epochs[0].epoch_id
+    return min(DEFAULT_CONFIG.strategic_dominant_retained_gross, admission.target_weight)
 
 
-def test_completed_core_locks_once_at_scaled_cap_without_becoming_active():
+def test_completed_core_locks_once_at_original_entry_budget_without_becoming_active():
     allocator, account, dates, panel, leaders, roles = _marked_core()
     cap = _bounded_cap(account)
     orders = _decide_and_submit(allocator, account, dates[0], panel, leaders, roles)
@@ -191,8 +194,8 @@ def test_historical_mfe_below_current_cap_preserves_fresh_native_promotion():
 
     allocator, account, dates, panel, leaders, roles = _marked_core()
     # The high closing mark is real fixture history, but current price recovered
-    # into a healthy trend below the existing staged profit-protection cap.
-    price = account.positions[OWNER].avg_cost * 1.20
+    # into a healthy trend below the recorded initial admission budget.
+    price = account.positions[OWNER].avg_cost * .95
     for column, factor in (("open", 1), ("close", 1), ("high", 1.01), ("low", .99),
                            ("ma20", .95), ("ma60", .85)):
         panel[OWNER].loc[dates[0]:, column] = price * factor
@@ -218,3 +221,121 @@ def test_historical_mfe_below_current_cap_preserves_fresh_native_promotion():
         break
     else:
         pytest.fail("fresh original qualification never authorized a native promotion BUY")
+
+
+def _actual_budget_probe(budget, full):
+    from test_strategic_probe_holding import _allocate, _submit
+
+    from uquant.portfolio import PortfolioAllocator
+    from uquant.types import AccountState
+
+    _, _, _, panel, leaders, roles = _filled_probe()
+    cfg = DEFAULT_CONFIG.override(core_admission_weight=budget, max_symbol_weight=max(.6, full),
+                                  strategic_one_name_gross=full)
+    allocator = PortfolioAllocator(cfg)
+    account = AccountState.empty(2_000_000.)
+    account.account_identity = "account:native-distinct-budget"
+    account.code_hash = "source:regression"
+    account.data_hash = "data:regression"
+    dates = panel[OWNER].index
+    for index in range(240, 255):
+        targets = _allocate(allocator, account, dates[index], panel, leaders, roles)
+        if account.strategic_grant is not None:
+            break
+    else:
+        pytest.fail("native qualification did not produce the requested admission")
+    _submit(account, targets, dates[index], panel, cfg)
+    fills = ExecutionPlanner(cfg).execute_open(date=dates[index + 1], account=account, panel={OWNER: panel[OWNER]})
+    assert len(fills) == 1 and fills[0].shares > 0
+    assert account.order_ledger[0].target_weight == pytest.approx(budget)
+    assert account.strategic_epochs[0].full_weight == pytest.approx(full)
+    assert account.strategic_epochs[0].realized_status == "CORE"
+    remaining = dates[index + 2:]
+    price = account.positions[OWNER].avg_cost * (1 + cfg.strategic_dominant_profit_lock_mfe + .1)
+    for column, factor in (("open", 1), ("close", 1), ("high", 1.01), ("low", .99),
+                           ("ma20", .95), ("ma60", .85)):
+        panel[OWNER].loc[remaining[0]:, column] = price * factor
+    mark_account_positions(SimpleNamespace(
+        _raw=panel, _price=lambda symbol, date: float(panel[symbol].loc[date, "close"]),
+    ), account, remaining[0])
+    return allocator, account, remaining, panel, _entry_deteriorated(leaders), roles
+
+
+@pytest.mark.parametrize("budget,full", ((.10, .50), (.20, .55)))
+def test_original_native_admission_budget_is_independent_of_planned_full_deployment(budget, full):
+    allocator, account, dates, panel, leaders, roles = _actual_budget_probe(budget, full)
+    cap = _bounded_cap(account)
+    assert cap == pytest.approx(budget)
+    old_formula = DEFAULT_CONFIG.strategic_dominant_retained_gross * budget / full
+    assert (cap > old_formula) == (full > DEFAULT_CONFIG.strategic_dominant_retained_gross)
+    orders = _decide_and_submit(allocator, account, dates[0], panel, leaders, roles)
+    assert len(orders) == 1 and orders[0].side == "SELL"
+    assert orders[0].target_weight == pytest.approx(cap)
+    assert orders[0].mechanism == "STRATEGIC_PROFIT_LOCK"
+
+
+@pytest.mark.parametrize("missing", ("fill", "ledger", "event", "grant", "epoch", "target", "duplicate"))
+def test_completed_core_profit_budget_fails_closed_without_unique_matching_first_fill(missing):
+    from uquant.portfolio.strategic.grant_lifecycle import completed_core_admission_budget
+
+    _, account, _, _, _, _ = _marked_core()
+    assert completed_core_admission_budget(account) == pytest.approx(_bounded_cap(account))
+    if missing == "fill":
+        account.fills.clear()
+    elif missing == "ledger":
+        account.order_ledger.clear()
+    elif missing in {"event", "grant", "epoch"}:
+        setattr(account.order_ledger[0], missing + "_id", "unrelated-first-fill")
+    elif missing == "target":
+        account.order_ledger[0].target_weight = float("nan")
+    else:
+        duplicate = deepcopy(account.order_ledger[0])
+        duplicate.target_weight += .1
+        account.order_ledger.append(duplicate)
+    assert completed_core_admission_budget(account) is None
+
+
+def test_later_legal_promotion_budget_does_not_rewrite_original_admission_proof():
+    from test_lifecycle_and_risk import _leader
+
+    from uquant.portfolio.strategic.grant_lifecycle import completed_core_admission_budget
+
+    allocator, account, dates, panel, leaders, roles = _marked_core(crosses=False)
+    initial = _bounded_cap(account)
+    leaders = {symbol: _leader(symbol, .95, industry="optical") for symbol in leaders}
+    for date in dates[:DEFAULT_CONFIG.strategic_one_name_confirm_days + 2]:
+        orders = _decide_and_submit(allocator, account, date, panel, leaders, roles)
+        if orders:
+            assert len(orders) == 1 and orders[0].side == "BUY"
+            assert orders[0].target_weight > initial
+            assert account.strategic_grant.target_weight > initial
+            assert account.strategic_epochs[0].target_weight > initial
+            assert completed_core_admission_budget(account) is None
+            from uquant.broker import sync_broker_snapshot
+
+            position = account.positions[OWNER]
+            sync_broker_snapshot(account, {
+                "as_of": str(date.date()), "cash": account.cash, "fills": [],
+                "orders": [{"order_id": orders[0].order_id, "status": "CANCELLED", "remaining_shares": 0}],
+                "positions": [{"symbol": OWNER, "shares": position.shares,
+                               "sellable_shares": position.shares, "avg_cost": position.avg_cost}],
+            }, cfg=DEFAULT_CONFIG)
+            assert not account.pending_orders
+            assert account.strategic_epochs[0].realized_status == "CORE"
+            assert completed_core_admission_budget(account) == pytest.approx(initial)
+            break
+    else:
+        pytest.fail("fresh native qualification never authorized promotion")
+
+
+def test_budget_helper_does_not_read_full_weight_even_outside_deployable_configuration():
+    from uquant.portfolio.strategic.grant_lifecycle import completed_core_admission_budget
+
+    _, account, _, _, _, _ = _marked_core()
+    original = _bounded_cap(account)
+    # Deliberate helper-input perturbation, NOT a deployable configuration or
+    # native economic scenario: current single-symbol config is capped at .60.
+    account.strategic_epochs[0].full_weight = .95
+    cap = min(DEFAULT_CONFIG.strategic_dominant_retained_gross, completed_core_admission_budget(account))
+    assert cap == pytest.approx(original)
+    assert cap > DEFAULT_CONFIG.strategic_dominant_retained_gross * original / .95

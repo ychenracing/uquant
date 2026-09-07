@@ -32,6 +32,9 @@ ESTABLISHED = f"strategic_eligibility:established:{SYMBOL}"
 
 def _scenario(monkeypatch):
     _, original_panel, _, risk = _inputs()
+    risk = replace(risk, evidence={**risk.evidence, "breadth20": .80,
+                                  "broad_ret20": .05, "tech_ret20": .08,
+                                  "broad_ret120": .12, "tech_ret120": .20})
     panel = {SYMBOL: original_panel[SYMBOL]}
     dates = panel[SYMBOL].index[-8:]
     leaders = {SYMBOL: _leader(SYMBOL, 0.95)}

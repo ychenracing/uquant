@@ -223,9 +223,15 @@ def test_portfolio_strategic_strategic_methods_and_target_slices_are_ast_exact()
         targets["_strategic_completed_exit_targets"].body[0],
         include_attributes=False,
     ) == ast.dump(immutable_completed, include_attributes=False)
+    # The shared CORE profit-lock reason no longer claims dominant-only scope.
+    expected_active = copy.deepcopy(immutable_active)
+    reasons = [node for node in ast.walk(expected_active) if isinstance(node, ast.Constant)
+               and node.value == "strategic dominant one-shot profit lock"]
+    assert len(reasons) == 1
+    reasons[0].value = "strategic one-shot profit lock"
     assert ast.dump(
         targets["_strategic_active_targets"].body[0], include_attributes=False
-    ) == ast.dump(immutable_active, include_attributes=False)
+    ) == ast.dump(expected_active, include_attributes=False)
 
     class ExpandTargets(ast.NodeTransformer):
         def visit_Return(self, node: ast.Return) -> ast.Return:

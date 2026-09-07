@@ -525,6 +525,39 @@ def test_execution_responsibility_owners_replace_execution_monolith_and_engine_b
     assert all((ROOT / relative).is_file() for relative in expected)
 
 
+def _decision_rearm_owner_fanout(source: str, fan_out: set[str]) -> set[str]:
+    """Collapse only the exact post-registration call into the existing portfolio owner."""
+    tree = ast.parse(source)
+    imports = [node for node in tree.body if isinstance(node, ast.ImportFrom)
+               and node.module == "portfolio.strategic.rearm"]
+    assert len(imports) == 1 and imports[0].level == 2
+    assert [(alias.name, alias.asname) for alias in imports[0].names] == [("consume_ordinary_cash_rearm_authorization", None)]
+    calls = [node for node in ast.walk(tree) if isinstance(node, ast.Call)
+             and isinstance(node.func, ast.Name) and node.func.id == "consume_ordinary_cash_rearm_authorization"]
+    assert len(calls) == 1
+    expected = ast.parse("""
+orders = reconcile_account_orders_fn(
+    account=account, previous=previous_orders, current=orders,
+    submitted_date=str(inputs.date.date()),
+    removed_buy_reason="sentinel_freeze_new_risk" if sentinel_freeze_authorized(risk) else None,
+)
+consume_ordinary_cash_rearm_authorization(
+    account=account, orders=orders, observed_session=str(inputs.date.date()),
+)
+""").body
+    parents = [node for node in tree.body if isinstance(node, ast.FunctionDef)
+               and any(isinstance(item, ast.Expr) and item.value is calls[0] for item in node.body)]
+    assert len(parents) == 1
+    body = parents[0].body
+    index = next(index for index, item in enumerate(body) if isinstance(item, ast.Expr) and item.value is calls[0])
+    assert index > 0
+    assert [ast.dump(node, include_attributes=False) for node in body[index - 1:index + 1]] == [
+        ast.dump(node, include_attributes=False) for node in expected
+    ]
+    assert {"uquant.portfolio", "uquant.portfolio.strategic.rearm"} <= fan_out
+    return fan_out - {"uquant.portfolio.strategic.rearm"}
+
+
 def test_execution_facade_and_decision_fanout_are_bounded() -> None:
     engine_lines = len((ROOT / "uquant/engine.py").read_text(encoding="utf-8").splitlines())
     snapshot = architecture_snapshot()
@@ -538,7 +571,10 @@ def test_execution_facade_and_decision_fanout_are_bounded() -> None:
     assert isinstance(target_fan_out, list)
     assert architecture_execution_decision_fanout(
         root=ROOT,
-        decision_fan_out={str(value) for value in decision_fan_out},
+        decision_fan_out=_decision_rearm_owner_fanout(
+            (ROOT / "uquant/application/decision.py").read_text(encoding="utf-8"),
+            {str(value) for value in decision_fan_out},
+        ),
         extracted_owner_fan_out={str(value) for value in target_fan_out},
     ) <= 13
 
@@ -907,3 +943,14 @@ def test_engine_code_fingerprint_fails_closed_for_missing_and_symlinked_members(
     member.symlink_to(outside)
     with pytest.raises(ValueError, match="source surface member is missing or unsafe"):
         engine.code_fingerprint()
+
+
+@pytest.mark.parametrize("before, after", (
+    ("account=account, orders=orders, observed_session=", "account=account, orders=previous_orders, observed_session="),
+    ("from ..portfolio.strategic.rearm import consume_ordinary_cash_rearm_authorization", "from ..portfolio.strategic.rearm import consume_ordinary_cash_rearm_authorization, unrelated"),
+))
+def test_decision_rearm_owner_rejects_unregistered_orders_or_extra_dependencies(before: str, after: str) -> None:
+    source = (ROOT / "uquant/application/decision.py").read_text(encoding="utf-8")
+    assert source.count(before) == 1
+    with pytest.raises(AssertionError):
+        _decision_rearm_owner_fanout(source.replace(before, after), {"uquant.portfolio", "uquant.portfolio.strategic.rearm"})

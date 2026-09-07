@@ -173,7 +173,11 @@ uv run uquant daily \
 仍为普通 `LEADER_SELECTION` / `CORE`，不绑定或复制旧战略 grant/epoch；证书不是新授冠。
 `pending current quality` 展示普通部分成交挂单本次记录的继续买入资格：可沿用当前仍成立的
 已确认战略证书；否则须成熟、当前 `independent_core` 观察有效且满足市场质量条件，确认
-要求为 1 日。按严格单名证据首次入场仍要求连续 5 日，不从其他证书回填该计数。
+要求为 1 日。独立观察须同时取得当天五项有限市场值：`breadth20`、`broad_ret20`、
+`tech_ret20`、`broad_ret120`、`tech_ret120`，并满足原有市场门槛；缺项、非有限值或
+不达标不能积累该确认。按严格单名证据首次入场仍要求连续 5 日，不从其他证书回填计数。
+普通部分成交 BUY 当前资格失效时取消未成交余量，取消确认与迟到责任沿原单处理，
+已经成交的仓位继续按持有规则管理；当前入场资格下降本身不触发清仓。
 `PENDING_CORE_BUY_ALREADY_EVALUATED` 仅表示普通挂单已由原分支评估，不能遮住实际的
 `NOT_MATURE`、`CONFIRMATION_INCOMPLETE` 等拒绝原因。最终 Sentinel 冻结和
 `CAPITAL_LIMIT` 仍优先解释为何未增加目标；当前资格通过本身不代表可执行。
@@ -209,8 +213,12 @@ grant 仍可能显示 `PARTIALLY_FILLED`，应同时
 实际卖出和剩余责任结清前不提前结束 epoch。ACTIVE 沿用其持有规则。
 
 已完整建仓的单一战略 CORE 达到既有浮盈门槛时，也可能产生 `STRATEGIC_PROFIT_LOCK`
-减仓。保护上限使用当前保留仓位配置，在适用的分阶段授予中按原 epoch 预算比例缩放；
-这不把 CORE 升级为 ACTIVE，也不授予加仓权限。更紧的 ATR 或独立风险目标仍可要求
+减仓。对尚未 ACTIVE 且已完成首次建仓的这类仓位，保护上限为
+`min(strategic_dominant_retained_gross, 原始首次入场订单.target_weight)`。原始订单须
+对应当前 grant/epoch/owner 在 `first_fill_session` 的首笔正股数 BUY；缺失或冲突时
+不启用该保护。后续扩仓可以调整 grant/epoch 的目标，它们不能代替原始订单预算。
+相较此前按阶段比例计算的上限，新上限可能升高或降低，不能视为始终更保守或等价修复。
+这不把 CORE 升级为 ACTIVE，也不授予加仓权限；ACTIVE 的持有规则不变。更紧的 ATR 或独立风险目标仍可要求
 减仓，须按本次真实订单机制对账，不能把其他机制的卖出记作已经执行利润保护。
 ATR 与这项 CORE 利润保护通过原订单的实际完整 SELL、同一 epoch/grant 和原生 FIFO
 批次来源核对结算。相同减仓目标已结算后，不因价格漂移重复执行；部分成交、未确认或
@@ -331,7 +339,8 @@ uv run uquant account-code-migrate \
    `CORE` 与 `ACTIVE` 按这些真实成交和原 epoch 保留；不得把已成交 CORE 改回未入场，
    也不得为跳过确认把它手工升级为 ACTIVE。撤销待确认和独立风险 SELL 的身份一并保留。
    同时保留利润保护和 ATR 的原订单、完整成交、`sold_tranches` 与对应 BUY 来源，以及
-   原 epoch 预算和历史持仓峰值。新版本读取这些事实确认结算；不要为启用或跳过保护
+   首笔实际 BUY 对应的原始订单目标、epoch 身份和历史持仓峰值。不得用后续变更的
+   grant/epoch 目标补写初始预算。新版本读取这些事实确认结算；不要为启用或跳过保护
    清空档位、改写 grant/epoch、重置峰值或补造成交。沿用现有代码身份迁移和经济摘要
    核对，不需要另建账户或 schema 迁移。
 5. 账户高水位、资本损伤与修复 streak、风险事件、保护/恢复权重及授权证据全部保留。

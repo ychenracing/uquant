@@ -85,6 +85,32 @@ def _expand_allocator(
         "strategic_universe",
     )
     del strategy_call.keywords[-3:]
+    # Real account repair observes the unchanged risk before the planning clone.
+    repair_guard = targets.body[2]
+    assert isinstance(repair_guard, ast.If)
+    assert ast.unparse(repair_guard.test) == "sentinel_only_freeze"
+    repair_observation = ast.parse("""
+_, _, repair_universe = _resolve_qualification_inputs(
+    date=date, user_panel=user_panel, leaders=leaders,
+    qualification_panel=qualification_panel, qualification_leaders=qualification_leaders,
+    strategic_universe=strategic_universe,
+)
+_observe_account_repair(account=account, risk=risk, universe=repair_universe,
+                        observed_session=str(date.date()), cfg=self.cfg)
+""").body
+    for observed, expected in zip(repair_guard.body[:2], repair_observation, strict=True):
+        _same(observed, expected)
+    del repair_guard.body[:2]
+    # Only monotonic ordinary denial propagates from planning; no flat repair copy.
+    denial = ast.parse("""
+def _commit_frozen_ordinary_denials(account: AccountState, planned: AccountState) -> None:
+    for order in account.pending_orders:
+        if (order.side == "BUY" and not order.grant_id and not order.epoch_id
+                and order.mechanism != AttributionMechanism.POST_SHOCK_RESTORATION.value
+                and order.symbol not in planned.protected_weights):
+            account.protected_weights.pop(order.symbol, None)
+""").body[0]
+    _same(definitions["_commit_frozen_ordinary_denials"], denial)
     diagnostic_projection = ast.parse('''
 if sentinel_only_freeze and "core_allocation" in strategy_risk.evidence:
     risk.evidence["core_allocation"] = {
@@ -126,8 +152,8 @@ if sentinel_only_freeze and "core_allocation" in strategy_risk.evidence:
     assert isinstance(sentinel_projection, ast.If)
     observation_projection = ast.parse(
         """
+_commit_frozen_ordinary_denials(account, strategy_account)
 account.strategic_qualification = deepcopy(strategy_account.strategic_qualification)
-account.flat_book_capital_repair = deepcopy(strategy_account.flat_book_capital_repair)
 for key, value in strategy_account.replacement_tenure.items():
     if key.startswith(("strategic_qualification:", "strategic_eligibility:", "lifecycle_exit:")):
         account.replacement_tenure[key] = value

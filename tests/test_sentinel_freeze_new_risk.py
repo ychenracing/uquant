@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import hashlib
+
 import pandas as pd
 
 from uquant.config import DEFAULT_CONFIG
@@ -297,6 +299,13 @@ def test_real_allocator_sentinel_freeze_holds_capital_and_advances_only_observat
     after["candidate_tenure"] = before["candidate_tenure"]
     assert after["replacement_tenure"] == {"lifecycle_exit:old": 0}
     after["replacement_tenure"] = before["replacement_tenure"]
+    # The real-risk repair observer binds previously unbound account identity.
+    # This is deterministic observation state, not permission to change capital.
+    identity_payload = "|".join((float(account.initial_cash).hex(),
+                                 before["code_hash"] or "unbound-production-source", "2026-08-19"))
+    assert before["account_identity"] == ""
+    assert after["account_identity"] == "account_" + hashlib.sha256(identity_payload.encode()).hexdigest()
+    after["account_identity"] = before["account_identity"]
     assert after == before
 
 

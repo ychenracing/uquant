@@ -35,6 +35,7 @@ from .ownership import (
 from .qualification_candidates import (
     QualifiedStrategicRoute,
     StrategicRoute,
+    independent_market_confirmation,
     observe_strategic_candidate_eligibility,
     strategic_candidate_confirmation,
     strategic_route_candidates,
@@ -374,29 +375,8 @@ def _independent_market_confirmation(
     self: StrategicPortfolioPolicy,
     risk: RiskAssessment,
 ) -> bool:
-    return bool(
-        float(risk.evidence.get("breadth20", self.cfg.high_confidence_entry_breadth))
-        >= self.cfg.high_confidence_entry_breadth
-        and float(risk.evidence.get("broad_ret20", 0.0))
-        >= self.cfg.strategic_transition_impulse_min_market_ret20
-        and float(risk.evidence.get("tech_ret20", 0.0))
-        >= self.cfg.strategic_transition_impulse_min_market_ret20
-        and max(
-            float(risk.evidence.get("broad_ret120", 0.0)),
-            float(risk.evidence.get("tech_ret120", 0.0)),
-        )
-        > self.cfg.recovery_transition_weak_leg_ret120
-        and max(
-            float(
-                risk.evidence.get(
-                    "broad_ret120",
-                    risk.evidence.get("tech_ret120", math.inf),
-                )
-            ),
-            float(risk.evidence.get("tech_ret120", math.inf)),
-        )
-        <= self.cfg.strategic_long_cycle_max_tech_ret120
-    )
+    return independent_market_confirmation(cfg=self.cfg, risk=risk)
+
 
 
 def _strategic_cohort_quality(

@@ -548,21 +548,26 @@ def test_missing_same_industry_witness_persists_source_raw_without_alias_cache(
             shard="continuity", scenario="remove-sz300502", output=output, cache_dir=cache,
         )
         monkeypatch.setattr(ownership_runner, "_frozen_replay", lambda *args, **kwargs: pytest.fail("source replayed"))
-    with pytest.raises(RuntimeError, match="no adjacent real same-industry successor"):
-        run_acceptance_shard(
-            shard="continuity", scenario="same-industry-crowning", output=output, cache_dir=cache,
-        )
+    result = run_acceptance_shard(
+        shard="continuity", scenario="same-industry-crowning", output=output, cache_dir=cache,
+    )
     evidence = json.loads(output.read_text())
-    assert evidence["status"] == "FAIL"
+    assert result["status"] == evidence["status"] == "FAIL"
     assert evidence["authoritative_acceptance"] is False
     failure = evidence["scenarios"][-1]
     assert failure["scenario_id"] == "same-industry-crowning"
     assert failure["status"] == "FAIL"
-    assert failure["replay_status"] == "SUCCESS"
-    assert failure["error_type"] == "RuntimeError"
-    assert failure["raw_replay_sha256"] == ownership_runner._canonical_sha256(asdict(replay))
-    assert ownership_runner._canonical_sha256(failure["raw_replay"]) == failure["raw_replay_sha256"]
-    assert "same_industry_witness" not in failure
+    legacy = failure["legacy_same_industry_crowning"]
+    assert legacy["status"] == "FAIL"
+    assert legacy["reason"] == "same-industry replay has no adjacent real same-industry successor"
+    assert legacy["disposition"] == "superseded by the new contract"
+    participation = failure["same_industry_core_participation"]
+    assert participation["status"] == "FAIL"
+    assert participation["witness"] is None and participation["error"]
+    raw_sha256 = ownership_runner._canonical_sha256(asdict(replay))
+    assert participation["raw_sha256"] == raw_sha256
+    assert ownership_runner._canonical_sha256(failure["raw_replay"]) == raw_sha256
+    assert failure["same_industry_witness"] is None
     entries = list(cache.iterdir())
     assert len(entries) == 1
     assert entries[0].name.startswith("remove-sz300502-")

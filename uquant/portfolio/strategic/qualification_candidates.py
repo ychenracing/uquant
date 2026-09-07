@@ -41,6 +41,22 @@ def strategic_candidate_confirmation(*, account: AccountState, symbol: str, rout
     return account.replacement_tenure.get(f"strategic_eligibility:{route}:{symbol}", 0)
 
 
+def independent_market_confirmation(*, cfg: SystemConfig, risk: RiskAssessment) -> bool:
+    """Require complete current market evidence for an independent admission."""
+    keys = ("breadth20", "broad_ret20", "tech_ret20", "broad_ret120", "tech_ret120")
+    values = [risk.evidence.get(key) for key in keys]
+    if any(not isinstance(value, (int, float)) or isinstance(value, bool)
+           or not math.isfinite(value) for value in values):
+        return False
+    breadth, broad20, tech20, broad120, tech120 = (float(risk.evidence[key]) for key in keys)
+    return bool(
+        breadth >= cfg.high_confidence_entry_breadth
+        and min(broad20, tech20) >= cfg.strategic_transition_impulse_min_market_ret20
+        and cfg.recovery_transition_weak_leg_ret120 < max(broad120, tech120)
+        <= cfg.strategic_long_cycle_max_tech_ret120
+    )
+
+
 def observe_strategic_candidate_eligibility(
     *, date: pd.Timestamp, snapshots: dict[str, dict[str, float]],
     leaders: dict[str, LeaderScore], risk: RiskAssessment, account: AccountState,
@@ -66,7 +82,8 @@ def observe_strategic_candidate_eligibility(
             if session != previous:
                 account.replacement_tenure[key] = account.replacement_tenure.get(key, 0) + 1
             current.setdefault(symbol, {})[route] = account.replacement_tenure.get(key, 0)
-        if symbol in independent_core_symbols and symbol in current:
+        if (symbol in independent_core_symbols and symbol in current
+                and independent_market_confirmation(cfg=cfg, risk=risk)):
             key = f"strategic_eligibility:independent_core:{symbol}"
             eligible_keys.add(key)
             if session != previous:

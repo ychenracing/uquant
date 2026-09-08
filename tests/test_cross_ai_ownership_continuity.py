@@ -55,7 +55,11 @@ def continuity_replay(
             "previous_grant_id": f"grant_{index:064x}" if index else "",
             "authorization_id": "",
         }
-        rows[signal]["risk"] = {"strategic_qualification": qualification, "strategic_grant": grant}
+        rows[signal]["risk"] = {
+            "strategic_qualification": qualification, "strategic_grant": grant,
+            "state": "NORMAL", "votes": 0, "target_gross_cap": 1.0,
+            "capital_budget_level": 0, "chronic_level": 0, "freeze_new_risk": False,
+        }
         identities = {
             "epoch_id": epoch_id, "grant_id": grant_id,
             "origin_subsystem": "STRATEGIC", "mechanism": "STRATEGIC_COHORT",
@@ -464,6 +468,9 @@ def test_zero_fill_expired_epoch_remains_in_complete_predecessor_chain(missing: 
             "closed_session": first["closed_session"]}
     zero_row = next(row for row in result.trace if row.date == zero["opened_session"])
     middle_row = next(row for row in result.trace if row.date == middle["opened_session"])
+    zero_row.risk.update({key: middle_row.risk[key] for key in (
+        "state", "votes", "target_gross_cap", "capital_budget_level", "chronic_level", "freeze_new_risk",
+    )})
     zero_row.risk["strategic_grant"] = {
         **middle_row.risk["strategic_grant"], "grant_id": zero["grant_id"],
         "created_session": zero["opened_session"],

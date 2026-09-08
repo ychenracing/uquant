@@ -91,6 +91,7 @@ uv run pytest --cov=uquant --cov-report=term-missing
 uv run python -m uquant.validation promotion \
   --data-dir data/frozen \
   --profile full \
+  --cache-dir /tmp/uquant-performance-cache \
   --output benchmarks/ai_era_performance.json
 ```
 
@@ -98,6 +99,11 @@ uv run python -m uquant.validation promotion \
 `production_commit` 才能严格等于被验证的 HEAD；仓库内可追踪的
 `promotion_baseline.json` 只保存已经评审的上一任 champion，而不是伪装成当前
 HEAD 的自引用运行结果。
+
+指定 `--cache-dir` 后，每个股票池与窗口的原始结果在经济门判定前独立保存。
+中断后用相同命令恢复；只有源码、运行器、配置、数据、运行环境、合同和场景身份
+一致的完整单元才会复用。损坏或身份不符的记录报错且不会覆盖；新候选使用新目录。
+经济失败仍保存并重新判定，单元缓存不代表完整验收通过。
 
 full profile 是性能验收不可拆分的阻断经济性真相，窗口日期直接绑定
 `uquant.contracts.runtime_identity.AI_ERA_WINDOWS`：

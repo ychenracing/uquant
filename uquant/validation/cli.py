@@ -66,6 +66,7 @@ def _validation_parser() -> argparse.ArgumentParser:
         default=str(Path("benchmarks") / "promotion_baseline.json"),
     )
     promotion.add_argument("--profile", choices=("full",), default="full")
+    promotion.add_argument("--cache-dir", type=Path, default=None)
     promotion.add_argument("--output", default=None)
     generalization = sub.add_parser("generalization")
     generalization.add_argument("--data-dir", required=True)
@@ -106,6 +107,7 @@ def main(argv: list[str] | None = None) -> int:
             data_dir=args.data_dir,
             baseline=args.baseline,
             profile=args.profile,
+            cache_dir=args.cache_dir,
         )
     elif args.command == "generalization":
         if args.random_seed_count < 1:

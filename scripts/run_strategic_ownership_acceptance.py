@@ -69,8 +69,8 @@ from uquant.validation.absolute_generalization._physical_identity import (
 from uquant.validation.absolute_generalization.metrics import (
     actual_epoch_facts_from_rows,
     assert_unique_execution_rows,
-    first_repair_ready_fact,
     longest_healthy_zero_target_streak,
+    repair_episode_facts_from_trace,
 )
 from uquant.validation.manifest import verify_data_manifest
 
@@ -313,6 +313,51 @@ def _retain_failed_replay(result: ReplayResult) -> Iterator[None]:
         raise
 
 
+def _validate_admission_authority(trace: Sequence[Mapping[str, object]]) -> list[dict[str, Any]]:
+    """Audit creation-time risk authority independently of historical owner paths."""
+    admissions: list[dict[str, Any]] = []
+    seen: set[str] = set()
+    for row in trace:
+        risk = _mapping(row["risk"], label="admission risk")
+        grant = risk.get("strategic_grant")
+        if not isinstance(grant, Mapping) or grant.get("created_session") != row["session"]:
+            continue
+        grant_id = str(grant["grant_id"])
+        if grant_id in seen:
+            raise ValueError("ownership admission creation session duplicates")
+        seen.add(grant_id)
+        state = risk.get("state")
+        votes = _participation_number(risk.get("votes"))
+        cap = _participation_number(risk.get("target_gross_cap"))
+        capital = _participation_number(risk.get("capital_budget_level"))
+        chronic = _participation_number(risk.get("chronic_level"))
+        freeze = risk.get("freeze_new_risk")
+        if (state not in {"NORMAL", "CAUTION"} or votes < 0 or capital < 0 or chronic < 0
+                or not isinstance(freeze, bool) or cap <= 0 or (state == "CAUTION" and votes >= 2)):
+            raise ValueError("ownership admission violates Base Risk authority")
+        authorization = grant.get("authorization_id", "")
+        if not authorization and (freeze or capital > 0 or chronic > 0):
+            raise ValueError("ownership admission lacks its required rearm authorization")
+        rearm = risk.get("strategic_cash_rearm")
+        if (not authorization and isinstance(rearm, Mapping)
+                and rearm.get("consumed_grant_id") == grant_id):
+            raise ValueError("ownership admission lacks its consumed rearm authorization")
+        if authorization:
+            rearm = _mapping(rearm, label="admission rearm")
+            authorized = rearm.get("authorized_session")
+            if (rearm.get("authorization_id") != authorization
+                    or rearm.get("status") != "CONSUMED"
+                    or rearm.get("consumed_grant_id") != grant_id
+                    or rearm.get("candidate_symbol") != grant.get("candidate_symbol")
+                    or not isinstance(authorized, str) or not authorized
+                    or authorized > str(row["session"])):
+                raise ValueError("ownership admission rearm authorization chain differs")
+        admissions.append({"grant_id": grant_id, "created_session": row["session"],
+                           "path": "REARM" if authorization else "NORMAL",
+                           "authorization_id": authorization})
+    return admissions
+
+
 def _summarize_replay(result: ReplayResult, *, scenario_id: str) -> dict[str, Any]:
     if result.status != "SUCCESS":
         raise _ReplayFailure(result, scenario_id=scenario_id)
@@ -340,9 +385,13 @@ def _summarize_replay(result: ReplayResult, *, scenario_id: str) -> dict[str, An
         )
         for row in result.trace
     )
-    repair = first_repair_ready_fact(trace)
+    admissions = _validate_admission_authority(trace)
+    repairs = repair_episode_facts_from_trace(trace)
+    repair = next((item for item in repairs if item.last_ready_session), None)
     return {
         "accounting_reconciled": True,
+        "admission_authority": admissions,
+        "repair_episodes": [item.to_dict() for item in repairs],
         "actual_strategic_epoch_count": len(epochs),
         "distinct_owners": sorted({str(item["owner_symbol"]) for item in epochs}),
         "epochs": epochs,
@@ -747,17 +796,22 @@ def _validate_full_removal(
         raise RuntimeError("removed symbol became a strategic owner")
     if removed_symbol in {"sz300308", "sz300502", "sz300394"} and not owners:
         raise RuntimeError("critical removal formed no actual strategic epoch")
-    if removed_symbol == "sz300308":
-        ready = summary.get("repair_ready")
-        if not isinstance(ready, Mapping):
-            raise RuntimeError("owner removal has no ready capital-repair episode")
-        if int(ready.get("healthy_session_count", 0)) > int(
-            thresholds["maximum_level_three_repair_sessions"]
-        ):
+    # The current contract supersedes exact historical owner/epoch trajectories.
+    # Audit real episodes, never infer a level-three episode from another tier.
+    repairs = _sequence(summary["repair_episodes"], label="repair episodes")
+    level_three = [
+        _mapping(item, label="repair episode") for item in repairs
+        if _mapping(item, label="repair episode")["capital_budget_level"] == 3
+    ]
+    for repair in level_three:
+        count = max(int(repair["reported_healthy_sessions"]), int(repair["actual_healthy_sessions_to_ready"]))
+        if count > int(thresholds["maximum_level_three_repair_sessions"]):
             raise RuntimeError("level-three capital repair exceeded its bounded clock")
-        epochs = _sequence(summary["epochs"], label="owner-removal epochs")
-        if not epochs or not _mapping(epochs[0], label="owner-removal epoch").get("authorization_id"):
-            raise RuntimeError("owner-removal grant lacks its rearm authorization")
+    summary["level_three_repair_coverage"] = {
+        "observed_episodes": len(level_three),
+        "ready_episodes": sum(bool(item["last_ready_session"]) for item in level_three),
+        "status": "OBSERVED" if level_three else "NOT_OBSERVED",
+    }
 
 
 def _continuity_basis() -> dict[str, str]:

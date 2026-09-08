@@ -21,6 +21,7 @@ import uquant.validation.promotion_contract as _promotion_contract
 from ..config import DEFAULT_CONFIG, config_fingerprint
 from ..config_governance import GOVERNANCE_PATH
 from ..engine import ProductionEngine
+from ._promotion_cache import replay_unit
 from .absolute_generalization._acceptance_evidence import current_candidate_contract
 from .ai_era import (
     AI_ERA_ACUTE_WINDOWS,
@@ -737,6 +738,7 @@ def run_promotion(
     data_dir: str | Path,
     baseline: str | Path = Path("benchmarks") / "promotion_baseline.json",
     profile: str = "full",
+    cache_dir: str | Path | None = None,
 ) -> dict[str, Any]:
     """Run all six windows and protected intervals; no partial profile exists."""
 
@@ -763,10 +765,39 @@ def run_promotion(
         runtime_before=runtime,
     ):
         engine = ProductionEngine(data_dir)
+
+        def replay(name: str, symbols: Any, start: str, end: str) -> dict[str, Any]:
+            if cache_dir is None:
+                return engine.backtest(symbols=tuple(symbols), start=start, end=end)
+            identity = {
+                "candidate": runtime,
+                "baseline_sha256": baseline_sha256,
+                "acceptance_basis": acceptance_basis,
+                "execution_contract": dict(EXECUTION_CONTRACT),
+                "runner": "uquant.validation.promotion.run_promotion",
+                "profile": profile,
+                "symbols": list(symbols),
+                "start": start,
+                "end": end,
+            }
+
+            def generate() -> dict[str, Any]:
+                with _immutable_validation_inputs(
+                    baseline_path=baseline_path,
+                    baseline_sha256=baseline_sha256,
+                    data_dir=data_dir,
+                    runtime_before=runtime,
+                ):
+                    raw = engine.backtest(symbols=tuple(symbols), start=start, end=end)
+                    if current_promotion_acceptance_basis() != acceptance_basis:
+                        raise RuntimeError("promotion current acceptance contract changed during replay")
+                return raw
+
+            return replay_unit(Path(cache_dir), name=name, identity=identity, replay=generate)
         for pool, symbols in spec["pools"].items():
             for window, (start, end) in AI_ERA_WINDOWS.items():
                 name = f"{pool}/{window}"
-                raw = engine.backtest(symbols=tuple(symbols), start=start, end=end)
+                raw = replay(name, symbols, start, end)
                 if raw.get("effective_config_sha256") != runtime["effective_config_sha256"]:
                     raise RuntimeError(f"promotion effective config drifted during replay: {name}")
                 metrics = _compact(raw, acute=AI_ERA_ACUTE_WINDOWS[window])
@@ -787,11 +818,7 @@ def run_promotion(
                 )
             for interval, bounds in PROTECTED_INTERVALS.items():
                 name = f"{pool}/{interval}"
-                raw = engine.backtest(
-                    symbols=tuple(symbols),
-                    start=bounds["start"],
-                    end=bounds["end"],
-                )
+                raw = replay(name, symbols, bounds["start"], bounds["end"])
                 if raw.get("effective_config_sha256") != runtime["effective_config_sha256"]:
                     raise RuntimeError(f"promotion effective config drifted during replay: {name}")
                 metrics = _compact(raw, acute=None)

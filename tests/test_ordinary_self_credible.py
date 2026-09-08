@@ -18,17 +18,16 @@ def _open_pair(*, low_score=.81):
     return policy, account, dates, panel, leaders, risk, targets, low
 
 
-def test_current_mature_stock_can_enter_below_market_witness_score():
+def test_peer_impulse_permission_does_not_fund_low_score_self_maturity():
     _, account, dates, panel, leaders, risk, targets, low = _open_pair()
     assert risk.evidence['core_allocation']['ordinary_market']['confirmed']
     assert all(leader.mature for leader in leaders.values())
     assert account.replacement_tenure.get(f'strategic_eligibility:independent_core:{low}', 0) == 0
     high = next(symbol for symbol in leaders if symbol != low)
-    assert {target.symbol for target in targets} == {high, low}
+    assert {target.symbol for target in targets} == {high}
     fills = ExecutionPlanner(DEFAULT_CONFIG).execute_open(date=dates[5], account=account, panel=panel)
-    assert len(fills) == 2 and {fill.symbol for fill in fills} == {high, low}
-    assert all(fill.side == 'BUY' for fill in fills)
-    assert low in account.positions
+    assert len(fills) == 1 and fills[0].symbol == high and fills[0].side == 'BUY'
+    assert low not in account.positions
     assert account.strategic_grant is None and not account.strategic_epochs
 
 
@@ -43,7 +42,7 @@ def test_filled_holding_score_loss_does_not_force_sale_or_relabel():
     assert {symbol: (p.shares, p.grant_id, p.epoch_id) for symbol, p in account.positions.items()} == before
 
 
-def test_partial_current_mature_continues_then_quality_loss_cancels_without_restart_revival(tmp_path):
+def test_partial_current_credible_continues_then_score_loss_cancels_without_restart_revival(tmp_path):
     from uquant.account import load_account, save_account
 
     policy, account, dates, panel, leaders, risk, _, low = _open_pair(low_score=.84)
@@ -58,7 +57,7 @@ def test_partial_current_mature_continues_then_quality_loss_cancels_without_rest
     assert len(remaining) == 1
     assert (remaining[0].order_id, remaining[0].event_id) == (original.order_id, original.event_id)
     before = (account.positions[low].shares, account.cash)
-    leaders[low] = replace(leaders[low], score=.81, confidence=DEFAULT_CONFIG.leader_min_confidence - .01)
+    leaders[low] = replace(leaders[low], score=.81)
     _decide(policy, account, dates[6], panel, leaders, risk)
     assert risk.evidence['core_allocation']['ordinary_market']['confirmed']  # Healthy peer still witnesses.
     assert not any(o.symbol == low for o in account.pending_orders)
@@ -106,3 +105,42 @@ def test_real_strict_clock_remains_fallback_without_self_maturity_tenure():
     assert result['block'] == 'READY'
     assert 'qualification_route' not in result
     assert result['confirmations']['independent_core'] >= 5
+
+
+def test_native_shared_certificate_buys_without_impulse_or_strict_clock():
+    from test_shared_core_qualification import CHALLENGER, _held_book
+    from test_strategic_universe_quorum import _risk
+
+    policy, account, dates, panel, leaders, roles = _held_book()
+    risk = _risk()
+    risk.evidence.update(ai_fast_return=.01, declining_ratio=.05, below_ma20_ratio=.05,
+                         tech_speed=.02, broad_speed=.02)
+    for date in dates[:DEFAULT_CONFIG.strategic_cohort_confirm_days]:
+        _decide(policy, account, date, panel, leaders, risk, roles=roles)
+    assert not risk.evidence["core_allocation"]["ordinary_market"]["confirmed"]
+    assert account.replacement_tenure.get(f"strategic_eligibility:independent_core:{CHALLENGER}", 0) == 0
+    order = next(order for order in account.pending_orders if order.symbol == CHALLENGER)
+    assert not order.grant_id and not order.epoch_id
+    fills = ExecutionPlanner(DEFAULT_CONFIG).execute_open(
+        date=dates[DEFAULT_CONFIG.strategic_cohort_confirm_days], account=account, panel=panel)
+    assert any(fill.symbol == CHALLENGER and fill.side == "BUY" and fill.shares > 0 for fill in fills)
+
+
+def test_native_strict_candidate_buys_without_impulse_or_mature_shortcut():
+    from test_ordinary_cash_rearm import SYMBOL
+    from test_ordinary_cash_rearm import _decide as repair_decide
+    from test_ordinary_cash_rearm import _scenario as repair_scenario
+
+    from uquant.types import Risk
+
+    policy, account, dates, panel, leaders, risk = repair_scenario()
+    assert account.leader_tenure.get(SYMBOL, 0) == 0
+    risk = replace(risk, state=Risk.NORMAL, freeze_new_risk=False, reduction_level=0,
+                   evidence={**risk.evidence, "freeze_new_risk": False, "ai_fast_return": .01})
+    repair_decide(policy, account, dates[0], panel, leaders, risk)
+    assert not risk.evidence["core_allocation"]["ordinary_market"]["confirmed"]
+    assert account.replacement_tenure[f"strategic_eligibility:independent_core:{SYMBOL}"] >= 5
+    assert account.pending_orders and account.strategic_cash_rearm.consumed_order is None
+    fills = ExecutionPlanner(DEFAULT_CONFIG).execute_open(date=dates[1], account=account, panel=panel)
+    assert len(fills) == 1 and fills[0].symbol == SYMBOL and fills[0].shares > 0
+    assert not fills[0].grant_id and not fills[0].epoch_id

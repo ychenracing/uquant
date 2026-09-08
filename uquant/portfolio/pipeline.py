@@ -57,6 +57,7 @@ def _core_candidates(
     leaders: dict[str, LeaderScore], account: AccountState,
     trace: dict[str, dict[str, Any]] | None = None,
     certificates: dict[str, dict[str, Any]] | None = None,
+    market: dict[str, Any] | None = None,
 ) -> list[str]:
     """Record the same short-circuit predicates that decide core entry eligibility."""
     candidates = []
@@ -64,7 +65,7 @@ def _core_candidates(
         entry = ordinary_core_entry(self, symbol=symbol, score=score, date=date,
                                  user_panel=user_panel, account=account,
                                  confirmation_days=self.cfg.leader_tenure_days,
-                                 certificate=(certificates or {}).get(symbol))
+                                 certificate=(certificates or {}).get(symbol), market=market)
         if trace is not None:
             trace.setdefault(symbol, {}).update(entry=entry, rank_score=score.score)
         if entry["block"] == "READY":
@@ -414,7 +415,7 @@ def _ordinary_exits(book: _AllocationBook) -> None:
         book.record(symbol)["allocation_reason"] = "CONFIRMED_STRUCTURAL_EXIT"
 
 
-def _pending_intents(book: _AllocationBook, *, buy_open: bool, market_open: bool,
+def _pending_intents(book: _AllocationBook, *, buy_open: bool, market: dict[str, Any],
                      certificates: dict[str, dict[str, Any]] | None = None) -> None:
     for order in book.account.pending_orders:
         if order.side == "SELL":
@@ -437,15 +438,14 @@ def _pending_intents(book: _AllocationBook, *, buy_open: bool, market_open: bool
                 date=book.date, user_panel=book.user_panel, account=book.account,
                 confirmation_days=1 if current > 0 else book.policy.cfg.leader_tenure_days,
                 certificate=(certificates or {}).get(order.symbol),
+                market=market,
             ) if order.symbol in book.leaders else {"block": "CURRENT_LEADER_UNAVAILABLE"}
             book.record(order.symbol)["pending_entry"] = evidence
-            market_allowed = repair_open if repair_order else market_open
-            book.record(order.symbol)["pending_market_open"] = market_allowed
-            if not market_allowed:
-                book.record(order.symbol)["entry_gate"] = (
-                    "CASH_REPAIR_PERMISSION_CLOSED" if repair_order else "COMMON_TREND_NOT_CONFIRMED"
-                )
-            if (evidence["block"] != "READY" or not market_allowed
+            permission_open = not repair_order or repair_open
+            book.record(order.symbol)["pending_entry_permission_open"] = permission_open and evidence["block"] == "READY"
+            if not permission_open:
+                book.record(order.symbol)["entry_gate"] = "CASH_REPAIR_PERMISSION_CLOSED"
+            if (evidence["block"] != "READY" or not permission_open
                     or book.proposed.get(order.symbol, 0.0) < current):
                 book.record(order.symbol)["pending_buy_rejected"] = True
                 book.account.protected_weights.pop(order.symbol, None)
@@ -571,16 +571,11 @@ def _failed_deployment_awaits_settlement(account: AccountState) -> bool:
                for order in account.order_ledger)
 
 
-def _admit_new_cores(book: _AllocationBook, *, candidates: list[str], opportunity: Opportunity,
-                     market_open: bool) -> None:
+def _admit_new_cores(book: _AllocationBook, *, candidates: list[str], opportunity: Opportunity) -> None:
     if not _core_opportunity_open(opportunity) or book.risk.state is not Risk.NORMAL:
         block = "OPPORTUNITY_NOT_OPEN" if not _core_opportunity_open(opportunity) else "RISK_NOT_NORMAL"
         for symbol in candidates:
             book.record(symbol)["entry_gate"] = block
-        return
-    if not market_open:
-        for symbol in candidates:
-            book.record(symbol)["entry_gate"] = "COMMON_TREND_NOT_CONFIRMED"
         return
     occupied = (book.owned | {s for s, w in book.weights_now.items() if w > 0}
                 | {s for s, w in book.committed.items() if w > 0}
@@ -708,23 +703,22 @@ def _allocate_strategy(
         qualification_panel=qualification_panel, qualification_leaders=qualification_leaders,
         strategic_universe=strategic_universe,
     )
-    candidates = _core_candidates(self, date=date, user_panel=user_panel, leaders=leaders, account=account,
-                                  trace=book.trace, certificates=certificates)
     market = observe_ordinary_market(
         self, date=date, opportunity=opportunity, risk=risk, leaders=leaders,
-        user_panel=user_panel, account=account,
+        user_panel=user_panel,
     )
+    candidates = _core_candidates(self, date=date, user_panel=user_panel, leaders=leaders, account=account,
+                                  trace=book.trace, certificates=certificates, market=market)
     _ordinary_exits(book)
     _pending_intents(book, buy_open=not frozen and not liabilities,
-                     market_open=market["confirmed"], certificates=certificates)
+                     market=market, certificates=certificates)
     ordinary_restore = _bounded_ordinary_restore_risk_open(book)
     if not liabilities and (not frozen or ordinary_restore):
         book.committed, book.cash_room = committed_capital(account=account, prices=prices, proposed=proposed)
         _restore_ordinary_holdings(book)
     awaiting_settlement = _failed_deployment_awaits_settlement(account)
     if not frozen and not liabilities and not awaiting_settlement:
-        _admit_new_cores(book, candidates=candidates, opportunity=opportunity,
-                         market_open=market["confirmed"])
+        _admit_new_cores(book, candidates=candidates, opportunity=opportunity)
     else:
         for symbol in candidates:
             book.record(symbol)["entry_gate"] = (

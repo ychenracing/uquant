@@ -1,4 +1,4 @@
-"""Native AE ordinary trend capital; no strategic or repair authority injected."""
+"""Native route-scoped ordinary impulse permission; no injected authority."""
 from dataclasses import replace
 from hashlib import sha256
 
@@ -45,11 +45,13 @@ def _scenario():
     return PortfolioAllocator(DEFAULT_CONFIG), account, dates[-9:], panel, base, risk
 
 
-def _decide(policy, account, date, panel, leaders, risk):
+def _decide(policy, account, date, panel, leaders, risk, *, roles=None):
     previous = list(account.pending_orders)
     prices = {symbol: float(frame.loc[date, "close"]) for symbol, frame in panel.items()}
     targets = policy.allocate(date=date, opportunity=Opportunity.TREND, risk=risk,
-                              user_panel=panel, leaders=leaders, account=account, prices=prices)
+                              user_panel=panel, leaders=leaders, account=account, prices=prices,
+                              **({"qualification_panel": panel, "qualification_leaders": leaders,
+                                  "strategic_universe": roles} if roles is not None else {}))
     attributed = tuple(item for target in targets for item in attach_target_attribution(
         leaders[target.symbol].industry, REQUIRED_AI_UNIVERSE_SHA256,
         signal_date=str(date.date()), targets=(target,), retained_orders=previous,
@@ -128,18 +130,18 @@ def test_ordinary_partial_loses_common_permission_and_cannot_revive_after_strict
     assert restored.strategic_grant is None and not restored.strategic_epochs
 
 
-def test_reference_only_mature_name_does_not_complete_sustained_market_quorum():
-    from uquant.portfolio.ordinary import observe_ordinary_market
-
+def test_reference_only_credible_name_cannot_supply_impulse_permission():
     policy, account, dates, panel, base, risk = _scenario()
     for _ in range(DEFAULT_CONFIG.leader_tenure_days):
         leaders = apply_leader_tenure(base, account=account, cfg=DEFAULT_CONFIG)
-    panel.pop(tuple(panel)[-1])
-    risk.evidence.update(broad_ret120=.04, tech_ret120=.04, ai_fast_return=.01)
-    for date in dates[:4]:
-        result = observe_ordinary_market(policy, date=date, opportunity=Opportunity.STRONG_TREND,
-                                         risk=risk, leaders=leaders, user_panel=panel, account=account)
-        assert not result["confirmed"]
+    reference = tuple(panel)[-1]
+    panel.pop(reference)
+    tradable = next(iter(panel))
+    leaders[tradable] = replace(leaders[tradable], score=.81)
+    result = _observe(policy, account, dates[0], panel, leaders, risk)
+    assert not result["confirmed"] and not result["credible_symbols"]
+    assert not _decide(policy, account, dates[0], panel, leaders, risk)
+    assert not account.pending_orders
 
 
 def test_real_consumed_repair_partial_cannot_use_mature_common_permission(tmp_path):
@@ -202,45 +204,47 @@ def _observe(policy, account, date, panel, leaders, risk):
     from uquant.portfolio.ordinary import observe_ordinary_market
 
     return observe_ordinary_market(policy, date=date, opportunity=Opportunity.STRONG_TREND,
-                                   risk=risk, leaders=leaders, user_panel=panel, account=account)
+                                   risk=risk, leaders=leaders, user_panel=panel)
 
 
-def test_market_clock_counts_real_sessions_once_persists_and_resets_on_gap(tmp_path):
+def test_current_impulse_is_nonpersistent_across_dates_and_strict_restart(tmp_path):
     from uquant.account import load_account, save_account
 
     policy, account, dates, panel, leaders, risk = _sustained_scenario()
-    first = _observe(policy, account, dates[0], panel, leaders, risk)
-    assert first["streak"] == 1 and not first["confirmed"]
-    assert _observe(policy, account, dates[0], panel, leaders, risk) == first
-    second = _observe(policy, account, dates[1], panel, leaders, risk)
-    assert second["streak"] == 2 and not second["confirmed"]
-    path = tmp_path / "market-clock.json"
+    risk.evidence["ai_fast_return"] = .16
+    before = dict(account.candidate_tenure)
+    observed = _observe(policy, account, dates[0], panel, leaders, risk)
+    assert observed["confirmed"]
+    assert _observe(policy, account, dates[0], panel, leaders, risk) == observed
+    assert account.candidate_tenure == before
+    path = tmp_path / "market-permission.json"
     save_account(account, path)
     account = load_account(path)
-    third = _observe(policy, account, dates[2], panel, leaders, risk)
-    assert third["streak"] == 3 and third["confirmed"]
-    assert _observe(policy, account, dates[2], panel, leaders, risk) == third
-    after_gap = _observe(policy, account, dates[4], panel, leaders, risk)
-    assert after_gap["streak"] == 1 and not after_gap["confirmed"]
+    risk.evidence["ai_fast_return"] = .01
+    assert not _observe(policy, account, dates[4], panel, leaders, risk)["confirmed"]
+    assert account.candidate_tenure == before
 
 
 @pytest.mark.parametrize("bad", [None, float("nan"), float("inf")])
 def test_missing_or_nonfinite_market_evidence_cannot_keep_confirmation(bad):
     policy, account, dates, panel, leaders, risk = _sustained_scenario()
-    for date in dates[:3]:
-        observed = _observe(policy, account, date, panel, leaders, risk)
-    assert observed["confirmed"]
+    risk.evidence["ai_fast_return"] = .16
+    assert _observe(policy, account, dates[0], panel, leaders, risk)["confirmed"]
     if bad is None:
         risk.evidence.pop("tech_speed")
     else:
         risk.evidence["tech_speed"] = bad
     result = _observe(policy, account, dates[3], panel, leaders, risk)
-    assert not result["confirmed"] and result["streak"] == 0
+    assert not result["confirmed"]
+    assert not _decide(policy, account, dates[3], panel, leaders, risk)
+    assert not account.pending_orders
     assert "tech_speed" in result["missing_market_fields"]
 
 
 def test_freeze_preserves_true_market_observations_but_prevents_real_buy():
     policy, account, dates, panel, leaders, risk = _sustained_scenario()
+    risk.evidence["ai_fast_return"] = .16
+    before = dict(account.candidate_tenure)
     frozen = replace(risk, freeze_new_risk=True)
     for date in dates[:3]:
         observed = _observe(policy, account, date, panel, leaders, frozen)
@@ -250,6 +254,17 @@ def test_freeze_preserves_true_market_observations_but_prevents_real_buy():
             prices={symbol: float(frame.loc[date, "close"]) for symbol, frame in panel.items()},
         )
         assert not targets and not account.pending_orders
-    assert observed["confirmed"] and observed["streak"] == 3
+    assert observed["confirmed"]
+    assert not {k for k in account.candidate_tenure if k.startswith("ordinary_market_")}
+    assert not {k for k in before if k.startswith("ordinary_market_")}
     assert not account.order_ledger and not account.fills and not account.positions
     assert account.cash == DEFAULT_CONFIG.initial_cash
+
+
+def test_sustained_market_cannot_accumulate_early_mature_entry_permission():
+    policy, account, dates, panel, leaders, risk = _sustained_scenario()
+    before = dict(account.candidate_tenure)
+    for date in dates[:3]:
+        observed = _observe(policy, account, date, panel, leaders, risk)
+        assert not observed["confirmed"]
+    assert account.candidate_tenure == before

@@ -46649,14 +46649,6 @@
                 "default": {
                   "kind": "required"
                 }
-              },
-              {
-                "name": "account",
-                "kind": "KEYWORD_ONLY",
-                "annotation": "AccountState",
-                "default": {
-                  "kind": "required"
-                }
               }
             ],
             "return": "dict[str, Any]"
@@ -46721,6 +46713,15 @@
               },
               {
                 "name": "certificate",
+                "kind": "KEYWORD_ONLY",
+                "annotation": "dict[str, Any] | None",
+                "default": {
+                  "kind": "value",
+                  "value": null
+                }
+              },
+              {
+                "name": "market",
                 "kind": "KEYWORD_ONLY",
                 "annotation": "dict[str, Any] | None",
                 "default": {
@@ -95932,7 +95933,7 @@
     }
   },
   "contract_id": "uquant-public-api-v1",
-  "contract_sha256": "79880511a815e3a5cd9aae6234f81d1860184899b3665074d13c78f2c129d29c",
+  "contract_sha256": "6a29db9ba3449c2b757e81f3370542657220e047ae9bf1e07925796a040be8ea",
   "recorded_on": "2026-09-05",
   "schema_version": 1
 }

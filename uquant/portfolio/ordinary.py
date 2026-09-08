@@ -6,11 +6,18 @@ from typing import TYPE_CHECKING, Any
 
 import pandas as pd
 
+from ..config import SystemConfig
 from ..types import AccountState, LeaderScore, Opportunity, RiskAssessment
 from .strategic.qualification_candidates import candidate_entry
 
 if TYPE_CHECKING:
     from .allocator import PortfolioAllocator
+
+
+def _credible_mature_leader(leader: LeaderScore, cfg: SystemConfig) -> bool:
+    """Use the same current stock standard for witness and self-maturity proof."""
+    return bool(leader.mature and leader.score >= .82
+                and leader.confidence >= cfg.leader_min_confidence)
 
 
 def ordinary_core_entry(
@@ -26,7 +33,7 @@ def ordinary_core_entry(
     tenure = account.leader_tenure.get(symbol, 0)
     if repair_pending:
         certificate = None  # The real repair order still needs its strict own proof.
-    elif certificate is None and score.mature and tenure >= self.cfg.leader_tenure_days:
+    elif certificate is None and _credible_mature_leader(score, self.cfg) and tenure >= self.cfg.leader_tenure_days:
         certificate = {
             "qualification_route": "mature_core", "qualification_quorum": "ORDINARY_CORE",
             "required_confirmation": self.cfg.leader_tenure_days,
@@ -67,8 +74,7 @@ def observe_ordinary_market(
     """Observe fixed common evidence; actual risk/cash permission stays in the book."""
     credible = sorted(symbol for symbol, leader in leaders.items()
                       if symbol in user_panel and date in user_panel[symbol].index
-                      and leader.mature and leader.score >= .82
-                      and leader.confidence >= self.cfg.leader_min_confidence)
+                      and _credible_mature_leader(leader, self.cfg))
     sustained, impulse, missing = _market_conditions(
         opportunity=opportunity, risk=risk, credible_count=len(credible))
     session = date.toordinal()

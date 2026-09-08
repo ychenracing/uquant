@@ -28,7 +28,7 @@ from ..leader import (
 )
 from ..opportunity import classify_opportunity
 from ..portfolio import PortfolioAllocator, current_weights
-from ..portfolio.strategic.rearm import consume_ordinary_cash_rearm_authorization
+from ..portfolio.strategic.rearm import bind_ordinary_entry_authorizations
 from ..reference import ReferenceContext, build_reference_context
 from ..reference_registry import resolve_reference_symbols
 from ..risk_sentinel.integration import sentinel_freeze_authorized
@@ -658,12 +658,10 @@ def _allocate_decision_orders(
         submitted_date=str(inputs.date.date()),
         removed_buy_reason="sentinel_freeze_new_risk" if sentinel_freeze_authorized(risk) else None,
     )
-    consume_ordinary_cash_rearm_authorization(
-        account=account, orders=orders, observed_session=str(inputs.date.date()),
+    bind_ordinary_entry_authorizations(
+        account=account, orders=orders, risk=risk, date=str(inputs.date.date()),
+        cfg=self.cfg, code_hash=inputs.current_code_hash, data_hash=inputs.data_digest,
     )
-    from ..models.ordinary_entry import bind_pullback_orders
-    bind_pullback_orders(account=account, orders=orders, risk=risk, date=str(inputs.date.date()),
-                         cfg=self.cfg, code_hash=inputs.current_code_hash, data_hash=inputs.data_digest)
     _record_final_allocation_trace(risk=risk, targets=targets, orders=orders,
                                    planning=planning_diagnostics)
     account.last_successful_run = str(inputs.date.date())

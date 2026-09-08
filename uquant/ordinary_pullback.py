@@ -12,7 +12,7 @@ from .config import SystemConfig
 from .types import LeaderScore
 
 
-def _finite(value: object) -> TypeGuard[float]:
+def _is_finite_number(value: object) -> TypeGuard[float]:
     if isinstance(value, bool):
         return False
     return isinstance(value, Real) and math.isfinite(value)
@@ -28,7 +28,7 @@ def pullback_quality(values: dict[str, Any], cfg: SystemConfig) -> bool:
         "momentum120": cfg.strategic_current_factor_floor,
         "relative_strength": cfg.strategic_current_factor_floor,
     }
-    return all(_finite(values.get(k)) and values[k] >= floor for k, floor in floors.items())
+    return all(_is_finite_number(values.get(k)) and values[k] >= floor for k, floor in floors.items())
 
 
 def _read_quality(leader: LeaderScore, cfg: SystemConfig, values: dict[str, Any]) -> str | None:
@@ -36,12 +36,12 @@ def _read_quality(leader: LeaderScore, cfg: SystemConfig, values: dict[str, Any]
     components = leader.components
     industry_confidence = components.get("industry_inference_confidence")
     unknown = components.get("unknown_industry")
-    if (leader.industry in {"", "unknown"} or not _finite(industry_confidence)
+    if (leader.industry in {"", "unknown"} or not _is_finite_number(industry_confidence)
             or industry_confidence < cfg.strategic_secular_min_confidence
-            or not _finite(unknown) or unknown >= .5):
+            or not _is_finite_number(unknown) or unknown >= .5):
         return "INDUSTRY_NOT_VERIFIED"
     quality_keys = ("secular_score", "secular_confidence", "momentum60", "momentum120", "relative_strength")
-    if not _finite(leader.confidence) or any(not _finite(components.get(k)) for k in quality_keys):
+    if not _is_finite_number(leader.confidence) or any(not _is_finite_number(components.get(k)) for k in quality_keys):
         return "CURRENT_QUALITY_UNAVAILABLE"
     values.update({k: float(components[k]) for k in quality_keys})
     values["leader_confidence"] = float(leader.confidence)
@@ -66,7 +66,7 @@ def current_pullback_proof(
         return {**result, "block": "INSUFFICIENT_HISTORY"}
     row = history.iloc[-1]
     keys = ("close", "ma120", "ret20", "ret60", "ret120")
-    if any(not _finite(row.get(key)) for key in keys):
+    if any(not _is_finite_number(row.get(key)) for key in keys):
         return {**result, "block": "CURRENT_MARKET_DATA_UNAVAILABLE"}
     values.update({key: float(row[key]) for key in keys})
     quality_block = _read_quality(leader, cfg, values)
@@ -79,7 +79,7 @@ def current_pullback_proof(
         return {**result, "block": "LONG_PULLBACK_NOT_PRESENT"}
     if "amount" not in history:
         return {**result, "block": "LIQUIDITY_NOT_CONFIRMED"}
-    amounts = [float(x) for x in history["amount"].tail(20) if _finite(x) and x > 0]
+    amounts = [float(x) for x in history["amount"].tail(20) if _is_finite_number(x) and x > 0]
     median = float(pd.Series(amounts).median()) if amounts else 0.0
     values["positive_amount_sessions"] = len(amounts)
     values["median_amount"] = median

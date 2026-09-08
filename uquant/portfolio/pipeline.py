@@ -7,12 +7,16 @@ from typing import TYPE_CHECKING, Any
 
 import pandas as pd
 
+from ..config import config_fingerprint
 from ..features import scalar
 from ..holding_history import holding_spans_date
 from ..models.ordinary_entry import REASON as PULLBACK_REASON
-from ..models.ordinary_entry import holding_pullback_entry, pullback_graduated
+from ..models.ordinary_entry import holding_pullback_entry, pullback_graduated, pullback_order_entry
 from ..models.strategic_universe import StrategicUniverseRoles
+from ..models.trading import late_strategic_fill_allowed
+from ..ordinary_pullback import current_pullback_proof
 from ..portfolio_core import current_weights, symbol_weight_cap
+from ..risk.pullback import pullback_book_settled, pullback_risk_open
 from ..types import (
     AccountState,
     AttributionMechanism,
@@ -20,6 +24,7 @@ from ..types import (
     Lifecycle,
     Opportunity,
     OriginSubsystem,
+    PendingOrder,
     Risk,
     RiskAssessment,
     Target,
@@ -27,7 +32,6 @@ from ..types import (
 from .capital import committed_capital, funded_increment
 from .leaders.lifecycle import ordinary_pullback_exit
 from .ordinary import observe_ordinary_market, ordinary_core_entry
-from .pullback import admit_pullback, continue_pullback_order
 from .strategic.authority import assess_strategic_capital_authority
 from .strategic.discovery import current_core_qualification
 from .strategic.grant_lifecycle import completed_strategic_core_entry as _completed_strategic_core_entry
@@ -263,6 +267,71 @@ class _AllocationBook:
         return accepted
 
 
+def _admit_pullback(book: _AllocationBook) -> set[str]:
+    permission = book.risk.evidence.get("ordinary_pullback_permission")
+    if (not isinstance(permission, dict) or permission.get("as_of") != str(book.date.date())
+            or not pullback_risk_open(book.risk, book.account) or not pullback_book_settled(book.account)
+            or any(weight > 0 for weight in book.committed.values())
+            or any(weight > 0 for weight in book.proposed.values())):
+        return set()
+    cfg = book.policy.cfg
+    maximum = min(permission["maximum_weight"], cfg.core_admission_weight, book.gross_cap)
+    candidates = []
+    for symbol, original in permission["proofs"].items():
+        if symbol not in book.user_panel or symbol not in book.leaders or symbol in book.owned:
+            continue
+        proof = current_pullback_proof(symbol=symbol, date=book.date, frame=book.user_panel[symbol],
+                                      leader=book.leaders[symbol], cfg=cfg)
+        if proof == original and proof["block"] == "READY":
+            candidates.append(symbol)
+    selected = sorted(candidates, key=lambda s: (-book.leaders[s].score, s))[
+        :min(cfg.max_positions, int((maximum + 1e-12) / cfg.min_trade_weight))]
+    allowed = set()
+    for symbol in selected:
+        if book.fund(symbol, maximum / len(selected), phase="PULLBACK_CORE", minimum=cfg.min_trade_weight):
+            book.reasons[symbol] = "bounded ordinary long-pullback entry"
+            book.record(symbol).update(pullback_entry=permission["proofs"][symbol],
+                                       entry_gate="BOUNDED_PULLBACK_AUTHORIZED")
+            allowed.add(symbol)
+    return allowed
+
+
+def _pending_pullback_open(book: _AllocationBook, order: PendingOrder) -> bool:
+    """Only the original unfilled quantity survives; a historical proof is not cash."""
+    entry = pullback_order_entry(book.account, order)
+    ledger = next((item for item in book.account.order_ledger if item.order_id == order.order_id), None)
+    if (entry is None or order.reason_code != PULLBACK_REASON or ledger is None
+            or ledger.status not in {"SUBMITTED", "OPEN", "PARTIALLY_FILLED"}
+            or ledger.remaining_shares <= 0 or ledger.event_id != order.event_id
+            or entry["code_hash"] != book.account.code_hash
+            or entry["config_sha256"] != config_fingerprint(book.policy.cfg)
+            or order.target_weight > ledger.target_weight + 1e-12
+            or not pullback_risk_open(book.risk, book.account)
+            or any(late_strategic_fill_allowed(item) or (
+                item.order_id != order.order_id and item.status not in {"FILLED", "CANCELLED", "REPLACED"}
+                and item.reason_code != PULLBACK_REASON) for item in book.account.order_ledger)
+            or order.symbol not in book.leaders or order.symbol not in book.user_panel):
+        return False
+    proof = current_pullback_proof(symbol=order.symbol, date=book.date, frame=book.user_panel[order.symbol],
+                                  leader=book.leaders[order.symbol], cfg=book.policy.cfg)
+    book.record(order.symbol)["pending_entry"] = proof
+    return bool(proof["block"] == "READY")
+
+
+def _continue_pullback_order(book: _AllocationBook, order: PendingOrder) -> None:
+    """Retain the entire original intent or close its remaining capital."""
+    current = book.weights_now.get(order.symbol, 0.0)
+    allowed = _pending_pullback_open(book, order)
+    continued = bool(allowed and book.proposed.get(order.symbol, 0.0) >= current
+                     and book.fund(order.symbol, order.target_weight, phase="PENDING_PULLBACK_BUY",
+                                   minimum=max(0.0, order.target_weight - current)))
+    book.record(order.symbol)["_pending_pullback_open"] = continued
+    if not continued:
+        book.record(order.symbol).update(pending_buy_rejected=True,
+                                        entry_gate="PULLBACK_PERMISSION_CLOSED")
+        book.account.protected_weights.pop(order.symbol, None)
+
+
 def _prepare_account(self: PortfolioAllocator, *, risk: RiskAssessment,
                      account: AccountState, weights_now: dict[str, float]) -> None:
     self._release_stale_recovery_anchor(risk=risk, account=account, weights_now=weights_now)
@@ -355,7 +424,7 @@ def _pending_intents(book: _AllocationBook, *, buy_open: bool, market_open: bool
               and order.mechanism != AttributionMechanism.POST_SHOCK_RESTORATION.value):
             current = book.weights_now.get(order.symbol, 0.0)
             if order.reason_code == PULLBACK_REASON:
-                continue_pullback_order(book, order)
+                _continue_pullback_order(book, order)
                 continue
             repair_open = ordinary_cash_rearm_order_open(
                 account=book.account, risk=book.risk, cfg=book.policy.cfg, order=order,
@@ -683,7 +752,7 @@ def _allocate_strategy(
                 book.record(symbol)["entry_gate"] = "ACCOUNT_REPAIR_AUTHORIZED"
                 book.reasons[symbol] = "confirmed core admitted through bounded account repair"
                 break
-    pullback_symbols = admit_pullback(book)
+    pullback_symbols = _admit_pullback(book)
     targets = _book_targets(book)
     if frozen:
         frozen_targets = self._frozen_existing_targets(
@@ -699,7 +768,7 @@ def _allocate_strategy(
                               for order in account.pending_orders)})
         permitted.update({t.symbol: t for t in targets if t.symbol in pullback_symbols
                           or any(order.symbol == t.symbol and order.reason_code == PULLBACK_REASON
-                                 and book.record(order.symbol).get("pending_pullback_open") is True
+                                 and book.record(order.symbol).get("_pending_pullback_open") is True
                                  for order in account.pending_orders)})
         frozen_book = {t.symbol: t for t in frozen_targets}
         frozen_book.update(permitted)

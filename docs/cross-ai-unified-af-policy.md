@@ -84,3 +84,26 @@ claim an original cross-industry grant. Existing fill/partial/late/restart/FIFO 
 risk/cash/identity negatives remain. One legacy recovery-breadth test contains two
 long replays and was stopped/excluded from this bounded engineering check; it is
 not reported as passing and does not substitute the frozen sensitivity matrix.
+
+
+Continuous principal readback at6a009eccd9c74f33dc35295764793e39b47282bc
+(source26a8c826fb63fdc99a804d3cb1dd22e183f00c4970aa6383569974b2d9f1de11):
+full wealth30.454620315460023/DD.27146973146234554/22orders FAIL order cap;
+remove-all-three2.4793552312923346/.2336877390238925/33 FAIL order cap;
+no-optical2.0789799157999025/.2555082601691986/35 FAIL order cap;
+champion24.12445630206646/.2804511647433501/11 PASS. All869-session raw
+accounts/ledgers were strictly verified. No complete robustness matrix launched.
+Archive6ccb52009b4ff758df3b2836ef53aa51f15e94e4bac7e2e22309dd59d89de306,
+144,259,063bytes/3508 verified members, persistent ID
+libfile_05a89fb6e97481918782ea12cc7ede9e. Failed evidence is preserved.
+
+Further architecture closure co-locates three pullback capital-book operations in
+the existing pipeline and deletes their reverse-dependent module. The finite
+number predicate is named distinctly from the unrelated raising converter.
+Post-reconcile ordinary authorization binding uses the existing rearm owner:
+consume the original cash-rearm permission, then bind any preexisting BaseRisk
+pullback permission to the original reconciled order. It grants no new risk.
+Exact AST checks retain the order and current code/data identities; Sentinel may
+copy only irreversible GRADUATION audit observations and their existing clocks.
+Hostile mutations of kind, order or identity are rejected. No fanout/debt budget
+increase or historical contract rewrite is used to make these checks pass.

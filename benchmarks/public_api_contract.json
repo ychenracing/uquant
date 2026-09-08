@@ -46744,74 +46744,6 @@
         "dataclasses": {},
         "enums": {}
       },
-      "uquant.portfolio.pullback": {
-        "path": "uquant/portfolio/pullback.py",
-        "public_names": [
-          "admit_pullback",
-          "continue_pullback_order",
-          "pending_pullback_open"
-        ],
-        "functions": {
-          "admit_pullback": {
-            "parameters": [
-              {
-                "name": "book",
-                "kind": "POSITIONAL_OR_KEYWORD",
-                "annotation": "_AllocationBook",
-                "default": {
-                  "kind": "required"
-                }
-              }
-            ],
-            "return": "set[str]"
-          },
-          "continue_pullback_order": {
-            "parameters": [
-              {
-                "name": "book",
-                "kind": "POSITIONAL_OR_KEYWORD",
-                "annotation": "_AllocationBook",
-                "default": {
-                  "kind": "required"
-                }
-              },
-              {
-                "name": "order",
-                "kind": "POSITIONAL_OR_KEYWORD",
-                "annotation": "PendingOrder",
-                "default": {
-                  "kind": "required"
-                }
-              }
-            ],
-            "return": "None"
-          },
-          "pending_pullback_open": {
-            "parameters": [
-              {
-                "name": "book",
-                "kind": "POSITIONAL_OR_KEYWORD",
-                "annotation": "_AllocationBook",
-                "default": {
-                  "kind": "required"
-                }
-              },
-              {
-                "name": "order",
-                "kind": "POSITIONAL_OR_KEYWORD",
-                "annotation": "PendingOrder",
-                "default": {
-                  "kind": "required"
-                }
-              }
-            ],
-            "return": "bool"
-          }
-        },
-        "classes": {},
-        "dataclasses": {},
-        "enums": {}
-      },
       "uquant.portfolio.recovery": {
         "path": "uquant/portfolio/recovery/__init__.py",
         "public_names": [],
@@ -96000,7 +95932,7 @@
     }
   },
   "contract_id": "uquant-public-api-v1",
-  "contract_sha256": "7fbfb02a82f2a4172ec8df6e52bdb252a3db01cac30cf62a99f440f0df8fb4d9",
+  "contract_sha256": "79880511a815e3a5cd9aae6234f81d1860184899b3665074d13c78f2c129d29c",
   "recorded_on": "2026-09-05",
   "schema_version": 1
 }

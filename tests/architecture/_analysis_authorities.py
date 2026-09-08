@@ -128,7 +128,6 @@ MODULE_AUTHORITIES = {
     "uquant.ordinary_pullback": "production_safe",
     "uquant.models.ordinary_entry": "production_safe",
     "uquant.risk.pullback": "production_safe",
-    "uquant.portfolio.pullback": "production_safe",
     "uquant.portfolio.pipeline": "production_safe",
     "uquant.portfolio.recovery": "production_safe",
     "uquant.portfolio.recovery.admission": "production_safe",

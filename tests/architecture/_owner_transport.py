@@ -37,7 +37,6 @@ _ECONOMIC_ADDITIONS = frozenset(
         "uquant/ordinary_pullback.py",
         "uquant/models/ordinary_entry.py",
         "uquant/risk/pullback.py",
-        "uquant/portfolio/pullback.py",
         "uquant/portfolio/ordinary.py",
         "uquant/account/validation_attribution.py",
         "uquant/application/target_attribution.py",

@@ -964,3 +964,19 @@ def ordinary_cash_rearm_order_open(
         and not assess_strategic_capital_authority(account).orphan_residue_fields
         and not assess_strategic_capital_authority(account).late_fill_order_ids
     )
+
+
+def bind_ordinary_entry_authorizations(
+    *, account: AccountState, orders: tuple[PendingOrder, ...], risk: RiskAssessment,
+    date: str, cfg: SystemConfig, code_hash: str, data_hash: str,
+) -> None:
+    """Bind existing permissions after reconciliation; never grant new risk here."""
+    from ...models.ordinary_entry import bind_pullback_orders
+
+    consume_ordinary_cash_rearm_authorization(
+        account=account, orders=orders, observed_session=date,
+    )
+    bind_pullback_orders(
+        account=account, orders=orders, risk=risk, date=date, cfg=cfg,
+        code_hash=code_hash, data_hash=data_hash,
+    )

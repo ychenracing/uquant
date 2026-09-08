@@ -85,3 +85,15 @@ unused capital. All ordinary pending orders, including current candidates, must
 recheck market permission; genuine repair stays separately strict even after
 freeze ends. Current impulse permission does not persist automatically into a
 later session.
+
+Selected native outcome (source19789bab, original HEAD3fa522e): champion869
+PASS24.12445630206646/.2804511647433501/11orders; H2 remove_all_three125
+PASS1.805344111953883/.08749429085284921/3orders; H1 no_optical118
+FAIL1.000923303275449/.02388352870009236/1order, below the unchanged wealth
+retention floor1.0218089243420112. Complete source/data/runtime/calendar/account
+and ledger readback passed; original41-day failed-first-grant diagnostic also
+passed. These selected results do not replace full Grant/Ownership or14/64.
+Archive42,457,467bytes SHA256
+4c841bf78609d252f52c188ef9b34faf9c98663d9726e893c97bef3dcae193d7;
+1210members verified. The remaining H1 responsibility needs a coherent new
+entry/permission/exit candidate, not an acceptance waiver.

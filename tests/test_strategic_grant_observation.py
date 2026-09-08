@@ -157,6 +157,9 @@ def _assert_fresh_ordinary_peer_capital(
     certificates = current_core_qualification(
         allocator, date=date, user_panel=panel, leaders=leaders, account=account, risk=risk,
     )
+    expected_weights = {"sz300502": .40, "sz300394": .35}
+    assert risk.evidence["core_allocation"]["ordinary_market"]["confirmed"]
+    assert risk.evidence["core_allocation"]["unreserved_cash_after"] == pytest.approx(.25)
     for target in targets:
         certificate = certificates[target.symbol]
         trace = risk.evidence["core_allocation"]["symbols"][target.symbol]
@@ -166,8 +169,13 @@ def _assert_fresh_ordinary_peer_capital(
         assert len(certificate["qualification_evidence_sha256"]) == 64
         assert trace["held_weight"] == 0.0
         assert trace["budget_checks"][-1]["accepted"] is True
-        assert trace["budget_checks"][-1]["funded_increment"] == pytest.approx(DEFAULT_CONFIG.core_admission_weight)
-        assert target.weight == pytest.approx(DEFAULT_CONFIG.core_admission_weight)
+        budget = trace["budget_checks"][-1]
+        assert budget["desired_increment"] == pytest.approx(DEFAULT_CONFIG.trend_entry_gross / 2)
+        assert budget["funded_increment"] == pytest.approx(expected_weights[target.symbol])
+        assert target.weight == pytest.approx(expected_weights[target.symbol])
+        if target.symbol == "sz300394":
+            assert budget["industry_room"] == pytest.approx(.35)
+            assert budget["correlation_room"] == pytest.approx(.35)
         assert target.lifecycle == target.origin_lifecycle == "CORE"
         assert target.origin_subsystem == "LEADER" and target.mechanism == "LEADER_SELECTION"
         assert target.grant_id == target.epoch_id == ""
@@ -254,6 +262,11 @@ def test_candidate_removal_expires_the_grant_without_promoting_a_runner(peers_qu
     if not peers_qualified:
         reduced_leaders = _invalidate_current_routes(reduced_panel, reduced_leaders, current_prices, dates[-1])
     risk = _risk(frozen=False)
+    # Genuine current common impulse permits ordinary peers; expiry never grants it.
+    risk.evidence.update(
+        broad_ret120=.04, tech_ret120=.0, ai_fast_return=.16,
+        declining_ratio=.05, below_ma20_ratio=.05, tech_speed=.16, broad_speed=.02,
+    )
     targets = allocator.allocate(
         date=dates[-1],
         opportunity=Opportunity.TREND,
@@ -330,6 +343,11 @@ def test_absolute_qualification_loss_expires_partial_grant(monkeypatch, peers_qu
     if not peers_qualified:
         leaders = _invalidate_current_routes(panel, leaders, prices, dates[-1])
     risk = _risk(frozen=False)
+    # Genuine current common impulse permits ordinary peers; expiry never grants it.
+    risk.evidence.update(
+        broad_ret120=.04, tech_ret120=.0, ai_fast_return=.16,
+        declining_ratio=.05, below_ma20_ratio=.05, tech_speed=.16, broad_speed=.02,
+    )
     targets = allocator.allocate(
         date=dates[-1],
         opportunity=Opportunity.TREND,

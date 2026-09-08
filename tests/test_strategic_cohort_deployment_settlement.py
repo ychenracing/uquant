@@ -135,9 +135,10 @@ def test_completed_deployment_still_executes_new_atr_exit():
         panel[symbol].loc[dates[1]:, column] = price
     panel[symbol].loc[dates[1]:, "ma20"] = peak
     panel[symbol].loc[dates[1]:, "ret20"] = -.10
-    # Existing .01 daily ATR steps accumulate before the unchanged .05 order
-    # threshold permits a native trade; deployment settlement must not stop it.
+    # Distinct valid breach edges accumulate before the unchanged .05 order
+    # threshold permits a native trade; a continuous breach cannot recut daily.
     for index, date in enumerate(dates[1:12], 1):
+        panel[symbol].loc[date, "ret20"] = -.10 if index % 2 else .10
         _decide(policy, account, date, panel, leaders, roles, risk=_risk(frozen=False))
         sells = [order for order in account.pending_orders if order.side == "SELL" and order.symbol == symbol]
         if sells:
@@ -146,7 +147,7 @@ def test_completed_deployment_still_executes_new_atr_exit():
             assert any(fill.symbol == symbol and fill.side == "SELL" and fill.shares > 0 for fill in fills)
             break
     else:
-        pytest.fail("the unchanged ATR instruction never produced its native SELL")
+        pytest.fail("new ATR breach instructions never produced their native SELL")
 
 
 @pytest.mark.parametrize("corruption", ("missing_peer_fill", "peer_grant", "peer_epoch", "wrong_fill_event"))

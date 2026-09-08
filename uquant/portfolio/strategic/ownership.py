@@ -227,6 +227,11 @@ def _prepare_strategic_owner_targets(
         quorum_route=qualified.quorum_route,
         restricted_initial_weight=qualified.restricted_initial_weight,
     )
+    if qualified.quorum_route == StrategicQuorumRoute.FULL_COHORT.value and dominant_symbol is None:
+        desired = {
+            symbol: weight if leaders[symbol].mature else min(weight, self.cfg.core_admission_weight)
+            for symbol, weight in desired.items()
+        }
     if qualified.cash_rearm_authorized:
         desired = {
             account.strategic_qualification.candidate_symbol: strategic_cash_rearm_weight(

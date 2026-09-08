@@ -98,7 +98,7 @@ def test_current_full_certificate_funds_ordinary_core_beside_healthy_strategic_o
     assert account.replacement_tenure.get(f"strategic_eligibility:independent_core:{CHALLENGER}", 0) == 0
     buys = [order for order in account.pending_orders if order.symbol == CHALLENGER and order.side == "BUY"]
     assert len(buys) == 1
-    assert buys[0].target_weight == pytest.approx(DEFAULT_CONFIG.trend_entry_gross / len(WITNESSES))
+    assert buys[0].target_weight == pytest.approx(DEFAULT_CONFIG.core_admission_weight)
     assert buys[0].mechanism == "LEADER_SELECTION"
     assert buys[0].lifecycle == "CORE"
     assert buys[0].grant_id == buys[0].epoch_id == ""
@@ -156,14 +156,26 @@ def test_partial_common_core_continuation_uses_the_same_current_certificate(qual
             "breakout_quality": 0.0, "secular_score": .10,
         }) if symbol in WITNESSES else leader for symbol, leader in leaders.items()}
     continuation_day = dates[DEFAULT_CONFIG.strategic_cohort_confirm_days + 1]
-    _decide(allocator, account, continuation_day, panel, leaders, roles)
+    risk = _risk()
+    _decide(allocator, account, continuation_day, panel, leaders, roles, risk=risk)
     assert account.replacement_tenure.get(f"strategic_eligibility:independent_core:{CHALLENGER}", 0) == 0
     remainder = [order for order in account.pending_orders if order.symbol == CHALLENGER and order.side == "BUY"]
     if qualification_survives:
         certificate = _current_full_certificate(allocator, account, continuation_day, panel, leaders, roles)
         assert certificate is not None and certificate[2] >= certificate[1].required_confirm_days
         assert len(remainder) == 1
-        assert (remainder[0].order_id, remainder[0].event_id) == (original.order_id, original.event_id)
+        # Mark-to-market concentration can reduce the remaining authorized target.
+        row = risk.evidence["core_allocation"]["symbols"][CHALLENGER]
+        budget = row["budget_checks"][-1]
+        assert remainder[0].target_weight == pytest.approx(row["proposal_weight"])
+        assert remainder[0].target_weight == pytest.approx(row["held_weight"] + budget["correlation_room"])
+        assert 0 <= original.target_weight - remainder[0].target_weight < DEFAULT_CONFIG.min_trade_weight
+        assert remainder[0].target_weight <= original.target_weight
+        if remainder[0].target_weight == original.target_weight:
+            assert (remainder[0].order_id, remainder[0].event_id) == (original.order_id, original.event_id)
+        else:
+            assert ledger.status == "REPLACED"
+            assert remainder[0].order_id != original.order_id
     else:
         assert not remainder
         assert ledger.status == "CANCELLED"
@@ -230,15 +242,14 @@ def test_multiple_certificates_do_not_duplicate_budget_or_hide_candidate_behind_
     assert len([route for route, _ in accepted if route.owner_symbol == CHALLENGER]) > 1
     buys = [order for order in account.pending_orders if order.symbol == CHALLENGER and order.side == "BUY"]
     budget = risk.evidence["core_allocation"]["symbols"][CHALLENGER]["budget_checks"][-1]
-    assert budget["desired_increment"] == pytest.approx(DEFAULT_CONFIG.trend_entry_gross / 2)
-    assert budget["funded_increment"] == pytest.approx(budget["correlation_room"])
+    assert budget["desired_increment"] == pytest.approx(DEFAULT_CONFIG.core_admission_weight)
+    assert budget["funded_increment"] == pytest.approx(DEFAULT_CONFIG.core_admission_weight)
+    assert budget["funded_increment"] < budget["correlation_room"]
     assert len(buys) == 1 and buys[0].target_weight == pytest.approx(budget["funded_increment"])
     recorded = [order for order in account.order_ledger if order.symbol == CHALLENGER and order.side == "BUY"]
-    # Real incumbent price drift reduces room slightly: replacement retires the old
-    # intent, never duplicates active quantity or uses each certificate as capital.
-    assert len(recorded) == 2 and recorded[0].status == "REPLACED"
-    assert recorded[1].order_id == buys[0].order_id and recorded[0].filled_shares == 0
-    assert recorded[1].target_weight < recorded[0].target_weight
+    # The initial cap leaves room for price drift without replacing the intent.
+    assert len(recorded) == 1 and recorded[0].order_id == buys[0].order_id
+    assert recorded[0].filled_shares == 0
     assert account.positions[OWNER].shares == held_shares
     fills = ExecutionPlanner(DEFAULT_CONFIG).execute_open(
         date=dates[DEFAULT_CONFIG.strategic_two_name_confirm_days], account=account, panel=panel,

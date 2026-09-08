@@ -21,6 +21,7 @@ from uquant.attribution import build_economic_attribution
 from uquant.config import DEFAULT_CONFIG
 from uquant.contracts.strict_json import canonical_json_bytes
 from uquant.engine import code_fingerprint, performance_metrics
+from uquant.validation.acceptance_tolerance import acceptance_revision, order_ceiling, wealth_floor
 
 CONTRACT_PATH = ROOT / 'benchmarks/cross_ai_core_strategy_contract.json'
 REMOVALS = ('remove_all_three', 'no_optical')
@@ -144,7 +145,7 @@ def read_case(
 
 def check_metrics(
     *, case: str, window: str, metrics: dict[str, Any], baseline: dict[str, Any],
-    benchmark: dict[str, Any], thresholds: dict[str, Any],
+    benchmark: dict[str, Any], thresholds: dict[str, Any], authorized: bool = True,
 ) -> list[str]:
     failures: list[str] = []
     wealth, drawdown, orders = (number(metrics, key) for key in ('final_wealth', 'max_drawdown', 'account_orders'))
@@ -153,25 +154,25 @@ def check_metrics(
         if not condition:
             failures.append(message)
     if case in ('champion', 'full'):
-        require(wealth >= t[f'{case}_minimum_final_wealth'], 'champion/full wealth floor')
+        require(wealth >= wealth_floor(t[f'{case}_minimum_final_wealth'], authorized=authorized), 'champion/full wealth floor')
         require(drawdown <= t[f'{case}_maximum_drawdown'], 'champion/full drawdown ceiling')
-        require(orders <= t[f'{case}_maximum_orders'], 'champion/full order ceiling')
+        require(orders <= order_ceiling(t[f'{case}_maximum_orders'], authorized=authorized), 'champion/full order ceiling')
         return failures
     require(drawdown <= t['removal_maximum_drawdown'], 'removal drawdown ceiling')
     if window == CONTINUOUS:
-        require(wealth >= t['removal_minimum_final_wealth'], 'substantial removal wealth floor')
+        require(wealth >= wealth_floor(t['removal_minimum_final_wealth'], authorized=authorized), 'substantial removal wealth floor')
         require(wealth - number(baseline, 'final_wealth') >= t['removal_minimum_wealth_delta'], 'removal wealth delta')
-        require(wealth >= number(benchmark, 'final_wealth') * t['removal_benchmark_wealth_ratio'], 'same-pool benchmark floor')
-        require(orders <= t['removal_maximum_orders'], 'removal order ceiling')
+        require(wealth >= wealth_floor(number(benchmark, 'final_wealth') * t['removal_benchmark_wealth_ratio'], authorized=authorized), 'same-pool benchmark floor')
+        require(orders <= order_ceiling(t['removal_maximum_orders'], authorized=authorized), 'removal order ceiling')
         require(number(metrics, 'annual_turnover') <= t['removal_maximum_annual_turnover'], 'turnover ceiling')
         cost = number(metrics, 'fees') + number(metrics, 'slippage_cost')
         require(cost / DEFAULT_CONFIG.initial_cash <= t['removal_maximum_all_in_cost_initial_cash_fraction'], 'all-in cost ceiling')
     elif window in HALVES:
-        require(wealth >= number(baseline, 'final_wealth') * t['half_year_minimum_wealth_ratio_to_valid_baseline'], 'half-year wealth retention')
+        require(wealth >= wealth_floor(number(baseline, 'final_wealth') * t['half_year_minimum_wealth_ratio_to_valid_baseline'], authorized=authorized), 'half-year wealth retention')
         require(drawdown <= number(baseline, 'max_drawdown') + t['half_year_maximum_drawdown_buffer'], 'half-year drawdown retention')
         require(orders <= t['half_year_maximum_orders'], 'half-year order ceiling')
     else:
-        require(wealth >= max(t['post2025_minimum_final_wealth'], number(benchmark, 'final_wealth') * t['post2025_benchmark_wealth_ratio']), 'disjoint later-window benchmark floor')
+        require(wealth >= wealth_floor(max(t['post2025_minimum_final_wealth'], number(benchmark, 'final_wealth') * t['post2025_benchmark_wealth_ratio']), authorized=authorized), 'disjoint later-window benchmark floor')
         require(orders <= t['post2025_maximum_orders'], 'later-window order ceiling')
     return failures
 
@@ -204,7 +205,9 @@ def evaluate(candidate_root: Path, *, principal_only: bool = False) -> dict[str,
             metrics = report['metrics']
             failures = check_metrics(case=case, window=window, metrics=metrics, baseline=old['metrics'],
                                       benchmark=comparator['metrics'], thresholds=contract['thresholds'])
-            row.update(metrics={key: metrics[key] for key in ('final_wealth', 'max_drawdown', 'account_orders', 'fees', 'slippage_cost')},
+            original_failures = check_metrics(case=case, window=window, metrics=metrics, baseline=old['metrics'],
+                                      benchmark=comparator['metrics'], thresholds=contract['thresholds'], authorized=False)
+            row.update(original_failures=original_failures, original_status='FAIL' if original_failures else 'PASS', metrics={key: metrics[key] for key in ('final_wealth', 'max_drawdown', 'account_orders', 'fees', 'slippage_cost')},
                        failures=failures, status='FAIL' if failures else 'PASS', result_seal=report['canonical_sha256'])
             if case in REMOVALS and window in HALVES:
                 wealth = number(metrics, 'final_wealth')
@@ -214,10 +217,14 @@ def evaluate(candidate_root: Path, *, principal_only: bool = False) -> dict[str,
                     and wealth >= number(comparator['metrics'], 'final_wealth'))
         except (OSError, ValueError, KeyError, TypeError, RuntimeError, EOFError) as exc:
             row['failures'] = [f'{type(exc).__name__}: {exc}']
+        row.setdefault('original_failures', row['failures'])
+        row.setdefault('original_status', row['status'])
         rows.append(row)
     cross_failures = [] if principal_only else [f'{case}: no required disjoint pre-2025 improvement'
         for case, count in improved.items() if count < contract['thresholds']['improved_pre2025_windows_minimum']]
     return {'contract_id': contract['contract_id'], 'contract_sha256': hashlib.sha256(CONTRACT_PATH.read_bytes()).hexdigest(),
+            'acceptance_revision': acceptance_revision(),
+            'original_status': 'PASS' if all(r['original_status'] == 'PASS' for r in rows) and not cross_failures else 'FAIL',
             'scope': 'principal_diagnostic' if principal_only else 'nominal_comparison',
             'status': 'PASS' if all(r['status'] == 'PASS' for r in rows) and not cross_failures else 'FAIL',
             'authoritative_promotion': False, 'source_sha256': source, 'rows': rows,

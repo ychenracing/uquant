@@ -15,10 +15,10 @@ def test_champion_floor_is_relative_wealth_and_cannot_pass_on_return_points() ->
     assert not check_metrics(case='champion', window='continuous_ai_era',
                              metrics={'final_wealth': t['champion_minimum_final_wealth'],
                                       'max_drawdown': 0.30, 'account_orders': 15},
-                             baseline={}, benchmark={}, thresholds=t)
+                             baseline={}, benchmark={}, thresholds=t, authorized=False)
     assert check_metrics(case='champion', window='continuous_ai_era',
                          metrics={'final_wealth': 23.28, 'max_drawdown': 0.30, 'account_orders': 15},
-                         baseline={}, benchmark={}, thresholds=t)
+                         baseline={}, benchmark={}, thresholds=t, authorized=False)
 
 
 def test_missing_and_nonfinite_evidence_cannot_pass(tmp_path: Path) -> None:

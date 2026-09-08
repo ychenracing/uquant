@@ -359,12 +359,12 @@ def test_current_promotion_uses_frozen_continuous_floor_and_absolute_activity_ca
         name="b/continuous_ai_era", metrics=candidate,
         gate=promotion_module.AI_ERA_POLICY["official"]["continuous_ai_era"],
     ) == []
-    candidate["account_orders"] = 16
+    candidate["account_orders"] = 21
     assert any("account_orders" in failure for failure in promotion_module._hard_violations(
         name="b/continuous_ai_era", metrics=candidate,
         gate=promotion_module.AI_ERA_POLICY["official"]["continuous_ai_era"],
     ))
-    candidate["final_wealth"] = 23.28417871275582 - 1e-8
+    candidate["final_wealth"] = 23.28417871275582 * 0.9 - 1e-8
     assert any("final_wealth" in failure for failure in promotion_module._champion_violations(
         name="b/continuous_ai_era", metrics=candidate, champion=champion,
     ))
@@ -378,8 +378,8 @@ def test_authorized_e_order_revision_is_bounded_and_preserves_risk() -> None:
     assert promotion_module._hard_violations(name="e/continuous_ai_era", metrics=metrics, gate=gate) == []
     for name, changed in (
         ("e/continuous_ai_era", {"account_orders": 21}),
-        ("b/continuous_ai_era", {"account_orders": 16}),
-        ("d/continuous_ai_era", {"account_orders": 16}),
+        ("b/continuous_ai_era", {"account_orders": 21}),
+        ("d/continuous_ai_era", {"account_orders": 21}),
         ("e/continuous_ai_era", {"max_drawdown": .2726}),
     ):
         assert promotion_module._hard_violations(name=name, metrics={**metrics, **changed}, gate=gate)
@@ -390,7 +390,7 @@ def test_authorized_e_order_revision_is_bounded_and_preserves_risk() -> None:
 
 def test_current_promotion_preserves_other_wealth_risk_and_acute_comparisons() -> None:
     champion = _valid_spec()["champion"]["cells"]["b/h1_2023"]
-    candidate = {**champion, "final_wealth": champion["final_wealth"] * 0.98,
+    candidate = {**champion, "final_wealth": champion["final_wealth"] * 0.88,
                  "max_drawdown": champion["max_drawdown"] + 0.006,
                  "acute_return": champion["acute_return"] - 0.001}
     failures = promotion_module._champion_violations(

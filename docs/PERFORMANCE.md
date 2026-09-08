@@ -518,3 +518,32 @@ rebuild_observation_archive(case, case / "recovered-observations.jsonl.gz")
 该操作不运行交易、不覆盖原件，也不把原 `REPLAY_ERROR` 改成通过。缺日、重复日期、
 额外文件、身份或内容摘要不符会拒绝发布。保留恢复来源和新归档摘要后，仍须由原验收
 读回器核对实际账户、订单、成交、窗口和冻结门槛；缺失的观察不能用最终账户或新模拟补造。
+
+
+### 2026-09-09 user-authorized acceptance revision
+
+`cross-ai-modest-tolerance-20260909-v1` records the user's authorization to
+modestly relax order and return thresholds after observing AP. This is an
+explicit revised acceptance basis, not a preregistered or out-of-sample result.
+Frozen contracts, original raw evidence, and original failures remain intact.
+
+Final-wealth lower comparison floors are multiplied by **0.90** in nominal,
+robustness, and Performance absolute/champion comparisons. This reduces the
+**wealth floor including initial capital by 10%**, not the profit floor by 10%.
+For example, an original wealth floor 1.50 becomes 1.35. Robustness neighbor
+median wealth retention receives the same multiplier. Wealth improvement
+deltas, improved-window qualification, positive-return fraction and p10 wealth
+floor are unchanged.
+
+Continuous Performance A–E and nominal champion order limits change from 15
+to 20. Nominal full/removal and robustness limits formerly 20 become 22;
+robustness limits formerly 15 become 20, including the p90 order limit where
+applicable. Half-year and post-2025 order ceilings remain unchanged. This
+revision supersedes the historical E-only order authorization recorded above.
+Drawdown, acute-return, recovery, cost and turnover limits are unchanged;
+Absolute and Ownership contracts are outside this revision.
+
+Nominal and robustness reports expose original and effective judgments from
+the same validated raw metrics. Performance records both the original contract
+identity and the current revision in `acceptance_basis`; its pure comparison
+functions accept `authorized=False` for the original frozen comparisons.

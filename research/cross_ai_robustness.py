@@ -20,6 +20,7 @@ from research.cross_ai_strategy import ROOT, run_production_case, write_json
 from uquant.config import DEFAULT_CONFIG
 from uquant.contracts.strict_json import canonical_json_bytes
 from uquant.engine import code_fingerprint
+from uquant.validation.acceptance_tolerance import acceptance_revision, order_ceiling, wealth_floor
 
 CASES = ('champion', 'remove_all_three', 'no_optical')
 
@@ -226,7 +227,7 @@ def run_shard(root: Path, plan: dict[str, Any], shard: str) -> dict[str, Any]:
 
 
 def metric_failures(spec: dict[str, Any], metrics: dict[str, Any], nominal: dict[str, Any],
-                    paired: dict[str, Any] | None, thresholds: dict[str, Any], cash: float) -> list[str]:
+                    paired: dict[str, Any] | None, thresholds: dict[str, Any], cash: float, *, authorized: bool = True) -> list[str]:
     group, case = spec['group'], spec['case']
     t = thresholds
     wealth = number(metrics, 'final_wealth')
@@ -235,24 +236,24 @@ def metric_failures(spec: dict[str, Any], metrics: dict[str, Any], nominal: dict
         if not ok:
             failures.append(message)
     if group == 'cost_stress':
-        require(wealth >= number(nominal, 'final_wealth') * t['cost_stress_minimum_wealth_ratio'], 'cost wealth retention')
+        require(wealth >= wealth_floor(number(nominal, 'final_wealth') * t['cost_stress_minimum_wealth_ratio'], authorized=authorized), 'cost wealth retention')
         if case != 'champion':
-            require(wealth >= t['cost_stress_removal_minimum_wealth'], 'cost removal wealth floor')
+            require(wealth >= wealth_floor(t['cost_stress_removal_minimum_wealth'], authorized=authorized), 'cost removal wealth floor')
     elif group == 'parameter_neighbors':
-        require(wealth >= number(nominal, 'final_wealth') * t['sensitivity_minimum_wealth_ratio'], 'neighbor wealth retention')
+        require(wealth >= wealth_floor(number(nominal, 'final_wealth') * t['sensitivity_minimum_wealth_ratio'], authorized=authorized), 'neighbor wealth retention')
         if case != 'champion':
-            require(wealth >= t['sensitivity_removal_minimum_wealth'], 'neighbor removal wealth floor')
+            require(wealth >= wealth_floor(t['sensitivity_removal_minimum_wealth'], authorized=authorized), 'neighbor removal wealth floor')
     elif group == 'paired_initial_conditions':
         if paired is None:
             raise ValueError('missing independently executed old-source initial condition')
-        require(wealth >= number(paired, 'final_wealth') * t['initial_conditions_minimum_wealth_ratio_to_paired_baseline'],
+        require(wealth >= wealth_floor(number(paired, 'final_wealth') * t['initial_conditions_minimum_wealth_ratio_to_paired_baseline'], authorized=authorized),
                 'paired initial wealth retention')
     elif group == 'best_contributor_removal':
         if paired is None:
             raise ValueError('missing old-source contributor removal')
-        require(wealth >= t['new_best_contributor_removal_minimum_wealth'], 'best contributor removal wealth floor')
+        require(wealth >= wealth_floor(t['new_best_contributor_removal_minimum_wealth'], authorized=authorized), 'best contributor removal wealth floor')
     require(number(metrics, 'max_drawdown') <= t['champion_maximum_drawdown'], 'absolute drawdown ceiling')
-    require(number(metrics, 'account_orders') <= t['champion_maximum_orders' if case == 'champion' else 'removal_maximum_orders'],
+    require(number(metrics, 'account_orders') <= order_ceiling(t['champion_maximum_orders' if case == 'champion' else 'removal_maximum_orders'], authorized=authorized),
             'absolute order ceiling')
     if case != 'champion':
         require(number(metrics, 'annual_turnover') <= t['removal_maximum_annual_turnover'], 'absolute turnover ceiling')
@@ -261,7 +262,8 @@ def metric_failures(spec: dict[str, Any], metrics: dict[str, Any], nominal: dict
     return failures
 
 
-def evaluate_robustness(root: Path, plan: dict[str, Any]) -> dict[str, Any]:
+def _evaluate_robustness(root: Path, plan: dict[str, Any], *, authorized: bool,
+                         cached_reports: dict[str, dict[str, Any]]) -> dict[str, Any]:
     validate_plan(plan)
     contract, _ = _contract()
     t = contract['thresholds']
@@ -276,7 +278,9 @@ def evaluate_robustness(root: Path, plan: dict[str, Any]) -> dict[str, Any]:
                     raise ValueError('deletion proof differs from actual source inventory')
                 row.update(status='CONTROL_DELETED', fields=spec['deleted_fields'])
             else:
-                report = read_shard(root, plan, spec)
+                if spec['id'] not in cached_reports:
+                    cached_reports[spec['id']] = read_shard(root, plan, spec)
+                report = cached_reports[spec['id']]
                 reports[spec['id']] = report
                 row.update(status='PASS', result_seal=report['canonical_sha256'], metrics=report['metrics'])
         except (OSError, ValueError, KeyError, TypeError, RuntimeError, EOFError) as exc:
@@ -299,7 +303,7 @@ def evaluate_robustness(root: Path, plan: dict[str, Any]) -> dict[str, Any]:
                         raise ValueError(f'paired scenario mismatch: {key}')
             failures = metric_failures(spec, metrics, nominal,
                                        paired_report['metrics'] if paired_report else None, t,
-                                       effective_config(plan, spec)['initial_cash'])
+                                       effective_config(plan, spec)['initial_cash'], authorized=authorized)
             row.update(failures=failures, status='FAIL' if failures else 'PASS')
             if spec['group'] == 'parameter_neighbors':
                 ratios[spec['case']].append(number(metrics, 'final_wealth') / number(nominal, 'final_wealth'))
@@ -312,7 +316,7 @@ def evaluate_robustness(root: Path, plan: dict[str, Any]) -> dict[str, Any]:
                        for s in plan['specs'])
         if len(values) != expected:
             aggregate_failures.append(f'{case}: missing neighbor metrics')
-        elif values and statistics.median(values) < t['sensitivity_median_wealth_ratio']:
+        elif values and statistics.median(values) < wealth_floor(t['sensitivity_median_wealth_ratio'], authorized=authorized):
             aggregate_failures.append(f'{case}: neighbor median retention')
     expected_population = sum(s['source_role'] == 'new' and not s.get('deleted_fields') for s in plan['specs'])
     tails: dict[str, float] = {}
@@ -329,7 +333,7 @@ def evaluate_robustness(root: Path, plan: dict[str, Any]) -> dict[str, Any]:
                  'positive_fraction': sum(number(r, 'final_wealth') > 1.0 for r in population) / len(population)}
         for key, limit, upper in [('p90_drawdown', t['maximum_p90_drawdown'], True),
                                    ('p10_wealth', t['minimum_p10_wealth'], False),
-                                   ('p90_orders', t['maximum_p90_orders'], True),
+                                   ('p90_orders', order_ceiling(t['maximum_p90_orders'], authorized=authorized), True),
                                    ('positive_fraction', t['minimum_positive_return_fraction'], False)]:
             if (tails[key] > limit) if upper else (tails[key] < limit):
                 aggregate_failures.append(f'robustness tail: {key}')
@@ -340,6 +344,20 @@ def evaluate_robustness(root: Path, plan: dict[str, Any]) -> dict[str, Any]:
                   'rows': rows, 'aggregate_failures': aggregate_failures, 'tail_population': plan['tail_population'],
                   'tail_metrics': tails, 'neighbor_ratios': ratios,
                   'remaining_final_gates': [gate for gate in contract['final_required_evidence'] if gate not in groups]})
+
+
+def evaluate_robustness(root: Path, plan: dict[str, Any]) -> dict[str, Any]:
+    cached_reports: dict[str, dict[str, Any]] = {}
+    effective = _evaluate_robustness(root, plan, authorized=True, cached_reports=cached_reports)
+    original = _evaluate_robustness(root, plan, authorized=False, cached_reports=cached_reports)
+    effective.pop('canonical_sha256', None)
+    effective['acceptance_revision'] = acceptance_revision()
+    effective['original_status'] = original['status']
+    effective['original_aggregate_failures'] = original['aggregate_failures']
+    for row, old in zip(effective['rows'], original['rows'], strict=True):
+        row['original_status'] = old['status']
+        row['original_failures'] = old['failures']
+    return _seal(effective)
 
 
 def main() -> int:

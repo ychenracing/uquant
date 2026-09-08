@@ -27,7 +27,7 @@ from uquant.provenance.surfaces import load_source_surface_registry
 from uquant.validation.manifest import verify_data_manifest
 
 ABSOLUTE_GENERALIZATION_CONTRACT_SHA256: Final = (
-    "54cd8eebd6d452c4a127a2b38e8a380d87c62e304c2616e71827d80e43ea71ce"
+    "34d380ff1a27b25e275d0a3a2705d461c54fdae338980e6321fd30f7c6272f6c"
 )
 
 _ROOT = Path(__file__).resolve().parents[3]
@@ -41,7 +41,7 @@ _EFFECTIVE_CONFIG_SHA256 = "ff491f722c3f84211eda9953cce1309392f7a89bb86bcc1e2cb3
 _OWNERSHIP_CONTRACT_PATH = _ROOT / "benchmarks/strategic_ownership_acceptance_contract.json"
 _BASELINE_COMMIT = "d7fd3bf8f23ae9c66eb27f5046dedb9f7f980be5"
 _BASELINE_SOURCE = "d1ef7977ae482e46a920381e6af58791199ec8e1a02586dbe8df451e7d4696c9"
-_CANDIDATE_SOURCE = "183f3880a7b61d632ce3e877e3d91a8bfdf07f98f681ace921848b3ef6ee6aa3"
+_CANDIDATE_SOURCE = "68ca649c698e49593d557914571db0ed903329721fac984581a3dab8fcd865ee"
 _REGISTRY_SHA256 = "dce349f91b33f563489a64fb757180483ece44ce49aa298844442f1c91984315"
 _OWNERSHIP_SHA256 = "72e6b510c3bcf44ac77d2c13613f4d72a14ae8dab0d60a19e5947055ae7cbf08"
 

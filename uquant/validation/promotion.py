@@ -17,6 +17,7 @@ from statistics import median
 from typing import Any, Final, cast
 
 import uquant.validation.promotion_contract as _promotion_contract
+from uquant.validation.acceptance_tolerance import acceptance_revision, order_ceiling, wealth_floor
 
 from ..config import DEFAULT_CONFIG, config_fingerprint
 from ..config_governance import GOVERNANCE_PATH
@@ -601,7 +602,7 @@ def _compact(result: Mapping[str, Any], *, acute: tuple[str, str] | None) -> dic
     }
 
 
-def _hard_violations(*, name: str, metrics: Mapping[str, Any], gate: Mapping[str, Any]) -> list[str]:
+def _hard_violations(*, name: str, metrics: Mapping[str, Any], gate: Mapping[str, Any], authorized: bool = True) -> list[str]:
     failures: list[str] = []
     comparisons = (
         ("final_wealth", "min_final_wealth", False),
@@ -615,8 +616,10 @@ def _hard_violations(*, name: str, metrics: Mapping[str, Any], gate: Mapping[str
             continue
         observed = metrics[metric_name]
         limit = gate[gate_name]
-        if metric_name == "account_orders" and name == "e/continuous_ai_era":
-            limit = _authorized_order_limit()["maximum"]
+        if metric_name == "account_orders" and name.endswith("/continuous_ai_era"):
+            limit = order_ceiling(limit, authorized=authorized)
+        elif metric_name == "final_wealth":
+            limit = wealth_floor(limit, authorized=authorized)
         breached = observed is None or (observed > limit if maximum else observed < limit)
         if breached:
             direction = "above" if maximum else "below"
@@ -632,20 +635,21 @@ def _protected_gate(interval: str, pool: str) -> Mapping[str, Any]:
     raise RuntimeError(f"promotion protected policy omits pool: {pool}/{interval}")
 
 
-def _champion_violations(*, name: str, metrics: Mapping[str, Any], champion: Mapping[str, Any]) -> list[str]:
+def _champion_violations(*, name: str, metrics: Mapping[str, Any], champion: Mapping[str, Any], authorized: bool = True) -> list[str]:
     if not champion:
         raise RuntimeError(f"promotion champion evidence is missing: {name}")
     tolerance = AI_ERA_POLICY["champion_tolerance"]
     failures: list[str] = []
-    # The reviewed historical policy remains sealed. Only the new contract's
-    # continuous wealth floor and relative activity comparisons are superseded.
+    # Keep the historical policy sealed; apply the declared revision to the
+    # final-wealth comparison, while preserving drawdown and acute-return gates.
     contract = current_candidate_contract()
-    wealth_floor = (
+    adjusted_wealth_floor = wealth_floor(
         contract["thresholds"]["champion_minimum_final_wealth"]
         if name.split("/", 1)[-1] == "continuous_ai_era"
-        else champion["final_wealth"] * tolerance["wealth_floor_ratio"]
+        else champion["final_wealth"] * tolerance["wealth_floor_ratio"],
+        authorized=authorized,
     )
-    if metrics["final_wealth"] < wealth_floor:
+    if metrics["final_wealth"] < adjusted_wealth_floor:
         failures.append(f"{name}: final_wealth regressed from production champion")
     if metrics["max_drawdown"] > champion["max_drawdown"] + tolerance["drawdown_tolerance"]:
         failures.append(f"{name}: max_drawdown regressed from production champion")
@@ -678,7 +682,9 @@ def current_promotion_acceptance_basis() -> dict[str, Any]:
         "continuous_minimum_final_wealth": contract["thresholds"]["champion_minimum_final_wealth"],
         "superseded_comparisons": ["continuous_relative_wealth", "relative_orders", "relative_turnover"],
         "authorized_order_limit": _authorized_order_limit(),
-        "retained_policy": "AI_ERA_POLICY except the explicit E continuous order revision; other wealth/drawdown/acute comparisons retained",
+        "acceptance_revision": acceptance_revision(),
+        "effective_continuous_minimum_final_wealth": wealth_floor(contract["thresholds"]["champion_minimum_final_wealth"]),
+        "retained_policy": "Original AI_ERA_POLICY retained as evidence; current acceptance_revision supersedes the historical E-only revision. Drawdown, acute, costs, turnover and short-window orders unchanged",
     }
 
 

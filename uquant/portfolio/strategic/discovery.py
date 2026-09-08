@@ -643,6 +643,11 @@ def _select_qualified_strategic_route(
         self, snapshots=snapshots, leaders=leaders, risk=risk, account=account,
         reference_snapshots=reference_snapshots, strategic_universe=strategic_universe,
     )
+    if account.flat_book_capital_repair.status != "READY":
+        for route, quorum, streak in evaluated:
+            if route.route != "transition_impulse" and streak >= quorum.required_confirm_days:
+                return route
+    # Keep the ranked fallback observable for genuine cash-rearm authorization.
     return evaluated[0][0] if evaluated else StrategicRoute(
         [], "none", None, False, [], "risk_anchor_symbols" in risk.evidence, False)
 
@@ -983,6 +988,10 @@ def _initialize_strategic_cohort(
         qualified=qualified,
     )
     if qualified is None or account.strategic_qualification.deployment_blocked:
+        return
+    if qualified.route == "transition_impulse" and not qualified.cash_rearm_authorized:
+        account.strategic_qualification.deployment_blocked = True
+        account.strategic_qualification.deployment_block_reason = "impulse_ordinary_participation"
         return
     certificates = current_core_qualification(
         self, date=date, user_panel=user_panel, leaders=leaders, account=account, risk=risk,

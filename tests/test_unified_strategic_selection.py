@@ -56,7 +56,11 @@ def _leader(symbol, *, score, industry):
 def _strategic_frame(dates):
     # Nonconstant returns also provide finite common-book correlation evidence.
     close = pd.Series([10.0 + i * 0.1 + i * i * 0.0001 for i in range(len(dates))], index=dates)
-    return pd.DataFrame({"close": close, "amount": 1_000_000_000.0}, index=dates)
+    return pd.DataFrame({
+        "close": close, "amount": 1_000_000_000.0,
+        "ma60": close.rolling(DEFAULT_CONFIG.trend_medium).mean(),
+        "ret60": close.pct_change(DEFAULT_CONFIG.trend_medium),
+    }, index=dates)
 
 
 def _inputs(monkeypatch, *, early_score=None, early_confirmed=False, reverse=False, owner_score=0.95):

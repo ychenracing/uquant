@@ -205,12 +205,15 @@ def test_synchronized_industry_impulse_is_causal_and_signature_order_invariant()
     )
 
     assert close[-1] / close[-121] - 1.0 == pytest.approx(-0.10)
-    assert account.candidate_tenure["strategic_cohort_active"] == 1
-    assert set(account.strategic_cohort_symbols) == set(symbols)
-    assert account.strategic_candidate_signature.startswith(
+    qualification = account.strategic_qualification
+    assert qualification.qualification_ready
+    assert set(qualification.candidate_symbols) == set(symbols)
+    assert qualification.qualification_signature.startswith(
         "strategic_qualification:EMERGING_SECULAR:"
     )
-    assert "evidence=transition_impulse" in account.strategic_candidate_signature
+    assert "evidence=transition_impulse" in qualification.qualification_signature
+    assert qualification.deployment_block_reason == "impulse_ordinary_participation"
+    assert account.strategic_grant is None and not account.strategic_epochs
 
     unsynchronized = AccountState.empty(100.0)
     mixed = {

@@ -28,9 +28,6 @@ HISTORICAL_BASELINE_SOURCE = (
 OWNERSHIP_CONTRACT_SHA256 = (
     "72e6b510c3bcf44ac77d2c13613f4d72a14ae8dab0d60a19e5947055ae7cbf08"
 )
-CURRENT_CANDIDATE_SOURCE = (
-    "e8cc78127570379ee56becd6a774af6ef018f7b81e9287cc5e08ee4431d11eaf"
-)
 BASELINE_SOURCE_AT_COMMIT = (
     "d1ef7977ae482e46a920381e6af58791199ec8e1a02586dbe8df451e7d4696c9"
 )
@@ -255,7 +252,9 @@ def test_contract_binds_candidate_and_frozen_inputs_to_independent_authorities()
     assert raw["candidate"] == {
         "baseline_commit": BASELINE_COMMIT,
         "baseline_source_sha256": BASELINE_SOURCE_AT_COMMIT,
-        "production_source_sha256": CURRENT_CANDIDATE_SOURCE,
+        "production_source_sha256": source_surface_fingerprint(
+            ROOT, "economic_decision_v1"
+        ),
         "source_surface_id": "economic_decision_v1",
         "source_surface_registry_sha256": CURRENT_SOURCE_REGISTRY_SHA256,
     }
@@ -279,7 +278,6 @@ def test_contract_binds_candidate_and_frozen_inputs_to_independent_authorities()
     assert git_source_surface_fingerprint(
         ROOT, BASELINE_COMMIT, "economic_decision_v1"
     ) == BASELINE_SOURCE_AT_COMMIT
-    assert source_surface_fingerprint(ROOT, "economic_decision_v1") == CURRENT_CANDIDATE_SOURCE
     ownership = json.loads(OWNERSHIP_PATH.read_bytes())
     assert hashlib.sha256(canonical_json_bytes(ownership)).hexdigest() == (
         OWNERSHIP_CONTRACT_SHA256

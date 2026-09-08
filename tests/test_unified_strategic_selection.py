@@ -331,8 +331,9 @@ def test_full_witnesses_allow_confirmed_owner_below_unconfirmed_top_score(monkey
     leaders = {}
     for symbol in symbols:
         snapshots[symbol] = {
-            **_snapshot(score=scores[symbol]), "history": 250.0, "ret240": 0.4,
-            "persistent_ret240": 0.4, "ret5": 0.01, "transition_score": 0.0,
+            # Formation authority is independent of this test's owner-streak ordering.
+            **_snapshot(score=scores[symbol]), "history": 250.0, "ret240": 2.0,
+            "persistent_ret240": 2.0, "ret5": 0.01, "transition_score": 0.0,
             "short_relative_strength": 0.85, "breakout_quality": 0.85,
         }
         leaders[symbol] = _leader(symbol, score=scores[symbol], industry="power")

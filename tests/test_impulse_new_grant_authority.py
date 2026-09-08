@@ -87,7 +87,7 @@ def test_new_grant_selector_does_not_let_impulse_mask_confirmed_durable_or_repai
     if repair_ready:
         account.flat_book_capital_repair.status = "READY"
     selected = discovery._select_qualified_strategic_route(
-        PortfolioAllocator(DEFAULT_CONFIG), snapshots={}, leaders={}, risk=_normal_risk(),
+        PortfolioAllocator(DEFAULT_CONFIG), snapshots={"b": {"persistent_ret240": DEFAULT_CONFIG.strategic_cohort_min_ret240}}, leaders={}, risk=_normal_risk(),
         account=account, reference_snapshots={},
         strategic_universe=None,
     )

@@ -634,6 +634,20 @@ def strategic_candidate_certificates(
     return [certificate for _, certificate in sorted(evaluated, key=lambda item: item[0])]
 
 
+def _new_strategic_formation_open(
+    self: StrategicPortfolioPolicy, *, route: StrategicRoute,
+    snapshots: dict[str, dict[str, float]], quorum_route: str,
+) -> bool:
+    """Reserve new long-cycle grants for formation, not ordinary trend strength."""
+    return bool(
+        quorum_route == StrategicQuorumRoute.ABSOLUTE_SINGLE.value
+        or (route.route == "reversal_industry" and route.synchronized_reversal)
+        or (route.route == "persistent_industry" and route.symbols
+            and all(snapshots[symbol]["persistent_ret240"] >= self.cfg.strategic_cohort_min_ret240
+                    for symbol in route.symbols))
+    )
+
+
 def _select_qualified_strategic_route(
     self: StrategicPortfolioPolicy, *, snapshots: dict[str, dict[str, float]],
     leaders: dict[str, LeaderScore], risk: RiskAssessment, account: AccountState,
@@ -645,7 +659,9 @@ def _select_qualified_strategic_route(
     )
     if account.flat_book_capital_repair.status != "READY":
         for route, quorum, streak in evaluated:
-            if route.route != "transition_impulse" and streak >= quorum.required_confirm_days:
+            if (streak >= quorum.required_confirm_days and _new_strategic_formation_open(
+                self, route=route, snapshots=snapshots, quorum_route=quorum.route.value,
+            )):
                 return route
     # Keep the ranked fallback observable for genuine cash-rearm authorization.
     return evaluated[0][0] if evaluated else StrategicRoute(
@@ -989,9 +1005,11 @@ def _initialize_strategic_cohort(
     )
     if qualified is None or account.strategic_qualification.deployment_blocked:
         return
-    if qualified.route == "transition_impulse" and not qualified.cash_rearm_authorized:
+    if not qualified.cash_rearm_authorized and not _new_strategic_formation_open(
+        self, route=route, snapshots=snapshots, quorum_route=qualified.quorum_route,
+    ):
         account.strategic_qualification.deployment_blocked = True
-        account.strategic_qualification.deployment_block_reason = "impulse_ordinary_participation"
+        account.strategic_qualification.deployment_block_reason = "ordinary_trend_participation"
         return
     certificates = current_core_qualification(
         self, date=date, user_panel=user_panel, leaders=leaders, account=account, risk=risk,

@@ -259,7 +259,11 @@ def test_expired_probe_reselects_a_different_owner_with_a_new_identity_chain() -
     assert len(account.strategic_epochs) == 2
 
 
-def test_completed_epoch_can_regrant_the_same_owner_only_with_new_ids() -> None:
+@pytest.mark.parametrize("history_sessions,formation_ready", [(251, True), (273, False)],
+                         ids=["qualified-formation", "ordinary-trend-only"])
+def test_completed_epoch_can_regrant_the_same_owner_only_with_new_ids(
+    history_sessions: int, formation_ready: bool,
+) -> None:
     account, first_grant_id, first_epoch_id = _active_account()
     account.positions.clear()
     close_account_strategic_epoch(
@@ -275,9 +279,18 @@ def test_completed_epoch_can_regrant_the_same_owner_only_with_new_ids() -> None:
     account.strategic_cohort_targets.clear()
     account.candidate_tenure["strategic_cohort_active"] = 0
 
-    dates = pd.bdate_range("2025-03-03", "2026-03-18")
+    dates = pd.bdate_range(end="2026-03-18", periods=history_sessions)
     symbols = ("sz300308", "sz300502", "sz300394")
     panel = {symbol: _strategic_frame(dates) for symbol in symbols}
+    # Both histories are genuine rising prices. Only the stronger trailing
+    # 240-session formation may establish another long-cycle capital grant.
+    close = panel[symbols[0]]["close"]
+    for session in dates[-2:]:
+        history = close.loc[:session]
+        persistent = (history / history.shift(240) - 1.0).dropna().tail(
+            DEFAULT_CONFIG.strategic_cohort_confirm_days
+        ).median()
+        assert bool(persistent >= DEFAULT_CONFIG.strategic_cohort_min_ret240) is formation_ready
     leaders = {
         symbol: _leader(symbol, 0.96 - index * 0.02, industry="optical")
         for index, symbol in enumerate(symbols)
@@ -296,6 +309,12 @@ def test_completed_epoch_can_regrant_the_same_owner_only_with_new_ids() -> None:
 
     assert account.strategic_grant is not None
     assert account.strategic_grant.candidate_symbol == "sz300308"
+    if not formation_ready:
+        assert account.strategic_grant.grant_id == first_grant_id
+        assert [epoch.epoch_id for epoch in account.strategic_epochs] == [first_epoch_id]
+        assert not account.strategic_cohort_targets
+        assert not account.pending_orders
+        return
     assert account.strategic_grant.grant_id != first_grant_id
     assert account.strategic_grant.previous_grant_id == first_grant_id
     assert account.strategic_epochs[-1].epoch_id != first_epoch_id

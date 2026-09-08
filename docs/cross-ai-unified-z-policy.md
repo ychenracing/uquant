@@ -45,5 +45,32 @@ economic equivalence or authorization to adopt the account under a new source
 identity. Operator cutover must acknowledge this boundary and preserve the old
 account/code evidence; do not manufacture missing intervening observations.
 
-No acceptance result exists at precommit time. The current API snapshot repair
-is separate and changes no economic source.
+The current API snapshot repair is separate and changes no economic source.
+
+## Observed result (after source freeze)
+
+Source `42c9e896cb98e48303fe8c2b9c06b9cff8a6df8ad82ca73dfb71e71ab2a02b95`,
+remote commit `4e6f20d1c18f549567c85eb2411313c7732892ee`:
+
+| Native case | Sessions | Wealth | Maximum drawdown | Orders | Frozen result |
+| --- | ---: | ---: | ---: | ---: | --- |
+| Champion | 869 | 24.509661802900865 | 0.27146973146234554 | 12 | PASS |
+| Remove all three, H2 2024 | 125 | 1.267772159717437 | 0.1460155678818953 | 4 | FAIL wealth and drawdown retention |
+
+Both complete native accounts, observations, source/config/data/runtime seals,
+and original `read_case`/`check_metrics` readbacks were verified. H2 improvement
+over Y does not satisfy the contract; Z is not accepted. The original H1 Y
+path never had a strategic grant, cohort target or exit band, so this change
+does not address that failure; no redundant H1 run was launched.
+
+A startup attempt used July 2 rather than the frozen July 1 H2 start. Its
+identity check rejected it, it was interrupted with exit 130, and its prefix
+is explicitly marked invalid. The accepted diagnostic above uses all 125
+frozen sessions, July 1 through December 31. No prefix result was promoted.
+
+Native archive: `uquant-unified-z-native-evidence-20260908.zip`, 18,703,598 bytes,
+SHA256 `91b42c33674f66adcc7247127c2fefb482d75114f16b2d26957f061ec0fbe496`,
+persistent file `libfile_5100ae904c9481919216753a2c5cc505`.
+Archive member integrity and original raw accounting were verified before
+saving. Full Grant, Ownership, other nominal cells and robustness are not
+claimed by these two diagnostics.

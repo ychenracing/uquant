@@ -485,7 +485,7 @@ def _admit_new_cores(book: _AllocationBook, *, candidates: list[str], opportunit
             book.record(symbol)["entry_gate"] = "EXISTING_HOLDING_OR_COMMITMENT"
             continue
         weight = book.policy.cfg.core_admission_weight
-        if book.fund(symbol, weight, phase="CORE_ADMISSION", minimum=weight):
+        if book.fund(symbol, weight, phase="CORE_ADMISSION", minimum=book.policy.cfg.min_trade_weight):
             book.account.protected_weights.pop(symbol, None)
             book.reasons[symbol] = "confirmed core admitted from available account capital"
             _record_completed_transfer(book, symbol)

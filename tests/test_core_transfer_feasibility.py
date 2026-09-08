@@ -38,7 +38,7 @@ def _scenario(monkeypatch, obstruction):
         "missing_correlation": (50_000.0, 30_000, 65_000),
         "below_trade_minimum": (170_000.0, 4_000, 79_000),
         "held_too_briefly": (100_000.0, 40_000, 50_000),
-        "ready": (100_000.0, 40_000, 50_000),
+        "ready": (40_000.0, 40_000, 56_000),
     }[obstruction]
     account = AccountState.empty(1_000_000.0)
     account.cash = cash
@@ -105,17 +105,33 @@ def test_unfundable_or_unexecutable_transfer_preserves_incumbent_rights_and_rota
     targets = policy.allocate(**arguments)
 
     expected = {symbol: position.shares / 100_000.0 for symbol, position in before.positions.items()}
-    assert {target.symbol: target.weight for target in targets} == pytest.approx(expected)
+    observed = {target.symbol: target.weight for target in targets}
+    assert {symbol: observed[symbol] for symbol in expected} == pytest.approx(expected)
+    assert set(observed) <= set(expected) | {CHALLENGER}
+    admitted = observed.get(CHALLENGER, 0.0)
+    # A failed transfer does not forbid spending already available cash.
+    # It must never consume the incumbent's unsold shares or saved rights.
+    assert admitted <= before.cash / before.initial_cash + 1e-12
+    if admitted:
+        assert admitted >= DEFAULT_CONFIG.min_trade_weight - 1e-12
+    if obstruction == "missing_correlation":
+        assert admitted == 0
     assert account.rotation_dates == before.rotation_dates == []
     assert account.protected_weights == before.protected_weights
     assert account.strategic_restore_weights == before.strategic_restore_weights
     assert account.strategic_cohort_targets == before.strategic_cohort_targets
     assert account.strategic_exit_bands == before.strategic_exit_bands
     assert account.cash == before.cash and account.positions == before.positions
-    assert plan_orders(
-        signal_date=str(arguments["date"].date()), targets=targets, account=account,
+    signal = str(arguments["date"].date())
+    attributed = attach_target_attribution(
+        "semiconductor", REQUIRED_AI_UNIVERSE_SHA256, signal_date=signal, targets=targets,
+    )
+    planned = plan_orders(
+        signal_date=signal, targets=attributed, account=account,
         prices=arguments["prices"], cfg=DEFAULT_CONFIG,
-    ) == ()
+    )
+    assert all(order.symbol == CHALLENGER and order.side == "BUY" for order in planned)
+    assert sum(order.target_weight * before.initial_cash for order in planned) <= before.cash + 1e-8
 
 
 def test_feasible_transfer_funds_challenger_only_after_actual_sell_settlement(monkeypatch):
@@ -149,10 +165,10 @@ def test_feasible_transfer_funds_challenger_only_after_actual_sell_settlement(mo
     submit(dates[-13], tuple(
         Target(symbol, weight, "CORE", 0.9, 0.9, "prior core entry",
                origin_subsystem="LEADER", mechanism="LEADER_SELECTION", origin_lifecycle="CORE")
-        for symbol, weight in ((WEAK, 0.4), (INCUMBENT, 0.5))
+        for symbol, weight in ((WEAK, 0.4), (INCUMBENT, 0.56))
     ))
     entry_fills = planner.execute_open(date=dates[-12], account=account, panel=execution_panel)
-    assert {fill.symbol: fill.shares for fill in entry_fills} == {WEAK: 39_900, INCUMBENT: 49_900}
+    assert {fill.symbol: fill.shares for fill in entry_fills} == {WEAK: 39_900, INCUMBENT: 55_900}
     assert not account.pending_orders
     account.protected_weights = {WEAK: 0.4}
     account.replacement_tenure.update({
@@ -165,7 +181,8 @@ def test_feasible_transfer_funds_challenger_only_after_actual_sell_settlement(mo
         f"core_transfer_session:{WEAK}->{CHALLENGER}": dates[-4].toordinal(),
     })
     cash_before_sale = account.cash
-    equity = account.cash + 898_000.0
+    equity = account.cash + 958_000.0
+    assert account.cash / equity < DEFAULT_CONFIG.min_trade_weight
     weak_before_sale = 399_000.0 / equity
 
     targets = policy.allocate(**arguments)
@@ -223,7 +240,7 @@ def test_existing_lifecycle_exit_is_not_relabelled_or_spent_as_a_new_rotation(mo
     reduction = next(target for target in targets if target.symbol == WEAK)
     assert reduction.weight == 0.0
     assert reduction.mechanism == "LEADER_LIFECYCLE_EXIT"
-    assert next(target.weight for target in targets if target.symbol == INCUMBENT) == pytest.approx(0.5)
+    assert next(target.weight for target in targets if target.symbol == INCUMBENT) == pytest.approx(0.56)
     assert not account.rotation_dates
     assert CHALLENGER not in {target.symbol for target in targets}
-    assert account.cash == 100_000.0
+    assert account.cash == 40_000.0

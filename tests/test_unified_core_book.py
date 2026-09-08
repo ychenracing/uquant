@@ -377,7 +377,7 @@ def test_confirmed_new_core_uses_spare_capital_without_trimming_incumbent(monkey
 
 
 @pytest.mark.parametrize("constraint", ("freeze", "reserved", "missing_correlation"))
-def test_unusable_capital_cannot_fund_an_unrelated_new_core(monkeypatch, constraint):
+def test_new_core_cannot_spend_frozen_reserved_or_unproven_capital(monkeypatch, constraint):
     if constraint == "missing_correlation":
         original = _inputs
 
@@ -390,7 +390,13 @@ def test_unusable_capital_cannot_fund_an_unrelated_new_core(monkeypatch, constra
         monkeypatch.setattr(__import__(__name__), "_inputs", missing)
     _, _, targets = _evaluate(monkeypatch, frozen=constraint == "freeze", pending=constraint == "reserved")
     assert targets["sh600001"].weight == 0.6
-    assert targets.get("sh600002", replace(targets["sh600001"], weight=0.0)).weight == 0.0
+    # A .35 pending BUY leaves .05 truly unreserved; it does not reserve the
+    # whole .40 cash balance. The new admission must never spend that .35.
+    expected = .05 if constraint == "reserved" else 0.0
+    assert targets.get("sh600002", replace(targets["sh600001"], weight=0.0)).weight == pytest.approx(expected)
+    if constraint == "reserved":
+        assert targets["sh600003"].weight == pytest.approx(.35)
+    assert sum(target.weight for target in targets.values()) <= 1.0 + 1e-12
 
 
 def test_strategic_exit_does_not_close_an_unrelated_ordinary_holding(monkeypatch):

@@ -1,3 +1,5 @@
+> Rejected after completed native replays: AG full wealth 13.096512503742405 failed the unchanged floor; removal22 also failed. The self-score restriction is withdrawn by a forward commit. This is historical proposal context, not current policy. Raw evidence: libfile_c5a1cfb4e31081919c6f5cc48cc19cee.
+
 # AG fixed proposal — self-credible ordinary maturity
 
 AF continuous principals fail unchanged order ceilings: full22, remove-all-three33,

@@ -1,4 +1,4 @@
-"""Ordinary self-maturity requires current credible evidence, not a peer's score."""
+"""Ordinary maturity and current execution proof have separate market-witness roles."""
 from dataclasses import replace
 
 from test_ordinary_trend_budget import _decide, _scenario
@@ -18,16 +18,17 @@ def _open_pair(*, low_score=.81):
     return policy, account, dates, panel, leaders, risk, targets, low
 
 
-def test_peer_common_permission_does_not_fund_low_score_self_maturity():
+def test_current_mature_stock_can_enter_below_market_witness_score():
     _, account, dates, panel, leaders, risk, targets, low = _open_pair()
     assert risk.evidence['core_allocation']['ordinary_market']['confirmed']
     assert all(leader.mature for leader in leaders.values())
     assert account.replacement_tenure.get(f'strategic_eligibility:independent_core:{low}', 0) == 0
     high = next(symbol for symbol in leaders if symbol != low)
-    assert {target.symbol for target in targets} == {high}
+    assert {target.symbol for target in targets} == {high, low}
     fills = ExecutionPlanner(DEFAULT_CONFIG).execute_open(date=dates[5], account=account, panel=panel)
-    assert len(fills) == 1 and fills[0].symbol == high and fills[0].side == 'BUY'
-    assert low not in account.positions
+    assert len(fills) == 2 and {fill.symbol for fill in fills} == {high, low}
+    assert all(fill.side == 'BUY' for fill in fills)
+    assert low in account.positions
     assert account.strategic_grant is None and not account.strategic_epochs
 
 
@@ -42,7 +43,7 @@ def test_filled_holding_score_loss_does_not_force_sale_or_relabel():
     assert {symbol: (p.shares, p.grant_id, p.epoch_id) for symbol, p in account.positions.items()} == before
 
 
-def test_partial_current_credible_continues_then_score_loss_cancels_without_restart_revival(tmp_path):
+def test_partial_current_mature_continues_then_quality_loss_cancels_without_restart_revival(tmp_path):
     from uquant.account import load_account, save_account
 
     policy, account, dates, panel, leaders, risk, _, low = _open_pair(low_score=.84)
@@ -57,7 +58,7 @@ def test_partial_current_credible_continues_then_score_loss_cancels_without_rest
     assert len(remaining) == 1
     assert (remaining[0].order_id, remaining[0].event_id) == (original.order_id, original.event_id)
     before = (account.positions[low].shares, account.cash)
-    leaders[low] = replace(leaders[low], score=.81)
+    leaders[low] = replace(leaders[low], score=.81, confidence=DEFAULT_CONFIG.leader_min_confidence - .01)
     _decide(policy, account, dates[6], panel, leaders, risk)
     assert risk.evidence['core_allocation']['ordinary_market']['confirmed']  # Healthy peer still witnesses.
     assert not any(o.symbol == low for o in account.pending_orders)

@@ -31,7 +31,9 @@ def test_confirmed_core_structure_exit_keeps_native_identity_until_final_fill():
     allocator, account, dates, panel, leaders, roles = _aged_core()
     leaders = _damage(panel, leaders, dates)
     epoch = account.strategic_epochs[0]
-    assert epoch.realized_status == "CORE" and not epoch.terminal
+    assert epoch.realized_status == "ACTIVE" and not epoch.terminal
+    assert account.strategic_epoch == 0
+    assert account.strategic_grant.status == "PARTIALLY_FILLED"
     for index, date in enumerate(dates[:DEFAULT_CONFIG.replacement_confirm_days]):
         orders = _decide_and_submit(allocator, account, date, panel, leaders, roles)
         if index < DEFAULT_CONFIG.replacement_confirm_days - 1:

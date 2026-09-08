@@ -356,10 +356,11 @@ Risk Differential 与 counterfactual 只作观察，不得转换成人工卖单�
    `cutover_review/account.before.json`，保留只读原件；副本、报告、数据和快照不能互相别名。
 2. 用经核验的同一发布提交和 `uv sync --frozen` 建立环境。严格读取副本，核对 schema 8 和
    原股票池/数据身份；不能把 `account-init` 的空账户代替已有真实账户。
-   自定义配置须移除已无执行路径的八个字段：`leader_cycle_confirm_days`、
+   自定义配置须移除已无执行路径的十个字段：`leader_cycle_confirm_days`、
    `leader_cycle_min_mature`、`leader_cycle_min_score`、`leader_cycle_impulse_return`、
    `leader_cycle_impulse_index_return`、`leader_cycle_impulse_breadth`、
-   `leader_cycle_min_market_ret120`、`leader_cycle_impulse_min_market_ret120`。
+   `leader_cycle_min_market_ret120`、`leader_cycle_impulse_min_market_ret120`、
+   `strategic_epoch_cooldown_sessions`、`strategic_epoch_min_symbol_change`。
    它们作为未知配置项明确拒绝，不能依赖静默忽略。冻结敏感性合同中的五个字段继续保留：
    `leader_tenure_days`、`strategic_reversal_min_ret5`、`strategic_reversal_max_tech_ret120`、
    `strategic_dominant_profit_lock_mfe`、`strategic_dominant_retained_gross`；切换时保留其配置值。

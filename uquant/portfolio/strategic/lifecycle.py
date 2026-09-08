@@ -384,13 +384,15 @@ def _advance_strategic_exit(
         bands[:] = [0.0] * band_count
     else:
         for index, signal in enumerate(triggered):
-            if signal:
-                armed[index] = True
+            if signal and not armed[index]:
                 bands[index] = max(
                     0.0,
                     bands[index]
                     - _strategic_exit_step(ctx, symbol=symbol, row=row) / band_count,
                 )
+            # One instruction per continuous threshold breach. Persisting the
+            # edge also makes same-session/restart evaluation idempotent.
+            armed[index] = signal
     if sum(bands) <= 1e-12:
         reset_strategic_candidate_eligibility(account=account, symbol=symbol)
         account.strategic_cohort_targets.pop(symbol, None)
@@ -415,6 +417,11 @@ def _evaluate_strategic_member(ctx: _StrategicLifecycleContext, symbol: str) -> 
     pnl = close / max(strategic_cost, 1e-12) - 1.0
     if pnl <= self.cfg.strategic_cohort_disaster_stop:
         self._retire_strategic_member(ctx.account, symbol)
+        return
+    # Missing observations cannot certify that a prior breach has recovered.
+    if not all(math.isfinite(scalar(row, key, math.nan)) for key in (
+        "atr", f"ma{self.cfg.trend_fast}", f"ret{self.cfg.trend_fast}",
+    )):
         return
     atr = scalar(row, "atr", math.inf)
     structural_damage = (

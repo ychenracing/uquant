@@ -47779,6 +47779,14 @@
                 }
               },
               {
+                "name": "entry_eligibility",
+                "kind": "KEYWORD_ONLY",
+                "annotation": "dict[str, dict[str, Any]]",
+                "default": {
+                  "kind": "required"
+                }
+              },
+              {
                 "name": "snapshots",
                 "kind": "KEYWORD_ONLY",
                 "annotation": "dict[str, dict[str, float]]",
@@ -47877,11 +47885,128 @@
         "path": "uquant/portfolio/strategic/qualification_candidates.py",
         "public_names": [
           "StrategicRoute",
+          "candidate_entry",
+          "candidate_market_block",
           "reversal_candidates",
           "strategic_candidate_meets_route",
           "strategic_route_candidates"
         ],
         "functions": {
+          "candidate_entry": {
+            "parameters": [
+              {
+                "name": "self",
+                "kind": "POSITIONAL_OR_KEYWORD",
+                "annotation": "PortfolioCore",
+                "default": {
+                  "kind": "required"
+                }
+              },
+              {
+                "name": "symbol",
+                "kind": "KEYWORD_ONLY",
+                "annotation": "str",
+                "default": {
+                  "kind": "required"
+                }
+              },
+              {
+                "name": "score",
+                "kind": "KEYWORD_ONLY",
+                "annotation": "LeaderScore",
+                "default": {
+                  "kind": "required"
+                }
+              },
+              {
+                "name": "date",
+                "kind": "KEYWORD_ONLY",
+                "annotation": "pd.Timestamp",
+                "default": {
+                  "kind": "required"
+                }
+              },
+              {
+                "name": "user_panel",
+                "kind": "KEYWORD_ONLY",
+                "annotation": "dict[str, pd.DataFrame]",
+                "default": {
+                  "kind": "required"
+                }
+              },
+              {
+                "name": "account",
+                "kind": "KEYWORD_ONLY",
+                "annotation": "AccountState",
+                "default": {
+                  "kind": "required"
+                }
+              },
+              {
+                "name": "confirmation_days",
+                "kind": "KEYWORD_ONLY",
+                "annotation": "int",
+                "default": {
+                  "kind": "required"
+                }
+              },
+              {
+                "name": "certificate",
+                "kind": "KEYWORD_ONLY",
+                "annotation": "dict[str, Any] | None",
+                "default": {
+                  "kind": "value",
+                  "value": null
+                }
+              }
+            ],
+            "return": "dict[str, Any]"
+          },
+          "candidate_market_block": {
+            "parameters": [
+              {
+                "name": "self",
+                "kind": "POSITIONAL_OR_KEYWORD",
+                "annotation": "PortfolioCore",
+                "default": {
+                  "kind": "required"
+                }
+              },
+              {
+                "name": "symbol",
+                "kind": "KEYWORD_ONLY",
+                "annotation": "str",
+                "default": {
+                  "kind": "required"
+                }
+              },
+              {
+                "name": "score",
+                "kind": "KEYWORD_ONLY",
+                "annotation": "LeaderScore",
+                "default": {
+                  "kind": "required"
+                }
+              },
+              {
+                "name": "date",
+                "kind": "KEYWORD_ONLY",
+                "annotation": "pd.Timestamp",
+                "default": {
+                  "kind": "required"
+                }
+              },
+              {
+                "name": "user_panel",
+                "kind": "KEYWORD_ONLY",
+                "annotation": "dict[str, pd.DataFrame]",
+                "default": {
+                  "kind": "required"
+                }
+              }
+            ],
+            "return": "str"
+          },
           "reversal_candidates": {
             "parameters": [
               {
@@ -95237,7 +95362,7 @@
     }
   },
   "contract_id": "uquant-public-api-v1",
-  "contract_sha256": "ee59f81f14c1682a4c48fdfc98fc7f057e85a28527038a54a392007632d7adb7",
+  "contract_sha256": "a15a0c1d8247fd0996daede126bb53ad353e503788373a7c908c05d63edc9ee9",
   "recorded_on": "2026-09-05",
   "schema_version": 1
 }

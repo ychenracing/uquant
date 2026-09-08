@@ -127,6 +127,66 @@ def test_risk_cap_still_reduces_a_settled_holding():
     assert orders[0].target_weight <= .06
 
 
+def test_repeated_same_session_damage_does_not_compound_a_pending_reduction():
+    allocator, account, dates, panel, leaders, roles = _band_sale()
+    close = float(panel[OWNER].loc[dates[0], "close"])
+    peak_date = panel[OWNER].index[panel[OWNER].index.get_loc(dates[0]) - 1]
+    panel[OWNER].loc[peak_date, "close"] = close + 1.0
+    runtime = SimpleNamespace(
+        _raw=panel, _price=lambda symbol, date: float(panel[symbol].loc[date, "close"]),
+    )
+    mark_account_positions(runtime, account, peak_date)
+    panel[OWNER].loc[dates[0], "ma20"] = close * 1.1
+    panel[OWNER].loc[dates[0], "ret20"] = -.05
+    first = _decide_and_submit(allocator, account, dates[0], panel, leaders, roles)
+    assert len(first) == 1 and first[0].side == "SELL"
+    target = first[0].target_weight
+    shares = first[0].remaining_shares
+    restored = account_from_dict(asdict(account))
+    repeated = _decide_and_submit(allocator, restored, dates[0], panel, leaders, roles)
+    assert len(repeated) == 1 and repeated[0].side == "SELL"
+    assert repeated[0].target_weight == pytest.approx(target)
+    assert repeated[0].remaining_shares == shares
+
+
+@pytest.mark.parametrize("missing", (None, "atr", "ma20", "ret20"))
+def test_continuous_damage_keeps_settled_shares_until_a_new_breach(missing):
+    allocator, account, dates, panel, leaders, roles = _band_sale()
+    close = float(panel[OWNER].loc[dates[0], "close"])
+    peak_date = panel[OWNER].index[panel[OWNER].index.get_loc(dates[0]) - 1]
+    panel[OWNER].loc[peak_date, "close"] = close + 1.0
+    runtime = SimpleNamespace(
+        _raw=panel, _price=lambda symbol, date: float(panel[symbol].loc[date, "close"]),
+    )
+    mark_account_positions(runtime, account, peak_date)
+    panel[OWNER].loc[dates[:5], "close"] = close
+    panel[OWNER].loc[dates[:5], "open"] = close
+    panel[OWNER].loc[dates[:5], "ma20"] = close * 1.1
+    panel[OWNER].loc[dates[:5], "ret20"] = -.05
+    first = _decide_and_submit(allocator, account, dates[0], panel, leaders, roles)
+    assert len(first) == 1 and first[0].side == "SELL"
+    fills = ExecutionPlanner(DEFAULT_CONFIG).execute_open(
+        date=dates[1], account=account, panel={OWNER: panel[OWNER]},
+    )
+    assert len(fills) == 1 and fills[0].side == "SELL"
+    restored = account_from_dict(asdict(account))
+    shares = restored.positions[OWNER].shares
+    if missing:
+        panel[OWNER].loc[dates[1], missing] = float("nan")
+    assert not _decide_and_submit(allocator, restored, dates[1], panel, leaders, roles)
+    assert not _decide_and_submit(allocator, restored, dates[2], panel, leaders, roles)
+    assert restored.positions[OWNER].shares == shares
+    assert sum(restored.strategic_exit_bands[OWNER]) == pytest.approx(first[0].target_weight)
+    # A recovered signal rearms the existing bands, without restoring capital.
+    panel[OWNER].loc[dates[3], "ma20"] = close * .95
+    panel[OWNER].loc[dates[3], "ret20"] = .05
+    assert not _decide_and_submit(allocator, restored, dates[3], panel, leaders, roles)
+    _decide_and_submit(allocator, restored, dates[4], panel, leaders, roles)
+    # The new instruction may be below the minimum trade size; it must still
+    # be retained for later execution rather than losing the fresh signal.
+    assert sum(restored.strategic_exit_bands[OWNER]) < first[0].target_weight
+
+
 @pytest.mark.parametrize("damage", (
     "partial", "pending", "cancelled", "event", "epoch", "no-fill",
     "missing-identity", "wrong-tranche-epoch", "wrong-tranche-grant",

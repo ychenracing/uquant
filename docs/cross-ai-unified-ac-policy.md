@@ -59,3 +59,31 @@ One fixed candidate runs the two failed half-year windows and champion; no
 full matrix, changed frozen thresholds or old-result relabeling. New risks
 include premature ordinary entries, increased orders/cost and reduced cash
 for later strong candidates. No improvement is presumed.
+
+## Completed disposition: rejected and ordinary policy withdrawn
+
+Both exact frozen half-year cases have complete original account/ledger readback.
+H1 no-optical (118 sessions, through 2024-07-01) wealth0.9578898389379551,
+MDD0.13591107612634168,11orders: wealth retention fails.
+H2 remove-all-three (125 sessions) wealth0.9896679914393441,
+MDD0.19502662767325707,18orders: wealth, drawdown and order limits fail.
+H2 losses came from seven first ordinary purchases, not stock reentry: ordinary
+net PnL -309868.75 versus strategic +289204.73; July entries lost240718.86.
+All ordinary entries were genuinely mature and exits were no longer mature.
+No tenure-reset or same-day admission/exit bug was established.
+
+Champion executed869 sessions but finalization correctly returned REPLAY_ERROR:
+the gzip retained only86 complete observations and lacks its end marker. Its
+hash already matches the failed result; the cause of truncation is unproven.
+The final account cannot replace the missing783 observations. No champion
+acceptance is claimed and no expensive rerun is justified for rejected AC.
+The original41-day failed-first-grant validator passed. Its separately captured
+whole trace is diagnostic_replay with39 nonfinite markers, not strict native
+whole-trace evidence. The erroneous117-day H1 attempt remains explicitly invalid.
+
+Withdraw only AC ordinary maturity admission and its candidate-specific tests,
+restoring AB economic source b3d96881f15e4f4bed26fc067120dcab9084465e456b86109ca946aa733cefe4.
+Retain all history, this rejected design and original evidence. This withdrawal
+is not full acceptance: AB H2 wealth, H1 and repeated Ownership remain unresolved.
+Archive uquant-unified-ac-rejected-evidence-20260908.zip,7916464bytes, SHA256
+e48d62d1e225c9d7127d5a1e30edefd494ee3c921370bf8fe48257e5406d7878.

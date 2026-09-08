@@ -81,6 +81,8 @@ from uquant.validation.absolute_generalization.scenarios import (
 ROOT = Path(__file__).resolve().parents[1]
 ALTERNATE_OWNER = "sh601869"
 _CHAMPION_RAW_SHA256 = "a93fb13b06ef02f1e40cfbf2a23e4932f02730f8ae5afda232db04111c6e25c9"
+# Native grant baseline from final engineering source86d35416; historical fixtures stay unchanged.
+_CONTRACT_CHAMPION_RAW_SHA256 = "ee00aa3f55c535350baf3b9e9e3cf588b2143aff9bafe035c4733bf89e5fefa1"
 
 
 def checkout_identity() -> tuple[str, str]:
@@ -297,8 +299,8 @@ def _envelope(shard: str, cells: list[dict[str, object]]) -> dict[str, object]:
 
 
 def _champion() -> dict[str, object]:
-    encoded = gzip.decompress((ROOT / "tests/fixtures/absolute_champion_runtime_raw.json.gz").read_bytes())
-    if hashlib.sha256(encoded).hexdigest() != _CHAMPION_RAW_SHA256:
+    encoded = gzip.decompress((ROOT / "tests/fixtures/absolute_champion_runtime_86d35416.json.gz").read_bytes())
+    if hashlib.sha256(encoded).hexdigest() != _CONTRACT_CHAMPION_RAW_SHA256:
         raise ValueError("champion raw fixture identity differs")
     runtime_raw = cast(dict[str, object], strict_json_loads(encoded))
     return _champion_from_raw(

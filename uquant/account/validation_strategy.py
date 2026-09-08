@@ -366,20 +366,34 @@ def _completed_rearm_history(state: Any) -> bool:
             or not grant.authorization_id or grant.authorization_id != rearm.authorization_id
             or grant.candidate_symbol != rearm.candidate_symbol):
         return False
+    return (_historical_epoch_closed(state, grant, rearm.candidate_symbol)
+            and _historical_grant_settled(state, grant.grant_id)
+            and _historical_repair_ready(rearm))
+
+
+def _historical_epoch_closed(state: Any, grant: Any, owner: str) -> bool:
+    """A real first fill and causal close precede the new repair episode."""
     epoch = next((e for e in state.strategic_epochs if e.epoch_id == grant.epoch_id), None)
-    if (epoch is None or epoch.realized_status != StrategicEpochStatus.CLOSED.value
-            or epoch.grant_id != grant.grant_id or epoch.owner_symbol != rearm.candidate_symbol
+    return not (epoch is None or epoch.realized_status != StrategicEpochStatus.CLOSED.value
+            or epoch.grant_id != grant.grant_id or epoch.owner_symbol != owner
             or not epoch.closed_session
+            or epoch.closed_session < max(epoch.first_fill_session, epoch.active_session)
             or state.flat_book_capital_repair.first_observed_session <= epoch.closed_session
             or not any(f.side == "BUY" and f.shares > 0 and f.symbol == epoch.owner_symbol
                        and f.grant_id == grant.grant_id and f.epoch_id == epoch.epoch_id
-                       and f.fill_date == epoch.first_fill_session for f in state.fills)):
-        return False
-    orders = [o for o in state.order_ledger if o.grant_id == grant.grant_id]
-    if (not orders or any(o.grant_id == grant.grant_id for o in state.pending_orders)
+                       and f.fill_date == epoch.first_fill_session for f in state.fills))
+
+
+def _historical_grant_settled(state: Any, grant_id: str) -> bool:
+    """Every deployment order is terminal, with no pending or late-fill remainder."""
+    orders = [o for o in state.order_ledger if o.grant_id == grant_id]
+    return not (not orders or any(o.grant_id == grant_id for o in state.pending_orders)
             or any(o.status not in {"FILLED", "CANCELLED", "REPLACED"} or late_strategic_fill_allowed(o)
-                   for o in orders)):
-        return False
+                   for o in orders))
+
+
+def _historical_repair_ready(rearm: Any) -> bool:
+    """The consumed authorization carries exactly its original complete READY proof."""
     proofs = [p for p in rearm.predicate_results if p.code == "FLAT_BOOK_REPAIR_READY"]
     required = FLAT_BOOK_CAPITAL_REPAIR_LIMITS.get(rearm.capital_budget_level - 1)
     return bool(len(proofs) == 1 and proofs[0].passed and required is not None

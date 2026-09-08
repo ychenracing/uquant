@@ -37,6 +37,15 @@ def _assert_unfilled_strategic_probe(
     assert account.strategic_epochs[-1].realized_status == StrategicEpochStatus.PROBE.value
 
 
+def _assert_ordinary_confirmation(account: AccountState, *, realized_epoch_count: int = 0) -> None:
+    assert account.strategic_qualification.qualification_ready
+    assert account.strategic_qualification.deployment_block_reason == "ordinary_trend_participation"
+    assert account.strategic_epoch == realized_epoch_count
+    assert account.active_strategic_epoch_id == ""
+    assert account.strategic_grant is None and account.strategic_epochs == []
+    assert account.strategic_cohort_targets == {}
+
+
 def test_persistent_industry_outranks_a_shorter_established_group() -> None:
     dates = pd.bdate_range("2023-01-02", periods=246)
     persistent = _strategic_frame(dates)
@@ -207,16 +216,17 @@ def test_synchronized_reversal_is_tagged_as_emerging_secular() -> None:
             risk=risk,
         )
 
-    _assert_unfilled_strategic_probe(account)
-    assert tuple(account.strategic_cohort_symbols) == symbols
-    assert set(account.strategic_cohort_targets) == set(symbols)
-    assert sorted(account.strategic_cohort_targets.values()) == pytest.approx([1.0 / 3.0] * 3)
+    assert account.strategic_qualification.qualification_ready
+    assert set(account.strategic_qualification.candidate_symbols) == set(symbols)
+    assert account.strategic_qualification.deployment_block_reason == "current_core_entry:STRUCTURE_NOT_REPAIRED"
+    assert account.strategic_grant is None and account.strategic_epochs == []
+    assert account.strategic_cohort_targets == {} and account.pending_orders == []
     assert account.strategic_qualification.qualification_quorum == "FULL_COHORT"
     assert not account.fills
-    assert account.strategic_candidate_signature.startswith(
+    assert account.strategic_qualification.qualification_signature.startswith(
         "strategic_qualification:EMERGING_SECULAR:"
     )
-    assert "evidence=reversal_industry" in account.strategic_candidate_signature
+    assert "evidence=reversal_industry" in account.strategic_qualification.qualification_signature
 
 @pytest.mark.parametrize(
     ("configured_universe_size", "irrelevant_count"),
@@ -523,8 +533,11 @@ def test_choppy_observation_can_confirm_but_not_admit_a_strategic_cohort() -> No
         account=account,
         prices=prices,
     )
-    _assert_unfilled_strategic_probe(account)
-    assert {target.symbol for target in targets if target.weight > 0} == set(account.strategic_cohort_symbols)
+    _assert_ordinary_confirmation(account)
+    assert {target.symbol for target in targets if target.weight > 0} == set(account.strategic_qualification.candidate_symbols)
+    assert sum(target.weight for target in targets) == pytest.approx(DEFAULT_CONFIG.core_admission_weight)
+    assert all(target.grant_id == target.epoch_id == "" for target in targets)
+    assert not account.fills and account.cash == 100.0
 
 def test_qualified_recovery_regime_admits_without_waiting_for_strong_trend() -> None:
     """Qualified RECOVERY admission supersedes the historical regime-wide veto."""
@@ -550,9 +563,10 @@ def test_qualified_recovery_regime_admits_without_waiting_for_strong_trend() -> 
         if count < DEFAULT_CONFIG.strategic_cohort_confirm_days:
             assert targets == ()
             assert account.strategic_epochs == []
-    _assert_unfilled_strategic_probe(account)
-    assert sum(target.weight for target in targets) == pytest.approx(DEFAULT_CONFIG.max_gross)
-    probe_id = account.strategic_epochs[-1].epoch_id
+    _assert_ordinary_confirmation(account)
+    assert sum(target.weight for target in targets) == pytest.approx(DEFAULT_CONFIG.core_admission_weight)
+    first_targets = {target.symbol: target.weight for target in targets}
+    assert all(target.grant_id == target.epoch_id == "" for target in targets)
 
     for _ in range(DEFAULT_CONFIG.strategic_cohort_confirm_days):
         targets = allocator.allocate(
@@ -564,9 +578,10 @@ def test_qualified_recovery_regime_admits_without_waiting_for_strong_trend() -> 
             account=account,
             prices=prices,
         )
-    _assert_unfilled_strategic_probe(account)
-    assert account.strategic_epochs[-1].epoch_id == probe_id
-    assert sum(target.weight for target in targets) == pytest.approx(DEFAULT_CONFIG.max_gross)
+    _assert_ordinary_confirmation(account)
+    assert {target.symbol: target.weight for target in targets} == first_targets
+    assert not account.fills and account.cash == 100.0
+    assert sum(target.weight for target in targets) == pytest.approx(DEFAULT_CONFIG.core_admission_weight)
 
 def test_recovery_holding_evidence_precedes_shared_strategic_funding() -> None:
     dates = pd.bdate_range("2023-01-02", periods=246)
@@ -597,9 +612,19 @@ def test_recovery_holding_evidence_precedes_shared_strategic_funding() -> None:
     allocator._initialize_strategic_cohort(
         date=dates[-1], user_panel=panel, leaders=leaders, account=account, risk=_normal_risk(),
     )
-    _assert_unfilled_strategic_probe(account)
-    assert 0.0 < sum(account.strategic_cohort_targets.values()) <= 0.50
-    assert "old_anchor" not in account.strategic_cohort_targets
+    _assert_ordinary_confirmation(account)
+    # The private observer does not allocate ordinary capital. Exercise the sole allocator
+    # with a positive market basis; the incumbent still shares the real cash budget.
+    risk = _normal_risk()
+    risk.evidence["tech_ret120"] = .01
+    targets = allocator.allocate(
+        date=dates[-1], opportunity=Opportunity.STRONG_TREND, risk=risk,
+        user_panel=panel, leaders=leaders, account=account,
+        prices={symbol: float(frame.loc[dates[-1], "close"]) for symbol, frame in panel.items()},
+    )
+    new_targets = [target for target in targets if target.symbol != "old_anchor" and target.weight > 0]
+    assert new_targets and sum(target.weight for target in new_targets) <= .50
+    assert all(target.grant_id == target.epoch_id == "" for target in new_targets)
     assert account.anchor_weights == {"old_anchor": 0.50}
     assert account.positions["old_anchor"].shares == 50
     assert account.cash == 50.0
@@ -629,10 +654,20 @@ def test_recovery_lock_cannot_veto_funded_strategic_participation() -> None:
         )
 
     # A legacy lock flag cannot veto independently funded participation.
-    _assert_unfilled_strategic_probe(account)
+    _assert_ordinary_confirmation(account)
+    # The private observer does not allocate ordinary capital. Exercise the sole allocator
+    # with a positive market basis; the incumbent still shares the real cash budget.
+    risk = _normal_risk()
+    risk.evidence["tech_ret120"] = .01
+    targets = allocator.allocate(
+        date=dates[-1], opportunity=Opportunity.STRONG_TREND, risk=risk,
+        user_panel=panel, leaders=leaders, account=account,
+        prices={symbol: float(frame.loc[dates[-1], "close"]) for symbol, frame in panel.items()},
+    )
+    new_targets = [target for target in targets if target.symbol != "old_anchor" and target.weight > 0]
+    assert new_targets and sum(target.weight for target in new_targets) <= .50
+    assert all(target.grant_id == target.epoch_id == "" for target in new_targets)
     assert account.anchor_weights == {"old_anchor": 0.50}
-    assert 0.0 < sum(account.strategic_cohort_targets.values()) <= 0.50
-    assert "old_anchor" not in account.strategic_cohort_targets
     assert account.positions["old_anchor"].shares == 50
     assert account.cash == 50.0
 
@@ -719,8 +754,8 @@ def test_relative_secular_evidence_needs_neither_170_percent_nor_short_cycle_mat
         )
 
     assert close[-1] / close[-241] - 1.0 < 1.70
-    assert account.candidate_tenure.get("strategic_cohort_active", 0) == 1
-    assert set(account.strategic_cohort_symbols) == set(symbols)
+    _assert_ordinary_confirmation(account)
+    assert set(account.strategic_qualification.candidate_symbols) == set(symbols)
 
 def test_strategic_epoch_respects_risk_gate_without_global_exit_cooldown():
     dates = pd.bdate_range("2023-01-02", periods=290)
@@ -750,9 +785,8 @@ def test_strategic_epoch_respects_risk_gate_without_global_exit_cooldown():
         )
     assert account.strategic_epoch == 0
     # Per-candidate confirmation replaces the account-wide exit cooldown.
-    # Discovery can reserve an intent, but only a later real fill activates it.
-    _assert_unfilled_strategic_probe(account)
-    assert account.candidate_tenure["strategic_cohort_active"] == 1
+    # Ordinary confirmation creates no grant; no real fill can be inferred from it.
+    _assert_ordinary_confirmation(account)
     assert account.cash == 100.0
     assert account.positions == {}
     assert account.pending_orders == []
@@ -780,10 +814,9 @@ def test_strategic_epoch_can_requalify_the_same_members_after_a_fresh_cooldown_s
             account=account,
             risk=_normal_risk(),
         )
-    _assert_unfilled_strategic_probe(account, realized_epoch_count=1)
-    assert account.candidate_tenure.get("strategic_cohort_active", 0) == 1
-    assert set(account.strategic_cohort_symbols) == set(old_symbols)
-    assert account.strategic_candidate_signature == (
+    _assert_ordinary_confirmation(account, realized_epoch_count=1)
+    assert set(account.strategic_qualification.candidate_symbols) == set(old_symbols)
+    assert account.strategic_qualification.qualification_signature == (
         "strategic_qualification:SECULAR:arbitrary_compute:compute,"
         "arbitrary_equipment:equipment,arbitrary_optical:optical:evidence=established"
     )

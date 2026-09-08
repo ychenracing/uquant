@@ -3,13 +3,15 @@
 from __future__ import annotations
 
 import hashlib
-from collections.abc import Mapping, Sequence
+from collections.abc import Callable, Mapping, Sequence
 from dataclasses import asdict
+from functools import partial
 from pathlib import Path
 from typing import Any, cast
 
+from uquant.atomic_io import atomic_write_bytes, validate_atomic_output_boundary
 from uquant.config import DEFAULT_CONFIG
-from uquant.contracts.strict_json import canonical_json_bytes, strict_json_loads
+from uquant.contracts.strict_json import canonical_json_bytes, canonical_json_sha256, strict_json_loads
 from uquant.models.decision import LeaderScore, RiskAssessment, Target
 from uquant.models.strategic_epoch import StrategicEpoch
 from uquant.models.strategic_grant import StrategicGrantIntent, StrategicQualificationObservation
@@ -27,6 +29,7 @@ from ._recovery_runtime_fixtures import (
     run_repair_fixture,
     run_terminal_fixture,
 )
+from ._replay_codec import cached_removal_replay, persist_raw_replay, raw_replay_identity, read_cached_replay
 from .artifacts import derive_runtime_cell_artifact
 from .contract import AbsoluteGeneralizationContract
 from .reachability import (
@@ -41,7 +44,6 @@ from .replay import (
     AbsoluteGeneralizationReplayAccountSnapshot,
     AbsoluteGeneralizationReplayObservation,
     AbsoluteGeneralizationReplayPayload,
-    run_absolute_generalization_replay,
 )
 from .scenarios import build_leave_one_out_scenarios
 
@@ -471,9 +473,11 @@ def _crowning_decision_sessions(
         risk = _recovery_mapping(
             decision.get("risk_summary"), label="crowning decision risk"
         )
-        authorized = _observed_crowning_authorization_session(risk, grant)
-        if authorized is not None:
-            authorization_sessions.add(authorized)
+        # A later repair episode cannot replace the grant's creation-day proof.
+        if observation.session == grant.created_session:
+            authorized = _observed_crowning_authorization_session(risk, grant)
+            if authorized is not None:
+                authorization_sessions.add(authorized)
     if (
         not target_sessions
         or len(order_sessions) != 1
@@ -697,12 +701,49 @@ def _historical_recovery_replay(
         for item in build_leave_one_out_scenarios(contract)
         if item.removed_symbol == historical_symbol
     )
-    return run_absolute_generalization_replay(
+    return cached_removal_replay(
         scenario,
         root=root,
         data_dir=data_dir,
         cache_dir=cache_dir,
     )
+
+
+def _cached_fixture_replays(
+    root: Path, data_dir: Path, cache_dir: Path, contract: AbsoluteGeneralizationContract,
+) -> tuple[dict[str, AbsoluteGeneralizationReplay], list[str]]:
+    scenario = build_leave_one_out_scenarios(contract)[0]
+    base = raw_replay_identity(scenario, root, data_dir)
+    jobs: list[tuple[str, Callable[[], AbsoluteGeneralizationReplay]]] = [
+        ("failed-grant", partial(run_failed_grant_fixture, contract)),
+        ("cross-industry", partial(run_cross_industry_fixture, contract)),
+        ("terminal", partial(run_terminal_fixture, contract)),
+    ]
+    jobs.extend((f"repair-{bound.persisted_damage_level}", partial(
+        run_repair_fixture, contract, level=bound.persisted_damage_level,
+        sessions=bound.maximum_healthy_sessions,
+    )) for bound in contract.thresholds.repair_bounds)
+    replays: dict[str, AbsoluteGeneralizationReplay] = {}
+    errors: list[str] = []
+    for name, produce in jobs:
+        identity = {**base, "fixture_unit": name, "input_mode": "fixed-production-semantic-fixture"}
+        path = cache_dir / "raw" / f"{canonical_json_sha256(identity)}.json.gz"
+        validate_atomic_output_boundary(path, protected_roots=(data_dir,))
+        try:
+            if path.exists():
+                replays[name] = read_cached_replay(path, identity)
+            else:
+                replay = produce()
+                if base != raw_replay_identity(scenario, root, data_dir):
+                    raise ValueError("recovery fixture inputs changed during execution")
+                replays[name] = persist_raw_replay(path, replay, identity)
+        except Exception as exc:
+            failure = {"identity": identity, "error_type": type(exc).__name__, "error": str(exc)}
+            receipt = cache_dir / "reader-errors" / f"{canonical_json_sha256(failure)}.json"
+            if not receipt.exists():
+                atomic_write_bytes(receipt, canonical_json_bytes(failure))
+            errors.append(name)
+    return replays, errors
 
 
 def run_recovery_runtime_payload(
@@ -714,12 +755,16 @@ def run_recovery_runtime_payload(
 ) -> dict[str, object]:
     """Run isolated preregistered production traces and derive strict raw facts."""
 
+    # Execute and save every independent fixture before any combined projection.
+    fixture_replays, fixture_errors = _cached_fixture_replays(root, data_dir, cache_dir, contract)
     historical_replay = _historical_recovery_replay(
         root=root,
         data_dir=data_dir,
         cache_dir=cache_dir,
         contract=contract,
     )
+    if fixture_errors:
+        raise RuntimeError(f"absolute recovery fixtures failed: {', '.join(fixture_errors)}")
     historical_transitions = replay_reachability_transitions(historical_replay)
     historical_artifact = derive_runtime_cell_artifact(
         historical_replay, contract, root=root
@@ -761,20 +806,16 @@ def run_recovery_runtime_payload(
         }
         if fact is None or fact.to_dict() != expected:
             raise RuntimeError("absolute recovery historical Task 5 binding differs")
-    failed_replay = run_failed_grant_fixture(contract)
+    failed_replay = fixture_replays["failed-grant"]
     failed_transitions = replay_reachability_transitions(failed_replay)
-    cross_replay = run_cross_industry_fixture(contract)
+    cross_replay = fixture_replays["cross-industry"]
     cross_transitions = replay_reachability_transitions(cross_replay)
     terminal_transitions = replay_reachability_transitions(
-        run_terminal_fixture(contract)
+        fixture_replays["terminal"]
     )
     repair_payloads: list[dict[str, object]] = []
     for bound in contract.thresholds.repair_bounds:
-        repair_replay = run_repair_fixture(
-            contract,
-            level=bound.persisted_damage_level,
-            sessions=bound.maximum_healthy_sessions,
-        )
+        repair_replay = fixture_replays[f"repair-{bound.persisted_damage_level}"]
         projected = _repair_payloads(
             replay_reachability_transitions(repair_replay),
             contract,

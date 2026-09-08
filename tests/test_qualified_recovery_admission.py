@@ -212,9 +212,31 @@ def test_trend_new_independent_core_beside_real_holding_uses_only_available_cash
         assert len(account.fills) == 1
 
 
-def test_ordinary_recovery_is_closed_even_with_current_stock_and_common_numeric_proof():
+def test_ordinary_recovery_requires_its_complete_independent_confirmation():
     policy, account, dates, panel, leaders, roles = _scenario("ordinary")
-    for date in dates[:7]:
+    confirmation = DEFAULT_CONFIG.leader_tenure_days
+    for date in dates[:confirmation - 1]:
         _decide(policy, account, date, panel, leaders, roles, opportunity=Opportunity.RECOVERY)
         assert not account.pending_orders
+    _decide(policy, account, dates[confirmation - 1], panel, leaders, roles,
+            opportunity=Opportunity.RECOVERY)
+    assert account.replacement_tenure[f"strategic_eligibility:independent_core:{OWNER}"] == confirmation
+    assert len(account.pending_orders) == 1
+    order = account.pending_orders[0]
+    assert order.symbol == OWNER and order.side == "BUY" and order.lifecycle == "CORE"
+    assert order.mechanism == "LEADER_SELECTION"
+    assert order.grant_id == order.epoch_id == ""
+    assert account.strategic_cash_rearm.authorization_id == ""
+    assert account.strategic_cash_rearm.consumed_order is None
+    assert not account.fills and not account.positions and account.strategic_grant is None
+
+
+def test_ordinary_recovery_cannot_use_maturity_as_an_impulse_shortcut():
+    policy, account, dates, panel, leaders, roles = _scenario("ordinary")
+    # Mature tenure and all numerical impulse inputs are present, but RECOVERY
+    # cannot replace the candidate's independently observed confirmation.
+    account.leader_tenure[OWNER] = DEFAULT_CONFIG.leader_tenure_days
+    _decide(policy, account, dates[0], panel, leaders, roles, opportunity=Opportunity.RECOVERY)
+    assert account.replacement_tenure[f"strategic_eligibility:independent_core:{OWNER}"] == 1
+    assert not account.pending_orders
     assert not account.fills and not account.positions and account.strategic_grant is None

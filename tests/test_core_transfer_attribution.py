@@ -73,6 +73,13 @@ def test_unsettled_rotation_cannot_label_a_buy_funded_by_another_sell(monkeypatc
         monkeypatch, "cash_shortfall" if transfer_state == "rejected" else "ready",
     )
     account = arguments["account"]
+    if transfer_state == "rejected":
+        # Keep this a genuinely unfundable transfer: existing capital is kept,
+        # but free gross room is below the executable ordinary admission size.
+        held = sum(position.shares * 10.0 for position in account.positions.values())
+        arguments["risk"] = replace(
+            arguments["risk"], target_gross_cap=held / (account.cash + held) + DEFAULT_CONFIG.min_trade_weight / 2,
+        )
     targets = policy.allocate(**arguments)
     assert CHALLENGER not in {target.symbol for target in targets}
     transfer_key = f"core_transfer:{WEAK}->{CHALLENGER}"
@@ -140,7 +147,7 @@ def test_settled_rotation_sell_preserves_matching_buy_attribution(monkeypatch):
     assert bought[0].mechanism == "LEADER_ROTATION" and bought[0].replaces_symbol == WEAK
 
 
-@pytest.mark.parametrize("weak_repaired, delayed_cap", ((False, 0.6), (True, 0.7)))
+@pytest.mark.parametrize("weak_repaired, delayed_cap", ((False, 0.7), (True, 0.7)))
 def test_settled_rotation_survives_a_later_rejected_transfer_observation(monkeypatch, weak_repaired, delayed_cap):
     policy, arguments, dates, planner, panel, submit = _execution_scenario(monkeypatch, "ready")
     account = arguments["account"]
@@ -163,6 +170,11 @@ def test_settled_rotation_survives_a_later_rejected_transfer_observation(monkeyp
     weak_frame = arguments["user_panel"][WEAK]
     if weak_repaired:
         weak_frame.loc[dates[-2]:, ["ma20", "ret20"]] = [9.0, 0.10]
+    # The cap must block the new entry without independently cutting existing holdings.
+    held_weight = sum(position.shares * 10.0 for position in account.positions.values()) / (
+        account.cash + sum(position.shares * 10.0 for position in account.positions.values())
+    )
+    assert held_weight <= delayed_cap < held_weight + DEFAULT_CONFIG.core_admission_weight
     arguments.update(date=dates[-2], risk=replace(original_risk, target_gross_cap=delayed_cap))
     delayed = policy.allocate(**arguments)
     assert CHALLENGER not in {target.symbol for target in delayed}

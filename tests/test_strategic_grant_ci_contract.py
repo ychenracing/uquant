@@ -302,3 +302,20 @@ def test_grant_cli_dispatches_one_diagnostic_case(
         "case_id": "native-sz300502",
         "output": output,
     }
+
+
+def test_full_grant_acceptance_retains_failure_and_finishes_independent_cases(monkeypatch, tmp_path):
+    import scripts.run_strategic_grant_acceptance as runner
+
+    visited = []
+    def execute(contract, *, case_id):
+        visited.append(case_id)
+        if case_id == "native-sz300308":
+            raise RuntimeError("native failure")
+        return {"status": "SUCCESS"}
+    monkeypatch.setattr(runner, "_execute_case", execute)
+    result = runner.run_acceptance(tmp_path / "full.json")
+    assert visited == list(runner.GRANT_CASE_IDS)
+    assert result["status"] == "FAIL"
+    assert len(result["native_eligibility"]) == 2
+    assert "native failure" in result["failures"][0]

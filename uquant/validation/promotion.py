@@ -12,6 +12,7 @@ from collections.abc import Iterator, Mapping
 from contextlib import contextmanager
 from copy import deepcopy
 from datetime import UTC, datetime
+from functools import partial
 from pathlib import Path
 from statistics import median
 from typing import Any, Final, cast
@@ -752,6 +753,42 @@ def validate_promotion_artifact(payload: Mapping[str, Any]) -> list[str]:
     return failures
 
 
+def _replay_promotion_unit(
+    name: str, symbols: Any, start: str, end: str, *, engine: ProductionEngine,
+    cache_dir: str | Path | None, runtime: dict[str, Any], baseline_path: Path,
+    baseline_sha256: str, acceptance_basis: dict[str, Any], data_dir: str | Path,
+    profile: str,
+) -> dict[str, Any]:
+    """Persist one native replay under its complete, immutable acceptance identity."""
+    if cache_dir is None:
+        return engine.backtest(symbols=tuple(symbols), start=start, end=end)
+    identity = {
+        "candidate": runtime,
+        "baseline_sha256": baseline_sha256,
+        "acceptance_basis": acceptance_basis,
+        "execution_contract": dict(EXECUTION_CONTRACT),
+        "runner": "uquant.validation.promotion.run_promotion",
+        "profile": profile,
+        "symbols": list(symbols),
+        "start": start,
+        "end": end,
+    }
+
+    def generate() -> dict[str, Any]:
+        with _immutable_validation_inputs(
+            baseline_path=baseline_path,
+            baseline_sha256=baseline_sha256,
+            data_dir=data_dir,
+            runtime_before=runtime,
+        ):
+            raw = engine.backtest(symbols=tuple(symbols), start=start, end=end)
+            if current_promotion_acceptance_basis() != acceptance_basis:
+                raise RuntimeError("promotion current acceptance contract changed during replay")
+        return raw
+
+    return replay_unit(Path(cache_dir), name=name, identity=identity, replay=generate)
+
+
 def run_promotion(
     *,
     data_dir: str | Path,
@@ -785,34 +822,11 @@ def run_promotion(
     ):
         engine = ProductionEngine(data_dir)
 
-        def replay(name: str, symbols: Any, start: str, end: str) -> dict[str, Any]:
-            if cache_dir is None:
-                return engine.backtest(symbols=tuple(symbols), start=start, end=end)
-            identity = {
-                "candidate": runtime,
-                "baseline_sha256": baseline_sha256,
-                "acceptance_basis": acceptance_basis,
-                "execution_contract": dict(EXECUTION_CONTRACT),
-                "runner": "uquant.validation.promotion.run_promotion",
-                "profile": profile,
-                "symbols": list(symbols),
-                "start": start,
-                "end": end,
-            }
-
-            def generate() -> dict[str, Any]:
-                with _immutable_validation_inputs(
-                    baseline_path=baseline_path,
-                    baseline_sha256=baseline_sha256,
-                    data_dir=data_dir,
-                    runtime_before=runtime,
-                ):
-                    raw = engine.backtest(symbols=tuple(symbols), start=start, end=end)
-                    if current_promotion_acceptance_basis() != acceptance_basis:
-                        raise RuntimeError("promotion current acceptance contract changed during replay")
-                return raw
-
-            return replay_unit(Path(cache_dir), name=name, identity=identity, replay=generate)
+        replay = partial(
+            _replay_promotion_unit, engine=engine, cache_dir=cache_dir, runtime=runtime,
+            baseline_path=baseline_path, baseline_sha256=baseline_sha256,
+            acceptance_basis=acceptance_basis, data_dir=data_dir, profile=profile,
+        )
         for pool, symbols in spec["pools"].items():
             for window, (start, end) in AI_ERA_WINDOWS.items():
                 name = f"{pool}/{window}"

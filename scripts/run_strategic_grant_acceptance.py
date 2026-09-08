@@ -286,6 +286,9 @@ def run_diagnostic_case(
     cached = _read_cache(cache_path, identity=identity)
     if cached is None:
         case = _execute_case(contract, case_id=case_id)
+        current_contract = json.loads(CONTRACT_PATH.read_text(encoding="utf-8"))
+        if _cache_identity_payload(current_contract, spec) != identity_payload:
+            raise ValueError("strategic grant inputs changed during native replay")
         _write_cache(cache_path, identity=identity, payload=case)
         cache_hit = False
     else:
@@ -305,17 +308,31 @@ def run_diagnostic_case(
     return result
 
 
-def run_acceptance(output: Path) -> dict[str, object]:
-    """Run exactly the bounded strategic-grant contract and persist compact facts."""
-
+def run_acceptance(output: Path, *, cache_dir: Path | None = None) -> dict[str, object]:
+    """Run every bounded grant obligation; resume only exact-identity native units."""
     contract = json.loads(CONTRACT_PATH.read_text(encoding="utf-8"))
-    baseline = run_baseline(contract)
-    result: dict[str, object] = {"baseline": baseline, "native_eligibility": [],
-                                 "status": "FAIL" if baseline.get("violations") else "PASS"}
-    try:
-        result["native_eligibility"] = _run_native_cells(contract)
-    except (ValueError, RuntimeError, KeyError, TypeError) as exc:
-        result.update(status="FAIL", error=f"{type(exc).__name__}: {exc}")
+    cases: dict[str, object] = {}
+    failures: list[str] = []
+    for case_id in GRANT_CASE_IDS:
+        try:
+            if cache_dir is None:
+                case = _execute_case(contract, case_id=case_id)
+            else:
+                unit = run_diagnostic_case(
+                    case_id=case_id, output=cache_dir / f"{case_id}-result.json",
+                    cache_dir=cache_dir,
+                )
+                case = cast(dict[str, object], unit["case"])
+            cases[case_id] = case
+            if case.get("violations"):
+                failures.append(f"{case_id}: {case['violations']}")
+        except (ValueError, RuntimeError, KeyError, TypeError) as exc:
+            failures.append(f"{case_id}: {type(exc).__name__}: {exc}")
+    result: dict[str, object] = {
+        "baseline": cases.get("baseline"),
+        "native_eligibility": [cases[name] for name in GRANT_CASE_IDS[1:] if name in cases],
+        "status": "FAIL" if failures else "PASS", "failures": failures,
+    }
     atomic_write_text(output, json.dumps(result, indent=2, sort_keys=True) + "\n")
     return result
 
@@ -327,9 +344,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     parser.add_argument("--cache-dir", type=Path)
     args = parser.parse_args(argv)
     if args.case_id is None:
-        if args.cache_dir is not None:
-            parser.error("--cache-dir requires --case")
-        result = run_acceptance(args.output)
+        result = run_acceptance(args.output, cache_dir=args.cache_dir)
     else:
         if args.cache_dir is None:
             parser.error("--case requires --cache-dir")

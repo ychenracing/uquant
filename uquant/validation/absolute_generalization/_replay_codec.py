@@ -2,15 +2,26 @@
 
 from __future__ import annotations
 
+import gzip
 import hashlib
 import math
+import shutil
+import subprocess  # nosec B404
 from collections.abc import Mapping, Sequence
 from dataclasses import fields, is_dataclass
 from datetime import date
+from pathlib import Path
 from typing import cast
 
-from uquant.contracts.strict_json import canonical_json_bytes, strict_json_loads
+from uquant.atomic_io import atomic_write_bytes, validate_atomic_output_boundary, validate_atomic_output_path
+from uquant.config import config_fingerprint
+from uquant.contracts.runtime_identity import runtime_environment_provenance
+from uquant.contracts.strict_json import canonical_json_bytes, canonical_json_sha256, strict_json_loads
+from uquant.provenance.fingerprints import source_surface_fingerprint
+from uquant.provenance.surfaces import load_source_surface_registry
+from uquant.validation.manifest import verify_data_manifest
 
+from .contract import load_absolute_generalization_contract
 from .replay import (
     AbsoluteGeneralizationReplay,
     AbsoluteGeneralizationReplayAccountSnapshot,
@@ -18,6 +29,7 @@ from .replay import (
     AbsoluteGeneralizationReplayObservation,
     AbsoluteGeneralizationReplayPayload,
     AbsoluteGeneralizationReplayRoleSnapshot,
+    run_absolute_generalization_replay,
 )
 from .scenarios import AbsoluteGeneralizationScenario
 
@@ -107,11 +119,88 @@ def _payload_to_raw(payload: AbsoluteGeneralizationReplayPayload) -> dict[str, o
     return {"sha256": payload.sha256, "value": value}
 
 
+def _replay_dataclass_values(value: object) -> dict[str, object]:
+    """Project the finite replay schema without reflection or object deepcopy."""
+    if type(value) is AbsoluteGeneralizationReplay:
+        return {
+            "scenario": value.scenario,
+            "status": value.status,
+            "replay_error": value.replay_error,
+            "initial_cash": value.initial_cash,
+            "final_equity": value.final_equity,
+            "observations": value.observations,
+            "final_account_payload": value.final_account_payload,
+        }
+    if type(value) is AbsoluteGeneralizationReplayAccountSnapshot:
+        return {
+            "account_payload": value.account_payload,
+            "changed_order_payloads": value.changed_order_payloads,
+            "changed_epoch_payloads": value.changed_epoch_payloads,
+            "removed_order_keys": value.removed_order_keys,
+            "removed_epoch_keys": value.removed_epoch_keys,
+            "order_ledger_chain_sha256": value.order_ledger_chain_sha256,
+            "epoch_ledger_chain_sha256": value.epoch_ledger_chain_sha256,
+        }
+    if type(value) is AbsoluteGeneralizationReplayManifestSnapshot:
+        return {
+            "generated_at": value.generated_at,
+            "source": value.source,
+            "adjustment": value.adjustment,
+            "files": value.files,
+            "symbols": value.symbols,
+            "start": value.start,
+            "end": value.end,
+            "digest": value.digest,
+        }
+    if type(value) is AbsoluteGeneralizationReplayObservation:
+        return {
+            "session": value.session,
+            "equity": value.equity,
+            "closing_marks": value.closing_marks,
+            "decision_payload": value.decision_payload,
+            "new_fills": value.new_fills,
+            "post_open_account": value.post_open_account,
+            "post_decision_account": value.post_decision_account,
+            "roles": value.roles,
+            "intentional_role_absent_symbols": value.intentional_role_absent_symbols,
+            "expected_but_unavailable_symbols": value.expected_but_unavailable_symbols,
+            "replay_universe_identity": value.replay_universe_identity,
+            "data_manifest": value.data_manifest,
+            "loaded_symbols": value.loaded_symbols,
+            "decision_runtime_payload": value.decision_runtime_payload,
+        }
+    if type(value) is AbsoluteGeneralizationReplayRoleSnapshot:
+        return {
+            "as_of": value.as_of,
+            "tradable_symbols": value.tradable_symbols,
+            "qualification_reference_symbols": value.qualification_reference_symbols,
+            "risk_reference_symbols": value.risk_reference_symbols,
+            "available_symbols": value.available_symbols,
+            "unavailable_reference_symbols": value.unavailable_reference_symbols,
+            "point_in_time_industries": value.point_in_time_industries,
+            "tradable_identity": value.tradable_identity,
+            "qualification_reference_identity": value.qualification_reference_identity,
+            "risk_reference_identity": value.risk_reference_identity,
+            "point_in_time_industry_identity": value.point_in_time_industry_identity,
+        }
+    if type(value) is AbsoluteGeneralizationScenario:
+        return {
+            "cell_id": value.cell_id,
+            "removed_symbol": value.removed_symbol,
+            "window_start": value.window_start,
+            "window_end": value.window_end,
+            "shard": value.shard,
+            "is_critical": value.is_critical,
+            "is_witness": value.is_witness,
+            "contract_sha256": value.contract_sha256,
+        }
+    raise ValueError("absolute generalization replay evidence dataclass type differs")
+
 def _replay_json_value(value: object) -> object:
     if type(value) is AbsoluteGeneralizationReplayPayload:
         return _payload_to_raw(value)
     if is_dataclass(value) and not isinstance(value, type):
-        return {field.name: _replay_json_value(getattr(value, field.name)) for field in fields(value)}
+        return _replay_json_value(_replay_dataclass_values(value))
     if isinstance(value, date):
         return value.isoformat()
     if isinstance(value, Mapping):
@@ -134,6 +223,80 @@ def replay_to_raw(replay: AbsoluteGeneralizationReplay) -> dict[str, object]:
         raise ValueError("absolute generalization replay evidence type differs")
     raw = _replay_json_value(replay)
     return dict(_replay_mapping(raw, label="replay"))
+
+
+def raw_replay_identity(scenario: AbsoluteGeneralizationScenario, root: Path, data: Path) -> dict[str, object]:
+    if root.resolve() != Path(__file__).resolve().parents[3]:
+        raise ValueError("raw replay root differs from the executing checkout")
+    git = shutil.which("git")
+    if git is None:
+        raise RuntimeError("cannot resolve raw replay checkout")
+    objects = subprocess.run(
+        [git, "-C", str(root), "rev-parse", "HEAD", "HEAD^{tree}"],
+        check=True, capture_output=True, text=True,
+    ).stdout.splitlines()  # nosec B603
+    if len(objects) != 2:
+        raise ValueError("raw replay checkout identity differs")
+    contract = load_absolute_generalization_contract()
+    return {
+        "schema_version": 1, "scenario": _replay_json_value(scenario),
+        "head": objects[0], "tree": objects[1], "contract": contract.canonical_sha256,
+        "config": config_fingerprint(), "data": verify_data_manifest(data),
+        "runtime": runtime_environment_provenance(root),
+        "registry": load_source_surface_registry(root).canonical_sha256,
+        "surfaces": {name: source_surface_fingerprint(root, name) for name in
+                     ("economic_decision_v1", "full_package_v1", "validation_runner_v1")},
+    }
+
+
+def read_cached_replay(path: Path, identity: Mapping[str, object]) -> AbsoluteGeneralizationReplay:
+    validate_atomic_output_path(path)
+    raw = _replay_mapping(strict_json_loads(gzip.decompress(path.read_bytes())), label="raw cache")
+    _replay_exact_fields(raw, {"identity", "replay", "sha256"}, label="raw cache")
+    payload = {"identity": raw["identity"], "replay": raw["replay"]}
+    if raw["identity"] != identity or raw["sha256"] != canonical_json_sha256(payload):
+        raise ValueError("raw replay cache identity or digest differs")
+    replay = replay_from_raw(raw["replay"])
+    if _replay_json_value(replay.scenario) != identity["scenario"]:
+        raise ValueError("raw replay cached scenario differs")
+    return replay
+
+
+def persist_raw_replay(
+    path: Path, replay: AbsoluteGeneralizationReplay, identity: Mapping[str, object],
+) -> AbsoluteGeneralizationReplay:
+    """Publish a sealed native result once and require strict readback."""
+    validate_atomic_output_path(path)
+    payload: dict[str, object] = {"identity": identity, "replay": replay_to_raw(replay)}
+    envelope = {**payload, "sha256": canonical_json_sha256(payload)}
+    if not path.exists():
+        atomic_write_bytes(path, gzip.compress(canonical_json_bytes(envelope), compresslevel=3, mtime=0))
+    saved = read_cached_replay(path, identity)
+    if replay_to_raw(saved) != payload["replay"]:
+        raise ValueError("existing raw replay differs; refusing to overwrite")
+    return saved
+
+
+def cached_removal_replay(
+    scenario: AbsoluteGeneralizationScenario, *, root: str | Path,
+    data_dir: str | Path, cache_dir: str | Path,
+) -> AbsoluteGeneralizationReplay:
+    """Persist each native result before its reader; one scheduled writer per cell."""
+    physical_data = Path(data_dir).absolute()
+    if any(part.is_symlink() for part in (physical_data, *physical_data.parents)):
+        raise ValueError("raw replay data path is unsafe")
+    repository, data = Path(root).resolve(), physical_data.resolve()
+    identity = raw_replay_identity(scenario, repository, data)
+    path = Path(cache_dir) / "raw" / f"{canonical_json_sha256(identity)}.json.gz"
+    validate_atomic_output_boundary(path, protected_roots=(data,))
+    if path.exists():
+        return read_cached_replay(path, identity)
+    replay = run_absolute_generalization_replay(
+        scenario, root=repository, data_dir=data, cache_dir=cache_dir,
+    )
+    if identity != raw_replay_identity(scenario, repository, data):
+        raise ValueError("raw replay inputs changed during execution")
+    return persist_raw_replay(path, replay, identity)
 
 
 def _payload_from_raw(value: object, *, label: str) -> AbsoluteGeneralizationReplayPayload:

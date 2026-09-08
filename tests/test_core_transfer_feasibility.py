@@ -209,7 +209,10 @@ def test_feasible_transfer_funds_challenger_only_after_actual_sell_settlement(mo
     arguments["date"] = dates[-2]
     admitted = policy.allocate(**arguments)
     challenger = next(target for target in admitted if target.symbol == CHALLENGER)
-    assert challenger.weight == pytest.approx(0.2)
+    # Mature admission uses the original budget, capped by cash actually settled.
+    settled_equity = account.cash + sum(position.shares * 10.0 for position in account.positions.values())
+    assert arguments["leaders"][CHALLENGER].mature
+    assert challenger.weight == pytest.approx(min(DEFAULT_CONFIG.max_symbol_weight, account.cash / settled_equity))
     assert challenger.mechanism == "LEADER_ROTATION" and challenger.replaces_symbol == WEAK
     orders = submit(dates[-2], admitted)
     assert [(order.symbol, order.side) for order in orders] == [(CHALLENGER, "BUY")]

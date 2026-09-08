@@ -4,6 +4,7 @@ import copy
 import hashlib
 import importlib
 import json
+import math
 from collections.abc import Callable, Mapping
 from pathlib import Path
 from typing import Any
@@ -136,7 +137,8 @@ def test_performance_readback_rederives_claimed_pass(
 ) -> None:
     payload = _performance_payload(_performance_candidate())
     if mutation == "continuous_wealth":
-        payload["cells"]["a/continuous_ai_era"]["final_wealth"] = 23.284178712755819
+        floor = current_promotion_acceptance_basis()["effective_continuous_minimum_final_wealth"]
+        payload["cells"]["a/continuous_ai_era"]["final_wealth"] = math.nextafter(floor, -math.inf)
     elif mutation in {"absolute_drawdown", "negative_drawdown"}:
         payload["cells"]["a/h1_2023"]["max_drawdown"] = 0.9 if mutation == "absolute_drawdown" else -0.1
     elif mutation == "boolean_orders":

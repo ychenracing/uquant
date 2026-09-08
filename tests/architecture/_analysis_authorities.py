@@ -258,6 +258,8 @@ MODULE_AUTHORITIES = {
     "uquant.validation.holdout_lanes": "validation_runner",
     "uquant.validation.holdout_runtime": "validation_runner",
     "uquant.validation.manifest": "validation_runner",
+    "uquant.validation._promotion_cache": "validation_runner",
+    "uquant.validation.acceptance_tolerance": "validation_runner",
     "uquant.validation.promotion": "validation_runner",
     "uquant.validation.promotion_contract": "validation_runner",
     "uquant.validation.production_observation": "validation_runner",

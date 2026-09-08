@@ -850,7 +850,7 @@ def test_existing_strategic_exit_band_idempotently_cancels_recaptured_restore_ri
         capital_peak=100.0,
     )
 
-    PortfolioAllocator(DEFAULT_CONFIG)._strategic_cohort_targets(
+    targets = PortfolioAllocator(DEFAULT_CONFIG)._strategic_cohort_targets(
         date=dates[-1],
         risk=_normal_risk(),
         user_panel={exiting: frame, untouched: frame},
@@ -861,8 +861,12 @@ def test_existing_strategic_exit_band_idempotently_cancels_recaptured_restore_ri
     )
 
     assert exiting not in account.strategic_restore_weights
-    assert exiting not in account.protected_weights
-    assert account.protected_weights == {untouched: 0.30}
+    # An old soft band is not a new execution receipt or generic restoration authority.
+    assert account.protected_weights == {exiting: 0.30, untouched: 0.30}
+    assert targets is not None
+    assert {target.symbol: target.weight for target in targets}[exiting] <= .30
+    assert account.positions[exiting].shares == 30
+    assert not account.fills and not account.pending_orders
 
 def test_started_strategic_member_without_durable_buy_intent_is_retired():
     dates = pd.bdate_range("2025-01-02", periods=150)

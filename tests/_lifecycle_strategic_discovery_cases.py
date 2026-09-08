@@ -51,17 +51,19 @@ def test_strategic_cohort_discovers_arbitrary_symbols_without_a_static_prior():
             risk=_normal_risk(),
         )
 
-    assert account.candidate_tenure["strategic_cohort_active"] == 1
-    assert set(account.strategic_cohort_symbols) == expected
-    assert set(account.strategic_cohort_targets) == expected
-    _assert_unfilled_strategic_probe(account)
-    assert account.strategic_candidate_signature.startswith("strategic_qualification:")
-    assert all(symbol in account.strategic_candidate_signature for symbol in expected)
-    assert sum(account.strategic_cohort_targets.values()) == pytest.approx(DEFAULT_CONFIG.max_gross)
-    assert all(weight == pytest.approx(1.0 / 3.0) for weight in account.strategic_cohort_targets.values())
+    qualification = account.strategic_qualification
+    assert qualification.qualification_ready
+    assert set(qualification.candidate_symbols) == expected
+    assert qualification.deployment_block_reason == "ordinary_trend_participation"
+    assert qualification.qualification_signature.startswith("strategic_qualification:")
+    assert all(symbol in qualification.qualification_signature for symbol in expected)
+    # Discovery preserves qualification; ordinary trend strength is not a grant.
+    assert account.strategic_grant is None and account.strategic_epochs == []
+    assert account.strategic_cohort_targets == {} and account.pending_orders == []
+    assert account.cash == 100.0 and account.positions == {}
 
 def test_strategic_rank_prefers_a_confirmed_industry_cluster_over_one_high_scoring_outsider():
-    """Current owner ranking supersedes the historical industry-cluster preference."""
+    """A persistent formation has grant eligibility beyond ordinary score rank."""
     dates = pd.bdate_range("2023-01-02", periods=246)
     frame = _strategic_frame(dates)
     strong = ("optical_a", "optical_b", "optical_c")
@@ -87,13 +89,13 @@ def test_strategic_rank_prefers_a_confirmed_industry_cluster_over_one_high_scori
             risk=_normal_risk(),
         )
 
-    selected = ("isolated_compute", "optical_a", "optical_b")
+    selected = strong
     assert tuple(account.strategic_cohort_symbols) == selected
     assert set(account.strategic_cohort_targets) == set(selected)
-    assert "optical_c" not in account.strategic_cohort_targets
+    assert "isolated_compute" not in account.strategic_cohort_targets
     assert all(weight == pytest.approx(1.0 / 3.0) for weight in account.strategic_cohort_targets.values())
-    assert account.strategic_qualification.candidate_symbol == "isolated_compute"
-    assert account.strategic_qualification.qualification_route == "established"
+    assert account.strategic_qualification.candidate_symbol == "optical_a"
+    assert account.strategic_qualification.qualification_route == "persistent_industry"
     assert account.strategic_qualification.qualification_quorum == "FULL_COHORT"
     _assert_unfilled_strategic_probe(account)
     assert not account.fills
@@ -164,8 +166,13 @@ def test_strategic_transition_route_needs_no_high_240_day_secular_score():
         )
 
     assert len(dates) < 241
-    _assert_unfilled_strategic_probe(account)
-    assert tuple(account.strategic_cohort_symbols) == symbols
+    qualification = account.strategic_qualification
+    assert qualification.qualification_ready
+    assert set(qualification.candidate_symbols) == set(symbols)
+    assert qualification.qualification_route == "transition"
+    assert qualification.deployment_block_reason == "ordinary_trend_participation"
+    assert account.strategic_grant is None and account.strategic_epochs == []
+    assert account.pending_orders == [] and not account.fills
 
 def test_synchronized_industry_impulse_is_causal_and_signature_order_invariant() -> None:
     dates = pd.bdate_range("2023-01-02", periods=246)
@@ -212,7 +219,7 @@ def test_synchronized_industry_impulse_is_causal_and_signature_order_invariant()
         "strategic_qualification:EMERGING_SECULAR:"
     )
     assert "evidence=transition_impulse" in qualification.qualification_signature
-    assert qualification.deployment_block_reason == "impulse_ordinary_participation"
+    assert qualification.deployment_block_reason == "ordinary_trend_participation"
     assert account.strategic_grant is None and not account.strategic_epochs
 
     unsynchronized = AccountState.empty(100.0)

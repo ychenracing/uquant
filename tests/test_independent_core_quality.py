@@ -108,7 +108,8 @@ def test_strict_quality_and_absolute_route_need_five_sessions_before_admission(m
             assert not targets
         else:
             assert len(targets) == 1 and targets[0].symbol == SYMBOL
-            assert targets[0].weight == pytest.approx(DEFAULT_CONFIG.core_admission_weight)
+            assert leaders[SYMBOL].mature
+            assert targets[0].weight == pytest.approx(DEFAULT_CONFIG.single_core_entry_cap)
             assert targets[0].mechanism == "LEADER_SELECTION"
 
 

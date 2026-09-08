@@ -949,8 +949,8 @@ def test_engine_code_fingerprint_fails_closed_for_missing_and_symlinked_members(
 
 
 @pytest.mark.parametrize("before, after", (
-    ("account=account, orders=orders, observed_session=", "account=account, orders=previous_orders, observed_session="),
-    ("from ..portfolio.strategic.rearm import consume_ordinary_cash_rearm_authorization", "from ..portfolio.strategic.rearm import consume_ordinary_cash_rearm_authorization, unrelated"),
+    ("account=account, orders=orders, risk=risk, date=", "account=account, orders=previous_orders, risk=risk, date="),
+    ("from ..portfolio.strategic.rearm import bind_ordinary_entry_authorizations", "from ..portfolio.strategic.rearm import bind_ordinary_entry_authorizations, unrelated"),
 ))
 def test_decision_rearm_owner_rejects_unregistered_orders_or_extra_dependencies(before: str, after: str) -> None:
     source = (ROOT / "uquant/application/decision.py").read_text(encoding="utf-8")

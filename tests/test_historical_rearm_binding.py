@@ -35,7 +35,8 @@ def _history():
                            authorization_id="auth-old", candidate_symbol="sh601869"),
         strategic_epochs=[NS(epoch_id="epoch-old", realized_status="CLOSED",
                              grant_id="grant-old", owner_symbol="sh601869",
-                             first_fill_session="2026-04-23", closed_session="2026-05-28")],
+                             first_fill_session="2026-04-23", active_session="2026-04-23",
+                             closed_session="2026-05-28")],
         fills=[NS(side="BUY", shares=100, symbol="sh601869", grant_id="grant-old",
                   epoch_id="epoch-old", fill_date="2026-04-23")],
         order_ledger=[order], pending_orders=[],
@@ -56,7 +57,8 @@ def test_closed_consumption_preserves_history_without_rebinding_new_episode():
     "SUBMITTED", "CANCEL_REQUESTED", "PARTIALLY_FILLED", "wrong_ready_episode",
     "short_ready_count", "boolean_ready_count", "wrong_required", "failed_ready",
     "missing_ready", "unconsumed_authorization", "nonterminal_grant",
-    "same_day_episode", "older_episode", "missing_close",
+    "same_day_episode", "older_episode", "missing_close", "close_before_first_fill",
+    "close_before_active",
 ])
 def test_historical_exception_requires_complete_settled_binding(fault):
     state = _history()
@@ -102,6 +104,10 @@ def test_historical_exception_requires_complete_settled_binding(fault):
         state.flat_book_capital_repair.first_observed_session = "2026-05-27"
     elif fault == "missing_close":
         state.strategic_epochs[0].closed_session = ""
+    elif fault == "close_before_first_fill":
+        state.strategic_epochs[0].closed_session = "2026-04-22"
+    elif fault == "close_before_active":
+        state.strategic_epochs[0].active_session = "2026-05-29"
     elif fault == "nonterminal_grant":
         state.strategic_grant.status = "PENDING_EXECUTION"
     with pytest.raises(ValueError, match="repair episode binding"):

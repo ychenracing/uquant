@@ -1,4 +1,4 @@
-"""Private raw-ledger reconciliation for absolute-generalization metrics."""
+"""Raw-ledger reconciliation; cash retains the native broker's operation order."""
 from __future__ import annotations
 
 import hashlib
@@ -261,7 +261,7 @@ def _apply_buy(
         shares=fill.shares,
         unit_cost=(fill.gross + fill.commission + fill.transfer_fee) / fill.shares,
     )
-    return -(fill.gross + fill.fees)
+    return -(fill.gross + fill.commission + fill.transfer_fee)
 
 
 def _apply_sell(
@@ -319,7 +319,7 @@ def _apply_sell(
     ):
         if not math.isclose(allocated_costs[field], expected, rel_tol=1e-9, abs_tol=1e-8):
             raise ValueError(f"absolute generalization sold tranche {field} differs")
-    return fill.gross - fill.fees, fill.gross - fill.fees - allocated_basis
+    return fill.gross - fill.commission - fill.stamp_duty - fill.transfer_fee, fill.gross - fill.fees - allocated_basis
 
 
 def _final_position_evidence(

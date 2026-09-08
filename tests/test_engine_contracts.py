@@ -372,22 +372,12 @@ def test_expected_reference_without_a_session_is_unavailable_not_role_absent(
         assert decision is not None
         return engine, account, decision
 
-    positive_engine, positive_account, positive = opening_decisions(data_dir)
+    _positive_engine, positive_account, positive = opening_decisions(data_dir)
     assert positive_account.strategic_qualification.qualification_ready is True
-    assert positive_account.strategic_grant is not None
-    assert positive.targets
-    assert positive.pending_orders
-    assert positive_account.strategic_epochs
-    positive_engine.execution.execute_open(
-        date=pd.Timestamp("2023-01-05"),
-        account=positive_account,
-        panel={
-            symbol: positive_engine.workspace.raw_frame(symbol)
-            for symbol in role_symbols
-        },
-    )
-    assert positive_account.fills
-    assert positive_account.order_ledger
+    # Complete reference evidence establishes qualification, not deployment:
+    # AP still requires the current risk/capital permission to create a grant.
+    assert missing_symbol in positive.risk_summary["reference_expected_symbols"]
+    assert missing_symbol in positive.risk_summary["reference_visible_symbols"]
 
     negative_engine, negative_account, negative = opening_decisions(isolated)
     roles = build_strategic_universe_roles(

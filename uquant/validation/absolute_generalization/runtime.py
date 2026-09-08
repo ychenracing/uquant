@@ -24,13 +24,14 @@ from ._champion_runtime_reconciliation import (
     project_champion_baseline_views,
 )
 from ._physical_identity import physical_fill_identity_sha256
+from ._replay_codec import cached_removal_replay
 from .artifacts import (
     CellArtifact,
     derive_runtime_cell_artifact,
 )
 from .contract import AbsoluteGeneralizationContract
 from .recovery_runtime import run_recovery_runtime_payload
-from .replay import run_absolute_generalization_replay
+from .replay import run_absolute_generalization_replay as run_absolute_generalization_replay
 from .scenarios import AbsoluteGeneralizationScenario
 
 _FORBIDDEN_CLAIMS = frozenset({"passed", "runner_success", "capability_pass", "status", "retry_sessions"})
@@ -346,7 +347,7 @@ def run_runtime_cell_artifact(
 ) -> CellArtifact:
     """Run the production replay owner and derive one strict raw cell."""
 
-    replay = run_absolute_generalization_replay(
+    replay = cached_removal_replay(
         scenario,
         root=root,
         data_dir=data_dir,

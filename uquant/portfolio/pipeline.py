@@ -15,7 +15,7 @@ from ..models.ordinary_entry import REASON as PULLBACK_REASON
 from ..models.ordinary_entry import holding_pullback_entry, pullback_graduated, pullback_order_entry
 from ..models.strategic_universe import StrategicUniverseRoles
 from ..models.trading import late_strategic_fill_allowed
-from ..ordinary_pullback import current_pullback_proof
+from ..ordinary_pullback import STRUCTURAL_EXIT_REASON, current_pullback_proof
 from ..portfolio_core import current_weights, symbol_weight_cap
 from ..risk.pullback import pullback_book_settled, pullback_risk_open
 from ..types import (
@@ -411,7 +411,7 @@ def _ordinary_exits(book: _AllocationBook) -> None:
             account.candidate_tenure["tactical_promotable"] = 0
         if account.recovery_conviction_symbol == symbol:
             account.recovery_conviction_symbol = ""
-        book.reasons[symbol] = pullback_exit or "leader lifecycle exit: confirmed structural deterioration"
+        book.reasons[symbol] = pullback_exit or STRUCTURAL_EXIT_REASON
         book.mechanisms[symbol] = AttributionMechanism.LEADER_LIFECYCLE_EXIT
         book.record(symbol)["allocation_reason"] = "CONFIRMED_STRUCTURAL_EXIT"
 
@@ -572,6 +572,23 @@ def _failed_deployment_awaits_settlement(account: AccountState) -> bool:
                for order in account.order_ledger)
 
 
+def _fresh_core_selection(
+    book: _AllocationBook, candidates: list[str],
+) -> tuple[set[str], list[str], bool]:
+    """Select new names without reallocating existing holdings or BUY commitments."""
+    occupied = (book.owned | {s for s, w in book.weights_now.items() if w > 0}
+                | {s for s, w in book.committed.items() if w > 0}
+                | {order.symbol for order in book.account.pending_orders})
+    fresh = [s for s in candidates if s not in occupied]
+    immature_occupied = any(
+        s not in book.owned and w > 0 and (s not in book.leaders or not book.leaders[s].mature)
+        for s, w in book.committed.items()
+    )
+    early = next((s for s in fresh if not book.leaders[s].mature), None) if not immature_occupied else None
+    eligible = [s for s in fresh if book.leaders[s].mature or s == early]
+    return occupied, eligible, immature_occupied
+
+
 def _admit_new_cores(book: _AllocationBook, *, candidates: list[str], opportunity: Opportunity) -> None:
     if not _core_opportunity_open(opportunity) or book.risk.state is not Risk.NORMAL:
         block = "OPPORTUNITY_NOT_OPEN" if not _core_opportunity_open(opportunity) else "RISK_NOT_NORMAL"
@@ -585,16 +602,7 @@ def _admit_new_cores(book: _AllocationBook, *, candidates: list[str], opportunit
         for symbol in candidates:
             book.record(symbol)["entry_gate"] = "ORDINARY_TREND_BASIS_NOT_POSITIVE"
         return
-    occupied = (book.owned | {s for s, w in book.weights_now.items() if w > 0}
-                | {s for s, w in book.committed.items() if w > 0}
-                | {order.symbol for order in book.account.pending_orders})
-    fresh = [s for s in candidates if s not in occupied]
-    immature_occupied = any(
-        s not in book.owned and w > 0 and (s not in book.leaders or not book.leaders[s].mature)
-        for s, w in book.committed.items()
-    )
-    early = next((s for s in fresh if not book.leaders[s].mature), None) if not immature_occupied else None
-    eligible = [s for s in fresh if book.leaders[s].mature or s == early]
+    occupied, eligible, immature_occupied = _fresh_core_selection(book, candidates)
     selected = eligible[:max(0, book.policy.cfg.max_positions - len(occupied))]
     for symbol in candidates:
         if symbol in occupied:

@@ -556,7 +556,8 @@ def test_flat_expired_probe_releases_its_deployment_state(
         prices=prices,
     )
 
-    assert epoch.realized_status == StrategicEpochStatus.EXPIRED.value
+    assert epoch.realized_status == StrategicEpochStatus.CLOSED.value
+    assert epoch.active_session == epoch.first_fill_session == str(dates[-2].date())
     assert epoch.close_reason == "candidate_or_route_no_longer_qualified"
     assert grant.status == StrategicGrantStatus.EXPIRED.value
     assert grant.expiry_reason == "candidate_or_route_no_longer_qualified"

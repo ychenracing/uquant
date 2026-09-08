@@ -94,7 +94,8 @@ def _leader_lifecycle_exit_confirmed(
     peak_mfe = position.highest_close / max(position.avg_cost, 1e-12) - 1.0
     protected_winner = peak_mfe >= 0.20
     broken = bool(
-        scalar(row, "close")
+        not leader.mature
+        and scalar(row, "close")
         < scalar(
             row,
             f"ma{self.cfg.trend_medium if protected_winner else self.cfg.trend_fast}",

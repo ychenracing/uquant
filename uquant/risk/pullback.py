@@ -8,7 +8,7 @@ import pandas as pd
 from ..config import SystemConfig
 from ..models.strategic_grant import TERMINAL_STRATEGIC_GRANT_STATUSES
 from ..models.trading import late_strategic_fill_allowed
-from ..ordinary_pullback import current_pullback_proof
+from ..ordinary_pullback import current_pullback_proof, pullback_reentry_structure_open
 from ..types import AccountState, LeaderScore, Risk, RiskAssessment
 
 
@@ -54,6 +54,10 @@ def authorize_pullback_entry(
     if pullback_risk_open(risk, account) and pullback_book_settled(account):
         proofs = {}
         for symbol in sorted(user_panel.keys() & leaders.keys()):
+            if not pullback_reentry_structure_open(
+                account=account, symbol=symbol, date=date, frame=user_panel[symbol], cfg=cfg,
+            ):
+                continue
             proof = current_pullback_proof(symbol=symbol, date=date, frame=user_panel[symbol],
                                           leader=leaders[symbol], cfg=cfg)
             if (proof["block"] == "READY" and proof["values"]["median_amount"] * cfg.max_volume_participation

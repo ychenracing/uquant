@@ -9,7 +9,45 @@ from typing import Any, TypeGuard
 import pandas as pd
 
 from .config import SystemConfig
-from .types import LeaderScore
+from .types import AccountState, LeaderScore
+
+STRUCTURAL_EXIT_REASON = "leader lifecycle exit: confirmed structural deterioration"
+
+
+def pullback_reentry_structure_open(
+    *, account: AccountState, symbol: str, date: pd.Timestamp, frame: pd.DataFrame,
+    cfg: SystemConfig,
+) -> bool:
+    """A new weak-price entry cannot bypass a settled ordinary structural exit."""
+    fills = [fill for fill in account.fills if fill.symbol == symbol]
+    if not fills:
+        return True
+    last = fills[-1]
+    if (last.side != "SELL" or not last.order_id or not last.event_id
+            or any(fill.shares <= 0 or fill.side not in {"BUY", "SELL"} for fill in fills)):
+        return False
+    matches = [order for order in account.order_ledger
+               if order.order_id == last.order_id]
+    if len(matches) != 1 or any(getattr(matches[0], key) != getattr(last, key) for key in (
+        "event_id", "symbol", "side", "mechanism", "reason_code", "reason",
+    )):
+        return False
+    if (last.mechanism != "LEADER_LIFECYCLE_EXIT" or last.reason_code != "lifecycle_exit"
+            or last.reason != STRUCTURAL_EXIT_REASON):
+        return True
+    if sum(fill.shares if fill.side == "BUY" else -fill.shares for fill in fills) != 0:
+        return False
+    return _trend_structure_repaired(frame.loc[pd.Timestamp(last.fill_date):date], cfg)
+
+
+def _trend_structure_repaired(history: pd.DataFrame, cfg: SystemConfig) -> bool:
+    """Read a complete short/medium price recovery within the supplied causal window."""
+    keys = ("close", f"ma{cfg.trend_fast}", f"ma{cfg.trend_medium}")
+    return any(
+        all(_is_finite_number(row.get(key)) and row[key] > 0 for key in keys)
+        and row[keys[0]] >= max(row[keys[1]], row[keys[2]])
+        for _, row in history.iterrows()
+    )
 
 
 def _is_finite_number(value: object) -> TypeGuard[float]:

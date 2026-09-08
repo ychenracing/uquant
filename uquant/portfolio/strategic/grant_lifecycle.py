@@ -134,8 +134,8 @@ def _completed_core_entry(account: AccountState, grant: StrategicGrantIntent) ->
             and _owns_grant_position(account, grant)):
         return False
     orders = [order for order in account.order_ledger
-              if order.grant_id == grant.grant_id and order.epoch_id == grant.epoch_id
-              and order.symbol == grant.candidate_symbol and order.side == "BUY"]
+              if (order.grant_id, order.epoch_id, order.symbol, order.side)
+              == (grant.grant_id, grant.epoch_id, grant.candidate_symbol, "BUY")]
     if not orders or any(order.side == "BUY" and order.grant_id == grant.grant_id
                          for order in account.pending_orders):
         return False

@@ -15,7 +15,7 @@ def _encode(value: Any) -> bytes:
     return json.dumps(value, sort_keys=True, separators=(",", ":"), allow_nan=False).encode()
 
 
-def _object(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
+def _reject_duplicate_cache_keys(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
     result: dict[str, Any] = {}
     for key, value in pairs:
         if key in result:
@@ -40,7 +40,7 @@ def replay_unit(
         raise RuntimeError(f"promotion cache unit must not be a symlink: {path}")
     if path.exists():
         try:
-            record = json.loads(path.read_bytes(), object_pairs_hook=_object)
+            record = json.loads(path.read_bytes(), object_pairs_hook=_reject_duplicate_cache_keys)
             payload = record["payload"]
             if (
                 set(record) != {"payload", "sha256"}

@@ -97,3 +97,13 @@ Archive42,457,467bytes SHA256
 4c841bf78609d252f52c188ef9b34faf9c98663d9726e893c97bef3dcae193d7;
 1210members verified. The remaining H1 responsibility needs a coherent new
 entry/permission/exit candidate, not an acceptance waiver.
+
+Identity coverage correction: AE's new portfolio/ordinary.py was omitted from the
+explicit economic_decision_v1 and full_package_v1 membership. Existing full-package
+coverage and production-import-closure checks reproduce that omission. Original
+3fa522e source19789bab results therefore retain their exact tree identity and
+metrics but do not prove complete registered-source coverage. No old account hash
+or archive is rewritten. The corrected registry explicitly includes this module
+and the current architecture authority/projection; immutable inventories stay
+unchanged. Corrected economic sourcee2e1048e includes the same actual strategy
+bytes, but is not substituted into old raw evidence or called a new replay PASS.

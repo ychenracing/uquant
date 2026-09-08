@@ -95,6 +95,7 @@
         "uquant/portfolio/leaders/admission.py",
         "uquant/portfolio/leaders/lifecycle.py",
         "uquant/portfolio/leaders/targets.py",
+        "uquant/portfolio/ordinary.py",
         "uquant/portfolio/pipeline.py",
         "uquant/portfolio/recovery/__init__.py",
         "uquant/portfolio/recovery/admission.py",
@@ -683,6 +684,7 @@
         "uquant/portfolio/leaders/admission.py",
         "uquant/portfolio/leaders/lifecycle.py",
         "uquant/portfolio/leaders/targets.py",
+        "uquant/portfolio/ordinary.py",
         "uquant/portfolio/pipeline.py",
         "uquant/portfolio/recovery/__init__.py",
         "uquant/portfolio/recovery/admission.py",
@@ -823,5 +825,5 @@
       ]
     }
   ],
-  "canonical_sha256": "56a1106561a279e9493eee9462086976e582585b6d9aa227fbade4f2e6dd333b"
+  "canonical_sha256": "a77e2c8b28fec48e43390db6f945c460c8ee1e140caee0cdac957fe07d122c1c"
 }

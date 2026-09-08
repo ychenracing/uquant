@@ -124,6 +124,7 @@ MODULE_AUTHORITIES = {
     "uquant.portfolio.leaders.admission": "production_safe",
     "uquant.portfolio.leaders.lifecycle": "production_safe",
     "uquant.portfolio.leaders.targets": "production_safe",
+    "uquant.portfolio.ordinary": "production_safe",
     "uquant.portfolio.pipeline": "production_safe",
     "uquant.portfolio.recovery": "production_safe",
     "uquant.portfolio.recovery.admission": "production_safe",

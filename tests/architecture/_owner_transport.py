@@ -34,6 +34,7 @@ _RETIRED_PORTFOLIO_PRIVATE_EDGES = frozenset(
 
 _ECONOMIC_ADDITIONS = frozenset(
     {
+        "uquant/portfolio/ordinary.py",
         "uquant/account/validation_attribution.py",
         "uquant/application/target_attribution.py",
         "uquant/attribution/validation_artifact.py",

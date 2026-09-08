@@ -65,6 +65,7 @@ class _GrantRouteEvidence:
 def _expire_strategic_grant(
     account: AccountState,
     *,
+    date: pd.Timestamp,
     reason: str,
     weights_now: dict[str, float],
 ) -> None:
@@ -107,10 +108,7 @@ def _expire_strategic_grant(
         settled = settle_account_strategic_epoch(
             account,
             epoch_id=grant.epoch_id,
-            closed_session=(
-                observation.qualification_last_observed_session
-                or grant.last_eligible_session
-            ),
+            closed_session=str(date.date()),
             close_reason=reason,
             expired=True,
         )
@@ -259,6 +257,7 @@ def revalidate_strategic_grant(
     if grant.candidate_symbol not in user_panel:
         _expire_strategic_grant(
             account,
+            date=date,
             reason="candidate_removed_from_allowed_universe",
             weights_now=weights_now,
         )
@@ -299,12 +298,13 @@ def revalidate_strategic_grant(
             return True
         _expire_strategic_grant(
             account,
+            date=date,
             reason="candidate_or_route_no_longer_qualified",
             weights_now=weights_now,
         )
         return False
     if not completed_entry and _grant_retry_window_elapsed(grant=grant, evidence=evidence, candidate_frame=candidate_frame, date=date):
-        _expire_strategic_grant(account, reason="qualification_observation_window_elapsed", weights_now=weights_now)
+        _expire_strategic_grant(account, date=date, reason="qualification_observation_window_elapsed", weights_now=weights_now)
         return False
     if _retain_reference_blocked_grant(account, grant=grant, evidence=evidence, date=date):
         return True

@@ -28,6 +28,7 @@ from ...types import (
     RiskAssessment,
     Target,
 )
+from .authority import assess_strategic_capital_authority
 from .ownership import (
     activate_strategic_cohort,
     release_expired_strategic_deployment,
@@ -909,6 +910,21 @@ def observe_strategic_candidates(
                                                           symbol=symbol, snapshots=snapshots, leaders=scores, cfg=self.cfg)))
 
 
+def _first_deployment_has_capital_in_use(account: AccountState) -> bool:
+    """Bootstrap from settled cash; actual funded history retains later rules."""
+    epoch_ids = {epoch.epoch_id for epoch in account.strategic_epochs if epoch.epoch_id}
+    grant_ids = {epoch.grant_id for epoch in account.strategic_epochs if epoch.grant_id}
+    if account.strategic_grant is not None and account.strategic_grant.grant_id:
+        grant_ids.add(account.strategic_grant.grant_id)
+    if any(fill.side == "BUY" and fill.shares > 0
+           and (fill.epoch_id in epoch_ids or fill.grant_id in grant_ids)
+           for fill in account.fills):
+        return False
+    authority = assess_strategic_capital_authority(account)
+    return bool(authority.positive_position_symbols or authority.pending_execution_symbols
+                or authority.unsettled_order_ids or authority.late_fill_order_ids)
+
+
 def _initialize_strategic_cohort(
     self: StrategicPortfolioPolicy,
     *,
@@ -988,6 +1004,10 @@ def _initialize_strategic_cohort(
         qualified=qualified,
     )
     if qualified is None or account.strategic_qualification.deployment_blocked:
+        return
+    if _first_deployment_has_capital_in_use(account):
+        account.strategic_qualification.deployment_blocked = True
+        account.strategic_qualification.deployment_block_reason = "first_deployment_capital_in_use"
         return
     if qualified.route == "transition_impulse" and not qualified.cash_rearm_authorized:
         account.strategic_qualification.deployment_blocked = True

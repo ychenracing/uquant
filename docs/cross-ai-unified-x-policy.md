@@ -1,0 +1,7 @@
+# X: first strategic deployment requires settled empty inventory
+
+Parent W passes the full Grant run, but critical remove-sz300308 still creates its first strategic epoch while genuine ordinary inventory remains. The first strategic deployment is a portfolio allocation mode and must begin from settled empty inventory. This prospective boundary does not require an arbitrary waiting period or fabricate repair authorization. It is not a claim that a later first grant will pass the frozen authorization assertion.
+
+Before any historical actual strategic BUY, block new strategic activation while the shared capital-authority assessment reports positive positions, pending execution, unsettled orders or late-fill liabilities. Historical funding means a positive actual BUY matching a recorded epoch or grant; expired zero-fill records are insufficient. Keep existing active/partially filled deployments before this gate. Previously genuinely funded strategic history retains current subsequent-deployment rules. Ordinary current-qualified candidates remain eligible through the existing allocator; never relabel their holdings or fill history.
+
+No new state, parameter, route ban, fees, universe or threshold. Native boundary tests precede affected scope and the exact failing critical scenario. W results retain W identity and are not X acceptance. H1/H2 economic deficiencies and all final acceptance obligations remain open.

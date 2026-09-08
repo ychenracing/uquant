@@ -80,7 +80,7 @@ from uquant.validation.absolute_generalization.scenarios import (
 
 ROOT = Path(__file__).resolve().parents[1]
 ALTERNATE_OWNER = "sh601869"
-_CHAMPION_RAW_SHA256 = "c922fd71c3f8bc8f171b8bccda236c325812e0d1e783c70a125392dc39eb8143"
+_CHAMPION_RAW_SHA256 = "a93fb13b06ef02f1e40cfbf2a23e4932f02730f8ae5afda232db04111c6e25c9"
 
 
 def checkout_identity() -> tuple[str, str]:

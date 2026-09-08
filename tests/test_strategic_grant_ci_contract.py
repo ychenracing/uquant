@@ -127,10 +127,10 @@ def test_champion_raw_fixture_freezes_terminal_strategic_remainder() -> None:
         "positions": "8819f3e2c32e9076bf6007040510c93ae02cbef8d6c41159bf12ffccec9782d0",
         "equity": "654142a4a217d243c53104ac6636a1778314c2e04497cfd0456a6385ea3aab39",
     }
-    # Native Grant run 34157325676 certifies this source; the frozen historical
+    # Native Grant replay on 2026-09-08 certifies this source; the frozen historical
     # path remains a comparison, not the current candidate acceptance criterion.
     assert raw["final_account"]["code_hash"] == (
-        "e8cc78127570379ee56becd6a774af6ef018f7b81e9287cc5e08ee4431d11eaf"
+        "ee812db85fd65a5ba2e3188795cf10a932e575dca23ed07f462ebbeaa48aae3b"
     )
     assert actual_sha256 != contract["baseline"]["expected_sha256"]
 

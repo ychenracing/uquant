@@ -561,6 +561,8 @@ def _book_targets(book: _AllocationBook) -> tuple[Target, ...]:
                              mechanism=mechanism.value if mechanism is not None else strategic.mechanism)
         if target.mechanism == AttributionMechanism.POST_SHOCK_RESTORATION.value:
             target = replace(target, origin_subsystem=OriginSubsystem.RECOVERY.value)
+        elif target.mechanism == AttributionMechanism.LEADER_ROTATION.value:
+            target = replace(target, origin_subsystem=OriginSubsystem.LEADER.value)
         merged.append(_retained_order_identity(book, target))
     return tuple(merged)
 

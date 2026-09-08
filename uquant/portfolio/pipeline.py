@@ -626,8 +626,9 @@ def _admit_new_cores(book: _AllocationBook, *, candidates: list[str], opportunit
         if symbol not in selected:
             book.record(symbol)["entry_gate"] = "POSITION_SLOTS_EXHAUSTED"
             continue
-        weight = min(book.policy.cfg.single_core_entry_cap,
-                     book.policy.cfg.core_admission_weight, budget / len(selected))
+        weight = min(book.policy.cfg.single_core_entry_cap, budget / len(selected))
+        if not book.leaders[symbol].mature:
+            weight = min(weight, book.policy.cfg.core_admission_weight)
         if weight + 1e-12 < book.policy.cfg.min_trade_weight:
             book.record(symbol)["entry_gate"] = "ORDINARY_INITIAL_CAPITAL_BELOW_TRADE_MINIMUM"
             continue

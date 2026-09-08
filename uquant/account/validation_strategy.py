@@ -11,11 +11,13 @@ from ..models.strategic_grant import (
     validate_strategic_qualification,
 )
 from ..models.strategic_rearm import (
+    FLAT_BOOK_CAPITAL_REPAIR_LIMITS,
     FlatBookCapitalRepairStatus,
     StrategicCashRearmStatus,
     validate_flat_book_capital_repair_account_binding,
     validate_strategic_cash_rearm_account_binding,
 )
+from ..models.trading import late_strategic_fill_allowed
 from ..types import AccountState, Lifecycle, Opportunity, Risk
 from .validation_common import (
     SHOCK_SEVERITIES as _SHOCK_SEVERITIES,
@@ -337,6 +339,8 @@ def _validate_rearm_repair_binding(state: Any) -> None:
     }:
         return
     _validate_ordinary_repair_order_binding(state)
+    if _completed_rearm_history(state):
+        return
     repair = state.flat_book_capital_repair
     if (
         rearm.repair_episode_id != repair.repair_episode_id
@@ -350,6 +354,41 @@ def _validate_rearm_repair_binding(state: Any) -> None:
         and repair.status != FlatBookCapitalRepairStatus.READY.value
     ):
         raise ValueError("strategic rearm requires a ready repair episode")
+
+
+def _completed_rearm_history(state: Any) -> bool:
+    """A settled historical consumption cannot authorize a later repair episode."""
+    rearm, grant = state.strategic_cash_rearm, state.strategic_grant
+    if (rearm.status != StrategicCashRearmStatus.CONSUMED.value
+            or rearm.consumed_order is not None or grant is None
+            or grant.status != "COMPLETED"
+            or grant.grant_id != rearm.consumed_grant_id
+            or not grant.authorization_id or grant.authorization_id != rearm.authorization_id
+            or grant.candidate_symbol != rearm.candidate_symbol):
+        return False
+    epoch = next((e for e in state.strategic_epochs if e.epoch_id == grant.epoch_id), None)
+    if (epoch is None or epoch.realized_status != StrategicEpochStatus.CLOSED.value
+            or epoch.grant_id != grant.grant_id or epoch.owner_symbol != rearm.candidate_symbol
+            or not epoch.closed_session
+            or state.flat_book_capital_repair.first_observed_session <= epoch.closed_session
+            or not any(f.side == "BUY" and f.shares > 0 and f.symbol == epoch.owner_symbol
+                       and f.grant_id == grant.grant_id and f.epoch_id == epoch.epoch_id
+                       and f.fill_date == epoch.first_fill_session for f in state.fills)):
+        return False
+    orders = [o for o in state.order_ledger if o.grant_id == grant.grant_id]
+    if (not orders or any(o.grant_id == grant.grant_id for o in state.pending_orders)
+            or any(o.status not in {"FILLED", "CANCELLED", "REPLACED"} or late_strategic_fill_allowed(o)
+                   for o in orders)):
+        return False
+    proofs = [p for p in rearm.predicate_results if p.code == "FLAT_BOOK_REPAIR_READY"]
+    required = FLAT_BOOK_CAPITAL_REPAIR_LIMITS.get(rearm.capital_budget_level - 1)
+    return bool(len(proofs) == 1 and proofs[0].passed and required is not None
+                and proofs[0].authoritative_state.get("repair_episode_id") == rearm.repair_episode_id
+                and proofs[0].authoritative_state.get("repair_status") == "READY"
+                and type(proofs[0].authoritative_state.get("healthy_session_count")) is int
+                and proofs[0].authoritative_state.get("healthy_session_count") == required
+                and type(proofs[0].authoritative_state.get("required_healthy_sessions")) is int
+                and proofs[0].authoritative_state.get("required_healthy_sessions") == required)
 
 
 def _validate_ordinary_repair_order_binding(state: Any) -> None:

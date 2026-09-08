@@ -51,11 +51,11 @@ def test_one_positive_leg_preserves_existing_nominal_budget_without_another_cloc
                  if order.symbol == CHALLENGER and order.side == "BUY")
     row = risk.evidence["core_allocation"]["symbols"][CHALLENGER]
     assert order.target_weight == pytest.approx(row["proposal_weight"])
-    assert row["budget_checks"][0]["desired_increment"] == pytest.approx(DEFAULT_CONFIG.core_admission_weight)
+    assert row["budget_checks"][0]["desired_increment"] == pytest.approx(DEFAULT_CONFIG.trend_entry_gross / 3)
     assert order.grant_id == order.epoch_id == ""
 
 
-def test_later_weak_market_keeps_qualified_buy_within_current_common_constraints():
+def test_later_weak_market_does_not_cancel_original_qualified_pending_buy():
     risk = _risk()
     risk.evidence.update(broad_ret120=.04, tech_ret120=-.07)
     policy, account, dates, panel, leaders, roles = _confirmed_book(risk)
@@ -67,17 +67,7 @@ def test_later_weak_market_keeps_qualified_buy_within_current_common_constraints
     _decide(policy, account, dates[2], panel, leaders, roles, risk=risk)
     remaining = next(order for order in account.pending_orders
                      if order.symbol == CHALLENGER and order.side == "BUY")
-    row = risk.evidence["core_allocation"]["symbols"][CHALLENGER]
-    budget = row["budget_checks"][-1]
-    assert remaining.target_weight == pytest.approx(budget["correlation_room"])
-    assert remaining.target_weight == pytest.approx(row["proposal_weight"])
-    assert remaining.target_weight <= identity[2]
-    assert risk.evidence["core_allocation"]["symbols"][CHALLENGER]["pending_entry_permission_open"]
-    if remaining.target_weight == identity[2]:
-        assert (remaining.order_id, remaining.event_id) == identity[:2]
-    else:
-        assert next(o for o in account.order_ledger if o.order_id == original.order_id).status == "REPLACED"
-        assert remaining.order_id != original.order_id
+    assert (remaining.order_id, remaining.event_id, remaining.target_weight) == identity
     assert account.positions[OWNER].shares == shares
 
 

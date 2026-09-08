@@ -80,22 +80,14 @@ def strategic_candidate_confirmation(*, account: AccountState, symbol: str, rout
     return account.replacement_tenure.get(f"strategic_eligibility:{route}:{symbol}", 0)
 
 
-def _independent_market_values(risk: RiskAssessment) -> tuple[float, ...] | None:
-    """Require complete current evidence without imposing a market regime."""
+def independent_market_confirmation(*, cfg: SystemConfig, risk: RiskAssessment) -> bool:
+    """Require complete current market evidence for an independent admission."""
     keys = ("breadth20", "broad_ret20", "tech_ret20", "broad_ret120", "tech_ret120")
     values = [risk.evidence.get(key) for key in keys]
     if any(not isinstance(value, (int, float)) or isinstance(value, bool)
            or not math.isfinite(value) for value in values):
-        return None
-    return tuple(float(risk.evidence[key]) for key in keys)
-
-
-def independent_market_confirmation(*, cfg: SystemConfig, risk: RiskAssessment) -> bool:
-    """Keep the strategic market regime separate from observed CORE quality."""
-    values = _independent_market_values(risk)
-    if values is None:
         return False
-    breadth, broad20, tech20, broad120, tech120 = values
+    breadth, broad20, tech20, broad120, tech120 = (float(risk.evidence[key]) for key in keys)
     return bool(
         breadth >= cfg.high_confidence_entry_breadth
         and min(broad20, tech20) >= cfg.strategic_transition_impulse_min_market_ret20
@@ -130,7 +122,7 @@ def observe_strategic_candidate_eligibility(
                 account.replacement_tenure[key] = account.replacement_tenure.get(key, 0) + 1
             current.setdefault(symbol, {})[route] = account.replacement_tenure.get(key, 0)
         if (symbol in independent_core_symbols and symbol in current
-                and _independent_market_values(risk) is not None):
+                and independent_market_confirmation(cfg=cfg, risk=risk)):
             key = f"strategic_eligibility:independent_core:{symbol}"
             eligible_keys.add(key)
             if session != previous:

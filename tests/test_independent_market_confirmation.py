@@ -1,4 +1,4 @@
-"""Independent CORE observes complete data; strategic market bounds stay separate."""
+"""Independent CORE confirmation requires actual current market corroboration."""
 from __future__ import annotations
 
 from dataclasses import asdict, replace
@@ -10,7 +10,6 @@ from uquant.account.codec import account_from_dict
 from uquant.config import DEFAULT_CONFIG
 from uquant.execution import ExecutionPlanner
 from uquant.portfolio.strategic.discovery import (
-    _independent_market_confirmation,
     _observe_resolved_strategic_candidates,
     observe_strategic_candidates,
 )
@@ -61,7 +60,7 @@ def test_independent_confirmation_requires_each_current_finite_market_measure(ke
 
 
 @pytest.mark.parametrize("failure", ("breadth", "broad_short", "tech_short", "weak_long", "overheated"))
-def test_strategic_market_bounds_do_not_reset_current_independent_quality(failure):
+def test_whole_existing_market_predicate_resets_only_independent_route(failure):
     fixture = _scenario(sessions=0)
     _, account, dates, _, _, risk = fixture
     for date in dates[:4]:
@@ -78,17 +77,15 @@ def test_strategic_market_bounds_do_not_reset_current_independent_quality(failur
                         tech_ret120=DEFAULT_CONFIG.recovery_transition_weak_leg_ret120)
     else:
         evidence["broad_ret120"] = DEFAULT_CONFIG.strategic_long_cycle_max_tech_ret120 + .01
-    changed = replace(risk, evidence=evidence)
-    assert not _independent_market_confirmation(fixture[0], changed)
-    _observe(fixture, dates[4], changed)
-    assert account.replacement_tenure.get(KEY, 0) == 5
+    _observe(fixture, dates[4], replace(risk, evidence=evidence))
+    assert account.replacement_tenure.get(KEY, 0) == 0
     assert account.replacement_tenure[SHARED] == 5
     _observe(fixture, dates[5], risk)
-    assert account.replacement_tenure[KEY] == 6
+    assert account.replacement_tenure[KEY] == 1
     assert account.replacement_tenure[SHARED] == 6
 
 
-def test_market_evidence_loss_cancels_native_partial_buy_but_keeps_real_holding():
+def test_market_confirmation_loss_cancels_native_partial_buy_but_keeps_real_holding():
     policy, account, dates, panel, leaders, original_risk = _scenario(sessions=0)
     account.capital_budget_level = 0
     risk = replace(original_risk, freeze_new_risk=False,
@@ -104,9 +101,7 @@ def test_market_evidence_loss_cancels_native_partial_buy_but_keeps_real_holding(
     assert len(fills) == 1 and fills[0].shares > 0
     assert account.order_ledger[0].status == "PARTIALLY_FILLED"
     shares, cash = account.positions[SYMBOL].shares, account.cash
-    incomplete = dict(risk.evidence)
-    incomplete.pop("broad_ret20")
-    weakened = replace(risk, evidence=incomplete)
+    weakened = replace(risk, evidence={**risk.evidence, "broad_ret20": -.20})
     _decide(policy, account, dates[5], panel, leaders, weakened)
     assert not account.pending_orders, "lost admission alone must neither buy nor sell held shares"
     assert account.order_ledger[0].order_id == original.order_id

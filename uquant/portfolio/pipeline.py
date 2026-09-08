@@ -27,8 +27,10 @@ from .strategic.authority import assess_strategic_capital_authority
 from .strategic.discovery import current_core_qualification
 from .strategic.grant_lifecycle import completed_strategic_core_entry as _completed_strategic_core_entry
 from .strategic.qualification_candidates import (
+    candidate_entry as _candidate_entry,
+)
+from .strategic.qualification_candidates import (
     reset_strategic_candidate_eligibility,
-    strategic_candidate_confirmation,
 )
 from .strategic.rearm import (
     authorize_ordinary_cash_rearm,
@@ -39,42 +41,6 @@ from .strategic.rearm import (
 
 if TYPE_CHECKING:
     from .allocator import PortfolioAllocator
-
-
-def _candidate_market_block(self: PortfolioAllocator, *, symbol: str, score: LeaderScore,
-                            date: pd.Timestamp, user_panel: dict[str, pd.DataFrame]) -> str:
-    if not score.confidence >= self.cfg.leader_min_confidence:
-        return "CONFIDENCE_BELOW_MINIMUM"
-    if score.industry == "unknown" or not score.components.get("unknown_industry", 1.0) < .5:
-        return "INDUSTRY_NOT_VERIFIED"
-    if symbol not in user_panel or date not in user_panel[symbol].index:
-        return "CURRENT_MARKET_DATA_UNAVAILABLE"
-    if len(user_panel[symbol].loc[:date]) < 121:
-        return "INSUFFICIENT_HISTORY"
-    if not self._structure_ok(user_panel[symbol], date):
-        return "STRUCTURE_NOT_REPAIRED"
-    if not self._liquidity_confirmed(user_panel[symbol], date):
-        return "LIQUIDITY_NOT_CONFIRMED"
-    return "READY"
-
-
-def _candidate_entry(self: PortfolioAllocator, *, symbol: str, score: LeaderScore,
-                     date: pd.Timestamp, user_panel: dict[str, pd.DataFrame],
-                     account: AccountState, confirmation_days: int,
-                     certificate: dict[str, Any] | None = None) -> dict[str, Any]:
-    evidence: dict[str, Any] = {"required_confirmation": confirmation_days}
-    if certificate is not None:
-        return {**certificate, "block": _candidate_market_block(
-            self, symbol=symbol, score=score, date=date, user_panel=user_panel)}
-    if not score.mature:
-        return {**evidence, "block": "NOT_MATURE"}
-    streak = strategic_candidate_confirmation(account=account, symbol=symbol, route="independent_core")
-    observed = {"independent_core": streak}
-    if streak < confirmation_days:
-        return {**evidence, "confirmations": observed, "block": "CONFIRMATION_INCOMPLETE"}
-    evidence.update(confirmations=observed, block=_candidate_market_block(
-        self, symbol=symbol, score=score, date=date, user_panel=user_panel))
-    return evidence
 
 
 def _core_candidates(
@@ -489,6 +455,25 @@ def _core_opportunity_open(opportunity: Opportunity) -> bool:
     return opportunity in {Opportunity.RECOVERY, Opportunity.TREND, Opportunity.STRONG_TREND}
 
 
+def _failed_deployment_awaits_settlement(account: AccountState) -> bool:
+    """Arbitrate fresh admissions only after a failed zero-fill deployment settles."""
+    grant = account.strategic_grant
+    if grant is None or not grant.terminal:
+        return False
+    epoch = next((item for item in account.strategic_epochs
+                  if item.epoch_id == grant.epoch_id), None)
+    if epoch is None or epoch.terminal:
+        return False
+    if any(fill.side == "BUY" and fill.shares > 0
+           and (fill.epoch_id == epoch.epoch_id or fill.grant_id == grant.grant_id)
+           for fill in account.fills):
+        return False
+    unsettled = set(assess_strategic_capital_authority(account).unsettled_order_ids)
+    return any(order.side == "BUY" and order.order_id in unsettled
+               and (order.epoch_id == epoch.epoch_id or order.grant_id == grant.grant_id)
+               for order in account.order_ledger)
+
+
 def _admit_new_cores(book: _AllocationBook, *, candidates: list[str], opportunity: Opportunity) -> None:
     if not _core_opportunity_open(opportunity) or book.risk.state is not Risk.NORMAL:
         block = "OPPORTUNITY_NOT_OPEN" if not _core_opportunity_open(opportunity) else "RISK_NOT_NORMAL"
@@ -616,13 +601,17 @@ def _allocate_strategy(
     if not liabilities and (not frozen or ordinary_restore):
         book.committed, book.cash_room = committed_capital(account=account, prices=prices, proposed=proposed)
         _restore_ordinary_holdings(book)
-    if not frozen and not liabilities:
+    awaiting_settlement = _failed_deployment_awaits_settlement(account)
+    if not frozen and not liabilities and not awaiting_settlement:
         _admit_new_cores(book, candidates=candidates, opportunity=opportunity)
     else:
         for symbol in candidates:
-            book.record(symbol)["entry_gate"] = "NEW_RISK_FROZEN" if frozen else "UNRESOLVED_LIABILITY"
+            book.record(symbol)["entry_gate"] = (
+                "NEW_RISK_FROZEN" if frozen else "UNRESOLVED_LIABILITY" if liabilities
+                else "FAILED_DEPLOYMENT_UNSETTLED"
+            )
     repair_symbol = ""
-    if frozen and not liabilities and strategic_universe is not None:
+    if frozen and not liabilities and not awaiting_settlement and strategic_universe is not None:
         for symbol in candidates:
             independent = _candidate_entry(
                 self, symbol=symbol, score=leaders[symbol], date=date,

@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import hashlib
-from typing import Protocol
+from typing import Any, Protocol
 
 import pandas as pd
 
@@ -81,6 +81,7 @@ def activate_strategic_cohort(
     self: StrategicOwnershipPolicy,
     *,
     qualified: QualifiedStrategicRoute,
+    entry_eligibility: dict[str, dict[str, Any]],
     snapshots: dict[str, dict[str, float]],
     leaders: dict[str, LeaderScore],
     account: AccountState,
@@ -93,6 +94,7 @@ def activate_strategic_cohort(
     prepared, dominant_symbol = _prepare_strategic_owner_targets(
         self,
         qualified=qualified,
+        entry_eligibility=entry_eligibility,
         leaders=leaders,
         account=account,
         risk=risk,
@@ -135,7 +137,8 @@ def _fund_owner_targets(self: StrategicOwnershipPolicy, *, qualified: QualifiedS
                         dominant_symbol: str | None, desired: dict[str, float],
                         committed: dict[str, float], cash: float, leaders: dict[str, LeaderScore],
                         user_panel: dict[str, pd.DataFrame], date: pd.Timestamp,
-                        risk: RiskAssessment) -> dict[str, float]:
+                        risk: RiskAssessment,
+                        entry_eligibility: dict[str, dict[str, Any]]) -> dict[str, float]:
     targets: dict[str, float] = {}
     # Retain the existing independently qualified founding-cohort allowance.
     # Subsequent admissions share the ordinary whole-book concentration limit.
@@ -145,7 +148,7 @@ def _fund_owner_targets(self: StrategicOwnershipPolicy, *, qualified: QualifiedS
         else None
     )
     for symbol in sorted(desired, key=lambda s: (s != owner, -leaders[s].score, s)):
-        if symbol in held | reserved:
+        if symbol in held | reserved or entry_eligibility.get(symbol, {}).get("block") != "READY":
             continue
         dominant_cap = self.cfg.strategic_dominant_max_weight if symbol == dominant_symbol else None
         room = admission_room(
@@ -172,6 +175,7 @@ def _prepare_strategic_owner_targets(
     self: StrategicOwnershipPolicy,
     *,
     qualified: QualifiedStrategicRoute,
+    entry_eligibility: dict[str, dict[str, Any]],
     leaders: dict[str, LeaderScore],
     account: AccountState,
     risk: RiskAssessment,
@@ -184,6 +188,11 @@ def _prepare_strategic_owner_targets(
     if owner in held | reserved:
         account.strategic_qualification.deployment_blocked = True
         account.strategic_qualification.deployment_block_reason = "candidate_identity_already_bound"
+        return False, None
+    entry_block = str(entry_eligibility.get(owner, {}).get("block", "ENTRY_EVIDENCE_UNAVAILABLE"))
+    if entry_block != "READY":
+        account.strategic_qualification.deployment_blocked = True
+        account.strategic_qualification.deployment_block_reason = f"current_core_entry:{entry_block}"
         return False, None
     weighted_symbols = sorted(
         qualified.symbols,
@@ -236,7 +245,8 @@ def _prepare_strategic_owner_targets(
     targets = _fund_owner_targets(
         self, qualified=qualified, owner=owner, held=held, reserved=reserved,
         dominant_symbol=dominant_symbol, desired=desired, committed=committed, cash=cash,
-        leaders=leaders, user_panel=user_panel, date=date, risk=risk)
+        leaders=leaders, user_panel=user_panel, date=date, risk=risk,
+        entry_eligibility=entry_eligibility)
     if targets.get(owner, 0.0) < min(desired.get(owner, 0.0), self.cfg.core_admission_weight):
         account.strategic_qualification.deployment_blocked = True
         account.strategic_qualification.deployment_block_reason = "insufficient_executable_capital"

@@ -35,6 +35,7 @@ from .ownership import (
 from .qualification_candidates import (
     QualifiedStrategicRoute,
     StrategicRoute,
+    candidate_entry,
     independent_market_confirmation,
     observe_strategic_candidate_eligibility,
     strategic_candidate_confirmation,
@@ -983,8 +984,22 @@ def _initialize_strategic_cohort(
     )
     if qualified is None or account.strategic_qualification.deployment_blocked:
         return
+    certificates = current_core_qualification(
+        self, date=date, user_panel=user_panel, leaders=leaders, account=account, risk=risk,
+        qualification_panel=qualification_panel, qualification_leaders=qualification_leaders,
+        strategic_universe=strategic_universe,
+    )
+    entry_eligibility = {
+        symbol: candidate_entry(
+            self, symbol=symbol, score=leaders[symbol], date=date, user_panel=user_panel,
+            account=account, confirmation_days=self.cfg.leader_tenure_days,
+            certificate=certificates.get(symbol),
+        )
+        for symbol in qualified.symbols if symbol in leaders and symbol in user_panel
+    }
     activate_strategic_cohort(
         self,
+        entry_eligibility=entry_eligibility,
         qualified=qualified,
         snapshots=snapshots,
         leaders=resolved_leaders,

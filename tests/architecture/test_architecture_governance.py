@@ -659,11 +659,13 @@ def test_combined_allocator_contract_rejects_authority_and_split_book_mutations(
 ) -> None:
     source = architecture_portfolio_reviewed_sources(root=ROOT)[relative]
     assert original in source
-    with pytest.raises(AssertionError):
-        validate_combined_allocator_topology(
-            root=ROOT,
-            overrides={relative: source.replace(original, mutation, 1)},
-        )
+    for occurrence in range(source.count(original)):
+        offset = 0
+        for _ in range(occurrence + 1):
+            offset = source.index(original, offset) + len(original)
+        changed = source[:offset - len(original)] + mutation + source[offset:]
+        with pytest.raises(AssertionError):
+            validate_combined_allocator_topology(root=ROOT, overrides={relative: changed})
 
 
 @pytest.mark.parametrize("original, mutation", (

@@ -775,11 +775,14 @@ def validate_combined_allocator_topology(
     gross_cap = next(node for node in book.body if isinstance(node, ast.FunctionDef) and node.name == "gross_cap")
     assert len(gross_cap.body) == 1 and isinstance(gross_cap.body[0], ast.Return)
     assert ast.unparse(gross_cap.body[0].value) == "min(self.policy.cfg.max_gross, self.risk.target_gross_cap)"
-    authority_calls = [
-        call for call in calls if ast.unparse(call.func) == "assess_strategic_capital_authority"
-    ]
-    assert authority_calls
-    assert all([ast.unparse(argument) for argument in call.args] == ["account"] for call in authority_calls)
+    for authority_owner in (pipeline, definitions["_failed_deployment_awaits_settlement"]):
+        authority_calls = [
+            call for call in ast.walk(authority_owner)
+            if isinstance(call, ast.Call)
+            and ast.unparse(call.func) == "assess_strategic_capital_authority"
+        ]
+        assert len(authority_calls) == 1
+        assert [ast.unparse(argument) for argument in authority_calls[0].args] == ["account"]
     settled_fields = tuple(f"{owner}.{field}" for owner in ("account", "book.account", "self.account")
                            for field in ("cash", "positions", "pending_orders"))
     mutation_methods = {"append", "clear", "extend", "insert", "pop", "remove", "setdefault", "update"}

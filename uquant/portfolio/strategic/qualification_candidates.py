@@ -4,17 +4,56 @@ from __future__ import annotations
 
 import math
 from dataclasses import dataclass
-from typing import Protocol
+from typing import TYPE_CHECKING, Any, Protocol
 
 import pandas as pd
 
 from ...config import SystemConfig
 from ...types import AccountState, LeaderScore, RiskAssessment
 
+if TYPE_CHECKING:
+    from ...portfolio_core import PortfolioCore
+
 
 class StrategicQualificationPolicy(Protocol):
     @property
     def cfg(self) -> SystemConfig: ...
+
+
+def candidate_market_block(self: PortfolioCore, *, symbol: str, score: LeaderScore,
+                            date: pd.Timestamp, user_panel: dict[str, pd.DataFrame]) -> str:
+    if not score.confidence >= self.cfg.leader_min_confidence:
+        return "CONFIDENCE_BELOW_MINIMUM"
+    if score.industry == "unknown" or not score.components.get("unknown_industry", 1.0) < .5:
+        return "INDUSTRY_NOT_VERIFIED"
+    if symbol not in user_panel or date not in user_panel[symbol].index:
+        return "CURRENT_MARKET_DATA_UNAVAILABLE"
+    if len(user_panel[symbol].loc[:date]) < 121:
+        return "INSUFFICIENT_HISTORY"
+    if not self._structure_ok(user_panel[symbol], date):
+        return "STRUCTURE_NOT_REPAIRED"
+    if not self._liquidity_confirmed(user_panel[symbol], date):
+        return "LIQUIDITY_NOT_CONFIRMED"
+    return "READY"
+
+
+def candidate_entry(self: PortfolioCore, *, symbol: str, score: LeaderScore,
+                     date: pd.Timestamp, user_panel: dict[str, pd.DataFrame],
+                     account: AccountState, confirmation_days: int,
+                     certificate: dict[str, Any] | None = None) -> dict[str, Any]:
+    evidence: dict[str, Any] = {"required_confirmation": confirmation_days}
+    if certificate is not None:
+        return {**certificate, "block": candidate_market_block(
+            self, symbol=symbol, score=score, date=date, user_panel=user_panel)}
+    if not score.mature:
+        return {**evidence, "block": "NOT_MATURE"}
+    streak = strategic_candidate_confirmation(account=account, symbol=symbol, route="independent_core")
+    observed = {"independent_core": streak}
+    if streak < confirmation_days:
+        return {**evidence, "confirmations": observed, "block": "CONFIRMATION_INCOMPLETE"}
+    evidence.update(confirmations=observed, block=candidate_market_block(
+        self, symbol=symbol, score=score, date=date, user_panel=user_panel))
+    return evidence
 
 
 def reset_strategic_qualification_streaks(account: AccountState) -> None:
@@ -485,6 +524,8 @@ reversal_candidates = _reversal_candidates
 
 __all__ = (
     "StrategicRoute",
+    "candidate_entry",
+    "candidate_market_block",
     "reversal_candidates",
     "strategic_candidate_meets_route",
     "strategic_route_candidates",

@@ -34,6 +34,15 @@ from uquant.types import (
 from uquant.validation.universe import REQUIRED_AI_UNIVERSE_SHA256
 
 
+def _ordinary_market_risk(risk):
+    """Supply complete causal impulse inputs without changing risk authority."""
+    return replace(risk, evidence={**risk.evidence,
+        "broad_ret120": .04, "tech_ret120": .04, "ai_fast_return": .16,
+        "declining_ratio": .05, "below_ma20_ratio": .05,
+        "tech_speed": .16, "broad_speed": .04,
+    })
+
+
 def _inputs():
     dates = pd.bdate_range("2025-01-02", periods=150)
     panel = {}
@@ -57,7 +66,7 @@ def _inputs():
         s: LeaderScore(s, 0.9, 0.9, True, False, str(i), {"unknown_industry": 0.0})
         for i, s in enumerate(panel)
     }
-    risk = RiskAssessment(Risk.NORMAL, 1.0, 0, {}, (), "NORMAL")
+    risk = _ordinary_market_risk(RiskAssessment(Risk.NORMAL, 1.0, 0, {}, (), "NORMAL"))
     return dates[-1], panel, leaders, risk
 
 
@@ -235,7 +244,7 @@ def test_fully_exited_ordinary_restore_rights_require_a_new_core_admission(monke
     )
 
     if confirmed:
-        assert {target.symbol: target.weight for target in targets} == pytest.approx({symbol: 0.2})
+        assert {target.symbol: target.weight for target in targets} == pytest.approx({symbol: DEFAULT_CONFIG.single_core_entry_cap})
         assert targets[0].mechanism == "LEADER_SELECTION"
         assert symbol not in account.protected_weights
     else:

@@ -40,3 +40,20 @@ The three frozen Grant qualification cells use their prescribed owner
 intervention at fixed dates, rather than a natural first-grant route observation.
 Their recorded SUCCESS is retained within that exact scope; it does not prove
 this new natural formation boundary. They are not altered by this candidate.
+
+## Completed selected diagnostics
+
+Original failed-first-grant41-day validator PASS; all869 champion observations,
+account and ledger strictly read back, economics PASS25.035391084584187,
+MDD.27146973146234554,14orders. H2 native125-day readback PASS but economics
+FAIL: wealth1.0,zeroorders. AD is not an accepted economic candidate.
+The zero-trade record has6 current READY observations, all CHOPPY;489 mature
+observations fail independent confirmation. On9/27 market/risk/cash/slots are
+open but both current mature names fail the strict single-owner score floor.
+The broader ordinary responsibility remains missing.
+
+All real daily files and final gzip are archived in
+uquant-unified-ad-native-evidence-20260908.zip (37918959bytes), SHA256
+b53be03854ee92f672bb308b4c766fc3c922d14cd6c49a272157ed5f25eeec29.
+No missing champion observations were reconstructed; this is a new complete AD
+execution, distinct from the incomplete rejected AC trace.

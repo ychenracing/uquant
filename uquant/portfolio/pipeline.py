@@ -23,6 +23,7 @@ from ..types import (
     Target,
 )
 from .capital import committed_capital, funded_increment
+from .ordinary import observe_ordinary_market, ordinary_core_entry
 from .strategic.authority import assess_strategic_capital_authority
 from .strategic.discovery import current_core_qualification
 from .strategic.grant_lifecycle import completed_strategic_core_entry as _completed_strategic_core_entry
@@ -52,7 +53,7 @@ def _core_candidates(
     """Record the same short-circuit predicates that decide core entry eligibility."""
     candidates = []
     for symbol, score in leaders.items():
-        entry = _candidate_entry(self, symbol=symbol, score=score, date=date,
+        entry = ordinary_core_entry(self, symbol=symbol, score=score, date=date,
                                  user_panel=user_panel, account=account,
                                  confirmation_days=self.cfg.leader_tenure_days,
                                  certificate=(certificates or {}).get(symbol))
@@ -336,7 +337,7 @@ def _ordinary_exits(book: _AllocationBook) -> None:
         book.record(symbol)["allocation_reason"] = "CONFIRMED_STRUCTURAL_EXIT"
 
 
-def _pending_intents(book: _AllocationBook, *, candidates: list[str], buy_open: bool,
+def _pending_intents(book: _AllocationBook, *, buy_open: bool, market_open: bool,
                      certificates: dict[str, dict[str, Any]] | None = None) -> None:
     for order in book.account.pending_orders:
         if order.side == "SELL":
@@ -344,27 +345,32 @@ def _pending_intents(book: _AllocationBook, *, candidates: list[str], buy_open: 
             book.record(order.symbol)["allocation_reason"] = "PENDING_REDUCTION"
         elif (order.symbol not in book.owned
               and order.mechanism != AttributionMechanism.POST_SHOCK_RESTORATION.value):
-            if order.symbol not in candidates:
-                current = book.weights_now.get(order.symbol, 0.0)
-                if (current <= 0 or book.proposed.get(order.symbol, 0.0) < current
-                        or order.symbol not in book.leaders):
-                    book.record(order.symbol)["pending_buy_rejected"] = True
-                    book.account.protected_weights.pop(order.symbol, None)
-                    continue
-                evidence = _candidate_entry(
-                    book.policy, symbol=order.symbol, score=book.leaders[order.symbol],
-                    date=book.date, user_panel=book.user_panel, account=book.account,
-                    confirmation_days=1,
-                    certificate=(certificates or {}).get(order.symbol),
-                )
-                book.record(order.symbol)["pending_entry"] = evidence
-                if evidence["block"] != "READY":
-                    book.record(order.symbol)["pending_buy_rejected"] = True
-                    book.account.protected_weights.pop(order.symbol, None)
-                    continue
-            if buy_open or ordinary_cash_rearm_order_open(
+            current = book.weights_now.get(order.symbol, 0.0)
+            repair_open = ordinary_cash_rearm_order_open(
                 account=book.account, risk=book.risk, cfg=book.policy.cfg, order=order,
-            ):
+            )
+            reference = book.account.strategic_cash_rearm.consumed_order
+            repair_order = (reference is not None and order.order_id == reference.order_id
+                            and order.event_id == reference.event_id)
+            evidence = ordinary_core_entry(
+                book.policy, symbol=order.symbol, score=book.leaders[order.symbol],
+                date=book.date, user_panel=book.user_panel, account=book.account,
+                confirmation_days=1 if current > 0 else book.policy.cfg.leader_tenure_days,
+                certificate=(certificates or {}).get(order.symbol),
+            ) if order.symbol in book.leaders else {"block": "CURRENT_LEADER_UNAVAILABLE"}
+            book.record(order.symbol)["pending_entry"] = evidence
+            market_allowed = repair_open if repair_order else market_open
+            book.record(order.symbol)["pending_market_open"] = market_allowed
+            if not market_allowed:
+                book.record(order.symbol)["entry_gate"] = (
+                    "CASH_REPAIR_PERMISSION_CLOSED" if repair_order else "COMMON_TREND_NOT_CONFIRMED"
+                )
+            if (evidence["block"] != "READY" or not market_allowed
+                    or book.proposed.get(order.symbol, 0.0) < current):
+                book.record(order.symbol)["pending_buy_rejected"] = True
+                book.account.protected_weights.pop(order.symbol, None)
+                continue
+            if buy_open or repair_open:
                 book.fund(order.symbol, order.target_weight, phase="PENDING_CORE_BUY")
 
 
@@ -474,17 +480,33 @@ def _failed_deployment_awaits_settlement(account: AccountState) -> bool:
                for order in account.order_ledger)
 
 
-def _admit_new_cores(book: _AllocationBook, *, candidates: list[str], opportunity: Opportunity) -> None:
+def _admit_new_cores(book: _AllocationBook, *, candidates: list[str], opportunity: Opportunity,
+                     market_open: bool) -> None:
     if not _core_opportunity_open(opportunity) or book.risk.state is not Risk.NORMAL:
         block = "OPPORTUNITY_NOT_OPEN" if not _core_opportunity_open(opportunity) else "RISK_NOT_NORMAL"
         for symbol in candidates:
             book.record(symbol)["entry_gate"] = block
         return
+    if not market_open:
+        for symbol in candidates:
+            book.record(symbol)["entry_gate"] = "COMMON_TREND_NOT_CONFIRMED"
+        return
+    occupied = (book.owned | {s for s, w in book.weights_now.items() if w > 0}
+                | {s for s, w in book.committed.items() if w > 0}
+                | {order.symbol for order in book.account.pending_orders})
+    fresh = [s for s in candidates if s not in occupied]
+    selected = fresh[:max(0, book.policy.cfg.max_positions - len(occupied))]
     for symbol in candidates:
-        if symbol in book.owned or book.weights_now.get(symbol, 0.0) > 0 or book.committed.get(symbol, 0.0) > 0:
+        if symbol in occupied:
             book.record(symbol)["entry_gate"] = "EXISTING_HOLDING_OR_COMMITMENT"
             continue
-        weight = book.policy.cfg.core_admission_weight
+        if symbol not in selected:
+            book.record(symbol)["entry_gate"] = "POSITION_SLOTS_EXHAUSTED"
+            continue
+        weight = min(book.policy.cfg.single_core_entry_cap,
+                     book.policy.cfg.trend_entry_gross / len(selected))
+        if not book.leaders[symbol].mature:
+            weight = min(weight, book.policy.cfg.core_admission_weight)
         if book.fund(symbol, weight, phase="CORE_ADMISSION", minimum=book.policy.cfg.min_trade_weight):
             book.account.protected_weights.pop(symbol, None)
             book.reasons[symbol] = "confirmed core admitted from available account capital"
@@ -595,15 +617,21 @@ def _allocate_strategy(
     )
     candidates = _core_candidates(self, date=date, user_panel=user_panel, leaders=leaders, account=account,
                                   trace=book.trace, certificates=certificates)
+    market = observe_ordinary_market(
+        self, date=date, opportunity=opportunity, risk=risk, leaders=leaders,
+        user_panel=user_panel, account=account,
+    )
     _ordinary_exits(book)
-    _pending_intents(book, candidates=candidates, buy_open=not frozen and not liabilities, certificates=certificates)
+    _pending_intents(book, buy_open=not frozen and not liabilities,
+                     market_open=market["confirmed"], certificates=certificates)
     ordinary_restore = _bounded_ordinary_restore_risk_open(book)
     if not liabilities and (not frozen or ordinary_restore):
         book.committed, book.cash_room = committed_capital(account=account, prices=prices, proposed=proposed)
         _restore_ordinary_holdings(book)
     awaiting_settlement = _failed_deployment_awaits_settlement(account)
     if not frozen and not liabilities and not awaiting_settlement:
-        _admit_new_cores(book, candidates=candidates, opportunity=opportunity)
+        _admit_new_cores(book, candidates=candidates, opportunity=opportunity,
+                         market_open=market["confirmed"])
     else:
         for symbol in candidates:
             book.record(symbol)["entry_gate"] = (
@@ -654,6 +682,7 @@ def _allocate_strategy(
         "gross_cap": book.gross_cap, "unreserved_cash_before": cash_room,
         "unreserved_cash_after": book.cash_room, "freeze_new_risk": frozen,
         "late_fill_order_ids": list(liabilities),
+        "ordinary_market": market,
     }
     return targets
 

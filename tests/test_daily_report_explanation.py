@@ -217,6 +217,19 @@ def test_report_does_not_hide_pending_quality_rejection_behind_restoration_routi
     assert (decision, account) == before
 
 
+@pytest.mark.parametrize("gate", ["COMMON_TREND_NOT_CONFIRMED", "CASH_REPAIR_PERMISSION_CLOSED"])
+def test_report_exposes_recorded_pending_market_refusal(gate: str) -> None:
+    decision = _core_allocation_decision({
+        "pending_entry": {"block": "READY"}, "pending_market_open": False,
+        "entry_gate": gate, "restore_block": "PENDING_CORE_BUY_ALREADY_EVALUATED",
+    })
+    account = AccountState.empty(100_000.0)
+    before = deepcopy((decision, account))
+    row = render_daily_report(decision, account).split("| partial |", 1)[1].split("\n", 1)[0]
+    assert f"NO ORDER; retained holding | {gate}; pending current quality READY" in row
+    assert (decision, account) == before
+
+
 @pytest.mark.parametrize("frozen", [False, True])
 def test_report_preserves_final_freeze_and_capital_limit_over_pending_quality(frozen: bool) -> None:
     decision = _core_allocation_decision({

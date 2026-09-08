@@ -46266,6 +46266,149 @@
         "dataclasses": {},
         "enums": {}
       },
+      "uquant.portfolio.ordinary": {
+        "path": "uquant/portfolio/ordinary.py",
+        "public_names": [
+          "observe_ordinary_market",
+          "ordinary_core_entry"
+        ],
+        "functions": {
+          "observe_ordinary_market": {
+            "parameters": [
+              {
+                "name": "self",
+                "kind": "POSITIONAL_OR_KEYWORD",
+                "annotation": "PortfolioAllocator",
+                "default": {
+                  "kind": "required"
+                }
+              },
+              {
+                "name": "date",
+                "kind": "KEYWORD_ONLY",
+                "annotation": "pd.Timestamp",
+                "default": {
+                  "kind": "required"
+                }
+              },
+              {
+                "name": "opportunity",
+                "kind": "KEYWORD_ONLY",
+                "annotation": "Opportunity",
+                "default": {
+                  "kind": "required"
+                }
+              },
+              {
+                "name": "risk",
+                "kind": "KEYWORD_ONLY",
+                "annotation": "RiskAssessment",
+                "default": {
+                  "kind": "required"
+                }
+              },
+              {
+                "name": "leaders",
+                "kind": "KEYWORD_ONLY",
+                "annotation": "dict[str, LeaderScore]",
+                "default": {
+                  "kind": "required"
+                }
+              },
+              {
+                "name": "user_panel",
+                "kind": "KEYWORD_ONLY",
+                "annotation": "dict[str, pd.DataFrame]",
+                "default": {
+                  "kind": "required"
+                }
+              },
+              {
+                "name": "account",
+                "kind": "KEYWORD_ONLY",
+                "annotation": "AccountState",
+                "default": {
+                  "kind": "required"
+                }
+              }
+            ],
+            "return": "dict[str, Any]"
+          },
+          "ordinary_core_entry": {
+            "parameters": [
+              {
+                "name": "self",
+                "kind": "POSITIONAL_OR_KEYWORD",
+                "annotation": "PortfolioAllocator",
+                "default": {
+                  "kind": "required"
+                }
+              },
+              {
+                "name": "symbol",
+                "kind": "KEYWORD_ONLY",
+                "annotation": "str",
+                "default": {
+                  "kind": "required"
+                }
+              },
+              {
+                "name": "score",
+                "kind": "KEYWORD_ONLY",
+                "annotation": "LeaderScore",
+                "default": {
+                  "kind": "required"
+                }
+              },
+              {
+                "name": "date",
+                "kind": "KEYWORD_ONLY",
+                "annotation": "pd.Timestamp",
+                "default": {
+                  "kind": "required"
+                }
+              },
+              {
+                "name": "user_panel",
+                "kind": "KEYWORD_ONLY",
+                "annotation": "dict[str, pd.DataFrame]",
+                "default": {
+                  "kind": "required"
+                }
+              },
+              {
+                "name": "account",
+                "kind": "KEYWORD_ONLY",
+                "annotation": "AccountState",
+                "default": {
+                  "kind": "required"
+                }
+              },
+              {
+                "name": "confirmation_days",
+                "kind": "KEYWORD_ONLY",
+                "annotation": "int",
+                "default": {
+                  "kind": "required"
+                }
+              },
+              {
+                "name": "certificate",
+                "kind": "KEYWORD_ONLY",
+                "annotation": "dict[str, Any] | None",
+                "default": {
+                  "kind": "value",
+                  "value": null
+                }
+              }
+            ],
+            "return": "dict[str, Any]"
+          }
+        },
+        "classes": {},
+        "dataclasses": {},
+        "enums": {}
+      },
       "uquant.portfolio.pipeline": {
         "path": "uquant/portfolio/pipeline.py",
         "public_names": [],
@@ -95362,7 +95505,7 @@
     }
   },
   "contract_id": "uquant-public-api-v1",
-  "contract_sha256": "a15a0c1d8247fd0996daede126bb53ad353e503788373a7c908c05d63edc9ee9",
+  "contract_sha256": "bb3eadbd17592154008b4a6ba584c93a6308cf23bbdb02e00296c805f8a1db0b",
   "recorded_on": "2026-09-05",
   "schema_version": 1
 }

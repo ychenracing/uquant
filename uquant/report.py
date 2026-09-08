@@ -118,6 +118,8 @@ _CORE_REVIEW_CHANGES = _MappingProxyType({
     "UNRESOLVED_LIABILITY": "Reconcile outstanding physical orders and fills.",
     "OPPORTUNITY_NOT_OPEN": "The opportunity state must permit core entry.",
     "RISK_NOT_NORMAL": "Base Risk must return to NORMAL for new core entry.",
+    "COMMON_TREND_NOT_CONFIRMED": "Current shared market evidence must confirm ordinary entry.",
+    "CASH_REPAIR_PERMISSION_CLOSED": "The real consumed repair order must retain its original risk permission.",
     "EXISTING_HOLDING_OR_COMMITMENT": "Manage the existing holding or order through its own lifecycle.",
     "AWAIT_REDUCTION_SETTLEMENT": "The prior reduction must actually settle.",
     "CAPITAL_LIMIT": "Available settled capital or a binding cap must change; a sale intent supplies no cash.",

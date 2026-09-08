@@ -7,7 +7,7 @@ import pandas as pd
 import pytest
 from test_lifecycle_and_risk import _leader, _strategic_frame
 from test_strategic_universe_quorum import _risk
-from test_unified_core_book import _inputs
+from test_unified_core_book import _inputs, _ordinary_market_risk
 
 from uquant.application.target_attribution import attach_target_attribution
 from uquant.config import DEFAULT_CONFIG
@@ -59,7 +59,7 @@ def _funded_book(cash_fraction: float):
     candidate = symbols[-1]
     panel[candidate] = _strategic_frame(dates)
     leaders[candidate] = _leader(candidate, .95, industry=leaders[candidate].industry)
-    risk = replace(_risk(), target_gross_cap=1.0)
+    risk = _ordinary_market_risk(replace(_risk(), target_gross_cap=1.0))
     # Consume an existing current-session observation just as the production
     # allocation-book fixture does; this test isolates capital, not discovery.
     account.replacement_tenure[f"strategic_eligibility:independent_core:{candidate}"] = (

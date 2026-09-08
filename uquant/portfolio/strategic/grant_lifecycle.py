@@ -128,7 +128,8 @@ def _owns_grant_position(account: AccountState, grant: StrategicGrantIntent) -> 
 def _completed_core_entry(account: AccountState, grant: StrategicGrantIntent) -> bool:
     """Read executed admission from real ownership and economic order capacity."""
     epoch = next((item for item in account.strategic_epochs if item.epoch_id == grant.epoch_id), None)
-    if not (epoch is not None and epoch.realized_status == "CORE" and epoch.first_fill_session
+    if not (epoch is not None and epoch.realized_status in {"CORE", "ACTIVE"} and epoch.first_fill_session
+            and epoch.qualification_quorum != "FULL_COHORT" and grant.status != "COMPLETED"
             and epoch.owner_symbol == grant.candidate_symbol and epoch.grant_id == grant.grant_id
             and _owns_grant_position(account, grant)):
         return False

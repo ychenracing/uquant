@@ -27,7 +27,8 @@ def _marked_core(*, partial=False, crosses=True):
         _raw=panel, _price=lambda symbol, date: float(panel[symbol].loc[date, "close"]),
     )
     mark_account_positions(runtime, account, dates[0])
-    assert account.strategic_epochs[0].realized_status == "CORE"
+    assert account.strategic_epochs[0].realized_status == "ACTIVE"
+    assert account.strategic_epoch == 0
     assert strategic_dominant_symbol(account) is None
     return allocator, account, dates, panel, _entry_deteriorated(leaders), roles
 
@@ -41,13 +42,14 @@ def _bounded_cap(account):
     return min(DEFAULT_CONFIG.strategic_dominant_retained_gross, admission.target_weight)
 
 
-def test_completed_core_locks_once_at_original_entry_budget_without_becoming_active():
+def test_completed_core_locks_once_at_original_entry_budget_without_completing_deployment():
     allocator, account, dates, panel, leaders, roles = _marked_core()
     cap = _bounded_cap(account)
     orders = _decide_and_submit(allocator, account, dates[0], panel, leaders, roles)
     assert len(orders) == 1 and orders[0].side == "SELL"
     assert orders[0].target_weight == pytest.approx(cap)
-    assert account.strategic_epochs[0].realized_status == "CORE"
+    assert account.strategic_epochs[0].realized_status == "ACTIVE"
+    assert account.strategic_epoch == 0
     assert strategic_dominant_symbol(account) is None
     fills = ExecutionPlanner(DEFAULT_CONFIG).execute_open(
         date=dates[1], account=account, panel={OWNER: panel[OWNER]},
@@ -63,7 +65,8 @@ def test_completed_core_locks_once_at_original_entry_budget_without_becoming_act
     restored = account_from_dict(asdict(account))
     assert not _decide_and_submit(allocator, restored, dates[3], panel, leaders, roles)
     assert restored.positions[OWNER].shares == shares
-    assert restored.strategic_epochs[0].realized_status == "CORE"
+    assert restored.strategic_epochs[0].realized_status == "ACTIVE"
+    assert restored.strategic_epoch == 0
 
 
 def test_completed_core_below_existing_mfe_threshold_keeps_healthy_holding():
@@ -149,7 +152,7 @@ def test_unexecuted_core_profit_lock_retries_after_restart(cancelled):
 
 
 @pytest.mark.parametrize("fresh_atr", (False, True), ids=("settled-atr", "fresh-atr"))
-def test_core_profit_lock_preserves_settled_and_new_atr_instructions(fresh_atr):
+def test_core_profit_lock_remains_independent_after_settled_soft_atr(fresh_atr):
     from test_strategic_exit_band_settlement import _band_sale
 
     allocator, account, dates, panel, leaders, roles = _band_sale()
@@ -168,14 +171,9 @@ def test_core_profit_lock_preserves_settled_and_new_atr_instructions(fresh_atr):
         panel[OWNER].loc[dates[1]:, "ret20"] = -.05
     orders = _decide_and_submit(allocator, account, dates[1], panel, leaders, roles)
     assert len(orders) == 1 and orders[0].side == "SELL"
-    if fresh_atr:
-        assert sum(account.strategic_exit_bands[OWNER]) < sum(old_bands)
-        assert orders[0].target_weight == pytest.approx(sum(account.strategic_exit_bands[OWNER]))
-        assert orders[0].mechanism == "STRATEGIC_TRAILING_EXIT"
-    else:
-        assert account.strategic_exit_bands[OWNER] == old_bands
-        assert orders[0].target_weight == pytest.approx(_bounded_cap(account))
-        assert orders[0].mechanism == "STRATEGIC_PROFIT_LOCK"
+    assert account.strategic_exit_bands[OWNER] == old_bands
+    assert orders[0].target_weight == pytest.approx(_bounded_cap(account))
+    assert orders[0].mechanism == "STRATEGIC_PROFIT_LOCK"
     fills = ExecutionPlanner(DEFAULT_CONFIG).execute_open(
         date=dates[2], account=account, panel={OWNER: panel[OWNER]},
     )
@@ -211,7 +209,8 @@ def test_historical_mfe_below_current_cap_preserves_fresh_native_promotion():
             continue
         assert len(orders) == 1 and orders[0].side == "BUY"
         assert orders[0].mechanism == "STRATEGIC_COHORT"
-        assert account.strategic_epochs[0].realized_status == "CORE"
+        assert account.strategic_epochs[0].realized_status == "ACTIVE"
+        assert account.strategic_epoch == 0
         fills = ExecutionPlanner(DEFAULT_CONFIG).execute_open(
             date=dates[index + 1], account=account, panel={OWNER: panel[OWNER]},
         )
@@ -249,7 +248,8 @@ def _actual_budget_probe(budget, full):
     assert len(fills) == 1 and fills[0].shares > 0
     assert account.order_ledger[0].target_weight == pytest.approx(budget)
     assert account.strategic_epochs[0].full_weight == pytest.approx(full)
-    assert account.strategic_epochs[0].realized_status == "CORE"
+    assert account.strategic_epochs[0].realized_status == "ACTIVE"
+    assert account.strategic_epoch == 0
     remaining = dates[index + 2:]
     price = account.positions[OWNER].avg_cost * (1 + cfg.strategic_dominant_profit_lock_mfe + .1)
     for column, factor in (("open", 1), ("close", 1), ("high", 1.01), ("low", .99),
@@ -321,7 +321,8 @@ def test_later_legal_promotion_budget_does_not_rewrite_original_admission_proof(
                                "sellable_shares": position.shares, "avg_cost": position.avg_cost}],
             }, cfg=DEFAULT_CONFIG)
             assert not account.pending_orders
-            assert account.strategic_epochs[0].realized_status == "CORE"
+            assert account.strategic_epochs[0].realized_status == "ACTIVE"
+            assert account.strategic_epoch == 0
             assert completed_core_admission_budget(account) == pytest.approx(initial)
             break
     else:

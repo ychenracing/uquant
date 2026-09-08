@@ -97,7 +97,7 @@ def test_completed_fifo_band_sale_does_not_rebalance_drift_or_restart():
     assert restored.strategic_exit_bands[OWNER] == bands
 
 
-def test_fresh_atr_instruction_still_reduces_a_settled_holding():
+def test_fresh_soft_atr_breach_preserves_a_settled_holding():
     allocator, account, dates, panel, leaders, roles = _band_sale()
     old_bands = list(account.strategic_exit_bands[OWNER])
     close = float(panel[OWNER].loc[dates[0], "close"])
@@ -110,13 +110,45 @@ def test_fresh_atr_instruction_still_reduces_a_settled_holding():
     panel[OWNER].loc[dates[0], "ma20"] = close * 1.1
     panel[OWNER].loc[dates[0], "ret20"] = -.05
     orders = _decide_and_submit(allocator, account, dates[0], panel, leaders, roles)
-    epoch = account.strategic_epochs[0]
-    step = DEFAULT_CONFIG.strategic_cohort_exit_step * epoch.target_weight / epoch.full_weight
-    assert account.strategic_exit_bands[OWNER] == pytest.approx(
-        [band - step / len(old_bands) for band in old_bands]
+    assert not orders
+    assert account.strategic_exit_bands[OWNER] == old_bands
+    assert all(account.strategic_active_bands[OWNER])
+    restored = account_from_dict(asdict(account))
+    assert not _decide_and_submit(allocator, restored, dates[0], panel, leaders, roles)
+    assert restored.strategic_exit_bands[OWNER] == old_bands
+
+
+@pytest.mark.parametrize("escalation", ("transition", "post_guard", "disaster"))
+def test_settled_soft_plan_does_not_block_exit_escalation(escalation):
+    allocator, account, dates, panel, leaders, roles = _band_sale(broker=escalation == "post_guard")
+    assert _settled(account)
+    old_target = sum(account.strategic_exit_bands[OWNER])
+    close = float(panel[OWNER].loc[dates[0], "close"])
+    peak_date = panel[OWNER].index[panel[OWNER].index.get_loc(dates[0]) - 1]
+    panel[OWNER].loc[peak_date, "close"] = close + 1.0
+    runtime = SimpleNamespace(
+        _raw=panel, _price=lambda symbol, date: float(panel[symbol].loc[date, "close"]),
     )
+    mark_account_positions(runtime, account, peak_date)
+    panel[OWNER].loc[dates[0], "ma20"] = close * 1.1
+    panel[OWNER].loc[dates[0], "ret20"] = -.05
+    if escalation == "transition":
+        account.strategic_candidate_signature = (
+            "strategic_qualification:transition_impulse:" + OWNER
+        )
+    elif escalation == "post_guard":
+        assert account.strategic_epoch > 0
+        account.candidate_tenure["strategic_damage_guard_complete_epoch"] = account.strategic_epoch
+        account.candidate_tenure.pop("strategic_guard_level2_epoch", None)
+    else:
+        panel[OWNER].loc[dates[0], "close"] = account.positions[OWNER].avg_cost * (
+            1.0 + DEFAULT_CONFIG.strategic_cohort_disaster_stop - .01
+        )
+    orders = _decide_and_submit(allocator, account, dates[0], panel, leaders, roles)
     assert len(orders) == 1 and orders[0].side == "SELL"
-    assert orders[0].target_weight == pytest.approx(sum(account.strategic_exit_bands[OWNER]))
+    assert orders[0].target_weight < old_target
+    if escalation != "post_guard":
+        assert orders[0].target_weight == 0.0
 
 
 def test_risk_cap_still_reduces_a_settled_holding():
@@ -129,6 +161,9 @@ def test_risk_cap_still_reduces_a_settled_holding():
 
 def test_repeated_same_session_damage_does_not_compound_a_pending_reduction():
     allocator, account, dates, panel, leaders, roles = _band_sale()
+    count = len(account.strategic_exit_bands[OWNER])
+    account.strategic_exit_bands[OWNER] = [.10 / count] * count
+    assert not _settled(account)
     close = float(panel[OWNER].loc[dates[0], "close"])
     peak_date = panel[OWNER].index[panel[OWNER].index.get_loc(dates[0]) - 1]
     panel[OWNER].loc[peak_date, "close"] = close + 1.0
@@ -150,8 +185,11 @@ def test_repeated_same_session_damage_does_not_compound_a_pending_reduction():
 
 
 @pytest.mark.parametrize("missing", (None, "atr", "ma20", "ret20"))
-def test_continuous_damage_keeps_settled_shares_until_a_new_breach(missing):
+def test_settled_plan_survives_missing_data_recovery_and_new_soft_breach(missing):
     allocator, account, dates, panel, leaders, roles = _band_sale()
+    count = len(account.strategic_exit_bands[OWNER])
+    account.strategic_exit_bands[OWNER] = [.10 / count] * count
+    assert not _settled(account)
     close = float(panel[OWNER].loc[dates[0], "close"])
     peak_date = panel[OWNER].index[panel[OWNER].index.get_loc(dates[0]) - 1]
     panel[OWNER].loc[peak_date, "close"] = close + 1.0
@@ -181,10 +219,8 @@ def test_continuous_damage_keeps_settled_shares_until_a_new_breach(missing):
     panel[OWNER].loc[dates[3], "ma20"] = close * .95
     panel[OWNER].loc[dates[3], "ret20"] = .05
     assert not _decide_and_submit(allocator, restored, dates[3], panel, leaders, roles)
-    _decide_and_submit(allocator, restored, dates[4], panel, leaders, roles)
-    # The new instruction may be below the minimum trade size; it must still
-    # be retained for later execution rather than losing the fresh signal.
-    assert sum(restored.strategic_exit_bands[OWNER]) < first[0].target_weight
+    assert not _decide_and_submit(allocator, restored, dates[4], panel, leaders, roles)
+    assert sum(restored.strategic_exit_bands[OWNER]) == pytest.approx(first[0].target_weight)
 
 
 @pytest.mark.parametrize("damage", (

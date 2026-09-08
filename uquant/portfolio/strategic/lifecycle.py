@@ -383,6 +383,19 @@ def _advance_strategic_exit(
         armed[:] = [True] * band_count
         bands[:] = [0.0] * band_count
     else:
+        post_guard_exit = bool(
+            account.strategic_epoch > 0
+            and account.candidate_tenure.get("strategic_damage_guard_complete_epoch", -1)
+            == account.strategic_epoch
+            and account.candidate_tenure.get("strategic_guard_level2_epoch", -1)
+            != account.strategic_epoch
+        )
+        if not post_guard_exit and _settled_strategic_exit_target(account, symbol, sum(bands)):
+            # A fully executed soft exit retains its remaining shares. Hard
+            # risk and post-guard escalation still own subsequent reductions.
+            # Exact-target receipts cannot swallow a tighter unfilled plan.
+            armed[:] = triggered
+            return
         for index, signal in enumerate(triggered):
             if signal and not armed[index]:
                 bands[index] = max(

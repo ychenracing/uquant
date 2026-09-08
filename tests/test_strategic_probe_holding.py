@@ -95,7 +95,8 @@ def _filled_probe(*, partial=False):
         date=fill_date, account=account, panel={OWNER: panel[OWNER]},
     )
     assert len(fills) == 1 and fills[0].shares > 0
-    assert account.strategic_epochs[0].realized_status == "CORE"
+    assert account.strategic_epochs[0].realized_status == "ACTIVE"
+    assert account.strategic_grant.status == "PARTIALLY_FILLED"
     assert account.order_ledger[0].status == ("PARTIALLY_FILLED" if partial else "FILLED")
     return allocator, account, dates[index + 2:], panel, leaders, roles
 
@@ -225,6 +226,7 @@ def test_late_fill_accounts_for_shares_without_reviving_expired_grant(cancellati
     assert settled.filled_shares == shares_before + late_shares
     assert account.strategic_grant.status == "EXPIRED"
     assert account.strategic_grant.expiry_reason == original_reason
+    assert account.strategic_epoch == 0, "late receipt cannot complete revoked deployment"
     targets = _allocate(allocator, account, dates[1], panel, leaders, roles)
     assert all(order.side != "BUY" for order in
                _submit(account, targets, dates[1], panel, previous=previous))
@@ -269,7 +271,8 @@ def test_flat_core_epoch_cannot_promote_from_old_qualification():
     )
     assert len(fills) == 1 and fills[0].side == "SELL"
     assert OWNER not in account.positions
-    assert epoch.realized_status == "CORE"
+    assert epoch.realized_status == "ACTIVE"
+    assert account.strategic_epoch == 0
     # The executor has settled the position; the next allocator has not yet closed
     # its persisted epoch. Stale readiness cannot authorize re-entry in that gap.
     account.strategic_qualification.qualification_ready = True

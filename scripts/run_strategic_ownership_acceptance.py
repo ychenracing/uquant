@@ -115,6 +115,39 @@ def _canonical_sha256(value: object) -> str:
     return hashlib.sha256(_canonical_json(value)).hexdigest()
 
 
+def _failed_replay_evidence(replay: ReplayResult) -> dict[str, Any]:
+    """Keep invalid floats as explicit diagnostics, never native acceptance raw."""
+    raw = asdict(replay)
+    nonfinite: list[dict[str, str]] = []
+
+    def encode(value: Any, path: str) -> Any:
+        if isinstance(value, float) and not math.isfinite(value):
+            kind = "NaN" if math.isnan(value) else "+Infinity" if value > 0 else "-Infinity"
+            nonfinite.append({"path": path, "kind": kind})
+            return {"nonfinite_float": kind}
+        if isinstance(value, dict):
+            return {
+                key: encode(item, path + "/" + str(key).replace("~", "~0").replace("/", "~1"))
+                for key, item in sorted(value.items())
+            }
+        if isinstance(value, (list, tuple)):
+            return [encode(item, f"{path}/{index}") for index, item in enumerate(value)]
+        return value
+
+    encoded = encode(raw, "")
+    if not nonfinite:
+        return {"raw_replay": raw, "raw_replay_sha256": _canonical_sha256(raw)}
+    diagnostic = {
+        "encoding": "nonfinite-float-markers-v1",
+        "nonfinite_values": nonfinite,
+        "payload": encoded,
+    }
+    return {
+        "diagnostic_replay": diagnostic,
+        "diagnostic_replay_sha256": _canonical_sha256(diagnostic),
+    }
+
+
 def _mapping(value: object, *, label: str) -> Mapping[str, Any]:
     if not isinstance(value, Mapping):
         raise ValueError(f"{label} is malformed")
@@ -1365,7 +1398,6 @@ def run_acceptance_shard(
             replay = getattr(exc, "_ownership_failed_replay", None)
             if not isinstance(replay, ReplayResult):
                 raise
-            raw = asdict(replay)
             failure = {
                 "contract_sha256": _canonical_sha256(contract),
                 "production_source_identity": code_fingerprint(),
@@ -1378,11 +1410,11 @@ def run_acceptance_shard(
                     "replay_status": replay.status, "replay_error": replay.error,
                     "error": replay.error if isinstance(exc, _ReplayFailure) else str(exc),
                     "error_type": type(exc).__name__,
-                    "raw_replay": raw, "raw_replay_sha256": _canonical_sha256(raw),
+                    **_failed_replay_evidence(replay),
                 }],
             }
             output.parent.mkdir(parents=True, exist_ok=True)
-            atomic_write_text(output, json.dumps(failure, indent=2, sort_keys=True) + "\n")
+            atomic_write_text(output, json.dumps(failure, allow_nan=False, indent=2, sort_keys=True) + "\n")
             raise
     result: dict[str, Any] = {
         "contract_sha256": _canonical_sha256(contract),

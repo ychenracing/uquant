@@ -893,8 +893,8 @@ def test_architecture_config_private_transport_rejects_identity_callee_and_argum
         ),
         (
             "uquant/application/target_attribution.py",
-            "from ..types import PendingOrder, Side, Target, derive_attribution_event_id",
-            "from ..types import AccountState, PendingOrder, Side, Target, derive_attribution_event_id",
+            "from ..types import PendingOrder,",
+            "from ..types import AccountState, PendingOrder,",
         ),
     ),
 )
@@ -904,7 +904,7 @@ def test_architecture_execution_decision_owner_transport_rejects_unknown_mutatio
     mutation: str,
 ) -> None:
     source = execution_reviewed_source(ROOT, relative)
-    assert original in source
+    assert source.count(original) == 1
     mutated = source.replace(original, mutation, 1)
     with pytest.raises(AssertionError):
         validate_execution_decision_owner_transport(

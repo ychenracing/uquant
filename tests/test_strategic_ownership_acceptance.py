@@ -350,10 +350,11 @@ def test_single_alias_scenario_runs_only_its_contract_dependency(
     assert set(result["cache_dependencies"]) == {"remove-sz300502"}
 
 
+@pytest.mark.parametrize("nonfinite", (False, True))
 @pytest.mark.parametrize("scenario", ("remove-sz300502", "same-industry-crowning"))
 @pytest.mark.parametrize("status", ("REPLAY_ERROR", "INSUFFICIENT_SAMPLE"))
 def test_failed_ownership_replay_preserves_raw_without_cache_or_pass(
-    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, scenario: str, status: str,
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, scenario: str, status: str, nonfinite: bool,
 ) -> None:
     from dataclasses import asdict, replace
 
@@ -363,6 +364,10 @@ def test_failed_ownership_replay_preserves_raw_without_cache_or_pass(
         continuity_replay(), status=status,
         error="pending order event_id differs from canonical derivation",
     )
+    if nonfinite:
+        replay = replace(replay, trace=(
+            replace(replay.trace[0], risk={"missing": float("nan")}), *replay.trace[1:],
+        ))
     monkeypatch.setattr(ownership_runner, "_frozen_replay", lambda *args, **kwargs: replay)
     monkeypatch.setattr(ownership_runner, "_cache_identity_context", lambda contract: {"test": "failed raw"})
     output = tmp_path / "evidence" / "failed.json"
@@ -382,8 +387,20 @@ def test_failed_ownership_replay_preserves_raw_without_cache_or_pass(
     assert failure["status"] == "FAIL"
     assert failure["replay_status"] == status
     assert failure["error"] == replay.error
-    assert ownership_runner._canonical_sha256(failure["raw_replay"]) == ownership_runner._canonical_sha256(asdict(replay))
-    assert failure["raw_replay_sha256"] == ownership_runner._canonical_sha256(asdict(replay))
+    json.dumps(evidence, allow_nan=False)
+    assert evidence["diagnostic_only"] is True
+    if nonfinite:
+        assert "raw_replay" not in failure and "raw_replay_sha256" not in failure
+        diagnostic = failure["diagnostic_replay"]
+        assert diagnostic["nonfinite_values"] == [
+            {"path": "/trace/0/risk/missing", "kind": "NaN"},
+        ]
+        assert diagnostic["payload"]["status"] == status
+        assert diagnostic["payload"]["error"] == replay.error
+        assert ownership_runner._canonical_sha256(diagnostic) == failure["diagnostic_replay_sha256"]
+    else:
+        assert ownership_runner._canonical_sha256(failure["raw_replay"]) == ownership_runner._canonical_sha256(asdict(replay))
+        assert failure["raw_replay_sha256"] == ownership_runner._canonical_sha256(asdict(replay))
     assert "same_industry_witness" not in failure
     assert list(cache.iterdir()) == []
 
@@ -574,15 +591,26 @@ def test_missing_same_industry_witness_persists_source_raw_without_alias_cache(
     assert not list(cache.glob("same-industry-crowning-*"))
 
 
+@pytest.mark.parametrize("nonfinite", (False, True))
 @pytest.mark.parametrize("scenario", ("report-13", "cross-industry-crowning", "failed-first-grant"))
 def test_fixture_and_report_post_replay_failures_retain_raw(
-    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, scenario: str,
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, scenario: str, nonfinite: bool,
 ) -> None:
     from dataclasses import asdict
 
     from test_cross_ai_ownership_continuity import continuity_replay
 
     replay = continuity_replay()
+    if nonfinite:
+        replay = replace(
+            replay,
+            metrics={**replay.metrics, "missing": float("nan")},
+            trace=(replace(replay.trace[0], risk={
+                **replay.trace[0].risk,
+                "a/b~c": [float("nan"), (float("inf"), float("-inf"))],
+            }), *replay.trace[1:]),
+        )
+    original_raw = json.dumps(asdict(replay), sort_keys=True)
     error = RuntimeError("strict post-replay rejection")
 
     def reject(*_args, **_kwargs):
@@ -612,6 +640,30 @@ def test_fixture_and_report_post_replay_failures_retain_raw(
     assert failure["scenario_id"] == scenario
     assert failure["replay_status"] == "SUCCESS"
     assert failure["error"] == str(observed.value)
-    assert failure["raw_replay_sha256"] == ownership_runner._canonical_sha256(asdict(replay))
-    assert ownership_runner._canonical_sha256(failure["raw_replay"]) == failure["raw_replay_sha256"]
+    assert evidence["diagnostic_only"] is True
+    json.dumps(evidence, allow_nan=False)
+    assert json.dumps(asdict(replay), sort_keys=True) == original_raw
+    if nonfinite:
+        assert "raw_replay" not in failure and "raw_replay_sha256" not in failure
+        diagnostic = failure["diagnostic_replay"]
+        assert diagnostic["encoding"] == "nonfinite-float-markers-v1"
+        assert diagnostic["nonfinite_values"] == [
+            {"path": "/metrics/missing", "kind": "NaN"},
+            {"path": "/trace/0/risk/a~1b~0c/0", "kind": "NaN"},
+            {"path": "/trace/0/risk/a~1b~0c/1/0", "kind": "+Infinity"},
+            {"path": "/trace/0/risk/a~1b~0c/1/1", "kind": "-Infinity"},
+        ]
+        assert diagnostic["payload"]["metrics"]["missing"] == {"nonfinite_float": "NaN"}
+        assert diagnostic["payload"]["final_account"] == json.loads(json.dumps(replay.final_account))
+        assert ownership_runner._canonical_sha256(diagnostic) == failure["diagnostic_replay_sha256"]
+        assert ownership_runner._failed_replay_evidence(replay) == {
+            "diagnostic_replay": diagnostic,
+            "diagnostic_replay_sha256": failure["diagnostic_replay_sha256"],
+        }
+        with pytest.raises(ValueError, match="JSON compliant"):
+            ownership_runner._canonical_json(asdict(replay))
+    else:
+        assert "diagnostic_replay" not in failure
+        assert failure["raw_replay_sha256"] == ownership_runner._canonical_sha256(asdict(replay))
+        assert ownership_runner._canonical_sha256(failure["raw_replay"]) == failure["raw_replay_sha256"]
     assert list(cache.iterdir()) == []

@@ -442,6 +442,7 @@
         "uquant/risk_sentinel/validation.py",
         "uquant/validation/__init__.py",
         "uquant/validation/__main__.py",
+        "uquant/validation/_promotion_cache.py",
         "uquant/validation/absolute_generalization/__init__.py",
         "uquant/validation/absolute_generalization/_acceptance_evidence.py",
         "uquant/validation/absolute_generalization/_account_payload.py",
@@ -468,6 +469,7 @@
         "uquant/validation/absolute_generalization/replay.py",
         "uquant/validation/absolute_generalization/runtime.py",
         "uquant/validation/absolute_generalization/scenarios.py",
+        "uquant/validation/acceptance_tolerance.py",
         "uquant/validation/ai_era.py",
         "uquant/validation/ci_artifacts.py",
         "uquant/validation/cli.py",
@@ -753,6 +755,7 @@
         "uquant/types.py",
         "uquant/validation/__init__.py",
         "uquant/validation/__main__.py",
+        "uquant/validation/_promotion_cache.py",
         "uquant/validation/absolute_generalization/__init__.py",
         "uquant/validation/absolute_generalization/_acceptance_evidence.py",
         "uquant/validation/absolute_generalization/_account_payload.py",
@@ -779,6 +782,7 @@
         "uquant/validation/absolute_generalization/replay.py",
         "uquant/validation/absolute_generalization/runtime.py",
         "uquant/validation/absolute_generalization/scenarios.py",
+        "uquant/validation/acceptance_tolerance.py",
         "uquant/validation/ai_era.py",
         "uquant/validation/ci_artifacts.py",
         "uquant/validation/cli.py",
@@ -833,5 +837,5 @@
       ]
     }
   ],
-  "canonical_sha256": "dce349f91b33f563489a64fb757180483ece44ce49aa298844442f1c91984315"
+  "canonical_sha256": "a2ce3cd337958eb9bb8593e61d06cf75a6e6bf08367768b731d5b50dc230bd12"
 }

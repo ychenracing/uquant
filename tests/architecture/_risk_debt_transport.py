@@ -30,6 +30,8 @@ _RISK_ARCHITECTURE_AUTHORITY_STALE = frozenset(
         "uquant.models.strategic_universe",
         "uquant.risk_sentinel.history_cache",
         "uquant.risk_sentinel.source_identity_archive",
+        "uquant.validation._promotion_cache",
+        "uquant.validation.acceptance_tolerance",
         "uquant.validation.competitor_reference",
         "uquant.validation.generalization_matrix_evidence",
         "uquant.validation.generalization_matrix_validation",

@@ -45847,8 +45847,10 @@
       "uquant.ordinary_pullback": {
         "path": "uquant/ordinary_pullback.py",
         "public_names": [
+          "STRUCTURAL_EXIT_REASON",
           "current_pullback_proof",
-          "pullback_quality"
+          "pullback_quality",
+          "pullback_reentry_structure_open"
         ],
         "functions": {
           "current_pullback_proof": {
@@ -45909,6 +45911,51 @@
               {
                 "name": "cfg",
                 "kind": "POSITIONAL_OR_KEYWORD",
+                "annotation": "SystemConfig",
+                "default": {
+                  "kind": "required"
+                }
+              }
+            ],
+            "return": "bool"
+          },
+          "pullback_reentry_structure_open": {
+            "parameters": [
+              {
+                "name": "account",
+                "kind": "KEYWORD_ONLY",
+                "annotation": "AccountState",
+                "default": {
+                  "kind": "required"
+                }
+              },
+              {
+                "name": "symbol",
+                "kind": "KEYWORD_ONLY",
+                "annotation": "str",
+                "default": {
+                  "kind": "required"
+                }
+              },
+              {
+                "name": "date",
+                "kind": "KEYWORD_ONLY",
+                "annotation": "pd.Timestamp",
+                "default": {
+                  "kind": "required"
+                }
+              },
+              {
+                "name": "frame",
+                "kind": "KEYWORD_ONLY",
+                "annotation": "pd.DataFrame",
+                "default": {
+                  "kind": "required"
+                }
+              },
+              {
+                "name": "cfg",
+                "kind": "KEYWORD_ONLY",
                 "annotation": "SystemConfig",
                 "default": {
                   "kind": "required"
@@ -69160,6 +69207,15 @@
                   "kind": "value",
                   "value": "full"
                 }
+              },
+              {
+                "name": "cache_dir",
+                "kind": "KEYWORD_ONLY",
+                "annotation": "str | Path | None",
+                "default": {
+                  "kind": "value",
+                  "value": null
+                }
               }
             ],
             "return": "dict[str, Any]"
@@ -69170,6 +69226,54 @@
                 "name": "root",
                 "kind": "POSITIONAL_OR_KEYWORD",
                 "annotation": "str | Path",
+                "default": {
+                  "kind": "required"
+                }
+              }
+            ],
+            "return": "dict[str, Any]"
+          }
+        },
+        "classes": {},
+        "dataclasses": {},
+        "enums": {}
+      },
+      "uquant.validation._promotion_cache": {
+        "path": "uquant/validation/_promotion_cache.py",
+        "public_names": [
+          "replay_unit"
+        ],
+        "functions": {
+          "replay_unit": {
+            "parameters": [
+              {
+                "name": "directory",
+                "kind": "POSITIONAL_OR_KEYWORD",
+                "annotation": "Path",
+                "default": {
+                  "kind": "required"
+                }
+              },
+              {
+                "name": "name",
+                "kind": "KEYWORD_ONLY",
+                "annotation": "str",
+                "default": {
+                  "kind": "required"
+                }
+              },
+              {
+                "name": "identity",
+                "kind": "KEYWORD_ONLY",
+                "annotation": "Mapping[str, Any]",
+                "default": {
+                  "kind": "required"
+                }
+              },
+              {
+                "name": "replay",
+                "kind": "KEYWORD_ONLY",
+                "annotation": "Callable[[], dict[str, Any]]",
                 "default": {
                   "kind": "required"
                 }
@@ -74321,10 +74425,130 @@
       "uquant.validation.absolute_generalization._replay_codec": {
         "path": "uquant/validation/absolute_generalization/_replay_codec.py",
         "public_names": [
+          "cached_removal_replay",
+          "persist_raw_replay",
+          "raw_replay_identity",
+          "read_cached_replay",
           "replay_from_raw",
           "replay_to_raw"
         ],
         "functions": {
+          "cached_removal_replay": {
+            "parameters": [
+              {
+                "name": "scenario",
+                "kind": "POSITIONAL_OR_KEYWORD",
+                "annotation": "AbsoluteGeneralizationScenario",
+                "default": {
+                  "kind": "required"
+                }
+              },
+              {
+                "name": "root",
+                "kind": "KEYWORD_ONLY",
+                "annotation": "str | Path",
+                "default": {
+                  "kind": "required"
+                }
+              },
+              {
+                "name": "data_dir",
+                "kind": "KEYWORD_ONLY",
+                "annotation": "str | Path",
+                "default": {
+                  "kind": "required"
+                }
+              },
+              {
+                "name": "cache_dir",
+                "kind": "KEYWORD_ONLY",
+                "annotation": "str | Path",
+                "default": {
+                  "kind": "required"
+                }
+              }
+            ],
+            "return": "AbsoluteGeneralizationReplay"
+          },
+          "persist_raw_replay": {
+            "parameters": [
+              {
+                "name": "path",
+                "kind": "POSITIONAL_OR_KEYWORD",
+                "annotation": "Path",
+                "default": {
+                  "kind": "required"
+                }
+              },
+              {
+                "name": "replay",
+                "kind": "POSITIONAL_OR_KEYWORD",
+                "annotation": "AbsoluteGeneralizationReplay",
+                "default": {
+                  "kind": "required"
+                }
+              },
+              {
+                "name": "identity",
+                "kind": "POSITIONAL_OR_KEYWORD",
+                "annotation": "Mapping[str, object]",
+                "default": {
+                  "kind": "required"
+                }
+              }
+            ],
+            "return": "AbsoluteGeneralizationReplay"
+          },
+          "raw_replay_identity": {
+            "parameters": [
+              {
+                "name": "scenario",
+                "kind": "POSITIONAL_OR_KEYWORD",
+                "annotation": "AbsoluteGeneralizationScenario",
+                "default": {
+                  "kind": "required"
+                }
+              },
+              {
+                "name": "root",
+                "kind": "POSITIONAL_OR_KEYWORD",
+                "annotation": "Path",
+                "default": {
+                  "kind": "required"
+                }
+              },
+              {
+                "name": "data",
+                "kind": "POSITIONAL_OR_KEYWORD",
+                "annotation": "Path",
+                "default": {
+                  "kind": "required"
+                }
+              }
+            ],
+            "return": "dict[str, object]"
+          },
+          "read_cached_replay": {
+            "parameters": [
+              {
+                "name": "path",
+                "kind": "POSITIONAL_OR_KEYWORD",
+                "annotation": "Path",
+                "default": {
+                  "kind": "required"
+                }
+              },
+              {
+                "name": "identity",
+                "kind": "POSITIONAL_OR_KEYWORD",
+                "annotation": "Mapping[str, object]",
+                "default": {
+                  "kind": "required"
+                }
+              }
+            ],
+            "return": "AbsoluteGeneralizationReplay"
+          },
           "replay_from_raw": {
             "parameters": [
               {
@@ -79580,6 +79804,67 @@
             ]
           }
         },
+        "enums": {}
+      },
+      "uquant.validation.acceptance_tolerance": {
+        "path": "uquant/validation/acceptance_tolerance.py",
+        "public_names": [
+          "acceptance_revision",
+          "order_ceiling",
+          "wealth_floor"
+        ],
+        "functions": {
+          "acceptance_revision": {
+            "parameters": [],
+            "return": "dict[str, typing.Any]"
+          },
+          "order_ceiling": {
+            "parameters": [
+              {
+                "name": "original",
+                "kind": "POSITIONAL_OR_KEYWORD",
+                "annotation": "float",
+                "default": {
+                  "kind": "required"
+                }
+              },
+              {
+                "name": "authorized",
+                "kind": "KEYWORD_ONLY",
+                "annotation": "bool",
+                "default": {
+                  "kind": "value",
+                  "value": true
+                }
+              }
+            ],
+            "return": "float"
+          },
+          "wealth_floor": {
+            "parameters": [
+              {
+                "name": "original",
+                "kind": "POSITIONAL_OR_KEYWORD",
+                "annotation": "float",
+                "default": {
+                  "kind": "required"
+                }
+              },
+              {
+                "name": "authorized",
+                "kind": "KEYWORD_ONLY",
+                "annotation": "bool",
+                "default": {
+                  "kind": "value",
+                  "value": true
+                }
+              }
+            ],
+            "return": "float"
+          }
+        },
+        "classes": {},
+        "dataclasses": {},
         "enums": {}
       },
       "uquant.validation.ai_era": {
@@ -94300,6 +94585,15 @@
                   "kind": "value",
                   "value": "full"
                 }
+              },
+              {
+                "name": "cache_dir",
+                "kind": "KEYWORD_ONLY",
+                "annotation": "str | Path | None",
+                "default": {
+                  "kind": "value",
+                  "value": null
+                }
               }
             ],
             "return": "dict[str, Any]"
@@ -95933,7 +96227,7 @@
     }
   },
   "contract_id": "uquant-public-api-v1",
-  "contract_sha256": "6a29db9ba3449c2b757e81f3370542657220e047ae9bf1e07925796a040be8ea",
+  "contract_sha256": "2b8a8c9e08f89748c8d5fb32aee211026de762715ca2baeb2049051e073392ae",
   "recorded_on": "2026-09-05",
   "schema_version": 1
 }

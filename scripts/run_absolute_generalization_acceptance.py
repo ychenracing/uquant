@@ -7,6 +7,7 @@ import argparse
 import hashlib
 import shutil
 import subprocess  # nosec B404
+import traceback
 from collections.abc import Iterator, Mapping, Sequence
 from dataclasses import dataclass
 from pathlib import Path
@@ -598,6 +599,7 @@ def run(options: RunnerOptions) -> int:
         try:
             return _run_execution(options, contract)
         except Exception as exc:
+            traceback.print_exc()
             head, tree = _git_identity()
             error = build_error_shard_manifest(
                 shard=options.shard,

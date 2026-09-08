@@ -22,6 +22,8 @@ _RISK_ARCHITECTURE_AUTHORITY_STALE = frozenset(
         "uquant.attribution.validation_lots",
         "uquant.broker_contract",
         "uquant.holding_history",
+        "uquant.models.ordinary_entry",
+        "uquant.ordinary_pullback",
         "uquant.models.strategic_epoch",
         "uquant.models.strategic_grant",
         "uquant.models.strategic_rearm",

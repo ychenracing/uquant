@@ -410,3 +410,72 @@ def test_alias_cache_readback_rederives_witness_from_one_complete_source(
     assert set(second["cache_dependencies"]) == {"remove-sz300502"}
     assert len(second["scenarios"][0]["epochs"]) == 3
     assert second["cache_identity_payload"]["continuity_basis"]["contract_id"] == "cross-ai-core-strategy-20260905-v1"
+
+
+def _settled_core_between_crowns() -> ReplayResult:
+    """Synthetic validator regression; no claim of strategy activation or economics."""
+    result = continuity_replay(("sz300308", "sh688019", "sz300394"))
+    middle = result.final_account["strategic_epochs"][1]
+    middle["active_session"] = ""
+    middle["realized_status"] = "EXPIRED"
+    middle["close_reason"] = "qualification_lost"
+    return result
+
+
+def test_repeated_crowns_follow_complete_chain_through_settled_core() -> None:
+    contract = runner.load_contract()
+    summary = runner._continuity_summary(contract, _settled_core_between_crowns())
+    assert len(summary["epochs"]) == 2
+    assert runner._validate_repeated(contract, summary=summary, same_industry=False) is None
+    witness = runner._validate_repeated(contract, summary=summary, same_industry=True)
+    assert [entry["owner_symbol"] for entry in witness["admissions"]] == ["sz300308", "sz300394"]
+
+
+@pytest.mark.parametrize("mutation", ["missing", "epoch_parent", "grant_parent", "unsettled", "cycle", "fake_fill"])
+def test_intermediate_core_history_cannot_hide_broken_evidence(mutation: str) -> None:
+    result = _settled_core_between_crowns()
+    epochs = result.final_account["strategic_epochs"]
+    middle = epochs[1]
+    if mutation == "missing":
+        del epochs[1]
+    elif mutation == "epoch_parent":
+        middle["previous_epoch_id"] = "epoch_" + "f" * 64
+    elif mutation == "grant_parent":
+        row = next(row for row in result.trace if row.date == middle["opened_session"])
+        row.risk["strategic_grant"]["previous_grant_id"] = "grant_" + "f" * 64
+    elif mutation == "unsettled":
+        middle.update(realized_status="CORE", closed_session="", close_reason="")
+    elif mutation == "cycle":
+        middle["previous_epoch_id"] = epochs[2]["epoch_id"]
+    else:
+        middle["first_fill_session"] = epochs[2]["first_fill_session"]
+    with pytest.raises((ValueError, RuntimeError)):
+        summary = runner._continuity_summary(runner.load_contract(), result)
+        runner._validate_repeated(runner.load_contract(), summary=summary, same_industry=False)
+
+
+@pytest.mark.parametrize("missing", [False, True])
+def test_zero_fill_expired_epoch_remains_in_complete_predecessor_chain(missing: bool) -> None:
+    result = _settled_core_between_crowns()
+    epochs = result.final_account["strategic_epochs"]
+    first, middle = epochs[:2]
+    zero = {**middle, "epoch_id": "epoch_" + "a" * 64, "grant_id": "grant_" + "a" * 64,
+            "opened_session": first["closed_session"], "first_fill_session": "",
+            "closed_session": first["closed_session"]}
+    zero_row = next(row for row in result.trace if row.date == zero["opened_session"])
+    middle_row = next(row for row in result.trace if row.date == middle["opened_session"])
+    zero_row.risk["strategic_grant"] = {
+        **middle_row.risk["strategic_grant"], "grant_id": zero["grant_id"],
+        "created_session": zero["opened_session"],
+    }
+    middle["previous_epoch_id"] = zero["epoch_id"]
+    middle_row.risk["strategic_grant"]["previous_grant_id"] = zero["grant_id"]
+    if not missing:
+        epochs.insert(1, zero)
+    summary = runner._continuity_summary(runner.load_contract(), result)
+    assert len(summary["epochs"]) == 2
+    if missing:
+        with pytest.raises(RuntimeError, match="epoch identity chain differs"):
+            runner._validate_repeated(runner.load_contract(), summary=summary, same_industry=False)
+    else:
+        assert runner._validate_repeated(runner.load_contract(), summary=summary, same_industry=False) is None

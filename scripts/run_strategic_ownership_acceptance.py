@@ -900,6 +900,42 @@ def _continuity_summary(contract: Mapping[str, Any], result: ReplayResult) -> di
     return summary
 
 
+def _validate_complete_epoch_predecessors(raw: Mapping[str, Any]) -> None:
+    """Check the unfiltered history; an expired probe is still a predecessor."""
+    account = _mapping(raw["final_account"], label="continuity account")
+    epochs = _sequence(account["strategic_epochs"], label="complete epoch history")
+    trace = _sequence(raw["trace"], label="continuity trace")
+    previous: Mapping[str, Any] = {}
+    for item in epochs:
+        epoch = _mapping(item, label="complete epoch")
+        opened = epoch.get("opened_session")
+        if epoch.get("previous_epoch_id", "") != previous.get("epoch_id", ""):
+            raise RuntimeError("repeated-crowning epoch identity chain differs")
+        grants = [
+            _mapping(_mapping(row, label="trace row").get("risk", {}), label="risk").get("strategic_grant")
+            for row in trace if _mapping(row, label="trace row").get("date") == opened
+        ]
+        grants = [grant for grant in grants if isinstance(grant, Mapping)
+                  and grant.get("grant_id") == epoch.get("grant_id")]
+        if len(grants) != 1:
+            raise RuntimeError("repeated-crowning grant creation evidence differs")
+        grant = _mapping(grants[0], label="continuity predecessor grant")
+        if grant.get("created_session") != opened:
+            raise RuntimeError("repeated-crowning grant creation evidence differs")
+        if grant.get("previous_grant_id", "") != previous.get("grant_id", ""):
+            raise RuntimeError("repeated-crowning grant identity chain differs")
+        if grant.get("candidate_symbol") != epoch.get("owner_symbol"):
+            raise RuntimeError("repeated-crowning grant owner differs")
+        if previous and (
+            previous.get("realized_status") not in {"CLOSED", "EXPIRED"}
+            or not previous.get("closed_session") or not previous.get("close_reason")
+            or not isinstance(opened, str)
+            or not previous["opened_session"] <= previous["closed_session"] <= opened
+        ):
+            raise RuntimeError("repeated-crowning predecessor is not settled before successor")
+        previous = epoch
+
+
 def _validate_repeated(
     contract: Mapping[str, Any],
     *,
@@ -925,13 +961,7 @@ def _validate_repeated(
         raise RuntimeError("repeated-crowning replay has fewer than two actual epochs")
     if len(set(owners)) < int(thresholds["minimum_distinct_owners"]):
         raise RuntimeError("repeated-crowning replay has fewer than two owners")
-    for previous, successor in pairwise(epochs):
-        previous_epoch = _mapping(previous, label="previous repeated epoch")
-        successor_epoch = _mapping(successor, label="successor repeated epoch")
-        if successor_epoch.get("previous_epoch_id") != previous_epoch.get("epoch_id"):
-            raise RuntimeError("repeated-crowning epoch identity chain differs")
-        if successor_epoch.get("previous_grant_id") != previous_epoch.get("grant_id"):
-            raise RuntimeError("repeated-crowning grant identity chain differs")
+    _validate_complete_epoch_predecessors(raw)
     witness = None
     if same_industry:
         for previous, successor in pairwise(expected["continuity"]["admissions"]):

@@ -142,9 +142,11 @@ matching Fill 和 Fill 后 activation；未成交 `PROBE`、research interventio
 epoch，以及连续的 previous grant/epoch 身份链。
 
 关键删除的固定门要求 `final_wealth > 1.0`、`max_drawdown <= 0.30`、健康零目标最长不超过
-60 个 session、至少一个正战略 Target，并完成 accounting reconciliation。删除 `sz300308`
-还要求预算业务层级 3 的账户修复在 60 个健康 session 内 `READY`，随后由当前独立合格候选
-消费一次性 authorization。旧 5 标的 champion 最终财富为 `24.509661802900865`，候选至少
+60 个 session、至少一个正战略 Target，并完成 accounting reconciliation。每次 grant 创建
+都按当日风险状态核验：正常入场无需 rearm ID，需要 rearm 的入场必须有同候选、同 grant
+消费的一次性 authorization。所有实际修复 episode 单独对账；实际出现的业务层级 3
+修复仍受 60 个健康 session 上限约束，未出现则明确报告未观察到，不能用其他层级冒充。
+旧 5 标的 champion 最终财富为 `24.509661802900865`，候选至少
 保留其 95%。当前 Target、Order、Fill 与 equity 路径从完整原始证据重新核算，不要求等于
 旧 owner 路径；每次真实入场的 grant/event/epoch 归因、单次成交计账和账户对账仍须一致。
 

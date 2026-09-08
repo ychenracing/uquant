@@ -581,10 +581,21 @@ def _admit_new_cores(book: _AllocationBook, *, candidates: list[str], opportunit
                 | {s for s, w in book.committed.items() if w > 0}
                 | {order.symbol for order in book.account.pending_orders})
     fresh = [s for s in candidates if s not in occupied]
-    selected = fresh[:max(0, book.policy.cfg.max_positions - len(occupied))]
+    immature_occupied = any(
+        s not in book.owned and w > 0 and (s not in book.leaders or not book.leaders[s].mature)
+        for s, w in book.committed.items()
+    )
+    early = next((s for s in fresh if not book.leaders[s].mature), None) if not immature_occupied else None
+    eligible = [s for s in fresh if book.leaders[s].mature or s == early]
+    selected = eligible[:max(0, book.policy.cfg.max_positions - len(occupied))]
     for symbol in candidates:
         if symbol in occupied:
             book.record(symbol)["entry_gate"] = "EXISTING_HOLDING_OR_COMMITMENT"
+            continue
+        if symbol not in eligible:
+            book.record(symbol)["entry_gate"] = (
+                "IMMATURE_CORE_SLOT_OCCUPIED" if immature_occupied else "IMMATURE_CORE_LOWER_RANK"
+            )
             continue
         if symbol not in selected:
             book.record(symbol)["entry_gate"] = "POSITION_SLOTS_EXHAUSTED"

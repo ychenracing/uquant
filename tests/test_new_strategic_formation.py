@@ -31,7 +31,7 @@ def test_ordinary_only_rank_cannot_hide_formation_or_actual_repair_fallback(
         account.flat_book_capital_repair.status = 'READY'
     selected = discovery._select_qualified_strategic_route(
         PortfolioAllocator(DEFAULT_CONFIG), snapshots={}, leaders={}, risk=_normal_risk(),
-        account=account, reference_snapshots={}, strategic_universe=None,
+        account=account, reference_snapshots={}, strategic_universe=None, admission_open=True,
     )
     assert selected is (ordinary if repair_ready else formation)
 
@@ -41,8 +41,8 @@ def test_independent_single_authority_is_preserved_but_group_strength_is_ordinar
     route = StrategicRoute(['a'], family, None, False, [], False, True, 'a')
     policy = PortfolioAllocator(DEFAULT_CONFIG)
     assert discovery._new_strategic_formation_open(
-        policy, route=route, snapshots={}, quorum_route=StrategicQuorumRoute.ABSOLUTE_SINGLE.value,
+        policy, route=route, snapshots={}, quorum_route=StrategicQuorumRoute.ABSOLUTE_SINGLE.value, admission_open=True,
     )
     assert not discovery._new_strategic_formation_open(
-        policy, route=route, snapshots={}, quorum_route=StrategicQuorumRoute.FULL_COHORT.value,
+        policy, route=route, snapshots={}, quorum_route=StrategicQuorumRoute.FULL_COHORT.value, admission_open=True,
     )

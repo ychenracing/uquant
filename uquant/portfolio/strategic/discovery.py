@@ -636,12 +636,15 @@ def strategic_candidate_certificates(
 
 def _new_strategic_formation_open(
     self: StrategicPortfolioPolicy, *, route: StrategicRoute,
-    snapshots: dict[str, dict[str, float]], quorum_route: str,
+    snapshots: dict[str, dict[str, float]], quorum_route: str, admission_open: bool,
 ) -> bool:
     """Reserve new long-cycle grants for formation, not ordinary trend strength."""
     return bool(
         quorum_route == StrategicQuorumRoute.ABSOLUTE_SINGLE.value
-        or (route.route == "reversal_industry" and route.synchronized_reversal)
+        or (route.route == "reversal_industry" and route.synchronized_reversal
+            and (quorum_route != StrategicQuorumRoute.FULL_COHORT.value
+                 or admission_open
+                 or (len(route.symbols) == 2 and route.decisive_reversal_symbol in route.symbols)))
         or (route.route == "persistent_industry" and route.symbols
             and all(snapshots[symbol]["persistent_ret240"] >= self.cfg.strategic_cohort_min_ret240
                     for symbol in route.symbols))
@@ -652,6 +655,7 @@ def _select_qualified_strategic_route(
     self: StrategicPortfolioPolicy, *, snapshots: dict[str, dict[str, float]],
     leaders: dict[str, LeaderScore], risk: RiskAssessment, account: AccountState,
     reference_snapshots: dict[str, dict[str, float]], strategic_universe: StrategicUniverseRoles,
+    admission_open: bool,
 ) -> StrategicRoute:
     evaluated = strategic_candidate_certificates(
         self, snapshots=snapshots, leaders=leaders, risk=risk, account=account,
@@ -661,6 +665,7 @@ def _select_qualified_strategic_route(
         for route, quorum, streak in evaluated:
             if (streak >= quorum.required_confirm_days and _new_strategic_formation_open(
                 self, route=route, snapshots=snapshots, quorum_route=quorum.route.value,
+                admission_open=admission_open,
             )):
                 return route
     # Keep the ranked fallback observable for genuine cash-rearm authorization.
@@ -978,6 +983,7 @@ def _initialize_strategic_cohort(
     route = _select_qualified_strategic_route(
         self, snapshots=snapshots, leaders=resolved_leaders, risk=risk, account=account,
         reference_snapshots=reference_snapshots, strategic_universe=resolved_universe,
+        admission_open=admission_open,
     )
     qualified = _qualify_strategic_route(
         self,
@@ -1007,9 +1013,13 @@ def _initialize_strategic_cohort(
         return
     if not qualified.cash_rearm_authorized and not _new_strategic_formation_open(
         self, route=route, snapshots=snapshots, quorum_route=qualified.quorum_route,
+        admission_open=admission_open,
     ):
         account.strategic_qualification.deployment_blocked = True
-        account.strategic_qualification.deployment_block_reason = "ordinary_trend_participation"
+        account.strategic_qualification.deployment_block_reason = (
+            "strategic_market_opportunity_required" if route.route == "reversal_industry"
+            else "ordinary_trend_participation"
+        )
         return
     certificates = current_core_qualification(
         self, date=date, user_panel=user_panel, leaders=leaders, account=account, risk=risk,

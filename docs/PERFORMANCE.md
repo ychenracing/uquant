@@ -483,3 +483,25 @@ dimension、验证这三个路径精确绑定各自 source/config hash，并在�
 Risk Sentinel 的冻结晋级、拒绝候选与 Evidence Closure 固定结果保存在
 `artifacts/sentinel/`。这些历史数值用于审计，不替代本页的长期绩效合同，也不自动授予
 新的生产权限。
+
+## 历史研究观察归档恢复
+
+`research.cross_ai_strategy.run_production_case` 将每个实际完成的 session 原子保存到
+场景目录的 `observations/YYYY-MM-DD.json`，绑定完整输入身份及观察内容摘要，再核验
+精确日期集合与逐日内容，生成 `observations.jsonl.gz`。这些日文件是昂贵回放证据，应与
+`identity.json`、原始结果、最终账户及日志一并保存。研究 runner 身份变化须单独记录，
+不能仅因经济源码未变就把旧完整矩阵重贴为新 runner 的验收。
+
+若最终 gzip 损坏而全部逐日文件仍完整，可在同一经核验环境中重建到一个不存在的新路径：
+
+```python
+from pathlib import Path
+from research.cross_ai_strategy import rebuild_observation_archive
+
+case = Path("replay_evidence/case")
+rebuild_observation_archive(case, case / "recovered-observations.jsonl.gz")
+```
+
+该操作不运行交易、不覆盖原件，也不把原 `REPLAY_ERROR` 改成通过。缺日、重复日期、
+额外文件、身份或内容摘要不符会拒绝发布。保留恢复来源和新归档摘要后，仍须由原验收
+读回器核对实际账户、订单、成交、窗口和冻结门槛；缺失的观察不能用最终账户或新模拟补造。

@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from typing import Any
 
+from ..models.ordinary_entry import ENTRY, GRADUATION, validate_pullback_events
 from ..models.strategic_epoch import StrategicEpochStatus, validate_strategic_epoch
 from ..models.strategic_grant import (
     validate_strategic_grant,
@@ -158,6 +159,7 @@ def _validate_audit_events(state: AccountState) -> None:
 
     lifecycles = {item.value for item in Lifecycle}
     risks = {item.value for item in Risk}
+    validate_pullback_events(state)
 
     for event in _validate_event_array(
         state.replacement_events,
@@ -184,6 +186,8 @@ def _validate_audit_events(state: AccountState) -> None:
         state.lifecycle_events,
         field="lifecycle_events",
     ):
+        if event.get("event") in {ENTRY, GRADUATION}:
+            continue
         _required_iso_date(event.get("date"), field="lifecycle event date")
         _required_text(event.get("symbol"), field="lifecycle event symbol")
         if event.get("from") not in {*lifecycles, "NONE"}:

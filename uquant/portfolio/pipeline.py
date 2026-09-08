@@ -9,6 +9,8 @@ import pandas as pd
 
 from ..features import scalar
 from ..holding_history import holding_spans_date
+from ..models.ordinary_entry import REASON as PULLBACK_REASON
+from ..models.ordinary_entry import holding_pullback_entry, pullback_graduated
 from ..models.strategic_universe import StrategicUniverseRoles
 from ..portfolio_core import current_weights, symbol_weight_cap
 from ..types import (
@@ -23,7 +25,9 @@ from ..types import (
     Target,
 )
 from .capital import committed_capital, funded_increment
+from .leaders.lifecycle import ordinary_pullback_exit
 from .ordinary import observe_ordinary_market, ordinary_core_entry
+from .pullback import admit_pullback, pending_pullback_open
 from .strategic.authority import assess_strategic_capital_authority
 from .strategic.discovery import current_core_qualification
 from .strategic.grant_lifecycle import completed_strategic_core_entry as _completed_strategic_core_entry
@@ -317,10 +321,14 @@ def _ordinary_exits(book: _AllocationBook) -> None:
         ):
             continue
         book.record(symbol)["allocation_reason"] = "RETAINED_HOLDING"
-        if not book.policy._leader_lifecycle_exit_confirmed(
+        pullback_exit = ordinary_pullback_exit(
+            book.policy, symbol=symbol, date=book.date, user_panel=book.user_panel,
+            leaders=book.leaders, account=account,
+        )
+        if pullback_exit == "" or (pullback_exit is None and not book.policy._leader_lifecycle_exit_confirmed(
             symbol=symbol, date=book.date, user_panel=book.user_panel,
             leaders=book.leaders, account=account,
-        ):
+        )):
             continue
         book.proposed[symbol] = 0.0
         reset_strategic_candidate_eligibility(account=account, symbol=symbol)
@@ -332,7 +340,7 @@ def _ordinary_exits(book: _AllocationBook) -> None:
             account.candidate_tenure["tactical_promotable"] = 0
         if account.recovery_conviction_symbol == symbol:
             account.recovery_conviction_symbol = ""
-        book.reasons[symbol] = "leader lifecycle exit: confirmed structural deterioration"
+        book.reasons[symbol] = pullback_exit or "leader lifecycle exit: confirmed structural deterioration"
         book.mechanisms[symbol] = AttributionMechanism.LEADER_LIFECYCLE_EXIT
         book.record(symbol)["allocation_reason"] = "CONFIRMED_STRUCTURAL_EXIT"
 
@@ -346,6 +354,17 @@ def _pending_intents(book: _AllocationBook, *, buy_open: bool, market_open: bool
         elif (order.symbol not in book.owned
               and order.mechanism != AttributionMechanism.POST_SHOCK_RESTORATION.value):
             current = book.weights_now.get(order.symbol, 0.0)
+            if order.reason_code == PULLBACK_REASON:
+                allowed = pending_pullback_open(book, order)
+                continued = bool(allowed and book.proposed.get(order.symbol, 0.0) >= current
+                                 and book.fund(order.symbol, order.target_weight, phase="PENDING_PULLBACK_BUY",
+                                               minimum=max(0.0, order.target_weight - current)))
+                book.record(order.symbol)["pending_pullback_open"] = continued
+                if not continued:
+                    book.record(order.symbol).update(pending_buy_rejected=True,
+                                                    entry_gate="PULLBACK_PERMISSION_CLOSED")
+                    book.account.protected_weights.pop(order.symbol, None)
+                continue
             repair_open = ordinary_cash_rearm_order_open(
                 account=book.account, risk=book.risk, cfg=book.policy.cfg, order=order,
             )
@@ -381,6 +400,10 @@ def _restore_ordinary_holdings(book: _AllocationBook) -> None:
         if symbol in book.owned:
             continue
         row = book.record(symbol)
+        entry = holding_pullback_entry(account, symbol)
+        if entry is not None and not pullback_graduated(account, entry):
+            row["restore_block"] = "PULLBACK_NOT_GRADUATED"
+            continue
         if book.weights_now.get(symbol, 0.0) <= 0:
             row["restore_block"] = "NEW_ENTRY_REQUIRES_QUALIFICATION"
             continue
@@ -558,6 +581,8 @@ def _book_targets(book: _AllocationBook) -> tuple[Target, ...]:
     )
     merged = []
     for target in targets:
+        if book.record(target.symbol).get("allocation_reason") == "PULLBACK_CORE":
+            target = replace(target, reason_code=PULLBACK_REASON)
         if target.symbol in book.strategic_targets:
             strategic = book.strategic_targets[target.symbol]
             mechanism = book.mechanisms.get(target.symbol)
@@ -659,6 +684,7 @@ def _allocate_strategy(
                 book.record(symbol)["entry_gate"] = "ACCOUNT_REPAIR_AUTHORIZED"
                 book.reasons[symbol] = "confirmed core admitted through bounded account repair"
                 break
+    pullback_symbols = admit_pullback(book)
     targets = _book_targets(book)
     if frozen:
         frozen_targets = self._frozen_existing_targets(
@@ -672,6 +698,10 @@ def _allocate_strategy(
                           or any(order.symbol == t.symbol and ordinary_cash_rearm_order_open(
                               account=account, risk=risk, cfg=self.cfg, order=order)
                               for order in account.pending_orders)})
+        permitted.update({t.symbol: t for t in targets if t.symbol in pullback_symbols
+                          or any(order.symbol == t.symbol and order.reason_code == PULLBACK_REASON
+                                 and book.record(order.symbol).get("pending_pullback_open") is True
+                                 for order in account.pending_orders)})
         frozen_book = {t.symbol: t for t in frozen_targets}
         frozen_book.update(permitted)
         targets = tuple(frozen_book[symbol] for symbol in sorted(frozen_book))

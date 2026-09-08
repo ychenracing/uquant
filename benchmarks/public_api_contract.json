@@ -37104,6 +37104,199 @@
           ]
         }
       },
+      "uquant.models.ordinary_entry": {
+        "path": "uquant/models/ordinary_entry.py",
+        "public_names": [
+          "ENTRY",
+          "GRADUATION",
+          "REASON",
+          "bind_pullback_orders",
+          "holding_pullback_entry",
+          "pullback_graduated",
+          "pullback_order_entry",
+          "record_pullback_graduation",
+          "validate_pullback_events"
+        ],
+        "functions": {
+          "bind_pullback_orders": {
+            "parameters": [
+              {
+                "name": "account",
+                "kind": "KEYWORD_ONLY",
+                "annotation": "AccountState",
+                "default": {
+                  "kind": "required"
+                }
+              },
+              {
+                "name": "orders",
+                "kind": "KEYWORD_ONLY",
+                "annotation": "tuple[PendingOrder, ...]",
+                "default": {
+                  "kind": "required"
+                }
+              },
+              {
+                "name": "risk",
+                "kind": "KEYWORD_ONLY",
+                "annotation": "RiskAssessment",
+                "default": {
+                  "kind": "required"
+                }
+              },
+              {
+                "name": "date",
+                "kind": "KEYWORD_ONLY",
+                "annotation": "str",
+                "default": {
+                  "kind": "required"
+                }
+              },
+              {
+                "name": "cfg",
+                "kind": "KEYWORD_ONLY",
+                "annotation": "SystemConfig",
+                "default": {
+                  "kind": "required"
+                }
+              },
+              {
+                "name": "code_hash",
+                "kind": "KEYWORD_ONLY",
+                "annotation": "str",
+                "default": {
+                  "kind": "required"
+                }
+              },
+              {
+                "name": "data_hash",
+                "kind": "KEYWORD_ONLY",
+                "annotation": "str",
+                "default": {
+                  "kind": "required"
+                }
+              }
+            ],
+            "return": "None"
+          },
+          "holding_pullback_entry": {
+            "parameters": [
+              {
+                "name": "account",
+                "kind": "POSITIONAL_OR_KEYWORD",
+                "annotation": "AccountState",
+                "default": {
+                  "kind": "required"
+                }
+              },
+              {
+                "name": "symbol",
+                "kind": "POSITIONAL_OR_KEYWORD",
+                "annotation": "str",
+                "default": {
+                  "kind": "required"
+                }
+              }
+            ],
+            "return": "dict[str, Any] | None"
+          },
+          "pullback_graduated": {
+            "parameters": [
+              {
+                "name": "account",
+                "kind": "POSITIONAL_OR_KEYWORD",
+                "annotation": "AccountState",
+                "default": {
+                  "kind": "required"
+                }
+              },
+              {
+                "name": "entry",
+                "kind": "POSITIONAL_OR_KEYWORD",
+                "annotation": "dict[str, Any]",
+                "default": {
+                  "kind": "required"
+                }
+              }
+            ],
+            "return": "bool"
+          },
+          "pullback_order_entry": {
+            "parameters": [
+              {
+                "name": "account",
+                "kind": "POSITIONAL_OR_KEYWORD",
+                "annotation": "AccountState",
+                "default": {
+                  "kind": "required"
+                }
+              },
+              {
+                "name": "order",
+                "kind": "POSITIONAL_OR_KEYWORD",
+                "annotation": "Any",
+                "default": {
+                  "kind": "required"
+                }
+              }
+            ],
+            "return": "dict[str, Any] | None"
+          },
+          "record_pullback_graduation": {
+            "parameters": [
+              {
+                "name": "account",
+                "kind": "POSITIONAL_OR_KEYWORD",
+                "annotation": "AccountState",
+                "default": {
+                  "kind": "required"
+                }
+              },
+              {
+                "name": "entry",
+                "kind": "POSITIONAL_OR_KEYWORD",
+                "annotation": "dict[str, Any]",
+                "default": {
+                  "kind": "required"
+                }
+              },
+              {
+                "name": "date",
+                "kind": "KEYWORD_ONLY",
+                "annotation": "str",
+                "default": {
+                  "kind": "required"
+                }
+              },
+              {
+                "name": "proof",
+                "kind": "KEYWORD_ONLY",
+                "annotation": "dict[str, Any]",
+                "default": {
+                  "kind": "required"
+                }
+              }
+            ],
+            "return": "None"
+          },
+          "validate_pullback_events": {
+            "parameters": [
+              {
+                "name": "account",
+                "kind": "POSITIONAL_OR_KEYWORD",
+                "annotation": "AccountState",
+                "default": {
+                  "kind": "required"
+                }
+              }
+            ],
+            "return": "None"
+          }
+        },
+        "classes": {},
+        "dataclasses": {},
+        "enums": {}
+      },
       "uquant.models.strategic_epoch": {
         "path": "uquant/models/strategic_epoch.py",
         "public_names": [
@@ -45651,6 +45844,84 @@
         "dataclasses": {},
         "enums": {}
       },
+      "uquant.ordinary_pullback": {
+        "path": "uquant/ordinary_pullback.py",
+        "public_names": [
+          "current_pullback_proof",
+          "pullback_quality"
+        ],
+        "functions": {
+          "current_pullback_proof": {
+            "parameters": [
+              {
+                "name": "symbol",
+                "kind": "KEYWORD_ONLY",
+                "annotation": "str",
+                "default": {
+                  "kind": "required"
+                }
+              },
+              {
+                "name": "date",
+                "kind": "KEYWORD_ONLY",
+                "annotation": "pd.Timestamp",
+                "default": {
+                  "kind": "required"
+                }
+              },
+              {
+                "name": "frame",
+                "kind": "KEYWORD_ONLY",
+                "annotation": "pd.DataFrame",
+                "default": {
+                  "kind": "required"
+                }
+              },
+              {
+                "name": "leader",
+                "kind": "KEYWORD_ONLY",
+                "annotation": "LeaderScore",
+                "default": {
+                  "kind": "required"
+                }
+              },
+              {
+                "name": "cfg",
+                "kind": "KEYWORD_ONLY",
+                "annotation": "SystemConfig",
+                "default": {
+                  "kind": "required"
+                }
+              }
+            ],
+            "return": "dict[str, Any]"
+          },
+          "pullback_quality": {
+            "parameters": [
+              {
+                "name": "values",
+                "kind": "POSITIONAL_OR_KEYWORD",
+                "annotation": "dict[str, Any]",
+                "default": {
+                  "kind": "required"
+                }
+              },
+              {
+                "name": "cfg",
+                "kind": "POSITIONAL_OR_KEYWORD",
+                "annotation": "SystemConfig",
+                "default": {
+                  "kind": "required"
+                }
+              }
+            ],
+            "return": "bool"
+          }
+        },
+        "classes": {},
+        "dataclasses": {},
+        "enums": {}
+      },
       "uquant.portfolio": {
         "path": "uquant/portfolio.py",
         "public_names": [
@@ -46252,8 +46523,64 @@
       },
       "uquant.portfolio.leaders.lifecycle": {
         "path": "uquant/portfolio/leaders/lifecycle.py",
-        "public_names": [],
-        "functions": {},
+        "public_names": [
+          "ordinary_pullback_exit"
+        ],
+        "functions": {
+          "ordinary_pullback_exit": {
+            "parameters": [
+              {
+                "name": "self",
+                "kind": "POSITIONAL_OR_KEYWORD",
+                "annotation": "LeaderPortfolioPolicy",
+                "default": {
+                  "kind": "required"
+                }
+              },
+              {
+                "name": "symbol",
+                "kind": "KEYWORD_ONLY",
+                "annotation": "str",
+                "default": {
+                  "kind": "required"
+                }
+              },
+              {
+                "name": "date",
+                "kind": "KEYWORD_ONLY",
+                "annotation": "pd.Timestamp",
+                "default": {
+                  "kind": "required"
+                }
+              },
+              {
+                "name": "user_panel",
+                "kind": "KEYWORD_ONLY",
+                "annotation": "dict[str, pd.DataFrame]",
+                "default": {
+                  "kind": "required"
+                }
+              },
+              {
+                "name": "leaders",
+                "kind": "KEYWORD_ONLY",
+                "annotation": "dict[str, LeaderScore]",
+                "default": {
+                  "kind": "required"
+                }
+              },
+              {
+                "name": "account",
+                "kind": "KEYWORD_ONLY",
+                "annotation": "AccountState",
+                "default": {
+                  "kind": "required"
+                }
+              }
+            ],
+            "return": "str | None"
+          }
+        },
         "classes": {},
         "dataclasses": {},
         "enums": {}
@@ -46413,6 +46740,52 @@
         "path": "uquant/portfolio/pipeline.py",
         "public_names": [],
         "functions": {},
+        "classes": {},
+        "dataclasses": {},
+        "enums": {}
+      },
+      "uquant.portfolio.pullback": {
+        "path": "uquant/portfolio/pullback.py",
+        "public_names": [
+          "admit_pullback",
+          "pending_pullback_open"
+        ],
+        "functions": {
+          "admit_pullback": {
+            "parameters": [
+              {
+                "name": "book",
+                "kind": "POSITIONAL_OR_KEYWORD",
+                "annotation": "_AllocationBook",
+                "default": {
+                  "kind": "required"
+                }
+              }
+            ],
+            "return": "set[str]"
+          },
+          "pending_pullback_open": {
+            "parameters": [
+              {
+                "name": "book",
+                "kind": "POSITIONAL_OR_KEYWORD",
+                "annotation": "_AllocationBook",
+                "default": {
+                  "kind": "required"
+                }
+              },
+              {
+                "name": "order",
+                "kind": "POSITIONAL_OR_KEYWORD",
+                "annotation": "PendingOrder",
+                "default": {
+                  "kind": "required"
+                }
+              }
+            ],
+            "return": "bool"
+          }
+        },
         "classes": {},
         "dataclasses": {},
         "enums": {}
@@ -53810,6 +54183,106 @@
               }
             ],
             "return": "float"
+          }
+        },
+        "classes": {},
+        "dataclasses": {},
+        "enums": {}
+      },
+      "uquant.risk.pullback": {
+        "path": "uquant/risk/pullback.py",
+        "public_names": [
+          "authorize_pullback_entry",
+          "pullback_book_settled",
+          "pullback_risk_open"
+        ],
+        "functions": {
+          "authorize_pullback_entry": {
+            "parameters": [
+              {
+                "name": "date",
+                "kind": "KEYWORD_ONLY",
+                "annotation": "pd.Timestamp",
+                "default": {
+                  "kind": "required"
+                }
+              },
+              {
+                "name": "risk",
+                "kind": "KEYWORD_ONLY",
+                "annotation": "RiskAssessment",
+                "default": {
+                  "kind": "required"
+                }
+              },
+              {
+                "name": "account",
+                "kind": "KEYWORD_ONLY",
+                "annotation": "AccountState",
+                "default": {
+                  "kind": "required"
+                }
+              },
+              {
+                "name": "user_panel",
+                "kind": "KEYWORD_ONLY",
+                "annotation": "dict[str, pd.DataFrame]",
+                "default": {
+                  "kind": "required"
+                }
+              },
+              {
+                "name": "leaders",
+                "kind": "KEYWORD_ONLY",
+                "annotation": "dict[str, LeaderScore]",
+                "default": {
+                  "kind": "required"
+                }
+              },
+              {
+                "name": "cfg",
+                "kind": "KEYWORD_ONLY",
+                "annotation": "SystemConfig",
+                "default": {
+                  "kind": "required"
+                }
+              }
+            ],
+            "return": "RiskAssessment"
+          },
+          "pullback_book_settled": {
+            "parameters": [
+              {
+                "name": "account",
+                "kind": "POSITIONAL_OR_KEYWORD",
+                "annotation": "AccountState",
+                "default": {
+                  "kind": "required"
+                }
+              }
+            ],
+            "return": "bool"
+          },
+          "pullback_risk_open": {
+            "parameters": [
+              {
+                "name": "risk",
+                "kind": "POSITIONAL_OR_KEYWORD",
+                "annotation": "RiskAssessment",
+                "default": {
+                  "kind": "required"
+                }
+              },
+              {
+                "name": "account",
+                "kind": "POSITIONAL_OR_KEYWORD",
+                "annotation": "AccountState",
+                "default": {
+                  "kind": "required"
+                }
+              }
+            ],
+            "return": "bool"
           }
         },
         "classes": {},
@@ -95505,7 +95978,7 @@
     }
   },
   "contract_id": "uquant-public-api-v1",
-  "contract_sha256": "bb3eadbd17592154008b4a6ba584c93a6308cf23bbdb02e00296c805f8a1db0b",
+  "contract_sha256": "d61539e3a70fcb28cce441e9ed9fbba99e9dca40782b21874fe831eb0dc38795",
   "recorded_on": "2026-09-05",
   "schema_version": 1
 }

@@ -34,6 +34,10 @@ _RETIRED_PORTFOLIO_PRIVATE_EDGES = frozenset(
 
 _ECONOMIC_ADDITIONS = frozenset(
     {
+        "uquant/ordinary_pullback.py",
+        "uquant/models/ordinary_entry.py",
+        "uquant/risk/pullback.py",
+        "uquant/portfolio/pullback.py",
         "uquant/portfolio/ordinary.py",
         "uquant/account/validation_attribution.py",
         "uquant/application/target_attribution.py",
@@ -64,6 +68,7 @@ _ECONOMIC_ADDITIONS = frozenset(
 )
 _EXECUTION_ADDITIONS = frozenset(
     {
+        "uquant/models/ordinary_entry.py",
         "uquant/account/validation_attribution.py",
         "uquant/broker_contract.py",
         "uquant/models/strategic_epoch.py",
@@ -74,6 +79,7 @@ _EXECUTION_ADDITIONS = frozenset(
 )
 _SENTINEL_ADDITIONS = frozenset(
     {
+        "uquant/models/ordinary_entry.py",
         "uquant/account/validation_attribution.py",
         "uquant/models/strategic_epoch.py",
         "uquant/models/strategic_grant.py",

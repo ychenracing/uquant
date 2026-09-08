@@ -31,6 +31,7 @@ from .market_book import MarketBookEvidence, assess_market_and_book_evidence
 from .protected_recovery import (
     assess_protected_recovery as _assess_protected_recovery,
 )
+from .pullback import authorize_pullback_entry
 from .recovery_state import assess_recovery_state as _assess_recovery_state
 from .strategic_guard import update_strategic_damage_guard as _update_strategic_damage_guard
 from .transition_resolution import resolve_risk_transition as _resolve_risk_transition
@@ -550,10 +551,13 @@ def _assess_base_risk(
     confirmed = _confirmed_break_resolution(ctx, previous=previous)
     if confirmed is not None:
         return confirmed
-    return _final_base_resolution(
+    final = _final_base_resolution(
         ctx,
         previous=previous,
         acute_sector_evacuation=acute_sector_evacuation,
+    )
+    return authorize_pullback_entry(
+        date=date, risk=final, account=account, user_panel=user_panel, leaders=leaders, cfg=cfg,
     )
 
 

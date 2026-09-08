@@ -661,6 +661,9 @@ def _allocate_decision_orders(
     consume_ordinary_cash_rearm_authorization(
         account=account, orders=orders, observed_session=str(inputs.date.date()),
     )
+    from ..models.ordinary_entry import bind_pullback_orders
+    bind_pullback_orders(account=account, orders=orders, risk=risk, date=str(inputs.date.date()),
+                         cfg=self.cfg, code_hash=inputs.current_code_hash, data_hash=inputs.data_digest)
     _record_final_allocation_trace(risk=risk, targets=targets, orders=orders,
                                    planning=planning_diagnostics)
     account.last_successful_run = str(inputs.date.date())

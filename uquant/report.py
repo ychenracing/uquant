@@ -120,6 +120,9 @@ _CORE_REVIEW_CHANGES = _MappingProxyType({
     "RISK_NOT_NORMAL": "Base Risk must return to NORMAL for new core entry.",
     "COMMON_TREND_NOT_CONFIRMED": "Current shared market evidence must confirm ordinary entry.",
     "CASH_REPAIR_PERMISSION_CLOSED": "The real consumed repair order must retain its original risk permission.",
+    "PULLBACK_PERMISSION_CLOSED": "Cancel the original remainder when its current proof or full original budget is unavailable.",
+    "PULLBACK_NOT_GRADUATED": "The long-structure holding must enter ordinary mature management before restoration can add capital.",
+    "BOUNDED_PULLBACK_AUTHORIZED": "Only this decision's bounded ordinary order consumes the recorded BaseRisk permission.",
     "EXISTING_HOLDING_OR_COMMITMENT": "Manage the existing holding or order through its own lifecycle.",
     "AWAIT_REDUCTION_SETTLEMENT": "The prior reduction must actually settle.",
     "CAPITAL_LIMIT": "Available settled capital or a binding cap must change; a sale intent supplies no cash.",
@@ -166,7 +169,7 @@ def _recorded_budget_limits(row: Mapping[str, Any]) -> list[str]:
 
 
 def _recorded_core_constraint(row: Mapping[str, Any], trace: Mapping[str, Any]) -> str:
-    entry = row.get("pending_entry", row.get("entry", {}))
+    entry = row.get("pending_entry", row.get("pullback_entry", row.get("entry", {})))
     entry_block = entry.get("block", "") if isinstance(entry, Mapping) else ""
     restore_block = row.get("restore_block")
     if restore_block == "PENDING_CORE_BUY_ALREADY_EVALUATED":

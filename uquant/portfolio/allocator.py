@@ -8,6 +8,7 @@ from typing import TYPE_CHECKING
 
 import pandas as pd
 
+from ..models.ordinary_entry import GRADUATION
 from ..models.strategic_universe import StrategicUniverseRoles
 from ..portfolio_core import (
     current_weights,
@@ -174,11 +175,14 @@ def allocate(
         _commit_frozen_ordinary_denials(account, strategy_account)
         account.strategic_qualification = deepcopy(strategy_account.strategic_qualification)
         for key, value in strategy_account.replacement_tenure.items():
-            if key.startswith(("strategic_qualification:", "strategic_eligibility:", "lifecycle_exit:")):
+            if key.startswith(("strategic_qualification:", "strategic_eligibility:", "lifecycle_exit:", "pullback_exit:")):
                 account.replacement_tenure[key] = value
         for key, value in strategy_account.candidate_tenure.items():
-            if key.startswith("lifecycle_exit_session:"):
+            if key.startswith(("lifecycle_exit_session:", "pullback_exit:")):
                 account.candidate_tenure[key] = value
+        for event in strategy_account.lifecycle_events[len(account.lifecycle_events):]:
+            if event.get("event") == GRADUATION:
+                account.lifecycle_events.append(deepcopy(event))
         for key in (
             "strategic_cohort_qualification",
             "strategic_long_cycle_open",

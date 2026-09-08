@@ -2,11 +2,17 @@
 
 from __future__ import annotations
 
+import math
 from typing import TYPE_CHECKING
 
 import pandas as pd
 
 from ...features import scalar
+from ...models.ordinary_entry import (
+    holding_pullback_entry,
+    pullback_graduated,
+    record_pullback_graduation,
+)
 from ...types import (
     AccountState,
     LeaderScore,
@@ -113,6 +119,63 @@ def _leader_lifecycle_exit_confirmed(
         account.replacement_tenure[key] >= self.cfg.replacement_confirm_days
         and held_sessions >= self.cfg.min_hold_days
     )
+
+
+def ordinary_pullback_exit(
+    self: LeaderPortfolioPolicy, *, symbol: str, date: pd.Timestamp,
+    user_panel: dict[str, pd.DataFrame], leaders: dict[str, LeaderScore], account: AccountState,
+) -> str | None:
+    """None delegates graduated/ordinary holdings; empty text retains the long basis."""
+    entry = holding_pullback_entry(account, symbol)
+    if entry is None:
+        return None
+    position = account.positions[symbol]
+    frame = user_panel.get(symbol)
+    if frame is None or date not in frame.index:
+        return ""
+    row = frame.loc[date]
+    close = scalar(row, "close", float("nan"))
+    if not math.isfinite(close) or close <= 0 or not math.isfinite(position.avg_cost) or position.avg_cost <= 0:
+        return ""
+    if close / position.avg_cost - 1 <= self.cfg.strategic_cohort_disaster_stop:
+        return "ordinary long-pullback disaster loss against actual average cost"
+    if pullback_graduated(account, entry):
+        return None
+    key = "pullback_exit:" + entry["canonical_sha256"]
+    clock = key + ":session"
+    session = date.toordinal()
+    observed = account.candidate_tenure.get(clock, 0)
+    if observed > session:
+        raise ValueError("pullback exit observations moved backwards")
+    ma120 = scalar(row, "ma120", float("nan"))
+    if not math.isfinite(ma120) or ma120 <= 0:
+        return ""  # Missing structure is neither confirmation nor repair.
+    previous = frame.loc[:date].index[-2].toordinal() if len(frame.loc[:date]) > 1 else 0
+    broken = close < ma120
+    if observed != session:
+        streak = account.replacement_tenure.get(key, 0) if observed == previous else 0
+        account.replacement_tenure[key] = streak + 1 if broken else 0
+        account.candidate_tenure[clock] = session
+    elif not broken:
+        account.replacement_tenure[key] = 0
+    first_fill = min(fill.fill_date for fill in account.fills
+                     if fill.order_id == entry["order_id"] and fill.event_id == entry["event_id"]
+                     and fill.side == "BUY")
+    held_sessions = len(frame.loc[pd.Timestamp(first_fill):date])
+    if (account.replacement_tenure.get(key, 0) >= self.cfg.replacement_confirm_days
+            and held_sessions >= self.cfg.min_hold_days):
+        return "ordinary long-pullback confirmed MA120 deterioration"
+    leader = leaders.get(symbol)
+    ma60, ret60 = scalar(row, "ma60", float("nan")), scalar(row, "ret60", float("nan"))
+    if (not broken and leader is not None and leader.mature
+            and math.isfinite(ma60) and math.isfinite(ret60) and close >= ma60 > 0 and ret60 > 0
+            and self._liquidity_confirmed(frame, date)):
+        record_pullback_graduation(account, entry, date=str(date.date()), proof={
+            "close": close, "ma60": ma60, "ret60": ret60,
+            "mature": True, "liquidity_confirmed": True,
+        })
+        return None
+    return ""
 
 
 def _industry_handoff(

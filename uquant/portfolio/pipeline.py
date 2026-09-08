@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import math
 from dataclasses import dataclass, field, replace
 from typing import TYPE_CHECKING, Any
 
@@ -576,6 +577,13 @@ def _admit_new_cores(book: _AllocationBook, *, candidates: list[str], opportunit
         block = "OPPORTUNITY_NOT_OPEN" if not _core_opportunity_open(opportunity) else "RISK_NOT_NORMAL"
         for symbol in candidates:
             book.record(symbol)["entry_gate"] = block
+        return
+    long_returns: list[Any] = [book.risk.evidence.get(key) for key in ("broad_ret120", "tech_ret120")]
+    trend_open = all(isinstance(value, (int, float)) and not isinstance(value, bool)
+                     and math.isfinite(value) for value in long_returns) and max(long_returns) > 0.0
+    if not trend_open:
+        for symbol in candidates:
+            book.record(symbol)["entry_gate"] = "ORDINARY_TREND_BASIS_NOT_POSITIVE"
         return
     occupied = (book.owned | {s for s, w in book.weights_now.items() if w > 0}
                 | {s for s, w in book.committed.items() if w > 0}

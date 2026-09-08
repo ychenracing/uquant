@@ -80,19 +80,18 @@ def test_structural_confirmation_counts_sessions_once_across_restart():
     assert len(orders) == 1 and orders[0].side == "SELL"
 
 
-@pytest.mark.parametrize("missing", ("maturity", "price", "return", "interrupted", "partial-entry"))
+@pytest.mark.parametrize("missing", ("price", "return", "interrupted", "partial-entry"))
 def test_core_exit_preserves_existing_conjunction_and_entry_completion(missing):
     allocator, account, dates, panel, leaders, roles = _aged_core(partial=missing == "partial-entry")
     damaged = _damage(panel, leaders, dates)
-    if missing == "maturity":
-        damaged = leaders
-    elif missing == "price":
+    if missing == "price":
         panel[OWNER].loc[dates, "ma20"] = panel[OWNER].loc[dates, "close"] * .95
     elif missing == "return":
         panel[OWNER].loc[dates, "ret20"] = -.07
     for index, date in enumerate(dates[:4]):
-        current = leaders if missing == "interrupted" and index == 1 else damaged
-        assert not _decide_and_submit(allocator, account, date, panel, current, roles)
+        if missing == "interrupted" and index == 1:
+            panel[OWNER].loc[date, "ret20"] = -.07
+        assert not _decide_and_submit(allocator, account, date, panel, damaged, roles)
     assert account.positions[OWNER].shares > 0
     assert not account.strategic_epochs[0].terminal
 
@@ -120,3 +119,18 @@ def test_actual_active_epoch_retains_its_strategic_exit_policy():
         assert not _decide_and_submit(allocator, account, date, panel, damaged, roles)
     assert account.positions[OWNER].shares == shares
     assert account.strategic_epochs[0].realized_status == "ACTIVE"
+
+
+def test_completed_staged_holding_maturity_does_not_veto_structural_exit():
+    allocator, account, dates, panel, leaders, roles = _aged_core()
+    _damage(panel, leaders, dates)
+    mature = {symbol: replace(leader, mature=True) for symbol, leader in leaders.items()}
+    for index, date in enumerate(dates[:DEFAULT_CONFIG.replacement_confirm_days]):
+        orders = _decide_and_submit(allocator, account, date, panel, mature, roles)
+        if index < DEFAULT_CONFIG.replacement_confirm_days - 1:
+            assert not orders
+    assert len(orders) == 1 and orders[0].side == "SELL"
+    assert orders[0].target_weight == 0.0
+    assert orders[0].epoch_id == account.strategic_epochs[0].epoch_id
+    assert account.positions[OWNER].shares > 0
+    assert not account.strategic_epochs[0].terminal

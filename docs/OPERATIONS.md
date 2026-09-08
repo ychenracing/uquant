@@ -161,6 +161,10 @@ uv run uquant daily \
 4. `Candidate explanation` 中每个候选的确认、最终目标、真实订单、分支阻塞和资金限制；
 5. Risk/Sentinel 的证据、冻结权限和账户资本修复状态。
 
+`ORDINARY_TREND_BASIS_NOT_POSITIVE` 表示普通新趋势仓位尚无长期市场方向：
+两个指数的 120 日收益须完整、有限且至少一项为正。它不取消已提交的合格订单，不清仓，
+也不替代战略授权、真实现金修复或独立回撤许可的各自判据；没有额外等待天数可手工缩短。
+
 日报只展示本次 `Decision` 与传入 `AccountState`，不重新排序、授予资格或分配资金。
 候选资格为 YES 或阻塞清除都不是下单授权，必须存在本次 Decision 的 BUY 意图。
 已记录的 `reference_coverage_or_confirmation` 表示参考覆盖或确认尚未满足；
@@ -235,9 +239,10 @@ Pair/Single 的首笔订单即使完整成交，grant 仍显示 `PARTIALLY_FILLE
 不手工推进 CORE/ACTIVE，也不改变部分成交余量与真实风险退出的处理。
 
 已完整完成首次入场但 grant 尚未完成部署的 Pair/Single 仓位，还遵守普通 CORE 的结构退出确认：
-不再成熟、价格与近期收益均满足原退化条件，并达到原连续确认和最短持有要求，才提出
+价格与近期收益均满足原退化条件，并达到原连续确认和最短持有要求，才提出
 清仓。战略仓位仍使用 `STRATEGIC_TRAILING_EXIT` 并保留原 grant/event/epoch 归因；
 实际卖出和剩余责任结清前不提前结束 epoch。已完成部署的持仓沿用其持有规则。
+成熟评分恢复不清零持续的结构破坏；赢家仍按原更严格的价格和收益门槛管理。
 
 已完整建仓但尚未完成部署的单一战略持仓达到既有浮盈门槛时，也可能产生 `STRATEGIC_PROFIT_LOCK`
 减仓。对这类仓位，保护上限为

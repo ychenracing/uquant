@@ -235,7 +235,7 @@ def _normalized_method(node: ast.FunctionDef) -> str:
 
 
 def _project_causal_lifecycle_exit(node: ast.FunctionDef) -> ast.FunctionDef:
-    """Project only the exact session clock change back to the frozen counter."""
+    """Project only the reviewed clock and maturity-veto removal to frozen AST."""
     observation = ast.parse(
         '''
 clock = f"lifecycle_exit_session:{symbol}"
@@ -253,6 +253,25 @@ elif not broken:
 '''
     ).body
     projected = copy.deepcopy(node)
+    historical = _immutable_policy_methods(
+        "uquant/portfolio_leaders.py", "LeaderPortfolioPolicy"
+    )["_leader_lifecycle_exit_confirmed"]
+    def broken_assignment(method: ast.FunctionDef) -> ast.Assign:
+        matches = [item for item in method.body if isinstance(item, ast.Assign)
+                   and any(isinstance(target, ast.Name) and target.id == "broken"
+                           for target in item.targets)]
+        assert len(matches) == 1
+        return matches[0]
+    original_broken = broken_assignment(historical)
+    expected = copy.deepcopy(original_broken)
+    assert isinstance(expected.value, ast.Call) and len(expected.value.args) == 1
+    predicate = expected.value.args[0]
+    assert isinstance(predicate, ast.BoolOp) and isinstance(predicate.op, ast.And)
+    assert ast.dump(predicate.values[0]) == ast.dump(ast.parse("not leader.mature", mode="eval").body)
+    predicate.values = predicate.values[1:]
+    current_broken = broken_assignment(projected)
+    assert ast.dump(current_broken) == ast.dump(expected)
+    projected.body[projected.body.index(current_broken)] = copy.deepcopy(original_broken)
     start = -len(observation) - 2
     assert [ast.dump(item) for item in projected.body[start:-2]] == [
         ast.dump(item) for item in observation
@@ -872,6 +891,10 @@ def test_portfolio_leaders_moved_leader_methods_are_immutable_ast_exact() -> Non
 @pytest.mark.parametrize(
     ("original", "replacement"),
     (
+        ("broken = bool(", "broken = bool(not leader.mature and "),
+        ("-0.15 if protected_winner else -0.08", "-0.14 if protected_winner else -0.08"),
+        ("-0.15 if protected_winner else -0.08", "-0.15 if protected_winner else -0.07"),
+        ("peak_mfe >= 0.2", "peak_mfe >= 0.3"),
         ("if observed != session:", "if True:"),
         ("if observed == previous else 0", "if observed <= previous else 0"),
         ("if observed > session:", "if observed < session:"),

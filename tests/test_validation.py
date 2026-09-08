@@ -370,6 +370,24 @@ def test_current_promotion_uses_frozen_continuous_floor_and_absolute_activity_ca
     ))
 
 
+def test_authorized_e_order_revision_is_bounded_and_preserves_risk() -> None:
+    gate = promotion_module.AI_ERA_POLICY["official"]["continuous_ai_era"]
+    metrics = {**_valid_spec()["champion"]["cells"]["e/continuous_ai_era"],
+               "account_orders": 20}
+    assert gate["max_account_orders"] == 15
+    assert promotion_module._hard_violations(name="e/continuous_ai_era", metrics=metrics, gate=gate) == []
+    for name, changed in (
+        ("e/continuous_ai_era", {"account_orders": 21}),
+        ("b/continuous_ai_era", {"account_orders": 16}),
+        ("d/continuous_ai_era", {"account_orders": 16}),
+        ("e/continuous_ai_era", {"max_drawdown": .2726}),
+    ):
+        assert promotion_module._hard_violations(name=name, metrics={**metrics, **changed}, gate=gate)
+    basis = promotion_module.current_promotion_acceptance_basis()["authorized_order_limit"]
+    assert basis["maximum"] == 20 and basis["previous_maximum"] == 15
+    assert basis["authorized_after_observing_candidate"] is True
+
+
 def test_current_promotion_preserves_other_wealth_risk_and_acute_comparisons() -> None:
     champion = _valid_spec()["champion"]["cells"]["b/h1_2023"]
     candidate = {**champion, "final_wealth": champion["final_wealth"] * 0.98,

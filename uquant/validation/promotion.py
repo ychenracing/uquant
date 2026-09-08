@@ -615,6 +615,8 @@ def _hard_violations(*, name: str, metrics: Mapping[str, Any], gate: Mapping[str
             continue
         observed = metrics[metric_name]
         limit = gate[gate_name]
+        if metric_name == "account_orders" and name == "e/continuous_ai_era":
+            limit = _authorized_order_limit()["maximum"]
         breached = observed is None or (observed > limit if maximum else observed < limit)
         if breached:
             direction = "above" if maximum else "below"
@@ -656,6 +658,16 @@ def _champion_violations(*, name: str, metrics: Mapping[str, Any], champion: Map
     return failures
 
 
+def _authorized_order_limit() -> dict[str, Any]:
+    """Explicit user revision; the original compiled policy stays immutable."""
+    return {
+        "scenario": "e/continuous_ai_era", "previous_maximum": 15, "maximum": 20,
+        "authorization_id": "cross-ai-performance-e-orders-20260908",
+        "authorization": "User explicitly accepts actual 20 orders against the former 15-order ceiling",
+        "authorized_after_observing_candidate": True,
+    }
+
+
 def current_promotion_acceptance_basis() -> dict[str, Any]:
     """Bind the current policy override without rewriting the frozen baseline."""
     contract = current_candidate_contract()
@@ -665,7 +677,8 @@ def current_promotion_acceptance_basis() -> dict[str, Any]:
         "contract_sha256": hashlib.sha256(path.read_bytes()).hexdigest(),
         "continuous_minimum_final_wealth": contract["thresholds"]["champion_minimum_final_wealth"],
         "superseded_comparisons": ["continuous_relative_wealth", "relative_orders", "relative_turnover"],
-        "retained_policy": "AI_ERA_POLICY absolute limits and other wealth/drawdown/acute comparisons",
+        "authorized_order_limit": _authorized_order_limit(),
+        "retained_policy": "AI_ERA_POLICY except the explicit E continuous order revision; other wealth/drawdown/acute comparisons retained",
     }
 
 

@@ -63,3 +63,17 @@ def pending_pullback_open(book: _AllocationBook, order: PendingOrder) -> bool:
                                   leader=book.leaders[order.symbol], cfg=book.policy.cfg)
     book.record(order.symbol)["pending_entry"] = proof
     return bool(proof["block"] == "READY")
+
+
+def continue_pullback_order(book: _AllocationBook, order: PendingOrder) -> None:
+    """Retain the entire original intent or close its remaining capital."""
+    current = book.weights_now.get(order.symbol, 0.0)
+    allowed = pending_pullback_open(book, order)
+    continued = bool(allowed and book.proposed.get(order.symbol, 0.0) >= current
+                     and book.fund(order.symbol, order.target_weight, phase="PENDING_PULLBACK_BUY",
+                                   minimum=max(0.0, order.target_weight - current)))
+    book.record(order.symbol)["pending_pullback_open"] = continued
+    if not continued:
+        book.record(order.symbol).update(pending_buy_rejected=True,
+                                        entry_gate="PULLBACK_PERMISSION_CLOSED")
+        book.account.protected_weights.pop(order.symbol, None)

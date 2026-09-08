@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import math
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 import pandas as pd
 
@@ -121,26 +121,11 @@ def _leader_lifecycle_exit_confirmed(
     )
 
 
-def ordinary_pullback_exit(
-    self: LeaderPortfolioPolicy, *, symbol: str, date: pd.Timestamp,
-    user_panel: dict[str, pd.DataFrame], leaders: dict[str, LeaderScore], account: AccountState,
+def _pullback_structure_exit(
+    self: LeaderPortfolioPolicy, *, entry: dict[str, Any], date: pd.Timestamp,
+    frame: pd.DataFrame, row: pd.Series | pd.DataFrame, close: float, account: AccountState,
 ) -> str | None:
-    """None delegates graduated/ordinary holdings; empty text retains the long basis."""
-    entry = holding_pullback_entry(account, symbol)
-    if entry is None:
-        return None
-    position = account.positions[symbol]
-    frame = user_panel.get(symbol)
-    if frame is None or date not in frame.index:
-        return ""
-    row = frame.loc[date]
-    close = scalar(row, "close", float("nan"))
-    if not math.isfinite(close) or close <= 0 or not math.isfinite(position.avg_cost) or position.avg_cost <= 0:
-        return ""
-    if close / position.avg_cost - 1 <= self.cfg.strategic_cohort_disaster_stop:
-        return "ordinary long-pullback disaster loss against actual average cost"
-    if pullback_graduated(account, entry):
-        return None
+    """Confirm the long basis before considering maturity graduation."""
     key = "pullback_exit:" + entry["canonical_sha256"]
     clock = key + ":session"
     session = date.toordinal()
@@ -165,9 +150,36 @@ def ordinary_pullback_exit(
     if (account.replacement_tenure.get(key, 0) >= self.cfg.replacement_confirm_days
             and held_sessions >= self.cfg.min_hold_days):
         return "ordinary long-pullback confirmed MA120 deterioration"
+    return "" if broken else None
+
+
+def ordinary_pullback_exit(
+    self: LeaderPortfolioPolicy, *, symbol: str, date: pd.Timestamp,
+    user_panel: dict[str, pd.DataFrame], leaders: dict[str, LeaderScore], account: AccountState,
+) -> str | None:
+    """None delegates graduated/ordinary holdings; empty text retains the long basis."""
+    entry = holding_pullback_entry(account, symbol)
+    if entry is None:
+        return None
+    position = account.positions[symbol]
+    frame = user_panel.get(symbol)
+    if frame is None or date not in frame.index:
+        return ""
+    row = frame.loc[date]
+    close = scalar(row, "close", float("nan"))
+    if not math.isfinite(close) or close <= 0 or not math.isfinite(position.avg_cost) or position.avg_cost <= 0:
+        return ""
+    if close / position.avg_cost - 1 <= self.cfg.strategic_cohort_disaster_stop:
+        return "ordinary long-pullback disaster loss against actual average cost"
+    if pullback_graduated(account, entry):
+        return None
+    structure_exit = _pullback_structure_exit(
+        self, entry=entry, date=date, frame=frame, row=row, close=close, account=account)
+    if structure_exit is not None:
+        return structure_exit
     leader = leaders.get(symbol)
     ma60, ret60 = scalar(row, "ma60", float("nan")), scalar(row, "ret60", float("nan"))
-    if (not broken and leader is not None and leader.mature
+    if (leader is not None and leader.mature
             and math.isfinite(ma60) and math.isfinite(ret60) and close >= ma60 > 0 and ret60 > 0
             and self._liquidity_confirmed(frame, date)):
         record_pullback_graduation(account, entry, date=str(date.date()), proof={

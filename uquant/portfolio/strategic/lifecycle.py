@@ -432,7 +432,6 @@ def _evaluate_strategic_member(ctx: _StrategicLifecycleContext, symbol: str) -> 
     triggered = [
         peak_mfe >= self.cfg.strategic_cohort_profit_arm
         and structural_damage
-        and math.isfinite(atr)
         and close <= position.highest_close - threshold * atr
         for threshold in ctx.thresholds
     ]

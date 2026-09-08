@@ -38,31 +38,39 @@ def ordinary_core_entry(
     )
 
 
+def _market_conditions(*, opportunity: Opportunity, risk: RiskAssessment,
+                       credible_count: int) -> tuple[bool, bool, list[str]]:
+    """Current market evidence, independent of the observation clock."""
+    keys = ("broad_ret120", "tech_ret120", "ai_fast_return", "declining_ratio",
+            "below_ma20_ratio", "tech_speed", "broad_speed")
+    missing = [key for key in keys if not isinstance(risk.evidence.get(key), (int, float))
+               or isinstance(risk.evidence.get(key), bool)
+               or not math.isfinite(risk.evidence[key])]
+    sustained = impulse = False
+    if not missing:
+        broad, tech, fast, declining, below, tech_speed, broad_speed = (
+            float(risk.evidence[key]) for key in keys)
+        sustained = (min(broad, tech) >= .01 and opportunity is Opportunity.STRONG_TREND
+                     and risk.votes <= 1 and credible_count >= 2)
+        impulse = (min(broad, tech) >= -.01 and max(broad, tech) >= .01
+                   and opportunity in {Opportunity.TREND, Opportunity.STRONG_TREND}
+                   and risk.votes <= 1 and credible_count > 0 and fast >= .15
+                   and declining <= .10 and below <= .10 and max(tech_speed, broad_speed) >= .15)
+    return sustained, impulse, missing
+
+
 def observe_ordinary_market(
     self: PortfolioAllocator, *, date: pd.Timestamp, opportunity: Opportunity,
     risk: RiskAssessment, leaders: dict[str, LeaderScore],
     user_panel: dict[str, pd.DataFrame], account: AccountState,
 ) -> dict[str, Any]:
     """Observe fixed common evidence; actual risk/cash permission stays in the book."""
-    keys = ("broad_ret120", "tech_ret120", "ai_fast_return", "declining_ratio",
-            "below_ma20_ratio", "tech_speed", "broad_speed")
-    missing = [key for key in keys if not isinstance(risk.evidence.get(key), (int, float))
-               or isinstance(risk.evidence.get(key), bool)
-               or not math.isfinite(risk.evidence[key])]
     credible = sorted(symbol for symbol, leader in leaders.items()
                       if symbol in user_panel and date in user_panel[symbol].index
                       and leader.mature and leader.score >= .82
                       and leader.confidence >= self.cfg.leader_min_confidence)
-    sustained = impulse = False
-    if not missing:
-        broad, tech, fast, declining, below, tech_speed, broad_speed = (
-            float(risk.evidence[key]) for key in keys)
-        sustained = (min(broad, tech) >= .01 and opportunity is Opportunity.STRONG_TREND
-                     and risk.votes <= 1 and len(credible) >= 2)
-        impulse = (min(broad, tech) >= -.01 and max(broad, tech) >= .01
-                   and opportunity in {Opportunity.TREND, Opportunity.STRONG_TREND}
-                   and risk.votes <= 1 and bool(credible) and fast >= .15
-                   and declining <= .10 and below <= .10 and max(tech_speed, broad_speed) >= .15)
+    sustained, impulse, missing = _market_conditions(
+        opportunity=opportunity, risk=risk, credible_count=len(credible))
     session = date.toordinal()
     last = account.candidate_tenure.get("ordinary_market_session", 0)
     if last > session:

@@ -47,10 +47,13 @@ def _held_book():
 
 
 def _decide(allocator, account, date, panel, leaders, roles, *, risk=None):
+    risk = risk or _risk()
+    risk.evidence.update(ai_fast_return=.16, declining_ratio=.05, below_ma20_ratio=.05,
+                         tech_speed=.16, broad_speed=.02)
     previous = list(account.pending_orders)
     prices = {symbol: float(frame.loc[date, "close"]) for symbol, frame in panel.items()}
     targets = allocator.allocate(
-        date=date, opportunity=Opportunity.TREND, risk=risk or _risk(),
+        date=date, opportunity=Opportunity.TREND, risk=risk,
         user_panel=panel, leaders=leaders, account=account, prices=prices,
         qualification_panel=panel, qualification_leaders=leaders, strategic_universe=roles,
     )
@@ -95,7 +98,7 @@ def test_current_full_certificate_funds_ordinary_core_beside_healthy_strategic_o
     assert account.replacement_tenure.get(f"strategic_eligibility:independent_core:{CHALLENGER}", 0) == 0
     buys = [order for order in account.pending_orders if order.symbol == CHALLENGER and order.side == "BUY"]
     assert len(buys) == 1
-    assert buys[0].target_weight == pytest.approx(DEFAULT_CONFIG.core_admission_weight)
+    assert buys[0].target_weight == pytest.approx(DEFAULT_CONFIG.trend_entry_gross / len(WITNESSES))
     assert buys[0].mechanism == "LEADER_SELECTION"
     assert buys[0].lifecycle == "CORE"
     assert buys[0].grant_id == buys[0].epoch_id == ""
@@ -216,7 +219,8 @@ def test_multiple_certificates_do_not_duplicate_budget_or_hide_candidate_behind_
     )
     held_shares = account.positions[OWNER].shares
     for date in dates[:DEFAULT_CONFIG.strategic_two_name_confirm_days]:
-        _decide(allocator, account, date, panel, leaders, roles)
+        risk = _risk()
+        _decide(allocator, account, date, panel, leaders, roles, risk=risk)
     snapshots = allocator._strategic_qualification_snapshots(date=date, user_panel=panel, leaders=leaders)
     accepted = [(route, quorum) for route, quorum, streak in strategic_candidate_certificates(
         allocator, snapshots=snapshots, leaders=leaders, risk=_risk(), account=account,
@@ -225,8 +229,16 @@ def test_multiple_certificates_do_not_duplicate_budget_or_hide_candidate_behind_
     assert accepted[0][0].owner_symbol == OWNER
     assert len([route for route, _ in accepted if route.owner_symbol == CHALLENGER]) > 1
     buys = [order for order in account.pending_orders if order.symbol == CHALLENGER and order.side == "BUY"]
-    assert len(buys) == 1 and buys[0].target_weight == pytest.approx(DEFAULT_CONFIG.core_admission_weight)
-    assert len([order for order in account.order_ledger if order.symbol == CHALLENGER and order.side == "BUY"]) == 1
+    budget = risk.evidence["core_allocation"]["symbols"][CHALLENGER]["budget_checks"][-1]
+    assert budget["desired_increment"] == pytest.approx(DEFAULT_CONFIG.trend_entry_gross / 2)
+    assert budget["funded_increment"] == pytest.approx(budget["correlation_room"])
+    assert len(buys) == 1 and buys[0].target_weight == pytest.approx(budget["funded_increment"])
+    recorded = [order for order in account.order_ledger if order.symbol == CHALLENGER and order.side == "BUY"]
+    # Real incumbent price drift reduces room slightly: replacement retires the old
+    # intent, never duplicates active quantity or uses each certificate as capital.
+    assert len(recorded) == 2 and recorded[0].status == "REPLACED"
+    assert recorded[1].order_id == buys[0].order_id and recorded[0].filled_shares == 0
+    assert recorded[1].target_weight < recorded[0].target_weight
     assert account.positions[OWNER].shares == held_shares
     fills = ExecutionPlanner(DEFAULT_CONFIG).execute_open(
         date=dates[DEFAULT_CONFIG.strategic_two_name_confirm_days], account=account, panel=panel,

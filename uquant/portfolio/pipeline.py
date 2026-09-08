@@ -27,7 +27,7 @@ from ..types import (
 from .capital import committed_capital, funded_increment
 from .leaders.lifecycle import ordinary_pullback_exit
 from .ordinary import observe_ordinary_market, ordinary_core_entry
-from .pullback import admit_pullback, pending_pullback_open
+from .pullback import admit_pullback, continue_pullback_order
 from .strategic.authority import assess_strategic_capital_authority
 from .strategic.discovery import current_core_qualification
 from .strategic.grant_lifecycle import completed_strategic_core_entry as _completed_strategic_core_entry
@@ -355,15 +355,7 @@ def _pending_intents(book: _AllocationBook, *, buy_open: bool, market_open: bool
               and order.mechanism != AttributionMechanism.POST_SHOCK_RESTORATION.value):
             current = book.weights_now.get(order.symbol, 0.0)
             if order.reason_code == PULLBACK_REASON:
-                allowed = pending_pullback_open(book, order)
-                continued = bool(allowed and book.proposed.get(order.symbol, 0.0) >= current
-                                 and book.fund(order.symbol, order.target_weight, phase="PENDING_PULLBACK_BUY",
-                                               minimum=max(0.0, order.target_weight - current)))
-                book.record(order.symbol)["pending_pullback_open"] = continued
-                if not continued:
-                    book.record(order.symbol).update(pending_buy_rejected=True,
-                                                    entry_gate="PULLBACK_PERMISSION_CLOSED")
-                    book.account.protected_weights.pop(order.symbol, None)
+                continue_pullback_order(book, order)
                 continue
             repair_open = ordinary_cash_rearm_order_open(
                 account=book.account, risk=book.risk, cfg=book.policy.cfg, order=order,
@@ -393,6 +385,19 @@ def _pending_intents(book: _AllocationBook, *, buy_open: bool, market_open: bool
                 book.fund(order.symbol, order.target_weight, phase="PENDING_CORE_BUY")
 
 
+def _restoration_episode_block(book: _AllocationBook, symbol: str) -> str | None:
+    """Restoration belongs only to the live, mature episode crossing the shock."""
+    account = book.account
+    entry = holding_pullback_entry(account, symbol)
+    if entry is not None and not pullback_graduated(account, entry):
+        return "PULLBACK_NOT_GRADUATED"
+    if book.weights_now.get(symbol, 0.0) <= 0:
+        return "NEW_ENTRY_REQUIRES_QUALIFICATION"
+    if not holding_spans_date(account, symbol, account.last_shock_date):
+        return "RESTORATION_EPISODE_NOT_LINKED_TO_HOLDING"
+    return None
+
+
 def _restore_ordinary_holdings(book: _AllocationBook) -> None:
     account, cfg = book.account, book.policy.cfg
     episode = pd.Timestamp(account.last_shock_date).toordinal() if account.last_shock_date else 0
@@ -400,15 +405,9 @@ def _restore_ordinary_holdings(book: _AllocationBook) -> None:
         if symbol in book.owned:
             continue
         row = book.record(symbol)
-        entry = holding_pullback_entry(account, symbol)
-        if entry is not None and not pullback_graduated(account, entry):
-            row["restore_block"] = "PULLBACK_NOT_GRADUATED"
-            continue
-        if book.weights_now.get(symbol, 0.0) <= 0:
-            row["restore_block"] = "NEW_ENTRY_REQUIRES_QUALIFICATION"
-            continue
-        if not holding_spans_date(account, symbol, account.last_shock_date):
-            row["restore_block"] = "RESTORATION_EPISODE_NOT_LINKED_TO_HOLDING"
+        episode_block = _restoration_episode_block(book, symbol)
+        if episode_block is not None:
+            row["restore_block"] = episode_block
             continue
         pending_buy = next((order for order in account.pending_orders
                             if order.symbol == symbol and order.side == "BUY"), None)

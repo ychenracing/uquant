@@ -66,7 +66,9 @@ def _tactical_targets(
     frame["ret20"], frame["ret120"] = ret20, ret120
     account = AccountState.empty(2_000_000.0)
     market = {"broad_ret120": broad_ret120, "tech_ret120": tech_ret120,
-              "breadth20": 0.70, "broad_ret20": 0.02, "tech_ret20": 0.02}
+              "breadth20": 0.70, "broad_ret20": 0.02, "tech_ret20": 0.02,
+              "ai_fast_return": .16, "declining_ratio": .05, "below_ma20_ratio": .05,
+              "tech_speed": .16, "broad_speed": .02}
     if missing_market_field is not None:
         market.pop(missing_market_field)
     risk = RiskAssessment(Risk.NORMAL, 1.0, 0, market, (), "NONE")
@@ -88,18 +90,18 @@ def _tactical_targets(
     return targets, account
 
 
-def test_transitional_recovery_admits_only_promotable_deep_crash_candidate():
+def test_common_trend_admits_confirmed_independent_core():
     targets, account = _tactical_targets(
         ret20=0.10,
         ret120=0.50,
-        broad_ret120=-0.10,
+        broad_ret120=-0.005,
         tech_ret120=0.04,
     )
 
     assert [(target.symbol, target.lifecycle) for target in targets] == [
         ("deep_candidate", Lifecycle.CORE.value)
     ]
-    assert targets[0].weight == pytest.approx(DEFAULT_CONFIG.core_admission_weight)
+    assert targets[0].weight == pytest.approx(DEFAULT_CONFIG.single_core_entry_cap)
     assert account.strategic_grant is None
     assert account.tactical_anchor_symbol == ""
 
@@ -108,7 +110,7 @@ def test_transitional_recovery_rejects_ordinary_rebound_candidate():
     targets, account = _tactical_targets(
         ret20=-0.20,
         ret120=-0.10,
-        broad_ret120=-0.10,
+        broad_ret120=-0.005,
         tech_ret120=0.04,
     )
 
@@ -120,7 +122,7 @@ def test_transitional_recovery_rejects_ordinary_rebound_candidate():
 @pytest.mark.parametrize("field", ("breadth20", "broad_ret20", "tech_ret20", "broad_ret120", "tech_ret120"))
 def test_independent_recovery_rejects_incomplete_current_market_evidence(field):
     targets, account = _tactical_targets(
-        ret20=0.10, ret120=0.50, broad_ret120=-0.10, tech_ret120=0.04,
+        ret20=0.10, ret120=0.50, broad_ret120=-0.005, tech_ret120=0.04,
         missing_market_field=field,
     )
     assert targets == ()
@@ -133,7 +135,7 @@ def test_independent_recovery_candidate_requires_each_strict_quality_floor(
     leader_score: float, secular_score: float,
 ) -> None:
     targets, account = _tactical_targets(
-        ret20=0.10, ret120=0.50, broad_ret120=-0.10, tech_ret120=0.04,
+        ret20=0.10, ret120=0.50, broad_ret120=-0.005, tech_ret120=0.04,
         leader_score=leader_score, secular_score=secular_score,
     )
 
@@ -493,7 +495,7 @@ def test_strong_two_index_market_does_not_mask_independent_deep_probe():
     )
 
     assert {target.symbol: target.weight for target in targets} == pytest.approx(
-        {"deep_candidate": DEFAULT_CONFIG.core_admission_weight}
+        {"deep_candidate": DEFAULT_CONFIG.single_core_entry_cap}
     )
     assert account.candidate_tenure.get("tactical_active", 0) == 0
 

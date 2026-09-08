@@ -3,9 +3,8 @@ from __future__ import annotations
 
 from dataclasses import asdict, replace
 
-import pandas as pd
 import pytest
-from test_lifecycle_and_risk import _leader, _strategic_frame
+from test_lifecycle_and_risk import _leader
 from test_shared_core_qualification import _decide
 from test_strategic_cohort_deployment_settlement import SYMBOLS, _native_full
 from test_strategic_grant_observation import _risk
@@ -15,65 +14,27 @@ from uquant.account.codec import account_from_dict
 from uquant.config import DEFAULT_CONFIG
 from uquant.execution import ExecutionPlanner
 from uquant.models.strategic_universe import build_strategic_universe_roles
-from uquant.portfolio import PortfolioAllocator
-from uquant.types import AccountState, Risk
-
-
-def _native_mixed(*, execution="complete"):
-    dates = pd.bdate_range("2023-01-02", periods=280)
-    panel = {symbol: _strategic_frame(dates) for symbol in SYMBOLS}
-    for frame in panel.values():
-        frame["open"] = frame["close"]
-        frame["high"] = frame["close"] * 1.01
-        frame["low"] = frame["close"] * .99
-        frame["volume"] = 100_000_000.
-    leaders = {symbol: _leader(symbol, .96 - index * .01, industry=("optical", "foundry", "equipment")[index])
-               for index, symbol in enumerate(SYMBOLS)}
-    roles = build_strategic_universe_roles(
-        as_of=str(dates[-1].date()), tradable_symbols=SYMBOLS,
-        qualification_reference_symbols=SYMBOLS,
-        risk_reference_symbols=("sh000300", "sh000682"),
-        industries={symbol: leader.industry for symbol, leader in leaders.items()},
-        available_symbols=(*SYMBOLS, "sh000300", "sh000682"),
-    )
-    account = AccountState.empty(2_000_000.)
-    account.account_identity = "account:full-native-settlement"
-    account.code_hash, account.data_hash = "source:regression", "data:regression"
-    policy = PortfolioAllocator(DEFAULT_CONFIG)
-    for index in range(240, 250):
-        _decide(policy, account, dates[index], panel, leaders, roles, risk=_risk(frozen=False))
-        if account.pending_orders:
-            break
-    assert len(account.pending_orders) == 3
-    assert account.strategic_grant.qualification_quorum == "FULL_COHORT"
-    assert account.candidate_tenure.get("strategic_cohort_started", 0) == 0
-    fill_day = dates[index + 1]
-    if execution != "pending":
-        if execution == "partial":
-            panel[SYMBOLS[-1]].loc[fill_day, "volume"] = 100_000.
-        cfg = DEFAULT_CONFIG.override(max_volume_participation=.002) if execution == "partial" else DEFAULT_CONFIG
-        fills = ExecutionPlanner(cfg).execute_open(date=fill_day, account=account, panel=panel)
-        assert len(fills) == 3 and all(fill.shares > 0 for fill in fills)
-        if execution == "complete":
-            assert all(order.status == "FILLED" and order.remaining_shares == 0 for order in account.order_ledger)
-            assert not account.pending_orders
-        else:
-            assert any(order.status == "PARTIALLY_FILLED" for order in account.order_ledger)
-    # A healthy price rise in one member makes the other two close weights fall
-    # below .95*target even when every requested initial share really settled.
-    for column, factor in (("open", 1), ("close", 1), ("high", 1.01), ("low", .99),
-                           ("ma20", .95), ("ma60", .85)):
-        price = float(panel[SYMBOLS[0]].loc[fill_day, "close"]) * 1.5
-        panel[SYMBOLS[0]].loc[fill_day:, column] = price * factor
-    return policy, account, dates[index + 1:], panel, leaders, roles
-
+from uquant.types import Risk
 
 
 def _deployed(*, mixed=False):
-    policy, account, dates, panel, leaders, roles = (_native_mixed if mixed else _native_full)()
+    policy, account, dates, panel, leaders, roles = _native_full()
     _decide(policy, account, dates[0], panel, leaders, roles, risk=_risk(frozen=False))
     assert account.candidate_tenure["strategic_cohort_started"] == 1
     assert not account.pending_orders
+    if mixed:
+        # Bootstrap a genuinely supported same-industry formation and real fills
+        # above. Later current classifications diversify the held book; this is
+        # not evidence that a cross-industry established grant was authorized.
+        leaders = {symbol: replace(leaders[symbol], industry=industry)
+                   for symbol, industry in zip(SYMBOLS, ("optical", "foundry", "equipment"), strict=True)}
+        roles = build_strategic_universe_roles(
+            as_of=str(dates[1].date()), tradable_symbols=SYMBOLS,
+            qualification_reference_symbols=SYMBOLS,
+            risk_reference_symbols=("sh000300", "sh000682"),
+            industries={symbol: leader.industry for symbol, leader in leaders.items()},
+            available_symbols=(*SYMBOLS, "sh000300", "sh000682"),
+        )
     return policy, account, dates[1:], panel, _entry_deteriorated(leaders), roles
 
 
@@ -180,7 +141,9 @@ def _reentered_member():
     leaders[symbol] = _leader(symbol, .99, industry=leaders[symbol].industry)
     for index, date in enumerate(dates[2:14], 2):
         account = account_from_dict(asdict(account))
-        _decide(policy, account, date, panel, leaders, roles, risk=_risk(frozen=False))
+        risk = _risk(frozen=False)
+        risk.evidence.update(broad_ret120=.04, tech_ret120=.04)
+        _decide(policy, account, date, panel, leaders, roles, risk=risk)
         orders = [order for order in account.pending_orders if order.symbol == symbol and order.side == "BUY"]
         if orders:
             assert orders[0].mechanism != "STRATEGIC_RESTORATION"

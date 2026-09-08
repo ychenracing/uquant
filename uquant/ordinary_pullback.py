@@ -31,6 +31,25 @@ def pullback_quality(values: dict[str, Any], cfg: SystemConfig) -> bool:
     return all(_finite(values.get(k)) and values[k] >= floor for k, floor in floors.items())
 
 
+def _read_quality(leader: LeaderScore, cfg: SystemConfig, values: dict[str, Any]) -> str | None:
+    """Add verified industry and stock quality to the current proof."""
+    components = leader.components
+    industry_confidence = components.get("industry_inference_confidence")
+    unknown = components.get("unknown_industry")
+    if (leader.industry in {"", "unknown"} or not _finite(industry_confidence)
+            or industry_confidence < cfg.strategic_secular_min_confidence
+            or not _finite(unknown) or unknown >= .5):
+        return "INDUSTRY_NOT_VERIFIED"
+    quality_keys = ("secular_score", "secular_confidence", "momentum60", "momentum120", "relative_strength")
+    if not _finite(leader.confidence) or any(not _finite(components.get(k)) for k in quality_keys):
+        return "CURRENT_QUALITY_UNAVAILABLE"
+    values.update({k: float(components[k]) for k in quality_keys})
+    values["leader_confidence"] = float(leader.confidence)
+    if not pullback_quality(values, cfg):
+        return "LONG_QUALITY_INCOMPLETE"
+    return None
+
+
 def current_pullback_proof(
     *, symbol: str, date: pd.Timestamp, frame: pd.DataFrame, leader: LeaderScore,
     cfg: SystemConfig,
@@ -50,20 +69,9 @@ def current_pullback_proof(
     if any(not _finite(row.get(key)) for key in keys):
         return {**result, "block": "CURRENT_MARKET_DATA_UNAVAILABLE"}
     values.update({key: float(row[key]) for key in keys})
-    components = leader.components
-    industry_confidence = components.get("industry_inference_confidence")
-    unknown = components.get("unknown_industry")
-    if (leader.industry in {"", "unknown"} or not _finite(industry_confidence)
-            or industry_confidence < cfg.strategic_secular_min_confidence
-            or not _finite(unknown) or unknown >= .5):
-        return {**result, "block": "INDUSTRY_NOT_VERIFIED"}
-    quality_keys = ("secular_score", "secular_confidence", "momentum60", "momentum120", "relative_strength")
-    if not _finite(leader.confidence) or any(not _finite(components.get(k)) for k in quality_keys):
-        return {**result, "block": "CURRENT_QUALITY_UNAVAILABLE"}
-    values.update({k: float(components[k]) for k in quality_keys})
-    values["leader_confidence"] = float(leader.confidence)
-    if not pullback_quality(values, cfg):
-        return {**result, "block": "LONG_QUALITY_INCOMPLETE"}
+    quality_block = _read_quality(leader, cfg, values)
+    if quality_block is not None:
+        return {**result, "block": quality_block}
     if not (values["close"] >= values["ma120"] > 0
             and values["ret20"] <= cfg.tactical_rebound_breadth_max_ret20
             and values["ret60"] >= cfg.tactical_rebound_min_ret60

@@ -203,21 +203,6 @@ def _prepare_strategic_owner_targets(
         if qualified.route == "reversal_industry" and len(weighted_symbols) == 2
         else None
     )
-    restricted_owner = (
-        qualified.quorum_route
-        in {
-            StrategicQuorumRoute.STRONG_PAIR.value,
-            StrategicQuorumRoute.ABSOLUTE_SINGLE.value,
-        }
-        or qualified.cash_rearm_authorized
-    )
-    symbols = (
-        [account.strategic_qualification.candidate_symbol]
-        if restricted_owner
-        else [dominant_symbol]
-        if dominant_symbol is not None
-        else list(weighted_symbols)
-    )
     desired = _strategic_target_weights(
         self,
         symbols=qualified.symbols,
@@ -256,7 +241,7 @@ def _prepare_strategic_owner_targets(
         account.strategic_qualification.deployment_blocked = True
         account.strategic_qualification.deployment_block_reason = "insufficient_executable_capital"
         return False, None
-    account.strategic_cohort_symbols = [s for s in symbols if s in targets]
+    account.strategic_cohort_symbols = [s for s in weighted_symbols if s in targets]
     account.strategic_cohort_targets = targets
     return True, dominant_symbol
 

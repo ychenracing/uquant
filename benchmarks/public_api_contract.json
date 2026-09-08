@@ -46748,6 +46748,7 @@
         "path": "uquant/portfolio/pullback.py",
         "public_names": [
           "admit_pullback",
+          "continue_pullback_order",
           "pending_pullback_open"
         ],
         "functions": {
@@ -46763,6 +46764,27 @@
               }
             ],
             "return": "set[str]"
+          },
+          "continue_pullback_order": {
+            "parameters": [
+              {
+                "name": "book",
+                "kind": "POSITIONAL_OR_KEYWORD",
+                "annotation": "_AllocationBook",
+                "default": {
+                  "kind": "required"
+                }
+              },
+              {
+                "name": "order",
+                "kind": "POSITIONAL_OR_KEYWORD",
+                "annotation": "PendingOrder",
+                "default": {
+                  "kind": "required"
+                }
+              }
+            ],
+            "return": "None"
           },
           "pending_pullback_open": {
             "parameters": [
@@ -95978,7 +96000,7 @@
     }
   },
   "contract_id": "uquant-public-api-v1",
-  "contract_sha256": "d61539e3a70fcb28cce441e9ed9fbba99e9dca40782b21874fe831eb0dc38795",
+  "contract_sha256": "7fbfb02a82f2a4172ec8df6e52bdb252a3db01cac30cf62a99f440f0df8fb4d9",
   "recorded_on": "2026-09-05",
   "schema_version": 1
 }

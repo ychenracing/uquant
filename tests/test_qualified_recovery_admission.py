@@ -43,8 +43,11 @@ def _scenario(route):
     return PortfolioAllocator(DEFAULT_CONFIG), account, dates[240:], panel, leaders, roles
 
 
-def _decide(policy, account, date, panel, leaders, roles, *, risk=None, opportunity=Opportunity.RECOVERY):
+def _decide(policy, account, date, panel, leaders, roles, *, risk=None, opportunity=Opportunity.TREND):
     risk = _risk(frozen=False) if risk is None else risk
+    risk = replace(risk, evidence={**risk.evidence, "broad_ret120": .04,
+        "ai_fast_return": .16, "declining_ratio": .05, "below_ma20_ratio": .05,
+        "tech_speed": .16, "broad_speed": .02})
     previous = list(account.pending_orders)
     prices = {symbol: float(frame.loc[date, "close"]) for symbol, frame in panel.items()}
     targets = policy.allocate(
@@ -66,10 +69,11 @@ def _decide(policy, account, date, panel, leaders, roles, *, risk=None, opportun
 
 
 @pytest.mark.parametrize("route", ("ordinary", "strategic"))
-def test_recovery_current_qualification_produces_real_core_order_and_next_open_fill(route):
+def test_current_trend_ordinary_or_recovery_strategic_produces_real_order_and_fill(route):
     policy, account, dates, panel, leaders, roles = _scenario(route)
     for _index, date in enumerate(dates[:7]):
-        _decide(policy, account, date, panel, leaders, roles)
+        _decide(policy, account, date, panel, leaders, roles,
+                opportunity=Opportunity.TREND if route == "ordinary" else Opportunity.RECOVERY)
         if account.pending_orders:
             break
     else:
@@ -78,7 +82,7 @@ def test_recovery_current_qualification_produces_real_core_order_and_next_open_f
     assert all(order.side == "BUY" and order.lifecycle == "CORE" for order in orders)
     if route == "ordinary":
         assert len(orders) == 1 and orders[0].mechanism == "LEADER_SELECTION"
-        assert orders[0].target_weight == pytest.approx(DEFAULT_CONFIG.core_admission_weight)
+        assert orders[0].target_weight == pytest.approx(DEFAULT_CONFIG.single_core_entry_cap)
         assert orders[0].grant_id == orders[0].epoch_id == ""
         assert account.strategic_grant is None
         assert account.replacement_tenure[f"strategic_eligibility:independent_core:{OWNER}"] >= 5
@@ -95,7 +99,8 @@ def test_recovery_current_qualification_produces_real_core_order_and_next_open_f
 @pytest.mark.parametrize("block", ("caution", "risk_off", "freeze", "sentinel", "qualification", "choppy", "weak"))
 def test_recovery_does_not_bypass_current_risk_qualification_cash_or_closed_opportunity(route, block):
     policy, account, dates, panel, leaders, roles = _scenario(route)
-    risk, opportunity = _risk(frozen=False), Opportunity.RECOVERY
+    risk = _risk(frozen=False)
+    opportunity = Opportunity.TREND if route == "ordinary" else Opportunity.RECOVERY
     if block in {"caution", "risk_off"}:
         risk = replace(risk, state=Risk.CAUTION if block == "caution" else Risk.RISK_OFF)
     elif block in {"freeze", "sentinel"}:
@@ -135,7 +140,7 @@ def test_frozen_recovery_does_not_accumulate_trend_only_flat_repair():
     assert account.capital_budget_level == 1
 
 
-def test_recovery_partial_buy_still_loses_capital_when_current_qualification_fails():
+def test_trend_partial_buy_still_loses_capital_when_current_qualification_fails():
     policy, account, dates, panel, leaders, roles = _scenario("ordinary")
     for _index, date in enumerate(dates[:7]):
         _decide(policy, account, date, panel, leaders, roles)
@@ -161,7 +166,7 @@ def test_recovery_partial_buy_still_loses_capital_when_current_qualification_fai
 
 
 @pytest.mark.parametrize("cash_available", (True, False), ids=("spendable-cash", "no-spendable-cash"))
-def test_recovery_new_independent_core_beside_real_holding_uses_only_available_cash(cash_available):
+def test_trend_new_independent_core_beside_real_holding_uses_only_available_cash(cash_available):
     policy, account, dates, panel, leaders, roles = _scenario("ordinary")
     for _index, date in enumerate(dates[:7]):
         _decide(policy, account, date, panel, leaders, roles, opportunity=Opportunity.TREND)
@@ -195,7 +200,8 @@ def test_recovery_new_independent_core_beside_real_holding_uses_only_available_c
     if cash_available:
         assert len(buys) == 1 and buys[0].symbol == challenger
         assert buys[0].mechanism == "LEADER_SELECTION"
-        assert buys[0].target_weight == pytest.approx(DEFAULT_CONFIG.core_admission_weight)
+        held_weight = held_shares * float(panel[OWNER].loc[date, "close"]) / (account.cash + held_shares * float(panel[OWNER].loc[date, "close"]))
+        assert buys[0].target_weight == pytest.approx(DEFAULT_CONFIG.industry_weight_cap - held_weight)
         assert sum(target.weight for target in targets) <= DEFAULT_CONFIG.max_gross
         fills = ExecutionPlanner(DEFAULT_CONFIG).execute_open(date=new_dates[_step + 1], account=account, panel=panel)
         assert len(fills) == 1 and fills[0].symbol == challenger and fills[0].shares > 0
@@ -204,3 +210,11 @@ def test_recovery_new_independent_core_beside_real_holding_uses_only_available_c
         assert not buys
         assert challenger not in account.positions
         assert len(account.fills) == 1
+
+
+def test_ordinary_recovery_is_closed_even_with_current_stock_and_common_numeric_proof():
+    policy, account, dates, panel, leaders, roles = _scenario("ordinary")
+    for date in dates[:7]:
+        _decide(policy, account, date, panel, leaders, roles, opportunity=Opportunity.RECOVERY)
+        assert not account.pending_orders
+    assert not account.fills and not account.positions and account.strategic_grant is None

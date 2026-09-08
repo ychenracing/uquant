@@ -46,3 +46,41 @@ readback. It is an uncommitted integration smoke, not final-candidate economics.
 Focused review identified the constrained partial and same-date graduation issues
 above; exact native regressions pass after correction. New modules are explicitly
 registered in all applicable current source surfaces; immutable history is intact.
+
+
+## Completed AF selection and engineering closure
+
+Frozen head07b8b7a74d1ee88fe1f8fdcc1ae0ed1a9dc16e18,
+source2fcb1881142ff854f9252d22dc88faf4bd9944ba540d1b17306a504b101f9813:
+original41-session failed-first-grant PASS (first zero-fill EXPIRED, second actual
+fill); champion869 PASS wealth24.12445630206646, drawdown.2804511647433501,
+11 orders; no-optical H1_2024 inclusiveJan2–Jul1/118 PASS wealth1.031451150231275,
+drawdown.031365428494560144,6 orders; remove-all-three H2_2024/125 PASS
+wealth1.7573855855462863, drawdown.08711716712158091,5 orders. Strict native
+account/ledger/identity readback passed every selected case. This is selected
+nominal evidence, not full14/64 or formal gate acceptance.
+
+Complete raw archive SHA256
+d35eafcd8380e8ab52a1e968f66d13e91b9682338faf91ebd132473cbc760f46,
+43,260,393 bytes,1233 verified members; persistent evidence ID
+libfile_20e34eb0f86c8191ba0cef2fca82aecc. Original files retain their source identity.
+
+Subsequent engineering closure removes duplicate owner-list selection and a
+redundant ATR finite check. Market numeric evidence and its session clock have
+separate responsibilities; entry audit union validation is split by envelope,
+order binding, stock proof and actual graduation holding. Pending pullback funding
+stays in the pullback module, and restoration checks the live episode explicitly.
+No threshold, risk authority, quantity accounting or historical budget is relaxed.
+The changed source requires its own final evidence; these results are not relabelled.
+
+Old ordinary RECOVERY-positive fixtures represented superseded trajectories:
+AE common permission explicitly requires TREND/STRONG_TREND. Current tests prove
+ordinary RECOVERY remains closed with otherwise complete evidence, strategic
+RECOVERY still creates real orders/fills, and ordinary TREND uses only available
+capital. Candidate certificate ranking and permission to create a new strategic
+grant are asserted separately. Retirement fixtures use real same-industry native
+formation then an explicitly changed current industry classification; they do not
+claim an original cross-industry grant. Existing fill/partial/late/restart/FIFO and
+risk/cash/identity negatives remain. One legacy recovery-breadth test contains two
+long replays and was stopped/excluded from this bounded engineering check; it is
+not reported as passing and does not substitute the frozen sensitivity matrix.

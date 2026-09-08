@@ -18,7 +18,7 @@ from test_unified_strategic_selection import (
 from uquant.config import DEFAULT_CONFIG
 from uquant.models.strategic_universe import build_strategic_universe_roles
 from uquant.portfolio import PortfolioAllocator
-from uquant.portfolio.strategic import grant_lifecycle
+from uquant.portfolio.strategic import discovery, grant_lifecycle
 from uquant.portfolio.strategic.qualification_candidates import strategic_route_candidates
 
 
@@ -61,13 +61,37 @@ def test_true_decisive_evidence_precedes_score_only_after_confirmation(monkeypat
         **_risk().evidence, "risk_anchor_symbols": [],
         "tech_ret120": -0.05, "broad_ret120": -0.05,
     })
+    certificates = []
+    original = discovery.strategic_candidate_certificates
+
+    def record_certificates(*args, **kwargs):
+        evaluated = original(*args, **kwargs)
+        certificates[:] = evaluated
+        return evaluated
+
+    monkeypatch.setattr(discovery, "strategic_candidate_certificates", record_certificates)
     account = _observe_group_candidates(
         monkeypatch, snapshots=snapshots, leaders=leaders, counts=counts, risk=risk,
     )
 
-    expected = reversal[0] if certificate == "ready" else ordinary[0]
+    # Candidate ranking still prefers the confirmed decisive witness, otherwise
+    # the higher scorer. New-grant permission is a separate formation decision.
+    ranked = reversal[0] if certificate == "ready" else ordinary[0]
+    assert certificates[0][0].owner_symbol == ranked
+    reversal_certificates = [route for route, _quorum, _streak in certificates
+                             if route.owner_symbol == reversal[0]]
+    if certificate == "not_decisive":
+        assert reversal_certificates
+        assert all(route.decisive_reversal_symbol is None for route in reversal_certificates)
+    expected = reversal[0] if certificate in {"ready", "not_decisive"} else ordinary[0]
     assert account.strategic_qualification.candidate_symbol == expected
     assert account.strategic_qualification.qualification_ready
+    if certificate in {"unconfirmed", "other_industry"}:
+        # Established strength remains a valid certificate but is not new
+        # long-cycle capital authority without genuine repair permission.
+        assert account.strategic_grant is None
+        assert account.strategic_cohort_targets == {}
+        return
     assert account.strategic_grant is not None
     assert account.strategic_grant.candidate_symbol == expected
     assert account.strategic_cohort_targets.get(expected, 0.0) > 0.0
@@ -137,10 +161,9 @@ def test_fixed_witnesses_preserve_independent_single_and_other_industry_group(mo
 
     assert account.strategic_qualification.candidate_symbol == expected
     assert account.strategic_qualification.qualification_ready
-    assert account.strategic_grant is not None
-    assert account.strategic_grant.candidate_symbol == expected
-    assert account.strategic_cohort_targets.get(expected, 0.0) > 0.0
     if strict_single:
+        assert account.strategic_grant is not None
+        assert account.strategic_grant.candidate_symbol == expected
         assert account.strategic_qualification.qualification_quorum == "ABSOLUTE_SINGLE"
         assert account.strategic_cohort_targets == {expected: pytest.approx(DEFAULT_CONFIG.core_admission_weight)}
     else:
@@ -148,6 +171,8 @@ def test_fixed_witnesses_preserve_independent_single_and_other_industry_group(mo
         assert set(account.strategic_qualification.candidate_symbols) == {
             "POWER_FIRST", "POWER_SECOND", "POWER_THIRD",
         }
+        assert account.strategic_grant is None
+        assert account.strategic_cohort_targets == {}
 
 
 def _strong_decisive_inputs(symbols=("A_LEAD", "B_RUNNER", "C_RESERVE")):

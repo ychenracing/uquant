@@ -29,8 +29,11 @@ def _submit(account, targets, date, panel):
 
 
 def _allocate(policy, account, date, panel, leaders):
+    risk = _normal_risk()
+    risk.evidence.update(broad_ret120=.04, tech_ret120=.04, ai_fast_return=.16,
+                         declining_ratio=.05, below_ma20_ratio=.05, tech_speed=.16, broad_speed=.02)
     return policy.allocate(
-        date=date, opportunity=Opportunity.TREND, risk=_normal_risk(), user_panel=panel,
+        date=date, opportunity=Opportunity.TREND, risk=risk, user_panel=panel,
         leaders=leaders, account=account,
         prices={s: float(frame.loc[date, 'close']) for s, frame in panel.items()},
     )

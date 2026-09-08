@@ -43,6 +43,30 @@ if TYPE_CHECKING:
     from .allocator import PortfolioAllocator
 
 
+def _ordinary_entry(
+    self: PortfolioAllocator, *, symbol: str, score: LeaderScore, date: pd.Timestamp,
+    user_panel: dict[str, pd.DataFrame], account: AccountState,
+    confirmation_days: int,
+    certificate: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    tenure = account.leader_tenure.get(symbol, 0)
+    reference = account.strategic_cash_rearm.consumed_order
+    repair_pending = reference is not None and any(
+        order.symbol == symbol and order.order_id == reference.order_id
+        and order.event_id == reference.event_id for order in account.pending_orders
+    )
+    if certificate is None and score.mature and tenure >= self.cfg.leader_tenure_days and not repair_pending:
+        certificate = {
+            "qualification_route": "mature_core", "qualification_quorum": "ORDINARY_CORE",
+            "required_confirmation": self.cfg.leader_tenure_days,
+            "confirmations": {"leader_tenure": tenure}, "as_of": str(date.date()),
+        }
+    return _candidate_entry(
+        self, symbol=symbol, score=score, date=date, user_panel=user_panel,
+        account=account, confirmation_days=confirmation_days, certificate=certificate,
+    )
+
+
 def _core_candidates(
     self: PortfolioAllocator, *, date: pd.Timestamp, user_panel: dict[str, pd.DataFrame],
     leaders: dict[str, LeaderScore], account: AccountState,
@@ -52,7 +76,7 @@ def _core_candidates(
     """Record the same short-circuit predicates that decide core entry eligibility."""
     candidates = []
     for symbol, score in leaders.items():
-        entry = _candidate_entry(self, symbol=symbol, score=score, date=date,
+        entry = _ordinary_entry(self, symbol=symbol, score=score, date=date,
                                  user_panel=user_panel, account=account,
                                  confirmation_days=self.cfg.leader_tenure_days,
                                  certificate=(certificates or {}).get(symbol))
@@ -351,7 +375,7 @@ def _pending_intents(book: _AllocationBook, *, candidates: list[str], buy_open: 
                     book.record(order.symbol)["pending_buy_rejected"] = True
                     book.account.protected_weights.pop(order.symbol, None)
                     continue
-                evidence = _candidate_entry(
+                evidence = _ordinary_entry(
                     book.policy, symbol=order.symbol, score=book.leaders[order.symbol],
                     date=book.date, user_panel=book.user_panel, account=book.account,
                     confirmation_days=1,

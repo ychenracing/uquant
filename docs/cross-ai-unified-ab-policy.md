@@ -48,3 +48,26 @@ Y H1 and Z H2 have zero current persistent certificates satisfying its premise.
 AB does not claim to restore the old frozen-period tactical admission duty or
 resolve H1. Economic benefit is unknown; all frozen wealth/drawdown/order/cost
 and later robustness gates remain unchanged.
+
+## Completed selected evidence
+
+HEAD cc0531225d6c055990de1645817f5d17e90505c1; production source
+b3d96881f15e4f4bed26fc067120dcab9084465e456b86109ca946aa733cefe4.
+Three native new-budget/partial/restart tests pass, related qualification,
+ownership and repair modules verified. One old settlement regression still
+expected a daily cut from a continuous ATR breach; it now demonstrates real
+renewed breach edges producing a native SELL. Focused review found no blocker.
+
+Champion869 PASS: wealth25.035391084584187, MDD.27146973146234554,
+14orders. H2 remove_all_three125 FAIL only half-year wealth retention:
+wealth1.1631534548290592, MDD.0900396460192584,4orders. Both complete
+native accounts/ledgers and immutable source/input identities read back.
+Reduced early exposure improves drawdown but fails the unchanged1.7160594184494782
+wealth floor. AB is not accepted and no full matrix is started.
+
+Full evidence archive18,609,659 bytes, SHA256
+c9c909d59fdef88e6c423b8ce35df0cab991502286623a00d1344aea9a16951c,
+libfile_16b1b62a4a58819193b8a6ba173cd365; archive/member readback verified.
+Later analysis finds abundant actual cash on eligible market days; ordinary
+independent confirmation still blocks mature candidates. Those observations
+are diagnostic premises, not an alternative strategy's economic result.

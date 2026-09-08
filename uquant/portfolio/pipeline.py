@@ -589,18 +589,28 @@ def _fresh_core_selection(
     return occupied, eligible, immature_occupied
 
 
+def _ordinary_admission_budget(book: _AllocationBook) -> float | None:
+    """Share initial ordinary capital while the long market basis is not positive."""
+    values: list[Any] = [book.risk.evidence.get(key) for key in ("broad_ret120", "tech_ret120")]
+    if not all(isinstance(value, (int, float)) and not isinstance(value, bool)
+               and math.isfinite(value) for value in values):
+        return None
+    if max(values) > 0.0:
+        return book.policy.cfg.trend_entry_gross
+    ordinary = sum(weight for symbol, weight in book.committed.items() if symbol not in book.owned)
+    return max(0.0, book.policy.cfg.core_admission_weight - ordinary)
+
+
 def _admit_new_cores(book: _AllocationBook, *, candidates: list[str], opportunity: Opportunity) -> None:
     if not _core_opportunity_open(opportunity) or book.risk.state is not Risk.NORMAL:
         block = "OPPORTUNITY_NOT_OPEN" if not _core_opportunity_open(opportunity) else "RISK_NOT_NORMAL"
         for symbol in candidates:
             book.record(symbol)["entry_gate"] = block
         return
-    long_returns: list[Any] = [book.risk.evidence.get(key) for key in ("broad_ret120", "tech_ret120")]
-    trend_open = all(isinstance(value, (int, float)) and not isinstance(value, bool)
-                     and math.isfinite(value) for value in long_returns) and max(long_returns) > 0.0
-    if not trend_open:
+    budget = _ordinary_admission_budget(book)
+    if budget is None:
         for symbol in candidates:
-            book.record(symbol)["entry_gate"] = "ORDINARY_TREND_BASIS_NOT_POSITIVE"
+            book.record(symbol)["entry_gate"] = "ORDINARY_MARKET_EVIDENCE_UNAVAILABLE"
         return
     occupied, eligible, immature_occupied = _fresh_core_selection(book, candidates)
     selected = eligible[:max(0, book.policy.cfg.max_positions - len(occupied))]
@@ -616,10 +626,12 @@ def _admit_new_cores(book: _AllocationBook, *, candidates: list[str], opportunit
         if symbol not in selected:
             book.record(symbol)["entry_gate"] = "POSITION_SLOTS_EXHAUSTED"
             continue
-        weight = min(book.policy.cfg.single_core_entry_cap,
-                     book.policy.cfg.trend_entry_gross / len(selected))
+        weight = min(book.policy.cfg.single_core_entry_cap, budget / len(selected))
         if not book.leaders[symbol].mature:
             weight = min(weight, book.policy.cfg.core_admission_weight)
+        if weight + 1e-12 < book.policy.cfg.min_trade_weight:
+            book.record(symbol)["entry_gate"] = "ORDINARY_INITIAL_CAPITAL_BELOW_TRADE_MINIMUM"
+            continue
         if book.fund(symbol, weight, phase="CORE_ADMISSION", minimum=book.policy.cfg.min_trade_weight):
             book.account.protected_weights.pop(symbol, None)
             book.reasons[symbol] = "confirmed core admitted from available account capital"

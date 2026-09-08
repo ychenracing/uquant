@@ -280,7 +280,8 @@ def close_strategic_epoch(
     epoch.closed_session = closed_session
     epoch.close_reason = close_reason
     epoch.realized_status = (
-        StrategicEpochStatus.EXPIRED.value if expired else StrategicEpochStatus.CLOSED.value
+        StrategicEpochStatus.EXPIRED.value
+        if expired and not epoch.active_session else StrategicEpochStatus.CLOSED.value
     )
     validate_strategic_epoch(epoch)
 

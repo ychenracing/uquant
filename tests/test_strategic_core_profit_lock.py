@@ -151,40 +151,95 @@ def test_unexecuted_core_profit_lock_retries_after_restart(cancelled):
     assert not _decide_and_submit(allocator, restored, dates[4], panel, leaders, roles)
 
 
-@pytest.mark.parametrize("fresh_atr", (False, True), ids=("settled-atr", "fresh-atr"))
-def test_core_profit_lock_remains_independent_after_settled_soft_atr(fresh_atr):
+def _marked_after_band_sale(*, fresh_atr=False):
     from test_strategic_exit_band_settlement import _band_sale
 
     allocator, account, dates, panel, leaders, roles = _band_sale()
-    old_bands = list(account.strategic_exit_bands[OWNER])
     price = account.positions[OWNER].avg_cost * (1 + DEFAULT_CONFIG.strategic_dominant_profit_lock_mfe + 1.0)
     for column, factor in (("open", 1), ("close", 1), ("high", 1.01), ("low", .99),
                            ("ma20", .95), ("ma60", .85)):
         panel[OWNER].loc[dates[0]:, column] = price * factor
-    runtime = SimpleNamespace(
+    mark_account_positions(SimpleNamespace(
         _raw=panel, _price=lambda symbol, date: float(panel[symbol].loc[date, "close"]),
-    )
-    mark_account_positions(runtime, account, dates[0])
+    ), account, dates[0])
     if fresh_atr:
         panel[OWNER].loc[dates[1]:, ["open", "close", "high", "low"]] = price - 1
         panel[OWNER].loc[dates[1]:, "ma20"] = price
         panel[OWNER].loc[dates[1]:, "ret20"] = -.05
-    orders = _decide_and_submit(allocator, account, dates[1], panel, leaders, roles)
-    assert len(orders) == 1 and orders[0].side == "SELL"
-    assert account.strategic_exit_bands[OWNER] == old_bands
-    assert orders[0].target_weight == pytest.approx(_bounded_cap(account))
-    assert orders[0].mechanism == "STRATEGIC_PROFIT_LOCK"
+    return allocator, account, dates, panel, leaders, roles
+
+
+@pytest.mark.parametrize("fresh_atr", (False, True), ids=("settled-atr", "fresh-atr"))
+def test_settled_tighter_atr_plan_satisfies_soft_profit_protection(fresh_atr):
+    allocator, account, dates, panel, leaders, roles = _marked_after_band_sale(fresh_atr=fresh_atr)
+    old_bands = list(account.strategic_exit_bands[OWNER])
+    old_fills = deepcopy(account.fills)
+    assert 0 < sum(old_bands) < _bounded_cap(account)
+    assert not _decide_and_submit(allocator, account, dates[1], panel, leaders, roles)
+    restored = account_from_dict(asdict(account))
+    assert not _decide_and_submit(allocator, restored, dates[2], panel, leaders, roles)
+    assert restored.strategic_exit_bands[OWNER] == old_bands
+    assert restored.fills == old_fills
+    assert not any(order.mechanism == "STRATEGIC_PROFIT_LOCK" for order in restored.order_ledger)
+
+
+@pytest.mark.parametrize("damage", ("partial", "pending", "wrong-event", "tighter-unexecuted-target"))
+def test_unsettled_atr_cannot_discharge_soft_profit_responsibility(damage):
+    from uquant.portfolio.strategic.lifecycle import _arm_completed_core_profit_lock
+
+    allocator, account, _, _, _, _ = _marked_after_band_sale()
+    sale = account.order_ledger[-1]
+    if damage == "partial":
+        sale.status = "PARTIALLY_FILLED"
+        sale.remaining_shares = 100
+    elif damage == "pending":
+        account.pending_orders.append(deepcopy(sale))
+    elif damage == "wrong-event":
+        account.fills[-1].event_id = "wrong-event"
+    else:
+        account.strategic_exit_bands[OWNER] = [band / 2 for band in account.strategic_exit_bands[OWNER]]
+    # Isolate arming from the execution planner: unresolved execution still
+    # owns its existing order; this must not claim a second actual submission.
+    context = SimpleNamespace(account=account, policy=allocator, weights_now={OWNER: .5},
+                              core_profit_lock_symbol=None)
+    _arm_completed_core_profit_lock(context, symbol=OWNER,
+                                   peak_mfe=DEFAULT_CONFIG.strategic_dominant_profit_lock_mfe + 1)
+    assert context.core_profit_lock_symbol == OWNER
+
+
+
+def test_settled_looser_atr_does_not_replace_a_stricter_profit_cap():
+    allocator, account, dates, panel, leaders, roles = _filled_probe()
+    leaders = _entry_deteriorated(leaders)
+    price = account.positions[OWNER].avg_cost * 2
+    for column, factor in (("open", 1), ("close", 1), ("high", 1.01), ("low", .99),
+                           ("ma20", .95), ("ma60", .85)):
+        panel[OWNER].loc[dates[0]:, column] = price * factor
+    count = DEFAULT_CONFIG.strategic_cohort_trail_bands
+    band_target = .25
+    assert band_target > _bounded_cap(account)
+    account.strategic_exit_bands[OWNER] = [band_target / count] * count
+    account.strategic_active_bands[OWNER] = [False] * count
+    orders = _decide_and_submit(allocator, account, dates[0], panel, leaders, roles)
+    assert len(orders) == 1 and orders[0].mechanism == "STRATEGIC_TRAILING_EXIT"
+    assert orders[0].target_weight == pytest.approx(band_target)
     fills = ExecutionPlanner(DEFAULT_CONFIG).execute_open(
-        date=dates[2], account=account, panel={OWNER: panel[OWNER]},
+        date=dates[1], account=account, panel={OWNER: panel[OWNER]},
     )
-    assert len(fills) == 1 and fills[0].side == "SELL" and fills[0].shares > 0
-    if fresh_atr:
-        healthy = (price - 1) * 1.80
-        for column, factor in (("open", 1), ("close", 1), ("high", 1.01), ("low", .99),
-                               ("ma20", .95), ("ma60", .85)):
-            panel[OWNER].loc[dates[3]:, column] = healthy * factor
-        panel[OWNER].loc[dates[3]:, "ret20"] = .20
-        assert not _decide_and_submit(allocator, account, dates[3], panel, leaders, roles)
+    assert len(fills) == 1 and fills[0].shares > 0
+    from uquant.portfolio.strategic.grant_lifecycle import settled_strategic_reduction
+
+    assert settled_strategic_reduction(account, OWNER, band_target)
+    price = account.positions[OWNER].avg_cost * (2 + DEFAULT_CONFIG.strategic_dominant_profit_lock_mfe)
+    for column, factor in (("open", 1), ("close", 1), ("high", 1.01), ("low", .99),
+                           ("ma20", .95), ("ma60", .85)):
+        panel[OWNER].loc[dates[2]:, column] = price * factor
+    mark_account_positions(SimpleNamespace(
+        _raw=panel, _price=lambda symbol, date: float(panel[symbol].loc[date, "close"]),
+    ), account, dates[2])
+    orders = _decide_and_submit(allocator, account, dates[2], panel, leaders, roles)
+    assert len(orders) == 1 and orders[0].mechanism == "STRATEGIC_PROFIT_LOCK"
+    assert orders[0].target_weight == pytest.approx(_bounded_cap(account))
 
 
 def test_historical_mfe_below_current_cap_preserves_fresh_native_promotion():

@@ -1,4 +1,4 @@
-"""The ordinary ownership summary must audit probes excluded from crown counts."""
+"""Ownership summaries audit both first-fill ownership and archived CORE inputs."""
 
 from __future__ import annotations
 
@@ -10,8 +10,8 @@ from research.strategic_evidence.trace import RouteTraceRow
 from scripts.run_strategic_ownership_acceptance import actual_epoch_facts
 
 
-def _ownership_probe_result(*, activated: bool = False, broken: str = "") -> ReplayResult:
-    account, trace = _native_probe(activated=activated)
+def _ownership_probe_result(*, activated: bool = False, broken: str = "", legacy_core: bool = False) -> ReplayResult:
+    account, trace = _native_probe(activated=activated, legacy_core=legacy_core)
     if broken == "authorization":
         for row in trace:
             row["risk"]["strategic_cash_rearm"]["consumed_grant_id"] = "other-grant"
@@ -40,14 +40,20 @@ def _ownership_probe_result(*, activated: bool = False, broken: str = "") -> Rep
 def test_ownership_summary_audits_native_probe_before_counting_activation(activated):
     result = _ownership_probe_result(activated=activated)
     facts = actual_epoch_facts(result)
-    assert len(facts) == int(activated)
+    assert len(facts) == 1
     assert len(result.final_account["fills"]) == 1 + int(activated)
     if activated:
         assert facts[0]["fill_session"] == "2023-01-04"
-        assert facts[0]["active_session"] == "2023-01-05"
+        assert facts[0]["active_session"] == "2023-01-04"
 
 
 @pytest.mark.parametrize("broken", ("authorization", "grant_evidence"))
 def test_ownership_summary_rejects_uncounted_core_with_broken_authority(broken):
     with pytest.raises(ValueError):
-        actual_epoch_facts(_ownership_probe_result(broken=broken))
+        actual_epoch_facts(_ownership_probe_result(broken=broken, legacy_core=True))
+
+
+def test_archived_core_remains_uncounted_without_relabeling():
+    result = _ownership_probe_result(legacy_core=True)
+    assert actual_epoch_facts(result) == []
+    assert result.final_account["strategic_epochs"][0]["realized_status"] == "CORE"

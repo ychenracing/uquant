@@ -1,4 +1,4 @@
-"""Native probe fills stay accountable without becoming an ACTIVE coronation."""
+"""Native ownership and archived CORE inputs retain full execution auditing."""
 from __future__ import annotations
 
 import json
@@ -22,7 +22,7 @@ from uquant.validation.absolute_generalization._metrics_reconciliation import _d
 from uquant.validation.absolute_generalization.metrics import actual_epoch_facts_from_rows
 
 
-def _native_probe(*, activated: bool = False, terminal: str = ""):
+def _native_probe(*, activated: bool = False, terminal: str = "", legacy_core: bool = False):
     replay = complete_replay()
     account = json.loads(replay.final_account_payload.canonical_json)
     trace = [metric_trace_row(
@@ -49,7 +49,11 @@ def _native_probe(*, activated: bool = False, terminal: str = ""):
         epoch, grant_id=epoch.grant_id, symbol=OWNER,
         fill_session="2023-01-04", filled_shares=5 if activated else 10,
     )
-    assert epoch.realized_status == "CORE" and not epoch.active_session
+    assert epoch.realized_status == "ACTIVE" and epoch.active_session == "2023-01-04"
+    if legacy_core:
+        # An archived CORE account is read as recorded, never relabelled on load.
+        epoch.realized_status = "CORE"
+        epoch.active_session = ""
     if activated:
         first = account["fills"][0]
         first.update(shares=5, gross_value=50.0)
@@ -73,7 +77,7 @@ def _native_probe(*, activated: bool = False, terminal: str = ""):
 
 @pytest.mark.parametrize("terminal", ("", "CLOSED", "EXPIRED"))
 def test_native_core_fill_is_validated_without_counting_an_active_epoch(terminal):
-    account, trace = _native_probe(terminal=terminal)
+    account, trace = _native_probe(terminal=terminal, legacy_core=True)
     fills_before = deepcopy(account["fills"])
     facts = actual_epoch_facts_from_rows(final_account=account, trace=trace)
     assert facts == ()
@@ -83,20 +87,20 @@ def test_native_core_fill_is_validated_without_counting_an_active_epoch(terminal
 
 
 @pytest.mark.parametrize("terminal", ("", "CLOSED"))
-def test_later_native_buy_activates_once_and_preserves_first_fill_causality(terminal):
+def test_later_native_buy_preserves_first_fill_ownership_causality(terminal):
     account, trace = _native_probe(activated=True, terminal=terminal)
     facts = actual_epoch_facts_from_rows(final_account=account, trace=trace)
     assert len(facts) == 1
     assert facts[0].fill_session == "2023-01-04"
-    assert facts[0].active_session == "2023-01-05"
+    assert facts[0].active_session == "2023-01-04"
     validate_exact_execution_chain(final_account=account, trace=trace, epochs=facts)
     assert _downstream_chain_flags(orders=(), fills=account["fills"], epochs=facts)[1]
-    assert not _downstream_chain_flags(orders=(), fills=account["fills"][:1], epochs=facts)[1]
+    assert _downstream_chain_flags(orders=(), fills=account["fills"][:1], epochs=facts)[1]
 
 
 @pytest.mark.parametrize("mutation", ("missing_buy", "zero_shares", "sell", "wrong_grant", "wrong_date"))
 def test_active_date_requires_a_positive_matching_activation_buy(mutation):
-    account, trace = _native_probe(activated=True)
+    account, trace = _native_probe()
     if mutation == "missing_buy":
         account["fills"].pop()
     elif mutation == "zero_shares":
@@ -114,7 +118,7 @@ def test_active_date_requires_a_positive_matching_activation_buy(mutation):
 
 @pytest.mark.parametrize("mutation", ("qualification", "authorization", "target", "order", "grant_evidence"))
 def test_uncounted_core_probe_cannot_hide_broken_authority_or_execution(mutation):
-    account, trace = _native_probe()
+    account, trace = _native_probe(legacy_core=True)
     if mutation == "qualification":
         for row in trace:
             row["risk"]["strategic_qualification"]["qualification_ready"] = False
@@ -149,7 +153,7 @@ def test_realized_epoch_cannot_erase_or_mislabel_its_fill_history(mutation):
 
 @pytest.mark.parametrize("mutation", ("sell", "zero_shares", "wrong_epoch", "wrong_grant"))
 def test_downstream_activation_does_not_substitute_an_unrelated_fill(mutation):
-    account, trace = _native_probe(activated=True)
+    account, trace = _native_probe()
     facts = actual_epoch_facts_from_rows(final_account=account, trace=trace)
     fill = account["fills"][-1]
     if mutation == "sell":
@@ -161,3 +165,13 @@ def test_downstream_activation_does_not_substitute_an_unrelated_fill(mutation):
     else:
         fill["grant_id"] = "other-grant"
     assert not _downstream_chain_flags(orders=(), fills=account["fills"], epochs=facts)[1]
+
+
+@pytest.mark.parametrize("terminal", ("", "CLOSED", "EXPIRED"))
+def test_first_native_buy_counts_ownership_even_when_deployment_never_completes(terminal):
+    account, trace = _native_probe(terminal=terminal)
+    facts = actual_epoch_facts_from_rows(final_account=account, trace=trace)
+    assert len(facts) == 1
+    assert facts[0].fill_session == facts[0].active_session == "2023-01-04"
+    assert facts[0].realized_status == ("CLOSED" if terminal else "ACTIVE")
+    validate_exact_execution_chain(final_account=account, trace=trace, epochs=facts)

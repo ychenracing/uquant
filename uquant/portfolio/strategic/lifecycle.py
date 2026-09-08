@@ -298,6 +298,10 @@ def _arm_completed_core_profit_lock(
     cap = min(cfg.strategic_dominant_retained_gross, budget)
     if ctx.weights_now.get(symbol, 0.0) <= cap + 1e-12:
         return
+    band_target = sum(account.strategic_exit_bands.get(symbol, ()))
+    if (0.0 < band_target <= cap
+            and _settled_strategic_exit_target(account, symbol, band_target)):
+        return
     if not _settled_strategic_exit_target(
         account, symbol, cap, mechanism="STRATEGIC_PROFIT_LOCK",
     ):

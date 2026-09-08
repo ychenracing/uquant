@@ -179,11 +179,18 @@ def test_real_probe_holding_still_executes_formal_exit(exit_basis):
     orders = _decide_and_submit(allocator, account, dates[0], panel, _entry_deteriorated(leaders), roles, risk=risk)
     assert len(orders) == 1 and orders[0].side == "SELL"
     assert orders[0].target_weight == 0.0
+    epoch = account.strategic_epochs[0]
+    assert epoch.active
     fills = ExecutionPlanner(DEFAULT_CONFIG).execute_open(
         date=dates[1], account=account, panel={OWNER: panel[OWNER]},
     )
     assert len(fills) == 1 and fills[0].side == "SELL"
     assert OWNER not in account.positions or account.positions[OWNER].shares == 0
+    _allocate(allocator, account, dates[2], panel, _entry_deteriorated(leaders), roles, risk=risk)
+    assert epoch.realized_status == "CLOSED"
+    assert epoch.active_session and epoch.closed_session
+    assert account.strategic_grant.status == "EXPIRED"
+    assert account.strategic_epoch == 0
 
 
 @pytest.mark.parametrize("cancellation_committed", (False, True), ids=("in-flight-cancel", "cancel-completed"))

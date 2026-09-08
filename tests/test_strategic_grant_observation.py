@@ -469,7 +469,8 @@ def test_absolute_qualification_loss_revokes_capital_but_retains_a_healthy_fille
         peer_symbol: peer_target.weight,
     }
     assert grant.status == StrategicGrantStatus.EXPIRED.value
-    assert epoch.realized_status == StrategicEpochStatus.CORE.value
+    assert epoch.realized_status == StrategicEpochStatus.ACTIVE.value
+    assert epoch.active_session == epoch.first_fill_session
 
 
 @pytest.mark.parametrize("successor_qualified", (True, False))

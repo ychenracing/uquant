@@ -475,7 +475,10 @@ def strategic_qualification_evidence(
         for symbol in symbols
         if symbol in leaders and leaders[symbol].industry != "unknown"
     }
-    independent_risk_coverage = len(industries) >= self.cfg.strategic_cohort_min_size
+    independent_risk_coverage = bool(
+        int(risk.evidence.get("risk_anchor_group_count", self.cfg.strategic_cohort_min_size))
+        >= self.cfg.strategic_cohort_min_size
+    )
     synchronized_before_anchor = _synchronized_before_anchor(
         self,
         route=route,

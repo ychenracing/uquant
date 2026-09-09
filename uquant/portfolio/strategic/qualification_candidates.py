@@ -80,18 +80,6 @@ def strategic_candidate_confirmation(*, account: AccountState, symbol: str, rout
     return account.replacement_tenure.get(f"strategic_eligibility:{route}:{symbol}", 0)
 
 
-def independent_reference_coverage(*, cfg: SystemConfig, risk: RiskAssessment) -> bool:
-    """Read current reference groups, independent of the selected risk-anchor basket."""
-    coverage = risk.evidence.get("reference_coverage")
-    groups = risk.evidence.get("reference_visible_groups")
-    if (isinstance(coverage, bool) or not isinstance(coverage, (int, float))
-            or not math.isfinite(coverage) or not 0 < coverage <= 1
-            or not isinstance(groups, list)
-            or any(not isinstance(group, str) or not group for group in groups)):
-        return False
-    return len(set(groups) - {"unknown"}) >= cfg.strategic_cohort_min_size
-
-
 def independent_market_confirmation(*, cfg: SystemConfig, risk: RiskAssessment) -> bool:
     """Require complete current market evidence for an independent admission."""
     keys = ("breadth20", "broad_ret20", "tech_ret20", "broad_ret120", "tech_ret120")

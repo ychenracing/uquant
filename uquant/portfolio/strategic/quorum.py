@@ -12,11 +12,7 @@ from ...models.strategic_universe import (
     StrategicUniverseRoles,
 )
 from ...types import LeaderScore, Risk, RiskAssessment
-from .qualification_candidates import (
-    independent_market_confirmation,
-    independent_reference_coverage,
-    strategic_candidate_meets_route,
-)
+from .qualification_candidates import strategic_candidate_meets_route
 
 
 class StrategicQuorumRoute(str, Enum):
@@ -162,13 +158,30 @@ def _market_confirmation(risk: RiskAssessment, cfg: SystemConfig) -> tuple[bool,
         "tech_ret20",
         "broad_ret120",
         "tech_ret120",
+        "risk_anchor_group_count",
     )
-    complete = independent_reference_coverage(cfg=cfg, risk=risk) and all(
-        isinstance(value, (int, float)) and not isinstance(value, bool) and math.isfinite(value)
-        for value in (risk.evidence.get(key) for key in keys)
+    values: dict[str, float] = {}
+    for key in keys:
+        raw = risk.evidence.get(key)
+        if isinstance(raw, bool) or not isinstance(raw, (int, float)):
+            return False, False
+        value = float(raw)
+        if not math.isfinite(value):
+            return False, False
+        values[key] = value
+    complete = True
+    confirmed = bool(
+        risk.state is Risk.NORMAL
+        and values["risk_anchor_group_count"] >= cfg.strategic_cohort_min_size
+        and values["breadth20"] >= cfg.high_confidence_entry_breadth
+        and values["broad_ret20"] >= cfg.strategic_transition_impulse_min_market_ret20
+        and values["tech_ret20"] >= cfg.strategic_transition_impulse_min_market_ret20
+        and max(values["broad_ret120"], values["tech_ret120"])
+        > cfg.recovery_transition_weak_leg_ret120
+        and max(values["broad_ret120"], values["tech_ret120"])
+        <= cfg.strategic_long_cycle_max_tech_ret120
     )
-    return complete, bool(complete and risk.state is Risk.NORMAL
-                          and independent_market_confirmation(cfg=cfg, risk=risk))
+    return complete, confirmed
 
 
 def _industry_confirmation(

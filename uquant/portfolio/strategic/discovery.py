@@ -37,7 +37,6 @@ from .qualification_candidates import (
     StrategicRoute,
     candidate_entry,
     independent_market_confirmation,
-    independent_reference_coverage,
     observe_strategic_candidate_eligibility,
     strategic_candidate_confirmation,
     strategic_route_candidates,
@@ -173,10 +172,7 @@ def strategic_qualification_evidence_sha256(
                 "breadth20",
                 "broad_ret20",
                 "broad_ret120",
-                "reference_visible_groups",
-                "reference_visible_symbols",
-                "reference_expected_symbols",
-                "reference_coverage",
+                "risk_anchor_group_count",
                 "tech_ret20",
                 "tech_ret120",
             )
@@ -479,7 +475,10 @@ def strategic_qualification_evidence(
         for symbol in symbols
         if symbol in leaders and leaders[symbol].industry != "unknown"
     }
-    independent_risk_coverage = independent_reference_coverage(cfg=self.cfg, risk=risk)
+    independent_risk_coverage = bool(
+        int(risk.evidence.get("risk_anchor_group_count", self.cfg.strategic_cohort_min_size))
+        >= self.cfg.strategic_cohort_min_size
+    )
     synchronized_before_anchor = _synchronized_before_anchor(
         self,
         route=route,

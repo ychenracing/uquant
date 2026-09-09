@@ -1,0 +1,42 @@
+{
+  "schema_version": 1,
+  "status": "PREREGISTERED_BEFORE_ACCOUNT_REPLAY",
+  "overall_goal": "NOT_MET",
+  "hypothesis": "583 absent valid daily bars in existing original members suppress or distort availability/qualification; test coverage separately after unit correction reproduced all baseline economic metrics.",
+  "scope": {
+    "symbols": [
+      "sh688347",
+      "sz000636"
+    ],
+    "added_sessions": {
+      "sh688347": {
+        "start": "2023-08-07",
+        "end": "2023-12-29",
+        "count": 99
+      },
+      "sz000636": {
+        "start": "2022-01-04",
+        "end": "2023-12-29",
+        "count": 484
+      }
+    },
+    "source_window": [
+      "2021-01-01",
+      "2026-08-05"
+    ],
+    "universe": "Original 34 unchanged"
+  },
+  "parent_research_manifest_sha256": "609070e214ee3e97c97737e7082167a74ea4baba3415fd688e23ae7170698aae",
+  "implementation": "Insert only missing source sessions. Original raw OHLC transformed by chronologically composed original-notice cash/share affine adjustment to existing frozen endpoint convention. Preserve every existing row string and all other files. Original frozen files untouched; research_only true and production_ready false.",
+  "input_evidence": "Both affected symbols' existing OHLC independently reconstructed within cent across all overlap. 181 original notice effective coefficients source-hash verified. Positive raw OHLCV/amount and reported-reference continuity validated.",
+  "cases": [
+    "full",
+    "remove_all_three",
+    "strict"
+  ],
+  "producer": "Same unchanged main economic policy3ad3f4b7e63215484c118d05a864a5c17390ddf5ca5442d624ab92f044fa04bc; runner local9f8c73af3719247f9c7dd45e9109bdd56a27732e",
+  "comparison": "Sealed unit-corrected paths, which exactly reproduce original frozen metrics and attribution. Require independent readback, entire equity/orders, first decision divergence, qualification changes and symbol/industry contribution.",
+  "decision": "This diagnoses data incompleteness, not a strategy profit improvement or acceptance waiver. No rank/threshold/case selection based on outcomes. If no useful impact, close hypothesis and continue price-source integrity or complete historical opportunity research.",
+  "protected_holdout": "Do not request market observations from2026-08-06 onward; prior recorded quote-header incident remains disclosed.",
+  "frozen_contracts_unchanged": true
+}

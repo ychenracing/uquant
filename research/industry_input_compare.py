@@ -11,10 +11,16 @@ from pathlib import Path
 from statistics import mean
 
 from research.opportunity_capture_audit import END, label, select, valid_features
+from uquant.contracts.strict_json import canonical_json_bytes
+from uquant.validation.manifest import verify_data_manifest
 
 
 def read_rows(directory):
     result = json.loads((directory / "result.json").read_bytes())
+    seal = result["canonical_sha256"]
+    if hashlib.sha256(canonical_json_bytes({k: v for k, v in result.items()
+                                          if k != "canonical_sha256"})).hexdigest() != seal:
+        raise ValueError("result seal mismatch")
     proof = json.loads((directory / "readback.json").read_bytes())
     if (not proof["native_readback"] or proof["result_sha256"] != result["canonical_sha256"]
             or result["status"] != "COMPLETE"):
@@ -22,6 +28,8 @@ def read_rows(directory):
     raw = directory / "observations.jsonl.gz"
     if hashlib.sha256(raw.read_bytes()).hexdigest() != result["raw_sha256"]:
         raise ValueError("observation hash mismatch")
+    if hashlib.sha256((directory / "final_account.json").read_bytes()).hexdigest() != result["final_account_sha256"]:
+        raise ValueError("account hash mismatch")
     with gzip.open(raw, "rt") as stream:
         rows = [json.loads(line) for line in stream]
     if [r["date"] for r in rows] != result["identity"]["session_dates"]:
@@ -59,8 +67,8 @@ def compare(old_result, new_result, old_rows, new_rows):
             if left != right and stage not in first:
                 first[stage] = {"date": old["date"], "old": left, "revised": right}
     return {"paired_identity_and_roles": True, "first_divergence": first,
-            "old": {k: old_result[k] for k in ("canonical_sha256", "metrics", "attribution")},
-            "revised": {k: new_result[k] for k in ("canonical_sha256", "metrics", "attribution")}}
+            "old": {k: old_result[k] for k in ("identity", "canonical_sha256", "metrics", "attribution")},
+            "revised": {k: new_result[k] for k in ("identity", "canonical_sha256", "metrics", "attribution")}}
 
 
 def ranking(old_rows, new_rows, prices):
@@ -131,9 +139,14 @@ def main():
     parser.add_argument("--output", type=Path, required=True)
     args = parser.parse_args()
     result = {"diagnostic_only": True, "future_holdout_used": False, "cases": {}}
+    data_identity = verify_data_manifest(Path("data/frozen"))
+    result["label_data_identity"] = data_identity
+    result["analysis_script_sha256"] = hashlib.sha256(Path(__file__).read_bytes()).hexdigest()
     for case in ("full", "remove_all_three", "strict"):
         old_result, old_rows = read_rows(args.runs / f"{case}_old")
         new_result, new_rows = read_rows(args.runs / f"{case}_revised")
+        if old_result["identity"]["data"] != data_identity:
+            raise ValueError("label prices differ from native account data")
         result["cases"][case] = compare(old_result, new_result, old_rows, new_rows)
         result["cases"][case]["missed_stages"] = missed_stages(new_rows)
         if case == "full":

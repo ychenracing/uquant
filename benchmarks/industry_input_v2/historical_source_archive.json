@@ -1,0 +1,11 @@
+{
+  "file": "/dev/shm/uquant_historical_source_checkpoint_20260909.tar.gz",
+  "bytes": 105899524,
+  "sha256": "2fb161d6f0fd8e4ae53a7ed44d2f61a03dbb55b74ff7f7413b5d18ca07fac0b4",
+  "evidence_files": 1055,
+  "status": "SAVED",
+  "scope": "Historical source checkpoint: 90 initial business reports,94 subsequent annual versions,23 bounded raw price series,109 corporate action notices/date matches; causal adjustment coefficients, lifecycle and economic replay NOT complete. Includes failures, source-protocol changes and protected-header incident.",
+  "library_file_id": "libfile_33027a20eba08191ba1db64e7a9121d2",
+  "file_id": "file_000000005c408230ae70cb71b83613f1",
+  "version": 0
+}

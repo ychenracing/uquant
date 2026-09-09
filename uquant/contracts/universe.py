@@ -403,6 +403,8 @@ def research_industry_input(path: Path, *, expected_sha256: str) -> Iterator[AIU
     payload = read_json_bytes(raw, label="research taxonomy")
     if payload.get("research_only") is not True or payload.get("production_ready") is not False:
         raise ValueError("taxonomy must be explicitly research-only")
+    if payload.get("frozen_manifest_sha256") != hashlib.sha256(ai_universe_manifest_bytes()).hexdigest():
+        raise ValueError("research taxonomy base manifest mismatch")
     base = default_ai_universe()
     members = {member.symbol: member for member in base.members}
     rows = payload.get("members")
@@ -420,9 +422,13 @@ def research_industry_input(path: Path, *, expected_sha256: str) -> Iterator[AIU
                 or row.get("recorded_effective_from") != member.effective_from.isoformat()):
             raise ValueError("research taxonomy differs from frozen base membership")
         industry = row.get("research_industry")
-        if industry not in CANONICAL_INDUSTRIES or not row.get("source_url"):
+        if (not isinstance(industry, str) or industry not in CANONICAL_INDUSTRIES
+                or not isinstance(row.get("source_url"), str) or not row["source_url"]):
             raise ValueError("research taxonomy requires a canonical industry and source")
-        known_by = parse_date(row.get("conservative_known_by"), label="conservative_known_by")
+        known_by_text = row.get("conservative_known_by")
+        if not isinstance(known_by_text, str):
+            raise ValueError("research taxonomy requires an ISO known-by date")
+        known_by = parse_date(known_by_text, label="conservative_known_by")
         if known_by.isoformat() > "2026-08-05":
             raise ValueError("research taxonomy cannot consume protected future evidence")
         effective = max(member.effective_from, known_by + timedelta(days=1))

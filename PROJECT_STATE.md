@@ -11,6 +11,19 @@
 
 ## Active workstream
 
+Historical-source and data-unit checkpoint — current:
+- NOT_MET; PR56 Draft, no main merge. Original107MB delivery issue closed with fresh-download hash verification.
+- Original2022H1 full90-holding frame reviewed using dated issuer reports:23 supported research candidates,42 outside existing supply categories,25 unresolved. Holdings are not index membership. Production universe unchanged.
+- Collected94 subsequent annual-report versions across23 candidates; three incomplete Unis HTML bodies repaired from original PDFs. Longitudinal business/exit audit remains incomplete.
+- Official Sohu client JSONP protocol resolved prior full-range/2026 failures. All23 raw OHLCV+amount series now complete to2026-08-05:30,849 observations. Eight parser/source tests and Ruff pass. Saved original responses, retries and exact producer versions.
+- Collected109 original corporate-action implementation notices through bounded official quote-free API. All109 reference-change candidate dates match notice ex-dates; two merged PDF date cells visually repaired. Exact cash/split adjustment coefficients and suspension/IPO audit remain in progress; raw prices are NOT executable QFQ inputs.
+- Found inconsistent frozen volume units for three overlapping names. Fixed DataStore.refresh_akshare hands→shares conversion through pure helper;8 affected tests, Ruff and mypy pass. Frozen CSVs unchanged, no live refresh. Diagnostic source-volume replacement changes volume_expansion materially on19/19/25 dates, concentrated at feed joins. Profitability/account impact unproven; execution already has a separate compatibility heuristic.
+- Source-isolation incident: public search/third-party announcement list exposed current sz000555 quote headers. No protected series queried or quote values used in research; incident retained, cannot claim absolutely untouched holdout. Business eligibility was fixed before exposure. Subsequent sources use bounded quote-free disclosure API/direct PDFs.
+- Complete source checkpoint105,899,524bytes,1055 evidence files plus manifest, SHA2562fb161d6f0fd8e4ae53a7ed44d2f61a03dbb55b74ff7f7413b5d18ca07fac0b4 saved. See historical_source_archive.json. Later gap investigations are not yet in this immutable checkpoint.
+- Continue exact adjustment/lifecycle audit and quantify actual decision impact before selecting an economic intervention. Preserve rejected allocation/revenue/counter hypotheses; no threshold/rank search or acceptance waiver.
+
+Earlier checkpoints below are historical.
+
 ## Continuous implementation — current evidence
 
 Overall NOT_MET; PR56 remains Draft, main unchanged. A failed hypothesis closes that hypothesis, not this task. Current work: reconstruct dated external historical opportunity coverage now that original document downloads work.

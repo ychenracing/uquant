@@ -48,15 +48,16 @@ ROOT = Path(__file__).resolve().parents[1]
 
 def case_symbols(
     case_id: str, as_of: str, *, extra_excluded_symbols: tuple[str, ...] = (),
+    risk_reference_additions: tuple[str, ...] = (),
 ) -> dict[str, tuple[str, ...]]:
     """Bind every stock role to the same causal removal, preserving indices."""
     if case_id not in CASE_IDS:
         raise ValueError(f"unknown cross-AI case: {case_id}")
     if any(not isinstance(symbol, str) or not re.fullmatch(r"(?:sh|sz)[0-9]{6}", symbol)
-           or symbol in INDEX_SYMBOLS for symbol in extra_excluded_symbols):
+           or symbol in INDEX_SYMBOLS for symbol in (*extra_excluded_symbols, *risk_reference_additions)):
         raise ValueError("extra exclusions must be canonical stock symbols, never market indexes")
     universe = decision_ai_universe()
-    if set(extra_excluded_symbols) - {member.symbol for member in universe.members}:
+    if set((*extra_excluded_symbols, *risk_reference_additions)) - {member.symbol for member in universe.members}:
         raise ValueError("extra exclusions must belong to the frozen stock universe")
     available = universe.symbols_as_of(as_of)
     removed = (
@@ -70,7 +71,8 @@ def case_symbols(
         tuple(symbol for symbol in CHAMPION_SYMBOLS if symbol in available and symbol not in removed)
         if case_id == "champion" else references
     )
-    return {"tradable": tradable, "qualification": references, "risk": references, "indexes": INDEX_SYMBOLS}
+    risk = tuple(sorted(set(references) | (set(risk_reference_additions) & set(available))))
+    return {"tradable": tradable, "qualification": references, "risk": risk, "indexes": INDEX_SYMBOLS}
 
 
 def diagnostic_json(value: Any) -> Any:
@@ -195,6 +197,7 @@ def run_production_case(
     initial_cash: float | None = None,
     start_session_offset: int = 0,
     extra_excluded_symbols: tuple[str, ...] = (),
+    risk_reference_additions: tuple[str, ...] = (),
 ) -> dict[str, Any]:
     """Replay one frozen historical case with exact daily observations and fills."""
     if not "2023-01-03" <= start <= end <= "2026-08-05":
@@ -208,12 +211,15 @@ def run_production_case(
             raise ValueError("initial_cash must be finite and positive")
         cfg = cfg.override(initial_cash=float(initial_cash))
     exclusions = tuple(sorted(set(extra_excluded_symbols)))
-    case_symbols(case_id, start, extra_excluded_symbols=exclusions)
+    risk_additions = tuple(sorted(set(risk_reference_additions)))
+    case_symbols(case_id, start, extra_excluded_symbols=exclusions, risk_reference_additions=risk_additions)
     output_dir.mkdir(parents=True, exist_ok=False)
     started = time.monotonic()
     identity = case_identity(case_id, start, end, cfg)
     identity.update(effective_config=cfg.to_dict(), initial_cash=cfg.initial_cash,
                     start_session_offset=start_session_offset, extra_excluded_symbols=list(exclusions))
+    if risk_additions:
+        identity["risk_reference_additions"] = list(risk_additions)
     write_json(output_dir / "identity.json", identity)
     engine = ProductionEngine(ROOT / "data/frozen", cfg=cfg)
     engine.workspace.prepare(ReplayUniverse.from_symbols(
@@ -237,7 +243,8 @@ def run_production_case(
             raise ValueError("historical interval has fewer than two sessions")
         for date in sessions:
             session = str(date.date())
-            roles = case_symbols(case_id, session, extra_excluded_symbols=exclusions)
+            roles = case_symbols(case_id, session, extra_excluded_symbols=exclusions,
+                                 risk_reference_additions=risk_additions)
             engine.workspace.prepare(ReplayUniverse.from_symbols(
                 tradable_symbols=roles["tradable"],
                 reference_symbols=roles["risk"], index_symbols=roles["indexes"],

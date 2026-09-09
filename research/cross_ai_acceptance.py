@@ -49,6 +49,7 @@ def read_case(
     directory: Path, *, case: str, interval: list[str], source: str,
     effective_config: dict[str, Any] | None = None, start_session_offset: int = 0,
     extra_excluded_symbols: tuple[str, ...] = (), runner_sha256: str | None = None,
+    risk_reference_additions: tuple[str, ...] = (),
 ) -> dict[str, Any]:
     result: dict[str, Any] = json.loads((directory / 'result.json').read_text())
     seal = result.pop('canonical_sha256')
@@ -72,6 +73,7 @@ def read_case(
             or identity['runner_sha256'] != expected_runner):
         raise ValueError('case/source/config/interval identity mismatch')
     if (identity.get('start_session_offset', 0) != start_session_offset
+            or tuple(identity.get('risk_reference_additions', ())) != tuple(sorted(risk_reference_additions))
             or tuple(identity.get('extra_excluded_symbols', ())) != tuple(sorted(extra_excluded_symbols))
             or ('effective_config' in identity and identity['effective_config'] != expected_config)):
         raise ValueError('case scenario/configuration identity mismatch')
@@ -93,7 +95,8 @@ def read_case(
             date = row['date']
             if not interval[0] <= date <= interval[1] or date <= previous:
                 raise ValueError('noncausal or out-of-interval observation')
-            roles = case_symbols(case, date, extra_excluded_symbols=extra_excluded_symbols)
+            roles = case_symbols(case, date, extra_excluded_symbols=extra_excluded_symbols,
+                                 risk_reference_additions=risk_reference_additions)
             observed = row['observation']['strategic_universe_roles']
             for field, expected in (
                 ('tradable_symbols', roles['tradable']),

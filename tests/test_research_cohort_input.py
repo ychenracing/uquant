@@ -85,3 +85,16 @@ def test_context_is_not_nested_and_restores_after_error(tmp_path):
             with research_cohort_input(p, expected_sha256=sha):
                 pass
     assert decision_ai_universe() == default_ai_universe()
+
+
+def test_real_dated_cohort_manifest():
+    path = Path(__file__).resolve().parents[1] / "benchmarks/historical_cohort_input_v1/manifest.json"
+    raw = path.read_bytes()
+    data = json.loads(raw)
+    assert len(data["frame_dispositions"]) == 90
+    assert sum(row["status"] == "unresolved" for row in data["frame_dispositions"]) == 25
+    with research_cohort_input(path, expected_sha256=hashlib.sha256(raw).hexdigest()) as cohort:
+        assert len(cohort.symbols_as_of("2023-01-03")) == 23
+        assert cohort.symbols_as_of("2022-08-31") == ()
+        assert cohort.industry_of("sz300212", "2026-05-01") == "storage"
+    assert decision_ai_universe() == default_ai_universe()

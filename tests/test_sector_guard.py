@@ -130,7 +130,7 @@ def test_single_live_holding_is_observable_only_for_existing_acute_owner() -> No
     assert acute.equal_return < cfg.risk_fast_return
 
 
-def test_sector_guard_requires_repeated_shock_and_independent_divergence() -> None:
+def test_sector_guard_requires_repeated_owned_shock_regardless_of_benchmark_premium() -> None:
     dates = pd.bdate_range("2026-06-01", periods=11)
     panel = _panel(dates)
     cfg = DEFAULT_CONFIG.override(
@@ -169,7 +169,7 @@ def test_sector_guard_requires_repeated_shock_and_independent_divergence() -> No
             leadership_divergence=0.20,
             cfg=cfg,
         )
-    assert not transition.active
+    assert transition.active
 
 
 def test_sector_guard_recovery_observes_the_trigger_cohort_after_sparse_cut() -> None:

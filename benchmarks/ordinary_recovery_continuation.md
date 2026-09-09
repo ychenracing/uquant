@@ -81,3 +81,20 @@ now 32. All earlier rejected judgments above remain historical. Wealth floors,
 drawdown, costs, turnover, short-window and Absolute/Ownership contracts are
 unchanged. C passes the four screening prerequisites under this explicit
 revision, not under the original rule; further acceptance remains required.
+
+## Candidate D: owned shock evidence without the benchmark premium veto
+
+C's full nominal readback passes 13/14 cases; no_optical H1 2023 drawdown
+0.2442425185317515 exceeds the unchanged historical retention limit
+0.20205429957130803. Current main has the same failure; it is not waived.
+Before D economics: remove only the technology-versus-broad 120-session premium
+veto from the existing synchronized holdings guard. On 2023-04-26, native C
+evidence already confirms two shocks in the existing four-session window,
+weighted daily loss 0.052771444851861804 and negative exposure 0.9255290984691573.
+The guard is vetoed by benchmark premium 0.09212521961836062 below 0.50.
+Damage in the actually owned cohort is sufficient evidence for its existing
+guard; the benchmark premium remains required for the separate acute evacuation.
+Keep all shock thresholds, breadth, confirmation, window, reduction gross,
+recovery, ownership and promotion gates. No new route, parameter or security/date
+exception. Test the failing half-year first, then fixed controls if it passes.
+Retain C and D failures. No complete expensive matrix before a stable candidate.

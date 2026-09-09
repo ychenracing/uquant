@@ -196,7 +196,6 @@ def _activate_sector_guard(
     triggered = bool(
         not account.sector_guard_active
         and len(account.sector_shock_dates) >= cfg.sector_shock_confirmations
-        and leadership_divergence >= cfg.sector_guard_divergence
     )
     if triggered:
         account.sector_guard_active = True
@@ -251,9 +250,9 @@ def update_sector_guard(
 ) -> SectorGuardTransition:
     """Advance the default-on shock/guard/recovery state machine.
 
-    Activation needs repeated synchronized losses plus an unusually narrow
-    technology leadership premium. This retains the early warning supplied by
-    a sector breadth guard without treating ordinary trend pullbacks as crises.
+    Activation needs repeated synchronized losses in the owned cohort. The
+    benchmark premium cannot veto confirmed losses in those actual holdings;
+    it remains a separate requirement for the acute evacuation owner.
     Recovery is deliberately slower than activation and pauses when coverage is
     insufficient.
     """

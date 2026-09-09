@@ -1,5 +1,10 @@
 # Ordinary recovery: paired evidence
 
+Subsequent authorization, 2026-09-09: the user explicitly accepts 32 total
+orders and requests completion and merge to main. Candidate C therefore passes
+the four screens under that revised order ceiling. The original failed
+judgments below remain unchanged; complete acceptance is tracked in PR #56.
+
 Historical screening, not a future-return claim or full production acceptance.
 The preregistered mechanism sequence and unchanged gates are in
 `ordinary_recovery_continuation.md`. Config, frozen inputs, execution and fees

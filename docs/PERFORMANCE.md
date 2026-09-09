@@ -536,8 +536,12 @@ deltas, improved-window qualification, positive-return fraction and p10 wealth
 floor are unchanged.
 
 Continuous Performance A–E and nominal champion order limits change from 15
-to 20. Nominal full/removal and robustness limits formerly 20 become 22;
-robustness limits formerly 15 become 20, including the p90 order limit where
+to 20. Nominal full/removal and robustness limits formerly 20 became 22 under v1;
+the user subsequently explicitly accepted 32 total orders for the recovery
+candidate. `cross-ai-order-tolerance-20260909-v2` therefore changes that mapping
+to 32. Original v1 failures remain recorded in `ordinary_recovery_result.md`;
+this post-observation revision does not make those results preregistered.
+Robustness limits formerly 15 become 20, including the p90 order limit where
 applicable. Half-year and post-2025 order ceilings remain unchanged. This
 revision supersedes the historical E-only order authorization recorded above.
 Drawdown, acute-return, recovery, cost and turnover limits are unchanged;

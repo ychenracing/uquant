@@ -45,3 +45,20 @@ def test_duplicate_nonfinite_and_invalid_price_geometry_rejected():
                  [[*row[:5], "20", *row[6:]]]]:
         with pytest.raises(ValueError):
             parse_prices(payload(rows), "sz000555", "2021-01-01", "2021-12-31")
+
+
+def test_documented_post_close_volume_is_preserved_separately():
+    row = json.loads(payload().decode("gb18030"))[0]["hq"][0]
+    result = parse_prices(payload([[*row, "2.00"]]), "sz000555", "2021-01-01", "2021-12-31")
+    assert result[0]["post_close_volume"] == 200
+    assert result[0]["volume"] == 11426600
+
+
+def test_provider_jsonp_wrapper_and_descending_rows_are_data_only():
+    row = json.loads(payload().decode("gb18030"))[0]["hq"][0]
+    raw = b"historySearchHandler(" + payload([["2021-01-05", *row[1:]], row]) + b");"
+    result = parse_prices(raw, "sz000555", "2021-01-01", "2021-12-31")
+    assert [r["date"] for r in result] == ["2021-01-04", "2021-01-05"]
+    with pytest.raises(ValueError):
+        parse_prices(raw.replace(b"historySearchHandler", b"otherFunction"),
+                     "sz000555", "2021-01-01", "2021-12-31")

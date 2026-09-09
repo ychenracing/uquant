@@ -109,3 +109,17 @@ rebound to the cleanup fingerprint using the existing projection mechanism.
 All thresholds, frozen inputs and historical baseline fields are unchanged;
 the metadata edit does not change the economic source fingerprint or relabel
 old manifests as new evidence. All 35 existing Absolute contract tests passed.
+
+## Evidence preservation receipt
+
+Local archive: `/dev/shm/uquant_task_scratch/uquant_bounded_market_evidence_20260909.tar.gz`.
+80,873,124 bytes; SHA256
+`f930d17228e3f5b47ae954a3e2cec3e0042cfd2f6732465389aa3bd19236c393`.
+All 51 archive members were read back and matched against their size/SHA256
+manifest. It contains the four reused C controls, the rejected candidate and
+sentinel, two cleanup runs, and analysis/provenance receipts.
+Persistent save FAILED with transfer_failed, including a workspace-path retry
+and a final two-part attempt. No Library file identifier or persistent-save
+success is claimed. Both archive and split files remain local; local availability
+must not be treated as durable remote recovery. The Git push block is separate.
+All native replay and upload processes from this round have terminated.

@@ -37,17 +37,19 @@
 
 <!--
 只保留当前有效状态。更新时替换过期值，不无限追加历史。
-无法核验的字段写“Not verified”或“不适用”，不得猜测。
+适用但未核验的字段写“Not verified”；确实不适用时写“N/A”并说明原因，不得猜测。
+记录已有的可恢复 checkpoint；尚未形成时可写“N/A”，但不得把推送失败或未核验写成不适用。
+不要求为填写本节创建空提交、临时初始化文件或无变化推送；保存时机遵循 AGENTS.md。
 -->
 
 - Base branch:
 - Base SHA:
 - Head branch:
 - Head SHA:
-- Task bootstrap commit:
+- Latest recoverable checkpoint commit:
 - Verified default-branch baseline SHA:
 - Remote feature-branch head SHA:
-- Remote bootstrap verified: Yes / No
+- Remote checkpoint verification: Verified / Failed / Not verified / N/A (reason)
 - Related issue:
 - Last verified:
 

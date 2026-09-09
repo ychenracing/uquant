@@ -189,3 +189,96 @@ remote code-equivalent 2b97c48aca30741b696039dcf758063619ec3520, shared tree
 9051c464eaaa7dffa7722ed1d63f86fc50be6e9b. This follow-up is documentation only;
 its own commit is not a new tested producer. Main remains
 960539a89408cc7c1fc3937bda19c9f760095012. No live orders or Future Holdout used.
+
+
+## Continuation diagnosis — 2026-09-09 (no production change)
+
+Main was rechecked at `960539a89408cc7c1fc3937bda19c9f760095012`.
+PR56 remains Draft and economically rejected. The following diagnostics do not
+replace any frozen comparator or authorize promotion.
+
+### P4 is a shared entry-path failure
+
+An unchanged-main native champion replay with the single preregistered
+`strategic_reversal_max_tech_ret120=-0.015` override completed all 869 sessions
+(2023-01-03 through 2026-08-05) in approximately 319 seconds. Native
+`research.cross_ai_acceptance.read_case` passed. Wealth
+5.80319074025768, maximum drawdown 0.1723508887086519 and 19 orders
+match C's P4 result. All 869 equity observations and daily decision projections
+match after excluding only source-bound epoch_id/grant_id fields. Raw identities
+remain distinct; 222 target-day and 11 order-day identity differences are retained.
+
+Main source fingerprint:
+`86d3541617b4f3185c94bf0f5ad2bbeedfaddecabdcf1fabd593196223459fdd`.
+Main result seal:
+`6e6ab4548c2d91e846cec0e6af7cfb163d99f6fddeef8f9b728b3edd5ac6d5ab`.
+
+C nominal versus P4 first diverges on 2023-01-04:
+tech_ret120=-0.013866545661801566 passes the -0.01 threshold but fails -0.015.
+Nominal requests 0.95 weight in sz300308; P4 requests no target.
+P4's first order is not until 2024-02-22. The responsible predicate is in
+`uquant/portfolio/strategic/qualification_candidates.py::_witness_owner_routes`.
+This establishes shared entry-path sensitivity, not a newly introduced C failure.
+An unchanged-main nominal replay was not newly run; no new main nominal ratio is claimed.
+
+### Bull-start absence is upstream of capital allocation
+
+A bounded lossless observation of unchanged main replayed 2025-04-01 through
+2025-07-30 with the original three-symbol a/bull universe and production
+next-open execution. Every one of 82 canonical decisions exactly matched the
+previously saved main a/bull replay. No monkeypatch, strategy changes, new
+universe or holdout data were used.
+
+Before the first order, all 81 sessions had zero targets. Opportunity labels
+were CHOPPY 26, RECOVERY 23, TREND 16, STRONG_TREND 16; risk labels were
+NORMAL 64 and CAUTION 17. There were no READY entries or ready strategic
+qualifications. sz300502 was mature on 40 sessions, first on 2025-06-04,
+but its independent_core confirmation never exceeded 4 against a required 5.
+sz300308 and sz300394 had 20 and 17 mature sessions respectively, with zero
+independent_core confirmations. Entry occurred through established STRONG_PAIR
+certificates on 2025-07-30.
+
+Candidate admission consumes independent_core confirmation from
+`candidate_entry`. That counter requires strict_absolute_owner_quality,
+at least one absolute strategic route and independent_market_confirmation;
+it is not merely five consecutive mature-stock observations. Thus the observed
+block is qualification/confirmation, before budget checks. This does not prove
+all earlier rejected entries would have been profitable or safe. Removing the
+shared gates without a preregistered executable comparison is not justified;
+the previously rejected blanket maturity expansion remains rejected.
+
+### Ownership and Absolute are not mere runner crashes
+
+Ownership run 34339585305, continuity job 102426957008, failed in
+`_validate_repeated`: fewer than two actual epochs. Models and other ownership
+shards passed. Its source scenario is remove-sz300502.
+
+The existing C Absolute cell cache for remove-sz300502 is COMPLETE and records
+one actual epoch, one owner sh688233, active 2025-06-25 and closed 2026-04-28;
+wealth 2.0403767562317405 and 11 orders. Absolute historical recovery uses the
+same removal and requires at least two closed chains, so its absence error is
+consistent with this concrete lack of witness. This does not establish that
+every detail of the Ownership replay equals the Absolute replay.
+Ownership artifact 10099357664 exists remotely, but its returned download URL
+gave HTTP 403 locally; no local readback of that artifact is claimed.
+
+### Recovery and next decision
+
+New evidence archive:
+`uquant_continuation_diagnostics_20260909.tar.gz`,
+32,013,810 bytes,
+SHA256 `7af94b8406b8e1d3b3222dc8585d676012b04b943c3ce1e61f65fb0d15951f7b`,
+Library ID `libfile_bb078b0b0cac8191aeefd39fded0cf39`.
+Includes full unchanged-main P4 raw/account/identity/result, bounded bull
+admission observations and comparison summary. Original failure evidence and
+the old dirty workspace remain untouched.
+
+Both new diagnostic processes completed. No new full acceptance matrix was
+started; existing remote CI is not claimed complete. Root disk remains full;
+new diagnostic output used /dev/shm and is now durably archived.
+
+Recommended responsibility layer is current entry qualification, not another
+ordinary-exit or risk-veto variation. A simple executable trend comparator is
+still a proposed new design and must be explicitly selected before implementation,
+as required by the supplied handoff. No production fix or successful economic
+redesign is claimed by this documentation-only checkpoint.

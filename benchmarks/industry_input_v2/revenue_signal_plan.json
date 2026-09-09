@@ -1,0 +1,22 @@
+{
+  "research_only": true,
+  "formal_acceptance": false,
+  "registered_before_return_join": true,
+  "prior_information": "Six original-report feasibility records and existing price-only audits inspected. No joined revenue/forward-return panel results inspected.",
+  "population": "Existing34 on each frozen membership date, corrected industry mapping. Full and economically nonoptical subsets reported separately; missing records remain explicit. No new universe or OOS claim.",
+  "sampling": "Reuse pre-existing opportunity_capture_audit fixed every60-session grid and20/60-session forward price labels; shared complete rows within each comparison, latest report available strictly before the decision date. Do not choose dates from performance.",
+  "signals": [
+    {
+      "name": "revenue_yoy",
+      "definition": "Latest available cumulative revenue same-period YoY."
+    },
+    {
+      "name": "revenue_yoy_change",
+      "definition": "Latest available cumulative revenue YoY minus that in previous reporting period, only if both records available; fiscal-period differences are explicitly a limitation, not standalone quarter growth."
+    }
+  ],
+  "hypotheses": "Revenue growth level and improvement may add information beyond already-observed120-session price momentum. These two fixed signals are specified together; do not search further transforms or cutoffs after results.",
+  "checks": "Within each cross-section, report Spearman signal vs20/60-day returns and partial rank correlation after raw_ret120 where population supports nondegenerate residuals. Report per-date rows and early2023-24/late2025-26, full and nonoptical; dependent samples are not independent trades.",
+  "screen": "Only consider a signal for a minimal executable candidate if partial-rank direction is positive for both horizons in both time blocks and nonoptical subset. This is a research spending screen, not statistical significance or frozen acceptance. Show effect sizes and sample loss; sparse or unstable results are insufficient.",
+  "failure_route": "If both fail, do not add weights, periods or threshold searches. Inspect whether disclosures are lagging and whether sample coverage, timing or genuinely missing information explains failure. Recompare strategy opportunities including demonstrated startup/re-entry state dependence, rather than require an unsuccessful financial filter."
+}

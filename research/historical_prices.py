@@ -22,20 +22,28 @@ def request_url(symbol: str, start: str, end: str) -> str:
     if not re.fullmatch(r"(?:sh|sz)[0-9]{6}", symbol):
         raise ValueError("invalid symbol")
     params = {"code": "cn_" + symbol[2:], "start": first.strftime("%Y%m%d"),
-              "end": last.strftime("%Y%m%d"), "stat": "1", "order": "A", "period": "d"}
+              "end": last.strftime("%Y%m%d"), "stat": "1", "order": "D", "period": "d",
+              "callback": "historySearchHandler", "rt": "jsonp"}
     return "https://q.stock.sohu.com/hisHq?" + urlencode(params)
 
 
 def parse_prices(raw: bytes, symbol: str, start: str, end: str) -> list[dict]:
     request_url(symbol, start, end)
-    data = json.loads(raw.decode("gb18030"))
+    text = raw.decode("gb18030").strip().removesuffix(";")
+    callback = "historySearchHandler("
+    if text.startswith(callback) and text.endswith(")"):
+        text = text[len(callback):-1]
+    data = json.loads(text)
     if not isinstance(data, list) or len(data) != 1 or data[0].get("status") != 0:
         raise ValueError("unavailable source response")
     if data[0].get("code") != "cn_" + symbol[2:]:
         raise ValueError("response symbol mismatch")
+    source_rows = data[0]["hq"]
+    if len(source_rows) > 1 and source_rows[0][0] > source_rows[-1][0]:
+        source_rows = list(reversed(source_rows))
     rows, previous = [], ""
-    for row in data[0]["hq"]:
-        if len(row) != 10:
+    for row in source_rows:
+        if len(row) not in (10, 11):
             raise ValueError("unknown source schema")
         day = date.fromisoformat(row[0]).isoformat()
         if not start <= day <= end or day <= previous:
@@ -53,6 +61,11 @@ def parse_prices(raw: bytes, symbol: str, start: str, end: str) -> list[dict]:
                      "high": high, "volume": float(Decimal(row[7]) * 100),
                      "amount": float(Decimal(row[8]) * 10000),
                      "reported_change": change})
+        if len(row) == 11:
+            post_close_volume = float(Decimal(row[10]) * 100)
+            if not math.isfinite(post_close_volume) or post_close_volume < 0:
+                raise ValueError("invalid post-close volume")
+            rows[-1]["post_close_volume"] = post_close_volume
         previous = day
     if not rows:
         raise ValueError("no historical observations")
@@ -71,6 +84,10 @@ def main() -> None:
     if len(urls) != len(frame):
         raise ValueError("duplicate source frame symbol")
     args.output.mkdir(parents=True, exist_ok=True)
+    identity = {"source_sha256": hashlib.sha256(Path(__file__).read_bytes()).hexdigest(),
+                "frame_sha256": hashlib.sha256(args.frame.read_bytes()).hexdigest(),
+                "start": args.start, "end": args.end, "research_only": True}
+    (args.output / "acquisition_identity.json").write_text(json.dumps(identity, indent=2))
 
     def collect(symbol: str) -> dict:
         request_id = hashlib.sha256(urls[symbol].encode()).hexdigest()[:16]

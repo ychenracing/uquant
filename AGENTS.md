@@ -15,6 +15,7 @@
 ## Verification and economic evidence
 
 - Verify affected behavior first and expand by risk. Run the complete required engineering/economic acceptance only for a stable final candidate or when the active contract explicitly requires it earlier.
+- Treat a failed check, rejected candidate or invalidated hypothesis as feedback, not task completion. Diagnose the failure and, if the original goal remains reachable, continue with the shortest valid alternative path. Do not weaken acceptance criteria, suppress failed evidence, or bypass safety, authorization or frozen contracts; stop only when the goal is shown unreachable under current constraints or no safe authorized action remains.
 - Before expensive matrices/replays, validate runner, schema, attribution, failure retention and readback with a small representative sentinel set.
 - Reuse deterministic evidence only when the covered behavior plus production tree, configuration, data manifest, universe, runtime lock and runner are equivalent. A new message/handoff alone does not invalidate evidence; a new SHA still needs applicable exact-HEAD checks. A partial matrix is not full acceptance.
 - Behavior-neutral documentation/provenance changes need relevant documentation and exact-HEAD checks, not unrelated economic recomputation once neutrality is established. Executable-input or runtime changes invalidate affected evidence.

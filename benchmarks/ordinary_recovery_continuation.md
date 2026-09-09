@@ -53,3 +53,23 @@ the separately authorized long-pullback route, existing filled holdings and
 valid pending commitments retain their existing permissions. No new clocks,
 parameters, ranking or risk permission. Reuse the same fixed comparison gates.
 This tests deletion of a mechanism, not a search over maturity thresholds.
+
+## Candidate C: retire new long-pullback admissions, preserve native trend discovery
+
+B fails the same screen: minus-sz300666 wealth 2.8954568406023475 and
+DD 0.15332590899576382 improve substantially, but 29 orders exceed 22;
+remove_all_three wealth 2.384897070304396 falls below the fixed baseline floor.
+Do not promote or hide either failure. Removing a losing position also changes
+the denominator of later concentration trims; isolated trade PnL is not a paired
+account counterfactual.
+
+Before C economics: return ordinary fresh selection to A's existing native
+qualification and early-slot rule (B is rejected), retain A's absolute exit,
+and delete the separate fresh long-pullback allocation route. In B's strict
+removal path that route generated four entries/eight entry-exit orders in
+sh688300, sz002281 and sh688256; their combined symbol contribution is negative.
+This is evidence for testing retirement, not a claim that removing their PnL
+predicts the resulting account. Do not tighten its thresholds, add a new cap,
+change risk authority or tune sizing. Continue managing real legacy long-pullback
+holdings and original pending remainders under their original identities and
+exit safeguards. Reuse the fixed four screens and all promotion contracts.

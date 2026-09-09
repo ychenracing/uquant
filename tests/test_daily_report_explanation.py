@@ -230,6 +230,15 @@ def test_report_exposes_recorded_pending_market_refusal(gate: str) -> None:
     assert (decision, account) == before
 
 
+def test_report_explains_current_maturity_needed_for_new_ordinary_admission() -> None:
+    decision = _core_allocation_decision({"entry_gate": "ORDINARY_CORE_NOT_MATURE"})
+    account = AccountState.empty(100_000.0)
+    before = deepcopy((decision, account))
+    report = render_daily_report(decision, account)
+    assert "New ordinary admission requires current mature leadership." in report
+    assert (decision, account) == before
+
+
 @pytest.mark.parametrize("frozen", [False, True])
 def test_report_preserves_final_freeze_and_capital_limit_over_pending_quality(frozen: bool) -> None:
     decision = _core_allocation_decision({

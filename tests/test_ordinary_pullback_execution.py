@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 from copy import deepcopy
+from dataclasses import replace
 
 import pandas as pd
 from test_long_pullback_entry import EPISODES, _native_inputs
@@ -12,7 +13,15 @@ from uquant.execution import ExecutionPlanner, plan_orders, reconcile_account_or
 from uquant.models.ordinary_entry import bind_pullback_orders, holding_pullback_entry
 from uquant.portfolio import PortfolioAllocator
 from uquant.risk.pullback import authorize_pullback_entry
-from uquant.types import AccountState, Opportunity, Risk, RiskAssessment
+from uquant.types import (
+    AccountState,
+    AttributionMechanism,
+    Lifecycle,
+    Opportunity,
+    OriginSubsystem,
+    Risk,
+    RiskAssessment,
+)
 
 
 def _submitted():
@@ -35,9 +44,14 @@ def _submitted():
     policy = PortfolioAllocator(DEFAULT_CONFIG)
     risk.evidence['decision_input_identity'] = {'as_of': str(date.date()), 'code_hash': account.code_hash,
                                                'data_hash': account.data_hash}
-    targets = policy.allocate(date=date, opportunity=Opportunity.CHOPPY, risk=risk,
-                              user_panel=panel, leaders={symbol: leader}, account=account,
-                              prices={symbol: float(frame.loc[date, 'close'])})
+    # Pre-retirement target fixture, not a current allocation permission. Native
+    # planner, ledger, proof binding and execution below still create every actual
+    # order/fill; no lifecycle identity or filled quantity is manufactured.
+    targets = policy._targets(
+        proposed={symbol: .2}, leaders={symbol: leader}, account=account,
+        lifecycle=Lifecycle.CORE, reason='bounded ordinary long-pullback entry',
+        origin_subsystem=OriginSubsystem.LEADER, mechanism=AttributionMechanism.LEADER_SELECTION)
+    targets = tuple(replace(t, reason_code='ordinary_pullback_entry') for t in targets)
     assert len(targets) == 1 and targets[0].weight == .2
     assert targets[0].reason_code == 'ordinary_pullback_entry'
     targets = attach_target_attribution('compute', '3' * 64, signal_date=str(date.date()),

@@ -17,7 +17,7 @@ from ..models.strategic_universe import StrategicUniverseRoles
 from ..models.trading import late_strategic_fill_allowed
 from ..ordinary_pullback import STRUCTURAL_EXIT_REASON, current_pullback_proof
 from ..portfolio_core import current_weights, symbol_weight_cap
-from ..risk.pullback import pullback_book_settled, pullback_risk_open
+from ..risk.pullback import pullback_risk_open
 from ..types import (
     AccountState,
     AttributionMechanism,
@@ -267,35 +267,6 @@ class _AllocationBook:
             self.committed[symbol] = max(self.committed.get(symbol, 0.0), self.proposed[symbol])
             self.cash_room -= max(0.0, increment - reserved)
         return accepted
-
-
-def _admit_pullback(book: _AllocationBook) -> set[str]:
-    permission = book.risk.evidence.get("ordinary_pullback_permission")
-    if (not isinstance(permission, dict) or permission.get("as_of") != str(book.date.date())
-            or not pullback_risk_open(book.risk, book.account) or not pullback_book_settled(book.account)
-            or any(weight > 0 for weight in book.committed.values())
-            or any(weight > 0 for weight in book.proposed.values())):
-        return set()
-    cfg = book.policy.cfg
-    maximum = min(permission["maximum_weight"], cfg.core_admission_weight, book.gross_cap)
-    candidates = []
-    for symbol, original in permission["proofs"].items():
-        if symbol not in book.user_panel or symbol not in book.leaders or symbol in book.owned:
-            continue
-        proof = current_pullback_proof(symbol=symbol, date=book.date, frame=book.user_panel[symbol],
-                                      leader=book.leaders[symbol], cfg=cfg)
-        if proof == original and proof["block"] == "READY":
-            candidates.append(symbol)
-    selected = sorted(candidates, key=lambda s: (-book.leaders[s].score, s))[
-        :min(cfg.max_positions, int((maximum + 1e-12) / cfg.min_trade_weight))]
-    allowed = set()
-    for symbol in selected:
-        if book.fund(symbol, maximum / len(selected), phase="PULLBACK_CORE", minimum=cfg.min_trade_weight):
-            book.reasons[symbol] = "bounded ordinary long-pullback entry"
-            book.record(symbol).update(pullback_entry=permission["proofs"][symbol],
-                                       entry_gate="BOUNDED_PULLBACK_AUTHORIZED")
-            allowed.add(symbol)
-    return allowed
 
 
 def _pending_pullback_open(book: _AllocationBook, order: PendingOrder) -> bool:
@@ -574,13 +545,19 @@ def _failed_deployment_awaits_settlement(account: AccountState) -> bool:
 
 def _fresh_core_selection(
     book: _AllocationBook, candidates: list[str],
-) -> tuple[set[str], list[str]]:
+) -> tuple[set[str], list[str], bool]:
     """Select new names without reallocating existing holdings or BUY commitments."""
     occupied = (book.owned | {s for s, w in book.weights_now.items() if w > 0}
                 | {s for s, w in book.committed.items() if w > 0}
                 | {order.symbol for order in book.account.pending_orders})
     fresh = [s for s in candidates if s not in occupied]
-    return occupied, [s for s in fresh if book.leaders[s].mature]
+    immature_occupied = any(
+        s not in book.owned and w > 0 and (s not in book.leaders or not book.leaders[s].mature)
+        for s, w in book.committed.items()
+    )
+    early = next((s for s in fresh if not book.leaders[s].mature), None) if not immature_occupied else None
+    eligible = [s for s in fresh if book.leaders[s].mature or s == early]
+    return occupied, eligible, immature_occupied
 
 
 def _ordinary_admission_budget(book: _AllocationBook) -> float | None:
@@ -606,19 +583,23 @@ def _admit_new_cores(book: _AllocationBook, *, candidates: list[str], opportunit
         for symbol in candidates:
             book.record(symbol)["entry_gate"] = "ORDINARY_MARKET_EVIDENCE_UNAVAILABLE"
         return
-    occupied, eligible = _fresh_core_selection(book, candidates)
+    occupied, eligible, immature_occupied = _fresh_core_selection(book, candidates)
     selected = eligible[:max(0, book.policy.cfg.max_positions - len(occupied))]
     for symbol in candidates:
         if symbol in occupied:
             book.record(symbol)["entry_gate"] = "EXISTING_HOLDING_OR_COMMITMENT"
             continue
         if symbol not in eligible:
-            book.record(symbol)["entry_gate"] = "ORDINARY_CORE_NOT_MATURE"
+            book.record(symbol)["entry_gate"] = (
+                "IMMATURE_CORE_SLOT_OCCUPIED" if immature_occupied else "IMMATURE_CORE_LOWER_RANK"
+            )
             continue
         if symbol not in selected:
             book.record(symbol)["entry_gate"] = "POSITION_SLOTS_EXHAUSTED"
             continue
         weight = min(book.policy.cfg.single_core_entry_cap, budget / len(selected))
+        if not book.leaders[symbol].mature:
+            weight = min(weight, book.policy.cfg.core_admission_weight)
         if weight + 1e-12 < book.policy.cfg.min_trade_weight:
             book.record(symbol)["entry_gate"] = "ORDINARY_INITIAL_CAPITAL_BELOW_TRADE_MINIMUM"
             continue
@@ -775,7 +756,6 @@ def _allocate_strategy(
                 book.record(symbol)["entry_gate"] = "ACCOUNT_REPAIR_AUTHORIZED"
                 book.reasons[symbol] = "confirmed core admitted through bounded account repair"
                 break
-    pullback_symbols = _admit_pullback(book)
     targets = _book_targets(book)
     if frozen:
         frozen_targets = self._frozen_existing_targets(
@@ -789,8 +769,8 @@ def _allocate_strategy(
                           or any(order.symbol == t.symbol and ordinary_cash_rearm_order_open(
                               account=account, risk=risk, cfg=self.cfg, order=order)
                               for order in account.pending_orders)})
-        permitted.update({t.symbol: t for t in targets if t.symbol in pullback_symbols
-                          or any(order.symbol == t.symbol and order.reason_code == PULLBACK_REASON
+        permitted.update({t.symbol: t for t in targets
+                          if any(order.symbol == t.symbol and order.reason_code == PULLBACK_REASON
                                  and book.record(order.symbol).get("_pending_pullback_open") is True
                                  for order in account.pending_orders)})
         frozen_book = {t.symbol: t for t in frozen_targets}

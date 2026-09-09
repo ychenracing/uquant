@@ -124,6 +124,7 @@ _CORE_REVIEW_CHANGES = _MappingProxyType({
     "PULLBACK_NOT_GRADUATED": "The long-structure holding must enter ordinary mature management before restoration can add capital.",
     "BOUNDED_PULLBACK_AUTHORIZED": "Only this decision's bounded ordinary order consumes the recorded BaseRisk permission.",
     "EXISTING_HOLDING_OR_COMMITMENT": "Manage the existing holding or order through its own lifecycle.",
+    "ORDINARY_CORE_NOT_MATURE": "New ordinary admission requires current mature leadership.",
     "IMMATURE_CORE_SLOT_OCCUPIED": "The existing ordinary early holding or commitment must mature or actually settle out.",
     "IMMATURE_CORE_LOWER_RANK": "Only the highest-ranked new immature ordinary core is selected in this decision.",
     "AWAIT_REDUCTION_SETTLEMENT": "The prior reduction must actually settle.",

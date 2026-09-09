@@ -1,4 +1,4 @@
-"""Native ordinary commitments remain distinct from new maturity-gated admission."""
+"""Native shared qualification and execution for one ordinary early capital slot."""
 from dataclasses import replace
 
 from test_shared_core_qualification import CHALLENGER, WITNESSES, _decide, _held_book
@@ -10,19 +10,16 @@ from uquant.execution import ExecutionPlanner
 
 
 def _early_book():
-    """Create a real mature BUY, then observe a later loss of its maturity label."""
     policy, account, dates, panel, leaders, roles = _held_book()
-    leaders = {s: replace(leader, mature=s == CHALLENGER) if s in WITNESSES else leader
+    leaders = {s: replace(leader, mature=False) if s in WITNESSES else leader
                for s, leader in leaders.items()}
     risk = _risk()
-    risk.evidence.update(broad_ret120=-.04, tech_ret120=-.07)
     for date in dates[:DEFAULT_CONFIG.strategic_cohort_confirm_days]:
         _decide(policy, account, date, panel, leaders, roles, risk=risk)
-    leaders[CHALLENGER] = replace(leaders[CHALLENGER], mature=False)
     return policy, account, dates, panel, leaders, roles, risk
 
 
-def test_original_qualified_buy_is_not_rewritten_by_later_maturity_loss():
+def test_real_shared_qualification_selects_only_highest_rank_immature_core():
     _, account, dates, panel, leaders, _, risk = _early_book()
     entries = risk.evidence["core_allocation"]["symbols"]
     assert all(entries[s]["entry"]["block"] == "READY" for s in WITNESSES)
@@ -74,7 +71,7 @@ def test_actual_pending_buy_reserves_early_slot_before_first_fill():
     assert buys[0].grant_id == original.grant_id == ""
 
 
-def test_incumbent_maturity_does_not_admit_immature_peers():
+def test_current_maturity_frees_early_slot_without_selling_old_holding():
     policy, account, dates, panel, leaders, roles, risk = _early_book()
     ExecutionPlanner(DEFAULT_CONFIG).execute_open(date=dates[2], account=account, panel=panel)
     shares = account.positions[CHALLENGER].shares
@@ -82,27 +79,26 @@ def test_incumbent_maturity_does_not_admit_immature_peers():
     _decide(policy, account, dates[3], panel, leaders, roles, risk=risk)
     assert account.positions[CHALLENGER].shares == shares
     buys = [o for o in account.pending_orders if o.side == "BUY" and not o.grant_id]
-    assert not buys
+    assert len(buys) == 1 and buys[0].symbol == WITNESSES[1]
     assert not any(o.side == "SELL" for o in account.pending_orders)
 
 
-def test_only_mature_candidates_enter_but_label_loss_does_not_sell_holdings():
+def test_mature_candidates_are_not_limited_by_the_early_slot():
     policy, account, dates, panel, leaders, roles = _held_book()
     leaders[CHALLENGER] = replace(leaders[CHALLENGER], mature=False)
     for date in dates[:DEFAULT_CONFIG.strategic_cohort_confirm_days]:
         _decide(policy, account, date, panel, leaders, roles)
-    expected = set(WITNESSES) - {CHALLENGER}
-    assert {o.symbol for o in account.pending_orders if o.side == "BUY" and not o.grant_id} == expected
+    assert {o.symbol for o in account.pending_orders if o.side == "BUY" and not o.grant_id} == set(WITNESSES)
     fills = ExecutionPlanner(DEFAULT_CONFIG).execute_open(date=dates[2], account=account, panel=panel)
-    assert {f.symbol for f in fills if f.side == "BUY" and not f.grant_id} == expected
+    assert {f.symbol for f in fills if f.side == "BUY" and not f.grant_id} == set(WITNESSES)
     before = {s: (account.positions[s].shares, account.positions[s].grant_id, account.positions[s].epoch_id)
-              for s in expected}
+              for s in WITNESSES}
     # Existing multiple holdings can lose maturity; admission limiting never forces an exit.
     leaders = {s: replace(leader, mature=False) for s, leader in leaders.items()}
     _decide(policy, account, dates[3], panel, leaders, roles)
     assert not any(o.side == "SELL" for o in account.pending_orders)
     assert {s: (account.positions[s].shares, account.positions[s].grant_id, account.positions[s].epoch_id)
-            for s in expected} == before
+            for s in WITNESSES} == before
 
 
 def test_real_full_exit_releases_early_slot_for_new_qualified_candidate():
@@ -123,7 +119,7 @@ def test_real_full_exit_releases_early_slot_for_new_qualified_candidate():
     assert sum(f.shares for f in fills if f.symbol == CHALLENGER and f.side == "SELL") == shares
     assert CHALLENGER not in account.positions
     successor = WITNESSES[1]
-    leaders[successor] = replace(leaders[successor], score=.96, mature=True)
+    leaders[successor] = replace(leaders[successor], score=.96)
     for date in dates[4:6]:
         _decide(policy, account, date, panel, leaders, roles, risk=risk)
     buys = [o for o in account.pending_orders if o.side == "BUY" and not o.grant_id]

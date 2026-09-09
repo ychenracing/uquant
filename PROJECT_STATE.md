@@ -1,3 +1,18 @@
+Execution dependency checkpoint — current:
+
+- Overall NOT_MET; PR56 Draft, no main merge. The task continues from a concrete implementation, not a failed-hypothesis report.
+- Original107MB evidence delivery is closed with saved-file hash readback. Saved source/unit161,703,516-byte and coverage/price191,039,012-byte archives preserve all9 main-policy input-diagnostic paths and expensive original sources. See source_integrity_archive.json and source_coverage_price_archive.json.
+- C on the identical repaired research data is rejected: full31.44972572 and removal1.87932229 equal main; strict2.13395344/DD14.4345%/29orders versus main2.53740564/DD12.5532%/19orders. All3 native869-day readbacks passed. Earlier formal C failures remain. See c_source_data_result.json.
+- C raw archive94,563,799bytes/2634files was locally verified, SHA256c2a2aa544a43aab941a5f689adcf49043e3fef6e6eef5b167aac86cd51776086. Persistent save did NOT complete before runtime outage; do not claim saved. Resume by saving the existing archive or regenerating from remote C744eea29 and saved repaired inputs if local bytes vanished.
+- Chosen next route: fixed23-company research cohort disclosed before2022-09-01, from the already reviewed full90-company2022H1 frame (23supported/42outside/25unresolved). No return-based member selection, production expansion or threshold search.
+- Implementation preserved and remotely readback-verified on codex/historical-cohort-replay-20260909 at145e2a6d37c5f4fb36ba5bad58e63d563556dd4b: explicit dated cohort context, dynamic research reference binding, source/frame manifest, reused bounded parser, dataset builder and native readback CLI. The README at benchmarks/historical_cohort_input_v1 gives exact saved source restoration and gated commands.
+- Initial10 cohort-boundary+7 data-binding tests passed locally. Latest formatting, real-manifest test and dataset/replay code still require static and native verification. Focused CI34406716003 is pending on145e2a6; preceding initial focused run34405869454 remained queued. Queued/pending is not PASS. No full economic matrix requested.
+- Actual execution blocker: old Python runtime disappeared, followed by repeated exec-server409 environment_offline / Environment is not connected. Even pwd fails. No other local code executor is exposed. Repository-native focused CI is the implemented alternative but has not started; next work depends on a functioning local runtime or CI executor.
+- After execution returns: save pending C archive; finish focused guards/lint/typing; build from saved109 action notices/23raw responses; verify frozen-default and23-member native sentinels; then execute the one preregistered869-day cohort account and reassess all goal gaps. Do not restart completed input diagnostics, modify frozen contracts, use protected2026-08-06+ market data, or waive the recorded source-header incident.
+
+---
+Earlier checkpoints:
+
 Source-integrity and coverage checkpoint — current:
 - NOT_MET; PR56 remains Draft, main960539a unchanged. Original107MB delivery closed; new161,703,516-byte checkpoint saved,3318 evidence files verified, SHA256f17ae691d45beea506350ab553898865756246ca28954d749f781dc3eb478c5e (source_integrity_archive.json).
 - Original34 stocks: all bounded raw prices obtained;181 effective original-notice cash/share reference coefficients verified from183 PDFs.31 symbols' full overlap OHLC matches within cent;3 price-source exceptions explained, separately preregistered.

@@ -5,9 +5,9 @@ orders and requests completion and merge to main. Candidate C therefore passes
 the four screens under that revised order ceiling. The original failed
 judgments below remain unchanged; complete acceptance is tracked in PR #56.
 
-Final nominal readback for C is 13/14 PASS. No-optical H1 drawdown
+Before revision v3, nominal readback for C was 13/14 PASS. No-optical H1 drawdown
 0.2442425185317515 equals current main but exceeds the older frozen retention
-limit 0.20205429957130803; this failure is not waived. Subsequent risk candidates
+limit 0.20205429957130803; that original failed judgment is retained. Subsequent risk candidates
 D and E both improve H1 drawdown but fail continuous wealth retention. They
 are rejected and their code is restored to C. All experiment sources and raw
 evidence remain retained; see the continuation record. Main is not merged and
@@ -16,6 +16,62 @@ full L4 is not claimed.
 The user subsequently authorized only that H1 comparison to use current main's
 exact drawdown with no extra buffer. Revision v3 implements this scope and
 preserves the earlier failure. Remaining acceptance is still required before merge.
+Under v3, all 14 nominal cases pass; the original-rule verdict remains FAIL.
+The frozen old-source offset5/remove_all_three replay aborts with an order
+attribution identity error, so paired initial-condition acceptance is not yet
+established. The single-window authorization does not replace that comparator.
+
+## Full Performance result for C
+
+The stable v3 candidate completed all 45 Performance units (30 official and
+15 protected). Economic acceptance is FAIL: 27 distinct cells trigger 68
+checks. Native artifact re-evaluation finds no additional schema, identity or
+failure-claim errors. Evaluating the present contract with `authorized=False`
+produces 79 failed checks; neither judgment is discarded.
+
+Two bounded native replays of unchanged main `960539a` distinguish inherited
+failures from C regressions. They are diagnostic evidence, not replacement
+acceptance baselines:
+
+| Performance cell | Main wealth | C wealth | Absolute wealth floor |
+| --- | ---: | ---: | ---: |
+| a/bull | 1.4783417475107592 | 1.4783417475107592 | 11.5443 |
+| a/h1_2024 | 1.327722049517836 | 1.3634479995178361 | 1.512 |
+
+Main a/bull also has the same 0.1980186769270772 drawdown and 7 orders as C.
+Its interval starts 2025-04-01, but the first buy signal is 2025-07-30.
+This exposes a separate-start admission/holding limitation that continuous
+2023-origin wealth does not establish. Only these two Performance cells have
+been paired against current main here; no claim all other failures are inherited.
+These wealth, acute-return, drawdown and order failures are outside the
+single no_optical/h1_2023 authorization. Fixing the old robustness comparator
+alone would therefore not make C eligible to merge.
+
+Absolute recovery-and-reachability separately emitted a sealed ERROR manifest:
+`absolute recovery repeated crowning evidence is absent`. No authorization
+waives that required evidence. A local memory-limit termination during parallel
+LOO manifest processing is a distinct transport failure: its attempt log is
+retained. A sequential cached-manifest retry was subsequently stopped after
+independent acceptance failures had already blocked promotion. Neither the
+resource interruption nor the missing recovery evidence is reported as a pass.
+
+## C simplification and operator cutover
+
+C removes the fresh `_admit_pullback` allocation function, its call and the
+fresh-entry exception in frozen targets. It also removes the relative-maturity
+veto from ordinary structural exits. The original ordinary early-admission
+slot remains; B's maturity restriction and D/E's risk-guard changes are absent.
+This is not removal of the entire historical pullback subsystem or its config.
+
+Use the code-identity migration and account-copy rehearsal in
+[OPERATIONS](../docs/OPERATIONS.md), and the historical holding rules in
+[STRATEGY](../docs/STRATEGY.md). C requires neither a new account nor a new schema.
+Preserve original proofs, holdings and order/event identities. A real partial
+remainder must still pass current proof, risk and full-budget validation;
+otherwise cancel the invalid remainder without issuing a replacement entry.
+MA120 protection, cost-catastrophe exits and irreversible maturity conversion
+remain active. A successful code-identity migration is not economic acceptance;
+complete the remaining gates before the authorized merge and later cutover.
 
 Historical screening, not a future-return claim or full production acceptance.
 The preregistered mechanism sequence and unchanged gates are in
@@ -68,10 +124,12 @@ of profitable sh688256. Summing isolated trade PnL would miss that effect.
 C, preregistered before its replay, returns to the original early-slot trend
 qualification and retires only the separate fresh long-pullback allocation.
 Legacy orders, proofs, real inventory and exit protection remain supported.
-No candidate has passed all screens, and no full L4 acceptance is claimed.
-Production main is not updated with these failed candidates. Removing the
-22-order gate or silently accepting B's control regression is not authorized
-by a general request to improve the strategy. Further adaptations on these
+At the original 22-order screening decision, no candidate had passed all
+screens, and no full L4 acceptance was claimed.
+At that point, production main was not updated with these failed candidates.
+Removing the 22-order gate or silently accepting B's control regression was
+not authorized by the general request to improve the strategy. Later explicit
+authorizations are recorded above. Further adaptations on these
 same observed intervals are research, not fresh evidence of generalization.
 
 ## Recoverable evidence and engineering scope
@@ -90,3 +148,44 @@ projection correction. Ruff and mypy (317 source files) passed. Independent
 review found no code blocker; review is not economic acceptance. An earlier
 broad A architecture run was not a completed final verification and is not
 counted here. Full L4 was not repeated for failed screening candidates.
+
+## Final stop decision for this candidate
+
+No merge: the user required all other acceptance to pass. Parameter-neighbor
+P4 lower / champion also fails wealth retention: changing only the frozen
+neighbor override strategic_reversal_max_tech_ret120 from -0.01 to -0.015
+produces wealth 5.80319074025768 versus nominal 25.035391084584187,
+maximum drawdown 0.1723508887086519 and 19 orders. Its native replay is COMPLETE;
+this is an economic failure, not a resource error. The full 64-case robustness
+matrix was not completed. The old offset5 comparator identity error remains
+unresolved and its original failure records are preserved.
+
+Full pytest/coverage was interrupted after 181 observed passing progress items;
+there is no completed full-suite JUnit or coverage verdict. Coverage was
+incorrectly applied to architecture scans in the initial invocation; repository
+CI limits coverage to application tests. Later resource constraints included
+the 20 GiB memory limit and an exhausted 32 GiB root filesystem. No full L4 pass
+is claimed. Remaining expensive runs were stopped once independent failures
+already made this C ineligible; no thresholds or frozen sources were altered
+to turn these failures into passes.
+
+Critical failure evidence is retained in ordinary_recovery_C_failures.tar.gz,
+50,784,180 bytes, SHA256
+5240d6efa9b964eceed82bb9f1e98a6326ef03c72f6cd36e198a426f9c972fdd.
+It includes all 45 Performance cache units and native report/readback,
+two unchanged-main diagnostic raw replays, the frozen robustness plan,
+P4 lower/champion complete raw replay, the Absolute recovery ERROR manifest,
+and resource/full-pytest attempt logs. Persistent file identity:
+libfile_ffdca73e765c81918fca44a5327d6bdd.
+The earlier v3 checkpoint with the original old-comparator failures remains
+retained as libfile_c023d9bf29308191aaee357429506fdf.
+A separate 1.085 GB all-Absolute-cache archive was created locally but its
+large-file uploads failed; do not claim that archive or its three parts are
+persistently saved. Local complete raw cells remain available for validated
+reuse, and interrupted attempts must not be counted as complete.
+
+The tested producer remains local 4ecd2296dde76067bea9572d22a3d494b92061bf,
+remote code-equivalent 2b97c48aca30741b696039dcf758063619ec3520, shared tree
+9051c464eaaa7dffa7722ed1d63f86fc50be6e9b. This follow-up is documentation only;
+its own commit is not a new tested producer. Main remains
+960539a89408cc7c1fc3937bda19c9f760095012. No live orders or Future Holdout used.

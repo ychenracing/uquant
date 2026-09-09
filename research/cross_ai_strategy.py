@@ -169,8 +169,30 @@ def rebuild_observation_archive(
             raise ValueError("rebuilt observation archive differs from saved days")
 
 
+def _data_root(research_data_dir: Path | None, manifest_sha256: str | None) -> Path:
+    """Bind an explicitly sealed research snapshot without changing frozen defaults."""
+    if (research_data_dir is None) != (manifest_sha256 is None):
+        raise ValueError("research data directory and manifest seal are required together")
+    if research_data_dir is None:
+        return ROOT / "data/frozen"
+    root = research_data_dir.resolve()
+    if root == (ROOT / "data/frozen").resolve():
+        raise ValueError("research input must be separate from frozen data")
+    raw = (root / "DATA_MANIFEST.json").read_bytes()
+    if hashlib.sha256(raw).hexdigest() != manifest_sha256:
+        raise ValueError("research data manifest SHA-256 mismatch")
+    manifest = strict_json_loads(raw.decode("utf-8"))
+    if manifest.get("research_only") is not True or manifest.get("production_ready") is not False:
+        raise ValueError("input must be explicitly research-only")
+    if manifest.get("parent_frozen_identity") != verify_data_manifest(ROOT / "data/frozen"):
+        raise ValueError("research data parent frozen identity mismatch")
+    verify_data_manifest(root)
+    return root
+
+
 def case_identity(
     case_id: str, start: str, end: str, cfg: SystemConfig = DEFAULT_CONFIG,
+    *, research_data_dir: Path | None = None, research_data_sha256: str | None = None,
 ) -> dict[str, Any]:
     commit = subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=ROOT, text=True).strip()  # nosec B603, B607
     return {
@@ -180,7 +202,9 @@ def case_identity(
         "source_sha256": code_fingerprint(),
         "config_sha256": config_fingerprint(cfg),
         "runtime": runtime_environment_provenance(ROOT),
-        "data": verify_data_manifest(ROOT / "data/frozen"),
+        "data": verify_data_manifest(_data_root(research_data_dir, research_data_sha256)),
+        **({"research_data_manifest_sha256": research_data_sha256}
+           if research_data_dir is not None else {}),
         "universe_sha256": hashlib.sha256(
             (ROOT / "uquant/contracts/resources/ai_universe_manifest.json").read_bytes()
         ).hexdigest(),
@@ -198,6 +222,8 @@ def run_production_case(
     start_session_offset: int = 0,
     extra_excluded_symbols: tuple[str, ...] = (),
     risk_reference_additions: tuple[str, ...] = (),
+    research_data_dir: Path | None = None,
+    research_data_sha256: str | None = None,
 ) -> dict[str, Any]:
     """Replay one frozen historical case with exact daily observations and fills."""
     if not "2023-01-03" <= start <= end <= "2026-08-05":
@@ -215,13 +241,15 @@ def run_production_case(
     case_symbols(case_id, start, extra_excluded_symbols=exclusions, risk_reference_additions=risk_additions)
     output_dir.mkdir(parents=True, exist_ok=False)
     started = time.monotonic()
-    identity = case_identity(case_id, start, end, cfg)
+    data_root = _data_root(research_data_dir, research_data_sha256)
+    identity = case_identity(case_id, start, end, cfg, research_data_dir=research_data_dir,
+                             research_data_sha256=research_data_sha256)
     identity.update(effective_config=cfg.to_dict(), initial_cash=cfg.initial_cash,
                     start_session_offset=start_session_offset, extra_excluded_symbols=list(exclusions))
     if risk_additions:
         identity["risk_reference_additions"] = list(risk_additions)
     write_json(output_dir / "identity.json", identity)
-    engine = ProductionEngine(ROOT / "data/frozen", cfg=cfg)
+    engine = ProductionEngine(data_root, cfg=cfg)
     engine.workspace.prepare(ReplayUniverse.from_symbols(
         tradable_symbols=(), reference_symbols=(), index_symbols=INDEX_SYMBOLS,
     ))
@@ -341,7 +369,8 @@ def run_production_case(
             accounting = attribution["accounting"]
             if not accounting["reconciled"]:
                 raise RuntimeError("production accounting does not reconcile")
-        latest_identity = case_identity(case_id, start, end, cfg)
+        latest_identity = case_identity(case_id, start, end, cfg, research_data_dir=research_data_dir,
+                                        research_data_sha256=research_data_sha256)
         if any(identity[key] != value for key, value in latest_identity.items()):
             raise RuntimeError("historical replay input or source identity changed during execution")
         rebuild_observation_archive(output_dir, raw_path, completed_sessions=len(equity_rows))

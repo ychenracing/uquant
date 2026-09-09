@@ -18,7 +18,7 @@ def _open_pair(*, low_score=.81):
     return policy, account, dates, panel, leaders, risk, targets, low
 
 
-def test_peer_market_permission_does_not_fund_low_score_self_maturity():
+def test_peer_impulse_permission_does_not_fund_low_score_self_maturity():
     _, account, dates, panel, leaders, risk, targets, low = _open_pair()
     assert risk.evidence['core_allocation']['ordinary_market']['confirmed']
     assert all(leader.mature for leader in leaders.values())
@@ -107,7 +107,7 @@ def test_real_strict_clock_remains_fallback_without_self_maturity_tenure():
     assert result['confirmations']['independent_core'] >= 5
 
 
-def test_native_shared_certificate_retains_its_route_without_strict_clock():
+def test_native_shared_certificate_buys_without_impulse_or_strict_clock():
     from test_shared_core_qualification import CHALLENGER, _held_book
     from test_strategic_universe_quorum import _risk
 
@@ -117,7 +117,7 @@ def test_native_shared_certificate_retains_its_route_without_strict_clock():
                          tech_speed=.02, broad_speed=.02)
     for date in dates[:DEFAULT_CONFIG.strategic_cohort_confirm_days]:
         _decide(policy, account, date, panel, leaders, risk, roles=roles)
-    assert risk.evidence["core_allocation"]["ordinary_market"]["confirmed"]
+    assert not risk.evidence["core_allocation"]["ordinary_market"]["confirmed"]
     assert account.replacement_tenure.get(f"strategic_eligibility:independent_core:{CHALLENGER}", 0) == 0
     order = next(order for order in account.pending_orders if order.symbol == CHALLENGER)
     assert not order.grant_id and not order.epoch_id
@@ -126,7 +126,7 @@ def test_native_shared_certificate_retains_its_route_without_strict_clock():
     assert any(fill.symbol == CHALLENGER and fill.side == "BUY" and fill.shares > 0 for fill in fills)
 
 
-def test_native_strict_candidate_buys_without_mature_shortcut():
+def test_native_strict_candidate_buys_without_impulse_or_mature_shortcut():
     from test_ordinary_cash_rearm import SYMBOL
     from test_ordinary_cash_rearm import _decide as repair_decide
     from test_ordinary_cash_rearm import _scenario as repair_scenario
@@ -138,7 +138,7 @@ def test_native_strict_candidate_buys_without_mature_shortcut():
     risk = replace(risk, state=Risk.NORMAL, freeze_new_risk=False, reduction_level=0,
                    evidence={**risk.evidence, "freeze_new_risk": False, "ai_fast_return": .01})
     repair_decide(policy, account, dates[0], panel, leaders, risk)
-    assert risk.evidence["core_allocation"]["ordinary_market"]["confirmed"]
+    assert not risk.evidence["core_allocation"]["ordinary_market"]["confirmed"]
     assert account.replacement_tenure[f"strategic_eligibility:independent_core:{SYMBOL}"] >= 5
     assert account.pending_orders and account.strategic_cash_rearm.consumed_order is None
     fills = ExecutionPlanner(DEFAULT_CONFIG).execute_open(date=dates[1], account=account, panel=panel)

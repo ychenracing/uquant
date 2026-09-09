@@ -196,6 +196,13 @@ def _activate_sector_guard(
     triggered = bool(
         not account.sector_guard_active
         and len(account.sector_shock_dates) >= cfg.sector_shock_confirmations
+        and (
+            leadership_divergence >= cfg.sector_guard_divergence
+            or (
+                account.capital_budget_level >= 1
+                and account.candidate_tenure.get("strategic_cohort_active", 0) != 1
+            )
+        )
     )
     if triggered:
         account.sector_guard_active = True
@@ -250,9 +257,9 @@ def update_sector_guard(
 ) -> SectorGuardTransition:
     """Advance the default-on shock/guard/recovery state machine.
 
-    Activation needs repeated synchronized losses in the owned cohort. The
-    benchmark premium cannot veto confirmed losses in those actual holdings;
-    it remains a separate requirement for the acute evacuation owner.
+    Activation needs repeated synchronized losses and either a narrow benchmark
+    premium or existing ordinary capital impairment. Strategic holdings and
+    acute evacuation retain their benchmark-premium requirements.
     Recovery is deliberately slower than activation and pauses when coverage is
     insufficient.
     """

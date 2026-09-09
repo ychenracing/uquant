@@ -98,3 +98,22 @@ Keep all shock thresholds, breadth, confirmation, window, reduction gross,
 recovery, ownership and promotion gates. No new route, parameter or security/date
 exception. Test the failing half-year first, then fixed controls if it passes.
 Retain C and D failures. No complete expensive matrix before a stable candidate.
+
+D is rejected. Native H1 wealth 1.42570127614777, DD 0.16888295422439015,
+7 orders passes, but full wealth 19.305826186909297 and remove_all_three
+1.5466731030244 fail their unchanged retention floors. Strict removal wealth
+2.6462899879557673, DD 0.09461718550911291, 32 orders passes. Earliest native
+H1 change is Apr11 guard / Apr12 executed sale, not the isolated Apr26 test.
+Unconditionally broadening guard activation cuts still-productive trends.
+
+## Candidate E: require existing ordinary capital impairment
+
+Before E economics: restore the original benchmark-premium activation route.
+Allow the same confirmed held-cohort shock evidence to activate without that
+premium only when the existing capital_budget_level is at least 1 and the
+existing strategic_cohort_active owner flag is not active. This is a bounded
+correction of D: no new warning threshold, capital clock, recovery authority or
+strategic exit route. C's Apr11 capital level was 0; Apr26 was already 1.
+Early capital freeze alone cannot sell; the existing repeated holdings shock
+must also be present. Preserve the acute premium gate and every fixed screen
+and promotion contract. Run H1 first, then the three continuous controls.

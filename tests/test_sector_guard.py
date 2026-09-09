@@ -130,7 +130,12 @@ def test_single_live_holding_is_observable_only_for_existing_acute_owner() -> No
     assert acute.equal_return < cfg.risk_fast_return
 
 
-def test_sector_guard_requires_repeated_owned_shock_regardless_of_benchmark_premium() -> None:
+@pytest.mark.parametrize(("capital_level", "strategic_active", "expected"), [
+    (0, False, False), (1, False, True), (2, False, True), (1, True, False),
+])
+def test_sector_guard_requires_premium_or_impaired_ordinary_capital(
+    capital_level, strategic_active, expected,
+) -> None:
     dates = pd.bdate_range("2026-06-01", periods=11)
     panel = _panel(dates)
     cfg = DEFAULT_CONFIG.override(
@@ -160,6 +165,8 @@ def test_sector_guard_requires_repeated_owned_shock_regardless_of_benchmark_prem
     assert account.sector_shock_dates == []
 
     low_divergence = _account()
+    low_divergence.capital_budget_level = capital_level
+    low_divergence.candidate_tenure["strategic_cohort_active"] = int(strategic_active)
     for date in dates[:7]:
         transition = update_sector_guard(
             date=date,
@@ -169,7 +176,36 @@ def test_sector_guard_requires_repeated_owned_shock_regardless_of_benchmark_prem
             leadership_divergence=0.20,
             cfg=cfg,
         )
-    assert transition.active
+    assert transition.active is expected
+
+
+def test_real_april_owned_shocks_activate_without_index_premium(data_dir) -> None:
+    # Native pre-reduction holdings from the failing no-optical H1 replay.
+    account = AccountState.empty(2_000_000.0)
+    account.capital_budget_level = 1
+    account.positions = {
+        symbol: Position(symbol, shares=shares, avg_cost=cost)
+        for symbol, shares, cost in (
+            ("sh688200", 2000, 134.90980743240002),
+            ("sh688256", 13300, 60.145703818200005),
+            ("sz002281", 35400, 22.548381055199997),
+        )
+    }
+    panel = {
+        symbol: pd.read_csv(data_dir / f"{symbol}.csv", index_col=0, parse_dates=True).loc[:"2023-04-26"]
+        for symbol in account.positions
+    }
+    calendar = panel["sh688200"].index
+    transitions = [update_sector_guard(
+        date=date, calendar=calendar, panel=panel, account=account,
+        leadership_divergence=0.09212521961836062, cfg=DEFAULT_CONFIG,
+    ) for date in calendar[(calendar >= "2023-04-21") & (calendar <= "2023-04-26")]]
+    assert [item.shock_count for item in transitions] == [1, 1, 1, 2]
+    assert [item.triggered for item in transitions] == [False, False, False, True]
+    observation = transitions[-1].observation
+    assert observation is not None
+    assert observation.weighted_return == pytest.approx(-0.052771444851861804)
+    assert observation.negative_exposure == pytest.approx(0.9255290984691573)
 
 
 def test_sector_guard_recovery_observes_the_trigger_cohort_after_sparse_cut() -> None:

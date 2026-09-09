@@ -56,7 +56,7 @@ def _risk() -> RiskAssessment:
     )
 
 
-def test_choppy_entry_stays_equal_weight_despite_score_dispersion() -> None:
+def test_choppy_scores_do_not_create_unconfirmed_core_entries() -> None:
     dates = pd.bdate_range("2025-01-02", periods=100)
     symbols = ("one", "two", "three")
     panel = {symbol: _frame(dates, phase) for symbol, phase in zip(symbols, (0.0, 0.27, 0.63), strict=True)}
@@ -71,25 +71,22 @@ def test_choppy_entry_stays_equal_weight_despite_score_dispersion() -> None:
     }
     account = AccountState.empty(100.0)
 
-    targets = PortfolioAllocator(DEFAULT_CONFIG)._leader_targets(
+    targets = PortfolioAllocator(DEFAULT_CONFIG).allocate(
         date=dates[-1],
         opportunity=Opportunity.CHOPPY,
         risk=_risk(),
         user_panel=panel,
         leaders=leaders,
         account=account,
-        weights_now={},
         prices={symbol: float(panel[symbol].iloc[-1]["close"]) for symbol in symbols},
     )
 
     assert targets is not None
-    live = [target.weight for target in targets if target.weight > 0]
-    assert len(live) == 2
-    assert live[0] == pytest.approx(live[1])
-    assert account.candidate_tenure["conviction_evidence_qualified"] == 0
+    assert not any(target.weight > 0 for target in targets)
+    assert account.positions == {}
 
 
-def test_strong_independent_joint_evidence_can_concentrate_entry() -> None:
+def test_score_dispersion_cannot_replace_current_core_confirmation() -> None:
     dates = pd.bdate_range("2025-01-02", periods=100)
     symbols = ("one", "two", "three")
     panel = {symbol: _frame(dates, phase) for symbol, phase in zip(symbols, (0.0, 0.27, 0.63), strict=True)}
@@ -104,22 +101,19 @@ def test_strong_independent_joint_evidence_can_concentrate_entry() -> None:
     }
     account = AccountState.empty(100.0)
 
-    targets = PortfolioAllocator(DEFAULT_CONFIG)._leader_targets(
+    targets = PortfolioAllocator(DEFAULT_CONFIG).allocate(
         date=dates[-1],
         opportunity=Opportunity.STRONG_TREND,
         risk=_risk(),
         user_panel=panel,
         leaders=leaders,
         account=account,
-        weights_now={},
         prices={symbol: float(panel[symbol].iloc[-1]["close"]) for symbol in symbols},
     )
 
     assert targets is not None
-    weights = {target.symbol: target.weight for target in targets if target.weight > 0}
-    assert account.candidate_tenure["confidence_sized_entry"] == 1
-    assert account.candidate_tenure["conviction_evidence_qualified"] == 1
-    assert weights["one"] > weights["two"] > weights["three"]
+    assert not any(target.weight > 0 for target in targets)
+    assert account.positions == {}
 
 
 def test_missing_quality_factor_blocks_concentration_even_in_strong_trend() -> None:

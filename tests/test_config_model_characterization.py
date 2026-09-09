@@ -165,7 +165,7 @@ def _sample_models() -> dict[str, object]:
     }
 
 
-def test_all_277_system_config_fields_match_the_current_flat_contract() -> None:
+def test_all_267_system_config_fields_match_the_current_flat_contract() -> None:
     expected_flat = PUBLIC_API["flat_config_serialization"]
     expected_module = PUBLIC_API["modules"]["uquant.config"]
     assert isinstance(expected_flat, Mapping)
@@ -174,7 +174,7 @@ def test_all_277_system_config_fields_match_the_current_flat_contract() -> None:
     fields = dataclasses.fields(SystemConfig)
     payload = DEFAULT_CONFIG.to_dict()
 
-    assert len(fields) == 277
+    assert len(fields) == 267
     assert [field.name for field in fields] == expected_flat["field_order"]
     assert list(payload) == expected_flat["field_order"]
     assert payload == expected_flat["values"]
@@ -223,6 +223,28 @@ def test_all_frozen_config_validation_types_messages_and_order_are_exact(
 ) -> None:
     changes = case["changes"]
     assert isinstance(changes, dict)
+    # The frozen invalid-value cases remain intact; current constructors reject
+    # exactly these retired fields before any former value validation runs.
+    removed_strategy_fields = {
+        "strategic_epoch_cooldown_sessions",
+        "strategic_epoch_min_symbol_change",
+        "leader_cycle_confirm_days",
+        "leader_cycle_min_mature",
+        "leader_cycle_min_score",
+        "leader_cycle_impulse_return",
+        "leader_cycle_impulse_index_return",
+        "leader_cycle_impulse_breadth",
+        "leader_cycle_min_market_ret120",
+        "leader_cycle_impulse_min_market_ret120",
+    }
+    if set(changes) & removed_strategy_fields:
+        assert len(changes) == 1
+        with pytest.raises(TypeError) as retired:
+            DEFAULT_CONFIG.override(**changes)
+        assert str(retired.value) == (
+            f"SystemConfig.__init__() got an unexpected keyword argument '{next(iter(changes))}'"
+        )
+        return
     with pytest.raises(Exception) as captured:
         DEFAULT_CONFIG.override(**changes)
 
@@ -270,7 +292,19 @@ def test_enum_literals_and_representative_model_bytes_are_frozen() -> None:
         "target": "40deb0e6450d7bdb5eaf7da4ff263501ac70c4a970aa1a56695bfe1b104b982d",
     }
 
-    assert {name: _canonical_sha256(value) for name, value in serialized.items()} == expected
+    # The optional native ordinary-order receipt is the sole authorized additive
+    # serialization change; preserve every historical model digest below.
+    account_payload = serialized["account"]
+    assert isinstance(account_payload, dict)
+    assert account_payload["schema_version"] == 8
+    rearm_payload = dict(account_payload["strategic_cash_rearm"])
+    assert rearm_payload.pop("consumed_order") is None
+    historical_account = {**account_payload, "strategic_cash_rearm": rearm_payload}
+    assert _canonical_sha256(account_payload) == (
+        "c4f0c04de39c776a3b5244eb79b5e11c8a75aad83f9bcae4726edc4045b751ca"
+    )
+    historical_serialized = {**serialized, "account": historical_account}
+    assert {name: _canonical_sha256(value) for name, value in historical_serialized.items()} == expected
 
 
 def test_model_field_order_defaults_factories_and_flat_account_schema_are_frozen() -> None:

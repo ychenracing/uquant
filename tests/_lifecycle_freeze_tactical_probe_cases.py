@@ -264,7 +264,7 @@ def test_normal_freeze_holds_exposure_and_risk_off_enforces_its_nonzero_cap():
     assert risk_off[0].reason_code == "risk_off"
     assert risk_off[0].exit_kind == "risk_off"
 
-def test_reason_clean_caution_freeze_still_applies_one_anchor_diversification_cap():
+def test_caution_freeze_keeps_healthy_recovery_holding_within_hard_name_cap():
     dates = pd.bdate_range("2025-01-02", periods=150)
     symbol = "recovery_anchor"
     frame = _trend_frame(dates)
@@ -306,9 +306,13 @@ def test_reason_clean_caution_freeze_still_applies_one_anchor_diversification_ca
     )
 
     assert {target.symbol: target.weight for target in targets} == pytest.approx(
-        {symbol: DEFAULT_CONFIG.one_anchor_gross_cap}
+        {symbol: 0.60}
     )
-    assert targets[0].reason == "under-diversified recovery cap"
+    # The shared book keeps a healthy position within today's hard name cap;
+    # a retired recovery-owner budget cannot impose another forced reduction.
+    assert targets[0].reason_code == "risk_freeze_hold"
+    assert account.cash == 40.0
+    assert account.positions[symbol].shares == 60
 
 def test_empty_book_freeze_cannot_open_a_tactical_probe() -> None:
     dates = pd.bdate_range("2025-01-02", periods=150)
@@ -354,7 +358,7 @@ def test_empty_book_freeze_cannot_open_a_tactical_probe() -> None:
     assert restore_targets == ()
     assert restoring.protected_weights == {symbol: 0.60}
 
-def test_capital_clean_caution_can_reach_the_empty_book_rebound_filter() -> None:
+def test_capital_clean_caution_does_not_bypass_a_buy_freeze() -> None:
     dates = pd.bdate_range("2025-01-02", periods=150)
     symbol = "bounded_rebound"
     close = np.linspace(0.80, 1.00, len(dates))
@@ -399,10 +403,11 @@ def test_capital_clean_caution_can_reach_the_empty_book_rebound_filter() -> None
         prices={symbol: 1.00},
     )
 
-    assert {target.symbol: target.weight for target in targets} == pytest.approx(
-        {symbol: DEFAULT_CONFIG.tactical_probe_weight}
-    )
-    assert account.candidate_tenure["tactical_active"] == 1
+    # A rebound profile cannot replace an explicit risk-owned reentry grant.
+    assert targets == ()
+    assert account.cash == 100.0
+    assert account.positions == {}
+    assert account.pending_orders == []
 
 def test_shallow_empty_book_rebound_does_not_justify_a_full_tactical_probe() -> None:
     dates = pd.bdate_range("2025-01-02", periods=150)
@@ -450,7 +455,7 @@ def test_shallow_empty_book_rebound_does_not_justify_a_full_tactical_probe() -> 
 
     assert targets == ()
 
-def test_independent_shallow_rebound_breadth_confirms_one_tactical_probe() -> None:
+def test_independent_rebound_breadth_cannot_expand_a_frozen_account() -> None:
     dates = pd.bdate_range("2025-01-02", periods=150)
     symbols = ("shallow_design", "shallow_compute", "shallow_equipment")
     close = np.linspace(0.80, 1.00, len(dates))
@@ -491,21 +496,23 @@ def test_independent_shallow_rebound_breadth_confirms_one_tactical_probe() -> No
         )
     }
 
+    account = AccountState.empty(100.0)
     targets = PortfolioAllocator(DEFAULT_CONFIG).allocate(
         date=dates[-1],
         opportunity=Opportunity.WEAK,
         risk=caution,
         user_panel={symbol: frame for symbol in symbols},
         leaders=leaders,
-        account=AccountState.empty(100.0),
+        account=account,
         prices={symbol: 1.00 for symbol in symbols},
     )
 
-    assert {target.symbol: target.weight for target in targets} == pytest.approx(
-        {symbols[0]: DEFAULT_CONFIG.tactical_probe_weight}
-    )
+    assert targets == ()
+    assert account.cash == 100.0
+    assert account.positions == {}
+    assert account.pending_orders == []
 
-def test_still_oversold_shallow_rebound_confirms_one_tactical_probe() -> None:
+def test_oversold_rebound_evidence_cannot_expand_a_frozen_account() -> None:
     dates = pd.bdate_range("2025-01-02", periods=150)
     symbol = "still_oversold"
     close = np.linspace(0.80, 1.00, len(dates))
@@ -539,19 +546,21 @@ def test_still_oversold_shallow_rebound_confirms_one_tactical_probe() -> None:
         reduction_level=1,
     )
 
+    account = AccountState.empty(100.0)
     targets = PortfolioAllocator(DEFAULT_CONFIG).allocate(
         date=dates[-1],
         opportunity=Opportunity.CHOPPY,
         risk=caution,
         user_panel={symbol: frame},
         leaders={symbol: _leader(symbol, 0.61)},
-        account=AccountState.empty(100.0),
+        account=account,
         prices={symbol: 1.00},
     )
 
-    assert {target.symbol: target.weight for target in targets} == pytest.approx(
-        {symbol: DEFAULT_CONFIG.tactical_probe_weight}
-    )
+    assert targets == ()
+    assert account.cash == 100.0
+    assert account.positions == {}
+    assert account.pending_orders == []
 
 def test_oversold_shallow_rebound_needs_medium_term_convexity() -> None:
     dates = pd.bdate_range("2025-01-02", periods=150)
@@ -599,7 +608,7 @@ def test_oversold_shallow_rebound_needs_medium_term_convexity() -> None:
 
     assert targets == ()
 
-def test_oversold_base_with_modest_long_horizon_extension_can_probe() -> None:
+def test_modest_extension_does_not_authorize_frozen_recovery_entry() -> None:
     dates = pd.bdate_range("2025-01-02", periods=150)
     symbol = "oversold_base"
     close = np.linspace(0.80, 1.00, len(dates))
@@ -633,19 +642,21 @@ def test_oversold_base_with_modest_long_horizon_extension_can_probe() -> None:
         reduction_level=1,
     )
 
+    account = AccountState.empty(100.0)
     targets = PortfolioAllocator(DEFAULT_CONFIG).allocate(
         date=dates[-1],
         opportunity=Opportunity.CHOPPY,
         risk=caution,
         user_panel={symbol: frame},
         leaders={symbol: _leader(symbol, 0.63)},
-        account=AccountState.empty(100.0),
+        account=account,
         prices={symbol: 1.00},
     )
 
-    assert {target.symbol: target.weight for target in targets} == pytest.approx(
-        {symbol: DEFAULT_CONFIG.tactical_probe_weight}
-    )
+    assert targets == ()
+    assert account.cash == 100.0
+    assert account.positions == {}
+    assert account.pending_orders == []
 
 def test_deep_tactical_rebound_needs_minimum_medium_term_convexity() -> None:
     dates = pd.bdate_range("2025-01-02", periods=150)
@@ -693,7 +704,7 @@ def test_deep_tactical_rebound_needs_minimum_medium_term_convexity() -> None:
 
     assert targets == ()
 
-def test_long_horizon_blowoff_pullback_is_not_a_tactical_rebound() -> None:
+def test_rebound_cooldown_metadata_cannot_clear_a_buy_freeze() -> None:
     dates = pd.bdate_range("2025-01-02", periods=150)
     symbol = "overextended_pullback"
     close = np.linspace(0.80, 1.00, len(dates))
@@ -740,9 +751,8 @@ def test_long_horizon_blowoff_pullback_is_not_a_tactical_rebound() -> None:
     )
 
     assert targets == ()
-    assert account.candidate_tenure["tactical_cooldown"] == (
-        DEFAULT_CONFIG.tactical_overheat_cooldown_days
-    )
+    assert account.cash == 100.0
+    assert account.positions == {}
 
     next_date = dates[-1] + pd.offsets.BDay()
     cooled = frame.copy()
@@ -761,11 +771,11 @@ def test_long_horizon_blowoff_pullback_is_not_a_tactical_rebound() -> None:
     )
 
     assert targets == ()
-    assert account.candidate_tenure["tactical_cooldown"] == (
-        DEFAULT_CONFIG.tactical_overheat_cooldown_days - 1
-    )
+    assert account.cash == 100.0
+    assert account.positions == {}
+    assert account.pending_orders == []
 
-def test_overextended_pullback_with_confirmed_current_reversal_can_probe() -> None:
+def test_current_reversal_cannot_override_a_buy_freeze() -> None:
     dates = pd.bdate_range("2025-01-02", periods=150)
     symbol = "current_reversal"
     close = np.linspace(0.80, 1.00, len(dates))
@@ -813,11 +823,10 @@ def test_overextended_pullback_with_confirmed_current_reversal_can_probe() -> No
         prices={symbol: 1.00},
     )
 
-    assert {target.symbol: target.weight for target in targets} == pytest.approx(
-        {symbol: DEFAULT_CONFIG.tactical_probe_weight}
-    )
-    assert account.candidate_tenure["tactical_cooldown"] == 0
-    assert account.candidate_tenure["tactical_overheat_cooldown"] == 0
+    assert targets == ()
+    assert account.cash == 100.0
+    assert account.positions == {}
+    assert account.pending_orders == []
 
 @pytest.mark.parametrize(
     ("ret5", "ret20", "ret120"),
@@ -878,7 +887,7 @@ def test_low_quality_fast_reversal_does_not_open_an_empty_book(
 
     assert targets == ()
 
-def test_independent_deep_crash_probe_does_not_require_broad_market_weakness() -> None:
+def test_deep_and_shallow_crash_metadata_cannot_override_buy_freeze() -> None:
     dates = pd.bdate_range("2025-01-02", periods=150)
     close = np.ones(len(dates), dtype=float)
     close[-1] = 0.94
@@ -905,6 +914,8 @@ def test_independent_deep_crash_probe_does_not_require_broad_market_weakness() -
         reduction_level=1,
     )
     allocator = PortfolioAllocator(DEFAULT_CONFIG)
+    deep_account = AccountState.empty(100.0)
+    shallow_account = AccountState.empty(100.0)
 
     deep_targets = allocator.allocate(
         date=dates[-1],
@@ -912,7 +923,7 @@ def test_independent_deep_crash_probe_does_not_require_broad_market_weakness() -
         risk=caution_probe,
         user_panel={"deep": deep},
         leaders={"deep": _leader("deep", 0.90)},
-        account=AccountState.empty(100.0),
+        account=deep_account,
         prices={"deep": 0.94},
     )
     shallow_targets = allocator.allocate(
@@ -921,11 +932,12 @@ def test_independent_deep_crash_probe_does_not_require_broad_market_weakness() -
         risk=caution_probe,
         user_panel={"shallow": shallow},
         leaders={"shallow": _leader("shallow", 0.90)},
-        account=AccountState.empty(100.0),
+        account=shallow_account,
         prices={"shallow": 0.94},
     )
 
-    assert {target.symbol: target.weight for target in deep_targets} == pytest.approx(
-        {"deep": DEFAULT_CONFIG.tactical_probe_weight}
-    )
+    assert deep_targets == ()
     assert shallow_targets == ()
+    assert deep_account.cash == shallow_account.cash == 100.0
+    assert deep_account.positions == shallow_account.positions == {}
+    assert deep_account.pending_orders == shallow_account.pending_orders == []

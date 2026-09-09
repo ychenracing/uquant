@@ -14,6 +14,11 @@ def _strategic_grace_supported(
     return bool(
         account.strategic_epoch > 0
         and account.candidate_tenure.get("strategic_early_cycle_epoch", -1) == account.strategic_epoch
+        and all(
+            symbol in account.strategic_cohort_symbols
+            for symbol, position in account.positions.items()
+            if position.shares > 0
+        )
     )
 
 

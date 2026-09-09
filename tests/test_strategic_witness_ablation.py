@@ -679,15 +679,15 @@ def test_real_mid_replay_error_retains_completed_prefix_intervention_and_account
     assert result.intervention_provenance is not None
     assert result.intervention_provenance["applied"] is True
     orders = result.final_account["order_ledger"]
-    assert len(orders) == 2
-    assert orders[0]["status"] == "CANCELLED"
+    assert len(orders) == 1
+    assert orders[0]["status"] == "PARTIALLY_FILLED"
     assert orders[0]["filled_shares"] > 0
-    assert orders[1]["status"] == "SUBMITTED"
-    assert orders[0]["grant_id"] == orders[1]["grant_id"]
-    assert orders[0]["order_id"] != orders[1]["order_id"]
-    assert orders[0]["replaced_by"] == orders[1]["order_id"]
-    assert orders[1]["requested_shares"] == orders[0]["remaining_shares"]
+    assert orders[0]["remaining_shares"] > 0
+    assert orders[0]["requested_shares"] == orders[0]["filled_shares"] + orders[0]["remaining_shares"]
+    assert not orders[0]["replaced_by"] and not orders[0]["remainder_release_session"]
     assert len(result.final_account["fills"]) == 1
+    assert result.final_account["fills"][0]["order_id"] == orders[0]["order_id"]
+    assert result.final_account["fills"][0]["grant_id"] == orders[0]["grant_id"]
     spec = AblationSpec(
         scope="CANONICAL_LEAVE_ONE_OUT",
         subject="sz300308",

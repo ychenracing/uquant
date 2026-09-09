@@ -72,15 +72,9 @@ owner。市场费用、T+1、涨跌停、停牌、手数、现金和组合硬上
 
 | 参数 | 默认值 | 含义 |
 |---|---:|---|
-| `trend_entry_gross` | 0.80 | 常规趋势首次入场 |
-| `trend_target_gross` | 0.95 | 趋势目标仓位 |
-| `strong_trend_gross` | 1.00 | 强趋势目标仓位 |
-| `high_confidence_entry_gross` | 0.90 | 高置信首次入场 |
-| `exceptional_entry_gross` | 0.95 | 极高置信首次入场 |
-| `choppy_target_gross` | 0.60 | 震荡环境新增机会预算 |
-| `weak_gross` | 0.25 | 弱势环境新增机会预算 |
-| `recovery_target_gross` | 0.92 | 已确认修复目标 |
-| `fast_v_recovery_gross` | 0.60 | 快速修复探针 |
+| `core_admission_weight` | 0.20 | 独立确认的新核心初始权重上限 |
+| `max_gross` | 1.00 | 账户总仓硬上限，仍取当日 Risk cap |
+| `industry_weight_cap` | 0.75 | 一般行业与相关风险簇的共同上限 |
 | `market_crisis_gross` | 0.50 | 常规危机上限 |
 | `severe_crisis_gross` | 0.20 | 严重冲击上限 |
 
@@ -95,18 +89,16 @@ owner。市场费用、T+1、涨跌停、停牌、手数、现金和组合硬上
 | `leader_emerging_score` | 0.76 |
 | `leader_min_confidence` | 0.70 |
 | `leader_tenure_days` | 5 |
-| `emerging_tenure_days` | 3 |
 | `min_hold_days` | 10 |
-| `add1_min_mfe / add1_weight` | 0.04 / 0.05 |
-| `add2_min_mfe / add2_weight` | 0.10 / 0.05 |
-| `add_tranche_cooldown_sessions` | 5 |
 | `replacement_edge` | 0.35 |
 | `replacement_confirm_days` | 3 |
+| `replacement_transfer_cap` | 0.30 |
 | `max_rotations_20d` | 2 |
-| `dynamic_k_confirm_days` | 3 |
-| `dynamic_k_change_interval` | 20 |
 
 降低确认期或替换优势通常会增加换手；提高领涨门槛会减少持仓机会并增加现金时间。
+确认按证券和证据类型累积；新核心使用共享预算，不按旧路径的整本目标仓位重新分配。
+原账户范围的退出冷却和最少成员变化控制已删除。单票真实失效会重置自身资格，账户风险
+修复进度与资本高水位保持独立。空缺配置键或无效参数仍由正常配置校验报错。
 
 ## 战略组合
 
@@ -124,7 +116,6 @@ owner。市场费用、T+1、涨跌停、停牌、手数、现金和组合硬上
 | `strategic_two_name_confirm_days` | 3 | `STRONG_PAIR` 资格连续确认期 |
 | `strategic_one_name_gross` | 0.50 | 单成员总仓 |
 | `strategic_one_name_confirm_days` | 4 | `ABSOLUTE_SINGLE` 资格连续确认期 |
-| `strategic_epoch_cooldown_sessions` | 30 | 完整退出后的冷却 |
 | `strategic_cohort_profit_arm` | 0.10 | ATR 保护启动 MFE |
 | `strategic_cohort_trail_atr` | 3.55 | ATR 保护距离 |
 | `strategic_cohort_disaster_stop` | -0.20 | 灾难退出线 |

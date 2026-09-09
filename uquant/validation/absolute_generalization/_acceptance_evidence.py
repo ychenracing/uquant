@@ -2,13 +2,11 @@
 
 from __future__ import annotations
 
+import hashlib
 import json
-import math
-import re
-from collections.abc import Mapping, Sequence, Set
+from collections.abc import Mapping, Sequence
 from copy import deepcopy
-from dataclasses import asdict, dataclass, is_dataclass
-from datetime import date
+from dataclasses import dataclass
 from functools import lru_cache
 from pathlib import Path
 from typing import Any, cast
@@ -22,6 +20,7 @@ from uquant.models.strategic_epoch import StrategicEpoch
 from uquant.models.strategic_grant import StrategicGrantIntent
 from uquant.models.strategic_universe import StrategicUniverseRoles
 from uquant.models.trading import AccountOrder, Fill
+from uquant.types import AccountState
 from uquant.validation.generalization_reference import (
     load_generalization_baseline,
     load_generalization_policy,
@@ -34,7 +33,39 @@ from ._champion_runtime_reconciliation import (
 )
 from ._physical_identity import physical_fill_identity_sha256
 from ._reachability_codec import reachability_state_from_raw
+from .champion_physical import validate_champion_physical_links as _validate_champion_physical_links
+from .champion_physical import validate_champion_session_streams as _validate_champion_session_streams
 from .contract import AbsoluteGeneralizationContract
+from .evidence_codec import (
+    evidence_date as _evidence_date,
+)
+from .evidence_codec import (
+    evidence_fields as _evidence_fields,
+)
+from .evidence_codec import (
+    evidence_integer as _evidence_integer,
+)
+from .evidence_codec import (
+    evidence_json_value as _evidence_json_value,
+)
+from .evidence_codec import (
+    evidence_mapping as _evidence_mapping,
+)
+from .evidence_codec import (
+    evidence_number as _evidence_number,
+)
+from .evidence_codec import (
+    evidence_sequence as _evidence_sequence,
+)
+from .evidence_codec import (
+    evidence_sha as _evidence_sha,
+)
+from .evidence_codec import (
+    evidence_text as _evidence_text,
+)
+from .evidence_codec import (
+    strict_sessions as _strict_sessions,
+)
 from .reachability import (
     analyze_failed_grant_recovery,
     analyze_terminal_scc,
@@ -44,8 +75,6 @@ from .reachability import (
 from .replay import AbsoluteGeneralizationReplayPayload
 
 _ROOT = Path(__file__).resolve().parents[3]
-_SHA256 = re.compile(r"^[0-9a-f]{64}$")
-_ENTITY_ID = re.compile(r"^(?:epoch|fill|grant|order|target|rearm)_[0-9a-f]{64}$")
 _PHASES = frozenset({"POST_DECISION", "POST_OPEN"})
 _REPAIR_STATES = frozenset({"ACCUMULATING", "READY"})
 _CHAMPION_FIELDS = frozenset(
@@ -76,102 +105,6 @@ class TerminalProjection:
     transition_sha256: str
 
 
-def _evidence_mapping(value: object, *, label: str) -> Mapping[str, object]:
-    if type(value) is not dict or any(type(key) is not str for key in value):
-        raise ValueError(f"absolute generalization {label} evidence is malformed")
-    return cast(Mapping[str, object], value)
-
-
-def _evidence_json_value(value: object) -> object:
-    if is_dataclass(value) and not isinstance(value, type):
-        return _evidence_json_value(asdict(value))
-    if isinstance(value, Mapping):
-        return {str(key): _evidence_json_value(item) for key, item in value.items()}
-    if isinstance(value, Sequence) and not isinstance(value, (str, bytes, bytearray)):
-        return [_evidence_json_value(item) for item in value]
-    return value
-
-
-def _evidence_sequence(value: object, *, label: str) -> Sequence[object]:
-    if type(value) not in {list, tuple}:
-        raise ValueError(f"absolute generalization {label} evidence is malformed")
-    return cast(Sequence[object], value)
-
-
-def _evidence_fields(raw: Mapping[str, object], expected: Set[str], *, label: str) -> None:
-    if set(raw) != expected:
-        raise ValueError(f"absolute generalization {label} evidence fields differ")
-
-
-def _evidence_text(value: object, *, label: str, empty: bool = False) -> str:
-    if type(value) is not str or (not empty and not value):
-        raise ValueError(f"absolute generalization {label} evidence is malformed")
-    return value
-
-
-def _evidence_integer(value: object, *, label: str, minimum: int = 0) -> int:
-    if type(value) is not int or value < minimum:
-        raise ValueError(f"absolute generalization {label} evidence is malformed")
-    return value
-
-
-def _evidence_number(value: object, *, label: str) -> float:
-    if isinstance(value, bool) or not isinstance(value, (int, float)):
-        raise ValueError(f"absolute generalization {label} evidence is malformed")
-    number = float(value)
-    if not math.isfinite(number):
-        raise ValueError(f"absolute generalization {label} evidence is malformed")
-    return number
-
-
-def _evidence_date(value: object, *, label: str) -> str:
-    text = _evidence_text(value, label=label)
-    try:
-        parsed = date.fromisoformat(text)
-    except ValueError as exc:
-        raise ValueError(f"absolute generalization {label} session is malformed") from exc
-    if parsed.isoformat() != text:
-        raise ValueError(f"absolute generalization {label} session is malformed")
-    return text
-
-
-def _evidence_sha(value: object, *, label: str) -> str:
-    text = _evidence_text(value, label=label)
-    if not _SHA256.fullmatch(text):
-        raise ValueError(f"absolute generalization {label} evidence is malformed")
-    return text
-
-
-def _entity(value: object, *, label: str, empty: bool = False) -> str:
-    text = _evidence_text(value, label=label, empty=empty)
-    if text and not _ENTITY_ID.fullmatch(text):
-        raise ValueError(f"absolute generalization {label} evidence is malformed")
-    return text
-
-
-def _predicate_rows(value: object, *, label: str) -> tuple[tuple[str, bool], ...]:
-    rows = _evidence_sequence(value, label=label)
-    if not rows:
-        raise ValueError(f"absolute generalization {label} evidence is empty")
-    result: list[tuple[str, bool]] = []
-    for item in rows:
-        row = _evidence_mapping(item, label=label)
-        _evidence_fields(row, {"code", "satisfied"}, label=label)
-        code = _evidence_text(row["code"], label=f"{label} predicate")
-        satisfied = row["satisfied"]
-        if type(satisfied) is not bool:
-            raise ValueError(f"absolute generalization {label} predicate is malformed")
-        result.append((code, satisfied))
-    if len({code for code, _passed in result}) != len(result):
-        raise ValueError(f"absolute generalization {label} predicate is duplicated")
-    return tuple(result)
-
-
-def _strict_sessions(values: Sequence[str], *, label: str) -> None:
-    if not values or tuple(values) != tuple(sorted(set(values))):
-        raise ValueError(f"absolute generalization {label} sessions are not observed order")
-
-
 @lru_cache(maxsize=1)
 def _grant_contract() -> Mapping[str, object]:
     raw = json.loads(
@@ -188,18 +121,104 @@ def _ownership_contract() -> Mapping[str, object]:
     return _evidence_mapping(raw, label="strategic ownership contract")
 
 
-def _validate_grant_acceptance(raw: object) -> None:
+_CROSS_AI_CONTRACT_SHA256 = "9ec5992df69d4466cb2b26cea0e67bbe93f4c6317ba5b8a500ca7b89a75d78b4"
+
+
+def current_candidate_contract() -> Mapping[str, Any]:
+    """The frozen user acceptance authority; never a candidate binding refresh."""
+    payload = (_ROOT / "benchmarks/cross_ai_core_strategy_contract.json").read_bytes()
+    if hashlib.sha256(payload).hexdigest() != _CROSS_AI_CONTRACT_SHA256:
+        raise ValueError("current candidate cross-AI contract identity differs")
+    return cast(Mapping[str, Any], _evidence_mapping(strict_json_loads(payload), label="cross-AI contract"))
+
+
+
+
+def _validate_filled_epochs(account: AccountState) -> None:
+    for epoch in account.strategic_epochs:
+        if not epoch.first_fill_session:
+            continue
+        fills = [fill for fill in account.fills if fill.epoch_id == epoch.epoch_id
+                 and fill.grant_id == epoch.grant_id and fill.symbol == epoch.owner_symbol
+                 and fill.side == "BUY" and fill.shares > 0]
+        if not fills or min(fill.fill_date for fill in fills) != epoch.first_fill_session:
+            raise ValueError("current candidate epoch has no matching real first fill")
+        if epoch.active_session and epoch.active_session < epoch.first_fill_session:
+            raise ValueError("current candidate epoch activation precedes real fill")
+
+
+def _candidate_metric_violations(*, contract: Mapping[str, Any], claims: Mapping[str, object],
+                                 metrics: Mapping[str, object]) -> list[str]:
+    t = contract["thresholds"]
+    violations = []
+    for key, limit, upper in (("final_wealth", t["champion_minimum_final_wealth"], False),
+                              ("max_drawdown", t["champion_maximum_drawdown"], True),
+                              ("account_orders", t["champion_maximum_orders"], True)):
+        value = _evidence_number(metrics[key], label=key)
+        if (value > limit) if upper else (value < limit):
+            violations.append(f"current candidate champion {key} violates frozen limit")
+    if _evidence_integer(claims["incumbent_epoch_count"], label="filled epochs") < 1:
+        violations.append("current candidate champion has no real strategic participation")
+    violations.extend(f"current candidate champion duplicate {label}"
+                      for label in ("grant", "order", "epoch") if claims[f"duplicate_{label}_count"] != 0)
+    return violations
+
+
+def current_candidate_champion_evidence(result: Mapping[str, object]) -> dict[str, object]:
+    """Measure a current path from raw accounting; preserve old paths only as comparisons."""
+    contract = current_candidate_contract()
+    start, end = contract["windows"]["continuous_ai_era"]
+    _validate_champion_session_streams(result, start=start, end=end)
+    baseline = cast(Mapping[str, Any], _grant_contract()["baseline"])
+    ignored = frozenset(str(item) for item in cast(Sequence[object], _grant_contract()["ignored_non_economic_fields"]))
+    claims = derive_champion_runtime_claims(result, ignored)
+    report, completion = derive_report_runtime_claims(result, baseline["symbols"])
+    account_raw = decode_champion_account(_evidence_mapping(result.get("final_account"), label="champion account"))
+    account = account_from_dict(account_raw, require_hashes=False)
+    trace = tuple(_evidence_mapping(item, label="champion decision")
+                  for item in _evidence_sequence(result.get("decision_trace"), label="champion decisions"))
+    sessions = tuple(_evidence_date(row.get("date"), label="champion session") for row in trace)
+    _strict_sessions(sessions, label="champion")
+    if [sessions[0], sessions[-1]] != contract["windows"]["continuous_ai_era"]:
+        raise ValueError("current candidate champion interval differs")
+    _validate_champion_physical_links(account, trace)
+    if not account.fills:
+        raise ValueError("current candidate champion has no real fills")
+    _validate_filled_epochs(account)
+    metrics = dict(cast(Mapping[str, object], claims["metrics"]))
+    metrics.update(fees=sum(fill.commission + fill.stamp_duty + fill.transfer_fee for fill in account.fills),
+                   slippage_cost=sum(fill.slippage_cost for fill in account.fills),
+                   gross_turnover=sum(fill.gross_value for fill in account.fills) / account.initial_cash)
+    violations = _candidate_metric_violations(contract=contract, claims=claims, metrics=metrics)
+    first_positive = next((str(row["date"]) for row in trace
+                           if _evidence_number(row.get("target_gross"), label="target gross") > 0), "")
+    if not first_positive:
+        violations.append("current candidate champion has no positive target")
+    return {
+        "acceptance_basis": {"mode": "current_candidate", "contract_id": contract["contract_id"],
+                             "contract_sha256": _CROSS_AI_CONTRACT_SHA256,
+                             "production_source_sha256": account.code_hash},
+        "first_positive_target_session": first_positive, "metrics": metrics,
+        "sha256": claims["path_sha256"], "physical_fills": len(account.fills),
+        "incumbent_epoch_count": claims["incumbent_epoch_count"],
+        "successor_capital_before_incumbent_exit_count": claims["successor_capital_before_incumbent_exit_count"],
+        "duplicate_grant_count": claims["duplicate_grant_count"],
+        "duplicate_order_count": claims["duplicate_order_count"],
+        "duplicate_epoch_count": claims["duplicate_epoch_count"],
+        "accounting": report, "completion": completion, "violations": violations,
+        "historical_comparison": {"path_matches": claims["path_sha256"] == baseline["expected_sha256"],
+                                  "first_positive_matches": first_positive == baseline["expected_first_positive_target_session"]},
+    }
+
+
+def _validate_grant_acceptance(raw: object, champion_run: Mapping[str, object], *, expected_source: str) -> None:
     evidence = _evidence_mapping(raw, label="strategic grant acceptance")
     _evidence_fields(evidence, {"baseline"}, label="strategic grant acceptance")
-    contract = _grant_contract()
-    baseline_contract = _evidence_mapping(contract["baseline"], label="grant baseline")
-    expected_baseline = {
-        "first_positive_target_session": baseline_contract["expected_first_positive_target_session"],
-        "metrics": baseline_contract["expected_metrics"],
-        "sha256": baseline_contract["expected_sha256"],
-    }
-    if evidence["baseline"] != expected_baseline:
-        raise ValueError("absolute generalization strategic grant baseline evidence differs")
+    expected = current_candidate_champion_evidence(champion_run)
+    if cast(Mapping[str, object], expected["acceptance_basis"])["production_source_sha256"] != expected_source:
+        raise ValueError("absolute generalization champion raw account source differs")
+    if evidence["baseline"] != expected:
+        raise ValueError("absolute generalization strategic grant current candidate evidence differs")
 
 
 def _validate_ownership_identity(
@@ -358,6 +377,9 @@ def _validate_ownership_report(
     expected_report, expected_completion = derive_report_runtime_claims(
         report, report_symbols
     )
+    _validate_champion_session_streams(
+        report, start=contract.window_start.isoformat(), end=contract.window_end.isoformat(),
+    )
     if (
         report["scenario_id"] != "report-13"
         or _evidence_date(report["window_start"], label="report-13 start")
@@ -433,7 +455,10 @@ def validate_champion_evidence(raw: object, contract: AbsoluteGeneralizationCont
 
     champion = _evidence_mapping(raw, label="champion")
     _evidence_fields(champion, _CHAMPION_FIELDS, label="champion")
-    _validate_grant_acceptance(champion["strategic_grant_acceptance"])
+    ownership = _evidence_mapping(champion["strategic_ownership_acceptance"], label="ownership acceptance")
+    _validate_grant_acceptance(champion["strategic_grant_acceptance"],
+                               _evidence_mapping(ownership["champion"], label="ownership champion"),
+                               expected_source=contract.candidate.production_source_sha256)
     _validate_ownership_acceptance(champion["strategic_ownership_acceptance"], contract, champion)
     _validate_relative_policy_reference(champion["relative_policy_reference"])
     evidence_sha256 = _evidence_sha(champion["evidence_sha256"], label="champion evidence")

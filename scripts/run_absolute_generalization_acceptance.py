@@ -7,6 +7,8 @@ import argparse
 import hashlib
 import shutil
 import subprocess  # nosec B404
+import sys
+import traceback
 from collections.abc import Iterator, Mapping, Sequence
 from dataclasses import dataclass
 from pathlib import Path
@@ -17,11 +19,13 @@ from uquant.atomic_io import (
     validate_atomic_output_boundary,
     validate_atomic_output_path,
 )
+from uquant.contracts.runtime_identity import runtime_environment_provenance
 from uquant.contracts.strict_json import (
     canonical_json_bytes,
     canonical_json_sha256,
     strict_json_loads,
 )
+from uquant.provenance.fingerprints import source_surface_fingerprint
 from uquant.validation.absolute_generalization import (
     ABSOLUTE_GENERALIZATION_EXECUTION_CONTRACT_SHA256,
     AbsoluteGeneralizationContract,
@@ -218,6 +222,7 @@ def _cache_identity(
     contract: AbsoluteGeneralizationContract,
 ) -> str:
     head, tree = _git_identity()
+    root = Path(__file__).resolve().parents[1]
     return canonical_json_sha256(
         {
             "schema_version": 1,
@@ -235,6 +240,8 @@ def _cache_identity(
             "frozen_data_manifest_sha256": contract.inputs.frozen_data.manifest_sha256,
             "universe_sha256": contract.inputs.ai_universe_sha256,
             "execution_contract_identity": ABSOLUTE_GENERALIZATION_EXECUTION_CONTRACT_SHA256,
+            "runtime": runtime_environment_provenance(root),
+            "full_package_source_sha256": source_surface_fingerprint(root, "full_package_v1"),
         }
     )
 
@@ -448,19 +455,28 @@ def _run_execution(
         raise ValueError("absolute generalization selected frozen data identity differs")
     if options.shard in _LOO_SHARDS:
         artifacts: list[CellArtifact] = []
+        errors: list[str] = []
         for scenario in selected_scenarios(options, contract):
-            artifact = read_cached_cell(cache_dir, scenario, contract)
-            if artifact is None:
-                artifact = run_runtime_cell_artifact(
-                    scenario,
-                    contract,
-                    root=root,
-                    data_dir=data_dir,
-                    cache_dir=cache_dir,
-                )
-                if artifact.status == "COMPLETE":
-                    write_cached_cell(cache_dir, artifact, scenario, contract)
-            artifacts.append(artifact)
+            try:
+                artifact = read_cached_cell(cache_dir, scenario, contract)
+                if artifact is None:
+                    artifact = run_runtime_cell_artifact(
+                        scenario, contract, root=root, data_dir=data_dir, cache_dir=cache_dir,
+                    )
+                    if artifact.status == "COMPLETE":
+                        write_cached_cell(cache_dir, artifact, scenario, contract)
+                artifacts.append(artifact)
+            except Exception as exc:
+                failure = {"cell_id": scenario.cell_id, "identity": _cache_identity(scenario, contract),
+                           "error_type": type(exc).__name__, "error": str(exc),
+                           "traceback": "".join(traceback.format_exception(exc))}
+                path = cache_dir / "reader-errors" / f"{canonical_json_sha256(failure)}.json"
+                validate_atomic_output_boundary(path, protected_roots=(data_dir,))
+                if not path.exists():
+                    atomic_write_bytes(path, canonical_json_bytes(failure))
+                errors.append(scenario.cell_id)
+        if errors:
+            raise RuntimeError(f"absolute cells failed; independent cells completed: {', '.join(errors)}")
         manifest = build_loo_shard_manifest(options, artifacts, contract)
     elif options.shard == "champion":
         champion_evidence = run_champion_runtime_evidence(
@@ -598,6 +614,7 @@ def run(options: RunnerOptions) -> int:
         try:
             return _run_execution(options, contract)
         except Exception as exc:
+            print("".join(traceback.format_exception(exc)), file=sys.stderr)
             head, tree = _git_identity()
             error = build_error_shard_manifest(
                 shard=options.shard,

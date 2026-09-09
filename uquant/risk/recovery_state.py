@@ -8,6 +8,7 @@ from dataclasses import dataclass
 import pandas as pd
 
 from ..config import SystemConfig
+from ..holding_history import holding_spans_date, protected_weights_for_current_episode
 from ..leader import credible_recovery_reserve
 from ..types import AccountState, LeaderScore, Risk
 from .protected_recovery import assess_protected_recovery
@@ -106,7 +107,7 @@ def _incomplete_universe_break(
     account = ctx.account
     return bool(
         ctx.shock_rearmed
-        and not account.protected_weights
+        and not protected_weights_for_current_episode(account)
         and bool(account.positions)
         and not ctx.strategic_active
         and not recovery_book_complete
@@ -131,7 +132,7 @@ def _account_recovery_break(ctx: _RecoveryStateContext) -> bool:
     account = ctx.account
     return bool(
         ctx.shock_rearmed
-        and not account.protected_weights
+        and not protected_weights_for_current_episode(account)
         and not account.anchor_weights
         and not ctx.strategic_active
         and (
@@ -146,7 +147,7 @@ def _reference_recovery_break(ctx: _RecoveryStateContext) -> bool:
     account = ctx.account
     return bool(
         ctx.shock_rearmed
-        and not account.protected_weights
+        and not protected_weights_for_current_episode(account)
         and ctx.reference_anchor_armed
         and ctx.held_damage_ratio >= ctx.cfg.concentrated_break_ratio
         and ctx.operating_dd >= ctx.cfg.incomplete_universe_tail_dd
@@ -208,7 +209,8 @@ def _capital_impaired_relapse(ctx: _RecoveryStateContext, *, sessions_since_reco
     account = ctx.account
     return bool(
         account.positions
-        and account.protected_weights
+        and any(weight > 0 and holding_spans_date(account, symbol, account.last_shock_date)
+                for symbol, weight in account.protected_weights.items())
         and ctx.equity < account.initial_cash - 1e-12
         and ctx.capital_dd >= ctx.cfg.capital_dd_crisis
         and ctx.operating_dd >= ctx.cfg.capital_guard_relapse_dd
@@ -224,7 +226,8 @@ def _market_backed_relapse(ctx: _RecoveryStateContext, *, sessions_since_recover
     account = ctx.account
     return bool(
         account.positions
-        and account.protected_weights
+        and any(weight > 0 and holding_spans_date(account, symbol, account.last_shock_date)
+                for symbol, weight in account.protected_weights.items())
         and account.risk == Risk.CAUTION.value
         and (
             ctx.shock_rearmed

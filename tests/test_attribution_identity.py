@@ -830,7 +830,7 @@ from _attribution_identity_retention_cases import (
     test_production_full_exit_retains_originating_event_for_residual_shares,
     test_partial_buy_keeps_originating_event_across_daily_mechanism_reclassification,
     test_blocked_recovery_replacement_retains_event_and_link_next_session,
-    test_no_trade_band_equivalent_target_drift_inherits_the_active_event,
+    test_reduced_buy_target_supersedes_larger_intent_inside_no_trade_band,
     test_new_buy_without_pit_universe_membership_fails_closed,
     test_new_buy_without_any_attribution_cannot_bypass_planning_validation,
     test_risk_off_identity_cannot_fabricate_a_native_buy_at_any_boundary,

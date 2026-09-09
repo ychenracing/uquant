@@ -136,22 +136,10 @@ def test_v2_projection_uses_reconstructed_legacy_control_and_only_normalizes_val
 def test_v2_projection_normalizes_only_compile_anchored_config_deletion() -> None:
     from uquant.config_governance import validate_governed_config_migration
 
-    migration = validate_governed_config_migration(DEFAULT_CONFIG)
-    raw = {"effective_config_sha256": migration.candidate_config_sha256}
-
-    assert reference_module._project_raw_evidence_for_frozen_v1(
-        raw,
-        source_schema=2,
-        config_migration=migration,
-    )["effective_config_sha256"] == migration.champion_config_sha256
-
-    raw["effective_config_sha256"] = "0" * 64
-    with pytest.raises(ValueError, match="migration carrier"):
-        reference_module._project_raw_evidence_for_frozen_v1(
-            raw,
-            source_schema=2,
-            config_migration=migration,
-        )
+    # The seven historical compatibility deletions were identity-only. The two
+    # current strategy-rule removals are economic and cannot use that carrier.
+    with pytest.raises(ValueError, match="trusted config differs from reviewed post-removal config"):
+        validate_governed_config_migration(DEFAULT_CONFIG)
 
 def test_v2_policy_evaluator_accepts_verified_fixture_exact_equality(
     matrix_data_dir: Path,

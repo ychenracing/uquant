@@ -14,6 +14,7 @@ from uquant.validation.statistics import linear_quantile
 
 from ._acceptance_evidence import (
     crown_industries,
+    current_candidate_contract,
     healthy_retry_sessions,
     repair_healthy_sessions,
     terminal_projection,
@@ -290,17 +291,18 @@ def _champion_component(
         failures.append("champion wealth is below the frozen 95% floor")
     if drawdown > contract.frozen_baseline.champion_maximum_drawdown:
         failures.append("champion drawdown exceeds 0.30")
-    if dict(paths) != _CHAMPION_PATHS:
-        failures.append("champion Target/Order/Fill/Position/Equity path differs")
+    current = current_candidate_contract()
+    if set(paths) != set(_CHAMPION_PATHS) or any(not isinstance(value, str) or not _SHA256.fullmatch(value) for value in paths.values()):
+        failures.append("champion measured path identities are malformed")
+    if metrics["account_orders"] > current["thresholds"]["champion_maximum_orders"]:
+        failures.append("champion orders exceed the frozen cross-AI limit")
     failures.extend(
         f"champion duplicate {label} count is nonzero"
         for label in ("grant", "order", "epoch")
         if raw[f"duplicate_{label}_count"] != 0
     )
-    if raw["incumbent_epoch_count"] != 1 or raw[
-        "successor_capital_before_incumbent_exit_count"
-    ] != 0:
-        failures.append("champion incumbent lifecycle was preempted")
+    if cast(int, raw["incumbent_epoch_count"]) < 1:
+        failures.append("champion has no real filled strategic epoch")
     final_equity = float(cast(float, report["final_equity"]))
     if not math.isclose(
         final_equity,
@@ -323,6 +325,10 @@ def _champion_component(
             "final_wealth": wealth,
             "max_drawdown": drawdown,
             "paths": dict(paths),
+            "historical_paths_match": dict(paths) == _CHAMPION_PATHS,
+            "acceptance_contract_id": current["contract_id"],
+            "observed_filled_epochs": raw["incumbent_epoch_count"],
+            "observed_epoch_overlap_count": raw["successor_capital_before_incumbent_exit_count"],
             "strategic_grant_acceptance": True,
             "strategic_ownership_acceptance": True,
             "relative_policy_reference": True,

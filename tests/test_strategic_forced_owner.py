@@ -150,6 +150,27 @@ def test_forced_owner_rewrites_point_in_time_industry_identity() -> None:
 
     assert forced.status == "SUCCESS"
     assert forced.final_account["order_ledger"][0]["industry_at_entry"] == "design"
+    activation = common_activation_date(baseline)
+    original_row = next(row for row in baseline.trace if row.date == activation)
+    forced_row = next(row for row in forced.trace if row.date == activation)
+    assert original_row.targets and len(forced_row.targets) == 1
+    if len(original_row.targets) > 1:
+        audit = forced.intervention_provenance["activation_counterfactual"]
+        assert audit["kind"] == "COUNTERFACTUAL_UNFILLED_COHORT"
+        assert audit["production_qualification_evidence"] is False
+        assert audit["source_targets"] == list(original_row.targets)
+        assert audit["source_orders"] == list(original_row.orders)
+        assert forced_row.orders[0]["order_id"] not in {order["order_id"] for order in original_row.orders}
+    else:
+        assert forced_row.orders[0]["order_id"] == original_row.orders[0]["order_id"]
+        assert forced_row.orders[0]["event_id"] != original_row.orders[0]["event_id"]
+    assert forced_row.targets[0]["weight"] == sum(target["weight"] for target in original_row.targets)
+    assert forced_row.targets[0]["industry_at_entry"] == "design"
+    assert not forced_row.fills
+    first_fill = next(fill for row in forced.trace for fill in row.fills)
+    assert first_fill["symbol"] == "sh688037" and first_fill["industry_at_entry"] == "design"
+    assert first_fill["fill_date"] > activation
+    assert first_fill["event_id"] == forced_row.orders[0]["event_id"]
 
 
 def test_native_intervention_without_a_production_target_is_retained_as_replay_error() -> None:

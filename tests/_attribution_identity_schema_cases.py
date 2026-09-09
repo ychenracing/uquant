@@ -44,15 +44,19 @@ def test_repeated_production_decisions_include_byte_identical_causal_metadata(
     symbols = ["sz300308", "sz300502", "sz300394", "sh688008", "sh603986"]
     engine = ProductionEngine(data_dir)
     initial = domain.AccountState.empty(2_000_000.0)
+    _, initial = engine.deterministic_decision(
+        symbols=symbols, as_of="2023-01-03", account=initial,
+    )
+    assert not initial.pending_orders
 
     first, first_state = engine.deterministic_decision(
         symbols=symbols,
-        as_of="2025-04-03",
+        as_of="2023-01-04",
         account=initial,
     )
     second, second_state = engine.deterministic_decision(
         symbols=list(reversed(symbols)),
-        as_of="2025-04-03",
+        as_of="2023-01-04",
         account=initial,
     )
 

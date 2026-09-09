@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from dataclasses import replace
+
 import numpy as np
 import pandas as pd
 import pytest
@@ -49,16 +51,19 @@ def test_strategic_cohort_discovers_arbitrary_symbols_without_a_static_prior():
             risk=_normal_risk(),
         )
 
-    assert account.candidate_tenure["strategic_cohort_active"] == 1
-    assert set(account.strategic_cohort_symbols) == expected
-    assert set(account.strategic_cohort_targets) == expected
-    _assert_unfilled_strategic_probe(account)
-    assert account.strategic_candidate_signature.startswith("strategic_qualification:")
-    assert all(symbol in account.strategic_candidate_signature for symbol in expected)
-    assert sum(account.strategic_cohort_targets.values()) == pytest.approx(DEFAULT_CONFIG.max_gross)
-    assert all(weight == pytest.approx(1.0 / 3.0) for weight in account.strategic_cohort_targets.values())
+    qualification = account.strategic_qualification
+    assert qualification.qualification_ready
+    assert set(qualification.candidate_symbols) == expected
+    assert qualification.deployment_block_reason == "ordinary_trend_participation"
+    assert qualification.qualification_signature.startswith("strategic_qualification:")
+    assert all(symbol in qualification.qualification_signature for symbol in expected)
+    # Discovery preserves qualification; ordinary trend strength is not a grant.
+    assert account.strategic_grant is None and account.strategic_epochs == []
+    assert account.strategic_cohort_targets == {} and account.pending_orders == []
+    assert account.cash == 100.0 and account.positions == {}
 
 def test_strategic_rank_prefers_a_confirmed_industry_cluster_over_one_high_scoring_outsider():
+    """A persistent formation has grant eligibility beyond ordinary score rank."""
     dates = pd.bdate_range("2023-01-02", periods=246)
     frame = _strategic_frame(dates)
     strong = ("optical_a", "optical_b", "optical_c")
@@ -84,8 +89,16 @@ def test_strategic_rank_prefers_a_confirmed_industry_cluster_over_one_high_scori
             risk=_normal_risk(),
         )
 
-    assert tuple(account.strategic_cohort_symbols) == strong
+    selected = strong
+    assert tuple(account.strategic_cohort_symbols) == selected
+    assert set(account.strategic_cohort_targets) == set(selected)
     assert "isolated_compute" not in account.strategic_cohort_targets
+    assert all(weight == pytest.approx(1.0 / 3.0) for weight in account.strategic_cohort_targets.values())
+    assert account.strategic_qualification.candidate_symbol == "optical_a"
+    assert account.strategic_qualification.qualification_route == "persistent_industry"
+    assert account.strategic_qualification.qualification_quorum == "FULL_COHORT"
+    _assert_unfilled_strategic_probe(account)
+    assert not account.fills
 
 def test_strategic_established_route_rejects_broken_medium_term_structure():
     dates = pd.bdate_range("2023-01-02", periods=246)
@@ -153,8 +166,13 @@ def test_strategic_transition_route_needs_no_high_240_day_secular_score():
         )
 
     assert len(dates) < 241
-    _assert_unfilled_strategic_probe(account)
-    assert tuple(account.strategic_cohort_symbols) == symbols
+    qualification = account.strategic_qualification
+    assert qualification.qualification_ready
+    assert set(qualification.candidate_symbols) == set(symbols)
+    assert qualification.qualification_route == "transition"
+    assert qualification.deployment_block_reason == "ordinary_trend_participation"
+    assert account.strategic_grant is None and account.strategic_epochs == []
+    assert account.pending_orders == [] and not account.fills
 
 def test_synchronized_industry_impulse_is_causal_and_signature_order_invariant() -> None:
     dates = pd.bdate_range("2023-01-02", periods=246)
@@ -194,12 +212,15 @@ def test_synchronized_industry_impulse_is_causal_and_signature_order_invariant()
     )
 
     assert close[-1] / close[-121] - 1.0 == pytest.approx(-0.10)
-    assert account.candidate_tenure["strategic_cohort_active"] == 1
-    assert set(account.strategic_cohort_symbols) == set(symbols)
-    assert account.strategic_candidate_signature.startswith(
+    qualification = account.strategic_qualification
+    assert qualification.qualification_ready
+    assert set(qualification.candidate_symbols) == set(symbols)
+    assert qualification.qualification_signature.startswith(
         "strategic_qualification:EMERGING_SECULAR:"
     )
-    assert "evidence=transition_impulse" in account.strategic_candidate_signature
+    assert "evidence=transition_impulse" in qualification.qualification_signature
+    assert qualification.deployment_block_reason == "ordinary_trend_participation"
+    assert account.strategic_grant is None and not account.strategic_epochs
 
     unsynchronized = AccountState.empty(100.0)
     mixed = {
@@ -226,7 +247,7 @@ def test_synchronized_industry_impulse_is_causal_and_signature_order_invariant()
         Risk.NORMAL,
         1.0,
         0,
-        {"tech_ret120": 0.0, "broad_ret20": -0.01, "tech_ret20": 0.02},
+        {**_normal_risk().evidence, "broad_ret20": -0.01, "tech_ret20": 0.02},
         (),
         "NONE",
     )
@@ -296,6 +317,7 @@ def test_established_cohort_rejects_a_broadly_negative_market_rebound() -> None:
         1.0,
         0,
         {
+            **_normal_risk().evidence,
             "broad_ret20": -0.04,
             "tech_ret20": -0.06,
             "tech_ret120": -0.20,
@@ -327,6 +349,7 @@ def test_strategic_cohort_defers_while_both_market_legs_remain_in_recovery() -> 
         1.0,
         0,
         {
+            **_normal_risk().evidence,
             "broad_ret20": 0.08,
             "tech_ret20": 0.20,
             "broad_ret120": -0.15,
@@ -524,3 +547,24 @@ def test_persistent_startup_exception_defers_an_overextended_cohort() -> None:
     assert close[-1] / close[-121] - 1.0 > DEFAULT_CONFIG.strategic_persistent_max_ret120
     assert account.strategic_epoch == 0
     assert account.candidate_tenure["strategic_long_cycle_open"] == 0
+
+
+@pytest.mark.parametrize("missing", ("breadth20", "broad_ret20", "tech_ret20", "broad_ret120", "tech_ret120"))
+def test_strategic_discovery_requires_each_current_market_observation(missing: str) -> None:
+    dates = pd.bdate_range("2023-01-02", periods=246)
+    panel, leaders = _dynamic_cohort_inputs(dates)
+    account = AccountState.empty(100.0)
+    risk = _normal_risk()
+    evidence = dict(risk.evidence)
+    del evidence[missing]
+    incomplete = replace(risk, evidence=evidence)
+    allocator = PortfolioAllocator(DEFAULT_CONFIG)
+
+    for date in dates[-DEFAULT_CONFIG.strategic_cohort_confirm_days :]:
+        allocator._initialize_strategic_cohort(
+            date=date, user_panel=panel, leaders=leaders, account=account, risk=incomplete,
+        )
+
+    assert account.strategic_epochs == []
+    assert account.strategic_cohort_targets == {}
+    assert account.candidate_tenure["strategic_cohort_qualification"] == 0

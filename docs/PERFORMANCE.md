@@ -18,6 +18,16 @@
 
 不同数据快照、复权方式、证券全集、起止日或执行口径的结果不能直接比较。
 
+统一核心候选使用 `benchmarks/cross_ai_core_strategy_contract.json` 的事前冻结经济门：
+5 标的冠军和完整池期末财富至少 `23.28417871275582`，最大回撤不超过 `0.30`；
+去三巨头和去 optical 同时要求财富至少 `1.50`、比有效旧基线提高至少 `0.25`，并满足
+同池固定趋势基准、跨窗口、交易成本、参数邻近扰动与初始条件门。去除证券同时退出
+tradable、qualification reference 和显式股票 risk reference，市场指数口径保留。
+
+该合同替代旧策略逐笔路径相等和整个账户的经济 owner 排他要求，保留实际路径、失败结果
+以及账户、执行、回撤和尾部约束。诊断与候选筛选用过的历史不是独立样本外；
+`2026-08-06` 起的受保护 Future Holdout 不用于这些比较，也不回填新候选。
+
 ## 核心指标
 
 | 指标 | 定义 | 解读 |
@@ -81,6 +91,7 @@ uv run pytest --cov=uquant --cov-report=term-missing
 uv run python -m uquant.validation promotion \
   --data-dir data/frozen \
   --profile full \
+  --cache-dir /tmp/uquant-performance-cache \
   --output benchmarks/ai_era_performance.json
 ```
 
@@ -88,6 +99,11 @@ uv run python -m uquant.validation promotion \
 `production_commit` 才能严格等于被验证的 HEAD；仓库内可追踪的
 `promotion_baseline.json` 只保存已经评审的上一任 champion，而不是伪装成当前
 HEAD 的自引用运行结果。
+
+指定 `--cache-dir` 后，每个股票池与窗口的原始结果在经济门判定前独立保存。
+中断后用相同命令恢复；只有源码、运行器、配置、数据、运行环境、合同和场景身份
+一致的完整单元才会复用。损坏或身份不符的记录报错且不会覆盖；新候选使用新目录。
+经济失败仍保存并重新判定，单元缓存不代表完整验收通过。
 
 full profile 是性能验收不可拆分的阻断经济性真相，窗口日期直接绑定
 `uquant.contracts.runtime_identity.AI_ERA_WINDOWS`：
@@ -106,6 +122,11 @@ full profile 是性能验收不可拆分的阻断经济性真相，窗口日期�
 
 门禁同时约束财富、最大回撤、账户订单、换手和压力区间收益；缺失或失败的必需窗口必须失败关闭。证券子集、替代实现和其他研究性压力检查可以辅助诊断，但不能替代、分摊或放行这个统一门禁。失败不能通过删除场景、改写统计口径或放宽已评审阈值解决。
 
+当前用户授权单独将 `e/continuous_ai_era` 的订单上限从15改为20。
+原冻结policy和原15单判定保留，结果的 `acceptance_basis.authorized_order_limit`
+记录此项在观察AP结果之后作出的授权；它不是事前冻结通过或新的独立样本外证据。
+其他股票池、窗口及收益、回撤、换手、成本与执行约束保持各自原门槛。
+
 ### Strategic Ownership Acceptance
 
 当前战略所有权门使用
@@ -114,7 +135,7 @@ full profile 是性能验收不可拆分的阻断经济性真相，窗口日期�
 
 | shard | 固定证据 |
 |---|---|
-| `champion` | 5 标的冻结 champion 路径与 13 标的扩展 |
+| `champion` | 5 标的当前候选与 13 标的扩展，保留冻结 champion 比较 |
 | `critical` | 完整删除 `sz300308`、`sz300394` |
 | `ghost-a` | 完整删除 `sh603688`、`sh688008`、`sh688082` |
 | `ghost-b` | 完整删除 `sz002409`、`sz300666` |
@@ -126,10 +147,13 @@ matching Fill 和 Fill 后 activation；未成交 `PROBE`、research interventio
 epoch，以及连续的 previous grant/epoch 身份链。
 
 关键删除的固定门要求 `final_wealth > 1.0`、`max_drawdown <= 0.30`、健康零目标最长不超过
-60 个 session、至少一个正战略 Target，并完成 accounting reconciliation。删除 `sz300308`
-还要求预算业务层级 3 的账户修复在 60 个健康 session 内 `READY`，随后由当前独立合格候选
-消费一次性 authorization。5 标的 champion 最终财富冻结为 `24.509661802900865`，候选至少
-保留其 95%，并保持原 owner 生命周期的经济 Target、Order、Fill 和 equity 路径。
+60 个 session、至少一个正战略 Target，并完成 accounting reconciliation。每次 grant 创建
+都按当日风险状态核验：正常入场无需 rearm ID，需要 rearm 的入场必须有同候选、同 grant
+消费的一次性 authorization。所有实际修复 episode 单独对账；实际出现的业务层级 3
+修复仍受 60 个健康 session 上限约束，未出现则明确报告未观察到，不能用其他层级冒充。
+旧 5 标的 champion 最终财富为 `24.509661802900865`，候选至少
+保留其 95%。当前 Target、Order、Fill 与 equity 路径从完整原始证据重新核算，不要求等于
+旧 owner 路径；每次真实入场的 grant/event/epoch 归因、单次成交计账和账户对账仍须一致。
 
 本地可单独复现一个 shard：
 
@@ -472,3 +496,54 @@ dimension、验证这三个路径精确绑定各自 source/config hash，并在�
 Risk Sentinel 的冻结晋级、拒绝候选与 Evidence Closure 固定结果保存在
 `artifacts/sentinel/`。这些历史数值用于审计，不替代本页的长期绩效合同，也不自动授予
 新的生产权限。
+
+## 历史研究观察归档恢复
+
+`research.cross_ai_strategy.run_production_case` 将每个实际完成的 session 原子保存到
+场景目录的 `observations/YYYY-MM-DD.json`，绑定完整输入身份及观察内容摘要，再核验
+精确日期集合与逐日内容，生成 `observations.jsonl.gz`。这些日文件是昂贵回放证据，应与
+`identity.json`、原始结果、最终账户及日志一并保存。研究 runner 身份变化须单独记录，
+不能仅因经济源码未变就把旧完整矩阵重贴为新 runner 的验收。
+
+若最终 gzip 损坏而全部逐日文件仍完整，可在同一经核验环境中重建到一个不存在的新路径：
+
+```python
+from pathlib import Path
+from research.cross_ai_strategy import rebuild_observation_archive
+
+case = Path("replay_evidence/case")
+rebuild_observation_archive(case, case / "recovered-observations.jsonl.gz")
+```
+
+该操作不运行交易、不覆盖原件，也不把原 `REPLAY_ERROR` 改成通过。缺日、重复日期、
+额外文件、身份或内容摘要不符会拒绝发布。保留恢复来源和新归档摘要后，仍须由原验收
+读回器核对实际账户、订单、成交、窗口和冻结门槛；缺失的观察不能用最终账户或新模拟补造。
+
+
+### 2026-09-09 user-authorized acceptance revision
+
+`cross-ai-modest-tolerance-20260909-v1` records the user's authorization to
+modestly relax order and return thresholds after observing AP. This is an
+explicit revised acceptance basis, not a preregistered or out-of-sample result.
+Frozen contracts, original raw evidence, and original failures remain intact.
+
+Final-wealth lower comparison floors are multiplied by **0.90** in nominal,
+robustness, and Performance absolute/champion comparisons. This reduces the
+**wealth floor including initial capital by 10%**, not the profit floor by 10%.
+For example, an original wealth floor 1.50 becomes 1.35. Robustness neighbor
+median wealth retention receives the same multiplier. Wealth improvement
+deltas, improved-window qualification, positive-return fraction and p10 wealth
+floor are unchanged.
+
+Continuous Performance A–E and nominal champion order limits change from 15
+to 20. Nominal full/removal and robustness limits formerly 20 become 22;
+robustness limits formerly 15 become 20, including the p90 order limit where
+applicable. Half-year and post-2025 order ceilings remain unchanged. This
+revision supersedes the historical E-only order authorization recorded above.
+Drawdown, acute-return, recovery, cost and turnover limits are unchanged;
+Absolute and Ownership contracts are outside this revision.
+
+Nominal and robustness reports expose original and effective judgments from
+the same validated raw metrics. Performance records both the original contract
+identity and the current revision in `acceptance_basis`; its pure comparison
+functions accept `authorized=False` for the original frozen comparisons.

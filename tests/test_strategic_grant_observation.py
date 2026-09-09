@@ -1,17 +1,22 @@
 from __future__ import annotations
 
 import pandas as pd
+import pytest
 from test_lifecycle_and_risk import _leader, _strategic_frame
 
 import uquant.portfolio.strategic.grant_lifecycle as strategic_grant_lifecycle
+from uquant.application.target_attribution import attach_target_attribution
 from uquant.config import DEFAULT_CONFIG
+from uquant.execution import ExecutionPlanner, plan_orders, reconcile_account_orders
 from uquant.models.strategic_epoch import (
     StrategicEpochStatus,
     record_account_strategic_epoch_fill,
 )
 from uquant.models.strategic_grant import StrategicGrantStatus
 from uquant.portfolio import PortfolioAllocator
+from uquant.portfolio.strategic.discovery import current_core_qualification
 from uquant.types import AccountState, Opportunity, PendingOrder, Position, Risk, RiskAssessment
+from uquant.validation.universe import REQUIRED_AI_UNIVERSE_SHA256
 
 
 def _risk(*, frozen: bool) -> RiskAssessment:
@@ -130,7 +135,80 @@ def test_risk_off_records_candidate_without_creating_a_target_owner() -> None:
     assert account.strategic_grant is None
 
 
-def test_candidate_removal_expires_the_grant_without_promoting_a_runner() -> None:
+
+def _invalidate_current_routes(panel, leaders, prices, date):
+    for symbol, frame in panel.items():
+        frame.loc[date, ["close", "ret20", "ret60"]] = [1.0, -0.20, -0.20]
+        prices[symbol] = 1.0
+    return {symbol: _leader(symbol, 0.0, mature=False) for symbol in leaders}
+
+
+def _assert_fresh_ordinary_peer_capital(
+    *, allocator, account, date, panel, leaders, prices, risk, targets, expected_epoch_status,
+):
+    old_grant = account.strategic_grant
+    old_epoch = account.strategic_epochs[-1]
+    assert old_grant.status == StrategicGrantStatus.EXPIRED.value
+    assert old_epoch.realized_status == expected_epoch_status
+    assert len(account.strategic_epochs) == 1
+    assert account.active_strategic_epoch_id == ""
+    assert account.positions == {} and account.fills == []
+    assert {target.symbol for target in targets} == {"sz300502", "sz300394"}
+    certificates = current_core_qualification(
+        allocator, date=date, user_panel=panel, leaders=leaders, account=account, risk=risk,
+    )
+    expected_weights = {"sz300502": .40, "sz300394": .35}
+    assert risk.evidence["core_allocation"]["ordinary_market"]["confirmed"]
+    assert risk.evidence["core_allocation"]["unreserved_cash_after"] == pytest.approx(.25)
+    for target in targets:
+        certificate = certificates[target.symbol]
+        trace = risk.evidence["core_allocation"]["symbols"][target.symbol]
+        assert trace["entry"] == certificate
+        assert certificate["block"] == "READY" and certificate["as_of"] == str(date.date())
+        assert certificate["confirmations"][certificate["qualification_route"]] >= certificate["required_confirmation"]
+        assert len(certificate["qualification_evidence_sha256"]) == 64
+        assert trace["held_weight"] == 0.0
+        assert trace["budget_checks"][-1]["accepted"] is True
+        budget = trace["budget_checks"][-1]
+        assert budget["desired_increment"] == pytest.approx(DEFAULT_CONFIG.trend_entry_gross / 2)
+        assert budget["funded_increment"] == pytest.approx(expected_weights[target.symbol])
+        assert target.weight == pytest.approx(expected_weights[target.symbol])
+        if target.symbol == "sz300394":
+            assert budget["industry_room"] == pytest.approx(.35)
+            assert budget["correlation_room"] == pytest.approx(.35)
+        assert target.lifecycle == target.origin_lifecycle == "CORE"
+        assert target.origin_subsystem == "LEADER" and target.mechanism == "LEADER_SELECTION"
+        assert target.grant_id == target.epoch_id == ""
+    attributed = attach_target_attribution(
+        "optical", REQUIRED_AI_UNIVERSE_SHA256, signal_date=str(date.date()),
+        targets=targets, retained_orders=[],
+    )
+    orders = plan_orders(signal_date=str(date.date()), targets=attributed,
+                         account=account, prices=prices, cfg=DEFAULT_CONFIG)
+    account.pending_orders = list(reconcile_account_orders(
+        account=account, previous=[], current=orders, submitted_date=str(date.date()),
+    ))
+    assert len(account.pending_orders) == 2
+    assert all(order.side == "BUY" and order.event_id and order.order_id for order in account.pending_orders)
+    assert all(order.grant_id == order.epoch_id == "" for order in account.pending_orders)
+    execution_panel = {symbol: frame.copy() for symbol, frame in panel.items()}
+    next_day = date + pd.offsets.BDay(1)
+    for frame in execution_panel.values():
+        frame.loc[next_day] = frame.loc[date]
+        frame["open"], frame["high"], frame["low"] = frame["close"], frame["close"] * 1.01, frame["close"] * 0.99
+        frame["volume"] = 100_000_000.0
+    old_cash = account.cash
+    fills = ExecutionPlanner(DEFAULT_CONFIG).execute_open(date=next_day, account=account, panel=execution_panel)
+    assert len(fills) == 2 and all(fill.shares > 0 for fill in fills)
+    assert all(fill.grant_id == fill.epoch_id == "" for fill in fills)
+    assert {fill.symbol for fill in fills} == {target.symbol for target in targets}
+    assert account.cash < old_cash
+    assert account.strategic_grant is old_grant and old_grant.filled_shares == 0
+    assert old_epoch.first_fill_session == ""
+
+
+@pytest.mark.parametrize("peers_qualified", (True, False))
+def test_candidate_removal_expires_the_grant_without_promoting_a_runner(peers_qualified) -> None:
     dates = pd.bdate_range("2023-01-02", periods=248)
     symbols = ("sz300308", "sz300502", "sz300394")
     panel = {symbol: _strategic_frame(dates) for symbol in symbols}
@@ -180,17 +258,25 @@ def test_candidate_removal_expires_the_grant_without_promoting_a_runner() -> Non
 
     reduced_panel = {symbol: panel[symbol] for symbol in symbols if symbol != "sz300308"}
     reduced_leaders = {symbol: leaders[symbol] for symbol in reduced_panel}
+    current_prices = {symbol: prices[symbol] for symbol in reduced_panel}
+    if not peers_qualified:
+        reduced_leaders = _invalidate_current_routes(reduced_panel, reduced_leaders, current_prices, dates[-1])
+    risk = _risk(frozen=False)
+    # Genuine current common impulse permits ordinary peers; expiry never grants it.
+    risk.evidence.update(
+        broad_ret120=.04, tech_ret120=.0, ai_fast_return=.16,
+        declining_ratio=.05, below_ma20_ratio=.05, tech_speed=.16, broad_speed=.02,
+    )
     targets = allocator.allocate(
         date=dates[-1],
         opportunity=Opportunity.TREND,
-        risk=_risk(frozen=False),
+        risk=risk,
         user_panel=reduced_panel,
         leaders=reduced_leaders,
         account=account,
-        prices={symbol: prices[symbol] for symbol in reduced_panel},
+        prices=current_prices,
     )
 
-    assert targets == ()
     assert account.strategic_grant.grant_id == original_grant_id
     assert account.strategic_grant.status == StrategicGrantStatus.EXPIRED.value
     assert account.strategic_grant.expiry_reason == "candidate_removed_from_allowed_universe"
@@ -200,8 +286,23 @@ def test_candidate_removal_expires_the_grant_without_promoting_a_runner() -> Non
     assert account.pending_orders == []
     assert account.strategic_cohort_targets == {}
 
+    if not peers_qualified:
+        assert targets == ()
+        assert current_core_qualification(
+            allocator, date=dates[-1], user_panel=reduced_panel, leaders=reduced_leaders,
+            account=account, risk=risk,
+        ) == {}
+        return
+    _assert_fresh_ordinary_peer_capital(
+        allocator=allocator, account=account, date=dates[-1], panel=reduced_panel,
+        leaders=reduced_leaders, prices=current_prices, risk=risk, targets=targets,
+        expected_epoch_status=StrategicEpochStatus.PROBE.value,
+    )
 
-def test_absolute_qualification_loss_expires_partial_grant(monkeypatch) -> None:
+
+@pytest.mark.parametrize("peers_qualified", (True, False))
+
+def test_absolute_qualification_loss_expires_partial_grant(monkeypatch, peers_qualified) -> None:
     dates = pd.bdate_range("2023-01-02", periods=248)
     symbols = ("sz300308", "sz300502", "sz300394")
     panel = {symbol: _strategic_frame(dates) for symbol in symbols}
@@ -225,6 +326,7 @@ def test_absolute_qualification_loss_expires_partial_grant(monkeypatch) -> None:
             prices=prices,
         )
     assert account.strategic_grant is not None
+    original_grant = account.strategic_grant
     account.strategic_grant.status = StrategicGrantStatus.PARTIALLY_FILLED.value
     monkeypatch.setattr(
         strategic_grant_lifecycle,
@@ -238,10 +340,18 @@ def test_absolute_qualification_loss_expires_partial_grant(monkeypatch) -> None:
         raising=False,
     )
 
+    if not peers_qualified:
+        leaders = _invalidate_current_routes(panel, leaders, prices, dates[-1])
+    risk = _risk(frozen=False)
+    # Genuine current common impulse permits ordinary peers; expiry never grants it.
+    risk.evidence.update(
+        broad_ret120=.04, tech_ret120=.0, ai_fast_return=.16,
+        declining_ratio=.05, below_ma20_ratio=.05, tech_speed=.16, broad_speed=.02,
+    )
     targets = allocator.allocate(
         date=dates[-1],
         opportunity=Opportunity.TREND,
-        risk=_risk(frozen=False),
+        risk=risk,
         user_panel=panel,
         leaders=leaders,
         account=account,
@@ -250,10 +360,23 @@ def test_absolute_qualification_loss_expires_partial_grant(monkeypatch) -> None:
 
     assert account.strategic_grant.status == StrategicGrantStatus.EXPIRED.value
     assert account.strategic_grant.expiry_reason == "candidate_or_route_no_longer_qualified"
-    assert targets == ()
+    assert account.strategic_grant is original_grant
+    assert account.strategic_cohort_targets == {} and account.pending_orders == []
+    if not peers_qualified:
+        assert targets == ()
+        assert current_core_qualification(
+            allocator, date=dates[-1], user_panel=panel, leaders=leaders, account=account, risk=risk,
+        ) == {}
+        return
+    # The patched grant validator expires its authority; actual current peer routes remain qualified.
+    _assert_fresh_ordinary_peer_capital(
+        allocator=allocator, account=account, date=dates[-1], panel=panel,
+        leaders=leaders, prices=prices, risk=risk, targets=targets,
+        expected_epoch_status=StrategicEpochStatus.EXPIRED.value,
+    )
 
 
-def test_absolute_qualification_loss_emits_a_formal_exit_for_a_filled_probe(
+def test_absolute_qualification_loss_revokes_capital_but_retains_a_healthy_filled_probe(
     monkeypatch,
 ) -> None:
     dates = pd.bdate_range("2023-01-02", periods=248)
@@ -334,21 +457,26 @@ def test_absolute_qualification_loss_emits_a_formal_exit_for_a_filled_probe(
 
     owner_target = next(target for target in targets if target.symbol == grant.candidate_symbol)
     peer_target = next(target for target in targets if target.symbol == peer_symbol)
-    assert owner_target.weight == 0.0
+    equity = account.cash + sum(position.shares * prices[symbol] for symbol, position in account.positions.items())
+    assert owner_target.weight == pytest.approx(account.positions[grant.candidate_symbol].shares * prices[grant.candidate_symbol] / equity)
     assert owner_target.grant_id == grant.grant_id
     assert owner_target.epoch_id == epoch.epoch_id
-    assert peer_target.weight == 0.0
+    assert peer_target.weight == pytest.approx(account.positions[peer_symbol].shares * prices[peer_symbol] / equity)
     assert peer_target.grant_id == ""
     assert peer_target.epoch_id == epoch.epoch_id
     assert account.strategic_cohort_targets == {
-        grant.candidate_symbol: 0.0,
-        peer_symbol: 0.0,
+        grant.candidate_symbol: owner_target.weight,
+        peer_symbol: peer_target.weight,
     }
     assert grant.status == StrategicGrantStatus.EXPIRED.value
-    assert epoch.realized_status == StrategicEpochStatus.CORE.value
+    assert epoch.realized_status == StrategicEpochStatus.ACTIVE.value
+    assert epoch.active_session == epoch.first_fill_session
 
 
-def test_flat_expired_probe_releases_its_deployment_state(monkeypatch) -> None:
+@pytest.mark.parametrize("successor_qualified", (True, False))
+def test_flat_expired_probe_releases_its_deployment_state(
+    monkeypatch, successor_qualified: bool,
+) -> None:
     dates = pd.bdate_range("2023-01-02", periods=249)
     symbols = ("sz300308", "sz300502", "sz300394")
     panel = {symbol: _strategic_frame(dates) for symbol in symbols}
@@ -397,7 +525,6 @@ def test_flat_expired_probe_releases_its_deployment_state(monkeypatch) -> None:
         strategic_grant_lifecycle,
         "strategic_candidate_meets_route",
         lambda *_args, **_kwargs: False,
-        raising=False,
     )
     allocator.allocate(
         date=dates[-2],
@@ -408,10 +535,18 @@ def test_flat_expired_probe_releases_its_deployment_state(monkeypatch) -> None:
         account=account,
         prices=prices,
     )
+    assert account.candidate_tenure['strategic_repair_observed_session'] == dates[-2].toordinal()
+    assert account.replacement_tenure['strategic_eligibility:persistent_industry:sz300502'] == 3
     account.positions.clear()
     monkeypatch.undo()
+    if not successor_qualified:
+        leaders = {symbol: _leader(symbol, 0.0, mature=False) for symbol in symbols}
+        for symbol, frame in panel.items():
+            # Current price damage also invalidates the persistent/reversal routes.
+            frame.loc[dates[-1], ["close", "ret20", "ret60"]] = [1.0, -0.20, -0.20]
+            prices[symbol] = 1.0
 
-    allocator.allocate(
+    targets = allocator.allocate(
         date=dates[-1],
         opportunity=Opportunity.TREND,
         risk=_risk(frozen=False),
@@ -421,11 +556,44 @@ def test_flat_expired_probe_releases_its_deployment_state(monkeypatch) -> None:
         prices=prices,
     )
 
-    assert epoch.realized_status == StrategicEpochStatus.EXPIRED.value
+    assert epoch.realized_status == StrategicEpochStatus.CLOSED.value
+    assert epoch.active_session == epoch.first_fill_session == str(dates[-2].date())
+    assert epoch.close_reason == "candidate_or_route_no_longer_qualified"
+    assert grant.status == StrategicGrantStatus.EXPIRED.value
+    assert grant.expiry_reason == "candidate_or_route_no_longer_qualified"
     assert account.active_strategic_epoch_id == ""
-    assert account.candidate_tenure["strategic_cohort_active"] == 0
-    assert account.strategic_cohort_symbols == []
-    assert account.strategic_cohort_targets == {}
+    assert account.positions == {}
+    assert account.candidate_tenure["strategic_repair_observed_session"] == dates[-1].toordinal()
+    if not successor_qualified:
+        assert account.strategic_grant is grant
+        assert account.strategic_epochs == [epoch]
+        assert account.candidate_tenure["strategic_cohort_active"] == 0
+        assert account.strategic_cohort_symbols == []
+        assert account.strategic_cohort_targets == {}
+        assert targets == ()
+        return
+
+    successor = account.strategic_grant
+    assert successor is not None and successor is not grant
+    assert successor.candidate_symbol == "sz300502" != grant.candidate_symbol
+    assert successor.previous_grant_id == grant.grant_id
+    assert successor.grant_id != grant.grant_id
+    assert successor.status == StrategicGrantStatus.PENDING_EXECUTION.value
+    assert successor.filled_shares == 0
+    assert successor.submitted_order_ids == []
+    assert len(account.strategic_epochs) == 2
+    successor_epoch = account.strategic_epochs[-1]
+    assert successor_epoch.previous_epoch_id == epoch.epoch_id
+    assert successor_epoch.owner_symbol == successor.candidate_symbol
+    assert successor_epoch.grant_id == successor.grant_id
+    assert successor_epoch.epoch_id == successor.epoch_id != epoch.epoch_id
+    assert successor_epoch.realized_status == StrategicEpochStatus.PROBE.value
+    assert successor_epoch.first_fill_session == successor_epoch.active_session == ""
+    assert account.candidate_tenure["strategic_cohort_active"] == 1
+    assert {target.symbol for target in targets} == set(account.strategic_cohort_symbols)
+    assert all(target.epoch_id == successor.epoch_id for target in targets)
+    assert account.replacement_tenure["strategic_eligibility:persistent_industry:sz300308"] == 1
+    assert account.replacement_tenure["strategic_eligibility:persistent_industry:sz300502"] == 4
 
 
 def test_sentinel_freeze_observes_qualification_without_zhongji_universe() -> None:

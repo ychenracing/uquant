@@ -28,6 +28,7 @@ uquant 把数据、信号、风险、组合、执行和账户放在一条可审�
 | `data.py`、`features.py`、`reference*.py` | OHLCV、因果特征、点时成员与共享截面上下文 |
 | `industry.py`、`leader.py`、`opportunity.py` | 行业、领涨和机会状态证据 |
 | `market_risk.py`、`risk_sector.py`、`risk/` | Base Risk 证据、状态转换、资本损伤和唯一仓位上限 |
+| [holding_history.py](../uquant/holding_history.py) | 从持仓与真实成交读取连续持有事实，提供当前事件的只读有效恢复权视图 |
 | `portfolio_core.py`、`portfolio/` | 唯一目标组合、硬约束、风险缩减及各持仓生命周期 |
 | `execution/` | 订单规划、市场约束、费用、部分成交、挂单和 tranche |
 | `account/` | schema 8 编解码、账户校验、经济/代码身份和原子持久化 |
@@ -98,6 +99,14 @@ uquant 把数据、信号、风险、组合、执行和账户放在一条可审�
 `RiskAssessment.target_gross_cap` 是风险派生总仓上限的唯一来源。持仓同步冲击、慢性退化
 和资本预算只向该评估提供证据或更严格上限，不能各自建立独立组合。
 
+风险、行业保护和组合恢复共用 [holding_history.py](../uquant/holding_history.py) 的连续
+持仓事实。`protected_weights_for_current_episode()` 排除未跨越当前冲击的普通旧权利，
+读取不修改持久账户；战略权利保留原有身份和授权。恢复后再次受损的判断还要求真实正股数
+连续持仓，战略空仓权利本身不能满足该条件。
+[risk/protected_recovery.py](../uquant/risk/protected_recovery.py) 的 `capture_protected_holdings()`
+统一新冲击快照：先按旧 `last_shock_date` 读取有效权利，再合并实际持仓；调用方随后更新
+冲击日期。持仓事实辅助模块不拥有风险上限、目标或新的持久状态。
+
 组合层保留一个冻结经济行为中的有限解释：当账户只有单一战略主导者，风险仅为
 `NORMAL/CAUTION` 一级预警、没有 sector/strategic/acute guard，且策略本身不要求减仓时，
 `PortfolioAllocator` 可以把风险 cap 解释为“冻结新增风险”，将该既有持仓保留至
@@ -110,22 +119,51 @@ uquant 把数据、信号、风险、组合、执行和账户放在一条可审�
 
 `PortfolioAllocator` 负责所有目标权重，并按以下顺序处理：
 
-1. 根据机会状态给出候选风险预算；
-2. 应用风险上限和冻结新增风险标记；
-3. 选择战略、普通领涨或修复路径；
-4. 管理 `CORE`、`ADD1`、`ADD2`、`SATELLITE`、`RECOVERY` 生命周期；
-5. 应用总仓、单票、持仓数、行业、相关性和流动性约束；
-6. 使用迟滞与最小交易门槛过滤无经济意义的变化；
-7. 输出确定性排序的目标。
+1. 更新各证券的因果资格和账户级修复观察；
+2. 处理已有持仓生命周期、失败恢复和确认退出；
+3. 保留健康持仓，并计入实际现金与全部未完成买入承诺；
+4. 用 `portfolio/capital.py` 的共同预算约束战略增量、恢复和新核心；
+5. 持续退化与优势确认成立，且转出量和卖出后预算投影均可行时，提出一笔有上限的资本转出；
+6. 在 Base Risk 上限内输出唯一、确定性排序的目标，交给执行层处理交易门槛。
+
+[portfolio/pipeline.py](../uquant/portfolio/pipeline.py) 组合一次完整目标，不再按战略、普通、受保护、修复和战术包装的
+首次返回结果决定整本账户。分配不能把未成交卖单当作现金，也不能为了新增而机械缩减
+健康持仓。新入场、晋级与恢复共同检查总仓、单票、行业、相关风险簇和挂单占用。
+
+普通独立核心由资格观察层复用 `strict_absolute_owner_quality()`，与当天任一既有路线
+共同形成 `strategic_eligibility:independent_core:{symbol}` 计数。分配层读取该连续计数，
+不从其他路线推导或回填；持有与合法风险恢复继续使用各自条件。轮动买入的归因须匹配
+转出证券的真实 SELL 成交、`LEADER_ROTATION` 机制和原转出观察的 `signal_date`。
+
+`discovery.current_core_qualification()` 只读复用战略证书枚举，为每个 owner 提供当前已通过
+原 quorum 和连续确认的一个证书；原见证、路线、确认数与证据摘要进入分配诊断。pipeline
+将它作为普通 CORE 的另一种资格来源，与 `independent_core` 共用当前市场检查、候选排序和
+唯一预算；普通部分成交续买也重验该证书。资格共享不创建或改写 grant/epoch，获资新仓仍是
+普通 LEADER 来源、`LEADER_SELECTION` 机制、`CORE` 生命周期，grant/epoch 引用为空。
+旧战略 owner 不阻断其他证券使用已确认资格，但 Risk、冻结、未结算责任和集中度仍限制新增。
+
+换仓预检复用 [portfolio/capital.py](../uquant/portfolio/capital.py) 的 `funded_increment()`，
+将拟卖出后的预算投影记录到 `core_allocation.symbols[symbol].transfer_budget`。投影只检查
+卖出能否解除入场阻塞，不写入可用现金；拒绝时不缩减目标、恢复权或轮动额度。
+[report.py](../uquant/report.py) 只显示这些记录及最终约束，不重算换仓可行性。
 
 其他模块只能提供证据、状态或成交结果。
 
 ### 战略资格与部署
 
-战略处理先执行只读的 qualification observation，再执行 deployment authorization。观察步骤
-读取当日可见数据，更新候选、路线、资格证据摘要、连续确认、阻塞原因和失效原因；它不生成
-目标或订单，也不改变总仓上限。`freeze_new_risk`、风险状态和资本预算只阻塞部署，不机械清空
-已经观察到的候选证据。
+资格观察层按当日可见数据维护各证券、各路线的连续计数。
+[qualification_candidates.py](../uquant/portfolio/strategic/qualification_candidates.py) 枚举
+`established`、`transition`、`transition_impulse`、`persistent_industry` 与 `reversal_industry`
+五类路线的固定证据组与每个 owner 的单名证据。证据组按既有路线排序独立构造，
+组员可各自担任 owner，组外候选不能通过插入替换来改变组质量。反转同步与 decisive
+证据只读取候选所属的本地行业见证组。[discovery.py](../uquant/portfolio/strategic/discovery.py)
+只读评估每个候选的 quorum 和确认天数，再按确认已完成、真实主导证据、领涨分数、真实见证成员数降序，
+以证券、路线和成员排序打破平局。选定一次后才写入战略资格观察并尝试部署。
+`ABSOLUTE_SINGLE` 的有效确认是原路线与 `independent_core` 连续计数的较小值，须达到
+原有 4 日要求；缺失严格观察从零建立，不借用旧路线计数。
+
+资格评估不生成目标或订单，也不改变总仓上限。quorum 的市场确认保留风险状态和原有市场
+质量条件，但不包含部署开关 `freeze_new_risk`；Risk、资本预算及既有 repair 授权仍约束买入。
 
 部署授权只在风险、机会、资本预算、执行和账户状态均允许时创建
 `StrategicGrantIntent`。同一账户最多一个未终结授冠；`grant_id` 由账户、候选、路线、资格
@@ -149,17 +187,36 @@ episode，候选切换不会。达到 `READY` 后，系统仅为当前独立合�
 唯一 owner，`PortfolioAllocator` 仍是 Target 的唯一 owner。
 
 每个 grant 对应一个不可改写的 `StrategicEpoch` 账本行。未成交 grant 最多形成非实际
-`PROBE` 记录；只有匹配的正向 Fill 才能写入 `first_fill_session`、激活 epoch 并增加实际授冠
-计数。一个账户最多一个 `ACTIVE` epoch，predecessor 必须先终结，successor 才能获得资本。
+`PROBE` 记录；只有匹配的正向 Fill 才能写入 `first_fill_session`。FULL_COHORT 首次实际
+成交可激活 epoch；Pair/Single 首次成交进入 `CORE`，后续匹配成交才可激活。授冠、目标和
+实际成交状态分别记录，grant 的 `PARTIALLY_FILLED` 标签本身不能证明仍有经济余量。
+战略身份账本仍最多一个 `ACTIVE` epoch；普通核心可与该 epoch 并存并获得剩余资本。
+新战略 grant 仍需前一战略身份结清，以保护引用完整性；这不再构成其他证券参与的经济阻断。
 `previous_grant_id` 与 `previous_epoch_id` 保留连续链；执行失败继续复用同一经济 grant，资格
-失效才终结它并允许独立合格的新候选创建新身份。
+失效后的未部署权限与已成交持仓分别处理。
+
+[grant_lifecycle.py](../uquant/portfolio/strategic/grant_lifecycle.py) 从真实 owner/grant/epoch、
+正持仓、首笔 BUY 和关联订单证明 CORE 入场是否完成：须有事件身份，无本地 BUY 挂单、
+无迟到成交责任且全部关联 BUY 的经济余量为零。完成后，入场质量下降只关闭新增部署，
+入场重试时钟不再使持仓过期；持仓仍接受战略灾难、已武装 ATR 和原 Risk 退出。
+CORE 推广重验不可变授权中的成员、原路线和 quorum，以当前证据恢复反转见证顺序，
+并要求当前连续确认、正常 Risk、无新增冻结和原资本限制；不能把当前新赢家替换进旧授权。
+推广目标仍经过唯一 pipeline 与共同资本预算，实际激活仍由 Fill 推进。
 
 ## 执行与账户
 
 订单先卖后买，并统一处理 T+1 可卖数量、停牌、涨跌停、手数、容量、现金、费用和滑点。
-普通未成交意图继续复用既有订单生命周期；战略授冠部分成交后只按剩余数量生成新的物理订单，
-但保持同一 `grant_id` 和事件身份。迟到成交计入原授冠并取消重叠重试，避免重复经济订单或第二个
+未改变的普通与战略未成交意图复用原物理订单、事件和注册数量，部分成交只重试实际剩余量。
+普通续买资格失效时，分配器明确撤销该买入意图；应用层将它排除在身份复用和挂单合并之外，
+同时把完整原单列表交给账户对账执行撤单。价格漂移使实际仓位略高于原目标，也不能恢复
+已经撤销的买入权限。当前资格仍有效的小额余单继续保留同一订单身份。
+预算收紧会重新生成较小的意图，不能利用最小交易差容差继续执行更大的旧订单。
+迟到成交计入原授冠并取消重叠重试，避免重复经济订单或第二个
 仓位 owner。每次战略重试都重新确认资格，并重新经过 Risk 与 `PortfolioAllocator`。
+
+战略未部署授权失效时仅移除所属 BUY 挂单，已成交目标不超过当前实仓与原目标的较小值，
+继续接受持有退出；原独立风险 SELL 的订单、事件、信号日期、机制和归因身份全部保留。
+券商取消确认和迟到成交责任仍由原物理订单承接，撤销买入权限不构成新增资本授权。
 
 生产经济状态只沿 `Decision → Order → Fill → AccountState` 单向推进。Base Risk 汇总
 风险证据并拥有风险派生 `target_gross_cap`，`PortfolioAllocator` 在该上限和上述单一战略

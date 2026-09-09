@@ -280,7 +280,8 @@ def close_strategic_epoch(
     epoch.closed_session = closed_session
     epoch.close_reason = close_reason
     epoch.realized_status = (
-        StrategicEpochStatus.EXPIRED.value if expired else StrategicEpochStatus.CLOSED.value
+        StrategicEpochStatus.EXPIRED.value
+        if expired and not epoch.active_session else StrategicEpochStatus.CLOSED.value
     )
     validate_strategic_epoch(epoch)
 
@@ -399,11 +400,15 @@ def bind_account_strategic_ownership(account: Any) -> None:
 
     def owner_for_symbol(symbol: str) -> str:
         position = account.positions.get(symbol)
-        if position is not None and position.shares > 0 and position.epoch_id in known:
-            return str(position.epoch_id)
+        if position is not None and position.shares > 0:
+            return str(position.epoch_id) if position.epoch_id in known else ""
         if (
             account.active_strategic_epoch_id in known
-            and symbol in account.strategic_cohort_symbols
+            and symbol in account.strategic_cohort_targets
+            and account.strategic_grant is not None
+            and account.strategic_grant.epoch_id == account.active_strategic_epoch_id
+            and (account.strategic_grant.qualification_quorum == "FULL_COHORT"
+                 or account.strategic_grant.status == "COMPLETED")
         ):
             return str(account.active_strategic_epoch_id)
         return ""
@@ -458,7 +463,6 @@ def record_account_strategic_epoch_fill(
         raise RuntimeError("strategic epoch fill must have positive shares")
     if account.active_strategic_epoch_id not in {"", epoch_id}:
         raise RuntimeError("strategic fill would activate a second capital owner")
-    was_active = epoch.active
     _advance_strategic_epoch_fill(
         epoch,
         grant_id=grant_id,
@@ -471,7 +475,7 @@ def record_account_strategic_epoch_fill(
         epoch=epoch,
         epoch_id=epoch_id,
         grant_id=grant_id,
-        was_active=was_active,
+        fill_session=fill_session,
     )
     bind_account_strategic_ownership(account)
 
@@ -513,35 +517,12 @@ def _advance_strategic_epoch_fill(
     fill_session: str,
     filled_shares: int,
 ) -> None:
-    if epoch.realized_status in {
-        StrategicEpochStatus.QUALIFIED.value,
-        StrategicEpochStatus.PROBE.value,
-    }:
-        epoch.first_fill_session = epoch.first_fill_session or fill_session
-        if epoch.qualification_quorum == "FULL_COHORT":
-            activate_strategic_epoch(
-                epoch,
-                grant_id=grant_id,
-                symbol=symbol,
-                fill_session=fill_session,
-                filled_shares=filled_shares,
-            )
-        else:
-            epoch.realized_status = StrategicEpochStatus.CORE.value
-            validate_strategic_epoch(epoch)
-    elif (
-        epoch.realized_status == StrategicEpochStatus.CORE.value
-        and fill_session > epoch.first_fill_session
-    ):
-        activate_strategic_epoch(
-            epoch,
-            grant_id=grant_id,
-            symbol=symbol,
-            fill_session=fill_session,
-            filled_shares=filled_shares,
-        )
-    elif epoch.terminal:
+    if epoch.terminal:
         raise RuntimeError("terminal strategic epoch accepted a new BUY fill")
+    activate_strategic_epoch(
+        epoch, grant_id=grant_id, symbol=symbol,
+        fill_session=fill_session, filled_shares=filled_shares,
+    )
 
 
 def _record_account_epoch_fill_status(
@@ -550,21 +531,21 @@ def _record_account_epoch_fill_status(
     epoch: StrategicEpoch,
     epoch_id: str,
     grant_id: str,
-    was_active: bool,
+    fill_session: str,
 ) -> None:
-    if epoch.active:
-        account.active_strategic_epoch_id = epoch_id
-        if not was_active:
-            account.strategic_epoch += 1
-        account.candidate_tenure["strategic_cohort_active"] = 1
-        grant = account.strategic_grant
-        if grant is not None and grant.grant_id == grant_id:
-            grant.status = "COMPLETED"
-            grant.expiry_reason = ""
-    elif epoch.realized_status == StrategicEpochStatus.CORE.value:
-        grant = account.strategic_grant
-        if grant is not None and grant.grant_id == grant_id:
-            grant.status = "PARTIALLY_FILLED"
+    account.active_strategic_epoch_id = epoch_id
+    account.candidate_tenure["strategic_cohort_active"] = 1
+    grant = account.strategic_grant
+    if grant is None or grant.grant_id != grant_id or grant.terminal:
+        return
+    # Ownership starts at the first receipt. Risk generations and expanded
+    # deployment retain their separate, real-fill completion boundary.
+    if epoch.qualification_quorum == "FULL_COHORT" or fill_session > epoch.first_fill_session:
+        account.strategic_epoch += 1
+        grant.status = "COMPLETED"
+        grant.expiry_reason = ""
+    else:
+        grant.status = "PARTIALLY_FILLED"
 
 
 __all__ = (

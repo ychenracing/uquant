@@ -202,6 +202,8 @@ def test_cash_rearm_fails_closed_for_each_safety_boundary(mutation: str) -> None
         )
     elif mutation == "protected_owner":
         account.protected_weights = {"sz300308": 0.10}
+        # An unresolved recorded strategic owner is still a blocking residue.
+        account.protected_weight_epoch_ids = {"sz300308": "epoch_" + "f" * 64}
     elif mutation == "recovery_owner":
         account.anchor_weights = {"sz300308": 0.10}
     elif mutation == "reference_gap":
@@ -266,7 +268,8 @@ def test_zero_risk_anchor_count_is_available_evidence_not_missing_coverage() -> 
     assert authorized is True
 
 
-def test_level_three_cash_rearm_creates_only_one_formal_bounded_probe() -> None:
+@pytest.mark.parametrize("protection_symbol", ("", "sh688072", "sz300308"))
+def test_level_three_cash_rearm_creates_only_one_formal_bounded_probe(protection_symbol: str) -> None:
     dates = pd.bdate_range("2023-01-02", periods=247)
     symbols = ("sz300308", "sz300502", "sz300394")
     panel = {symbol: _strategic_frame(dates) for symbol in symbols}
@@ -279,6 +282,8 @@ def test_level_three_cash_rearm_creates_only_one_formal_bounded_probe() -> None:
     account.code_hash = "code:production"
     account.capital_budget_level = 3
     account.opportunity = Opportunity.TREND.value
+    if protection_symbol:
+        account.protected_weights = {protection_symbol: 0.19}
     allocator = PortfolioAllocator(DEFAULT_CONFIG)
     targets = ()
 
@@ -309,7 +314,10 @@ def test_level_three_cash_rearm_creates_only_one_formal_bounded_probe() -> None:
     assert account.active_strategic_epoch_id == ""
     assert account.capital_budget_level == 3
     assert account.strategic_cash_rearm.status == "CONSUMED"
+    assert account.flat_book_capital_repair.status == "CONSUMED"
     assert account.strategic_cash_rearm.consumed_grant_id == account.strategic_grant.grant_id
+    if protection_symbol:
+        assert account.protected_weights == {protection_symbol: 0.19}
     assert not any(
         key.startswith("strategic_cash_rearm_") for key in account.candidate_tenure
     )

@@ -11,11 +11,11 @@ from uquant.config import DEFAULT_CONFIG
 from uquant.models.strategic_epoch import activate_strategic_epoch
 from uquant.models.strategic_universe import build_strategic_universe_roles
 from uquant.portfolio import PortfolioAllocator
-from uquant.portfolio.strategic.successor import observe_strategic_successor
+from uquant.portfolio.strategic.discovery import observe_strategic_candidates
 from uquant.types import AccountState
 
 
-def test_active_owner_observes_successor_without_capital_authority() -> None:
+def test_active_owner_observes_all_candidates_without_capital_authority() -> None:
     dates = pd.bdate_range("2023-01-02", periods=250)
     symbols = ("sz300308", "sz300502", "sz300394", "sh688008")
     panel = {symbol: _strategic_frame(dates) for symbol in symbols}
@@ -53,29 +53,26 @@ def test_active_owner_observes_successor_without_capital_authority() -> None:
     allocator = PortfolioAllocator(DEFAULT_CONFIG)
 
     for session in dates[-DEFAULT_CONFIG.strategic_cohort_confirm_days :]:
-        observe_strategic_successor(
+        observe_strategic_candidates(
             allocator,
             date=session,
             qualification_panel=panel,
             qualification_leaders=leaders,
-            tradable_symbols=set(symbols),
+            user_panel=panel,
+            leaders=leaders,
             account=account,
             risk=_risk(frozen=False),
         )
 
-    observation = account.strategic_successor_qualification
-    assert observation.candidate_symbol == "sz300502"
-    assert observation.qualification_ready is True
-    assert observation.deployment_blocked is True
-    assert observation.deployment_block_reason == "active_epoch_read_only"
-    assert observation.qualification_last_observed_session == str(dates[-1].date())
+    assert account.replacement_tenure['strategic_eligibility:persistent_industry:sz300502'] == DEFAULT_CONFIG.strategic_cohort_confirm_days
+    assert account.strategic_successor_qualification.candidate_symbol == ""
     assert account.strategic_cohort_targets == before_targets
     assert account.protected_weights == before_protected
     assert account.strategic_grant == before_grant
     assert account.pending_orders == []
 
 
-def test_successor_streak_survives_one_unavailable_non_owner_reference() -> None:
+def test_candidate_streak_survives_one_unavailable_other_reference() -> None:
     dates = pd.bdate_range("2023-01-02", periods=250)
     symbols = ("sz300308", "sz300502", "sz300394", "sh688008")
     panel = {symbol: _strategic_frame(dates) for symbol in symbols}
@@ -120,22 +117,20 @@ def test_successor_streak_survives_one_unavailable_non_owner_reference() -> None
             industries={symbol: "optical" for symbol in symbols},
             available_symbols=(*available, "sh000300", "sh000682"),
         )
-        observe_strategic_successor(
+        observe_strategic_candidates(
             allocator,
             date=session,
             qualification_panel=panel,
             qualification_leaders=leaders,
-            tradable_symbols=tradable,
+            user_panel={symbol: panel[symbol] for symbol in tradable},
+            leaders=leaders,
             account=account,
             risk=_risk(frozen=False),
             strategic_universe=roles,
         )
 
-    observation = account.strategic_successor_qualification
-    assert observation.candidate_symbol == "sz300502"
-    assert observation.qualification_streak == 2
-    assert observation.qualification_quorum == "ABSOLUTE_SINGLE"
-    assert observation.unavailable_reference_symbols == ["sh688008"]
-    assert observation.deployment_block_reason == "active_epoch_read_only"
+    assert account.replacement_tenure['strategic_eligibility:persistent_industry:sz300502'] == 2
+    assert account.replacement_tenure['strategic_eligibility:persistent_industry:sh688008'] == 0
+    assert account.strategic_successor_qualification.candidate_symbol == ""
     assert account.strategic_grant is grant
     assert account.pending_orders == []

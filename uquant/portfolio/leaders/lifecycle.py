@@ -3,17 +3,19 @@
 from __future__ import annotations
 
 import math
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 import pandas as pd
 
 from ...features import scalar
+from ...models.ordinary_entry import (
+    holding_pullback_entry,
+    pullback_graduated,
+    record_pullback_graduation,
+)
 from ...types import (
     AccountState,
     LeaderScore,
-    Lifecycle,
-    Opportunity,
-    RiskAssessment,
 )
 
 if TYPE_CHECKING:
@@ -55,226 +57,6 @@ def _rotation_allowed(
     ]
     account.rotation_dates = recent
     return len(recent) < self.cfg.max_rotations_20d
-
-
-def _confirmed_live_core(
-    self: LeaderPortfolioPolicy,
-    *,
-    leaders: dict[str, LeaderScore],
-    account: AccountState,
-) -> bool:
-    symbols = {
-        position.symbol
-        for position in account.positions.values()
-        if position.shares > 0
-        and position.lifecycle in {Lifecycle.CORE.value, Lifecycle.ADD1.value, Lifecycle.ADD2.value}
-    }
-    return bool(
-        symbols
-        and all(
-            symbol in leaders
-            and leaders[symbol].mature
-            and leaders[symbol].confidence >= self.cfg.leader_min_confidence
-            and leaders[symbol].score >= self.cfg.leader_cycle_min_score
-            for symbol in symbols
-        )
-    )
-
-
-def _frozen_cycle_arm(
-    self: LeaderPortfolioPolicy,
-    *,
-    risk: RiskAssessment,
-    leaders: dict[str, LeaderScore],
-    account: AccountState,
-    arm_key: str,
-    streak_key: str,
-) -> bool:
-    live_active = [
-        symbol
-        for symbol in account.active_leaders
-        if account.positions.get(symbol) is not None and account.positions[symbol].shares > 0
-    ]
-    independently_confirmed_live = bool(
-        live_active
-        and all(
-            symbol in leaders
-            and leaders[symbol].mature
-            and leaders[symbol].confidence >= self.cfg.leader_min_confidence
-            and leaders[symbol].score >= self.cfg.leader_cycle_min_score
-            for symbol in live_active
-        )
-    )
-    if risk.state.value in {"NORMAL", "CAUTION"} and independently_confirmed_live:
-        account.candidate_tenure[arm_key] = 1
-        account.candidate_tenure[streak_key] = 0
-        return True
-    preserved_core = False
-    if risk.state.value == "NORMAL" and account.candidate_tenure.get(arm_key, 0) == 1:
-        preserved_core = _confirmed_live_core(
-            self,
-            leaders=leaders,
-            account=account,
-        )
-    if preserved_core:
-        account.candidate_tenure[streak_key] = 0
-        return True
-    account.candidate_tenure[arm_key] = 0
-    account.candidate_tenure[streak_key] = 0
-    return False
-
-
-def _leader_cycle_impulse(
-    self: LeaderPortfolioPolicy,
-    *,
-    opportunity: Opportunity,
-    risk: RiskAssessment,
-    impulse_leader: bool,
-    slow_market_legs: tuple[float, float],
-) -> bool:
-    evidence = risk.evidence
-    return bool(
-        min(slow_market_legs) >= self.cfg.leader_cycle_impulse_min_market_ret120
-        and max(slow_market_legs) >= self.cfg.leader_cycle_min_market_ret120
-        and opportunity in {Opportunity.TREND, Opportunity.STRONG_TREND}
-        and impulse_leader
-        and risk.votes <= 1
-        and float(evidence.get("ai_fast_return", -math.inf)) >= self.cfg.leader_cycle_impulse_return
-        and float(evidence.get("declining_ratio", 1.0)) <= self.cfg.leader_cycle_impulse_breadth
-        and float(evidence.get("below_ma20_ratio", 1.0)) <= self.cfg.leader_cycle_impulse_breadth
-        and max(
-            float(evidence.get("tech_speed", -math.inf)),
-            float(evidence.get("broad_speed", -math.inf)),
-        )
-        >= self.cfg.leader_cycle_impulse_index_return
-    )
-
-
-def _exceptional_recovery_rearm(
-    self: LeaderPortfolioPolicy,
-    *,
-    opportunity: Opportunity,
-    risk: RiskAssessment,
-    leaders: dict[str, LeaderScore],
-    account: AccountState,
-    market_aligned: bool,
-    credible: int,
-) -> bool:
-    return bool(
-        account.candidate_tenure.get("recovery_cycle_rearm_pending", 0) == 1
-        and account.candidate_tenure.get("tactical_cooldown", 0) <= 0
-        and not account.positions
-        and not account.pending_orders
-        and risk.state.value == "NORMAL"
-        and opportunity is Opportunity.STRONG_TREND
-        and risk.votes <= 1
-        and market_aligned
-        and credible >= self.cfg.leader_cycle_min_mature
-        and max(
-            (
-                item.score
-                for item in leaders.values()
-                if item.mature and item.confidence >= self.cfg.leader_min_confidence
-            ),
-            default=0.0,
-        )
-        >= 0.90
-        and float(risk.evidence.get("trend_health", 0.0)) >= 0.82
-    )
-
-
-def _update_leader_cycle_arm(
-    self: LeaderPortfolioPolicy,
-    *,
-    opportunity: Opportunity,
-    risk: RiskAssessment,
-    leaders: dict[str, LeaderScore],
-    account: AccountState,
-    strategic_handoff_blocked: bool = False,
-    strategic_handoff_ready: bool = False,
-) -> bool:
-    """Require broad, persistent leader evidence before generic trend capital.
-
-    Recovery anchors and the bounded tactical rebound have their own causal
-    confirmations.  The ordinary mature-leader route is broader, so it is
-    armed only after several high-confidence mature leaders coexist with a
-    confirmed strong trend.  Account/market risk owns the disarm decision.
-    """
-    arm_key = "leader_cycle_armed"
-    streak_key = "leader_cycle_evidence"
-    if risk.freeze_new_risk or risk.state.value in {"RISK_OFF", "CRISIS"}:
-        return _frozen_cycle_arm(
-            self,
-            risk=risk,
-            leaders=leaders,
-            account=account,
-            arm_key=arm_key,
-            streak_key=streak_key,
-        )
-    if strategic_handoff_blocked:
-        # A completed strategic owner records the first admissible rearm
-        # session. Generic momentum must not bypass that cross-owner
-        # cooldown with a streak accumulated under the old epoch.
-        account.candidate_tenure[arm_key] = 0
-        account.candidate_tenure[streak_key] = 0
-        return False
-    credible = sum(
-        item.mature
-        and item.confidence >= self.cfg.leader_min_confidence
-        and item.score >= self.cfg.leader_cycle_min_score
-        for item in leaders.values()
-    )
-    impulse_leader = any(
-        item.mature
-        and item.confidence >= self.cfg.leader_min_confidence
-        and item.score >= self.cfg.leader_cycle_min_score
-        for item in leaders.values()
-    )
-    slow_market_legs = (
-        float(risk.evidence.get("broad_ret120", -math.inf)),
-        float(risk.evidence.get("tech_ret120", -math.inf)),
-    )
-    market_aligned = bool(min(slow_market_legs) >= self.cfg.leader_cycle_min_market_ret120)
-    impulse = _leader_cycle_impulse(
-        self,
-        opportunity=opportunity,
-        risk=risk,
-        impulse_leader=impulse_leader,
-        slow_market_legs=slow_market_legs,
-    )
-    evidence = (
-        market_aligned
-        and opportunity is Opportunity.STRONG_TREND
-        and risk.votes <= 1
-        and credible >= self.cfg.leader_cycle_min_mature
-    )
-    exceptional_recovery_rearm = _exceptional_recovery_rearm(
-        self,
-        opportunity=opportunity,
-        risk=risk,
-        leaders=leaders,
-        account=account,
-        market_aligned=market_aligned,
-        credible=credible,
-    )
-    if exceptional_recovery_rearm:
-        # The completed cooldown and exceptional current evidence close a
-        # recovery cycle without weakening the ordinary leader contract.
-        account.candidate_tenure[arm_key] = 1
-        account.candidate_tenure[streak_key] = 0
-        account.candidate_tenure["recovery_cycle_rearm_pending"] = 0
-        return True
-    account.candidate_tenure[streak_key] = account.candidate_tenure.get(streak_key, 0) + 1 if evidence else 0
-    if strategic_handoff_ready and evidence:
-        # The completed cooldown is persistent cross-cycle confirmation.
-        # Transfer only one admission tranche on its first healthy open
-        # session; dynamic-K owns every later expansion.
-        account.candidate_tenure[arm_key] = 1
-        account.candidate_tenure["leader_cycle_staged_handoff"] = 1
-        return True
-    if account.candidate_tenure[streak_key] >= self.cfg.leader_cycle_confirm_days or impulse:
-        account.candidate_tenure[arm_key] = 1
-    return account.candidate_tenure.get(arm_key, 0) == 1
 
 
 def _retention_score(
@@ -320,12 +102,92 @@ def _leader_lifecycle_exit_confirmed(
         )
         and scalar(row, f"ret{self.cfg.trend_fast}", 0.0) <= (-0.15 if protected_winner else -0.08)
     )
-    account.replacement_tenure[key] = account.replacement_tenure.get(key, 0) + 1 if broken else 0
+    clock = f"lifecycle_exit_session:{symbol}"
+    session = date.toordinal()
+    previous = frame.loc[:date].index[-2].toordinal() if len(frame.loc[:date]) > 1 else 0
+    observed = account.candidate_tenure.get(clock, 0)
+    if observed > session:
+        raise ValueError("lifecycle exit observations must be causal")
+    if observed != session:
+        streak = account.replacement_tenure.get(key, 0) if observed == previous else 0
+        account.replacement_tenure[key] = streak + 1 if broken else 0
+        account.candidate_tenure[clock] = session
+    elif not broken:
+        account.replacement_tenure[key] = 0
     held_sessions = len(frame.loc[pd.Timestamp(position.entry_date) : date]) if position.entry_date else 0
     return bool(
         account.replacement_tenure[key] >= self.cfg.replacement_confirm_days
         and held_sessions >= self.cfg.min_hold_days
     )
+
+
+def _pullback_structure_exit(
+    self: LeaderPortfolioPolicy, *, entry: dict[str, Any], date: pd.Timestamp,
+    frame: pd.DataFrame, row: pd.Series | pd.DataFrame, close: float, account: AccountState,
+) -> str | None:
+    """Confirm the long basis before considering maturity graduation."""
+    key = "pullback_exit:" + entry["canonical_sha256"]
+    clock = key + ":session"
+    session = date.toordinal()
+    observed = account.candidate_tenure.get(clock, 0)
+    if observed > session:
+        raise ValueError("pullback exit observations moved backwards")
+    ma120 = scalar(row, "ma120", float("nan"))
+    if not math.isfinite(ma120) or ma120 <= 0:
+        return ""  # Missing structure is neither confirmation nor repair.
+    previous = frame.loc[:date].index[-2].toordinal() if len(frame.loc[:date]) > 1 else 0
+    broken = close < ma120
+    if observed != session:
+        streak = account.replacement_tenure.get(key, 0) if observed == previous else 0
+        account.replacement_tenure[key] = streak + 1 if broken else 0
+        account.candidate_tenure[clock] = session
+    elif not broken:
+        account.replacement_tenure[key] = 0
+    first_fill = min(fill.fill_date for fill in account.fills
+                     if fill.order_id == entry["order_id"] and fill.event_id == entry["event_id"]
+                     and fill.side == "BUY")
+    held_sessions = len(frame.loc[pd.Timestamp(first_fill):date])
+    if (account.replacement_tenure.get(key, 0) >= self.cfg.replacement_confirm_days
+            and held_sessions >= self.cfg.min_hold_days):
+        return "ordinary long-pullback confirmed MA120 deterioration"
+    return "" if broken else None
+
+
+def ordinary_pullback_exit(
+    self: LeaderPortfolioPolicy, *, symbol: str, date: pd.Timestamp,
+    user_panel: dict[str, pd.DataFrame], leaders: dict[str, LeaderScore], account: AccountState,
+) -> str | None:
+    """None delegates graduated/ordinary holdings; empty text retains the long basis."""
+    entry = holding_pullback_entry(account, symbol)
+    if entry is None:
+        return None
+    position = account.positions[symbol]
+    frame = user_panel.get(symbol)
+    if frame is None or date not in frame.index:
+        return ""
+    row = frame.loc[date]
+    close = scalar(row, "close", float("nan"))
+    if not math.isfinite(close) or close <= 0 or not math.isfinite(position.avg_cost) or position.avg_cost <= 0:
+        return ""
+    if close / position.avg_cost - 1 <= self.cfg.strategic_cohort_disaster_stop:
+        return "ordinary long-pullback disaster loss against actual average cost"
+    if pullback_graduated(account, entry):
+        return None
+    structure_exit = _pullback_structure_exit(
+        self, entry=entry, date=date, frame=frame, row=row, close=close, account=account)
+    if structure_exit is not None:
+        return structure_exit
+    leader = leaders.get(symbol)
+    ma60, ret60 = scalar(row, "ma60", float("nan")), scalar(row, "ret60", float("nan"))
+    if (leader is not None and leader.mature
+            and math.isfinite(ma60) and math.isfinite(ret60) and close >= ma60 > 0 and ret60 > 0
+            and self._liquidity_confirmed(frame, date)):
+        record_pullback_graduation(account, entry, date=str(date.date()), proof={
+            "close": close, "ma60": ma60, "ret60": ret60,
+            "mature": True, "liquidity_confirmed": True,
+        })
+        return None
+    return ""
 
 
 def _industry_handoff(
@@ -363,4 +225,3 @@ leader_retention_score = _retention_score
 leader_rotation_allowed = _rotation_allowed
 leader_session_clock = _session_clock
 leader_session_distance = _leader_session_distance
-update_leader_cycle_arm = _update_leader_cycle_arm

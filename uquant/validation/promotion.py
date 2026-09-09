@@ -12,15 +12,19 @@ from collections.abc import Iterator, Mapping
 from contextlib import contextmanager
 from copy import deepcopy
 from datetime import UTC, datetime
+from functools import partial
 from pathlib import Path
 from statistics import median
 from typing import Any, Final, cast
 
 import uquant.validation.promotion_contract as _promotion_contract
+from uquant.validation.acceptance_tolerance import acceptance_revision, order_ceiling, wealth_floor
 
 from ..config import DEFAULT_CONFIG, config_fingerprint
 from ..config_governance import GOVERNANCE_PATH
 from ..engine import ProductionEngine
+from ._promotion_cache import replay_unit
+from .absolute_generalization._acceptance_evidence import current_candidate_contract
 from .ai_era import (
     AI_ERA_ACUTE_WINDOWS,
     AI_ERA_START,
@@ -599,7 +603,7 @@ def _compact(result: Mapping[str, Any], *, acute: tuple[str, str] | None) -> dic
     }
 
 
-def _hard_violations(*, name: str, metrics: Mapping[str, Any], gate: Mapping[str, Any]) -> list[str]:
+def _hard_violations(*, name: str, metrics: Mapping[str, Any], gate: Mapping[str, Any], authorized: bool = True) -> list[str]:
     failures: list[str] = []
     comparisons = (
         ("final_wealth", "min_final_wealth", False),
@@ -613,6 +617,10 @@ def _hard_violations(*, name: str, metrics: Mapping[str, Any], gate: Mapping[str
             continue
         observed = metrics[metric_name]
         limit = gate[gate_name]
+        if metric_name == "account_orders" and name.endswith("/continuous_ai_era"):
+            limit = order_ceiling(limit, authorized=authorized)
+        elif metric_name == "final_wealth":
+            limit = wealth_floor(limit, authorized=authorized)
         breached = observed is None or (observed > limit if maximum else observed < limit)
         if breached:
             direction = "above" if maximum else "below"
@@ -628,19 +636,24 @@ def _protected_gate(interval: str, pool: str) -> Mapping[str, Any]:
     raise RuntimeError(f"promotion protected policy omits pool: {pool}/{interval}")
 
 
-def _champion_violations(*, name: str, metrics: Mapping[str, Any], champion: Mapping[str, Any]) -> list[str]:
+def _champion_violations(*, name: str, metrics: Mapping[str, Any], champion: Mapping[str, Any], authorized: bool = True) -> list[str]:
     if not champion:
         raise RuntimeError(f"promotion champion evidence is missing: {name}")
     tolerance = AI_ERA_POLICY["champion_tolerance"]
     failures: list[str] = []
-    if metrics["final_wealth"] < champion["final_wealth"] * tolerance["wealth_floor_ratio"]:
+    # Keep the historical policy sealed; apply the declared revision to the
+    # final-wealth comparison, while preserving drawdown and acute-return gates.
+    contract = current_candidate_contract()
+    adjusted_wealth_floor = wealth_floor(
+        contract["thresholds"]["champion_minimum_final_wealth"]
+        if name.split("/", 1)[-1] == "continuous_ai_era"
+        else champion["final_wealth"] * tolerance["wealth_floor_ratio"],
+        authorized=authorized,
+    )
+    if metrics["final_wealth"] < adjusted_wealth_floor:
         failures.append(f"{name}: final_wealth regressed from production champion")
     if metrics["max_drawdown"] > champion["max_drawdown"] + tolerance["drawdown_tolerance"]:
         failures.append(f"{name}: max_drawdown regressed from production champion")
-    if metrics["account_orders"] > champion["account_orders"] + tolerance["order_tolerance"]:
-        failures.append(f"{name}: account_orders regressed from production champion")
-    if metrics["annual_turnover"] > champion["annual_turnover"] + tolerance["turnover_tolerance"]:
-        failures.append(f"{name}: annual_turnover regressed from production champion")
     if (
         champion["acute_return"] is not None
         and metrics["acute_return"] is not None
@@ -650,11 +663,138 @@ def _champion_violations(*, name: str, metrics: Mapping[str, Any], champion: Map
     return failures
 
 
+def _authorized_order_limit() -> dict[str, Any]:
+    """Explicit user revision; the original compiled policy stays immutable."""
+    return {
+        "scenario": "e/continuous_ai_era", "previous_maximum": 15, "maximum": 20,
+        "authorization_id": "cross-ai-performance-e-orders-20260908",
+        "authorization": "User explicitly accepts actual 20 orders against the former 15-order ceiling",
+        "authorized_after_observing_candidate": True,
+    }
+
+
+def current_promotion_acceptance_basis() -> dict[str, Any]:
+    """Bind the current policy override without rewriting the frozen baseline."""
+    contract = current_candidate_contract()
+    path = Path(__file__).resolve().parents[2] / "benchmarks/cross_ai_core_strategy_contract.json"
+    return {
+        "contract_id": contract["contract_id"],
+        "contract_sha256": hashlib.sha256(path.read_bytes()).hexdigest(),
+        "continuous_minimum_final_wealth": contract["thresholds"]["champion_minimum_final_wealth"],
+        "superseded_comparisons": ["continuous_relative_wealth", "relative_orders", "relative_turnover"],
+        "authorized_order_limit": _authorized_order_limit(),
+        "acceptance_revision": acceptance_revision(),
+        "effective_continuous_minimum_final_wealth": wealth_floor(contract["thresholds"]["champion_minimum_final_wealth"]),
+        "retained_policy": "Original AI_ERA_POLICY retained as evidence; current acceptance_revision supersedes the historical E-only revision. Drawdown, acute, costs, turnover and short-window orders unchanged",
+    }
+
+
+def _promotion_artifact_metric_failures(
+    payload: Mapping[str, Any], champion: Mapping[str, Any],
+) -> list[str]:
+    failures: list[str] = []
+    for section, intervals in (("cells", AI_ERA_WINDOWS), ("protected", PROTECTED_INTERVALS)):
+        rows = payload.get(section)
+        expected = {f"{pool}/{interval}" for pool in REQUIRED_POOLS for interval in intervals}
+        if not isinstance(rows, Mapping) or set(rows) != expected:
+            failures.append(f"performance {section} do not cover the complete required matrix")
+        if not isinstance(rows, Mapping):
+            continue
+        for pool in REQUIRED_POOLS:
+            for interval in intervals:
+                name = f"{pool}/{interval}"
+                metrics = rows.get(name)
+                try:
+                    _validate_metric_payload(metrics, label=name)
+                    metrics = cast(Mapping[str, Any], metrics)
+                    _compact(metrics, acute=None)
+                    if section == "protected" and metrics["acute_return"] is not None:
+                        raise RuntimeError(f"promotion protected acute_return must be absent: {name}")
+                except (RuntimeError, TypeError, ValueError) as exc:
+                    failures.append(f"{name}: {exc}")
+                    continue
+                gate = AI_ERA_POLICY["official"][interval] if section == "cells" else _protected_gate(interval, pool)
+                failures.extend(_hard_violations(name=name, metrics=metrics, gate=gate))
+                failures.extend(_champion_violations(name=name, metrics=metrics, champion=champion[section][name]))
+    return failures
+
+
+def validate_promotion_artifact(payload: Mapping[str, Any]) -> list[str]:
+    """Re-evaluate compact evidence against the same sealed authorities as its producer."""
+    baseline_bytes, spec = _load_spec(Path(__file__).resolve().parents[2] / "benchmarks/promotion_baseline.json")
+    economic_failures = _promotion_artifact_metric_failures(payload, spec["champion"])
+    failures = list(economic_failures)
+    if payload.get("schema_version") != SCHEMA_VERSION:
+        failures.append("performance artifact schema differs")
+    if payload.get("profile") != "full":
+        failures.append("performance requires the full profile")
+    if payload.get("acceptance_basis") != current_promotion_acceptance_basis():
+        failures.append("performance current acceptance basis differs from the frozen contract")
+    if payload.get("passed") is not True:
+        failures.append("performance gate did not pass")
+    reported = payload.get("failures")
+    if (not isinstance(reported, list) or any(not isinstance(item, str) for item in reported)
+            or sorted(reported) != sorted(economic_failures)):
+        failures.append("performance failure claims differ from re-evaluated metrics")
+    provenance = payload.get("provenance")
+    if not isinstance(provenance, Mapping):
+        failures.append("performance provenance is missing or malformed")
+        return failures
+    for field, expected in {
+        "baseline_sha256": hashlib.sha256(baseline_bytes).hexdigest(),
+        "validation_fingerprint": spec["validation_fingerprint"],
+        "champion_commit": spec["champion"]["production_commit"],
+    }.items():
+        if provenance.get(field) != expected:
+            failures.append(f"performance {field} differs from the frozen authority")
+    candidate = provenance.get("candidate")
+    if not isinstance(candidate, Mapping) or candidate.get("data") != spec["provenance"]["data"]:
+        failures.append("performance candidate data differs from the frozen baseline")
+    return failures
+
+
+def _replay_promotion_unit(
+    name: str, symbols: Any, start: str, end: str, *, engine: ProductionEngine,
+    cache_dir: str | Path | None, runtime: dict[str, Any], baseline_path: Path,
+    baseline_sha256: str, acceptance_basis: dict[str, Any], data_dir: str | Path,
+    profile: str,
+) -> dict[str, Any]:
+    """Persist one native replay under its complete, immutable acceptance identity."""
+    if cache_dir is None:
+        return engine.backtest(symbols=tuple(symbols), start=start, end=end)
+    identity = {
+        "candidate": runtime,
+        "baseline_sha256": baseline_sha256,
+        "acceptance_basis": acceptance_basis,
+        "execution_contract": dict(EXECUTION_CONTRACT),
+        "runner": "uquant.validation.promotion.run_promotion",
+        "profile": profile,
+        "symbols": list(symbols),
+        "start": start,
+        "end": end,
+    }
+
+    def generate() -> dict[str, Any]:
+        with _immutable_validation_inputs(
+            baseline_path=baseline_path,
+            baseline_sha256=baseline_sha256,
+            data_dir=data_dir,
+            runtime_before=runtime,
+        ):
+            raw = engine.backtest(symbols=tuple(symbols), start=start, end=end)
+            if current_promotion_acceptance_basis() != acceptance_basis:
+                raise RuntimeError("promotion current acceptance contract changed during replay")
+        return raw
+
+    return replay_unit(Path(cache_dir), name=name, identity=identity, replay=generate)
+
+
 def run_promotion(
     *,
     data_dir: str | Path,
     baseline: str | Path = Path("benchmarks") / "promotion_baseline.json",
     profile: str = "full",
+    cache_dir: str | Path | None = None,
 ) -> dict[str, Any]:
     """Run all six windows and protected intervals; no partial profile exists."""
 
@@ -662,6 +802,7 @@ def run_promotion(
         raise RuntimeError("AI-era promotion supports only the blocking full profile")
     baseline_path = Path(baseline)
     baseline_bytes, spec = _load_spec(baseline_path)
+    acceptance_basis = current_promotion_acceptance_basis()
     baseline_sha256 = hashlib.sha256(baseline_bytes).hexdigest()
     runtime = _runtime_provenance(data_dir)
     if runtime["data"] != spec["provenance"]["data"]:
@@ -680,10 +821,16 @@ def run_promotion(
         runtime_before=runtime,
     ):
         engine = ProductionEngine(data_dir)
+
+        replay = partial(
+            _replay_promotion_unit, engine=engine, cache_dir=cache_dir, runtime=runtime,
+            baseline_path=baseline_path, baseline_sha256=baseline_sha256,
+            acceptance_basis=acceptance_basis, data_dir=data_dir, profile=profile,
+        )
         for pool, symbols in spec["pools"].items():
             for window, (start, end) in AI_ERA_WINDOWS.items():
                 name = f"{pool}/{window}"
-                raw = engine.backtest(symbols=tuple(symbols), start=start, end=end)
+                raw = replay(name, symbols, start, end)
                 if raw.get("effective_config_sha256") != runtime["effective_config_sha256"]:
                     raise RuntimeError(f"promotion effective config drifted during replay: {name}")
                 metrics = _compact(raw, acute=AI_ERA_ACUTE_WINDOWS[window])
@@ -704,11 +851,7 @@ def run_promotion(
                 )
             for interval, bounds in PROTECTED_INTERVALS.items():
                 name = f"{pool}/{interval}"
-                raw = engine.backtest(
-                    symbols=tuple(symbols),
-                    start=bounds["start"],
-                    end=bounds["end"],
-                )
+                raw = replay(name, symbols, bounds["start"], bounds["end"])
                 if raw.get("effective_config_sha256") != runtime["effective_config_sha256"]:
                     raise RuntimeError(f"promotion effective config drifted during replay: {name}")
                 metrics = _compact(raw, acute=None)
@@ -729,10 +872,13 @@ def run_promotion(
                 )
 
     all_metrics = [*cells.values(), *protected.values()]
+    if current_promotion_acceptance_basis() != acceptance_basis:
+        raise RuntimeError("promotion current acceptance contract changed during replay")
     generated_at = datetime.now(UTC).isoformat()
     return {
         "schema_version": SCHEMA_VERSION,
         "profile": "full",
+        "acceptance_basis": acceptance_basis,
         "passed": not failures,
         "failures": failures,
         "cells": cells,

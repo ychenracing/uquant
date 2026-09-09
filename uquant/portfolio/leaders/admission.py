@@ -16,7 +16,6 @@ from ...types import (
     LeaderScore,
     Opportunity,
     RiskAssessment,
-    Target,
 )
 
 
@@ -88,16 +87,6 @@ class LeaderPortfolioPolicy(StrategicPortfolioPolicy):
             self, account: AccountState, date: pd.Timestamp, user_panel: dict[str, pd.DataFrame]
         ) -> bool: ...
 
-        def _update_leader_cycle_arm(
-            self,
-            *,
-            opportunity: Opportunity,
-            risk: RiskAssessment,
-            leaders: dict[str, LeaderScore],
-            account: AccountState,
-            strategic_handoff_blocked: bool = False,
-            strategic_handoff_ready: bool = False,
-        ) -> bool: ...
 
         @staticmethod
         def _retention_score(
@@ -115,19 +104,6 @@ class LeaderPortfolioPolicy(StrategicPortfolioPolicy):
         ) -> bool: ...
 
         def _industry_handoff(self, *, challenger: LeaderScore, incumbent: LeaderScore) -> bool: ...
-
-        def _leader_targets(
-            self,
-            *,
-            date: pd.Timestamp,
-            opportunity: Opportunity,
-            risk: RiskAssessment,
-            user_panel: dict[str, pd.DataFrame],
-            leaders: dict[str, LeaderScore],
-            account: AccountState,
-            weights_now: dict[str, float],
-            prices: dict[str, float],
-        ) -> tuple[Target, ...] | None: ...
 
 
 LeaderPortfolioPolicy.__module__ = "uquant.portfolio_leaders"

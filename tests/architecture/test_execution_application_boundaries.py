@@ -525,6 +525,42 @@ def test_execution_responsibility_owners_replace_execution_monolith_and_engine_b
     assert all((ROOT / relative).is_file() for relative in expected)
 
 
+def _decision_rearm_owner_fanout(source: str, fan_out: set[str]) -> set[str]:
+    """Collapse only the exact post-registration call into the existing portfolio owner."""
+    _validate_ordinary_binding_wrapper(
+        (ROOT / "uquant/portfolio/strategic/rearm.py").read_text(encoding="utf-8"))
+    tree = ast.parse(source)
+    imports = [node for node in tree.body if isinstance(node, ast.ImportFrom)
+               and node.module == "portfolio.strategic.rearm"]
+    assert len(imports) == 1 and imports[0].level == 2
+    assert [(alias.name, alias.asname) for alias in imports[0].names] == [("bind_ordinary_entry_authorizations", None)]
+    calls = [node for node in ast.walk(tree) if isinstance(node, ast.Call)
+             and isinstance(node.func, ast.Name) and node.func.id == "bind_ordinary_entry_authorizations"]
+    assert len(calls) == 1
+    expected = ast.parse("""
+orders = reconcile_account_orders_fn(
+    account=account, previous=previous_orders, current=orders,
+    submitted_date=str(inputs.date.date()),
+    removed_buy_reason="sentinel_freeze_new_risk" if sentinel_freeze_authorized(risk) else None,
+)
+bind_ordinary_entry_authorizations(
+    account=account, orders=orders, risk=risk, date=str(inputs.date.date()),
+    cfg=self.cfg, code_hash=inputs.current_code_hash, data_hash=inputs.data_digest,
+)
+""").body
+    parents = [node for node in tree.body if isinstance(node, ast.FunctionDef)
+               and any(isinstance(item, ast.Expr) and item.value is calls[0] for item in node.body)]
+    assert len(parents) == 1
+    body = parents[0].body
+    index = next(index for index, item in enumerate(body) if isinstance(item, ast.Expr) and item.value is calls[0])
+    assert index > 0
+    assert [ast.dump(node, include_attributes=False) for node in body[index - 1:index + 1]] == [
+        ast.dump(node, include_attributes=False) for node in expected
+    ]
+    assert {"uquant.portfolio", "uquant.portfolio.strategic.rearm"} <= fan_out
+    return fan_out - {"uquant.portfolio.strategic.rearm"}
+
+
 def test_execution_facade_and_decision_fanout_are_bounded() -> None:
     engine_lines = len((ROOT / "uquant/engine.py").read_text(encoding="utf-8").splitlines())
     snapshot = architecture_snapshot()
@@ -538,7 +574,10 @@ def test_execution_facade_and_decision_fanout_are_bounded() -> None:
     assert isinstance(target_fan_out, list)
     assert architecture_execution_decision_fanout(
         root=ROOT,
-        decision_fan_out={str(value) for value in decision_fan_out},
+        decision_fan_out=_decision_rearm_owner_fanout(
+            (ROOT / "uquant/application/decision.py").read_text(encoding="utf-8"),
+            {str(value) for value in decision_fan_out},
+        ),
         extracted_owner_fan_out={str(value) for value in target_fan_out},
     ) <= 13
 
@@ -610,7 +649,10 @@ def test_execution_complexity_debt_relocations_are_exact_and_do_not_create_an_ex
         str(row["id"]) for category in ("long_functions", "branchy_functions") for row in normalized[category]
     }
     assert not observed & normalized_ids
-    assert not normalized_ids
+    assert not {
+        identifier for identifier in normalized_ids
+        if identifier.startswith(("uquant.application", "uquant.execution", "uquant.engine:"))
+    }
 
     globals_ = snapshot["module_globals"]
     assert isinstance(globals_, list)
@@ -904,3 +946,78 @@ def test_engine_code_fingerprint_fails_closed_for_missing_and_symlinked_members(
     member.symlink_to(outside)
     with pytest.raises(ValueError, match="source surface member is missing or unsafe"):
         engine.code_fingerprint()
+
+
+@pytest.mark.parametrize("before, after", (
+    ("account=account, orders=orders, risk=risk, date=", "account=account, orders=previous_orders, risk=risk, date="),
+    ("from ..portfolio.strategic.rearm import bind_ordinary_entry_authorizations", "from ..portfolio.strategic.rearm import bind_ordinary_entry_authorizations, unrelated"),
+))
+def test_decision_rearm_owner_rejects_unregistered_orders_or_extra_dependencies(before: str, after: str) -> None:
+    source = (ROOT / "uquant/application/decision.py").read_text(encoding="utf-8")
+    assert source.count(before) == 1
+    with pytest.raises(AssertionError):
+        _decision_rearm_owner_fanout(source.replace(before, after), {"uquant.portfolio", "uquant.portfolio.strategic.rearm"})
+
+
+def _validate_ordinary_binding_wrapper(source: str) -> None:
+    tree = ast.parse(source)
+    wrappers = [node for node in tree.body if isinstance(node, ast.FunctionDef)
+                and node.name == "bind_ordinary_entry_authorizations"]
+    assert len(wrappers) == 1
+    wrapper = wrappers[0]
+    body = wrapper.body[1:] if isinstance(wrapper.body[0], ast.Expr) and isinstance(wrapper.body[0].value, ast.Constant) else wrapper.body
+    expected = ast.parse("""
+from ...models.ordinary_entry import bind_pullback_orders
+consume_ordinary_cash_rearm_authorization(account=account, orders=orders, observed_session=date)
+bind_pullback_orders(account=account, orders=orders, risk=risk, date=date, cfg=cfg,
+                     code_hash=code_hash, data_hash=data_hash)
+""").body
+    assert [ast.dump(node, include_attributes=False) for node in body] == [
+        ast.dump(node, include_attributes=False) for node in expected]
+
+
+@pytest.mark.parametrize("wrong", ["code_hash=account.code_hash", "data_hash=account.data_hash"])
+def test_ordinary_binding_decision_rejects_stale_input_identity(wrong):
+    source = (ROOT / "uquant/application/decision.py").read_text(encoding="utf-8")
+    original = "code_hash=inputs.current_code_hash" if wrong.startswith("code_hash") else "data_hash=inputs.data_digest"
+    assert original in source
+    with pytest.raises(AssertionError):
+        _decision_rearm_owner_fanout(source.replace(original, wrong),
+                                     {"uquant.portfolio", "uquant.portfolio.strategic.rearm"})
+
+
+@pytest.mark.parametrize("mutation", ["swap", "code", "data"])
+def test_ordinary_binding_wrapper_rejects_order_or_identity_mutation(mutation):
+    source = (ROOT / "uquant/portfolio/strategic/rearm.py").read_text(encoding="utf-8")
+    tree = ast.parse(source)
+    wrapper = next(node for node in tree.body if isinstance(node, ast.FunctionDef)
+                   and node.name == "bind_ordinary_entry_authorizations")
+    calls = [node for node in wrapper.body if isinstance(node, ast.Expr) and isinstance(node.value, ast.Call)]
+    assert len(calls) == 2
+    if mutation == "swap":
+        left, right = (wrapper.body.index(node) for node in calls)
+        wrapper.body[left], wrapper.body[right] = wrapper.body[right], wrapper.body[left]
+    else:
+        key = "code_hash" if mutation == "code" else "data_hash"
+        argument = next(item for item in calls[1].value.keywords if item.arg == key)
+        argument.value = ast.Constant("wrong-current-identity")
+    with pytest.raises(AssertionError):
+        _validate_ordinary_binding_wrapper(ast.unparse(tree))
+
+
+def test_ordinary_binding_cannot_precede_real_order_reconciliation():
+    source = (ROOT / "uquant/application/decision.py").read_text(encoding="utf-8")
+    tree = ast.parse(source)
+    parent = next(node for node in tree.body if isinstance(node, ast.FunctionDef)
+                  and any(isinstance(item, ast.Expr) and isinstance(item.value, ast.Call)
+                          and isinstance(item.value.func, ast.Name)
+                          and item.value.func.id == "bind_ordinary_entry_authorizations" for item in node.body))
+    index = next(i for i, node in enumerate(parent.body)
+                 if isinstance(node, ast.Expr) and isinstance(node.value, ast.Call)
+                 and isinstance(node.value.func, ast.Name)
+                 and node.value.func.id == "bind_ordinary_entry_authorizations")
+    assert index > 0
+    parent.body[index - 1], parent.body[index] = parent.body[index], parent.body[index - 1]
+    with pytest.raises(AssertionError):
+        _decision_rearm_owner_fanout(ast.unparse(tree),
+                                     {"uquant.portfolio", "uquant.portfolio.strategic.rearm"})

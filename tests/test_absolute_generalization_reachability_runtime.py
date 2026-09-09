@@ -304,7 +304,7 @@ def test_recovery_loads_only_the_preregistered_historical_replay(
         calls.append(scenario.removed_symbol)
         return expected
 
-    monkeypatch.setattr(runtime_module, "run_absolute_generalization_replay", replay)
+    monkeypatch.setattr(runtime_module, "cached_removal_replay", replay)
 
     observed = runtime_module._historical_recovery_replay(
         root=tmp_path,

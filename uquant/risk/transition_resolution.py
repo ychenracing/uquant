@@ -8,10 +8,10 @@ import numpy as np
 import pandas as pd
 
 from ..config import SystemConfig
-from ..features import scalar
+from ..holding_history import protected_weights_for_current_episode
 from ..risk_sector import SectorGuardTransition, SectorObservation
 from ..types import AccountState, Risk
-from .protected_recovery import persistent_crisis_cap
+from .protected_recovery import capture_protected_holdings, persistent_crisis_cap
 from .recovery_state import reset_recovery_owner_rearm
 
 
@@ -54,7 +54,7 @@ def _observed_risk(ctx: _RiskTransitionContext) -> Risk:
     cfg = ctx.cfg
     if (
         ctx.shock_rearmed
-        and not account.protected_weights
+        and not protected_weights_for_current_episode(account)
         and ctx.capital_dd >= cfg.capital_dd_crisis
         and ctx.votes >= 4
     ):
@@ -121,15 +121,9 @@ def _apply_sector_guard(ctx: _RiskTransitionContext, *, state: Risk, shock: str)
 def _prepare_new_crisis(ctx: _RiskTransitionContext) -> None:
     account = ctx.account
     reset_recovery_owner_rearm(account)
-    if account.candidate_tenure.get("post_shock_restore_complete", 0) == 1:
-        account.protected_weights.clear()
-    account.candidate_tenure["post_shock_restore_complete"] = 0
-    if not account.protected_weights:
-        account.protected_weights = {
-            symbol: position.shares * scalar(ctx.user_panel[symbol].loc[ctx.date], "close") / ctx.equity
-            for symbol, position in account.positions.items()
-            if symbol in ctx.user_panel and ctx.date in ctx.user_panel[symbol].index and position.shares > 0
-        }
+    capture_protected_holdings(
+        account=account, date=ctx.date, user_panel=ctx.user_panel, equity=ctx.equity, use_anchors=False,
+    )
     account.shock_start_date = str(ctx.date.date())
     account.last_shock_date = str(ctx.date.date())
     account.candidate_tenure["last_shock_incomplete_universe"] = 0

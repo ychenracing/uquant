@@ -16,10 +16,8 @@ from uquant.execution import (
 from uquant.portfolio import PortfolioAllocator
 from uquant.types import (
     AccountState,
-    AttributionMechanism,
     Lifecycle,
     Opportunity,
-    OriginSubsystem,
     Position,
     Risk,
     RiskAssessment,
@@ -28,7 +26,7 @@ from uquant.types import (
 )
 
 
-def test_add1_add2_are_live_but_a_generic_satellite_is_not_auto_admitted():
+def test_unified_core_hold_preserves_legacy_tranches_without_automatic_pyramiding():
     dates = pd.bdate_range("2025-01-02", periods=150)
     date = dates[-1]
     frame = _trend_frame(dates)
@@ -64,8 +62,8 @@ def test_add1_add2_are_live_but_a_generic_satellite_is_not_auto_admitted():
         prices={"core": 1.0},
     )
     add1_target = next(item for item in add1 if item.symbol == "core")
-    assert add1_target.lifecycle == Lifecycle.ADD1.value
-    assert add1_target.weight == pytest.approx(0.45)
+    assert add1_target.lifecycle == Lifecycle.CORE.value
+    assert add1_target.weight == pytest.approx(0.40)
 
     account.positions["core"].lifecycle = Lifecycle.ADD1.value
     account.positions["core"].tranches = [
@@ -99,8 +97,13 @@ def test_add1_add2_are_live_but_a_generic_satellite_is_not_auto_admitted():
         prices={"core": 1.10},
     )
     add2_target = next(item for item in add2 if item.symbol == "core")
-    assert add2_target.lifecycle == Lifecycle.ADD2.value
-    assert add2_target.weight > 40 * 1.10 / 104.0
+    assert add2_target.lifecycle == Lifecycle.CORE.value
+    assert add2_target.weight == pytest.approx(44.0 / 104.0)
+    # Unified targets retain drift; legacy tranche attribution is not rewritten.
+    assert account.positions["core"].lifecycle == Lifecycle.ADD1.value
+    assert account.positions["core"].tranches[0].lifecycle == Lifecycle.ADD1.value
+    assert account.positions["core"].shares == 40
+    assert account.cash == 60.0
 
     account.lifecycle_events[0]["date"] = str(dates[-2].date())
     deferred = allocator.allocate(
@@ -158,7 +161,7 @@ def test_add1_add2_are_live_but_a_generic_satellite_is_not_auto_admitted():
     assert satellite == ()
     assert satellite_account.satellite_entry_dates == {}
 
-def test_effective_n_drives_dynamic_k_and_rotation_records_attribution():
+def test_legacy_dynamic_k_and_arm_flags_cannot_bypass_entry_confirmation():
     dates = pd.bdate_range("2025-01-02", periods=150)
     correlated = np.linspace(0.8, 1.0, len(dates))
     panel = {symbol: _trend_frame(dates, close=correlated) for symbol in ("one", "two", "three")}
@@ -178,8 +181,9 @@ def test_effective_n_drives_dynamic_k_and_rotation_records_attribution():
         account=account,
         prices={symbol: 1.0 for symbol in panel},
     )
-    assert account.dynamic_k == 2
-    assert sum(item.weight > 0 for item in targets) == 2
+    assert targets == ()
+    assert account.cash == 100.0
+    assert account.positions == {}
 
     strong = _trend_frame(dates)
     weak = _trend_frame(dates, ma20=2.0, ma60=0.5, ret20=-0.10, ret60=0.10)
@@ -222,17 +226,16 @@ def test_effective_n_drives_dynamic_k_and_rotation_records_attribution():
             account=rotation_account,
             prices={symbol: 1.0 for symbol in rotation_panel},
         )
-    assert rotation_account.replacement_events
-    event = rotation_account.replacement_events[-1]
-    assert (event["old_symbol"], event["new_symbol"]) == ("weak", "new")
-    replacement = next(item for item in rotation_targets if item.symbol == "new")
-    replaced = next(item for item in rotation_targets if item.symbol == "weak")
-    assert replacement.weight > 0
-    assert replaced.weight == 0
-    assert replacement.origin_subsystem == replaced.origin_subsystem == OriginSubsystem.LEADER.value
-    assert replacement.mechanism == replaced.mechanism == AttributionMechanism.LEADER_ROTATION.value
-    assert replacement.replaces_symbol == "weak"
-    assert replaced.replaces_symbol is None
+    # Legacy K/arm flags cannot substitute for the entrant's five sessions.
+    # Confirmed transfer identity and settlement are exercised in unified_core_book.
+    assert {target.symbol: target.weight for target in rotation_targets} == pytest.approx(
+        {"strong": 0.30, "weak": 0.30}
+    )
+    assert rotation_account.replacement_events == []
+    assert rotation_account.cash == 40.0
+    assert {symbol: position.shares for symbol, position in rotation_account.positions.items()} == {
+        "strong": 30, "weak": 30,
+    }
 
 def test_allocator_enforces_risk_cap_on_anchored_early_return():
     dates = pd.bdate_range("2025-01-02", periods=150)
@@ -434,7 +437,7 @@ def test_drifted_anchor_actual_gross_cannot_bypass_nominal_risk_cap():
     )
     assert [(order.symbol, order.side) for order in orders] == [("core1", "SELL")]
 
-def test_locked_recovery_cohort_scales_missing_members_to_remaining_budget():
+def test_legacy_recovery_targets_cannot_fund_unqualified_missing_members():
     dates = pd.bdate_range("2023-01-03", periods=150)
     frame = _trend_frame(dates)
     symbols = ("held", "missing_lead", "missing_secondary")
@@ -480,12 +483,13 @@ def test_locked_recovery_cohort_scales_missing_members_to_remaining_budget():
     )
 
     weights = {target.symbol: target.weight for target in targets}
-    assert sum(weights.values()) == pytest.approx(DEFAULT_CONFIG.recovery_target_gross)
-    assert weights["held"] == pytest.approx(0.515)
-    assert weights["missing_lead"] == pytest.approx(0.3375)
-    assert weights["missing_secondary"] == pytest.approx(0.0675)
+    # Legacy cohort weights are not executable entry authority for absent names.
+    assert weights == pytest.approx({"held": 0.515})
+    assert account.positions["held"].shares == 515
+    assert account.cash == 485.0
+    assert account.pending_orders == []
 
-def test_stale_single_recovery_anchor_graduates_on_confirmed_leader_cycle():
+def test_healthy_core_holdings_need_no_recovery_graduation():
     dates = pd.bdate_range(
         "2023-01-03",
         periods=DEFAULT_CONFIG.recovery_cohort_graduation_days + 10,
@@ -529,11 +533,12 @@ def test_stale_single_recovery_anchor_graduates_on_confirmed_leader_cycle():
     )
 
     weights = {target.symbol: target.weight for target in targets}
-    assert account.anchor_weights == {}
-    assert account.recovery_anchor_date == ""
-    assert account.candidate_tenure["recovery_cohort_graduated"] == 1
-    assert weights["anchor"] > 0
-    assert weights["new_core"] > 0
+    # Retained positions need no whole-book graduation before sharing the book.
+    assert weights == pytest.approx({"anchor": 0.40, "new_core": 0.40})
+    assert account.cash == 20.0
+    assert {symbol: position.shares for symbol, position in account.positions.items()} == {
+        "anchor": 40, "new_core": 40,
+    }
 
 def test_fully_exited_recovery_anchors_cannot_hijack_a_later_leader_book():
     dates = pd.bdate_range("2025-01-02", periods=150)
@@ -589,7 +594,7 @@ def test_fully_exited_recovery_anchors_cannot_hijack_a_later_leader_book():
     assert all(weights[symbol] > 0 for symbol in held)
     assert not any(symbol.startswith("old_") for symbol in weights)
 
-def test_weak_secular_market_allows_early_recovery_cohort_graduation():
+def test_weak_market_metadata_retains_healthy_recovery_and_core_holdings():
     dates = pd.bdate_range(
         "2023-01-03",
         periods=DEFAULT_CONFIG.recovery_cohort_weak_graduation_days + 10,
@@ -627,7 +632,7 @@ def test_weak_secular_market_allows_early_recovery_cohort_graduation():
         "NONE",
     )
 
-    PortfolioAllocator(DEFAULT_CONFIG).allocate(
+    targets = PortfolioAllocator(DEFAULT_CONFIG).allocate(
         date=dates[-1],
         opportunity=Opportunity.TREND,
         risk=weak_risk,
@@ -640,10 +645,16 @@ def test_weak_secular_market_allows_early_recovery_cohort_graduation():
         prices={"anchor": 1.0, "new_core": 1.0},
     )
 
-    assert account.anchor_weights == {}
-    assert account.candidate_tenure["recovery_cohort_graduated"] == 1
+    # Weak market metadata alone does not sell structurally healthy holdings.
+    assert {target.symbol: target.weight for target in targets} == pytest.approx(
+        {"anchor": 0.40, "new_core": 0.40}
+    )
+    assert account.cash == 20.0
+    assert {symbol: position.shares for symbol, position in account.positions.items()} == {
+        "anchor": 40, "new_core": 40,
+    }
 
-def test_graduation_day_retains_a_newly_promoted_recovery_book() -> None:
+def test_recovery_holdings_retain_physical_lifecycle_without_graduation() -> None:
     dates = pd.bdate_range(
         "2023-01-03",
         periods=DEFAULT_CONFIG.recovery_cohort_weak_graduation_days + 10,
@@ -689,5 +700,8 @@ def test_graduation_day_retains_a_newly_promoted_recovery_book() -> None:
         prices={symbol: 1.0 for symbol in symbols},
     )
 
-    assert account.candidate_tenure["recovery_cohort_graduated"] == 1
-    assert all(target.weight > 0 for target in targets)
+    assert {target.symbol: target.weight for target in targets} == pytest.approx(
+        {symbol: 0.30 for symbol in symbols}
+    )
+    assert account.cash == 10.0
+    assert all(position.lifecycle == Lifecycle.RECOVERY.value for position in account.positions.values())

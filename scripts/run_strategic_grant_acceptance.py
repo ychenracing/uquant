@@ -10,7 +10,7 @@ import json
 import sys
 from collections.abc import Mapping, Sequence
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
@@ -25,6 +25,7 @@ from uquant.contracts.runtime_identity import runtime_environment_provenance
 from uquant.engine import ProductionEngine, code_fingerprint
 from uquant.provenance.fingerprints import source_surface_fingerprint
 from uquant.provenance.surfaces import load_source_surface_registry
+from uquant.validation.absolute_generalization._acceptance_evidence import current_candidate_champion_evidence
 from uquant.validation.manifest import verify_data_manifest
 
 CONTRACT_PATH = ROOT / "benchmarks" / "strategic_grant_acceptance_contract.json"
@@ -109,29 +110,14 @@ def run_baseline(contract: Mapping[str, Any]) -> dict[str, object]:
         start=str(baseline["start"]),
         end=str(baseline["end"]),
     )
-    ignored = frozenset(str(item) for item in contract["ignored_non_economic_fields"])
-    actual_sha256 = {
-        name: _canonical_sha256(value)
-        for name, value in _baseline_views(result, ignored).items()
-    }
-    if actual_sha256 != baseline["expected_sha256"]:
-        raise RuntimeError("strategic grant baseline economic path differs")
-    actual_metrics = {
-        str(name): result[str(name)]
-        for name in baseline["expected_metrics"]
-    }
-    if actual_metrics != baseline["expected_metrics"]:
-        raise RuntimeError("strategic grant baseline metrics differ")
-    first_positive = next(
-        row["date"] for row in result["decision_trace"] if float(row["target_gross"]) > 0.0
-    )
-    if first_positive != baseline["expected_first_positive_target_session"]:
-        raise RuntimeError("strategic grant baseline first target session differs")
-    return {
-        "first_positive_target_session": first_positive,
-        "metrics": actual_metrics,
-        "sha256": actual_sha256,
-    }
+    raw = {key: result[key] for key in ("final_account", "decision_trace", "order_ledger", "equity_curve", "daily_replay_evidence")}
+    try:
+        summary = current_candidate_champion_evidence(raw)
+        if cast(Mapping[str, object], summary["acceptance_basis"])["production_source_sha256"] != code_fingerprint():
+            raise ValueError("current candidate account source differs")
+    except (ValueError, RuntimeError, KeyError, TypeError) as exc:
+        summary = {"violations": [f"{type(exc).__name__}: {exc}"], "acceptance_basis": "current_candidate_rejected"}
+    return {**summary, "raw_replay": raw}
 
 
 def _grant_case_specs(contract: Mapping[str, Any]) -> tuple[dict[str, str], ...]:
@@ -257,6 +243,12 @@ def _read_cache(path: Path, *, identity: str) -> dict[str, object] | None:
         or envelope.get("sha256") != _canonical_sha256(payload)
     ):
         return None
+    if "raw_replay" in payload and not payload.get("violations"):
+        expected = current_candidate_champion_evidence(payload["raw_replay"])
+        if {key: value for key, value in payload.items() if key != "raw_replay"} != expected:
+            raise ValueError("strategic grant cached current evidence differs from raw replay")
+        if cast(Mapping[str, object], expected["acceptance_basis"])["production_source_sha256"] != code_fingerprint():
+            raise ValueError("strategic grant cached raw source differs")
     return {str(key): value for key, value in payload.items()}
 
 
@@ -294,6 +286,9 @@ def run_diagnostic_case(
     cached = _read_cache(cache_path, identity=identity)
     if cached is None:
         case = _execute_case(contract, case_id=case_id)
+        current_contract = json.loads(CONTRACT_PATH.read_text(encoding="utf-8"))
+        if _cache_identity_payload(current_contract, spec) != identity_payload:
+            raise ValueError("strategic grant inputs changed during native replay")
         _write_cache(cache_path, identity=identity, payload=case)
         cache_hit = False
     else:
@@ -307,20 +302,36 @@ def run_diagnostic_case(
         "case": case,
         "diagnostic_only": True,
         "selected_case": case_id,
-        "status": "PASS",
+        "status": "FAIL" if case.get("violations") else "PASS",
     }
     atomic_write_text(output, json.dumps(result, indent=2, sort_keys=True) + "\n")
     return result
 
 
-def run_acceptance(output: Path) -> dict[str, object]:
-    """Run exactly the bounded strategic-grant contract and persist compact facts."""
-
+def run_acceptance(output: Path, *, cache_dir: Path | None = None) -> dict[str, object]:
+    """Run every bounded grant obligation; resume only exact-identity native units."""
     contract = json.loads(CONTRACT_PATH.read_text(encoding="utf-8"))
+    cases: dict[str, object] = {}
+    failures: list[str] = []
+    for case_id in GRANT_CASE_IDS:
+        try:
+            if cache_dir is None:
+                case = _execute_case(contract, case_id=case_id)
+            else:
+                unit = run_diagnostic_case(
+                    case_id=case_id, output=cache_dir / f"{case_id}-result.json",
+                    cache_dir=cache_dir,
+                )
+                case = cast(dict[str, object], unit["case"])
+            cases[case_id] = case
+            if case.get("violations"):
+                failures.append(f"{case_id}: {case['violations']}")
+        except (ValueError, RuntimeError, KeyError, TypeError) as exc:
+            failures.append(f"{case_id}: {type(exc).__name__}: {exc}")
     result: dict[str, object] = {
-        "baseline": run_baseline(contract),
-        "native_eligibility": _run_native_cells(contract),
-        "status": "PASS",
+        "baseline": cases.get("baseline"),
+        "native_eligibility": [cases[name] for name in GRANT_CASE_IDS[1:] if name in cases],
+        "status": "FAIL" if failures else "PASS", "failures": failures,
     }
     atomic_write_text(output, json.dumps(result, indent=2, sort_keys=True) + "\n")
     return result
@@ -333,18 +344,16 @@ def main(argv: Sequence[str] | None = None) -> int:
     parser.add_argument("--cache-dir", type=Path)
     args = parser.parse_args(argv)
     if args.case_id is None:
-        if args.cache_dir is not None:
-            parser.error("--cache-dir requires --case")
-        run_acceptance(args.output)
+        result = run_acceptance(args.output, cache_dir=args.cache_dir)
     else:
         if args.cache_dir is None:
             parser.error("--case requires --cache-dir")
-        run_diagnostic_case(
+        result = run_diagnostic_case(
             case_id=args.case_id,
             output=args.output,
             cache_dir=args.cache_dir,
         )
-    return 0
+    return 0 if result["status"] == "PASS" else 1
 
 
 if __name__ == "__main__":

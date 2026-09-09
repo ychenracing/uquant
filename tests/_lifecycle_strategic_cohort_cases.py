@@ -37,6 +37,15 @@ def _assert_unfilled_strategic_probe(
     assert account.strategic_epochs[-1].realized_status == StrategicEpochStatus.PROBE.value
 
 
+def _assert_ordinary_confirmation(account: AccountState, *, realized_epoch_count: int = 0) -> None:
+    assert account.strategic_qualification.qualification_ready
+    assert account.strategic_qualification.deployment_block_reason == "ordinary_trend_participation"
+    assert account.strategic_epoch == realized_epoch_count
+    assert account.active_strategic_epoch_id == ""
+    assert account.strategic_grant is None and account.strategic_epochs == []
+    assert account.strategic_cohort_targets == {}
+
+
 def test_persistent_industry_outranks_a_shorter_established_group() -> None:
     dates = pd.bdate_range("2023-01-02", periods=246)
     persistent = _strategic_frame(dates)
@@ -207,13 +216,17 @@ def test_synchronized_reversal_is_tagged_as_emerging_secular() -> None:
             risk=risk,
         )
 
-    _assert_unfilled_strategic_probe(account)
-    assert len(account.strategic_cohort_symbols) == 2
-    assert sorted(account.strategic_cohort_targets.values()) == pytest.approx([0.34, 0.51])
-    assert account.strategic_candidate_signature.startswith(
+    assert account.strategic_qualification.qualification_ready
+    assert set(account.strategic_qualification.candidate_symbols) == set(symbols)
+    assert account.strategic_qualification.deployment_block_reason == "current_core_entry:STRUCTURE_NOT_REPAIRED"
+    assert account.strategic_grant is None and account.strategic_epochs == []
+    assert account.strategic_cohort_targets == {} and account.pending_orders == []
+    assert account.strategic_qualification.qualification_quorum == "FULL_COHORT"
+    assert not account.fills
+    assert account.strategic_qualification.qualification_signature.startswith(
         "strategic_qualification:EMERGING_SECULAR:"
     )
-    assert "evidence=reversal_industry" in account.strategic_candidate_signature
+    assert "evidence=reversal_industry" in account.strategic_qualification.qualification_signature
 
 @pytest.mark.parametrize(
     ("configured_universe_size", "irrelevant_count"),
@@ -497,15 +510,15 @@ def test_choppy_observation_can_confirm_but_not_admit_a_strategic_cohort() -> No
     account = AccountState.empty(100.0)
     allocator = PortfolioAllocator(DEFAULT_CONFIG)
 
-    for _ in range(DEFAULT_CONFIG.strategic_cohort_confirm_days):
+    for observed in dates[-DEFAULT_CONFIG.strategic_cohort_confirm_days - 1 : -1]:
         targets = allocator.allocate(
-            date=date,
+            date=observed,
             opportunity=Opportunity.CHOPPY,
             risk=_normal_risk(),
             user_panel=panel,
             leaders=leaders,
             account=account,
-            prices=prices,
+            prices={symbol: float(frame.loc[observed, "close"]) for symbol, frame in panel.items()},
         )
         assert not any(target.reason_code == "strategic_cohort" for target in targets)
     assert account.strategic_epoch == 0
@@ -520,10 +533,14 @@ def test_choppy_observation_can_confirm_but_not_admit_a_strategic_cohort() -> No
         account=account,
         prices=prices,
     )
-    _assert_unfilled_strategic_probe(account)
-    assert {target.symbol for target in targets if target.weight > 0} == set(account.strategic_cohort_symbols)
+    _assert_ordinary_confirmation(account)
+    assert {target.symbol for target in targets if target.weight > 0} == set(account.strategic_qualification.candidate_symbols)
+    assert sum(target.weight for target in targets) == pytest.approx(DEFAULT_CONFIG.core_admission_weight)
+    assert all(target.grant_id == target.epoch_id == "" for target in targets)
+    assert not account.fills and account.cash == 100.0
 
-def test_recovery_regime_is_not_preempted_by_new_trailing_secular_cohort() -> None:
+def test_qualified_recovery_regime_admits_without_waiting_for_strong_trend() -> None:
+    """Qualified RECOVERY admission supersedes the historical regime-wide veto."""
     dates = pd.bdate_range("2023-01-02", periods=246)
     panel, leaders = _dynamic_cohort_inputs(dates)
     account = AccountState.empty(100.0)
@@ -531,18 +548,25 @@ def test_recovery_regime_is_not_preempted_by_new_trailing_secular_cohort() -> No
     date = dates[-1]
     prices = {symbol: float(frame.loc[date, "close"]) for symbol, frame in panel.items()}
 
-    for _ in range(DEFAULT_CONFIG.strategic_cohort_confirm_days):
+    for count, observed in enumerate(
+        dates[-DEFAULT_CONFIG.strategic_cohort_confirm_days - 1 : -1], start=1,
+    ):
         targets = allocator.allocate(
-            date=date,
+            date=observed,
             opportunity=Opportunity.RECOVERY,
             risk=_normal_risk(),
             user_panel=panel,
             leaders=leaders,
             account=account,
-            prices=prices,
+            prices={symbol: float(frame.loc[observed, "close"]) for symbol, frame in panel.items()},
         )
-    assert targets == ()
-    assert account.strategic_epoch == 0
+        if count < DEFAULT_CONFIG.strategic_cohort_confirm_days:
+            assert targets == ()
+            assert account.strategic_epochs == []
+    _assert_ordinary_confirmation(account)
+    assert sum(target.weight for target in targets) == pytest.approx(DEFAULT_CONFIG.core_admission_weight)
+    first_targets = {target.symbol: target.weight for target in targets}
+    assert all(target.grant_id == target.epoch_id == "" for target in targets)
 
     for _ in range(DEFAULT_CONFIG.strategic_cohort_confirm_days):
         targets = allocator.allocate(
@@ -554,10 +578,12 @@ def test_recovery_regime_is_not_preempted_by_new_trailing_secular_cohort() -> No
             account=account,
             prices=prices,
         )
-    _assert_unfilled_strategic_probe(account)
-    assert sum(target.weight for target in targets) == pytest.approx(DEFAULT_CONFIG.max_gross)
+    _assert_ordinary_confirmation(account)
+    assert {target.symbol: target.weight for target in targets} == first_targets
+    assert not account.fills and account.cash == 100.0
+    assert sum(target.weight for target in targets) == pytest.approx(DEFAULT_CONFIG.core_admission_weight)
 
-def test_disjoint_recovery_anchor_hands_off_to_confirmed_secular_cohort() -> None:
+def test_recovery_holding_evidence_precedes_shared_strategic_funding() -> None:
     dates = pd.bdate_range("2023-01-02", periods=246)
     panel, leaders = _dynamic_cohort_inputs(dates)
     account = AccountState(
@@ -569,7 +595,7 @@ def test_disjoint_recovery_anchor_hands_off_to_confirmed_secular_cohort() -> Non
     )
     allocator = PortfolioAllocator(DEFAULT_CONFIG)
 
-    for date in dates[-DEFAULT_CONFIG.strategic_cohort_confirm_days :]:
+    for date in dates[-DEFAULT_CONFIG.strategic_cohort_confirm_days - 1 : -1]:
         allocator._initialize_strategic_cohort(
             date=date,
             user_panel=panel,
@@ -578,19 +604,36 @@ def test_disjoint_recovery_anchor_hands_off_to_confirmed_secular_cohort() -> Non
             risk=_normal_risk(),
         )
 
-    assert account.candidate_tenure["strategic_cohort_active"] == 1
-    assert set(account.strategic_cohort_symbols) == {
-        "arbitrary_optical",
-        "arbitrary_compute",
-        "arbitrary_equipment",
-    }
-    assert account.anchor_weights == {}
-    assert account.recovery_anchor_date == ""
-    assert account.candidate_tenure["strategic_deferred_to_recovery"] == 0
+    # Whole-book funding requires current evidence for the retained holding.
+    assert account.strategic_cohort_targets == {}
+    assert account.anchor_weights == {"old_anchor": 0.50}
+    panel["old_anchor"] = _trend_frame(dates)
+    leaders["old_anchor"] = _leader("old_anchor", 0.30, industry="old_group")
+    allocator._initialize_strategic_cohort(
+        date=dates[-1], user_panel=panel, leaders=leaders, account=account, risk=_normal_risk(),
+    )
+    _assert_ordinary_confirmation(account)
+    # The private observer does not allocate ordinary capital. Exercise the sole allocator
+    # with a positive market basis; the incumbent still shares the real cash budget.
+    risk = _normal_risk()
+    risk.evidence["tech_ret120"] = .01
+    targets = allocator.allocate(
+        date=dates[-1], opportunity=Opportunity.STRONG_TREND, risk=risk,
+        user_panel=panel, leaders=leaders, account=account,
+        prices={symbol: float(frame.loc[dates[-1], "close"]) for symbol, frame in panel.items()},
+    )
+    new_targets = [target for target in targets if target.symbol != "old_anchor" and target.weight > 0]
+    assert new_targets and sum(target.weight for target in new_targets) <= .50
+    assert all(target.grant_id == target.epoch_id == "" for target in new_targets)
+    assert account.anchor_weights == {"old_anchor": 0.50}
+    assert account.positions["old_anchor"].shares == 50
+    assert account.cash == 50.0
 
-def test_locked_disjoint_recovery_anchor_defers_confirmed_secular_cohort() -> None:
+def test_recovery_lock_cannot_veto_funded_strategic_participation() -> None:
     dates = pd.bdate_range("2023-01-02", periods=246)
     panel, leaders = _dynamic_cohort_inputs(dates)
+    panel["old_anchor"] = _trend_frame(dates)
+    leaders["old_anchor"] = _leader("old_anchor", 0.30, industry="old_group")
     account = AccountState(
         initial_cash=100.0,
         cash=50.0,
@@ -610,9 +653,23 @@ def test_locked_disjoint_recovery_anchor_defers_confirmed_secular_cohort() -> No
             risk=_normal_risk(),
         )
 
-    assert account.strategic_epoch == 0
+    # A legacy lock flag cannot veto independently funded participation.
+    _assert_ordinary_confirmation(account)
+    # The private observer does not allocate ordinary capital. Exercise the sole allocator
+    # with a positive market basis; the incumbent still shares the real cash budget.
+    risk = _normal_risk()
+    risk.evidence["tech_ret120"] = .01
+    targets = allocator.allocate(
+        date=dates[-1], opportunity=Opportunity.STRONG_TREND, risk=risk,
+        user_panel=panel, leaders=leaders, account=account,
+        prices={symbol: float(frame.loc[dates[-1], "close"]) for symbol, frame in panel.items()},
+    )
+    new_targets = [target for target in targets if target.symbol != "old_anchor" and target.weight > 0]
+    assert new_targets and sum(target.weight for target in new_targets) <= .50
+    assert all(target.grant_id == target.epoch_id == "" for target in new_targets)
     assert account.anchor_weights == {"old_anchor": 0.50}
-    assert account.candidate_tenure["strategic_deferred_to_recovery"] == 1
+    assert account.positions["old_anchor"].shares == 50
+    assert account.cash == 50.0
 
 def test_locked_recovery_cohort_cannot_be_preempted_by_strategic_discovery() -> None:
     dates = pd.bdate_range("2023-01-02", periods=246)
@@ -697,10 +754,10 @@ def test_relative_secular_evidence_needs_neither_170_percent_nor_short_cycle_mat
         )
 
     assert close[-1] / close[-241] - 1.0 < 1.70
-    assert account.candidate_tenure.get("strategic_cohort_active", 0) == 1
-    assert set(account.strategic_cohort_symbols) == set(symbols)
+    _assert_ordinary_confirmation(account)
+    assert set(account.strategic_qualification.candidate_symbols) == set(symbols)
 
-def test_strategic_epoch_respects_risk_gate_and_session_cooldown():
+def test_strategic_epoch_respects_risk_gate_without_global_exit_cooldown():
     dates = pd.bdate_range("2023-01-02", periods=290)
     panel, leaders = _dynamic_cohort_inputs(dates)
     allocator = PortfolioAllocator(DEFAULT_CONFIG)
@@ -727,22 +784,12 @@ def test_strategic_epoch_respects_risk_gate_and_session_cooldown():
             risk=_normal_risk(),
         )
     assert account.strategic_epoch == 0
-    assert account.candidate_tenure["strategic_cohort_qualification"] == 3
-    assert account.strategic_qualification.qualification_ready is True
-    assert account.strategic_qualification.deployment_blocked is True
-    assert account.strategic_qualification.deployment_block_reason == "strategic_cooldown"
-
-    account.strategic_last_exit_date = str(dates[-50].date())
-    for date in dates[-DEFAULT_CONFIG.strategic_cohort_confirm_days :]:
-        allocator._initialize_strategic_cohort(
-            date=date,
-            user_panel=panel,
-            leaders=leaders,
-            account=account,
-            risk=_normal_risk(),
-        )
-    _assert_unfilled_strategic_probe(account)
-    assert account.candidate_tenure["strategic_cohort_active"] == 1
+    # Per-candidate confirmation replaces the account-wide exit cooldown.
+    # Ordinary confirmation creates no grant; no real fill can be inferred from it.
+    _assert_ordinary_confirmation(account)
+    assert account.cash == 100.0
+    assert account.positions == {}
+    assert account.pending_orders == []
 
 def test_strategic_epoch_can_requalify_the_same_members_after_a_fresh_cooldown_streak():
     dates = pd.bdate_range("2023-01-02", periods=290)
@@ -767,10 +814,9 @@ def test_strategic_epoch_can_requalify_the_same_members_after_a_fresh_cooldown_s
             account=account,
             risk=_normal_risk(),
         )
-    _assert_unfilled_strategic_probe(account, realized_epoch_count=1)
-    assert account.candidate_tenure.get("strategic_cohort_active", 0) == 1
-    assert set(account.strategic_cohort_symbols) == set(old_symbols)
-    assert account.strategic_candidate_signature == (
+    _assert_ordinary_confirmation(account, realized_epoch_count=1)
+    assert set(account.strategic_qualification.candidate_symbols) == set(old_symbols)
+    assert account.strategic_qualification.qualification_signature == (
         "strategic_qualification:SECULAR:arbitrary_compute:compute,"
         "arbitrary_equipment:equipment,arbitrary_optical:optical:evidence=established"
     )
@@ -805,7 +851,6 @@ def test_completed_strategic_owner_blocks_generic_handoff_before_rearm_date():
     account.active_leaders = [symbols[1], symbols[2]]
     account.dynamic_k = 2
     account.candidate_tenure["strategic_cohort_completed"] = 1
-    account.candidate_tenure["leader_cycle_evidence"] = DEFAULT_CONFIG.leader_cycle_confirm_days - 1
 
     targets = PortfolioAllocator(DEFAULT_CONFIG).allocate(
         date=dates[-2],
@@ -820,7 +865,7 @@ def test_completed_strategic_owner_blocks_generic_handoff_before_rearm_date():
     assert targets == ()
     assert account.candidate_tenure.get("leader_cycle_armed", 0) == 0
 
-def test_rearmed_strategic_owner_handoff_stages_one_generic_leader():
+def test_legacy_rearm_date_cannot_manufacture_generic_entry():
     dates = pd.bdate_range("2024-06-03", periods=200)
     symbols = ("optical_leader", "compute_leader", "equipment_leader")
     industries = ("optical", "compute", "equipment")
@@ -861,15 +906,14 @@ def test_rearmed_strategic_owner_handoff_stages_one_generic_leader():
         prices={symbol: 1.0 for symbol in symbols},
     )
 
-    positive = [target for target in targets if target.weight > 0]
-    assert len(positive) == 1
-    assert positive[0].symbol == symbols[0]
-    assert positive[0].weight == pytest.approx(DEFAULT_CONFIG.core_admission_weight)
-    assert account.dynamic_k == 1
-    assert account.candidate_tenure.get("leader_cycle_armed", 0) == 1
-    assert account.candidate_tenure.get("leader_cycle_handoff_epoch", 0) == 1
+    # A legacy rearm date cannot substitute for each entrant's own evidence.
+    assert targets == ()
+    assert account.strategic_epoch == 1
+    assert account.cash == 100.0
+    assert account.positions == {}
+    assert account.pending_orders == []
 
-def test_completed_strategic_epoch_cannot_repeat_staged_generic_handoff():
+def test_legacy_handoff_marker_cannot_manufacture_generic_entry():
     dates = pd.bdate_range("2024-06-03", periods=200)
     symbols = ("optical_leader", "compute_leader", "equipment_leader")
     industries = ("optical", "compute", "equipment")
@@ -916,8 +960,10 @@ def test_completed_strategic_epoch_cannot_repeat_staged_generic_handoff():
     )
 
     assert targets == ()
-    assert account.candidate_tenure.get("leader_cycle_armed", 0) == 0
-    assert account.candidate_tenure.get("leader_cycle_evidence", 0) == 1
+    assert account.strategic_epoch == 1
+    assert account.cash == 100.0
+    assert account.positions == {}
+    assert account.pending_orders == []
 
 def test_partially_held_strategic_cohort_targets_every_missing_member():
     dates = pd.bdate_range("2025-01-02", periods=150)

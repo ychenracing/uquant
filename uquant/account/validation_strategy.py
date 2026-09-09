@@ -4,17 +4,20 @@ from __future__ import annotations
 
 from typing import Any
 
+from ..models.ordinary_entry import ENTRY, GRADUATION, validate_pullback_events
 from ..models.strategic_epoch import StrategicEpochStatus, validate_strategic_epoch
 from ..models.strategic_grant import (
     validate_strategic_grant,
     validate_strategic_qualification,
 )
 from ..models.strategic_rearm import (
+    FLAT_BOOK_CAPITAL_REPAIR_LIMITS,
     FlatBookCapitalRepairStatus,
     StrategicCashRearmStatus,
     validate_flat_book_capital_repair_account_binding,
     validate_strategic_cash_rearm_account_binding,
 )
+from ..models.trading import late_strategic_fill_allowed
 from ..types import AccountState, Lifecycle, Opportunity, Risk
 from .validation_common import (
     SHOCK_SEVERITIES as _SHOCK_SEVERITIES,
@@ -158,6 +161,7 @@ def _validate_audit_events(state: AccountState) -> None:
 
     lifecycles = {item.value for item in Lifecycle}
     risks = {item.value for item in Risk}
+    validate_pullback_events(state)
 
     for event in _validate_event_array(
         state.replacement_events,
@@ -184,6 +188,8 @@ def _validate_audit_events(state: AccountState) -> None:
         state.lifecycle_events,
         field="lifecycle_events",
     ):
+        if event.get("event") in {ENTRY, GRADUATION}:
+            continue
         _required_iso_date(event.get("date"), field="lifecycle event date")
         _required_text(event.get("symbol"), field="lifecycle event symbol")
         if event.get("from") not in {*lifecycles, "NONE"}:
@@ -332,6 +338,9 @@ def _validate_rearm_repair_binding(state: Any) -> None:
         StrategicCashRearmStatus.CONSUMED.value,
     }:
         return
+    _validate_ordinary_repair_order_binding(state)
+    if _completed_rearm_history(state):
+        return
     repair = state.flat_book_capital_repair
     if (
         rearm.repair_episode_id != repair.repair_episode_id
@@ -345,6 +354,77 @@ def _validate_rearm_repair_binding(state: Any) -> None:
         and repair.status != FlatBookCapitalRepairStatus.READY.value
     ):
         raise ValueError("strategic rearm requires a ready repair episode")
+
+
+def _completed_rearm_history(state: Any) -> bool:
+    """A settled historical consumption cannot authorize a later repair episode."""
+    rearm, grant = state.strategic_cash_rearm, state.strategic_grant
+    if (rearm.status != StrategicCashRearmStatus.CONSUMED.value
+            or rearm.consumed_order is not None or grant is None
+            or grant.status != "COMPLETED"
+            or grant.grant_id != rearm.consumed_grant_id
+            or not grant.authorization_id or grant.authorization_id != rearm.authorization_id
+            or grant.candidate_symbol != rearm.candidate_symbol):
+        return False
+    return (_historical_epoch_closed(state, grant, rearm.candidate_symbol)
+            and _historical_grant_settled(state, grant.grant_id)
+            and _historical_repair_ready(rearm))
+
+
+def _historical_epoch_closed(state: Any, grant: Any, owner: str) -> bool:
+    """A real first fill and causal close precede the new repair episode."""
+    epoch = next((e for e in state.strategic_epochs if e.epoch_id == grant.epoch_id), None)
+    return not (epoch is None or epoch.realized_status != StrategicEpochStatus.CLOSED.value
+            or epoch.grant_id != grant.grant_id or epoch.owner_symbol != owner
+            or not epoch.closed_session
+            or epoch.closed_session < max(epoch.first_fill_session, epoch.active_session)
+            or state.flat_book_capital_repair.first_observed_session <= epoch.closed_session
+            or not any(f.side == "BUY" and f.shares > 0 and f.symbol == epoch.owner_symbol
+                       and f.grant_id == grant.grant_id and f.epoch_id == epoch.epoch_id
+                       and f.fill_date == epoch.first_fill_session for f in state.fills))
+
+
+def _historical_grant_settled(state: Any, grant_id: str) -> bool:
+    """Every deployment order is terminal, with no pending or late-fill remainder."""
+    orders = [o for o in state.order_ledger if o.grant_id == grant_id]
+    return not (not orders or any(o.grant_id == grant_id for o in state.pending_orders)
+            or any(o.status not in {"FILLED", "CANCELLED", "REPLACED"} or late_strategic_fill_allowed(o)
+                   for o in orders))
+
+
+def _historical_repair_ready(rearm: Any) -> bool:
+    """The consumed authorization carries exactly its original complete READY proof."""
+    proofs = [p for p in rearm.predicate_results if p.code == "FLAT_BOOK_REPAIR_READY"]
+    required = FLAT_BOOK_CAPITAL_REPAIR_LIMITS.get(rearm.capital_budget_level - 1)
+    return bool(len(proofs) == 1 and proofs[0].passed and required is not None
+                and proofs[0].authoritative_state.get("repair_episode_id") == rearm.repair_episode_id
+                and proofs[0].authoritative_state.get("repair_status") == "READY"
+                and type(proofs[0].authoritative_state.get("healthy_session_count")) is int
+                and proofs[0].authoritative_state.get("healthy_session_count") == required
+                and type(proofs[0].authoritative_state.get("required_healthy_sessions")) is int
+                and proofs[0].authoritative_state.get("required_healthy_sessions") == required)
+
+
+def _validate_ordinary_repair_order_binding(state: Any) -> None:
+    rearm = state.strategic_cash_rearm
+    reference = rearm.consumed_order
+    if reference is not None:
+        matching = [order for order in state.order_ledger if order.order_id == reference.order_id]
+        if len(matching) != 1:
+            raise ValueError("ordinary repair requires one native ledger order")
+        order = matching[0]
+        if (order.event_id != reference.event_id or order.symbol != rearm.candidate_symbol
+                or order.side != "BUY" or order.requested_shares < 0
+                or order.signal_date != rearm.authorized_session
+                or order.lifecycle != "CORE" or order.origin_subsystem != "LEADER"
+                or order.mechanism != "LEADER_SELECTION" or order.grant_id or order.epoch_id):
+            raise ValueError("ordinary repair order binding is inconsistent")
+        proof = next(item.authoritative_state for item in rearm.predicate_results
+                     if item.code == "current_independent_core")
+        if not 0 < order.target_weight <= proof["max_target_weight"] + 1e-12:
+            raise ValueError("ordinary repair order exceeds its authorized capital")
+        if state.flat_book_capital_repair.status != FlatBookCapitalRepairStatus.CONSUMED.value:
+            raise ValueError("ordinary consumed order requires spent account repair")
 
 
 def _validate_grant_account_binding(state: Any) -> None:

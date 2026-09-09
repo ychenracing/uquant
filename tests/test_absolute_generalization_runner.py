@@ -499,7 +499,7 @@ def test_execution_loo_uses_exact_raw_cache_and_writes_sealed_manifest(
 
 
 def test_execution_loo_rejects_cache_when_selected_frozen_identity_differs(
-    tmp_path: Path,
+    tmp_path: Path, capsys: pytest.CaptureFixture[str],
 ) -> None:
     contract = load_absolute_generalization_contract()
     cache = tmp_path / "cache"
@@ -539,6 +539,9 @@ def test_execution_loo_rejects_cache_when_selected_frozen_identity_differs(
     assert raw["status"] == "ERROR"
     assert raw["error"] == "execution failed: ValueError"
     assert raw["cells"] == []
+    stderr = capsys.readouterr().err
+    assert "Traceback (most recent call last):" in stderr
+    assert "ValueError: absolute generalization selected frozen data identity differs" in stderr
 
 
 def test_runner_has_a_real_cli_entrypoint() -> None:

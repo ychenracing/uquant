@@ -432,6 +432,36 @@ def account_order_decision_origin_session(
     return release_session
 
 
+def strategic_economic_remaining_shares(
+    *,
+    order: AccountOrder,
+    orders: Sequence[AccountOrder],
+    fills: Sequence[Fill],
+) -> int:
+    """Remaining authorized quantity, distinct from unacknowledged broker liability.
+
+    Physical retries share one immutable grant/event/symbol/side. Historical
+    canceled rows remain intact even when their economic request is satisfied.
+    """
+    if not order.grant_id or not order.event_id:
+        raise ValueError("strategic economic capacity requires grant/event identity")
+    identity = (order.grant_id, order.event_id, order.symbol, order.side)
+    matching = [
+        candidate for candidate in orders
+        if (candidate.grant_id, candidate.event_id, candidate.symbol, candidate.side) == identity
+    ]
+    if not matching or not any(candidate.order_id == order.order_id for candidate in matching):
+        raise ValueError("strategic economic capacity requires a registered order")
+    intended = max(candidate.requested_shares for candidate in matching)
+    confirmed = sum(
+        fill.shares for fill in fills
+        if (fill.grant_id, fill.event_id, fill.symbol, fill.side) == identity
+    )
+    if intended < 0 or confirmed < 0 or confirmed > intended:
+        raise ValueError("strategic economic fills exceed authorized quantity")
+    return intended - confirmed
+
+
 def late_strategic_fill_allowed(order: AccountOrder) -> bool:
     """Return whether a released strategic remainder can still fill at the broker."""
 

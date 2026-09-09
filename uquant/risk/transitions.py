@@ -9,6 +9,7 @@ import pandas as pd
 
 from ..config import SystemConfig
 from ..features import scalar
+from ..holding_history import protected_weights_for_current_episode
 from ..risk_sector import (
     SectorGuardTransition,
     SectorObservation,
@@ -16,6 +17,7 @@ from ..risk_sector import (
 )
 from ..types import AccountState, Risk, RiskAssessment
 from .confirmed_break import assess_confirmed_concentrated_break
+from .protected_recovery import capture_protected_holdings
 from .recovery_state import reset_recovery_owner_rearm as _reset_recovery_owner_rearm
 from .transition_resolution import RiskTransitionResolution, resolve_risk_transition
 
@@ -129,7 +131,7 @@ def _cohort_break_state(
     )
     synchronized = bool(
         shock_rearmed
-        and not account.protected_weights
+        and not protected_weights_for_current_episode(account)
         and mature_live_cohort
         and len(held_damage) >= 2
         and held_damage_ratio >= 1.0 - 1e-12
@@ -165,7 +167,7 @@ def _market_backed_partial_cohort_break(
 ) -> bool:
     observed = bool(
         shock_rearmed
-        and not account.protected_weights
+        and not protected_weights_for_current_episode(account)
         and not strategic_active
         and account.anchor_weights
         and mature_live_cohort
@@ -252,12 +254,12 @@ def _assess_break_conditions(
     emergency_tail_break = (
         any(held_damage) and operating_dd >= cfg.portfolio_break_dd and votes >= cfg.portfolio_break_votes
     )
-    concentrated_break = shock_rearmed and not account.protected_weights and concentrated_structure_break
+    concentrated_break = shock_rearmed and not protected_weights_for_current_episode(account) and concentrated_structure_break
     break_key = "concentrated_break"
     account.risk_streaks[break_key] = account.risk_streaks.get(break_key, 0) + 1 if concentrated_break else 0
     narrow_structure = (
         shock_rearmed
-        and not account.protected_weights
+        and not protected_weights_for_current_episode(account)
         and bool(account.anchor_weights)
         and len(held_damage) >= 2
         and sum(held_damage) >= 2
@@ -433,17 +435,9 @@ def _acute_evacuation_assessment(
         )
         account.sector_recovery_streak = 0
     _reset_recovery_owner_rearm(account)
-    if account.candidate_tenure.get("post_shock_restore_complete", 0) == 1:
-        account.protected_weights.clear()
-    account.candidate_tenure["post_shock_restore_complete"] = 0
-    if not account.protected_weights:
-        account.protected_weights = dict(account.anchor_weights)
-    if not account.protected_weights:
-        account.protected_weights = {
-            symbol: position.shares * scalar(ctx.user_panel[symbol].loc[ctx.date], "close") / ctx.equity
-            for symbol, position in account.positions.items()
-            if symbol in ctx.user_panel and ctx.date in ctx.user_panel[symbol].index and position.shares > 0
-        }
+    capture_protected_holdings(
+        account=account, date=ctx.date, user_panel=ctx.user_panel, equity=ctx.equity,
+    )
     account.shock_start_date = str(ctx.date.date())
     account.last_shock_date = str(ctx.date.date())
     account.candidate_tenure["acute_sector_evacuation"] = 1

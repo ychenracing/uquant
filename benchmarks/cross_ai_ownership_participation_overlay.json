@@ -1,0 +1,56 @@
+{
+  "schema_version": 1,
+  "contract_id": "cross-ai-core-participation-20260907-v1",
+  "authority": {
+    "cross_ai_contract_sha256": "9ec5992df69d4466cb2b26cea0e67bbe93f4c6317ba5b8a500ca7b89a75d78b4",
+    "original_instructions_sha256": "4c2b93782ac78a14159608a8500e94330f14e7dd434624034b8fa28792b9a9e5",
+    "sections": [
+      "2.2",
+      "4.5",
+      "5.1",
+      "5.2",
+      "5.3"
+    ],
+    "legacy_ownership_file_sha256": "cc0356203a694693956dd0b02a0579d00798a234bbfd0c52fa5e9c3d896f3d6f"
+  },
+  "superseded_literal": "same_industry_alias: adjacent distinct ACTIVE strategic epoch owners of same industry",
+  "replacement": "same_industry_core_participation",
+  "scenario_id": "same-industry-crowning",
+  "source_scenario_id": "remove-sz300502",
+  "unchanged": [
+    "source replay",
+    "window",
+    "cash",
+    "fees",
+    "slippage",
+    "seed",
+    "all stock roles",
+    "PIT industry mapping",
+    "all existing numerical thresholds",
+    "minimum_strategic_epochs and non-alias repeated-crowning checks",
+    "all other Ownership scenarios and assertions"
+  ],
+  "admissions": {
+    "derive": "all first positive BUY fills from a flat symbol position; retries and partial fills are the same holding episode",
+    "ordinary_origin": "LEADER with empty grant_id and epoch_id; CORE target and registered BUY retain all immutable attribution fields",
+    "strategic_origin": "genuine existing grant/epoch checked by retained exact execution chain; never relabel CORE as ACTIVE",
+    "qualification": "same-day core_allocation symbols entry block READY, positive exact required_confirmation and a route streak meeting it",
+    "capital": "same-day ALLOCATOR_PROPOSAL as_of, freeze_new_risk false, accepted positive budget check with funded increment within cash/symbol/industry/correlation/gross headrooms; proposal target within funded allocation; actual daily fill cash and shares reconcile",
+    "execution": "unique canonical order/target identity; positive later-session BUY fill; exact order/fill attribution; PIT industry identity; replay every fill to daily cash and position shares; final FIFO origin and accounting retained",
+    "missing_evidence": "FAIL, never infer qualification or authority from wealth or final holdings"
+  },
+  "relationship": {
+    "minimum_distinct_owners": 2,
+    "pair_order": "deterministic admission signal session, first fill session, order_id; first qualifying ordered pair",
+    "different_cohort": "later admission signal strictly after first positive fill",
+    "same_industry": "both admission PIT industries equal",
+    "earlier_episode": "earlier position either continuously held to later admission or reached zero via real SELL; intervening BUY belongs to a new episode",
+    "later_entry": "must pass current independent CORE qualification and common capital proof; no co-founding split witness"
+  },
+  "reporting": [
+    "literal legacy PASS/FAIL and reason retained with superseded status",
+    "replacement PASS/FAIL with raw SHA, overlay seal, all admissions and exact witness",
+    "complete only if retained obligations and replacement pass"
+  ],
+  "canonical_sha256": "dd2ce7a98862d9161b5b573260c0f9d184a3efa724cc31d425ac6114e49ca4e3"
+}

@@ -10,8 +10,27 @@ import pandas as pd
 
 from ..config import SystemConfig
 from ..features import scalar
+from ..holding_history import protected_weights_for_current_episode
 from ..risk_sector import SectorGuardTransition
 from ..types import AccountState, LeaderScore, Risk, RiskAssessment
+
+
+def capture_protected_holdings(
+    *, account: AccountState, date: pd.Timestamp, user_panel: dict[str, pd.DataFrame],
+    equity: float, use_anchors: bool = True,
+) -> None:
+    """Retain valid old rights and snapshot every current holding before a new cut."""
+    retained = (
+        {} if account.candidate_tenure.get("post_shock_restore_complete", 0) == 1
+        else protected_weights_for_current_episode(account)
+    )
+    if use_anchors and not retained:
+        retained = dict(account.anchor_weights)
+    for symbol, position in account.positions.items():
+        if symbol in user_panel and date in user_panel[symbol].index and position.shares > 0:
+            retained.setdefault(symbol, position.shares * scalar(user_panel[symbol].loc[date], "close") / equity)
+    account.protected_weights = retained
+    account.candidate_tenure["post_shock_restore_complete"] = 0
 
 
 def persistent_crisis_cap(
@@ -98,7 +117,7 @@ def _recovery_evidence(
 
 def _protected_structure_ratio(ctx: _ProtectedRecoveryContext) -> float:
     structures: list[bool] = []
-    for symbol in ctx.account.protected_weights:
+    for symbol in protected_weights_for_current_episode(ctx.account):
         frame = ctx.user_panel.get(symbol)
         if frame is None or ctx.date not in frame.index:
             structures.append(False)
@@ -147,7 +166,7 @@ def _protected_restoration_state(ctx: _ProtectedRecoveryContext) -> tuple[float,
     )
     protected_targets = {
         symbol: min(cfg.max_symbol_weight, max(0.0, weight))
-        for symbol, weight in account.protected_weights.items()
+        for symbol, weight in protected_weights_for_current_episode(account).items()
         if symbol in ctx.user_panel
     }
     target_gross = sum(protected_targets.values())
@@ -187,7 +206,7 @@ def _normalize_protected_book(ctx: _ProtectedRecoveryContext) -> None:
     normalize_key = "protected_structure_normalization"
     full_cap, restored = _protected_restoration_state(ctx)
     if (
-        account.protected_weights
+        protected_weights_for_current_episode(account)
         and ctx.previous is not Risk.CRISIS
         and account.positions
         and account.capital_budget_level == 0
@@ -248,7 +267,7 @@ def _repair_leader_count(ctx: _ProtectedRecoveryContext) -> int:
 def _protected_repair_ratios(ctx: _ProtectedRecoveryContext) -> tuple[float, float]:
     fast_repairs: list[bool] = []
     swing_repairs: list[bool] = []
-    for symbol in ctx.account.protected_weights:
+    for symbol in protected_weights_for_current_episode(ctx.account):
         frame = ctx.user_panel.get(symbol)
         if frame is None or ctx.date not in frame.index:
             fast_repairs.append(False)
@@ -305,7 +324,7 @@ def _market_repair_state(ctx: _ProtectedRecoveryContext) -> _MarketRepairState:
     fast_v_repair = shock_elapsed >= shock_wait_days and v_market_repair and fast_ratio >= 0.50
     persistent_v_repair = (
         shock_elapsed >= ctx.cfg.persistent_v_recovery_wait_days
-        and len(ctx.account.protected_weights) == 1
+        and len(protected_weights_for_current_episode(ctx.account)) == 1
         and v_market_repair
         and swing_ratio >= 1.0
         and not ctx.sector_guard.active
@@ -388,7 +407,7 @@ def _confirmed_market_repair(ctx: _ProtectedRecoveryContext, state: _MarketRepai
 
 def _protected_daily_repair_ratio(ctx: _ProtectedRecoveryContext) -> float:
     repairs: list[bool] = []
-    for symbol in ctx.account.protected_weights:
+    for symbol in protected_weights_for_current_episode(ctx.account):
         frame = ctx.user_panel.get(symbol)
         if frame is None or ctx.date not in frame.index:
             repairs.append(False)
@@ -405,7 +424,7 @@ def _severe_wait_complete(ctx: _ProtectedRecoveryContext, *, shock_wait_days: in
         len(ctx.tech.loc[pd.Timestamp(ctx.account.shock_start_date) : ctx.date]) - 1 >= shock_wait_days
     )
     structures: list[bool] = []
-    for symbol in ctx.account.protected_weights:
+    for symbol in protected_weights_for_current_episode(ctx.account):
         frame = ctx.user_panel.get(symbol)
         if frame is None or ctx.date not in frame.index:
             structures.append(False)
@@ -558,7 +577,7 @@ def assess_protected_recovery(
         strategic_active=strategic_active,
     )
     _normalize_protected_book(ctx)
-    if previous is not Risk.CRISIS or not account.protected_weights:
+    if previous is not Risk.CRISIS or not protected_weights_for_current_episode(account):
         return None
     if account.shock_severity == "INCOMPLETE_UNIVERSE_UNBACKED" and not shock_rearmed:
         return _unbacked_cooldown_assessment(ctx)

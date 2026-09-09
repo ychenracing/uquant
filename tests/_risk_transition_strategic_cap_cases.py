@@ -137,6 +137,7 @@ def test_chronic_overlay_cap_is_a_hard_minimum_on_fast_recovery_path() -> None:
     account.shock_state = "PERSISTENT_STRESS"
     account.shock_severity = "MARKET"
     account.shock_start_date = str(dates[-10].date())
+    account.last_shock_date = account.shock_start_date
     account.protected_weights = {"held": 0.50}
     account.risk_streaks["independent_market_repair"] = DEFAULT_CONFIG.fast_v_recovery_confirm_days - 1
     account.chronic_level = 3

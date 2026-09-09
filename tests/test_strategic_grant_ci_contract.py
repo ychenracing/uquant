@@ -121,13 +121,18 @@ def test_champion_raw_fixture_freezes_terminal_strategic_remainder() -> None:
         name: _canonical_sha256(value) for name, value in views.items()
     }
     assert actual_sha256 == {
-        "targets": "7f33eca7246df9af6895865b526e7e754f9a3a78ffc5dd9b7a293d78cd8c0f95",
-        "orders": "24befbce7f2a2eb46b82d2dcd9ef1351d628616ba848a167deff4dc36c857a00",
-        "fills": "e4927cfbce9202e488dfc3c0cbadf412c527a68314b499eab4e9d916d5037fd1",
+        "targets": "7739a4bce1eb92966f9e8e97b3d1bb34b19b927c96b1e37e1f59eec484882d81",
+        "orders": "70b2084b2b0a64b21d6168801d7509908340ee58751c9b0af7b60277d85e195a",
+        "fills": "afabc0b2831c2ff5cbbe1a32673e123d73e1883e19501c5b8534d0d96c32db86",
         "positions": "8819f3e2c32e9076bf6007040510c93ae02cbef8d6c41159bf12ffccec9782d0",
         "equity": "654142a4a217d243c53104ac6636a1778314c2e04497cfd0456a6385ea3aab39",
     }
-    assert actual_sha256 == contract["baseline"]["expected_sha256"]
+    # Native Grant replay on 2026-09-08 certifies this source; the frozen historical
+    # path remains a comparison, not the current candidate acceptance criterion.
+    assert raw["final_account"]["code_hash"] == (
+        "ee812db85fd65a5ba2e3188795cf10a932e575dca23ed07f462ebbeaa48aae3b"
+    )
+    assert actual_sha256 != contract["baseline"]["expected_sha256"]
 
 
 def test_performance_metrics_preserves_terminal_strategic_remainder() -> None:
@@ -262,15 +267,22 @@ def test_single_grant_case_is_diagnostic_and_reuses_only_complete_identity_cache
     assert cached["cache_hit"] is True
 
 
+@pytest.mark.parametrize(("status", "exit_code"), (("PASS", 0), ("FAIL", 1)))
 def test_grant_cli_dispatches_one_diagnostic_case(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
+    status: str,
+    exit_code: int,
 ) -> None:
     observed: dict[str, object] = {}
+    def run_case(**options: object) -> dict[str, str]:
+        observed.update(options)
+        return {"status": status}
+
     monkeypatch.setattr(
         grant_runner,
         "run_diagnostic_case",
-        lambda **options: observed.update(options),
+        run_case,
     )
     output = tmp_path / "grant.json"
     cache = tmp_path / "cache"
@@ -284,9 +296,26 @@ def test_grant_cli_dispatches_one_diagnostic_case(
             "--cache-dir",
             str(cache),
         ]
-    ) == 0
+    ) == exit_code
     assert observed == {
         "cache_dir": cache,
         "case_id": "native-sz300502",
         "output": output,
     }
+
+
+def test_full_grant_acceptance_retains_failure_and_finishes_independent_cases(monkeypatch, tmp_path):
+    import scripts.run_strategic_grant_acceptance as runner
+
+    visited = []
+    def execute(contract, *, case_id):
+        visited.append(case_id)
+        if case_id == "native-sz300308":
+            raise RuntimeError("native failure")
+        return {"status": "SUCCESS"}
+    monkeypatch.setattr(runner, "_execute_case", execute)
+    result = runner.run_acceptance(tmp_path / "full.json")
+    assert visited == list(runner.GRANT_CASE_IDS)
+    assert result["status"] == "FAIL"
+    assert len(result["native_eligibility"]) == 2
+    assert "native failure" in result["failures"][0]

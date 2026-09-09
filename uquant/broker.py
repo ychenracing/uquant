@@ -29,6 +29,7 @@ from .models.strategic_epoch import (
 )
 from .models.strategic_grant import record_strategic_grant_fill
 from .models.trading import late_strategic_fill_allowed as _late_strategic_fill_allowed
+from .models.trading import strategic_economic_remaining_shares
 from .types import (
     ORDER_INTENT_IMMUTABLE_FIELDS,
     AccountOrder,
@@ -205,27 +206,9 @@ def _validate_late_strategic_fill_capacity(
 ) -> None:
     if not _late_strategic_fill_allowed(order):
         return
-    matching_orders = [
-        candidate
-        for candidate in state.ledger.values()
-        if candidate.grant_id == order.grant_id
-        and candidate.event_id == order.event_id
-        and candidate.symbol == order.symbol
-        and candidate.side == order.side
-    ]
-    intended_shares = max(
-        (candidate.requested_shares for candidate in matching_orders),
-        default=0,
+    remaining_shares = strategic_economic_remaining_shares(
+        order=order, orders=tuple(state.ledger.values()), fills=state.account.fills,
     )
-    confirmed_shares = sum(
-        fill.shares
-        for fill in state.account.fills
-        if fill.grant_id == order.grant_id
-        and fill.event_id == order.event_id
-        and fill.symbol == order.symbol
-        and fill.side == order.side
-    )
-    remaining_shares = max(0, intended_shares - confirmed_shares)
     if remaining_shares == 0:
         raise ValueError("strategic economic order is already satisfied")
     if shares > remaining_shares:

@@ -101,6 +101,13 @@ def symbol_weight_cap(cfg: SystemConfig, account: AccountState, symbol: str) -> 
     )
 
 
+def restoration_trade_weight(cfg: SystemConfig, account: AccountState, symbol: str, target_weight: float) -> float:
+    """Use the same executable restoration gap for completion and order planning."""
+    if symbol in account.protected_weights and target_weight >= cfg.recovery_target_gross / cfg.max_positions:
+        return min(cfg.protected_restore_min_trade_weight, 0.20 * target_weight)
+    return cfg.restoration_min_trade_weight
+
+
 def _unknown_industry_scale(
     *,
     cfg: SystemConfig,

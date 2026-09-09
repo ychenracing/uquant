@@ -6,7 +6,7 @@ from dataclasses import dataclass
 
 from ...models.strategic_epoch import StrategicEpochStatus
 from ...models.strategic_grant import TERMINAL_STRATEGIC_GRANT_STATUSES
-from ...models.trading import late_strategic_fill_allowed
+from ...models.trading import late_strategic_fill_allowed, strategic_economic_remaining_shares
 from ...types import AccountState, OrderStatus
 
 
@@ -19,6 +19,7 @@ class StrategicCapitalAuthorityAssessment:
     pending_execution_symbols: tuple[str, ...]
     unsettled_order_ids: tuple[str, ...]
     late_fill_order_ids: tuple[str, ...]
+    late_fill_remaining_shares: tuple[tuple[str, int], ...]
     active_epoch_ids: tuple[str, ...]
     nonterminal_epoch_ids: tuple[str, ...]
     nonterminal_grant_id: str
@@ -85,6 +86,14 @@ def assess_strategic_capital_authority(
         pending_execution_symbols=pending_symbols,
         unsettled_order_ids=unsettled_orders,
         late_fill_order_ids=late_fill_orders,
+        # Zero economic capacity is not an external cancellation acknowledgment.
+        # Keep legacy physical uncertainty live, but expose its distinct budget.
+        late_fill_remaining_shares=tuple(
+            (order.order_id, strategic_economic_remaining_shares(
+                order=order, orders=account.order_ledger, fills=account.fills,
+            ))
+            for order in account.order_ledger if late_strategic_fill_allowed(order)
+        ),
         active_epoch_ids=active_epochs,
         nonterminal_epoch_ids=nonterminal_epochs,
         nonterminal_grant_id=nonterminal_grant_id,
@@ -176,9 +185,26 @@ def _classify_weighted_authority(
     live_fields: set[str],
     orphan_fields: set[str],
 ) -> None:
+    # Ordinary risk-cut snapshots are restoration rights, not unbound strategic
+    # grants. Retain them; positions and execution still block repair separately.
+    # Ambiguous historical strategic ownership remains conservative.
+    strategic_symbols = (
+        set(account.protected_weight_epoch_ids)
+        | set(account.strategic_cohort_symbols)
+        | set(account.strategic_cohort_targets)
+        | {epoch.owner_symbol for epoch in account.strategic_epochs}
+        | {order.symbol for order in account.order_ledger if order.grant_id or order.epoch_id}
+        | {fill.symbol for fill in account.fills if fill.grant_id or fill.epoch_id}
+    )
+    if account.strategic_grant is not None:
+        strategic_symbols.add(account.strategic_grant.candidate_symbol)
+    protected_authority = {
+        symbol: weight for symbol, weight in account.protected_weights.items()
+        if symbol in strategic_symbols or symbol in backing_symbols
+    }
     weighted_fields = (
         ("anchor_weights", account.anchor_weights),
-        ("protected_weights", account.protected_weights),
+        ("protected_weights", protected_authority),
         ("strategic_cohort_targets", account.strategic_cohort_targets),
         ("strategic_restore_weights", account.strategic_restore_weights),
     )

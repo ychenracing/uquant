@@ -14,6 +14,7 @@ from uquant.types import (
     FlatBookCapitalRepairStatus,
 )
 
+from ._epoch_realization import epoch_owner_buy_fills, epoch_realization_sessions
 from ._metric_primitives import (
     metric_integer,
     metric_iso_session,
@@ -151,7 +152,24 @@ def actual_epoch_facts_from_rows(
     final_account: Mapping[str, object],
     trace: Sequence[Mapping[str, object]],
 ) -> tuple[EpochFact, ...]:
-    """Derive fill-gated actual epochs from final ledgers and decision observations."""
+    """Count only actual ACTIVE ownership; an accountable CORE fill is not a crown."""
+    facts = [
+        fact for fact in filled_epoch_facts_from_rows(final_account=final_account, trace=trace)
+        if fact.active_session and fact.realized_status in _ACTUAL_EPOCH_STATUSES
+    ]
+    facts.sort(key=lambda item: (item.active_session, item.epoch_id))
+    for left, right in pairwise(facts):
+        if not left.closed_session or left.closed_session >= right.active_session:
+            raise ValueError("absolute generalization strategic epochs overlap active ownership")
+    return tuple(facts)
+
+
+def filled_epoch_facts_from_rows(
+    *,
+    final_account: Mapping[str, object],
+    trace: Sequence[Mapping[str, object]],
+) -> tuple[EpochFact, ...]:
+    """Validate every owner fill, including probes that never activate."""
 
     epochs = metric_rows(final_account.get("strategic_epochs", ()), label="epoch ledger")
     epoch_by_id = metric_stable_ids(epochs, field="epoch_id", label="strategic epoch")
@@ -163,7 +181,7 @@ def actual_epoch_facts_from_rows(
         fact
         for epoch_id, epoch in epoch_by_id.items()
         if (
-            fact := _actual_epoch_fact(
+            fact := _filled_epoch_fact(
                 epoch_id=epoch_id,
                 epoch=epoch,
                 fills=fills,
@@ -172,10 +190,6 @@ def actual_epoch_facts_from_rows(
         )
         is not None
     ]
-    facts.sort(key=lambda item: (item.active_session, item.epoch_id))
-    for left, right in pairwise(facts):
-        if not left.closed_session or left.closed_session >= right.active_session:
-            raise ValueError("absolute generalization strategic epochs overlap active ownership")
     return tuple(facts)
 
 
@@ -270,39 +284,20 @@ def _grant_provenance(
 _ACTUAL_EPOCH_STATUSES = frozenset({"ACTIVE", "CLOSED"})
 
 
-def _actual_epoch_fact(
+def _filled_epoch_fact(
     *,
     epoch_id: str,
     epoch: Mapping[str, object],
     fills: Sequence[Mapping[str, object]],
     trace: Sequence[Mapping[str, object]],
 ) -> EpochFact | None:
-    status = metric_text(epoch.get("realized_status"), label="epoch realized status")
-    first_fill_session = metric_iso_session(
-        epoch.get("first_fill_session", ""), label="epoch first fill", empty=True
-    )
-    if not first_fill_session:
-        if status in _ACTUAL_EPOCH_STATUSES:
-            raise ValueError("absolute generalization active epoch has no first fill")
+    matching = epoch_owner_buy_fills(epoch_id=epoch_id, epoch=epoch, fills=fills)
+    fill_session, active_session = epoch_realization_sessions(epoch=epoch, matching=matching)
+    if not fill_session:
         return None
-    if status not in _ACTUAL_EPOCH_STATUSES:
-        raise ValueError("absolute generalization filled epoch has non-realized status")
+    status = metric_text(epoch.get("realized_status"), label="epoch realized status")
     grant_id = metric_text(epoch.get("grant_id"), label="epoch grant")
     owner = metric_text(epoch.get("owner_symbol"), label="epoch owner")
-    matching = [
-        fill
-        for fill in fills
-        if fill.get("epoch_id") == epoch_id
-        and fill.get("grant_id") == grant_id
-        and fill.get("symbol") == owner
-        and fill.get("side") == "BUY"
-        and metric_positive_number(fill.get("shares")) > 0.0
-    ]
-    if not matching:
-        raise ValueError("absolute generalization strategic epoch has no matching real fill")
-    fill_session = min(metric_iso_session(item.get("fill_date"), label="fill session") for item in matching)
-    if fill_session != first_fill_session:
-        raise ValueError("absolute generalization epoch first fill differs from fill ledger")
     target_session = _matching_trace_session(
         trace, collection="targets", epoch_id=epoch_id, grant_id=grant_id, owner_symbol=owner
     )
@@ -311,10 +306,7 @@ def _actual_epoch_fact(
     )
     if not target_session or not order_session:
         raise ValueError("absolute generalization epoch lacks a target or order")
-    active_session = metric_iso_session(
-        epoch.get("active_session", ""), label="epoch active session", empty=True
-    )
-    if not (target_session <= order_session < fill_session == active_session):
+    if not (target_session <= order_session < fill_session):
         raise ValueError("absolute generalization epoch target/order/fill causality differs")
     qualification_session = _qualification_session(trace, epoch)
     if not qualification_session:

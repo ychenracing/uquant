@@ -133,14 +133,17 @@ def test_short_replay_is_preserved_as_insufficient_sample_row() -> None:
     assert result.metrics == {}
 
 
-def test_official_loop_matches_production_and_same_owner_intervention_is_economically_exact() -> None:
-    """Catches a shadow loop or intervention provenance leaking into economic trace state."""
+def test_official_loop_matches_production_and_forcing_respects_activation_kind() -> None:
+    """Distinguish a real single-owner no-op from concentration of a native group."""
 
     symbols = ("sz300308", "sz300502", "sz300394", "sh688008", "sh603986")
     baseline_request = ReplayRequest(symbols=symbols, start="2023-01-03", end="2023-01-10")
     baseline = run_replay("data/frozen", baseline_request)
     activation_date = common_activation_date(baseline)
     target_gross = common_activation_target_gross(baseline)
+    native_activation = next(row for row in baseline.trace if row.date == activation_date)
+    assert native_activation.targets
+    forced_owner = native_activation.targets[0]["symbol"] if len(native_activation.targets) == 1 else "sz300308"
     production = ProductionEngine("data/frozen").backtest(
         symbols=symbols, start="2023-01-03", end="2023-01-10"
     )
@@ -150,22 +153,34 @@ def test_official_loop_matches_production_and_same_owner_intervention_is_economi
             symbols=symbols,
             start="2023-01-03",
             end="2023-01-10",
-            scenario="forced-sz300308-common-date",
+            scenario=f"forced-{forced_owner}-common-date",
             intervention_date=activation_date,
         ),
-        intervention=StrategicOwnerIntervention(owner="sz300308", target_gross=target_gross),
+        intervention=StrategicOwnerIntervention(owner=forced_owner, target_gross=target_gross),
     )
     assert baseline.metrics["total_return"] == production["total_return"]
     assert baseline.metrics["max_drawdown"] == production["max_drawdown"]
     validate_replay_accounting(baseline)
+    validate_replay_accounting(forced)
     assert activation_date == "2023-01-04"
-    assert target_gross == 0.95
-    assert (
-        first_divergence(
-            strip_intervention_provenance(baseline.trace), strip_intervention_provenance(forced.trace)
-        )
-        is None
+    assert target_gross == sum(target["weight"] for target in native_activation.targets)
+    divergence = first_divergence(
+        strip_intervention_provenance(baseline.trace), strip_intervention_provenance(forced.trace),
     )
+    if len(native_activation.targets) == 1:
+        assert divergence is None
+        assert forced.final_account == baseline.final_account
+        assert forced.metrics == baseline.metrics
+        assert "activation_counterfactual" not in forced.intervention_provenance
+    else:
+        assert divergence is not None and divergence.date == activation_date
+        assert divergence.first_layer == "targets"
+        assert len(divergence.right.targets) == 1 and divergence.right.targets[0]["symbol"] == forced_owner
+        assert divergence.right.target_gross == divergence.left.target_gross
+        audit = forced.intervention_provenance["activation_counterfactual"]
+        assert audit["production_qualification_evidence"] is False
+        assert audit["source_targets"] == list(native_activation.targets)
+        assert audit["source_orders"] == list(native_activation.orders)
 
 
 def test_alternate_owner_survives_activation_and_reaches_next_open_execution() -> None:

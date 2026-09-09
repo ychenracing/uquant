@@ -439,8 +439,11 @@ def test_reference_symbols_confirm_qualification_but_never_receive_targets() -> 
         panel=user_panel,
     )
     assert first_fills
-    assert account.strategic_epochs[0].realized_status == "CORE"
-    assert account.active_strategic_epoch_id == ""
+    assert account.strategic_epochs[0].realized_status == "ACTIVE"
+    assert account.active_strategic_epoch_id == account.strategic_epochs[0].epoch_id
+    assert account.strategic_epoch == 0
+    assert account.strategic_grant is not None
+    assert account.strategic_grant.status == "PARTIALLY_FILLED"
 
     promotion_session = dates[-2]
     promoted_targets = allocator.allocate(

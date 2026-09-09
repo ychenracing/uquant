@@ -111,14 +111,6 @@ class SystemConfig:
     recovery_substitution_edge: float = 0.35
     recovery_substitution_max_ret20: float = 0.30
     recovery_substitution_shock_window: int = 20
-    leader_cycle_confirm_days: int = 3
-    leader_cycle_min_mature: int = 2
-    leader_cycle_min_score: float = 0.82
-    leader_cycle_impulse_return: float = 0.15
-    leader_cycle_impulse_index_return: float = 0.15
-    leader_cycle_impulse_breadth: float = 0.10
-    leader_cycle_min_market_ret120: float = 0.01
-    leader_cycle_impulse_min_market_ret120: float = -0.01
     strategic_dynamic_enabled: bool = True
     strategic_cohort_size: int = 3
     strategic_cohort_min_size: int = 3
@@ -141,8 +133,6 @@ class SystemConfig:
     strategic_reversal_min_ret5: float = 0.05
     strategic_reversal_min_median_ret20: float = -0.05
     strategic_reversal_max_tech_ret120: float = -0.01
-    strategic_epoch_cooldown_sessions: int = 30
-    strategic_epoch_min_symbol_change: int = 1
     # A secular winner may consolidate normally, but a new cohort must not be
     # opened into a broad six-month blow-off.
     strategic_long_cycle_min_ret20: float = -0.05

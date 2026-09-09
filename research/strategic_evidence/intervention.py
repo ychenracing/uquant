@@ -3,14 +3,16 @@
 from __future__ import annotations
 
 import hashlib
+import json
 from copy import deepcopy
-from dataclasses import fields, replace
+from dataclasses import asdict, fields, replace
 from math import isfinite
 from typing import Any
 
 from uquant.account import account_from_dict, economic_state_sha256
 from uquant.contracts.universe import REQUIRED_AI_UNIVERSE_SHA256, default_ai_universe
 from uquant.data import normalize_symbol
+from uquant.execution import reconcile_account_orders
 from uquant.models.strategic_epoch import (
     StrategicEpoch,
     StrategicEpochStatus,
@@ -25,8 +27,10 @@ from uquant.types import (
     PendingOrder,
     StrategicGrantIntent,
     StrategicGrantStatus,
+    Target,
     derive_attribution_event_id,
     derive_strategic_grant_id,
+    order_intent_metadata,
 )
 
 
@@ -109,6 +113,7 @@ def _rewrite_grant(
     new: str,
     target_weight: float,
     session: str,
+    qualification_signature: str | None = None,
 ) -> str:
     prior = account.strategic_grant
     if prior is None:
@@ -116,7 +121,7 @@ def _rewrite_grant(
     evidence = hashlib.sha256(
         "|".join((prior.qualification_evidence_sha256, old, new, session)).encode("utf-8")
     ).hexdigest()
-    signature = prior.qualification_signature.replace(old, new)
+    signature = qualification_signature or prior.qualification_signature.replace(old, new)
     previous_grant_id = prior.grant_id
     grant_id = derive_strategic_grant_id(
         account_identity=prior.account_identity,
@@ -370,6 +375,62 @@ def _rewrite_account_identity_chain(
             tranche.grant_id = grant_id
             tranche.epoch_id = epoch_id
         account.positions[new] = position
+def _validate_unfilled_group_activation(
+    account: AccountState, decision: Decision, strategic: tuple[Target, ...], *, target_gross: float,
+) -> str:
+    """Accept only one fresh FULL_COHORT with no prior execution or mixed intent."""
+    members = {target.symbol for target in strategic}
+    grant = account.strategic_grant
+    if (
+        account.positions or account.fills or account.pending_orders
+        or len(strategic) != len(decision.targets) or len(members) != len(strategic)
+        or members != set(account.strategic_cohort_symbols)
+        or members != set(account.strategic_cohort_targets)
+        or grant is None or grant.candidate_symbol not in members
+        or grant.qualification_quorum != "FULL_COHORT" or grant.created_session != decision.date
+        or grant.status != StrategicGrantStatus.PENDING_EXECUTION.value or grant.filled_shares
+        or len(account.strategic_epochs) != 1
+    ):
+        raise ValueError("forced group activation requires fresh unfilled FULL_COHORT identity")
+    epoch = account.strategic_epochs[0]
+    if (
+        not grant.epoch_id or epoch.epoch_id != grant.epoch_id or epoch.grant_id != grant.grant_id
+        or epoch.owner_symbol != grant.candidate_symbol or epoch.opened_session != decision.date
+        or epoch.realized_status != StrategicEpochStatus.PROBE.value or epoch.first_fill_session
+        or any(target.epoch_id != epoch.epoch_id or target.grant_id not in {"", grant.grant_id}
+               or target.weight <= 0 or target.weight != account.strategic_cohort_targets[target.symbol]
+               for target in strategic)
+        or next(target for target in strategic if target.symbol == grant.candidate_symbol).grant_id != grant.grant_id
+        or target_gross > sum(target.weight for target in strategic) + 1e-12
+    ):
+        raise ValueError("forced group activation identity or original budget differs")
+    if any(getattr(account, name) for name in (
+        "strategic_exit_bands", "strategic_active_bands", "strategic_restore_weights",
+        "protected_weights", "protected_weight_epoch_ids", "strategic_restore_epoch_ids",
+    )):
+        raise ValueError("forced group activation cannot rewrite existing restoration rights")
+    ledger = {order.order_id: order for order in account.order_ledger}
+    if len(ledger) != len(members) or len(decision.pending_orders) != len(members):
+        raise ValueError("forced group activation has mixed or missing orders")
+    targets = {target.symbol: target for target in strategic}
+    for order in decision.pending_orders:
+        registered = ledger.get(order.order_id)
+        if (
+            order.symbol not in members or order.side != "BUY" or order.signal_date != decision.date
+            or order.attempts or order.remaining_shares or registered is None
+            or registered.status != "SUBMITTED" or registered.submitted_date != decision.date
+            or registered.filled_shares or registered.attempts
+            or order_intent_metadata(order) != order_intent_metadata(registered)
+            or order.event_id != targets[order.symbol].event_id
+            or order.target_weight != targets[order.symbol].weight
+            or order.epoch_id != epoch.epoch_id
+        ):
+            raise ValueError("forced group activation requires only this close's unexecuted orders")
+    if {order.symbol for order in decision.pending_orders} != members:
+        raise ValueError("forced group activation order membership differs")
+    return grant.candidate_symbol
+
+
 class StrategicOwnerIntervention:
     """Replace one active strategic owner at exactly one replay decision point."""
 
@@ -391,6 +452,7 @@ class StrategicOwnerIntervention:
         self._source_owner: str | None = None
         self._applied = False
         self._provenance: dict[str, Any] | None = None
+        self._fresh_activation = False
 
     @property
     def applied(self) -> bool:
@@ -413,6 +475,10 @@ class StrategicOwnerIntervention:
             raise ValueError("mixed strategic owner intervention is forbidden")
         source_owner = source_owners[0] if source_owners else None
         self._source_owner = source_owner
+        self._fresh_activation = not (
+            source_owners or account.positions or account.fills or account.pending_orders
+            or account.order_ledger or account.strategic_grant or account.strategic_epochs
+        )
         shadow = deepcopy(account)
         if source_owner is None:
             # The production decision for this close has not yet created its
@@ -488,6 +554,89 @@ class StrategicOwnerIntervention:
         self._provenance = evidence
         return evidence
 
+    def _concentrate_unfilled_activation(
+        self, account: AccountState, decision: Decision, strategic: tuple[Target, ...],
+    ) -> Decision:
+        if not self._applied or not self._fresh_activation:
+            raise ValueError("forced group activation cannot rewrite a previously owned account")
+        source = _validate_unfilled_group_activation(account, decision, strategic, target_gross=self.target_gross)
+        prior_grant = account.strategic_grant
+        if prior_grant is None:
+            raise ValueError("forced group activation requires an identified grant")
+        industry = default_ai_universe().industry_of(self.owner, decision.date)
+        if industry == "unknown":
+            raise ValueError("forced owner has no point-in-time industry membership")
+        shadow = deepcopy(account)
+        original = next(target for target in strategic if target.symbol == source)
+        template = next(order for order in decision.pending_orders if order.symbol == source)
+        audit = {
+            "kind": "COUNTERFACTUAL_UNFILLED_COHORT", "production_qualification_evidence": False,
+            "source_targets": [asdict(target) for target in strategic],
+            "source_orders": [asdict(order) for order in decision.pending_orders],
+            "source_order_ledger": [asdict(order) for order in account.order_ledger],
+            "source_grant": asdict(prior_grant),
+            "source_epoch": asdict(account.strategic_epochs[0]),
+            "original_group_budget": sum(target.weight for target in strategic),
+        }
+        # These are this close's counterfactual alternatives, not executed broker
+        # history. Preserve their raw facts above; register a distinct new order.
+        shadow.order_ledger = []
+        grant_id = _rewrite_grant(
+            shadow, old=source, new=self.owner, target_weight=self.target_gross, session=decision.date,
+            qualification_signature=f"research_forced_owner:{self.owner}:{prior_grant.qualification_signature}",
+        )
+        epoch_id = _replace_counterfactual_epoch(
+            shadow, old=source, new=self.owner, grant_id=grant_id,
+            session=decision.date, target_weight=self.target_gross,
+        )
+        shadow.strategic_cohort_symbols = [self.owner]
+        shadow.strategic_cohort_targets = {self.owner: self.target_gross}
+        if shadow.strategic_grant is None:
+            raise ValueError("forced group activation lost its replacement grant")
+        shadow.strategic_candidate_signature = shadow.strategic_grant.qualification_signature
+        shadow.strategic_qualification.candidate_symbols = [self.owner]
+        forced_target = replace(
+            original, symbol=self.owner, weight=self.target_gross, event_id="",
+            industry_at_entry=industry, industry_manifest_sha256=REQUIRED_AI_UNIVERSE_SHA256,
+            grant_id=grant_id, epoch_id=epoch_id,
+        )
+        event_id = derive_attribution_event_id(
+            signal_date=decision.date, symbol=forced_target.symbol, target_weight=forced_target.weight,
+            lifecycle=forced_target.lifecycle, origin_lifecycle=forced_target.origin_lifecycle,
+            origin_subsystem=forced_target.origin_subsystem, mechanism=forced_target.mechanism,
+            replaces_symbol=forced_target.replaces_symbol, industry_at_entry=industry,
+            industry_manifest_sha256=REQUIRED_AI_UNIVERSE_SHA256, reduction_policy=forced_target.reduction_policy,
+            reason_code=forced_target.reason_code, exit_kind=forced_target.exit_kind,
+        )
+        forced_target = replace(forced_target, event_id=event_id)
+        order = replace(
+            template, symbol=self.owner, target_weight=self.target_gross, order_id="", event_id=event_id,
+            industry_at_entry=industry, industry_manifest_sha256=REQUIRED_AI_UNIVERSE_SHA256,
+            grant_id=grant_id, epoch_id=epoch_id,
+        )
+        shadow.pending_orders = list(reconcile_account_orders(
+            account=shadow, previous=[], current=(order,), submitted_date=decision.date,
+        ))
+        forced_decision = replace(
+            decision, target_gross=self.target_gross, target_k=1,
+            targets=(forced_target,), pending_orders=tuple(shadow.pending_orders), decision_digest="",
+        )
+        canonical = forced_decision.canonical_payload(
+            effective_config_sha256=decision.risk_summary["effective_config_sha256"],
+        )
+        forced_decision = replace(forced_decision, decision_digest=hashlib.sha256(
+            json.dumps(canonical, sort_keys=True, separators=(",", ":")).encode(),
+        ).hexdigest())
+        account_from_dict(shadow.to_dict(), require_hashes=False)
+        for field in fields(AccountState):
+            setattr(account, field.name, getattr(shadow, field.name))
+        audit["counterfactual_order_id"] = order.order_id
+        audit["counterfactual_source_order_ids"] = [item.order_id for item in decision.pending_orders]
+        audit["counterfactual_event_id"] = event_id
+        if self._provenance is not None:
+            self._provenance["activation_counterfactual"] = audit
+        return forced_decision
+
     def preserve_activation(self, account: AccountState, decision: Decision) -> Decision:
         """Research-only activation boundary; preserve the forced owner into next-open execution."""
 
@@ -497,6 +646,8 @@ class StrategicOwnerIntervention:
             if target.origin_subsystem == "STRATEGIC" and target.mechanism == "STRATEGIC_COHORT"
         )
         source_owners = tuple(dict.fromkeys(account.strategic_cohort_symbols))
+        if len(strategic) > 1:
+            return self._concentrate_unfilled_activation(account, decision, strategic)
         if source_owners == (self.owner,) and not strategic:
             grant = account.strategic_grant
             durable_forced_owner = bool(

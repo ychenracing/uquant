@@ -8,6 +8,7 @@ from typing import TYPE_CHECKING
 
 import pandas as pd
 
+from ..models.ordinary_entry import GRADUATION
 from ..models.strategic_universe import StrategicUniverseRoles
 from ..portfolio_core import (
     current_weights,
@@ -24,6 +25,8 @@ from ..types import (
     RiskAssessment,
     Target,
 )
+from .strategic.discovery import resolve_strategic_qualification_inputs as _resolve_qualification_inputs
+from .strategic.rearm import observe_flat_book_capital_repair_state as _observe_account_repair
 
 
 def _confirmed_recovery_gross(
@@ -61,6 +64,13 @@ def _allocate_strategy_targets(
     sentinel_only_freeze = sentinel_freeze_authorized(risk)
     strategy_risk = risk
     if sentinel_only_freeze:
+        _, _, repair_universe = _resolve_qualification_inputs(
+            date=date, user_panel=user_panel, leaders=leaders,
+            qualification_panel=qualification_panel, qualification_leaders=qualification_leaders,
+            strategic_universe=strategic_universe,
+        )
+        _observe_account_repair(account=account, risk=risk, universe=repair_universe,
+                                observed_session=str(date.date()), cfg=self.cfg)
         strategy_evidence = {
             **risk.evidence,
             "sentinel_freeze_new_risk": False,
@@ -90,6 +100,11 @@ def _allocate_strategy_targets(
             f"portfolio allocation failed on {date.date()} "
             f"for opportunity={opportunity.value}, risk={risk.state.value}: {exc}"
         ) from exc
+    if sentinel_only_freeze and "core_allocation" in strategy_risk.evidence:
+        risk.evidence["core_allocation"] = {
+            **strategy_risk.evidence["core_allocation"],
+            "scope": "SENTINEL_PLANNING_ONLY",
+        }
     return targets, strategy_account, sentinel_only_freeze
 
 
@@ -116,6 +131,16 @@ def _dominant_level1_retention(
         # level-1 cap into a freeze of an unchanged incumbent.
         and target_gross >= current_gross - 1e-12
     )
+
+
+def _commit_frozen_ordinary_denials(account: AccountState, planned: AccountState) -> None:
+    # Preserve only monotonic revocation for existing ordinary BUYs;
+    # never copy hypothetical restoration grants from the planning book.
+    for order in account.pending_orders:
+        if (order.side == "BUY" and not order.grant_id and not order.epoch_id
+                and order.mechanism != AttributionMechanism.POST_SHOCK_RESTORATION.value
+                and order.symbol not in planned.protected_weights):
+            account.protected_weights.pop(order.symbol, None)
 
 
 def allocate(
@@ -147,16 +172,26 @@ def allocate(
         strategic_universe=strategic_universe,
     )
     if sentinel_only_freeze:
-        account.strategic_qualification = deepcopy(
-            strategy_account.strategic_qualification
-        )
+        _commit_frozen_ordinary_denials(account, strategy_account)
+        account.strategic_qualification = deepcopy(strategy_account.strategic_qualification)
+        for key, value in strategy_account.replacement_tenure.items():
+            if key.startswith(("strategic_qualification:", "strategic_eligibility:", "lifecycle_exit:", "pullback_exit:")):
+                account.replacement_tenure[key] = value
+        for key, value in strategy_account.candidate_tenure.items():
+            if key.startswith(("lifecycle_exit_session:", "pullback_exit:")):
+                account.candidate_tenure[key] = value
+        for event in strategy_account.lifecycle_events[len(account.lifecycle_events):]:
+            if event.get("event") == GRADUATION:
+                account.lifecycle_events.append(deepcopy(event))
+        for key in (
+            "strategic_cohort_qualification",
+            "strategic_long_cycle_open",
+            "strategic_eligibility_session",
+            "strategic_repair_observed_session",
+        ):
+            if key in strategy_account.candidate_tenure:
+                account.candidate_tenure[key] = strategy_account.candidate_tenure[key]
         if account.strategic_qualification.candidate_symbol:
-            for key, value in strategy_account.replacement_tenure.items():
-                if key.startswith("strategic_qualification:"):
-                    account.replacement_tenure[key] = value
-            for key in ("strategic_cohort_qualification", "strategic_long_cycle_open"):
-                if key in strategy_account.candidate_tenure:
-                    account.candidate_tenure[key] = strategy_account.candidate_tenure[key]
             account.strategic_qualification.deployment_blocked = True
             account.strategic_qualification.deployment_block_reason = "freeze_new_risk"
         weights_now, _ = current_weights(account, prices)

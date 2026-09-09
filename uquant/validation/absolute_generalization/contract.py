@@ -23,19 +23,26 @@ from uquant.provenance.fingerprints import (
     git_source_surface_fingerprint,
     source_surface_fingerprint,
 )
+from uquant.provenance.surfaces import load_source_surface_registry
 from uquant.validation.manifest import verify_data_manifest
 
 ABSOLUTE_GENERALIZATION_CONTRACT_SHA256: Final = (
-    "17cecff705db5994e1aff346a5bbe08d4c328c19ebf2242c08d825e9836e748e"
+    "4b910ac9d439ef5a7e2c4289870fe4f4d3bcabdc252126818ddc960390c69b2e"
 )
 
 _ROOT = Path(__file__).resolve().parents[3]
 _DEFAULT_CONTRACT_PATH = _ROOT / "benchmarks/absolute_generalization_acceptance_contract.json"
+_FROZEN_CONTRACT_PATH = (
+    _ROOT / "benchmarks/absolute_generalization_acceptance_contract_frozen_17ce.json"
+)
+_FROZEN_FILE_SHA256 = "35d425ce3663a780331a07360a3e1f0946cde1ca7087ab51c26c055eac5c3d7e"
+_FROZEN_SEAL = "17cecff705db5994e1aff346a5bbe08d4c328c19ebf2242c08d825e9836e748e"
+_EFFECTIVE_CONFIG_SHA256 = "ff491f722c3f84211eda9953cce1309392f7a89bb86bcc1e2cb33232580d4a26"
 _OWNERSHIP_CONTRACT_PATH = _ROOT / "benchmarks/strategic_ownership_acceptance_contract.json"
 _BASELINE_COMMIT = "d7fd3bf8f23ae9c66eb27f5046dedb9f7f980be5"
 _BASELINE_SOURCE = "d1ef7977ae482e46a920381e6af58791199ec8e1a02586dbe8df451e7d4696c9"
-_CANDIDATE_SOURCE = "1b1b9e2a60a9899e14bb910bb0a836136912aaa5c2bcfe3b2e142d2c40cf819d"
-_REGISTRY_SHA256 = "da0418442020762272b3b5008c17b515794688270b4940313ccfdfd0b13877cb"
+_CANDIDATE_SOURCE = "86d3541617b4f3185c94bf0f5ad2bbeedfaddecabdcf1fabd593196223459fdd"
+_REGISTRY_SHA256 = "a2ce3cd337958eb9bb8593e61d06cf75a6e6bf08367768b731d5b50dc230bd12"
 _OWNERSHIP_SHA256 = "72e6b510c3bcf44ac77d2c13613f4d72a14ae8dab0d60a19e5947055ae7cbf08"
 
 _UNIVERSE = (
@@ -209,13 +216,15 @@ def _read_ownership_contract(path: Path) -> Mapping[str, object]:
 
 
 def _verify_independent_authorities() -> None:
+    if load_source_surface_registry(_ROOT).canonical_sha256 != _REGISTRY_SHA256:
+        raise ValueError("absolute generalization source registry identity differs")
     if (
         git_source_surface_fingerprint(_ROOT, _BASELINE_COMMIT, "economic_decision_v1")
         != _BASELINE_SOURCE
         or source_surface_fingerprint(_ROOT, "economic_decision_v1") != _CANDIDATE_SOURCE
     ):
         raise ValueError("absolute generalization candidate source identity differs")
-    if config_fingerprint(DEFAULT_CONFIG) != "c05faf292a508d825cb4aaee09de65a5fb5a8db6acae6d21348ffcbec86d954b":
+    if config_fingerprint(DEFAULT_CONFIG) != _EFFECTIVE_CONFIG_SHA256:
         raise ValueError("absolute generalization effective config identity differs")
     if hashlib.sha256((_ROOT / "uv.lock").read_bytes()).hexdigest() != "4accf16535b5ac95b831c9289e0ad2ff21282dc5dfae3f05dd0fb095089d6a61":
         raise ValueError("absolute generalization uv.lock identity differs")
@@ -237,6 +246,24 @@ def _verify_independent_authorities() -> None:
         raise ValueError("absolute generalization frozen data identity differs")
 
 
+def _verify_frozen_projection(raw: dict[str, object]) -> None:
+    document = _read_physical_regular_file(
+        _FROZEN_CONTRACT_PATH, label="absolute generalization frozen contract"
+    )
+    if hashlib.sha256(document).hexdigest() != _FROZEN_FILE_SHA256:
+        raise ValueError("absolute generalization frozen contract bytes differ")
+    frozen = cast(dict[str, object], strict_json_loads(document))
+    unsealed = {key: value for key, value in frozen.items() if key != "canonical_sha256"}
+    if frozen["canonical_sha256"] != _FROZEN_SEAL or canonical_json_sha256(unsealed) != _FROZEN_SEAL:
+        raise ValueError("absolute generalization frozen contract seal differs")
+    candidate = cast(dict[str, object], frozen["candidate"])
+    candidate["production_source_sha256"] = _CANDIDATE_SOURCE
+    candidate["source_surface_registry_sha256"] = _REGISTRY_SHA256
+    cast(dict[str, object], frozen["inputs"])["effective_config_sha256"] = _EFFECTIVE_CONFIG_SHA256
+    frozen["canonical_sha256"] = ABSOLUTE_GENERALIZATION_CONTRACT_SHA256
+    _exact(raw, frozen, label="frozen policy projection")
+
+
 def _validate_raw(raw: dict[str, object]) -> None:
     expected_fields = {
         "baseline_can_relax_absolute_limits", "candidate", "canonical_sha256",
@@ -252,6 +279,7 @@ def _validate_raw(raw: dict[str, object]) -> None:
         raise ValueError("absolute generalization contract seal is invalid")
     if seal != ABSOLUTE_GENERALIZATION_CONTRACT_SHA256:
         raise ValueError("absolute generalization compiled contract identity differs")
+    _verify_frozen_projection(raw)
     _exact(raw["candidate"], {
         "baseline_commit": _BASELINE_COMMIT, "baseline_source_sha256": _BASELINE_SOURCE,
         "production_source_sha256": _CANDIDATE_SOURCE,

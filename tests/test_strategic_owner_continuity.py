@@ -8,7 +8,7 @@ from test_lifecycle_and_risk import _leader, _strategic_frame
 from test_strategic_epoch import _epoch, _grant
 from test_strategic_grant_observation import _risk
 
-from uquant.account import save_account
+from uquant.account import load_account, save_account
 from uquant.application.target_attribution import attach_target_attribution
 from uquant.config import DEFAULT_CONFIG
 from uquant.execution import ExecutionPlanner, plan_orders, reconcile_account_orders
@@ -26,6 +26,7 @@ from uquant.types import (
     Opportunity,
     OrderStatus,
     Position,
+    Target,
 )
 from uquant.validation.universe import REQUIRED_AI_UNIVERSE_SHA256
 
@@ -258,7 +259,11 @@ def test_expired_probe_reselects_a_different_owner_with_a_new_identity_chain() -
     assert len(account.strategic_epochs) == 2
 
 
-def test_completed_epoch_can_regrant_the_same_owner_only_with_new_ids() -> None:
+@pytest.mark.parametrize("history_sessions,formation_ready", [(251, True), (273, False)],
+                         ids=["qualified-formation", "ordinary-trend-only"])
+def test_completed_epoch_can_regrant_the_same_owner_only_with_new_ids(
+    history_sessions: int, formation_ready: bool,
+) -> None:
     account, first_grant_id, first_epoch_id = _active_account()
     account.positions.clear()
     close_account_strategic_epoch(
@@ -274,9 +279,18 @@ def test_completed_epoch_can_regrant_the_same_owner_only_with_new_ids() -> None:
     account.strategic_cohort_targets.clear()
     account.candidate_tenure["strategic_cohort_active"] = 0
 
-    dates = pd.bdate_range("2025-03-03", "2026-03-18")
+    dates = pd.bdate_range(end="2026-03-18", periods=history_sessions)
     symbols = ("sz300308", "sz300502", "sz300394")
     panel = {symbol: _strategic_frame(dates) for symbol in symbols}
+    # Both histories are genuine rising prices. Only the stronger trailing
+    # 240-session formation may establish another long-cycle capital grant.
+    close = panel[symbols[0]]["close"]
+    for session in dates[-2:]:
+        history = close.loc[:session]
+        persistent = (history / history.shift(240) - 1.0).dropna().tail(
+            DEFAULT_CONFIG.strategic_cohort_confirm_days
+        ).median()
+        assert bool(persistent >= DEFAULT_CONFIG.strategic_cohort_min_ret240) is formation_ready
     leaders = {
         symbol: _leader(symbol, 0.96 - index * 0.02, industry="optical")
         for index, symbol in enumerate(symbols)
@@ -295,6 +309,12 @@ def test_completed_epoch_can_regrant_the_same_owner_only_with_new_ids() -> None:
 
     assert account.strategic_grant is not None
     assert account.strategic_grant.candidate_symbol == "sz300308"
+    if not formation_ready:
+        assert account.strategic_grant.grant_id == first_grant_id
+        assert [epoch.epoch_id for epoch in account.strategic_epochs] == [first_epoch_id]
+        assert not account.strategic_cohort_targets
+        assert not account.pending_orders
+        return
     assert account.strategic_grant.grant_id != first_grant_id
     assert account.strategic_grant.previous_grant_id == first_grant_id
     assert account.strategic_epochs[-1].epoch_id != first_epoch_id
@@ -407,7 +427,7 @@ def test_full_cohort_epoch_only_peers_persist_before_and_after_fill(tmp_path) ->
     save_account(account, tmp_path / "filled.json")
 
 
-def test_existing_ordinary_cohort_position_defers_strategic_activation() -> None:
+def test_new_grant_shares_capital_with_ordinary_holding_across_restart(tmp_path) -> None:
     dates = pd.bdate_range("2023-01-02", periods=251)
     symbols = ("sz300308", "sz300502", "sz300394")
     panel = {symbol: _strategic_frame(dates) for symbol in symbols}
@@ -418,18 +438,49 @@ def test_existing_ordinary_cohort_position_defers_strategic_activation() -> None
     account = AccountState.empty(2_000_000.0)
     account.account_identity = "account:primary"
     account.code_hash = "code:production"
+    account.data_hash = "data:fixture"
     ordinary_symbol = symbols[-1]
-    account.positions[ordinary_symbol] = Position(
-        symbol=ordinary_symbol,
-        shares=10_000,
-        avg_cost=3.0,
-        entry_date=str(dates[-10].date()),
-        highest_close=3.0,
+    execution_panel = {}
+    for symbol in symbols:
+        frame = panel[symbol].loc[dates[-5:]].copy()
+        frame["open"] = frame["close"]
+        frame["high"] = frame["close"] * 1.01
+        frame["low"] = frame["close"] * 0.99
+        frame["volume"] = 100_000_000.0
+        frame["amount"] = 100_000_000.0
+        execution_panel[symbol] = frame
+    initial_date = str(dates[-5].date())
+    initial_targets = attach_target_attribution(
+        "optical",
+        REQUIRED_AI_UNIVERSE_SHA256,
+        signal_date=initial_date,
+        targets=(Target(
+            ordinary_symbol, 0.10, "CORE", 0.9, 0.9, "ordinary admission",
+            origin_subsystem="LEADER", mechanism="LEADER_SELECTION", origin_lifecycle="CORE",
+        ),),
     )
+    initial_orders = plan_orders(
+        signal_date=initial_date,
+        targets=initial_targets,
+        account=account,
+        prices={s: float(panel[s].loc[dates[-5], "close"]) for s in symbols},
+        cfg=DEFAULT_CONFIG,
+    )
+    account.pending_orders = list(reconcile_account_orders(
+        account=account, previous=[], current=initial_orders, submitted_date=initial_date
+    ))
+    initial_fills = ExecutionPlanner(DEFAULT_CONFIG).execute_open(
+        date=dates[-4], account=account, panel=execution_panel
+    )
+    assert len(initial_fills) == 1
+    assert not account.pending_orders
+    ordinary_shares = account.positions[ordinary_symbol].shares
+    remaining_cash = account.cash
     allocator = PortfolioAllocator(DEFAULT_CONFIG)
 
-    for session in dates[-2:]:
-        allocator.allocate(
+    targets = ()
+    for session in dates[-3:-1]:
+        targets = allocator.allocate(
             date=session,
             opportunity=Opportunity.TREND,
             risk=_risk(frozen=False),
@@ -439,9 +490,53 @@ def test_existing_ordinary_cohort_position_defers_strategic_activation() -> None
             prices={symbol: float(panel[symbol].loc[session, "close"]) for symbol in symbols},
         )
 
-    assert account.strategic_grant is None
-    assert account.strategic_epochs == []
-    assert account.candidate_tenure["strategic_deferred_to_recovery"] == 1
+    grant = account.strategic_grant
+    assert grant is not None
+    assert grant.candidate_symbol == symbols[0]
+    assert ordinary_symbol not in account.strategic_cohort_symbols
+    assert account.positions[ordinary_symbol].shares == ordinary_shares
+    assert account.positions[ordinary_symbol].grant_id == ""
+    assert account.positions[ordinary_symbol].epoch_id == ""
+    weights = {target.symbol: target.weight for target in targets}
+    price = float(panel[ordinary_symbol].loc[dates[-2], "close"])
+    assert weights[ordinary_symbol] == pytest.approx(
+        ordinary_shares * price / (remaining_cash + ordinary_shares * price)
+    )
+    assert sum(weights.values()) <= DEFAULT_CONFIG.industry_weight_cap
+
+    signal_date = str(dates[-2].date())
+    attributed = attach_target_attribution(
+        "optical", REQUIRED_AI_UNIVERSE_SHA256, signal_date=signal_date, targets=targets
+    )
+    planned = plan_orders(
+        signal_date=signal_date,
+        targets=attributed,
+        account=account,
+        prices={symbol: float(panel[symbol].loc[dates[-2], "close"]) for symbol in symbols},
+        cfg=DEFAULT_CONFIG,
+    )
+    account.pending_orders = list(
+        reconcile_account_orders(
+            account=account, previous=[], current=planned, submitted_date=signal_date
+        )
+    )
+    assert {order.symbol for order in account.pending_orders} == set(symbols[:-1])
+    pending_path = tmp_path / "concurrent-pending.json"
+    save_account(account, pending_path)
+    resumed = load_account(pending_path)
+    assert resumed.strategic_grant.grant_id == grant.grant_id
+    fills = ExecutionPlanner(DEFAULT_CONFIG).execute_open(
+        date=dates[-1], account=resumed, panel=execution_panel
+    )
+    assert {fill.symbol for fill in fills} == set(symbols[:-1])
+    assert all(fill.fill_date == str(dates[-1].date()) for fill in fills)
+    assert resumed.positions[ordinary_symbol].shares == ordinary_shares
+    assert resumed.positions[ordinary_symbol].epoch_id == ""
+    assert resumed.positions[grant.candidate_symbol].grant_id == grant.grant_id
+    assert resumed.cash >= 0.0
+    filled_path = tmp_path / "concurrent-filled.json"
+    save_account(resumed, filled_path)
+    assert load_account(filled_path).to_dict() == resumed.to_dict()
 
 
 def test_strategic_protection_restore_and_recovery_bind_to_active_epoch() -> None:

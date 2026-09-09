@@ -6,8 +6,10 @@ from collections.abc import Iterable
 from dataclasses import replace
 from typing import cast
 
+from uquant.contracts.universe import decision_ai_universe
+
 from ..config import DEFAULT_CONFIG, SystemConfig
-from ..contracts.universe import REQUIRED_AI_UNIVERSE_SHA256, AIUniverse, default_ai_universe
+from ..contracts.universe import AIUniverse
 from ..types import PendingOrder, ReductionPolicy, Side, Target, derive_attribution_event_id
 
 
@@ -152,7 +154,7 @@ def _attribute_target(
     if target.event_id:
         return target
     industry = universe.industry_of(target.symbol, signal_date)
-    manifest = REQUIRED_AI_UNIVERSE_SHA256
+    manifest = universe.sha256
     if industry == "unknown":
         industry = legacy_industry
         manifest = legacy_manifest_sha256
@@ -190,7 +192,7 @@ def attach_target_attribution(
 ) -> tuple[Target, ...]:
     """Finalize deterministic IDs and PIT industry for newly causal targets."""
 
-    universe = default_ai_universe()
+    universe = decision_ai_universe()
     retained_by_symbol = {order.symbol: order for order in retained_orders if order.event_id}
     return tuple(
         _attribute_target(

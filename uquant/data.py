@@ -210,6 +210,23 @@ class DataStore:
             digest=hashlib.sha256(payload).hexdigest(),
         )
 
+    @staticmethod
+    def _from_akshare_stock(raw: pd.DataFrame, symbol: str) -> pd.DataFrame:
+        """Convert stock_zh_a_hist volume from hands to canonical shares."""
+
+        mapping = {
+            "日期": "date",
+            "开盘": "open",
+            "最高": "high",
+            "最低": "low",
+            "收盘": "close",
+            "成交量": "volume",
+            "成交额": "amount",
+        }
+        frame = raw.rename(columns=mapping)[list(mapping.values())].copy()
+        frame["volume"] = pd.to_numeric(frame["volume"], errors="raise") * 100
+        return DataStore._validate(frame, symbol)
+
     def refresh_akshare(self, symbols: Iterable[str], *, end: str) -> None:
         """Refresh stock QFQ files through `end`, rejecting unsupported indices."""
 
@@ -227,16 +244,6 @@ class DataStore:
                 end_date=end.replace("-", ""),
                 adjust="qfq",
             )
-            mapping = {
-                "日期": "date",
-                "开盘": "open",
-                "最高": "high",
-                "最低": "low",
-                "收盘": "close",
-                "成交量": "volume",
-                "成交额": "amount",
-            }
-            frame = raw.rename(columns=mapping)[list(mapping.values())]
-            validated = self._validate(frame, symbol).reset_index()
+            validated = self._from_akshare_stock(raw, symbol).reset_index()
             validated.to_csv(self.root / f"{symbol}.csv", index=False)
             self._cache.pop(symbol, None)

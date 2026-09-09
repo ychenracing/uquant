@@ -13,6 +13,7 @@
 
 - Current continuation: PR #56, ordinary structural exit, entry simplification and capital recovery. PR #55's standalone comparison and PR #48 are historical; preserve their failed evidence.
 - Resolve PR #56 head/status and candidate decision before continuing; do not redo still-valid evidence.
+- Latest bounded round: `benchmarks/capital_holding_result.md` and receipts. Both fixed arms failed. `benchmarks/industry_mapping_review.json` documents classification issues; recorded no_optical is not reliable economic non-optical isolation. Next priority is versioned input correctness, preserving frozen originals.
 - Objective: improve cross-AI trend discovery, holding, recovery, and diversification away from direct dependence on the three optical leaders while simplifying the core allocator.
 - The PR and `benchmarks/ordinary_recovery_continuation.md` record the production baseline, preregistered mechanisms and failed candidate decisions. Existing production contracts remain unchanged. Four screening cases alone are not full acceptance.
 

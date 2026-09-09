@@ -1,0 +1,82 @@
+{
+  "research_only": true,
+  "as_of": "2023-01-03",
+  "sample_rule": "first six alphabetical industries, first alphabetical symbol; see prereg clarification",
+  "verified": 4,
+  "total": 6,
+  "rows": [
+    {
+      "symbol": "sh688008",
+      "name": "澜起科技",
+      "period": "2022Q3",
+      "quarter_revenue_cny": 953492896.77,
+      "quarter_revenue_yoy_percent": 9.82,
+      "disclosed_date": "2022-10-31",
+      "available_from": "2022-11-01",
+      "source_url": "https://money.finance.sina.com.cn/corp/view/vCB_AllBulletinDetail.php?id=8640990&stockid=688008",
+      "source_field": "主要会计数据和财务指标/营业收入/本报告期",
+      "status": "verified_original_report"
+    },
+    {
+      "symbol": "sz002281",
+      "name": "光迅科技",
+      "period": "2022Q3",
+      "quarter_revenue_cny": 1749087824.92,
+      "quarter_revenue_yoy_percent": 9.84,
+      "disclosed_date": "2022-10-28",
+      "available_from": "2022-10-31",
+      "source_url": "https://static.cninfo.com.cn/finalpage/2022-10-28/1214935294.PDF",
+      "source_field": "主要会计数据和财务指标/营业收入/本报告期",
+      "status": "verified_original_report"
+    },
+    {
+      "symbol": "sh688037",
+      "name": "芯源微",
+      "period": "2022Q3",
+      "quarter_revenue_cny": 392427217.36,
+      "quarter_revenue_yoy_percent": 99.93,
+      "disclosed_date": "2022-10-29",
+      "available_from": "2022-10-31",
+      "source_url": "https://static.cninfo.com.cn/finalpage/2022-10-29/1214964843.PDF",
+      "source_field": "主要会计数据和财务指标/营业收入/本报告期",
+      "status": "verified_original_report"
+    },
+    {
+      "symbol": "sh688019",
+      "name": "安集科技",
+      "period": "2022Q3",
+      "quarter_revenue_cny": 290405517.16,
+      "quarter_revenue_yoy_percent": 54.85,
+      "disclosed_date": "2022-10-31",
+      "available_from": "2022-11-01",
+      "source_url": "https://static.cninfo.com.cn/finalpage/2022-10-31/1214976865.PDF",
+      "source_field": "主要会计数据和财务指标/营业收入/本报告期",
+      "status": "verified_original_report"
+    },
+    {
+      "symbol": "sh688498",
+      "period": "2022Q3",
+      "quarter_revenue_yoy_percent": null,
+      "status": "unverified",
+      "note": "IPO prospectus found; comparable original 2022Q3 revenue YoY not verified within bounded check. Missing is not zero or proof of absence."
+    },
+    {
+      "symbol": "sh688110",
+      "period": "2022Q3",
+      "quarter_revenue_yoy_percent": null,
+      "status": "unverified",
+      "note": "Original Q3 announcement found but numeric table not extracted/verified within bounded check; no later annual-report backfill."
+    }
+  ],
+  "update_check": {
+    "symbol": "sh688037",
+    "period": "2023Q1",
+    "quarter_revenue_cny": 288217307.17,
+    "quarter_revenue_yoy_percent": 56.89,
+    "disclosed_date": "2023-04-26",
+    "available_from": "2023-04-27",
+    "source_url": "https://money.finance.sina.com.cn/corp/view/vCB_AllBulletinDetail.php?id=9074550&stockid=688037"
+  },
+  "availability_policy": "Disclosure day resolution only; conservative next exchange session, never report-period end. No PIT universe claim, economic validation or production ingestion.",
+  "retrieved_on": "2026-09-09"
+}

@@ -43,3 +43,5 @@ optical. This is deterministic coverage sampling, not winner/loser selection.
 For one sampled company check a subsequent 2023Q1 original filing to establish
 update feasibility. Do not infer universe membership from revenue statements.
 No purchase, input expansion, frozen contract change, or protected holdout access.
+
+Implementation clarification before extracting sampled revenue values: the alphabetical algorithm yields advanced_packaging/sh688498, compute/sh688008, datacenter/sz002281, design/sh688037, foundry/sh688110, materials/sh688019. The earlier illustrative industry list mistakenly omitted datacenter and included optical. Use the algorithmic six, retaining this correction.

@@ -512,12 +512,12 @@ def compute_structural_leaders(
     """
     if as_of not in tech.index:
         raise RuntimeError("fixed tech index missing at decision date")
-    extra_symbols = tuple(sorted(set(panel) - set(REFERENCE_UNIVERSE)))
     # Structural components include configuration-dependent industry evidence.
     # A ProductionEngine is intentionally reused across promotion cells, so a
     # key that omits cfg can leak scores between configurations and make replay
     # order affect returns.
-    cache_key = (as_of, extra_symbols, cfg, decision_ai_universe().sha256, "STRUCTURAL")
+    # Reference membership changes percentiles too, even without extra symbols.
+    cache_key = (as_of, tuple(sorted(panel)), cfg, decision_ai_universe().sha256, "STRUCTURAL")
     cached = score_cache.get(cache_key) if score_cache is not None else None
     if cached is not None:
         return cached

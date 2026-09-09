@@ -100,3 +100,27 @@ def test_shared_score_cache_separates_inputs_and_restores_production(data_dir: P
         assert new["sz002371"].industry == "equipment"
         assert old["sz002371"].industry == "pcb"
     assert compute_structural_leaders(engine._features, **kwargs) is old
+
+
+def test_shared_score_cache_separates_reference_membership(data_dir: Path) -> None:
+    import pandas as pd
+
+    from research.cross_ai_strategy import diagnostic_json
+    from uquant.config import DEFAULT_CONFIG
+    from uquant.engine import ProductionEngine
+    from uquant.leader import compute_structural_leaders
+
+    engine = ProductionEngine(data_dir)
+    engine._load((*default_ai_universe().symbols, "sh000682"))
+    panel = {s: engine._features[s] for s in default_ai_universe().symbols}
+    removed = next(iter(panel))
+    subset = {s: frame for s, frame in panel.items() if s != removed}
+    kwargs = dict(as_of=pd.Timestamp("2023-01-03"), tech=engine._features["sh000682"],
+                  cfg=DEFAULT_CONFIG)
+    cache = {}
+    full = compute_structural_leaders(panel, score_cache=cache, **kwargs)
+    cached_subset = compute_structural_leaders(subset, score_cache=cache, **kwargs)
+    uncached_subset = compute_structural_leaders(subset, **kwargs)
+    assert removed not in cached_subset
+    assert diagnostic_json(cached_subset) == diagnostic_json(uncached_subset)
+    assert compute_structural_leaders(panel, score_cache=cache, **kwargs) is full

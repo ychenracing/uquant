@@ -11,6 +11,8 @@
 
 ## Active workstream
 
+- Latest continuous-goal continuation: `benchmarks/industry_input_v2/continuous_result.md`. Scoring-only reference isolation reproduces strict wealth2.53740564/DD.12553223 with risk addition retained; causal diagnosis, not ordinary-account profit improvement. Fixed industry-first native removal candidate rejected: wealth.89246649 vs1.17794432 control, DD.19077273 vs.20696073. Both new raw archives saved with adjacent receipts. Historical174-code fund inventory is NOT an eligible AI universe; dated membership/exit and complete new-member data remain unresolved; original2022 sources inaccessible. Separately fixed a reproduced same-day reference-membership score-cache collision;4focused checks/Ruff/mypy pass. PR56 remains Draft/NOT_MET; no new full acceptance or local economic run pending. Read new report first; do not repeat completed experiments or use them as new-cache-source economic acceptance.
+
 - Current continuation: PR #56, ordinary structural exit, entry simplification and capital recovery. PR #55's standalone comparison and PR #48 are historical; preserve their failed evidence.
 - Resolve PR #56 head/status and candidate decision before continuing; do not redo still-valid evidence.
 - Previous bounded round: `benchmarks/capital_holding_result.md` and receipts. Both fixed arms failed. `benchmarks/industry_mapping_review.json` documents classification issues; recorded no_optical is not reliable economic non-optical isolation. Next priority is versioned input correctness, preserving frozen originals.

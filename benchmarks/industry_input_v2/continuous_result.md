@@ -124,8 +124,9 @@ hash, but this turn's prescribed upload retry also failed. Its persistence gap
 is not resolved by the smaller new archives.
 
 The control and both isolated research producers are remotely preserved.
-PR56 retains its original C source plus research evidence; no strategy patch
-was applied to PR56 or main. No local economic job remains running. Queued CI
+PR56 retains its original C strategy plus the isolated engineering cache fix
+below; neither economic research intervention was applied to PR56 or main.
+No local economic job remains running. Queued CI
 is not passing, historical acceptance failures remain, and no new full matrix
 was dispatched manually.
 
@@ -133,3 +134,24 @@ Resume from this report and the three adjacent new result/source JSON files.
 Do not repeat either completed full account. Reopen the rejected selector only
 for new evidence changing its causal premise, not another industry/period
 setting. Resolve historical data access before a coverage strategy replay.
+
+## Independent engineering correction
+
+A final caller/cache review found a reproducible defect: structural-score cache
+identity included only non-reference extra symbols, omitting reference-panel
+membership. On the same date/config/input identity, removing a reference member
+could return the old dictionary, including the removed symbol and stale peer
+percentiles. The minimal regression failed at that removed-symbol assertion.
+
+The cache key now includes the sorted complete scoring-panel membership.
+One shared-key fix, no new configuration or strategy rule. The regression
+compares cached subset scores to independently computed uncached scores and
+checks that restoring the full panel reuses its own cache. NaN feature values
+are normalized only for test equality, not changed in production.
+
+Four focused membership/industry/config/causal-input tests pass; Ruff and mypy
+for the changed production module pass. No full engineering or economic
+acceptance is claimed. The new PR-source fingerprint is
+b67998bf4f355752ba03765f65f39a24aa24dc2a71aad71e31847a25198ffe74.
+The two economic experiments used separate engines and preserved original
+producer branches; their results are not relabeled as this new source.

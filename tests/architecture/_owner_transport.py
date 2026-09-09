@@ -142,6 +142,8 @@ _VALIDATION_ADDITIONS = frozenset(
         "uquant/portfolio/strategic/rearm.py",
         "uquant/portfolio/strategic/rearm_predicates.py",
         "uquant/risk_sentinel/source_identity_archive.py",
+        "uquant/validation/_promotion_cache.py",
+        "uquant/validation/acceptance_tolerance.py",
         "uquant/validation/competitor_reference.py",
         "uquant/validation/absolute_generalization/__init__.py",
         "uquant/validation/absolute_generalization/_account_payload.py",

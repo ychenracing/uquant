@@ -27,6 +27,8 @@ def _risk(*, frozen: bool) -> RiskAssessment:
         {
             "configured_user_universe_size": 3,
             "risk_anchor_group_count": 3,
+            "reference_visible_groups": ["compute", "equipment", "materials"],
+            "reference_coverage": 1.0,
             "breadth20": 1.0,
             "broad_ret20": 0.05,
             "tech_ret20": 0.05,

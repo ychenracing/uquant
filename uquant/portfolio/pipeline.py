@@ -15,7 +15,7 @@ from ..models.ordinary_entry import REASON as PULLBACK_REASON
 from ..models.ordinary_entry import holding_pullback_entry, pullback_graduated, pullback_order_entry
 from ..models.strategic_universe import StrategicUniverseRoles
 from ..models.trading import late_strategic_fill_allowed
-from ..ordinary_pullback import current_pullback_proof
+from ..ordinary_pullback import STRUCTURAL_EXIT_REASON, current_pullback_proof
 from ..portfolio_core import current_weights, symbol_weight_cap
 from ..risk.pullback import pullback_risk_open
 from ..types import (
@@ -31,7 +31,8 @@ from ..types import (
     Target,
 )
 from .capital import committed_capital, funded_increment
-from .ordinary import observe_ordinary_market, ordinary_core_entry, ordinary_trend_exit
+from .leaders.lifecycle import ordinary_pullback_exit
+from .ordinary import observe_ordinary_market, ordinary_core_entry
 from .strategic.authority import assess_strategic_capital_authority
 from .strategic.discovery import current_core_qualification
 from .strategic.grant_lifecycle import completed_strategic_core_entry as _completed_strategic_core_entry
@@ -61,7 +62,6 @@ def _core_candidates(
 ) -> list[str]:
     """Record the same short-circuit predicates that decide core entry eligibility."""
     candidates = []
-    ranks: dict[str, float] = {}
     for symbol, score in leaders.items():
         entry = ordinary_core_entry(self, symbol=symbol, score=score, date=date,
                                  user_panel=user_panel, account=account,
@@ -71,8 +71,7 @@ def _core_candidates(
             trace.setdefault(symbol, {}).update(entry=entry, rank_score=score.score)
         if entry["block"] == "READY":
             candidates.append(symbol)
-            ranks[symbol] = float(entry.get("ret120", 0.0))
-    return sorted(candidates, key=lambda symbol: (-ranks[symbol], symbol))
+    return sorted(candidates, key=lambda symbol: (-leaders[symbol].score, symbol))
 
 
 def _transfer_sell_filled(account: AccountState, key: str, date: pd.Timestamp) -> bool:
@@ -364,7 +363,14 @@ def _ordinary_exits(book: _AllocationBook) -> None:
         ):
             continue
         book.record(symbol)["allocation_reason"] = "RETAINED_HOLDING"
-        if not ordinary_trend_exit(book.user_panel[symbol], book.date):
+        pullback_exit = ordinary_pullback_exit(
+            book.policy, symbol=symbol, date=book.date, user_panel=book.user_panel,
+            leaders=book.leaders, account=account,
+        )
+        if pullback_exit == "" or (pullback_exit is None and not book.policy._leader_lifecycle_exit_confirmed(
+            symbol=symbol, date=book.date, user_panel=book.user_panel,
+            leaders=book.leaders, account=account,
+        )):
             continue
         book.proposed[symbol] = 0.0
         reset_strategic_candidate_eligibility(account=account, symbol=symbol)
@@ -376,7 +382,7 @@ def _ordinary_exits(book: _AllocationBook) -> None:
             account.candidate_tenure["tactical_promotable"] = 0
         if account.recovery_conviction_symbol == symbol:
             account.recovery_conviction_symbol = ""
-        book.reasons[symbol] = "ordinary trend: two closes below MA120"
+        book.reasons[symbol] = pullback_exit or STRUCTURAL_EXIT_REASON
         book.mechanisms[symbol] = AttributionMechanism.LEADER_LIFECYCLE_EXIT
         book.record(symbol)["allocation_reason"] = "CONFIRMED_STRUCTURAL_EXIT"
 
@@ -544,7 +550,14 @@ def _fresh_core_selection(
     occupied = (book.owned | {s for s, w in book.weights_now.items() if w > 0}
                 | {s for s, w in book.committed.items() if w > 0}
                 | {order.symbol for order in book.account.pending_orders})
-    return occupied, [s for s in candidates if s not in occupied], False
+    fresh = [s for s in candidates if s not in occupied]
+    immature_occupied = any(
+        s not in book.owned and w > 0 and (s not in book.leaders or not book.leaders[s].mature)
+        for s, w in book.committed.items()
+    )
+    early = next((s for s in fresh if not book.leaders[s].mature), None) if not immature_occupied else None
+    eligible = [s for s in fresh if book.leaders[s].mature or s == early]
+    return occupied, eligible, immature_occupied
 
 
 def _ordinary_admission_budget(book: _AllocationBook) -> float | None:
@@ -570,16 +583,43 @@ def _admit_new_cores(book: _AllocationBook, *, candidates: list[str], opportunit
         for symbol in candidates:
             book.record(symbol)["entry_gate"] = "ORDINARY_MARKET_EVIDENCE_UNAVAILABLE"
         return
-    occupied, eligible, _ = _fresh_core_selection(book, candidates)
-    selected = eligible[:max(0, min(3, book.policy.cfg.max_positions) - len(occupied))]
-    for symbol in selected:
-        weight = min(0.30, budget / len(selected))
+    occupied, eligible, immature_occupied = _fresh_core_selection(book, candidates)
+    selected = eligible[:max(0, book.policy.cfg.max_positions - len(occupied))]
+    for symbol in candidates:
+        if symbol in occupied:
+            book.record(symbol)["entry_gate"] = "EXISTING_HOLDING_OR_COMMITMENT"
+            continue
+        if symbol not in eligible:
+            book.record(symbol)["entry_gate"] = (
+                "IMMATURE_CORE_SLOT_OCCUPIED" if immature_occupied else "IMMATURE_CORE_LOWER_RANK"
+            )
+            continue
+        if symbol not in selected:
+            book.record(symbol)["entry_gate"] = "POSITION_SLOTS_EXHAUSTED"
+            continue
+        weight = min(book.policy.cfg.single_core_entry_cap, budget / len(selected))
+        if not book.leaders[symbol].mature:
+            weight = min(weight, book.policy.cfg.core_admission_weight)
         if weight + 1e-12 < book.policy.cfg.min_trade_weight:
             book.record(symbol)["entry_gate"] = "ORDINARY_INITIAL_CAPITAL_BELOW_TRADE_MINIMUM"
             continue
         if book.fund(symbol, weight, phase="CORE_ADMISSION", minimum=book.policy.cfg.min_trade_weight):
             book.account.protected_weights.pop(symbol, None)
-            book.reasons[symbol] = "simple trend core admitted from available account capital"
+            book.reasons[symbol] = "confirmed core admitted from available account capital"
+            _record_completed_transfer(book, symbol)
+            continue
+        weak = _degraded_transfer(
+            book.policy, challenger=symbol, proposed=book.proposed, weights_now=book.weights_now,
+            leaders=book.leaders, user_panel=book.user_panel, date=book.date, account=book.account,
+            committed=book.committed, cash_room=book.cash_room, gross_cap=book.gross_cap,
+            diagnostics=book.record(symbol).setdefault("transfer_budget", {}),
+        )
+        if weak is not None:
+            book.reasons[weak] = "leader rotation: bounded transfer after confirmed deterioration"
+            book.mechanisms[weak] = AttributionMechanism.LEADER_ROTATION
+            book.record(weak)["allocation_reason"] = "CONFIRMED_BOUNDED_TRANSFER"
+            book.record(symbol)["entry_gate"] = "AWAIT_REDUCTION_SETTLEMENT"
+            break
 
 
 def _retained_order_identity(book: _AllocationBook, target: Target) -> Target:

@@ -1,0 +1,42 @@
+{
+  "schema_version": 1,
+  "status": "PREREGISTERED_BEFORE_C_REPLAY",
+  "goal": "NOT_MET",
+  "choice": "Evaluate existing C policy against main on the same repaired research data; no new policy, threshold, rank, or stock selection.",
+  "why_now": "New independently verified583-session coverage repair changes main remove3 wealth1.17794→1.87932 and opportunity/cross-sectional context. Minor price repairs have now closed remaining source discrepancies. Earlier C failures used original frozen inputs and remain authoritative for those contracts; new research inputs materially change the comparison premise.",
+  "alternatives": [
+    {
+      "direction": "Relax opportunity-mode gate",
+      "decision": "Do not implement: only3/1/2 READY unheld NORMAL-risk episodes, clustered at2023 start; no broad supporting evidence."
+    },
+    {
+      "direction": "Expand to23 fixed2022-known research candidates",
+      "decision": "Retain source work; historical business observations and causal signal series exist, but full point-in-time execution/admission integration is unfinished."
+    },
+    {
+      "direction": "Reassess existing C exit/recovery simplification",
+      "decision": "Choose: minimal new implementation cost; code already committed/published; relevant to READY records blocked by persistent capital-damage freeze. Verify before further changes."
+    }
+  ],
+  "candidate": {
+    "local_base": "8bdff64",
+    "remote_base": "708e6e2236b5b835713768abec5cd2aba91564dd",
+    "production_sha256": "54900a9deb22fb76ae0fc6c820bfb73699d6a6eb02c1dc566857dc99b561dcc0",
+    "production_different_paths_remote_byte_verified": 8
+  },
+  "control": {
+    "local": "9f8c73af3719247f9c7dd45e9109bdd56a27732e",
+    "production_sha256": "3ad3f4b7e63215484c118d05a864a5c17390ddf5ca5442d624ab92f044fa04bc",
+    "native_root": "uquant-source-price-native-20260909"
+  },
+  "data_manifest_sha256": "d4d7e4c7e1aeeb953608ce401fcff3ccc96ef029febbfd20945c2d90210f4aa1",
+  "taxonomy_sha256": "30039de3f72219b7ea1ca333af8cc1e181700b33f3084aafd687634aef68ba74",
+  "cases": [
+    "full",
+    "remove_all_three",
+    "strict"
+  ],
+  "gates": "Validate research runner7 focused binding guards and short C sentinel first; complete869-session native readback each; compare wealth/DD/orders/first economic divergence/profit and blocked READY exposure. No full matrix on unstable candidate.",
+  "reject_or_continue": "If tradeoffs violate existing goals, retain C as rejected for this input comparison and compare supported underlying exit/recovery mechanisms; do not patch individual cases. A positive three-path screen still requires remaining goal and acceptance work; no merge or waiver.",
+  "limitations": "Research inputs use fixed-end affine convention, not a new causal raw-share execution model. Not fresh OOS. Prior protected quote-header incident retained; no protected market data queried."
+}

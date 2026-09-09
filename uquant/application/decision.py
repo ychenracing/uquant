@@ -378,8 +378,8 @@ def decision_market_context(
         for symbol in strategy_symbols
         if not self._raw[symbol].loc[:date].empty
     }
-    combined = dict(reference_panel)
-    combined.update(qualification_reference_panel)
+    # Research intervention: risk-only references retain risk and breadth roles.
+    combined = dict(qualification_reference_panel)
     combined.update(user_panel)
     broad = self._features["sh000300"]
     tech = self._features["sh000682"]

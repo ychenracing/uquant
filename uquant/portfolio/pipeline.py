@@ -637,6 +637,14 @@ def _admit_new_cores(book: _AllocationBook, *, candidates: list[str], opportunit
         return
     occupied, eligible, immature_occupied = _fresh_core_selection(book, candidates)
     selected = eligible[:max(0, book.policy.cfg.max_positions - len(occupied))]
+    # Research: excluded READY names do not donate their initial budget share.
+    unfiltered = sorted(
+        (s for s, row in book.trace.items() if row.get("entry", {}).get("block") == "READY"),
+        key=lambda s: (-book.leaders[s].score, s),
+    )
+    _, baseline_eligible, _ = _fresh_core_selection(book, unfiltered)
+    baseline_count = min(len(baseline_eligible), max(0, book.policy.cfg.max_positions - len(occupied)))
+    allocation_count = max(len(selected), baseline_count)
     for symbol in candidates:
         if symbol in occupied:
             book.record(symbol)["entry_gate"] = "EXISTING_HOLDING_OR_COMMITMENT"
@@ -649,7 +657,8 @@ def _admit_new_cores(book: _AllocationBook, *, candidates: list[str], opportunit
         if symbol not in selected:
             book.record(symbol)["entry_gate"] = "POSITION_SLOTS_EXHAUSTED"
             continue
-        weight = min(book.policy.cfg.single_core_entry_cap, budget / len(selected))
+        weight = min(book.policy.cfg.single_core_entry_cap, budget / allocation_count)
+        book.record(symbol)["research_admission_population"] = allocation_count
         if not book.leaders[symbol].mature:
             weight = min(weight, book.policy.cfg.core_admission_weight)
         if weight + 1e-12 < book.policy.cfg.min_trade_weight:

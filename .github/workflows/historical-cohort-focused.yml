@@ -5,6 +5,10 @@ on:
     branches: [codex/historical-cohort-replay-20260909]
   workflow_dispatch: {}
 
+concurrency:
+  group: historical-cohort-${{ github.ref }}
+  cancel-in-progress: true
+
 permissions:
   contents: read
 
@@ -22,8 +26,8 @@ jobs:
       - run: python -m pip install --disable-pip-version-check "uv==0.11.33"
       - run: uv sync --frozen --extra dev
       - name: Cohort and data isolation tests
-        run: uv run pytest tests/test_research_cohort_input.py tests/test_research_data_binding.py -q
+        run: uv run pytest tests/test_research_cohort_input.py tests/test_research_data_binding.py tests/test_historical_prices.py -q
       - name: Affected lint
-        run: uv run ruff check uquant/contracts/universe.py uquant/leader.py tests/test_research_cohort_input.py
+        run: uv run ruff check uquant/contracts/universe.py uquant/leader.py tests/test_research_cohort_input.py research/historical_cohort_data.py research/historical_cohort_replay.py
       - name: Affected typing
-        run: uv run mypy uquant/contracts/universe.py uquant/leader.py
+        run: uv run mypy uquant/contracts/universe.py uquant/leader.py research/historical_cohort_data.py research/historical_cohort_replay.py

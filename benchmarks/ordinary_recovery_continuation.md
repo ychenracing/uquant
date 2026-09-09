@@ -134,3 +134,16 @@ but its inherited H1 drawdown failure remains a real nominal failure. Main is
 not merged. Accepting that specific current-main drawdown baseline instead of
 the older frozen limit is a material acceptance decision requiring explicit
 user instruction; neither the order revision nor these experiments authorize it.
+
+## Explicit user H1 baseline authorization
+
+User subsequently authorizes: "允许仅该窗口采用当前 main 的回撤作为不退化基线，
+保留旧门失败记录，通过其余验收后合并 C". Current main is independently
+verified as 960539a89408cc7c1fc3937bda19c9f760095012. Only nominal no_optical /
+h1_2023 drawdown retention now uses its exact 0.2442425185317515 maximum,
+without the old additional buffer. The original 0.20205429957130803 comparison
+and its failure remain available under authorized=False. Every other comparison
+and all other acceptance remain required. This authorizes continuing C, not D/E.
+The current Absolute contract candidate identity is rebound to C's independently
+verified economic source b928db51ea6a7bbdfbe79588408717241200d44b3d98b2c39d7668b28e90259d;
+the immutable frozen contract and all Absolute thresholds remain unchanged.

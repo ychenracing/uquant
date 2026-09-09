@@ -47,6 +47,21 @@ def test_nominal_original_effective_and_unchanged_risk() -> None:
     assert check_metrics(**options) == ['champion/full wealth floor']
 
 
+def test_authorized_h1_drawdown_is_exact_and_case_scoped() -> None:
+    t = json.loads(CONTRACT_PATH.read_text())['thresholds']
+    metrics = {'final_wealth': 1.4476947005385299,
+               'max_drawdown': .2442425185317515, 'account_orders': 6}
+    args = dict(case='no_optical', window='h1_2023', metrics=metrics,
+                baseline={'final_wealth': 1.01039464268425, 'max_drawdown': .18205429957130803},
+                benchmark={'final_wealth': 1.}, thresholds=t)
+    assert check_metrics(**args) == []
+    assert check_metrics(**args, authorized=False) == ['half-year drawdown retention']
+    assert check_metrics(**{**args, 'case': 'remove_all_three'}) == ['half-year drawdown retention']
+    assert check_metrics(**{**args, 'window': 'h1_2024'}) == ['half-year drawdown retention']
+    metrics['max_drawdown'] += 1e-12
+    assert check_metrics(**args) == ['half-year drawdown retention']
+
+
 def test_short_orders_and_improvement_delta_are_unchanged() -> None:
     t = json.loads(CONTRACT_PATH.read_text())['thresholds']
     metrics = {'final_wealth': 1.4, 'max_drawdown': .1, 'account_orders': 13,

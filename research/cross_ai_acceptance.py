@@ -21,7 +21,12 @@ from uquant.attribution import build_economic_attribution
 from uquant.config import DEFAULT_CONFIG
 from uquant.contracts.strict_json import canonical_json_bytes
 from uquant.engine import code_fingerprint, performance_metrics
-from uquant.validation.acceptance_tolerance import acceptance_revision, order_ceiling, wealth_floor
+from uquant.validation.acceptance_tolerance import (
+    acceptance_revision,
+    half_year_drawdown_ceiling,
+    order_ceiling,
+    wealth_floor,
+)
 
 CONTRACT_PATH = ROOT / 'benchmarks/cross_ai_core_strategy_contract.json'
 REMOVALS = ('remove_all_three', 'no_optical')
@@ -169,7 +174,9 @@ def check_metrics(
         require(cost / DEFAULT_CONFIG.initial_cash <= t['removal_maximum_all_in_cost_initial_cash_fraction'], 'all-in cost ceiling')
     elif window in HALVES:
         require(wealth >= wealth_floor(number(baseline, 'final_wealth') * t['half_year_minimum_wealth_ratio_to_valid_baseline'], authorized=authorized), 'half-year wealth retention')
-        require(drawdown <= number(baseline, 'max_drawdown') + t['half_year_maximum_drawdown_buffer'], 'half-year drawdown retention')
+        require(drawdown <= half_year_drawdown_ceiling(
+            number(baseline, 'max_drawdown') + t['half_year_maximum_drawdown_buffer'],
+            case=case, window=window, authorized=authorized), 'half-year drawdown retention')
         require(orders <= t['half_year_maximum_orders'], 'half-year order ceiling')
     else:
         require(wealth >= wealth_floor(max(t['post2025_minimum_final_wealth'], number(benchmark, 'final_wealth') * t['post2025_benchmark_wealth_ratio']), authorized=authorized), 'disjoint later-window benchmark floor')

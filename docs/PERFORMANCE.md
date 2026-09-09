@@ -547,6 +547,12 @@ revision supersedes the historical E-only order authorization recorded above.
 Drawdown, acute-return, recovery, cost and turnover limits are unchanged;
 Absolute and Ownership contracts are outside this revision.
 
+`cross-ai-h1-drawdown-baseline-20260909-v3` records the user's subsequent
+authorization for nominal `no_optical / h1_2023` only: maximum drawdown must not
+exceed current main `960539a`'s exact **0.2442425185317515**, with no additional
+buffer. The old **0.20205429957130803** limit and failure remain in the original
+judgment. Other drawdown limits and all other gates are unchanged.
+
 Nominal and robustness reports expose original and effective judgments from
 the same validated raw metrics. Performance records both the original contract
 identity and the current revision in `acceptance_basis`; its pure comparison

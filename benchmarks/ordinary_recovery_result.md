@@ -13,6 +13,10 @@ are rejected and their code is restored to C. All experiment sources and raw
 evidence remain retained; see the continuation record. Main is not merged and
 full L4 is not claimed.
 
+The user subsequently authorized only that H1 comparison to use current main's
+exact drawdown with no extra buffer. Revision v3 implements this scope and
+preserves the earlier failure. Remaining acceptance is still required before merge.
+
 Historical screening, not a future-return claim or full production acceptance.
 The preregistered mechanism sequence and unchanged gates are in
 `ordinary_recovery_continuation.md`. Config, frozen inputs, execution and fees

@@ -1,0 +1,21 @@
+{
+  "schema_version": 1,
+  "status": "PREREGISTERED_BEFORE_REPLAY",
+  "goal": "NOT_MET",
+  "selection": "All original-frame symbols whose independently reconstructed OHLC differs from frozen by more than one cent, fixed before any repaired-price economic replay: sh688008, sh688082, sh688766.",
+  "mechanisms": {
+    "sh688008": "2024-01-02..2026-07-28 omits published2026 cash-reference adjustment .386; earlier/later feeds already match.",
+    "sh688082": "2024+ segment omits2026 .61959 cash reference; last appended6days are joined by rounded-cash constant multiplier287.01/(287.01-.62), rather than consistent whole-history affine convention.",
+    "sh688766": "2022-01-04..2023-06-13 vendor segment uses actual shareholder transfer .49 rather than issuer reference .4889; that substitution reproduces all349 disputed close rows within cent. Earlier/later source segments use reference convention."
+  },
+  "data_policy": "Use published original-reference coefficients and bounded raw OHLC to reconstruct2021..2026-08-05 OHLC of exactly these3 source-exception symbols; round6decimals uniformly. Retain earlier rows, all existing dates, source volume/amount, every other symbol and original production/frozen files. Parent is coverage-only research dataset2196267f7bb4951ac674f1963b7aaa97d508f5a38c24f461f7873a6342333d81. Explicit research_only and production_ready false.",
+  "cases": [
+    "full",
+    "remove_all_three",
+    "strict"
+  ],
+  "producer": "Unchanged native9f8c73af3719247f9c7dd45e9109bdd56a27732e/main economic3ad3f4b7e63215484c118d05a864a5c17390ddf5ca5442d624ab92f044fa04bc.",
+  "comparison": "Completed869-session coverage control per case. Independent native readback and first economic divergence, costs, equity, contribution. No parameter/rank changes.",
+  "limitation": "Fixed-end affine prices diagnose consistency with existing frozen adjustment convention; not a causal raw-share corporate-action execution engine, fresh OOS or formal contract waiver.",
+  "next_choice": "After closing these finite source defects, compare opportunity-coverage research against existing mode/qualification evidence. Do not keep changing data or strategy to select a favorable result."
+}

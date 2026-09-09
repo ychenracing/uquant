@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import math
 from dataclasses import dataclass, field, replace
+from statistics import median
 from typing import TYPE_CHECKING, Any
 
 import pandas as pd
@@ -53,6 +54,23 @@ if TYPE_CHECKING:
     from .allocator import PortfolioAllocator
 
 
+def _industry_first_candidates(candidates: list[str], leaders: dict[str, LeaderScore]) -> list[str]:
+    """Research selection among already READY names, with deterministic ties."""
+    groups: dict[str, list[str]] = {}
+    for symbol in candidates:
+        leader = leaders[symbol]
+        values = [leader.components.get(key, float("nan"))
+                  for key in ("industry_rotation_strength", "raw_ret120")]
+        if leader.industry == "unknown" or not all(math.isfinite(v) for v in values):
+            continue
+        groups.setdefault(leader.industry, []).append(symbol)
+    if not groups:
+        return []
+    best = min(groups, key=lambda group: (-median(
+        leaders[s].components["industry_rotation_strength"] for s in groups[group]), group))
+    return sorted(groups[best], key=lambda s: (-leaders[s].components["raw_ret120"], s))[:3]
+
+
 def _core_candidates(
     self: PortfolioAllocator, *, date: pd.Timestamp, user_panel: dict[str, pd.DataFrame],
     leaders: dict[str, LeaderScore], account: AccountState,
@@ -71,7 +89,12 @@ def _core_candidates(
             trace.setdefault(symbol, {}).update(entry=entry, rank_score=score.score)
         if entry["block"] == "READY":
             candidates.append(symbol)
-    return sorted(candidates, key=lambda symbol: (-leaders[symbol].score, symbol))
+    selected = _industry_first_candidates(candidates, leaders)
+    if trace is not None:
+        for symbol in candidates:
+            trace[symbol]["research_industry_selection"] = (
+                "SELECTED" if symbol in selected else "NOT_SELECTED_OR_MISSING_RANK")
+    return selected
 
 
 def _transfer_sell_filled(account: AccountState, key: str, date: pd.Timestamp) -> bool:

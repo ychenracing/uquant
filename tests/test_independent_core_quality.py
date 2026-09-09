@@ -51,10 +51,11 @@ def _scenario(monkeypatch):
         )
 
     def observe(date):
-        return _observe_resolved_strategic_candidates(
+        snapshots, _ = _observe_resolved_strategic_candidates(
             policy, date=date, account=account, risk=risk,
             panel=panel, leaders=leaders, universe=universe(date),
         )
+        return snapshots
 
     def allocate(date):
         return policy.allocate(

@@ -894,18 +894,18 @@ def _observe_resolved_strategic_candidates(
     self: StrategicPortfolioPolicy, *, date: pd.Timestamp, account: AccountState,
     risk: RiskAssessment, panel: dict[str, pd.DataFrame], leaders: dict[str, LeaderScore],
     universe: StrategicUniverseRoles,
-) -> dict[str, dict[str, float]]:
+) -> tuple[dict[str, dict[str, float]], dict[str, dict[str, int]]]:
     if account.candidate_tenure.get("strategic_repair_observed_session", 0) != date.toordinal():
         _observe_strategic_universe_and_repair(self, date=date, account=account, risk=risk, universe=universe)
         account.candidate_tenure["strategic_repair_observed_session"] = date.toordinal()
     panel = {symbol: frame for symbol, frame in panel.items() if symbol in universe.available_symbols}
     snapshots = strategic_qualification_snapshots(self, date=date, user_panel=panel, leaders=leaders)
-    observe_strategic_candidate_eligibility(date=date, snapshots=snapshots, leaders=leaders,
+    eligibility = observe_strategic_candidate_eligibility(date=date, snapshots=snapshots, leaders=leaders,
                                            risk=risk, account=account, cfg=self.cfg,
                                            independent_core_symbols=frozenset(
                                                symbol for symbol in snapshots if strict_absolute_owner_quality(
                                                    symbol=symbol, snapshots=snapshots, leaders=leaders, cfg=self.cfg)))
-    return snapshots
+    return snapshots, eligibility
 
 
 def observe_strategic_candidates(
@@ -920,14 +920,10 @@ def observe_strategic_candidates(
         date=date, user_panel=user_panel, leaders=leaders, qualification_panel=qualification_panel,
         qualification_leaders=qualification_leaders, strategic_universe=strategic_universe,
     )
-    snapshots = _observe_resolved_strategic_candidates(
+    _, eligibility = _observe_resolved_strategic_candidates(
         self, date=date, account=account, risk=risk, panel=panel, leaders=scores, universe=universe,
     )
-    return observe_strategic_candidate_eligibility(date=date, snapshots=snapshots, leaders=scores,
-                                                  risk=risk, account=account, cfg=self.cfg,
-                                                  independent_core_symbols=frozenset(
-                                                      symbol for symbol in snapshots if strict_absolute_owner_quality(
-                                                          symbol=symbol, snapshots=snapshots, leaders=scores, cfg=self.cfg)))
+    return eligibility
 
 
 def _initialize_strategic_cohort(
@@ -956,7 +952,7 @@ def _initialize_strategic_cohort(
         qualification_leaders=qualification_leaders,
         strategic_universe=strategic_universe,
     )
-    reference_snapshots = _observe_resolved_strategic_candidates(
+    reference_snapshots, _ = _observe_resolved_strategic_candidates(
         self, date=date, account=account, risk=risk, panel=resolved_panel,
         leaders=resolved_leaders, universe=resolved_universe,
     )

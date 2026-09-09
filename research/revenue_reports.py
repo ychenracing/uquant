@@ -66,20 +66,32 @@ def extract_revenue(raw, period):
     doc = parse_document(raw)
     text = " ".join(doc.text)
     date = re.search(r"公告日期\s*[:\uff1a]\s*(\d{4}-\d{2}-\d{2})", text)
-    rows = [r for r in doc.rows if 2 <= len(r) <= 7 and
+    indexed = [(i, r) for i, r in enumerate(doc.rows) if 2 <= len(r) <= 9 and
             re.fullmatch(r"营业收入(?:[\uff08(]元[\uff09)])?", re.sub(r"\s", "", r[0]))]
+    rows = [r for _, r in indexed]
     result = {"disclosed_date": date.group(1) if date else None,
               "revenue_rows": rows[:4], "status": "unverified_layout"}
     if not rows or date is None:
         return result
     row = rows[0]
-    # Accept only simple unadjusted main-metrics layouts; retain other layouts.
+    headers = " ".join(" ".join(r) for r in doc.rows[max(0, indexed[0][0] - 2):indexed[0][0]])
+    # Adjusted comparisons must be explicit and reconcile to the stated growth.
     if period.endswith("Q3") and len(row) == 5:
         revenue, growth, prior = number(row[3]), number(row[4]), None
+    elif period.endswith("Q3") and len(row) == 9 and "调整前" in headers and "调整后" in headers:
+        revenue, growth, prior = number(row[5]), number(row[8]), number(row[7])
     elif period.endswith("Q1") and len(row) == 3:
         revenue, growth, prior = number(row[1]), number(row[2]), None
     elif (len(row) == 4 and not period.endswith("Q3")) or (period.endswith("FY") and len(row) == 5):
         revenue, prior, growth = number(row[1]), number(row[2]), number(row[3])
+    elif (period.endswith("FY") and len(row) == 6 and number(row[2])
+          and number(row[3]) is not None and number(row[1]) is not None
+          and abs((number(row[1]) / number(row[2]) - 1) * 100 - number(row[3])) <= .03):
+        # Only the older third fiscal year has an adjusted/before pair.
+        revenue, prior, growth = number(row[1]), number(row[2]), number(row[3])
+    elif not period.endswith("Q3") and len(row) in {5, 6, 7} and "调整后" in headers and "调整前" in headers:
+        prior_column = 2 if headers.index("调整后") < headers.index("调整前") else 3
+        revenue, prior, growth = number(row[1]), number(row[prior_column]), number(row[4])
     else:
         return result
     if revenue is None or growth is None or revenue < 0:

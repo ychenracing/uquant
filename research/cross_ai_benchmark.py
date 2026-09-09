@@ -25,7 +25,7 @@ from research.cross_ai_strategy import (
     diagnostic_json,
     write_json,
 )
-from uquant.account import account_from_dict
+from uquant.account import account_from_dict, load_account
 from uquant.application.decision import (
     assess_decision_risk,
     bind_decision_account_identity,
@@ -35,7 +35,7 @@ from uquant.application.decision import (
 )
 from uquant.attribution import build_daily_ledger_row, build_economic_attribution
 from uquant.config import DEFAULT_CONFIG, SystemConfig
-from uquant.contracts.strict_json import canonical_json_bytes
+from uquant.contracts.strict_json import canonical_json_bytes, strict_json_loads
 from uquant.contracts.universe import default_ai_universe
 from uquant.engine import INDEX_SYMBOLS, ProductionEngine, attach_target_attribution, performance_metrics
 from uquant.execution import merge_pending_orders, plan_orders, reconcile_account_orders
@@ -48,8 +48,12 @@ from uquant.risk_sentinel import evaluate_sentinel
 from uquant.types import AccountState, Risk, RiskAssessment, Target
 
 
-def benchmark_identity(case_id: str, start: str, end: str) -> dict[str, Any]:
+def benchmark_identity(
+    case_id: str, start: str, end: str, *, extra_excluded_symbols: tuple[str, ...] = (),
+) -> dict[str, Any]:
+    case_symbols(case_id, start, extra_excluded_symbols=extra_excluded_symbols)
     identity = case_identity(case_id, start, end)
+    identity['extra_excluded_symbols'] = sorted(set(extra_excluded_symbols))
     identity['benchmark_sha256'] = hashlib.sha256(Path(__file__).read_bytes()).hexdigest()
     identity['research_account_code_sha256'] = hashlib.sha256(canonical_json_bytes({
         key: identity[key] for key in ('source_sha256', 'runner_sha256', 'benchmark_sha256')
@@ -265,15 +269,18 @@ def benchmark_decision(
             'prices': market.prices, 'equity': market.equity}
 
 
-def run_benchmark_case(*, case_id: str, start: str, end: str, output_dir: Path) -> dict[str, Any]:
+def run_benchmark_case(
+    *, case_id: str, start: str, end: str, output_dir: Path,
+    extra_excluded_symbols: tuple[str, ...] = (),
+) -> dict[str, Any]:
     if not '2023-01-03' <= start <= end <= '2026-08-05':
         raise ValueError('benchmark requires frozen historical interval')
     pd.Timestamp(start)
     pd.Timestamp(end)
-    case_symbols(case_id, start)
+    case_symbols(case_id, start, extra_excluded_symbols=extra_excluded_symbols)
     output_dir.mkdir(parents=True, exist_ok=False)
     started = time.monotonic()
-    identity = benchmark_identity(case_id, start, end)
+    identity = benchmark_identity(case_id, start, end, extra_excluded_symbols=extra_excluded_symbols)
     write_json(output_dir / 'identity.json', identity)
     engine = ProductionEngine(ROOT / 'data/frozen')
     account = AccountState.empty(DEFAULT_CONFIG.initial_cash)
@@ -295,7 +302,7 @@ def run_benchmark_case(*, case_id: str, start: str, end: str, output_dir: Path) 
             raise ValueError('benchmark requires at least two sessions')
         with gzip.open(raw, 'wb') as stream:
             for date in sessions:
-                roles = case_symbols(case_id, str(date.date()))
+                roles = case_symbols(case_id, str(date.date()), extra_excluded_symbols=extra_excluded_symbols)
                 engine.workspace.prepare(ReplayUniverse.from_symbols(
                     tradable_symbols=roles['tradable'], reference_symbols=roles['risk'], index_symbols=INDEX_SYMBOLS))
                 before_fills = len(account.fills)
@@ -355,7 +362,7 @@ def run_benchmark_case(*, case_id: str, start: str, end: str, output_dir: Path) 
             accounting = attribution['accounting']
             if not accounting['reconciled']:
                 raise RuntimeError('benchmark ledger does not reconcile')
-        if identity != benchmark_identity(case_id, start, end):
+        if identity != benchmark_identity(case_id, start, end, extra_excluded_symbols=extra_excluded_symbols):
             raise RuntimeError('benchmark identity changed during replay')
     except Exception as exc:
         status, error = 'REPLAY_ERROR', f'{error}; finalization: {type(exc).__name__}: {exc}'
@@ -373,14 +380,99 @@ def run_benchmark_case(*, case_id: str, start: str, end: str, output_dir: Path) 
     return result
 
 
+def read_benchmark_case(
+    directory: Path, *, case_id: str, start: str, end: str,
+    extra_excluded_symbols: tuple[str, ...] = (),
+) -> dict[str, Any]:
+    """Read current-input evidence, recomputing economics without another replay.
+
+    Commit-only changes are neutral; source/config/data/runtime/runner identities
+    must match. Historical evidence is never silently relabeled as current.
+    """
+    result = strict_json_loads((directory / 'result.json').read_bytes())
+    if not isinstance(result, dict):
+        raise ValueError('benchmark result must be an object')
+    seal = result.pop('canonical_sha256')
+    if hashlib.sha256(canonical_json_bytes(result)).hexdigest() != seal:
+        raise ValueError('benchmark result seal mismatch')
+    if (result['status'] != 'COMPLETE' or result['sessions'] != result['expected_sessions']
+            or result['future_holdout_used'] or not result['accounting']['reconciled']):
+        raise ValueError('incomplete or invalid benchmark result')
+    identity = result['identity']
+    expected = benchmark_identity(case_id, start, end, extra_excluded_symbols=extra_excluded_symbols)
+    if (set(identity) != set(expected)
+            or any(identity[key] != value for key, value in expected.items() if key != 'commit')
+            or strict_json_loads((directory / 'identity.json').read_bytes()) != identity):
+        raise ValueError('benchmark input identity mismatch')
+    for name, key in (('observations.jsonl.gz', 'raw_sha256'),
+                      ('final_account.json', 'final_account_sha256'),
+                      ('benchmark_state.json', 'benchmark_state_sha256')):
+        if hashlib.sha256((directory / name).read_bytes()).hexdigest() != result[key]:
+            raise ValueError(f'benchmark {name} seal mismatch')
+    account = load_account(directory / 'final_account.json')
+    if (account.code_hash != identity['research_account_code_sha256']
+            or account.initial_cash != DEFAULT_CONFIG.initial_cash
+            or account.strategic_grant or account.strategic_epochs):
+        raise ValueError('benchmark account identity mismatch')
+    rows: list[dict[str, Any]] = []
+    with gzip.open(directory / 'observations.jsonl.gz', 'rt') as stream:
+        for line in stream:
+            row = strict_json_loads(line)
+            if not isinstance(row, dict):
+                raise ValueError('benchmark observation must be an object')
+            rows.append(row)
+    engine = ProductionEngine(ROOT / 'data/frozen')
+    engine.workspace.prepare(ReplayUniverse.from_symbols(
+        tradable_symbols=(), reference_symbols=(), index_symbols=INDEX_SYMBOLS))
+    sessions = engine.workspace.common_sessions(*INDEX_SYMBOLS)
+    dates = [str(date.date()) for date in sessions if start <= str(date.date()) <= end]
+    if len(rows) < 2 or len(rows) != result['sessions'] or [row['date'] for row in rows] != dates:
+        raise ValueError('benchmark session schedule mismatch')
+    fills = []
+    for row in rows:
+        roles = case_symbols(case_id, row['date'], extra_excluded_symbols=extra_excluded_symbols)
+        if row['roles'] != diagnostic_json(roles):
+            raise ValueError('benchmark daily role mismatch')
+        if any(fill['signal_date'] >= fill['fill_date'] or fill['fill_date'] != row['date']
+               for fill in row['new_fills']):
+            raise ValueError('benchmark fill chronology mismatch')
+        fills.extend(row['new_fills'])
+    if fills != diagnostic_json(account.fills):
+        raise ValueError('benchmark raw fills differ from account')
+    if rows[-1]['state'] != strict_json_loads((directory / 'benchmark_state.json').read_bytes()):
+        raise ValueError('benchmark terminal state mismatch')
+    equity = [(pd.Timestamp(row['date']), row['equity']) for row in rows]
+    metrics = performance_metrics(
+        equity_rows=equity, fills=account.fills, orders=account.order_ledger,
+        initial_cash=account.initial_cash, risk_events=account.risk_events,
+        benchmark_total_return=result['metrics']['benchmark_total_return'])
+    metrics['final_wealth'] = equity[-1][1] / account.initial_cash
+    for field in ('final_wealth', 'max_drawdown', 'account_orders', 'fees', 'slippage_cost'):
+        if not math.isclose(metrics[field], result['metrics'][field], rel_tol=1e-12, abs_tol=1e-9):
+            raise ValueError(f'benchmark raw metric mismatch: {field}')
+    if not math.isclose(sum(row['ledger']['daily_pnl'] for row in rows),
+                        equity[-1][1] - account.initial_cash, rel_tol=1e-12, abs_tol=1e-6):
+        raise ValueError('benchmark daily PnL mismatch')
+    attribution = build_economic_attribution(
+        account=account, final_prices=rows[-1]['prices'], sessions=dates,
+        economic_start=start, economic_end=dates[-1], final_equity=equity[-1][1])
+    if (not attribution['accounting']['reconciled']
+            or attribution['by_symbol'] != result['attribution']['by_symbol']):
+        raise ValueError('benchmark symbol attribution mismatch')
+    result['canonical_sha256'] = seal
+    return result
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--case', choices=CASE_IDS, required=True)
     parser.add_argument('--start', default='2023-01-03')
     parser.add_argument('--end', default='2026-08-05')
     parser.add_argument('--output-dir', type=Path, required=True)
+    parser.add_argument('--exclude-symbol', action='append', default=[])
     args = parser.parse_args()
-    result = run_benchmark_case(case_id=args.case, start=args.start, end=args.end, output_dir=args.output_dir)
+    result = run_benchmark_case(case_id=args.case, start=args.start, end=args.end, output_dir=args.output_dir,
+                                extra_excluded_symbols=tuple(args.exclude_symbol))
     print(f"{result['status']}: {result['sessions']}/{result['expected_sessions']} sessions; {result['error']}")
     return 0 if result['status'] == 'COMPLETE' else 1
 

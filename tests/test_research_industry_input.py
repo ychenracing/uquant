@@ -68,6 +68,7 @@ def test_research_native_account_readback_requires_exact_input(tmp_path: Path) -
         assert result["status"] == "COMPLETE", result["error"]
         read_case(output, case="full", interval=["2023-01-03", "2023-01-10"],
                   source=code_fingerprint())
+
         account = load_account(output / "final_account.json")
         assert account.fills
         for order in account.order_ledger:
@@ -78,3 +79,24 @@ def test_research_native_account_readback_requires_exact_input(tmp_path: Path) -
     with pytest.raises(ValueError, match="research universe"):
         read_case(output, case="full", interval=["2023-01-03", "2023-01-10"],
                   source=code_fingerprint())
+
+
+def test_shared_score_cache_separates_inputs_and_restores_production(data_dir: Path) -> None:
+    import pandas as pd
+
+    from uquant.config import DEFAULT_CONFIG
+    from uquant.engine import ProductionEngine
+    from uquant.leader import compute_structural_leaders
+
+    engine = ProductionEngine(data_dir)
+    engine._load((*default_ai_universe().symbols, "sh000682"))
+    cache = {}
+    kwargs = dict(as_of=pd.Timestamp("2023-01-03"), tech=engine._features["sh000682"],
+                  cfg=DEFAULT_CONFIG, score_cache=cache)
+    old = compute_structural_leaders(engine._features, **kwargs)
+    with research_industry_input(REVIEW, expected_sha256=REVIEW_SHA):
+        new = compute_structural_leaders(engine._features, **kwargs)
+        assert new is not old
+        assert new["sz002371"].industry == "equipment"
+        assert old["sz002371"].industry == "pcb"
+    assert compute_structural_leaders(engine._features, **kwargs) is old

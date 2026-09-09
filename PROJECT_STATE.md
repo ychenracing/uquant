@@ -1,3 +1,16 @@
+Source-integrity and coverage checkpoint — current:
+- NOT_MET; PR56 remains Draft, main960539a unchanged. Original107MB delivery closed; new161,703,516-byte checkpoint saved,3318 evidence files verified, SHA256f17ae691d45beea506350ab553898865756246ca28954d749f781dc3eb478c5e (source_integrity_archive.json).
+- Original34 stocks: all bounded raw prices obtained;181 effective original-notice cash/share reference coefficients verified from183 PDFs.31 symbols' full overlap OHLC matches within cent;3 price-source exceptions explained, separately preregistered.
+- Unit-only correction replaces volume+amount on41,506 rows. All3 native869-session paths reproduce entire baseline metrics, equity, ledger and attribution. Scores/state/identifiers can differ. Close unit-error-as-profit-cause hypothesis.
+- Missing history: sh68834799sessions and sz000636484sessions inserted only in a versioned research copy. Three869-session native readbacks pass. Full wealth31.43602578→31.44972572; remove3 1.17794432→1.87932412, DD20.6961%→19.8545%, orders15→25; strict wealth2.53740564/DD12.5532% unchanged. This is data repair, not strategy alpha or an acceptance waiver.
+- First remove3 economic divergence2023-01-18: corrected breadth60 .44643 vs .38889 changes CHOPPY to TREND with unchanged NORMAL risk/cap1.0; admits existing sh688200/sh688766. Neither repaired symbol creates direct trade profit. Later profits/positions are fully native-replayed.
+- 23 historical research candidates:109 original action coefficients verified,6suspensions+IPO explained,94 annual business observations and1264 causal-signal prefix checks complete. Annual observations do not establish exhaustive intrayear membership. Losing/risk-warning issuer retained;25 initial boundary cases remain unresolved.
+- Active: three price-consistency native paths on immutable local9f8c73af/main-policy3ad3..., versioned research datad4d7e4c7..., correcting only3 preregistered source exceptions. Fixed-end affine convention is a diagnostic, not a causal raw-share execution engine.
+- All production/frozen membership, inputs and contracts unchanged. Previous source-isolation quote-header incident and rejected economic hypotheses retained. No threshold/rank search; no full acceptance or CI PASS claim.
+
+---
+Earlier checkpoints:
+
 # PROJECT_STATE
 
 > Low-token recovery index. This file is a routing aid, not authority for mutable branch, SHA, CI, artifact, or acceptance facts. Resolve those from GitHub when they matter. Do not preload historical handoffs, logs, or evidence unless the active task requires them.

@@ -449,7 +449,6 @@ def research_industry_input(path: Path, *, expected_sha256: str) -> Iterator[AIU
         _RESEARCH_INPUT.reset(token)
 
 
-
 @contextmanager
 def research_cohort_input(path: Path, *, expected_sha256: str) -> Iterator[AIUniverse]:
     """Bind a dated research entry cohort; default production membership stays frozen."""

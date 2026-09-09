@@ -1,0 +1,17 @@
+{
+  "research_only": true,
+  "formal_acceptance": false,
+  "registered_before_candidate": true,
+  "policy": "Independent main-policy industry-input control, not C and not the scoring-role intervention",
+  "control_source": "3ad3f4b7e63215484c118d05a864a5c17390ddf5ca5442d624ab92f044fa04bc",
+  "review_sha256": "30039de3f72219b7ea1ca333af8cc1e181700b33f3084aafd687634aef68ba74",
+  "hypothesis": "Corrected-industry gross ranking advantage may survive existing entry eligibility, available capital, next-open execution and costs when choosing ordinary candidates.",
+  "intervention": "After unchanged READY evaluation, choose the industry with largest median industry_rotation_strength (industry-name ascending tie break), then at most three finite candidates by raw_ret120 descending and symbol ascending. Do not replace score values or alter strategic owner selection, pending orders, position sizing, retained holdings, exits or repair permission predicates.",
+  "missing": "Nonfinite industry strength or ret120 is not a valid rank; exclude from the rank selection and record it. Unknown industry is not evidence of an industry and cannot win this selection.",
+  "existing_evidence": "Corrected gross industry-first ranking positive in both 20/60-day and early/late slices; late samples sparse and reused. Existing native accounts have multiple READY symbols on full107/remove3 84/strict60 days, not independent opportunities.",
+  "sequence": "Focused selection and safety checks, 2023-01-03..2023-01-20 native sentinel, then remove_all_three full historical account first. Reuse unchanged native controls. Only if informative and economically promising continue strict and full sentinels/accounts.",
+  "diagnostic_screen": "For the initial removal account, require wealth above its corrected main control1.1779443180726963 without drawdown above0.20696073365474144 before spending on wider validation. This is a research triage rule, not a replacement or relaxation of any frozen acceptance threshold.",
+  "falsification": "Lower net wealth or higher drawdown rejects this candidate as a joint-quality improvement. No ordinary trades changing rejects the claim that this selection seam can transmit the observed gross advantage on this path. Trace selected candidates, blockers and actual orders before choosing another mechanism.",
+  "failure_route": "If gross advantage disappears after eligibility or capital, inspect the actual blocker and rejected opportunities, do not tune industry/momentum thresholds. If selection works but membership/independent evidence remains missing, proceed to dated opportunity coverage and data feasibility. Preserve successful holdings and all failures; no Future Holdout.",
+  "delivery": "Keep PR56 Draft; preserve isolated producer and receipts. Do not promote this research policy or revised input to main."
+}

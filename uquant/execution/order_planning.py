@@ -2,8 +2,9 @@
 
 from __future__ import annotations
 
+from uquant.contracts.universe import decision_ai_universe
+
 from ..config import SystemConfig
-from ..contracts.universe import REQUIRED_AI_UNIVERSE_SHA256, default_ai_universe
 from ..portfolio_core import restoration_trade_weight
 from ..types import (
     ATTRIBUTION_IDENTITY_FIELDS,
@@ -106,13 +107,13 @@ def _validate_new_buy_identity(
         raise RuntimeError(f"new BUY for {target.symbol} has incompatible attribution: {exc}") from exc
     retained_identity = _find_retained_buy_identity(target=target, account=account, cfg=cfg)
     identity_signal_date = retained_identity.signal_date if retained_identity is not None else signal_date
-    industry = default_ai_universe().industry_of(
+    industry = decision_ai_universe().industry_of(
         target.symbol,
         identity_signal_date,
     )
     if industry == "unknown":
         raise RuntimeError(f"new BUY for {target.symbol} has no point-in-time AI-universe membership")
-    if target.industry_at_entry != industry or target.industry_manifest_sha256 != REQUIRED_AI_UNIVERSE_SHA256:
+    if target.industry_at_entry != industry or target.industry_manifest_sha256 != decision_ai_universe().sha256:
         raise RuntimeError(f"new BUY for {target.symbol} has invalid point-in-time industry attribution")
     try:
         expected_event_id = derive_attribution_event_id(

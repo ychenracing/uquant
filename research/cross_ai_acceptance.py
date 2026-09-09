@@ -20,6 +20,7 @@ from uquant.account import load_account
 from uquant.attribution import build_economic_attribution
 from uquant.config import DEFAULT_CONFIG
 from uquant.contracts.strict_json import canonical_json_bytes
+from uquant.contracts.universe import decision_ai_universe, default_ai_universe
 from uquant.engine import code_fingerprint, performance_metrics
 from uquant.validation.acceptance_tolerance import acceptance_revision, order_ceiling, wealth_floor
 
@@ -58,6 +59,10 @@ def read_case(
     if result['future_holdout_used'] or not result['accounting']['reconciled']:
         raise ValueError('protected data or unreconciled account')
     identity = result['identity']
+    expected_research = (decision_ai_universe().sha256
+                         if decision_ai_universe() != default_ai_universe() else None)
+    if identity.get('research_universe_sha256') != expected_research:
+        raise ValueError('case research universe identity mismatch')
     expected_config = DEFAULT_CONFIG.to_dict() if effective_config is None else effective_config
     expected_config_sha = config_payload_sha256(expected_config)
     expected_runner = runner_sha256 or hashlib.sha256((ROOT / 'research/cross_ai_strategy.py').read_bytes()).hexdigest()

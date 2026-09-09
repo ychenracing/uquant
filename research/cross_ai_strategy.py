@@ -33,7 +33,7 @@ from uquant.attribution import build_daily_ledger_row, build_economic_attributio
 from uquant.config import DEFAULT_CONFIG, SystemConfig, config_fingerprint
 from uquant.contracts.runtime_identity import runtime_environment_provenance
 from uquant.contracts.strict_json import canonical_json_bytes, strict_json_loads
-from uquant.contracts.universe import default_ai_universe
+from uquant.contracts.universe import decision_ai_universe, default_ai_universe
 from uquant.engine import INDEX_SYMBOLS, ProductionEngine, code_fingerprint, performance_metrics
 from uquant.market import ReplayUniverse
 from uquant.models.strategic_universe import build_strategic_universe_declaration
@@ -55,7 +55,7 @@ def case_symbols(
     if any(not isinstance(symbol, str) or not re.fullmatch(r"(?:sh|sz)[0-9]{6}", symbol)
            or symbol in INDEX_SYMBOLS for symbol in extra_excluded_symbols):
         raise ValueError("extra exclusions must be canonical stock symbols, never market indexes")
-    universe = default_ai_universe()
+    universe = decision_ai_universe()
     if set(extra_excluded_symbols) - {member.symbol for member in universe.members}:
         raise ValueError("extra exclusions must belong to the frozen stock universe")
     available = universe.symbols_as_of(as_of)
@@ -182,6 +182,8 @@ def case_identity(
         "universe_sha256": hashlib.sha256(
             (ROOT / "uquant/contracts/resources/ai_universe_manifest.json").read_bytes()
         ).hexdigest(),
+        **({"research_universe_sha256": decision_ai_universe().sha256}
+           if decision_ai_universe() != default_ai_universe() else {}),
         "runner_sha256": hashlib.sha256(Path(__file__).read_bytes()).hexdigest(),
         "commit": commit,
     }

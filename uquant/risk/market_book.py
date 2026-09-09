@@ -11,7 +11,8 @@ import pandas as pd
 
 from ..config import SystemConfig
 from ..features import cross_section_returns, scalar
-from ..leader import INDUSTRY, REFERENCE_UNIVERSE
+from ..industry import decision_industries
+from ..leader import REFERENCE_UNIVERSE
 from ..market_risk import (
     EVIDENCE_FAMILY_MEMBERS,
     build_base_market_family_snapshot,
@@ -73,8 +74,9 @@ def _present_reference_symbols(
         for symbol in REFERENCE_UNIVERSE
         if symbol in reference_panel and reference_panel[symbol].index.min() <= date
     ]
-    industries = {INDUSTRY.get(symbol, "unknown") for symbol in present}
-    expected_industries = {INDUSTRY.get(symbol, "unknown") for symbol in expected} - {"unknown"}
+    mapping = decision_industries(str(date.date()))
+    industries = {mapping.get(symbol, "unknown") for symbol in present}
+    expected_industries = {mapping.get(symbol, "unknown") for symbol in expected} - {"unknown"}
     if len(present) < max(3, math.ceil(0.80 * len(expected))) or len(industries - {"unknown"}) < min(
         5, len(expected_industries)
     ):
@@ -139,13 +141,14 @@ def _collect_reference_observations(
     cfg: SystemConfig,
 ) -> _ReferenceObservations:
     result = _ReferenceObservations([], [], [], [], {}, {}, {})
+    mapping = decision_industries(str(date.date()))
     for symbol in present:
         row = reference_panel[symbol].loc[date]
         ret5 = scalar(row, "ret5")
         close = scalar(row, "close")
         ma20 = scalar(row, f"ma{cfg.trend_fast}")
         ma60 = scalar(row, f"ma{cfg.trend_medium}")
-        industry = leaders[symbol].industry if symbol in leaders else INDUSTRY.get(symbol, "unknown")
+        industry = leaders[symbol].industry if symbol in leaders else mapping.get(symbol, "unknown")
         if math.isfinite(ret5):
             result.fast_returns.append(ret5)
             result.sector_returns.setdefault(industry, []).append(ret5)

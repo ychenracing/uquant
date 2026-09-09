@@ -94,6 +94,7 @@ class AIUniverse:
     members: tuple[UniverseMember, ...]
     sha256: str
     industry_revisions: tuple[tuple[str, date, str], ...] = ()
+    research_cohort: bool = False
 
     @property
     def symbols(self) -> tuple[str, ...]:
@@ -441,6 +442,79 @@ def research_industry_input(path: Path, *, expected_sha256: str) -> Iterator[AIU
     )
     if _RESEARCH_INPUT.get() is not None:
         raise RuntimeError("research industry contexts cannot be nested")
+    token = _RESEARCH_INPUT.set(universe)
+    try:
+        yield universe
+    finally:
+        _RESEARCH_INPUT.reset(token)
+
+
+
+@contextmanager
+def research_cohort_input(path: Path, *, expected_sha256: str) -> Iterator[AIUniverse]:
+    """Bind a dated research entry cohort; default production membership stays frozen."""
+    raw = path.read_bytes()
+    if hashlib.sha256(raw).hexdigest() != expected_sha256:
+        raise ValueError("research cohort file SHA-256 mismatch")
+    payload = read_json_bytes(raw, label="research cohort")
+    if (payload.get("schema_version") != 1
+            or payload.get("research_only") is not True
+            or payload.get("production_ready") is not False
+            or payload.get("selection_policy") != "fixed_disclosed_entry_cohort"):
+        raise ValueError("cohort must be an explicitly fixed research-only entry cohort")
+    parent = hashlib.sha256(ai_universe_manifest_bytes()).hexdigest()
+    if payload.get("parent_frozen_manifest_sha256") != parent:
+        raise ValueError("research cohort frozen parent mismatch")
+    known_by = parse_date(payload.get("known_by"), label="known_by")
+    if known_by >= date(2026, 8, 5):
+        raise ValueError("research cohort cannot require protected future evidence")
+    frame = payload.get("frame_dispositions")
+    rows = payload.get("members")
+    if not isinstance(frame, list) or not isinstance(rows, list) or len(rows) < 3:
+        raise ValueError("research cohort requires a complete frame and at least three members")
+    dispositions: dict[str, str] = {}
+    for item in frame:
+        if (not isinstance(item, dict) or not isinstance(item.get("symbol"), str)
+                or not _SYMBOL.fullmatch(item["symbol"])
+                or item["symbol"] in dispositions
+                or item.get("status") not in {"supported", "outside_scope", "unresolved"}):
+            raise ValueError("research cohort frame is malformed or duplicated")
+        dispositions[item["symbol"]] = item["status"]
+    members: list[UniverseMember] = []
+    seen: set[str] = set()
+    for row in rows:
+        if not isinstance(row, dict):
+            raise ValueError("research cohort member is malformed")
+        symbol = row.get("symbol")
+        industry = row.get("industry")
+        if (not isinstance(symbol, str) or symbol in seen
+                or dispositions.get(symbol) != "supported"
+                or not isinstance(industry, str) or industry not in CANONICAL_INDUSTRIES):
+            raise ValueError("research cohort member is duplicated, foreign or unsupported")
+        effective = parse_date(row.get("effective_from"), label="effective_from")
+        disclosed = parse_date(row.get("source_disclosed_date"), label="source_disclosed_date")
+        if effective != known_by + timedelta(days=1) or disclosed > known_by:
+            raise ValueError("research cohort admission precedes its disclosed evidence")
+        source_sha = sha256_bytes(row.get("source_sha256"), label="cohort source")
+        source_url = row.get("source_url")
+        if not isinstance(source_url, str) or not source_url.startswith("https://"):
+            raise ValueError("research cohort requires an original source URL")
+        seen.add(symbol)
+        members.append(UniverseMember(
+            symbol=symbol, ai_domain=industry, industry=industry,
+            effective_from=effective, effective_to=None, tradable=True,
+            evidence=f"{source_url}#sha256={source_sha}", reviewed_at=known_by,
+        ))
+    if seen != {symbol for symbol, status in dispositions.items() if status == "supported"}:
+        raise ValueError("research cohort omits supported frame members")
+    universe = AIUniverse(
+        members=tuple(sorted(members, key=lambda member: member.symbol)),
+        sha256=canonical_sha256({"schema": "research-cohort-v1", "parent": parent,
+                                 "cohort_sha256": expected_sha256}),
+        research_cohort=True,
+    )
+    if _RESEARCH_INPUT.get() is not None:
+        raise RuntimeError("research input contexts cannot be nested")
     token = _RESEARCH_INPUT.set(universe)
     try:
         yield universe

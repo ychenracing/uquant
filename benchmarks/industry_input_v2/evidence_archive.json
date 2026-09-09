@@ -1,0 +1,10 @@
+{
+  "path": "/dev/shm/uquant_taxonomy_integration_evidence_20260909.tar.gz",
+  "bytes": 107316291,
+  "sha256": "01cbb2efc0451086ab067296767123e5faa5cd7b45322eb9d01f62df252aad62",
+  "members_verified": 73,
+  "daily_envelope_directories_omitted": "Complete hash-verified observations.jsonl.gz retained for every run; redundant per-day envelopes remain locally.",
+  "persistent_upload_status": "FAILED",
+  "failure": "Prepared transfer failed; diagnostic logs show proxy connection refused/timeouts. No successful finalization or persistent file ID.",
+  "local_archive_sha256_verified": true
+}

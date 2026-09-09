@@ -66,6 +66,7 @@ def _risk(**overrides: object) -> RiskAssessment:
         "evidence": {
             "freeze_new_risk": True,
             "reference_coverage": 1.0,
+            "reference_visible_groups": ["compute", "equipment", "materials"],
             "transition_damage": 0.10,
             "sector_guard_active": False,
             "strategic_damage_guard": False,

@@ -480,11 +480,13 @@ def assess_decision_risk(
         sentinel_assessment=sentinel,
         sentinel_opportunity=account.opportunity,
     )
-    # Bounded rearm needs causal coverage before allocation, while the
-    # established qualification routes must keep reading the frozen risk
-    # evidence surface.  Publishing every reference diagnostic here would
-    # silently turn group-balanced diagnostics into new economic inputs.
+    # Publish only admission coverage and its members before allocation.
+    # Keep the existing risk/market values: the full reference diagnostics
+    # are still attached after allocation, not fed into risk classification.
     risk.evidence["reference_coverage"] = market.reference_context.coverage
+    risk.evidence["reference_visible_groups"] = list(market.reference_context.visible_groups)
+    risk.evidence["reference_visible_symbols"] = list(market.reference_context.visible_symbols)
+    risk.evidence["reference_expected_symbols"] = list(market.reference_context.expected_symbols)
     risk.evidence["configured_user_universe_size"] = len(inputs.user_symbols)
     risk.evidence["universe_size_is_diagnostic_only"] = True
     latest_causal = market.causal_timeline.sentinel_rows[-1] if market.causal_timeline.sentinel_rows else None

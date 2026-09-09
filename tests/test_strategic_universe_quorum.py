@@ -75,6 +75,8 @@ def _risk() -> RiskAssessment:
             "broad_ret120": 0.12,
             "tech_ret120": 0.20,
             "risk_anchor_group_count": 3,
+            "reference_visible_groups": ["compute", "equipment", "materials"],
+            "reference_coverage": 1.0,
         },
         reasons=(),
         shock_state="NONE",

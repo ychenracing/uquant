@@ -11,10 +11,10 @@
 
 ## Active workstream
 
-- Current comparison work: PR #55, `Evaluate simple ordinary replacement with sealed current-input evidence`; PR #48 is historical and merged.
-- Resolve PR #55 status before continuing; do not redo still-valid evidence.
+- Current continuation: PR #56, ordinary structural exit, entry simplification and capital recovery. PR #55's standalone comparison and PR #48 are historical; preserve their failed evidence.
+- Resolve PR #56 head/status and candidate decision before continuing; do not redo still-valid evidence.
 - Objective: improve cross-AI trend discovery, holding, recovery, and diversification away from direct dependence on the three optical leaders while simplifying the core allocator.
-- The PR and `benchmarks/simple_ordinary_replacement_plan.md` / `benchmarks/simple_ordinary_replacement_result.md` record this comparison's fixed thresholds and failed replacement decision. Existing production contracts remain unchanged.
+- The PR and `benchmarks/ordinary_recovery_continuation.md` record the production baseline, preregistered mechanisms and failed candidate decisions. Existing production contracts remain unchanged. Four screening cases alone are not full acceptance.
 
 ## Guardrails
 
@@ -24,6 +24,6 @@
 
 ## Freshness rule
 
-Before acting on mutable state, verify the current `main`, PR #55 head/status, latest relevant PR comments, and applicable checks. If this index conflicts with current GitHub state or the task's explicit contract, GitHub/task authority wins and this file should be updated narrowly.
+Before acting on mutable state, verify the current `main`, PR #56 head/status, latest relevant PR comments, and applicable checks. If this index conflicts with current GitHub state or the task's explicit contract, GitHub/task authority wins and this file should be updated narrowly.
 
 _Last reviewed: 2026-09-09._

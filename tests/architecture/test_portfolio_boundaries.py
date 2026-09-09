@@ -253,6 +253,9 @@ elif not broken:
 '''
     ).body
     projected = copy.deepcopy(node)
+    assert ast.get_docstring(projected) == "Confirm absolute price damage; relative maturity cannot veto an exit."
+    projected.body[0] = ast.Expr(value=ast.Constant(
+        value="Reuse the existing per-symbol damage confirmation across owner gaps."))
     start = -len(observation) - 2
     assert [ast.dump(item) for item in projected.body[start:-2]] == [
         ast.dump(item) for item in observation

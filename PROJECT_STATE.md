@@ -11,6 +11,8 @@
 
 ## Active workstream
 
+- Follow-up: the 107,316,291-byte integration archive is SAVED, libfile_399d88b00ee48191aa4ffd31a1f0979e, exact SHA-256 verified after fresh download. evidence_archive.json supersedes older failed-upload status. Historical coverage gaps block expanded-universe replay, not all within-pool diagnosis. See continuous_result.md follow-up correction; admissions versus induced concentration is proposed, not run.
+
 - Latest continuous-goal continuation: `benchmarks/industry_input_v2/continuous_result.md`. Scoring-only reference isolation reproduces strict wealth2.53740564/DD.12553223 with risk addition retained; causal diagnosis, not ordinary-account profit improvement. Fixed industry-first native removal candidate rejected: wealth.89246649 vs1.17794432 control, DD.19077273 vs.20696073. Both new raw archives saved with adjacent receipts. Historical174-code fund inventory is NOT an eligible AI universe; dated membership/exit and complete new-member data remain unresolved; original2022 sources inaccessible. Separately fixed a reproduced same-day reference-membership score-cache collision;4focused checks/Ruff/mypy pass. PR56 remains Draft/NOT_MET; no new full acceptance or local economic run pending. Read new report first; do not repeat completed experiments or use them as new-cache-source economic acceptance.
 
 - Current continuation: PR #56, ordinary structural exit, entry simplification and capital recovery. PR #55's standalone comparison and PR #48 are historical; preserve their failed evidence.

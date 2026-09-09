@@ -119,9 +119,10 @@ four-company sample. These are specific input gaps, not requests to lower goals.
 
 Both new full-account native archives were saved and their members verified;
 see `score_role_archive.json` and `industry_account_archive.json`. The earlier
-107,316,291-byte integration archive remains locally intact with its original
-hash, but this turn's prescribed upload retry also failed. Its persistence gap
-is not resolved by the smaller new archives.
+107,316,291-byte integration archive is now saved too: the follow-up used
+conversation-workspace staging, then downloaded the saved version and verified
+the original complete SHA-256. Its 74 entries comprise 73 evidence files plus
+the checksum manifest. Earlier failed transfers remain in evidence_archive.json.
 
 The control and both isolated research producers are remotely preserved.
 PR56 retains its original C strategy plus the isolated engineering cache fix
@@ -155,3 +156,20 @@ acceptance is claimed. The new PR-source fingerprint is
 b67998bf4f355752ba03765f65f39a24aa24dc2a71aad71e31847a25198ffe74.
 The two economic experiments used separate engines and preserved original
 producer branches; their results are not relabeled as this new source.
+
+## Follow-up decision correction
+
+The historical-data gap blocks expanded-universe validation, not every possible
+within-pool investigation. Do not repeat the existing opportunity-capture audit.
+A bounded next question is whether the rejected industry selector loses through
+changed admissions or the induced concentration: the observed first target
+changes both. Per-symbol PnL reconciliation cannot separate these mechanisms.
+Inspect existing daily targets and execution first. Only if this yields a new,
+falsifiable premise, preregister an executable intervention retaining existing
+per-name allocation caps and leaving freed cash idle, with no redistribution or
+new threshold search. Preserve all risk/repair authority. This is a proposed
+diagnostic, not an already implemented or validated strategy. If the admission
+policy still loses, close this causal premise and prioritize dated incremental
+information for the existing 34 names before broadening historical coverage.
+Neither a fixed-pool improvement nor additional analysis establishes fresh OOS
+generalization. Do not call this the proven most likely profitable direction.

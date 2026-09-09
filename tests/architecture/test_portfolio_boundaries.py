@@ -235,7 +235,7 @@ def _normalized_method(node: ast.FunctionDef) -> str:
 
 
 def _project_causal_lifecycle_exit(node: ast.FunctionDef) -> ast.FunctionDef:
-    """Project only the exact session clock change back to the frozen counter."""
+    """Project reviewed clock and maturity-veto removal; preserve damage rules."""
     observation = ast.parse(
         '''
 clock = f"lifecycle_exit_session:{symbol}"
@@ -261,6 +261,17 @@ elif not broken:
         "account.replacement_tenure[key] = "
         "account.replacement_tenure.get(key, 0) + 1 if broken else 0"
     ).body
+    damage = next(item for item in projected.body if isinstance(item, ast.Assign)
+                  and any(isinstance(target, ast.Name) and target.id == "broken" for target in item.targets))
+    expected_damage = ast.parse('''
+broken = bool(
+    scalar(row, "close") < scalar(row, f"ma{self.cfg.trend_medium if protected_winner else self.cfg.trend_fast}")
+    and scalar(row, f"ret{self.cfg.trend_fast}", 0.0) <= (-0.15 if protected_winner else -0.08)
+)
+''').body[0]
+    assert ast.dump(damage) == ast.dump(expected_damage)
+    assert isinstance(damage.value, ast.Call) and isinstance(damage.value.args[0], ast.BoolOp)
+    damage.value.args[0].values.insert(0, ast.parse("not leader.mature", mode="eval").body)
     return projected
 
 
@@ -878,6 +889,8 @@ def test_portfolio_leaders_moved_leader_methods_are_immutable_ast_exact() -> Non
         ("elif not broken:", "elif broken:"),
         (">= self.cfg.replacement_confirm_days", ">= 1"),
         (">= self.cfg.min_hold_days", ">= 1"),
+        ("else -0.08", "else -0.07"),
+        ("self.cfg.trend_medium if protected_winner", "self.cfg.trend_fast if protected_winner"),
     ),
 )
 def test_portfolio_lifecycle_exit_projection_rejects_clock_and_rule_mutations(

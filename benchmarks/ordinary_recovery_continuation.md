@@ -37,3 +37,19 @@ If A fails, retain its evidence and diagnose the first changed orders before
 choosing a different mechanism. Do not sweep the existing thresholds, rerun
 unaffected baseline cases, or claim all possible improvements are exhausted.
 Only a passing final production candidate may be merged as an economic change.
+
+## Candidate B: remove the immature ordinary admission slot
+
+A improved minus-sz300666 wealth to 0.9873264004522482, but failed both the
+wealth floor and order ceiling (24 orders, DD 0.20550793548711233). Early
+structural exit worked; subsequent redeployment added turnover and losses.
+Do not change a threshold to promote it.
+
+Before B economics: retain A's absolute exit, remove the ordinary immature
+early-admission slot and its occupied-slot special handling. Existing shared
+qualification remains evidence, but new ordinary CORE admission requires own
+current maturity. Strategic formation/owner rules, independent account repair,
+the separately authorized long-pullback route, existing filled holdings and
+valid pending commitments retain their existing permissions. No new clocks,
+parameters, ranking or risk permission. Reuse the same fixed comparison gates.
+This tests deletion of a mechanism, not a search over maturity thresholds.

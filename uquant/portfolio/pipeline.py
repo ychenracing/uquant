@@ -574,19 +574,13 @@ def _failed_deployment_awaits_settlement(account: AccountState) -> bool:
 
 def _fresh_core_selection(
     book: _AllocationBook, candidates: list[str],
-) -> tuple[set[str], list[str], bool]:
+) -> tuple[set[str], list[str]]:
     """Select new names without reallocating existing holdings or BUY commitments."""
     occupied = (book.owned | {s for s, w in book.weights_now.items() if w > 0}
                 | {s for s, w in book.committed.items() if w > 0}
                 | {order.symbol for order in book.account.pending_orders})
     fresh = [s for s in candidates if s not in occupied]
-    immature_occupied = any(
-        s not in book.owned and w > 0 and (s not in book.leaders or not book.leaders[s].mature)
-        for s, w in book.committed.items()
-    )
-    early = next((s for s in fresh if not book.leaders[s].mature), None) if not immature_occupied else None
-    eligible = [s for s in fresh if book.leaders[s].mature or s == early]
-    return occupied, eligible, immature_occupied
+    return occupied, [s for s in fresh if book.leaders[s].mature]
 
 
 def _ordinary_admission_budget(book: _AllocationBook) -> float | None:
@@ -612,23 +606,19 @@ def _admit_new_cores(book: _AllocationBook, *, candidates: list[str], opportunit
         for symbol in candidates:
             book.record(symbol)["entry_gate"] = "ORDINARY_MARKET_EVIDENCE_UNAVAILABLE"
         return
-    occupied, eligible, immature_occupied = _fresh_core_selection(book, candidates)
+    occupied, eligible = _fresh_core_selection(book, candidates)
     selected = eligible[:max(0, book.policy.cfg.max_positions - len(occupied))]
     for symbol in candidates:
         if symbol in occupied:
             book.record(symbol)["entry_gate"] = "EXISTING_HOLDING_OR_COMMITMENT"
             continue
         if symbol not in eligible:
-            book.record(symbol)["entry_gate"] = (
-                "IMMATURE_CORE_SLOT_OCCUPIED" if immature_occupied else "IMMATURE_CORE_LOWER_RANK"
-            )
+            book.record(symbol)["entry_gate"] = "ORDINARY_CORE_NOT_MATURE"
             continue
         if symbol not in selected:
             book.record(symbol)["entry_gate"] = "POSITION_SLOTS_EXHAUSTED"
             continue
         weight = min(book.policy.cfg.single_core_entry_cap, budget / len(selected))
-        if not book.leaders[symbol].mature:
-            weight = min(weight, book.policy.cfg.core_admission_weight)
         if weight + 1e-12 < book.policy.cfg.min_trade_weight:
             book.record(symbol)["entry_gate"] = "ORDINARY_INITIAL_CAPITAL_BELOW_TRADE_MINIMUM"
             continue

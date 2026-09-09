@@ -12,9 +12,23 @@ from uquant.validation.promotion import AI_ERA_POLICY, _hard_violations
 def test_wealth_not_profit_and_bounded_order_revision() -> None:
     assert wealth_floor(1.5) == 1.35
     assert wealth_floor(1.5, authorized=False) == 1.5
-    assert [order_ceiling(n) for n in (12, 15, 20, 25)] == [12, 20, 22, 25]
+    assert [order_ceiling(n) for n in (12, 15, 20, 25)] == [12, 20, 32, 25]
     assert order_ceiling(15, authorized=False) == 15
     assert acceptance_revision()['authorized_after_observing_candidate'] is True
+
+
+def test_authorized_32_orders_does_not_relax_wealth_risk_or_short_windows() -> None:
+    t = json.loads(CONTRACT_PATH.read_text())['thresholds']
+    metrics = {'final_wealth': 2.4485949990159668, 'max_drawdown': .15838911160983737,
+               'account_orders': 32, 'annual_turnover': 1., 'fees': 1., 'slippage_cost': 1.}
+    args = dict(case='remove_all_three', window='continuous_ai_era', metrics=metrics,
+                baseline={'final_wealth': .9109325976972311},
+                benchmark={'final_wealth': 1.}, thresholds=t)
+    assert check_metrics(**args) == []
+    assert 'removal order ceiling' in check_metrics(**args, authorized=False)
+    metrics['account_orders'] = 33
+    assert check_metrics(**args) == ['removal order ceiling']
+    assert order_ceiling(12) == 12 and order_ceiling(25) == 25
 
 
 def test_nominal_original_effective_and_unchanged_risk() -> None:

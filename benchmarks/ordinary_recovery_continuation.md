@@ -73,3 +73,11 @@ predicts the resulting account. Do not tighten its thresholds, add a new cap,
 change risk authority or tune sizing. Continue managing real legacy long-pullback
 holdings and original pending remainders under their original identities and
 exit safeguards. Reuse the fixed four screens and all promotion contracts.
+## Explicit user revision after candidate C
+
+2026-09-09: "可以接受32笔订单。22 笔总订单上限并非是不可突破的硬约束。
+继续做完，推送到main分支". The continuous screen's former 22-order ceiling is
+now 32. All earlier rejected judgments above remain historical. Wealth floors,
+drawdown, costs, turnover, short-window and Absolute/Ownership contracts are
+unchanged. C passes the four screening prerequisites under this explicit
+revision, not under the original rule; further acceptance remains required.

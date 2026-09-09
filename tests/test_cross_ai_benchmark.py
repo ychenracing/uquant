@@ -1,12 +1,17 @@
 """Bounded checks of benchmark execution and fail-closed evidence."""
 from __future__ import annotations
 
+import gzip
+import hashlib
+
 import pandas as pd
 import pytest
 
+import research.cross_ai_benchmark as benchmark
 from research.cross_ai_benchmark import correlation_groups, submit_targets
 from uquant.account import account_from_dict
 from uquant.config import DEFAULT_CONFIG
+from uquant.contracts.strict_json import canonical_json_bytes, strict_json_loads
 from uquant.engine import ProductionEngine
 from uquant.types import AccountState, Target
 
@@ -46,3 +51,133 @@ def test_missing_correlation_is_explicit_and_nonfinite_price_fails():
     panel['sz300308'].loc[dates[-1], 'close'] = float('nan')
     with pytest.raises(ValueError, match='nonfinite'):
         correlation_groups(panel, list(panel), dates[-1], DEFAULT_CONFIG)
+
+
+@pytest.fixture(scope='module')
+def excluded_replay(tmp_path_factory):
+    output = tmp_path_factory.mktemp('simple-benchmark') / 'excluded'
+    result = benchmark.run_benchmark_case(
+        case_id='full', start='2023-01-03', end='2023-01-10', output_dir=output,
+        extra_excluded_symbols=('sz300666',),
+    )
+    assert result['status'] == 'COMPLETE', result['error']
+    return output
+
+
+def test_extra_exclusion_reaches_every_daily_role_and_sealed_readback(excluded_replay):
+    result = benchmark.read_benchmark_case(
+        excluded_replay, case_id='full', start='2023-01-03', end='2023-01-10',
+        extra_excluded_symbols=('sz300666',),
+    )
+    assert result['sessions'] == 6
+    with gzip.open(excluded_replay / 'observations.jsonl.gz', 'rt') as stream:
+        rows = [strict_json_loads(line) for line in stream]
+    for row in rows:
+        for role in ('tradable', 'qualification', 'risk'):
+            assert 'sz300666' not in row['roles'][role]
+            assert 'sz300308' in row['roles'][role]
+        assert row['roles']['indexes'] == ['sh000300', 'sh000682']
+    fills = [fill for row in rows for fill in row['new_fills']]
+    assert fills
+    assert all(fill['signal_date'] < fill['fill_date'] for fill in fills)
+
+
+@pytest.mark.parametrize('exclusions', [('sh000300',), ('bad',)])
+def test_invalid_exclusions_are_rejected_before_evidence_creation(tmp_path, exclusions):
+    output = tmp_path / 'invalid'
+    with pytest.raises(ValueError, match='exclusions'):
+        benchmark.run_benchmark_case(case_id='full', start='2023-01-03', end='2023-01-10',
+                                     output_dir=output, extra_excluded_symbols=exclusions)
+    assert not output.exists()
+
+
+def test_explicit_producer_seal_preserves_other_identity_checks(excluded_replay, monkeypatch):
+    identity_fn = benchmark.benchmark_identity
+    producer = identity_fn('full', '2023-01-03', '2023-01-10',
+                           extra_excluded_symbols=('sz300666',))['benchmark_sha256']
+
+    def changed_reader(*args, **kwargs):
+        identity = identity_fn(*args, **kwargs)
+        identity['benchmark_sha256'] = '0' * 64
+        return identity
+
+    monkeypatch.setattr(benchmark, 'benchmark_identity', changed_reader)
+    kwargs = dict(case_id='full', start='2023-01-03', end='2023-01-10',
+                  extra_excluded_symbols=('sz300666',))
+    with pytest.raises(ValueError, match='identity'):
+        benchmark.read_benchmark_case(excluded_replay, **kwargs)
+    assert benchmark.read_benchmark_case(excluded_replay, producer_sha256=producer, **kwargs)['status'] == 'COMPLETE'
+    with pytest.raises(ValueError, match='identity'):
+        benchmark.read_benchmark_case(excluded_replay, producer_sha256='1' * 64, **kwargs)
+
+    def changed_config(*args, **kwargs):
+        identity = changed_reader(*args, **kwargs)
+        identity['config_sha256'] = '0' * 64
+        return identity
+
+    monkeypatch.setattr(benchmark, 'benchmark_identity', changed_config)
+    with pytest.raises(ValueError, match='identity'):
+        benchmark.read_benchmark_case(excluded_replay, producer_sha256=producer, **kwargs)
+
+
+@pytest.mark.parametrize('mutation', ['metric', 'raw', 'account', 'state', 'scenario', 'sessions'])
+def test_benchmark_readback_rejects_tampered_evidence(excluded_replay, tmp_path, mutation):
+    import shutil
+
+    output = tmp_path / 'tampered'
+    shutil.copytree(excluded_replay, output)
+    if mutation in {'raw', 'account', 'state'}:
+        name = {'raw': 'observations.jsonl.gz', 'account': 'final_account.json',
+                'state': 'benchmark_state.json'}[mutation]
+        with (output / name).open('ab') as stream:
+            stream.write(b' ')
+    else:
+        path = output / 'result.json'
+        result = strict_json_loads(path.read_bytes())
+        result.pop('canonical_sha256')
+        if mutation == 'metric':
+            result['metrics']['final_wealth'] += 1.0
+        elif mutation == 'scenario':
+            result['identity']['extra_excluded_symbols'] = []
+        else:
+            result['sessions'] -= 1
+        result['canonical_sha256'] = hashlib.sha256(canonical_json_bytes(result)).hexdigest()
+        path.write_bytes(canonical_json_bytes(result))
+    with pytest.raises(ValueError):
+        benchmark.read_benchmark_case(output, case_id='full', start='2023-01-03',
+                                      end='2023-01-10', extra_excluded_symbols=('sz300666',))
+
+
+@pytest.mark.parametrize('mutation', ['daily_pnl', 'ledger_equity', 'roles', 'chronology', 'terminal_state'])
+def test_readback_rejects_resealed_semantic_mutations(excluded_replay, tmp_path, mutation):
+    import shutil
+
+    output = tmp_path / 'resealed'
+    shutil.copytree(excluded_replay, output)
+    raw = output / 'observations.jsonl.gz'
+    with gzip.open(raw, 'rt') as stream:
+        rows = [strict_json_loads(line) for line in stream]
+    if mutation == 'daily_pnl':
+        rows[1]['ledger']['daily_pnl'] += 100
+        rows[2]['ledger']['daily_pnl'] -= 100
+    elif mutation == 'ledger_equity':
+        rows[1]['ledger']['equity'] += 100
+    elif mutation == 'roles':
+        rows[1]['roles']['tradable'].append('sz300666')
+    elif mutation == 'chronology':
+        row = next(row for row in rows if row['new_fills'])
+        row['new_fills'][0]['signal_date'] = row['date']
+    else:
+        rows[-1]['state']['tampered'] = True
+    with gzip.open(raw, 'wb') as stream:
+        for row in rows:
+            stream.write(canonical_json_bytes(row) + b'\n')
+    path = output / 'result.json'
+    result = strict_json_loads(path.read_bytes())
+    result.pop('canonical_sha256')
+    result['raw_sha256'] = hashlib.sha256(raw.read_bytes()).hexdigest()
+    result['canonical_sha256'] = hashlib.sha256(canonical_json_bytes(result)).hexdigest()
+    path.write_bytes(canonical_json_bytes(result))
+    with pytest.raises(ValueError):
+        benchmark.read_benchmark_case(output, case_id='full', start='2023-01-03',
+                                      end='2023-01-10', extra_excluded_symbols=('sz300666',))

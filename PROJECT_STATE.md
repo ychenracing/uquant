@@ -11,10 +11,10 @@
 
 ## Active workstream
 
-- Primary owner-authored work: PR #48, `Improve cross-AI core strategy participation and simplify allocation`.
-- Continue the existing PR/branch; do not create a replacement task or redo still-valid evidence.
+- Current comparison work: PR #55, `Evaluate simple ordinary replacement with sealed current-input evidence`; PR #48 is historical and merged.
+- Resolve PR #55 status before continuing; do not redo still-valid evidence.
 - Objective: improve cross-AI trend discovery, holding, recovery, and diversification away from direct dependence on the three optical leaders while simplifying the core allocator.
-- The PR and `benchmarks/cross_ai_core_strategy_contract.json` remain authoritative for current thresholds, candidate identity, completed evidence, failures, and remaining acceptance.
+- The PR and `benchmarks/simple_ordinary_replacement_plan.md` / `benchmarks/simple_ordinary_replacement_result.md` record this comparison's fixed thresholds and failed replacement decision. Existing production contracts remain unchanged.
 
 ## Guardrails
 
@@ -24,6 +24,6 @@
 
 ## Freshness rule
 
-Before acting on mutable state, verify the current `main`, PR #48 head/status, latest relevant PR comments, and applicable checks. If this index conflicts with current GitHub state or the task's explicit contract, GitHub/task authority wins and this file should be updated narrowly.
+Before acting on mutable state, verify the current `main`, PR #55 head/status, latest relevant PR comments, and applicable checks. If this index conflicts with current GitHub state or the task's explicit contract, GitHub/task authority wins and this file should be updated narrowly.
 
-_Last reviewed: 2026-09-07._
+_Last reviewed: 2026-09-09._

@@ -6,7 +6,9 @@ from pathlib import Path
 import pytest
 
 from uquant.contracts.universe import (
-    ai_universe_manifest_bytes, decision_ai_universe, default_ai_universe,
+    ai_universe_manifest_bytes,
+    decision_ai_universe,
+    default_ai_universe,
     research_cohort_input,
 )
 from uquant.leader import decision_reference_symbols
@@ -55,13 +57,20 @@ def test_bad_seal_rejected(tmp_path):
 @pytest.mark.parametrize('change', ['production', 'parent', 'duplicate', 'foreign', 'early', 'future_source', 'unsupported'])
 def test_invalid_membership_rejected(tmp_path, change):
     data = payload()
-    if change == 'production': data['production_ready'] = True
-    if change == 'parent': data['parent_frozen_manifest_sha256'] = '0' * 64
-    if change == 'duplicate': data['members'][1] = data['members'][0].copy()
-    if change == 'foreign': data['members'][0]['symbol'] = 'sh600001'
-    if change == 'early': data['members'][0]['effective_from'] = '2022-08-31'
-    if change == 'future_source': data['members'][0]['source_disclosed_date'] = '2022-09-01'
-    if change == 'unsupported': data['frame_dispositions'][0]['status'] = 'unresolved'
+    if change == 'production':
+        data['production_ready'] = True
+    if change == 'parent':
+        data['parent_frozen_manifest_sha256'] = '0' * 64
+    if change == 'duplicate':
+        data['members'][1] = data['members'][0].copy()
+    if change == 'foreign':
+        data['members'][0]['symbol'] = 'sh600001'
+    if change == 'early':
+        data['members'][0]['effective_from'] = '2022-08-31'
+    if change == 'future_source':
+        data['members'][0]['source_disclosed_date'] = '2022-09-01'
+    if change == 'unsupported':
+        data['frame_dispositions'][0]['status'] = 'unresolved'
     p, sha = save(tmp_path, data)
     with pytest.raises(ValueError):
         with research_cohort_input(p, expected_sha256=sha):
